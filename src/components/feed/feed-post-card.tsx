@@ -1,0 +1,111 @@
+import Link from "next/link";
+import { formatDistanceToNow } from "date-fns";
+import { ko } from "date-fns/locale";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
+import { Heart, MessageCircle, Share2, Bookmark, Gem } from "lucide-react";
+import { formatNumber } from "@/lib/utils";
+import { TierBadge } from "@/components/ui/tier-badge";
+
+export type GridPost = {
+  id: string;
+  title?: string | null;
+  content: string;
+  postType?: string;
+  createdAt: Date;
+  isNsfw: boolean;
+  author: {
+    id: string;
+    username: string;
+    image: string | null;
+    level: number;
+    cosplayerProfile?: { stageName: string | null } | null;
+  };
+  anime?: { title: string; slug: string } | null;
+  media?: { url: string; type: string }[];
+  _count?: { likes: number; comments: number; votes: number; reposts?: number };
+};
+
+const typeLabels: Record<string, string> = {
+  COSPLAY: "코스프레",
+  FANART: "팬아트",
+  REVIEW: "리뷰",
+  MEME: "밈",
+  NEWS: "뉴스",
+  PHOTO: "사진",
+  VIDEO: "영상",
+};
+
+export function FeedPostCard({ post }: { post: GridPost }) {
+  const displayName = post.author.cosplayerProfile?.stageName || post.author.username;
+  const cover = post.media?.[0]?.url;
+
+  return (
+    <Card className="overflow-hidden hover:border-primary/40 transition-all duration-300 group h-full flex flex-col">
+      <CardContent className="p-0 flex flex-col flex-1">
+        <div className="flex items-center gap-2 p-3 pb-2">
+          <Link href={`/u/${post.author.username}`}>
+            <Avatar className="h-8 w-8 ring-2 ring-primary/20 group-hover:ring-primary/50 transition-all">
+              <AvatarImage src={post.author.image} />
+              <AvatarFallback>{displayName[0]?.toUpperCase()}</AvatarFallback>
+            </Avatar>
+          </Link>
+          <div className="flex-1 min-w-0">
+            <Link href={`/u/${post.author.username}`} className="font-semibold text-sm hover:text-primary truncate block">
+              {displayName}
+            </Link>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <TierBadge level={post.author.level} />
+              {post.postType && post.postType !== "GENERAL" && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                  {typeLabels[post.postType] || post.postType}
+                </span>
+              )}
+            </div>
+          </div>
+          <span className="text-[10px] text-muted-foreground shrink-0">
+            {formatDistanceToNow(post.createdAt, { addSuffix: true, locale: ko })}
+          </span>
+        </div>
+
+        <Link href={`/post/${post.id}`} className="block flex-1">
+          {cover ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={cover} alt="" className="w-full aspect-[4/5] object-cover" />
+          ) : (
+            <div className="px-3 pb-3">
+              {post.title && <h3 className="font-semibold text-sm mb-1">{post.title}</h3>}
+              <p className="text-sm text-foreground/85 line-clamp-6">{post.content}</p>
+            </div>
+          )}
+        </Link>
+
+        {post.anime && (
+          <Link href={`/anime/${post.anime.slug}`} className="px-3 text-xs text-neon-cyan hover:underline">
+            {post.anime.title}
+          </Link>
+        )}
+
+        <div className="flex items-center justify-between px-3 py-2.5 border-t border-border/40 text-muted-foreground">
+          <div className="flex items-center gap-3 text-xs">
+            <span className="flex items-center gap-0.5 hover:text-neon-pink">
+              <Heart className="h-3.5 w-3.5" />
+              {formatNumber(post._count?.likes ?? 0)}
+            </span>
+            <span className="flex items-center gap-0.5 hover:text-neon-cyan">
+              <MessageCircle className="h-3.5 w-3.5" />
+              {formatNumber(post._count?.comments ?? 0)}
+            </span>
+            <Share2 className="h-3.5 w-3.5 hover:text-foreground" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Bookmark className="h-3.5 w-3.5 hover:text-yellow-400" />
+            <Link href={`/u/${post.author.username}`}>
+              <Gem className="h-3.5 w-3.5 hover:text-neon-pink" />
+            </Link>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

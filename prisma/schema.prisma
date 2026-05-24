@@ -1,0 +1,883 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============ AUTH & USER ============
+
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum PremiumTier {
+  FREE
+  PREMIUM
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String?   @unique
+  emailVerified DateTime?
+  username      String    @unique
+  passwordHash  String?
+  name          String?
+  image         String?
+  role          UserRole  @default(USER)
+  premiumTier   PremiumTier @default(FREE)
+  premiumUntil  DateTime?
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret String?
+  showNsfw      Boolean   @default(false)
+  isBanned      Boolean   @default(false)
+  banReason     String?
+  bannedUntil   DateTime?
+  level         Int       @default(1)
+  xp            Int       @default(0)
+  totalSupportSent     Int              @default(0)
+  supportTierSent      SupportTierLevel @default(PEBBLE)
+  totalSupportReceived Int              @default(0)
+  supportTierReceived  SupportTierLevel @default(PEBBLE)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  profile       Profile?
+  cosplayerProfile CosplayerProfile?
+
+  posts         Post[]
+  comments      Comment[]
+  votes         Vote[]
+  bookmarks     Bookmark[]
+  reports       Report[]  @relation("Reporter")
+  reportsAgainst Report[] @relation("ReportedUser")
+
+  followers     Follow[]  @relation("Following")
+  following     Follow[]  @relation("Follower")
+  likes         Like[]
+  reposts       Repost[]
+
+  chatMembers   ChatMember[]
+  messages      Message[]
+  messageReads  MessageRead[]
+
+  voiceMembers  VoiceMember[]
+  tipsSent      Tip[]     @relation("TipSender")
+  tipsReceived  Tip[]     @relation("TipReceiver")
+  subscriptions Subscription[] @relation("Subscriber")
+  subscriptionsTo Subscription[] @relation("Creator")
+  digitalProducts DigitalProduct[]
+  orders        Order[]
+  paymentIntents PaymentIntent[]
+  userBadges    UserBadge[]
+  notifications Notification[]
+  events        EventParticipant[]
+  otakuProfile  OtakuProfile?
+  fanPosts      FanPost[] @relation("FanPostCreator")
+  adImpressions AdImpression[]
+  modLogs       ModLog[]  @relation("ModActor")
+  modLogsTarget ModLog[]  @relation("ModTarget")
+  creatorSupportsGiven CreatorSupport[] @relation("Supporter")
+  creatorSupportsReceived CreatorSupport[] @relation("Creator")
+  animeFollows  AnimeFollow[]
+  animesCreated Anime[] @relation("AnimeCreator")
+  platformDevSupporter Boolean @default(false)
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  @@unique([identifier, token])
+}
+
+model Profile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  bio         String?  @db.Text
+  bannerUrl   String?
+  snsLinks    Json?
+  favoriteTags String[]
+  mainCharacter String?
+  nicknameEffect String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Badge {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  imageUrl    String
+  rarity      String   @default("common")
+  userBadges  UserBadge[]
+}
+
+model UserBadge {
+  id        String   @id @default(cuid())
+  userId    String
+  badgeId   String
+  earnedAt  DateTime @default(now())
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  @@unique([userId, badgeId])
+}
+
+// ============ COMMUNITY ============
+
+enum CommunityCategory {
+  ANIME
+  MANGA
+  GAME
+  VTUBER
+  COSPLAY
+  FIGURE
+  ART
+  MUSIC
+  AI_ART
+  LIGHT_NOVEL
+  GOODS
+  NSFW
+  OTHER
+}
+
+model Community {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?  @db.Text
+  iconUrl     String?
+  bannerUrl   String?
+  category    CommunityCategory
+  isNsfw      Boolean  @default(false)
+  parentId    String?
+  parent      Community?  @relation("SubCommunity", fields: [parentId], references: [id])
+  children    Community[] @relation("SubCommunity")
+  creatorId   String
+  memberCount Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  posts       Post[]
+  members     CommunityMember[]
+  chatRooms   ChatRoom[]
+}
+
+model CommunityMember {
+  id          String   @id @default(cuid())
+  communityId String
+  userId      String
+  role        String   @default("member")
+  joinedAt    DateTime @default(now())
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  @@unique([communityId, userId])
+}
+
+enum PostType {
+  GENERAL
+  PHOTO
+  VIDEO
+  COSPLAY
+  FANART
+  REVIEW
+  MEME
+  NEWS
+}
+
+enum SupportTierLevel {
+  PEBBLE
+  STONE
+  COAL
+  IRON
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+  EMERALD
+  SAPPHIRE
+  RUBY
+  DIAMOND
+  CRYSTAL
+  MYTHRIL
+  ORICHALCUM
+  CELESTITE
+  ASTRAL
+  COSMIC
+  ETERNAL
+}
+
+model Post {
+  id          String   @id @default(cuid())
+  title       String?
+  content     String   @db.Text
+  authorId    String
+  communityId String?
+  animeId     String?
+  postType    PostType @default(GENERAL)
+  isNsfw      Boolean  @default(false)
+  viewCount   Int      @default(0)
+  shareCount  Int      @default(0)
+  hotScore    Float    @default(0)
+  isPinned    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  community Community? @relation(fields: [communityId], references: [id], onDelete: SetNull)
+  anime     Anime?    @relation(fields: [animeId], references: [id], onDelete: SetNull)
+  media     PostMedia[]
+  tags      PostTag[]
+  comments  Comment[]
+  votes     Vote[]
+  bookmarks Bookmark[]
+  reports   Report[]
+  likes     Like[]
+  reposts   Repost[]
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  GIF
+  AUDIO
+}
+
+model PostMedia {
+  id        String    @id @default(cuid())
+  postId    String
+  url       String
+  type      MediaType
+  width     Int?
+  height    Int?
+  duration  Int?
+  order     Int       @default(0)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model Tag {
+  id       String   @id @default(cuid())
+  name     String   @unique
+  slug     String   @unique
+  parentId String?
+  parent   Tag?     @relation("TagTree", fields: [parentId], references: [id])
+  children Tag[]    @relation("TagTree")
+  postTags PostTag[]
+}
+
+model PostTag {
+  postId String
+  tagId  String
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  @@id([postId, tagId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  authorId  String
+  postId    String
+  parentId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author   User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post     Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parent   Comment? @relation("CommentReplies", fields: [parentId], references: [id])
+  replies  Comment[] @relation("CommentReplies")
+  reports  Report[]
+}
+
+enum VoteType {
+  UP
+  DOWN
+}
+
+model Vote {
+  id     String   @id @default(cuid())
+  userId String
+  postId String
+  type   VoteType
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  @@unique([userId, postId])
+}
+
+model Bookmark {
+  id     String   @id @default(cuid())
+  userId String
+  postId String
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  @@unique([userId, postId])
+}
+
+// ============ SNS ============
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+  @@unique([followerId, followingId])
+}
+
+model Like {
+  id     String   @id @default(cuid())
+  userId String
+  postId String
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  @@unique([userId, postId])
+}
+
+model Repost {
+  id     String   @id @default(cuid())
+  userId String
+  postId String
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  @@unique([userId, postId])
+}
+
+model TrendingSnapshot {
+  id        String   @id @default(cuid())
+  type      String
+  entityId  String
+  score     Float
+  rank      Int
+  createdAt DateTime @default(now())
+}
+
+// ============ CHAT ============
+
+enum ChatRoomType {
+  PUBLIC
+  FANDOM
+  DM
+  GROUP
+}
+
+model ChatRoom {
+  id          String   @id @default(cuid())
+  name        String?
+  type        ChatRoomType
+  communityId String?
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  community Community? @relation(fields: [communityId], references: [id], onDelete: SetNull)
+  members   ChatMember[]
+  messages  Message[]
+  pinned    PinnedMessage[]
+}
+
+model ChatMember {
+  id       String   @id @default(cuid())
+  roomId   String
+  userId   String
+  role     String   @default("member")
+  joinedAt DateTime @default(now())
+  lastReadAt DateTime?
+  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([roomId, userId])
+}
+
+enum MessageAttachmentType {
+  IMAGE
+  VIDEO
+  AUDIO
+  GIF
+  STICKER
+  FILE
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  roomId    String
+  senderId  String
+  content   String?  @db.Text
+  replyToId String?
+  mentions  String[]
+  createdAt DateTime @default(now())
+  editedAt  DateTime?
+
+  room      ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  replyTo   Message? @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies   Message[] @relation("MessageReplies")
+  attachments MessageAttachment[]
+  reads     MessageRead[]
+  pinned    PinnedMessage?
+}
+
+model MessageAttachment {
+  id        String   @id @default(cuid())
+  messageId String
+  url       String
+  type      MessageAttachmentType
+  name      String?
+  size      Int?
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+model MessageRead {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  readAt    DateTime @default(now())
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([messageId, userId])
+}
+
+model PinnedMessage {
+  id        String   @id @default(cuid())
+  roomId    String
+  messageId String   @unique
+  pinnedBy  String
+  pinnedAt  DateTime @default(now())
+  room    ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  message Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+// ============ VOICE ============
+
+model VoiceChannel {
+  id          String   @id @default(cuid())
+  name        String
+  communityId String?
+  maxUsers    Int      @default(50)
+  isLive      Boolean  @default(false)
+  allowScreen Boolean  @default(true)
+  allowCamera Boolean  @default(true)
+  createdBy   String
+  createdAt   DateTime @default(now())
+
+  members VoiceMember[]
+}
+
+model VoiceMember {
+  id        String   @id @default(cuid())
+  channelId String
+  userId    String
+  isMuted   Boolean  @default(false)
+  isDeafened Boolean @default(false)
+  cameraOn  Boolean  @default(false)
+  screenOn  Boolean  @default(false)
+  joinedAt  DateTime @default(now())
+  channel VoiceChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([channelId, userId])
+}
+
+// ============ COSPLAYER ============
+
+model CosplayerProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  stageName   String?
+  bio         String?  @db.Text
+  totalTips   Int      @default(0)
+  followerCount Int    @default(0)
+  minChatTier SupportTierLevel @default(STONE)
+  dmEnabled   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photos     CosplayPhoto[]
+  schedules  CosplaySchedule[]
+  fanPosts   FanPost[]
+  animeLinks CosplayerAnime[]
+}
+
+model CosplayPhoto {
+  id         String   @id @default(cuid())
+  profileId  String
+  url        String
+  caption    String?
+  character  String?
+  series     String?
+  createdAt  DateTime @default(now())
+  profile CosplayerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model CosplaySchedule {
+  id         String   @id @default(cuid())
+  profileId  String
+  title      String
+  location   String?
+  startsAt   DateTime
+  endsAt     DateTime?
+  type       String
+  profile CosplayerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model FanPost {
+  id         String   @id @default(cuid())
+  profileId  String
+  creatorId  String
+  title      String
+  content    String   @db.Text
+  minTipAmount Int    @default(0)
+  isSubscriberOnly Boolean @default(false)
+  createdAt  DateTime @default(now())
+  profile CosplayerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  creator User @relation("FanPostCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+}
+
+// ============ MONETIZATION ============
+
+model Tip {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  amount     Int
+  message    String?
+  platformFee Int
+  createdAt  DateTime @default(now())
+  sender   User @relation("TipSender", fields: [senderId], references: [id])
+  receiver User @relation("TipReceiver", fields: [receiverId], references: [id])
+}
+
+model Subscription {
+  id         String   @id @default(cuid())
+  subscriberId String
+  creatorId  String
+  tier       String   @default("basic")
+  amount     Int
+  status     String   @default("active")
+  currentPeriodEnd DateTime
+  createdAt  DateTime @default(now())
+  subscriber User @relation("Subscriber", fields: [subscriberId], references: [id])
+  creator    User @relation("Creator", fields: [creatorId], references: [id])
+  @@unique([subscriberId, creatorId])
+}
+
+enum ProductType {
+  ART
+  EMOTICON
+  BACKGROUND
+  PROFILE_ITEM
+}
+
+model DigitalProduct {
+  id          String   @id @default(cuid())
+  sellerId    String
+  title       String
+  description String?  @db.Text
+  price       Int
+  type        ProductType
+  previewUrl  String
+  fileUrl     String
+  salesCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  seller User @relation(fields: [sellerId], references: [id])
+  orders OrderItem[]
+}
+
+model Order {
+  id        String   @id @default(cuid())
+  buyerId   String
+  total     Int
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  buyer User @relation(fields: [buyerId], references: [id])
+  items OrderItem[]
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  productId String
+  price     Int
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product DigitalProduct @relation(fields: [productId], references: [id])
+}
+
+enum PaymentIntentType {
+  TIP
+  PRODUCT
+  PREMIUM
+}
+
+enum PaymentIntentStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+model PaymentIntent {
+  id        String              @id @default(cuid())
+  userId    String
+  type      PaymentIntentType
+  amount    Int
+  status    PaymentIntentStatus @default(PENDING)
+  metadata  Json
+  paymentKey String?
+  createdAt DateTime            @default(now())
+  paidAt    DateTime?
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+}
+
+model AdSlot {
+  id           String   @id @default(cuid())
+  position     String
+  title        String
+  imageUrl     String
+  linkUrl      String
+  sponsorName  String?
+  ctaLabel     String?
+  adCategory   String?
+  isFeedAd     Boolean  @default(false)
+  active       Boolean  @default(true)
+  impressions  AdImpression[]
+}
+
+enum AnimeGenre {
+  ACTION
+  ROMANCE
+  COMEDY
+  FANTASY
+  SCI_FI
+  SLICE_OF_LIFE
+  HORROR
+  SPORTS
+  MECHA
+  ISEKAI
+  SCHOOL
+  MUSIC
+  MYSTERY
+  SUPERNATURAL
+  DRAMA
+  ADVENTURE
+  OTHER
+}
+
+model Anime {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  titleEn     String?
+  genre       AnimeGenre @default(OTHER)
+  bannerUrl   String?
+  coverUrl    String?
+  synopsis    String?  @db.Text
+  studio      String?
+  characters  Json?
+  voiceActors Json?
+  worldInfo   String?  @db.Text
+  airedFrom   DateTime?
+  tags        String[]
+  followerCount Int    @default(0)
+  creatorId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  creator     User     @relation("AnimeCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  posts       Post[]
+  followers   AnimeFollow[]
+  cosplayers  CosplayerAnime[]
+  goods       AnimeGoods[]
+}
+
+model AnimeFollow {
+  id       String   @id @default(cuid())
+  userId   String
+  animeId  String
+  createdAt DateTime @default(now())
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  anime Anime @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  @@unique([userId, animeId])
+}
+
+model CosplayerAnime {
+  id         String @id @default(cuid())
+  profileId  String
+  animeId    String
+  character  String?
+  profile CosplayerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  anime   Anime            @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  @@unique([profileId, animeId])
+}
+
+model AnimeGoods {
+  id       String @id @default(cuid())
+  animeId  String
+  title    String
+  type     String
+  price    Int?
+  imageUrl String?
+  linkUrl  String?
+  anime Anime @relation(fields: [animeId], references: [id], onDelete: Cascade)
+}
+
+model CreatorSupport {
+  id          String   @id @default(cuid())
+  supporterId String
+  creatorId   String
+  tier        SupportTierLevel @default(PEBBLE)
+  totalAmount Int      @default(0)
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  supporter User @relation("Supporter", fields: [supporterId], references: [id], onDelete: Cascade)
+  creator   User @relation("Creator", fields: [creatorId], references: [id], onDelete: Cascade)
+  @@unique([supporterId, creatorId])
+}
+
+model AdImpression {
+  id     String   @id @default(cuid())
+  slotId String
+  userId String?
+  viewedAt DateTime @default(now())
+  slot AdSlot @relation(fields: [slotId], references: [id])
+  user User?  @relation(fields: [userId], references: [id])
+}
+
+// ============ EVENTS & OTAKU ============
+
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @db.Text
+  type        String
+  startsAt    DateTime
+  endsAt      DateTime
+  imageUrl    String?
+  prize       String?
+  createdAt   DateTime @default(now())
+  participants EventParticipant[]
+}
+
+model EventParticipant {
+  id       String @id @default(cuid())
+  eventId  String
+  userId   String
+  entryUrl String?
+  score    Int    @default(0)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([eventId, userId])
+}
+
+model OtakuProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  favoriteChars String[]
+  animeList     Json?
+  gameList      Json?
+  mangaList     Json?
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RankingEntry {
+  id        String   @id @default(cuid())
+  category  String
+  entityId  String
+  entityType String
+  score     Float
+  rank      Int
+  period    String
+  updatedAt DateTime @updatedAt
+}
+
+// ============ MODERATION ============
+
+enum ReportTargetType {
+  USER
+  POST
+  COMMENT
+  MESSAGE
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+  DISMISSED
+}
+
+model Report {
+  id         String   @id @default(cuid())
+  reporterId String
+  targetType ReportTargetType
+  targetId   String
+  reason     String
+  details    String?  @db.Text
+  status     ReportStatus @default(PENDING)
+  createdAt  DateTime @default(now())
+  reporter   User @relation("Reporter", fields: [reporterId], references: [id])
+  reportedUserId String?
+  reportedUser User? @relation("ReportedUser", fields: [reportedUserId], references: [id])
+  postId     String?
+  post       Post? @relation(fields: [postId], references: [id])
+  commentId  String?
+  comment    Comment? @relation(fields: [commentId], references: [id])
+}
+
+model ModLog {
+  id        String   @id @default(cuid())
+  actorId   String
+  targetId  String
+  action    String
+  reason    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  actor  User @relation("ModActor", fields: [actorId], references: [id])
+  target User @relation("ModTarget", fields: [targetId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  body      String?
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
