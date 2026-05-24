@@ -43,7 +43,11 @@ export default function SignUpPage() {
       });
 
       if (login?.error) {
-        setError("가입은 완료됐지만 자동 로그인에 실패했습니다. 로그인 페이지에서 다시 시도해 주세요.");
+        setError(
+          login.error === "Configuration"
+            ? "가입은 됐을 수 있으나 AUTH_SECRET 미설정으로 로그인 불가입니다. Vercel 환경 변수 확인 후 Redeploy."
+            : "가입은 완료됐지만 자동 로그인에 실패했습니다. 로그인 페이지에서 다시 시도해 주세요."
+        );
         return;
       }
 

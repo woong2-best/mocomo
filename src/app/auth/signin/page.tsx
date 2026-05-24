@@ -33,7 +33,11 @@ function SignInForm() {
     setLoading(false);
 
     if (result?.error) {
-      setError("이메일 또는 비밀번호가 올바르지 않습니다.");
+      setError(
+        result.error === "Configuration"
+          ? "서버 AUTH_SECRET(32자 이상)이 Vercel에 설정되지 않았습니다. 설정 후 Redeploy 하세요."
+          : "이메일 또는 비밀번호가 올바르지 않습니다."
+      );
       return;
     }
 

@@ -24,23 +24,31 @@ export async function registerUser(data: z.infer<typeof registerSchema>) {
   });
   if (exists) return { error: "이미 사용 중인 이메일 또는 닉네임입니다." };
 
-  const passwordHash = await bcrypt.hash(password, 12);
-  const user = await db.user.create({
-    data: {
-      email,
-      username,
-      passwordHash,
-      name: name || username,
-      profile: { create: {} },
-      otakuProfile: { create: {} },
-    },
-  });
+  try {
+    const passwordHash = await bcrypt.hash(password, 12);
+    const user = await db.user.create({
+      data: {
+        email,
+        username,
+        passwordHash,
+        name: name || username,
+        profile: { create: {} },
+        otakuProfile: { create: {} },
+      },
+    });
 
-  if (email) {
-    await sendWelcomeEmail(email, username).catch(() => {});
+    if (email) {
+      await sendWelcomeEmail(email, username).catch(() => {});
+    }
+
+    return { success: true, userId: user.id };
+  } catch (e) {
+    console.error("[registerUser]", e);
+    return {
+      error:
+        "회원가입 저장에 실패했습니다. Vercel에 DATABASE_URL·DIRECT_URL이 설정됐는지 확인하세요.",
+    };
   }
-
-  return { success: true, userId: user.id };
 }
 
 export async function resetPasswordRequest(email: string) {

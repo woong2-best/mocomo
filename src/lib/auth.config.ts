@@ -1,9 +1,10 @@
 import type { NextAuthConfig } from "next-auth";
+import { getAuthSecret } from "@/lib/auth-env";
 
 /** Edge/middleware 전용 — DB·bcrypt·providers 없음 */
 export const authConfig = {
   trustHost: true,
-  secret: process.env.AUTH_SECRET,
+  secret: getAuthSecret(),
   pages: {
     signIn: "/auth/signin",
     error: "/auth/error",
