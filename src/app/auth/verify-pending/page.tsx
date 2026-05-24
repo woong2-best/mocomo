@@ -52,13 +52,7 @@ function VerifyPendingInner() {
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-xs text-amber-900 dark:text-amber-200 space-y-1">
           <p className="font-semibold">메일이 안 오는 경우</p>
           <p>1. 스팸함 확인</p>
-          <p>
-            2. Resend 무료는{" "}
-            <a href="https://resend.com/domains" className="underline" target="_blank" rel="noreferrer">
-              resend.com/domains
-            </a>{" "}
-            도메인 인증 전까지 <strong>Resend 가입 이메일</strong>로만 수신될 수 있습니다.
-          </p>
+          <p>2. 발신 주소는 <strong>@mocomo.net</strong> 이어야 합니다 (@send.mocomo.net 은 Resend에서 거부될 수 있음)</p>
           <p>3. 메일에 있는 <strong>6자리 코드</strong>를 아래에 입력해도 됩니다.</p>
         </div>
 

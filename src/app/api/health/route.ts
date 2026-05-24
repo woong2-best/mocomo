@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAuthConfigStatus, isAuthConfigured } from "@/lib/auth-env";
-import { isEmailConfigured } from "@/lib/email";
+import { getEmailConfigStatus } from "@/lib/email";
 
 export async function GET() {
   let dbOk = false;
@@ -12,7 +12,7 @@ export async function GET() {
     dbOk = false;
   }
 
-  const auth = { ...getAuthConfigStatus(), emailConfigured: isEmailConfigured() };
+  const auth = { ...getAuthConfigStatus(), ...getEmailConfigStatus() };
   const ok = dbOk && isAuthConfigured();
 
   return NextResponse.json(

@@ -1,10 +1,48 @@
 import { Resend } from "resend";
 import { getAppBaseUrl } from "@/lib/auth-tokens";
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+function getResendClient() {
+  const key = process.env.RESEND_API_KEY?.trim();
+  return key ? new Resend(key) : null;
+}
 
 export function isEmailConfigured(): boolean {
   return !!process.env.RESEND_API_KEY?.trim();
+}
+
+function parseEmailFromDomain(from: string): string | null {
+  const match = from.match(/@([a-z0-9.-]+\.[a-z]{2,})/i);
+  return match?.[1]?.toLowerCase() ?? null;
+}
+
+/** Verified mocomo.net on Resend — use send subdomain even if EMAIL_FROM env is missing. */
+export function getEmailFromAddress(): string {
+  const explicit = process.env.EMAIL_FROM?.trim();
+  if (explicit) return explicit;
+
+  const baseUrl = getAppBaseUrl();
+  if (baseUrl.includes("mocomo.net")) {
+    return "MoCoMo <noreply@mocomo.net>";
+  }
+
+  return "MoCoMo <onboarding@resend.dev>";
+}
+
+export function getEmailConfigStatus() {
+  const from = getEmailFromAddress();
+  const domain = parseEmailFromDomain(from);
+  const usingResendDev = domain === "resend.dev";
+  const usingMocomoDomain = !!domain?.endsWith("mocomo.net");
+
+  return {
+    emailConfigured: isEmailConfigured(),
+    emailFromSet: !!process.env.EMAIL_FROM?.trim(),
+    emailFromDomain: domain,
+    emailFromResolved: from.replace(/<[^>]+>/, "<…>"),
+    usingResendDev,
+    usingMocomoDomain,
+    productionReady: isEmailConfigured() && usingMocomoDomain && !usingResendDev,
+  };
 }
 
 export function getResendAccountHint(): string | null {
@@ -31,15 +69,17 @@ export async function sendEmail({
   subject: string;
   html: string;
 }): Promise<{ ok: boolean; error?: string; messageId?: string }> {
+  const resend = getResendClient();
   if (!resend) {
     console.warn("[email] RESEND_API_KEY not set");
     return { ok: false, error: "RESEND_API_KEY가 설정되지 않았습니다." };
   }
 
-  const from = process.env.EMAIL_FROM?.trim() || "MoCoMo <onboarding@resend.dev>";
+  const from = getEmailFromAddress();
 
   try {
     const { data, error } = await resend.emails.send({ from, to, subject, html });
+    console.info("[email] sent", { to, from: from.replace(/<[^>]+>/, "<…>"), id: data?.id, error: error?.message });
     if (error) {
       console.error("[email]", error);
       return { ok: false, error: formatResendError(error.message) };
