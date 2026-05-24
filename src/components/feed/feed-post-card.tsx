@@ -12,7 +12,7 @@ export type GridPost = {
   title?: string | null;
   content: string;
   postType?: string;
-  createdAt: Date;
+  createdAt: Date | string;
   isNsfw: boolean;
   author: {
     id: string;

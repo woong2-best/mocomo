@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { calcPlatformFee } from "@/lib/utils";
 import { tierFromAmount } from "@/lib/tiers";
-import { ProductType, PaymentIntentType } from "@prisma/client";
+import { ProductType, PaymentIntentType, Prisma } from "@prisma/client";
 import {
   isPaymentsConfigured,
   confirmTossPayment,
@@ -131,7 +131,7 @@ export async function createPaymentIntent(input: {
       userId: user.id,
       type: input.type,
       amount: input.amount,
-      metadata: input.metadata,
+      metadata: input.metadata as Prisma.InputJsonValue,
     },
   });
 

@@ -36,12 +36,19 @@ export function TossPayButton({
         return;
       }
 
+      if (!("orderId" in res) || !res.clientKey) {
+        setError("결제 준비에 실패했습니다.");
+        return;
+      }
+
       try {
-        const { loadTossPayments } = await import("@tosspayments/tosspayments-sdk");
+        const { loadTossPayments, ANONYMOUS } = await import("@tosspayments/tosspayments-sdk");
         const toss = await loadTossPayments(res.clientKey);
+        const payment = toss.payment({ customerKey: ANONYMOUS });
         const origin = window.location.origin;
-        await toss.requestPayment("카드", {
-          amount: res.amount,
+        await payment.requestPayment({
+          method: "CARD",
+          amount: { currency: "KRW", value: res.amount },
           orderId: res.orderId,
           orderName,
           successUrl: `${origin}/payments/success`,

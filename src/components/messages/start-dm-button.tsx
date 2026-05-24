@@ -27,7 +27,7 @@ export function StartDmButton({ userId }: { userId: string }) {
       );
       return;
     }
-    if (result.room) router.push(`/messages/${result.room.id}`);
+    if ("room" in result && result.room) router.push(`/messages/${result.room.id}`);
   }
 
   return (

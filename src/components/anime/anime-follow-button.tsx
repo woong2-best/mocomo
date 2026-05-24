@@ -15,7 +15,7 @@ export function AnimeFollowButton({
 
   return (
     <Button
-      variant={initialFollowing ? "secondary" : "neon"}
+      variant={initialFollowing ? "secondary" : "rainbow"}
       size="sm"
       disabled={pending}
       onClick={() =>

@@ -15,7 +15,9 @@ export function AdminReportActions({
   const [pending, startTransition] = useTransition();
 
   function resolve(status: ReportStatus) {
-    startTransition(() => resolveReport(reportId, status));
+    startTransition(() => {
+      void resolveReport(reportId, status);
+    });
   }
 
   return (
@@ -32,7 +34,9 @@ export function AdminReportActions({
           variant="destructive"
           disabled={pending}
           onClick={() =>
-            startTransition(() => banUser(reportedUserId, "관리자 조치 (신고)"))
+            startTransition(() => {
+              void banUser(reportedUserId, "관리자 조치 (신고)");
+            })
           }
         >
           유저 정지
