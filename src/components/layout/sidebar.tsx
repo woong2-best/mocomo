@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BRAND } from "@/lib/brand";
+import { SidebarAuthFooter } from "@/components/layout/sidebar-auth-footer";
 
 const navBlocks = [
   { href: "/", icon: Home, label: "홈" },
@@ -94,6 +95,8 @@ export function Sidebar() {
           글쓰기
         </span>
       </Link>
+
+      <SidebarAuthFooter />
     </aside>
   );
 }
