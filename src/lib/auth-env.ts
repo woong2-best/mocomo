@@ -15,15 +15,22 @@ export function getAuthUrl(): string | undefined {
 export function getAuthConfigStatus() {
   const secret = getAuthSecret();
   const secretLength = secret?.length ?? 0;
+  const googleId = process.env.AUTH_GOOGLE_ID?.trim();
+  const googleSecret = process.env.AUTH_GOOGLE_SECRET?.trim();
 
   return {
     secretConfigured: secretLength > 0,
     secretLengthOk: secretLength >= MIN_SECRET_LENGTH,
     authUrl: getAuthUrl() ?? null,
     trustHost: process.env.AUTH_TRUST_HOST === "true" || process.env.VERCEL === "1",
-    googleOAuth: !!(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET),
+    googleOAuth: !!(googleId && googleSecret),
+    googleIdPresent: !!googleId,
+    googleSecretPresent: !!googleSecret,
+    googleIdLength: googleId?.length ?? 0,
+    googleSecretLength: googleSecret?.length ?? 0,
     discordOAuth: !!(process.env.AUTH_DISCORD_ID && process.env.AUTH_DISCORD_SECRET),
     databaseUrlConfigured: !!process.env.DATABASE_URL,
+    vercelEnv: process.env.VERCEL_ENV ?? null,
   };
 }
 
