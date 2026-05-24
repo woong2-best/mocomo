@@ -7,8 +7,16 @@ import {
   sendPasswordResetEmail,
   sendVerificationEmail,
   isEmailConfigured,
+  getResendAccountHint,
 } from "@/lib/email";
-import { getAppBaseUrl, resetTokenIdentifier, verifyTokenIdentifier } from "@/lib/auth-tokens";
+import {
+  getAppBaseUrl,
+  resetTokenIdentifier,
+  verifyTokenIdentifier,
+  verifyCodeIdentifier,
+  resetCodeIdentifier,
+  generateEmailCode,
+} from "@/lib/auth-tokens";
 import { z } from "zod";
 
 const registerSchema = z.object({
@@ -17,6 +25,22 @@ const registerSchema = z.object({
   password: z.string().min(8),
   name: z.string().optional(),
 });
+
+async function saveVerificationCodes(email: string, token: string, code: string, hours = 24) {
+  const expires = new Date(Date.now() + hours * 60 * 60 * 1000);
+  const verifyId = verifyTokenIdentifier(email);
+  const codeId = verifyCodeIdentifier(email);
+
+  await db.verificationToken.deleteMany({
+    where: { identifier: { in: [verifyId, codeId] } },
+  });
+  await db.verificationToken.createMany({
+    data: [
+      { identifier: verifyId, token, expires },
+      { identifier: codeId, token: code, expires },
+    ],
+  });
+}
 
 export async function registerUser(data: z.infer<typeof registerSchema>) {
   const parsed = registerSchema.safeParse(data);
@@ -51,22 +75,15 @@ export async function registerUser(data: z.infer<typeof registerSchema>) {
     });
 
     const token = randomBytes(32).toString("hex");
-    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    const verifyId = verifyTokenIdentifier(email);
-
-    await db.verificationToken.deleteMany({ where: { identifier: verifyId } });
-    await db.verificationToken.create({
-      data: { identifier: verifyId, token, expires },
-    });
+    const code = generateEmailCode();
+    await saveVerificationCodes(email, token, code);
 
     const verifyUrl = `${getAppBaseUrl()}/auth/verify?token=${token}&email=${encodeURIComponent(email)}`;
-    const sent = await sendVerificationEmail(email, verifyUrl, username);
+    const sent = await sendVerificationEmail(email, verifyUrl, username, code);
 
     if (!sent.ok) {
       await db.user.delete({ where: { id: user.id } });
-      return {
-        error: `인증 메일 발송 실패: ${sent.error ?? "알 수 없는 오류"}. Resend 도메인/수신 이메일 설정을 확인하세요.`,
-      };
+      return { error: sent.error ?? "인증 메일 발송 실패" };
     }
 
     return { success: true, userId: user.id, needsVerification: true, email };
@@ -94,7 +111,35 @@ export async function verifyEmail(data: { email: string; token: string }) {
     where: { email },
     data: { emailVerified: new Date() },
   });
-  await db.verificationToken.deleteMany({ where: { identifier: verifyId } });
+  await db.verificationToken.deleteMany({
+    where: {
+      identifier: { in: [verifyId, verifyCodeIdentifier(email)] },
+    },
+  });
+
+  return { success: true };
+}
+
+export async function verifyEmailByCode(email: string, code: string) {
+  const normalized = email.trim().toLowerCase();
+  const codeId = verifyCodeIdentifier(normalized);
+
+  const record = await db.verificationToken.findFirst({
+    where: { identifier: codeId, token: code.trim() },
+  });
+  if (!record || record.expires < new Date()) {
+    return { error: "인증 코드가 올바르지 않거나 만료되었습니다." };
+  }
+
+  await db.user.update({
+    where: { email: normalized },
+    data: { emailVerified: new Date() },
+  });
+  await db.verificationToken.deleteMany({
+    where: {
+      identifier: { in: [verifyTokenIdentifier(normalized), codeId] },
+    },
+  });
 
   return { success: true };
 }
@@ -110,22 +155,23 @@ export async function resendVerificationEmail(email: string) {
   }
 
   const token = randomBytes(32).toString("hex");
-  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  const verifyId = verifyTokenIdentifier(normalized);
-
-  await db.verificationToken.deleteMany({ where: { identifier: verifyId } });
-  await db.verificationToken.create({
-    data: { identifier: verifyId, token, expires },
-  });
+  const code = generateEmailCode();
+  await saveVerificationCodes(normalized, token, code);
 
   const verifyUrl = `${getAppBaseUrl()}/auth/verify?token=${token}&email=${encodeURIComponent(normalized)}`;
-  const sent = await sendVerificationEmail(normalized, verifyUrl, user.username);
+  const sent = await sendVerificationEmail(normalized, verifyUrl, user.username, code);
 
   if (!sent.ok) {
-    return { error: `인증 메일 발송 실패: ${sent.error ?? "알 수 없는 오류"}` };
+    return { error: sent.error ?? "인증 메일 발송 실패" };
   }
 
-  return { success: true, message: "인증 메일을 다시 보냈습니다." };
+  const hint = getResendAccountHint();
+  return {
+    success: true,
+    message: hint
+      ? `인증 메일을 보냈습니다. (Resend 무료: ${hint} 로만 수신 가능할 수 있음)`
+      : "인증 메일을 다시 보냈습니다. 스팸함도 확인해 주세요.",
+  };
 }
 
 export async function preLoginCheck(email: string, password: string) {
@@ -168,27 +214,37 @@ export async function resetPasswordRequest(email: string) {
   }
 
   const token = randomBytes(32).toString("hex");
+  const code = generateEmailCode();
   const expires = new Date(Date.now() + 60 * 60 * 1000);
   const resetId = resetTokenIdentifier(normalized);
+  const codeId = resetCodeIdentifier(normalized);
 
-  await db.verificationToken.deleteMany({ where: { identifier: resetId } });
-  await db.verificationToken.create({
-    data: { identifier: resetId, token, expires },
+  await db.verificationToken.deleteMany({
+    where: { identifier: { in: [resetId, codeId] } },
+  });
+  await db.verificationToken.createMany({
+    data: [
+      { identifier: resetId, token, expires },
+      { identifier: codeId, token: code, expires },
+    ],
   });
 
   const resetUrl = `${getAppBaseUrl()}/auth/reset?token=${token}&email=${encodeURIComponent(normalized)}`;
-  const sent = await sendPasswordResetEmail(normalized, resetUrl);
+  const sent = await sendPasswordResetEmail(normalized, resetUrl, code);
 
   if (!sent.ok) {
-    await db.verificationToken.deleteMany({ where: { identifier: resetId } });
-    return {
-      error: `메일 발송 실패: ${sent.error ?? "알 수 없는 오류"}. Resend에서 발신 도메인·수신 이메일을 확인하세요.`,
-    };
+    await db.verificationToken.deleteMany({
+      where: { identifier: { in: [resetId, codeId] } },
+    });
+    return { error: sent.error ?? "메일 발송 실패" };
   }
 
+  const hint = getResendAccountHint();
   return {
     success: true,
-    message: "비밀번호 재설정 링크를 이메일로 보냈습니다. 스팸함도 확인해 주세요.",
+    message: hint
+      ? `재설정 메일을 보냈습니다. (Resend 무료: ${hint} 로만 수신 가능할 수 있음)`
+      : "비밀번호 재설정 링크를 이메일로 보냈습니다. 스팸함도 확인해 주세요.",
   };
 }
 
@@ -215,7 +271,37 @@ export async function resetPasswordConfirm(data: {
     where: { email },
     data: { passwordHash },
   });
-  await db.verificationToken.deleteMany({ where: { identifier: resetId } });
+  await db.verificationToken.deleteMany({
+    where: {
+      identifier: { in: [resetId, resetCodeIdentifier(email)] },
+    },
+  });
+
+  return { success: true };
+}
+
+export async function resetPasswordByCode(email: string, code: string, password: string) {
+  const normalized = email.trim().toLowerCase();
+  if (password.length < 8) return { error: "비밀번호는 8자 이상이어야 합니다." };
+
+  const codeId = resetCodeIdentifier(normalized);
+  const record = await db.verificationToken.findFirst({
+    where: { identifier: codeId, token: code.trim() },
+  });
+  if (!record || record.expires < new Date()) {
+    return { error: "인증 코드가 올바르지 않거나 만료되었습니다." };
+  }
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  await db.user.update({
+    where: { email: normalized },
+    data: { passwordHash },
+  });
+  await db.verificationToken.deleteMany({
+    where: {
+      identifier: { in: [resetTokenIdentifier(normalized), codeId] },
+    },
+  });
 
   return { success: true };
 }

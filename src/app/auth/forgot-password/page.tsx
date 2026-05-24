@@ -51,8 +51,14 @@ export default function ForgotPasswordPage() {
             )}
           </form>
           <p className="text-xs text-muted-foreground mt-3">
-            메일이 안 오면 Vercel에 <code>RESEND_API_KEY</code> 설정과 Resend 발신 도메인을 확인하세요.
+            메일이 안 오면 Resend 무료 한도(가입 이메일만 수신)를 확인하세요.{" "}
+            <a href="https://resend.com/domains" className="text-primary underline" target="_blank" rel="noreferrer">
+              도메인 인증
+            </a>
           </p>
+          <Link href="/auth/reset-code" className="block text-center text-sm text-primary mt-2">
+            메일의 6자리 코드로 재설정
+          </Link>
           <Link href="/auth/signin" className="block text-center text-sm text-primary mt-4">
             로그인으로
           </Link>

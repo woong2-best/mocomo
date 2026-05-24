@@ -4,7 +4,22 @@ import { getAppBaseUrl } from "@/lib/auth-tokens";
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 export function isEmailConfigured(): boolean {
-  return !!process.env.RESEND_API_KEY;
+  return !!process.env.RESEND_API_KEY?.trim();
+}
+
+export function getResendAccountHint(): string | null {
+  return process.env.RESEND_ACCOUNT_EMAIL?.trim() || null;
+}
+
+function formatResendError(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes("only send") || lower.includes("testing emails") || lower.includes("verify a domain")) {
+    const hint = getResendAccountHint();
+    return hint
+      ? `Resend 무료 한도: ${hint} 주소로만 발송 가능합니다. 다른 이메일은 resend.com/domains 에서 도메인 인증 후 사용하세요.`
+      : "Resend 무료 한도: Resend 가입 이메일로만 발송됩니다. 다른 주소는 resend.com/domains 에서 도메인 인증이 필요합니다.";
+  }
+  return message;
 }
 
 export async function sendEmail({
@@ -15,29 +30,43 @@ export async function sendEmail({
   to: string;
   subject: string;
   html: string;
-}): Promise<{ ok: boolean; error?: string }> {
+}): Promise<{ ok: boolean; error?: string; messageId?: string }> {
   if (!resend) {
     console.warn("[email] RESEND_API_KEY not set");
     return { ok: false, error: "RESEND_API_KEY가 설정되지 않았습니다." };
   }
 
-  const from = process.env.EMAIL_FROM || "MoCoMo <onboarding@resend.dev>";
+  const from = process.env.EMAIL_FROM?.trim() || "MoCoMo <onboarding@resend.dev>";
 
-  const { error } = await resend.emails.send({ from, to, subject, html });
-  if (error) {
-    console.error("[email]", error);
-    return { ok: false, error: error.message };
+  try {
+    const { data, error } = await resend.emails.send({ from, to, subject, html });
+    if (error) {
+      console.error("[email]", error);
+      return { ok: false, error: formatResendError(error.message) };
+    }
+    if (!data?.id) {
+      return { ok: false, error: "Resend가 메일 ID를 반환하지 않았습니다." };
+    }
+    return { ok: true, messageId: data.id };
+  } catch (e) {
+    console.error("[email]", e);
+    return { ok: false, error: "메일 서버 연결에 실패했습니다." };
   }
-  return { ok: true };
 }
 
-export async function sendVerificationEmail(to: string, verifyUrl: string, username: string) {
+export async function sendVerificationEmail(
+  to: string,
+  verifyUrl: string,
+  username: string,
+  code: string
+) {
   return sendEmail({
     to,
-    subject: "[MoCoMo] 이메일 인증을 완료해 주세요",
+    subject: `[MoCoMo] 인증 코드 ${code}`,
     html: `
       <h2>${username}님, MoCoMo 가입을 환영합니다!</h2>
-      <p>아래 버튼을 눌러 이메일 주소가 본인 것인지 확인해 주세요. (24시간 유효)</p>
+      <p>아래 <strong>인증 코드</strong>를 사이트에 입력하거나, 링크를 클릭하세요. (24시간 유효)</p>
+      <p style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#7c3aed">${code}</p>
       <p><a href="${verifyUrl}" style="display:inline-block;padding:12px 24px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold">이메일 인증하기</a></p>
       <p style="word-break:break-all;color:#666;font-size:12px">${verifyUrl}</p>
       <p>가입하지 않으셨다면 이 메일을 무시하세요.</p>
@@ -45,13 +74,14 @@ export async function sendVerificationEmail(to: string, verifyUrl: string, usern
   });
 }
 
-export async function sendPasswordResetEmail(to: string, resetUrl: string) {
+export async function sendPasswordResetEmail(to: string, resetUrl: string, code: string) {
   return sendEmail({
     to,
-    subject: "[MoCoMo] 비밀번호 재설정",
+    subject: `[MoCoMo] 비밀번호 재설정 코드 ${code}`,
     html: `
       <h2>비밀번호 재설정</h2>
-      <p>아래 링크를 클릭해 비밀번호를 재설정하세요. (1시간 유효)</p>
+      <p>인증 코드: <strong style="font-size:24px;letter-spacing:4px">${code}</strong></p>
+      <p>또는 아래 링크를 클릭하세요. (1시간 유효)</p>
       <p><a href="${resetUrl}" style="display:inline-block;padding:12px 24px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold">비밀번호 재설정</a></p>
       <p style="word-break:break-all;color:#666;font-size:12px">${resetUrl}</p>
       <p>요청하지 않았다면 이 메일을 무시하세요.</p>
@@ -70,4 +100,3 @@ export async function sendWelcomeEmail(to: string, username: string) {
     `,
   });
 }
-
