@@ -1,10 +1,10 @@
-import { auth } from "@/lib/auth";
+import { edgeAuth } from "@/lib/auth.edge";
 import { NextResponse } from "next/server";
 
 const protectedRoutes = ["/settings", "/messages", "/admin", "/compose"];
 const authRoutes = ["/auth/signin", "/auth/signup"];
 
-export default auth((req) => {
+export default edgeAuth((req) => {
   const { pathname } = req.nextUrl;
   const isLoggedIn = !!req.auth;
   const isProtected = protectedRoutes.some((r) => pathname.startsWith(r));
