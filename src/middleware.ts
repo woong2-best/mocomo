@@ -1,7 +1,7 @@
 import { edgeAuth } from "@/lib/auth.edge";
 import { NextResponse } from "next/server";
 
-const protectedRoutes = ["/settings", "/messages", "/admin", "/compose"];
+const protectedRoutes = ["/settings", "/messages", "/admin", "/compose", "/notifications", "/bookmarks", "/my-page"];
 const authRoutes = ["/auth/signin", "/auth/signup"];
 
 export default edgeAuth((req) => {
@@ -12,7 +12,9 @@ export default edgeAuth((req) => {
   const isAdmin = pathname.startsWith("/admin");
 
   if (isProtected && !isLoggedIn) {
-    return NextResponse.redirect(new URL("/auth/signin", req.url));
+    const signIn = new URL("/auth/signin", req.url);
+    signIn.searchParams.set("callbackUrl", pathname);
+    return NextResponse.redirect(signIn);
   }
   if (isAuthPage && isLoggedIn) {
     return NextResponse.redirect(new URL("/", req.url));

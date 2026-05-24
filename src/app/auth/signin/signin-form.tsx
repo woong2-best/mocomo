@@ -4,6 +4,7 @@ import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
+import { preLoginCheck } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,8 +42,20 @@ function SignInFormInner({
     setLoading(true);
     setError("");
 
+    const normalizedEmail = email.trim().toLowerCase();
+    const check = await preLoginCheck(normalizedEmail, password);
+    if (!check.ok) {
+      setLoading(false);
+      if (check.error === "EMAIL_NOT_VERIFIED") {
+        setError("이메일 인증이 필요합니다. 메일함을 확인하거나 아래 '이메일 인증' 링크를 이용하세요.");
+        return;
+      }
+      setError("이메일 또는 비밀번호가 올바르지 않습니다.");
+      return;
+    }
+
     const result = await signIn("credentials", {
-      email: email.trim().toLowerCase(),
+      email: normalizedEmail,
       password,
       redirect: false,
     });
@@ -58,7 +71,8 @@ function SignInFormInner({
       return;
     }
 
-    router.push("/");
+    const callbackUrl = searchParams.get("callbackUrl") || "/";
+    router.push(callbackUrl);
     router.refresh();
   }
 
@@ -146,6 +160,10 @@ function SignInFormInner({
           <p className="text-center text-sm text-muted-foreground">
             <Link href="/auth/forgot-password" className="text-[#1e88e5] hover:underline">
               비밀번호 찾기
+            </Link>
+            {" · "}
+            <Link href="/auth/verify-pending" className="text-[#1e88e5] hover:underline">
+              이메일 인증
             </Link>
             {" · "}
             <Link href="/auth/signup" className="text-[#1e88e5] hover:underline">

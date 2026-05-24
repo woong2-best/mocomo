@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { io, Socket } from "socket.io-client";
+import { sendMessage } from "@/actions/chat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
@@ -26,15 +27,24 @@ export function ChatRoomClient({
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
   const socketRef = useRef<Socket | null>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const url = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
-    const socket = io(url, { auth: { userId } });
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  useEffect(() => {
+    const url = process.env.NEXT_PUBLIC_SOCKET_URL;
+    if (!url || url.includes("localhost")) return;
+
+    const socket = io(url, { auth: { userId }, transports: ["websocket", "polling"] });
     socketRef.current = socket;
     socket.emit("join_room", roomId);
     socket.on("new_message", (msg: Message) => {
-      setMessages((prev) => [...prev, msg]);
+      setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
     });
     return () => {
       socket.emit("leave_room", roomId);
@@ -42,19 +52,43 @@ export function ChatRoomClient({
     };
   }, [roomId, userId]);
 
-  function send() {
-    if (!input.trim() || !socketRef.current) return;
-    socketRef.current.emit("send_message", {
-      roomId,
-      senderId: userId,
-      content: input.trim(),
-    });
-    setInput("");
+  async function send() {
+    const text = input.trim();
+    if (!text || sending) return;
+
+    setSending(true);
+    setError("");
+
+    try {
+      const result = await sendMessage({ roomId, content: text });
+      const msg = result.message;
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: msg.id,
+          content: msg.content,
+          createdAt: msg.createdAt.toISOString(),
+          sender: {
+            id: msg.sender.id,
+            username: msg.sender.username ?? username,
+            image: msg.sender.image,
+          },
+        },
+      ]);
+      setInput("");
+    } catch {
+      setError("메시지 전송에 실패했습니다.");
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
+    <div className="flex flex-col flex-1 min-h-0">
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {messages.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-8">첫 메시지를 보내 보세요.</p>
+        )}
         {messages.map((m) => (
           <div
             key={m.id}
@@ -62,9 +96,7 @@ export function ChatRoomClient({
           >
             <div
               className={`max-w-[70%] rounded-2xl px-4 py-2 text-sm ${
-                m.sender.id === userId
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted"
+                m.sender.id === userId ? "bg-primary text-primary-foreground" : "bg-muted"
               }`}
             >
               {m.sender.id !== userId && (
@@ -74,15 +106,18 @@ export function ChatRoomClient({
             </div>
           </div>
         ))}
+        <div ref={bottomRef} />
       </div>
-      <div className="border-t border-border p-4 flex gap-2">
+      {error && <p className="text-xs text-destructive px-4 pb-1">{error}</p>}
+      <div className="border-t border-border p-4 flex gap-2 shrink-0">
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="메시지 입력..."
-          onKeyDown={(e) => e.key === "Enter" && send()}
+          onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
+          disabled={sending}
         />
-        <Button size="icon" onClick={send}>
+        <Button size="icon" onClick={send} disabled={sending || !input.trim()}>
           <Send className="h-4 w-4" />
         </Button>
       </div>

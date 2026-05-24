@@ -22,6 +22,14 @@ const credentialsProvider = Credentials({
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) return null;
 
+    if (!user.emailVerified) {
+      const verifyId = `verify:${email}`;
+      const pending = await db.verificationToken.findFirst({
+        where: { identifier: verifyId, expires: { gt: new Date() } },
+      });
+      if (pending) return null;
+    }
+
     return {
       id: user.id,
       email: user.email,

@@ -10,19 +10,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const result = await resetPasswordRequest(email);
-    setMessage(result.message || "이메일을 확인하세요.");
+    setMessage("");
+    setError("");
+    const result = await resetPasswordRequest(email.trim().toLowerCase());
     setLoading(false);
+    if ("error" in result && result.error) setError(result.error);
+    else if (result.message) setMessage(result.message);
   }
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="flex-1 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md rounded-2xl">
         <CardHeader>
           <CardTitle>비밀번호 찾기</CardTitle>
         </CardHeader>
@@ -34,12 +38,21 @@ export default function ForgotPasswordPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              className="rounded-xl"
             />
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full rounded-xl" disabled={loading}>
               {loading ? "전송 중..." : "재설정 링크 보내기"}
             </Button>
-            {message && <p className="text-sm text-muted-foreground">{message}</p>}
+            {message && (
+              <p className="text-sm text-green-700 bg-green-500/10 rounded-xl px-3 py-2">{message}</p>
+            )}
+            {error && (
+              <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-3 py-2">{error}</p>
+            )}
           </form>
+          <p className="text-xs text-muted-foreground mt-3">
+            메일이 안 오면 Vercel에 <code>RESEND_API_KEY</code> 설정과 Resend 발신 도메인을 확인하세요.
+          </p>
           <Link href="/auth/signin" className="block text-center text-sm text-primary mt-4">
             로그인으로
           </Link>

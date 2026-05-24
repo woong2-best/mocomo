@@ -1,9 +1,9 @@
 "use client";
 
 import { signIn } from "next-auth/react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { registerUser } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,13 +29,12 @@ export function SignUpForm({
     setError("");
     const form = new FormData(e.currentTarget);
     const email = (form.get("email") as string).trim().toLowerCase();
-    const password = form.get("password") as string;
 
     try {
       const result = await registerUser({
         email,
         username: form.get("username") as string,
-        password,
+        password: form.get("password") as string,
         name: (form.get("name") as string) || undefined,
       });
 
@@ -44,23 +43,10 @@ export function SignUpForm({
         return;
       }
 
-      const login = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-
-      if (login?.error) {
-        setError(
-          login.error === "Configuration"
-            ? "가입은 됐을 수 있으나 로그인 설정 오류입니다. /auth/signin 에서 다시 로그인해 보세요."
-            : "가입은 완료됐지만 자동 로그인에 실패했습니다. 로그인 페이지에서 다시 시도해 주세요."
-        );
+      if (result.needsVerification) {
+        router.push(`/auth/verify-pending?email=${encodeURIComponent(email)}`);
         return;
       }
-
-      router.push("/");
-      router.refresh();
     } catch {
       setError("서버 연결 오류입니다. 잠시 후 다시 시도해 주세요.");
     } finally {

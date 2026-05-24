@@ -12,6 +12,7 @@ function ComposeForm() {
   const searchParams = useSearchParams();
   const communityId = searchParams.get("community") || undefined;
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -26,7 +27,11 @@ function ComposeForm() {
       tagNames: tags,
     });
     setLoading(false);
-    if (result.post) router.push(`/post/${result.post.id}`);
+    if (result.post) {
+      router.push(`/post/${result.post.id}`);
+    } else {
+      setError("게시에 실패했습니다. 로그인 상태를 확인하세요.");
+    }
   }
 
   return (
@@ -51,6 +56,7 @@ function ComposeForm() {
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "게시 중..." : "게시하기"}
           </Button>
+          {error && <p className="text-sm text-destructive">{error}</p>}
         </form>
       </CardContent>
     </Card>

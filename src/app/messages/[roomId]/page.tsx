@@ -3,13 +3,11 @@ import { db } from "@/lib/db";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { ChatRoomClient } from "@/components/chat/chat-room";
-import { Phone, Video } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 export default async function ChatRoomPage({ params }: { params: Promise<{ roomId: string }> }) {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/auth/signin");
   const { roomId } = await params;
+  const session = await auth();
+  if (!session?.user?.id) redirect(`/auth/signin?callbackUrl=/messages/${roomId}`);
 
   const room = await db.chatRoom.findUnique({
     where: { id: roomId },
@@ -39,20 +37,13 @@ export default async function ChatRoomPage({ params }: { params: Promise<{ roomI
         <p className="text-sm font-medium px-2">{room.name || room.type}</p>
       </aside>
 
-      <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex items-center justify-between px-4 py-2 border-b border-border/50">
-          <p className="font-medium text-sm">{room.name || `채팅 ${room.type}`}</p>
-          <div className="flex gap-1">
-            <Link href="/phone">
-              <Button variant="ghost" size="icon" title="음성통화">
-                <Phone className="h-4 w-4" />
-              </Button>
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
+        <div className="flex items-center justify-between px-4 py-2 border-b border-border/50 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <Link href="/messages" className="md:hidden text-xs text-primary shrink-0">
+              ← 목록
             </Link>
-            <Link href="/voice">
-              <Button variant="ghost" size="icon" title="영상통화">
-                <Video className="h-4 w-4" />
-              </Button>
-            </Link>
+            <p className="font-medium text-sm truncate">{room.name || `채팅 ${room.type}`}</p>
           </div>
         </div>
         <ChatRoomClient
