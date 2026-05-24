@@ -30,9 +30,9 @@ export default async function AuthErrorPage({
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">{text}</p>
           {error && <p className="text-xs font-mono text-destructive/80">code: {error}</p>}
-          <Link href="/auth/signin">
-            <Button className="w-full rounded-xl">로그인으로 돌아가기</Button>
-          </Link>
+          <Button asChild className="w-full rounded-xl">
+            <Link href="/auth/signin">로그인으로 돌아가기</Link>
+          </Button>
         </CardContent>
       </Card>
     </div>

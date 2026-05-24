@@ -42,7 +42,7 @@ function SignInForm() {
   }
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center p-4 bg-muted/30">
+    <div className="flex-1 flex items-center justify-center p-4 bg-muted/30">
       <Card className="w-full max-w-md rounded-2xl shadow-lg border-border">
         <CardHeader className="text-center">
           <div className="mx-auto h-14 w-14 rounded-2xl btn-rainbow flex items-center justify-center mb-2 text-xl font-black">

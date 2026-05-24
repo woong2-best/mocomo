@@ -6,7 +6,7 @@ const authRoutes = ["/auth/signin", "/auth/signup"];
 
 export default edgeAuth((req) => {
   const { pathname } = req.nextUrl;
-  const isLoggedIn = !!req.auth;
+  const isLoggedIn = !!req.auth?.user?.id;
   const isProtected = protectedRoutes.some((r) => pathname.startsWith(r));
   const isAuthPage = authRoutes.some((r) => pathname.startsWith(r));
   const isAdmin = pathname.startsWith("/admin");

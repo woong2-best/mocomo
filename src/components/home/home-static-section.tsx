@@ -24,16 +24,12 @@ export function HomeStaticSection({ isLoggedIn }: { isLoggedIn: boolean }) {
           <p className="text-lg font-bold">3초면 가입 끝</p>
           <p className="text-sm text-muted-foreground">이메일 · Google · Discord 로 시작</p>
           <div className="flex flex-wrap justify-center gap-3">
-            <Link href="/auth/signup">
-              <Button size="lg" className="rounded-xl btn-rainbow px-8">
-                무료 회원가입
-              </Button>
-            </Link>
-            <Link href="/auth/signin">
-              <Button size="lg" variant="outline" className="rounded-xl px-8">
-                로그인
-              </Button>
-            </Link>
+            <Button asChild size="lg" className="rounded-xl btn-rainbow px-8">
+              <Link href="/auth/signup">무료 회원가입</Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="rounded-xl px-8">
+              <Link href="/auth/signin">로그인</Link>
+            </Button>
           </div>
         </div>
       )}

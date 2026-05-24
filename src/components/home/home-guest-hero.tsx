@@ -20,16 +20,12 @@ export function HomeGuestHero() {
         오타쿠 SNS · 라이브 · 코스어 · 애니 · 후원. 가입 후 글 작성, 라이브, DM을 이용할 수 있습니다.
       </p>
       <div className="flex flex-wrap gap-3 mt-6">
-        <Link href="/auth/signup">
-          <Button size="lg" className="rounded-xl btn-rainbow">
-            무료 회원가입
-          </Button>
-        </Link>
-        <Link href="/auth/signin">
-          <Button size="lg" variant="outline" className="rounded-xl">
-            로그인
-          </Button>
-        </Link>
+        <Button asChild size="lg" className="rounded-xl btn-rainbow">
+          <Link href="/auth/signup">무료 회원가입</Link>
+        </Button>
+        <Button asChild size="lg" variant="outline" className="rounded-xl">
+          <Link href="/auth/signin">로그인</Link>
+        </Button>
       </div>
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-8">
         {features.map(({ icon: Icon, label, href }) => (

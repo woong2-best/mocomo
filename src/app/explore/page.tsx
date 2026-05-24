@@ -99,11 +99,9 @@ export default async function ExplorePage() {
           새로운 유저
         </h2>
         {suggestedUsers.length === 0 ? (
-          <Link href="/auth/signup">
-            <Button variant="outline" className="rounded-xl">
-              첫 번째 유저 되기
-            </Button>
-          </Link>
+          <Button asChild variant="outline" className="rounded-xl">
+            <Link href="/auth/signup">첫 번째 유저 되기</Link>
+          </Button>
         ) : (
           <div className="space-y-2">
             {suggestedUsers.map((u) => (
