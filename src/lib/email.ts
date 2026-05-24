@@ -115,15 +115,17 @@ export async function sendVerificationEmail(
 }
 
 export async function sendPasswordResetEmail(to: string, resetUrl: string, code: string) {
+  const resetCodeUrl = `${getAppBaseUrl()}/auth/reset-code?email=${encodeURIComponent(to)}`;
   return sendEmail({
     to,
-    subject: `[MoCoMo] 비밀번호 재설정 코드 ${code}`,
+    subject: `[MoCoMo] 비밀번호 찾기 인증 코드 ${code}`,
     html: `
-      <h2>비밀번호 재설정</h2>
-      <p>인증 코드: <strong style="font-size:24px;letter-spacing:4px">${code}</strong></p>
-      <p>또는 아래 링크를 클릭하세요. (1시간 유효)</p>
-      <p><a href="${resetUrl}" style="display:inline-block;padding:12px 24px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold">비밀번호 재설정</a></p>
-      <p style="word-break:break-all;color:#666;font-size:12px">${resetUrl}</p>
+      <h2>비밀번호 찾기</h2>
+      <p>아래 <strong>6자리 인증 코드</strong>를 사이트에 입력한 뒤 새 비밀번호를 설정하세요. (1시간 유효)</p>
+      <p style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#7c3aed">${code}</p>
+      <p><a href="${resetCodeUrl}" style="display:inline-block;padding:12px 24px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold">코드 입력하러 가기</a></p>
+      <p style="word-break:break-all;color:#666;font-size:12px">${resetCodeUrl}</p>
+      <p style="color:#666;font-size:12px">링크로 재설정: ${resetUrl}</p>
       <p>요청하지 않았다면 이 메일을 무시하세요.</p>
     `,
   });

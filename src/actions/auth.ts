@@ -242,9 +242,10 @@ export async function resetPasswordRequest(email: string) {
   const hint = getResendAccountHint();
   return {
     success: true,
+    email: normalized,
     message: hint
-      ? `재설정 메일을 보냈습니다. (Resend 무료: ${hint} 로만 수신 가능할 수 있음)`
-      : "비밀번호 재설정 링크를 이메일로 보냈습니다. 스팸함도 확인해 주세요.",
+      ? `이메일로 6자리 인증 코드를 보냈습니다. (Resend 무료: ${hint} 로만 수신 가능할 수 있음)`
+      : "이메일로 6자리 인증 코드를 보냈습니다. 스팸함도 확인해 주세요.",
   };
 }
 
@@ -277,6 +278,18 @@ export async function resetPasswordConfirm(data: {
     },
   });
 
+  return { success: true };
+}
+
+export async function verifyResetCode(email: string, code: string) {
+  const normalized = email.trim().toLowerCase();
+  const codeId = resetCodeIdentifier(normalized);
+  const record = await db.verificationToken.findFirst({
+    where: { identifier: codeId, token: code.trim() },
+  });
+  if (!record || record.expires < new Date()) {
+    return { error: "인증 코드가 올바르지 않거나 만료되었습니다." };
+  }
   return { success: true };
 }
 
