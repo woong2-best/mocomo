@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { mixFeedWithAds } from "@/lib/feed-mixer";
+import { FALLBACK_FEED_ADS } from "@/lib/default-ads";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
-  const isPremium = session?.user?.premiumTier === "PREMIUM";  const cursor = req.nextUrl.searchParams.get("cursor");
+  const isPremium = session?.user?.premiumTier === "PREMIUM";
+  const cursor = req.nextUrl.searchParams.get("cursor");
   const limit = Math.min(parseInt(req.nextUrl.searchParams.get("limit") || "12", 10), 30);
 
   const posts = await db.post.findMany({
@@ -28,13 +30,19 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  const feedAds = isPremium
+  let feedAds = isPremium
     ? []
     : await db.adSlot.findMany({ where: { active: true, isFeedAd: true }, take: 10 });
 
+  if (feedAds.length === 0 && !isPremium) {
+    feedAds = [...FALLBACK_FEED_ADS] as typeof feedAds;
+  }
+
   const items = isPremium
     ? posts.map((data) => ({ type: "post" as const, data }))
-    : mixFeedWithAds(posts, feedAds, 6);  const nextCursor = posts.length === limit ? posts[posts.length - 1]?.id : null;
+    : mixFeedWithAds(posts, feedAds, 6);
+
+  const nextCursor = posts.length === limit ? posts[posts.length - 1]?.id : null;
 
   return NextResponse.json({
     items: items.map((item) =>

@@ -1,0 +1,1 @@
+-- ⚠️ 사용하지 마세요 — supabase-fix-all.sql 을 대신 실행하세요

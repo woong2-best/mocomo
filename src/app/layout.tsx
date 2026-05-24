@@ -6,6 +6,8 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { RightPanel } from "@/components/layout/right-panel";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { PlatformBootstrap } from "@/components/platform-bootstrap";
+import { AuthTopBanner } from "@/components/layout/auth-top-banner";
 import { BRAND } from "@/lib/brand";
 import "./globals.css";
 
@@ -25,13 +27,17 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <SessionProvider>
+            <PlatformBootstrap />
             <Header />
+            <AuthTopBanner />
             <div className="flex min-h-[calc(100vh-3.5rem)]">
               <Sidebar />
               <main className="flex-1 min-w-0 overflow-y-auto bg-background pb-16 lg:pb-0">{children}</main>

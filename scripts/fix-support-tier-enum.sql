@@ -1,0 +1,2 @@
+-- ⚠️ 사용하지 마세요 — supabase-fix-all.sql 을 대신 실행하세요
+-- (구버전: COSMIC을 enum 생성 전에 써서 22P02 오류 발생)

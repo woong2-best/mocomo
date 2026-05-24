@@ -3,7 +3,7 @@ export type FeedAdItem<A> = { type: "ad"; data: A };
 
 export type FeedItem<T, A> = FeedPostItem<T> | FeedAdItem<A>;
 
-/** 6개 게시글마다 랜덤 위치(0~5)에 광고 1개 삽입 */
+/** 게시글 + 광고 믹스. 게시글 0개여도 광고는 표시 */
 export function mixFeedWithAds<T, A>(
   posts: T[],
   ads: A[],
@@ -11,6 +11,10 @@ export function mixFeedWithAds<T, A>(
 ): FeedItem<T, A>[] {
   if (ads.length === 0) {
     return posts.map((data) => ({ type: "post" as const, data }));
+  }
+
+  if (posts.length === 0) {
+    return ads.map((data) => ({ type: "ad" as const, data }));
   }
 
   const result: FeedItem<T, A>[] = [];

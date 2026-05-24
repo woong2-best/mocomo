@@ -1,66 +1,23 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import Google from "next-auth/providers/google";
-import Discord from "next-auth/providers/discord";
-import Twitter from "next-auth/providers/twitter";
-import Apple from "next-auth/providers/apple";
-import Credentials from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
 import NextAuth from "next-auth";
 import { db } from "@/lib/db";
 import { authConfig } from "@/lib/auth.config";
+import { getAuthProviders } from "@/lib/auth.providers";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(db),
-  providers: [
-    Google({
-      clientId: process.env.AUTH_GOOGLE_ID,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET,
-      allowDangerousEmailAccountLinking: true,
-    }),
-    Discord({
-      clientId: process.env.AUTH_DISCORD_ID,
-      clientSecret: process.env.AUTH_DISCORD_SECRET,
-      allowDangerousEmailAccountLinking: true,
-    }),
-    Twitter({
-      clientId: process.env.AUTH_TWITTER_ID,
-      clientSecret: process.env.AUTH_TWITTER_SECRET,
-    }),
-    Apple({
-      clientId: process.env.AUTH_APPLE_ID,
-      clientSecret: process.env.AUTH_APPLE_SECRET,
-    }),
-    Credentials({
-      name: "credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
-        const email = credentials.email as string;
-        const password = credentials.password as string;
-        const user = await db.user.findUnique({ where: { email } });
-        if (!user?.passwordHash || user.isBanned) return null;
-        const valid = await bcrypt.compare(password, user.passwordHash);
-        if (!valid) return null;
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          image: user.image,
-        };
-      },
-    }),
-  ],
+  providers: getAuthProviders(),
   callbacks: {
     ...authConfig.callbacks,
-    async jwt({ token, user }) {
-      if (user) {
+    async jwt({ token, user, trigger }) {
+      if (user?.id) {
         token.id = user.id;
+      }
+      if (user?.id || trigger === "update") {
+        const userId = (user?.id ?? token.id) as string;
         const dbUser = await db.user.findUnique({
-          where: { id: user.id! },
+          where: { id: userId },
           select: { username: true, role: true, premiumTier: true, level: true },
         });
         if (dbUser) {

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { registerUser } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,18 +20,37 @@ export default function SignUpPage() {
     setLoading(true);
     setError("");
     const form = new FormData(e.currentTarget);
+    const email = (form.get("email") as string).trim().toLowerCase();
+    const password = form.get("password") as string;
+
     const result = await registerUser({
-      email: form.get("email") as string,
+      email,
       username: form.get("username") as string,
-      password: form.get("password") as string,
+      password,
       name: form.get("name") as string,
     });
-    setLoading(false);
+
     if (result.error) {
+      setLoading(false);
       setError(result.error);
       return;
     }
-    router.push("/auth/signin");
+
+    const login = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+
+    setLoading(false);
+
+    if (login?.error) {
+      router.push("/auth/signin");
+      return;
+    }
+
+    router.push("/");
+    router.refresh();
   }
 
   return (
@@ -42,11 +62,25 @@ export default function SignUpPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-3">
             <Input name="email" type="email" placeholder="이메일" required className="rounded-xl" />
-            <Input name="username" placeholder="닉네임" required minLength={3} className="rounded-xl" />
+            <Input
+              name="username"
+              placeholder="닉네임 (영문·숫자·_)"
+              required
+              minLength={3}
+              pattern="[a-zA-Z0-9_]+"
+              className="rounded-xl"
+            />
             <Input name="name" placeholder="표시 이름 (선택)" className="rounded-xl" />
-            <Input name="password" type="password" placeholder="비밀번호 (8자 이상)" required minLength={8} className="rounded-xl" />
+            <Input
+              name="password"
+              type="password"
+              placeholder="비밀번호 (8자 이상)"
+              required
+              minLength={8}
+              className="rounded-xl"
+            />
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full rounded-xl" disabled={loading}>
               {loading ? "가입 중..." : "회원가입"}
             </Button>
           </form>

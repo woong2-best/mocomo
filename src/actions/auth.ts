@@ -16,7 +16,8 @@ const registerSchema = z.object({
 export async function registerUser(data: z.infer<typeof registerSchema>) {
   const parsed = registerSchema.safeParse(data);
   if (!parsed.success) return { error: "입력값이 올바르지 않습니다." };
-  const { email, username, password, name } = parsed.data;
+  const { email: rawEmail, username, password, name } = parsed.data;
+  const email = rawEmail.trim().toLowerCase();
 
   const exists = await db.user.findFirst({
     where: { OR: [{ email }, { username }] },

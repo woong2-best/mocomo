@@ -2,22 +2,43 @@
 
 import { signIn } from "next-auth/react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BRAND } from "@/lib/brand";
 
-export default function SignInPage() {
+function SignInForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackError = searchParams.get("error");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   async function handleCredentials(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    await signIn("credentials", { email, password, callbackUrl: "/" });
+    setError("");
+
+    const result = await signIn("credentials", {
+      email: email.trim().toLowerCase(),
+      password,
+      redirect: false,
+    });
+
     setLoading(false);
+
+    if (result?.error) {
+      setError("이메일 또는 비밀번호가 올바르지 않습니다.");
+      return;
+    }
+
+    router.push("/");
+    router.refresh();
   }
 
   return (
@@ -30,10 +51,35 @@ export default function SignInPage() {
           <CardTitle className="text-2xl">{BRAND.name} 로그인</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {(error || callbackError) && (
+            <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-3 py-2">
+              {error ||
+                (callbackError === "OAuthAccountNotLinked"
+                  ? "이 이메일은 다른 로그인 방식으로 가입되어 있습니다."
+                  : "로그인에 실패했습니다. 다시 시도해 주세요.")}
+            </p>
+          )}
+
           <form onSubmit={handleCredentials} className="space-y-3">
-            <Input type="email" placeholder="이메일" value={email} onChange={(e) => setEmail(e.target.value)} required className="rounded-xl" />
-            <Input type="password" placeholder="비밀번호" value={password} onChange={(e) => setPassword(e.target.value)} required className="rounded-xl" />
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Input
+              type="email"
+              placeholder="이메일"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              className="rounded-xl"
+            />
+            <Input
+              type="password"
+              placeholder="비밀번호"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+              className="rounded-xl"
+            />
+            <Button type="submit" className="w-full rounded-xl" disabled={loading}>
               {loading ? "로그인 중..." : "로그인"}
             </Button>
           </form>
@@ -48,10 +94,20 @@ export default function SignInPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <Button variant="outline" onClick={() => signIn("google", { callbackUrl: "/" })} className="rounded-xl">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => signIn("google", { callbackUrl: "/" })}
+              className="rounded-xl"
+            >
               Google
             </Button>
-            <Button variant="outline" onClick={() => signIn("discord", { callbackUrl: "/" })} className="rounded-xl">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => signIn("discord", { callbackUrl: "/" })}
+              className="rounded-xl"
+            >
               Discord
             </Button>
           </div>
@@ -68,5 +124,13 @@ export default function SignInPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense>
+      <SignInForm />
+    </Suspense>
   );
 }
