@@ -20,9 +20,10 @@ function AppShellInner({
   const isLegalRoute = pathname.startsWith("/legal");
   const isLiveRoute = pathname.startsWith("/live");
   const isMessagesRoute = pathname.startsWith("/messages");
+  const isUsedRoute = pathname.startsWith("/used");
   const isVoiceRoom = pathname.startsWith("/voice/") && pathname !== "/voice/new";
   const showRightPanel =
-    !isAuthRoute && !isLegalRoute && !isLiveRoute && !isVoiceRoom && !isMessagesRoute;
+    !isAuthRoute && !isLegalRoute && !isLiveRoute && !isVoiceRoom && !isMessagesRoute && !isUsedRoute;
 
   if (isAuthRoute || isLegalRoute) {
     return <main className="min-h-screen bg-background">{children}</main>;

@@ -313,4 +313,52 @@ CREATE TABLE IF NOT EXISTS "PhysicalOrderItem" (
   CONSTRAINT "PhysicalOrderItem_pkey" PRIMARY KEY ("id")
 );
 
+-- K) 중고거래 (당근마켓 스타일)
+CREATE TABLE IF NOT EXISTS "UsedListing" (
+  "id" TEXT NOT NULL,
+  "sellerId" TEXT NOT NULL,
+  "title" TEXT NOT NULL,
+  "description" TEXT NOT NULL,
+  "price" INTEGER NOT NULL,
+  "category" TEXT NOT NULL DEFAULT 'OTHER',
+  "status" TEXT NOT NULL DEFAULT 'SELLING',
+  "region" TEXT NOT NULL,
+  "images" JSONB NOT NULL,
+  "viewCount" INTEGER NOT NULL DEFAULT 0,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "UsedListing_pkey" PRIMARY KEY ("id")
+);
+CREATE INDEX IF NOT EXISTS "UsedListing_status_createdAt_idx" ON "UsedListing"("status", "createdAt");
+CREATE INDEX IF NOT EXISTS "UsedListing_sellerId_idx" ON "UsedListing"("sellerId");
+CREATE INDEX IF NOT EXISTS "UsedListing_category_idx" ON "UsedListing"("category");
+CREATE INDEX IF NOT EXISTS "UsedListing_region_idx" ON "UsedListing"("region");
+
+CREATE TABLE IF NOT EXISTS "UsedFavorite" (
+  "id" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "listingId" TEXT NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "UsedFavorite_pkey" PRIMARY KEY ("id")
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "UsedFavorite_userId_listingId_key" ON "UsedFavorite"("userId", "listingId");
+
+DO $$ BEGIN
+  ALTER TABLE "UsedListing" ADD CONSTRAINT "UsedListing_sellerId_fkey"
+    FOREIGN KEY ("sellerId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "UsedFavorite" ADD CONSTRAINT "UsedFavorite_userId_fkey"
+    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "UsedFavorite" ADD CONSTRAINT "UsedFavorite_listingId_fkey"
+    FOREIGN KEY ("listingId") REFERENCES "UsedListing"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 -- 완료 후 터미널: npx prisma db push && npm run db:seed
