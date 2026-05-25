@@ -109,6 +109,21 @@ export function SignUpForm({
             {error && (
               <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-3 py-2">{error}</p>
             )}
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              회원가입 시{" "}
+              <Link href="/legal/terms" className="text-primary hover:underline" target="_blank">
+                이용약관
+              </Link>
+              ,{" "}
+              <Link href="/legal/privacy" className="text-primary hover:underline" target="_blank">
+                개인정보처리방침
+              </Link>
+              ,{" "}
+              <Link href="/legal/policy" className="text-primary hover:underline" target="_blank">
+                운영정책
+              </Link>
+              에 동의한 것으로 간주됩니다.
+            </p>
             <Button type="submit" className="w-full rounded-xl" disabled={loading}>
               {loading ? "가입 중..." : "회원가입"}
             </Button>

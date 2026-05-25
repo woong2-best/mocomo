@@ -98,6 +98,23 @@ export default async function SettingsPage() {
           <p>NSFW 표시: {user?.showNsfw ? "켜짐" : "꺼짐"}</p>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>약관 및 정책</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <Link href="/legal/terms" className="block text-primary hover:underline">
+            이용약관
+          </Link>
+          <Link href="/legal/privacy" className="block text-primary hover:underline">
+            개인정보처리방침
+          </Link>
+          <Link href="/legal/policy" className="block text-primary hover:underline">
+            운영원칙 및 이용정책
+          </Link>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
+import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -20,7 +21,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </Link>
         </div>
       </header>
-      {children}
+      <div className="flex-1">{children}</div>
+      <footer className="px-4 py-4 border-t border-border bg-background/80">
+        <LegalFooterLinks />
+      </footer>
     </div>
   );
 }
