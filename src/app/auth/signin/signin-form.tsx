@@ -89,6 +89,7 @@ function SignInFormInner({
             M
           </div>
           <CardTitle className="text-2xl">{BRAND.name} 로그인</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">{BRAND.tagline}</p>
         </CardHeader>
         <CardContent className="space-y-4">
           {(error || callbackErrorMessage) && (

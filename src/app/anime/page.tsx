@@ -23,7 +23,7 @@ export default async function AnimeHubPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Tv className="h-7 w-7 text-neon-cyan" />
-          애니
+          애니덕질
         </h1>
         <AnimeAddButton />
       </div>

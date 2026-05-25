@@ -2,7 +2,7 @@
 export const FALLBACK_FEED_ADS = [
   {
     id: "fallback-premium",
-    title: "MoCoMo Premium — 광고 없이 덕질",
+    title: "MoCoMo Premium — 광고 없이 애니덕질",
     imageUrl: "/ads/premium.svg",
     linkUrl: "/premium",
     sponsorName: "MoCoMo",

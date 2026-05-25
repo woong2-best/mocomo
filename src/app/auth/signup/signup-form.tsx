@@ -69,7 +69,7 @@ export function SignUpForm({
             M
           </div>
           <CardTitle className="text-2xl">{BRAND.name} 회원가입</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">이메일로 3초 만에 가입</p>
+          <p className="text-sm text-muted-foreground mt-1">{BRAND.description}</p>
         </CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-3">

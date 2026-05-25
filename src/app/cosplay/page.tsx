@@ -47,20 +47,20 @@ export default async function CosplayPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Camera className="h-6 w-6 text-pink-500" />
-          코스어
+          코스프레
         </h1>
         {session?.user && !hasCosplayerProfile && (
           <Link href="/cosplay/apply">
             <Button className="gap-2 rounded-xl">
               <UserPlus className="h-4 w-4" />
-              코스어 신청
+              코스프레 등록
             </Button>
           </Link>
         )}
         {session?.user && hasCosplayerProfile && (
           <Link href={`/cosplay/${session.user.username}`}>
             <Button variant="outline" className="rounded-xl">
-              내 코스어 페이지
+              내 코스프레 프로필
             </Button>
           </Link>
         )}
@@ -69,12 +69,12 @@ export default async function CosplayPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cosplayers.length === 0 ? (
           <p className="text-muted-foreground col-span-full text-center py-12">
-            등록된 코스어가 없습니다.
+            등록된 코스프레 프로필이 없습니다.
             {session?.user && !hasCosplayerProfile && (
               <>
                 {" "}
                 <Link href="/cosplay/apply" className="text-primary hover:underline">
-                  첫 코스어가 되어보세요
+                  첫 프로필을 등록해 보세요
                 </Link>
               </>
             )}

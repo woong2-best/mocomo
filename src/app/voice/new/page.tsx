@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Radio, Video, Mic, ChevronLeft, KeyRound, Copy, Check } from "lucide-react";
 
 const PRESETS = [
-  "🎙 덕질 라이브",
+  "🎙 애니덕질 라이브",
   "코스프레 촬영 Behind",
   "애니 같이 보기",
   "버튜버 잡담",

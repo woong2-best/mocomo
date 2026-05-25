@@ -15,7 +15,7 @@ export async function ensurePlatformBootstrap(prisma: PrismaClient) {
       data: [
         {
           position: "feed",
-          title: "MoCoMo Premium — 광고 없이 덕질",
+          title: "MoCoMo Premium — 광고 없이 애니덕질",
           imageUrl: "/ads/premium.svg",
           linkUrl: "/premium",
           sponsorName: "MoCoMo",
@@ -99,7 +99,7 @@ export async function ensurePlatformBootstrap(prisma: PrismaClient) {
       data: {
         title: "MoCoMo에 오신 것을 환영합니다 🎉",
         content:
-          "회원가입 후 글·사진·코스프레·라이브를 시작해 보세요!\n\n• /auth/signup — 가입\n• /live — 라이브\n• /cosplay — 코스어",
+          "회원가입 후 글·사진·코스프레·굿즈·라이브를 시작해 보세요!\n\n• /auth/signup — 가입\n• /live — 라이브\n• /cosplay — 코스프레\n• /market — 굿즈",
         authorId: platform.id,
         communityId: community.id,
         postType: "NEWS",

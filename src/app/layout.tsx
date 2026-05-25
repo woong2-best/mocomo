@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: `${BRAND.name} - 오타쿠 커뮤니티`,
+  title: `${BRAND.name} - ${BRAND.tagline}`,
   description: BRAND.description,
   manifest: "/manifest.json",
   appleWebApp: { capable: true, statusBarStyle: "default", title: BRAND.name },

@@ -53,15 +53,15 @@ export default async function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>코스어</CardTitle>
+          <CardTitle>코스프레</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {user?.cosplayerProfile ? (
             <>
-              <p className="text-sm text-muted-foreground">코스어로 등록되어 있습니다.</p>
+              <p className="text-sm text-muted-foreground">코스프레 프로필이 등록되어 있습니다.</p>
               <Link href={`/cosplay/${user.username}`}>
                 <Button variant="outline" size="sm">
-                  코스어 페이지
+                  코스프레 프로필
                 </Button>
               </Link>
             </>
@@ -70,7 +70,7 @@ export default async function SettingsPage() {
               <p className="text-sm text-muted-foreground">사진 1장 · 소개 300자 · 애니 연동</p>
               <Link href="/cosplay/apply">
                 <Button size="sm" className="rounded-xl">
-                  코스어 신청
+                  코스프레 등록
                 </Button>
               </Link>
             </>
@@ -80,7 +80,7 @@ export default async function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>덕질 프로필</CardTitle>
+          <CardTitle>애니덕질 프로필</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">

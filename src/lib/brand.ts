@@ -1,5 +1,5 @@
 export const BRAND = {
   name: "MoCoMo",
-  tagline: "오타쿠 커뮤니티",
-  description: "애니 · 코스프레 · 커뮤니티 · 채팅",
+  tagline: "서브컬처 커뮤니티",
+  description: "서브컬처 · 애니덕질 · 코스프레 · 굿즈 · 커뮤니티",
 } as const;

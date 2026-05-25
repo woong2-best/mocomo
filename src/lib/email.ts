@@ -145,7 +145,7 @@ export async function sendWelcomeEmail(to: string, username: string) {
     subject: "[MoCoMo] 가입을 환영합니다!",
     html: `
       <h2>MoCoMo에 오신 것을 환영해요, ${username}님!</h2>
-      <p>덕질·커뮤니티·채팅·라이브까지 한곳에서 즐겨보세요.</p>
+      <p>서브컬처·애니덕질·코스프레·굿즈·커뮤니티·라이브까지 한곳에서 즐겨보세요.</p>
       <p><a href="${getAppBaseUrl()}">MoCoMo 바로가기</a></p>
     `,
   });
