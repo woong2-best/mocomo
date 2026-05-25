@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { joinVoiceChannel } from "@/actions/voice";
-import { LiveStreamRoom } from "@/components/live/live-stream-room";
+import { LiveStreamRoomLazy } from "@/components/live/live-stream-room-lazy";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,7 @@ export default async function VoiceRoomPage({ params }: { params: Promise<{ id: 
           라이브 목록
         </Button>
       </Link>
-      <LiveStreamRoom
+      <LiveStreamRoomLazy
         channelId={id}
         channelName={channel.name}
         isLive={channel.isLive}

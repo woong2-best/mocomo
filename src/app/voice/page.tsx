@@ -1,24 +1,17 @@
 import Link from "next/link";
-import { db } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Mic, Users } from "lucide-react";
+import { getCachedVoiceChannels } from "@/lib/cached-data";
+
+export const revalidate = 30;
 
 export default async function VoicePage() {
-  type ChannelWithCount = Awaited<
-    ReturnType<
-      typeof db.voiceChannel.findMany<{
-        include: { _count: { select: { members: true } } };
-      }>
-    >
-  >;
+  type ChannelWithCount = Awaited<ReturnType<typeof getCachedVoiceChannels>>;
   let channels: ChannelWithCount = [];
+
   try {
-    channels = await db.voiceChannel.findMany({
-      where: { isLive: true },
-      include: { _count: { select: { members: true } } },
-      orderBy: { createdAt: "desc" },
-    });
+    channels = await getCachedVoiceChannels();
   } catch {
     channels = [];
   }
@@ -31,22 +24,16 @@ export default async function VoicePage() {
           음성 채널
         </h1>
         <Link href="/voice/new">
-          <Button size="sm">
-            방 만들기
-          </Button>
+          <Button size="sm">방 만들기</Button>
         </Link>
       </div>
 
-      <p className="text-sm text-muted-foreground">
-        Discord 스타일 음성방 · WebRTC/Livekit 연동 준비됨
-      </p>
+      <p className="text-sm text-muted-foreground">Discord 스타일 음성방 · WebRTC/Livekit 연동 준비됨</p>
 
       <div className="grid gap-4">
         {channels.length === 0 ? (
           <Card>
-            <CardContent className="p-8 text-center text-muted-foreground">
-              활성 음성방이 없습니다.
-            </CardContent>
+            <CardContent className="p-8 text-center text-muted-foreground">활성 음성방이 없습니다.</CardContent>
           </Card>
         ) : (
           channels.map((ch) => (

@@ -20,6 +20,13 @@ export function resetCodeIdentifier(email: string): string {
   return `reset-code:${email.trim().toLowerCase()}`;
 }
 
+/** Unified 6-digit code for signup verify + password reset */
+export function authCodeIdentifier(email: string): string {
+  return `auth-code:${email.trim().toLowerCase()}`;
+}
+
+export const SIGNUP_PASSWORD_SESSION_KEY = "mocomo_signup_password";
+
 export function generateEmailCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }

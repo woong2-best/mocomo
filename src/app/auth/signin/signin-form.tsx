@@ -47,7 +47,10 @@ function SignInFormInner({
     if (!check.ok) {
       setLoading(false);
       if (check.error === "EMAIL_NOT_VERIFIED") {
-        setError("이메일 인증이 필요합니다. 메일함을 확인하거나 아래 '이메일 인증' 링크를 이용하세요.");
+        setError("이메일 인증이 필요합니다.");
+        router.push(
+          `/auth/email-verify?email=${encodeURIComponent(normalizedEmail)}&mode=signup`
+        );
         return;
       }
       setError("이메일 또는 비밀번호가 올바르지 않습니다.");
@@ -158,12 +161,8 @@ function SignInFormInner({
           )}
 
           <p className="text-center text-sm text-muted-foreground">
-            <Link href="/auth/forgot-password" className="text-[#1e88e5] hover:underline">
-              비밀번호 찾기
-            </Link>
-            {" · "}
-            <Link href="/auth/verify-pending" className="text-[#1e88e5] hover:underline">
-              이메일 인증
+            <Link href="/auth/email-verify" className="text-[#1e88e5] hover:underline">
+              이메일 인증 · 비밀번호 찾기
             </Link>
             {" · "}
             <Link href="/auth/signup" className="text-[#1e88e5] hover:underline">

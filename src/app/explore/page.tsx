@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { db } from "@/lib/db";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Compass, TrendingUp, Users, Tv, Hash } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { ko } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
+import { getCachedExploreData } from "@/lib/cached-data";
+
+export const revalidate = 60;
 
 export default async function ExplorePage() {
   type PostRow = {
@@ -27,26 +27,9 @@ export default async function ExplorePage() {
   let dbOk = true;
 
   try {
-    [trendingPosts, suggestedUsers] = await Promise.all([
-      db.post.findMany({
-        take: 8,
-        orderBy: { hotScore: "desc" },
-        include: {
-          author: { select: { username: true, name: true, image: true } },
-          _count: { select: { likes: true, comments: true } },
-        },
-      }),
-      db.user.findMany({
-        take: 6,
-        orderBy: { createdAt: "desc" },
-        select: {
-          username: true,
-          name: true,
-          image: true,
-          _count: { select: { followers: true } },
-        },
-      }),
-    ]);
+    const data = await getCachedExploreData();
+    trendingPosts = data.trendingPosts;
+    suggestedUsers = data.suggestedUsers;
   } catch {
     dbOk = false;
   }

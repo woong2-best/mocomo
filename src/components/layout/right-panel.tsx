@@ -1,11 +1,24 @@
 import Link from "next/link";
-import { db } from "@/lib/db";
-import { ensurePlatformBootstrap } from "@/lib/platform-bootstrap";
 import { FALLBACK_SIDEBAR_ADS } from "@/lib/default-ads";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, Tv, Megaphone } from "lucide-react";
 import { getTipRanking } from "@/actions/monetization";
 import { sanitizeAdLink, isExternalUrl } from "@/lib/safe-link";
+import {
+  getCachedPopularAnime,
+  getCachedSidebarAds,
+  getCachedSidebarTips,
+} from "@/lib/cached-data";
+
+export function RightPanelSkeleton() {
+  return (
+    <aside className="hidden xl:block w-72 shrink-0 p-4 space-y-3 sticky top-14 h-[calc(100vh-3.5rem)] overflow-hidden bg-muted/20 border-l border-border animate-pulse">
+      <div className="h-48 rounded-2xl bg-muted" />
+      <div className="h-36 rounded-2xl bg-muted" />
+      <div className="h-36 rounded-2xl bg-muted" />
+    </aside>
+  );
+}
 
 export async function RightPanel() {
   let animes: { id: string; slug: string; title: string }[] = [];
@@ -14,15 +27,10 @@ export async function RightPanel() {
     [];
 
   try {
-    await ensurePlatformBootstrap(db);
     [animes, tips, sidebarAds] = await Promise.all([
-      db.anime.findMany({ take: 5, orderBy: { followerCount: "desc" }, select: { id: true, slug: true, title: true } }),
-      getTipRanking(5),
-      db.adSlot.findMany({
-        where: { active: true, position: "right" },
-        take: 2,
-        select: { id: true, title: true, imageUrl: true, linkUrl: true, ctaLabel: true },
-      }),
+      getCachedPopularAnime(),
+      getCachedSidebarTips(),
+      getCachedSidebarAds(),
     ]);
   } catch {
     animes = [];
@@ -98,7 +106,9 @@ export async function RightPanel() {
           ) : (
             tips.map((t) => (
               <div key={t.rank} className="flex justify-between text-xs">
-                <span>#{t.rank} {t.user?.username}</span>
+                <span>
+                  #{t.rank} {t.user?.username}
+                </span>
                 <span className="text-muted-foreground">{(t.total ?? 0).toLocaleString()}원</span>
               </div>
             ))

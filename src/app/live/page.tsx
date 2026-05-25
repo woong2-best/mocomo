@@ -1,37 +1,26 @@
 import Link from "next/link";
-import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Radio, Video, Mic, Users, Sparkles } from "lucide-react";
+import { LivePageActions } from "@/components/live/live-page-actions";
+import { getCachedLiveChannels } from "@/lib/cached-data";
+
+export const revalidate = 30;
 
 export default async function LivePage() {
-  const session = await auth();
+  let channels: Awaited<ReturnType<typeof getCachedLiveChannels>>["channels"] = [];
+  let upcoming: Awaited<ReturnType<typeof getCachedLiveChannels>>["upcoming"] = [];
+  let hostMap: Record<string, { id: string; username: string; image: string | null }> = {};
 
-  const channels = await db.voiceChannel.findMany({
-    where: { isLive: true },
-    select: {
-      id: true,
-      name: true,
-      createdBy: true,
-      _count: { select: { members: true } },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 24,
-  });
-
-  const hosts = await db.user.findMany({
-    where: { id: { in: channels.map((c) => c.createdBy) } },
-    select: { id: true, username: true, image: true },
-  });
-  const hostMap = Object.fromEntries(hosts.map((h) => [h.id, h]));
-
-  const upcoming = await db.voiceChannel.findMany({
-    where: { isLive: false },
-    take: 6,
-    orderBy: { createdAt: "desc" },
-    select: { id: true, name: true, _count: { select: { members: true } } },
-  });
+  try {
+    const data = await getCachedLiveChannels();
+    channels = data.channels;
+    upcoming = data.upcoming;
+    hostMap = Object.fromEntries(data.hosts.map((h) => [h.id, h]));
+  } catch {
+    channels = [];
+    upcoming = [];
+  }
 
   return (
     <div className="p-4 lg:p-6 max-w-5xl mx-auto space-y-8">
@@ -47,14 +36,7 @@ export default async function LivePage() {
               있어요.
             </p>
           </div>
-          {session?.user && (
-            <Link href="/voice/new">
-              <Button className="gap-2 rounded-xl btn-rainbow">
-                <Video className="h-4 w-4" />
-                방송 시작
-              </Button>
-            </Link>
-          )}
+          <LivePageActions variant="header" />
         </div>
         <div className="grid grid-cols-3 gap-3 mt-6 text-center text-xs">
           {[
@@ -81,11 +63,7 @@ export default async function LivePage() {
               <CardContent className="p-10 text-center space-y-4">
                 <Sparkles className="h-10 w-10 mx-auto text-muted-foreground" />
                 <p className="text-muted-foreground">진행 중인 라이브가 없습니다. 첫 방송을 시작해 보세요!</p>
-                {session?.user && (
-                  <Link href="/voice/new">
-                    <Button>방송 시작하기</Button>
-                  </Link>
-                )}
+                <LivePageActions variant="empty" />
               </CardContent>
             </Card>
           ) : (
@@ -110,13 +88,9 @@ export default async function LivePage() {
                         </span>
                         {ch.name}
                       </CardTitle>
-                      {host && (
-                        <p className="text-xs text-muted-foreground">@{host.username}</p>
-                      )}
+                      {host && <p className="text-xs text-muted-foreground">@{host.username}</p>}
                     </CardHeader>
-                    <CardContent className="text-sm text-muted-foreground">
-                      {ch._count.members}명 시청 중
-                    </CardContent>
+                    <CardContent className="text-sm text-muted-foreground">{ch._count.members}명 시청 중</CardContent>
                   </Card>
                 </Link>
               );

@@ -94,41 +94,49 @@ export async function sendEmail({
   }
 }
 
+export async function sendAuthCodeEmail(
+  to: string,
+  code: string,
+  purpose: "signup" | "reset" = "signup"
+) {
+  const verifyUrl = `${getAppBaseUrl()}/auth/email-verify?email=${encodeURIComponent(to)}&mode=${purpose}`;
+  const title =
+    purpose === "reset"
+      ? "비밀번호 찾기 인증 코드"
+      : "이메일 인증 코드";
+  const hint =
+    purpose === "reset"
+      ? "코드 확인 후 새 비밀번호를 설정할 수 있습니다."
+      : "코드 확인 후 가입 시 설정한 비밀번호로 로그인할 수 있습니다.";
+
+  return sendEmail({
+    to,
+    subject: `[MoCoMo] ${title} ${code}`,
+    html: `
+      <h2>${title}</h2>
+      <p>${hint} (1시간 유효)</p>
+      <p style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#7c3aed">${code}</p>
+      <p><a href="${verifyUrl}" style="display:inline-block;padding:12px 24px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold">코드 입력하러 가기</a></p>
+      <p style="word-break:break-all;color:#666;font-size:12px">${verifyUrl}</p>
+      <p>요청하지 않았다면 이 메일을 무시하세요.</p>
+    `,
+  });
+}
+
 export async function sendVerificationEmail(
   to: string,
   verifyUrl: string,
   username: string,
   code: string
 ) {
-  return sendEmail({
-    to,
-    subject: `[MoCoMo] 인증 코드 ${code}`,
-    html: `
-      <h2>${username}님, MoCoMo 가입을 환영합니다!</h2>
-      <p>아래 <strong>인증 코드</strong>를 사이트에 입력하거나, 링크를 클릭하세요. (24시간 유효)</p>
-      <p style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#7c3aed">${code}</p>
-      <p><a href="${verifyUrl}" style="display:inline-block;padding:12px 24px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold">이메일 인증하기</a></p>
-      <p style="word-break:break-all;color:#666;font-size:12px">${verifyUrl}</p>
-      <p>가입하지 않으셨다면 이 메일을 무시하세요.</p>
-    `,
-  });
+  void verifyUrl;
+  void username;
+  return sendAuthCodeEmail(to, code, "signup");
 }
 
 export async function sendPasswordResetEmail(to: string, resetUrl: string, code: string) {
-  const resetCodeUrl = `${getAppBaseUrl()}/auth/reset-code?email=${encodeURIComponent(to)}`;
-  return sendEmail({
-    to,
-    subject: `[MoCoMo] 비밀번호 찾기 인증 코드 ${code}`,
-    html: `
-      <h2>비밀번호 찾기</h2>
-      <p>아래 <strong>6자리 인증 코드</strong>를 사이트에 입력한 뒤 새 비밀번호를 설정하세요. (1시간 유효)</p>
-      <p style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#7c3aed">${code}</p>
-      <p><a href="${resetCodeUrl}" style="display:inline-block;padding:12px 24px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold">코드 입력하러 가기</a></p>
-      <p style="word-break:break-all;color:#666;font-size:12px">${resetCodeUrl}</p>
-      <p style="color:#666;font-size:12px">링크로 재설정: ${resetUrl}</p>
-      <p>요청하지 않았다면 이 메일을 무시하세요.</p>
-    `,
-  });
+  void resetUrl;
+  return sendAuthCodeEmail(to, code, "reset");
 }
 
 export async function sendWelcomeEmail(to: string, username: string) {

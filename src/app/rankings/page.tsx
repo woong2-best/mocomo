@@ -1,17 +1,18 @@
-import { getRankings } from "@/actions/events";
-import { getTipRanking as getTips } from "@/actions/monetization";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy } from "lucide-react";
+import { getCachedRankingsData } from "@/lib/cached-data";
+
+export const revalidate = 120;
 
 export default async function RankingsPage() {
-  let posts: Awaited<ReturnType<typeof getRankings>> = [];
-  let tips: Awaited<ReturnType<typeof getTips>> = [];
+  let posts: Awaited<ReturnType<typeof getCachedRankingsData>>["posts"] = [];
+  let tips: Awaited<ReturnType<typeof getCachedRankingsData>>["tips"] = [];
+
   try {
-    [posts, tips] = await Promise.all([
-      getRankings("posts"),
-      getTips(10),
-    ]);
+    const data = await getCachedRankingsData();
+    posts = data.posts;
+    tips = data.tips;
   } catch {
     posts = [];
     tips = [];

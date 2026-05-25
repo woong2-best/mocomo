@@ -1,17 +1,17 @@
 import Link from "next/link";
-import { auth } from "@/lib/auth";
 import { ANIME_GENRES } from "@/lib/anime-genres";
-import { getAnimeCountByGenre } from "@/actions/anime";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tv, Plus } from "lucide-react";
+import { Tv } from "lucide-react";
 import { genreToParam } from "@/lib/anime-genres";
+import { AnimeAddButton } from "@/components/anime/anime-add-button";
+import { getCachedAnimeGenreCounts } from "@/lib/cached-data";
+
+export const revalidate = 120;
 
 export default async function AnimeHubPage() {
-  const session = await auth();
-  let counts: Awaited<ReturnType<typeof getAnimeCountByGenre>> = [];
+  let counts: Awaited<ReturnType<typeof getCachedAnimeGenreCounts>> = [];
   try {
-    counts = await getAnimeCountByGenre();
+    counts = await getCachedAnimeGenreCounts();
   } catch {
     counts = [];
   }
@@ -25,14 +25,7 @@ export default async function AnimeHubPage() {
           <Tv className="h-7 w-7 text-neon-cyan" />
           애니
         </h1>
-        {session?.user && (
-          <Link href="/anime/new">
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              애니 추가
-            </Button>
-          </Link>
-        )}
+        <AnimeAddButton />
       </div>
 
       <p className="text-sm text-muted-foreground">
@@ -63,14 +56,12 @@ export default async function AnimeHubPage() {
         })}
       </div>
 
-      {!session?.user && (
-        <p className="text-center text-sm text-muted-foreground">
-          <Link href="/auth/signin" className="text-primary hover:underline">
-            로그인
-          </Link>
-          하면 애니를 직접 등록할 수 있습니다.
-        </p>
-      )}
+      <p className="text-center text-sm text-muted-foreground">
+        <Link href="/auth/signin" className="text-primary hover:underline">
+          로그인
+        </Link>
+        하면 애니를 직접 등록할 수 있습니다.
+      </p>
     </div>
   );
 }

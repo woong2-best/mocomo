@@ -59,7 +59,7 @@ function VerifyInner() {
           <>
             <p className="text-destructive">{error}</p>
             <Button asChild variant="outline" className="w-full rounded-xl">
-              <Link href="/auth/verify-pending">인증 메일 다시 받기</Link>
+              <Link href="/auth/email-verify">인증 코드 입력</Link>
             </Button>
           </>
         )}

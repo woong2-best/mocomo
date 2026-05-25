@@ -3,11 +3,16 @@
 import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
-import { RightPanel } from "@/components/layout/right-panel";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { AuthTopBanner } from "@/components/layout/auth-top-banner";
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+  rightPanel,
+}: {
+  children: React.ReactNode;
+  rightPanel?: React.ReactNode;
+}) {
   const pathname = usePathname();
   const isAuthRoute = pathname.startsWith("/auth");
 
@@ -22,7 +27,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-[calc(100vh-3.5rem)]">
         <Sidebar />
         <main className="flex-1 min-w-0 overflow-y-auto bg-background pb-16 lg:pb-0">{children}</main>
-        <RightPanel />
+        {rightPanel}
       </div>
       <MobileNav />
     </>

@@ -26,5 +26,15 @@ export default edgeAuth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|manifest.json).*)"],
+  matcher: [
+    "/settings/:path*",
+    "/messages/:path*",
+    "/admin/:path*",
+    "/compose/:path*",
+    "/notifications/:path*",
+    "/bookmarks/:path*",
+    "/my-page/:path*",
+    "/auth/signin",
+    "/auth/signup",
+  ],
 };

@@ -5,6 +5,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { registerUser } from "@/actions/auth";
+import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,12 +30,13 @@ export function SignUpForm({
     setError("");
     const form = new FormData(e.currentTarget);
     const email = (form.get("email") as string).trim().toLowerCase();
+    const password = form.get("password") as string;
 
     try {
       const result = await registerUser({
         email,
         username: form.get("username") as string,
-        password: form.get("password") as string,
+        password,
         name: (form.get("name") as string) || undefined,
       });
 
@@ -44,7 +46,8 @@ export function SignUpForm({
       }
 
       if (result.needsVerification) {
-        router.push(`/auth/verify-pending?email=${encodeURIComponent(email)}`);
+        sessionStorage.setItem(SIGNUP_PASSWORD_SESSION_KEY, password);
+        router.push(`/auth/email-verify?email=${encodeURIComponent(email)}&mode=signup`);
         return;
       }
     } catch {
