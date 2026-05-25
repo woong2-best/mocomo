@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getEmoticonPackBySlug, resolveEmoticonPackForPurchase } from "@/actions/goods-shop";
 import { isPaymentsConfigured } from "@/lib/payments";
-import { TossPayButton } from "@/components/payments/toss-pay-button";
+import { PayButton } from "@/components/payments/pay-button";
 import { EmoticonPreview } from "@/components/market/emoticon-preview";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ImageIcon } from "lucide-react";
@@ -57,7 +57,7 @@ export default async function EmoticonDetailPage({ params }: { params: Promise<{
           </ul>
 
           {paymentsEnabled && purchasePackId ? (
-            <TossPayButton
+            <PayButton
               type="EMOTICON"
               amount={pack.price}
               orderName={`MoCoMo ${pack.name}`}
@@ -65,10 +65,10 @@ export default async function EmoticonDetailPage({ params }: { params: Promise<{
               className="w-full rounded-2xl h-12"
             >
               {pack.price.toLocaleString()}원 구매
-            </TossPayButton>
+            </PayButton>
           ) : (
             <p className="text-sm text-center text-muted-foreground">
-              {!dbReady ? "DB 연동 후 구매 가능" : "결제 설정(Toss)이 필요합니다"}
+              {!dbReady ? "DB 연동 후 구매 가능" : "결제 설정(Stripe)이 필요합니다"}
             </p>
           )}
         </div>

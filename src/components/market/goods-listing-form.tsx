@@ -4,7 +4,7 @@ import { useState } from "react";
 import { createGoodsListingRequest } from "@/actions/goods-shop";
 import { LISTING_FEE_KRW } from "@/lib/goods-shop";
 import { uploadImageBlob } from "@/lib/client-upload";
-import { TossPayButton } from "@/components/payments/toss-pay-button";
+import { PayButton } from "@/components/payments/pay-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ImagePlus, Loader2 } from "lucide-react";
@@ -62,7 +62,7 @@ export function GoodsListingForm({ paymentsEnabled }: { paymentsEnabled: boolean
           상품 노출을 위해 등록비 <strong>{LISTING_FEE_KRW.toLocaleString()}원</strong>을 결제해 주세요.
         </p>
         {paymentsEnabled ? (
-          <TossPayButton
+          <PayButton
             type="LISTING_FEE"
             amount={LISTING_FEE_KRW}
             orderName="굿즈샵 등록비"
@@ -70,7 +70,7 @@ export function GoodsListingForm({ paymentsEnabled }: { paymentsEnabled: boolean
             className="w-full rounded-2xl"
           >
             등록비 {LISTING_FEE_KRW.toLocaleString()}원 결제
-          </TossPayButton>
+          </PayButton>
         ) : (
           <p className="text-sm text-destructive">결제 설정이 필요합니다.</p>
         )}

@@ -70,7 +70,7 @@ export function WalletDashboard({ data }: { data: WalletData }) {
             <p className="text-xs text-amber-700">처리 중 출금 {data.pendingPayout.toLocaleString()}원</p>
           )}
           <p className="text-xs text-muted-foreground pt-2">
-            결제는 토스페이먼츠로 수납되며, 수익은 여기 적립 후 출금 신청 → 운영자 확인 후 계좌로
+            결제는 Stripe로 수납되며, 수익은 여기 적립 후 출금 신청 → 운영자 확인 후 계좌로
             송금됩니다.
           </p>
         </CardContent>

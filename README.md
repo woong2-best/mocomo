@@ -37,22 +37,21 @@ npm run dev
 
 | 변수 | 용도 |
 |------|------|
-| `TOSS_SECRET_KEY` + `NEXT_PUBLIC_TOSS_CLIENT_KEY` | 후원, 마켓, 프리미엄 결제 |
+| `STRIPE_SECRET_KEY` + `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | 후원, 마켓, 프리미엄 (Stripe Checkout) |
 | `LIVEKIT_*` | 라이브 방송 |
 | `S3_*` | 파일 업로드 (없으면 `/api/upload/local`) |
 | `RESEND_API_KEY` | 비밀번호 재설정 이메일 |
 | `NEXT_PUBLIC_SOCKET_URL` | Socket.IO 서버 URL |
 
-## 결제 · 정산 (기업형 PG 흐름)
+## 결제 · 정산 (Stripe Checkout)
 
-1. [Toss Payments](https://developers.tosspayments.com) **라이브** 가맹점 + 정산 계좌 등록
-2. `.env`: `TOSS_SECRET_KEY`, `NEXT_PUBLIC_TOSS_CLIENT_KEY` (프로덕션/Vercel)
-3. 웹훅: `https://your-domain.com/api/webhooks/toss` 등록, `TOSS_WEBHOOK_SECRET` 설정(선택)
-4. Supabase SQL **섹션 L** 실행 후 `npx prisma db push`
-5. **운영자**: `/admin/finance` — 플랫폼 수익·출금 대기열·입금 완료 처리
-6. **판매자/스트리머**: `/wallet` — 수익 적립·계좌 등록·출금 신청 (최소 `MIN_PAYOUT_KRW`, 기본 1만원)
+1. [Stripe](https://stripe.com/kr) 가입 · KYC · 정산 계좌 등록
+2. [API 키](https://dashboard.stripe.com/apikeys) → `.env` / Vercel
+3. [웹훅](https://dashboard.stripe.com/webhooks): `https://your-domain.com/api/webhooks/stripe` · 이벤트 `checkout.session.completed`
+4. Supabase SQL **섹션 L** + `npx prisma db push`
+5. **운영자** `/admin/finance` · **판매자** `/wallet`
 
-결제금은 토스 정산 계좌(운영자)로 입금되고, 판매자 몫은 앱 지갑에 적립 후 출금 신청 → 관리자가 계좌이체 후 「입금 완료」 처리합니다.
+결제는 Stripe로 수납되고, 판매자 몫은 지갑 적립 → 출금 신청 → 관리자 「입금 완료」 처리입니다.
 
 ## 업로드
 

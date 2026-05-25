@@ -7,23 +7,16 @@ import { ProductType, PaymentIntentType, Prisma } from "@prisma/client";
 import { isPaymentsConfigured, PREMIUM_PRICE } from "@/lib/payments";
 import { LISTING_FEE_KRW } from "@/lib/goods-shop";
 import { fulfillPaymentIntent } from "@/lib/payment-fulfillment";
+import { getAppOrigin, getStripe, isStripeConfigured } from "@/lib/stripe";
+import { verifyStripeCheckoutSession } from "@/lib/stripe-checkout";
 
-export async function createPaymentIntent(input: {
-  type: PaymentIntentType;
-  amount: number;
-  metadata: Record<string, unknown>;
-}) {
-  if (!isPaymentsConfigured()) {
-    return { error: "결제가 설정되지 않았습니다. TOSS_SECRET_KEY를 .env에 추가하세요." };
-  }
-
-  const user = await requireAuth();
-
+async function validatePaymentInput(
+  userId: string,
+  input: { type: PaymentIntentType; amount: number; metadata: Record<string, unknown> }
+): Promise<{ error: string } | null> {
   if (input.type === "TIP") {
     const receiverId = input.metadata.receiverId as string;
-    if (!receiverId || receiverId === user.id) {
-      return { error: "유효하지 않은 후원 대상입니다." };
-    }
+    if (!receiverId || receiverId === userId) return { error: "유효하지 않은 후원 대상입니다." };
     if (input.amount < 100) return { error: "최소 후원 금액은 100원입니다." };
     if (input.amount > 10_000_000) return { error: "1회 후원 한도는 1,000만원입니다." };
   }
@@ -42,9 +35,7 @@ export async function createPaymentIntent(input: {
   if (input.type === "EMOTICON") {
     const packId = input.metadata.packId as string;
     const packSlug = input.metadata.packSlug as string | undefined;
-    let pack = packId
-      ? await db.emoticonPack.findUnique({ where: { id: packId } })
-      : null;
+    let pack = packId ? await db.emoticonPack.findUnique({ where: { id: packId } }) : null;
     if (!pack && packSlug) {
       pack = await db.emoticonPack.findUnique({ where: { slug: packSlug } });
     }
@@ -56,17 +47,38 @@ export async function createPaymentIntent(input: {
     if (input.amount !== LISTING_FEE_KRW) return { error: "등록비는 5,000원입니다." };
     const requestId = input.metadata.requestId as string;
     const req = await db.goodsListingRequest.findUnique({ where: { id: requestId } });
-    if (!req || req.sellerId !== user.id) return { error: "굿즈 등록 요청을 찾을 수 없습니다." };
+    if (!req || req.sellerId !== userId) return { error: "굿즈 등록 요청을 찾을 수 없습니다." };
     if (req.listingFeePaid) return { error: "이미 등록비가 결제되었습니다." };
   }
 
   if (input.type === "PHYSICAL_GOODS") {
     const orderId = input.metadata.orderId as string;
     const order = await db.physicalOrder.findUnique({ where: { id: orderId } });
-    if (!order || order.buyerId !== user.id) return { error: "주문을 찾을 수 없습니다." };
+    if (!order || order.buyerId !== userId) return { error: "주문을 찾을 수 없습니다." };
     if (order.total !== input.amount) return { error: "주문 금액이 일치하지 않습니다." };
     if (order.status !== "PENDING_PAYMENT") return { error: "이미 결제된 주문입니다." };
   }
+
+  return null;
+}
+
+/** Stripe Checkout 세션 생성 후 결제 페이지 URL 반환 */
+export async function createStripeCheckout(input: {
+  type: PaymentIntentType;
+  amount: number;
+  orderName: string;
+  metadata: Record<string, unknown>;
+}) {
+  if (!isStripeConfigured()) {
+    return {
+      error:
+        "결제가 설정되지 않았습니다. STRIPE_SECRET_KEY와 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY를 설정하세요.",
+    };
+  }
+
+  const user = await requireAuth();
+  const validation = await validatePaymentInput(user.id, input);
+  if (validation) return validation;
 
   const intent = await db.paymentIntent.create({
     data: {
@@ -77,30 +89,70 @@ export async function createPaymentIntent(input: {
     },
   });
 
-  return {
-    orderId: intent.id,
-    amount: intent.amount,
-    clientKey: process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY!,
-  };
+  const origin = getAppOrigin();
+  const stripe = getStripe();
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+    payment_method_types: ["card"],
+    line_items: [
+      {
+        price_data: {
+          currency: "krw",
+          unit_amount: input.amount,
+          product_data: { name: input.orderName },
+        },
+        quantity: 1,
+      },
+    ],
+    metadata: {
+      orderId: intent.id,
+      type: input.type,
+      userId: user.id,
+    },
+    success_url: `${origin}/payments/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${origin}/payments/fail`,
+    customer_email: user.email ?? undefined,
+  });
+
+  if (!session.url) return { error: "결제 페이지를 만들 수 없습니다." };
+
+  return { checkoutUrl: session.url, orderId: intent.id };
 }
 
-export async function confirmPaymentIntent(
-  paymentKey: string,
-  orderId: string,
-  amount: number
-) {
+/** @deprecated createStripeCheckout 사용 */
+export async function createPaymentIntent(input: {
+  type: PaymentIntentType;
+  amount: number;
+  metadata: Record<string, unknown>;
+}) {
+  return createStripeCheckout({
+    type: input.type,
+    amount: input.amount,
+    orderName: "MoCoMo 결제",
+    metadata: input.metadata,
+  });
+}
+
+export async function confirmStripeCheckout(sessionId: string) {
   if (!isPaymentsConfigured()) {
     return { error: "결제가 설정되지 않았습니다." };
   }
 
   const user = await requireAuth();
-  const intent = await db.paymentIntent.findUnique({ where: { id: orderId } });
+  const verified = await verifyStripeCheckoutSession(sessionId);
+  if (!verified.ok) return { error: verified.error };
 
+  const intent = await db.paymentIntent.findUnique({ where: { id: verified.orderId } });
   if (!intent || intent.userId !== user.id) {
     return { error: "결제 정보를 찾을 수 없습니다." };
   }
 
-  const result = await fulfillPaymentIntent(orderId, paymentKey, amount);
+  const result = await fulfillPaymentIntent(
+    verified.orderId,
+    verified.paymentRef,
+    verified.amount
+  );
   if (!result.ok) return { error: result.error };
 
   revalidatePath("/support");
@@ -108,7 +160,15 @@ export async function confirmPaymentIntent(
   return { success: true, type: result.type, alreadyPaid: result.alreadyPaid };
 }
 
-/** @deprecated 결제 연동 후 createPaymentIntent → confirmPaymentIntent 사용 */
+/** @deprecated confirmStripeCheckout 사용 */
+export async function confirmPaymentIntent(
+  _paymentKey: string,
+  _orderId: string,
+  _amount: number
+) {
+  return { error: "Stripe Checkout으로 결제해 주세요. session_id가 필요합니다." };
+}
+
 export async function sendTip(_receiverId: string, _amount: number, _message?: string) {
   return { error: "결제 창을 통해 후원해 주세요." };
 }

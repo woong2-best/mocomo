@@ -1,6 +1,5 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { confirmTossPayment } from "@/lib/payments";
 import { LISTING_FEE_KRW } from "@/lib/goods-shop";
 import {
   creditSellerEarning,
@@ -114,11 +113,11 @@ async function fulfillTip(
 }
 
 /**
- * 결제 승인 후 공통 처리 (리다이렉트·웹훅 모두 사용, 멱등)
+ * 결제 승인 후 공통 처리 (Stripe Checkout 성공·웹훅 공통, 멱등)
  */
 export async function fulfillPaymentIntent(
   orderId: string,
-  paymentKey: string,
+  paymentRef: string,
   amount: number
 ): Promise<{ ok: true; type: string; alreadyPaid?: boolean } | { ok: false; error: string }> {
   const intent = await db.paymentIntent.findUnique({ where: { id: orderId } });
@@ -129,9 +128,6 @@ export async function fulfillPaymentIntent(
   if (intent.amount !== amount) {
     return { ok: false, error: "결제 금액이 일치하지 않습니다." };
   }
-
-  const confirmed = await confirmTossPayment(paymentKey, orderId, amount);
-  if (!confirmed.ok) return { ok: false, error: confirmed.message };
 
   const meta = intent.metadata as Record<string, string>;
   const userId = intent.userId;
@@ -241,7 +237,7 @@ export async function fulfillPaymentIntent(
 
   await db.paymentIntent.update({
     where: { id: orderId },
-    data: { status: "PAID", paymentKey, paidAt: new Date() },
+    data: { status: "PAID", paymentKey: paymentRef, paidAt: new Date() },
   });
 
   revalidatePath("/wallet");

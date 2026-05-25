@@ -1,26 +1,26 @@
 import Link from "next/link";
-import { confirmPaymentIntent } from "@/actions/monetization";
+import { confirmStripeCheckout } from "@/actions/monetization";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle } from "lucide-react";
 
 export default async function PaymentSuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ paymentKey?: string; orderId?: string; amount?: string }>;
+  searchParams: Promise<{ session_id?: string }>;
 }) {
-  const { paymentKey, orderId, amount } = await searchParams;
+  const { session_id } = await searchParams;
 
-  if (!paymentKey || !orderId || !amount) {
+  if (!session_id) {
     return (
       <Result
         ok={false}
         title="결제 정보 없음"
-        message="결제 파라미터가 올바르지 않습니다."
+        message="Stripe 결제 세션 ID가 없습니다."
       />
     );
   }
 
-  const result = await confirmPaymentIntent(paymentKey, orderId, Number(amount));
+  const result = await confirmStripeCheckout(session_id);
 
   if ("error" in result && result.error) {
     return <Result ok={false} title="결제 실패" message={result.error} />;

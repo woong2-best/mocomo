@@ -76,8 +76,8 @@ export function AdminFinancePanel({ data }: { data: Dashboard }) {
       </div>
 
       <p className="text-xs text-muted-foreground rounded-lg border border-border p-3 bg-muted/30">
-        실제 입금은 토스페이먼츠 정산 계좌로 들어옵니다. 아래 「플랫폼 수익」은 앱 장부 기준이며, 판매자
-        출금은 토스 입금 후 계좌이체로 처리하세요.
+        실제 입금은 Stripe 정산 계좌로 들어옵니다. 아래 「플랫폼 수익」은 앱 장부 기준이며, 판매자
+        출금은 Stripe 입금 후 계좌이체로 처리하세요.
       </p>
 
       <Card>

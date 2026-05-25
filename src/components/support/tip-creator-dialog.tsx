@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { TossPayButton } from "@/components/payments/toss-pay-button";
+import { PayButton } from "@/components/payments/pay-button";
 import { OreTierBadge } from "@/components/support/ore-tier-button";
 import { OreIcon } from "@/components/support/ore-icon";
 import { getTierInfo, tierFromAmount } from "@/lib/tiers";
@@ -126,7 +126,7 @@ export function TipCreatorDialog({
           </p>
         )}
 
-        <TossPayButton
+        <PayButton
           type="TIP"
           amount={effectiveAmount}
           orderName={`${displayName} 후원`}
@@ -138,7 +138,7 @@ export function TipCreatorDialog({
             <OreIcon tier={tierFromAmount(projectedTotal)} size={20} />
             {effectiveAmount.toLocaleString()}원 결제하기
           </span>
-        </TossPayButton>
+        </PayButton>
       </DialogContent>
     </Dialog>
   );

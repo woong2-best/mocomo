@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { createPaymentIntent } from "@/actions/monetization";
+import { createStripeCheckout } from "@/actions/monetization";
 import { Button } from "@/components/ui/button";
 import type { PaymentIntentType } from "@prisma/client";
 
@@ -15,7 +15,8 @@ type Props = {
   children: React.ReactNode;
 };
 
-export function TossPayButton({
+/** Stripe Checkout으로 이동 (카드·해외결제·간편결제는 Stripe 대시보드에서 활성화) */
+export function PayButton({
   type,
   amount,
   orderName,
@@ -30,34 +31,16 @@ export function TossPayButton({
   function pay() {
     setError("");
     startTransition(async () => {
-      const res = await createPaymentIntent({ type, amount, metadata });
+      const res = await createStripeCheckout({ type, amount, orderName, metadata });
       if ("error" in res && res.error) {
         setError(res.error);
         return;
       }
-
-      if (!("orderId" in res) || !res.clientKey) {
+      if (!("checkoutUrl" in res) || !res.checkoutUrl) {
         setError("결제 준비에 실패했습니다.");
         return;
       }
-
-      try {
-        const { loadTossPayments, ANONYMOUS } = await import("@tosspayments/tosspayments-sdk");
-        const toss = await loadTossPayments(res.clientKey);
-        const payment = toss.payment({ customerKey: ANONYMOUS });
-        const origin = window.location.origin;
-        await payment.requestPayment({
-          method: "CARD",
-          amount: { currency: "KRW", value: res.amount },
-          orderId: res.orderId,
-          orderName,
-          successUrl: `${origin}/payments/success`,
-          failUrl: `${origin}/payments/fail`,
-        });
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : "결제가 취소되었습니다.";
-        if (!msg.includes("USER_CANCEL")) setError(msg);
-      }
+      window.location.href = res.checkoutUrl;
     });
   }
 
@@ -70,3 +53,6 @@ export function TossPayButton({
     </div>
   );
 }
+
+/** @deprecated PayButton 사용 */
+export const TossPayButton = PayButton;

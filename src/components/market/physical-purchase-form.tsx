@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createPhysicalOrderDraft } from "@/actions/goods-shop";
-import { TossPayButton } from "@/components/payments/toss-pay-button";
+import { PayButton } from "@/components/payments/pay-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -64,7 +64,7 @@ export function PhysicalPurchaseForm({
           결제 금액: <strong className="text-neon-cyan">{amount.toLocaleString()}원</strong>
         </p>
         {paymentsEnabled ? (
-          <TossPayButton
+          <PayButton
             type="PHYSICAL_GOODS"
             amount={amount}
             orderName={productTitle}
@@ -72,7 +72,7 @@ export function PhysicalPurchaseForm({
             className="w-full rounded-2xl h-11"
           >
             결제하기
-          </TossPayButton>
+          </PayButton>
         ) : (
           <p className="text-sm text-destructive">결제 설정이 필요합니다.</p>
         )}
