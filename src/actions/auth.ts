@@ -23,7 +23,12 @@ import { z } from "zod";
 
 const registerSchema = z.object({
   email: z.string().email(),
-  username: z.string().min(3).max(20).regex(/^[a-zA-Z0-9_]+$/),
+  username: z
+    .string()
+    .min(3)
+    .max(20)
+    .regex(/^[a-zA-Z0-9_]+$/)
+    .transform((s) => s.trim().toLowerCase()),
   password: z.string().min(8),
   name: z.string().optional(),
 });
@@ -174,10 +179,18 @@ export async function registerUser(data: z.infer<typeof registerSchema>) {
   const { email: rawEmail, username, password, name } = parsed.data;
   const email = rawEmail.trim().toLowerCase();
 
-  const exists = await db.user.findFirst({
-    where: { OR: [{ email }, { username }] },
-  });
-  if (exists) return { error: "이미 사용 중인 이메일 또는 닉네임입니다." };
+  const userByEmail = await db.user.findUnique({ where: { email } });
+  const userByUsername = await db.user.findUnique({ where: { username } });
+
+  if (userByEmail?.emailVerified) {
+    return {
+      error: "이미 가입된 이메일입니다. 로그인하거나 비밀번호 찾기를 이용하세요.",
+    };
+  }
+
+  if (userByUsername && userByUsername.email !== email) {
+    return { error: "이미 사용 중인 닉네임입니다. 다른 닉네임을 입력해 주세요." };
+  }
 
   if (!isEmailConfigured()) {
     return {
@@ -188,17 +201,33 @@ export async function registerUser(data: z.infer<typeof registerSchema>) {
 
   try {
     const passwordHash = await bcrypt.hash(password, 12);
-    const user = await db.user.create({
-      data: {
-        email,
-        username,
-        passwordHash,
-        name: name || username,
-        emailVerified: null,
-        profile: { create: {} },
-        otakuProfile: { create: {} },
-      },
-    });
+    let userId: string;
+
+    if (userByEmail && !userByEmail.emailVerified) {
+      const updated = await db.user.update({
+        where: { id: userByEmail.id },
+        data: {
+          username,
+          passwordHash,
+          name: name || username,
+          emailVerified: null,
+        },
+      });
+      userId = updated.id;
+    } else {
+      const user = await db.user.create({
+        data: {
+          email,
+          username,
+          passwordHash,
+          name: name || username,
+          emailVerified: null,
+          profile: { create: {} },
+          otakuProfile: { create: {} },
+        },
+      });
+      userId = user.id;
+    }
 
     const token = randomBytes(32).toString("hex");
     const code = generateEmailCode();
@@ -208,13 +237,30 @@ export async function registerUser(data: z.infer<typeof registerSchema>) {
     const sent = await sendVerificationEmail(email, verifyUrl, username, code);
 
     if (!sent.ok) {
-      await db.user.delete({ where: { id: user.id } });
+      if (!userByEmail) {
+        await db.user.delete({ where: { id: userId } });
+      }
       return { error: sent.error ?? "인증 메일 발송 실패" };
     }
 
-    return { success: true, userId: user.id, needsVerification: true, email };
+    const resumed = !!userByEmail && !userByEmail.emailVerified;
+    return {
+      success: true,
+      userId,
+      needsVerification: true,
+      email,
+      resumed,
+      message: resumed
+        ? "인증이 완료되지 않은 계정입니다. 인증 코드를 다시 보냈습니다."
+        : undefined,
+    };
   } catch (e) {
     console.error("[registerUser]", e);
+    const prismaCode =
+      e && typeof e === "object" && "code" in e ? String((e as { code: string }).code) : "";
+    if (prismaCode === "P2002") {
+      return { error: "이미 사용 중인 이메일 또는 닉네임입니다." };
+    }
     return {
       error:
         "회원가입 저장에 실패했습니다. Vercel에 DATABASE_URL·DIRECT_URL이 설정됐는지 확인하세요.",

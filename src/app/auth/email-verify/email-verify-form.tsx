@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -34,6 +34,14 @@ function EmailVerifyFormInner() {
   );
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const notice = sessionStorage.getItem("mocomo_signup_notice");
+    if (notice) {
+      setMessage(notice);
+      sessionStorage.removeItem("mocomo_signup_notice");
+    }
+  }, []);
 
   async function sendCode() {
     if (!email.trim()) return;

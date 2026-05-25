@@ -31,11 +31,12 @@ export function SignUpForm({
     const form = new FormData(e.currentTarget);
     const email = (form.get("email") as string).trim().toLowerCase();
     const password = form.get("password") as string;
+    const username = ((form.get("username") as string) || "").trim().toLowerCase();
 
     try {
       const result = await registerUser({
         email,
-        username: form.get("username") as string,
+        username,
         password,
         name: (form.get("name") as string) || undefined,
       });
@@ -47,6 +48,9 @@ export function SignUpForm({
 
       if (result.needsVerification) {
         sessionStorage.setItem(SIGNUP_PASSWORD_SESSION_KEY, password);
+        if (result.message) {
+          sessionStorage.setItem("mocomo_signup_notice", result.message);
+        }
         router.push(`/auth/email-verify?email=${encodeURIComponent(email)}&mode=signup`);
         return;
       }
