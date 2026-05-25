@@ -5,7 +5,7 @@ const ACTIVE_STATUSES: CallStatus[] = [CallStatus.RINGING, CallStatus.ACTIVE];
 
 export type LivekitRoomAccess =
   | { allowed: true; audioOnly?: boolean }
-  | { allowed: false; reason: "CALL_NOT_FOUND" | "NOT_PARTICIPANT" | "CALL_NOT_ACTIVE" | "DB_ERROR" };
+  | { allowed: false; reason: "NOT_CALL" | "CALL_NOT_FOUND" | "NOT_PARTICIPANT" | "CALL_NOT_ACTIVE" | "DB_ERROR" };
 
 function isMissingVoiceCallTable(e: unknown): boolean {
   if (!e || typeof e !== "object") return false;
@@ -18,7 +18,7 @@ export async function validateLivekitCallRoom(
   roomName: string,
   userId: string
 ): Promise<LivekitRoomAccess> {
-  if (!roomName.startsWith("call-")) return { allowed: true };
+  if (!roomName.startsWith("call-")) return { allowed: false, reason: "NOT_CALL" };
 
   try {
     const call = await db.voiceCall.findUnique({

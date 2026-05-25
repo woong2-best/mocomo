@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { liveViewerCutoff } from "@/lib/live-presence";
 import { db } from "@/lib/db";
 import { getTipRanking } from "@/actions/monetization";
 import { getRankings } from "@/actions/events";
@@ -112,14 +113,14 @@ export const getCachedMarketProducts = unstable_cache(
 
 export const getCachedLiveChannels = unstable_cache(
   async () => {
-    const [channels, upcoming] = await Promise.all([
+    const cutoff = liveViewerCutoff();
+    const [channels, upcoming, viewerGroups] = await Promise.all([
       db.voiceChannel.findMany({
         where: { isLive: true },
         select: {
           id: true,
           name: true,
           createdBy: true,
-          _count: { select: { members: true } },
         },
         orderBy: { createdAt: "desc" },
         take: 24,
@@ -128,9 +129,21 @@ export const getCachedLiveChannels = unstable_cache(
         where: { isLive: false },
         take: 6,
         orderBy: { createdAt: "desc" },
-        select: { id: true, name: true, _count: { select: { members: true } } },
+        select: { id: true, name: true },
+      }),
+      db.voiceMember.groupBy({
+        by: ["channelId"],
+        where: { lastSeenAt: { gte: cutoff } },
+        _count: { _all: true },
       }),
     ]);
+    const viewerMap = Object.fromEntries(
+      viewerGroups.map((g) => [g.channelId, g._count._all])
+    );
+    const channelsWithViewers = channels.map((c) => ({
+      ...c,
+      viewerCount: viewerMap[c.id] ?? 0,
+    }));
     const hosts =
       channels.length > 0
         ? await db.user.findMany({
@@ -138,7 +151,7 @@ export const getCachedLiveChannels = unstable_cache(
             select: { id: true, username: true, image: true },
           })
         : [];
-    return { channels, upcoming, hosts };
+    return { channels: channelsWithViewers, upcoming, hosts };
   },
   ["live-channels"],
   { revalidate: 30 }

@@ -90,7 +90,9 @@ export default async function LivePage() {
                       </CardTitle>
                       {host && <p className="text-xs text-muted-foreground">@{host.username}</p>}
                     </CardHeader>
-                    <CardContent className="text-sm text-muted-foreground">{ch._count.members}명 시청 중</CardContent>
+                    <CardContent className="text-sm text-muted-foreground">
+                      {ch.viewerCount}명 시청 중
+                    </CardContent>
                   </Card>
                 </Link>
               );
@@ -106,9 +108,9 @@ export default async function LivePage() {
             {upcoming.map((ch) => (
               <Link key={ch.id} href={`/voice/${ch.id}`}>
                 <Card className="rounded-xl hover:bg-muted/30">
-                  <CardContent className="p-4 flex justify-between items-center">
+                  <CardContent className="p-4">
                     <span className="font-medium">{ch.name}</span>
-                    <span className="text-xs text-muted-foreground">{ch._count.members}명</span>
+                    <span className="text-xs text-muted-foreground block mt-1">종료된 방송</span>
                   </CardContent>
                 </Card>
               </Link>

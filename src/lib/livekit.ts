@@ -4,11 +4,13 @@ export async function createLivekitToken(
   roomName: string,
   participantIdentity: string,
   participantName: string,
-  options?: { audioOnly?: boolean }
+  options?: { audioOnly?: boolean; publish?: boolean }
 ): Promise<string | null> {
   const apiKey = process.env.LIVEKIT_API_KEY;
   const apiSecret = process.env.LIVEKIT_API_SECRET;
   if (!apiKey || !apiSecret) return null;
+
+  const canPublish = options?.publish !== false;
 
   try {
     const token = new AccessToken(apiKey, apiSecret, {
@@ -20,10 +22,15 @@ export async function createLivekitToken(
     token.addGrant({
       roomJoin: true,
       room: roomName,
-      canPublish: true,
+      canPublish,
       canSubscribe: true,
-      canPublishData: true,
-      canPublishSources: options?.audioOnly ? [TrackSource.MICROPHONE] : undefined,
+      canPublishData: canPublish,
+      canPublishSources:
+        !canPublish
+          ? []
+          : options?.audioOnly
+            ? [TrackSource.MICROPHONE]
+            : undefined,
     });
 
     return await token.toJwt();

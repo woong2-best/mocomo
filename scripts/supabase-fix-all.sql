@@ -173,4 +173,36 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+-- I) 라이브 방송: 합방 비밀번호, 채팅, 실시간 시청자
+ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "joinPasswordHash" TEXT;
+
+ALTER TABLE "VoiceMember" ADD COLUMN IF NOT EXISTS "role" TEXT NOT NULL DEFAULT 'VIEWER';
+ALTER TABLE "VoiceMember" ADD COLUMN IF NOT EXISTS "lastSeenAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+CREATE TABLE IF NOT EXISTS "LiveChatMessage" (
+  "id" TEXT NOT NULL,
+  "channelId" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "content" VARCHAR(200) NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "LiveChatMessage_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX IF NOT EXISTS "LiveChatMessage_channelId_createdAt_idx"
+  ON "LiveChatMessage"("channelId", "createdAt");
+
+DO $$ BEGIN
+  ALTER TABLE "LiveChatMessage"
+    ADD CONSTRAINT "LiveChatMessage_channelId_fkey"
+    FOREIGN KEY ("channelId") REFERENCES "VoiceChannel"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "LiveChatMessage"
+    ADD CONSTRAINT "LiveChatMessage_userId_fkey"
+    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 -- 완료 후 터미널: npx prisma db push && npm run db:seed

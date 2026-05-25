@@ -69,6 +69,7 @@ model User {
   messageReads  MessageRead[]
 
   voiceMembers  VoiceMember[]
+  liveChatMessages LiveChatMessage[]
   callsMade     VoiceCall[] @relation("CallsMade")
   callsReceived VoiceCall[] @relation("CallsReceived")
   tipsSent      Tip[]     @relation("TipSender")
@@ -487,28 +488,45 @@ model PinnedMessage {
 // ============ VOICE ============
 
 model VoiceChannel {
-  id          String   @id @default(cuid())
-  name        String
-  communityId String?
-  maxUsers    Int      @default(50)
-  isLive      Boolean  @default(false)
-  allowScreen Boolean  @default(true)
-  allowCamera Boolean  @default(true)
-  createdBy   String
-  createdAt   DateTime @default(now())
+  id               String   @id @default(cuid())
+  name             String
+  communityId      String?
+  maxUsers         Int      @default(50)
+  isLive           Boolean  @default(false)
+  allowScreen      Boolean  @default(true)
+  allowCamera      Boolean  @default(true)
+  joinPasswordHash String?
+  createdBy        String
+  createdAt        DateTime @default(now())
 
-  members VoiceMember[]
+  members      VoiceMember[]
+  chatMessages LiveChatMessage[]
 }
 
-model VoiceMember {
+model LiveChatMessage {
   id        String   @id @default(cuid())
   channelId String
   userId    String
-  isMuted   Boolean  @default(false)
-  isDeafened Boolean @default(false)
-  cameraOn  Boolean  @default(false)
-  screenOn  Boolean  @default(false)
-  joinedAt  DateTime @default(now())
+  content   String   @db.VarChar(200)
+  createdAt DateTime @default(now())
+
+  channel VoiceChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, createdAt])
+}
+
+model VoiceMember {
+  id         String   @id @default(cuid())
+  channelId  String
+  userId     String
+  role       String   @default("VIEWER")
+  isMuted    Boolean  @default(false)
+  isDeafened Boolean  @default(false)
+  cameraOn   Boolean  @default(false)
+  screenOn   Boolean  @default(false)
+  joinedAt   DateTime @default(now())
+  lastSeenAt DateTime @default(now())
   channel VoiceChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
   user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@unique([channelId, userId])
