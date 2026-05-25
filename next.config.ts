@@ -19,6 +19,8 @@ const nextConfig: NextConfig = {
       "@radix-ui/react-dropdown-menu",
       "@radix-ui/react-select",
       "framer-motion",
+      "@livekit/components-react",
+      "socket.io-client",
     ],
   },
 };

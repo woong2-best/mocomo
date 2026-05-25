@@ -1,14 +1,18 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
-import { io, Socket } from "socket.io-client";
+import type { Socket } from "socket.io-client";
 import { acceptCall, declineCall, endCall, initiateCall } from "@/actions/call";
 import type { ActiveCallState, CallPayload } from "@/lib/call-types";
-import { LivekitAudioCall } from "@/components/call/livekit-audio-call";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PhoneOff, PhoneIncoming } from "lucide-react";
+import { ensureMicrophoneAccess, probeMicrophonePermission, type MicCheckResult } from "@/lib/microphone";
+import { CallOverlay } from "@/components/call/call-overlay";
+
+const LivekitAudioCall = dynamic(
+  () => import("@/components/call/livekit-audio-call").then((m) => m.LivekitAudioCall),
+  { ssr: false, loading: () => null }
+);
 
 type CallContextValue = {
   startCall: (calleeId: string, chatRoomId?: string) => Promise<{ error?: string }>;
@@ -32,16 +36,31 @@ type SyncResponse =
   | { event: "declined" | "ended"; callId: string }
   | { event: "incoming" | "outgoing" | "active"; call: CallPayload; peer: CallPayload["caller"] };
 
+function syncPollIntervalMs(phase: ActiveCallState["phase"], hidden: boolean) {
+  if (phase !== "idle") return 2000;
+  return hidden ? 12000 : 6000;
+}
+
 export function CallProvider({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
   const userId = session?.user?.id;
   const [callState, setCallState] = useState<ActiveCallState>({ phase: "idle" });
   const [error, setError] = useState("");
+  const [mic, setMic] = useState<MicCheckResult | null>(null);
+  const [micChecking, setMicChecking] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const callStateRef = useRef(callState);
   const lastTerminalRef = useRef<string | null>(null);
 
   callStateRef.current = callState;
+
+  const runMicCheck = useCallback(async () => {
+    setMicChecking(true);
+    const result = await ensureMicrophoneAccess();
+    setMic(result);
+    setMicChecking(false);
+    return result;
+  }, []);
 
   const emit = useCallback((event: string, payload: { callId: string }) => {
     socketRef.current?.emit(event, payload);
@@ -50,6 +69,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const resetCall = useCallback(() => {
     setCallState({ phase: "idle" });
     setError("");
+    setMic(null);
+    setMicChecking(false);
   }, []);
 
   const applySync = useCallback(
@@ -81,11 +102,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         if (current.phase === "active" && current.call.id === data.call.id && data.event === "active") {
           return;
         }
-
         if (current.phase === "outgoing" && current.call.id === data.call.id && data.event === "outgoing") {
           return;
         }
-
         if (current.phase === "incoming" && current.call.id === data.call.id && data.event === "incoming") {
           return;
         }
@@ -110,6 +129,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     if (!userId) return;
 
     let cancelled = false;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
 
     async function syncCalls() {
       try {
@@ -118,15 +138,29 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         const data = (await res.json()) as SyncResponse;
         if (!cancelled) applySync(data);
       } catch {
-        /* ignore polling errors */
+        /* ignore */
       }
     }
 
+    function schedule() {
+      if (intervalId) clearInterval(intervalId);
+      const ms = syncPollIntervalMs(callStateRef.current.phase, document.hidden);
+      intervalId = setInterval(syncCalls, ms);
+    }
+
     syncCalls();
-    const interval = setInterval(syncCalls, 2000);
+    schedule();
+
+    const onVisibility = () => {
+      syncCalls();
+      schedule();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
     return () => {
       cancelled = true;
-      clearInterval(interval);
+      if (intervalId) clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [userId, applySync]);
 
@@ -135,58 +169,97 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const url = process.env.NEXT_PUBLIC_SOCKET_URL;
     if (!url) return;
 
-    const socket = io(url, {
-      auth: { userId },
-      transports: ["websocket", "polling"],
-      reconnection: true,
-    });
-    socketRef.current = socket;
+    let socket: Socket | null = null;
+    let disposed = false;
 
-    socket.on("call_incoming", (call: CallPayload) => {
-      setCallState({ phase: "incoming", call, peer: call.caller });
-    });
-
-    socket.on("call_accepted", ({ callId }: { callId: string }) => {
-      setCallState((prev) => {
-        if (prev.phase === "outgoing" && prev.call.id === callId) {
-          return { phase: "active", call: prev.call, peer: prev.peer };
-        }
-        if (prev.phase === "incoming" && prev.call.id === callId) {
-          return { phase: "active", call: prev.call, peer: prev.peer };
-        }
-        return prev;
+    import("socket.io-client").then(({ io }) => {
+      if (disposed) return;
+      socket = io(url, {
+        auth: { userId },
+        transports: ["websocket", "polling"],
+        reconnection: true,
       });
-    });
+      socketRef.current = socket;
 
-    socket.on("call_declined", ({ callId }: { callId: string }) => {
-      setCallState((prev) => {
-        if (prev.phase !== "idle" && prev.call.id === callId) {
-          setError("상대방이 통화를 거절했습니다.");
-          return { phase: "idle" };
-        }
-        return prev;
+      socket.on("call_incoming", (call: CallPayload) => {
+        setCallState({ phase: "incoming", call, peer: call.caller });
       });
-    });
 
-    socket.on("call_ended", ({ callId }: { callId: string }) => {
-      setCallState((prev) => {
-        if (prev.phase !== "idle" && prev.call.id === callId) {
-          return { phase: "idle" };
-        }
-        return prev;
+      socket.on("call_accepted", ({ callId }: { callId: string }) => {
+        setCallState((prev) => {
+          if (prev.phase === "outgoing" && prev.call.id === callId) {
+            return { phase: "active", call: prev.call, peer: prev.peer };
+          }
+          if (prev.phase === "incoming" && prev.call.id === callId) {
+            return { phase: "active", call: prev.call, peer: prev.peer };
+          }
+          return prev;
+        });
+      });
+
+      socket.on("call_declined", ({ callId }: { callId: string }) => {
+        setCallState((prev) => {
+          if (prev.phase !== "idle" && prev.call.id === callId) {
+            setError("상대방이 통화를 거절했습니다.");
+            return { phase: "idle" };
+          }
+          return prev;
+        });
+      });
+
+      socket.on("call_ended", ({ callId }: { callId: string }) => {
+        setCallState((prev) => {
+          if (prev.phase !== "idle" && prev.call.id === callId) {
+            return { phase: "idle" };
+          }
+          return prev;
+        });
       });
     });
 
     return () => {
-      socket.disconnect();
+      disposed = true;
+      socket?.disconnect();
       socketRef.current = null;
     };
   }, [userId]);
+
+  const activeCallId = callState.phase !== "idle" ? callState.call.id : null;
+
+  useEffect(() => {
+    if (!activeCallId) return;
+
+    let cancelled = false;
+    (async () => {
+      const perm = await probeMicrophonePermission();
+      if (cancelled) return;
+      if (perm === "granted") {
+        const result = await ensureMicrophoneAccess();
+        if (!cancelled) setMic(result);
+      } else {
+        setMic({
+          ok: false,
+          status: perm === "denied" ? "denied" : "unknown",
+          message:
+            perm === "denied"
+              ? "마이크 권한이 꺼져 있습니다. 설정에서 허용해 주세요."
+              : undefined,
+        });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [callState.phase, activeCallId]);
 
   const startCall = useCallback(
     async (calleeId: string, chatRoomId?: string) => {
       if (!userId) return { error: "로그인이 필요합니다." };
       setError("");
+      const micResult = await runMicCheck();
+      if (!micResult.ok) return { error: micResult.message ?? "마이크 확인이 필요합니다." };
+
       const result = await initiateCall({ calleeId, chatRoomId });
       if (result.error || !result.call) return { error: result.error ?? "통화를 시작할 수 없습니다." };
 
@@ -195,11 +268,16 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       emit("call_invite", { callId: result.call.id });
       return {};
     },
-    [emit, userId]
+    [emit, runMicCheck, userId]
   );
 
   const acceptIncoming = useCallback(async () => {
     if (callState.phase !== "incoming") return;
+    const micResult = mic?.ok ? mic : await runMicCheck();
+    if (!micResult.ok) {
+      setError(micResult.message ?? "마이크 확인 후 받을 수 있습니다.");
+      return;
+    }
     const result = await acceptCall(callState.call.id);
     if (result.error) {
       setError(result.error);
@@ -208,7 +286,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     }
     emit("call_accept", { callId: callState.call.id });
     setCallState({ phase: "active", call: callState.call, peer: callState.peer });
-  }, [callState, emit, resetCall]);
+  }, [callState, emit, mic, resetCall, runMicCheck]);
 
   const declineIncoming = useCallback(async () => {
     if (callState.phase !== "incoming") return;
@@ -231,77 +309,25 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       {children}
 
       {callState.phase !== "idle" && (
-        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-3xl border border-border bg-background shadow-2xl p-6 space-y-5">
-            <div className="flex flex-col items-center text-center gap-3">
-              <Avatar className="h-16 w-16">
-                <AvatarImage src={callState.peer.image ?? undefined} />
-                <AvatarFallback>{callState.peer.username[0]?.toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-semibold text-lg">{callState.peer.username}</p>
-                <p className="text-sm text-muted-foreground">
-                  {callState.phase === "incoming" && "전화가 왔습니다"}
-                  {callState.phase === "outgoing" && "연결 중…"}
-                  {callState.phase === "active" && "통화 중"}
-                </p>
-              </div>
-            </div>
-
-            {callState.phase === "active" && (
+        <CallOverlay
+          callState={callState}
+          error={error}
+          mic={mic}
+          micChecking={micChecking}
+          onMicCheck={runMicCheck}
+          onAccept={acceptIncoming}
+          onDecline={declineIncoming}
+          onCancel={cancelOutgoing}
+          onHangup={() => hangup(callState.call.id)}
+          livekitSlot={
+            callState.phase === "active" ? (
               <LivekitAudioCall
                 roomName={callState.call.livekitRoom}
                 onDisconnected={() => hangup(callState.call.id)}
               />
-            )}
-
-            {error && <p className="text-xs text-destructive text-center">{error}</p>}
-
-            <div className="flex justify-center gap-3">
-              {callState.phase === "incoming" && (
-                <>
-                  <Button
-                    size="lg"
-                    className="rounded-full h-14 w-14 bg-green-600 hover:bg-green-700"
-                    onClick={acceptIncoming}
-                  >
-                    <PhoneIncoming className="h-6 w-6" />
-                  </Button>
-                  <Button
-                    size="lg"
-                    variant="destructive"
-                    className="rounded-full h-14 w-14"
-                    onClick={declineIncoming}
-                  >
-                    <PhoneOff className="h-6 w-6" />
-                  </Button>
-                </>
-              )}
-
-              {callState.phase === "outgoing" && (
-                <Button
-                  size="lg"
-                  variant="destructive"
-                  className="rounded-full h-14 w-14"
-                  onClick={cancelOutgoing}
-                >
-                  <PhoneOff className="h-6 w-6" />
-                </Button>
-              )}
-
-              {callState.phase === "active" && (
-                <Button
-                  size="lg"
-                  variant="destructive"
-                  className="rounded-full h-14 w-14"
-                  onClick={() => hangup(callState.call.id)}
-                >
-                  <PhoneOff className="h-6 w-6" />
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
+            ) : undefined
+          }
+        />
       )}
     </CallContext.Provider>
   );
