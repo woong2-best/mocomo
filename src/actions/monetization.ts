@@ -134,8 +134,14 @@ export async function createPaymentIntent(input: {
 
   if (input.type === "EMOTICON") {
     const packId = input.metadata.packId as string;
-    const pack = await db.emoticonPack.findUnique({ where: { id: packId } });
-    if (!pack) return { error: "이모티콘을 찾을 수 없습니다." };
+    const packSlug = input.metadata.packSlug as string | undefined;
+    let pack = packId
+      ? await db.emoticonPack.findUnique({ where: { id: packId } })
+      : null;
+    if (!pack && packSlug) {
+      pack = await db.emoticonPack.findUnique({ where: { slug: packSlug } });
+    }
+    if (!pack) return { error: "이모티콘을 찾을 수 없습니다. DB 연동(섹션 J)을 확인해 주세요." };
     if (pack.price !== input.amount) return { error: "이모티콘 가격이 일치하지 않습니다." };
   }
 
@@ -241,7 +247,11 @@ export async function confirmPaymentIntent(
   }
 
   if (intent.type === "EMOTICON") {
-    const packId = meta.packId;
+    let packId = meta.packId;
+    if (!packId && meta.packSlug) {
+      const p = await db.emoticonPack.findUnique({ where: { slug: meta.packSlug } });
+      packId = p?.id ?? packId;
+    }
     const r = await fulfillEmoticonPurchase(user.id, packId);
     if ("error" in r && r.error) return { error: r.error };
     revalidatePath("/market/storage");

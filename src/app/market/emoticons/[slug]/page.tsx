@@ -1,17 +1,24 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getEmoticonPackBySlug } from "@/actions/goods-shop";
+import { getEmoticonPackBySlug, resolveEmoticonPackForPurchase } from "@/actions/goods-shop";
 import { isPaymentsConfigured } from "@/lib/payments";
 import { TossPayButton } from "@/components/payments/toss-pay-button";
+import { EmoticonPreview } from "@/components/market/emoticon-preview";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ImageIcon } from "lucide-react";
 
 export default async function EmoticonDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const pack = await getEmoticonPackBySlug(slug);
+  const { pack, dbReady } = await getEmoticonPackBySlug(slug);
   if (!pack) notFound();
 
-  const paymentsEnabled = isPaymentsConfigured();
+  let purchasePackId = pack.id.startsWith("fallback-") ? null : pack.id;
+  if (!purchasePackId && dbReady) {
+    const resolved = await resolveEmoticonPackForPurchase(slug);
+    if (resolved.pack) purchasePackId = resolved.pack.id;
+  }
+
+  const paymentsEnabled = isPaymentsConfigured() && !!purchasePackId && dbReady;
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
@@ -22,41 +29,47 @@ export default async function EmoticonDetailPage({ params }: { params: Promise<{
         </Button>
       </Link>
 
+      {!dbReady && (
+        <p className="text-sm rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2">
+          DB 연동 전에는 목록만 보입니다. Supabase SQL 섹션 J 실행 후 구매할 수 있습니다.
+        </p>
+      )}
+
       <div className="rounded-2xl border border-border/60 overflow-hidden bg-card">
-        <div className="aspect-square bg-muted/30 flex items-center justify-center p-8">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={pack.previewUrl} alt={pack.name} className="max-h-full max-w-full object-contain" />
+        <div className="p-6">
+          <EmoticonPreview name={pack.name} price={pack.price} previewUrl={pack.previewUrl} size="lg" />
         </div>
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-4 border-t border-border/60">
           <div>
             <h2 className="text-xl font-bold">{pack.name}</h2>
-            <p className="text-2xl font-black text-neon-cyan mt-1">{pack.price.toLocaleString()}원</p>
+            <p className="text-2xl font-black text-primary mt-1">{pack.price.toLocaleString()}원</p>
           </div>
 
-          <div className="rounded-xl border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground">
-            <ImageIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            상세 이미지는 추후 업데이트됩니다.
+          <div className="rounded-xl border border-dashed border-border/60 p-4 text-center text-sm text-muted-foreground">
+            <ImageIcon className="h-6 w-6 mx-auto mb-2 opacity-50" />
+            상세 이미지는 나중에 추가됩니다.
           </div>
 
           <ul className="text-xs text-muted-foreground space-y-1.5 list-disc list-inside">
-            <li>구매 후 마이 스토리지에 저장</li>
-            <li>스트리머에게 1회 선물 가능</li>
-            <li>선물 시 스트리머에게 90% 적립 (수수료 10%)</li>
-            <li>한 번내면 사용완료 처리</li>
+            <li>구매 → 마이 스토리지</li>
+            <li>스트리머에게 1회 선물 (90% 정산)</li>
+            <li>선물 후 사용완료</li>
           </ul>
 
-          {paymentsEnabled ? (
+          {paymentsEnabled && purchasePackId ? (
             <TossPayButton
               type="EMOTICON"
               amount={pack.price}
               orderName={`MoCoMo ${pack.name}`}
-              metadata={{ packId: pack.id }}
+              metadata={{ packId: purchasePackId, packSlug: pack.slug }}
               className="w-full rounded-2xl h-12"
             >
               {pack.price.toLocaleString()}원 구매
             </TossPayButton>
           ) : (
-            <p className="text-sm text-destructive text-center">결제 설정이 필요합니다 (Toss Payments).</p>
+            <p className="text-sm text-center text-muted-foreground">
+              {!dbReady ? "DB 연동 후 구매 가능" : "결제 설정(Toss)이 필요합니다"}
+            </p>
           )}
         </div>
       </div>

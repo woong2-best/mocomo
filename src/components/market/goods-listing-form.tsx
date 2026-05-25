@@ -103,7 +103,7 @@ export function GoodsListingForm({ paymentsEnabled }: { paymentsEnabled: boolean
       />
 
       <div>
-        <label className="text-sm font-medium">상품 사진</label>
+            <label className="text-sm font-medium">상품 사진 (선택 · 나중에 추가 가능)</label>
         <div className="flex flex-wrap gap-2 mt-2">
           {images.map((url) => (
             // eslint-disable-next-line @next/next/no-img-element

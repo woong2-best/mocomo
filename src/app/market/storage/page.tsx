@@ -4,6 +4,7 @@ import { getMyEmoticonStorage } from "@/actions/goods-shop";
 import { SendEmoticonForm } from "@/components/market/send-emoticon-form";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { EmoticonPreview } from "@/components/market/emoticon-preview";
 
 export default async function StoragePage() {
   const session = await auth();
@@ -30,10 +31,12 @@ export default async function StoragePage() {
             <li key={item.id} className="rounded-2xl border border-border/60 bg-card overflow-hidden">
               <div className="flex gap-4 p-4">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={item.pack.previewUrl}
-                  alt=""
-                  className="h-16 w-16 rounded-xl bg-muted/40 object-contain p-1"
+                <EmoticonPreview
+                  name={item.pack.name}
+                  price={item.pack.price}
+                  previewUrl={item.pack.previewUrl}
+                  size="sm"
+                  className="rounded-xl"
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">

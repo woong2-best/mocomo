@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
-import { calcShopFees, ensureEmoticonCatalog, LISTING_FEE_KRW } from "@/lib/goods-shop";
+import { calcShopFees, ensureEmoticonCatalog, loadEmoticonPacks, LISTING_FEE_KRW } from "@/lib/goods-shop";
 import type { Prisma } from "@prisma/client";
 
 export async function bootstrapEmoticonCatalog() {
@@ -11,16 +11,30 @@ export async function bootstrapEmoticonCatalog() {
 }
 
 export async function getEmoticonPacks() {
-  await ensureEmoticonCatalog(db);
-  return db.emoticonPack.findMany({
-    where: { active: true },
-    orderBy: [{ price: "asc" }, { sortOrder: "asc" }],
-  });
+  return loadEmoticonPacks(db);
 }
 
 export async function getEmoticonPackBySlug(slug: string) {
-  await ensureEmoticonCatalog(db);
-  return db.emoticonPack.findUnique({ where: { slug } });
+  const { packs, dbReady } = await loadEmoticonPacks(db);
+  const found = packs.find((p) => p.slug === slug);
+  if (found) return { pack: found, dbReady };
+  return { pack: null, dbReady };
+}
+
+/** 결제용 — DB에 팩이 없으면 시드 후 slug로 조회 */
+export async function resolveEmoticonPackForPurchase(slug: string) {
+  try {
+    await ensureEmoticonCatalog(db);
+    const pack = await db.emoticonPack.findUnique({ where: { slug } });
+    if (pack) return { pack, dbReady: true };
+    return { pack: null as null, dbReady: true, error: "이모티콘을 찾을 수 없습니다." };
+  } catch {
+    return {
+      pack: null as null,
+      dbReady: false,
+      error: "굿즈샵 DB가 연결되지 않았습니다. Supabase SQL 섹션 J를 실행해 주세요.",
+    };
+  }
 }
 
 export async function getMyEmoticonStorage() {
@@ -124,7 +138,9 @@ export async function createGoodsListingRequest(data: {
   const user = await requireAuth();
   if (!data.title.trim()) return { error: "상품명을 입력해 주세요." };
   if (!data.description.trim()) return { error: "상품 설명을 입력해 주세요." };
-  if (data.images.length === 0) return { error: "상품 사진을 1장 이상 올려 주세요." };
+  if (data.images.length === 0) {
+    data.images = [];
+  }
 
   const request = await db.goodsListingRequest.create({
     data: {

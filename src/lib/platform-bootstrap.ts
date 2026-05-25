@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
+import { ensureEmoticonCatalog } from "@/lib/goods-shop";
 
 const PLATFORM_EMAIL = "platform@mocomo.app";
 const PLATFORM_USERNAME = "mocomo_official";
@@ -106,6 +107,12 @@ export async function ensurePlatformBootstrap(prisma: PrismaClient) {
         hotScore: 100,
       },
     });
+  }
+
+  try {
+    await ensureEmoticonCatalog(prisma);
+  } catch {
+    /* 테이블 없으면 market fallback UI 사용 */
   }
 
   globalBootstrap.mocomoBootstrapped = true;

@@ -1,13 +1,15 @@
 import Link from "next/link";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles, Package, Archive, Store } from "lucide-react";
 import { getEmoticonPacks, getPhysicalProducts } from "@/actions/goods-shop";
+import { getCachedMarketProducts } from "@/lib/cached-data";
 import { EMOTICON_PRICES } from "@/lib/goods-shop";
 
 export default async function MarketHomePage() {
-  const [packs, goods] = await Promise.all([
-    getEmoticonPacks().catch(() => []),
+  const [{ packs }, goods, digital] = await Promise.all([
+    getEmoticonPacks().catch(() => ({ packs: [], dbReady: false })),
     getPhysicalProducts().catch(() => []),
+    getCachedMarketProducts().catch(() => []),
   ]);
 
   const byPrice = EMOTICON_PRICES.map((price) => ({
@@ -27,7 +29,7 @@ export default async function MarketHomePage() {
               <div>
                 <p className="font-bold">MoCoMo 이모티콘</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  1·2·3·5만원 · 구매 후 스트리머에게 1회 선물
+                  {packs.length}종 · 1·2·3·5만원
                 </p>
               </div>
             </CardContent>
@@ -41,7 +43,7 @@ export default async function MarketHomePage() {
               </div>
               <div>
                 <p className="font-bold">마이 스토리지</p>
-                <p className="text-xs text-muted-foreground mt-0.5">보유 이모티콘 · 사용완료 표시</p>
+                <p className="text-xs text-muted-foreground mt-0.5">보유 · 스트리머 선물</p>
               </div>
             </CardContent>
           </Card>
@@ -54,7 +56,7 @@ export default async function MarketHomePage() {
               </div>
               <div>
                 <p className="font-bold">실물 굿즈</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{goods.length}개 판매 중 · 배송/결제</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{goods.length}개 판매 중</p>
               </div>
             </CardContent>
           </Card>
@@ -67,7 +69,7 @@ export default async function MarketHomePage() {
               </div>
               <div>
                 <p className="font-bold">굿즈 판매 문의</p>
-                <p className="text-xs text-muted-foreground mt-0.5">등록비 5,000원 · 사진/영상 업로드</p>
+                <p className="text-xs text-muted-foreground mt-0.5">등록비 5,000원</p>
               </div>
             </CardContent>
           </Card>
@@ -83,12 +85,36 @@ export default async function MarketHomePage() {
               href={`/market/emoticons?price=${price}`}
               className="rounded-xl border border-border/60 p-3 text-center hover:bg-muted/50"
             >
-              <p className="font-bold text-neon-cyan">{(price / 10000).toFixed(0)}만원</p>
+              <p className="font-bold text-primary">{(price / 10000).toFixed(0)}만원</p>
               <p className="text-xs text-muted-foreground">{count}종</p>
             </Link>
           ))}
         </div>
       </section>
+
+      {digital.length > 0 && (
+        <section>
+          <h2 className="text-sm font-semibold text-muted-foreground mb-3">디지털 굿즈</h2>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {digital.slice(0, 6).map((p) => (
+              <Link key={p.id} href={`/market/digital/${p.id}`}>
+                <Card className="overflow-hidden hover:border-primary/40 h-full">
+                  {p.previewUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.previewUrl} alt="" className="w-full aspect-video object-cover" />
+                  ) : (
+                    <div className="aspect-video bg-muted/40" />
+                  )}
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-sm">{p.title}</CardTitle>
+                    <p className="text-xs text-primary font-semibold">{p.price.toLocaleString()}원</p>
+                  </CardHeader>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
