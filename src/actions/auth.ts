@@ -33,6 +33,44 @@ const registerSchema = z.object({
   name: z.string().optional(),
 });
 
+const RESERVED_USERNAMES = new Set([
+  "mocomo",
+  "mocomo_official",
+  "admin",
+  "administrator",
+  "support",
+  "official",
+  "system",
+  "root",
+  "help",
+]);
+
+const PLATFORM_USERNAME = "mocomo_official";
+
+async function findUserByUsernameInsensitive(username: string) {
+  return db.user.findFirst({
+    where: { username: { equals: username, mode: "insensitive" } },
+  });
+}
+
+/** 미인증·방치 가입이 닉네임만 점유한 경우 해제 */
+async function releaseUsernameFromStaleAccount(
+  owner: { id: string; email: string | null; emailVerified: Date | null; role: string; username: string },
+  signupEmail: string
+) {
+  if (owner.email?.toLowerCase() === signupEmail) return true;
+  if (owner.emailVerified) return false;
+  if (owner.role === "ADMIN" || owner.role === "MODERATOR") return false;
+  if (owner.username.toLowerCase() === PLATFORM_USERNAME) return false;
+
+  const archived = `archived_${randomBytes(6).toString("hex")}`;
+  await db.user.update({
+    where: { id: owner.id },
+    data: { username: archived },
+  });
+  return true;
+}
+
 async function saveVerificationCodes(email: string, token: string, code: string, hours = 24) {
   const expires = new Date(Date.now() + hours * 60 * 60 * 1000);
   const normalized = email.trim().toLowerCase();
@@ -173,14 +211,32 @@ export async function completeAuthWithCode(
   return { success: true, mode: options.mode };
 }
 
+export async function checkUsernameAvailable(username: string) {
+  const normalized = username.trim().toLowerCase();
+  if (normalized.length < 3 || !/^[a-zA-Z0-9_]+$/.test(normalized)) {
+    return { available: false, error: "닉네임은 영문·숫자·_ 3~20자입니다." };
+  }
+  if (RESERVED_USERNAMES.has(normalized)) {
+    return { available: false, error: "예약된 닉네임입니다." };
+  }
+  const existing = await findUserByUsernameInsensitive(normalized);
+  if (!existing) return { available: true };
+  if (!existing.emailVerified) return { available: true, note: "미인증 계정 닉네임 — 가입 시 자동 해제됩니다." };
+  return { available: false, error: "이미 사용 중인 닉네임입니다." };
+}
+
 export async function registerUser(data: z.infer<typeof registerSchema>) {
   const parsed = registerSchema.safeParse(data);
   if (!parsed.success) return { error: "입력값이 올바르지 않습니다." };
   const { email: rawEmail, username, password, name } = parsed.data;
   const email = rawEmail.trim().toLowerCase();
 
+  if (RESERVED_USERNAMES.has(username)) {
+    return { error: "사용할 수 없는 닉네임입니다. 다른 닉네임을 입력해 주세요." };
+  }
+
   const userByEmail = await db.user.findUnique({ where: { email } });
-  const userByUsername = await db.user.findUnique({ where: { username } });
+  let userByUsername = await findUserByUsernameInsensitive(username);
 
   if (userByEmail?.emailVerified) {
     return {
@@ -188,8 +244,15 @@ export async function registerUser(data: z.infer<typeof registerSchema>) {
     };
   }
 
-  if (userByUsername && userByUsername.email !== email) {
-    return { error: "이미 사용 중인 닉네임입니다. 다른 닉네임을 입력해 주세요." };
+  if (userByUsername && userByUsername.email?.toLowerCase() !== email) {
+    if (userByUsername.emailVerified) {
+      return { error: `닉네임 "${username}"은(는) 이미 사용 중입니다. 다른 닉네임을 입력해 주세요.` };
+    }
+    const released = await releaseUsernameFromStaleAccount(userByUsername, email);
+    if (!released) {
+      return { error: `닉네임 "${username}"은(는) 이미 사용 중입니다. 다른 닉네임을 입력해 주세요.` };
+    }
+    userByUsername = null;
   }
 
   if (!isEmailConfigured()) {
@@ -204,6 +267,15 @@ export async function registerUser(data: z.infer<typeof registerSchema>) {
     let userId: string;
 
     if (userByEmail && !userByEmail.emailVerified) {
+      if (userByEmail.username.toLowerCase() !== username) {
+        const taken = await findUserByUsernameInsensitive(username);
+        if (taken && taken.id !== userByEmail.id) {
+          if (taken.emailVerified) {
+            return { error: `닉네임 "${username}"은(는) 이미 사용 중입니다.` };
+          }
+          await releaseUsernameFromStaleAccount(taken, email);
+        }
+      }
       const updated = await db.user.update({
         where: { id: userByEmail.id },
         data: {
@@ -259,7 +331,10 @@ export async function registerUser(data: z.infer<typeof registerSchema>) {
     const prismaCode =
       e && typeof e === "object" && "code" in e ? String((e as { code: string }).code) : "";
     if (prismaCode === "P2002") {
-      return { error: "이미 사용 중인 이메일 또는 닉네임입니다." };
+      return {
+        error:
+          "이메일 또는 닉네임이 이미 등록되어 있습니다. 다른 닉네임을 쓰거나, 같은 이메일이면 로그인·비밀번호 찾기를 이용하세요.",
+      };
     }
     return {
       error:
