@@ -79,6 +79,13 @@ model User {
   digitalProducts DigitalProduct[]
   orders        Order[]
   paymentIntents PaymentIntent[]
+  userEmoticons UserEmoticon[]
+  emoticonGiftsSent EmoticonGift[] @relation("EmoticonGiftSender")
+  emoticonGiftsReceived EmoticonGift[] @relation("EmoticonGiftReceiver")
+  goodsListingRequests GoodsListingRequest[]
+  physicalProducts PhysicalProduct[]
+  physicalOrdersBought PhysicalOrder[] @relation("PhysicalOrderBuyer")
+  physicalOrdersSold PhysicalOrder[] @relation("PhysicalOrderSeller")
   userBadges    UserBadge[]
   notifications Notification[]
   events        EventParticipant[]
@@ -690,6 +697,30 @@ enum PaymentIntentType {
   TIP
   PRODUCT
   PREMIUM
+  EMOTICON
+  LISTING_FEE
+  PHYSICAL_GOODS
+}
+
+enum EmoticonItemStatus {
+  AVAILABLE
+  USED
+}
+
+enum GoodsListingStatus {
+  AWAITING_FEE
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum PhysicalOrderStatus {
+  PENDING_PAYMENT
+  PAID
+  PREPARING
+  SHIPPED
+  DELIVERED
+  CANCELLED
 }
 
 enum PaymentIntentStatus {
@@ -711,6 +742,122 @@ model PaymentIntent {
   user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, status])
+}
+
+model EmoticonPack {
+  id         String   @id @default(cuid())
+  slug       String   @unique
+  name       String
+  price      Int
+  previewUrl String
+  detailUrl  String?
+  assetUrl   String
+  sortOrder  Int      @default(0)
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  items      UserEmoticon[]
+  gifts      EmoticonGift[]
+}
+
+model UserEmoticon {
+  id        String             @id @default(cuid())
+  userId    String
+  packId    String
+  status    EmoticonItemStatus @default(AVAILABLE)
+  pricePaid Int
+  usedAt    DateTime?
+  createdAt DateTime           @default(now())
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pack      EmoticonPack       @relation(fields: [packId], references: [id])
+  gift      EmoticonGift?
+
+  @@index([userId, status])
+}
+
+model EmoticonGift {
+  id            String       @id @default(cuid())
+  itemId        String       @unique
+  senderId      String
+  receiverId    String
+  packId        String
+  amount        Int
+  platformFee   Int
+  creatorAmount Int
+  createdAt     DateTime     @default(now())
+  item          UserEmoticon @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  sender        User         @relation("EmoticonGiftSender", fields: [senderId], references: [id])
+  receiver      User         @relation("EmoticonGiftReceiver", fields: [receiverId], references: [id])
+  pack          EmoticonPack @relation(fields: [packId], references: [id])
+
+  @@index([receiverId, createdAt])
+}
+
+model GoodsListingRequest {
+  id             String             @id @default(cuid())
+  sellerId       String
+  title          String
+  description    String             @db.Text
+  media          Json
+  status         GoodsListingStatus @default(AWAITING_FEE)
+  listingFeePaid Boolean            @default(false)
+  rejectReason   String?
+  createdAt      DateTime           @default(now())
+  seller         User               @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  product        PhysicalProduct?
+
+  @@index([sellerId, status])
+}
+
+model PhysicalProduct {
+  id          String   @id @default(cuid())
+  sellerId    String
+  requestId   String?  @unique
+  title       String
+  description String   @db.Text
+  price       Int
+  images      Json
+  shippingFee Int      @default(3000)
+  stock       Int      @default(50)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  seller      User     @relation(fields: [sellerId], references: [id])
+  request     GoodsListingRequest? @relation(fields: [requestId], references: [id])
+  orderItems  PhysicalOrderItem[]
+}
+
+model PhysicalOrder {
+  id            String              @id @default(cuid())
+  buyerId       String
+  sellerId      String
+  total         Int
+  productTotal  Int
+  shippingFee   Int
+  platformFee   Int
+  sellerAmount  Int
+  status        PhysicalOrderStatus @default(PENDING_PAYMENT)
+  recipientName String
+  phone         String
+  zipCode       String
+  address       String
+  detailAddress String?
+  trackingNo    String?
+  createdAt     DateTime            @default(now())
+  buyer         User                @relation("PhysicalOrderBuyer", fields: [buyerId], references: [id])
+  seller        User                @relation("PhysicalOrderSeller", fields: [sellerId], references: [id])
+  items         PhysicalOrderItem[]
+
+  @@index([buyerId])
+  @@index([sellerId, status])
+}
+
+model PhysicalOrderItem {
+  id        String          @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int             @default(1)
+  unitPrice Int
+  order     PhysicalOrder   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   PhysicalProduct @relation(fields: [productId], references: [id])
 }
 
 model AdSlot {

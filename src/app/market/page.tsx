@@ -1,60 +1,94 @@
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShoppingBag } from "lucide-react";
-import { getCachedMarketProducts } from "@/lib/cached-data";
+import { Card, CardContent } from "@/components/ui/card";
+import { Sparkles, Package, Archive, Store } from "lucide-react";
+import { getEmoticonPacks, getPhysicalProducts } from "@/actions/goods-shop";
+import { EMOTICON_PRICES } from "@/lib/goods-shop";
 
-export const revalidate = 120;
+export default async function MarketHomePage() {
+  const [packs, goods] = await Promise.all([
+    getEmoticonPacks().catch(() => []),
+    getPhysicalProducts().catch(() => []),
+  ]);
 
-export default async function MarketPage() {
-  type ProductWithSeller = Awaited<ReturnType<typeof getCachedMarketProducts>>;
-  let products: ProductWithSeller = [];
-
-  try {
-    products = await getCachedMarketProducts();
-  } catch {
-    products = [];
-  }
-
-  const typeLabels: Record<string, string> = {
-    ART: "그림",
-    EMOTICON: "이모티콘",
-    BACKGROUND: "배경",
-    PROFILE_ITEM: "프로필 아이템",
-  };
+  const byPrice = EMOTICON_PRICES.map((price) => ({
+    price,
+    count: packs.filter((p) => p.price === price).length,
+  }));
 
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-6">
-      <h1 className="text-2xl font-bold flex items-center gap-2">
-        <ShoppingBag className="h-6 w-6 text-neon-pink" />
-        디지털 굿즈 마켓
-      </h1>
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {products.length === 0 ? (
-          <Card className="col-span-full">
-            <CardContent className="p-8 text-center text-muted-foreground">등록된 상품이 없습니다.</CardContent>
+    <div className="space-y-6">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Link href="/market/emoticons">
+          <Card className="rounded-2xl hover:border-primary/40 transition-shadow h-full">
+            <CardContent className="p-5 flex gap-4 items-center">
+              <div className="h-12 w-12 rounded-xl bg-violet-500/15 flex items-center justify-center">
+                <Sparkles className="h-6 w-6 text-violet-600" />
+              </div>
+              <div>
+                <p className="font-bold">MoCoMo 이모티콘</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  1·2·3·5만원 · 구매 후 스트리머에게 1회 선물
+                </p>
+              </div>
+            </CardContent>
           </Card>
-        ) : (
-          products.map((p) => (
-            <Link key={p.id} href={`/market/${p.id}`}>
-              <Card className="overflow-hidden hover:border-primary/40 transition-shadow hover:shadow-md h-full">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.previewUrl} alt={p.title} className="w-full aspect-square object-cover" />
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">{p.title}</CardTitle>
-                  <p className="text-xs text-muted-foreground">
-                    {typeLabels[p.type]} · @{p.seller.username}
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <p className="font-semibold text-neon-cyan">{p.price.toLocaleString()}원</p>
-                  <p className="text-xs text-muted-foreground">{p.salesCount} 판매</p>
-                </CardContent>
-              </Card>
-            </Link>
-          ))
-        )}
+        </Link>
+        <Link href="/market/storage">
+          <Card className="rounded-2xl hover:border-primary/40 transition-shadow h-full">
+            <CardContent className="p-5 flex gap-4 items-center">
+              <div className="h-12 w-12 rounded-xl bg-pink-500/15 flex items-center justify-center">
+                <Archive className="h-6 w-6 text-pink-600" />
+              </div>
+              <div>
+                <p className="font-bold">마이 스토리지</p>
+                <p className="text-xs text-muted-foreground mt-0.5">보유 이모티콘 · 사용완료 표시</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/market/goods">
+          <Card className="rounded-2xl hover:border-primary/40 transition-shadow h-full">
+            <CardContent className="p-5 flex gap-4 items-center">
+              <div className="h-12 w-12 rounded-xl bg-cyan-500/15 flex items-center justify-center">
+                <Package className="h-6 w-6 text-cyan-600" />
+              </div>
+              <div>
+                <p className="font-bold">실물 굿즈</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{goods.length}개 판매 중 · 배송/결제</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/market/sell">
+          <Card className="rounded-2xl hover:border-primary/40 transition-shadow h-full">
+            <CardContent className="p-5 flex gap-4 items-center">
+              <div className="h-12 w-12 rounded-xl bg-amber-500/15 flex items-center justify-center">
+                <Store className="h-6 w-6 text-amber-600" />
+              </div>
+              <div>
+                <p className="font-bold">굿즈 판매 문의</p>
+                <p className="text-xs text-muted-foreground mt-0.5">등록비 5,000원 · 사진/영상 업로드</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
+
+      <section>
+        <h2 className="text-sm font-semibold text-muted-foreground mb-3">이모티콘 가격대</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {byPrice.map(({ price, count }) => (
+            <Link
+              key={price}
+              href={`/market/emoticons?price=${price}`}
+              className="rounded-xl border border-border/60 p-3 text-center hover:bg-muted/50"
+            >
+              <p className="font-bold text-neon-cyan">{(price / 10000).toFixed(0)}만원</p>
+              <p className="text-xs text-muted-foreground">{count}종</p>
+            </Link>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

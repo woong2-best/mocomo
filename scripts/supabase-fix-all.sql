@@ -205,4 +205,112 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+-- J) 굿즈샵: 이모티콘 · 마이 스토리지 · 실물 굿즈 주문
+ALTER TYPE "PaymentIntentType" ADD VALUE IF NOT EXISTS 'EMOTICON';
+ALTER TYPE "PaymentIntentType" ADD VALUE IF NOT EXISTS 'LISTING_FEE';
+ALTER TYPE "PaymentIntentType" ADD VALUE IF NOT EXISTS 'PHYSICAL_GOODS';
+
+CREATE TABLE IF NOT EXISTS "EmoticonPack" (
+  "id" TEXT NOT NULL,
+  "slug" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "price" INTEGER NOT NULL,
+  "previewUrl" TEXT NOT NULL,
+  "detailUrl" TEXT,
+  "assetUrl" TEXT NOT NULL,
+  "sortOrder" INTEGER NOT NULL DEFAULT 0,
+  "active" BOOLEAN NOT NULL DEFAULT true,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "EmoticonPack_pkey" PRIMARY KEY ("id")
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "EmoticonPack_slug_key" ON "EmoticonPack"("slug");
+
+CREATE TABLE IF NOT EXISTS "UserEmoticon" (
+  "id" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "packId" TEXT NOT NULL,
+  "status" TEXT NOT NULL DEFAULT 'AVAILABLE',
+  "pricePaid" INTEGER NOT NULL,
+  "usedAt" TIMESTAMP(3),
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "UserEmoticon_pkey" PRIMARY KEY ("id")
+);
+CREATE INDEX IF NOT EXISTS "UserEmoticon_userId_status_idx" ON "UserEmoticon"("userId", "status");
+
+CREATE TABLE IF NOT EXISTS "EmoticonGift" (
+  "id" TEXT NOT NULL,
+  "itemId" TEXT NOT NULL,
+  "senderId" TEXT NOT NULL,
+  "receiverId" TEXT NOT NULL,
+  "packId" TEXT NOT NULL,
+  "amount" INTEGER NOT NULL,
+  "platformFee" INTEGER NOT NULL,
+  "creatorAmount" INTEGER NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "EmoticonGift_pkey" PRIMARY KEY ("id")
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "EmoticonGift_itemId_key" ON "EmoticonGift"("itemId");
+CREATE INDEX IF NOT EXISTS "EmoticonGift_receiverId_createdAt_idx" ON "EmoticonGift"("receiverId", "createdAt");
+
+CREATE TABLE IF NOT EXISTS "GoodsListingRequest" (
+  "id" TEXT NOT NULL,
+  "sellerId" TEXT NOT NULL,
+  "title" TEXT NOT NULL,
+  "description" TEXT NOT NULL,
+  "media" JSONB NOT NULL,
+  "status" TEXT NOT NULL DEFAULT 'AWAITING_FEE',
+  "listingFeePaid" BOOLEAN NOT NULL DEFAULT false,
+  "rejectReason" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "GoodsListingRequest_pkey" PRIMARY KEY ("id")
+);
+CREATE INDEX IF NOT EXISTS "GoodsListingRequest_sellerId_status_idx" ON "GoodsListingRequest"("sellerId", "status");
+
+CREATE TABLE IF NOT EXISTS "PhysicalProduct" (
+  "id" TEXT NOT NULL,
+  "sellerId" TEXT NOT NULL,
+  "requestId" TEXT,
+  "title" TEXT NOT NULL,
+  "description" TEXT NOT NULL,
+  "price" INTEGER NOT NULL,
+  "images" JSONB NOT NULL,
+  "shippingFee" INTEGER NOT NULL DEFAULT 3000,
+  "stock" INTEGER NOT NULL DEFAULT 50,
+  "active" BOOLEAN NOT NULL DEFAULT true,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "PhysicalProduct_pkey" PRIMARY KEY ("id")
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "PhysicalProduct_requestId_key" ON "PhysicalProduct"("requestId");
+
+CREATE TABLE IF NOT EXISTS "PhysicalOrder" (
+  "id" TEXT NOT NULL,
+  "buyerId" TEXT NOT NULL,
+  "sellerId" TEXT NOT NULL,
+  "total" INTEGER NOT NULL,
+  "productTotal" INTEGER NOT NULL,
+  "shippingFee" INTEGER NOT NULL,
+  "platformFee" INTEGER NOT NULL,
+  "sellerAmount" INTEGER NOT NULL,
+  "status" TEXT NOT NULL DEFAULT 'PENDING_PAYMENT',
+  "recipientName" TEXT NOT NULL,
+  "phone" TEXT NOT NULL,
+  "zipCode" TEXT NOT NULL,
+  "address" TEXT NOT NULL,
+  "detailAddress" TEXT,
+  "trackingNo" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "PhysicalOrder_pkey" PRIMARY KEY ("id")
+);
+CREATE INDEX IF NOT EXISTS "PhysicalOrder_buyerId_idx" ON "PhysicalOrder"("buyerId");
+CREATE INDEX IF NOT EXISTS "PhysicalOrder_sellerId_status_idx" ON "PhysicalOrder"("sellerId", "status");
+
+CREATE TABLE IF NOT EXISTS "PhysicalOrderItem" (
+  "id" TEXT NOT NULL,
+  "orderId" TEXT NOT NULL,
+  "productId" TEXT NOT NULL,
+  "quantity" INTEGER NOT NULL DEFAULT 1,
+  "unitPrice" INTEGER NOT NULL,
+  CONSTRAINT "PhysicalOrderItem_pkey" PRIMARY KEY ("id")
+);
+
 -- 완료 후 터미널: npx prisma db push && npm run db:seed

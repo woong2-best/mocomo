@@ -36,7 +36,7 @@ const navBlocks = [
   { href: "/anime", icon: Tv, label: "애니덕질" },
   { href: "/cosplay", icon: Camera, label: "코스프레" },
   { href: "/live", icon: Radio, label: "라이브" },
-  { href: "/market", icon: ShoppingBag, label: "마켓" },
+  { href: "/market", icon: ShoppingBag, label: "굿즈샵" },
   { href: "/events", icon: Calendar, label: "이벤트" },
   { href: "/rankings", icon: Trophy, label: "후원 랭킹" },
   { href: "/support", icon: Wallet, label: "후원" },

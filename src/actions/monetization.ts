@@ -11,6 +11,12 @@ import {
   confirmTossPayment,
   PREMIUM_PRICE,
 } from "@/lib/payments";
+import { LISTING_FEE_KRW } from "@/lib/goods-shop";
+import {
+  fulfillEmoticonPurchase,
+  fulfillListingFee,
+  fulfillPhysicalGoodsPayment,
+} from "@/actions/goods-shop";
 
 const PLATFORM_FEE_RATE = 0.1;
 
@@ -126,6 +132,29 @@ export async function createPaymentIntent(input: {
     if (input.amount !== PREMIUM_PRICE) return { error: "프리미엄 가격이 올바르지 않습니다." };
   }
 
+  if (input.type === "EMOTICON") {
+    const packId = input.metadata.packId as string;
+    const pack = await db.emoticonPack.findUnique({ where: { id: packId } });
+    if (!pack) return { error: "이모티콘을 찾을 수 없습니다." };
+    if (pack.price !== input.amount) return { error: "이모티콘 가격이 일치하지 않습니다." };
+  }
+
+  if (input.type === "LISTING_FEE") {
+    if (input.amount !== LISTING_FEE_KRW) return { error: "등록비는 5,000원입니다." };
+    const requestId = input.metadata.requestId as string;
+    const req = await db.goodsListingRequest.findUnique({ where: { id: requestId } });
+    if (!req || req.sellerId !== user.id) return { error: "굿즈 등록 요청을 찾을 수 없습니다." };
+    if (req.listingFeePaid) return { error: "이미 등록비가 결제되었습니다." };
+  }
+
+  if (input.type === "PHYSICAL_GOODS") {
+    const orderId = input.metadata.orderId as string;
+    const order = await db.physicalOrder.findUnique({ where: { id: orderId } });
+    if (!order || order.buyerId !== user.id) return { error: "주문을 찾을 수 없습니다." };
+    if (order.total !== input.amount) return { error: "주문 금액이 일치하지 않습니다." };
+    if (order.status !== "PENDING_PAYMENT") return { error: "이미 결제된 주문입니다." };
+  }
+
   const intent = await db.paymentIntent.create({
     data: {
       userId: user.id,
@@ -209,6 +238,25 @@ export async function confirmPaymentIntent(
     });
     revalidatePath("/premium");
     revalidatePath("/settings");
+  }
+
+  if (intent.type === "EMOTICON") {
+    const packId = meta.packId;
+    const r = await fulfillEmoticonPurchase(user.id, packId);
+    if ("error" in r && r.error) return { error: r.error };
+    revalidatePath("/market/storage");
+  }
+
+  if (intent.type === "LISTING_FEE") {
+    const r = await fulfillListingFee(meta.requestId, user.id);
+    if ("error" in r && r.error) return { error: r.error };
+    revalidatePath("/market/sell");
+  }
+
+  if (intent.type === "PHYSICAL_GOODS") {
+    const r = await fulfillPhysicalGoodsPayment(meta.orderId, user.id);
+    if ("error" in r && r.error) return { error: r.error };
+    revalidatePath("/market/orders");
   }
 
   await db.paymentIntent.update({
