@@ -9,6 +9,7 @@ import {
 } from "@/actions/used-market";
 import { UsedTradeChatButton } from "@/components/used/used-trade-chat-button";
 import { Heart } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function UsedDetailActions({
   listingId,
@@ -51,7 +52,7 @@ export function UsedDetailActions({
 
   if (isSeller) {
     return (
-      <div className="space-y-2 p-4 border-t bg-white">
+      <div className="space-y-2 p-4 border-t bg-background">
         <p className="text-xs text-muted-foreground font-medium">내 판매 관리</p>
         <div className="flex flex-wrap gap-2">
           {status !== "RESERVED" && (
@@ -59,7 +60,7 @@ export function UsedDetailActions({
               type="button"
               disabled={busy}
               onClick={() => setStatus("RESERVED")}
-              className="flex-1 min-w-[100px] h-10 rounded-xl border border-amber-400 text-amber-700 text-sm font-semibold"
+              className="flex-1 min-w-[100px] h-10 rounded-xl border border-border bg-muted text-sm font-semibold"
             >
               예약중
             </button>
@@ -101,7 +102,7 @@ export function UsedDetailActions({
   }
 
   return (
-    <div className="flex gap-2 p-4 border-t bg-white sticky bottom-0 lg:bottom-0 pb-safe">
+    <div className="flex gap-2 p-4 border-t bg-background sticky bottom-0 lg:bottom-0 pb-safe">
       <button
         type="button"
         onClick={toggleFav}
@@ -115,12 +116,9 @@ export function UsedDetailActions({
       {isLoggedIn ? (
         <UsedTradeChatButton listingId={listingId} />
       ) : (
-        <a
-          href={`/auth/signin?callbackUrl=/used/${listingId}`}
-          className="flex-1 h-12 rounded-xl bg-[#FF6F0F] text-white font-bold flex items-center justify-center"
-        >
-          로그인 후 채팅
-        </a>
+        <Button asChild variant="secondary" size="lg" className="flex-1 h-12">
+          <a href={`/auth/signin?callbackUrl=/used/${listingId}`}>로그인 후 채팅</a>
+        </Button>
       )}
     </div>
   );

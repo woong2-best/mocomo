@@ -13,7 +13,7 @@ export default async function UsedMyPage() {
 
   return (
     <div className="py-4 space-y-8 max-w-lg mx-auto">
-      <Link href="/used" className="inline-flex items-center gap-1 text-sm text-[#FF6F0F] font-medium">
+      <Link href="/used" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground font-medium">
         <ChevronLeft className="h-4 w-4" />
         중고거래 홈
       </Link>

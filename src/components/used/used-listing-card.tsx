@@ -5,7 +5,7 @@ import {
   listingImages,
   usedStatusLabel,
 } from "@/lib/used-market";
-import { MapPin } from "lucide-react";
+import { ImageOff, MapPin } from "lucide-react";
 
 type Listing = {
   id: string;
@@ -37,8 +37,8 @@ export function UsedListingCard({ listing }: { listing: Listing }) {
               className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-200"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-4xl text-muted-foreground/40">
-              📦
+            <div className="w-full h-full flex items-center justify-center">
+              <ImageOff className="h-10 w-10 text-muted-foreground/35" />
             </div>
           )}
           {status && (
@@ -47,7 +47,7 @@ export function UsedListingCard({ listing }: { listing: Listing }) {
             </span>
           )}
           {listing.price === 0 && !status && (
-            <span className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#FF6F0F] text-white">
+            <span className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-md bg-muted-foreground text-background">
               나눔
             </span>
           )}

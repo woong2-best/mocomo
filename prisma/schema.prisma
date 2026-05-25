@@ -862,7 +862,7 @@ model PhysicalOrderItem {
   product   PhysicalProduct @relation(fields: [productId], references: [id])
 }
 
-// ============ 중고거래 (당근마켓 스타일) ============
+// ============ 중고거래 ============
 
 enum UsedListingStatus {
   SELLING

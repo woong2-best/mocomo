@@ -1,13 +1,11 @@
-export const USED_CARROT_ORANGE = "#FF6F0F";
-
 export const USED_CATEGORIES = [
-  { id: "DIGITAL", label: "디지털/가전", emoji: "📱" },
-  { id: "FIGURE", label: "피규어/프라모", emoji: "🎎" },
-  { id: "GOODS", label: "굿즈/콜렉", emoji: "✨" },
-  { id: "COSPLAY", label: "코스프레/의상", emoji: "👗" },
-  { id: "BOOK", label: "도서/음반", emoji: "📚" },
-  { id: "FASHION", label: "패션/잡화", emoji: "👜" },
-  { id: "OTHER", label: "기타", emoji: "📦" },
+  { id: "DIGITAL", label: "디지털/가전" },
+  { id: "FIGURE", label: "피규어/프라모" },
+  { id: "GOODS", label: "굿즈/콜렉" },
+  { id: "COSPLAY", label: "코스프레/의상" },
+  { id: "BOOK", label: "도서/음반" },
+  { id: "FASHION", label: "패션/잡화" },
+  { id: "OTHER", label: "기타" },
 ] as const;
 
 export const USED_REGIONS = [

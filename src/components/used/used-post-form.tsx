@@ -69,11 +69,11 @@ export function UsedPostForm({ defaultRegion }: { defaultRegion?: string }) {
             <img key={url} src={url} alt="" className="h-20 w-20 rounded-lg object-cover border" />
           ))}
           {images.length < 10 && (
-            <label className="h-20 w-20 rounded-lg border-2 border-dashed border-orange-300 flex items-center justify-center cursor-pointer bg-orange-50/50">
+            <label className="h-20 w-20 rounded-lg border-2 border-dashed border-border flex items-center justify-center cursor-pointer bg-muted/40 hover:bg-muted/60">
               {uploading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-[#FF6F0F]" />
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
               ) : (
-                <ImagePlus className="h-6 w-6 text-[#FF6F0F]" />
+                <ImagePlus className="h-6 w-6 text-muted-foreground" />
               )}
               <input type="file" accept="image/*" multiple className="hidden" onChange={onImages} />
             </label>
@@ -100,7 +100,7 @@ export function UsedPostForm({ defaultRegion }: { defaultRegion?: string }) {
       <div className="flex gap-2 items-center">
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={isFree} onChange={(e) => setIsFree(e.target.checked)} />
-          나눔🧡
+          나눔 (무료)
         </label>
       </div>
       {!isFree && (
@@ -122,7 +122,7 @@ export function UsedPostForm({ defaultRegion }: { defaultRegion?: string }) {
       >
         {USED_CATEGORIES.map((c) => (
           <option key={c.id} value={c.id}>
-            {c.emoji} {c.label}
+            {c.label}
           </option>
         ))}
       </select>
@@ -141,11 +141,7 @@ export function UsedPostForm({ defaultRegion }: { defaultRegion?: string }) {
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Button
-        type="submit"
-        disabled={loading || uploading}
-        className="w-full h-12 rounded-xl bg-[#FF6F0F] hover:bg-[#E6630C] text-white font-bold"
-      >
+      <Button type="submit" variant="secondary" disabled={loading || uploading} size="lg" className="w-full">
         {loading ? "등록 중…" : "중고거래 글 올리기"}
       </Button>
     </form>

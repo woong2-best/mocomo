@@ -313,7 +313,7 @@ CREATE TABLE IF NOT EXISTS "PhysicalOrderItem" (
   CONSTRAINT "PhysicalOrderItem_pkey" PRIMARY KEY ("id")
 );
 
--- K) 중고거래 (당근마켓 스타일)
+-- K) 중고거래
 CREATE TABLE IF NOT EXISTS "UsedListing" (
   "id" TEXT NOT NULL,
   "sellerId" TEXT NOT NULL,

@@ -11,7 +11,7 @@ import {
   usedCategoryLabel,
   usedStatusLabel,
 } from "@/lib/used-market";
-import { ChevronLeft, Eye, MapPin } from "lucide-react";
+import { ChevronLeft, Eye, ImageOff, MapPin } from "lucide-react";
 
 export default async function UsedDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -25,7 +25,7 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
   const statusLabel = usedStatusLabel(listing.status);
 
   return (
-    <div className="-mx-4 bg-white min-h-screen flex flex-col">
+    <div className="-mx-4 bg-background min-h-[60vh] flex flex-col rounded-xl border border-border overflow-hidden">
       <div className="px-4 py-2 border-b flex items-center gap-2">
         <Link href="/used" className="p-1 -ml-1">
           <ChevronLeft className="h-5 w-5" />
@@ -38,8 +38,8 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
           // eslint-disable-next-line @next/next/no-img-element
           <img src={imgs[0]} alt="" className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-6xl text-muted-foreground/30">
-            📦
+          <div className="w-full h-full flex items-center justify-center">
+            <ImageOff className="h-16 w-16 text-muted-foreground/30" />
           </div>
         )}
         {statusLabel && (
@@ -84,7 +84,7 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
         <Link
           href={`/u/${listing.seller.username}`}
-          className="flex items-center gap-3 p-3 rounded-xl bg-[#FFF9F5] border border-orange-100"
+          className="flex items-center gap-3 p-3 rounded-xl bg-muted/40 border border-border"
         >
           <Avatar className="h-11 w-11">
             <AvatarImage src={listing.seller.image ?? undefined} />

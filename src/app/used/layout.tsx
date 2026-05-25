@@ -1,33 +1,29 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { Tags } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function UsedLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#FFF9F5] pb-20">
-      <header className="sticky top-14 z-40 bg-[#FF6F0F] text-white px-4 py-3 shadow-md">
-        <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
-          <div>
-            <Link href="/used" className="text-lg font-black tracking-tight flex items-center gap-1.5">
-              <span>🥕</span> 중고거래
-            </Link>
-            <p className="text-[11px] text-white/85">우리 동네 MoCoMo 중고</p>
-          </div>
-          <nav className="flex items-center gap-2 text-sm font-semibold">
-            <Link href="/used/my" className="px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25">
-              내 거래
-            </Link>
-            <Link
-              href="/used/new"
-              className="px-3 py-1.5 rounded-lg bg-white text-[#FF6F0F] hover:bg-orange-50 shadow-sm"
-            >
-              + 글쓰기
-            </Link>
-          </nav>
+    <div className="max-w-3xl mx-auto p-4 pb-24 lg:pb-8 space-y-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Tags className="h-7 w-7 text-muted-foreground" />
+            중고거래
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">동네·카테고리별 중고 물품 거래</p>
         </div>
-      </header>
-      <div className="max-w-3xl mx-auto px-4">
-        <Suspense fallback={<div className="h-24" />}>{children}</Suspense>
+        <nav className="flex items-center gap-2 shrink-0">
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/used/my">내 거래</Link>
+          </Button>
+          <Button variant="secondary" size="sm" asChild>
+            <Link href="/used/new">글쓰기</Link>
+          </Button>
+        </nav>
       </div>
+      <Suspense fallback={<div className="h-24" />}>{children}</Suspense>
     </div>
   );
 }

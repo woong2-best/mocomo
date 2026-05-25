@@ -3,6 +3,8 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { USED_CATEGORIES, USED_REGIONS } from "@/lib/used-market";
 
 export function UsedSearchHeader() {
@@ -20,7 +22,7 @@ export function UsedSearchHeader() {
   }
 
   return (
-    <div className="space-y-3 sticky top-14 z-30 bg-[#FFF9F5] pb-2 -mx-4 px-4 pt-2 border-b border-orange-100/80">
+    <div className="space-y-3 sticky top-14 z-30 bg-background/95 backdrop-blur pb-2 -mx-4 px-4 pt-1 border-b border-border">
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -28,8 +30,8 @@ export function UsedSearchHeader() {
         }}
         className="flex gap-2"
       >
-        <div className="flex-1 flex items-center gap-2 rounded-xl bg-white border border-orange-200/80 px-3 h-11 shadow-sm">
-          <Search className="h-4 w-4 text-[#FF6F0F] shrink-0" />
+        <div className="flex-1 flex items-center gap-2 rounded-xl bg-muted/50 border border-border px-3 h-11">
+          <Search className="h-4 w-4 text-muted-foreground shrink-0" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -37,21 +39,21 @@ export function UsedSearchHeader() {
             className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
         </div>
-        <button
-          type="submit"
-          className="shrink-0 h-11 px-4 rounded-xl bg-[#FF6F0F] text-white text-sm font-semibold"
-        >
+        <Button type="submit" variant="secondary" size="default" className="h-11 shrink-0">
           검색
-        </button>
+        </Button>
       </form>
 
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
         <button
           type="button"
           onClick={() => apply({ category: null })}
-          className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium ${
-            !searchParams.get("category") ? "bg-[#FF6F0F] text-white" : "bg-white border border-border/60"
-          }`}
+          className={cn(
+            "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium",
+            !searchParams.get("category")
+              ? "bg-foreground text-background"
+              : "bg-muted border border-border"
+          )}
         >
           전체
         </button>
@@ -60,23 +62,24 @@ export function UsedSearchHeader() {
             key={c.id}
             type="button"
             onClick={() => apply({ category: c.id })}
-            className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${
+            className={cn(
+              "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap",
               searchParams.get("category") === c.id
-                ? "bg-[#FF6F0F] text-white"
-                : "bg-white border border-border/60"
-            }`}
+                ? "bg-foreground text-background"
+                : "bg-muted border border-border"
+            )}
           >
-            {c.emoji} {c.label}
+            {c.label}
           </button>
         ))}
       </div>
 
       <select
-        className="w-full h-9 rounded-lg border border-orange-200/60 bg-white text-xs px-2"
+        className="w-full h-9 rounded-lg border border-border bg-background text-xs px-2"
         value={searchParams.get("region") ?? ""}
         onChange={(e) => apply({ region: e.target.value || null })}
       >
-        <option value="">전체 동네</option>
+        <option value="">전체 지역</option>
         {USED_REGIONS.map((r) => (
           <option key={r} value={r}>
             {r}

@@ -175,7 +175,7 @@ export async function getMyUsedDashboard() {
   }
 }
 
-/** 당근마켓식 — 판매자와 1:1 채팅 */
+/** 판매자와 1:1 DM으로 거래 문의 */
 export async function startUsedTradeChat(listingId: string) {
   const user = await requireAuth();
   const listing = await db.usedListing.findUnique({
@@ -190,7 +190,8 @@ export async function startUsedTradeChat(listingId: string) {
   if ("error" in dm && dm.error) return { error: dm.error };
   if (!("room" in dm) || !dm.room) return { error: "채팅방을 열 수 없습니다." };
 
-  const intro = `안녕하세요! 중고거래 문의합니다.\n\n📦 ${listing.title}\n💰 ${listing.price === 0 ? "나눔" : `${listing.price.toLocaleString()}원`}\n🔗 /used/${listing.id}`;
+  const priceText = listing.price === 0 ? "나눔" : `${listing.price.toLocaleString()}원`;
+  const intro = `안녕하세요! 중고거래 문의합니다.\n\n상품: ${listing.title}\n가격: ${priceText}\n링크: /used/${listing.id}`;
   try {
     await sendMessage({ roomId: dm.room.id, content: intro });
   } catch {
