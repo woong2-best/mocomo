@@ -1,7 +1,9 @@
 import { getAdminStats, getPendingReports } from "@/actions/admin";
 import { AdminReportActions } from "@/components/admin/admin-report-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, Users, FileText, AlertTriangle, Coins } from "lucide-react";
+import Link from "next/link";
+import { Shield, Users, FileText, AlertTriangle, Coins, Landmark } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default async function AdminPage() {
   let stats = { users: 0, posts: 0, pendingReports: 0, totalTips: 0 };
@@ -20,6 +22,13 @@ export default async function AdminPage() {
         <Shield className="h-6 w-6" />
         관리자 패널
       </h1>
+
+      <Button variant="secondary" asChild className="w-full sm:w-auto">
+        <Link href="/admin/finance" className="flex items-center gap-2">
+          <Landmark className="h-4 w-4" />
+          매출 · 정산 · 출금 처리
+        </Link>
+      </Button>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[

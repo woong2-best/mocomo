@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { calcShopFees, ensureEmoticonCatalog, loadEmoticonPacks, LISTING_FEE_KRW } from "@/lib/goods-shop";
+import { creditSellerEarning } from "@/lib/settlement";
 import type { Prisma } from "@prisma/client";
 
 export async function bootstrapEmoticonCatalog() {
@@ -112,9 +113,16 @@ export async function sendEmoticonToStreamer(itemId: string, receiverUsername: s
     }),
   ]);
 
+  await creditSellerEarning(receiver.id, creatorAmount, {
+    referenceType: "emoticon_gift",
+    referenceId: itemId,
+    memo: `이모티콘 선물 · ${item.pack.name}`,
+  });
+
   revalidatePath("/market/storage");
   revalidatePath("/market/received");
   revalidatePath(`/u/${receiver.username}`);
+  revalidatePath("/wallet");
   return { success: true, creatorAmount };
 }
 
@@ -285,10 +293,6 @@ export async function fulfillPhysicalGoodsPayment(orderId: string, buyerId: stri
     db.physicalProduct.update({
       where: { id: item.productId },
       data: { stock: { decrement: item.quantity } },
-    }),
-    db.user.update({
-      where: { id: order.sellerId },
-      data: { totalSupportReceived: { increment: order.sellerAmount } },
     }),
     db.notification.create({
       data: {

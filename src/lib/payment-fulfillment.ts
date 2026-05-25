@@ -1,0 +1,250 @@
+import { revalidatePath } from "next/cache";
+import { db } from "@/lib/db";
+import { confirmTossPayment } from "@/lib/payments";
+import { LISTING_FEE_KRW } from "@/lib/goods-shop";
+import {
+  creditSellerEarning,
+  recordPlatformFee,
+  recordPaymentGross,
+  splitPlatformFee,
+} from "@/lib/settlement";
+import {
+  fulfillEmoticonPurchase,
+  fulfillListingFee,
+  fulfillPhysicalGoodsPayment,
+} from "@/actions/goods-shop";
+import { calcPlatformFee } from "@/lib/utils";
+import { tierFromAmount } from "@/lib/tiers";
+
+const PLATFORM_FEE_RATE = 0.1;
+
+async function fulfillTip(
+  senderId: string,
+  receiverId: string,
+  amount: number,
+  message?: string,
+  paymentIntentId?: string
+) {
+  const receiver = await db.user.findUnique({
+    where: { id: receiverId },
+    select: { username: true },
+  });
+  if (!receiver) return { error: "사용자를 찾을 수 없습니다." };
+
+  const sender = await db.user.findUnique({
+    where: { id: senderId },
+    select: { username: true },
+  });
+  if (!sender) return { error: "사용자를 찾을 수 없습니다." };
+
+  const platformFee = calcPlatformFee(amount, PLATFORM_FEE_RATE);
+  const sellerAmount = amount - platformFee;
+
+  await db.tip.create({
+    data: { senderId, receiverId, amount, message: message || null, platformFee },
+  });
+
+  await recordPlatformFee(platformFee, {
+    referenceType: "tip",
+    referenceId: `${senderId}-${receiverId}-${Date.now()}`,
+    paymentIntentId,
+    memo: `후원 수수료 @${receiver.username}`,
+  });
+  await creditSellerEarning(receiverId, sellerAmount, {
+    referenceType: "tip",
+    referenceId: paymentIntentId ?? "tip",
+    paymentIntentId,
+    memo: `후원 @${sender.username}`,
+  });
+
+  const existing = await db.creatorSupport.findUnique({
+    where: { supporterId_creatorId: { supporterId: senderId, creatorId: receiverId } },
+  });
+  const newTotal = (existing?.totalAmount ?? 0) + amount;
+
+  const [senderRow, receiverRow] = await Promise.all([
+    db.user.findUnique({ where: { id: senderId }, select: { totalSupportSent: true } }),
+    db.user.findUnique({ where: { id: receiverId }, select: { totalSupportReceived: true } }),
+  ]);
+  const newSent = (senderRow?.totalSupportSent ?? 0) + amount;
+  const newReceived = (receiverRow?.totalSupportReceived ?? 0) + sellerAmount;
+
+  const tier = tierFromAmount(newTotal);
+  await db.user.update({
+    where: { id: senderId },
+    data: {
+      totalSupportSent: newSent,
+      supportTierSent: tierFromAmount(newSent),
+    },
+  });
+  await db.user.update({
+    where: { id: receiverId },
+    data: {
+      totalSupportReceived: newReceived,
+      supportTierReceived: tierFromAmount(newReceived),
+    },
+  });
+
+  await db.creatorSupport.upsert({
+    where: { supporterId_creatorId: { supporterId: senderId, creatorId: receiverId } },
+    create: { supporterId: senderId, creatorId: receiverId, totalAmount: amount, tier },
+    update: { totalAmount: newTotal, tier },
+  });
+
+  const cosProfile = await db.cosplayerProfile.findUnique({ where: { userId: receiverId } });
+  if (cosProfile) {
+    await db.cosplayerProfile.update({
+      where: { id: cosProfile.id },
+      data: { totalTips: { increment: sellerAmount } },
+    });
+  }
+
+  await db.notification.create({
+    data: {
+      userId: receiverId,
+      type: "tip",
+      title: "후원 알림",
+      body: `${sender.username}님이 ${amount.toLocaleString()}원을 후원했습니다.`,
+      link: `/u/${receiver.username}`,
+    },
+  });
+
+  revalidatePath(`/u/${receiver.username}`);
+  return { success: true };
+}
+
+/**
+ * 결제 승인 후 공통 처리 (리다이렉트·웹훅 모두 사용, 멱등)
+ */
+export async function fulfillPaymentIntent(
+  orderId: string,
+  paymentKey: string,
+  amount: number
+): Promise<{ ok: true; type: string; alreadyPaid?: boolean } | { ok: false; error: string }> {
+  const intent = await db.paymentIntent.findUnique({ where: { id: orderId } });
+  if (!intent) return { ok: false, error: "결제 정보를 찾을 수 없습니다." };
+  if (intent.status === "PAID") {
+    return { ok: true, type: intent.type, alreadyPaid: true };
+  }
+  if (intent.amount !== amount) {
+    return { ok: false, error: "결제 금액이 일치하지 않습니다." };
+  }
+
+  const confirmed = await confirmTossPayment(paymentKey, orderId, amount);
+  if (!confirmed.ok) return { ok: false, error: confirmed.message };
+
+  const meta = intent.metadata as Record<string, string>;
+  const userId = intent.userId;
+
+  await recordPaymentGross(amount, intent.id, intent.type);
+
+  if (intent.type === "TIP") {
+    const r = await fulfillTip(userId, meta.receiverId, amount, meta.message, intent.id);
+    if ("error" in r && r.error) return { ok: false, error: r.error };
+  }
+
+  if (intent.type === "PRODUCT") {
+    const productId = meta.productId;
+    const product = await db.digitalProduct.findUnique({ where: { id: productId } });
+    if (!product) return { ok: false, error: "상품을 찾을 수 없습니다." };
+    const { platformFee, sellerAmount } = splitPlatformFee(amount);
+    await db.order.create({
+      data: {
+        buyerId: userId,
+        total: amount,
+        status: "completed",
+        items: { create: { productId, price: amount } },
+      },
+    });
+    await db.digitalProduct.update({
+      where: { id: productId },
+      data: { salesCount: { increment: 1 } },
+    });
+    await recordPlatformFee(platformFee, {
+      referenceType: "digital_product",
+      referenceId: productId,
+      paymentIntentId: intent.id,
+    });
+    await creditSellerEarning(product.sellerId, sellerAmount, {
+      referenceType: "digital_product",
+      referenceId: productId,
+      paymentIntentId: intent.id,
+    });
+    revalidatePath("/market");
+  }
+
+  if (intent.type === "PREMIUM") {
+    const until = new Date();
+    until.setMonth(until.getMonth() + 1);
+    await db.user.update({
+      where: { id: userId },
+      data: { premiumTier: "PREMIUM", premiumUntil: until },
+    });
+    await recordPlatformFee(amount, {
+      referenceType: "premium",
+      referenceId: userId,
+      paymentIntentId: intent.id,
+      memo: "프리미엄 구독",
+    });
+    revalidatePath("/premium");
+    revalidatePath("/settings");
+  }
+
+  if (intent.type === "EMOTICON") {
+    let packId = meta.packId;
+    if (!packId && meta.packSlug) {
+      const p = await db.emoticonPack.findUnique({ where: { slug: meta.packSlug } });
+      packId = p?.id ?? packId;
+    }
+    const r = await fulfillEmoticonPurchase(userId, packId);
+    if ("error" in r && r.error) return { ok: false, error: r.error };
+    await recordPlatformFee(amount, {
+      referenceType: "emoticon",
+      referenceId: packId,
+      paymentIntentId: intent.id,
+      memo: "이모티콘 구매 (플랫폼 보관)",
+    });
+    revalidatePath("/market/storage");
+  }
+
+  if (intent.type === "LISTING_FEE") {
+    const r = await fulfillListingFee(meta.requestId, userId);
+    if ("error" in r && r.error) return { ok: false, error: r.error };
+    await recordPlatformFee(LISTING_FEE_KRW, {
+      referenceType: "listing_fee",
+      referenceId: meta.requestId,
+      paymentIntentId: intent.id,
+      memo: "굿즈 등록비",
+    });
+    revalidatePath("/market/sell");
+  }
+
+  if (intent.type === "PHYSICAL_GOODS") {
+    const r = await fulfillPhysicalGoodsPayment(meta.orderId, userId);
+    if ("error" in r && r.error) return { ok: false, error: r.error };
+    const order = await db.physicalOrder.findUnique({ where: { id: meta.orderId } });
+    if (order) {
+      await recordPlatformFee(order.platformFee, {
+        referenceType: "physical_order",
+        referenceId: order.id,
+        paymentIntentId: intent.id,
+      });
+      await creditSellerEarning(order.sellerId, order.sellerAmount, {
+        referenceType: "physical_order",
+        referenceId: order.id,
+        paymentIntentId: intent.id,
+        memo: "굿즈 판매 정산",
+      });
+    }
+    revalidatePath("/market/orders");
+  }
+
+  await db.paymentIntent.update({
+    where: { id: orderId },
+    data: { status: "PAID", paymentKey, paidAt: new Date() },
+  });
+
+  revalidatePath("/wallet");
+  revalidatePath("/admin/finance");
+  return { ok: true, type: intent.type };
+}

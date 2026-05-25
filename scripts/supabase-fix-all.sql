@@ -361,4 +361,86 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+-- L) 정산 · 지갑 · 출금
+CREATE TABLE IF NOT EXISTS "Wallet" (
+  "userId" TEXT NOT NULL,
+  "availableBalance" INTEGER NOT NULL DEFAULT 0,
+  "totalEarned" INTEGER NOT NULL DEFAULT 0,
+  "totalWithdrawn" INTEGER NOT NULL DEFAULT 0,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Wallet_pkey" PRIMARY KEY ("userId")
+);
+
+CREATE TABLE IF NOT EXISTS "LedgerEntry" (
+  "id" TEXT NOT NULL,
+  "userId" TEXT,
+  "type" TEXT NOT NULL,
+  "amount" INTEGER NOT NULL,
+  "balanceAfter" INTEGER,
+  "referenceType" TEXT,
+  "referenceId" TEXT,
+  "paymentIntentId" TEXT,
+  "memo" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "LedgerEntry_pkey" PRIMARY KEY ("id")
+);
+CREATE INDEX IF NOT EXISTS "LedgerEntry_userId_createdAt_idx" ON "LedgerEntry"("userId", "createdAt");
+CREATE INDEX IF NOT EXISTS "LedgerEntry_paymentIntentId_idx" ON "LedgerEntry"("paymentIntentId");
+
+CREATE TABLE IF NOT EXISTS "BankAccount" (
+  "userId" TEXT NOT NULL,
+  "bankName" TEXT NOT NULL,
+  "accountNumber" TEXT NOT NULL,
+  "holderName" TEXT NOT NULL,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "BankAccount_pkey" PRIMARY KEY ("userId")
+);
+
+CREATE TABLE IF NOT EXISTS "PayoutRequest" (
+  "id" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "amount" INTEGER NOT NULL,
+  "status" TEXT NOT NULL DEFAULT 'PENDING',
+  "bankName" TEXT NOT NULL,
+  "accountNumber" TEXT NOT NULL,
+  "holderName" TEXT NOT NULL,
+  "adminNote" TEXT,
+  "processedById" TEXT,
+  "processedAt" TIMESTAMP(3),
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "PayoutRequest_pkey" PRIMARY KEY ("id")
+);
+CREATE INDEX IF NOT EXISTS "PayoutRequest_status_createdAt_idx" ON "PayoutRequest"("status", "createdAt");
+CREATE INDEX IF NOT EXISTS "PayoutRequest_userId_idx" ON "PayoutRequest"("userId");
+
+DO $$ BEGIN
+  ALTER TABLE "Wallet" ADD CONSTRAINT "Wallet_userId_fkey"
+    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "LedgerEntry" ADD CONSTRAINT "LedgerEntry_userId_fkey"
+    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "BankAccount" ADD CONSTRAINT "BankAccount_userId_fkey"
+    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "PayoutRequest" ADD CONSTRAINT "PayoutRequest_userId_fkey"
+    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "PayoutRequest" ADD CONSTRAINT "PayoutRequest_processedById_fkey"
+    FOREIGN KEY ("processedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 -- 완료 후 터미널: npx prisma db push && npm run db:seed

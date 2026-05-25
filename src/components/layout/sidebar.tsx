@@ -8,6 +8,7 @@ import {
   MessageCircle,
   Bookmark,
   Wallet,
+  Banknote,
   Trophy,
   Tv,
   PenSquare,
@@ -42,6 +43,7 @@ const navBlocks = [
   { href: "/events", icon: Calendar, label: "이벤트" },
   { href: "/rankings", icon: Trophy, label: "후원 랭킹" },
   { href: "/support", icon: Wallet, label: "후원" },
+  { href: "/wallet", icon: Banknote, label: "정산·출금" },
   { href: "/premium", icon: Crown, label: "프리미엄" },
   { href: "/settings", icon: Settings, label: "설정" },
 ];
