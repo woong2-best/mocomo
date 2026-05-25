@@ -30,3 +30,13 @@ export const SIGNUP_PASSWORD_SESSION_KEY = "mocomo_signup_password";
 export function generateEmailCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
+
+/** DB token @unique 충돌 방지 — 이메일별로 코드 저장 */
+export function scopedAuthCodeToken(email: string, code: string): string {
+  return `${email.trim().toLowerCase()}:${code.trim()}`;
+}
+
+export function authCodeMatchesToken(storedToken: string, email: string, code: string): boolean {
+  const c = code.trim();
+  return storedToken === c || storedToken === scopedAuthCodeToken(email, c);
+}

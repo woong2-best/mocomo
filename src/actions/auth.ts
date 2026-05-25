@@ -11,6 +11,7 @@ import {
   resetCodeIdentifier,
   authCodeIdentifier,
   generateEmailCode,
+  scopedAuthCodeToken,
 } from "@/lib/auth-tokens";
 import {
   sendPasswordResetEmail,
@@ -62,19 +63,20 @@ async function saveVerificationCodes(email: string, token: string, code: string,
   const expires = new Date(Date.now() + hours * 60 * 60 * 1000);
   const normalized = email.trim().toLowerCase();
   const verifyId = verifyTokenIdentifier(normalized);
-  const codeId = verifyCodeIdentifier(normalized);
   const authId = authCodeIdentifier(normalized);
+  const codeToken = scopedAuthCodeToken(normalized, code);
 
   await db.verificationToken.deleteMany({
     where: {
-      identifier: { in: [verifyId, codeId, authId, resetCodeIdentifier(normalized)] },
+      identifier: {
+        in: [verifyId, verifyCodeIdentifier(normalized), authId, resetCodeIdentifier(normalized)],
+      },
     },
   });
   await db.verificationToken.createMany({
     data: [
       { identifier: verifyId, token, expires },
-      { identifier: codeId, token: code, expires },
-      { identifier: authId, token: code, expires },
+      { identifier: authId, token: codeToken, expires },
     ],
   });
 }
@@ -89,10 +91,13 @@ function authCodeIdentifiers(email: string) {
 }
 
 async function findAuthCodeRecord(email: string, code: string) {
+  const normalized = email.trim().toLowerCase();
+  const trimmed = code.trim();
+  const scoped = scopedAuthCodeToken(normalized, trimmed);
   return db.verificationToken.findFirst({
     where: {
-      identifier: { in: authCodeIdentifiers(email) },
-      token: code.trim(),
+      identifier: { in: authCodeIdentifiers(normalized) },
+      OR: [{ token: trimmed }, { token: scoped }],
     },
   });
 }
@@ -126,7 +131,7 @@ export async function sendEmailAuthCode(email: string, mode: "signup" | "reset" 
     where: { identifier: { in: authCodeIdentifiers(normalized) } },
   });
   await db.verificationToken.create({
-    data: { identifier: authId, token: code, expires },
+    data: { identifier: authId, token: scopedAuthCodeToken(normalized, code), expires },
   });
 
   const sent = await sendAuthCodeEmail(normalized, code, mode);
@@ -395,11 +400,22 @@ export async function registerUser(
           error: `닉네임 "${username}"은(는) 이미 사용 중입니다. 다른 닉네임을 입력해 주세요.`,
         };
       }
+      if (!isRetry) {
+        return registerUser(data, true);
+      }
+    }
+
+    const msg =
+      e && typeof e === "object" && "message" in e ? String((e as { message: string }).message) : "";
+    if (prismaCode === "P1001" || prismaCode === "P1017" || /connect|timeout/i.test(msg)) {
+      return {
+        error:
+          "데이터베이스에 연결하지 못했습니다. Vercel의 DATABASE_URL·DIRECT_URL을 확인한 뒤 잠시 후 다시 시도해 주세요.",
+      };
     }
 
     return {
-      error:
-        "회원가입 저장에 실패했습니다. Vercel에 DATABASE_URL·DIRECT_URL이 설정됐는지 확인하세요.",
+      error: "회원가입 저장에 실패했습니다. 잠시 후 다시 시도해 주세요. 계속되면 다른 닉네임으로 시도해 보세요.",
     };
   }
 }
