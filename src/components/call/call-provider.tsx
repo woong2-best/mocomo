@@ -7,6 +7,7 @@ import type { Socket } from "socket.io-client";
 import { acceptCall, declineCall, endCall, initiateCall } from "@/actions/call";
 import type { ActiveCallState, CallPayload } from "@/lib/call-types";
 import { ensureMicrophoneAccess, probeMicrophonePermission, type MicCheckResult } from "@/lib/microphone";
+import { fetchLivekitCredentials, type LivekitCredentials } from "@/lib/livekit-token-fetch";
 import { CallOverlay } from "@/components/call/call-overlay";
 
 const LivekitAudioCall = dynamic(
@@ -48,6 +49,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState("");
   const [mic, setMic] = useState<MicCheckResult | null>(null);
   const [micChecking, setMicChecking] = useState(false);
+  const [prefetchedLivekit, setPrefetchedLivekit] = useState<LivekitCredentials | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const callStateRef = useRef(callState);
   const lastTerminalRef = useRef<string | null>(null);
@@ -71,6 +73,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     setError("");
     setMic(null);
     setMicChecking(false);
+    setPrefetchedLivekit(null);
   }, []);
 
   const applySync = useCallback(
@@ -253,6 +256,24 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     };
   }, [callState.phase, activeCallId]);
 
+  const livekitRoom =
+    callState.phase !== "idle" ? callState.call.livekitRoom : null;
+
+  useEffect(() => {
+    if (!livekitRoom) return;
+    let cancelled = false;
+    fetchLivekitCredentials(livekitRoom)
+      .then((creds) => {
+        if (!cancelled) setPrefetchedLivekit(creds);
+      })
+      .catch(() => {
+        if (!cancelled) setPrefetchedLivekit(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [livekitRoom]);
+
   const startCall = useCallback(
     async (calleeId: string, chatRoomId?: string) => {
       if (!userId) return { error: "로그인이 필요합니다." };
@@ -323,6 +344,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             callState.phase === "active" ? (
               <LivekitAudioCall
                 roomName={callState.call.livekitRoom}
+                prefetched={prefetchedLivekit}
                 onDisconnected={() => hangup(callState.call.id)}
               />
             ) : undefined

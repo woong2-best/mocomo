@@ -10,22 +10,27 @@ export async function createLivekitToken(
   const apiSecret = process.env.LIVEKIT_API_SECRET;
   if (!apiKey || !apiSecret) return null;
 
-  const token = new AccessToken(apiKey, apiSecret, {
-    identity: participantIdentity,
-    name: participantName,
-    ttl: "6h",
-  });
+  try {
+    const token = new AccessToken(apiKey, apiSecret, {
+      identity: participantIdentity,
+      name: participantName,
+      ttl: "6h",
+    });
 
-  token.addGrant({
-    roomJoin: true,
-    room: roomName,
-    canPublish: true,
-    canSubscribe: true,
-    canPublishData: true,
-    canPublishSources: options?.audioOnly ? [TrackSource.MICROPHONE] : undefined,
-  });
+    token.addGrant({
+      roomJoin: true,
+      room: roomName,
+      canPublish: true,
+      canSubscribe: true,
+      canPublishData: true,
+      canPublishSources: options?.audioOnly ? [TrackSource.MICROPHONE] : undefined,
+    });
 
-  return await token.toJwt();
+    return await token.toJwt();
+  } catch (e) {
+    console.error("[createLivekitToken]", e);
+    return null;
+  }
 }
 
 export function getLivekitUrl(): string {

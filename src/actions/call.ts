@@ -181,20 +181,3 @@ export async function getCall(callId: string) {
   if (call.callerId !== user.id && call.calleeId !== user.id) return { error: "권한이 없습니다." };
   return { call: serializeCall(call) };
 }
-
-export async function validateLivekitCallRoom(roomName: string, userId: string) {
-  if (!roomName.startsWith("call-")) return { allowed: true as const };
-
-  const call = await db.voiceCall.findUnique({
-    where: { livekitRoom: roomName },
-    select: { id: true, callerId: true, calleeId: true, status: true },
-  });
-  if (!call) return { allowed: false as const, reason: "CALL_NOT_FOUND" as const };
-  if (call.callerId !== userId && call.calleeId !== userId) {
-    return { allowed: false as const, reason: "NOT_PARTICIPANT" as const };
-  }
-  if (!ACTIVE_STATUSES.includes(call.status)) {
-    return { allowed: false as const, reason: "CALL_NOT_ACTIVE" as const };
-  }
-  return { allowed: true as const, audioOnly: true as const };
-}
