@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { liveViewerCutoff } from "@/lib/live-presence";
+import { pruneAbandonedLiveChannels } from "@/lib/stale-live";
 import { db } from "@/lib/db";
 import { getTipRanking } from "@/actions/monetization";
 import { getRankings } from "@/actions/events";
@@ -113,23 +114,19 @@ export const getCachedMarketProducts = unstable_cache(
 
 export const getCachedLiveChannels = unstable_cache(
   async () => {
+    await pruneAbandonedLiveChannels();
     const cutoff = liveViewerCutoff();
-    const [channels, upcoming, viewerGroups] = await Promise.all([
+    const [channels, viewerGroups] = await Promise.all([
       db.voiceChannel.findMany({
         where: { isLive: true },
         select: {
           id: true,
           name: true,
           createdBy: true,
+          createdAt: true,
         },
         orderBy: { createdAt: "desc" },
         take: 24,
-      }),
-      db.voiceChannel.findMany({
-        where: { isLive: false },
-        take: 6,
-        orderBy: { createdAt: "desc" },
-        select: { id: true, name: true },
       }),
       db.voiceMember.groupBy({
         by: ["channelId"],
@@ -140,20 +137,22 @@ export const getCachedLiveChannels = unstable_cache(
     const viewerMap = Object.fromEntries(
       viewerGroups.map((g) => [g.channelId, g._count._all])
     );
-    const channelsWithViewers = channels.map((c) => ({
-      ...c,
-      viewerCount: viewerMap[c.id] ?? 0,
-    }));
+    const channelsWithViewers = channels
+      .map((c) => ({
+        ...c,
+        viewerCount: viewerMap[c.id] ?? 0,
+      }))
+      .filter((c) => c.viewerCount > 0);
     const hosts =
-      channels.length > 0
+      channelsWithViewers.length > 0
         ? await db.user.findMany({
-            where: { id: { in: channels.map((c) => c.createdBy) } },
+            where: { id: { in: channelsWithViewers.map((c) => c.createdBy) } },
             select: { id: true, username: true, image: true },
           })
         : [];
-    return { channels: channelsWithViewers, upcoming, hosts };
+    return { channels: channelsWithViewers, hosts };
   },
-  ["live-channels"],
+  ["live-channels-v2"],
   { revalidate: 30 }
 );
 

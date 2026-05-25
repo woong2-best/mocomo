@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Send, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,9 @@ export type LiveChatMessage = {
   image?: string | null;
 };
 
-export function LiveChat({
+export const LiveChat = memo(LiveChatInner);
+
+function LiveChatInner({
   channelId,
   viewerCount,
   onViewerCount,
@@ -48,10 +50,14 @@ export function LiveChat({
     };
   }, [channelId]);
 
+  const onViewerCountRef = useRef(onViewerCount);
+  onViewerCountRef.current = onViewerCount;
+
   const poll = useCallback(async () => {
     const res = await getLiveStreamSync(channelId, lastSyncRef.current);
     if ("error" in res) return;
-    onViewerCount?.(res.viewerCount);
+    const prev = viewerCount;
+    if (res.viewerCount !== prev) onViewerCountRef.current?.(res.viewerCount);
     if (res.messages.length > 0) {
       setMessages((prev) => {
         const ids = new Set(prev.map((m) => m.id));
@@ -61,11 +67,11 @@ export function LiveChat({
       const last = res.messages[res.messages.length - 1];
       lastSyncRef.current = new Date(last.at).toISOString();
     }
-  }, [channelId, onViewerCount]);
+  }, [channelId]);
 
   useEffect(() => {
     poll();
-    const id = setInterval(poll, 2000);
+    const id = setInterval(poll, 2500);
     return () => clearInterval(id);
   }, [poll]);
 

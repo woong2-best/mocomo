@@ -57,7 +57,7 @@ export function LiveRoomClient({
     const tick = async () => {
       const res = await heartbeatLivePresence(channelId);
       if ("viewerCount" in res && typeof res.viewerCount === "number") {
-        setViewerCount(res.viewerCount);
+        setViewerCount((prev) => (prev === res.viewerCount ? prev : res.viewerCount));
       }
     };
     tick();

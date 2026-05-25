@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useCall } from "@/components/call/call-provider";
+import { useCall, useCallBusy } from "@/components/call/call-provider";
 import { Button } from "@/components/ui/button";
 import { Phone, Loader2 } from "lucide-react";
 
@@ -14,12 +14,10 @@ export function CallButton({
   chatRoomId: string;
   disabled?: boolean;
 }) {
-  const { startCall, callState } = useCall();
+  const { startCall } = useCall();
+  const busy = useCallBusy();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  const busy = callState.phase !== "idle";
-
   async function handleCall() {
     setLoading(true);
     setError("");

@@ -15,17 +15,21 @@ const LivekitAudioCall = dynamic(
   { ssr: false, loading: () => null }
 );
 
-type CallContextValue = {
+type CallActionsValue = {
   startCall: (calleeId: string, chatRoomId?: string) => Promise<{ error?: string }>;
-  callState: ActiveCallState;
 };
 
-const CallContext = createContext<CallContextValue | null>(null);
+const CallActionsContext = createContext<CallActionsValue | null>(null);
+const CallBusyContext = createContext(false);
 
 export function useCall() {
-  const ctx = useContext(CallContext);
+  const ctx = useContext(CallActionsContext);
   if (!ctx) throw new Error("useCall must be used within CallProvider");
   return ctx;
+}
+
+export function useCallBusy() {
+  return useContext(CallBusyContext);
 }
 
 function peerForUser(call: CallPayload, userId: string) {
@@ -39,10 +43,10 @@ type SyncResponse =
 
 function syncPollIntervalMs(phase: ActiveCallState["phase"], hidden: boolean) {
   if (phase !== "idle") return 2000;
-  return hidden ? 12000 : 6000;
+  return hidden ? 15000 : 8000;
 }
 
-export function CallProvider({ children }: { children: React.ReactNode }) {
+function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
   const userId = session?.user?.id;
   const [callState, setCallState] = useState<ActiveCallState>({ phase: "idle" });
@@ -323,14 +327,15 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     resetCall();
   }, [callState, emit, resetCall]);
 
-  const value = useMemo(() => ({ startCall, callState }), [startCall, callState]);
+  const value = useMemo(() => ({ startCall }), [startCall]);
+  const busy = callState.phase !== "idle";
 
   return (
-    <CallContext.Provider value={value}>
-      {children}
-
-      {callState.phase !== "idle" && (
-        <CallOverlay
+    <CallActionsContext.Provider value={value}>
+      <CallBusyContext.Provider value={busy}>
+        {children}
+        {busy && (
+          <CallOverlay
           callState={callState}
           error={error}
           mic={mic}
@@ -350,7 +355,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             ) : undefined
           }
         />
-      )}
-    </CallContext.Provider>
+        )}
+      </CallBusyContext.Provider>
+    </CallActionsContext.Provider>
   );
+}
+
+export function CallProvider({ children }: { children: React.ReactNode }) {
+  return <CallProviderRuntime>{children}</CallProviderRuntime>;
 }

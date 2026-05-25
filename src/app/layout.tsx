@@ -2,11 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
-import { SessionProvider } from "@/components/providers/session-provider";
-import { CallProvider } from "@/components/call/call-provider";
+import { AppProviders } from "@/components/providers/app-providers";
 import { AppShell } from "@/components/layout/app-shell";
 import { RightPanel, RightPanelSkeleton } from "@/components/layout/right-panel";
-import { PlatformBootstrap } from "@/components/platform-bootstrap";
 import { BRAND } from "@/lib/brand";
 import "./globals.css";
 
@@ -39,22 +37,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ko" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-          <SessionProvider>
-            <CallProvider>
-              <Suspense fallback={null}>
-                <PlatformBootstrap />
-              </Suspense>
-              <AppShell
-                rightPanel={
-                  <Suspense fallback={<RightPanelSkeleton />}>
-                    <RightPanel />
-                  </Suspense>
-                }
-              >
-                {children}
-              </AppShell>
-            </CallProvider>
-          </SessionProvider>
+          <AppProviders>
+            <AppShell
+              rightPanel={
+                <Suspense fallback={<RightPanelSkeleton />}>
+                  <RightPanel />
+                </Suspense>
+              }
+            >
+              {children}
+            </AppShell>
+          </AppProviders>
         </ThemeProvider>
       </body>
     </html>

@@ -69,9 +69,10 @@ export function Sidebar() {
 
       <nav className="flex flex-col gap-2.5 flex-1">
         {navBlocks.map(({ href, icon: Icon, label }) => (
-          <Link
-            key={href}
-            href={href}
+              <Link
+                key={href}
+                href={href}
+                prefetch={href === "/live" || href === "/messages" ? false : undefined}
             className={cn("sidebar-block", isActive(href) && "sidebar-block-active")}
           >
             <span
