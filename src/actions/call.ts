@@ -189,12 +189,12 @@ export async function validateLivekitCallRoom(roomName: string, userId: string) 
     where: { livekitRoom: roomName },
     select: { id: true, callerId: true, calleeId: true, status: true },
   });
-  if (!call) return { allowed: false as const, reason: "CALL_NOT_FOUND" };
+  if (!call) return { allowed: false as const, reason: "CALL_NOT_FOUND" as const };
   if (call.callerId !== userId && call.calleeId !== userId) {
-    return { allowed: false as const, reason: "NOT_PARTICIPANT" };
+    return { allowed: false as const, reason: "NOT_PARTICIPANT" as const };
   }
   if (!ACTIVE_STATUSES.includes(call.status)) {
-    return { allowed: false as const, reason: "CALL_NOT_ACTIVE" };
+    return { allowed: false as const, reason: "CALL_NOT_ACTIVE" as const };
   }
   return { allowed: true as const, audioOnly: true as const };
 }

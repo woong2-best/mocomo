@@ -9,6 +9,37 @@ import {
 import "@livekit/components-styles";
 import { Loader2 } from "lucide-react";
 
+async function fetchLivekitToken(roomName: string, attempt: number): Promise<{ token: string; serverUrl: string }> {
+  const res = await fetch(`/api/livekit/token?room=${encodeURIComponent(roomName)}`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  let body: { error?: string; token?: string; serverUrl?: string; reason?: string } = {};
+  try {
+    body = await res.json();
+  } catch {
+    /* non-JSON */
+  }
+
+  if (!res.ok) {
+    const msg = body.error ?? `연결 실패 (${res.status})`;
+    const retryable =
+      res.status === 403 && body.reason === "CALL_NOT_ACTIVE" && attempt < 4;
+    if (retryable) {
+      await new Promise((r) => setTimeout(r, 500));
+      return fetchLivekitToken(roomName, attempt + 1);
+    }
+    throw new Error(msg);
+  }
+
+  if (!body.token || !body.serverUrl) {
+    throw new Error(body.error ?? "LiveKit 응답이 올바르지 않습니다.");
+  }
+
+  return { token: body.token, serverUrl: body.serverUrl };
+}
+
 export function LivekitAudioCall({
   roomName,
   onDisconnected,
@@ -21,16 +52,26 @@ export function LivekitAudioCall({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`/api/livekit/token?room=${encodeURIComponent(roomName)}`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error("토큰 발급 실패");
-        return res.json();
-      })
+    let cancelled = false;
+    setError(null);
+    setToken(null);
+    setServerUrl("");
+
+    fetchLivekitToken(roomName, 0)
       .then((data) => {
+        if (cancelled) return;
         setToken(data.token);
         setServerUrl(data.serverUrl);
       })
-      .catch(() => setError("LiveKit이 설정되지 않았습니다. Vercel 환경 변수(LIVEKIT_*)를 확인하세요."));
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        const msg = e instanceof Error ? e.message : "음성 연결에 실패했습니다.";
+        setError(msg);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [roomName]);
 
   if (error) {
