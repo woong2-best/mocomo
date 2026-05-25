@@ -18,6 +18,7 @@ export default async function ProfileSettingsPage() {
   return (
     <ProfileSettingsForm
       initial={{
+        username: user.username,
         name: user.name ?? "",
         image: user.image ?? "",
         bio: user.profile?.bio ?? "",
