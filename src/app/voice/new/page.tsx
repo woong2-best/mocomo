@@ -88,13 +88,16 @@ export default function NewVoicePage() {
         </Button>
       </Link>
 
-      <div className="rounded-2xl bg-gradient-to-r from-red-500/15 to-pink-500/15 border border-border/60 p-4">
+      <div className="live-hero !p-5">
         <h1 className="text-xl font-bold flex items-center gap-2">
-          <Radio className="h-6 w-6 text-red-500" />
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-600 text-white">
+            <Radio className="h-5 w-5" />
+          </span>
           라이브 방송 스튜디오
         </h1>
-        <p className="text-sm text-muted-foreground mt-2">
-          Twitch·YouTube처럼 호스트만 송출하고, 시청자는 비밀번호로 입장합니다. 실시간 채팅·실제 시청자 수가 표시됩니다.
+        <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
+          트위치·치지직처럼 호스트만 송출하고, 시청자는 합방 비밀번호로만 입장합니다. 실시간 채팅·실제
+          시청자 수가 표시됩니다.
         </p>
       </div>
 

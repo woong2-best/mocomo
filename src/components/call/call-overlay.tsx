@@ -209,7 +209,7 @@ export function CallOverlay({
   return (
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-3 sm:p-6">
       <div
-        className="absolute inset-0 bg-gradient-to-b from-primary/25 via-background/95 to-background backdrop-blur-md"
+        className="absolute inset-0 bg-background/75 backdrop-blur-md dark:bg-gradient-to-b dark:from-primary/25 dark:via-background/95 dark:to-background"
         aria-hidden
       />
 

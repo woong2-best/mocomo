@@ -107,6 +107,63 @@
       rgba(30, 136, 229, 0.08)
     );
   }
+
+  /* 라이브 — 라이트 기본, 다크모드에서만 어두운 스튜디오 */
+  .live-page-shell {
+    @apply -m-4 lg:-m-6 min-h-screen p-4 lg:p-6 text-foreground;
+    @apply bg-gradient-to-b from-red-50/80 via-background to-background;
+  }
+  .dark .live-page-shell {
+    @apply from-[#0a0a0c] via-[#0f0f12] to-[#0a0a0c];
+  }
+
+  .live-hero {
+    @apply rounded-2xl border border-border/70 bg-card/90 backdrop-blur-sm p-6 shadow-sm;
+    @apply bg-gradient-to-br from-red-500/10 via-card to-violet-500/10;
+  }
+  .dark .live-hero {
+    @apply border-white/10 bg-[#141418]/90 from-red-500/15 to-violet-500/10 shadow-none;
+  }
+
+  .live-studio-panel {
+    @apply rounded-3xl border border-border bg-card text-card-foreground shadow-lg;
+  }
+  .dark .live-studio-panel {
+    @apply border-white/10 bg-[#0f0f12] text-white shadow-2xl;
+  }
+
+  .live-card {
+    @apply block rounded-2xl overflow-hidden border border-border bg-card shadow-md;
+    @apply hover:border-red-500/45 hover:shadow-lg transition-all duration-200;
+  }
+  .dark .live-card {
+    @apply border-white/10 bg-zinc-900/95 hover:shadow-[0_0_24px_rgba(239,68,68,0.12)];
+  }
+
+  .live-card-thumb {
+    @apply relative aspect-video bg-gradient-to-br from-red-100/90 via-violet-50 to-pink-100/80;
+  }
+  .dark .live-card-thumb {
+    @apply from-zinc-900 via-zinc-800 to-zinc-900;
+  }
+
+  .live-card-scrim {
+    @apply absolute inset-0 bg-gradient-to-t from-background/95 via-background/25 to-transparent;
+  }
+  .dark .live-card-scrim {
+    @apply from-black/90 via-black/25 to-transparent;
+  }
+
+  .live-badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-600 text-white text-[11px] font-bold uppercase tracking-wide;
+  }
+
+  .live-viewer-pill {
+    @apply flex items-center gap-1 px-2 py-1 rounded-md bg-background/85 border border-border/60 text-xs font-medium tabular-nums text-foreground shadow-sm;
+  }
+  .dark .live-viewer-pill {
+    @apply bg-black/70 border-transparent text-white shadow-none;
+  }
 }
 
 ::-webkit-scrollbar {

@@ -35,6 +35,8 @@ function LiveChatInner({
   const [error, setError] = useState("");
   const lastSyncRef = useRef<string>(new Date(0).toISOString());
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const stickToBottomRef = useRef(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,12 +54,16 @@ function LiveChatInner({
 
   const onViewerCountRef = useRef(onViewerCount);
   onViewerCountRef.current = onViewerCount;
+  const viewerCountRef = useRef(viewerCount);
+  viewerCountRef.current = viewerCount;
 
   const poll = useCallback(async () => {
     const res = await getLiveStreamSync(channelId, lastSyncRef.current);
     if ("error" in res) return;
-    const prev = viewerCount;
-    if (res.viewerCount !== prev) onViewerCountRef.current?.(res.viewerCount);
+    if (res.viewerCount !== viewerCountRef.current) {
+      viewerCountRef.current = res.viewerCount;
+      onViewerCountRef.current?.(res.viewerCount);
+    }
     if (res.messages.length > 0) {
       setMessages((prev) => {
         const ids = new Set(prev.map((m) => m.id));
@@ -76,8 +82,17 @@ function LiveChatInner({
   }, [poll]);
 
   useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || !stickToBottomRef.current) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  function onScroll() {
+    const el = scrollRef.current;
+    if (!el) return;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    stickToBottomRef.current = nearBottom;
+  }
 
   async function send() {
     const content = text.trim();
@@ -91,6 +106,7 @@ function LiveChatInner({
       return;
     }
     if ("message" in res && res.message) {
+      stickToBottomRef.current = true;
       setMessages((prev) => [...prev, res.message].slice(-120));
       lastSyncRef.current = new Date(res.message.at).toISOString();
     }
@@ -106,7 +122,11 @@ function LiveChatInner({
           {viewerCount}명 시청
         </span>
       </div>
-      <div className="flex-1 overflow-y-auto p-3 space-y-2.5 min-h-0 max-h-[min(50vh,420px)]">
+      <div
+        ref={scrollRef}
+        onScroll={onScroll}
+        className="flex-1 overflow-y-auto p-3 space-y-2.5 min-h-0 max-h-[min(50vh,420px)]"
+      >
         {messages.length === 0 && (
           <p className="text-xs text-muted-foreground text-center py-10">
             채팅이 실시간으로 저장됩니다. 첫 인사를 남겨 보세요!

@@ -3,17 +3,17 @@
 import dynamic from "next/dynamic";
 import { memo } from "react";
 import { LiveChat } from "@/components/live/live-chat";
-import { Eye, Users } from "lucide-react";
+import { Eye, Users, Radio } from "lucide-react";
 import Link from "next/link";
 
 const LiveBroadcastStudio = dynamic(
   () => import("@/components/live/live-broadcast-studio").then((m) => m.LiveBroadcastStudio),
-  { ssr: false, loading: () => <div className="aspect-video rounded-2xl bg-zinc-900 animate-pulse" /> }
+  { ssr: false, loading: () => <div className="aspect-video rounded-2xl bg-muted animate-pulse" /> }
 );
 
 const LiveViewerPlayer = dynamic(
   () => import("@/components/live/live-viewer-player").then((m) => m.LiveViewerPlayer),
-  { ssr: false, loading: () => <div className="aspect-video rounded-2xl bg-zinc-900 animate-pulse" /> }
+  { ssr: false, loading: () => <div className="aspect-video rounded-2xl bg-muted animate-pulse" /> }
 );
 
 function LiveStreamRoomInner({
@@ -36,23 +36,28 @@ function LiveStreamRoomInner({
   onEndStream: () => void;
 }) {
   return (
-    <div className="space-y-4 rounded-3xl border border-white/10 bg-[#0f0f12] p-3 sm:p-5 text-white shadow-2xl">
-      <div className="flex flex-wrap items-center gap-3 border-b border-white/10 pb-4">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-red-600 text-xs font-bold">
-          <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+    <div className="live-studio-panel space-y-4 p-3 sm:p-5">
+      <div className="flex flex-wrap items-center gap-3 border-b border-border pb-4">
+        <span className="live-badge text-xs px-3 py-1">
+          <Radio className="h-3 w-3" />
           LIVE
         </span>
-        <h1 className="text-lg sm:text-xl font-bold tracking-tight flex-1 min-w-0 truncate">
+        {isHost && (
+          <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
+            방송 중 (호스트)
+          </span>
+        )}
+        <h1 className="text-lg sm:text-xl font-bold tracking-tight flex-1 min-w-0 truncate text-foreground">
           {channelName}
         </h1>
-        <span className="text-sm text-zinc-400 flex items-center gap-1.5 tabular-nums">
-          <Eye className="h-4 w-4" />
-          {viewerCount}
+        <span className="text-sm text-muted-foreground flex items-center gap-1.5 tabular-nums">
+          <Eye className="h-4 w-4 text-red-500" />
+          <strong className="text-foreground">{viewerCount}</strong> 시청
         </span>
         {hostUsername && (
           <Link
             href={`/u/${hostUsername}`}
-            className="text-sm text-violet-400 hover:underline flex items-center gap-1"
+            className="text-sm text-primary hover:underline flex items-center gap-1"
           >
             <Users className="h-3.5 w-3.5" />@{hostUsername}
           </Link>
@@ -60,7 +65,7 @@ function LiveStreamRoomInner({
       </div>
 
       <div className="grid lg:grid-cols-[1fr_minmax(280px,360px)] gap-4 items-start">
-        <div className="min-w-0">
+        <div className="min-w-0 rounded-2xl overflow-hidden ring-1 ring-border/50">
           {isHost ? (
             <LiveBroadcastStudio channelId={channelId} onEndStream={onEndStream} />
           ) : (

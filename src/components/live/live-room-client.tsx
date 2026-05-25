@@ -92,7 +92,7 @@ export function LiveRoomClient({
 
   if (!joined) {
     return (
-      <div className="max-w-md mx-auto rounded-3xl border border-border bg-card p-8 shadow-xl space-y-6">
+      <div className="max-w-md mx-auto live-hero !p-8 space-y-6 shadow-xl">
         <div className="text-center space-y-2">
           <div className="mx-auto h-14 w-14 rounded-2xl bg-red-500/15 flex items-center justify-center">
             <KeyRound className="h-7 w-7 text-red-500" />
