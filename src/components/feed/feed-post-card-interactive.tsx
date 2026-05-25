@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -39,6 +41,14 @@ export function FeedPostCardInteractive({
   const [reposted, setReposted] = useState(false);
   const [repostCount, setRepostCount] = useState(post._count?.reposts ?? 0);
   const [pending, startTransition] = useTransition();
+  const { data: session } = useSession();
+  const router = useRouter();
+
+  function requireLogin(callbackUrl: string) {
+    if (session?.user) return true;
+    router.push(`/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+    return false;
+  }
 
   const createdAt = typeof post.createdAt === "string" ? new Date(post.createdAt) : post.createdAt;
   const displayName = post.author.cosplayerProfile?.stageName || post.author.username;
@@ -47,29 +57,44 @@ export function FeedPostCardInteractive({
   function handleLike(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
+    if (!requireLogin(`/post/${post.id}`)) return;
     startTransition(async () => {
-      const res = await toggleLike(post.id);
-      setLiked(res.liked);
-      setLikeCount((c) => (res.liked ? c + 1 : Math.max(0, c - 1)));
+      try {
+        const res = await toggleLike(post.id);
+        setLiked(res.liked);
+        setLikeCount((c) => (res.liked ? c + 1 : Math.max(0, c - 1)));
+      } catch {
+        /* auth/session */
+      }
     });
   }
 
   function handleBookmark(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
+    if (!requireLogin(`/post/${post.id}`)) return;
     startTransition(async () => {
-      const res = await toggleBookmark(post.id);
-      setBookmarked(res.bookmarked);
+      try {
+        const res = await toggleBookmark(post.id);
+        setBookmarked(res.bookmarked);
+      } catch {
+        /* auth/session */
+      }
     });
   }
 
   function handleRepost(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
+    if (!requireLogin(`/post/${post.id}`)) return;
     startTransition(async () => {
-      const res = await repost(post.id);
-      setReposted(res.reposted);
-      setRepostCount((c) => (res.reposted ? c + 1 : Math.max(0, c - 1)));
+      try {
+        const res = await repost(post.id);
+        setReposted(res.reposted);
+        setRepostCount((c) => (res.reposted ? c + 1 : Math.max(0, c - 1)));
+      } catch {
+        /* auth/session */
+      }
     });
   }
 

@@ -35,6 +35,7 @@ export function ChatRoomClient({
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [realtimeOff, setRealtimeOff] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
@@ -51,7 +52,10 @@ export function ChatRoomClient({
 
   useEffect(() => {
     const url = process.env.NEXT_PUBLIC_SOCKET_URL;
-    if (!url || url.includes("localhost")) return;
+    if (!url || url.includes("localhost")) {
+      setRealtimeOff(true);
+      return;
+    }
 
     const socket = io(url, { auth: { userId }, transports: ["websocket", "polling"] });
     socketRef.current = socket;
@@ -110,6 +114,11 @@ export function ChatRoomClient({
         onScroll={onScroll}
         className="flex-1 overflow-y-auto min-h-0 px-3 sm:px-4 py-4 space-y-1"
       >
+        {realtimeOff && (
+          <p className="text-[11px] text-center text-muted-foreground bg-muted/60 border border-border/50 rounded-lg px-3 py-2 mb-3">
+            실시간 연결이 꺼져 있습니다. 새 메시지는 전송 후 반영되며, 상대 메시지는 새로고침하면 보입니다.
+          </p>
+        )}
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <p className="text-sm font-medium text-muted-foreground">아직 메시지가 없어요</p>

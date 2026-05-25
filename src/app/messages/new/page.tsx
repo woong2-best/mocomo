@@ -42,9 +42,15 @@ export default function NewMessagePage() {
 
   async function createPublic() {
     setLoading(true);
-    const result = await createChatRoom({ name: "새 팬덤방", type: "FANDOM" });
-    setLoading(false);
-    if (result.room) router.push(`/messages/${result.room.id}`);
+    setError("");
+    try {
+      const result = await createChatRoom({ name: "새 팬덤방", type: "FANDOM" });
+      router.push(`/messages/${result.room.id}`);
+    } catch {
+      setError("로그인이 필요하거나 일시적인 오류입니다.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

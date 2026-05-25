@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getProfileTimeline } from "@/actions/profile-page";
 import { parseProfileTab } from "@/lib/profile-queries";
@@ -21,6 +22,13 @@ export async function GET(
   });
   if (!user) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
+  }
+
+  if (tab === "likes") {
+    const session = await auth();
+    if (!session?.user?.id || session.user.id !== user.id) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
   }
 
   const { items, nextCursor } = await getProfileTimeline(user.id, tab, cursor);

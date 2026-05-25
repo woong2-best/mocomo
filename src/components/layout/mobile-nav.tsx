@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Home, Compass, Radio, MessageCircle, User, LogIn } from "lucide-react";
+import { Home, Compass, PenLine, Radio, MessageCircle, User, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const guestTabs = [
@@ -17,7 +17,7 @@ const guestTabs = [
 const userTabs = [
   { href: "/", icon: Home, label: "홈" },
   { href: "/explore", icon: Compass, label: "탐색" },
-  { href: "/live", icon: Radio, label: "라이브" },
+  { href: "/compose", icon: PenLine, label: "글쓰기" },
   { href: "/messages", icon: MessageCircle, label: "메시지" },
   { href: "/my-page", icon: User, label: "MY" },
 ];

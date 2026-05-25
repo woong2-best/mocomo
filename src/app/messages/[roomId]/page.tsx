@@ -29,6 +29,9 @@ export default async function ChatRoomPage({ params }: { params: Promise<{ roomI
 
   if (!room) notFound();
 
+  const isMember = room.members.some((m) => m.userId === session.user.id);
+  if (!isMember) notFound();
+
   const meta = getConversationMeta(room, session.user.id);
   const otherMember =
     room.type === "DM" ? room.members.find((m) => m.userId !== session.user.id)?.user : undefined;

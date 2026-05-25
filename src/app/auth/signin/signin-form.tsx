@@ -26,6 +26,8 @@ function SignInFormInner({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const callbackUrl = searchParams.get("callbackUrl") || "/";
+
   const callbackErrorMessage =
     callbackError === "Configuration"
       ? googleOAuth
@@ -74,7 +76,6 @@ function SignInFormInner({
       return;
     }
 
-    const callbackUrl = searchParams.get("callbackUrl") || "/";
     router.push(callbackUrl);
     router.refresh();
   }
@@ -137,7 +138,7 @@ function SignInFormInner({
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => signIn("google", { callbackUrl: "/" })}
+                    onClick={() => signIn("google", { callbackUrl })}
                     className="rounded-xl"
                   >
                     Google
@@ -147,7 +148,7 @@ function SignInFormInner({
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => signIn("discord", { callbackUrl: "/" })}
+                    onClick={() => signIn("discord", { callbackUrl })}
                     className="rounded-xl"
                   >
                     Discord

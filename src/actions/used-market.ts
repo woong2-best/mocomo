@@ -6,6 +6,15 @@ import { requireAuth } from "@/lib/auth";
 import { getOrCreateDM, sendMessage } from "@/actions/chat";
 import type { Prisma, UsedListingCategory, UsedListingStatus } from "@prisma/client";
 
+export async function isUsedDbReady() {
+  try {
+    await db.usedListing.findFirst({ select: { id: true } });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function getUsedListings(params?: {
   q?: string;
   category?: string;

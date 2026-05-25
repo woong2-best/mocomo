@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { Package } from "lucide-react";
-import { getUsedListings } from "@/actions/used-market";
+import { getUsedListings, isUsedDbReady } from "@/actions/used-market";
+import { DbSetupBanner } from "@/components/ui/db-setup-banner";
 import { UsedListingCard } from "@/components/used/used-listing-card";
 import { UsedSearchHeader } from "@/components/used/used-search-header";
 import { Button } from "@/components/ui/button";
@@ -37,13 +38,18 @@ async function UsedFeed({
   );
 }
 
-export default function UsedHomePage({
+export default async function UsedHomePage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string; category?: string; region?: string }>;
 }) {
+  const dbReady = await isUsedDbReady();
+
   return (
     <div>
+      {!dbReady && (
+        <DbSetupBanner title="중고거래를 일시적으로 불러올 수 없습니다" />
+      )}
       <UsedSearchHeader />
       <Suspense
         fallback={<div className="grid grid-cols-2 gap-3 py-8">{[1, 2, 3, 4].map((i) => <div key={i} className="aspect-square rounded-xl bg-muted animate-pulse" />)}</div>}
@@ -54,7 +60,7 @@ export default function UsedHomePage({
         asChild
         variant="secondary"
         size="icon"
-        className="fixed bottom-20 right-4 lg:right-[calc(50%-28rem)] z-50 h-14 w-14 rounded-full shadow-lg text-2xl font-light"
+        className="fixed bottom-24 right-4 lg:right-[calc(50%-28rem)] z-50 h-14 w-14 rounded-full shadow-lg text-2xl font-light"
         aria-label="글쓰기"
       >
         <Link href="/used/new">+</Link>

@@ -69,7 +69,7 @@ export const getCachedExploreData = unstable_cache(
     const [trendingPosts, suggestedUsers] = await Promise.all([
       db.post.findMany({
         take: 8,
-        orderBy: { hotScore: "desc" },
+        orderBy: [{ hotScore: "desc" }, { createdAt: "desc" }],
         include: {
           author: { select: { username: true, name: true, image: true } },
           _count: { select: { likes: true, comments: true } },

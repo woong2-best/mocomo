@@ -1,7 +1,20 @@
 import { edgeAuth } from "@/lib/auth.edge";
 import { NextResponse } from "next/server";
 
-const protectedRoutes = ["/settings", "/messages", "/admin", "/compose", "/notifications", "/bookmarks", "/my-page"];
+const protectedRoutes = [
+  "/settings",
+  "/messages",
+  "/admin",
+  "/compose",
+  "/notifications",
+  "/bookmarks",
+  "/my-page",
+  "/wallet",
+  "/used/new",
+  "/used/my",
+  "/market/sell",
+  "/market/storage",
+];
 const authRoutes = ["/auth/signin", "/auth/signup"];
 
 export default edgeAuth((req) => {
@@ -34,6 +47,11 @@ export const config = {
     "/notifications/:path*",
     "/bookmarks/:path*",
     "/my-page/:path*",
+    "/wallet/:path*",
+    "/used/new",
+    "/used/my",
+    "/market/sell",
+    "/market/storage",
     "/auth/signin",
     "/auth/signup",
   ],

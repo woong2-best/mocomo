@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FeedAdCard } from "@/components/feed/feed-ad-card";
 import { FeedPostCardInteractive } from "@/components/feed/feed-post-card-interactive";
 import type { GridPost } from "@/components/feed/feed-post-card";
+import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
 type Ad = {
@@ -31,19 +32,25 @@ export function FeedInfinite({
   const [cursor, setCursor] = useState(initialCursor);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(!initialCursor);
+  const [loadError, setLoadError] = useState("");
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const loadMore = useCallback(async () => {
     if (!cursor || loading || done) return;
     setLoading(true);
+    setLoadError("");
     try {
       const res = await fetch(`/api/feed?cursor=${cursor}&limit=12`);
       const json = await res.json();
+      if (!res.ok) {
+        setLoadError(json.error ?? "피드를 더 불러오지 못했습니다.");
+        return;
+      }
       setItems((prev) => [...prev, ...json.items]);
       setCursor(json.nextCursor);
       if (!json.nextCursor) setDone(true);
     } catch {
-      setDone(true);
+      setLoadError("네트워크 오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }
@@ -73,9 +80,17 @@ export function FeedInfinite({
           )
         )}
       </div>
-      <div ref={sentinelRef} className="flex justify-center py-8">
+      <div ref={sentinelRef} className="flex flex-col items-center gap-2 py-8">
         {loading && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
-        {done && items.length > 0 && (
+        {loadError && (
+          <>
+            <p className="text-sm text-destructive">{loadError}</p>
+            <Button type="button" variant="secondary" size="sm" onClick={() => loadMore()}>
+              다시 시도
+            </Button>
+          </>
+        )}
+        {done && items.length > 0 && !loadError && (
           <p className="text-sm text-muted-foreground">피드 끝</p>
         )}
       </div>
