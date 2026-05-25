@@ -32,9 +32,9 @@ export function StartDmButton({ userId }: { userId: string }) {
 
   return (
     <div>
-      <Button variant="outline" size="sm" onClick={start} disabled={loading} className="gap-1">
+      <Button variant="outline" size="sm" onClick={start} disabled={loading} className="gap-1 rounded-full font-semibold">
         <MessageCircle className="h-4 w-4" />
-        {loading ? "확인 중..." : "DM"}
+        {loading ? "확인 중..." : "메시지"}
       </Button>
       {error && <p className="text-xs text-destructive mt-2 max-w-xs">{error}</p>}
     </div>
