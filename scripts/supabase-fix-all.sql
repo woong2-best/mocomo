@@ -128,4 +128,49 @@ CREATE TABLE IF NOT EXISTS "PaymentIntent" (
 );
 CREATE INDEX IF NOT EXISTS "PaymentIntent_userId_status_idx" ON "PaymentIntent"("userId", "status");
 
+-- H) VoiceCall (DM 1:1 음성 통화)
+DO $$ BEGIN
+  CREATE TYPE "CallStatus" AS ENUM ('RINGING', 'ACTIVE', 'ENDED', 'DECLINED', 'MISSED', 'CANCELLED');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS "VoiceCall" (
+  "id" TEXT NOT NULL,
+  "callerId" TEXT NOT NULL,
+  "calleeId" TEXT NOT NULL,
+  "chatRoomId" TEXT,
+  "livekitRoom" TEXT NOT NULL,
+  "status" "CallStatus" NOT NULL DEFAULT 'RINGING',
+  "startedAt" TIMESTAMP(3),
+  "endedAt" TIMESTAMP(3),
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "VoiceCall_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "VoiceCall_livekitRoom_key" ON "VoiceCall"("livekitRoom");
+CREATE INDEX IF NOT EXISTS "VoiceCall_callerId_status_idx" ON "VoiceCall"("callerId", "status");
+CREATE INDEX IF NOT EXISTS "VoiceCall_calleeId_status_idx" ON "VoiceCall"("calleeId", "status");
+
+DO $$ BEGIN
+  ALTER TABLE "VoiceCall"
+    ADD CONSTRAINT "VoiceCall_callerId_fkey"
+    FOREIGN KEY ("callerId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "VoiceCall"
+    ADD CONSTRAINT "VoiceCall_calleeId_fkey"
+    FOREIGN KEY ("calleeId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "VoiceCall"
+    ADD CONSTRAINT "VoiceCall_chatRoomId_fkey"
+    FOREIGN KEY ("chatRoomId") REFERENCES "ChatRoom"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 -- 완료 후 터미널: npx prisma db push && npm run db:seed

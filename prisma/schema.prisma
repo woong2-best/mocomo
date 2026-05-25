@@ -69,6 +69,8 @@ model User {
   messageReads  MessageRead[]
 
   voiceMembers  VoiceMember[]
+  callsMade     VoiceCall[] @relation("CallsMade")
+  callsReceived VoiceCall[] @relation("CallsReceived")
   tipsSent      Tip[]     @relation("TipSender")
   tipsReceived  Tip[]     @relation("TipReceiver")
   subscriptions Subscription[] @relation("Subscriber")
@@ -409,6 +411,7 @@ model ChatRoom {
   members   ChatMember[]
   messages  Message[]
   pinned    PinnedMessage[]
+  voiceCalls VoiceCall[]
 }
 
 model ChatMember {
@@ -509,6 +512,35 @@ model VoiceMember {
   channel VoiceChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
   user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@unique([channelId, userId])
+}
+
+enum CallStatus {
+  RINGING
+  ACTIVE
+  ENDED
+  DECLINED
+  MISSED
+  CANCELLED
+}
+
+model VoiceCall {
+  id          String     @id @default(cuid())
+  callerId    String
+  calleeId    String
+  chatRoomId  String?
+  livekitRoom String     @unique
+  status      CallStatus @default(RINGING)
+  startedAt   DateTime?
+  endedAt     DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  caller   User      @relation("CallsMade", fields: [callerId], references: [id], onDelete: Cascade)
+  callee   User      @relation("CallsReceived", fields: [calleeId], references: [id], onDelete: Cascade)
+  chatRoom ChatRoom? @relation(fields: [chatRoomId], references: [id], onDelete: SetNull)
+
+  @@index([callerId, status])
+  @@index([calleeId, status])
 }
 
 // ============ COSPLAYER ============

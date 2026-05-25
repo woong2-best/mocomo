@@ -128,6 +128,54 @@ io.on("connection", (socket) => {
       signal: data.signal,
     });
   });
+
+  socket.on("call_invite", async (data: { callId: string }) => {
+    if (!userId || !data.callId) return;
+    try {
+      const call = await prisma.voiceCall.findUnique({
+        where: { id: data.callId },
+        include: {
+          caller: { select: { id: true, username: true, image: true } },
+          callee: { select: { id: true, username: true, image: true } },
+        },
+      });
+      if (!call || call.callerId !== userId || call.status !== "RINGING") return;
+      io.to(`user:${call.calleeId}`).emit("call_incoming", {
+        id: call.id,
+        livekitRoom: call.livekitRoom,
+        chatRoomId: call.chatRoomId,
+        status: call.status,
+        caller: call.caller,
+        callee: call.callee,
+      });
+    } catch {
+      socket.emit("error", { message: "Failed to invite call" });
+    }
+  });
+
+  socket.on("call_accept", async (data: { callId: string }) => {
+    if (!userId || !data.callId) return;
+    const call = await prisma.voiceCall.findUnique({ where: { id: data.callId } });
+    if (!call || call.calleeId !== userId) return;
+    io.to(`user:${call.callerId}`).emit("call_accepted", { callId: data.callId });
+    io.to(`user:${call.calleeId}`).emit("call_accepted", { callId: data.callId });
+  });
+
+  socket.on("call_decline", async (data: { callId: string }) => {
+    if (!userId || !data.callId) return;
+    const call = await prisma.voiceCall.findUnique({ where: { id: data.callId } });
+    if (!call) return;
+    const otherId = call.callerId === userId ? call.calleeId : call.callerId;
+    io.to(`user:${otherId}`).emit("call_declined", { callId: data.callId });
+  });
+
+  socket.on("call_end", async (data: { callId: string }) => {
+    if (!userId || !data.callId) return;
+    const call = await prisma.voiceCall.findUnique({ where: { id: data.callId } });
+    if (!call) return;
+    const otherId = call.callerId === userId ? call.calleeId : call.callerId;
+    io.to(`user:${otherId}`).emit("call_ended", { callId: data.callId });
+  });
 });
 
 httpServer.listen(PORT, () => {

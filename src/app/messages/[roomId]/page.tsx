@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { ChatRoomClient } from "@/components/chat/chat-room";
+import { CallButton } from "@/components/call/call-button";
 
 export default async function ChatRoomPage({ params }: { params: Promise<{ roomId: string }> }) {
   const { roomId } = await params;
@@ -23,6 +24,14 @@ export default async function ChatRoomPage({ params }: { params: Promise<{ roomI
 
   if (!room) notFound();
 
+  const otherMember =
+    room.type === "DM" ? room.members.find((m) => m.userId !== session.user.id)?.user : undefined;
+
+  const displayName =
+    room.type === "DM" && otherMember
+      ? otherMember.username
+      : room.name || `채팅 ${room.type}`;
+
   const initialMessages = room.messages.map((m) => ({
     id: m.id,
     content: m.content,
@@ -33,18 +42,23 @@ export default async function ChatRoomPage({ params }: { params: Promise<{ roomI
   return (
     <div className="flex h-[calc(100vh-3.5rem)]">
       <aside className="hidden md:flex w-56 border-r border-border/50 flex-col shrink-0 p-2">
-        <Link href="/messages" className="text-xs text-primary mb-2">← 목록</Link>
-        <p className="text-sm font-medium px-2">{room.name || room.type}</p>
+        <Link href="/messages" className="text-xs text-primary mb-2">
+          ← 목록
+        </Link>
+        <p className="text-sm font-medium px-2">{displayName}</p>
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
-        <div className="flex items-center justify-between px-4 py-2 border-b border-border/50 shrink-0">
+        <div className="flex items-center justify-between px-4 py-2 border-b border-border/50 shrink-0 gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Link href="/messages" className="md:hidden text-xs text-primary shrink-0">
               ← 목록
             </Link>
-            <p className="font-medium text-sm truncate">{room.name || `채팅 ${room.type}`}</p>
+            <p className="font-medium text-sm truncate">{displayName}</p>
           </div>
+          {room.type === "DM" && otherMember && (
+            <CallButton calleeId={otherMember.id} chatRoomId={roomId} />
+          )}
         </div>
         <ChatRoomClient
           roomId={roomId}

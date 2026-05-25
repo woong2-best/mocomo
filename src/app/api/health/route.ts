@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAuthConfigStatus, isAuthConfigured } from "@/lib/auth-env";
 import { getEmailConfigStatus } from "@/lib/email";
+import { isLivekitConfigured } from "@/lib/livekit";
 
 export async function GET() {
   let dbOk = false;
@@ -23,6 +24,10 @@ export async function GET() {
       auth: {
         ...auth,
         ready: isAuthConfigured(),
+      },
+      calls: {
+        livekit: isLivekitConfigured(),
+        signaling: "polling",
       },
     },
     { status: ok ? 200 : 503 }
