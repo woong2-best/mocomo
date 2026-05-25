@@ -91,10 +91,6 @@ export function LiveDirectory({
               </span>
               라이브
             </h1>
-            <p className="text-sm text-muted-foreground max-w-lg leading-relaxed">
-              트위치·치지직처럼 방송하고, 합방 비밀번호로만 입장시키세요. 채팅은 저장되고 시청자 수는
-              실시간으로 집계됩니다.
-            </p>
             <div className="flex flex-wrap gap-2">
               {FEATURES.map(({ icon: Icon, label }) => (
                 <span

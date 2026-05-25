@@ -95,10 +95,6 @@ export default function NewVoicePage() {
           </span>
           라이브 방송 스튜디오
         </h1>
-        <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
-          트위치·치지직처럼 호스트만 송출하고, 시청자는 합방 비밀번호로만 입장합니다. 실시간 채팅·실제
-          시청자 수가 표시됩니다.
-        </p>
       </div>
 
       <Card className="rounded-2xl">
