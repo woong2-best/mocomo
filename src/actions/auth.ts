@@ -53,6 +53,47 @@ async function findUserByUsernameInsensitive(username: string) {
   });
 }
 
+async function findUserByEmailInsensitive(email: string) {
+  const normalized = email.trim().toLowerCase();
+  return db.user.findFirst({
+    where: { email: { equals: normalized, mode: "insensitive" } },
+  });
+}
+
+/** 같은 이메일(대소문자 무시) 미인증 중복 계정 정리 */
+async function dedupeUnverifiedEmailAccounts(normalizedEmail: string, keepUserId: string) {
+  const dupes = await db.user.findMany({
+    where: {
+      email: { equals: normalizedEmail, mode: "insensitive" },
+      emailVerified: null,
+      id: { not: keepUserId },
+    },
+    select: { id: true },
+  });
+  for (const d of dupes) {
+    await db.user.delete({ where: { id: d.id } }).catch(() => undefined);
+  }
+}
+
+async function ensureUsernameFreeForSignup(
+  username: string,
+  signupEmail: string,
+  exceptUserId?: string
+) {
+  let taken = await findUserByUsernameInsensitive(username);
+  while (taken && taken.id !== exceptUserId) {
+    if (taken.emailVerified) {
+      return { ok: false as const, error: `닉네임 "${username}"은(는) 이미 사용 중입니다. 다른 닉네임을 입력해 주세요.` };
+    }
+    const released = await releaseUsernameFromStaleAccount(taken, signupEmail);
+    if (!released) {
+      return { ok: false as const, error: `닉네임 "${username}"은(는) 이미 사용 중입니다. 다른 닉네임을 입력해 주세요.` };
+    }
+    taken = await findUserByUsernameInsensitive(username);
+  }
+  return { ok: true as const };
+}
+
 /** 미인증·방치 가입이 닉네임만 점유한 경우 해제 */
 async function releaseUsernameFromStaleAccount(
   owner: { id: string; email: string | null; emailVerified: Date | null; role: string; username: string },
@@ -113,7 +154,7 @@ async function findAuthCodeRecord(email: string, code: string) {
 /** Unified: signup verify + password reset — send 6-digit code */
 export async function sendEmailAuthCode(email: string, mode: "signup" | "reset" = "signup") {
   const normalized = email.trim().toLowerCase();
-  const user = await db.user.findUnique({ where: { email: normalized } });
+  const user = await findUserByEmailInsensitive(normalized);
 
   if (!user) {
     return {
@@ -176,7 +217,7 @@ export async function completeAuthWithCode(
     return { error: "인증 코드가 올바르지 않거나 만료되었습니다." };
   }
 
-  const user = await db.user.findUnique({ where: { email: normalized } });
+  const user = await findUserByEmailInsensitive(normalized);
   if (!user) return { error: "등록되지 않은 이메일입니다." };
 
   if (options.mode === "reset") {
@@ -186,13 +227,13 @@ export async function completeAuthWithCode(
     }
     const passwordHash = await bcrypt.hash(password, 12);
     await db.user.update({
-      where: { email: normalized },
-      data: { passwordHash, emailVerified: user.emailVerified ?? new Date() },
+      where: { id: user.id },
+      data: { email: normalized, passwordHash, emailVerified: user.emailVerified ?? new Date() },
     });
   } else {
     await db.user.update({
-      where: { email: normalized },
-      data: { emailVerified: new Date() },
+      where: { id: user.id },
+      data: { email: normalized, emailVerified: new Date() },
     });
   }
 
@@ -225,7 +266,10 @@ export async function checkUsernameAvailable(username: string) {
   return { available: false, error: "이미 사용 중인 닉네임입니다." };
 }
 
-export async function registerUser(data: z.infer<typeof registerSchema>) {
+export async function registerUser(
+  data: z.infer<typeof registerSchema>,
+  isRetry = false
+) {
   const parsed = registerSchema.safeParse(data);
   if (!parsed.success) return { error: "입력값이 올바르지 않습니다." };
   const { email: rawEmail, username, password, name } = parsed.data;
@@ -235,8 +279,7 @@ export async function registerUser(data: z.infer<typeof registerSchema>) {
     return { error: "사용할 수 없는 닉네임입니다. 다른 닉네임을 입력해 주세요." };
   }
 
-  const userByEmail = await db.user.findUnique({ where: { email } });
-  let userByUsername = await findUserByUsernameInsensitive(username);
+  const userByEmail = await findUserByEmailInsensitive(email);
 
   if (userByEmail?.emailVerified) {
     return {
@@ -244,16 +287,8 @@ export async function registerUser(data: z.infer<typeof registerSchema>) {
     };
   }
 
-  if (userByUsername && userByUsername.email?.toLowerCase() !== email) {
-    if (userByUsername.emailVerified) {
-      return { error: `닉네임 "${username}"은(는) 이미 사용 중입니다. 다른 닉네임을 입력해 주세요.` };
-    }
-    const released = await releaseUsernameFromStaleAccount(userByUsername, email);
-    if (!released) {
-      return { error: `닉네임 "${username}"은(는) 이미 사용 중입니다. 다른 닉네임을 입력해 주세요.` };
-    }
-    userByUsername = null;
-  }
+  const usernameCheck = await ensureUsernameFreeForSignup(username, email, userByEmail?.id);
+  if (!usernameCheck.ok) return { error: usernameCheck.error };
 
   if (!isEmailConfigured()) {
     return {
@@ -265,20 +300,14 @@ export async function registerUser(data: z.infer<typeof registerSchema>) {
   try {
     const passwordHash = await bcrypt.hash(password, 12);
     let userId: string;
+    const isResume = !!userByEmail && !userByEmail.emailVerified;
 
-    if (userByEmail && !userByEmail.emailVerified) {
-      if (userByEmail.username.toLowerCase() !== username) {
-        const taken = await findUserByUsernameInsensitive(username);
-        if (taken && taken.id !== userByEmail.id) {
-          if (taken.emailVerified) {
-            return { error: `닉네임 "${username}"은(는) 이미 사용 중입니다.` };
-          }
-          await releaseUsernameFromStaleAccount(taken, email);
-        }
-      }
+    if (isResume) {
+      await dedupeUnverifiedEmailAccounts(email, userByEmail.id);
       const updated = await db.user.update({
         where: { id: userByEmail.id },
         data: {
+          email,
           username,
           passwordHash,
           name: name || username,
@@ -309,20 +338,19 @@ export async function registerUser(data: z.infer<typeof registerSchema>) {
     const sent = await sendVerificationEmail(email, verifyUrl, username, code);
 
     if (!sent.ok) {
-      if (!userByEmail) {
-        await db.user.delete({ where: { id: userId } });
+      if (!isResume) {
+        await db.user.delete({ where: { id: userId } }).catch(() => undefined);
       }
       return { error: sent.error ?? "인증 메일 발송 실패" };
     }
 
-    const resumed = !!userByEmail && !userByEmail.emailVerified;
     return {
       success: true,
       userId,
       needsVerification: true,
       email,
-      resumed,
-      message: resumed
+      resumed: isResume,
+      message: isResume
         ? "인증이 완료되지 않은 계정입니다. 인증 코드를 다시 보냈습니다."
         : undefined,
     };
@@ -330,7 +358,32 @@ export async function registerUser(data: z.infer<typeof registerSchema>) {
     console.error("[registerUser]", e);
     const prismaCode =
       e && typeof e === "object" && "code" in e ? String((e as { code: string }).code) : "";
+    const target =
+      e && typeof e === "object" && "meta" in e && e.meta && typeof e.meta === "object"
+        ? (e.meta as { target?: string | string[] }).target
+        : undefined;
+    const fields = Array.isArray(target) ? target : target ? [target] : [];
+
     if (prismaCode === "P2002") {
+      const existing = await findUserByEmailInsensitive(email);
+      if (existing?.emailVerified) {
+        return {
+          error: "이미 가입된 이메일입니다. 로그인하거나 비밀번호 찾기를 이용하세요.",
+        };
+      }
+      if (
+        !isRetry &&
+        fields.some((f) => String(f).includes("email")) &&
+        existing &&
+        !existing.emailVerified
+      ) {
+        return registerUser(data, true);
+      }
+      if (fields.some((f) => String(f).includes("username"))) {
+        return {
+          error: `닉네임 "${username}"은(는) 이미 사용 중입니다. 다른 닉네임(예: ${username}_${Math.floor(Math.random() * 99) + 10})을 써 보세요.`,
+        };
+      }
       return {
         error:
           "이메일 또는 닉네임이 이미 등록되어 있습니다. 다른 닉네임을 쓰거나, 같은 이메일이면 로그인·비밀번호 찾기를 이용하세요.",
@@ -378,7 +431,7 @@ export async function resendVerificationEmail(email: string) {
 
 export async function preLoginCheck(email: string, password: string) {
   const normalized = email.trim().toLowerCase();
-  const user = await db.user.findUnique({ where: { email: normalized } });
+  const user = await findUserByEmailInsensitive(normalized);
   if (!user?.passwordHash) return { ok: false, error: "INVALID" as const };
 
   const valid = await bcrypt.compare(password, user.passwordHash);
