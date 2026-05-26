@@ -1,6 +1,5 @@
 import { unstable_cache } from "next/cache";
 import { liveViewerCutoff } from "@/lib/live-presence";
-import { pruneAbandonedLiveChannels } from "@/lib/stale-live";
 import { db } from "@/lib/db";
 import { userPublicSelect } from "@/lib/user-public-select";
 import { getTipRanking } from "@/actions/monetization";
@@ -19,10 +18,16 @@ export const getCachedFeedPosts = unstable_cache(
     db.post.findMany({
       take: 12,
       orderBy: { createdAt: "desc" },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        postType: true,
+        createdAt: true,
+        isNsfw: true,
         author: { select: userPublicSelect },
         anime: { select: { title: true, slug: true } },
-        media: true,
+        media: { take: 1, orderBy: { order: "asc" }, select: { url: true, type: true } },
         _count: { select: { likes: true, comments: true, votes: true, reposts: true } },
       },
     }),
@@ -112,7 +117,6 @@ export const getCachedMarketProducts = unstable_cache(
 
 export const getCachedLiveChannels = unstable_cache(
   async () => {
-    await pruneAbandonedLiveChannels();
     const cutoff = liveViewerCutoff();
     const [channels, viewerGroups] = await Promise.all([
       db.voiceChannel.findMany({

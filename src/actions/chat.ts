@@ -74,6 +74,7 @@ export async function getChatRooms() {
   const user = await requireAuth();
   const rooms = await db.chatRoom.findMany({
     where: { members: { some: { userId: user.id } } },
+    take: 40,
     include: {
       members: { include: { user: { select: { ...userPublicSelectMinimal, name: true } } } },
       messages: { take: 1, orderBy: { createdAt: "desc" } },

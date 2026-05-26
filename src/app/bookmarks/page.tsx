@@ -13,12 +13,13 @@ export default async function BookmarksPage() {
   try {
     const bookmarks = await db.bookmark.findMany({
       where: { userId: session.user.id },
+      take: 50,
       include: {
         post: {
           include: {
             author: { select: userPublicSelect },
             anime: { select: { title: true, slug: true } },
-            media: true,
+            media: { take: 1, select: { url: true, type: true } },
             _count: { select: { likes: true, comments: true, votes: true } },
           },
         },

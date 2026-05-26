@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import {
@@ -8,27 +9,45 @@ import {
 } from "@/lib/i18n/config";
 import { createTranslator } from "@/lib/i18n/messages";
 
-export async function getRequestLocale(): Promise<Locale> {
-  const session = await auth();
-  if (session?.user?.locale) {
-    return normalizeLocale(session.user.locale);
+const SESSION_COOKIES = [
+  "authjs.session-token",
+  "__Secure-authjs.session-token",
+  "next-auth.session-token",
+  "__Secure-next-auth.session-token",
+];
+
+function hasSessionCookie(cookieStore: Awaited<ReturnType<typeof cookies>>) {
+  return SESSION_COOKIES.some((name) => cookieStore.get(name)?.value);
+}
+
+/** 요청당 auth 1회 · 비로그인은 쿠키만 (레이아웃 TTFB 개선) */
+export const getRequestI18n = cache(async (): Promise<{ locale: Locale; countryCode: string }> => {
+  const cookieStore = await cookies();
+  const fromCookieLocale = normalizeLocale(cookieStore.get(LOCALE_COOKIE)?.value);
+  const fromCookieCountry = cookieStore.get(COUNTRY_COOKIE)?.value?.toUpperCase() || "KR";
+
+  if (!hasSessionCookie(cookieStore)) {
+    return { locale: fromCookieLocale, countryCode: fromCookieCountry };
   }
 
-  const cookieStore = await cookies();
-  const fromCookie = cookieStore.get(LOCALE_COOKIE)?.value;
-  return normalizeLocale(fromCookie);
+  const session = await auth();
+  return {
+    locale: normalizeLocale(session?.user?.locale ?? fromCookieLocale),
+    countryCode: session?.user?.countryCode ?? fromCookieCountry,
+  };
+});
+
+export async function getRequestLocale(): Promise<Locale> {
+  const { locale } = await getRequestI18n();
+  return locale;
 }
 
 export async function getRequestCountryCode(): Promise<string> {
-  const session = await auth();
-  if (session?.user?.countryCode) {
-    return session.user.countryCode;
-  }
-  const cookieStore = await cookies();
-  return cookieStore.get(COUNTRY_COOKIE)?.value?.toUpperCase() || "KR";
+  const { countryCode } = await getRequestI18n();
+  return countryCode;
 }
 
 export async function getServerTranslator() {
-  const locale = await getRequestLocale();
+  const { locale } = await getRequestI18n();
   return { locale, t: createTranslator(locale) };
 }

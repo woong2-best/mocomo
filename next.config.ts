@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: { bodySizeLimit: "50mb" },
+    staleTimes: {
+      dynamic: 30,
+      static: 180,
+    },
     optimizePackageImports: [
       "lucide-react",
       "date-fns",

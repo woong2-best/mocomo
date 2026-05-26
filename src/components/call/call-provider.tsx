@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import type { Socket } from "socket.io-client";
 import { acceptCall, declineCall, endCall, initiateCall } from "@/actions/call";
@@ -52,13 +53,32 @@ type SyncResponse =
 
 function syncPollIntervalMs(phase: ActiveCallState["phase"], hidden: boolean) {
   if (phase === "active") return 5000;
-  if (phase !== "idle") return 3000;
-  return hidden ? 15000 : 8000;
+  if (phase !== "idle") return 4000;
+  return hidden ? 60000 : 30000;
+}
+
+/** 메시지 외 페이지에서는 통화 백그라운드 작업을 늦게 시작 (첫 로딩·전환 속도) */
+function useCallBackgroundEnabled(userId: string | undefined) {
+  const pathname = usePathname();
+  const onMessages = pathname.startsWith("/messages");
+  const [enabled, setEnabled] = useState(onMessages);
+
+  useEffect(() => {
+    if (onMessages) {
+      setEnabled(true);
+      return;
+    }
+    const delay = window.setTimeout(() => setEnabled(true), 10_000);
+    return () => clearTimeout(delay);
+  }, [onMessages]);
+
+  return !!userId && enabled;
 }
 
 function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
   const userId = session?.user?.id;
+  const backgroundSync = useCallBackgroundEnabled(userId);
   const [callState, setCallState] = useState<ActiveCallState>({ phase: "idle" });
   const [error, setError] = useState("");
   const [mic, setMic] = useState<MicCheckResult | null>(null);
@@ -158,7 +178,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !backgroundSync) return;
 
     let cancelled = false;
     let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -194,10 +214,10 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
       if (intervalId) clearInterval(intervalId);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [userId, applySync]);
+  }, [userId, backgroundSync, applySync]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !backgroundSync) return;
     const url = process.env.NEXT_PUBLIC_SOCKET_URL;
     if (!url) return;
 
@@ -254,7 +274,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
       socket?.disconnect();
       socketRef.current = null;
     };
-  }, [userId]);
+  }, [userId, backgroundSync]);
 
   const activeCallId = callState.phase !== "idle" ? callState.call.id : null;
 

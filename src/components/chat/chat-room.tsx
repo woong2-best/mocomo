@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { io, Socket } from "socket.io-client";
+import type { Socket } from "socket.io-client";
 import { sendMessage } from "@/actions/chat";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChatComposer } from "@/components/chat/chat-composer";
@@ -64,15 +64,24 @@ export function ChatRoomClient({
       return;
     }
 
-    const socket = io(url, { auth: { userId }, transports: ["websocket", "polling"] });
-    socketRef.current = socket;
-    socket.emit("join_room", roomId);
-    socket.on("new_message", (msg: Message) => {
-      setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
+    let disposed = false;
+    let socket: Socket | null = null;
+
+    import("socket.io-client").then(({ io }) => {
+      if (disposed) return;
+      socket = io(url, { auth: { userId }, transports: ["websocket", "polling"] });
+      socketRef.current = socket;
+      socket.emit("join_room", roomId);
+      socket.on("new_message", (msg: Message) => {
+        setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
+      });
     });
+
     return () => {
-      socket.emit("leave_room", roomId);
-      socket.disconnect();
+      disposed = true;
+      socket?.emit("leave_room", roomId);
+      socket?.disconnect();
+      socketRef.current = null;
     };
   }, [roomId, userId]);
 

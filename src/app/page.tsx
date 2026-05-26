@@ -1,56 +1,39 @@
-import { mixFeedWithAds } from "@/lib/feed-mixer";
-import { FALLBACK_FEED_ADS, type FeedAdData } from "@/lib/default-ads";
-import { FeedInfinite } from "@/components/feed/feed-infinite";
-import { HomePageClient } from "@/components/home/home-page-client";
-import { getCachedFeedAds, getCachedFeedPosts, getCachedWeeklyHighlights } from "@/lib/cached-data";
-import type { WeeklyHighlightPost } from "@/lib/weekly-highlights";
-
+import { Suspense } from "react";
+import { HomeShell } from "@/components/home/home-shell";
+import { HomeHighlightsAsync } from "@/components/home/home-highlights-async";
+import { HomeFeedAsync } from "@/components/home/home-feed-async";
 export const revalidate = 60;
 
-export default async function HomePage() {
-  type FeedItem = Parameters<typeof FeedInfinite>[0]["initialItems"][number];
-  let feedItems: FeedItem[] = [];
-  let nextCursor: string | null = null;
-  let dbOk = true;
-  let topLiked: WeeklyHighlightPost[] = [];
-  let topViewed: WeeklyHighlightPost[] = [];
-
-  try {
-    const [posts, feedAds, highlights] = await Promise.all([
-      getCachedFeedPosts(),
-      getCachedFeedAds(),
-      getCachedWeeklyHighlights(),
-    ]);
-    topLiked = highlights.topLiked;
-    topViewed = highlights.topViewed;
-
-    const ads: FeedAdData[] = feedAds.length > 0 ? feedAds : [...FALLBACK_FEED_ADS];
-    const mixed = mixFeedWithAds(posts, ads, 6);
-
-    feedItems = mixed.map((item) =>
-      item.type === "post"
-        ? ({
-            type: "post" as const,
-            data: { ...item.data, createdAt: item.data.createdAt.toISOString() },
-          } as unknown as FeedItem)
-        : ({ type: "ad" as const, data: item.data } as unknown as FeedItem)
-    );
-    nextCursor = posts.length === 12 ? posts[posts.length - 1]?.id ?? null : null;
-  } catch (e) {
-    dbOk = false;
-    console.error("[home]", e);
-  }
-
-  const hasDbPosts = feedItems.some((i) => i.type === "post");
-
+function FeedFallback() {
   return (
-    <HomePageClient
-      feedItems={feedItems}
-      nextCursor={nextCursor}
-      dbOk={dbOk}
-      hasDbPosts={hasDbPosts}
-      topLiked={topLiked}
-      topViewed={topViewed}
-    />
+    <div className="space-y-3 animate-pulse">
+      <div className="h-4 w-16 rounded bg-muted" />
+      <div className="h-32 rounded-2xl bg-muted" />
+      <div className="h-32 rounded-2xl bg-muted" />
+    </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <div className="p-4 lg:p-6 max-w-5xl mx-auto">
+      <HomeShell />
+      <Suspense
+        fallback={
+          <div className="mb-6 space-y-2 animate-pulse">
+            <div className="h-4 w-32 rounded bg-muted" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="h-24 rounded-xl bg-muted" />
+              <div className="h-24 rounded-xl bg-muted" />
+            </div>
+          </div>
+        }
+      >
+        <HomeHighlightsAsync />
+      </Suspense>
+      <Suspense fallback={<FeedFallback />}>
+        <HomeFeedAsync />
+      </Suspense>
+    </div>
   );
 }

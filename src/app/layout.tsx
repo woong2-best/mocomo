@@ -5,7 +5,7 @@ import { ThemeProvider } from "next-themes";
 import { AppProviders } from "@/components/providers/app-providers";
 import { LocaleProvider } from "@/components/providers/locale-provider";
 import { AppShell } from "@/components/layout/app-shell";
-import { getRequestCountryCode, getRequestLocale } from "@/lib/i18n/server";
+import { getRequestI18n } from "@/lib/i18n/server";
 import { RightPanel, RightPanelSkeleton } from "@/components/layout/right-panel";
 import { BRAND } from "@/lib/brand";
 import "./globals.css";
@@ -35,7 +35,7 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [locale, countryCode] = await Promise.all([getRequestLocale(), getRequestCountryCode()]);
+  const { locale, countryCode } = await getRequestI18n();
 
   return (
     <html lang={locale} suppressHydrationWarning>

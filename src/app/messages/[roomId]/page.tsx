@@ -1,9 +1,8 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getChatRooms } from "@/actions/chat";
 import { redirect, notFound } from "next/navigation";
 import { ChatRoomClient } from "@/components/chat/chat-room";
-import { ConversationList } from "@/components/messages/conversation-list";
+import { ConversationListAsync } from "@/components/messages/conversation-list-async";
 import { ChatHeader } from "@/components/messages/chat-header";
 import { getConversationMeta } from "@/lib/chat-display";
 import { userPublicSelectMinimal } from "@/lib/user-public-select";
@@ -13,20 +12,17 @@ export default async function ChatRoomPage({ params }: { params: Promise<{ roomI
   const session = await auth();
   if (!session?.user?.id) redirect(`/auth/signin?callbackUrl=/messages/${roomId}`);
 
-  const [room, rooms] = await Promise.all([
-    db.chatRoom.findUnique({
-      where: { id: roomId },
-      include: {
-        members: { include: { user: { select: { ...userPublicSelectMinimal, name: true } } } },
-        messages: {
-          take: 50,
-          orderBy: { createdAt: "asc" },
-          include: { sender: { select: userPublicSelectMinimal } },
-        },
+  const room = await db.chatRoom.findUnique({
+    where: { id: roomId },
+    include: {
+      members: { include: { user: { select: { ...userPublicSelectMinimal, name: true } } } },
+      messages: {
+        take: 50,
+        orderBy: { createdAt: "asc" },
+        include: { sender: { select: userPublicSelectMinimal } },
       },
-    }),
-    getChatRooms().catch(() => []),
-  ]);
+    },
+  });
 
   if (!room) notFound();
 
@@ -46,8 +42,7 @@ export default async function ChatRoomPage({ params }: { params: Promise<{ roomI
 
   return (
     <div className="flex flex-1 min-h-0 h-full">
-      <ConversationList
-        rooms={rooms}
+      <ConversationListAsync
         currentUserId={session.user.id}
         activeRoomId={roomId}
         className="hidden md:flex"
