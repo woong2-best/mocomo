@@ -4,6 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Compass, TrendingUp, Users, Tv, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getCachedExploreData } from "@/lib/cached-data";
+import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
+import type { SupportTierLevel } from "@prisma/client";
+import { userDisplayName } from "@/lib/user-public-select";
 
 export const revalidate = 60;
 
@@ -12,13 +15,19 @@ export default async function ExplorePage() {
     id: string;
     title: string | null;
     content: string;
-    author: { username: string; name: string | null; image: string | null };
+    author: {
+      username: string;
+      name: string | null;
+      image: string | null;
+      supportTierSent: SupportTierLevel;
+    };
     _count: { likes: number; comments: number };
   };
   type UserRow = {
     username: string;
     name: string | null;
     image: string | null;
+    supportTierSent: SupportTierLevel;
     _count: { followers: number };
   };
 
@@ -64,7 +73,12 @@ export default async function ExplorePage() {
                 <Card className="hover:bg-muted/30 rounded-xl">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-2 text-sm">
-                      <span className="font-medium">{p.author.name || p.author.username}</span>
+                      <DisplayNameWithSupportTier
+                        name={userDisplayName(p.author)}
+                        tier={p.author.supportTierSent ?? "PEBBLE"}
+                        nameClassName="font-medium"
+                        compact
+                      />
                       <span className="text-muted-foreground">@{p.author.username}</span>
                     </div>
                     <p className="mt-1 font-medium line-clamp-1">{p.title || p.content}</p>
@@ -95,7 +109,12 @@ export default async function ExplorePage() {
                     <AvatarFallback>{u.username[0]}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-medium">{u.name || u.username}</p>
+                    <DisplayNameWithSupportTier
+                      name={u.name || u.username}
+                      tier={u.supportTierSent ?? "PEBBLE"}
+                      nameClassName="font-medium"
+                      compact
+                    />
                     <p className="text-sm text-muted-foreground">@{u.username}</p>
                   </div>
                 </div>

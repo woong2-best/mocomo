@@ -11,7 +11,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Heart, MessageCircle, Share2, Bookmark, Gem, Repeat2 } from "lucide-react";
 import { repost } from "@/actions/social";
 import { formatNumber, cn } from "@/lib/utils";
-import { TierBadge } from "@/components/ui/tier-badge";
+import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
+import { userDisplayName } from "@/lib/user-public-select";
 import { toggleLike } from "@/actions/social";
 import { toggleBookmark } from "@/actions/community";
 import type { GridPost } from "@/components/feed/feed-post-card";
@@ -51,7 +52,7 @@ export function FeedPostCardInteractive({
   }
 
   const createdAt = typeof post.createdAt === "string" ? new Date(post.createdAt) : post.createdAt;
-  const displayName = post.author.cosplayerProfile?.stageName || post.author.username;
+  const displayName = userDisplayName(post.author);
   const cover = post.media?.[0]?.url;
 
   function handleLike(e: React.MouseEvent) {
@@ -120,11 +121,15 @@ export function FeedPostCardInteractive({
             </Avatar>
           </Link>
           <div className="flex-1 min-w-0">
-            <Link href={`/u/${post.author.username}`} className="font-semibold text-sm hover:text-primary truncate block">
-              {displayName}
+            <Link href={`/u/${post.author.username}`} className="hover:text-primary block min-w-0">
+              <DisplayNameWithSupportTier
+                name={displayName}
+                tier={post.author.supportTierSent ?? "PEBBLE"}
+                nameClassName="font-semibold text-sm"
+                compact
+              />
             </Link>
             <div className="flex items-center gap-1.5 flex-wrap">
-              <TierBadge level={post.author.level} />
               {post.postType && post.postType !== "GENERAL" && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                   {typeLabels[post.postType] || post.postType}

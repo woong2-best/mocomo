@@ -5,6 +5,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Heart, MessageCircle, Pin, Repeat2 } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
 import type { GridPost } from "@/components/feed/feed-post-card";
+import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
+import { userDisplayName } from "@/lib/user-public-select";
 
 export function ProfilePostCard({
   post,
@@ -14,8 +16,7 @@ export function ProfilePostCard({
   meta?: string;
 }) {
   const createdAt = typeof post.createdAt === "string" ? new Date(post.createdAt) : post.createdAt;
-  const author = post.author as GridPost["author"] & { name?: string | null };
-  const displayName = author.cosplayerProfile?.stageName || author.name || author.username;
+  const displayName = userDisplayName(post.author);
 
   return (
     <Link
@@ -35,7 +36,12 @@ export function ProfilePostCard({
         </Avatar>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1 flex-wrap text-sm">
-            <span className="font-bold truncate">{displayName}</span>
+            <DisplayNameWithSupportTier
+              name={displayName}
+              tier={post.author.supportTierSent ?? "PEBBLE"}
+              nameClassName="font-bold"
+              compact
+            />
             <span className="text-muted-foreground truncate">@{post.author.username}</span>
             <span className="text-muted-foreground">·</span>
             <time className="text-muted-foreground shrink-0" dateTime={createdAt.toISOString()}>

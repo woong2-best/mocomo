@@ -1,12 +1,15 @@
+import type { SupportTierLevel } from "@prisma/client";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CallButton } from "@/components/call/call-button";
+import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 
 export function ChatHeader({
   displayName,
   displayImage,
   profileUsername,
+  supportTierSent,
   roomId,
   roomType,
   otherUserId,
@@ -15,6 +18,7 @@ export function ChatHeader({
   displayName: string;
   displayImage: string | null;
   profileUsername?: string;
+  supportTierSent?: SupportTierLevel;
   roomId: string;
   roomType: string;
   otherUserId?: string;
@@ -43,7 +47,12 @@ export function ChatHeader({
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0">
-            <p className="font-semibold text-sm truncate">{displayName}</p>
+            <DisplayNameWithSupportTier
+              name={displayName}
+              tier={supportTierSent ?? "PEBBLE"}
+              nameClassName="font-semibold text-sm"
+              compact
+            />
             <p className="text-xs text-muted-foreground">프로필 보기</p>
           </div>
         </Link>
@@ -52,7 +61,12 @@ export function ChatHeader({
           <Avatar className="h-10 w-10 shrink-0">
             <AvatarFallback className="text-sm">{displayName[0]?.toUpperCase()}</AvatarFallback>
           </Avatar>
-          <p className="font-semibold text-sm truncate">{displayName}</p>
+          <DisplayNameWithSupportTier
+            name={displayName}
+            tier={supportTierSent ?? "PEBBLE"}
+            nameClassName="font-semibold text-sm"
+            compact
+          />
         </div>
       )}
 

@@ -42,7 +42,15 @@ export async function getUsedListings(params?: {
       orderBy: { createdAt: "desc" },
       take: params?.take ?? 48,
       include: {
-        seller: { select: { id: true, username: true, image: true, name: true } },
+        seller: {
+          select: {
+            id: true,
+            username: true,
+            image: true,
+            name: true,
+            supportTierSent: true,
+          },
+        },
         _count: { select: { favorites: true } },
       },
     });
@@ -56,7 +64,16 @@ export async function getUsedListing(id: string, viewerId?: string) {
     const listing = await db.usedListing.findUnique({
       where: { id },
       include: {
-        seller: { select: { id: true, username: true, image: true, name: true, createdAt: true } },
+        seller: {
+          select: {
+            id: true,
+            username: true,
+            image: true,
+            name: true,
+            createdAt: true,
+            supportTierSent: true,
+          },
+        },
         _count: { select: { favorites: true } },
       },
     });

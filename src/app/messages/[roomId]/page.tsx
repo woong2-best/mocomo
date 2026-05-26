@@ -6,6 +6,7 @@ import { ChatRoomClient } from "@/components/chat/chat-room";
 import { ConversationList } from "@/components/messages/conversation-list";
 import { ChatHeader } from "@/components/messages/chat-header";
 import { getConversationMeta } from "@/lib/chat-display";
+import { userPublicSelectMinimal } from "@/lib/user-public-select";
 
 export default async function ChatRoomPage({ params }: { params: Promise<{ roomId: string }> }) {
   const { roomId } = await params;
@@ -16,11 +17,11 @@ export default async function ChatRoomPage({ params }: { params: Promise<{ roomI
     db.chatRoom.findUnique({
       where: { id: roomId },
       include: {
-        members: { include: { user: { select: { id: true, username: true, name: true, image: true } } } },
+        members: { include: { user: { select: { ...userPublicSelectMinimal, name: true } } } },
         messages: {
           take: 50,
           orderBy: { createdAt: "asc" },
-          include: { sender: { select: { id: true, username: true, image: true } } },
+          include: { sender: { select: userPublicSelectMinimal } },
         },
       },
     }),
@@ -57,6 +58,7 @@ export default async function ChatRoomPage({ params }: { params: Promise<{ roomI
           displayName={meta.displayName}
           displayImage={meta.displayImage}
           profileUsername={meta.profileUsername}
+          supportTierSent={meta.supportTierSent}
           roomId={roomId}
           roomType={room.type}
           otherUserId={otherMember?.id}

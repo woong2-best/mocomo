@@ -16,7 +16,16 @@ export default async function CommunityPage({ params }: { params: Promise<{ slug
           take: 30,
           orderBy: { hotScore: "desc" },
           include: {
-            author: { select: { id: true, username: true, image: true, level: true } },
+            author: {
+              select: {
+                id: true,
+                username: true,
+                image: true,
+                level: true,
+                supportTierSent: true,
+                cosplayerProfile: { select: { stageName: true } },
+              },
+            },
             community: { select: { name: true, slug: true } },
             media: true,
             _count: { select: { likes: true, comments: true, votes: true } },

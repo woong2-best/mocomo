@@ -1,9 +1,16 @@
+import type { SupportTierLevel } from "@prisma/client";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { ko } from "date-fns/locale";
 
 type RoomMember = {
   userId: string;
-  user: { id: string; username: string; image: string | null; name?: string | null };
+  user: {
+    id: string;
+    username: string;
+    image: string | null;
+    name?: string | null;
+    supportTierSent?: SupportTierLevel;
+  };
 };
 
 type RoomPreview = {
@@ -27,6 +34,7 @@ export function getConversationMeta(room: RoomPreview, currentUserId: string) {
     displayName,
     displayImage,
     otherUserId,
+    supportTierSent: isDm && other ? other.user.supportTierSent : undefined,
     profileUsername: isDm && other ? other.user.username : undefined,
     lastMessage: last?.content?.trim() || "대화를 시작해 보세요",
     lastMessageAt: last?.createdAt ?? null,

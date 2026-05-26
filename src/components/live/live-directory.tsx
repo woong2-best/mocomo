@@ -4,6 +4,8 @@ import Link from "next/link";
 import { memo } from "react";
 import { Eye, Radio, Sparkles, User, Video, MessageSquare, Shield } from "lucide-react";
 import { LivePageActions } from "@/components/live/live-page-actions";
+import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
+import type { SupportTierLevel } from "@prisma/client";
 
 export type LiveChannelCard = {
   id: string;
@@ -16,6 +18,7 @@ export type LiveHost = {
   id: string;
   username: string;
   image: string | null;
+  supportTierSent: SupportTierLevel;
 };
 
 const FEATURES = [
@@ -57,9 +60,14 @@ function LiveCard({ ch, host }: { ch: LiveChannelCard; host?: LiveHost }) {
             {ch.name}
           </p>
           {host && (
-            <p className="text-xs text-muted-foreground dark:text-zinc-300 mt-1 flex items-center gap-1">
+            <p className="text-xs text-muted-foreground dark:text-zinc-300 mt-1 flex items-center gap-1 min-w-0">
               <User className="h-3 w-3 shrink-0" />
-              {host.username}
+              <DisplayNameWithSupportTier
+                name={host.username}
+                tier={host.supportTierSent ?? "PEBBLE"}
+                compact
+                className="min-w-0"
+              />
             </p>
           )}
         </div>

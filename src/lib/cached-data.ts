@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 import { liveViewerCutoff } from "@/lib/live-presence";
 import { pruneAbandonedLiveChannels } from "@/lib/stale-live";
 import { db } from "@/lib/db";
+import { userPublicSelect } from "@/lib/user-public-select";
 import { getTipRanking } from "@/actions/monetization";
 import { getRankings } from "@/actions/events";
 import { getAnimeCountByGenre } from "@/actions/anime";
@@ -12,15 +13,7 @@ export const getCachedFeedPosts = unstable_cache(
       take: 12,
       orderBy: { createdAt: "desc" },
       include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-            image: true,
-            level: true,
-            cosplayerProfile: { select: { stageName: true } },
-          },
-        },
+        author: { select: userPublicSelect },
         anime: { select: { title: true, slug: true } },
         media: true,
         _count: { select: { likes: true, comments: true, votes: true, reposts: true } },
@@ -71,7 +64,7 @@ export const getCachedExploreData = unstable_cache(
         take: 8,
         orderBy: [{ hotScore: "desc" }, { createdAt: "desc" }],
         include: {
-          author: { select: { username: true, name: true, image: true } },
+          author: { select: userPublicSelect },
           _count: { select: { likes: true, comments: true } },
         },
       }),
@@ -79,9 +72,7 @@ export const getCachedExploreData = unstable_cache(
         take: 6,
         orderBy: { createdAt: "desc" },
         select: {
-          username: true,
-          name: true,
-          image: true,
+          ...userPublicSelect,
           _count: { select: { followers: true } },
         },
       }),
@@ -147,7 +138,7 @@ export const getCachedLiveChannels = unstable_cache(
       channelsWithViewers.length > 0
         ? await db.user.findMany({
             where: { id: { in: channelsWithViewers.map((c) => c.createdBy) } },
-            select: { id: true, username: true, image: true },
+            select: { id: true, username: true, image: true, supportTierSent: true },
           })
         : [];
     return { channels: channelsWithViewers, hosts };

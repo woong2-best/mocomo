@@ -4,6 +4,7 @@ import { ko } from "date-fns/locale";
 import { Gem } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { OreTierBadge } from "@/components/support/ore-tier-button";
+import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { CreatorSupportTierCard } from "@/components/support/platform-support-card";
 import { SupportTierLevel } from "@prisma/client";
 import type { getCreatorSupportSummary, getViewerSupportForCreator } from "@/actions/support";
@@ -89,10 +90,12 @@ export function ProfileSupportBlock({
                   <AvatarImage src={s.supporter.image ?? undefined} />
                   <AvatarFallback>{s.supporter.username[0]}</AvatarFallback>
                 </Avatar>
-                <span className="font-medium truncate max-w-[80px]">
-                  {s.supporter.name || s.supporter.username}
-                </span>
-                <OreTierBadge tier={s.tier as SupportTierLevel} size="sm" />
+                <DisplayNameWithSupportTier
+                  name={s.supporter.name || s.supporter.username}
+                  tier={s.supporter.supportTierSent ?? "PEBBLE"}
+                  nameClassName="font-medium truncate max-w-[80px]"
+                  compact
+                />
               </Link>
             ))}
           </div>
@@ -104,8 +107,13 @@ export function ProfileSupportBlock({
           <p className="text-xs font-medium text-muted-foreground">최근 후원</p>
           {summary.recentTips.slice(0, 5).map((t) => (
             <div key={t.id} className="text-sm flex gap-2 items-start">
-              <Link href={`/u/${t.sender.username}`} className="font-medium text-primary shrink-0">
-                @{t.sender.username}
+              <Link href={`/u/${t.sender.username}`} className="shrink-0">
+                <DisplayNameWithSupportTier
+                  name={`@${t.sender.username}`}
+                  tier={t.sender.supportTierSent ?? "PEBBLE"}
+                  nameClassName="font-medium text-primary"
+                  compact
+                />
               </Link>
               <span className="text-muted-foreground shrink-0">
                 {t.amount.toLocaleString()}원 ·{" "}

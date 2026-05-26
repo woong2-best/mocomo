@@ -1,15 +1,9 @@
 import { Prisma } from "@prisma/client";
+import { userPublicSelect } from "@/lib/user-public-select";
 
 export const profilePostInclude = {
   author: {
-    select: {
-      id: true,
-      username: true,
-      name: true,
-      image: true,
-      level: true,
-      cosplayerProfile: { select: { stageName: true } },
-    },
+    select: userPublicSelect,
   },
   community: { select: { name: true, slug: true } },
   anime: { select: { title: true, slug: true } },

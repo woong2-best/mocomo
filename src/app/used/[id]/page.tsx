@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getUsedListing } from "@/actions/used-market";
@@ -91,7 +92,12 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
             <AvatarFallback>{listing.seller.username[0]?.toUpperCase()}</AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-semibold text-sm">{listing.seller.name || listing.seller.username}</p>
+            <DisplayNameWithSupportTier
+              name={listing.seller.name || listing.seller.username}
+              tier={listing.seller.supportTierSent ?? "PEBBLE"}
+              nameClassName="font-semibold text-sm"
+              compact
+            />
             <p className="text-xs text-muted-foreground">@{listing.seller.username} · 판매자</p>
           </div>
         </Link>

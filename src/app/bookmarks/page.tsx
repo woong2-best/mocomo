@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { FeedPostCard, type GridPost } from "@/components/feed/feed-post-card";
+import { userPublicSelect } from "@/lib/user-public-select";
 import { Bookmark } from "lucide-react";
 
 export default async function BookmarksPage() {
@@ -15,9 +16,7 @@ export default async function BookmarksPage() {
       include: {
         post: {
           include: {
-            author: {
-              select: { id: true, username: true, image: true, level: true, cosplayerProfile: { select: { stageName: true } } },
-            },
+            author: { select: userPublicSelect },
             anime: { select: { title: true, slug: true } },
             media: true,
             _count: { select: { likes: true, comments: true, votes: true } },

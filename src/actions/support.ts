@@ -30,7 +30,7 @@ export async function getCreatorSupportSummary(creatorId: string) {
       take: 8,
       include: {
         supporter: {
-          select: { id: true, username: true, name: true, image: true },
+          select: { id: true, username: true, name: true, image: true, supportTierSent: true },
         },
       },
     }),
@@ -39,7 +39,7 @@ export async function getCreatorSupportSummary(creatorId: string) {
       orderBy: { createdAt: "desc" },
       take: 10,
       include: {
-        sender: { select: { username: true, name: true, image: true } },
+        sender: { select: { username: true, name: true, image: true, supportTierSent: true } },
       },
     }),
   ]);

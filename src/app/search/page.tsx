@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
+import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
+import type { SupportTierLevel } from "@prisma/client";
 
 export default async function SearchPage({
   searchParams,
@@ -10,7 +12,7 @@ export default async function SearchPage({
   const { q } = await searchParams;
   const query = q?.trim() || "";
 
-  let users: { username: string; name: string | null }[] = [];
+  let users: { username: string; name: string | null; supportTierSent: SupportTierLevel }[] = [];
   let animes: { slug: string; title: string }[] = [];
   let posts: { id: string; content: string; title: string | null }[] = [];
 
@@ -24,7 +26,7 @@ export default async function SearchPage({
           ],
         },
         take: 10,
-        select: { username: true, name: true },
+        select: { username: true, name: true, supportTierSent: true },
       }),
       db.anime.findMany({
         where: { title: { contains: query, mode: "insensitive" } },
@@ -54,7 +56,16 @@ export default async function SearchPage({
             <h2 className="text-sm font-semibold text-muted-foreground mb-2">유저 · 코스어</h2>
             {users.map((u) => (
               <Link key={u.username} href={`/u/${u.username}`} className="block text-sm py-1 hover:text-primary">
-                @{u.username} {u.name && `(${u.name})`}
+                <DisplayNameWithSupportTier
+                  name={
+                    <>
+                      @{u.username}
+                      {u.name && ` (${u.name})`}
+                    </>
+                  }
+                  tier={u.supportTierSent}
+                  compact
+                />
               </Link>
             ))}
           </section>

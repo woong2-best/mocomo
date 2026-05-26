@@ -1,7 +1,31 @@
 "use server";
 
+import type { SupportTierLevel } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
+import { userPublicSelectMinimal } from "@/lib/user-public-select";
+
+function mapLiveChatMessage(m: {
+  id: string;
+  content: string;
+  createdAt: Date;
+  user: {
+    id: string;
+    username: string;
+    image: string | null;
+    supportTierSent: SupportTierLevel;
+  };
+}) {
+  return {
+    id: m.id,
+    userId: m.user.id,
+    username: m.user.username,
+    image: m.user.image,
+    supportTierSent: m.user.supportTierSent,
+    content: m.content,
+    at: m.createdAt.getTime(),
+  };
+}
 import { generateLiveJoinPassword, hashLiveJoinPassword, verifyLiveJoinPassword } from "@/lib/live-password";
 import { countActiveLiveViewers, resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { liveViewerCutoff } from "@/lib/live-presence";
@@ -110,7 +134,7 @@ export async function sendLiveChatMessage(channelId: string, content: string) {
   const msg = await db.liveChatMessage.create({
     data: { channelId, userId: user.id, content: text },
     include: {
-      user: { select: { id: true, username: true, image: true } },
+      user: { select: userPublicSelectMinimal },
     },
   });
 
@@ -119,16 +143,7 @@ export async function sendLiveChatMessage(channelId: string, content: string) {
     data: { lastSeenAt: new Date() },
   });
 
-  return {
-    message: {
-      id: msg.id,
-      userId: msg.user.id,
-      username: msg.user.username,
-      image: msg.user.image,
-      content: msg.content,
-      at: msg.createdAt.getTime(),
-    },
-  };
+  return { message: mapLiveChatMessage(msg) };
 }
 
 export async function getLiveStreamSync(channelId: string, since?: string) {
@@ -143,7 +158,7 @@ export async function getLiveStreamSync(channelId: string, since?: string) {
     where: { channelId, createdAt: { gt: sinceDate } },
     orderBy: { createdAt: "asc" },
     take: 50,
-    include: { user: { select: { id: true, username: true, image: true } } },
+    include: { user: { select: userPublicSelectMinimal } },
   });
 
   const viewerCount = await countActiveLiveViewers(channelId);
@@ -157,14 +172,7 @@ export async function getLiveStreamSync(channelId: string, since?: string) {
     isLive: channel?.isLive ?? false,
     isHost: access.isHost,
     hostUserId: access.hostUserId,
-    messages: messages.map((m) => ({
-      id: m.id,
-      userId: m.user.id,
-      username: m.user.username,
-      image: m.user.image,
-      content: m.content,
-      at: m.createdAt.getTime(),
-    })),
+    messages: messages.map(mapLiveChatMessage),
   };
 }
 
@@ -218,19 +226,10 @@ export async function loadLiveChatHistory(channelId: string) {
     where: { channelId },
     orderBy: { createdAt: "desc" },
     take: 80,
-    include: { user: { select: { id: true, username: true, image: true } } },
+    include: { user: { select: userPublicSelectMinimal } },
   });
 
-  return {
-    messages: messages.reverse().map((m) => ({
-      id: m.id,
-      userId: m.user.id,
-      username: m.user.username,
-      image: m.user.image,
-      content: m.content,
-      at: m.createdAt.getTime(),
-    })),
-  };
+  return { messages: messages.reverse().map(mapLiveChatMessage) };
 }
 
 export async function pruneStaleLiveViewers(channelId: string) {

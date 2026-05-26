@@ -6,7 +6,9 @@ import { Send, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import type { SupportTierLevel } from "@prisma/client";
 import { sendLiveChatMessage, getLiveStreamSync, loadLiveChatHistory } from "@/actions/live-stream";
+import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 
 export type LiveChatMessage = {
   id: string;
@@ -15,6 +17,7 @@ export type LiveChatMessage = {
   content: string;
   at: number;
   image?: string | null;
+  supportTierSent?: SupportTierLevel;
 };
 
 export const LiveChat = memo(LiveChatInner);
@@ -139,7 +142,12 @@ function LiveChatInner({
               <AvatarFallback className="text-[10px]">{m.username[0]?.toUpperCase()}</AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <span className="font-semibold text-xs text-primary">@{m.username}</span>
+              <DisplayNameWithSupportTier
+                name={<span className="font-semibold text-xs text-primary">@{m.username}</span>}
+                tier={m.supportTierSent ?? "PEBBLE"}
+                compact
+                className="flex-wrap"
+              />
               <p className="text-sm break-words leading-snug mt-0.5">{m.content}</p>
             </div>
           </div>

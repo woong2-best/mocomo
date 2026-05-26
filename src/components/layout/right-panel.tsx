@@ -9,6 +9,7 @@ import {
   getCachedSidebarAds,
   getCachedSidebarTips,
 } from "@/lib/cached-data";
+import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 
 export function RightPanelSkeleton() {
   return (
@@ -105,9 +106,19 @@ export async function RightPanel() {
             <p className="text-xs text-muted-foreground">아직 랭킹 없음</p>
           ) : (
             tips.map((t) => (
-              <div key={t.rank} className="flex justify-between text-xs">
-                <span>
-                  #{t.rank} {t.user?.username}
+              <div key={t.rank} className="flex justify-between items-center gap-2 text-xs">
+                <span className="flex items-center gap-1 min-w-0">
+                  <span className="shrink-0">#{t.rank}</span>
+                  {t.user ? (
+                    <DisplayNameWithSupportTier
+                      name={t.user.username}
+                      tier={t.user.supportTierSent ?? "PEBBLE"}
+                      compact
+                      className="min-w-0"
+                    />
+                  ) : (
+                    "—"
+                  )}
                 </span>
                 <span className="text-muted-foreground">{(t.total ?? 0).toLocaleString()}원</span>
               </div>

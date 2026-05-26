@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { mixFeedWithAds } from "@/lib/feed-mixer";
 import { FALLBACK_FEED_ADS } from "@/lib/default-ads";
+import { userPublicSelect } from "@/lib/user-public-select";
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,15 +17,7 @@ export async function GET(req: NextRequest) {
       ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
       orderBy: { createdAt: "desc" },
       include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-            image: true,
-            level: true,
-            cosplayerProfile: { select: { stageName: true } },
-          },
-        },
+        author: { select: userPublicSelect },
         anime: { select: { title: true, slug: true } },
         media: true,
         _count: { select: { likes: true, comments: true, votes: true, reposts: true } },

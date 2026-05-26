@@ -7,6 +7,8 @@ import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { CommentForm } from "@/components/post/comment-form";
 import { auth } from "@/lib/auth";
+import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
+import { userPublicSelect } from "@/lib/user-public-select";
 
 export default async function PostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -22,8 +24,8 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
         comments: {
           where: { parentId: null },
           include: {
-            author: { select: { username: true, image: true } },
-            replies: { include: { author: { select: { username: true, image: true } } } },
+            author: { select: userPublicSelect },
+            replies: { include: { author: { select: userPublicSelect } } },
           },
           orderBy: { createdAt: "asc" },
         },
@@ -49,8 +51,13 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
               </Avatar>
             </Link>
             <div>
-              <Link href={`/u/${post.author.username}`} className="font-semibold hover:text-primary">
-                {post.author.username}
+              <Link href={`/u/${post.author.username}`} className="hover:text-primary">
+                <DisplayNameWithSupportTier
+                  name={post.author.name || post.author.username}
+                  tier={post.author.supportTierSent}
+                  nameClassName="font-semibold"
+                  compact
+                />
               </Link>
               <p className="text-xs text-muted-foreground">
                 {formatDistanceToNow(post.createdAt, { addSuffix: true, locale: ko })}
@@ -80,12 +87,22 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
           <Card key={c.id}>
             <CardContent className="p-4">
               <div className="flex gap-2">
-                <span className="font-medium text-sm">{c.author.username}</span>
+                <DisplayNameWithSupportTier
+                  name={c.author.name || c.author.username}
+                  tier={c.author.supportTierSent}
+                  nameClassName="font-medium text-sm"
+                  compact
+                />
               </div>
               <p className="text-sm mt-1">{c.content}</p>
               {c.replies.map((r) => (
                 <div key={r.id} className="ml-6 mt-2 pl-4 border-l border-border">
-                  <span className="text-sm font-medium">{r.author.username}</span>
+                  <DisplayNameWithSupportTier
+                    name={r.author.name || r.author.username}
+                    tier={r.author.supportTierSent}
+                    nameClassName="text-sm font-medium"
+                    compact
+                  />
                   <p className="text-sm">{r.content}</p>
                 </div>
               ))}

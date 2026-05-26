@@ -11,13 +11,20 @@ import {
   shouldShowAvatar,
   shouldShowDateDivider,
 } from "@/lib/chat-display";
+import type { SupportTierLevel } from "@prisma/client";
+import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { cn } from "@/lib/utils";
 
 type Message = {
   id: string;
   content: string | null;
   createdAt: string;
-  sender: { id: string; username: string; image: string | null };
+  sender: {
+    id: string;
+    username: string;
+    image: string | null;
+    supportTierSent?: SupportTierLevel;
+  };
 };
 
 export function ChatRoomClient({
@@ -96,6 +103,7 @@ export function ChatRoomClient({
             id: msg.sender.id,
             username: msg.sender.username ?? username,
             image: msg.sender.image,
+            supportTierSent: msg.sender.supportTierSent,
           },
         },
       ]);
@@ -172,9 +180,13 @@ export function ChatRoomClient({
                 )}
                 <div className={cn("flex flex-col max-w-[78%] sm:max-w-[70%]", isMine && "items-end")}>
                   {!isMine && showAvatar && (
-                    <span className="text-[11px] font-medium text-muted-foreground mb-1 ml-1">
-                      {m.sender.username}
-                    </span>
+                    <DisplayNameWithSupportTier
+                      name={m.sender.username}
+                      tier={m.sender.supportTierSent ?? "PEBBLE"}
+                      nameClassName="text-[11px] font-medium text-muted-foreground"
+                      compact
+                      className="mb-1 ml-1"
+                    />
                   )}
                   <div
                     className={cn(

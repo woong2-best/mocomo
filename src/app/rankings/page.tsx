@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy } from "lucide-react";
 import { getCachedRankingsData } from "@/lib/cached-data";
+import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 
 export const revalidate = 120;
 
@@ -37,8 +38,13 @@ export default async function RankingsPage() {
               <div key={t.rank} className="flex items-center gap-3">
                 <span className="font-bold text-neon-cyan w-6">#{t.rank}</span>
                 {t.user ? (
-                  <Link href={`/u/${t.user.username}`} className="hover:underline font-medium">
-                    @{t.user.username}
+                  <Link href={`/u/${t.user.username}`} className="hover:underline">
+                    <DisplayNameWithSupportTier
+                      name={`@${t.user.username}`}
+                      tier={t.user.supportTierSent ?? "PEBBLE"}
+                      nameClassName="font-medium"
+                      compact
+                    />
                   </Link>
                 ) : (
                   <span>—</span>

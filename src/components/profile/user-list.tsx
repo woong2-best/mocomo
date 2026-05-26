@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProfileFollowButton } from "@/components/profile/profile-follow-button";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 
 export async function UserListPage({
   username,
@@ -30,10 +31,24 @@ export async function UserListPage({
     orderBy: { createdAt: "desc" },
     include: {
       follower: {
-        select: { id: true, username: true, name: true, image: true, profile: { select: { bio: true } } },
+        select: {
+          id: true,
+          username: true,
+          name: true,
+          image: true,
+          supportTierSent: true,
+          profile: { select: { bio: true } },
+        },
       },
       following: {
-        select: { id: true, username: true, name: true, image: true, profile: { select: { bio: true } } },
+        select: {
+          id: true,
+          username: true,
+          name: true,
+          image: true,
+          supportTierSent: true,
+          profile: { select: { bio: true } },
+        },
       },
     },
   });
@@ -81,7 +96,12 @@ export async function UserListPage({
                   <AvatarFallback>{u.username[0]?.toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="min-w-0">
-                  <p className="font-bold truncate">{u.name || u.username}</p>
+                  <DisplayNameWithSupportTier
+                    name={u.name || u.username}
+                    tier={u.supportTierSent}
+                    nameClassName="font-bold"
+                    compact
+                  />
                   <p className="text-sm text-muted-foreground truncate">@{u.username}</p>
                   {u.profile?.bio && (
                     <p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">{u.profile.bio}</p>

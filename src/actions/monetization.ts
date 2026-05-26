@@ -230,7 +230,7 @@ export async function getTipRanking(limit = 10) {
   });
   const users = await db.user.findMany({
     where: { id: { in: tips.map((t) => t.receiverId) } },
-    select: { id: true, username: true, image: true },
+    select: { id: true, username: true, image: true, supportTierSent: true },
   });
   return tips.map((t, i) => ({
     rank: i + 1,

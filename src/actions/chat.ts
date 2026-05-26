@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { canAccessDm } from "@/lib/tiers";
 import { ChatRoomType, SupportTierLevel } from "@prisma/client";
+import { userPublicSelectMinimal } from "@/lib/user-public-select";
 
 export async function createChatRoom(data: {
   name?: string;
@@ -25,7 +26,7 @@ export async function createChatRoom(data: {
         ],
       },
     },
-    include: { members: { include: { user: { select: { id: true, username: true, image: true } } } } },
+    include: { members: { include: { user: { select: userPublicSelectMinimal } } } },
   });
   return { room };
 }
@@ -61,7 +62,7 @@ export async function getOrCreateDM(otherUserId: string) {
       ],
     },
     include: {
-      members: { include: { user: { select: { id: true, username: true, image: true } } } },
+      members: { include: { user: { select: { ...userPublicSelectMinimal, name: true } } } },
       messages: { take: 50, orderBy: { createdAt: "desc" }, include: { sender: true, attachments: true } },
     },
   });
@@ -74,7 +75,7 @@ export async function getChatRooms() {
   const rooms = await db.chatRoom.findMany({
     where: { members: { some: { userId: user.id } } },
     include: {
-      members: { include: { user: { select: { id: true, username: true, image: true } } } },
+      members: { include: { user: { select: { ...userPublicSelectMinimal, name: true } } } },
       messages: { take: 1, orderBy: { createdAt: "desc" } },
     },
     orderBy: { updatedAt: "desc" },
@@ -106,7 +107,10 @@ export async function sendMessage(data: {
         ? { create: data.attachments.map((a) => ({ url: a.url, type: a.type, name: a.name })) }
         : undefined,
     },
-    include: { sender: true, attachments: true },
+    include: {
+      sender: { select: userPublicSelectMinimal },
+      attachments: true,
+    },
   });
 
   await db.chatRoom.update({ where: { id: data.roomId }, data: { updatedAt: new Date() } });

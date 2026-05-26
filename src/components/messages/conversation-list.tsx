@@ -2,14 +2,25 @@ import Link from "next/link";
 import { MessageCircle, PenSquare } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import type { SupportTierLevel } from "@prisma/client";
 import { getConversationMeta, formatChatListTime } from "@/lib/chat-display";
+import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { cn } from "@/lib/utils";
 
 type Room = {
   id: string;
   type: string;
   name: string | null;
-  members: { userId: string; user: { id: string; username: string; image: string | null; name?: string | null } }[];
+  members: {
+    userId: string;
+    user: {
+      id: string;
+      username: string;
+      image: string | null;
+      name?: string | null;
+      supportTierSent?: SupportTierLevel;
+    };
+  }[];
   messages: { content: string | null; createdAt: Date }[];
 };
 
@@ -77,9 +88,13 @@ export function ConversationList({
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-2">
-                        <p className={cn("font-semibold text-sm truncate", active && "text-foreground")}>
-                          {meta.displayName}
-                        </p>
+                        <DisplayNameWithSupportTier
+                          name={meta.displayName}
+                          tier={meta.supportTierSent ?? "PEBBLE"}
+                          nameClassName={cn("font-semibold text-sm", active && "text-foreground")}
+                          compact
+                          className="min-w-0 flex-1"
+                        />
                         {meta.lastMessageAt && (
                           <span className="text-[11px] text-muted-foreground shrink-0 tabular-nums">
                             {formatChatListTime(meta.lastMessageAt)}

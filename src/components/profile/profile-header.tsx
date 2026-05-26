@@ -8,6 +8,7 @@ import { ProfileFollowButton } from "@/components/profile/profile-follow-button"
 import { StartDmButton } from "@/components/messages/start-dm-button";
 import { TipCreatorDialog } from "@/components/support/tip-creator-dialog";
 import { SupportTierLevel } from "@prisma/client";
+import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 
 type SnsLinks = { website?: string; location?: string; twitter?: string };
 
@@ -25,6 +26,7 @@ export function ProfileHeader({
     name: string | null;
     image: string | null;
     level: number;
+    supportTierSent: SupportTierLevel;
     createdAt: Date;
     profile: {
       bio: string | null;
@@ -56,7 +58,12 @@ export function ProfileHeader({
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div className="min-w-0">
-          <h1 className="font-bold truncate">{displayName}</h1>
+          <DisplayNameWithSupportTier
+            name={displayName}
+            tier={user.supportTierSent}
+            nameClassName="font-bold"
+            compact
+          />
           <p className="text-xs text-muted-foreground">{user._count.posts}개 게시물</p>
         </div>
       </div>
@@ -102,7 +109,11 @@ export function ProfileHeader({
 
         <div className="mt-3">
           <div className="flex items-center gap-1 flex-wrap">
-            <h2 className="text-xl font-bold">{displayName}</h2>
+            <DisplayNameWithSupportTier
+              name={displayName}
+              tier={user.supportTierSent}
+              nameClassName="text-xl font-bold"
+            />
             {user.userBadges.length > 0 && (
               <BadgeCheck className="h-5 w-5 text-sky-500 shrink-0" aria-label="뱃지" />
             )}
