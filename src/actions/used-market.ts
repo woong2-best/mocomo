@@ -10,7 +10,7 @@ import {
   type UsedListingStatus,
 } from "@prisma/client";
 import { isValidUsedRegion } from "@/lib/korea-regions";
-import { MAX_USED_LISTING_PRICE } from "@/lib/used-market";
+import { MAX_USED_LISTING_PRICE, MAX_USED_LISTING_PRICE_LABEL } from "@/lib/used-market";
 import {
   isUsedMarketEligible,
   USED_KR_ONLY_MSG,
@@ -133,9 +133,7 @@ export async function createUsedListing(data: {
   const price = Math.floor(Number(data.price) || 0);
   if (data.price < 0 || price < 0) return { error: "가격이 올바르지 않습니다." };
   if (price > MAX_USED_LISTING_PRICE) {
-    return {
-      error: `가격은 ${MAX_USED_LISTING_PRICE.toLocaleString("ko-KR")}원 이하로 입력해 주세요.`,
-    };
+    return { error: `가격은 ${MAX_USED_LISTING_PRICE_LABEL} 이하로 입력해 주세요.` };
   }
   if (!data.region.trim()) return { error: "거래 지역을 선택해 주세요." };
   if (!isValidUsedRegion(data.region)) return { error: "올바른 거래 지역을 선택해 주세요." };

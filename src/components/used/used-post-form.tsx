@@ -10,6 +10,9 @@ import { formatUsedRegion, getSigunguList, KOREA_SIDO, parseUsedRegion } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ImagePlus, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const PRICE_OVER_LIMIT_MSG = "최대 21억 원까지 입력할 수 있습니다.";
 
 export function UsedPostForm({ defaultRegion }: { defaultRegion?: string }) {
   const router = useRouter();
@@ -27,6 +30,10 @@ export function UsedPostForm({ defaultRegion }: { defaultRegion?: string }) {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const numericPrice = Number(price) || 0;
+  const priceOverLimit =
+    !isFree && price.trim() !== "" && Number.isFinite(numericPrice) && numericPrice > MAX_USED_LISTING_PRICE;
 
   async function onImages(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -49,10 +56,15 @@ export function UsedPostForm({ defaultRegion }: { defaultRegion?: string }) {
     e.preventDefault();
     setLoading(true);
     setError("");
+    if (priceOverLimit) {
+      setLoading(false);
+      return;
+    }
+    const submitPrice = isFree ? 0 : numericPrice;
     const res = await createUsedListing({
       title,
       description,
-      price: isFree ? 0 : Number(price) || 0,
+      price: submitPrice,
       category,
       region,
       images,
@@ -105,25 +117,35 @@ export function UsedPostForm({ defaultRegion }: { defaultRegion?: string }) {
 
       <div className="flex gap-2 items-center">
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={isFree} onChange={(e) => setIsFree(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={isFree}
+            onChange={(e) => {
+              setIsFree(e.target.checked);
+              if (e.target.checked) setPrice("");
+            }}
+          />
           나눔 (무료)
         </label>
       </div>
       {!isFree && (
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <Input
             type="number"
             placeholder="가격 (원)"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
-            className="rounded-xl"
+            className={cn(
+              "rounded-xl",
+              priceOverLimit && "border-destructive focus-visible:ring-destructive"
+            )}
             min={0}
-            max={MAX_USED_LISTING_PRICE}
+            aria-invalid={priceOverLimit}
             required
           />
-          <p className="text-xs text-muted-foreground">
-            최대 {MAX_USED_LISTING_PRICE.toLocaleString("ko-KR")}원까지 등록할 수 있습니다.
-          </p>
+          {priceOverLimit && (
+            <p className="text-sm text-destructive font-medium">{PRICE_OVER_LIMIT_MSG}</p>
+          )}
         </div>
       )}
 
@@ -143,7 +165,13 @@ export function UsedPostForm({ defaultRegion }: { defaultRegion?: string }) {
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Button type="submit" variant="secondary" disabled={loading || uploading} size="lg" className="w-full">
+      <Button
+        type="submit"
+        variant="secondary"
+        disabled={loading || uploading || priceOverLimit}
+        size="lg"
+        className="w-full"
+      >
         {loading ? "등록 중…" : "중고거래 글 올리기"}
       </Button>
     </form>
