@@ -1,14 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  LiveKitRoom,
-  RoomAudioRenderer,
-  ControlBar,
-} from "@livekit/components-react";
+import { LiveKitRoom, ControlBar } from "@livekit/components-react";
 import "@livekit/components-styles";
 import { Loader2, Radio } from "lucide-react";
 import { fetchLivekitCredentials, type LivekitCredentials } from "@/lib/livekit-token-fetch";
+import { VOICE_CALL_CAPTURE, VOICE_CALL_ROOM_OPTIONS } from "@/lib/livekit-audio-options";
+import { CallRoomAudio } from "@/components/call/call-room-audio";
 
 export function LivekitAudioCall({
   roomName,
@@ -79,13 +77,14 @@ export function LivekitAudioCall({
         token={token}
         serverUrl={serverUrl}
         connect
-        audio
+        audio={VOICE_CALL_CAPTURE}
         video={false}
+        options={VOICE_CALL_ROOM_OPTIONS}
         onDisconnected={onDisconnected}
         className="[&_.lk-control-bar]:border-0 [&_.lk-control-bar]:bg-transparent [&_.lk-control-bar]:py-2"
         data-lk-theme="default"
       >
-        <RoomAudioRenderer />
+        <CallRoomAudio />
         <ControlBar
           controls={{
             microphone: true,

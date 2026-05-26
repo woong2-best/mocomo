@@ -27,7 +27,13 @@ export async function ensureMicrophoneAccess(): Promise<MicCheckResult> {
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true },
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        channelCount: 1,
+        sampleRate: { ideal: 48_000 },
+      },
     });
     const track = stream.getAudioTracks()[0];
     const deviceLabel = track?.label?.trim() || "연결된 마이크";
