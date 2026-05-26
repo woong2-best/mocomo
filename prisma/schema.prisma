@@ -44,6 +44,8 @@ model User {
   supportTierSent      SupportTierLevel @default(PEBBLE)
   totalSupportReceived Int              @default(0)
   supportTierReceived  SupportTierLevel @default(PEBBLE)
+  locale        String    @default("ko")
+  countryCode   String    @default("KR")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

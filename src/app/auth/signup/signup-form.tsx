@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BRAND } from "@/lib/brand";
+import { COUNTRIES, LOCALE_COOKIE, COUNTRY_COOKIE, LOCALE_LABELS, LOCALES } from "@/lib/i18n/config";
+import type { Locale } from "@/lib/i18n/config";
 
 export function SignUpForm({
   googleOAuth,
@@ -21,6 +23,8 @@ export function SignUpForm({
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [locale, setLocale] = useState<Locale>("ko");
+  const [countryCode, setCountryCode] = useState("KR");
 
   const showSocial = googleOAuth || discordOAuth;
 
@@ -34,11 +38,17 @@ export function SignUpForm({
     const username = ((form.get("username") as string) || "").trim().toLowerCase();
 
     try {
+      const maxAge = 60 * 60 * 24 * 365;
+      document.cookie = `${LOCALE_COOKIE}=${locale};path=/;max-age=${maxAge};SameSite=Lax`;
+      document.cookie = `${COUNTRY_COOKIE}=${countryCode};path=/;max-age=${maxAge};SameSite=Lax`;
+
       const result = await registerUser({
         email,
         username,
         password,
         name: (form.get("name") as string) || undefined,
+        locale,
+        countryCode,
       });
 
       if (result.error) {
@@ -106,6 +116,36 @@ export function SignUpForm({
               autoComplete="new-password"
               className="rounded-xl"
             />
+            <div className="grid grid-cols-2 gap-2">
+              <label className="space-y-1">
+                <span className="text-xs text-muted-foreground">국가</span>
+                <select
+                  value={countryCode}
+                  onChange={(e) => setCountryCode(e.target.value)}
+                  className="w-full h-10 rounded-xl border border-input bg-background px-2 text-sm"
+                >
+                  {COUNTRIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.nameKo}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-1">
+                <span className="text-xs text-muted-foreground">언어</span>
+                <select
+                  value={locale}
+                  onChange={(e) => setLocale(e.target.value as Locale)}
+                  className="w-full h-10 rounded-xl border border-input bg-background px-2 text-sm"
+                >
+                  {LOCALES.map((l) => (
+                    <option key={l} value={l}>
+                      {LOCALE_LABELS[l]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
             {error && (
               <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-3 py-2">{error}</p>
             )}

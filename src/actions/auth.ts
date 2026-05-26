@@ -43,6 +43,8 @@ const registerSchema = z.object({
     .transform((s) => s.trim().toLowerCase()),
   password: z.string().min(8),
   name: z.string().optional(),
+  locale: z.enum(["ko", "en", "ja", "zh"]).default("ko"),
+  countryCode: z.string().min(2).max(8).default("KR"),
 });
 
 const RESERVED_USERNAMES = new Set([
@@ -252,7 +254,7 @@ export async function registerUser(
 ) {
   const parsed = registerSchema.safeParse(data);
   if (!parsed.success) return { error: "입력값이 올바르지 않습니다." };
-  const { email: rawEmail, username, password, name } = parsed.data;
+  const { email: rawEmail, username, password, name, locale, countryCode } = parsed.data;
   const email = rawEmail.trim().toLowerCase();
 
   if (RESERVED_USERNAMES.has(username)) {
@@ -317,6 +319,8 @@ export async function registerUser(
           passwordHash,
           name: name || username,
           emailVerified: null,
+          locale,
+          countryCode: countryCode.toUpperCase(),
         },
       });
       userId = updated.id;
@@ -328,6 +332,8 @@ export async function registerUser(
           passwordHash,
           name: name || username,
           emailVerified: null,
+          locale,
+          countryCode: countryCode.toUpperCase(),
           profile: { create: {} },
           otakuProfile: { create: {} },
         },

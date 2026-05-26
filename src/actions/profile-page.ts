@@ -21,6 +21,8 @@ export async function getProfileHeader(username: string) {
       supportTierReceived: true,
       totalSupportSent: true,
       supportTierSent: true,
+      locale: true,
+      countryCode: true,
       profile: true,
       cosplayerProfile: { select: { id: true, stageName: true, bio: true } },
       userBadges: { include: { badge: true }, take: 6 },

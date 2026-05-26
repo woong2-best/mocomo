@@ -4,19 +4,49 @@ import { db } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { LocaleSettingsForm } from "@/components/settings/locale-settings-form";
+import { getServerTranslator } from "@/lib/i18n/server";
 
 export default async function SettingsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/signin");
 
-  const user = await db.user.findUnique({
-    where: { id: session.user.id },
-    include: { profile: true, otakuProfile: true, cosplayerProfile: { select: { id: true } } },
-  });
+  const [user, { t }] = await Promise.all([
+    db.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        username: true,
+        email: true,
+        level: true,
+        xp: true,
+        premiumTier: true,
+        locale: true,
+        countryCode: true,
+        twoFactorEnabled: true,
+        showNsfw: true,
+        profile: true,
+        otakuProfile: true,
+        cosplayerProfile: { select: { id: true } },
+      },
+    }),
+    getServerTranslator(),
+  ]);
 
   return (
     <div className="max-w-lg mx-auto p-4 space-y-6">
-      <h1 className="text-2xl font-bold">설정</h1>
+      <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("settings.localeTitle")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LocaleSettingsForm
+            initialLocale={user?.locale ?? "ko"}
+            initialCountryCode={user?.countryCode ?? "KR"}
+          />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

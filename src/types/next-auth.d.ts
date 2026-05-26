@@ -11,6 +11,8 @@ declare module "next-auth" {
       role?: string;
       premiumTier?: string;
       level?: number;
+      locale?: string;
+      countryCode?: string;
     };
   }
 }
@@ -22,5 +24,7 @@ declare module "next-auth/jwt" {
     role?: string;
     premiumTier?: string;
     level?: number;
+    locale?: string;
+    countryCode?: string;
   }
 }

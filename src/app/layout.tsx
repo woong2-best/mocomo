@@ -3,7 +3,9 @@ import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { AppProviders } from "@/components/providers/app-providers";
+import { LocaleProvider } from "@/components/providers/locale-provider";
 import { AppShell } from "@/components/layout/app-shell";
+import { getRequestCountryCode, getRequestLocale } from "@/lib/i18n/server";
 import { RightPanel, RightPanelSkeleton } from "@/components/layout/right-panel";
 import { BRAND } from "@/lib/brand";
 import "./globals.css";
@@ -32,13 +34,16 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const [locale, countryCode] = await Promise.all([getRequestLocale(), getRequestCountryCode()]);
+
   return (
-    <html lang="ko" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-          <AppProviders>
-            <AppShell
+          <LocaleProvider initialLocale={locale} initialCountryCode={countryCode}>
+            <AppProviders>
+              <AppShell
               rightPanel={
                 <Suspense fallback={<RightPanelSkeleton />}>
                   <RightPanel />
@@ -46,8 +51,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               }
             >
               {children}
-            </AppShell>
-          </AppProviders>
+              </AppShell>
+            </AppProviders>
+          </LocaleProvider>
         </ThemeProvider>
       </body>
     </html>

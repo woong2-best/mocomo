@@ -26,30 +26,33 @@ import {
 import { cn } from "@/lib/utils";
 import { BRAND } from "@/lib/brand";
 import { SidebarAuthFooter } from "@/components/layout/sidebar-auth-footer";
+import { useLocale } from "@/components/providers/locale-provider";
+import type { MessageKey } from "@/lib/i18n/messages";
 
-const navBlocks = [
-  { href: "/", icon: Home, label: "홈" },
-  { href: "/explore", icon: Compass, label: "탐색" },
-  { href: "/notifications", icon: Bell, label: "알림" },
-  { href: "/my-page", icon: User, label: "My Page" },
-  { href: "/communities", icon: Users, label: "커뮤니티" },
-  { href: "/messages", icon: MessageCircle, label: "메시지" },
-  { href: "/bookmarks", icon: Bookmark, label: "북마크" },
-  { href: "/anime", icon: Tv, label: "애니덕질" },
-  { href: "/cosplay", icon: Camera, label: "코스프레" },
-  { href: "/live", icon: Radio, label: "라이브" },
-  { href: "/used", icon: Tags, label: "중고거래" },
-  { href: "/market", icon: ShoppingBag, label: "굿즈샵" },
-  { href: "/events", icon: Calendar, label: "이벤트" },
-  { href: "/rankings", icon: Trophy, label: "후원 랭킹" },
-  { href: "/support", icon: Wallet, label: "후원" },
-  { href: "/wallet", icon: Banknote, label: "정산·출금" },
-  { href: "/premium", icon: Crown, label: "프리미엄" },
-  { href: "/settings", icon: Settings, label: "설정" },
+const navBlocks: { href: string; icon: typeof Home; labelKey: MessageKey }[] = [
+  { href: "/", icon: Home, labelKey: "nav.home" },
+  { href: "/explore", icon: Compass, labelKey: "nav.explore" },
+  { href: "/notifications", icon: Bell, labelKey: "nav.notifications" },
+  { href: "/my-page", icon: User, labelKey: "nav.myPage" },
+  { href: "/communities", icon: Users, labelKey: "nav.communities" },
+  { href: "/messages", icon: MessageCircle, labelKey: "nav.messages" },
+  { href: "/bookmarks", icon: Bookmark, labelKey: "nav.bookmarks" },
+  { href: "/anime", icon: Tv, labelKey: "nav.anime" },
+  { href: "/cosplay", icon: Camera, labelKey: "nav.cosplay" },
+  { href: "/live", icon: Radio, labelKey: "nav.live" },
+  { href: "/used", icon: Tags, labelKey: "nav.used" },
+  { href: "/market", icon: ShoppingBag, labelKey: "nav.market" },
+  { href: "/events", icon: Calendar, labelKey: "nav.events" },
+  { href: "/rankings", icon: Trophy, labelKey: "nav.rankings" },
+  { href: "/support", icon: Wallet, labelKey: "nav.support" },
+  { href: "/wallet", icon: Banknote, labelKey: "nav.wallet" },
+  { href: "/premium", icon: Crown, labelKey: "nav.premium" },
+  { href: "/settings", icon: Settings, labelKey: "nav.settings" },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { t } = useLocale();
 
   function isActive(href: string) {
     if (href === "/") return pathname === "/";
@@ -72,7 +75,7 @@ export function Sidebar() {
       </Link>
 
       <nav className="flex flex-col gap-2.5 flex-1">
-        {navBlocks.map(({ href, icon: Icon, label }) => (
+        {navBlocks.map(({ href, icon: Icon, labelKey }) => (
               <Link
                 key={href}
                 href={href}
@@ -89,7 +92,7 @@ export function Sidebar() {
             >
               <Icon className="h-4 w-4" />
             </span>
-            <span className="truncate">{label}</span>
+            <span className="truncate">{t(labelKey)}</span>
           </Link>
         ))}
       </nav>

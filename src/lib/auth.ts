@@ -18,13 +18,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const userId = (user?.id ?? token.id) as string;
         const dbUser = await db.user.findUnique({
           where: { id: userId },
-          select: { username: true, role: true, premiumTier: true, level: true },
+          select: {
+            username: true,
+            role: true,
+            premiumTier: true,
+            level: true,
+            locale: true,
+            countryCode: true,
+          },
         });
         if (dbUser) {
           token.username = dbUser.username;
           token.role = dbUser.role;
           token.premiumTier = dbUser.premiumTier;
           token.level = dbUser.level;
+          token.locale = dbUser.locale;
+          token.countryCode = dbUser.countryCode;
         }
       }
       return token;
