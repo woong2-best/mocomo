@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { FeedInfinite } from "@/components/feed/feed-infinite";
 import { HomeStaticSection } from "@/components/home/home-static-section";
+import { WeeklyHighlightsSection } from "@/components/home/weekly-highlights-section";
+import type { WeeklyHighlightPost } from "@/lib/weekly-highlights";
 import { Button } from "@/components/ui/button";
 
 type FeedItem = Parameters<typeof FeedInfinite>[0]["initialItems"][number];
@@ -13,11 +15,15 @@ export function HomePageClient({
   nextCursor,
   dbOk,
   hasDbPosts,
+  topLiked = [],
+  topViewed = [],
 }: {
   feedItems: FeedItem[];
   nextCursor: string | null;
   dbOk: boolean;
   hasDbPosts: boolean;
+  topLiked?: WeeklyHighlightPost[];
+  topViewed?: WeeklyHighlightPost[];
 }) {
   const { data: session } = useSession();
   const isLoggedIn = !!session?.user;
@@ -27,6 +33,10 @@ export function HomePageClient({
   return (
     <div className="p-4 lg:p-6 max-w-5xl mx-auto">
       <HomeStaticSection isLoggedIn={isLoggedIn} />
+
+      {dbOk && (topLiked.length > 0 || topViewed.length > 0) && (
+        <WeeklyHighlightsSection topLiked={topLiked} topViewed={topViewed} />
+      )}
 
       {!dbOk && (
         <p className="text-xs text-amber-700 bg-amber-500/15 border border-amber-500/40 rounded-xl px-3 py-2 mb-4">

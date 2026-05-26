@@ -2,7 +2,8 @@ import { mixFeedWithAds } from "@/lib/feed-mixer";
 import { FALLBACK_FEED_ADS, type FeedAdData } from "@/lib/default-ads";
 import { FeedInfinite } from "@/components/feed/feed-infinite";
 import { HomePageClient } from "@/components/home/home-page-client";
-import { getCachedFeedAds, getCachedFeedPosts } from "@/lib/cached-data";
+import { getCachedFeedAds, getCachedFeedPosts, getCachedWeeklyHighlights } from "@/lib/cached-data";
+import type { WeeklyHighlightPost } from "@/lib/weekly-highlights";
 
 export const revalidate = 60;
 
@@ -11,9 +12,17 @@ export default async function HomePage() {
   let feedItems: FeedItem[] = [];
   let nextCursor: string | null = null;
   let dbOk = true;
+  let topLiked: WeeklyHighlightPost[] = [];
+  let topViewed: WeeklyHighlightPost[] = [];
 
   try {
-    const [posts, feedAds] = await Promise.all([getCachedFeedPosts(), getCachedFeedAds()]);
+    const [posts, feedAds, highlights] = await Promise.all([
+      getCachedFeedPosts(),
+      getCachedFeedAds(),
+      getCachedWeeklyHighlights(),
+    ]);
+    topLiked = highlights.topLiked;
+    topViewed = highlights.topViewed;
 
     const ads: FeedAdData[] = feedAds.length > 0 ? feedAds : [...FALLBACK_FEED_ADS];
     const mixed = mixFeedWithAds(posts, ads, 6);
@@ -40,6 +49,8 @@ export default async function HomePage() {
       nextCursor={nextCursor}
       dbOk={dbOk}
       hasDbPosts={hasDbPosts}
+      topLiked={topLiked}
+      topViewed={topViewed}
     />
   );
 }

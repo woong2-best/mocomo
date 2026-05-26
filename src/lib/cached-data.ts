@@ -6,6 +6,13 @@ import { userPublicSelect } from "@/lib/user-public-select";
 import { getTipRanking } from "@/actions/monetization";
 import { getRankings } from "@/actions/events";
 import { getAnimeCountByGenre } from "@/actions/anime";
+import { getWeeklyHighlights } from "@/lib/weekly-highlights";
+
+export const getCachedWeeklyHighlights = unstable_cache(
+  async () => getWeeklyHighlights(2),
+  ["home-weekly-highlights"],
+  { revalidate: 300 }
+);
 
 export const getCachedFeedPosts = unstable_cache(
   async () =>

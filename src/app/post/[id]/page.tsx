@@ -8,6 +8,7 @@ import { ko } from "date-fns/locale";
 import { CommentForm } from "@/components/post/comment-form";
 import { auth } from "@/lib/auth";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
+import { PostViewTracker } from "@/components/post/post-view-tracker";
 import { userPublicSelect } from "@/lib/user-public-select";
 
 export default async function PostPage({ params }: { params: Promise<{ id: string }> }) {
@@ -41,6 +42,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-6">
+      <PostViewTracker postId={post.id} />
       <Card>
         <CardContent className="p-6 space-y-4">
           <div className="flex items-center gap-3">
