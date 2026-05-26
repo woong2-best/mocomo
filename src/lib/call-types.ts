@@ -4,10 +4,13 @@ export type CallParticipant = {
   image: string | null;
 };
 
+export type CallType = "AUDIO" | "VIDEO";
+
 export type CallPayload = {
   id: string;
   livekitRoom: string;
   chatRoomId: string | null;
+  callType: CallType;
   status: string;
   caller: CallParticipant;
   callee: CallParticipant;

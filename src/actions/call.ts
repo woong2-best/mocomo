@@ -4,7 +4,7 @@ import { randomUUID } from "crypto";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { canAccessDm } from "@/lib/tiers";
-import { CallStatus, SupportTierLevel } from "@prisma/client";
+import { CallStatus, CallType, SupportTierLevel } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 const ACTIVE_STATUSES: CallStatus[] = [CallStatus.RINGING, CallStatus.ACTIVE];
@@ -19,6 +19,7 @@ export type CallPayload = {
   id: string;
   livekitRoom: string;
   chatRoomId: string | null;
+  callType: CallType;
   status: CallStatus;
   caller: CallParticipant;
   callee: CallParticipant;
@@ -28,6 +29,7 @@ function serializeCall(call: {
   id: string;
   livekitRoom: string;
   chatRoomId: string | null;
+  callType: CallType;
   status: CallStatus;
   caller: CallParticipant;
   callee: CallParticipant;
@@ -36,6 +38,7 @@ function serializeCall(call: {
     id: call.id,
     livekitRoom: call.livekitRoom,
     chatRoomId: call.chatRoomId,
+    callType: call.callType,
     status: call.status,
     caller: call.caller,
     callee: call.callee,
@@ -69,7 +72,11 @@ async function assertDmAccess(userId: string, otherUserId: string) {
   }
 }
 
-export async function initiateCall(data: { calleeId: string; chatRoomId?: string }) {
+export async function initiateCall(data: {
+  calleeId: string;
+  chatRoomId?: string;
+  callType?: CallType;
+}) {
   const user = await requireAuth();
   if (user.id === data.calleeId) return { error: "자기 자신에게는 전화할 수 없습니다." };
 
@@ -99,12 +106,15 @@ export async function initiateCall(data: { calleeId: string; chatRoomId?: string
     return { error: "DM 등급 조건을 충족해야 통화할 수 있습니다." };
   }
 
+  const callType = data.callType === CallType.VIDEO ? CallType.VIDEO : CallType.AUDIO;
+
   const call = await db.voiceCall.create({
     data: {
       callerId: user.id,
       calleeId: data.calleeId,
       chatRoomId: data.chatRoomId,
       livekitRoom: `call-${randomUUID()}`,
+      callType,
       status: CallStatus.RINGING,
     },
     include: {

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { CallStatus } from "@prisma/client";
+import { CallStatus, CallType } from "@prisma/client";
 
 const ACTIVE: CallStatus[] = [CallStatus.RINGING, CallStatus.ACTIVE];
 const TERMINAL: CallStatus[] = [
@@ -15,6 +15,7 @@ function serializeCall(call: {
   id: string;
   livekitRoom: string;
   chatRoomId: string | null;
+  callType: CallType;
   status: CallStatus;
   caller: { id: string; username: string; image: string | null };
   callee: { id: string; username: string; image: string | null };
@@ -23,6 +24,7 @@ function serializeCall(call: {
     id: call.id,
     livekitRoom: call.livekitRoom,
     chatRoomId: call.chatRoomId,
+    callType: call.callType,
     status: call.status,
     caller: call.caller,
     callee: call.callee,

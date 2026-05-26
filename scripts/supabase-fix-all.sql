@@ -128,9 +128,14 @@ CREATE TABLE IF NOT EXISTS "PaymentIntent" (
 );
 CREATE INDEX IF NOT EXISTS "PaymentIntent_userId_status_idx" ON "PaymentIntent"("userId", "status");
 
--- H) VoiceCall (DM 1:1 음성 통화)
+-- H) VoiceCall (DM 1:1 음성·영상 통화)
 DO $$ BEGIN
   CREATE TYPE "CallStatus" AS ENUM ('RINGING', 'ACTIVE', 'ENDED', 'DECLINED', 'MISSED', 'CANCELLED');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "CallType" AS ENUM ('AUDIO', 'VIDEO');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
@@ -140,6 +145,7 @@ CREATE TABLE IF NOT EXISTS "VoiceCall" (
   "calleeId" TEXT NOT NULL,
   "chatRoomId" TEXT,
   "livekitRoom" TEXT NOT NULL,
+  "callType" "CallType" NOT NULL DEFAULT 'AUDIO',
   "status" "CallStatus" NOT NULL DEFAULT 'RINGING',
   "startedAt" TIMESTAMP(3),
   "endedAt" TIMESTAMP(3),
@@ -172,6 +178,8 @@ DO $$ BEGIN
     FOREIGN KEY ("chatRoomId") REFERENCES "ChatRoom"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+ALTER TABLE "VoiceCall" ADD COLUMN IF NOT EXISTS "callType" "CallType" NOT NULL DEFAULT 'AUDIO';
 
 -- I) 라이브 방송: 합방 비밀번호, 채팅, 실시간 시청자
 ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "joinPasswordHash" TEXT;

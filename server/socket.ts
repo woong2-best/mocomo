@@ -144,6 +144,7 @@ io.on("connection", (socket) => {
         id: call.id,
         livekitRoom: call.livekitRoom,
         chatRoomId: call.chatRoomId,
+        callType: call.callType,
         status: call.status,
         caller: call.caller,
         callee: call.callee,

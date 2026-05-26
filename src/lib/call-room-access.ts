@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { CallStatus } from "@prisma/client";
+import { CallStatus, CallType } from "@prisma/client";
 
 const ACTIVE_STATUSES: CallStatus[] = [CallStatus.RINGING, CallStatus.ACTIVE];
 
@@ -23,7 +23,7 @@ export async function validateLivekitCallRoom(
   try {
     const call = await db.voiceCall.findUnique({
       where: { livekitRoom: roomName },
-      select: { id: true, callerId: true, calleeId: true, status: true },
+      select: { id: true, callerId: true, calleeId: true, status: true, callType: true },
     });
     if (!call) return { allowed: false, reason: "CALL_NOT_FOUND" };
     if (call.callerId !== userId && call.calleeId !== userId) {
@@ -32,7 +32,7 @@ export async function validateLivekitCallRoom(
     if (!ACTIVE_STATUSES.includes(call.status)) {
       return { allowed: false, reason: "CALL_NOT_ACTIVE" };
     }
-    return { allowed: true, audioOnly: true };
+    return { allowed: true, audioOnly: call.callType === CallType.AUDIO };
   } catch (e) {
     console.error("[validateLivekitCallRoom]", e);
     if (isMissingVoiceCallTable(e)) {

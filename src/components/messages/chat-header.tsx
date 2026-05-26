@@ -2,7 +2,7 @@ import type { SupportTierLevel } from "@prisma/client";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CallButton } from "@/components/call/call-button";
+import { DmCallButtons } from "@/components/call/dm-call-buttons";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 
 export function ChatHeader({
@@ -71,7 +71,7 @@ export function ChatHeader({
       )}
 
       {roomType === "DM" && otherUserId && (
-        <CallButton calleeId={otherUserId} chatRoomId={roomId} />
+        <DmCallButtons calleeId={otherUserId} chatRoomId={roomId} />
       )}
     </header>
   );

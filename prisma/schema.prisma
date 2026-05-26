@@ -558,12 +558,18 @@ enum CallStatus {
   CANCELLED
 }
 
+enum CallType {
+  AUDIO
+  VIDEO
+}
+
 model VoiceCall {
   id          String     @id @default(cuid())
   callerId    String
   calleeId    String
   chatRoomId  String?
   livekitRoom String     @unique
+  callType    CallType   @default(AUDIO)
   status      CallStatus @default(RINGING)
   startedAt   DateTime?
   endedAt     DateTime?

@@ -14,9 +14,12 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
+  Video,
+  VideoOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MicCheckResult } from "@/lib/microphone";
+import type { CameraCheckResult } from "@/lib/camera";
 
 function formatDuration(seconds: number) {
   const m = Math.floor(seconds / 60);
@@ -24,98 +27,155 @@ function formatDuration(seconds: number) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-const PHASE_META = {
-  incoming: {
-    badge: "수신 중",
-    badgeClass: "bg-green-500/15 text-green-700 dark:text-green-400",
-    subtitle: "음성 통화 요청이 왔습니다",
-    icon: PhoneIncoming,
-  },
-  outgoing: {
-    badge: "발신 중",
-    badgeClass: "bg-primary/15 text-primary",
-    subtitle: "상대방이 받을 때까지 기다리는 중…",
-    icon: PhoneOutgoing,
-  },
-  active: {
-    badge: "통화 중",
-    badgeClass: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-    subtitle: "마이크가 연결되어 대화 중입니다",
-    icon: Phone,
-  },
-} as const;
+function phaseMeta(isVideo: boolean) {
+  return {
+    incoming: {
+      badge: "수신 중",
+      badgeClass: "bg-green-500/15 text-green-700 dark:text-green-400",
+      subtitle: isVideo ? "영상 통화 요청이 왔습니다" : "음성 통화 요청이 왔습니다",
+      icon: isVideo ? Video : PhoneIncoming,
+    },
+    outgoing: {
+      badge: "발신 중",
+      badgeClass: "bg-primary/15 text-primary",
+      subtitle: isVideo ? "영상 통화 연결 대기 중…" : "상대방이 받을 때까지 기다리는 중…",
+      icon: isVideo ? Video : PhoneOutgoing,
+    },
+    active: {
+      badge: "통화 중",
+      badgeClass: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+      subtitle: isVideo ? "영상·음성으로 대화 중입니다" : "마이크가 연결되어 대화 중입니다",
+      icon: isVideo ? Video : Phone,
+    },
+  } as const;
+}
 
-function MicCheckPanel({
-  mic,
+function DeviceCheckRow({
+  label,
+  granted,
+  denied,
   checking,
+  deviceLabel,
+  message,
+  grantedIcon: GrantedIcon,
+  defaultIcon: DefaultIcon,
+  deniedIcon: DeniedIcon,
   onCheck,
+  checkLabel,
 }: {
-  mic: MicCheckResult | null;
+  label: string;
+  granted: boolean;
+  denied: boolean;
   checking: boolean;
-  onCheck: () => void;
+  deviceLabel?: string;
+  message?: string;
+  grantedIcon: React.ComponentType<{ className?: string }>;
+  defaultIcon: React.ComponentType<{ className?: string }>;
+  deniedIcon: React.ComponentType<{ className?: string }>;
+  onCheck?: () => void;
+  checkLabel: string;
 }) {
-  const granted = mic?.ok;
-  const denied = mic?.status === "denied";
+  const Icon = granted ? GrantedIcon : denied ? DeniedIcon : DefaultIcon;
 
   return (
-    <div
-      className={cn(
-        "rounded-2xl border px-4 py-3 text-left transition-colors",
-        granted
-          ? "border-emerald-500/30 bg-emerald-500/10"
-          : denied
-            ? "border-destructive/30 bg-destructive/10"
-            : "border-border bg-muted/40"
-      )}
-    >
-      <div className="flex items-start gap-3">
-        <div
-          className={cn(
-            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
-            granted ? "bg-emerald-500/20 text-emerald-600" : "bg-muted text-muted-foreground"
-          )}
-        >
-          {granted ? <CheckCircle2 className="h-5 w-5" /> : denied ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-        </div>
-        <div className="min-w-0 flex-1 space-y-1">
-          <p className="text-sm font-semibold">마이크 연결 확인</p>
-          {checking ? (
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              마이크를 확인하는 중…
-            </p>
-          ) : granted ? (
-            <p className="text-xs text-emerald-700 dark:text-emerald-400 truncate">
-              ✓ {mic?.deviceLabel ?? "마이크 준비됨"}
-            </p>
-          ) : (
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {mic?.message ?? "통화 전 마이크·헤드셋 연결과 브라우저 권한을 확인해 주세요."}
-            </p>
-          )}
-        </div>
+    <div className="flex items-start gap-3">
+      <div
+        className={cn(
+          "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+          granted ? "bg-emerald-500/20 text-emerald-600" : "bg-muted text-muted-foreground"
+        )}
+      >
+        <Icon className="h-4 w-4" />
       </div>
-      {!granted && (
+      <div className="min-w-0 flex-1 space-y-0.5">
+        <p className="text-xs font-semibold">{label}</p>
+        {checking ? (
+          <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            확인 중…
+          </p>
+        ) : granted ? (
+          <p className="text-[11px] text-emerald-700 dark:text-emerald-400 truncate">
+            ✓ {deviceLabel ?? "준비됨"}
+          </p>
+        ) : (
+          <p className="text-[11px] text-muted-foreground leading-snug">{message}</p>
+        )}
+      </div>
+      {!granted && onCheck && (
         <Button
           type="button"
           variant="secondary"
           size="sm"
-          className="mt-3 w-full rounded-xl"
+          className="h-8 rounded-lg text-xs shrink-0"
           disabled={checking}
           onClick={onCheck}
         >
-          {checking ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              확인 중…
-            </>
-          ) : (
-            <>
-              <Mic className="h-4 w-4 mr-2" />
-              마이크 허용 · 연결 테스트
-            </>
-          )}
+          {checkLabel}
         </Button>
+      )}
+    </div>
+  );
+}
+
+function MediaCheckPanel({
+  mic,
+  camera,
+  micChecking,
+  cameraChecking,
+  onMicCheck,
+  onCameraCheck,
+  video,
+}: {
+  mic: MicCheckResult | null;
+  camera: CameraCheckResult | null;
+  micChecking: boolean;
+  cameraChecking: boolean;
+  onMicCheck: () => void;
+  onCameraCheck?: () => void;
+  video: boolean;
+}) {
+  const micGranted = !!mic?.ok;
+  const camGranted = !video || !!camera?.ok;
+  const allGranted = micGranted && camGranted;
+
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border px-4 py-3 text-left transition-colors space-y-3",
+        allGranted
+          ? "border-emerald-500/30 bg-emerald-500/10"
+          : "border-border bg-muted/40"
+      )}
+    >
+      <p className="text-sm font-semibold">기기 연결 확인</p>
+      <DeviceCheckRow
+        label="마이크"
+        granted={micGranted}
+        denied={mic?.status === "denied"}
+        checking={micChecking}
+        deviceLabel={mic?.deviceLabel}
+        message={mic?.message ?? "마이크·헤드셋 연결과 브라우저 권한을 확인해 주세요."}
+        grantedIcon={CheckCircle2}
+        defaultIcon={Mic}
+        deniedIcon={MicOff}
+        onCheck={onMicCheck}
+        checkLabel="허용"
+      />
+      {video && (
+        <DeviceCheckRow
+          label="카메라"
+          granted={camGranted}
+          denied={camera?.status === "denied"}
+          checking={cameraChecking}
+          deviceLabel={camera?.deviceLabel}
+          message={camera?.message ?? "카메라 권한을 허용해 주세요."}
+          grantedIcon={CheckCircle2}
+          defaultIcon={Video}
+          deniedIcon={VideoOff}
+          onCheck={onCameraCheck}
+          checkLabel="허용"
+        />
       )}
     </div>
   );
@@ -172,8 +232,11 @@ export function CallOverlay({
   callState,
   error,
   mic,
+  camera,
   micChecking,
+  cameraChecking,
   onMicCheck,
+  onCameraCheck,
   livekitSlot,
   onAccept,
   onDecline,
@@ -183,18 +246,24 @@ export function CallOverlay({
   callState: Exclude<ActiveCallState, { phase: "idle" }>;
   error: string;
   mic: MicCheckResult | null;
+  camera: CameraCheckResult | null;
   micChecking: boolean;
+  cameraChecking: boolean;
   onMicCheck: () => void;
+  onCameraCheck?: () => void;
   livekitSlot?: React.ReactNode;
   onAccept: () => void;
   onDecline: () => void;
   onCancel: () => void;
   onHangup: () => void;
 }) {
-  const meta = PHASE_META[callState.phase];
+  const isVideo = callState.call.callType === "VIDEO";
+  const meta = phaseMeta(isVideo)[callState.phase];
   const PhaseIcon = meta.icon;
   const [seconds, setSeconds] = useState(0);
   const micReady = !!mic?.ok;
+  const camReady = !isVideo || !!camera?.ok;
+  const mediaReady = micReady && camReady;
 
   useEffect(() => {
     if (callState.phase !== "active") {
@@ -213,7 +282,12 @@ export function CallOverlay({
         aria-hidden
       />
 
-      <div className="relative w-full max-w-md overflow-hidden rounded-[2rem] border border-border/80 bg-background/95 shadow-2xl shadow-primary/10">
+      <div
+        className={cn(
+          "relative w-full overflow-hidden rounded-[2rem] border border-border/80 bg-background/95 shadow-2xl shadow-primary/10",
+          isVideo && callState.phase === "active" ? "max-w-lg" : "max-w-md"
+        )}
+      >
         <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-primary/20 to-transparent pointer-events-none" />
 
         <div className="relative px-6 pt-6 pb-6 space-y-5">
@@ -228,28 +302,50 @@ export function CallOverlay({
             )}
           </div>
 
-          <div className="flex flex-col items-center text-center gap-4 pt-2">
-            <div className="relative">
-              <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping scale-110 opacity-40" />
-              <span className="absolute -inset-2 rounded-full border-2 border-primary/30 animate-pulse" />
-              <Avatar className="relative h-24 w-24 ring-4 ring-background shadow-xl">
-                <AvatarImage src={callState.peer.image ?? undefined} />
-                <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
-                  {callState.peer.username[0]?.toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-            </div>
+          {!(isVideo && callState.phase === "active") && (
+            <div className="flex flex-col items-center text-center gap-4 pt-2">
+              <div className="relative">
+                <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping scale-110 opacity-40" />
+                <span className="absolute -inset-2 rounded-full border-2 border-primary/30 animate-pulse" />
+                <Avatar className="relative h-24 w-24 ring-4 ring-background shadow-xl">
+                  <AvatarImage src={callState.peer.image ?? undefined} />
+                  <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
+                    {callState.peer.username[0]?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
 
-            <div className="space-y-1">
-              <p className="text-2xl font-bold tracking-tight">{callState.peer.username}</p>
-              <p className="text-sm text-muted-foreground flex items-center justify-center gap-1.5">
-                <PhaseIcon className="h-4 w-4 shrink-0 opacity-70" />
+              <div className="space-y-1">
+                <p className="text-2xl font-bold tracking-tight">{callState.peer.username}</p>
+                <p className="text-sm text-muted-foreground flex items-center justify-center gap-1.5">
+                  <PhaseIcon className="h-4 w-4 shrink-0 opacity-70" />
+                  {meta.subtitle}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {isVideo && callState.phase === "active" && (
+            <div className="space-y-2 pt-1">
+              <p className="text-center text-sm font-semibold">{callState.peer.username}</p>
+              <p className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1">
+                <Video className="h-3.5 w-3.5" />
                 {meta.subtitle}
               </p>
             </div>
-          </div>
+          )}
 
-          <MicCheckPanel mic={mic} checking={micChecking} onCheck={onMicCheck} />
+          {callState.phase !== "active" && (
+            <MediaCheckPanel
+              mic={mic}
+              camera={camera}
+              micChecking={micChecking}
+              cameraChecking={cameraChecking}
+              onMicCheck={onMicCheck}
+              onCameraCheck={onCameraCheck}
+              video={isVideo}
+            />
+          )}
 
           {callState.phase === "active" && livekitSlot}
 
@@ -265,10 +361,10 @@ export function CallOverlay({
               <>
                 <CallActionButton
                   label="받기"
-                  sublabel={micReady ? "통화 시작" : "마이크 확인 후"}
+                  sublabel={mediaReady ? "통화 시작" : "기기 확인 후"}
                   variant="accept"
-                  icon={PhoneIncoming}
-                  disabled={!micReady || micChecking}
+                  icon={isVideo ? Video : PhoneIncoming}
+                  disabled={!mediaReady || micChecking || cameraChecking}
                   onClick={onAccept}
                 />
                 <CallActionButton
