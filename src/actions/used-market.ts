@@ -9,7 +9,11 @@ import {
   type UsedListingCategory,
   type UsedListingStatus,
 } from "@prisma/client";
-import { isValidUsedRegion } from "@/lib/korea-regions";
+import {
+  getSidoRegionPrefix,
+  isValidUsedRegion,
+  USED_SHIPPING_REGION,
+} from "@/lib/korea-regions";
 import { MAX_USED_LISTING_PRICE, MAX_USED_LISTING_PRICE_LABEL } from "@/lib/used-market";
 import {
   isUsedMarketEligible,
@@ -39,6 +43,8 @@ export async function getUsedListings(params?: {
   q?: string;
   category?: string;
   region?: string;
+  /** 시·도 전체 — 해당 시·도 접두사로 region 필터 */
+  sido?: string;
   status?: UsedListingStatus;
   sellerId?: string;
   take?: number;
@@ -47,7 +53,16 @@ export async function getUsedListings(params?: {
   const where: Prisma.UsedListingWhereInput = { status };
 
   if (params?.category) where.category = params.category as UsedListingCategory;
-  if (params?.region) where.region = params.region;
+  if (params?.sido) {
+    if (params.sido === "__shipping__") {
+      where.region = USED_SHIPPING_REGION;
+    } else {
+      const prefix = getSidoRegionPrefix(params.sido);
+      if (prefix) where.region = { startsWith: prefix };
+    }
+  } else if (params?.region) {
+    where.region = params.region;
+  }
   if (params?.sellerId) where.sellerId = params.sellerId;
   if (params?.q?.trim()) {
     where.OR = [

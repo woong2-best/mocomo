@@ -129,3 +129,13 @@ export function getSigunguList(sidoId: string): readonly string[] {
   if (sidoId === "__shipping__") return [USED_SHIPPING_REGION];
   return KOREA_SIGUNGU_BY_SIDO[sidoId] ?? [];
 }
+
+export function getSidoById(sidoId: string): SidoEntry | undefined {
+  return KOREA_SIDO.find((s) => s.id === sidoId);
+}
+
+/** 시·도 전체 필터용 — DB region 값이 `서울 강남구` 형식일 때 접두사 */
+export function getSidoRegionPrefix(sidoId: string): string | null {
+  const sido = getSidoById(sidoId);
+  return sido ? `${sido.short} ` : null;
+}

@@ -1,7 +1,13 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { KOREA_SIDO, USED_SHIPPING_REGION, formatUsedRegion, getSigunguList } from "@/lib/korea-regions";
+import {
+  KOREA_SIDO,
+  USED_SHIPPING_REGION,
+  formatUsedRegion,
+  getSidoById,
+  getSigunguList,
+} from "@/lib/korea-regions";
 
 export function UsedRegionFilter() {
   const router = useRouter();
@@ -25,13 +31,17 @@ export function UsedRegionFilter() {
         KOREA_SIDO.find((s) => currentRegion.startsWith(`${s.short} `))?.id ||
         "";
 
+  const sido = getSidoById(sidoId);
   const sigunguList = sidoId ? getSigunguList(sidoId) : [];
-  const sigunguValue =
-    currentRegion === USED_SHIPPING_REGION
-      ? USED_SHIPPING_REGION
-      : sidoId && currentRegion
-        ? currentRegion.replace(`${KOREA_SIDO.find((s) => s.id === sidoId)?.short} `, "")
-        : "";
+
+  const sigunguValue = (() => {
+    if (sidoId === "__shipping__") return "";
+    if (!sidoId || !sido) return "";
+    if (currentSido === sidoId && !currentRegion) return "";
+    if (!currentRegion.startsWith(`${sido.short} `)) return "";
+    const unit = currentRegion.slice(`${sido.short} `.length);
+    return sigunguList.includes(unit) ? unit : "";
+  })();
 
   return (
     <div className="grid grid-cols-2 gap-2">
@@ -42,11 +52,7 @@ export function UsedRegionFilter() {
           const id = e.target.value;
           if (!id) apply({ region: null, sido: null });
           else if (id === "__shipping__") apply({ region: USED_SHIPPING_REGION, sido: null });
-          else {
-            const s = KOREA_SIDO.find((x) => x.id === id);
-            const units = getSigunguList(id);
-            if (s && units[0]) apply({ region: formatUsedRegion(s.short, units[0]), sido: null });
-          }
+          else apply({ sido: id, region: null });
         }}
       >
         <option value="">시·도 전체</option>
@@ -64,8 +70,12 @@ export function UsedRegionFilter() {
         disabled={!sidoId || sidoId === "__shipping__"}
         onChange={(e) => {
           const unit = e.target.value;
-          if (!unit || !sidoId || sidoId === "__shipping__") return;
-          const s = KOREA_SIDO.find((x) => x.id === sidoId);
+          if (!sidoId || sidoId === "__shipping__") return;
+          if (!unit) {
+            apply({ sido: sidoId, region: null });
+            return;
+          }
+          const s = getSidoById(sidoId);
           if (s) apply({ region: formatUsedRegion(s.short, unit), sido: null });
         }}
       >

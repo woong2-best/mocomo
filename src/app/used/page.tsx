@@ -10,17 +10,17 @@ import { Button } from "@/components/ui/button";
 async function UsedFeed({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; category?: string; region?: string }>;
+  searchParams: Promise<{ q?: string; category?: string; region?: string; sido?: string }>;
 }) {
-  const { q, category, region } = await searchParams;
-  const listings = await getUsedListings({ q, category, region, status: "SELLING" });
+  const { q, category, region, sido } = await searchParams;
+  const listings = await getUsedListings({ q, category, region, sido, status: "SELLING" });
 
   if (listings.length === 0) {
     return (
       <div className="py-16 text-center space-y-4">
         <Package className="h-12 w-12 mx-auto text-muted-foreground/40" />
         <p className="text-muted-foreground text-sm">
-          {q || category || region ? "검색 결과가 없어요." : "아직 올라온 중고 글이 없어요."}
+          {q || category || region || sido ? "검색 결과가 없어요." : "아직 올라온 중고 글이 없어요."}
         </p>
         <Button variant="secondary" asChild>
           <Link href="/used/new">첫 글 올리기</Link>
@@ -41,7 +41,7 @@ async function UsedFeed({
 export default async function UsedHomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; category?: string; region?: string }>;
+  searchParams: Promise<{ q?: string; category?: string; region?: string; sido?: string }>;
 }) {
   const dbReady = await isUsedDbReady();
 
