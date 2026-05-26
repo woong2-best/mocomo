@@ -16,9 +16,10 @@ import {
   VIDEO_CALL_CAPTURE,
   VIDEO_CALL_ROOM_OPTIONS,
   VOICE_CALL_CAPTURE,
-  VOICE_CALL_ROOM_OPTIONS,
+  VOICE_CALL_STABLE_OPTIONS,
 } from "@/lib/livekit-audio-options";
 import { CallRoomAudio } from "@/components/call/call-room-audio";
+import { CallRoomConnection } from "@/components/call/call-room-connection";
 
 function DmVideoStage() {
   const { localParticipant } = useLocalParticipant();
@@ -65,12 +66,10 @@ export function LivekitCallRoom({
   roomName,
   video,
   prefetched,
-  onDisconnected,
 }: {
   roomName: string;
   video: boolean;
   prefetched?: LivekitCredentials | null;
-  onDisconnected?: () => void;
 }) {
   const [token, setToken] = useState<string | null>(prefetched?.token ?? null);
   const [serverUrl, setServerUrl] = useState<string>(prefetched?.serverUrl ?? "");
@@ -145,11 +144,11 @@ export function LivekitCallRoom({
         connect
         audio={VOICE_CALL_CAPTURE}
         video={video ? VIDEO_CALL_CAPTURE : false}
-        options={video ? VIDEO_CALL_ROOM_OPTIONS : VOICE_CALL_ROOM_OPTIONS}
-        onDisconnected={onDisconnected}
+        options={video ? VIDEO_CALL_ROOM_OPTIONS : VOICE_CALL_STABLE_OPTIONS}
         className="[&_.lk-control-bar]:border-0 [&_.lk-control-bar]:bg-transparent [&_.lk-control-bar]:py-2"
         data-lk-theme="default"
       >
+        <CallRoomConnection />
         <CallRoomAudio />
         {video && <DmVideoStage />}
         <ControlBar

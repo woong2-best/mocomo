@@ -51,7 +51,8 @@ type SyncResponse =
   | { event: "incoming" | "outgoing" | "active"; call: CallPayload; peer: CallPayload["caller"] };
 
 function syncPollIntervalMs(phase: ActiveCallState["phase"], hidden: boolean) {
-  if (phase !== "idle") return 2000;
+  if (phase === "active") return 5000;
+  if (phase !== "idle") return 3000;
   return hidden ? 15000 : 8000;
 }
 
@@ -414,7 +415,6 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
                   roomName={callState.call.livekitRoom}
                   video={activeVideo}
                   prefetched={prefetchedLivekit}
-                  onDisconnected={() => hangup(callState.call.id)}
                 />
               ) : undefined
             }

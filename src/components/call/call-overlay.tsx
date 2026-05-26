@@ -20,6 +20,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { MicCheckResult } from "@/lib/microphone";
 import type { CameraCheckResult } from "@/lib/camera";
+import { useCallWakeLock } from "@/hooks/use-call-wake-lock";
 
 function formatDuration(seconds: number) {
   const m = Math.floor(seconds / 60);
@@ -258,6 +259,7 @@ export function CallOverlay({
   onHangup: () => void;
 }) {
   const isVideo = callState.call.callType === "VIDEO";
+  useCallWakeLock(callState.phase === "active" && isVideo);
   const meta = phaseMeta(isVideo)[callState.phase];
   const PhaseIcon = meta.icon;
   const [seconds, setSeconds] = useState(0);

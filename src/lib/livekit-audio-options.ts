@@ -25,13 +25,31 @@ export const VOICE_CALL_ROOM_OPTIONS: RoomOptions = {
   dynacast: true,
 };
 
-/** DM 영상 통화용 카메라 캡처 */
+/** DM 영상 통화용 카메라 캡처 (720p 이상 요청) */
 export const VIDEO_CALL_CAPTURE: VideoCaptureOptions = {
   facingMode: "user",
   resolution: { width: 1280, height: 720, frameRate: 30 },
 };
 
+/** 1:1 영상 통화: 끊김·화질 저하 완화 */
 export const VIDEO_CALL_ROOM_OPTIONS: RoomOptions = {
   ...VOICE_CALL_ROOM_OPTIONS,
+  disconnectOnPageLeave: false,
+  adaptiveStream: false,
+  dynacast: false,
   videoCaptureDefaults: VIDEO_CALL_CAPTURE,
+  publishDefaults: {
+    ...VOICE_CALL_ROOM_OPTIONS.publishDefaults,
+    simulcast: false,
+    degradationPreference: "maintain-resolution",
+    videoEncoding: {
+      maxBitrate: 2_500_000,
+      maxFramerate: 30,
+    },
+  },
+};
+
+export const VOICE_CALL_STABLE_OPTIONS: RoomOptions = {
+  ...VOICE_CALL_ROOM_OPTIONS,
+  disconnectOnPageLeave: false,
 };
