@@ -1,5 +1,8 @@
 import { getAllUsedRegions, isValidUsedRegion, KOREA_SIDO, USED_SHIPPING_REGION } from "@/lib/korea-regions";
 
+/** PostgreSQL Int 상한 — 초과 시 DB 저장 실패 */
+export const MAX_USED_LISTING_PRICE = 2_147_483_647;
+
 export const USED_CATEGORIES = [
   { id: "DIGITAL", label: "디지털/가전" },
   { id: "FIGURE", label: "피규어/프라모" },

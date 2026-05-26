@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createUsedListing } from "@/actions/used-market";
 import { uploadImageBlob } from "@/lib/client-upload";
-import { USED_CATEGORIES } from "@/lib/used-market";
+import { MAX_USED_LISTING_PRICE, USED_CATEGORIES } from "@/lib/used-market";
 import { UsedRegionSelect } from "@/components/used/used-region-select";
 import { formatUsedRegion, getSigunguList, KOREA_SIDO, parseUsedRegion } from "@/lib/korea-regions";
 import { Button } from "@/components/ui/button";
@@ -110,15 +110,21 @@ export function UsedPostForm({ defaultRegion }: { defaultRegion?: string }) {
         </label>
       </div>
       {!isFree && (
-        <Input
-          type="number"
-          placeholder="가격 (원)"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          className="rounded-xl"
-          min={0}
-          required
-        />
+        <div className="space-y-1">
+          <Input
+            type="number"
+            placeholder="가격 (원)"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            className="rounded-xl"
+            min={0}
+            max={MAX_USED_LISTING_PRICE}
+            required
+          />
+          <p className="text-xs text-muted-foreground">
+            최대 {MAX_USED_LISTING_PRICE.toLocaleString("ko-KR")}원까지 등록할 수 있습니다.
+          </p>
+        </div>
       )}
 
       <select

@@ -4,8 +4,13 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { getOrCreateDM, sendMessage } from "@/actions/chat";
-import type { Prisma, UsedListingCategory, UsedListingStatus } from "@prisma/client";
+import {
+  Prisma,
+  type UsedListingCategory,
+  type UsedListingStatus,
+} from "@prisma/client";
 import { isValidUsedRegion } from "@/lib/korea-regions";
+import { MAX_USED_LISTING_PRICE } from "@/lib/used-market";
 import {
   isUsedMarketEligible,
   USED_KR_ONLY_MSG,
@@ -125,7 +130,13 @@ export async function createUsedListing(data: {
   const accessErr = assertUsedMarketAccess(user);
   if (accessErr) return { error: accessErr };
   if (!data.title.trim()) return { error: "제목을 입력해 주세요." };
-  if (data.price < 0) return { error: "가격이 올바르지 않습니다." };
+  const price = Math.floor(Number(data.price) || 0);
+  if (data.price < 0 || price < 0) return { error: "가격이 올바르지 않습니다." };
+  if (price > MAX_USED_LISTING_PRICE) {
+    return {
+      error: `가격은 ${MAX_USED_LISTING_PRICE.toLocaleString("ko-KR")}원 이하로 입력해 주세요.`,
+    };
+  }
   if (!data.region.trim()) return { error: "거래 지역을 선택해 주세요." };
   if (!isValidUsedRegion(data.region)) return { error: "올바른 거래 지역을 선택해 주세요." };
 
@@ -135,7 +146,7 @@ export async function createUsedListing(data: {
         sellerId: user.id,
         title: data.title.trim(),
         description: data.description.trim(),
-        price: Math.floor(data.price),
+        price,
         category: (data.category as UsedListingCategory) || "OTHER",
         region: data.region.trim(),
         images: data.images as Prisma.InputJsonValue,
@@ -144,8 +155,17 @@ export async function createUsedListing(data: {
     revalidatePath("/used");
     revalidatePath("/used/my");
     return { listingId: listing.id };
-  } catch {
-    return { error: "중고거래 DB가 준비되지 않았습니다. Supabase SQL 섹션 K를 실행해 주세요." };
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError) {
+      if (e.code === "P2021") {
+        return { error: "중고거래 DB가 준비되지 않았습니다. Supabase SQL 섹션 K를 실행해 주세요." };
+      }
+    }
+    console.error("[createUsedListing]", e);
+    return {
+      error:
+        "글 등록에 실패했습니다. 가격·사진·지역을 확인한 뒤 다시 시도해 주세요.",
+    };
   }
 }
 
