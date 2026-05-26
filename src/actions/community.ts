@@ -6,6 +6,7 @@ import { requireAuth } from "@/lib/auth";
 import { calcHotScore, slugify } from "@/lib/utils";
 import { CommunityCategory, MediaType, VoteType } from "@prisma/client";
 import { z } from "zod";
+import { submitContentReport } from "@/actions/report";
 
 export async function createCommunity(data: {
   name: string;
@@ -129,27 +130,9 @@ export async function toggleBookmark(postId: string) {
   return { bookmarked: true };
 }
 
-export async function reportContent(data: {
-  targetType: "USER" | "POST" | "COMMENT" | "MESSAGE";
-  targetId: string;
-  reason: string;
-  details?: string;
-  reportedUserId?: string;
-  postId?: string;
-  commentId?: string;
-}) {
-  const user = await requireAuth();
-  await db.report.create({
-    data: {
-      reporterId: user.id,
-      targetType: data.targetType,
-      targetId: data.targetId,
-      reason: data.reason,
-      details: data.details,
-      reportedUserId: data.reportedUserId,
-      postId: data.postId,
-      commentId: data.commentId,
-    },
-  });
-  return { success: true };
+/** @deprecated submitContentReport 사용 */
+export async function reportContent(
+  data: Parameters<typeof submitContentReport>[0]
+) {
+  return submitContentReport(data);
 }

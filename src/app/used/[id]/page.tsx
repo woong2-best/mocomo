@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getUsedListing } from "@/actions/used-market";
 import { UsedDetailActions } from "@/components/used/used-detail-actions";
+import { ContentModerationBar } from "@/components/moderation/content-moderation-bar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   formatUsedPrice,
@@ -23,10 +24,21 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
   const { listing, favorited } = data;
   const imgs = listingImages(listing.images);
   const isSeller = session?.user?.id === listing.sellerId;
+  const role = session?.user?.role;
+  const isStaff = role === "ADMIN" || role === "MODERATOR";
   const statusLabel = usedStatusLabel(listing.status);
 
   return (
     <div className="-mx-4 bg-background min-h-[60vh] flex flex-col rounded-xl border border-border overflow-hidden">
+      <div className="px-4 border-b border-border/60">
+        <ContentModerationBar
+          targetType="USED_LISTING"
+          targetId={listing.id}
+          reportedUserId={listing.sellerId}
+          isStaff={isStaff}
+          isLoggedIn={!!session?.user}
+        />
+      </div>
       <div className="px-4 py-2 border-b flex items-center gap-2">
         <Link href="/used" className="p-1 -ml-1">
           <ChevronLeft className="h-5 w-5" />

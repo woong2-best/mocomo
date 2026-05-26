@@ -56,10 +56,32 @@ export default async function AdminPage() {
             <p className="text-muted-foreground text-sm">대기 중인 신고가 없습니다.</p>
           ) : (
             reports.map((r) => (
-              <div key={r.id} className="border border-border rounded-lg p-3 text-sm">
-                <p className="font-medium">{r.targetType} · {r.reason}</p>
-                <p className="text-muted-foreground">신고자: {r.reporter.username}</p>
-                <AdminReportActions reportId={r.id} reportedUserId={r.reportedUserId} />
+              <div key={r.id} className="border border-border rounded-lg p-3 text-sm space-y-1">
+                <p className="font-medium">
+                  {r.targetType} · {r.reason}
+                  {r.reportedUser && (
+                    <span className="text-muted-foreground font-normal">
+                      {" "}
+                      · @{r.reportedUser.username}
+                    </span>
+                  )}
+                </p>
+                <p className="text-muted-foreground">신고자: @{r.reporter.username}</p>
+                {r.details && (
+                  <p className="text-muted-foreground text-xs whitespace-pre-wrap">{r.details}</p>
+                )}
+                {r.post && (
+                  <p className="text-xs line-clamp-2 text-foreground/80">
+                    {r.post.title || r.post.content}
+                  </p>
+                )}
+                <AdminReportActions
+                  reportId={r.id}
+                  targetType={r.targetType}
+                  targetId={r.targetId}
+                  reportedUserId={r.reportedUserId}
+                  reportedUsername={r.reportedUser?.username}
+                />
               </div>
             ))
           )}

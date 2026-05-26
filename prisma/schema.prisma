@@ -1169,6 +1169,7 @@ enum ReportTargetType {
   POST
   COMMENT
   MESSAGE
+  USED_LISTING
 }
 
 enum ReportStatus {
