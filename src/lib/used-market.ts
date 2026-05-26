@@ -1,3 +1,5 @@
+import { getAllUsedRegions, isValidUsedRegion, KOREA_SIDO, USED_SHIPPING_REGION } from "@/lib/korea-regions";
+
 export const USED_CATEGORIES = [
   { id: "DIGITAL", label: "디지털/가전" },
   { id: "FIGURE", label: "피규어/프라모" },
@@ -8,22 +10,10 @@ export const USED_CATEGORIES = [
   { id: "OTHER", label: "기타" },
 ] as const;
 
-export const USED_REGIONS = [
-  "서울 강남구",
-  "서울 서초구",
-  "서울 마포구",
-  "서울 송파구",
-  "서울 용산구",
-  "경기 성남시",
-  "경기 수원시",
-  "경기 고양시",
-  "인천 부평구",
-  "부산 해운대구",
-  "대구 수성구",
-  "대전 유성구",
-  "광주 서구",
-  "전국 택배",
-] as const;
+/** 전국 시·군·구 + 전국 택배 */
+export const USED_REGIONS = getAllUsedRegions();
+
+export { KOREA_SIDO, USED_SHIPPING_REGION, isValidUsedRegion };
 
 export function usedCategoryLabel(id: string) {
   return USED_CATEGORIES.find((c) => c.id === id)?.label ?? "기타";

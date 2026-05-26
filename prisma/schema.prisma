@@ -46,6 +46,8 @@ model User {
   supportTierReceived  SupportTierLevel @default(PEBBLE)
   locale        String    @default("ko")
   countryCode   String    @default("KR")
+  phone         String?   @unique
+  phoneVerified DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

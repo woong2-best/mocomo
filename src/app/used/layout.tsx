@@ -12,7 +12,9 @@ export default function UsedLayout({ children }: { children: React.ReactNode }) 
             <Tags className="h-7 w-7 text-muted-foreground" />
             중고거래
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">동네·카테고리별 중고 물품 거래</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            대한민국 전역 · 휴대폰 인증 후 거래
+          </p>
         </div>
         <nav className="flex items-center gap-2 shrink-0">
           <Button variant="outline" size="sm" asChild>

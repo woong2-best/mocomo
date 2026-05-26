@@ -1,0 +1,52 @@
+import { notFound } from "next/navigation";
+import { isPaymentsConfigured } from "@/lib/payments";
+import { getProfileHeader } from "@/actions/profile-page";
+import { getViewerSupportForCreator } from "@/actions/support";
+import { ProfileHeader } from "@/components/profile/profile-header";
+import { parseProfileTab, type ProfileTab } from "@/lib/profile-queries";
+import { ProfileTabs } from "@/components/profile/profile-tabs";
+import { ProfilePostCard } from "@/components/profile/profile-post-card";
+
+export async function ProfileHeaderAsync({
+  username,
+  tabParam,
+}: {
+  username: string;
+  tabParam?: string;
+}) {
+  const header = await getProfileHeader(username);
+  if (!header) notFound();
+
+  const tab = parseProfileTab(tabParam);
+  const effectiveTab = tab === "likes" && !header.isSelf ? "posts" : tab;
+  const viewerSupport = header.isSelf ? null : await getViewerSupportForCreator(header.user.id);
+  const paymentsEnabled = isPaymentsConfigured();
+
+  return (
+    <>
+      <ProfileHeader
+        user={header.user}
+        isSelf={header.isSelf}
+        isFollowing={header.isFollowing}
+        followsYou={header.followsYou}
+        viewerSupport={viewerSupport}
+        paymentsEnabled={paymentsEnabled}
+      />
+      {header.pinned && effectiveTab === "posts" && (
+        <div className="border-b border-border/60">
+          <p className="px-4 pt-3 text-xs text-muted-foreground">고정된 게시물</p>
+          <ProfilePostCard post={header.pinned} />
+        </div>
+      )}
+      <ProfileTabs username={username} showLikesTab={header.isSelf} />
+    </>
+  );
+}
+
+export async function getProfileHeaderMeta(username: string, tabParam?: string) {
+  const header = await getProfileHeader(username);
+  if (!header) return null;
+  const tab = parseProfileTab(tabParam);
+  const effectiveTab: ProfileTab = tab === "likes" && !header.isSelf ? "posts" : tab;
+  return { header, effectiveTab };
+}

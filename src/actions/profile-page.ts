@@ -1,12 +1,13 @@
 "use server";
 
+import { cache } from "react";
 import { db } from "@/lib/db";
 import { getAuthUserId } from "@/lib/auth";
 import { profilePostInclude, type ProfileTab } from "@/lib/profile-queries";
 
 const PAGE_SIZE = 15;
 
-export async function getProfileHeader(username: string) {
+export const getProfileHeader = cache(async function getProfileHeader(username: string) {
   const viewerId = await getAuthUserId();
   const user = await db.user.findUnique({
     where: { username },
@@ -68,7 +69,7 @@ export async function getProfileHeader(username: string) {
     followsYou,
     pinned,
   };
-}
+});
 
 export async function getProfileTimeline(
   userId: string,

@@ -25,6 +25,19 @@ export function authCodeIdentifier(email: string): string {
   return `auth-code:${email.trim().toLowerCase()}`;
 }
 
+export function phoneCodeIdentifier(phoneE164: string): string {
+  return `phone-code:${phoneE164}`;
+}
+
+export function scopedPhoneCodeToken(phoneE164: string, code: string): string {
+  return `${phoneE164}:${code.trim()}`;
+}
+
+export function phoneCodeMatchesToken(storedToken: string, phoneE164: string, code: string): boolean {
+  const c = code.trim();
+  return storedToken === c || storedToken === scopedPhoneCodeToken(phoneE164, c);
+}
+
 export const SIGNUP_PASSWORD_SESSION_KEY = "mocomo_signup_password";
 
 export function generateEmailCode(): string {

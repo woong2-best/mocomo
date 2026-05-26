@@ -5,7 +5,8 @@ import { useState } from "react";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { USED_CATEGORIES, USED_REGIONS } from "@/lib/used-market";
+import { USED_CATEGORIES } from "@/lib/used-market";
+import { UsedRegionFilter } from "@/components/used/used-region-filter";
 
 export function UsedSearchHeader() {
   const router = useRouter();
@@ -74,18 +75,7 @@ export function UsedSearchHeader() {
         ))}
       </div>
 
-      <select
-        className="w-full h-9 rounded-lg border border-border bg-background text-xs px-2"
-        value={searchParams.get("region") ?? ""}
-        onChange={(e) => apply({ region: e.target.value || null })}
-      >
-        <option value="">전체 지역</option>
-        {USED_REGIONS.map((r) => (
-          <option key={r} value={r}>
-            {r}
-          </option>
-        ))}
-      </select>
+      <UsedRegionFilter />
     </div>
   );
 }

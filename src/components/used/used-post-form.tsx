@@ -4,7 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createUsedListing } from "@/actions/used-market";
 import { uploadImageBlob } from "@/lib/client-upload";
-import { USED_CATEGORIES, USED_REGIONS } from "@/lib/used-market";
+import { USED_CATEGORIES } from "@/lib/used-market";
+import { UsedRegionSelect } from "@/components/used/used-region-select";
+import { formatUsedRegion, getSigunguList, KOREA_SIDO, parseUsedRegion } from "@/lib/korea-regions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ImagePlus, Loader2 } from "lucide-react";
@@ -16,7 +18,11 @@ export function UsedPostForm({ defaultRegion }: { defaultRegion?: string }) {
   const [price, setPrice] = useState("");
   const [isFree, setIsFree] = useState(false);
   const [category, setCategory] = useState("GOODS");
-  const [region, setRegion] = useState(defaultRegion ?? USED_REGIONS[0]);
+  const initialRegion = (() => {
+    if (defaultRegion && parseUsedRegion(defaultRegion)) return defaultRegion;
+    return formatUsedRegion(KOREA_SIDO[0].short, getSigunguList(KOREA_SIDO[0].id)[0] ?? "종로구");
+  })();
+  const [region, setRegion] = useState(initialRegion);
   const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -127,17 +133,7 @@ export function UsedPostForm({ defaultRegion }: { defaultRegion?: string }) {
         ))}
       </select>
 
-      <select
-        className="w-full h-11 rounded-xl border border-border px-3 text-sm"
-        value={region}
-        onChange={(e) => setRegion(e.target.value)}
-      >
-        {USED_REGIONS.map((r) => (
-          <option key={r} value={r}>
-            {r}
-          </option>
-        ))}
-      </select>
+      <UsedRegionSelect value={region} onChange={setRegion} />
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 

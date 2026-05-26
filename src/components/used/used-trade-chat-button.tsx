@@ -15,6 +15,10 @@ export function UsedTradeChatButton({ listingId }: { listingId: string }) {
     const res = await startUsedTradeChat(listingId);
     setLoading(false);
     if ("error" in res && res.error) {
+      if (res.error.includes("휴대폰")) {
+        router.push(`/used/verify?callbackUrl=/used/${listingId}`);
+        return;
+      }
       alert(res.error);
       return;
     }

@@ -1,11 +1,9 @@
+import { Suspense } from "react";
 import { MarketNav } from "@/components/market/market-nav";
-import { MarketDbBanner } from "@/components/market/market-db-banner";
-import { getEmoticonPacks } from "@/actions/goods-shop";
+import { MarketDbBannerAsync } from "@/components/market/market-db-banner-async";
 import { ShoppingBag } from "lucide-react";
 
-export default async function MarketLayout({ children }: { children: React.ReactNode }) {
-  const { dbReady } = await getEmoticonPacks().catch(() => ({ dbReady: false, packs: [] }));
-
+export default function MarketLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="max-w-5xl mx-auto p-4 pb-24 lg:pb-8 space-y-4">
       <div>
@@ -17,7 +15,9 @@ export default async function MarketLayout({ children }: { children: React.React
           MoCoMo 이모티콘 · 마이 스토리지 · 굿즈 판매/배송/결제
         </p>
       </div>
-      <MarketDbBanner dbReady={dbReady} />
+      <Suspense fallback={null}>
+        <MarketDbBannerAsync />
+      </Suspense>
       <MarketNav />
       {children}
     </div>

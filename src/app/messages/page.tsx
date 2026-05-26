@@ -1,25 +1,28 @@
-import { auth } from "@/lib/auth";
-import { getChatRooms } from "@/actions/chat";
-import { redirect } from "next/navigation";
-import { ConversationList } from "@/components/messages/conversation-list";
+import { Suspense } from "react";
 import { MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { MessagesInboxAsync } from "@/components/messages/messages-inbox-async";
 
-export default async function MessagesPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/messages");
+function InboxSkeleton() {
+  return (
+    <aside className="w-full md:max-w-full shrink-0 border-r border-border/60 flex flex-col animate-pulse">
+      <div className="h-14 border-b border-border/60 bg-muted/30" />
+      <div className="flex-1 p-2 space-y-2">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="h-14 rounded-xl bg-muted" />
+        ))}
+      </div>
+    </aside>
+  );
+}
 
-  let rooms: Awaited<ReturnType<typeof getChatRooms>> = [];
-  try {
-    rooms = await getChatRooms(session.user.id);
-  } catch {
-    rooms = [];
-  }
-
+export default function MessagesPage() {
   return (
     <div className="flex flex-1 min-h-0 h-full">
-      <ConversationList rooms={rooms} currentUserId={session.user.id} className="md:max-w-full" />
+      <Suspense fallback={<InboxSkeleton />}>
+        <MessagesInboxAsync />
+      </Suspense>
       <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-muted/15 text-center p-8">
         <div className="h-20 w-20 rounded-full bg-muted/80 flex items-center justify-center mb-4">
           <MessageCircle className="h-10 w-10 text-muted-foreground/70" />

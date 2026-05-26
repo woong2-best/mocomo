@@ -5,6 +5,21 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { getOrCreateDM, sendMessage } from "@/actions/chat";
 import type { Prisma, UsedListingCategory, UsedListingStatus } from "@prisma/client";
+import { isValidUsedRegion } from "@/lib/korea-regions";
+import {
+  isUsedMarketEligible,
+  USED_KR_ONLY_MSG,
+  USED_PHONE_REQUIRED_MSG,
+} from "@/lib/used-phone-auth";
+
+function assertUsedMarketAccess(user: {
+  countryCode: string;
+  phoneVerified: Date | null;
+}) {
+  if (user.countryCode !== "KR") return USED_KR_ONLY_MSG;
+  if (!isUsedMarketEligible(user)) return USED_PHONE_REQUIRED_MSG;
+  return null;
+}
 
 export async function isUsedDbReady() {
   try {
@@ -107,9 +122,12 @@ export async function createUsedListing(data: {
   images: string[];
 }) {
   const user = await requireAuth();
+  const accessErr = assertUsedMarketAccess(user);
+  if (accessErr) return { error: accessErr };
   if (!data.title.trim()) return { error: "제목을 입력해 주세요." };
   if (data.price < 0) return { error: "가격이 올바르지 않습니다." };
   if (!data.region.trim()) return { error: "거래 지역을 선택해 주세요." };
+  if (!isValidUsedRegion(data.region)) return { error: "올바른 거래 지역을 선택해 주세요." };
 
   try {
     const listing = await db.usedListing.create({
@@ -204,6 +222,8 @@ export async function getMyUsedDashboard() {
 /** 판매자와 1:1 DM으로 거래 문의 */
 export async function startUsedTradeChat(listingId: string) {
   const user = await requireAuth();
+  const accessErr = assertUsedMarketAccess(user);
+  if (accessErr) return { error: accessErr };
   const listing = await db.usedListing.findUnique({
     where: { id: listingId },
     include: { seller: { select: { id: true, username: true } } },
