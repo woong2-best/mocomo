@@ -70,10 +70,14 @@ export async function getOrCreateDM(otherUserId: string) {
   return createChatRoom({ type: "DM", memberIds: [otherUserId] });
 }
 
-export async function getChatRooms() {
-  const user = await requireAuth();
+export async function getChatRooms(forUserId?: string) {
+  let userId = forUserId;
+  if (!userId) {
+    const user = await requireAuth();
+    userId = user.id;
+  }
   const rooms = await db.chatRoom.findMany({
-    where: { members: { some: { userId: user.id } } },
+    where: { members: { some: { userId } } },
     take: 40,
     include: {
       members: { include: { user: { select: { ...userPublicSelectMinimal, name: true } } } },

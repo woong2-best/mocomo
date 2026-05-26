@@ -1,13 +1,13 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { profilePostInclude, type ProfileTab } from "@/lib/profile-queries";
 
 const PAGE_SIZE = 15;
 
 export async function getProfileHeader(username: string) {
-  const session = await auth();
+  const viewerId = await getAuthUserId();
   const user = await db.user.findUnique({
     where: { username },
     select: {
@@ -33,12 +33,12 @@ export async function getProfileHeader(username: string) {
 
   let isFollowing = false;
   let followsYou = false;
-  if (session?.user?.id && session.user.id !== user.id) {
+  if (viewerId && viewerId !== user.id) {
     const [a, b] = await Promise.all([
       db.follow.findUnique({
         where: {
           followerId_followingId: {
-            followerId: session.user.id,
+            followerId: viewerId,
             followingId: user.id,
           },
         },
@@ -47,7 +47,7 @@ export async function getProfileHeader(username: string) {
         where: {
           followerId_followingId: {
             followerId: user.id,
-            followingId: session.user.id,
+            followingId: viewerId,
           },
         },
       }),
@@ -63,7 +63,7 @@ export async function getProfileHeader(username: string) {
 
   return {
     user,
-    isSelf: session?.user?.id === user.id,
+    isSelf: viewerId === user.id,
     isFollowing,
     followsYou,
     pinned,

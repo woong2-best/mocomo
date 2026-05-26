@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { db } from "@/lib/db";
+import { getCachedCommunities } from "@/lib/cached-data";
+
+export const revalidate = 120;
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Users } from "lucide-react";
@@ -21,13 +23,9 @@ const categoryLabels: Record<string, string> = {
 };
 
 export default async function CommunitiesPage() {
-  let communities: Awaited<ReturnType<typeof db.community.findMany>> = [];
+  let communities: Awaited<ReturnType<typeof getCachedCommunities>> = [];
   try {
-    communities = await db.community.findMany({
-      orderBy: { memberCount: "desc" },
-      take: 50,
-      include: { children: { take: 5 } },
-    });
+    communities = await getCachedCommunities();
   } catch {
     communities = [];
   }

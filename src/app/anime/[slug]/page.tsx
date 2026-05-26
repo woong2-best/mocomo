@@ -6,7 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AnimeTabs } from "@/components/anime/anime-tabs";
 import { AnimeFollowButton } from "@/components/anime/anime-follow-button";
-import { auth } from "@/lib/auth";
+import { getCachedSession } from "@/lib/auth";
+
+export const revalidate = 120;
 import { getGenreInfo, genreToParam } from "@/lib/anime-genres";
 import { Pencil } from "lucide-react";
 
@@ -36,13 +38,14 @@ export default async function AnimeDetailPage({
 }) {
   const { slug } = await params;
   const { tab = "info" } = await searchParams;
-  const session = await auth();
+  const session = await getCachedSession();
 
   const anime = await db.anime.findUnique({
     where: { slug },
     include: {
       creator: { select: { id: true, username: true, name: true, image: true } },
       cosplayers: {
+        take: 24,
         include: {
           profile: {
             select: {
@@ -53,7 +56,7 @@ export default async function AnimeDetailPage({
           },
         },
       },
-      goods: true,
+      goods: { take: 24 },
       posts: {
         take: 6,
         orderBy: { createdAt: "desc" },

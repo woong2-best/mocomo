@@ -32,6 +32,7 @@ export default async function AnimeGenreListPage({
   try {
     animes = await db.anime.findMany({
       where: { genre },
+      take: 120,
       orderBy: { title: "asc" },
       select: {
         id: true,

@@ -5,6 +5,8 @@ import { getEmoticonPacks, getPhysicalProducts } from "@/actions/goods-shop";
 import { getCachedMarketProducts } from "@/lib/cached-data";
 import { EMOTICON_PRICES } from "@/lib/goods-shop";
 
+export const revalidate = 120;
+
 export default async function MarketHomePage() {
   const [{ packs }, goods, digital] = await Promise.all([
     getEmoticonPacks().catch(() => ({ packs: [], dbReady: false })),

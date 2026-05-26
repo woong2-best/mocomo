@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requireAuth } from "@/lib/auth";
+import { getCachedCurrentUser, requireAuth } from "@/lib/auth";
+import { postMediaPreview } from "@/lib/post-media-select";
 
 export async function toggleFollow(userId: string, targetUsername?: string) {
   const user = await requireAuth();
@@ -73,11 +74,12 @@ export async function repost(postId: string) {
 }
 
 export async function getFeed(cursor?: string, limit = 20) {
-  const user = await requireAuth().catch(() => null);
+  const user = await getCachedCurrentUser().catch(() => null);
   const followingIds = user
     ? (
         await db.follow.findMany({
           where: { followerId: user.id },
+          take: 500,
           select: { followingId: true },
         })
       ).map((f) => f.followingId)
@@ -96,7 +98,7 @@ export async function getFeed(cursor?: string, limit = 20) {
     include: {
       author: { select: { id: true, username: true, image: true, level: true, supportTierSent: true } },
       community: { select: { name: true, slug: true } },
-      media: true,
+      media: postMediaPreview,
       _count: { select: { likes: true, comments: true, votes: true } },
     },
   });

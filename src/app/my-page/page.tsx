@@ -14,7 +14,11 @@ export default async function MyPage() {
       profile: true,
       posts: { take: 5, orderBy: { createdAt: "desc" } },
       tipsSent: { take: 5, orderBy: { createdAt: "desc" }, include: { receiver: { select: { username: true } } } },
-      creatorSupportsGiven: { include: { creator: { select: { username: true } } } },
+      creatorSupportsGiven: {
+        take: 10,
+        orderBy: { updatedAt: "desc" },
+        include: { creator: { select: { username: true } } },
+      },
     },
   });
 

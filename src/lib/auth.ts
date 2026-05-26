@@ -1,3 +1,4 @@
+import { cache } from "react";
 import NextAuth from "next-auth";
 import { db } from "@/lib/db";
 import { authConfig } from "@/lib/auth.config";
@@ -41,17 +42,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
 });
 
-export async function getCurrentUser() {
-  const session = await auth();
+/** 요청당 세션 1회만 해석 (레이아웃·페이지·액션 중복 auth 방지) */
+export const getCachedSession = cache(async () => auth());
+
+export async function getAuthUserId(): Promise<string | null> {
+  const session = await getCachedSession();
+  return session?.user?.id ?? null;
+}
+
+export const getCachedCurrentUser = cache(async () => {
+  const session = await getCachedSession();
   if (!session?.user?.id) return null;
   return db.user.findUnique({
     where: { id: session.user.id },
     include: { profile: true, cosplayerProfile: true },
   });
+});
+
+export async function getCurrentUser() {
+  return getCachedCurrentUser();
 }
 
 export async function requireAuth() {
-  const user = await getCurrentUser();
+  const user = await getCachedCurrentUser();
   if (!user) throw new Error("UNAUTHORIZED");
   if (user.isBanned) throw new Error("BANNED");
   return user;

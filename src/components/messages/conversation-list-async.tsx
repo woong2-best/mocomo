@@ -11,7 +11,7 @@ async function ConversationListData({
   activeRoomId: string;
   className?: string;
 }) {
-  const rooms = await getChatRooms().catch(() => []);
+  const rooms = await getChatRooms(currentUserId).catch(() => []);
   return (
     <ConversationList
       rooms={rooms}

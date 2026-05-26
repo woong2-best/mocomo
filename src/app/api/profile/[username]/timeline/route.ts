@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getCachedSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getProfileTimeline } from "@/actions/profile-page";
 import { parseProfileTab } from "@/lib/profile-queries";
@@ -25,7 +25,7 @@ export async function GET(
   }
 
   if (tab === "likes") {
-    const session = await auth();
+    const session = await getCachedSession();
     if (!session?.user?.id || session.user.id !== user.id) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
@@ -47,5 +47,13 @@ export async function GET(
     return { type: "like" as const, post: serializePost(item.post) };
   });
 
-  return NextResponse.json({ items: serialized, nextCursor });
+  const cacheHeader =
+    tab === "likes"
+      ? "private, no-store"
+      : "public, s-maxage=30, stale-while-revalidate=120";
+
+  return NextResponse.json(
+    { items: serialized, nextCursor },
+    { headers: { "Cache-Control": cacheHeader } }
+  );
 }

@@ -28,6 +28,7 @@ export async function getCosplayerApplyContext() {
   });
 
   const animes = await db.anime.findMany({
+    take: 200,
     select: { id: true, title: true, slug: true, characters: true },
     orderBy: { title: "asc" },
   });

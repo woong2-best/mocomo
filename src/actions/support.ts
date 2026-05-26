@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
+import { getCachedSession } from "@/lib/auth";
 import { getTipRanking } from "@/actions/monetization";
 import { getTierInfo, getNextTierInfo, tierFromAmount } from "@/lib/tiers";
 import { revalidatePath } from "next/cache";
@@ -54,7 +54,7 @@ export async function getCreatorSupportSummary(creatorId: string) {
 }
 
 export async function getViewerSupportForCreator(creatorId: string) {
-  const session = await auth();
+  const session = await getCachedSession();
   if (!session?.user?.id) return null;
   const row = await db.creatorSupport.findUnique({
     where: {
@@ -74,7 +74,7 @@ export async function getViewerSupportForCreator(creatorId: string) {
 }
 
 export async function getViewerPlatformSupport() {
-  const session = await auth();
+  const session = await getCachedSession();
   if (!session?.user?.id) return null;
   const user = await db.user.findUnique({
     where: { id: session.user.id },
@@ -103,7 +103,7 @@ export async function getViewerPlatformSupport() {
 }
 
 export async function getSupportDashboard() {
-  const session = await auth();
+  const session = await getCachedSession();
   if (!session?.user?.id) return null;
 
   const userId = session.user.id;
@@ -111,6 +111,7 @@ export async function getSupportDashboard() {
   const [sentSupports, receivedAgg, receivedTips, sentTips] = await Promise.all([
     db.creatorSupport.findMany({
       where: { supporterId: userId },
+      take: 50,
       include: { creator: { select: { username: true, name: true, image: true } } },
       orderBy: { totalAmount: "desc" },
     }),

@@ -30,6 +30,7 @@ export async function joinEvent(eventId: string, entryUrl?: string) {
 export async function getEvents() {
   return db.event.findMany({
     where: { endsAt: { gte: new Date() } },
+    take: 40,
     orderBy: { startsAt: "asc" },
     include: { _count: { select: { participants: true } } },
   });

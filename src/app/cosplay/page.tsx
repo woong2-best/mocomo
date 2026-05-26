@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { auth } from "@/lib/auth";
+import { getCachedSession } from "@/lib/auth";
+
+export const revalidate = 120;
 import { db } from "@/lib/db";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -7,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Camera, UserPlus } from "lucide-react";
 
 export default async function CosplayPage() {
-  const session = await auth();
+  const session = await getCachedSession();
   let hasCosplayerProfile = false;
   if (session?.user?.id) {
     hasCosplayerProfile = !!(await db.cosplayerProfile.findUnique({

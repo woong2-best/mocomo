@@ -12,7 +12,7 @@ export default async function MessagesPage() {
 
   let rooms: Awaited<ReturnType<typeof getChatRooms>> = [];
   try {
-    rooms = await getChatRooms();
+    rooms = await getChatRooms(session.user.id);
   } catch {
     rooms = [];
   }

@@ -32,15 +32,16 @@ export default async function UserProfilePage({
   const header = await getProfileHeader(username);
   if (!header) notFound();
 
-  const [supportSummary, viewerSupport, platformSupport] = await Promise.all([
+  const effectiveTab = tab === "likes" && !header.isSelf ? "posts" : tab;
+
+  const [supportSummary, viewerSupport, platformSupport, timeline] = await Promise.all([
     getCreatorSupportSummary(header.user.id),
     getViewerSupportForCreator(header.user.id),
     getViewerPlatformSupport(),
+    getProfileTimeline(header.user.id, effectiveTab),
   ]);
 
-  const effectiveTab = tab === "likes" && !header.isSelf ? "posts" : tab;
-
-  const { items, nextCursor } = await getProfileTimeline(header.user.id, effectiveTab);
+  const { items, nextCursor } = timeline;
 
   const initialItems: TimelineItem[] = items.map((item) => {
     if (item.type === "post") {

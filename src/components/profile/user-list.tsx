@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProfileFollowButton } from "@/components/profile/profile-follow-button";
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 
@@ -13,7 +13,7 @@ export async function UserListPage({
   username: string;
   type: "followers" | "following";
 }) {
-  const session = await auth();
+  const viewerId = await getAuthUserId();
   const profileUser = await db.user.findUnique({
     where: { username },
     select: { id: true, username: true, name: true },
@@ -56,11 +56,12 @@ export async function UserListPage({
   const users = rows.map((r) => (type === "followers" ? r.follower : r.following));
   const title = type === "followers" ? "팔로워" : "팔로잉";
 
-  const followingIds = session?.user?.id
+  const followingIds = viewerId
     ? new Set(
         (
           await db.follow.findMany({
-            where: { followerId: session.user.id },
+            where: { followerId: viewerId },
+            take: 500,
             select: { followingId: true },
           })
         ).map((f) => f.followingId)
@@ -108,7 +109,7 @@ export async function UserListPage({
                   )}
                 </div>
               </Link>
-              {session?.user?.id && session.user.id !== u.id && (
+              {viewerId && viewerId !== u.id && (
                 <ProfileFollowButton
                   userId={u.id}
                   username={u.username}

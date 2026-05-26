@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
-import { auth } from "@/lib/auth";
+import { getCachedSession } from "@/lib/auth";
 import {
   COUNTRY_COOKIE,
   LOCALE_COOKIE,
@@ -30,7 +30,7 @@ export const getRequestI18n = cache(async (): Promise<{ locale: Locale; countryC
     return { locale: fromCookieLocale, countryCode: fromCookieCountry };
   }
 
-  const session = await auth();
+  const session = await getCachedSession();
   return {
     locale: normalizeLocale(session?.user?.locale ?? fromCookieLocale),
     countryCode: session?.user?.countryCode ?? fromCookieCountry,

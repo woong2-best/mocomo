@@ -1,6 +1,9 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
+import { postMediaPreview } from "@/lib/post-media-select";
 import { PostCard } from "@/components/feed/post-card";
+
+export const revalidate = 60;
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PenSquare } from "lucide-react";
@@ -27,11 +30,14 @@ export default async function CommunityPage({ params }: { params: Promise<{ slug
               },
             },
             community: { select: { name: true, slug: true } },
-            media: true,
+            media: postMediaPreview,
             _count: { select: { likes: true, comments: true, votes: true } },
           },
         },
-        children: true,
+        children: {
+          take: 24,
+          select: { id: true, name: true, slug: true, memberCount: true },
+        },
       },
     });
   } catch {

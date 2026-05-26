@@ -162,11 +162,36 @@ export const getCachedVoiceChannels = unstable_cache(
   async () =>
     db.voiceChannel.findMany({
       where: { isLive: true },
+      take: 24,
       include: { _count: { select: { members: true } } },
       orderBy: { createdAt: "desc" },
     }),
   ["voice-channels"],
   { revalidate: 30 }
+);
+
+export const getCachedCommunities = unstable_cache(
+  async () =>
+    db.community.findMany({
+      take: 50,
+      orderBy: { memberCount: "desc" },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        memberCount: true,
+        iconUrl: true,
+        category: true,
+        isNsfw: true,
+        children: {
+          take: 5,
+          select: { id: true, name: true, slug: true, memberCount: true },
+        },
+      },
+    }),
+  ["communities-list"],
+  { revalidate: 120 }
 );
 
 export const getCachedAnimeGenreCounts = unstable_cache(
