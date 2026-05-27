@@ -1,169 +1,77 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Script from "next/script";
 import { Button } from "@/components/ui/button";
 import { getTurnstileSiteKey, isTurnstileConfigured } from "@/lib/turnstile-client";
 
 type TurnstileFieldProps = {
   onToken: (token: string) => void;
   onExpire?: () => void;
+  /** 위젯 로드 실패 시 true — 서버가 요청 제한만으로 가입 허용 */
+  onUnavailable?: (unavailable: boolean) => void;
   className?: string;
 };
 
+const SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+
 declare global {
   interface Window {
-    turnstile?: {
-      ready: (cb: () => void) => void;
-      render: (
-        container: HTMLElement,
-        options: {
-          sitekey: string;
-          callback: (token: string) => void;
-          "expired-callback"?: () => void;
-          "error-callback"?: () => void;
-          theme?: "light" | "dark" | "auto";
-          size?: "normal" | "compact";
-          retry?: "auto" | "never";
-        }
-      ) => string;
-      reset: (widgetId: string) => void;
-      remove: (widgetId: string) => void;
-    };
+    mocomoTurnstileOk?: (token: string) => void;
+    mocomoTurnstileErr?: () => void;
+    mocomoTurnstileExp?: () => void;
   }
 }
 
-const SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-const LOAD_TIMEOUT_MS = 20_000;
-
-let scriptPromise: Promise<void> | null = null;
-
-function loadTurnstileScript(): Promise<void> {
-  if (typeof window === "undefined") return Promise.resolve();
-  if (window.turnstile?.render) return Promise.resolve();
-
-  if (scriptPromise) return scriptPromise;
-
-  scriptPromise = new Promise((resolve, reject) => {
-    const done = () => {
-      const wait = () => {
-        if (window.turnstile?.render) resolve();
-        else requestAnimationFrame(wait);
-      };
-      wait();
-    };
-
-    const existing = document.querySelector(`script[src="${SCRIPT_SRC}"]`) as HTMLScriptElement | null;
-    if (existing) {
-      if (existing.dataset.loaded === "1") return done();
-      existing.addEventListener("load", () => {
-        existing.dataset.loaded = "1";
-        done();
-      });
-      existing.addEventListener("error", () => reject(new Error("Turnstile script load failed")));
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = SCRIPT_SRC;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      script.dataset.loaded = "1";
-      done();
-    };
-    script.onerror = () => reject(new Error("Turnstile script load failed"));
-    document.head.appendChild(script);
-  });
-
-  return scriptPromise;
-}
-
-export function TurnstileField({ onToken, onExpire, className }: TurnstileFieldProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const widgetIdRef = useRef<string | null>(null);
-  const mountIdRef = useRef(0);
+export function TurnstileField({ onToken, onExpire, onUnavailable, className }: TurnstileFieldProps) {
+  const widgetRef = useRef<HTMLDivElement>(null);
+  const [scriptReady, setScriptReady] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [slow, setSlow] = useState(false);
-  const [retryKey, setRetryKey] = useState(0);
+  const [useFallback, setUseFallback] = useState(false);
   const siteKey = getTurnstileSiteKey();
 
-  const renderWidget = useCallback(() => {
-    if (!siteKey || !containerRef.current || !window.turnstile?.render) return;
-
-    if (widgetIdRef.current) {
-      try {
-        window.turnstile.remove(widgetIdRef.current);
-      } catch {
-        /* ignore */
-      }
-      widgetIdRef.current = null;
-    }
-
-    const run = () => {
-      if (!containerRef.current || !window.turnstile) return;
-      widgetIdRef.current = window.turnstile.render(containerRef.current, {
-        sitekey: siteKey,
-        theme: "auto",
-        size: "normal",
-        retry: "auto",
-        callback: (token) => {
-          setSlow(false);
-          setFailed(false);
-          onToken(token);
-        },
-        "expired-callback": () => {
-          onExpire?.();
-          onToken("");
-        },
-        "error-callback": () => {
-          setFailed(true);
-          onToken("");
-        },
-      });
+  useEffect(() => {
+    window.mocomoTurnstileOk = (token) => {
+      setFailed(false);
+      setUseFallback(false);
+      onUnavailable?.(false);
+      onToken(token);
     };
-
-    if (typeof window.turnstile.ready === "function") {
-      window.turnstile.ready(run);
-    } else {
-      run();
-    }
-  }, [siteKey, onToken, onExpire]);
+    window.mocomoTurnstileErr = () => {
+      setFailed(true);
+      onToken("");
+      onUnavailable?.(false);
+    };
+    window.mocomoTurnstileExp = () => {
+      onExpire?.();
+      onToken("");
+    };
+    return () => {
+      delete window.mocomoTurnstileOk;
+      delete window.mocomoTurnstileErr;
+      delete window.mocomoTurnstileExp;
+    };
+  }, [onToken, onExpire, onUnavailable]);
 
   useEffect(() => {
-    if (!siteKey) return;
+    if (!scriptReady || !siteKey || !widgetRef.current || useFallback) return;
+    widgetRef.current.innerHTML = "";
+    const el = document.createElement("div");
+    el.className = "cf-turnstile";
+    el.setAttribute("data-sitekey", siteKey);
+    el.setAttribute("data-theme", "auto");
+    el.setAttribute("data-callback", "mocomoTurnstileOk");
+    el.setAttribute("data-error-callback", "mocomoTurnstileErr");
+    el.setAttribute("data-expired-callback", "mocomoTurnstileExp");
+    widgetRef.current.appendChild(el);
+  }, [scriptReady, siteKey, useFallback]);
 
-    const mountId = ++mountIdRef.current;
+  function enableFallback() {
+    setUseFallback(true);
     setFailed(false);
-    setSlow(false);
     onToken("");
-
-    const slowTimer = window.setTimeout(() => setSlow(true), 8_000);
-    const failTimer = window.setTimeout(() => {
-      if (mountId === mountIdRef.current) setFailed(true);
-    }, LOAD_TIMEOUT_MS);
-
-    loadTurnstileScript()
-      .then(() => {
-        if (mountId !== mountIdRef.current) return;
-        renderWidget();
-      })
-      .catch(() => {
-        if (mountId === mountIdRef.current) setFailed(true);
-      });
-
-    return () => {
-      window.clearTimeout(slowTimer);
-      window.clearTimeout(failTimer);
-      if (mountId === mountIdRef.current && widgetIdRef.current && window.turnstile) {
-        try {
-          window.turnstile.remove(widgetIdRef.current);
-        } catch {
-          /* ignore */
-        }
-        widgetIdRef.current = null;
-      }
-    };
-  }, [siteKey, renderWidget, retryKey, onToken]);
+    onUnavailable?.(true);
+  }
 
   if (!isTurnstileConfigured() || !siteKey) {
     return (
@@ -173,37 +81,55 @@ export function TurnstileField({ onToken, onExpire, className }: TurnstileFieldP
     );
   }
 
+  if (useFallback) {
+    return (
+      <p className="text-xs text-amber-800 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2 text-center">
+        보안 위젯을 쓸 수 없어 <strong>요청 제한 모드</strong>로 가입합니다. (Cloudflare에 mocomo.net 등록 후
+        새로고침하면 체크박스가 나옵니다)
+      </p>
+    );
+  }
+
   if (failed) {
     return (
       <div className="space-y-2 text-center">
-        <p className="text-xs text-destructive">
-          보안 확인을 불러오지 못했습니다. Cloudflare Turnstile에 <strong>mocomo.net</strong> 도메인이
-          등록됐는지 확인한 뒤 새로고침해 주세요.
+        <p className="text-xs text-destructive leading-relaxed">
+          Cloudflare Turnstile 연결에 실패했습니다.
+          <br />
+          <strong>Turnstile → 위젯 → Settings → Hostname</strong>에{" "}
+          <code className="text-[11px]">mocomo.net</code> 을 추가한 뒤 저장하세요.
         </p>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="rounded-xl"
-          onClick={() => {
-            setFailed(false);
-            setRetryKey((k) => k + 1);
-          }}
-        >
-          다시 시도
-        </Button>
+        <div className="flex flex-wrap justify-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-xl"
+            onClick={() => {
+              setFailed(false);
+              setScriptReady(false);
+              window.location.reload();
+            }}
+          >
+            새로고침
+          </Button>
+          <Button type="button" size="sm" className="rounded-xl" onClick={enableFallback}>
+            제한 모드로 계속
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className={className}>
-      <div ref={containerRef} aria-label="보안 확인" />
-      {slow && (
-        <p className="text-xs text-muted-foreground text-center mt-2">
-          확인이 오래 걸리면 광고 차단을 끄거나 새로고침해 주세요.
-        </p>
-      )}
+      <Script
+        src={SCRIPT_SRC}
+        strategy="afterInteractive"
+        onLoad={() => setScriptReady(true)}
+        onError={() => setFailed(true)}
+      />
+      <div ref={widgetRef} className="min-h-[65px] flex justify-center" aria-label="보안 확인" />
     </div>
   );
 }

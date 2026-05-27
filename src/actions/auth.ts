@@ -57,6 +57,8 @@ const registerSchema = z.object({
   locale: z.enum(["ko", "en", "ja", "zh"]).default("ko"),
   countryCode: z.string().min(2).max(8).default("KR"),
   turnstileToken: z.string().optional(),
+  /** 클라이언트 Turnstile 위젯 로드 실패 시 true */
+  turnstileUnavailable: z.boolean().optional(),
   /** 봇 허니팟 — 값이 있으면 거부 */
   website: z.string().optional(),
 });
@@ -122,11 +124,12 @@ async function findAuthCodeRecord(email: string, code: string) {
 export async function sendEmailAuthCode(
   email: string,
   mode: "signup" | "reset" = "signup",
-  turnstileToken?: string
+  turnstileToken?: string,
+  widgetUnavailable?: boolean
 ) {
   const normalized = email.trim().toLowerCase();
 
-  const botCheck = await verifyTurnstileToken(turnstileToken);
+  const botCheck = await verifyTurnstileToken(turnstileToken, { widgetUnavailable });
   if (!botCheck.ok) return { error: botCheck.error };
 
   const ip = await getRequestIp();
@@ -296,6 +299,7 @@ export async function registerUser(
     locale,
     countryCode,
     turnstileToken,
+    turnstileUnavailable,
     website,
   } = parsed.data;
   const email = rawEmail.trim().toLowerCase();
@@ -304,7 +308,9 @@ export async function registerUser(
     return { error: "요청을 처리할 수 없습니다." };
   }
 
-  const botCheck = await verifyTurnstileToken(turnstileToken);
+  const botCheck = await verifyTurnstileToken(turnstileToken, {
+    widgetUnavailable: turnstileUnavailable,
+  });
   if (!botCheck.ok) return { error: botCheck.error };
 
   const ip = await getRequestIp();

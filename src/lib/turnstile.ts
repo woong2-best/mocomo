@@ -18,7 +18,8 @@ type TurnstileVerifyResponse = {
 };
 
 export async function verifyTurnstileToken(
-  token: string | undefined | null
+  token: string | undefined | null,
+  options?: { widgetUnavailable?: boolean }
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!isTurnstileConfigured()) {
     if (process.env.NODE_ENV === "production") {
@@ -29,6 +30,9 @@ export async function verifyTurnstileToken(
 
   const trimmed = token?.trim();
   if (!trimmed) {
+    if (options?.widgetUnavailable) {
+      return { ok: true };
+    }
     return { ok: false, error: "아래 보안 확인(로봇이 아님)을 완료해 주세요." };
   }
 

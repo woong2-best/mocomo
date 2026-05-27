@@ -33,6 +33,7 @@ export function SignUpForm({
   const [locale, setLocale] = useState<Locale>("ko");
   const [countryCode, setCountryCode] = useState("KR");
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileUnavailable, setTurnstileUnavailable] = useState(false);
 
   const showSocial = googleOAuth || discordOAuth;
 
@@ -55,8 +56,8 @@ export function SignUpForm({
       return;
     }
 
-    if (isTurnstileConfigured() && !turnstileToken) {
-      setError("아래 보안 확인을 완료해 주세요.");
+    if (isTurnstileConfigured() && !turnstileToken && !turnstileUnavailable) {
+      setError("아래 보안 확인을 완료하거나 「제한 모드로 계속」을 선택해 주세요.");
       setLoading(false);
       return;
     }
@@ -74,6 +75,7 @@ export function SignUpForm({
         locale,
         countryCode,
         turnstileToken: turnstileToken || undefined,
+        turnstileUnavailable,
         website: (form.get("website") as string) || undefined,
       });
 
@@ -192,8 +194,11 @@ export function SignUpForm({
                   className="flex justify-center min-h-[65px]"
                   onToken={setTurnstileToken}
                   onExpire={() => setTurnstileToken("")}
+                  onUnavailable={setTurnstileUnavailable}
                 />
-                {turnstileToken ? (
+                {turnstileUnavailable ? (
+                  <p className="text-xs text-amber-700 text-center font-medium">요청 제한 모드 (위젯 우회)</p>
+                ) : turnstileToken ? (
                   <p className="text-xs text-emerald-600 text-center font-medium">보안 확인 완료</p>
                 ) : (
                   <p className="text-xs text-amber-700 text-center">확인을 마친 뒤 회원가입을 눌러 주세요</p>
@@ -222,7 +227,9 @@ export function SignUpForm({
             <Button
               type="submit"
               className="w-full rounded-xl"
-              disabled={loading || (isTurnstileConfigured() && !turnstileToken)}
+              disabled={
+                loading || (isTurnstileConfigured() && !turnstileToken && !turnstileUnavailable)
+              }
             >
               {loading
                 ? "인증 메일 발송 중..."
