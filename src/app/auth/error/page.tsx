@@ -14,9 +14,10 @@ export default async function AuthErrorPage({
       "Vercel Production 환경 변수가 빠졌거나 잘못됐습니다. AUTH_SECRET(32자 이상), DATABASE_URL, AUTH_URL을 확인한 뒤 Redeploy 하세요.",
     AccessDenied: "접근이 거부되었습니다.",
     Verification: "인증 링크가 만료되었습니다.",
-    OAuthSignin: "소셜 로그인 시작에 실패했습니다. Google Client ID/Secret을 확인하세요.",
+    OAuthSignin:
+      "소셜 로그인 시작에 실패했습니다. Vercel에 OAuth Client ID/Secret과 AUTH_URL을 확인하세요.",
     OAuthCallback:
-      "Google 리디렉트 URI가 맞지 않습니다. Google Cloud Console에 https://<도메인>/api/auth/callback/google 를 등록하세요.",
+      "OAuth 리디렉트 URI가 맞지 않습니다. Discord/Google 개발자 콘솔에 https://mocomo.net/api/auth/callback/discord (또는 /google) 를 등록하세요.",
     OAuthAccountNotLinked: "이 이메일은 다른 방식으로 가입되어 있습니다.",
     CredentialsSignin: "이메일 또는 비밀번호가 올바르지 않습니다.",
     Default: "로그인 중 오류가 발생했습니다.",
@@ -52,6 +53,10 @@ export default async function AuthErrorPage({
                   <code>DATABASE_URL</code>, <code>DIRECT_URL</code> — Supabase 연결
                 </li>
                 <li>Google: <code>AUTH_GOOGLE_ID</code>, <code>AUTH_GOOGLE_SECRET</code></li>
+                <li>Discord: <code>AUTH_DISCORD_ID</code>, <code>AUTH_DISCORD_SECRET</code></li>
+                <li>
+                  Discord Redirect: <code>https://mocomo.net/api/auth/callback/discord</code>
+                </li>
               </ul>
               <p className="text-xs text-muted-foreground pt-1">
                 저장 후 Deployments → Redeploy. 상태 확인: <code>/api/health</code>

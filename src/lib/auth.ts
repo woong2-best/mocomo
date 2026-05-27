@@ -25,6 +25,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     ...authConfig.callbacks,
+    async signIn({ user }) {
+      if (!user?.id) return true;
+      const dbUser = await db.user.findUnique({
+        where: { id: user.id },
+        select: { isBanned: true },
+      });
+      return !dbUser?.isBanned;
+    },
     async jwt({ token, user, trigger }) {
       if (user?.id) {
         token.id = user.id;

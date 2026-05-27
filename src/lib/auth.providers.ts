@@ -73,6 +73,9 @@ export function getAuthProviders(): NonNullable<NextAuthConfig["providers"]> {
         clientId: process.env.AUTH_DISCORD_ID,
         clientSecret: process.env.AUTH_DISCORD_SECRET,
         allowDangerousEmailAccountLinking: true,
+        authorization: {
+          params: { scope: "identify email" },
+        },
       })
     );
   }

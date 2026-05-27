@@ -218,32 +218,31 @@ export function SignUpForm({
                   또는 소셜로 가입
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
+                {discordOAuth && (
+                  <Button
+                    type="button"
+                    className="w-full rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white"
+                    onClick={() => signIn("discord", { callbackUrl: "/" })}
+                  >
+                    Discord로 가입
+                  </Button>
+                )}
                 {googleOAuth && (
                   <Button
                     type="button"
                     variant="outline"
-                    className="rounded-xl"
+                    className="w-full rounded-xl"
                     onClick={() => signIn("google", { callbackUrl: "/" })}
                   >
-                    Google
-                  </Button>
-                )}
-                {discordOAuth && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="rounded-xl"
-                    onClick={() => signIn("discord", { callbackUrl: "/" })}
-                  >
-                    Discord
+                    Google로 가입
                   </Button>
                 )}
               </div>
             </>
           ) : (
             <p className="text-xs text-center text-muted-foreground">
-              Google 가입은 Vercel에 OAuth 키 추가 후 사용할 수 있습니다.
+              Google·Discord 가입은 Vercel에 OAuth 키 추가 후 사용할 수 있습니다. 지금은 이메일 가입을 이용해 주세요.
             </p>
           )}
 

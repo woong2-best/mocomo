@@ -143,32 +143,31 @@ function SignInFormInner({
                   소셜 로그인
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
+                {discordOAuth && (
+                  <Button
+                    type="button"
+                    className="w-full rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white"
+                    onClick={() => signIn("discord", { callbackUrl })}
+                  >
+                    Discord로 로그인
+                  </Button>
+                )}
                 {googleOAuth && (
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => signIn("google", { callbackUrl })}
-                    className="rounded-xl"
+                    className="w-full rounded-xl"
                   >
-                    Google
-                  </Button>
-                )}
-                {discordOAuth && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => signIn("discord", { callbackUrl })}
-                    className="rounded-xl"
-                  >
-                    Discord
+                    Google로 로그인
                   </Button>
                 )}
               </div>
             </>
           ) : (
             <p className="text-xs text-center text-muted-foreground">
-              Google 로그인은 Vercel에 OAuth 키 추가 후 사용할 수 있습니다.
+              Google·Discord 로그인은 Vercel에 OAuth 키 추가 후 사용할 수 있습니다.
             </p>
           )}
 

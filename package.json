@@ -18,6 +18,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "operator:assign": "tsx scripts/set-operator.ts",
     "operator:revoke": "tsx scripts/revoke-unauthorized-admins.ts",
+    "oauth:discord": "tsx scripts/discord-oauth-setup.ts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate"
   },
