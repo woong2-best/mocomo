@@ -30,11 +30,11 @@ export default async function AnimeNewestPage() {
       </Link>
       <h1 className="text-2xl font-bold flex items-center gap-2">
         <Sparkles className="h-7 w-7 text-neon-cyan" />
-        신규 문서
+        신규 글
       </h1>
       <ul className="divide-y divide-border rounded-2xl border border-border overflow-hidden">
         {animes.length === 0 ? (
-          <li className="p-4 text-sm text-muted-foreground">등록된 문서가 없습니다.</li>
+          <li className="p-4 text-sm text-muted-foreground">등록된 글이 없습니다.</li>
         ) : (
           animes.map((a) => (
             <li key={a.slug}>

@@ -64,7 +64,7 @@ export default async function AnimeHubPage() {
                           <div className="min-w-0 flex-1">
                             <h2 className="font-semibold text-lg">{g.label}</h2>
                             <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{g.description}</p>
-                            <p className="text-xs text-neon-cyan mt-3">{count}개 문서</p>
+                            <p className="text-xs text-neon-cyan mt-3">{count}개 글</p>
                           </div>
                         </div>
                       </CardContent>

@@ -71,7 +71,7 @@ export default async function AnimeGenreListPage({
         <Link href={session?.user ? `/anime/new?genre=${genreParam}` : `/auth/signin?callbackUrl=${encodeURIComponent(`/anime/new?genre=${genreParam}`)}`}>
           <Button size="sm" className="gap-1" variant={session?.user ? "default" : "outline"}>
             <Plus className="h-4 w-4" />
-            {session?.user ? "문서 추가" : "로그인하고 추가"}
+            {session?.user ? "글 추가" : "로그인하고 추가"}
           </Button>
         </Link>
       </div>
@@ -89,7 +89,7 @@ export default async function AnimeGenreListPage({
               }
               className="text-primary hover:underline"
             >
-              첫 문서 만들기
+              첫 글 만들기
             </Link>
           </p>
         ) : (

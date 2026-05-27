@@ -23,7 +23,7 @@ export default async function AnimePopularPage() {
       </Link>
       <h1 className="text-2xl font-bold flex items-center gap-2">
         <Flame className="h-7 w-7 text-orange-500" />
-        인기 문서
+        인기 글
       </h1>
       <p className="text-sm text-muted-foreground">조회수(클릭) 기준 실시간 인기 순위입니다.</p>
       <ol className="space-y-2">

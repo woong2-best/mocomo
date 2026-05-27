@@ -13,7 +13,7 @@ export function AnimeAddButton() {
       <Link href="/auth/signin?callbackUrl=/anime/new">
         <Button variant="outline" className="gap-2">
           <Plus className="h-4 w-4" />
-          로그인하고 문서 추가
+          로그인하고 글 추가
         </Button>
       </Link>
     );
@@ -23,7 +23,7 @@ export function AnimeAddButton() {
     <Link href="/anime/new">
       <Button className="gap-2">
         <Plus className="h-4 w-4" />
-        새 문서 추가
+        새 글 추가
       </Button>
     </Link>
   );

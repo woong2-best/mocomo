@@ -40,7 +40,7 @@ export default async function AnimeRecentPage() {
       </h1>
       <ul className="divide-y divide-border rounded-2xl border border-border overflow-hidden">
         {animes.length === 0 ? (
-          <li className="p-4 text-sm text-muted-foreground">변경된 문서가 없습니다.</li>
+          <li className="p-4 text-sm text-muted-foreground">변경된 글이 없습니다.</li>
         ) : (
           animes.map((a) => (
             <li key={a.slug}>

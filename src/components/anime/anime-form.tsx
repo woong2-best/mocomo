@@ -79,7 +79,7 @@ export function AnimeForm({
   return (
     <Card className="rounded-2xl shadow-md max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>{mode === "create" ? "새 애니 문서" : "문서 편집"}</CardTitle>
+        <CardTitle>{mode === "create" ? "새 애니 글" : "글 편집"}</CardTitle>
         <p className="text-sm text-muted-foreground">
           나무위키처럼 로그인한 누구나 내용을 추가·수정할 수 있어요. 저장하면 모든 이용자에게 바로 반영됩니다.
         </p>
