@@ -460,4 +460,11 @@ ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "phone" TEXT;
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "phoneVerified" TIMESTAMP(3);
 CREATE UNIQUE INDEX IF NOT EXISTS "User_phone_key" ON "User"("phone") WHERE "phone" IS NOT NULL;
 
+-- O) 운영자 계정 — @mocomocompany 만 ADMIN (다른 계정은 USER 로)
+UPDATE "User" SET "role" = 'USER'
+WHERE "username" <> 'mocomocompany' AND "role" IN ('ADMIN', 'MODERATOR');
+
+UPDATE "User" SET "role" = 'ADMIN'
+WHERE "username" = 'mocomocompany';
+
 -- 완료 후 터미널: npx prisma db push && npm run db:seed
