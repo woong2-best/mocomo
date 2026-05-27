@@ -36,7 +36,11 @@ import {
   FORBIDDEN_ADMIN_SEQUENCE_MESSAGE,
   validateUsernameAndName,
 } from "@/lib/forbidden-admin-sequence";
-import { checkEmailSendRateLimit } from "@/lib/auth-rate-limit";
+import {
+  checkEmailSendRateLimit,
+  checkLoginRateLimit,
+  recordLoginAttempt,
+} from "@/lib/auth-rate-limit";
 import { getRequestIp } from "@/lib/request-ip";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 
@@ -515,11 +519,23 @@ export async function resendVerificationEmail(email: string, turnstileToken?: st
 
 export async function preLoginCheck(email: string, password: string) {
   const normalized = email.trim().toLowerCase();
+  const ip = await getRequestIp();
+  const rate = await checkLoginRateLimit(normalized, ip);
+  if (!rate.ok) {
+    return { ok: false, error: "RATE_LIMIT" as const, message: rate.error };
+  }
+
   const user = await resolveUserByEmail(normalized);
-  if (!user?.passwordHash) return { ok: false, error: "INVALID" as const };
+  if (!user?.passwordHash) {
+    await recordLoginAttempt(normalized, ip);
+    return { ok: false, error: "INVALID" as const };
+  }
 
   const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid) return { ok: false, error: "INVALID" as const };
+  if (!valid) {
+    await recordLoginAttempt(normalized, ip);
+    return { ok: false, error: "INVALID" as const };
+  }
 
   if (!user.emailVerified) {
     const verifyId = verifyTokenIdentifier(normalized);

@@ -1,8 +1,17 @@
 import type { NextConfig } from "next";
+import { SECURITY_HEADERS } from "./src/lib/security-headers";
 
 const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: SECURITY_HEADERS,
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "**" },

@@ -49,6 +49,10 @@ function SignInFormInner({
     const check = await preLoginCheck(normalizedEmail, password);
     if (!check.ok) {
       setLoading(false);
+      if (check.error === "RATE_LIMIT") {
+        setError(check.message ?? "로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.");
+        return;
+      }
       if (check.error === "EMAIL_NOT_VERIFIED") {
         setError("이메일 인증이 필요합니다.");
         router.push(

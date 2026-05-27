@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { auth } from "@/lib/auth";
+import { checkUploadRateLimit } from "@/lib/api-security";
 import { validateFileType, ALLOWED_IMAGE, ALLOWED_VIDEO, ALLOWED_AUDIO } from "@/lib/storage";
 
 export async function POST(req: NextRequest) {
@@ -9,6 +10,9 @@ export async function POST(req: NextRequest) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const uploadLimit = await checkUploadRateLimit(session.user.id);
+  if (uploadLimit) return uploadLimit;
 
   const form = await req.formData();
   const file = form.get("file") as File | null;

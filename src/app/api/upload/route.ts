@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { checkUploadRateLimit } from "@/lib/api-security";
 import { getUploadPresignedUrl, validateFileType, ALLOWED_IMAGE, ALLOWED_VIDEO, ALLOWED_AUDIO } from "@/lib/storage";
 
 export async function POST(req: NextRequest) {
@@ -7,6 +8,9 @@ export async function POST(req: NextRequest) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const uploadLimit = await checkUploadRateLimit(session.user.id);
+  if (uploadLimit) return uploadLimit;
 
   const body = await req.json();
   const { filename, contentType, category } = body as {

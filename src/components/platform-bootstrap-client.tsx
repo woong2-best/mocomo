@@ -2,9 +2,13 @@
 
 import { useEffect } from "react";
 
-/** 첫 방문 1회만 서버 부트스트랩 (레이아웃 블로킹 제거) */
+/**
+ * 개발 환경에서만 공개 bootstrap 호출.
+ * 프로덕션은 Vercel 빌드 시 seed 로 처리 — 무인증 POST 공격면 제거.
+ */
 export function PlatformBootstrapClient() {
   useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
     if (typeof window === "undefined") return;
     if (sessionStorage.getItem("mocomo_platform_boot")) return;
 

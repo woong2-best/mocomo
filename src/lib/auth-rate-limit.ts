@@ -6,6 +6,7 @@ const PHONE_SMS_PER_DAY = 3;
 const EMAIL_SENDS_PER_HOUR = 5;
 const EMAIL_SENDS_PER_DAY = 10;
 const EMAIL_COOLDOWN_SEC = 60;
+const LOGIN_ATTEMPTS_PER_15MIN = 12;
 
 function kstDateKey(d = new Date()): string {
   const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
@@ -129,4 +130,36 @@ export async function checkEmailSendRateLimit(email: string, ip: string) {
   }
 
   return { ok: true as const };
+}
+
+function loginWindowKey(): string {
+  const d = new Date();
+  const slot = Math.floor(d.getTime() / (15 * 60 * 1000));
+  return String(slot);
+}
+
+/** 로그인·비밀번호 시도 무차별 대입 방지 */
+export async function checkLoginRateLimit(
+  email: string,
+  ip: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const normalized = email.trim().toLowerCase();
+  const window = loginWindowKey();
+  const msg = "로그인 시도가 너무 많습니다. 15분 후 다시 시도해 주세요.";
+
+  for (const scope of [`login-ip:${ip}:${window}`, `login-email:${normalized}:${window}`]) {
+    const count = await countDbRateEvents(scope);
+    const max = scope.startsWith("login-ip:") ? LOGIN_ATTEMPTS_PER_15MIN : 8;
+    if (count >= max) return { ok: false, error: msg };
+  }
+  return { ok: true };
+}
+
+export async function recordLoginAttempt(email: string, ip: string): Promise<void> {
+  const normalized = email.trim().toLowerCase();
+  const window = loginWindowKey();
+  const expires = new Date(Date.now() + 16 * 60 * 1000);
+  for (const scope of [`login-ip:${ip}:${window}`, `login-email:${normalized}:${window}`]) {
+    await recordDbRateEvent(scope, expires);
+  }
 }

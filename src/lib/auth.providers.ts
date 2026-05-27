@@ -4,6 +4,8 @@ import Discord from "next-auth/providers/discord";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
+import { checkLoginRateLimit, recordLoginAttempt } from "@/lib/auth-rate-limit";
+import { getRequestIp } from "@/lib/request-ip";
 
 const credentialsProvider = Credentials({
   name: "credentials",
@@ -15,12 +17,22 @@ const credentialsProvider = Credentials({
     if (!credentials?.email || !credentials?.password) return null;
     const email = String(credentials.email).trim().toLowerCase();
     const password = String(credentials.password);
+    const ip = await getRequestIp();
+
+    const rate = await checkLoginRateLimit(email, ip);
+    if (!rate.ok) return null;
 
     const user = await db.user.findUnique({ where: { email } });
-    if (!user?.passwordHash || user.isBanned) return null;
+    if (!user?.passwordHash || user.isBanned) {
+      await recordLoginAttempt(email, ip);
+      return null;
+    }
 
     const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) return null;
+    if (!valid) {
+      await recordLoginAttempt(email, ip);
+      return null;
+    }
 
     if (!user.emailVerified) {
       const verifyId = `verify:${email}`;

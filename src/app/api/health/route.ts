@@ -1,18 +1,24 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getAuthConfigStatus, isAuthConfigured } from "@/lib/auth-env";
-import { getEmailConfigStatus } from "@/lib/email";
-import { isLivekitConfigured } from "@/lib/livekit";
+import { verifyInternalSecret, isProduction } from "@/lib/api-security";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   let dbOk = false;
-  let voiceCallTable = false;
   try {
     await db.$queryRaw`SELECT 1`;
     dbOk = true;
   } catch {
     dbOk = false;
   }
+
+  if (isProduction() && !verifyInternalSecret(req)) {
+    return NextResponse.json(
+      { status: dbOk ? "ok" : "degraded" },
+      { status: dbOk ? 200 : 503 }
+    );
+  }
+
+  let voiceCallTable = false;
   if (dbOk) {
     try {
       await db.$queryRaw`SELECT 1 FROM "VoiceCall" LIMIT 1`;
@@ -22,24 +28,10 @@ export async function GET() {
     }
   }
 
-  const auth = { ...getAuthConfigStatus(), ...getEmailConfigStatus() };
-  const ok = dbOk && isAuthConfigured();
-
-  return NextResponse.json(
-    {
-      status: ok ? "ok" : "degraded",
-      service: "mocomo",
-      db: dbOk ? "connected" : "disconnected",
-      auth: {
-        ...auth,
-        ready: isAuthConfigured(),
-      },
-      calls: {
-        livekit: isLivekitConfigured(),
-        voiceCallTable,
-        signaling: "polling",
-      },
-    },
-    { status: ok ? 200 : 503 }
-  );
+  return NextResponse.json({
+    status: dbOk ? "ok" : "degraded",
+    service: "mocomo",
+    db: dbOk ? "connected" : "disconnected",
+    calls: { voiceCallTable },
+  });
 }
