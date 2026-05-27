@@ -63,7 +63,8 @@ export function UsedPhoneVerifyForm({ callbackUrl = "/used/new" }: { callbackUrl
         </CardTitle>
         <p className="text-sm text-muted-foreground font-normal">
           중고거래는 <strong className="text-foreground">대한민국 휴대폰 번호</strong> 인증 후 이용할 수
-          있습니다. 인증번호는 <strong className="text-foreground">하루 3회</strong>까지만 요청할 수 있습니다.
+          있습니다. <strong className="text-foreground">번호 하나당 계정 하나</strong>만 등록할 수 있으며, 인증번호는{" "}
+          <strong className="text-foreground">하루 3회</strong>까지만 요청할 수 있습니다.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">

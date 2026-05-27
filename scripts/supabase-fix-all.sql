@@ -458,7 +458,10 @@ ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "countryCode" TEXT NOT NULL DEFAULT 
 -- N) 중고거래 휴대폰 인증 (대한민국)
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "phone" TEXT;
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "phoneVerified" TIMESTAMP(3);
+-- 번호 1개 = 계정 1개 (NULL 은 여러 계정 허용)
 CREATE UNIQUE INDEX IF NOT EXISTS "User_phone_key" ON "User"("phone") WHERE "phone" IS NOT NULL;
+-- 중복 번호 정리(수동 1회): 아래로 충돌 확인 후 오래된/미인증 계정 phone 을 NULL 로
+-- SELECT phone, COUNT(*) FROM "User" WHERE phone IS NOT NULL GROUP BY phone HAVING COUNT(*) > 1;
 
 -- O) 운영자 (선택·수동 1회) — 앱은 요청마다 role 을 바꾸지 않음
 --     권장: Vercel SITE_OPERATOR_USERNAME 설정 후 터미널 npm run operator:assign
