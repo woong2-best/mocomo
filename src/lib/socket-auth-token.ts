@@ -3,8 +3,14 @@ import { getAuthSecret } from "@/lib/auth-env";
 
 const TTL_MS = 5 * 60 * 1000;
 
+function socketSecret(): string {
+  const secret = getAuthSecret();
+  if (!secret) throw new Error("AUTH_SECRET is required for socket auth");
+  return secret;
+}
+
 function sign(payload: string): string {
-  return createHmac("sha256", getAuthSecret()).update(payload).digest("base64url");
+  return createHmac("sha256", socketSecret()).update(payload).digest("base64url");
 }
 
 export function createSocketAuthToken(userId: string): string {
