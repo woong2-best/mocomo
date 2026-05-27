@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
+import { validateUsernameAndName } from "@/lib/forbidden-admin-sequence";
 import { xpForLevel } from "@/lib/utils";
 import type { Prisma } from "@prisma/client";
 
@@ -19,6 +20,11 @@ export async function updateProfile(data: {
 }) {
   const user = await requireAuth();
   const { name, image, showNsfw, ...profileData } = data;
+
+  if (name !== undefined) {
+    const check = validateUsernameAndName(user.username, name);
+    if (!check.ok) return { error: check.error };
+  }
   await db.profile.upsert({
     where: { userId: user.id },
     create: { userId: user.id, ...profileData },

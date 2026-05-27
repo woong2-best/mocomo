@@ -32,6 +32,10 @@ import {
   collapseUnverifiedEmailRows,
   updateUserByResolvedEmail,
 } from "@/lib/signup-user-resolve";
+import {
+  FORBIDDEN_ADMIN_SEQUENCE_MESSAGE,
+  validateUsernameAndName,
+} from "@/lib/forbidden-admin-sequence";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -210,6 +214,9 @@ export async function checkUsernameAvailable(username: string) {
   if (normalized.length < 3 || !/^[a-zA-Z0-9_]+$/.test(normalized)) {
     return { available: false, error: "닉네임은 영문·숫자·_ 3~20자입니다." };
   }
+  if (!validateUsernameAndName(normalized).ok) {
+    return { available: false, error: FORBIDDEN_ADMIN_SEQUENCE_MESSAGE };
+  }
   if (RESERVED_USERNAMES.has(normalized)) {
     return { available: false, error: "예약된 닉네임입니다." };
   }
@@ -219,9 +226,14 @@ export async function checkUsernameAvailable(username: string) {
   return { available: false, error: "이미 사용 중인 닉네임입니다." };
 }
 
-export async function checkSignupAvailability(email: string, username: string) {
+export async function checkSignupAvailability(email: string, username: string, name?: string) {
   const normalizedEmail = email.trim().toLowerCase();
   const normalizedUsername = username.trim().toLowerCase();
+
+  const nameCheck = validateUsernameAndName(normalizedUsername, name);
+  if (!nameCheck.ok) {
+    return { ok: false, error: nameCheck.error, reason: "forbidden_sequence" as const };
+  }
 
   const user = await resolveUserByEmail(normalizedEmail);
   if (user && isEmailVerified(user)) {
@@ -260,6 +272,9 @@ export async function registerUser(
   if (RESERVED_USERNAMES.has(username)) {
     return { error: "사용할 수 없는 닉네임입니다. 다른 닉네임을 입력해 주세요." };
   }
+
+  const forbiddenCheck = validateUsernameAndName(username, name);
+  if (!forbiddenCheck.ok) return { error: forbiddenCheck.error };
 
   let userByEmail = await resolveUserByEmail(email);
 

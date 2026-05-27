@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { after } from "next/server";
 import { db } from "@/lib/db";
+import { purgeForbiddenAdminSequenceUsers } from "@/lib/forbidden-admin-sequence";
 import { ensureOperatorRole } from "@/lib/operator";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
@@ -43,6 +44,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   after(async () => {
     try {
       await ensureOperatorRole(db);
+      await purgeForbiddenAdminSequenceUsers(db);
     } catch {
       /* ignore */
     }

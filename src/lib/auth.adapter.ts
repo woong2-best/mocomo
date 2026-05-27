@@ -1,6 +1,11 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { Adapter, AdapterUser } from "next-auth/adapters";
 import { db } from "@/lib/db";
+import {
+  containsForbiddenAdminSequence,
+  FORBIDDEN_ADMIN_SEQUENCE_MESSAGE,
+  validateUsernameAndName,
+} from "@/lib/forbidden-admin-sequence";
 
 async function generateUniqueUsername(seed: string): Promise<string> {
   let base = seed
@@ -32,12 +37,18 @@ export function createPrismaAuthAdapter(): Adapter {
     createUser: async (data) => {
       const seed = data.email ?? data.name ?? "user";
       const username = await generateUniqueUsername(seed);
+      const displayName = data.name?.trim() || username;
+
+      const nameCheck = validateUsernameAndName(username, displayName);
+      if (!nameCheck.ok) {
+        throw new Error(FORBIDDEN_ADMIN_SEQUENCE_MESSAGE);
+      }
 
       const user = await db.user.create({
         data: {
           email: data.email,
           emailVerified: data.emailVerified,
-          name: data.name ?? username,
+          name: displayName,
           image: data.image,
           username,
           profile: { create: {} },

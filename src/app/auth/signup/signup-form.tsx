@@ -5,6 +5,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { registerUser } from "@/actions/auth";
+import {
+  containsForbiddenAdminSequence,
+  FORBIDDEN_ADMIN_SEQUENCE_MESSAGE,
+} from "@/lib/forbidden-admin-sequence";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +40,16 @@ export function SignUpForm({
     const email = (form.get("email") as string).trim().toLowerCase();
     const password = form.get("password") as string;
     const username = ((form.get("username") as string) || "").trim().toLowerCase();
+    const displayName = ((form.get("name") as string) || "").trim();
+
+    if (
+      containsForbiddenAdminSequence(username) ||
+      (displayName && containsForbiddenAdminSequence(displayName))
+    ) {
+      setError(FORBIDDEN_ADMIN_SEQUENCE_MESSAGE);
+      setLoading(false);
+      return;
+    }
 
     try {
       const maxAge = 60 * 60 * 24 * 365;

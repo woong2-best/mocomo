@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import { updateProfile } from "@/actions/profile";
+import {
+  containsForbiddenAdminSequence,
+  FORBIDDEN_ADMIN_SEQUENCE_MESSAGE,
+} from "@/lib/forbidden-admin-sequence";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,6 +37,12 @@ export function ProfileSettingsForm({ initial }: { initial: Initial }) {
     setLoading(true);
     setMsg("");
     const form = new FormData(e.currentTarget);
+    const displayName = ((form.get("name") as string) || "").trim();
+    if (displayName && containsForbiddenAdminSequence(displayName)) {
+      setMsg(FORBIDDEN_ADMIN_SEQUENCE_MESSAGE);
+      setLoading(false);
+      return;
+    }
     const tags = (form.get("favoriteTags") as string)
       ?.split(",")
       .map((t) => t.trim())
@@ -52,7 +62,11 @@ export function ProfileSettingsForm({ initial }: { initial: Initial }) {
         ].filter(([, v]) => v)
       ) as Record<string, string>,
     });
-    setMsg("저장되었습니다.");
+    if (result && "error" in result && result.error) {
+      setMsg(result.error);
+    } else {
+      setMsg("저장되었습니다.");
+    }
     setLoading(false);
   }
 
@@ -139,7 +153,15 @@ export function ProfileSettingsForm({ initial }: { initial: Initial }) {
             <Button type="submit" className="w-full rounded-xl" disabled={loading}>
               {loading ? "저장 중..." : "저장"}
             </Button>
-            {msg && <p className="text-sm text-primary">{msg}</p>}
+            {msg && (
+              <p
+                className={`text-sm ${
+                  msg === FORBIDDEN_ADMIN_SEQUENCE_MESSAGE ? "text-destructive" : "text-primary"
+                }`}
+              >
+                {msg}
+              </p>
+            )}
           </form>
         </CardContent>
       </Card>
