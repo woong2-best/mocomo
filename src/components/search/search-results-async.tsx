@@ -23,8 +23,16 @@ export async function SearchResultsAsync({ query }: { query: string }) {
       select: { username: true, name: true, supportTierSent: true },
     }),
     db.anime.findMany({
-      where: { title: { contains: query, mode: "insensitive" } },
+      where: {
+        OR: [
+          { title: { contains: query, mode: "insensitive" } },
+          { titleEn: { contains: query, mode: "insensitive" } },
+          { synopsis: { contains: query, mode: "insensitive" } },
+          { studio: { contains: query, mode: "insensitive" } },
+        ],
+      },
       take: 10,
+      orderBy: [{ viewCount: "desc" }, { updatedAt: "desc" }],
       select: { slug: true, title: true },
     }),
     db.post.findMany({

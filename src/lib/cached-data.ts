@@ -63,6 +63,28 @@ export const getCachedPopularAnime = unstable_cache(
   { revalidate: 120 }
 );
 
+export const getCachedRecentAnime = unstable_cache(
+  async () =>
+    db.anime.findMany({
+      take: 10,
+      orderBy: { updatedAt: "desc" },
+      select: { slug: true, title: true, updatedAt: true },
+    }),
+  ["anime-recent"],
+  { revalidate: 60 }
+);
+
+export const getCachedNewestAnime = unstable_cache(
+  async () =>
+    db.anime.findMany({
+      take: 50,
+      orderBy: { createdAt: "desc" },
+      select: { slug: true, title: true, createdAt: true, creator: { select: { username: true } } },
+    }),
+  ["anime-newest"],
+  { revalidate: 120 }
+);
+
 export const getCachedSidebarTips = unstable_cache(
   async () => getTipRanking(5),
   ["sidebar-tips"],
