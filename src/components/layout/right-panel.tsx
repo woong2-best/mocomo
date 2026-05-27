@@ -22,7 +22,7 @@ export function RightPanelSkeleton() {
 }
 
 export async function RightPanel() {
-  let animes: { id: string; slug: string; title: string }[] = [];
+  let animes: { id: string; slug: string; title: string; viewCount: number }[] = [];
   let tips: Awaited<ReturnType<typeof getTipRanking>> = [];
   let sidebarAds: { id: string; title: string; imageUrl: string; linkUrl: string; ctaLabel: string | null }[] =
     [];
@@ -85,9 +85,16 @@ export async function RightPanel() {
               애니 허브 가기 →
             </Link>
           ) : (
-            animes.map((a) => (
-              <Link key={a.id} href={`/anime/${a.slug}`} className="block text-sm hover:text-[#1e88e5] truncate">
-                {a.title}
+            animes.map((a, i) => (
+              <Link
+                key={a.id}
+                href={`/anime/${a.slug}`}
+                className="flex items-baseline gap-2 text-sm hover:text-[#1e88e5] min-w-0 group"
+              >
+                <span className="shrink-0 w-5 text-right font-semibold tabular-nums text-[#1e88e5] group-hover:underline">
+                  {i + 1}
+                </span>
+                <span className="truncate">{a.title}</span>
               </Link>
             ))
           )}

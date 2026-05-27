@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AnimeTabs } from "@/components/anime/anime-tabs";
 import { AnimeFollowButton } from "@/components/anime/anime-follow-button";
+import { AnimeViewTracker } from "@/components/anime/anime-view-tracker";
 import { getCachedSession } from "@/lib/auth";
 
 export const revalidate = 120;
@@ -83,6 +84,7 @@ export default async function AnimeDetailPage({
 
   return (
     <div className="max-w-5xl mx-auto">
+      <AnimeViewTracker slug={slug} />
       <div
         className="relative h-48 md:h-64 bg-gradient-to-br from-neon-purple/40 to-neon-cyan/20"
         style={

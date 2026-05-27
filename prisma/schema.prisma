@@ -1051,11 +1051,14 @@ model Anime {
   airedFrom   DateTime?
   tags        String[]
   followerCount Int    @default(0)
+  viewCount     Int    @default(0)
   creatorId   String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   creator     User     @relation("AnimeCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([viewCount])
   posts       Post[]
   followers   AnimeFollow[]
   cosplayers  CosplayerAnime[]

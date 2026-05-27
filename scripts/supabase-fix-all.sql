@@ -469,4 +469,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS "User_phone_key" ON "User"("phone") WHERE "pho
 -- WHERE "username" <> 'mocomocompany' AND "role" IN ('ADMIN', 'MODERATOR');
 -- UPDATE "User" SET "role" = 'ADMIN' WHERE "username" = 'mocomocompany';
 
+-- P) 애니 조회수 (사이드바 인기 애니 = 클릭/조회 순)
+ALTER TABLE "Anime" ADD COLUMN IF NOT EXISTS "viewCount" INTEGER NOT NULL DEFAULT 0;
+CREATE INDEX IF NOT EXISTS "Anime_viewCount_idx" ON "Anime"("viewCount");
+
 -- 완료 후 터미널: npx prisma db push && npm run db:seed

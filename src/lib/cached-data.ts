@@ -55,11 +55,11 @@ export const getCachedSidebarAds = unstable_cache(
 export const getCachedPopularAnime = unstable_cache(
   async () =>
     db.anime.findMany({
-      take: 5,
-      orderBy: { followerCount: "desc" },
-      select: { id: true, slug: true, title: true },
+      take: 10,
+      orderBy: [{ viewCount: "desc" }, { updatedAt: "desc" }],
+      select: { id: true, slug: true, title: true, viewCount: true },
     }),
-  ["sidebar-anime"],
+  ["sidebar-anime-by-views"],
   { revalidate: 120 }
 );
 
