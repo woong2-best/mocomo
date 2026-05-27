@@ -331,6 +331,7 @@ export async function registerUser(
           username,
           passwordHash,
           name: name || username,
+          role: "USER",
           emailVerified: null,
           locale,
           countryCode: countryCode.toUpperCase(),

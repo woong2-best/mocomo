@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { notFound } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { auth, isSiteOperator } from "@/lib/auth";
 import { getUsedListing } from "@/actions/used-market";
 import { UsedDetailActions } from "@/components/used/used-detail-actions";
 import { ContentModerationBar } from "@/components/moderation/content-moderation-bar";
@@ -24,8 +24,10 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
   const { listing, favorited } = data;
   const imgs = listingImages(listing.images);
   const isSeller = session?.user?.id === listing.sellerId;
-  const role = session?.user?.role;
-  const isStaff = role === "ADMIN" || role === "MODERATOR";
+  const isStaff =
+    !!session?.user?.username &&
+    !!session?.user?.role &&
+    isSiteOperator({ username: session.user.username, role: session.user.role });
   const statusLabel = usedStatusLabel(listing.status);
 
   return (

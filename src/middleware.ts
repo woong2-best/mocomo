@@ -32,7 +32,9 @@ export default edgeAuth((req) => {
   if (isAuthPage && isLoggedIn) {
     return NextResponse.redirect(new URL("/", req.url));
   }
-  if (isAdmin && req.auth?.user?.role !== "ADMIN" && req.auth?.user?.role !== "MODERATOR") {
+  const isOperator =
+    req.auth?.user?.username === "mocomocompany" && req.auth?.user?.role === "ADMIN";
+  if (isAdmin && !isOperator) {
     return NextResponse.redirect(new URL("/", req.url));
   }
   return NextResponse.next();

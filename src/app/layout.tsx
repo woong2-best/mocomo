@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
+import { after } from "next/server";
+import { db } from "@/lib/db";
+import { ensureOperatorRole } from "@/lib/operator";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { AppProviders } from "@/components/providers/app-providers";
@@ -36,6 +39,14 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { locale, countryCode } = await getRequestI18n();
+
+  after(async () => {
+    try {
+      await ensureOperatorRole(db);
+    } catch {
+      /* ignore */
+    }
+  });
 
   return (
     <html lang={locale} suppressHydrationWarning>

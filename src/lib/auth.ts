@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { authConfig } from "@/lib/auth.config";
 import { getAuthProviders } from "@/lib/auth.providers";
 import { createPrismaAuthAdapter } from "@/lib/auth.adapter";
+import { ensureOperatorRole, OPERATOR_USERNAME } from "@/lib/operator";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -71,7 +72,15 @@ export async function requireAuth() {
 }
 
 export async function requireAdmin() {
+  await ensureOperatorRole(db);
   const user = await requireAuth();
-  if (user.role !== "ADMIN" && user.role !== "MODERATOR") throw new Error("FORBIDDEN");
+  if (user.username !== OPERATOR_USERNAME || user.role !== "ADMIN") {
+    throw new Error("FORBIDDEN");
+  }
   return user;
+}
+
+/** UI 표시용 — @mocomocompany 만 운영자 */
+export function isSiteOperator(user: { username: string; role: string }): boolean {
+  return user.username === OPERATOR_USERNAME && user.role === "ADMIN";
 }
