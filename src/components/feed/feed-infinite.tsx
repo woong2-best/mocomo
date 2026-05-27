@@ -40,7 +40,8 @@ export function FeedInfinite({
     setLoading(true);
     setLoadError("");
     try {
-      const res = await fetch(`/api/feed?cursor=${cursor}&limit=12`);
+      const postOffset = items.filter((i) => i.type === "post").length;
+      const res = await fetch(`/api/feed?cursor=${cursor}&limit=12&postOffset=${postOffset}`);
       const json = await res.json();
       if (!res.ok) {
         setLoadError(json.error ?? "피드를 더 불러오지 못했습니다.");
@@ -54,7 +55,7 @@ export function FeedInfinite({
     } finally {
       setLoading(false);
     }
-  }, [cursor, loading, done]);
+  }, [cursor, loading, done, items]);
 
   useEffect(() => {
     const el = sentinelRef.current;

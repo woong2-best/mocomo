@@ -16,6 +16,10 @@ export async function GET(req: NextRequest) {
     const isPremium = session?.user?.premiumTier === "PREMIUM";
     const cursor = req.nextUrl.searchParams.get("cursor");
     const limit = Math.min(parseInt(req.nextUrl.searchParams.get("limit") || "12", 10), 30);
+    const postOffset = Math.max(
+      0,
+      parseInt(req.nextUrl.searchParams.get("postOffset") || "0", 10) || 0
+    );
 
     const posts = await db.post.findMany({
       take: limit,
@@ -39,7 +43,7 @@ export async function GET(req: NextRequest) {
 
     const items = isPremium
       ? posts.map((data) => ({ type: "post" as const, data }))
-      : mixFeedWithAds(posts, feedAds, 6);
+      : mixFeedWithAds(posts, feedAds, { postsPerBlock: 6, minPostsBeforeFirstAd: 4, postOffset });
 
     const nextCursor = posts.length === limit ? posts[posts.length - 1]?.id : null;
 

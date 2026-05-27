@@ -17,7 +17,11 @@ export async function HomeFeedAsync() {
     const [posts, feedAds] = await Promise.all([getCachedFeedPosts(), getCachedFeedAds()]);
     const ads: FeedAdData[] = feedAds.length > 0 ? feedAds : [...FALLBACK_FEED_ADS];
     const serialized = serializeCreatedAt(posts);
-    const mixed = mixFeedWithAds(serialized, ads, 6);
+    const mixed = mixFeedWithAds(serialized, ads, {
+      postsPerBlock: 6,
+      minPostsBeforeFirstAd: 4,
+      postOffset: 0,
+    });
     const nextCursor = posts.length === 12 ? posts[posts.length - 1]?.id ?? null : null;
     const hasDbPosts = mixed.some((item) => item.type === "post");
 
