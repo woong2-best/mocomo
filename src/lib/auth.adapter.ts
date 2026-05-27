@@ -20,7 +20,10 @@ async function generateUniqueUsername(seed: string): Promise<string> {
   let username = base;
   let suffix = 0;
 
-  while (await db.user.findUnique({ where: { username }, select: { id: true } })) {
+  while (
+    (await db.user.findUnique({ where: { username }, select: { id: true } })) ||
+    containsForbiddenAdminSequence(username)
+  ) {
     suffix += 1;
     username = `${base.slice(0, Math.max(3, 16 - String(suffix).length))}${suffix}`;
   }

@@ -47,8 +47,8 @@ export function ProfileSettingsForm({ initial }: { initial: Initial }) {
       ?.split(",")
       .map((t) => t.trim())
       .filter(Boolean);
-    await updateProfile({
-      name: (form.get("name") as string) || undefined,
+    const result = await updateProfile({
+      name: displayName || undefined,
       image: image || undefined,
       bio: (form.get("bio") as string) || undefined,
       bannerUrl: bannerUrl || undefined,
