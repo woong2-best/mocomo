@@ -2,15 +2,12 @@ import type { PrismaClient } from "@prisma/client";
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
 import { ensureEmoticonCatalog } from "@/lib/goods-shop";
-import { ensureOperatorRole } from "@/lib/operator";
-
 const PLATFORM_EMAIL = "platform@mocomo.app";
 const PLATFORM_USERNAME = "mocomo_official";
 
 const globalBootstrap = globalThis as unknown as { mocomoBootstrapped?: boolean };
 
 export async function ensurePlatformBootstrap(prisma: PrismaClient) {
-  await ensureOperatorRole(prisma);
   if (globalBootstrap.mocomoBootstrapped) return;
   const adCount = await prisma.adSlot.count();
   if (adCount === 0) {

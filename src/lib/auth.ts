@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { authConfig } from "@/lib/auth.config";
 import { getAuthProviders } from "@/lib/auth.providers";
 import { createPrismaAuthAdapter } from "@/lib/auth.adapter";
-import { ensureOperatorRole, OPERATOR_USERNAME } from "@/lib/operator";
+import { effectiveRole, isOperatorIdentity } from "@/lib/operator-config";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -23,6 +23,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           select: {
             username: true,
             role: true,
+            email: true,
             premiumTier: true,
             level: true,
             locale: true,
@@ -31,7 +32,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         });
         if (dbUser) {
           token.username = dbUser.username;
-          token.role = dbUser.role;
+          token.role = effectiveRole(dbUser);
           token.premiumTier = dbUser.premiumTier;
           token.level = dbUser.level;
           token.locale = dbUser.locale;
@@ -72,15 +73,14 @@ export async function requireAuth() {
 }
 
 export async function requireAdmin() {
-  await ensureOperatorRole(db);
   const user = await requireAuth();
-  if (user.username !== OPERATOR_USERNAME || user.role !== "ADMIN") {
+  if (!isOperatorIdentity({ username: user.username, role: user.role, email: user.email })) {
     throw new Error("FORBIDDEN");
   }
   return user;
 }
 
-/** UI 표시용 — @mocomocompany 만 운영자 */
-export function isSiteOperator(user: { username: string; role: string }): boolean {
-  return user.username === OPERATOR_USERNAME && user.role === "ADMIN";
+/** UI 표시용 — 환경 변수에 지정된 운영자 계정만 */
+export function isSiteOperator(user: { username: string; role: string; email?: string | null }) {
+  return isOperatorIdentity(user);
 }

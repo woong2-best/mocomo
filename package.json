@@ -16,6 +16,8 @@
     "db:recalc-tiers": "tsx scripts/recalc-support-tiers.ts",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
+    "operator:assign": "tsx scripts/set-operator.ts",
+    "operator:revoke": "tsx scripts/revoke-unauthorized-admins.ts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate"
   },

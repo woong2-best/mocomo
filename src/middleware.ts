@@ -1,4 +1,5 @@
 import { edgeAuth } from "@/lib/auth.edge";
+import { isOperatorIdentity } from "@/lib/operator-config";
 import { NextResponse } from "next/server";
 
 const protectedRoutes = [
@@ -32,8 +33,14 @@ export default edgeAuth((req) => {
   if (isAuthPage && isLoggedIn) {
     return NextResponse.redirect(new URL("/", req.url));
   }
+  const sessionUser = req.auth?.user;
   const isOperator =
-    req.auth?.user?.username === "mocomocompany" && req.auth?.user?.role === "ADMIN";
+    !!sessionUser?.username &&
+    !!sessionUser?.role &&
+    isOperatorIdentity({
+      username: sessionUser.username,
+      role: sessionUser.role,
+    });
   if (isAdmin && !isOperator) {
     return NextResponse.redirect(new URL("/", req.url));
   }

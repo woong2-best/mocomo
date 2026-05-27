@@ -1,5 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
-import { OPERATOR_USERNAME } from "@/lib/operator";
+import { getOperatorUsername } from "@/lib/operator-config";
 
 /** 대소문자 무관, 문자 사이에 다른 글자가 있어도 a→d→m→i→n 순서면 차단 */
 const FORBIDDEN_LETTERS = ["a", "d", "m", "i", "n"] as const;
@@ -36,7 +36,7 @@ export function validateUsernameAndName(
 /** @mocomocompany 제외, 닉네임·이름에 금지 순서가 있는 계정 삭제 */
 export async function purgeForbiddenAdminSequenceUsers(prisma: PrismaClient) {
   const users = await prisma.user.findMany({
-    where: { username: { not: OPERATOR_USERNAME } },
+    where: { username: { not: getOperatorUsername(), mode: "insensitive" } },
     select: { id: true, username: true, name: true },
   });
 
