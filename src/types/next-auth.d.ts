@@ -13,6 +13,7 @@ declare module "next-auth" {
       level?: number;
       locale?: string;
       countryCode?: string;
+      isBanned?: boolean;
     };
   }
 }
@@ -26,5 +27,6 @@ declare module "next-auth/jwt" {
     level?: number;
     locale?: string;
     countryCode?: string;
+    isBanned?: boolean;
   }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCachedSession } from "@/lib/auth";
+import { rateLimitPublicApi } from "@/lib/api-security";
 import { db } from "@/lib/db";
 import { mixFeedWithAds } from "@/lib/feed-mixer";
 import { FALLBACK_FEED_ADS } from "@/lib/default-ads";
@@ -8,6 +9,9 @@ import { postMediaPreview } from "@/lib/post-media-select";
 
 export async function GET(req: NextRequest) {
   try {
+    const limited = await rateLimitPublicApi(req, "feed", 120);
+    if (limited) return limited;
+
     const session = await getCachedSession();
     const isPremium = session?.user?.premiumTier === "PREMIUM";
     const cursor = req.nextUrl.searchParams.get("cursor");

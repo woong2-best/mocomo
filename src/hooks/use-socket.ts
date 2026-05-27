@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
+import { fetchSocketAuthToken } from "@/lib/socket-client";
 
 export function useSocket(userId?: string) {
   const socketRef = useRef<Socket | null>(null);
@@ -10,14 +11,23 @@ export function useSocket(userId?: string) {
   useEffect(() => {
     if (!userId) return;
     const url = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
-    const socket = io(url, { auth: { userId } });
-    socketRef.current = socket;
+    let socket: Socket | null = null;
+    let cancelled = false;
 
-    socket.on("connect", () => setConnected(true));
-    socket.on("disconnect", () => setConnected(false));
+    (async () => {
+      const token = await fetchSocketAuthToken();
+      if (cancelled || !token) return;
+      socket = io(url, { auth: { token }, transports: ["websocket", "polling"] });
+      socketRef.current = socket;
+      socket.on("connect", () => setConnected(true));
+      socket.on("disconnect", () => setConnected(false));
+    })();
 
     return () => {
-      socket.disconnect();
+      cancelled = true;
+      socket?.disconnect();
+      socketRef.current = null;
+      setConnected(false);
     };
   }, [userId]);
 

@@ -22,7 +22,10 @@ const credentialsProvider = Credentials({
     const rate = await checkLoginRateLimit(email, ip);
     if (!rate.ok) return null;
 
-    const user = await db.user.findUnique({ where: { email } });
+    const user = await db.user.findUnique({
+      where: { email },
+      select: { id: true, email: true, name: true, image: true, passwordHash: true, isBanned: true, emailVerified: true },
+    });
     if (!user?.passwordHash || user.isBanned) {
       await recordLoginAttempt(email, ip);
       return null;

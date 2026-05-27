@@ -29,6 +29,11 @@ function SignInFormInner({
 
   const callbackUrl = searchParams.get("callbackUrl") || "/";
 
+  const bannedNotice =
+    searchParams.get("error") === "banned"
+      ? "이 계정은 이용이 제한되어 있습니다. 문의가 필요하면 운영자에게 연락해 주세요."
+      : "";
+
   const callbackErrorMessage =
     callbackError === "Configuration"
       ? googleOAuth
@@ -98,9 +103,9 @@ function SignInFormInner({
           <p className="text-sm text-muted-foreground mt-1">{BRAND.tagline}</p>
         </CardHeader>
         <CardContent className="space-y-4">
-          {(error || callbackErrorMessage) && (
+          {(error || bannedNotice || callbackErrorMessage) && (
             <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-3 py-2">
-              {error || callbackErrorMessage}
+              {error || bannedNotice || callbackErrorMessage}
             </p>
           )}
 

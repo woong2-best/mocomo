@@ -6,10 +6,23 @@ import { getAuthProviders } from "@/lib/auth.providers";
 import { createPrismaAuthAdapter } from "@/lib/auth.adapter";
 import { effectiveRole, isOperatorIdentity } from "@/lib/operator-config";
 
+const useSecureCookies = process.env.NODE_ENV === "production";
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: createPrismaAuthAdapter(),
   providers: getAuthProviders(),
+  cookies: {
+    sessionToken: {
+      name: useSecureCookies ? "__Secure-authjs.session-token" : "authjs.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: useSecureCookies,
+      },
+    },
+  },
   callbacks: {
     ...authConfig.callbacks,
     async jwt({ token, user, trigger }) {
@@ -28,6 +41,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             level: true,
             locale: true,
             countryCode: true,
+            isBanned: true,
           },
         });
         if (dbUser) {
@@ -37,6 +51,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.level = dbUser.level;
           token.locale = dbUser.locale;
           token.countryCode = dbUser.countryCode;
+          token.isBanned = dbUser.isBanned;
         }
       }
       return token;

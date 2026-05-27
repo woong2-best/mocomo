@@ -67,9 +67,12 @@ export function ChatRoomClient({
     let disposed = false;
     let socket: Socket | null = null;
 
-    import("socket.io-client").then(({ io }) => {
+    import("socket.io-client").then(async ({ io }) => {
       if (disposed) return;
-      socket = io(url, { auth: { userId }, transports: ["websocket", "polling"] });
+      const { fetchSocketAuthToken } = await import("@/lib/socket-client");
+      const token = await fetchSocketAuthToken();
+      if (disposed || !token) return;
+      socket = io(url, { auth: { token }, transports: ["websocket", "polling"] });
       socketRef.current = socket;
       socket.emit("join_room", roomId);
       socket.on("new_message", (msg: Message) => {

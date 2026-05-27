@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { rateLimitPublicApi } from "@/lib/api-security";
 import { validateLivekitCallRoom } from "@/lib/call-room-access";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { createLivekitToken, getLivekitUrl, isLivekitConfigured } from "@/lib/livekit";
@@ -26,6 +27,9 @@ export async function GET(req: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
     }
+
+    const limited = await rateLimitPublicApi(req, `livekit:${session.user.id}`, 30);
+    if (limited) return limited;
 
     const room = req.nextUrl.searchParams.get("room");
     if (!room) {

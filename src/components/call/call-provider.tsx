@@ -224,10 +224,13 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     let socket: Socket | null = null;
     let disposed = false;
 
-    import("socket.io-client").then(({ io }) => {
+    import("socket.io-client").then(async ({ io }) => {
       if (disposed) return;
+      const { fetchSocketAuthToken } = await import("@/lib/socket-client");
+      const token = await fetchSocketAuthToken();
+      if (disposed || !token) return;
       socket = io(url, {
-        auth: { userId },
+        auth: { token },
         transports: ["websocket", "polling"],
         reconnection: true,
       });
