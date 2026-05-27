@@ -10,9 +10,17 @@ const tabs = [
   { id: "community", label: "커뮤니티" },
 ];
 
-export function AnimeTabs({ slug, activeTab }: { slug: string; activeTab: string }) {
+export function AnimeTabs({
+  slug,
+  activeTab,
+  showEditLink,
+}: {
+  slug: string;
+  activeTab: string;
+  showEditLink?: boolean;
+}) {
   return (
-    <nav className="flex border-b border-border/50 px-4 gap-1 overflow-x-auto">
+    <nav className="flex border-b border-border/50 px-4 gap-1 overflow-x-auto items-center">
       {tabs.map((t) => (
         <Link
           key={t.id}
@@ -27,6 +35,14 @@ export function AnimeTabs({ slug, activeTab }: { slug: string; activeTab: string
           {t.label}
         </Link>
       ))}
+      {showEditLink && (
+        <Link
+          href={`/anime/${slug}/edit`}
+          className="ml-auto px-3 py-2 text-sm font-medium text-muted-foreground hover:text-primary whitespace-nowrap"
+        >
+          편집
+        </Link>
+      )}
     </nav>
   );
 }

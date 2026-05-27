@@ -14,10 +14,6 @@ export default async function AnimeEditPage({ params }: { params: Promise<{ slug
   const anime = await db.anime.findUnique({ where: { slug } });
   if (!anime) notFound();
 
-  const isOwner = anime.creatorId === session.user.id;
-  const isMod = session.user.role === "ADMIN" || session.user.role === "MODERATOR";
-  if (!isOwner && !isMod) redirect(`/anime/${slug}`);
-
   return (
     <div className="p-4 lg:p-6 space-y-4">
       <Link href={`/anime/${slug}`}>

@@ -72,15 +72,12 @@ export async function updateAnime(
   slug: string,
   data: z.infer<typeof animeSchema>
 ) {
-  const user = await requireAuth();
+  await requireAuth();
   const parsed = animeSchema.safeParse(data);
   if (!parsed.success) return { error: "입력값을 확인해주세요." };
 
   const existing = await db.anime.findUnique({ where: { slug } });
   if (!existing) return { error: "애니를 찾을 수 없습니다." };
-  if (existing.creatorId !== user.id && user.role !== "ADMIN" && user.role !== "MODERATOR") {
-    return { error: "수정 권한이 없습니다." };
-  }
 
   const { title, titleEn, genre, synopsis, studio, worldInfo, coverUrl, bannerUrl, charactersText, tags } =
     parsed.data;
@@ -110,6 +107,52 @@ export async function updateAnime(
   revalidatePath(`/anime/${slug}`);
   revalidatePath(`/anime/list/${genre.toLowerCase().replace(/_/g, "-")}`);
   return { anime };
+}
+
+const goodsSchema = z.object({
+  animeId: z.string().min(1),
+  title: z.string().min(1).max(200),
+  type: z.string().min(1).max(80),
+  price: z.coerce.number().int().min(0).optional(),
+  imageUrl: z.string().url().optional().or(z.literal("")),
+  linkUrl: z.string().url().optional().or(z.literal("")),
+});
+
+export async function addAnimeGoods(data: z.infer<typeof goodsSchema>) {
+  await requireAuth();
+  const parsed = goodsSchema.safeParse(data);
+  if (!parsed.success) return { error: "입력값을 확인해주세요." };
+
+  const { animeId, title, type, price, imageUrl, linkUrl } = parsed.data;
+  const anime = await db.anime.findUnique({ where: { id: animeId }, select: { slug: true } });
+  if (!anime) return { error: "애니를 찾을 수 없습니다." };
+
+  const goods = await db.animeGoods.create({
+    data: {
+      animeId,
+      title,
+      type,
+      price: price ?? null,
+      imageUrl: imageUrl || null,
+      linkUrl: linkUrl || null,
+    },
+  });
+
+  revalidatePath(`/anime/${anime.slug}`);
+  return { goods };
+}
+
+export async function deleteAnimeGoods(goodsId: string) {
+  await requireAuth();
+  const row = await db.animeGoods.findUnique({
+    where: { id: goodsId },
+    include: { anime: { select: { slug: true } } },
+  });
+  if (!row) return { error: "굿즈를 찾을 수 없습니다." };
+
+  await db.animeGoods.delete({ where: { id: goodsId } });
+  revalidatePath(`/anime/${row.anime.slug}`);
+  return { ok: true };
 }
 
 export async function toggleAnimeFollow(animeId: string) {

@@ -29,7 +29,8 @@ export default async function AnimeHubPage() {
       </div>
 
       <p className="text-sm text-muted-foreground">
-        장르를 선택하면 해당 장르의 애니가 제목순(A→Z)으로 정렬됩니다. 유저가 직접 등록·설명·이미지를 추가할 수 있어요.
+        나무위키처럼 누구나 애니 문서를 새로 만들고, 기존 문서도 함께 편집할 수 있어요. 로그인 후 「새 문서 추가」 또는 각 작품 페이지의 「편집」을
+        이용하세요.
       </p>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -56,12 +57,6 @@ export default async function AnimeHubPage() {
         })}
       </div>
 
-      <p className="text-center text-sm text-muted-foreground">
-        <Link href="/auth/signin" className="text-primary hover:underline">
-          로그인
-        </Link>
-        하면 애니를 직접 등록할 수 있습니다.
-      </p>
     </div>
   );
 }

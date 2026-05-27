@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AnimeTabs } from "@/components/anime/anime-tabs";
 import { AnimeFollowButton } from "@/components/anime/anime-follow-button";
 import { AnimeViewTracker } from "@/components/anime/anime-view-tracker";
+import { AnimeGoodsPanel } from "@/components/anime/anime-goods-panel";
 import { getCachedSession } from "@/lib/auth";
 
 export const revalidate = 120;
@@ -69,11 +70,7 @@ export default async function AnimeDetailPage({
   if (!anime) notFound();
 
   const genreInfo = getGenreInfo(anime.genre);
-  const canEdit =
-    session?.user &&
-    (anime.creatorId === session.user.id ||
-      session.user.role === "ADMIN" ||
-      session.user.role === "MODERATOR");
+  const isLoggedIn = !!session?.user;
   const characterNames = parseCharacterNames(anime.characters);
 
   const following = session?.user?.id
@@ -111,11 +108,18 @@ export default async function AnimeDetailPage({
                 <Button size="sm">팔로우</Button>
               </Link>
             )}
-            {canEdit && (
+            {isLoggedIn ? (
               <Link href={`/anime/${slug}/edit`}>
                 <Button size="sm" variant="outline" className="gap-1">
                   <Pencil className="h-3.5 w-3.5" />
-                  수정
+                  편집
+                </Button>
+              </Link>
+            ) : (
+              <Link href={`/auth/signin?callbackUrl=${encodeURIComponent(`/anime/${slug}/edit`)}`}>
+                <Button size="sm" variant="outline" className="gap-1">
+                  <Pencil className="h-3.5 w-3.5" />
+                  로그인하고 편집
                 </Button>
               </Link>
             )}
@@ -136,7 +140,7 @@ export default async function AnimeDetailPage({
         </div>
       </div>
 
-      <AnimeTabs activeTab={tab} slug={slug} />
+      <AnimeTabs activeTab={tab} slug={slug} showEditLink={isLoggedIn} />
 
       <div className="p-4 lg:p-6">
         {tab === "info" && (
@@ -239,27 +243,7 @@ export default async function AnimeDetailPage({
         )}
 
         {tab === "goods" && (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {anime.goods.length === 0 ? (
-              <p className="text-muted-foreground">굿즈 정보 없음</p>
-            ) : (
-              anime.goods.map((g) => (
-                <Card key={g.id}>
-                  <CardContent className="p-4 flex gap-4">
-                    {g.imageUrl && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={g.imageUrl} alt="" className="w-20 h-20 rounded object-cover" />
-                    )}
-                    <div>
-                      <p className="font-medium">{g.title}</p>
-                      <p className="text-xs text-muted-foreground">{g.type}</p>
-                      {g.price && <p className="text-sm text-neon-cyan mt-1">{g.price.toLocaleString()}원</p>}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
+          <AnimeGoodsPanel animeId={anime.id} slug={slug} goods={anime.goods} canEdit={isLoggedIn} />
         )}
 
         {tab === "community" && (

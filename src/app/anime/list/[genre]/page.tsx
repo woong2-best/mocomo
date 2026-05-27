@@ -68,28 +68,29 @@ export default async function AnimeGenreListPage({
           </h1>
           <p className="text-sm text-muted-foreground mt-1">제목순 정렬 (A → Z) · {animes.length}개</p>
         </div>
-        {session?.user && (
-          <Link href={`/anime/new?genre=${genreParam}`}>
-            <Button size="sm" className="gap-1">
-              <Plus className="h-4 w-4" />
-              추가
-            </Button>
-          </Link>
-        )}
+        <Link href={session?.user ? `/anime/new?genre=${genreParam}` : `/auth/signin?callbackUrl=${encodeURIComponent(`/anime/new?genre=${genreParam}`)}`}>
+          <Button size="sm" className="gap-1" variant={session?.user ? "default" : "outline"}>
+            <Plus className="h-4 w-4" />
+            {session?.user ? "문서 추가" : "로그인하고 추가"}
+          </Button>
+        </Link>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {animes.length === 0 ? (
           <p className="text-muted-foreground col-span-full text-center py-12">
             이 장르에 등록된 애니가 없습니다.
-            {session?.user && (
-              <>
-                {" "}
-                <Link href="/anime/new" className="text-primary hover:underline">
-                  첫 애니 등록하기
-                </Link>
-              </>
-            )}
+            {" "}
+            <Link
+              href={
+                session?.user
+                  ? `/anime/new?genre=${genreParam}`
+                  : `/auth/signin?callbackUrl=${encodeURIComponent(`/anime/new?genre=${genreParam}`)}`
+              }
+              className="text-primary hover:underline"
+            >
+              첫 문서 만들기
+            </Link>
           </p>
         ) : (
           animes.map((a) => (
