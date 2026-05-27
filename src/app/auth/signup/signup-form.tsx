@@ -17,6 +17,7 @@ import { BrandLogo } from "@/components/brand/brand-logo";
 import { TurnstileField } from "@/components/auth/turnstile-field";
 import { BRAND } from "@/lib/brand";
 import { isTurnstileConfigured } from "@/lib/turnstile-client";
+import { isSignupTurnstileRequired } from "@/lib/turnstile-signup";
 import { COUNTRIES, LOCALE_COOKIE, COUNTRY_COOKIE, LOCALE_LABELS, LOCALES } from "@/lib/i18n/config";
 import type { Locale } from "@/lib/i18n/config";
 
@@ -36,6 +37,7 @@ export function SignUpForm({
   const [turnstileUnavailable, setTurnstileUnavailable] = useState(false);
 
   const showSocial = googleOAuth || discordOAuth;
+  const signupTurnstile = isSignupTurnstileRequired() && isTurnstileConfigured();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -56,7 +58,7 @@ export function SignUpForm({
       return;
     }
 
-    if (isTurnstileConfigured() && !turnstileToken && !turnstileUnavailable) {
+    if (signupTurnstile && !turnstileToken && !turnstileUnavailable) {
       setError("아래 보안 확인을 완료하거나 「제한 모드로 계속」을 선택해 주세요.");
       setLoading(false);
       return;
@@ -184,7 +186,7 @@ export function SignUpForm({
               aria-hidden
             />
 
-            {isTurnstileConfigured() && (
+            {signupTurnstile && (
               <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-2">
                 <p className="text-sm font-medium">2단계 · 사람인지 확인</p>
                 <p className="text-xs text-muted-foreground">
@@ -227,13 +229,11 @@ export function SignUpForm({
             <Button
               type="submit"
               className="w-full rounded-xl"
-              disabled={
-                loading || (isTurnstileConfigured() && !turnstileToken && !turnstileUnavailable)
-              }
+              disabled={loading || (signupTurnstile && !turnstileToken && !turnstileUnavailable)}
             >
               {loading
                 ? "인증 메일 발송 중..."
-                : isTurnstileConfigured() && !turnstileToken
+                : signupTurnstile && !turnstileToken && !turnstileUnavailable
                   ? "보안 확인 후 가입"
                   : "회원가입 · 인증 메일 받기"}
             </Button>

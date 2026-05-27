@@ -43,6 +43,7 @@ import {
 } from "@/lib/auth-rate-limit";
 import { getRequestIp } from "@/lib/request-ip";
 import { verifyTurnstileToken } from "@/lib/turnstile";
+import { isSignupTurnstileRequired } from "@/lib/turnstile-signup";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -309,7 +310,7 @@ export async function registerUser(
   }
 
   const botCheck = await verifyTurnstileToken(turnstileToken, {
-    widgetUnavailable: turnstileUnavailable,
+    widgetUnavailable: turnstileUnavailable || !isSignupTurnstileRequired(),
   });
   if (!botCheck.ok) return { error: botCheck.error };
 
