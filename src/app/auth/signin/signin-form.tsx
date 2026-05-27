@@ -8,6 +8,7 @@ import { preLoginCheck } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { BRAND } from "@/lib/brand";
 
 function SignInFormInner({
@@ -86,8 +87,8 @@ function SignInFormInner({
     <div className="flex-1 flex items-center justify-center p-4 bg-muted/30">
       <Card className="w-full max-w-md rounded-2xl shadow-lg border-border">
         <CardHeader className="text-center">
-          <div className="mx-auto h-14 w-14 rounded-2xl btn-rainbow flex items-center justify-center mb-2 text-xl font-black">
-            M
+          <div className="mx-auto h-16 w-16 rounded-2xl bg-white border border-border flex items-center justify-center mb-2 overflow-hidden p-1">
+            <BrandLogo size={56} priority />
           </div>
           <CardTitle className="text-2xl">{BRAND.name} 로그인</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">{BRAND.tagline}</p>

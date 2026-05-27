@@ -25,7 +25,16 @@ export const metadata: Metadata = {
   title: `${BRAND.name} - ${BRAND.tagline}`,
   description: BRAND.description,
   manifest: "/manifest.json",
+  icons: {
+    icon: [{ url: BRAND.logoSrc, type: "image/png" }],
+    apple: [{ url: BRAND.logoSrc, type: "image/png" }],
+  },
   appleWebApp: { capable: true, statusBarStyle: "default", title: BRAND.name },
+  openGraph: {
+    title: BRAND.name,
+    description: BRAND.description,
+    images: [{ url: BRAND.logoSrc, alt: BRAND.name }],
+  },
 };
 
 export const viewport: Viewport = {

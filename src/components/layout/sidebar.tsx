@@ -24,6 +24,7 @@ import {
   Tags,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { BRAND } from "@/lib/brand";
 import { SidebarAuthFooter } from "@/components/layout/sidebar-auth-footer";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -65,8 +66,8 @@ export function Sidebar() {
         href="/"
         className="sidebar-block !py-4 !shadow-md"
       >
-        <div className="h-11 w-11 rounded-xl btn-rainbow flex items-center justify-center text-lg font-black shrink-0">
-          M
+        <div className="h-11 w-11 rounded-xl bg-white border border-border flex items-center justify-center shrink-0 overflow-hidden p-0.5">
+          <BrandLogo size={40} priority />
         </div>
         <div className="min-w-0">
           <span className="text-lg font-bold block truncate">{BRAND.name}</span>
