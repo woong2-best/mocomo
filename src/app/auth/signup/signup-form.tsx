@@ -115,7 +115,7 @@ export function SignUpForm({
             <Input
               name="email"
               type="email"
-              placeholder="이메일"
+              placeholder="이메일 (예: name@naver.com)"
               required
               autoComplete="email"
               className="rounded-xl"
