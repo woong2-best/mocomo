@@ -1,9 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
-import {
-  getOperatorEmail,
-  getOperatorUsername,
-  isOperatorIdentity,
-} from "@/lib/operator-config";
+import { getOperatorEmail, getOperatorUsername } from "@/lib/operator-config";
 
 export { getOperatorUsername, getOperatorEmail, isOperatorIdentity } from "@/lib/operator-config";
 

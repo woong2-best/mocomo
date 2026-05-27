@@ -14,7 +14,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandLogo } from "@/components/brand/brand-logo";
+import { TurnstileField } from "@/components/auth/turnstile-field";
 import { BRAND } from "@/lib/brand";
+import { isTurnstileConfigured } from "@/lib/turnstile-client";
 import { COUNTRIES, LOCALE_COOKIE, COUNTRY_COOKIE, LOCALE_LABELS, LOCALES } from "@/lib/i18n/config";
 import type { Locale } from "@/lib/i18n/config";
 
@@ -30,6 +32,7 @@ export function SignUpForm({
   const [loading, setLoading] = useState(false);
   const [locale, setLocale] = useState<Locale>("ko");
   const [countryCode, setCountryCode] = useState("KR");
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   const showSocial = googleOAuth || discordOAuth;
 
@@ -52,6 +55,12 @@ export function SignUpForm({
       return;
     }
 
+    if (isTurnstileConfigured() && !turnstileToken) {
+      setError("아래 보안 확인을 완료해 주세요.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const maxAge = 60 * 60 * 24 * 365;
       document.cookie = `${LOCALE_COOKIE}=${locale};path=/;max-age=${maxAge};SameSite=Lax`;
@@ -64,6 +73,8 @@ export function SignUpForm({
         name: (form.get("name") as string) || undefined,
         locale,
         countryCode,
+        turnstileToken: turnstileToken || undefined,
+        website: (form.get("website") as string) || undefined,
       });
 
       if (result.error) {
@@ -90,8 +101,8 @@ export function SignUpForm({
     <div className="flex-1 flex items-center justify-center p-4">
       <Card className="w-full max-w-md rounded-2xl shadow-lg border-border">
         <CardHeader className="text-center">
-          <div className="mx-auto h-14 w-14 rounded-2xl btn-rainbow flex items-center justify-center mb-2 text-xl font-black">
-            M
+          <div className="mx-auto h-16 w-16 rounded-2xl bg-white border border-border flex items-center justify-center mb-2 overflow-hidden p-1">
+            <BrandLogo size={56} priority />
           </div>
           <CardTitle className="text-2xl">{BRAND.name} 회원가입</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">{BRAND.description}</p>
@@ -161,6 +172,19 @@ export function SignUpForm({
                 </select>
               </label>
             </div>
+            <input
+              type="text"
+              name="website"
+              tabIndex={-1}
+              autoComplete="off"
+              className="sr-only"
+              aria-hidden
+            />
+            <TurnstileField
+              className="flex justify-center min-h-[65px]"
+              onToken={setTurnstileToken}
+              onExpire={() => setTurnstileToken("")}
+            />
             {error && (
               <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-3 py-2">{error}</p>
             )}

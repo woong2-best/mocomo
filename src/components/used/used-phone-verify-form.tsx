@@ -31,7 +31,11 @@ export function UsedPhoneVerifyForm({ callbackUrl = "/used/new" }: { callbackUrl
       return;
     }
     setSent(true);
-    setMessage(res.message ?? "인증번호를 보냈습니다.");
+    const remain =
+      "sendsRemaining" in res && typeof res.sendsRemaining === "number"
+        ? ` (오늘 ${res.sendsRemaining}회 남음)`
+        : "";
+    setMessage((res.message ?? "인증번호를 보냈습니다.") + remain);
     if (res.devCode) setCode(res.devCode);
   }
 
@@ -59,7 +63,7 @@ export function UsedPhoneVerifyForm({ callbackUrl = "/used/new" }: { callbackUrl
         </CardTitle>
         <p className="text-sm text-muted-foreground font-normal">
           중고거래는 <strong className="text-foreground">대한민국 휴대폰 번호</strong> 인증 후 이용할 수
-          있습니다.
+          있습니다. 인증번호는 <strong className="text-foreground">하루 3회</strong>까지만 요청할 수 있습니다.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">

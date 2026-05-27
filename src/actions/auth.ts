@@ -36,6 +36,9 @@ import {
   FORBIDDEN_ADMIN_SEQUENCE_MESSAGE,
   validateUsernameAndName,
 } from "@/lib/forbidden-admin-sequence";
+import { checkEmailSendRateLimit } from "@/lib/auth-rate-limit";
+import { getRequestIp } from "@/lib/request-ip";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -49,6 +52,9 @@ const registerSchema = z.object({
   name: z.string().optional(),
   locale: z.enum(["ko", "en", "ja", "zh"]).default("ko"),
   countryCode: z.string().min(2).max(8).default("KR"),
+  turnstileToken: z.string().optional(),
+  /** 봇 허니팟 — 값이 있으면 거부 */
+  website: z.string().optional(),
 });
 
 const RESERVED_USERNAMES = new Set([
@@ -109,8 +115,20 @@ async function findAuthCodeRecord(email: string, code: string) {
 }
 
 /** Unified: signup verify + password reset — send 6-digit code */
-export async function sendEmailAuthCode(email: string, mode: "signup" | "reset" = "signup") {
+export async function sendEmailAuthCode(
+  email: string,
+  mode: "signup" | "reset" = "signup",
+  turnstileToken?: string
+) {
   const normalized = email.trim().toLowerCase();
+
+  const botCheck = await verifyTurnstileToken(turnstileToken);
+  if (!botCheck.ok) return { error: botCheck.error };
+
+  const ip = await getRequestIp();
+  const rate = await checkEmailSendRateLimit(normalized, ip);
+  if (!rate.ok) return { error: rate.error };
+
   const user = await resolveUserByEmail(normalized);
 
   if (!user) {
@@ -266,8 +284,28 @@ export async function registerUser(
 ) {
   const parsed = registerSchema.safeParse(data);
   if (!parsed.success) return { error: "입력값이 올바르지 않습니다." };
-  const { email: rawEmail, username, password, name, locale, countryCode } = parsed.data;
+  const {
+    email: rawEmail,
+    username,
+    password,
+    name,
+    locale,
+    countryCode,
+    turnstileToken,
+    website,
+  } = parsed.data;
   const email = rawEmail.trim().toLowerCase();
+
+  if (website?.trim()) {
+    return { error: "요청을 처리할 수 없습니다." };
+  }
+
+  const botCheck = await verifyTurnstileToken(turnstileToken);
+  if (!botCheck.ok) return { error: botCheck.error };
+
+  const ip = await getRequestIp();
+  const emailRate = await checkEmailSendRateLimit(email, ip);
+  if (!emailRate.ok) return { error: emailRate.error };
 
   if (RESERVED_USERNAMES.has(username)) {
     return { error: "사용할 수 없는 닉네임입니다. 다른 닉네임을 입력해 주세요." };
@@ -471,8 +509,8 @@ export async function verifyEmailByCode(email: string, code: string) {
   return completeAuthWithCode(normalized, code, { mode: "signup" });
 }
 
-export async function resendVerificationEmail(email: string) {
-  return sendEmailAuthCode(email, "signup");
+export async function resendVerificationEmail(email: string, turnstileToken?: string) {
+  return sendEmailAuthCode(email, "signup", turnstileToken);
 }
 
 export async function preLoginCheck(email: string, password: string) {
@@ -496,8 +534,8 @@ export async function preLoginCheck(email: string, password: string) {
   return { ok: true };
 }
 
-export async function resetPasswordRequest(email: string) {
-  return sendEmailAuthCode(email, "reset");
+export async function resetPasswordRequest(email: string, turnstileToken?: string) {
+  return sendEmailAuthCode(email, "reset", turnstileToken);
 }
 
 export async function resetPasswordConfirm(data: {

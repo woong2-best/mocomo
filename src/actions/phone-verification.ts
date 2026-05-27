@@ -11,6 +11,7 @@ import {
 } from "@/lib/auth-tokens";
 import { isValidKrMobileInput, normalizeKrPhone, formatKrPhoneDisplay } from "@/lib/phone";
 import { sendAuthSms } from "@/lib/sms";
+import { checkPhoneSmsRateLimit } from "@/lib/auth-rate-limit";
 
 const OTP_TTL_MS = 3 * 60 * 1000;
 
@@ -37,6 +38,9 @@ export async function sendUsedMarketPhoneOtp(rawPhone: string) {
 
   const phone = normalizeKrPhone(rawPhone);
   if (!phone) return { error: "휴대폰 번호 형식이 올바르지 않습니다." };
+
+  const rate = await checkPhoneSmsRateLimit(user.id, phone);
+  if (!rate.ok) return { error: rate.error };
 
   const taken = await db.user.findFirst({
     where: { phone, id: { not: user.id } },
@@ -66,6 +70,7 @@ export async function sendUsedMarketPhoneOtp(rawPhone: string) {
       : "인증번호를 문자로 보냈습니다.",
     devCode: sent.dev ? code : undefined,
     phoneDisplay: formatKrPhoneDisplay(phone),
+    sendsRemaining: rate.remaining,
   };
 }
 

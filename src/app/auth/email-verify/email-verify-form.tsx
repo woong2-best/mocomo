@@ -12,6 +12,8 @@ import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TurnstileField } from "@/components/auth/turnstile-field";
+import { isTurnstileConfigured } from "@/lib/turnstile-client";
 
 type Step = "code" | "reset-password" | "signup-done" | "reset-done";
 type Mode = "signup" | "reset";
@@ -34,6 +36,7 @@ function EmailVerifyFormInner() {
   );
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   useEffect(() => {
     const notice = sessionStorage.getItem("mocomo_signup_notice");
@@ -45,10 +48,18 @@ function EmailVerifyFormInner() {
 
   async function sendCode() {
     if (!email.trim()) return;
+    if (isTurnstileConfigured() && !turnstileToken) {
+      setError("아래 보안 확인을 완료해 주세요.");
+      return;
+    }
     setLoading(true);
     setError("");
     setMessage("");
-    const result = await sendEmailAuthCode(email.trim().toLowerCase(), mode);
+    const result = await sendEmailAuthCode(
+      email.trim().toLowerCase(),
+      mode,
+      turnstileToken || undefined
+    );
     setLoading(false);
     if ("error" in result && result.error) setError(result.error);
     else setMessage(result.message ?? "인증 코드를 보냈습니다.");
@@ -272,6 +283,12 @@ function EmailVerifyFormInner() {
           className="rounded-xl"
         />
 
+        <TurnstileField
+          className="flex justify-center min-h-[65px]"
+          onToken={setTurnstileToken}
+          onExpire={() => setTurnstileToken("")}
+        />
+
         <Button
           type="button"
           variant="outline"
@@ -281,6 +298,10 @@ function EmailVerifyFormInner() {
         >
           {loading ? "전송 중..." : "인증 코드 보내기"}
         </Button>
+
+        <p className="text-xs text-muted-foreground text-center">
+          이메일·IP당 요청 횟수가 제한됩니다. 스팸 방지를 위해 보안 확인이 필요할 수 있습니다.
+        </p>
 
         <form
           onSubmit={mode === "reset" ? verifyResetCode : verifySignupCode}
