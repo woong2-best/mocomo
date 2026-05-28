@@ -494,16 +494,23 @@ export async function endLiveStream(channelId: string) {
 
 export async function leaveLiveStream(channelId: string) {
   const user = await requireAuth();
+  const channel = await db.voiceChannel.findUnique({
+    where: { id: channelId },
+    select: { createdBy: true, isLive: true },
+  });
+  if (!channel) return { success: true as const };
+
+  // 라이브 방송 중 호스트는 스튜디오 remount(OBS 탭 등)에도 멤버 유지 — 여기서 isLive 끄면 방송이 순식간에 종료됨
+  if (channel.isLive && channel.createdBy === user.id) {
+    return { success: true as const };
+  }
+
   await db.voiceMember.deleteMany({
     where: { channelId, userId: user.id },
   });
 
-  const channel = await db.voiceChannel.findUnique({
-    where: { id: channelId },
-    select: { createdBy: true },
-  });
   const remaining = await db.voiceMember.count({ where: { channelId } });
-  if (remaining === 0 && channel?.createdBy === user.id) {
+  if (remaining === 0 && channel.createdBy === user.id && !channel.isLive) {
     await db.voiceChannel.update({
       where: { id: channelId },
       data: { isLive: false },

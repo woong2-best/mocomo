@@ -1,14 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { LiveKitRoom, RoomAudioRenderer, useTracks, VideoTrack } from "@livekit/components-react";
-import "@livekit/components-styles";
+import { useTracks, VideoTrack } from "@livekit/components-react";
 import { Track } from "livekit-client";
-import { fetchLivekitCredentials } from "@/lib/livekit-token-fetch";
 import { livePublisherIdentities } from "@/lib/live-participant";
 import { Loader2 } from "lucide-react";
 
-function ObsPreviewStage({ channelId, hostUserId }: { channelId: string; hostUserId: string }) {
+/** LiveObsStudio의 LiveKitRoom 안에서만 사용 */
+export function LiveObsPreviewStage({
+  channelId,
+  hostUserId,
+}: {
+  channelId: string;
+  hostUserId: string;
+}) {
   const publishers = livePublisherIdentities(channelId, hostUserId);
   const tracks = useTracks(
     [
@@ -34,36 +38,5 @@ function ObsPreviewStage({ channelId, hostUserId }: { channelId: string; hostUse
         </div>
       )}
     </div>
-  );
-}
-
-export function LiveObsPreview({ channelId }: { channelId: string }) {
-  const [token, setToken] = useState<string | null>(null);
-  const [serverUrl, setServerUrl] = useState("");
-  const [hostUserId, setHostUserId] = useState("");
-
-  useEffect(() => {
-    fetchLivekitCredentials(channelId)
-      .then((c) => {
-        setToken(c.token);
-        setServerUrl(c.serverUrl);
-        setHostUserId(c.hostUserId ?? "");
-      })
-      .catch(() => {});
-  }, [channelId]);
-
-  if (!token || !serverUrl) {
-    return (
-      <div className="aspect-video rounded-2xl bg-muted/30 flex items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  return (
-    <LiveKitRoom token={token} serverUrl={serverUrl} connect audio video={false}>
-      <ObsPreviewStage channelId={channelId} hostUserId={hostUserId} />
-      <RoomAudioRenderer />
-    </LiveKitRoom>
   );
 }

@@ -90,11 +90,11 @@ export function LiveRoomClient({
   }, [joined, channelId]);
 
   useEffect(() => {
-    if (!joined) return;
+    if (!joined || isHost) return;
     return () => {
       void leaveLiveStream(channelId);
     };
-  }, [joined, channelId]);
+  }, [joined, channelId, isHost]);
 
   async function handleJoin(e: React.FormEvent) {
     e.preventDefault();
