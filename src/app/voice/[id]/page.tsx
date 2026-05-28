@@ -91,6 +91,8 @@ export default async function VoiceRoomPage({ params }: { params: Promise<{ id: 
         chatBannedWords={channel.chatBannedWords}
         paymentsEnabled={paymentsEnabled}
         broadcastMode={channel.broadcastMode ?? "BROWSER"}
+        liveVisibility={channel.liveVisibility ?? "PUBLIC"}
+        minViewerTier={channel.minViewerTier}
       />
     </div>
   );

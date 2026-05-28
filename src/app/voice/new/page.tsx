@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import type { LiveBroadcastMode, LiveStreamCategory } from "@prisma/client";
+import type { LiveBroadcastMode, LiveStreamCategory, LiveVisibility, SupportTierLevel } from "@prisma/client";
+import { SUPPORT_TIERS } from "@/lib/tiers";
+import { tierLabelKo } from "@/lib/live-viewer-access";
 import { createLiveStream } from "@/actions/live-stream";
 import { LIVE_CATEGORIES } from "@/lib/live-categories";
 import { Button } from "@/components/ui/button";
@@ -67,6 +69,8 @@ export default function NewVoicePage() {
   const [name, setName] = useState(PRESETS[0]);
   const [category, setCategory] = useState<LiveStreamCategory>("JUST_CHATTING");
   const [broadcastMode, setBroadcastMode] = useState<LiveBroadcastMode>("BROWSER");
+  const [liveVisibility, setLiveVisibility] = useState<LiveVisibility>("PUBLIC");
+  const [minViewerTier, setMinViewerTier] = useState<SupportTierLevel>("BRONZE");
   const [created, setCreated] = useState<CreatedUiState | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -185,7 +189,9 @@ export default function NewVoicePage() {
           <KeyRound className="h-10 w-10 mx-auto text-green-600" />
           <h2 className="text-xl font-bold">방송 시작됨</h2>
           <p className="text-sm text-muted-foreground">
-            아래 <strong>합방 비밀번호</strong>를 시청자에게 공유하세요.
+            아래 <strong>합방 비밀번호</strong>는 공동 방송을 원하는 분에게만 공유하세요.
+            <br />
+            일반 시청자는 비밀번호 없이 시청할 수 있습니다.
           </p>
           <p className="text-3xl font-mono font-bold tracking-[0.35em] text-foreground">{created.password}</p>
           {created.broadcastMode === "OBS" && (
@@ -288,6 +294,44 @@ export default function NewVoicePage() {
                 <Monitor className="h-3.5 w-3.5" />
                 OBS
               </button>
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">시청 공개 범위</p>
+              <div className="flex gap-2 p-1 rounded-xl bg-muted/40 border">
+                <button
+                  type="button"
+                  className={cn(
+                    "flex-1 text-xs py-2 rounded-lg font-medium",
+                    liveVisibility === "PUBLIC" ? "bg-background shadow" : "text-muted-foreground"
+                  )}
+                  onClick={() => setLiveVisibility("PUBLIC")}
+                >
+                  공개 (누구나 시청)
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    "flex-1 text-xs py-2 rounded-lg font-medium",
+                    liveVisibility === "PRIVATE" ? "bg-background shadow" : "text-muted-foreground"
+                  )}
+                  onClick={() => setLiveVisibility("PRIVATE")}
+                >
+                  비공개 (등급 제한)
+                </button>
+              </div>
+              {liveVisibility === "PRIVATE" && (
+                <select
+                  className="w-full h-10 rounded-xl border bg-background px-3 text-sm"
+                  value={minViewerTier}
+                  onChange={(e) => setMinViewerTier(e.target.value as SupportTierLevel)}
+                >
+                  {SUPPORT_TIERS.filter((t) => t.minAmount >= 10_000).map((t) => (
+                    <option key={t.level} value={t.level}>
+                      {tierLabelKo(t.level)} 이상 후원자
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
               {BROADCAST_CATEGORIES.map(({ value, label }) => (

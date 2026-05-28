@@ -1,10 +1,33 @@
 "use server";
 
-import type { SupportTierLevel } from "@prisma/client";
+import type {
+  LiveBroadcastMode,
+  LiveStreamCategory,
+  LiveVisibility,
+  SupportTierLevel,
+} from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireAuth, requireAuthMinimal } from "@/lib/auth";
 import { formatLiveCreateError } from "@/lib/live-create-errors";
 import { userPublicSelectMinimal } from "@/lib/user-public-select";
+import { tierLabelKo } from "@/lib/live-viewer-access";
+import { generateLiveJoinPassword, hashLiveJoinPassword, verifyLiveJoinPassword } from "@/lib/live-password";
+import { countActiveLiveViewers, resolveLiveChannelAccess } from "@/lib/live-room-access";
+import { liveViewerCutoff } from "@/lib/live-presence";
+import { parseLiveTagsInput } from "@/lib/live-categories";
+import {
+  filterLiveChatContent,
+  looksLikeSpamDuplicate,
+} from "@/lib/live-chat-filter";
+import { moderateChatWithAi } from "@/lib/ai-moderation";
+import { deleteObsRtmpIngress } from "@/lib/livekit-ingress";
+import { provisionObsIngress } from "@/lib/obs-ingress-service";
+import { notifyFollowersOnLive } from "@/lib/live-notify";
+import {
+  fetchLiveChannelForStudio,
+  fetchLiveTipsForChannel,
+} from "@/lib/live-channel-meta-safe";
+import { revalidatePath } from "next/cache";
 
 function mapLiveChatMessage(m: {
   id: string;
@@ -27,24 +50,6 @@ function mapLiveChatMessage(m: {
     at: m.createdAt.getTime(),
   };
 }
-import type { LiveBroadcastMode, LiveStreamCategory } from "@prisma/client";
-import { generateLiveJoinPassword, hashLiveJoinPassword, verifyLiveJoinPassword } from "@/lib/live-password";
-import { countActiveLiveViewers, resolveLiveChannelAccess } from "@/lib/live-room-access";
-import { liveViewerCutoff } from "@/lib/live-presence";
-import { parseLiveTagsInput } from "@/lib/live-categories";
-import {
-  filterLiveChatContent,
-  looksLikeSpamDuplicate,
-} from "@/lib/live-chat-filter";
-import { moderateChatWithAi } from "@/lib/ai-moderation";
-import { deleteObsRtmpIngress } from "@/lib/livekit-ingress";
-import { provisionObsIngress } from "@/lib/obs-ingress-service";
-import { notifyFollowersOnLive } from "@/lib/live-notify";
-import {
-  fetchLiveChannelForStudio,
-  fetchLiveTipsForChannel,
-} from "@/lib/live-channel-meta-safe";
-import { revalidatePath } from "next/cache";
 
 export async function createLiveStream(data: {
   name: string;
@@ -59,6 +64,8 @@ export async function createLiveStream(data: {
   scheduledAt?: string;
   donationGoalKrw?: number;
   broadcastMode?: LiveBroadcastMode;
+  liveVisibility?: LiveVisibility;
+  minViewerTier?: SupportTierLevel;
 }) {
   try {
     const user = await requireAuthMinimal();
@@ -85,35 +92,55 @@ export async function createLiveStream(data: {
         ? data.donationGoalKrw
         : parseInt(String(data.donationGoalKrw ?? ""), 10);
 
-    const channel = await db.voiceChannel.create({
-      data: {
-        name: title.slice(0, 120),
-        communityId: data.communityId,
-        maxUsers: Math.min(Math.max(data.maxUsers ?? 200, 2), 500),
-        allowScreen: data.allowScreen ?? true,
-        allowCamera: data.allowCamera ?? true,
-        createdBy: user.id,
-        joinPasswordHash,
-        isLive: !isScheduled,
-        liveStatus: isScheduled ? "SCHEDULED" : "LIVE",
-        category: data.category ?? "JUST_CHATTING",
-        tags,
-        thumbnailUrl: data.thumbnailUrl?.trim() || null,
-        description: data.description?.trim().slice(0, 500) || null,
-        scheduledAt: isScheduled ? scheduledAt : null,
-        donationGoalKrw: Number.isFinite(goalRaw) && goalRaw > 0 ? goalRaw : null,
-        broadcastMode: data.broadcastMode ?? "BROWSER",
-        members: isScheduled
-          ? undefined
-          : {
-              create: {
-                userId: user.id,
-                role: "HOST",
-                lastSeenAt: new Date(),
-              },
+    const visibility = data.liveVisibility ?? "PUBLIC";
+    const minTier =
+      visibility === "PRIVATE" ? (data.minViewerTier ?? "BRONZE") : null;
+
+    const baseData = {
+      name: title.slice(0, 120),
+      communityId: data.communityId,
+      maxUsers: Math.min(Math.max(data.maxUsers ?? 200, 2), 500),
+      allowScreen: data.allowScreen ?? true,
+      allowCamera: data.allowCamera ?? true,
+      createdBy: user.id,
+      joinPasswordHash,
+      isLive: !isScheduled,
+      liveStatus: isScheduled ? ("SCHEDULED" as const) : ("LIVE" as const),
+      category: data.category ?? "JUST_CHATTING",
+      tags,
+      thumbnailUrl: data.thumbnailUrl?.trim() || null,
+      description: data.description?.trim().slice(0, 500) || null,
+      scheduledAt: isScheduled ? scheduledAt : null,
+      donationGoalKrw: Number.isFinite(goalRaw) && goalRaw > 0 ? goalRaw : null,
+      broadcastMode: data.broadcastMode ?? "BROWSER",
+      members: isScheduled
+        ? undefined
+        : {
+            create: {
+              userId: user.id,
+              role: "HOST",
+              lastSeenAt: new Date(),
             },
-      },
-    });
+          },
+    };
+
+    let channel;
+    try {
+      channel = await db.voiceChannel.create({
+        data: {
+          ...baseData,
+          liveVisibility: visibility,
+          minViewerTier: minTier,
+        },
+      });
+    } catch (visErr) {
+      const msg = visErr instanceof Error ? visErr.message : "";
+      if (/liveVisibility|minViewerTier|LiveVisibility/i.test(msg)) {
+        channel = await db.voiceChannel.create({ data: baseData });
+      } else {
+        throw visErr;
+      }
+    }
 
     try {
       await db.streamerProfile.upsert({
@@ -199,12 +226,46 @@ export async function getLiveChannelRoomMeta(channelId: string) {
   }
 }
 
-export async function joinLiveStreamWithPassword(channelId: string, password: string) {
+/** 시청 입장 — 공개 방송은 누구나, 비공개는 등급 충족 시청자만 */
+export async function enterLiveAsViewer(channelId: string) {
+  const user = await requireAuth();
+  const channel = await db.voiceChannel.findUnique({
+    where: { id: channelId },
+    select: { isLive: true, createdBy: true, maxUsers: true },
+  });
+
+  if (!channel || !channel.isLive) return { error: "종료되었거나 없는 방송입니다." };
+  if (channel.createdBy === user.id) {
+    await upsertLiveMember(channelId, user.id, "HOST");
+    return { success: true as const, role: "HOST" as const };
+  }
+
+  const access = await resolveLiveChannelAccess(channelId, user.id);
+  if (!access.allowed) {
+    if (access.reason === "TIER_REQUIRED" && access.minViewerTier) {
+      return {
+        error: `비공개 방송입니다. 이 스트리머에게 ${tierLabelKo(access.minViewerTier)} 등급 이상 후원이 필요합니다.`,
+        code: "TIER_REQUIRED" as const,
+      };
+    }
+    return { error: "시청할 수 없습니다." };
+  }
+
+  const active = await countActiveLiveViewers(channelId);
+  if (active >= channel.maxUsers) {
+    return { error: "시청 인원이 가득 찼습니다. 잠시 후 다시 시도해 주세요." };
+  }
+
+  await upsertLiveMember(channelId, user.id, "VIEWER");
+  return { success: true as const, role: "VIEWER" as const };
+}
+
+/** 합방(공동 방송) 신청 — 비밀번호 일치 시에만 CO_HOST */
+export async function applyLiveCollabPassword(channelId: string, password: string) {
   const user = await requireAuth();
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
     select: {
-      id: true,
       isLive: true,
       joinPasswordHash: true,
       maxUsers: true,
@@ -214,12 +275,11 @@ export async function joinLiveStreamWithPassword(channelId: string, password: st
 
   if (!channel || !channel.isLive) return { error: "종료되었거나 없는 방송입니다." };
   if (channel.createdBy === user.id) {
-    await upsertLiveMember(channelId, user.id, "HOST");
-    return { success: true as const };
+    return { error: "호스트는 합방 신청이 필요 없습니다." };
   }
 
   if (!channel.joinPasswordHash) {
-    return { error: "이 방송은 비밀번호가 설정되지 않았습니다. 방송을 새로 시작해 주세요." };
+    return { error: "합방 비밀번호가 아직 설정되지 않았습니다." };
   }
 
   const ok = await verifyLiveJoinPassword(password, channel.joinPasswordHash);
@@ -227,14 +287,36 @@ export async function joinLiveStreamWithPassword(channelId: string, password: st
 
   const active = await countActiveLiveViewers(channelId);
   if (active >= channel.maxUsers) {
-    return { error: "시청 인원이 가득 찼습니다. 잠시 후 다시 시도해 주세요." };
+    return { error: "시청 인원이 가득 찼습니다." };
   }
 
-  await upsertLiveMember(channelId, user.id, "VIEWER");
-  return { success: true as const };
+  await upsertLiveMember(channelId, user.id, "CO_HOST");
+  return { success: true as const, role: "CO_HOST" as const };
 }
 
-async function upsertLiveMember(channelId: string, userId: string, role: "HOST" | "VIEWER") {
+/** @deprecated 호환 — 호스트 입장 또는 합방 비밀번호 */
+export async function joinLiveStreamWithPassword(channelId: string, password: string) {
+  const user = await requireAuth();
+  const channel = await db.voiceChannel.findUnique({
+    where: { id: channelId },
+    select: { createdBy: true, isLive: true },
+  });
+  if (!channel || !channel.isLive) return { error: "종료되었거나 없는 방송입니다." };
+  if (channel.createdBy === user.id) {
+    await upsertLiveMember(channelId, user.id, "HOST");
+    return { success: true as const };
+  }
+  if (!password.trim()) {
+    return enterLiveAsViewer(channelId);
+  }
+  return applyLiveCollabPassword(channelId, password);
+}
+
+async function upsertLiveMember(
+  channelId: string,
+  userId: string,
+  role: "HOST" | "VIEWER" | "CO_HOST"
+) {
   await db.voiceMember.upsert({
     where: { channelId_userId: { channelId, userId } },
     create: { channelId, userId, role, lastSeenAt: new Date() },

@@ -19,7 +19,8 @@ const CALL_DENY: Record<string, string> = {
 const LIVE_DENY: Record<string, string> = {
   NOT_FOUND: "방송을 찾을 수 없습니다.",
   NOT_LIVE: "방송이 종료되었습니다.",
-  NOT_MEMBER: "합방 비밀번호로 입장한 뒤 시청할 수 있습니다.",
+  NOT_MEMBER: "시청 권한이 없습니다.",
+  TIER_REQUIRED: "비공개 방송입니다. 필요 후원 등급을 충족한 뒤 시청해 주세요.",
 };
 
 export async function GET(req: NextRequest) {
@@ -87,9 +88,14 @@ export async function GET(req: NextRequest) {
       select: { broadcastMode: true },
     });
     const hostObsMode = live.isHost && channelRow?.broadcastMode === "OBS";
+    const member = await db.voiceMember.findUnique({
+      where: { channelId_userId: { channelId: room, userId: session.user.id } },
+      select: { role: true },
+    });
+    const canPublish = (live.isHost && !hostObsMode) || member?.role === "CO_HOST";
 
     const token = await createLivekitToken(room, session.user.id, displayName, {
-      publish: live.isHost && !hostObsMode,
+      publish: canPublish,
     });
     if (!token) {
       return NextResponse.json({ error: "LiveKit 토큰 생성 실패" }, { status: 503 });

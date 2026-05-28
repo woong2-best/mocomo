@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { LiveBroadcastMode, LiveStreamCategory, SupportTierLevel } from "@prisma/client";
+import type {
+  LiveBroadcastMode,
+  LiveStreamCategory,
+  LiveVisibility,
+  SupportTierLevel,
+} from "@prisma/client";
 import { LiveRoomClient } from "@/components/live/live-room-client";
 
 const LIVE_PW_KEY = (id: string) => `mocomo_live_pw_${id}`;
@@ -23,6 +28,8 @@ export function LiveRoomEntry({
   chatBannedWords,
   paymentsEnabled,
   broadcastMode,
+  liveVisibility,
+  minViewerTier,
 }: {
   channelId: string;
   channelName: string;
@@ -40,6 +47,8 @@ export function LiveRoomEntry({
   chatBannedWords?: string[];
   paymentsEnabled?: boolean;
   broadcastMode?: LiveBroadcastMode;
+  liveVisibility?: LiveVisibility;
+  minViewerTier?: SupportTierLevel | null;
 }) {
   const [storedPassword, setStoredPassword] = useState<string | null>(null);
 
@@ -68,6 +77,8 @@ export function LiveRoomEntry({
       chatBannedWords={chatBannedWords}
       paymentsEnabled={paymentsEnabled}
       broadcastMode={broadcastMode}
+      liveVisibility={liveVisibility}
+      minViewerTier={minViewerTier}
     />
   );
 }

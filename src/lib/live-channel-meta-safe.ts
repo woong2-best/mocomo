@@ -1,4 +1,10 @@
-import type { LiveBroadcastMode, LiveStreamCategory, LiveStreamStatus } from "@prisma/client";
+import type {
+  LiveBroadcastMode,
+  LiveStreamCategory,
+  LiveStreamStatus,
+  LiveVisibility,
+  SupportTierLevel,
+} from "@prisma/client";
 import { db } from "@/lib/db";
 import { ensureStringArray } from "@/lib/ensure-array";
 
@@ -18,6 +24,8 @@ export type SafeLiveChannelMeta = {
   slowModeSeconds: number;
   chatBannedWords: string[];
   broadcastMode: LiveBroadcastMode;
+  liveVisibility: LiveVisibility;
+  minViewerTier: SupportTierLevel | null;
   rtmpUrl: string | null;
   rtmpStreamKey: string | null;
 };
@@ -45,6 +53,8 @@ const EXTENDED_SELECT = {
   slowModeSeconds: true,
   chatBannedWords: true,
   broadcastMode: true,
+  liveVisibility: true,
+  minViewerTier: true,
   rtmpUrl: true,
   rtmpStreamKey: true,
 } as const;
@@ -82,6 +92,8 @@ function withLiveDefaults(
     slowModeSeconds: ch.slowModeSeconds ?? 0,
     chatBannedWords: ensureStringArray(ch.chatBannedWords),
     broadcastMode: ch.broadcastMode ?? "BROWSER",
+    liveVisibility: ch.liveVisibility ?? "PUBLIC",
+    minViewerTier: ch.minViewerTier ?? null,
     rtmpUrl: ch.rtmpUrl ?? null,
     rtmpStreamKey: ch.rtmpStreamKey ?? null,
   };

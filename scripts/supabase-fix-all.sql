@@ -604,6 +604,14 @@ ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "rtmpIngressId" TEXT;
 ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "rtmpUrl" TEXT;
 ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "rtmpStreamKey" TEXT;
 
+-- W) 라이브 공개/비공개 시청
+DO $$ BEGIN
+  CREATE TYPE "LiveVisibility" AS ENUM ('PUBLIC', 'PRIVATE');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "liveVisibility" "LiveVisibility" NOT NULL DEFAULT 'PUBLIC';
+ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "minViewerTier" "SupportTierLevel";
+
 -- V) Repost (리트윗/리포스트)
 CREATE TABLE IF NOT EXISTS "Repost" (
   "id" TEXT NOT NULL,

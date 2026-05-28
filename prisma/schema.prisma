@@ -35,6 +35,11 @@ enum LiveBroadcastMode {
   OBS
 }
 
+enum LiveVisibility {
+  PUBLIC
+  PRIVATE
+}
+
 enum PremiumTier {
   FREE
   PREMIUM
@@ -621,6 +626,8 @@ model VoiceChannel {
   vodUrl           String?
   egressId         String?
   broadcastMode    LiveBroadcastMode @default(BROWSER)
+  liveVisibility   LiveVisibility    @default(PUBLIC)
+  minViewerTier    SupportTierLevel?
   rtmpIngressId    String?
   rtmpUrl          String?
   rtmpStreamKey    String?

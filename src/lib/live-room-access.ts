@@ -1,17 +1,22 @@
+import type { LiveVisibility, SupportTierLevel } from "@prisma/client";
 import { db } from "@/lib/db";
 import { liveViewerCutoff } from "@/lib/live-presence";
+import { meetsPrivateLiveTier } from "@/lib/live-viewer-access";
 
 export type LiveRoomAccess =
-  | { allowed: true; isHost: boolean; hostUserId: string }
+  | { allowed: true; isHost: boolean; hostUserId: string; canPublish?: boolean }
   | {
       allowed: false;
-      reason: "NOT_FOUND" | "NOT_LIVE" | "NOT_MEMBER" | "ENDED";
+      reason: "NOT_FOUND" | "NOT_LIVE" | "NOT_MEMBER" | "ENDED" | "TIER_REQUIRED";
+      minViewerTier?: SupportTierLevel;
     };
 
 type ChannelAccessRow = {
   id: string;
   createdBy: string;
   isLive: boolean;
+  liveVisibility?: LiveVisibility;
+  minViewerTier?: SupportTierLevel | null;
   linkedChatRoom?: { id: string; type: string } | null;
 };
 
@@ -23,11 +28,13 @@ async function loadChannelForAccess(channelId: string): Promise<ChannelAccessRow
         id: true,
         createdBy: true,
         isLive: true,
+        liveVisibility: true,
+        minViewerTier: true,
         linkedChatRoom: { select: { id: true, type: true } },
       },
     });
   } catch (e) {
-    console.warn("[resolveLiveChannelAccess] linkedChatRoom select failed", e);
+    console.warn("[resolveLiveChannelAccess] extended select failed", e);
     return await db.voiceChannel.findUnique({
       where: { id: channelId },
       select: { id: true, createdBy: true, isLive: true },
@@ -65,15 +72,31 @@ export async function resolveLiveChannelAccess(
   }
 
   const isHost = channel.createdBy === userId;
-  if (isHost) return { allowed: true, isHost: true, hostUserId: channel.createdBy };
+  if (isHost) {
+    return { allowed: true, isHost: true, hostUserId: channel.createdBy, canPublish: true };
+  }
 
   const member = await db.voiceMember.findUnique({
     where: { channelId_userId: { channelId, userId } },
     select: { role: true, lastSeenAt: true },
   });
-  if (!member) return { allowed: false, reason: "NOT_MEMBER" };
+  const isCollab = member?.role === "CO_HOST";
 
-  return { allowed: true, isHost: false, hostUserId: channel.createdBy };
+  const visibility = channel.liveVisibility ?? "PUBLIC";
+  if (visibility === "PRIVATE") {
+    const minTier = channel.minViewerTier ?? "BRONZE";
+    const ok = await meetsPrivateLiveTier(userId, channel.createdBy, minTier);
+    if (!ok) {
+      return { allowed: false, reason: "TIER_REQUIRED", minViewerTier: minTier };
+    }
+  }
+
+  return {
+    allowed: true,
+    isHost: false,
+    hostUserId: channel.createdBy,
+    canPublish: isCollab,
+  };
 }
 
 export async function countActiveLiveViewers(channelId: string): Promise<number> {

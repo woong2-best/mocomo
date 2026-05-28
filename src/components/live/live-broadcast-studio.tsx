@@ -8,8 +8,8 @@ import {
   useLocalParticipant,
   useTracks,
   VideoTrack,
-  ControlBar,
 } from "@livekit/components-react";
+import { LiveHostMediaControls } from "@/lib/live-host-controls";
 import "@livekit/components-styles";
 import { Track } from "livekit-client";
 import { fetchLivekitCredentials } from "@/lib/livekit-token-fetch";
@@ -61,17 +61,7 @@ function HostStage() {
 function HostControls({ onEndStream }: { onEndStream: () => void }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 pt-3">
-      <ControlBar
-        controls={{
-          microphone: true,
-          camera: true,
-          screenShare: true,
-          chat: false,
-          settings: false,
-          leave: false,
-        }}
-        className="!border-0 !bg-transparent"
-      />
+      <LiveHostMediaControls />
       <Button variant="destructive" className="rounded-xl" onClick={onEndStream}>
         방송 종료
       </Button>

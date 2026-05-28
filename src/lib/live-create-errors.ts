@@ -5,7 +5,7 @@ export function formatLiveCreateError(e: unknown): string {
     if (e.message === "BANNED") return "이용이 제한된 계정입니다.";
     const msg = e.message;
     if (
-      /LiveStreamCategory|LiveStreamStatus|LiveBroadcastMode|joinPassword|StreamerProfile|VoiceMember|enum|column/i.test(
+      /LiveStreamCategory|LiveStreamStatus|LiveBroadcastMode|LiveVisibility|joinPassword|StreamerProfile|VoiceMember|enum|column/i.test(
         msg
       )
     ) {
