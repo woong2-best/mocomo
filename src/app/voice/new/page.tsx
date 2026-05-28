@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import type { LiveStreamCategory } from "@prisma/client";
 import { createLiveStream } from "@/actions/live-stream";
+import { LIVE_CATEGORIES } from "@/lib/live-categories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Radio, Video, Mic, ChevronLeft, KeyRound, Copy, Check } from "lucide-react";
+import { Radio, ChevronLeft, KeyRound, Copy, Check, Calendar } from "lucide-react";
 
 const PRESETS = [
   "🎙 애니덕질 라이브",
@@ -18,11 +20,16 @@ const PRESETS = [
 
 const LIVE_PW_KEY = (id: string) => `mocomo_live_pw_${id}`;
 
+const BROADCAST_CATEGORIES = LIVE_CATEGORIES.filter((c) => c.value !== "ALL");
+
 export default function NewVoicePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState(PRESETS[0]);
-  const [created, setCreated] = useState<{ channelId: string; password: string } | null>(null);
+  const [category, setCategory] = useState<LiveStreamCategory>("JUST_CHATTING");
+  const [created, setCreated] = useState<
+    { channelId: string; password?: string; scheduled?: boolean } | null
+  >(null);
   const [copied, setCopied] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -34,16 +41,28 @@ export default function NewVoicePage() {
       maxUsers: parseInt(form.get("maxUsers") as string) || 200,
       allowScreen: true,
       allowCamera: true,
+      category,
+      tags: (form.get("tags") as string) || "",
+      thumbnailUrl: (form.get("thumbnailUrl") as string) || undefined,
+      description: (form.get("description") as string) || undefined,
+      scheduledAt: (form.get("scheduledAt") as string) || undefined,
+      donationGoalKrw: parseInt(form.get("donationGoalKrw") as string) || undefined,
     });
     setLoading(false);
-    if (result.channel && result.joinPassword) {
-      sessionStorage.setItem(LIVE_PW_KEY(result.channel.id), result.joinPassword);
-      setCreated({ channelId: result.channel.id, password: result.joinPassword });
+    if (result.channel) {
+      if (result.scheduled) {
+        setCreated({ channelId: result.channel.id, scheduled: true });
+        return;
+      }
+      if (result.joinPassword) {
+        sessionStorage.setItem(LIVE_PW_KEY(result.channel.id), result.joinPassword);
+        setCreated({ channelId: result.channel.id, password: result.joinPassword });
+      }
     }
   }
 
   function copyPassword() {
-    if (!created) return;
+    if (!created?.password) return;
     void navigator.clipboard.writeText(created.password);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -54,14 +73,31 @@ export default function NewVoicePage() {
     router.push(`/voice/${created.channelId}`);
   }
 
-  if (created) {
+  if (created?.scheduled) {
+    return (
+      <div className="max-w-lg mx-auto p-4 space-y-6 pb-24">
+        <div className="rounded-2xl border border-sky-500/30 bg-sky-500/10 p-6 text-center space-y-4">
+          <Calendar className="h-10 w-10 mx-auto text-sky-600" />
+          <h2 className="text-xl font-bold">방송 예약 완료</h2>
+          <p className="text-sm text-muted-foreground">
+            예약 시간에 스튜디오에서 방송을 시작할 수 있습니다.
+          </p>
+          <Button className="rounded-xl" variant="outline" asChild>
+            <Link href="/live">라이브 홈</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (created?.password) {
     return (
       <div className="max-w-lg mx-auto p-4 space-y-6 pb-24">
         <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-6 text-center space-y-4">
           <KeyRound className="h-10 w-10 mx-auto text-green-600" />
           <h2 className="text-xl font-bold">방송 준비 완료</h2>
           <p className="text-sm text-muted-foreground">
-            아래 <strong>합방 비밀번호</strong>를 시청자에게만 공유하세요. 모르는 사람은 입장할 수 없습니다.
+            아래 <strong>합방 비밀번호</strong>를 시청자에게만 공유하세요.
           </p>
           <p className="text-3xl font-mono font-bold tracking-[0.35em] text-foreground">{created.password}</p>
           <div className="flex gap-2 justify-center">
@@ -118,22 +154,33 @@ export default function NewVoicePage() {
               ))}
             </div>
             <Input name="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="방송 제목" required />
-            <Input name="maxUsers" type="number" placeholder="최대 시청자" defaultValue={200} />
-            <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Video className="h-3.5 w-3.5" /> 화면/카메라 송출
-              </span>
-              <span className="flex items-center gap-1">
-                <Mic className="h-3.5 w-3.5" /> 음성 + 채팅
-              </span>
+            <div className="flex flex-wrap gap-2">
+              {BROADCAST_CATEGORIES.map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setCategory(value as LiveStreamCategory)}
+                  className={`text-xs px-2.5 py-1 rounded-full border ${
+                    category === value ? "bg-red-600 text-white border-red-600" : "border-border"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
+            <Input name="tags" placeholder="태그 (쉼표 또는 #으로 구분)" />
+            <Input name="thumbnailUrl" placeholder="썸네일 이미지 URL (선택)" />
+            <Input name="description" placeholder="방송 설명 (선택)" />
+            <Input name="donationGoalKrw" type="number" placeholder="후원 목표 (원, 선택)" min={1000} step={1000} />
+            <Input name="scheduledAt" type="datetime-local" />
+            <Input name="maxUsers" type="number" placeholder="최대 시청자" defaultValue={200} />
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <KeyRound className="h-3.5 w-3.5" />
-              시작 시 6자리 합방 비밀번호가 자동 생성됩니다.
+              즉시 시작 시 6자리 합방 비밀번호가 생성됩니다. 예약만 하면 비밀번호 없이 등록됩니다.
             </p>
             <Button type="submit" className="w-full rounded-xl btn-rainbow gap-2" disabled={loading}>
               <Radio className="h-4 w-4" />
-              {loading ? "생성 중..." : "방송 시작"}
+              {loading ? "생성 중..." : "방송 시작 / 예약"}
             </Button>
           </form>
         </CardContent>

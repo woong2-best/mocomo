@@ -16,6 +16,20 @@ enum UserRole {
   ADMIN
 }
 
+enum LiveStreamCategory {
+  LIVE
+  JUST_CHATTING
+  GAME
+  MUSIC
+  IRL
+}
+
+enum LiveStreamStatus {
+  LIVE
+  SCHEDULED
+  ENDED
+}
+
 enum PremiumTier {
   FREE
   PREMIUM
@@ -55,6 +69,7 @@ model User {
   sessions      Session[]
   profile       Profile?
   cosplayerProfile CosplayerProfile?
+  streamerProfile  StreamerProfile?
 
   posts         Post[]
   comments      Comment[]
@@ -77,6 +92,9 @@ model User {
 
   voiceMembers  VoiceMember[]
   liveChatMessages LiveChatMessage[]
+  streamClips       StreamClip[]
+  streamClipLikes   StreamClipLike[]
+  streamClipComments StreamClipComment[]
   callsMade     VoiceCall[] @relation("CallsMade")
   callsReceived VoiceCall[] @relation("CallsReceived")
   tipsSent      Tip[]     @relation("TipSender")
@@ -562,6 +580,19 @@ model PinnedMessage {
 
 // ============ VOICE ============
 
+model StreamerProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  isPartner    Boolean  @default(false)
+  bio          String?  @db.VarChar(500)
+  announcement String?  @db.VarChar(500)
+  scheduleNote String?  @db.VarChar(300)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 model VoiceChannel {
   id               String   @id @default(cuid())
   name             String
@@ -573,10 +604,69 @@ model VoiceChannel {
   joinPasswordHash String?
   createdBy        String
   createdAt        DateTime @default(now())
+  category         LiveStreamCategory @default(JUST_CHATTING)
+  tags             String[] @default([])
+  thumbnailUrl     String?
+  description      String?  @db.VarChar(500)
+  scheduledAt      DateTime?
+  liveStatus       LiveStreamStatus @default(LIVE)
+  slowModeSeconds  Int      @default(0)
+  chatBannedWords  String[] @default([])
+  donationGoalKrw  Int?
+  vodUrl           String?
+  endedAt          DateTime?
 
   linkedChatRoom ChatRoom?
   members        VoiceMember[]
   chatMessages   LiveChatMessage[]
+  clips          StreamClip[]
+}
+
+model StreamClip {
+  id           String   @id @default(cuid())
+  channelId    String?
+  authorId     String
+  title        String
+  videoUrl     String
+  thumbnailUrl String?
+  durationSec  Int      @default(0)
+  isVertical   Boolean  @default(false)
+  viewCount    Int      @default(0)
+  likeCount    Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  channel  VoiceChannel?      @relation(fields: [channelId], references: [id], onDelete: SetNull)
+  author   User                 @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  likes    StreamClipLike[]
+  comments StreamClipComment[]
+
+  @@index([createdAt])
+  @@index([likeCount])
+}
+
+model StreamClipLike {
+  id        String   @id @default(cuid())
+  clipId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  clip StreamClip @relation(fields: [clipId], references: [id], onDelete: Cascade)
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([clipId, userId])
+}
+
+model StreamClipComment {
+  id        String   @id @default(cuid())
+  clipId    String
+  userId    String
+  content   String   @db.VarChar(500)
+  createdAt DateTime @default(now())
+
+  clip StreamClip @relation(fields: [clipId], references: [id], onDelete: Cascade)
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([clipId, createdAt])
 }
 
 model LiveChatMessage {

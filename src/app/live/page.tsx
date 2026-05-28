@@ -1,20 +1,41 @@
-import { LiveDirectory } from "@/components/live/live-directory";
-import { getCachedLiveChannels } from "@/lib/cached-data";
+import { Suspense } from "react";
+import { LiveHub } from "@/components/live/live-hub";
+import { getLiveHubData } from "@/lib/live-hub-data";
+import { parseLiveCategoryParam } from "@/lib/live-categories";
 
-export const revalidate = 30;
+export const revalidate = 25;
 
-export default async function LivePage() {
-  let channels: Awaited<ReturnType<typeof getCachedLiveChannels>>["channels"] = [];
-  let hosts: Awaited<ReturnType<typeof getCachedLiveChannels>>["hosts"] = [];
+export default async function LivePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string }>;
+}) {
+  const { category: categoryRaw } = await searchParams;
+  const category = parseLiveCategoryParam(categoryRaw);
+
+  let data: Awaited<ReturnType<typeof getLiveHubData>> = {
+    channels: [],
+    hosts: [],
+    recommendedStreamers: [],
+    popularClips: [],
+    followedLive: [],
+  };
 
   try {
-    const data = await getCachedLiveChannels();
-    channels = data.channels;
-    hosts = data.hosts;
+    data = await getLiveHubData(category);
   } catch {
-    channels = [];
-    hosts = [];
+    /* DB 미마이그레이션 시 빈 허브 */
   }
 
-  return <LiveDirectory channels={channels} hosts={hosts} />;
+  return (
+    <Suspense>
+      <LiveHub
+        channels={data.channels}
+        hosts={data.hosts}
+        recommendedStreamers={data.recommendedStreamers}
+        popularClips={data.popularClips}
+        followedLive={data.followedLive}
+      />
+    </Suspense>
+  );
 }

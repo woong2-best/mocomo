@@ -26,9 +26,15 @@ function mapLiveChatMessage(m: {
     at: m.createdAt.getTime(),
   };
 }
+import type { LiveStreamCategory } from "@prisma/client";
 import { generateLiveJoinPassword, hashLiveJoinPassword, verifyLiveJoinPassword } from "@/lib/live-password";
 import { countActiveLiveViewers, resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { liveViewerCutoff } from "@/lib/live-presence";
+import { parseLiveTagsInput } from "@/lib/live-categories";
+import {
+  filterLiveChatContent,
+  looksLikeSpamDuplicate,
+} from "@/lib/live-chat-filter";
 import { revalidatePath } from "next/cache";
 
 export async function createLiveStream(data: {
@@ -37,10 +43,24 @@ export async function createLiveStream(data: {
   maxUsers?: number;
   allowScreen?: boolean;
   allowCamera?: boolean;
+  category?: LiveStreamCategory;
+  tags?: string[] | string;
+  thumbnailUrl?: string;
+  description?: string;
+  scheduledAt?: string;
+  donationGoalKrw?: number;
 }) {
   const user = await requireAuth();
   const joinPassword = generateLiveJoinPassword();
   const joinPasswordHash = await hashLiveJoinPassword(joinPassword);
+
+  const tags = Array.isArray(data.tags)
+    ? data.tags.slice(0, 8)
+    : typeof data.tags === "string"
+      ? parseLiveTagsInput(data.tags)
+      : [];
+  const scheduledAt = data.scheduledAt ? new Date(data.scheduledAt) : null;
+  const isScheduled = scheduledAt && scheduledAt.getTime() > Date.now();
 
   const channel = await db.voiceChannel.create({
     data: {
@@ -51,19 +71,38 @@ export async function createLiveStream(data: {
       allowCamera: data.allowCamera ?? true,
       createdBy: user.id,
       joinPasswordHash,
-      isLive: true,
-      members: {
-        create: {
-          userId: user.id,
-          role: "HOST",
-          lastSeenAt: new Date(),
-        },
-      },
+      isLive: !isScheduled,
+      liveStatus: isScheduled ? "SCHEDULED" : "LIVE",
+      category: data.category ?? "JUST_CHATTING",
+      tags,
+      thumbnailUrl: data.thumbnailUrl?.trim() || null,
+      description: data.description?.trim().slice(0, 500) || null,
+      scheduledAt: isScheduled ? scheduledAt : null,
+      donationGoalKrw: data.donationGoalKrw && data.donationGoalKrw > 0 ? data.donationGoalKrw : null,
+      members: isScheduled
+        ? undefined
+        : {
+            create: {
+              userId: user.id,
+              role: "HOST",
+              lastSeenAt: new Date(),
+            },
+          },
     },
   });
 
+  await db.streamerProfile.upsert({
+    where: { userId: user.id },
+    create: { userId: user.id },
+    update: {},
+  });
+
   revalidatePath("/live");
-  return { channel, joinPassword };
+  return {
+    channel,
+    joinPassword: isScheduled ? undefined : joinPassword,
+    scheduled: Boolean(isScheduled),
+  };
 }
 
 export async function joinLiveStreamWithPassword(channelId: string, password: string) {
@@ -125,11 +164,36 @@ export async function heartbeatLivePresence(channelId: string) {
 
 export async function sendLiveChatMessage(channelId: string, content: string) {
   const user = await requireAuth();
-  const text = content.trim().slice(0, 200);
-  if (!text) return { error: "메시지를 입력해 주세요." };
 
   const access = await resolveLiveChannelAccess(channelId, user.id);
   if (!access.allowed) return { error: "방송에 참여한 뒤 채팅할 수 있습니다." };
+
+  const channel = await db.voiceChannel.findUnique({
+    where: { id: channelId },
+    select: { slowModeSeconds: true, chatBannedWords: true },
+  });
+  if (!channel) return { error: "방송을 찾을 수 없습니다." };
+
+  const filtered = filterLiveChatContent(content, channel.chatBannedWords);
+  if (!filtered.ok) return { error: filtered.error };
+  const text = filtered.text;
+
+  if (channel.slowModeSeconds > 0 && !access.isHost) {
+    const last = await db.liveChatMessage.findFirst({
+      where: { channelId, userId: user.id },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true, content: true },
+    });
+    if (last) {
+      const elapsed = (Date.now() - last.createdAt.getTime()) / 1000;
+      if (elapsed < channel.slowModeSeconds) {
+        return { error: `슬로우 모드: ${Math.ceil(channel.slowModeSeconds - elapsed)}초 후에 다시 보낼 수 있습니다.` };
+      }
+      if (looksLikeSpamDuplicate(last.content, text)) {
+        return { error: "같은 메시지를 연속으로 보낼 수 없습니다." };
+      }
+    }
+  }
 
   const msg = await db.liveChatMessage.create({
     data: { channelId, userId: user.id, content: text },
@@ -187,7 +251,7 @@ export async function endLiveStream(channelId: string) {
 
   await db.voiceChannel.update({
     where: { id: channelId },
-    data: { isLive: false },
+    data: { isLive: false, liveStatus: "ENDED", endedAt: new Date() },
   });
   await db.voiceMember.deleteMany({ where: { channelId } });
 
@@ -230,6 +294,31 @@ export async function loadLiveChatHistory(channelId: string) {
   });
 
   return { messages: messages.reverse().map(mapLiveChatMessage) };
+}
+
+export async function updateLiveStreamSettings(
+  channelId: string,
+  data: { slowModeSeconds?: number; chatBannedWords?: string[] }
+) {
+  const user = await requireAuth();
+  const channel = await db.voiceChannel.findUnique({
+    where: { id: channelId },
+    select: { createdBy: true },
+  });
+  if (!channel || channel.createdBy !== user.id) {
+    return { error: "호스트만 방송 설정을 변경할 수 있습니다." };
+  }
+  await db.voiceChannel.update({
+    where: { id: channelId },
+    data: {
+      slowModeSeconds:
+        data.slowModeSeconds !== undefined
+          ? Math.min(120, Math.max(0, data.slowModeSeconds))
+          : undefined,
+      chatBannedWords: data.chatBannedWords?.slice(0, 30),
+    },
+  });
+  return { success: true as const };
 }
 
 export async function pruneStaleLiveViewers(channelId: string) {

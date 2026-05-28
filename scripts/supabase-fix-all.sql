@@ -515,4 +515,75 @@ CREATE TABLE IF NOT EXISTS "ChatPollVote" (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "ChatPollVote_pollId_userId_key" ON "ChatPollVote"("pollId", "userId");
 
+-- R) 라이브 플랫폼 확장 (카테고리·클립·스트리머 프로필)
+DO $$ BEGIN
+  CREATE TYPE "LiveStreamCategory" AS ENUM ('LIVE', 'JUST_CHATTING', 'GAME', 'MUSIC', 'IRL');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE TYPE "LiveStreamStatus" AS ENUM ('LIVE', 'SCHEDULED', 'ENDED');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "category" "LiveStreamCategory" NOT NULL DEFAULT 'JUST_CHATTING';
+ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "tags" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
+ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "thumbnailUrl" TEXT;
+ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "description" VARCHAR(500);
+ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "scheduledAt" TIMESTAMP(3);
+ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "liveStatus" "LiveStreamStatus" NOT NULL DEFAULT 'LIVE';
+ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "slowModeSeconds" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "chatBannedWords" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
+ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "donationGoalKrw" INTEGER;
+ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "vodUrl" TEXT;
+ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "endedAt" TIMESTAMP(3);
+
+CREATE TABLE IF NOT EXISTS "StreamerProfile" (
+  "id" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "isPartner" BOOLEAN NOT NULL DEFAULT false,
+  "bio" VARCHAR(500),
+  "announcement" VARCHAR(500),
+  "scheduleNote" VARCHAR(300),
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "StreamerProfile_pkey" PRIMARY KEY ("id")
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "StreamerProfile_userId_key" ON "StreamerProfile"("userId");
+
+CREATE TABLE IF NOT EXISTS "StreamClip" (
+  "id" TEXT NOT NULL,
+  "channelId" TEXT,
+  "authorId" TEXT NOT NULL,
+  "title" TEXT NOT NULL,
+  "videoUrl" TEXT NOT NULL,
+  "thumbnailUrl" TEXT,
+  "durationSec" INTEGER NOT NULL DEFAULT 0,
+  "isVertical" BOOLEAN NOT NULL DEFAULT false,
+  "viewCount" INTEGER NOT NULL DEFAULT 0,
+  "likeCount" INTEGER NOT NULL DEFAULT 0,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "StreamClip_pkey" PRIMARY KEY ("id")
+);
+CREATE INDEX IF NOT EXISTS "StreamClip_createdAt_idx" ON "StreamClip"("createdAt");
+CREATE INDEX IF NOT EXISTS "StreamClip_likeCount_idx" ON "StreamClip"("likeCount");
+
+CREATE TABLE IF NOT EXISTS "StreamClipLike" (
+  "id" TEXT NOT NULL,
+  "clipId" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "StreamClipLike_pkey" PRIMARY KEY ("id")
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "StreamClipLike_clipId_userId_key" ON "StreamClipLike"("clipId", "userId");
+
+CREATE TABLE IF NOT EXISTS "StreamClipComment" (
+  "id" TEXT NOT NULL,
+  "clipId" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "content" VARCHAR(500) NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "StreamClipComment_pkey" PRIMARY KEY ("id")
+);
+CREATE INDEX IF NOT EXISTS "StreamClipComment_clipId_createdAt_idx" ON "StreamClipComment"("clipId", "createdAt");
+
 -- 완료 후 터미널: npx prisma db push && npm run db:seed
