@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import type { Socket } from "socket.io-client";
 import type { SupportTierLevel } from "@prisma/client";
 import { sendMessage } from "@/actions/chat";
+import { useChatSocket } from "@/components/messages/chat-socket-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChatComposer } from "@/components/chat/chat-composer";
+import { PresenceAvatar } from "@/components/user/presence-avatar";
 import {
   formatBubbleTime,
   formatDateDivider,
@@ -41,9 +42,7 @@ export function ChatRoomClient({
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [error, setError] = useState("");
-  const [realtimeOff, setRealtimeOff] = useState(false);
-  const [socketReady, setSocketReady] = useState(false);
-  const socketRef = useRef<Socket | null>(null);
+  const { socket, socketReady, realtimeOff, isUserOnline, subscribeMessages } = useChatSocket();
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
   const sendLockRef = useRef(false);
@@ -88,47 +87,7 @@ export function ChatRoomClient({
     scrollToBottom(messages.length <= initialMessages.length ? "auto" : "smooth");
   }, [messages, scrollToBottom, initialMessages.length]);
 
-  useEffect(() => {
-    const url = process.env.NEXT_PUBLIC_SOCKET_URL;
-    if (!url || url.includes("localhost")) {
-      setRealtimeOff(true);
-      setSocketReady(false);
-      return;
-    }
-
-    let disposed = false;
-    let socket: Socket | null = null;
-
-    import("socket.io-client").then(async ({ io }) => {
-      if (disposed) return;
-      const { fetchSocketAuthToken } = await import("@/lib/socket-client");
-      const token = await fetchSocketAuthToken();
-      if (disposed || !token) {
-        setRealtimeOff(true);
-        return;
-      }
-      socket = io(url, { auth: { token }, transports: ["websocket", "polling"] });
-      socketRef.current = socket;
-      socket.on("connect", () => {
-        if (!disposed) {
-          setSocketReady(true);
-          setRealtimeOff(false);
-        }
-      });
-      socket.on("disconnect", () => setSocketReady(false));
-      socket.emit("join_room", roomId);
-      socket.on("new_message", (msg: unknown) => mergeIncoming(msg));
-      socket.on("error", () => setError("메시지 전송에 실패했습니다."));
-    });
-
-    return () => {
-      disposed = true;
-      setSocketReady(false);
-      socket?.emit("leave_room", roomId);
-      socket?.disconnect();
-      socketRef.current = null;
-    };
-  }, [roomId, mergeIncoming]);
+  useEffect(() => subscribeMessages(mergeIncoming), [subscribeMessages, mergeIncoming]);
 
   function onScroll() {
     const el = scrollRef.current;
@@ -184,7 +143,6 @@ export function ChatRoomClient({
 
     const pendingId = addOptimistic(text);
 
-    const socket = socketRef.current;
     if (socketReady && socket?.connected) {
       socket.emit("send_message", { roomId, content: text });
       queueMicrotask(() => {
@@ -253,12 +211,17 @@ export function ChatRoomClient({
                   <div className="w-8 shrink-0 flex justify-center">
                     {showAvatar ? (
                       <UserProfileLink username={m.sender.username} className="rounded-full">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={m.sender.image ?? undefined} />
-                          <AvatarFallback className="text-[10px]">
-                            {m.sender.username[0]?.toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
+                        <PresenceAvatar
+                          online={!isMine && isUserOnline(m.sender.id)}
+                          size="sm"
+                        >
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={m.sender.image ?? undefined} />
+                            <AvatarFallback className="text-[10px]">
+                              {m.sender.username[0]?.toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                        </PresenceAvatar>
                       </UserProfileLink>
                     ) : (
                       <span className="w-8" />

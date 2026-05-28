@@ -1,9 +1,13 @@
+"use client";
+
 import type { SupportTierLevel } from "@prisma/client";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DmCallButtons } from "@/components/call/dm-call-buttons";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
+import { PresenceAvatar } from "@/components/user/presence-avatar";
+import { useChatSocket } from "@/components/messages/chat-socket-context";
 
 export function ChatHeader({
   displayName,
@@ -25,6 +29,14 @@ export function ChatHeader({
   showBackOnMobile?: boolean;
 }) {
   const profileHref = profileUsername ? `/u/${profileUsername}` : undefined;
+  const { isUserOnline } = useChatSocket();
+  const otherOnline = otherUserId ? isUserOnline(otherUserId) : false;
+  const presenceLabel =
+    roomType === "DM" && otherUserId
+      ? otherOnline
+        ? "접속 중"
+        : "오프라인"
+      : "프로필 보기";
 
   return (
     <header className="flex items-center gap-3 px-3 sm:px-4 py-2.5 border-b border-border/60 bg-background/95 backdrop-blur-md shrink-0 z-10">
@@ -40,12 +52,14 @@ export function ChatHeader({
 
       {profileHref ? (
         <Link href={profileHref} prefetch className="flex items-center gap-3 min-w-0 flex-1">
-          <Avatar className="h-10 w-10 shrink-0 ring-1 ring-border/50">
-            <AvatarImage src={displayImage ?? undefined} />
-            <AvatarFallback className="text-sm font-semibold">
-              {displayName[0]?.toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <PresenceAvatar online={otherOnline} size="md">
+            <Avatar className="h-10 w-10 shrink-0">
+              <AvatarImage src={displayImage ?? undefined} />
+              <AvatarFallback className="text-sm font-semibold">
+                {displayName[0]?.toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </PresenceAvatar>
           <div className="min-w-0">
             <DisplayNameWithSupportTier
               name={displayName}
@@ -53,7 +67,15 @@ export function ChatHeader({
               nameClassName="font-semibold text-sm"
               compact
             />
-            <p className="text-xs text-muted-foreground">프로필 보기</p>
+            <p
+              className={
+                otherOnline
+                  ? "text-xs text-[#1e88e5] font-medium"
+                  : "text-xs text-muted-foreground"
+              }
+            >
+              {presenceLabel}
+            </p>
           </div>
         </Link>
       ) : (

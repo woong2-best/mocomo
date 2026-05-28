@@ -8,7 +8,35 @@ const PORT = parseInt(process.env.SOCKET_PORT || "3001", 10);
 const ALLOW_LEGACY =
   process.env.NODE_ENV !== "production" && process.env.SOCKET_ALLOW_LEGACY_USER_ID === "true";
 
-type AuthedSocket = Socket & { data: { userId?: string } };
+type AuthedSocket = Socket & { data: { userId?: string; chatRooms?: Set<string> } };
+
+/** userId → 활성 소켓 연결 수 (탭 여러 개) */
+const onlineConnectionCount = new Map<string, number>();
+
+function isUserOnline(userId: string) {
+  return (onlineConnectionCount.get(userId) ?? 0) > 0;
+}
+
+function setUserOnline(userId: string, online: boolean) {
+  const prev = onlineConnectionCount.get(userId) ?? 0;
+  const next = online ? prev + 1 : Math.max(0, prev - 1);
+  if (next <= 0) onlineConnectionCount.delete(userId);
+  else onlineConnectionCount.set(userId, next);
+  return { wasOnline: prev > 0, isOnline: next > 0 };
+}
+
+function emitPresenceToRoom(roomId: string, userId: string, online: boolean) {
+  io.to(`room:${roomId}`).emit("presence_change", { userId, online });
+}
+
+async function emitRoomPresenceSnapshot(socket: AuthedSocket, roomId: string) {
+  const members = await prisma.chatMember.findMany({
+    where: { roomId },
+    select: { userId: true },
+  });
+  const onlineUserIds = members.map((m) => m.userId).filter((id) => isUserOnline(id));
+  socket.emit("room_presence", { onlineUserIds });
+}
 
 function resolveUserId(socket: AuthedSocket): string | null {
   const token = socket.handshake.auth.token as string | undefined;
@@ -33,7 +61,10 @@ io.on("connection", (socket: AuthedSocket) => {
     return;
   }
   socket.data.userId = userId;
+  socket.data.chatRooms = new Set();
   socket.join(`user:${userId}`);
+
+  setUserOnline(userId, true);
 
   socket.on("join_room", async (roomId: string) => {
     if (!roomId || roomId.length > 64) return;
@@ -42,10 +73,14 @@ io.on("connection", (socket: AuthedSocket) => {
     });
     if (!member) return;
     socket.join(`room:${roomId}`);
+    socket.data.chatRooms?.add(roomId);
+    await emitRoomPresenceSnapshot(socket, roomId);
+    emitPresenceToRoom(roomId, userId, true);
   });
 
   socket.on("leave_room", (roomId: string) => {
     socket.leave(`room:${roomId}`);
+    socket.data.chatRooms?.delete(roomId);
   });
 
   socket.on("send_message", async (data: {
@@ -242,6 +277,16 @@ io.on("connection", (socket: AuthedSocket) => {
     if (!call) return;
     const otherId = call.callerId === userId ? call.calleeId : call.callerId;
     io.to(`user:${otherId}`).emit("call_ended", { callId: data.callId });
+  });
+
+  socket.on("disconnect", () => {
+    const rooms = socket.data.chatRooms ? [...socket.data.chatRooms] : [];
+    const wentOffline = setUserOnline(userId, false);
+    if (wentOffline.wasOnline && !wentOffline.isOnline) {
+      for (const roomId of rooms) {
+        emitPresenceToRoom(roomId, userId, false);
+      }
+    }
   });
 });
 
