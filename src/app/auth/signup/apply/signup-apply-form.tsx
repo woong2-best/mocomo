@@ -10,7 +10,7 @@ import {
   FORBIDDEN_ADMIN_SEQUENCE_MESSAGE,
 } from "@/lib/forbidden-admin-sequence";
 import { saveSignupDraft } from "@/lib/signup-draft";
-import { isTurnstileConfigured } from "@/lib/turnstile-client";
+import { isSignupHumanVerifyRequired } from "@/lib/turnstile-signup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,7 +36,7 @@ export function SignupApplyForm({
   const [countryCode, setCountryCode] = useState("KR");
 
   const showSocial = googleOAuth || discordOAuth;
-  const needsHumanVerify = isTurnstileConfigured();
+  const needsHumanVerify = isSignupHumanVerifyRequired();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

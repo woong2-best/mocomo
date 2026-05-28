@@ -1,13 +1,10 @@
-/** 회원가입 사람 확인 — Site Key·Secret이 있으면 별도 `/auth/signup/verify` 페이지 사용 */
+/** 회원가입 2단계 — 자체 퀴즈(무료). Cloudflare Turnstile과 분리 */
 
 export function isSignupHumanVerifyRequired(): boolean {
-  return !!(
-    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() &&
-    process.env.TURNSTILE_SECRET_KEY?.trim()
-  );
+  return true;
 }
 
-/** @deprecated use isSignupHumanVerifyRequired */
+/** @deprecated Turnstile은 회원가입에서 사용하지 않음 */
 export function isSignupTurnstileRequired(): boolean {
-  return isSignupHumanVerifyRequired();
+  return false;
 }

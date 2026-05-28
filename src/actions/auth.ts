@@ -42,6 +42,7 @@ import {
   recordLoginAttempt,
 } from "@/lib/auth-rate-limit";
 import { getRequestIp } from "@/lib/request-ip";
+import { createHumanChallenge, verifyHumanChallengeAnswer } from "@/lib/human-challenge";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { isSignupHumanVerifyRequired } from "@/lib/turnstile-signup";
 
@@ -75,6 +76,9 @@ const registerSchema = z.object({
   turnstileToken: z.string().optional(),
   /** 클라이언트 Turnstile 위젯 로드 실패 시 true */
   turnstileUnavailable: z.boolean().optional(),
+  /** 자체 퀴즈(회원가입 2단계) */
+  humanChallengeToken: z.string().optional(),
+  humanChallengeAnswer: z.string().optional(),
   /** 봇 허니팟 — 값이 있으면 거부 */
   website: z.string().optional(),
 });
@@ -301,6 +305,10 @@ export async function checkSignupAvailability(email: string, username: string, n
   };
 }
 
+export async function issueSignupHumanChallenge() {
+  return createHumanChallenge();
+}
+
 export async function validateSignupApplication(data: z.infer<typeof signupApplicationSchema>) {
   const parsed = signupApplicationSchema.safeParse(data);
   if (!parsed.success) return { error: "입력값이 올바르지 않습니다." };
@@ -352,6 +360,8 @@ export async function registerUser(
     countryCode,
     turnstileToken,
     turnstileUnavailable,
+    humanChallengeToken,
+    humanChallengeAnswer,
     website,
   } = parsed.data;
   const email = rawEmail.trim().toLowerCase();
@@ -360,10 +370,15 @@ export async function registerUser(
     return { error: "요청을 처리할 수 없습니다." };
   }
 
-  const botCheck = await verifyTurnstileToken(turnstileToken, {
-    widgetUnavailable: turnstileUnavailable || !isSignupHumanVerifyRequired(),
-  });
-  if (!botCheck.ok) return { error: botCheck.error };
+  if (isSignupHumanVerifyRequired()) {
+    const humanCheck = verifyHumanChallengeAnswer(humanChallengeToken, humanChallengeAnswer);
+    if (!humanCheck.ok) return { error: humanCheck.error };
+  } else {
+    const botCheck = await verifyTurnstileToken(turnstileToken, {
+      widgetUnavailable: turnstileUnavailable || true,
+    });
+    if (!botCheck.ok) return { error: botCheck.error };
+  }
 
   const ip = await getRequestIp();
   const emailRate = await checkEmailSendRateLimit(email, ip);
