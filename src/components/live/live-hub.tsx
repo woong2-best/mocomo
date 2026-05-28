@@ -14,10 +14,13 @@ import {
   Heart,
   TrendingUp,
   BadgeCheck,
+  Calendar,
 } from "lucide-react";
 import { LivePageActions } from "@/components/live/live-page-actions";
 import { LiveCategoryFilter } from "@/components/live/live-category-filter";
 import { LiveClipCard } from "@/components/live/live-clip-card";
+import { LiveScheduledCard } from "@/components/live/live-scheduled-card";
+import type { LiveStreamCategory } from "@prisma/client";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -123,12 +126,23 @@ export function LiveHub({
   recommendedStreamers,
   popularClips,
   followedLive,
+  scheduledStreams,
+  currentUserId,
 }: {
   channels: LiveHubChannel[];
   hosts: LiveHubHost[];
   recommendedStreamers: LiveHubHost[];
   popularClips: LiveHubClip[];
   followedLive: LiveHubChannel[];
+  scheduledStreams: {
+    id: string;
+    name: string;
+    createdBy: string;
+    scheduledAt: Date;
+    category: LiveStreamCategory;
+    thumbnailUrl: string | null;
+  }[];
+  currentUserId?: string;
 }) {
   const hostMap = Object.fromEntries(hosts.map((h) => [h.id, h]));
   const followedHostMap = hostMap;
@@ -197,6 +211,27 @@ export function LiveHub({
           </div>
         )}
 
+        {scheduledStreams.length > 0 && (
+          <section>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              예약 방송
+            </h2>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {scheduledStreams.map((s) => (
+                <LiveScheduledCard
+                  key={s.id}
+                  id={s.id}
+                  name={s.name}
+                  scheduledAt={s.scheduledAt}
+                  category={s.category}
+                  isOwner={currentUserId === s.createdBy}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
         {followedLive.length > 0 && (
           <section>
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -250,7 +285,11 @@ export function LiveHub({
           </h2>
           {popularClips.length === 0 ? (
             <p className="text-sm text-muted-foreground rounded-xl border border-dashed p-8 text-center">
-              아직 등록된 클립이 없습니다. 방송 하이라이트 영상 URL을 등록하면 여기에 표시됩니다.
+              아직 등록된 클립이 없습니다.{" "}
+              <Link href="/live/clips/new" className="text-primary underline">
+                클립 업로드
+              </Link>
+              로 하이라이트를 추가하세요.
             </p>
           ) : (
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">

@@ -11,12 +11,19 @@ export function LivePageActions({ variant }: { variant: "header" | "empty" }) {
 
   if (variant === "header") {
     return (
-      <Link href="/voice/new">
-        <Button className="gap-2 rounded-xl btn-rainbow">
-          <Video className="h-4 w-4" />
-          방송 시작
-        </Button>
-      </Link>
+      <div className="flex flex-wrap gap-2">
+        <Link href="/live/clips/new">
+          <Button variant="outline" className="rounded-xl gap-1 text-xs sm:text-sm">
+            클립 업로드
+          </Button>
+        </Link>
+        <Link href="/voice/new">
+          <Button className="gap-2 rounded-xl btn-rainbow">
+            <Video className="h-4 w-4" />
+            방송 시작
+          </Button>
+        </Link>
+      </div>
     );
   }
 

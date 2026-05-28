@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { TrendingUp, Users } from "lucide-react";
+import { TrendingUp, Users, Radio } from "lucide-react";
+import { getCachedLiveChannels } from "@/lib/cached-data";
 import { Button } from "@/components/ui/button";
 import { getCachedExploreData } from "@/lib/cached-data";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
@@ -31,12 +32,14 @@ export async function ExploreContentAsync() {
 
   let trendingPosts: PostRow[] = [];
   let suggestedUsers: UserRow[] = [];
+  let liveChannels: Awaited<ReturnType<typeof getCachedLiveChannels>>["channels"] = [];
   let dbOk = true;
 
   try {
-    const data = await getCachedExploreData();
+    const [data, live] = await Promise.all([getCachedExploreData(), getCachedLiveChannels()]);
     trendingPosts = data.trendingPosts;
     suggestedUsers = data.suggestedUsers;
+    liveChannels = live.channels;
   } catch {
     dbOk = false;
   }
@@ -50,6 +53,29 @@ export async function ExploreContentAsync() {
             회원가입
           </Link>
         </p>
+      )}
+
+      {liveChannels.length > 0 && (
+        <section>
+          <h2 className="font-semibold flex items-center gap-2 mb-3">
+            <Radio className="h-5 w-5 text-red-500" />
+            지금 라이브
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {liveChannels.map((ch) => (
+              <Link
+                key={ch.id}
+                href={`/voice/${ch.id}`}
+                className="text-sm px-3 py-2 rounded-xl border border-red-500/30 bg-red-500/5 hover:bg-red-500/10"
+              >
+                🔴 {ch.name} · {ch.viewerCount}명
+              </Link>
+            ))}
+          </div>
+          <Button asChild variant="ghost" className="mt-2 px-0">
+            <Link href="/live">라이브 전체 보기</Link>
+          </Button>
+        </section>
       )}
 
       <section>

@@ -1320,6 +1320,9 @@ enum ReportTargetType {
   COMMENT
   MESSAGE
   USED_LISTING
+  LIVE_CHANNEL
+  LIVE_CHAT
+  STREAM_CLIP
 }
 
 enum ReportStatus {

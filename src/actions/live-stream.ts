@@ -35,6 +35,7 @@ import {
   filterLiveChatContent,
   looksLikeSpamDuplicate,
 } from "@/lib/live-chat-filter";
+import { notifyFollowersOnLive } from "@/lib/live-notify";
 import { revalidatePath } from "next/cache";
 
 export async function createLiveStream(data: {
@@ -98,10 +99,118 @@ export async function createLiveStream(data: {
   });
 
   revalidatePath("/live");
+  if (!isScheduled) {
+    void notifyFollowersOnLive(user.id, channel.id, data.name).catch(() => {});
+  }
   return {
     channel,
     joinPassword: isScheduled ? undefined : joinPassword,
     scheduled: Boolean(isScheduled),
+  };
+}
+
+export async function startScheduledLiveStream(channelId: string) {
+  const user = await requireAuth();
+  const channel = await db.voiceChannel.findUnique({
+    where: { id: channelId },
+    select: { createdBy: true, liveStatus: true, name: true },
+  });
+  if (!channel || channel.createdBy !== user.id) {
+    return { error: "예약 방송을 찾을 수 없거나 권한이 없습니다." };
+  }
+  if (channel.liveStatus !== "SCHEDULED") {
+    return { error: "예약 상태의 방송만 시작할 수 있습니다." };
+  }
+  const joinPassword = generateLiveJoinPassword();
+  const joinPasswordHash = await hashLiveJoinPassword(joinPassword);
+  await db.voiceChannel.update({
+    where: { id: channelId },
+    data: {
+      isLive: true,
+      liveStatus: "LIVE",
+      joinPasswordHash,
+      scheduledAt: null,
+    },
+  });
+  await upsertLiveMember(channelId, user.id, "HOST");
+  void notifyFollowersOnLive(user.id, channelId, channel.name).catch(() => {});
+  revalidatePath("/live");
+  return { joinPassword, channelId };
+}
+
+export async function getLiveChannelRoomMeta(channelId: string) {
+  const channel = await db.voiceChannel.findUnique({
+    where: { id: channelId },
+    select: {
+      id: true,
+      name: true,
+      isLive: true,
+      liveStatus: true,
+      createdBy: true,
+      createdAt: true,
+      category: true,
+      tags: true,
+      thumbnailUrl: true,
+      description: true,
+      donationGoalKrw: true,
+      vodUrl: true,
+      endedAt: true,
+      slowModeSeconds: true,
+      chatBannedWords: true,
+    },
+  });
+  if (!channel) return null;
+
+  const host = await db.user.findUnique({
+    where: { id: channel.createdBy },
+    select: {
+      id: true,
+      username: true,
+      image: true,
+      supportTierSent: true,
+      supportTierReceived: true,
+      totalSupportReceived: true,
+    },
+  });
+  if (!host) return null;
+
+  const tipTotal = await db.tip.aggregate({
+    where: {
+      receiverId: channel.createdBy,
+      createdAt: { gte: channel.createdAt },
+    },
+    _sum: { amount: true },
+  });
+
+  const tipRanking = await db.tip.groupBy({
+    by: ["senderId"],
+    where: {
+      receiverId: channel.createdBy,
+      createdAt: { gte: channel.createdAt },
+    },
+    _sum: { amount: true },
+    orderBy: { _sum: { amount: "desc" } },
+    take: 5,
+  });
+  const senderIds = tipRanking.map((t) => t.senderId);
+  const senders =
+    senderIds.length > 0
+      ? await db.user.findMany({
+          where: { id: { in: senderIds } },
+          select: { id: true, username: true, supportTierSent: true },
+        })
+      : [];
+  const senderMap = Object.fromEntries(senders.map((s) => [s.id, s]));
+
+  return {
+    channel,
+    host,
+    tipTotalKrw: tipTotal._sum.amount ?? 0,
+    tipRanking: tipRanking.map((t) => ({
+      amount: t._sum.amount ?? 0,
+      username: senderMap[t.senderId]?.username ?? "?",
+      tier: senderMap[t.senderId]?.supportTierSent ?? "PEBBLE",
+    })),
   };
 }
 
@@ -228,7 +337,19 @@ export async function getLiveStreamSync(channelId: string, since?: string) {
   const viewerCount = await countActiveLiveViewers(channelId);
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
-    select: { isLive: true, name: true, createdBy: true },
+    select: { isLive: true, name: true, createdBy: true, createdAt: true },
+  });
+
+  const tipSince = channel?.createdAt ?? new Date(Date.now() - 3600000);
+  const tipAfter = sinceDate > tipSince ? sinceDate : tipSince;
+  const recentTips = await db.tip.findMany({
+    where: {
+      receiverId: access.hostUserId,
+      createdAt: { gt: tipAfter },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+    include: { sender: { select: { username: true } } },
   });
 
   return {
@@ -237,7 +358,56 @@ export async function getLiveStreamSync(channelId: string, since?: string) {
     isHost: access.isHost,
     hostUserId: access.hostUserId,
     messages: messages.map(mapLiveChatMessage),
+    recentTips: recentTips.map((t) => ({
+      id: t.id,
+      amount: t.amount,
+      message: t.message,
+      username: t.sender.username,
+      at: t.createdAt.getTime(),
+    })),
   };
+}
+
+export async function deleteLiveChatMessage(channelId: string, messageId: string) {
+  const user = await requireAuth();
+  const channel = await db.voiceChannel.findUnique({
+    where: { id: channelId },
+    select: { createdBy: true },
+  });
+  if (!channel) return { error: "방송을 찾을 수 없습니다." };
+
+  const dbUser = await db.user.findUnique({
+    where: { id: user.id },
+    select: { role: true },
+  });
+  const isMod = dbUser?.role === "MODERATOR" || dbUser?.role === "ADMIN";
+  if (channel.createdBy !== user.id && !isMod) {
+    return { error: "채팅 삭제 권한이 없습니다." };
+  }
+
+  await db.liveChatMessage.deleteMany({
+    where: { id: messageId, channelId },
+  });
+  return { success: true as const };
+}
+
+export async function setLiveVodUrl(channelId: string, vodUrl: string) {
+  const user = await requireAuth();
+  const channel = await db.voiceChannel.findUnique({
+    where: { id: channelId },
+    select: { createdBy: true },
+  });
+  if (!channel || channel.createdBy !== user.id) {
+    return { error: "호스트만 다시보기 URL을 설정할 수 있습니다." };
+  }
+  const url = vodUrl.trim();
+  if (!url) return { error: "URL을 입력해 주세요." };
+  await db.voiceChannel.update({
+    where: { id: channelId },
+    data: { vodUrl: url },
+  });
+  revalidatePath(`/voice/${channelId}`);
+  return { success: true as const };
 }
 
 export async function endLiveStream(channelId: string) {

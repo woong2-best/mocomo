@@ -132,6 +132,16 @@ export async function adminForceDeleteByReport(
     result = await adminForceDeletePost(targetId, "신고 처리 — 게시물 삭제");
   } else if (targetType === "USED_LISTING") {
     result = await adminForceDeleteUsedListing(targetId, "신고 처리 — 중고 글 삭제");
+  } else if (targetType === "LIVE_CHAT") {
+    await db.liveChatMessage.deleteMany({ where: { id: targetId } });
+    result = { success: true };
+  } else if (targetType === "LIVE_CHANNEL") {
+    await db.voiceChannel.update({
+      where: { id: targetId },
+      data: { isLive: false, liveStatus: "ENDED", endedAt: new Date() },
+    });
+    await db.voiceMember.deleteMany({ where: { channelId: targetId } });
+    result = { success: true };
   } else {
     return { error: "이 유형은 자동 삭제를 지원하지 않습니다. 유저 정지 등 다른 조치를 사용해 주세요." };
   }

@@ -586,4 +586,9 @@ CREATE TABLE IF NOT EXISTS "StreamClipComment" (
 );
 CREATE INDEX IF NOT EXISTS "StreamClipComment_clipId_createdAt_idx" ON "StreamClipComment"("clipId", "createdAt");
 
+-- S) 라이브 신고 타입
+ALTER TYPE "ReportTargetType" ADD VALUE IF NOT EXISTS 'LIVE_CHANNEL';
+ALTER TYPE "ReportTargetType" ADD VALUE IF NOT EXISTS 'LIVE_CHAT';
+ALTER TYPE "ReportTargetType" ADD VALUE IF NOT EXISTS 'STREAM_CLIP';
+
 -- 완료 후 터미널: npx prisma db push && npm run db:seed

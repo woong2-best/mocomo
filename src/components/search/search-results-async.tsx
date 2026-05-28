@@ -16,8 +16,9 @@ export async function SearchResultsAsync({ query }: { query: string }) {
   let users: { username: string; name: string | null; supportTierSent: SupportTierLevel }[] = [];
   let animes: { slug: string; title: string }[] = [];
   let posts: { id: string; content: string; title: string | null }[] = [];
+  let liveStreams: { id: string; name: string; category: string; tags: string[] }[] = [];
 
-  [users, animes, posts] = await Promise.all([
+  [users, animes, posts, liveStreams] = await Promise.all([
     db.user.findMany({
       where: {
         OR: [
@@ -51,10 +52,32 @@ export async function SearchResultsAsync({ query }: { query: string }) {
       take: 10,
       select: { id: true, content: true, title: true },
     }),
+    db.voiceChannel.findMany({
+      where: {
+        isLive: true,
+        OR: [
+          { name: { contains: q, mode: "insensitive" } },
+          { tags: { hasSome: [q] } },
+          { description: { contains: q, mode: "insensitive" } },
+        ],
+      },
+      take: 8,
+      select: { id: true, name: true, category: true, tags: true },
+    }),
   ]);
 
   return (
     <>
+      {liveStreams.length > 0 && (
+        <section>
+          <h2 className="text-sm font-semibold text-muted-foreground mb-2">라이브 방송</h2>
+          {liveStreams.map((ch) => (
+            <Link key={ch.id} href={`/voice/${ch.id}`} className="block text-sm py-1 hover:text-primary">
+              🔴 {ch.name} <span className="text-muted-foreground text-xs">({ch.category})</span>
+            </Link>
+          ))}
+        </section>
+      )}
       <section>
         <h2 className="text-sm font-semibold text-muted-foreground mb-2">유저 · 코스어</h2>
         {users.map((u) => (

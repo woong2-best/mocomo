@@ -191,5 +191,34 @@ export async function getLiveHubData(category?: LiveStreamCategory) {
     followerCount: u._count.followers,
   }));
 
-  return { channels, hosts: hostsMapped, recommendedStreamers, popularClips, followedLive };
+  const scheduledRaw = await unstable_cache(
+    async () =>
+      db.voiceChannel.findMany({
+        where: { liveStatus: "SCHEDULED", scheduledAt: { gte: new Date() } },
+        orderBy: { scheduledAt: "asc" },
+        take: 12,
+        select: {
+          id: true,
+          name: true,
+          createdBy: true,
+          scheduledAt: true,
+          category: true,
+          thumbnailUrl: true,
+        },
+      }),
+    ["live-hub-scheduled"],
+    { revalidate: 60 }
+  )();
+  const scheduledStreams = scheduledRaw.filter(
+    (s): s is typeof s & { scheduledAt: Date } => s.scheduledAt != null
+  );
+
+  return {
+    channels,
+    hosts: hostsMapped,
+    recommendedStreamers,
+    popularClips,
+    followedLive,
+    scheduledStreams,
+  };
 }

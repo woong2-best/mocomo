@@ -34,3 +34,38 @@ export async function uploadImageBlob(blob: Blob, filename: string): Promise<str
   if (!body.publicUrl) throw new Error("업로드 응답이 올바르지 않습니다.");
   return body.publicUrl;
 }
+
+/** Upload video to R2/S3 presigned URL or local fallback */
+export async function uploadVideoBlob(blob: Blob, filename: string): Promise<string> {
+  const contentType = blob.type || "video/mp4";
+  const file = new File([blob], filename, { type: contentType });
+
+  const presignRes = await fetch("/api/upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ filename, contentType, category: "video" }),
+  });
+
+  if (presignRes.ok) {
+    const { uploadUrl, publicUrl } = (await presignRes.json()) as {
+      uploadUrl: string;
+      publicUrl: string;
+    };
+    const put = await fetch(uploadUrl, {
+      method: "PUT",
+      body: file,
+      headers: { "Content-Type": contentType },
+    });
+    if (!put.ok) throw new Error("영상 업로드에 실패했습니다.");
+    return publicUrl;
+  }
+
+  const form = new FormData();
+  form.set("file", file);
+  form.set("category", "video");
+  const localRes = await fetch("/api/upload/local", { method: "POST", body: form });
+  const body = (await localRes.json().catch(() => ({}))) as { publicUrl?: string; error?: string };
+  if (!localRes.ok) throw new Error(body.error || "영상 업로드에 실패했습니다.");
+  if (!body.publicUrl) throw new Error("업로드 응답이 올바르지 않습니다.");
+  return body.publicUrl;
+}

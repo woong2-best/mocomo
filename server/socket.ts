@@ -158,20 +158,26 @@ io.on("connection", (socket: AuthedSocket) => {
   });
 
   socket.on(
-    "live_chat",
-    (data: { channelId: string; username?: string; content?: string; image?: string | null }) => {
-      if (!data.channelId) return;
-      const content = (data.content ?? "").slice(0, 500).trim();
-      if (!content) return;
-      const payload = {
-        channelId: data.channelId,
-        userId,
-        username: data.username ?? userId,
-        content,
-        image: data.image ?? null,
-        at: Date.now(),
+    "live_chat_relay",
+    async (data: {
+      channelId: string;
+      message: {
+        id: string;
+        userId: string;
+        username: string;
+        content: string;
+        at: number;
+        image?: string | null;
+        supportTierSent?: string;
       };
-      io.to(`live:${data.channelId}`).emit("live_chat_message", payload);
+    }) => {
+      if (!data.channelId || !data.message?.id) return;
+      if (data.message.userId !== userId) return;
+      const member = await prisma.voiceMember.findUnique({
+        where: { channelId_userId: { channelId: data.channelId, userId } },
+      });
+      if (!member) return;
+      io.to(`live:${data.channelId}`).emit("live_chat_message", data.message);
     }
   );
 

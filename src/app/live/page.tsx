@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { LiveHub } from "@/components/live/live-hub";
 import { getLiveHubData } from "@/lib/live-hub-data";
 import { parseLiveCategoryParam } from "@/lib/live-categories";
+import { getAuthUserId } from "@/lib/auth";
 
 export const revalidate = 25;
 
@@ -19,7 +20,10 @@ export default async function LivePage({
     recommendedStreamers: [],
     popularClips: [],
     followedLive: [],
+    scheduledStreams: [],
   };
+
+  const currentUserId = await getAuthUserId();
 
   try {
     data = await getLiveHubData(category);
@@ -35,6 +39,8 @@ export default async function LivePage({
         recommendedStreamers={data.recommendedStreamers}
         popularClips={data.popularClips}
         followedLive={data.followedLive}
+        scheduledStreams={data.scheduledStreams}
+        currentUserId={currentUserId ?? undefined}
       />
     </Suspense>
   );

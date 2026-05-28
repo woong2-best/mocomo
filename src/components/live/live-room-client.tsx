@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 import {
   joinLiveStreamWithPassword,
   heartbeatLivePresence,
@@ -9,6 +10,7 @@ import {
   leaveLiveStream,
 } from "@/actions/live-stream";
 import { LiveStreamRoom } from "@/components/live/live-stream-room";
+import { LiveTipAlerts, type LiveTipAlert } from "@/components/live/live-tip-alerts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { KeyRound, Loader2 } from "lucide-react";
@@ -18,16 +20,35 @@ export function LiveRoomClient({
   channelName,
   hostUserId,
   hostUsername,
+  hostDisplayName,
+  hostTier,
+  hostTotalSupport,
   isHost,
   storedPassword,
+  category,
+  donationGoalKrw,
+  tipTotalKrw,
+  tipRanking,
+  slowModeSeconds,
+  chatBannedWords,
+  paymentsEnabled,
 }: {
   channelId: string;
   channelName: string;
   hostUserId: string;
   hostUsername?: string;
+  hostDisplayName?: string;
+  hostTier?: SupportTierLevel;
+  hostTotalSupport?: number;
   isHost: boolean;
-  /** 방송 시작 직후 1회 표시용 */
   storedPassword?: string | null;
+  category?: LiveStreamCategory;
+  donationGoalKrw?: number | null;
+  tipTotalKrw?: number;
+  tipRanking?: { username: string; amount: number }[];
+  slowModeSeconds?: number;
+  chatBannedWords?: string[];
+  paymentsEnabled?: boolean;
 }) {
   const router = useRouter();
   const [joined, setJoined] = useState(isHost);
@@ -36,6 +57,7 @@ export function LiveRoomClient({
   const [joining, setJoining] = useState(false);
   const [viewerCount, setViewerCount] = useState(1);
   const [showHostPassword, setShowHostPassword] = useState(!!storedPassword);
+  const [recentTips, setRecentTips] = useState<LiveTipAlert[]>([]);
 
   const enterAsHost = useCallback(async () => {
     setJoining(true);
@@ -124,7 +146,8 @@ export function LiveRoomClient({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 relative">
+      <LiveTipAlerts tips={recentTips} />
       {isHost && storedPassword && showHostPassword && (
         <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -142,10 +165,21 @@ export function LiveRoomClient({
         channelName={channelName}
         hostUserId={hostUserId}
         hostUsername={hostUsername}
+        hostDisplayName={hostDisplayName}
+        hostTier={hostTier}
+        hostTotalSupport={hostTotalSupport}
         isHost={isHost}
         viewerCount={viewerCount}
         onViewerCount={setViewerCount}
         onEndStream={handleEndStream}
+        category={category}
+        donationGoalKrw={donationGoalKrw}
+        tipTotalKrw={tipTotalKrw}
+        tipRanking={tipRanking}
+        slowModeSeconds={slowModeSeconds}
+        chatBannedWords={chatBannedWords}
+        paymentsEnabled={paymentsEnabled}
+        onRecentTips={setRecentTips}
       />
     </div>
   );
