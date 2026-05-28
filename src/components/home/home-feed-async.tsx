@@ -3,7 +3,7 @@ import { mixFeedWithAds } from "@/lib/feed-mixer";
 import { FALLBACK_FEED_ADS, type FeedAdData } from "@/lib/default-ads";
 import { getCachedFeedAds, getCachedFeedPosts } from "@/lib/cached-data";
 import { getCachedSession } from "@/lib/auth";
-import { getStarredPostIds } from "@/lib/star";
+import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { HomeFeedClient } from "@/components/home/home-feed-client";
 
 function serializeCreatedAt<T extends { createdAt: Date | string }>(rows: T[]): T[] {
@@ -28,14 +28,16 @@ export async function HomeFeedAsync() {
     const hasDbPosts = mixed.some((item) => item.type === "post");
     const session = await getCachedSession();
     const postIds = mixed.filter((i) => i.type === "post").map((i) => i.data.id);
-    const starredIds =
+    const engagement =
       session?.user?.id && postIds.length > 0
-        ? await getStarredPostIds(session.user.id, postIds)
-        : [];
+        ? await getPostEngagementForUser(session.user.id, postIds)
+        : { likedIds: [], starredIds: [], repostedIds: [] };
 
     return (
       <HomeFeedClient
-        starredIds={starredIds}
+        likedIds={engagement.likedIds}
+        starredIds={engagement.starredIds}
+        repostedIds={engagement.repostedIds}
         feedItems={mixed.map((item) =>
           item.type === "post"
             ? ({

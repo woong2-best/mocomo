@@ -12,12 +12,16 @@ export function HomeFeedClient({
   feedItems,
   nextCursor,
   hasDbPosts,
+  likedIds = [],
   starredIds = [],
+  repostedIds = [],
 }: {
   feedItems: FeedItem[];
   nextCursor: string | null;
   hasDbPosts: boolean;
+  likedIds?: string[];
   starredIds?: string[];
+  repostedIds?: string[];
 }) {
   const { data: session } = useSession();
   const { t } = useLocale();
@@ -43,7 +47,9 @@ export function HomeFeedClient({
       <FeedInfinite
         initialItems={visibleItems}
         initialCursor={nextCursor}
+        initialLikedIds={likedIds}
         initialStarredIds={starredIds}
+        initialRepostedIds={repostedIds}
       />
     </section>
   );

@@ -21,17 +21,30 @@ type FeedItem =
   | { type: "post"; data: GridPost & { createdAt: string } }
   | { type: "ad"; data: Ad };
 
+function mergeIds(prev: Set<string>, ids?: string[]) {
+  if (!ids?.length) return prev;
+  const next = new Set(prev);
+  for (const id of ids) next.add(id);
+  return next;
+}
+
 export function FeedInfinite({
   initialItems,
   initialCursor,
+  initialLikedIds = [],
   initialStarredIds = [],
+  initialRepostedIds = [],
 }: {
   initialItems: FeedItem[];
   initialCursor: string | null;
+  initialLikedIds?: string[];
   initialStarredIds?: string[];
+  initialRepostedIds?: string[];
 }) {
   const [items, setItems] = useState(initialItems);
+  const [likedIds, setLikedIds] = useState(() => new Set(initialLikedIds));
   const [starredIds, setStarredIds] = useState(() => new Set(initialStarredIds));
+  const [repostedIds, setRepostedIds] = useState(() => new Set(initialRepostedIds));
   const [cursor, setCursor] = useState(initialCursor);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(!initialCursor);
@@ -47,7 +60,9 @@ export function FeedInfinite({
     setLoadError("");
     try {
       const postOffset = postOffsetRef.current;
-      const res = await fetch(`/api/feed?cursor=${cursor}&limit=12&postOffset=${postOffset}`);
+      const res = await fetch(`/api/feed?cursor=${cursor}&limit=12&postOffset=${postOffset}`, {
+        credentials: "include",
+      });
       const json = await res.json();
       if (!res.ok) {
         setLoadError(json.error ?? "피드를 더 불러오지 못했습니다.");
@@ -56,13 +71,9 @@ export function FeedInfinite({
       const added = json.items as FeedItem[];
       const addedPosts = added.filter((i) => i.type === "post").length;
       postOffsetRef.current += addedPosts;
-      if (Array.isArray(json.starredIds) && json.starredIds.length > 0) {
-        setStarredIds((prev) => {
-          const next = new Set(prev);
-          for (const id of json.starredIds as string[]) next.add(id);
-          return next;
-        });
-      }
+      setLikedIds((prev) => mergeIds(prev, json.likedIds));
+      setStarredIds((prev) => mergeIds(prev, json.starredIds));
+      setRepostedIds((prev) => mergeIds(prev, json.repostedIds));
       setItems((prev) => [...prev, ...added]);
       setCursor(json.nextCursor);
       if (!json.nextCursor) setDone(true);
@@ -96,7 +107,9 @@ export function FeedInfinite({
             <FeedPostCardInteractive
               key={item.data.id}
               post={item.data}
+              initialLiked={likedIds.has(item.data.id)}
               initialStarred={starredIds.has(item.data.id)}
+              initialReposted={repostedIds.has(item.data.id)}
             />
           )
         )}

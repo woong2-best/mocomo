@@ -39,7 +39,13 @@ export async function StarContentAsync() {
         </p>
       ) : (
         posts.map((p) => (
-          <FeedPostCardInteractive key={p.id} post={p} initialStarred={true} />
+          <FeedPostCardInteractive
+            key={p.id}
+            post={p}
+            initialStarred={true}
+            initialLiked={false}
+            initialReposted={false}
+          />
         ))
       )}
     </div>

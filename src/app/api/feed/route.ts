@@ -5,7 +5,7 @@ import { getCachedFeedAds } from "@/lib/cached-data";
 import { mixFeedWithAds } from "@/lib/feed-mixer";
 import { FALLBACK_FEED_ADS } from "@/lib/default-ads";
 import { getCachedFeedPostsPage } from "@/lib/feed-query";
-import { getStarredPostIds } from "@/lib/star";
+import { getPostEngagementForUser } from "@/lib/post-engagement";
 
 export async function GET(req: NextRequest) {
   try {
@@ -34,13 +34,13 @@ export async function GET(req: NextRequest) {
       : mixFeedWithAds(posts, feedAds, { postsPerBlock: 6, minPostsBeforeFirstAd: 4, postOffset });
 
     const nextCursor = posts.length === limit ? posts[posts.length - 1]?.id : null;
-    const starredIds =
+    const engagement =
       session?.user?.id && posts.length > 0
-        ? await getStarredPostIds(
+        ? await getPostEngagementForUser(
             session.user.id,
             posts.map((p) => p.id)
           )
-        : [];
+        : { likedIds: [], starredIds: [], repostedIds: [] };
 
     return NextResponse.json(
       {
@@ -50,7 +50,9 @@ export async function GET(req: NextRequest) {
             : { type: "ad", data: item.data }
         ),
         nextCursor,
-        starredIds,
+        likedIds: engagement.likedIds,
+        starredIds: engagement.starredIds,
+        repostedIds: engagement.repostedIds,
       },
       {
         headers: {
