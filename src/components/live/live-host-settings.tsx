@@ -11,22 +11,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { updateLiveStreamSettings, setLiveVodUrl } from "@/actions/live-stream";
+import { updateLiveStreamSettings } from "@/actions/live-stream";
 
 export function LiveHostSettings({
   channelId,
   slowModeSeconds: initialSlow,
   bannedWords: initialBanned,
-  showVod,
 }: {
   channelId: string;
   slowModeSeconds: number;
   bannedWords: string[];
-  showVod?: boolean;
 }) {
   const [slow, setSlow] = useState(String(initialSlow));
   const [words, setWords] = useState(initialBanned.join(", "));
-  const [vod, setVod] = useState("");
   const [msg, setMsg] = useState("");
   const [pending, startTransition] = useTransition();
 
@@ -43,14 +40,6 @@ export function LiveHostSettings({
       });
       if ("error" in res && res.error) setMsg(res.error);
       else setMsg("저장되었습니다.");
-    });
-  }
-
-  function saveVod() {
-    startTransition(async () => {
-      const res = await setLiveVodUrl(channelId, vod);
-      if ("error" in res && res.error) setMsg(res.error);
-      else setMsg("다시보기 URL이 저장되었습니다.");
     });
   }
 
@@ -75,15 +64,6 @@ export function LiveHostSettings({
             <label className="text-xs text-muted-foreground">추가 금칙어 (쉼표 구분)</label>
             <Input value={words} onChange={(e) => setWords(e.target.value)} className="rounded-xl mt-1" placeholder="예: 광고, 홍보" />
           </div>
-          {showVod && (
-            <div>
-              <label className="text-xs text-muted-foreground">다시보기 URL (MP4/HLS 링크)</label>
-              <Input value={vod} onChange={(e) => setVod(e.target.value)} className="rounded-xl mt-1" placeholder="https://..." />
-              <Button size="sm" variant="secondary" className="rounded-xl mt-2" onClick={saveVod} disabled={pending}>
-                다시보기 저장
-              </Button>
-            </div>
-          )}
           <Button className="w-full rounded-xl" onClick={save} disabled={pending}>
             채팅 설정 저장
           </Button>

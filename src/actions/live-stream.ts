@@ -36,7 +36,6 @@ import {
   looksLikeSpamDuplicate,
 } from "@/lib/live-chat-filter";
 import { moderateChatWithAi } from "@/lib/ai-moderation";
-import { startChannelEgress, stopChannelEgress, isLivekitEgressConfigured } from "@/lib/livekit-egress";
 import { createObsRtmpIngress, deleteObsRtmpIngress } from "@/lib/livekit-ingress";
 import { notifyFollowersOnLive } from "@/lib/live-notify";
 import { revalidatePath } from "next/cache";
@@ -158,7 +157,6 @@ export async function getLiveChannelRoomMeta(channelId: string) {
       thumbnailUrl: true,
       description: true,
       donationGoalKrw: true,
-      vodUrl: true,
       endedAt: true,
       slowModeSeconds: true,
       chatBannedWords: true,
@@ -402,25 +400,6 @@ export async function deleteLiveChatMessage(channelId: string, messageId: string
   return { success: true as const };
 }
 
-export async function setLiveVodUrl(channelId: string, vodUrl: string) {
-  const user = await requireAuth();
-  const channel = await db.voiceChannel.findUnique({
-    where: { id: channelId },
-    select: { createdBy: true },
-  });
-  if (!channel || channel.createdBy !== user.id) {
-    return { error: "호스트만 다시보기 URL을 설정할 수 있습니다." };
-  }
-  const url = vodUrl.trim();
-  if (!url) return { error: "URL을 입력해 주세요." };
-  await db.voiceChannel.update({
-    where: { id: channelId },
-    data: { vodUrl: url },
-  });
-  revalidatePath(`/voice/${channelId}`);
-  return { success: true as const };
-}
-
 /** OBS Studio RTMP 송출용 URL·스트림 키 발급 (방송당 1개, 동시 다중 방송은 방 ID별로 분리) */
 export async function ensureObsIngress(channelId: string) {
   const user = await requireAuth();
@@ -463,8 +442,6 @@ export async function ensureObsIngress(channelId: string) {
     },
   });
 
-  void ensureLiveRecording(channelId).catch(() => {});
-
   return {
     url: created.url,
     streamKey: created.streamKey,
@@ -491,42 +468,15 @@ export async function setLiveBroadcastMode(channelId: string, mode: LiveBroadcas
   return { success: true as const };
 }
 
-/** 호스트 스튜디오 입장 시 R2 자동 녹화 (LiveKit Egress) */
-export async function ensureLiveRecording(channelId: string) {
-  const user = await requireAuth();
-  const channel = await db.voiceChannel.findUnique({
-    where: { id: channelId },
-    select: { createdBy: true, isLive: true, egressId: true },
-  });
-  if (!channel || channel.createdBy !== user.id || !channel.isLive) {
-    return { error: "호스트만 녹화를 시작할 수 있습니다." };
-  }
-  if (channel.egressId) return { egressId: channel.egressId };
-  if (!isLivekitEgressConfigured()) return { skipped: true as const };
-
-  const started = await startChannelEgress(channelId);
-  if (started.error) return { error: started.error };
-  if (started.egressId) {
-    await db.voiceChannel.update({
-      where: { id: channelId },
-      data: { egressId: started.egressId },
-    });
-  }
-  return { egressId: started.egressId, skipped: started.skipped };
-}
-
 export async function endLiveStream(channelId: string) {
   const user = await requireAuth();
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
-    select: { createdBy: true, egressId: true, rtmpIngressId: true },
+    select: { createdBy: true, rtmpIngressId: true },
   });
   if (!channel) return { error: "방송을 찾을 수 없습니다." };
   if (channel.createdBy !== user.id) return { error: "방송 종료는 호스트만 할 수 있습니다." };
 
-  if (channel.egressId) {
-    await stopChannelEgress(channel.egressId);
-  }
   if (channel.rtmpIngressId) {
     await deleteObsRtmpIngress(channel.rtmpIngressId);
   }

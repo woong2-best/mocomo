@@ -5,7 +5,7 @@ import { isPaymentsConfigured } from "@/lib/payments";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Play } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 
 export default async function VoiceRoomPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -30,23 +30,12 @@ export default async function VoiceRoomPage({ params }: { params: Promise<{ id: 
         </Link>
         <div className="text-center space-y-4">
           <p className="text-lg font-semibold">방송이 종료되었습니다</p>
-          {channel.vodUrl ? (
-            <div className="rounded-2xl overflow-hidden border aspect-video bg-black">
-              <video src={channel.vodUrl} controls className="w-full h-full" playsInline />
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">다시보기가 아직 등록되지 않았습니다.</p>
-          )}
-          {isHost && !channel.vodUrl && (
-            <p className="text-xs text-muted-foreground">
-              스튜디오 종료 후 방송 설정에서 다시보기 URL을 등록할 수 있습니다.
-            </p>
-          )}
+          <p className="text-sm text-muted-foreground">다시보기는 제공하지 않습니다.</p>
           <Button asChild variant="outline" className="rounded-xl">
-            <Link href={`/u/${host.username}`}>
-              <Play className="h-4 w-4 mr-1" />
-              @{host.username} 프로필
-            </Link>
+            <Link href={`/u/${host.username}`}>@{host.username} 프로필</Link>
+          </Button>
+          <Button asChild className="rounded-xl">
+            <Link href="/live">다른 라이브 보기</Link>
           </Button>
         </div>
       </div>

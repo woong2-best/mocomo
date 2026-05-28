@@ -13,7 +13,7 @@ import {
 import "@livekit/components-styles";
 import { Track } from "livekit-client";
 import { fetchLivekitCredentials } from "@/lib/livekit-token-fetch";
-import { ensureLiveRecording, setLiveBroadcastMode } from "@/actions/live-stream";
+import { setLiveBroadcastMode } from "@/actions/live-stream";
 import { LiveObsStudio } from "@/components/live/live-obs-studio";
 import { Loader2, Radio, Monitor, Laptop } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -109,7 +109,6 @@ export function LiveBroadcastStudio({
       .then((c) => {
         setToken(c.token);
         setServerUrl(c.serverUrl);
-        void ensureLiveRecording(channelId);
       })
       .catch((e: unknown) => {
         setError(e instanceof Error ? e.message : "방송 서버 연결 실패");
