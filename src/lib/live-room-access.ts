@@ -14,10 +14,32 @@ export async function resolveLiveChannelAccess(
 ): Promise<LiveRoomAccess> {
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
-    select: { id: true, createdBy: true, isLive: true },
+    select: {
+      id: true,
+      createdBy: true,
+      isLive: true,
+      linkedChatRoom: { select: { id: true, type: true } },
+    },
   });
   if (!channel) return { allowed: false, reason: "NOT_FOUND" };
   if (!channel.isLive) return { allowed: false, reason: "NOT_LIVE" };
+
+  const isGroupSocialCall =
+    channel.linkedChatRoom?.type === "SOCIAL_GROUP";
+
+  if (isGroupSocialCall && channel.linkedChatRoom) {
+    const chatMember = await db.chatMember.findUnique({
+      where: {
+        roomId_userId: { roomId: channel.linkedChatRoom.id, userId },
+      },
+    });
+    if (!chatMember) return { allowed: false, reason: "NOT_MEMBER" };
+    return {
+      allowed: true,
+      isHost: true,
+      hostUserId: channel.createdBy,
+    };
+  }
 
   const isHost = channel.createdBy === userId;
   if (isHost) return { allowed: true, isHost: true, hostUserId: channel.createdBy };

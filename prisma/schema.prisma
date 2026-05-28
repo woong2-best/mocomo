@@ -69,8 +69,11 @@ model User {
   reposts       Repost[]
 
   chatMembers   ChatMember[]
+  chatRoomsCreated ChatRoom[] @relation("ChatRoomsCreated")
   messages      Message[]
   messageReads  MessageRead[]
+  chatPollsCreated ChatPoll[]
+  chatPollVotes    ChatPollVote[]
 
   voiceMembers  VoiceMember[]
   liveChatMessages LiveChatMessage[]
@@ -416,6 +419,8 @@ enum ChatRoomType {
   FANDOM
   DM
   GROUP
+  COSPLAYER_GROUP
+  SOCIAL_GROUP
 }
 
 model ChatRoom {
@@ -424,14 +429,65 @@ model ChatRoom {
   type        ChatRoomType
   communityId String?
   isPublic    Boolean  @default(true)
+  createdById String?
+  joinCode    String?  @unique
+  joinPasswordHash String?
+  requirePassword  Boolean @default(false)
+  voiceChannelId   String? @unique
+  announcementTitle String?
+  announcementBody  String? @db.Text
+  announcementById  String?
+  announcementAt    DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   community Community? @relation(fields: [communityId], references: [id], onDelete: SetNull)
+  createdBy User?      @relation("ChatRoomsCreated", fields: [createdById], references: [id], onDelete: SetNull)
   members   ChatMember[]
   messages  Message[]
   pinned    PinnedMessage[]
   voiceCalls VoiceCall[]
+  voiceChannel VoiceChannel? @relation(fields: [voiceChannelId], references: [id], onDelete: SetNull)
+  polls     ChatPoll[]
+}
+
+model ChatPoll {
+  id        String   @id @default(cuid())
+  roomId    String
+  question  String
+  createdBy String
+  closesAt  DateTime?
+  closed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  room    ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  creator User     @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  options ChatPollOption[]
+  votes   ChatPollVote[]
+}
+
+model ChatPollOption {
+  id     String @id @default(cuid())
+  pollId String
+  label  String
+  order  Int    @default(0)
+
+  poll  ChatPoll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes ChatPollVote[]
+}
+
+model ChatPollVote {
+  id       String   @id @default(cuid())
+  pollId   String
+  optionId String
+  userId   String
+  votedAt  DateTime @default(now())
+
+  poll   ChatPoll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  option ChatPollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, userId])
 }
 
 model ChatMember {
@@ -518,8 +574,9 @@ model VoiceChannel {
   createdBy        String
   createdAt        DateTime @default(now())
 
-  members      VoiceMember[]
-  chatMessages LiveChatMessage[]
+  linkedChatRoom ChatRoom?
+  members        VoiceMember[]
+  chatMessages   LiveChatMessage[]
 }
 
 model LiveChatMessage {

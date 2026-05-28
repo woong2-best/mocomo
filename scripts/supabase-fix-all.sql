@@ -473,4 +473,46 @@ CREATE UNIQUE INDEX IF NOT EXISTS "User_phone_key" ON "User"("phone") WHERE "pho
 ALTER TABLE "Anime" ADD COLUMN IF NOT EXISTS "viewCount" INTEGER NOT NULL DEFAULT 0;
 CREATE INDEX IF NOT EXISTS "Anime_viewCount_idx" ON "Anime"("viewCount");
 
+-- Q) 단체대화방 (코스어 / 친목)
+ALTER TYPE "ChatRoomType" ADD VALUE IF NOT EXISTS 'COSPLAYER_GROUP';
+ALTER TYPE "ChatRoomType" ADD VALUE IF NOT EXISTS 'SOCIAL_GROUP';
+ALTER TABLE "ChatRoom" ADD COLUMN IF NOT EXISTS "createdById" TEXT;
+ALTER TABLE "ChatRoom" ADD COLUMN IF NOT EXISTS "joinCode" TEXT;
+ALTER TABLE "ChatRoom" ADD COLUMN IF NOT EXISTS "joinPasswordHash" TEXT;
+ALTER TABLE "ChatRoom" ADD COLUMN IF NOT EXISTS "requirePassword" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "ChatRoom" ADD COLUMN IF NOT EXISTS "voiceChannelId" TEXT;
+ALTER TABLE "ChatRoom" ADD COLUMN IF NOT EXISTS "announcementTitle" TEXT;
+ALTER TABLE "ChatRoom" ADD COLUMN IF NOT EXISTS "announcementBody" TEXT;
+ALTER TABLE "ChatRoom" ADD COLUMN IF NOT EXISTS "announcementById" TEXT;
+ALTER TABLE "ChatRoom" ADD COLUMN IF NOT EXISTS "announcementAt" TIMESTAMP(3);
+CREATE UNIQUE INDEX IF NOT EXISTS "ChatRoom_joinCode_key" ON "ChatRoom"("joinCode") WHERE "joinCode" IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS "ChatRoom_voiceChannelId_key" ON "ChatRoom"("voiceChannelId") WHERE "voiceChannelId" IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS "ChatPoll" (
+  "id" TEXT NOT NULL,
+  "roomId" TEXT NOT NULL,
+  "question" TEXT NOT NULL,
+  "createdBy" TEXT NOT NULL,
+  "closesAt" TIMESTAMP(3),
+  "closed" BOOLEAN NOT NULL DEFAULT false,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "ChatPoll_pkey" PRIMARY KEY ("id")
+);
+CREATE TABLE IF NOT EXISTS "ChatPollOption" (
+  "id" TEXT NOT NULL,
+  "pollId" TEXT NOT NULL,
+  "label" TEXT NOT NULL,
+  "order" INTEGER NOT NULL DEFAULT 0,
+  CONSTRAINT "ChatPollOption_pkey" PRIMARY KEY ("id")
+);
+CREATE TABLE IF NOT EXISTS "ChatPollVote" (
+  "id" TEXT NOT NULL,
+  "pollId" TEXT NOT NULL,
+  "optionId" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "votedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "ChatPollVote_pkey" PRIMARY KEY ("id")
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "ChatPollVote_pollId_userId_key" ON "ChatPollVote"("pollId", "userId");
+
 -- 완료 후 터미널: npx prisma db push && npm run db:seed

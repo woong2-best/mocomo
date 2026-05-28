@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getOrCreateDM, createChatRoom } from "@/actions/chat";
+import { getOrCreateDM } from "@/actions/chat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronLeft, MessageCircle, Search, Users } from "lucide-react";
@@ -38,19 +38,6 @@ export default function NewMessagePage() {
       return;
     }
     if ("room" in result && result.room) router.push(`/messages/${result.room.id}`);
-  }
-
-  async function createPublic() {
-    setLoading(true);
-    setError("");
-    try {
-      const result = await createChatRoom({ name: "새 팬덤방", type: "FANDOM" });
-      router.push(`/messages/${result.room.id}`);
-    } catch {
-      setError("로그인이 필요하거나 일시적인 오류입니다.");
-    } finally {
-      setLoading(false);
-    }
   }
 
   return (
@@ -102,12 +89,15 @@ export default function NewMessagePage() {
               <Users className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="font-semibold text-sm">팬덤 · 친목방</p>
-              <p className="text-xs text-muted-foreground">여러 명이 함께 대화하는 방</p>
+              <p className="font-semibold text-sm">단체대화방</p>
+              <p className="text-xs text-muted-foreground">코스어 방(공지·투표) · 친목 방(단체 통화)</p>
             </div>
           </div>
-          <Button variant="outline" className="w-full rounded-2xl" onClick={createPublic} disabled={loading}>
-            방 만들기
+          <Button asChild className="w-full rounded-2xl">
+            <Link href="/messages/groups/new">단체방 만들기</Link>
+          </Button>
+          <Button asChild variant="outline" className="w-full rounded-2xl">
+            <Link href="/messages/join">입장 코드로 들어가기</Link>
           </Button>
         </section>
 

@@ -24,8 +24,17 @@ type RoomPreview = {
 export function getConversationMeta(room: RoomPreview, currentUserId: string) {
   const other = room.members.find((m) => m.userId !== currentUserId);
   const isDm = room.type === "DM";
+  const typeLabel =
+    room.type === "COSPLAYER_GROUP"
+      ? "코스어 단체방"
+      : room.type === "SOCIAL_GROUP"
+        ? "친목 단체방"
+        : room.type === "FANDOM"
+          ? "팬덤방"
+          : room.type;
   const displayName =
-    room.name || (isDm && other ? other.user.name || other.user.username : room.type);
+    room.name ||
+    (isDm && other ? other.user.name || other.user.username : typeLabel);
   const displayImage = isDm && other ? other.user.image : null;
   const otherUserId = isDm && other ? other.user.id : undefined;
   const last = room.messages[0];
