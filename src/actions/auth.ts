@@ -43,7 +43,22 @@ import {
 } from "@/lib/auth-rate-limit";
 import { getRequestIp } from "@/lib/request-ip";
 import { verifyTurnstileToken } from "@/lib/turnstile";
-import { isSignupTurnstileRequired } from "@/lib/turnstile-signup";
+import { isSignupHumanVerifyRequired } from "@/lib/turnstile-signup";
+
+const signupApplicationSchema = z.object({
+  email: z.string().email(),
+  username: z
+    .string()
+    .min(3)
+    .max(20)
+    .regex(/^[a-zA-Z0-9_]+$/)
+    .transform((s) => s.trim().toLowerCase()),
+  password: z.string().min(8),
+  name: z.string().optional(),
+  locale: z.enum(["ko", "en", "ja", "zh"]).default("ko"),
+  countryCode: z.string().min(2).max(8).default("KR"),
+  website: z.string().optional(),
+});
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -286,6 +301,42 @@ export async function checkSignupAvailability(email: string, username: string, n
   };
 }
 
+export async function validateSignupApplication(data: z.infer<typeof signupApplicationSchema>) {
+  const parsed = signupApplicationSchema.safeParse(data);
+  if (!parsed.success) return { error: "입력값이 올바르지 않습니다." };
+
+  const { email: rawEmail, username, name, website } = parsed.data;
+  const email = rawEmail.trim().toLowerCase();
+
+  if (website?.trim()) {
+    return { error: "요청을 처리할 수 없습니다." };
+  }
+
+  if (RESERVED_USERNAMES.has(username)) {
+    return { error: "사용할 수 없는 닉네임입니다. 다른 닉네임을 입력해 주세요." };
+  }
+
+  const forbiddenCheck = validateUsernameAndName(username, name);
+  if (!forbiddenCheck.ok) return { error: forbiddenCheck.error };
+
+  const availability = await checkSignupAvailability(email, username, name);
+  if (!availability.ok) return { error: availability.error };
+
+  if (!isEmailConfigured()) {
+    return {
+      error:
+        "이메일 발송 설정(RESEND_API_KEY)이 없어 회원가입을 완료할 수 없습니다. Vercel 환경 변수를 확인하세요.",
+    };
+  }
+
+  return {
+    ok: true as const,
+    email,
+    message: availability.message,
+    resumed: availability.canResume,
+  };
+}
+
 export async function registerUser(
   data: z.infer<typeof registerSchema>,
   isRetry = false
@@ -310,7 +361,7 @@ export async function registerUser(
   }
 
   const botCheck = await verifyTurnstileToken(turnstileToken, {
-    widgetUnavailable: turnstileUnavailable || !isSignupTurnstileRequired(),
+    widgetUnavailable: turnstileUnavailable || !isSignupHumanVerifyRequired(),
   });
   if (!botCheck.ok) return { error: botCheck.error };
 

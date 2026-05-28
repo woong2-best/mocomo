@@ -12,6 +12,7 @@ import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SignupStepIndicator } from "@/components/auth/signup-step-indicator";
 import { TurnstileField } from "@/components/auth/turnstile-field";
 import { isTurnstileConfigured } from "@/lib/turnstile-client";
 
@@ -22,6 +23,7 @@ function EmailVerifyFormInner() {
   const searchParams = useSearchParams();
   const initialEmail = searchParams.get("email") ?? "";
   const initialMode = (searchParams.get("mode") === "reset" ? "reset" : "signup") as Mode;
+  const signupCodeAlreadySent = initialMode === "signup" && !!initialEmail.trim();
 
   const [mode, setMode] = useState<Mode>(initialMode);
   const [step, setStep] = useState<Step>("code");
@@ -48,7 +50,8 @@ function EmailVerifyFormInner() {
 
   async function sendCode() {
     if (!email.trim()) return;
-    if (isTurnstileConfigured() && !turnstileToken) {
+    const skipTurnstile = mode === "signup" && signupCodeAlreadySent;
+    if (isTurnstileConfigured() && !turnstileToken && !skipTurnstile) {
       setError("아래 보안 확인을 완료해 주세요.");
       return;
     }
@@ -58,7 +61,8 @@ function EmailVerifyFormInner() {
     const result = await sendEmailAuthCode(
       email.trim().toLowerCase(),
       mode,
-      turnstileToken || undefined
+      turnstileToken || undefined,
+      skipTurnstile
     );
     setLoading(false);
     if ("error" in result && result.error) setError(result.error);
@@ -246,10 +250,17 @@ function EmailVerifyFormInner() {
 
   return (
     <Card className="w-full max-w-md rounded-2xl">
-      <CardHeader className="text-center">
-        <CardTitle>이메일 인증 · 비밀번호 찾기</CardTitle>
+      <CardHeader className="text-center space-y-2">
+        {mode === "signup" && signupCodeAlreadySent ? (
+          <SignupStepIndicator step={3} />
+        ) : null}
+        <CardTitle>
+          {signupCodeAlreadySent ? "이메일 인증 코드 입력" : "이메일 인증 · 비밀번호 찾기"}
+        </CardTitle>
         <p className="text-sm text-muted-foreground mt-1">
-          6자리 코드로 이메일을 확인하고, 필요하면 비밀번호를 설정합니다.
+          {signupCodeAlreadySent
+            ? "메일함(스팸함 포함)의 6자리 코드를 입력하세요."
+            : "6자리 코드로 이메일을 확인하고, 필요하면 비밀번호를 설정합니다."}
         </p>
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
@@ -283,25 +294,37 @@ function EmailVerifyFormInner() {
           className="rounded-xl"
         />
 
-        <TurnstileField
-          className="flex justify-center min-h-[65px]"
-          onToken={setTurnstileToken}
-          onExpire={() => setTurnstileToken("")}
-        />
-
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full rounded-xl"
-          onClick={sendCode}
-          disabled={loading || !email.trim()}
-        >
-          {loading ? "전송 중..." : "인증 코드 보내기"}
-        </Button>
-
-        <p className="text-xs text-muted-foreground text-center">
-          이메일·IP당 요청 횟수가 제한됩니다. 스팸 방지를 위해 보안 확인이 필요할 수 있습니다.
-        </p>
+        {!signupCodeAlreadySent ? (
+          <>
+            <TurnstileField
+              className="flex justify-center min-h-[65px]"
+              onToken={setTurnstileToken}
+              onExpire={() => setTurnstileToken("")}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full rounded-xl"
+              onClick={sendCode}
+              disabled={loading || !email.trim()}
+            >
+              {loading ? "전송 중..." : "인증 코드 보내기"}
+            </Button>
+            <p className="text-xs text-muted-foreground text-center">
+              이메일·IP당 요청 횟수가 제한됩니다. 스팸 방지를 위해 보안 확인이 필요할 수 있습니다.
+            </p>
+          </>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full rounded-xl"
+            onClick={sendCode}
+            disabled={loading || !email.trim()}
+          >
+            {loading ? "전송 중..." : "인증 코드 다시 받기"}
+          </Button>
+        )}
 
         <form
           onSubmit={mode === "reset" ? verifyResetCode : verifySignupCode}

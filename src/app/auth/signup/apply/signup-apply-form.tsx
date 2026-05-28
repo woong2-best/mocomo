@@ -4,24 +4,24 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { registerUser } from "@/actions/auth";
+import { registerUser, validateSignupApplication } from "@/actions/auth";
 import {
   containsForbiddenAdminSequence,
   FORBIDDEN_ADMIN_SEQUENCE_MESSAGE,
 } from "@/lib/forbidden-admin-sequence";
-import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
+import { saveSignupDraft } from "@/lib/signup-draft";
+import { isTurnstileConfigured } from "@/lib/turnstile-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandLogo } from "@/components/brand/brand-logo";
-import { TurnstileField } from "@/components/auth/turnstile-field";
+import { SignupStepIndicator } from "@/components/auth/signup-step-indicator";
 import { BRAND } from "@/lib/brand";
-import { isTurnstileConfigured } from "@/lib/turnstile-client";
-import { isSignupTurnstileRequired } from "@/lib/turnstile-signup";
 import { COUNTRIES, LOCALE_COOKIE, COUNTRY_COOKIE, LOCALE_LABELS, LOCALES } from "@/lib/i18n/config";
 import type { Locale } from "@/lib/i18n/config";
+import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
 
-export function SignUpForm({
+export function SignupApplyForm({
   googleOAuth,
   discordOAuth,
 }: {
@@ -30,19 +30,19 @@ export function SignUpForm({
 }) {
   const router = useRouter();
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
   const [locale, setLocale] = useState<Locale>("ko");
   const [countryCode, setCountryCode] = useState("KR");
-  const [turnstileToken, setTurnstileToken] = useState("");
-  const [turnstileUnavailable, setTurnstileUnavailable] = useState(false);
 
   const showSocial = googleOAuth || discordOAuth;
-  const signupTurnstile = isSignupTurnstileRequired() && isTurnstileConfigured();
+  const needsHumanVerify = isTurnstileConfigured();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setNotice("");
     const form = new FormData(e.currentTarget);
     const email = (form.get("email") as string).trim().toLowerCase();
     const password = form.get("password") as string;
@@ -58,27 +58,47 @@ export function SignUpForm({
       return;
     }
 
-    if (signupTurnstile && !turnstileToken && !turnstileUnavailable) {
-      setError("아래 보안 확인을 완료하거나 「제한 모드로 계속」을 선택해 주세요.");
-      setLoading(false);
-      return;
-    }
-
     try {
       const maxAge = 60 * 60 * 24 * 365;
       document.cookie = `${LOCALE_COOKIE}=${locale};path=/;max-age=${maxAge};SameSite=Lax`;
       document.cookie = `${COUNTRY_COOKIE}=${countryCode};path=/;max-age=${maxAge};SameSite=Lax`;
 
-      const result = await registerUser({
+      const check = await validateSignupApplication({
         email,
         username,
         password,
-        name: (form.get("name") as string) || undefined,
+        name: displayName || undefined,
         locale,
         countryCode,
-        turnstileToken: turnstileToken || undefined,
-        turnstileUnavailable,
         website: (form.get("website") as string) || undefined,
+      });
+
+      if (!("ok" in check) || !check.ok) {
+        const msg = "error" in check && check.error ? check.error : "가입 정보를 확인할 수 없습니다.";
+        setError(msg);
+        return;
+      }
+
+      if (check.message) setNotice(check.message);
+
+      const draft = {
+        email,
+        username,
+        password,
+        name: displayName || undefined,
+        locale,
+        countryCode,
+      };
+
+      if (needsHumanVerify) {
+        saveSignupDraft(draft);
+        router.push("/auth/signup/verify");
+        return;
+      }
+
+      const result = await registerUser({
+        ...draft,
+        turnstileUnavailable: true,
       });
 
       if (result.error) {
@@ -92,7 +112,6 @@ export function SignUpForm({
           sessionStorage.setItem("mocomo_signup_notice", result.message);
         }
         router.push(`/auth/email-verify?email=${encodeURIComponent(email)}&mode=signup`);
-        return;
       }
     } catch {
       setError("서버 연결 오류입니다. 잠시 후 다시 시도해 주세요.");
@@ -104,16 +123,16 @@ export function SignUpForm({
   return (
     <div className="flex-1 flex items-center justify-center p-4">
       <Card className="w-full max-w-md rounded-2xl shadow-lg border-border">
-        <CardHeader className="text-center">
-          <div className="mx-auto h-16 w-16 rounded-2xl bg-white border border-border flex items-center justify-center mb-2 overflow-hidden p-1">
+        <CardHeader className="text-center space-y-2">
+          <div className="mx-auto h-16 w-16 rounded-2xl bg-white border border-border flex items-center justify-center overflow-hidden p-1">
             <BrandLogo size={56} priority />
           </div>
+          <SignupStepIndicator step={1} />
           <CardTitle className="text-2xl">{BRAND.name} 회원가입</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">{BRAND.description}</p>
+          <p className="text-sm text-muted-foreground">가입 정보를 입력한 뒤 다음 단계로 진행합니다.</p>
         </CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-3">
-            <p className="text-xs font-medium text-muted-foreground">1단계 · 가입 정보</p>
             <Input
               name="email"
               type="email"
@@ -186,32 +205,15 @@ export function SignUpForm({
               aria-hidden
             />
 
-            {signupTurnstile && (
-              <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-2">
-                <p className="text-sm font-medium">2단계 · 사람인지 확인</p>
-                <p className="text-xs text-muted-foreground">
-                  아래 확인이 끝나야 「회원가입」이 가능하고, 그다음 이메일로 인증 코드가 발송됩니다.
-                </p>
-                <TurnstileField
-                  className="flex justify-center min-h-[65px]"
-                  showSkipImmediately
-                  onToken={setTurnstileToken}
-                  onExpire={() => setTurnstileToken("")}
-                  onUnavailable={setTurnstileUnavailable}
-                />
-                {turnstileUnavailable ? (
-                  <p className="text-xs text-amber-700 text-center font-medium">요청 제한 모드 (위젯 우회)</p>
-                ) : turnstileToken ? (
-                  <p className="text-xs text-emerald-600 text-center font-medium">보안 확인 완료</p>
-                ) : (
-                  <p className="text-xs text-amber-700 text-center">확인을 마친 뒤 회원가입을 눌러 주세요</p>
-                )}
-              </div>
+            {notice && (
+              <p className="text-sm text-amber-800 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2">
+                {notice}
+              </p>
             )}
-
             {error && (
               <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-3 py-2">{error}</p>
             )}
+
             <p className="text-xs text-muted-foreground leading-relaxed">
               회원가입 시{" "}
               <Link href="/legal/terms" className="text-primary hover:underline" target="_blank">
@@ -227,15 +229,12 @@ export function SignUpForm({
               </Link>
               에 동의한 것으로 간주됩니다.
             </p>
-            <Button
-              type="submit"
-              className="w-full rounded-xl"
-              disabled={loading || (signupTurnstile && !turnstileToken && !turnstileUnavailable)}
-            >
+
+            <Button type="submit" className="w-full rounded-xl" disabled={loading}>
               {loading
-                ? "인증 메일 발송 중..."
-                : signupTurnstile && !turnstileToken && !turnstileUnavailable
-                  ? "보안 확인 후 가입"
+                ? "확인 중..."
+                : needsHumanVerify
+                  ? "다음 · 사람 확인"
                   : "회원가입 · 인증 메일 받기"}
             </Button>
           </form>
@@ -272,11 +271,7 @@ export function SignUpForm({
                 )}
               </div>
             </>
-          ) : (
-            <p className="text-xs text-center text-muted-foreground">
-              Google·Discord 가입은 Vercel에 OAuth 키 추가 후 사용할 수 있습니다. 지금은 이메일 가입을 이용해 주세요.
-            </p>
-          )}
+          ) : null}
 
           <p className="text-center text-sm text-muted-foreground">
             이미 계정이 있나요?{" "}

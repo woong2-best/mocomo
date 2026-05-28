@@ -1,7 +1,5 @@
-import { getAuthConfigStatus } from "@/lib/auth-env";
-import { SignUpForm } from "./signup-form";
+import { redirect } from "next/navigation";
 
 export default function SignUpPage() {
-  const { googleOAuth, discordOAuth } = getAuthConfigStatus();
-  return <SignUpForm googleOAuth={googleOAuth} discordOAuth={discordOAuth} />;
+  redirect("/auth/signup/apply");
 }
