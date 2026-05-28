@@ -35,6 +35,8 @@ import {
   filterLiveChatContent,
   looksLikeSpamDuplicate,
 } from "@/lib/live-chat-filter";
+import { moderateChatWithAi } from "@/lib/ai-moderation";
+import { startChannelEgress, stopChannelEgress, isLivekitEgressConfigured } from "@/lib/livekit-egress";
 import { notifyFollowersOnLive } from "@/lib/live-notify";
 import { revalidatePath } from "next/cache";
 
@@ -287,6 +289,9 @@ export async function sendLiveChatMessage(channelId: string, content: string) {
   if (!filtered.ok) return { error: filtered.error };
   const text = filtered.text;
 
+  const ai = await moderateChatWithAi(text);
+  if (!ai.ok) return { error: ai.error };
+
   if (channel.slowModeSeconds > 0 && !access.isHost) {
     const last = await db.liveChatMessage.findFirst({
       where: { channelId, userId: user.id },
@@ -410,14 +415,42 @@ export async function setLiveVodUrl(channelId: string, vodUrl: string) {
   return { success: true as const };
 }
 
+/** 호스트 스튜디오 입장 시 R2 자동 녹화 (LiveKit Egress) */
+export async function ensureLiveRecording(channelId: string) {
+  const user = await requireAuth();
+  const channel = await db.voiceChannel.findUnique({
+    where: { id: channelId },
+    select: { createdBy: true, isLive: true, egressId: true },
+  });
+  if (!channel || channel.createdBy !== user.id || !channel.isLive) {
+    return { error: "호스트만 녹화를 시작할 수 있습니다." };
+  }
+  if (channel.egressId) return { egressId: channel.egressId };
+  if (!isLivekitEgressConfigured()) return { skipped: true as const };
+
+  const started = await startChannelEgress(channelId);
+  if (started.error) return { error: started.error };
+  if (started.egressId) {
+    await db.voiceChannel.update({
+      where: { id: channelId },
+      data: { egressId: started.egressId },
+    });
+  }
+  return { egressId: started.egressId, skipped: started.skipped };
+}
+
 export async function endLiveStream(channelId: string) {
   const user = await requireAuth();
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
-    select: { createdBy: true },
+    select: { createdBy: true, egressId: true },
   });
   if (!channel) return { error: "방송을 찾을 수 없습니다." };
   if (channel.createdBy !== user.id) return { error: "방송 종료는 호스트만 할 수 있습니다." };
+
+  if (channel.egressId) {
+    await stopChannelEgress(channel.egressId);
+  }
 
   await db.voiceChannel.update({
     where: { id: channelId },

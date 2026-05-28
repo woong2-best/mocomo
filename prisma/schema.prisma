@@ -614,6 +614,7 @@ model VoiceChannel {
   chatBannedWords  String[] @default([])
   donationGoalKrw  Int?
   vodUrl           String?
+  egressId         String?
   endedAt          DateTime?
 
   linkedChatRoom ChatRoom?

@@ -591,4 +591,7 @@ ALTER TYPE "ReportTargetType" ADD VALUE IF NOT EXISTS 'LIVE_CHANNEL';
 ALTER TYPE "ReportTargetType" ADD VALUE IF NOT EXISTS 'LIVE_CHAT';
 ALTER TYPE "ReportTargetType" ADD VALUE IF NOT EXISTS 'STREAM_CLIP';
 
+-- T) LiveKit 녹화(Egress) ID
+ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "egressId" TEXT;
+
 -- 완료 후 터미널: npx prisma db push && npm run db:seed
