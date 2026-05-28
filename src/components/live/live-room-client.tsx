@@ -115,6 +115,22 @@ export function LiveRoomClient({
   }
 
   if (!joined) {
+    if (isHost) {
+      return (
+        <div className="max-w-md mx-auto live-hero !p-8 space-y-4 shadow-xl text-center">
+          {joining ? (
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+          ) : (
+            <>
+              <p className="text-sm text-destructive">{joinError || "스튜디오 입장에 실패했습니다."}</p>
+              <Button type="button" className="rounded-xl" onClick={() => void enterAsHost()}>
+                다시 입장
+              </Button>
+            </>
+          )}
+        </div>
+      );
+    }
     return (
       <div className="max-w-md mx-auto live-hero !p-8 space-y-6 shadow-xl">
         <div className="text-center space-y-2">

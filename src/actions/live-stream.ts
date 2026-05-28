@@ -2,7 +2,8 @@
 
 import type { SupportTierLevel } from "@prisma/client";
 import { db } from "@/lib/db";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, requireAuthMinimal } from "@/lib/auth";
+import { formatLiveCreateError } from "@/lib/live-create-errors";
 import { userPublicSelectMinimal } from "@/lib/user-public-select";
 
 function mapLiveChatMessage(m: {
@@ -55,87 +56,85 @@ export async function createLiveStream(data: {
   donationGoalKrw?: number;
   broadcastMode?: LiveBroadcastMode;
 }) {
-  const user = await requireAuth();
-  const joinPassword = generateLiveJoinPassword();
-  const joinPasswordHash = await hashLiveJoinPassword(joinPassword);
+  try {
+    const user = await requireAuthMinimal();
+    const title = data.name?.trim() || "라이브 방송";
+    const joinPassword = generateLiveJoinPassword();
+    const joinPasswordHash = await hashLiveJoinPassword(joinPassword);
 
-  const tags = Array.isArray(data.tags)
-    ? data.tags.slice(0, 8)
-    : typeof data.tags === "string"
-      ? parseLiveTagsInput(data.tags)
-      : [];
-  const scheduledAt = data.scheduledAt ? new Date(data.scheduledAt) : null;
-  const isScheduled = scheduledAt && scheduledAt.getTime() > Date.now();
+    const tags = Array.isArray(data.tags)
+      ? data.tags.slice(0, 8)
+      : typeof data.tags === "string"
+        ? parseLiveTagsInput(data.tags)
+        : [];
 
-  const channel = await db.voiceChannel.create({
-    data: {
-      name: data.name,
-      communityId: data.communityId,
-      maxUsers: data.maxUsers ?? 200,
-      allowScreen: data.allowScreen ?? true,
-      allowCamera: data.allowCamera ?? true,
-      createdBy: user.id,
-      joinPasswordHash,
-      isLive: !isScheduled,
-      liveStatus: isScheduled ? "SCHEDULED" : "LIVE",
-      category: data.category ?? "JUST_CHATTING",
-      tags,
-      thumbnailUrl: data.thumbnailUrl?.trim() || null,
-      description: data.description?.trim().slice(0, 500) || null,
-      scheduledAt: isScheduled ? scheduledAt : null,
-      donationGoalKrw: data.donationGoalKrw && data.donationGoalKrw > 0 ? data.donationGoalKrw : null,
-      broadcastMode: data.broadcastMode ?? "BROWSER",
-      members: isScheduled
-        ? undefined
-        : {
-            create: {
-              userId: user.id,
-              role: "HOST",
-              lastSeenAt: new Date(),
+    const scheduledRaw = data.scheduledAt?.trim();
+    const scheduledAt =
+      scheduledRaw && scheduledRaw.length > 0 ? new Date(scheduledRaw) : null;
+    const isScheduled =
+      scheduledAt !== null &&
+      !Number.isNaN(scheduledAt.getTime()) &&
+      scheduledAt.getTime() > Date.now();
+
+    const goalRaw =
+      typeof data.donationGoalKrw === "number"
+        ? data.donationGoalKrw
+        : parseInt(String(data.donationGoalKrw ?? ""), 10);
+
+    const channel = await db.voiceChannel.create({
+      data: {
+        name: title.slice(0, 120),
+        communityId: data.communityId,
+        maxUsers: Math.min(Math.max(data.maxUsers ?? 200, 2), 500),
+        allowScreen: data.allowScreen ?? true,
+        allowCamera: data.allowCamera ?? true,
+        createdBy: user.id,
+        joinPasswordHash,
+        isLive: !isScheduled,
+        liveStatus: isScheduled ? "SCHEDULED" : "LIVE",
+        category: data.category ?? "JUST_CHATTING",
+        tags,
+        thumbnailUrl: data.thumbnailUrl?.trim() || null,
+        description: data.description?.trim().slice(0, 500) || null,
+        scheduledAt: isScheduled ? scheduledAt : null,
+        donationGoalKrw: Number.isFinite(goalRaw) && goalRaw > 0 ? goalRaw : null,
+        broadcastMode: data.broadcastMode ?? "BROWSER",
+        members: isScheduled
+          ? undefined
+          : {
+              create: {
+                userId: user.id,
+                role: "HOST",
+                lastSeenAt: new Date(),
+              },
             },
-          },
-    },
-  });
+      },
+    });
 
-  await db.streamerProfile.upsert({
-    where: { userId: user.id },
-    create: { userId: user.id },
-    update: {},
-  });
-
-  revalidatePath("/live");
-  if (!isScheduled) {
-    void notifyFollowersOnLive(user.id, channel.id, data.name).catch(() => {});
-  }
-
-  let obs:
-    | {
-        obsServer: string;
-        obsStreamKey: string;
-        ingressId: string;
-      }
-    | undefined;
-  let obsError: string | undefined;
-  if (!isScheduled && data.broadcastMode === "OBS") {
-    const provisioned = await provisionObsIngress(channel.id, user.id);
-    if ("data" in provisioned) {
-      obs = {
-        obsServer: provisioned.data.obsServer,
-        obsStreamKey: provisioned.data.obsStreamKey,
-        ingressId: provisioned.data.ingressId,
-      };
-    } else {
-      obsError = provisioned.error;
+    try {
+      await db.streamerProfile.upsert({
+        where: { userId: user.id },
+        create: { userId: user.id },
+        update: {},
+      });
+    } catch (profileErr) {
+      console.warn("[createLiveStream] streamerProfile", profileErr);
     }
-  }
 
-  return {
-    channel,
-    joinPassword: isScheduled ? undefined : joinPassword,
-    scheduled: Boolean(isScheduled),
-    obs,
-    obsError,
-  };
+    revalidatePath("/live");
+    if (!isScheduled) {
+      void notifyFollowersOnLive(user.id, channel.id, title).catch(() => {});
+    }
+
+    return {
+      channel,
+      joinPassword: isScheduled ? undefined : joinPassword,
+      scheduled: isScheduled,
+    };
+  } catch (e) {
+    console.error("[createLiveStream]", e);
+    return { error: formatLiveCreateError(e) };
+  }
 }
 
 export async function startScheduledLiveStream(channelId: string) {
