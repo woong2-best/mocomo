@@ -10,6 +10,8 @@ type TurnstileFieldProps = {
   onExpire?: () => void;
   onUnavailable?: (unavailable: boolean) => void;
   className?: string;
+  /** 회원가입 등 — 위젯이 비어도 바로 우회 링크 표시 */
+  showSkipImmediately?: boolean;
 };
 
 const SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
@@ -34,14 +36,20 @@ declare global {
   }
 }
 
-export function TurnstileField({ onToken, onExpire, onUnavailable, className }: TurnstileFieldProps) {
+export function TurnstileField({
+  onToken,
+  onExpire,
+  onUnavailable,
+  className,
+  showSkipImmediately = false,
+}: TurnstileFieldProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
   const mountRef = useRef(0);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [useFallback, setUseFallback] = useState(false);
-  const [showSkip, setShowSkip] = useState(false);
+  const [showSkip, setShowSkip] = useState(showSkipImmediately);
   const siteKey = getTurnstileSiteKey();
 
   const enableFallback = useCallback(() => {
@@ -102,13 +110,15 @@ export function TurnstileField({ onToken, onExpire, onUnavailable, className }: 
 
     const mount = ++mountRef.current;
     setFailed(false);
-    setShowSkip(false);
+    setShowSkip(showSkipImmediately);
     onToken("");
     onUnavailable?.(false);
 
-    const skipTimer = window.setTimeout(() => {
-      if (mount === mountRef.current) setShowSkip(true);
-    }, 6000);
+    const skipTimer = showSkipImmediately
+      ? undefined
+      : window.setTimeout(() => {
+          if (mount === mountRef.current) setShowSkip(true);
+        }, 4000);
 
     const failTimer = window.setTimeout(() => {
       if (mount === mountRef.current && !widgetIdRef.current) setFailed(true);
@@ -117,7 +127,7 @@ export function TurnstileField({ onToken, onExpire, onUnavailable, className }: 
     renderWidget();
 
     return () => {
-      window.clearTimeout(skipTimer);
+      if (skipTimer) window.clearTimeout(skipTimer);
       window.clearTimeout(failTimer);
       if (mount === mountRef.current && widgetIdRef.current && window.turnstile) {
         try {
@@ -128,7 +138,7 @@ export function TurnstileField({ onToken, onExpire, onUnavailable, className }: 
         widgetIdRef.current = null;
       }
     };
-  }, [ready, siteKey, useFallback, renderWidget, onToken, onUnavailable]);
+  }, [ready, siteKey, useFallback, showSkipImmediately, renderWidget, onToken, onUnavailable]);
 
   if (!isTurnstileConfigured() || !siteKey) {
     return (

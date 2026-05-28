@@ -194,6 +194,7 @@ export function SignUpForm({
                 </p>
                 <TurnstileField
                   className="flex justify-center min-h-[65px]"
+                  showSkipImmediately
                   onToken={setTurnstileToken}
                   onExpire={() => setTurnstileToken("")}
                   onUnavailable={setTurnstileUnavailable}
