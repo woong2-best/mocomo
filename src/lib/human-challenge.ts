@@ -1,15 +1,26 @@
 import { createHmac, randomBytes, randomInt, timingSafeEqual } from "crypto";
 import type { HumanChallengeChoice, HumanChallengeQuestion } from "@/lib/human-challenge-types";
+import {
+  ODD_ONE_BANK,
+  SEQUENCE_BANK,
+  TRIVIA_BANK,
+  type OddOneChallenge,
+  type SequenceChallenge,
+  type TriviaChallenge,
+} from "@/lib/human-challenge-bank";
 
 export type { HumanChallengeChoice, HumanChallengeQuestion } from "@/lib/human-challenge-types";
 
 const TTL_MS = 10 * 60 * 1000;
+const CHOICE_COUNT = 4;
 
 type ChallengePayload = {
   answer: string;
   exp: number;
   nonce: string;
 };
+
+type PickChallenge = OddOneChallenge | SequenceChallenge | TriviaChallenge;
 
 function challengeSecret(): string {
   const s = process.env.AUTH_SECRET?.trim();
@@ -50,87 +61,134 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function mathQuiz(): HumanChallengeQuestion {
-  const a = randomInt(2, 12);
-  const b = randomInt(2, 12);
-  const answer = String(a + b);
+function pickRandom<T>(bank: T[]): T {
+  return bank[randomInt(0, bank.length)]!;
+}
+
+function buildDistractors(answer: string, correctNum: number, spread: number, count: number): string[] {
   const distractors = new Set<string>();
-  while (distractors.size < 3) {
-    const n = a + b + randomInt(-4, 4);
+  let guard = 0;
+  while (distractors.size < count && guard < 50) {
+    guard++;
+    const n = correctNum + randomInt(-spread, spread);
     if (n > 0 && String(n) !== answer) distractors.add(String(n));
   }
-  const choices = shuffle([
-    { id: answer, label: String(a + b) },
-    ...[...distractors].map((n) => ({ id: n, label: n })),
-  ]);
+  while (distractors.size < count) {
+    const n = correctNum + distractors.size + randomInt(1, 5);
+    if (String(n) !== answer) distractors.add(String(n));
+  }
+  return [...distractors].slice(0, count);
+}
+
+function finalizeQuestion(
+  prompt: string,
+  answerId: string,
+  choices: HumanChallengeChoice[],
+  hint?: string
+): HumanChallengeQuestion {
+  const unique = new Map<string, HumanChallengeChoice>();
+  for (const c of choices) {
+    if (!unique.has(c.id)) unique.set(c.id, c);
+  }
+  let list = [...unique.values()];
+  if (!list.some((c) => c.id === answerId)) {
+    list.unshift({ id: answerId, label: answerId });
+  }
+  if (list.length < CHOICE_COUNT) {
+    let i = 0;
+    while (list.length < CHOICE_COUNT) {
+      const fake = `x${answerId}_${i++}`;
+      if (!unique.has(fake)) list.push({ id: fake, label: String(randomInt(1, 99)) });
+    }
+  }
+  list = shuffle(list).slice(0, CHOICE_COUNT);
   const token = signPayload({
-    answer,
+    answer: answerId,
     exp: Date.now() + TTL_MS,
     nonce: randomBytes(8).toString("hex"),
   });
   return {
     token,
-    prompt: `${a} + ${b} = ?`,
-    hint: "정답을 골라 주세요.",
-    choices,
+    prompt,
+    hint: hint ?? "정답을 골라 주세요.",
+    choices: list,
   };
 }
 
-type OddOneSet = {
-  prompt: string;
-  correct: HumanChallengeChoice;
-  wrong: HumanChallengeChoice[];
-};
+function pickChoicesFromSet(set: PickChallenge): HumanChallengeQuestion {
+  const wrongShuffled = shuffle(set.wrong);
+  const wrongPick = wrongShuffled.slice(0, CHOICE_COUNT - 1);
+  const merged = shuffle([set.correct, ...wrongPick]);
+  return finalizeQuestion(set.prompt, set.correct.id, merged, set.hint);
+}
 
-const ODD_ONE_SETS: OddOneSet[] = [
-  {
-    prompt: "과일이 아닌 것은?",
-    correct: { id: "car", label: "🚗 자동차" },
-    wrong: [
-      { id: "apple", label: "🍎 사과" },
-      { id: "grape", label: "🍇 포도" },
-      { id: "banana", label: "🍌 바나나" },
-    ],
-  },
-  {
-    prompt: "동물이 아닌 것은?",
-    correct: { id: "book", label: "📚 책" },
-    wrong: [
-      { id: "cat", label: "🐱 고양이" },
-      { id: "dog", label: "🐶 강아지" },
-      { id: "rabbit", label: "🐰 토끼" },
-    ],
-  },
-  {
-    prompt: "탈것이 아닌 것은?",
-    correct: { id: "tree", label: "🌳 나무" },
-    wrong: [
-      { id: "plane", label: "✈️ 비행기" },
-      { id: "train", label: "🚆 기차" },
-      { id: "bike", label: "🚲 자전거" },
-    ],
-  },
-];
+function mathAddQuiz(): HumanChallengeQuestion {
+  const a = randomInt(2, 15);
+  const b = randomInt(2, 15);
+  const answer = String(a + b);
+  const wrong = buildDistractors(answer, a + b, 5, CHOICE_COUNT - 1);
+  return finalizeQuestion(
+    `${a} + ${b} = ?`,
+    answer,
+    [{ id: answer, label: answer }, ...wrong.map((n) => ({ id: n, label: n }))],
+    "덧셈 정답을 고르세요."
+  );
+}
+
+function mathSubQuiz(): HumanChallengeQuestion {
+  const a = randomInt(8, 20);
+  const b = randomInt(2, a - 1);
+  const answer = String(a - b);
+  const wrong = buildDistractors(answer, a - b, 4, CHOICE_COUNT - 1);
+  return finalizeQuestion(
+    `${a} − ${b} = ?`,
+    answer,
+    [{ id: answer, label: answer }, ...wrong.map((n) => ({ id: n, label: n }))],
+    "뺄셈 정답을 고르세요."
+  );
+}
+
+function mathMulQuiz(): HumanChallengeQuestion {
+  const a = randomInt(2, 9);
+  const b = randomInt(2, 9);
+  const answer = String(a * b);
+  const wrong = buildDistractors(answer, a * b, 6, CHOICE_COUNT - 1);
+  return finalizeQuestion(
+    `${a} × ${b} = ?`,
+    answer,
+    [{ id: answer, label: answer }, ...wrong.map((n) => ({ id: n, label: n }))],
+    "곱셈 정답을 고르세요."
+  );
+}
 
 function oddOneQuiz(): HumanChallengeQuestion {
-  const set = ODD_ONE_SETS[randomInt(0, ODD_ONE_SETS.length)]!;
-  const answer = set.correct.id;
-  const choices = shuffle([set.correct, ...set.wrong.slice(0, 3)]);
-  const token = signPayload({
-    answer,
-    exp: Date.now() + TTL_MS,
-    nonce: randomBytes(8).toString("hex"),
-  });
-  return {
-    token,
-    prompt: set.prompt,
-    hint: "하나만 골라 주세요.",
-    choices,
-  };
+  return pickChoicesFromSet(pickRandom(ODD_ONE_BANK));
 }
 
+function sequenceQuiz(): HumanChallengeQuestion {
+  return pickChoicesFromSet(pickRandom(SEQUENCE_BANK));
+}
+
+function triviaQuiz(): HumanChallengeQuestion {
+  return pickChoicesFromSet(pickRandom(TRIVIA_BANK));
+}
+
+const QUIZ_BUILDERS = [
+  mathAddQuiz,
+  mathSubQuiz,
+  mathMulQuiz,
+  oddOneQuiz,
+  oddOneQuiz,
+  oddOneQuiz,
+  sequenceQuiz,
+  sequenceQuiz,
+  triviaQuiz,
+  triviaQuiz,
+] as const;
+
 export function createHumanChallenge(): HumanChallengeQuestion {
-  return randomInt(0, 2) === 0 ? mathQuiz() : oddOneQuiz();
+  const builder = QUIZ_BUILDERS[randomInt(0, QUIZ_BUILDERS.length)]!;
+  return builder();
 }
 
 export function verifyHumanChallengeAnswer(
@@ -152,4 +210,9 @@ export function verifyHumanChallengeAnswer(
     return { ok: false, error: "정답이 아닙니다. 다시 골라 주세요." };
   }
   return { ok: true };
+}
+
+/** 테스트·관리용 문제 수 */
+export function getHumanChallengeBankSize(): number {
+  return ODD_ONE_BANK.length + SEQUENCE_BANK.length + TRIVIA_BANK.length + 3;
 }
