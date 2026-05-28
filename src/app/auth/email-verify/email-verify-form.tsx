@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, Suspense, useEffect } from "react";
+import dynamic from "next/dynamic";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
@@ -10,13 +11,38 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SignupStepIndicator } from "@/components/auth/signup-step-indicator";
-import { TurnstileField } from "@/components/auth/turnstile-field";
 import { isTurnstileConfigured } from "@/lib/turnstile-client";
+
+const TurnstileField = dynamic(
+  () => import("@/components/auth/turnstile-field").then((m) => m.TurnstileField),
+  {
+    ssr: false,
+    loading: () => (
+      <p className="text-xs text-muted-foreground text-center py-3">보안 확인 준비 중...</p>
+    ),
+  }
+);
+
+function safeSessionGet(key: string): string | null {
+  try {
+    return sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeSessionRemove(key: string): void {
+  try {
+    sessionStorage.removeItem(key);
+  } catch {
+    /* private mode / storage blocked */
+  }
+}
 
 type Step = "code" | "reset-password" | "signup-done" | "reset-done";
 type Mode = "signup" | "reset";
 
-function EmailVerifyFormInner() {
+export function EmailVerifyFormInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialEmail = searchParams.get("email") ?? "";
@@ -37,23 +63,29 @@ function EmailVerifyFormInner() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileUnavailable, setTurnstileUnavailable] = useState(false);
 
   useEffect(() => {
-    const notice = sessionStorage.getItem("mocomo_signup_notice");
+    const notice = safeSessionGet("mocomo_signup_notice");
     if (notice) {
       setMessage(notice);
-      sessionStorage.removeItem("mocomo_signup_notice");
+      safeSessionRemove("mocomo_signup_notice");
     }
     if (signupCodeAlreadySent) {
-      router.prefetch("/");
+      try {
+        router.prefetch("/");
+      } catch {
+        /* ignore */
+      }
     }
   }, [router, signupCodeAlreadySent]);
 
   async function sendCode() {
     if (!email.trim()) return;
-    const skipTurnstile = mode === "signup" && signupCodeAlreadySent;
+    const skipTurnstile =
+      (mode === "signup" && signupCodeAlreadySent) || turnstileUnavailable;
     if (isTurnstileConfigured() && !turnstileToken && !skipTurnstile) {
-      setError("아래 보안 확인을 완료해 주세요.");
+      setError("아래 보안 확인을 완료해 주세요. 위젯이 보이지 않으면 「제한 모드로 계속」을 눌러 주세요.");
       return;
     }
     setLoading(true);
@@ -84,11 +116,8 @@ function EmailVerifyFormInner() {
       return;
     }
 
-    const stored =
-      typeof window !== "undefined"
-        ? sessionStorage.getItem(SIGNUP_PASSWORD_SESSION_KEY)
-        : null;
-    sessionStorage.removeItem(SIGNUP_PASSWORD_SESSION_KEY);
+    const stored = safeSessionGet(SIGNUP_PASSWORD_SESSION_KEY);
+    safeSessionRemove(SIGNUP_PASSWORD_SESSION_KEY);
 
     if (stored) {
       setMessage("로그인 중...");
@@ -312,8 +341,10 @@ function EmailVerifyFormInner() {
           <>
             <TurnstileField
               className="flex justify-center min-h-[65px]"
+              showSkipImmediately
               onToken={setTurnstileToken}
               onExpire={() => setTurnstileToken("")}
+              onUnavailable={setTurnstileUnavailable}
             />
             <Button
               type="button"
@@ -372,13 +403,5 @@ function EmailVerifyFormInner() {
         </Link>
       </CardContent>
     </Card>
-  );
-}
-
-export function EmailVerifyForm() {
-  return (
-    <Suspense>
-      <EmailVerifyFormInner />
-    </Suspense>
   );
 }

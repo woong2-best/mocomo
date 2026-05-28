@@ -71,7 +71,15 @@ function VerifyInner() {
 export default function VerifyPage() {
   return (
     <div className="flex-1 flex items-center justify-center p-4">
-      <Suspense>
+      <Suspense
+        fallback={
+          <Card className="w-full max-w-md rounded-2xl">
+            <CardContent className="p-8 text-center text-sm text-muted-foreground">
+              인증 확인 중...
+            </CardContent>
+          </Card>
+        }
+      >
         <VerifyInner />
       </Suspense>
     </div>
