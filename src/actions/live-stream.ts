@@ -121,7 +121,6 @@ export async function createLiveStream(data: {
       console.warn("[createLiveStream] streamerProfile", profileErr);
     }
 
-    revalidatePath("/live");
     if (!isScheduled) {
       void notifyFollowersOnLive(user.id, channel.id, title).catch(() => {});
     }

@@ -53,7 +53,7 @@ export function LiveRoomClient({
   broadcastMode?: LiveBroadcastMode;
 }) {
   const router = useRouter();
-  const [joined, setJoined] = useState(isHost);
+  const [joined, setJoined] = useState(false);
   const [password, setPassword] = useState("");
   const [joinError, setJoinError] = useState("");
   const [joining, setJoining] = useState(false);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { LiveBroadcastMode, LiveStreamCategory } from "@prisma/client";
@@ -20,6 +20,43 @@ const PRESETS = [
 ];
 
 const LIVE_PW_KEY = (id: string) => `mocomo_live_pw_${id}`;
+const LIVE_CREATED_UI_KEY = "mocomo_live_created_ui";
+
+type CreatedUiState = {
+  channelId: string;
+  password?: string;
+  scheduled?: boolean;
+  broadcastMode: LiveBroadcastMode;
+};
+
+function readCreatedUiFromStorage(channelId?: string | null): CreatedUiState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(LIVE_CREATED_UI_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CreatedUiState;
+    if (!parsed?.channelId) return null;
+    if (channelId && parsed.channelId !== channelId) return null;
+    if (parsed.scheduled || parsed.password) return parsed;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+function persistCreatedUi(state: CreatedUiState) {
+  sessionStorage.setItem(LIVE_CREATED_UI_KEY, JSON.stringify(state));
+  if (state.password) {
+    sessionStorage.setItem(LIVE_PW_KEY(state.channelId), state.password);
+  }
+  window.history.replaceState(null, "", `/voice/new?started=${state.channelId}`);
+}
+
+function clearCreatedUi(channelId?: string) {
+  sessionStorage.removeItem(LIVE_CREATED_UI_KEY);
+  if (channelId) sessionStorage.removeItem(LIVE_PW_KEY(channelId));
+  window.history.replaceState(null, "", "/voice/new");
+}
 
 const BROADCAST_CATEGORIES = LIVE_CATEGORIES.filter((c) => c.value !== "ALL");
 
@@ -30,13 +67,18 @@ export default function NewVoicePage() {
   const [name, setName] = useState(PRESETS[0]);
   const [category, setCategory] = useState<LiveStreamCategory>("JUST_CHATTING");
   const [broadcastMode, setBroadcastMode] = useState<LiveBroadcastMode>("BROWSER");
-  const [created, setCreated] = useState<{
-    channelId: string;
-    password?: string;
-    scheduled?: boolean;
-    broadcastMode: LiveBroadcastMode;
-  } | null>(null);
+  const [created, setCreated] = useState<CreatedUiState | null>(null);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (created) return;
+    const started =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("started")
+        : null;
+    const restored = readCreatedUiFromStorage(started);
+    if (restored) setCreated(restored);
+  }, [created]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -70,7 +112,13 @@ export default function NewVoicePage() {
       }
 
       if (result.scheduled) {
-        setCreated({ channelId: result.channel.id, scheduled: true, broadcastMode });
+        const scheduledState: CreatedUiState = {
+          channelId: result.channel.id,
+          scheduled: true,
+          broadcastMode,
+        };
+        persistCreatedUi(scheduledState);
+        setCreated(scheduledState);
         return;
       }
 
@@ -79,12 +127,13 @@ export default function NewVoicePage() {
         return;
       }
 
-      sessionStorage.setItem(LIVE_PW_KEY(result.channel.id), result.joinPassword);
-      setCreated({
+      const liveState: CreatedUiState = {
         channelId: result.channel.id,
         password: result.joinPassword,
         broadcastMode,
-      });
+      };
+      persistCreatedUi(liveState);
+      setCreated(liveState);
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "방송 시작에 실패했습니다.");
     } finally {
@@ -101,7 +150,15 @@ export default function NewVoicePage() {
 
   function goToStudio() {
     if (!created) return;
-    router.push(`/voice/${created.channelId}`);
+    const id = created.channelId;
+    clearCreatedUi(id);
+    router.push(`/voice/${id}`);
+  }
+
+  function dismissCreated() {
+    if (!created) return;
+    clearCreatedUi(created.channelId);
+    setCreated(null);
   }
 
   if (created?.scheduled) {
@@ -146,6 +203,13 @@ export default function NewVoicePage() {
               스튜디오 입장
             </Button>
           </div>
+          <button
+            type="button"
+            className="text-xs text-muted-foreground underline underline-offset-2"
+            onClick={dismissCreated}
+          >
+            설정 화면으로 돌아가기
+          </button>
         </div>
       </div>
     );
