@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   User,
-  Settings,
   MessageCircle,
   Bookmark,
   Wallet,
@@ -48,7 +47,6 @@ const navBlocks: { href: string; icon: typeof Home; labelKey: MessageKey }[] = [
   { href: "/support", icon: Wallet, labelKey: "nav.support" },
   { href: "/wallet", icon: Banknote, labelKey: "nav.wallet" },
   { href: "/premium", icon: Crown, labelKey: "nav.premium" },
-  { href: "/settings", icon: Settings, labelKey: "nav.settings" },
 ];
 
 export function Sidebar() {
