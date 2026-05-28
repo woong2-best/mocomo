@@ -104,6 +104,7 @@ export const getCachedAuthUserMinimal = cache(async () => {
     select: {
       id: true,
       username: true,
+      image: true,
       isBanned: true,
       role: true,
       supportTierSent: true,

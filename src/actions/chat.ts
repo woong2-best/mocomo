@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, requireAuthMinimal } from "@/lib/auth";
 import { canAccessDm } from "@/lib/tiers";
 import { ChatRoomType, SupportTierLevel } from "@prisma/client";
 import { userPublicSelectMinimal } from "@/lib/user-public-select";
@@ -102,30 +102,39 @@ export async function sendMessage(data: {
   mentions?: string[];
   attachments?: { url: string; type: "IMAGE" | "VIDEO" | "AUDIO" | "GIF" | "STICKER" | "FILE"; name?: string }[];
 }) {
-  const user = await requireAuth();
+  const user = await requireAuthMinimal();
   const member = await db.chatMember.findUnique({
     where: { roomId_userId: { roomId: data.roomId, userId: user.id } },
+    select: { userId: true },
   });
   if (!member) throw new Error("NOT_MEMBER");
 
-  const message = await db.message.create({
-    data: {
-      roomId: data.roomId,
-      senderId: user.id,
-      content: data.content,
-      replyToId: data.replyToId,
-      mentions: data.mentions ?? [],
-      attachments: data.attachments
-        ? { create: data.attachments.map((a) => ({ url: a.url, type: a.type, name: a.name })) }
-        : undefined,
-    },
-    include: {
-      sender: { select: userPublicSelectMinimal },
-      attachments: true,
-    },
+  const hasAttachments = !!data.attachments?.length;
+
+  const message = await db.$transaction(async (tx) => {
+    const msg = await tx.message.create({
+      data: {
+        roomId: data.roomId,
+        senderId: user.id,
+        content: data.content,
+        replyToId: data.replyToId,
+        mentions: data.mentions ?? [],
+        attachments: hasAttachments
+          ? { create: data.attachments!.map((a) => ({ url: a.url, type: a.type, name: a.name })) }
+          : undefined,
+      },
+      include: {
+        sender: { select: userPublicSelectMinimal },
+        ...(hasAttachments ? { attachments: true } : {}),
+      },
+    });
+    await tx.chatRoom.update({
+      where: { id: data.roomId },
+      data: { updatedAt: new Date() },
+    });
+    return msg;
   });
 
-  await db.chatRoom.update({ where: { id: data.roomId }, data: { updatedAt: new Date() } });
   return { message };
 }
 

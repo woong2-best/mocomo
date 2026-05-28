@@ -75,15 +75,20 @@ io.on("connection", (socket: AuthedSocket) => {
           mentions: Array.isArray(data.mentions) ? data.mentions.slice(0, 20) : [],
         },
         include: {
-          sender: { select: { id: true, username: true, image: true } },
-          attachments: true,
+          sender: {
+            select: { id: true, username: true, image: true, supportTierSent: true },
+          },
         },
       });
       await prisma.chatRoom.update({
         where: { id: data.roomId },
         data: { updatedAt: new Date() },
       });
-      io.to(`room:${data.roomId}`).emit("new_message", message);
+      const payload = {
+        ...message,
+        createdAt: message.createdAt.toISOString(),
+      };
+      io.to(`room:${data.roomId}`).emit("new_message", payload);
       for (const mentionId of data.mentions ?? []) {
         if (typeof mentionId === "string" && mentionId.length < 64) {
           io.to(`user:${mentionId}`).emit("mention", { roomId: data.roomId, message });

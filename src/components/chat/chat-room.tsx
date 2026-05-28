@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import type { Socket } from "socket.io-client";
+import type { SupportTierLevel } from "@prisma/client";
 import { sendMessage } from "@/actions/chat";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChatComposer } from "@/components/chat/chat-composer";
@@ -11,42 +12,71 @@ import {
   shouldShowAvatar,
   shouldShowDateDivider,
 } from "@/lib/chat-display";
-import type { SupportTierLevel } from "@prisma/client";
+import {
+  normalizeChatMessage,
+  isPendingMessageId,
+  type ChatMessageView,
+} from "@/lib/chat-message-normalize";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { UserProfileLink } from "@/components/user/user-profile-link";
 import { cn } from "@/lib/utils";
 
-type Message = {
-  id: string;
-  content: string | null;
-  createdAt: string;
-  sender: {
-    id: string;
-    username: string;
-    image: string | null;
-    supportTierSent?: SupportTierLevel;
-  };
-};
+type Message = ChatMessageView;
 
 export function ChatRoomClient({
   roomId,
   userId,
   username,
+  userImage = null,
+  userSupportTier = "PEBBLE",
   initialMessages = [],
 }: {
   roomId: string;
   userId: string;
   username: string;
+  userImage?: string | null;
+  userSupportTier?: SupportTierLevel;
   initialMessages?: Message[];
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
-  const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [realtimeOff, setRealtimeOff] = useState(false);
+  const [socketReady, setSocketReady] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
+  const sendLockRef = useRef(false);
+
+  const selfSender = useRef({
+    id: userId,
+    username,
+    image: userImage,
+    supportTierSent: userSupportTier,
+  });
+  selfSender.current = {
+    id: userId,
+    username,
+    image: userImage,
+    supportTierSent: userSupportTier,
+  };
+
+  const mergeIncoming = useCallback((raw: unknown) => {
+    const incoming = normalizeChatMessage(raw, selfSender.current);
+    if (!incoming) return;
+    setMessages((prev) => {
+      if (prev.some((m) => m.id === incoming.id)) return prev;
+      const withoutStalePending = prev.filter(
+        (m) =>
+          !(
+            isPendingMessageId(m.id) &&
+            m.sender.id === incoming.sender.id &&
+            m.content === incoming.content
+          )
+      );
+      return [...withoutStalePending, incoming];
+    });
+  }, []);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
     const el = scrollRef.current;
@@ -62,6 +92,7 @@ export function ChatRoomClient({
     const url = process.env.NEXT_PUBLIC_SOCKET_URL;
     if (!url || url.includes("localhost")) {
       setRealtimeOff(true);
+      setSocketReady(false);
       return;
     }
 
@@ -72,22 +103,32 @@ export function ChatRoomClient({
       if (disposed) return;
       const { fetchSocketAuthToken } = await import("@/lib/socket-client");
       const token = await fetchSocketAuthToken();
-      if (disposed || !token) return;
+      if (disposed || !token) {
+        setRealtimeOff(true);
+        return;
+      }
       socket = io(url, { auth: { token }, transports: ["websocket", "polling"] });
       socketRef.current = socket;
-      socket.emit("join_room", roomId);
-      socket.on("new_message", (msg: Message) => {
-        setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
+      socket.on("connect", () => {
+        if (!disposed) {
+          setSocketReady(true);
+          setRealtimeOff(false);
+        }
       });
+      socket.on("disconnect", () => setSocketReady(false));
+      socket.emit("join_room", roomId);
+      socket.on("new_message", (msg: unknown) => mergeIncoming(msg));
+      socket.on("error", () => setError("메시지 전송에 실패했습니다."));
     });
 
     return () => {
       disposed = true;
+      setSocketReady(false);
       socket?.emit("leave_room", roomId);
       socket?.disconnect();
       socketRef.current = null;
     };
-  }, [roomId, userId]);
+  }, [roomId, mergeIncoming]);
 
   function onScroll() {
     const el = scrollRef.current;
@@ -95,37 +136,66 @@ export function ChatRoomClient({
     stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 96;
   }
 
-  async function send() {
-    const text = input.trim();
-    if (!text || sending) return;
+  function addOptimistic(text: string): string {
+    const pendingId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const optimistic: Message = {
+      id: pendingId,
+      content: text,
+      createdAt: new Date().toISOString(),
+      sender: { ...selfSender.current },
+    };
+    setMessages((prev) => [...prev, optimistic]);
+    return pendingId;
+  }
 
-    setSending(true);
-    setError("");
-    stickToBottomRef.current = true;
+  function removePending(pendingId: string) {
+    setMessages((prev) => prev.filter((m) => m.id !== pendingId));
+  }
 
+  async function sendViaAction(text: string, pendingId: string) {
     try {
       const result = await sendMessage({ roomId, content: text });
-      const msg = result.message;
-      setMessages((prev) => [
-        ...prev,
+      const confirmed = normalizeChatMessage(
         {
-          id: msg.id,
-          content: msg.content,
-          createdAt: msg.createdAt.toISOString(),
-          sender: {
-            id: msg.sender.id,
-            username: msg.sender.username ?? username,
-            image: msg.sender.image,
-            supportTierSent: msg.sender.supportTierSent,
-          },
+          ...result.message,
+          createdAt: result.message.createdAt,
         },
-      ]);
-      setInput("");
+        selfSender.current
+      );
+      if (!confirmed) return;
+      setMessages((prev) => {
+        const without = prev.filter((m) => m.id !== pendingId && m.id !== confirmed.id);
+        return [...without, confirmed];
+      });
     } catch {
+      removePending(pendingId);
       setError("메시지 전송에 실패했습니다.");
-    } finally {
-      setSending(false);
     }
+  }
+
+  function send() {
+    const text = input.trim();
+    if (!text || sendLockRef.current) return;
+
+    sendLockRef.current = true;
+    setError("");
+    stickToBottomRef.current = true;
+    setInput("");
+
+    const pendingId = addOptimistic(text);
+
+    const socket = socketRef.current;
+    if (socketReady && socket?.connected) {
+      socket.emit("send_message", { roomId, content: text });
+      queueMicrotask(() => {
+        sendLockRef.current = false;
+      });
+      return;
+    }
+
+    void sendViaAction(text, pendingId).finally(() => {
+      sendLockRef.current = false;
+    });
   }
 
   return (
@@ -137,7 +207,7 @@ export function ChatRoomClient({
       >
         {realtimeOff && (
           <p className="text-[11px] text-center text-muted-foreground bg-muted/60 border border-border/50 rounded-lg px-3 py-2 mb-3">
-            실시간 연결이 꺼져 있습니다. 새 메시지는 전송 후 반영되며, 상대 메시지는 새로고침하면 보입니다.
+            실시간 연결이 꺼져 있습니다. 메시지는 전송되며, 상대 메시지는 새로고침하면 보입니다.
           </p>
         )}
         {messages.length === 0 && (
@@ -150,6 +220,7 @@ export function ChatRoomClient({
         {messages.map((m, i) => {
           const prev = messages[i - 1];
           const isMine = m.sender.id === userId;
+          const pending = isPendingMessageId(m.id);
           const showDate = shouldShowDateDivider(prev?.createdAt ?? null, m.createdAt);
           const showAvatar = shouldShowAvatar(
             prev ? { senderId: prev.sender.id } : null,
@@ -174,7 +245,8 @@ export function ChatRoomClient({
                 className={cn(
                   "flex gap-2 mb-0.5",
                   isMine ? "justify-end" : "justify-start",
-                  showAvatar ? "mt-3" : "mt-0.5"
+                  showAvatar ? "mt-3" : "mt-0.5",
+                  pending && isMine && "opacity-80"
                 )}
               >
                 {!isMine && (
@@ -232,7 +304,7 @@ export function ChatRoomClient({
       </div>
 
       {error && <p className="text-xs text-destructive px-4 pb-1 text-center">{error}</p>}
-      <ChatComposer value={input} onChange={setInput} onSend={send} disabled={sending} />
+      <ChatComposer value={input} onChange={setInput} onSend={send} />
     </div>
   );
 }
