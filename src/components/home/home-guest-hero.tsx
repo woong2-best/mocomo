@@ -21,7 +21,7 @@ export function HomeGuestHero() {
         {BRAND.description}. 가입 후 글 작성, 라이브, DM을 이용할 수 있습니다.
       </p>
       <div className="flex flex-wrap gap-3 mt-6">
-        <Button asChild size="lg" className="rounded-xl btn-rainbow">
+        <Button asChild size="lg" className="rounded-xl">
           <Link href="/auth/signup">무료 회원가입</Link>
         </Button>
         <Button asChild size="lg" variant="outline" className="rounded-xl">

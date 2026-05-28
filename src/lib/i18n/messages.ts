@@ -7,7 +7,7 @@ export type MessageKey =
   | "nav.myPage"
   | "nav.communities"
   | "nav.messages"
-  | "nav.bookmarks"
+  | "nav.star"
   | "nav.anime"
   | "nav.cosplay"
   | "nav.live"
@@ -55,7 +55,7 @@ const ko: Record<MessageKey, string> = {
   "nav.myPage": "My Page",
   "nav.communities": "커뮤니티",
   "nav.messages": "메시지",
-  "nav.bookmarks": "북마크",
+  "nav.star": "STAR",
   "nav.anime": "애니덕질",
   "nav.cosplay": "코스프레",
   "nav.live": "라이브",
@@ -104,7 +104,7 @@ const en: Record<MessageKey, string> = {
   "nav.myPage": "My Page",
   "nav.communities": "Communities",
   "nav.messages": "Messages",
-  "nav.bookmarks": "Bookmarks",
+  "nav.star": "STAR",
   "nav.anime": "Anime",
   "nav.cosplay": "Cosplay",
   "nav.live": "Live",
@@ -153,7 +153,7 @@ const ja: Record<MessageKey, string> = {
   "nav.myPage": "マイページ",
   "nav.communities": "コミュニティ",
   "nav.messages": "メッセージ",
-  "nav.bookmarks": "ブックマーク",
+  "nav.star": "STAR",
   "nav.anime": "アニメ",
   "nav.cosplay": "コスプレ",
   "nav.live": "ライブ",
@@ -202,7 +202,7 @@ const zh: Record<MessageKey, string> = {
   "nav.myPage": "我的",
   "nav.communities": "社区",
   "nav.messages": "消息",
-  "nav.bookmarks": "收藏",
+  "nav.star": "STAR",
   "nav.anime": "动漫",
   "nav.cosplay": "Cosplay",
   "nav.live": "直播",

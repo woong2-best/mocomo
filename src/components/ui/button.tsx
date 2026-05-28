@@ -8,8 +8,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        rainbow: "btn-rainbow text-white",
-        default: "btn-rainbow text-white",
+        default: "bg-[#e53935] text-white hover:bg-[#c62828] shadow-sm",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border shadow-sm",
         ghost: "hover:bg-accent text-foreground",
@@ -24,7 +23,7 @@ const buttonVariants = cva(
         icon: "h-10 w-10",
       },
     },
-    defaultVariants: { variant: "rainbow", size: "default" },
+    defaultVariants: { variant: "default", size: "default" },
   }
 );
 

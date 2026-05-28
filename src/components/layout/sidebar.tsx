@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   User,
   MessageCircle,
-  Bookmark,
+  Star,
   Wallet,
   Banknote,
   Trophy,
@@ -36,7 +36,7 @@ const navBlocks: { href: string; icon: typeof Home; labelKey: MessageKey }[] = [
   { href: "/my-page", icon: User, labelKey: "nav.myPage" },
   { href: "/communities", icon: Users, labelKey: "nav.communities" },
   { href: "/messages", icon: MessageCircle, labelKey: "nav.messages" },
-  { href: "/bookmarks", icon: Bookmark, labelKey: "nav.bookmarks" },
+  { href: "/star", icon: Star, labelKey: "nav.star" },
   { href: "/anime", icon: Tv, labelKey: "nav.anime" },
   { href: "/cosplay", icon: Camera, labelKey: "nav.cosplay" },
   { href: "/live", icon: Radio, labelKey: "nav.live" },
@@ -85,7 +85,7 @@ export function Sidebar() {
               className={cn(
                 "flex h-9 w-9 items-center justify-center rounded-xl shrink-0",
                 isActive(href)
-                  ? "btn-rainbow text-white"
+                  ? "bg-[#e53935] text-white"
                   : "bg-muted text-muted-foreground"
               )}
             >
@@ -97,7 +97,7 @@ export function Sidebar() {
       </nav>
 
       <Link href="/compose" className="block">
-        <span className="btn-rainbow w-full flex items-center justify-center gap-2 py-3 text-sm rounded-2xl">
+        <span className="bg-[#e53935] text-white w-full flex items-center justify-center gap-2 py-3 text-sm rounded-2xl hover:bg-[#c62828] transition-colors">
           <PenSquare className="h-4 w-4" />
           글쓰기
         </span>

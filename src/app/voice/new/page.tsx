@@ -108,7 +108,7 @@ export default function NewVoicePage() {
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               {copied ? "복사됨" : "비밀번호 복사"}
             </Button>
-            <Button className="rounded-xl btn-rainbow gap-2" onClick={goToStudio}>
+            <Button className="rounded-xl gap-2" onClick={goToStudio}>
               <Radio className="h-4 w-4" />
               스튜디오 입장
             </Button>
@@ -208,7 +208,7 @@ export default function NewVoicePage() {
               <KeyRound className="h-3.5 w-3.5" />
               즉시 시작 시 6자리 합방 비밀번호가 생성됩니다. 예약만 하면 비밀번호 없이 등록됩니다.
             </p>
-            <Button type="submit" className="w-full rounded-xl btn-rainbow gap-2" disabled={loading}>
+            <Button type="submit" className="w-full rounded-xl gap-2" disabled={loading}>
               <Radio className="h-4 w-4" />
               {loading ? "생성 중..." : "방송 시작 / 예약"}
             </Button>

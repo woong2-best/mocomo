@@ -27,7 +27,7 @@ export function PurchaseProductButton({
       amount={price}
       orderName={title}
       metadata={{ productId }}
-      className="w-full rounded-xl btn-rainbow"
+      className="w-full rounded-xl"
     >
       {price.toLocaleString()}원 구매
     </PayButton>

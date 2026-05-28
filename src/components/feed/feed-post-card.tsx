@@ -3,7 +3,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, MessageCircle, Share2, Bookmark, Gem } from "lucide-react";
+import { Heart, MessageCircle, Share2, Star, Gem } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
 import type { SupportTierLevel } from "@prisma/client";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
@@ -106,7 +106,7 @@ export function FeedPostCard({ post }: { post: GridPost }) {
             <Share2 className="h-3.5 w-3.5 hover:text-foreground" />
           </div>
           <div className="flex items-center gap-2">
-            <Bookmark className="h-3.5 w-3.5 hover:text-yellow-400" />
+            <Star className="h-4 w-4 text-yellow-500/70" aria-hidden />
             <Link href={`/u/${post.author.username}`}>
               <Gem className="h-3.5 w-3.5 hover:text-neon-pink" />
             </Link>

@@ -33,7 +33,7 @@ export function HeaderAuth() {
       <Button asChild variant="outline" size="sm" className="rounded-xl font-semibold min-w-[72px] shrink-0">
         <Link href="/auth/signin">로그인</Link>
       </Button>
-      <Button asChild size="sm" className="rounded-xl font-semibold btn-rainbow min-w-[56px] shrink-0">
+      <Button asChild size="sm" className="rounded-xl font-semibold min-w-[56px] shrink-0">
         <Link href="/auth/signup">가입</Link>
       </Button>
     </>

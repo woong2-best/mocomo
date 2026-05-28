@@ -8,7 +8,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, MessageCircle, Share2, Bookmark, Gem, Repeat2 } from "lucide-react";
+import { Heart, MessageCircle, Share2, Star, Gem, Repeat2 } from "lucide-react";
 import { repost } from "@/actions/social";
 import { formatNumber, cn } from "@/lib/utils";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
@@ -30,14 +30,14 @@ const typeLabels: Record<string, string> = {
 export function FeedPostCardInteractive({
   post,
   initialLiked = false,
-  initialBookmarked = false,
+  initialStarred = false,
 }: {
   post: GridPost & { createdAt: string | Date };
   initialLiked?: boolean;
-  initialBookmarked?: boolean;
+  initialStarred?: boolean;
 }) {
   const [liked, setLiked] = useState(initialLiked);
-  const [bookmarked, setBookmarked] = useState(initialBookmarked);
+  const [starred, setStarred] = useState(initialStarred);
   const [likeCount, setLikeCount] = useState(post._count?.likes ?? 0);
   const [reposted, setReposted] = useState(false);
   const [repostCount, setRepostCount] = useState(post._count?.reposts ?? 0);
@@ -70,14 +70,17 @@ export function FeedPostCardInteractive({
     });
   }
 
-  function handleBookmark(e: React.MouseEvent) {
+  function handleStar(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
     if (!requireLogin(`/post/${post.id}`)) return;
     startTransition(async () => {
       try {
         const res = await toggleBookmark(post.id);
-        setBookmarked(res.bookmarked);
+        setStarred(res.bookmarked);
+        if (!res.bookmarked && window.location.pathname.startsWith("/star")) {
+          router.refresh();
+        }
       } catch {
         /* auth/session */
       }
@@ -198,10 +201,15 @@ export function FeedPostCardInteractive({
             <button
               type="button"
               disabled={pending}
-              onClick={handleBookmark}
-              className={cn(bookmarked ? "text-yellow-400" : "hover:text-yellow-400")}
+              onClick={handleStar}
+              aria-label={starred ? "STAR에서 제거" : "STAR에 저장"}
+              title={starred ? "STAR에 저장됨" : "STAR에 저장"}
+              className={cn(
+                "transition-colors",
+                starred ? "text-yellow-400" : "text-yellow-500/70 hover:text-yellow-400"
+              )}
             >
-              <Bookmark className={cn("h-3.5 w-3.5", bookmarked && "fill-current")} />
+              <Star className={cn("h-4 w-4", starred && "fill-yellow-400 text-yellow-400")} />
             </button>
             <Link href={`/u/${post.author.username}`} title="후원">
               <Gem className="h-3.5 w-3.5 hover:text-[#8e24aa]" />

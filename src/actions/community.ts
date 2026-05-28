@@ -124,9 +124,11 @@ export async function toggleBookmark(postId: string) {
   });
   if (existing) {
     await db.bookmark.delete({ where: { id: existing.id } });
+    revalidatePath("/star");
     return { bookmarked: false };
   }
   await db.bookmark.create({ data: { userId: user.id, postId } });
+  revalidatePath("/star");
   return { bookmarked: true };
 }
 

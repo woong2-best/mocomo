@@ -11,7 +11,7 @@ export function SidebarAuthFooter() {
   return (
     <div className="space-y-2 pt-2 border-t border-border/60">
       <p className="text-xs text-muted-foreground px-1">로그인하면 글쓰기·DM·라이브 이용</p>
-      <Button asChild className="w-full rounded-xl btn-rainbow">
+      <Button asChild className="w-full rounded-xl">
         <Link href="/auth/signup">회원가입</Link>
       </Button>
       <Button asChild variant="outline" className="w-full rounded-xl">

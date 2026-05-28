@@ -18,7 +18,7 @@ export function LivePageActions({ variant }: { variant: "header" | "empty" }) {
           </Button>
         </Link>
         <Link href="/voice/new">
-          <Button className="gap-2 rounded-xl btn-rainbow">
+          <Button className="gap-2 rounded-xl">
             <Video className="h-4 w-4" />
             방송 시작
           </Button>

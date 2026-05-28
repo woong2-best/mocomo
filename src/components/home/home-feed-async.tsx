@@ -2,6 +2,8 @@ import Link from "next/link";
 import { mixFeedWithAds } from "@/lib/feed-mixer";
 import { FALLBACK_FEED_ADS, type FeedAdData } from "@/lib/default-ads";
 import { getCachedFeedAds, getCachedFeedPosts } from "@/lib/cached-data";
+import { getCachedSession } from "@/lib/auth";
+import { getStarredPostIds } from "@/lib/star";
 import { HomeFeedClient } from "@/components/home/home-feed-client";
 
 function serializeCreatedAt<T extends { createdAt: Date | string }>(rows: T[]): T[] {
@@ -24,9 +26,16 @@ export async function HomeFeedAsync() {
     });
     const nextCursor = posts.length === 12 ? posts[posts.length - 1]?.id ?? null : null;
     const hasDbPosts = mixed.some((item) => item.type === "post");
+    const session = await getCachedSession();
+    const postIds = mixed.filter((i) => i.type === "post").map((i) => i.data.id);
+    const starredIds =
+      session?.user?.id && postIds.length > 0
+        ? await getStarredPostIds(session.user.id, postIds)
+        : [];
 
     return (
       <HomeFeedClient
+        starredIds={starredIds}
         feedItems={mixed.map((item) =>
           item.type === "post"
             ? ({

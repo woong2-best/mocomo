@@ -24,11 +24,14 @@ type FeedItem =
 export function FeedInfinite({
   initialItems,
   initialCursor,
+  initialStarredIds = [],
 }: {
   initialItems: FeedItem[];
   initialCursor: string | null;
+  initialStarredIds?: string[];
 }) {
   const [items, setItems] = useState(initialItems);
+  const [starredIds, setStarredIds] = useState(() => new Set(initialStarredIds));
   const [cursor, setCursor] = useState(initialCursor);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(!initialCursor);
@@ -53,6 +56,13 @@ export function FeedInfinite({
       const added = json.items as FeedItem[];
       const addedPosts = added.filter((i) => i.type === "post").length;
       postOffsetRef.current += addedPosts;
+      if (Array.isArray(json.starredIds) && json.starredIds.length > 0) {
+        setStarredIds((prev) => {
+          const next = new Set(prev);
+          for (const id of json.starredIds as string[]) next.add(id);
+          return next;
+        });
+      }
       setItems((prev) => [...prev, ...added]);
       setCursor(json.nextCursor);
       if (!json.nextCursor) setDone(true);
@@ -83,7 +93,11 @@ export function FeedInfinite({
           item.type === "ad" ? (
             <FeedAdCard key={`ad-${item.data.id}-${i}`} ad={item.data} />
           ) : (
-            <FeedPostCardInteractive key={item.data.id} post={item.data} />
+            <FeedPostCardInteractive
+              key={item.data.id}
+              post={item.data}
+              initialStarred={starredIds.has(item.data.id)}
+            />
           )
         )}
       </div>

@@ -13,7 +13,7 @@ export function HomeStaticSection({ isLoggedIn }: { isLoggedIn: boolean }) {
           <p className="text-lg font-bold">3초면 가입 끝</p>
           <p className="text-sm text-muted-foreground">이메일 · Google · Discord 로 시작</p>
           <div className="flex flex-wrap justify-center gap-3">
-            <Button asChild size="lg" className="rounded-xl btn-rainbow px-8">
+            <Button asChild size="lg" className="rounded-xl px-8">
               <Link href="/auth/signup">무료 회원가입</Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="rounded-xl px-8">
