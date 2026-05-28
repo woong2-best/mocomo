@@ -9,7 +9,7 @@ import { LiveHostSettings } from "@/components/live/live-host-settings";
 import { TipCreatorDialog } from "@/components/support/tip-creator-dialog";
 import { ReportButton } from "@/components/report/report-button";
 import { liveCategoryLabel } from "@/lib/live-categories";
-import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
+import type { LiveBroadcastMode, LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 import { Eye, Users, Radio, Trophy } from "lucide-react";
 import Link from "next/link";
 
@@ -43,6 +43,7 @@ function LiveStreamRoomInner({
   chatBannedWords,
   paymentsEnabled,
   onRecentTips,
+  broadcastMode,
 }: {
   channelId: string;
   channelName: string;
@@ -63,6 +64,7 @@ function LiveStreamRoomInner({
   chatBannedWords?: string[];
   paymentsEnabled?: boolean;
   onRecentTips?: (tips: LiveTipAlert[]) => void;
+  broadcastMode?: LiveBroadcastMode;
 }) {
   return (
     <div className="live-studio-panel space-y-4 p-3 sm:p-5">
@@ -142,7 +144,11 @@ function LiveStreamRoomInner({
       <div className="grid lg:grid-cols-[1fr_minmax(280px,360px)] gap-4 items-start">
         <div className="min-w-0 rounded-2xl overflow-hidden ring-1 ring-border/50">
           {isHost ? (
-            <LiveBroadcastStudio channelId={channelId} onEndStream={onEndStream} />
+            <LiveBroadcastStudio
+              channelId={channelId}
+              initialMode={broadcastMode}
+              onEndStream={onEndStream}
+            />
           ) : (
             <LiveViewerPlayer channelId={channelId} hostUserId={hostUserId} />
           )}

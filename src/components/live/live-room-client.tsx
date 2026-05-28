@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
+import type { LiveBroadcastMode, LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 import {
   joinLiveStreamWithPassword,
   heartbeatLivePresence,
@@ -32,6 +32,7 @@ export function LiveRoomClient({
   slowModeSeconds,
   chatBannedWords,
   paymentsEnabled,
+  broadcastMode,
 }: {
   channelId: string;
   channelName: string;
@@ -49,6 +50,7 @@ export function LiveRoomClient({
   slowModeSeconds?: number;
   chatBannedWords?: string[];
   paymentsEnabled?: boolean;
+  broadcastMode?: LiveBroadcastMode;
 }) {
   const router = useRouter();
   const [joined, setJoined] = useState(isHost);
@@ -180,6 +182,7 @@ export function LiveRoomClient({
         chatBannedWords={chatBannedWords}
         paymentsEnabled={paymentsEnabled}
         onRecentTips={setRecentTips}
+        broadcastMode={broadcastMode}
       />
     </div>
   );

@@ -4,6 +4,7 @@ import { rateLimitPublicApi } from "@/lib/api-security";
 import { validateLivekitCallRoom } from "@/lib/call-room-access";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { createLivekitToken, getLivekitUrl, isLivekitConfigured } from "@/lib/livekit";
+import { db } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -81,8 +82,14 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const channelRow = await db.voiceChannel.findUnique({
+      where: { id: room },
+      select: { broadcastMode: true },
+    });
+    const hostObsMode = live.isHost && channelRow?.broadcastMode === "OBS";
+
     const token = await createLivekitToken(room, session.user.id, displayName, {
-      publish: live.isHost,
+      publish: live.isHost && !hostObsMode,
     });
     if (!token) {
       return NextResponse.json({ error: "LiveKit 토큰 생성 실패" }, { status: 503 });

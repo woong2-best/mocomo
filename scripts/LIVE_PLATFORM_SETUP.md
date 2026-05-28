@@ -48,7 +48,14 @@ npm run dev:socket   # 로컬
 
 `NEXT_PUBLIC_SOCKET_URL`을 그 서버 주소로 설정하세요.
 
-## 6. OpenAI (선택)
+## 6. OBS Studio (RTMP Ingress)
+
+- LiveKit Cloud에서 **Ingress** 사용 가능한지 확인
+- 방송 시작 시 **OBS** 탭 → 서버 URL + 스트림 키 복사
+- OBS: 설정 → 방송 → 사용자 지정 → 붙여넣기 → 방송 시작
+- **동시 방송**: 스트리머마다 별도 방(`VoiceChannel`)·별도 RTMP 키 → 서로 간섭 없음
+
+## 7. OpenAI (선택)
 
 `OPENAI_API_KEY` 없으면 기본 금칙어·스팸 필터만 동작합니다.
 

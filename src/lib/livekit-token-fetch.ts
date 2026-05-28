@@ -1,4 +1,9 @@
-export type LivekitCredentials = { token: string; serverUrl: string };
+export type LivekitCredentials = {
+  token: string;
+  serverUrl: string;
+  hostUserId?: string;
+  role?: string;
+};
 
 export async function fetchLivekitCredentials(
   roomName: string,
@@ -13,6 +18,8 @@ export async function fetchLivekitCredentials(
     error?: string;
     token?: string;
     serverUrl?: string;
+    hostUserId?: string;
+    role?: string;
     reason?: string;
   } = {};
   try {
@@ -37,5 +44,10 @@ export async function fetchLivekitCredentials(
     throw new Error(body.error ?? "LiveKit 응답이 올바르지 않습니다.");
   }
 
-  return { token: body.token, serverUrl: body.serverUrl };
+  return {
+    token: body.token,
+    serverUrl: body.serverUrl,
+    hostUserId: body.hostUserId,
+    role: body.role,
+  };
 }

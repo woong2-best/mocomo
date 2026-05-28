@@ -594,4 +594,14 @@ ALTER TYPE "ReportTargetType" ADD VALUE IF NOT EXISTS 'STREAM_CLIP';
 -- T) LiveKit 녹화(Egress) ID
 ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "egressId" TEXT;
 
+-- U) OBS(RTMP) 송출
+DO $$ BEGIN
+  CREATE TYPE "LiveBroadcastMode" AS ENUM ('BROWSER', 'OBS');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "broadcastMode" "LiveBroadcastMode" NOT NULL DEFAULT 'BROWSER';
+ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "rtmpIngressId" TEXT;
+ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "rtmpUrl" TEXT;
+ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "rtmpStreamKey" TEXT;
+
 -- 완료 후 터미널: npx prisma db push && npm run db:seed

@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import type { LiveStreamCategory } from "@prisma/client";
+import type { LiveBroadcastMode, LiveStreamCategory } from "@prisma/client";
 import { createLiveStream } from "@/actions/live-stream";
 import { LIVE_CATEGORIES } from "@/lib/live-categories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Radio, ChevronLeft, KeyRound, Copy, Check, Calendar } from "lucide-react";
+import { Radio, ChevronLeft, KeyRound, Copy, Check, Calendar, Monitor, Laptop } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const PRESETS = [
   "🎙 애니덕질 라이브",
@@ -27,6 +28,7 @@ export default function NewVoicePage() {
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState(PRESETS[0]);
   const [category, setCategory] = useState<LiveStreamCategory>("JUST_CHATTING");
+  const [broadcastMode, setBroadcastMode] = useState<LiveBroadcastMode>("BROWSER");
   const [created, setCreated] = useState<
     { channelId: string; password?: string; scheduled?: boolean } | null
   >(null);
@@ -47,6 +49,7 @@ export default function NewVoicePage() {
       description: (form.get("description") as string) || undefined,
       scheduledAt: (form.get("scheduledAt") as string) || undefined,
       donationGoalKrw: parseInt(form.get("donationGoalKrw") as string) || undefined,
+      broadcastMode,
     });
     setLoading(false);
     if (result.channel) {
@@ -154,6 +157,33 @@ export default function NewVoicePage() {
               ))}
             </div>
             <Input name="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="방송 제목" required />
+            <div className="flex gap-2 p-1 rounded-xl bg-muted/40 border">
+              <button
+                type="button"
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1 text-xs py-2 rounded-lg font-medium",
+                  broadcastMode === "BROWSER" ? "bg-background shadow" : "text-muted-foreground"
+                )}
+                onClick={() => setBroadcastMode("BROWSER")}
+              >
+                <Laptop className="h-3.5 w-3.5" />
+                브라우저 송출
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1 text-xs py-2 rounded-lg font-medium",
+                  broadcastMode === "OBS" ? "bg-background shadow" : "text-muted-foreground"
+                )}
+                onClick={() => setBroadcastMode("OBS")}
+              >
+                <Monitor className="h-3.5 w-3.5" />
+                OBS (RTMP)
+              </button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              OBS 선택 시 방송 스튜디오에서 RTMP 서버·스트림 키를 받습니다. 스트리머 여러 명이 동시 방송 가능합니다.
+            </p>
             <div className="flex flex-wrap gap-2">
               {BROADCAST_CATEGORIES.map(({ value, label }) => (
                 <button

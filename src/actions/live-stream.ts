@@ -26,7 +26,7 @@ function mapLiveChatMessage(m: {
     at: m.createdAt.getTime(),
   };
 }
-import type { LiveStreamCategory } from "@prisma/client";
+import type { LiveBroadcastMode, LiveStreamCategory } from "@prisma/client";
 import { generateLiveJoinPassword, hashLiveJoinPassword, verifyLiveJoinPassword } from "@/lib/live-password";
 import { countActiveLiveViewers, resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { liveViewerCutoff } from "@/lib/live-presence";
@@ -37,6 +37,7 @@ import {
 } from "@/lib/live-chat-filter";
 import { moderateChatWithAi } from "@/lib/ai-moderation";
 import { startChannelEgress, stopChannelEgress, isLivekitEgressConfigured } from "@/lib/livekit-egress";
+import { createObsRtmpIngress, deleteObsRtmpIngress } from "@/lib/livekit-ingress";
 import { notifyFollowersOnLive } from "@/lib/live-notify";
 import { revalidatePath } from "next/cache";
 
@@ -52,6 +53,7 @@ export async function createLiveStream(data: {
   description?: string;
   scheduledAt?: string;
   donationGoalKrw?: number;
+  broadcastMode?: LiveBroadcastMode;
 }) {
   const user = await requireAuth();
   const joinPassword = generateLiveJoinPassword();
@@ -82,6 +84,7 @@ export async function createLiveStream(data: {
       description: data.description?.trim().slice(0, 500) || null,
       scheduledAt: isScheduled ? scheduledAt : null,
       donationGoalKrw: data.donationGoalKrw && data.donationGoalKrw > 0 ? data.donationGoalKrw : null,
+      broadcastMode: data.broadcastMode ?? "BROWSER",
       members: isScheduled
         ? undefined
         : {
@@ -159,6 +162,9 @@ export async function getLiveChannelRoomMeta(channelId: string) {
       endedAt: true,
       slowModeSeconds: true,
       chatBannedWords: true,
+      broadcastMode: true,
+      rtmpUrl: true,
+      rtmpStreamKey: true,
     },
   });
   if (!channel) return null;
@@ -415,6 +421,76 @@ export async function setLiveVodUrl(channelId: string, vodUrl: string) {
   return { success: true as const };
 }
 
+/** OBS Studio RTMP 송출용 URL·스트림 키 발급 (방송당 1개, 동시 다중 방송은 방 ID별로 분리) */
+export async function ensureObsIngress(channelId: string) {
+  const user = await requireAuth();
+  const channel = await db.voiceChannel.findUnique({
+    where: { id: channelId },
+    select: {
+      createdBy: true,
+      isLive: true,
+      rtmpIngressId: true,
+      rtmpUrl: true,
+      rtmpStreamKey: true,
+      name: true,
+    },
+  });
+  if (!channel || channel.createdBy !== user.id || !channel.isLive) {
+    return { error: "호스트만 OBS 설정을 받을 수 있습니다." };
+  }
+
+  if (channel.rtmpUrl && channel.rtmpStreamKey && channel.rtmpIngressId) {
+    return {
+      url: channel.rtmpUrl,
+      streamKey: channel.rtmpStreamKey,
+      ingressId: channel.rtmpIngressId,
+    };
+  }
+
+  const hostName =
+    (await db.user.findUnique({ where: { id: user.id }, select: { username: true } }))?.username ??
+    "host";
+  const created = await createObsRtmpIngress(channelId, hostName);
+  if ("error" in created) return { error: created.error };
+
+  await db.voiceChannel.update({
+    where: { id: channelId },
+    data: {
+      broadcastMode: "OBS",
+      rtmpIngressId: created.ingressId,
+      rtmpUrl: created.url,
+      rtmpStreamKey: created.streamKey,
+    },
+  });
+
+  void ensureLiveRecording(channelId).catch(() => {});
+
+  return {
+    url: created.url,
+    streamKey: created.streamKey,
+    ingressId: created.ingressId,
+  };
+}
+
+export async function setLiveBroadcastMode(channelId: string, mode: LiveBroadcastMode) {
+  const user = await requireAuth();
+  const channel = await db.voiceChannel.findUnique({
+    where: { id: channelId },
+    select: { createdBy: true, isLive: true },
+  });
+  if (!channel || channel.createdBy !== user.id || !channel.isLive) {
+    return { error: "호스트만 송출 방식을 변경할 수 있습니다." };
+  }
+  await db.voiceChannel.update({
+    where: { id: channelId },
+    data: { broadcastMode: mode },
+  });
+  if (mode === "OBS") {
+    return ensureObsIngress(channelId);
+  }
+  return { success: true as const };
+}
+
 /** 호스트 스튜디오 입장 시 R2 자동 녹화 (LiveKit Egress) */
 export async function ensureLiveRecording(channelId: string) {
   const user = await requireAuth();
@@ -443,13 +519,16 @@ export async function endLiveStream(channelId: string) {
   const user = await requireAuth();
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
-    select: { createdBy: true, egressId: true },
+    select: { createdBy: true, egressId: true, rtmpIngressId: true },
   });
   if (!channel) return { error: "방송을 찾을 수 없습니다." };
   if (channel.createdBy !== user.id) return { error: "방송 종료는 호스트만 할 수 있습니다." };
 
   if (channel.egressId) {
     await stopChannelEgress(channel.egressId);
+  }
+  if (channel.rtmpIngressId) {
+    await deleteObsRtmpIngress(channel.rtmpIngressId);
   }
 
   await db.voiceChannel.update({

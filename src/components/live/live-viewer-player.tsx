@@ -10,9 +10,11 @@ import {
 import "@livekit/components-styles";
 import { Track } from "livekit-client";
 import { fetchLivekitCredentials } from "@/lib/livekit-token-fetch";
+import { livePublisherIdentities } from "@/lib/live-participant";
 import { Loader2, Volume2 } from "lucide-react";
 
-function ViewerStage({ hostUserId }: { hostUserId: string }) {
+function ViewerStage({ channelId, hostUserId }: { channelId: string; hostUserId: string }) {
+  const publishers = livePublisherIdentities(channelId, hostUserId);
   const tracks = useTracks(
     [
       { source: Track.Source.ScreenShare, withPlaceholder: true },
@@ -21,9 +23,9 @@ function ViewerStage({ hostUserId }: { hostUserId: string }) {
     { onlySubscribed: true }
   );
 
-  const hostTracks = tracks.filter((t) => t.participant.identity === hostUserId);
-  const screen = hostTracks.find((t) => t.source === Track.Source.ScreenShare);
-  const camera = hostTracks.find((t) => t.source === Track.Source.Camera);
+  const publisherTracks = tracks.filter((t) => publishers.includes(t.participant.identity));
+  const screen = publisherTracks.find((t) => t.source === Track.Source.ScreenShare);
+  const camera = publisherTracks.find((t) => t.source === Track.Source.Camera);
   const main = screen ?? camera;
   const hasVideo = main && main.publication;
 
@@ -90,7 +92,7 @@ export function LiveViewerPlayer({
       className="space-y-0"
       data-lk-theme="default"
     >
-      <ViewerStage hostUserId={hostUserId} />
+      <ViewerStage channelId={channelId} hostUserId={hostUserId} />
       <RoomAudioRenderer />
     </LiveKitRoom>
   );

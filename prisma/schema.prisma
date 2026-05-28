@@ -30,6 +30,11 @@ enum LiveStreamStatus {
   ENDED
 }
 
+enum LiveBroadcastMode {
+  BROWSER
+  OBS
+}
+
 enum PremiumTier {
   FREE
   PREMIUM
@@ -615,6 +620,10 @@ model VoiceChannel {
   donationGoalKrw  Int?
   vodUrl           String?
   egressId         String?
+  broadcastMode    LiveBroadcastMode @default(BROWSER)
+  rtmpIngressId    String?
+  rtmpUrl          String?
+  rtmpStreamKey    String?
   endedAt          DateTime?
 
   linkedChatRoom ChatRoom?

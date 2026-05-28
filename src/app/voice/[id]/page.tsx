@@ -77,6 +77,7 @@ export default async function VoiceRoomPage({ params }: { params: Promise<{ id: 
         slowModeSeconds={channel.slowModeSeconds}
         chatBannedWords={channel.chatBannedWords}
         paymentsEnabled={paymentsEnabled}
+        broadcastMode={channel.broadcastMode}
       />
     </div>
   );

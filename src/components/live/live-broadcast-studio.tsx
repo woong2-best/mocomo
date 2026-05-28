@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { LiveBroadcastMode } from "@prisma/client";
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -12,9 +13,11 @@ import {
 import "@livekit/components-styles";
 import { Track } from "livekit-client";
 import { fetchLivekitCredentials } from "@/lib/livekit-token-fetch";
-import { ensureLiveRecording } from "@/actions/live-stream";
-import { Loader2, Radio } from "lucide-react";
+import { ensureLiveRecording, setLiveBroadcastMode } from "@/actions/live-stream";
+import { LiveObsStudio } from "@/components/live/live-obs-studio";
+import { Loader2, Radio, Monitor, Laptop } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 function HostStage() {
   const { localParticipant } = useLocalParticipant();
@@ -49,7 +52,6 @@ function HostStage() {
           <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
           LIVE
         </span>
-        <span className="px-2 py-0.5 rounded-md bg-black/50 text-white text-xs">방송 중</span>
       </div>
     </div>
   );
@@ -76,7 +78,7 @@ function HostControls({ onEndStream }: { onEndStream: () => void }) {
   );
 }
 
-function HostRoomInner({ onEndStream }: { onEndStream: () => void }) {
+function BrowserStudio({ onEndStream }: { onEndStream: () => void }) {
   return (
     <>
       <HostStage />
@@ -88,16 +90,21 @@ function HostRoomInner({ onEndStream }: { onEndStream: () => void }) {
 
 export function LiveBroadcastStudio({
   channelId,
+  initialMode = "BROWSER",
   onEndStream,
 }: {
   channelId: string;
+  initialMode?: LiveBroadcastMode;
   onEndStream: () => void;
 }) {
+  const [mode, setMode] = useState<LiveBroadcastMode>(initialMode);
   const [token, setToken] = useState<string | null>(null);
   const [serverUrl, setServerUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [switching, setSwitching] = useState(false);
 
   useEffect(() => {
+    if (mode !== "BROWSER") return;
     fetchLivekitCredentials(channelId)
       .then((c) => {
         setToken(c.token);
@@ -107,33 +114,74 @@ export function LiveBroadcastStudio({
       .catch((e: unknown) => {
         setError(e instanceof Error ? e.message : "방송 서버 연결 실패");
       });
-  }, [channelId]);
+  }, [channelId, mode]);
 
-  if (error) {
-    return (
-      <p className="text-sm text-destructive text-center p-6 bg-destructive/10 rounded-2xl">{error}</p>
-    );
-  }
-
-  if (!token || !serverUrl) {
-    return (
-      <div className="flex items-center justify-center aspect-video rounded-2xl bg-muted/40">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+  async function switchMode(next: LiveBroadcastMode) {
+    if (next === mode) return;
+    setSwitching(true);
+    setError(null);
+    const res = await setLiveBroadcastMode(channelId, next);
+    setSwitching(false);
+    if ("error" in res && res.error) {
+      setError(res.error);
+      return;
+    }
+    setMode(next);
+    if (next === "BROWSER") {
+      setToken(null);
+    }
   }
 
   return (
-    <LiveKitRoom
-      token={token}
-      serverUrl={serverUrl}
-      connect
-      audio
-      video
-      className="space-y-0"
-      data-lk-theme="default"
-    >
-      <HostRoomInner onEndStream={onEndStream} />
-    </LiveKitRoom>
+    <div className="space-y-4">
+      <div className="flex gap-2 p-1 rounded-xl bg-muted/50 border border-border/60">
+        <button
+          type="button"
+          disabled={switching}
+          className={cn(
+            "flex-1 flex items-center justify-center gap-1.5 text-sm py-2 rounded-lg font-medium transition-colors",
+            mode === "BROWSER" ? "bg-background shadow text-foreground" : "text-muted-foreground"
+          )}
+          onClick={() => switchMode("BROWSER")}
+        >
+          <Laptop className="h-4 w-4" />
+          브라우저
+        </button>
+        <button
+          type="button"
+          disabled={switching}
+          className={cn(
+            "flex-1 flex items-center justify-center gap-1.5 text-sm py-2 rounded-lg font-medium transition-colors",
+            mode === "OBS" ? "bg-background shadow text-foreground" : "text-muted-foreground"
+          )}
+          onClick={() => switchMode("OBS")}
+        >
+          <Monitor className="h-4 w-4" />
+          OBS
+        </button>
+      </div>
+
+      {error && <p className="text-sm text-destructive">{error}</p>}
+
+      {mode === "OBS" ? (
+        <LiveObsStudio channelId={channelId} onEndStream={onEndStream} />
+      ) : !token || !serverUrl ? (
+        <div className="flex items-center justify-center aspect-video rounded-2xl bg-muted/40">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <LiveKitRoom
+          token={token}
+          serverUrl={serverUrl}
+          connect
+          audio
+          video
+          className="space-y-0"
+          data-lk-theme="default"
+        >
+          <BrowserStudio onEndStream={onEndStream} />
+        </LiveKitRoom>
+      )}
+    </div>
   );
 }

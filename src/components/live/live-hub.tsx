@@ -160,7 +160,7 @@ export function LiveHub({
               라이브
             </h1>
             <p className="text-sm text-muted-foreground max-w-lg">
-              실시간 방송 · 클립 · 팔로우 피드를 한곳에서. Twitch·치지직 스타일 송출과 커뮤니티를 MoCoMo에 통합했습니다.
+              실시간 방송 · OBS(RTMP) · 클립 · 팔로우 피드. 스트리머 여러 명이 동시에 방송해도 각자 독립 방으로 운영됩니다.
             </p>
             <div className="flex flex-wrap gap-2">
               {FEATURES.map(({ icon: Icon, label }) => (
