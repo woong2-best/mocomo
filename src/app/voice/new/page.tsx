@@ -29,10 +29,15 @@ export default function NewVoicePage() {
   const [name, setName] = useState(PRESETS[0]);
   const [category, setCategory] = useState<LiveStreamCategory>("JUST_CHATTING");
   const [broadcastMode, setBroadcastMode] = useState<LiveBroadcastMode>("BROWSER");
-  const [created, setCreated] = useState<
-    { channelId: string; password?: string; scheduled?: boolean } | null
-  >(null);
-  const [copied, setCopied] = useState(false);
+  const [created, setCreated] = useState<{
+    channelId: string;
+    password?: string;
+    scheduled?: boolean;
+    obsServer?: string;
+    obsStreamKey?: string;
+    obsError?: string;
+  } | null>(null);
+  const [copied, setCopied] = useState<"pw" | "obs" | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -59,16 +64,21 @@ export default function NewVoicePage() {
       }
       if (result.joinPassword) {
         sessionStorage.setItem(LIVE_PW_KEY(result.channel.id), result.joinPassword);
-        setCreated({ channelId: result.channel.id, password: result.joinPassword });
+        setCreated({
+          channelId: result.channel.id,
+          password: result.joinPassword,
+          obsServer: result.obs?.obsServer,
+          obsStreamKey: result.obs?.obsStreamKey,
+          obsError: result.obsError,
+        });
       }
     }
   }
 
-  function copyPassword() {
-    if (!created?.password) return;
-    void navigator.clipboard.writeText(created.password);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  function copyText(text: string, kind: "pw" | "obs") {
+    void navigator.clipboard.writeText(text);
+    setCopied(kind);
+    setTimeout(() => setCopied(null), 2000);
   }
 
   function goToStudio() {
@@ -103,10 +113,48 @@ export default function NewVoicePage() {
             아래 <strong>합방 비밀번호</strong>를 시청자에게만 공유하세요.
           </p>
           <p className="text-3xl font-mono font-bold tracking-[0.35em] text-foreground">{created.password}</p>
-          <div className="flex gap-2 justify-center">
-            <Button variant="outline" className="rounded-xl gap-2" onClick={copyPassword}>
-              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              {copied ? "복사됨" : "비밀번호 복사"}
+          {created.obsError && (
+            <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+              OBS 키 자동 발급 실패: {created.obsError}
+              <br />
+              <span className="text-xs">스튜디오 OBS 탭에서「키 재발급」을 눌러 보세요.</span>
+            </p>
+          )}
+          {created.obsServer && created.obsStreamKey && (
+            <div className="text-left rounded-xl border border-violet-500/30 bg-violet-500/5 p-4 space-y-2">
+              <p className="text-xs font-semibold text-violet-700 flex items-center gap-1">
+                <Monitor className="h-3.5 w-3.5" />
+                OBS (미리 복사)
+              </p>
+              <p className="text-[10px] text-muted-foreground">서버</p>
+              <code className="block text-[10px] break-all bg-background border rounded-lg p-2 select-all">
+                {created.obsServer}
+              </code>
+              <p className="text-[10px] text-muted-foreground">방송 키</p>
+              <code className="block text-[10px] break-all bg-background border rounded-lg p-2 font-mono select-all">
+                {created.obsStreamKey}
+              </code>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full rounded-lg gap-1 text-xs"
+                onClick={() =>
+                  copyText(`서버: ${created.obsServer}\n키: ${created.obsStreamKey}`, "obs")
+                }
+              >
+                {copied === "obs" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                OBS 서버+키 복사
+              </Button>
+            </div>
+          )}
+          <div className="flex gap-2 justify-center flex-wrap">
+            <Button
+              variant="outline"
+              className="rounded-xl gap-2"
+              onClick={() => created.password && copyText(created.password, "pw")}
+            >
+              {copied === "pw" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {copied === "pw" ? "복사됨" : "비밀번호 복사"}
             </Button>
             <Button className="rounded-xl gap-2" onClick={goToStudio}>
               <Radio className="h-4 w-4" />

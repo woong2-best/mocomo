@@ -36,7 +36,8 @@ import {
   looksLikeSpamDuplicate,
 } from "@/lib/live-chat-filter";
 import { moderateChatWithAi } from "@/lib/ai-moderation";
-import { createObsRtmpIngress, deleteObsRtmpIngress } from "@/lib/livekit-ingress";
+import { deleteObsRtmpIngress } from "@/lib/livekit-ingress";
+import { provisionObsIngress } from "@/lib/obs-ingress-service";
 import { notifyFollowersOnLive } from "@/lib/live-notify";
 import { revalidatePath } from "next/cache";
 
@@ -106,10 +107,34 @@ export async function createLiveStream(data: {
   if (!isScheduled) {
     void notifyFollowersOnLive(user.id, channel.id, data.name).catch(() => {});
   }
+
+  let obs:
+    | {
+        obsServer: string;
+        obsStreamKey: string;
+        ingressId: string;
+      }
+    | undefined;
+  let obsError: string | undefined;
+  if (!isScheduled && data.broadcastMode === "OBS") {
+    const provisioned = await provisionObsIngress(channel.id, user.id);
+    if ("data" in provisioned) {
+      obs = {
+        obsServer: provisioned.data.obsServer,
+        obsStreamKey: provisioned.data.obsStreamKey,
+        ingressId: provisioned.data.ingressId,
+      };
+    } else {
+      obsError = provisioned.error;
+    }
+  }
+
   return {
     channel,
     joinPassword: isScheduled ? undefined : joinPassword,
     scheduled: Boolean(isScheduled),
+    obs,
+    obsError,
   };
 }
 
@@ -400,52 +425,17 @@ export async function deleteLiveChatMessage(channelId: string, messageId: string
   return { success: true as const };
 }
 
-/** OBS Studio RTMP 송출용 URL·스트림 키 발급 (방송당 1개, 동시 다중 방송은 방 ID별로 분리) */
-export async function ensureObsIngress(channelId: string) {
+/** OBS Studio RTMP 송출용 URL·스트림 키 발급 */
+export async function ensureObsIngress(channelId: string, force = false) {
   const user = await requireAuth();
-  const channel = await db.voiceChannel.findUnique({
-    where: { id: channelId },
-    select: {
-      createdBy: true,
-      isLive: true,
-      rtmpIngressId: true,
-      rtmpUrl: true,
-      rtmpStreamKey: true,
-      name: true,
-    },
-  });
-  if (!channel || channel.createdBy !== user.id || !channel.isLive) {
-    return { error: "호스트만 OBS 설정을 받을 수 있습니다." };
-  }
-
-  if (channel.rtmpUrl && channel.rtmpStreamKey && channel.rtmpIngressId) {
-    return {
-      url: channel.rtmpUrl,
-      streamKey: channel.rtmpStreamKey,
-      ingressId: channel.rtmpIngressId,
-    };
-  }
-
-  const hostName =
-    (await db.user.findUnique({ where: { id: user.id }, select: { username: true } }))?.username ??
-    "host";
-  const created = await createObsRtmpIngress(channelId, hostName);
-  if ("error" in created) return { error: created.error };
-
-  await db.voiceChannel.update({
-    where: { id: channelId },
-    data: {
-      broadcastMode: "OBS",
-      rtmpIngressId: created.ingressId,
-      rtmpUrl: created.url,
-      rtmpStreamKey: created.streamKey,
-    },
-  });
-
+  const result = await provisionObsIngress(channelId, user.id, { force });
+  if ("error" in result) return { error: result.error };
   return {
-    url: created.url,
-    streamKey: created.streamKey,
-    ingressId: created.ingressId,
+    url: result.data.obsServer,
+    streamKey: result.data.obsStreamKey,
+    ingressId: result.data.ingressId,
+    obsServer: result.data.obsServer,
+    obsStreamKey: result.data.obsStreamKey,
   };
 }
 

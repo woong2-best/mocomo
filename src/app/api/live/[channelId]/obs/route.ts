@@ -1,0 +1,60 @@
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { obsConfigError, provisionObsIngress } from "@/lib/obs-ingress-service";
+
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ channelId: string }> }
+) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+  }
+
+  const { channelId } = await params;
+  if (!channelId || channelId.length > 64) {
+    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+  }
+
+  const configErr = obsConfigError();
+  if (configErr) {
+    return NextResponse.json({ error: configErr, configured: false }, { status: 503 });
+  }
+
+  const result = await provisionObsIngress(channelId, session.user.id);
+  if ("error" in result) {
+    return NextResponse.json({ error: result.error }, { status: 400 });
+  }
+
+  return NextResponse.json({ ok: true, ...result.data });
+}
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ channelId: string }> }
+) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+  }
+
+  const { channelId } = await params;
+  if (!channelId || channelId.length > 64) {
+    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+  }
+
+  let refresh = false;
+  try {
+    const body = await req.json();
+    refresh = !!body?.refresh;
+  } catch {
+    /* empty body ok */
+  }
+
+  const result = await provisionObsIngress(channelId, session.user.id, { force: refresh });
+  if ("error" in result) {
+    return NextResponse.json({ error: result.error }, { status: 400 });
+  }
+
+  return NextResponse.json({ ok: true, ...result.data });
+}
