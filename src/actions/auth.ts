@@ -203,6 +203,18 @@ export async function verifyAuthCodeOnly(email: string, code: string) {
   return { success: true };
 }
 
+async function findUserIdByEmailFast(normalized: string) {
+  const select = { id: true, emailVerified: true } as const;
+  let user = await db.user.findUnique({ where: { email: normalized }, select });
+  if (!user) {
+    user = await db.user.findFirst({
+      where: { email: { equals: normalized, mode: "insensitive" } },
+      select,
+    });
+  }
+  return user;
+}
+
 export async function completeAuthWithCode(
   email: string,
   code: string,
@@ -214,27 +226,10 @@ export async function completeAuthWithCode(
     return { error: "인증 코드가 올바르지 않거나 만료되었습니다." };
   }
 
-  const user = await resolveUserByEmail(normalized);
+  const user = await findUserIdByEmailFast(normalized);
   if (!user) return { error: "등록되지 않은 이메일입니다." };
 
-  if (options.mode === "reset") {
-    const password = options.newPassword?.trim() ?? "";
-    if (password.length < 8) {
-      return { error: "비밀번호는 8자 이상이어야 합니다." };
-    }
-    const passwordHash = await bcrypt.hash(password, 12);
-    await db.user.update({
-      where: { id: user.id },
-      data: { email: normalized, passwordHash, emailVerified: user.emailVerified ?? new Date() },
-    });
-  } else {
-    await db.user.update({
-      where: { id: user.id },
-      data: { email: normalized, emailVerified: new Date() },
-    });
-  }
-
-  await db.verificationToken.deleteMany({
+  const clearTokens = db.verificationToken.deleteMany({
     where: {
       identifier: {
         in: [
@@ -245,6 +240,33 @@ export async function completeAuthWithCode(
       },
     },
   });
+
+  if (options.mode === "reset") {
+    const password = options.newPassword?.trim() ?? "";
+    if (password.length < 8) {
+      return { error: "비밀번호는 8자 이상이어야 합니다." };
+    }
+    const passwordHash = await bcrypt.hash(password, SIGNUP_BCRYPT_ROUNDS);
+    await Promise.all([
+      db.user.update({
+        where: { id: user.id },
+        data: {
+          email: normalized,
+          passwordHash,
+          emailVerified: user.emailVerified ?? new Date(),
+        },
+      }),
+      clearTokens,
+    ]);
+  } else {
+    await Promise.all([
+      db.user.update({
+        where: { id: user.id },
+        data: { email: normalized, emailVerified: new Date() },
+      }),
+      clearTokens,
+    ]);
+  }
 
   return { success: true, mode: options.mode };
 }

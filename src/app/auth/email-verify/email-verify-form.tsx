@@ -2,12 +2,9 @@
 
 import { useState, Suspense, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import {
-  sendEmailAuthCode,
-  verifyAuthCodeOnly,
-  completeAuthWithCode,
-} from "@/actions/auth";
+import { useRouter, useSearchParams } from "next/navigation";
+import { signIn } from "next-auth/react";
+import { sendEmailAuthCode, verifyAuthCodeOnly, completeAuthWithCode } from "@/actions/auth";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +17,7 @@ type Step = "code" | "reset-password" | "signup-done" | "reset-done";
 type Mode = "signup" | "reset";
 
 function EmailVerifyFormInner() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const initialEmail = searchParams.get("email") ?? "";
   const initialMode = (searchParams.get("mode") === "reset" ? "reset" : "signup") as Mode;
@@ -46,7 +44,10 @@ function EmailVerifyFormInner() {
       setMessage(notice);
       sessionStorage.removeItem("mocomo_signup_notice");
     }
-  }, []);
+    if (signupCodeAlreadySent) {
+      router.prefetch("/");
+    }
+  }, [router, signupCodeAlreadySent]);
 
   async function sendCode() {
     if (!email.trim()) return;
@@ -74,27 +75,40 @@ function EmailVerifyFormInner() {
     if (!email || code.length !== 6) return;
     setLoading(true);
     setError("");
+    setMessage("");
     const normalized = email.trim().toLowerCase();
-    const check = await verifyAuthCodeOnly(normalized, code);
-    if (check.error) {
-      setLoading(false);
-      setError(check.error);
-      return;
-    }
     const result = await completeAuthWithCode(normalized, code, { mode: "signup" });
-    setLoading(false);
     if (result.error) {
+      setLoading(false);
       setError(result.error);
       return;
     }
+
     const stored =
       typeof window !== "undefined"
         ? sessionStorage.getItem(SIGNUP_PASSWORD_SESSION_KEY)
         : null;
+    sessionStorage.removeItem(SIGNUP_PASSWORD_SESSION_KEY);
+
     if (stored) {
+      setMessage("로그인 중...");
+      const signInResult = await signIn("credentials", {
+        email: normalized,
+        password: stored,
+        redirect: false,
+      });
+      if (!signInResult?.error) {
+        router.replace("/");
+        return;
+      }
       setSignupPassword(stored);
-      sessionStorage.removeItem(SIGNUP_PASSWORD_SESSION_KEY);
+      setError("인증은 완료되었습니다. 아래에서 로그인해 주세요.");
+      setStep("signup-done");
+      setLoading(false);
+      return;
     }
+
+    setLoading(false);
     setStep("signup-done");
   }
 
@@ -340,10 +354,12 @@ function EmailVerifyFormInner() {
           />
           <Button type="submit" className="w-full rounded-xl" disabled={loading || code.length !== 6}>
             {loading
-              ? "확인 중..."
+              ? mode === "signup"
+                ? "인증 · 로그인 중..."
+                : "확인 중..."
               : mode === "reset"
                 ? "코드 확인 → 비밀번호 설정"
-                : "코드 확인 → 가입 완료"}
+                : "코드 확인 · 홈으로 이동"}
           </Button>
         </form>
 

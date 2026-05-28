@@ -3,8 +3,7 @@
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, Suspense } from "react";
-import { preLoginCheck } from "@/actions/auth";
+import { useState, Suspense, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +28,11 @@ function SignInFormInner({
 
   const callbackUrl = searchParams.get("callbackUrl") || "/";
 
+  useEffect(() => {
+    const q = searchParams.get("email");
+    if (q) setEmail(q);
+  }, [searchParams]);
+
   const bannedNotice =
     searchParams.get("error") === "banned"
       ? "이 계정은 이용이 제한되어 있습니다. 문의가 필요하면 운영자에게 연락해 주세요."
@@ -51,23 +55,7 @@ function SignInFormInner({
     setError("");
 
     const normalizedEmail = email.trim().toLowerCase();
-    const check = await preLoginCheck(normalizedEmail, password);
-    if (!check.ok) {
-      setLoading(false);
-      if (check.error === "RATE_LIMIT") {
-        setError(check.message ?? "로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.");
-        return;
-      }
-      if (check.error === "EMAIL_NOT_VERIFIED") {
-        setError("이메일 인증이 필요합니다.");
-        router.push(
-          `/auth/email-verify?email=${encodeURIComponent(normalizedEmail)}&mode=signup`
-        );
-        return;
-      }
-      setError("이메일 또는 비밀번호가 올바르지 않습니다.");
-      return;
-    }
+    router.prefetch(callbackUrl);
 
     const result = await signIn("credentials", {
       email: normalizedEmail,
@@ -86,8 +74,7 @@ function SignInFormInner({
       return;
     }
 
-    router.push(callbackUrl);
-    router.refresh();
+    router.replace(callbackUrl);
   }
 
   const showSocial = googleOAuth || discordOAuth;

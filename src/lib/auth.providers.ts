@@ -38,11 +38,8 @@ const credentialsProvider = Credentials({
     }
 
     if (!user.emailVerified) {
-      const verifyId = `verify:${email}`;
-      const pending = await db.verificationToken.findFirst({
-        where: { identifier: verifyId, expires: { gt: new Date() } },
-      });
-      if (pending) return null;
+      await recordLoginAttempt(email, ip);
+      return null;
     }
 
     return {
