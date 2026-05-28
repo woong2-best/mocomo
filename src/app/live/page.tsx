@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import { LiveHub } from "@/components/live/live-hub";
-import { getLiveHubData } from "@/lib/live-hub-data";
-import { parseLiveCategoryParam } from "@/lib/live-categories";
+import { LiveChannelFeed } from "@/components/live/live-channel-feed";
+import { LiveChannelGridSkeleton } from "@/components/live/live-channel-grid-skeleton";
+import { getLiveHubStaticData } from "@/lib/live-hub-data";
 import { getAuthUserId } from "@/lib/auth";
 
 export const revalidate = 25;
@@ -11,37 +12,35 @@ export default async function LivePage({
 }: {
   searchParams: Promise<{ category?: string }>;
 }) {
-  const { category: categoryRaw } = await searchParams;
-  const category = parseLiveCategoryParam(categoryRaw);
+  const currentUserId = await getAuthUserId();
 
-  let data: Awaited<ReturnType<typeof getLiveHubData>> = {
-    channels: [],
-    hosts: [],
+  let staticData: Awaited<ReturnType<typeof getLiveHubStaticData>> = {
     recommendedStreamers: [],
     popularClips: [],
     followedLive: [],
+    followedHosts: [],
     scheduledStreams: [],
   };
 
-  const currentUserId = await getAuthUserId();
-
   try {
-    data = await getLiveHubData(category);
+    staticData = await getLiveHubStaticData(currentUserId);
   } catch {
     /* DB 미마이그레이션 시 빈 허브 */
   }
 
   return (
-    <Suspense>
-      <LiveHub
-        channels={data.channels}
-        hosts={data.hosts}
-        recommendedStreamers={data.recommendedStreamers}
-        popularClips={data.popularClips}
-        followedLive={data.followedLive}
-        scheduledStreams={data.scheduledStreams}
-        currentUserId={currentUserId ?? undefined}
-      />
-    </Suspense>
+    <LiveHub
+      recommendedStreamers={staticData.recommendedStreamers}
+      popularClips={staticData.popularClips}
+      followedLive={staticData.followedLive}
+      followedHosts={staticData.followedHosts}
+      scheduledStreams={staticData.scheduledStreams}
+      currentUserId={currentUserId ?? undefined}
+      channelFeed={
+        <Suspense fallback={<LiveChannelGridSkeleton />}>
+          <LiveChannelFeed searchParams={searchParams} />
+        </Suspense>
+      }
+    />
   );
 }

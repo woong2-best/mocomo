@@ -1,24 +1,40 @@
 "use client";
 
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useTransition } from "react";
 import { LIVE_CATEGORIES } from "@/lib/live-categories";
 import { cn } from "@/lib/utils";
 
 export function LiveCategoryFilter() {
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const [pending, startTransition] = useTransition();
   const current = searchParams.get("category") ?? "ALL";
 
+  function goCategory(value: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === "ALL") params.delete("category");
+    else params.set("category", value);
+    const qs = params.toString();
+    startTransition(() => {
+      router.push(qs ? `/live?${qs}` : "/live", { scroll: false });
+    });
+  }
+
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
+    <div
+      className={cn(
+        "flex gap-2 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1 transition-opacity",
+        pending && "opacity-70"
+      )}
+    >
       {LIVE_CATEGORIES.map(({ value, label }) => {
         const active = current === value || (value === "ALL" && !searchParams.get("category"));
-        const href = value === "ALL" ? "/live" : `/live?category=${value}`;
         return (
-          <Link
+          <button
             key={value}
-            href={href}
-            scroll={false}
+            type="button"
+            onClick={() => goCategory(value)}
             className={cn(
               "shrink-0 text-xs sm:text-sm px-3 py-1.5 rounded-full border font-medium transition-colors",
               active
@@ -27,7 +43,7 @@ export function LiveCategoryFilter() {
             )}
           >
             {label}
-          </Link>
+          </button>
         );
       })}
     </div>
