@@ -8,7 +8,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, MessageCircle, Share2, Star, Gem, Repeat2 } from "lucide-react";
+import { Heart, MessageCircle, Share2, Star, Repeat2 } from "lucide-react";
 import { repost } from "@/actions/social";
 import { formatNumber, cn } from "@/lib/utils";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
@@ -197,24 +197,19 @@ export function FeedPostCardInteractive({
               <Share2 className="h-3.5 w-3.5" />
             </button>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={pending}
-              onClick={handleStar}
-              aria-label={starred ? "STAR에서 제거" : "STAR에 저장"}
-              title={starred ? "STAR에 저장됨" : "STAR에 저장"}
-              className={cn(
-                "transition-colors",
-                starred ? "text-yellow-400" : "text-yellow-500/70 hover:text-yellow-400"
-              )}
-            >
-              <Star className={cn("h-4 w-4", starred && "fill-yellow-400 text-yellow-400")} />
-            </button>
-            <Link href={`/u/${post.author.username}`} title="후원">
-              <Gem className="h-3.5 w-3.5 hover:text-[#8e24aa]" />
-            </Link>
-          </div>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={handleStar}
+            aria-label={starred ? "STAR에서 제거" : "STAR에 저장"}
+            title={starred ? "STAR에 저장됨" : "STAR에 저장"}
+            className={cn(
+              "transition-colors",
+              starred ? "text-yellow-400" : "text-yellow-500/70 hover:text-yellow-400"
+            )}
+          >
+            <Star className={cn("h-4 w-4", starred && "fill-yellow-400 text-yellow-400")} />
+          </button>
         </div>
       </CardContent>
     </Card>
