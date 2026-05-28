@@ -4,12 +4,12 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { registerUser, validateSignupApplication } from "@/actions/auth";
+import { registerUser, prepareSignupVerify } from "@/actions/auth";
 import {
   containsForbiddenAdminSequence,
   FORBIDDEN_ADMIN_SEQUENCE_MESSAGE,
 } from "@/lib/forbidden-admin-sequence";
-import { saveSignupDraft } from "@/lib/signup-draft";
+import { saveSignupDraft, saveSignupChallenge } from "@/lib/signup-draft";
 import { isSignupHumanVerifyRequired } from "@/lib/turnstile-signup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,7 +70,7 @@ export function SignupApplyForm({
       document.cookie = `${LOCALE_COOKIE}=${locale};path=/;max-age=${maxAge};SameSite=Lax`;
       document.cookie = `${COUNTRY_COOKIE}=${countryCode};path=/;max-age=${maxAge};SameSite=Lax`;
 
-      const check = await validateSignupApplication({
+      const check = await prepareSignupVerify({
         email,
         username,
         password,
@@ -99,7 +99,14 @@ export function SignupApplyForm({
 
       if (needsHumanVerify) {
         saveSignupDraft(draft);
-        router.push("/auth/signup/verify");
+        if ("challenge" in check && check.challenge) {
+          saveSignupChallenge(check.challenge);
+        }
+        router.prefetch("/auth/signup/verify");
+        router.prefetch(
+          `/auth/email-verify?email=${encodeURIComponent(email)}&mode=signup`
+        );
+        router.replace("/auth/signup/verify");
         return;
       }
 

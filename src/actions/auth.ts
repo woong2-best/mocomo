@@ -15,7 +15,6 @@ import {
 } from "@/lib/auth-tokens";
 import {
   sendPasswordResetEmail,
-  sendVerificationEmail,
   sendAuthCodeEmail,
   isEmailConfigured,
   getResendAccountHint,
@@ -76,6 +75,8 @@ const registerSchema = z.object({
   turnstileToken: z.string().optional(),
   /** 클라이언트 Turnstile 위젯 로드 실패 시 true */
   turnstileUnavailable: z.boolean().optional(),
+  /** 1단계에서 이미 가용성 검사 완료 */
+  availabilityPrechecked: z.boolean().optional(),
   /** 자체 퀴즈(회원가입 2단계) */
   humanChallengeToken: z.string().optional(),
   humanChallengeAnswer: z.string().optional(),
@@ -96,26 +97,20 @@ const RESERVED_USERNAMES = new Set([
 ]);
 
 const PLATFORM_USERNAME = "mocomo_official";
+/** 회원가입 해시 — 12보다 빠르고 충분히 안전 */
+const SIGNUP_BCRYPT_ROUNDS = 10;
 
-async function saveVerificationCodes(email: string, token: string, code: string, hours = 24) {
+async function saveSignupAuthCode(email: string, code: string, hours = 24) {
   const expires = new Date(Date.now() + hours * 60 * 60 * 1000);
   const normalized = email.trim().toLowerCase();
-  const verifyId = verifyTokenIdentifier(normalized);
   const authId = authCodeIdentifier(normalized);
   const codeToken = scopedAuthCodeToken(normalized, code);
 
   await db.verificationToken.deleteMany({
-    where: {
-      identifier: {
-        in: [verifyId, verifyCodeIdentifier(normalized), authId, resetCodeIdentifier(normalized)],
-      },
-    },
+    where: { identifier: { in: authCodeIdentifiers(normalized) } },
   });
-  await db.verificationToken.createMany({
-    data: [
-      { identifier: verifyId, token, expires },
-      { identifier: authId, token: codeToken, expires },
-    ],
+  await db.verificationToken.create({
+    data: { identifier: authId, token: codeToken, expires },
   });
 }
 
@@ -309,6 +304,16 @@ export async function issueSignupHumanChallenge() {
   return createHumanChallenge();
 }
 
+/** 가입 1단계: 검증 + 퀴즈를 한 번에 (왕복 1회 절약) */
+export async function prepareSignupVerify(data: z.infer<typeof signupApplicationSchema>) {
+  const validated = await validateSignupApplication(data);
+  if (!("ok" in validated) || !validated.ok) return validated;
+  return {
+    ...validated,
+    challenge: createHumanChallenge(),
+  };
+}
+
 export async function validateSignupApplication(data: z.infer<typeof signupApplicationSchema>) {
   const parsed = signupApplicationSchema.safeParse(data);
   if (!parsed.success) return { error: "입력값이 올바르지 않습니다." };
@@ -362,6 +367,7 @@ export async function registerUser(
     turnstileUnavailable,
     humanChallengeToken,
     humanChallengeAnswer,
+    availabilityPrechecked,
     website,
   } = parsed.data;
   const email = rawEmail.trim().toLowerCase();
@@ -380,10 +386,6 @@ export async function registerUser(
     if (!botCheck.ok) return { error: botCheck.error };
   }
 
-  const ip = await getRequestIp();
-  const emailRate = await checkEmailSendRateLimit(email, ip);
-  if (!emailRate.ok) return { error: emailRate.error };
-
   if (RESERVED_USERNAMES.has(username)) {
     return { error: "사용할 수 없는 닉네임입니다. 다른 닉네임을 입력해 주세요." };
   }
@@ -391,11 +393,36 @@ export async function registerUser(
   const forbiddenCheck = validateUsernameAndName(username, name);
   if (!forbiddenCheck.ok) return { error: forbiddenCheck.error };
 
-  let userByEmail = await resolveUserByEmail(email);
+  if (!isEmailConfigured()) {
+    return {
+      error:
+        "이메일 발송 설정(RESEND_API_KEY)이 없어 회원가입을 완료할 수 없습니다. Vercel 환경 변수를 확인하세요.",
+    };
+  }
 
-  if (!userByEmail) {
+  const [userByEmailInitial, passwordHash, ip] = await Promise.all([
+    resolveUserByEmail(email),
+    bcrypt.hash(password, SIGNUP_BCRYPT_ROUNDS),
+    getRequestIp(),
+  ]);
+
+  const emailRate = await checkEmailSendRateLimit(email, ip);
+  if (!emailRate.ok) return { error: emailRate.error };
+
+  let userByEmail = userByEmailInitial;
+
+  if (userByEmail && isEmailVerified(userByEmail)) {
+    return { error: signupBlockMessage(userByEmail) };
+  }
+
+  if (!availabilityPrechecked) {
+    const availability = await checkSignupAvailability(email, username, name);
+    if (!availability.ok) return { error: availability.error };
+  }
+
+  if (userByEmail && !isEmailVerified(userByEmail)) {
     const collapsedId = await collapseUnverifiedEmailRows(email);
-    if (collapsedId) {
+    if (collapsedId && collapsedId !== userByEmail.id) {
       userByEmail = await db.user.findUnique({
         where: { id: collapsedId },
         select: {
@@ -410,10 +437,6 @@ export async function registerUser(
     }
   }
 
-  if (userByEmail && isEmailVerified(userByEmail)) {
-    return { error: signupBlockMessage(userByEmail) };
-  }
-
   const usernameCheck = await ensureUsernameFreeForSignup(
     username,
     email,
@@ -422,20 +445,8 @@ export async function registerUser(
   );
   if (!usernameCheck.ok) return { error: usernameCheck.error };
 
-  if (!isEmailConfigured()) {
-    return {
-      error:
-        "이메일 발송 설정(RESEND_API_KEY)이 없어 회원가입을 완료할 수 없습니다. Vercel 환경 변수를 확인하세요.",
-    };
-  }
-
   try {
-    const passwordHash = await bcrypt.hash(password, 12);
     let userId: string;
-
-    if (!userByEmail) {
-      userByEmail = await resolveUserByEmail(email);
-    }
 
     const isResume = !!userByEmail && !isEmailVerified(userByEmail);
 
@@ -465,19 +476,15 @@ export async function registerUser(
           emailVerified: null,
           locale,
           countryCode: countryCode.toUpperCase(),
-          profile: { create: {} },
-          otakuProfile: { create: {} },
         },
       });
       userId = user.id;
     }
 
-    const token = randomBytes(32).toString("hex");
     const code = generateEmailCode();
-    await saveVerificationCodes(email, token, code);
+    await saveSignupAuthCode(email, code);
 
-    const verifyUrl = `${getAppBaseUrl()}/auth/verify?token=${token}&email=${encodeURIComponent(email)}`;
-    const sent = await sendVerificationEmail(email, verifyUrl, username, code);
+    const sent = await sendAuthCodeEmail(email, code, "signup");
 
     if (!sent.ok) {
       if (!isResume) {
@@ -611,13 +618,7 @@ export async function preLoginCheck(email: string, password: string) {
   }
 
   if (!user.emailVerified) {
-    const verifyId = verifyTokenIdentifier(normalized);
-    const pending = await db.verificationToken.findFirst({
-      where: { identifier: verifyId, expires: { gt: new Date() } },
-    });
-    if (pending) {
-      return { ok: false, error: "EMAIL_NOT_VERIFIED" as const };
-    }
+    return { ok: false, error: "EMAIL_NOT_VERIFIED" as const };
   }
 
   return { ok: true };

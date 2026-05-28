@@ -1,6 +1,8 @@
 import type { Locale } from "@/lib/i18n/config";
+import type { HumanChallengeQuestion } from "@/lib/human-challenge-types";
 
 export const SIGNUP_DRAFT_SESSION_KEY = "mocomo_signup_draft";
+export const SIGNUP_CHALLENGE_SESSION_KEY = "mocomo_signup_challenge";
 
 export type SignupDraft = {
   email: string;
@@ -32,4 +34,23 @@ export function loadSignupDraft(): SignupDraft | null {
 export function clearSignupDraft(): void {
   if (typeof sessionStorage === "undefined") return;
   sessionStorage.removeItem(SIGNUP_DRAFT_SESSION_KEY);
+  sessionStorage.removeItem(SIGNUP_CHALLENGE_SESSION_KEY);
+}
+
+export function saveSignupChallenge(challenge: HumanChallengeQuestion): void {
+  if (typeof sessionStorage === "undefined") return;
+  sessionStorage.setItem(SIGNUP_CHALLENGE_SESSION_KEY, JSON.stringify(challenge));
+}
+
+export function loadSignupChallenge(): HumanChallengeQuestion | null {
+  if (typeof sessionStorage === "undefined") return null;
+  const raw = sessionStorage.getItem(SIGNUP_CHALLENGE_SESSION_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as HumanChallengeQuestion;
+    if (!parsed?.token || !parsed?.choices?.length) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
 }

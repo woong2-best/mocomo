@@ -10,33 +10,28 @@ export type ResolvedUser = {
   role: string;
 };
 
+const userEmailSelect = {
+  id: true,
+  email: true,
+  username: true,
+  emailVerified: true,
+  passwordHash: true,
+  role: true,
+} as const;
+
 /** Prisma insensitive 실패 시에도 DB에서 이메일 계정 찾기 */
 export async function resolveUserByEmail(email: string): Promise<ResolvedUser | null> {
   const normalized = email.trim().toLowerCase();
 
-  let user = await db.user.findFirst({
-    where: { email: { equals: normalized, mode: "insensitive" } },
-    select: {
-      id: true,
-      email: true,
-      username: true,
-      emailVerified: true,
-      passwordHash: true,
-      role: true,
-    },
+  let user = await db.user.findUnique({
+    where: { email: normalized },
+    select: userEmailSelect,
   });
   if (user) return user;
 
-  user = await db.user.findUnique({
-    where: { email: normalized },
-    select: {
-      id: true,
-      email: true,
-      username: true,
-      emailVerified: true,
-      passwordHash: true,
-      role: true,
-    },
+  user = await db.user.findFirst({
+    where: { email: { equals: normalized, mode: "insensitive" } },
+    select: userEmailSelect,
   });
   if (user) return user;
 
@@ -49,14 +44,7 @@ export async function resolveUserByEmail(email: string): Promise<ResolvedUser | 
     if (rows[0]?.id) {
       return db.user.findUnique({
         where: { id: rows[0].id },
-        select: {
-          id: true,
-          email: true,
-          username: true,
-          emailVerified: true,
-          passwordHash: true,
-          role: true,
-        },
+        select: userEmailSelect,
       });
     }
   } catch (e) {

@@ -7,7 +7,12 @@ import { issueSignupHumanChallenge, registerUser } from "@/actions/auth";
 import { SignupHumanChallenge } from "@/components/auth/signup-human-challenge";
 import { SignupStepIndicator } from "@/components/auth/signup-step-indicator";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
-import { clearSignupDraft, loadSignupDraft } from "@/lib/signup-draft";
+import {
+  clearSignupDraft,
+  loadSignupDraft,
+  loadSignupChallenge,
+  saveSignupChallenge,
+} from "@/lib/signup-draft";
 import type { HumanChallengeQuestion } from "@/lib/human-challenge-types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +46,11 @@ export function SignupVerifyForm() {
       return;
     }
     setEmail(draft.email);
+    const cached = loadSignupChallenge();
+    if (cached) {
+      setChallenge(cached);
+      return;
+    }
     void loadChallenge();
   }, [router, loadChallenge]);
 
@@ -70,6 +80,7 @@ export function SignupVerifyForm() {
         name: draft.name,
         locale: draft.locale,
         countryCode: draft.countryCode,
+        availabilityPrechecked: true,
         humanChallengeToken: challenge.token,
         humanChallengeAnswer: selectedId,
         turnstileUnavailable: true,
@@ -89,7 +100,12 @@ export function SignupVerifyForm() {
         if (result.message) {
           sessionStorage.setItem("mocomo_signup_notice", result.message);
         }
-        router.push(`/auth/email-verify?email=${encodeURIComponent(draft.email)}&mode=signup`);
+        router.prefetch(
+          `/auth/email-verify?email=${encodeURIComponent(draft.email)}&mode=signup`
+        );
+        router.replace(
+          `/auth/email-verify?email=${encodeURIComponent(draft.email)}&mode=signup`
+        );
       }
     } catch {
       setError("서버 연결 오류입니다. 잠시 후 다시 시도해 주세요.");
