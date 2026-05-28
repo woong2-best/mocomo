@@ -58,6 +58,16 @@ export async function POST(
     return NextResponse.json({ ok: true, comment });
   } catch (e) {
     console.error("[api/posts/comments]", e);
+    const msg = e instanceof Error ? e.message : String(e);
+    if (/comment|does not exist|column/i.test(msg)) {
+      return NextResponse.json(
+        {
+          error:
+            "댓글 DB 설정이 필요합니다. Supabase SQL Editor에서 scripts/fix-repost-comments.sql 을 실행해 주세요.",
+        },
+        { status: 503 }
+      );
+    }
     return NextResponse.json({ error: "댓글 등록에 실패했습니다." }, { status: 500 });
   }
 }

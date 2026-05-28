@@ -29,6 +29,16 @@ export async function POST(
     return NextResponse.json({ reposted: true, repostCount: count });
   } catch (e) {
     console.error("[api/posts/repost]", e);
+    const msg = e instanceof Error ? e.message : String(e);
+    if (/repost|does not exist|relation/i.test(msg)) {
+      return NextResponse.json(
+        {
+          error:
+            "리트윗 DB가 없습니다. Supabase SQL Editor에서 scripts/fix-repost-comments.sql 을 실행해 주세요.",
+        },
+        { status: 503 }
+      );
+    }
     return NextResponse.json({ error: "리포스트 처리에 실패했습니다." }, { status: 500 });
   }
 }
