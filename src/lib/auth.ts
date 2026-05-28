@@ -95,6 +95,29 @@ export async function requireAuth() {
   return user;
 }
 
+/** 좋아요·북마크 등 가벼운 액션 — profile/cosplayer 조인 생략 */
+export const getCachedAuthUserMinimal = cache(async () => {
+  const session = await getCachedSession();
+  if (!session?.user?.id) return null;
+  return db.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      id: true,
+      username: true,
+      isBanned: true,
+      role: true,
+      supportTierSent: true,
+    },
+  });
+});
+
+export async function requireAuthMinimal() {
+  const user = await getCachedAuthUserMinimal();
+  if (!user) throw new Error("UNAUTHORIZED");
+  if (user.isBanned) throw new Error("BANNED");
+  return user;
+}
+
 export async function requireAdmin() {
   const user = await requireAuth();
   if (!isOperatorIdentity({ username: user.username, role: user.role, email: user.email })) {

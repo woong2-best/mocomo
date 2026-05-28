@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { getCachedCurrentUser, requireAuth } from "@/lib/auth";
+import { getCachedCurrentUser, requireAuth, requireAuthMinimal } from "@/lib/auth";
 import { postMediaPreview } from "@/lib/post-media-select";
 
 export async function toggleFollow(userId: string, targetUsername?: string) {
@@ -34,7 +34,7 @@ export async function toggleFollow(userId: string, targetUsername?: string) {
 }
 
 export async function toggleLike(postId: string) {
-  const user = await requireAuth();
+  const user = await requireAuthMinimal();
   const existing = await db.like.findUnique({
     where: { userId_postId: { userId: user.id, postId } },
   });
@@ -55,12 +55,11 @@ export async function toggleLike(postId: string) {
       },
     });
   }
-  revalidatePath("/");
   return { liked: true };
 }
 
 export async function repost(postId: string) {
-  const user = await requireAuth();
+  const user = await requireAuthMinimal();
   const existing = await db.repost.findUnique({
     where: { userId_postId: { userId: user.id, postId } },
   });
@@ -69,7 +68,6 @@ export async function repost(postId: string) {
     return { reposted: false };
   }
   await db.repost.create({ data: { userId: user.id, postId } });
-  revalidatePath("/");
   return { reposted: true };
 }
 

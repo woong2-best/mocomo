@@ -58,7 +58,7 @@ async function fetchHighlightPosts(ids: string[]) {
 export async function getWeeklyHighlights(limit = 2) {
   const since = subDays(new Date(), 7);
 
-  const [likeGroups, topViewed] = await Promise.all([
+  const [likeGroups, topViewedIds] = await Promise.all([
     db.like.groupBy({
       by: ["postId"],
       where: { createdAt: { gte: since } },
@@ -70,16 +70,22 @@ export async function getWeeklyHighlights(limit = 2) {
       where: { createdAt: { gte: since } },
       orderBy: [{ viewCount: "desc" }, { createdAt: "desc" }],
       take: limit,
-      include: highlightInclude,
+      select: { id: true },
     }),
   ]);
 
   const likeCountByPost = new Map(likeGroups.map((g) => [g.postId, g._count.postId]));
   const topLikedIds = likeGroups.map((g) => g.postId);
-  const topLikedRaw = await fetchHighlightPosts(topLikedIds);
+  const viewedIds = topViewedIds.map((p) => p.id);
+  const allIds = [...new Set([...topLikedIds, ...viewedIds])];
+  const allRaw = await fetchHighlightPosts(allIds);
+  const byId = new Map(allRaw.map((p) => [p.id, p]));
+
+  const topLikedRaw = topLikedIds.map((id) => byId.get(id)).filter((p): p is NonNullable<typeof p> => !!p);
+  const topViewedRaw = viewedIds.map((id) => byId.get(id)).filter((p): p is NonNullable<typeof p> => !!p);
 
   return {
     topLiked: topLikedRaw.map((p) => mapPost(p, likeCountByPost.get(p.id) ?? 0)),
-    topViewed: topViewed.map((p) => mapPost(p, likeCountByPost.get(p.id) ?? 0)),
+    topViewed: topViewedRaw.map((p) => mapPost(p, likeCountByPost.get(p.id) ?? 0)),
   };
 }

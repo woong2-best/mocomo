@@ -6,6 +6,12 @@ import type { SupportTierLevel } from "@prisma/client";
 
 export async function SearchResultsAsync({ query }: { query: string }) {
   if (!query) return null;
+  const q = query.trim();
+  if (q.length < 2) {
+    return (
+      <p className="text-sm text-muted-foreground">검색어는 2자 이상 입력해 주세요.</p>
+    );
+  }
 
   let users: { username: string; name: string | null; supportTierSent: SupportTierLevel }[] = [];
   let animes: { slug: string; title: string }[] = [];
@@ -15,8 +21,8 @@ export async function SearchResultsAsync({ query }: { query: string }) {
     db.user.findMany({
       where: {
         OR: [
-          { username: { contains: query, mode: "insensitive" } },
-          { name: { contains: query, mode: "insensitive" } },
+          { username: { contains: q, mode: "insensitive" } },
+          { name: { contains: q, mode: "insensitive" } },
         ],
       },
       take: 10,
@@ -25,10 +31,10 @@ export async function SearchResultsAsync({ query }: { query: string }) {
     db.anime.findMany({
       where: {
         OR: [
-          { title: { contains: query, mode: "insensitive" } },
-          { titleEn: { contains: query, mode: "insensitive" } },
-          { synopsis: { contains: query, mode: "insensitive" } },
-          { studio: { contains: query, mode: "insensitive" } },
+          { title: { contains: q, mode: "insensitive" } },
+          { titleEn: { contains: q, mode: "insensitive" } },
+          { synopsis: { contains: q, mode: "insensitive" } },
+          { studio: { contains: q, mode: "insensitive" } },
         ],
       },
       take: 10,
@@ -38,8 +44,8 @@ export async function SearchResultsAsync({ query }: { query: string }) {
     db.post.findMany({
       where: {
         OR: [
-          { content: { contains: query, mode: "insensitive" } },
-          { title: { contains: query, mode: "insensitive" } },
+          { content: { contains: q, mode: "insensitive" } },
+          { title: { contains: q, mode: "insensitive" } },
         ],
       },
       take: 10,

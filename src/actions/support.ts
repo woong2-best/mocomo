@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { db } from "@/lib/db";
 import { getCachedSession } from "@/lib/auth";
 import { getTipRanking } from "@/actions/monetization";
@@ -53,7 +54,7 @@ export async function getCreatorSupportSummary(creatorId: string) {
   };
 }
 
-export async function getViewerSupportForCreator(creatorId: string) {
+export const getViewerSupportForCreator = cache(async (creatorId: string) => {
   const session = await getCachedSession();
   if (!session?.user?.id) return null;
   const row = await db.creatorSupport.findUnique({
@@ -71,7 +72,7 @@ export async function getViewerSupportForCreator(creatorId: string) {
     info: getTierInfo(row.tier),
     nextTier: getNextTierInfo(row.totalAmount),
   };
-}
+});
 
 export async function getViewerPlatformSupport() {
   const session = await getCachedSession();

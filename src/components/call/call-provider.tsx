@@ -57,22 +57,14 @@ function syncPollIntervalMs(phase: ActiveCallState["phase"], hidden: boolean) {
   return hidden ? 60000 : 30000;
 }
 
-/** 메시지 외 페이지에서는 통화 백그라운드 작업을 늦게 시작 (첫 로딩·전환 속도) */
+/** 통화·메시지 관련 경로에서만 소켓/폴링 — 홈·피드 체감 속도 보호 */
 function useCallBackgroundEnabled(userId: string | undefined) {
   const pathname = usePathname();
-  const onMessages = pathname.startsWith("/messages");
-  const [enabled, setEnabled] = useState(onMessages);
-
-  useEffect(() => {
-    if (onMessages) {
-      setEnabled(true);
-      return;
-    }
-    const delay = window.setTimeout(() => setEnabled(true), 10_000);
-    return () => clearTimeout(delay);
-  }, [onMessages]);
-
-  return !!userId && enabled;
+  const onCallRoutes =
+    pathname.startsWith("/messages") ||
+    pathname.startsWith("/voice") ||
+    pathname.startsWith("/live");
+  return !!userId && onCallRoutes;
 }
 
 function CallProviderRuntime({ children }: { children: React.ReactNode }) {

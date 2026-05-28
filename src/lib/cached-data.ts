@@ -6,6 +6,7 @@ import { getTipRanking } from "@/actions/monetization";
 import { getRankings } from "@/actions/events";
 import { getAnimeCountByGenre } from "@/actions/anime";
 import { getWeeklyHighlights } from "@/lib/weekly-highlights";
+import { feedPostListSelect, trimFeedPostContent } from "@/lib/feed-query";
 
 export const getCachedWeeklyHighlights = unstable_cache(
   async () => getWeeklyHighlights(2),
@@ -14,24 +15,15 @@ export const getCachedWeeklyHighlights = unstable_cache(
 );
 
 export const getCachedFeedPosts = unstable_cache(
-  async () =>
-    db.post.findMany({
+  async () => {
+    const posts = await db.post.findMany({
       take: 12,
       orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        postType: true,
-        createdAt: true,
-        isNsfw: true,
-        author: { select: userPublicSelect },
-        anime: { select: { title: true, slug: true } },
-        media: { take: 1, orderBy: { order: "asc" }, select: { url: true, type: true } },
-        _count: { select: { likes: true, comments: true, votes: true, reposts: true } },
-      },
-    }),
-  ["home-feed-posts"],
+      select: feedPostListSelect,
+    });
+    return posts.map(trimFeedPostContent);
+  },
+  ["home-feed-posts-v2"],
   { revalidate: 60 }
 );
 
@@ -131,9 +123,17 @@ export const getCachedMarketProducts = unstable_cache(
     db.digitalProduct.findMany({
       take: 24,
       orderBy: { salesCount: "desc" },
-      include: { seller: { select: { username: true } } },
+      select: {
+        id: true,
+        title: true,
+        price: true,
+        type: true,
+        previewUrl: true,
+        salesCount: true,
+        seller: { select: { username: true } },
+      },
     }),
-  ["market-products"],
+  ["market-products-v2"],
   { revalidate: 120 }
 );
 

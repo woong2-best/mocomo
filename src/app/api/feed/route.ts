@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCachedSession } from "@/lib/auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
-import { db } from "@/lib/db";
+import { getCachedFeedAds } from "@/lib/cached-data";
 import { mixFeedWithAds } from "@/lib/feed-mixer";
 import { FALLBACK_FEED_ADS } from "@/lib/default-ads";
-import { userPublicSelect } from "@/lib/user-public-select";
-import { postMediaPreview } from "@/lib/post-media-select";
+import { getCachedFeedPostsPage } from "@/lib/feed-query";
 
 export async function GET(req: NextRequest) {
   try {
@@ -21,21 +20,9 @@ export async function GET(req: NextRequest) {
       parseInt(req.nextUrl.searchParams.get("postOffset") || "0", 10) || 0
     );
 
-    const posts = await db.post.findMany({
-      take: limit,
-      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-      orderBy: { createdAt: "desc" },
-      include: {
-        author: { select: userPublicSelect },
-        anime: { select: { title: true, slug: true } },
-        media: postMediaPreview,
-        _count: { select: { likes: true, comments: true, votes: true, reposts: true } },
-      },
-    });
+    const posts = await getCachedFeedPostsPage(cursor, limit);
 
-    let feedAds = isPremium
-      ? []
-      : await db.adSlot.findMany({ where: { active: true, isFeedAd: true }, take: 10 });
+    let feedAds = isPremium ? [] : await getCachedFeedAds();
 
     if (feedAds.length === 0 && !isPremium) {
       feedAds = [...FALLBACK_FEED_ADS] as typeof feedAds;
@@ -59,8 +46,8 @@ export async function GET(req: NextRequest) {
       {
         headers: {
           "Cache-Control": session?.user?.id
-            ? "private, max-age=10, stale-while-revalidate=30"
-            : "public, s-maxage=30, stale-while-revalidate=60",
+            ? "private, max-age=15, stale-while-revalidate=45"
+            : "public, s-maxage=45, stale-while-revalidate=90",
         },
       }
     );

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, requireAuthMinimal } from "@/lib/auth";
 import { calcHotScore, slugify } from "@/lib/utils";
 import { CommunityCategory, MediaType, VoteType } from "@prisma/client";
 import { z } from "zod";
@@ -80,7 +80,7 @@ export async function createPost(data: {
 }
 
 export async function votePost(postId: string, type: VoteType) {
-  const user = await requireAuth();
+  const user = await requireAuthMinimal();
   const existing = await db.vote.findUnique({
     where: { userId_postId: { userId: user.id, postId } },
   });
@@ -103,22 +103,22 @@ export async function votePost(postId: string, type: VoteType) {
     const hotScore = calcHotScore(up - down, commentCount, post.createdAt);
     await db.post.update({ where: { id: postId }, data: { hotScore } });
   }
-  revalidatePath("/");
+  revalidatePath(`/post/${postId}`);
   return { success: true };
 }
 
 export async function createComment(postId: string, content: string, parentId?: string) {
-  const user = await requireAuth();
+  const user = await requireAuthMinimal();
   const comment = await db.comment.create({
     data: { content, authorId: user.id, postId, parentId },
     include: { author: { select: { id: true, username: true, image: true } } },
   });
-  revalidatePath("/");
+  revalidatePath(`/post/${postId}`);
   return { comment };
 }
 
 export async function toggleBookmark(postId: string) {
-  const user = await requireAuth();
+  const user = await requireAuthMinimal();
   const existing = await db.bookmark.findUnique({
     where: { userId_postId: { userId: user.id, postId } },
   });
