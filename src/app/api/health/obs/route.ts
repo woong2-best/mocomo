@@ -1,16 +1,18 @@
 import { NextResponse } from "next/server";
 import { obsConfigError } from "@/lib/obs-ingress-service";
-import { isLivekitIngressConfigured } from "@/lib/livekit-ingress";
+import { getSrsRtmpUrl, getSrsHlsBaseUrl, isSrsConfigured } from "@/lib/srs";
 
-/** OBS(RTMP) 연동 준비 상태 — 설정만 점검 (키 발급은 하지 않음) */
+/** SRS RTMP → HLS 방송 연동 준비 상태 */
 export async function GET() {
   const configErr = obsConfigError();
   return NextResponse.json({
-    configured: !configErr,
-    ingressApi: isLivekitIngressConfigured(),
+    engine: "srs",
+    configured: isSrsConfigured() && !configErr,
     error: configErr,
+    rtmpUrl: process.env.SRS_RTMP_URL ? getSrsRtmpUrl() : null,
+    hlsBase: process.env.NEXT_PUBLIC_SRS_HLS_BASE_URL ? getSrsHlsBaseUrl() : null,
     hint: configErr
-      ? "Vercel LIVEKIT_* 환경 변수와 Supabase U) OBS SQL을 확인하세요."
-      : "MoCoMo 방송 스튜디오 OBS 탭에서 서버·스트림 키가 자동 발급됩니다.",
+      ? "Vercel에 SRS_RTMP_URL, NEXT_PUBLIC_SRS_HLS_BASE_URL을 설정하고 Ubuntu VPS에 SRS를 띄우세요. scripts/SRS_STREAMING_SETUP.md 참고."
+      : "OBS 탭에서 RTMP 서버·방송 키를 복사해 OBS에 붙여넣으면 HLS로 시청됩니다.",
   });
 }

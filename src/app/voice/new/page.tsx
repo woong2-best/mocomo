@@ -11,7 +11,7 @@ import { LIVE_CATEGORIES } from "@/lib/live-categories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Radio, ChevronLeft, KeyRound, Copy, Check, Calendar, Monitor, Laptop } from "lucide-react";
+import { Radio, ChevronLeft, KeyRound, Copy, Check, Calendar, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const PRESETS = [
@@ -68,7 +68,7 @@ export default function NewVoicePage() {
   const [submitError, setSubmitError] = useState("");
   const [name, setName] = useState(PRESETS[0]);
   const [category, setCategory] = useState<LiveStreamCategory>("JUST_CHATTING");
-  const [broadcastMode, setBroadcastMode] = useState<LiveBroadcastMode>("BROWSER");
+  const [broadcastMode, setBroadcastMode] = useState<LiveBroadcastMode>("OBS");
   const [liveVisibility, setLiveVisibility] = useState<LiveVisibility>("PUBLIC");
   const [minViewerTier, setMinViewerTier] = useState<SupportTierLevel>("BRONZE");
   const [created, setCreated] = useState<CreatedUiState | null>(null);
@@ -271,29 +271,12 @@ export default function NewVoicePage() {
               placeholder="방송 제목"
               required
             />
-            <div className="flex gap-2 p-1 rounded-xl bg-muted/40 border">
-              <button
-                type="button"
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-1 text-xs py-2 rounded-lg font-medium",
-                  broadcastMode === "BROWSER" ? "bg-background shadow" : "text-muted-foreground"
-                )}
-                onClick={() => setBroadcastMode("BROWSER")}
-              >
-                <Laptop className="h-3.5 w-3.5" />
-                브라우저
-              </button>
-              <button
-                type="button"
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-1 text-xs py-2 rounded-lg font-medium",
-                  broadcastMode === "OBS" ? "bg-background shadow" : "text-muted-foreground"
-                )}
-                onClick={() => setBroadcastMode("OBS")}
-              >
-                <Monitor className="h-3.5 w-3.5" />
-                OBS
-              </button>
+            <div className="flex items-center gap-2 rounded-xl border bg-muted/40 px-3 py-2.5 text-xs text-muted-foreground">
+              <Monitor className="h-4 w-4 shrink-0 text-primary" />
+              <span>
+                송출은 <strong className="text-foreground">OBS → SRS → HLS</strong> (트위치/치지직 방식). 방송
+                만들기 후 스튜디오에서 RTMP 키를 받습니다.
+              </span>
             </div>
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground">시청 공개 범위</p>

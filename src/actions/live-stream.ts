@@ -20,7 +20,6 @@ import {
   looksLikeSpamDuplicate,
 } from "@/lib/live-chat-filter";
 import { moderateChatWithAi } from "@/lib/ai-moderation";
-import { deleteObsRtmpIngress } from "@/lib/livekit-ingress";
 import { provisionObsIngress } from "@/lib/obs-ingress-service";
 import { notifyFollowersOnLive } from "@/lib/live-notify";
 import {
@@ -112,7 +111,7 @@ export async function createLiveStream(data: {
       description: data.description?.trim().slice(0, 500) || null,
       scheduledAt: isScheduled ? scheduledAt : null,
       donationGoalKrw: Number.isFinite(goalRaw) && goalRaw > 0 ? goalRaw : null,
-      broadcastMode: data.broadcastMode ?? "BROWSER",
+      broadcastMode: data.broadcastMode ?? "OBS",
       members: isScheduled
         ? undefined
         : {
@@ -521,13 +520,16 @@ export async function endLiveStream(channelId: string) {
   if (!channel) return { error: "방송을 찾을 수 없습니다." };
   if (channel.createdBy !== user.id) return { error: "방송 종료는 호스트만 할 수 있습니다." };
 
-  if (channel.rtmpIngressId) {
-    await deleteObsRtmpIngress(channel.rtmpIngressId);
-  }
-
   await db.voiceChannel.update({
     where: { id: channelId },
-    data: { isLive: false, liveStatus: "ENDED", endedAt: new Date() },
+    data: {
+      isLive: false,
+      liveStatus: "ENDED",
+      endedAt: new Date(),
+      rtmpIngressId: null,
+      rtmpUrl: null,
+      rtmpStreamKey: null,
+    },
   });
   await db.voiceMember.deleteMany({ where: { channelId } });
 

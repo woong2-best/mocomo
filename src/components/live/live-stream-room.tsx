@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { memo } from "react";
 import { LiveChat } from "@/components/live/live-chat";
+import { LiveStudioErrorBoundary } from "@/components/live/live-studio-error-boundary";
 import { LiveDonationBar } from "@/components/live/live-donation-bar";
 import type { LiveTipAlert } from "@/components/live/live-tip-alerts";
 import { LiveHostSettings } from "@/components/live/live-host-settings";
@@ -151,17 +152,19 @@ function LiveStreamRoomInner({
               onEndStream={onEndStream}
             />
           ) : (
-            <LiveViewerPlayer channelId={channelId} hostUserId={hostUserId} />
+            <LiveViewerPlayer channelId={channelId} />
           )}
         </div>
-        <LiveChat
-          channelId={channelId}
-          viewerCount={viewerCount}
-          onViewerCount={onViewerCount}
-          isHost={isHost}
-          canModerate={isHost}
-          onRecentTips={onRecentTips}
-        />
+        <LiveStudioErrorBoundary channelId={channelId}>
+          <LiveChat
+            channelId={channelId}
+            viewerCount={viewerCount}
+            onViewerCount={onViewerCount}
+            isHost={isHost}
+            canModerate={isHost}
+            onRecentTips={onRecentTips}
+          />
+        </LiveStudioErrorBoundary>
       </div>
     </div>
   );

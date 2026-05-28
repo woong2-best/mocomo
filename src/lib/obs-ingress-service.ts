@@ -1,57 +1,44 @@
 import { db } from "@/lib/db";
 import {
-  createObsRtmpIngress,
-  deleteObsRtmpIngress,
-  isLivekitIngressConfigured,
-} from "@/lib/livekit-ingress";
-import { isLivekitConfigured } from "@/lib/livekit";
+  buildHlsPlaybackUrl,
+  getSrsRtmpUrl,
+  mintSrsStreamKey,
+  srsConfigError,
+} from "@/lib/srs";
 
 export type ObsRtmpCredentials = {
   url: string;
   streamKey: string;
   ingressId: string;
-  /** OBS 「서버」칸 */
   obsServer: string;
-  /** OBS 「방송 키」칸 */
   obsStreamKey: string;
+  hlsPlaybackUrl: string;
 };
 
-function formatForObs(url: string, streamKey: string): Pick<ObsRtmpCredentials, "obsServer" | "obsStreamKey"> {
-  const trimmedUrl = url.trim();
-  const trimmedKey = streamKey.trim();
-  // LiveKit: url=rtmps://…/live, key=별도. OBS는 서버+키 분리 입력.
+function formatForObs(rtmpUrl: string, streamKey: string): Pick<ObsRtmpCredentials, "obsServer" | "obsStreamKey"> {
   return {
-    obsServer: trimmedUrl.replace(/\/$/, ""),
-    obsStreamKey: trimmedKey,
+    obsServer: rtmpUrl.trim().replace(/\/$/, ""),
+    obsStreamKey: streamKey.trim(),
   };
 }
 
-function wrapCredentials(
-  ingressId: string,
-  url: string,
-  streamKey: string
-): ObsRtmpCredentials {
-  const obs = formatForObs(url, streamKey);
+function wrapCredentials(streamKey: string, rtmpUrl: string): ObsRtmpCredentials {
+  const obs = formatForObs(rtmpUrl, streamKey);
   return {
-    url,
+    url: rtmpUrl,
     streamKey,
-    ingressId,
+    ingressId: `srs:${streamKey}`,
     obsServer: obs.obsServer,
     obsStreamKey: obs.obsStreamKey,
+    hlsPlaybackUrl: buildHlsPlaybackUrl(streamKey),
   };
 }
 
 export function obsConfigError(): string | null {
-  if (!isLivekitConfigured()) {
-    return "LiveKit이 설정되지 않았습니다. Vercel에 LIVEKIT_API_KEY, LIVEKIT_API_SECRET, NEXT_PUBLIC_LIVEKIT_URL을 넣어 주세요.";
-  }
-  if (!isLivekitIngressConfigured()) {
-    return "LiveKit Ingress URL을 확인할 수 없습니다. NEXT_PUBLIC_LIVEKIT_URL(wss://…)을 설정해 주세요.";
-  }
-  return null;
+  return srsConfigError();
 }
 
-/** 호스트 라이브 방송용 RTMP URL·스트림 키 발급/재발급 */
+/** 호스트 라이브 방송용 SRS RTMP URL·스트림 키 발급/재발급 */
 export async function provisionObsIngress(
   channelId: string,
   userId: string,
@@ -59,6 +46,8 @@ export async function provisionObsIngress(
 ): Promise<{ data: ObsRtmpCredentials } | { error: string }> {
   const configErr = obsConfigError();
   if (configErr) return { error: configErr };
+
+  const rtmpUrl = getSrsRtmpUrl();
 
   let channel: {
     createdBy: string;
@@ -98,55 +87,28 @@ export async function provisionObsIngress(
     return { error: "라이브 방송 중에만 OBS 키를 발급할 수 있습니다." };
   }
 
-  if (
-    !options?.force &&
-    channel.rtmpUrl &&
-    channel.rtmpStreamKey &&
-    channel.rtmpIngressId
-  ) {
+  if (!options?.force && channel.rtmpUrl && channel.rtmpStreamKey) {
     return {
-      data: wrapCredentials(channel.rtmpIngressId, channel.rtmpUrl, channel.rtmpStreamKey),
+      data: wrapCredentials(channel.rtmpStreamKey, channel.rtmpUrl),
     };
   }
 
-  if (options?.force && channel.rtmpIngressId) {
-    await deleteObsRtmpIngress(channel.rtmpIngressId);
-  }
-
-  const hostName =
-    (await db.user.findUnique({ where: { id: userId }, select: { username: true } }))?.username ??
-    "host";
-
-  const created = await createObsRtmpIngress(channelId, hostName, {
-    cleanupFirst: !!options?.force,
-  });
-  if ("error" in created) {
-    if (/ingress|quota|limit/i.test(created.error)) {
-      return {
-        error: `${created.error} (LiveKit Ingress 한도 2개 — 예전 방송 키를 LiveKit 대시보드 Ingresses에서 삭제해 보세요.)`,
-      };
-    }
-    return { error: created.error };
-  }
+  const streamKey = mintSrsStreamKey(channelId);
 
   try {
     await db.voiceChannel.update({
       where: { id: channelId },
       data: {
         broadcastMode: "OBS",
-        rtmpIngressId: created.ingressId,
-        rtmpUrl: created.url,
-        rtmpStreamKey: created.streamKey,
+        rtmpIngressId: `srs:${streamKey}`,
+        rtmpUrl,
+        rtmpStreamKey: streamKey,
       },
     });
   } catch (e) {
     console.error("[provisionObsIngress] save", e);
-    return {
-      data: wrapCredentials(created.ingressId, created.url, created.streamKey),
-    };
+    return { data: wrapCredentials(streamKey, rtmpUrl) };
   }
 
-  return {
-    data: wrapCredentials(created.ingressId, created.url, created.streamKey),
-  };
+  return { data: wrapCredentials(streamKey, rtmpUrl) };
 }
