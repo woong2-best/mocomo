@@ -23,7 +23,8 @@ function ViewerStage({ channelId, hostUserId }: { channelId: string; hostUserId:
     { onlySubscribed: true }
   );
 
-  const publisherTracks = tracks.filter((t) => publishers.includes(t.participant.identity));
+  const trackList = Array.isArray(tracks) ? tracks : [];
+  const publisherTracks = trackList.filter((t) => publishers.includes(t.participant.identity));
   const screen = publisherTracks.find((t) => t.source === Track.Source.ScreenShare);
   const camera = publisherTracks.find((t) => t.source === Track.Source.Camera);
   const main = screen ?? camera;

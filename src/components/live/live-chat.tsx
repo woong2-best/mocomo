@@ -22,6 +22,7 @@ import {
   useLiveSocket,
 } from "@/hooks/use-live-socket";
 import type { LiveTipAlert } from "@/components/live/live-tip-alerts";
+import { ensureArray } from "@/lib/ensure-array";
 
 export type LiveChatMessage = {
   id: string;
@@ -67,7 +68,7 @@ function LiveChatInner({
     loadLiveChatHistory(channelId)
       .then((res) => {
         if (cancelled || "error" in res) return;
-        setMessages(res.messages);
+        setMessages(ensureArray<LiveChatMessage>(res.messages));
         if (res.messages.length > 0) {
           lastSyncRef.current = new Date(res.messages[res.messages.length - 1].at).toISOString();
         }
@@ -89,8 +90,9 @@ function LiveChatInner({
 
   const appendMessage = useCallback((m: LiveChatMessage) => {
     setMessages((prev) => {
-      if (prev.some((x) => x.id === m.id)) return prev;
-      return [...prev, m].slice(-120);
+      const safePrev = ensureArray<LiveChatMessage>(prev);
+      if (safePrev.some((x) => x.id === m.id)) return safePrev;
+      return [...safePrev, m].slice(-120);
     });
   }, []);
 
@@ -118,16 +120,19 @@ function LiveChatInner({
       viewerCountRef.current = res.viewerCount;
       onViewerCountRef.current?.(res.viewerCount);
     }
-    if (res.recentTips?.length) {
-      onRecentTipsRef.current?.(res.recentTips);
+    const recentTips = ensureArray<LiveTipAlert>(res.recentTips);
+    if (recentTips.length > 0) {
+      onRecentTipsRef.current?.(recentTips);
     }
-    if (res.messages.length > 0) {
+    const incoming = ensureArray<LiveChatMessage>(res.messages);
+    if (incoming.length > 0) {
       setMessages((prev) => {
-        const ids = new Set(prev.map((m) => m.id));
-        const added = res.messages.filter((m) => !ids.has(m.id));
-        return [...prev, ...added].slice(-120);
+        const safePrev = ensureArray<LiveChatMessage>(prev);
+        const ids = new Set(safePrev.map((m) => m.id));
+        const added = incoming.filter((m) => !ids.has(m.id));
+        return [...safePrev, ...added].slice(-120);
       });
-      const last = res.messages[res.messages.length - 1];
+      const last = incoming[incoming.length - 1];
       lastSyncRef.current = new Date(last.at).toISOString();
     }
   }, [channelId]);
@@ -177,7 +182,7 @@ function LiveChatInner({
       setError(res.error);
       return;
     }
-    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    setMessages((prev) => ensureArray<LiveChatMessage>(prev).filter((m) => m.id !== messageId));
   }
 
   return (
@@ -201,7 +206,7 @@ function LiveChatInner({
             채팅이 실시간으로 저장됩니다. 첫 인사를 남겨 보세요!
           </p>
         )}
-        {messages.map((m) => (
+        {ensureArray<LiveChatMessage>(messages).map((m) => (
           <div key={m.id} className="flex gap-2 text-sm animate-in fade-in duration-200 group">
             <UserProfileLink username={m.username} className="shrink-0 rounded-full">
               <Avatar className="h-7 w-7">

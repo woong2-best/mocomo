@@ -9,6 +9,7 @@ import { LiveHostSettings } from "@/components/live/live-host-settings";
 import { TipCreatorDialog } from "@/components/support/tip-creator-dialog";
 import { ReportButton } from "@/components/report/report-button";
 import { liveCategoryLabel } from "@/lib/live-categories";
+import { ensureArray, ensureStringArray } from "@/lib/ensure-array";
 import type { LiveBroadcastMode, LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 import { Eye, Users, Radio, Trophy } from "lucide-react";
 import Link from "next/link";
@@ -112,7 +113,7 @@ function LiveStreamRoomInner({
           <LiveHostSettings
             channelId={channelId}
             slowModeSeconds={slowModeSeconds ?? 0}
-            bannedWords={chatBannedWords ?? []}
+            bannedWords={ensureStringArray(chatBannedWords)}
           />
         )}
         <ReportButton
@@ -127,13 +128,13 @@ function LiveStreamRoomInner({
 
       <LiveDonationBar goalKrw={donationGoalKrw ?? null} totalKrw={tipTotalKrw ?? 0} />
 
-      {tipRanking && tipRanking.length > 0 && (
+      {ensureArray(tipRanking).length > 0 && (
         <div className="flex flex-wrap gap-2 text-xs">
           <span className="flex items-center gap-1 text-muted-foreground font-medium">
             <Trophy className="h-3.5 w-3.5 text-amber-500" />
             이번 방송 후원 TOP
           </span>
-          {tipRanking.map((t, i) => (
+          {ensureArray<{ username: string; amount: number }>(tipRanking).map((t, i) => (
             <span key={i} className="px-2 py-0.5 rounded-full bg-muted">
               @{t.username} {t.amount.toLocaleString()}원
             </span>

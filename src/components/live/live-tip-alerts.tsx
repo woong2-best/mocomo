@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Gem } from "lucide-react";
 import { OreIcon } from "@/components/support/ore-icon";
 import { tierFromAmount } from "@/lib/tiers";
+import { ensureArray } from "@/lib/ensure-array";
 
 export type LiveTipAlert = {
   id: string;
@@ -18,7 +19,8 @@ export function LiveTipAlerts({ tips }: { tips: LiveTipAlert[] }) {
   const [visible, setVisible] = useState<LiveTipAlert[]>([]);
 
   useEffect(() => {
-    const fresh = tips.filter((t) => !seenRef.current.has(t.id));
+    const list = ensureArray<LiveTipAlert>(tips);
+    const fresh = list.filter((t) => !seenRef.current.has(t.id));
     if (fresh.length === 0) return;
     fresh.forEach((t) => seenRef.current.add(t.id));
     setVisible((prev) => [...fresh, ...prev].slice(0, 3));

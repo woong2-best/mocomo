@@ -1,3 +1,5 @@
+import { ensureStringArray } from "@/lib/ensure-array";
+
 const DEFAULT_BANNED = [
   "discord.gg",
   "telegram.me",
@@ -7,8 +9,8 @@ const DEFAULT_BANNED = [
   "도박",
 ];
 
-export function mergeBannedWords(channelWords: string[]): string[] {
-  const extra = channelWords.map((w) => w.trim().toLowerCase()).filter(Boolean);
+export function mergeBannedWords(channelWords: string[] | unknown): string[] {
+  const extra = ensureStringArray(channelWords).map((w) => w.trim().toLowerCase()).filter(Boolean);
   return [...new Set([...DEFAULT_BANNED, ...extra])];
 }
 

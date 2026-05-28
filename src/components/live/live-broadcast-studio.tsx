@@ -29,7 +29,8 @@ function HostStage() {
     { onlySubscribed: false }
   );
 
-  const localTracks = tracks.filter(
+  const trackList = Array.isArray(tracks) ? tracks : [];
+  const localTracks = trackList.filter(
     (t) => t.participant.identity === localParticipant.identity
   );
   const screen = localTracks.find((t) => t.source === Track.Source.ScreenShare);

@@ -12,6 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { updateLiveStreamSettings } from "@/actions/live-stream";
+import { ensureStringArray } from "@/lib/ensure-array";
 
 export function LiveHostSettings({
   channelId,
@@ -22,8 +23,9 @@ export function LiveHostSettings({
   slowModeSeconds: number;
   bannedWords: string[];
 }) {
+  const safeBanned = ensureStringArray(initialBanned);
   const [slow, setSlow] = useState(String(initialSlow));
-  const [words, setWords] = useState(initialBanned.join(", "));
+  const [words, setWords] = useState(safeBanned.join(", "));
   const [msg, setMsg] = useState("");
   const [pending, startTransition] = useTransition();
 

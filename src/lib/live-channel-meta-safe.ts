@@ -1,5 +1,6 @@
 import type { LiveBroadcastMode, LiveStreamCategory, LiveStreamStatus } from "@prisma/client";
 import { db } from "@/lib/db";
+import { ensureStringArray } from "@/lib/ensure-array";
 
 export type SafeLiveChannelMeta = {
   id: string;
@@ -73,13 +74,13 @@ function withLiveDefaults(
     createdAt: ch.createdAt,
     liveStatus: ch.liveStatus ?? "LIVE",
     category: ch.category ?? "JUST_CHATTING",
-    tags: ch.tags ?? [],
+    tags: ensureStringArray(ch.tags),
     thumbnailUrl: ch.thumbnailUrl ?? null,
     description: ch.description ?? null,
     donationGoalKrw: ch.donationGoalKrw ?? null,
     endedAt: ch.endedAt ?? null,
     slowModeSeconds: ch.slowModeSeconds ?? 0,
-    chatBannedWords: ch.chatBannedWords ?? [],
+    chatBannedWords: ensureStringArray(ch.chatBannedWords),
     broadcastMode: ch.broadcastMode ?? "BROWSER",
     rtmpUrl: ch.rtmpUrl ?? null,
     rtmpStreamKey: ch.rtmpStreamKey ?? null,
