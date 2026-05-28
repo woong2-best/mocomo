@@ -12,8 +12,32 @@ export default async function VoiceRoomPage({ params }: { params: Promise<{ id: 
   if (!session?.user?.id) redirect("/auth/signin");
   const { id } = await params;
 
-  const meta = await getLiveChannelRoomMeta(id);
-  if (!meta) notFound();
+  let meta: Awaited<ReturnType<typeof getLiveChannelRoomMeta>> = null;
+  try {
+    meta = await getLiveChannelRoomMeta(id);
+  } catch (e) {
+    console.error("[voice/[id]] meta load failed", e);
+  }
+  if (!meta) {
+    return (
+      <div className="live-page-shell max-w-lg mx-auto p-6 space-y-4 text-center">
+        <p className="text-lg font-semibold">스튜디오를 불러오지 못했습니다</p>
+        <p className="text-sm text-muted-foreground">
+          라이브 DB가 아직 준비되지 않았을 수 있습니다. Supabase SQL Editor에서{" "}
+          <code className="text-xs bg-muted px-1 rounded">supabase-fix-all.sql</code>의 R·U 섹션을 실행한 뒤
+          다시 시도해 주세요.
+        </p>
+        <div className="flex gap-2 justify-center flex-wrap">
+          <Button asChild variant="outline" className="rounded-xl">
+            <Link href="/voice/new">방송 다시 시작</Link>
+          </Button>
+          <Button asChild className="rounded-xl">
+            <Link href="/live">라이브 홈</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const { channel, host, tipTotalKrw, tipRanking } = meta;
   const isHost = channel.createdBy === session.user.id;
@@ -66,7 +90,7 @@ export default async function VoiceRoomPage({ params }: { params: Promise<{ id: 
         slowModeSeconds={channel.slowModeSeconds}
         chatBannedWords={channel.chatBannedWords}
         paymentsEnabled={paymentsEnabled}
-        broadcastMode={channel.broadcastMode}
+        broadcastMode={channel.broadcastMode ?? "BROWSER"}
       />
     </div>
   );

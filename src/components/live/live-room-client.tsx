@@ -10,6 +10,7 @@ import {
   leaveLiveStream,
 } from "@/actions/live-stream";
 import { LiveStreamRoom } from "@/components/live/live-stream-room";
+import { LiveStudioErrorBoundary } from "@/components/live/live-studio-error-boundary";
 import { LiveTipAlerts, type LiveTipAlert } from "@/components/live/live-tip-alerts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -178,28 +179,30 @@ export function LiveRoomClient({
         </div>
       )}
 
-      <LiveStreamRoom
-        channelId={channelId}
-        channelName={channelName}
-        hostUserId={hostUserId}
-        hostUsername={hostUsername}
-        hostDisplayName={hostDisplayName}
-        hostTier={hostTier}
-        hostTotalSupport={hostTotalSupport}
-        isHost={isHost}
-        viewerCount={viewerCount}
-        onViewerCount={setViewerCount}
-        onEndStream={handleEndStream}
-        category={category}
-        donationGoalKrw={donationGoalKrw}
-        tipTotalKrw={tipTotalKrw}
-        tipRanking={tipRanking}
-        slowModeSeconds={slowModeSeconds}
-        chatBannedWords={chatBannedWords}
-        paymentsEnabled={paymentsEnabled}
-        onRecentTips={setRecentTips}
-        broadcastMode={broadcastMode}
-      />
+      <LiveStudioErrorBoundary channelId={channelId}>
+        <LiveStreamRoom
+          channelId={channelId}
+          channelName={channelName}
+          hostUserId={hostUserId}
+          hostUsername={hostUsername}
+          hostDisplayName={hostDisplayName}
+          hostTier={hostTier}
+          hostTotalSupport={hostTotalSupport}
+          isHost={isHost}
+          viewerCount={viewerCount}
+          onViewerCount={setViewerCount}
+          onEndStream={handleEndStream}
+          category={category}
+          donationGoalKrw={donationGoalKrw}
+          tipTotalKrw={tipTotalKrw}
+          tipRanking={tipRanking}
+          slowModeSeconds={slowModeSeconds}
+          chatBannedWords={chatBannedWords}
+          paymentsEnabled={paymentsEnabled}
+          onRecentTips={setRecentTips}
+          broadcastMode={broadcastMode ?? "BROWSER"}
+        />
+      </LiveStudioErrorBoundary>
     </div>
   );
 }

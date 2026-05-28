@@ -64,13 +64,17 @@ function LiveChatInner({
 
   useEffect(() => {
     let cancelled = false;
-    loadLiveChatHistory(channelId).then((res) => {
-      if (cancelled || "error" in res) return;
-      setMessages(res.messages);
-      if (res.messages.length > 0) {
-        lastSyncRef.current = new Date(res.messages[res.messages.length - 1].at).toISOString();
-      }
-    });
+    loadLiveChatHistory(channelId)
+      .then((res) => {
+        if (cancelled || "error" in res) return;
+        setMessages(res.messages);
+        if (res.messages.length > 0) {
+          lastSyncRef.current = new Date(res.messages[res.messages.length - 1].at).toISOString();
+        }
+      })
+      .catch(() => {
+        /* 채팅 테이블 미준비 등 — 스튜디오 전체는 유지 */
+      });
     return () => {
       cancelled = true;
     };

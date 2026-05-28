@@ -8,37 +8,54 @@ export type LiveRoomAccess =
       reason: "NOT_FOUND" | "NOT_LIVE" | "NOT_MEMBER" | "ENDED";
     };
 
+async function loadChannelForAccess(channelId: string) {
+  try {
+    return await db.voiceChannel.findUnique({
+      where: { id: channelId },
+      select: {
+        id: true,
+        createdBy: true,
+        isLive: true,
+        linkedChatRoom: { select: { id: true, type: true } },
+      },
+    });
+  } catch (e) {
+    console.warn("[resolveLiveChannelAccess] linkedChatRoom select failed", e);
+    return await db.voiceChannel.findUnique({
+      where: { id: channelId },
+      select: { id: true, createdBy: true, isLive: true },
+    });
+  }
+}
+
 export async function resolveLiveChannelAccess(
   channelId: string,
   userId: string
 ): Promise<LiveRoomAccess> {
-  const channel = await db.voiceChannel.findUnique({
-    where: { id: channelId },
-    select: {
-      id: true,
-      createdBy: true,
-      isLive: true,
-      linkedChatRoom: { select: { id: true, type: true } },
-    },
-  });
+  const channel = await loadChannelForAccess(channelId);
   if (!channel) return { allowed: false, reason: "NOT_FOUND" };
   if (!channel.isLive) return { allowed: false, reason: "NOT_LIVE" };
 
-  const isGroupSocialCall =
-    channel.linkedChatRoom?.type === "SOCIAL_GROUP";
+  const linked =
+    "linkedChatRoom" in channel ? channel.linkedChatRoom : null;
+  const isGroupSocialCall = linked?.type === "SOCIAL_GROUP";
 
-  if (isGroupSocialCall && channel.linkedChatRoom) {
-    const chatMember = await db.chatMember.findUnique({
-      where: {
-        roomId_userId: { roomId: channel.linkedChatRoom.id, userId },
-      },
-    });
-    if (!chatMember) return { allowed: false, reason: "NOT_MEMBER" };
-    return {
-      allowed: true,
-      isHost: true,
-      hostUserId: channel.createdBy,
-    };
+  if (isGroupSocialCall && linked) {
+    try {
+      const chatMember = await db.chatMember.findUnique({
+        where: {
+          roomId_userId: { roomId: linked.id, userId },
+        },
+      });
+      if (!chatMember) return { allowed: false, reason: "NOT_MEMBER" };
+      return {
+        allowed: true,
+        isHost: true,
+        hostUserId: channel.createdBy,
+      };
+    } catch (e) {
+      console.warn("[resolveLiveChannelAccess] chat member check failed", e);
+    }
   }
 
   const isHost = channel.createdBy === userId;

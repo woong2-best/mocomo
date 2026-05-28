@@ -40,6 +40,10 @@ import { moderateChatWithAi } from "@/lib/ai-moderation";
 import { deleteObsRtmpIngress } from "@/lib/livekit-ingress";
 import { provisionObsIngress } from "@/lib/obs-ingress-service";
 import { notifyFollowersOnLive } from "@/lib/live-notify";
+import {
+  fetchLiveChannelForStudio,
+  fetchLiveTipsForChannel,
+} from "@/lib/live-channel-meta-safe";
 import { revalidatePath } from "next/cache";
 
 export async function createLiveStream(data: {
@@ -166,81 +170,33 @@ export async function startScheduledLiveStream(channelId: string) {
 }
 
 export async function getLiveChannelRoomMeta(channelId: string) {
-  const channel = await db.voiceChannel.findUnique({
-    where: { id: channelId },
-    select: {
-      id: true,
-      name: true,
-      isLive: true,
-      liveStatus: true,
-      createdBy: true,
-      createdAt: true,
-      category: true,
-      tags: true,
-      thumbnailUrl: true,
-      description: true,
-      donationGoalKrw: true,
-      endedAt: true,
-      slowModeSeconds: true,
-      chatBannedWords: true,
-      broadcastMode: true,
-      rtmpUrl: true,
-      rtmpStreamKey: true,
-    },
-  });
-  if (!channel) return null;
+  try {
+    const channel = await fetchLiveChannelForStudio(channelId);
+    if (!channel) return null;
 
-  const host = await db.user.findUnique({
-    where: { id: channel.createdBy },
-    select: {
-      id: true,
-      username: true,
-      image: true,
-      supportTierSent: true,
-      supportTierReceived: true,
-      totalSupportReceived: true,
-    },
-  });
-  if (!host) return null;
+    const host = await db.user.findUnique({
+      where: { id: channel.createdBy },
+      select: {
+        id: true,
+        username: true,
+        image: true,
+        supportTierSent: true,
+        supportTierReceived: true,
+        totalSupportReceived: true,
+      },
+    });
+    if (!host) return null;
 
-  const tipTotal = await db.tip.aggregate({
-    where: {
-      receiverId: channel.createdBy,
-      createdAt: { gte: channel.createdAt },
-    },
-    _sum: { amount: true },
-  });
+    const { tipTotalKrw, tipRanking } = await fetchLiveTipsForChannel(
+      channel.createdBy,
+      channel.createdAt
+    );
 
-  const tipRanking = await db.tip.groupBy({
-    by: ["senderId"],
-    where: {
-      receiverId: channel.createdBy,
-      createdAt: { gte: channel.createdAt },
-    },
-    _sum: { amount: true },
-    orderBy: { _sum: { amount: "desc" } },
-    take: 5,
-  });
-  const senderIds = tipRanking.map((t) => t.senderId);
-  const senders =
-    senderIds.length > 0
-      ? await db.user.findMany({
-          where: { id: { in: senderIds } },
-          select: { id: true, username: true, supportTierSent: true },
-        })
-      : [];
-  const senderMap = Object.fromEntries(senders.map((s) => [s.id, s]));
-
-  return {
-    channel,
-    host,
-    tipTotalKrw: tipTotal._sum.amount ?? 0,
-    tipRanking: tipRanking.map((t) => ({
-      amount: t._sum.amount ?? 0,
-      username: senderMap[t.senderId]?.username ?? "?",
-      tier: senderMap[t.senderId]?.supportTierSent ?? "PEBBLE",
-    })),
-  };
+    return { channel, host, tipTotalKrw, tipRanking };
+  } catch (e) {
+    console.error("[getLiveChannelRoomMeta]", e);
+    return null;
+  }
 }
 
 export async function joinLiveStreamWithPassword(channelId: string, password: string) {
@@ -291,9 +247,15 @@ export async function heartbeatLivePresence(channelId: string) {
   const access = await resolveLiveChannelAccess(channelId, user.id);
   if (!access.allowed) return { error: "NOT_MEMBER" as const };
 
-  await db.voiceMember.update({
+  await db.voiceMember.upsert({
     where: { channelId_userId: { channelId, userId: user.id } },
-    data: { lastSeenAt: new Date() },
+    create: {
+      channelId,
+      userId: user.id,
+      role: access.isHost ? "HOST" : "VIEWER",
+      lastSeenAt: new Date(),
+    },
+    update: { lastSeenAt: new Date() },
   });
 
   const viewerCount = await countActiveLiveViewers(channelId);
@@ -374,15 +336,33 @@ export async function getLiveStreamSync(channelId: string, since?: string) {
 
   const tipSince = channel?.createdAt ?? new Date(Date.now() - 3600000);
   const tipAfter = sinceDate > tipSince ? sinceDate : tipSince;
-  const recentTips = await db.tip.findMany({
-    where: {
-      receiverId: access.hostUserId,
-      createdAt: { gt: tipAfter },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 10,
-    include: { sender: { select: { username: true } } },
-  });
+  let recentTips: {
+    id: string;
+    amount: number;
+    message: string | null;
+    username: string;
+    at: number;
+  }[] = [];
+  try {
+    const rows = await db.tip.findMany({
+      where: {
+        receiverId: access.hostUserId,
+        createdAt: { gt: tipAfter },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      include: { sender: { select: { username: true } } },
+    });
+    recentTips = rows.map((t) => ({
+      id: t.id,
+      amount: t.amount,
+      message: t.message,
+      username: t.sender.username,
+      at: t.createdAt.getTime(),
+    }));
+  } catch (e) {
+    console.warn("[getLiveStreamSync] tips", e);
+  }
 
   return {
     viewerCount,
@@ -390,13 +370,7 @@ export async function getLiveStreamSync(channelId: string, since?: string) {
     isHost: access.isHost,
     hostUserId: access.hostUserId,
     messages: messages.map(mapLiveChatMessage),
-    recentTips: recentTips.map((t) => ({
-      id: t.id,
-      amount: t.amount,
-      message: t.message,
-      username: t.sender.username,
-      at: t.createdAt.getTime(),
-    })),
+    recentTips,
   };
 }
 

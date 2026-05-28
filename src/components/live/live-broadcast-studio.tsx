@@ -97,7 +97,7 @@ export function LiveBroadcastStudio({
   initialMode?: LiveBroadcastMode;
   onEndStream: () => void;
 }) {
-  const [mode, setMode] = useState<LiveBroadcastMode>(initialMode);
+  const [mode, setMode] = useState<LiveBroadcastMode>(initialMode ?? "BROWSER");
   const [token, setToken] = useState<string | null>(null);
   const [serverUrl, setServerUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
