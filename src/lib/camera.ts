@@ -15,6 +15,15 @@ export async function probeCameraPermission(): Promise<PermissionState | "unknow
   }
 }
 
+/** 이미 허용된 경우 getUserMedia 생략 */
+export async function quickCameraCheck(): Promise<CameraCheckResult> {
+  const perm = await probeCameraPermission();
+  if (perm === "granted") {
+    return { ok: true, status: "granted", deviceLabel: "카메라 준비됨" };
+  }
+  return ensureCameraAccess();
+}
+
 /** 영상 통화 전 카메라 권한·연결 확인 (스트림 즉시 해제) */
 export async function ensureCameraAccess(): Promise<CameraCheckResult> {
   if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {

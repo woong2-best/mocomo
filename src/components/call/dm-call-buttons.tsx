@@ -2,14 +2,15 @@
 
 import { useState } from "react";
 import { useCall, useCallBusy } from "@/components/call/call-provider";
-import type { CallType } from "@/lib/call-types";
+import type { CallParticipant, CallType } from "@/lib/call-types";
 import { Button } from "@/components/ui/button";
-import { Phone, Video, Loader2 } from "lucide-react";
+import { Phone, Video } from "lucide-react";
 
 function CallActionButton({
   callType,
   calleeId,
   chatRoomId,
+  calleePeer,
   disabled,
   busy,
   onError,
@@ -17,20 +18,18 @@ function CallActionButton({
   callType: CallType;
   calleeId: string;
   chatRoomId: string;
+  calleePeer: CallParticipant;
   disabled?: boolean;
   busy: boolean;
   onError: (msg: string) => void;
 }) {
   const { startCall } = useCall();
-  const [loading, setLoading] = useState(false);
   const isVideo = callType === "VIDEO";
 
   async function handleCall() {
-    setLoading(true);
     onError("");
-    const result = await startCall(calleeId, chatRoomId, callType);
+    const result = await startCall(calleeId, chatRoomId, callType, calleePeer);
     if (result.error) onError(result.error);
-    setLoading(false);
   }
 
   return (
@@ -39,14 +38,12 @@ function CallActionButton({
       variant="outline"
       size="icon"
       className="rounded-xl shrink-0"
-      disabled={disabled || loading || busy}
+      disabled={disabled || busy}
       onClick={handleCall}
-      title={isVideo ? "영상 통화 (카메라·마이크 확인 후 연결)" : "음성 통화 (마이크 확인 후 연결)"}
+      title={isVideo ? "영상 통화" : "음성 통화"}
       aria-label={isVideo ? "영상 통화" : "음성 통화"}
     >
-      {loading ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : isVideo ? (
+      {isVideo ? (
         <Video className="h-4 w-4" />
       ) : (
         <Phone className="h-4 w-4" />
@@ -58,10 +55,12 @@ function CallActionButton({
 export function DmCallButtons({
   calleeId,
   chatRoomId,
+  calleePeer,
   disabled,
 }: {
   calleeId: string;
   chatRoomId: string;
+  calleePeer: CallParticipant;
   disabled?: boolean;
 }) {
   const busy = useCallBusy();
@@ -73,6 +72,7 @@ export function DmCallButtons({
         callType="AUDIO"
         calleeId={calleeId}
         chatRoomId={chatRoomId}
+        calleePeer={calleePeer}
         disabled={disabled}
         busy={busy}
         onError={setError}
@@ -81,6 +81,7 @@ export function DmCallButtons({
         callType="VIDEO"
         calleeId={calleeId}
         chatRoomId={chatRoomId}
+        calleePeer={calleePeer}
         disabled={disabled}
         busy={busy}
         onError={setError}

@@ -93,7 +93,15 @@ export function ChatHeader({
       )}
 
       {roomType === "DM" && otherUserId && (
-        <DmCallButtons calleeId={otherUserId} chatRoomId={roomId} />
+        <DmCallButtons
+          calleeId={otherUserId}
+          chatRoomId={roomId}
+          calleePeer={{
+            id: otherUserId,
+            username: displayName,
+            image: displayImage,
+          }}
+        />
       )}
     </header>
   );

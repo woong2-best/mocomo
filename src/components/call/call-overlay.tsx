@@ -30,6 +30,12 @@ function formatDuration(seconds: number) {
 
 function phaseMeta(isVideo: boolean) {
   return {
+    preparing: {
+      badge: "연결 중",
+      badgeClass: "bg-primary/15 text-primary",
+      subtitle: isVideo ? "영상 통화 연결 준비 중…" : "음성 통화 연결 준비 중…",
+      icon: isVideo ? Video : PhoneOutgoing,
+    },
     incoming: {
       badge: "수신 중",
       badgeClass: "bg-green-500/15 text-green-700 dark:text-green-400",
@@ -258,7 +264,10 @@ export function CallOverlay({
   onCancel: () => void;
   onHangup: () => void;
 }) {
-  const isVideo = callState.call.callType === "VIDEO";
+  const isVideo =
+    callState.phase === "preparing"
+      ? callState.callType === "VIDEO"
+      : callState.call.callType === "VIDEO";
   useCallWakeLock(callState.phase === "active" && isVideo);
   const meta = phaseMeta(isVideo)[callState.phase];
   const PhaseIcon = meta.icon;
@@ -275,7 +284,10 @@ export function CallOverlay({
     const start = Date.now();
     const id = setInterval(() => setSeconds(Math.floor((Date.now() - start) / 1000)), 1000);
     return () => clearInterval(id);
-  }, [callState.phase, callState.call.id]);
+  }, [
+    callState.phase,
+    callState.phase === "active" ? callState.call.id : "",
+  ]);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-3 sm:p-6">
@@ -337,7 +349,12 @@ export function CallOverlay({
             </div>
           )}
 
-          {callState.phase !== "active" && (
+          {callState.phase === "preparing" ? (
+            <div className="rounded-2xl border border-border bg-muted/40 px-4 py-6 flex flex-col items-center gap-2">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">통화 연결 준비 중…</p>
+            </div>
+          ) : callState.phase !== "active" ? (
             <MediaCheckPanel
               mic={mic}
               camera={camera}
@@ -347,7 +364,7 @@ export function CallOverlay({
               onCameraCheck={onCameraCheck}
               video={isVideo}
             />
-          )}
+          ) : null}
 
           {callState.phase === "active" && livekitSlot}
 
@@ -379,10 +396,10 @@ export function CallOverlay({
               </>
             )}
 
-            {callState.phase === "outgoing" && (
+            {(callState.phase === "outgoing" || callState.phase === "preparing") && (
               <CallActionButton
                 label="취소"
-                sublabel="발신 취소"
+                sublabel={callState.phase === "preparing" ? "연결 취소" : "발신 취소"}
                 variant="cancel"
                 icon={PhoneOff}
                 onClick={onCancel}

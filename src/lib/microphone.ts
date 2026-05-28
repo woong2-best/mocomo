@@ -15,6 +15,15 @@ export async function probeMicrophonePermission(): Promise<PermissionState | "un
   }
 }
 
+/** 이미 허용된 경우 getUserMedia 생략 — 통화 시작 속도 */
+export async function quickMicrophoneCheck(): Promise<MicCheckResult> {
+  const perm = await probeMicrophonePermission();
+  if (perm === "granted") {
+    return { ok: true, status: "granted", deviceLabel: "마이크 준비됨" };
+  }
+  return ensureMicrophoneAccess();
+}
+
 /** 통화 전 마이크 권한·연결 확인 (스트림 즉시 해제) */
 export async function ensureMicrophoneAccess(): Promise<MicCheckResult> {
   if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {

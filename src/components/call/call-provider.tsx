@@ -6,9 +6,19 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import type { Socket } from "socket.io-client";
 import { acceptCall, declineCall, endCall, initiateCall } from "@/actions/call";
-import type { ActiveCallState, CallPayload, CallType } from "@/lib/call-types";
-import { ensureMicrophoneAccess, probeMicrophonePermission, type MicCheckResult } from "@/lib/microphone";
-import { ensureCameraAccess, probeCameraPermission, type CameraCheckResult } from "@/lib/camera";
+import type { ActiveCallState, CallPayload, CallParticipant, CallType } from "@/lib/call-types";
+import {
+  ensureMicrophoneAccess,
+  probeMicrophonePermission,
+  quickMicrophoneCheck,
+  type MicCheckResult,
+} from "@/lib/microphone";
+import {
+  ensureCameraAccess,
+  probeCameraPermission,
+  quickCameraCheck,
+  type CameraCheckResult,
+} from "@/lib/camera";
 import { fetchLivekitCredentials, type LivekitCredentials } from "@/lib/livekit-token-fetch";
 import { CallOverlay } from "@/components/call/call-overlay";
 
@@ -21,7 +31,8 @@ type CallActionsValue = {
   startCall: (
     calleeId: string,
     chatRoomId?: string,
-    callType?: CallType
+    callType?: CallType,
+    peerHint?: CallParticipant
   ) => Promise<{ error?: string }>;
 };
 
@@ -46,6 +57,16 @@ function isVideoCall(call: CallPayload) {
   return call.callType === "VIDEO";
 }
 
+function isCallPhase(
+  state: ActiveCallState
+): state is Extract<ActiveCallState, { call: CallPayload }> {
+  return (
+    state.phase === "outgoing" ||
+    state.phase === "incoming" ||
+    state.phase === "active"
+  );
+}
+
 type SyncResponse =
   | { event: null }
   | { event: "declined" | "ended"; callId: string }
@@ -53,7 +74,7 @@ type SyncResponse =
 
 function syncPollIntervalMs(phase: ActiveCallState["phase"], hidden: boolean) {
   if (phase === "active") return 5000;
-  if (phase !== "idle") return 4000;
+  if (phase === "outgoing" || phase === "incoming" || phase === "preparing") return 1000;
   return hidden ? 60000 : 30000;
 }
 
@@ -79,13 +100,18 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   const [cameraChecking, setCameraChecking] = useState(false);
   const [prefetchedLivekit, setPrefetchedLivekit] = useState<LivekitCredentials | null>(null);
   const socketRef = useRef<Socket | null>(null);
+  const pendingEmitsRef = useRef<{ event: string; payload: { callId: string } }[]>([]);
+  const startCallGenRef = useRef(0);
   const callStateRef = useRef(callState);
   const lastTerminalRef = useRef<string | null>(null);
 
   callStateRef.current = callState;
 
   const needsVideo =
-    callState.phase !== "idle" && isVideoCall(callState.call);
+    (callState.phase === "preparing" && callState.callType === "VIDEO") ||
+    (callState.phase !== "idle" &&
+      callState.phase !== "preparing" &&
+      isVideoCall(callState.call));
 
   const runMicCheck = useCallback(async () => {
     setMicChecking(true);
@@ -103,11 +129,25 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     return result;
   }, []);
 
+  const flushPendingEmits = useCallback((socket: Socket) => {
+    const queue = pendingEmitsRef.current;
+    pendingEmitsRef.current = [];
+    for (const item of queue) {
+      socket.emit(item.event, item.payload);
+    }
+  }, []);
+
   const emit = useCallback((event: string, payload: { callId: string }) => {
-    socketRef.current?.emit(event, payload);
+    const socket = socketRef.current;
+    if (socket?.connected) {
+      socket.emit(event, payload);
+      return;
+    }
+    pendingEmitsRef.current.push({ event, payload });
   }, []);
 
   const resetCall = useCallback(() => {
+    startCallGenRef.current += 1;
     setCallState({ phase: "idle" });
     setError("");
     setMic(null);
@@ -122,7 +162,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
       const current = callStateRef.current;
 
       if (data.event === "declined") {
-        if (current.phase !== "idle" && current.call.id === data.callId) {
+        if (isCallPhase(current) && current.call.id === data.callId) {
           if (lastTerminalRef.current !== data.callId) {
             lastTerminalRef.current = data.callId;
             setError("상대방이 통화를 거절했습니다.");
@@ -133,7 +173,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
       }
 
       if (data.event === "ended") {
-        if (current.phase !== "idle" && current.call.id === data.callId) {
+        if (isCallPhase(current) && current.call.id === data.callId) {
           lastTerminalRef.current = data.callId;
           resetCall();
         }
@@ -208,6 +248,28 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     };
   }, [userId, backgroundSync, applySync]);
 
+  const ringingSyncKey =
+    callState.phase === "outgoing" || callState.phase === "incoming"
+      ? `${callState.phase}:${callState.call.id}`
+      : null;
+
+  useEffect(() => {
+    if (!ringingSyncKey || !userId || !backgroundSync) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/calls/sync", { cache: "no-store" });
+        if (!res.ok || cancelled) return;
+        applySync((await res.json()) as SyncResponse);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ringingSyncKey, userId, backgroundSync, applySync]);
+
   useEffect(() => {
     if (!userId || !backgroundSync) return;
     const url = process.env.NEXT_PUBLIC_SOCKET_URL;
@@ -228,6 +290,10 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
       });
       socketRef.current = socket;
 
+      socket.on("connect", () => {
+        if (socket) flushPendingEmits(socket);
+      });
+
       socket.on("call_incoming", (call: CallPayload) => {
         setCallState({ phase: "incoming", call, peer: call.caller });
       });
@@ -246,7 +312,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
 
       socket.on("call_declined", ({ callId }: { callId: string }) => {
         setCallState((prev) => {
-          if (prev.phase !== "idle" && prev.call.id === callId) {
+          if (isCallPhase(prev) && prev.call.id === callId) {
             setError("상대방이 통화를 거절했습니다.");
             return { phase: "idle" };
           }
@@ -256,7 +322,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
 
       socket.on("call_ended", ({ callId }: { callId: string }) => {
         setCallState((prev) => {
-          if (prev.phase !== "idle" && prev.call.id === callId) {
+          if (isCallPhase(prev) && prev.call.id === callId) {
             return { phase: "idle" };
           }
           return prev;
@@ -268,13 +334,20 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
       disposed = true;
       socket?.disconnect();
       socketRef.current = null;
+      pendingEmitsRef.current = [];
     };
-  }, [userId, backgroundSync]);
+  }, [userId, backgroundSync, flushPendingEmits]);
 
-  const activeCallId = callState.phase !== "idle" ? callState.call.id : null;
+  useEffect(() => {
+    if (!backgroundSync) return;
+    void import("@/components/call/livekit-call-room");
+  }, [backgroundSync]);
+
+  const activeCallId = isCallPhase(callState) ? callState.call.id : null;
 
   useEffect(() => {
     if (!activeCallId) return;
+    if (mic?.ok && (!needsVideo || camera?.ok)) return;
 
     let cancelled = false;
     (async () => {
@@ -318,8 +391,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     };
   }, [callState.phase, activeCallId, needsVideo]);
 
-  const livekitRoom =
-    callState.phase !== "idle" ? callState.call.livekitRoom : null;
+  const livekitRoom = isCallPhase(callState) ? callState.call.livekitRoom : null;
 
   useEffect(() => {
     if (!livekitRoom) return;
@@ -337,45 +409,86 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   }, [livekitRoom]);
 
   const startCall = useCallback(
-    async (calleeId: string, chatRoomId?: string, callType: CallType = "AUDIO") => {
+    async (
+      calleeId: string,
+      chatRoomId?: string,
+      callType: CallType = "AUDIO",
+      peerHint?: CallParticipant
+    ) => {
       if (!userId) return { error: "로그인이 필요합니다." };
       setError("");
-      const micResult = await runMicCheck();
-      if (!micResult.ok) return { error: micResult.message ?? "마이크 확인이 필요합니다." };
 
-      if (callType === "VIDEO") {
-        const camResult = await runCameraCheck();
-        if (!camResult.ok) return { error: camResult.message ?? "카메라 확인이 필요합니다." };
-      }
+      const peer: CallParticipant = peerHint ?? {
+        id: calleeId,
+        username: "상대방",
+        image: null,
+      };
+      const gen = ++startCallGenRef.current;
+      setCallState({ phase: "preparing", peer, callType, chatRoomId });
 
-      const result = await initiateCall({
+      const micPromise = quickMicrophoneCheck().then((r) => {
+        setMic(r);
+        return r;
+      });
+      const camPromise: Promise<CameraCheckResult> =
+        callType === "VIDEO"
+          ? quickCameraCheck().then((r) => {
+              setCamera(r);
+              return r;
+            })
+          : Promise.resolve({ ok: true, status: "granted" });
+      const callPromise = initiateCall({
         calleeId,
         chatRoomId,
         callType: callType === "VIDEO" ? "VIDEO" : "AUDIO",
       });
-      if (result.error || !result.call) return { error: result.error ?? "통화를 시작할 수 없습니다." };
 
-      const peer = peerForUser(result.call, userId);
-      setCallState({ phase: "outgoing", call: result.call, peer });
+      const [micResult, camResult, result] = await Promise.all([
+        micPromise,
+        camPromise,
+        callPromise,
+      ]);
+
+      if (gen !== startCallGenRef.current) return {};
+
+      if (!micResult.ok) {
+        resetCall();
+        return { error: micResult.message ?? "마이크 확인이 필요합니다." };
+      }
+      if (callType === "VIDEO" && !camResult.ok) {
+        resetCall();
+        return { error: camResult.message ?? "카메라 확인이 필요합니다." };
+      }
+      if (result.error || !result.call) {
+        resetCall();
+        return { error: result.error ?? "통화를 시작할 수 없습니다." };
+      }
+
+      const callPeer = peerForUser(result.call, userId);
+      setCallState({ phase: "outgoing", call: result.call, peer: callPeer });
       emit("call_invite", { callId: result.call.id });
       return {};
     },
-    [emit, runCameraCheck, runMicCheck, userId]
+    [emit, resetCall, userId]
   );
 
   const acceptIncoming = useCallback(async () => {
     if (callState.phase !== "incoming") return;
-    const micResult = mic?.ok ? mic : await runMicCheck();
+    const micResult = mic?.ok ? mic : await quickMicrophoneCheck();
     if (!micResult.ok) {
+      setMic(micResult);
       setError(micResult.message ?? "마이크 확인 후 받을 수 있습니다.");
       return;
     }
+    setMic(micResult);
     if (isVideoCall(callState.call)) {
-      const camResult = camera?.ok ? camera : await runCameraCheck();
+      const camResult = camera?.ok ? camera : await quickCameraCheck();
       if (!camResult.ok) {
+        setCamera(camResult);
         setError(camResult.message ?? "카메라 확인 후 받을 수 있습니다.");
         return;
       }
+      setCamera(camResult);
     }
     const result = await acceptCall(callState.call.id);
     if (result.error) {
@@ -385,7 +498,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     }
     emit("call_accept", { callId: callState.call.id });
     setCallState({ phase: "active", call: callState.call, peer: callState.peer });
-  }, [callState, camera, emit, mic, resetCall, runCameraCheck, runMicCheck]);
+  }, [callState, camera, emit, mic, resetCall]);
 
   const declineIncoming = useCallback(async () => {
     if (callState.phase !== "incoming") return;
@@ -422,8 +535,12 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
             onCameraCheck={needsVideo ? runCameraCheck : undefined}
             onAccept={acceptIncoming}
             onDecline={declineIncoming}
-            onCancel={cancelOutgoing}
-            onHangup={() => hangup(callState.call.id)}
+            onCancel={
+              callState.phase === "preparing" ? resetCall : cancelOutgoing
+            }
+            onHangup={() => {
+              if (callState.phase === "active") hangup(callState.call.id);
+            }}
             livekitSlot={
               callState.phase === "active" ? (
                 <LivekitCallRoom

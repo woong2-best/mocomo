@@ -18,6 +18,12 @@ export type CallPayload = {
 
 export type ActiveCallState =
   | { phase: "idle" }
+  | {
+      phase: "preparing";
+      peer: CallParticipant;
+      callType: CallType;
+      chatRoomId?: string;
+    }
   | { phase: "outgoing"; call: CallPayload; peer: CallParticipant }
   | { phase: "incoming"; call: CallPayload; peer: CallParticipant }
   | { phase: "active"; call: CallPayload; peer: CallParticipant };
