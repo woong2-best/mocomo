@@ -6,7 +6,7 @@ import Link from "next/link";
 import { getOrCreateDM } from "@/actions/chat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronLeft, MessageCircle, Search, Users } from "lucide-react";
+import { ChevronLeft, Search, Users } from "lucide-react";
 
 export default function NewMessagePage() {
   const router = useRouter();
@@ -101,9 +101,8 @@ export default function NewMessagePage() {
           </Button>
         </section>
 
-        <p className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1">
-          <MessageCircle className="h-3.5 w-3.5" />
-          DM은 인스타·카톡처럼 1:1 대화예요
+        <p className="text-center text-xs text-muted-foreground px-2">
+          모욕, 비난, 성희롱 및 불법 행위는 법적 처벌 대상이 될 수 있습니다.
         </p>
       </div>
     </div>
