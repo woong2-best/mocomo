@@ -20,6 +20,8 @@ import { BRAND } from "@/lib/brand";
 import { COUNTRIES, LOCALE_COOKIE, COUNTRY_COOKIE, LOCALE_LABELS, LOCALES } from "@/lib/i18n/config";
 import type { Locale } from "@/lib/i18n/config";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
+import { isValidSignupEmail } from "@/lib/signup-email-domains";
+import { EmailAddressField } from "@/components/auth/email-address-field";
 
 export function SignupApplyForm({
   googleOAuth,
@@ -45,6 +47,11 @@ export function SignupApplyForm({
     setNotice("");
     const form = new FormData(e.currentTarget);
     const email = (form.get("email") as string).trim().toLowerCase();
+    if (!isValidSignupEmail(email)) {
+      setError("올바른 이메일을 입력해 주세요. (아이디 @ 도메인)");
+      setLoading(false);
+      return;
+    }
     const password = form.get("password") as string;
     const username = ((form.get("username") as string) || "").trim().toLowerCase();
     const displayName = ((form.get("name") as string) || "").trim();
@@ -133,14 +140,7 @@ export function SignupApplyForm({
         </CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-3">
-            <Input
-              name="email"
-              type="email"
-              placeholder="이메일 (예: name@naver.com)"
-              required
-              autoComplete="email"
-              className="rounded-xl"
-            />
+            <EmailAddressField required />
             <Input
               name="username"
               placeholder="닉네임 (영문·숫자·_)"
