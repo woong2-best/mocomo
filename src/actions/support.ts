@@ -17,7 +17,7 @@ export async function tipCreatorAction(
   return { error: "결제 창을 통해 후원해 주세요." };
 }
 
-export async function getCreatorSupportSummary(creatorId: string) {
+export const getCreatorSupportSummary = cache(async function getCreatorSupportSummary(creatorId: string) {
   const [totalAgg, supporterCount, topSupporters, recentTips] = await Promise.all([
     db.tip.aggregate({
       where: { receiverId: creatorId },
@@ -52,7 +52,7 @@ export async function getCreatorSupportSummary(creatorId: string) {
     topSupporters,
     recentTips,
   };
-}
+});
 
 export const getViewerSupportForCreator = cache(async (creatorId: string) => {
   const session = await getCachedSession();
@@ -74,7 +74,7 @@ export const getViewerSupportForCreator = cache(async (creatorId: string) => {
   };
 });
 
-export async function getViewerPlatformSupport() {
+export const getViewerPlatformSupport = cache(async function getViewerPlatformSupport() {
   const session = await getCachedSession();
   if (!session?.user?.id) return null;
   const user = await db.user.findUnique({
@@ -101,7 +101,7 @@ export async function getViewerPlatformSupport() {
       next: getNextTierInfo(user.totalSupportReceived),
     },
   };
-}
+});
 
 export async function getSupportDashboard() {
   const session = await getCachedSession();

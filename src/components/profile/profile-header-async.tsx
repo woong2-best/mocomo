@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { isPaymentsConfigured } from "@/lib/payments";
-import { getProfileHeader } from "@/actions/profile-page";
+import { getProfileHeader, getProfilePinnedPost } from "@/actions/profile-page";
 import { getViewerSupportForCreator } from "@/actions/support";
 import { ProfileHeader } from "@/components/profile/profile-header";
 import { parseProfileTab, type ProfileTab } from "@/lib/profile-queries";
@@ -19,7 +19,11 @@ export async function ProfileHeaderAsync({
 
   const tab = parseProfileTab(tabParam);
   const effectiveTab = tab === "likes" && !header.isSelf ? "posts" : tab;
-  const viewerSupport = header.isSelf ? null : await getViewerSupportForCreator(header.user.id);
+
+  const [viewerSupport, pinned] = await Promise.all([
+    header.isSelf ? Promise.resolve(null) : getViewerSupportForCreator(header.user.id),
+    effectiveTab === "posts" ? getProfilePinnedPost(header.user.id) : Promise.resolve(null),
+  ]);
   const paymentsEnabled = isPaymentsConfigured();
 
   return (
@@ -32,10 +36,10 @@ export async function ProfileHeaderAsync({
         viewerSupport={viewerSupport}
         paymentsEnabled={paymentsEnabled}
       />
-      {header.pinned && effectiveTab === "posts" && (
+      {pinned && effectiveTab === "posts" && (
         <div className="border-b border-border/60">
           <p className="px-4 pt-3 text-xs text-muted-foreground">고정된 게시물</p>
-          <ProfilePostCard post={header.pinned} />
+          <ProfilePostCard post={pinned} />
         </div>
       )}
       <ProfileTabs username={username} showLikesTab={header.isSelf} />

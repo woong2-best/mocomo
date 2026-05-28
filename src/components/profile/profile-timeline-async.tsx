@@ -1,12 +1,6 @@
-import { getProfileHeader } from "@/actions/profile-page";
-import { getProfileTimeline } from "@/actions/profile-page";
-import {
-  getCreatorSupportSummary,
-  getViewerPlatformSupport,
-  getViewerSupportForCreator,
-} from "@/actions/support";
+import { getProfileHeader, getProfileTimeline } from "@/actions/profile-page";
+import { getViewerPlatformSupport } from "@/actions/support";
 import { PlatformSupportCard } from "@/components/support/platform-support-card";
-import { ProfileSupportBlock } from "@/components/support/profile-support-block";
 import { parseProfileTab } from "@/lib/profile-queries";
 import { ProfileTimeline, type TimelineItem } from "@/components/profile/profile-timeline";
 
@@ -17,7 +11,8 @@ const emptyMessages: Record<string, string> = {
   likes: "좋아요한 게시물이 없습니다.",
 };
 
-export async function ProfileBodyAsync({
+/** 타임라인 우선 로드 — 후원 블록보다 먼저 표시 */
+export async function ProfileTimelineAsync({
   username,
   tabParam,
 }: {
@@ -30,10 +25,8 @@ export async function ProfileBodyAsync({
   const tab = parseProfileTab(tabParam);
   const effectiveTab = tab === "likes" && !header.isSelf ? "posts" : tab;
 
-  const [supportSummary, viewerSupport, platformSupport, timeline] = await Promise.all([
-    getCreatorSupportSummary(header.user.id),
-    getViewerSupportForCreator(header.user.id),
-    getViewerPlatformSupport(),
+  const [platformSupport, timeline] = await Promise.all([
+    header.isSelf ? getViewerPlatformSupport() : Promise.resolve(null),
     getProfileTimeline(header.user.id, effectiveTab),
   ]);
 
@@ -69,17 +62,6 @@ export async function ProfileBodyAsync({
           receivedTier={platformSupport.received.tier}
         />
       )}
-
-      <ProfileSupportBlock
-        creatorId={header.user.id}
-        username={header.user.username}
-        displayName={header.user.name || header.user.username}
-        isSelf={header.isSelf}
-        summary={supportSummary}
-        viewerSupport={viewerSupport}
-        profileReceivedTotal={header.user.totalSupportReceived}
-        profileReceivedTier={header.user.supportTierReceived}
-      />
 
       <ProfileTimeline
         username={username}

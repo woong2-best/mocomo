@@ -13,6 +13,7 @@ import {
 } from "@/lib/chat-display";
 import type { SupportTierLevel } from "@prisma/client";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
+import { UserProfileLink } from "@/components/user/user-profile-link";
 import { cn } from "@/lib/utils";
 
 type Message = {
@@ -179,12 +180,14 @@ export function ChatRoomClient({
                 {!isMine && (
                   <div className="w-8 shrink-0 flex justify-center">
                     {showAvatar ? (
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={m.sender.image ?? undefined} />
-                        <AvatarFallback className="text-[10px]">
-                          {m.sender.username[0]?.toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+                      <UserProfileLink username={m.sender.username} className="rounded-full">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={m.sender.image ?? undefined} />
+                          <AvatarFallback className="text-[10px]">
+                            {m.sender.username[0]?.toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      </UserProfileLink>
                     ) : (
                       <span className="w-8" />
                     )}
@@ -194,6 +197,7 @@ export function ChatRoomClient({
                   {!isMine && showAvatar && (
                     <DisplayNameWithSupportTier
                       name={m.sender.username}
+                      profileUsername={m.sender.username}
                       tier={m.sender.supportTierSent ?? "PEBBLE"}
                       nameClassName="text-[11px] font-medium text-muted-foreground"
                       compact

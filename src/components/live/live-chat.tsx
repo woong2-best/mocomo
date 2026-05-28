@@ -14,6 +14,7 @@ import {
   deleteLiveChatMessage,
 } from "@/actions/live-stream";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
+import { UserProfileLink } from "@/components/user/user-profile-link";
 import { ReportButton } from "@/components/report/report-button";
 import {
   relayLiveChatMessage,
@@ -198,14 +199,17 @@ function LiveChatInner({
         )}
         {messages.map((m) => (
           <div key={m.id} className="flex gap-2 text-sm animate-in fade-in duration-200 group">
-            <Avatar className="h-7 w-7 shrink-0">
-              <AvatarImage src={m.image ?? undefined} />
-              <AvatarFallback className="text-[10px]">{m.username[0]?.toUpperCase()}</AvatarFallback>
-            </Avatar>
+            <UserProfileLink username={m.username} className="shrink-0 rounded-full">
+              <Avatar className="h-7 w-7">
+                <AvatarImage src={m.image ?? undefined} />
+                <AvatarFallback className="text-[10px]">{m.username[0]?.toUpperCase()}</AvatarFallback>
+              </Avatar>
+            </UserProfileLink>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1 flex-wrap">
                 <DisplayNameWithSupportTier
                   name={<span className="font-semibold text-xs text-primary">@{m.username}</span>}
+                  profileUsername={m.username}
                   tier={m.supportTierSent ?? "PEBBLE"}
                   compact
                   className="flex-wrap"

@@ -39,7 +39,7 @@ export function ChatHeader({
       )}
 
       {profileHref ? (
-        <Link href={profileHref} className="flex items-center gap-3 min-w-0 flex-1">
+        <Link href={profileHref} prefetch className="flex items-center gap-3 min-w-0 flex-1">
           <Avatar className="h-10 w-10 shrink-0 ring-1 ring-border/50">
             <AvatarImage src={displayImage ?? undefined} />
             <AvatarFallback className="text-sm font-semibold">

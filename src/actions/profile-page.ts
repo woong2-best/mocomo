@@ -57,18 +57,19 @@ export const getProfileHeader = cache(async function getProfileHeader(username: 
     followsYou = !!b;
   }
 
-  const pinned = await db.post.findFirst({
-    where: { authorId: user.id, isPinned: true },
-    include: profilePostInclude,
-  });
-
   return {
     user,
     isSelf: viewerId === user.id,
     isFollowing,
     followsYou,
-    pinned,
   };
+});
+
+export const getProfilePinnedPost = cache(async function getProfilePinnedPost(userId: string) {
+  return db.post.findFirst({
+    where: { authorId: userId, isPinned: true },
+    include: profilePostInclude,
+  });
 });
 
 export async function getProfileTimeline(

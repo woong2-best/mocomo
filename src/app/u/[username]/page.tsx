@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import { ProfileHeaderAsync } from "@/components/profile/profile-header-async";
-import { ProfileBodyAsync } from "@/components/profile/profile-body-async";
+import { ProfileTimelineAsync } from "@/components/profile/profile-timeline-async";
+import { ProfileSupportAsync } from "@/components/profile/profile-support-async";
+import { ProfileSupportSkeleton } from "@/components/profile/profile-support-skeleton";
 import { ProfileHeaderSkeleton, ProfileTimelineSkeleton } from "@/components/ui/content-skeletons";
 
 export default function UserProfilePage({
@@ -16,7 +18,10 @@ export default function UserProfilePage({
         <ProfilePageHeader params={params} searchParams={searchParams} />
       </Suspense>
       <Suspense fallback={<ProfileTimelineSkeleton />}>
-        <ProfilePageBody params={params} searchParams={searchParams} />
+        <ProfilePageTimeline params={params} searchParams={searchParams} />
+      </Suspense>
+      <Suspense fallback={<ProfileSupportSkeleton />}>
+        <ProfilePageSupport params={params} />
       </Suspense>
     </div>
   );
@@ -34,7 +39,7 @@ async function ProfilePageHeader({
   return <ProfileHeaderAsync username={username} tabParam={tab} />;
 }
 
-async function ProfilePageBody({
+async function ProfilePageTimeline({
   params,
   searchParams,
 }: {
@@ -43,5 +48,10 @@ async function ProfilePageBody({
 }) {
   const { username } = await params;
   const { tab } = await searchParams;
-  return <ProfileBodyAsync username={username} tabParam={tab} />;
+  return <ProfileTimelineAsync username={username} tabParam={tab} />;
+}
+
+async function ProfilePageSupport({ params }: { params: Promise<{ username: string }> }) {
+  const { username } = await params;
+  return <ProfileSupportAsync username={username} />;
 }
