@@ -28,10 +28,14 @@ export async function HomeFeedAsync() {
     const hasDbPosts = mixed.some((item) => item.type === "post");
     const session = await getCachedSession();
     const postIds = mixed.filter((i) => i.type === "post").map((i) => i.data.id);
-    const engagement =
-      session?.user?.id && postIds.length > 0
-        ? await getPostEngagementForUser(session.user.id, postIds)
-        : { likedIds: [], starredIds: [], repostedIds: [] };
+    let engagement = { likedIds: [] as string[], starredIds: [] as string[], repostedIds: [] as string[] };
+    if (session?.user?.id && postIds.length > 0) {
+      try {
+        engagement = await getPostEngagementForUser(session.user.id, postIds);
+      } catch (e) {
+        console.error("[HomeFeedAsync] engagement", e);
+      }
+    }
 
     return (
       <HomeFeedClient

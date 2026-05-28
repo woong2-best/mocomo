@@ -16,14 +16,32 @@ export const getCachedWeeklyHighlights = unstable_cache(
 
 export const getCachedFeedPosts = unstable_cache(
   async () => {
-    const posts = await db.post.findMany({
-      take: 12,
-      orderBy: { createdAt: "desc" },
-      select: feedPostListSelect,
-    });
-    return posts.map(trimFeedPostContent);
+    try {
+      const posts = await db.post.findMany({
+        take: 12,
+        orderBy: { createdAt: "desc" },
+        select: feedPostListSelect,
+      });
+      return posts.map(trimFeedPostContent);
+    } catch (e) {
+      console.error("[home-feed] reposts count", e);
+      const posts = await db.post.findMany({
+        take: 12,
+        orderBy: { createdAt: "desc" },
+        select: {
+          ...feedPostListSelect,
+          _count: { select: { likes: true, comments: true, votes: true } },
+        },
+      });
+      return posts.map((p) =>
+        trimFeedPostContent({
+          ...p,
+          _count: { ...p._count, reposts: 0 },
+        })
+      );
+    }
   },
-  ["home-feed-posts-v2"],
+  ["home-feed-posts-v3"],
   { revalidate: 60 }
 );
 

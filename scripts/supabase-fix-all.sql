@@ -604,4 +604,29 @@ ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "rtmpIngressId" TEXT;
 ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "rtmpUrl" TEXT;
 ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "rtmpStreamKey" TEXT;
 
+-- V) Repost (리트윗/리포스트)
+CREATE TABLE IF NOT EXISTS "Repost" (
+  "id" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "postId" TEXT NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Repost_pkey" PRIMARY KEY ("id")
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "Repost_userId_postId_key" ON "Repost"("userId", "postId");
+CREATE INDEX IF NOT EXISTS "Repost_postId_idx" ON "Repost"("postId");
+
+DO $$ BEGIN
+  ALTER TABLE "Repost"
+    ADD CONSTRAINT "Repost_userId_fkey"
+    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "Repost"
+    ADD CONSTRAINT "Repost_postId_fkey"
+    FOREIGN KEY ("postId") REFERENCES "Post"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 -- 완료 후 터미널: npx prisma db push && npm run db:seed

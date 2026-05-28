@@ -36,14 +36,31 @@ export function trimFeedPostContent<T extends { content: string }>(post: T): T {
   return { ...post, content: `${post.content.slice(0, FEED_POST_MAX_CONTENT)}…` };
 }
 
+const feedPostListSelectNoReposts = {
+  ...feedPostListSelect,
+  _count: { select: { likes: true, comments: true, votes: true } },
+} as const;
+
 export async function fetchFeedPostsPage(cursor: string | null, limit: number) {
-  const posts = await db.post.findMany({
+  const query = {
     take: limit,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-    orderBy: { createdAt: "desc" },
-    select: feedPostListSelect,
-  });
-  return posts.map(trimFeedPostContent);
+    orderBy: { createdAt: "desc" as const },
+  };
+
+  try {
+    const posts = await db.post.findMany({ ...query, select: feedPostListSelect });
+    return posts.map(trimFeedPostContent);
+  } catch (e) {
+    console.error("[feed] reposts count", e);
+    const posts = await db.post.findMany({ ...query, select: feedPostListSelectNoReposts });
+    return posts.map((p) =>
+      trimFeedPostContent({
+        ...p,
+        _count: { ...p._count, reposts: 0 },
+      })
+    );
+  }
 }
 
 /** 무한 스크롤 페이지 — 짧은 TTL 캐시로 DB 부하 완화 */
