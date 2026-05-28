@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { LiveRoomEntry } from "@/components/live/live-room-entry";
 import { getLiveChannelRoomMeta } from "@/actions/live-stream";
 import { isPaymentsConfigured } from "@/lib/payments";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";

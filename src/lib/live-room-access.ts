@@ -8,7 +8,14 @@ export type LiveRoomAccess =
       reason: "NOT_FOUND" | "NOT_LIVE" | "NOT_MEMBER" | "ENDED";
     };
 
-async function loadChannelForAccess(channelId: string) {
+type ChannelAccessRow = {
+  id: string;
+  createdBy: string;
+  isLive: boolean;
+  linkedChatRoom?: { id: string; type: string } | null;
+};
+
+async function loadChannelForAccess(channelId: string): Promise<ChannelAccessRow | null> {
   try {
     return await db.voiceChannel.findUnique({
       where: { id: channelId },
@@ -36,8 +43,7 @@ export async function resolveLiveChannelAccess(
   if (!channel) return { allowed: false, reason: "NOT_FOUND" };
   if (!channel.isLive) return { allowed: false, reason: "NOT_LIVE" };
 
-  const linked =
-    "linkedChatRoom" in channel ? channel.linkedChatRoom : null;
+  const linked = channel.linkedChatRoom ?? null;
   const isGroupSocialCall = linked?.type === "SOCIAL_GROUP";
 
   if (isGroupSocialCall && linked) {
