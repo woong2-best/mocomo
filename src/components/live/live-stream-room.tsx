@@ -11,7 +11,7 @@ import { TipCreatorDialog } from "@/components/support/tip-creator-dialog";
 import { ReportButton } from "@/components/report/report-button";
 import { liveCategoryLabel } from "@/lib/live-categories";
 import { ensureArray, ensureStringArray } from "@/lib/ensure-array";
-import type { LiveBroadcastMode, LiveStreamCategory, SupportTierLevel } from "@prisma/client";
+import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 import { Eye, Users, Radio, Trophy } from "lucide-react";
 import Link from "next/link";
 
@@ -45,7 +45,6 @@ function LiveStreamRoomInner({
   chatBannedWords,
   paymentsEnabled,
   onRecentTips,
-  broadcastMode,
 }: {
   channelId: string;
   channelName: string;
@@ -66,7 +65,6 @@ function LiveStreamRoomInner({
   chatBannedWords?: string[];
   paymentsEnabled?: boolean;
   onRecentTips?: (tips: LiveTipAlert[]) => void;
-  broadcastMode?: LiveBroadcastMode;
 }) {
   return (
     <div className="live-studio-panel space-y-4 p-3 sm:p-5">

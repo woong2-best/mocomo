@@ -34,7 +34,7 @@ export function LiveTipAlerts({ tips }: { tips: LiveTipAlert[] }) {
 
   return (
     <div className="fixed bottom-24 left-4 z-40 flex flex-col gap-2 pointer-events-none max-w-xs">
-      {visible.map((t) => (
+      {ensureArray<LiveTipAlert>(visible).map((t) => (
         <div
           key={t.id}
           className="animate-in slide-in-from-left fade-in rounded-xl border border-amber-400/50 bg-gradient-to-r from-amber-500/90 to-red-500/90 text-white px-4 py-3 shadow-lg"

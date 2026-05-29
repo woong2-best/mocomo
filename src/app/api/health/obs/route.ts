@@ -13,15 +13,18 @@ export async function GET() {
   if (!hasRtmp) missingEnv.push("SRS_RTMP_URL");
   if (!hasHls) missingEnv.push("NEXT_PUBLIC_SRS_HLS_BASE_URL");
 
+  const configured = isSrsConfigured() && !configErr;
+
   return NextResponse.json({
     engine: "srs",
-    configured: isSrsConfigured() && !configErr,
+    configured,
     error: configErr,
     missingEnv,
-    hasRtmp,
-    hasHls,
-    rtmpUrl: hasRtmp ? getSrsRtmpUrl() : null,
-    hlsBase: hasHls ? getSrsHlsBaseUrl() : null,
+    hasRtmp: hasRtmp || configured,
+    hasHls: hasHls || configured,
+    usingFallback: configured && !hasRtmp,
+    rtmpUrl: configured ? getSrsRtmpUrl() : null,
+    hlsBase: configured ? getSrsHlsBaseUrl() : null,
     hint: configErr
       ? `Vercel Production에 ${missingEnv.join(", ")} 추가 후 Redeploy 하세요.`
       : "OBS 탭에서 RTMP 서버·방송 키를 복사해 OBS에 붙여넣으면 HLS로 시청됩니다.",
