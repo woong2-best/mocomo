@@ -4,7 +4,7 @@ import { LiveViewerPlayer } from "@/components/live/live-viewer-player";
 import { LiveChat } from "@/components/live/live-chat";
 import type { LiveTipAlert } from "@/components/live/live-tip-alerts";
 
-/** 시청자 — HLS + 채팅 */
+/** 시청자 — 영상 + 채팅 (치지직/트위치 레이아웃) */
 export function LiveViewerShell({
   channelId,
   channelName,
@@ -19,16 +19,20 @@ export function LiveViewerShell({
   onRecentTips?: (tips: LiveTipAlert[]) => void;
 }) {
   return (
-    <div className="live-studio-panel space-y-4 p-3 sm:p-5">
-      <h1 className="text-lg font-bold border-b border-border pb-3">{channelName}</h1>
-      <div className="grid lg:grid-cols-[1fr_minmax(280px,360px)] gap-4 items-start">
-        <LiveViewerPlayer channelId={channelId} />
-        <LiveChat
-          channelId={channelId}
-          viewerCount={viewerCount}
-          onViewerCount={onViewerCount}
-          onRecentTips={onRecentTips}
-        />
+    <div className="live-studio-twitch space-y-3">
+      <h1 className="text-base sm:text-lg font-bold px-1 truncate">{channelName}</h1>
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-3 xl:gap-4 items-start">
+        <div className="min-w-0 rounded-xl overflow-hidden ring-1 ring-border/50 bg-black">
+          <LiveViewerPlayer channelId={channelId} />
+        </div>
+        <div className="xl:sticky xl:top-16 min-h-[min(70vh,560px)]">
+          <LiveChat
+            channelId={channelId}
+            viewerCount={viewerCount}
+            onViewerCount={onViewerCount}
+            onRecentTips={onRecentTips}
+          />
+        </div>
       </div>
     </div>
   );

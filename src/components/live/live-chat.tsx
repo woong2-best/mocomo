@@ -7,12 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { SupportTierLevel } from "@prisma/client";
-import {
-  sendLiveChatMessage,
-  getLiveStreamSync,
-  loadLiveChatHistory,
-  deleteLiveChatMessage,
-} from "@/actions/live-stream";
+import { loadLiveChatHistory, deleteLiveChatMessage } from "@/actions/live-stream";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { UserProfileLink } from "@/components/user/user-profile-link";
 import { ReportButton } from "@/components/report/report-button";
@@ -53,28 +48,36 @@ function LiveChatInner({
 }) {
   const { data: session } = useSession();
   const userId = session?.user?.id;
+  const username = session?.user?.username ?? session?.user?.name ?? "me";
   const { socket, connected } = useLiveSocket(userId, channelId);
   const [messages, setMessages] = useState<LiveChatMessage[]>([]);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [historyError, setHistoryError] = useState("");
   const lastSyncRef = useRef<string>(new Date(0).toISOString());
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
+  const pendingIdRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
+    setHistoryError("");
     loadLiveChatHistory(channelId)
       .then((res) => {
-        if (cancelled || "error" in res) return;
+        if (cancelled) return;
+        if ("error" in res && res.error) {
+          setHistoryError("채팅 기록을 불러오지 못했습니다. DB 마이그레이션을 확인해 주세요.");
+          return;
+        }
         setMessages(ensureArray<LiveChatMessage>(res.messages));
         if (res.messages.length > 0) {
           lastSyncRef.current = new Date(res.messages[res.messages.length - 1].at).toISOString();
         }
       })
       .catch(() => {
-        /* 채팅 테이블 미준비 등 — 스튜디오 전체는 유지 */
+        if (!cancelled) setHistoryError("채팅 기록을 불러오지 못했습니다.");
       });
     return () => {
       cancelled = true;
@@ -85,14 +88,12 @@ function LiveChatInner({
   onViewerCountRef.current = onViewerCount;
   const viewerCountRef = useRef(viewerCount);
   viewerCountRef.current = viewerCount;
-  const onRecentTipsRef = useRef(onRecentTips);
-  onRecentTipsRef.current = onRecentTips;
 
   const appendMessage = useCallback((m: LiveChatMessage) => {
     setMessages((prev) => {
       const safePrev = ensureArray<LiveChatMessage>(prev);
       if (safePrev.some((x) => x.id === m.id)) return safePrev;
-      return [...safePrev, m].slice(-120);
+      return [...safePrev, m].slice(-150);
     });
   }, []);
 
@@ -114,39 +115,42 @@ function LiveChatInner({
   }, [socket, appendMessage]);
 
   const poll = useCallback(async () => {
-    const res = await getLiveStreamSync(channelId, lastSyncRef.current);
-    if ("error" in res) return;
-    if (res.viewerCount !== viewerCountRef.current) {
-      viewerCountRef.current = res.viewerCount;
-      onViewerCountRef.current?.(res.viewerCount);
-    }
-    const recentTips = ensureArray<LiveTipAlert>(res.recentTips);
-    if (recentTips.length > 0) {
-      onRecentTipsRef.current?.(recentTips);
-    }
-    const incoming = ensureArray<LiveChatMessage>(res.messages);
-    if (incoming.length > 0) {
-      setMessages((prev) => {
-        const safePrev = ensureArray<LiveChatMessage>(prev);
-        const ids = new Set(safePrev.map((m) => m.id));
-        const added = incoming.filter((m) => !ids.has(m.id));
-        return [...safePrev, ...added].slice(-120);
-      });
-      const last = incoming[incoming.length - 1];
-      lastSyncRef.current = new Date(last.at).toISOString();
+    try {
+      const res = await fetch(
+        `/api/live/${channelId}/chat?since=${encodeURIComponent(lastSyncRef.current)}`,
+        { credentials: "include", cache: "no-store" }
+      );
+      const body = await res.json();
+      if (!res.ok || !body.ok) return;
+      if (typeof body.viewerCount === "number" && body.viewerCount !== viewerCountRef.current) {
+        viewerCountRef.current = body.viewerCount;
+        onViewerCountRef.current?.(body.viewerCount);
+      }
+      const incoming = ensureArray<LiveChatMessage>(body.messages);
+      if (incoming.length > 0) {
+        setMessages((prev) => {
+          const safePrev = ensureArray<LiveChatMessage>(prev);
+          const ids = new Set(safePrev.map((m) => m.id));
+          const added = incoming.filter((m) => !ids.has(m.id));
+          return [...safePrev, ...added].slice(-150);
+        });
+        const last = incoming[incoming.length - 1];
+        lastSyncRef.current = new Date(last.at).toISOString();
+      }
+    } catch {
+      /* ignore */
     }
   }, [channelId]);
 
   useEffect(() => {
     poll();
-    const ms = connected ? 5000 : 2500;
+    const ms = connected ? 8000 : 2000;
     const id = setInterval(poll, ms);
     return () => clearInterval(id);
   }, [poll, connected]);
 
   useEffect(() => {
-    const el = scrollRef.current;
-    if (!el || !stickToBottomRef.current) return;
+    if (!stickToBottomRef.current) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
@@ -159,21 +163,52 @@ function LiveChatInner({
   async function send() {
     const content = text.trim();
     if (!content || !session?.user || sending) return;
+
+    const tempId = `pending-${++pendingIdRef.current}`;
+    const optimistic: LiveChatMessage = {
+      id: tempId,
+      userId: session.user.id,
+      username: typeof username === "string" ? username.replace(/^@/, "") : "me",
+      content,
+      at: Date.now(),
+      image: session.user.image ?? null,
+    };
+
     setSending(true);
     setError("");
-    const res = await sendLiveChatMessage(channelId, content);
-    setSending(false);
-    if ("error" in res && res.error) {
-      setError(res.error);
-      return;
-    }
-    if ("message" in res && res.message) {
-      stickToBottomRef.current = true;
-      appendMessage(res.message);
-      lastSyncRef.current = new Date(res.message.at).toISOString();
-      relayLiveChatMessage(socket, channelId, res.message);
-    }
     setText("");
+    stickToBottomRef.current = true;
+    appendMessage(optimistic);
+
+    try {
+      const res = await fetch(`/api/live/${channelId}/chat`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      const body = await res.json();
+      if (!res.ok || !body.ok || !body.message) {
+        setMessages((prev) => ensureArray<LiveChatMessage>(prev).filter((m) => m.id !== tempId));
+        setError(body.error ?? "전송에 실패했습니다.");
+        setText(content);
+        return;
+      }
+      const saved = body.message as LiveChatMessage;
+      setMessages((prev) => {
+        const without = ensureArray<LiveChatMessage>(prev).filter((m) => m.id !== tempId);
+        if (without.some((m) => m.id === saved.id)) return without;
+        return [...without, saved].slice(-150);
+      });
+      lastSyncRef.current = new Date(saved.at).toISOString();
+      relayLiveChatMessage(socket, channelId, saved);
+    } catch {
+      setMessages((prev) => ensureArray<LiveChatMessage>(prev).filter((m) => m.id !== tempId));
+      setError("네트워크 오류로 전송하지 못했습니다.");
+      setText(content);
+    } finally {
+      setSending(false);
+    }
   }
 
   async function removeMessage(messageId: string) {
@@ -186,28 +221,31 @@ function LiveChatInner({
   }
 
   return (
-    <div className="flex flex-col h-full min-h-[420px] rounded-2xl border border-border/60 bg-background/95 shadow-sm overflow-hidden">
-      <div className="px-4 py-3 border-b border-border/60 flex justify-between items-center bg-muted/30">
+    <div className="flex flex-col h-full min-h-[min(70vh,560px)] rounded-xl border border-border/60 bg-background overflow-hidden">
+      <div className="px-3 py-2.5 border-b border-border/60 flex justify-between items-center bg-muted/30 shrink-0">
         <span className="font-semibold text-sm">
-          라이브 채팅 {connected && <span className="text-[10px] text-green-600 ml-1">실시간</span>}
+          채팅 {connected && <span className="text-[10px] text-green-600 ml-1">실시간</span>}
         </span>
-        <span className="text-xs text-muted-foreground flex items-center gap-1">
+        <span className="text-xs text-muted-foreground flex items-center gap-1 tabular-nums">
           <Users className="h-3.5 w-3.5" />
-          {viewerCount}명 시청
+          {viewerCount}
         </span>
       </div>
       <div
         ref={scrollRef}
         onScroll={onScroll}
-        className="flex-1 overflow-y-auto p-3 space-y-2.5 min-h-0 max-h-[min(50vh,420px)]"
+        className="flex-1 overflow-y-auto p-2.5 space-y-2 min-h-0"
       >
-        {messages.length === 0 && (
-          <p className="text-xs text-muted-foreground text-center py-10">
-            채팅이 실시간으로 저장됩니다. 첫 인사를 남겨 보세요!
+        {historyError && (
+          <p className="text-xs text-destructive text-center py-2 px-2">{historyError}</p>
+        )}
+        {messages.length === 0 && !historyError && (
+          <p className="text-xs text-muted-foreground text-center py-8">
+            채팅은 DB에 저장됩니다. 첫 메시지를 남겨 보세요.
           </p>
         )}
         {ensureArray<LiveChatMessage>(messages).map((m) => (
-          <div key={m.id} className="flex gap-2 text-sm animate-in fade-in duration-200 group">
+          <div key={m.id} className="flex gap-2 text-sm group">
             <UserProfileLink username={m.username} className="shrink-0 rounded-full">
               <Avatar className="h-7 w-7">
                 <AvatarImage src={m.image ?? undefined} />
@@ -223,7 +261,7 @@ function LiveChatInner({
                   compact
                   className="flex-wrap"
                 />
-                {canModerate && (
+                {canModerate && !m.id.startsWith("pending-") && (
                   <button
                     type="button"
                     className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive p-0.5"
@@ -233,7 +271,7 @@ function LiveChatInner({
                     <Trash2 className="h-3 w-3" />
                   </button>
                 )}
-                {session?.user && m.userId !== session.user.id && (
+                {session?.user && m.userId !== session.user.id && !m.id.startsWith("pending-") && (
                   <ReportButton
                     targetType="LIVE_CHAT"
                     targetId={m.id}
@@ -251,20 +289,20 @@ function LiveChatInner({
         <div ref={bottomRef} />
       </div>
       {session?.user ? (
-        <div className="p-3 border-t border-border/60 bg-background space-y-1">
+        <div className="p-2.5 border-t border-border/60 shrink-0 space-y-1">
           <div className="flex gap-2">
             <Input
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
-              placeholder="메시지 입력…"
-              className="rounded-xl text-sm h-10"
+              placeholder="채팅 입력…"
+              className="rounded-lg text-sm h-9"
               maxLength={200}
               disabled={sending}
             />
             <Button
               size="sm"
-              className="rounded-xl shrink-0 h-10 px-4"
+              className="rounded-lg shrink-0 h-9 px-3"
               onClick={send}
               disabled={sending || !text.trim()}
             >
@@ -272,12 +310,9 @@ function LiveChatInner({
             </Button>
           </div>
           {error && <p className="text-xs text-destructive">{error}</p>}
-          {isHost && (
-            <p className="text-[10px] text-muted-foreground">호스트 · 운영진은 채팅에 마우스를 올리면 삭제할 수 있습니다.</p>
-          )}
         </div>
       ) : (
-        <p className="p-4 text-xs text-center text-muted-foreground">채팅하려면 로그인하세요</p>
+        <p className="p-3 text-xs text-center text-muted-foreground shrink-0">채팅하려면 로그인하세요</p>
       )}
     </div>
   );

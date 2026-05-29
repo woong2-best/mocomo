@@ -19,7 +19,7 @@ import {
   filterLiveChatContent,
   looksLikeSpamDuplicate,
 } from "@/lib/live-chat-filter";
-import { moderateChatWithAi } from "@/lib/ai-moderation";
+import { moderateLiveChatFast } from "@/lib/ai-moderation";
 import { provisionObsIngress } from "@/lib/obs-ingress-service";
 import { notifyFollowersOnLive } from "@/lib/live-notify";
 import {
@@ -360,7 +360,9 @@ export async function sendLiveChatMessage(channelId: string, content: string) {
   if (!filtered.ok) return { error: filtered.error };
   const text = filtered.text;
 
-  const ai = await moderateChatWithAi(text);
+  await upsertLiveMember(channelId, user.id, access.isHost ? "HOST" : "VIEWER");
+
+  const ai = await moderateLiveChatFast(text);
   if (!ai.ok) return { error: ai.error };
 
   if (channel.slowModeSeconds > 0 && !access.isHost) {
@@ -380,19 +382,25 @@ export async function sendLiveChatMessage(channelId: string, content: string) {
     }
   }
 
-  const msg = await db.liveChatMessage.create({
-    data: { channelId, userId: user.id, content: text },
-    include: {
-      user: { select: userPublicSelectMinimal },
-    },
-  });
-
-  await db.voiceMember.update({
-    where: { channelId_userId: { channelId, userId: user.id } },
-    data: { lastSeenAt: new Date() },
-  });
-
-  return { message: mapLiveChatMessage(msg) };
+  try {
+    const msg = await db.liveChatMessage.create({
+      data: { channelId, userId: user.id, content: text },
+      include: {
+        user: { select: userPublicSelectMinimal },
+      },
+    });
+    return { message: mapLiveChatMessage(msg) };
+  } catch (e) {
+    console.error("[sendLiveChatMessage]", e);
+    const msg = e instanceof Error ? e.message : "";
+    if (/LiveChatMessage|does not exist|relation/i.test(msg)) {
+      return {
+        error:
+          "채팅 DB가 준비되지 않았습니다. Supabase SQL Editor에서 supabase-fix-all.sql을 실행해 주세요.",
+      };
+    }
+    return { error: "채팅 저장에 실패했습니다." };
+  }
 }
 
 export async function getLiveStreamSync(channelId: string, since?: string) {
@@ -572,14 +580,20 @@ export async function loadLiveChatHistory(channelId: string) {
   const access = await resolveLiveChannelAccess(channelId, user.id);
   if (!access.allowed) return { error: "NOT_MEMBER" as const };
 
-  const messages = await db.liveChatMessage.findMany({
-    where: { channelId },
-    orderBy: { createdAt: "desc" },
-    take: 80,
-    include: { user: { select: userPublicSelectMinimal } },
-  });
+  await upsertLiveMember(channelId, user.id, access.isHost ? "HOST" : "VIEWER");
 
-  return { messages: messages.reverse().map(mapLiveChatMessage) };
+  try {
+    const messages = await db.liveChatMessage.findMany({
+      where: { channelId },
+      orderBy: { createdAt: "desc" },
+      take: 80,
+      include: { user: { select: userPublicSelectMinimal } },
+    });
+    return { messages: messages.reverse().map(mapLiveChatMessage) };
+  } catch (e) {
+    console.error("[loadLiveChatHistory]", e);
+    return { error: "CHAT_DB" as const };
+  }
 }
 
 export async function updateLiveStreamSettings(

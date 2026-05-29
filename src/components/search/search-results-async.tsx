@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { db } from "@/lib/db";
+import { runFastSearch } from "@/lib/search-fast";
 import { Card, CardContent } from "@/components/ui/card";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
-import type { SupportTierLevel } from "@prisma/client";
 
 export async function SearchResultsAsync({ query }: { query: string }) {
   if (!query) return null;
@@ -13,58 +12,7 @@ export async function SearchResultsAsync({ query }: { query: string }) {
     );
   }
 
-  let users: { username: string; name: string | null; supportTierSent: SupportTierLevel }[] = [];
-  let animes: { slug: string; title: string }[] = [];
-  let posts: { id: string; content: string; title: string | null }[] = [];
-  let liveStreams: { id: string; name: string; category: string; tags: string[] }[] = [];
-
-  [users, animes, posts, liveStreams] = await Promise.all([
-    db.user.findMany({
-      where: {
-        OR: [
-          { username: { contains: q, mode: "insensitive" } },
-          { name: { contains: q, mode: "insensitive" } },
-        ],
-      },
-      take: 10,
-      select: { username: true, name: true, supportTierSent: true },
-    }),
-    db.anime.findMany({
-      where: {
-        OR: [
-          { title: { contains: q, mode: "insensitive" } },
-          { titleEn: { contains: q, mode: "insensitive" } },
-          { synopsis: { contains: q, mode: "insensitive" } },
-          { studio: { contains: q, mode: "insensitive" } },
-        ],
-      },
-      take: 10,
-      orderBy: [{ viewCount: "desc" }, { updatedAt: "desc" }],
-      select: { slug: true, title: true },
-    }),
-    db.post.findMany({
-      where: {
-        OR: [
-          { content: { contains: q, mode: "insensitive" } },
-          { title: { contains: q, mode: "insensitive" } },
-        ],
-      },
-      take: 10,
-      select: { id: true, content: true, title: true },
-    }),
-    db.voiceChannel.findMany({
-      where: {
-        isLive: true,
-        OR: [
-          { name: { contains: q, mode: "insensitive" } },
-          { tags: { hasSome: [q] } },
-          { description: { contains: q, mode: "insensitive" } },
-        ],
-      },
-      take: 8,
-      select: { id: true, name: true, category: true, tags: true },
-    }),
-  ]);
+  const { users, animes, posts, liveStreams } = await runFastSearch(q);
 
   return (
     <>
@@ -80,6 +28,7 @@ export async function SearchResultsAsync({ query }: { query: string }) {
       )}
       <section>
         <h2 className="text-sm font-semibold text-muted-foreground mb-2">유저 · 코스어</h2>
+        {users.length === 0 && <p className="text-xs text-muted-foreground">없음</p>}
         {users.map((u) => (
           <Link key={u.username} href={`/u/${u.username}`} className="block text-sm py-1 hover:text-primary">
             <DisplayNameWithSupportTier
@@ -97,6 +46,7 @@ export async function SearchResultsAsync({ query }: { query: string }) {
       </section>
       <section>
         <h2 className="text-sm font-semibold text-muted-foreground mb-2">애니</h2>
+        {animes.length === 0 && <p className="text-xs text-muted-foreground">없음</p>}
         {animes.map((a) => (
           <Link key={a.slug} href={`/anime/${a.slug}`} className="block text-sm py-1 hover:text-primary">
             {a.title}
@@ -105,6 +55,7 @@ export async function SearchResultsAsync({ query }: { query: string }) {
       </section>
       <section>
         <h2 className="text-sm font-semibold text-muted-foreground mb-2">게시글</h2>
+        {posts.length === 0 && <p className="text-xs text-muted-foreground">없음</p>}
         {posts.map((p) => (
           <Link key={p.id} href={`/post/${p.id}`}>
             <Card className="mb-2 hover:border-primary/30">

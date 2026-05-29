@@ -26,7 +26,12 @@ export async function GET(
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
 
-  return NextResponse.json({ ok: true, ...result.data });
+  return NextResponse.json({
+    ok: true,
+    obsServer: result.data.obsServer,
+    obsStreamKey: result.data.obsStreamKey,
+    ingressId: result.data.ingressId,
+  });
 }
 
 export async function POST(
@@ -56,5 +61,10 @@ export async function POST(
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
 
-  return NextResponse.json({ ok: true, ...result.data });
+  return NextResponse.json({
+    ok: true,
+    obsServer: result.data.obsServer,
+    obsStreamKey: result.data.obsStreamKey,
+    ingressId: result.data.ingressId,
+  });
 }

@@ -186,9 +186,25 @@ io.on("connection", (socket: AuthedSocket) => {
     });
   }
 
-  socket.on("join_live", (channelId: string) => {
-    if (!channelId) return;
+  socket.on("join_live", async (channelId: string) => {
+    if (!channelId || channelId.length > 64) return;
     socket.join(`live:${channelId}`);
+    try {
+      const channel = await prisma.voiceChannel.findUnique({
+        where: { id: channelId },
+        select: { createdBy: true, isLive: true },
+      });
+      if (channel?.isLive) {
+        const role = channel.createdBy === userId ? "HOST" : "VIEWER";
+        await prisma.voiceMember.upsert({
+          where: { channelId_userId: { channelId, userId } },
+          create: { channelId, userId, role, lastSeenAt: new Date() },
+          update: { lastSeenAt: new Date() },
+        });
+      }
+    } catch {
+      /* ignore */
+    }
     emitLiveViewers(channelId);
   });
 
@@ -213,10 +229,21 @@ io.on("connection", (socket: AuthedSocket) => {
     }) => {
       if (!data.channelId || !data.message?.id) return;
       if (data.message.userId !== userId) return;
+      const channel = await prisma.voiceChannel.findUnique({
+        where: { id: data.channelId },
+        select: { isLive: true },
+      });
+      if (!channel?.isLive) return;
       const member = await prisma.voiceMember.findUnique({
         where: { channelId_userId: { channelId: data.channelId, userId } },
       });
-      if (!member) return;
+      if (!member) {
+        await prisma.voiceMember.upsert({
+          where: { channelId_userId: { channelId: data.channelId, userId } },
+          create: { channelId: data.channelId, userId, role: "VIEWER", lastSeenAt: new Date() },
+          update: { lastSeenAt: new Date() },
+        });
+      }
       io.to(`live:${data.channelId}`).emit("live_chat_message", data.message);
     }
   );

@@ -68,7 +68,7 @@ export default async function VoiceRoomPage({ params }: { params: Promise<{ id: 
   }
 
   return (
-    <div className="live-page-shell max-w-7xl mx-auto space-y-4 pb-24 lg:pb-6">
+    <div className="live-page-shell max-w-[1600px] mx-auto space-y-3 pb-24 lg:pb-4 px-2 sm:px-4">
       <Link href="/live">
         <Button variant="ghost" size="sm" className="gap-1">
           <ChevronLeft className="h-4 w-4" />
