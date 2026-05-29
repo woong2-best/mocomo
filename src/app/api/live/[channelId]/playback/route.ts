@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { buildHlsPlaybackUrl, srsConfigError } from "@/lib/srs";
+import { srsConfigError } from "@/lib/srs";
+import { buildProxiedHlsPlaybackPath, probeSrsManifest } from "@/lib/srs-hls-proxy";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 
 /** 시청자 HLS 재생 URL (접근 권한 검사 후 m3u8 주소 반환) */
@@ -47,13 +48,29 @@ export async function GET(
     return NextResponse.json({
       hlsUrl: null,
       waiting: true,
-      message: "스트리머가 OBS 방송을 시작하면 화면이 표시됩니다.",
+      message: "OBS에서 키를 발급한 뒤 방송을 시작해 주세요.",
+    });
+  }
+
+  const probe = await probeSrsManifest(channel.rtmpStreamKey);
+  const hlsUrl = buildProxiedHlsPlaybackPath(channelId);
+
+  if (!probe.live) {
+    return NextResponse.json({
+      ok: true,
+      hlsUrl,
+      waiting: true,
+      message:
+        "OBS에서 방송을 시작하면 3~10초 뒤 화면이 나타납니다. 키가 맞는지·방송 시작 여부를 확인해 주세요.",
+      probeError: probe.error,
+      probeStatus: probe.status,
     });
   }
 
   return NextResponse.json({
     ok: true,
-    hlsUrl: buildHlsPlaybackUrl(channel.rtmpStreamKey),
+    hlsUrl,
     waiting: false,
+    proxied: true,
   });
 }
