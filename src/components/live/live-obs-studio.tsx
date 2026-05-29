@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Copy, Check, Monitor, Radio, Loader2, RefreshCw } from "lucide-react";
+import { Copy, Check, Monitor, Radio, Loader2, RefreshCw, Signal, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type ObsCreds = {
@@ -43,6 +43,8 @@ export function LiveObsStudio({
   const [ingressLoading, setIngressLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [copied, setCopied] = useState<"all" | "server" | "key" | null>(null);
+  const [onAir, setOnAir] = useState<boolean | null>(null);
+  const [signalMsg, setSignalMsg] = useState("");
 
   const loadIngress = useCallback(
     async (refresh = false) => {
@@ -66,6 +68,33 @@ export function LiveObsStudio({
   useEffect(() => {
     void loadIngress(false);
   }, [loadIngress]);
+
+  useEffect(() => {
+    if (!creds) return;
+    let cancelled = false;
+
+    async function checkSignal() {
+      try {
+        const res = await fetch(`/api/live/${channelId}/broadcast-status`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+        const body = await res.json();
+        if (cancelled) return;
+        setOnAir(!!body.onAir);
+        setSignalMsg(typeof body.message === "string" ? body.message : "");
+      } catch {
+        if (!cancelled) setOnAir(null);
+      }
+    }
+
+    checkSignal();
+    const id = setInterval(checkSignal, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [channelId, creds]);
 
   function copy(text: string, which: "all" | "server" | "key") {
     void navigator.clipboard.writeText(text);
@@ -155,15 +184,37 @@ export function LiveObsStudio({
           {copied === "all" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
           서버 + 키 한번에 복사
         </Button>
-      </div>
 
-      <div className="aspect-video rounded-2xl bg-muted/30 border border-dashed border-border flex flex-col items-center justify-center gap-2 p-6 text-center">
-        <Monitor className="h-10 w-10 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">
-          미리보기는 OBS 프로그램에서 확인하세요.
-          <br />
-          여기서는 RTMP 키만 발급합니다 (안정적).
-        </p>
+        <div
+          className={`rounded-xl px-3 py-2.5 text-xs flex gap-2 items-start ${
+            onAir === true
+              ? "bg-green-500/15 border border-green-500/40 text-green-800 dark:text-green-200"
+              : onAir === false
+                ? "bg-amber-500/15 border border-amber-500/40 text-amber-900 dark:text-amber-100"
+                : "bg-muted/50 border border-border text-muted-foreground"
+          }`}
+        >
+          {onAir === true ? (
+            <Signal className="h-4 w-4 shrink-0 mt-0.5" />
+          ) : (
+            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+          )}
+          <div>
+            <p className="font-medium">
+              {onAir === true
+                ? "SRS 송출 신호 수신 중"
+                : onAir === false
+                  ? "SRS에 신호 없음"
+                  : "송출 상태 확인 중…"}
+            </p>
+            {signalMsg && <p className="mt-1 opacity-90">{signalMsg}</p>}
+            <p className="mt-1.5 text-[10px] opacity-80">
+              참고: 브라우저에서 <code className="bg-background/80 px-1 rounded">http://서버IP:8080/live/</code> 만
+              열면 Not Found가 정상입니다. 방송 중에는 위 <strong>방송 키</strong>와 같은 이름의{" "}
+              <code className="bg-background/80 px-1 rounded">.m3u8</code> 파일이 생성됩니다.
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="flex justify-end">
