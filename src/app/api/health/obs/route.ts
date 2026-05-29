@@ -5,14 +5,25 @@ import { getSrsRtmpUrl, getSrsHlsBaseUrl, isSrsConfigured } from "@/lib/srs";
 /** SRS RTMP → HLS 방송 연동 준비 상태 */
 export async function GET() {
   const configErr = obsConfigError();
+  const hasRtmp = !!process.env.SRS_RTMP_URL?.trim();
+  const hasHls = !!(
+    process.env.NEXT_PUBLIC_SRS_HLS_BASE_URL?.trim() || process.env.SRS_HLS_BASE_URL?.trim()
+  );
+  const missingEnv: string[] = [];
+  if (!hasRtmp) missingEnv.push("SRS_RTMP_URL");
+  if (!hasHls) missingEnv.push("NEXT_PUBLIC_SRS_HLS_BASE_URL");
+
   return NextResponse.json({
     engine: "srs",
     configured: isSrsConfigured() && !configErr,
     error: configErr,
-    rtmpUrl: process.env.SRS_RTMP_URL ? getSrsRtmpUrl() : null,
-    hlsBase: process.env.NEXT_PUBLIC_SRS_HLS_BASE_URL ? getSrsHlsBaseUrl() : null,
+    missingEnv,
+    hasRtmp,
+    hasHls,
+    rtmpUrl: hasRtmp ? getSrsRtmpUrl() : null,
+    hlsBase: hasHls ? getSrsHlsBaseUrl() : null,
     hint: configErr
-      ? "Vercel에 SRS_RTMP_URL, NEXT_PUBLIC_SRS_HLS_BASE_URL을 설정하고 Ubuntu VPS에 SRS를 띄우세요. scripts/SRS_STREAMING_SETUP.md 참고."
+      ? `Vercel Production에 ${missingEnv.join(", ")} 추가 후 Redeploy 하세요.`
       : "OBS 탭에서 RTMP 서버·방송 키를 복사해 OBS에 붙여넣으면 HLS로 시청됩니다.",
   });
 }
