@@ -144,17 +144,15 @@ function LiveStreamRoomInner({
       )}
 
       <div className="grid lg:grid-cols-[1fr_minmax(280px,360px)] gap-4 items-start">
-        <div className="min-w-0 rounded-2xl overflow-hidden ring-1 ring-border/50">
-          {isHost ? (
-            <LiveBroadcastStudio
-              channelId={channelId}
-              initialMode={broadcastMode}
-              onEndStream={onEndStream}
-            />
-          ) : (
-            <LiveViewerPlayer channelId={channelId} />
-          )}
-        </div>
+        <LiveStudioErrorBoundary channelId={channelId}>
+          <div className="min-w-0 rounded-2xl overflow-hidden ring-1 ring-border/50">
+            {isHost ? (
+              <LiveBroadcastStudio channelId={channelId} onEndStream={onEndStream} />
+            ) : (
+              <LiveViewerPlayer channelId={channelId} />
+            )}
+          </div>
+        </LiveStudioErrorBoundary>
         <LiveStudioErrorBoundary channelId={channelId}>
           <LiveChat
             channelId={channelId}

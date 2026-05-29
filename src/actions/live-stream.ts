@@ -26,6 +26,7 @@ import {
   fetchLiveChannelForStudio,
   fetchLiveTipsForChannel,
 } from "@/lib/live-channel-meta-safe";
+import { ensureStringArray } from "@/lib/ensure-array";
 import { revalidatePath } from "next/cache";
 
 function mapLiveChatMessage(m: {
@@ -355,7 +356,7 @@ export async function sendLiveChatMessage(channelId: string, content: string) {
   });
   if (!channel) return { error: "방송을 찾을 수 없습니다." };
 
-  const filtered = filterLiveChatContent(content, channel.chatBannedWords);
+  const filtered = filterLiveChatContent(content, ensureStringArray(channel.chatBannedWords));
   if (!filtered.ok) return { error: filtered.error };
   const text = filtered.text;
 

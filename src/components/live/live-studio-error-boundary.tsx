@@ -21,11 +21,11 @@ export class LiveStudioErrorBoundary extends Component<Props, State> {
 
   static getDerivedStateFromError(error: Error): State {
     const msg = error.message?.trim() || "알 수 없는 오류";
-    if (/RoomContext|LiveKitRoom|useTracks|useLocalParticipant/i.test(msg)) {
+    if (/\.map is not a function|RoomContext|LiveKitRoom|useTracks|ControlBar/i.test(msg)) {
       return {
         hasError: true,
         message:
-          "영상 서버 연결 컴포넌트 오류입니다. 페이지를 새로고침하거나 브라우저 모드로 다시 시도해 주세요.",
+          "영상 UI 오류입니다. Ctrl+Shift+R로 강력 새로고침 후 OBS 탭만 사용해 주세요. (브라우저 방송·LiveKit 미리보기는 사용하지 않습니다.)",
       };
     }
     return { hasError: true, message: msg };

@@ -246,7 +246,7 @@ export function LiveRoomClient({
           chatBannedWords={chatBannedWords}
           paymentsEnabled={paymentsEnabled}
           onRecentTips={setRecentTips}
-          broadcastMode={broadcastMode ?? "BROWSER"}
+          broadcastMode={broadcastMode ?? "OBS"}
         />
       </LiveStudioErrorBoundary>
     </div>

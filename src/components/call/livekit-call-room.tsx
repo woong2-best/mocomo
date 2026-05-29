@@ -1,13 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  LiveKitRoom,
-  ControlBar,
-  useLocalParticipant,
-  useTracks,
-  VideoTrack,
-} from "@livekit/components-react";
+import { LiveKitRoom, useLocalParticipant, useTracks, VideoTrack } from "@livekit/components-react";
+import { LivekitSafeControls } from "@/components/call/livekit-safe-controls";
 import "@livekit/components-styles";
 import { Track } from "livekit-client";
 import { Loader2, Radio, Video } from "lucide-react";
@@ -151,16 +146,7 @@ export function LivekitCallRoom({
         <CallRoomConnection />
         <CallRoomAudio />
         {video && <DmVideoStage />}
-        <ControlBar
-          controls={{
-            microphone: true,
-            camera: video,
-            screenShare: false,
-            chat: false,
-            settings: false,
-            leave: false,
-          }}
-        />
+        <LivekitSafeControls video={video} />
       </LiveKitRoom>
     </div>
   );

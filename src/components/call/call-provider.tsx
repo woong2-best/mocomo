@@ -91,7 +91,9 @@ function useCallBackgroundEnabled(userId: string | undefined) {
 function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
   const userId = session?.user?.id;
+  const pathname = usePathname();
   const backgroundSync = useCallBackgroundEnabled(userId);
+  const prefetchLivekitChunk = pathname.startsWith("/messages");
   const [callState, setCallState] = useState<ActiveCallState>({ phase: "idle" });
   const [error, setError] = useState("");
   const [mic, setMic] = useState<MicCheckResult | null>(null);
@@ -339,9 +341,9 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   }, [userId, backgroundSync, flushPendingEmits]);
 
   useEffect(() => {
-    if (!backgroundSync) return;
+    if (!prefetchLivekitChunk) return;
     void import("@/components/call/livekit-call-room");
-  }, [backgroundSync]);
+  }, [prefetchLivekitChunk]);
 
   const activeCallId = isCallPhase(callState) ? callState.call.id : null;
 

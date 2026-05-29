@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LiveKitRoom, ControlBar } from "@livekit/components-react";
+import { LiveKitRoom } from "@livekit/components-react";
+import { LivekitSafeControls } from "@/components/call/livekit-safe-controls";
 import "@livekit/components-styles";
 import { Loader2, Radio } from "lucide-react";
 import { fetchLivekitCredentials, type LivekitCredentials } from "@/lib/livekit-token-fetch";
@@ -85,16 +86,7 @@ export function LivekitAudioCall({
         data-lk-theme="default"
       >
         <CallRoomAudio />
-        <ControlBar
-          controls={{
-            microphone: true,
-            camera: false,
-            screenShare: false,
-            chat: false,
-            settings: false,
-            leave: false,
-          }}
-        />
+        <LivekitSafeControls />
       </LiveKitRoom>
     </div>
   );

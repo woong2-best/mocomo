@@ -91,7 +91,7 @@ function withLiveDefaults(
     endedAt: ch.endedAt ?? null,
     slowModeSeconds: ch.slowModeSeconds ?? 0,
     chatBannedWords: ensureStringArray(ch.chatBannedWords),
-    broadcastMode: ch.broadcastMode ?? "BROWSER",
+    broadcastMode: ch.broadcastMode ?? "OBS",
     liveVisibility: ch.liveVisibility ?? "PUBLIC",
     minViewerTier: ch.minViewerTier ?? null,
     rtmpUrl: ch.rtmpUrl ?? null,

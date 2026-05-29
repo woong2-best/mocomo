@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Hls from "hls.js";
+import type HlsType from "hls.js";
 import { Loader2, Radio, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -16,7 +16,7 @@ type PlaybackResponse = {
 /** 트위치/치지직 방식 HLS 시청 (hls.js) */
 export function LiveHlsPlayer({ channelId }: { channelId: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const hlsRef = useRef<Hls | null>(null);
+  const hlsRef = useRef<HlsType | null>(null);
   const [status, setStatus] = useState<"loading" | "waiting" | "playing" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [hlsUrl, setHlsUrl] = useState<string | null>(null);
@@ -59,43 +59,49 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
       video!.play().catch(() => setStatus("waiting"));
     }
 
+    let cancelled = false;
+
     if (video.canPlayType("application/vnd.apple.mpegurl")) {
       attachNative();
       return;
     }
 
-    if (!Hls.isSupported()) {
-      setErrorMsg("이 브라우저는 HLS 재생을 지원하지 않습니다.");
-      setStatus("error");
-      return;
-    }
-
-    const hls = new Hls({
-      enableWorker: true,
-      lowLatencyMode: false,
-      backBufferLength: 30,
-    });
-    hlsRef.current = hls;
-    hls.loadSource(hlsUrl);
-    hls.attachMedia(video);
-    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      setStatus("playing");
-      video.play().catch(() => undefined);
-    });
-    hls.on(Hls.Events.ERROR, (_e, data) => {
-      if (data.fatal) {
-        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-          setStatus("waiting");
-          hls.startLoad();
-        } else {
-          setStatus("error");
-          setErrorMsg("방송 신호를 받지 못했습니다. 잠시 후 다시 시도해 주세요.");
-        }
+    void import("hls.js").then(({ default: Hls }) => {
+      if (cancelled || !videoRef.current) return;
+      if (!Hls.isSupported()) {
+        setErrorMsg("이 브라우저는 HLS 재생을 지원하지 않습니다.");
+        setStatus("error");
+        return;
       }
+
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: false,
+        backBufferLength: 30,
+      });
+      hlsRef.current = hls;
+      hls.loadSource(hlsUrl);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        setStatus("playing");
+        video.play().catch(() => undefined);
+      });
+      hls.on(Hls.Events.ERROR, (_e, data) => {
+        if (data.fatal) {
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            setStatus("waiting");
+            hls.startLoad();
+          } else {
+            setStatus("error");
+            setErrorMsg("방송 신호를 받지 못했습니다. 잠시 후 다시 시도해 주세요.");
+          }
+        }
+      });
     });
 
     return () => {
-      hls.destroy();
+      cancelled = true;
+      hlsRef.current?.destroy();
       hlsRef.current = null;
     };
   }, [hlsUrl]);

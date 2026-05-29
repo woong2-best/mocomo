@@ -90,7 +90,7 @@ export default async function VoiceRoomPage({ params }: { params: Promise<{ id: 
         slowModeSeconds={channel.slowModeSeconds}
         chatBannedWords={channel.chatBannedWords}
         paymentsEnabled={paymentsEnabled}
-        broadcastMode={channel.broadcastMode ?? "BROWSER"}
+        broadcastMode={channel.broadcastMode ?? "OBS"}
         liveVisibility={channel.liveVisibility ?? "PUBLIC"}
         minViewerTier={channel.minViewerTier}
       />
