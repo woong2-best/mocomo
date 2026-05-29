@@ -55,18 +55,27 @@ export async function GET(
 
   const { channelId } = await params;
   const since = req.nextUrl.searchParams.get("since") ?? undefined;
+  const initial = req.nextUrl.searchParams.get("initial") === "1";
   const access = await resolveLiveChannelAccess(channelId, session.user.id);
   if (!access.allowed) {
     return NextResponse.json({ error: "NOT_MEMBER" }, { status: 403 });
   }
 
-  const sinceDate = since ? new Date(since) : new Date(0);
-  const messages = await db.liveChatMessage.findMany({
-    where: { channelId, createdAt: { gt: sinceDate } },
-    orderBy: { createdAt: "asc" },
-    take: 50,
-    include: { user: { select: userPublicSelectMinimal } },
-  });
+  const messages = initial
+    ? (
+        await db.liveChatMessage.findMany({
+          where: { channelId },
+          orderBy: { createdAt: "desc" },
+          take: 80,
+          include: { user: { select: userPublicSelectMinimal } },
+        })
+      ).reverse()
+    : await db.liveChatMessage.findMany({
+        where: { channelId, createdAt: { gt: since ? new Date(since) : new Date(0) } },
+        orderBy: { createdAt: "asc" },
+        take: 50,
+        include: { user: { select: userPublicSelectMinimal } },
+      });
 
   const viewerCount = await countActiveLiveViewers(channelId);
 

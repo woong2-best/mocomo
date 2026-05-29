@@ -6,7 +6,8 @@ import { AppProviders } from "@/components/providers/app-providers";
 import { LocaleProvider } from "@/components/providers/locale-provider";
 import { AppShell } from "@/components/layout/app-shell";
 import { getRequestI18n } from "@/lib/i18n/server";
-import { RightPanel, RightPanelSkeleton } from "@/components/layout/right-panel";
+import { RightPanelLoader } from "@/components/layout/right-panel-loader";
+import { RightPanelSkeleton } from "@/components/layout/right-panel-content";
 import { BRAND } from "@/lib/brand";
 import "./globals.css";
 
@@ -55,7 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <AppShell
               rightPanel={
                 <Suspense fallback={<RightPanelSkeleton />}>
-                  <RightPanel />
+                  <RightPanelLoader />
                 </Suspense>
               }
             >

@@ -68,7 +68,7 @@ export default function NewVoicePage() {
   const [submitError, setSubmitError] = useState("");
   const [name, setName] = useState(PRESETS[0]);
   const [category, setCategory] = useState<LiveStreamCategory>("JUST_CHATTING");
-  const [broadcastMode, setBroadcastMode] = useState<LiveBroadcastMode>("OBS");
+  const broadcastMode: LiveBroadcastMode = "OBS";
   const [liveVisibility, setLiveVisibility] = useState<LiveVisibility>("PUBLIC");
   const [minViewerTier, setMinViewerTier] = useState<SupportTierLevel>("BRONZE");
   const [created, setCreated] = useState<CreatedUiState | null>(null);

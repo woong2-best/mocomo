@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { runFastSearch } from "@/lib/search-fast";
 import { Card, CardContent } from "@/components/ui/card";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
@@ -12,7 +13,12 @@ export async function SearchResultsAsync({ query }: { query: string }) {
     );
   }
 
-  const { users, animes, posts, liveStreams } = await runFastSearch(q);
+  const searchKey = q.toLowerCase().slice(0, 80);
+  const { users, animes, posts, liveStreams } = await unstable_cache(
+    () => runFastSearch(q),
+    ["fast-search-page-v1", searchKey],
+    { revalidate: 30 }
+  )();
 
   return (
     <>

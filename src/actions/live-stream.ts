@@ -22,6 +22,7 @@ import {
 import { moderateLiveChatFast } from "@/lib/ai-moderation";
 import { provisionObsIngress } from "@/lib/obs-ingress-service";
 import { getOrCreateUserObsStreamKey } from "@/lib/user-obs-stream-key";
+import { getSrsRtmpUrl } from "@/lib/srs";
 import { notifyFollowersOnLive } from "@/lib/live-notify";
 import {
   fetchLiveChannelForStudio,
@@ -166,14 +167,14 @@ export async function createLiveStream(data: {
     if (!isScheduled) {
       try {
         const streamKey = await getOrCreateUserObsStreamKey(user.id);
-        const rtmpUrl = process.env.SRS_RTMP_URL?.trim() || null;
+        const rtmpUrl = getSrsRtmpUrl();
         await db.voiceChannel.update({
           where: { id: channel.id },
           data: {
             broadcastMode: "OBS",
             rtmpStreamKey: streamKey,
             rtmpIngressId: `srs:${streamKey}`,
-            ...(rtmpUrl ? { rtmpUrl: rtmpUrl.replace(/\/$/, "") } : {}),
+            rtmpUrl,
           },
         });
       } catch (keyErr) {
@@ -219,14 +220,14 @@ export async function startScheduledLiveStream(channelId: string) {
   await upsertLiveMember(channelId, user.id, "HOST");
   try {
     const streamKey = await getOrCreateUserObsStreamKey(user.id);
-    const rtmpUrl = process.env.SRS_RTMP_URL?.trim();
+    const rtmpUrl = getSrsRtmpUrl();
     await db.voiceChannel.update({
       where: { id: channelId },
       data: {
         broadcastMode: "OBS",
         rtmpStreamKey: streamKey,
         rtmpIngressId: `srs:${streamKey}`,
-        ...(rtmpUrl ? { rtmpUrl: rtmpUrl.replace(/\/$/, "") } : {}),
+        rtmpUrl,
       },
     });
   } catch {
@@ -237,30 +238,49 @@ export async function startScheduledLiveStream(channelId: string) {
   return { joinPassword, channelId };
 }
 
-export async function getLiveChannelRoomMeta(channelId: string) {
+export async function getLiveChannelRoomMeta(channelId: string, viewerId?: string | null) {
   try {
     const channel = await fetchLiveChannelForStudio(channelId);
     if (!channel) return null;
 
-    const host = await db.user.findUnique({
-      where: { id: channel.createdBy },
-      select: {
-        id: true,
-        username: true,
-        image: true,
-        supportTierSent: true,
-        supportTierReceived: true,
-        totalSupportReceived: true,
-      },
-    });
+    const needFollow =
+      !!viewerId && viewerId !== channel.createdBy;
+
+    const [host, tips, followRow] = await Promise.all([
+      db.user.findUnique({
+        where: { id: channel.createdBy },
+        select: {
+          id: true,
+          username: true,
+          image: true,
+          supportTierSent: true,
+          supportTierReceived: true,
+          totalSupportReceived: true,
+        },
+      }),
+      fetchLiveTipsForChannel(channel.createdBy, channel.createdAt),
+      needFollow
+        ? db.follow.findUnique({
+            where: {
+              followerId_followingId: {
+                followerId: viewerId!,
+                followingId: channel.createdBy,
+              },
+            },
+            select: { followerId: true },
+          })
+        : Promise.resolve(null),
+    ]);
+
     if (!host) return null;
 
-    const { tipTotalKrw, tipRanking } = await fetchLiveTipsForChannel(
-      channel.createdBy,
-      channel.createdAt
-    );
-
-    return { channel, host, tipTotalKrw, tipRanking };
+    return {
+      channel,
+      host,
+      tipTotalKrw: tips.tipTotalKrw,
+      tipRanking: tips.tipRanking,
+      hostFollowing: !!followRow,
+    };
   } catch (e) {
     console.error("[getLiveChannelRoomMeta]", e);
     return null;

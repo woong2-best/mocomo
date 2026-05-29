@@ -7,7 +7,6 @@ import {
   joinLiveStreamWithPassword,
   enterLiveAsViewer,
   applyLiveCollabPassword,
-  heartbeatLivePresence,
   endLiveStream,
   leaveLiveStream,
 } from "@/actions/live-stream";
@@ -95,15 +94,6 @@ export function LiveRoomClient({
     []
   );
 
-  const appendRecentTips = useCallback((tips: LiveTipAlert[]) => {
-    if (tips.length === 0) return;
-    setRecentTips((prev) => {
-      const ids = new Set(prev.map((t) => t.id));
-      const fresh = tips.filter((t) => !ids.has(t.id));
-      return fresh.length ? [...fresh, ...prev].slice(0, 5) : prev;
-    });
-  }, []);
-
   const enterStudioAsHost = useCallback(async () => {
     setJoining(true);
     setJoinError("");
@@ -133,19 +123,6 @@ export function LiveRoomClient({
     if (isHost) void enterStudioAsHost();
     else void enterStudioAsViewer();
   }, [isHost, joined, enterStudioAsHost, enterStudioAsViewer]);
-
-  useEffect(() => {
-    if (!joined) return;
-    const tick = async () => {
-      const res = await heartbeatLivePresence(channelId);
-      if ("viewerCount" in res && typeof res.viewerCount === "number") {
-        setViewerCount((prev) => (prev === res.viewerCount ? prev : res.viewerCount));
-      }
-    };
-    tick();
-    const id = setInterval(tick, 15000);
-    return () => clearInterval(id);
-  }, [joined, channelId]);
 
   useEffect(() => {
     if (!joined || isHost) return;
@@ -183,7 +160,6 @@ export function LiveRoomClient({
     hostTotalSupport,
     viewerCount,
     onViewerCount: setViewerCount,
-    onRecentTips: appendRecentTips,
     category,
     donationGoalKrw,
     tipTotalKrw,

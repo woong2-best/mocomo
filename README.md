@@ -58,6 +58,19 @@ npm run dev
 - **프로덕션**: S3/R2 `S3_*` 설정 → presigned URL
 - **로컬 개발**: `POST /api/upload/local` (multipart, `public/uploads/` 저장)
 
+## 성능 (DB · 배포)
+
+Supabase **SQL Editor**에서 한 번 실행:
+
+1. `scripts/supabase-fix-all.sql` — 스키마·기능 마이그레이션 (R·U·**X** 인덱스 포함)
+2. 또는 인덱스만: `scripts/supabase-performance-indexes.sql` (검색 `pg_trgm`, 피드, 라이브, 후원)
+
+실행 후 검색·홈 피드·라이브 허브·방송방 채팅/후원 API가 빨라집니다. 게시글이 매우 많으면 `Post_content_trgm_idx` 생성에 시간이 걸릴 수 있습니다.
+
+**OBS 라이브 (SRS)** — Vercel에 env 없어도 프로덕션은 VPS `45.32.16.32` 폴백. 계정 OBS 키 컬럼: `supabase-fix-all.sql` **U-2**.
+
+배포 후 브라우저 **강력 새로고침**(Ctrl+Shift+R). Socket 서버 변경 시 `server/socket` 프로세스 재시작.
+
 ## 배포
 
 - 웹: Vercel

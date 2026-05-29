@@ -30,6 +30,16 @@ export async function runFastSearch(query: string): Promise<FastSearchResult> {
           ],
         };
 
+  const postWhere =
+    q.length >= 4
+      ? {
+          OR: [
+            { title: { contains: q, mode: "insensitive" as const } },
+            { content: { contains: q, mode: "insensitive" as const } },
+          ],
+        }
+      : { title: { contains: q, mode: "insensitive" as const } };
+
   const [users, animes, posts, liveStreams] = await Promise.all([
     db.user.findMany({
       where: userWhere,
@@ -49,12 +59,7 @@ export async function runFastSearch(query: string): Promise<FastSearchResult> {
       select: { slug: true, title: true },
     }),
     db.post.findMany({
-      where: {
-        OR: [
-          { title: { contains: q, mode: "insensitive" } },
-          { content: { contains: q, mode: "insensitive" } },
-        ],
-      },
+      where: postWhere,
       take: 8,
       orderBy: { createdAt: "desc" },
       select: { id: true, content: true, title: true },
@@ -62,6 +67,7 @@ export async function runFastSearch(query: string): Promise<FastSearchResult> {
     db.voiceChannel.findMany({
       where: {
         isLive: true,
+        liveStatus: "LIVE",
         name: { contains: q, mode: "insensitive" },
       },
       take: 6,

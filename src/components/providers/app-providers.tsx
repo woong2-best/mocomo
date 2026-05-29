@@ -2,11 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { SessionProvider } from "@/components/providers/session-provider";
-
-const CallProvider = dynamic(
-  () => import("@/components/call/call-provider").then((m) => m.CallProvider),
-  { ssr: false }
-);
+import { CallProviderGate } from "@/components/call/call-provider-gate";
 
 const PlatformBootstrapClient = dynamic(
   () =>
@@ -17,10 +13,10 @@ const PlatformBootstrapClient = dynamic(
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
-      <CallProvider>
+      <CallProviderGate>
         <PlatformBootstrapClient />
         {children}
-      </CallProvider>
+      </CallProviderGate>
     </SessionProvider>
   );
 }

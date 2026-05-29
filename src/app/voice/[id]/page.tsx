@@ -1,22 +1,23 @@
-import { auth } from "@/lib/auth";
+import { getCachedSession } from "@/lib/auth";
 import { LiveRoomEntry } from "@/components/live/live-room-entry";
-import { getLiveChannelRoomMeta } from "@/actions/live-stream";
+import { getCachedLiveRoomMeta } from "@/lib/cached-live-meta";
 import { isPaymentsConfigured } from "@/lib/payments";
 import { ensureArray, ensureStringArray } from "@/lib/ensure-array";
-import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function VoiceRoomPage({ params }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
+  const session = await getCachedSession();
   if (!session?.user?.id) redirect("/auth/signin");
   const { id } = await params;
 
-  let meta: Awaited<ReturnType<typeof getLiveChannelRoomMeta>> = null;
+  let meta: Awaited<ReturnType<typeof getCachedLiveRoomMeta>> = null;
   try {
-    meta = await getLiveChannelRoomMeta(id);
+    meta = await getCachedLiveRoomMeta(id, session.user.id);
   } catch (e) {
     console.error("[voice/[id]] meta load failed", e);
   }
@@ -41,26 +42,9 @@ export default async function VoiceRoomPage({ params }: { params: Promise<{ id: 
     );
   }
 
-  const { channel, host, tipTotalKrw, tipRanking } = meta;
+  const { channel, host, tipTotalKrw, tipRanking, hostFollowing } = meta;
   const isHost = channel.createdBy === session.user.id;
   const paymentsEnabled = isPaymentsConfigured();
-
-  let hostFollowing = false;
-  if (!isHost && session.user.id !== channel.createdBy) {
-    try {
-      const row = await db.follow.findUnique({
-        where: {
-          followerId_followingId: {
-            followerId: session.user.id,
-            followingId: channel.createdBy,
-          },
-        },
-      });
-      hostFollowing = !!row;
-    } catch {
-      /* ignore */
-    }
-  }
 
   if (!channel.isLive) {
     return (

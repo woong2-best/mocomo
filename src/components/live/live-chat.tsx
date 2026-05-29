@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { SupportTierLevel } from "@prisma/client";
-import { loadLiveChatHistory, deleteLiveChatMessage } from "@/actions/live-stream";
+import { deleteLiveChatMessage } from "@/actions/live-stream";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { UserProfileLink } from "@/components/user/user-profile-link";
 import { ReportButton } from "@/components/report/report-button";
@@ -16,7 +16,6 @@ import {
   subscribeLiveChat,
   useLiveSocket,
 } from "@/hooks/use-live-socket";
-import type { LiveTipAlert } from "@/components/live/live-tip-alerts";
 import { ensureArray } from "@/lib/ensure-array";
 
 export type LiveChatMessage = {
@@ -37,14 +36,12 @@ function LiveChatInner({
   onViewerCount,
   isHost,
   canModerate,
-  onRecentTips,
 }: {
   channelId: string;
   viewerCount: number;
   onViewerCount?: (n: number) => void;
   isHost?: boolean;
   canModerate?: boolean;
-  onRecentTips?: (tips: LiveTipAlert[]) => void;
 }) {
   const { data: session } = useSession();
   const userId = session?.user?.id;
@@ -64,16 +61,18 @@ function LiveChatInner({
   useEffect(() => {
     let cancelled = false;
     setHistoryError("");
-    loadLiveChatHistory(channelId)
-      .then((res) => {
+    fetch(`/api/live/${channelId}/chat?initial=1`, { credentials: "include" })
+      .then(async (res) => {
         if (cancelled) return;
-        if ("error" in res && res.error) {
+        const body = await res.json();
+        if (!res.ok || !body.ok) {
           setHistoryError("채팅 기록을 불러오지 못했습니다. DB 마이그레이션을 확인해 주세요.");
           return;
         }
-        setMessages(ensureArray<LiveChatMessage>(res.messages));
-        if (res.messages.length > 0) {
-          lastSyncRef.current = new Date(res.messages[res.messages.length - 1].at).toISOString();
+        const list = ensureArray<LiveChatMessage>(body.messages);
+        setMessages(list);
+        if (list.length > 0) {
+          lastSyncRef.current = new Date(list[list.length - 1].at).toISOString();
         }
       })
       .catch(() => {
@@ -144,7 +143,7 @@ function LiveChatInner({
 
   useEffect(() => {
     poll();
-    const ms = connected ? 8000 : 2000;
+    const ms = connected ? 12000 : 4000;
     const id = setInterval(poll, ms);
     return () => clearInterval(id);
   }, [poll, connected]);
@@ -224,7 +223,9 @@ function LiveChatInner({
     <div className="flex flex-col h-full min-h-[min(70vh,560px)] rounded-xl border border-border/60 bg-background overflow-hidden">
       <div className="px-3 py-2.5 border-b border-border/60 flex justify-between items-center bg-muted/30 shrink-0">
         <span className="font-semibold text-sm">
-          채팅 {connected && <span className="text-[10px] text-green-600 ml-1">실시간</span>}
+          채팅
+          {isHost && <span className="text-[10px] text-muted-foreground ml-1">호스트</span>}
+          {connected && <span className="text-[10px] text-green-600 ml-1">실시간</span>}
         </span>
         <span className="text-xs text-muted-foreground flex items-center gap-1 tabular-nums">
           <Users className="h-3.5 w-3.5" />

@@ -13,6 +13,7 @@ export function HeaderSearch() {
   const [results, setResults] = useState<FastSearchResult | null>(null);
   const [pending, startTransition] = useTransition();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const fetchPreview = useCallback((term: string) => {
@@ -21,10 +22,13 @@ export function HeaderSearch() {
       setResults(null);
       return;
     }
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
     startTransition(async () => {
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`, {
-          cache: "no-store",
+          signal: ac.signal,
         });
         const body = await res.json();
         if (!res.ok || !body.ok) {
@@ -39,14 +43,14 @@ export function HeaderSearch() {
         });
         setOpen(true);
       } catch {
-        setResults(null);
+        if (!ac.signal.aborted) setResults(null);
       }
     });
   }, []);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => fetchPreview(q), 280);
+    debounceRef.current = setTimeout(() => fetchPreview(q), 400);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };

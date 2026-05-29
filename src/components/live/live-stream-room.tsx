@@ -6,7 +6,6 @@ import { LiveViewerPlayer } from "@/components/live/live-viewer-player";
 import { LiveChat } from "@/components/live/live-chat";
 import { LiveStudioErrorBoundary } from "@/components/live/live-studio-error-boundary";
 import { LiveDonationBar } from "@/components/live/live-donation-bar";
-import type { LiveTipAlert } from "@/components/live/live-tip-alerts";
 import { LiveHostSettings } from "@/components/live/live-host-settings";
 import { TipCreatorDialog } from "@/components/support/tip-creator-dialog";
 import { ReportButton } from "@/components/report/report-button";
@@ -35,7 +34,6 @@ function LiveStreamRoomInner({
   slowModeSeconds,
   chatBannedWords,
   paymentsEnabled,
-  onRecentTips,
 }: {
   channelId: string;
   channelName: string;
@@ -55,7 +53,6 @@ function LiveStreamRoomInner({
   slowModeSeconds?: number;
   chatBannedWords?: string[];
   paymentsEnabled?: boolean;
-  onRecentTips?: (tips: LiveTipAlert[]) => void;
 }) {
   return (
     <div className="live-studio-panel space-y-4 p-3 sm:p-5">
@@ -154,7 +151,6 @@ function LiveStreamRoomInner({
             onViewerCount={onViewerCount}
             isHost={isHost}
             canModerate={isHost}
-            onRecentTips={onRecentTips}
           />
         </LiveStudioErrorBoundary>
       </div>

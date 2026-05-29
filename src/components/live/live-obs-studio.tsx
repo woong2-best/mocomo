@@ -89,7 +89,7 @@ export function LiveObsStudio({
     }
 
     checkSignal();
-    const id = setInterval(checkSignal, 5000);
+    const id = setInterval(checkSignal, 10000);
     return () => {
       cancelled = true;
       clearInterval(id);

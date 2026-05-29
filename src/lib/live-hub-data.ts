@@ -96,7 +96,7 @@ async function fetchLiveHubChannels(category?: LiveStreamCategory) {
 
 async function fetchRecommendedStreamers() {
   const users = await db.user.findMany({
-    where: { isBanned: false },
+    where: { isBanned: false, streamerProfile: { isNot: null } },
     orderBy: { followers: { _count: "desc" } },
     take: 12,
     select: {
@@ -118,29 +118,11 @@ async function fetchRecommendedStreamers() {
   })) satisfies LiveHubHost[];
 }
 
-async function fetchPopularClips(limit = 12) {
-  const clips = await db.streamClip.findMany({
-    orderBy: [{ likeCount: "desc" }, { createdAt: "desc" }],
-    take: limit,
-    select: {
-      id: true,
-      title: true,
-      thumbnailUrl: true,
-      videoUrl: true,
-      isVertical: true,
-      likeCount: true,
-      viewCount: true,
-      author: { select: { username: true, image: true } },
-    },
-  });
-  return clips satisfies LiveHubClip[];
-}
-
 async function fetchFollowedLive(userId: string) {
   const following = await db.follow.findMany({
     where: { followerId: userId },
     select: { followingId: true },
-    take: 500,
+    take: 150,
   });
   const ids = following.map((f) => f.followingId);
   if (ids.length === 0) return [] as LiveHubChannel[];

@@ -321,6 +321,9 @@ model Post {
   reports   Report[]
   likes     Like[]
   reposts   Repost[]
+
+  @@index([createdAt(sort: Desc)])
+  @@index([hotScore(sort: Desc), createdAt(sort: Desc)])
 }
 
 enum MediaType {
@@ -411,6 +414,7 @@ model Follow {
   follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
   following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
   @@unique([followerId, followingId])
+  @@index([followerId])
 }
 
 model Like {
@@ -639,6 +643,11 @@ model VoiceChannel {
   members        VoiceMember[]
   chatMessages   LiveChatMessage[]
   clips          StreamClip[]
+
+  @@index([isLive, liveStatus, createdAt(sort: Desc)])
+  @@index([isLive, liveStatus, category, createdAt(sort: Desc)])
+  @@index([liveStatus, scheduledAt])
+  @@index([createdBy, isLive, liveStatus])
 }
 
 model StreamClip {
@@ -699,6 +708,7 @@ model LiveChatMessage {
   user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([channelId, createdAt])
+  @@index([channelId, userId, createdAt(sort: Desc)])
 }
 
 model VoiceMember {
@@ -715,6 +725,8 @@ model VoiceMember {
   channel VoiceChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
   user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@unique([channelId, userId])
+  @@index([channelId, lastSeenAt(sort: Desc)])
+  @@index([lastSeenAt(sort: Desc)])
 }
 
 enum CallStatus {
@@ -820,6 +832,9 @@ model Tip {
   createdAt  DateTime @default(now())
   sender   User @relation("TipSender", fields: [senderId], references: [id])
   receiver User @relation("TipReceiver", fields: [receiverId], references: [id])
+
+  @@index([receiverId, createdAt(sort: Desc)])
+  @@index([receiverId, senderId])
 }
 
 model Subscription {
@@ -1225,6 +1240,7 @@ model Anime {
   creator     User     @relation("AnimeCreator", fields: [creatorId], references: [id], onDelete: Cascade)
 
   @@index([viewCount])
+  @@index([updatedAt(sort: Desc)])
   posts       Post[]
   followers   AnimeFollow[]
   cosplayers  CosplayerAnime[]

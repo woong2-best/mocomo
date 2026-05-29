@@ -136,18 +136,19 @@ export async function fetchLiveTipsForChannel(
   tipRanking: { amount: number; username: string; tier: string }[];
 }> {
   try {
-    const tipTotal = await db.tip.aggregate({
-      where: { receiverId: hostUserId, createdAt: { gte: since } },
-      _sum: { amount: true },
-    });
-
-    const tipRanking = await db.tip.groupBy({
-      by: ["senderId"],
-      where: { receiverId: hostUserId, createdAt: { gte: since } },
-      _sum: { amount: true },
-      orderBy: { _sum: { amount: "desc" } },
-      take: 5,
-    });
+    const [tipTotal, tipRanking] = await Promise.all([
+      db.tip.aggregate({
+        where: { receiverId: hostUserId, createdAt: { gte: since } },
+        _sum: { amount: true },
+      }),
+      db.tip.groupBy({
+        by: ["senderId"],
+        where: { receiverId: hostUserId, createdAt: { gte: since } },
+        _sum: { amount: true },
+        orderBy: { _sum: { amount: "desc" } },
+        take: 5,
+      }),
+    ]);
 
     const senderIds = tipRanking.map((t) => t.senderId);
     const senders =

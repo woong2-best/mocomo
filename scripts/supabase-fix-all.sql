@@ -641,4 +641,41 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+-- =============================================================================
+-- X) 성능 인덱스 (검색 · 피드 · 라이브 · 후원) — 상세는 scripts/supabase-performance-indexes.sql
+-- =============================================================================
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+CREATE INDEX IF NOT EXISTS "User_username_trgm_idx"
+  ON "User" USING gin (lower("username") gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS "User_name_trgm_idx"
+  ON "User" USING gin (lower("name") gin_trgm_ops) WHERE "name" IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS "Post_createdAt_desc_idx" ON "Post" ("createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "Post_hotScore_createdAt_idx" ON "Post" ("hotScore" DESC, "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "Post_title_trgm_idx"
+  ON "Post" USING gin (lower("title") gin_trgm_ops) WHERE "title" IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS "Anime_title_trgm_idx"
+  ON "Anime" USING gin (lower("title") gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS "Anime_titleEn_trgm_idx"
+  ON "Anime" USING gin (lower("titleEn") gin_trgm_ops) WHERE "titleEn" IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS "VoiceChannel_live_feed_idx"
+  ON "VoiceChannel" ("isLive", "liveStatus", "createdAt" DESC) WHERE "isLive" = true;
+CREATE INDEX IF NOT EXISTS "VoiceChannel_live_category_idx"
+  ON "VoiceChannel" ("isLive", "liveStatus", "category", "createdAt" DESC)
+  WHERE "isLive" = true AND "liveStatus" = 'LIVE';
+CREATE INDEX IF NOT EXISTS "VoiceChannel_name_trgm_live_idx"
+  ON "VoiceChannel" USING gin (lower("name") gin_trgm_ops) WHERE "isLive" = true;
+
+CREATE INDEX IF NOT EXISTS "VoiceMember_channelId_lastSeenAt_idx"
+  ON "VoiceMember" ("channelId", "lastSeenAt" DESC);
+CREATE INDEX IF NOT EXISTS "Follow_followerId_idx" ON "Follow" ("followerId");
+
+CREATE INDEX IF NOT EXISTS "LiveChatMessage_channelId_userId_createdAt_idx"
+  ON "LiveChatMessage" ("channelId", "userId", "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "Tip_receiverId_createdAt_idx"
+  ON "Tip" ("receiverId", "createdAt" DESC);
+
 -- 완료 후 터미널: npx prisma db push && npm run db:seed

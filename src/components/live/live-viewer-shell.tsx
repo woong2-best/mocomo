@@ -3,7 +3,6 @@
 import { LiveViewerPlayer } from "@/components/live/live-viewer-player";
 import { LiveChat } from "@/components/live/live-chat";
 import { LiveStudioHeader } from "@/components/live/live-studio-header";
-import type { LiveTipAlert } from "@/components/live/live-tip-alerts";
 import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 
 export function LiveViewerShell({
@@ -16,7 +15,6 @@ export function LiveViewerShell({
   hostTotalSupport,
   viewerCount,
   onViewerCount,
-  onRecentTips,
   category,
   donationGoalKrw,
   tipTotalKrw,
@@ -35,7 +33,6 @@ export function LiveViewerShell({
   hostTotalSupport?: number;
   viewerCount: number;
   onViewerCount?: (n: number) => void;
-  onRecentTips?: (tips: LiveTipAlert[]) => void;
   category?: LiveStreamCategory;
   donationGoalKrw?: number | null;
   tipTotalKrw?: number;
@@ -76,7 +73,6 @@ export function LiveViewerShell({
             channelId={channelId}
             viewerCount={viewerCount}
             onViewerCount={onViewerCount}
-            onRecentTips={onRecentTips}
           />
         </div>
       </div>

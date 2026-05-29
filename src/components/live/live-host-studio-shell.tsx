@@ -4,7 +4,6 @@ import { LiveObsStudio } from "@/components/live/live-obs-studio";
 import { LiveHlsPlayer } from "@/components/live/live-hls-player";
 import { LiveChat } from "@/components/live/live-chat";
 import { LiveStudioHeader } from "@/components/live/live-studio-header";
-import type { LiveTipAlert } from "@/components/live/live-tip-alerts";
 import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 
 export function LiveHostStudioShell({
@@ -18,7 +17,6 @@ export function LiveHostStudioShell({
   viewerCount,
   onViewerCount,
   onEndStream,
-  onRecentTips,
   category,
   donationGoalKrw,
   tipTotalKrw,
@@ -37,7 +35,6 @@ export function LiveHostStudioShell({
   viewerCount: number;
   onViewerCount?: (n: number) => void;
   onEndStream: () => void;
-  onRecentTips?: (tips: LiveTipAlert[]) => void;
   category?: LiveStreamCategory;
   donationGoalKrw?: number | null;
   tipTotalKrw?: number;
@@ -85,7 +82,6 @@ export function LiveHostStudioShell({
             onViewerCount={onViewerCount}
             isHost
             canModerate
-            onRecentTips={onRecentTips}
           />
         </div>
       </div>

@@ -39,7 +39,7 @@ export function LiveStudioStatsSync({
     }
 
     tick();
-    const id = setInterval(tick, 12000);
+    const id = setInterval(tick, 18000);
     return () => {
       cancelled = true;
       clearInterval(id);
