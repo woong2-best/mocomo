@@ -193,9 +193,8 @@ export async function getLiveHubChannelFeed(category?: LiveStreamCategory) {
 
 /** 클립·추천·팔로우 등 카테고리와 무관한 허브 데이터 */
 export async function getLiveHubStaticData(userId?: string | null) {
-  const [recommendedStreamers, popularClips, followedLive, scheduledRaw] = await Promise.all([
+  const [recommendedStreamers, followedLive, scheduledRaw] = await Promise.all([
     unstable_cache(fetchRecommendedStreamers, ["live-hub-rec"], { revalidate: 120 })(),
-    unstable_cache(() => fetchPopularClips(12), ["live-hub-clips"], { revalidate: 60 })(),
     userId
       ? unstable_cache(() => fetchFollowedLive(userId), ["live-hub-fl", userId], {
           revalidate: 25,
@@ -236,7 +235,6 @@ export async function getLiveHubStaticData(userId?: string | null) {
 
   return {
     recommendedStreamers,
-    popularClips,
     followedLive,
     followedHosts,
     scheduledStreams,
@@ -256,7 +254,6 @@ export async function getLiveHubData(category?: LiveStreamCategory) {
     channels: feed.channels,
     hosts,
     recommendedStreamers: staticData.recommendedStreamers,
-    popularClips: staticData.popularClips,
     followedLive: staticData.followedLive,
     scheduledStreams: staticData.scheduledStreams,
   };

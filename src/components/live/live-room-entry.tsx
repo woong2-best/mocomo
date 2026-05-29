@@ -30,6 +30,7 @@ export function LiveRoomEntry({
   broadcastMode,
   liveVisibility,
   minViewerTier,
+  hostFollowing,
 }: {
   channelId: string;
   channelName: string;
@@ -49,6 +50,7 @@ export function LiveRoomEntry({
   broadcastMode?: LiveBroadcastMode;
   liveVisibility?: LiveVisibility;
   minViewerTier?: SupportTierLevel | null;
+  hostFollowing?: boolean;
 }) {
   const [storedPassword, setStoredPassword] = useState<string | null>(null);
 
@@ -79,6 +81,7 @@ export function LiveRoomEntry({
       broadcastMode={broadcastMode}
       liveVisibility={liveVisibility}
       minViewerTier={minViewerTier}
+      hostFollowing={hostFollowing}
     />
   );
 }

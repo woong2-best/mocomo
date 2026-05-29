@@ -16,7 +16,6 @@ export default async function LivePage({
 
   let staticData: Awaited<ReturnType<typeof getLiveHubStaticData>> = {
     recommendedStreamers: [],
-    popularClips: [],
     followedLive: [],
     followedHosts: [],
     scheduledStreams: [],
@@ -31,7 +30,6 @@ export default async function LivePage({
   return (
     <LiveHub
       recommendedStreamers={staticData.recommendedStreamers}
-      popularClips={staticData.popularClips}
       followedLive={staticData.followedLive}
       followedHosts={staticData.followedHosts}
       scheduledStreams={staticData.scheduledStreams}

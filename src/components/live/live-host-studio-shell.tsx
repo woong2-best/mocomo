@@ -3,35 +3,69 @@
 import { LiveObsStudio } from "@/components/live/live-obs-studio";
 import { LiveHlsPlayer } from "@/components/live/live-hls-player";
 import { LiveChat } from "@/components/live/live-chat";
+import { LiveStudioHeader } from "@/components/live/live-studio-header";
 import type { LiveTipAlert } from "@/components/live/live-tip-alerts";
-import { Radio } from "lucide-react";
+import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 
-/** 호스트 스튜디오 — 영상(미리보기) + OBS 키 + 채팅 (치지직/트위치 레이아웃) */
 export function LiveHostStudioShell({
   channelId,
   channelName,
+  hostUserId,
+  hostUsername,
+  hostDisplayName,
+  hostTier,
+  hostTotalSupport,
   viewerCount,
   onViewerCount,
   onEndStream,
   onRecentTips,
+  category,
+  donationGoalKrw,
+  tipTotalKrw,
+  tipRanking,
+  slowModeSeconds,
+  chatBannedWords,
+  paymentsEnabled,
 }: {
   channelId: string;
   channelName: string;
+  hostUserId: string;
+  hostUsername?: string;
+  hostDisplayName?: string;
+  hostTier?: SupportTierLevel;
+  hostTotalSupport?: number;
   viewerCount: number;
   onViewerCount?: (n: number) => void;
   onEndStream: () => void;
   onRecentTips?: (tips: LiveTipAlert[]) => void;
+  category?: LiveStreamCategory;
+  donationGoalKrw?: number | null;
+  tipTotalKrw?: number;
+  tipRanking?: { username: string; amount: number }[];
+  slowModeSeconds?: number;
+  chatBannedWords?: string[];
+  paymentsEnabled?: boolean;
 }) {
   return (
     <div className="live-studio-twitch space-y-3">
-      <div className="flex flex-wrap items-center gap-2 px-1">
-        <span className="live-badge text-xs px-2.5 py-0.5 flex items-center gap-1">
-          <Radio className="h-3 w-3" />
-          LIVE
-        </span>
-        <h1 className="text-base sm:text-lg font-bold truncate flex-1">{channelName}</h1>
-        <span className="text-sm text-muted-foreground tabular-nums">{viewerCount} 시청</span>
-      </div>
+      <LiveStudioHeader
+        channelId={channelId}
+        channelName={channelName}
+        hostUserId={hostUserId}
+        hostUsername={hostUsername}
+        hostDisplayName={hostDisplayName}
+        hostTier={hostTier}
+        hostTotalSupport={hostTotalSupport}
+        isHost
+        viewerCount={viewerCount}
+        category={category}
+        donationGoalKrw={donationGoalKrw}
+        tipTotalKrw={tipTotalKrw}
+        tipRanking={tipRanking}
+        slowModeSeconds={slowModeSeconds}
+        chatBannedWords={chatBannedWords}
+        paymentsEnabled={paymentsEnabled}
+      />
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-3 xl:gap-4 items-start">
         <div className="space-y-3 min-w-0">
@@ -39,7 +73,7 @@ export function LiveHostStudioShell({
             <LiveHlsPlayer channelId={channelId} />
           </div>
           <p className="text-[11px] text-muted-foreground px-1">
-            방송 미리보기 (OBS 시작 후 3~10초 뒤 표시). 스트림 키는 아래 OBS 패널에만 표시됩니다.
+            방송 미리보기 (OBS 시작 후 3~10초). 스트림 키는 OBS 패널에만 표시됩니다.
           </p>
           <LiveObsStudio channelId={channelId} onEndStream={onEndStream} />
         </div>

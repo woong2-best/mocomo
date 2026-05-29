@@ -3,6 +3,7 @@ import { LiveRoomEntry } from "@/components/live/live-room-entry";
 import { getLiveChannelRoomMeta } from "@/actions/live-stream";
 import { isPaymentsConfigured } from "@/lib/payments";
 import { ensureArray, ensureStringArray } from "@/lib/ensure-array";
+import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,23 @@ export default async function VoiceRoomPage({ params }: { params: Promise<{ id: 
   const { channel, host, tipTotalKrw, tipRanking } = meta;
   const isHost = channel.createdBy === session.user.id;
   const paymentsEnabled = isPaymentsConfigured();
+
+  let hostFollowing = false;
+  if (!isHost && session.user.id !== channel.createdBy) {
+    try {
+      const row = await db.follow.findUnique({
+        where: {
+          followerId_followingId: {
+            followerId: session.user.id,
+            followingId: channel.createdBy,
+          },
+        },
+      });
+      hostFollowing = !!row;
+    } catch {
+      /* ignore */
+    }
+  }
 
   if (!channel.isLive) {
     return (
@@ -94,6 +112,7 @@ export default async function VoiceRoomPage({ params }: { params: Promise<{ id: 
         broadcastMode={channel.broadcastMode ?? "OBS"}
         liveVisibility={channel.liveVisibility ?? "PUBLIC"}
         minViewerTier={channel.minViewerTier}
+        hostFollowing={hostFollowing}
       />
     </div>
   );

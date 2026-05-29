@@ -10,7 +10,6 @@ import {
   Shield,
   Search,
   Users,
-  Scissors,
   Heart,
   TrendingUp,
   BadgeCheck,
@@ -18,18 +17,17 @@ import {
 } from "lucide-react";
 import { LivePageActions } from "@/components/live/live-page-actions";
 import { LiveCategoryFilter } from "@/components/live/live-category-filter";
-import { LiveClipCard } from "@/components/live/live-clip-card";
 import { LiveScheduledCard } from "@/components/live/live-scheduled-card";
 import type { LiveStreamCategory } from "@prisma/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import type { LiveHubChannel, LiveHubClip, LiveHubHost } from "@/lib/live-hub-data";
+import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
 
 const FEATURES = [
-  { icon: Video, label: "LiveKit 저지연" },
+  { icon: Video, label: "OBS · SRS 송출" },
   { icon: MessageSquare, label: "실시간 채팅" },
   { icon: Shield, label: "슬로우·금칙어" },
-  { icon: Eye, label: "실시간 시청자" },
+  { icon: Eye, label: "후원·시청자" },
 ];
 
 function StreamerChip({ host }: { host: LiveHubHost }) {
@@ -61,7 +59,6 @@ function StreamerChip({ host }: { host: LiveHubHost }) {
 
 export function LiveHub({
   recommendedStreamers,
-  popularClips,
   followedLive,
   followedHosts,
   scheduledStreams,
@@ -69,7 +66,6 @@ export function LiveHub({
   channelFeed,
 }: {
   recommendedStreamers: LiveHubHost[];
-  popularClips: LiveHubClip[];
   followedLive: LiveHubChannel[];
   followedHosts: LiveHubHost[];
   scheduledStreams: {
@@ -97,7 +93,7 @@ export function LiveHub({
               라이브
             </h1>
             <p className="text-sm text-muted-foreground max-w-lg">
-              실시간 방송 · OBS(RTMP) · 클립 · 팔로우 피드. 스트리머 여러 명이 동시에 방송해도 각자 독립 방으로 운영됩니다.
+              실시간 방송 · OBS(RTMP) · HLS 시청 · 후원·채팅. 스트리머마다 독립 방으로 운영됩니다.
             </p>
             <div className="flex flex-wrap gap-2">
               {FEATURES.map(({ icon: Icon, label }) => (
@@ -180,28 +176,6 @@ export function LiveHub({
               <StreamerChip key={h.id} host={h} />
             ))}
           </div>
-        </section>
-
-        <section>
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
-            <Scissors className="h-4 w-4" />
-            인기 클립
-          </h2>
-          {popularClips.length === 0 ? (
-            <p className="text-sm text-muted-foreground rounded-xl border border-dashed p-8 text-center">
-              아직 등록된 클립이 없습니다.{" "}
-              <Link href="/live/clips/new" className="text-primary underline">
-                클립 업로드
-              </Link>
-              로 하이라이트를 추가하세요.
-            </p>
-          ) : (
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
-              {popularClips.map((clip) => (
-                <LiveClipCard key={clip.id} clip={clip} />
-              ))}
-            </div>
-          )}
         </section>
 
         <section className="rounded-2xl border border-border bg-card/50 p-6 flex flex-wrap items-center justify-between gap-4">

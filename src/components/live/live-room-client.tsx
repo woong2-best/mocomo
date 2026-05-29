@@ -15,6 +15,7 @@ import { tierLabelKo } from "@/lib/live-viewer-access";
 import { LiveHostStudioShell } from "@/components/live/live-host-studio-shell";
 import { LiveViewerShell } from "@/components/live/live-viewer-shell";
 import { LiveStudioErrorBoundary } from "@/components/live/live-studio-error-boundary";
+import { LiveStudioStatsSync } from "@/components/live/live-studio-stats-sync";
 import { LiveTipAlerts, type LiveTipAlert } from "@/components/live/live-tip-alerts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,10 +24,23 @@ import { KeyRound, Loader2, Users } from "lucide-react";
 export function LiveRoomClient({
   channelId,
   channelName,
+  hostUserId,
+  hostUsername,
+  hostDisplayName,
+  hostTier,
+  hostTotalSupport,
   isHost,
   storedPassword,
+  category,
+  donationGoalKrw,
+  tipTotalKrw: initialTipTotalKrw,
+  tipRanking: initialTipRanking,
+  slowModeSeconds,
+  chatBannedWords,
+  paymentsEnabled,
   liveVisibility = "PUBLIC",
   minViewerTier,
+  hostFollowing,
 }: {
   channelId: string;
   channelName: string;
@@ -47,6 +61,7 @@ export function LiveRoomClient({
   broadcastMode?: LiveBroadcastMode;
   liveVisibility?: LiveVisibility;
   minViewerTier?: SupportTierLevel | null;
+  hostFollowing?: boolean;
 }) {
   const router = useRouter();
   const [joined, setJoined] = useState(false);
@@ -58,6 +73,36 @@ export function LiveRoomClient({
   const [viewerCount, setViewerCount] = useState(1);
   const [showHostPassword, setShowHostPassword] = useState(!!storedPassword);
   const [recentTips, setRecentTips] = useState<LiveTipAlert[]>([]);
+  const [tipTotalKrw, setTipTotalKrw] = useState(initialTipTotalKrw ?? 0);
+  const [tipRanking, setTipRanking] = useState(initialTipRanking ?? []);
+
+  const handleStats = useCallback(
+    (data: {
+      tipTotalKrw: number;
+      tipRanking: { username: string; amount: number }[];
+      recentTips: LiveTipAlert[];
+    }) => {
+      setTipTotalKrw(data.tipTotalKrw);
+      setTipRanking(data.tipRanking);
+      if (data.recentTips.length > 0) {
+        setRecentTips((prev) => {
+          const ids = new Set(prev.map((t) => t.id));
+          const fresh = data.recentTips.filter((t) => !ids.has(t.id));
+          return fresh.length ? [...fresh, ...prev].slice(0, 5) : prev;
+        });
+      }
+    },
+    []
+  );
+
+  const appendRecentTips = useCallback((tips: LiveTipAlert[]) => {
+    if (tips.length === 0) return;
+    setRecentTips((prev) => {
+      const ids = new Set(prev.map((t) => t.id));
+      const fresh = tips.filter((t) => !ids.has(t.id));
+      return fresh.length ? [...fresh, ...prev].slice(0, 5) : prev;
+    });
+  }, []);
 
   const enterStudioAsHost = useCallback(async () => {
     setJoining(true);
@@ -128,6 +173,26 @@ export function LiveRoomClient({
     router.push("/live");
   }
 
+  const studioProps = {
+    channelId,
+    channelName,
+    hostUserId,
+    hostUsername,
+    hostDisplayName,
+    hostTier,
+    hostTotalSupport,
+    viewerCount,
+    onViewerCount: setViewerCount,
+    onRecentTips: appendRecentTips,
+    category,
+    donationGoalKrw,
+    tipTotalKrw,
+    tipRanking,
+    slowModeSeconds,
+    chatBannedWords,
+    paymentsEnabled,
+  };
+
   if (!joined) {
     return (
       <div className="max-w-md mx-auto live-hero !p-8 space-y-4 shadow-xl text-center">
@@ -156,6 +221,7 @@ export function LiveRoomClient({
 
   return (
     <div className="space-y-4 relative">
+      <LiveStudioStatsSync channelId={channelId} onStats={handleStats} />
       <LiveTipAlerts tips={recentTips} />
       {isHost && storedPassword && showHostPassword && (
         <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
@@ -180,7 +246,7 @@ export function LiveRoomClient({
       {!isHost && (
         <div className="rounded-xl border border-border/60 bg-muted/30 px-4 py-3 flex flex-wrap items-center justify-between gap-2">
           {collabOk ? (
-            <p className="text-sm text-green-700 font-medium">합방 승인됨 · 마이크/카메라로 함께 방송할 수 있습니다.</p>
+            <p className="text-sm text-green-700 font-medium">합방 승인됨 · 공동 방송 권한이 부여되었습니다.</p>
           ) : showCollabForm ? (
             <form onSubmit={handleCollabApply} className="flex flex-wrap gap-2 items-center w-full">
               <Input
@@ -215,22 +281,9 @@ export function LiveRoomClient({
 
       <LiveStudioErrorBoundary channelId={channelId} onEndStream={isHost ? handleEndStream : undefined}>
         {isHost ? (
-          <LiveHostStudioShell
-            channelId={channelId}
-            channelName={channelName}
-            viewerCount={viewerCount}
-            onViewerCount={setViewerCount}
-            onEndStream={handleEndStream}
-            onRecentTips={setRecentTips}
-          />
+          <LiveHostStudioShell {...studioProps} onEndStream={handleEndStream} />
         ) : (
-          <LiveViewerShell
-            channelId={channelId}
-            channelName={channelName}
-            viewerCount={viewerCount}
-            onViewerCount={setViewerCount}
-            onRecentTips={setRecentTips}
-          />
+          <LiveViewerShell {...studioProps} hostFollowing={hostFollowing} />
         )}
       </LiveStudioErrorBoundary>
     </div>

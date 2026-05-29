@@ -2,25 +2,71 @@
 
 import { LiveViewerPlayer } from "@/components/live/live-viewer-player";
 import { LiveChat } from "@/components/live/live-chat";
+import { LiveStudioHeader } from "@/components/live/live-studio-header";
 import type { LiveTipAlert } from "@/components/live/live-tip-alerts";
+import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 
-/** 시청자 — 영상 + 채팅 (치지직/트위치 레이아웃) */
 export function LiveViewerShell({
   channelId,
   channelName,
+  hostUserId,
+  hostUsername,
+  hostDisplayName,
+  hostTier,
+  hostTotalSupport,
   viewerCount,
   onViewerCount,
   onRecentTips,
+  category,
+  donationGoalKrw,
+  tipTotalKrw,
+  tipRanking,
+  slowModeSeconds,
+  chatBannedWords,
+  paymentsEnabled,
+  hostFollowing,
 }: {
   channelId: string;
   channelName: string;
+  hostUserId: string;
+  hostUsername?: string;
+  hostDisplayName?: string;
+  hostTier?: SupportTierLevel;
+  hostTotalSupport?: number;
   viewerCount: number;
   onViewerCount?: (n: number) => void;
   onRecentTips?: (tips: LiveTipAlert[]) => void;
+  category?: LiveStreamCategory;
+  donationGoalKrw?: number | null;
+  tipTotalKrw?: number;
+  tipRanking?: { username: string; amount: number }[];
+  slowModeSeconds?: number;
+  chatBannedWords?: string[];
+  paymentsEnabled?: boolean;
+  hostFollowing?: boolean;
 }) {
   return (
     <div className="live-studio-twitch space-y-3">
-      <h1 className="text-base sm:text-lg font-bold px-1 truncate">{channelName}</h1>
+      <LiveStudioHeader
+        channelId={channelId}
+        channelName={channelName}
+        hostUserId={hostUserId}
+        hostUsername={hostUsername}
+        hostDisplayName={hostDisplayName}
+        hostTier={hostTier}
+        hostTotalSupport={hostTotalSupport}
+        isHost={false}
+        viewerCount={viewerCount}
+        category={category}
+        donationGoalKrw={donationGoalKrw}
+        tipTotalKrw={tipTotalKrw}
+        tipRanking={tipRanking}
+        slowModeSeconds={slowModeSeconds}
+        chatBannedWords={chatBannedWords}
+        paymentsEnabled={paymentsEnabled}
+        hostFollowing={hostFollowing}
+      />
+
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-3 xl:gap-4 items-start">
         <div className="min-w-0 rounded-xl overflow-hidden ring-1 ring-border/50 bg-black">
           <LiveViewerPlayer channelId={channelId} />
