@@ -604,6 +604,10 @@ ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "rtmpIngressId" TEXT;
 ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "rtmpUrl" TEXT;
 ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "rtmpStreamKey" TEXT;
 
+-- U-2) 계정당 고유 OBS 방송 키 (User)
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "obsRtmpStreamKey" TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS "User_obsRtmpStreamKey_key" ON "User"("obsRtmpStreamKey") WHERE "obsRtmpStreamKey" IS NOT NULL;
+
 -- W) 라이브 공개/비공개 시청
 DO $$ BEGIN
   CREATE TYPE "LiveVisibility" AS ENUM ('PUBLIC', 'PRIVATE');

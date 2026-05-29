@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { probeSrsManifest, buildProxiedHlsPlaybackPath } from "@/lib/srs-hls-proxy";
-import { upstreamHlsManifestUrl } from "@/lib/srs-hls-proxy";
+import { probeSrsManifest, buildProxiedHlsPlaybackPath, upstreamHlsManifestUrl } from "@/lib/srs-hls-proxy";
 import { srsConfigError, getSrsHlsBaseUrl } from "@/lib/srs";
+import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
 
 /** 호스트 — SRS에 실제 송출이 올라왔는지 확인 */
 export async function GET(
@@ -18,7 +18,7 @@ export async function GET(
   const { channelId } = await params;
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
-    select: { createdBy: true, isLive: true, rtmpStreamKey: true, rtmpUrl: true },
+    select: { createdBy: true, isLive: true },
   });
 
   if (!channel) {
@@ -33,25 +33,29 @@ export async function GET(
     return NextResponse.json({ ok: false, configured: false, error: configErr });
   }
 
-  if (!channel.rtmpStreamKey) {
+  const { streamKey } = await resolveObsStreamKeyForChannel(channelId);
+
+  if (!streamKey) {
     return NextResponse.json({
       ok: true,
       hasStreamKey: false,
       onAir: false,
-      message: "OBS 키를 아직 발급하지 않았습니다. 위 패널에서 키를 받은 뒤 OBS에 붙여넣으세요.",
+      accountKey: true,
+      message: "계정 방송 키를 불러오지 못했습니다. OBS 패널을 열어 키를 확인하세요.",
     });
   }
 
-  const probe = await probeSrsManifest(channel.rtmpStreamKey);
-  const keyTail = channel.rtmpStreamKey.length > 8 ? `…${channel.rtmpStreamKey.slice(-8)}` : "****";
+  const probe = await probeSrsManifest(streamKey);
+  const keyTail = streamKey.length > 8 ? `…${streamKey.slice(-8)}` : "****";
 
   return NextResponse.json({
     ok: true,
     hasStreamKey: true,
     onAir: probe.live,
+    accountKey: true,
     streamKeyHint: keyTail,
-    hlsPathExample: `/live/${channel.rtmpStreamKey}.m3u8`,
-    upstreamManifest: upstreamHlsManifestUrl(channel.rtmpStreamKey),
+    hlsPathExample: `/live/${streamKey}.m3u8`,
+    upstreamManifest: upstreamHlsManifestUrl(streamKey),
     sitePlayback: buildProxiedHlsPlaybackPath(channelId),
     hlsBase: getSrsHlsBaseUrl(),
     probeStatus: probe.status,

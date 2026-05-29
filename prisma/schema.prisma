@@ -72,6 +72,8 @@ model User {
   countryCode   String    @default("KR")
   phone         String?   @unique
   phoneVerified DateTime?
+  /** 계정당 1개 — OBS 방송 키 (방송 세션마다 바뀌지 않음) */
+  obsRtmpStreamKey String? @unique
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

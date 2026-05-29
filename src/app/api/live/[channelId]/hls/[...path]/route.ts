@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { getSrsHlsBaseUrl, srsConfigError } from "@/lib/srs";
 import {
   rewriteHlsPlaylist,
@@ -8,15 +7,7 @@ import {
   upstreamSegmentUrl,
 } from "@/lib/srs-hls-proxy";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
-
-async function getStreamKey(channelId: string) {
-  const channel = await db.voiceChannel.findUnique({
-    where: { id: channelId },
-    select: { isLive: true, rtmpStreamKey: true },
-  });
-  if (!channel?.isLive || !channel.rtmpStreamKey) return null;
-  return channel.rtmpStreamKey;
-}
+import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
 
 /** HTTPS 프록시 — SRS HLS (m3u8·ts) */
 export async function GET(
@@ -42,7 +33,7 @@ export async function GET(
     return new NextResponse("Forbidden", { status: 403 });
   }
 
-  const streamKey = await getStreamKey(channelId);
+  const { streamKey } = await resolveObsStreamKeyForChannel(channelId);
   if (!streamKey) {
     return new NextResponse("Stream not ready", { status: 404 });
   }

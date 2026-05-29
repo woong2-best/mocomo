@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { srsConfigError } from "@/lib/srs";
 import { buildProxiedHlsPlaybackPath, probeSrsManifest } from "@/lib/srs-hls-proxy";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
+import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
 
 /** 시청자 HLS 재생 URL (접근 권한 검사 후 m3u8 주소 반환) */
 export async function GET(
@@ -35,24 +35,17 @@ export async function GET(
     );
   }
 
-  const channel = await db.voiceChannel.findUnique({
-    where: { id: channelId },
-    select: { isLive: true, rtmpStreamKey: true, liveStatus: true },
-  });
+  const { streamKey } = await resolveObsStreamKeyForChannel(channelId);
 
-  if (!channel?.isLive) {
-    return NextResponse.json({ error: "방송이 종료되었습니다." }, { status: 404 });
-  }
-
-  if (!channel.rtmpStreamKey) {
+  if (!streamKey) {
     return NextResponse.json({
       hlsUrl: null,
       waiting: true,
-      message: "OBS에서 키를 발급한 뒤 방송을 시작해 주세요.",
+      message: "OBS에서 계정 방송 키를 확인한 뒤 방송을 시작해 주세요.",
     });
   }
 
-  const probe = await probeSrsManifest(channel.rtmpStreamKey);
+  const probe = await probeSrsManifest(streamKey);
   const hlsUrl = buildProxiedHlsPlaybackPath(channelId);
 
   if (!probe.live) {

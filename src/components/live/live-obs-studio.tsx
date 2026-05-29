@@ -140,14 +140,18 @@ export function LiveObsStudio({
             onClick={() => loadIngress(true)}
           >
             {refreshing ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-            키 재발급
+            키 재발급 (계정)
           </Button>
         </div>
 
+        <p className="text-xs text-violet-800/90 dark:text-violet-200 bg-background/60 rounded-lg px-2.5 py-2">
+          이 <strong>방송 키는 계정당 1개</strong>입니다 (트위치·치지직과 같음). 방송을 바꿔도 같은 키를 OBS에
+          두면 됩니다. 키가 유출됐을 때만 「키 재발급」을 누르세요.
+        </p>
         <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
           <li>OBS → 설정 → 방송 → 서비스 <strong>사용자 지정</strong></li>
-          <li>아래 <strong>서버</strong>·<strong>방송 키</strong> 복사 후 붙여넣기</li>
-          <li>OBS에서 <strong>방송 시작</strong> → 시청자 화면에 표시</li>
+          <li>아래 <strong>서버</strong>·<strong>방송 키</strong> 복사 후 붙여넣기 (한 번만 저장해 두면 됨)</li>
+          <li>OBS에서 <strong>방송 시작</strong> → 위 미리보기·시청자 화면에 표시</li>
         </ol>
 
         <div className="space-y-2">

@@ -21,6 +21,7 @@ import {
 } from "@/lib/live-chat-filter";
 import { moderateLiveChatFast } from "@/lib/ai-moderation";
 import { provisionObsIngress } from "@/lib/obs-ingress-service";
+import { getOrCreateUserObsStreamKey } from "@/lib/user-obs-stream-key";
 import { notifyFollowersOnLive } from "@/lib/live-notify";
 import {
   fetchLiveChannelForStudio,
@@ -96,6 +97,16 @@ export async function createLiveStream(data: {
     const minTier =
       visibility === "PRIVATE" ? (data.minViewerTier ?? "BRONZE") : null;
 
+    if (!isScheduled) {
+      const otherLive = await db.voiceChannel.findFirst({
+        where: { createdBy: user.id, isLive: true },
+        select: { id: true },
+      });
+      if (otherLive) {
+        return { error: "이미 진행 중인 방송이 있습니다. 먼저 종료한 뒤 새 방송을 시작해 주세요." };
+      }
+    }
+
     const baseData = {
       name: title.slice(0, 120),
       communityId: data.communityId,
@@ -153,6 +164,21 @@ export async function createLiveStream(data: {
     }
 
     if (!isScheduled) {
+      try {
+        const streamKey = await getOrCreateUserObsStreamKey(user.id);
+        const rtmpUrl = process.env.SRS_RTMP_URL?.trim() || null;
+        await db.voiceChannel.update({
+          where: { id: channel.id },
+          data: {
+            broadcastMode: "OBS",
+            rtmpStreamKey: streamKey,
+            rtmpIngressId: `srs:${streamKey}`,
+            ...(rtmpUrl ? { rtmpUrl: rtmpUrl.replace(/\/$/, "") } : {}),
+          },
+        });
+      } catch (keyErr) {
+        console.warn("[createLiveStream] obs key", keyErr);
+      }
       void notifyFollowersOnLive(user.id, channel.id, title).catch(() => {});
     }
 
@@ -191,6 +217,21 @@ export async function startScheduledLiveStream(channelId: string) {
     },
   });
   await upsertLiveMember(channelId, user.id, "HOST");
+  try {
+    const streamKey = await getOrCreateUserObsStreamKey(user.id);
+    const rtmpUrl = process.env.SRS_RTMP_URL?.trim();
+    await db.voiceChannel.update({
+      where: { id: channelId },
+      data: {
+        broadcastMode: "OBS",
+        rtmpStreamKey: streamKey,
+        rtmpIngressId: `srs:${streamKey}`,
+        ...(rtmpUrl ? { rtmpUrl: rtmpUrl.replace(/\/$/, "") } : {}),
+      },
+    });
+  } catch {
+    /* ignore */
+  }
   void notifyFollowersOnLive(user.id, channelId, channel.name).catch(() => {});
   revalidatePath("/live");
   return { joinPassword, channelId };

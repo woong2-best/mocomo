@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { channelIdFromStreamKey, srsWebhookSecret } from "@/lib/srs";
+import { srsWebhookSecret } from "@/lib/srs";
+import { findLiveChannelByObsStreamKey } from "@/lib/user-obs-stream-key";
 
 type SrsHookBody = {
   action?: string;
@@ -32,27 +33,15 @@ export async function POST(req: NextRequest) {
     return new NextResponse(action === "on_publish" ? "1" : "0");
   }
 
-  const channelId = channelIdFromStreamKey(stream);
-  if (!channelId) {
-    return new NextResponse("1", { status: 200 });
-  }
-
   if (action === "on_publish") {
-    const channel = await db.voiceChannel.findFirst({
-      where: {
-        id: channelId,
-        isLive: true,
-        rtmpStreamKey: stream,
-      },
-      select: { id: true },
-    });
-    if (!channel) {
+    const live = await findLiveChannelByObsStreamKey(stream);
+    if (!live) {
       return new NextResponse("1", { status: 200 });
     }
     try {
       await db.voiceChannel.update({
-        where: { id: channelId },
-        data: { liveStatus: "LIVE" },
+        where: { id: live.id },
+        data: { liveStatus: "LIVE", rtmpStreamKey: stream },
       });
     } catch {
       /* ignore */
