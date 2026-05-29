@@ -9,6 +9,7 @@ import {
   REPORT_REASONS,
   type ReportReasonId,
 } from "@/actions/report";
+import { ensureArray } from "@/lib/ensure-array";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -96,7 +97,7 @@ export function ReportButton({
               value={reason}
               onChange={(e) => setReason(e.target.value as ReportReasonId)}
             >
-              {REPORT_REASONS.map((r) => (
+              {ensureArray<{ id: ReportReasonId; label: string }>(REPORT_REASONS).map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.label}
                 </option>

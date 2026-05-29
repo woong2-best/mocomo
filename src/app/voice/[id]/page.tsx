@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { LiveRoomEntry } from "@/components/live/live-room-entry";
 import { getLiveChannelRoomMeta } from "@/actions/live-stream";
 import { isPaymentsConfigured } from "@/lib/payments";
+import { ensureArray, ensureStringArray } from "@/lib/ensure-array";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -86,9 +87,9 @@ export default async function VoiceRoomPage({ params }: { params: Promise<{ id: 
         category={channel.category}
         donationGoalKrw={channel.donationGoalKrw}
         tipTotalKrw={tipTotalKrw}
-        tipRanking={tipRanking}
+        tipRanking={ensureArray<{ username: string; amount: number }>(tipRanking)}
         slowModeSeconds={channel.slowModeSeconds}
-        chatBannedWords={channel.chatBannedWords}
+        chatBannedWords={ensureStringArray(channel.chatBannedWords)}
         paymentsEnabled={paymentsEnabled}
         broadcastMode={channel.broadcastMode ?? "OBS"}
         liveVisibility={channel.liveVisibility ?? "PUBLIC"}

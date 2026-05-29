@@ -12,7 +12,9 @@ import {
   leaveLiveStream,
 } from "@/actions/live-stream";
 import { tierLabelKo } from "@/lib/live-viewer-access";
-import { LiveStreamRoom } from "@/components/live/live-stream-room";
+import { LiveHostStudioShell } from "@/components/live/live-host-studio-shell";
+import { LiveViewerShell } from "@/components/live/live-viewer-shell";
+import { LiveStudioErrorBoundary } from "@/components/live/live-studio-error-boundary";
 import { LiveTipAlerts, type LiveTipAlert } from "@/components/live/live-tip-alerts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,21 +23,8 @@ import { KeyRound, Loader2, Users } from "lucide-react";
 export function LiveRoomClient({
   channelId,
   channelName,
-  hostUserId,
-  hostUsername,
-  hostDisplayName,
-  hostTier,
-  hostTotalSupport,
   isHost,
   storedPassword,
-  category,
-  donationGoalKrw,
-  tipTotalKrw,
-  tipRanking,
-  slowModeSeconds,
-  chatBannedWords,
-  paymentsEnabled,
-  broadcastMode,
   liveVisibility = "PUBLIC",
   minViewerTier,
 }: {
@@ -224,27 +213,26 @@ export function LiveRoomClient({
         </div>
       )}
 
-      <LiveStreamRoom
-        channelId={channelId}
-        channelName={channelName}
-        hostUserId={hostUserId}
-        hostUsername={hostUsername}
-        hostDisplayName={hostDisplayName}
-        hostTier={hostTier}
-        hostTotalSupport={hostTotalSupport}
-        isHost={isHost}
-        viewerCount={viewerCount}
-        onViewerCount={setViewerCount}
-        onEndStream={handleEndStream}
-        category={category}
-        donationGoalKrw={donationGoalKrw}
-        tipTotalKrw={tipTotalKrw}
-        tipRanking={tipRanking}
-        slowModeSeconds={slowModeSeconds}
-        chatBannedWords={chatBannedWords}
-        paymentsEnabled={paymentsEnabled}
-        onRecentTips={setRecentTips}
-      />
+      <LiveStudioErrorBoundary channelId={channelId} onEndStream={isHost ? handleEndStream : undefined}>
+        {isHost ? (
+          <LiveHostStudioShell
+            channelId={channelId}
+            channelName={channelName}
+            viewerCount={viewerCount}
+            onViewerCount={setViewerCount}
+            onEndStream={handleEndStream}
+            onRecentTips={setRecentTips}
+          />
+        ) : (
+          <LiveViewerShell
+            channelId={channelId}
+            channelName={channelName}
+            viewerCount={viewerCount}
+            onViewerCount={setViewerCount}
+            onRecentTips={setRecentTips}
+          />
+        )}
+      </LiveStudioErrorBoundary>
     </div>
   );
 }
