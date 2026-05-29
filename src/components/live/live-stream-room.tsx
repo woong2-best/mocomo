@@ -1,7 +1,8 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { memo } from "react";
+import { LiveBroadcastStudio } from "@/components/live/live-broadcast-studio";
+import { LiveViewerPlayer } from "@/components/live/live-viewer-player";
 import { LiveChat } from "@/components/live/live-chat";
 import { LiveStudioErrorBoundary } from "@/components/live/live-studio-error-boundary";
 import { LiveDonationBar } from "@/components/live/live-donation-bar";
@@ -14,16 +15,6 @@ import { ensureArray, ensureStringArray } from "@/lib/ensure-array";
 import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 import { Eye, Users, Radio, Trophy } from "lucide-react";
 import Link from "next/link";
-
-const LiveBroadcastStudio = dynamic(
-  () => import("@/components/live/live-broadcast-studio").then((m) => m.LiveBroadcastStudio),
-  { ssr: false, loading: () => <div className="aspect-video rounded-2xl bg-muted animate-pulse" /> }
-);
-
-const LiveViewerPlayer = dynamic(
-  () => import("@/components/live/live-viewer-player").then((m) => m.LiveViewerPlayer),
-  { ssr: false, loading: () => <div className="aspect-video rounded-2xl bg-muted animate-pulse" /> }
-);
 
 function LiveStreamRoomInner({
   channelId,
@@ -142,7 +133,12 @@ function LiveStreamRoomInner({
       )}
 
       <div className="grid lg:grid-cols-[1fr_minmax(280px,360px)] gap-4 items-start">
-        <LiveStudioErrorBoundary channelId={channelId}>
+        <LiveStudioErrorBoundary
+          channelId={channelId}
+          onEndStream={onEndStream}
+          inline
+          hostObsFallback={isHost}
+        >
           <div className="min-w-0 rounded-2xl overflow-hidden ring-1 ring-border/50">
             {isHost ? (
               <LiveBroadcastStudio channelId={channelId} onEndStream={onEndStream} />
@@ -151,7 +147,7 @@ function LiveStreamRoomInner({
             )}
           </div>
         </LiveStudioErrorBoundary>
-        <LiveStudioErrorBoundary channelId={channelId}>
+        <LiveStudioErrorBoundary channelId={channelId} inline>
           <LiveChat
             channelId={channelId}
             viewerCount={viewerCount}
