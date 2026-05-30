@@ -22,6 +22,10 @@ if grep -q 'host.docker.internal' docker/srs/srs.conf 2>/dev/null; then
   echo "==> 웹훅 URL: $HOOK_URL"
 fi
 
+if command -v ufw &>/dev/null; then
+  ufw allow 22/tcp 1935/tcp 8080/tcp 1985/tcp 2>/dev/null || true
+fi
+
 echo "==> SRS 컨테이너 재시작"
 docker compose -f docker-compose.srs.yml pull
 docker compose -f docker-compose.srs.yml up -d --force-recreate

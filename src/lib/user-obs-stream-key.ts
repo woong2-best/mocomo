@@ -4,6 +4,11 @@ import { db } from "@/lib/db";
 import { liveHostBroadcastWhere } from "@/lib/live-broadcast/session-queries";
 import { ensureChannelBroadcastActive, isBroadcastActive } from "@/lib/live-channel-active";
 
+function isObsStreamKeySchemaError(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : String(e);
+  return /obsRtmpStreamKey|column|does not exist|Unknown field/i.test(msg);
+}
+
 /** 계정당 고유 OBS 방송 키 (트위치/치지직 방식 — 방송마다 바뀌지 않음) */
 export function mintUserObsStreamKey(userId: string): string {
   const safe = userId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 18);
@@ -11,26 +16,54 @@ export function mintUserObsStreamKey(userId: string): string {
   return `moco_${safe || "user"}_${suffix}`;
 }
 
+async function streamKeyFromActiveHostChannel(userId: string): Promise<string | null> {
+  const ch = await db.voiceChannel.findFirst({
+    where: {
+      createdBy: userId,
+      liveStatus: { in: ["LIVE", "SCHEDULED"] },
+      rtmpStreamKey: { not: null },
+    },
+    orderBy: { createdAt: "desc" },
+    select: { rtmpStreamKey: true },
+  });
+  return ch?.rtmpStreamKey?.trim() || null;
+}
+
 export async function getOrCreateUserObsStreamKey(
   userId: string,
   options?: { rotate?: boolean }
 ): Promise<string> {
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    select: { obsRtmpStreamKey: true },
-  });
-  if (!user) throw new Error("USER_NOT_FOUND");
+  try {
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { obsRtmpStreamKey: true },
+    });
+    if (!user) throw new Error("USER_NOT_FOUND");
 
-  if (!options?.rotate && user.obsRtmpStreamKey?.trim()) {
-    return user.obsRtmpStreamKey.trim();
+    if (!options?.rotate && user.obsRtmpStreamKey?.trim()) {
+      return user.obsRtmpStreamKey.trim();
+    }
+
+    const streamKey = mintUserObsStreamKey(userId);
+    await db.user.update({
+      where: { id: userId },
+      data: { obsRtmpStreamKey: streamKey },
+    });
+    return streamKey;
+  } catch (e) {
+    if (!isObsStreamKeySchemaError(e)) throw e;
+    const existing = await streamKeyFromActiveHostChannel(userId);
+    if (existing && !options?.rotate) return existing;
+    const streamKey = mintUserObsStreamKey(userId);
+    await db.voiceChannel.updateMany({
+      where: {
+        createdBy: userId,
+        liveStatus: { in: ["LIVE", "SCHEDULED"] },
+      },
+      data: { rtmpStreamKey: streamKey },
+    });
+    return streamKey;
   }
-
-  const streamKey = mintUserObsStreamKey(userId);
-  await db.user.update({
-    where: { id: userId },
-    data: { obsRtmpStreamKey: streamKey },
-  });
-  return streamKey;
 }
 
 /** 라이브 방송 재생·웹훅용 — 호스트 계정 키 우선 */
