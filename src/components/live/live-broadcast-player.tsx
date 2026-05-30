@@ -22,19 +22,9 @@ export function LiveBroadcastPlayer({ channelId }: { channelId: string }) {
       if (cancelled) return;
       if (body.ingestEngine === "livekit" || body.engine === "livekit") {
         setEngine("livekit");
-        return;
+      } else {
+        setEngine("srs");
       }
-      try {
-        const health = await fetch("/api/health/obs", { cache: "no-store" });
-        const h = await health.json().catch(() => ({}));
-        if (h.engine === "livekit") {
-          setEngine("livekit");
-          return;
-        }
-      } catch {
-        /* ignore */
-      }
-      setEngine("srs");
     }
     void load();
     const id = setInterval(() => void load(), 12000);

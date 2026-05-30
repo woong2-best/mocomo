@@ -46,20 +46,6 @@ export function LiveObsReadyBlock({
     setLoading(true);
     setError("");
     try {
-      try {
-        const health = await fetch("/api/health/obs", { cache: "no-store" });
-        const h = await health.json().catch(() => ({}));
-        if (h.engine === "livekit") {
-          await fetch(`/api/live/${channelId}/obs`, {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ migrateLivekit: true }),
-          });
-        }
-      } catch {
-        /* ignore */
-      }
       setCreds(await loadObsCreds(channelId));
     } catch (e) {
       setCreds(null);

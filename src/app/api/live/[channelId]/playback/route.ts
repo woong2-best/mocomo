@@ -7,7 +7,6 @@ import { buildHostPlaybackPayload } from "@/lib/live-host-playback";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
 import { isLivekitIngestChannel } from "@/lib/live-ingest";
-import { isLivekitIngressConfigured } from "@/lib/livekit-ingress";
 import { probeLivekitObsPublish } from "@/lib/livekit-room-status";
 
 export const runtime = "nodejs";
@@ -66,7 +65,7 @@ export async function GET(
       select: { rtmpIngressId: true },
     });
 
-    if (isLivekitIngressConfigured() || (chRow && isLivekitIngestChannel(chRow))) {
+    if (chRow && isLivekitIngestChannel(chRow)) {
       const probe = await probeLivekitObsPublish(channelId);
       return NextResponse.json({
         ok: true,

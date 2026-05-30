@@ -16,7 +16,7 @@ function createIngressClient() {
   );
 }
 
-/** 같은 방(room)에 남은 인그레스 정리 — 무료 플랜 동시 2개 한도 */
+/** 같은 방(room)에 남은 인그레스 정리 */
 async function cleanupRoomIngresses(channelId: string) {
   try {
     const client = createIngressClient();
@@ -24,6 +24,25 @@ async function cleanupRoomIngresses(channelId: string) {
     await Promise.all(list.map((ing) => client.deleteIngress(ing.ingressId)));
   } catch (e) {
     console.warn("[cleanupRoomIngresses]", e);
+  }
+}
+
+/** 프로젝트 전체 인그레스 정리 — LiveKit 무료 플랜 한도 초과 시 */
+export async function cleanupStaleProjectIngresses(keepRoomName?: string) {
+  try {
+    const client = createIngressClient();
+    const list = await client.listIngress();
+    for (const ing of list) {
+      if (keepRoomName && ing.roomName === keepRoomName) continue;
+      try {
+        await client.deleteIngress(ing.ingressId);
+      } catch (e) {
+        console.warn("[cleanupStaleProjectIngresses] delete", ing.ingressId, e);
+      }
+    }
+    if (keepRoomName) await cleanupRoomIngresses(keepRoomName);
+  } catch (e) {
+    console.warn("[cleanupStaleProjectIngresses]", e);
   }
 }
 
@@ -92,8 +111,9 @@ export async function createObsRtmpIngress(
     return { ingressId: info.ingressId, url: creds.url, streamKey: creds.streamKey };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    if (/ingress|quota|limit/i.test(msg)) {
+    if (/ingress|quota|limit|exceeded/i.test(msg)) {
       await cleanupRoomIngresses(channelId);
+      await cleanupStaleProjectIngresses(channelId);
       try {
         const info = await createOnce();
         const creds = normalizeIngressCredentials(info);
