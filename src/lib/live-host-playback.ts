@@ -72,8 +72,8 @@ export async function buildHostPlaybackPayload(channelId: string, hostUserId: st
     message: probe.playable
       ? "VPS 방송 신호 확인. 미리보기 재생 중."
       : probe.live
-        ? "VPS 송출 감지. HLS 준비 중…"
-        : "OBS에서 「방송 시작」을 누르면 화면이 나타납니다.",
+        ? "VPS 송출 감지. FLV 미리보기 연결 중…"
+        : "다중 송출이 MoCoMo 서버·키로 나가면 화면이 나타납니다.",
     probeError: probe.error,
     probeStatus: probe.status,
     note: "Vultr VPS — 다중 송출 「새 대상」에 아래와 동일한 서버·키 입력",

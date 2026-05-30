@@ -7,7 +7,7 @@ import {
   getOrCreateUserObsStreamKey,
   resolveObsStreamKeyForChannel,
 } from "@/lib/user-obs-stream-key";
-import { probeSrsRtmpPublish } from "@/lib/srs-hls-proxy";
+import { isSrsStreamOnAir } from "@/lib/srs-hls-proxy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -59,7 +59,7 @@ export async function GET(
 
   if (!streamKey) return new NextResponse("No stream key", { status: 404 });
 
-  const onAir = await probeSrsRtmpPublish(streamKey);
+  const onAir = await isSrsStreamOnAir(streamKey);
   if (!onAir) {
     return new NextResponse("Stream not publishing", { status: 404 });
   }

@@ -20,13 +20,12 @@ function absoluteUrl(pathOrUrl: string): string {
   return `${window.location.origin}${pathOrUrl.startsWith("/") ? "" : "/"}${pathOrUrl}`;
 }
 
-/** VPS SRS — HLS 우선, HLS 실패 시 HTTP-FLV */
+/** VPS SRS — RTMP 있으면 FLV 우선, HLS는 보조 */
 export function LiveSrsPlayer({ channelId }: { channelId: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<HlsType | null>(null);
   const flvRef = useRef<{ destroy: () => void } | null>(null);
   const playingRef = useRef(false);
-  const flvTriedRef = useRef(false);
   const [status, setStatus] = useState<"loading" | "playing" | "waiting" | "error">("loading");
   const [playMode, setPlayMode] = useState<"hls" | "flv" | null>(null);
   const [hint, setHint] = useState("");
@@ -47,40 +46,47 @@ export function LiveSrsPlayer({ channelId }: { channelId: string }) {
   }, []);
 
   const startFlv = useCallback(async () => {
-    if (flvTriedRef.current) return;
-    flvTriedRef.current = true;
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || playingRef.current) return;
     cleanup();
     const url = absoluteUrl(`/api/live/${channelId}/flv`);
     try {
       const mod = await import("flv.js");
       const flvjs = mod.default;
-      if (!flvjs.isSupported()) return;
+      if (!flvjs.isSupported()) {
+        setHint("FLV 미지원 브라우저 — Chrome/Edge 사용 권장");
+        return;
+      }
       const player = flvjs.createPlayer(
         { type: "flv", url, isLive: true },
-        { enableStashBuffer: false, stashInitialSize: 128 }
+        { enableStashBuffer: false, stashInitialSize: 128, lazyLoad: false }
       );
       flvRef.current = player;
       player.attachMediaElement(video);
       player.load();
+      player.on(flvjs.Events.ERROR, () => {
+        if (!playingRef.current) {
+          setHint("FLV 연결 실패 — OBS 키·다중 송출 대상 확인");
+        }
+      });
       await player.play();
       markPlaying("flv");
     } catch {
-      /* keep waiting */
+      if (!playingRef.current) {
+        setHint("FLV 재생 실패 — OBS 서버/키가 MoCoMo와 같은지 확인");
+      }
     }
   }, [channelId, cleanup, markPlaying]);
 
   const startHls = useCallback(
     (hlsPath: string) => {
+      if (playingRef.current) return;
       const video = videoRef.current;
       if (!video) return;
-      cleanup();
-      flvTriedRef.current = false;
-      playingRef.current = false;
       const url = absoluteUrl(hlsPath);
-
-      const onParsed = () => markPlaying("hls");
+      const onParsed = () => {
+        if (!playingRef.current) markPlaying("hls");
+      };
 
       if (video.canPlayType("application/vnd.apple.mpegurl")) {
         video.src = url;
@@ -90,13 +96,9 @@ export function LiveSrsPlayer({ channelId }: { channelId: string }) {
       }
 
       void import("hls.js").then(({ default: Hls }) => {
-        if (!videoRef.current || !Hls.isSupported()) {
-          void startFlv();
-          return;
-        }
+        if (!videoRef.current || !Hls.isSupported() || playingRef.current) return;
         const hls = new Hls({
           enableWorker: true,
-          lowLatencyMode: true,
           xhrSetup: (xhr) => {
             xhr.withCredentials = true;
           },
@@ -107,17 +109,9 @@ export function LiveSrsPlayer({ channelId }: { channelId: string }) {
         hls.loadSource(url);
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, onParsed);
-        hls.on(Hls.Events.ERROR, (_e, data) => {
-          if (!data.fatal) return;
-          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            hls.startLoad();
-            return;
-          }
-          void startFlv();
-        });
       });
     },
-    [cleanup, markPlaying, startFlv]
+    [markPlaying]
   );
 
   const load = useCallback(async () => {
@@ -138,20 +132,14 @@ export function LiveSrsPlayer({ channelId }: { channelId: string }) {
 
       if (body.srsOnAir) {
         setStatus("waiting");
-        setHint(
-          body.probeError
-            ? `HLS 문제: ${body.probeError}`
-            : body.message ?? "HLS 세그먼트 준비 중…"
-        );
+        setHint("송출 감지됨 · FLV로 화면 연결 중…");
+        void startFlv();
         startHls(hlsPath);
-        window.setTimeout(() => {
-          if (!playingRef.current) void startFlv();
-        }, 10000);
         return;
       }
 
       setStatus("waiting");
-      setHint(body.message ?? "VPS 송출 대기 중 (다중 송출 확인)");
+      setHint(body.message ?? "다중 송출이 MoCoMo로 나가는지 확인하세요");
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : "재생 실패");
       setStatus("error");
@@ -160,7 +148,7 @@ export function LiveSrsPlayer({ channelId }: { channelId: string }) {
 
   useEffect(() => {
     void load();
-    const poll = setInterval(() => void load(), 6000);
+    const poll = setInterval(() => void load(), 8000);
     return () => {
       clearInterval(poll);
       cleanup();
@@ -187,12 +175,26 @@ export function LiveSrsPlayer({ channelId }: { channelId: string }) {
           <Loader2 className="h-10 w-10 animate-spin" />
           <Radio className="h-8 w-8 text-red-500" />
           <p className="text-sm max-w-md">{hint || "VPS 연결 중…"}</p>
+          <p className="text-[11px] text-white/60 max-w-sm">
+            HLS 세그먼트 없음 = RTMP는 들어오는데 .ts 파일이 아직 없음. FLV로 자동 전환 중입니다.
+          </p>
         </div>
       )}
       {status === "playing" && playMode && (
         <span className="absolute top-3 left-3 px-2 py-0.5 rounded bg-red-600 text-white text-[10px] font-bold">
           LIVE · {playMode === "flv" ? "FLV" : "HLS"}
         </span>
+      )}
+      {status === "waiting" && (
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="absolute bottom-3 right-3 z-10"
+          onClick={() => void startFlv()}
+        >
+          FLV로 보기
+        </Button>
       )}
     </div>
   );

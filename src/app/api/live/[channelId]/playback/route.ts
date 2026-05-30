@@ -115,7 +115,7 @@ export async function GET(
       message: probe.playable
         ? "HLS 재생 가능"
         : probe.live
-          ? "RTMP OK · HLS 준비 중 (10초 후 FLV 시도)"
+          ? "RTMP OK · FLV 자동 재생 중"
           : "다중 송출 대상 송출 대기",
       probeError: probe.error,
       probeStatus: probe.status,

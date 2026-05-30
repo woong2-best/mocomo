@@ -43,25 +43,56 @@ export function manifestCandidateUrls(streamKey: string): string[] {
   ];
 }
 
+async function fetchManifestText(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      cache: "no-store",
+      signal: AbortSignal.timeout(10000),
+      headers: { Accept: "application/vnd.apple.mpegurl,*/*" },
+    });
+    if (!res.ok) return null;
+    const text = await res.text();
+    return text.includes("#EXTM3U") ? text : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 마스터 m3u8 → 실제 미디어 m3u8 따라가기 */
+async function resolveMediaPlaylist(
+  streamKey: string,
+  url: string,
+  text: string
+): Promise<{ url: string; text: string } | null> {
+  if (!text.includes("#EXT-X-STREAM-INF")) {
+    return { url, text };
+  }
+  const base = getSrsHlsBaseUrl().replace(/\/$/, "");
+  for (const line of text.split("\n")) {
+    const t = line.trim();
+    if (!t || t.startsWith("#")) continue;
+    const mediaUrl = t.startsWith("http") ? t : `${base}/${normalizeHlsRelativePath(t)}`;
+    const mediaText = await fetchManifestText(mediaUrl);
+    if (mediaText) return { url: mediaUrl, text: mediaText };
+  }
+  const name = streamKey.trim().split("?")[0];
+  const fallback = `${base}/${name}.m3u8`;
+  const mediaText = await fetchManifestText(fallback);
+  if (mediaText) return { url: fallback, text: mediaText };
+  return null;
+}
+
 /** VPS에서 동작하는 m3u8 URL 찾기 */
 export async function fetchUpstreamManifest(streamKey: string): Promise<{
   url: string;
   text: string;
 } | null> {
   for (const url of manifestCandidateUrls(streamKey)) {
-    try {
-      const res = await fetch(url, {
-        method: "GET",
-        cache: "no-store",
-        signal: AbortSignal.timeout(10000),
-        headers: { Accept: "application/vnd.apple.mpegurl,*/*" },
-      });
-      if (!res.ok) continue;
-      const text = await res.text();
-      if (text.includes("#EXTM3U")) return { url, text };
-    } catch {
-      /* try next */
-    }
+    const text = await fetchManifestText(url);
+    if (!text) continue;
+    const resolved = await resolveMediaPlaylist(streamKey, url, text);
+    if (resolved) return resolved;
   }
   return null;
 }
@@ -129,7 +160,7 @@ function firstSegmentPathFromManifest(text: string): string | null {
   return null;
 }
 
-/** SRS HTTP API — RTMP publish 여부 */
+/** SRS HTTP API — RTMP publish 여부 (1985가 막히면 false) */
 export async function probeSrsRtmpPublish(streamKey: string): Promise<boolean> {
   const origin = srsApiOriginFromHlsBase();
   if (!origin) return false;
@@ -154,6 +185,31 @@ export async function probeSrsRtmpPublish(streamKey: string): Promise<boolean> {
   }
 }
 
+/** 8080 HTTP-FLV — API(1985) 차단 시 송출 감지용 */
+export async function probeSrsFlvPublish(streamKey: string): Promise<boolean> {
+  try {
+    const url = buildFlvPlaybackUrl(streamKey);
+    const res = await fetch(url, {
+      method: "GET",
+      cache: "no-store",
+      signal: AbortSignal.timeout(8000),
+      headers: { Range: "bytes=0-4095" },
+    });
+    const ct = res.headers.get("content-type") ?? "";
+    return res.ok && (ct.includes("flv") || ct.includes("octet-stream") || res.status === 206);
+  } catch {
+    return false;
+  }
+}
+
+/** Vercel → VPS: 1985 막혀도 HLS/FLV로 송출 여부 판별 */
+export async function isSrsStreamOnAir(streamKey: string): Promise<boolean> {
+  if (await probeSrsRtmpPublish(streamKey)) return true;
+  if (await probeSrsFlvPublish(streamKey)) return true;
+  const manifest = await fetchUpstreamManifest(streamKey);
+  return !!manifest;
+}
+
 export async function probeSrsManifest(streamKey: string): Promise<{
   live: boolean;
   playable?: boolean;
@@ -164,30 +220,33 @@ export async function probeSrsManifest(streamKey: string): Promise<{
   error?: string;
 }> {
   const rtmpPublish = await probeSrsRtmpPublish(streamKey);
+  const flvPublish = await probeSrsFlvPublish(streamKey);
   const flvUrl = buildFlvPlaybackUrl(streamKey);
 
   const manifest = await fetchUpstreamManifest(streamKey);
   if (!manifest) {
+    const onAir = rtmpPublish || flvPublish;
     return {
-      live: rtmpPublish,
+      live: onAir,
       playable: false,
-      rtmpPublish,
+      rtmpPublish: onAir,
       flvUrl,
-      error: rtmpPublish
+      error: onAir
         ? "HLS m3u8 없음 (VPS 8080·HLS 설정 확인). FLV 폴백 시도 가능."
         : "no RTMP publish",
     };
   }
 
   const segPath = firstSegmentPathFromManifest(manifest.text);
+  const onAir = rtmpPublish || flvPublish;
   if (!segPath) {
     return {
       live: true,
       playable: false,
-      rtmpPublish,
+      rtmpPublish: onAir || true,
       manifestUrl: manifest.url,
       flvUrl,
-      error: "HLS playlist has no segments yet",
+      error: "HLS 세그먼트 대기 중 (FLV 재생 권장)",
     };
   }
 
