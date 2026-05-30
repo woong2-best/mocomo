@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Video } from "lucide-react";
+import { isLiveFeatureEnabled } from "@/lib/live-feature";
 
 export function LivePageActions({ variant }: { variant: "header" | "empty" }) {
   const { data: session } = useSession();
-  if (!session?.user) return null;
+  if (!isLiveFeatureEnabled() || !session?.user) return null;
 
   if (variant === "header") {
     return (

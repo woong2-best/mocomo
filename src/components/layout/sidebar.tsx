@@ -28,6 +28,7 @@ import { BRAND } from "@/lib/brand";
 import { SidebarAuthFooter } from "@/components/layout/sidebar-auth-footer";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { MessageKey } from "@/lib/i18n/messages";
+import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
 
 const navBlocks: { href: string; icon: typeof Home; labelKey: MessageKey }[] = [
   { href: "/", icon: Home, labelKey: "nav.home" },
@@ -74,7 +75,9 @@ export function Sidebar() {
       </Link>
 
       <nav className="flex flex-col gap-2.5 flex-1">
-        {navBlocks.map(({ href, icon: Icon, labelKey }) => (
+        {navBlocks
+          .filter(({ href }) => isLiveFeatureEnabled() || !isLiveNavHref(href))
+          .map(({ href, icon: Icon, labelKey }) => (
               <Link
                 key={href}
                 href={href}

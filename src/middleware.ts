@@ -25,6 +25,14 @@ const authRoutes = ["/auth/signin", "/auth/signup"];
 
 export default edgeAuth((req) => {
   const { pathname } = req.nextUrl;
+
+  if (
+    process.env.NEXT_PUBLIC_LIVE_ENABLED !== "true" &&
+    (pathname.startsWith("/live") || pathname.startsWith("/voice"))
+  ) {
+    return NextResponse.redirect(new URL("/", req.url));
+  }
+
   const isLoggedIn = !!req.auth?.user?.id;
   const isBanned = Boolean(req.auth?.user?.isBanned);
   const isProtected = protectedRoutes.some((r) => pathname.startsWith(r));
@@ -79,6 +87,7 @@ export const config = {
     "/premium/:path*",
     "/support/:path*",
     "/voice/:path*",
+    "/live/:path*",
     "/cosplay/apply",
     "/auth/signin",
     "/auth/signup",

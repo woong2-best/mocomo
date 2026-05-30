@@ -8,6 +8,7 @@ import { getCachedExploreData } from "@/lib/cached-data";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import type { SupportTierLevel } from "@prisma/client";
 import { userDisplayName } from "@/lib/user-public-select";
+import { isLiveFeatureEnabled } from "@/lib/live-feature";
 
 export async function ExploreContentAsync() {
   type PostRow = {
@@ -55,7 +56,7 @@ export async function ExploreContentAsync() {
         </p>
       )}
 
-      {liveChannels.length > 0 && (
+      {isLiveFeatureEnabled() && liveChannels.length > 0 && (
         <section>
           <h2 className="font-semibold flex items-center gap-2 mb-3">
             <Radio className="h-5 w-5 text-red-500" />

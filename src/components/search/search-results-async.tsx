@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import { runFastSearch } from "@/lib/search-fast";
 import { Card, CardContent } from "@/components/ui/card";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
+import { isLiveFeatureEnabled } from "@/lib/live-feature";
 
 export async function SearchResultsAsync({ query }: { query: string }) {
   if (!query) return null;
@@ -22,7 +23,7 @@ export async function SearchResultsAsync({ query }: { query: string }) {
 
   return (
     <>
-      {liveStreams.length > 0 && (
+      {isLiveFeatureEnabled() && liveStreams.length > 0 && (
         <section>
           <h2 className="text-sm font-semibold text-muted-foreground mb-2">라이브 방송</h2>
           {liveStreams.map((ch) => (

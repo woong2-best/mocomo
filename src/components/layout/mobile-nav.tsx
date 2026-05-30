@@ -7,6 +7,7 @@ import { Home, Compass, PenLine, Radio, MessageCircle, User, LogIn } from "lucid
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { MessageKey } from "@/lib/i18n/messages";
+import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
 
 const guestTabs: { href: string; icon: typeof Home; labelKey: MessageKey }[] = [
   { href: "/", icon: Home, labelKey: "nav.home" },
@@ -28,7 +29,10 @@ export function MobileNav() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const { t } = useLocale();
-  const tabs = session?.user ? userTabs : guestTabs;
+  const rawTabs = session?.user ? userTabs : guestTabs;
+  const tabs = isLiveFeatureEnabled()
+    ? rawTabs
+    : rawTabs.filter((t) => !isLiveNavHref(t.href));
 
   return (
     <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 pb-[env(safe-area-inset-bottom)]">

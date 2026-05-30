@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Radio, Users, Gem, Camera, Tv, PenSquare, ShoppingBag } from "lucide-react";
 import { BRAND } from "@/lib/brand";
+import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
 
 const features = [
   { icon: PenSquare, label: "SNS 피드", href: "/explore" },
@@ -18,7 +19,7 @@ export function HomeGuestHero() {
     <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-violet-500/10 via-pink-500/10 to-cyan-500/10 p-6 sm:p-8 mb-6">
       <h1 className="text-2xl sm:text-3xl font-bold">{BRAND.name}에 오신 것을 환영합니다</h1>
       <p className="text-muted-foreground mt-2 max-w-lg">
-        {BRAND.description}. 가입 후 글 작성, 라이브, DM을 이용할 수 있습니다.
+        {BRAND.description}. 가입 후 글 작성, DM 등을 이용할 수 있습니다.
       </p>
       <div className="flex flex-wrap gap-3 mt-6">
         <Button asChild size="lg" className="rounded-xl">
@@ -29,7 +30,9 @@ export function HomeGuestHero() {
         </Button>
       </div>
       <div className="grid grid-cols-3 sm:grid-cols-7 gap-2 mt-8">
-        {features.map(({ icon: Icon, label, href }) => (
+        {features
+          .filter(({ href }) => isLiveFeatureEnabled() || !isLiveNavHref(href))
+          .map(({ icon: Icon, label, href }) => (
           <Link
             key={href}
             href={href}

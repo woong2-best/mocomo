@@ -47,7 +47,7 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
   const [onAir, setOnAir] = useState(false);
   const [playable, setPlayable] = useState(false);
   const [signalMsg, setSignalMsg] = useState("");
-  const [ingestEngine, setIngestEngine] = useState<string>("srs");
+  const [ingestEngine, setIngestEngine] = useState<string>("cloudflare");
   const [warning, setWarning] = useState("");
   const [refreshing, setRefreshing] = useState(false);
 
@@ -73,6 +73,21 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
   useEffect(() => {
     void loadCreds();
   }, [loadCreds]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/health/obs", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((b) => {
+        if (!cancelled && typeof b.engine === "string") {
+          setIngestEngine(b.engine);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -141,6 +156,12 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
           <Button type="button" variant="outline" size="sm" onClick={() => void loadCreds(false)}>
             다시 시도
           </Button>
+          <LiveObsCloudflareGuide compact />
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            OBS는 켜져 있어도, MoCoMo <strong>서버·방송 키</strong>가 없으면 Cloudflare로 송출되지 않습니다.
+            다중 송출만 켠 경우 대상 서버가 <code className="text-[10px]">live.cloudflare.com</code> 인지 확인하세요.
+            (예전 Vultr <code className="text-[10px]">45.32.16.32</code> 는 사용하지 않습니다.)
+          </p>
         </div>
       ) : (
         <>

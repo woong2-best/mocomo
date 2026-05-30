@@ -47,6 +47,63 @@ type ChannelObsRow = {
   rtmpStreamKey: string | null;
 };
 
+function formatDbError(e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e);
+  if (/rtmpUrl|rtmpStreamKey|obsRtmpStreamKey|broadcastMode|liveStatus|column|does not exist/i.test(msg)) {
+    return "OBS DB 컬럼이 없습니다. Supabase SQL Editor에서 scripts/supabase-fix-all.sql 을 실행해 주세요.";
+  }
+  const code = e && typeof e === "object" && "code" in e ? String((e as { code?: string }).code) : "";
+  const hint = code ? ` (${code})` : "";
+  const short = msg.length > 160 ? `${msg.slice(0, 160)}…` : msg;
+  return `방송 정보를 불러오지 못했습니다${hint}. ${short}`;
+}
+
+async function loadChannelForObs(channelId: string): Promise<ChannelObsRow | null | { error: string }> {
+  try {
+    const row = await db.voiceChannel.findUnique({
+      where: { id: channelId },
+      select: {
+        createdBy: true,
+        liveStatus: true,
+        name: true,
+        rtmpIngressId: true,
+        rtmpUrl: true,
+        rtmpStreamKey: true,
+      },
+    });
+    return row;
+  } catch (e) {
+    console.error("[provisionObsIngress] db full select", e);
+    try {
+      const row = await db.voiceChannel.findUnique({
+        where: { id: channelId },
+        select: {
+          createdBy: true,
+          name: true,
+          isLive: true,
+          endedAt: true,
+          rtmpIngressId: true,
+          rtmpUrl: true,
+          rtmpStreamKey: true,
+        },
+      });
+      if (!row) return null;
+      const liveStatus = row.endedAt ? "ENDED" : row.isLive ? "LIVE" : "ENDED";
+      return {
+        createdBy: row.createdBy,
+        liveStatus,
+        name: row.name,
+        rtmpIngressId: row.rtmpIngressId,
+        rtmpUrl: row.rtmpUrl,
+        rtmpStreamKey: row.rtmpStreamKey,
+      };
+    } catch (e2) {
+      console.error("[provisionObsIngress] db minimal select", e2);
+      return { error: formatDbError(e2) };
+    }
+  }
+}
+
 function formatForObs(rtmpUrl: string, streamKey: string): Pick<ObsRtmpCredentials, "obsServer" | "obsStreamKey"> {
   const parsed = parseRtmpForObs(rtmpUrl, streamKey);
   if (parsed) {
@@ -305,31 +362,11 @@ export async function provisionObsIngress(
 ): Promise<ProvisionObsResult> {
   const engine = options?.preferEngine ?? preferredLiveIngestEngine();
 
-  let channel: ChannelObsRow | null;
-
-  try {
-    channel = await db.voiceChannel.findUnique({
-      where: { id: channelId },
-      select: {
-        createdBy: true,
-        liveStatus: true,
-        name: true,
-        rtmpIngressId: true,
-        rtmpUrl: true,
-        rtmpStreamKey: true,
-      },
-    });
-  } catch (e) {
-    console.error("[provisionObsIngress] db", e);
-    const msg = e instanceof Error ? e.message : "";
-    if (/rtmpUrl|rtmpStreamKey|obsRtmpStreamKey|broadcastMode|column/i.test(msg)) {
-      return {
-        error:
-          "OBS DB 컬럼이 없습니다. Supabase SQL Editor에서 supabase-fix-all.sql을 실행해 주세요.",
-      };
-    }
-    return { error: "방송 정보를 불러오지 못했습니다." };
+  const loaded = await loadChannelForObs(channelId);
+  if (loaded && "error" in loaded) {
+    return { error: loaded.error };
   }
+  const channel = loaded;
 
   if (!channel || channel.createdBy !== userId) {
     return { error: "호스트만 OBS 설정을 받을 수 있습니다." };

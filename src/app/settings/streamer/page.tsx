@@ -2,8 +2,10 @@ import { redirect } from "next/navigation";
 import { getCachedSession } from "@/lib/auth";
 import { getStreamerProfile } from "@/actions/streamer";
 import { StreamerSettingsForm } from "@/components/live/streamer-settings-form";
+import { isLiveFeatureEnabled } from "@/lib/live-feature";
 
 export default async function StreamerSettingsPage() {
+  if (!isLiveFeatureEnabled()) redirect("/settings");
   const session = await getCachedSession();
   if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/settings/streamer");
 

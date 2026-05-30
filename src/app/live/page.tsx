@@ -4,6 +4,8 @@ import { LiveChannelFeed } from "@/components/live/live-channel-feed";
 import { LiveChannelGridSkeleton } from "@/components/live/live-channel-grid-skeleton";
 import { getLiveHubStaticData } from "@/lib/live-hub-data";
 import { getAuthUserId } from "@/lib/auth";
+import { isLiveFeatureEnabled } from "@/lib/live-feature";
+import { LiveFeatureDisabledNotice } from "@/components/live/live-feature-disabled";
 
 export const revalidate = 25;
 
@@ -12,6 +14,10 @@ export default async function LivePage({
 }: {
   searchParams: Promise<{ category?: string }>;
 }) {
+  if (!isLiveFeatureEnabled()) {
+    return <LiveFeatureDisabledNotice />;
+  }
+
   const currentUserId = await getAuthUserId();
 
   let staticData: Awaited<ReturnType<typeof getLiveHubStaticData>> = {
