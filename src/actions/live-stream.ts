@@ -28,6 +28,7 @@ import {
   endHostBroadcastChannel,
   prepareHostForNewBroadcast,
 } from "@/lib/live-broadcast/session-manager";
+import { isPubliclyLive } from "@/lib/live-channel-active";
 import { notifyFollowersOnLive } from "@/lib/live-notify";
 import {
   fetchLiveChannelForStudio,
@@ -305,18 +306,50 @@ export async function getLiveChannelRoomMeta(channelId: string, viewerId?: strin
   }
 }
 
-/** 시청 입장 — 공개 방송은 누구나, 비공개는 등급 충족 시청자만 */
+/** 호스트 스튜디오 입장 — OBS 전(SCHEDULED)에도 가능 */
+export async function enterLiveAsHost(channelId: string) {
+  const user = await requireAuth();
+  const channel = await db.voiceChannel.findUnique({
+    where: { id: channelId },
+    select: { createdBy: true, liveStatus: true },
+  });
+
+  if (!channel) return { error: "종료되었거나 없는 방송입니다." };
+  if (channel.createdBy !== user.id) {
+    return { error: "호스트만 스튜디오에 입장할 수 있습니다." };
+  }
+  if (channel.liveStatus === "ENDED") {
+    return { error: "종료된 방송입니다. 새 방송을 만들어 주세요." };
+  }
+
+  await upsertLiveMember(channelId, user.id, "HOST");
+  return { success: true as const, role: "HOST" as const };
+}
+
+/** 시청 입장 — 공개 방송은 누구나, 비공개는 등급 충족 시청자만 (LIVE 중만) */
 export async function enterLiveAsViewer(channelId: string) {
   const user = await requireAuth();
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
-    select: { isLive: true, createdBy: true, maxUsers: true },
+    select: { isLive: true, liveStatus: true, createdBy: true, maxUsers: true },
   });
 
-  if (!channel || !channel.isLive) return { error: "종료되었거나 없는 방송입니다." };
+  if (!channel) return { error: "종료되었거나 없는 방송입니다." };
   if (channel.createdBy === user.id) {
-    await upsertLiveMember(channelId, user.id, "HOST");
-    return { success: true as const, role: "HOST" as const };
+    return enterLiveAsHost(channelId);
+  }
+  if (
+    !isPubliclyLive({
+      isLive: channel.isLive,
+      liveStatus: channel.liveStatus,
+    })
+  ) {
+    return {
+      error:
+        channel.liveStatus === "ENDED"
+          ? "종료된 방송입니다."
+          : "아직 방송이 시작되지 않았습니다. OBS 송출이 시작될 때까지 기다려 주세요.",
+    };
   }
 
   const access = await resolveLiveChannelAccess(channelId, user.id);
@@ -378,12 +411,19 @@ export async function joinLiveStreamWithPassword(channelId: string, password: st
   const user = await requireAuth();
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
-    select: { createdBy: true, isLive: true },
+    select: { createdBy: true, isLive: true, liveStatus: true },
   });
-  if (!channel || !channel.isLive) return { error: "종료되었거나 없는 방송입니다." };
+  if (!channel) return { error: "종료되었거나 없는 방송입니다." };
   if (channel.createdBy === user.id) {
-    await upsertLiveMember(channelId, user.id, "HOST");
-    return { success: true as const };
+    return enterLiveAsHost(channelId);
+  }
+  if (!channel.isLive) {
+    return {
+      error:
+        channel.liveStatus === "ENDED"
+          ? "종료된 방송입니다."
+          : "아직 방송이 시작되지 않았습니다.",
+    };
   }
   if (!password.trim()) {
     return enterLiveAsViewer(channelId);

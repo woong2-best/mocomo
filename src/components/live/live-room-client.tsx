@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { LiveBroadcastMode, LiveStreamCategory, LiveVisibility, SupportTierLevel } from "@prisma/client";
 import {
-  joinLiveStreamWithPassword,
+  enterLiveAsHost,
   enterLiveAsViewer,
   applyLiveCollabPassword,
   endLiveStream,
@@ -97,7 +97,7 @@ export function LiveRoomClient({
   const enterStudioAsHost = useCallback(async () => {
     setJoining(true);
     setJoinError("");
-    const res = await joinLiveStreamWithPassword(channelId, "");
+    const res = await enterLiveAsHost(channelId);
     setJoining(false);
     if ("error" in res && res.error) {
       setJoinError(res.error);
