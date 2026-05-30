@@ -26,3 +26,11 @@ export function isSrsIngestChannel(channel: { rtmpIngressId?: string | null }): 
   const id = channel.rtmpIngressId?.trim() ?? "";
   return id.startsWith("srs:") || (!id && isSrsConfigured() && !isLivekitIngressConfigured());
 }
+
+/** 채널 DB + 사이트 기본 엔진 — 플레이어·상태 API 공통 */
+export function resolveChannelIngestEngine(channel: {
+  rtmpIngressId?: string | null;
+}): LiveIngestEngine {
+  if (isLivekitIngestChannel(channel)) return "livekit";
+  return preferredLiveIngestEngine();
+}

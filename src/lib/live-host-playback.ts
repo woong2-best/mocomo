@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { isLivekitIngestChannel, preferredLiveIngestEngine } from "@/lib/live-ingest";
+import { resolveChannelIngestEngine } from "@/lib/live-ingest";
 import { probeLivekitObsPublish } from "@/lib/livekit-room-status";
 import { buildProxiedFlvPlaybackPath } from "@/lib/srs";
 import { buildProxiedHlsPlaybackPath, probeSrsManifest } from "@/lib/srs-hls-proxy";
@@ -12,8 +12,7 @@ export async function buildHostPlaybackPayload(channelId: string, hostUserId: st
     select: { rtmpIngressId: true, rtmpStreamKey: true },
   });
 
-  const engine =
-    channel && isLivekitIngestChannel(channel) ? "livekit" : preferredLiveIngestEngine();
+  const engine = channel ? resolveChannelIngestEngine(channel) : resolveChannelIngestEngine({});
 
   if (engine === "livekit") {
     const probe = await probeLivekitObsPublish(channelId);

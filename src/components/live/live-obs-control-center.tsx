@@ -211,8 +211,8 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
           {onAir ? <Signal className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}
           <span>
             {ingestEngine === "livekit"
-              ? "LiveKit 송출 · "
-              : "VPS(SRS) 송출 · "}
+              ? "엔진 LiveKit · "
+              : "엔진 VPS(SRS) · "}
             {signalMsg || "다중 송출 대상이 켜지면 신호가 잡힙니다."}
           </span>
         </div>

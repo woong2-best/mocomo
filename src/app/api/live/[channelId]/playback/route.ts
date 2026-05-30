@@ -7,7 +7,7 @@ import { buildProxiedHlsPlaybackPath, probeSrsManifest } from "@/lib/srs-hls-pro
 import { buildHostPlaybackPayload } from "@/lib/live-host-playback";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
-import { isLivekitIngestChannel } from "@/lib/live-ingest";
+import { isLivekitIngestChannel, resolveChannelIngestEngine } from "@/lib/live-ingest";
 import { probeLivekitObsPublish } from "@/lib/livekit-room-status";
 
 export const runtime = "nodejs";
@@ -66,7 +66,7 @@ export async function GET(
       select: { rtmpIngressId: true },
     });
 
-    if (chRow && isLivekitIngestChannel(chRow)) {
+    if (chRow && resolveChannelIngestEngine(chRow) === "livekit") {
       const probe = await probeLivekitObsPublish(channelId);
       return NextResponse.json({
         ok: true,
