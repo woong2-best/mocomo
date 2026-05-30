@@ -9,10 +9,7 @@ import {
 } from "@/lib/srs-hls-proxy";
 import { db } from "@/lib/db";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
-import {
-  getOrCreateUserObsStreamKey,
-  resolveObsStreamKeyForChannel,
-} from "@/lib/user-obs-stream-key";
+import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
 import { ensureChannelBroadcastActive } from "@/lib/live-channel-active";
 
 export const runtime = "nodejs";
@@ -55,19 +52,10 @@ export async function GET(
 
   await ensureChannelBroadcastActive(channelId);
 
-  let streamKey: string | null = channel.rtmpStreamKey?.trim() || null;
-  if (isHost && !streamKey) {
-    try {
-      streamKey = await getOrCreateUserObsStreamKey(session.user.id);
-    } catch {
-      streamKey = null;
-    }
-  } else if (!isHost) {
-    const resolved = await resolveObsStreamKeyForChannel(channelId, {
-      viewerUserId: session.user.id,
-    });
-    streamKey = resolved.streamKey;
-  }
+  const resolved = await resolveObsStreamKeyForChannel(channelId, {
+    viewerUserId: session.user.id,
+  });
+  const streamKey = resolved.streamKey;
 
   if (!streamKey) {
     return new NextResponse("Stream not ready", { status: 404 });

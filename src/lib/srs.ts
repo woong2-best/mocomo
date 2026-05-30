@@ -50,11 +50,20 @@ export function buildHlsPlaybackUrl(streamKey: string): string {
   return `${getSrsHlsBaseUrl()}/${stream}.m3u8`;
 }
 
-/** SRS http_remux FLV (HLS 실패 시 폴백) */
-export function buildFlvPlaybackUrl(streamKey: string): string {
+/** SRS http_remux FLV 후보 URL (마운트 경로 차이 대비) */
+export function flvCandidateUrls(streamKey: string): string[] {
   const stream = streamKey.trim().split("?")[0];
   const base = getSrsHlsBaseUrl().replace(/\/$/, "");
-  return `${base}/${stream}.flv`;
+  return [
+    `${base}/${stream}.flv`,
+    `${base}/live/${stream}.flv`,
+    `${base.replace(/\/live$/, "")}/${stream}.flv`,
+  ];
+}
+
+/** SRS http_remux FLV (HLS 실패 시 폴백) */
+export function buildFlvPlaybackUrl(streamKey: string): string {
+  return flvCandidateUrls(streamKey)[0]!;
 }
 
 export function buildProxiedFlvPlaybackPath(channelId: string, streamKey: string): string {

@@ -26,7 +26,7 @@ docker rm -f mocomo-srs 2>/dev/null
 docker compose -f docker-compose.srs.yml up -d --force-recreate
 
 sleep 3
-docker exec mocomo-srs sh -c 'mkdir -p ./objs/nginx/html/live' 2>/dev/null
+docker exec mocomo-srs sh -c 'mkdir -p ./objs/nginx/html/live && chmod -R 777 ./objs/nginx/html' 2>/dev/null
 
 echo "==> 3) 상태"
 docker ps | head -5

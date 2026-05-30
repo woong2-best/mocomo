@@ -1,4 +1,9 @@
 {
   "buildCommand": "npm run vercel-build",
-  "installCommand": "npm install"
+  "installCommand": "npm install",
+  "functions": {
+    "src/app/api/live/[channelId]/flv/route.ts": {
+      "maxDuration": 300
+    }
+  }
 }

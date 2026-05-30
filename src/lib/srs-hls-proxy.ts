@@ -1,4 +1,9 @@
-import { buildFlvPlaybackUrl, buildHlsPlaybackUrl, getSrsHlsBaseUrl } from "@/lib/srs";
+import {
+  buildFlvPlaybackUrl,
+  buildHlsPlaybackUrl,
+  flvCandidateUrls,
+  getSrsHlsBaseUrl,
+} from "@/lib/srs";
 
 /** m3u8·ts 상대 경로 정규화 (live/ 중복 방지) */
 export function normalizeHlsRelativePath(relativePath: string): string {
@@ -187,19 +192,41 @@ export async function probeSrsRtmpPublish(streamKey: string): Promise<boolean> {
 
 /** 8080 HTTP-FLV — API(1985) 차단 시 송출 감지용 */
 export async function probeSrsFlvPublish(streamKey: string): Promise<boolean> {
-  try {
-    const url = buildFlvPlaybackUrl(streamKey);
-    const res = await fetch(url, {
-      method: "GET",
-      cache: "no-store",
-      signal: AbortSignal.timeout(8000),
-      headers: { Range: "bytes=0-4095" },
-    });
-    const ct = res.headers.get("content-type") ?? "";
-    return res.ok && (ct.includes("flv") || ct.includes("octet-stream") || res.status === 206);
-  } catch {
-    return false;
+  for (const url of flvCandidateUrls(streamKey)) {
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        cache: "no-store",
+        signal: AbortSignal.timeout(8000),
+        headers: { Range: "bytes=0-4095" },
+      });
+      const ct = res.headers.get("content-type") ?? "";
+      if (res.ok && (ct.includes("flv") || ct.includes("octet-stream") || res.status === 206)) {
+        return true;
+      }
+    } catch {
+      /* try next */
+    }
   }
+  return false;
+}
+
+/** VPS에서 응답하는 FLV URL (프록시 upstream) */
+export async function resolveSrsFlvUpstreamUrl(streamKey: string): Promise<string | null> {
+  for (const url of flvCandidateUrls(streamKey)) {
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        cache: "no-store",
+        signal: AbortSignal.timeout(6000),
+        headers: { Range: "bytes=0-1" },
+      });
+      if (res.ok || res.status === 206) return url;
+    } catch {
+      /* try next */
+    }
+  }
+  return null;
 }
 
 /** Vercel → VPS: 1985 막혀도 HLS/FLV로 송출 여부 판별 */
