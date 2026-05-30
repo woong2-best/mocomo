@@ -40,7 +40,9 @@ export async function GET(
 
   await ensureChannelBroadcastActive(channelId);
 
-  const { streamKey } = await resolveObsStreamKeyForChannel(channelId);
+  const { streamKey } = await resolveObsStreamKeyForChannel(channelId, {
+    viewerUserId: session.user.id,
+  });
   if (!streamKey) {
     return new NextResponse("Stream not ready", { status: 404 });
   }

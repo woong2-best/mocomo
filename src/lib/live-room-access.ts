@@ -59,6 +59,18 @@ export async function resolveLiveChannelAccess(
   });
 
   if (!active) {
+    const hostStudio =
+      isHost &&
+      channel.liveStatus !== "ENDED" &&
+      (channel.liveStatus === "LIVE" || channel.liveStatus === "SCHEDULED");
+    if (hostStudio) {
+      return {
+        allowed: true,
+        isHost: true,
+        hostUserId: channel.createdBy,
+        canPublish: true,
+      };
+    }
     return { allowed: false, reason: isHost ? "ENDED" : "NOT_LIVE" };
   }
 

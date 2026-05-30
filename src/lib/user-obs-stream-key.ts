@@ -34,7 +34,10 @@ export async function getOrCreateUserObsStreamKey(
 }
 
 /** 라이브 방송 재생·웹훅용 — 호스트 계정 키 우선 */
-export async function resolveObsStreamKeyForChannel(channelId: string): Promise<{
+export async function resolveObsStreamKeyForChannel(
+  channelId: string,
+  options?: { viewerUserId?: string }
+): Promise<{
   streamKey: string | null;
   hostUserId: string | null;
 }> {
@@ -44,23 +47,31 @@ export async function resolveObsStreamKeyForChannel(channelId: string): Promise<
     where: { id: channelId },
     select: { createdBy: true, isLive: true, liveStatus: true, rtmpStreamKey: true },
   });
-  if (!channel || !isBroadcastActive(channel)) {
+  if (!channel) {
     return { streamKey: null, hostUserId: null };
   }
 
+  let key: string | null = null;
   try {
     const host = await db.user.findUnique({
       where: { id: channel.createdBy },
       select: { obsRtmpStreamKey: true },
     });
-    const key = host?.obsRtmpStreamKey?.trim() || channel.rtmpStreamKey?.trim() || null;
-    return { streamKey: key, hostUserId: channel.createdBy };
+    key = host?.obsRtmpStreamKey?.trim() || channel.rtmpStreamKey?.trim() || null;
   } catch {
-    return {
-      streamKey: channel.rtmpStreamKey?.trim() || null,
-      hostUserId: channel.createdBy,
-    };
+    key = channel.rtmpStreamKey?.trim() || null;
   }
+
+  if (!key) {
+    return { streamKey: null, hostUserId: channel.createdBy };
+  }
+
+  const isHostViewer = options?.viewerUserId === channel.createdBy;
+  if (isBroadcastActive(channel) || isHostViewer) {
+    return { streamKey: key, hostUserId: channel.createdBy };
+  }
+
+  return { streamKey: null, hostUserId: null };
 }
 
 export async function findLiveChannelByObsStreamKey(stream: string) {
@@ -73,13 +84,24 @@ export async function findLiveChannelByObsStreamKey(stream: string) {
       select: { id: true },
     });
     if (byUser) {
+      const byChannelKey = await db.voiceChannel.findFirst({
+        where: {
+          createdBy: byUser.id,
+          rtmpStreamKey: name,
+          liveStatus: { in: ["LIVE", "SCHEDULED"] },
+        },
+        orderBy: { createdAt: "desc" },
+        select: { id: true },
+      });
+      if (byChannelKey) return byChannelKey;
+
       return db.voiceChannel.findFirst({
         where: {
           createdBy: byUser.id,
           liveStatus: { in: ["LIVE", "SCHEDULED"] },
           OR: [{ isLive: true }, { liveStatus: "LIVE" }],
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ isLive: "desc" }, { createdAt: "desc" }],
         select: { id: true },
       });
     }

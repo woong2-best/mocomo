@@ -45,7 +45,9 @@ export async function GET(
     );
   }
 
-  const { streamKey } = await resolveObsStreamKeyForChannel(channelId);
+  const { streamKey } = await resolveObsStreamKeyForChannel(channelId, {
+    viewerUserId: session.user.id,
+  });
 
   if (!streamKey) {
     return NextResponse.json({

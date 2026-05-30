@@ -33,7 +33,9 @@ export async function GET(
     return NextResponse.json({ ok: false, configured: false, error: configErr });
   }
 
-  const { streamKey } = await resolveObsStreamKeyForChannel(channelId);
+  const { streamKey } = await resolveObsStreamKeyForChannel(channelId, {
+    viewerUserId: session.user.id,
+  });
 
   if (!streamKey) {
     return NextResponse.json({
@@ -64,9 +66,11 @@ export async function GET(
     probeError: probe.error,
     message: probe.playable
       ? "SRS 방송 신호가 확인되었습니다. 미리보기가 재생됩니다."
-      : probe.live
-        ? "RTMP 송출은 감지됐습니다. HLS 세그먼트 생성까지 5~20초 기다려 주세요."
-        : "OBS에서 「방송 시작」 상태인데 SRS에 신호가 없습니다. 서버·방송 키를 다시 붙여넣고 방송을 재시작하세요.",
+      : probe.live && probe.rtmpPublish
+        ? "RTMP는 붙었지만 HLS 파일이 아직 없습니다. OBS 방송을 유지한 채 30초 기다리거나, VPS에서 docker compose -f docker-compose.srs.yml up -d --force-recreate 후 OBS를 재시작하세요."
+        : probe.live
+          ? "HLS 준비 중… 10~20초 기다려 주세요."
+          : "OBS에서 「방송 시작」 상태인데 SRS에 신호가 없습니다. 서버·방송 키를 다시 붙여넣고 방송을 재시작하세요.",
     note: "브라우저에서 http://IP:8080/live/ 만 열면 Not Found가 정상입니다. 방송 중일 때 /live/방송키.m3u8 주소로 확인하세요.",
   });
 }

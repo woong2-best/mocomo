@@ -127,7 +127,13 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
       });
       const body = (await res.json().catch(() => ({}))) as PlaybackResponse;
       if (!res.ok) {
-        throw new Error(body.error ?? "재생 정보를 불러오지 못했습니다.");
+        const detail =
+          typeof body.error === "string"
+            ? body.error
+            : res.status === 401
+              ? "로그인이 만료되었습니다. 새로고침 후 다시 로그인해 주세요."
+              : "재생 정보를 불러오지 못했습니다.";
+        throw new Error(detail);
       }
       if (!body.hlsUrl) {
         setHlsUrl(null);

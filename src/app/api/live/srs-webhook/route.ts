@@ -33,8 +33,9 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "on_publish") {
-    const result = await onSrsPublish(stream);
-    return new NextResponse(result.allowed ? "0" : "1", { status: 200 });
+    void onSrsPublish(stream).catch((e) => console.error("[srs-webhook] on_publish", stream, e));
+    // SRS: 0=허용 — 웹훅/DB 실패해도 RTMP·HLS 인제스트는 막지 않음
+    return new NextResponse("0", { status: 200 });
   }
 
   if (action === "on_unpublish") {
