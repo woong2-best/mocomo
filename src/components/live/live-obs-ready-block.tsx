@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, Loader2, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LiveObsMultiRtmpGuide } from "@/components/live/live-obs-multi-rtmp-guide";
+import { LiveObsStandardGuide } from "@/components/live/live-obs-standard-guide";
 
 export type ObsReadyCreds = {
   obsServer: string;
@@ -77,7 +78,11 @@ export function LiveObsReadyBlock({
         <Monitor className="h-5 w-5 text-violet-600 shrink-0" />
         <p className="text-sm font-semibold">OBS 연결 (서버 · 방송 키)</p>
       </div>
-      <LiveObsMultiRtmpGuide compact />
+      {creds?.ingestEngine === "srs" ? (
+        <LiveObsMultiRtmpGuide compact />
+      ) : (
+        <LiveObsStandardGuide compact />
+      )}
 
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground py-1">

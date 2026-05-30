@@ -29,6 +29,6 @@ export async function GET() {
     usingFallback: configured && !hasRtmp,
     rtmpUrl: configured ? getSrsRtmpUrl() : null,
     hlsBase: configured ? getSrsHlsBaseUrl() : null,
-    hint: "OBS → 결제하신 Vultr VPS (45.32.16.32). 스튜디오 서버/키 그대로 OBS에 입력.",
+    hint: "OBS → Vultr VPS(SRS). 권장은 LiveKit(LIVE_INGEST_ENGINE=livekit).",
   });
 }

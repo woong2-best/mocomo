@@ -4,17 +4,17 @@ import { isSrsConfigured } from "@/lib/srs";
 export type LiveIngestEngine = "livekit" | "srs";
 
 /**
- * 방송 송출 엔진 — 기본값 VPS(SRS).
- * Vercel env: LIVE_INGEST_ENGINE=srs|livekit (없으면 SRS 우선, 결제 VPS 사용)
+ * 방송 송출 엔진 — 기본 LiveKit Cloud (트위치/유튜브와 동일한 managed RTMP + WebRTC).
+ * Vercel: LIVE_INGEST_ENGINE=livekit|srs (미설정 시 LiveKit 우선)
  */
 export function preferredLiveIngestEngine(): LiveIngestEngine {
   const forced = process.env.LIVE_INGEST_ENGINE?.trim().toLowerCase();
-  if (forced === "livekit" && isLivekitIngressConfigured()) return "livekit";
   if (forced === "srs" && isSrsConfigured()) return "srs";
+  if (forced === "livekit" && isLivekitIngressConfigured()) return "livekit";
 
-  if (isSrsConfigured()) return "srs";
   if (isLivekitIngressConfigured()) return "livekit";
-  return "srs";
+  if (isSrsConfigured()) return "srs";
+  return "livekit";
 }
 
 export function isLivekitIngestChannel(channel: { rtmpIngressId?: string | null }): boolean {
@@ -24,5 +24,5 @@ export function isLivekitIngestChannel(channel: { rtmpIngressId?: string | null 
 
 export function isSrsIngestChannel(channel: { rtmpIngressId?: string | null }): boolean {
   const id = channel.rtmpIngressId?.trim() ?? "";
-  return id.startsWith("srs:") || (!id && isSrsConfigured());
+  return id.startsWith("srs:") || (!id && isSrsConfigured() && !isLivekitIngressConfigured());
 }

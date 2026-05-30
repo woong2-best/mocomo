@@ -5,6 +5,7 @@ import { Copy, Check, Loader2, Monitor, Radio, Signal, AlertCircle, RefreshCw } 
 import { Button } from "@/components/ui/button";
 import { LiveBroadcastPlayer } from "@/components/live/live-broadcast-player";
 import { LiveObsMultiRtmpGuide } from "@/components/live/live-obs-multi-rtmp-guide";
+import { LiveObsStandardGuide } from "@/components/live/live-obs-standard-guide";
 
 type ObsCreds = {
   obsServer: string;
@@ -169,7 +170,7 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
             {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
             서버 + 키 복사
           </Button>
-          <LiveObsMultiRtmpGuide />
+          {ingestEngine === "srs" ? <LiveObsMultiRtmpGuide /> : <LiveObsStandardGuide />}
         </>
       )}
       </div>
@@ -196,8 +197,8 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
           {onAir && playable
             ? "시청자에게 방송이 노출되고 있습니다."
             : ingestEngine === "livekit"
-              ? "LiveKit — OBS 또는 다중 송출로 송출하면 3~10초 안에 화면이 나옵니다."
-              : "다중 송출이 켜지면 MoCoMo로 자동 송출됩니다. 플러그인 대상에 아래 서버·키를 넣으세요."}
+              ? "OBS 「방송 시작」 후 3~10초 안에 WebRTC로 화면이 나옵니다 (트위치 방식)."
+              : "VPS(SRS) — 다중 송출 대상에 아래 서버·키를 넣으세요."}
         </p>
       </div>
 

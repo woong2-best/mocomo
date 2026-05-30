@@ -140,17 +140,21 @@ async function provisionLivekitIngress(
 
   if ("error" in lk) {
     console.warn("[provisionLivekitIngress]", lk.error);
-    if (isSrsConfigured()) {
+    const allowSrsFallback = process.env.LIVE_INGEST_FALLBACK_SRS === "1";
+    if (allowSrsFallback && isSrsConfigured()) {
       const srs = await provisionSrsIngress(channelId, userId, options);
       if ("data" in srs) {
         return {
           data: srs.data,
           warning:
-            "LiveKit 한도 초과 — Vultr VPS로 연결했습니다. 다중 송출 대상에 아래 서버·키를 넣으세요.",
+            "LiveKit 한도 초과 — 임시로 VPS(SRS)로 연결했습니다. LiveKit 대시보드에서 Ingress를 정리한 뒤 「키 다시 받기」를 권장합니다.",
         };
       }
     }
-    return { error: lk.error };
+    const hint = /ingress|quota|limit|exceeded/i.test(lk.error)
+      ? " LiveKit Cloud 대시보드 → Ingress에서 오래된 항목을 삭제하거나, MoCoMo에서 「키 다시 받기」를 눌러 주세요."
+      : "";
+    return { error: `${lk.error}${hint}` };
   }
 
   const obs = formatForObs(lk.url, lk.streamKey);
@@ -182,7 +186,7 @@ async function provisionLivekitIngress(
   };
 }
 
-/** OBS RTMP — 기본 VPS(SRS), LIVE_INGEST_ENGINE=livekit 일 때만 LiveKit */
+/** OBS RTMP — 기본 LiveKit Cloud, LIVE_INGEST_ENGINE=srs 일 때만 VPS */
 export async function provisionObsIngress(
   channelId: string,
   userId: string,
@@ -237,6 +241,9 @@ export async function provisionObsIngress(
   const hostName = host?.name || host?.username || "host";
 
   if (engine === "livekit") {
+    if (options?.force) {
+      await cleanupStaleProjectIngresses(channelId);
+    }
     return provisionLivekitIngress(channelId, userId, channel, hostName, options);
   }
 
