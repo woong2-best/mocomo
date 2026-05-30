@@ -52,6 +52,8 @@ export async function GET(
     ok: true,
     hasStreamKey: true,
     onAir: probe.live,
+    playable: probe.playable ?? false,
+    rtmpPublish: probe.rtmpPublish ?? false,
     accountKey: true,
     streamKeyHint: keyTail,
     hlsPathExample: `/live/${streamKey}.m3u8`,
@@ -60,9 +62,11 @@ export async function GET(
     hlsBase: getSrsHlsBaseUrl(),
     probeStatus: probe.status,
     probeError: probe.error,
-    message: probe.live
-      ? "SRS에 방송 신호가 올라왔습니다. 미리보기에 곧 표시됩니다."
-      : "OBS에서 「방송 시작」 상태인데 SRS에 신호가 없습니다. 서버·방송 키를 다시 붙여넣고 방송을 재시작하세요.",
+    message: probe.playable
+      ? "SRS 방송 신호가 확인되었습니다. 미리보기가 재생됩니다."
+      : probe.live
+        ? "RTMP 송출은 감지됐습니다. HLS 세그먼트 생성까지 5~20초 기다려 주세요."
+        : "OBS에서 「방송 시작」 상태인데 SRS에 신호가 없습니다. 서버·방송 키를 다시 붙여넣고 방송을 재시작하세요.",
     note: "브라우저에서 http://IP:8080/live/ 만 열면 Not Found가 정상입니다. 방송 중일 때 /live/방송키.m3u8 주소로 확인하세요.",
   });
 }

@@ -1,4 +1,4 @@
-# 로컬 SRS — RTMP 1935, HLS 8080
+# 로컬 SRS — RTMP 1935, HLS 8080, API 1985
 # 사용: docker compose -f docker-compose.srs.yml up -d
 # Next.js: SRS_RTMP_URL=rtmp://127.0.0.1:1935/live
 #          NEXT_PUBLIC_SRS_HLS_BASE_URL=http://127.0.0.1:8080/live

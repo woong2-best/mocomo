@@ -11,6 +11,7 @@ type PlaybackResponse = {
   waiting?: boolean;
   tryLoad?: boolean;
   srsOnAir?: boolean;
+  srsPlayable?: boolean;
   message?: string;
   error?: string;
   probeError?: string;
@@ -70,13 +71,14 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
 
       const hls = new Hls({
         enableWorker: true,
-        lowLatencyMode: true,
+        lowLatencyMode: false,
+        backBufferLength: 30,
         liveSyncDurationCount: 3,
         liveMaxLatencyDurationCount: 10,
-        manifestLoadingTimeOut: 12000,
-        manifestLoadingMaxRetry: 12,
-        levelLoadingTimeOut: 12000,
-        fragLoadingTimeOut: 20000,
+        manifestLoadingTimeOut: 15000,
+        manifestLoadingMaxRetry: 20,
+        levelLoadingTimeOut: 15000,
+        fragLoadingTimeOut: 25000,
         xhrSetup: (xhr) => {
           xhr.withCredentials = true;
         },
@@ -94,10 +96,14 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
       });
       hls.on(Hls.Events.ERROR, (_e, data) => {
         if (!data.fatal) return;
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          hls.recoverMediaError();
+          return;
+        }
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
           setStatus("waiting");
           setWaitHint(
-            "OBS 방송 신호 대기 중… OBS에서 「방송 시작」 후 5~15초 기다려 주세요."
+            "OBS 방송 신호 대기 중… OBS에서 「방송 시작」 후 5~20초 기다려 주세요."
           );
           hls.startLoad();
           return;
@@ -134,10 +140,10 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
       setHlsUrl(url);
       setWaitHint(body.message ?? null);
 
-      if (body.srsOnAir) {
+      if (body.srsPlayable) {
         setStatus("loading");
-      } else if (body.tryLoad !== false) {
-        setStatus("loading");
+      } else if (body.srsOnAir || body.tryLoad !== false) {
+        setStatus("waiting");
       } else {
         setStatus("waiting");
       }
@@ -162,9 +168,19 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
     const t = setInterval(() => {
       retryRef.current += 1;
       void loadPlayback();
-    }, 4000);
+    }, 3000);
     return () => clearInterval(t);
   }, [status, loadPlayback]);
+
+  useEffect(() => {
+    if (status !== "loading" || !hlsUrl) return;
+    const t = setTimeout(() => {
+      setStatus("waiting");
+      setWaitHint("HLS 준비가 지연되고 있습니다. OBS 방송을 유지한 채 잠시만 기다려 주세요…");
+      void loadPlayback();
+    }, 22000);
+    return () => clearTimeout(t);
+  }, [status, hlsUrl, loadPlayback]);
 
   if (status === "error") {
     return (

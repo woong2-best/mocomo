@@ -65,11 +65,14 @@ export async function GET(
     hlsUrl,
     streamKeyHint: streamKey.length > 8 ? `…${streamKey.slice(-8)}` : "****",
     srsOnAir: probe.live,
+    srsPlayable: probe.playable ?? false,
     waiting: !probe.live,
     tryLoad: true,
-    message: probe.live
+    message: probe.playable
       ? "방송 신호가 확인되었습니다."
-      : "OBS에서 방송을 시작하면 화면이 나타납니다. (프록시로 자동 재시도)",
+      : probe.live
+        ? "송출은 감지됐습니다. HLS 준비 중… 잠시만 기다려 주세요."
+        : "OBS에서 방송을 시작하면 화면이 나타납니다. (프록시로 자동 재시도)",
     probeError: probe.error,
     probeStatus: probe.status,
   });

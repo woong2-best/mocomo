@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getSrsHlsBaseUrl, srsConfigError } from "@/lib/srs";
 import {
+  normalizeHlsRelativePath,
   rewriteHlsPlaylist,
   upstreamHlsManifestUrl,
   upstreamSegmentUrl,
@@ -44,7 +45,7 @@ export async function GET(
     return new NextResponse("Stream not ready", { status: 404 });
   }
 
-  const pathStr = decodeURIComponent(path?.join("/") ?? "");
+  const pathStr = normalizeHlsRelativePath(decodeURIComponent(path?.join("/") ?? ""));
   const manifestName = `${streamKey}.m3u8`;
   const isManifest =
     !pathStr ||
