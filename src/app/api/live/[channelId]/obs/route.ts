@@ -28,10 +28,13 @@ export async function GET(
 
   return NextResponse.json({
     ok: true,
+    url: result.data.url,
+    streamKey: result.data.streamKey,
     obsServer: result.data.obsServer,
     obsStreamKey: result.data.obsStreamKey,
     ingressId: result.data.ingressId,
     ingestEngine: result.data.ingestEngine,
+    warning: result.warning ?? null,
   });
 }
 
@@ -64,9 +67,12 @@ export async function POST(
 
   return NextResponse.json({
     ok: true,
+    url: result.data.url,
+    streamKey: result.data.streamKey,
     obsServer: result.data.obsServer,
     obsStreamKey: result.data.obsStreamKey,
     ingressId: result.data.ingressId,
     ingestEngine: result.data.ingestEngine,
+    warning: result.warning ?? null,
   });
 }

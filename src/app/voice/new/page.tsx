@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Radio, ChevronLeft, KeyRound, Copy, Check, Calendar, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LiveObsReadyBlock, type ObsReadyCreds } from "@/components/live/live-obs-ready-block";
 
 const PRESETS = [
   "🎙 애니덕질 라이브",
@@ -29,6 +30,7 @@ type CreatedUiState = {
   password?: string;
   scheduled?: boolean;
   broadcastMode: LiveBroadcastMode;
+  obs?: ObsReadyCreds;
 };
 
 function readCreatedUiFromStorage(channelId?: string | null): CreatedUiState | null {
@@ -156,6 +158,14 @@ export default function NewVoicePage() {
         channelId: result.channel.id,
         password: result.joinPassword,
         broadcastMode,
+        obs:
+          result.obs?.obsServer && result.obs?.obsStreamKey
+            ? {
+                obsServer: result.obs.obsServer,
+                obsStreamKey: result.obs.obsStreamKey,
+                ingestEngine: result.obs.ingestEngine,
+              }
+            : undefined,
       };
       persistCreatedUi(liveState);
       setCreated(liveState);
@@ -210,12 +220,14 @@ export default function NewVoicePage() {
           <KeyRound className="h-10 w-10 mx-auto text-green-600" />
           <h2 className="text-xl font-bold">방송 준비 완료</h2>
           <p className="text-sm text-muted-foreground">
-            웹에서 방송이 켜지지 않습니다. 스튜디오에서 OBS 정보를 확인한 뒤{" "}
+            웹에서 방송이 켜지지 않습니다. 아래 OBS 서버·방송 키를 넣고{" "}
             <strong>OBS에서 「방송 시작」</strong>을 누르면 LIVE로 전환됩니다.
-            <br />
-            합방 비밀번호는 공동 방송을 원하는 분에게만 공유하세요.
           </p>
-          <p className="text-3xl font-mono font-bold tracking-[0.35em] text-foreground">{created.password}</p>
+          <div className="space-y-1">
+            <p className="text-[11px] font-medium text-muted-foreground">합방 비밀번호 (공동 방송용)</p>
+            <p className="text-3xl font-mono font-bold tracking-[0.35em] text-foreground">{created.password}</p>
+          </div>
+          <LiveObsReadyBlock channelId={created.channelId} initial={created.obs} />
           <p className="text-xs text-violet-700 bg-violet-500/10 rounded-lg px-3 py-2">
             트위치처럼 OBS 송출이 시작되면 자동으로 라이브 목록에 노출됩니다.
           </p>

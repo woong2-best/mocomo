@@ -1,16 +1,24 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Copy, Check, Loader2, Monitor, Radio, Signal, AlertCircle } from "lucide-react";
+import { Copy, Check, Loader2, Monitor, Radio, Signal, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LiveBroadcastPlayer } from "@/components/live/live-broadcast-player";
 
-type ObsCreds = { obsServer: string; obsStreamKey: string; ingestEngine?: string };
+type ObsCreds = {
+  obsServer: string;
+  obsStreamKey: string;
+  ingestEngine?: string;
+  warning?: string;
+};
 
-async function fetchObsCredentials(channelId: string): Promise<ObsCreds> {
+async function fetchObsCredentials(channelId: string, refresh = false): Promise<ObsCreds> {
   const res = await fetch(`/api/live/${channelId}/obs`, {
+    method: refresh ? "POST" : "GET",
     credentials: "include",
     cache: "no-store",
+    headers: refresh ? { "Content-Type": "application/json" } : undefined,
+    body: refresh ? JSON.stringify({ refresh: true }) : undefined,
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -23,6 +31,7 @@ async function fetchObsCredentials(channelId: string): Promise<ObsCreds> {
     obsServer: server,
     obsStreamKey: key,
     ingestEngine: typeof body.ingestEngine === "string" ? body.ingestEngine : undefined,
+    warning: typeof body.warning === "string" ? body.warning : undefined,
   };
 }
 
@@ -36,19 +45,25 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
   const [playable, setPlayable] = useState(false);
   const [signalMsg, setSignalMsg] = useState("");
   const [ingestEngine, setIngestEngine] = useState<string>("srs");
+  const [warning, setWarning] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
 
-  const loadCreds = useCallback(async () => {
-    setLoading(true);
+  const loadCreds = useCallback(async (refresh = false) => {
+    if (refresh) setRefreshing(true);
+    else setLoading(true);
     setLoadError("");
     try {
-      const c = await fetchObsCredentials(channelId);
+      const c = await fetchObsCredentials(channelId, refresh);
       setCreds(c);
       setIngestEngine(c.ingestEngine ?? "srs");
+      setWarning(c.warning ?? "");
     } catch (e) {
       setCreds(null);
+      setWarning("");
       setLoadError(e instanceof Error ? e.message : "불러오기 실패");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [channelId]);
 
@@ -92,6 +107,74 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
 
   return (
     <div className="space-y-3">
+      <div className="rounded-xl border-2 border-violet-500/30 bg-violet-500/5 p-3 space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-semibold">OBS 서버 · 방송 키</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs rounded-lg gap-1"
+            disabled={loading || refreshing}
+            onClick={() => void loadCreds(true)}
+          >
+            {refreshing ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3 w-3" />
+            )}
+            키 다시 받기
+          </Button>
+        </div>
+
+      {loading ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground py-1">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          불러오는 중…
+        </div>
+      ) : loadError || !creds ? (
+        <div className="text-sm text-destructive space-y-2">
+          <p>{loadError || "연결 정보 없음"}</p>
+          <Button type="button" variant="outline" size="sm" onClick={() => void loadCreds(false)}>
+            다시 시도
+          </Button>
+        </div>
+      ) : (
+        <>
+          {warning && (
+            <p className="text-[11px] text-amber-800 dark:text-amber-200 bg-amber-500/15 rounded-lg px-2 py-1.5">
+              {warning}
+            </p>
+          )}
+          <p className="text-[11px] text-muted-foreground">
+            OBS → 설정 → 방송 → 「사용자 지정」 · 서버와 키를 각각 입력한 뒤 「방송 시작」
+          </p>
+          <div>
+            <p className="text-[10px] font-medium text-muted-foreground mb-0.5">서버</p>
+            <code className="block text-xs sm:text-sm bg-muted rounded-lg px-2 py-2 break-all select-all font-mono">
+              {creds.obsServer}
+            </code>
+          </div>
+          <div>
+            <p className="text-[10px] font-medium text-muted-foreground mb-0.5">방송 키</p>
+            <code className="block text-xs sm:text-sm bg-muted rounded-lg px-2 py-2 break-all select-all font-mono">
+              {creds.obsStreamKey}
+            </code>
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="w-full rounded-lg gap-1"
+            onClick={copyAll}
+          >
+            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            서버 + 키 복사
+          </Button>
+        </>
+      )}
+      </div>
+
       <div
         className={`rounded-xl border px-3 py-2.5 flex flex-wrap items-center gap-2 text-sm ${
           onAir && playable
@@ -119,62 +202,19 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
         </p>
       </div>
 
-      {loading ? (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          OBS 연결 정보 불러오는 중…
-        </div>
-      ) : loadError || !creds ? (
-        <div className="text-sm text-destructive space-y-2">
-          <p>{loadError || "연결 정보 없음"}</p>
-          <Button type="button" variant="outline" size="sm" onClick={() => void loadCreds()}>
-            다시 시도
-          </Button>
-        </div>
-      ) : (
-        <div className="rounded-xl border border-border bg-card p-3 space-y-2 text-sm">
-          <p className="text-[11px] text-amber-700 dark:text-amber-300">
-            OBS → 설정 → 방송 → 「사용자 지정」 (Multiple RTMP 플러그인 말고 메인 방송 설정 권장) · 서버/키 각각 입력.
-          </p>
-          {ingestEngine === "livekit" && (
-            <p className="text-[11px] text-violet-700 dark:text-violet-300">
-              송출 엔진: <strong>LiveKit Cloud</strong> — 주소는 LiveKit에서 발급된 URL입니다.
-            </p>
-          )}
-          <div>
-            <p className="text-[10px] text-muted-foreground mb-0.5">서버</p>
-            <code className="block text-[11px] bg-muted rounded-lg px-2 py-1.5 break-all select-all">
-              {creds.obsServer}
-            </code>
-          </div>
-          <div>
-            <p className="text-[10px] text-muted-foreground mb-0.5">방송 키</p>
-            <code className="block text-[11px] bg-muted rounded-lg px-2 py-1.5 break-all font-mono select-all">
-              {creds.obsStreamKey}
-            </code>
-          </div>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="w-full rounded-lg gap-1"
-            onClick={copyAll}
-          >
-            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-            서버 + 키 복사
-          </Button>
-          <div
-            className={`rounded-lg px-2 py-1.5 text-xs flex gap-2 ${
-              onAir ? "bg-green-500/10 text-green-800 dark:text-green-200" : "bg-muted"
-            }`}
-          >
-            {onAir ? (
-              <Signal className="h-4 w-4 shrink-0" />
-            ) : (
-              <AlertCircle className="h-4 w-4 shrink-0" />
-            )}
-            <span>{signalMsg || "OBS에서 방송 시작을 눌러 주세요."}</span>
-          </div>
+      {creds && (
+        <div
+          className={`rounded-lg px-2 py-1.5 text-xs flex gap-2 ${
+            onAir ? "bg-green-500/10 text-green-800 dark:text-green-200" : "bg-muted"
+          }`}
+        >
+          {onAir ? <Signal className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}
+          <span>
+            {ingestEngine === "livekit"
+              ? "LiveKit 송출 · "
+              : "VPS(SRS) 송출 · "}
+            {signalMsg || "OBS에서 방송 시작을 눌러 주세요."}
+          </span>
         </div>
       )}
 

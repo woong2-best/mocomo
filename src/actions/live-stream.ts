@@ -186,9 +186,17 @@ export async function createLiveStream(data: {
       console.warn("[createLiveStream] streamerProfile", profileErr);
     }
 
+    let obs: { obsServer: string; obsStreamKey: string; ingestEngine?: string } | undefined;
     try {
       const { provisionObsIngress } = await import("@/lib/obs-ingress-service");
-      await provisionObsIngress(channel.id, user.id);
+      const prov = await provisionObsIngress(channel.id, user.id);
+      if ("data" in prov) {
+        obs = {
+          obsServer: prov.data.obsServer,
+          obsStreamKey: prov.data.obsStreamKey,
+          ingestEngine: prov.data.ingestEngine,
+        };
+      }
     } catch (keyErr) {
       console.warn("[createLiveStream] obs ingress", keyErr);
     }
@@ -197,6 +205,7 @@ export async function createLiveStream(data: {
       channel,
       joinPassword: isScheduled ? undefined : joinPassword,
       scheduled: isScheduled,
+      obs,
     };
   } catch (e) {
     console.error("[createLiveStream]", e);
