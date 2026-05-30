@@ -12,10 +12,12 @@ type SrsHookBody = {
 /** SRS http_hooks — on_publish / on_unpublish (0=허용, 非0=거부) */
 export async function POST(req: NextRequest) {
   const secret = srsWebhookSecret();
+  let authOk = true;
   if (secret) {
     const header = req.headers.get("x-srs-secret") ?? req.headers.get("authorization");
-    if (header !== secret && header !== `Bearer ${secret}`) {
-      return new NextResponse("1", { status: 403 });
+    authOk = header === secret || header === `Bearer ${secret}`;
+    if (!authOk) {
+      console.warn("[srs-webhook] secret mismatch — RTMP는 허용, LIVE 동기화만 건너뜀");
     }
   }
 
@@ -33,13 +35,16 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "on_publish") {
-    void onSrsPublish(stream).catch((e) => console.error("[srs-webhook] on_publish", stream, e));
-    // SRS: 0=허용 — 웹훅/DB 실패해도 RTMP·HLS 인제스트는 막지 않음
+    if (authOk) {
+      void onSrsPublish(stream).catch((e) => console.error("[srs-webhook] on_publish", stream, e));
+    }
     return new NextResponse("0", { status: 200 });
   }
 
   if (action === "on_unpublish") {
-    await onSrsUnpublish(stream);
+    if (authOk) {
+      await onSrsUnpublish(stream);
+    }
     return new NextResponse("0", { status: 200 });
   }
 

@@ -99,9 +99,8 @@ export async function probeSrsRtmpPublish(streamKey: string): Promise<boolean> {
     const streams = json.streams ?? [];
     return streams.some(
       (s) =>
-        s.name === name ||
-        s.name === `live/${name}` ||
-        (s.publish?.active && (s.name?.includes(name) ?? false))
+        s.publish?.active &&
+        (s.name === name || s.name === `live/${name}` || s.name === `${name}`)
     );
   } catch {
     return false;
@@ -109,6 +108,13 @@ export async function probeSrsRtmpPublish(streamKey: string): Promise<boolean> {
 }
 
 /** 서버에서 SRS manifest·세그먼트 재생 가능 여부 확인 */
+function manifestCandidateUrls(streamKey: string): string[] {
+  const name = streamKey.trim().split("?")[0];
+  const primary = upstreamHlsManifestUrl(name);
+  const base = getSrsHlsBaseUrl().replace(/\/$/, "");
+  return [primary, `${base}/${name}/index.m3u8`, `${base}/live/${name}.m3u8`];
+}
+
 export async function probeSrsManifest(streamKey: string): Promise<{
   live: boolean;
   playable?: boolean;
@@ -116,9 +122,35 @@ export async function probeSrsManifest(streamKey: string): Promise<{
   status?: number;
   error?: string;
 }> {
-  const url = upstreamHlsManifestUrl(streamKey);
   const rtmpPublish = await probeSrsRtmpPublish(streamKey);
+  const urls = manifestCandidateUrls(streamKey);
 
+  let best: Awaited<ReturnType<typeof probeOneManifest>> = {
+    live: rtmpPublish,
+    playable: false,
+    rtmpPublish,
+    error: rtmpPublish ? "HLS manifest not ready" : "no RTMP publish",
+  };
+
+  for (const url of urls) {
+    const result = await probeOneManifest(url, rtmpPublish);
+    if (result.playable) return result;
+    if (result.live) best = { ...result, rtmpPublish: result.rtmpPublish ?? rtmpPublish };
+  }
+
+  return best;
+}
+
+async function probeOneManifest(
+  url: string,
+  rtmpPublish: boolean
+): Promise<{
+  live: boolean;
+  playable?: boolean;
+  rtmpPublish?: boolean;
+  status?: number;
+  error?: string;
+}> {
   try {
     const res = await fetch(url, {
       method: "GET",
@@ -191,3 +223,4 @@ export async function probeSrsManifest(streamKey: string): Promise<{
     return { live: false, rtmpPublish, error: msg };
   }
 }
+

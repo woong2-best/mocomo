@@ -46,6 +46,20 @@ export function LiveObsReadyBlock({
     setLoading(true);
     setError("");
     try {
+      try {
+        const health = await fetch("/api/health/obs", { cache: "no-store" });
+        const h = await health.json().catch(() => ({}));
+        if (h.engine === "livekit") {
+          await fetch(`/api/live/${channelId}/obs`, {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ migrateLivekit: true }),
+          });
+        }
+      } catch {
+        /* ignore */
+      }
       setCreds(await loadObsCreds(channelId));
     } catch (e) {
       setCreds(null);
@@ -77,7 +91,10 @@ export function LiveObsReadyBlock({
         <p className="text-sm font-semibold">OBS 연결 (서버 · 방송 키)</p>
       </div>
       <p className="text-[11px] text-muted-foreground">
-        OBS → 설정 → 방송 → 「사용자 지정」 · 아래를 각각 입력한 뒤 「방송 시작」
+        OBS → 설정 → 방송 → 「사용자 지정」 · 아래 서버/키 각각 입력 후 「방송 시작」
+      </p>
+      <p className="text-[11px] text-amber-800 dark:text-amber-200">
+        다중 송출 플러그인(SoraYuki)은 끄고 메인 방송만 쓰세요.
       </p>
 
       {loading ? (

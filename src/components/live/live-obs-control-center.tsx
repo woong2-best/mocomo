@@ -53,6 +53,22 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
     else setLoading(true);
     setLoadError("");
     try {
+      if (!refresh) {
+        try {
+          const health = await fetch("/api/health/obs", { cache: "no-store" });
+          const h = await health.json().catch(() => ({}));
+          if (h.engine === "livekit") {
+            await fetch(`/api/live/${channelId}/obs`, {
+              method: "POST",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ migrateLivekit: true }),
+            });
+          }
+        } catch {
+          /* ignore */
+        }
+      }
       const c = await fetchObsCredentials(channelId, refresh);
       setCreds(c);
       setIngestEngine(c.ingestEngine ?? "srs");
@@ -147,7 +163,11 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
             </p>
           )}
           <p className="text-[11px] text-muted-foreground">
-            OBS → 설정 → 방송 → 「사용자 지정」 · 서버와 키를 각각 입력한 뒤 「방송 시작」
+            OBS → 설정 → 방송 → 「사용자 지정」 · 서버/키 각각 입력 후 「방송 시작」
+          </p>
+          <p className="text-[11px] text-amber-800 dark:text-amber-200 bg-amber-500/15 rounded-lg px-2 py-1.5">
+            <strong>다중 송출(Multiple RTMP) 플러그인은 끄세요.</strong> SoraYuki 문구는 오류가 아닙니다.
+            메인 「방송 시작」만 쓰거나, 플러그인에도 아래 서버·키를 똑같이 넣어야 합니다.
           </p>
           <div>
             <p className="text-[10px] font-medium text-muted-foreground mb-0.5">서버</p>

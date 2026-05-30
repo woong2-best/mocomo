@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isLivekitIngestChannel } from "@/lib/live-ingest";
+import { isLivekitIngressConfigured } from "@/lib/livekit-ingress";
 import { probeLivekitObsPublish } from "@/lib/livekit-room-status";
 import { probeSrsManifest, buildProxiedHlsPlaybackPath, upstreamHlsManifestUrl } from "@/lib/srs-hls-proxy";
 import { getSrsHlsBaseUrl } from "@/lib/srs";
@@ -36,7 +37,7 @@ export async function GET(
     return NextResponse.json({ ok: false, configured: false, error: configErr });
   }
 
-  if (isLivekitIngestChannel(channel)) {
+  if (isLivekitIngressConfigured() || isLivekitIngestChannel(channel)) {
     const probe = await probeLivekitObsPublish(channelId);
     const keyTail = channel.rtmpStreamKey?.length
       ? `…${channel.rtmpStreamKey.slice(-8)}`

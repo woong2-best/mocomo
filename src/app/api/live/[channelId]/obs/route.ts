@@ -53,14 +53,19 @@ export async function POST(
   }
 
   let refresh = false;
+  let migrateLivekit = false;
   try {
     const body = await req.json();
     refresh = !!body?.refresh;
+    migrateLivekit = !!body?.migrateLivekit;
   } catch {
     /* empty body ok */
   }
 
-  const result = await provisionObsIngress(channelId, session.user.id, { force: refresh });
+  const result = await provisionObsIngress(channelId, session.user.id, {
+    force: refresh,
+    migrateLivekit: refresh || migrateLivekit,
+  });
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }

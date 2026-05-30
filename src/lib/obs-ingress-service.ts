@@ -1,6 +1,10 @@
 import { db } from "@/lib/db";
-import { isLivekitIngestChannel, preferredLiveIngestEngine } from "@/lib/live-ingest";
-import { createObsRtmpIngress, deleteObsRtmpIngress } from "@/lib/livekit-ingress";
+import { isLivekitIngestChannel } from "@/lib/live-ingest";
+import {
+  createObsRtmpIngress,
+  deleteObsRtmpIngress,
+  isLivekitIngressConfigured,
+} from "@/lib/livekit-ingress";
 import { parseRtmpForObs } from "@/lib/obs-rtmp-parse";
 import { buildHlsPlaybackUrl, getSrsRtmpUrl, isSrsConfigured, srsConfigError } from "@/lib/srs";
 import { getOrCreateUserObsStreamKey } from "@/lib/user-obs-stream-key";
@@ -76,8 +80,12 @@ function credentialsFromChannel(channel: ChannelObsRow): ObsRtmpCredentials | nu
   };
 }
 
+function allowSrsFallbackOnLivekitError(): boolean {
+  return process.env.OBS_SRS_FALLBACK === "1";
+}
+
 export function obsConfigError(): string | null {
-  if (isSrsConfigured() || preferredLiveIngestEngine() === "livekit") return null;
+  if (isLivekitIngressConfigured() || isSrsConfigured()) return null;
   return srsConfigError();
 }
 
@@ -115,13 +123,79 @@ async function provisionSrsIngress(
   return { data: wrapSrsCredentials(streamKey, rtmpUrl) };
 }
 
-/** OBS RTMP — LiveKit Ingress 우선, 실패 시 SRS VPS, DB에 있으면 재사용 */
+async function provisionLivekitIngress(
+  channelId: string,
+  userId: string,
+  channel: ChannelObsRow,
+  hostName: string,
+  options?: { force?: boolean }
+): Promise<ProvisionObsResult> {
+  const cleanupFirst =
+    !!options?.force ||
+    channel.rtmpIngressId?.startsWith("srs:") ||
+    !channel.rtmpIngressId;
+
+  if (options?.force && channel.rtmpIngressId && !channel.rtmpIngressId.startsWith("srs:")) {
+    await deleteObsRtmpIngress(channel.rtmpIngressId);
+  }
+
+  const lk = await createObsRtmpIngress(channelId, hostName, { cleanupFirst });
+
+  if ("error" in lk) {
+    console.warn("[provisionLivekitIngress]", lk.error);
+    if (allowSrsFallbackOnLivekitError() && isSrsConfigured()) {
+      const srs = await provisionSrsIngress(channelId, userId, options);
+      if ("data" in srs) {
+        return {
+          data: srs.data,
+          warning: `LiveKit 실패 — VPS(SRS)로 대체 (${lk.error})`,
+        };
+      }
+    }
+    return {
+      error: `${lk.error} 잠시 후 「키 다시 받기」를 눌러 주세요.`,
+    };
+  }
+
+  const obs = formatForObs(lk.url, lk.streamKey);
+  try {
+    await db.voiceChannel.update({
+      where: { id: channelId },
+      data: {
+        broadcastMode: "OBS",
+        rtmpIngressId: lk.ingressId,
+        rtmpUrl: lk.url,
+        rtmpStreamKey: lk.streamKey,
+      },
+    });
+  } catch (e) {
+    console.error("[provisionLivekitIngress] channel bind", e);
+  }
+
+  return {
+    data: {
+      url: lk.url,
+      streamKey: lk.streamKey,
+      ingressId: lk.ingressId,
+      obsServer: obs.obsServer,
+      obsStreamKey: obs.obsStreamKey,
+      hlsPlaybackUrl: null,
+      ingestEngine: "livekit",
+      accountKey: false,
+    },
+    warning: channel.rtmpIngressId?.startsWith("srs:")
+      ? "LiveKit Cloud로 전환했습니다. OBS 서버·키를 아래 값으로 다시 넣고 「방송 시작」하세요. (다중 송출 플러그인 끄기)"
+      : undefined,
+  };
+}
+
+/** OBS RTMP — LiveKit 우선(웹 재생 WebRTC), VPS SRS는 LiveKit 미설정 시만 */
 export async function provisionObsIngress(
   channelId: string,
   userId: string,
-  options?: { force?: boolean }
+  options?: { force?: boolean; migrateLivekit?: boolean }
 ): Promise<ProvisionObsResult> {
-  const engine = preferredLiveIngestEngine();
+  const useLivekit = isLivekitIngressConfigured();
 
   let channel: ChannelObsRow | null;
 
@@ -156,9 +230,20 @@ export async function provisionObsIngress(
     return { error: "종료된 방송입니다. 새 방송을 만들어 주세요." };
   }
 
-  if (!options?.force) {
+  const mustMigrateToLivekit =
+    useLivekit &&
+    (options?.migrateLivekit ||
+      options?.force ||
+      channel.rtmpIngressId?.startsWith("srs:") ||
+      (channel.rtmpUrl?.includes("45.32.16.32") ?? false));
+
+  if (!options?.force && !mustMigrateToLivekit) {
     const cached = credentialsFromChannel(channel);
-    if (cached) return { data: cached };
+    if (cached) {
+      if (!useLivekit || cached.ingestEngine === "livekit") {
+        return { data: cached };
+      }
+    }
   }
 
   const host = await db.user.findUnique({
@@ -167,56 +252,10 @@ export async function provisionObsIngress(
   });
   const hostName = host?.name || host?.username || "host";
 
-  if (engine === "livekit") {
-    if (options?.force && channel.rtmpIngressId && !channel.rtmpIngressId.startsWith("srs:")) {
-      await deleteObsRtmpIngress(channel.rtmpIngressId);
-    }
-
-    const lk = await createObsRtmpIngress(channelId, hostName, {
-      cleanupFirst: !!options?.force,
+  if (useLivekit) {
+    return provisionLivekitIngress(channelId, userId, channel, hostName, {
+      force: options?.force || mustMigrateToLivekit,
     });
-
-    if ("error" in lk) {
-      console.warn("[provisionObsIngress] livekit failed, trying SRS", lk.error);
-      if (isSrsConfigured()) {
-        const srs = await provisionSrsIngress(channelId, userId, options);
-        if ("data" in srs) {
-          return {
-            data: srs.data,
-            warning: `LiveKit 연결 실패 — VPS(SRS) 주소로 대체했습니다. (${lk.error})`,
-          };
-        }
-      }
-      return { error: lk.error };
-    }
-
-    const obs = formatForObs(lk.url, lk.streamKey);
-    try {
-      await db.voiceChannel.update({
-        where: { id: channelId },
-        data: {
-          broadcastMode: "OBS",
-          rtmpIngressId: lk.ingressId,
-          rtmpUrl: lk.url,
-          rtmpStreamKey: lk.streamKey,
-        },
-      });
-    } catch (e) {
-      console.error("[provisionObsIngress] livekit channel bind", e);
-    }
-
-    return {
-      data: {
-        url: lk.url,
-        streamKey: lk.streamKey,
-        ingressId: lk.ingressId,
-        obsServer: obs.obsServer,
-        obsStreamKey: obs.obsStreamKey,
-        hlsPlaybackUrl: null,
-        ingestEngine: "livekit",
-        accountKey: false,
-      },
-    };
   }
 
   return provisionSrsIngress(channelId, userId, options);

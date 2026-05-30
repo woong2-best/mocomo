@@ -39,7 +39,7 @@ export async function GET(
 
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
-    select: { createdBy: true },
+    select: { createdBy: true, rtmpStreamKey: true },
   });
   if (!channel) {
     return new NextResponse("Not Found", { status: 404 });
@@ -55,14 +55,14 @@ export async function GET(
 
   await ensureChannelBroadcastActive(channelId);
 
-  let streamKey: string | null = null;
-  if (isHost) {
+  let streamKey: string | null = channel.rtmpStreamKey?.trim() || null;
+  if (isHost && !streamKey) {
     try {
       streamKey = await getOrCreateUserObsStreamKey(session.user.id);
     } catch {
       streamKey = null;
     }
-  } else {
+  } else if (!isHost) {
     const resolved = await resolveObsStreamKeyForChannel(channelId, {
       viewerUserId: session.user.id,
     });
