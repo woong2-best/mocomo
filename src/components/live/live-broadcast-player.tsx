@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LiveHlsPlayer } from "@/components/live/live-hls-player";
+import { LiveSrsPlayer } from "@/components/live/live-srs-player";
 import { LivekitLivePlayer } from "@/components/live/livekit-live-player";
 import { Loader2 } from "lucide-react";
 
@@ -46,5 +46,5 @@ export function LiveBroadcastPlayer({ channelId }: { channelId: string }) {
     return <LivekitLivePlayer channelId={channelId} />;
   }
 
-  return <LiveHlsPlayer channelId={channelId} />;
+  return <LiveSrsPlayer channelId={channelId} />;
 }

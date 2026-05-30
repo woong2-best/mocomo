@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { srsConfigError } from "@/lib/srs";
+import { buildProxiedFlvPlaybackPath } from "@/lib/srs";
 import { buildProxiedHlsPlaybackPath, probeSrsManifest } from "@/lib/srs-hls-proxy";
 import { buildHostPlaybackPayload } from "@/lib/live-host-playback";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
@@ -97,6 +98,7 @@ export async function GET(
     }
 
     const hlsUrl = buildProxiedHlsPlaybackPath(channelId, streamKey);
+    const flvUrl = buildProxiedFlvPlaybackPath(channelId, streamKey);
     const probe = await probeSrsManifest(streamKey);
 
     return NextResponse.json({
@@ -104,16 +106,17 @@ export async function GET(
       ingestEngine: "srs",
       engine: "srs",
       hlsUrl,
+      flvUrl,
       streamKeyHint: streamKey.length > 8 ? `…${streamKey.slice(-8)}` : "****",
       srsOnAir: probe.live,
       srsPlayable: probe.playable ?? false,
-      waiting: !probe.live,
+      waiting: !probe.playable,
       tryLoad: true,
       message: probe.playable
-        ? "방송 신호가 확인되었습니다."
+        ? "HLS 재생 가능"
         : probe.live
-          ? "HLS 준비 중…"
-          : "OBS에서 방송을 시작하면 화면이 나타납니다.",
+          ? "RTMP OK · HLS 준비 중 (10초 후 FLV 시도)"
+          : "다중 송출 대상 송출 대기",
       probeError: probe.error,
       probeStatus: probe.status,
     });

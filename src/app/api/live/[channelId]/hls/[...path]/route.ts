@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getSrsHlsBaseUrl, srsConfigError } from "@/lib/srs";
 import {
+  fetchUpstreamManifest,
   normalizeHlsRelativePath,
   rewriteHlsPlaylist,
-  upstreamHlsManifestUrl,
   upstreamSegmentUrl,
 } from "@/lib/srs-hls-proxy";
 import { db } from "@/lib/db";
@@ -74,37 +74,20 @@ export async function GET(
   }
 
   const pathStr = normalizeHlsRelativePath(decodeURIComponent(path?.join("/") ?? ""));
-  const manifestName = `${streamKey}.m3u8`;
+  const manifestName = `${streamKey.split("?")[0]}.m3u8`;
   const isManifest =
     !pathStr ||
     pathStr === "index.m3u8" ||
     pathStr === manifestName ||
     pathStr.endsWith(".m3u8");
 
-  const upstreamUrl = isManifest
-    ? upstreamHlsManifestUrl(streamKey)
-    : upstreamSegmentUrl(pathStr);
-
   try {
-    const upstream = await fetch(upstreamUrl, {
-      cache: "no-store",
-      signal: AbortSignal.timeout(15000),
-      headers: req.headers.get("range")
-        ? { Range: req.headers.get("range")! }
-        : undefined,
-    });
-
-    if (!upstream.ok) {
-      return new NextResponse(`Upstream ${upstream.status}`, { status: upstream.status });
-    }
-
-    const contentType =
-      upstream.headers.get("content-type") ??
-      (isManifest ? "application/vnd.apple.mpegurl" : "application/octet-stream");
-
     if (isManifest) {
-      const text = await upstream.text();
-      const rewritten = rewriteHlsPlaylist(text, channelId, getSrsHlsBaseUrl());
+      const fetched = await fetchUpstreamManifest(streamKey);
+      if (!fetched) {
+        return new NextResponse("HLS manifest not found on VPS", { status: 404 });
+      }
+      const rewritten = rewriteHlsPlaylist(fetched.text, channelId, getSrsHlsBaseUrl());
       return new NextResponse(rewritten, {
         status: 200,
         headers: {
@@ -115,12 +98,23 @@ export async function GET(
       });
     }
 
+    const upstreamUrl = upstreamSegmentUrl(pathStr);
+    const upstream = await fetch(upstreamUrl, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(15000),
+      headers: req.headers.get("range") ? { Range: req.headers.get("range")! } : undefined,
+    });
+
+    if (!upstream.ok) {
+      return new NextResponse(`Upstream ${upstream.status}`, { status: upstream.status });
+    }
+
     const buf = await upstream.arrayBuffer();
     const segType = pathStr.endsWith(".ts")
       ? "video/mp2t"
       : pathStr.endsWith(".m4s")
         ? "video/iso.segment"
-        : contentType;
+        : upstream.headers.get("content-type") ?? "application/octet-stream";
     return new NextResponse(buf, {
       status: upstream.status,
       headers: {
@@ -132,7 +126,7 @@ export async function GET(
       },
     });
   } catch (e) {
-    console.error("[hls-proxy]", upstreamUrl, e);
+    console.error("[hls-proxy]", isManifest ? streamKey : pathStr, e);
     return new NextResponse("Proxy error", { status: 502 });
   }
 }

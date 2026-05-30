@@ -1,4 +1,4 @@
-import { buildHlsPlaybackUrl, getSrsHlsBaseUrl } from "@/lib/srs";
+import { buildFlvPlaybackUrl, buildHlsPlaybackUrl, getSrsHlsBaseUrl } from "@/lib/srs";
 
 /** m3u8·ts 상대 경로 정규화 (live/ 중복 방지) */
 export function normalizeHlsRelativePath(relativePath: string): string {
@@ -33,13 +33,73 @@ export function upstreamHlsManifestUrl(streamKey: string): string {
   return buildHlsPlaybackUrl(streamKey);
 }
 
-/** SRS m3u8/ts를 사이트 프록시 경로로 치환 */
+export function manifestCandidateUrls(streamKey: string): string[] {
+  const name = streamKey.trim().split("?")[0];
+  const base = getSrsHlsBaseUrl().replace(/\/$/, "");
+  return [
+    `${base}/${name}.m3u8`,
+    `${base}/live/${name}.m3u8`,
+    `${base}/${name}/index.m3u8`,
+  ];
+}
+
+/** VPS에서 동작하는 m3u8 URL 찾기 */
+export async function fetchUpstreamManifest(streamKey: string): Promise<{
+  url: string;
+  text: string;
+} | null> {
+  for (const url of manifestCandidateUrls(streamKey)) {
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        cache: "no-store",
+        signal: AbortSignal.timeout(10000),
+        headers: { Accept: "application/vnd.apple.mpegurl,*/*" },
+      });
+      if (!res.ok) continue;
+      const text = await res.text();
+      if (text.includes("#EXTM3U")) return { url, text };
+    } catch {
+      /* try next */
+    }
+  }
+  return null;
+}
+
+function rewriteUriLine(trimmed: string, proxyBase: string, upstreamBase: string): string {
+  const qIdx = trimmed.indexOf("?");
+  const pathPart = qIdx >= 0 ? trimmed.slice(0, qIdx) : trimmed;
+  const query = qIdx >= 0 ? trimmed.slice(qIdx) : "";
+
+  if (pathPart.startsWith("http://") || pathPart.startsWith("https://")) {
+    const base = upstreamBase.replace(/\/$/, "");
+    if (pathPart.startsWith(base)) {
+      const rest = normalizeHlsRelativePath(pathPart.slice(base.length));
+      return `${proxyBase}/${rest}${query}`;
+    }
+    try {
+      const u = new URL(pathPart);
+      const rest = normalizeHlsRelativePath(u.pathname);
+      return `${proxyBase}/${rest}${query}`;
+    } catch {
+      return trimmed;
+    }
+  }
+
+  if (pathPart.startsWith("/")) {
+    const rest = normalizeHlsRelativePath(pathPart);
+    return `${proxyBase}/${rest}${query}`;
+  }
+
+  return `${proxyBase}/${normalizeHlsRelativePath(pathPart)}${query}`;
+}
+
+/** SRS m3u8/ts를 사이트 프록시 경로로 치환 (절대경로·hls_ctx 쿼리 포함) */
 export function rewriteHlsPlaylist(
   body: string,
   channelId: string,
   upstreamBase: string
 ): string {
-  const base = upstreamBase.replace(/\/$/, "");
   const proxyBase = `/api/live/${channelId}/hls`;
 
   return body
@@ -47,22 +107,7 @@ export function rewriteHlsPlaylist(
     .map((line) => {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith("#")) return line;
-
-      if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-        if (trimmed.startsWith(base)) {
-          const rest = normalizeHlsRelativePath(trimmed.slice(base.length));
-          return `${proxyBase}/${rest}`;
-        }
-        try {
-          const u = new URL(trimmed);
-          const rest = normalizeHlsRelativePath(u.pathname);
-          return `${proxyBase}/${rest}`;
-        } catch {
-          return line;
-        }
-      }
-
-      return `${proxyBase}/${normalizeHlsRelativePath(trimmed)}`;
+      return rewriteUriLine(trimmed, proxyBase, upstreamBase);
     })
     .join("\n");
 }
@@ -77,12 +122,14 @@ function firstSegmentPathFromManifest(text: string): string | null {
   for (const line of text.split("\n")) {
     const t = line.trim();
     if (!t || t.startsWith("#")) continue;
-    if (t.endsWith(".ts") || t.endsWith(".m4s") || t.endsWith(".mp4")) return t;
+    if (t.endsWith(".ts") || t.endsWith(".m4s") || t.endsWith(".mp4") || t.endsWith(".m3u8")) {
+      return t.split("?")[0] + (t.includes("?") ? "?" + t.split("?").slice(1).join("?") : "");
+    }
   }
   return null;
 }
 
-/** SRS HTTP API — RTMP publish 여부 (HLS 파일보다 먼저 뜰 수 있음) */
+/** SRS HTTP API — RTMP publish 여부 */
 export async function probeSrsRtmpPublish(streamKey: string): Promise<boolean> {
   const origin = srsApiOriginFromHlsBase();
   if (!origin) return false;
@@ -100,127 +147,84 @@ export async function probeSrsRtmpPublish(streamKey: string): Promise<boolean> {
     return streams.some(
       (s) =>
         s.publish?.active &&
-        (s.name === name || s.name === `live/${name}` || s.name === `${name}`)
+        (s.name === name || s.name === `live/${name}` || s.name?.endsWith(`/${name}`))
     );
   } catch {
     return false;
   }
 }
 
-/** 서버에서 SRS manifest·세그먼트 재생 가능 여부 확인 */
-function manifestCandidateUrls(streamKey: string): string[] {
-  const name = streamKey.trim().split("?")[0];
-  const primary = upstreamHlsManifestUrl(name);
-  const base = getSrsHlsBaseUrl().replace(/\/$/, "");
-  return [primary, `${base}/${name}/index.m3u8`, `${base}/live/${name}.m3u8`];
-}
-
 export async function probeSrsManifest(streamKey: string): Promise<{
   live: boolean;
   playable?: boolean;
   rtmpPublish?: boolean;
+  manifestUrl?: string;
+  flvUrl?: string;
   status?: number;
   error?: string;
 }> {
   const rtmpPublish = await probeSrsRtmpPublish(streamKey);
-  const urls = manifestCandidateUrls(streamKey);
+  const flvUrl = buildFlvPlaybackUrl(streamKey);
 
-  let best: Awaited<ReturnType<typeof probeOneManifest>> = {
-    live: rtmpPublish,
-    playable: false,
-    rtmpPublish,
-    error: rtmpPublish ? "HLS manifest not ready" : "no RTMP publish",
-  };
-
-  for (const url of urls) {
-    const result = await probeOneManifest(url, rtmpPublish);
-    if (result.playable) return result;
-    if (result.live) best = { ...result, rtmpPublish: result.rtmpPublish ?? rtmpPublish };
+  const manifest = await fetchUpstreamManifest(streamKey);
+  if (!manifest) {
+    return {
+      live: rtmpPublish,
+      playable: false,
+      rtmpPublish,
+      flvUrl,
+      error: rtmpPublish
+        ? "HLS m3u8 없음 (VPS 8080·HLS 설정 확인). FLV 폴백 시도 가능."
+        : "no RTMP publish",
+    };
   }
 
-  return best;
-}
+  const segPath = firstSegmentPathFromManifest(manifest.text);
+  if (!segPath) {
+    return {
+      live: true,
+      playable: false,
+      rtmpPublish,
+      manifestUrl: manifest.url,
+      flvUrl,
+      error: "HLS playlist has no segments yet",
+    };
+  }
 
-async function probeOneManifest(
-  url: string,
-  rtmpPublish: boolean
-): Promise<{
-  live: boolean;
-  playable?: boolean;
-  rtmpPublish?: boolean;
-  status?: number;
-  error?: string;
-}> {
+  if (segPath.endsWith(".m3u8")) {
+    return {
+      live: true,
+      playable: false,
+      rtmpPublish,
+      manifestUrl: manifest.url,
+      flvUrl,
+      error: "master playlist only — media playlist pending",
+    };
+  }
+
+  const segUrl = segPath.startsWith("http")
+    ? segPath
+    : upstreamSegmentUrl(segPath.replace(/\?.*$/, ""));
+
+  let segOk = false;
   try {
-    const res = await fetch(url, {
+    const segRes = await fetch(segUrl, {
       method: "GET",
       cache: "no-store",
       signal: AbortSignal.timeout(8000),
-      headers: { Accept: "application/vnd.apple.mpegurl,*/*" },
+      headers: { Range: "bytes=0-4095" },
     });
-    if (!res.ok) {
-      if (rtmpPublish) {
-        return {
-          live: true,
-          playable: false,
-          rtmpPublish: true,
-          status: res.status,
-          error: `HLS manifest ${res.status} (RTMP 송출 중)`,
-        };
-      }
-      return { live: false, rtmpPublish, status: res.status, error: `SRS ${res.status}` };
-    }
-    const text = await res.text();
-    if (!text.includes("#EXTM3U")) {
-      if (rtmpPublish) {
-        return {
-          live: true,
-          playable: false,
-          rtmpPublish: true,
-          error: "HLS manifest invalid (RTMP 송출 중)",
-        };
-      }
-      return { live: false, rtmpPublish, error: "invalid manifest" };
-    }
-
-    const segPath = firstSegmentPathFromManifest(text);
-    if (!segPath) {
-      return {
-        live: true,
-        playable: false,
-        rtmpPublish,
-        status: res.status,
-        error: "manifest has no segments yet",
-      };
-    }
-
-    const segUrl = upstreamSegmentUrl(segPath);
-    let segOk = false;
-    try {
-      const segRes = await fetch(segUrl, {
-        method: "GET",
-        cache: "no-store",
-        signal: AbortSignal.timeout(6000),
-        headers: { Range: "bytes=0-1" },
-      });
-      segOk = segRes.ok && (segRes.headers.get("content-length") !== "0" || segRes.status === 206);
-    } catch {
-      segOk = false;
-    }
-
-    return {
-      live: true,
-      playable: segOk,
-      rtmpPublish,
-      status: res.status,
-      error: segOk ? undefined : "HLS segments not ready",
-    };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "fetch failed";
-    if (rtmpPublish) {
-      return { live: true, playable: false, rtmpPublish: true, error: msg };
-    }
-    return { live: false, rtmpPublish, error: msg };
+    segOk = segRes.ok && segRes.status !== 404;
+  } catch {
+    segOk = false;
   }
-}
 
+  return {
+    live: true,
+    playable: segOk,
+    rtmpPublish,
+    manifestUrl: manifest.url,
+    flvUrl,
+    error: segOk ? undefined : "HLS .ts segment not reachable from server",
+  };
+}

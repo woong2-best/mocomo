@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { isLivekitIngestChannel, preferredLiveIngestEngine } from "@/lib/live-ingest";
 import { probeLivekitObsPublish } from "@/lib/livekit-room-status";
+import { buildProxiedFlvPlaybackPath } from "@/lib/srs";
 import { buildProxiedHlsPlaybackPath, probeSrsManifest } from "@/lib/srs-hls-proxy";
 import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
 
@@ -54,6 +55,7 @@ export async function buildHostPlaybackPayload(channelId: string, hostUserId: st
   }
 
   const hlsUrl = buildProxiedHlsPlaybackPath(channelId, streamKey);
+  const flvUrl = buildProxiedFlvPlaybackPath(channelId, streamKey);
   const probe = await probeSrsManifest(streamKey);
 
   return {
@@ -61,6 +63,7 @@ export async function buildHostPlaybackPayload(channelId: string, hostUserId: st
     ingestEngine: "srs" as const,
     engine: "srs" as const,
     hlsUrl,
+    flvUrl,
     streamKeyHint: streamKey.length > 8 ? `…${streamKey.slice(-8)}` : "****",
     srsOnAir: probe.live,
     srsPlayable: probe.playable ?? false,

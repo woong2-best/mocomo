@@ -30,6 +30,9 @@ echo "==> SRS 컨테이너 재시작"
 docker compose -f docker-compose.srs.yml pull
 docker compose -f docker-compose.srs.yml up -d --force-recreate
 
+echo "==> HLS 저장 경로 준비"
+docker exec mocomo-srs sh -c 'mkdir -p ./objs/nginx/html/live && chmod -R 755 ./objs/nginx/html' 2>/dev/null || true
+
 echo ""
 echo "==> 실행 중인 컨테이너"
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | head -10

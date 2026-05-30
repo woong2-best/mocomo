@@ -91,7 +91,7 @@ export async function GET(
     message: probe.playable
       ? "방송 신호 확인. 미리보기 재생 중."
       : probe.live
-        ? "RTMP 감지. HLS 준비 중…"
+        ? "RTMP OK · HLS 준비 중 (안 되면 FLV 자동 시도)"
         : "다중 송출 대상에 MoCoMo 서버·키가 맞는지 확인하세요. (메인 방송 시작 없이도 됨)",
   });
 }
