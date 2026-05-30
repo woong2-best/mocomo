@@ -32,18 +32,38 @@ function apiToken(): string | null {
   );
 }
 
-function rememberCustomerHostFromApi(row: {
-  webRTC?: { url?: string };
-  webRTCPlayback?: { url?: string };
-}): void {
-  const url = row.webRTC?.url?.trim() || row.webRTCPlayback?.url?.trim();
-  if (!url) return;
+function rememberCustomerHostFromMediaUrl(url: string | undefined): void {
+  if (discoveredCustomerHost || !url?.trim()) return;
   try {
-    discoveredCustomerHost = new URL(url).host;
+    const host = new URL(url.trim()).host;
+    if (host.startsWith("customer-") && host.endsWith(".cloudflarestream.com")) {
+      discoveredCustomerHost = host;
+    }
   } catch {
     /* ignore */
   }
 }
+
+function rememberCustomerHostFromApi(row: {
+  webRTC?: { url?: string };
+  webRTCPlayback?: { url?: string };
+  playback?: { hls?: string; dash?: string };
+  thumbnail?: string;
+  preview?: string;
+}): void {
+  rememberCustomerHostFromMediaUrl(row.webRTC?.url);
+  if (discoveredCustomerHost) return;
+  rememberCustomerHostFromMediaUrl(row.webRTCPlayback?.url);
+  if (discoveredCustomerHost) return;
+  rememberCustomerHostFromMediaUrl(row.playback?.hls);
+  rememberCustomerHostFromMediaUrl(row.playback?.dash);
+  rememberCustomerHostFromMediaUrl(row.thumbnail);
+  rememberCustomerHostFromMediaUrl(row.preview);
+}
+
+type LiveInputsListResult = {
+  liveInputs?: Array<{ uid?: string }>;
+};
 
 /** customer-xxxxx.cloudflarestream.com (https 없이) */
 export function getStreamCustomerHost(): string | null {
@@ -65,6 +85,53 @@ export function cloudflareStreamConfigError(): string | null {
   return null;
 }
 
+async function listLiveInputUids(): Promise<string[]> {
+  const list = await streamApi<LiveInputsListResult | ApiLiveInput[]>(
+    "/stream/live_inputs",
+    { method: "GET" }
+  );
+  if (Array.isArray(list)) {
+    return list.map((r) => r.uid?.trim()).filter(Boolean) as string[];
+  }
+  return (list?.liveInputs ?? []).map((r) => r.uid?.trim()).filter(Boolean) as string[];
+}
+
+async function discoverCustomerHostFromVideos(): Promise<void> {
+  if (discoveredCustomerHost) return;
+  try {
+    const videos = await streamApi<
+      Array<{
+        playback?: { hls?: string; dash?: string };
+        thumbnail?: string;
+        preview?: string;
+      }>
+    >("/stream?limit=10", { method: "GET" });
+    for (const row of Array.isArray(videos) ? videos : []) {
+      rememberCustomerHostFromApi(row);
+      if (discoveredCustomerHost) return;
+    }
+  } catch (e) {
+    console.warn("[cloudflare-stream] list videos", e);
+  }
+}
+
+/** Live Input이 하나도 없을 때 customer host 확보용 (녹화 off) */
+async function bootstrapCustomerHostViaLiveInput(): Promise<void> {
+  if (discoveredCustomerHost) return;
+  try {
+    const result = await streamApi<ApiLiveInput>("/stream/live_inputs", {
+      method: "POST",
+      body: JSON.stringify({
+        meta: { name: "mocomo-host-bootstrap", system: "mocomo" },
+        recording: { mode: "off" },
+      }),
+    });
+    rememberCustomerHostFromApi(result);
+  } catch (e) {
+    console.warn("[cloudflare-stream] bootstrap live input", e);
+  }
+}
+
 export async function ensureStreamCustomerHost(): Promise<string | null> {
   const existing = getStreamCustomerHost();
   if (existing) return existing;
@@ -72,14 +139,21 @@ export async function ensureStreamCustomerHost(): Promise<string | null> {
   if (!accountId() || !apiToken()) return null;
 
   try {
-    const list = await streamApi<ApiLiveInput[]>("/stream/live_inputs", { method: "GET" });
-    const rows = Array.isArray(list) ? list : [];
-    for (const row of rows) {
-      rememberCustomerHostFromApi(row);
+    const uids = await listLiveInputUids();
+    for (const uid of uids.slice(0, 8)) {
+      const detail = await streamApi<ApiLiveInput>(`/stream/live_inputs/${uid}`, {
+        method: "GET",
+      });
+      rememberCustomerHostFromApi(detail);
       if (discoveredCustomerHost) return discoveredCustomerHost;
     }
   } catch (e) {
-    console.warn("[cloudflare-stream] list live_inputs", e);
+    console.warn("[cloudflare-stream] discover from live_inputs", e);
+  }
+
+  await discoverCustomerHostFromVideos();
+  if (!discoveredCustomerHost) {
+    await bootstrapCustomerHostViaLiveInput();
   }
 
   return discoveredCustomerHost;

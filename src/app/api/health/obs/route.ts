@@ -19,7 +19,11 @@ export async function GET() {
     return NextResponse.json({
       engine: "cloudflare",
       configured: !err && !!host,
-      error: err || (!host ? "Stream customer host를 API에서 찾지 못했습니다. API 토큰·Stream 구독 확인." : null),
+      error:
+        err ||
+        (!host
+          ? "Stream customer host를 찾지 못했습니다. API 토큰·Stream 구독 확인, 또는 Stream 대시보드의 customer-xxx.cloudflarestream.com 을 NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER_HOST 로 설정."
+          : null),
       hint: "OBS → Cloudflare Stream Live (RTMPS). 스튜디오 서버/키 사용. Vultr·LiveKit 방송 불필요.",
       streamHost: host ?? getStreamCustomerHost(),
       recording: "off",
