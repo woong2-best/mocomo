@@ -3,7 +3,8 @@ import {
   createCloudflareLiveInput,
   deleteCloudflareLiveInput,
   getCloudflareLiveInput,
-  buildLiveInputHlsUrl,
+  buildLiveInputHlsUrlAsync,
+  ensureStreamCustomerHost,
   cloudflareStreamConfigError,
   liveInputUidFromIngressId,
 } from "@/lib/cloudflare-stream";
@@ -81,7 +82,7 @@ function wrapCloudflareCredentials(
     ingressId: `cf:${input.uid}`,
     obsServer: obs.obsServer,
     obsStreamKey: obs.obsStreamKey,
-    hlsPlaybackUrl: buildLiveInputHlsUrl(input.uid),
+    hlsPlaybackUrl: null,
     ingestEngine: "cloudflare",
     accountKey: false,
   };
@@ -137,6 +138,8 @@ async function provisionCloudflareStreamIngress(
   const configErr = cloudflareStreamConfigError();
   if (configErr) return { error: configErr };
 
+  await ensureStreamCustomerHost();
+
   const existingUid = liveInputUidFromIngressId(channel.rtmpIngressId);
 
   if (!options?.force && existingUid) {
@@ -157,6 +160,7 @@ async function provisionCloudflareStreamIngress(
       channelId,
     });
     const data = wrapCloudflareCredentials(input);
+    data.hlsPlaybackUrl = await buildLiveInputHlsUrlAsync(input.uid);
 
     await db.voiceChannel.update({
       where: { id: channelId },

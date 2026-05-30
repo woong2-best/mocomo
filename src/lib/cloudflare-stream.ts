@@ -17,6 +17,9 @@ export type CloudflareLiveProbe = {
   error?: string;
 };
 
+/** API 응답에서 추출 (Vercel에 CUSTOMER_HOST 없어도 동작) */
+let discoveredCustomerHost: string | null = null;
+
 function accountId(): string | null {
   return process.env.CLOUDFLARE_ACCOUNT_ID?.trim() || null;
 }
@@ -29,27 +32,57 @@ function apiToken(): string | null {
   );
 }
 
+function rememberCustomerHostFromApi(row: {
+  webRTC?: { url?: string };
+  webRTCPlayback?: { url?: string };
+}): void {
+  const url = row.webRTC?.url?.trim() || row.webRTCPlayback?.url?.trim();
+  if (!url) return;
+  try {
+    discoveredCustomerHost = new URL(url).host;
+  } catch {
+    /* ignore */
+  }
+}
+
 /** customer-xxxxx.cloudflarestream.com (https 없이) */
 export function getStreamCustomerHost(): string | null {
   const raw =
     process.env.NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER_HOST?.trim() ||
     process.env.CLOUDFLARE_STREAM_CUSTOMER_HOST?.trim() ||
     null;
-  if (!raw) return null;
-  return raw.replace(/^https?:\/\//, "").replace(/\/$/, "");
+  if (raw) return raw.replace(/^https?:\/\//, "").replace(/\/$/, "");
+  return discoveredCustomerHost;
 }
 
 export function isCloudflareStreamConfigured(): boolean {
-  return !!(accountId() && apiToken() && getStreamCustomerHost());
+  return !!(accountId() && apiToken());
 }
 
 export function cloudflareStreamConfigError(): string | null {
   if (!accountId()) return "CLOUDFLARE_ACCOUNT_ID가 설정되지 않았습니다.";
   if (!apiToken()) return "CLOUDFLARE_STREAM_API_TOKEN이 설정되지 않았습니다.";
-  if (!getStreamCustomerHost()) {
-    return "NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER_HOST가 필요합니다. (Stream 대시보드의 customer-xxx.cloudflarestream.com)";
-  }
   return null;
+}
+
+export async function ensureStreamCustomerHost(): Promise<string | null> {
+  const existing = getStreamCustomerHost();
+  if (existing) return existing;
+
+  if (!accountId() || !apiToken()) return null;
+
+  try {
+    const list = await streamApi<ApiLiveInput[]>("/stream/live_inputs", { method: "GET" });
+    const rows = Array.isArray(list) ? list : [];
+    for (const row of rows) {
+      rememberCustomerHostFromApi(row);
+      if (discoveredCustomerHost) return discoveredCustomerHost;
+    }
+  } catch (e) {
+    console.warn("[cloudflare-stream] list live_inputs", e);
+  }
+
+  return discoveredCustomerHost;
 }
 
 export function liveInputUidFromIngressId(ingressId: string | null | undefined): string | null {
@@ -62,6 +95,11 @@ export function buildLiveInputHlsUrl(liveInputUid: string): string | null {
   const host = getStreamCustomerHost();
   if (!host || !liveInputUid.trim()) return null;
   return `https://${host}/${liveInputUid.trim()}/manifest/video.m3u8`;
+}
+
+export async function buildLiveInputHlsUrlAsync(liveInputUid: string): Promise<string | null> {
+  await ensureStreamCustomerHost();
+  return buildLiveInputHlsUrl(liveInputUid);
 }
 
 export function buildLiveInputIframeUrl(liveInputUid: string): string | null {
@@ -92,8 +130,7 @@ async function streamApi<T>(path: string, init?: RequestInit): Promise<T> {
   };
 
   if (!res.ok || !json.success) {
-    const msg =
-      json.errors?.[0]?.message || `Cloudflare API ${res.status}`;
+    const msg = json.errors?.[0]?.message || `Cloudflare API ${res.status}`;
     throw new Error(msg);
   }
 
@@ -105,6 +142,8 @@ type ApiLiveInput = {
   enabled?: boolean;
   rtmps?: { url?: string; streamKey?: string };
   meta?: Record<string, unknown>;
+  webRTC?: { url?: string };
+  webRTCPlayback?: { url?: string };
 };
 
 function normalizeLiveInput(row: ApiLiveInput): CloudflareLiveInput | null {
@@ -112,6 +151,7 @@ function normalizeLiveInput(row: ApiLiveInput): CloudflareLiveInput | null {
   const url = row.rtmps?.url?.trim();
   const streamKey = row.rtmps?.streamKey?.trim();
   if (!uid || !url || !streamKey) return null;
+  rememberCustomerHostFromApi(row);
   return {
     uid,
     rtmpsUrl: url,
@@ -120,11 +160,13 @@ function normalizeLiveInput(row: ApiLiveInput): CloudflareLiveInput | null {
   };
 }
 
-/** 방송마다 Live Input (채널 uid = meta) */
+/** 방송마다 Live Input — 녹화 off (저장 비용 없음) */
 export async function createCloudflareLiveInput(options: {
   name: string;
   channelId: string;
 }): Promise<CloudflareLiveInput> {
+  await ensureStreamCustomerHost();
+
   const appOrigin =
     process.env.NEXT_PUBLIC_APP_URL?.trim() ||
     process.env.APP_URL?.trim() ||
@@ -134,9 +176,8 @@ export async function createCloudflareLiveInput(options: {
     method: "POST",
     body: JSON.stringify({
       meta: { name: options.name, channelId: options.channelId },
-      recording: { mode: "automatic", hideLiveViewerCount: false },
+      recording: { mode: "off", hideLiveViewerCount: false },
       preferLowLatency: true,
-      deleteRecordingAfterDays: 1,
     }),
   });
 
@@ -148,8 +189,12 @@ export async function createCloudflareLiveInput(options: {
       method: "PUT",
       body: JSON.stringify({
         recording: {
-          mode: "automatic",
-          allowedOrigins: [appOrigin.replace(/\/$/, ""), "https://mocomo.net", "http://localhost:3000"],
+          mode: "off",
+          allowedOrigins: [
+            appOrigin.replace(/\/$/, ""),
+            "https://mocomo.net",
+            "http://localhost:3000",
+          ],
         },
       }),
     });
@@ -181,10 +226,17 @@ export async function deleteCloudflareLiveInput(liveInputUid: string): Promise<v
 
 /** 공개 lifecycle — 송출 여부 */
 export async function probeCloudflareLiveInput(liveInputUid: string): Promise<CloudflareLiveProbe> {
+  await ensureStreamCustomerHost();
   const host = getStreamCustomerHost();
   const hlsUrl = buildLiveInputHlsUrl(liveInputUid);
   if (!host) {
-    return { onAir: false, playable: false, hlsUrl: null, videoUid: null, error: "not configured" };
+    return {
+      onAir: false,
+      playable: false,
+      hlsUrl: null,
+      videoUid: null,
+      error: "customer host unknown — 키 다시 받기 후 재시도",
+    };
   }
 
   try {

@@ -8,7 +8,7 @@ import { buildHostPlaybackPayload } from "@/lib/live-host-playback";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
 import {
-  buildLiveInputHlsUrl,
+  buildLiveInputHlsUrlAsync,
   liveInputUidFromIngressId,
   probeCloudflareLiveInput,
 } from "@/lib/cloudflare-stream";
@@ -76,7 +76,7 @@ export async function GET(
       const probe = cfUid
         ? await probeCloudflareLiveInput(cfUid)
         : { onAir: false, playable: false, hlsUrl: null, videoUid: null };
-      const hlsUrl = cfUid ? buildLiveInputHlsUrl(cfUid) : null;
+      const hlsUrl = cfUid ? await buildLiveInputHlsUrlAsync(cfUid) : null;
 
       return NextResponse.json({
         ok: true,

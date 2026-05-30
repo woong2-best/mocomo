@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { cloudflareStreamConfigError, isCloudflareStreamConfigured, getStreamCustomerHost } from "@/lib/cloudflare-stream";
+import {
+  cloudflareStreamConfigError,
+  ensureStreamCustomerHost,
+  getStreamCustomerHost,
+  isCloudflareStreamConfigured,
+} from "@/lib/cloudflare-stream";
 import { preferredLiveIngestEngine } from "@/lib/live-ingest";
 import { isLivekitIngressConfigured } from "@/lib/livekit-ingress";
 import { getSrsRtmpUrl, getSrsHlsBaseUrl, isSrsConfigured } from "@/lib/srs";
@@ -10,12 +15,14 @@ export async function GET() {
 
   if (engine === "cloudflare") {
     const err = cloudflareStreamConfigError();
+    const host = err ? null : await ensureStreamCustomerHost();
     return NextResponse.json({
       engine: "cloudflare",
-      configured: !err,
-      error: err,
+      configured: !err && !!host,
+      error: err || (!host ? "Stream customer host를 API에서 찾지 못했습니다. API 토큰·Stream 구독 확인." : null),
       hint: "OBS → Cloudflare Stream Live (RTMPS). 스튜디오 서버/키 사용. Vultr·LiveKit 방송 불필요.",
-      streamHost: getStreamCustomerHost(),
+      streamHost: host ?? getStreamCustomerHost(),
+      recording: "off",
     });
   }
 

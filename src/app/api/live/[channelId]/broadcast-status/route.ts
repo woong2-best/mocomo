@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
-  buildLiveInputHlsUrl,
+  buildLiveInputHlsUrlAsync,
   liveInputUidFromIngressId,
   probeCloudflareLiveInput,
 } from "@/lib/cloudflare-stream";
@@ -57,7 +57,7 @@ export async function GET(
       onAir: probe.onAir,
       playable: probe.playable,
       streamKeyHint: keyTail,
-      hlsPlayback: cfUid ? buildLiveInputHlsUrl(cfUid) : null,
+      hlsPlayback: cfUid ? await buildLiveInputHlsUrlAsync(cfUid) : null,
       message: probe.playable
         ? "Cloudflare 방송 연결됨. 미리보기 재생 중."
         : probe.onAir

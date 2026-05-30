@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import {
-  buildLiveInputHlsUrl,
+  buildLiveInputHlsUrlAsync,
   liveInputUidFromIngressId,
   probeCloudflareLiveInput,
 } from "@/lib/cloudflare-stream";
@@ -22,7 +22,7 @@ export async function buildHostPlaybackPayload(channelId: string, hostUserId: st
   if (engine === "cloudflare") {
     const cfUid = liveInputUidFromIngressId(channel?.rtmpIngressId);
     const probe = cfUid ? await probeCloudflareLiveInput(cfUid) : { onAir: false, playable: false, hlsUrl: null, videoUid: null };
-    const hlsUrl = cfUid ? buildLiveInputHlsUrl(cfUid) : null;
+    const hlsUrl = cfUid ? await buildLiveInputHlsUrlAsync(cfUid) : null;
 
     return {
       ok: true as const,
