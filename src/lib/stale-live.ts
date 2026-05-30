@@ -28,7 +28,7 @@ export async function pruneAbandonedLiveChannels() {
   if (staleIds.length > 0) {
     await db.voiceChannel.updateMany({
       where: { id: { in: staleIds } },
-      data: { isLive: false },
+      data: { isLive: false, liveStatus: "ENDED", endedAt: new Date() },
     });
   }
 }

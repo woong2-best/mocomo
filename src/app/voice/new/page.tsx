@@ -6,7 +6,7 @@ import Link from "next/link";
 import type { LiveBroadcastMode, LiveStreamCategory, LiveVisibility, SupportTierLevel } from "@prisma/client";
 import { SUPPORT_TIERS } from "@/lib/tiers";
 import { tierLabelKo } from "@/lib/live-viewer-access";
-import { createLiveStream } from "@/actions/live-stream";
+import { createLiveStream, releaseStaleHostLiveSessions } from "@/actions/live-stream";
 import { LIVE_CATEGORIES } from "@/lib/live-categories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,6 +73,10 @@ export default function NewVoicePage() {
   const [minViewerTier, setMinViewerTier] = useState<SupportTierLevel>("BRONZE");
   const [created, setCreated] = useState<CreatedUiState | null>(null);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    void releaseStaleHostLiveSessions();
+  }, []);
 
   useEffect(() => {
     if (created) return;

@@ -1,6 +1,16 @@
 import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
 
+const obsBroadcastChannelWhere = (hostUserId: string) => ({
+  createdBy: hostUserId,
+  isLive: true,
+  liveStatus: "LIVE" as const,
+  OR: [
+    { linkedChatRoom: null },
+    { linkedChatRoom: { is: { type: { not: "SOCIAL_GROUP" as const } } } },
+  ],
+});
+
 /** 계정당 고유 OBS 방송 키 (트위치/치지직 방식 — 방송마다 바뀌지 않음) */
 export function mintUserObsStreamKey(userId: string): string {
   const safe = userId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 18);
@@ -69,7 +79,7 @@ export async function findLiveChannelByObsStreamKey(stream: string) {
     });
     if (byUser) {
       return db.voiceChannel.findFirst({
-        where: { createdBy: byUser.id, isLive: true },
+        where: obsBroadcastChannelWhere(byUser.id),
         orderBy: { createdAt: "desc" },
         select: { id: true },
       });

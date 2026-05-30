@@ -23,6 +23,11 @@ import { moderateLiveChatFast } from "@/lib/ai-moderation";
 import { provisionObsIngress } from "@/lib/obs-ingress-service";
 import { getOrCreateUserObsStreamKey } from "@/lib/user-obs-stream-key";
 import { getSrsRtmpUrl } from "@/lib/srs";
+import {
+  closeStaleHostLiveChannels,
+  endHostBroadcastChannel,
+  findBlockingHostBroadcast,
+} from "@/lib/host-live-session";
 import { notifyFollowersOnLive } from "@/lib/live-notify";
 import {
   fetchLiveChannelForStudio,
@@ -51,6 +56,13 @@ function mapLiveChatMessage(m: {
     content: m.content,
     at: m.createdAt.getTime(),
   };
+}
+
+/** 방송 시작 페이지 진입 시 — 종료됐는데 남은 isLive 플래그 정리 */
+export async function releaseStaleHostLiveSessions() {
+  const user = await requireAuthMinimal();
+  await closeStaleHostLiveChannels(user.id);
+  return { ok: true as const };
 }
 
 export async function createLiveStream(data: {
@@ -585,25 +597,16 @@ export async function endLiveStream(channelId: string) {
   const user = await requireAuth();
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
-    select: { createdBy: true, rtmpIngressId: true },
+    select: { createdBy: true },
   });
   if (!channel) return { error: "방송을 찾을 수 없습니다." };
   if (channel.createdBy !== user.id) return { error: "방송 종료는 호스트만 할 수 있습니다." };
 
-  await db.voiceChannel.update({
-    where: { id: channelId },
-    data: {
-      isLive: false,
-      liveStatus: "ENDED",
-      endedAt: new Date(),
-      rtmpIngressId: null,
-      rtmpUrl: null,
-      rtmpStreamKey: null,
-    },
-  });
-  await db.voiceMember.deleteMany({ where: { channelId } });
+  await endHostBroadcastChannel(channelId, user.id);
+  await closeStaleHostLiveChannels(user.id);
 
   revalidatePath("/live");
+  revalidatePath("/voice/new");
   revalidatePath(`/voice/${channelId}`);
   return { success: true as const };
 }

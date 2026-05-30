@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     try {
       await db.voiceChannel.update({
         where: { id: live.id },
-        data: { liveStatus: "LIVE", rtmpStreamKey: stream },
+        data: { isLive: true, liveStatus: "LIVE", rtmpStreamKey: stream },
       });
     } catch {
       /* ignore */
@@ -50,6 +50,22 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "on_unpublish") {
+    const live = await findLiveChannelByObsStreamKey(stream);
+    if (live) {
+      try {
+        await db.voiceChannel.update({
+          where: { id: live.id },
+          data: {
+            isLive: false,
+            liveStatus: "ENDED",
+            endedAt: new Date(),
+          },
+        });
+        await db.voiceMember.deleteMany({ where: { channelId: live.id } });
+      } catch {
+        /* ignore */
+      }
+    }
     return new NextResponse("0", { status: 200 });
   }
 
