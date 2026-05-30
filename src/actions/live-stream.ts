@@ -122,6 +122,14 @@ export async function createLiveStream(data: {
           existingChannelId: prep.blockingChannelId,
         };
       }
+      await db.voiceChannel.updateMany({
+        where: {
+          createdBy: user.id,
+          isLive: false,
+          liveStatus: { in: ["SCHEDULED", "LIVE"] },
+        },
+        data: { isLive: false, liveStatus: "ENDED", endedAt: new Date() },
+      });
     }
 
     const baseData = {
@@ -132,8 +140,8 @@ export async function createLiveStream(data: {
       allowCamera: data.allowCamera ?? true,
       createdBy: user.id,
       joinPasswordHash,
-      isLive: !isScheduled,
-      liveStatus: isScheduled ? ("SCHEDULED" as const) : ("LIVE" as const),
+      isLive: false,
+      liveStatus: "SCHEDULED" as const,
       category: data.category ?? "JUST_CHATTING",
       tags,
       thumbnailUrl: data.thumbnailUrl?.trim() || null,
@@ -141,15 +149,13 @@ export async function createLiveStream(data: {
       scheduledAt: isScheduled ? scheduledAt : null,
       donationGoalKrw: Number.isFinite(goalRaw) && goalRaw > 0 ? goalRaw : null,
       broadcastMode: data.broadcastMode ?? "OBS",
-      members: isScheduled
-        ? undefined
-        : {
-            create: {
-              userId: user.id,
-              role: "HOST",
-              lastSeenAt: new Date(),
-            },
-          },
+      members: {
+        create: {
+          userId: user.id,
+          role: "HOST",
+          lastSeenAt: new Date(),
+        },
+      },
     };
 
     let channel;
@@ -180,23 +186,20 @@ export async function createLiveStream(data: {
       console.warn("[createLiveStream] streamerProfile", profileErr);
     }
 
-    if (!isScheduled) {
-      try {
-        const streamKey = await getOrCreateUserObsStreamKey(user.id);
-        const rtmpUrl = getSrsRtmpUrl();
-        await db.voiceChannel.update({
-          where: { id: channel.id },
-          data: {
-            broadcastMode: "OBS",
-            rtmpStreamKey: streamKey,
-            rtmpIngressId: `srs:${streamKey}`,
-            rtmpUrl,
-          },
-        });
-      } catch (keyErr) {
-        console.warn("[createLiveStream] obs key", keyErr);
-      }
-      void notifyFollowersOnLive(user.id, channel.id, title).catch(() => {});
+    try {
+      const streamKey = await getOrCreateUserObsStreamKey(user.id);
+      const rtmpUrl = getSrsRtmpUrl();
+      await db.voiceChannel.update({
+        where: { id: channel.id },
+        data: {
+          broadcastMode: "OBS",
+          rtmpStreamKey: streamKey,
+          rtmpIngressId: `srs:${streamKey}`,
+          rtmpUrl,
+        },
+      });
+    } catch (keyErr) {
+      console.warn("[createLiveStream] obs key", keyErr);
     }
 
     return {
@@ -227,8 +230,8 @@ export async function startScheduledLiveStream(channelId: string) {
   await db.voiceChannel.update({
     where: { id: channelId },
     data: {
-      isLive: true,
-      liveStatus: "LIVE",
+      isLive: false,
+      liveStatus: "SCHEDULED",
       joinPasswordHash,
       scheduledAt: null,
     },
@@ -249,7 +252,6 @@ export async function startScheduledLiveStream(channelId: string) {
   } catch {
     /* ignore */
   }
-  void notifyFollowersOnLive(user.id, channelId, channel.name).catch(() => {});
   revalidatePath("/live");
   return { joinPassword, channelId };
 }

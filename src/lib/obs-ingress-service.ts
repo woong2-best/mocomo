@@ -48,12 +48,12 @@ export async function provisionObsIngress(
 
   const rtmpUrl = getSrsRtmpUrl();
 
-  let channel: { createdBy: string; isLive: boolean } | null;
+  let channel: { createdBy: string; liveStatus: string } | null;
 
   try {
     channel = await db.voiceChannel.findUnique({
       where: { id: channelId },
-      select: { createdBy: true, isLive: true },
+      select: { createdBy: true, liveStatus: true },
     });
   } catch (e) {
     console.error("[provisionObsIngress] db", e);
@@ -70,8 +70,8 @@ export async function provisionObsIngress(
   if (!channel || channel.createdBy !== userId) {
     return { error: "호스트만 OBS 설정을 받을 수 있습니다." };
   }
-  if (!channel.isLive) {
-    return { error: "라이브 방송 중에만 OBS 키를 확인할 수 있습니다." };
+  if (channel.liveStatus === "ENDED") {
+    return { error: "종료된 방송입니다. 새 방송을 만들어 주세요." };
   }
 
   let streamKey: string;

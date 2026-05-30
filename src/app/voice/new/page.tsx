@@ -208,18 +208,17 @@ export default function NewVoicePage() {
       <div className="max-w-lg mx-auto p-4 space-y-6 pb-24">
         <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-6 text-center space-y-4">
           <KeyRound className="h-10 w-10 mx-auto text-green-600" />
-          <h2 className="text-xl font-bold">방송 시작됨</h2>
+          <h2 className="text-xl font-bold">방송 준비 완료</h2>
           <p className="text-sm text-muted-foreground">
-            아래 <strong>합방 비밀번호</strong>는 공동 방송을 원하는 분에게만 공유하세요.
+            웹에서 방송이 켜지지 않습니다. 스튜디오에서 OBS 정보를 확인한 뒤{" "}
+            <strong>OBS에서 「방송 시작」</strong>을 누르면 LIVE로 전환됩니다.
             <br />
-            일반 시청자는 비밀번호 없이 시청할 수 있습니다.
+            합방 비밀번호는 공동 방송을 원하는 분에게만 공유하세요.
           </p>
           <p className="text-3xl font-mono font-bold tracking-[0.35em] text-foreground">{created.password}</p>
-          {created.broadcastMode === "OBS" && (
-            <p className="text-xs text-violet-700 bg-violet-500/10 rounded-lg px-3 py-2">
-              OBS 모드입니다. 스튜디오 입장 후 <strong>OBS</strong> 탭에서 서버·스트림 키를 받으세요.
-            </p>
-          )}
+          <p className="text-xs text-violet-700 bg-violet-500/10 rounded-lg px-3 py-2">
+            트위치처럼 OBS 송출이 시작되면 자동으로 라이브 목록에 노출됩니다.
+          </p>
           <div className="flex gap-2 justify-center flex-wrap">
             <Button variant="outline" className="rounded-xl gap-2" onClick={copyPassword}>
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -256,7 +255,7 @@ export default function NewVoicePage() {
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-600 text-white">
             <Radio className="h-5 w-5" />
           </span>
-          라이브 방송 시작
+          라이브 방송 만들기
         </h1>
       </div>
 
@@ -397,7 +396,7 @@ export default function NewVoicePage() {
             <Input name="maxUsers" type="number" placeholder="최대 시청자" defaultValue={200} />
             <Button type="submit" className="w-full rounded-xl gap-2" disabled={loading}>
               <Radio className="h-4 w-4" />
-              {loading ? "방송 준비 중…" : "방송 시작"}
+              {loading ? "만드는 중…" : "방송 만들기 · 스튜디오 열기"}
             </Button>
           </form>
         </CardContent>

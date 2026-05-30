@@ -1,13 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Eye, Radio, Settings2 } from "lucide-react";
-import { LiveHlsPlayer } from "@/components/live/live-hls-player";
 import { LiveChat } from "@/components/live/live-chat";
-import { LiveObsSetupGate } from "@/components/live/live-obs-setup-gate";
-import { LiveObsSettingsPanel } from "@/components/live/live-obs-settings-panel";
+import { LiveObsControlCenter } from "@/components/live/live-obs-control-center";
 import { LiveHostSettings } from "@/components/live/live-host-settings";
-import { isObsStudioReady } from "@/lib/live-obs-studio-ready";
 import { liveCategoryLabel } from "@/lib/live-categories";
 import { ensureStringArray } from "@/lib/ensure-array";
 import { Button } from "@/components/ui/button";
@@ -49,29 +45,12 @@ export function LiveHostStudioShell({
   chatBannedWords?: string[];
   paymentsEnabled?: boolean;
 }) {
-  const [obsReady, setObsReady] = useState(false);
-
-  useEffect(() => {
-    setObsReady(isObsStudioReady(channelId));
-  }, [channelId]);
-
-  if (!obsReady) {
-    return (
-      <LiveObsSetupGate
-        channelId={channelId}
-        channelName={channelName}
-        onReady={() => setObsReady(true)}
-        onEndStream={onEndStream}
-      />
-    );
-  }
-
   return (
     <div className="flex flex-col min-h-[calc(100vh-8rem)]">
       <header className="flex flex-wrap items-center gap-2 sm:gap-3 py-2 border-b border-border/60 shrink-0">
-        <span className="live-badge text-xs px-2 py-0.5 flex items-center gap-1">
+        <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground flex items-center gap-1">
           <Radio className="h-3 w-3" />
-          LIVE
+          스튜디오
         </span>
         {category && (
           <span className="text-[11px] px-2 py-0.5 rounded-md bg-muted font-medium">
@@ -95,7 +74,6 @@ export function LiveHostStudioShell({
             <DialogHeader>
               <DialogTitle>방송 설정</DialogTitle>
             </DialogHeader>
-            <LiveObsSettingsPanel channelId={channelId} />
             <div className="pt-2">
               <p className="text-xs font-medium text-muted-foreground mb-3">채팅 · 슬로우모드</p>
               <LiveHostSettings
@@ -115,8 +93,8 @@ export function LiveHostStudioShell({
       </header>
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-0 lg:gap-3 min-h-0 mt-2">
-        <div className="min-w-0 min-h-[240px] lg:min-h-0 bg-black rounded-xl overflow-hidden ring-1 ring-border/40">
-          <LiveHlsPlayer channelId={channelId} />
+        <div className="min-w-0 lg:min-h-0">
+          <LiveObsControlCenter channelId={channelId} />
         </div>
         <div className="min-h-[320px] lg:min-h-0 lg:max-h-[calc(100vh-10rem)] border-t lg:border-t-0 lg:border-l border-border/60 pt-3 lg:pt-0 lg:pl-3">
           <LiveChat

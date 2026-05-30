@@ -3,6 +3,7 @@ import { LiveRoomEntry } from "@/components/live/live-room-entry";
 import { getCachedLiveRoomMeta } from "@/lib/cached-live-meta";
 import { isPaymentsConfigured } from "@/lib/payments";
 import { ensureArray, ensureStringArray } from "@/lib/ensure-array";
+import { isHostBroadcastRoom, isPubliclyLive } from "@/lib/live-channel-active";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -46,7 +47,17 @@ export default async function VoiceRoomPage({ params }: { params: Promise<{ id: 
   const isHost = channel.createdBy === session.user.id;
   const paymentsEnabled = isPaymentsConfigured();
 
-  if (!channel.isLive) {
+  const onAir = isPubliclyLive({
+    isLive: channel.isLive,
+    liveStatus: channel.liveStatus ?? (channel.isLive ? "LIVE" : "ENDED"),
+  });
+  const hostStudio =
+    isHost &&
+    isHostBroadcastRoom({
+      liveStatus: channel.liveStatus ?? (channel.isLive ? "LIVE" : "ENDED"),
+    });
+
+  if (channel.liveStatus === "ENDED" || (!hostStudio && !onAir)) {
     return (
       <div className="live-page-shell max-w-3xl mx-auto p-6 space-y-6">
         <Link href="/live">
@@ -56,8 +67,14 @@ export default async function VoiceRoomPage({ params }: { params: Promise<{ id: 
           </Button>
         </Link>
         <div className="text-center space-y-4">
-          <p className="text-lg font-semibold">방송이 종료되었습니다</p>
-          <p className="text-sm text-muted-foreground">다시보기는 제공하지 않습니다.</p>
+          <p className="text-lg font-semibold">
+            {channel.liveStatus === "ENDED" ? "방송이 종료되었습니다" : "방송 준비 중입니다"}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {channel.liveStatus === "ENDED"
+              ? "다시보기는 제공하지 않습니다."
+              : "스트리머가 OBS에서 방송을 시작하면 이 페이지에서 시청할 수 있습니다."}
+          </p>
           <Button asChild variant="outline" className="rounded-xl">
             <Link href={`/u/${host.username}`}>@{host.username} 프로필</Link>
           </Button>

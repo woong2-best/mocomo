@@ -6,9 +6,10 @@ export function resolveBroadcastPhase(
   liveStatus: LiveStreamStatus,
   endedAt: Date | null
 ): BroadcastSessionPhase {
-  if (liveStatus === "SCHEDULED" && !endedAt) return "SCHEDULED";
   if (liveStatus === "ENDED" || endedAt) return "ENDED";
+  if (liveStatus === "SCHEDULED" && !endedAt) return "SCHEDULED";
   if (isLive && liveStatus === "LIVE") return "LIVE";
+  if (liveStatus === "LIVE" && !isLive) return "SCHEDULED";
   if (isLive) return "ORPHAN";
   return "ENDED";
 }

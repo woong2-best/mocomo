@@ -13,7 +13,7 @@ export async function buildHostPlaybackPayload(channelId: string, hostUserId: st
   try {
     await db.voiceChannel.update({
       where: { id: channelId },
-      data: { isLive: true, liveStatus: "LIVE", rtmpStreamKey: streamKey },
+      data: { rtmpStreamKey: streamKey, broadcastMode: "OBS" },
     });
   } catch {
     /* 컬럼 미적용 시에도 재생 URL은 반환 */
