@@ -1,29 +1,35 @@
 "use client";
 
-import { LiveObsStudio } from "@/components/live/live-obs-studio";
+import { useEffect, useState } from "react";
+import { Eye, Radio, Settings2 } from "lucide-react";
 import { LiveHlsPlayer } from "@/components/live/live-hls-player";
 import { LiveChat } from "@/components/live/live-chat";
-import { LiveStudioHeader } from "@/components/live/live-studio-header";
+import { LiveObsSetupGate } from "@/components/live/live-obs-setup-gate";
+import { LiveObsSettingsPanel } from "@/components/live/live-obs-settings-panel";
+import { LiveHostSettings } from "@/components/live/live-host-settings";
+import { isObsStudioReady } from "@/lib/live-obs-studio-ready";
+import { liveCategoryLabel } from "@/lib/live-categories";
+import { ensureStringArray } from "@/lib/ensure-array";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 
+/** 호스트 스튜디오 — OBS 확인 후: 영상 + 채팅 + 설정만 */
 export function LiveHostStudioShell({
   channelId,
   channelName,
-  hostUserId,
-  hostUsername,
-  hostDisplayName,
-  hostTier,
-  hostTotalSupport,
   viewerCount,
   onViewerCount,
   onEndStream,
   category,
-  donationGoalKrw,
-  tipTotalKrw,
-  tipRanking,
   slowModeSeconds,
   chatBannedWords,
-  paymentsEnabled,
 }: {
   channelId: string;
   channelName: string;
@@ -43,39 +49,76 @@ export function LiveHostStudioShell({
   chatBannedWords?: string[];
   paymentsEnabled?: boolean;
 }) {
-  return (
-    <div className="live-studio-twitch space-y-3">
-      <LiveStudioHeader
+  const [obsReady, setObsReady] = useState(false);
+
+  useEffect(() => {
+    setObsReady(isObsStudioReady(channelId));
+  }, [channelId]);
+
+  if (!obsReady) {
+    return (
+      <LiveObsSetupGate
         channelId={channelId}
         channelName={channelName}
-        hostUserId={hostUserId}
-        hostUsername={hostUsername}
-        hostDisplayName={hostDisplayName}
-        hostTier={hostTier}
-        hostTotalSupport={hostTotalSupport}
-        isHost
-        viewerCount={viewerCount}
-        category={category}
-        donationGoalKrw={donationGoalKrw}
-        tipTotalKrw={tipTotalKrw}
-        tipRanking={tipRanking}
-        slowModeSeconds={slowModeSeconds}
-        chatBannedWords={chatBannedWords}
-        paymentsEnabled={paymentsEnabled}
+        onReady={() => setObsReady(true)}
+        onEndStream={onEndStream}
       />
+    );
+  }
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-3 xl:gap-4 items-start">
-        <div className="space-y-3 min-w-0">
-          <div className="rounded-xl overflow-hidden ring-1 ring-border/50 bg-black">
-            <LiveHlsPlayer channelId={channelId} />
-          </div>
-          <p className="text-[11px] text-muted-foreground px-1">
-            방송 미리보기 (OBS 시작 후 3~10초). 스트림 키는 OBS 패널에만 표시됩니다.
-          </p>
-          <LiveObsStudio channelId={channelId} onEndStream={onEndStream} />
+  return (
+    <div className="flex flex-col min-h-[calc(100vh-8rem)]">
+      <header className="flex flex-wrap items-center gap-2 sm:gap-3 py-2 border-b border-border/60 shrink-0">
+        <span className="live-badge text-xs px-2 py-0.5 flex items-center gap-1">
+          <Radio className="h-3 w-3" />
+          LIVE
+        </span>
+        {category && (
+          <span className="text-[11px] px-2 py-0.5 rounded-md bg-muted font-medium">
+            {liveCategoryLabel(category)}
+          </span>
+        )}
+        <h1 className="text-base sm:text-lg font-bold truncate flex-1 min-w-0">{channelName}</h1>
+        <span className="text-sm text-muted-foreground flex items-center gap-1 tabular-nums">
+          <Eye className="h-4 w-4" />
+          {viewerCount}
+        </span>
+
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm" className="rounded-xl gap-1">
+              <Settings2 className="h-4 w-4" />
+              설정
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="rounded-2xl max-w-md max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>방송 설정</DialogTitle>
+            </DialogHeader>
+            <LiveObsSettingsPanel channelId={channelId} />
+            <div className="pt-2">
+              <p className="text-xs font-medium text-muted-foreground mb-3">채팅 · 슬로우모드</p>
+              <LiveHostSettings
+                channelId={channelId}
+                slowModeSeconds={slowModeSeconds ?? 0}
+                bannedWords={ensureStringArray(chatBannedWords)}
+                embedded
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Button variant="destructive" size="sm" className="rounded-xl gap-1" onClick={onEndStream}>
+          <Radio className="h-4 w-4" />
+          방송 종료
+        </Button>
+      </header>
+
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-0 lg:gap-3 min-h-0 mt-2">
+        <div className="min-w-0 min-h-[240px] lg:min-h-0 bg-black rounded-xl overflow-hidden ring-1 ring-border/40">
+          <LiveHlsPlayer channelId={channelId} />
         </div>
-
-        <div className="xl:sticky xl:top-16 min-h-[min(70vh,560px)]">
+        <div className="min-h-[320px] lg:min-h-0 lg:max-h-[calc(100vh-10rem)] border-t lg:border-t-0 lg:border-l border-border/60 pt-3 lg:pt-0 lg:pl-3">
           <LiveChat
             channelId={channelId}
             viewerCount={viewerCount}

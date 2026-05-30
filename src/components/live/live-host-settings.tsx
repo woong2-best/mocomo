@@ -14,14 +14,14 @@ import {
 import { updateLiveStreamSettings } from "@/actions/live-stream";
 import { ensureStringArray } from "@/lib/ensure-array";
 
-export function LiveHostSettings({
+function HostSettingsForm({
   channelId,
-  slowModeSeconds: initialSlow,
-  bannedWords: initialBanned,
+  initialSlow,
+  initialBanned,
 }: {
   channelId: string;
-  slowModeSeconds: number;
-  bannedWords: string[];
+  initialSlow: number;
+  initialBanned: string[];
 }) {
   const safeBanned = ensureStringArray(initialBanned);
   const [slow, setSlow] = useState(String(initialSlow));
@@ -46,6 +46,57 @@ export function LiveHostSettings({
   }
 
   return (
+    <div className="space-y-4 text-sm">
+      <div>
+        <label className="text-xs text-muted-foreground">슬로우 모드 (초, 0=끔)</label>
+        <Input
+          value={slow}
+          onChange={(e) => setSlow(e.target.value)}
+          type="number"
+          min={0}
+          max={120}
+          className="rounded-xl mt-1"
+        />
+      </div>
+      <div>
+        <label className="text-xs text-muted-foreground">추가 금칙어 (쉼표 구분)</label>
+        <Input
+          value={words}
+          onChange={(e) => setWords(e.target.value)}
+          className="rounded-xl mt-1"
+          placeholder="예: 광고, 홍보"
+        />
+      </div>
+      <Button className="w-full rounded-xl" onClick={save} disabled={pending}>
+        채팅 설정 저장
+      </Button>
+      {msg && <p className="text-xs text-muted-foreground">{msg}</p>}
+    </div>
+  );
+}
+
+export function LiveHostSettings({
+  channelId,
+  slowModeSeconds: initialSlow,
+  bannedWords: initialBanned,
+  embedded,
+}: {
+  channelId: string;
+  slowModeSeconds: number;
+  bannedWords: string[];
+  embedded?: boolean;
+}) {
+  if (embedded) {
+    return (
+      <HostSettingsForm
+        channelId={channelId}
+        initialSlow={initialSlow}
+        initialBanned={initialBanned}
+      />
+    );
+  }
+
+  return (
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="rounded-xl gap-1">
@@ -57,20 +108,11 @@ export function LiveHostSettings({
         <DialogHeader>
           <DialogTitle>호스트 · 채팅 설정</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 text-sm">
-          <div>
-            <label className="text-xs text-muted-foreground">슬로우 모드 (초, 0=끔)</label>
-            <Input value={slow} onChange={(e) => setSlow(e.target.value)} type="number" min={0} max={120} className="rounded-xl mt-1" />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground">추가 금칙어 (쉼표 구분)</label>
-            <Input value={words} onChange={(e) => setWords(e.target.value)} className="rounded-xl mt-1" placeholder="예: 광고, 홍보" />
-          </div>
-          <Button className="w-full rounded-xl" onClick={save} disabled={pending}>
-            채팅 설정 저장
-          </Button>
-          {msg && <p className="text-xs text-muted-foreground">{msg}</p>}
-        </div>
+        <HostSettingsForm
+          channelId={channelId}
+          initialSlow={initialSlow}
+          initialBanned={initialBanned}
+        />
       </DialogContent>
     </Dialog>
   );

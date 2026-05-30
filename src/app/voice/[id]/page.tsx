@@ -70,13 +70,21 @@ export default async function VoiceRoomPage({ params }: { params: Promise<{ id: 
   }
 
   return (
-    <div className="live-page-shell max-w-[1600px] mx-auto space-y-3 pb-24 lg:pb-4 px-2 sm:px-4">
-      <Link href="/live">
-        <Button variant="ghost" size="sm" className="gap-1">
-          <ChevronLeft className="h-4 w-4" />
-          라이브 목록
-        </Button>
-      </Link>
+    <div
+      className={
+        isHost
+          ? "live-page-shell max-w-[1600px] mx-auto px-2 sm:px-4 pb-4"
+          : "live-page-shell max-w-[1600px] mx-auto space-y-3 pb-24 lg:pb-4 px-2 sm:px-4"
+      }
+    >
+      {!isHost && (
+        <Link href="/live">
+          <Button variant="ghost" size="sm" className="gap-1">
+            <ChevronLeft className="h-4 w-4" />
+            라이브 목록
+          </Button>
+        </Link>
+      )}
       <LiveRoomEntry
         channelId={id}
         channelName={channel.name}

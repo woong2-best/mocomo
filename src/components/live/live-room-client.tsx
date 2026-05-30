@@ -70,7 +70,7 @@ export function LiveRoomClient({
   const [joining, setJoining] = useState(false);
   const [collabOk, setCollabOk] = useState(false);
   const [viewerCount, setViewerCount] = useState(1);
-  const [showHostPassword, setShowHostPassword] = useState(!!storedPassword);
+  const [showHostPassword, setShowHostPassword] = useState(false);
   const [recentTips, setRecentTips] = useState<LiveTipAlert[]>([]);
   const [tipTotalKrw, setTipTotalKrw] = useState(initialTipTotalKrw ?? 0);
   const [tipRanking, setTipRanking] = useState(initialTipRanking ?? []);
@@ -196,9 +196,9 @@ export function LiveRoomClient({
   }
 
   return (
-    <div className="space-y-4 relative">
+    <div className={isHost ? "relative" : "space-y-4 relative"}>
       <LiveStudioStatsSync channelId={channelId} onStats={handleStats} />
-      <LiveTipAlerts tips={recentTips} />
+      {!isHost && <LiveTipAlerts tips={recentTips} />}
       {isHost && storedPassword && showHostPassword && (
         <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           <div>
