@@ -73,9 +73,20 @@ export default function NewVoicePage() {
   const [minViewerTier, setMinViewerTier] = useState<SupportTierLevel>("BRONZE");
   const [created, setCreated] = useState<CreatedUiState | null>(null);
   const [copied, setCopied] = useState(false);
+  const [prepNotice, setPrepNotice] = useState("");
+  const [blockingChannelId, setBlockingChannelId] = useState<string | null>(null);
+  const [releasing, setReleasing] = useState(false);
+
+  async function runSessionPrepare() {
+    const res = await releaseStaleHostLiveSessions();
+    if (res.released?.length) {
+      setPrepNotice(`이전 방송 ${res.released.length}건을 정리했습니다. 새 방송을 시작할 수 있습니다.`);
+    }
+    if (!res.ok && res.error) setSubmitError(res.error);
+  }
 
   useEffect(() => {
-    void releaseStaleHostLiveSessions();
+    void runSessionPrepare();
   }, []);
 
   useEffect(() => {
@@ -111,8 +122,14 @@ export default function NewVoicePage() {
 
       if (result.error) {
         setSubmitError(result.error);
+        setBlockingChannelId(
+          "existingChannelId" in result && typeof result.existingChannelId === "string"
+            ? result.existingChannelId
+            : null
+        );
         return;
       }
+      setBlockingChannelId(null);
 
       if (!result.channel) {
         setSubmitError("방송 방을 만들지 못했습니다. 다시 시도해 주세요.");
@@ -249,10 +266,44 @@ export default function NewVoicePage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {submitError && (
-              <p className="text-sm text-destructive bg-destructive/10 border border-destructive/30 rounded-xl px-3 py-2">
-                {submitError}
+            {prepNotice && !submitError && (
+              <p className="text-sm text-emerald-700 bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-3 py-2">
+                {prepNotice}
               </p>
+            )}
+            {submitError && (
+              <div className="text-sm text-destructive bg-destructive/10 border border-destructive/30 rounded-xl px-3 py-2 space-y-2">
+                <p>{submitError}</p>
+                <div className="flex flex-wrap gap-2">
+                  {blockingChannelId && (
+                    <Button type="button" variant="outline" size="sm" className="rounded-lg" asChild>
+                      <Link href={`/voice/${blockingChannelId}`}>스튜디오로 이동</Link>
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="rounded-lg"
+                    disabled={releasing}
+                    onClick={async () => {
+                      setReleasing(true);
+                      setSubmitError("");
+                      await fetch("/api/live/session", {
+                        method: "POST",
+                        credentials: "include",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "release-all" }),
+                      });
+                      await runSessionPrepare();
+                      setReleasing(false);
+                      setPrepNotice("방송 슬롯을 강제 정리했습니다. 다시 「방송 시작」을 눌러 주세요.");
+                    }}
+                  >
+                    {releasing ? "정리 중…" : "방송 슬롯 강제 정리"}
+                  </Button>
+                </div>
+              </div>
             )}
             <div className="flex flex-wrap gap-2">
               {PRESETS.map((p) => (

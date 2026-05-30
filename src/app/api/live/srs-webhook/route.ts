@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
 import { srsWebhookSecret } from "@/lib/srs";
-import { findLiveChannelByObsStreamKey } from "@/lib/user-obs-stream-key";
+import { onSrsPublish, onSrsUnpublish } from "@/lib/live-broadcast/ingest-coordinator";
 
 type SrsHookBody = {
   action?: string;
@@ -34,38 +33,12 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "on_publish") {
-    const live = await findLiveChannelByObsStreamKey(stream);
-    if (!live) {
-      return new NextResponse("1", { status: 200 });
-    }
-    try {
-      await db.voiceChannel.update({
-        where: { id: live.id },
-        data: { isLive: true, liveStatus: "LIVE", rtmpStreamKey: stream },
-      });
-    } catch {
-      /* ignore */
-    }
-    return new NextResponse("0", { status: 200 });
+    const result = await onSrsPublish(stream);
+    return new NextResponse(result.allowed ? "0" : "1", { status: 200 });
   }
 
   if (action === "on_unpublish") {
-    const live = await findLiveChannelByObsStreamKey(stream);
-    if (live) {
-      try {
-        await db.voiceChannel.update({
-          where: { id: live.id },
-          data: {
-            isLive: false,
-            liveStatus: "ENDED",
-            endedAt: new Date(),
-          },
-        });
-        await db.voiceMember.deleteMany({ where: { channelId: live.id } });
-      } catch {
-        /* ignore */
-      }
-    }
+    await onSrsUnpublish(stream);
     return new NextResponse("0", { status: 200 });
   }
 

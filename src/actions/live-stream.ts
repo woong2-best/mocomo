@@ -26,8 +26,8 @@ import { getSrsRtmpUrl } from "@/lib/srs";
 import {
   closeStaleHostLiveChannels,
   endHostBroadcastChannel,
-  findBlockingHostBroadcast,
-} from "@/lib/host-live-session";
+  prepareHostForNewBroadcast,
+} from "@/lib/live-broadcast/session-manager";
 import { notifyFollowersOnLive } from "@/lib/live-notify";
 import {
   fetchLiveChannelForStudio,
@@ -61,8 +61,12 @@ function mapLiveChatMessage(m: {
 /** 방송 시작 페이지 진입 시 — 종료됐는데 남은 isLive 플래그 정리 */
 export async function releaseStaleHostLiveSessions() {
   const user = await requireAuthMinimal();
-  await closeStaleHostLiveChannels(user.id);
-  return { ok: true as const };
+  const result = await prepareHostForNewBroadcast(user.id);
+  return {
+    ok: result.ok,
+    released: result.ok ? result.released : [],
+    error: result.ok ? undefined : result.error,
+  };
 }
 
 export async function createLiveStream(data: {
@@ -111,12 +115,12 @@ export async function createLiveStream(data: {
       visibility === "PRIVATE" ? (data.minViewerTier ?? "BRONZE") : null;
 
     if (!isScheduled) {
-      const otherLive = await db.voiceChannel.findFirst({
-        where: { createdBy: user.id, isLive: true },
-        select: { id: true },
-      });
-      if (otherLive) {
-        return { error: "이미 진행 중인 방송이 있습니다. 먼저 종료한 뒤 새 방송을 시작해 주세요." };
+      const prep = await prepareHostForNewBroadcast(user.id);
+      if (!prep.ok) {
+        return {
+          error: prep.error,
+          existingChannelId: prep.blockingChannelId,
+        };
       }
     }
 
