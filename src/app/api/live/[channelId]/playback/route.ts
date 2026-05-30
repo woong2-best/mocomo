@@ -7,7 +7,12 @@ import { buildProxiedHlsPlaybackPath, probeSrsManifest } from "@/lib/srs-hls-pro
 import { buildHostPlaybackPayload } from "@/lib/live-host-playback";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
-import { isLivekitIngestChannel, resolveChannelIngestEngine } from "@/lib/live-ingest";
+import {
+  buildLiveInputHlsUrl,
+  liveInputUidFromIngressId,
+  probeCloudflareLiveInput,
+} from "@/lib/cloudflare-stream";
+import { resolveChannelIngestEngine } from "@/lib/live-ingest";
 import { probeLivekitObsPublish } from "@/lib/livekit-room-status";
 
 export const runtime = "nodejs";
@@ -65,6 +70,34 @@ export async function GET(
       where: { id: channelId },
       select: { rtmpIngressId: true },
     });
+
+    if (chRow && resolveChannelIngestEngine(chRow) === "cloudflare") {
+      const cfUid = liveInputUidFromIngressId(chRow.rtmpIngressId);
+      const probe = cfUid
+        ? await probeCloudflareLiveInput(cfUid)
+        : { onAir: false, playable: false, hlsUrl: null, videoUid: null };
+      const hlsUrl = cfUid ? buildLiveInputHlsUrl(cfUid) : null;
+
+      return NextResponse.json({
+        ok: true,
+        ingestEngine: "cloudflare",
+        engine: "cloudflare",
+        hlsUrl: probe.playable ? probe.hlsUrl ?? hlsUrl : hlsUrl,
+        flvUrl: null,
+        cloudflareLive: probe.onAir,
+        cloudflarePlayable: probe.playable,
+        srsOnAir: probe.onAir,
+        srsPlayable: probe.playable,
+        waiting: !probe.playable,
+        tryLoad: true,
+        message: probe.playable
+          ? "방송 중"
+          : probe.onAir
+            ? "OBS 송출 감지 · HLS 준비 중"
+            : "방송이 시작되면 화면이 나타납니다.",
+        probeError: probe.error,
+      });
+    }
 
     if (chRow && resolveChannelIngestEngine(chRow) === "livekit") {
       const probe = await probeLivekitObsPublish(channelId);

@@ -1,5 +1,13 @@
 import { db } from "@/lib/db";
 import {
+  createCloudflareLiveInput,
+  deleteCloudflareLiveInput,
+  getCloudflareLiveInput,
+  buildLiveInputHlsUrl,
+  cloudflareStreamConfigError,
+  liveInputUidFromIngressId,
+} from "@/lib/cloudflare-stream";
+import {
   isLivekitIngestChannel,
   preferredLiveIngestEngine,
   type LiveIngestEngine,
@@ -8,6 +16,7 @@ import {
   createObsRtmpIngress,
   deleteObsRtmpIngress,
   cleanupStaleProjectIngresses,
+  isLivekitIngressConfigured,
 } from "@/lib/livekit-ingress";
 import { parseRtmpForObs } from "@/lib/obs-rtmp-parse";
 import { buildHlsPlaybackUrl, getSrsRtmpUrl, isSrsConfigured, srsConfigError } from "@/lib/srs";
@@ -20,7 +29,7 @@ export type ObsRtmpCredentials = {
   obsServer: string;
   obsStreamKey: string;
   hlsPlaybackUrl: string | null;
-  ingestEngine: "livekit" | "srs";
+  ingestEngine: "cloudflare" | "livekit" | "srs";
   accountKey: boolean;
 };
 
@@ -62,6 +71,22 @@ function wrapSrsCredentials(streamKey: string, rtmpUrl: string): ObsRtmpCredenti
   };
 }
 
+function wrapCloudflareCredentials(
+  input: { uid: string; rtmpsUrl: string; rtmpsStreamKey: string }
+): ObsRtmpCredentials {
+  const obs = formatForObs(input.rtmpsUrl, input.rtmpsStreamKey);
+  return {
+    url: input.rtmpsUrl,
+    streamKey: input.rtmpsStreamKey,
+    ingressId: `cf:${input.uid}`,
+    obsServer: obs.obsServer,
+    obsStreamKey: obs.obsStreamKey,
+    hlsPlaybackUrl: buildLiveInputHlsUrl(input.uid),
+    ingestEngine: "cloudflare",
+    accountKey: false,
+  };
+}
+
 function credentialsFromChannel(channel: ChannelObsRow): ObsRtmpCredentials | null {
   const url = channel.rtmpUrl?.trim();
   const key = channel.rtmpStreamKey?.trim();
@@ -70,6 +95,15 @@ function credentialsFromChannel(channel: ChannelObsRow): ObsRtmpCredentials | nu
   const obs = formatForObs(url, key);
   if (channel.rtmpIngressId?.startsWith("srs:")) {
     return wrapSrsCredentials(key, url);
+  }
+
+  const cfUid = liveInputUidFromIngressId(channel.rtmpIngressId);
+  if (cfUid) {
+    return wrapCloudflareCredentials({
+      uid: cfUid,
+      rtmpsUrl: url,
+      rtmpsStreamKey: key,
+    });
   }
 
   return {
@@ -85,8 +119,65 @@ function credentialsFromChannel(channel: ChannelObsRow): ObsRtmpCredentials | nu
 }
 
 export function obsConfigError(): string | null {
-  if (isSrsConfigured() || preferredLiveIngestEngine() === "livekit") return null;
+  const engine = preferredLiveIngestEngine();
+  if (engine === "cloudflare") return cloudflareStreamConfigError();
+  if (engine === "livekit") {
+    return isLivekitIngressConfigured()
+      ? null
+      : "LiveKit Ingress가 설정되지 않았습니다. LIVEKIT_* 환경 변수를 확인하세요.";
+  }
   return srsConfigError();
+}
+
+async function provisionCloudflareStreamIngress(
+  channelId: string,
+  channel: ChannelObsRow,
+  options?: { force?: boolean }
+): Promise<ProvisionObsResult> {
+  const configErr = cloudflareStreamConfigError();
+  if (configErr) return { error: configErr };
+
+  const existingUid = liveInputUidFromIngressId(channel.rtmpIngressId);
+
+  if (!options?.force && existingUid) {
+    const existing = await getCloudflareLiveInput(existingUid);
+    if (existing) {
+      const data = wrapCloudflareCredentials(existing);
+      return { data };
+    }
+  }
+
+  if (options?.force && existingUid) {
+    await deleteCloudflareLiveInput(existingUid);
+  }
+
+  try {
+    const input = await createCloudflareLiveInput({
+      name: `mocomo-${channel.name?.slice(0, 40) || channelId.slice(0, 12)}`,
+      channelId,
+    });
+    const data = wrapCloudflareCredentials(input);
+
+    await db.voiceChannel.update({
+      where: { id: channelId },
+      data: {
+        broadcastMode: "OBS",
+        rtmpIngressId: data.ingressId,
+        rtmpUrl: data.url,
+        rtmpStreamKey: data.streamKey,
+      },
+    });
+
+    return { data };
+  } catch (e) {
+    console.error("[provisionCloudflareStreamIngress]", e);
+    return {
+      error:
+        e instanceof Error
+          ? e.message
+          : "Cloudflare Live Input 생성에 실패했습니다. API 토큰·Stream 구독을 확인하세요.",
+    };
+  }
 }
 
 async function provisionSrsIngress(
@@ -186,7 +277,7 @@ async function provisionLivekitIngress(
   };
 }
 
-/** OBS RTMP — 기본 LiveKit Cloud, LIVE_INGEST_ENGINE=srs 일 때만 VPS */
+/** OBS RTMP — 기본 Cloudflare Stream Live */
 export async function provisionObsIngress(
   channelId: string,
   userId: string,
@@ -240,6 +331,10 @@ export async function provisionObsIngress(
   });
   const hostName = host?.name || host?.username || "host";
 
+  if (engine === "cloudflare") {
+    return provisionCloudflareStreamIngress(channelId, channel, options);
+  }
+
   if (engine === "livekit") {
     if (options?.force) {
       await cleanupStaleProjectIngresses(channelId);
@@ -257,6 +352,6 @@ export async function releaseLivekitIngressQuota() {
 
 export async function teardownObsIngress(ingressId: string | null | undefined) {
   const id = ingressId?.trim();
-  if (!id || id.startsWith("srs:")) return;
+  if (!id || id.startsWith("srs:") || id.startsWith("cf:")) return;
   await deleteObsRtmpIngress(id);
 }

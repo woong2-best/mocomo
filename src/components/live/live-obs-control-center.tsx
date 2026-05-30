@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { LiveBroadcastPlayer } from "@/components/live/live-broadcast-player";
 import { LiveObsMultiRtmpGuide } from "@/components/live/live-obs-multi-rtmp-guide";
 import { LiveObsStandardGuide } from "@/components/live/live-obs-standard-guide";
+import { LiveObsCloudflareGuide } from "@/components/live/live-obs-cloudflare-guide";
 
 type ObsCreds = {
   obsServer: string;
@@ -170,7 +171,13 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
             {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
             서버 + 키 복사
           </Button>
-          {ingestEngine === "srs" ? <LiveObsMultiRtmpGuide /> : <LiveObsStandardGuide />}
+          {ingestEngine === "srs" ? (
+            <LiveObsMultiRtmpGuide />
+          ) : ingestEngine === "cloudflare" ? (
+            <LiveObsCloudflareGuide />
+          ) : (
+            <LiveObsStandardGuide />
+          )}
         </>
       )}
       </div>
@@ -196,9 +203,11 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
         <p className="flex-1 min-w-[200px] text-xs sm:text-sm text-muted-foreground">
           {onAir && playable
             ? "시청자에게 방송이 노출되고 있습니다."
-            : ingestEngine === "livekit"
-              ? "OBS 「방송 시작」 후 3~10초 안에 WebRTC로 화면이 나옵니다 (트위치 방식)."
-              : "VPS(SRS) — 다중 송출 대상에 아래 서버·키를 넣으세요."}
+            : ingestEngine === "cloudflare"
+              ? "OBS 「방송 시작」 후 Cloudflare CDN HLS로 5~15초 안에 표시됩니다."
+              : ingestEngine === "livekit"
+                ? "OBS 「방송 시작」 후 3~10초 안에 WebRTC로 화면이 나옵니다."
+                : "VPS(SRS) — 다중 송출 대상에 아래 서버·키를 넣으세요."}
         </p>
       </div>
 
@@ -210,9 +219,11 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
         >
           {onAir ? <Signal className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}
           <span>
-            {ingestEngine === "livekit"
-              ? "엔진 LiveKit · "
-              : "엔진 VPS(SRS) · "}
+            {ingestEngine === "cloudflare"
+              ? "엔진 Cloudflare · "
+              : ingestEngine === "livekit"
+                ? "엔진 LiveKit · "
+                : "엔진 VPS(SRS) · "}
             {signalMsg || "다중 송출 대상이 켜지면 신호가 잡힙니다."}
           </span>
         </div>

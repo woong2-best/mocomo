@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import {
+  buildLiveInputHlsUrl,
+  liveInputUidFromIngressId,
+  probeCloudflareLiveInput,
+} from "@/lib/cloudflare-stream";
 import { resolveChannelIngestEngine } from "@/lib/live-ingest";
 import { probeLivekitObsPublish } from "@/lib/livekit-room-status";
 import { probeSrsManifest, buildProxiedHlsPlaybackPath, upstreamHlsManifestUrl } from "@/lib/srs-hls-proxy";
@@ -34,6 +39,32 @@ export async function GET(
   const configErr = obsConfigError();
   if (configErr) {
     return NextResponse.json({ ok: false, configured: false, error: configErr });
+  }
+
+  if (resolveChannelIngestEngine(channel) === "cloudflare") {
+    const cfUid = liveInputUidFromIngressId(channel.rtmpIngressId);
+    const probe = cfUid
+      ? await probeCloudflareLiveInput(cfUid)
+      : { onAir: false, playable: false, hlsUrl: null, videoUid: null };
+    const keyTail = channel.rtmpStreamKey?.length
+      ? `…${channel.rtmpStreamKey.slice(-8)}`
+      : "****";
+
+    return NextResponse.json({
+      ok: true,
+      ingestEngine: "cloudflare",
+      hasStreamKey: !!channel.rtmpStreamKey,
+      onAir: probe.onAir,
+      playable: probe.playable,
+      streamKeyHint: keyTail,
+      hlsPlayback: cfUid ? buildLiveInputHlsUrl(cfUid) : null,
+      message: probe.playable
+        ? "Cloudflare 방송 연결됨. 미리보기 재생 중."
+        : probe.onAir
+          ? "OBS 송출 감지 · CDN HLS 준비 중…"
+          : "OBS에서 「방송 시작」 (서버: live.cloudflare.com)",
+      note: "Cloudflare Stream — Vultr(45.32.16.32)·LiveKit 방송 키 사용 금지",
+    });
   }
 
   if (resolveChannelIngestEngine(channel) === "livekit") {

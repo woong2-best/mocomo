@@ -1,11 +1,16 @@
 import { db } from "@/lib/db";
+import {
+  buildLiveInputHlsUrl,
+  liveInputUidFromIngressId,
+  probeCloudflareLiveInput,
+} from "@/lib/cloudflare-stream";
 import { resolveChannelIngestEngine } from "@/lib/live-ingest";
 import { probeLivekitObsPublish } from "@/lib/livekit-room-status";
 import { buildProxiedFlvPlaybackPath } from "@/lib/srs";
 import { buildProxiedHlsPlaybackPath, probeSrsManifest } from "@/lib/srs-hls-proxy";
 import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
 
-/** 호스트 스튜디오 재생 — 채널/설정에 맞는 엔진 (기본 VPS HLS) */
+/** 호스트 스튜디오 재생 */
 export async function buildHostPlaybackPayload(channelId: string, hostUserId: string) {
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
@@ -13,6 +18,36 @@ export async function buildHostPlaybackPayload(channelId: string, hostUserId: st
   });
 
   const engine = channel ? resolveChannelIngestEngine(channel) : resolveChannelIngestEngine({});
+
+  if (engine === "cloudflare") {
+    const cfUid = liveInputUidFromIngressId(channel?.rtmpIngressId);
+    const probe = cfUid ? await probeCloudflareLiveInput(cfUid) : { onAir: false, playable: false, hlsUrl: null, videoUid: null };
+    const hlsUrl = cfUid ? buildLiveInputHlsUrl(cfUid) : null;
+
+    return {
+      ok: true as const,
+      ingestEngine: "cloudflare" as const,
+      engine: "cloudflare" as const,
+      hlsUrl: probe.playable ? probe.hlsUrl ?? hlsUrl : hlsUrl,
+      flvUrl: null,
+      cloudflareLive: probe.onAir,
+      cloudflarePlayable: probe.playable,
+      streamKeyHint: channel?.rtmpStreamKey?.length
+        ? `…${channel.rtmpStreamKey.slice(-8)}`
+        : "****",
+      srsOnAir: probe.onAir,
+      srsPlayable: probe.playable,
+      waiting: !probe.playable,
+      tryLoad: true,
+      message: probe.playable
+        ? "Cloudflare 방송 연결됨. 미리보기 재생 중."
+        : probe.onAir
+          ? "OBS 송출 감지 · HLS 준비 중 (5~15초)…"
+          : "OBS에서 「방송 시작」을 누르세요. (Cloudflare RTMPS)",
+      probeError: probe.error,
+      note: "Cloudflare Stream Live — OBS 서버는 live.cloudflare.com, Vultr 불필요",
+    };
+  }
 
   if (engine === "livekit") {
     const probe = await probeLivekitObsPublish(channelId);

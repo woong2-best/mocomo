@@ -5,6 +5,7 @@ import { Check, Copy, Loader2, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LiveObsMultiRtmpGuide } from "@/components/live/live-obs-multi-rtmp-guide";
 import { LiveObsStandardGuide } from "@/components/live/live-obs-standard-guide";
+import { LiveObsCloudflareGuide } from "@/components/live/live-obs-cloudflare-guide";
 
 export type ObsReadyCreds = {
   obsServer: string;
@@ -80,6 +81,8 @@ export function LiveObsReadyBlock({
       </div>
       {creds?.ingestEngine === "srs" ? (
         <LiveObsMultiRtmpGuide compact />
+      ) : creds?.ingestEngine === "cloudflare" ? (
+        <LiveObsCloudflareGuide compact />
       ) : (
         <LiveObsStandardGuide compact />
       )}
