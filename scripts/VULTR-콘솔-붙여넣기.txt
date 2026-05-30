@@ -1,0 +1,25 @@
+■ Vultr View Console — 붙여넣기 안 될 때 (한 줄씩 Enter)
+
+1) 아래 한 줄만 (가장 짧음, 추천):
+
+curl -fsSL https://raw.githubusercontent.com/woong2-best/mocomo/main/scripts/vps-srs-force-reset.sh | bash
+
+
+2) 안 되면 Ctrl+C 여러 번 누른 뒤, 한 줄씩:
+
+pkill -9 -f vps-srs
+
+docker stop mocomo-srs
+
+cd ~/mocomo
+
+git pull origin main
+
+bash scripts/vps-srs-one-shot.sh
+
+
+3) 끝나면 맨 아래 "DONE ok" 또는 "완료" 확인
+
+■ 링크
+- Vultr: https://my.vultr.com/
+- 스크립트: https://github.com/woong2-best/mocomo/blob/main/scripts/vps-srs-force-reset.sh
