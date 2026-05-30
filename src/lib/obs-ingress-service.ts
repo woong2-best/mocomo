@@ -1,4 +1,6 @@
 import { db } from "@/lib/db";
+import { preferredLiveIngestEngine } from "@/lib/live-ingest";
+import { createObsRtmpIngress, deleteObsRtmpIngress } from "@/lib/livekit-ingress";
 import { buildHlsPlaybackUrl, getSrsRtmpUrl, srsConfigError } from "@/lib/srs";
 import { getOrCreateUserObsStreamKey } from "@/lib/user-obs-stream-key";
 
@@ -8,8 +10,8 @@ export type ObsRtmpCredentials = {
   ingressId: string;
   obsServer: string;
   obsStreamKey: string;
-  hlsPlaybackUrl: string;
-  /** 계정 고정 키 여부 */
+  hlsPlaybackUrl: string | null;
+  ingestEngine: "livekit" | "srs";
   accountKey: boolean;
 };
 
@@ -20,7 +22,7 @@ function formatForObs(rtmpUrl: string, streamKey: string): Pick<ObsRtmpCredentia
   };
 }
 
-function wrapCredentials(streamKey: string, rtmpUrl: string): ObsRtmpCredentials {
+function wrapSrsCredentials(streamKey: string, rtmpUrl: string): ObsRtmpCredentials {
   const obs = formatForObs(rtmpUrl, streamKey);
   return {
     url: rtmpUrl,
@@ -29,31 +31,31 @@ function wrapCredentials(streamKey: string, rtmpUrl: string): ObsRtmpCredentials
     obsServer: obs.obsServer,
     obsStreamKey: obs.obsStreamKey,
     hlsPlaybackUrl: buildHlsPlaybackUrl(streamKey),
+    ingestEngine: "srs",
     accountKey: true,
   };
 }
 
 export function obsConfigError(): string | null {
+  const engine = preferredLiveIngestEngine();
+  if (engine === "livekit") return null;
   return srsConfigError();
 }
 
-/** 호스트 계정 고유 OBS 키 — 현재 라이브 방송에 연결 */
+/** OBS RTMP — LiveKit Ingress 우선, 없으면 SRS VPS */
 export async function provisionObsIngress(
   channelId: string,
   userId: string,
   options?: { force?: boolean }
 ): Promise<{ data: ObsRtmpCredentials } | { error: string }> {
-  const configErr = obsConfigError();
-  if (configErr) return { error: configErr };
+  const engine = preferredLiveIngestEngine();
 
-  const rtmpUrl = getSrsRtmpUrl();
-
-  let channel: { createdBy: string; liveStatus: string } | null;
+  let channel: { createdBy: string; liveStatus: string; name: string; rtmpIngressId: string | null } | null;
 
   try {
     channel = await db.voiceChannel.findUnique({
       where: { id: channelId },
-      select: { createdBy: true, liveStatus: true },
+      select: { createdBy: true, liveStatus: true, name: true, rtmpIngressId: true },
     });
   } catch (e) {
     console.error("[provisionObsIngress] db", e);
@@ -74,6 +76,55 @@ export async function provisionObsIngress(
     return { error: "종료된 방송입니다. 새 방송을 만들어 주세요." };
   }
 
+  const host = await db.user.findUnique({
+    where: { id: userId },
+    select: { username: true, name: true },
+  });
+  const hostName = host?.name || host?.username || "host";
+
+  if (engine === "livekit") {
+    if (options?.force && channel.rtmpIngressId) {
+      await deleteObsRtmpIngress(channel.rtmpIngressId);
+    }
+
+    const lk = await createObsRtmpIngress(channelId, hostName, {
+      cleanupFirst: !!options?.force,
+    });
+    if ("error" in lk) return { error: lk.error };
+
+    const obs = formatForObs(lk.url, lk.streamKey);
+    try {
+      await db.voiceChannel.update({
+        where: { id: channelId },
+        data: {
+          broadcastMode: "OBS",
+          rtmpIngressId: lk.ingressId,
+          rtmpUrl: lk.url,
+          rtmpStreamKey: lk.streamKey,
+        },
+      });
+    } catch (e) {
+      console.error("[provisionObsIngress] livekit channel bind", e);
+    }
+
+    return {
+      data: {
+        url: lk.url,
+        streamKey: lk.streamKey,
+        ingressId: lk.ingressId,
+        obsServer: obs.obsServer,
+        obsStreamKey: obs.obsStreamKey,
+        hlsPlaybackUrl: null,
+        ingestEngine: "livekit",
+        accountKey: false,
+      },
+    };
+  }
+
+  const configErr = srsConfigError();
+  if (configErr) return { error: configErr };
+
+  const rtmpUrl = getSrsRtmpUrl();
   let streamKey: string;
   try {
     streamKey = await getOrCreateUserObsStreamKey(userId, { rotate: options?.force });
@@ -93,8 +144,14 @@ export async function provisionObsIngress(
       },
     });
   } catch (e) {
-    console.error("[provisionObsIngress] channel bind", e);
+    console.error("[provisionObsIngress] srs channel bind", e);
   }
 
-  return { data: wrapCredentials(streamKey, rtmpUrl) };
+  return { data: wrapSrsCredentials(streamKey, rtmpUrl) };
+}
+
+export async function teardownObsIngress(ingressId: string | null | undefined) {
+  const id = ingressId?.trim();
+  if (!id || id.startsWith("srs:")) return;
+  await deleteObsRtmpIngress(id);
 }

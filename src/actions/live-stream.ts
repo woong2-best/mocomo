@@ -187,19 +187,10 @@ export async function createLiveStream(data: {
     }
 
     try {
-      const streamKey = await getOrCreateUserObsStreamKey(user.id);
-      const rtmpUrl = getSrsRtmpUrl();
-      await db.voiceChannel.update({
-        where: { id: channel.id },
-        data: {
-          broadcastMode: "OBS",
-          rtmpStreamKey: streamKey,
-          rtmpIngressId: `srs:${streamKey}`,
-          rtmpUrl,
-        },
-      });
+      const { provisionObsIngress } = await import("@/lib/obs-ingress-service");
+      await provisionObsIngress(channel.id, user.id);
     } catch (keyErr) {
-      console.warn("[createLiveStream] obs key", keyErr);
+      console.warn("[createLiveStream] obs ingress", keyErr);
     }
 
     return {

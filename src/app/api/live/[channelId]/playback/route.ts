@@ -6,7 +6,8 @@ import { buildProxiedHlsPlaybackPath, probeSrsManifest } from "@/lib/srs-hls-pro
 import { buildHostPlaybackPayload } from "@/lib/live-host-playback";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
-import { ensureChannelBroadcastActive } from "@/lib/live-channel-active";
+import { isLivekitIngestChannel } from "@/lib/live-ingest";
+import { probeLivekitObsPublish } from "@/lib/livekit-room-status";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,8 +46,6 @@ export async function GET(
       return NextResponse.json(payload);
     }
 
-    await ensureChannelBroadcastActive(channelId);
-
     const access = await resolveLiveChannelAccess(channelId, session.user.id);
     if (!access.allowed) {
       const status =
@@ -59,6 +58,29 @@ export async function GET(
         },
         { status }
       );
+    }
+
+    const chRow = await db.voiceChannel.findUnique({
+      where: { id: channelId },
+      select: { rtmpIngressId: true },
+    });
+
+    if (chRow && isLivekitIngestChannel(chRow)) {
+      const probe = await probeLivekitObsPublish(channelId);
+      return NextResponse.json({
+        ok: true,
+        ingestEngine: "livekit",
+        engine: "livekit",
+        hlsUrl: null,
+        livekitRoom: channelId,
+        srsOnAir: probe.onAir,
+        srsPlayable: probe.playable,
+        waiting: !probe.playable,
+        tryLoad: true,
+        message: probe.playable
+          ? "방송 중"
+          : "방송이 시작되면 화면이 나타납니다.",
+      });
     }
 
     const { streamKey } = await resolveObsStreamKeyForChannel(channelId, {
@@ -79,6 +101,8 @@ export async function GET(
 
     return NextResponse.json({
       ok: true,
+      ingestEngine: "srs",
+      engine: "srs",
       hlsUrl,
       streamKeyHint: streamKey.length > 8 ? `…${streamKey.slice(-8)}` : "****",
       srsOnAir: probe.live,
@@ -88,7 +112,7 @@ export async function GET(
       message: probe.playable
         ? "방송 신호가 확인되었습니다."
         : probe.live
-          ? "송출은 감지됐습니다. HLS 준비 중…"
+          ? "HLS 준비 중…"
           : "OBS에서 방송을 시작하면 화면이 나타납니다.",
       probeError: probe.error,
       probeStatus: probe.status,

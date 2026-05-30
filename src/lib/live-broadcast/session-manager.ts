@@ -6,6 +6,7 @@ import {
   liveHostBroadcastWhere,
 } from "@/lib/live-broadcast/session-queries";
 import { resolveBroadcastPhase, SESSION_END_DATA } from "@/lib/live-broadcast/session-lifecycle";
+import { teardownObsIngress } from "@/lib/obs-ingress-service";
 import type {
   HostBroadcastSession,
   PrepareBroadcastResult,
@@ -77,9 +78,11 @@ export async function releaseBroadcastSession(
 ): Promise<boolean> {
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
-    select: { createdBy: true, name: true },
+    select: { createdBy: true, name: true, rtmpIngressId: true },
   });
   if (!channel || channel.createdBy !== hostUserId) return false;
+
+  await teardownObsIngress(channel.rtmpIngressId);
 
   await db.voiceChannel.update({
     where: { id: channelId },

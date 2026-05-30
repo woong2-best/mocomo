@@ -1,32 +1,34 @@
 import { NextResponse } from "next/server";
-import { obsConfigError } from "@/lib/obs-ingress-service";
+import { preferredLiveIngestEngine } from "@/lib/live-ingest";
+import { isLivekitIngressConfigured } from "@/lib/livekit-ingress";
 import { getSrsRtmpUrl, getSrsHlsBaseUrl, isSrsConfigured } from "@/lib/srs";
 
-/** SRS RTMP → HLS 방송 연동 준비 상태 */
+/** 방송 송출 엔진 상태 */
 export async function GET() {
-  const configErr = obsConfigError();
+  const engine = preferredLiveIngestEngine();
+
+  if (engine === "livekit") {
+    return NextResponse.json({
+      engine: "livekit",
+      configured: isLivekitIngressConfigured(),
+      error: null,
+      hint: "OBS → LiveKit Cloud RTMP. 스튜디오에서 발급된 서버/키 사용. VPS(45.32.16.32) 불필요.",
+      livekitUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL ?? null,
+    });
+  }
+
   const hasRtmp = !!process.env.SRS_RTMP_URL?.trim();
   const hasHls = !!(
     process.env.NEXT_PUBLIC_SRS_HLS_BASE_URL?.trim() || process.env.SRS_HLS_BASE_URL?.trim()
   );
-  const missingEnv: string[] = [];
-  if (!hasRtmp) missingEnv.push("SRS_RTMP_URL");
-  if (!hasHls) missingEnv.push("NEXT_PUBLIC_SRS_HLS_BASE_URL");
-
-  const configured = isSrsConfigured() && !configErr;
+  const configured = isSrsConfigured();
 
   return NextResponse.json({
     engine: "srs",
     configured,
-    error: configErr,
-    missingEnv,
-    hasRtmp: hasRtmp || configured,
-    hasHls: hasHls || configured,
     usingFallback: configured && !hasRtmp,
     rtmpUrl: configured ? getSrsRtmpUrl() : null,
     hlsBase: configured ? getSrsHlsBaseUrl() : null,
-    hint: configErr
-      ? `Vercel Production에 ${missingEnv.join(", ")} 추가 후 Redeploy 하세요.`
-      : "OBS 탭에서 RTMP 서버·방송 키를 복사해 OBS에 붙여넣으면 HLS로 시청됩니다.",
+    hint: "OBS → VPS SRS. 방화벽 1935 개방 필요.",
   });
 }

@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { isLivekitIngestChannel } from "@/lib/live-ingest";
+import { probeLivekitObsPublish } from "@/lib/livekit-room-status";
 import { probeSrsManifest, buildProxiedHlsPlaybackPath, upstreamHlsManifestUrl } from "@/lib/srs-hls-proxy";
-import { srsConfigError, getSrsHlsBaseUrl } from "@/lib/srs";
+import { getSrsHlsBaseUrl } from "@/lib/srs";
 import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
+import { obsConfigError } from "@/lib/obs-ingress-service";
 
-/** 호스트 — SRS에 실제 송출이 올라왔는지 확인 */
+/** 호스트 — 송출 신호 확인 (LiveKit / SRS) */
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ channelId: string }> }
@@ -18,7 +21,7 @@ export async function GET(
   const { channelId } = await params;
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
-    select: { createdBy: true, isLive: true },
+    select: { createdBy: true, isLive: true, rtmpIngressId: true, rtmpStreamKey: true },
   });
 
   if (!channel) {
@@ -28,9 +31,31 @@ export async function GET(
     return NextResponse.json({ error: "호스트만 확인할 수 있습니다." }, { status: 403 });
   }
 
-  const configErr = srsConfigError();
+  const configErr = obsConfigError();
   if (configErr) {
     return NextResponse.json({ ok: false, configured: false, error: configErr });
+  }
+
+  if (isLivekitIngestChannel(channel)) {
+    const probe = await probeLivekitObsPublish(channelId);
+    const keyTail = channel.rtmpStreamKey?.length
+      ? `…${channel.rtmpStreamKey.slice(-8)}`
+      : "****";
+
+    return NextResponse.json({
+      ok: true,
+      ingestEngine: "livekit",
+      hasStreamKey: !!channel.rtmpStreamKey,
+      onAir: probe.onAir,
+      playable: probe.playable,
+      streamKeyHint: keyTail,
+      message: probe.playable
+        ? "LiveKit 방송 연결됨. 미리보기 재생 중."
+        : probe.onAir
+          ? "OBS 신호 감지. 영상 준비 중…"
+          : "OBS에서 「방송 시작」을 누르세요. (메인 OBS 방송 버튼)",
+      note: "LiveKit Cloud 사용 — VPS RTMP(45.32.16.32)가 아닌, 위에 표시된 LiveKit 서버/키를 OBS에 넣으세요.",
+    });
   }
 
   const { streamKey } = await resolveObsStreamKeyForChannel(channelId, {
@@ -42,8 +67,8 @@ export async function GET(
       ok: true,
       hasStreamKey: false,
       onAir: false,
-      accountKey: true,
-      message: "계정 방송 키를 불러오지 못했습니다. OBS 패널을 열어 키를 확인하세요.",
+      ingestEngine: "srs",
+      message: "방송 키를 불러오지 못했습니다. 설정에서 키를 다시 받으세요.",
     });
   }
 
@@ -52,25 +77,21 @@ export async function GET(
 
   return NextResponse.json({
     ok: true,
+    ingestEngine: "srs",
     hasStreamKey: true,
     onAir: probe.live,
     playable: probe.playable ?? false,
     rtmpPublish: probe.rtmpPublish ?? false,
-    accountKey: true,
     streamKeyHint: keyTail,
-    hlsPathExample: `/live/${streamKey}.m3u8`,
     upstreamManifest: upstreamHlsManifestUrl(streamKey),
     sitePlayback: buildProxiedHlsPlaybackPath(channelId, streamKey),
     hlsBase: getSrsHlsBaseUrl(),
     probeStatus: probe.status,
     probeError: probe.error,
     message: probe.playable
-      ? "SRS 방송 신호가 확인되었습니다. 미리보기가 재생됩니다."
-      : probe.live && probe.rtmpPublish
-        ? "RTMP는 붙었지만 HLS 파일이 아직 없습니다. OBS 방송을 유지한 채 30초 기다리거나, VPS에서 docker compose -f docker-compose.srs.yml up -d --force-recreate 후 OBS를 재시작하세요."
-        : probe.live
-          ? "HLS 준비 중… 10~20초 기다려 주세요."
-          : "OBS에서 「방송 시작」 상태인데 SRS에 신호가 없습니다. 서버·방송 키를 다시 붙여넣고 방송을 재시작하세요.",
-    note: "브라우저에서 http://IP:8080/live/ 만 열면 Not Found가 정상입니다. 방송 중일 때 /live/방송키.m3u8 주소로 확인하세요.",
+      ? "방송 신호 확인. 미리보기 재생 중."
+      : probe.live
+        ? "RTMP 감지. HLS 준비 중…"
+        : "OBS 「방송 시작」 후 서버에 신호가 없습니다. 서버/키 확인.",
   });
 }

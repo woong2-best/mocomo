@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Copy, Check, Loader2, Monitor, Radio, Signal, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { LiveHlsPlayer } from "@/components/live/live-hls-player";
+import { LiveBroadcastPlayer } from "@/components/live/live-broadcast-player";
 
-type ObsCreds = { obsServer: string; obsStreamKey: string };
+type ObsCreds = { obsServer: string; obsStreamKey: string; ingestEngine?: string };
 
 async function fetchObsCredentials(channelId: string): Promise<ObsCreds> {
   const res = await fetch(`/api/live/${channelId}/obs`, {
@@ -19,7 +19,11 @@ async function fetchObsCredentials(channelId: string): Promise<ObsCreds> {
   const server = body.obsServer || body.url || "";
   const key = body.obsStreamKey || body.streamKey || "";
   if (!server || !key) throw new Error("서버 또는 키가 비어 있습니다.");
-  return { obsServer: server, obsStreamKey: key };
+  return {
+    obsServer: server,
+    obsStreamKey: key,
+    ingestEngine: typeof body.ingestEngine === "string" ? body.ingestEngine : undefined,
+  };
 }
 
 /** 트위치식 — 웹은 준비만, OBS 「방송 시작」= 실제 LIVE */
@@ -31,12 +35,15 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
   const [onAir, setOnAir] = useState(false);
   const [playable, setPlayable] = useState(false);
   const [signalMsg, setSignalMsg] = useState("");
+  const [ingestEngine, setIngestEngine] = useState<string>("srs");
 
   const loadCreds = useCallback(async () => {
     setLoading(true);
     setLoadError("");
     try {
-      setCreds(await fetchObsCredentials(channelId));
+      const c = await fetchObsCredentials(channelId);
+      setCreds(c);
+      setIngestEngine(c.ingestEngine ?? "srs");
     } catch (e) {
       setCreds(null);
       setLoadError(e instanceof Error ? e.message : "불러오기 실패");
@@ -106,7 +113,9 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
         <p className="flex-1 min-w-[200px] text-xs sm:text-sm text-muted-foreground">
           {onAir && playable
             ? "시청자에게 방송이 노출되고 있습니다."
-            : "웹에서 방송을 켜지 않습니다. OBS에서 「방송 시작」을 누르면 자동으로 LIVE 됩니다."}
+            : ingestEngine === "livekit"
+              ? "LiveKit 방송입니다. OBS 「방송 시작」 후 3~10초면 화면이 나옵니다 (VPS 불필요)."
+              : "OBS에서 「방송 시작」을 누르면 자동으로 LIVE 됩니다."}
         </p>
       </div>
 
@@ -125,8 +134,13 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
       ) : (
         <div className="rounded-xl border border-border bg-card p-3 space-y-2 text-sm">
           <p className="text-[11px] text-amber-700 dark:text-amber-300">
-            OBS → 설정 → 방송 → 서비스 「사용자 지정」 · 서버/키를 각각 해당 칸에만 넣으세요.
+            OBS → 설정 → 방송 → 「사용자 지정」 (Multiple RTMP 플러그인 말고 메인 방송 설정 권장) · 서버/키 각각 입력.
           </p>
+          {ingestEngine === "livekit" && (
+            <p className="text-[11px] text-violet-700 dark:text-violet-300">
+              송출 엔진: <strong>LiveKit Cloud</strong> — 주소는 LiveKit에서 발급된 URL입니다.
+            </p>
+          )}
           <div>
             <p className="text-[10px] text-muted-foreground mb-0.5">서버</p>
             <code className="block text-[11px] bg-muted rounded-lg px-2 py-1.5 break-all select-all">
@@ -165,7 +179,7 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
       )}
 
       <div className="min-h-[240px] bg-black rounded-xl overflow-hidden ring-1 ring-border/40">
-        <LiveHlsPlayer channelId={channelId} />
+        <LiveBroadcastPlayer channelId={channelId} />
       </div>
     </div>
   );

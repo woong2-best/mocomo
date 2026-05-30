@@ -31,6 +31,7 @@ export async function GET(
     obsServer: result.data.obsServer,
     obsStreamKey: result.data.obsStreamKey,
     ingressId: result.data.ingressId,
+    ingestEngine: result.data.ingestEngine,
   });
 }
 
@@ -66,5 +67,6 @@ export async function POST(
     obsServer: result.data.obsServer,
     obsStreamKey: result.data.obsStreamKey,
     ingressId: result.data.ingressId,
+    ingestEngine: result.data.ingestEngine,
   });
 }

@@ -1,8 +1,8 @@
 "use client";
 
-import { LiveHlsPlayer } from "@/components/live/live-hls-player";
+import { LiveBroadcastPlayer } from "@/components/live/live-broadcast-player";
 
-/** 시청 — SRS HLS (WebRTC/LiveKit 미사용) */
+/** 시청 — LiveKit WebRTC 또는 SRS HLS */
 export function LiveViewerPlayer({ channelId }: { channelId: string; hostUserId?: string }) {
-  return <LiveHlsPlayer channelId={channelId} />;
+  return <LiveBroadcastPlayer channelId={channelId} />;
 }
