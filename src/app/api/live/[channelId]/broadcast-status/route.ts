@@ -26,7 +26,13 @@ export async function GET(
   const { channelId } = await params;
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
-    select: { createdBy: true, isLive: true, rtmpIngressId: true, rtmpStreamKey: true },
+    select: {
+      createdBy: true,
+      isLive: true,
+      rtmpIngressId: true,
+      rtmpUrl: true,
+      rtmpStreamKey: true,
+    },
   });
 
   if (!channel) {

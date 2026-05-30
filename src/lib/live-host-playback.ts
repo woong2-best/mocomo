@@ -14,7 +14,7 @@ import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
 export async function buildHostPlaybackPayload(channelId: string, hostUserId: string) {
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
-    select: { rtmpIngressId: true, rtmpStreamKey: true },
+    select: { rtmpIngressId: true, rtmpUrl: true, rtmpStreamKey: true },
   });
 
   const engine = channel ? resolveChannelIngestEngine(channel) : resolveChannelIngestEngine({});

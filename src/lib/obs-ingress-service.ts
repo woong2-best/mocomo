@@ -94,6 +94,22 @@ function credentialsFromChannel(channel: ChannelObsRow): ObsRtmpCredentials | nu
   if (!url || !key) return null;
 
   const obs = formatForObs(url, key);
+  if (url.includes("live.cloudflare.com")) {
+    const cfUid = liveInputUidFromIngressId(channel.rtmpIngressId);
+    if (cfUid) {
+      return wrapCloudflareCredentials({ uid: cfUid, rtmpsUrl: url, rtmpsStreamKey: key });
+    }
+    return {
+      url,
+      streamKey: key,
+      ingressId: channel.rtmpIngressId?.trim() || "",
+      obsServer: obs.obsServer,
+      obsStreamKey: obs.obsStreamKey,
+      hlsPlaybackUrl: null,
+      ingestEngine: "cloudflare",
+      accountKey: false,
+    };
+  }
   if (channel.rtmpIngressId?.startsWith("srs:")) {
     return wrapSrsCredentials(key, url);
   }

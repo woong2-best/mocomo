@@ -230,7 +230,14 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
       )}
 
       <div className="min-h-[240px] bg-black rounded-xl overflow-hidden ring-1 ring-border/40">
-        <LiveBroadcastPlayer channelId={channelId} />
+        <LiveBroadcastPlayer
+          channelId={channelId}
+          preferredEngine={
+            ingestEngine === "cloudflare" || ingestEngine === "livekit" || ingestEngine === "srs"
+              ? ingestEngine
+              : undefined
+          }
+        />
       </div>
     </div>
   );

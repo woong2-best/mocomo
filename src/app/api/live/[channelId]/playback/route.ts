@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { srsConfigError } from "@/lib/srs";
-import { buildProxiedFlvPlaybackPath } from "@/lib/srs";
+import { buildProxiedFlvPlaybackPath, isSrsConfigured, srsConfigError } from "@/lib/srs";
 import { buildProxiedHlsPlaybackPath, probeSrsManifest } from "@/lib/srs-hls-proxy";
 import { buildHostPlaybackPayload } from "@/lib/live-host-playback";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
 import {
   buildLiveInputHlsUrlAsync,
+  cloudflareStreamConfigError,
   liveInputUidFromIngressId,
   probeCloudflareLiveInput,
 } from "@/lib/cloudflare-stream";
-import { resolveChannelIngestEngine } from "@/lib/live-ingest";
+import { preferredLiveIngestEngine, resolveChannelIngestEngine } from "@/lib/live-ingest";
 import { probeLivekitObsPublish } from "@/lib/livekit-room-status";
 
 export const runtime = "nodejs";
@@ -33,15 +33,10 @@ export async function GET(
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
 
-  const configErr = srsConfigError();
-  if (configErr) {
-    return NextResponse.json({ error: configErr, configured: false }, { status: 503 });
-  }
-
   try {
     const channel = await db.voiceChannel.findUnique({
       where: { id: channelId },
-      select: { createdBy: true },
+      select: { createdBy: true, rtmpIngressId: true, rtmpUrl: true },
     });
     if (!channel) {
       return NextResponse.json({ error: "방송을 찾을 수 없습니다." }, { status: 404 });
@@ -66,13 +61,20 @@ export async function GET(
       );
     }
 
-    const chRow = await db.voiceChannel.findUnique({
-      where: { id: channelId },
-      select: { rtmpIngressId: true },
-    });
+    const ingestEngine = channel
+      ? resolveChannelIngestEngine(channel)
+      : preferredLiveIngestEngine();
 
-    if (chRow && resolveChannelIngestEngine(chRow) === "cloudflare") {
-      const cfUid = liveInputUidFromIngressId(chRow.rtmpIngressId);
+    if (ingestEngine === "cloudflare") {
+      const cfErr = cloudflareStreamConfigError();
+      if (cfErr) {
+        return NextResponse.json(
+          { error: cfErr, configured: false, ingestEngine: "cloudflare" },
+          { status: 503 }
+        );
+      }
+
+      const cfUid = liveInputUidFromIngressId(channel.rtmpIngressId);
       const probe = cfUid
         ? await probeCloudflareLiveInput(cfUid)
         : { onAir: false, playable: false, hlsUrl: null, videoUid: null };
@@ -99,7 +101,7 @@ export async function GET(
       });
     }
 
-    if (chRow && resolveChannelIngestEngine(chRow) === "livekit") {
+    if (ingestEngine === "livekit") {
       const probe = await probeLivekitObsPublish(channelId);
       return NextResponse.json({
         ok: true,
@@ -115,6 +117,18 @@ export async function GET(
           ? "방송 중"
           : "방송이 시작되면 화면이 나타납니다.",
       });
+    }
+
+    const srsErr = srsConfigError();
+    if (srsErr || !isSrsConfigured()) {
+      return NextResponse.json(
+        {
+          error: srsErr ?? "SRS 방송이 설정되지 않았습니다.",
+          ingestEngine: "srs",
+          configured: false,
+        },
+        { status: 503 }
+      );
     }
 
     const { streamKey } = await resolveObsStreamKeyForChannel(channelId, {
