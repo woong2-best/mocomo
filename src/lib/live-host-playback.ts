@@ -73,6 +73,6 @@ export async function buildHostPlaybackPayload(channelId: string, hostUserId: st
         : "OBS에서 「방송 시작」을 누르면 화면이 나타납니다.",
     probeError: probe.error,
     probeStatus: probe.status,
-    note: "Vultr VPS — 서버 rtmp://45.32.16.32:1935/live · 다중 송출 플러그인 끄고 메인 「방송 시작」",
+    note: "Vultr VPS — 다중 송출 「새 대상」에 아래와 동일한 서버·키 입력",
   };
 }

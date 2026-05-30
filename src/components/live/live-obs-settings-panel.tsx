@@ -141,7 +141,7 @@ export function LiveObsSettingsPanel({ channelId }: { channelId: string }) {
         }`}
       >
         {onAir ? <Signal className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}
-        <span>{signalMsg || (onAir ? "송출 감지됨" : "OBS에서 방송 시작을 눌러 주세요")}</span>
+        <span>{signalMsg || (onAir ? "송출 감지됨" : "다중 송출 대상 송출을 기다리는 중")}</span>
       </div>
       <Button
         type="button"

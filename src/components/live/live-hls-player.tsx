@@ -103,7 +103,7 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
           setStatus("waiting");
           setWaitHint(
-            "OBS 방송 신호 대기 중… OBS에서 「방송 시작」 후 5~20초 기다려 주세요."
+            "MoCoMo 송출 대기 중… 다중 송출 대상이 켜진 뒤 5~20초 기다려 주세요."
           );
           hls.startLoad();
           return;
@@ -139,7 +139,7 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
       }
       if (!body.onAir && body.streamKeyHint) {
         setWaitHint(
-          `SRS에 송출이 없습니다. OBS 서버는 rtmp://45.32.16.32:1935/live, 방송 키 끝 ${body.streamKeyHint} 가 맞는지 확인 후 「방송 시작」을 눌러 주세요.`
+          `MoCoMo로 송출이 없습니다. 다중 송출 대상: 서버 rtmp://45.32.16.32:1935/live, 키 끝 ${body.streamKeyHint} 확인.`
         );
       }
     } catch {

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, Loader2, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LiveObsMultiRtmpGuide } from "@/components/live/live-obs-multi-rtmp-guide";
 
 export type ObsReadyCreds = {
   obsServer: string;
@@ -76,12 +77,7 @@ export function LiveObsReadyBlock({
         <Monitor className="h-5 w-5 text-violet-600 shrink-0" />
         <p className="text-sm font-semibold">OBS 연결 (서버 · 방송 키)</p>
       </div>
-      <p className="text-[11px] text-muted-foreground">
-        OBS → 설정 → 방송 → 「사용자 지정」 · 아래 서버/키 각각 입력 후 「방송 시작」
-      </p>
-      <p className="text-[11px] text-amber-800 dark:text-amber-200">
-        다중 송출 플러그인(SoraYuki)은 끄고 메인 방송만 쓰세요.
-      </p>
+      <LiveObsMultiRtmpGuide compact />
 
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground py-1">

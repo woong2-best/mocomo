@@ -221,7 +221,7 @@ export default function NewVoicePage() {
           <h2 className="text-xl font-bold">방송 준비 완료</h2>
           <p className="text-sm text-muted-foreground">
             웹에서 방송이 켜지지 않습니다. 아래 OBS 서버·방송 키를 넣고{" "}
-            <strong>OBS에서 「방송 시작」</strong>을 누르면 LIVE로 전환됩니다.
+            OBS를 켜고 <strong>다중 송출</strong>이 MoCoMo로 나가면 LIVE로 전환됩니다 (메인 방송 시작 없이도 됨).
           </p>
           <div className="space-y-1">
             <p className="text-[11px] font-medium text-muted-foreground">합방 비밀번호 (공동 방송용)</p>

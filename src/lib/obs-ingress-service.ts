@@ -146,7 +146,7 @@ async function provisionLivekitIngress(
         return {
           data: srs.data,
           warning:
-            "LiveKit 인그레스 한도 초과 — 결제하신 Vultr VPS(45.32.16.32)로 연결했습니다. OBS 서버·키를 아래 값으로 넣으세요.",
+            "LiveKit 한도 초과 — Vultr VPS로 연결했습니다. 다중 송출 대상에 아래 서버·키를 넣으세요.",
         };
       }
     }
