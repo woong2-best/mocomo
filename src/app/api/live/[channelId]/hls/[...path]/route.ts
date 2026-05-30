@@ -7,8 +7,12 @@ import {
   upstreamHlsManifestUrl,
   upstreamSegmentUrl,
 } from "@/lib/srs-hls-proxy";
+import { db } from "@/lib/db";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
-import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
+import {
+  getOrCreateUserObsStreamKey,
+  resolveObsStreamKeyForChannel,
+} from "@/lib/user-obs-stream-key";
 import { ensureChannelBroadcastActive } from "@/lib/live-channel-active";
 
 export const runtime = "nodejs";
@@ -33,16 +37,38 @@ export async function GET(
     return new NextResponse("SRS not configured", { status: 503 });
   }
 
-  const access = await resolveLiveChannelAccess(channelId, session.user.id);
-  if (!access.allowed) {
-    return new NextResponse("Forbidden", { status: 403 });
+  const channel = await db.voiceChannel.findUnique({
+    where: { id: channelId },
+    select: { createdBy: true },
+  });
+  if (!channel) {
+    return new NextResponse("Not Found", { status: 404 });
+  }
+
+  const isHost = channel.createdBy === session.user.id;
+  if (!isHost) {
+    const access = await resolveLiveChannelAccess(channelId, session.user.id);
+    if (!access.allowed) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
   }
 
   await ensureChannelBroadcastActive(channelId);
 
-  const { streamKey } = await resolveObsStreamKeyForChannel(channelId, {
-    viewerUserId: session.user.id,
-  });
+  let streamKey: string | null = null;
+  if (isHost) {
+    try {
+      streamKey = await getOrCreateUserObsStreamKey(session.user.id);
+    } catch {
+      streamKey = null;
+    }
+  } else {
+    const resolved = await resolveObsStreamKeyForChannel(channelId, {
+      viewerUserId: session.user.id,
+    });
+    streamKey = resolved.streamKey;
+  }
+
   if (!streamKey) {
     return new NextResponse("Stream not ready", { status: 404 });
   }

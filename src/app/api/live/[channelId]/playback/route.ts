@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { srsConfigError } from "@/lib/srs";
 import { buildProxiedHlsPlaybackPath, probeSrsManifest } from "@/lib/srs-hls-proxy";
+import { buildHostPlaybackPayload } from "@/lib/live-host-playback";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
 import { ensureChannelBroadcastActive } from "@/lib/live-channel-active";
@@ -29,53 +31,73 @@ export async function GET(
     return NextResponse.json({ error: configErr, configured: false }, { status: 503 });
   }
 
-  await ensureChannelBroadcastActive(channelId);
+  try {
+    const channel = await db.voiceChannel.findUnique({
+      where: { id: channelId },
+      select: { createdBy: true },
+    });
+    if (!channel) {
+      return NextResponse.json({ error: "방송을 찾을 수 없습니다." }, { status: 404 });
+    }
 
-  const access = await resolveLiveChannelAccess(channelId, session.user.id);
-  if (!access.allowed) {
-    const status =
-      access.reason === "TIER_REQUIRED" ? 403 : access.reason === "NOT_FOUND" ? 404 : 403;
+    if (channel.createdBy === session.user.id) {
+      const payload = await buildHostPlaybackPayload(channelId, session.user.id);
+      return NextResponse.json(payload);
+    }
+
+    await ensureChannelBroadcastActive(channelId);
+
+    const access = await resolveLiveChannelAccess(channelId, session.user.id);
+    if (!access.allowed) {
+      const status =
+        access.reason === "TIER_REQUIRED" ? 403 : access.reason === "NOT_FOUND" ? 404 : 403;
+      return NextResponse.json(
+        {
+          error: "시청 권한이 없습니다.",
+          reason: access.reason,
+          minViewerTier: access.minViewerTier,
+        },
+        { status }
+      );
+    }
+
+    const { streamKey } = await resolveObsStreamKeyForChannel(channelId, {
+      viewerUserId: session.user.id,
+    });
+
+    if (!streamKey) {
+      return NextResponse.json({
+        ok: false,
+        hlsUrl: null,
+        waiting: true,
+        message: "방송이 시작되면 화면이 나타납니다.",
+      });
+    }
+
+    const hlsUrl = buildProxiedHlsPlaybackPath(channelId, streamKey);
+    const probe = await probeSrsManifest(streamKey);
+
+    return NextResponse.json({
+      ok: true,
+      hlsUrl,
+      streamKeyHint: streamKey.length > 8 ? `…${streamKey.slice(-8)}` : "****",
+      srsOnAir: probe.live,
+      srsPlayable: probe.playable ?? false,
+      waiting: !probe.live,
+      tryLoad: true,
+      message: probe.playable
+        ? "방송 신호가 확인되었습니다."
+        : probe.live
+          ? "송출은 감지됐습니다. HLS 준비 중…"
+          : "OBS에서 방송을 시작하면 화면이 나타납니다.",
+      probeError: probe.error,
+      probeStatus: probe.status,
+    });
+  } catch (e) {
+    console.error("[playback]", channelId, e);
     return NextResponse.json(
-      {
-        error: "시청 권한이 없습니다.",
-        reason: access.reason,
-        minViewerTier: access.minViewerTier,
-      },
-      { status }
+      { error: "재생 정보 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요." },
+      { status: 500 }
     );
   }
-
-  const { streamKey } = await resolveObsStreamKeyForChannel(channelId, {
-    viewerUserId: session.user.id,
-  });
-
-  if (!streamKey) {
-    return NextResponse.json({
-      ok: false,
-      hlsUrl: null,
-      waiting: true,
-      message:
-        "방송 키를 찾지 못했습니다. 스튜디오 OBS 패널에서 키를 복사해 OBS에 붙인 뒤 「방송 시작」을 눌러 주세요.",
-    });
-  }
-
-  const hlsUrl = buildProxiedHlsPlaybackPath(channelId, streamKey);
-  const probe = await probeSrsManifest(streamKey);
-
-  return NextResponse.json({
-    ok: true,
-    hlsUrl,
-    streamKeyHint: streamKey.length > 8 ? `…${streamKey.slice(-8)}` : "****",
-    srsOnAir: probe.live,
-    srsPlayable: probe.playable ?? false,
-    waiting: !probe.live,
-    tryLoad: true,
-    message: probe.playable
-      ? "방송 신호가 확인되었습니다."
-      : probe.live
-        ? "송출은 감지됐습니다. HLS 준비 중… 잠시만 기다려 주세요."
-        : "OBS에서 방송을 시작하면 화면이 나타납니다. (프록시로 자동 재시도)",
-    probeError: probe.error,
-    probeStatus: probe.status,
-  });
 }

@@ -118,6 +118,25 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
     return cleanup;
   }, []);
 
+  const fallbackFromObs = useCallback(async (): Promise<boolean> => {
+    const obsRes = await fetch(`/api/live/${channelId}/obs`, {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const obs = (await obsRes.json().catch(() => ({}))) as {
+      obsStreamKey?: string;
+    };
+    const key = obs.obsStreamKey?.trim();
+    if (!key) return false;
+    const url = absoluteHlsUrl(
+      `/api/live/${channelId}/hls/${encodeURIComponent(key)}.m3u8`
+    );
+    setHlsUrl(url);
+    setStatus("waiting");
+    setWaitHint("OBS에서 「방송 시작」 후 10~30초 기다려 주세요. (HLS 준비 중)");
+    return true;
+  }, [channelId]);
+
   const loadPlayback = useCallback(async () => {
     setErrorMsg(null);
     try {
@@ -127,15 +146,17 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
       });
       const body = (await res.json().catch(() => ({}))) as PlaybackResponse;
       if (!res.ok) {
+        if (await fallbackFromObs()) return;
         const detail =
           typeof body.error === "string"
             ? body.error
             : res.status === 401
               ? "로그인이 만료되었습니다. 새로고침 후 다시 로그인해 주세요."
-              : "재생 정보를 불러오지 못했습니다.";
+              : `재생 API 오류 (${res.status}). 설정에서 OBS 키를 확인해 주세요.`;
         throw new Error(detail);
       }
       if (!body.hlsUrl) {
+        if (await fallbackFromObs()) return;
         setHlsUrl(null);
         setStatus("waiting");
         setWaitHint(body.message ?? "OBS에서 방송을 시작해 주세요.");
@@ -154,10 +175,11 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
         setStatus("waiting");
       }
     } catch (e) {
+      if (await fallbackFromObs()) return;
       setErrorMsg(e instanceof Error ? e.message : "재생 실패");
       setStatus("error");
     }
-  }, [channelId]);
+  }, [channelId, fallbackFromObs]);
 
   useEffect(() => {
     void loadPlayback();
@@ -165,7 +187,6 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
 
   useEffect(() => {
     if (!hlsUrl || status === "error") return;
-    if (status !== "loading" && status !== "playing") return;
     return attachHls(hlsUrl);
   }, [hlsUrl, status, attachHls]);
 

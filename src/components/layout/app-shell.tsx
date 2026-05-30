@@ -29,6 +29,10 @@ function AppShellInner({
     return <main className="min-h-screen bg-background">{children}</main>;
   }
 
+  if (isVoiceRoom) {
+    return <main className="min-h-screen bg-background">{children}</main>;
+  }
+
   return (
     <>
       <Header />
