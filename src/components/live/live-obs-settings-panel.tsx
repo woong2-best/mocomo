@@ -70,7 +70,7 @@ export function LiveObsSettingsPanel({ channelId }: { channelId: string }) {
       }
     }
     poll();
-    const id = setInterval(poll, 8000);
+    const id = setInterval(poll, 3000);
     return () => {
       cancelled = true;
       clearInterval(id);
@@ -108,8 +108,13 @@ export function LiveObsSettingsPanel({ channelId }: { channelId: string }) {
           키 재발급
         </Button>
       </div>
+      <p className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-500/10 rounded-lg px-2 py-1.5">
+        OBS 「서버」에는 아래 URL만, 「방송 키」에는 키만 넣으세요. URL+키를 한 칸에 넣으면 화면이 안 나옵니다.
+      </p>
       <div className="space-y-2">
+        <p className="text-[10px] text-muted-foreground">서버 (Stream Server)</p>
         <code className="block text-[11px] bg-muted rounded-lg px-2 py-1.5 break-all">{creds.obsServer}</code>
+        <p className="text-[10px] text-muted-foreground">방송 키 (Stream Key)</p>
         <code className="block text-[11px] bg-muted rounded-lg px-2 py-1.5 break-all font-mono">
           {creds.obsStreamKey}
         </code>

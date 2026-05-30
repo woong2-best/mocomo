@@ -118,6 +118,35 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
     return cleanup;
   }, []);
 
+  const refreshSignalHint = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/live/${channelId}/broadcast-status`, {
+        credentials: "include",
+        cache: "no-store",
+      });
+      const body = (await res.json().catch(() => ({}))) as {
+        message?: string;
+        onAir?: boolean;
+        playable?: boolean;
+        probeError?: string;
+        streamKeyHint?: string;
+      };
+      if (typeof body.message === "string" && body.message.trim()) {
+        setWaitHint(body.message);
+      }
+      if (body.playable) {
+        setStatus("loading");
+      }
+      if (!body.onAir && body.streamKeyHint) {
+        setWaitHint(
+          `SRS에 송출이 없습니다. OBS 서버는 rtmp://45.32.16.32:1935/live, 방송 키 끝 ${body.streamKeyHint} 가 맞는지 확인 후 「방송 시작」을 눌러 주세요.`
+        );
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [channelId]);
+
   const fallbackFromObs = useCallback(async (): Promise<boolean> => {
     const obsRes = await fetch(`/api/live/${channelId}/obs`, {
       credentials: "include",
@@ -133,9 +162,9 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
     );
     setHlsUrl(url);
     setStatus("waiting");
-    setWaitHint("OBS에서 「방송 시작」 후 10~30초 기다려 주세요. (HLS 준비 중)");
+    await refreshSignalHint();
     return true;
-  }, [channelId]);
+  }, [channelId, refreshSignalHint]);
 
   const loadPlayback = useCallback(async () => {
     setErrorMsg(null);
@@ -192,12 +221,14 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
 
   useEffect(() => {
     if (status !== "waiting") return;
+    void refreshSignalHint();
     const t = setInterval(() => {
       retryRef.current += 1;
+      void refreshSignalHint();
       void loadPlayback();
-    }, 3000);
+    }, 4000);
     return () => clearInterval(t);
-  }, [status, loadPlayback]);
+  }, [status, loadPlayback, refreshSignalHint]);
 
   useEffect(() => {
     if (status !== "loading" || !hlsUrl) return;
