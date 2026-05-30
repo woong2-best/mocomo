@@ -56,7 +56,7 @@ export async function GET(
     streamKeyHint: keyTail,
     hlsPathExample: `/live/${streamKey}.m3u8`,
     upstreamManifest: upstreamHlsManifestUrl(streamKey),
-    sitePlayback: buildProxiedHlsPlaybackPath(channelId),
+    sitePlayback: buildProxiedHlsPlaybackPath(channelId, streamKey),
     hlsBase: getSrsHlsBaseUrl(),
     probeStatus: probe.status,
     probeError: probe.error,

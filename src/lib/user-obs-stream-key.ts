@@ -2,6 +2,7 @@ import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
 
 import { liveHostBroadcastWhere } from "@/lib/live-broadcast/session-queries";
+import { ensureChannelBroadcastActive, isBroadcastActive } from "@/lib/live-channel-active";
 
 /** 계정당 고유 OBS 방송 키 (트위치/치지직 방식 — 방송마다 바뀌지 않음) */
 export function mintUserObsStreamKey(userId: string): string {
@@ -37,11 +38,13 @@ export async function resolveObsStreamKeyForChannel(channelId: string): Promise<
   streamKey: string | null;
   hostUserId: string | null;
 }> {
+  await ensureChannelBroadcastActive(channelId);
+
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
-    select: { createdBy: true, isLive: true, rtmpStreamKey: true },
+    select: { createdBy: true, isLive: true, liveStatus: true, rtmpStreamKey: true },
   });
-  if (!channel?.isLive) {
+  if (!channel || !isBroadcastActive(channel)) {
     return { streamKey: null, hostUserId: null };
   }
 
@@ -71,7 +74,11 @@ export async function findLiveChannelByObsStreamKey(stream: string) {
     });
     if (byUser) {
       return db.voiceChannel.findFirst({
-        where: liveHostBroadcastWhere(byUser.id),
+        where: {
+          createdBy: byUser.id,
+          liveStatus: { in: ["LIVE", "SCHEDULED"] },
+          OR: [{ isLive: true }, { liveStatus: "LIVE" }],
+        },
         orderBy: { createdAt: "desc" },
         select: { id: true },
       });

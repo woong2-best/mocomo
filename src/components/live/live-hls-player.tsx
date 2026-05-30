@@ -9,9 +9,12 @@ type PlaybackResponse = {
   ok?: boolean;
   hlsUrl?: string | null;
   waiting?: boolean;
+  tryLoad?: boolean;
+  srsOnAir?: boolean;
   message?: string;
   error?: string;
   probeError?: string;
+  streamKeyHint?: string;
 };
 
 function absoluteHlsUrl(pathOrUrl: string): string {
@@ -22,7 +25,7 @@ function absoluteHlsUrl(pathOrUrl: string): string {
   return `${window.location.origin}${pathOrUrl.startsWith("/") ? "" : "/"}${pathOrUrl}`;
 }
 
-/** 트위치/치지직 방식 HLS 시청 — HTTPS 프록시 경유 */
+/** 트위치/치지직 방식 HLS — HTTPS 프록시, SRS 신호 대기 시 자동 재시도 */
 export function LiveHlsPlayer({ channelId }: { channelId: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<HlsType | null>(null);
@@ -30,6 +33,84 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [waitHint, setWaitHint] = useState<string | null>(null);
   const [hlsUrl, setHlsUrl] = useState<string | null>(null);
+  const retryRef = useRef(0);
+
+  const attachHls = useCallback((url: string) => {
+    const video = videoRef.current;
+    if (!video) return () => undefined;
+
+    let cancelled = false;
+
+    const cleanup = () => {
+      cancelled = true;
+      hlsRef.current?.destroy();
+      hlsRef.current = null;
+    };
+
+    if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = url;
+      const onMeta = () => {
+        if (!cancelled) setStatus("playing");
+      };
+      video.addEventListener("loadedmetadata", onMeta);
+      video.play().catch(() => undefined);
+      return () => {
+        video.removeEventListener("loadedmetadata", onMeta);
+        cleanup();
+      };
+    }
+
+    void import("hls.js").then(({ default: Hls }) => {
+      if (cancelled || !videoRef.current) return;
+      if (!Hls.isSupported()) {
+        setErrorMsg("이 브라우저는 HLS 재생을 지원하지 않습니다.");
+        setStatus("error");
+        return;
+      }
+
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true,
+        liveSyncDurationCount: 3,
+        liveMaxLatencyDurationCount: 10,
+        manifestLoadingTimeOut: 12000,
+        manifestLoadingMaxRetry: 12,
+        levelLoadingTimeOut: 12000,
+        fragLoadingTimeOut: 20000,
+        xhrSetup: (xhr) => {
+          xhr.withCredentials = true;
+        },
+      });
+      hlsRef.current = hls;
+      hls.loadSource(url);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        if (!cancelled) {
+          setStatus("playing");
+          setWaitHint(null);
+          retryRef.current = 0;
+        }
+        video.play().catch(() => undefined);
+      });
+      hls.on(Hls.Events.ERROR, (_e, data) => {
+        if (!data.fatal) return;
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          setStatus("waiting");
+          setWaitHint(
+            "OBS 방송 신호 대기 중… OBS에서 「방송 시작」 후 5~15초 기다려 주세요."
+          );
+          hls.startLoad();
+          return;
+        }
+        setStatus("error");
+        setErrorMsg(
+          "재생 오류입니다. OBS 키·서버 주소를 확인하고 방송을 재시작한 뒤 새로고침해 주세요."
+        );
+      });
+    });
+
+    return cleanup;
+  }, []);
 
   const loadPlayback = useCallback(async () => {
     setErrorMsg(null);
@@ -45,7 +126,7 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
       if (!body.hlsUrl) {
         setHlsUrl(null);
         setStatus("waiting");
-        setWaitHint(body.message ?? null);
+        setWaitHint(body.message ?? "OBS에서 방송을 시작해 주세요.");
         return;
       }
 
@@ -53,12 +134,13 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
       setHlsUrl(url);
       setWaitHint(body.message ?? null);
 
-      if (body.waiting) {
+      if (body.srsOnAir) {
+        setStatus("loading");
+      } else if (body.tryLoad !== false) {
+        setStatus("loading");
+      } else {
         setStatus("waiting");
-        return;
       }
-
-      setStatus("loading");
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : "재생 실패");
       setStatus("error");
@@ -70,76 +152,17 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
   }, [loadPlayback]);
 
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !hlsUrl || status === "waiting") return;
-
-    let cancelled = false;
-
-    function attachNative() {
-      video!.src = hlsUrl!;
-      const onMeta = () => {
-        if (!cancelled) setStatus("playing");
-      };
-      video!.addEventListener("loadedmetadata", onMeta);
-      video!.play().catch(() => undefined);
-      return () => video!.removeEventListener("loadedmetadata", onMeta);
-    }
-
-    if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      return attachNative();
-    }
-
-    void import("hls.js").then(({ default: Hls }) => {
-      if (cancelled || !videoRef.current) return;
-      if (!Hls.isSupported()) {
-        setErrorMsg("이 브라우저는 HLS 재생을 지원하지 않습니다.");
-        setStatus("error");
-        return;
-      }
-
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: false,
-        backBufferLength: 30,
-        xhrSetup: (xhr) => {
-          xhr.withCredentials = true;
-        },
-      });
-      hlsRef.current = hls;
-      hls.loadSource(hlsUrl);
-      hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        if (!cancelled) {
-          setStatus("playing");
-          setWaitHint(null);
-        }
-        video.play().catch(() => undefined);
-      });
-      hls.on(Hls.Events.ERROR, (_e, data) => {
-        if (!data.fatal) return;
-        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-          setStatus("waiting");
-          setWaitHint("방송 신호 대기 중… OBS 방송이 켜져 있는지 확인해 주세요.");
-          hls.startLoad();
-          return;
-        }
-        setStatus("error");
-        setErrorMsg(
-          "재생 오류입니다. OBS 키 재발급 후 다시 방송하거나, 잠시 뒤 새로고침해 주세요."
-        );
-      });
-    });
-
-    return () => {
-      cancelled = true;
-      hlsRef.current?.destroy();
-      hlsRef.current = null;
-    };
-  }, [hlsUrl, status]);
+    if (!hlsUrl || status === "error") return;
+    if (status !== "loading" && status !== "playing") return;
+    return attachHls(hlsUrl);
+  }, [hlsUrl, status, attachHls]);
 
   useEffect(() => {
     if (status !== "waiting") return;
-    const t = setInterval(() => void loadPlayback(), 4000);
+    const t = setInterval(() => {
+      retryRef.current += 1;
+      void loadPlayback();
+    }, 4000);
     return () => clearInterval(t);
   }, [status, loadPlayback]);
 
@@ -166,13 +189,13 @@ export function LiveHlsPlayer({ channelId }: { channelId: string }) {
         muted
       />
       {(status === "loading" || status === "waiting") && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-white/70 gap-2 bg-black/60">
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-white/70 gap-2 bg-black/60 pointer-events-none">
           <Loader2 className="h-10 w-10 animate-spin" />
           <Radio className="h-8 w-8 text-red-500" />
           <p className="text-sm text-center px-4 max-w-sm">
             {status === "waiting"
               ? waitHint ??
-                "OBS에서 방송을 시작하면 3~10초 뒤 화면이 나타납니다…"
+                "OBS에서 방송을 시작하면 5~15초 뒤 화면이 나타납니다…"
               : "방송 화면 연결 중…"}
           </p>
         </div>

@@ -4,8 +4,12 @@ import { srsConfigError } from "@/lib/srs";
 import { buildProxiedHlsPlaybackPath, probeSrsManifest } from "@/lib/srs-hls-proxy";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
+import { ensureChannelBroadcastActive } from "@/lib/live-channel-active";
 
-/** 시청자 HLS 재생 URL (접근 권한 검사 후 m3u8 주소 반환) */
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/** 시청자 HLS 재생 URL (HTTPS 프록시) */
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ channelId: string }> }
@@ -25,12 +29,18 @@ export async function GET(
     return NextResponse.json({ error: configErr, configured: false }, { status: 503 });
   }
 
+  await ensureChannelBroadcastActive(channelId);
+
   const access = await resolveLiveChannelAccess(channelId, session.user.id);
   if (!access.allowed) {
     const status =
       access.reason === "TIER_REQUIRED" ? 403 : access.reason === "NOT_FOUND" ? 404 : 403;
     return NextResponse.json(
-      { error: "시청 권한이 없습니다.", reason: access.reason, minViewerTier: access.minViewerTier },
+      {
+        error: "시청 권한이 없습니다.",
+        reason: access.reason,
+        minViewerTier: access.minViewerTier,
+      },
       { status }
     );
   }
@@ -39,31 +49,28 @@ export async function GET(
 
   if (!streamKey) {
     return NextResponse.json({
+      ok: false,
       hlsUrl: null,
       waiting: true,
-      message: "OBS에서 계정 방송 키를 확인한 뒤 방송을 시작해 주세요.",
-    });
-  }
-
-  const probe = await probeSrsManifest(streamKey);
-  const hlsUrl = buildProxiedHlsPlaybackPath(channelId);
-
-  if (!probe.live) {
-    return NextResponse.json({
-      ok: true,
-      hlsUrl,
-      waiting: true,
       message:
-        "OBS에서 방송을 시작하면 3~10초 뒤 화면이 나타납니다. 키가 맞는지·방송 시작 여부를 확인해 주세요.",
-      probeError: probe.error,
-      probeStatus: probe.status,
+        "방송 키를 찾지 못했습니다. 스튜디오 OBS 패널에서 키를 복사해 OBS에 붙인 뒤 「방송 시작」을 눌러 주세요.",
     });
   }
+
+  const hlsUrl = buildProxiedHlsPlaybackPath(channelId, streamKey);
+  const probe = await probeSrsManifest(streamKey);
 
   return NextResponse.json({
     ok: true,
     hlsUrl,
-    waiting: false,
-    proxied: true,
+    streamKeyHint: streamKey.length > 8 ? `…${streamKey.slice(-8)}` : "****",
+    srsOnAir: probe.live,
+    waiting: !probe.live,
+    tryLoad: true,
+    message: probe.live
+      ? "방송 신호가 확인되었습니다."
+      : "OBS에서 방송을 시작하면 화면이 나타납니다. (프록시로 자동 재시도)",
+    probeError: probe.error,
+    probeStatus: probe.status,
   });
 }

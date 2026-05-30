@@ -8,6 +8,10 @@ import {
 } from "@/lib/srs-hls-proxy";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
+import { ensureChannelBroadcastActive } from "@/lib/live-channel-active";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 /** HTTPS 프록시 — SRS HLS (m3u8·ts) */
 export async function GET(
@@ -33,15 +37,19 @@ export async function GET(
     return new NextResponse("Forbidden", { status: 403 });
   }
 
+  await ensureChannelBroadcastActive(channelId);
+
   const { streamKey } = await resolveObsStreamKeyForChannel(channelId);
   if (!streamKey) {
     return new NextResponse("Stream not ready", { status: 404 });
   }
 
-  const pathStr = path?.join("/") ?? "";
+  const pathStr = decodeURIComponent(path?.join("/") ?? "");
+  const manifestName = `${streamKey}.m3u8`;
   const isManifest =
     !pathStr ||
     pathStr === "index.m3u8" ||
+    pathStr === manifestName ||
     pathStr.endsWith(".m3u8");
 
   const upstreamUrl = isManifest
@@ -71,7 +79,7 @@ export async function GET(
       return new NextResponse(rewritten, {
         status: 200,
         headers: {
-          "Content-Type": contentType,
+          "Content-Type": "application/vnd.apple.mpegurl",
           "Cache-Control": "no-store, max-age=0",
           "Access-Control-Allow-Origin": "*",
         },
@@ -79,10 +87,15 @@ export async function GET(
     }
 
     const buf = await upstream.arrayBuffer();
+    const segType = pathStr.endsWith(".ts")
+      ? "video/mp2t"
+      : pathStr.endsWith(".m4s")
+        ? "video/iso.segment"
+        : contentType;
     return new NextResponse(buf, {
       status: upstream.status,
       headers: {
-        "Content-Type": contentType,
+        "Content-Type": segType,
         "Cache-Control": "no-store, max-age=0",
         ...(upstream.headers.get("content-length")
           ? { "Content-Length": upstream.headers.get("content-length")! }

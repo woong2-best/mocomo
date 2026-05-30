@@ -1,7 +1,11 @@
 import { buildHlsPlaybackUrl, getSrsHlsBaseUrl } from "@/lib/srs";
 
 /** 브라우저 HTTPS 페이지에서 HTTP SRS 직접 재생 차단 방지 */
-export function buildProxiedHlsPlaybackPath(channelId: string): string {
+export function buildProxiedHlsPlaybackPath(channelId: string, streamKey?: string): string {
+  const key = streamKey?.trim().split("?")[0];
+  if (key) {
+    return `/api/live/${channelId}/hls/${encodeURIComponent(key)}.m3u8`;
+  }
   return `/api/live/${channelId}/hls/index.m3u8`;
 }
 
@@ -60,7 +64,7 @@ export async function probeSrsManifest(streamKey: string): Promise<{
     const res = await fetch(url, {
       method: "GET",
       cache: "no-store",
-      signal: AbortSignal.timeout(4000),
+      signal: AbortSignal.timeout(8000),
       headers: { Accept: "application/vnd.apple.mpegurl,*/*" },
     });
     if (!res.ok) {

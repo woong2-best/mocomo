@@ -1,7 +1,8 @@
-import type { LiveVisibility, SupportTierLevel } from "@prisma/client";
+import type { LiveStreamStatus, LiveVisibility, SupportTierLevel } from "@prisma/client";
 import { db } from "@/lib/db";
 import { liveViewerCutoff } from "@/lib/live-presence";
 import { meetsPrivateLiveTier } from "@/lib/live-viewer-access";
+import { isBroadcastActive } from "@/lib/live-channel-active";
 
 export type LiveRoomAccess =
   | { allowed: true; isHost: boolean; hostUserId: string; canPublish?: boolean }
@@ -15,6 +16,7 @@ type ChannelAccessRow = {
   id: string;
   createdBy: string;
   isLive: boolean;
+  liveStatus?: LiveStreamStatus;
   liveVisibility?: LiveVisibility;
   minViewerTier?: SupportTierLevel | null;
   linkedChatRoom?: { id: string; type: string } | null;
@@ -28,6 +30,7 @@ async function loadChannelForAccess(channelId: string): Promise<ChannelAccessRow
         id: true,
         createdBy: true,
         isLive: true,
+        liveStatus: true,
         liveVisibility: true,
         minViewerTier: true,
         linkedChatRoom: { select: { id: true, type: true } },
@@ -48,7 +51,16 @@ export async function resolveLiveChannelAccess(
 ): Promise<LiveRoomAccess> {
   const channel = await loadChannelForAccess(channelId);
   if (!channel) return { allowed: false, reason: "NOT_FOUND" };
-  if (!channel.isLive) return { allowed: false, reason: "NOT_LIVE" };
+
+  const isHost = channel.createdBy === userId;
+  const active = isBroadcastActive({
+    isLive: channel.isLive,
+    liveStatus: channel.liveStatus ?? (channel.isLive ? "LIVE" : "ENDED"),
+  });
+
+  if (!active) {
+    return { allowed: false, reason: isHost ? "ENDED" : "NOT_LIVE" };
+  }
 
   const linked = channel.linkedChatRoom ?? null;
   const isGroupSocialCall = linked?.type === "SOCIAL_GROUP";
@@ -71,7 +83,6 @@ export async function resolveLiveChannelAccess(
     }
   }
 
-  const isHost = channel.createdBy === userId;
   if (isHost) {
     return { allowed: true, isHost: true, hostUserId: channel.createdBy, canPublish: true };
   }
