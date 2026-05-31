@@ -4,7 +4,7 @@ import { Component, type ReactNode } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
-import { LiveObsStudio } from "@/components/live/live-obs-studio";
+import { LiveBrowserStudio } from "@/components/live/live-browser-studio";
 
 type Props = {
   children: ReactNode;
@@ -12,7 +12,7 @@ type Props = {
   onEndStream?: () => void;
   /** true: 영상 칸만 오류 표시, 스튜디오 전체는 유지 */
   inline?: boolean;
-  /** inline 오류 시 호스트 OBS 패널로 대체 */
+  /** inline 오류 시 브라우저 방송 패널로 대체 */
   hostObsFallback?: boolean;
 };
 
@@ -47,9 +47,9 @@ export class LiveStudioErrorBoundary extends Component<Props, State> {
       return (
         <div className="space-y-2">
           <p className="text-xs text-amber-700 dark:text-amber-300 px-1">
-            영상 UI 오류 — OBS 설정만 표시합니다. (Ctrl+Shift+R 권장)
+            영상 UI 오류 — 방송 패널만 표시합니다. (Ctrl+Shift+R 권장)
           </p>
-          <LiveObsStudio channelId={this.props.channelId} onEndStream={this.props.onEndStream} />
+          <LiveBrowserStudio channelId={this.props.channelId} />
         </div>
       );
     }

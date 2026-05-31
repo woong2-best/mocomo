@@ -49,7 +49,7 @@ export function LiveScheduledCard({
       {isOwner ? (
         <Button size="sm" className="w-full rounded-xl gap-1 mt-2" onClick={goLive} disabled={pending}>
           <Radio className="h-3.5 w-3.5" />
-          {pending ? "여는 중…" : "스튜디오 열기 (OBS)"}
+          {pending ? "여는 중…" : "스튜디오 열기"}
         </Button>
       ) : (
         <p className="text-[10px] text-muted-foreground">예약 방송 · 시작 대기</p>

@@ -73,7 +73,7 @@ export default async function VoiceRoomPage({ params }: { params: Promise<{ id: 
           <p className="text-sm text-muted-foreground">
             {channel.liveStatus === "ENDED"
               ? "다시보기는 제공하지 않습니다."
-              : "스트리머가 OBS에서 방송을 시작하면 이 페이지에서 시청할 수 있습니다."}
+              : "스트리머가 방송을 시작하면 이 페이지에서 시청할 수 있습니다."}
           </p>
           <Button asChild variant="outline" className="rounded-xl">
             <Link href={`/u/${host.username}`}>@{host.username} 프로필</Link>
@@ -118,7 +118,7 @@ export default async function VoiceRoomPage({ params }: { params: Promise<{ id: 
         slowModeSeconds={channel.slowModeSeconds}
         chatBannedWords={ensureStringArray(channel.chatBannedWords)}
         paymentsEnabled={paymentsEnabled}
-        broadcastMode={channel.broadcastMode ?? "OBS"}
+        broadcastMode={channel.broadcastMode ?? "BROWSER"}
         liveVisibility={channel.liveVisibility ?? "PUBLIC"}
         minViewerTier={channel.minViewerTier}
         hostFollowing={hostFollowing}

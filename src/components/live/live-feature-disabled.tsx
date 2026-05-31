@@ -9,7 +9,7 @@ export function LiveFeatureDisabledNotice() {
       <Radio className="h-12 w-12 mx-auto text-muted-foreground opacity-60" />
       <h1 className="text-xl font-bold">라이브 방송 준비 중</h1>
       <p className="text-sm text-muted-foreground leading-relaxed">
-        OBS·라이브 방송 기능은 일시적으로 점검 중입니다.
+        라이브 방송 기능은 일시적으로 점검 중입니다.
         <br />
         다른 서비스는 그대로 이용할 수 있습니다.
       </p>

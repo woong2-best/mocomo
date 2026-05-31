@@ -11,9 +11,8 @@ import { LIVE_CATEGORIES } from "@/lib/live-categories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Radio, ChevronLeft, KeyRound, Copy, Check, Calendar, Monitor } from "lucide-react";
+import { Radio, ChevronLeft, KeyRound, Copy, Check, Calendar, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { LiveObsReadyBlock, type ObsReadyCreds } from "@/components/live/live-obs-ready-block";
 
 const PRESETS = [
   "🎙 애니덕질 라이브",
@@ -30,7 +29,6 @@ type CreatedUiState = {
   password?: string;
   scheduled?: boolean;
   broadcastMode: LiveBroadcastMode;
-  obs?: ObsReadyCreds;
 };
 
 function readCreatedUiFromStorage(channelId?: string | null): CreatedUiState | null {
@@ -70,7 +68,7 @@ export default function NewVoicePage() {
   const [submitError, setSubmitError] = useState("");
   const [name, setName] = useState(PRESETS[0]);
   const [category, setCategory] = useState<LiveStreamCategory>("JUST_CHATTING");
-  const broadcastMode: LiveBroadcastMode = "OBS";
+  const broadcastMode: LiveBroadcastMode = "BROWSER";
   const [liveVisibility, setLiveVisibility] = useState<LiveVisibility>("PUBLIC");
   const [minViewerTier, setMinViewerTier] = useState<SupportTierLevel>("BRONZE");
   const [created, setCreated] = useState<CreatedUiState | null>(null);
@@ -158,14 +156,6 @@ export default function NewVoicePage() {
         channelId: result.channel.id,
         password: result.joinPassword,
         broadcastMode,
-        obs:
-          result.obs?.obsServer && result.obs?.obsStreamKey
-            ? {
-                obsServer: result.obs.obsServer,
-                obsStreamKey: result.obs.obsStreamKey,
-                ingestEngine: result.obs.ingestEngine,
-              }
-            : undefined,
       };
       persistCreatedUi(liveState);
       setCreated(liveState);
@@ -220,17 +210,13 @@ export default function NewVoicePage() {
           <KeyRound className="h-10 w-10 mx-auto text-green-600" />
           <h2 className="text-xl font-bold">방송 준비 완료</h2>
           <p className="text-sm text-muted-foreground">
-            웹에서 방송이 켜지지 않습니다. 아래 OBS 서버·방송 키를 넣고{" "}
-            OBS를 켜고 <strong>다중 송출</strong>이 MoCoMo로 나가면 LIVE로 전환됩니다 (메인 방송 시작 없이도 됨).
+            스튜디오에서 <strong>방송 시작</strong>을 누르고 카메라·마이크를 허용하면 라이브 목록에 노출됩니다.
+            (OBS·다중 송출 불필요)
           </p>
           <div className="space-y-1">
             <p className="text-[11px] font-medium text-muted-foreground">합방 비밀번호 (공동 방송용)</p>
             <p className="text-3xl font-mono font-bold tracking-[0.35em] text-foreground">{created.password}</p>
           </div>
-          <LiveObsReadyBlock channelId={created.channelId} initial={created.obs} />
-          <p className="text-xs text-violet-700 bg-violet-500/10 rounded-lg px-3 py-2">
-            트위치처럼 OBS 송출이 시작되면 자동으로 라이브 목록에 노출됩니다.
-          </p>
           <div className="flex gap-2 justify-center flex-wrap">
             <Button variant="outline" className="rounded-xl gap-2" onClick={copyPassword}>
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -338,10 +324,10 @@ export default function NewVoicePage() {
               required
             />
             <div className="flex items-center gap-2 rounded-xl border bg-muted/40 px-3 py-2.5 text-xs text-muted-foreground">
-              <Monitor className="h-4 w-4 shrink-0 text-primary" />
+              <Video className="h-4 w-4 shrink-0 text-primary" />
               <span>
-                송출은 <strong className="text-foreground">OBS → SRS → HLS</strong> (트위치/치지직 방식). 방송
-                만들기 후 스튜디오에서 RTMP 키를 받습니다.
+                브라우저에서 <strong className="text-foreground">웹캠·화면 공유</strong>로 바로 방송합니다 (유튜브·치지직
+                방식). OBS 설치·연결은 필요 없습니다.
               </span>
             </div>
             <div className="space-y-2">

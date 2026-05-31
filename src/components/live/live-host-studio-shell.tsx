@@ -4,7 +4,6 @@ import { Eye, Radio, Settings2 } from "lucide-react";
 import { LiveChat } from "@/components/live/live-chat";
 import { LiveBrowserStudio } from "@/components/live/live-browser-studio";
 import { LiveHostSettings } from "@/components/live/live-host-settings";
-import { LiveObsSettingsPanel } from "@/components/live/live-obs-settings-panel";
 import { liveCategoryLabel } from "@/lib/live-categories";
 import { ensureStringArray } from "@/lib/ensure-array";
 import { Button } from "@/components/ui/button";
@@ -76,8 +75,6 @@ export function LiveHostStudioShell({
               <DialogTitle>방송 설정</DialogTitle>
             </DialogHeader>
             <div className="pt-2 space-y-4">
-              <LiveObsSettingsPanel channelId={channelId} />
-              <p className="text-xs font-medium text-muted-foreground mb-3">채팅 · 슬로우모드</p>
               <LiveHostSettings
                 channelId={channelId}
                 slowModeSeconds={slowModeSeconds ?? 0}
