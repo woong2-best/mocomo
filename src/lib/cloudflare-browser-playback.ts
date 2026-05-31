@@ -9,13 +9,14 @@ type ChannelSlice = {
   rtmpIngressId?: string | null;
   broadcastMode?: string | null;
   isLive?: boolean;
+  liveStatus?: string | null;
 };
 
 /** Cloudflare — 브라우저 WHIP은 WHEP, OBS/RTMP는 HLS lifecycle */
 export async function buildCloudflarePlaybackFields(channel: ChannelSlice) {
   const cfUid = liveInputUidFromIngressId(channel.rtmpIngressId);
-  const browser = channel.broadcastMode === "BROWSER";
-  const hostLive = !!channel.isLive;
+  const browser = channel.broadcastMode !== "OBS";
+  const hostLive = !!channel.isLive && channel.liveStatus !== "ENDED";
 
   if (browser && hostLive && cfUid) {
     const whepPlaybackUrl = await getCloudflareWhepPlaybackUrl(cfUid);

@@ -38,7 +38,6 @@ export function LiveBroadcastPlayer({
     return null;
   });
   const [hlsUrl, setHlsUrl] = useState<string | null>(null);
-  const [whepUrl, setWhepUrl] = useState<string | null>(null);
   const [useWhep, setUseWhep] = useState(false);
   const [resolvedHostId, setResolvedHostId] = useState<string | undefined>(hostUserId);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -83,8 +82,7 @@ export function LiveBroadcastPlayer({
         setEngine("cloudflare");
       }
       setHlsUrl(typeof body.hlsUrl === "string" ? body.hlsUrl : null);
-      setWhepUrl(typeof body.whepPlaybackUrl === "string" ? body.whepPlaybackUrl : null);
-      setUseWhep(!!body.useWhep);
+      setUseWhep(!!body.useWhep || (!!body.hostBroadcasting && body.ingestEngine === "cloudflare"));
       if (typeof body.hostUserId === "string") {
         setResolvedHostId(body.hostUserId);
       }
@@ -132,13 +130,7 @@ export function LiveBroadcastPlayer({
 
   if (engine === "cloudflare") {
     if (useWhep) {
-      return (
-        <LiveCloudflareWhepPlayer
-          channelId={channelId}
-          whepUrl={whepUrl}
-          startDelayMs={4000}
-        />
-      );
+      return <LiveCloudflareWhepPlayer channelId={channelId} startDelayMs={4000} />;
     }
     return <LiveCloudflarePlayer channelId={channelId} hlsUrl={hlsUrl} />;
   }

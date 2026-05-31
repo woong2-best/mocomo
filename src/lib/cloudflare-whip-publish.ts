@@ -49,7 +49,21 @@ export class CloudflareWhipPublisher {
     this.pc = pc;
 
     for (const track of mediaStream.getTracks()) {
-      pc.addTrack(track, mediaStream);
+      const tx = pc.addTransceiver(track, {
+        direction: "sendonly",
+        streams: [mediaStream],
+      });
+      if (track.kind === "video" && typeof RTCRtpSender !== "undefined") {
+        try {
+          const caps = RTCRtpSender.getCapabilities("video");
+          const h264 = caps?.codecs?.filter((c) =>
+            c.mimeType.toLowerCase().includes("h264")
+          );
+          if (h264?.length) tx.setCodecPreferences(h264);
+        } catch {
+          /* 일부 브라우저 미지원 */
+        }
+      }
     }
 
     const offer = await pc.createOffer();

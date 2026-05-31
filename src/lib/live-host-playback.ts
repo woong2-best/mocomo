@@ -16,6 +16,7 @@ export async function buildHostPlaybackPayload(channelId: string, hostUserId: st
       rtmpStreamKey: true,
       broadcastMode: true,
       isLive: true,
+      liveStatus: true,
     },
   });
 
