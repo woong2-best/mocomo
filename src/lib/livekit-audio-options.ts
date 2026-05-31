@@ -53,3 +53,9 @@ export const VOICE_CALL_STABLE_OPTIONS: RoomOptions = {
   ...VOICE_CALL_ROOM_OPTIONS,
   disconnectOnPageLeave: false,
 };
+
+/** 웹 라이브 방송 — 카메라·화면공유·마이크 (OBS 없음) */
+export const LIVE_BROADCAST_ROOM_OPTIONS: RoomOptions = {
+  ...VIDEO_CALL_ROOM_OPTIONS,
+  disconnectOnPageLeave: false,
+};

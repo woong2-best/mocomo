@@ -5,7 +5,7 @@ import {
   probeCloudflareLiveInput,
 } from "@/lib/cloudflare-stream";
 import { resolveChannelIngestEngine } from "@/lib/live-ingest";
-import { probeLivekitObsPublish } from "@/lib/livekit-room-status";
+import { probeLivekitRoomPublish } from "@/lib/livekit-room-status";
 import { buildProxiedFlvPlaybackPath } from "@/lib/srs";
 import { buildProxiedHlsPlaybackPath, probeSrsManifest } from "@/lib/srs-hls-proxy";
 import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
@@ -14,7 +14,12 @@ import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
 export async function buildHostPlaybackPayload(channelId: string, hostUserId: string) {
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
-    select: { rtmpIngressId: true, rtmpUrl: true, rtmpStreamKey: true },
+    select: {
+      rtmpIngressId: true,
+      rtmpUrl: true,
+      rtmpStreamKey: true,
+      broadcastMode: true,
+    },
   });
 
   const engine = channel ? resolveChannelIngestEngine(channel) : resolveChannelIngestEngine({});
@@ -50,7 +55,8 @@ export async function buildHostPlaybackPayload(channelId: string, hostUserId: st
   }
 
   if (engine === "livekit") {
-    const probe = await probeLivekitObsPublish(channelId);
+    const browser = channel?.broadcastMode === "BROWSER";
+    const probe = await probeLivekitRoomPublish(channelId, hostUserId);
     return {
       ok: true as const,
       ingestEngine: "livekit" as const,
@@ -65,10 +71,14 @@ export async function buildHostPlaybackPayload(channelId: string, hostUserId: st
       waiting: !probe.playable,
       tryLoad: true,
       message: probe.playable
-        ? "LiveKit 방송이 연결되었습니다."
+        ? browser
+          ? "브라우저 방송이 연결되었습니다."
+          : "LiveKit 방송이 연결되었습니다."
         : probe.onAir
-          ? "OBS 신호 감지. 영상 준비 중…"
-          : "OBS에서 「방송 시작」을 누르면 화면이 나타납니다.",
+          ? "영상 준비 중…"
+          : browser
+            ? "「방송 시작」을 누르고 카메라·마이크를 허용해 주세요."
+            : "OBS에서 「방송 시작」을 누르면 화면이 나타납니다.",
     };
   }
 

@@ -8,6 +8,7 @@ import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-
 import { CreatorSupportTierCard } from "@/components/support/platform-support-card";
 import { SupportTierLevel } from "@prisma/client";
 import type { getCreatorSupportSummary, getViewerSupportForCreator } from "@/actions/support";
+import { TipCreatorDialog } from "@/components/support/tip-creator-dialog";
 
 export function ProfileSupportBlock({
   creatorId,
@@ -18,6 +19,7 @@ export function ProfileSupportBlock({
   viewerSupport,
   profileReceivedTotal,
   profileReceivedTier,
+  paymentsEnabled,
 }: {
   creatorId: string;
   username: string;
@@ -27,6 +29,7 @@ export function ProfileSupportBlock({
   viewerSupport: Awaited<ReturnType<typeof getViewerSupportForCreator>>;
   profileReceivedTotal: number;
   profileReceivedTier: SupportTierLevel;
+  paymentsEnabled: boolean;
 }) {
   if (summary.totalAmount === 0 && summary.topSupporters.length === 0 && isSelf) {
     return (
@@ -53,11 +56,24 @@ export function ProfileSupportBlock({
               · {summary.supporterCount}명 · {summary.tipCount}회
             </span>
           </div>
-          {isSelf && (
-            <Link href="/support?tab=received" className="text-sm text-primary hover:underline shrink-0">
-              관리 →
-            </Link>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {!isSelf && (
+              <TipCreatorDialog
+                creatorId={creatorId}
+                username={username}
+                displayName={displayName}
+                currentTier={viewerSupport?.tier}
+                currentTotal={viewerSupport?.totalAmount}
+                paymentsEnabled={paymentsEnabled}
+                returnPath={`/u/${username}`}
+              />
+            )}
+            {isSelf && (
+              <Link href="/support?tab=received" className="text-sm text-primary hover:underline">
+                관리 →
+              </Link>
+            )}
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="text-muted-foreground">전체 누적 (받은)</span>

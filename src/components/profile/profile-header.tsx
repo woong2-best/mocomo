@@ -105,6 +105,7 @@ export function ProfileHeader({
                   currentTier={viewerSupport?.tier}
                   currentTotal={viewerSupport?.totalAmount}
                   paymentsEnabled={paymentsEnabled}
+                  returnPath={`/u/${user.username}`}
                 />
                 <StartDmButton userId={user.id} />
               </>

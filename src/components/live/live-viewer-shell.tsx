@@ -66,13 +66,17 @@ export function LiveViewerShell({
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-3 xl:gap-4 items-start">
         <div className="min-w-0 rounded-xl overflow-hidden ring-1 ring-border/50 bg-black">
-          <LiveViewerPlayer channelId={channelId} />
+          <LiveViewerPlayer channelId={channelId} hostUserId={hostUserId} />
         </div>
         <div className="xl:sticky xl:top-16 min-h-[min(70vh,560px)]">
           <LiveChat
             channelId={channelId}
             viewerCount={viewerCount}
             onViewerCount={onViewerCount}
+            hostUserId={hostUserId}
+            hostUsername={hostUsername}
+            hostDisplayName={hostDisplayName}
+            paymentsEnabled={paymentsEnabled}
           />
         </div>
       </div>

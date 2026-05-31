@@ -2,7 +2,7 @@
 
 import { Eye, Radio, Settings2 } from "lucide-react";
 import { LiveChat } from "@/components/live/live-chat";
-import { LiveObsControlCenter } from "@/components/live/live-obs-control-center";
+import { LiveBrowserStudio } from "@/components/live/live-browser-studio";
 import { LiveHostSettings } from "@/components/live/live-host-settings";
 import { LiveObsSettingsPanel } from "@/components/live/live-obs-settings-panel";
 import { liveCategoryLabel } from "@/lib/live-categories";
@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 
-/** 호스트 스튜디오 — OBS 확인 후: 영상 + 채팅 + 설정만 */
+/** 호스트 스튜디오 — 브라우저 송출 + 채팅 + 설정 */
 export function LiveHostStudioShell({
   channelId,
   channelName,
@@ -96,7 +96,7 @@ export function LiveHostStudioShell({
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-0 lg:gap-3 min-h-0 mt-2">
         <div className="min-w-0 lg:min-h-0">
-          <LiveObsControlCenter channelId={channelId} />
+          <LiveBrowserStudio channelId={channelId} />
         </div>
         <div className="min-h-[320px] lg:min-h-0 lg:max-h-[calc(100vh-10rem)] border-t lg:border-t-0 lg:border-l border-border/60 pt-3 lg:pt-0 lg:pl-3">
           <LiveChat

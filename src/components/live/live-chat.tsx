@@ -17,6 +17,7 @@ import {
   useLiveSocket,
 } from "@/hooks/use-live-socket";
 import { ensureArray } from "@/lib/ensure-array";
+import { TipCreatorDialog } from "@/components/support/tip-creator-dialog";
 
 export type LiveChatMessage = {
   id: string;
@@ -36,12 +37,24 @@ function LiveChatInner({
   onViewerCount,
   isHost,
   canModerate,
+  hostUserId,
+  hostUsername,
+  hostDisplayName,
+  viewerSupportTier,
+  viewerSupportTotal,
+  paymentsEnabled,
 }: {
   channelId: string;
   viewerCount: number;
   onViewerCount?: (n: number) => void;
   isHost?: boolean;
   canModerate?: boolean;
+  hostUserId?: string;
+  hostUsername?: string;
+  hostDisplayName?: string;
+  viewerSupportTier?: SupportTierLevel;
+  viewerSupportTotal?: number;
+  paymentsEnabled?: boolean;
 }) {
   const { data: session } = useSession();
   const userId = session?.user?.id;
@@ -291,6 +304,22 @@ function LiveChatInner({
       </div>
       {session?.user ? (
         <div className="p-2.5 border-t border-border/60 shrink-0 space-y-1">
+          {!isHost && hostUserId && hostUsername && (
+            <div className="flex justify-end pb-1">
+              <TipCreatorDialog
+                creatorId={hostUserId}
+                username={hostUsername}
+                displayName={hostDisplayName ?? hostUsername}
+                currentTier={viewerSupportTier}
+                currentTotal={viewerSupportTotal}
+                paymentsEnabled={!!paymentsEnabled}
+                channelId={channelId}
+                returnPath={`/voice/${channelId}`}
+                triggerVariant="outline"
+                triggerSize="sm"
+              />
+            </div>
+          )}
           <div className="flex gap-2">
             <Input
               value={text}

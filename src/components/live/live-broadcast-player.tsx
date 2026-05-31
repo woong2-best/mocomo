@@ -19,10 +19,12 @@ function parseEngine(body: Record<string, unknown>): PlaybackEngine | null {
 export function LiveBroadcastPlayer({
   channelId,
   preferredEngine,
+  hostUserId,
 }: {
   channelId: string;
   /** OBS 패널에서 이미 알고 있는 엔진 (playback 실패 시 SRS로 떨어지지 않게) */
   preferredEngine?: PlaybackEngine | string | null;
+  hostUserId?: string;
 }) {
   const [engine, setEngine] = useState<PlaybackEngine | null>(() => {
     if (
@@ -35,6 +37,7 @@ export function LiveBroadcastPlayer({
     return null;
   });
   const [hlsUrl, setHlsUrl] = useState<string | null>(null);
+  const [resolvedHostId, setResolvedHostId] = useState<string | undefined>(hostUserId);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -77,6 +80,9 @@ export function LiveBroadcastPlayer({
         setEngine("cloudflare");
       }
       setHlsUrl(typeof body.hlsUrl === "string" ? body.hlsUrl : null);
+      if (typeof body.hostUserId === "string") {
+        setResolvedHostId(body.hostUserId);
+      }
     } catch {
       setLoadError("재생 정보를 가져오지 못했습니다");
       if (
@@ -88,6 +94,10 @@ export function LiveBroadcastPlayer({
       }
     }
   }, [channelId, preferredEngine]);
+
+  useEffect(() => {
+    if (hostUserId) setResolvedHostId(hostUserId);
+  }, [hostUserId]);
 
   useEffect(() => {
     void load();
@@ -120,7 +130,9 @@ export function LiveBroadcastPlayer({
   }
 
   if (engine === "livekit") {
-    return <LivekitLivePlayer channelId={channelId} />;
+    return (
+      <LivekitLivePlayer channelId={channelId} hostUserId={resolvedHostId ?? hostUserId} />
+    );
   }
 
   return <LiveSrsPlayer channelId={channelId} />;

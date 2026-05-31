@@ -99,7 +99,9 @@ export function LiveStudioHeader({
             displayName={hostDisplayName ?? hostUsername}
             currentTier={hostTier}
             currentTotal={hostTotalSupport}
-            paymentsEnabled={paymentsEnabled}
+            paymentsEnabled={!!paymentsEnabled}
+            channelId={channelId}
+            returnPath={`/voice/${channelId}`}
           />
         )}
         {isHost && (

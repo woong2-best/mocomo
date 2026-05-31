@@ -9,6 +9,7 @@ import { LISTING_FEE_KRW } from "@/lib/goods-shop";
 import { fulfillPaymentIntent } from "@/lib/payment-fulfillment";
 import { getAppOrigin, getStripe, isStripeConfigured } from "@/lib/stripe";
 import { verifyStripeCheckoutSession } from "@/lib/stripe-checkout";
+import { safeReturnPath } from "@/lib/donation-metadata";
 
 async function validatePaymentInput(
   userId: string,
@@ -157,7 +158,23 @@ export async function confirmStripeCheckout(sessionId: string) {
 
   revalidatePath("/support");
   revalidatePath("/wallet");
-  return { success: true, type: result.type, alreadyPaid: result.alreadyPaid };
+
+  let redirectPath = "/support";
+  if (result.type === "TIP") {
+    const meta = intent.metadata as Record<string, string | undefined>;
+    redirectPath = safeReturnPath(
+      meta.returnPath,
+      meta.username ? `/u/${meta.username}` : "/support"
+    );
+    if (meta.channelId) redirectPath = `/voice/${meta.channelId}`;
+  }
+
+  return {
+    success: true,
+    type: result.type,
+    alreadyPaid: result.alreadyPaid,
+    redirectPath,
+  };
 }
 
 /** @deprecated confirmStripeCheckout 사용 */

@@ -27,7 +27,7 @@ export default edgeAuth((req) => {
   const { pathname } = req.nextUrl;
 
   if (
-    process.env.NEXT_PUBLIC_LIVE_ENABLED !== "true" &&
+    process.env.NEXT_PUBLIC_LIVE_ENABLED === "false" &&
     (pathname.startsWith("/live") || pathname.startsWith("/voice"))
   ) {
     return NextResponse.redirect(new URL("/", req.url));

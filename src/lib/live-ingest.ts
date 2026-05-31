@@ -38,7 +38,11 @@ export function isSrsIngestChannel(channel: { rtmpIngressId?: string | null }): 
 export function resolveChannelIngestEngine(channel: {
   rtmpIngressId?: string | null;
   rtmpUrl?: string | null;
+  broadcastMode?: string | null;
 }): LiveIngestEngine {
+  if (channel.broadcastMode === "BROWSER" && isLivekitIngressConfigured()) {
+    return "livekit";
+  }
   if (isCloudflareIngestChannel(channel)) return "cloudflare";
   const url = channel.rtmpUrl?.trim() ?? "";
   if (url.includes("live.cloudflare.com")) return "cloudflare";

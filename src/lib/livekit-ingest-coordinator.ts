@@ -2,16 +2,27 @@ import { db } from "@/lib/db";
 import { notifyFollowersOnLive } from "@/lib/live-notify";
 import { obsParticipantIdentity } from "@/lib/live-participant";
 
-/** LiveKit OBS 참가자 입장 — LIVE 전환 */
+/** LiveKit 송출자 입장 — LIVE 전환 (OBS RTMP 또는 브라우저 호스트) */
 export async function onLivekitObsJoined(roomName: string, identity: string) {
-  const expected = obsParticipantIdentity(roomName);
-  if (identity !== expected && !identity.startsWith("obs-")) return;
+  const expectedObs = obsParticipantIdentity(roomName);
+  const isObs = identity === expectedObs || identity.startsWith("obs-");
 
   const channel = await db.voiceChannel.findUnique({
     where: { id: roomName },
-    select: { id: true, createdBy: true, name: true, isLive: true },
+    select: {
+      id: true,
+      createdBy: true,
+      name: true,
+      isLive: true,
+      broadcastMode: true,
+    },
   });
   if (!channel) return;
+
+  const isBrowserHost =
+    channel.broadcastMode === "BROWSER" && identity === channel.createdBy;
+  if (!isObs && !isBrowserHost) return;
+  if (channel.broadcastMode === "BROWSER" && isObs) return;
 
   const wasLive = channel.isLive;
   await db.voiceChannel.update({
@@ -24,10 +35,21 @@ export async function onLivekitObsJoined(roomName: string, identity: string) {
   }
 }
 
-/** LiveKit OBS 퇴장 — 오프라인 */
+/** LiveKit 송출자 퇴장 — 오프라인 (브라우저 호스트는 방송 종료 버튼 우선) */
 export async function onLivekitObsLeft(roomName: string, identity: string) {
-  const expected = obsParticipantIdentity(roomName);
-  if (identity !== expected && !identity.startsWith("obs-")) return;
+  const expectedObs = obsParticipantIdentity(roomName);
+  const isObs = identity === expectedObs || identity.startsWith("obs-");
+
+  const channel = await db.voiceChannel.findUnique({
+    where: { id: roomName },
+    select: { createdBy: true, broadcastMode: true },
+  });
+  if (!channel) return;
+
+  const isBrowserHost =
+    channel.broadcastMode === "BROWSER" && identity === channel.createdBy;
+  if (!isObs && !isBrowserHost) return;
+  if (channel.broadcastMode === "BROWSER" && isObs) return;
 
   try {
     await db.voiceChannel.update({

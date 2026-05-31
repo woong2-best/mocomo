@@ -13,7 +13,7 @@ import {
   probeCloudflareLiveInput,
 } from "@/lib/cloudflare-stream";
 import { preferredLiveIngestEngine, resolveChannelIngestEngine } from "@/lib/live-ingest";
-import { probeLivekitObsPublish } from "@/lib/livekit-room-status";
+import { probeLivekitRoomPublish } from "@/lib/livekit-room-status";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,7 +36,12 @@ export async function GET(
   try {
     const channel = await db.voiceChannel.findUnique({
       where: { id: channelId },
-      select: { createdBy: true, rtmpIngressId: true, rtmpUrl: true },
+      select: {
+        createdBy: true,
+        rtmpIngressId: true,
+        rtmpUrl: true,
+        broadcastMode: true,
+      },
     });
     if (!channel) {
       return NextResponse.json({ error: "방송을 찾을 수 없습니다." }, { status: 404 });
@@ -102,20 +107,24 @@ export async function GET(
     }
 
     if (ingestEngine === "livekit") {
-      const probe = await probeLivekitObsPublish(channelId);
+      const probe = await probeLivekitRoomPublish(channelId, channel.createdBy);
+      const browser = channel.broadcastMode === "BROWSER";
       return NextResponse.json({
         ok: true,
         ingestEngine: "livekit",
         engine: "livekit",
         hlsUrl: null,
         livekitRoom: channelId,
+        hostUserId: channel.createdBy,
         srsOnAir: probe.onAir,
         srsPlayable: probe.playable,
         waiting: !probe.playable,
         tryLoad: true,
         message: probe.playable
           ? "방송 중"
-          : "방송이 시작되면 화면이 나타납니다.",
+          : browser
+            ? "스트리머가 방송을 시작하면 화면이 나타납니다."
+            : "방송이 시작되면 화면이 나타납니다.",
       });
     }
 

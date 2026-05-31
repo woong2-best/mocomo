@@ -18,8 +18,9 @@ import { OreIcon } from "@/components/support/ore-icon";
 import { getTierInfo, tierFromAmount } from "@/lib/tiers";
 import { SupportTierLevel } from "@prisma/client";
 import { calcPlatformFee } from "@/lib/utils";
+import { tipMetadataForCheckout } from "@/lib/donation-metadata";
 
-const PRESETS = [10_000, 30_000, 50_000, 100_000, 300_000, 500_000];
+const PRESETS = [1_000, 5_000, 10_000, 30_000, 50_000, 100_000];
 
 export function TipCreatorDialog({
   creatorId,
@@ -28,6 +29,10 @@ export function TipCreatorDialog({
   currentTier,
   currentTotal,
   paymentsEnabled,
+  channelId,
+  returnPath,
+  triggerVariant = "default",
+  triggerSize = "default",
 }: {
   creatorId: string;
   username: string;
@@ -35,6 +40,12 @@ export function TipCreatorDialog({
   currentTier?: SupportTierLevel | null;
   currentTotal?: number;
   paymentsEnabled: boolean;
+  /** 라이브 방송 중 후원 시 채널 ID */
+  channelId?: string;
+  /** 결제 완료 후 돌아올 경로 (예: /u/name, /voice/xxx) */
+  returnPath?: string;
+  triggerVariant?: "default" | "outline" | "secondary";
+  triggerSize?: "default" | "sm";
 }) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(10_000);
@@ -46,11 +57,22 @@ export function TipCreatorDialog({
   const creatorGets = effectiveAmount - fee;
   const projectedTotal = (currentTotal ?? 0) + effectiveAmount;
 
+  const triggerClass =
+    triggerVariant === "default"
+      ? "rounded-full font-bold gap-1.5 bg-gradient-to-r from-pink-500 to-violet-500 hover:opacity-90 text-white border-0"
+      : "rounded-full font-bold gap-1.5";
+
   if (!paymentsEnabled) {
     return (
-      <Button disabled className="rounded-full font-bold gap-1.5 opacity-60">
+      <Button
+        disabled
+        variant={triggerVariant}
+        size={triggerSize}
+        className={`${triggerClass} opacity-60`}
+        title="Stripe 키가 설정되지 않았습니다"
+      >
         <Gem className="h-4 w-4" />
-        후원 (결제 미설정)
+        후원 준비 중
       </Button>
     );
   }
@@ -58,7 +80,7 @@ export function TipCreatorDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="rounded-full font-bold gap-1.5 bg-gradient-to-r from-pink-500 to-violet-500 hover:opacity-90 text-white border-0">
+        <Button variant={triggerVariant} size={triggerSize} className={triggerClass}>
           <Gem className="h-4 w-4" />
           후원
         </Button>
@@ -130,7 +152,13 @@ export function TipCreatorDialog({
           type="TIP"
           amount={effectiveAmount}
           orderName={`${displayName} 후원`}
-          metadata={{ receiverId: creatorId, message: message.trim(), username }}
+          metadata={tipMetadataForCheckout({
+            receiverId: creatorId,
+            message: message.trim(),
+            username,
+            channelId,
+            returnPath,
+          })}
           disabled={effectiveAmount < 100}
           className="w-full rounded-xl gap-2 h-11"
         >

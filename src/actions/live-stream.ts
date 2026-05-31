@@ -149,7 +149,7 @@ export async function createLiveStream(data: {
       description: data.description?.trim().slice(0, 500) || null,
       scheduledAt: isScheduled ? scheduledAt : null,
       donationGoalKrw: Number.isFinite(goalRaw) && goalRaw > 0 ? goalRaw : null,
-      broadcastMode: data.broadcastMode ?? "OBS",
+      broadcastMode: data.broadcastMode ?? "BROWSER",
       members: {
         create: {
           userId: user.id,
@@ -238,21 +238,10 @@ export async function startScheduledLiveStream(channelId: string) {
     },
   });
   await upsertLiveMember(channelId, user.id, "HOST");
-  try {
-    const streamKey = await getOrCreateUserObsStreamKey(user.id);
-    const rtmpUrl = getSrsRtmpUrl();
-    await db.voiceChannel.update({
-      where: { id: channelId },
-      data: {
-        broadcastMode: "OBS",
-        rtmpStreamKey: streamKey,
-        rtmpIngressId: `srs:${streamKey}`,
-        rtmpUrl,
-      },
-    });
-  } catch {
-    /* ignore */
-  }
+  await db.voiceChannel.update({
+    where: { id: channelId },
+    data: { broadcastMode: "BROWSER" },
+  });
   revalidatePath("/live");
   return { joinPassword, channelId };
 }
@@ -323,7 +312,45 @@ export async function enterLiveAsHost(channelId: string) {
   }
 
   await upsertLiveMember(channelId, user.id, "HOST");
+  await db.voiceChannel.update({
+    where: { id: channelId },
+    data: { broadcastMode: "BROWSER" },
+  });
   return { success: true as const, role: "HOST" as const };
+}
+
+/** 브라우저(웹캠·화면공유) 방송 시작 — 유튜브·치지직처럼 앱 안에서 송출 */
+export async function startBrowserLiveBroadcast(channelId: string) {
+  const user = await requireAuth();
+  const channel = await db.voiceChannel.findUnique({
+    where: { id: channelId },
+    select: { createdBy: true, liveStatus: true, name: true, isLive: true },
+  });
+  if (!channel || channel.createdBy !== user.id) {
+    return { error: "호스트만 방송을 시작할 수 있습니다." };
+  }
+  if (channel.liveStatus === "ENDED") {
+    return { error: "종료된 방송입니다. 새 방송을 만들어 주세요." };
+  }
+
+  const wasLive = channel.isLive;
+  await db.voiceChannel.update({
+    where: { id: channelId },
+    data: {
+      isLive: true,
+      liveStatus: "LIVE",
+      broadcastMode: "BROWSER",
+    },
+  });
+
+  if (!wasLive) {
+    const { notifyFollowersOnLive } = await import("@/lib/live-notify");
+    void notifyFollowersOnLive(user.id, channelId, channel.name).catch(() => {});
+  }
+
+  revalidatePath("/live");
+  revalidatePath(`/voice/${channelId}`);
+  return { success: true as const };
 }
 
 /** 시청 입장 — 공개 방송은 누구나, 비공개는 등급 충족 시청자만 (LIVE 중만) */
@@ -348,7 +375,7 @@ export async function enterLiveAsViewer(channelId: string) {
       error:
         channel.liveStatus === "ENDED"
           ? "종료된 방송입니다."
-          : "아직 방송이 시작되지 않았습니다. OBS 송출이 시작될 때까지 기다려 주세요.",
+          : "아직 방송이 시작되지 않았습니다. 잠시 후 다시 시도해 주세요.",
     };
   }
 
@@ -626,7 +653,7 @@ export async function setLiveBroadcastMode(channelId: string, mode: LiveBroadcas
     where: { id: channelId },
     select: { createdBy: true, isLive: true },
   });
-  if (!channel || channel.createdBy !== user.id || !channel.isLive) {
+  if (!channel || channel.createdBy !== user.id) {
     return { error: "호스트만 송출 방식을 변경할 수 있습니다." };
   }
   await db.voiceChannel.update({

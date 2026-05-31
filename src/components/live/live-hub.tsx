@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
 
 const FEATURES = [
-  { icon: Video, label: "OBS · SRS 송출" },
+  { icon: Video, label: "웹캠 · 화면공유" },
   { icon: MessageSquare, label: "실시간 채팅" },
   { icon: Shield, label: "슬로우·금칙어" },
   { icon: Eye, label: "후원·시청자" },
@@ -93,7 +93,7 @@ export function LiveHub({
               라이브
             </h1>
             <p className="text-sm text-muted-foreground max-w-lg">
-              실시간 방송 · OBS(RTMP) · HLS 시청 · 후원·채팅. 스트리머마다 독립 방으로 운영됩니다.
+              브라우저에서 바로 방송(유튜브·치지직 방식) · 실시간 시청 · 후원·채팅. 스트리머마다 독립 방입니다.
             </p>
             <div className="flex flex-wrap gap-2">
               {FEATURES.map(({ icon: Icon, label }) => (

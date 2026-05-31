@@ -22,7 +22,8 @@ async function fulfillTip(
   receiverId: string,
   amount: number,
   message?: string,
-  paymentIntentId?: string
+  paymentIntentId?: string,
+  channelId?: string
 ) {
   const receiver = await db.user.findUnique({
     where: { id: receiverId },
@@ -109,6 +110,13 @@ async function fulfillTip(
   });
 
   revalidatePath(`/u/${receiver.username}`);
+  revalidatePath("/support");
+  revalidatePath("/wallet");
+  revalidatePath("/rankings");
+  if (channelId) {
+    revalidatePath(`/voice/${channelId}`);
+    revalidatePath("/live");
+  }
   return { success: true };
 }
 
@@ -135,7 +143,14 @@ export async function fulfillPaymentIntent(
   await recordPaymentGross(amount, intent.id, intent.type);
 
   if (intent.type === "TIP") {
-    const r = await fulfillTip(userId, meta.receiverId, amount, meta.message, intent.id);
+    const r = await fulfillTip(
+      userId,
+      meta.receiverId,
+      amount,
+      meta.message,
+      intent.id,
+      meta.channelId
+    );
     if ("error" in r && r.error) return { ok: false, error: r.error };
   }
 

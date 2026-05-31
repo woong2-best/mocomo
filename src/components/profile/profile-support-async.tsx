@@ -4,6 +4,7 @@ import {
   getViewerSupportForCreator,
 } from "@/actions/support";
 import { ProfileSupportBlock } from "@/components/support/profile-support-block";
+import { isPaymentsConfigured } from "@/lib/payments";
 
 /** 후원·팁 요약 — 타임라인 다음에 스트리밍 */
 export async function ProfileSupportAsync({ username }: { username: string }) {
@@ -25,6 +26,7 @@ export async function ProfileSupportAsync({ username }: { username: string }) {
       viewerSupport={viewerSupport}
       profileReceivedTotal={header.user.totalSupportReceived}
       profileReceivedTier={header.user.supportTierReceived}
+      paymentsEnabled={isPaymentsConfigured()}
     />
   );
 }

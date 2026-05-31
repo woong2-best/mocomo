@@ -7,7 +7,8 @@ import {
   probeCloudflareLiveInput,
 } from "@/lib/cloudflare-stream";
 import { resolveChannelIngestEngine } from "@/lib/live-ingest";
-import { probeLivekitObsPublish } from "@/lib/livekit-room-status";
+import { probeLivekitRoomPublish } from "@/lib/livekit-room-status";
+import { isLivekitIngressConfigured } from "@/lib/livekit-ingress";
 import { probeSrsManifest, buildProxiedHlsPlaybackPath, upstreamHlsManifestUrl } from "@/lib/srs-hls-proxy";
 import { getSrsHlsBaseUrl } from "@/lib/srs";
 import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
@@ -32,6 +33,7 @@ export async function GET(
       rtmpIngressId: true,
       rtmpUrl: true,
       rtmpStreamKey: true,
+      broadcastMode: true,
     },
   });
 
@@ -42,9 +44,18 @@ export async function GET(
     return NextResponse.json({ error: "호스트만 확인할 수 있습니다." }, { status: 403 });
   }
 
-  const configErr = obsConfigError();
-  if (configErr) {
-    return NextResponse.json({ ok: false, configured: false, error: configErr });
+  const browser = channel.broadcastMode === "BROWSER";
+  if (!browser) {
+    const configErr = obsConfigError();
+    if (configErr) {
+      return NextResponse.json({ ok: false, configured: false, error: configErr });
+    }
+  } else if (!isLivekitIngressConfigured()) {
+    return NextResponse.json({
+      ok: false,
+      configured: false,
+      error: "LiveKit이 설정되지 않았습니다. LIVEKIT_* 환경 변수를 확인하세요.",
+    });
   }
 
   if (resolveChannelIngestEngine(channel) === "cloudflare") {
@@ -74,7 +85,7 @@ export async function GET(
   }
 
   if (resolveChannelIngestEngine(channel) === "livekit") {
-    const probe = await probeLivekitObsPublish(channelId);
+    const probe = await probeLivekitRoomPublish(channelId, channel.createdBy);
     const keyTail = channel.rtmpStreamKey?.length
       ? `…${channel.rtmpStreamKey.slice(-8)}`
       : "****";
@@ -83,15 +94,19 @@ export async function GET(
       ok: true,
       ingestEngine: "livekit",
       hasStreamKey: !!channel.rtmpStreamKey,
-      onAir: probe.onAir,
+      onAir: probe.onAir || channel.isLive,
       playable: probe.playable,
       streamKeyHint: keyTail,
       message: probe.playable
-        ? "LiveKit 방송 연결됨. 미리보기 재생 중."
-        : probe.onAir
-          ? "OBS 신호 감지. 영상 준비 중…"
-          : "OBS에서 「방송 시작」을 누르세요. (메인 OBS 방송 버튼)",
-      note: "LiveKit Cloud 사용 — VPS RTMP(45.32.16.32)가 아닌, 위에 표시된 LiveKit 서버/키를 OBS에 넣으세요.",
+        ? browser
+          ? "브라우저 방송 연결됨."
+          : "LiveKit 방송 연결됨."
+        : browser
+          ? "「방송 시작」 후 카메라·마이크를 허용해 주세요."
+          : "OBS에서 「방송 시작」을 누르세요.",
+      note: browser
+        ? "웹캠·화면 공유 — OBS 불필요"
+        : "LiveKit RTMP(OBS) — VPS 키 사용 금지",
     });
   }
 

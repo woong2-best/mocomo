@@ -1,7 +1,7 @@
 import { RoomServiceClient } from "livekit-server-sdk";
 import { getLivekitApiHost } from "@/lib/livekit-host";
 import { isLivekitIngressConfigured } from "@/lib/livekit-ingress";
-import { obsParticipantIdentity } from "@/lib/live-participant";
+import { livePublisherIdentities, obsParticipantIdentity } from "@/lib/live-participant";
 
 function createRoomClient() {
   return new RoomServiceClient(
@@ -11,10 +11,14 @@ function createRoomClient() {
   );
 }
 
-/** LiveKit 방에 OBS(RTMP) 참가자가 있는지 */
-export async function probeLivekitObsPublish(channelId: string): Promise<{
+/** LiveKit 방 — 브라우저 호스트 또는 OBS(RTMP) 송출 여부 */
+export async function probeLivekitRoomPublish(
+  channelId: string,
+  hostUserId?: string
+): Promise<{
   onAir: boolean;
   playable: boolean;
+  publisherIdentity?: string;
 }> {
   if (!isLivekitIngressConfigured()) {
     return { onAir: false, playable: false };
@@ -23,14 +27,28 @@ export async function probeLivekitObsPublish(channelId: string): Promise<{
   try {
     const client = createRoomClient();
     const participants = await client.listParticipants(channelId);
-    const obsId = obsParticipantIdentity(channelId);
-    const obs = participants.find((p) => p.identity === obsId);
-    if (!obs) return { onAir: false, playable: false };
+    const identities = hostUserId
+      ? livePublisherIdentities(channelId, hostUserId)
+      : [obsParticipantIdentity(channelId)];
 
-    const hasMedia = (obs.tracks?.length ?? 0) > 0;
-    return { onAir: true, playable: hasMedia };
+    for (const id of identities) {
+      const p = participants.find((x) => x.identity === id);
+      if (!p) continue;
+      const trackCount = p.tracks?.length ?? 0;
+      return {
+        onAir: true,
+        playable: trackCount > 0,
+        publisherIdentity: id,
+      };
+    }
+    return { onAir: false, playable: false };
   } catch (e) {
-    console.warn("[probeLivekitObsPublish]", channelId, e);
+    console.warn("[probeLivekitRoomPublish]", channelId, e);
     return { onAir: false, playable: false };
   }
+}
+
+/** @deprecated OBS 전용 — probeLivekitRoomPublish 사용 */
+export async function probeLivekitObsPublish(channelId: string) {
+  return probeLivekitRoomPublish(channelId);
 }
