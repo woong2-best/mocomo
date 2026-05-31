@@ -123,8 +123,11 @@ model User {
   physicalProducts PhysicalProduct[]
   physicalOrdersBought PhysicalOrder[] @relation("PhysicalOrderBuyer")
   physicalOrdersSold PhysicalOrder[] @relation("PhysicalOrderSeller")
-  usedListings  UsedListing[]
-  usedFavorites UsedFavorite[]
+  usedListings     UsedListing[]
+  usedFavorites    UsedFavorite[]
+  usedListingChats UsedListingChat[] @relation("UsedListingChatBuyer")
+  usedAuctionBids  UsedAuctionBid[]
+  usedAuctionWins  UsedListing[]     @relation("UsedAuctionWinner")
   userBadges    UserBadge[]
   notifications Notification[]
   events        EventParticipant[]
@@ -1141,6 +1144,17 @@ enum UsedListingStatus {
   SOLD
 }
 
+enum UsedSaleType {
+  FIXED
+  AUCTION
+}
+
+enum UsedAuctionState {
+  LIVE
+  ENDED
+  CANCELLED
+}
+
 enum UsedListingCategory {
   DIGITAL
   FIGURE
@@ -1156,21 +1170,56 @@ model UsedListing {
   sellerId    String
   title       String
   description String              @db.Text
+  /** 일반 판매가 또는 경매 시작가 */
   price       Int
   category    UsedListingCategory @default(OTHER)
   status      UsedListingStatus   @default(SELLING)
+  saleType    UsedSaleType        @default(FIXED)
   region      String
+  meetPlace   String?             @db.VarChar(200)
   images      Json
   viewCount   Int                 @default(0)
+  /** 경매 종료 시각 (saleType=AUCTION) */
+  auctionEndsAt    DateTime?
+  bidIncrement     Int?
+  buyNowPrice      Int?
+  /** 최저 낙찰가 — 미달 시 유찰 */
+  reservePrice     Int?
+  currentBidAmount Int?
+  currentBidderId  String?
+  auctionState     UsedAuctionState?
+  bidCount         Int                 @default(0)
+  /** 마감 직전 입찰 시 연장(분) */
+  antiSnipeMinutes Int                 @default(5)
+  /** 마감 연장 사용 횟수 (최대 5회) */
+  auctionExtensionCount Int            @default(0)
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
   seller      User                @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  currentBidder User?             @relation("UsedAuctionWinner", fields: [currentBidderId], references: [id], onDelete: SetNull)
   favorites   UsedFavorite[]
+  tradeChats  UsedListingChat[]
+  auctionBids UsedAuctionBid[]
 
   @@index([status, createdAt])
   @@index([sellerId])
   @@index([category])
   @@index([region])
+  @@index([saleType, auctionEndsAt])
+  @@index([auctionState])
+}
+
+model UsedAuctionBid {
+  id        String      @id @default(cuid())
+  listingId String
+  bidderId  String
+  amount    Int
+  createdAt DateTime    @default(now())
+  listing   UsedListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  bidder    User        @relation(fields: [bidderId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, createdAt(sort: Desc)])
+  @@index([bidderId, createdAt(sort: Desc)])
 }
 
 model UsedFavorite {
@@ -1182,6 +1231,20 @@ model UsedFavorite {
   listing   UsedListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
   @@unique([userId, listingId])
+}
+
+/** 중고거래 글별 1:1 채팅 (구매자–판매자) */
+model UsedListingChat {
+  id        String      @id @default(cuid())
+  listingId String
+  roomId    String      @unique
+  buyerId   String
+  createdAt DateTime    @default(now())
+  listing   UsedListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyer     User        @relation("UsedListingChatBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, buyerId])
+  @@index([listingId])
 }
 
 model AdSlot {

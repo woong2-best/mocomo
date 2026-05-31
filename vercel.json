@@ -1,9 +1,18 @@
 {
   "buildCommand": "npm run vercel-build",
   "installCommand": "npm install",
+  "crons": [
+    {
+      "path": "/api/cron/used-auctions",
+      "schedule": "*/5 * * * *"
+    }
+  ],
   "functions": {
     "src/app/api/live/[channelId]/flv/route.ts": {
       "maxDuration": 300
+    },
+    "src/app/api/cron/used-auctions/route.ts": {
+      "maxDuration": 60
     }
   }
 }

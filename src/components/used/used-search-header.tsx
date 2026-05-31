@@ -48,15 +48,27 @@ export function UsedSearchHeader() {
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
         <button
           type="button"
-          onClick={() => apply({ category: null })}
+          onClick={() => apply({ category: null, mode: null })}
           className={cn(
             "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium",
-            !searchParams.get("category")
+            !searchParams.get("category") && searchParams.get("mode") !== "auction"
               ? "bg-foreground text-background"
               : "bg-muted border border-border"
           )}
         >
           전체
+        </button>
+        <button
+          type="button"
+          onClick={() => apply({ mode: "auction", category: null })}
+          className={cn(
+            "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap",
+            searchParams.get("mode") === "auction"
+              ? "bg-orange-600 text-white"
+              : "bg-muted border border-border"
+          )}
+        >
+          🔨 경매
         </button>
         {USED_CATEGORIES.map((c) => (
           <button

@@ -390,12 +390,30 @@ export default function NewVoicePage() {
             <Input name="thumbnailUrl" placeholder="썸네일 URL (선택)" />
             <Input name="description" placeholder="방송 설명 (선택)" />
             <Input name="donationGoalKrw" type="number" placeholder="후원 목표 원 (선택)" min={1000} step={1000} />
-            <details className="text-xs text-muted-foreground">
-              <summary className="cursor-pointer">예약 방송 (선택)</summary>
-              <Input name="scheduledAt" type="datetime-local" className="mt-2" />
-              <p className="mt-1">비우면 즉시 라이브 시작 + 합방 비밀번호 발급</p>
+            <label className="block space-y-1.5">
+              <span className="text-xs font-medium text-foreground">최대 시청자</span>
+              <Input
+                name="maxUsers"
+                type="number"
+                min={1}
+                max={5000}
+                defaultValue={200}
+                className="rounded-xl"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                이 방에 동시에 들어올 수 있는 시청자 수 (기본 200명)
+              </p>
+            </label>
+            <details className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+              <summary className="cursor-pointer font-medium text-foreground">
+                나중에 시작 — 예약 방송 (선택)
+              </summary>
+              <div className="mt-2 space-y-1.5">
+                <span className="text-[10px] text-muted-foreground">시작 날짜·시간</span>
+                <Input name="scheduledAt" type="datetime-local" className="rounded-xl" />
+                <p>비우면 지금 바로 방송 준비. 시간을 넣으면 /live 에 예약 목록으로만 올라갑니다.</p>
+              </div>
             </details>
-            <Input name="maxUsers" type="number" placeholder="최대 시청자" defaultValue={200} />
             <Button type="submit" className="w-full rounded-xl gap-2" disabled={loading}>
               <Radio className="h-4 w-4" />
               {loading ? "만드는 중…" : "방송 시작"}

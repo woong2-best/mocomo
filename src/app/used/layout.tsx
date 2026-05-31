@@ -18,6 +18,9 @@ export default function UsedLayout({ children }: { children: React.ReactNode }) 
         </div>
         <nav className="flex items-center gap-2 shrink-0">
           <Button variant="outline" size="sm" asChild>
+            <Link href="/used?mode=auction">경매</Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
             <Link href="/used/my">내 거래</Link>
           </Button>
           <Button variant="secondary" size="sm" asChild>

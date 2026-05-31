@@ -44,10 +44,24 @@ export function formatUsedTimeAgo(date: Date | string) {
 export function usedStatusLabel(status: string) {
   if (status === "RESERVED") return "예약중";
   if (status === "SOLD") return "거래완료";
+  if (status === "SELLING") return "판매중";
   return "";
+}
+
+export const USED_STATUS_OPTIONS = [
+  { value: "SELLING" as const, label: "판매중" },
+  { value: "RESERVED" as const, label: "예약중" },
+  { value: "SOLD" as const, label: "거래완료" },
+];
+
+export function usedMapSearchUrl(region: string, meetPlace?: string | null) {
+  const q = [meetPlace?.trim(), region].filter(Boolean).join(" ");
+  return `https://map.kakao.com/?q=${encodeURIComponent(q || region)}`;
 }
 
 export function listingImages(images: unknown): string[] {
   if (Array.isArray(images)) return images.filter((x): x is string => typeof x === "string");
   return [];
 }
+
+export { isAuctionListing, displayAuctionPrice, formatAuctionCountdown } from "@/lib/used-auction";

@@ -341,6 +341,49 @@ CREATE INDEX IF NOT EXISTS "UsedListing_status_createdAt_idx" ON "UsedListing"("
 CREATE INDEX IF NOT EXISTS "UsedListing_sellerId_idx" ON "UsedListing"("sellerId");
 CREATE INDEX IF NOT EXISTS "UsedListing_category_idx" ON "UsedListing"("category");
 CREATE INDEX IF NOT EXISTS "UsedListing_region_idx" ON "UsedListing"("region");
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "meetPlace" VARCHAR(200);
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "saleType" TEXT NOT NULL DEFAULT 'FIXED';
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "auctionEndsAt" TIMESTAMP(3);
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "bidIncrement" INTEGER;
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "buyNowPrice" INTEGER;
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "reservePrice" INTEGER;
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "currentBidAmount" INTEGER;
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "currentBidderId" TEXT;
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "auctionState" TEXT;
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "bidCount" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "antiSnipeMinutes" INTEGER NOT NULL DEFAULT 5;
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "auctionExtensionCount" INTEGER NOT NULL DEFAULT 0;
+CREATE INDEX IF NOT EXISTS "UsedListing_saleType_auctionEndsAt_idx" ON "UsedListing"("saleType", "auctionEndsAt");
+CREATE INDEX IF NOT EXISTS "UsedListing_auctionState_idx" ON "UsedListing"("auctionState");
+
+CREATE TABLE IF NOT EXISTS "UsedAuctionBid" (
+  "id" TEXT NOT NULL,
+  "listingId" TEXT NOT NULL,
+  "bidderId" TEXT NOT NULL,
+  "amount" INTEGER NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "UsedAuctionBid_pkey" PRIMARY KEY ("id")
+);
+CREATE INDEX IF NOT EXISTS "UsedAuctionBid_listingId_createdAt_idx" ON "UsedAuctionBid"("listingId", "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "UsedAuctionBid_bidderId_createdAt_idx" ON "UsedAuctionBid"("bidderId", "createdAt" DESC);
+
+DO $$ BEGIN
+  ALTER TABLE "UsedAuctionBid" ADD CONSTRAINT "UsedAuctionBid_listingId_fkey"
+    FOREIGN KEY ("listingId") REFERENCES "UsedListing"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "UsedAuctionBid" ADD CONSTRAINT "UsedAuctionBid_bidderId_fkey"
+    FOREIGN KEY ("bidderId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "UsedListing" ADD CONSTRAINT "UsedListing_currentBidderId_fkey"
+    FOREIGN KEY ("currentBidderId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE TABLE IF NOT EXISTS "UsedFavorite" (
   "id" TEXT NOT NULL,
@@ -366,6 +409,30 @@ END $$;
 DO $$ BEGIN
   ALTER TABLE "UsedFavorite" ADD CONSTRAINT "UsedFavorite_listingId_fkey"
     FOREIGN KEY ("listingId") REFERENCES "UsedListing"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS "UsedListingChat" (
+  "id" TEXT NOT NULL,
+  "listingId" TEXT NOT NULL,
+  "roomId" TEXT NOT NULL,
+  "buyerId" TEXT NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "UsedListingChat_pkey" PRIMARY KEY ("id")
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "UsedListingChat_roomId_key" ON "UsedListingChat"("roomId");
+CREATE UNIQUE INDEX IF NOT EXISTS "UsedListingChat_listingId_buyerId_key" ON "UsedListingChat"("listingId", "buyerId");
+CREATE INDEX IF NOT EXISTS "UsedListingChat_listingId_idx" ON "UsedListingChat"("listingId");
+
+DO $$ BEGIN
+  ALTER TABLE "UsedListingChat" ADD CONSTRAINT "UsedListingChat_listingId_fkey"
+    FOREIGN KEY ("listingId") REFERENCES "UsedListing"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "UsedListingChat" ADD CONSTRAINT "UsedListingChat_buyerId_fkey"
+    FOREIGN KEY ("buyerId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 

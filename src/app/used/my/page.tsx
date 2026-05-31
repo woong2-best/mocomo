@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getMyUsedDashboard } from "@/actions/used-market";
+import { getMyUsedAuctionBids } from "@/actions/used-auction";
+import { formatUsedPrice } from "@/lib/used-market";
+import { isAuctionListing } from "@/lib/used-auction";
 import { UsedListingCard } from "@/components/used/used-listing-card";
 import { ChevronLeft } from "lucide-react";
 
@@ -9,7 +12,10 @@ export default async function UsedMyPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/used/my");
 
-  const { selling, reserved, sold, favorites } = await getMyUsedDashboard();
+  const [{ selling, reserved, sold, favorites }, { bids: myBids }] = await Promise.all([
+    getMyUsedDashboard(),
+    getMyUsedAuctionBids(),
+  ]);
 
   return (
     <div className="py-4 space-y-8 max-w-lg mx-auto">
@@ -51,6 +57,32 @@ export default async function UsedMyPage() {
               <UsedListingCard key={l.id} listing={l} />
             ))}
           </div>
+        </section>
+      )}
+
+      {myBids.length > 0 && (
+        <section>
+          <h2 className="text-sm font-semibold text-orange-600 dark:text-orange-400 mb-3">
+            내 입찰 ({myBids.length})
+          </h2>
+          <ul className="space-y-2">
+            {myBids.map((b) => (
+              <li key={b.id}>
+                <Link
+                  href={`/used/${b.listing.id}`}
+                  className="block p-3 rounded-xl border bg-card hover:bg-muted/50"
+                >
+                  <p className="font-medium text-sm line-clamp-1">{b.listing.title}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    내 입찰 {formatUsedPrice(b.amount)}
+                    {isAuctionListing(b.listing) && b.listing.currentBidderId === session.user.id
+                      ? " · 최고가"
+                      : ""}
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 

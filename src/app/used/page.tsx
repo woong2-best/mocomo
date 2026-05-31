@@ -10,10 +10,23 @@ import { Button } from "@/components/ui/button";
 async function UsedFeed({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; category?: string; region?: string; sido?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    category?: string;
+    region?: string;
+    sido?: string;
+    mode?: string;
+  }>;
 }) {
-  const { q, category, region, sido } = await searchParams;
-  const listings = await getUsedListings({ q, category, region, sido, status: "SELLING" });
+  const { q, category, region, sido, mode } = await searchParams;
+  const listings = await getUsedListings({
+    q,
+    category,
+    region,
+    sido,
+    status: "SELLING",
+    liveAuctionOnly: mode === "auction",
+  });
 
   if (listings.length === 0) {
     return (
@@ -41,7 +54,13 @@ async function UsedFeed({
 export default async function UsedHomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; category?: string; region?: string; sido?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    category?: string;
+    region?: string;
+    sido?: string;
+    mode?: string;
+  }>;
 }) {
   const dbReady = await isUsedDbReady();
 
