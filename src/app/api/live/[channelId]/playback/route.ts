@@ -108,7 +108,6 @@ export async function GET(
 
     if (ingestEngine === "livekit") {
       const probe = await probeLivekitRoomPublish(channelId, channel.createdBy);
-      const browser = channel.broadcastMode === "BROWSER";
       return NextResponse.json({
         ok: true,
         ingestEngine: "livekit",
@@ -122,9 +121,7 @@ export async function GET(
         tryLoad: true,
         message: probe.playable
           ? "방송 중"
-          : browser
-            ? "스트리머가 방송을 시작하면 화면이 나타납니다."
-            : "방송이 시작되면 화면이 나타납니다.",
+          : "방송이 시작되면 화면이 나타납니다.",
       });
     }
 

@@ -326,8 +326,8 @@ export default function NewVoicePage() {
             <div className="flex items-center gap-2 rounded-xl border bg-muted/40 px-3 py-2.5 text-xs text-muted-foreground">
               <Video className="h-4 w-4 shrink-0 text-primary" />
               <span>
-                브라우저에서 <strong className="text-foreground">웹캠·화면 공유</strong>로 바로 방송합니다 (유튜브·치지직
-                방식). OBS 설치·연결은 필요 없습니다.
+                브라우저에서 <strong className="text-foreground">웹캠·화면 공유</strong>로 Cloudflare CDN에 바로
+                송출합니다. OBS·LiveKit 없이 MoCoMo 안에서만 방송합니다.
               </span>
             </div>
             <div className="space-y-2">

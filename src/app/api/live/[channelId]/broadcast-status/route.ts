@@ -8,7 +8,6 @@ import {
 } from "@/lib/cloudflare-stream";
 import { resolveChannelIngestEngine } from "@/lib/live-ingest";
 import { probeLivekitRoomPublish } from "@/lib/livekit-room-status";
-import { isLivekitIngressConfigured } from "@/lib/livekit-ingress";
 import { probeSrsManifest, buildProxiedHlsPlaybackPath, upstreamHlsManifestUrl } from "@/lib/srs-hls-proxy";
 import { getSrsHlsBaseUrl } from "@/lib/srs";
 import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
@@ -50,12 +49,6 @@ export async function GET(
     if (configErr) {
       return NextResponse.json({ ok: false, configured: false, error: configErr });
     }
-  } else if (!isLivekitIngressConfigured()) {
-    return NextResponse.json({
-      ok: false,
-      configured: false,
-      error: "LiveKit이 설정되지 않았습니다. LIVEKIT_* 환경 변수를 확인하세요.",
-    });
   }
 
   if (resolveChannelIngestEngine(channel) === "cloudflare") {
@@ -78,9 +71,13 @@ export async function GET(
       message: probe.playable
         ? "Cloudflare 방송 연결됨. 미리보기 재생 중."
         : probe.onAir
-          ? "OBS 송출 감지 · CDN HLS 준비 중…"
-          : "OBS에서 「방송 시작」 (서버: live.cloudflare.com)",
-      note: "Cloudflare Stream — Vultr(45.32.16.32)·LiveKit 방송 키 사용 금지",
+          ? "송출 감지 · CDN HLS 준비 중…"
+          : browser
+            ? "「방송 시작」 후 카메라·마이크를 허용해 주세요."
+            : "OBS에서 「방송 시작」 (서버: live.cloudflare.com)",
+      note: browser
+        ? "브라우저 WHIP → Cloudflare CDN HLS"
+        : "Cloudflare Stream RTMPS(OBS)",
     });
   }
 

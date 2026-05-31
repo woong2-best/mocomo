@@ -187,6 +187,13 @@ export async function createLiveStream(data: {
       console.warn("[createLiveStream] streamerProfile", profileErr);
     }
 
+    try {
+      const { provisionObsIngress } = await import("@/lib/obs-ingress-service");
+      await provisionObsIngress(channel.id, user.id);
+    } catch (keyErr) {
+      console.warn("[createLiveStream] live ingress", keyErr);
+    }
+
     return {
       channel,
       joinPassword: isScheduled ? undefined : joinPassword,

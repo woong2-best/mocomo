@@ -47,15 +47,14 @@ export async function buildHostPlaybackPayload(channelId: string, hostUserId: st
       message: probe.playable
         ? "Cloudflare 방송 연결됨. 미리보기 재생 중."
         : probe.onAir
-          ? "OBS 송출 감지 · HLS 준비 중 (5~15초)…"
-          : "OBS에서 「방송 시작」을 누르세요. (Cloudflare RTMPS)",
+          ? "송출 감지 · HLS 준비 중 (5~15초)…"
+          : "「방송 시작」을 누르고 카메라·마이크를 허용해 주세요.",
       probeError: probe.error,
       note: "Cloudflare Stream Live — OBS 서버는 live.cloudflare.com, Vultr 불필요",
     };
   }
 
   if (engine === "livekit") {
-    const browser = channel?.broadcastMode === "BROWSER";
     const probe = await probeLivekitRoomPublish(channelId, hostUserId);
     return {
       ok: true as const,
@@ -71,14 +70,10 @@ export async function buildHostPlaybackPayload(channelId: string, hostUserId: st
       waiting: !probe.playable,
       tryLoad: true,
       message: probe.playable
-        ? browser
-          ? "브라우저 방송이 연결되었습니다."
-          : "LiveKit 방송이 연결되었습니다."
+        ? "LiveKit 방송이 연결되었습니다."
         : probe.onAir
           ? "영상 준비 중…"
-          : browser
-            ? "「방송 시작」을 누르고 카메라·마이크를 허용해 주세요."
-            : "OBS에서 「방송 시작」을 누르면 화면이 나타납니다.",
+          : "OBS에서 「방송 시작」을 누르면 화면이 나타납니다.",
     };
   }
 

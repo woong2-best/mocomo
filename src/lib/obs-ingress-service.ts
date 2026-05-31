@@ -238,7 +238,7 @@ async function provisionCloudflareStreamIngress(
     await db.voiceChannel.update({
       where: { id: channelId },
       data: {
-        broadcastMode: "OBS",
+        broadcastMode: "BROWSER",
         rtmpIngressId: data.ingressId,
         rtmpUrl: data.url,
         rtmpStreamKey: data.streamKey,

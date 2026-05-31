@@ -290,6 +290,23 @@ export async function getCloudflareLiveInput(liveInputUid: string): Promise<Clou
   }
 }
 
+/** 브라우저 WHIP 송출 URL (OBS 없이 웹캠·화면공유) */
+export async function getCloudflareWhipPublishUrl(
+  liveInputUid: string
+): Promise<string | null> {
+  try {
+    const result = await streamApi<ApiLiveInput>(`/stream/live_inputs/${liveInputUid}`, {
+      method: "GET",
+    });
+    rememberCustomerHostFromApi(result);
+    const url = result.webRTC?.url?.trim();
+    return url || null;
+  } catch (e) {
+    console.warn("[cloudflare-stream] whip url", liveInputUid, e);
+    return null;
+  }
+}
+
 export async function deleteCloudflareLiveInput(liveInputUid: string): Promise<void> {
   try {
     await streamApi<unknown>(`/stream/live_inputs/${liveInputUid}`, { method: "DELETE" });

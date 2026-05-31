@@ -58,12 +58,12 @@ export function LiveCloudflarePlayer({
         if (!data.fatal) return;
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
           setStatus("waiting");
-          setHint("OBS 방송 시작 후 5~15초 기다려 주세요…");
+          setHint("방송 시작 후 5~15초 기다려 주세요…");
           hls.startLoad();
           return;
         }
         setStatus("waiting");
-        setHint("재생 오류 — 키·서버 확인 후 OBS 방송 재시작");
+        setHint("재생 오류 — 방송을 다시 시작한 뒤 새로고침해 주세요");
       });
     });
   }, []);
@@ -92,7 +92,7 @@ export function LiveCloudflarePlayer({
         return;
       }
       setStatus("waiting");
-      setHint(body.message ?? "OBS에서 방송 시작을 눌러 주세요");
+      setHint(body.message ?? "스트리머가 방송을 시작하면 화면이 나타납니다");
     } catch {
       setHint("재생 정보를 불러오지 못했습니다");
     }
