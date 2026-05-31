@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Mic, MicOff, MonitorUp, Radio, Video, VideoOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LiveBroadcastPlayer } from "@/components/live/live-broadcast-player";
 import { CloudflareWhipPublisher } from "@/lib/cloudflare-whip-publish";
 import { startBrowserLiveBroadcast } from "@/actions/live-stream";
 
@@ -34,6 +35,8 @@ export function LiveBrowserStudio({
   const [loadError, setLoadError] = useState("");
   const [liveError, setLiveError] = useState("");
   const [onAir, setOnAir] = useState(initialOnAir);
+  /** 이 기기(브라우저)에서 WHIP 송출 중 */
+  const [localPublishing, setLocalPublishing] = useState(false);
   const [goingLive, setGoingLive] = useState(false);
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
@@ -182,6 +185,7 @@ export function LiveBrowserStudio({
         return;
       }
       setOnAir(true);
+      setLocalPublishing(true);
       router.refresh();
     } catch (e) {
       setLiveError(e instanceof Error ? e.message : "방송 시작 실패");
@@ -212,8 +216,22 @@ export function LiveBrowserStudio({
     );
   }
 
+  const remoteOnlyLive = onAir && !localPublishing;
+
   return (
     <div className="flex flex-col gap-3 h-full min-h-[min(50vh,400px)]">
+      {remoteOnlyLive && (
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-900 dark:text-amber-100 space-y-2">
+          <p>
+            다른 기기(폰 등)에서 방송 중입니다. 이 PC에서는 아래 <strong>시청 화면</strong>으로
+            확인하세요. 이 PC에서도 송출하려면 「방송 시작」을 누르세요(폰 송출은 끊깁니다).
+          </p>
+          <div className="rounded-lg overflow-hidden ring-1 ring-border/40">
+            <LiveBroadcastPlayer channelId={channelId} preferredEngine="cloudflare" />
+          </div>
+        </div>
+      )}
+
       <div className="relative flex-1 min-h-[200px] rounded-xl overflow-hidden bg-black ring-1 ring-border/50">
         <video
           ref={videoRef}
@@ -222,10 +240,15 @@ export function LiveBrowserStudio({
           muted
           className="w-full h-full object-contain"
         />
-        {onAir && (
+        {onAir && localPublishing && (
           <span className="absolute top-3 left-3 px-2 py-0.5 rounded bg-red-600 text-white text-[10px] font-bold z-10 flex items-center gap-1">
             <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-            LIVE · Cloudflare
+            LIVE · 이 기기에서 송출
+          </span>
+        )}
+        {remoteOnlyLive && (
+          <span className="absolute top-3 left-3 px-2 py-0.5 rounded bg-amber-600 text-white text-[10px] font-bold z-10">
+            송출: 다른 기기
           </span>
         )}
       </div>
@@ -247,7 +270,7 @@ export function LiveBrowserStudio({
 
       {liveError && <p className="text-xs text-destructive">{liveError}</p>}
 
-      {!onAir ? (
+      {!localPublishing ? (
         <Button
           type="button"
           className="rounded-xl gap-2 font-bold"
@@ -255,17 +278,17 @@ export function LiveBrowserStudio({
           onClick={() => void handleGoLive()}
         >
           {goingLive ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radio className="h-4 w-4" />}
-          방송 시작
+          {remoteOnlyLive ? "이 PC에서 방송 시작" : "방송 시작"}
         </Button>
       ) : (
         <p className="text-xs text-muted-foreground">
-          방송 중입니다. 시청자는 같은 페이지에서 실시간(WHEP)으로 시청합니다. 종료는 상단 「방송 종료」.
+          방송 중입니다. 시청자는 같은 페이지에서 실시간으로 시청합니다. 종료는 상단 「방송 종료」.
         </p>
       )}
 
-      {onAir && (
+      {localPublishing && (
         <p className="text-[10px] text-muted-foreground px-1">
-          위 웹캠이 시청자에게 전달됩니다. 검은 화면이면 「카메라」를 눌러 켜세요. 시청자 재생은 송출 연결 후 10~30초 걸릴 수 있습니다.
+          위 웹캠이 시청자에게 전달됩니다. 검은 화면이면 「카메라」를 눌러 켜세요.
         </p>
       )}
     </div>

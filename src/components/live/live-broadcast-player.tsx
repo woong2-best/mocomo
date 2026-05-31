@@ -132,7 +132,13 @@ export function LiveBroadcastPlayer({
 
   if (engine === "cloudflare") {
     if (useWhep) {
-      return <LiveCloudflareWhepPlayer channelId={channelId} whepUrl={whepUrl} />;
+      return (
+        <LiveCloudflareWhepPlayer
+          channelId={channelId}
+          whepUrl={whepUrl}
+          startDelayMs={4000}
+        />
+      );
     }
     return <LiveCloudflarePlayer channelId={channelId} hlsUrl={hlsUrl} />;
   }
