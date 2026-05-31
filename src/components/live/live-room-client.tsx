@@ -40,6 +40,7 @@ export function LiveRoomClient({
   liveVisibility = "PUBLIC",
   minViewerTier,
   hostFollowing,
+  isLiveOnAir = false,
 }: {
   channelId: string;
   channelName: string;
@@ -61,6 +62,7 @@ export function LiveRoomClient({
   liveVisibility?: LiveVisibility;
   minViewerTier?: SupportTierLevel | null;
   hostFollowing?: boolean;
+  isLiveOnAir?: boolean;
 }) {
   const router = useRouter();
   const [joined, setJoined] = useState(false);
@@ -257,7 +259,7 @@ export function LiveRoomClient({
 
       <LiveStudioErrorBoundary channelId={channelId} onEndStream={isHost ? handleEndStream : undefined}>
         {isHost ? (
-          <LiveHostStudioShell {...studioProps} onEndStream={handleEndStream} />
+          <LiveHostStudioShell {...studioProps} onEndStream={handleEndStream} initialOnAir={isLiveOnAir} />
         ) : (
           <LiveViewerShell {...studioProps} hostFollowing={hostFollowing} />
         )}

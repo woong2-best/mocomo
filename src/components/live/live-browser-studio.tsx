@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, Mic, MicOff, MonitorUp, Radio, Video, VideoOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LiveBroadcastPlayer } from "@/components/live/live-broadcast-player";
@@ -20,17 +21,20 @@ type IngestPayload = {
 export function LiveBrowserStudio({
   channelId,
   onAirChange,
+  initialOnAir = false,
 }: {
   channelId: string;
   onAirChange?: (onAir: boolean) => void;
+  initialOnAir?: boolean;
 }) {
+  const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
   const whipRef = useRef<CloudflareWhipPublisher | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   const [loadError, setLoadError] = useState("");
   const [liveError, setLiveError] = useState("");
-  const [onAir, setOnAir] = useState(false);
+  const [onAir, setOnAir] = useState(initialOnAir);
   const [goingLive, setGoingLive] = useState(false);
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
@@ -173,13 +177,14 @@ export function LiveBrowserStudio({
       whipRef.current = pub;
       await pub.start(whipUrl, stream);
       setOnAir(true);
+      router.refresh();
     } catch (e) {
       setLiveError(e instanceof Error ? e.message : "방송 시작 실패");
       whipRef.current?.stop();
     } finally {
       setGoingLive(false);
     }
-  }, [channelId, whipUrl, ensureLocalStream]);
+  }, [channelId, whipUrl, ensureLocalStream, router]);
 
   if (loadError) {
     return (
@@ -249,7 +254,7 @@ export function LiveBrowserStudio({
         </Button>
       ) : (
         <p className="text-xs text-muted-foreground">
-          시청자는 Cloudflare HLS로 시청합니다 (5~15초 지연). 종료는 상단 「방송 종료」.
+          방송 중입니다. 시청자는 이 방송 페이지에서 Cloudflare HLS로 시청합니다. 종료는 상단 「방송 종료」.
         </p>
       )}
 

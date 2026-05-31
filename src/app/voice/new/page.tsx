@@ -158,7 +158,11 @@ export default function NewVoicePage() {
         broadcastMode,
       };
       persistCreatedUi(liveState);
-      setCreated(liveState);
+      if (result.joinPassword) {
+        sessionStorage.setItem(LIVE_PW_KEY(result.channel.id), result.joinPassword);
+      }
+      router.push(`/voice/${result.channel.id}`);
+      return;
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "방송 시작에 실패했습니다.");
     } finally {
@@ -394,7 +398,7 @@ export default function NewVoicePage() {
             <Input name="maxUsers" type="number" placeholder="최대 시청자" defaultValue={200} />
             <Button type="submit" className="w-full rounded-xl gap-2" disabled={loading}>
               <Radio className="h-4 w-4" />
-              {loading ? "만드는 중…" : "방송 만들기 · 스튜디오 열기"}
+              {loading ? "만드는 중…" : "방송 시작"}
             </Button>
           </form>
         </CardContent>

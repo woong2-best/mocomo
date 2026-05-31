@@ -26,6 +26,7 @@ export function LiveHostStudioShell({
   category,
   slowModeSeconds,
   chatBannedWords,
+  initialOnAir,
 }: {
   channelId: string;
   channelName: string;
@@ -44,6 +45,7 @@ export function LiveHostStudioShell({
   slowModeSeconds?: number;
   chatBannedWords?: string[];
   paymentsEnabled?: boolean;
+  initialOnAir?: boolean;
 }) {
   return (
     <div className="flex flex-col min-h-[calc(100vh-8rem)]">
@@ -93,7 +95,7 @@ export function LiveHostStudioShell({
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-0 lg:gap-3 min-h-0 mt-2">
         <div className="min-w-0 lg:min-h-0">
-          <LiveBrowserStudio channelId={channelId} />
+          <LiveBrowserStudio channelId={channelId} initialOnAir={initialOnAir} />
         </div>
         <div className="min-h-[320px] lg:min-h-0 lg:max-h-[calc(100vh-10rem)] border-t lg:border-t-0 lg:border-l border-border/60 pt-3 lg:pt-0 lg:pl-3">
           <LiveChat

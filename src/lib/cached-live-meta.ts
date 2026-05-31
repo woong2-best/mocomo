@@ -7,6 +7,10 @@ export function getCachedLiveRoomMeta(channelId: string, viewerId?: string | nul
   return unstable_cache(
     () => getLiveChannelRoomMeta(channelId, viewerId),
     ["live-room-meta-v1", channelId, viewerKey],
-    { revalidate: 12 }
+    { revalidate: 8, tags: [`live-room-${channelId}`] }
   )();
+}
+
+export function liveRoomCacheTag(channelId: string) {
+  return `live-room-${channelId}`;
 }

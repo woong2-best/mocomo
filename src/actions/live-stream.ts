@@ -28,14 +28,15 @@ import {
   endHostBroadcastChannel,
   prepareHostForNewBroadcast,
 } from "@/lib/live-broadcast/session-manager";
-import { isPubliclyLive } from "@/lib/live-channel-active";
+import { canViewerEnterLiveRoom, isPubliclyLive } from "@/lib/live-channel-active";
 import { notifyFollowersOnLive } from "@/lib/live-notify";
 import {
   fetchLiveChannelForStudio,
   fetchLiveTipsForChannel,
 } from "@/lib/live-channel-meta-safe";
 import { ensureStringArray } from "@/lib/ensure-array";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { liveRoomCacheTag } from "@/lib/cached-live-meta";
 
 function mapLiveChatMessage(m: {
   id: string;
@@ -341,10 +342,11 @@ export async function startBrowserLiveBroadcast(channelId: string) {
 
   revalidatePath("/live");
   revalidatePath(`/voice/${channelId}`);
+  revalidateTag(liveRoomCacheTag(channelId));
   return { success: true as const };
 }
 
-/** 시청 입장 — 공개 방송은 누구나, 비공개는 등급 충족 시청자만 (LIVE 중만) */
+/** 시청 입장 — LIVE 또는 준비(SCHEDULED) 중 대기실 */
 export async function enterLiveAsViewer(channelId: string) {
   const user = await requireAuth();
   const channel = await db.voiceChannel.findUnique({
@@ -357,7 +359,7 @@ export async function enterLiveAsViewer(channelId: string) {
     return enterLiveAsHost(channelId);
   }
   if (
-    !isPubliclyLive({
+    !canViewerEnterLiveRoom({
       isLive: channel.isLive,
       liveStatus: channel.liveStatus,
     })
@@ -366,7 +368,7 @@ export async function enterLiveAsViewer(channelId: string) {
       error:
         channel.liveStatus === "ENDED"
           ? "종료된 방송입니다."
-          : "아직 방송이 시작되지 않았습니다. 잠시 후 다시 시도해 주세요.",
+          : "이 방송에 입장할 수 없습니다.",
     };
   }
 

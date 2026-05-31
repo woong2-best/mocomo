@@ -3,7 +3,12 @@ import { LiveRoomEntry } from "@/components/live/live-room-entry";
 import { getCachedLiveRoomMeta } from "@/lib/cached-live-meta";
 import { isPaymentsConfigured } from "@/lib/payments";
 import { ensureArray, ensureStringArray } from "@/lib/ensure-array";
-import { isHostBroadcastRoom, isPubliclyLive } from "@/lib/live-channel-active";
+import {
+  canViewerEnterLiveRoom,
+  isHostBroadcastRoom,
+  isPubliclyLive,
+} from "@/lib/live-channel-active";
+import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -11,10 +16,64 @@ import { ChevronLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-export default async function VoiceRoomPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function VoiceRoomPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const session = await getCachedSession();
   if (!session?.user?.id) redirect("/auth/signin");
   const { id } = await params;
+
+  const liveFlags = await db.voiceChannel.findUnique({
+    where: { id },
+    select: { isLive: true, liveStatus: true, createdBy: true },
+  });
+
+  if (!liveFlags) {
+    return (
+      <div className="live-page-shell max-w-lg mx-auto p-6 space-y-4 text-center">
+        <p className="text-lg font-semibold">방송을 찾을 수 없습니다</p>
+        <Button asChild className="rounded-xl">
+          <Link href="/live">라이브 홈</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  const isHost = liveFlags.createdBy === session.user.id;
+  const liveStatus = liveFlags.liveStatus ?? "SCHEDULED";
+  const onAir = isPubliclyLive({
+    isLive: liveFlags.isLive,
+    liveStatus,
+  });
+  const hostCanEnter = isHost && isHostBroadcastRoom({ liveStatus });
+  const viewerCanEnter = !isHost && canViewerEnterLiveRoom({
+    isLive: liveFlags.isLive,
+    liveStatus,
+  });
+
+  if (liveStatus === "ENDED") {
+    return (
+      <div className="live-page-shell max-w-3xl mx-auto p-6 space-y-6 text-center">
+        <p className="text-lg font-semibold">방송이 종료되었습니다</p>
+        <Button asChild className="rounded-xl">
+          <Link href="/live">라이브 홈</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  if (!hostCanEnter && !viewerCanEnter) {
+    return (
+      <div className="live-page-shell max-w-3xl mx-auto p-6 space-y-6 text-center">
+        <p className="text-lg font-semibold">방송에 입장할 수 없습니다</p>
+        <Button asChild className="rounded-xl">
+          <Link href="/live">라이브 홈</Link>
+        </Button>
+      </div>
+    );
+  }
 
   let meta: Awaited<ReturnType<typeof getCachedLiveRoomMeta>> = null;
   try {
@@ -27,64 +86,18 @@ export default async function VoiceRoomPage({ params }: { params: Promise<{ id: 
       <div className="live-page-shell max-w-lg mx-auto p-6 space-y-4 text-center">
         <p className="text-lg font-semibold">스튜디오를 불러오지 못했습니다</p>
         <p className="text-sm text-muted-foreground">
-          라이브 DB가 아직 준비되지 않았을 수 있습니다. Supabase SQL Editor에서{" "}
-          <code className="text-xs bg-muted px-1 rounded">supabase-fix-all.sql</code>의 R·U 섹션을 실행한 뒤
+          Supabase SQL Editor에서 <code className="text-xs bg-muted px-1 rounded">supabase-fix-all.sql</code> 실행 후
           다시 시도해 주세요.
         </p>
-        <div className="flex gap-2 justify-center flex-wrap">
-          <Button asChild variant="outline" className="rounded-xl">
-            <Link href="/voice/new">방송 다시 시작</Link>
-          </Button>
-          <Button asChild className="rounded-xl">
-            <Link href="/live">라이브 홈</Link>
-          </Button>
-        </div>
+        <Button asChild variant="outline" className="rounded-xl">
+          <Link href="/voice/new">방송 다시 만들기</Link>
+        </Button>
       </div>
     );
   }
 
   const { channel, host, tipTotalKrw, tipRanking, hostFollowing } = meta;
-  const isHost = channel.createdBy === session.user.id;
   const paymentsEnabled = isPaymentsConfigured();
-
-  const onAir = isPubliclyLive({
-    isLive: channel.isLive,
-    liveStatus: channel.liveStatus ?? (channel.isLive ? "LIVE" : "ENDED"),
-  });
-  const hostStudio =
-    isHost &&
-    isHostBroadcastRoom({
-      liveStatus: channel.liveStatus ?? (channel.isLive ? "LIVE" : "ENDED"),
-    });
-
-  if (channel.liveStatus === "ENDED" || (!hostStudio && !onAir)) {
-    return (
-      <div className="live-page-shell max-w-3xl mx-auto p-6 space-y-6">
-        <Link href="/live">
-          <Button variant="ghost" size="sm" className="gap-1">
-            <ChevronLeft className="h-4 w-4" />
-            라이브 목록
-          </Button>
-        </Link>
-        <div className="text-center space-y-4">
-          <p className="text-lg font-semibold">
-            {channel.liveStatus === "ENDED" ? "방송이 종료되었습니다" : "방송 준비 중입니다"}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {channel.liveStatus === "ENDED"
-              ? "다시보기는 제공하지 않습니다."
-              : "스트리머가 방송을 시작하면 이 페이지에서 시청할 수 있습니다."}
-          </p>
-          <Button asChild variant="outline" className="rounded-xl">
-            <Link href={`/u/${host.username}`}>@{host.username} 프로필</Link>
-          </Button>
-          <Button asChild className="rounded-xl">
-            <Link href="/live">다른 라이브 보기</Link>
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div
@@ -122,6 +135,7 @@ export default async function VoiceRoomPage({ params }: { params: Promise<{ id: 
         liveVisibility={channel.liveVisibility ?? "PUBLIC"}
         minViewerTier={channel.minViewerTier}
         hostFollowing={hostFollowing}
+        isLiveOnAir={onAir}
       />
     </div>
   );
