@@ -5,6 +5,7 @@ import { getCachedCurrentUser } from "@/lib/auth";
 import { UsedPostForm } from "@/components/used/used-post-form";
 import { UsedPhoneVerifyForm } from "@/components/used/used-phone-verify-form";
 import { isUsedMarketEligible } from "@/lib/used-phone-auth";
+import { isUsedAdultVerified } from "@/lib/used-youth-protection";
 
 export default async function UsedNewPage() {
   const user = await getCachedCurrentUser();
@@ -55,7 +56,10 @@ export default async function UsedNewPage() {
       <p className="text-sm text-muted-foreground mb-6">
         사진·가격·거래 지역을 입력해 글을 올려 보세요.
       </p>
-      <UsedPostForm defaultRegion={sns?.location} />
+      <UsedPostForm
+        defaultRegion={sns?.location}
+        sellerAdultVerified={isUsedAdultVerified(user)}
+      />
     </div>
   );
 }

@@ -353,6 +353,8 @@ ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "auctionState" TEXT;
 ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "bidCount" INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "antiSnipeMinutes" INTEGER NOT NULL DEFAULT 5;
 ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "auctionExtensionCount" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "restrictedKind" TEXT NOT NULL DEFAULT 'NONE';
+CREATE INDEX IF NOT EXISTS "UsedListing_restrictedKind_idx" ON "UsedListing"("restrictedKind");
 CREATE INDEX IF NOT EXISTS "UsedListing_saleType_auctionEndsAt_idx" ON "UsedListing"("saleType", "auctionEndsAt");
 CREATE INDEX IF NOT EXISTS "UsedListing_auctionState_idx" ON "UsedListing"("auctionState");
 
@@ -525,6 +527,8 @@ ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "countryCode" TEXT NOT NULL DEFAULT 
 -- N) 중고거래 휴대폰 인증 (대한민국)
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "phone" TEXT;
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "phoneVerified" TIMESTAMP(3);
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "adultVerifiedAt" TIMESTAMP(3);
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "birthDate" DATE;
 -- 번호 1개 = 계정 1개 (NULL 은 여러 계정 허용)
 CREATE UNIQUE INDEX IF NOT EXISTS "User_phone_key" ON "User"("phone") WHERE "phone" IS NOT NULL;
 -- 중복 번호 정리(수동 1회): 아래로 충돌 확인 후 오래된/미인증 계정 phone 을 NULL 로

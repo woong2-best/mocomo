@@ -10,7 +10,12 @@ import {
 } from "@/actions/used-market";
 import { Heart, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { UsedListingStatus } from "@prisma/client";
+import {
+  isUsedRestrictedKind,
+  usedAdultVerifyUrl,
+} from "@/lib/used-youth-protection";
+import type { UsedListingStatus, UsedRestrictedKind } from "@prisma/client";
+import { ShieldAlert } from "lucide-react";
 
 export function UsedDetailBottomBar({
   listingId,
@@ -20,6 +25,8 @@ export function UsedDetailBottomBar({
   status,
   chatCount,
   initialBuyerRoomId,
+  restrictedKind = "NONE",
+  viewerAdultVerified = false,
 }: {
   listingId: string;
   isSeller: boolean;
@@ -28,7 +35,11 @@ export function UsedDetailBottomBar({
   status: UsedListingStatus;
   chatCount: number;
   initialBuyerRoomId?: string | null;
+  restrictedKind?: UsedRestrictedKind | string;
+  viewerAdultVerified?: boolean;
 }) {
+  const needsAdult =
+    isUsedRestrictedKind(restrictedKind) && !isSeller && !viewerAdultVerified;
   const router = useRouter();
   const [favorited, setFavorited] = useState(initialFavorited);
   const [loading, setLoading] = useState(false);
@@ -52,6 +63,10 @@ export function UsedDetailBottomBar({
     if ("error" in res && res.error) {
       if (res.error.includes("휴대폰")) {
         router.push(`/used/verify?callbackUrl=/used/${listingId}`);
+        return;
+      }
+      if ("needsAdultVerify" in res && res.needsAdultVerify) {
+        router.push(usedAdultVerifyUrl(listingId, restrictedKind));
         return;
       }
       alert(res.error);
@@ -132,6 +147,35 @@ export function UsedDetailBottomBar({
   }
 
   const existingRoom = initialBuyerRoomId;
+
+  if (needsAdult) {
+    return (
+      <div className="sticky bottom-0 flex gap-2 border-t bg-background p-3 pb-safe z-20">
+        <button
+          type="button"
+          onClick={() => void toggleFav()}
+          className={`h-12 w-12 rounded-xl border flex items-center justify-center shrink-0 ${
+            favorited ? "bg-orange-500/10 border-orange-400 text-orange-500" : "border-border"
+          }`}
+          aria-label="관심"
+        >
+          <Heart className={`h-6 w-6 ${favorited ? "fill-current" : ""}`} />
+        </button>
+        {isLoggedIn ? (
+          <Button asChild variant="secondary" size="lg" className="flex-1 h-12 rounded-xl gap-2">
+            <Link href={usedAdultVerifyUrl(listingId, restrictedKind)}>
+              <ShieldAlert className="h-5 w-5" />
+              성인 인증 후 채팅
+            </Link>
+          </Button>
+        ) : (
+          <Button asChild variant="secondary" size="lg" className="flex-1 h-12 rounded-xl">
+            <Link href={`/auth/signin?callbackUrl=/used/${listingId}`}>로그인 후 성인 인증</Link>
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="sticky bottom-0 flex gap-2 border-t bg-background p-3 pb-safe z-20">

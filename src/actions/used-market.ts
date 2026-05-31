@@ -8,6 +8,7 @@ import {
   Prisma,
   type UsedListingCategory,
   type UsedListingStatus,
+  type UsedRestrictedKind,
 } from "@prisma/client";
 import {
   getSidoRegionPrefix,
@@ -26,6 +27,11 @@ import {
   USED_KR_ONLY_MSG,
   USED_PHONE_REQUIRED_MSG,
 } from "@/lib/used-phone-auth";
+import {
+  assertUsedAdultForRestricted,
+  isUsedRestrictedKind,
+  USED_ADULT_SELLER_MSG,
+} from "@/lib/used-youth-protection";
 
 function assertUsedMarketAccess(user: {
   countryCode: string;
@@ -176,7 +182,14 @@ export async function getUsedListing(id: string, viewerId?: string) {
     let buyerChatRoomId: string | null = null;
     let myHighestBid: number | null = null;
     let isWinningBidder = false;
+    let viewerAdultVerified = false;
     if (viewerId) {
+      const viewer = await db.user.findUnique({
+        where: { id: viewerId },
+        select: { adultVerifiedAt: true },
+      }).catch(() => null);
+      viewerAdultVerified = !!viewer?.adultVerifiedAt;
+
       const fav = await db.usedFavorite.findUnique({
         where: { userId_listingId: { userId: viewerId, listingId: id } },
       });
@@ -227,6 +240,7 @@ export async function getUsedListing(id: string, viewerId?: string) {
       auctionLive,
       myHighestBid,
       isWinningBidder,
+      viewerAdultVerified,
     };
   } catch {
     return null;
@@ -246,10 +260,20 @@ export async function createUsedListing(data: {
   bidIncrement?: number;
   buyNowPrice?: number;
   reservePrice?: number;
+  restrictedKind?: UsedRestrictedKind | string;
 }) {
   const user = await requireAuth();
   const accessErr = assertUsedMarketAccess(user);
   if (accessErr) return { error: accessErr };
+
+  const restricted =
+    data.restrictedKind && data.restrictedKind !== "NONE"
+      ? (data.restrictedKind as UsedRestrictedKind)
+      : "NONE";
+  if (isUsedRestrictedKind(restricted)) {
+    const adultErr = assertUsedAdultForRestricted(user, restricted);
+    if (adultErr) return { error: USED_ADULT_SELLER_MSG };
+  }
   if (!data.title.trim()) return { error: "제목을 입력해 주세요." };
   const price = Math.floor(Number(data.price) || 0);
   if (data.price < 0 || price < 0) return { error: "가격이 올바르지 않습니다." };
@@ -288,6 +312,7 @@ export async function createUsedListing(data: {
         description: data.description.trim(),
         price,
         category: (data.category as UsedListingCategory) || "OTHER",
+        restrictedKind: restricted,
         region: data.region.trim(),
         meetPlace: data.meetPlace?.trim() || null,
         images: data.images as Prisma.InputJsonValue,
@@ -411,6 +436,12 @@ export async function startUsedTradeChat(listingId: string) {
   ) {
     return { error: "경매 진행 중에는 채팅 대신 입찰을 이용해 주세요." };
   }
+
+  const adultErr = assertUsedAdultForRestricted(
+    user,
+    listing.restrictedKind ?? "NONE"
+  );
+  if (adultErr) return { error: adultErr, needsAdultVerify: true as const };
 
   const dm = await getOrCreateDM(listing.sellerId);
   if ("error" in dm && dm.error) return { error: dm.error };

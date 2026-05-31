@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { placeUsedAuctionBid, buyNowUsedAuction } from "@/actions/used-auction";
 import { formatUsedPrice } from "@/lib/used-market";
+import { usedAdultVerifyUrl } from "@/lib/used-youth-protection";
+import type { UsedRestrictedKind } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Gavel, Zap } from "lucide-react";
@@ -13,11 +15,13 @@ export function UsedAuctionBidSheet({
   minBid,
   buyNowPrice,
   quickBids,
+  restrictedKind = "NONE",
 }: {
   listingId: string;
   minBid: number;
   buyNowPrice?: number | null;
   quickBids?: number[];
+  restrictedKind?: UsedRestrictedKind | string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -33,6 +37,10 @@ export function UsedAuctionBidSheet({
     if ("error" in res && res.error) {
       if (res.error.includes("휴대폰")) {
         router.push(`/used/verify?callbackUrl=/used/${listingId}`);
+        return;
+      }
+      if ("needsAdultVerify" in res && res.needsAdultVerify) {
+        router.push(usedAdultVerifyUrl(listingId, restrictedKind));
         return;
       }
       setError(res.error);
@@ -52,6 +60,10 @@ export function UsedAuctionBidSheet({
     if ("error" in res && res.error) {
       if (res.error.includes("휴대폰")) {
         router.push(`/used/verify?callbackUrl=/used/${listingId}`);
+        return;
+      }
+      if ("needsAdultVerify" in res && res.needsAdultVerify) {
+        router.push(usedAdultVerifyUrl(listingId, restrictedKind));
         return;
       }
       setError(res.error);

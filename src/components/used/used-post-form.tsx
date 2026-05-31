@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createUsedListing } from "@/actions/used-market";
 import { uploadImageBlob } from "@/lib/client-upload";
@@ -10,6 +11,8 @@ import {
   BID_INCREMENT_PRESETS,
   DEFAULT_BID_INCREMENT,
 } from "@/lib/used-auction";
+import { USED_RESTRICTED_OPTIONS } from "@/lib/used-youth-protection";
+import type { UsedRestrictedKind } from "@prisma/client";
 import { UsedRegionSelect } from "@/components/used/used-region-select";
 import { formatUsedRegion, getSigunguList, KOREA_SIDO, parseUsedRegion } from "@/lib/korea-regions";
 import { Button } from "@/components/ui/button";
@@ -19,7 +22,13 @@ import { cn } from "@/lib/utils";
 
 const PRICE_OVER_LIMIT_MSG = "최대 21억 원까지 입력할 수 있습니다.";
 
-export function UsedPostForm({ defaultRegion }: { defaultRegion?: string }) {
+export function UsedPostForm({
+  defaultRegion,
+  sellerAdultVerified = false,
+}: {
+  defaultRegion?: string;
+  sellerAdultVerified?: boolean;
+}) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -32,6 +41,7 @@ export function UsedPostForm({ defaultRegion }: { defaultRegion?: string }) {
   })();
   const [region, setRegion] = useState(initialRegion);
   const [meetPlace, setMeetPlace] = useState("");
+  const [restrictedKind, setRestrictedKind] = useState<UsedRestrictedKind>("NONE");
   const [saleType, setSaleType] = useState<"FIXED" | "AUCTION">("FIXED");
   const [auctionHours, setAuctionHours] = useState(24);
   const [bidIncrement, setBidIncrement] = useState(DEFAULT_BID_INCREMENT);
@@ -85,6 +95,7 @@ export function UsedPostForm({ defaultRegion }: { defaultRegion?: string }) {
       region,
       meetPlace: meetPlace.trim() || undefined,
       images,
+      restrictedKind,
       saleType,
       ...(saleType === "AUCTION"
         ? {
@@ -255,6 +266,35 @@ export function UsedPostForm({ defaultRegion }: { defaultRegion?: string }) {
           </p>
         </div>
       )}
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium">청소년 보호 품목</label>
+        <select
+          className="w-full h-11 rounded-xl border border-border px-3 text-sm"
+          value={restrictedKind}
+          onChange={(e) => setRestrictedKind(e.target.value as UsedRestrictedKind)}
+        >
+          {USED_RESTRICTED_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        {restrictedKind !== "NONE" && !sellerAdultVerified && (
+          <p className="text-xs text-amber-700 dark:text-amber-400">
+            이 품목을 등록하려면{" "}
+            <Link href="/used/adult-verify?callbackUrl=/used/new" className="underline font-medium">
+              성인 인증
+            </Link>
+            이 필요합니다.
+          </p>
+        )}
+        {restrictedKind !== "NONE" && (
+          <p className="text-[11px] text-muted-foreground">
+            구매·입찰자도 만 19세 이상 성인 인증이 필요합니다.
+          </p>
+        )}
+      </div>
 
       <select
         className="w-full h-11 rounded-xl border border-border px-3 text-sm"

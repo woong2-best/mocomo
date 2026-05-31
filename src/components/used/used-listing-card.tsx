@@ -8,6 +8,7 @@ import {
   usedStatusLabel,
 } from "@/lib/used-market";
 import { isAuctionLive, formatAuctionCountdown } from "@/lib/used-auction";
+import { isUsedRestrictedKind, usedRestrictedLabel } from "@/lib/used-youth-protection";
 import { ImageOff, MapPin, Gavel } from "lucide-react";
 
 type Listing = {
@@ -28,6 +29,7 @@ type Listing = {
   reservePrice?: number | null;
   currentBidderId?: string | null;
   antiSnipeMinutes?: number;
+  restrictedKind?: string;
 };
 
 export function UsedListingCard({ listing }: { listing: Listing }) {
@@ -53,6 +55,7 @@ export function UsedListingCard({ listing }: { listing: Listing }) {
       status: listing.status,
     });
   const showPrice = auction ? displayAuctionPrice(listing as Parameters<typeof displayAuctionPrice>[0]) : listing.price;
+  const restricted = isUsedRestrictedKind(listing.restrictedKind);
 
   return (
     <Link href={`/used/${listing.id}`} className="block group">
@@ -71,6 +74,11 @@ export function UsedListingCard({ listing }: { listing: Listing }) {
             <div className="w-full h-full flex items-center justify-center">
               <ImageOff className="h-10 w-10 text-muted-foreground/35" />
             </div>
+          )}
+          {restricted && (
+            <span className="absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-600 text-white">
+              19+
+            </span>
           )}
           {auction && live && (
             <span className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-md bg-orange-600 text-white flex items-center gap-0.5">
@@ -104,6 +112,11 @@ export function UsedListingCard({ listing }: { listing: Listing }) {
               <> · {formatUsedTimeAgo(listing.createdAt)}</>
             )}
           </p>
+          {restricted && (
+            <p className="text-[10px] text-amber-700 dark:text-amber-400 font-medium">
+              {usedRestrictedLabel(listing.restrictedKind!)}
+            </p>
+          )}
           {auction && (listing.bidCount ?? 0) > 0 && (
             <p className="text-[10px] text-orange-600 dark:text-orange-400 font-medium">
               입찰 {listing.bidCount}회

@@ -16,10 +16,12 @@ import {
   USED_KR_ONLY_MSG,
   USED_PHONE_REQUIRED_MSG,
 } from "@/lib/used-phone-auth";
+import { assertUsedAdultForRestricted } from "@/lib/used-youth-protection";
 
 function assertUsedMarketAccess(user: {
   countryCode: string;
   phoneVerified: Date | null;
+  adultVerifiedAt?: Date | null;
 }) {
   if (user.countryCode !== "KR") return USED_KR_ONLY_MSG;
   if (!isUsedMarketEligible(user)) return USED_PHONE_REQUIRED_MSG;
@@ -203,6 +205,11 @@ export async function placeUsedAuctionBid(listingId: string, amount: number) {
     if (!isAuctionLive(listing)) {
       return { error: "마감된 경매입니다." };
     }
+    const adultErr = assertUsedAdultForRestricted(
+      user,
+      listing.restrictedKind ?? "NONE"
+    );
+    if (adultErr) return { error: adultErr, needsAdultVerify: true as const };
 
     const minBid = minNextBidAmount(listing);
     if (bidAmount < minBid) {
@@ -303,6 +310,12 @@ export async function buyNowUsedAuction(listingId: string) {
     if (!isAuctionLive(listing)) {
       return { error: "마감된 경매입니다." };
     }
+    const adultErr = assertUsedAdultForRestricted(
+      user,
+      listing.restrictedKind ?? "NONE"
+    );
+    if (adultErr) return { error: adultErr, needsAdultVerify: true as const };
+
     const buyNow = listing.buyNowPrice;
     if (buyNow == null || buyNow <= 0) {
       return { error: "즉시구매가가 설정되지 않았습니다." };

@@ -12,7 +12,12 @@ import { cancelUsedAuction } from "@/actions/used-auction";
 import { UsedAuctionBidSheet } from "@/components/used/used-auction-bid-sheet";
 import { Heart, MessageCircle, Gavel } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { UsedListingStatus } from "@prisma/client";
+import {
+  isUsedRestrictedKind,
+  usedAdultVerifyUrl,
+} from "@/lib/used-youth-protection";
+import type { UsedListingStatus, UsedRestrictedKind } from "@prisma/client";
+import { ShieldAlert } from "lucide-react";
 
 export function UsedAuctionBottomBar({
   listingId,
@@ -26,6 +31,8 @@ export function UsedAuctionBottomBar({
   minBid,
   buyNowPrice,
   isWinningBidder,
+  restrictedKind = "NONE",
+  viewerAdultVerified = false,
 }: {
   listingId: string;
   isSeller: boolean;
@@ -38,7 +45,11 @@ export function UsedAuctionBottomBar({
   minBid: number;
   buyNowPrice?: number | null;
   isWinningBidder?: boolean;
+  restrictedKind?: UsedRestrictedKind | string;
+  viewerAdultVerified?: boolean;
 }) {
+  const needsAdult =
+    isUsedRestrictedKind(restrictedKind) && !isSeller && !viewerAdultVerified;
   const router = useRouter();
   const [favorited, setFavorited] = useState(initialFavorited);
   const [loading, setLoading] = useState(false);
@@ -181,6 +192,38 @@ export function UsedAuctionBottomBar({
     );
   }
 
+  if (needsAdult) {
+    return (
+      <div className="sticky bottom-0 flex gap-2 border-t bg-background p-3 pb-safe z-20">
+        <button
+          type="button"
+          onClick={() => void toggleFav()}
+          className={`h-12 w-12 rounded-xl border flex items-center justify-center shrink-0 ${
+            favorited ? "bg-orange-500/10 border-orange-400 text-orange-500" : "border-border"
+          }`}
+          aria-label="관심"
+        >
+          <Heart className={`h-6 w-6 ${favorited ? "fill-current" : ""}`} />
+        </button>
+        {isLoggedIn ? (
+          <Button asChild variant="secondary" size="lg" className="flex-1 h-12 rounded-xl gap-2">
+            <Link href={usedAdultVerifyUrl(listingId, restrictedKind)}>
+              <ShieldAlert className="h-5 w-5" />
+              성인 인증 후 입찰
+            </Link>
+          </Button>
+        ) : (
+          <Button asChild variant="secondary" size="lg" className="flex-1 h-12 rounded-xl gap-2">
+            <Link href={`/auth/signin?callbackUrl=/used/${listingId}`}>
+              <Gavel className="h-5 w-5" />
+              로그인 후 입찰
+            </Link>
+          </Button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="sticky bottom-0 flex gap-2 border-t bg-background p-3 pb-safe z-20">
       <button
@@ -198,6 +241,7 @@ export function UsedAuctionBottomBar({
           listingId={listingId}
           minBid={minBid}
           buyNowPrice={buyNowPrice}
+          restrictedKind={restrictedKind}
         />
       ) : (
         <Button asChild variant="secondary" size="lg" className="flex-1 h-12 rounded-xl gap-2">

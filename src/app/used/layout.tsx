@@ -13,7 +13,7 @@ export default function UsedLayout({ children }: { children: React.ReactNode }) 
             중고거래
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            대한민국 전역 · 휴대폰 인증 후 거래
+            대한민국 전역 · 휴대폰·성인 인증(주류·담배·성인용품)
           </p>
         </div>
         <nav className="flex items-center gap-2 shrink-0">
