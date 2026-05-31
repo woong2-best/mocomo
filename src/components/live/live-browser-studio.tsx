@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Mic, MicOff, MonitorUp, Radio, Video, VideoOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { LiveBroadcastPlayer } from "@/components/live/live-broadcast-player";
 import { CloudflareWhipPublisher } from "@/lib/cloudflare-whip-publish";
 import { startBrowserLiveBroadcast } from "@/actions/live-stream";
 
@@ -168,6 +167,11 @@ export function LiveBrowserStudio({
     setLiveError("");
     try {
       const stream = await ensureLocalStream();
+      stream.getVideoTracks().forEach((t) => {
+        t.enabled = true;
+      });
+      setCamOn(true);
+      if (videoRef.current) videoRef.current.srcObject = stream;
       const pub = new CloudflareWhipPublisher();
       whipRef.current = pub;
       await pub.start(whipUrl, stream);
@@ -260,10 +264,9 @@ export function LiveBrowserStudio({
       )}
 
       {onAir && (
-        <div className="rounded-xl overflow-hidden ring-1 ring-border/40">
-          <p className="text-[10px] text-muted-foreground px-2 py-1 bg-muted/40">시청자 화면 미리보기</p>
-          <LiveBroadcastPlayer channelId={channelId} preferredEngine={ingestEngine} />
-        </div>
+        <p className="text-[10px] text-muted-foreground px-1">
+          위 웹캠이 시청자에게 전달됩니다. 검은 화면이면 「카메라」를 눌러 켜세요. 시청자 재생은 송출 연결 후 10~30초 걸릴 수 있습니다.
+        </p>
       )}
     </div>
   );

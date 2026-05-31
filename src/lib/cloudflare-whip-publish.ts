@@ -15,6 +15,29 @@ function waitForIceGathering(pc: RTCPeerConnection, timeoutMs = 8000): Promise<v
   });
 }
 
+function waitForPeerConnected(pc: RTCPeerConnection, timeoutMs = 20000): Promise<void> {
+  if (pc.connectionState === "connected") return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error("카메라 송출이 Cloudflare에 연결되지 않았습니다. 방송을 다시 시작해 주세요.")),
+      timeoutMs
+    );
+    const onState = () => {
+      if (pc.connectionState === "connected") {
+        clearTimeout(timer);
+        pc.removeEventListener("connectionstatechange", onState);
+        resolve();
+      } else if (pc.connectionState === "failed" || pc.connectionState === "closed") {
+        clearTimeout(timer);
+        pc.removeEventListener("connectionstatechange", onState);
+        reject(new Error("카메라 송출 연결 실패"));
+      }
+    };
+    pc.addEventListener("connectionstatechange", onState);
+    onState();
+  });
+}
+
 export class CloudflareWhipPublisher {
   private pc: RTCPeerConnection | null = null;
 
@@ -49,6 +72,7 @@ export class CloudflareWhipPublisher {
 
     const answerSdp = await res.text();
     await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
+    await waitForPeerConnected(pc);
   }
 
   get connected() {

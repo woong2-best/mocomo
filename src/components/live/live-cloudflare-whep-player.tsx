@@ -2,15 +2,18 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Radio } from "lucide-react";
-import { attachCloudflareWhepPlayback } from "@/lib/cloudflare-whep-playback";
+import { attachCloudflareWhepPlayback, WhepNotReadyError } from "@/lib/cloudflare-whep-playback";
 
 /** Cloudflare WHIP 송출 → WHEP 실시간 시청 (HLS 대신) */
 export function LiveCloudflareWhepPlayer({
   channelId,
   whepUrl: initialWhepUrl,
+  /** WHIP 송출 직후 Cloudflare 준비 시간 */
+  startDelayMs = 8000,
 }: {
   channelId: string;
   whepUrl?: string | null;
+  startDelayMs?: number;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
@@ -32,7 +35,13 @@ export function LiveCloudflareWhepPlayer({
         setHint("");
       } catch (e) {
         setStatus("waiting");
-        setHint(e instanceof Error ? e.message : "실시간 재생 연결 실패");
+        setHint(
+          e instanceof WhepNotReadyError
+            ? e.message
+            : e instanceof Error
+              ? e.message
+              : "실시간 재생 연결 실패"
+        );
       }
     },
     []
@@ -72,13 +81,14 @@ export function LiveCloudflareWhepPlayer({
   }, [channelId, connect, whepUrl]);
 
   useEffect(() => {
-    void refresh();
-    const poll = setInterval(() => void refresh(), 5000);
+    const start = setTimeout(() => void refresh(), startDelayMs);
+    const poll = setInterval(() => void refresh(), 6000);
     return () => {
+      clearTimeout(start);
       clearInterval(poll);
       cleanupRef.current?.();
     };
-  }, [refresh]);
+  }, [refresh, startDelayMs]);
 
   return (
     <div className="relative aspect-video w-full bg-black rounded-2xl overflow-hidden ring-1 ring-border/40">

@@ -1,5 +1,12 @@
 /** Cloudflare Stream — WHEP 시청 (브라우저 WHIP 송출과 함께 사용) */
 
+export class WhepNotReadyError extends Error {
+  constructor() {
+    super("송출 연결 중… 잠시 후 자동으로 재생됩니다 (최대 30초)");
+    this.name = "WhepNotReadyError";
+  }
+}
+
 function waitForIceGathering(pc: RTCPeerConnection, timeoutMs = 8000): Promise<void> {
   if (pc.iceGatheringState === "complete") return Promise.resolve();
   return new Promise((resolve, reject) => {
@@ -52,6 +59,9 @@ export async function attachCloudflareWhepPlayback(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
+    if (res.status === 409 || /not started yet/i.test(text)) {
+      throw new WhepNotReadyError();
+    }
     throw new Error(text || `WHEP 연결 실패 (${res.status})`);
   }
 
