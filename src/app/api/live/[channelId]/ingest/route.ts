@@ -7,6 +7,11 @@ import {
   liveInputUidFromIngressId,
 } from "@/lib/cloudflare-stream";
 import { resolveChannelIngestEngine } from "@/lib/live-ingest";
+import {
+  publisherLockError,
+  readPublisherTabIdFromRequest,
+  resolveHostPublishState,
+} from "@/lib/live-publisher-lock";
 import { obsConfigError, provisionObsIngress } from "@/lib/obs-ingress-service";
 
 export const runtime = "nodejs";
@@ -27,15 +32,31 @@ export async function GET(
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
 
+  const tabId = readPublisherTabIdFromRequest(_req);
+
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
-    select: { createdBy: true, liveStatus: true, rtmpIngressId: true, rtmpUrl: true },
+    select: {
+      createdBy: true,
+      liveStatus: true,
+      isLive: true,
+      livePublisherTabId: true,
+      rtmpIngressId: true,
+      rtmpUrl: true,
+    },
   });
   if (!channel || channel.createdBy !== session.user.id) {
     return NextResponse.json({ error: "호스트만 방송 설정을 받을 수 있습니다." }, { status: 403 });
   }
   if (channel.liveStatus === "ENDED") {
     return NextResponse.json({ error: "종료된 방송입니다." }, { status: 400 });
+  }
+
+  if (resolveHostPublishState(channel, tabId) === "live_elsewhere") {
+    return NextResponse.json(
+      { error: publisherLockError(), publishState: "live_elsewhere" },
+      { status: 409 }
+    );
   }
 
   const configErr = obsConfigError();

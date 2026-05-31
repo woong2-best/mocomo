@@ -312,17 +312,37 @@ export async function enterLiveAsHost(channelId: string) {
 }
 
 /** 브라우저(웹캠·화면공유) 방송 시작 — 유튜브·치지직처럼 앱 안에서 송출 */
-export async function startBrowserLiveBroadcast(channelId: string) {
+export async function startBrowserLiveBroadcast(
+  channelId: string,
+  publisherTabId: string
+) {
   const user = await requireAuth();
+  const tabId = publisherTabId?.trim();
+  if (!tabId || tabId.length > 64) {
+    return { error: "방송 세션이 올바르지 않습니다. 페이지를 새로고침해 주세요." };
+  }
+
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
-    select: { createdBy: true, liveStatus: true, name: true, isLive: true },
+    select: {
+      createdBy: true,
+      liveStatus: true,
+      name: true,
+      isLive: true,
+      livePublisherTabId: true,
+    },
   });
   if (!channel || channel.createdBy !== user.id) {
     return { error: "호스트만 방송을 시작할 수 있습니다." };
   }
   if (channel.liveStatus === "ENDED") {
     return { error: "종료된 방송입니다. 새 방송을 만들어 주세요." };
+  }
+
+  const owner = channel.livePublisherTabId?.trim() || null;
+  if (channel.isLive && owner && owner !== tabId) {
+    const { publisherLockError } = await import("@/lib/live-publisher-lock");
+    return { error: publisherLockError() };
   }
 
   const wasLive = channel.isLive;
@@ -332,6 +352,7 @@ export async function startBrowserLiveBroadcast(channelId: string) {
       isLive: true,
       liveStatus: "LIVE",
       broadcastMode: "BROWSER",
+      livePublisherTabId: tabId,
     },
   });
 

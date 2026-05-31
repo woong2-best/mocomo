@@ -21,4 +21,5 @@ export const SESSION_END_DATA = {
   rtmpIngressId: null,
   rtmpUrl: null,
   rtmpStreamKey: null,
+  livePublisherTabId: null,
 };

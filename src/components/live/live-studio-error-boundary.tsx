@@ -9,6 +9,7 @@ import { LiveBrowserStudio } from "@/components/live/live-browser-studio";
 type Props = {
   children: ReactNode;
   channelId?: string;
+  channelName?: string;
   onEndStream?: () => void;
   /** true: 영상 칸만 오류 표시, 스튜디오 전체는 유지 */
   inline?: boolean;
@@ -49,7 +50,11 @@ export class LiveStudioErrorBoundary extends Component<Props, State> {
           <p className="text-xs text-amber-700 dark:text-amber-300 px-1">
             영상 UI 오류 — 방송 패널만 표시합니다. (Ctrl+Shift+R 권장)
           </p>
-          <LiveBrowserStudio channelId={this.props.channelId} />
+          <LiveBrowserStudio
+            channelId={this.props.channelId}
+            channelName={this.props.channelName ?? "방송"}
+            onEndStream={this.props.onEndStream}
+          />
         </div>
       );
     }

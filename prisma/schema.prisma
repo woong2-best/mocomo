@@ -637,6 +637,8 @@ model VoiceChannel {
   rtmpIngressId    String?
   rtmpUrl          String?
   rtmpStreamKey    String?
+  /** WHIP 송출 중인 브라우저 탭 ID — 한 탭만 송출 */
+  livePublisherTabId String? @db.VarChar(64)
   endedAt          DateTime?
 
   linkedChatRoom ChatRoom?

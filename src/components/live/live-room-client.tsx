@@ -259,7 +259,7 @@ export function LiveRoomClient({
 
       <LiveStudioErrorBoundary channelId={channelId} onEndStream={isHost ? handleEndStream : undefined}>
         {isHost ? (
-          <LiveHostStudioShell {...studioProps} onEndStream={handleEndStream} initialOnAir={isLiveOnAir} />
+          <LiveHostStudioShell {...studioProps} onEndStream={handleEndStream} />
         ) : (
           <LiveViewerShell {...studioProps} hostFollowing={hostFollowing} />
         )}

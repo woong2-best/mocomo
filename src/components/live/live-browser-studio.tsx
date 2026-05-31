@@ -4,83 +4,125 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Mic, MicOff, MonitorUp, Radio, Video, VideoOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { LiveBroadcastPlayer } from "@/components/live/live-broadcast-player";
+import { LiveHostPublishBlocked } from "@/components/live/live-host-publish-blocked";
 import { CloudflareWhipPublisher } from "@/lib/cloudflare-whip-publish";
+import {
+  getOrCreatePublisherTabId,
+  livePublisherFetch,
+} from "@/lib/live-publisher-tab";
+import type { HostPublishState } from "@/lib/live-publisher-lock";
 import { startBrowserLiveBroadcast } from "@/actions/live-stream";
 
 type IngestPayload = {
   ok?: boolean;
   ingestEngine?: string;
   whipPublishUrl?: string;
-  hlsUrl?: string | null;
   error?: string;
   message?: string;
+  publishState?: string;
 };
 
-/** 브라우저 → Cloudflare WHIP 송출, 시청자는 CDN HLS (OBS·LiveKit 불필요) */
+type StudioStatePayload = {
+  publishState?: HostPublishState;
+  canPublishOnThisTab?: boolean;
+  isLive?: boolean;
+};
+
+/** 이 탭에서만 WHIP 송출 — 다른 기기·탭은 차단 */
 export function LiveBrowserStudio({
   channelId,
+  channelName,
   onAirChange,
-  initialOnAir = false,
+  onEndStream,
 }: {
   channelId: string;
+  channelName: string;
   onAirChange?: (onAir: boolean) => void;
-  initialOnAir?: boolean;
+  onEndStream: () => void;
 }) {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
   const whipRef = useRef<CloudflareWhipPublisher | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
+  const [publishState, setPublishState] = useState<HostPublishState | "loading">("loading");
   const [loadError, setLoadError] = useState("");
   const [liveError, setLiveError] = useState("");
-  const [onAir, setOnAir] = useState(initialOnAir);
-  /** 이 기기(브라우저)에서 WHIP 송출 중 */
-  const [localPublishing, setLocalPublishing] = useState(false);
+  const [whipConnected, setWhipConnected] = useState(false);
   const [goingLive, setGoingLive] = useState(false);
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const [screenOn, setScreenOn] = useState(false);
   const [whipUrl, setWhipUrl] = useState<string | null>(null);
-  const [ingestEngine, setIngestEngine] = useState<string>("cloudflare");
   const [ready, setReady] = useState(false);
 
+  const serverLive =
+    publishState === "live_here" || publishState === "live_elsewhere";
+
   useEffect(() => {
-    onAirChange?.(onAir);
-  }, [onAir, onAirChange]);
+    onAirChange?.(whipConnected && publishState === "live_here");
+  }, [whipConnected, publishState, onAirChange]);
+
+  const loadStudioState = useCallback(async () => {
+    const res = await livePublisherFetch(`/api/live/${channelId}/studio-state`, {
+      cache: "no-store",
+    });
+    const body = (await res.json().catch(() => ({}))) as StudioStatePayload;
+    if (!res.ok) {
+      throw new Error(
+        typeof (body as { error?: string }).error === "string"
+          ? (body as { error?: string }).error
+          : "스튜디오 상태를 불러오지 못했습니다."
+      );
+    }
+    const state = body.publishState ?? "idle";
+    setPublishState(state);
+    return state;
+  }, [channelId]);
+
+  const loadIngest = useCallback(async () => {
+    const res = await livePublisherFetch(`/api/live/${channelId}/ingest`, {
+      cache: "no-store",
+    });
+    const body = (await res.json().catch(() => ({}))) as IngestPayload;
+    if (res.status === 409 && body.publishState === "live_elsewhere") {
+      setPublishState("live_elsewhere");
+      return null;
+    }
+    if (!res.ok) {
+      throw new Error(body.error ?? "방송 연결 정보를 불러오지 못했습니다.");
+    }
+    if (body.ingestEngine !== "cloudflare" || !body.whipPublishUrl) {
+      throw new Error(
+        body.message ??
+          "브라우저 방송은 Cloudflare Stream이 필요합니다. CLOUDFLARE_* 환경 변수를 확인하세요."
+      );
+    }
+    setWhipUrl(body.whipPublishUrl);
+    setLoadError("");
+    return body.whipPublishUrl;
+  }, [channelId]);
 
   useEffect(() => {
     let cancelled = false;
-    void fetch(`/api/live/${channelId}/ingest`, { credentials: "include", cache: "no-store" })
-      .then(async (res) => {
-        const body = (await res.json().catch(() => ({}))) as IngestPayload;
-        if (!res.ok) {
-          throw new Error(body.error ?? "방송 연결 정보를 불러오지 못했습니다.");
-        }
+    void (async () => {
+      try {
+        const state = await loadStudioState();
+        if (cancelled) return;
+        if (state === "live_elsewhere") return;
+        await loadIngest();
+        if (!cancelled) setReady(true);
+      } catch (e) {
         if (!cancelled) {
-          if (body.ingestEngine !== "cloudflare" || !body.whipPublishUrl) {
-            setLoadError(
-              body.message ??
-                "브라우저 방송은 Cloudflare Stream이 필요합니다. CLOUDFLARE_* 환경 변수를 확인하세요."
-            );
-            setIngestEngine(body.ingestEngine ?? "unknown");
-            return;
-          }
-          setWhipUrl(body.whipPublishUrl);
-          setIngestEngine("cloudflare");
-          setLoadError("");
-          setReady(true);
-        }
-      })
-      .catch((e) => {
-        if (!cancelled) {
+          setPublishState("idle");
           setLoadError(e instanceof Error ? e.message : "연결 실패");
         }
-      });
+      }
+    })();
     return () => {
       cancelled = true;
     };
-  }, [channelId]);
+  }, [loadStudioState, loadIngest]);
 
   const ensureLocalStream = useCallback(async () => {
     if (streamRef.current) return streamRef.current;
@@ -97,7 +139,7 @@ export function LiveBrowserStudio({
   }, []);
 
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || (publishState !== "idle" && publishState !== "live_here")) return;
     void ensureLocalStream().catch((e) => {
       setLiveError(e instanceof Error ? e.message : "카메라·마이크 권한이 필요합니다.");
     });
@@ -105,8 +147,67 @@ export function LiveBrowserStudio({
       whipRef.current?.stop();
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
+      setWhipConnected(false);
     };
-  }, [ready, ensureLocalStream]);
+  }, [ready, publishState, ensureLocalStream]);
+
+  const connectWhip = useCallback(
+    async (markLiveInDb: boolean) => {
+      if (!whipUrl) return;
+      const stream = await ensureLocalStream();
+      stream.getVideoTracks().forEach((t) => {
+        t.enabled = true;
+      });
+      setCamOn(true);
+      if (videoRef.current) videoRef.current.srcObject = stream;
+
+      const pub = new CloudflareWhipPublisher();
+      whipRef.current = pub;
+      await pub.start(whipUrl, stream);
+
+      if (markLiveInDb) {
+        const tabId = getOrCreatePublisherTabId();
+        const res = await startBrowserLiveBroadcast(channelId, tabId);
+        if ("error" in res && res.error) {
+          whipRef.current?.stop();
+          throw new Error(res.error);
+        }
+        setPublishState("live_here");
+        router.refresh();
+      }
+      setWhipConnected(true);
+      setLiveError("");
+    },
+    [channelId, whipUrl, ensureLocalStream, router]
+  );
+
+  const handleGoLive = useCallback(async () => {
+    setGoingLive(true);
+    setLiveError("");
+    try {
+      await connectWhip(true);
+    } catch (e) {
+      setLiveError(e instanceof Error ? e.message : "방송 시작 실패");
+      whipRef.current?.stop();
+      setWhipConnected(false);
+    } finally {
+      setGoingLive(false);
+    }
+  }, [connectWhip]);
+
+  const handleReconnect = useCallback(async () => {
+    setGoingLive(true);
+    setLiveError("");
+    try {
+      await connectWhip(false);
+    } catch (e) {
+      setLiveError(e instanceof Error ? e.message : "송출 재연결 실패");
+      whipRef.current?.stop();
+      setWhipConnected(false);
+    } finally {
+      setGoingLive(false);
+    }
+  }, [connectWhip]);
 
   async function toggleMic() {
     const stream = streamRef.current;
@@ -130,7 +231,7 @@ export function LiveBrowserStudio({
 
   async function toggleScreen() {
     const stream = streamRef.current;
-    if (!stream) return;
+    if (!stream || !whipUrl) return;
     if (!screenOn) {
       try {
         const display = await navigator.mediaDevices.getDisplayMedia({
@@ -146,7 +247,7 @@ export function LiveBrowserStudio({
           }
           stream.addTrack(videoTrack);
           if (videoRef.current) videoRef.current.srcObject = stream;
-          if (onAir && whipUrl) {
+          if (whipConnected) {
             whipRef.current?.stop();
             const pub = new CloudflareWhipPublisher();
             whipRef.current = pub;
@@ -164,36 +265,20 @@ export function LiveBrowserStudio({
     await ensureLocalStream();
   }
 
-  const handleGoLive = useCallback(async () => {
-    if (!whipUrl) return;
-    setGoingLive(true);
-    setLiveError("");
-    try {
-      const stream = await ensureLocalStream();
-      stream.getVideoTracks().forEach((t) => {
-        t.enabled = true;
-      });
-      setCamOn(true);
-      if (videoRef.current) videoRef.current.srcObject = stream;
-      const pub = new CloudflareWhipPublisher();
-      whipRef.current = pub;
-      await pub.start(whipUrl, stream);
-      const res = await startBrowserLiveBroadcast(channelId);
-      if ("error" in res && res.error) {
-        whipRef.current?.stop();
-        setLiveError(res.error);
-        return;
-      }
-      setOnAir(true);
-      setLocalPublishing(true);
-      router.refresh();
-    } catch (e) {
-      setLiveError(e instanceof Error ? e.message : "방송 시작 실패");
-      whipRef.current?.stop();
-    } finally {
-      setGoingLive(false);
-    }
-  }, [channelId, whipUrl, ensureLocalStream, router]);
+  if (publishState === "loading") {
+    return (
+      <div className="aspect-video rounded-xl bg-black flex items-center justify-center text-white/70 gap-2">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="text-sm">스튜디오 준비 중…</span>
+      </div>
+    );
+  }
+
+  if (publishState === "live_elsewhere") {
+    return (
+      <LiveHostPublishBlocked channelName={channelName} onEndStream={onEndStream} />
+    );
+  }
 
   if (loadError) {
     return (
@@ -216,22 +301,10 @@ export function LiveBrowserStudio({
     );
   }
 
-  const remoteOnlyLive = onAir && !localPublishing;
+  const needsReconnect = serverLive && !whipConnected;
 
   return (
     <div className="flex flex-col gap-3 h-full min-h-[min(50vh,400px)]">
-      {remoteOnlyLive && (
-        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-900 dark:text-amber-100 space-y-2">
-          <p>
-            다른 기기(폰 등)에서 방송 중입니다. 이 PC에서는 아래 <strong>시청 화면</strong>으로
-            확인하세요. 이 PC에서도 송출하려면 「방송 시작」을 누르세요(폰 송출은 끊깁니다).
-          </p>
-          <div className="rounded-lg overflow-hidden ring-1 ring-border/40">
-            <LiveBroadcastPlayer channelId={channelId} preferredEngine="cloudflare" />
-          </div>
-        </div>
-      )}
-
       <div className="relative flex-1 min-h-[200px] rounded-xl overflow-hidden bg-black ring-1 ring-border/50">
         <video
           ref={videoRef}
@@ -240,29 +313,43 @@ export function LiveBrowserStudio({
           muted
           className="w-full h-full object-contain"
         />
-        {onAir && localPublishing && (
+        {whipConnected && (
           <span className="absolute top-3 left-3 px-2 py-0.5 rounded bg-red-600 text-white text-[10px] font-bold z-10 flex items-center gap-1">
             <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-            LIVE · 이 기기에서 송출
-          </span>
-        )}
-        {remoteOnlyLive && (
-          <span className="absolute top-3 left-3 px-2 py-0.5 rounded bg-amber-600 text-white text-[10px] font-bold z-10">
-            송출: 다른 기기
+            LIVE
           </span>
         )}
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" size="sm" className="rounded-xl gap-1" onClick={() => void toggleMic()}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="rounded-xl gap-1"
+          disabled={!whipConnected && !needsReconnect && publishState === "idle"}
+          onClick={() => void toggleMic()}
+        >
           {micOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
           {micOn ? "마이크" : "음소거"}
         </Button>
-        <Button type="button" variant="outline" size="sm" className="rounded-xl gap-1" onClick={() => void toggleCam()}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="rounded-xl gap-1"
+          onClick={() => void toggleCam()}
+        >
           {camOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
           {camOn ? "카메라 끔" : "카메라"}
         </Button>
-        <Button type="button" variant="outline" size="sm" className="rounded-xl gap-1" onClick={() => void toggleScreen()}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="rounded-xl gap-1"
+          onClick={() => void toggleScreen()}
+        >
           <MonitorUp className="h-4 w-4" />
           {screenOn ? "화면공유 끔" : "화면 공유"}
         </Button>
@@ -270,7 +357,7 @@ export function LiveBrowserStudio({
 
       {liveError && <p className="text-xs text-destructive">{liveError}</p>}
 
-      {!localPublishing ? (
+      {publishState === "idle" && (
         <Button
           type="button"
           className="rounded-xl gap-2 font-bold"
@@ -278,17 +365,30 @@ export function LiveBrowserStudio({
           onClick={() => void handleGoLive()}
         >
           {goingLive ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radio className="h-4 w-4" />}
-          {remoteOnlyLive ? "이 PC에서 방송 시작" : "방송 시작"}
+          방송 시작
         </Button>
-      ) : (
-        <p className="text-xs text-muted-foreground">
-          방송 중입니다. 시청자는 같은 페이지에서 실시간으로 시청합니다. 종료는 상단 「방송 종료」.
-        </p>
       )}
 
-      {localPublishing && (
-        <p className="text-[10px] text-muted-foreground px-1">
-          위 웹캠이 시청자에게 전달됩니다. 검은 화면이면 「카메라」를 눌러 켜세요.
+      {needsReconnect && (
+        <>
+          <p className="text-xs text-amber-600 dark:text-amber-400">
+            방송은 이 기기에 등록되어 있으나 송출 연결이 끊겼습니다. 「송출 재연결」을 눌러 주세요.
+          </p>
+          <Button
+            type="button"
+            className="rounded-xl gap-2 font-bold"
+            disabled={goingLive}
+            onClick={() => void handleReconnect()}
+          >
+            {goingLive ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radio className="h-4 w-4" />}
+            송출 재연결
+          </Button>
+        </>
+      )}
+
+      {whipConnected && (
+        <p className="text-xs text-muted-foreground">
+          이 기기·브라우저에서만 방송 중입니다. 종료는 상단 「방송 종료」.
         </p>
       )}
     </div>

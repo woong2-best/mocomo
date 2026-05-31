@@ -603,6 +603,7 @@ ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "broadcastMode" "LiveBroadca
 ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "rtmpIngressId" TEXT;
 ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "rtmpUrl" TEXT;
 ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "rtmpStreamKey" TEXT;
+ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "livePublisherTabId" VARCHAR(64);
 
 -- U-2) 계정당 고유 OBS 방송 키 (User)
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "obsRtmpStreamKey" TEXT;
