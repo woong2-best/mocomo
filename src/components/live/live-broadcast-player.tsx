@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { LiveSrsPlayer } from "@/components/live/live-srs-player";
 import { LivekitLivePlayer } from "@/components/live/livekit-live-player";
 import { LiveCloudflarePlayer } from "@/components/live/live-cloudflare-player";
+import { LiveCloudflareWhepPlayer } from "@/components/live/live-cloudflare-whep-player";
 import { Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -37,6 +38,8 @@ export function LiveBroadcastPlayer({
     return null;
   });
   const [hlsUrl, setHlsUrl] = useState<string | null>(null);
+  const [whepUrl, setWhepUrl] = useState<string | null>(null);
+  const [useWhep, setUseWhep] = useState(false);
   const [resolvedHostId, setResolvedHostId] = useState<string | undefined>(hostUserId);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -80,6 +83,8 @@ export function LiveBroadcastPlayer({
         setEngine("cloudflare");
       }
       setHlsUrl(typeof body.hlsUrl === "string" ? body.hlsUrl : null);
+      setWhepUrl(typeof body.whepPlaybackUrl === "string" ? body.whepPlaybackUrl : null);
+      setUseWhep(!!body.useWhep);
       if (typeof body.hostUserId === "string") {
         setResolvedHostId(body.hostUserId);
       }
@@ -126,6 +131,9 @@ export function LiveBroadcastPlayer({
   }
 
   if (engine === "cloudflare") {
+    if (useWhep) {
+      return <LiveCloudflareWhepPlayer channelId={channelId} whepUrl={whepUrl} />;
+    }
     return <LiveCloudflarePlayer channelId={channelId} hlsUrl={hlsUrl} />;
   }
 

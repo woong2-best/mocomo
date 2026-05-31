@@ -1,9 +1,5 @@
 import { db } from "@/lib/db";
-import {
-  buildLiveInputHlsUrlAsync,
-  liveInputUidFromIngressId,
-  probeCloudflareLiveInput,
-} from "@/lib/cloudflare-stream";
+import { buildCloudflarePlaybackFields } from "@/lib/cloudflare-browser-playback";
 import { resolveChannelIngestEngine } from "@/lib/live-ingest";
 import { probeLivekitRoomPublish } from "@/lib/livekit-room-status";
 import { buildProxiedFlvPlaybackPath } from "@/lib/srs";
@@ -19,38 +15,28 @@ export async function buildHostPlaybackPayload(channelId: string, hostUserId: st
       rtmpUrl: true,
       rtmpStreamKey: true,
       broadcastMode: true,
+      isLive: true,
     },
   });
 
   const engine = channel ? resolveChannelIngestEngine(channel) : resolveChannelIngestEngine({});
 
   if (engine === "cloudflare") {
-    const cfUid = liveInputUidFromIngressId(channel?.rtmpIngressId);
-    const probe = cfUid ? await probeCloudflareLiveInput(cfUid) : { onAir: false, playable: false, hlsUrl: null, videoUid: null };
-    const hlsUrl = cfUid ? await buildLiveInputHlsUrlAsync(cfUid) : null;
+    const cf = await buildCloudflarePlaybackFields(channel ?? {});
 
     return {
       ok: true as const,
       ingestEngine: "cloudflare" as const,
       engine: "cloudflare" as const,
-      hlsUrl: probe.playable ? probe.hlsUrl ?? hlsUrl : hlsUrl,
+      ...cf,
       flvUrl: null,
-      cloudflareLive: probe.onAir,
-      cloudflarePlayable: probe.playable,
       streamKeyHint: channel?.rtmpStreamKey?.length
         ? `…${channel.rtmpStreamKey.slice(-8)}`
         : "****",
-      srsOnAir: probe.onAir,
-      srsPlayable: probe.playable,
-      waiting: !probe.playable,
-      tryLoad: true,
-      message: probe.playable
-        ? "Cloudflare 방송 연결됨. 미리보기 재생 중."
-        : probe.onAir
-          ? "송출 감지 · HLS 준비 중 (5~15초)…"
-          : "「방송 시작」을 누르고 카메라·마이크를 허용해 주세요.",
-      probeError: probe.error,
-      note: "Cloudflare Stream Live — OBS 서버는 live.cloudflare.com, Vultr 불필요",
+      note:
+        channel?.broadcastMode === "BROWSER"
+          ? "브라우저 WHIP 송출 · 시청 WHEP (HLS와 병행 불가)"
+          : "Cloudflare Stream Live — OBS 서버는 live.cloudflare.com",
     };
   }
 

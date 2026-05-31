@@ -51,8 +51,11 @@ export class CloudflareWhipPublisher {
     await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
   }
 
+  get connected() {
+    return this.pc?.connectionState === "connected";
+  }
+
   stop() {
-    this.pc?.getSenders().forEach((s) => s.track?.stop());
     this.pc?.close();
     this.pc = null;
   }

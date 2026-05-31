@@ -290,6 +290,22 @@ export async function getCloudflareLiveInput(liveInputUid: string): Promise<Clou
   }
 }
 
+/** 브라우저 WHEP 시청 URL (WHIP 송출과 짝) */
+export async function getCloudflareWhepPlaybackUrl(
+  liveInputUid: string
+): Promise<string | null> {
+  try {
+    const result = await streamApi<ApiLiveInput>(`/stream/live_inputs/${liveInputUid}`, {
+      method: "GET",
+    });
+    rememberCustomerHostFromApi(result);
+    return result.webRTCPlayback?.url?.trim() || null;
+  } catch (e) {
+    console.warn("[cloudflare-stream] whep url", liveInputUid, e);
+    return null;
+  }
+}
+
 /** 브라우저 WHIP 송출 URL (OBS 없이 웹캠·화면공유) */
 export async function getCloudflareWhipPublishUrl(
   liveInputUid: string

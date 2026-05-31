@@ -6,12 +6,8 @@ import { buildProxiedHlsPlaybackPath, probeSrsManifest } from "@/lib/srs-hls-pro
 import { buildHostPlaybackPayload } from "@/lib/live-host-playback";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
-import {
-  buildLiveInputHlsUrlAsync,
-  cloudflareStreamConfigError,
-  liveInputUidFromIngressId,
-  probeCloudflareLiveInput,
-} from "@/lib/cloudflare-stream";
+import { cloudflareStreamConfigError } from "@/lib/cloudflare-stream";
+import { buildCloudflarePlaybackFields } from "@/lib/cloudflare-browser-playback";
 import { preferredLiveIngestEngine, resolveChannelIngestEngine } from "@/lib/live-ingest";
 import { probeLivekitRoomPublish } from "@/lib/livekit-room-status";
 
@@ -41,6 +37,8 @@ export async function GET(
         rtmpIngressId: true,
         rtmpUrl: true,
         broadcastMode: true,
+        isLive: true,
+        liveStatus: true,
       },
     });
     if (!channel) {
@@ -79,30 +77,15 @@ export async function GET(
         );
       }
 
-      const cfUid = liveInputUidFromIngressId(channel.rtmpIngressId);
-      const probe = cfUid
-        ? await probeCloudflareLiveInput(cfUid)
-        : { onAir: false, playable: false, hlsUrl: null, videoUid: null };
-      const hlsUrl = cfUid ? await buildLiveInputHlsUrlAsync(cfUid) : null;
+      const cf = await buildCloudflarePlaybackFields(channel);
 
       return NextResponse.json({
         ok: true,
         ingestEngine: "cloudflare",
         engine: "cloudflare",
-        hlsUrl: probe.playable ? probe.hlsUrl ?? hlsUrl : hlsUrl,
+        hostUserId: channel.createdBy,
         flvUrl: null,
-        cloudflareLive: probe.onAir,
-        cloudflarePlayable: probe.playable,
-        srsOnAir: probe.onAir,
-        srsPlayable: probe.playable,
-        waiting: !probe.playable,
-        tryLoad: true,
-        message: probe.playable
-          ? "방송 중"
-          : probe.onAir
-            ? "OBS 송출 감지 · HLS 준비 중"
-            : "방송이 시작되면 화면이 나타납니다.",
-        probeError: probe.error,
+        ...cf,
       });
     }
 

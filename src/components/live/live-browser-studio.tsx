@@ -168,14 +168,15 @@ export function LiveBrowserStudio({
     setLiveError("");
     try {
       const stream = await ensureLocalStream();
-      const res = await startBrowserLiveBroadcast(channelId);
-      if ("error" in res && res.error) {
-        setLiveError(res.error);
-        return;
-      }
       const pub = new CloudflareWhipPublisher();
       whipRef.current = pub;
       await pub.start(whipUrl, stream);
+      const res = await startBrowserLiveBroadcast(channelId);
+      if ("error" in res && res.error) {
+        whipRef.current?.stop();
+        setLiveError(res.error);
+        return;
+      }
       setOnAir(true);
       router.refresh();
     } catch (e) {
@@ -254,7 +255,7 @@ export function LiveBrowserStudio({
         </Button>
       ) : (
         <p className="text-xs text-muted-foreground">
-          방송 중입니다. 시청자는 이 방송 페이지에서 Cloudflare HLS로 시청합니다. 종료는 상단 「방송 종료」.
+          방송 중입니다. 시청자는 같은 페이지에서 실시간(WHEP)으로 시청합니다. 종료는 상단 「방송 종료」.
         </p>
       )}
 
