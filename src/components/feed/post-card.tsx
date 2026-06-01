@@ -62,15 +62,25 @@ export function PostCard({ post }: PostCardProps) {
             </Link>
             {post.media && post.media.length > 0 && (
               <div className="mt-3 grid gap-2 grid-cols-2">
-                {post.media.slice(0, 4).map((m) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    key={m.url}
-                    src={m.url}
-                    alt=""
-                    className="rounded-lg object-cover max-h-48 w-full"
-                  />
-                ))}
+                {post.media.slice(0, 4).map((m) =>
+                  m.type === "VIDEO" ? (
+                    <video
+                      key={m.url}
+                      src={m.url}
+                      controls
+                      playsInline
+                      className="rounded-lg object-cover max-h-48 w-full bg-black"
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={m.url}
+                      src={m.url}
+                      alt=""
+                      className="rounded-lg object-cover max-h-48 w-full"
+                    />
+                  )
+                )}
               </div>
             )}
           </div>

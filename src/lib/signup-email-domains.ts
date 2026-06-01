@@ -18,6 +18,23 @@ export const SIGNUP_EMAIL_DOMAINS = [
   { value: "aol.com", label: "AOL" },
 ] as const;
 
+/** 회원가입·비밀번호 찾기에서 한 번에 고를 수 있는 대표 도메인 */
+export const SIGNUP_EMAIL_QUICK_PICKS = [
+  "naver.com",
+  "gmail.com",
+  "daum.net",
+  "hanmail.net",
+  "kakao.com",
+  "nate.com",
+  "outlook.com",
+  "icloud.com",
+] as const;
+
+export function getSignupDomainLabel(value: string): string {
+  const found = SIGNUP_EMAIL_DOMAINS.find((d) => d.value === value);
+  return found?.label ?? value;
+}
+
 export const SIGNUP_EMAIL_CUSTOM_DOMAIN = "__custom__";
 
 const LOCAL_PART_RE = /^[a-zA-Z0-9._+-]+$/;

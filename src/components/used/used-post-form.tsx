@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createUsedListing } from "@/actions/used-market";
-import { uploadImageBlob } from "@/lib/client-upload";
+import { UsedImageComposer } from "@/components/media/post-media-composer";
 import { MAX_USED_LISTING_PRICE, USED_CATEGORIES } from "@/lib/used-market";
 import {
   AUCTION_DURATION_OPTIONS,
@@ -17,7 +17,6 @@ import { UsedRegionSelect } from "@/components/used/used-region-select";
 import { formatUsedRegion, getSigunguList, KOREA_SIDO, parseUsedRegion } from "@/lib/korea-regions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ImagePlus, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const PRICE_OVER_LIMIT_MSG = "최대 21억 원까지 입력할 수 있습니다.";
@@ -48,30 +47,12 @@ export function UsedPostForm({
   const [buyNowPrice, setBuyNowPrice] = useState("");
   const [reservePrice, setReservePrice] = useState("");
   const [images, setImages] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const numericPrice = Number(price) || 0;
   const priceOverLimit =
     !isFree && price.trim() !== "" && Number.isFinite(numericPrice) && numericPrice > MAX_USED_LISTING_PRICE;
-
-  async function onImages(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files;
-    if (!files?.length) return;
-    setUploading(true);
-    try {
-      for (const file of Array.from(files).slice(0, 10 - images.length)) {
-        const url = await uploadImageBlob(file as Blob, file.name);
-        setImages((prev) => [...prev, url].slice(0, 10));
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "업로드 실패");
-    } finally {
-      setUploading(false);
-      e.target.value = "";
-    }
-  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -116,25 +97,7 @@ export function UsedPostForm({
 
   return (
     <form onSubmit={submit} className="space-y-4 pb-8">
-      <div>
-        <label className="text-sm font-medium">사진 (최대 10장)</label>
-        <div className="flex flex-wrap gap-2 mt-2">
-          {images.map((url) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img key={url} src={url} alt="" className="h-20 w-20 rounded-lg object-cover border" />
-          ))}
-          {images.length < 10 && (
-            <label className="h-20 w-20 rounded-lg border-2 border-dashed border-border flex items-center justify-center cursor-pointer bg-muted/40 hover:bg-muted/60">
-              {uploading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              ) : (
-                <ImagePlus className="h-6 w-6 text-muted-foreground" />
-              )}
-              <input type="file" accept="image/*" multiple className="hidden" onChange={onImages} />
-            </label>
-          )}
-        </div>
-      </div>
+      <UsedImageComposer images={images} onChange={setImages} max={10} disabled={loading} />
 
       <Input
         placeholder="글 제목 (예: 원신 피규어 판매)"
@@ -322,7 +285,7 @@ export function UsedPostForm({
       <Button
         type="submit"
         variant="secondary"
-        disabled={loading || uploading || priceOverLimit}
+        disabled={loading || priceOverLimit}
         size="lg"
         className="w-full"
       >

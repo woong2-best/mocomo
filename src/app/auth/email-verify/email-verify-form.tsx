@@ -7,9 +7,17 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { sendEmailAuthCode, verifyAuthCodeOnly, completeAuthWithCode } from "@/actions/auth";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
+import { EmailAddressField } from "@/components/auth/email-address-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { SignupStepIndicator } from "@/components/auth/signup-step-indicator";
 import { isTurnstileConfigured } from "@/lib/turnstile-client";
 
@@ -42,6 +50,14 @@ function safeSessionRemove(key: string): void {
 type Step = "code" | "reset-password" | "signup-done" | "reset-done";
 type Mode = "signup" | "reset";
 
+const UNREGISTERED_EMAIL_MSG = "등록되지 않은 이메일입니다.";
+
+function isUnregisteredEmailError(result: { error?: string; code?: string }): boolean {
+  return (
+    result.error === UNREGISTERED_EMAIL_MSG || result.code === "EMAIL_NOT_REGISTERED"
+  );
+}
+
 export function EmailVerifyFormInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -64,6 +80,7 @@ export function EmailVerifyFormInner() {
   const [loading, setLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [turnstileUnavailable, setTurnstileUnavailable] = useState(false);
+  const [unregisteredDialogOpen, setUnregisteredDialogOpen] = useState(false);
 
   useEffect(() => {
     const notice = safeSessionGet("mocomo_signup_notice");
@@ -98,8 +115,17 @@ export function EmailVerifyFormInner() {
       skipTurnstile
     );
     setLoading(false);
-    if ("error" in result && result.error) setError(result.error);
-    else setMessage(result.message ?? "인증 코드를 보냈습니다.");
+    if ("error" in result && result.error) {
+      if (mode === "reset" && isUnregisteredEmailError(result)) {
+        setError("");
+        setMessage("");
+        setUnregisteredDialogOpen(true);
+        return;
+      }
+      setError(result.error);
+      return;
+    }
+    setMessage(result.message ?? "인증 코드를 보냈습니다.");
   }
 
   async function verifySignupCode(e: React.FormEvent) {
@@ -148,8 +174,16 @@ export function EmailVerifyFormInner() {
     setError("");
     const result = await verifyAuthCodeOnly(email.trim().toLowerCase(), code);
     setLoading(false);
-    if (result.error) setError(result.error);
-    else setStep("reset-password");
+    if (result.error) {
+      if (isUnregisteredEmailError(result)) {
+        setUnregisteredDialogOpen(true);
+        setError("");
+        return;
+      }
+      setError(result.error);
+      return;
+    }
+    setStep("reset-password");
   }
 
   async function submitNewPassword(e: React.FormEvent) {
@@ -169,12 +203,42 @@ export function EmailVerifyFormInner() {
       newPassword,
     });
     setLoading(false);
-    if (result.error) setError(result.error);
-    else setStep("reset-done");
+    if (result.error) {
+      if (isUnregisteredEmailError(result)) {
+        setUnregisteredDialogOpen(true);
+        setError("");
+        return;
+      }
+      setError(result.error);
+      return;
+    }
+    setStep("reset-done");
   }
+
+  const unregisteredDialog = (
+    <Dialog open={unregisteredDialogOpen} onOpenChange={setUnregisteredDialogOpen}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>안내</DialogTitle>
+          <DialogDescription className="text-base text-foreground pt-2">
+            {UNREGISTERED_EMAIL_MSG}
+          </DialogDescription>
+        </DialogHeader>
+        <Button
+          type="button"
+          className="w-full rounded-xl"
+          onClick={() => setUnregisteredDialogOpen(false)}
+        >
+          확인
+        </Button>
+      </DialogContent>
+    </Dialog>
+  );
 
   if (step === "signup-done") {
     return (
+      <>
+        {unregisteredDialog}
       <Card className="w-full max-w-md rounded-2xl">
         <CardHeader className="text-center">
           <CardTitle>이메일 인증 완료</CardTitle>
@@ -228,11 +292,14 @@ export function EmailVerifyFormInner() {
           )}
         </CardContent>
       </Card>
+      </>
     );
   }
 
   if (step === "reset-done") {
     return (
+      <>
+        {unregisteredDialog}
       <Card className="w-full max-w-md rounded-2xl">
         <CardContent className="p-6 text-center space-y-4">
           <p className="text-green-700 font-medium">새 비밀번호가 설정되었습니다.</p>
@@ -241,11 +308,14 @@ export function EmailVerifyFormInner() {
           </Button>
         </CardContent>
       </Card>
+      </>
     );
   }
 
   if (step === "reset-password") {
     return (
+      <>
+        {unregisteredDialog}
       <Card className="w-full max-w-md rounded-2xl">
         <CardHeader>
           <CardTitle>새 비밀번호 설정</CardTitle>
@@ -288,10 +358,13 @@ export function EmailVerifyFormInner() {
           </form>
         </CardContent>
       </Card>
+      </>
     );
   }
 
   return (
+    <>
+      {unregisteredDialog}
     <Card className="w-full max-w-md rounded-2xl">
       <CardHeader className="text-center space-y-2">
         {mode === "signup" && signupCodeAlreadySent ? (
@@ -328,13 +401,11 @@ export function EmailVerifyFormInner() {
           </button>
         </div>
 
-        <Input
-          type="email"
+        <EmailAddressField
+          id="email-verify"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="가입 이메일"
-          autoComplete="email"
-          className="rounded-xl"
+          onChange={setEmail}
+          required
         />
 
         {!signupCodeAlreadySent ? (
@@ -403,5 +474,6 @@ export function EmailVerifyFormInner() {
         </Link>
       </CardContent>
     </Card>
+    </>
   );
 }

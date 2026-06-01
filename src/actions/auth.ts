@@ -154,6 +154,9 @@ export async function sendEmailAuthCode(
   const user = await resolveUserByEmail(normalized);
 
   if (!user) {
+    if (mode === "reset") {
+      return { error: "등록되지 않은 이메일입니다.", code: "EMAIL_NOT_REGISTERED" as const };
+    }
     return {
       success: true,
       message: "등록된 이메일이면 인증 코드를 보냈습니다. (스팸함도 확인해 주세요)",
@@ -227,7 +230,9 @@ export async function completeAuthWithCode(
   }
 
   const user = await findUserIdByEmailFast(normalized);
-  if (!user) return { error: "등록되지 않은 이메일입니다." };
+  if (!user) {
+    return { error: "등록되지 않은 이메일입니다.", code: "EMAIL_NOT_REGISTERED" as const };
+  }
 
   const clearTokens = db.verificationToken.deleteMany({
     where: {

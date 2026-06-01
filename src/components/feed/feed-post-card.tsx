@@ -41,7 +41,7 @@ const typeLabels: Record<string, string> = {
 
 export function FeedPostCard({ post }: { post: GridPost }) {
   const displayName = userDisplayName(post.author);
-  const cover = post.media?.[0]?.url;
+  const cover = post.media?.[0];
 
   return (
     <Card className="overflow-hidden hover:border-primary/40 transition-all duration-300 group h-full flex flex-col">
@@ -77,8 +77,18 @@ export function FeedPostCard({ post }: { post: GridPost }) {
 
         <Link href={`/post/${post.id}`} className="block flex-1">
           {cover ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={cover} alt="" className="w-full aspect-[4/5] object-cover" />
+            cover.type === "VIDEO" ? (
+              <video
+                src={cover.url}
+                className="w-full aspect-[4/5] object-cover bg-black"
+                muted
+                playsInline
+                preload="metadata"
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={cover.url} alt="" className="w-full aspect-[4/5] object-cover" />
+            )
           ) : (
             <div className="px-3 pb-3">
               {post.title && <h3 className="font-semibold text-sm mb-1">{post.title}</h3>}
