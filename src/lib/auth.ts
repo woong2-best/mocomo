@@ -5,6 +5,10 @@ import { authConfig } from "@/lib/auth.config";
 import { getAuthProviders } from "@/lib/auth.providers";
 import { createPrismaAuthAdapter } from "@/lib/auth.adapter";
 import { effectiveRole, isOperatorIdentity } from "@/lib/operator-config";
+import {
+  credentialsUserHasJwtFields,
+  hydrateTokenFromCredentialsUser,
+} from "@/lib/auth-credentials";
 
 const useSecureCookies = process.env.NODE_ENV === "production";
 
@@ -27,6 +31,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     ...authConfig.callbacks,
     async signIn({ user }) {
       if (!user?.id) return true;
+      if (typeof user.isBanned === "boolean") {
+        return !user.isBanned;
+      }
       const dbUser = await db.user.findUnique({
         where: { id: user.id },
         select: { isBanned: true },
@@ -34,6 +41,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return !dbUser?.isBanned;
     },
     async jwt({ token, user, trigger }) {
+      if (user?.id && credentialsUserHasJwtFields(user)) {
+        hydrateTokenFromCredentialsUser(
+          token,
+          user as {
+            id: string;
+            username?: string;
+            role?: string;
+            premiumTier?: string;
+            level?: number;
+            locale?: string;
+            countryCode?: string;
+            isBanned?: boolean;
+          }
+        );
+        return token;
+      }
+
       if (user?.id) {
         token.id = user.id;
       }

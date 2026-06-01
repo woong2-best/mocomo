@@ -147,10 +147,27 @@ export async function checkLoginRateLimit(
   const window = loginWindowKey();
   const msg = "로그인 시도가 너무 많습니다. 15분 후 다시 시도해 주세요.";
 
-  for (const scope of [`login-ip:${ip}:${window}`, `login-email:${normalized}:${window}`]) {
-    const count = await countDbRateEvents(scope);
-    const max = scope.startsWith("login-ip:") ? LOGIN_ATTEMPTS_PER_15MIN : 8;
-    if (count >= max) return { ok: false, error: msg };
+  if (authLimiter) {
+    const checks = await Promise.all([
+      ip !== "unknown"
+        ? checkRateLimit(authLimiter, `login-ip:${ip}`)
+        : Promise.resolve({ success: true }),
+      checkRateLimit(authLimiter, `login-email:${normalized}`),
+    ]);
+    if (!checks[0].success || !checks[1].success) {
+      return { ok: false, error: msg };
+    }
+    return { ok: true };
+  }
+
+  const ipScope = `login-ip:${ip}:${window}`;
+  const emailScope = `login-email:${normalized}:${window}`;
+  const [ipCount, emailCount] = await Promise.all([
+    countDbRateEvents(ipScope),
+    countDbRateEvents(emailScope),
+  ]);
+  if (ipCount >= LOGIN_ATTEMPTS_PER_15MIN || emailCount >= 8) {
+    return { ok: false, error: msg };
   }
   return { ok: true };
 }
@@ -159,7 +176,17 @@ export async function recordLoginAttempt(email: string, ip: string): Promise<voi
   const normalized = email.trim().toLowerCase();
   const window = loginWindowKey();
   const expires = new Date(Date.now() + 16 * 60 * 1000);
-  for (const scope of [`login-ip:${ip}:${window}`, `login-email:${normalized}:${window}`]) {
-    await recordDbRateEvent(scope, expires);
+
+  if (authLimiter) {
+    await Promise.all([
+      ip !== "unknown" ? authLimiter.limit(`login-ip:${ip}`) : Promise.resolve(),
+      authLimiter.limit(`login-email:${normalized}`),
+    ]);
+    return;
   }
+
+  await Promise.all([
+    recordDbRateEvent(`login-ip:${ip}:${window}`, expires),
+    recordDbRateEvent(`login-email:${normalized}:${window}`, expires),
+  ]);
 }

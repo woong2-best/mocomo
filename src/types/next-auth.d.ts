@@ -1,6 +1,16 @@
 import "next-auth";
 
 declare module "next-auth" {
+  interface User {
+    isBanned?: boolean;
+    username?: string;
+    role?: string;
+    premiumTier?: string;
+    level?: number;
+    locale?: string;
+    countryCode?: string;
+  }
+
   interface Session {
     user: {
       id: string;

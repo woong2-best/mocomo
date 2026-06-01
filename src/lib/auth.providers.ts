@@ -6,6 +6,10 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { checkLoginRateLimit, recordLoginAttempt } from "@/lib/auth-rate-limit";
 import { getRequestIp } from "@/lib/request-ip";
+import {
+  CREDENTIALS_JWT_USER_SELECT,
+  toCredentialsAuthUser,
+} from "@/lib/auth-credentials";
 
 const credentialsProvider = Credentials({
   name: "credentials",
@@ -17,37 +21,31 @@ const credentialsProvider = Credentials({
     if (!credentials?.email || !credentials?.password) return null;
     const email = String(credentials.email).trim().toLowerCase();
     const password = String(credentials.password);
-    const ip = await getRequestIp();
 
-    const rate = await checkLoginRateLimit(email, ip);
+    const ip = await getRequestIp();
+    const [rate, user] = await Promise.all([
+      checkLoginRateLimit(email, ip),
+      db.user.findUnique({
+        where: { email },
+        select: CREDENTIALS_JWT_USER_SELECT,
+      }),
+    ]);
+
     if (!rate.ok) return null;
 
-    const user = await db.user.findUnique({
-      where: { email },
-      select: { id: true, email: true, name: true, image: true, passwordHash: true, isBanned: true, emailVerified: true },
-    });
-    if (!user?.passwordHash || user.isBanned) {
-      await recordLoginAttempt(email, ip);
+    const fail = () => {
+      void recordLoginAttempt(email, ip);
       return null;
-    }
+    };
+
+    if (!user?.passwordHash || user.isBanned) return fail();
 
     const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) {
-      await recordLoginAttempt(email, ip);
-      return null;
-    }
+    if (!valid) return fail();
 
-    if (!user.emailVerified) {
-      await recordLoginAttempt(email, ip);
-      return null;
-    }
+    if (!user.emailVerified) return fail();
 
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      image: user.image,
-    };
+    return toCredentialsAuthUser(user);
   },
 });
 
