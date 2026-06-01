@@ -9,6 +9,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { FaceFilterStrip } from "@/components/media/face-filter-strip";
+import { useFaceFilterPipeline } from "@/hooks/use-face-filter-pipeline";
 import { Camera, FlipHorizontal, Loader2, Square, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -37,38 +39,37 @@ export function CameraCaptureDialog({
   mode,
   onCapture,
 }: CameraCaptureDialogProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const previewHostRef = useRef<HTMLDivElement>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
+  const {
+    displayCanvas,
+    filterId,
+    setFilterId,
+    attachRawStream,
+    stop,
+    getCompositeStream,
+    capturePhoto,
+  } = useFaceFilterPipeline("natural");
+
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
   const [starting, setStarting] = useState(false);
   const [recording, setRecording] = useState(false);
   const [recordSec, setRecordSec] = useState(0);
   const [error, setError] = useState("");
 
-  const stopStream = useCallback(() => {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
-    if (videoRef.current) videoRef.current.srcObject = null;
-  }, []);
-
   const startCamera = useCallback(async () => {
     setError("");
     setStarting(true);
-    stopStream();
+    await stop();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: mode === "video",
       });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
+      await attachRawStream(stream);
     } catch (e) {
       const name = e instanceof Error ? e.name : "";
       if (name === "NotAllowedError") {
@@ -79,52 +80,45 @@ export function CameraCaptureDialog({
     } finally {
       setStarting(false);
     }
-  }, [facingMode, mode, stopStream]);
+  }, [facingMode, mode, stop, attachRawStream]);
 
   useEffect(() => {
     if (!open) {
-      stopStream();
+      void stop();
       setRecording(false);
       setRecordSec(0);
       if (recordTimerRef.current) clearInterval(recordTimerRef.current);
       return;
     }
-    startCamera();
-    return () => stopStream();
-  }, [open, startCamera, stopStream]);
+    void startCamera();
+    return () => {
+      void stop();
+    };
+  }, [open, facingMode, startCamera, stop]);
 
-  function capturePhoto() {
-    const video = videoRef.current;
-    const stream = streamRef.current;
-    if (!video || !stream) return;
-    const w = video.videoWidth;
-    const h = video.videoHeight;
-    if (!w || !h) {
-      setError("카메라 준비 중입니다. 잠시 후 다시 시도해 주세요.");
-      return;
+  useEffect(() => {
+    const host = previewHostRef.current;
+    if (!host || !displayCanvas) return;
+    host.innerHTML = "";
+    displayCanvas.className = "w-full h-full object-cover";
+    host.appendChild(displayCanvas);
+    return () => {
+      if (displayCanvas.parentElement === host) host.removeChild(displayCanvas);
+    };
+  }, [displayCanvas]);
+
+  async function handleCapturePhoto() {
+    try {
+      const blob = await capturePhoto();
+      onCapture(blob, "image/jpeg");
+      onOpenChange(false);
+    } catch {
+      setError("사진 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.");
     }
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.drawImage(video, 0, 0, w, h);
-    canvas.toBlob(
-      (blob) => {
-        if (!blob) {
-          setError("사진 저장에 실패했습니다.");
-          return;
-        }
-        onCapture(blob, "image/jpeg");
-        onOpenChange(false);
-      },
-      "image/jpeg",
-      0.92
-    );
   }
 
   function startRecording() {
-    const stream = streamRef.current;
+    const stream = getCompositeStream();
     if (!stream) return;
     chunksRef.current = [];
     const mimeType = pickRecorderMime();
@@ -163,34 +157,41 @@ export function CameraCaptureDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-2">
+      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden max-h-[92vh] flex flex-col">
+        <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
           <DialogTitle>{mode === "photo" ? "사진 찍기" : "영상 촬영"}</DialogTitle>
           <DialogDescription>
-            {mode === "photo"
-              ? "촬영 후 앱에서 자르기·회전할 수 있습니다."
-              : `최대 ${MAX_RECORD_SEC}초까지 녹화할 수 있습니다.`}
+            인스타 스타일 얼굴 필터를 선택한 뒤 촬영하세요.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="relative aspect-[3/4] max-h-[55vh] bg-black">
-          <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
+        <div className="relative aspect-[3/4] max-h-[45vh] bg-black shrink-0">
+          <div ref={previewHostRef} className="absolute inset-0" />
           {starting && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
               <Loader2 className="h-8 w-8 animate-spin text-white" />
             </div>
           )}
           {mode === "video" && recording && (
-            <div className="absolute top-3 left-3 flex items-center gap-2 rounded-full bg-red-600/90 px-3 py-1 text-xs font-medium text-white">
+            <div className="absolute top-3 left-3 z-10 flex items-center gap-2 rounded-full bg-red-600/90 px-3 py-1 text-xs font-medium text-white">
               <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
               REC {recordSec}s
             </div>
           )}
         </div>
 
-        {error && <p className="px-6 text-sm text-destructive">{error}</p>}
+        <div className="px-4 py-3 border-t shrink-0">
+          <FaceFilterStrip
+            value={filterId}
+            onChange={setFilterId}
+            disabled={starting || recording}
+            compact
+          />
+        </div>
 
-        <div className="px-6 py-4 flex items-center justify-between gap-2 border-t">
+        {error && <p className="px-6 text-sm text-destructive shrink-0">{error}</p>}
+
+        <div className="px-6 py-4 flex items-center justify-between gap-2 border-t shrink-0">
           <Button
             type="button"
             variant="outline"
@@ -207,7 +208,7 @@ export function CameraCaptureDialog({
             <Button
               type="button"
               className="rounded-xl flex-1 gap-2"
-              onClick={capturePhoto}
+              onClick={() => void handleCapturePhoto()}
               disabled={starting}
             >
               <Camera className="h-4 w-4" />

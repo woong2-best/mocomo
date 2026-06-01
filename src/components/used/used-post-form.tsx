@@ -14,6 +14,8 @@ import {
 import { USED_RESTRICTED_OPTIONS } from "@/lib/used-youth-protection";
 import type { UsedRestrictedKind } from "@prisma/client";
 import { UsedRegionSelect } from "@/components/used/used-region-select";
+import { UsedMeetMapPicker } from "@/components/used/used-meet-map-picker";
+import type { MeetCoords } from "@/lib/used-market";
 import { formatUsedRegion, getSigunguList, KOREA_SIDO, parseUsedRegion } from "@/lib/korea-regions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +42,7 @@ export function UsedPostForm({
   })();
   const [region, setRegion] = useState(initialRegion);
   const [meetPlace, setMeetPlace] = useState("");
+  const [meetCoords, setMeetCoords] = useState<MeetCoords | null>(null);
   const [restrictedKind, setRestrictedKind] = useState<UsedRestrictedKind>("NONE");
   const [saleType, setSaleType] = useState<"FIXED" | "AUCTION">("FIXED");
   const [auctionHours, setAuctionHours] = useState(24);
@@ -75,6 +78,8 @@ export function UsedPostForm({
       category,
       region,
       meetPlace: meetPlace.trim() || undefined,
+      meetLat: meetCoords?.lat,
+      meetLng: meetCoords?.lng,
       images,
       restrictedKind,
       saleType,
@@ -271,13 +276,20 @@ export function UsedPostForm({
         ))}
       </select>
 
-      <UsedRegionSelect value={region} onChange={setRegion} />
+      <UsedRegionSelect
+        value={region}
+        onChange={(r) => {
+          setRegion(r);
+          setMeetCoords(null);
+        }}
+      />
 
-      <Input
-        placeholder="거래 희망 장소 (예: 신호등 앞, OO역 2번 출구)"
-        value={meetPlace}
-        onChange={(e) => setMeetPlace(e.target.value)}
-        className="rounded-xl h-11"
+      <UsedMeetMapPicker
+        region={region}
+        meetPlace={meetPlace}
+        onMeetPlaceChange={setMeetPlace}
+        coords={meetCoords}
+        onCoordsChange={setMeetCoords}
       />
 
       {error && <p className="text-sm text-destructive">{error}</p>}

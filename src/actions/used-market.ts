@@ -22,6 +22,7 @@ import {
   isAuctionLive,
 } from "@/lib/used-auction";
 import { MAX_USED_LISTING_PRICE, MAX_USED_LISTING_PRICE_LABEL } from "@/lib/used-market";
+import { isKakaoLocalConfigured, kakaoGeocodeMeetPlace } from "@/lib/kakao-local";
 import {
   isUsedMarketEligible,
   USED_KR_ONLY_MSG,
@@ -254,6 +255,8 @@ export async function createUsedListing(data: {
   category: string;
   region: string;
   meetPlace?: string;
+  meetLat?: number;
+  meetLng?: number;
   images: string[];
   saleType?: "FIXED" | "AUCTION";
   auctionHours?: number;
@@ -305,6 +308,27 @@ export async function createUsedListing(data: {
   }
 
   try {
+    let meetLat = data.meetLat;
+    let meetLng = data.meetLng;
+    const meetPlaceTrim = data.meetPlace?.trim() || null;
+    if (
+      (meetLat == null || meetLng == null) &&
+      meetPlaceTrim &&
+      !data.region.includes("전국 택배")
+    ) {
+      if (!isKakaoLocalConfigured()) {
+        return {
+          error:
+            "거래 장소 검색을 위해 서버에 KAKAO_REST_API_KEY를 설정해 주세요. (카카오 개발자 → Local API)",
+        };
+      }
+      const geo = await kakaoGeocodeMeetPlace(data.region, meetPlaceTrim);
+      if (geo) {
+        meetLat = geo.lat;
+        meetLng = geo.lng;
+      }
+    }
+
     const listing = await db.usedListing.create({
       data: {
         sellerId: user.id,
@@ -314,7 +338,9 @@ export async function createUsedListing(data: {
         category: (data.category as UsedListingCategory) || "OTHER",
         restrictedKind: restricted,
         region: data.region.trim(),
-        meetPlace: data.meetPlace?.trim() || null,
+        meetPlace: meetPlaceTrim,
+        meetLat: meetLat ?? null,
+        meetLng: meetLng ?? null,
         images: data.images as Prisma.InputJsonValue,
         saleType: isAuction ? "AUCTION" : "FIXED",
         ...(isAuction

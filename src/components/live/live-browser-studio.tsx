@@ -4,7 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Mic, MicOff, MonitorUp, Radio, Video, VideoOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FaceFilterStrip } from "@/components/media/face-filter-strip";
 import { LiveHostPublishBlocked } from "@/components/live/live-host-publish-blocked";
+import { useFaceFilterPipeline } from "@/hooks/use-face-filter-pipeline";
 import { CloudflareWhipPublisher } from "@/lib/cloudflare-whip-publish";
 import {
   getOrCreatePublisherTabId,
@@ -42,8 +44,19 @@ export function LiveBrowserStudio({
 }) {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const previewHostRef = useRef<HTMLDivElement>(null);
   const whipRef = useRef<CloudflareWhipPublisher | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const rawStreamRef = useRef<MediaStream | null>(null);
+
+  const {
+    displayCanvas,
+    filterId,
+    setFilterId,
+    attachRawStream,
+    stop: stopFilterPipeline,
+    getCompositeStream,
+  } = useFaceFilterPipeline("natural");
 
   const [publishState, setPublishState] = useState<HostPublishState | "loading">("loading");
   const [loadError, setLoadError] = useState("");
@@ -125,18 +138,39 @@ export function LiveBrowserStudio({
   }, [loadStudioState, loadIngest]);
 
   const ensureLocalStream = useCallback(async () => {
-    if (streamRef.current) return streamRef.current;
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true,
-    });
-    streamRef.current = stream;
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream;
-      await videoRef.current.play().catch(() => undefined);
+    if (!screenOn && streamRef.current && rawStreamRef.current) return streamRef.current;
+
+    let raw = rawStreamRef.current;
+    const needsNewRaw =
+      !raw ||
+      !raw.active ||
+      raw.getVideoTracks().every((t) => t.readyState === "ended");
+
+    if (needsNewRaw) {
+      raw = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: true,
+      });
+      rawStreamRef.current = raw;
     }
-    return stream;
-  }, []);
+
+    if (!raw) throw new Error("카메라 스트림을 시작할 수 없습니다.");
+    await attachRawStream(raw);
+    const composite = getCompositeStream();
+    streamRef.current = composite ?? raw;
+    return streamRef.current;
+  }, [attachRawStream, getCompositeStream, screenOn]);
+
+  useEffect(() => {
+    const host = previewHostRef.current;
+    if (!host || !displayCanvas || screenOn) return;
+    host.innerHTML = "";
+    displayCanvas.className = "w-full h-full object-contain";
+    host.appendChild(displayCanvas);
+    return () => {
+      if (displayCanvas.parentElement === host) host.removeChild(displayCanvas);
+    };
+  }, [displayCanvas, screenOn]);
 
   useEffect(() => {
     if (!ready || (publishState !== "idle" && publishState !== "live_here")) return;
@@ -145,11 +179,13 @@ export function LiveBrowserStudio({
     });
     return () => {
       whipRef.current?.stop();
-      streamRef.current?.getTracks().forEach((t) => t.stop());
+      void stopFilterPipeline();
+      rawStreamRef.current?.getTracks().forEach((t) => t.stop());
+      rawStreamRef.current = null;
       streamRef.current = null;
       setWhipConnected(false);
     };
-  }, [ready, publishState, ensureLocalStream]);
+  }, [ready, publishState, ensureLocalStream, stopFilterPipeline]);
 
   const connectWhip = useCallback(
     async (markLiveInDb: boolean) => {
@@ -159,7 +195,7 @@ export function LiveBrowserStudio({
         t.enabled = true;
       });
       setCamOn(true);
-      if (videoRef.current) videoRef.current.srcObject = stream;
+      if (!screenOn && videoRef.current) videoRef.current.srcObject = null;
 
       const pub = new CloudflareWhipPublisher();
       whipRef.current = pub;
@@ -178,7 +214,7 @@ export function LiveBrowserStudio({
       setWhipConnected(true);
       setLiveError("");
     },
-    [channelId, whipUrl, ensureLocalStream, router]
+    [channelId, whipUrl, ensureLocalStream, router, screenOn]
   );
 
   const handleGoLive = useCallback(async () => {
@@ -230,8 +266,7 @@ export function LiveBrowserStudio({
   }
 
   async function toggleScreen() {
-    const stream = streamRef.current;
-    if (!stream || !whipUrl) return;
+    if (!whipUrl) return;
     if (!screenOn) {
       try {
         const display = await navigator.mediaDevices.getDisplayMedia({
@@ -239,20 +274,26 @@ export function LiveBrowserStudio({
           audio: false,
         });
         const videoTrack = display.getVideoTracks()[0];
-        if (videoTrack) {
-          const oldVideo = stream.getVideoTracks()[0];
-          if (oldVideo) {
-            stream.removeTrack(oldVideo);
-            oldVideo.stop();
-          }
-          stream.addTrack(videoTrack);
-          if (videoRef.current) videoRef.current.srcObject = stream;
-          if (whipConnected) {
-            whipRef.current?.stop();
-            const pub = new CloudflareWhipPublisher();
-            whipRef.current = pub;
-            await pub.start(whipUrl, stream);
-          }
+        if (!videoTrack) return;
+
+        await stopFilterPipeline();
+        const audioTracks =
+          rawStreamRef.current?.getAudioTracks() ??
+          streamRef.current?.getAudioTracks().filter((t) => t.kind === "audio") ??
+          [];
+        const screenStream = new MediaStream([videoTrack, ...audioTracks]);
+        streamRef.current = screenStream;
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = screenStream;
+          await videoRef.current.play().catch(() => undefined);
+        }
+
+        if (whipConnected) {
+          whipRef.current?.stop();
+          const pub = new CloudflareWhipPublisher();
+          whipRef.current = pub;
+          await pub.start(whipUrl, screenStream);
         }
         setScreenOn(true);
         setCamOn(true);
@@ -262,7 +303,15 @@ export function LiveBrowserStudio({
       return;
     }
     setScreenOn(false);
-    await ensureLocalStream();
+    streamRef.current = null;
+    const stream = await ensureLocalStream();
+    if (videoRef.current) videoRef.current.srcObject = null;
+    if (whipConnected && stream) {
+      whipRef.current?.stop();
+      const pub = new CloudflareWhipPublisher();
+      whipRef.current = pub;
+      await pub.start(whipUrl, stream);
+    }
   }
 
   if (publishState === "loading") {
@@ -306,12 +355,16 @@ export function LiveBrowserStudio({
   return (
     <div className="flex flex-col gap-3 h-full min-h-[min(50vh,400px)]">
       <div className="relative flex-1 min-h-[200px] rounded-xl overflow-hidden bg-black ring-1 ring-border/50">
+        <div
+          ref={previewHostRef}
+          className={screenOn ? "hidden" : "absolute inset-0"}
+        />
         <video
           ref={videoRef}
           autoPlay
           playsInline
           muted
-          className="w-full h-full object-contain"
+          className={`w-full h-full object-contain ${screenOn ? "block" : "hidden"}`}
         />
         {whipConnected && (
           <span className="absolute top-3 left-3 px-2 py-0.5 rounded bg-red-600 text-white text-[10px] font-bold z-10 flex items-center gap-1">
@@ -320,6 +373,14 @@ export function LiveBrowserStudio({
           </span>
         )}
       </div>
+
+      {!screenOn && (
+        <FaceFilterStrip
+          value={filterId}
+          onChange={setFilterId}
+          disabled={goingLive && whipConnected}
+        />
+      )}
 
       <div className="flex flex-wrap gap-2">
         <Button

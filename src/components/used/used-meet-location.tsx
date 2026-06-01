@@ -1,51 +1,76 @@
 "use client";
 
-import { MapPin, ExternalLink } from "lucide-react";
-import { usedMapSearchUrl } from "@/lib/used-market";
+import dynamic from "next/dynamic";
+import { ExternalLink, MapPin } from "lucide-react";
+import { parseMeetCoords, usedMapSearchUrl } from "@/lib/used-market";
+import { isShippingOnlyRegion } from "@/lib/used-region-coords";
+
+const UsedMeetMap = dynamic(
+  () => import("@/components/used/used-meet-map").then((m) => m.UsedMeetMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-52 rounded-xl border bg-muted/30 animate-pulse flex items-center justify-center text-xs text-muted-foreground">
+        지도 불러오는 중…
+      </div>
+    ),
+  }
+);
 
 export function UsedMeetLocation({
   region,
   meetPlace,
+  meetLat,
+  meetLng,
 }: {
   region: string;
   meetPlace?: string | null;
+  meetLat?: number | null;
+  meetLng?: number | null;
 }) {
+  const coords = parseMeetCoords(meetLat, meetLng);
   const label = meetPlace?.trim() || region;
-  const mapUrl = usedMapSearchUrl(region, meetPlace);
+  const mapUrl = usedMapSearchUrl(region, meetPlace, coords);
+  const shipping = isShippingOnlyRegion(region);
+
+  if (shipping && !meetPlace?.trim()) {
+    return (
+      <section className="text-sm text-muted-foreground flex items-center gap-2">
+        <MapPin className="h-4 w-4 shrink-0" />
+        거래 지역: {region}
+      </section>
+    );
+  }
 
   return (
     <section className="space-y-2">
-      <a
-        href={mapUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center justify-between text-sm font-medium hover:text-primary"
-      >
-        <span className="flex items-center gap-1 min-w-0">
-          <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <span className="truncate">거래 희망 장소 {label}</span>
-        </span>
-        <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" />
-      </a>
-      <a
-        href={mapUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block rounded-xl overflow-hidden border border-border bg-muted/30 relative group"
-      >
-        <div className="aspect-[2/1] max-h-40 bg-gradient-to-br from-muted to-muted/60 flex items-center justify-center">
-          <div className="text-center px-4">
-            <MapPin className="h-8 w-8 mx-auto text-primary/70 mb-1" />
-            <p className="text-xs text-muted-foreground">{region}</p>
-            {meetPlace && <p className="text-sm font-medium mt-0.5">{meetPlace}</p>}
-          </div>
-        </div>
-        <span className="absolute bottom-2 right-2 text-[10px] px-2 py-0.5 rounded-md bg-background/90 border">
-          지도 보기
-        </span>
-      </a>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-medium flex items-center gap-1 min-w-0">
+          <MapPin className="h-4 w-4 shrink-0 text-primary" />
+          <span className="truncate">거래 희망 장소 · {label}</span>
+        </h3>
+        <a
+          href={mapUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-muted-foreground hover:text-primary flex items-center gap-0.5 shrink-0"
+        >
+          카카오맵
+          <ExternalLink className="h-3 w-3" />
+        </a>
+      </div>
+
+      <UsedMeetMap
+        mode="view"
+        region={region}
+        meetPlace={meetPlace ?? undefined}
+        coords={coords}
+        heightClassName="h-56 sm:h-64"
+      />
+
       <p className="text-xs text-muted-foreground">
-        {region} 인근에서 직거래할 수 있어요 · 탭하면 카카오맵에서 위치를 확인합니다
+        {region} 인근 직거래 · 카카오 로컬 API로 표시된 만남 위치입니다
+        {!coords && meetPlace ? " (장소명으로 좌표 검색)" : ""}
       </p>
     </section>
   );

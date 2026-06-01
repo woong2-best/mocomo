@@ -54,9 +54,27 @@ export const USED_STATUS_OPTIONS = [
   { value: "SOLD" as const, label: "거래완료" },
 ];
 
-export function usedMapSearchUrl(region: string, meetPlace?: string | null) {
+export function usedMapSearchUrl(
+  region: string,
+  meetPlace?: string | null,
+  coords?: { lat: number; lng: number } | null
+) {
+  if (coords && Number.isFinite(coords.lat) && Number.isFinite(coords.lng)) {
+    return `https://map.kakao.com/link/map/${coords.lat},${coords.lng}`;
+  }
   const q = [meetPlace?.trim(), region].filter(Boolean).join(" ");
   return `https://map.kakao.com/?q=${encodeURIComponent(q || region)}`;
+}
+
+export type MeetCoords = { lat: number; lng: number };
+
+export function parseMeetCoords(
+  meetLat?: number | null,
+  meetLng?: number | null
+): MeetCoords | null {
+  if (meetLat == null || meetLng == null) return null;
+  if (!Number.isFinite(meetLat) || !Number.isFinite(meetLng)) return null;
+  return { lat: meetLat, lng: meetLng };
 }
 
 export function listingImages(images: unknown): string[] {

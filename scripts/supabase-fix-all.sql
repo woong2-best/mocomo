@@ -342,6 +342,8 @@ CREATE INDEX IF NOT EXISTS "UsedListing_sellerId_idx" ON "UsedListing"("sellerId
 CREATE INDEX IF NOT EXISTS "UsedListing_category_idx" ON "UsedListing"("category");
 CREATE INDEX IF NOT EXISTS "UsedListing_region_idx" ON "UsedListing"("region");
 ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "meetPlace" VARCHAR(200);
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "meetLat" DOUBLE PRECISION;
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "meetLng" DOUBLE PRECISION;
 ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "saleType" TEXT NOT NULL DEFAULT 'FIXED';
 ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "auctionEndsAt" TIMESTAMP(3);
 ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "bidIncrement" INTEGER;
