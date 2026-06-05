@@ -18,7 +18,7 @@ export function ChatComposer({
   placeholder?: string;
 }) {
   return (
-    <div className="shrink-0 border-t border-border/60 bg-background px-3 py-3 sm:px-4 safe-area-pb">
+    <div className="shrink-0 border-t border-border/60 bg-background px-3 py-3 sm:px-4 pb-safe">
       <div className="flex items-end gap-2 max-w-3xl mx-auto">
         <div className="flex-1 flex items-center min-h-[44px] rounded-3xl border border-border/80 bg-muted/40 px-4 py-2 focus-within:ring-2 focus-within:ring-primary/25 focus-within:border-primary/40 transition-shadow">
           <textarea

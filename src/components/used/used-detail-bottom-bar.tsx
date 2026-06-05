@@ -104,7 +104,7 @@ export function UsedDetailBottomBar({
 
   if (isSeller) {
     return (
-      <div className="sticky bottom-0 border-t bg-background p-3 pb-safe z-20">
+      <div className="used-action-bar border-t bg-background p-3 pb-safe z-20">
         <Button
           type="button"
           variant="secondary"
@@ -140,7 +140,7 @@ export function UsedDetailBottomBar({
 
   if (status !== "SELLING") {
     return (
-      <div className="sticky bottom-0 border-t bg-muted/40 p-4 text-center text-sm text-muted-foreground pb-safe">
+      <div className="used-action-bar border-t bg-muted/40 p-4 text-center text-sm text-muted-foreground pb-safe">
         {status === "RESERVED" ? "다른 분과 예약 중이에요" : "거래가 완료된 상품이에요"}
       </div>
     );
@@ -150,7 +150,7 @@ export function UsedDetailBottomBar({
 
   if (needsAdult) {
     return (
-      <div className="sticky bottom-0 flex gap-2 border-t bg-background p-3 pb-safe z-20">
+      <div className="used-action-bar flex gap-2 border-t bg-background p-3 pb-safe z-20">
         <button
           type="button"
           onClick={() => void toggleFav()}
@@ -178,7 +178,7 @@ export function UsedDetailBottomBar({
   }
 
   return (
-    <div className="sticky bottom-0 flex gap-2 border-t bg-background p-3 pb-safe z-20">
+    <div className="used-action-bar flex gap-2 border-t bg-background p-3 pb-safe z-20">
       <button
         type="button"
         onClick={() => void toggleFav()}

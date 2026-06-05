@@ -66,7 +66,21 @@ async function kakaoLocalSearch(
   });
 
   if (res.status === 401 || res.status === 403) {
-    throw new Error("카카오 API 키가 올바르지 않거나 Local API 권한이 없습니다.");
+    const body = (await res.json().catch(() => ({}))) as {
+      message?: string;
+      errorType?: string;
+    };
+    const msg = body.message ?? "";
+    if (msg.includes("OPEN_MAP_AND_LOCAL") || msg.includes("disabled")) {
+      throw new Error(
+        "카카오맵·로컬 API가 꺼져 있습니다. developers.kakao.com → MoCoMo → 제품 설정 → 카카오맵 → 활성화 설정을 ON으로 바꿔 주세요."
+      );
+    }
+    throw new Error(
+      msg
+        ? `카카오 API 오류: ${msg}`
+        : "카카오 API 키가 올바르지 않거나 Local API 권한이 없습니다."
+    );
   }
   if (!res.ok) return null;
 

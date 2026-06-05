@@ -116,7 +116,7 @@ export function UsedAuctionBottomBar({
 
   if (isSeller) {
     return (
-      <div className="sticky bottom-0 border-t bg-background p-3 pb-safe z-20 space-y-2">
+      <div className="used-action-bar border-t bg-background p-3 pb-safe z-20 space-y-2">
         {auctionLive && (
           <Button
             type="button"
@@ -161,7 +161,7 @@ export function UsedAuctionBottomBar({
 
   if (status === "RESERVED" && isWinningBidder && initialBuyerRoomId) {
     return (
-      <div className="sticky bottom-0 flex gap-2 border-t bg-background p-3 pb-safe z-20">
+      <div className="used-action-bar flex gap-2 border-t bg-background p-3 pb-safe z-20">
         <div className="flex-1 flex flex-col justify-center">
           <p className="text-sm font-bold text-green-600 dark:text-green-400">낙찰되었습니다</p>
           <p className="text-xs text-muted-foreground">판매자와 채팅으로 거래를 진행하세요</p>
@@ -175,7 +175,7 @@ export function UsedAuctionBottomBar({
 
   if (!auctionLive) {
     return (
-      <div className="sticky bottom-0 border-t bg-muted/40 p-4 text-center text-sm text-muted-foreground pb-safe">
+      <div className="used-action-bar border-t bg-muted/40 p-4 text-center text-sm text-muted-foreground pb-safe">
         {status === "RESERVED" ? "다른 분과 예약 중이에요" : "경매가 종료되었어요"}
         {isLoggedIn && status === "SELLING" && (
           <Button
@@ -194,7 +194,7 @@ export function UsedAuctionBottomBar({
 
   if (needsAdult) {
     return (
-      <div className="sticky bottom-0 flex gap-2 border-t bg-background p-3 pb-safe z-20">
+      <div className="used-action-bar flex gap-2 border-t bg-background p-3 pb-safe z-20">
         <button
           type="button"
           onClick={() => void toggleFav()}
@@ -225,7 +225,7 @@ export function UsedAuctionBottomBar({
   }
 
   return (
-    <div className="sticky bottom-0 flex gap-2 border-t bg-background p-3 pb-safe z-20">
+    <div className="used-action-bar flex gap-2 border-t bg-background p-3 pb-safe z-20">
       <button
         type="button"
         onClick={() => void toggleFav()}

@@ -92,6 +92,7 @@ model User {
   bookmarks     Bookmark[]
   reports       Report[]  @relation("Reporter")
   reportsAgainst Report[] @relation("ReportedUser")
+  notificationsActed Notification[] @relation("NotificationActor")
 
   followers     Follow[]  @relation("Following")
   following     Follow[]  @relation("Follower")
@@ -134,6 +135,7 @@ model User {
   userBadges    UserBadge[]
   notifications Notification[]
   events        EventParticipant[]
+  eventsCreated Event[] @relation("EventCreator")
   otakuProfile  OtakuProfile?
   fanPosts      FanPost[] @relation("FanPostCreator")
   adImpressions AdImpression[]
@@ -193,6 +195,8 @@ model Profile {
   favoriteTags String[]
   mainCharacter String?
   nicknameEffect String?
+  /** 프로필에 생일(월·일) 공개 */
+  showBirthdayOnProfile Boolean @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -907,6 +911,12 @@ enum PaymentIntentType {
   EMOTICON
   LISTING_FEE
   PHYSICAL_GOODS
+  EVENT_REGISTRATION
+}
+
+enum EventPublishStatus {
+  AWAITING_FEE
+  PUBLISHED
 }
 
 enum EmoticonItemStatus {
@@ -1184,6 +1194,10 @@ model UsedListing {
   /** 일반 판매가 또는 경매 시작가 */
   price       Int
   category    UsedListingCategory @default(OTHER)
+  /** 애니/게임/IP 작품명 (예: 블루 아카이브, 원신) */
+  workTitle   String?             @db.VarChar(120)
+  /** 상품 종류 (피규어, 인형, 프라모델 등 — used-catalog) */
+  productType String?             @db.VarChar(40)
   restrictedKind UsedRestrictedKind @default(NONE)
   status      UsedListingStatus   @default(SELLING)
   saleType    UsedSaleType        @default(FIXED)
@@ -1218,6 +1232,8 @@ model UsedListing {
   @@index([status, createdAt])
   @@index([sellerId])
   @@index([category])
+  @@index([workTitle])
+  @@index([productType])
   @@index([region])
   @@index([saleType, auctionEndsAt])
   @@index([auctionState])
@@ -1383,16 +1399,27 @@ model AdImpression {
 // ============ EVENTS & OTAKU ============
 
 model Event {
-  id          String   @id @default(cuid())
-  title       String
-  description String   @db.Text
-  type        String
-  startsAt    DateTime
-  endsAt      DateTime
-  imageUrl    String?
-  prize       String?
-  createdAt   DateTime @default(now())
-  participants EventParticipant[]
+  id                  String             @id @default(cuid())
+  title               String
+  description         String             @db.Text
+  type                String
+  startsAt            DateTime
+  endsAt              DateTime
+  imageUrl            String?
+  images              Json?
+  prize               String?
+  linkUrl             String?
+  links               Json?
+  videoUrl            String?
+  createdById         String?
+  status              EventPublishStatus @default(PUBLISHED)
+  registrationFeePaid Boolean            @default(true)
+  createdAt           DateTime           @default(now())
+  createdBy           User?              @relation("EventCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  participants        EventParticipant[]
+
+  @@index([createdById, status])
+  @@index([endsAt])
 }
 
 model EventParticipant {
@@ -1404,6 +1431,28 @@ model EventParticipant {
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@unique([eventId, userId])
+}
+
+/** 서브컬처·애니 오프라인 행사 (지도 핀) — 수동/시드, 카카오 지오코딩 보조 */
+model SubcultureEventPin {
+  id          String    @id @default(cuid())
+  title       String
+  description String?   @db.Text
+  category    String    @default("other")
+  venueName   String?
+  address     String?
+  lat         Float?
+  lng         Float?
+  startsAt    DateTime
+  endsAt      DateTime?
+  sourceUrl   String?
+  source      String    @default("seed")
+  externalKey String?   @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([startsAt])
+  @@index([endsAt])
 }
 
 model OtakuProfile {
@@ -1480,11 +1529,16 @@ model ModLog {
 model Notification {
   id        String   @id @default(cuid())
   userId    String
+  actorId   String?
   type      String
   title     String
   body      String?
   link      String?
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  actor User? @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([userId, read, createdAt])
+  @@index([userId, createdAt])
 }

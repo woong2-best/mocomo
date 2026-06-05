@@ -1,14 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { toggleFollow } from "@/actions/social";
-import { sendTip } from "@/actions/monetization";
 
 export async function followUserAction(userId: string, username: string) {
-  await toggleFollow(userId, username);
-  revalidatePath(`/u/${username}`);
-  revalidatePath(`/u/${username}/followers`);
-  revalidatePath(`/u/${username}/following`);
+  return toggleFollow(userId, username);
 }
 
 /** @deprecated tipCreatorAction in @/actions/support 사용 */

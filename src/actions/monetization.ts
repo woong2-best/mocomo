@@ -6,6 +6,7 @@ import { requireAuth } from "@/lib/auth";
 import { ProductType, PaymentIntentType, Prisma } from "@prisma/client";
 import { isPaymentsConfigured, PREMIUM_PRICE } from "@/lib/payments";
 import { LISTING_FEE_KRW } from "@/lib/goods-shop";
+import { EVENT_REGISTRATION_FEE_KRW } from "@/lib/event-registration";
 import { fulfillPaymentIntent } from "@/lib/payment-fulfillment";
 import { getAppOrigin, getStripe, isStripeConfigured } from "@/lib/stripe";
 import { verifyStripeCheckoutSession } from "@/lib/stripe-checkout";
@@ -58,6 +59,18 @@ async function validatePaymentInput(
     if (!order || order.buyerId !== userId) return { error: "주문을 찾을 수 없습니다." };
     if (order.total !== input.amount) return { error: "주문 금액이 일치하지 않습니다." };
     if (order.status !== "PENDING_PAYMENT") return { error: "이미 결제된 주문입니다." };
+  }
+
+  if (input.type === "EVENT_REGISTRATION") {
+    if (input.amount !== EVENT_REGISTRATION_FEE_KRW) {
+      return { error: "이벤트 등록비는 30,000원입니다." };
+    }
+    const eventId = input.metadata.eventId as string;
+    const event = await db.event.findUnique({ where: { id: eventId } });
+    if (!event || event.createdById !== userId) {
+      return { error: "이벤트 등록 정보를 찾을 수 없습니다." };
+    }
+    if (event.registrationFeePaid) return { error: "이미 등록비가 결제되었습니다." };
   }
 
   return null;
@@ -169,6 +182,12 @@ export async function confirmStripeCheckout(sessionId: string) {
     if (meta.channelId) redirectPath = `/voice/${meta.channelId}`;
   }
 
+  if (result.type === "EVENT_REGISTRATION") {
+    const meta = intent.metadata as Record<string, string | undefined>;
+    if (meta.eventId) redirectPath = `/events/new?eventId=${meta.eventId}&paid=1`;
+    else redirectPath = "/events";
+  }
+
   return {
     success: true,
     type: result.type,
@@ -230,7 +249,7 @@ export async function createDigitalProduct(data: {
   const product = await db.digitalProduct.create({
     data: { sellerId: user.id, ...data },
   });
-  revalidatePath("/market");
+  revalidatePath("/support");
   return { product };
 }
 

@@ -24,6 +24,10 @@ type Initial = {
   website: string;
   showNsfw: boolean;
   username: string;
+  birthYear: string;
+  birthMonth: string;
+  birthDay: string;
+  showBirthdayOnProfile: boolean;
 };
 
 export function ProfileSettingsForm({ initial }: { initial: Initial }) {
@@ -47,6 +51,19 @@ export function ProfileSettingsForm({ initial }: { initial: Initial }) {
       ?.split(",")
       .map((t) => t.trim())
       .filter(Boolean);
+    const birthYearStr = (form.get("birthYear") as string)?.trim() ?? "";
+    const birthMonthStr = (form.get("birthMonth") as string)?.trim() ?? "";
+    const birthDayStr = (form.get("birthDay") as string)?.trim() ?? "";
+    const clearBirth = !birthYearStr && !birthMonthStr && !birthDayStr;
+    const hasPartial =
+      (birthYearStr || birthMonthStr || birthDayStr) &&
+      !(birthYearStr && birthMonthStr && birthDayStr);
+    if (hasPartial) {
+      setMsg("생년월일은 연·월·일을 모두 입력하거나, 모두 비워 주세요.");
+      setLoading(false);
+      return;
+    }
+
     const result = await updateProfile({
       name: displayName || undefined,
       image: image || undefined,
@@ -55,6 +72,14 @@ export function ProfileSettingsForm({ initial }: { initial: Initial }) {
       mainCharacter: (form.get("mainCharacter") as string) || undefined,
       favoriteTags: tags,
       showNsfw: form.get("showNsfw") === "on",
+      showBirthdayOnProfile: form.get("showBirthdayOnProfile") === "on",
+      ...(clearBirth
+        ? { clearBirthDate: true }
+        : {
+            birthYear: Number(birthYearStr),
+            birthMonth: Number(birthMonthStr),
+            birthDay: Number(birthDayStr),
+          }),
       snsLinks: Object.fromEntries(
         [
           ["location", (form.get("location") as string)?.trim()],
@@ -130,6 +155,61 @@ export function ProfileSettingsForm({ initial }: { initial: Initial }) {
                 className="mt-1 w-full min-h-[100px] rounded-xl border border-border bg-background p-3 text-sm"
                 placeholder="자기소개 (160자)"
               />
+            </div>
+            <div className="rounded-xl border border-border/60 p-4 space-y-3 bg-muted/20">
+              <div>
+                <label className="text-sm font-medium">생일</label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  중고거래 성인 인증에도 사용됩니다. 프로필에는 월·일만 공개할 수 있어요.
+                </p>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="text-xs text-muted-foreground">연도</label>
+                  <Input
+                    name="birthYear"
+                    type="number"
+                    defaultValue={initial.birthYear}
+                    placeholder="1998"
+                    min={1900}
+                    max={new Date().getFullYear()}
+                    className="mt-1 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">월</label>
+                  <Input
+                    name="birthMonth"
+                    type="number"
+                    defaultValue={initial.birthMonth}
+                    placeholder="3"
+                    min={1}
+                    max={12}
+                    className="mt-1 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">일</label>
+                  <Input
+                    name="birthDay"
+                    type="number"
+                    defaultValue={initial.birthDay}
+                    placeholder="15"
+                    min={1}
+                    max={31}
+                    className="mt-1 rounded-xl"
+                  />
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="showBirthdayOnProfile"
+                  defaultChecked={initial.showBirthdayOnProfile}
+                  disabled={!initial.birthYear && !initial.birthMonth && !initial.birthDay}
+                />
+                프로필에 생일 표시 (월·일)
+              </label>
             </div>
             <div>
               <label className="text-sm font-medium">위치</label>

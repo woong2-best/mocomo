@@ -1,23 +1,8 @@
 import Link from "next/link";
 import { getCachedCommunities } from "@/lib/cached-data";
+import { communityCategoryLabel } from "@/lib/community-labels";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users } from "lucide-react";
-
-const categoryLabels: Record<string, string> = {
-  ANIME: "애니",
-  MANGA: "만화",
-  GAME: "게임",
-  VTUBER: "버튜버",
-  COSPLAY: "코스프레",
-  FIGURE: "피규어",
-  ART: "그림",
-  MUSIC: "음악",
-  AI_ART: "AI 그림",
-  LIGHT_NOVEL: "라노벨",
-  GOODS: "굿즈",
-  NSFW: "NSFW",
-  OTHER: "기타",
-};
 
 export async function CommunitiesGridAsync() {
   let communities: Awaited<ReturnType<typeof getCachedCommunities>> = [];
@@ -43,7 +28,7 @@ export async function CommunitiesGridAsync() {
                 <div className="flex items-center gap-2">
                   <CardTitle className="text-lg">{c.name}</CardTitle>
                   <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary">
-                    {categoryLabels[c.category] || c.category}
+                    {communityCategoryLabel(c.category)}
                   </span>
                   {c.isNsfw && (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-destructive/20 text-destructive">

@@ -1,6 +1,8 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { LISTING_FEE_KRW } from "@/lib/goods-shop";
+import { EVENT_REGISTRATION_FEE_KRW } from "@/lib/event-registration";
+import { fulfillEventRegistration } from "@/actions/events";
 import {
   creditSellerEarning,
   recordPlatformFee,
@@ -14,6 +16,7 @@ import {
 } from "@/actions/goods-shop";
 import { calcPlatformFee } from "@/lib/utils";
 import { tierFromAmount } from "@/lib/tiers";
+import { notifyTip } from "@/lib/notifications";
 
 const PLATFORM_FEE_RATE = 0.1;
 
@@ -99,15 +102,7 @@ async function fulfillTip(
     });
   }
 
-  await db.notification.create({
-    data: {
-      userId: receiverId,
-      type: "tip",
-      title: "후원 알림",
-      body: `${sender.username}님이 ${amount.toLocaleString()}원을 후원했습니다.`,
-      link: `/u/${receiver.username}`,
-    },
-  });
+  await notifyTip(receiverId, senderId, amount, receiver.username);
 
   revalidatePath(`/u/${receiver.username}`);
   revalidatePath("/support");
@@ -181,7 +176,7 @@ export async function fulfillPaymentIntent(
       referenceId: productId,
       paymentIntentId: intent.id,
     });
-    revalidatePath("/market");
+    revalidatePath("/support");
   }
 
   if (intent.type === "PREMIUM") {
@@ -215,7 +210,7 @@ export async function fulfillPaymentIntent(
       paymentIntentId: intent.id,
       memo: "이모티콘 구매 (플랫폼 보관)",
     });
-    revalidatePath("/market/storage");
+    revalidatePath("/support");
   }
 
   if (intent.type === "LISTING_FEE") {
@@ -227,7 +222,19 @@ export async function fulfillPaymentIntent(
       paymentIntentId: intent.id,
       memo: "굿즈 등록비",
     });
-    revalidatePath("/market/sell");
+    revalidatePath("/support");
+  }
+
+  if (intent.type === "EVENT_REGISTRATION") {
+    const r = await fulfillEventRegistration(meta.eventId, userId);
+    if ("error" in r && r.error) return { ok: false, error: r.error };
+    await recordPlatformFee(EVENT_REGISTRATION_FEE_KRW, {
+      referenceType: "event_registration",
+      referenceId: meta.eventId,
+      paymentIntentId: intent.id,
+      memo: "이벤트 등록비",
+    });
+    revalidatePath("/events");
   }
 
   if (intent.type === "PHYSICAL_GOODS") {
@@ -247,7 +254,7 @@ export async function fulfillPaymentIntent(
         memo: "굿즈 판매 정산",
       });
     }
-    revalidatePath("/market/orders");
+    revalidatePath("/support");
   }
 
   await db.paymentIntent.update({

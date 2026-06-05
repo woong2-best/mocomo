@@ -264,6 +264,7 @@ export async function placeUsedAuctionBid(listingId: string, amount: number) {
       title: "새 입찰",
       body: `${listing.title} · ${bidAmount.toLocaleString()}원`,
       link,
+      actorId: user.id,
     });
     if (prevBidderId && prevBidderId !== user.id) {
       await sendUsedAuctionNotification({
@@ -272,6 +273,7 @@ export async function placeUsedAuctionBid(listingId: string, amount: number) {
         title: "입찰 갱신됨",
         body: `${listing.title} · ${bidAmount.toLocaleString()}원`,
         link,
+        actorId: user.id,
       });
     }
 
@@ -346,6 +348,7 @@ export async function buyNowUsedAuction(listingId: string) {
       title: "즉시구매",
       body: `${listingTitle} · ${buyNow.toLocaleString()}원`,
       link: `/used/${listingId}`,
+      actorId: user.id,
     });
     revalidatePath(`/used/${listingId}`);
     revalidatePath("/used");
@@ -373,11 +376,10 @@ export async function getUsedAuctionBids(listingId: string, take = 30) {
   }
 }
 
-export async function getMyUsedAuctionBids() {
-  const user = await requireAuth();
+export async function getMyUsedAuctionBids(userId: string) {
   try {
     const bids = await db.usedAuctionBid.findMany({
-      where: { bidderId: user.id },
+      where: { bidderId: userId },
       orderBy: { createdAt: "desc" },
       take: 50,
       distinct: ["listingId"],

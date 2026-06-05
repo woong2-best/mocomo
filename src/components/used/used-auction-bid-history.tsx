@@ -5,13 +5,33 @@ import { getUsedAuctionBids } from "@/actions/used-auction";
 import { formatUsedPrice, formatUsedTimeAgo } from "@/lib/used-market";
 import { maskBidderName } from "@/lib/used-auction";
 
-export function UsedAuctionBidHistory({ listingId }: { listingId: string }) {
-  const [bids, setBids] = useState<
-    { id: string; amount: number; createdAt: Date; bidder: { username: string } }[]
-  >([]);
-  const [loading, setLoading] = useState(true);
+export type UsedAuctionBidRow = {
+  id: string;
+  amount: number;
+  createdAt: Date;
+  bidder: { username: string };
+};
+
+type UsedAuctionBidHistoryProps = {
+  listingId: string;
+  /** 서버에서 미리 불러온 입찰 내역 — 클라이언트 재요청 생략 */
+  initialBids?: UsedAuctionBidRow[];
+};
+
+export function UsedAuctionBidHistory({ listingId, initialBids }: UsedAuctionBidHistoryProps) {
+  const [bids, setBids] = useState<UsedAuctionBidRow[]>(
+    () =>
+      initialBids?.map((b) => ({
+        id: b.id,
+        amount: b.amount,
+        createdAt: b.createdAt,
+        bidder: b.bidder,
+      })) ?? []
+  );
+  const [loading, setLoading] = useState(!initialBids);
 
   useEffect(() => {
+    if (initialBids) return;
     let cancelled = false;
     void getUsedAuctionBids(listingId).then((res) => {
       if (cancelled) return;
@@ -28,7 +48,7 @@ export function UsedAuctionBidHistory({ listingId }: { listingId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [listingId]);
+  }, [listingId, initialBids]);
 
   if (loading) {
     return <p className="text-xs text-muted-foreground py-2">입찰 내역 불러오는 중…</p>;

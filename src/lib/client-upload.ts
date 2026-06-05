@@ -1,71 +1,155 @@
-/** Upload image to S3 presigned URL, or fall back to local /api/upload/local */
+import { guessImageMime } from "@/lib/gallery-image-upload";
+import { guessVideoMime } from "@/lib/gallery-video-upload";
+
+/** Upload image via server (Supabase Storage / disk), then S3 presigned fallback */
 export async function uploadImageBlob(blob: Blob, filename: string): Promise<string> {
-  const contentType = blob.type || "image/jpeg";
+  const contentType =
+    blob.type && blob.type !== "application/octet-stream"
+      ? blob.type
+      : guessImageMime(filename, blob.type);
   const file = new File([blob], filename, { type: contentType });
+
+  const form = new FormData();
+  form.set("file", file);
+  form.set("category", "image");
+  const localRes = await fetch("/api/upload/local", {
+    method: "POST",
+    body: form,
+    credentials: "include",
+  });
+  const localBody = (await localRes.json().catch(() => ({}))) as {
+    publicUrl?: string;
+    error?: string;
+  };
+  if (localRes.ok && localBody.publicUrl) return localBody.publicUrl;
 
   const presignRes = await fetch("/api/upload", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ filename, contentType, category: "image" }),
+    credentials: "include",
   });
 
   if (presignRes.ok) {
-    const { uploadUrl, publicUrl } = (await presignRes.json()) as {
+    const { uploadUrl, publicUrl, token } = (await presignRes.json()) as {
       uploadUrl: string;
       publicUrl: string;
+      token?: string;
     };
+    const headers: Record<string, string> = { "Content-Type": contentType };
+    if (token) headers.Authorization = `Bearer ${token}`;
     const put = await fetch(uploadUrl, {
       method: "PUT",
       body: file,
-      headers: { "Content-Type": contentType },
+      headers,
     });
-    if (!put.ok) throw new Error("클라우드 업로드에 실패했습니다.");
+    if (!put.ok) {
+      throw new Error(
+        localBody.error || "클라우드 업로드에 실패했습니다. 로그인 상태를 확인해 주세요."
+      );
+    }
     return publicUrl;
   }
 
-  const form = new FormData();
-  form.set("file", file);
-  form.set("category", "image");
-  const localRes = await fetch("/api/upload/local", { method: "POST", body: form });
-  const body = (await localRes.json().catch(() => ({}))) as { publicUrl?: string; error?: string };
-  if (!localRes.ok) {
-    throw new Error(body.error || "이미지 업로드에 실패했습니다.");
-  }
-  if (!body.publicUrl) throw new Error("업로드 응답이 올바르지 않습니다.");
-  return body.publicUrl;
+  throw new Error(
+    localBody.error ||
+      (await presignRes.json().catch(() => ({})) as { message?: string }).message ||
+      "이미지 업로드에 실패했습니다."
+  );
 }
 
-/** Upload video to R2/S3 presigned URL or local fallback */
+/** Upload video — Supabase/local 우선, presigned 폴백 */
 export async function uploadVideoBlob(blob: Blob, filename: string): Promise<string> {
-  const contentType = blob.type || "video/mp4";
+  const contentType = guessVideoMime(filename, blob.type);
   const file = new File([blob], filename, { type: contentType });
+
+  const form = new FormData();
+  form.set("file", file);
+  form.set("category", "video");
+  const localRes = await fetch("/api/upload/local", {
+    method: "POST",
+    body: form,
+    credentials: "include",
+  });
+  const localBody = (await localRes.json().catch(() => ({}))) as {
+    publicUrl?: string;
+    error?: string;
+  };
+  if (localRes.ok && localBody.publicUrl) return localBody.publicUrl;
 
   const presignRes = await fetch("/api/upload", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ filename, contentType, category: "video" }),
+    credentials: "include",
   });
 
   if (presignRes.ok) {
-    const { uploadUrl, publicUrl } = (await presignRes.json()) as {
+    const { uploadUrl, publicUrl, token } = (await presignRes.json()) as {
       uploadUrl: string;
       publicUrl: string;
+      token?: string;
     };
+    const headers: Record<string, string> = { "Content-Type": contentType };
+    if (token) headers.Authorization = `Bearer ${token}`;
     const put = await fetch(uploadUrl, {
       method: "PUT",
       body: file,
-      headers: { "Content-Type": contentType },
+      headers,
     });
-    if (!put.ok) throw new Error("영상 업로드에 실패했습니다.");
+    if (!put.ok) {
+      throw new Error(
+        localBody.error || "영상 업로드에 실패했습니다. 로그인·용량(25MB)을 확인해 주세요."
+      );
+    }
     return publicUrl;
   }
 
+  throw new Error(
+    localBody.error ||
+      (await presignRes.json().catch(() => ({})) as { message?: string }).message ||
+      "영상 업로드에 실패했습니다."
+  );
+}
+
+/** Upload voice note (webm/mpeg) */
+export async function uploadAudioBlob(blob: Blob, filename: string): Promise<string> {
+  const contentType = blob.type?.startsWith("audio/") ? blob.type : "audio/webm";
+  const file = new File([blob], filename, { type: contentType });
+
   const form = new FormData();
   form.set("file", file);
-  form.set("category", "video");
-  const localRes = await fetch("/api/upload/local", { method: "POST", body: form });
-  const body = (await localRes.json().catch(() => ({}))) as { publicUrl?: string; error?: string };
-  if (!localRes.ok) throw new Error(body.error || "영상 업로드에 실패했습니다.");
-  if (!body.publicUrl) throw new Error("업로드 응답이 올바르지 않습니다.");
-  return body.publicUrl;
+  form.set("category", "audio");
+  const localRes = await fetch("/api/upload/local", {
+    method: "POST",
+    body: form,
+    credentials: "include",
+  });
+  const localBody = (await localRes.json().catch(() => ({}))) as {
+    publicUrl?: string;
+    error?: string;
+  };
+  if (localRes.ok && localBody.publicUrl) return localBody.publicUrl;
+
+  const presignRes = await fetch("/api/upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ filename, contentType, category: "audio" }),
+    credentials: "include",
+  });
+
+  if (presignRes.ok) {
+    const { uploadUrl, publicUrl, token } = (await presignRes.json()) as {
+      uploadUrl: string;
+      publicUrl: string;
+      token?: string;
+    };
+    const headers: Record<string, string> = { "Content-Type": contentType };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const put = await fetch(uploadUrl, { method: "PUT", body: file, headers });
+    if (!put.ok) throw new Error("음성 업로드에 실패했습니다.");
+    return publicUrl;
+  }
+
+  throw new Error(localBody.error || "음성 업로드에 실패했습니다.");
 }

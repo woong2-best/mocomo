@@ -2,50 +2,54 @@
 
 import { signIn } from "next-auth/react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useState, Suspense, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { BRAND } from "@/lib/brand";
 
-function SignInFormInner({
+function safeCallbackUrl(raw: string): string {
+  const path = raw.trim();
+  if (!path.startsWith("/") || path.startsWith("//")) return "/";
+  return path;
+}
+
+export function SignInForm({
   googleOAuth,
   discordOAuth,
+  callbackUrl: callbackUrlProp,
+  initialEmail = "",
+  errorParam,
 }: {
   googleOAuth: boolean;
   discordOAuth: boolean;
+  callbackUrl: string;
+  initialEmail?: string;
+  errorParam?: string | null;
 }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const callbackError = searchParams.get("error");
+  const callbackUrl = safeCallbackUrl(callbackUrlProp);
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const callbackUrl = searchParams.get("callbackUrl") || "/";
-
-  useEffect(() => {
-    const q = searchParams.get("email");
-    if (q) setEmail(q);
-  }, [searchParams]);
-
   const bannedNotice =
-    searchParams.get("error") === "banned"
+    errorParam === "banned"
       ? "이 계정은 이용이 제한되어 있습니다. 문의가 필요하면 운영자에게 연락해 주세요."
       : "";
 
   const callbackErrorMessage =
-    callbackError === "Configuration"
+    errorParam === "Configuration"
       ? googleOAuth
         ? "서버 OAuth 설정 오류입니다. Vercel 환경 변수를 확인한 뒤 Redeploy 하세요."
         : "Google 로그인이 아직 설정되지 않았습니다. Vercel에 AUTH_GOOGLE_ID·AUTH_GOOGLE_SECRET을 추가하거나, 이메일로 로그인하세요."
-      : callbackError === "OAuthAccountNotLinked"
+      : errorParam === "OAuthAccountNotLinked"
         ? "이 이메일은 다른 로그인 방식으로 가입되어 있습니다."
-        : callbackError
+        : errorParam
           ? "로그인에 실패했습니다. 다시 시도해 주세요."
           : "";
 
@@ -88,6 +92,11 @@ function SignInFormInner({
           </div>
           <CardTitle className="text-2xl">{BRAND.name} 로그인</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">{BRAND.tagline}</p>
+          {callbackUrl !== "/" && (
+            <p className="text-xs text-muted-foreground mt-2">
+              로그인 후 글쓰기 등 이전 화면으로 이동합니다.
+            </p>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           {(error || bannedNotice || callbackErrorMessage) && (
@@ -170,13 +179,5 @@ function SignInFormInner({
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-export function SignInForm(props: { googleOAuth: boolean; discordOAuth: boolean }) {
-  return (
-    <Suspense>
-      <SignInFormInner {...props} />
-    </Suspense>
   );
 }

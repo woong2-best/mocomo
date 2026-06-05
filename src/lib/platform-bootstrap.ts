@@ -46,6 +46,39 @@ export async function ensurePlatformBootstrap(prisma: PrismaClient) {
           isFeedAd: false,
           active: true,
         },
+        {
+          position: "margin_left",
+          title: "MoCoMo Premium — 광고 없이",
+          imageUrl: "/ads/premium.svg",
+          linkUrl: "/premium",
+          sponsorName: "MoCoMo",
+          ctaLabel: "프리미엄",
+          adCategory: "프리미엄",
+          isFeedAd: false,
+          active: true,
+        },
+        {
+          position: "margin_right",
+          title: "후원 이모티콘",
+          imageUrl: "/ads/events.svg",
+          linkUrl: "/support?tab=emoticons",
+          sponsorName: "MoCoMo",
+          ctaLabel: "후원",
+          adCategory: "후원",
+          isFeedAd: false,
+          active: true,
+        },
+        {
+          position: "margin_right",
+          title: "라이브 방송",
+          imageUrl: "/ads/live.svg",
+          linkUrl: "/live",
+          sponsorName: "MoCoMo Live",
+          ctaLabel: "라이브",
+          adCategory: "라이브",
+          isFeedAd: false,
+          active: true,
+        },
       ],
     });
   }
@@ -99,7 +132,7 @@ export async function ensurePlatformBootstrap(prisma: PrismaClient) {
       data: {
         title: "MoCoMo에 오신 것을 환영합니다 🎉",
         content:
-          "회원가입 후 글·사진·코스프레·굿즈·라이브를 시작해 보세요!\n\n• /auth/signup — 가입\n• /live — 라이브\n• /cosplay — 코스프레\n• /market — 굿즈",
+          "회원가입 후 글·사진·코스프레·후원·라이브를 시작해 보세요!\n\n• /auth/signup — 가입\n• /live — 라이브\n• /cosplay — 코스프레\n• /support — 후원",
         authorId: platform.id,
         communityId: community.id,
         postType: "NEWS",

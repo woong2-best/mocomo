@@ -5,6 +5,9 @@ import { requireAuth, requireAuthMinimal } from "@/lib/auth";
 import { canAccessDm } from "@/lib/tiers";
 import { ChatRoomType, SupportTierLevel } from "@prisma/client";
 import { userPublicSelectMinimal } from "@/lib/user-public-select";
+import { sanitizeChatAttachments } from "@/lib/chat-attachments";
+import { notifyChatMessage } from "@/lib/notifications";
+import { relayChatMessageToSocket } from "@/lib/chat-socket-relay";
 
 export async function createChatRoom(data: {
   name?: string;
@@ -87,7 +90,11 @@ export async function getChatRooms(forUserId?: string) {
       messages: {
         take: 1,
         orderBy: { createdAt: "desc" },
-        select: { content: true, createdAt: true },
+        select: {
+          content: true,
+          createdAt: true,
+          attachments: { select: { type: true } },
+        },
       },
     },
     orderBy: { updatedAt: "desc" },
@@ -109,23 +116,32 @@ export async function sendMessage(data: {
   });
   if (!member) throw new Error("NOT_MEMBER");
 
-  const hasAttachments = !!data.attachments?.length;
+  const attachments = sanitizeChatAttachments(data.attachments);
+  const hasAttachments = attachments.length > 0;
+  const text = (data.content ?? "").trim();
+  if (!text && !hasAttachments) throw new Error("EMPTY_MESSAGE");
+
+  const room = await db.chatRoom.findUnique({
+    where: { id: data.roomId },
+    select: { type: true },
+  });
+  if (!room) throw new Error("ROOM_NOT_FOUND");
 
   const message = await db.$transaction(async (tx) => {
     const msg = await tx.message.create({
       data: {
         roomId: data.roomId,
         senderId: user.id,
-        content: data.content,
+        content: text || null,
         replyToId: data.replyToId,
         mentions: data.mentions ?? [],
         attachments: hasAttachments
-          ? { create: data.attachments!.map((a) => ({ url: a.url, type: a.type, name: a.name })) }
+          ? { create: attachments.map((a) => ({ url: a.url, type: a.type, name: a.name })) }
           : undefined,
       },
       include: {
         sender: { select: userPublicSelectMinimal },
-        ...(hasAttachments ? { attachments: true } : {}),
+        attachments: true,
       },
     });
     await tx.chatRoom.update({
@@ -133,6 +149,19 @@ export async function sendMessage(data: {
       data: { updatedAt: new Date() },
     });
     return msg;
+  });
+
+  void notifyChatMessage({
+    roomId: data.roomId,
+    senderId: user.id,
+    content: text || null,
+    roomType: room.type,
+    mentionUserIds: data.mentions,
+  });
+
+  void relayChatMessageToSocket(data.roomId, {
+    ...message,
+    createdAt: message.createdAt.toISOString(),
   });
 
   return { message };

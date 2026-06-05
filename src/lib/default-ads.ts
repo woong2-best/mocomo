@@ -25,10 +25,50 @@ export const FALLBACK_SIDEBAR_ADS = [
     id: "fallback-events",
     title: "진행 중인 이벤트",
     imageUrl: "/ads/events.svg",
-    linkUrl: "/events",
+    linkUrl: "/events/map",
     ctaLabel: "참가하기",
   },
 ] as const;
+
+/** 데스크톱 좌·우 여백 레일 (피드 본문과 분리) */
+export const FALLBACK_RAIL_LEFT_ADS = [
+  {
+    id: "fallback-rail-premium",
+    title: "MoCoMo Premium",
+    imageUrl: "/ads/premium.svg",
+    linkUrl: "/premium",
+    sponsorName: "MoCoMo",
+    ctaLabel: "광고 없이 이용",
+  },
+] as const;
+
+export const FALLBACK_RAIL_RIGHT_ADS = [
+  {
+    id: "fallback-rail-market",
+    title: "후원 이모티콘",
+    imageUrl: "/ads/events.svg",
+    linkUrl: "/support?tab=emoticons",
+    sponsorName: "MoCoMo",
+    ctaLabel: "둘러보기",
+  },
+  {
+    id: "fallback-rail-live",
+    title: "라이브 방송",
+    imageUrl: "/ads/live.svg",
+    linkUrl: "/live",
+    sponsorName: "MoCoMo Live",
+    ctaLabel: "시청하기",
+  },
+] as const;
+
+export type RailAdData = {
+  id: string;
+  title: string;
+  imageUrl: string;
+  linkUrl: string;
+  sponsorName?: string | null;
+  ctaLabel?: string | null;
+};
 
 export type FeedAdData = {
   id: string;

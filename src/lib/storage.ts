@@ -39,6 +39,19 @@ export function validateFileType(
   return allowed.some((a) => mime.startsWith(a) || mime === a);
 }
 
-export const ALLOWED_IMAGE = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-export const ALLOWED_VIDEO = ["video/mp4", "video/webm"];
+export const ALLOWED_IMAGE = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/heic",
+  "image/heif",
+];
+export const ALLOWED_VIDEO = [
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+  "video/3gpp",
+  "video/mpeg",
+];
 export const ALLOWED_AUDIO = ["audio/mpeg", "audio/webm", "audio/ogg"];

@@ -177,15 +177,18 @@ export function LiveBrowserStudio({
     void ensureLocalStream().catch((e) => {
       setLiveError(e instanceof Error ? e.message : "카메라·마이크 권한이 필요합니다.");
     });
+  }, [ready, publishState, ensureLocalStream]);
+
+  /** WHIP·카메라는 언마운트 시에만 정리 (publishState 변경 시 cleanup 하면 송출이 즉시 끊김) */
+  useEffect(() => {
     return () => {
       whipRef.current?.stop();
       void stopFilterPipeline();
       rawStreamRef.current?.getTracks().forEach((t) => t.stop());
       rawStreamRef.current = null;
       streamRef.current = null;
-      setWhipConnected(false);
     };
-  }, [ready, publishState, ensureLocalStream, stopFilterPipeline]);
+  }, [stopFilterPipeline]);
 
   const connectWhip = useCallback(
     async (markLiveInDb: boolean) => {
@@ -235,6 +238,9 @@ export function LiveBrowserStudio({
     setGoingLive(true);
     setLiveError("");
     try {
+      whipRef.current?.stop();
+      setWhipConnected(false);
+      await loadIngest();
       await connectWhip(false);
     } catch (e) {
       setLiveError(e instanceof Error ? e.message : "송출 재연결 실패");
@@ -243,7 +249,7 @@ export function LiveBrowserStudio({
     } finally {
       setGoingLive(false);
     }
-  }, [connectWhip]);
+  }, [connectWhip, loadIngest]);
 
   async function toggleMic() {
     const stream = streamRef.current;

@@ -32,9 +32,10 @@ export function RightPanelLoader() {
           animes: body.animes ?? [],
           tips: body.tips ?? [],
           sidebarAds: body.sidebarAds ?? [],
+          eventPins: body.eventPins ?? [],
         });
       } catch {
-        if (!cancelled) setData({ animes: [], tips: [], sidebarAds: [] });
+        if (!cancelled) setData({ animes: [], tips: [], sidebarAds: [], eventPins: [] });
       }
     })();
 

@@ -1,17 +1,19 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
-import { Search } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Search, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { USED_CATEGORIES } from "@/lib/used-market";
 import { UsedRegionFilter } from "@/components/used/used-region-filter";
+import { UsedWorkProductFilters } from "@/components/used/used-work-product-filters";
 
 export function UsedSearchHeader() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [q, setQ] = useState(searchParams.get("q") ?? "");
+  const [isPending, startTransition] = useTransition();
 
   function apply(updates: Record<string, string | null>) {
     const params = new URLSearchParams(searchParams.toString());
@@ -19,75 +21,119 @@ export function UsedSearchHeader() {
       if (v) params.set(k, v);
       else params.delete(k);
     });
-    router.push(`/used?${params.toString()}`);
+    startTransition(() => {
+      router.replace(`/used?${params.toString()}`);
+    });
   }
 
-  return (
-    <div className="space-y-3 sticky top-14 z-30 bg-background/95 backdrop-blur pb-2 -mx-4 px-4 pt-1 border-b border-border">
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          apply({ q: q.trim() || null });
-        }}
-        className="flex gap-2"
-      >
-        <div className="flex-1 flex items-center gap-2 rounded-xl bg-muted/50 border border-border px-3 h-11">
-          <Search className="h-4 w-4 text-muted-foreground shrink-0" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="어떤 상품을 찾으세요?"
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-          />
-        </div>
-        <Button type="submit" variant="secondary" size="default" className="h-11 shrink-0">
-          검색
-        </Button>
-      </form>
+  function submitUnifiedSearch(e: React.FormEvent) {
+    e.preventDefault();
+    apply({ q: q.trim() || null });
+  }
 
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-        <button
-          type="button"
-          onClick={() => apply({ category: null, mode: null })}
-          className={cn(
-            "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium",
-            !searchParams.get("category") && searchParams.get("mode") !== "auction"
-              ? "bg-foreground text-background"
-              : "bg-muted border border-border"
+  const activeQ = searchParams.get("q");
+
+  return (
+    <div
+      className={cn(
+        "space-y-3 sticky top-14 z-30 bg-background/95 backdrop-blur pb-2 -mx-4 px-4 pt-1 border-b border-border transition-opacity",
+        isPending && "opacity-60"
+      )}
+    >
+      <section className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+            <Search className="h-3.5 w-3.5 text-muted-foreground" />
+            통합검색
+          </h3>
+          {activeQ && (
+            <button
+              type="button"
+              onClick={() => {
+                setQ("");
+                apply({ q: null });
+              }}
+              className="text-[10px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+            >
+              검색어 지우기
+            </button>
           )}
-        >
-          전체
-        </button>
-        <button
-          type="button"
-          onClick={() => apply({ mode: "auction", category: null })}
-          className={cn(
-            "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap",
-            searchParams.get("mode") === "auction"
-              ? "bg-orange-600 text-white"
-              : "bg-muted border border-border"
-          )}
-        >
-          🔨 경매
-        </button>
-        {USED_CATEGORIES.map((c) => (
+        </div>
+        <p className="text-[10px] text-muted-foreground -mt-1">
+          제목·설명 키워드로 전체 상품 검색
+        </p>
+        <form onSubmit={submitUnifiedSearch} className="flex gap-2">
+          <div className="flex-1 flex items-center gap-2 rounded-xl bg-muted/50 border border-border px-3 h-11">
+            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="어떤 상품을 찾으세요?"
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            />
+          </div>
+          <Button type="submit" variant="secondary" size="default" className="h-11 shrink-0">
+            검색
+          </Button>
+        </form>
+        {activeQ && (
+          <p className="text-[10px] text-muted-foreground">
+            통합검색: <span className="text-foreground font-medium">&quot;{activeQ}&quot;</span>
+          </p>
+        )}
+      </section>
+
+      <UsedWorkProductFilters onNavigate={apply} isPending={isPending} />
+
+      <section className="space-y-2">
+        <h3 className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+          <LayoutGrid className="h-3 w-3" />
+          카테고리 · 경매
+        </h3>
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
           <button
-            key={c.id}
             type="button"
-            onClick={() => apply({ category: c.id })}
+            onClick={() => apply({ category: null, mode: null })}
             className={cn(
-              "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap",
-              searchParams.get("category") === c.id
+              "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium",
+              !searchParams.get("category") && searchParams.get("mode") !== "auction"
                 ? "bg-foreground text-background"
                 : "bg-muted border border-border"
             )}
           >
-            {c.label}
+            전체
           </button>
-        ))}
-      </div>
+          <button
+            type="button"
+            onClick={() => apply({ mode: "auction", category: null })}
+            className={cn(
+              "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap",
+              searchParams.get("mode") === "auction"
+                ? "bg-orange-600 text-white"
+                : "bg-muted border border-border"
+            )}
+          >
+            🔨 경매
+          </button>
+          {USED_CATEGORIES.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => apply({ category: c.id })}
+              className={cn(
+                "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap",
+                searchParams.get("category") === c.id
+                  ? "bg-foreground text-background"
+                  : "bg-muted border border-border"
+              )}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+      </section>
 
-      <UsedRegionFilter />
+      <UsedRegionFilter onNavigate={apply} isPending={isPending} />
     </div>
   );
 }

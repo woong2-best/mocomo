@@ -4,7 +4,11 @@
   "crons": [
     {
       "path": "/api/cron/used-auctions",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/cron/subculture-events",
+      "schedule": "30 16 * * *"
     }
   ],
   "functions": {
@@ -12,6 +16,9 @@
       "maxDuration": 300
     },
     "src/app/api/cron/used-auctions/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/subculture-events/route.ts": {
       "maxDuration": 60
     }
   }

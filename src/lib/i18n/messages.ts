@@ -22,6 +22,7 @@ export type MessageKey =
   | "nav.signup"
   | "nav.signin"
   | "nav.compose"
+  | "nav.more"
   | "auth.signupTitle"
   | "auth.signupDesc"
   | "auth.email"
@@ -70,6 +71,7 @@ const ko: Record<MessageKey, string> = {
   "nav.signup": "가입",
   "nav.signin": "로그인",
   "nav.compose": "글쓰기",
+  "nav.more": "더보기",
   "auth.signupTitle": "회원가입",
   "auth.signupDesc": "서브컬처·코스프레 커뮤니티",
   "auth.email": "이메일",
@@ -119,6 +121,7 @@ const en: Record<MessageKey, string> = {
   "nav.signup": "Sign up",
   "nav.signin": "Sign in",
   "nav.compose": "Compose",
+  "nav.more": "More",
   "auth.signupTitle": "Sign up",
   "auth.signupDesc": "Subculture & cosplay community",
   "auth.email": "Email",
@@ -168,6 +171,7 @@ const ja: Record<MessageKey, string> = {
   "nav.signup": "登録",
   "nav.signin": "ログイン",
   "nav.compose": "投稿",
+  "nav.more": "もっと見る",
   "auth.signupTitle": "会員登録",
   "auth.signupDesc": "サブカル・コスプレコミュニティ",
   "auth.email": "メール",
@@ -217,6 +221,7 @@ const zh: Record<MessageKey, string> = {
   "nav.signup": "注册",
   "nav.signin": "登录",
   "nav.compose": "发帖",
+  "nav.more": "更多",
   "auth.signupTitle": "注册",
   "auth.signupDesc": "亚文化与 Cosplay 社区",
   "auth.email": "邮箱",

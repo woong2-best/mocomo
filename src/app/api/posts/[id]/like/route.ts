@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireApiUser } from "@/lib/api-post-auth";
+import { notifyPostLike } from "@/lib/notifications";
 
 export async function POST(
   _req: NextRequest,
@@ -30,15 +31,7 @@ export async function POST(
       select: { authorId: true },
     });
     if (post && post.authorId !== user.id) {
-      await db.notification.create({
-        data: {
-          userId: post.authorId,
-          type: "like",
-          title: "좋아요",
-          body: `${user.username}님이 게시물을 좋아합니다.`,
-          link: `/post/${postId}`,
-        },
-      });
+      void notifyPostLike(postId, post.authorId, user.id);
     }
     const count = await db.like.count({ where: { postId } });
     return NextResponse.json({ liked: true, likeCount: count });

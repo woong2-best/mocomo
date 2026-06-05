@@ -6,6 +6,7 @@
     "dev": "concurrently \"npm run dev:web\" \"npm run dev:socket\"",
     "dev:web": "next dev",
     "dev:socket": "tsx watch server/socket.ts",
+    "start:socket": "tsx server/socket.ts",
     "build": "prisma generate && next build",
     "vercel-build": "prisma generate && (prisma db push --accept-data-loss && tsx prisma/seed.ts || echo DB sync skipped) && next build",
     "start": "next start",

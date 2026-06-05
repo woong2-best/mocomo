@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireApiUser } from "@/lib/api-post-auth";
+import { notifyPostComment } from "@/lib/notifications";
 
 export async function POST(
   req: NextRequest,
@@ -34,24 +35,38 @@ export async function POST(
       : undefined;
 
   try {
-    const post = await db.post.findUnique({ where: { id: postId }, select: { id: true } });
+    const post = await db.post.findUnique({
+      where: { id: postId },
+      select: { id: true, authorId: true },
+    });
     if (!post) {
       return NextResponse.json({ error: "게시물을 찾을 수 없습니다." }, { status: 404 });
     }
 
+    let parentCommentAuthorId: string | undefined;
     if (parentId) {
       const parent = await db.comment.findFirst({
         where: { id: parentId, postId },
-        select: { id: true },
+        select: { id: true, authorId: true },
       });
       if (!parent) {
         return NextResponse.json({ error: "원 댓글을 찾을 수 없습니다." }, { status: 400 });
       }
+      parentCommentAuthorId = parent.authorId;
     }
 
     const comment = await db.comment.create({
       data: { content, authorId: user.id, postId, parentId },
       select: { id: true, createdAt: true },
+    });
+
+    void notifyPostComment({
+      postId,
+      postAuthorId: post.authorId,
+      commentId: comment.id,
+      actorId: user.id,
+      parentCommentAuthorId,
+      content,
     });
 
     revalidatePath(`/post/${postId}`);

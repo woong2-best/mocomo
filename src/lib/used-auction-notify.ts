@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { createNotification } from "@/lib/notifications";
 
 export async function sendUsedAuctionNotification(data: {
   userId: string;
@@ -6,18 +6,14 @@ export async function sendUsedAuctionNotification(data: {
   title: string;
   body?: string;
   link: string;
+  actorId?: string;
 }) {
-  try {
-    await db.notification.create({
-      data: {
-        userId: data.userId,
-        type: `used_auction_${data.type}`,
-        title: data.title,
-        body: data.body,
-        link: data.link,
-      },
-    });
-  } catch {
-    /* 알림 테이블 미적용 시 무시 */
-  }
+  await createNotification({
+    userId: data.userId,
+    actorId: data.actorId,
+    type: `used_auction_${data.type}`,
+    title: data.title,
+    body: data.body,
+    link: data.link,
+  });
 }

@@ -1,0 +1,23 @@
+# Render Blueprint — MoCoMo Socket.IO (채팅 실시간)
+# Dashboard → New → Blueprint → 이 repo 연결 후 env 입력
+services:
+  - type: web
+    name: mocomo-socket
+    runtime: node
+    plan: free
+    buildCommand: npm install && npx prisma generate
+    startCommand: npm run start:socket
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: AUTH_SECRET
+        sync: false
+      - key: NEXTAUTH_URL
+        value: https://mocomo.net
+      - key: SOCKET_CORS_ORIGINS
+        value: https://mocomo.net,https://www.mocomo.net
+      - key: SOCKET_RELAY_SECRET
+        generateValue: true

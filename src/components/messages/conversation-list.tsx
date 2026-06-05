@@ -21,7 +21,11 @@ type Room = {
       supportTierSent?: SupportTierLevel;
     };
   }[];
-  messages: { content: string | null; createdAt: Date }[];
+  messages: {
+    content: string | null;
+    createdAt: Date;
+    attachments?: { type: import("@prisma/client").MessageAttachmentType }[];
+  }[];
 };
 
 export function ConversationList({

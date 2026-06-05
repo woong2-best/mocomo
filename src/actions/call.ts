@@ -1,6 +1,7 @@
 "use server";
 
 import { randomUUID } from "crypto";
+import { notifyIncomingCall } from "@/lib/notifications";
 import { db } from "@/lib/db";
 import { requireAuth, requireAuthMinimal } from "@/lib/auth";
 import { canAccessDm } from "@/lib/tiers";
@@ -125,6 +126,8 @@ export async function initiateCall(data: {
       callee: { select: { id: true, username: true, image: true } },
     },
   });
+
+  void notifyIncomingCall(data.calleeId, user.id, callType, data.chatRoomId);
 
   return { call: serializeCall(call) };
 }

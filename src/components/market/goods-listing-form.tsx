@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createGoodsListingRequest } from "@/actions/goods-shop";
 import { LISTING_FEE_KRW } from "@/lib/goods-shop";
 import { uploadImageBlob } from "@/lib/client-upload";
+import { fileToUploadableJpeg, isGalleryImageFile } from "@/lib/gallery-image-upload";
 import { PayButton } from "@/components/payments/pay-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,13 +21,20 @@ export function GoodsListingForm({ paymentsEnabled }: { paymentsEnabled: boolean
 
   async function onImages(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
+    e.target.value = "";
     if (!files?.length) return;
+    const list = Array.from(files).filter((f) => isGalleryImageFile(f, true));
+    if (list.length === 0) {
+      setError("이미지 파일을 선택해 주세요.");
+      return;
+    }
     setUploading(true);
     setError("");
     try {
       const urls: string[] = [];
-      for (const file of Array.from(files).slice(0, 6)) {
-        const url = await uploadImageBlob(file as Blob, file.name);
+      for (const file of list.slice(0, 6)) {
+        const prepared = await fileToUploadableJpeg(file);
+        const url = await uploadImageBlob(prepared, prepared.name);
         urls.push(url);
       }
       setImages((prev) => [...prev, ...urls].slice(0, 8));
@@ -34,7 +42,6 @@ export function GoodsListingForm({ paymentsEnabled }: { paymentsEnabled: boolean
       setError(err instanceof Error ? err.message : "업로드 실패");
     } finally {
       setUploading(false);
-      e.target.value = "";
     }
   }
 

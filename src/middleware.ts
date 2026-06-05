@@ -15,8 +15,6 @@ const protectedRoutes = [
   "/used/my",
   "/used/verify",
   "/used/adult-verify",
-  "/market/sell",
-  "/market/storage",
   "/premium",
   "/support",
   "/voice",
@@ -52,7 +50,10 @@ export default edgeAuth((req) => {
     return NextResponse.redirect(signIn);
   }
   if (isAuthPage && isLoggedIn && !isBanned) {
-    return NextResponse.redirect(new URL("/", req.url));
+    const callback = req.nextUrl.searchParams.get("callbackUrl");
+    const dest =
+      callback?.startsWith("/") && !callback.startsWith("//") ? callback : "/";
+    return NextResponse.redirect(new URL(dest, req.url));
   }
   const sessionUser = req.auth?.user;
   const isOperator =
@@ -73,6 +74,7 @@ export const config = {
     "/settings/:path*",
     "/messages/:path*",
     "/admin/:path*",
+    "/compose",
     "/compose/:path*",
     "/notifications/:path*",
     "/star/:path*",
@@ -84,8 +86,6 @@ export const config = {
     "/used/my",
     "/used/verify",
   "/used/adult-verify",
-    "/market/sell",
-    "/market/storage",
     "/premium/:path*",
     "/support/:path*",
     "/voice/:path*",

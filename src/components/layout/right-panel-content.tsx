@@ -5,6 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, Tv, Megaphone } from "lucide-react";
 import { sanitizeAdLink, isExternalUrl } from "@/lib/safe-link";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
+import { RightPanelComposeButton } from "@/components/layout/right-panel-compose";
+import { SidebarEventMapCard } from "@/components/events/sidebar-event-map-card";
+import type { MapEventPin } from "@/lib/subculture-events";
 
 export type SidebarPanelData = {
   animes: { id: string; slug: string; title: string; viewCount: number }[];
@@ -19,26 +22,30 @@ export type SidebarPanelData = {
     } | null;
   }[];
   sidebarAds: { id: string; title: string; imageUrl: string; linkUrl: string; ctaLabel: string | null }[];
+  eventPins: MapEventPin[];
 };
 
 export function RightPanelSkeleton() {
   return (
-    <aside className="hidden xl:block w-72 shrink-0 p-4 space-y-3 sticky top-14 h-[calc(100vh-3.5rem)] overflow-hidden bg-muted/20 border-l border-border animate-pulse">
+    <aside className="hidden lg:block w-64 xl:w-72 shrink-0 p-4 space-y-3 sticky top-14 h-[calc(100vh-3.5rem)] overflow-hidden bg-muted/20 border-l border-border animate-pulse">
+      <div className="h-12 rounded-2xl bg-[#e53935]/30" />
       <div className="h-48 rounded-2xl bg-muted" />
       <div className="h-36 rounded-2xl bg-muted" />
       <div className="h-36 rounded-2xl bg-muted" />
+      <div className="h-52 rounded-2xl bg-muted" />
     </aside>
   );
 }
 
-export function RightPanelContent({ animes, tips, sidebarAds }: SidebarPanelData) {
+export function RightPanelContent({ animes, tips, sidebarAds, eventPins }: SidebarPanelData) {
   const ads =
     sidebarAds.length > 0
       ? sidebarAds
       : FALLBACK_SIDEBAR_ADS.map((a) => ({ ...a, ctaLabel: a.ctaLabel ?? null }));
 
   return (
-    <aside className="hidden xl:block w-72 shrink-0 p-4 space-y-3 sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto bg-muted/20 border-l border-border">
+    <aside className="hidden lg:block w-64 xl:w-72 shrink-0 p-4 space-y-3 sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto bg-muted/20 border-l border-border">
+      <RightPanelComposeButton />
       <Card className="rounded-2xl shadow-sm border-amber-500/20 overflow-hidden">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2 font-semibold text-amber-600">
@@ -130,6 +137,8 @@ export function RightPanelContent({ animes, tips, sidebarAds }: SidebarPanelData
           </Link>
         </CardContent>
       </Card>
+
+      {eventPins.length > 0 && <SidebarEventMapCard pins={eventPins} />}
     </aside>
   );
 }

@@ -33,7 +33,7 @@ export default async function SettingsPage() {
   ]);
 
   return (
-    <div className="max-w-lg mx-auto p-4 space-y-6">
+    <div className="max-w-lg mx-auto p-4 pb-nav lg:pb-4 space-y-6 min-w-0">
       <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
 
       <Card>

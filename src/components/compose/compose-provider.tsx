@@ -1,0 +1,180 @@
+"use client";
+
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { CheckCircle2, X } from "lucide-react";
+import { ComposeForm } from "@/components/compose/compose-form";
+import { composeSheetRegionClass } from "@/lib/compose-sheet-layout";
+import { cn } from "@/lib/utils";
+
+type ComposeOptions = { communityId?: string };
+
+type ComposeContextValue = {
+  open: boolean;
+  openCompose: (opts?: ComposeOptions) => void;
+  closeCompose: () => void;
+};
+
+const ComposeContext = createContext<ComposeContextValue | null>(null);
+
+export function useCompose() {
+  const ctx = useContext(ComposeContext);
+  if (!ctx) {
+    throw new Error("useCompose must be used within ComposeProvider");
+  }
+  return ctx;
+}
+
+/** optional hook for places that may render outside provider in tests */
+export function useComposeOptional() {
+  return useContext(ComposeContext);
+}
+
+export function ComposeProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { data: session, status } = useSession();
+  const [open, setOpen] = useState(false);
+  const [communityId, setCommunityId] = useState<string | undefined>();
+  const [formKey, setFormKey] = useState(0);
+  const [successOpen, setSuccessOpen] = useState(false);
+
+  const openCompose = useCallback(
+    (opts?: ComposeOptions) => {
+      if (status === "loading") return;
+      if (!session?.user) {
+        const callback = pathname || "/";
+        router.push(
+          `/auth/signin?callbackUrl=${encodeURIComponent(callback)}`
+        );
+        return;
+      }
+      setCommunityId(opts?.communityId);
+      setFormKey((k) => k + 1);
+      setOpen(true);
+    },
+    [pathname, router, session?.user, status]
+  );
+
+  const closeCompose = useCallback(() => {
+    setOpen(false);
+  }, []);
+
+  const handlePosted = useCallback(() => {
+    setOpen(false);
+    window.setTimeout(() => {
+      try {
+        router.refresh();
+      } catch (e) {
+        console.error("[compose] refresh", e);
+      }
+      setSuccessOpen(true);
+      window.setTimeout(() => setSuccessOpen(false), 2800);
+    }, 280);
+  }, [router]);
+
+  const value = useMemo(
+    () => ({ open, openCompose, closeCompose }),
+    [open, openCompose, closeCompose]
+  );
+
+  const sheetRegion = composeSheetRegionClass(pathname || "/");
+
+  return (
+    <ComposeContext.Provider value={value}>
+      {children}
+
+      <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay
+            className={cn(
+              "fixed inset-0 z-[60] bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+              sheetRegion
+            )}
+          />
+          <div
+            className={cn(
+              "fixed inset-0 z-[61] flex items-end justify-center p-0 pointer-events-none lg:items-center lg:p-4",
+              sheetRegion
+            )}
+          >
+            <DialogPrimitive.Content
+              className={cn(
+                "pointer-events-auto flex w-full max-w-2xl flex-col border border-border bg-background shadow-2xl outline-none",
+                "max-h-[min(92vh,900px)] rounded-t-2xl lg:rounded-2xl lg:max-h-[min(85vh,720px)]",
+                "data-[state=open]:animate-in data-[state=closed]:animate-out",
+                "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom duration-300",
+                "lg:data-[state=closed]:slide-out-to-bottom-0 lg:data-[state=open]:slide-in-from-bottom-0",
+                "lg:data-[state=closed]:zoom-out-95 lg:data-[state=open]:zoom-in-95 lg:duration-200"
+              )}
+              onOpenAutoFocus={(e) => e.preventDefault()}
+            >
+            <div className="flex shrink-0 justify-center pt-3 pb-1 lg:hidden">
+              <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
+            </div>
+            <div className="flex items-center justify-between px-4 pb-2 shrink-0">
+              <DialogPrimitive.Title className="text-lg font-bold">
+                글쓰기
+              </DialogPrimitive.Title>
+              <DialogPrimitive.Close
+                className="rounded-full p-2 hover:bg-muted"
+                aria-label="닫기"
+              >
+                <X className="h-5 w-5" />
+              </DialogPrimitive.Close>
+            </div>
+            <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-6 pb-safe">
+              <ComposeForm
+                key={formKey}
+                communityId={communityId}
+                variant="sheet"
+                onPosted={handlePosted}
+                onNeedSignIn={() => {
+                  closeCompose();
+                  router.push(
+                    `/auth/signin?callbackUrl=${encodeURIComponent(pathname || "/")}`
+                  );
+                }}
+              />
+            </div>
+            </DialogPrimitive.Content>
+          </div>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
+
+      <DialogPrimitive.Root open={successOpen} onOpenChange={setSuccessOpen}>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className="fixed inset-0 z-[90] bg-black/40 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+          <DialogPrimitive.Content
+            className={cn(
+              "fixed left-1/2 top-1/2 z-[91] w-[min(100%-2rem,320px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-background p-8 shadow-xl text-center outline-none",
+              "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-200"
+            )}
+            onOpenAutoFocus={(e) => e.preventDefault()}
+          >
+            <DialogPrimitive.Title className="sr-only">게시 완료</DialogPrimitive.Title>
+            <CheckCircle2 className="mx-auto h-14 w-14 text-green-500" strokeWidth={1.5} />
+            <p className="mt-4 text-lg font-semibold">게시되었습니다</p>
+            <DialogPrimitive.Close asChild>
+              <button
+                type="button"
+                className="mt-6 w-full rounded-xl bg-muted py-2.5 text-sm font-medium hover:bg-muted/80"
+              >
+                확인
+              </button>
+            </DialogPrimitive.Close>
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
+    </ComposeContext.Provider>
+  );
+}

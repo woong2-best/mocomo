@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { calcShopFees, ensureEmoticonCatalog, loadEmoticonPacks, LISTING_FEE_KRW } from "@/lib/goods-shop";
 import { creditSellerEarning } from "@/lib/settlement";
+import { notifyEmoticonGift, notifyGoodsOrder } from "@/lib/notifications";
 import type { Prisma } from "@prisma/client";
 
 export async function bootstrapEmoticonCatalog() {
@@ -102,16 +103,14 @@ export async function sendEmoticonToStreamer(itemId: string, receiverUsername: s
       where: { id: receiver.id },
       data: { totalSupportReceived: { increment: creatorAmount } },
     }),
-    db.notification.create({
-      data: {
-        userId: receiver.id,
-        type: "emoticon_gift",
-        title: "이모티콘 선물",
-        body: `${user.username}님이 「${item.pack.name}」 이모티콘을 보냈습니다. (+${creatorAmount.toLocaleString()}원)`,
-        link: "/market/received",
-      },
-    }),
   ]);
+
+  await notifyEmoticonGift(
+    receiver.id,
+    user.id,
+    item.pack.name,
+    creatorAmount
+  );
 
   await creditSellerEarning(receiver.id, creatorAmount, {
     referenceType: "emoticon_gift",
@@ -119,8 +118,7 @@ export async function sendEmoticonToStreamer(itemId: string, receiverUsername: s
     memo: `이모티콘 선물 · ${item.pack.name}`,
   });
 
-  revalidatePath("/market/storage");
-  revalidatePath("/market/received");
+  revalidatePath("/support");
   revalidatePath(`/u/${receiver.username}`);
   revalidatePath("/wallet");
   return { success: true, creatorAmount };
@@ -132,8 +130,7 @@ export async function fulfillEmoticonPurchase(userId: string, packId: string) {
   await db.userEmoticon.create({
     data: { userId, packId, pricePaid: pack.price },
   });
-  revalidatePath("/market/storage");
-  revalidatePath("/market/emoticons");
+  revalidatePath("/support");
   return { success: true };
 }
 
@@ -159,7 +156,7 @@ export async function createGoodsListingRequest(data: {
       status: "AWAITING_FEE",
     },
   });
-  revalidatePath("/market/sell");
+  revalidatePath("/support");
   return { requestId: request.id };
 }
 
@@ -188,8 +185,8 @@ export async function fulfillListingFee(requestId: string, sellerId: string) {
     });
   });
 
-  revalidatePath("/market");
-  revalidatePath("/market/sell");
+  revalidatePath("/support");
+  revalidatePath("/support");
   return { success: true };
 }
 
@@ -207,8 +204,8 @@ export async function updatePhysicalProductPrice(productId: string, price: numbe
       active: true,
     },
   });
-  revalidatePath("/market");
-  revalidatePath(`/market/goods/${productId}`);
+  revalidatePath("/support");
+  revalidatePath("/support");
   return { success: true };
 }
 
@@ -294,19 +291,12 @@ export async function fulfillPhysicalGoodsPayment(orderId: string, buyerId: stri
       where: { id: item.productId },
       data: { stock: { decrement: item.quantity } },
     }),
-    db.notification.create({
-      data: {
-        userId: order.sellerId,
-        type: "goods_order",
-        title: "굿즈 주문",
-        body: `${order.recipientName}님 주문 · ${order.total.toLocaleString()}원 결제 완료`,
-        link: "/market/orders/sell",
-      },
-    }),
   ]);
 
-  revalidatePath("/market/orders");
-  revalidatePath("/market/orders/sell");
+  await notifyGoodsOrder(order.sellerId, order.recipientName, order.total);
+
+  revalidatePath("/support");
+  revalidatePath("/wallet");
   return { success: true };
 }
 
@@ -349,6 +339,6 @@ export async function updateOrderShipping(orderId: string, status: "PREPARING" |
     where: { id: orderId },
     data: { status, trackingNo: trackingNo?.trim() || order.trackingNo },
   });
-  revalidatePath("/market/orders/sell");
+  revalidatePath("/support");
   return { success: true };
 }

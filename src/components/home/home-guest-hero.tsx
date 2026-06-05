@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Radio, Users, Gem, Camera, Tv, PenSquare, ShoppingBag } from "lucide-react";
+import { Radio, Users, Gem, Camera, Tv, PenSquare } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
 
@@ -8,7 +8,7 @@ const features = [
   { icon: PenSquare, label: "SNS 피드", href: "/explore" },
   { icon: Tv, label: "애니덕질", href: "/anime" },
   { icon: Camera, label: "코스프레", href: "/cosplay" },
-  { icon: ShoppingBag, label: "굿즈", href: "/market" },
+  { icon: Gem, label: "후원", href: "/support" },
   { icon: Radio, label: "라이브", href: "/live" },
   { icon: Users, label: "커뮤니티", href: "/communities" },
   { icon: Gem, label: "후원", href: "/support" },

@@ -6,18 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Heart, MessageCircle, Share2, Star, Repeat2, Check } from "lucide-react";
 import { formatNumber, cn } from "@/lib/utils";
-
-async function postEngage(postId: string, action: "like" | "repost" | "star") {
-  const res = await fetch(`/api/posts/${postId}/${action}`, {
-    method: "POST",
-    credentials: "include",
-  });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(typeof body.error === "string" ? body.error : "요청에 실패했습니다.");
-  }
-  return body as Record<string, unknown>;
-}
+import { engageStar, postEngage } from "@/lib/post-engage-client";
 
 export function PostDetailActions({
   postId,
@@ -82,8 +71,8 @@ export function PostDetailActions({
     setStarred(!starred);
     setBusy("star");
     try {
-      const data = await postEngage(postId, "star");
-      setStarred(!!data.starred);
+      const starredNow = await engageStar(postId);
+      setStarred(starredNow);
     } catch (err) {
       setStarred(prev);
       setActionError(err instanceof Error ? err.message : "STAR 저장에 실패했습니다.");

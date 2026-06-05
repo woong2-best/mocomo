@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { notifyLiveStart } from "@/lib/notifications";
 
 /** 팔로워에게 라이브 시작 알림 (최대 200명) */
 export async function notifyFollowersOnLive(hostId: string, channelId: string, title: string) {
@@ -6,7 +7,7 @@ export async function notifyFollowersOnLive(hostId: string, channelId: string, t
     where: { id: hostId },
     select: { username: true },
   });
-  if (!host) return;
+  if (!host?.username) return;
 
   const followers = await db.follow.findMany({
     where: { followingId: hostId },
@@ -15,17 +16,11 @@ export async function notifyFollowersOnLive(hostId: string, channelId: string, t
   });
   if (followers.length === 0) return;
 
-  const link = `/voice/${channelId}`;
-  const body = `${host.username}님이 「${title.slice(0, 40)}」 방송을 시작했습니다.`;
-
-  await db.notification.createMany({
-    data: followers.map((f) => ({
-      userId: f.followerId,
-      type: "live",
-      title: "팔로우 라이브",
-      body,
-      link,
-    })),
-    skipDuplicates: true,
-  });
+  await notifyLiveStart(
+    followers.map((f) => f.followerId),
+    hostId,
+    host.username,
+    channelId,
+    title
+  );
 }

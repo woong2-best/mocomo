@@ -1,35 +1,36 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { getCachedCurrentUser, requireAuth, requireAuthMinimal } from "@/lib/auth";
+import { getCachedCurrentUser, requireAuthMinimal } from "@/lib/auth";
 import { postMediaPreview } from "@/lib/post-media-select";
+import { notifyFollow, notifyPostLike } from "@/lib/notifications";
 
-export async function toggleFollow(userId: string, targetUsername?: string) {
-  const user = await requireAuth();
+export async function toggleFollow(userId: string, _targetUsername?: string) {
+  const user = await requireAuthMinimal();
   if (user.id === userId) return { error: "자기 자신은 팔로우할 수 없습니다." };
-  const target =
-    targetUsername ??
-    (await db.user.findUnique({ where: { id: userId }, select: { username: true } }))?.username;
-  const existing = await db.follow.findUnique({
-    where: { followerId_followingId: { followerId: user.id, followingId: userId } },
+
+  const deleted = await db.follow.deleteMany({
+    where: { followerId: user.id, followingId: userId },
   });
-  if (existing) {
-    await db.follow.delete({ where: { id: existing.id } });
-    if (target) revalidatePath(`/u/${target}`);
+
+  if (deleted.count > 0) {
     return { following: false };
   }
-  await db.follow.create({ data: { followerId: user.id, followingId: userId } });
-  await db.notification.create({
-    data: {
-      userId,
-      type: "follow",
-      title: "새 팔로워",
-      body: `${user.username}님이 팔로우했습니다.`,
-      link: `/u/${user.username}`,
-    },
-  });
-  if (target) revalidatePath(`/u/${target}`);
+
+  try {
+    await db.follow.create({
+      data: { followerId: user.id, followingId: userId },
+    });
+  } catch (e) {
+    const code = e && typeof e === "object" && "code" in e ? (e as { code: string }).code : "";
+    if (code === "P2002") {
+      return { following: true };
+    }
+    throw e;
+  }
+
+  void notifyFollow(userId, user.id);
+
   return { following: true };
 }
 
@@ -45,15 +46,7 @@ export async function toggleLike(postId: string) {
   await db.like.create({ data: { userId: user.id, postId } });
   const post = await db.post.findUnique({ where: { id: postId }, select: { authorId: true } });
   if (post && post.authorId !== user.id) {
-    await db.notification.create({
-      data: {
-        userId: post.authorId,
-        type: "like",
-        title: "좋아요",
-        body: `${user.username}님이 게시물을 좋아합니다.`,
-        link: `/post/${postId}`,
-      },
-    });
+    void notifyPostLike(postId, post.authorId, user.id);
   }
   return { liked: true };
 }

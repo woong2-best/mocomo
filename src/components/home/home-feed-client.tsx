@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { FeedInfinite } from "@/components/feed/feed-infinite";
 import { useLocale } from "@/components/providers/locale-provider";
-import { Button } from "@/components/ui/button";
+import { ComposeOpenButton } from "@/components/compose/compose-open-button";
 
 type FeedItem = Parameters<typeof FeedInfinite>[0]["initialItems"][number];
 
@@ -34,9 +33,9 @@ export function HomeFeedClient({
     return (
       <div className="text-center py-12 rounded-2xl border border-dashed">
         <p className="text-muted-foreground mb-4">첫 게시글을 작성해 보세요</p>
-        <Link href="/compose">
-          <Button className="rounded-xl">글 작성하기</Button>
-        </Link>
+        <ComposeOpenButton className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+          글 작성하기
+        </ComposeOpenButton>
       </div>
     );
   }

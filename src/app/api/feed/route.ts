@@ -57,8 +57,8 @@ export async function GET(req: NextRequest) {
       {
         headers: {
           "Cache-Control": session?.user?.id
-            ? "private, max-age=15, stale-while-revalidate=45"
-            : "public, s-maxage=45, stale-while-revalidate=90",
+            ? "private, no-cache"
+            : "public, s-maxage=15, stale-while-revalidate=30",
         },
       }
     );

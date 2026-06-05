@@ -16,7 +16,7 @@ function FeedFallback() {
 
 export default function HomePage() {
   return (
-    <div className="p-4 lg:p-6 max-w-5xl mx-auto">
+    <div className="p-4 lg:p-6 max-w-5xl lg:max-w-6xl mx-auto">
       <HomeShell />
       <Suspense
         fallback={

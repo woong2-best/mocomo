@@ -31,7 +31,7 @@ const CONFIG: Record<
     maxHeight: 512,
     uploadFilename: "profile-avatar.jpg",
     cropTitle: "프로필 사진 자르기",
-    cropDescription: "원형으로 보이는 영역에 맞게 드래그·확대·회전한 뒤 적용하세요.",
+    cropDescription: "드래그·확대·90° 회전·뒤집기·자유 각도로 맞춘 뒤 적용하세요.",
   },
   banner: {
     label: "배너 이미지",
@@ -40,7 +40,7 @@ const CONFIG: Record<
     maxHeight: 500,
     uploadFilename: "profile-banner.jpg",
     cropTitle: "배너 자르기",
-    cropDescription: "프로필 상단(가로 3:1)에 맞게 영역을 조정하세요.",
+    cropDescription: "가로 3:1 영역에 맞게 드래그·확대·회전·뒤집기 후 적용하세요.",
   },
 };
 
@@ -164,6 +164,7 @@ export function ProfileImageField({ kind, name, value, onChange, previewClassNam
           }}
           imageSrc={cropSrc}
           aspect={cfg.aspect}
+          lockAspect
           title={cfg.cropTitle}
           description={cfg.cropDescription}
           maxWidth={cfg.maxWidth}

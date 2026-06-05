@@ -5,7 +5,8 @@ import type { SupportTierLevel } from "@prisma/client";
 import { sendMessage } from "@/actions/chat";
 import { useChatSocket } from "@/components/messages/chat-socket-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChatComposer } from "@/components/chat/chat-composer";
+import { ChatMediaComposer } from "@/components/chat/chat-media-composer";
+import { ChatMessageAttachments } from "@/components/chat/chat-message-attachments";
 import { PresenceAvatar } from "@/components/user/presence-avatar";
 import {
   formatBubbleTime,
@@ -13,6 +14,7 @@ import {
   shouldShowAvatar,
   shouldShowDateDivider,
 } from "@/lib/chat-display";
+import type { ChatAttachmentInput } from "@/lib/chat-attachments";
 import {
   normalizeChatMessage,
   isPendingMessageId,
@@ -46,6 +48,11 @@ export function ChatRoomClient({
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
   const sendLockRef = useRef(false);
+  const lastSyncedAtRef = useRef<string | null>(
+    initialMessages.length
+      ? initialMessages[initialMessages.length - 1]?.createdAt ?? null
+      : null
+  );
 
   const selfSender = useRef({
     id: userId,
@@ -63,16 +70,23 @@ export function ChatRoomClient({
   const mergeIncoming = useCallback((raw: unknown) => {
     const incoming = normalizeChatMessage(raw, selfSender.current);
     if (!incoming) return;
+    if (
+      !lastSyncedAtRef.current ||
+      incoming.createdAt > lastSyncedAtRef.current
+    ) {
+      lastSyncedAtRef.current = incoming.createdAt;
+    }
     setMessages((prev) => {
       if (prev.some((m) => m.id === incoming.id)) return prev;
-      const withoutStalePending = prev.filter(
-        (m) =>
-          !(
-            isPendingMessageId(m.id) &&
-            m.sender.id === incoming.sender.id &&
-            m.content === incoming.content
-          )
-      );
+      const withoutStalePending = prev.filter((m) => {
+        if (!isPendingMessageId(m.id)) return true;
+        if (m.sender.id !== incoming.sender.id) return true;
+        if (m.content && incoming.content && m.content === incoming.content) return false;
+        const pendingAtt = m.attachments?.[0]?.url;
+        const incomingAtt = incoming.attachments?.[0]?.url;
+        if (pendingAtt && incomingAtt && pendingAtt === incomingAtt) return false;
+        return true;
+      });
       return [...withoutStalePending, incoming];
     });
   }, []);
@@ -89,19 +103,99 @@ export function ChatRoomClient({
 
   useEffect(() => subscribeMessages(mergeIncoming), [subscribeMessages, mergeIncoming]);
 
+  useEffect(() => {
+    let cancelled = false;
+    let waitAbort: AbortController | null = null;
+
+    function applyBatch(list: unknown[]) {
+      for (const raw of list) {
+        const normalized = normalizeChatMessage(raw, selfSender.current);
+        if (!normalized || isPendingMessageId(normalized.id)) continue;
+        mergeIncoming(raw);
+      }
+    }
+
+    async function quickSync() {
+      const after = lastSyncedAtRef.current;
+      const qs = after ? `?after=${encodeURIComponent(after)}` : "";
+      const res = await fetch(`/api/messages/${roomId}/sync${qs}`, {
+        credentials: "include",
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as { messages?: unknown[] };
+      applyBatch(Array.isArray(data.messages) ? data.messages : []);
+    }
+
+    async function longPollLoop() {
+      while (!cancelled) {
+        if (document.visibilityState === "hidden") {
+          await new Promise((r) => setTimeout(r, 800));
+          continue;
+        }
+        if (socketReady && !realtimeOff) {
+          await new Promise((r) => setTimeout(r, 8000));
+          continue;
+        }
+        const after = lastSyncedAtRef.current;
+        const qs = after ? `?after=${encodeURIComponent(after)}` : "";
+        waitAbort?.abort();
+        waitAbort = new AbortController();
+        try {
+          const res = await fetch(`/api/messages/${roomId}/wait${qs}`, {
+            credentials: "include",
+            signal: waitAbort.signal,
+          });
+          if (cancelled) return;
+          if (!res.ok) {
+            await new Promise((r) => setTimeout(r, 1200));
+            continue;
+          }
+          const data = (await res.json()) as { messages?: unknown[] };
+          applyBatch(Array.isArray(data.messages) ? data.messages : []);
+        } catch (e) {
+          if (cancelled || (e instanceof DOMException && e.name === "AbortError")) return;
+          await new Promise((r) => setTimeout(r, 1000));
+        }
+      }
+    }
+
+    void quickSync().then(() => void longPollLoop());
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void quickSync();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+
+    return () => {
+      cancelled = true;
+      waitAbort?.abort();
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [roomId, realtimeOff, socketReady, mergeIncoming]);
+
   function onScroll() {
     const el = scrollRef.current;
     if (!el) return;
     stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 96;
   }
 
-  function addOptimistic(text: string): string {
+  function addOptimistic(
+    text: string | null,
+    attachments?: ChatAttachmentInput[]
+  ): string {
     const pendingId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const optimistic: Message = {
       id: pendingId,
       content: text,
       createdAt: new Date().toISOString(),
       sender: { ...selfSender.current },
+      attachments: attachments?.map((a, i) => ({
+        id: `pending-att-${i}`,
+        url: a.url,
+        type: a.type,
+        name: a.name ?? null,
+      })),
     };
     setMessages((prev) => [...prev, optimistic]);
     return pendingId;
@@ -111,9 +205,17 @@ export function ChatRoomClient({
     setMessages((prev) => prev.filter((m) => m.id !== pendingId));
   }
 
-  async function sendViaAction(text: string, pendingId: string) {
+  async function sendViaAction(
+    text: string | null,
+    pendingId: string,
+    attachments?: ChatAttachmentInput[]
+  ) {
     try {
-      const result = await sendMessage({ roomId, content: text });
+      const result = await sendMessage({
+        roomId,
+        content: text ?? undefined,
+        attachments,
+      });
       const confirmed = normalizeChatMessage(
         {
           ...result.message,
@@ -156,6 +258,30 @@ export function ChatRoomClient({
     });
   }
 
+  async function sendAttachments(attachments: ChatAttachmentInput[], caption?: string) {
+    if (!attachments.length || sendLockRef.current) return;
+
+    sendLockRef.current = true;
+    setError("");
+    stickToBottomRef.current = true;
+
+    const pendingId = addOptimistic(caption ?? null, attachments);
+
+    if (socketReady && socket?.connected) {
+      socket.emit("send_message", {
+        roomId,
+        content: caption,
+        attachments,
+      });
+      sendLockRef.current = false;
+      return;
+    }
+
+    await sendViaAction(caption ?? null, pendingId, attachments).finally(() => {
+      sendLockRef.current = false;
+    });
+  }
+
   return (
     <div className="flex flex-col flex-1 min-h-0 bg-muted/20">
       <div
@@ -163,11 +289,6 @@ export function ChatRoomClient({
         onScroll={onScroll}
         className="flex-1 overflow-y-auto min-h-0 px-3 sm:px-4 py-4 space-y-1"
       >
-        {realtimeOff && (
-          <p className="text-[11px] text-center text-muted-foreground bg-muted/60 border border-border/50 rounded-lg px-3 py-2 mb-3">
-            실시간 연결이 꺼져 있습니다. 메시지는 전송되며, 상대 메시지는 새로고침하면 보입니다.
-          </p>
-        )}
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <p className="text-sm font-medium text-muted-foreground">아직 메시지가 없어요</p>
@@ -179,6 +300,8 @@ export function ChatRoomClient({
           const prev = messages[i - 1];
           const isMine = m.sender.id === userId;
           const pending = isPendingMessageId(m.id);
+          const hasAttachments = !!m.attachments?.length;
+          const hasText = !!m.content?.trim();
           const showDate = shouldShowDateDivider(prev?.createdAt ?? null, m.createdAt);
           const showAvatar = shouldShowAvatar(
             prev ? { senderId: prev.sender.id } : null,
@@ -239,15 +362,22 @@ export function ChatRoomClient({
                       className="mb-1 ml-1"
                     />
                   )}
-                  <div
-                    className={cn(
-                      "px-3.5 py-2 text-[15px] leading-snug break-words shadow-sm",
-                      isMine
-                        ? "rounded-2xl rounded-br-md bg-primary text-primary-foreground"
-                        : "rounded-2xl rounded-bl-md bg-background border border-border/60"
+                  <div className="space-y-1.5">
+                    {hasAttachments && m.attachments && (
+                      <ChatMessageAttachments attachments={m.attachments} isMine={isMine} />
                     )}
-                  >
-                    {m.content}
+                    {hasText && (
+                      <div
+                        className={cn(
+                          "px-3.5 py-2 text-[15px] leading-snug break-words shadow-sm",
+                          isMine
+                            ? "rounded-2xl rounded-br-md bg-primary text-primary-foreground"
+                            : "rounded-2xl rounded-bl-md bg-background border border-border/60"
+                        )}
+                      >
+                        {m.content}
+                      </div>
+                    )}
                   </div>
                   {showTime && (
                     <span
@@ -267,7 +397,12 @@ export function ChatRoomClient({
       </div>
 
       {error && <p className="text-xs text-destructive px-4 pb-1 text-center">{error}</p>}
-      <ChatComposer value={input} onChange={setInput} onSend={send} />
+      <ChatMediaComposer
+        value={input}
+        onChange={setInput}
+        onSendText={send}
+        onSendAttachments={sendAttachments}
+      />
     </div>
   );
 }

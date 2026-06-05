@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FeedAdCard } from "@/components/feed/feed-ad-card";
-import { FeedPostCardInteractive } from "@/components/feed/feed-post-card-interactive";
+import {
+  FeedDualColumnLayout,
+  type FeedLayoutItem,
+} from "@/components/feed/feed-dual-column-layout";
 import type { GridPost } from "@/components/feed/feed-post-card";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -17,9 +19,7 @@ type Ad = {
   adCategory?: string | null;
 };
 
-type FeedItem =
-  | { type: "post"; data: GridPost & { createdAt: string } }
-  | { type: "ad"; data: Ad };
+type FeedItem = FeedLayoutItem;
 
 function mergeIds(prev: Set<string>, ids?: string[]) {
   if (!ids?.length) return prev;
@@ -53,6 +53,16 @@ export function FeedInfinite({
   const postOffsetRef = useRef(
     initialItems.filter((i) => i.type === "post").length
   );
+
+  useEffect(() => {
+    setItems(initialItems);
+    setCursor(initialCursor);
+    setDone(!initialCursor);
+    setLikedIds(new Set(initialLikedIds));
+    setStarredIds(new Set(initialStarredIds));
+    setRepostedIds(new Set(initialRepostedIds));
+    postOffsetRef.current = initialItems.filter((i) => i.type === "post").length;
+  }, [initialItems, initialCursor, initialLikedIds, initialStarredIds, initialRepostedIds]);
 
   const loadMore = useCallback(async () => {
     if (!cursor || loading || done) return;
@@ -99,21 +109,12 @@ export function FeedInfinite({
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {items.map((item, i) =>
-          item.type === "ad" ? (
-            <FeedAdCard key={`ad-${item.data.id}-${i}`} ad={item.data} />
-          ) : (
-            <FeedPostCardInteractive
-              key={item.data.id}
-              post={item.data}
-              initialLiked={likedIds.has(item.data.id)}
-              initialStarred={starredIds.has(item.data.id)}
-              initialReposted={repostedIds.has(item.data.id)}
-            />
-          )
-        )}
-      </div>
+      <FeedDualColumnLayout
+        items={items}
+        likedIds={likedIds}
+        starredIds={starredIds}
+        repostedIds={repostedIds}
+      />
       <div ref={sentinelRef} className="flex flex-col items-center gap-2 py-8">
         {loading && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
         {loadError && (

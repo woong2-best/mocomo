@@ -9,19 +9,28 @@ import {
   getSigunguList,
 } from "@/lib/korea-regions";
 
-export function UsedRegionFilter() {
+type UsedRegionFilterProps = {
+  onNavigate?: (updates: Record<string, string | null>) => void;
+  isPending?: boolean;
+};
+
+export function UsedRegionFilter({ onNavigate }: UsedRegionFilterProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentRegion = searchParams.get("region") ?? "";
   const currentSido = searchParams.get("sido") ?? "";
 
   function apply(updates: Record<string, string | null>) {
+    if (onNavigate) {
+      onNavigate(updates);
+      return;
+    }
     const params = new URLSearchParams(searchParams.toString());
     Object.entries(updates).forEach(([k, v]) => {
       if (v) params.set(k, v);
       else params.delete(k);
     });
-    router.push(`/used?${params.toString()}`);
+    router.replace(`/used?${params.toString()}`);
   }
 
   const sidoId =

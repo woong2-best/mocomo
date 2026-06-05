@@ -24,6 +24,7 @@ export const getProfileHeader = cache(async function getProfileHeader(username: 
       supportTierSent: true,
       locale: true,
       countryCode: true,
+      birthDate: true,
       profile: true,
       cosplayerProfile: { select: { id: true, stageName: true, bio: true } },
       userBadges: { include: { badge: true }, take: 6 },

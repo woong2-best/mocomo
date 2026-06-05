@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireApiUser } from "@/lib/api-post-auth";
+import { notifyPostRepost } from "@/lib/notifications";
 
 export async function POST(
   _req: NextRequest,
@@ -25,6 +26,11 @@ export async function POST(
       return NextResponse.json({ reposted: false, repostCount: count });
     }
     await db.repost.create({ data: { userId: user.id, postId } });
+    const post = await db.post.findUnique({
+      where: { id: postId },
+      select: { authorId: true },
+    });
+    if (post) void notifyPostRepost(postId, post.authorId, user.id);
     const count = await db.repost.count({ where: { postId } });
     return NextResponse.json({ reposted: true, repostCount: count });
   } catch (e) {

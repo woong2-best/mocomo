@@ -752,4 +752,150 @@ CREATE INDEX IF NOT EXISTS "LiveChatMessage_channelId_userId_createdAt_idx"
 CREATE INDEX IF NOT EXISTS "Tip_receiverId_createdAt_idx"
   ON "Tip" ("receiverId", "createdAt" DESC);
 
+-- ============================================================
+-- N. 커뮤니티 (Community · CommunityMember)
+-- ============================================================
+DO $$ BEGIN
+  CREATE TYPE "CommunityCategory" AS ENUM (
+    'ANIME', 'MANGA', 'GAME', 'VTUBER', 'COSPLAY', 'FIGURE', 'ART',
+    'MUSIC', 'AI_ART', 'LIGHT_NOVEL', 'GOODS', 'NSFW', 'OTHER'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS "Community" (
+  "id" TEXT NOT NULL,
+  "slug" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "description" TEXT,
+  "iconUrl" TEXT,
+  "bannerUrl" TEXT,
+  "category" "CommunityCategory" NOT NULL DEFAULT 'OTHER',
+  "isNsfw" BOOLEAN NOT NULL DEFAULT false,
+  "parentId" TEXT,
+  "creatorId" TEXT NOT NULL,
+  "memberCount" INTEGER NOT NULL DEFAULT 0,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Community_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "Community_slug_key" ON "Community"("slug");
+CREATE INDEX IF NOT EXISTS "Community_category_idx" ON "Community"("category");
+CREATE INDEX IF NOT EXISTS "Community_creatorId_idx" ON "Community"("creatorId");
+
+CREATE TABLE IF NOT EXISTS "CommunityMember" (
+  "id" TEXT NOT NULL,
+  "communityId" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "role" TEXT NOT NULL DEFAULT 'member',
+  "joinedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "CommunityMember_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "CommunityMember_communityId_userId_key"
+  ON "CommunityMember"("communityId", "userId");
+CREATE INDEX IF NOT EXISTS "CommunityMember_userId_idx" ON "CommunityMember"("userId");
+
+DO $$ BEGIN
+  ALTER TABLE "Community"
+    ADD CONSTRAINT "Community_parentId_fkey"
+    FOREIGN KEY ("parentId") REFERENCES "Community"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "CommunityMember"
+    ADD CONSTRAINT "CommunityMember_communityId_fkey"
+    FOREIGN KEY ("communityId") REFERENCES "Community"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- ============================================================
+-- M. 중고거래 작품명·상품 종류 필터
+-- ============================================================
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "workTitle" VARCHAR(120);
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "productType" VARCHAR(40);
+CREATE INDEX IF NOT EXISTS "UsedListing_workTitle_idx" ON "UsedListing"("workTitle");
+CREATE INDEX IF NOT EXISTS "UsedListing_productType_idx" ON "UsedListing"("productType");
+
+-- ============================================================
+-- L. Supabase Storage (중고거래·게시글 사진 — Vercel 영구 저장)
+-- 대시보드 → Settings → API → service_role 키 → Vercel SUPABASE_SERVICE_ROLE_KEY
+-- ============================================================
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'mocomo-uploads',
+  'mocomo-uploads',
+  true,
+  26214400,
+  ARRAY[
+    'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+    'video/mp4', 'video/webm',
+    'audio/mpeg', 'audio/webm', 'audio/ogg'
+  ]
+)
+ON CONFLICT (id) DO UPDATE SET
+  public = EXCLUDED.public,
+  file_size_limit = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+-- ============================================================
+-- O. 프로필 생일 공개 설정
+-- ============================================================
+ALTER TABLE "Profile" ADD COLUMN IF NOT EXISTS "showBirthdayOnProfile" BOOLEAN NOT NULL DEFAULT false;
+
+-- ============================================================
+-- P. 서브컬처·애니 행사 지도 (SubcultureEventPin)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS "SubcultureEventPin" (
+  "id" TEXT NOT NULL,
+  "title" TEXT NOT NULL,
+  "description" TEXT,
+  "category" TEXT NOT NULL DEFAULT 'other',
+  "venueName" TEXT,
+  "address" TEXT,
+  "lat" DOUBLE PRECISION,
+  "lng" DOUBLE PRECISION,
+  "startsAt" TIMESTAMP(3) NOT NULL,
+  "endsAt" TIMESTAMP(3),
+  "sourceUrl" TEXT,
+  "source" TEXT NOT NULL DEFAULT 'seed',
+  "externalKey" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "SubcultureEventPin_pkey" PRIMARY KEY ("id")
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "SubcultureEventPin_externalKey_key" ON "SubcultureEventPin"("externalKey");
+CREATE INDEX IF NOT EXISTS "SubcultureEventPin_startsAt_idx" ON "SubcultureEventPin"("startsAt");
+CREATE INDEX IF NOT EXISTS "SubcultureEventPin_endsAt_idx" ON "SubcultureEventPin"("endsAt");
+
+-- Q. 사용자 이벤트 등록 (3만원 결제 후 공개)
+DO $$ BEGIN
+  CREATE TYPE "EventPublishStatus" AS ENUM ('AWAITING_FEE', 'PUBLISHED');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+ALTER TABLE "Event" ADD COLUMN IF NOT EXISTS "createdById" TEXT;
+ALTER TABLE "Event" ADD COLUMN IF NOT EXISTS "images" JSONB;
+ALTER TABLE "Event" ADD COLUMN IF NOT EXISTS "linkUrl" TEXT;
+ALTER TABLE "Event" ADD COLUMN IF NOT EXISTS "links" JSONB;
+ALTER TABLE "Event" ADD COLUMN IF NOT EXISTS "videoUrl" TEXT;
+ALTER TABLE "Event" ADD COLUMN IF NOT EXISTS "status" "EventPublishStatus" NOT NULL DEFAULT 'PUBLISHED';
+ALTER TABLE "Event" ADD COLUMN IF NOT EXISTS "registrationFeePaid" BOOLEAN NOT NULL DEFAULT true;
+
+DO $$ BEGIN
+  ALTER TYPE "PaymentIntentType" ADD VALUE IF NOT EXISTS 'EVENT_REGISTRATION';
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE INDEX IF NOT EXISTS "Event_createdById_status_idx" ON "Event"("createdById", "status");
+CREATE INDEX IF NOT EXISTS "Event_endsAt_idx" ON "Event"("endsAt");
+
+DO $$ BEGIN
+  ALTER TABLE "Event" ADD CONSTRAINT "Event_createdById_fkey"
+    FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 -- 완료 후 터미널: npx prisma db push && npm run db:seed

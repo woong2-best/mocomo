@@ -8,6 +8,7 @@ import {
   usedStatusLabel,
 } from "@/lib/used-market";
 import { isAuctionLive, formatAuctionCountdown } from "@/lib/used-auction";
+import { usedProductTypeLabel } from "@/lib/used-catalog";
 import { isUsedRestrictedKind, usedRestrictedLabel } from "@/lib/used-youth-protection";
 import { ImageOff, MapPin, Gavel } from "lucide-react";
 
@@ -30,6 +31,8 @@ type Listing = {
   currentBidderId?: string | null;
   antiSnipeMinutes?: number;
   restrictedKind?: string;
+  workTitle?: string | null;
+  productType?: string | null;
 };
 
 export function UsedListingCard({ listing }: { listing: Listing }) {
@@ -58,7 +61,7 @@ export function UsedListingCard({ listing }: { listing: Listing }) {
   const restricted = isUsedRestrictedKind(listing.restrictedKind);
 
   return (
-    <Link href={`/used/${listing.id}`} className="block group">
+    <Link href={`/used/${listing.id}`} prefetch className="block group">
       <article
         className={`rounded-xl overflow-hidden bg-card border border-border/50 ${isDone ? "opacity-70" : ""}`}
       >
@@ -98,6 +101,13 @@ export function UsedListingCard({ listing }: { listing: Listing }) {
           )}
         </div>
         <div className="p-2.5 space-y-1">
+          {(listing.workTitle || listing.productType) && (
+            <p className="text-[10px] text-muted-foreground line-clamp-1">
+              {[listing.workTitle, usedProductTypeLabel(listing.productType)]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          )}
           <p className="text-sm font-medium line-clamp-2 leading-snug min-h-[2.5rem]">{listing.title}</p>
           <p className="text-base font-black text-foreground">
             {auction && (listing.bidCount ?? 0) > 0 ? "현재 " : ""}

@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { createUsedListing } from "@/actions/used-market";
 import { UsedImageComposer } from "@/components/media/post-media-composer";
 import { MAX_USED_LISTING_PRICE, USED_CATEGORIES } from "@/lib/used-market";
+import { USED_PRODUCT_TYPES } from "@/lib/used-catalog";
+import { UsedWorkTitleField } from "@/components/used/used-work-title-field";
 import {
   AUCTION_DURATION_OPTIONS,
   BID_INCREMENT_PRESETS,
@@ -36,6 +38,8 @@ export function UsedPostForm({
   const [price, setPrice] = useState("");
   const [isFree, setIsFree] = useState(false);
   const [category, setCategory] = useState("GOODS");
+  const [workTitle, setWorkTitle] = useState("");
+  const [productType, setProductType] = useState("");
   const initialRegion = (() => {
     if (defaultRegion && parseUsedRegion(defaultRegion)) return defaultRegion;
     return formatUsedRegion(KOREA_SIDO[0].short, getSigunguList(KOREA_SIDO[0].id)[0] ?? "종로구");
@@ -50,6 +54,7 @@ export function UsedPostForm({
   const [buyNowPrice, setBuyNowPrice] = useState("");
   const [reservePrice, setReservePrice] = useState("");
   const [images, setImages] = useState<string[]>([]);
+  const [mediaUploading, setMediaUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -65,11 +70,30 @@ export function UsedPostForm({
       setLoading(false);
       return;
     }
+    if (mediaUploading) {
+      setError("사진 업로드가 진행 중입니다. 잠시 후 다시 시도해 주세요.");
+      setLoading(false);
+      return;
+    }
     if (saleType === "AUCTION" && isFree) {
       setError("경매는 나눔(무료)로 등록할 수 없습니다.");
       setLoading(false);
       return;
     }
+    const badImages = images.filter(
+      (u) =>
+        !u.startsWith("https://") ||
+        u.startsWith("blob:") ||
+        u.startsWith("/uploads/")
+    );
+    if (images.length > 0 && badImages.length > 0) {
+      setError(
+        "사진 업로드가 완료되지 않았습니다. 사진을 다시 추가하고 「적용」 후 업로드가 끝날 때까지 기다려 주세요."
+      );
+      setLoading(false);
+      return;
+    }
+
     const submitPrice = isFree ? 0 : numericPrice;
     const res = await createUsedListing({
       title,
@@ -81,6 +105,8 @@ export function UsedPostForm({
       meetLat: meetCoords?.lat,
       meetLng: meetCoords?.lng,
       images,
+      workTitle: workTitle.trim() || undefined,
+      productType: productType || undefined,
       restrictedKind,
       saleType,
       ...(saleType === "AUCTION"
@@ -102,7 +128,13 @@ export function UsedPostForm({
 
   return (
     <form onSubmit={submit} className="space-y-4 pb-8">
-      <UsedImageComposer images={images} onChange={setImages} max={10} disabled={loading} />
+      <UsedImageComposer
+        images={images}
+        onChange={setImages}
+        max={10}
+        disabled={loading}
+        onUploadingChange={setMediaUploading}
+      />
 
       <Input
         placeholder="글 제목 (예: 원신 피규어 판매)"
@@ -262,6 +294,29 @@ export function UsedPostForm({
             구매·입찰자도 만 19세 이상 성인 인증이 필요합니다.
           </p>
         )}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <UsedWorkTitleField value={workTitle} onChange={setWorkTitle} disabled={loading} />
+        <div className="space-y-1">
+          <label htmlFor="product-type" className="text-sm font-medium">
+            상품 종류
+          </label>
+          <select
+            id="product-type"
+            className="w-full h-11 rounded-xl border border-border px-3 text-sm"
+            value={productType}
+            onChange={(e) => setProductType(e.target.value)}
+            disabled={loading}
+          >
+            <option value="">선택 (권장)</option>
+            {USED_PRODUCT_TYPES.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <select

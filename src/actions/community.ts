@@ -2,81 +2,40 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requireAuth, requireAuthMinimal } from "@/lib/auth";
-import { calcHotScore, slugify } from "@/lib/utils";
-import { CommunityCategory, MediaType, VoteType } from "@prisma/client";
-import { z } from "zod";
+import { requireAuthForAction, requireAuthMinimal } from "@/lib/auth";
+import { createPostForUser, type CreatePostInput } from "@/lib/create-post-core";
+import { calcHotScore } from "@/lib/utils";
+import { MediaType, VoteType } from "@prisma/client";
 import { submitContentReport } from "@/actions/report";
+import { notifyPostComment, notifyPostVote } from "@/lib/notifications";
 
-export async function createCommunity(data: {
-  name: string;
-  description?: string;
-  category: CommunityCategory;
-  isNsfw?: boolean;
-  parentId?: string;
-}) {
-  const user = await requireAuth();
-  const slug = slugify(data.name) + "-" + Date.now().toString(36);
-  const community = await db.community.create({
-    data: {
-      name: data.name,
-      slug,
-      description: data.description,
-      category: data.category,
-      isNsfw: data.isNsfw ?? false,
-      parentId: data.parentId,
-      creatorId: user.id,
-      members: { create: { userId: user.id, role: "owner" } },
-      memberCount: 1,
-    },
-  });
-  revalidatePath("/communities");
-  return { community };
+function createPostErrorMessage(code: string): string {
+  switch (code) {
+    case "UNAUTHORIZED":
+      return "로그인이 필요합니다. 다시 로그인한 뒤 시도해 주세요.";
+    case "BANNED":
+      return "이용이 제한된 계정입니다.";
+    case "USER_NOT_FOUND":
+      return "계정 정보를 찾을 수 없습니다. 다시 로그인해 주세요.";
+    default:
+      return "게시에 실패했습니다. 잠시 후 다시 시도해 주세요.";
+  }
 }
 
-export async function createPost(data: {
-  content: string;
-  title?: string;
-  communityId?: string;
-  isNsfw?: boolean;
-  tagNames?: string[];
-  media?: { url: string; type: MediaType }[];
-}) {
-  const user = await requireAuth();
-  const post = await db.post.create({
-    data: {
-      title: data.title,
-      content: data.content,
-      authorId: user.id,
-      communityId: data.communityId,
-      isNsfw: data.isNsfw ?? false,
-      media: data.media
-        ? { create: data.media.map((m, i) => ({ ...m, order: i })) }
-        : undefined,
-    },
-    include: { author: true, media: true, community: true },
-  });
-
-  if (data.tagNames?.length) {
-    for (const name of data.tagNames) {
-      const slug = slugify(name);
-      const tag = await db.tag.upsert({
-        where: { slug },
-        create: { name, slug },
-        update: {},
-      });
-      await db.postTag.create({ data: { postId: post.id, tagId: tag.id } });
+export async function createPost(
+  data: CreatePostInput & { media?: { url: string; type: MediaType }[] }
+): Promise<{ postId?: string; error?: string }> {
+  try {
+    const user = await requireAuthForAction();
+    return await createPostForUser(user, data);
+  } catch (e) {
+    const code = e instanceof Error ? e.message : "";
+    if (code === "UNAUTHORIZED" || code === "BANNED" || code === "USER_NOT_FOUND") {
+      return { error: createPostErrorMessage(code) };
     }
+    console.error("[createPost]", e);
+    return { error: createPostErrorMessage("") };
   }
-
-  await db.user.update({
-    where: { id: user.id },
-    data: { xp: { increment: 10 } },
-  });
-
-  if (data.communityId) revalidatePath(`/c/${data.communityId}`);
-  revalidatePath("/");
-  return { post };
 }
 
 export async function votePost(postId: string, type: VoteType) {
@@ -84,14 +43,17 @@ export async function votePost(postId: string, type: VoteType) {
   const existing = await db.vote.findUnique({
     where: { userId_postId: { userId: user.id, postId } },
   });
+  let createdUp = false;
   if (existing) {
     if (existing.type === type) {
       await db.vote.delete({ where: { id: existing.id } });
     } else {
       await db.vote.update({ where: { id: existing.id }, data: { type } });
+      createdUp = type === "UP";
     }
   } else {
     await db.vote.create({ data: { userId: user.id, postId, type } });
+    createdUp = type === "UP";
   }
   const [up, down, commentCount] = await Promise.all([
     db.vote.count({ where: { postId, type: "UP" } }),
@@ -102,6 +64,9 @@ export async function votePost(postId: string, type: VoteType) {
   if (post) {
     const hotScore = calcHotScore(up - down, commentCount, post.createdAt);
     await db.post.update({ where: { id: postId }, data: { hotScore } });
+    if (createdUp) {
+      void notifyPostVote(postId, post.authorId, user.id, "UP");
+    }
   }
   revalidatePath(`/post/${postId}`);
   return { success: true };
@@ -109,10 +74,32 @@ export async function votePost(postId: string, type: VoteType) {
 
 export async function createComment(postId: string, content: string, parentId?: string) {
   const user = await requireAuthMinimal();
+  const post = await db.post.findUnique({
+    where: { id: postId },
+    select: { authorId: true },
+  });
+  let parentCommentAuthorId: string | undefined;
+  if (parentId) {
+    const parent = await db.comment.findFirst({
+      where: { id: parentId, postId },
+      select: { authorId: true },
+    });
+    parentCommentAuthorId = parent?.authorId;
+  }
   const comment = await db.comment.create({
     data: { content, authorId: user.id, postId, parentId },
     include: { author: { select: { id: true, username: true, image: true } } },
   });
+  if (post) {
+    void notifyPostComment({
+      postId,
+      postAuthorId: post.authorId,
+      commentId: comment.id,
+      actorId: user.id,
+      parentCommentAuthorId,
+      content,
+    });
+  }
   revalidatePath(`/post/${postId}`);
   return { comment };
 }

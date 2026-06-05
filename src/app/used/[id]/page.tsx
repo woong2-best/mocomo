@@ -43,6 +43,7 @@ import {
   usedStatusLabel,
 
 } from "@/lib/used-market";
+import { usedProductTypeLabel } from "@/lib/used-catalog";
 
 import { isAuctionListing, minNextBidAmount } from "@/lib/used-auction";
 import { UsedRestrictedBanner } from "@/components/used/used-restricted-banner";
@@ -84,6 +85,8 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
     viewerAdultVerified,
 
+    auctionBids,
+
   } = data;
 
   const imgs = listingImages(listing.images);
@@ -120,7 +123,7 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
   return (
 
-    <div className="-mx-4 bg-background min-h-[100dvh] flex flex-col">
+    <div className="bg-background min-h-app flex flex-col -mx-4 md:mx-0">
 
       <div className="px-2 border-b border-border/60">
 
@@ -150,7 +153,7 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
 
 
-      <div className="p-4 space-y-4 flex-1 pb-28">
+      <div className="p-4 space-y-4 flex-1 pb-action-bar">
 
         {isUsedRestrictedKind(listing.restrictedKind ?? "NONE") && (
           <UsedRestrictedBanner
@@ -186,6 +189,13 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
         <div>
 
+          {(listing.workTitle || listing.productType) && (
+            <p className="text-sm text-primary font-medium mb-1">
+              {[listing.workTitle, usedProductTypeLabel(listing.productType)]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          )}
           <h1 className="text-lg font-bold leading-snug">{listing.title}</h1>
 
           <p className="text-2xl font-black mt-2">
@@ -238,7 +248,15 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
               <h2 className="text-sm font-semibold mb-2">입찰 내역</h2>
 
-              <UsedAuctionBidHistory listingId={listing.id} />
+              <UsedAuctionBidHistory
+                listingId={listing.id}
+                initialBids={auctionBids.map((b) => ({
+                  id: b.id,
+                  amount: b.amount,
+                  createdAt: b.createdAt,
+                  bidder: { username: b.bidder.username },
+                }))}
+              />
 
             </div>
 

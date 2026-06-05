@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { validateUsernameAndName } from "@/lib/forbidden-admin-sequence";
 import { xpForLevel } from "@/lib/utils";
+import { parseBirthDateInput } from "@/lib/used-youth-protection";
 import type { Prisma } from "@prisma/client";
 
 export async function updateProfile(data: {
@@ -15,25 +16,59 @@ export async function updateProfile(data: {
   mainCharacter?: string;
   nicknameEffect?: string;
   showNsfw?: boolean;
+  showBirthdayOnProfile?: boolean;
   name?: string;
   image?: string;
+  /** 모두 비우면 생일 삭제 */
+  birthYear?: number;
+  birthMonth?: number;
+  birthDay?: number;
+  clearBirthDate?: boolean;
 }) {
   const user = await requireAuth();
-  const { name, image, showNsfw, ...profileData } = data;
+  const { name, image, showNsfw, birthYear, birthMonth, birthDay, clearBirthDate, showBirthdayOnProfile, ...profileData } = data;
 
   if (name !== undefined) {
     const check = validateUsernameAndName(user.username, name);
     if (!check.ok) return { error: check.error };
   }
+  const profilePayload: Prisma.ProfileUpdateInput = { ...profileData };
+  if (showBirthdayOnProfile !== undefined) {
+    profilePayload.showBirthdayOnProfile = showBirthdayOnProfile;
+  }
+
   await db.profile.upsert({
     where: { userId: user.id },
-    create: { userId: user.id, ...profileData },
-    update: profileData,
+    create: {
+      userId: user.id,
+      ...profileData,
+      ...(showBirthdayOnProfile !== undefined ? { showBirthdayOnProfile } : {}),
+    },
+    update: profilePayload,
   });
-  const userUpdate: { showNsfw?: boolean; name?: string | null; image?: string | null } = {};
+
+  const userUpdate: {
+    showNsfw?: boolean;
+    name?: string | null;
+    image?: string | null;
+    birthDate?: Date | null;
+  } = {};
   if (showNsfw !== undefined) userUpdate.showNsfw = showNsfw;
   if (name !== undefined) userUpdate.name = name || null;
   if (image !== undefined) userUpdate.image = image || null;
+
+  if (clearBirthDate) {
+    userUpdate.birthDate = null;
+  } else if (
+    birthYear !== undefined &&
+    birthMonth !== undefined &&
+    birthDay !== undefined
+  ) {
+    const birth = parseBirthDateInput(birthYear, birthMonth, birthDay);
+    if (!birth) return { error: "올바른 생년월일을 입력해 주세요." };
+    userUpdate.birthDate = birth;
+  }
+
   if (Object.keys(userUpdate).length > 0) {
     await db.user.update({ where: { id: user.id }, data: userUpdate });
   }

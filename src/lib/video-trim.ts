@@ -13,6 +13,37 @@ function pickRecorderMime(): string {
   return "video/webm";
 }
 
+function waitForVideoReady(video: HTMLVideoElement, timeoutMs = 12000): Promise<void> {
+  if (video.readyState >= 2 && Number.isFinite(video.duration) && video.duration > 0) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error("영상을 재생할 수 없습니다."));
+    }, timeoutMs);
+
+    const cleanup = () => {
+      clearTimeout(timer);
+      video.removeEventListener("loadedmetadata", onReady);
+      video.removeEventListener("error", onError);
+    };
+
+    const onReady = () => {
+      cleanup();
+      resolve();
+    };
+
+    const onError = () => {
+      cleanup();
+      reject(new Error("영상 메타데이터를 읽을 수 없습니다."));
+    };
+
+    video.addEventListener("loadedmetadata", onReady);
+    video.addEventListener("error", onError);
+  });
+}
+
 /** 브라우저에서 구간 자르기 (짧은 클립·게시용) */
 export async function trimVideoBlob(
   blob: Blob,
@@ -25,20 +56,30 @@ export async function trimVideoBlob(
   video.src = url;
   video.muted = true;
   video.playsInline = true;
+  video.setAttribute("playsinline", "true");
 
-  await new Promise<void>((resolve, reject) => {
-    video.onloadedmetadata = () => resolve();
-    video.onerror = () => reject(new Error("영상 메타데이터를 읽을 수 없습니다."));
-  });
+  try {
+    await waitForVideoReady(video);
+  } catch (e) {
+    URL.revokeObjectURL(url);
+    throw e;
+  }
 
   const duration = video.duration;
   const start = Math.max(0, Math.min(startSec, duration - 0.1));
   const end = Math.max(start + 0.1, Math.min(endSec, duration));
   const clipLen = end - start;
 
+  const w = video.videoWidth || 720;
+  const h = video.videoHeight || 1280;
+  if (w < 2 || h < 2) {
+    URL.revokeObjectURL(url);
+    throw new Error("영상 해상도를 읽을 수 없습니다.");
+  }
+
   const canvas = document.createElement("canvas");
-  canvas.width = video.videoWidth || 720;
-  canvas.height = video.videoHeight || 1280;
+  canvas.width = w;
+  canvas.height = h;
   const ctx = canvas.getContext("2d");
   if (!ctx) {
     URL.revokeObjectURL(url);
@@ -61,6 +102,10 @@ export async function trimVideoBlob(
     recorder.onstop = () => {
       URL.revokeObjectURL(url);
       video.pause();
+      if (chunks.length === 0) {
+        reject(new Error("자른 영상 데이터가 비어 있습니다."));
+        return;
+      }
       resolve(new Blob(chunks, { type: mimeType }));
     };
 
@@ -72,23 +117,34 @@ export async function trimVideoBlob(
       try {
         await video.play();
       } catch {
-        /* autoplay blocked — still draw frames while playing attempt */
+        /* 일부 브라우저 자동재생 제한 — 프레임은 timeupdate로 그림 */
       }
 
       const started = performance.now();
 
       const tick = () => {
         if (video.currentTime >= end || video.ended) {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          try {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          } catch {
+            /* ignore last frame draw error */
+          }
           onProgress?.(1);
           video.pause();
           recorder.stop();
           return;
         }
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        try {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        } catch {
+          video.pause();
+          recorder.stop();
+          reject(new Error("영상 프레임을 처리할 수 없습니다. 원본 업로드를 시도해 주세요."));
+          return;
+        }
         const ratio = Math.min(1, (video.currentTime - start) / clipLen);
         onProgress?.(ratio);
-        if (performance.now() - started > clipLen * 1000 + 8000) {
+        if (performance.now() - started > clipLen * 1000 + 12000) {
           video.pause();
           recorder.stop();
           return;

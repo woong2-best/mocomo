@@ -19,17 +19,17 @@ export default async function WalletPage() {
           정산 · 출금
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          후원·굿즈·이모티콘 선물 수익을 확인하고 출금하세요.
+          후원·이모티콘 선물 수익을 확인하고 출금하세요.
         </p>
       </div>
       <WalletDashboard data={data} />
       <p className="text-xs text-muted-foreground text-center">
-        <Link href="/market/orders/sell" className="underline">
-          판매 주문 보기
+        <Link href="/support?tab=gifts" className="underline">
+          받은 이모티콘 선물
         </Link>
         {" · "}
-        <Link href="/market/received" className="underline">
-          받은 이모티콘
+        <Link href="/support?tab=storage" className="underline">
+          이모티콘 보관함
         </Link>
       </p>
     </div>

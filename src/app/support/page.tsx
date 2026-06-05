@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { getSupportDashboard } from "@/actions/support";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,26 +8,54 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { OreTierBadge } from "@/components/support/ore-tier-button";
 import { PlatformSupportCard } from "@/components/support/platform-support-card";
 import { SupportTierTable } from "@/components/support/support-tier-table";
-import { Gem, Send, Inbox, Trophy } from "lucide-react";
+import { SupportEmoticonsPanel } from "@/components/support/support-emoticons-panel";
+import { SupportStoragePanel } from "@/components/support/support-storage-panel";
+import { SupportGiftsPanel } from "@/components/support/support-gifts-panel";
+import { MarketDbBannerAsync } from "@/components/market/market-db-banner-async";
+import { Gem, Send, Inbox, Trophy, Sparkles, Archive, Gift } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { SupportTierLevel } from "@prisma/client";
 
+const VALID_TABS = [
+  "sent",
+  "received",
+  "tiers",
+  "emoticons",
+  "storage",
+  "gifts",
+] as const;
+
+type SupportTab = (typeof VALID_TABS)[number];
+
 export default async function SupportPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; price?: string }>;
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/support");
 
-  const { tab = "sent" } = await searchParams;
-  const dashboard = await getSupportDashboard();
-  if (!dashboard) redirect("/auth/signin");
+  const params = await searchParams;
+  const tab: SupportTab = VALID_TABS.includes(params.tab as SupportTab)
+    ? (params.tab as SupportTab)
+    : "sent";
+  const priceFilter = params.price;
+
+  const dashboard =
+    tab === "sent" || tab === "received" || tab === "tiers"
+      ? await getSupportDashboard()
+      : null;
+  if ((tab === "sent" || tab === "received" || tab === "tiers") && !dashboard) {
+    redirect("/auth/signin");
+  }
 
   const tabs = [
     { id: "sent", label: "후원한 크리에이터", icon: Send },
     { id: "received", label: "받은 후원", icon: Inbox },
+    { id: "emoticons", label: "이모티콘", icon: Sparkles },
+    { id: "storage", label: "보관함", icon: Archive },
+    { id: "gifts", label: "받은 선물", icon: Gift },
     { id: "tiers", label: "등급 안내", icon: Gem },
   ] as const;
 
@@ -38,11 +67,17 @@ export default async function SupportPage({
           후원
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          크리에이터를 후원하고 등급 혜택을 받으세요.
+          크리에이터 후원 · 광석 등급 · 후원용 이모티콘 구매·선물
         </p>
       </div>
 
-      {dashboard.platform && (
+      {(tab === "emoticons" || tab === "storage") && (
+        <Suspense fallback={null}>
+          <MarketDbBannerAsync />
+        </Suspense>
+      )}
+
+      {dashboard?.platform && (
         <PlatformSupportCard
           sentTotal={dashboard.platform.sentTotal}
           sentTier={dashboard.platform.sentTier}
@@ -51,24 +86,42 @@ export default async function SupportPage({
         />
       )}
 
-      <nav className="flex border-b border-border/60 gap-1">
+      <nav className="flex border-b border-border/60 gap-1 overflow-x-auto scrollbar-none">
         {tabs.map((t) => (
           <Link
             key={t.id}
             href={`/support?tab=${t.id}`}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium border-b-2 transition-colors ${
+            className={`shrink-0 flex items-center justify-center gap-1.5 px-3 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
               tab === t.id
                 ? "border-primary text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            <t.icon className="h-4 w-4" />
+            <t.icon className="h-4 w-4 shrink-0" />
             {t.label}
           </Link>
         ))}
       </nav>
 
-      {tab === "sent" && (
+      {tab === "emoticons" && (
+        <Suspense fallback={<p className="text-sm text-muted-foreground py-8">불러오는 중…</p>}>
+          <SupportEmoticonsPanel priceFilter={priceFilter} />
+        </Suspense>
+      )}
+
+      {tab === "storage" && (
+        <Suspense fallback={<p className="text-sm text-muted-foreground py-8">불러오는 중…</p>}>
+          <SupportStoragePanel />
+        </Suspense>
+      )}
+
+      {tab === "gifts" && (
+        <Suspense fallback={<p className="text-sm text-muted-foreground py-8">불러오는 중…</p>}>
+          <SupportGiftsPanel />
+        </Suspense>
+      )}
+
+      {tab === "sent" && dashboard && (
         <div className="space-y-4">
           <Card className="rounded-2xl">
             <CardHeader>
@@ -132,7 +185,7 @@ export default async function SupportPage({
         </div>
       )}
 
-      {tab === "received" && (
+      {tab === "received" && dashboard && (
         <Card className="rounded-2xl">
           <CardHeader>
             <CardTitle className="text-base">받은 후원 ({dashboard.receivedTipCount}건)</CardTitle>
@@ -161,7 +214,7 @@ export default async function SupportPage({
         </Card>
       )}
 
-      {tab === "tiers" && (
+      {tab === "tiers" && dashboard && (
         <div className="space-y-4">
           <Card className="rounded-2xl">
             <CardHeader>

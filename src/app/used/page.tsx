@@ -5,6 +5,7 @@ import { getUsedListings, isUsedDbReady } from "@/actions/used-market";
 import { DbSetupBanner } from "@/components/ui/db-setup-banner";
 import { UsedListingCard } from "@/components/used/used-listing-card";
 import { UsedSearchHeader } from "@/components/used/used-search-header";
+import { UsedFeedSkeleton } from "@/components/used/used-loading-skeletons";
 import { Button } from "@/components/ui/button";
 
 async function UsedFeed({
@@ -16,27 +17,43 @@ async function UsedFeed({
     region?: string;
     sido?: string;
     mode?: string;
+    work?: string;
+    product?: string;
   }>;
 }) {
-  const { q, category, region, sido, mode } = await searchParams;
-  const listings = await getUsedListings({
-    q,
-    category,
-    region,
-    sido,
-    status: "SELLING",
-    liveAuctionOnly: mode === "auction",
-  });
+  const { q, category, region, sido, mode, work, product } = await searchParams;
+
+  const [dbReady, listings] = await Promise.all([
+    isUsedDbReady(),
+    getUsedListings({
+      q,
+      category,
+      region,
+      sido,
+      work,
+      product,
+      status: "SELLING",
+      liveAuctionOnly: mode === "auction",
+    }),
+  ]);
+
+  if (!dbReady) {
+    return <DbSetupBanner title="중고거래를 일시적으로 불러올 수 없습니다" />;
+  }
 
   if (listings.length === 0) {
     return (
       <div className="py-16 text-center space-y-4">
         <Package className="h-12 w-12 mx-auto text-muted-foreground/40" />
         <p className="text-muted-foreground text-sm">
-          {q || category || region || sido ? "검색 결과가 없어요." : "아직 올라온 중고 글이 없어요."}
+          {q || category || region || sido || work || product
+            ? "선택한 조건에 맞는 상품이 없어요."
+            : "아직 올라온 중고 글이 없어요."}
         </p>
         <Button variant="secondary" asChild>
-          <Link href="/used/new">첫 글 올리기</Link>
+          <Link href="/used/new" prefetch>
+            첫 글 올리기
+          </Link>
         </Button>
       </div>
     );
@@ -60,29 +77,26 @@ export default async function UsedHomePage({
     region?: string;
     sido?: string;
     mode?: string;
+    work?: string;
+    product?: string;
   }>;
 }) {
-  const dbReady = await isUsedDbReady();
-
   return (
     <div>
-      {!dbReady && (
-        <DbSetupBanner title="중고거래를 일시적으로 불러올 수 없습니다" />
-      )}
       <UsedSearchHeader />
-      <Suspense
-        fallback={<div className="grid grid-cols-2 gap-3 py-8">{[1, 2, 3, 4].map((i) => <div key={i} className="aspect-square rounded-xl bg-muted animate-pulse" />)}</div>}
-      >
+      <Suspense fallback={<UsedFeedSkeleton />}>
         <UsedFeed searchParams={searchParams} />
       </Suspense>
       <Button
         asChild
         variant="secondary"
         size="icon"
-        className="fixed bottom-24 right-4 lg:right-[calc(50%-28rem)] z-50 h-14 w-14 rounded-full shadow-lg text-2xl font-light"
+        className="fixed bottom-[calc(var(--mobile-nav-h)+env(safe-area-inset-bottom,0px)+0.75rem)] right-4 md:bottom-6 z-50 h-14 w-14 rounded-full shadow-lg text-2xl font-light"
         aria-label="글쓰기"
       >
-        <Link href="/used/new">+</Link>
+        <Link href="/used/new" prefetch>
+          +
+        </Link>
       </Button>
     </div>
   );

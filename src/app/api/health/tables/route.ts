@@ -7,6 +7,7 @@ export async function GET() {
     bookmark: { ok: false, hint: "STAR 저장 (원래부터 있음)" },
     repost: { ok: false, hint: "리트윗 — Repost 테이블 + SQL 필요" },
     comment: { ok: false, hint: "댓글 — Comment 테이블" },
+    community: { ok: false, hint: "커뮤니티 — Community + SQL 섹션 N" },
   };
 
   try {
@@ -30,6 +31,15 @@ export async function GET() {
     result.comment.hint += ` · ${e instanceof Error ? e.message : "error"}`;
   }
 
-  const allOk = result.bookmark.ok && result.repost.ok && result.comment.ok;
+  try {
+    await db.community.findFirst({ select: { id: true } });
+    await db.communityMember.findFirst({ select: { id: true } });
+    result.community.ok = true;
+  } catch (e) {
+    result.community.hint += ` · ${e instanceof Error ? e.message : "error"}`;
+  }
+
+  const allOk =
+    result.bookmark.ok && result.repost.ok && result.comment.ok && result.community.ok;
   return NextResponse.json(result, { status: allOk ? 200 : 503 });
 }

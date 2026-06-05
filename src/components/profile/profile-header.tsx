@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { ArrowLeft, Calendar, Link2, MapPin, Camera, BadgeCheck } from "lucide-react";
+import { ArrowLeft, Calendar, Cake, Link2, MapPin, Camera, BadgeCheck } from "lucide-react";
+import { formatProfileBirthday } from "@/lib/birth-date";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ProfileFollowButton } from "@/components/profile/profile-follow-button";
@@ -29,6 +30,7 @@ export function ProfileHeader({
     level: number;
     supportTierSent: SupportTierLevel;
     countryCode?: string;
+    birthDate?: Date | null;
     createdAt: Date;
     profile: {
       bio: string | null;
@@ -36,6 +38,7 @@ export function ProfileHeader({
       favoriteTags: string[];
       mainCharacter: string | null;
       snsLinks: unknown;
+      showBirthdayOnProfile?: boolean;
     } | null;
     cosplayerProfile: { id: string; stageName: string | null } | null;
     userBadges: { badge: { name: string; imageUrl?: string | null } }[];
@@ -52,6 +55,9 @@ export function ProfileHeader({
 }) {
   const sns = (user.profile?.snsLinks ?? {}) as SnsLinks;
   const displayName = user.name || user.username;
+  const showBirthday =
+    !!user.birthDate &&
+    (isSelf || !!user.profile?.showBirthdayOnProfile);
 
   return (
     <div className="border-b border-border/60">
@@ -158,6 +164,12 @@ export function ProfileHeader({
               <Link2 className="h-4 w-4 shrink-0" />
               {sns.website.replace(/^https?:\/\//, "")}
             </a>
+          )}
+          {showBirthday && user.birthDate && (
+            <span className="flex items-center gap-1">
+              <Cake className="h-4 w-4 shrink-0" />
+              {formatProfileBirthday(user.birthDate, { isSelf })}
+            </span>
           )}
           <span className="flex items-center gap-1">
             <Calendar className="h-4 w-4 shrink-0" />

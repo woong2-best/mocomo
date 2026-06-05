@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { FEED_POSTS_CACHE_TAG } from "@/lib/cache-tags";
 import { liveViewerCutoff } from "@/lib/live-presence";
 import { db } from "@/lib/db";
 import { userPublicSelect } from "@/lib/user-public-select";
@@ -42,7 +43,7 @@ export const getCachedFeedPosts = unstable_cache(
     }
   },
   ["home-feed-posts-v3"],
-  { revalidate: 60 }
+  { revalidate: 60, tags: [FEED_POSTS_CACHE_TAG] }
 );
 
 export const getCachedFeedAds = unstable_cache(
@@ -59,6 +60,35 @@ export const getCachedSidebarAds = unstable_cache(
       select: { id: true, title: true, imageUrl: true, linkUrl: true, ctaLabel: true },
     }),
   ["sidebar-ads"],
+  { revalidate: 300 }
+);
+
+const railAdSelect = {
+  id: true,
+  title: true,
+  imageUrl: true,
+  linkUrl: true,
+  sponsorName: true,
+  ctaLabel: true,
+} as const;
+
+export const getCachedRailAds = unstable_cache(
+  async () => {
+    const [left, right] = await Promise.all([
+      db.adSlot.findMany({
+        where: { active: true, position: "margin_left" },
+        take: 2,
+        select: railAdSelect,
+      }),
+      db.adSlot.findMany({
+        where: { active: true, position: "margin_right" },
+        take: 2,
+        select: railAdSelect,
+      }),
+    ]);
+    return { left, right };
+  },
+  ["desktop-rail-ads"],
   { revalidate: 300 }
 );
 

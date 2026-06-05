@@ -1,4 +1,6 @@
 import type { SupportTierLevel } from "@prisma/client";
+import type { ChatAttachmentView } from "@/lib/chat-attachments";
+import { parseChatAttachmentType } from "@/lib/chat-attachments";
 
 export type ChatMessageView = {
   id: string;
@@ -10,7 +12,29 @@ export type ChatMessageView = {
     image: string | null;
     supportTierSent?: SupportTierLevel;
   };
+  attachments?: ChatAttachmentView[];
 };
+
+function normalizeAttachments(raw: unknown): ChatAttachmentView[] | undefined {
+  if (!Array.isArray(raw) || raw.length === 0) return undefined;
+  const list: ChatAttachmentView[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const a = item as Record<string, unknown>;
+    const id = typeof a.id === "string" ? a.id : `att-${list.length}`;
+    const url = typeof a.url === "string" ? a.url : "";
+    const type =
+      typeof a.type === "string" ? parseChatAttachmentType(a.type) : null;
+    if (!url || !type) continue;
+    list.push({
+      id,
+      url,
+      type,
+      name: typeof a.name === "string" ? a.name : null,
+    });
+  }
+  return list.length ? list : undefined;
+}
 
 export function normalizeChatMessage(
   raw: unknown,
@@ -45,6 +69,7 @@ export function normalizeChatMessage(
       supportTierSent:
         (sender?.supportTierSent as SupportTierLevel | undefined) ?? fallback?.supportTierSent,
     },
+    attachments: normalizeAttachments(m.attachments),
   };
 }
 

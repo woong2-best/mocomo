@@ -83,3 +83,4 @@ export function listingImages(images: unknown): string[] {
 }
 
 export { isAuctionListing, displayAuctionPrice, formatAuctionCountdown } from "@/lib/used-auction";
+export { USED_PRODUCT_TYPES, usedProductTypeLabel, sanitizeWorkTitleInput } from "@/lib/used-catalog";

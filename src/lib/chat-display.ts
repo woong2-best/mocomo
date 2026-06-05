@@ -1,4 +1,5 @@
-import type { SupportTierLevel } from "@prisma/client";
+import type { MessageAttachmentType, SupportTierLevel } from "@prisma/client";
+import { lastMessagePreview } from "@/lib/chat-attachments";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { ko } from "date-fns/locale";
 
@@ -18,7 +19,11 @@ type RoomPreview = {
   type: string;
   name: string | null;
   members: RoomMember[];
-  messages: { content: string | null; createdAt: Date }[];
+  messages: {
+    content: string | null;
+    createdAt: Date;
+    attachments?: { type: MessageAttachmentType }[];
+  }[];
 };
 
 export function getConversationMeta(room: RoomPreview, currentUserId: string) {
@@ -45,7 +50,7 @@ export function getConversationMeta(room: RoomPreview, currentUserId: string) {
     otherUserId,
     supportTierSent: isDm && other ? other.user.supportTierSent : undefined,
     profileUsername: isDm && other ? other.user.username : undefined,
-    lastMessage: last?.content?.trim() || "대화를 시작해 보세요",
+    lastMessage: lastMessagePreview(last?.content, last?.attachments),
     lastMessageAt: last?.createdAt ?? null,
   };
 }

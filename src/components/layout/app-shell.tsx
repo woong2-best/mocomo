@@ -7,6 +7,7 @@ import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { AuthTopBanner } from "@/components/layout/auth-top-banner";
 import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
+import { mainScrollPaddingClass, shouldHideMobileNav } from "@/lib/mobile-shell";
 
 function AppShellInner({
   children,
@@ -22,6 +23,8 @@ function AppShellInner({
   const isMessagesRoute = pathname.startsWith("/messages");
   const isUsedRoute = pathname.startsWith("/used");
   const isVoiceRoom = pathname.startsWith("/voice/") && pathname !== "/voice/new";
+  const hideMobileNav = shouldHideMobileNav(pathname);
+  const mainPb = mainScrollPaddingClass(pathname);
   const showRightPanel =
     !isAuthRoute && !isLegalRoute && !isLiveRoute && !isVoiceRoom && !isMessagesRoute && !isUsedRoute;
 
@@ -37,20 +40,20 @@ function AppShellInner({
     <>
       <Header />
       <AuthTopBanner />
-      <div className="flex min-h-[calc(100vh-3.5rem)]">
+      <div className="flex min-h-app">
         <Sidebar />
         <main
           className={
             isMessagesRoute
-              ? "flex-1 min-w-0 overflow-hidden bg-background pb-16 lg:pb-0"
-              : "flex-1 min-w-0 overflow-y-auto bg-background pb-16 lg:pb-0"
+              ? `flex-1 min-w-0 overflow-hidden bg-background ${mainPb}`
+              : `flex-1 min-w-0 overflow-y-auto overflow-x-hidden bg-background ${mainPb}`
           }
         >
           {children}
         </main>
         {showRightPanel ? rightPanel : null}
       </div>
-      <MobileNav />
+      {!hideMobileNav && <MobileNav />}
       {!isMessagesRoute && (
         <footer className="hidden lg:block border-t border-border py-3 px-4 bg-muted/20">
           <LegalFooterLinks />

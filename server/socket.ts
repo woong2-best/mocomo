@@ -2,9 +2,11 @@ import { createServer } from "http";
 import { Server, type Socket } from "socket.io";
 import { PrismaClient } from "@prisma/client";
 import { verifySocketAuthToken } from "../src/lib/socket-auth-token";
+import { sanitizeChatAttachments } from "../src/lib/chat-attachments";
+import { notifyChatMessage } from "../src/lib/notifications";
 
 const prisma = new PrismaClient();
-const PORT = parseInt(process.env.SOCKET_PORT || "3001", 10);
+const PORT = parseInt(process.env.PORT || process.env.SOCKET_PORT || "3001", 10);
 const ALLOW_LEGACY =
   process.env.NODE_ENV !== "production" && process.env.SOCKET_ALLOW_LEGACY_USER_ID === "true";
 
@@ -49,9 +51,71 @@ function resolveUserId(socket: AuthedSocket): string | null {
   return null;
 }
 
-const httpServer = createServer();
+const RELAY_SECRET = process.env.SOCKET_RELAY_SECRET?.trim();
+
+const httpServer = createServer((req, res) => {
+  if (req.method === "GET" && (req.url === "/" || req.url === "/health")) {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, service: "mocomo-socket" }));
+    return;
+  }
+  if (req.method === "POST" && req.url === "/relay/chat-message") {
+    if (!RELAY_SECRET || req.headers["x-relay-secret"] !== RELAY_SECRET) {
+      res.writeHead(401);
+      res.end();
+      return;
+    }
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => {
+      try {
+        const body = JSON.parse(Buffer.concat(chunks).toString("utf8")) as {
+          roomId?: string;
+          message?: { id?: string; createdAt?: string };
+        };
+        if (body.roomId && body.message?.id) {
+          io.to(`room:${body.roomId}`).emit("new_message", body.message);
+        }
+        res.writeHead(204);
+        res.end();
+      } catch {
+        res.writeHead(400);
+        res.end();
+      }
+    });
+    return;
+  }
+  res.writeHead(404);
+  res.end();
+});
+
+function socketCorsOrigins(): string[] {
+  const raw =
+    process.env.SOCKET_CORS_ORIGINS ||
+    process.env.NEXTAUTH_URL ||
+    "http://localhost:3000";
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 const io = new Server(httpServer, {
-  cors: { origin: process.env.NEXTAUTH_URL || "http://localhost:3000", credentials: true },
+  cors: {
+    origin: (origin, callback) => {
+      const allowed = socketCorsOrigins();
+      if (!origin || allowed.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      if (origin.endsWith(".vercel.app")) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error("CORS blocked"));
+    },
+    credentials: true,
+  },
 });
 
 io.on("connection", (socket: AuthedSocket) => {
@@ -89,11 +153,13 @@ io.on("connection", (socket: AuthedSocket) => {
     content?: string;
     replyToId?: string;
     mentions?: string[];
+    attachments?: { url: string; type: string; name?: string }[];
   }) => {
     const senderId = userId;
     if (!data.roomId || data.roomId.length > 64) return;
-    const content = (data.content ?? "").slice(0, 4000);
-    if (!content.trim()) return;
+    const content = (data.content ?? "").slice(0, 4000).trim();
+    const attachments = sanitizeChatAttachments(data.attachments);
+    if (!content && !attachments.length) return;
 
     try {
       const member = await prisma.chatMember.findUnique({
@@ -105,20 +171,37 @@ io.on("connection", (socket: AuthedSocket) => {
         data: {
           roomId: data.roomId,
           senderId,
-          content,
+          content: content || null,
           replyToId: data.replyToId,
           mentions: Array.isArray(data.mentions) ? data.mentions.slice(0, 20) : [],
+          attachments: attachments.length
+            ? { create: attachments.map((a) => ({ url: a.url, type: a.type, name: a.name })) }
+            : undefined,
         },
         include: {
           sender: {
             select: { id: true, username: true, image: true, supportTierSent: true },
           },
+          attachments: true,
         },
+      });
+      const room = await prisma.chatRoom.findUnique({
+        where: { id: data.roomId },
+        select: { type: true },
       });
       await prisma.chatRoom.update({
         where: { id: data.roomId },
         data: { updatedAt: new Date() },
       });
+      if (room) {
+        void notifyChatMessage({
+          roomId: data.roomId,
+          senderId,
+          content,
+          roomType: room.type,
+          mentionUserIds: Array.isArray(data.mentions) ? data.mentions : [],
+        });
+      }
       const payload = {
         ...message,
         createdAt: message.createdAt.toISOString(),

@@ -119,6 +119,21 @@ export async function requireAuth() {
   return user;
 }
 
+/** Server Action — React cache() 없이 매 POST마다 세션·DB 재조회 */
+export async function requireAuthForAction() {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) throw new Error("UNAUTHORIZED");
+
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { id: true, username: true, isBanned: true },
+  });
+  if (!user) throw new Error("USER_NOT_FOUND");
+  if (user.isBanned) throw new Error("BANNED");
+  return user;
+}
+
 /** 좋아요·북마크 등 가벼운 액션 — profile/cosplayer 조인 생략 */
 export const getCachedAuthUserMinimal = cache(async () => {
   const session = await getCachedSession();

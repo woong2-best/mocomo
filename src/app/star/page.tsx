@@ -3,6 +3,8 @@ import { Star } from "lucide-react";
 import { StarContentAsync } from "@/components/star/star-content-async";
 import { GridCardsSkeleton } from "@/components/ui/content-skeletons";
 
+export const dynamic = "force-dynamic";
+
 export default function StarPage() {
   return (
     <div className="p-4 lg:p-6 max-w-5xl mx-auto space-y-6">

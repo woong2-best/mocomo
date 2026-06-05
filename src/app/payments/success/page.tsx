@@ -33,6 +33,7 @@ export default async function PaymentSuccessPage({
     EMOTICON: "이모티콘 구매",
     LISTING_FEE: "굿즈 등록비",
     PHYSICAL_GOODS: "굿즈 주문",
+    EVENT_REGISTRATION: "이벤트 등록",
   };
 
   const redirectPath =
@@ -46,7 +47,13 @@ export default async function PaymentSuccessPage({
       title="결제 완료"
       message={`${labels[result.type ?? ""] ?? "결제"}가 정상 처리되었습니다.`}
       primaryHref={redirectPath}
-      primaryLabel={result.type === "TIP" ? "돌아가기" : "홈으로"}
+      primaryLabel={
+        result.type === "TIP"
+          ? "돌아가기"
+          : result.type === "EVENT_REGISTRATION"
+            ? "이벤트 보기"
+            : "홈으로"
+      }
     />
   );
 }

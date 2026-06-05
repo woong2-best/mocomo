@@ -25,7 +25,10 @@ export async function ChatMessagesAsync({ roomId }: { roomId: string }) {
       where: { roomId },
       take: 50,
       orderBy: { createdAt: "asc" },
-      include: { sender: { select: userPublicSelectMinimal } },
+      include: {
+        sender: { select: userPublicSelectMinimal },
+        attachments: true,
+      },
     }),
   ]);
   if (!member) notFound();
@@ -38,6 +41,12 @@ export async function ChatMessagesAsync({ roomId }: { roomId: string }) {
     content: m.content,
     createdAt: m.createdAt.toISOString(),
     sender: m.sender,
+    attachments: m.attachments.map((a) => ({
+      id: a.id,
+      url: a.url,
+      type: a.type,
+      name: a.name,
+    })),
   }));
 
   return (

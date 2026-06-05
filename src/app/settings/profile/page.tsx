@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ProfileSettingsForm } from "@/components/profile/profile-settings-form";
+import { splitStoredBirthDate } from "@/lib/birth-date";
 
 export default async function ProfileSettingsPage() {
   const session = await auth();
@@ -14,6 +15,7 @@ export default async function ProfileSettingsPage() {
   if (!user) redirect("/auth/signin");
 
   const sns = (user.profile?.snsLinks ?? {}) as { location?: string; website?: string };
+  const birth = splitStoredBirthDate(user.birthDate);
 
   return (
     <ProfileSettingsForm
@@ -28,6 +30,10 @@ export default async function ProfileSettingsPage() {
         location: sns.location ?? "",
         website: sns.website ?? "",
         showNsfw: user.showNsfw,
+        birthYear: birth.year,
+        birthMonth: birth.month,
+        birthDay: birth.day,
+        showBirthdayOnProfile: user.profile?.showBirthdayOnProfile ?? false,
       }}
     />
   );

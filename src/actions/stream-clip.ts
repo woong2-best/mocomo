@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth, requireAuthMinimal } from "@/lib/auth";
+import { notifyClipComment, notifyClipLike } from "@/lib/notifications";
 
 export async function toggleStreamClipLike(clipId: string) {
   const user = await requireAuthMinimal();
@@ -20,6 +21,10 @@ export async function toggleStreamClipLike(clipId: string) {
     revalidatePath("/live");
     return { liked: false };
   }
+  const clip = await db.streamClip.findUnique({
+    where: { id: clipId },
+    select: { authorId: true },
+  });
   await db.$transaction([
     db.streamClipLike.create({ data: { clipId, userId: user.id } }),
     db.streamClip.update({
@@ -27,6 +32,7 @@ export async function toggleStreamClipLike(clipId: string) {
       data: { likeCount: { increment: 1 } },
     }),
   ]);
+  if (clip) void notifyClipLike(clipId, clip.authorId, user.id);
   revalidatePath("/live");
   return { liked: true };
 }
@@ -35,9 +41,14 @@ export async function addStreamClipComment(clipId: string, content: string) {
   const user = await requireAuth();
   const text = content.trim().slice(0, 500);
   if (!text) return { error: "댓글을 입력해 주세요." };
+  const clip = await db.streamClip.findUnique({
+    where: { id: clipId },
+    select: { authorId: true },
+  });
   await db.streamClipComment.create({
     data: { clipId, userId: user.id, content: text },
   });
+  if (clip) void notifyClipComment(clipId, clip.authorId, user.id);
   revalidatePath("/live");
   return { success: true as const };
 }

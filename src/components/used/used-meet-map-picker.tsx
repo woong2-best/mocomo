@@ -1,8 +1,16 @@
 "use client";
 
-import { UsedMeetMap } from "@/components/used/used-meet-map";
+import dynamic from "next/dynamic";
 import type { MeetCoords } from "@/lib/used-market";
 import { Input } from "@/components/ui/input";
+
+const UsedMeetMap = dynamic(
+  () => import("@/components/used/used-meet-map").then((m) => m.UsedMeetMap),
+  {
+    ssr: false,
+    loading: () => <div className="h-56 w-full rounded-xl bg-muted animate-pulse" />,
+  }
+);
 
 type UsedMeetMapPickerProps = {
   region: string;

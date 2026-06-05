@@ -22,6 +22,11 @@ import {
   isAuctionLive,
 } from "@/lib/used-auction";
 import { MAX_USED_LISTING_PRICE, MAX_USED_LISTING_PRICE_LABEL } from "@/lib/used-market";
+import {
+  compactWorkKey,
+  isValidProductType,
+  normalizeWorkTitle,
+} from "@/lib/used-catalog";
 import { isKakaoLocalConfigured, kakaoGeocodeMeetPlace } from "@/lib/kakao-local";
 import {
   isUsedMarketEligible,
@@ -65,6 +70,10 @@ export async function getUsedListings(params?: {
   saleType?: "FIXED" | "AUCTION";
   /** 진행 중 경매만 (마감 전) */
   liveAuctionOnly?: boolean;
+  /** 작품명 (IP) — 정확 일치 */
+  work?: string;
+  /** 상품 종류 ID */
+  product?: string;
 }) {
   const status = params?.status ?? "SELLING";
   const where: Prisma.UsedListingWhereInput = { status };
@@ -81,6 +90,20 @@ export async function getUsedListings(params?: {
   }
 
   if (params?.category) where.category = params.category as UsedListingCategory;
+
+  const workCompact = compactWorkKey(params?.work);
+  if (workCompact) {
+    andFilters.push({
+      OR: [
+        { workTitle: { contains: workCompact, mode: "insensitive" } },
+        { title: { contains: workCompact, mode: "insensitive" } },
+      ],
+    });
+  }
+
+  if (params?.product?.trim() && isValidProductType(params.product.trim())) {
+    where.productType = params.product.trim();
+  }
   if (params?.sido) {
     if (params.sido === "__shipping__") {
       where.region = USED_SHIPPING_REGION;
@@ -131,8 +154,6 @@ export async function getUsedListings(params?: {
 
 export async function getUsedListing(id: string, viewerId?: string) {
   try {
-    await finalizeExpiredAuctionIfNeeded(id);
-
     let listing;
     try {
       listing = await db.usedListing.findUnique({
@@ -174,39 +195,79 @@ export async function getUsedListing(id: string, viewerId?: string) {
     }
     if (!listing) return null;
 
-    await db.usedListing.update({
-      where: { id },
-      data: { viewCount: { increment: 1 } },
-    }).catch(() => {});
+    const isAuction = listing.saleType === "AUCTION";
+    const auctionExpired =
+      isAuction &&
+      listing.auctionEndsAt &&
+      listing.auctionEndsAt.getTime() <= Date.now() &&
+      listing.auctionState !== "ENDED" &&
+      listing.auctionState !== "CANCELLED";
+    if (auctionExpired) {
+      void finalizeExpiredAuctionIfNeeded(id);
+    }
+
+    void db.usedListing
+      .update({
+        where: { id },
+        data: { viewCount: { increment: 1 } },
+      })
+      .catch(() => {});
+
+    const bidsPromise = isAuction
+      ? db.usedAuctionBid.findMany({
+          where: { listingId: id },
+          orderBy: { createdAt: "desc" },
+          take: 30,
+          include: {
+            bidder: { select: { id: true, username: true, image: true, name: true } },
+          },
+        })
+      : Promise.resolve([]);
 
     let favorited = false;
     let buyerChatRoomId: string | null = null;
     let myHighestBid: number | null = null;
     let isWinningBidder = false;
     let viewerAdultVerified = false;
-    if (viewerId) {
-      const viewer = await db.user.findUnique({
-        where: { id: viewerId },
-        select: { adultVerifiedAt: true },
-      }).catch(() => null);
-      viewerAdultVerified = !!viewer?.adultVerifiedAt;
 
-      const fav = await db.usedFavorite.findUnique({
-        where: { userId_listingId: { userId: viewerId, listingId: id } },
-      });
+    const viewerPromise = viewerId
+      ? Promise.all([
+          db.user
+            .findUnique({
+              where: { id: viewerId },
+              select: { adultVerifiedAt: true },
+            })
+            .catch(() => null),
+          db.usedFavorite.findUnique({
+            where: { userId_listingId: { userId: viewerId, listingId: id } },
+          }),
+          db.usedListingChat
+            .findUnique({
+              where: { listingId_buyerId: { listingId: id, buyerId: viewerId } },
+              select: { roomId: true },
+            })
+            .catch(() => null),
+          isAuction
+            ? db.usedAuctionBid
+                .findFirst({
+                  where: { listingId: id, bidderId: viewerId },
+                  orderBy: { amount: "desc" },
+                  select: { amount: true },
+                })
+                .catch(() => null)
+            : Promise.resolve(null),
+        ])
+      : Promise.resolve(null);
+
+    const [viewerResult, auctionBids] = await Promise.all([viewerPromise, bidsPromise]);
+
+    if (viewerResult) {
+      const [viewer, fav, tradeChat, myBid] = viewerResult;
+      viewerAdultVerified = !!viewer?.adultVerifiedAt;
       favorited = !!fav;
-      const tradeChat = await db.usedListingChat.findUnique({
-        where: { listingId_buyerId: { listingId: id, buyerId: viewerId } },
-        select: { roomId: true },
-      }).catch(() => null);
       buyerChatRoomId = tradeChat?.roomId ?? null;
-      if (listing.saleType === "AUCTION") {
+      if (isAuction) {
         isWinningBidder = listing.currentBidderId === viewerId;
-        const myBid = await db.usedAuctionBid.findFirst({
-          where: { listingId: id, bidderId: viewerId },
-          orderBy: { amount: "desc" },
-          select: { amount: true },
-        }).catch(() => null);
         myHighestBid = myBid?.amount ?? null;
       }
     }
@@ -242,6 +303,7 @@ export async function getUsedListing(id: string, viewerId?: string) {
       myHighestBid,
       isWinningBidder,
       viewerAdultVerified,
+      auctionBids,
     };
   } catch {
     return null;
@@ -264,6 +326,8 @@ export async function createUsedListing(data: {
   buyNowPrice?: number;
   reservePrice?: number;
   restrictedKind?: UsedRestrictedKind | string;
+  workTitle?: string;
+  productType?: string;
 }) {
   const user = await requireAuth();
   const accessErr = assertUsedMarketAccess(user);
@@ -307,6 +371,16 @@ export async function createUsedListing(data: {
     return { error: "최저 낙찰가 설정을 확인해 주세요." };
   }
 
+  const ephemeral = data.images.filter(
+    (u) => typeof u === "string" && (u.startsWith("blob:") || (process.env.VERCEL && u.startsWith("/uploads/")))
+  );
+  if (ephemeral.length > 0) {
+    return {
+      error:
+        "사진이 영구 저장되지 않았습니다. 사진을 다시 추가한 뒤 「적용」이 끝날 때까지 기다려 주세요.",
+    };
+  }
+
   try {
     let meetLat = data.meetLat;
     let meetLng = data.meetLng;
@@ -336,6 +410,11 @@ export async function createUsedListing(data: {
         description: data.description.trim(),
         price,
         category: (data.category as UsedListingCategory) || "OTHER",
+        workTitle: normalizeWorkTitle(data.workTitle),
+        productType:
+          data.productType?.trim() && isValidProductType(data.productType.trim())
+            ? data.productType.trim()
+            : null,
         restrictedKind: restricted,
         region: data.region.trim(),
         meetPlace: meetPlaceTrim,
@@ -410,27 +489,26 @@ export async function toggleUsedFavorite(listingId: string) {
   return { favorited: true };
 }
 
-export async function getMyUsedDashboard() {
-  const user = await requireAuth();
+export async function getMyUsedDashboard(userId: string) {
   try {
     const [selling, reserved, sold, favorites] = await Promise.all([
       db.usedListing.findMany({
-        where: { sellerId: user.id, status: "SELLING" },
+        where: { sellerId: userId, status: "SELLING" },
         orderBy: { createdAt: "desc" },
         take: 20,
       }),
       db.usedListing.findMany({
-        where: { sellerId: user.id, status: "RESERVED" },
+        where: { sellerId: userId, status: "RESERVED" },
         orderBy: { updatedAt: "desc" },
         take: 10,
       }),
       db.usedListing.findMany({
-        where: { sellerId: user.id, status: "SOLD" },
+        where: { sellerId: userId, status: "SOLD" },
         orderBy: { updatedAt: "desc" },
         take: 10,
       }),
       db.usedFavorite.findMany({
-        where: { userId: user.id },
+        where: { userId },
         include: { listing: { include: { seller: { select: { username: true } } } } },
         orderBy: { createdAt: "desc" },
         take: 20,

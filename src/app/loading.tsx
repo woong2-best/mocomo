@@ -1,16 +1,8 @@
+/** 전역 전환 로딩 — 피드 스켈레톤은 홈 Suspense에만 두고, 로그인 등에서 멈춘 것처럼 보이지 않게 */
 export default function RootLoading() {
   return (
-    <div className="p-4 lg:p-6 max-w-5xl mx-auto animate-pulse space-y-4">
-      <div className="h-8 w-48 rounded-lg bg-muted" />
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="h-40 rounded-2xl bg-muted" />
-        <div className="h-40 rounded-2xl bg-muted" />
-      </div>
-      <div className="space-y-3">
-        <div className="h-32 rounded-2xl bg-muted" />
-        <div className="h-32 rounded-2xl bg-muted" />
-        <div className="h-32 rounded-2xl bg-muted" />
-      </div>
+    <div className="flex min-h-[50vh] items-center justify-center p-8">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
     </div>
   );
 }

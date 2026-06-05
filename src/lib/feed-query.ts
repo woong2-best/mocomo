@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { FEED_POSTS_CACHE_TAG } from "@/lib/cache-tags";
 import { db } from "@/lib/db";
 import { userPublicSelect } from "@/lib/user-public-select";
 import { postMediaPreview } from "@/lib/post-media-select";
@@ -69,6 +70,6 @@ export function getCachedFeedPostsPage(cursor: string | null, limit: number) {
   return unstable_cache(
     () => fetchFeedPostsPage(cursor, limit),
     ["feed-page-v1", cacheKey, String(limit)],
-    { revalidate: 45 }
+    { revalidate: 45, tags: [FEED_POSTS_CACHE_TAG] }
   )();
 }

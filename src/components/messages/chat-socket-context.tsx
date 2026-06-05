@@ -54,8 +54,14 @@ export function ChatSocketProvider({
   }, []);
 
   useEffect(() => {
-    const url = process.env.NEXT_PUBLIC_SOCKET_URL;
-    if (!url || url.includes("localhost")) {
+    const url = process.env.NEXT_PUBLIC_SOCKET_URL?.trim();
+    const onLocalHost =
+      typeof window !== "undefined" &&
+      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+    const socketUrl =
+      url && (!url.includes("localhost") || onLocalHost) ? url : null;
+
+    if (!socketUrl) {
       setRealtimeOff(true);
       setSocketReady(false);
       setSocket(null);
@@ -64,6 +70,7 @@ export function ChatSocketProvider({
 
     let disposed = false;
     let activeSocket: Socket | null = null;
+    let tokenRefreshTimer: number | undefined;
 
     import("socket.io-client").then(async ({ io }) => {
       if (disposed) return;
@@ -74,18 +81,51 @@ export function ChatSocketProvider({
         return;
       }
 
-      activeSocket = io(url, { auth: { token }, transports: ["websocket", "polling"] });
+      activeSocket = io(socketUrl, {
+        auth: { token },
+        transports: ["websocket", "polling"],
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 600,
+        reconnectionDelayMax: 3000,
+      });
+
+      const refreshAuth = async () => {
+        const next = await fetchSocketAuthToken();
+        if (!next || !activeSocket) return false;
+        activeSocket.auth = { token: next };
+        return true;
+      };
+
+      const joinCurrentRoom = () => {
+        activeSocket?.emit("join_room", roomId);
+      };
+
+      tokenRefreshTimer = window.setInterval(() => {
+        void refreshAuth();
+      }, 4 * 60 * 1000);
 
       activeSocket.on("connect", () => {
         if (disposed) return;
         setSocket(activeSocket);
         setSocketReady(true);
         setRealtimeOff(false);
-        activeSocket?.emit("join_room", roomId);
+        joinCurrentRoom();
       });
 
       activeSocket.on("disconnect", () => {
         setSocketReady(false);
+      });
+
+      activeSocket.on("connect_error", () => {
+        void refreshAuth();
+      });
+
+      activeSocket.io.on("reconnect", () => {
+        if (disposed) return;
+        setSocketReady(true);
+        setRealtimeOff(false);
+        joinCurrentRoom();
       });
 
       activeSocket.on("room_presence", (payload: RoomPresencePayload) => {
@@ -105,6 +145,7 @@ export function ChatSocketProvider({
 
     return () => {
       disposed = true;
+      if (tokenRefreshTimer) window.clearInterval(tokenRefreshTimer);
       setSocketReady(false);
       setSocket(null);
       activeSocket?.emit("leave_room", roomId);
