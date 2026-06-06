@@ -1,6 +1,16 @@
 import { guessImageMime } from "@/lib/gallery-image-upload";
 import { guessVideoMime } from "@/lib/gallery-video-upload";
 
+/** 상대에게 전달 가능한 절대 URL로 변환 */
+export function toAbsoluteUploadUrl(url: string): string {
+  const trimmed = url.trim();
+  if (trimmed.startsWith("https://") || trimmed.startsWith("http://")) return trimmed;
+  if (typeof window !== "undefined" && trimmed.startsWith("/")) {
+    return `${window.location.origin}${trimmed}`;
+  }
+  return trimmed;
+}
+
 /** Upload image via server (Supabase Storage / disk), then S3 presigned fallback */
 export async function uploadImageBlob(blob: Blob, filename: string): Promise<string> {
   const contentType =

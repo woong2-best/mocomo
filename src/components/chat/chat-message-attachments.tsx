@@ -2,15 +2,26 @@
 
 import { useState } from "react";
 import type { ChatAttachmentView } from "@/lib/chat-attachments";
+import { ChatVoiceMessage } from "@/components/chat/chat-voice-message";
 import { cn } from "@/lib/utils";
 
-function ChatImage({ url, alt }: { url: string; alt: string }) {
+function ChatImage({ url, alt, isMine }: { url: string; alt: string; isMine: boolean }) {
   const [failed, setFailed] = useState(false);
   if (failed) {
     return (
-      <div className="px-3 py-6 text-center text-xs text-muted-foreground bg-muted/50">
+      <div
+        className={cn(
+          "px-3 py-4 text-center text-xs rounded-2xl",
+          isMine ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+        )}
+      >
         이미지를 불러올 수 없습니다.
-        <a href={url} target="_blank" rel="noopener noreferrer" className="block mt-1 text-primary underline">
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block mt-1 underline"
+        >
           링크로 열기
         </a>
       </div>
@@ -39,11 +50,16 @@ export function ChatMessageAttachments({
   const videos = attachments.filter((a) => a.type === "VIDEO");
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
+      {audios.map((a) => (
+        <ChatVoiceMessage key={a.id} url={a.url} isMine={isMine} />
+      ))}
+
       {images.length > 0 && (
         <div
           className={cn(
-            "grid gap-1 overflow-hidden",
+            "grid gap-1 overflow-hidden rounded-2xl",
+            isMine ? "rounded-br-md" : "rounded-bl-md",
             images.length === 1 ? "grid-cols-1" : "grid-cols-2"
           )}
         >
@@ -53,31 +69,26 @@ export function ChatMessageAttachments({
               href={a.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="block rounded-xl overflow-hidden border border-border/40 bg-black/5 max-w-[min(280px,72vw)]"
+              className={cn(
+                "block overflow-hidden border border-border/40 bg-black/5 max-w-[min(280px,72vw)]",
+                isMine ? "rounded-2xl rounded-br-md" : "rounded-2xl rounded-bl-md"
+              )}
             >
-              <ChatImage url={a.url} alt={a.name ?? "사진"} />
+              <ChatImage url={a.url} alt={a.name ?? "사진"} isMine={isMine} />
             </a>
           ))}
         </div>
       )}
+
       {videos.map((a) => (
         <video
           key={a.id}
           src={a.url}
           controls
           playsInline
-          className="max-w-[min(280px,72vw)] rounded-xl border border-border/40"
-        />
-      ))}
-      {audios.map((a) => (
-        <audio
-          key={a.id}
-          src={a.url}
-          controls
-          preload="metadata"
           className={cn(
-            "w-full max-w-[min(280px,72vw)] h-10 rounded-full",
-            isMine && "[color-scheme:light]"
+            "max-w-[min(280px,72vw)] rounded-2xl border border-border/40",
+            isMine ? "rounded-br-md" : "rounded-bl-md"
           )}
         />
       ))}

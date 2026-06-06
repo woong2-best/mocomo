@@ -4,7 +4,7 @@ import { useId, useRef, useState, useEffect, useCallback } from "react";
 import { Camera, ImagePlus, Loader2, Mic, Send, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CameraCaptureDialog } from "@/components/media/camera-capture-dialog";
-import { uploadAudioBlob, uploadImageBlob } from "@/lib/client-upload";
+import { toAbsoluteUploadUrl, uploadAudioBlob, uploadImageBlob } from "@/lib/client-upload";
 import { fileToUploadableJpeg, isGalleryImageFile } from "@/lib/gallery-image-upload";
 import type { ChatAttachmentInput } from "@/lib/chat-attachments";
 import { cn } from "@/lib/utils";
@@ -69,7 +69,7 @@ export function ChatMediaComposer({
         blob.type.startsWith("image/") && blob.type !== "image/heic"
           ? new File([blob], filename, { type: blob.type })
           : await fileToUploadableJpeg(new File([blob], filename, { type: blob.type || "image/jpeg" }));
-      const url = await uploadImageBlob(file, file.name);
+      const url = toAbsoluteUploadUrl(await uploadImageBlob(file, file.name));
       const caption = value.trim() || undefined;
       if (caption) onChange("");
       await onSendAttachments([{ url, type: "IMAGE", name: file.name }], caption);
@@ -96,7 +96,7 @@ export function ChatMediaComposer({
     setError("");
     try {
       const prepared = await fileToUploadableJpeg(file);
-      const url = await uploadImageBlob(prepared, prepared.name);
+      const url = toAbsoluteUploadUrl(await uploadImageBlob(prepared, prepared.name));
       const caption = value.trim() || undefined;
       if (caption) onChange("");
       await onSendAttachments([{ url, type: "IMAGE", name: prepared.name }], caption);
@@ -153,7 +153,7 @@ export function ChatMediaComposer({
         setUploading(true);
         try {
           const ext = mimeType.includes("ogg") ? "ogg" : mimeType.includes("mp4") ? "m4a" : "webm";
-          const url = await uploadAudioBlob(blob, `voice.${ext}`);
+          const url = toAbsoluteUploadUrl(await uploadAudioBlob(blob, `voice.${ext}`));
           const caption = value.trim() || undefined;
           if (caption) onChange("");
           await onSendAttachments([{ url, type: "AUDIO", name: `voice.${ext}` }], caption);

@@ -228,9 +228,14 @@ export function ChatRoomClient({
         const without = prev.filter((m) => m.id !== pendingId && m.id !== confirmed.id);
         return [...without, confirmed];
       });
-    } catch {
+    } catch (e) {
       removePending(pendingId);
-      setError("메시지 전송에 실패했습니다.");
+      const msg = e instanceof Error ? e.message : "";
+      setError(
+        msg === "ATTACHMENT_INVALID"
+          ? "첨부 파일을 저장하지 못했습니다. 다시 보내 주세요."
+          : "메시지 전송에 실패했습니다."
+      );
     }
   }
 
@@ -356,6 +361,18 @@ export function ChatRoomClient({
                   <div className="space-y-1.5">
                     {hasAttachments && m.attachments && (
                       <ChatMessageAttachments attachments={m.attachments} isMine={isMine} />
+                    )}
+                    {!hasAttachments && !hasText && (
+                      <div
+                        className={cn(
+                          "px-3.5 py-2 text-xs italic rounded-2xl",
+                          isMine
+                            ? "rounded-br-md bg-primary/15 text-primary"
+                            : "rounded-bl-md bg-muted text-muted-foreground"
+                        )}
+                      >
+                        미디어를 불러올 수 없습니다
+                      </div>
                     )}
                     {hasText && (
                       <div

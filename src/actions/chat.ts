@@ -116,9 +116,13 @@ export async function sendMessage(data: {
   });
   if (!member) throw new Error("NOT_MEMBER");
 
+  const rawAttachmentCount = Array.isArray(data.attachments) ? data.attachments.length : 0;
   const attachments = sanitizeChatAttachments(data.attachments);
   const hasAttachments = attachments.length > 0;
   const text = (data.content ?? "").trim();
+  if (rawAttachmentCount > 0 && !hasAttachments) {
+    throw new Error("ATTACHMENT_INVALID");
+  }
   if (!text && !hasAttachments) throw new Error("EMPTY_MESSAGE");
 
   const room = await db.chatRoom.findUnique({
@@ -164,7 +168,20 @@ export async function sendMessage(data: {
     createdAt: message.createdAt.toISOString(),
   });
 
-  return { message };
+  return {
+    message: {
+      id: message.id,
+      content: message.content,
+      createdAt: message.createdAt.toISOString(),
+      sender: message.sender,
+      attachments: message.attachments.map((a) => ({
+        id: a.id,
+        url: a.url,
+        type: a.type,
+        name: a.name,
+      })),
+    },
+  };
 }
 
 export async function markMessageRead(messageId: string) {
