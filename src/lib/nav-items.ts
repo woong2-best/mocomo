@@ -11,7 +11,6 @@ import {
   Radio,
   Home,
   Compass,
-  Bell,
   Users,
   Camera,
   Calendar,
@@ -25,7 +24,6 @@ export type NavItem = { href: string; icon: LucideIcon; labelKey: MessageKey };
 export const mainNavItems: NavItem[] = [
   { href: "/", icon: Home, labelKey: "nav.home" },
   { href: "/explore", icon: Compass, labelKey: "nav.explore" },
-  { href: "/notifications", icon: Bell, labelKey: "nav.notifications" },
   { href: "/my-page", icon: User, labelKey: "nav.myPage" },
   { href: "/communities", icon: Users, labelKey: "nav.communities" },
   { href: "/messages", icon: MessageCircle, labelKey: "nav.messages" },

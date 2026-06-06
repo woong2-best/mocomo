@@ -14,7 +14,6 @@ import { mainNavItems } from "@/lib/nav-items";
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
-import { SidebarNotificationBadge } from "@/components/notifications/sidebar-notification-badge";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { BRAND } from "@/lib/brand";
 
@@ -70,7 +69,6 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
               >
                 <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
                 <span className="truncate">{t(labelKey)}</span>
-                {href === "/notifications" && <SidebarNotificationBadge />}
               </Link>
             );
           })}

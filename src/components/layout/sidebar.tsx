@@ -11,8 +11,6 @@ import { BrandLogo } from "@/components/brand/brand-logo";
 import { BRAND } from "@/lib/brand";
 import { useLocale } from "@/components/providers/locale-provider";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
-import { SidebarNotificationBadge } from "@/components/notifications/sidebar-notification-badge";
-
 export function Sidebar() {
   const pathname = usePathname();
   const { t } = useLocale();
@@ -57,7 +55,6 @@ export function Sidebar() {
               <Icon className="h-4 w-4" />
             </span>
             <span className="truncate">{t(labelKey)}</span>
-            {href === "/notifications" && <SidebarNotificationBadge />}
           </Link>
         ))}
       </nav>
