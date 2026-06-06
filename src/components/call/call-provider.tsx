@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import type { Socket } from "socket.io-client";
 import { acceptCall, declineCall, endCall, initiateCall } from "@/actions/call";
@@ -75,27 +74,13 @@ type SyncResponse =
 
 function syncPollIntervalMs(phase: ActiveCallState["phase"], hidden: boolean) {
   if (phase === "active") return 5000;
-  if (phase === "outgoing" || phase === "incoming" || phase === "preparing") return 350;
-  return hidden ? 60000 : 30000;
-}
-
-/** 통화·메시지 관련 경로에서만 소켓/폴링 — 홈·피드 체감 속도 보호 */
-function useCallBackgroundEnabled(userId: string | undefined) {
-  const pathname = usePathname();
-  const onCallRoutes =
-    pathname.startsWith("/messages") ||
-    pathname.startsWith("/voice") ||
-    pathname.startsWith("/live") ||
-    pathname.startsWith("/wallet") ||
-    pathname.startsWith("/notifications");
-  return !!userId && onCallRoutes;
+  if (phase === "outgoing" || phase === "incoming" || phase === "preparing") return 250;
+  return hidden ? 15000 : 2000;
 }
 
 function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
   const userId = session?.user?.id;
-  const pathname = usePathname();
-  const backgroundSync = useCallBackgroundEnabled(userId);
   const [callState, setCallState] = useState<ActiveCallState>({ phase: "idle" });
   const [error, setError] = useState("");
   const [mic, setMic] = useState<MicCheckResult | null>(null);
@@ -218,7 +203,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    if (!userId || !backgroundSync) return;
+    if (!userId) return;
 
     let cancelled = false;
     let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -254,7 +239,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
       if (intervalId) clearInterval(intervalId);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [userId, backgroundSync, applySync]);
+  }, [userId, applySync]);
 
   const ringingSyncKey =
     callState.phase === "outgoing" || callState.phase === "incoming"
@@ -262,7 +247,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
       : null;
 
   useEffect(() => {
-    if (!ringingSyncKey || !userId || !backgroundSync) return;
+    if (!ringingSyncKey || !userId) return;
     let cancelled = false;
     (async () => {
       try {
@@ -276,17 +261,32 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [ringingSyncKey, userId, backgroundSync, applySync]);
+  }, [ringingSyncKey, userId, applySync]);
+
+  const prefetchLivekitForRoom = useCallback((roomName: string) => {
+    void import("@/components/call/livekit-call-room");
+    fetchLivekitCredentials(roomName)
+      .then((creds) => setPrefetchedLivekit(creds))
+      .catch(() => setPrefetchedLivekit(null));
+  }, []);
 
   useEffect(() => {
-    if (!userId || !backgroundSync || !socket) return;
+    if (!userId || !socket) return;
 
     const onConnect = () => {
       flushPendingEmits(socket);
+      void fetch("/api/calls/sync", { cache: "no-store" })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data) applySync(data as SyncResponse);
+        })
+        .catch(() => undefined);
     };
 
     const onCallIncoming = (call: CallPayload) => {
       setCallState({ phase: "incoming", call, peer: call.caller });
+      setError("");
+      prefetchLivekitForRoom(call.livekitRoom);
     };
 
     const onCallAccepted = ({ callId }: { callId: string }) => {
@@ -338,16 +338,12 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
       socket.off("call_ended", onCallEnded);
       pendingEmitsRef.current = [];
     };
-  }, [userId, backgroundSync, socket, flushPendingEmits]);
+  }, [userId, socket, flushPendingEmits, prefetchLivekitForRoom, applySync]);
 
   useEffect(() => {
     if (!socketReady || !socket?.connected) return;
     flushPendingEmits(socket);
   }, [socketReady, socket, flushPendingEmits]);
-
-  useEffect(() => {
-    void import("@/components/call/livekit-call-room");
-  }, []);
 
   const activeCallId = isCallPhase(callState) ? callState.call.id : null;
 
