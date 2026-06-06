@@ -110,7 +110,7 @@ export function HeaderSearch() {
               className="block px-3 py-2 hover:bg-muted"
               onClick={() => setOpen(false)}
             >
-              <span className="text-red-600 font-medium">LIVE</span> {ch.name}
+              <span className="text-folk-terracotta font-medium">LIVE</span> {ch.name}
             </Link>
           ))}
           {results?.users.map((u) => (

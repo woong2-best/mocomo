@@ -20,7 +20,10 @@ const CardHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement
 );
 
 const CardTitle = ({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-  <h3 className={cn("text-lg font-semibold leading-none tracking-tight", className)} {...props} />
+  <h3
+    className={cn("text-lg font-display font-bold leading-none tracking-tight text-folk-cobalt", className)}
+    {...props}
+  />
 );
 
 const CardContent = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (

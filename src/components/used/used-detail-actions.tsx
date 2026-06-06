@@ -107,7 +107,7 @@ export function UsedDetailActions({
         type="button"
         onClick={toggleFav}
         className={`h-12 w-12 rounded-xl border flex items-center justify-center shrink-0 ${
-          favorited ? "bg-red-50 border-red-200 text-red-500" : "border-border"
+          favorited ? "bg-red-50 border-red-200 text-folk-terracotta" : "border-border"
         }`}
         aria-label="관심"
       >

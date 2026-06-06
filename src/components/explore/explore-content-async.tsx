@@ -59,7 +59,7 @@ export async function ExploreContentAsync() {
       {isLiveFeatureEnabled() && liveChannels.length > 0 && (
         <section>
           <h2 className="font-semibold flex items-center gap-2 mb-3">
-            <Radio className="h-5 w-5 text-red-500" />
+            <Radio className="h-5 w-5 text-folk-terracotta" />
             지금 라이브
           </h2>
           <div className="flex flex-wrap gap-2">
@@ -67,7 +67,7 @@ export async function ExploreContentAsync() {
               <Link
                 key={ch.id}
                 href={`/voice/${ch.id}`}
-                className="text-sm px-3 py-2 rounded-xl border border-red-500/30 bg-red-500/5 hover:bg-red-500/10"
+                className="text-sm px-3 py-2 rounded-xl border border-folk-terracotta/30 bg-folk-terracotta/5 hover:bg-folk-terracotta/10"
               >
                 🔴 {ch.name} · {ch.viewerCount}명
               </Link>

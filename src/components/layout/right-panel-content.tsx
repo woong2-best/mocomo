@@ -27,7 +27,7 @@ export type SidebarPanelData = {
 
 export function RightPanelSkeleton() {
   return (
-    <aside className="hidden lg:block w-64 xl:w-72 shrink-0 p-4 space-y-3 sticky top-14 h-[calc(100vh-3.5rem)] overflow-hidden bg-muted/20 border-l border-border animate-pulse">
+    <aside className="hidden lg:block w-64 xl:w-72 shrink-0 p-4 space-y-3 sticky top-14 h-[calc(100vh-3.5rem)] overflow-hidden folk-panel-aside animate-pulse">
       <div className="h-12 rounded-2xl bg-folk-terracotta/30" />
       <div className="h-48 rounded-2xl bg-muted" />
       <div className="h-36 rounded-2xl bg-muted" />
@@ -44,11 +44,11 @@ export function RightPanelContent({ animes, tips, sidebarAds, eventPins }: Sideb
       : FALLBACK_SIDEBAR_ADS.map((a) => ({ ...a, ctaLabel: a.ctaLabel ?? null }));
 
   return (
-    <aside className="hidden lg:block w-64 xl:w-72 shrink-0 p-4 space-y-3 sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto bg-muted/20 border-l border-border">
+    <aside className="hidden lg:block w-64 xl:w-72 shrink-0 p-4 space-y-3 sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto folk-panel-aside">
       <RightPanelComposeButton />
-      <Card className="rounded-2xl shadow-sm border-amber-500/20 overflow-hidden">
+      <Card className="overflow-hidden border-folk-gold/40 bg-folk-gold/5">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2 font-semibold text-amber-600">
+          <CardTitle className="text-sm flex items-center gap-2 font-display font-bold text-folk-terracotta">
             <Megaphone className="h-4 w-4" />
             Sponsored
           </CardTitle>
@@ -73,9 +73,9 @@ export function RightPanelContent({ animes, tips, sidebarAds, eventPins }: Sideb
         </CardContent>
       </Card>
 
-      <Card className="rounded-2xl shadow-sm border-border">
+      <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2 font-semibold">
+          <CardTitle className="text-sm flex items-center gap-2 font-display font-bold text-folk-cobalt">
             <Tv className="h-4 w-4 text-folk-cobalt" />
             인기 애니
           </CardTitle>
@@ -102,10 +102,10 @@ export function RightPanelContent({ animes, tips, sidebarAds, eventPins }: Sideb
         </CardContent>
       </Card>
 
-      <Card className="rounded-2xl shadow-sm border-border">
+      <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2 font-semibold">
-            <TrendingUp className="h-4 w-4 text-[#fb8c00]" />
+          <CardTitle className="text-sm flex items-center gap-2 font-display font-bold text-folk-cobalt">
+            <TrendingUp className="h-4 w-4 text-folk-gold" />
             후원 랭킹
           </CardTitle>
         </CardHeader>

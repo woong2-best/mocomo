@@ -142,11 +142,11 @@ export function FeedTextPostCard({
   }
 
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-all duration-200 group w-full">
+    <Card className="folk-post-card group w-full">
       <CardContent className="p-0 flex flex-col">
         <div className="flex items-center gap-2 p-3 pb-2">
           <Link href={`/u/${post.author.username}`} onClick={(e) => e.stopPropagation()}>
-            <Avatar className="h-8 w-8 ring-2 ring-primary/20 group-hover:ring-primary/50 transition-all">
+            <Avatar className="h-8 w-8 ring-2 ring-folk-gold/50 group-hover:ring-folk-terracotta/60 transition-all border-2 border-folk-cobalt/20">
               <AvatarImage src={post.author.image ?? undefined} />
               <AvatarFallback>{displayName[0]?.toUpperCase()}</AvatarFallback>
             </Avatar>
@@ -166,7 +166,7 @@ export function FeedTextPostCard({
             </Link>
             <div className="flex items-center gap-1.5 flex-wrap">
               {post.postType && post.postType !== "GENERAL" && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                <span className="folk-tag">
                   {typeLabels[post.postType] || post.postType}
                 </span>
               )}
@@ -178,14 +178,16 @@ export function FeedTextPostCard({
         </div>
 
         <Link href={`/post/${post.id}`} className="block flex-1 px-3 pb-3">
-          {post.title && <h3 className="font-semibold text-sm mb-1">{post.title}</h3>}
+          {post.title && (
+            <h3 className="font-display font-bold text-sm mb-1 text-folk-cobalt">{post.title}</h3>
+          )}
           <p className="text-sm text-foreground/85 line-clamp-6 whitespace-pre-wrap">{post.content}</p>
         </Link>
 
         {post.anime && (
           <Link
             href={`/anime/${post.anime.slug}`}
-            className="px-3 text-xs text-[#5e35b1] hover:underline"
+            className="px-3 text-xs text-folk-cobalt font-semibold hover:underline"
             onClick={(e) => e.stopPropagation()}
           >
             {post.anime.title}
@@ -193,7 +195,7 @@ export function FeedTextPostCard({
         )}
 
         <div
-          className="relative z-10 flex items-center justify-between px-3 py-2.5 border-t border-border/40 text-muted-foreground"
+          className="relative z-10 flex items-center justify-between px-3 py-2.5 border-t-2 border-folk-cobalt/15 text-muted-foreground bg-folk-gold/5"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center gap-2 text-xs">
@@ -223,7 +225,7 @@ export function FeedTextPostCard({
               onClick={handleRepost}
               className={cn(
                 "flex items-center gap-0.5 min-h-8 min-w-8 justify-center",
-                reposted ? "text-green-600" : "hover:text-green-600"
+                reposted ? "text-folk-forest" : "hover:text-folk-forest"
               )}
             >
               <Repeat2 className="h-3.5 w-3.5 pointer-events-none" />
@@ -236,7 +238,7 @@ export function FeedTextPostCard({
               title={shareDone ? "링크 복사됨" : "공유"}
             >
               {shareDone ? (
-                <Check className="h-3.5 w-3.5 text-green-600" />
+                <Check className="h-3.5 w-3.5 text-folk-forest" />
               ) : (
                 <Share2 className="h-3.5 w-3.5" />
               )}
@@ -250,13 +252,13 @@ export function FeedTextPostCard({
             title={starred ? "STAR에 저장됨" : "STAR에 저장"}
             className={cn(
               "transition-colors min-h-8 min-w-8 flex items-center justify-center",
-              starred ? "text-yellow-400" : "text-yellow-500/70 hover:text-yellow-400"
+              starred ? "text-folk-gold" : "text-folk-gold/60 hover:text-folk-gold"
             )}
           >
             <Star
               className={cn(
                 "h-4 w-4 pointer-events-none",
-                starred && "fill-yellow-400 text-yellow-400"
+                starred && "fill-folk-gold text-folk-gold"
               )}
             />
           </button>

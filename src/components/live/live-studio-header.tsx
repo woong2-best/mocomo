@@ -70,7 +70,7 @@ export function LiveStudioHeader({
           {channelName}
         </h1>
         <span className="text-sm text-muted-foreground flex items-center gap-1 tabular-nums shrink-0">
-          <Eye className="h-4 w-4 text-red-500" />
+          <Eye className="h-4 w-4 text-folk-terracotta" />
           <strong className="text-foreground">{viewerCount}</strong>
         </span>
       </div>

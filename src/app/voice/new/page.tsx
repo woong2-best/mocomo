@@ -254,7 +254,7 @@ export default function NewVoicePage() {
 
       <div className="live-hero !p-5">
         <h1 className="text-xl font-bold flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-600 text-white">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-folk-terracotta text-white">
             <Radio className="h-5 w-5" />
           </span>
           라이브 방송 만들기
@@ -379,7 +379,7 @@ export default function NewVoicePage() {
                   type="button"
                   onClick={() => setCategory(value as LiveStreamCategory)}
                   className={`text-xs px-2.5 py-1 rounded-full border ${
-                    category === value ? "bg-red-600 text-white border-red-600" : "border-border"
+                    category === value ? "bg-folk-terracotta text-white border-folk-terracotta" : "border-border"
                   }`}
                 >
                   {label}

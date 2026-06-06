@@ -43,7 +43,7 @@ export function notificationIcon(type: string): {
   switch (type) {
     case "like":
     case "clip_like":
-      return { Icon: Heart, className: "text-red-500" };
+      return { Icon: Heart, className: "text-folk-terracotta" };
     case "comment":
     case "comment_reply":
     case "clip_comment":

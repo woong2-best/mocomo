@@ -373,7 +373,7 @@ export function LiveBrowserStudio({
           className={`w-full h-full object-contain ${screenOn ? "block" : "hidden"}`}
         />
         {whipConnected && (
-          <span className="absolute top-3 left-3 px-2 py-0.5 rounded bg-red-600 text-white text-[10px] font-bold z-10 flex items-center gap-1">
+          <span className="absolute top-3 left-3 px-2 py-0.5 rounded bg-folk-terracotta text-white text-[10px] font-bold z-10 flex items-center gap-1">
             <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
             LIVE
           </span>

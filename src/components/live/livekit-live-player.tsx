@@ -41,7 +41,7 @@ function PublisherVideo({
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center text-white/80 gap-2 bg-black/70">
         <Loader2 className="h-10 w-10 animate-spin" />
-        <Radio className="h-8 w-8 text-red-500" />
+        <Radio className="h-8 w-8 text-folk-terracotta" />
         <p className="text-sm text-center px-4 max-w-sm">
           스트리머가 방송을 시작하면 실시간 화면이 나타납니다.
         </p>

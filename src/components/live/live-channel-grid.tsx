@@ -21,7 +21,7 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
-            <Radio className="h-12 w-12 text-red-500/40" />
+            <Radio className="h-12 w-12 text-folk-terracotta/40" />
           </div>
         )}
         <div className="live-card-scrim" />
@@ -35,7 +35,7 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
           </span>
         </div>
         <div className="absolute top-3 right-3 live-viewer-pill">
-          <Eye className="h-3.5 w-3.5 text-red-500" />
+          <Eye className="h-3.5 w-3.5 text-folk-terracotta" />
           {ch.viewerCount}
         </div>
         <div className="absolute bottom-3 left-3 right-3">
@@ -80,14 +80,14 @@ export function LiveChannelGrid({
           </div>
           <div className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
             <p className="text-xs text-muted-foreground">총 시청자</p>
-            <p className="text-xl font-bold tabular-nums text-red-600 dark:text-red-400">{totalViewers}</p>
+            <p className="text-xl font-bold tabular-nums text-folk-terracotta dark:text-folk-terracotta">{totalViewers}</p>
           </div>
         </div>
       )}
 
       <section>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+          <span className="h-2 w-2 rounded-full bg-folk-terracotta animate-pulse" />
           실시간 방송 · {channels.length}
         </h2>
         {channels.length === 0 ? (

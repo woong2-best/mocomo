@@ -35,7 +35,7 @@ export function LiveClipCard({ clip }: { clip: LiveHubClip }) {
         <button
           type="button"
           disabled={pending}
-          className="text-xs flex items-center gap-1 text-muted-foreground hover:text-red-500"
+          className="text-xs flex items-center gap-1 text-muted-foreground hover:text-folk-terracotta"
           onClick={() => startTransition(() => void toggleStreamClipLike(clip.id))}
         >
           <Heart className="h-3.5 w-3.5" />

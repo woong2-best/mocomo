@@ -207,8 +207,8 @@ function CallActionButton({
 }) {
   const styles = {
     accept: "bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/25",
-    decline: "bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-600/25",
-    cancel: "bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-600/25",
+    decline: "bg-folk-terracotta hover:bg-red-700 text-white shadow-lg shadow-folk-terracotta/25",
+    cancel: "bg-folk-terracotta hover:bg-red-700 text-white shadow-lg shadow-folk-terracotta/25",
   };
 
   return (

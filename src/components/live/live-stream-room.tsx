@@ -75,7 +75,7 @@ function LiveStreamRoomInner({
           {channelName}
         </h1>
         <span className="text-sm text-muted-foreground flex items-center gap-1.5 tabular-nums">
-          <Eye className="h-4 w-4 text-red-500" />
+          <Eye className="h-4 w-4 text-folk-terracotta" />
           <strong className="text-foreground">{viewerCount}</strong> 시청
         </span>
         {hostUsername && (

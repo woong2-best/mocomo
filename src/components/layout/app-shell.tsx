@@ -7,6 +7,7 @@ import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { AuthTopBanner } from "@/components/layout/auth-top-banner";
 import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
+import { FolkArtStage } from "@/components/brand/folk-decor";
 import { mainScrollPaddingClass, shouldHideMobileNav } from "@/lib/mobile-shell";
 
 function AppShellInner({
@@ -29,7 +30,11 @@ function AppShellInner({
     !isAuthRoute && !isLegalRoute && !isLiveRoute && !isVoiceRoom && !isMessagesRoute && !isUsedRoute;
 
   if (isAuthRoute || isLegalRoute) {
-    return <main className="min-h-screen bg-background">{children}</main>;
+    return (
+      <main className="min-h-screen bg-background">
+        <FolkArtStage dense>{children}</FolkArtStage>
+      </main>
+    );
   }
 
   if (isVoiceRoom) {
@@ -49,7 +54,13 @@ function AppShellInner({
               : `flex-1 min-w-0 overflow-y-auto overflow-x-hidden bg-background ${mainPb}`
           }
         >
-          {children}
+          {isMessagesRoute ? (
+            children
+          ) : (
+            <FolkArtStage dense className="min-h-full">
+              {children}
+            </FolkArtStage>
+          )}
         </main>
         {showRightPanel ? rightPanel : null}
       </div>

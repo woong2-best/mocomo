@@ -196,7 +196,7 @@ function PlainCameraCaptureDialog({
             </div>
           )}
           {mode === "video" && recording && (
-            <div className="absolute top-3 left-3 z-10 flex items-center gap-2 rounded-full bg-red-600/90 px-3 py-1 text-xs font-medium text-white">
+            <div className="absolute top-3 left-3 z-10 flex items-center gap-2 rounded-full bg-folk-terracotta/90 px-3 py-1 text-xs font-medium text-white">
               <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
               REC {recordSec}s
             </div>
@@ -409,7 +409,7 @@ function FilteredCameraCaptureDialog({
             </div>
           )}
           {mode === "video" && recording && (
-            <div className="absolute top-3 left-3 z-10 flex items-center gap-2 rounded-full bg-red-600/90 px-3 py-1 text-xs font-medium text-white">
+            <div className="absolute top-3 left-3 z-10 flex items-center gap-2 rounded-full bg-folk-terracotta/90 px-3 py-1 text-xs font-medium text-white">
               <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
               REC {recordSec}s
             </div>

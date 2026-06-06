@@ -87,7 +87,7 @@ export function LiveHub({
         <header className="live-hero flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-3 min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl font-black flex items-center gap-2 tracking-tight">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-600 text-white shadow-md">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-folk-terracotta text-white shadow-md">
                 <Radio className="h-5 w-5" />
               </span>
               라이브
@@ -153,7 +153,7 @@ export function LiveHub({
         {followedLive.length > 0 && (
           <section>
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
-              <Heart className="h-4 w-4 text-red-500" />
+              <Heart className="h-4 w-4 text-folk-terracotta" />
               팔로우 중 라이브 · {followedLive.length}
             </h2>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

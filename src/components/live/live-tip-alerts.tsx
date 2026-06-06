@@ -37,7 +37,7 @@ export function LiveTipAlerts({ tips }: { tips: LiveTipAlert[] }) {
       {ensureArray<LiveTipAlert>(visible).map((t) => (
         <div
           key={t.id}
-          className="animate-in slide-in-from-left fade-in rounded-xl border border-amber-400/50 bg-gradient-to-r from-amber-500/90 to-red-500/90 text-white px-4 py-3 shadow-lg"
+          className="animate-in slide-in-from-left fade-in rounded-xl border border-amber-400/50 bg-gradient-to-r from-amber-500/90 to-folk-terracotta/90 text-white px-4 py-3 shadow-lg"
         >
           <p className="text-xs font-medium flex items-center gap-1">
             <Gem className="h-3.5 w-3.5" />

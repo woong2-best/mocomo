@@ -41,7 +41,7 @@ function LiveCard({ ch, host }: { ch: LiveChannelCard; host?: LiveHost }) {
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
-            <Radio className="h-12 w-12 text-red-500/40 dark:text-red-500/50" />
+            <Radio className="h-12 w-12 text-folk-terracotta/40 dark:text-folk-terracotta/50" />
           </div>
         )}
         <div className="live-card-scrim" />
@@ -52,7 +52,7 @@ function LiveCard({ ch, host }: { ch: LiveChannelCard; host?: LiveHost }) {
           </span>
         </div>
         <div className="absolute top-3 right-3 live-viewer-pill">
-          <Eye className="h-3.5 w-3.5 text-red-500" />
+          <Eye className="h-3.5 w-3.5 text-folk-terracotta" />
           {ch.viewerCount}
         </div>
         <div className="absolute bottom-3 left-3 right-3">
@@ -94,7 +94,7 @@ export function LiveDirectory({
         <header className="live-hero flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-3 min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl font-black flex items-center gap-2 tracking-tight">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-600 text-white shadow-md">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-folk-terracotta text-white shadow-md">
                 <Radio className="h-5 w-5" />
               </span>
               라이브
@@ -124,7 +124,7 @@ export function LiveDirectory({
             </div>
             <div className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
               <p className="text-xs text-muted-foreground">총 시청자</p>
-              <p className="text-xl font-bold tabular-nums text-red-600 dark:text-red-400">
+              <p className="text-xl font-bold tabular-nums text-folk-terracotta dark:text-folk-terracotta">
                 {totalViewers}
               </p>
             </div>
@@ -133,7 +133,7 @@ export function LiveDirectory({
 
         <section>
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+            <span className="h-2 w-2 rounded-full bg-folk-terracotta animate-pulse" />
             지금 방송 중 · {channels.length}
           </h2>
           {channels.length === 0 ? (

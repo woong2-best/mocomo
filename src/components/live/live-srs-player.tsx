@@ -238,12 +238,12 @@ export function LiveSrsPlayer({ channelId }: { channelId: string }) {
       {status !== "playing" && (
         <div className="absolute inset-0 flex flex-col items-center justify-center text-white/80 gap-2 bg-black/60 pointer-events-none px-4 text-center">
           <Loader2 className="h-10 w-10 animate-spin" />
-          <Radio className="h-8 w-8 text-red-500" />
+          <Radio className="h-8 w-8 text-folk-terracotta" />
           <p className="text-sm max-w-md">{hint || "VPS 연결 중…"}</p>
         </div>
       )}
       {status === "playing" && playMode && (
-        <span className="absolute top-3 left-3 px-2 py-0.5 rounded bg-red-600 text-white text-[10px] font-bold">
+        <span className="absolute top-3 left-3 px-2 py-0.5 rounded bg-folk-terracotta text-white text-[10px] font-bold">
           LIVE · {playMode === "flv" ? "FLV" : "HLS"}
         </span>
       )}

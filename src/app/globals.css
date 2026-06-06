@@ -231,6 +231,53 @@
   .live-viewer-pill {
     @apply flex items-center gap-1 px-2 py-1 rounded-md bg-background/90 border-2 border-[hsl(var(--folk-cobalt)/0.2)] text-xs font-medium tabular-nums text-foreground;
   }
+
+  .folk-hero-banner {
+    @apply relative overflow-hidden rounded-2xl border-[3px] border-folk-cobalt/40 p-6 sm:p-8 mb-6 shadow-folk;
+    background-color: hsl(var(--folk-gold) / 0.14);
+  }
+  .folk-hero-banner::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.06;
+    background-image: radial-gradient(circle at 20% 30%, #C4522A 0%, transparent 45%),
+      radial-gradient(circle at 80% 70%, #1B3A8C 0%, transparent 40%);
+    pointer-events: none;
+  }
+
+  .folk-post-card {
+    @apply folk-card overflow-hidden transition-all duration-200;
+  }
+  .folk-post-card:hover {
+    @apply shadow-folk -translate-y-0.5 border-folk-terracotta/50;
+  }
+
+  .folk-tag {
+    @apply inline-flex items-center text-[10px] font-bold font-display px-2 py-0.5 rounded-md border-2 border-folk-cobalt/25 bg-folk-gold/20 text-folk-cobalt;
+  }
+
+  .folk-auth-canvas {
+    @apply min-h-screen flex items-center justify-center p-4 relative overflow-hidden;
+    background-color: hsl(var(--folk-cream));
+  }
+
+  .folk-nav-tile {
+    @apply flex flex-col items-center gap-1.5 rounded-xl border-2 border-folk-cobalt/25 bg-folk-cream/80 py-3 px-2 text-xs font-semibold text-folk-cobalt shadow-folk-sm hover:border-folk-terracotta hover:-translate-y-0.5 transition-all;
+  }
+
+  .folk-art-frame::after {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    border: 2px dashed hsl(var(--folk-terracotta) / 0.25);
+    border-radius: 0.75rem;
+    pointer-events: none;
+  }
+
+  .folk-panel-aside {
+    @apply border-l-2 border-folk-cobalt/20 bg-[hsl(var(--folk-gold)/0.06)];
+  }
 }
 
 ::-webkit-scrollbar {

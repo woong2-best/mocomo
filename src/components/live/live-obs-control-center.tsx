@@ -206,7 +206,7 @@ export function LiveObsControlCenter({ channelId }: { channelId: string }) {
       <div
         className={`rounded-xl border px-3 py-2.5 flex flex-wrap items-center gap-2 text-sm ${
           onAir && playable
-            ? "border-red-500/40 bg-red-500/10"
+            ? "border-folk-terracotta/40 bg-folk-terracotta/10"
             : "border-border bg-muted/40"
         }`}
       >

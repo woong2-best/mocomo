@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { HomeShell } from "@/components/home/home-shell";
 import { HomeHighlightsAsync } from "@/components/home/home-highlights-async";
 import { HomeFeedAsync } from "@/components/home/home-feed-async";
+
 export const revalidate = 60;
 
 function FeedFallback() {

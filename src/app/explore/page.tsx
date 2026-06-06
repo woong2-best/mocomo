@@ -1,6 +1,6 @@
 import { Suspense } from "react";
-import { Compass } from "lucide-react";
 import { ExploreContentAsync } from "@/components/explore/explore-content-async";
+import { FolkSectionTitle } from "@/components/brand/folk-decor";
 import { CardRowsSkeleton } from "@/components/ui/content-skeletons";
 
 export const revalidate = 60;
@@ -8,10 +8,7 @@ export const revalidate = 60;
 export default function ExplorePage() {
   return (
     <div className="p-4 lg:p-6 max-w-2xl mx-auto space-y-8">
-      <h1 className="text-2xl font-bold flex items-center gap-2">
-        <Compass className="h-7 w-7 text-primary" />
-        탐색
-      </h1>
+      <FolkSectionTitle icon="sun">탐색</FolkSectionTitle>
 
       <Suspense
         fallback={

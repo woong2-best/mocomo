@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FolkArtFrame, FolkArtStage, FolkBrushDivider, FolkSunFace } from "@/components/brand/folk-decor";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { BRAND } from "@/lib/brand";
 
@@ -84,14 +85,20 @@ export function SignInForm({
   const showSocial = googleOAuth || discordOAuth;
 
   return (
-    <div className="flex-1 flex items-center justify-center p-4 bg-muted/30">
-      <Card className="w-full max-w-md rounded-2xl shadow-lg border-border">
-        <CardHeader className="text-center">
-          <div className="mx-auto h-16 w-16 rounded-2xl bg-white border border-border flex items-center justify-center mb-2 overflow-hidden p-1">
-            <BrandLogo size={56} priority />
+    <FolkArtStage className="folk-auth-canvas flex-1">
+      <FolkArtFrame className="w-full max-w-md mx-auto">
+        <Card className="border-0 shadow-none bg-transparent">
+        <CardHeader className="text-center pb-2">
+          <div className="mx-auto relative mb-3">
+            <FolkSunFace size={56} className="absolute -top-3 -left-6 opacity-70" />
+            <div className="h-16 w-16 rounded-2xl bg-folk-cream border-2 border-folk-cobalt/30 flex items-center justify-center overflow-hidden p-1 mx-auto shadow-folk-sm">
+              <BrandLogo size={56} priority />
+            </div>
           </div>
-          <CardTitle className="text-2xl">{BRAND.name} 로그인</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">{BRAND.tagline}</p>
+          <CardTitle className="text-2xl font-display text-folk-cobalt folk-chunky-text">
+            {BRAND.name} 로그인
+          </CardTitle>
+          <p className="text-sm text-folk-forest mt-1 font-medium">{BRAND.tagline}</p>
           {callbackUrl !== "/" && (
             <p className="text-xs text-muted-foreground mt-2">
               로그인 후 글쓰기 등 이전 화면으로 이동합니다.
@@ -131,14 +138,10 @@ export function SignInForm({
 
           {showSocial ? (
             <>
-              <div className="relative py-2">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-border" />
-                </div>
-                <div className="relative flex justify-center text-xs text-muted-foreground bg-card px-2">
-                  소셜 로그인
-                </div>
-              </div>
+              <FolkBrushDivider className="opacity-50" />
+              <p className="text-center text-xs text-folk-cobalt/70 font-display font-semibold -mt-1">
+                소셜 로그인
+              </p>
               <div className="space-y-2">
                 {discordOAuth && (
                   <Button
@@ -178,6 +181,7 @@ export function SignInForm({
           </p>
         </CardContent>
       </Card>
-    </div>
+      </FolkArtFrame>
+    </FolkArtStage>
   );
 }

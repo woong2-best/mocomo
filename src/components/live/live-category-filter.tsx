@@ -38,8 +38,8 @@ export function LiveCategoryFilter() {
             className={cn(
               "shrink-0 text-xs sm:text-sm px-3 py-1.5 rounded-full border font-medium transition-colors",
               active
-                ? "bg-red-600 text-white border-red-600"
-                : "bg-background/80 border-border text-muted-foreground hover:border-red-500/40"
+                ? "bg-folk-terracotta text-white border-folk-terracotta"
+                : "bg-background/80 border-border text-muted-foreground hover:border-folk-terracotta/40"
             )}
           >
             {label}

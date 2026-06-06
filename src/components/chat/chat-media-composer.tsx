@@ -204,8 +204,8 @@ export function ChatMediaComposer({
       )}
 
       {recording && (
-        <div className="flex items-center justify-center gap-3 mb-2 py-2 rounded-xl bg-red-500/10 border border-red-500/20">
-          <span className="h-2 w-2 rounded-full bg-red-600 animate-pulse" />
+        <div className="flex items-center justify-center gap-3 mb-2 py-2 rounded-xl bg-folk-terracotta/10 border border-folk-terracotta/20">
+          <span className="h-2 w-2 rounded-full bg-folk-terracotta animate-pulse" />
           <span className="text-sm font-medium text-red-700 dark:text-red-300 tabular-nums">
             녹음 중 {recordSec}s / {MAX_VOICE_SEC}s
           </span>
@@ -222,7 +222,7 @@ export function ChatMediaComposer({
           <Button
             type="button"
             size="sm"
-            className="h-8 rounded-lg text-xs bg-red-600 hover:bg-red-700"
+            className="h-8 rounded-lg text-xs bg-folk-terracotta hover:bg-red-700"
             onClick={() => stopRecording(true)}
           >
             보내기
@@ -259,7 +259,7 @@ export function ChatMediaComposer({
             size="icon"
             className={cn(
               "h-10 w-10 rounded-full",
-              recording ? "text-red-600 bg-red-500/15" : "text-muted-foreground"
+              recording ? "text-folk-terracotta bg-folk-terracotta/15" : "text-muted-foreground"
             )}
             disabled={disabled || uploading}
             onClick={toggleRecording}
