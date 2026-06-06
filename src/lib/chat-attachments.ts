@@ -20,6 +20,24 @@ export function parseChatAttachmentType(raw: string): MessageAttachmentType | nu
   return ALLOWED.includes(u as MessageAttachmentType) ? (u as MessageAttachmentType) : null;
 }
 
+/** 업로드 URL — https·Supabase·사이트 절대경로 허용 */
+export function normalizeChatAttachmentUrl(url: string): string | null {
+  const trimmed = url.trim();
+  if (!trimmed || trimmed.length > 2048) return null;
+  if (trimmed.startsWith("https://") || trimmed.startsWith("http://")) {
+    return trimmed;
+  }
+  if (trimmed.startsWith("/") && !trimmed.startsWith("//")) {
+    const base =
+      process.env.NEXTAUTH_URL ||
+      process.env.AUTH_URL ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      "https://mocomo.net";
+    return `${base.replace(/\/$/, "")}${trimmed}`;
+  }
+  return null;
+}
+
 export function sanitizeChatAttachments(
   raw: unknown,
   max = 8
@@ -30,11 +48,12 @@ export function sanitizeChatAttachments(
     if (out.length >= max) break;
     if (!item || typeof item !== "object") continue;
     const o = item as Record<string, unknown>;
-    const url = typeof o.url === "string" ? o.url.trim() : "";
+    const rawUrl = typeof o.url === "string" ? o.url : "";
+    const url = normalizeChatAttachmentUrl(rawUrl);
     const type = typeof o.type === "string" ? parseChatAttachmentType(o.type) : null;
-    if (!url.startsWith("https://") || !type) continue;
+    if (!url || !type) continue;
     out.push({
-      url: url.slice(0, 2048),
+      url,
       type,
       name: typeof o.name === "string" ? o.name.slice(0, 200) : undefined,
     });

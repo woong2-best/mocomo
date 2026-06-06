@@ -267,16 +267,7 @@ export function ChatRoomClient({
 
     const pendingId = addOptimistic(caption ?? null, attachments);
 
-    if (socketReady && socket?.connected) {
-      socket.emit("send_message", {
-        roomId,
-        content: caption,
-        attachments,
-      });
-      sendLockRef.current = false;
-      return;
-    }
-
+    // 첨부는 서버 액션으로 저장·릴레이 (URL 검증·DB·상대 수신 일관)
     await sendViaAction(caption ?? null, pendingId, attachments).finally(() => {
       sendLockRef.current = false;
     });

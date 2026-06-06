@@ -112,9 +112,10 @@ export async function uploadVideoBlob(blob: Blob, filename: string): Promise<str
   );
 }
 
-/** Upload voice note (webm/mpeg) */
+/** Upload voice note (webm/mpeg/mp4) */
 export async function uploadAudioBlob(blob: Blob, filename: string): Promise<string> {
-  const contentType = blob.type?.startsWith("audio/") ? blob.type : "audio/webm";
+  const rawType = blob.type?.split(";")[0]?.trim() || "";
+  const contentType = rawType.startsWith("audio/") ? rawType : "audio/webm";
   const file = new File([blob], filename, { type: contentType });
 
   const form = new FormData();
@@ -147,9 +148,19 @@ export async function uploadAudioBlob(blob: Blob, filename: string): Promise<str
     const headers: Record<string, string> = { "Content-Type": contentType };
     if (token) headers.Authorization = `Bearer ${token}`;
     const put = await fetch(uploadUrl, { method: "PUT", body: file, headers });
-    if (!put.ok) throw new Error("음성 업로드에 실패했습니다.");
+    if (!put.ok) {
+      throw new Error(
+        localBody.error || "음성 업로드에 실패했습니다. 로그인·Storage 설정을 확인해 주세요."
+      );
+    }
     return publicUrl;
   }
 
-  throw new Error(localBody.error || "음성 업로드에 실패했습니다.");
+  const presignBody = (await presignRes.json().catch(() => ({}))) as {
+    error?: string;
+    message?: string;
+  };
+  throw new Error(
+    localBody.error || presignBody.error || presignBody.message || "음성 업로드에 실패했습니다."
+  );
 }

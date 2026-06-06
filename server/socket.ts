@@ -192,7 +192,10 @@ io.on("connection", (socket: AuthedSocket) => {
     if (!data.roomId || data.roomId.length > 64) return;
     const content = (data.content ?? "").slice(0, 4000).trim();
     const attachments = sanitizeChatAttachments(data.attachments);
-    if (!content && !attachments.length) return;
+    if (!content && !attachments.length) {
+      socket.emit("error", { message: "첨부 파일 URL이 유효하지 않습니다." });
+      return;
+    }
 
     try {
       const member = await prisma.chatMember.findUnique({

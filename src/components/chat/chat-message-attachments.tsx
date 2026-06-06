@@ -1,7 +1,31 @@
 "use client";
 
+import { useState } from "react";
 import type { ChatAttachmentView } from "@/lib/chat-attachments";
 import { cn } from "@/lib/utils";
+
+function ChatImage({ url, alt }: { url: string; alt: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <div className="px-3 py-6 text-center text-xs text-muted-foreground bg-muted/50">
+        이미지를 불러올 수 없습니다.
+        <a href={url} target="_blank" rel="noopener noreferrer" className="block mt-1 text-primary underline">
+          링크로 열기
+        </a>
+      </div>
+    );
+  }
+  return (
+    /* eslint-disable-next-line @next/next/no-img-element */
+    <img
+      src={url}
+      alt={alt}
+      className="w-full h-auto max-h-72 object-cover"
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 export function ChatMessageAttachments({
   attachments,
@@ -31,12 +55,7 @@ export function ChatMessageAttachments({
               rel="noopener noreferrer"
               className="block rounded-xl overflow-hidden border border-border/40 bg-black/5 max-w-[min(280px,72vw)]"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={a.url}
-                alt={a.name ?? "사진"}
-                className="w-full h-auto max-h-72 object-cover"
-              />
+              <ChatImage url={a.url} alt={a.name ?? "사진"} />
             </a>
           ))}
         </div>

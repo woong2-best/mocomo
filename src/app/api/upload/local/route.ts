@@ -3,7 +3,13 @@ import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { auth } from "@/lib/auth";
 import { checkUploadRateLimit } from "@/lib/api-security";
-import { validateFileType, ALLOWED_IMAGE, ALLOWED_VIDEO, ALLOWED_AUDIO } from "@/lib/storage";
+import {
+  validateFileType,
+  ALLOWED_IMAGE,
+  ALLOWED_VIDEO,
+  ALLOWED_AUDIO,
+  normalizeAudioMime,
+} from "@/lib/storage";
 import {
   isSupabaseStorageConfigured,
   uploadBufferToSupabase,
@@ -69,6 +75,23 @@ export async function POST(req: NextRequest) {
       };
       mime = (ext && byExt[ext]) || "video/mp4";
     }
+  }
+
+  if (category === "audio") {
+    if (!mime.startsWith("audio/") || mime === "application/octet-stream") {
+      const byExt: Record<string, string> = {
+        webm: "audio/webm",
+        ogg: "audio/ogg",
+        m4a: "audio/mp4",
+        mp4: "audio/mp4",
+        mp3: "audio/mpeg",
+        mpeg: "audio/mpeg",
+        wav: "audio/wav",
+        aac: "audio/aac",
+      };
+      mime = (ext && byExt[ext]) || "audio/webm";
+    }
+    mime = normalizeAudioMime(mime);
   }
 
   if (!validateFileType(mime, allowed)) {

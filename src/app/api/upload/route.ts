@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { checkUploadRateLimit } from "@/lib/api-security";
-import { getUploadPresignedUrl, validateFileType, ALLOWED_IMAGE, ALLOWED_VIDEO, ALLOWED_AUDIO } from "@/lib/storage";
+import {
+  getUploadPresignedUrl,
+  validateFileType,
+  ALLOWED_IMAGE,
+  ALLOWED_VIDEO,
+  ALLOWED_AUDIO,
+  normalizeAudioMime,
+} from "@/lib/storage";
 import { createSupabaseSignedUpload } from "@/lib/supabase-storage";
 
 export async function POST(req: NextRequest) {
@@ -27,21 +34,24 @@ export async function POST(req: NextRequest) {
         ? ALLOWED_VIDEO
         : ALLOWED_AUDIO;
 
-  if (!validateFileType(contentType, allowed)) {
+  const mime =
+    category === "audio" ? normalizeAudioMime(contentType) : contentType.split(";")[0]?.trim() || contentType;
+
+  if (!validateFileType(mime, allowed)) {
     return NextResponse.json({ error: "Invalid file type" }, { status: 400 });
   }
 
   const maxSize =
     session.user.premiumTier === "PREMIUM" ? 100 * 1024 * 1024 : 25 * 1024 * 1024;
   const key = `uploads/${session.user.id}/${Date.now()}-${filename}`;
-  const result = await getUploadPresignedUrl(key, contentType, maxSize);
+  const result = await getUploadPresignedUrl(key, mime, maxSize);
   if (result) return NextResponse.json(result);
 
   const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
   const supabaseUpload = await createSupabaseSignedUpload(
     session.user.id,
     safeFilename,
-    contentType,
+    mime,
     category
   );
   if (supabaseUpload) {

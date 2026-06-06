@@ -54,4 +54,21 @@ export const ALLOWED_VIDEO = [
   "video/3gpp",
   "video/mpeg",
 ];
-export const ALLOWED_AUDIO = ["audio/mpeg", "audio/webm", "audio/ogg"];
+export const ALLOWED_AUDIO = [
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/webm",
+  "audio/ogg",
+  "audio/mp4",
+  "audio/x-m4a",
+  "audio/aac",
+  "audio/wav",
+  "audio/x-wav",
+];
+
+/** `audio/webm;codecs=opus` → `audio/webm` */
+export function normalizeAudioMime(mime: string): string {
+  const base = mime.split(";")[0]?.trim().toLowerCase() || "audio/webm";
+  if (base === "audio/mp3") return "audio/mpeg";
+  return base.startsWith("audio/") ? base : "audio/webm";
+}
