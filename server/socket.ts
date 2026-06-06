@@ -31,6 +31,21 @@ function emitPresenceToRoom(roomId: string, userId: string, online: boolean) {
   io.to(`room:${roomId}`).emit("presence_change", { userId, online });
 }
 
+/** 메시지 목록 등에서 소켓만 연결된 경우에도 DM 상대에게 접속 상태 전달 */
+async function broadcastPresenceToMemberRooms(userId: string, online: boolean) {
+  try {
+    const memberships = await prisma.chatMember.findMany({
+      where: { userId },
+      select: { roomId: true },
+    });
+    for (const { roomId } of memberships) {
+      emitPresenceToRoom(roomId, userId, online);
+    }
+  } catch {
+    /* DB 일시 오류 — 채팅은 계속 */
+  }
+}
+
 async function emitRoomPresenceSnapshot(socket: AuthedSocket, roomId: string) {
   const members = await prisma.chatMember.findMany({
     where: { roomId },
@@ -128,7 +143,10 @@ io.on("connection", (socket: AuthedSocket) => {
   socket.data.chatRooms = new Set();
   socket.join(`user:${userId}`);
 
-  setUserOnline(userId, true);
+  const cameOnline = setUserOnline(userId, true);
+  if (!cameOnline.wasOnline && cameOnline.isOnline) {
+    void broadcastPresenceToMemberRooms(userId, true);
+  }
 
   socket.on("join_room", async (roomId: string) => {
     if (!roomId || roomId.length > 64) return;
@@ -390,12 +408,9 @@ io.on("connection", (socket: AuthedSocket) => {
   });
 
   socket.on("disconnect", () => {
-    const rooms = socket.data.chatRooms ? [...socket.data.chatRooms] : [];
     const wentOffline = setUserOnline(userId, false);
     if (wentOffline.wasOnline && !wentOffline.isOnline) {
-      for (const roomId of rooms) {
-        emitPresenceToRoom(roomId, userId, false);
-      }
+      void broadcastPresenceToMemberRooms(userId, false);
     }
   });
 });

@@ -29,13 +29,15 @@ export function ChatHeader({
   showBackOnMobile?: boolean;
 }) {
   const profileHref = profileUsername ? `/u/${profileUsername}` : undefined;
-  const { isUserOnline } = useChatSocket();
+  const { isUserOnline, socketReady, realtimeOff } = useChatSocket();
   const otherOnline = otherUserId ? isUserOnline(otherUserId) : false;
   const presenceLabel =
     roomType === "DM" && otherUserId
-      ? otherOnline
-        ? "접속 중"
-        : "오프라인"
+      ? !socketReady && !realtimeOff
+        ? "연결 중…"
+        : otherOnline
+          ? "접속 중"
+          : "오프라인"
       : "프로필 보기";
 
   return (
