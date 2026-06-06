@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import {
   Camera,
   Film,
@@ -10,15 +10,15 @@ import {
   Trash2,
   Video,
 } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { ImageCropDialog } from "@/components/media/image-crop-dialog";
 import { CameraCaptureDialog } from "@/components/media/camera-capture-dialog";
 import { VideoEditDialog } from "@/components/media/video-edit-dialog";
 import { readFileAsObjectUrl } from "@/lib/crop-image";
 import { uploadImageBlob } from "@/lib/client-upload";
 import {
-  fileToUploadableJpeg,
   isGalleryImageFile,
+  prepareGalleryImageForUpload,
 } from "@/lib/gallery-image-upload";
 import { normalizeGalleryVideoFile } from "@/lib/gallery-video-upload";
 import { cn } from "@/lib/utils";
@@ -43,7 +43,7 @@ type PostMediaComposerProps = {
   onUploadingChange?: (busy: boolean) => void;
 };
 
-const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif";
+const IMAGE_ACCEPT = "image/*,.heic,.heif,image/heic,image/heif";
 
 export function PostMediaComposer({
   items,
@@ -58,6 +58,7 @@ export function PostMediaComposer({
   onUploadingChange,
 }: PostMediaComposerProps) {
   const galleryInputId = useId();
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
@@ -93,21 +94,53 @@ export function PostMediaComposer({
   }
 
   async function uploadFilesDirect(files: File[]) {
+    const baseItems = items;
+    const previewUrls: string[] = [];
+    const optimistic: PostMediaItem[] = files.map((f) => {
+      const preview = URL.createObjectURL(f);
+      previewUrls.push(preview);
+      return { url: preview, type: "IMAGE" as const };
+    });
+
+    onChange([...baseItems, ...optimistic]);
     setUploading(true);
     onUploadingChange?.(true);
     setError("");
+
+    let next = [...baseItems];
+    const errors: string[] = [];
+
     try {
-      const prepared = await Promise.all(files.map((f) => fileToUploadableJpeg(f)));
-      let next = [...items];
-      for (const file of prepared) {
+      for (let i = 0; i < files.length; i++) {
         const imgCount = next.filter((m) => m.type === "IMAGE").length;
         if (imgCount >= maxImages) break;
-        const url = await uploadImageBlob(file, file.name || "photo.jpg");
-        next = [...next, { url, type: "IMAGE" as const }];
+
+        try {
+          const prepared = await prepareGalleryImageForUpload(files[i]);
+          const url = await uploadImageBlob(prepared, prepared.name || "photo.jpg");
+          next = [...next, { url, type: "IMAGE" as const }];
+          onChange(next);
+        } catch (e) {
+          errors.push(
+            e instanceof Error ? e.message : `사진 ${i + 1} 업로드 실패`
+          );
+        } finally {
+          URL.revokeObjectURL(previewUrls[i]);
+        }
       }
-      onChange(next);
+
+      if (errors.length > 0) {
+        onChange(next);
+        setError(
+          errors.length === files.length
+            ? errors[0] ?? "사진 업로드에 실패했습니다."
+            : `일부 사진만 올렸습니다. ${errors[0]}`
+        );
+      }
     } catch (e) {
+      onChange(baseItems);
       setError(e instanceof Error ? e.message : "사진 업로드에 실패했습니다.");
+      previewUrls.forEach((u) => URL.revokeObjectURL(u));
     } finally {
       setUploading(false);
       onUploadingChange?.(false);
@@ -136,18 +169,18 @@ export function PostMediaComposer({
   }
 
   async function onGalleryImagePick(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files;
+    const picked = e.target.files;
+    if (!picked?.length) return;
+    const list = Array.from(picked).filter((f) => isGalleryImageFile(f, true));
     e.target.value = "";
-    if (!files?.length) return;
     setError("");
-    const list = Array.from(files).filter((f) => isGalleryImageFile(f, true));
     const remaining = maxImages - imageCount;
     if (remaining <= 0) {
       setError(`사진은 최대 ${maxImages}장까지 추가할 수 있습니다.`);
       return;
     }
     if (list.length === 0) {
-      setError("이미지 파일을 선택해 주세요. (jpg, png, webp 등)");
+      setError("이미지 파일을 선택해 주세요. (jpg, png, webp, heic 등)");
       return;
     }
     await uploadFilesDirect(list.slice(0, remaining));
@@ -279,17 +312,17 @@ export function PostMediaComposer({
               <Camera className="h-4 w-4" />
               사진 찍기
             </Button>
-            <label
-              htmlFor={galleryInputId}
-              className={cn(
-                buttonVariants({ variant: "outline", size: "sm" }),
-                "rounded-xl gap-1.5 cursor-pointer inline-flex items-center",
-                (disabled || uploading) && "pointer-events-none opacity-50"
-              )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-xl gap-1.5"
+              disabled={disabled || uploading}
+              onClick={() => galleryInputRef.current?.click()}
             >
               <ImagePlus className="h-4 w-4" />
               {allowVideo ? "사진 선택" : "갤러리에서 선택"}
-            </label>
+            </Button>
           </>
         )}
         {canAddVideo && (
@@ -334,6 +367,7 @@ export function PostMediaComposer({
 
       <input
         id={galleryInputId}
+        ref={galleryInputRef}
         type="file"
         accept={IMAGE_ACCEPT}
         multiple

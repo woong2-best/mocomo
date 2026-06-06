@@ -121,6 +121,19 @@ export async function fileToUploadableJpeg(file: File): Promise<File> {
   }
 }
 
+/** JPEG 변환 실패 시 원본 그대로 업로드 시도 (HEIC 등) */
+export async function prepareGalleryImageForUpload(file: File): Promise<File> {
+  try {
+    return await fileToUploadableJpeg(file);
+  } catch {
+    const normalized = normalizeGalleryImageFile(file);
+    if (normalized.size <= 0) {
+      throw new Error("빈 파일입니다. 다른 사진을 선택해 주세요.");
+    }
+    return normalized;
+  }
+}
+
 export function isGalleryImageFile(file: File, imageOnlyPicker: boolean): boolean {
   const type = file.type?.trim().toLowerCase() ?? "";
   if (type.startsWith("image/")) return true;
