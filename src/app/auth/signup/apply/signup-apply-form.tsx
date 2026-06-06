@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { signIn } from "next-auth/react";
 import { useState } from "react";
@@ -282,7 +282,7 @@ export function SignupApplyForm({
 
           <p className="text-center text-sm text-muted-foreground">
             이미 계정이 있나요?{" "}
-            <Link href="/auth/signin" className="text-[#1e88e5] hover:underline font-medium">
+            <Link href="/auth/signin" className="text-folk-cobalt hover:underline font-medium">
               로그인
             </Link>
           </p>

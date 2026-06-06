@@ -50,7 +50,7 @@ export function MobileNav() {
 
   return (
     <>
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 pb-safe">
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t-2 border-folk-cobalt/25 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 shadow-[0_-3px_0_hsl(var(--folk-terracotta)/0.15)] pb-safe">
         <div className="flex justify-around items-center h-14 max-w-lg mx-auto">
           {tabs.map(({ href, icon: Icon, labelKey }) => {
             const active =

@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Flame, Clock, Shuffle, Sparkles, Megaphone } from "lucide-react";
 import { auth } from "@/lib/auth";
@@ -30,9 +30,9 @@ export function AnimeHubWidgets({
               <Link
                 key={a.slug}
                 href={`/anime/${a.slug}`}
-                className="flex gap-2 text-sm hover:text-[#1e88e5] min-w-0"
+                className="flex gap-2 text-sm hover:text-folk-cobalt min-w-0"
               >
-                <span className="w-5 text-right font-semibold text-[#1e88e5] tabular-nums shrink-0">{i + 1}</span>
+                <span className="w-5 text-right font-semibold text-folk-cobalt tabular-nums shrink-0">{i + 1}</span>
                 <span className="truncate">{a.title}</span>
               </Link>
             ))
@@ -46,7 +46,7 @@ export function AnimeHubWidgets({
       <Card className="rounded-2xl">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2">
-            <Clock className="h-4 w-4 text-[#1e88e5]" />
+            <Clock className="h-4 w-4 text-folk-cobalt" />
             최근 수정 글
           </CardTitle>
         </CardHeader>
@@ -55,7 +55,7 @@ export function AnimeHubWidgets({
             <p className="text-xs text-muted-foreground">수정된 글가 없어요.</p>
           ) : (
             recent.map((a) => (
-              <Link key={a.slug} href={`/anime/${a.slug}`} className="block text-sm truncate hover:text-[#1e88e5]">
+              <Link key={a.slug} href={`/anime/${a.slug}`} className="block text-sm truncate hover:text-folk-cobalt">
                 {a.title}
               </Link>
             ))
@@ -70,14 +70,14 @@ export function AnimeHubWidgets({
         <CardContent className="p-4 space-y-2">
           <Link
             href="/anime/random"
-            className="flex items-center gap-2 text-sm font-medium hover:text-[#1e88e5]"
+            className="flex items-center gap-2 text-sm font-medium hover:text-folk-cobalt"
           >
             <Shuffle className="h-4 w-4" />
             랜덤 글
           </Link>
           <Link
             href="/anime/newest"
-            className="flex items-center gap-2 text-sm font-medium hover:text-[#1e88e5]"
+            className="flex items-center gap-2 text-sm font-medium hover:text-folk-cobalt"
           >
             <Sparkles className="h-4 w-4" />
             신규 글

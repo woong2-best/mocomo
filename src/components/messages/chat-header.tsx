@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { SupportTierLevel } from "@prisma/client";
 import Link from "next/link";
@@ -72,7 +72,7 @@ export function ChatHeader({
             <p
               className={
                 otherOnline
-                  ? "text-xs text-[#1e88e5] font-medium"
+                  ? "text-xs text-folk-cobalt font-medium"
                   : "text-xs text-muted-foreground"
               }
             >

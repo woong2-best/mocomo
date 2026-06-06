@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -177,7 +177,7 @@ export function SignupVerifyForm() {
           </Button>
 
           <p className="text-center text-sm text-muted-foreground">
-            <Link href="/auth/signup/apply" className="text-[#1e88e5] hover:underline">
+            <Link href="/auth/signup/apply" className="text-folk-cobalt hover:underline">
               가입 정보 수정
             </Link>
           </p>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
@@ -203,7 +203,7 @@ export function FeedTextPostCard({
               onClick={handleLike}
               className={cn(
                 "flex items-center gap-0.5 transition-colors min-h-8 min-w-8 justify-center",
-                liked ? "text-[#e53935]" : "hover:text-[#e53935]"
+                liked ? "text-folk-terracotta" : "hover:text-folk-terracotta"
               )}
             >
               <Heart className={cn("h-3.5 w-3.5 pointer-events-none", liked && "fill-current")} />
@@ -211,7 +211,7 @@ export function FeedTextPostCard({
             </button>
             <Link
               href={`/post/${post.id}#comments`}
-              className="flex items-center gap-0.5 hover:text-[#1e88e5] min-h-8 px-1"
+              className="flex items-center gap-0.5 hover:text-folk-cobalt min-h-8 px-1"
               onClick={(e) => e.stopPropagation()}
             >
               <MessageCircle className="h-3.5 w-3.5" />

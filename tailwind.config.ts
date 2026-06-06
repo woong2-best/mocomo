@@ -17,24 +17,31 @@ const config: Config = {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
-        neon: { pink: "#ff6ec7", purple: "#a855f7", cyan: "#22d3ee" },
+        folk: {
+          cobalt: "#1B3A8C",
+          terracotta: "#C4522A",
+          "terracotta-dark": "#9A3E1F",
+          cream: "#F5F0E8",
+          gold: "#D4A843",
+          forest: "#2E5C3A",
+        },
       },
       fontFamily: {
         sans: ["var(--font-geist-sans)", "Pretendard", "system-ui", "sans-serif"],
+        display: ["var(--font-folk-display)", "var(--font-geist-sans)", "system-ui", "sans-serif"],
       },
       animation: {
-        "pulse-neon": "pulse-neon 2s ease-in-out infinite",
-        float: "float 3s ease-in-out infinite",
+        "folk-float": "folk-float 4s ease-in-out infinite",
       },
       keyframes: {
-        "pulse-neon": {
-          "0%, 100%": { boxShadow: "0 0 8px #a855f7, 0 0 16px #ff6ec7" },
-          "50%": { boxShadow: "0 0 16px #22d3ee, 0 0 24px #a855f7" },
+        "folk-float": {
+          "0%, 100%": { transform: "translateY(0) rotate(0deg)" },
+          "50%": { transform: "translateY(-4px) rotate(1deg)" },
         },
-        float: {
-          "0%, 100%": { transform: "translateY(0)" },
-          "50%": { transform: "translateY(-6px)" },
-        },
+      },
+      boxShadow: {
+        folk: "3px 4px 0 rgba(27, 58, 140, 0.15)",
+        "folk-sm": "2px 2px 0 rgba(27, 58, 140, 0.1)",
       },
     },
   },

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -46,7 +46,7 @@ export function ChatComposer({
           size="icon"
           className={cn(
             "h-11 w-11 rounded-full shrink-0 shadow-sm",
-            value.trim() ? "bg-[#e53935] text-white hover:bg-[#c62828]" : "bg-muted text-muted-foreground"
+            value.trim() ? "bg-folk-terracotta text-white hover:bg-folk-terracotta-dark" : "bg-muted text-muted-foreground"
           )}
           onClick={onSend}
           disabled={disabled || !value.trim()}

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useId, useRef, useState, useEffect, useCallback } from "react";
 import { Camera, ImagePlus, Loader2, Mic, Send, Square, X } from "lucide-react";
@@ -303,7 +303,7 @@ export function ChatMediaComposer({
           size="icon"
           className={cn(
             "h-11 w-11 rounded-full shrink-0 shadow-sm mb-0.5",
-            canSendText ? "bg-[#e53935] text-white hover:bg-[#c62828]" : "bg-muted text-muted-foreground"
+            canSendText ? "bg-folk-terracotta text-white hover:bg-folk-terracotta-dark" : "bg-muted text-muted-foreground"
           )}
           onClick={onSendText}
           disabled={!canSendText}

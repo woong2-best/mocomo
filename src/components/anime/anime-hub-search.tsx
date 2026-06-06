@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Search } from "lucide-react";
 
@@ -10,7 +10,7 @@ export function AnimeHubSearch() {
         name="q"
         type="search"
         placeholder="애니 글·게시글 검색 (제목·내용)"
-        className="w-full h-11 pl-10 pr-4 rounded-xl bg-background border border-border text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1e88e5]/40"
+        className="w-full h-11 pl-10 pr-4 rounded-xl bg-background border border-border text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-folk-cobalt/40"
         autoComplete="off"
       />
     </form>

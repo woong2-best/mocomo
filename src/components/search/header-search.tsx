@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -91,7 +91,7 @@ export function HeaderSearch() {
           onFocus={() => q.trim().length >= 2 && setOpen(true)}
           placeholder="검색"
           autoComplete="off"
-          className="w-full h-10 pl-10 pr-10 rounded-xl bg-muted border border-border text-sm focus:outline-none focus:ring-2 focus:ring-[#1e88e5]/40"
+          className="w-full h-10 pl-10 pr-10 rounded-xl bg-muted border border-border text-sm focus:outline-none focus:ring-2 focus:ring-folk-cobalt/40"
         />
         {pending && (
           <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />

@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { cn } from "@/lib/utils";
 
 function Avatar({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
@@ -22,7 +22,7 @@ function AvatarFallback({ className, children }: React.HTMLAttributes<HTMLDivEle
   return (
     <div
       className={cn(
-        "flex h-full w-full items-center justify-center rounded-full bg-[#e53935] text-sm font-bold text-white",
+        "flex h-full w-full items-center justify-center rounded-full bg-folk-terracotta text-sm font-bold text-white",
         className
       )}
     >

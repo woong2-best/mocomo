@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { signIn } from "next-auth/react";
 import Link from "next/link";
@@ -168,11 +168,11 @@ export function SignInForm({
           )}
 
           <p className="text-center text-sm text-muted-foreground">
-            <Link href="/auth/email-verify" className="text-[#1e88e5] hover:underline">
+            <Link href="/auth/email-verify" className="text-folk-cobalt hover:underline">
               이메일 인증 · 비밀번호 찾기
             </Link>
             {" · "}
-            <Link href="/auth/signup" className="text-[#1e88e5] hover:underline">
+            <Link href="/auth/signup" className="text-folk-cobalt hover:underline">
               회원가입
             </Link>
           </p>

@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import type { SupportTierLevel } from "@prisma/client";
 import { FALLBACK_SIDEBAR_ADS } from "@/lib/default-ads";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,7 +28,7 @@ export type SidebarPanelData = {
 export function RightPanelSkeleton() {
   return (
     <aside className="hidden lg:block w-64 xl:w-72 shrink-0 p-4 space-y-3 sticky top-14 h-[calc(100vh-3.5rem)] overflow-hidden bg-muted/20 border-l border-border animate-pulse">
-      <div className="h-12 rounded-2xl bg-[#e53935]/30" />
+      <div className="h-12 rounded-2xl bg-folk-terracotta/30" />
       <div className="h-48 rounded-2xl bg-muted" />
       <div className="h-36 rounded-2xl bg-muted" />
       <div className="h-36 rounded-2xl bg-muted" />
@@ -76,7 +76,7 @@ export function RightPanelContent({ animes, tips, sidebarAds, eventPins }: Sideb
       <Card className="rounded-2xl shadow-sm border-border">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2 font-semibold">
-            <Tv className="h-4 w-4 text-[#1e88e5]" />
+            <Tv className="h-4 w-4 text-folk-cobalt" />
             인기 애니
           </CardTitle>
         </CardHeader>
@@ -90,9 +90,9 @@ export function RightPanelContent({ animes, tips, sidebarAds, eventPins }: Sideb
               <Link
                 key={a.id}
                 href={`/anime/${a.slug}`}
-                className="flex items-baseline gap-2 text-sm hover:text-[#1e88e5] min-w-0 group"
+                className="flex items-baseline gap-2 text-sm hover:text-folk-cobalt min-w-0 group"
               >
-                <span className="shrink-0 w-5 text-right font-semibold tabular-nums text-[#1e88e5] group-hover:underline">
+                <span className="shrink-0 w-5 text-right font-semibold tabular-nums text-folk-cobalt group-hover:underline">
                   {i + 1}
                 </span>
                 <span className="truncate">{a.title}</span>

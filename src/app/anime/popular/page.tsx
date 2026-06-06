@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { ChevronLeft, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getCachedPopularAnime } from "@/lib/cached-data";
@@ -32,8 +32,8 @@ export default async function AnimePopularPage() {
         ) : (
           animes.map((a, i) => (
             <li key={a.slug}>
-              <Link href={`/anime/${a.slug}`} className="flex items-baseline gap-3 text-sm hover:text-[#1e88e5]">
-                <span className="w-8 text-right font-bold text-[#1e88e5] tabular-nums">{i + 1}</span>
+              <Link href={`/anime/${a.slug}`} className="flex items-baseline gap-3 text-sm hover:text-folk-cobalt">
+                <span className="w-8 text-right font-bold text-folk-cobalt tabular-nums">{i + 1}</span>
                 <span className="font-medium flex-1">{a.title}</span>
                 <span className="text-xs text-muted-foreground tabular-nums">{a.viewCount.toLocaleString()}회</span>
               </Link>

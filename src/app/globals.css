@@ -2,53 +2,60 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 라이트 모드 (기본) */
+/* Surrealist folk art — MoCoMo design system */
 @layer base {
   :root {
     --header-h: 3.5rem;
     --mobile-nav-h: 3.5rem;
-    --background: 0 0% 100%;
-    --foreground: 220 15% 12%;
-    --card: 0 0% 100%;
-    --card-foreground: 220 15% 12%;
-    --primary: 250 80% 58%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 220 15% 25%;
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 10% 46%;
-    --accent: 220 14% 94%;
-    --accent-foreground: 220 15% 20%;
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 250 80% 58%;
-    --radius: 0.75rem;
-    --sidebar-block: 0 0% 100%;
-    --sidebar-block-hover: 220 14% 97%;
+
+    --folk-cobalt: 224 68% 33%;
+    --folk-terracotta: 15 65% 47%;
+    --folk-cream: 40 33% 94%;
+    --folk-gold: 42 62% 55%;
+    --folk-forest: 140 33% 27%;
+
+    --background: 40 33% 94%;
+    --foreground: 224 55% 18%;
+    --card: 40 40% 97%;
+    --card-foreground: 224 55% 18%;
+    --primary: 15 65% 47%;
+    --primary-foreground: 40 33% 98%;
+    --secondary: 224 35% 88%;
+    --secondary-foreground: 224 68% 25%;
+    --muted: 40 22% 88%;
+    --muted-foreground: 224 25% 38%;
+    --accent: 42 62% 55%;
+    --accent-foreground: 224 55% 18%;
+    --destructive: 15 75% 38%;
+    --destructive-foreground: 40 33% 98%;
+    --border: 224 28% 72%;
+    --input: 40 25% 90%;
+    --ring: 224 68% 33%;
+    --radius: 0.625rem;
+    --sidebar-block: 40 38% 96%;
+    --sidebar-block-hover: 40 30% 91%;
   }
 
   .dark {
-    --background: 222 18% 8%;
-    --foreground: 210 20% 96%;
-    --card: 222 16% 12%;
-    --card-foreground: 210 20% 96%;
-    --primary: 250 75% 65%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 222 14% 18%;
-    --secondary-foreground: 210 15% 90%;
-    --muted: 222 12% 20%;
-    --muted-foreground: 215 12% 58%;
-    --accent: 222 14% 18%;
-    --accent-foreground: 210 20% 96%;
-    --destructive: 0 62% 50%;
+    --background: 224 45% 12%;
+    --foreground: 40 33% 94%;
+    --card: 224 40% 16%;
+    --card-foreground: 40 33% 94%;
+    --primary: 15 60% 52%;
+    --primary-foreground: 40 33% 98%;
+    --secondary: 224 35% 22%;
+    --secondary-foreground: 40 25% 90%;
+    --muted: 224 30% 20%;
+    --muted-foreground: 40 15% 65%;
+    --accent: 42 55% 48%;
+    --accent-foreground: 40 33% 94%;
+    --destructive: 15 65% 45%;
     --destructive-foreground: 0 0% 100%;
-    --border: 222 12% 22%;
-    --input: 222 12% 22%;
-    --ring: 250 75% 65%;
-    --sidebar-block: 222 16% 14%;
-    --sidebar-block-hover: 222 14% 18%;
+    --border: 224 25% 28%;
+    --input: 224 30% 22%;
+    --ring: 42 62% 55%;
+    --sidebar-block: 224 38% 18%;
+    --sidebar-block-hover: 224 35% 22%;
   }
 }
 
@@ -60,6 +67,13 @@
     @apply bg-background text-foreground antialiased;
     min-height: 100dvh;
   }
+  h1,
+  h2,
+  h3,
+  .font-folk-display {
+    font-family: var(--font-folk-display), var(--font-geist-sans), system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
 }
 
 @layer utilities {
@@ -69,7 +83,6 @@
   .pt-safe {
     padding-top: env(safe-area-inset-top, 0px);
   }
-  /** 하단 탭 + iPhone 홈 인디케이터 (lg+ PC·노트북은 사이드바만) */
   .pb-nav {
     padding-bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px));
   }
@@ -99,9 +112,65 @@
   }
 }
 
+/* Painterly canvas texture */
+.folk-canvas {
+  position: relative;
+  isolation: isolate;
+}
+.folk-canvas::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+.folk-canvas > * {
+  position: relative;
+  z-index: 1;
+}
+
+.folk-brush-border-b {
+  position: relative;
+}
+.folk-brush-border-b::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: repeating-linear-gradient(
+    90deg,
+    hsl(var(--folk-cobalt)) 0px,
+    hsl(var(--folk-cobalt)) 8px,
+    transparent 8px,
+    transparent 12px,
+    hsl(var(--folk-terracotta)) 12px,
+    hsl(var(--folk-terracotta)) 18px,
+    transparent 18px,
+    transparent 22px
+  );
+  opacity: 0.85;
+  mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,4 Q25,0 50,4 T100,4 T150,4 T200,4' fill='none' stroke='white' stroke-width='8'/%3E%3C/svg%3E");
+  mask-size: 200px 8px;
+  mask-repeat: repeat-x;
+}
+
+.folk-card {
+  @apply rounded-xl border-2 border-[hsl(var(--folk-cobalt)/0.35)] bg-card shadow-[3px_4px_0_hsl(var(--folk-cobalt)/0.12)];
+}
+
+.folk-chunky-text {
+  font-family: var(--font-folk-display), sans-serif;
+  text-shadow: 1px 1px 0 hsl(var(--folk-cobalt) / 0.15);
+}
+
 @layer components {
   .used-action-bar {
-    @apply fixed bottom-0 left-0 right-0 z-30 border-t bg-background p-3 pb-safe;
+    @apply fixed bottom-0 left-0 right-0 z-30 border-t-2 border-[hsl(var(--folk-cobalt)/0.3)] bg-background p-3 pb-safe;
   }
   @media (min-width: 768px) {
     .used-action-bar {
@@ -112,78 +181,55 @@
 
 @layer components {
   .sidebar-block {
-    @apply flex items-center gap-3 rounded-2xl border border-border bg-[hsl(var(--sidebar-block))] px-4 py-3.5 text-sm font-medium text-foreground shadow-sm transition-all duration-150 ease-out;
+    @apply flex items-center gap-3 rounded-xl border-2 border-[hsl(var(--folk-cobalt)/0.25)] bg-[hsl(var(--sidebar-block))] px-4 py-3.5 text-sm font-semibold text-foreground shadow-[2px_3px_0_hsl(var(--folk-cobalt)/0.08)] transition-all duration-150 ease-out;
   }
   .sidebar-block:hover {
-    @apply bg-[hsl(var(--sidebar-block-hover))] shadow-md -translate-y-0.5;
+    @apply bg-[hsl(var(--sidebar-block-hover))] shadow-[3px_4px_0_hsl(var(--folk-cobalt)/0.12)] -translate-y-0.5;
   }
   .sidebar-block:active {
-    @apply scale-[0.97] shadow-inner translate-y-0;
+    @apply scale-[0.98] shadow-inner translate-y-0;
   }
   .sidebar-block-active {
-    @apply ring-2 ring-[#1e88e5] ring-offset-2 ring-offset-background shadow-md;
-    background: linear-gradient(
-      135deg,
-      rgba(229, 57, 53, 0.06),
-      rgba(30, 136, 229, 0.08)
-    );
+    @apply ring-2 ring-[hsl(var(--folk-cobalt))] ring-offset-2 ring-offset-background border-[hsl(var(--folk-terracotta))];
+    background-color: hsl(var(--folk-gold) / 0.18);
   }
 
-  /* 라이브 — 라이트 기본, 다크모드에서만 어두운 스튜디오 */
   .live-page-shell {
     @apply -m-4 lg:-m-6 min-h-screen p-4 lg:p-6 text-foreground;
-    @apply bg-gradient-to-b from-red-50/80 via-background to-background;
+    background-color: hsl(var(--folk-cream));
   }
   .dark .live-page-shell {
-    @apply from-[#0a0a0c] via-[#0f0f12] to-[#0a0a0c];
+    @apply bg-[hsl(224,45%,10%)];
   }
 
   .live-hero {
-    @apply rounded-2xl border border-border/70 bg-card/90 backdrop-blur-sm p-6 shadow-sm;
-    @apply bg-gradient-to-br from-red-500/10 via-card to-violet-500/10;
-  }
-  .dark .live-hero {
-    @apply border-white/10 bg-[#141418]/90 from-red-500/15 to-violet-500/10 shadow-none;
+    @apply folk-card p-6;
+    background-color: hsl(var(--folk-gold) / 0.12);
   }
 
   .live-studio-panel {
-    @apply rounded-3xl border border-border bg-card text-card-foreground shadow-lg;
-  }
-  .dark .live-studio-panel {
-    @apply border-white/10 bg-[#0f0f12] text-white shadow-2xl;
+    @apply folk-card text-card-foreground;
   }
 
   .live-card {
-    @apply block rounded-2xl overflow-hidden border border-border bg-card shadow-md;
-    @apply hover:border-red-500/45 hover:shadow-lg transition-all duration-200;
-  }
-  .dark .live-card {
-    @apply border-white/10 bg-zinc-900/95 hover:shadow-[0_0_24px_rgba(239,68,68,0.12)];
+    @apply block rounded-xl overflow-hidden folk-card hover:border-[hsl(var(--folk-terracotta))] transition-all duration-200;
   }
 
   .live-card-thumb {
-    @apply relative aspect-video bg-gradient-to-br from-red-100/90 via-violet-50 to-pink-100/80;
-  }
-  .dark .live-card-thumb {
-    @apply from-zinc-900 via-zinc-800 to-zinc-900;
+    @apply relative aspect-video;
+    background-color: hsl(var(--folk-cobalt) / 0.15);
   }
 
   .live-card-scrim {
-    @apply absolute inset-0 bg-gradient-to-t from-background/95 via-background/25 to-transparent;
-  }
-  .dark .live-card-scrim {
-    @apply from-black/90 via-black/25 to-transparent;
+    @apply absolute inset-0 bg-[hsl(var(--foreground)/0.5)];
   }
 
   .live-badge {
-    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-600 text-white text-[11px] font-bold uppercase tracking-wide;
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-folk-terracotta text-white text-[11px] font-bold uppercase tracking-wide;
   }
 
   .live-viewer-pill {
-    @apply flex items-center gap-1 px-2 py-1 rounded-md bg-background/85 border border-border/60 text-xs font-medium tabular-nums text-foreground shadow-sm;
-  }
-  .dark .live-viewer-pill {
-    @apply bg-black/70 border-transparent text-white shadow-none;
+    @apply flex items-center gap-1 px-2 py-1 rounded-md bg-background/90 border-2 border-[hsl(var(--folk-cobalt)/0.2)] text-xs font-medium tabular-nums text-foreground;
   }
 }
 
@@ -192,10 +238,11 @@
   height: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.35);
+  background: hsl(var(--folk-cobalt) / 0.35);
   border-radius: 4px;
 }
 
 ::selection {
-  background: rgba(30, 136, 229, 0.25);
+  background: hsl(var(--folk-gold) / 0.45);
+  color: hsl(var(--foreground));
 }

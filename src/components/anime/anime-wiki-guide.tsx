@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { ANIME_WIKI_SECTIONS, type WikiFeatureItem } from "@/lib/anime-wiki-features";
 import { cn } from "@/lib/utils";
 
@@ -27,7 +27,7 @@ function FeatureLine({ item }: { item: WikiFeatureItem }) {
   if (item.href) {
     return (
       <li>
-        <Link href={item.href} className="flex items-start gap-2 text-sm hover:text-[#1e88e5]">
+        <Link href={item.href} className="flex items-start gap-2 text-sm hover:text-folk-cobalt">
           {inner}
         </Link>
       </li>

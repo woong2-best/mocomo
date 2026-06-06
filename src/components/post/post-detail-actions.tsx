@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
@@ -129,7 +129,7 @@ export function PostDetailActions({
             onClick={handleLike}
             className={cn(
               "flex items-center gap-1 min-h-9 px-1",
-              liked ? "text-[#e53935]" : "hover:text-[#e53935]"
+              liked ? "text-folk-terracotta" : "hover:text-folk-terracotta"
             )}
           >
             <Heart className={cn("h-4 w-4", liked && "fill-current")} />
@@ -137,7 +137,7 @@ export function PostDetailActions({
           </button>
           <Link
             href={`/post/${postId}#comments`}
-            className="flex items-center gap-1 hover:text-[#1e88e5] min-h-9 px-1"
+            className="flex items-center gap-1 hover:text-folk-cobalt min-h-9 px-1"
           >
             <MessageCircle className="h-4 w-4" />
             <span>{formatNumber(commentCount)}</span>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { Bell } from "lucide-react";
@@ -20,7 +20,7 @@ export function NotificationBellLink({ className }: { className?: string }) {
       <Link href="/notifications">
         <Bell className="h-4 w-4" />
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-[#e53935] text-[10px] font-bold text-white">
+          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-folk-terracotta text-[10px] font-bold text-white">
             {unread > 99 ? "99+" : unread}
           </span>
         )}

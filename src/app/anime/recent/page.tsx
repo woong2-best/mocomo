@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { ChevronLeft, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
@@ -35,7 +35,7 @@ export default async function AnimeRecentPage() {
         </Button>
       </Link>
       <h1 className="text-2xl font-bold flex items-center gap-2">
-        <Clock className="h-7 w-7 text-[#1e88e5]" />
+        <Clock className="h-7 w-7 text-folk-cobalt" />
         최근 변경
       </h1>
       <ul className="divide-y divide-border rounded-2xl border border-border overflow-hidden">
