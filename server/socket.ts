@@ -3,7 +3,7 @@ import { Server, type Socket } from "socket.io";
 import { PrismaClient } from "@prisma/client";
 import { verifySocketAuthToken } from "../src/lib/socket-auth-token";
 import { sanitizeChatAttachments } from "../src/lib/chat-attachments";
-import { notifyChatMessage } from "../src/lib/notifications";
+import { notifyChatMessageSocket } from "./chat-notify";
 
 const prisma = new PrismaClient();
 const PORT = parseInt(process.env.PORT || process.env.SOCKET_PORT || "3001", 10);
@@ -194,7 +194,7 @@ io.on("connection", (socket: AuthedSocket) => {
         data: { updatedAt: new Date() },
       });
       if (room) {
-        void notifyChatMessage({
+        void notifyChatMessageSocket(prisma, {
           roomId: data.roomId,
           senderId,
           content,

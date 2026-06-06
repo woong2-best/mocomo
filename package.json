@@ -6,7 +6,7 @@
     "dev": "concurrently \"npm run dev:web\" \"npm run dev:socket\"",
     "dev:web": "next dev",
     "dev:socket": "tsx watch server/socket.ts",
-    "start:socket": "tsx server/socket.ts",
+    "start:socket": "npx tsx server/socket.ts",
     "build": "prisma generate && next build",
     "vercel-build": "prisma generate && (prisma db push --accept-data-loss && tsx prisma/seed.ts || echo DB sync skipped) && next build",
     "start": "next start",
@@ -69,6 +69,7 @@
     "resend": "^4.0.1",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
+    "tsx": "^4.19.2",
     "stripe": "^22.1.1",
     "tailwind-merge": "^2.6.0",
     "zod": "^3.24.1"
@@ -85,7 +86,6 @@
     "postcss": "^8.4.49",
     "prisma": "^6.1.0",
     "tailwindcss": "^3.4.17",
-    "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }
 }

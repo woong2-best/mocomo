@@ -5,8 +5,8 @@ services:
     name: mocomo-socket
     runtime: node
     plan: free
-    buildCommand: npm install && npx prisma generate
-    startCommand: npm run start:socket
+    buildCommand: npm install --include=dev && npx prisma generate
+    startCommand: npx tsx server/socket.ts
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
