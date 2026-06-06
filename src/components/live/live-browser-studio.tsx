@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Loader2, Mic, MicOff, MonitorUp, Radio, Video, VideoOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FaceFilterStrip } from "@/components/media/face-filter-strip";
@@ -42,8 +41,8 @@ export function LiveBrowserStudio({
   onAirChange?: (onAir: boolean) => void;
   onEndStream: () => void;
 }) {
-  const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const reconnectAttemptRef = useRef(0);
   const previewHostRef = useRef<HTMLDivElement>(null);
   const whipRef = useRef<CloudflareWhipPublisher | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -190,6 +189,11 @@ export function LiveBrowserStudio({
     };
   }, [stopFilterPipeline]);
 
+  const handleWhipDisconnect = useCallback(() => {
+    setWhipConnected(false);
+    setLiveError("송출 연결이 끊겼습니다. 다시 연결 중…");
+  }, []);
+
   const connectWhip = useCallback(
     async (markLiveInDb: boolean) => {
       if (!whipUrl) return;
@@ -202,22 +206,23 @@ export function LiveBrowserStudio({
 
       const pub = new CloudflareWhipPublisher();
       whipRef.current = pub;
-      await pub.start(whipUrl, stream);
+      await pub.start(whipUrl, stream, { onDisconnect: handleWhipDisconnect });
+      setWhipConnected(true);
+      reconnectAttemptRef.current = 0;
+      setLiveError("");
 
       if (markLiveInDb) {
         const tabId = getOrCreatePublisherTabId();
         const res = await startBrowserLiveBroadcast(channelId, tabId);
         if ("error" in res && res.error) {
           whipRef.current?.stop();
+          setWhipConnected(false);
           throw new Error(res.error);
         }
         setPublishState("live_here");
-        router.refresh();
       }
-      setWhipConnected(true);
-      setLiveError("");
     },
-    [channelId, whipUrl, ensureLocalStream, router, screenOn]
+    [channelId, whipUrl, ensureLocalStream, screenOn, handleWhipDisconnect]
   );
 
   const handleGoLive = useCallback(async () => {
@@ -250,6 +255,31 @@ export function LiveBrowserStudio({
       setGoingLive(false);
     }
   }, [connectWhip, loadIngest]);
+
+  /** DB는 LIVE인데 WHIP만 끊긴 경우 자동 재연결 (새로고침·탭 복귀·네트워크 끊김) */
+  useEffect(() => {
+    if (!ready || publishState !== "live_here" || whipConnected || goingLive) return;
+    if (reconnectAttemptRef.current >= 6) return;
+
+    const delay = Math.min(1200 * (reconnectAttemptRef.current + 1), 8000);
+    const timer = window.setTimeout(() => {
+      reconnectAttemptRef.current += 1;
+      void handleReconnect();
+    }, delay);
+
+    return () => window.clearTimeout(timer);
+  }, [ready, publishState, whipConnected, goingLive, handleReconnect]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      if (publishState !== "live_here" || whipConnected || goingLive) return;
+      reconnectAttemptRef.current = 0;
+      void handleReconnect();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [publishState, whipConnected, goingLive, handleReconnect]);
 
   async function toggleMic() {
     const stream = streamRef.current;
@@ -299,7 +329,7 @@ export function LiveBrowserStudio({
           whipRef.current?.stop();
           const pub = new CloudflareWhipPublisher();
           whipRef.current = pub;
-          await pub.start(whipUrl, screenStream);
+          await pub.start(whipUrl, screenStream, { onDisconnect: handleWhipDisconnect });
         }
         setScreenOn(true);
         setCamOn(true);
@@ -316,7 +346,7 @@ export function LiveBrowserStudio({
       whipRef.current?.stop();
       const pub = new CloudflareWhipPublisher();
       whipRef.current = pub;
-      await pub.start(whipUrl, stream);
+      await pub.start(whipUrl, stream, { onDisconnect: handleWhipDisconnect });
     }
   }
 
@@ -439,7 +469,9 @@ export function LiveBrowserStudio({
       {needsReconnect && (
         <>
           <p className="text-xs text-amber-600 dark:text-amber-400">
-            방송은 이 기기에 등록되어 있으나 송출 연결이 끊겼습니다. 「송출 재연결」을 눌러 주세요.
+            {goingLive
+              ? "송출을 다시 연결하는 중입니다…"
+              : "방송은 이 기기에 등록되어 있으나 송출 연결이 끊겼습니다. 자동 재연결에 실패하면 「송출 재연결」을 눌러 주세요."}
           </p>
           <Button
             type="button"

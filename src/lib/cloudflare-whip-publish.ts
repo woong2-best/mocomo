@@ -40,8 +40,14 @@ function waitForPeerConnected(pc: RTCPeerConnection, timeoutMs = 20000): Promise
 
 export class CloudflareWhipPublisher {
   private pc: RTCPeerConnection | null = null;
+  private onDisconnect: (() => void) | null = null;
 
-  async start(whipUrl: string, mediaStream: MediaStream): Promise<void> {
+  async start(
+    whipUrl: string,
+    mediaStream: MediaStream,
+    opts?: { onDisconnect?: () => void }
+  ): Promise<void> {
+    this.onDisconnect = opts?.onDisconnect ?? null;
     this.stop();
     const pc = new RTCPeerConnection({
       iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -87,6 +93,20 @@ export class CloudflareWhipPublisher {
     const answerSdp = await res.text();
     await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
     await waitForPeerConnected(pc);
+
+    pc.addEventListener("connectionstatechange", () => {
+      const state = pc.connectionState;
+      if (state === "failed" || state === "closed") {
+        this.onDisconnect?.();
+      } else if (state === "disconnected") {
+        window.setTimeout(() => {
+          if (this.pc !== pc) return;
+          if (pc.connectionState === "disconnected" || pc.connectionState === "failed") {
+            this.onDisconnect?.();
+          }
+        }, 4000);
+      }
+    });
   }
 
   get connected() {
@@ -94,6 +114,7 @@ export class CloudflareWhipPublisher {
   }
 
   stop() {
+    this.onDisconnect = null;
     this.pc?.close();
     this.pc = null;
   }
