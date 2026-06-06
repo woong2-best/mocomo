@@ -19,8 +19,10 @@ import { UsedRegionSelect } from "@/components/used/used-region-select";
 import { UsedMeetMapPicker } from "@/components/used/used-meet-map-picker";
 import type { MeetCoords } from "@/lib/used-market";
 import { formatUsedRegion, getSigunguList, KOREA_SIDO, parseUsedRegion } from "@/lib/korea-regions";
+import { UsedAiDraftButton } from "@/components/used/used-ai-draft-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { UsedListingAiDraft } from "@/lib/used-listing-ai";
 import { cn } from "@/lib/utils";
 
 const PRICE_OVER_LIMIT_MSG = "최대 21억 원까지 입력할 수 있습니다.";
@@ -61,6 +63,20 @@ export function UsedPostForm({
   const numericPrice = Number(price) || 0;
   const priceOverLimit =
     !isFree && price.trim() !== "" && Number.isFinite(numericPrice) && numericPrice > MAX_USED_LISTING_PRICE;
+
+  function applyAiDraft(draft: UsedListingAiDraft) {
+    setTitle(draft.title);
+    setDescription(draft.description);
+    if (
+      !isFree &&
+      saleType === "FIXED" &&
+      draft.suggestedPrice != null &&
+      draft.suggestedPrice > 0 &&
+      !price.trim()
+    ) {
+      setPrice(String(draft.suggestedPrice));
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -134,6 +150,20 @@ export function UsedPostForm({
         max={10}
         disabled={loading}
         onUploadingChange={setMediaUploading}
+      />
+
+      <UsedAiDraftButton
+        images={images}
+        category={category}
+        productType={productType}
+        workTitle={workTitle}
+        region={region}
+        saleType={saleType}
+        isFree={isFree}
+        partialTitle={title}
+        partialDescription={description}
+        disabled={loading || mediaUploading}
+        onApply={applyAiDraft}
       />
 
       <Input
