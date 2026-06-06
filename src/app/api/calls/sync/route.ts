@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getCachedAuthUserMinimal } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { CallStatus, CallType } from "@prisma/client";
 
@@ -33,26 +33,39 @@ function serializeCall(call: {
 
 /** Socket 서버 없이도 통화 알림/상태 동기화 (Vercel 프로덕션용) */
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const user = await getCachedAuthUserMinimal();
+  if (!user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if (user.isBanned) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
-  const userId = session.user.id;
+  const userId = user.id;
   const includeUsers = {
     caller: { select: { id: true, username: true, image: true } },
     callee: { select: { id: true, username: true, image: true } },
   } as const;
+  const terminalSince = new Date(Date.now() - 15000);
 
-  const active = await db.voiceCall.findFirst({
+  const calls = await db.voiceCall.findMany({
     where: {
-      OR: [{ callerId: userId }, { calleeId: userId }],
-      status: { in: ACTIVE },
+      AND: [
+        { OR: [{ callerId: userId }, { calleeId: userId }] },
+        {
+          OR: [
+            { status: { in: ACTIVE } },
+            { status: { in: TERMINAL }, updatedAt: { gte: terminalSince } },
+          ],
+        },
+      ],
     },
     orderBy: { updatedAt: "desc" },
+    take: 4,
     include: includeUsers,
   });
 
+  const active = calls.find((c) => ACTIVE.includes(c.status));
   if (active) {
     const isCaller = active.callerId === userId;
     const peer = isCaller ? active.callee : active.caller;
@@ -67,16 +80,7 @@ export async function GET() {
     });
   }
 
-  const recent = await db.voiceCall.findFirst({
-    where: {
-      OR: [{ callerId: userId }, { calleeId: userId }],
-      status: { in: TERMINAL },
-      updatedAt: { gte: new Date(Date.now() - 15000) },
-    },
-    orderBy: { updatedAt: "desc" },
-    include: includeUsers,
-  });
-
+  const recent = calls.find((c) => TERMINAL.includes(c.status));
   if (!recent) {
     return NextResponse.json({ event: null });
   }

@@ -75,7 +75,7 @@ type SyncResponse =
 
 function syncPollIntervalMs(phase: ActiveCallState["phase"], hidden: boolean) {
   if (phase === "active") return 5000;
-  if (phase === "outgoing" || phase === "incoming" || phase === "preparing") return 1000;
+  if (phase === "outgoing" || phase === "incoming" || phase === "preparing") return 350;
   return hidden ? 60000 : 30000;
 }
 
@@ -85,7 +85,9 @@ function useCallBackgroundEnabled(userId: string | undefined) {
   const onCallRoutes =
     pathname.startsWith("/messages") ||
     pathname.startsWith("/voice") ||
-    pathname.startsWith("/live");
+    pathname.startsWith("/live") ||
+    pathname.startsWith("/wallet") ||
+    pathname.startsWith("/notifications");
   return !!userId && onCallRoutes;
 }
 
@@ -94,7 +96,6 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   const userId = session?.user?.id;
   const pathname = usePathname();
   const backgroundSync = useCallBackgroundEnabled(userId);
-  const prefetchLivekitChunk = pathname.startsWith("/messages");
   const [callState, setCallState] = useState<ActiveCallState>({ phase: "idle" });
   const [error, setError] = useState("");
   const [mic, setMic] = useState<MicCheckResult | null>(null);
@@ -103,7 +104,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   const [cameraChecking, setCameraChecking] = useState(false);
   const [prefetchedLivekit, setPrefetchedLivekit] = useState<LivekitCredentials | null>(null);
   const { socket, socketReady } = useAppSocket();
-  const pendingEmitsRef = useRef<{ event: string; payload: { callId: string } }[]>([]);
+  const pendingEmitsRef = useRef<{ event: string; payload: Record<string, unknown> }[]>([]);
   const startCallGenRef = useRef(0);
   const callStateRef = useRef(callState);
   const lastTerminalRef = useRef<string | null>(null);
@@ -141,7 +142,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   }, []);
 
   const emit = useCallback(
-    (event: string, payload: { callId: string }) => {
+    (event: string, payload: Record<string, unknown>) => {
       if (socket?.connected) {
         socket.emit(event, payload);
         return;
@@ -207,8 +208,10 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
 
   const hangup = useCallback(
     async (callId: string) => {
+      const current = callStateRef.current;
+      const peerId = isCallPhase(current) ? current.peer.id : undefined;
       await endCall(callId);
-      emit("call_end", { callId });
+      if (peerId) emit("call_end", { callId, peerId });
       resetCall();
     },
     [emit, resetCall]
@@ -343,9 +346,8 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   }, [socketReady, socket, flushPendingEmits]);
 
   useEffect(() => {
-    if (!prefetchLivekitChunk) return;
     void import("@/components/call/livekit-call-room");
-  }, [prefetchLivekitChunk]);
+  }, []);
 
   const activeCallId = isCallPhase(callState) ? callState.call.id : null;
 
@@ -393,7 +395,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [callState.phase, activeCallId, needsVideo]);
+  }, [activeCallId, needsVideo, mic?.ok, camera?.ok]);
 
   const livekitRoom = isCallPhase(callState) ? callState.call.livekitRoom : null;
 
@@ -469,8 +471,11 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
       }
 
       const callPeer = peerForUser(result.call, userId);
+      if (result.livekit) {
+        setPrefetchedLivekit(result.livekit);
+      }
       setCallState({ phase: "outgoing", call: result.call, peer: callPeer });
-      emit("call_invite", { callId: result.call.id });
+      emit("call_invite", { callId: result.call.id, call: result.call });
       return {};
     },
     [emit, resetCall, userId]
@@ -478,48 +483,64 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
 
   const acceptIncoming = useCallback(async () => {
     if (callState.phase !== "incoming") return;
-    const micResult = mic?.ok ? mic : await quickMicrophoneCheck();
+    const needsCam = isVideoCall(callState.call);
+    const [micResult, camResult] = await Promise.all([
+      mic?.ok ? Promise.resolve(mic) : quickMicrophoneCheck(),
+      needsCam
+        ? camera?.ok
+          ? Promise.resolve(camera)
+          : quickCameraCheck()
+        : Promise.resolve({ ok: true, status: "granted" } as CameraCheckResult),
+    ]);
     if (!micResult.ok) {
       setMic(micResult);
       setError(micResult.message ?? "마이크 확인 후 받을 수 있습니다.");
       return;
     }
     setMic(micResult);
-    if (isVideoCall(callState.call)) {
-      const camResult = camera?.ok ? camera : await quickCameraCheck();
-      if (!camResult.ok) {
-        setCamera(camResult);
-        setError(camResult.message ?? "카메라 확인 후 받을 수 있습니다.");
-        return;
-      }
+    if (needsCam && !camResult.ok) {
       setCamera(camResult);
+      setError(camResult.message ?? "카메라 확인 후 받을 수 있습니다.");
+      return;
     }
+    if (needsCam) setCamera(camResult);
+
     const result = await acceptCall(callState.call.id);
     if (result.error) {
       setError(result.error);
       resetCall();
       return;
     }
-    emit("call_accept", { callId: callState.call.id });
+    if (result.livekit) {
+      setPrefetchedLivekit(result.livekit);
+    }
+    emit("call_accept", {
+      callId: callState.call.id,
+      callerId: callState.call.caller.id,
+      calleeId: callState.call.callee.id,
+    });
     setCallState({ phase: "active", call: callState.call, peer: callState.peer });
   }, [callState, camera, emit, mic, resetCall]);
 
   const declineIncoming = useCallback(async () => {
     if (callState.phase !== "incoming") return;
     await declineCall(callState.call.id);
-    emit("call_decline", { callId: callState.call.id });
+    emit("call_decline", { callId: callState.call.id, peerId: callState.peer.id });
     resetCall();
   }, [callState, emit, resetCall]);
 
   const cancelOutgoing = useCallback(async () => {
     if (callState.phase !== "outgoing") return;
     await declineCall(callState.call.id);
-    emit("call_decline", { callId: callState.call.id });
+    emit("call_decline", { callId: callState.call.id, peerId: callState.peer.id });
     resetCall();
   }, [callState, emit, resetCall]);
 
   const value = useMemo(() => ({ startCall }), [startCall]);
   const busy = callState.phase !== "idle";
+  const connectLivekit =
+    isCallPhase(callState) &&
+    (callState.phase === "active" || callState.phase === "outgoing");
   const activeVideo =
     callState.phase === "active" && isVideoCall(callState.call);
 
@@ -546,7 +567,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
               if (callState.phase === "active") hangup(callState.call.id);
             }}
             livekitSlot={
-              callState.phase === "active" ? (
+              connectLivekit ? (
                 <LivekitCallRoom
                   roomName={callState.call.livekitRoom}
                   video={activeVideo}

@@ -376,53 +376,78 @@ io.on("connection", (socket: AuthedSocket) => {
     });
   });
 
-  socket.on("call_invite", async (data: { callId: string }) => {
-    if (!data.callId) return;
-    try {
-      const call = await prisma.voiceCall.findUnique({
-        where: { id: data.callId },
-        include: {
-          caller: { select: { id: true, username: true, image: true } },
-          callee: { select: { id: true, username: true, image: true } },
-        },
-      });
-      if (!call || call.callerId !== userId || call.status !== "RINGING") return;
-      io.to(`user:${call.calleeId}`).emit("call_incoming", {
-        id: call.id,
-        livekitRoom: call.livekitRoom,
-        chatRoomId: call.chatRoomId,
-        callType: call.callType,
-        status: call.status,
-        caller: call.caller,
-        callee: call.callee,
-      });
-    } catch {
-      socket.emit("error", { message: "Failed to invite call" });
+  socket.on(
+    "call_invite",
+    async (data: {
+      callId: string;
+      call?: {
+        id: string;
+        livekitRoom: string;
+        chatRoomId: string | null;
+        callType: string;
+        status: string;
+        caller: { id: string; username: string; image: string | null };
+        callee: { id: string; username: string; image: string | null };
+      };
+    }) => {
+      if (!data.callId) return;
+      try {
+        if (
+          data.call?.id === data.callId &&
+          data.call.caller.id === userId &&
+          data.call.status === "RINGING" &&
+          data.call.callee?.id
+        ) {
+          io.to(`user:${data.call.callee.id}`).emit("call_incoming", data.call);
+          return;
+        }
+
+        const call = await prisma.voiceCall.findUnique({
+          where: { id: data.callId },
+          select: {
+            id: true,
+            livekitRoom: true,
+            chatRoomId: true,
+            callType: true,
+            status: true,
+            calleeId: true,
+            caller: { select: { id: true, username: true, image: true } },
+            callee: { select: { id: true, username: true, image: true } },
+          },
+        });
+        if (!call || call.caller.id !== userId || call.status !== "RINGING") return;
+        io.to(`user:${call.calleeId}`).emit("call_incoming", {
+          id: call.id,
+          livekitRoom: call.livekitRoom,
+          chatRoomId: call.chatRoomId,
+          callType: call.callType,
+          status: call.status,
+          caller: call.caller,
+          callee: call.callee,
+        });
+      } catch {
+        socket.emit("error", { message: "Failed to invite call" });
+      }
     }
+  );
+
+  socket.on(
+    "call_accept",
+    (data: { callId: string; callerId?: string; calleeId?: string }) => {
+      if (!data.callId || data.calleeId !== userId || !data.callerId) return;
+      io.to(`user:${data.callerId}`).emit("call_accepted", { callId: data.callId });
+      io.to(`user:${data.calleeId}`).emit("call_accepted", { callId: data.callId });
+    }
+  );
+
+  socket.on("call_decline", (data: { callId: string; peerId?: string }) => {
+    if (!data.callId || !data.peerId || data.peerId === userId) return;
+    io.to(`user:${data.peerId}`).emit("call_declined", { callId: data.callId });
   });
 
-  socket.on("call_accept", async (data: { callId: string }) => {
-    if (!data.callId) return;
-    const call = await prisma.voiceCall.findUnique({ where: { id: data.callId } });
-    if (!call || call.calleeId !== userId) return;
-    io.to(`user:${call.callerId}`).emit("call_accepted", { callId: data.callId });
-    io.to(`user:${call.calleeId}`).emit("call_accepted", { callId: data.callId });
-  });
-
-  socket.on("call_decline", async (data: { callId: string }) => {
-    if (!data.callId) return;
-    const call = await prisma.voiceCall.findUnique({ where: { id: data.callId } });
-    if (!call) return;
-    const otherId = call.callerId === userId ? call.calleeId : call.callerId;
-    io.to(`user:${otherId}`).emit("call_declined", { callId: data.callId });
-  });
-
-  socket.on("call_end", async (data: { callId: string }) => {
-    if (!data.callId) return;
-    const call = await prisma.voiceCall.findUnique({ where: { id: data.callId } });
-    if (!call) return;
-    const otherId = call.callerId === userId ? call.calleeId : call.callerId;
-    io.to(`user:${otherId}`).emit("call_ended", { callId: data.callId });
+  socket.on("call_end", (data: { callId: string; peerId?: string }) => {
+    if (!data.callId || !data.peerId || data.peerId === userId) return;
+    io.to(`user:${data.peerId}`).emit("call_ended", { callId: data.callId });
   });
 
   socket.on("disconnect", () => {

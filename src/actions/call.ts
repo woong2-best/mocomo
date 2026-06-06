@@ -2,6 +2,7 @@
 
 import { randomUUID } from "crypto";
 import { notifyIncomingCall } from "@/lib/notifications";
+import { issueCallLivekitCredentials } from "@/lib/call-livekit-credentials";
 import { db } from "@/lib/db";
 import { requireAuth, requireAuthMinimal } from "@/lib/auth";
 import { canAccessDm } from "@/lib/tiers";
@@ -57,15 +58,18 @@ async function getCallWithUsers(callId: string) {
 }
 
 async function assertDmAccess(userId: string, otherUserId: string) {
-  const cosplayer = await db.cosplayerProfile.findUnique({
-    where: { userId: otherUserId },
-    select: { dmEnabled: true, minChatTier: true },
-  });
+  const [cosplayer, support] = await Promise.all([
+    db.cosplayerProfile.findUnique({
+      where: { userId: otherUserId },
+      select: { dmEnabled: true, minChatTier: true },
+    }),
+    db.creatorSupport.findUnique({
+      where: { supporterId_creatorId: { supporterId: userId, creatorId: otherUserId } },
+      select: { tier: true },
+    }),
+  ]);
 
   if (cosplayer?.dmEnabled) {
-    const support = await db.creatorSupport.findUnique({
-      where: { supporterId_creatorId: { supporterId: userId, creatorId: otherUserId } },
-    });
     const userTier = (support?.tier ?? "PEBBLE") as SupportTierLevel;
     if (!canAccessDm(userTier, cosplayer.minChatTier)) {
       throw new Error("DM_TIER_REQUIRED");
@@ -129,26 +133,44 @@ export async function initiateCall(data: {
 
   void notifyIncomingCall(data.calleeId, user.id, callType, data.chatRoomId);
 
-  return { call: serializeCall(call) };
+  const livekit = await issueCallLivekitCredentials(
+    call.livekitRoom,
+    user.id,
+    user.username,
+    callType
+  );
+
+  return { call: serializeCall(call), livekit };
 }
 
 export async function acceptCall(callId: string) {
   const user = await requireAuthMinimal();
-  const call = await getCallWithUsers(callId);
-  if (!call) return { error: "통화를 찾을 수 없습니다." };
-  if (call.calleeId !== user.id) return { error: "수신자만 받을 수 있습니다." };
-  if (call.status !== CallStatus.RINGING) return { error: "이미 처리된 통화입니다." };
 
-  const updated = await db.voiceCall.update({
-    where: { id: callId },
+  const updatedCount = await db.voiceCall.updateMany({
+    where: { id: callId, calleeId: user.id, status: CallStatus.RINGING },
     data: { status: CallStatus.ACTIVE, startedAt: new Date() },
-    include: {
-      caller: { select: { id: true, username: true, image: true } },
-      callee: { select: { id: true, username: true, image: true } },
-    },
   });
+  if (updatedCount.count === 0) {
+    const existing = await db.voiceCall.findUnique({
+      where: { id: callId },
+      select: { calleeId: true, status: true },
+    });
+    if (!existing) return { error: "통화를 찾을 수 없습니다." };
+    if (existing.calleeId !== user.id) return { error: "수신자만 받을 수 있습니다." };
+    return { error: "이미 처리된 통화입니다." };
+  }
 
-  return { call: serializeCall(updated) };
+  const updated = await getCallWithUsers(callId);
+  if (!updated) return { error: "통화를 찾을 수 없습니다." };
+
+  const livekit = await issueCallLivekitCredentials(
+    updated.livekitRoom,
+    user.id,
+    user.username,
+    updated.callType
+  );
+
+  return { call: serializeCall(updated), livekit };
 }
 
 export async function declineCall(callId: string) {
