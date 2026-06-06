@@ -31,15 +31,30 @@ function emitPresenceToRoom(roomId: string, userId: string, online: boolean) {
   io.to(`room:${roomId}`).emit("presence_change", { userId, online });
 }
 
-/** 메시지 목록 등에서 소켓만 연결된 경우에도 DM 상대에게 접속 상태 전달 */
+/** 앱 접속 시 DM·그룹 상대에게 실시간 접속 상태 전달 */
 async function broadcastPresenceToMemberRooms(userId: string, online: boolean) {
   try {
     const memberships = await prisma.chatMember.findMany({
       where: { userId },
       select: { roomId: true },
     });
-    for (const { roomId } of memberships) {
+    const roomIds = memberships.map((m) => m.roomId);
+    if (!roomIds.length) return;
+
+    for (const roomId of roomIds) {
       emitPresenceToRoom(roomId, userId, online);
+    }
+
+    const partners = await prisma.chatMember.findMany({
+      where: { roomId: { in: roomIds }, userId: { not: userId } },
+      select: { userId: true, roomId: true },
+    });
+    for (const partner of partners) {
+      io.to(`user:${partner.userId}`).emit("presence_change", {
+        userId,
+        online,
+        roomId: partner.roomId,
+      });
     }
   } catch {
     /* DB 일시 오류 — 채팅은 계속 */

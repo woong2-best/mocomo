@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { SessionProvider } from "@/components/providers/session-provider";
+import { AppSocketProvider } from "@/components/providers/app-socket-provider";
 import { CallProviderGate } from "@/components/call/call-provider-gate";
 import { ComposeProvider } from "@/components/compose/compose-provider";
 
@@ -14,12 +15,14 @@ const PlatformBootstrapClient = dynamic(
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
+      <AppSocketProvider>
       <ComposeProvider>
         <CallProviderGate>
           <PlatformBootstrapClient />
           {children}
         </CallProviderGate>
       </ComposeProvider>
+      </AppSocketProvider>
     </SessionProvider>
   );
 }

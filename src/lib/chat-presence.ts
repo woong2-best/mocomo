@@ -10,4 +10,5 @@ export type RoomPresencePayload = {
 export type PresenceChangePayload = {
   userId: string;
   online: boolean;
+  roomId?: string;
 };

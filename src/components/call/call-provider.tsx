@@ -21,6 +21,7 @@ import {
 } from "@/lib/camera";
 import { fetchLivekitCredentials, type LivekitCredentials } from "@/lib/livekit-token-fetch";
 import { CallOverlay } from "@/components/call/call-overlay";
+import { useAppSocket } from "@/components/providers/app-socket-provider";
 
 const LivekitCallRoom = dynamic(
   () => import("@/components/call/livekit-call-room").then((m) => m.LivekitCallRoom),
@@ -101,7 +102,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   const [micChecking, setMicChecking] = useState(false);
   const [cameraChecking, setCameraChecking] = useState(false);
   const [prefetchedLivekit, setPrefetchedLivekit] = useState<LivekitCredentials | null>(null);
-  const socketRef = useRef<Socket | null>(null);
+  const { socket, socketReady } = useAppSocket();
   const pendingEmitsRef = useRef<{ event: string; payload: { callId: string } }[]>([]);
   const startCallGenRef = useRef(0);
   const callStateRef = useRef(callState);
@@ -139,14 +140,16 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const emit = useCallback((event: string, payload: { callId: string }) => {
-    const socket = socketRef.current;
-    if (socket?.connected) {
-      socket.emit(event, payload);
-      return;
-    }
-    pendingEmitsRef.current.push({ event, payload });
-  }, []);
+  const emit = useCallback(
+    (event: string, payload: { callId: string }) => {
+      if (socket?.connected) {
+        socket.emit(event, payload);
+        return;
+      }
+      pendingEmitsRef.current.push({ event, payload });
+    },
+    [socket]
+  );
 
   const resetCall = useCallback(() => {
     startCallGenRef.current += 1;
@@ -273,72 +276,71 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   }, [ringingSyncKey, userId, backgroundSync, applySync]);
 
   useEffect(() => {
-    if (!userId || !backgroundSync) return;
-    const url = process.env.NEXT_PUBLIC_SOCKET_URL;
-    if (!url) return;
+    if (!userId || !backgroundSync || !socket) return;
 
-    let socket: Socket | null = null;
-    let disposed = false;
+    const onConnect = () => {
+      flushPendingEmits(socket);
+    };
 
-    import("socket.io-client").then(async ({ io }) => {
-      if (disposed) return;
-      const { fetchSocketAuthToken } = await import("@/lib/socket-client");
-      const token = await fetchSocketAuthToken();
-      if (disposed || !token) return;
-      socket = io(url, {
-        auth: { token },
-        transports: ["websocket", "polling"],
-        reconnection: true,
+    const onCallIncoming = (call: CallPayload) => {
+      setCallState({ phase: "incoming", call, peer: call.caller });
+    };
+
+    const onCallAccepted = ({ callId }: { callId: string }) => {
+      setCallState((prev) => {
+        if (prev.phase === "outgoing" && prev.call.id === callId) {
+          return { phase: "active", call: prev.call, peer: prev.peer };
+        }
+        if (prev.phase === "incoming" && prev.call.id === callId) {
+          return { phase: "active", call: prev.call, peer: prev.peer };
+        }
+        return prev;
       });
-      socketRef.current = socket;
+    };
 
-      socket.on("connect", () => {
-        if (socket) flushPendingEmits(socket);
+    const onCallDeclined = ({ callId }: { callId: string }) => {
+      setCallState((prev) => {
+        if (isCallPhase(prev) && prev.call.id === callId) {
+          setError("상대방이 통화를 거절했습니다.");
+          return { phase: "idle" };
+        }
+        return prev;
       });
+    };
 
-      socket.on("call_incoming", (call: CallPayload) => {
-        setCallState({ phase: "incoming", call, peer: call.caller });
+    const onCallEnded = ({ callId }: { callId: string }) => {
+      setCallState((prev) => {
+        if (isCallPhase(prev) && prev.call.id === callId) {
+          return { phase: "idle" };
+        }
+        return prev;
       });
+    };
 
-      socket.on("call_accepted", ({ callId }: { callId: string }) => {
-        setCallState((prev) => {
-          if (prev.phase === "outgoing" && prev.call.id === callId) {
-            return { phase: "active", call: prev.call, peer: prev.peer };
-          }
-          if (prev.phase === "incoming" && prev.call.id === callId) {
-            return { phase: "active", call: prev.call, peer: prev.peer };
-          }
-          return prev;
-        });
-      });
+    socket.on("connect", onConnect);
+    socket.on("call_incoming", onCallIncoming);
+    socket.on("call_accepted", onCallAccepted);
+    socket.on("call_declined", onCallDeclined);
+    socket.on("call_ended", onCallEnded);
 
-      socket.on("call_declined", ({ callId }: { callId: string }) => {
-        setCallState((prev) => {
-          if (isCallPhase(prev) && prev.call.id === callId) {
-            setError("상대방이 통화를 거절했습니다.");
-            return { phase: "idle" };
-          }
-          return prev;
-        });
-      });
-
-      socket.on("call_ended", ({ callId }: { callId: string }) => {
-        setCallState((prev) => {
-          if (isCallPhase(prev) && prev.call.id === callId) {
-            return { phase: "idle" };
-          }
-          return prev;
-        });
-      });
-    });
+    if (socket.connected) {
+      flushPendingEmits(socket);
+    }
 
     return () => {
-      disposed = true;
-      socket?.disconnect();
-      socketRef.current = null;
+      socket.off("connect", onConnect);
+      socket.off("call_incoming", onCallIncoming);
+      socket.off("call_accepted", onCallAccepted);
+      socket.off("call_declined", onCallDeclined);
+      socket.off("call_ended", onCallEnded);
       pendingEmitsRef.current = [];
     };
-  }, [userId, backgroundSync, flushPendingEmits]);
+  }, [userId, backgroundSync, socket, flushPendingEmits]);
+
+  useEffect(() => {
+    if (!socketReady || !socket?.connected) return;
+    flushPendingEmits(socket);
+  }, [socketReady, socket, flushPendingEmits]);
 
   useEffect(() => {
     if (!prefetchLivekitChunk) return;
