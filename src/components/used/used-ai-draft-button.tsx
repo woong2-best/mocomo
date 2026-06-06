@@ -90,8 +90,8 @@ export function UsedAiDraftButton({
             AI 상품 설명
           </p>
           <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-            올린 사진을 보고 상품 설명(제목·가격 초안 포함)을 대신 써 드립니다. 확인 후
-            수정해서 올려 주세요.
+            올린 사진을 보고 상품 설명(제목·가격 초안 포함)을 대신 써 드립니다. Google
+            Gemini 무료 API 키로 동작합니다.
           </p>
         </div>
         <Button

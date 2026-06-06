@@ -19,8 +19,20 @@ export type UsedListingAiDraft = {
   suggestedPrice: number | null;
 };
 
-function isConfigured() {
-  return !!process.env.OPENAI_API_KEY?.trim();
+function geminiKey() {
+  return (
+    process.env.GEMINI_API_KEY?.trim() ||
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim() ||
+    ""
+  );
+}
+
+function openaiKey() {
+  return process.env.OPENAI_API_KEY?.trim() || "";
+}
+
+export function isUsedListingAiConfigured() {
+  return !!(geminiKey() || openaiKey());
 }
 
 function buildPrompt(input: UsedListingAiInput): string {
@@ -85,22 +97,109 @@ function parseDraft(raw: string): UsedListingAiDraft | null {
   }
 }
 
-export async function generateUsedListingDraft(
-  input: UsedListingAiInput
+async function fetchImageInline(
+  url: string
+): Promise<{ mimeType: string; data: string } | null> {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(12_000) });
+    if (!res.ok) return null;
+    const mimeType = res.headers.get("content-type")?.split(";")[0]?.trim() || "image/jpeg";
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.length > 4 * 1024 * 1024) return null;
+    return { mimeType, data: buf.toString("base64") };
+  } catch {
+    return null;
+  }
+}
+
+/** Google Gemini — AI Studio 무료 키 (카드 없이 발급 가능) */
+async function generateWithGemini(
+  input: UsedListingAiInput,
+  images: string[]
 ): Promise<{ draft?: UsedListingAiDraft; error?: string }> {
-  if (!isConfigured()) {
-    return {
-      error: "AI 기능이 설정되지 않았습니다. OPENAI_API_KEY를 서버에 추가해 주세요.",
-    };
+  const key = geminiKey();
+  if (!key) return { error: "GEMINI_API_KEY 없음" };
+
+  const prompt = buildPrompt(input);
+  const parts: Array<{ text?: string; inline_data?: { mime_type: string; data: string } }> = [
+    { text: prompt },
+  ];
+
+  for (const url of images) {
+    const inline = await fetchImageInline(url);
+    if (inline) {
+      parts.push({ inline_data: { mime_type: inline.mimeType, data: inline.data } });
+    }
   }
 
-  const images = input.images
-    .filter((u) => typeof u === "string" && u.startsWith("https://"))
-    .slice(0, 4);
-
-  if (images.length === 0) {
-    return { error: "AI 글쓰기는 업로드된 사진이 1장 이상 필요합니다." };
+  if (parts.length < 2) {
+    return { error: "사진을 불러오지 못했습니다. 업로드가 끝난 뒤 다시 시도해 주세요." };
   }
+
+  const models = ["gemini-2.0-flash", "gemini-1.5-flash"];
+  let lastError = "AI 글 생성에 실패했습니다.";
+
+  for (const model of models) {
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            generationConfig: {
+              temperature: 0.6,
+              maxOutputTokens: 900,
+              responseMimeType: "application/json",
+            },
+            contents: [{ role: "user", parts }],
+          }),
+          signal: AbortSignal.timeout(45_000),
+        }
+      );
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        console.warn("[used-listing-ai] gemini", model, res.status, errText.slice(0, 200));
+        lastError =
+          res.status === 429
+            ? "무료 AI 한도에 도달했습니다. 잠시 후 다시 시도해 주세요."
+            : "AI 글 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.";
+        continue;
+      }
+
+      const data = (await res.json()) as {
+        candidates?: { content?: { parts?: { text?: string }[] } }[];
+      };
+      const content = data.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") ?? "";
+      if (!content) {
+        lastError = "AI 응답이 비어 있습니다.";
+        continue;
+      }
+
+      const draft = parseDraft(content);
+      if (!draft) {
+        lastError = "AI 응답을 해석하지 못했습니다.";
+        continue;
+      }
+
+      if (input.isFree) draft.suggestedPrice = null;
+      return { draft };
+    } catch (e) {
+      console.warn("[used-listing-ai] gemini", model, e);
+      lastError = "AI 요청 시간이 초과되었습니다.";
+    }
+  }
+
+  return { error: lastError };
+}
+
+async function generateWithOpenAI(
+  input: UsedListingAiInput,
+  images: string[]
+): Promise<{ draft?: UsedListingAiDraft; error?: string }> {
+  const key = openaiKey();
+  if (!key) return { error: "OPENAI_API_KEY 없음" };
 
   const userContent: Array<
     | { type: "text"; text: string }
@@ -118,7 +217,7 @@ export async function generateUsedListingDraft(
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -139,8 +238,6 @@ export async function generateUsedListingDraft(
     });
 
     if (!res.ok) {
-      const errText = await res.text().catch(() => "");
-      console.warn("[used-listing-ai]", res.status, errText.slice(0, 200));
       return { error: "AI 글 생성에 실패했습니다. 잠시 후 다시 시도해 주세요." };
     }
 
@@ -151,13 +248,40 @@ export async function generateUsedListingDraft(
     if (!content) return { error: "AI 응답이 비어 있습니다." };
 
     const draft = parseDraft(content);
-    if (!draft) return { error: "AI 응답을 해석하지 못했습니다. 다시 시도해 주세요." };
-
+    if (!draft) return { error: "AI 응답을 해석하지 못했습니다." };
     if (input.isFree) draft.suggestedPrice = null;
-
     return { draft };
-  } catch (e) {
-    console.warn("[used-listing-ai]", e);
-    return { error: "AI 요청 시간이 초과되었습니다. 사진 수를 줄이고 다시 시도해 주세요." };
+  } catch {
+    return { error: "AI 요청 시간이 초과되었습니다." };
   }
+}
+
+export async function generateUsedListingDraft(
+  input: UsedListingAiInput
+): Promise<{ draft?: UsedListingAiDraft; error?: string }> {
+  if (!isUsedListingAiConfigured()) {
+    return {
+      error:
+        "AI 키가 없습니다. Vercel에 GEMINI_API_KEY(무료)를 추가해 주세요. aistudio.google.com/apikey 에서 발급",
+    };
+  }
+
+  const images = input.images
+    .filter((u) => typeof u === "string" && u.startsWith("https://"))
+    .slice(0, 4);
+
+  if (images.length === 0) {
+    return { error: "AI 글쓰기는 업로드된 사진이 1장 이상 필요합니다." };
+  }
+
+  if (geminiKey()) {
+    const gemini = await generateWithGemini(input, images);
+    if (gemini.draft || !openaiKey()) return gemini;
+  }
+
+  if (openaiKey()) {
+    return generateWithOpenAI(input, images);
+  }
+
+  return { error: "AI 설정을 확인해 주세요." };
 }
