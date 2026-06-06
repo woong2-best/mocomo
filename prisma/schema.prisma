@@ -147,6 +147,8 @@ model User {
   animesCreated Anime[] @relation("AnimeCreator")
   platformDevSupporter Boolean @default(false)
 
+  pushSubscriptions PushSubscription[]
+
   wallet           Wallet?
   bankAccount      BankAccount?
   payoutRequests   PayoutRequest[]
@@ -1524,6 +1526,21 @@ model ModLog {
   createdAt DateTime @default(now())
   actor  User @relation("ModActor", fields: [actorId], references: [id])
   target User @relation("ModTarget", fields: [targetId], references: [id])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, endpoint])
+  @@index([userId])
 }
 
 model Notification {

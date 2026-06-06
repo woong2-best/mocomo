@@ -293,17 +293,30 @@ export async function notifyIncomingCall(
   calleeId: string,
   callerId: string,
   callType: "AUDIO" | "VIDEO",
+  callId: string,
   chatRoomId?: string | null
 ) {
   const caller = await getActor(callerId);
   const kind = callType === "VIDEO" ? "영상" : "음성";
+  const label = actorLabel(caller);
   scheduleNotification({
     userId: calleeId,
     actorId: callerId,
     type: "call",
     title: "수신 통화",
-    body: `${actorLabel(caller)}님의 ${kind} 통화`,
-    link: chatRoomId ? `/messages/${chatRoomId}` : "/messages",
+    body: `${label}님의 ${kind} 통화`,
+    link: `/?incomingCall=${callId}`,
+  });
+  after(async () => {
+    const { sendIncomingCallPush } = await import("@/lib/web-push");
+    await sendIncomingCallPush({
+      calleeId,
+      callerId,
+      callId,
+      callerName: label,
+      callType,
+      chatRoomId,
+    });
   });
 }
 

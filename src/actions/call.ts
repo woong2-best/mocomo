@@ -131,7 +131,7 @@ export async function initiateCall(data: {
     },
   });
 
-  void notifyIncomingCall(data.calleeId, user.id, callType, data.chatRoomId);
+  void notifyIncomingCall(data.calleeId, user.id, callType, call.id, data.chatRoomId);
 
   const livekit = await issueCallLivekitCredentials(
     call.livekitRoom,

@@ -5,6 +5,7 @@ import { SessionProvider } from "@/components/providers/session-provider";
 import { AppSocketProvider } from "@/components/providers/app-socket-provider";
 import { CallProviderGate } from "@/components/call/call-provider-gate";
 import { ComposeProvider } from "@/components/compose/compose-provider";
+import { PushRegistration } from "@/components/push/push-registration";
 
 const PlatformBootstrapClient = dynamic(
   () =>
@@ -17,6 +18,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     <SessionProvider>
       <AppSocketProvider>
       <ComposeProvider>
+        <PushRegistration />
         <CallProviderGate>
           <PlatformBootstrapClient />
           {children}

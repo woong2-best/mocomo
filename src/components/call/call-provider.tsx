@@ -93,6 +93,10 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   const startCallGenRef = useRef(0);
   const callStateRef = useRef(callState);
   const lastTerminalRef = useRef<string | null>(null);
+  const pendingDeepLinkRef = useRef<{
+    callId: string;
+    action?: "accept" | "decline";
+  } | null>(null);
 
   callStateRef.current = callState;
 
@@ -201,6 +205,34 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     },
     [emit, resetCall]
   );
+
+  useEffect(() => {
+    if (!userId || typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    const incomingCall = params.get("incomingCall");
+    if (!incomingCall) return;
+
+    const accept = params.get("accept") === "1";
+    const decline = params.get("decline") === "1";
+    pendingDeepLinkRef.current = {
+      callId: incomingCall,
+      action: accept ? "accept" : decline ? "decline" : undefined,
+    };
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("incomingCall");
+    url.searchParams.delete("accept");
+    url.searchParams.delete("decline");
+    window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+
+    void fetch("/api/calls/sync", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) applySync(data as SyncResponse);
+      })
+      .catch(() => undefined);
+  }, [userId, applySync]);
 
   useEffect(() => {
     if (!userId) return;
@@ -531,6 +563,19 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     emit("call_decline", { callId: callState.call.id, peerId: callState.peer.id });
     resetCall();
   }, [callState, emit, resetCall]);
+
+  useEffect(() => {
+    const pending = pendingDeepLinkRef.current;
+    if (!pending || callState.phase !== "incoming" || callState.call.id !== pending.callId) {
+      return;
+    }
+    pendingDeepLinkRef.current = null;
+    if (pending.action === "decline") {
+      void declineIncoming();
+    } else if (pending.action === "accept") {
+      void acceptIncoming();
+    }
+  }, [callState, acceptIncoming, declineIncoming]);
 
   const value = useMemo(() => ({ startCall }), [startCall]);
   const busy = callState.phase !== "idle";
