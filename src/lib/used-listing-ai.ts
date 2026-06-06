@@ -136,8 +136,12 @@ async function generateWithGemini(
     return { error: "사진을 불러오지 못했습니다. 업로드가 끝난 뒤 다시 시도해 주세요." };
   }
 
-  const models = ["gemini-2.0-flash", "gemini-1.5-flash"];
-  let lastError = "AI 글 생성에 실패했습니다.";
+  const models = [
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-flash-latest",
+  ];
+  let lastError = "AI 글 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.";
 
   for (const model of models) {
     try {
@@ -161,10 +165,17 @@ async function generateWithGemini(
       if (!res.ok) {
         const errText = await res.text().catch(() => "");
         console.warn("[used-listing-ai] gemini", model, res.status, errText.slice(0, 200));
-        lastError =
+        const nextError =
           res.status === 429
             ? "무료 AI 한도에 도달했습니다. 잠시 후 다시 시도해 주세요."
-            : "AI 글 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.";
+            : res.status === 403
+              ? "Gemini API 키가 유효하지 않습니다. Vercel GEMINI_API_KEY를 확인해 주세요."
+              : res.status === 404
+                ? null
+                : "AI 글 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.";
+        if (nextError && (res.status === 429 || res.status === 403 || lastError.includes("실패"))) {
+          lastError = nextError;
+        }
         continue;
       }
 
