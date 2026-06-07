@@ -44,6 +44,12 @@ export function useFaceFilterPipeline(defaultFilter: FaceFilterId = "natural") {
     return pipelineRef.current?.buildCompositeStream() ?? rawStreamRef.current;
   }, []);
 
+  const waitForBroadcastReady = useCallback(async () => {
+    const pipeline = pipelineRef.current;
+    if (!pipeline) throw new Error("카메라가 준비되지 않았습니다.");
+    await pipeline.waitForBroadcastReady();
+  }, []);
+
   const capturePhoto = useCallback(async () => {
     const pipeline = pipelineRef.current;
     if (!pipeline) throw new Error("카메라가 준비되지 않았습니다.");
@@ -65,6 +71,7 @@ export function useFaceFilterPipeline(defaultFilter: FaceFilterId = "natural") {
     attachRawStream,
     stop,
     getCompositeStream,
+    waitForBroadcastReady,
     capturePhoto,
     rawStreamRef,
   };

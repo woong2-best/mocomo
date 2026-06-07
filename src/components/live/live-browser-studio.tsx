@@ -58,6 +58,7 @@ export function LiveBrowserStudio({
     attachRawStream,
     stop: stopFilterPipeline,
     getCompositeStream,
+    waitForBroadcastReady,
   } = useFaceFilterPipeline("natural");
 
   const [publishState, setPublishState] = useState<HostPublishState | "loading">("loading");
@@ -130,7 +131,12 @@ export function LiveBrowserStudio({
       } catch (e) {
         if (!cancelled) {
           setPublishState("idle");
-          setLoadError(e instanceof Error ? e.message : "연결 실패");
+          const msg = e instanceof Error ? e.message : "연결 실패";
+          setLoadError(
+            msg === "Failed to fetch"
+              ? "방송 서버에 연결하지 못했습니다. 네트워크·로그인 상태를 확인해 주세요."
+              : msg
+          );
         }
       }
     })();
@@ -158,10 +164,11 @@ export function LiveBrowserStudio({
 
     if (!raw) throw new Error("카메라 스트림을 시작할 수 없습니다.");
     await attachRawStream(raw);
+    await waitForBroadcastReady().catch(() => undefined);
     const composite = getCompositeStream();
     streamRef.current = composite ?? raw;
     return streamRef.current;
-  }, [attachRawStream, getCompositeStream, screenOn]);
+  }, [attachRawStream, getCompositeStream, waitForBroadcastReady, screenOn]);
 
   useEffect(() => {
     const host = previewHostRef.current;
@@ -216,7 +223,18 @@ export function LiveBrowserStudio({
 
       if (markLiveInDb) {
         const tabId = getOrCreatePublisherTabId();
-        const res = await startBrowserLiveBroadcast(channelId, tabId);
+        let res: Awaited<ReturnType<typeof startBrowserLiveBroadcast>>;
+        try {
+          res = await startBrowserLiveBroadcast(channelId, tabId);
+        } catch (e) {
+          const msg =
+            e instanceof Error && e.message === "Failed to fetch"
+              ? "방송 상태 저장 요청이 실패했습니다. 네트워크를 확인하고 다시 시도해 주세요."
+              : e instanceof Error
+                ? e.message
+                : "방송 시작 실패";
+          throw new Error(msg);
+        }
         if ("error" in res && res.error) {
           whipRef.current?.stop();
           setWhipConnected(false);

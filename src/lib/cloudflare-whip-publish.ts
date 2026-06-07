@@ -82,14 +82,25 @@ export class CloudflareWhipPublisher {
     if (!rawSdp) throw new Error("SDP offer 생성 실패");
     const sdp = normalizeSdp(rawSdp);
 
-    const res = await fetch(whipUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/sdp",
-        Accept: "application/sdp",
-      },
-      body: sdp,
-    });
+    let res: Response;
+    try {
+      res = await fetch(whipUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/sdp",
+          Accept: "application/sdp",
+        },
+        body: sdp,
+      });
+    } catch (e) {
+      const hint =
+        e instanceof TypeError && e.message === "Failed to fetch"
+          ? "Cloudflare 송출 서버에 연결하지 못했습니다. 네트워크·VPN·광고차단을 확인하거나 필터를 「원본」으로 바꿔 다시 시도해 주세요."
+          : e instanceof Error
+            ? e.message
+            : "WHIP 네트워크 오류";
+      throw new Error(hint);
+    }
 
     if (!res.ok) {
       const text = await res.text().catch(() => "");
