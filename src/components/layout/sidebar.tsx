@@ -4,12 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PenSquare } from "lucide-react";
 import { ComposeOpenButton } from "@/components/compose/compose-open-button";
-import { FolkBrushDivider, FolkFloralAccent, FolkSunFace } from "@/components/brand/folk-decor";
+import { FolkFloralAccent } from "@/components/brand/folk-decor";
 import { cn } from "@/lib/utils";
 import { mainNavItems } from "@/lib/nav-items";
 import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
-import { BrandLogo } from "@/components/brand/brand-logo";
-import { BRAND } from "@/lib/brand";
 import { useLocale } from "@/components/providers/locale-provider";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
 
@@ -31,21 +29,6 @@ export function Sidebar() {
   return (
     <aside className="hidden lg:flex w-[17rem] xl:w-[18rem] flex-col shrink-0 sticky top-14 h-app bg-[hsl(var(--folk-cream)/0.6)] dark:bg-background border-r-2 border-folk-cobalt/20 p-4 gap-3 overflow-y-auto relative">
       <FolkFloralAccent className="absolute -right-2 top-24 w-24 h-16 pointer-events-none" />
-
-      <Link href="/" className="sidebar-block !py-4 !shadow-folk">
-        <FolkSunFace size={40} className="hidden xl:block animate-folk-float" />
-        <div className="h-11 w-11 rounded-xl bg-folk-cream border-2 border-folk-cobalt/25 flex items-center justify-center shrink-0 overflow-hidden p-0.5 xl:hidden">
-          <BrandLogo size={40} priority />
-        </div>
-        <div className="min-w-0">
-          <span className="text-lg font-display font-bold block truncate text-folk-cobalt folk-chunky-text">
-            {BRAND.name}
-          </span>
-          <p className="text-xs text-folk-forest font-medium">{BRAND.tagline}</p>
-        </div>
-      </Link>
-
-      <FolkBrushDivider />
 
       <nav className="flex flex-col gap-2 flex-1 min-h-0">
         {navItems.map(({ href, icon: Icon, labelKey }) => (
