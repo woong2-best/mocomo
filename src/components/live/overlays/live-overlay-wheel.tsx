@@ -27,9 +27,11 @@ function wedgePath(index: number, count: number) {
 
 export function LiveOverlayWheel({
   widgetId,
+  selected,
   props,
 }: {
   widgetId: string;
+  selected: boolean;
   props: LiveOverlayWheelProps;
 }) {
   const clipId = useId().replace(/:/g, "");
@@ -44,6 +46,10 @@ export function LiveOverlayWheel({
   function spin(e: React.MouseEvent) {
     e.stopPropagation();
     if (!isHost || !ctx || props.spinning) return;
+    if (!selected) {
+      ctx.setSelectedId(widgetId);
+      return;
+    }
     ctx.spinWheel(widgetId);
   }
 

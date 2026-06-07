@@ -14,7 +14,11 @@ type Props = {
   children: React.ReactNode;
 };
 
-/** 돌림판 — 화면에는 원만, 편집은 툴바에서 */
+function squareHeightPercent(parentWidth: number, parentHeight: number, wPercent: number) {
+  if (parentHeight <= 0) return wPercent;
+  return ((wPercent / 100) * parentWidth / parentHeight) * 100;
+}
+
 export function LiveOverlayWidgetFrame({
   widget,
   selected,
@@ -25,55 +29,6 @@ export function LiveOverlayWidgetFrame({
   children,
 }: Props) {
   const isWheel = widget.type === "wheel";
-
-  if (!widget.visible) return null;
-
-  if (isWheel) {
-    return (
-      <div
-        className="absolute select-none rounded-full"
-        style={{
-          left: `${widget.x}%`,
-          top: `${widget.y}%`,
-          width: `${widget.w}%`,
-          aspectRatio: "1 / 1",
-          height: "auto",
-          zIndex: widget.z,
-        }}
-        onPointerDown={(e) => {
-          if (!editable) return;
-          e.stopPropagation();
-          onSelect();
-        }}
-      >
-        <div className="h-full w-full rounded-full overflow-visible">{children}</div>
-      </div>
-    );
-  }
-
-  return (
-    <WheellessFrame
-      widget={widget}
-      selected={selected}
-      editable={editable}
-      onSelect={onSelect}
-      onChange={onChange}
-      onRemove={onRemove}
-    >
-      {children}
-    </WheellessFrame>
-  );
-}
-
-function WheellessFrame({
-  widget,
-  selected,
-  editable,
-  onSelect,
-  onChange,
-  onRemove,
-  children,
-}: Props) {
   const dragRef = useRef<{ px: number; py: number; x: number; y: number } | null>(null);
   const resizeRef = useRef<{ px: number; py: number; w: number; h: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -97,12 +52,15 @@ function WheellessFrame({
       const parent = containerRef.current.parentElement.getBoundingClientRect();
       const dx = ((e.clientX - dragRef.current.px) / parent.width) * 100;
       const dy = ((e.clientY - dragRef.current.py) / parent.height) * 100;
+      const maxY = isWheel
+        ? 100 - squareHeightPercent(parent.width, parent.height, widget.w)
+        : 100 - widget.h;
       onChange({
         x: clamp(dragRef.current.x + dx, 0, 100 - widget.w),
-        y: clamp(dragRef.current.y + dy, 0, 100 - widget.h),
+        y: clamp(dragRef.current.y + dy, 0, maxY),
       });
     },
-    [onChange, widget.h, widget.w]
+    [isWheel, onChange, widget.h, widget.w]
   );
 
   const onDragPointerUp = useCallback(() => {
@@ -126,30 +84,38 @@ function WheellessFrame({
       const parent = containerRef.current.parentElement.getBoundingClientRect();
       const dw = ((e.clientX - resizeRef.current.px) / parent.width) * 100;
       const dh = ((e.clientY - resizeRef.current.py) / parent.height) * 100;
+      if (isWheel) {
+        const nextW = clamp(resizeRef.current.w + dw, 14, 100 - widget.x);
+        onChange({ w: nextW, h: nextW });
+        return;
+      }
       onChange({
         w: clamp(resizeRef.current.w + dw, 12, 100 - widget.x),
         h: clamp(resizeRef.current.h + dh, 10, 100 - widget.y),
       });
     },
-    [onChange, widget.x, widget.y]
+    [isWheel, onChange, widget.x, widget.y]
   );
 
   const onResizePointerUp = useCallback(() => {
     resizeRef.current = null;
   }, []);
 
+  if (!widget.visible) return null;
+
   return (
     <div
       ref={containerRef}
       className={cn(
         "absolute select-none",
-        selected && editable && "ring-2 ring-orange-400 ring-offset-1 ring-offset-transparent"
+        isWheel ? "rounded-full" : "",
+        selected && editable && (isWheel ? "ring-2 ring-orange-400 ring-offset-1 ring-offset-transparent rounded-full" : "ring-2 ring-orange-400 ring-offset-1 ring-offset-transparent")
       )}
       style={{
         left: `${widget.x}%`,
         top: `${widget.y}%`,
         width: `${widget.w}%`,
-        height: `${widget.h}%`,
+        ...(isWheel ? { aspectRatio: "1 / 1", height: "auto" } : { height: `${widget.h}%` }),
         zIndex: widget.z,
       }}
       onPointerDown={(e) => {
@@ -160,7 +126,7 @@ function WheellessFrame({
     >
       {editable && selected && (
         <div
-          className="absolute -top-7 left-0 right-0 flex items-center justify-between gap-1 rounded-md bg-black/75 px-1 py-0.5 text-white pointer-events-auto"
+          className="absolute -top-7 left-0 right-0 flex items-center justify-between gap-1 rounded-md bg-black/75 px-1 py-0.5 text-white pointer-events-auto z-30"
           onPointerDown={(e) => e.stopPropagation()}
         >
           <button
@@ -185,10 +151,20 @@ function WheellessFrame({
           </button>
         </div>
       )}
-      <div className="h-full w-full overflow-hidden rounded-lg">{children}</div>
+      <div
+        className={cn(
+          "h-full w-full",
+          isWheel ? "rounded-full overflow-visible" : "overflow-hidden rounded-lg"
+        )}
+      >
+        {children}
+      </div>
       {editable && selected && (
         <div
-          className="absolute bottom-0 right-0 h-4 w-4 cursor-se-resize rounded-tl bg-orange-500/90 pointer-events-auto"
+          className={cn(
+            "absolute bottom-0 right-0 h-4 w-4 cursor-se-resize pointer-events-auto z-30",
+            isWheel ? "rounded-tl-full bg-orange-500/90" : "rounded-tl bg-orange-500/90"
+          )}
           onPointerDown={onResizePointerDown}
           onPointerMove={onResizePointerMove}
           onPointerUp={onResizePointerUp}

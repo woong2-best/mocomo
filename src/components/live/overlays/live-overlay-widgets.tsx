@@ -30,12 +30,14 @@ export function TextOverlayWidget({ props }: { props: LiveOverlayTextProps }) {
 
 export function WheelOverlayWidget({
   widgetId,
+  selected,
   props,
 }: {
   widgetId: string;
+  selected: boolean;
   props: LiveOverlayWheelProps;
 }) {
-  return <LiveOverlayWheel widgetId={widgetId} props={props} />;
+  return <LiveOverlayWheel widgetId={widgetId} selected={selected} props={props} />;
 }
 
 export function LotteryOverlayWidget({ props }: { props: LiveOverlayLotteryProps }) {
