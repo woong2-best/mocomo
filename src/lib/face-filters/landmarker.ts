@@ -24,7 +24,7 @@ export async function getFaceLandmarker(): Promise<FaceLandmarker | null> {
           runningMode: "VIDEO",
           numFaces: 1,
           outputFaceBlendshapes: false,
-          outputFacialTransformationMatrixes: false,
+          outputFacialTransformationMatrixes: true,
         });
       } catch {
         try {
@@ -37,6 +37,7 @@ export async function getFaceLandmarker(): Promise<FaceLandmarker | null> {
             },
             runningMode: "VIDEO",
             numFaces: 1,
+            outputFacialTransformationMatrixes: true,
           });
         } catch {
           return null;

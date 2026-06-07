@@ -6,6 +6,7 @@ import {
   getFaceFilterPreset,
   type FaceFilterId,
 } from "@/lib/face-filters/presets";
+import { drawFaceMask3d } from "@/lib/face-filters/mesh-warp";
 
 type NormPoint = { x: number; y: number };
 
@@ -253,5 +254,10 @@ export function renderFilteredFrame(
 
   drawFaceBeauty(ctx, source, landmarkerResult, w, h, preset.beauty);
   if (preset.blush) drawBlush(ctx, landmarkerResult, w, h, preset.blush);
-  drawOverlay(ctx, landmarkerResult, w, h, filterId, tick);
+
+  if (preset.mask3d) {
+    drawFaceMask3d(ctx, landmarkerResult, w, h, preset.mask3d, tick);
+  } else {
+    drawOverlay(ctx, landmarkerResult, w, h, filterId, tick);
+  }
 }

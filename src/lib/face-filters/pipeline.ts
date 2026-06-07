@@ -3,7 +3,7 @@
 import type { FaceLandmarker, FaceLandmarkerResult } from "@mediapipe/tasks-vision";
 import { getFaceLandmarker } from "@/lib/face-filters/landmarker";
 import { renderFilteredFrame } from "@/lib/face-filters/renderer";
-import type { FaceFilterId } from "@/lib/face-filters/presets";
+import { getFaceFilterPreset, type FaceFilterId } from "@/lib/face-filters/presets";
 
 export class FaceFilterPipeline {
   readonly canvas: HTMLCanvasElement;
@@ -32,6 +32,8 @@ export class FaceFilterPipeline {
 
   setFilter(id: FaceFilterId) {
     this.filterId = id;
+    const preset = getFaceFilterPreset(id);
+    this.detectEvery = preset.mask3d ? 1 : 2;
   }
 
   getFilter(): FaceFilterId {
