@@ -7,8 +7,6 @@ import { Loader2, Radio } from "lucide-react";
 import { livePublisherIdentities } from "@/lib/live-participant";
 import { fetchLivekitCredentials } from "@/lib/livekit-token-fetch";
 import "@livekit/components-styles";
-import { LiveOverlayLayer } from "@/components/live/overlays/live-overlay-layer";
-
 function PublisherVideo({
   channelId,
   hostUserId,
@@ -126,7 +124,6 @@ export function LivekitLivePlayer({
       <span className="absolute top-3 left-3 px-2 py-0.5 rounded bg-violet-600 text-white text-[10px] font-bold z-10 pointer-events-none">
         실시간
       </span>
-      <LiveOverlayLayer pointerEvents="none" className="z-[12]" />
     </div>
   );
 }

@@ -652,6 +652,8 @@ model VoiceChannel {
   /** WHIP 송출 중인 브라우저 탭 ID — 한 탭만 송출 */
   livePublisherTabId String? @db.VarChar(64)
   endedAt          DateTime?
+  /** 방송 오버레이(텍스트·돌림판·추첨) — 시청자 동기화 */
+  liveOverlayJson  Json?
 
   linkedChatRoom ChatRoom?
   members        VoiceMember[]

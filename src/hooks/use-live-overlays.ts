@@ -49,6 +49,12 @@ export function useLiveOverlays(
       if (publishTimer.current) clearTimeout(publishTimer.current);
       publishTimer.current = setTimeout(() => {
         publishLiveOverlayState(socket, channelId, next);
+        void fetch(`/api/live/${channelId}/overlay`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ state: next }),
+        }).catch(() => {});
       }, 120);
     },
     [channelId, isHost, socket]
@@ -68,7 +74,16 @@ export function useLiveOverlays(
     const saved = loadOverlayStateFromStorage(channelId);
     if (saved?.widgets.length) {
       applyState(normalizeOverlayState(saved), true);
+      return;
     }
+    void fetch(`/api/live/${channelId}/overlay`, { credentials: "include", cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body: { state?: LiveOverlayState } | null) => {
+        if (body?.state?.widgets?.length) {
+          applyState(normalizeOverlayState(body.state), true);
+        }
+      })
+      .catch(() => {});
   }, [applyState, channelId, isHost]);
 
   useEffect(() => {
@@ -78,6 +93,38 @@ export function useLiveOverlays(
       setState(normalizeOverlayState(payload.state));
     });
   }, [channelId, isHost, socket]);
+
+  /** 시청자 — 소켓 외 DB 폴링 (늦게 입장·모바일 대비) */
+  useEffect(() => {
+    if (isHost) return;
+    let cancelled = false;
+
+    async function pull() {
+      try {
+        const res = await fetch(`/api/live/${channelId}/overlay`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+        if (cancelled || !res.ok) return;
+        const body = (await res.json()) as { state?: LiveOverlayState };
+        if (!body.state?.widgets) return;
+        setState((prev) => {
+          const next = normalizeOverlayState(body.state!);
+          if (next.version <= prev.version && prev.widgets.length) return prev;
+          return next;
+        });
+      } catch {
+        /* ignore */
+      }
+    }
+
+    void pull();
+    const id = window.setInterval(pull, 6000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [channelId, isHost]);
 
   const addWidget = useCallback(
     (type: LiveOverlayWidgetType) => {

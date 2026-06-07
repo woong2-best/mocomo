@@ -1,4 +1,5 @@
 import type { LiveStreamStatus } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import type { BroadcastSessionPhase } from "@/lib/live-broadcast/types";
 
 export function resolveBroadcastPhase(
@@ -22,4 +23,5 @@ export const SESSION_END_DATA = {
   rtmpUrl: null,
   rtmpStreamKey: null,
   livePublisherTabId: null,
+  liveOverlayJson: Prisma.DbNull,
 };

@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LiveViewerPlayer } from "@/components/live/live-viewer-player";
 import { LiveRoomFollowButton } from "@/components/live/live-room-follow-button";
 import { LiveMobileOverlayChat } from "@/components/live/mobile/live-mobile-overlay-chat";
+import { LiveOverlayLayer } from "@/components/live/overlays/live-overlay-layer";
 import type { LiveBroadcastMode, LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 
 export type LiveMobilePortraitViewerProps = {
@@ -66,11 +67,14 @@ export function LiveMobilePortraitViewer({
             hostUserId={hostUserId}
             broadcastMode={broadcastMode}
             isLiveOnAir={isLiveOnAir}
+            showOverlays={false}
           />
         </div>
       </div>
 
-      <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/70 pointer-events-none" />
+      <LiveOverlayLayer pointerEvents="none" className="z-[22]" />
+
+      <div className="absolute inset-0 z-[10] bg-gradient-to-b from-black/55 via-transparent to-black/70 pointer-events-none" />
 
       <header className="absolute top-0 left-0 right-0 z-20 flex items-center gap-2 px-3 pt-safe pb-2 pointer-events-auto">
         {hostUsername ? (
