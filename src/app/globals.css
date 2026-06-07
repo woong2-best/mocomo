@@ -94,6 +94,16 @@
   .pb-action-bar {
     padding-bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px));
   }
+
+  .live-mobile-portrait-root {
+    touch-action: manipulation;
+    overscroll-behavior: none;
+  }
+
+  .mask-fade-top {
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 18%);
+    mask-image: linear-gradient(to bottom, transparent 0%, black 18%);
+  }
   .min-h-app {
     min-height: calc(100dvh - var(--header-h));
   }

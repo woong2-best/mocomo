@@ -12,7 +12,7 @@ import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft } from "lucide-react";
+import { LiveVoiceViewerBackLink } from "@/components/live/mobile/live-voice-viewer-back-link";
 
 export const dynamic = "force-dynamic";
 
@@ -108,12 +108,7 @@ export default async function VoiceRoomPage({
       }
     >
       {!isHost && (
-        <Link href="/live">
-          <Button variant="ghost" size="sm" className="gap-1">
-            <ChevronLeft className="h-4 w-4" />
-            라이브 목록
-          </Button>
-        </Link>
+        <LiveVoiceViewerBackLink />
       )}
       <LiveRoomEntry
         channelId={id}
@@ -121,6 +116,7 @@ export default async function VoiceRoomPage({
         hostUserId={channel.createdBy}
         hostUsername={host.username}
         hostDisplayName={host.username}
+        hostImage={host.image}
         hostTier={host.supportTierSent}
         hostTotalSupport={host.totalSupportReceived}
         isHost={isHost}

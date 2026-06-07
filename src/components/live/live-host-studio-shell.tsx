@@ -1,6 +1,8 @@
 "use client";
 
 import { Eye, Radio, Settings2 } from "lucide-react";
+import { LiveMobilePortraitHost } from "@/components/live/mobile/live-mobile-portrait-host";
+import { useLiveMobilePortrait } from "@/hooks/use-live-mobile-portrait";
 import { LiveChat } from "@/components/live/live-chat";
 import { LiveBrowserStudio } from "@/components/live/live-browser-studio";
 import { LiveHostSettings } from "@/components/live/live-host-settings";
@@ -45,6 +47,23 @@ export function LiveHostStudioShell({
   chatBannedWords?: string[];
   paymentsEnabled?: boolean;
 }) {
+  const mobilePortrait = useLiveMobilePortrait();
+
+  if (mobilePortrait) {
+    return (
+      <LiveMobilePortraitHost
+        channelId={channelId}
+        channelName={channelName}
+        viewerCount={viewerCount}
+        onViewerCount={onViewerCount}
+        onEndStream={onEndStream}
+        category={category}
+        slowModeSeconds={slowModeSeconds}
+        chatBannedWords={chatBannedWords}
+      />
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-[calc(100vh-8rem)]">
       <header className="flex flex-wrap items-center gap-2 sm:gap-3 py-2 border-b border-border/60 shrink-0">

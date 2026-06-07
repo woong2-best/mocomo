@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Gem, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,9 @@ export function TipCreatorDialog({
   returnPath,
   triggerVariant = "default",
   triggerSize = "default",
+  triggerClassName,
+  triggerIcon,
+  iconOnly = false,
 }: {
   creatorId: string;
   username: string;
@@ -44,8 +47,11 @@ export function TipCreatorDialog({
   channelId?: string;
   /** 결제 완료 후 돌아올 경로 (예: /u/name, /voice/xxx) */
   returnPath?: string;
-  triggerVariant?: "default" | "outline" | "secondary";
-  triggerSize?: "default" | "sm";
+  triggerVariant?: "default" | "outline" | "secondary" | "ghost";
+  triggerSize?: "default" | "sm" | "icon";
+  triggerClassName?: string;
+  triggerIcon?: ReactNode;
+  iconOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(10_000);
@@ -57,10 +63,14 @@ export function TipCreatorDialog({
   const creatorGets = effectiveAmount - fee;
   const projectedTotal = (currentTotal ?? 0) + effectiveAmount;
 
-  const triggerClass =
+  const triggerClass = [
     triggerVariant === "default"
       ? "rounded-full font-bold gap-1.5 bg-gradient-to-r from-pink-500 to-violet-500 hover:opacity-90 text-white border-0"
-      : "rounded-full font-bold gap-1.5";
+      : "rounded-full font-bold gap-1.5",
+    triggerClassName,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   if (!paymentsEnabled) {
     return (
@@ -81,8 +91,14 @@ export function TipCreatorDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant={triggerVariant} size={triggerSize} className={triggerClass}>
-          <Gem className="h-4 w-4" />
-          후원
+          {iconOnly && triggerIcon ? (
+            triggerIcon
+          ) : (
+            <>
+              <Gem className="h-4 w-4" />
+              후원
+            </>
+          )}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">

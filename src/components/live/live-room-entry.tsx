@@ -17,6 +17,7 @@ export function LiveRoomEntry({
   hostUserId,
   hostUsername,
   hostDisplayName,
+  hostImage,
   hostTier,
   hostTotalSupport,
   isHost,
@@ -38,6 +39,7 @@ export function LiveRoomEntry({
   hostUserId: string;
   hostUsername?: string;
   hostDisplayName?: string;
+  hostImage?: string | null;
   hostTier?: SupportTierLevel;
   hostTotalSupport?: number;
   isHost: boolean;
@@ -70,6 +72,7 @@ export function LiveRoomEntry({
       hostUserId={hostUserId}
       hostUsername={hostUsername}
       hostDisplayName={hostDisplayName}
+      hostImage={hostImage}
       hostTier={hostTier}
       hostTotalSupport={hostTotalSupport}
       isHost={isHost}

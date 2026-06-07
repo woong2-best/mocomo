@@ -13,6 +13,7 @@ import {
 import { tierLabelKo } from "@/lib/live-viewer-access";
 import { LiveHostStudioShell } from "@/components/live/live-host-studio-shell";
 import { LiveViewerShell } from "@/components/live/live-viewer-shell";
+import { useLiveMobilePortrait } from "@/hooks/use-live-mobile-portrait";
 import { LiveStudioErrorBoundary } from "@/components/live/live-studio-error-boundary";
 import { LiveStudioStatsSync } from "@/components/live/live-studio-stats-sync";
 import { LiveTipAlerts, type LiveTipAlert } from "@/components/live/live-tip-alerts";
@@ -26,6 +27,7 @@ export function LiveRoomClient({
   hostUserId,
   hostUsername,
   hostDisplayName,
+  hostImage,
   hostTier,
   hostTotalSupport,
   isHost,
@@ -48,6 +50,7 @@ export function LiveRoomClient({
   hostUserId: string;
   hostUsername?: string;
   hostDisplayName?: string;
+  hostImage?: string | null;
   hostTier?: SupportTierLevel;
   hostTotalSupport?: number;
   isHost: boolean;
@@ -66,6 +69,7 @@ export function LiveRoomClient({
   isLiveOnAir?: boolean;
 }) {
   const router = useRouter();
+  const mobilePortrait = useLiveMobilePortrait();
   const [joined, setJoined] = useState(false);
   const [collabPassword, setCollabPassword] = useState("");
   const [showCollabForm, setShowCollabForm] = useState(false);
@@ -159,6 +163,7 @@ export function LiveRoomClient({
     hostUserId,
     hostUsername,
     hostDisplayName,
+    hostImage,
     hostTier,
     hostTotalSupport,
     viewerCount,
@@ -203,8 +208,8 @@ export function LiveRoomClient({
   return (
     <div className={isHost ? "relative" : "space-y-4 relative"}>
       <LiveStudioStatsSync channelId={channelId} onStats={handleStats} />
-      {!isHost && <LiveTipAlerts tips={recentTips} />}
-      {isHost && storedPassword && showHostPassword && (
+      {!mobilePortrait && !isHost && <LiveTipAlerts tips={recentTips} />}
+      {!mobilePortrait && isHost && storedPassword && showHostPassword && (
         <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-medium text-amber-800 dark:text-amber-200">
@@ -224,7 +229,7 @@ export function LiveRoomClient({
         </div>
       )}
 
-      {!isHost && (
+      {!mobilePortrait && !isHost && (
         <div className="rounded-xl border border-border/60 bg-muted/30 px-4 py-3 flex flex-wrap items-center justify-between gap-2">
           {collabOk ? (
             <p className="text-sm text-green-700 font-medium">합방 승인됨 · 공동 방송 권한이 부여되었습니다.</p>

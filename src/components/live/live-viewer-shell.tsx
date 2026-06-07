@@ -3,6 +3,8 @@
 import { LiveViewerPlayer } from "@/components/live/live-viewer-player";
 import { LiveChat } from "@/components/live/live-chat";
 import { LiveStudioHeader } from "@/components/live/live-studio-header";
+import { LiveMobilePortraitViewer } from "@/components/live/mobile/live-mobile-portrait-viewer";
+import { useLiveMobilePortrait } from "@/hooks/use-live-mobile-portrait";
 import type { LiveBroadcastMode, LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 
 export function LiveViewerShell({
@@ -24,12 +26,14 @@ export function LiveViewerShell({
   paymentsEnabled,
   hostFollowing,
   broadcastMode,
+  hostImage,
 }: {
   channelId: string;
   channelName: string;
   hostUserId: string;
   hostUsername?: string;
   hostDisplayName?: string;
+  hostImage?: string | null;
   hostTier?: SupportTierLevel;
   hostTotalSupport?: number;
   viewerCount: number;
@@ -44,6 +48,29 @@ export function LiveViewerShell({
   hostFollowing?: boolean;
   broadcastMode?: LiveBroadcastMode | null;
 }) {
+  const mobilePortrait = useLiveMobilePortrait();
+
+  if (mobilePortrait) {
+    return (
+      <LiveMobilePortraitViewer
+        channelId={channelId}
+        channelName={channelName}
+        hostUserId={hostUserId}
+        hostUsername={hostUsername}
+        hostDisplayName={hostDisplayName}
+        hostImage={hostImage}
+        hostTier={hostTier}
+        hostTotalSupport={hostTotalSupport}
+        viewerCount={viewerCount}
+        onViewerCount={onViewerCount}
+        category={category}
+        paymentsEnabled={paymentsEnabled}
+        hostFollowing={hostFollowing}
+        broadcastMode={broadcastMode}
+      />
+    );
+  }
+
   return (
     <div className="live-studio-twitch space-y-3">
       <LiveStudioHeader

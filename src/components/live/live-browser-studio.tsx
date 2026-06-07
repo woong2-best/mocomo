@@ -35,11 +35,14 @@ export function LiveBrowserStudio({
   channelName,
   onAirChange,
   onEndStream,
+  immersive = false,
 }: {
   channelId: string;
   channelName: string;
   onAirChange?: (onAir: boolean) => void;
   onEndStream: () => void;
+  /** 모바일 세로 풀스크린 — 기존 데스크탑 레이아웃 유지 */
+  immersive?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const reconnectAttemptRef = useRef(0);
@@ -388,9 +391,19 @@ export function LiveBrowserStudio({
 
   const needsReconnect = serverLive && !whipConnected;
 
+  const rootClass = immersive
+    ? "relative flex flex-col h-full min-h-[100dvh] w-full gap-0"
+    : "flex flex-col gap-3 h-full min-h-[min(50vh,400px)]";
+  const previewClass = immersive
+    ? "relative flex-1 min-h-0 overflow-hidden bg-black"
+    : "relative flex-1 min-h-[200px] rounded-xl overflow-hidden bg-black ring-1 ring-border/50";
+  const controlsWrapClass = immersive
+    ? "absolute bottom-0 left-0 right-0 z-10 px-3 pb-[calc(env(safe-area-inset-bottom)+8.5rem)] pt-8 bg-gradient-to-t from-black/90 via-black/50 to-transparent space-y-2"
+    : "contents";
+
   return (
-    <div className="flex flex-col gap-3 h-full min-h-[min(50vh,400px)]">
-      <div className="relative flex-1 min-h-[200px] rounded-xl overflow-hidden bg-black ring-1 ring-border/50">
+    <div className={rootClass}>
+      <div className={previewClass}>
         <div
           ref={previewHostRef}
           className={screenOn ? "hidden" : "absolute inset-0"}
@@ -400,9 +413,9 @@ export function LiveBrowserStudio({
           autoPlay
           playsInline
           muted
-          className={`w-full h-full object-contain ${screenOn ? "block" : "hidden"}`}
+          className={`w-full h-full ${immersive ? "object-cover" : "object-contain"} ${screenOn ? "block" : "hidden"}`}
         />
-        {whipConnected && (
+        {whipConnected && !immersive && (
           <span className="absolute top-3 left-3 px-2 py-0.5 rounded bg-folk-terracotta text-white text-[10px] font-bold z-10 flex items-center gap-1">
             <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
             LIVE
@@ -410,6 +423,7 @@ export function LiveBrowserStudio({
         )}
       </div>
 
+      <div className={controlsWrapClass}>
       {!screenOn && (
         <FaceFilterStrip
           value={filterId}
@@ -485,11 +499,12 @@ export function LiveBrowserStudio({
         </>
       )}
 
-      {whipConnected && (
+      {whipConnected && !immersive && (
         <p className="text-xs text-muted-foreground">
           이 기기·브라우저에서만 방송 중입니다. 종료는 상단 「방송 종료」.
         </p>
       )}
+      </div>
     </div>
   );
 }
