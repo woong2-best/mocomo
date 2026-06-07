@@ -1,6 +1,7 @@
+import { livePublisherFetch } from "@/lib/live-publisher-tab";
 import { normalizeSdp } from "@/lib/webrtc-sdp";
 
-/** Cloudflare Stream — WHIP 브라우저 송출 (OBS 없음) */
+/** Cloudflare Stream — WHIP 브라우저 송출 (MoCoMo API 프록시 → Cloudflare) */
 
 function waitForIceGathering(pc: RTCPeerConnection, timeoutMs = 8000): Promise<void> {
   if (pc.iceGatheringState === "complete") return Promise.resolve();
@@ -45,7 +46,7 @@ export class CloudflareWhipPublisher {
   private onDisconnect: (() => void) | null = null;
 
   async start(
-    whipUrl: string,
+    channelId: string,
     mediaStream: MediaStream,
     opts?: { onDisconnect?: () => void }
   ): Promise<void> {
@@ -84,30 +85,34 @@ export class CloudflareWhipPublisher {
 
     let res: Response;
     try {
-      res = await fetch(whipUrl, {
+      res = await livePublisherFetch(`/api/live/${channelId}/whip`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/sdp",
-          Accept: "application/sdp",
-        },
-        body: sdp,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sdp }),
       });
     } catch (e) {
       const hint =
         e instanceof TypeError && e.message === "Failed to fetch"
-          ? "Cloudflare 송출 서버에 연결하지 못했습니다. 네트워크·VPN·광고차단을 확인하거나 필터를 「원본」으로 바꿔 다시 시도해 주세요."
+          ? "송출 서버에 연결하지 못했습니다. 네트워크·로그인 상태를 확인해 주세요."
           : e instanceof Error
             ? e.message
             : "WHIP 네트워크 오류";
       throw new Error(hint);
     }
 
+    const data = (await res.json().catch(() => ({}))) as {
+      answerSdp?: string;
+      error?: string;
+      publishState?: string;
+    };
+
     if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(text || `WHIP 연결 실패 (${res.status})`);
+      throw new Error(data.error || `WHIP 연결 실패 (${res.status})`);
     }
 
-    const answerSdp = normalizeSdp(await res.text());
+    const answerSdp = data.answerSdp ? normalizeSdp(data.answerSdp) : "";
+    if (!answerSdp) throw new Error("WHIP 응답 SDP 없음");
+
     await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
     await waitForPeerConnected(pc);
 

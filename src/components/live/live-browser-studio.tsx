@@ -216,7 +216,7 @@ export function LiveBrowserStudio({
 
       const pub = new CloudflareWhipPublisher();
       whipRef.current = pub;
-      await pub.start(whipUrl, stream, { onDisconnect: handleWhipDisconnect });
+      await pub.start(channelId, stream, { onDisconnect: handleWhipDisconnect });
       setWhipConnected(true);
       reconnectAttemptRef.current = 0;
       setLiveError("");
@@ -350,7 +350,7 @@ export function LiveBrowserStudio({
           whipRef.current?.stop();
           const pub = new CloudflareWhipPublisher();
           whipRef.current = pub;
-          await pub.start(whipUrl, screenStream, { onDisconnect: handleWhipDisconnect });
+          await pub.start(channelId, screenStream, { onDisconnect: handleWhipDisconnect });
         }
         setScreenOn(true);
         setCamOn(true);
@@ -367,7 +367,7 @@ export function LiveBrowserStudio({
       whipRef.current?.stop();
       const pub = new CloudflareWhipPublisher();
       whipRef.current = pub;
-      await pub.start(whipUrl, stream, { onDisconnect: handleWhipDisconnect });
+      await pub.start(channelId, stream, { onDisconnect: handleWhipDisconnect });
     }
   }
 
