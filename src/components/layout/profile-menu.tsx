@@ -4,14 +4,16 @@ import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Settings, Gem, LogOut, ChevronDown } from "lucide-react";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
+
+const MENU_WIDTH = 192;
 
 export function ProfileMenu() {
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -19,9 +21,13 @@ export function ProfileMenu() {
     const btn = buttonRef.current;
     if (!btn) return;
     const rect = btn.getBoundingClientRect();
+    const left = Math.min(
+      Math.max(8, rect.right - MENU_WIDTH),
+      window.innerWidth - MENU_WIDTH - 8
+    );
     setMenuPos({
       top: rect.bottom + 8,
-      right: Math.max(8, window.innerWidth - rect.right),
+      left,
     });
   }, []);
 
@@ -29,15 +35,14 @@ export function ProfileMenu() {
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (!open) return;
+  useLayoutEffect(() => {
+    if (!open) {
+      setMenuPos(null);
+      return;
+    }
     updatePosition();
     window.addEventListener("resize", updatePosition);
-    window.addEventListener("scroll", updatePosition, true);
-    return () => {
-      window.removeEventListener("resize", updatePosition);
-      window.removeEventListener("scroll", updatePosition, true);
-    };
+    return () => window.removeEventListener("resize", updatePosition);
   }, [open, updatePosition]);
 
   useEffect(() => {
@@ -65,64 +70,87 @@ export function ProfileMenu() {
   const username = session.user.username || session.user.id;
 
   const menu =
-    open && mounted
+    open && mounted && menuPos
       ? createPortal(
-          <div
-            ref={menuRef}
-            role="menu"
-            className="fixed z-[250] w-48 rounded-xl border border-border bg-card shadow-xl py-1"
-            style={{ top: menuPos.top, right: menuPos.right }}
-          >
-            <Link
-              href={`/u/${username}`}
-              role="menuitem"
-              className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-accent"
+          <>
+            <div
+              className="fixed inset-0 z-[9998] bg-transparent"
+              aria-hidden
               onClick={() => setOpen(false)}
+            />
+            <div
+              ref={menuRef}
+              role="menu"
+              className="fixed z-[9999] w-48 rounded-xl border border-border bg-background shadow-2xl py-1 pointer-events-auto"
+              style={{ top: menuPos.top, left: menuPos.left }}
             >
-              <User className="h-4 w-4" />내 프로필
-            </Link>
-            <Link
-              href="/settings"
-              role="menuitem"
-              className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-accent"
-              onClick={() => setOpen(false)}
-            >
-              <Settings className="h-4 w-4" />설정
-            </Link>
-            <Link
-              href="/support"
-              role="menuitem"
-              className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-accent"
-              onClick={() => setOpen(false)}
-            >
-              <Gem className="h-4 w-4" />등급
-            </Link>
-            <hr className="my-1 border-border" />
-            <button
-              type="button"
-              role="menuitem"
-              className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-accent text-destructive"
-              onClick={() => signOut({ callbackUrl: "/" })}
-            >
-              <LogOut className="h-4 w-4" />로그아웃
-            </button>
-          </div>,
+              <Link
+                href={`/u/${username}`}
+                role="menuitem"
+                className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-accent"
+                onClick={() => setOpen(false)}
+              >
+                <User className="h-4 w-4" />내 프로필
+              </Link>
+              <Link
+                href="/settings"
+                role="menuitem"
+                className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-accent"
+                onClick={() => setOpen(false)}
+              >
+                <Settings className="h-4 w-4" />설정
+              </Link>
+              <Link
+                href="/support"
+                role="menuitem"
+                className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-accent"
+                onClick={() => setOpen(false)}
+              >
+                <Gem className="h-4 w-4" />등급
+              </Link>
+              <hr className="my-1 border-border" />
+              <button
+                type="button"
+                role="menuitem"
+                className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-accent text-destructive"
+                onClick={() => signOut({ callbackUrl: "/" })}
+              >
+                <LogOut className="h-4 w-4" />로그아웃
+              </button>
+            </div>
+          </>,
           document.body
         )
       : null;
+
+  const openMenu = useCallback(() => {
+    const btn = buttonRef.current;
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      const left = Math.min(
+        Math.max(8, rect.right - MENU_WIDTH),
+        window.innerWidth - MENU_WIDTH - 8
+      );
+      setMenuPos({ top: rect.bottom + 8, left });
+    }
+    setOpen(true);
+  }, []);
 
   return (
     <>
       <button
         ref={buttonRef}
         type="button"
-        onClick={() => {
-          setOpen((v) => {
-            if (!v) updatePosition();
-            return !v;
-          });
+        onClick={(e) => {
+          e.stopPropagation();
+          if (open) {
+            setOpen(false);
+            setMenuPos(null);
+            return;
+          }
+          openMenu();
         }}
-        className="relative z-[2] flex items-center gap-1 rounded-full hover:ring-2 hover:ring-primary/30 p-0.5 cursor-pointer"
+        className="relative z-[2] flex items-center gap-1 rounded-full p-0.5 cursor-pointer hover:shadow-[0_0_0_2px_hsl(var(--primary)/0.35)]"
         aria-expanded={open}
         aria-haspopup="menu"
       >
@@ -130,7 +158,9 @@ export function ProfileMenu() {
           <AvatarImage src={session.user.image} />
           <AvatarFallback>{(session.user.name || username)[0]}</AvatarFallback>
         </Avatar>
-        <ChevronDown className="h-3 w-3 text-muted-foreground hidden sm:block" />
+        <ChevronDown
+          className={`h-3 w-3 text-muted-foreground hidden sm:block transition-transform ${open ? "rotate-180" : ""}`}
+        />
       </button>
       {menu}
     </>
