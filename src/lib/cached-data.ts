@@ -214,7 +214,7 @@ export const getCachedLiveChannels = unstable_cache(
         ...c,
         viewerCount: viewerMap[c.id] ?? 0,
       }))
-      .filter((c) => c.viewerCount > 0);
+      .sort((a, b) => b.viewerCount - a.viewerCount);
     const hosts =
       channelsWithViewers.length > 0
         ? await db.user.findMany({

@@ -1,8 +1,11 @@
-import { unstable_cache } from "next/cache";
+import { revalidateTag, unstable_cache } from "next/cache";
 import type { LiveStreamCategory } from "@prisma/client";
 import { db } from "@/lib/db";
 import { liveViewerCutoff } from "@/lib/live-presence";
 import { getAuthUserId } from "@/lib/auth";
+
+/** /live 허브·팔로우 라이브 목록 캐시 */
+export const LIVE_HUB_CACHE_TAG = "live-hub";
 
 export type LiveHubChannel = {
   id: string;
@@ -91,7 +94,7 @@ async function fetchLiveHubChannels(category?: LiveStreamCategory) {
       ...c,
       viewerCount: viewerMap[c.id] ?? 0,
     }))
-    .filter((c) => c.viewerCount > 0) as LiveHubChannel[];
+    .sort((a, b) => b.viewerCount - a.viewerCount) as LiveHubChannel[];
 }
 
 async function fetchRecommendedStreamers() {
@@ -151,7 +154,7 @@ async function fetchFollowedLive(userId: string) {
   const viewerMap = Object.fromEntries(viewerGroups.map((g) => [g.channelId, g._count._all]));
   return channels
     .map((c) => ({ ...c, viewerCount: viewerMap[c.id] ?? 0 }))
-    .filter((c) => c.viewerCount > 0) as LiveHubChannel[];
+    .sort((a, b) => b.viewerCount - a.viewerCount) as LiveHubChannel[];
 }
 
 /** 카테고리별 실시간 방송 목록만 (탭 전환 시 이 부분만 다시 불러옴) */
@@ -159,6 +162,7 @@ export async function getLiveHubChannelFeed(category?: LiveStreamCategory) {
   const cacheKey = category ?? "all";
   const channels = await unstable_cache(() => fetchLiveHubChannels(category), ["live-hub-ch", cacheKey], {
     revalidate: 25,
+    tags: [LIVE_HUB_CACHE_TAG],
   })();
 
   const hostIds = [...new Set(channels.map((c) => c.createdBy))];
@@ -167,6 +171,7 @@ export async function getLiveHubChannelFeed(category?: LiveStreamCategory) {
     hostIds.length > 0
       ? await unstable_cache(() => fetchHostsByIds(hostIds), ["live-hub-hosts", hostKey], {
           revalidate: 60,
+          tags: [LIVE_HUB_CACHE_TAG],
         })()
       : [];
 
@@ -180,6 +185,7 @@ export async function getLiveHubStaticData(userId?: string | null) {
     userId
       ? unstable_cache(() => fetchFollowedLive(userId), ["live-hub-fl", userId], {
           revalidate: 25,
+          tags: [LIVE_HUB_CACHE_TAG],
         })()
       : Promise.resolve([] as LiveHubChannel[]),
     unstable_cache(
@@ -239,4 +245,8 @@ export async function getLiveHubData(category?: LiveStreamCategory) {
     followedLive: staticData.followedLive,
     scheduledStreams: staticData.scheduledStreams,
   };
+}
+
+export function revalidateLiveHubCache() {
+  revalidateTag(LIVE_HUB_CACHE_TAG);
 }

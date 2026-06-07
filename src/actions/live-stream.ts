@@ -37,6 +37,7 @@ import {
 import { ensureStringArray } from "@/lib/ensure-array";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { liveRoomCacheTag } from "@/lib/cached-live-meta";
+import { revalidateLiveHubCache } from "@/lib/live-hub-data";
 
 function mapLiveChatMessage(m: {
   id: string;
@@ -364,6 +365,7 @@ export async function startBrowserLiveBroadcast(
   revalidatePath("/live");
   revalidatePath(`/voice/${channelId}`);
   revalidateTag(liveRoomCacheTag(channelId));
+  revalidateLiveHubCache();
   return { success: true as const };
 }
 
@@ -695,6 +697,7 @@ export async function endLiveStream(channelId: string) {
   revalidatePath("/live");
   revalidatePath("/voice/new");
   revalidatePath(`/voice/${channelId}`);
+  revalidateLiveHubCache();
   return { success: true as const };
 }
 
