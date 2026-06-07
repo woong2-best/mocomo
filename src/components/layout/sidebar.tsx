@@ -27,7 +27,7 @@ export function Sidebar() {
   );
 
   return (
-    <aside className="hidden lg:flex w-[17rem] xl:w-[18rem] flex-col shrink-0 sticky top-14 h-app bg-[hsl(var(--folk-cream)/0.6)] dark:bg-background border-r-2 border-folk-cobalt/20 p-4 gap-3 overflow-y-auto relative">
+    <aside className="hidden lg:flex w-[17rem] xl:w-[18rem] flex-col shrink-0 sticky top-[var(--header-h)] h-app bg-[hsl(var(--folk-cream)/0.6)] dark:bg-background border-r-2 border-folk-cobalt/20 p-4 gap-3 overflow-y-auto relative z-[1]">
       <FolkFloralAccent className="absolute -right-2 top-24 w-24 h-16 pointer-events-none" />
 
       <nav className="flex flex-col gap-2 flex-1 min-h-0">

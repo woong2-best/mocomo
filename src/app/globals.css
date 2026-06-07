@@ -5,7 +5,7 @@
 /* Surrealist folk art — MoCoMo design system */
 @layer base {
   :root {
-    --header-h: 3.5rem;
+    --header-h: calc(3.5rem + env(safe-area-inset-top, 0px));
     --mobile-nav-h: 3.5rem;
 
     --folk-cobalt: 224 68% 33%;
@@ -144,6 +144,7 @@
 
 .folk-brush-border-b {
   position: relative;
+  isolation: isolate;
 }
 .folk-brush-border-b::after {
   content: "";
@@ -152,6 +153,8 @@
   left: 0;
   right: 0;
   height: 5px;
+  z-index: 0;
+  pointer-events: none;
   background: repeating-linear-gradient(
     90deg,
     hsl(var(--folk-cobalt)) 0px,
@@ -167,6 +170,12 @@
   mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,4 Q25,0 50,4 T100,4 T150,4 T200,4' fill='none' stroke='white' stroke-width='8'/%3E%3C/svg%3E");
   mask-size: 200px 8px;
   mask-repeat: repeat-x;
+}
+
+/* 헤더·툴바 — folk 장식 위에 클릭 가능 */
+.app-header-interactive {
+  position: relative;
+  z-index: 1;
 }
 
 .folk-card {

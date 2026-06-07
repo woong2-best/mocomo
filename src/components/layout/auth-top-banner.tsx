@@ -9,7 +9,7 @@ export function AuthTopBanner() {
   if (session?.user) return null;
 
   return (
-    <div className="sticky top-14 z-40 lg:hidden border-b border-primary/20 bg-gradient-to-r from-violet-600 to-pink-600 text-white px-4 py-2.5 flex items-center justify-between gap-2">
+    <div className="sticky top-[var(--header-h)] z-40 lg:hidden border-b border-primary/20 bg-gradient-to-r from-violet-600 to-pink-600 text-white px-4 py-2.5 flex items-center justify-between gap-2">
       <p className="text-sm font-medium truncate">가입하고 서브컬처 시작!</p>
       <div className="flex gap-2 shrink-0">
         <Button asChild size="sm" variant="secondary" className="h-8 rounded-lg text-xs">

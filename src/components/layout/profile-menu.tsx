@@ -70,7 +70,7 @@ export function ProfileMenu() {
           <div
             ref={menuRef}
             role="menu"
-            className="fixed z-[200] w-48 rounded-xl border border-border bg-card shadow-xl py-1"
+            className="fixed z-[250] w-48 rounded-xl border border-border bg-card shadow-xl py-1"
             style={{ top: menuPos.top, right: menuPos.right }}
           >
             <Link
@@ -122,7 +122,7 @@ export function ProfileMenu() {
             return !v;
           });
         }}
-        className="relative z-[60] flex items-center gap-1 rounded-full hover:ring-2 hover:ring-primary/30 p-0.5"
+        className="relative z-[2] flex items-center gap-1 rounded-full hover:ring-2 hover:ring-primary/30 p-0.5 cursor-pointer"
         aria-expanded={open}
         aria-haspopup="menu"
       >

@@ -200,8 +200,8 @@ export function FolkArtFrame({
         className
       )}
     >
-      <FolkSunFace size={40} className="absolute -top-5 -right-3 opacity-80" />
-      <FolkMoonFace size={32} className="absolute -bottom-4 -left-3 opacity-70 hidden sm:block" />
+      <FolkSunFace size={40} className="absolute -top-5 -right-3 opacity-80 pointer-events-none" />
+      <FolkMoonFace size={32} className="absolute -bottom-4 -left-3 opacity-70 hidden sm:block pointer-events-none" />
       {children}
     </div>
   );
