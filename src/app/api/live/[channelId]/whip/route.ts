@@ -1,13 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { cloudflareStreamConfigError } from "@/lib/cloudflare-stream";
+import {
+  cloudflareStreamConfigError,
+  getCloudflareWhipPublishUrl,
+  liveInputUidFromIngressId,
+} from "@/lib/cloudflare-stream";
 import { resolveWhipPublishUrlForHost } from "@/lib/cloudflare-whip-resolve";
 import { readPublisherTabIdFromRequest } from "@/lib/live-publisher-lock";
+import { provisionObsIngress } from "@/lib/obs-ingress-service";
 import { normalizeSdp } from "@/lib/webrtc-sdp";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+function whipErrorMessage(status: number, raw: string): string {
+  const text = raw.trim();
+  if (status === 401 && /stream key/i.test(text)) {
+    return "송출 키가 만료되었거나 잘못되었습니다. 페이지를 새로고침한 뒤 방송을 다시 시작해 주세요.";
+  }
+  if (/Unable to parse SDP/i.test(text)) {
+    return "영상 연결 정보(SDP) 형식 오류입니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.";
+  }
+  return text || `WHIP 연결 실패 (${status})`;
+}
+
+async function postSdpToCloudflareWhip(whipUrl: string, sdp: string) {
+  return fetch(whipUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/sdp",
+      Accept: "application/sdp",
+    },
+    body: sdp,
+  });
+}
 
 /** WHIP SDP — 브라우저 CORS 우회, Cloudflare로 프록시 (WHEP와 동일) */
 export async function POST(
@@ -65,18 +92,26 @@ export async function POST(
   }
 
   try {
-    const cfRes = await fetch(resolved.whipUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/sdp",
-        Accept: "application/sdp",
-      },
-      body: sdp,
-    });
-    const text = await cfRes.text();
+    let whipUrl = resolved.whipUrl;
+    let cfRes = await postSdpToCloudflareWhip(whipUrl, sdp);
+    let text = await cfRes.text();
+
+    if (cfRes.status === 401 && /stream key/i.test(text)) {
+      const prov = await provisionObsIngress(channelId, session.user.id, { force: true });
+      if ("data" in prov) {
+        const cfUid = liveInputUidFromIngressId(prov.data.ingressId);
+        const freshUrl = cfUid ? await getCloudflareWhipPublishUrl(cfUid) : null;
+        if (freshUrl) {
+          whipUrl = freshUrl;
+          cfRes = await postSdpToCloudflareWhip(whipUrl, sdp);
+          text = await cfRes.text();
+        }
+      }
+    }
+
     if (!cfRes.ok) {
       return NextResponse.json(
-        { error: text || `WHIP ${cfRes.status}` },
+        { error: whipErrorMessage(cfRes.status, text) },
         { status: cfRes.status >= 400 && cfRes.status < 600 ? cfRes.status : 502 }
       );
     }

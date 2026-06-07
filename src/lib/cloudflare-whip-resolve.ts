@@ -1,5 +1,4 @@
 import {
-  buildCloudflareWhipPublishUrl,
   ensureStreamCustomerHost,
   getCloudflareWhipPublishUrl,
   liveInputUidFromIngressId,
@@ -53,17 +52,11 @@ export async function resolveWhipPublishUrlForHost(
     return { error: "송출 URL 준비 중입니다. 잠시 후 다시 시도해 주세요.", status: 409 };
   }
 
-  let whipUrl = buildCloudflareWhipPublishUrl(cfUid);
-  if (!whipUrl) {
-    await ensureStreamCustomerHost();
-    whipUrl = buildCloudflareWhipPublishUrl(cfUid);
-  }
-  if (!whipUrl) {
-    whipUrl = (await getCloudflareWhipPublishUrl(cfUid)) ?? "";
-  }
+  await ensureStreamCustomerHost();
+  const whipUrl = (await getCloudflareWhipPublishUrl(cfUid)) ?? "";
   if (!whipUrl) {
     return {
-      error: "Cloudflare WHIP URL을 받지 못했습니다. Stream 설정을 확인하세요.",
+      error: "Cloudflare WHIP URL을 받지 못했습니다. 「키 다시 받기」 후 다시 시도해 주세요.",
       status: 503,
     };
   }

@@ -190,14 +190,6 @@ export function buildCloudflareWhepPlaybackUrl(liveInputUid: string): string | n
   return `https://${host}/${uid}/webRTC/play`;
 }
 
-/** WHIP 송출 URL — ingest API 캐시용 */
-export function buildCloudflareWhipPublishUrl(liveInputUid: string): string | null {
-  const host = getStreamCustomerHost();
-  const uid = liveInputUid.trim();
-  if (!host || !uid) return null;
-  return `https://${host}/${uid}/webRTC/publish`;
-}
-
 async function streamApi<T>(path: string, init?: RequestInit): Promise<T> {
   const acc = accountId();
   const token = apiToken();
@@ -235,6 +227,20 @@ type ApiLiveInput = {
   webRTC?: { url?: string };
   webRTCPlayback?: { url?: string };
 };
+
+/** Live Input 상세 — WHIP은 `webRTC.url`(비밀 경로), WHEP는 uid 경로 */
+async function fetchLiveInputApiRow(liveInputUid: string): Promise<ApiLiveInput | null> {
+  try {
+    const result = await streamApi<ApiLiveInput>(`/stream/live_inputs/${liveInputUid.trim()}`, {
+      method: "GET",
+    });
+    rememberCustomerHostFromApi(result);
+    return result;
+  } catch (e) {
+    console.warn("[cloudflare-stream] live input", liveInputUid, e);
+    return null;
+  }
+}
 
 function normalizeLiveInput(row: ApiLiveInput): CloudflareLiveInput | null {
   const uid = row.uid?.trim();
@@ -325,24 +331,16 @@ export async function getCloudflareWhepPlaybackUrl(
   }
 }
 
-/** 브라우저 WHIP 송출 URL (OBS 없이 웹캠·화면공유) */
+/**
+ * 브라우저 WHIP 송출 URL — Live Input API `webRTC.url`만 유효.
+ * UID로 `/{uid}/webRTC/publish`를 조합하면 401 (stream key invalid) 발생.
+ */
 export async function getCloudflareWhipPublishUrl(
   liveInputUid: string
 ): Promise<string | null> {
-  const built = buildCloudflareWhipPublishUrl(liveInputUid);
-  if (built) return built;
-
-  try {
-    const result = await streamApi<ApiLiveInput>(`/stream/live_inputs/${liveInputUid}`, {
-      method: "GET",
-    });
-    rememberCustomerHostFromApi(result);
-    const url = result.webRTC?.url?.trim();
-    return url || buildCloudflareWhipPublishUrl(liveInputUid);
-  } catch (e) {
-    console.warn("[cloudflare-stream] whip url", liveInputUid, e);
-    return null;
-  }
+  await ensureStreamCustomerHost();
+  const row = await fetchLiveInputApiRow(liveInputUid);
+  return row?.webRTC?.url?.trim() || null;
 }
 
 export async function deleteCloudflareLiveInput(liveInputUid: string): Promise<void> {
