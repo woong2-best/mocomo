@@ -1,6 +1,7 @@
 "use client";
 
 import type { LiveOverlayLotteryProps, LiveOverlayTextProps, LiveOverlayWheelProps } from "@/lib/live-overlays/types";
+import { LiveOverlayWheel } from "@/components/live/overlays/live-overlay-wheel";
 
 export function TextOverlayWidget({ props }: { props: LiveOverlayTextProps }) {
   return (
@@ -27,55 +28,14 @@ export function TextOverlayWidget({ props }: { props: LiveOverlayTextProps }) {
   );
 }
 
-export function WheelOverlayWidget({ props }: { props: LiveOverlayWheelProps }) {
-  const segments = props.segments.filter((s) => s.label.trim());
-  const count = Math.max(segments.length, 1);
-  const colors = ["#e85d04", "#f48c06", "#ffba08", "#52b788", "#4cc9f0", "#7209b7", "#f72585"];
-
-  return (
-    <div className="flex h-full w-full flex-col items-center justify-center bg-black/40 p-2 text-white">
-      {props.title && <p className="mb-1 text-[11px] font-bold truncate w-full text-center">{props.title}</p>}
-      <div className="relative flex-1 aspect-square max-h-[85%] w-full flex items-center justify-center">
-        <div
-          className="relative h-full w-full max-w-full rounded-full border-2 border-white/30 shadow-lg transition-transform duration-[4000ms] ease-out"
-          style={{
-            transform: `rotate(${props.rotation}deg)`,
-            transitionDuration: props.spinning ? "4000ms" : "0ms",
-          }}
-        >
-          {segments.map((seg, i) => {
-            const angle = (360 / count) * i;
-            return (
-              <div
-                key={seg.id}
-                className="absolute inset-0 origin-center"
-                style={{ transform: `rotate(${angle}deg)` }}
-              >
-                <div
-                  className="absolute left-1/2 top-0 h-1/2 w-1/2 origin-bottom-left"
-                  style={{
-                    background: colors[i % colors.length],
-                    clipPath: "polygon(0 100%, 100% 0, 0 0)",
-                    transform: `rotate(${360 / count / 2}deg)`,
-                  }}
-                />
-                <span
-                  className="absolute left-1/2 top-[18%] -translate-x-1/2 text-[9px] font-bold drop-shadow"
-                  style={{ transform: `rotate(${360 / count / 2}deg)` }}
-                >
-                  {seg.label}
-                </span>
-              </div>
-            );
-          })}
-          <div className="absolute inset-[38%] rounded-full bg-black/80 flex items-center justify-center text-[10px] font-bold text-center px-1">
-            {props.spinning ? "…" : props.lastResult ?? "?"}
-          </div>
-        </div>
-        <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-b-[10px] border-l-transparent border-r-transparent border-b-white" />
-      </div>
-    </div>
-  );
+export function WheelOverlayWidget({
+  widgetId,
+  props,
+}: {
+  widgetId: string;
+  props: LiveOverlayWheelProps;
+}) {
+  return <LiveOverlayWheel widgetId={widgetId} props={props} />;
 }
 
 export function LotteryOverlayWidget({ props }: { props: LiveOverlayLotteryProps }) {

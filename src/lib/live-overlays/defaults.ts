@@ -6,6 +6,7 @@ import type {
   LiveOverlayWidget,
   LiveOverlayWidgetType,
 } from "@/lib/live-overlays/types";
+import { createDefaultWheelProps } from "@/lib/live-overlays/wheel-theme";
 
 export function emptyOverlayState(): LiveOverlayState {
   return { version: 0, widgets: [] };
@@ -52,18 +53,7 @@ const defaultProps: Record<LiveOverlayWidgetType, LiveOverlayWidget["props"]> = 
     bold: true,
     align: "center",
   } satisfies LiveOverlayTextProps,
-  wheel: {
-    title: "돌림판",
-    segments: [
-      { id: "1", label: "1", weight: 1 },
-      { id: "2", label: "2", weight: 1 },
-      { id: "3", label: "3", weight: 1 },
-      { id: "4", label: "4", weight: 1 },
-    ],
-    rotation: 0,
-    spinning: false,
-    lastResult: null,
-  } satisfies LiveOverlayWheelProps,
+  wheel: createDefaultWheelProps(),
   lottery: {
     title: "추첨",
     entries: ["참가자1", "참가자2", "참가자3"],
@@ -79,7 +69,7 @@ const defaultLayout: Record<
   Pick<LiveOverlayWidget, "x" | "y" | "w" | "h">
 > = {
   text: { x: 8, y: 72, w: 84, h: 14 },
-  wheel: { x: 62, y: 8, w: 30, h: 38 },
+  wheel: { x: 58, y: 6, w: 36, h: 52 },
   lottery: { x: 8, y: 8, w: 48, h: 42 },
 };
 
@@ -91,7 +81,7 @@ export function createOverlayWidget(type: LiveOverlayWidgetType, z: number): Liv
     ...layout,
     z,
     visible: true,
-    props: structuredClone(defaultProps[type]),
+    props: structuredClone(type === "wheel" ? createDefaultWheelProps() : defaultProps[type]),
   };
 }
 

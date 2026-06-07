@@ -21,6 +21,7 @@ export function LiveOverlayToolbar({ compact = false }: { compact?: boolean }) {
     updateWidgetProps,
     removeWidget,
     spinWheel,
+    resetWheel,
     drawLottery,
   } = ctx;
 
@@ -71,6 +72,7 @@ export function LiveOverlayToolbar({ compact = false }: { compact?: boolean }) {
               compact={compact}
               onChange={(props) => updateWidgetProps(selected.id, props)}
               onSpin={() => spinWheel(selected.id)}
+              onReset={() => resetWheel(selected.id)}
             />
           )}
           {selected.type === "lottery" && (
@@ -155,20 +157,16 @@ function WheelEditor({
   compact,
   onChange,
   onSpin,
+  onReset,
 }: {
   props: LiveOverlayWheelProps;
   compact: boolean;
   onChange: (p: LiveOverlayWheelProps) => void;
   onSpin: () => void;
+  onReset: () => void;
 }) {
   return (
     <div className="space-y-2">
-      <Input
-        value={props.title}
-        onChange={(e) => onChange({ ...props, title: e.target.value })}
-        placeholder="돌림판 제목"
-        className={compact ? "h-8 bg-black/40 border-white/20 text-white" : "h-9"}
-      />
       <textarea
         value={props.segments.map((s) => s.label).join("\n")}
         onChange={(e) => {
@@ -182,14 +180,19 @@ function WheelEditor({
             })),
           });
         }}
-        rows={4}
-        placeholder={"항목 (한 줄에 하나)\n1\n2\n3"}
+        rows={6}
+        placeholder={"항목 (한 줄에 하나)\n4,000원\n5,000원\n1,000원"}
         className={`w-full rounded-lg border px-2 py-1.5 text-xs ${compact ? "bg-black/40 border-white/20 text-white" : "border-input bg-background"}`}
       />
-      <Button type="button" size="sm" className="rounded-lg h-8 gap-1 w-full" disabled={props.spinning} onClick={onSpin}>
-        <RotateCw className={`h-3.5 w-3.5 ${props.spinning ? "animate-spin" : ""}`} />
-        돌리기
-      </Button>
+      <div className="flex gap-1.5">
+        <Button type="button" size="sm" className="rounded-lg h-8 gap-1 flex-1" disabled={props.spinning} onClick={onSpin}>
+          <RotateCw className={`h-3.5 w-3.5 ${props.spinning ? "animate-spin" : ""}`} />
+          다시돌리기
+        </Button>
+        <Button type="button" size="sm" variant="secondary" className="rounded-lg h-8 flex-1" disabled={props.spinning} onClick={onReset}>
+          새 원판
+        </Button>
+      </div>
     </div>
   );
 }

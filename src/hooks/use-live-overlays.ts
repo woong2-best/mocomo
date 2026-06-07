@@ -9,6 +9,7 @@ import {
   pickWeightedSegment,
   saveOverlayStateToStorage,
 } from "@/lib/live-overlays/defaults";
+import { createDefaultWheelProps } from "@/lib/live-overlays/wheel-theme";
 import {
   publishLiveOverlayState,
   subscribeLiveOverlayState,
@@ -138,7 +139,7 @@ export function useLiveOverlays(
       const segAngle = 360 / segCount;
       const extra = 360 * (4 + Math.floor(Math.random() * 3));
       const target = props.rotation + extra + (segCount - index) * segAngle - segAngle / 2;
-      const spinningProps = { ...props, spinning: true, lastResult: null };
+      const spinningProps = { ...props, spinning: true };
       updateWidgetProps(id, spinningProps);
       window.setTimeout(() => {
         const latest = stateRef.current.widgets.find((w) => w.id === id);
@@ -151,6 +152,16 @@ export function useLiveOverlays(
           lastResult: label,
         });
       }, 4200);
+    },
+    [isHost, state.widgets, updateWidgetProps]
+  );
+
+  const resetWheel = useCallback(
+    (id: string) => {
+      if (!isHost) return;
+      const widget = state.widgets.find((w) => w.id === id);
+      if (!widget || widget.type !== "wheel") return;
+      updateWidgetProps(id, createDefaultWheelProps());
     },
     [isHost, state.widgets, updateWidgetProps]
   );
@@ -195,6 +206,7 @@ export function useLiveOverlays(
     updateWidgetProps,
     removeWidget,
     spinWheel,
+    resetWheel,
     drawLottery,
   };
 }

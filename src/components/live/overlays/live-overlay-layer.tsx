@@ -49,7 +49,7 @@ export function LiveOverlayLayer({
             <TextOverlayWidget props={widget.props as LiveOverlayTextProps} />
           )}
           {widget.type === "wheel" && (
-            <WheelOverlayWidget props={widget.props as LiveOverlayWheelProps} />
+            <WheelOverlayWidget widgetId={widget.id} props={widget.props as LiveOverlayWheelProps} />
           )}
           {widget.type === "lottery" && (
             <LotteryOverlayWidget props={widget.props as LiveOverlayLotteryProps} />
