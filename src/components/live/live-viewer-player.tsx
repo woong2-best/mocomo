@@ -8,16 +8,19 @@ export function LiveViewerPlayer({
   channelId,
   hostUserId,
   broadcastMode,
+  isLiveOnAir,
 }: {
   channelId: string;
   hostUserId?: string;
   broadcastMode?: LiveBroadcastMode | null;
+  isLiveOnAir?: boolean;
 }) {
   return (
     <LiveBroadcastPlayer
       channelId={channelId}
       hostUserId={hostUserId}
       broadcastMode={broadcastMode}
+      isLiveOnAir={isLiveOnAir}
     />
   );
 }

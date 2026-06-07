@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { LiveBroadcastMode, LiveStreamCategory, LiveVisibility, SupportTierLevel } from "@prisma/client";
 import {
@@ -71,6 +71,8 @@ export function LiveRoomClient({
   const router = useRouter();
   const mobilePortrait = useLiveMobilePortrait();
   const [joined, setJoined] = useState(false);
+  const [viewerJoinError, setViewerJoinError] = useState("");
+  const viewerJoinStartedRef = useRef(false);
   const [collabPassword, setCollabPassword] = useState("");
   const [showCollabForm, setShowCollabForm] = useState(false);
   const [joinError, setJoinError] = useState("");
@@ -116,9 +118,11 @@ export function LiveRoomClient({
   const enterStudioAsViewer = useCallback(async () => {
     setJoining(true);
     setJoinError("");
+    setViewerJoinError("");
     const res = await enterLiveAsViewer(channelId);
     setJoining(false);
     if ("error" in res && res.error) {
+      setViewerJoinError(res.error);
       setJoinError(res.error);
       return;
     }
@@ -126,9 +130,13 @@ export function LiveRoomClient({
   }, [channelId]);
 
   useEffect(() => {
-    if (joined) return;
-    if (isHost) void enterStudioAsHost();
-    else void enterStudioAsViewer();
+    if (isHost) {
+      if (!joined) void enterStudioAsHost();
+      return;
+    }
+    if (viewerJoinStartedRef.current) return;
+    viewerJoinStartedRef.current = true;
+    void enterStudioAsViewer();
   }, [isHost, joined, enterStudioAsHost, enterStudioAsViewer]);
 
   useEffect(() => {
@@ -177,9 +185,10 @@ export function LiveRoomClient({
     paymentsEnabled,
     broadcastMode,
     hostFollowing,
+    isLiveOnAir,
   };
 
-  if (!joined) {
+  if (!joined && isHost) {
     return (
       <div className="max-w-md mx-auto live-hero !p-8 space-y-4 shadow-xl text-center">
         {joining ? (
@@ -192,11 +201,7 @@ export function LiveRoomClient({
                 비공개 방송 · 필요 등급: {tierLabelKo(minViewerTier)} 이상 (이 스트리머에게 후원 누적)
               </p>
             )}
-            <Button
-              type="button"
-              className="rounded-xl"
-              onClick={() => (isHost ? void enterStudioAsHost() : void enterStudioAsViewer())}
-            >
+            <Button type="button" className="rounded-xl" onClick={() => void enterStudioAsHost()}>
               다시 시도
             </Button>
           </>
@@ -226,6 +231,12 @@ export function LiveRoomClient({
           <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setShowHostPassword(false)}>
             숨기기
           </Button>
+        </div>
+      )}
+
+      {!mobilePortrait && !isHost && viewerJoinError && (
+        <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+          {viewerJoinError}
         </div>
       )}
 

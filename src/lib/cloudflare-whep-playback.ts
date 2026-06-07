@@ -9,8 +9,8 @@ export class WhepNotReadyError extends Error {
   }
 }
 
-/** ICE 전체 수집 대기는 느림 — 짧은 trickle 윈도우 후 WHEP offer 전송 */
-function waitForIceGathering(pc: RTCPeerConnection, maxWaitMs = 1800): Promise<void> {
+/** trickle ICE — 짧게 대기 후 offer 전송 (완전 수집보다 빠름) */
+function waitForIceGathering(pc: RTCPeerConnection, maxWaitMs = 600): Promise<void> {
   if (pc.iceGatheringState === "complete") return Promise.resolve();
   return new Promise((resolve) => {
     const done = () => {
@@ -26,6 +26,18 @@ function waitForIceGathering(pc: RTCPeerConnection, maxWaitMs = 1800): Promise<v
   });
 }
 
+function waitForIncomingTrack(pc: RTCPeerConnection, timeoutMs = 8000): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("영상 트랙 수신 시간 초과")), timeoutMs);
+    const onTrack = () => {
+      clearTimeout(timer);
+      pc.removeEventListener("track", onTrack);
+      resolve();
+    };
+    pc.addEventListener("track", onTrack);
+  });
+}
+
 export async function attachCloudflareWhepPlayback(
   channelId: string,
   video: HTMLVideoElement
@@ -33,7 +45,7 @@ export async function attachCloudflareWhepPlayback(
   const pc = new RTCPeerConnection({
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
     bundlePolicy: "max-bundle",
-    iceCandidatePoolSize: 0,
+    iceCandidatePoolSize: 2,
   });
 
   const stream = new MediaStream();
@@ -84,6 +96,9 @@ export async function attachCloudflareWhepPlayback(
   if (!answerSdp) throw new Error("WHEP 응답 SDP 없음");
 
   await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
+  if (stream.getTracks().length === 0) {
+    await waitForIncomingTrack(pc, 6000);
+  }
 
   return () => {
     pc.close();

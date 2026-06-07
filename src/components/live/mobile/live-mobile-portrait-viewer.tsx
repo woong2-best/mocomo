@@ -25,6 +25,7 @@ export type LiveMobilePortraitViewerProps = {
   paymentsEnabled?: boolean;
   hostFollowing?: boolean;
   broadcastMode?: LiveBroadcastMode | null;
+  isLiveOnAir?: boolean;
 };
 
 /** 시청자 — 모바일 세로 인스타 라이브 UI (데스크탑과 분리) */
@@ -41,6 +42,7 @@ export function LiveMobilePortraitViewer({
   paymentsEnabled,
   hostFollowing,
   broadcastMode,
+  isLiveOnAir,
 }: LiveMobilePortraitViewerProps) {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
@@ -63,6 +65,7 @@ export function LiveMobilePortraitViewer({
             channelId={channelId}
             hostUserId={hostUserId}
             broadcastMode={broadcastMode}
+            isLiveOnAir={isLiveOnAir}
           />
         </div>
       </div>

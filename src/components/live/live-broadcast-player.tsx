@@ -23,6 +23,7 @@ export function LiveBroadcastPlayer({
   preferredEngine,
   hostUserId,
   broadcastMode,
+  isLiveOnAir,
 }: {
   channelId: string;
   /** OBS 패널에서 이미 알고 있는 엔진 (playback 실패 시 SRS로 떨어지지 않게) */
@@ -30,10 +31,12 @@ export function LiveBroadcastPlayer({
   hostUserId?: string;
   /** BROWSER 방송이면 playback API 응답 전에 WHEP 연결 시작 */
   broadcastMode?: LiveBroadcastMode | null;
+  /** 서버에서 LIVE 상태를 알면 WHEP를 즉시 시작 */
+  isLiveOnAir?: boolean;
 }) {
-  const optimisticBrowser = broadcastMode === "BROWSER";
+  const optimisticWhep = broadcastMode === "BROWSER" || !!isLiveOnAir;
   const [engine, setEngine] = useState<PlaybackEngine | null>(() => {
-    if (optimisticBrowser) return "cloudflare";
+    if (optimisticWhep) return "cloudflare";
     if (
       preferredEngine === "cloudflare" ||
       preferredEngine === "livekit" ||
@@ -44,7 +47,7 @@ export function LiveBroadcastPlayer({
     return null;
   });
   const [hlsUrl, setHlsUrl] = useState<string | null>(null);
-  const [useWhep, setUseWhep] = useState(optimisticBrowser);
+  const [useWhep, setUseWhep] = useState(optimisticWhep);
   const [resolvedHostId, setResolvedHostId] = useState<string | undefined>(hostUserId);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -102,7 +105,7 @@ export function LiveBroadcastPlayer({
         setEngine(preferredEngine);
       }
     }
-  }, [channelId, preferredEngine, optimisticBrowser]);
+  }, [channelId, preferredEngine]);
 
   useEffect(() => {
     if (hostUserId) setResolvedHostId(hostUserId);

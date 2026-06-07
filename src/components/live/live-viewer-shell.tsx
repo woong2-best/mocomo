@@ -26,6 +26,7 @@ export function LiveViewerShell({
   paymentsEnabled,
   hostFollowing,
   broadcastMode,
+  isLiveOnAir,
   hostImage,
 }: {
   channelId: string;
@@ -47,6 +48,7 @@ export function LiveViewerShell({
   paymentsEnabled?: boolean;
   hostFollowing?: boolean;
   broadcastMode?: LiveBroadcastMode | null;
+  isLiveOnAir?: boolean;
 }) {
   const mobilePortrait = useLiveMobilePortrait();
 
@@ -67,6 +69,7 @@ export function LiveViewerShell({
         paymentsEnabled={paymentsEnabled}
         hostFollowing={hostFollowing}
         broadcastMode={broadcastMode}
+        isLiveOnAir={isLiveOnAir}
       />
     );
   }
@@ -99,6 +102,7 @@ export function LiveViewerShell({
             channelId={channelId}
             hostUserId={hostUserId}
             broadcastMode={broadcastMode}
+            isLiveOnAir={isLiveOnAir}
           />
         </div>
         <div className="xl:sticky xl:top-16 min-h-[min(70vh,560px)]">

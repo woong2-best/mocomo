@@ -8,10 +8,36 @@ import {
   WhepNotReadyError,
 } from "@/lib/cloudflare-whep-playback";
 
+function hasLiveVideo(video: HTMLVideoElement): boolean {
+  const stream = video.srcObject as MediaStream | null;
+  return (
+    stream?.getVideoTracks().some((t) => t.readyState === "live") === true ||
+    video.readyState >= 2
+  );
+}
+
+async function waitForFirstFrame(video: HTMLVideoElement, timeoutMs = 2500): Promise<boolean> {
+  if (hasLiveVideo(video)) return true;
+  return new Promise((resolve) => {
+    const deadline = setTimeout(() => resolve(hasLiveVideo(video)), timeoutMs);
+    const done = () => {
+      clearTimeout(deadline);
+      resolve(true);
+    };
+    video.addEventListener("loadeddata", done, { once: true });
+    video.addEventListener("playing", done, { once: true });
+    const stream = video.srcObject as MediaStream | null;
+    stream?.getVideoTracks().forEach((track) => {
+      track.addEventListener("unmute", () => {
+        if (hasLiveVideo(video)) done();
+      }, { once: true });
+    });
+  });
+}
+
 /** Cloudflare WHIP → WHEP 시청 (서버 프록시) */
 export function LiveCloudflareWhepPlayer({
   channelId,
-  startDelayMs = 0,
 }: {
   channelId: string;
   whepUrl?: string | null;
@@ -21,6 +47,7 @@ export function LiveCloudflareWhepPlayer({
   const cleanupRef = useRef<(() => void) | null>(null);
   const hasMediaRef = useRef(false);
   const connectingRef = useRef(false);
+  const lastNotReadyRef = useRef(false);
   const [status, setStatus] = useState<"loading" | "playing" | "waiting">("loading");
   const [hint, setHint] = useState("실시간 방송 연결 중…");
   const [needsTap, setNeedsTap] = useState(false);
@@ -54,25 +81,9 @@ export function LiveCloudflareWhepPlayer({
       cleanupRef.current = await attachCloudflareWhepPlayback(channelId, video);
       void video.play().catch(() => undefined);
 
-      const gotFrame = await new Promise<boolean>((resolve) => {
-        const deadline = Date.now() + 6000;
-        const tick = () => {
-          const stream = video.srcObject as MediaStream | null;
-          const hasLiveTrack = stream?.getTracks().some((t) => t.readyState === "live") ?? false;
-          if (hasLiveTrack || video.readyState >= 2) {
-            resolve(true);
-            return;
-          }
-          if (Date.now() >= deadline) {
-            resolve(false);
-            return;
-          }
-          requestAnimationFrame(tick);
-        };
-        tick();
-      });
-
+      const gotFrame = await waitForFirstFrame(video, 2500);
       hasMediaRef.current = gotFrame;
+      lastNotReadyRef.current = false;
       await video.play().catch(() => undefined);
       if (video.paused && gotFrame) {
         setNeedsTap(true);
@@ -86,6 +97,7 @@ export function LiveCloudflareWhepPlayer({
       }
     } catch (e) {
       hasMediaRef.current = false;
+      lastNotReadyRef.current = e instanceof WhepNotReadyError;
       setStatus("waiting");
       const raw =
         e instanceof WhepNotReadyError
@@ -95,7 +107,7 @@ export function LiveCloudflareWhepPlayer({
             : "실시간 재생 연결 실패";
       setHint(
         /parse sdp|missing termination/i.test(raw)
-          ? "실시간 연결을 다시 시도 중입니다. 10~30초 후 자동으로 재연결됩니다."
+          ? "실시간 연결을 다시 시도 중입니다…"
           : raw
       );
     } finally {
@@ -104,30 +116,34 @@ export function LiveCloudflareWhepPlayer({
   }, [channelId]);
 
   useEffect(() => {
-    let retryMs = 1500;
+    let retryMs = 300;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let cancelled = false;
 
     const scheduleRetry = () => {
-      if (hasMediaRef.current) return;
+      if (cancelled || hasMediaRef.current) return;
+      const delay = lastNotReadyRef.current ? retryMs : 900;
       retryTimer = setTimeout(() => {
         void connect().finally(() => {
-          if (!hasMediaRef.current) {
-            retryMs = Math.min(retryMs + 1000, 5000);
+          if (!cancelled && !hasMediaRef.current) {
+            if (lastNotReadyRef.current) {
+              retryMs = Math.min(retryMs + 200, 1200);
+            }
             scheduleRetry();
           }
         });
-      }, retryMs);
+      }, delay);
     };
 
-    const start = setTimeout(() => void connect().finally(scheduleRetry), startDelayMs);
+    void connect().finally(scheduleRetry);
 
     return () => {
-      clearTimeout(start);
+      cancelled = true;
       if (retryTimer) clearTimeout(retryTimer);
       hasMediaRef.current = false;
       cleanupRef.current?.();
     };
-  }, [connect, startDelayMs]);
+  }, [connect]);
 
   return (
     <div className="relative aspect-video w-full bg-black rounded-2xl overflow-hidden ring-1 ring-border/40">
