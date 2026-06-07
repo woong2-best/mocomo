@@ -159,12 +159,19 @@ export function LiveOverlayWidgetFrame({
       >
         {children}
       </div>
-      {editable && selected && (
+      {editable && selected && isWheel && (
         <div
-          className={cn(
-            "absolute bottom-0 right-0 h-4 w-4 cursor-se-resize pointer-events-auto z-30",
-            isWheel ? "rounded-tl-full bg-orange-500/90" : "rounded-tl bg-orange-500/90"
-          )}
+          className="absolute bottom-0 left-0 h-4 w-4 cursor-grab active:cursor-grabbing pointer-events-auto z-30 rounded-tr-full bg-orange-500/90"
+          onPointerDown={onDragPointerDown}
+          onPointerMove={onDragPointerMove}
+          onPointerUp={onDragPointerUp}
+          onPointerCancel={onDragPointerUp}
+          aria-label="돌림판 이동"
+        />
+      )}
+      {editable && selected && !isWheel && (
+        <div
+          className="absolute bottom-0 right-0 h-4 w-4 cursor-se-resize pointer-events-auto z-30 rounded-tl bg-orange-500/90"
           onPointerDown={onResizePointerDown}
           onPointerMove={onResizePointerMove}
           onPointerUp={onResizePointerUp}

@@ -58,7 +58,7 @@ export function LiveOverlayToolbar({ compact = false }: { compact?: boolean }) {
         <div className={`space-y-2 pt-2 border-t ${compact ? "border-white/15" : "border-border"}`}>
           <p className="text-[11px] font-medium opacity-80">
             {selected.type === "wheel"
-              ? "선택 후 「이동」으로 위치 조절 · 원 탭 또는 돌리기 버튼"
+              ? "왼쪽 아래 핸들로 위치 조절 · 툴바 크기 슬라이더 · 원 탭 또는 돌리기"
               : "선택됨 · 드래그·모서리로 크기 조절 · 휴지통으로 삭제"}
           </p>
 
