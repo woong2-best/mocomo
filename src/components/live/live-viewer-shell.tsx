@@ -3,7 +3,7 @@
 import { LiveViewerPlayer } from "@/components/live/live-viewer-player";
 import { LiveChat } from "@/components/live/live-chat";
 import { LiveStudioHeader } from "@/components/live/live-studio-header";
-import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
+import type { LiveBroadcastMode, LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 
 export function LiveViewerShell({
   channelId,
@@ -23,6 +23,7 @@ export function LiveViewerShell({
   chatBannedWords,
   paymentsEnabled,
   hostFollowing,
+  broadcastMode,
 }: {
   channelId: string;
   channelName: string;
@@ -41,6 +42,7 @@ export function LiveViewerShell({
   chatBannedWords?: string[];
   paymentsEnabled?: boolean;
   hostFollowing?: boolean;
+  broadcastMode?: LiveBroadcastMode | null;
 }) {
   return (
     <div className="live-studio-twitch space-y-3">
@@ -66,7 +68,11 @@ export function LiveViewerShell({
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-3 xl:gap-4 items-start">
         <div className="min-w-0 rounded-xl overflow-hidden ring-1 ring-border/50 bg-black">
-          <LiveViewerPlayer channelId={channelId} hostUserId={hostUserId} />
+          <LiveViewerPlayer
+            channelId={channelId}
+            hostUserId={hostUserId}
+            broadcastMode={broadcastMode}
+          />
         </div>
         <div className="xl:sticky xl:top-16 min-h-[min(70vh,560px)]">
           <LiveChat

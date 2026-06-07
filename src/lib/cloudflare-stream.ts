@@ -182,6 +182,22 @@ export function buildLiveInputIframeUrl(liveInputUid: string): string | null {
   return `https://${host}/${liveInputUid.trim()}/iframe`;
 }
 
+/** WHEP 시청 URL — API 없이 customer host + uid로 즉시 조합 */
+export function buildCloudflareWhepPlaybackUrl(liveInputUid: string): string | null {
+  const host = getStreamCustomerHost();
+  const uid = liveInputUid.trim();
+  if (!host || !uid) return null;
+  return `https://${host}/${uid}/webRTC/play`;
+}
+
+/** WHIP 송출 URL — ingest API 캐시용 */
+export function buildCloudflareWhipPublishUrl(liveInputUid: string): string | null {
+  const host = getStreamCustomerHost();
+  const uid = liveInputUid.trim();
+  if (!host || !uid) return null;
+  return `https://${host}/${uid}/webRTC/publish`;
+}
+
 async function streamApi<T>(path: string, init?: RequestInit): Promise<T> {
   const acc = accountId();
   const token = apiToken();
@@ -294,12 +310,15 @@ export async function getCloudflareLiveInput(liveInputUid: string): Promise<Clou
 export async function getCloudflareWhepPlaybackUrl(
   liveInputUid: string
 ): Promise<string | null> {
+  const built = buildCloudflareWhepPlaybackUrl(liveInputUid);
+  if (built) return built;
+
   try {
     const result = await streamApi<ApiLiveInput>(`/stream/live_inputs/${liveInputUid}`, {
       method: "GET",
     });
     rememberCustomerHostFromApi(result);
-    return result.webRTCPlayback?.url?.trim() || null;
+    return result.webRTCPlayback?.url?.trim() || buildCloudflareWhepPlaybackUrl(liveInputUid);
   } catch (e) {
     console.warn("[cloudflare-stream] whep url", liveInputUid, e);
     return null;
@@ -310,13 +329,16 @@ export async function getCloudflareWhepPlaybackUrl(
 export async function getCloudflareWhipPublishUrl(
   liveInputUid: string
 ): Promise<string | null> {
+  const built = buildCloudflareWhipPublishUrl(liveInputUid);
+  if (built) return built;
+
   try {
     const result = await streamApi<ApiLiveInput>(`/stream/live_inputs/${liveInputUid}`, {
       method: "GET",
     });
     rememberCustomerHostFromApi(result);
     const url = result.webRTC?.url?.trim();
-    return url || null;
+    return url || buildCloudflareWhipPublishUrl(liveInputUid);
   } catch (e) {
     console.warn("[cloudflare-stream] whip url", liveInputUid, e);
     return null;

@@ -37,6 +37,7 @@ export function LiveRoomClient({
   slowModeSeconds,
   chatBannedWords,
   paymentsEnabled,
+  broadcastMode,
   liveVisibility = "PUBLIC",
   minViewerTier,
   hostFollowing,
@@ -169,6 +170,7 @@ export function LiveRoomClient({
     slowModeSeconds,
     chatBannedWords,
     paymentsEnabled,
+    broadcastMode,
   };
 
   if (!joined) {

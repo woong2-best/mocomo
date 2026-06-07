@@ -4,58 +4,25 @@ import { normalizeSdp } from "@/lib/webrtc-sdp";
 
 export class WhepNotReadyError extends Error {
   constructor() {
-    super("방송 송출 연결 중… 10~30초 후 자동으로 재생됩니다");
+    super("방송 송출 연결 중… 잠시 후 자동으로 재생됩니다");
     this.name = "WhepNotReadyError";
   }
 }
 
-function waitForIceGathering(pc: RTCPeerConnection, timeoutMs = 12000): Promise<void> {
+/** ICE 전체 수집 대기는 느림 — 짧은 trickle 윈도우 후 WHEP offer 전송 */
+function waitForIceGathering(pc: RTCPeerConnection, maxWaitMs = 1800): Promise<void> {
   if (pc.iceGatheringState === "complete") return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("ICE gathering timeout")), timeoutMs);
+  return new Promise((resolve) => {
+    const done = () => {
+      clearTimeout(timer);
+      pc.removeEventListener("icegatheringstatechange", onChange);
+      resolve();
+    };
+    const timer = setTimeout(done, maxWaitMs);
     const onChange = () => {
-      if (pc.iceGatheringState === "complete") {
-        clearTimeout(timer);
-        pc.removeEventListener("icegatheringstatechange", onChange);
-        resolve();
-      }
+      if (pc.iceGatheringState === "complete") done();
     };
     pc.addEventListener("icegatheringstatechange", onChange);
-  });
-}
-
-function waitForMedia(
-  pc: RTCPeerConnection,
-  stream: MediaStream,
-  timeoutMs = 20000
-): Promise<void> {
-  if (stream.getTracks().length > 0) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error("영상 신호를 받지 못했습니다. 잠시 후 다시 시도해 주세요.")),
-      timeoutMs
-    );
-    const onTrack = () => {
-      if (stream.getTracks().length > 0) {
-        clearTimeout(timer);
-        pc.removeEventListener("track", onTrack);
-        resolve();
-      }
-    };
-    pc.addEventListener("track", onTrack);
-    const onState = () => {
-      if (pc.connectionState === "connected" && stream.getTracks().length > 0) {
-        clearTimeout(timer);
-        pc.removeEventListener("connectionstatechange", onState);
-        pc.removeEventListener("track", onTrack);
-        resolve();
-      }
-      if (pc.connectionState === "failed") {
-        clearTimeout(timer);
-        reject(new Error("실시간 연결 실패"));
-      }
-    };
-    pc.addEventListener("connectionstatechange", onState);
   });
 }
 
@@ -64,11 +31,9 @@ export async function attachCloudflareWhepPlayback(
   video: HTMLVideoElement
 ): Promise<() => void> {
   const pc = new RTCPeerConnection({
-    iceServers: [
-      { urls: "stun:stun.l.google.com:19302" },
-      { urls: "stun:stun1.l.google.com:19302" },
-    ],
+    iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
     bundlePolicy: "max-bundle",
+    iceCandidatePoolSize: 0,
   });
 
   const stream = new MediaStream();
@@ -119,7 +84,6 @@ export async function attachCloudflareWhepPlayback(
   if (!answerSdp) throw new Error("WHEP 응답 SDP 없음");
 
   await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
-  await waitForMedia(pc, stream);
 
   return () => {
     pc.close();

@@ -11,7 +11,7 @@ import {
 /** Cloudflare WHIP → WHEP 시청 (서버 프록시) */
 export function LiveCloudflareWhepPlayer({
   channelId,
-  startDelayMs = 3000,
+  startDelayMs = 0,
 }: {
   channelId: string;
   whepUrl?: string | null;
@@ -52,15 +52,37 @@ export function LiveCloudflareWhepPlayer({
 
     try {
       cleanupRef.current = await attachCloudflareWhepPlayback(channelId, video);
-      hasMediaRef.current = true;
+      void video.play().catch(() => undefined);
+
+      const gotFrame = await new Promise<boolean>((resolve) => {
+        const deadline = Date.now() + 6000;
+        const tick = () => {
+          const stream = video.srcObject as MediaStream | null;
+          const hasLiveTrack = stream?.getTracks().some((t) => t.readyState === "live") ?? false;
+          if (hasLiveTrack || video.readyState >= 2) {
+            resolve(true);
+            return;
+          }
+          if (Date.now() >= deadline) {
+            resolve(false);
+            return;
+          }
+          requestAnimationFrame(tick);
+        };
+        tick();
+      });
+
+      hasMediaRef.current = gotFrame;
       await video.play().catch(() => undefined);
-      if (video.paused) {
+      if (video.paused && gotFrame) {
         setNeedsTap(true);
         setStatus("waiting");
         setHint("재생하려면 버튼을 눌러 주세요");
-      } else {
+      } else if (gotFrame) {
         setStatus("playing");
         setHint("");
+      } else {
+        throw new Error("영상 신호를 받지 못했습니다. 잠시 후 다시 시도해 주세요.");
       }
     } catch (e) {
       hasMediaRef.current = false;
@@ -82,13 +104,26 @@ export function LiveCloudflareWhepPlayer({
   }, [channelId]);
 
   useEffect(() => {
-    const start = setTimeout(() => void connect(), startDelayMs);
-    const poll = setInterval(() => {
-      if (!hasMediaRef.current) void connect();
-    }, 5000);
+    let retryMs = 1500;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const scheduleRetry = () => {
+      if (hasMediaRef.current) return;
+      retryTimer = setTimeout(() => {
+        void connect().finally(() => {
+          if (!hasMediaRef.current) {
+            retryMs = Math.min(retryMs + 1000, 5000);
+            scheduleRetry();
+          }
+        });
+      }, retryMs);
+    };
+
+    const start = setTimeout(() => void connect().finally(scheduleRetry), startDelayMs);
+
     return () => {
       clearTimeout(start);
-      clearInterval(poll);
+      if (retryTimer) clearTimeout(retryTimer);
       hasMediaRef.current = false;
       cleanupRef.current?.();
     };

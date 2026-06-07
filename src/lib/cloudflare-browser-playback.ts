@@ -1,4 +1,5 @@
 import {
+  buildCloudflareWhepPlaybackUrl,
   buildLiveInputHlsUrlAsync,
   getCloudflareWhepPlaybackUrl,
   liveInputUidFromIngressId,
@@ -19,7 +20,8 @@ export async function buildCloudflarePlaybackFields(channel: ChannelSlice) {
   const hostLive = !!channel.isLive && channel.liveStatus !== "ENDED";
 
   if (browser && hostLive && cfUid) {
-    const whepPlaybackUrl = await getCloudflareWhepPlaybackUrl(cfUid);
+    const whepPlaybackUrl =
+      buildCloudflareWhepPlaybackUrl(cfUid) ?? (await getCloudflareWhepPlaybackUrl(cfUid));
     const playable = !!whepPlaybackUrl;
     return {
       useWhep: true as const,

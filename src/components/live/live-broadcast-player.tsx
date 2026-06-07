@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import type { LiveBroadcastMode } from "@prisma/client";
 import { LiveSrsPlayer } from "@/components/live/live-srs-player";
 import { LivekitLivePlayer } from "@/components/live/livekit-live-player";
 import { LiveCloudflarePlayer } from "@/components/live/live-cloudflare-player";
@@ -21,13 +22,18 @@ export function LiveBroadcastPlayer({
   channelId,
   preferredEngine,
   hostUserId,
+  broadcastMode,
 }: {
   channelId: string;
   /** OBS 패널에서 이미 알고 있는 엔진 (playback 실패 시 SRS로 떨어지지 않게) */
   preferredEngine?: PlaybackEngine | string | null;
   hostUserId?: string;
+  /** BROWSER 방송이면 playback API 응답 전에 WHEP 연결 시작 */
+  broadcastMode?: LiveBroadcastMode | null;
 }) {
+  const optimisticBrowser = broadcastMode === "BROWSER";
   const [engine, setEngine] = useState<PlaybackEngine | null>(() => {
+    if (optimisticBrowser) return "cloudflare";
     if (
       preferredEngine === "cloudflare" ||
       preferredEngine === "livekit" ||
@@ -38,7 +44,7 @@ export function LiveBroadcastPlayer({
     return null;
   });
   const [hlsUrl, setHlsUrl] = useState<string | null>(null);
-  const [useWhep, setUseWhep] = useState(false);
+  const [useWhep, setUseWhep] = useState(optimisticBrowser);
   const [resolvedHostId, setResolvedHostId] = useState<string | undefined>(hostUserId);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -96,7 +102,7 @@ export function LiveBroadcastPlayer({
         setEngine(preferredEngine);
       }
     }
-  }, [channelId, preferredEngine]);
+  }, [channelId, preferredEngine, optimisticBrowser]);
 
   useEffect(() => {
     if (hostUserId) setResolvedHostId(hostUserId);
@@ -130,7 +136,7 @@ export function LiveBroadcastPlayer({
 
   if (engine === "cloudflare") {
     if (useWhep) {
-      return <LiveCloudflareWhepPlayer channelId={channelId} startDelayMs={4000} />;
+      return <LiveCloudflareWhepPlayer channelId={channelId} />;
     }
     return <LiveCloudflarePlayer channelId={channelId} hlsUrl={hlsUrl} />;
   }

@@ -1,50 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { buildCloudflarePlaybackFields } from "@/lib/cloudflare-browser-playback";
-import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { cloudflareStreamConfigError } from "@/lib/cloudflare-stream";
-import { resolveChannelIngestEngine } from "@/lib/live-ingest";
+import {
+  fetchChannelForWhep,
+  resolveWhepPlaybackUrlForViewer,
+} from "@/lib/cloudflare-whep-resolve";
 import { normalizeSdp } from "@/lib/webrtc-sdp";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-async function resolveWhepUrl(channelId: string, userId: string) {
-  const channel = await db.voiceChannel.findUnique({
-    where: { id: channelId },
-    select: {
-      createdBy: true,
-      rtmpIngressId: true,
-      rtmpUrl: true,
-      broadcastMode: true,
-      isLive: true,
-      liveStatus: true,
-    },
-  });
-  if (!channel) return { error: "방송을 찾을 수 없습니다.", status: 404 as const };
-
-  if (channel.createdBy === userId) {
-    const cf = await buildCloudflarePlaybackFields(channel);
-    if (cf.whepPlaybackUrl) return { whepUrl: cf.whepPlaybackUrl };
-    return { error: cf.message ?? "방송 재생 URL을 준비 중입니다.", status: 409 as const };
-  }
-
-  const access = await resolveLiveChannelAccess(channelId, userId);
-  if (!access.allowed) {
-    return { error: "시청 권한이 없습니다.", status: 403 as const };
-  }
-
-  if (resolveChannelIngestEngine(channel) !== "cloudflare") {
-    return { error: "Cloudflare 방송이 아닙니다.", status: 400 as const };
-  }
-
-  const cf = await buildCloudflarePlaybackFields(channel);
-  if (!cf.whepPlaybackUrl) {
-    return { error: cf.message ?? "재생 URL 준비 중", status: 409 as const };
-  }
-  return { whepUrl: cf.whepPlaybackUrl };
-}
 
 /** WHEP SDP — 브라우저 CORS 우회, Cloudflare로 프록시 */
 export async function POST(
@@ -68,10 +32,15 @@ export async function POST(
     return NextResponse.json({ error: "SDP가 필요합니다." }, { status: 400 });
   }
 
-  const resolved = await resolveWhepUrl(channelId, session.user.id);
+  const channel = await fetchChannelForWhep(channelId);
+  if (!channel) {
+    return NextResponse.json({ error: "방송을 찾을 수 없습니다." }, { status: 404 });
+  }
+
+  const resolved = await resolveWhepPlaybackUrlForViewer(channelId, channel, session.user.id);
   if ("error" in resolved) {
     return NextResponse.json(
-      { error: resolved.error, notReady: resolved.status === 409 },
+      { error: resolved.error, notReady: resolved.notReady ?? resolved.status === 409 },
       { status: resolved.status }
     );
   }
