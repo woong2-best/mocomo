@@ -2,7 +2,7 @@
 
 import { useId } from "react";
 import { useLiveOverlayContextOptional } from "@/components/live/overlays/live-overlay-context";
-import { WHEEL_COLORS } from "@/lib/live-overlays/wheel-theme";
+import { WHEEL_COLORS, WHEEL_SPIN_MS } from "@/lib/live-overlays/wheel-theme";
 import type { LiveOverlayWheelProps } from "@/lib/live-overlays/types";
 
 const SIZE = 200;
@@ -52,11 +52,23 @@ export function LiveOverlayWheel({
       className="live-overlay-wheel relative h-full w-full rounded-full bg-transparent pointer-events-auto"
       onPointerDown={(e) => e.stopPropagation()}
     >
+      {/* 고정 포인터 (12시 방향) */}
       <div
-        className="absolute inset-0 transition-transform ease-out"
+        className="absolute left-1/2 top-0 z-20 -translate-x-1/2 -translate-y-[15%] pointer-events-none drop-shadow-md"
+        aria-hidden
+      >
+        <svg width="22" height="18" viewBox="0 0 22 18" className="text-folk-terracotta">
+          <path d="M11 18 L2 2 L20 2 Z" fill="currentColor" stroke="#fff" strokeWidth="1.2" />
+        </svg>
+      </div>
+
+      <div
+        className="absolute inset-0 will-change-transform"
         style={{
           transform: `rotate(${props.rotation}deg)`,
-          transitionDuration: props.spinning ? "4200ms" : "0ms",
+          transition: props.spinning
+            ? `transform ${WHEEL_SPIN_MS}ms cubic-bezier(0.12, 0.85, 0.15, 1)`
+            : "none",
         }}
       >
         <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="h-full w-full">

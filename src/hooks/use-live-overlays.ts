@@ -10,7 +10,11 @@ import {
   pickWeightedSegment,
   saveOverlayStateToStorage,
 } from "@/lib/live-overlays/defaults";
-import { createDefaultWheelProps } from "@/lib/live-overlays/wheel-theme";
+import {
+  computeWheelSpinTarget,
+  createDefaultWheelProps,
+  WHEEL_SPIN_MS,
+} from "@/lib/live-overlays/wheel-theme";
 import {
   publishLiveOverlayState,
   subscribeLiveOverlayState,
@@ -153,13 +157,14 @@ export function useLiveOverlays(
   const updateWidgetProps = useCallback(
     (id: string, props: LiveOverlayWidget["props"]) => {
       if (!isHost) return;
+      const cur = stateRef.current;
       const next = bumpState(
-        state,
-        state.widgets.map((w) => (w.id === id ? { ...w, props } : w))
+        cur,
+        cur.widgets.map((w) => (w.id === id ? { ...w, props } : w))
       );
       applyState(next, true);
     },
-    [applyState, isHost, state]
+    [applyState, isHost]
   );
 
   const removeWidget = useCallback(
@@ -178,17 +183,26 @@ export function useLiveOverlays(
   const spinWheel = useCallback(
     (id: string) => {
       if (!isHost) return;
-      const widget = state.widgets.find((w) => w.id === id);
+      const widget = stateRef.current.widgets.find((w) => w.id === id);
       if (!widget || widget.type !== "wheel") return;
       const props = widget.props as import("@/lib/live-overlays/types").LiveOverlayWheelProps;
-      if (props.spinning) return;
+      if (props.spinning || !props.segments.some((s) => s.label.trim())) return;
+
       const { index, label } = pickWeightedSegment(props.segments);
-      const segCount = Math.max(1, props.segments.length);
-      const segAngle = 360 / segCount;
-      const extra = 360 * (4 + Math.floor(Math.random() * 3));
-      const target = props.rotation + extra + (segCount - index) * segAngle - segAngle / 2;
-      const spinningProps = { ...props, spinning: true };
-      updateWidgetProps(id, spinningProps);
+      const target = computeWheelSpinTarget(props.rotation, index, props.segments.length);
+
+      updateWidgetProps(id, { ...props, spinning: true });
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const latest = stateRef.current.widgets.find((w) => w.id === id);
+          if (!latest || latest.type !== "wheel") return;
+          const latestProps = latest.props as import("@/lib/live-overlays/types").LiveOverlayWheelProps;
+          if (!latestProps.spinning) return;
+          updateWidgetProps(id, { ...latestProps, spinning: true, rotation: target });
+        });
+      });
+
       window.setTimeout(() => {
         const latest = stateRef.current.widgets.find((w) => w.id === id);
         if (!latest || latest.type !== "wheel") return;
@@ -199,9 +213,9 @@ export function useLiveOverlays(
           rotation: target,
           lastResult: label,
         });
-      }, 4200);
+      }, WHEEL_SPIN_MS);
     },
-    [isHost, state.widgets, updateWidgetProps]
+    [isHost, updateWidgetProps]
   );
 
   const resetWheel = useCallback(

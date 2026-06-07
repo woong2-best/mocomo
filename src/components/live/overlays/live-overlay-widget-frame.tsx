@@ -46,7 +46,7 @@ export function LiveOverlayWidgetFrame({
           onSelect();
         }}
       >
-        <div className="h-full w-full rounded-full overflow-hidden">{children}</div>
+        <div className="h-full w-full rounded-full overflow-visible">{children}</div>
       </div>
     );
   }
