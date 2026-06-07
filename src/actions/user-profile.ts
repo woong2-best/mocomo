@@ -1,9 +1,23 @@
 "use server";
 
 import { toggleFollow } from "@/actions/social";
+import { requireAuthMinimal } from "@/lib/auth";
+import { db } from "@/lib/db";
 
 export async function followUserAction(userId: string, username: string) {
   return toggleFollow(userId, username);
+}
+
+export async function getFollowStatusAction(targetUserId: string) {
+  const user = await requireAuthMinimal();
+  if (user.id === targetUserId) return { following: false as const };
+  const row = await db.follow.findUnique({
+    where: {
+      followerId_followingId: { followerId: user.id, followingId: targetUserId },
+    },
+    select: { followerId: true },
+  });
+  return { following: !!row };
 }
 
 /** @deprecated tipCreatorAction in @/actions/support 사용 */

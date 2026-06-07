@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { UserPlus, UserMinus, Loader2 } from "lucide-react";
+import { UserPlus, UserCheck, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { followUserAction } from "@/actions/user-profile";
+import { followUserAction, getFollowStatusAction } from "@/actions/user-profile";
 import { cn } from "@/lib/utils";
 
 export function ProfileFollowButton({
@@ -11,19 +11,40 @@ export function ProfileFollowButton({
   username,
   initialFollowing,
   onFollowingChange,
+  followLabel = "팔로우",
+  followingLabel = "팔로우 됨",
+  syncFollowingOnMount = false,
 }: {
   userId: string;
   username: string;
   initialFollowing: boolean;
   /** 팔로워 수 등 낙관적 UI (선택) */
   onFollowingChange?: (following: boolean) => void;
+  followLabel?: string;
+  followingLabel?: string;
+  /** SSR 캐시와 다를 수 있을 때 마운트 시 DB 재확인 */
+  syncFollowingOnMount?: boolean;
 }) {
   const [following, setFollowing] = useState(initialFollowing);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     setFollowing(initialFollowing);
-  }, [initialFollowing]);
+  }, [initialFollowing, userId]);
+
+  useEffect(() => {
+    if (!syncFollowingOnMount) return;
+    let cancelled = false;
+    void getFollowStatusAction(userId).then((res) => {
+      if (!cancelled && typeof res.following === "boolean") {
+        setFollowing(res.following);
+        onFollowingChange?.(res.following);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, syncFollowingOnMount, onFollowingChange]);
 
   async function toggle() {
     if (busy) return;
@@ -51,22 +72,27 @@ export function ProfileFollowButton({
   return (
     <Button
       type="button"
-      variant={following ? "outline" : "default"}
-      className={cn("rounded-full font-bold px-5 gap-1 min-w-[7.5rem]", busy && "opacity-90")}
+      variant={following ? "secondary" : "default"}
+      className={cn(
+        "rounded-full font-bold px-5 gap-1 min-w-[7.5rem]",
+        following && "bg-muted text-foreground border border-border",
+        busy && "opacity-90"
+      )}
       disabled={busy}
       onClick={() => void toggle()}
+      aria-pressed={following}
     >
       {busy ? (
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : following ? (
         <>
-          <UserMinus className="h-4 w-4" />
-          팔로잉
+          <UserCheck className="h-4 w-4" />
+          {followingLabel}
         </>
       ) : (
         <>
           <UserPlus className="h-4 w-4" />
-          팔로우
+          {followLabel}
         </>
       )}
     </Button>

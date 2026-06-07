@@ -16,6 +16,9 @@ export function LiveRoomFollowButton({
       userId={hostUserId}
       username={hostUsername}
       initialFollowing={initialFollowing}
+      followLabel="팔로우"
+      followingLabel="팔로우 됨"
+      syncFollowingOnMount
     />
   );
 }

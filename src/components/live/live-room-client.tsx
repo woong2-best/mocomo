@@ -171,6 +171,7 @@ export function LiveRoomClient({
     chatBannedWords,
     paymentsEnabled,
     broadcastMode,
+    hostFollowing,
   };
 
   if (!joined) {
@@ -263,7 +264,7 @@ export function LiveRoomClient({
         {isHost ? (
           <LiveHostStudioShell {...studioProps} onEndStream={handleEndStream} />
         ) : (
-          <LiveViewerShell {...studioProps} hostFollowing={hostFollowing} />
+          <LiveViewerShell {...studioProps} />
         )}
       </LiveStudioErrorBoundary>
     </div>
