@@ -15,7 +15,7 @@ export function Header() {
 
   return (
     <>
-      <header className="folk-brush-border-b sticky top-0 z-50 flex h-14 items-center gap-2 sm:gap-3 border-b-2 border-folk-cobalt/20 bg-background/95 backdrop-blur-md px-3 sm:px-5 shadow-folk-sm pt-safe">
+      <header className="folk-brush-border-b sticky top-0 z-[100] flex h-14 items-center gap-2 sm:gap-3 border-b-2 border-folk-cobalt/20 bg-background/95 backdrop-blur-md px-3 sm:px-5 shadow-folk-sm pt-safe isolate">
         <div className="flex items-center gap-2 shrink-0 lg:hidden">
           <MobileMenuButton onClick={() => setMenuOpen(true)} />
           <Link href="/" className="flex items-center gap-2 text-foreground min-w-0">

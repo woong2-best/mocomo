@@ -27,7 +27,7 @@ export type SidebarPanelData = {
 
 export function RightPanelSkeleton() {
   return (
-    <aside className="hidden lg:block w-64 xl:w-72 shrink-0 p-4 space-y-3 sticky top-14 h-[calc(100vh-3.5rem)] overflow-hidden folk-panel-aside animate-pulse">
+    <aside className="hidden lg:block w-64 xl:w-72 shrink-0 p-4 space-y-3 sticky top-14 z-0 h-[calc(100vh-3.5rem)] overflow-hidden folk-panel-aside animate-pulse">
       <div className="h-12 rounded-2xl bg-folk-terracotta/30" />
       <div className="h-48 rounded-2xl bg-muted" />
       <div className="h-36 rounded-2xl bg-muted" />
@@ -44,7 +44,7 @@ export function RightPanelContent({ animes, tips, sidebarAds, eventPins }: Sideb
       : FALLBACK_SIDEBAR_ADS.map((a) => ({ ...a, ctaLabel: a.ctaLabel ?? null }));
 
   return (
-    <aside className="hidden lg:block w-64 xl:w-72 shrink-0 p-4 space-y-3 sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto folk-panel-aside">
+    <aside className="hidden lg:block w-64 xl:w-72 shrink-0 p-4 space-y-3 sticky top-14 z-0 h-[calc(100vh-3.5rem)] overflow-y-auto folk-panel-aside">
       <RightPanelComposeButton />
       <Card className="overflow-hidden border-folk-gold/40 bg-folk-gold/5">
         <CardHeader className="pb-2">
