@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FolkArtFrame, FolkArtStage, FolkBrushDivider, FolkSunFace } from "@/components/brand/folk-decor";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { BRAND } from "@/lib/brand";
+import { loginErrorMessage } from "@/lib/auth-login-errors";
 
 function safeCallbackUrl(raw: string): string {
   const path = raw.trim();
@@ -70,15 +71,16 @@ export function SignInForm({
 
     setLoading(false);
 
-    if (result?.error) {
-      setError(
-        result.error === "Configuration"
-          ? "로그인 설정 오류입니다. /api/health 를 확인하거나 이메일·비밀번호를 다시 확인하세요."
-          : "이메일 또는 비밀번호가 올바르지 않습니다."
-      );
+    if (result?.error || result?.ok === false) {
+      const code =
+        typeof result === "object" && result && "code" in result
+          ? String((result as { code?: string }).code ?? "")
+          : undefined;
+      setError(loginErrorMessage(code || result?.error, result?.error));
       return;
     }
 
+    router.refresh();
     router.replace(callbackUrl);
   }
 

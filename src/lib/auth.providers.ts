@@ -10,6 +10,13 @@ import {
   CREDENTIALS_JWT_USER_SELECT,
   toCredentialsAuthUser,
 } from "@/lib/auth-credentials";
+import {
+  LoginBannedError,
+  LoginEmailNotVerifiedError,
+  LoginInvalidCredentialsError,
+  LoginOAuthOnlyError,
+  LoginRateLimitedError,
+} from "@/lib/auth-login-errors";
 
 const credentialsProvider = Credentials({
   name: "credentials",
@@ -31,19 +38,21 @@ const credentialsProvider = Credentials({
       }),
     ]);
 
-    if (!rate.ok) return null;
+    if (!rate.ok) throw new LoginRateLimitedError();
 
     const fail = () => {
       void recordLoginAttempt(email, ip);
-      return null;
+      throw new LoginInvalidCredentialsError();
     };
 
-    if (!user?.passwordHash || user.isBanned) return fail();
+    if (!user) return fail();
+    if (user.isBanned) throw new LoginBannedError();
+    if (!user.passwordHash) throw new LoginOAuthOnlyError();
 
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) return fail();
 
-    if (!user.emailVerified) return fail();
+    if (!user.emailVerified) throw new LoginEmailNotVerifiedError();
 
     return toCredentialsAuthUser(user);
   },
