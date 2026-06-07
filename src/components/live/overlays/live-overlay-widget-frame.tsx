@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useRef } from "react";
-import { GripHorizontal, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LiveOverlayWidget } from "@/lib/live-overlays/types";
 
@@ -15,7 +14,58 @@ type Props = {
   children: React.ReactNode;
 };
 
+/** 돌림판 — 화면에는 원만, 편집은 툴바에서 */
 export function LiveOverlayWidgetFrame({
+  widget,
+  selected,
+  editable,
+  onSelect,
+  onChange,
+  onRemove,
+  children,
+}: Props) {
+  const isWheel = widget.type === "wheel";
+
+  if (!widget.visible) return null;
+
+  if (isWheel) {
+    return (
+      <div
+        className="absolute select-none rounded-full"
+        style={{
+          left: `${widget.x}%`,
+          top: `${widget.y}%`,
+          width: `${widget.w}%`,
+          aspectRatio: "1 / 1",
+          height: "auto",
+          zIndex: widget.z,
+        }}
+        onPointerDown={(e) => {
+          if (!editable) return;
+          e.stopPropagation();
+          onSelect();
+        }}
+      >
+        <div className="h-full w-full rounded-full overflow-hidden">{children}</div>
+      </div>
+    );
+  }
+
+  return (
+    <WheellessFrame
+      widget={widget}
+      selected={selected}
+      editable={editable}
+      onSelect={onSelect}
+      onChange={onChange}
+      onRemove={onRemove}
+    >
+      {children}
+    </WheellessFrame>
+  );
+}
+
+function WheellessFrame({
   widget,
   selected,
   editable,
@@ -88,8 +138,6 @@ export function LiveOverlayWidgetFrame({
     resizeRef.current = null;
   }, []);
 
-  if (!widget.visible) return null;
-
   return (
     <div
       ref={containerRef}
@@ -123,30 +171,21 @@ export function LiveOverlayWidgetFrame({
             onPointerUp={onDragPointerUp}
             onPointerCancel={onDragPointerUp}
           >
-            <GripHorizontal className="h-3.5 w-3.5" />
             이동
           </button>
           <button
             type="button"
-            className="p-0.5 rounded hover:bg-red-600/80"
+            className="p-0.5 rounded hover:bg-red-600/80 text-[10px] px-1"
             onClick={(e) => {
               e.stopPropagation();
               onRemove();
             }}
-            aria-label="삭제"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            삭제
           </button>
         </div>
       )}
-      <div
-        className={cn(
-          "h-full w-full overflow-visible",
-          widget.type === "wheel" ? "rounded-full" : "rounded-lg"
-        )}
-      >
-        {children}
-      </div>
+      <div className="h-full w-full overflow-hidden rounded-lg">{children}</div>
       {editable && selected && (
         <div
           className="absolute bottom-0 right-0 h-4 w-4 cursor-se-resize rounded-tl bg-orange-500/90 pointer-events-auto"

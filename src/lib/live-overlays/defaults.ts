@@ -85,6 +85,16 @@ export function createOverlayWidget(type: LiveOverlayWidgetType, z: number): Liv
   };
 }
 
+/** 저장된 돌림판 — 세로 직사각형 레이아웃 등 구버전 보정 */
+export function normalizeOverlayState(state: LiveOverlayState): LiveOverlayState {
+  return {
+    ...state,
+    widgets: state.widgets.map((w) =>
+      w.type === "wheel" ? { ...w, h: w.w } : w
+    ),
+  };
+}
+
 export function pickWeightedSegment(
   segments: LiveOverlayWheelProps["segments"]
 ): { index: number; label: string } {

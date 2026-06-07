@@ -18,6 +18,7 @@ export function LiveOverlayToolbar({ compact = false }: { compact?: boolean }) {
     state,
     selectedId,
     addWidget,
+    updateWidget,
     updateWidgetProps,
     removeWidget,
     spinWheel,
@@ -56,7 +57,9 @@ export function LiveOverlayToolbar({ compact = false }: { compact?: boolean }) {
       {selected && (
         <div className={`space-y-2 pt-2 border-t ${compact ? "border-white/15" : "border-border"}`}>
           <p className="text-[11px] font-medium opacity-80">
-            선택됨 · 드래그·모서리로 크기 조절 · 휴지통으로 삭제
+            {selected.type === "wheel"
+              ? "원 탭으로 돌리기 · 아래에서 항목·크기 편집"
+              : "선택됨 · 드래그·모서리로 크기 조절 · 휴지통으로 삭제"}
           </p>
 
           {selected.type === "text" && (
@@ -69,8 +72,10 @@ export function LiveOverlayToolbar({ compact = false }: { compact?: boolean }) {
           {selected.type === "wheel" && (
             <WheelEditor
               props={selected.props as LiveOverlayWheelProps}
+              size={selected.w}
               compact={compact}
               onChange={(props) => updateWidgetProps(selected.id, props)}
+              onSizeChange={(w) => updateWidget(selected.id, { w, h: w })}
               onSpin={() => spinWheel(selected.id)}
               onReset={() => resetWheel(selected.id)}
             />
@@ -154,19 +159,34 @@ function TextEditor({
 
 function WheelEditor({
   props,
+  size,
   compact,
   onChange,
+  onSizeChange,
   onSpin,
   onReset,
 }: {
   props: LiveOverlayWheelProps;
+  size: number;
   compact: boolean;
   onChange: (p: LiveOverlayWheelProps) => void;
+  onSizeChange: (w: number) => void;
   onSpin: () => void;
   onReset: () => void;
 }) {
   return (
     <div className="space-y-2">
+      <label className="text-[10px] flex items-center gap-2">
+        크기
+        <input
+          type="range"
+          min={14}
+          max={45}
+          value={size}
+          onChange={(e) => onSizeChange(Number(e.target.value))}
+          className="flex-1"
+        />
+      </label>
       <textarea
         value={props.segments.map((s) => s.label).join("\n")}
         onChange={(e) => {

@@ -6,6 +6,7 @@ import {
   createOverlayWidget,
   emptyOverlayState,
   loadOverlayStateFromStorage,
+  normalizeOverlayState,
   pickWeightedSegment,
   saveOverlayStateToStorage,
 } from "@/lib/live-overlays/defaults";
@@ -66,7 +67,7 @@ export function useLiveOverlays(
     hydrated.current = true;
     const saved = loadOverlayStateFromStorage(channelId);
     if (saved?.widgets.length) {
-      applyState(saved, true);
+      applyState(normalizeOverlayState(saved), true);
     }
   }, [applyState, channelId, isHost]);
 
@@ -74,7 +75,7 @@ export function useLiveOverlays(
     return subscribeLiveOverlayState(socket, (payload) => {
       if (payload.channelId !== channelId) return;
       if (isHost && payload.state.version <= hostVersionRef.current) return;
-      setState(payload.state);
+      setState(normalizeOverlayState(payload.state));
     });
   }, [channelId, isHost, socket]);
 

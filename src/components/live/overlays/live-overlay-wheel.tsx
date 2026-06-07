@@ -8,7 +8,7 @@ import type { LiveOverlayWheelProps } from "@/lib/live-overlays/types";
 const SIZE = 200;
 const CX = 100;
 const CY = 100;
-const R = 90;
+const R = 96;
 
 function polar(r: number, degFromTopClockwise: number) {
   const rad = ((degFromTopClockwise - 90) * Math.PI) / 180;
@@ -49,94 +49,76 @@ export function LiveOverlayWheel({
 
   return (
     <div
-      className="live-overlay-wheel relative flex h-full w-full items-center justify-center bg-transparent pointer-events-auto"
+      className="live-overlay-wheel relative h-full w-full rounded-full bg-transparent pointer-events-auto"
       onPointerDown={(e) => e.stopPropagation()}
     >
-      <div className="relative aspect-square h-full w-full max-h-full max-w-full">
-        {/* 회전 원판 */}
-        <div
-          className="absolute inset-0 transition-transform ease-out"
-          style={{
-            transform: `rotate(${props.rotation}deg)`,
-            transitionDuration: props.spinning ? "4200ms" : "0ms",
-          }}
-        >
-          <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="h-full w-full">
-            <defs>
-              <clipPath id={clipId}>
-                <circle cx={CX} cy={CY} r={R} />
-              </clipPath>
-            </defs>
-            <g clipPath={`url(#${clipId})`}>
-              {segments.map((seg, i) => {
-                const mid = i * segAngle + segAngle / 2;
-                const tp = polar(R * 0.64, mid);
-                const fontSize = count <= 6 ? 14 : count <= 8 ? 11 : 9;
-                return (
-                  <g key={seg.id}>
-                    <path
-                      d={wedgePath(i, count)}
-                      fill={WHEEL_COLORS[i % WHEEL_COLORS.length]}
-                      stroke="rgba(255,255,255,0.3)"
-                      strokeWidth="0.8"
-                    />
-                    <text
-                      x={tp.x}
-                      y={tp.y}
-                      fill="#fff"
-                      fontSize={fontSize}
-                      fontWeight="700"
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      transform={`rotate(${mid}, ${tp.x}, ${tp.y})`}
-                    >
-                      {seg.label}
-                    </text>
-                  </g>
-                );
-              })}
-            </g>
-            <circle cx={CX} cy={CY} r={R} fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2" />
-            <circle cx={CX} cy={CY} r={20} fill="rgba(0,0,0,0.75)" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5" />
-            <text
-              x={CX}
-              y={CY}
-              fill="#fff"
-              fontSize={hubLabel.length > 4 ? 8 : 10}
-              fontWeight="700"
-              textAnchor="middle"
-              dominantBaseline="middle"
-            >
-              {hubLabel.length > 10 ? `${hubLabel.slice(0, 9)}…` : hubLabel}
-            </text>
-          </svg>
-        </div>
-
-        {/* 고정 포인터 */}
-        <svg
-          viewBox={`0 0 ${SIZE} ${SIZE}`}
-          className="pointer-events-none absolute inset-0 h-full w-full"
-          aria-hidden
-        >
-          <path
-            d="M 100 4 L 110 24 L 100 19 L 90 24 Z"
-            fill="#ef4444"
-            stroke="#991b1b"
-            strokeWidth="0.6"
-          />
+      <div
+        className="absolute inset-0 transition-transform ease-out"
+        style={{
+          transform: `rotate(${props.rotation}deg)`,
+          transitionDuration: props.spinning ? "4200ms" : "0ms",
+        }}
+      >
+        <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="h-full w-full">
+          <defs>
+            <clipPath id={clipId}>
+              <circle cx={CX} cy={CY} r={R} />
+            </clipPath>
+          </defs>
+          <g clipPath={`url(#${clipId})`}>
+            {segments.map((seg, i) => {
+              const mid = i * segAngle + segAngle / 2;
+              const tp = polar(R * 0.62, mid);
+              const fontSize = count <= 6 ? 15 : count <= 8 ? 11 : 9;
+              return (
+                <g key={seg.id}>
+                  <path
+                    d={wedgePath(i, count)}
+                    fill={WHEEL_COLORS[i % WHEEL_COLORS.length]}
+                    stroke="rgba(255,255,255,0.25)"
+                    strokeWidth="0.6"
+                  />
+                  <text
+                    x={tp.x}
+                    y={tp.y}
+                    fill="#fff"
+                    fontSize={fontSize}
+                    fontWeight="700"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    transform={`rotate(${mid}, ${tp.x}, ${tp.y})`}
+                  >
+                    {seg.label}
+                  </text>
+                </g>
+              );
+            })}
+          </g>
+          <circle cx={CX} cy={CY} r={18} fill="rgba(0,0,0,0.7)" />
+          <text
+            x={CX}
+            y={CY}
+            fill="#fff"
+            fontSize={hubLabel.length > 4 ? 8 : 10}
+            fontWeight="700"
+            textAnchor="middle"
+            dominantBaseline="middle"
+          >
+            {hubLabel.length > 10 ? `${hubLabel.slice(0, 9)}…` : hubLabel}
+          </text>
         </svg>
-
-        {isHost && (
-          <button
-            type="button"
-            disabled={props.spinning}
-            onClick={spin}
-            onPointerDown={(e) => e.stopPropagation()}
-            className="absolute inset-[4%] z-10 cursor-pointer rounded-full disabled:cursor-wait focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
-            aria-label="돌림판 돌리기"
-          />
-        )}
       </div>
+
+      {isHost && (
+        <button
+          type="button"
+          disabled={props.spinning}
+          onClick={spin}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="absolute inset-0 z-10 cursor-pointer rounded-full disabled:cursor-wait focus:outline-none"
+          aria-label="돌림판 돌리기"
+        />
+      )}
     </div>
   );
 }
