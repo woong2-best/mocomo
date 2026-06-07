@@ -3,6 +3,9 @@ import type { LiveStreamCategory } from "@prisma/client";
 import { db } from "@/lib/db";
 import { liveViewerCutoff } from "@/lib/live-presence";
 import { getAuthUserId } from "@/lib/auth";
+import {
+  filterChannelsWithPresentHost,
+} from "@/lib/live-abandon";
 
 /** /live 허브·팔로우 라이브 목록 캐시 */
 export const LIVE_HUB_CACHE_TAG = "live-hub";
@@ -62,7 +65,7 @@ async function fetchHostsByIds(hostIds: string[]) {
 
 async function fetchLiveHubChannels(category?: LiveStreamCategory) {
   const cutoff = liveViewerCutoff();
-  const channels = await db.voiceChannel.findMany({
+  const rawChannels = await db.voiceChannel.findMany({
     where: {
       isLive: true,
       liveStatus: "LIVE",
@@ -72,6 +75,7 @@ async function fetchLiveHubChannels(category?: LiveStreamCategory) {
       id: true,
       name: true,
       createdBy: true,
+      createdAt: true,
       category: true,
       tags: true,
       thumbnailUrl: true,
@@ -79,6 +83,8 @@ async function fetchLiveHubChannels(category?: LiveStreamCategory) {
     orderBy: { createdAt: "desc" },
     take: 36,
   });
+
+  const channels = await filterChannelsWithPresentHost(rawChannels);
 
   const channelIds = channels.map((c) => c.id);
   if (channelIds.length === 0) return [] as LiveHubChannel[];
@@ -131,18 +137,20 @@ async function fetchFollowedLive(userId: string) {
   if (ids.length === 0) return [] as LiveHubChannel[];
 
   const cutoff = liveViewerCutoff();
-  const channels = await db.voiceChannel.findMany({
+  const rawChannels = await db.voiceChannel.findMany({
     where: { isLive: true, liveStatus: "LIVE", createdBy: { in: ids } },
     select: {
       id: true,
       name: true,
       createdBy: true,
+      createdAt: true,
       category: true,
       tags: true,
       thumbnailUrl: true,
     },
     take: 12,
   });
+  const channels = await filterChannelsWithPresentHost(rawChannels);
   const viewerGroups = await db.voiceMember.groupBy({
     by: ["channelId"],
     where: {

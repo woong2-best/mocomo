@@ -3,6 +3,7 @@ import { LiveHub } from "@/components/live/live-hub";
 import { LiveChannelFeed } from "@/components/live/live-channel-feed";
 import { LiveChannelGridSkeleton } from "@/components/live/live-channel-grid-skeleton";
 import { getLiveHubStaticData } from "@/lib/live-hub-data";
+import { autoEndAbandonedLiveChannels } from "@/lib/live-abandon";
 import { getAuthUserId } from "@/lib/auth";
 import { isLiveFeatureEnabled } from "@/lib/live-feature";
 import { LiveFeatureDisabledNotice } from "@/components/live/live-feature-disabled";
@@ -19,6 +20,7 @@ export default async function LivePage({
   }
 
   const currentUserId = await getAuthUserId();
+  void autoEndAbandonedLiveChannels();
 
   let staticData: Awaited<ReturnType<typeof getLiveHubStaticData>> = {
     recommendedStreamers: [],

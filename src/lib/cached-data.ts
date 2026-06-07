@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { FEED_POSTS_CACHE_TAG } from "@/lib/cache-tags";
 import { liveViewerCutoff } from "@/lib/live-presence";
+import { filterChannelsWithPresentHost } from "@/lib/live-abandon";
 import { db } from "@/lib/db";
 import { userPublicSelect } from "@/lib/user-public-select";
 import { getTipRanking } from "@/actions/monetization";
@@ -188,7 +189,7 @@ export const getCachedMarketProducts = unstable_cache(
 export const getCachedLiveChannels = unstable_cache(
   async () => {
     const cutoff = liveViewerCutoff();
-    const [channels, viewerGroups] = await Promise.all([
+    const [rawChannels, viewerGroups] = await Promise.all([
       db.voiceChannel.findMany({
         where: { isLive: true },
         select: {
@@ -206,6 +207,7 @@ export const getCachedLiveChannels = unstable_cache(
         _count: { _all: true },
       }),
     ]);
+    const channels = await filterChannelsWithPresentHost(rawChannels);
     const viewerMap = Object.fromEntries(
       viewerGroups.map((g) => [g.channelId, g._count._all])
     );

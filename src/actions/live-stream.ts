@@ -38,6 +38,7 @@ import { ensureStringArray } from "@/lib/ensure-array";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { liveRoomCacheTag } from "@/lib/cached-live-meta";
 import { revalidateLiveHubCache } from "@/lib/live-hub-data";
+import { autoEndAbandonedLiveChannels } from "@/lib/live-abandon";
 
 function mapLiveChatMessage(m: {
   id: string;
@@ -304,6 +305,7 @@ export async function enterLiveAsHost(channelId: string) {
     return { error: "종료된 방송입니다. 새 방송을 만들어 주세요." };
   }
 
+  void autoEndAbandonedLiveChannels();
   await upsertLiveMember(channelId, user.id, "HOST");
   await db.voiceChannel.update({
     where: { id: channelId },
@@ -412,6 +414,7 @@ export async function enterLiveAsViewer(channelId: string) {
   }
 
   await upsertLiveMember(channelId, user.id, "VIEWER");
+  void autoEndAbandonedLiveChannels();
   return { success: true as const, role: "VIEWER" as const };
 }
 

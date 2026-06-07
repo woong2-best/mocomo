@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
+import { filterChannelsWithPresentHost } from "@/lib/live-abandon";
 import type { SupportTierLevel } from "@prisma/client";
-
 export type FastSearchResult = {
   users: { username: string; name: string | null; supportTierSent: SupportTierLevel }[];
   animes: { slug: string; title: string }[];
@@ -40,7 +40,7 @@ export async function runFastSearch(query: string): Promise<FastSearchResult> {
         }
       : { title: { contains: q, mode: "insensitive" as const } };
 
-  const [users, animes, posts, liveStreams] = await Promise.all([
+  const [users, animes, posts, liveStreamsRaw] = await Promise.all([
     db.user.findMany({
       where: userWhere,
       take: 8,
@@ -71,10 +71,13 @@ export async function runFastSearch(query: string): Promise<FastSearchResult> {
         name: { contains: q, mode: "insensitive" },
       },
       take: 6,
-      select: { id: true, name: true, category: true },
+      select: { id: true, name: true, category: true, createdBy: true, createdAt: true },
       orderBy: { createdAt: "desc" },
     }),
   ]);
 
-  return { users, animes, posts, liveStreams };
+  const liveRows = await filterChannelsWithPresentHost(liveStreamsRaw);
+  const liveStreamsFiltered = liveRows.map(({ id, name, category }) => ({ id, name, category }));
+
+  return { users, animes, posts, liveStreams: liveStreamsFiltered };
 }

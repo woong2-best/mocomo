@@ -9,6 +9,10 @@
     {
       "path": "/api/cron/subculture-events",
       "schedule": "30 16 * * *"
+    },
+    {
+      "path": "/api/cron/abandoned-live",
+      "schedule": "0 * * * *"
     }
   ],
   "functions": {
@@ -19,6 +23,9 @@
       "maxDuration": 60
     },
     "src/app/api/cron/subculture-events/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/abandoned-live/route.ts": {
       "maxDuration": 60
     }
   }

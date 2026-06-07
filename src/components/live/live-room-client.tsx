@@ -16,6 +16,7 @@ import { LiveViewerShell } from "@/components/live/live-viewer-shell";
 import { useLiveMobilePortrait } from "@/hooks/use-live-mobile-portrait";
 import { LiveStudioErrorBoundary } from "@/components/live/live-studio-error-boundary";
 import { LiveStudioStatsSync } from "@/components/live/live-studio-stats-sync";
+import { LiveHostPresenceSync } from "@/components/live/live-host-presence-sync";
 import { LiveTipAlerts, type LiveTipAlert } from "@/components/live/live-tip-alerts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -226,6 +227,7 @@ export function LiveRoomClient({
     <LiveOverlayProvider {...overlayProviderProps}>
     <div className={isHost ? "relative" : "space-y-4 relative"}>
       <LiveStudioStatsSync channelId={channelId} onStats={handleStats} />
+      {isHost && joined && <LiveHostPresenceSync channelId={channelId} enabled />}
       {!mobilePortrait && !isHost && <LiveTipAlerts tips={recentTips} />}
       {!mobilePortrait && isHost && storedPassword && showHostPassword && (
         <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
