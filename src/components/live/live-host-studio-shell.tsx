@@ -29,6 +29,7 @@ export function LiveHostStudioShell({
   category,
   slowModeSeconds,
   chatBannedWords,
+  collabPassword,
 }: {
   channelId: string;
   channelName: string;
@@ -47,6 +48,7 @@ export function LiveHostStudioShell({
   slowModeSeconds?: number;
   chatBannedWords?: string[];
   paymentsEnabled?: boolean;
+  collabPassword?: string | null;
 }) {
   const mobilePortrait = useLiveMobilePortrait();
   const collab = useLiveCollabState(channelId);
@@ -64,6 +66,7 @@ export function LiveHostStudioShell({
         category={category}
         slowModeSeconds={slowModeSeconds}
         chatBannedWords={chatBannedWords}
+        collabPassword={collabPassword}
       />
     );
   }
@@ -122,6 +125,7 @@ export function LiveHostStudioShell({
             channelId={channelId}
             channelName={channelName}
             onEndStream={onEndStream}
+            collabPassword={collabPassword}
             splitCollab={
               collab.splitActive && collab.coHostUserId
                 ? { coHostUserId: collab.coHostUserId, coHostLabel }

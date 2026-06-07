@@ -60,9 +60,11 @@ export function LiveRoomEntry({
   const [storedPassword, setStoredPassword] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isHost) {
-      setStoredPassword(sessionStorage.getItem(LIVE_PW_KEY(channelId)));
-    }
+    if (!isHost) return;
+    const read = () => setStoredPassword(sessionStorage.getItem(LIVE_PW_KEY(channelId)));
+    read();
+    window.addEventListener("storage", read);
+    return () => window.removeEventListener("storage", read);
   }, [isHost, channelId]);
 
   return (

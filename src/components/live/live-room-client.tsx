@@ -85,7 +85,6 @@ export function LiveRoomClient({
   const [joining, setJoining] = useState(false);
   const [collabOk, setCollabOk] = useState(false);
   const [viewerCount, setViewerCount] = useState(1);
-  const [showHostPassword, setShowHostPassword] = useState(false);
   const [recentTips, setRecentTips] = useState<LiveTipAlert[]>([]);
   const [tipTotalKrw, setTipTotalKrw] = useState(initialTipTotalKrw ?? 0);
   const [tipRanking, setTipRanking] = useState(initialTipRanking ?? []);
@@ -195,6 +194,7 @@ export function LiveRoomClient({
     broadcastMode,
     hostFollowing,
     isLiveOnAir,
+    collabPassword: storedPassword,
   };
 
   const overlayProviderProps = {
@@ -234,26 +234,6 @@ export function LiveRoomClient({
       <LiveStudioStatsSync channelId={channelId} onStats={handleStats} />
       {isHost && joined && <LiveHostPresenceSync channelId={channelId} enabled />}
       {!mobilePortrait && !isHost && <LiveTipAlerts tips={recentTips} />}
-      {!mobilePortrait && isHost && storedPassword && showHostPassword && (
-        <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-medium text-amber-800 dark:text-amber-200">
-              합방 신청용 비밀번호 (공동 방송 희망자에게만 공유)
-            </p>
-            <p className="text-2xl font-mono font-bold tracking-widest">{storedPassword}</p>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              일반 시청자는 비밀번호 없이 시청할 수 있습니다.
-              {liveVisibility === "PRIVATE" && minViewerTier
-                ? ` · 비공개 방송은 ${tierLabelKo(minViewerTier)} 이상 후원자만 시청 가능`
-                : ""}
-            </p>
-          </div>
-          <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setShowHostPassword(false)}>
-            숨기기
-          </Button>
-        </div>
-      )}
-
       {!mobilePortrait && !isHost && viewerJoinError && (
         <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
           {viewerJoinError}

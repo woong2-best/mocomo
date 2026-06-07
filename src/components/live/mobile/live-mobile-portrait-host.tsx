@@ -10,6 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { LiveBrowserStudio } from "@/components/live/live-browser-studio";
+import { LiveHostCollabPasswordStrip } from "@/components/live/live-host-collab-password-strip";
 import { LiveHostSettings } from "@/components/live/live-host-settings";
 import { LiveMobileOverlayChat } from "@/components/live/mobile/live-mobile-overlay-chat";
 import { ensureStringArray } from "@/lib/ensure-array";
@@ -24,6 +25,7 @@ export type LiveMobilePortraitHostProps = {
   category?: LiveStreamCategory;
   slowModeSeconds?: number;
   chatBannedWords?: string[];
+  collabPassword?: string | null;
 };
 
 /** 호스트 — 모바일 세로 인스타 라이브 UI (데스크탑과 분리) */
@@ -35,6 +37,7 @@ export function LiveMobilePortraitHost({
   onEndStream,
   slowModeSeconds,
   chatBannedWords,
+  collabPassword,
 }: LiveMobilePortraitHostProps) {
   return (
     <div className="live-mobile-portrait-root fixed inset-0 z-[110] bg-black text-white">
@@ -43,6 +46,7 @@ export function LiveMobilePortraitHost({
           channelId={channelId}
           channelName={channelName}
           onEndStream={onEndStream}
+          collabPassword={collabPassword}
           immersive
         />
       </div>
@@ -92,6 +96,10 @@ export function LiveMobilePortraitHost({
           <X className="h-5 w-5" />
         </Button>
       </header>
+
+      <div className="absolute top-[calc(env(safe-area-inset-top)+3rem)] left-3 right-3 z-20 pointer-events-none">
+        <LiveHostCollabPasswordStrip channelId={channelId} password={collabPassword} compact />
+      </div>
 
       <div className="absolute left-0 right-0 bottom-0 z-20 max-h-[42vh] pointer-events-none">
         <LiveMobileOverlayChat channelId={channelId} onViewerCount={onViewerCount} />

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Mic, MicOff, MonitorUp, Radio, Video, VideoOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FaceFilterStrip } from "@/components/media/face-filter-strip";
+import { LiveHostCollabPasswordStrip } from "@/components/live/live-host-collab-password-strip";
 import { LiveHostPublishBlocked } from "@/components/live/live-host-publish-blocked";
 import { LiveHostCollabPreview } from "@/components/live/live-collab-publish-studio";
 import { LiveOverlayLayer } from "@/components/live/overlays/live-overlay-layer";
@@ -40,6 +41,7 @@ export function LiveBrowserStudio({
   onEndStream,
   immersive = false,
   splitCollab,
+  collabPassword,
 }: {
   channelId: string;
   channelName: string;
@@ -49,6 +51,8 @@ export function LiveBrowserStudio({
   immersive?: boolean;
   /** 분할 합방 — 호스트 미리보기 좌우 분할 */
   splitCollab?: { coHostUserId: string; coHostLabel?: string };
+  /** 합방 6자리 (방송 생성 시 sessionStorage) */
+  collabPassword?: string | null;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const reconnectAttemptRef = useRef(0);
@@ -460,6 +464,10 @@ export function LiveBrowserStudio({
         </LiveHostCollabPreview>
       ) : (
         <div className={previewClass}>{previewInner}</div>
+      )}
+
+      {!immersive && (
+        <LiveHostCollabPasswordStrip channelId={channelId} password={collabPassword} />
       )}
 
       <div className={controlsWrapClass}>
