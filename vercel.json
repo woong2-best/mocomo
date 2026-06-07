@@ -12,7 +12,7 @@
     },
     {
       "path": "/api/cron/abandoned-live",
-      "schedule": "0 * * * *"
+      "schedule": "0 17 * * *"
     }
   ],
   "functions": {
