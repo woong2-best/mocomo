@@ -31,6 +31,19 @@ export function ProfileMenu() {
     });
   }, []);
 
+  const openMenu = useCallback(() => {
+    const btn = buttonRef.current;
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      const left = Math.min(
+        Math.max(8, rect.right - MENU_WIDTH),
+        window.innerWidth - MENU_WIDTH - 8
+      );
+      setMenuPos({ top: rect.bottom + 8, left });
+    }
+    setOpen(true);
+  }, []);
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -122,19 +135,6 @@ export function ProfileMenu() {
           document.body
         )
       : null;
-
-  const openMenu = useCallback(() => {
-    const btn = buttonRef.current;
-    if (btn) {
-      const rect = btn.getBoundingClientRect();
-      const left = Math.min(
-        Math.max(8, rect.right - MENU_WIDTH),
-        window.innerWidth - MENU_WIDTH - 8
-      );
-      setMenuPos({ top: rect.bottom + 8, left });
-    }
-    setOpen(true);
-  }, []);
 
   return (
     <>
