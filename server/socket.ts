@@ -296,6 +296,7 @@ io.on("connection", (socket: AuthedSocket) => {
   });
 
   const liveRoomCounts = new Map<string, number>();
+  const liveOverlayByChannel = new Map<string, { version: number; widgets: unknown[] }>();
 
   function emitLiveViewers(channelId: string) {
     io.in(`live:${channelId}`).fetchSockets().then((sockets) => {
@@ -325,12 +326,39 @@ io.on("connection", (socket: AuthedSocket) => {
       /* ignore */
     }
     emitLiveViewers(channelId);
+    const overlay = liveOverlayByChannel.get(channelId);
+    if (overlay) {
+      socket.emit("live_overlay_state", { channelId, state: overlay });
+    }
   });
 
   socket.on("leave_live", (channelId: string) => {
     socket.leave(`live:${channelId}`);
     emitLiveViewers(channelId);
   });
+
+  socket.on(
+    "live_overlay_publish",
+    async (data: { channelId?: string; state?: { version?: number; widgets?: unknown[] } }) => {
+      const channelId = data.channelId?.trim();
+      if (!channelId || channelId.length > 64 || !data.state?.widgets) return;
+      try {
+        const channel = await prisma.voiceChannel.findUnique({
+          where: { id: channelId },
+          select: { createdBy: true },
+        });
+        if (!channel || channel.createdBy !== userId) return;
+        const state = {
+          version: typeof data.state.version === "number" ? data.state.version : Date.now(),
+          widgets: data.state.widgets,
+        };
+        liveOverlayByChannel.set(channelId, state);
+        io.to(`live:${channelId}`).emit("live_overlay_state", { channelId, state });
+      } catch {
+        /* ignore */
+      }
+    }
+  );
 
   socket.on(
     "live_chat_relay",

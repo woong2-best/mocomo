@@ -1,5 +1,7 @@
 "use client";
 
+import { LiveOverlayLayer } from "@/components/live/overlays/live-overlay-layer";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import type HlsType from "hls.js";
 import { Loader2, Radio } from "lucide-react";
@@ -125,6 +127,7 @@ export function LiveCloudflarePlayer({
           LIVE · Cloudflare
         </span>
       )}
+      <LiveOverlayLayer pointerEvents="none" className="z-[12]" />
     </div>
   );
 }

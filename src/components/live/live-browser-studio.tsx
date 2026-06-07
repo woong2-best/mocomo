@@ -5,6 +5,8 @@ import { Loader2, Mic, MicOff, MonitorUp, Radio, Video, VideoOff } from "lucide-
 import { Button } from "@/components/ui/button";
 import { FaceFilterStrip } from "@/components/media/face-filter-strip";
 import { LiveHostPublishBlocked } from "@/components/live/live-host-publish-blocked";
+import { LiveOverlayLayer } from "@/components/live/overlays/live-overlay-layer";
+import { LiveOverlayToolbar } from "@/components/live/overlays/live-overlay-toolbar";
 import { useFaceFilterPipeline } from "@/hooks/use-face-filter-pipeline";
 import { CloudflareWhipPublisher } from "@/lib/cloudflare-whip-publish";
 import {
@@ -439,9 +441,12 @@ export function LiveBrowserStudio({
             LIVE
           </span>
         )}
+        <LiveOverlayLayer className="z-20" />
       </div>
 
       <div className={controlsWrapClass}>
+      <LiveOverlayToolbar compact={immersive} />
+
       {!screenOn && (
         <FaceFilterStrip
           value={filterId}

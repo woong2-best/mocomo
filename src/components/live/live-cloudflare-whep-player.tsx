@@ -7,6 +7,7 @@ import {
   attachCloudflareWhepPlayback,
   WhepNotReadyError,
 } from "@/lib/cloudflare-whep-playback";
+import { LiveOverlayLayer } from "@/components/live/overlays/live-overlay-layer";
 
 function hasLiveVideo(video: HTMLVideoElement): boolean {
   const stream = video.srcObject as MediaStream | null;
@@ -191,6 +192,7 @@ export function LiveCloudflareWhepPlayer({
           LIVE
         </span>
       )}
+      <LiveOverlayLayer pointerEvents="none" className="z-[12]" />
     </div>
   );
 }

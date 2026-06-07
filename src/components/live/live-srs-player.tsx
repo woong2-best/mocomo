@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type HlsType from "hls.js";
 import { Loader2, Radio, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LiveOverlayLayer } from "@/components/live/overlays/live-overlay-layer";
 
 type PlaybackBody = {
   hlsUrl?: string | null;
@@ -261,6 +262,7 @@ export function LiveSrsPlayer({ channelId }: { channelId: string }) {
           FLV로 보기
         </Button>
       )}
+      <LiveOverlayLayer pointerEvents="none" className="z-[12]" />
     </div>
   );
 }

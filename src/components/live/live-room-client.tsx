@@ -20,6 +20,8 @@ import { LiveTipAlerts, type LiveTipAlert } from "@/components/live/live-tip-ale
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { KeyRound, Loader2, Users } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { LiveOverlayProvider } from "@/components/live/overlays/live-overlay-context";
 
 export function LiveRoomClient({
   channelId,
@@ -69,6 +71,7 @@ export function LiveRoomClient({
   isLiveOnAir?: boolean;
 }) {
   const router = useRouter();
+  const { data: session } = useSession();
   const mobilePortrait = useLiveMobilePortrait();
   const [joined, setJoined] = useState(false);
   const [viewerJoinError, setViewerJoinError] = useState("");
@@ -188,8 +191,16 @@ export function LiveRoomClient({
     isLiveOnAir,
   };
 
+  const overlayProviderProps = {
+    channelId,
+    userId: session?.user?.id,
+    hostUserId,
+    editable: isHost,
+  } as const;
+
   if (!joined && isHost) {
     return (
+      <LiveOverlayProvider {...overlayProviderProps}>
       <div className="max-w-md mx-auto live-hero !p-8 space-y-4 shadow-xl text-center">
         {joining ? (
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
@@ -207,10 +218,12 @@ export function LiveRoomClient({
           </>
         )}
       </div>
+      </LiveOverlayProvider>
     );
   }
 
   return (
+    <LiveOverlayProvider {...overlayProviderProps}>
     <div className={isHost ? "relative" : "space-y-4 relative"}>
       <LiveStudioStatsSync channelId={channelId} onStats={handleStats} />
       {!mobilePortrait && !isHost && <LiveTipAlerts tips={recentTips} />}
@@ -284,5 +297,6 @@ export function LiveRoomClient({
         )}
       </LiveStudioErrorBoundary>
     </div>
+    </LiveOverlayProvider>
   );
 }
