@@ -1,5 +1,6 @@
 "use server";
 
+import { after } from "next/server";
 import type {
   LiveBroadcastMode,
   LiveStreamCategory,
@@ -24,7 +25,6 @@ import { provisionObsIngress } from "@/lib/obs-ingress-service";
 import { getOrCreateUserObsStreamKey } from "@/lib/user-obs-stream-key";
 import { getSrsRtmpUrl } from "@/lib/srs";
 import {
-  closeStaleHostLiveChannels,
   endHostBroadcastChannel,
   prepareHostForNewBroadcast,
 } from "@/lib/live-broadcast/session-manager";
@@ -695,12 +695,14 @@ export async function endLiveStream(channelId: string) {
   if (channel.createdBy !== user.id) return { error: "방송 종료는 호스트만 할 수 있습니다." };
 
   await endHostBroadcastChannel(channelId, user.id);
-  await closeStaleHostLiveChannels(user.id);
 
-  revalidatePath("/live");
-  revalidatePath("/voice/new");
-  revalidatePath(`/voice/${channelId}`);
-  revalidateLiveHubCache();
+  after(async () => {
+    revalidatePath("/live");
+    revalidatePath("/voice/new");
+    revalidatePath(`/voice/${channelId}`);
+    revalidateLiveHubCache();
+  });
+
   return { success: true as const };
 }
 

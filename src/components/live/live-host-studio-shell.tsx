@@ -65,8 +65,8 @@ export function LiveHostStudioShell({
   }
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-8rem)]">
-      <header className="flex flex-wrap items-center gap-2 sm:gap-3 py-2 border-b border-border/60 shrink-0">
+    <div className="flex flex-col w-full">
+      <header className="flex flex-wrap items-center gap-2 sm:gap-3 py-2 border-b border-border/60 shrink-0 sticky top-0 z-20 bg-background/95 backdrop-blur-sm">
         <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground flex items-center gap-1">
           <Radio className="h-3 w-3" />
           스튜디오
@@ -110,15 +110,15 @@ export function LiveHostStudioShell({
         </Button>
       </header>
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-0 lg:gap-3 min-h-0 mt-2">
-        <div className="min-w-0 lg:min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-4 lg:gap-6 mt-3 items-start">
+        <div className="min-w-0 w-full">
           <LiveBrowserStudio
             channelId={channelId}
             channelName={channelName}
             onEndStream={onEndStream}
           />
         </div>
-        <div className="min-h-[320px] lg:min-h-0 lg:max-h-[calc(100vh-10rem)] border-t lg:border-t-0 lg:border-l border-border/60 pt-3 lg:pt-0 lg:pl-3">
+        <div className="min-h-[360px] lg:sticky lg:top-[3.25rem] lg:max-h-[calc(100vh-5rem)] border border-border/60 rounded-xl overflow-hidden bg-card/30">
           <LiveChat
             channelId={channelId}
             viewerCount={viewerCount}

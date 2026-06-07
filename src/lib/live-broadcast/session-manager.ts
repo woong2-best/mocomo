@@ -82,13 +82,17 @@ export async function releaseBroadcastSession(
   });
   if (!channel || channel.createdBy !== hostUserId) return false;
 
-  await teardownObsIngress(channel.rtmpIngressId);
+  const ingressId = channel.rtmpIngressId;
 
   await db.voiceChannel.update({
     where: { id: channelId },
     data: SESSION_END_DATA,
   });
   await db.voiceMember.deleteMany({ where: { channelId } });
+
+  void teardownObsIngress(ingressId).catch((err) => {
+    console.warn("[live-broadcast] ingress teardown failed", { channelId, err });
+  });
 
   logSession("release", { channelId, hostUserId, reason, name: channel.name });
   return true;
@@ -128,6 +132,7 @@ export async function releaseAllHostBroadcastSessions(
     const shouldForce =
       reason === "AUTO_REPLACE" ||
       reason === "HOST_PREPARE" ||
+      reason === "HOST_END" ||
       reason === "ADMIN_FORCE" ||
       !hostRecentlyPresent ||
       ch.liveStatus === "ENDED" ||

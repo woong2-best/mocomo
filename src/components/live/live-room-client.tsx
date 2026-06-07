@@ -77,6 +77,7 @@ export function LiveRoomClient({
   const [joined, setJoined] = useState(false);
   const [viewerJoinError, setViewerJoinError] = useState("");
   const viewerJoinStartedRef = useRef(false);
+  const endingStreamRef = useRef(false);
   const [collabPassword, setCollabPassword] = useState("");
   const [showCollabForm, setShowCollabForm] = useState(false);
   const [joinError, setJoinError] = useState("");
@@ -164,9 +165,11 @@ export function LiveRoomClient({
     setShowCollabForm(false);
   }
 
-  async function handleEndStream() {
-    await endLiveStream(channelId);
-    router.push("/live");
+  function handleEndStream() {
+    if (endingStreamRef.current) return;
+    endingStreamRef.current = true;
+    router.replace("/live");
+    void endLiveStream(channelId);
   }
 
   const studioProps = {

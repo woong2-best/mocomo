@@ -176,7 +176,7 @@ export function LiveBrowserStudio({
     const host = previewHostRef.current;
     if (!host || !displayCanvas || screenOn) return;
     host.innerHTML = "";
-    displayCanvas.className = "w-full h-full object-contain";
+    displayCanvas.className = "absolute inset-0 w-full h-full object-cover";
     host.appendChild(displayCanvas);
     return () => {
       if (displayCanvas.parentElement === host) host.removeChild(displayCanvas);
@@ -413,13 +413,13 @@ export function LiveBrowserStudio({
 
   const rootClass = immersive
     ? "relative flex flex-col h-full min-h-[100dvh] w-full gap-0"
-    : "flex flex-col gap-3 h-full min-h-[min(50vh,400px)]";
+    : "flex flex-col gap-5 w-full";
   const previewClass = immersive
     ? "relative flex-1 min-h-0 overflow-hidden bg-black"
-    : "relative flex-1 min-h-[200px] rounded-xl overflow-hidden bg-black ring-1 ring-border/50";
+    : "relative w-full aspect-video rounded-xl overflow-hidden bg-black ring-1 ring-border/50 shadow-sm";
   const controlsWrapClass = immersive
     ? "absolute bottom-0 left-0 right-0 z-10 px-3 pb-[calc(env(safe-area-inset-bottom)+8.5rem)] pt-8 bg-gradient-to-t from-black/90 via-black/50 to-transparent space-y-2"
-    : "contents";
+    : "flex flex-col gap-3 w-full pb-4";
 
   return (
     <div className={rootClass}>
@@ -433,7 +433,7 @@ export function LiveBrowserStudio({
           autoPlay
           playsInline
           muted
-          className={`w-full h-full ${immersive ? "object-cover" : "object-contain"} ${screenOn ? "block" : "hidden"}`}
+          className={`w-full h-full ${immersive || !screenOn ? "object-cover" : "object-contain"} ${screenOn ? "block" : "hidden"}`}
         />
         {whipConnected && !immersive && (
           <span className="absolute top-3 left-3 px-2 py-0.5 rounded bg-folk-terracotta text-white text-[10px] font-bold z-10 flex items-center gap-1">
@@ -445,7 +445,7 @@ export function LiveBrowserStudio({
       </div>
 
       <div className={controlsWrapClass}>
-      <LiveOverlayToolbar compact={immersive} />
+        <LiveOverlayToolbar compact={immersive} />
 
       {!screenOn && (
         <FaceFilterStrip
