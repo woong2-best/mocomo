@@ -1,3 +1,5 @@
+import { normalizeSdp } from "@/lib/webrtc-sdp";
+
 /** Cloudflare Stream — WHIP 브라우저 송출 (OBS 없음) */
 
 function waitForIceGathering(pc: RTCPeerConnection, timeoutMs = 8000): Promise<void> {
@@ -76,12 +78,16 @@ export class CloudflareWhipPublisher {
     await pc.setLocalDescription(offer);
     await waitForIceGathering(pc);
 
-    const sdp = pc.localDescription?.sdp;
-    if (!sdp) throw new Error("SDP offer 생성 실패");
+    const rawSdp = pc.localDescription?.sdp;
+    if (!rawSdp) throw new Error("SDP offer 생성 실패");
+    const sdp = normalizeSdp(rawSdp);
 
     const res = await fetch(whipUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/sdp" },
+      headers: {
+        "Content-Type": "application/sdp",
+        Accept: "application/sdp",
+      },
       body: sdp,
     });
 
@@ -90,7 +96,7 @@ export class CloudflareWhipPublisher {
       throw new Error(text || `WHIP 연결 실패 (${res.status})`);
     }
 
-    const answerSdp = await res.text();
+    const answerSdp = normalizeSdp(await res.text());
     await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
     await waitForPeerConnected(pc);
 

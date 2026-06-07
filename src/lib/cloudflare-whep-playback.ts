@@ -1,3 +1,5 @@
+import { normalizeSdp } from "@/lib/webrtc-sdp";
+
 /** Cloudflare Stream — WHEP 시청 (MoCoMo API 프록시 → Cloudflare) */
 
 export class WhepNotReadyError extends Error {
@@ -89,8 +91,9 @@ export async function attachCloudflareWhepPlayback(
   await pc.setLocalDescription(offer);
   await waitForIceGathering(pc);
 
-  const sdp = pc.localDescription?.sdp;
-  if (!sdp) throw new Error("SDP offer 생성 실패");
+  const rawSdp = pc.localDescription?.sdp;
+  if (!rawSdp) throw new Error("SDP offer 생성 실패");
+  const sdp = normalizeSdp(rawSdp);
 
   const res = await fetch(`/api/live/${channelId}/whep`, {
     method: "POST",
@@ -112,7 +115,7 @@ export async function attachCloudflareWhepPlayback(
     throw new Error(data.error || `WHEP 연결 실패 (${res.status})`);
   }
 
-  const answerSdp = data.answerSdp?.trim();
+  const answerSdp = data.answerSdp ? normalizeSdp(data.answerSdp) : "";
   if (!answerSdp) throw new Error("WHEP 응답 SDP 없음");
 
   await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });

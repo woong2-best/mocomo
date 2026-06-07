@@ -5,6 +5,7 @@ import { buildCloudflarePlaybackFields } from "@/lib/cloudflare-browser-playback
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { cloudflareStreamConfigError } from "@/lib/cloudflare-stream";
 import { resolveChannelIngestEngine } from "@/lib/live-ingest";
+import { normalizeSdp } from "@/lib/webrtc-sdp";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -62,7 +63,7 @@ export async function POST(
 
   const { channelId } = await params;
   const body = (await req.json().catch(() => ({}))) as { sdp?: string };
-  const sdp = body.sdp?.trim();
+  const sdp = body.sdp ? normalizeSdp(body.sdp) : "";
   if (!sdp) {
     return NextResponse.json({ error: "SDP가 필요합니다." }, { status: 400 });
   }
@@ -78,7 +79,10 @@ export async function POST(
   try {
     const cfRes = await fetch(resolved.whepUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/sdp" },
+      headers: {
+        "Content-Type": "application/sdp",
+        Accept: "application/sdp",
+      },
       body: sdp,
     });
     const text = await cfRes.text();
@@ -92,7 +96,7 @@ export async function POST(
     }
 
     return NextResponse.json({
-      answerSdp: text,
+      answerSdp: normalizeSdp(text),
       location: cfRes.headers.get("location"),
       etag: cfRes.headers.get("etag"),
     });

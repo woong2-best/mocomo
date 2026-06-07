@@ -65,12 +65,16 @@ export function LiveCloudflareWhepPlayer({
     } catch (e) {
       hasMediaRef.current = false;
       setStatus("waiting");
-      setHint(
+      const raw =
         e instanceof WhepNotReadyError
           ? e.message
           : e instanceof Error
             ? e.message
-            : "실시간 재생 연결 실패"
+            : "실시간 재생 연결 실패";
+      setHint(
+        /parse sdp|missing termination/i.test(raw)
+          ? "실시간 연결을 다시 시도 중입니다. 10~30초 후 자동으로 재연결됩니다."
+          : raw
       );
     } finally {
       connectingRef.current = false;
