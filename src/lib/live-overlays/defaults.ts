@@ -69,7 +69,7 @@ const defaultLayout: Record<
   Pick<LiveOverlayWidget, "x" | "y" | "w" | "h">
 > = {
   text: { x: 8, y: 72, w: 84, h: 14 },
-  wheel: { x: 58, y: 6, w: 36, h: 52 },
+  wheel: { x: 62, y: 10, w: 28, h: 28 },
   lottery: { x: 8, y: 8, w: 48, h: 42 },
 };
 

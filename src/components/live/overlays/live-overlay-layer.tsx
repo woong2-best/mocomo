@@ -31,8 +31,8 @@ export function LiveOverlayLayer({
     <div
       className={`absolute inset-0 overflow-hidden ${className}`}
       style={{ pointerEvents: isHost ? "auto" : pointerEvents }}
-      onPointerDown={() => {
-        if (isHost) setSelectedId(null);
+      onPointerDown={(e) => {
+        if (isHost && e.target === e.currentTarget) setSelectedId(null);
       }}
     >
       {sorted.map((widget) => (

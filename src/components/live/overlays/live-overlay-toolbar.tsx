@@ -181,16 +181,16 @@ function WheelEditor({
           });
         }}
         rows={6}
-        placeholder={"항목 (한 줄에 하나)\n4,000원\n5,000원\n1,000원"}
+        placeholder={"항목 (한 줄에 하나)\n1\n2\n3\n4"}
         className={`w-full rounded-lg border px-2 py-1.5 text-xs ${compact ? "bg-black/40 border-white/20 text-white" : "border-input bg-background"}`}
       />
       <div className="flex gap-1.5">
         <Button type="button" size="sm" className="rounded-lg h-8 gap-1 flex-1" disabled={props.spinning} onClick={onSpin}>
           <RotateCw className={`h-3.5 w-3.5 ${props.spinning ? "animate-spin" : ""}`} />
-          다시돌리기
+          돌리기
         </Button>
         <Button type="button" size="sm" variant="secondary" className="rounded-lg h-8 flex-1" disabled={props.spinning} onClick={onReset}>
-          새 원판
+          초기화
         </Button>
       </div>
     </div>

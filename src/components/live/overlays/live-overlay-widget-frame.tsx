@@ -94,7 +94,7 @@ export function LiveOverlayWidgetFrame({
     <div
       ref={containerRef}
       className={cn(
-        "absolute touch-none",
+        "absolute select-none",
         selected && editable && "ring-2 ring-orange-400 ring-offset-1 ring-offset-transparent"
       )}
       style={{
@@ -139,7 +139,14 @@ export function LiveOverlayWidgetFrame({
           </button>
         </div>
       )}
-      <div className="h-full w-full overflow-hidden rounded-lg">{children}</div>
+      <div
+        className={cn(
+          "h-full w-full overflow-visible",
+          widget.type === "wheel" ? "rounded-full" : "rounded-lg"
+        )}
+      >
+        {children}
+      </div>
       {editable && selected && (
         <div
           className="absolute bottom-0 right-0 h-4 w-4 cursor-se-resize rounded-tl bg-orange-500/90 pointer-events-auto"

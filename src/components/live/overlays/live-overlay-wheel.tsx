@@ -1,14 +1,14 @@
 "use client";
 
-import { RotateCw } from "lucide-react";
+import { useId } from "react";
 import { useLiveOverlayContextOptional } from "@/components/live/overlays/live-overlay-context";
-import { WHEEL_PASTEL_COLORS } from "@/lib/live-overlays/wheel-theme";
+import { WHEEL_COLORS } from "@/lib/live-overlays/wheel-theme";
 import type { LiveOverlayWheelProps } from "@/lib/live-overlays/types";
 
 const SIZE = 200;
 const CX = 100;
 const CY = 100;
-const R = 88;
+const R = 90;
 
 function polar(r: number, degFromTopClockwise: number) {
   const rad = ((degFromTopClockwise - 90) * Math.PI) / 180;
@@ -32,104 +32,111 @@ export function LiveOverlayWheel({
   widgetId: string;
   props: LiveOverlayWheelProps;
 }) {
+  const clipId = useId().replace(/:/g, "");
   const ctx = useLiveOverlayContextOptional();
   const isHost = ctx?.isHost ?? false;
   const segments = props.segments.filter((s) => s.label.trim());
   const count = Math.max(segments.length, 1);
   const segAngle = 360 / count;
 
-  const displayResult = props.spinning ? "…" : props.lastResult ?? "";
+  const hubLabel = props.spinning ? "…" : props.lastResult ?? "GO";
+
+  function spin(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!isHost || !ctx || props.spinning) return;
+    ctx.spinWheel(widgetId);
+  }
 
   return (
-    <div className="live-overlay-wheel flex h-full w-full flex-col items-center justify-center bg-[#faf7f2] px-2 py-2 text-[#4a4a4a] @container">
-      <p
-        className="mb-1 w-full truncate text-center text-[clamp(11px,3.2cqw,16px)] font-semibold leading-tight min-h-[1.25em]"
-        aria-live="polite"
-      >
-        {displayResult}
-      </p>
-
-      <div className="relative aspect-square w-full max-h-[58%] min-h-0 flex-shrink">
-        {/* 고정 포인터 (12시) */}
-        <svg
-          viewBox="0 0 200 24"
-          className="absolute left-1/2 top-0 z-20 w-[14%] min-w-[14px] -translate-x-1/2 -translate-y-[35%]"
-          aria-hidden
-        >
-          <path
-            d="M 100 2 L 112 20 L 100 15 L 88 20 Z"
-            fill="#c0392b"
-            stroke="#96281b"
-            strokeWidth="0.8"
-          />
-        </svg>
-
+    <div
+      className="live-overlay-wheel relative flex h-full w-full items-center justify-center bg-transparent pointer-events-auto"
+      onPointerDown={(e) => e.stopPropagation()}
+    >
+      <div className="relative aspect-square h-full w-full max-h-full max-w-full">
+        {/* 회전 원판 */}
         <div
-          className="h-full w-full transition-transform ease-out"
+          className="absolute inset-0 transition-transform ease-out"
           style={{
             transform: `rotate(${props.rotation}deg)`,
             transitionDuration: props.spinning ? "4200ms" : "0ms",
           }}
         >
-          <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="h-full w-full drop-shadow-sm">
-            {segments.map((seg, i) => {
-              const mid = i * segAngle + segAngle / 2;
-              const tp = polar(R * 0.62, mid);
-              const fontSize = count <= 6 ? 11 : count <= 8 ? 9 : 7;
-              return (
-                <g key={seg.id}>
-                  <path
-                    d={wedgePath(i, count)}
-                    fill={WHEEL_PASTEL_COLORS[i % WHEEL_PASTEL_COLORS.length]}
-                    stroke="#5c5c5c"
-                    strokeWidth="0.6"
-                  />
-                  <text
-                    x={tp.x}
-                    y={tp.y}
-                    fill="#3d3d3d"
-                    fontSize={fontSize}
-                    fontWeight="600"
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    transform={`rotate(${mid}, ${tp.x}, ${tp.y})`}
-                    style={{ pointerEvents: "none" }}
-                  >
-                    {seg.label}
-                  </text>
-                </g>
-              );
-            })}
-            <circle cx={CX} cy={CY} r={7} fill="#333333" />
-            <circle cx={CX} cy={CY} r={R} fill="none" stroke="#5c5c5c" strokeWidth="2.2" />
+          <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="h-full w-full">
+            <defs>
+              <clipPath id={clipId}>
+                <circle cx={CX} cy={CY} r={R} />
+              </clipPath>
+            </defs>
+            <g clipPath={`url(#${clipId})`}>
+              {segments.map((seg, i) => {
+                const mid = i * segAngle + segAngle / 2;
+                const tp = polar(R * 0.64, mid);
+                const fontSize = count <= 6 ? 14 : count <= 8 ? 11 : 9;
+                return (
+                  <g key={seg.id}>
+                    <path
+                      d={wedgePath(i, count)}
+                      fill={WHEEL_COLORS[i % WHEEL_COLORS.length]}
+                      stroke="rgba(255,255,255,0.3)"
+                      strokeWidth="0.8"
+                    />
+                    <text
+                      x={tp.x}
+                      y={tp.y}
+                      fill="#fff"
+                      fontSize={fontSize}
+                      fontWeight="700"
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      transform={`rotate(${mid}, ${tp.x}, ${tp.y})`}
+                    >
+                      {seg.label}
+                    </text>
+                  </g>
+                );
+              })}
+            </g>
+            <circle cx={CX} cy={CY} r={R} fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2" />
+            <circle cx={CX} cy={CY} r={20} fill="rgba(0,0,0,0.75)" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5" />
+            <text
+              x={CX}
+              y={CY}
+              fill="#fff"
+              fontSize={hubLabel.length > 4 ? 8 : 10}
+              fontWeight="700"
+              textAnchor="middle"
+              dominantBaseline="middle"
+            >
+              {hubLabel.length > 10 ? `${hubLabel.slice(0, 9)}…` : hubLabel}
+            </text>
           </svg>
         </div>
-      </div>
 
-      {isHost && ctx && (
-        <div
-          className="mt-auto flex w-full gap-1.5 pt-2 pointer-events-auto"
-          onPointerDown={(e) => e.stopPropagation()}
+        {/* 고정 포인터 */}
+        <svg
+          viewBox={`0 0 ${SIZE} ${SIZE}`}
+          className="pointer-events-none absolute inset-0 h-full w-full"
+          aria-hidden
         >
+          <path
+            d="M 100 4 L 110 24 L 100 19 L 90 24 Z"
+            fill="#ef4444"
+            stroke="#991b1b"
+            strokeWidth="0.6"
+          />
+        </svg>
+
+        {isHost && (
           <button
             type="button"
             disabled={props.spinning}
-            onClick={() => ctx.spinWheel(widgetId)}
-            className="flex-1 rounded-full bg-[#6b5b4f] px-2 py-1.5 text-[clamp(9px,2.4cqw,12px)] font-medium text-white shadow-sm transition hover:bg-[#5a4d43] disabled:opacity-50"
-          >
-            다시돌리기
-          </button>
-          <button
-            type="button"
-            disabled={props.spinning}
-            onClick={() => ctx.resetWheel(widgetId)}
-            className="flex flex-1 items-center justify-center gap-0.5 rounded-full bg-[#6b5b4f] px-2 py-1.5 text-[clamp(9px,2.4cqw,12px)] font-medium text-white shadow-sm transition hover:bg-[#5a4d43] disabled:opacity-50"
-          >
-            <RotateCw className="h-3 w-3 shrink-0" />
-            새 원판
-          </button>
-        </div>
-      )}
+            onClick={spin}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="absolute inset-[4%] z-10 cursor-pointer rounded-full disabled:cursor-wait focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+            aria-label="돌림판 돌리기"
+          />
+        )}
+      </div>
     </div>
   );
 }
