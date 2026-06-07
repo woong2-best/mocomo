@@ -38,10 +38,13 @@ async function waitForFirstFrame(video: HTMLVideoElement, timeoutMs = 2500): Pro
 /** Cloudflare WHIP → WHEP 시청 (서버 프록시) */
 export function LiveCloudflareWhepPlayer({
   channelId,
+  embedded = false,
 }: {
   channelId: string;
   whepUrl?: string | null;
   startDelayMs?: number;
+  /** 분할 합방 등 부모 aspect-ratio 컨테이너 안에 채울 때 */
+  embedded?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
@@ -146,10 +149,16 @@ export function LiveCloudflareWhepPlayer({
   }, [connect]);
 
   return (
-    <div className="relative aspect-video w-full bg-black rounded-2xl overflow-hidden ring-1 ring-border/40">
+    <div
+      className={
+        embedded
+          ? "relative h-full w-full min-h-0 bg-black overflow-hidden"
+          : "relative aspect-video w-full bg-black rounded-2xl overflow-hidden ring-1 ring-border/40"
+      }
+    >
       <video
         ref={videoRef}
-        className="w-full h-full object-contain"
+        className="w-full h-full object-cover"
         playsInline
         autoPlay
         controls

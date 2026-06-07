@@ -12,6 +12,7 @@ import {
 } from "@/actions/live-stream";
 import { tierLabelKo } from "@/lib/live-viewer-access";
 import { LiveHostStudioShell } from "@/components/live/live-host-studio-shell";
+import { LiveCollabStudioShell } from "@/components/live/live-collab-studio-shell";
 import { LiveViewerShell } from "@/components/live/live-viewer-shell";
 import { useLiveMobilePortrait } from "@/hooks/use-live-mobile-portrait";
 import { LiveStudioErrorBoundary } from "@/components/live/live-studio-error-boundary";
@@ -163,6 +164,7 @@ export function LiveRoomClient({
     }
     setCollabOk(true);
     setShowCollabForm(false);
+    setJoined(true);
   }
 
   function handleEndStream() {
@@ -258,11 +260,9 @@ export function LiveRoomClient({
         </div>
       )}
 
-      {!mobilePortrait && !isHost && (
+      {!mobilePortrait && !isHost && !collabOk && (
         <div className="rounded-xl border border-border/60 bg-muted/30 px-4 py-3 flex flex-wrap items-center justify-between gap-2">
-          {collabOk ? (
-            <p className="text-sm text-green-700 font-medium">합방 승인됨 · 공동 방송 권한이 부여되었습니다.</p>
-          ) : showCollabForm ? (
+          {showCollabForm ? (
             <form onSubmit={handleCollabApply} className="flex flex-wrap gap-2 items-center w-full">
               <Input
                 value={collabPassword}
@@ -297,6 +297,8 @@ export function LiveRoomClient({
       <LiveStudioErrorBoundary channelId={channelId} onEndStream={isHost ? handleEndStream : undefined}>
         {isHost ? (
           <LiveHostStudioShell {...studioProps} onEndStream={handleEndStream} />
+        ) : collabOk ? (
+          <LiveCollabStudioShell {...studioProps} />
         ) : (
           <LiveViewerShell {...studioProps} />
         )}

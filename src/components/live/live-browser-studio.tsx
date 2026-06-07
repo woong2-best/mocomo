@@ -5,6 +5,7 @@ import { Loader2, Mic, MicOff, MonitorUp, Radio, Video, VideoOff } from "lucide-
 import { Button } from "@/components/ui/button";
 import { FaceFilterStrip } from "@/components/media/face-filter-strip";
 import { LiveHostPublishBlocked } from "@/components/live/live-host-publish-blocked";
+import { LiveHostCollabPreview } from "@/components/live/live-collab-publish-studio";
 import { LiveOverlayLayer } from "@/components/live/overlays/live-overlay-layer";
 import { LiveOverlayToolbar } from "@/components/live/overlays/live-overlay-toolbar";
 import { useFaceFilterPipeline } from "@/hooks/use-face-filter-pipeline";
@@ -38,6 +39,7 @@ export function LiveBrowserStudio({
   onAirChange,
   onEndStream,
   immersive = false,
+  splitCollab,
 }: {
   channelId: string;
   channelName: string;
@@ -45,6 +47,8 @@ export function LiveBrowserStudio({
   onEndStream: () => void;
   /** 모바일 세로 풀스크린 — 기존 데스크탑 레이아웃 유지 */
   immersive?: boolean;
+  /** 분할 합방 — 호스트 미리보기 좌우 분할 */
+  splitCollab?: { coHostUserId: string; coHostLabel?: string };
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const reconnectAttemptRef = useRef(0);
@@ -421,28 +425,42 @@ export function LiveBrowserStudio({
     ? "absolute bottom-0 left-0 right-0 z-10 px-3 pb-[calc(env(safe-area-inset-bottom)+8.5rem)] pt-8 bg-gradient-to-t from-black/90 via-black/50 to-transparent space-y-2"
     : "flex flex-col gap-3 w-full pb-4";
 
+  const previewInner = (
+    <>
+      <div
+        ref={previewHostRef}
+        className={screenOn ? "hidden" : "absolute inset-0"}
+      />
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        className={`w-full h-full ${immersive || !screenOn ? "object-cover" : "object-contain"} ${screenOn ? "block" : "hidden"}`}
+      />
+      {whipConnected && !immersive && !splitCollab && (
+        <span className="absolute top-3 left-3 px-2 py-0.5 rounded bg-folk-terracotta text-white text-[10px] font-bold z-10 flex items-center gap-1">
+          <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+          LIVE
+        </span>
+      )}
+      <LiveOverlayLayer className="z-20" />
+    </>
+  );
+
   return (
     <div className={rootClass}>
-      <div className={previewClass}>
-        <div
-          ref={previewHostRef}
-          className={screenOn ? "hidden" : "absolute inset-0"}
-        />
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className={`w-full h-full ${immersive || !screenOn ? "object-cover" : "object-contain"} ${screenOn ? "block" : "hidden"}`}
-        />
-        {whipConnected && !immersive && (
-          <span className="absolute top-3 left-3 px-2 py-0.5 rounded bg-folk-terracotta text-white text-[10px] font-bold z-10 flex items-center gap-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-            LIVE
-          </span>
-        )}
-        <LiveOverlayLayer className="z-20" />
-      </div>
+      {splitCollab && !immersive ? (
+        <LiveHostCollabPreview
+          channelId={channelId}
+          coHostUserId={splitCollab.coHostUserId}
+          coHostLabel={splitCollab.coHostLabel}
+        >
+          {previewInner}
+        </LiveHostCollabPreview>
+      ) : (
+        <div className={previewClass}>{previewInner}</div>
+      )}
 
       <div className={controlsWrapClass}>
         <LiveOverlayToolbar compact={immersive} />

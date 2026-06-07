@@ -654,6 +654,9 @@ model VoiceChannel {
   endedAt          DateTime?
   /** 방송 오버레이(텍스트·돌림판·추첨) — 시청자 동기화 */
   liveOverlayJson  Json?
+  /** 분할 합방 — 좌: 호스트 / 우: CO_HOST */
+  liveCollabSplitEnabled Boolean @default(false)
+  liveCollabUserId       String?
 
   linkedChatRoom ChatRoom?
   members        VoiceMember[]

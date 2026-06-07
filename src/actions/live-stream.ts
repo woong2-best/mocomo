@@ -449,6 +449,10 @@ export async function applyLiveCollabPassword(channelId: string, password: strin
   }
 
   await upsertLiveMember(channelId, user.id, "CO_HOST");
+  await db.voiceChannel.update({
+    where: { id: channelId },
+    data: { liveCollabSplitEnabled: true, liveCollabUserId: user.id },
+  });
   return { success: true as const, role: "CO_HOST" as const };
 }
 
@@ -710,7 +714,7 @@ export async function leaveLiveStream(channelId: string) {
   const user = await requireAuth();
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
-    select: { createdBy: true, isLive: true },
+    select: { createdBy: true, isLive: true, liveCollabUserId: true },
   });
   if (!channel) return { success: true as const };
 
@@ -722,6 +726,13 @@ export async function leaveLiveStream(channelId: string) {
   await db.voiceMember.deleteMany({
     where: { channelId, userId: user.id },
   });
+
+  if (channel.liveCollabUserId === user.id) {
+    await db.voiceChannel.update({
+      where: { id: channelId },
+      data: { liveCollabUserId: null, liveCollabSplitEnabled: false },
+    });
+  }
 
   const remaining = await db.voiceMember.count({ where: { channelId } });
   if (remaining === 0 && channel.createdBy === user.id && !channel.isLive) {
@@ -757,7 +768,11 @@ export async function loadLiveChatHistory(channelId: string) {
 
 export async function updateLiveStreamSettings(
   channelId: string,
-  data: { slowModeSeconds?: number; chatBannedWords?: string[] }
+  data: {
+    slowModeSeconds?: number;
+    chatBannedWords?: string[];
+    liveCollabSplitEnabled?: boolean;
+  }
 ) {
   const user = await requireAuth();
   const channel = await db.voiceChannel.findUnique({
@@ -775,6 +790,7 @@ export async function updateLiveStreamSettings(
           ? Math.min(120, Math.max(0, data.slowModeSeconds))
           : undefined,
       chatBannedWords: data.chatBannedWords?.slice(0, 30),
+      liveCollabSplitEnabled: data.liveCollabSplitEnabled,
     },
   });
   return { success: true as const };

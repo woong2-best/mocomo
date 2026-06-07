@@ -24,4 +24,6 @@ export const SESSION_END_DATA = {
   rtmpStreamKey: null,
   livePublisherTabId: null,
   liveOverlayJson: Prisma.DbNull,
+  liveCollabSplitEnabled: false,
+  liveCollabUserId: null,
 };

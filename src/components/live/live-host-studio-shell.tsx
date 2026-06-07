@@ -6,6 +6,7 @@ import { useLiveMobilePortrait } from "@/hooks/use-live-mobile-portrait";
 import { LiveChat } from "@/components/live/live-chat";
 import { LiveBrowserStudio } from "@/components/live/live-browser-studio";
 import { LiveHostSettings } from "@/components/live/live-host-settings";
+import { useLiveCollabState } from "@/hooks/use-live-collab-state";
 import { liveCategoryLabel } from "@/lib/live-categories";
 import { ensureStringArray } from "@/lib/ensure-array";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,9 @@ export function LiveHostStudioShell({
   paymentsEnabled?: boolean;
 }) {
   const mobilePortrait = useLiveMobilePortrait();
+  const collab = useLiveCollabState(channelId);
+  const coHostLabel =
+    collab.coHost?.name ?? collab.coHost?.username ?? undefined;
 
   if (mobilePortrait) {
     return (
@@ -98,6 +102,8 @@ export function LiveHostStudioShell({
                 channelId={channelId}
                 slowModeSeconds={slowModeSeconds ?? 0}
                 bannedWords={ensureStringArray(chatBannedWords)}
+                initialCollabSplit={collab.splitEnabled}
+                collabCoHostName={coHostLabel ?? null}
                 embedded
               />
             </div>
@@ -116,6 +122,11 @@ export function LiveHostStudioShell({
             channelId={channelId}
             channelName={channelName}
             onEndStream={onEndStream}
+            splitCollab={
+              collab.splitActive && collab.coHostUserId
+                ? { coHostUserId: collab.coHostUserId, coHostLabel }
+                : undefined
+            }
           />
         </div>
         <div className="min-h-[360px] lg:sticky lg:top-[3.25rem] lg:max-h-[calc(100vh-5rem)] border border-border/60 rounded-xl overflow-hidden bg-card/30">

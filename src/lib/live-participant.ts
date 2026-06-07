@@ -7,3 +7,8 @@ export function obsParticipantIdentity(channelId: string) {
 export function livePublisherIdentities(channelId: string, hostUserId: string) {
   return [hostUserId, obsParticipantIdentity(channelId)];
 }
+
+/** 합방 CO_HOST LiveKit identity */
+export function liveCollabCoHostIdentity(userId: string) {
+  return userId;
+}

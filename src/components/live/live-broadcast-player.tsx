@@ -6,6 +6,8 @@ import { LiveSrsPlayer } from "@/components/live/live-srs-player";
 import { LivekitLivePlayer } from "@/components/live/livekit-live-player";
 import { LiveCloudflarePlayer } from "@/components/live/live-cloudflare-player";
 import { LiveCloudflareWhepPlayer } from "@/components/live/live-cloudflare-whep-player";
+import { LiveSplitBroadcastPlayer } from "@/components/live/live-split-broadcast-player";
+import { useLiveCollabState } from "@/hooks/use-live-collab-state";
 import { Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -50,6 +52,7 @@ export function LiveBroadcastPlayer({
   const [useWhep, setUseWhep] = useState(optimisticWhep);
   const [resolvedHostId, setResolvedHostId] = useState<string | undefined>(hostUserId);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const collab = useLiveCollabState(channelId, !!channelId);
 
   const load = useCallback(async () => {
     try {
@@ -138,6 +141,19 @@ export function LiveBroadcastPlayer({
   }
 
   if (engine === "cloudflare") {
+    if (
+      collab.splitActive &&
+      collab.coHostUserId &&
+      useWhep
+    ) {
+      return (
+        <LiveSplitBroadcastPlayer
+          channelId={channelId}
+          coHostUserId={collab.coHostUserId}
+          coHostLabel={collab.coHost?.name ?? collab.coHost?.username ?? "합방"}
+        />
+      );
+    }
     if (useWhep) {
       return <LiveCloudflareWhepPlayer channelId={channelId} />;
     }

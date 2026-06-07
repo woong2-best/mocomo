@@ -18,14 +18,19 @@ function HostSettingsForm({
   channelId,
   initialSlow,
   initialBanned,
+  initialCollabSplit,
+  collabCoHostName,
 }: {
   channelId: string;
   initialSlow: number;
   initialBanned: string[];
+  initialCollabSplit?: boolean;
+  collabCoHostName?: string | null;
 }) {
   const safeBanned = ensureStringArray(initialBanned);
   const [slow, setSlow] = useState(String(initialSlow));
   const [words, setWords] = useState(safeBanned.join(", "));
+  const [collabSplit, setCollabSplit] = useState(!!initialCollabSplit);
   const [msg, setMsg] = useState("");
   const [pending, startTransition] = useTransition();
 
@@ -39,6 +44,7 @@ function HostSettingsForm({
           .map((w) => w.trim())
           .filter(Boolean)
           .slice(0, 30),
+        liveCollabSplitEnabled: collabSplit,
       });
       if ("error" in res && res.error) setMsg(res.error);
       else setMsg("저장되었습니다.");
@@ -67,6 +73,23 @@ function HostSettingsForm({
           placeholder="예: 광고, 홍보"
         />
       </div>
+      <div className="rounded-xl border border-violet-500/30 bg-violet-500/5 p-3 space-y-2">
+        <p className="text-xs font-semibold text-violet-800 dark:text-violet-200">분할 합방</p>
+        <label className="text-xs flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={collabSplit}
+            onChange={(e) => setCollabSplit(e.target.checked)}
+          />
+          분할 방송 사용 (좌: 호스트 · 우: 합방)
+        </label>
+        {collabCoHostName && (
+          <p className="text-[11px] text-muted-foreground">합방 중: {collabCoHostName}</p>
+        )}
+        <p className="text-[10px] text-muted-foreground leading-snug">
+          합방 비밀번호를 맞춘 시청자가 스튜디오에 입장하면 화면이 좌우로 나뉩니다.
+        </p>
+      </div>
       <Button className="w-full rounded-xl" onClick={save} disabled={pending}>
         채팅 설정 저장
       </Button>
@@ -79,11 +102,15 @@ export function LiveHostSettings({
   channelId,
   slowModeSeconds: initialSlow,
   bannedWords: initialBanned,
+  initialCollabSplit,
+  collabCoHostName,
   embedded,
 }: {
   channelId: string;
   slowModeSeconds: number;
   bannedWords: string[];
+  initialCollabSplit?: boolean;
+  collabCoHostName?: string | null;
   embedded?: boolean;
 }) {
   if (embedded) {
@@ -92,6 +119,8 @@ export function LiveHostSettings({
         channelId={channelId}
         initialSlow={initialSlow}
         initialBanned={initialBanned}
+        initialCollabSplit={initialCollabSplit}
+        collabCoHostName={collabCoHostName}
       />
     );
   }
@@ -112,6 +141,8 @@ export function LiveHostSettings({
           channelId={channelId}
           initialSlow={initialSlow}
           initialBanned={initialBanned}
+          initialCollabSplit={initialCollabSplit}
+          collabCoHostName={collabCoHostName}
         />
       </DialogContent>
     </Dialog>
