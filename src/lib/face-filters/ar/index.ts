@@ -14,10 +14,9 @@ export function drawPremiumArOverlay(
   w: number,
   h: number,
   overlay: NonNullable<FaceFilterPreset["overlay"]>,
-  tick: number,
-  mirrored: boolean
+  tick: number
 ) {
-  const face = buildFaceArContext(result, w, h, tick, mirrored);
+  const face = buildFaceArContext(result, w, h, tick);
   if (!face) return;
 
   switch (overlay) {

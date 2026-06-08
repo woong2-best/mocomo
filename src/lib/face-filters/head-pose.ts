@@ -1,4 +1,5 @@
 import type { FaceLandmarkerResult } from "@mediapipe/tasks-vision";
+import { landmarkPt } from "@/lib/face-filters/face-coords";
 
 export type HeadPose = {
   yaw: number;
@@ -11,21 +12,21 @@ export type HeadPose = {
 export function estimateHeadPose(
   result: FaceLandmarkerResult | undefined,
   w: number,
-  h: number,
-  mirrored = false
+  h: number
 ): HeadPose | null {
   const face = result?.faceLandmarks?.[0];
   if (!face) return null;
 
-  const lm = (i: number) => ({
-    x: mirrored ? (1 - face[i].x) * w : face[i].x * w,
-    y: face[i].y * h,
-  });
-  const leftEye = lm(33);
-  const rightEye = lm(263);
-  const nose = lm(1);
-  const chin = lm(152);
-  const forehead = lm(10);
+  const pt = (i: number) => {
+    const p = landmarkPt(result, i, w, h);
+    return p ?? { x: 0, y: 0 };
+  };
+
+  const leftEye = pt(33);
+  const rightEye = pt(263);
+  const nose = pt(1);
+  const chin = pt(152);
+  const forehead = pt(10);
 
   const eyeMid = {
     x: (leftEye.x + rightEye.x) / 2,
@@ -39,7 +40,7 @@ export function estimateHeadPose(
   const yaw = faceW > 1 ? ((nose.x - eyeMid.x) / faceW) * 1.4 : 0;
   const pitch =
     forehead && chin
-      ? ((nose.y - eyeMid.y) / Math.max(1, chin.y - forehead.y)) * 0.9
+      ? ((nose.y - eyeMid.y) / Math.max(1, Math.abs(chin.y - forehead.y))) * 0.9
       : 0;
 
   const matrix = result?.facialTransformationMatrixes?.[0]?.data;

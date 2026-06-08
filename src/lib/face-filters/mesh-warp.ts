@@ -3,22 +3,16 @@ import { FACE_OVAL_INDICES } from "@/lib/face-filters/presets";
 import type { FaceMask3dId } from "@/lib/face-filters/mask-textures";
 import { FACE_TEXTURE_QUAD, getMaskTexture } from "@/lib/face-filters/mask-textures";
 import { estimateHeadPose } from "@/lib/face-filters/head-pose";
+import { faceVerticalSpan, landmarkPt } from "@/lib/face-filters/face-coords";
 
 type Point = { x: number; y: number };
 
-function lm(
-  result: FaceLandmarkerResult,
-  index: number,
-  w: number,
-  h: number,
-  mirrored: boolean
-): Point | null {
-  const p = result.faceLandmarks?.[0]?.[index];
-  if (!p) return null;
-  return {
-    x: mirrored ? (1 - p.x) * w : p.x * w,
-    y: p.y * h,
-  };
+function lm(result: FaceLandmarkerResult, index: number, w: number, h: number): Point | null {
+  return landmarkPt(result, index, w, h);
+}
+
+function triArea(a: Point, b: Point, c: Point) {
+  return (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y);
 }
 
 function rotatePt(p: Point, cx: number, cy: number, angle: number): Point {
@@ -29,7 +23,7 @@ function rotatePt(p: Point, cx: number, cy: number, angle: number): Point {
   return { x: cx + dx * cos - dy * sin, y: cy + dx * sin + dy * cos };
 }
 
-/** 소스 삼각형 → 대상 삼각형 아핀 워핑 */
+/** 소스 삼각형 → 대상 삼각형 아핀 워핑 (반사 방지) */
 function warpTriangle(
   ctx: CanvasRenderingContext2D,
   img: CanvasImageSource,
@@ -42,35 +36,47 @@ function warpTriangle(
   d1: Point,
   d2: Point
 ) {
+  const ss0 = s0;
+  const ss1 = s1;
+  const ss2 = s2;
+  const dd0 = d0;
+  let dd1 = d1;
+  let dd2 = d2;
+
+  if (triArea(ss0, ss1, ss2) * triArea(dd0, dd1, dd2) < 0) {
+    dd1 = d2;
+    dd2 = d1;
+  }
+
   const denom =
-    s0.x * (s1.y - s2.y) + s1.x * (s2.y - s0.y) + s2.x * (s0.y - s1.y);
+    ss0.x * (ss1.y - ss2.y) + ss1.x * (ss2.y - ss0.y) + ss2.x * (ss0.y - ss1.y);
   if (Math.abs(denom) < 1e-6) return;
 
   ctx.save();
   ctx.beginPath();
-  ctx.moveTo(d0.x, d0.y);
-  ctx.lineTo(d1.x, d1.y);
-  ctx.lineTo(d2.x, d2.y);
+  ctx.moveTo(dd0.x, dd0.y);
+  ctx.lineTo(dd1.x, dd1.y);
+  ctx.lineTo(dd2.x, dd2.y);
   ctx.closePath();
   ctx.clip();
 
   const m11 =
-    (d0.x * (s1.y - s2.y) + d1.x * (s2.y - s0.y) + d2.x * (s0.y - s1.y)) / denom;
+    (dd0.x * (ss1.y - ss2.y) + dd1.x * (ss2.y - ss0.y) + dd2.x * (ss0.y - ss1.y)) / denom;
   const m12 =
-    (d0.y * (s1.y - s2.y) + d1.y * (s2.y - s0.y) + d2.y * (s0.y - s1.y)) / denom;
+    (dd0.y * (ss1.y - ss2.y) + dd1.y * (ss2.y - ss0.y) + dd2.y * (ss0.y - ss1.y)) / denom;
   const m21 =
-    (d0.x * (s2.x - s1.x) + d1.x * (s0.x - s2.x) + d2.x * (s1.x - s0.x)) / denom;
+    (dd0.x * (ss2.x - ss1.x) + dd1.x * (ss0.x - ss2.x) + dd2.x * (ss1.x - ss0.x)) / denom;
   const m22 =
-    (d0.y * (s2.x - s1.x) + d1.y * (s0.x - s2.x) + d2.y * (s1.x - s0.x)) / denom;
+    (dd0.y * (ss2.x - ss1.x) + dd1.y * (ss0.x - ss2.x) + dd2.y * (ss1.x - ss0.x)) / denom;
   const dx =
-    (d0.x * (s1.x * s2.y - s2.x * s1.y) +
-      d1.x * (s2.x * s0.y - s0.x * s2.y) +
-      d2.x * (s0.x * s1.y - s1.x * s0.y)) /
+    (dd0.x * (ss1.x * ss2.y - ss2.x * ss1.y) +
+      dd1.x * (ss2.x * ss0.y - ss0.x * ss2.y) +
+      dd2.x * (ss0.x * ss1.y - ss1.x * ss0.y)) /
     denom;
   const dy =
-    (d0.y * (s1.x * s2.y - s2.x * s1.y) +
-      d1.y * (s2.x * s0.y - s0.x * s2.y) +
-      d2.y * (s0.x * s1.y - s1.x * s0.y)) /
+    (dd0.y * (ss1.x * ss2.y - ss2.x * ss1.y) +
+      dd1.y * (ss2.x * ss0.y - ss0.x * ss2.y) +
+      dd2.y * (ss0.x * ss1.y - ss1.x * ss0.y)) /
     denom;
 
   ctx.transform(m11, m12, m21, m22, dx, dy);
@@ -97,10 +103,9 @@ function clipFaceOval(
   result: FaceLandmarkerResult,
   w: number,
   h: number,
-  mirrored: boolean,
   pad: number
 ) {
-  const pts = FACE_OVAL_INDICES.map((i) => lm(result, i, w, h, mirrored)).filter(Boolean) as Point[];
+  const pts = FACE_OVAL_INDICES.map((i) => lm(result, i, w, h)).filter(Boolean) as Point[];
   if (pts.length < 8) return false;
 
   let cx = 0;
@@ -127,35 +132,36 @@ function clipFaceOval(
   return true;
 }
 
-/** 텍스처·얼굴 랜드마크 4점 쿼드 매핑 */
 function buildFaceQuad(
   result: FaceLandmarkerResult,
   w: number,
-  h: number,
-  mirrored: boolean
+  h: number
 ): [Point, Point, Point, Point] | null {
-  const forehead = lm(result, 10, w, h, mirrored);
-  const chin = lm(result, 152, w, h, mirrored);
-  const left = lm(result, 234, w, h, mirrored);
-  const right = lm(result, 454, w, h, mirrored);
+  const forehead = lm(result, 10, w, h);
+  const chin = lm(result, 152, w, h);
+  const left = lm(result, 234, w, h);
+  const right = lm(result, 454, w, h);
   if (!forehead || !chin || !left || !right) return null;
 
   const faceW = Math.hypot(right.x - left.x, right.y - left.y);
-  const faceH = Math.abs(chin.y - forehead.y);
+  const span = faceVerticalSpan(forehead, chin);
   const cx = (left.x + right.x) / 2;
-  const cy = (forehead.y + chin.y) / 2;
-  const pose = estimateHeadPose(result, w, h, mirrored);
+  const cy = (span.top + span.bottom) / 2;
+  const pose = estimateHeadPose(result, w, h);
   const roll = pose?.roll ?? 0;
 
-  const topY = forehead.y - faceH * 0.12;
-  const bottomY = chin.y + faceH * 0.06;
+  const topY = span.top - span.height * 0.12;
+  const bottomY = span.bottom + span.height * 0.06;
   const sidePad = faceW * 0.06;
 
+  const leftX = Math.min(left.x, right.x) - sidePad;
+  const rightX = Math.max(left.x, right.x) + sidePad;
+
   const raw: [Point, Point, Point, Point] = [
-    { x: left.x - sidePad, y: topY },
-    { x: right.x + sidePad, y: topY },
-    { x: right.x + sidePad * 0.5, y: bottomY },
-    { x: left.x - sidePad * 0.5, y: bottomY },
+    { x: leftX, y: topY },
+    { x: rightX, y: topY },
+    { x: rightX - sidePad * 0.5, y: bottomY },
+    { x: leftX + sidePad * 0.5, y: bottomY },
   ];
 
   return raw.map((p) => rotatePt(p, cx, cy, roll)) as [Point, Point, Point, Point];
@@ -166,15 +172,14 @@ function drawWarpedMask(
   result: FaceLandmarkerResult,
   w: number,
   h: number,
-  maskId: FaceMask3dId,
-  mirrored: boolean
+  maskId: FaceMask3dId
 ) {
   const tex = getMaskTexture(maskId);
-  const dst = buildFaceQuad(result, w, h, mirrored);
+  const dst = buildFaceQuad(result, w, h);
   if (!dst) return;
 
   ctx.save();
-  clipFaceOval(ctx, result, w, h, mirrored, 0.06);
+  clipFaceOval(ctx, result, w, h, 0.06);
   ctx.globalAlpha = 0.96;
   warpQuad(ctx, tex, FACE_TEXTURE_QUAD, dst);
   ctx.restore();
@@ -186,17 +191,18 @@ function drawMaskEars(
   w: number,
   h: number,
   maskId: FaceMask3dId,
-  tick: number,
-  mirrored: boolean
+  tick: number
 ) {
-  const pose = estimateHeadPose(result, w, h, mirrored);
-  const forehead = lm(result, 10, w, h, mirrored);
-  const left = lm(result, 234, w, h, mirrored);
-  const right = lm(result, 454, w, h, mirrored);
+  const pose = estimateHeadPose(result, w, h);
+  const forehead = lm(result, 10, w, h);
+  const left = lm(result, 234, w, h);
+  const right = lm(result, 454, w, h);
+  const chin = lm(result, 152, w, h);
   if (!forehead || !left || !right) return;
 
-  const chin = lm(result, 152, w, h, mirrored);
-  const faceH = chin ? Math.abs(chin.y - forehead.y) : w * 0.35;
+  const span = chin ? faceVerticalSpan(forehead, chin) : { top: forehead.y, height: w * 0.35 };
+  const faceH = span.height;
+  const topY = span.top;
   const earSize = faceH * 0.38;
   const wobble = Math.sin(tick * 0.006) * earSize * 0.04;
   const roll = pose?.roll ?? 0;
@@ -291,8 +297,10 @@ function drawMaskEars(
     ctx.restore();
   };
 
-  drawEar(left.x - earSize * 0.32, forehead.y - earSize * 0.2, false);
-  drawEar(right.x + earSize * 0.32, forehead.y - earSize * 0.2, true);
+  const leftX = Math.min(left.x, right.x);
+  const rightX = Math.max(left.x, right.x);
+  drawEar(leftX - earSize * 0.32, topY - earSize * 0.2, false);
+  drawEar(rightX + earSize * 0.32, topY - earSize * 0.2, true);
 }
 
 /** 얼굴 전체 3D 마스크 — 쿼드 워핑 + 캐릭터 귀 */
@@ -302,13 +310,12 @@ export function drawFaceMask3d(
   w: number,
   h: number,
   maskId: FaceMask3dId,
-  tick: number,
-  mirrored = true
+  tick: number
 ) {
   if (!result?.faceLandmarks?.[0]) return;
 
   ctx.save();
-  drawMaskEars(ctx, result, w, h, maskId, tick, mirrored);
-  drawWarpedMask(ctx, result, w, h, maskId, mirrored);
+  drawMaskEars(ctx, result, w, h, maskId, tick);
+  drawWarpedMask(ctx, result, w, h, maskId);
   ctx.restore();
 }

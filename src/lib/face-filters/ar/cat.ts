@@ -109,8 +109,8 @@ function drawCatEyes(face: FaceArContext, ctx: CanvasRenderingContext2D) {
   for (const side of ["left", "right"] as const) {
     const eye = eyeCenter(face, side);
     const blink = side === "left" ? face.expr.blinkLeft : face.expr.blinkRight;
-    const outer = lm(face.result, side === "left" ? 133 : 362, face.w, face.h, face.mirrored);
-    const inner = lm(face.result, side === "left" ? 33 : 263, face.w, face.h, face.mirrored);
+    const outer = lm(face.result, side === "left" ? 133 : 362, face.w, face.h);
+    const inner = lm(face.result, side === "left" ? 33 : 263, face.w, face.h);
     if (!outer || !inner) continue;
 
     const dx = outer.x - inner.x;

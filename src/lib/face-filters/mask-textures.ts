@@ -3,7 +3,7 @@ import { FACE_OVAL_INDICES } from "@/lib/face-filters/presets";
 export type FaceMask3dId = "dog-face" | "cat-face" | "bear-face" | "clown-face" | "fox-face";
 
 const SIZE = 512;
-const TEXTURE_VERSION = 2;
+const TEXTURE_VERSION = 3;
 const cache = new Map<string, HTMLCanvasElement>();
 
 /** 512×512 마스크 텍스처에서 얼굴 영역 4점 (TL, TR, BR, BL) */

@@ -27,7 +27,7 @@ function drawLens(
   roll: number
 ) {
   const pts = indices
-    .map((i) => lm(face.result, i, face.w, face.h, face.mirrored))
+    .map((i) => lm(face.result, i, face.w, face.h))
     .filter(Boolean) as { x: number; y: number }[];
   if (pts.length < 4) return;
 

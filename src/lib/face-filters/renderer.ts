@@ -6,21 +6,9 @@ import {
 } from "@/lib/face-filters/presets";
 import { drawFaceMask3d } from "@/lib/face-filters/mesh-warp";
 import { drawPremiumArOverlay } from "@/lib/face-filters/ar/index";
+import { landmarkPt } from "@/lib/face-filters/face-coords";
 
 type NormPoint = { x: number; y: number };
-
-function lm(
-  result: FaceLandmarkerResult | undefined,
-  index: number,
-  w: number,
-  h: number,
-  mirrored: boolean
-): NormPoint | null {
-  const face = result?.faceLandmarks?.[0];
-  if (!face?.[index]) return null;
-  const x = mirrored ? (1 - face[index].x) * w : face[index].x * w;
-  return { x, y: face[index].y * h };
-}
 
 function polygonPath(ctx: CanvasRenderingContext2D, points: NormPoint[]) {
   if (points.length < 3) return;
@@ -36,35 +24,21 @@ function drawFaceBeauty(
   result: FaceLandmarkerResult | undefined,
   w: number,
   h: number,
-  strength: number,
-  mirrored: boolean
+  strength: number
 ) {
   if (strength <= 0 || !result?.faceLandmarks?.[0]) return;
-  const pts = FACE_OVAL_INDICES.map((i) => lm(result, i, w, h, mirrored)).filter(Boolean) as NormPoint[];
+  const pts = FACE_OVAL_INDICES.map((i) => landmarkPt(result, i, w, h)).filter(Boolean) as NormPoint[];
   if (pts.length < 8) return;
 
   const blurPx = 2 + strength * 10;
-  const off = document.createElement("canvas");
-  off.width = w;
-  off.height = h;
-  const offCtx = off.getContext("2d");
-  if (!offCtx) return;
-
-  offCtx.save();
-  if (mirrored) {
-    offCtx.translate(w, 0);
-    offCtx.scale(-1, 1);
-  }
-  offCtx.drawImage(source, 0, 0, w, h);
-  offCtx.restore();
   ctx.save();
   polygonPath(ctx, pts);
   ctx.clip();
   ctx.filter = `blur(${blurPx}px) saturate(1.12) brightness(1.04)`;
-  ctx.drawImage(off, 0, 0, w, h);
+  ctx.drawImage(source, 0, 0, w, h);
   ctx.filter = "none";
   ctx.globalAlpha = 0.55 + strength * 0.25;
-  ctx.drawImage(off, 0, 0, w, h);
+  ctx.drawImage(source, 0, 0, w, h);
   ctx.restore();
 }
 
@@ -73,11 +47,10 @@ function drawBlush(
   result: FaceLandmarkerResult | undefined,
   w: number,
   h: number,
-  amount: number,
-  mirrored: boolean
+  amount: number
 ) {
-  const left = lm(result, 234, w, h, mirrored);
-  const right = lm(result, 454, w, h, mirrored);
+  const left = landmarkPt(result, 234, w, h);
+  const right = landmarkPt(result, 454, w, h);
   if (!left || !right) return;
   const r = w * 0.07;
   ctx.save();
@@ -98,21 +71,6 @@ function drawBlush(
   ctx.restore();
 }
 
-function drawOverlay(
-  ctx: CanvasRenderingContext2D,
-  result: FaceLandmarkerResult | undefined,
-  w: number,
-  h: number,
-  filterId: FaceFilterId,
-  tick: number,
-  mirrored: boolean
-) {
-  const preset = getFaceFilterPreset(filterId);
-  const overlay = preset.overlay;
-  if (!overlay || !result?.faceLandmarks?.[0]) return;
-  drawPremiumArOverlay(ctx, result, w, h, overlay, tick, mirrored);
-}
-
 /** 필터 적용된 프레임을 canvas에 그림 */
 export function renderFilteredFrame(
   ctx: CanvasRenderingContext2D,
@@ -127,22 +85,25 @@ export function renderFilteredFrame(
   const preset = getFaceFilterPreset(filterId);
 
   ctx.save();
-  ctx.filter = preset.colorFilter === "none" ? "none" : preset.colorFilter;
   if (mirrored) {
     ctx.translate(w, 0);
     ctx.scale(-1, 1);
   }
+
+  ctx.filter = preset.colorFilter === "none" ? "none" : preset.colorFilter;
   ctx.drawImage(source, 0, 0, w, h);
-  ctx.restore();
+  ctx.filter = "none";
 
-  if (filterId === "none") return;
+  if (filterId !== "none" && landmarkerResult) {
+    drawFaceBeauty(ctx, source, landmarkerResult, w, h, preset.beauty);
+    if (preset.blush) drawBlush(ctx, landmarkerResult, w, h, preset.blush);
 
-  drawFaceBeauty(ctx, source, landmarkerResult, w, h, preset.beauty, mirrored);
-  if (preset.blush) drawBlush(ctx, landmarkerResult, w, h, preset.blush, mirrored);
-
-  if (preset.mask3d && landmarkerResult) {
-    drawFaceMask3d(ctx, landmarkerResult, w, h, preset.mask3d, tick, mirrored);
-  } else if (landmarkerResult) {
-    drawOverlay(ctx, landmarkerResult, w, h, filterId, tick, mirrored);
+    if (preset.mask3d) {
+      drawFaceMask3d(ctx, landmarkerResult, w, h, preset.mask3d, tick);
+    } else if (preset.overlay) {
+      drawPremiumArOverlay(ctx, landmarkerResult, w, h, preset.overlay, tick);
+    }
   }
+
+  ctx.restore();
 }
