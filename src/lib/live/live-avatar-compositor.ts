@@ -4,9 +4,11 @@ import type { LiveOverlayState } from "@/lib/live-overlays/types";
 import {
   drawLiveGradientBackground,
   drawLiveOverlaysToCanvas,
+  drawLiveChromaBackground,
 } from "@/lib/live/live-overlay-canvas";
 
 export type LiveCompositorLayout = "avatar" | "camera-bg";
+export type LiveCompositorBackground = "gradient" | "chroma";
 
 /** WHIP 송출용 — 카메라·VRM·오버레이 고품질 합성 */
 export class LiveAvatarCompositor {
@@ -18,6 +20,7 @@ export class LiveAvatarCompositor {
   private cameraVideo: HTMLVideoElement | null = null;
   private avatarCanvas: HTMLCanvasElement | null = null;
   private layout: LiveCompositorLayout = "avatar";
+  private background: LiveCompositorBackground = "gradient";
   private overlayState: LiveOverlayState | null = null;
   private width = 1920;
   private height = 1080;
@@ -42,6 +45,10 @@ export class LiveAvatarCompositor {
 
   setLayout(layout: LiveCompositorLayout) {
     this.layout = layout;
+  }
+
+  setBackground(mode: LiveCompositorBackground) {
+    this.background = mode;
   }
 
   /** Three.js 렌더 직후 호출 — 프레임 동기화 */
@@ -111,7 +118,11 @@ export class LiveAvatarCompositor {
     const avatar = this.avatarCanvas;
     const cam = this.cameraVideo;
 
-    drawLiveGradientBackground(ctx, w, h);
+    if (this.background === "chroma") {
+      drawLiveChromaBackground(ctx, w, h);
+    } else {
+      drawLiveGradientBackground(ctx, w, h);
+    }
 
     if (this.layout === "camera-bg" && cam && cam.readyState >= 2 && cam.videoWidth > 0) {
       this.drawCameraCoverMirrored(ctx, cam, 0, 0, w, h, 0.35);

@@ -21,6 +21,7 @@ import type { AvatarConfig } from "@/lib/virtual-avatar/types";
 import { DEFAULT_AVATAR_CONFIG } from "@/lib/virtual-avatar/types";
 
 export type LiveAvatarLayout = "avatar" | "camera-bg";
+export type LiveAvatarBackground = "gradient" | "chroma";
 
 export type LiveAvatarPublishHandle = {
   getPublishStream: () => MediaStream | null;
@@ -29,6 +30,7 @@ export type LiveAvatarPublishHandle = {
   attachCameraStream: (stream: MediaStream) => Promise<void>;
   detachCameraStream: () => void;
   setLayout: (layout: LiveAvatarLayout) => void;
+  setBackground: (mode: LiveAvatarBackground) => void;
   setCameraVisible: (visible: boolean) => void;
   setOverlayState: (state: LiveOverlayState | null) => void;
   isFaceDetected: () => boolean;
@@ -84,6 +86,7 @@ export const LiveAvatarPublishLayer = forwardRef<
   const publishStreamRef = useRef<MediaStream | null>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
   const layoutRef = useRef<LiveAvatarLayout>(layout);
+  const backgroundRef = useRef<LiveAvatarBackground>("gradient");
   const cameraVisibleRef = useRef(true);
   const overlayRef = useRef<LiveOverlayState | null>(overlayState);
   const frameCountRef = useRef(0);
@@ -126,6 +129,7 @@ export const LiveAvatarPublishLayer = forwardRef<
     compositorRef.current = compositor;
     compositor.setOverlayState(overlayRef.current);
     compositor.setLayout(effectiveLayout());
+    compositor.setBackground(backgroundRef.current);
     compositor.start(avatarCanvas, camera, effectiveLayout());
 
     scene.setOnAfterRender(() => compositor.notifyAvatarFrame());
@@ -156,6 +160,10 @@ export const LiveAvatarPublishLayer = forwardRef<
     overlayRef.current = overlayState;
     compositorRef.current?.setOverlayState(overlayState ?? null);
   }, [overlayState]);
+
+  useEffect(() => {
+    configRef.current = studio.config;
+  }, [studio.config]);
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
@@ -255,6 +263,10 @@ export const LiveAvatarPublishLayer = forwardRef<
         layoutRef.current = next;
         compositorRef.current?.setLayout(effectiveLayout());
         rebuildPublishStream();
+      },
+      setBackground: (mode: LiveAvatarBackground) => {
+        backgroundRef.current = mode;
+        compositorRef.current?.setBackground(mode);
       },
       setCameraVisible: (visible: boolean) => {
         cameraVisibleRef.current = visible;

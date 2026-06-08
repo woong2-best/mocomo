@@ -22,12 +22,19 @@ import type { HostPublishState } from "@/lib/live-publisher-lock";
 import { startBrowserLiveBroadcast } from "@/actions/live-stream";
 import {
   LiveAvatarPublishLayer,
+  type LiveAvatarBackground,
   type LiveAvatarLayout,
   type LiveAvatarPublishHandle,
 } from "@/components/live/live-avatar-publish";
 
 const VTUBER_STORAGE_KEY = "mocomo_live_vtuber";
 const VTUBER_LAYOUT_KEY = "mocomo_live_vtuber_layout";
+const VTUBER_BG_KEY = "mocomo_live_vtuber_bg";
+
+function readVtuberBackground(): "gradient" | "chroma" {
+  if (typeof window === "undefined") return "gradient";
+  return sessionStorage.getItem(VTUBER_BG_KEY) === "chroma" ? "chroma" : "gradient";
+}
 
 function readVtuberEnabled() {
   if (typeof window === "undefined") return false;
@@ -111,6 +118,7 @@ export function LiveBrowserStudio({
   const [ready, setReady] = useState(false);
   const [vtuberMode, setVtuberMode] = useState(() => readVtuberEnabled());
   const [avatarLayout, setAvatarLayout] = useState<LiveAvatarLayout>(() => readVtuberLayout());
+  const [avatarBackground, setAvatarBackground] = useState<LiveAvatarBackground>(() => readVtuberBackground());
   const [vtuberFaceOk, setVtuberFaceOk] = useState(false);
 
   const serverLive =
@@ -129,6 +137,11 @@ export function LiveBrowserStudio({
     const id = window.setInterval(poll, 400);
     return () => window.clearInterval(id);
   }, [vtuberMode, ready]);
+
+  useEffect(() => {
+    if (!vtuberMode || !ready) return;
+    avatarPublishRef.current?.setBackground(avatarBackground);
+  }, [avatarBackground, vtuberMode, ready]);
 
   const loadStudioState = useCallback(async () => {
     const res = await livePublisherFetch(`/api/live/${channelId}/studio-state`, {
@@ -389,6 +402,7 @@ export function LiveBrowserStudio({
   const setVtuberLayout = useCallback(
     async (layout: LiveAvatarLayout) => {
       setAvatarLayout(layout);
+      sessionStorage.setItem(VTUBER_LAYOUT_KEY, layout);
       avatarPublishRef.current?.setLayout(layout);
       if (!vtuberMode) return;
       try {
@@ -402,6 +416,12 @@ export function LiveBrowserStudio({
     },
     [attachPreviewCanvas, ensureLocalStream, restartWhipWithStream, vtuberMode, whipConnected]
   );
+
+  const setVtuberBackground = useCallback((bg: LiveAvatarBackground) => {
+    setAvatarBackground(bg);
+    sessionStorage.setItem(VTUBER_BG_KEY, bg);
+    avatarPublishRef.current?.setBackground(bg);
+  }, []);
 
   useEffect(() => {
     if (!ready || (publishState !== "idle" && publishState !== "live_here")) return;
@@ -746,6 +766,24 @@ export function LiveBrowserStudio({
                   onClick={() => void setVtuberLayout("camera-bg")}
                 >
                   카메라+아바타
+                </Button>
+                <Button
+                  type="button"
+                  variant={avatarBackground === "gradient" ? "secondary" : "outline"}
+                  size="sm"
+                  className="rounded-xl text-xs"
+                  onClick={() => setVtuberBackground("gradient")}
+                >
+                  그라데이션
+                </Button>
+                <Button
+                  type="button"
+                  variant={avatarBackground === "chroma" ? "secondary" : "outline"}
+                  size="sm"
+                  className="rounded-xl text-xs"
+                  onClick={() => setVtuberBackground("chroma")}
+                >
+                  크로마(#00FF00)
                 </Button>
               </>
             )}

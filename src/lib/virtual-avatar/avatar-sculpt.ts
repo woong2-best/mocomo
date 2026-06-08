@@ -50,7 +50,7 @@ export class AvatarSculptSession {
     geo.computeVertexNormals();
   }
 
-  pushDelta(sculpt: AvatarSculptParams, delta: SculptDelta, max = 800): AvatarSculptParams {
+  pushDelta(sculpt: AvatarSculptParams, delta: SculptDelta, max = 2000): AvatarSculptParams {
     const deltas = [...sculpt.deltas, delta];
     if (deltas.length > max) deltas.splice(0, deltas.length - max);
     return { ...sculpt, deltas };

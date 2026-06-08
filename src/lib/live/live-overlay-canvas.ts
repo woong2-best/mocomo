@@ -124,6 +124,11 @@ export function drawLiveOverlaysToCanvas(
   sorted.forEach((w) => drawWidget(ctx, w, width, height));
 }
 
+export function drawLiveChromaBackground(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  ctx.fillStyle = "#00ff00";
+  ctx.fillRect(0, 0, w, h);
+}
+
 export function drawLiveGradientBackground(ctx: CanvasRenderingContext2D, w: number, h: number) {
   const g = ctx.createLinearGradient(0, 0, w, h);
   g.addColorStop(0, "#1a0f2e");

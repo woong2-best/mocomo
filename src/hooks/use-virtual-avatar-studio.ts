@@ -104,6 +104,16 @@ export function useVirtualAvatarStudio() {
     setLoaded(true);
   }, [refreshVrmSlots]);
 
+  /** 스튜디오 변경 → localStorage 자동 저장 + 라이브 VTuber 동기화 */
+  useEffect(() => {
+    if (!loaded) return;
+    const timer = window.setTimeout(() => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+      window.dispatchEvent(new Event(AVATAR_UPDATED_EVENT));
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, [config, loaded]);
+
   type ConfigSectionKey = Exclude<keyof AvatarConfig, "style">;
 
   const patch = useCallback(<K extends ConfigSectionKey>(key: K, value: Partial<AvatarConfig[K]>) => {

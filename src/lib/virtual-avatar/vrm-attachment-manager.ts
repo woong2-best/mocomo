@@ -4,6 +4,7 @@ import type { VRM } from "@pixiv/three-vrm";
 import type { AvatarConfig } from "@/lib/virtual-avatar/types";
 import { getCatalogItem, type CatalogAttachment } from "@/lib/virtual-avatar/avatar-catalog";
 import { buildProceduralAttachment } from "@/lib/virtual-avatar/attachment-procedural";
+import { cacheAttachmentGlb, loadCachedAttachmentGlb } from "@/lib/virtual-avatar/attachment-glb-cache";
 import { HAIR_COLOR_BY_INDEX } from "@/lib/virtual-avatar/face-morph-colors";
 
 type VrmBoneName =
@@ -132,17 +133,61 @@ export class VrmAttachmentManager {
   ): Promise<THREE.Object3D | null> {
     if (attachment.glbUrl) {
       const cached = GLB_CACHE.get(attachment.glbUrl);
-      if (cached) return cached.clone(true);
+      if (cached) {
+        const clone = cached.clone(true);
+        this.applyRuntimeColors(clone, options);
+        return clone;
+      }
       try {
-        const gltf = await this.loader.loadAsync(attachment.glbUrl);
-        const scene = gltf.scene;
+        const network = await this.loader.loadAsync(attachment.glbUrl);
+        const scene = network.scene;
         GLB_CACHE.set(attachment.glbUrl, scene);
-        return scene.clone(true);
+        const clone = scene.clone(true);
+        this.applyRuntimeColors(clone, options);
+        return clone;
       } catch {
-        /* fallback to procedural */
+        const idb = await loadCachedAttachmentGlb(attachment.glbUrl);
+        if (idb) {
+          GLB_CACHE.set(attachment.glbUrl, idb);
+          const clone = idb.clone(true);
+          this.applyRuntimeColors(clone, options);
+          return clone;
+        }
       }
     }
-    return buildProceduralAttachment(attachment, options);
+    const procedural = buildProceduralAttachment(attachment, options);
+    if (procedural && attachment.glbUrl) {
+      cacheAttachmentGlb(attachment.glbUrl, procedural);
+    }
+    return procedural;
+  }
+
+  private applyRuntimeColors(
+    obj: THREE.Object3D,
+    options: Parameters<typeof buildProceduralAttachment>[1]
+  ) {
+    const palette = [
+      options.primaryColor,
+      options.secondaryColor ?? options.primaryColor,
+      options.accentColor ?? options.primaryColor,
+    ];
+    let i = 0;
+    obj.traverse((child) => {
+      const mesh = child as THREE.Mesh;
+      if (!mesh.isMesh || !mesh.material) return;
+      const tint = (m: THREE.Material) => {
+        if (m instanceof THREE.MeshStandardMaterial) {
+          const next = m.clone();
+          next.color = new THREE.Color(palette[i % palette.length]);
+          i += 1;
+          return next;
+        }
+        return m.clone();
+      };
+      mesh.material = Array.isArray(mesh.material)
+        ? mesh.material.map(tint)
+        : tint(mesh.material);
+    });
   }
 
   private setDefaultHairVisible(vrm: VRM, visible: boolean) {

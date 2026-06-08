@@ -8,15 +8,31 @@ export type AttachmentBuildOptions = {
   scale?: number;
 };
 
-function mat(color: string, opts?: { metalness?: number; roughness?: number; transparent?: boolean; opacity?: number; side?: THREE.Side }) {
-  return new THREE.MeshStandardMaterial({
+function mat(color: string, opts?: { metalness?: number; roughness?: number; transparent?: boolean; opacity?: number; side?: THREE.Side; emissive?: string; emissiveIntensity?: number }) {
+  const m = new THREE.MeshStandardMaterial({
     color,
     metalness: opts?.metalness ?? 0.08,
     roughness: opts?.roughness ?? 0.55,
-    transparent: opts?.transparent,
-    opacity: opts?.opacity,
     side: opts?.side ?? THREE.DoubleSide,
   });
+  if (opts?.transparent) {
+    m.transparent = true;
+    m.opacity = opts.opacity ?? 0.85;
+  }
+  if (opts?.emissive) {
+    m.emissive = new THREE.Color(opts.emissive);
+    m.emissiveIntensity = opts.emissiveIntensity ?? 0.12;
+  }
+  return m;
+}
+
+/** 고품질 구체 — VTuber 클로즈업용 */
+function hqSphere(r: number, color: string, opts?: Parameters<typeof mat>[1]) {
+  return new THREE.Mesh(new THREE.SphereGeometry(r, 24, 18), mat(color, opts));
+}
+
+function hqCylinder(rt: number, rb: number, h: number, color: string, segs = 16) {
+  return new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, segs), mat(color));
 }
 
 function group(name: string, children: THREE.Object3D[]) {
@@ -46,13 +62,13 @@ function pm(
 function hairStrands(count: number, color: string, length: number, spread: number) {
   const g = new THREE.Group();
   for (let i = 0; i < count; i++) {
-    const geo = new THREE.PlaneGeometry(0.06, length, 1, 4);
-    const m = mat(color, { roughness: 0.82 });
-    const plane = new THREE.Mesh(geo, m);
+    const geo = new THREE.PlaneGeometry(0.055, length, 1, 6);
+    geo.computeVertexNormals();
+    const plane = new THREE.Mesh(geo, mat(color, { roughness: 0.78 }));
     const a = (i / count) * Math.PI * 2;
     plane.position.set(Math.sin(a) * spread, -length * 0.35, Math.cos(a) * spread * 0.7);
     plane.rotation.y = a;
-    plane.rotation.x = -0.25;
+    plane.rotation.x = -0.28 + Math.sin(a * 2) * 0.08;
     g.add(plane);
   }
   return g;
@@ -61,13 +77,13 @@ function hairStrands(count: number, color: string, length: number, spread: numbe
 const HAIR_BUILDERS: Record<string, (o: AttachmentBuildOptions) => THREE.Object3D> = {
   long_wave: (o) =>
     group("hair_long_wave", [
-      hairStrands(14, o.primaryColor, 0.55 * (o.scale ?? 1), 0.18),
-      new THREE.Mesh(new THREE.SphereGeometry(0.19, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.55), mat(o.primaryColor)),
+      hairStrands(18, o.primaryColor, 0.55 * (o.scale ?? 1), 0.18),
+      hqSphere(0.19, o.primaryColor, { roughness: 0.72 }),
     ]),
   bob: (o) =>
     group("hair_bob", [
-      new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 12), mat(o.primaryColor)),
-      hairStrands(8, o.primaryColor, 0.22, 0.16),
+      hqSphere(0.2, o.primaryColor),
+      hairStrands(10, o.primaryColor, 0.22, 0.16),
     ]),
   ponytail: (o) =>
     group("hair_ponytail", [
@@ -187,15 +203,17 @@ const ACCESSORY_BUILDERS: Record<string, (o: AttachmentBuildOptions) => THREE.Ob
   necklace: (o) => new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.008, 8, 24), mat(o.accentColor ?? "#fbbf24", { metalness: 0.9 })).rotateX(Math.PI / 2).translateY(-0.12),
   glasses: (o) =>
     group("glasses", [
-      pm(new THREE.TorusGeometry(0.045, 0.004, 8, 16), o.primaryColor, -0.055, 0.02, 0.1, undefined, { metalness: 0.7 }),
-      pm(new THREE.TorusGeometry(0.045, 0.004, 8, 16), o.primaryColor, 0.055, 0.02, 0.1, undefined, { metalness: 0.7 }),
-      pm(new THREE.BoxGeometry(0.04, 0.004, 0.004), o.primaryColor, 0, 0.02, 0.1, undefined, { metalness: 0.7 }),
+      pm(new THREE.TorusGeometry(0.048, 0.005, 12, 24), o.primaryColor, -0.058, 0.022, 0.11, undefined, { metalness: 0.85, roughness: 0.2 }),
+      pm(new THREE.TorusGeometry(0.048, 0.005, 12, 24), o.primaryColor, 0.058, 0.022, 0.11, undefined, { metalness: 0.85, roughness: 0.2 }),
+      pm(new THREE.BoxGeometry(0.045, 0.005, 0.005), o.primaryColor, 0, 0.022, 0.11, undefined, { metalness: 0.85 }),
+      pm(new THREE.PlaneGeometry(0.042, 0.038), o.secondaryColor ?? "#88ccff", -0.058, 0.022, 0.108, undefined, { transparent: true, opacity: 0.35 }),
+      pm(new THREE.PlaneGeometry(0.042, 0.038), o.secondaryColor ?? "#88ccff", 0.058, 0.022, 0.108, undefined, { transparent: true, opacity: 0.35 }),
     ]),
   mask: (o) => new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.07), mat(o.primaryColor, { transparent: true, opacity: 0.85 })).translateZ(0.12),
   wings: (o) =>
     group("wings", [
-      pm(new THREE.PlaneGeometry(0.45, 0.55), o.primaryColor, -0.22, 0.05, -0.12, { y: 0.35 }, { transparent: true, opacity: 0.75, side: THREE.DoubleSide }),
-      pm(new THREE.PlaneGeometry(0.45, 0.55), o.secondaryColor ?? o.primaryColor, 0.22, 0.05, -0.12, { y: -0.35 }, { transparent: true, opacity: 0.75, side: THREE.DoubleSide }),
+      pm(new THREE.PlaneGeometry(0.5, 0.62, 4, 6), o.primaryColor, -0.24, 0.06, -0.14, { y: 0.38, z: 0.15 }, { transparent: true, opacity: 0.82, side: THREE.DoubleSide }),
+      pm(new THREE.PlaneGeometry(0.5, 0.62, 4, 6), o.secondaryColor ?? o.primaryColor, 0.24, 0.06, -0.14, { y: -0.38, z: -0.15 }, { transparent: true, opacity: 0.82, side: THREE.DoubleSide }),
     ]),
   tail: (o) => {
     const curve = new THREE.CatmullRomCurve3([

@@ -50,7 +50,7 @@ export class TrackingSmoother {
     target: import("@/lib/face-filters/head-pose").HeadPose,
     dt: number
   ): import("@/lib/face-filters/head-pose").HeadPose {
-    const t = Math.min(1, dt * 18);
+    const t = Math.min(1, dt * 14);
     if (!this.headInitialized) {
       this.head = { ...target };
       this.headInitialized = true;
@@ -69,7 +69,7 @@ export class TrackingSmoother {
   }
 
   smoothBlendShapes(target: Record<string, number>, dt: number): Record<string, number> {
-    const t = Math.min(1, dt * 22);
+    const t = Math.min(1, dt * 18);
     const out: Record<string, number> = {};
     for (const [key, value] of Object.entries(target)) {
       const prev = this.blends.get(key) ?? value;
@@ -90,7 +90,7 @@ export class TrackingSmoother {
 
   smoothBody(target: BodyTrackingState, dt: number): BodyTrackingState {
     if (!target.detected) return target;
-    const t = Math.min(1, dt * 16);
+    const t = Math.min(1, dt * 12);
 
     if (target.leftArm) {
       this.leftArm.upper = lerpRot(this.leftArm.upper, target.leftArm.upper, t);
