@@ -83,6 +83,17 @@ export function FaceFilterStrip({
         </p>
       )}
 
+      {tab === "ar" && (
+        <p className="text-[10px] text-muted-foreground px-0.5 leading-snug">
+          {value === "dog" && "WARM · FLUFFY · COCKER SPANIEL"}
+          {value === "cat" && "SLEEK · MYSTERIOUS · CALICO"}
+          {value === "bunny" && "SOFT · FLUFFY · ANGORA STYLE"}
+          {value === "crown" && "REGAL · METALLIC · 3D JEWELED"}
+          {value === "glasses" && "CHIC · OVERSIZED · ACETATE 3D"}
+          {value === "hearts" && "ROMANTIC · PARTICLE · DREAMY"}
+        </p>
+      )}
+
       {(tab === "ar" || tab === "mask3d") && faceTrackingNeeded && (
         <p
           className={cn(

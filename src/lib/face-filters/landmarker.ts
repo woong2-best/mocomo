@@ -45,7 +45,7 @@ async function createLandmarker(wasmBase: string, modelPath: string): Promise<Fa
       },
       runningMode: "VIDEO",
       numFaces: 1,
-      outputFaceBlendshapes: false,
+      outputFaceBlendshapes: true,
       outputFacialTransformationMatrixes: true,
     });
   } catch {
@@ -56,6 +56,7 @@ async function createLandmarker(wasmBase: string, modelPath: string): Promise<Fa
       },
       runningMode: "VIDEO",
       numFaces: 1,
+      outputFaceBlendshapes: true,
       outputFacialTransformationMatrixes: true,
     });
   }
