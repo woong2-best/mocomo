@@ -11,12 +11,16 @@ export type HeadPose = {
 export function estimateHeadPose(
   result: FaceLandmarkerResult | undefined,
   w: number,
-  h: number
+  h: number,
+  mirrored = false
 ): HeadPose | null {
   const face = result?.faceLandmarks?.[0];
   if (!face) return null;
 
-  const lm = (i: number) => ({ x: face[i].x * w, y: face[i].y * h });
+  const lm = (i: number) => ({
+    x: mirrored ? (1 - face[i].x) * w : face[i].x * w,
+    y: face[i].y * h,
+  });
   const leftEye = lm(33);
   const rightEye = lm(263);
   const nose = lm(1);

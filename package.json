@@ -8,7 +8,7 @@
     "dev:socket": "tsx watch server/socket.ts",
     "start:socket": "npx tsx server/socket.ts",
     "build": "prisma generate && next build",
-    "vercel-build": "prisma generate && (prisma db push --accept-data-loss && tsx prisma/seed.ts || echo DB sync skipped) && next build",
+    "vercel-build": "prisma generate && node scripts/copy-mediapipe-assets.cjs && (prisma db push --accept-data-loss && tsx prisma/seed.ts || echo DB sync skipped) && next build",
     "start": "next start",
     "lint": "next lint",
     "db:generate": "prisma generate",
@@ -21,7 +21,8 @@
     "operator:revoke": "tsx scripts/revoke-unauthorized-admins.ts",
     "oauth:discord": "tsx scripts/discord-oauth-setup.ts",
     "db:studio": "prisma studio",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate && node scripts/copy-mediapipe-assets.cjs",
+    "mediapipe:assets": "node scripts/copy-mediapipe-assets.cjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",

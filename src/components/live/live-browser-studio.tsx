@@ -69,6 +69,10 @@ export function LiveBrowserStudio({
     stop: stopFilterPipeline,
     getCompositeStream,
     waitForBroadcastReady,
+    active: filterActive,
+    landmarkerState,
+    faceTrackingNeeded,
+    faceTrackingReady,
   } = useFaceFilterPipeline("natural");
 
   const [publishState, setPublishState] = useState<HostPublishState | "loading">("loading");
@@ -173,12 +177,18 @@ export function LiveBrowserStudio({
     }
 
     if (!raw) throw new Error("카메라 스트림을 시작할 수 없습니다.");
-    await attachRawStream(raw);
+    await attachRawStream(raw, { mirrored: true });
     await waitForBroadcastReady().catch(() => undefined);
     const composite = getCompositeStream();
     streamRef.current = composite ?? raw;
     return streamRef.current;
   }, [attachRawStream, getCompositeStream, waitForBroadcastReady, screenOn]);
+
+  useEffect(() => {
+    if (screenOn || !filterActive) return;
+    const composite = getCompositeStream();
+    if (composite) streamRef.current = composite;
+  }, [filterId, screenOn, filterActive, getCompositeStream]);
 
   useEffect(() => {
     const host = previewHostRef.current;
@@ -478,6 +488,9 @@ export function LiveBrowserStudio({
           value={filterId}
           onChange={setFilterId}
           disabled={goingLive && whipConnected}
+          faceTrackingNeeded={faceTrackingNeeded}
+          faceTrackingReady={faceTrackingReady}
+          landmarkerState={landmarkerState}
         />
       )}
 

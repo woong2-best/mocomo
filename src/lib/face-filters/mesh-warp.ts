@@ -10,11 +10,13 @@ function lm(
   result: FaceLandmarkerResult,
   index: number,
   w: number,
-  h: number
+  h: number,
+  mirrored: boolean
 ): Point | null {
   const p = result.faceLandmarks?.[0]?.[index];
   if (!p) return null;
-  return { x: p.x * w, y: p.y * h };
+  const x = mirrored ? (1 - p.x) * w : p.x * w;
+  return { x, y: p.y * h };
 }
 
 /** 삼각형 단위 아핀 워핑 — 인스타/Snap 스타일 얼굴 밀착 마스크 */
@@ -74,15 +76,16 @@ function drawWarpedMask(
   result: FaceLandmarkerResult,
   w: number,
   h: number,
-  maskId: FaceMask3dId
+  maskId: FaceMask3dId,
+  mirrored: boolean
 ) {
   const tex = getMaskTexture(maskId);
   const tw = tex.width;
   const th = tex.height;
-  const nose = lm(result, 1, w, h);
+  const nose = lm(result, 1, w, h, mirrored);
   if (!nose) return;
 
-  const oval = FACE_OVAL_INDICES.map((i) => lm(result, i, w, h)).filter(Boolean) as Point[];
+  const oval = FACE_OVAL_INDICES.map((i) => lm(result, i, w, h, mirrored)).filter(Boolean) as Point[];
   if (oval.length < 12) return;
 
   const tpl = (i: number) => {
@@ -105,7 +108,7 @@ function drawWarpedMask(
 
   const innerIndices = [33, 133, 362, 263, 61, 291, 199, 4];
   for (const idx of innerIndices) {
-    const dst = lm(result, idx, w, h);
+    const dst = lm(result, idx, w, h, mirrored);
     if (!dst) continue;
     const src = tpl(idx);
     const mid = {
@@ -126,16 +129,18 @@ function drawPoseEars(
   w: number,
   h: number,
   maskId: FaceMask3dId,
-  tick: number
+  tick: number,
+  mirrored: boolean
 ) {
-  const pose = estimateHeadPose(result, w, h);
-  const forehead = lm(result, 10, w, h);
-  const left = lm(result, 234, w, h);
-  const right = lm(result, 454, w, h);
+  const pose = estimateHeadPose(result, w, h, mirrored);
+  const forehead = lm(result, 10, w, h, mirrored);
+  const left = lm(result, 234, w, h, mirrored);
+  const right = lm(result, 454, w, h, mirrored);
   if (!pose || !forehead) return;
 
-  const faceH = lm(result, 152, w, h)
-    ? Math.abs((lm(result, 152, w, h)?.y ?? forehead.y) - forehead.y)
+  const chinPt = lm(result, 152, w, h, mirrored);
+  const faceH = chinPt
+    ? Math.abs(chinPt.y - forehead.y)
     : w * 0.35;
   const earSize = faceH * 0.42;
   const wobble = Math.sin(tick * 0.006) * earSize * 0.04;
@@ -178,13 +183,14 @@ export function drawFaceMask3d(
   w: number,
   h: number,
   maskId: FaceMask3dId,
-  tick: number
+  tick: number,
+  mirrored = true
 ) {
   if (!result?.faceLandmarks?.[0]) return;
 
   ctx.save();
   ctx.globalCompositeOperation = "source-over";
-  drawPoseEars(ctx, result, w, h, maskId, tick);
-  drawWarpedMask(ctx, result, w, h, maskId);
+  drawPoseEars(ctx, result, w, h, maskId, tick, mirrored);
+  drawWarpedMask(ctx, result, w, h, maskId, mirrored);
   ctx.restore();
 }

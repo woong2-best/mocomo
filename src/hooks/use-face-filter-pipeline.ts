@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FaceFilterPipeline } from "@/lib/face-filters/pipeline";
-import type { FaceFilterId } from "@/lib/face-filters/presets";
+import {
+  preloadFaceLandmarker,
+  subscribeLandmarkerLoadState,
+  type LandmarkerLoadState,
+} from "@/lib/face-filters/landmarker";
+import { filterNeedsFaceLandmarks, type FaceFilterId } from "@/lib/face-filters/presets";
 
 export function useFaceFilterPipeline(defaultFilter: FaceFilterId = "natural") {
   const pipelineRef = useRef<FaceFilterPipeline | null>(null);
@@ -10,6 +15,8 @@ export function useFaceFilterPipeline(defaultFilter: FaceFilterId = "natural") {
   const [filterId, setFilterId] = useState<FaceFilterId>(defaultFilter);
   const [displayCanvas, setDisplayCanvas] = useState<HTMLCanvasElement | null>(null);
   const [active, setActive] = useState(false);
+  const [landmarkerState, setLandmarkerState] = useState<LandmarkerLoadState>("idle");
+  const [landmarkerError, setLandmarkerError] = useState("");
 
   const getPipeline = useCallback(() => {
     if (!pipelineRef.current) pipelineRef.current = new FaceFilterPipeline();
@@ -17,15 +24,23 @@ export function useFaceFilterPipeline(defaultFilter: FaceFilterId = "natural") {
   }, []);
 
   useEffect(() => {
+    preloadFaceLandmarker();
+    return subscribeLandmarkerLoadState((state, err) => {
+      setLandmarkerState(state);
+      setLandmarkerError(err);
+    });
+  }, []);
+
+  useEffect(() => {
     pipelineRef.current?.setFilter(filterId);
   }, [filterId]);
 
   const attachRawStream = useCallback(
-    async (stream: MediaStream) => {
+    async (stream: MediaStream, options?: { mirrored?: boolean }) => {
       rawStreamRef.current = stream;
       const pipeline = getPipeline();
       pipeline.setFilter(filterId);
-      await pipeline.start(stream);
+      await pipeline.start(stream, options);
       setDisplayCanvas(pipeline.canvas);
       setActive(true);
     },
@@ -63,6 +78,10 @@ export function useFaceFilterPipeline(defaultFilter: FaceFilterId = "natural") {
     };
   }, []);
 
+  const faceTrackingNeeded = filterNeedsFaceLandmarks(filterId);
+  const faceTrackingReady =
+    !faceTrackingNeeded || landmarkerState === "ready" || pipelineRef.current?.isLandmarkerReady();
+
   return {
     displayCanvas,
     filterId,
@@ -74,5 +93,9 @@ export function useFaceFilterPipeline(defaultFilter: FaceFilterId = "natural") {
     waitForBroadcastReady,
     capturePhoto,
     rawStreamRef,
+    landmarkerState,
+    landmarkerError,
+    faceTrackingNeeded,
+    faceTrackingReady,
   };
 }

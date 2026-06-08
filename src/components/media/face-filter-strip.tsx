@@ -16,6 +16,10 @@ type FaceFilterStripProps = {
   disabled?: boolean;
   className?: string;
   compact?: boolean;
+  /** 얼굴 추적 모듈 상태 (AR·3D 마스크) */
+  faceTrackingNeeded?: boolean;
+  faceTrackingReady?: boolean;
+  landmarkerState?: "idle" | "loading" | "ready" | "error";
 };
 
 const TABS: { id: FaceFilterCategory; label: string }[] = [
@@ -30,6 +34,9 @@ export function FaceFilterStrip({
   disabled,
   className,
   compact,
+  faceTrackingNeeded,
+  faceTrackingReady,
+  landmarkerState,
 }: FaceFilterStripProps) {
   const activeCategory = useMemo(() => {
     return FACE_FILTER_PRESETS.find((p) => p.id === value)?.category ?? "beauty";
@@ -73,6 +80,27 @@ export function FaceFilterStrip({
       {tab === "mask3d" && (
         <p className="text-[10px] text-muted-foreground px-0.5 leading-snug">
           얼굴을 따라 붙는 풀페이스 마스크 · 고개를 돌려도 추적
+        </p>
+      )}
+
+      {(tab === "ar" || tab === "mask3d") && faceTrackingNeeded && (
+        <p
+          className={cn(
+            "text-[10px] px-0.5 leading-snug",
+            faceTrackingReady
+              ? "text-emerald-600 dark:text-emerald-400"
+              : landmarkerState === "error"
+                ? "text-destructive"
+                : "text-amber-600 dark:text-amber-400"
+          )}
+        >
+          {faceTrackingReady
+            ? "얼굴 추적 준비됨"
+            : landmarkerState === "error"
+              ? "얼굴 인식 모듈 로드 실패 — 새로고침 후 다시 시도해 주세요"
+              : landmarkerState === "loading" || landmarkerState === "idle"
+                ? "얼굴 인식 모듈 로딩 중…"
+                : "얼굴을 화면 중앙에 맞춰 주세요"}
         </p>
       )}
 

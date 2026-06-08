@@ -302,7 +302,7 @@ function FilteredCameraCaptureDialog({
         video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: mode === "video",
       });
-      await attachRawStream(stream);
+      await attachRawStream(stream, { mirrored: facingMode === "user" });
     } catch (e) {
       const name = e instanceof Error ? e.name : "";
       if (name === "NotAllowedError") {

@@ -74,6 +74,13 @@ export function getFaceFilterPreset(id: FaceFilterId): FaceFilterPreset {
   return FACE_FILTER_PRESETS.find((p) => p.id === id) ?? FACE_FILTER_PRESETS[0];
 }
 
+/** MediaPipe 얼굴 랜드마크가 필요한 필터인지 */
+export function filterNeedsFaceLandmarks(id: FaceFilterId): boolean {
+  if (id === "none") return false;
+  const p = getFaceFilterPreset(id);
+  return Boolean(p.overlay || p.mask3d || p.beauty > 0 || p.blush);
+}
+
 /** MediaPipe Face Landmarker — 얼굴 윤곽 */
 export const FACE_OVAL_INDICES = [
   10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152,
