@@ -32,6 +32,8 @@ import {
 import { exportPresetBlob, importPresetFile } from "@/lib/virtual-avatar/avatar-export";
 
 const STORAGE_KEY = "mocomo_avatar_preset_v2";
+export const AVATAR_PRESET_STORAGE_KEY = STORAGE_KEY;
+export const AVATAR_UPDATED_EVENT = "mocomo-avatar-updated";
 
 function mergeStoredConfig(parsed: Partial<AvatarConfig>): AvatarConfig {
   return {
@@ -203,6 +205,7 @@ export function useVirtualAvatarStudio() {
 
   const savePreset = useCallback(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+    window.dispatchEvent(new Event(AVATAR_UPDATED_EVENT));
     void fetch("/api/avatar/preset", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -240,6 +243,7 @@ export function useVirtualAvatarStudio() {
   const selectVrmSlot = useCallback(async (id: string) => {
     await setActiveVrmSlotId(id);
     await refreshVrmSlots();
+    window.dispatchEvent(new Event(AVATAR_UPDATED_EVENT));
     return loadVrmSlot(id);
   }, [refreshVrmSlots]);
 

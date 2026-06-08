@@ -72,6 +72,8 @@ export class VirtualAvatar3DScene {
   private lastRenderKey = "";
   private lastEquippedKey = "";
   private attachmentSyncPending = false;
+  private liveCaptureMode = false;
+  private onAfterRender: (() => void) | null = null;
 
   private getConfig: () => AvatarConfig = () => ({}) as AvatarConfig;
   private getFaceTracking: () => AvatarFaceTrackingFrame | null = () => null;
@@ -132,6 +134,7 @@ export class VirtualAvatar3DScene {
   }
 
   setBroadcastMode(mode: BroadcastBgMode) {
+    if (this.liveCaptureMode && mode !== "transparent") return;
     this.broadcastMode = mode;
     const transparent = mode === "transparent";
     this.renderStack.setTransparentMode(transparent);
@@ -148,6 +151,34 @@ export class VirtualAvatar3DScene {
       this.grid.visible = true;
       this.studioFloor.visible = true;
     }
+  }
+
+  /** WHIP VTuber 송출 — 투명 배경·고정 카메라·그리드 비활성 */
+  setLiveCaptureMode(on: boolean) {
+    this.liveCaptureMode = on;
+    if (on) {
+      this.setBroadcastMode("transparent");
+      this.controls.enabled = false;
+      this.controls.autoRotate = false;
+      this.lastRenderKey = "";
+      this.renderStack.setQuality("studio");
+      this.fitVtuberBroadcastView();
+    } else {
+      this.controls.enabled = true;
+    }
+  }
+
+  setOnAfterRender(cb: (() => void) | null) {
+    this.onAfterRender = cb;
+  }
+
+  async reloadActiveVrmFromStorage() {
+    const custom = await loadActiveVrm();
+    if (custom) {
+      await this.loadVrmFromBlob(custom.blob, custom.name);
+      return;
+    }
+    await this.loadVrmFromUrl(DEFAULT_VRM, "기본 VRM");
   }
 
   getCanvasElement() {
@@ -277,6 +308,33 @@ export class VirtualAvatar3DScene {
     this.controls.update();
   }
 
+  /** VTuber 송출용 — 상반신·전신 히어로 샷 */
+  fitVtuberBroadcastView() {
+    if (!this.vrm) return;
+
+    this.centerAvatarOnStage();
+    this.vrm.scene.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(this.vrm.scene);
+    if (box.isEmpty()) return;
+
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    const lookY = center.y - size.y * 0.32;
+    this.controls.target.set(0, lookY, 0);
+
+    const fovRad = (this.camera.fov * Math.PI) / 180;
+    const aspect = Math.max(this.camera.aspect, 0.5);
+    const bodySpan = Math.max(size.y * 0.42, Math.min(size.x, size.z) * 0.72);
+    const distV = (size.y * 0.98) / (2 * Math.tan(fovRad / 2));
+    const distH = (bodySpan * 0.98) / (2 * Math.tan(fovRad / 2) * aspect);
+    const dist = Math.max(distV, distH, 2.05) * 0.94;
+
+    this.baseCameraDistance = dist;
+    this.lastZoom = 1;
+    this.camera.position.set(0, lookY, dist);
+    this.controls.update();
+  }
+
   getStats() {
     let tris = 0;
     this.scene.traverse((obj) => {
@@ -316,7 +374,7 @@ export class VirtualAvatar3DScene {
   private isTrackingLive(frame: AvatarFaceTrackingFrame | null) {
     if (!frame?.detected) return false;
     if (this.trackingPlayer.isPlaying()) return true;
-    return performance.now() - frame.timestamp < 400;
+    return performance.now() - frame.timestamp < 900;
   }
 
   async loadVrmFromFile(file: File): Promise<boolean> {
@@ -457,8 +515,13 @@ export class VirtualAvatar3DScene {
     this.applyCamera(config, trackingLive);
 
     tickMToonMaterials(this.mtoonMaterials, dt);
-    this.controls.update();
+    if (this.liveCaptureMode) {
+      this.controls.autoRotate = false;
+    } else {
+      this.controls.update();
+    }
     this.renderStack.render();
+    this.onAfterRender?.();
   }
 
   private syncAttachments(config: AvatarConfig) {
@@ -487,7 +550,7 @@ export class VirtualAvatar3DScene {
   }
 
   private applyRenderQuality(config: AvatarConfig) {
-    const q = config.effects.renderQuality ?? "studio";
+    const q = this.liveCaptureMode ? "studio" : (config.effects.renderQuality ?? "studio");
     const cel = config.effects.celShading ?? true;
     const key = `${q}:${cel}`;
     if (key === this.lastRenderKey) return;
@@ -498,7 +561,7 @@ export class VirtualAvatar3DScene {
       this.mtoonMaterials = collectSceneMaterials(this.vrm.scene);
     }
     this.studioFloor.visible =
-      this.broadcastMode === "normal" && q !== "performance";
+      !this.liveCaptureMode && this.broadcastMode === "normal" && q !== "performance";
     this.renderer.toneMappingExposure = q === "cinematic" ? 1.15 : 1.08;
   }
 
@@ -621,6 +684,10 @@ export class VirtualAvatar3DScene {
   }
 
   private applyCamera(config: AvatarConfig, trackingLive: boolean) {
+    if (this.liveCaptureMode) {
+      this.controls.autoRotate = false;
+      return;
+    }
     this.controls.autoRotate =
       !trackingLive && config.view.autoRotate && config.effects.animationPlaying;
     this.controls.autoRotateSpeed = 1.2;

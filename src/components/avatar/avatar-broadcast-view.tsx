@@ -43,7 +43,7 @@ export function AvatarBroadcastView({ bgMode = "transparent" }: { bgMode?: Broad
       sceneRef.current = null;
       setReady(false);
     };
-  }, [studio.loaded, bgMode, faceTracking.active]);
+  }, [studio.loaded, bgMode]);
 
   useEffect(() => {
     if (!ready || syncRef.current) return;

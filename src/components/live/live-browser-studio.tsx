@@ -11,6 +11,7 @@ import { LiveHostPublishBlocked } from "@/components/live/live-host-publish-bloc
 import { LiveHostCollabPreview } from "@/components/live/live-collab-publish-studio";
 import { LiveOverlayLayer } from "@/components/live/overlays/live-overlay-layer";
 import { LiveOverlayToolbar } from "@/components/live/overlays/live-overlay-toolbar";
+import { useLiveOverlayContextOptional } from "@/components/live/overlays/live-overlay-context";
 import { useFaceFilterPipeline } from "@/hooks/use-face-filter-pipeline";
 import { CloudflareWhipPublisher } from "@/lib/cloudflare-whip-publish";
 import {
@@ -96,6 +97,8 @@ export function LiveBrowserStudio({
     faceTrackingReady,
   } = useFaceFilterPipeline("natural");
 
+  const overlayCtx = useLiveOverlayContextOptional();
+
   const [publishState, setPublishState] = useState<HostPublishState | "loading">("loading");
   const [loadError, setLoadError] = useState("");
   const [liveError, setLiveError] = useState("");
@@ -116,6 +119,16 @@ export function LiveBrowserStudio({
   useEffect(() => {
     onAirChange?.(whipConnected && publishState === "live_here");
   }, [whipConnected, publishState, onAirChange]);
+
+  useEffect(() => {
+    if (!vtuberMode || !ready) return;
+    const poll = () => {
+      setVtuberFaceOk(avatarPublishRef.current?.isFaceDetected() ?? false);
+    };
+    poll();
+    const id = window.setInterval(poll, 400);
+    return () => window.clearInterval(id);
+  }, [vtuberMode, ready]);
 
   const loadStudioState = useCallback(async () => {
     const res = await livePublisherFetch(`/api/live/${channelId}/studio-state`, {
@@ -205,7 +218,11 @@ export function LiveBrowserStudio({
 
       if (needsNewRaw) {
         raw = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+          video: {
+            facingMode: "user",
+            width: { ideal: useVtuber ? 1920 : 1280 },
+            height: { ideal: useVtuber ? 1080 : 720 },
+          },
           audio: true,
         });
         rawStreamRef.current = raw;
@@ -519,6 +536,13 @@ export function LiveBrowserStudio({
     const stream = streamRef.current;
     if (!stream) return;
     const next = !camOn;
+
+    if (vtuberMode && !screenOn) {
+      avatarPublishRef.current?.setCameraVisible(next);
+      setCamOn(next);
+      return;
+    }
+
     stream.getVideoTracks().forEach((t) => {
       t.enabled = next;
     });
@@ -656,6 +680,7 @@ export function LiveBrowserStudio({
         ref={avatarPublishRef}
         enabled={vtuberMode && ready}
         layout={avatarLayout}
+        overlayState={overlayCtx?.state ?? null}
       />
 
       {splitCollab && !immersive ? (
