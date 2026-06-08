@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCachedSession } from "@/lib/auth";
 import { getStreamerProfile } from "@/actions/streamer";
@@ -17,6 +18,12 @@ export default async function StreamerSettingsPage() {
       <p className="text-sm text-muted-foreground">
         공지·방송 일정·소개 문구를 설정합니다. 파트너 배지는 운영진이 부여합니다.
       </p>
+      <Link
+        href="/avatar/studio"
+        className="inline-flex text-sm font-medium text-primary hover:underline"
+      >
+        버츄얼 아바타 스튜디오 →
+      </Link>
       <StreamerSettingsForm
         initial={{
           bio: profile?.bio ?? "",

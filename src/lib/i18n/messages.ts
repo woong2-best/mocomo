@@ -11,6 +11,7 @@ export type MessageKey =
   | "nav.anime"
   | "nav.cosplay"
   | "nav.live"
+  | "nav.liveStudio"
   | "nav.used"
   | "nav.market"
   | "nav.events"
@@ -60,6 +61,7 @@ const ko: Record<MessageKey, string> = {
   "nav.anime": "애니덕질",
   "nav.cosplay": "코스프레",
   "nav.live": "라이브",
+  "nav.liveStudio": "라이브 스튜디오",
   "nav.used": "중고거래",
   "nav.market": "굿즈샵",
   "nav.events": "이벤트",
@@ -110,6 +112,7 @@ const en: Record<MessageKey, string> = {
   "nav.anime": "Anime",
   "nav.cosplay": "Cosplay",
   "nav.live": "Live",
+  "nav.liveStudio": "Live Studio",
   "nav.used": "Used Market",
   "nav.market": "Shop",
   "nav.events": "Events",
@@ -160,6 +163,7 @@ const ja: Record<MessageKey, string> = {
   "nav.anime": "アニメ",
   "nav.cosplay": "コスプレ",
   "nav.live": "ライブ",
+  "nav.liveStudio": "ライブスタジオ",
   "nav.used": "フリマ",
   "nav.market": "ショップ",
   "nav.events": "イベント",
@@ -210,6 +214,7 @@ const zh: Record<MessageKey, string> = {
   "nav.anime": "动漫",
   "nav.cosplay": "Cosplay",
   "nav.live": "直播",
+  "nav.liveStudio": "直播工作室",
   "nav.used": "二手",
   "nav.market": "商店",
   "nav.events": "活动",

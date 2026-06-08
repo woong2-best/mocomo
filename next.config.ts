@@ -4,7 +4,7 @@ import { SECURITY_HEADERS } from "./src/lib/security-headers";
 const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
-  transpilePackages: ["@mediapipe/tasks-vision"],
+  transpilePackages: ["@mediapipe/tasks-vision", "@pixiv/three-vrm", "three"],
   async redirects() {
     return [
       { source: "/market", destination: "/support?tab=emoticons", permanent: true },

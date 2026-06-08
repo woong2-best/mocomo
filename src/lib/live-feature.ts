@@ -5,8 +5,8 @@ export function isLiveFeatureEnabled(): boolean {
   return process.env.NEXT_PUBLIC_LIVE_ENABLED !== "false";
 }
 
-export const LIVE_FEATURE_HREFS = ["/live", "/voice"] as const;
+export const LIVE_FEATURE_HREFS = ["/live", "/voice", "/avatar"] as const;
 
 export function isLiveNavHref(href: string): boolean {
-  return href === "/live" || href.startsWith("/voice");
+  return href === "/live" || href.startsWith("/voice") || href.startsWith("/avatar");
 }

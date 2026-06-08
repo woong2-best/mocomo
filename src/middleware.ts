@@ -18,6 +18,7 @@ const protectedRoutes = [
   "/premium",
   "/support",
   "/voice",
+  "/avatar",
   "/cosplay/apply",
 ];
 const authRoutes = ["/auth/signin", "/auth/signup"];
@@ -89,6 +90,7 @@ export const config = {
     "/premium/:path*",
     "/support/:path*",
     "/voice/:path*",
+    "/avatar/:path*",
     "/live/:path*",
     "/cosplay/apply",
     "/auth/signin",

@@ -59,7 +59,7 @@ export function LiveHostCollabPreview({
     <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black ring-1 ring-border/50 shadow-sm">
       <div className="absolute inset-0 grid grid-cols-2">
         <div className="relative min-h-0 min-w-0 border-r border-white/10 overflow-hidden">
-          {children}
+          <div className="relative h-full w-full min-h-0 overflow-hidden">{children}</div>
           <span className="absolute top-2 left-2 z-20 px-1.5 py-0.5 rounded bg-orange-600/90 text-white text-[9px] font-bold pointer-events-none">
             호스트
           </span>

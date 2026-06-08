@@ -9,6 +9,7 @@ import { AuthTopBanner } from "@/components/layout/auth-top-banner";
 import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
 import { FolkArtStage } from "@/components/brand/folk-decor";
 import { mainScrollPaddingClass, shouldHideMobileNav } from "@/lib/mobile-shell";
+import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
 
 function AppShellInner({
   children,
@@ -20,14 +21,11 @@ function AppShellInner({
   const pathname = usePathname();
   const isAuthRoute = pathname.startsWith("/auth");
   const isLegalRoute = pathname.startsWith("/legal");
-  const isLiveRoute = pathname.startsWith("/live");
   const isMessagesRoute = pathname.startsWith("/messages");
-  const isUsedRoute = pathname.startsWith("/used");
   const isVoiceRoom = pathname.startsWith("/voice/") && pathname !== "/voice/new";
   const hideMobileNav = shouldHideMobileNav(pathname);
   const mainPb = mainScrollPaddingClass(pathname);
-  const showRightPanel =
-    !isAuthRoute && !isLegalRoute && !isLiveRoute && !isVoiceRoom && !isMessagesRoute && !isUsedRoute;
+  const showRightPanel = shouldShowRightPanel(pathname);
 
   if (isAuthRoute || isLegalRoute) {
     return (

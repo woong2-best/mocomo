@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Mic, MicOff, MonitorUp, Radio, Video, VideoOff } from "lucide-react";
+import { Loader2, Mic, MicOff, MonitorUp, Radio, Sparkles, Video, VideoOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
 import { FaceFilterStrip } from "@/components/media/face-filter-strip";
 import { LiveHostCollabPasswordStrip } from "@/components/live/live-host-collab-password-strip";
 import { LiveHostPublishBlocked } from "@/components/live/live-host-publish-blocked";
@@ -17,6 +19,24 @@ import {
 } from "@/lib/live-publisher-tab";
 import type { HostPublishState } from "@/lib/live-publisher-lock";
 import { startBrowserLiveBroadcast } from "@/actions/live-stream";
+import {
+  LiveAvatarPublishLayer,
+  type LiveAvatarLayout,
+  type LiveAvatarPublishHandle,
+} from "@/components/live/live-avatar-publish";
+
+const VTUBER_STORAGE_KEY = "mocomo_live_vtuber";
+const VTUBER_LAYOUT_KEY = "mocomo_live_vtuber_layout";
+
+function readVtuberEnabled() {
+  if (typeof window === "undefined") return false;
+  return sessionStorage.getItem(VTUBER_STORAGE_KEY) === "1";
+}
+
+function readVtuberLayout(): LiveAvatarLayout {
+  if (typeof window === "undefined") return "avatar";
+  return sessionStorage.getItem(VTUBER_LAYOUT_KEY) === "camera-bg" ? "camera-bg" : "avatar";
+}
 
 type IngestPayload = {
   ok?: boolean;
@@ -57,6 +77,7 @@ export function LiveBrowserStudio({
   const videoRef = useRef<HTMLVideoElement>(null);
   const reconnectAttemptRef = useRef(0);
   const previewHostRef = useRef<HTMLDivElement>(null);
+  const avatarPublishRef = useRef<LiveAvatarPublishHandle>(null);
   const whipRef = useRef<CloudflareWhipPublisher | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rawStreamRef = useRef<MediaStream | null>(null);
@@ -85,6 +106,9 @@ export function LiveBrowserStudio({
   const [screenOn, setScreenOn] = useState(false);
   const [whipUrl, setWhipUrl] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [vtuberMode, setVtuberMode] = useState(() => readVtuberEnabled());
+  const [avatarLayout, setAvatarLayout] = useState<LiveAvatarLayout>(() => readVtuberLayout());
+  const [vtuberFaceOk, setVtuberFaceOk] = useState(false);
 
   const serverLive =
     publishState === "live_here" || publishState === "live_elsewhere";
@@ -159,70 +183,229 @@ export function LiveBrowserStudio({
     };
   }, [loadStudioState, loadIngest]);
 
-  const ensureLocalStream = useCallback(async () => {
-    if (!screenOn && streamRef.current && rawStreamRef.current) return streamRef.current;
+  const ensureLocalStream = useCallback(
+    async (opts?: { vtuber?: boolean; layout?: LiveAvatarLayout }) => {
+      const useVtuber = opts?.vtuber ?? vtuberMode;
+      const layout = opts?.layout ?? avatarLayout;
 
-    let raw = rawStreamRef.current;
-    const needsNewRaw =
-      !raw ||
-      !raw.active ||
-      raw.getVideoTracks().every((t) => t.readyState === "ended");
+      if (!screenOn && streamRef.current && rawStreamRef.current) {
+        if (useVtuber && avatarPublishRef.current?.getPublishStream()) {
+          return streamRef.current;
+        }
+        if (!useVtuber) {
+          return streamRef.current;
+        }
+      }
 
-    if (needsNewRaw) {
-      raw = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: true,
-      });
-      rawStreamRef.current = raw;
-    }
+      let raw = rawStreamRef.current;
+      const needsNewRaw =
+        !raw ||
+        !raw.active ||
+        raw.getVideoTracks().every((t) => t.readyState === "ended");
 
-    if (!raw) throw new Error("카메라 스트림을 시작할 수 없습니다.");
-    await attachRawStream(raw, { mirrored: true });
-    await waitForBroadcastReady().catch(() => undefined);
-    const composite = getCompositeStream();
-    streamRef.current = composite ?? raw;
-    return streamRef.current;
-  }, [attachRawStream, getCompositeStream, waitForBroadcastReady, screenOn]);
+      if (needsNewRaw) {
+        raw = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: true,
+        });
+        rawStreamRef.current = raw;
+      }
+
+      if (!raw) throw new Error("카메라 스트림을 시작할 수 없습니다.");
+
+      if (useVtuber && !screenOn) {
+        let avatar = avatarPublishRef.current;
+        const waitStart = performance.now();
+        while (!avatar && performance.now() - waitStart < 8000) {
+          await new Promise<void>((r) => requestAnimationFrame(() => r()));
+          avatar = avatarPublishRef.current;
+        }
+        if (!avatar) throw new Error("VTuber 아바타를 준비하지 못했습니다.");
+        avatar.setLayout(layout);
+        await avatar.attachCameraStream(raw);
+        await avatar.waitForReady();
+        const pub = avatar.getPublishStream();
+        if (!pub) throw new Error("VTuber 송출 스트림을 만들지 못했습니다.");
+        streamRef.current = pub;
+        setVtuberFaceOk(avatar.isFaceDetected());
+        return pub;
+      }
+
+      await attachRawStream(raw, { mirrored: true });
+      await waitForBroadcastReady().catch(() => undefined);
+      const composite = getCompositeStream();
+      streamRef.current = composite ?? raw;
+      return streamRef.current;
+    },
+    [
+      attachRawStream,
+      getCompositeStream,
+      waitForBroadcastReady,
+      screenOn,
+      vtuberMode,
+      avatarLayout,
+    ]
+  );
 
   useEffect(() => {
-    if (screenOn || !filterActive) return;
+    if (screenOn || !filterActive || vtuberMode) return;
     const composite = getCompositeStream();
     if (composite) streamRef.current = composite;
-  }, [filterId, screenOn, filterActive, getCompositeStream]);
+  }, [filterId, screenOn, filterActive, getCompositeStream, vtuberMode]);
 
-  useEffect(() => {
+  const mountPreviewCanvas = useCallback(
+    (host: HTMLDivElement) => {
+      host.innerHTML = "";
+      if (vtuberMode && !screenOn) {
+        const canvas = avatarPublishRef.current?.getPreviewCanvas();
+        if (canvas) {
+          canvas.className = "absolute inset-0 w-full h-full object-cover";
+          host.appendChild(canvas);
+        }
+        return;
+      }
+      if (displayCanvas && !screenOn) {
+        displayCanvas.className = "absolute inset-0 w-full h-full object-cover";
+        host.appendChild(displayCanvas);
+      }
+    },
+    [displayCanvas, screenOn, vtuberMode]
+  );
+
+  const attachPreviewCanvas = useCallback(() => {
     const host = previewHostRef.current;
-    if (!host || !displayCanvas || screenOn) return;
-    host.innerHTML = "";
-    displayCanvas.className = "absolute inset-0 w-full h-full object-cover";
-    host.appendChild(displayCanvas);
+    if (!host || screenOn) return;
+    mountPreviewCanvas(host);
+  }, [mountPreviewCanvas, screenOn]);
+
+  const bindPreviewHostRef = useCallback(
+    (host: HTMLDivElement | null) => {
+      const prev = previewHostRef.current;
+      if (prev) {
+        const canvas =
+          vtuberMode && !screenOn
+            ? avatarPublishRef.current?.getPreviewCanvas()
+            : displayCanvas;
+        if (canvas && canvas.parentElement === prev) {
+          prev.removeChild(canvas);
+        }
+      }
+      previewHostRef.current = host;
+      if (host && !screenOn) mountPreviewCanvas(host);
+    },
+    [displayCanvas, screenOn, vtuberMode, mountPreviewCanvas]
+  );
+
+  /** splitCollab 전환 시 previewHost DOM이 교체되므로 canvas를 다시 붙인다 */
+  useEffect(() => {
+    attachPreviewCanvas();
     return () => {
-      if (displayCanvas.parentElement === host) host.removeChild(displayCanvas);
+      const host = previewHostRef.current;
+      if (!host) return;
+      const canvas =
+        vtuberMode && !screenOn
+          ? avatarPublishRef.current?.getPreviewCanvas()
+          : displayCanvas;
+      if (canvas && canvas.parentElement === host) {
+        host.removeChild(canvas);
+      }
     };
-  }, [displayCanvas, screenOn]);
+  }, [attachPreviewCanvas, splitCollab?.coHostUserId, vtuberMode, avatarLayout, displayCanvas, screenOn]);
+
+  const handleWhipDisconnect = useCallback(() => {
+    setWhipConnected(false);
+    setLiveError("송출 연결이 끊겼습니다. 다시 연결 중…");
+  }, []);
+
+  const restartWhipWithStream = useCallback(
+    async (stream: MediaStream) => {
+      if (!whipConnected || !whipUrl) return;
+      whipRef.current?.stop();
+      const pub = new CloudflareWhipPublisher();
+      whipRef.current = pub;
+      await pub.start(channelId, stream, { onDisconnect: handleWhipDisconnect });
+      setWhipConnected(true);
+    },
+    [channelId, whipConnected, whipUrl, handleWhipDisconnect]
+  );
+
+  const applyVtuberMode = useCallback(
+    async (next: boolean, layout: LiveAvatarLayout = avatarLayout) => {
+      setVtuberMode(next);
+      setAvatarLayout(layout);
+      sessionStorage.setItem(VTUBER_STORAGE_KEY, next ? "1" : "0");
+      sessionStorage.setItem(VTUBER_LAYOUT_KEY, layout);
+
+      if (next) {
+        await stopFilterPipeline();
+        await new Promise<void>((r) => requestAnimationFrame(() => r()));
+      } else {
+        avatarPublishRef.current?.detachCameraStream();
+      }
+
+      streamRef.current = null;
+      const stream = await ensureLocalStream({ vtuber: next, layout });
+      attachPreviewCanvas();
+
+      if (whipConnected && stream) {
+        await restartWhipWithStream(stream);
+      }
+    },
+    [
+      avatarLayout,
+      attachPreviewCanvas,
+      ensureLocalStream,
+      restartWhipWithStream,
+      stopFilterPipeline,
+      whipConnected,
+    ]
+  );
+
+  const toggleVtuber = useCallback(async () => {
+    try {
+      await applyVtuberMode(!vtuberMode);
+    } catch (e) {
+      setLiveError(e instanceof Error ? e.message : "VTuber 모드 전환 실패");
+    }
+  }, [applyVtuberMode, vtuberMode]);
+
+  const setVtuberLayout = useCallback(
+    async (layout: LiveAvatarLayout) => {
+      setAvatarLayout(layout);
+      avatarPublishRef.current?.setLayout(layout);
+      if (!vtuberMode) return;
+      try {
+        streamRef.current = null;
+        const stream = await ensureLocalStream({ vtuber: true, layout });
+        attachPreviewCanvas();
+        if (whipConnected && stream) await restartWhipWithStream(stream);
+      } catch (e) {
+        setLiveError(e instanceof Error ? e.message : "VTuber 레이아웃 변경 실패");
+      }
+    },
+    [attachPreviewCanvas, ensureLocalStream, restartWhipWithStream, vtuberMode, whipConnected]
+  );
 
   useEffect(() => {
     if (!ready || (publishState !== "idle" && publishState !== "live_here")) return;
-    void ensureLocalStream().catch((e) => {
-      setLiveError(e instanceof Error ? e.message : "카메라·마이크 권한이 필요합니다.");
-    });
-  }, [ready, publishState, ensureLocalStream]);
+    void ensureLocalStream()
+      .then(() => attachPreviewCanvas())
+      .catch((e) => {
+        setLiveError(e instanceof Error ? e.message : "카메라·마이크 권한이 필요합니다.");
+      });
+  }, [ready, publishState, ensureLocalStream, attachPreviewCanvas]);
 
   /** WHIP·카메라는 언마운트 시에만 정리 (publishState 변경 시 cleanup 하면 송출이 즉시 끊김) */
   useEffect(() => {
     return () => {
       whipRef.current?.stop();
+      avatarPublishRef.current?.detachCameraStream();
       void stopFilterPipeline();
       rawStreamRef.current?.getTracks().forEach((t) => t.stop());
       rawStreamRef.current = null;
       streamRef.current = null;
     };
   }, [stopFilterPipeline]);
-
-  const handleWhipDisconnect = useCallback(() => {
-    setWhipConnected(false);
-    setLiveError("송출 연결이 끊겼습니다. 다시 연결 중…");
-  }, []);
 
   const connectWhip = useCallback(
     async (markLiveInDb: boolean) => {
@@ -442,8 +625,8 @@ export function LiveBrowserStudio({
   const previewInner = (
     <>
       <div
-        ref={previewHostRef}
-        className={screenOn ? "hidden" : "absolute inset-0"}
+        ref={bindPreviewHostRef}
+        className={screenOn ? "hidden" : "absolute inset-0 z-0"}
       />
       <video
         ref={videoRef}
@@ -458,12 +641,23 @@ export function LiveBrowserStudio({
           LIVE
         </span>
       )}
+      {vtuberMode && !screenOn && (
+        <span className="absolute top-3 right-3 px-2 py-0.5 rounded bg-violet-600 text-white text-[10px] font-bold z-10">
+          VTUBER
+        </span>
+      )}
       <LiveOverlayLayer className="z-20" />
     </>
   );
 
   return (
     <div className={rootClass}>
+      <LiveAvatarPublishLayer
+        ref={avatarPublishRef}
+        enabled={vtuberMode && ready}
+        layout={avatarLayout}
+      />
+
       {splitCollab && !immersive ? (
         <LiveHostCollabPreview
           channelId={channelId}
@@ -487,11 +681,63 @@ export function LiveBrowserStudio({
         <FaceFilterStrip
           value={filterId}
           onChange={setFilterId}
-          disabled={goingLive && whipConnected}
+          disabled={(goingLive && whipConnected) || vtuberMode}
           faceTrackingNeeded={faceTrackingNeeded}
           faceTrackingReady={faceTrackingReady}
           landmarkerState={landmarkerState}
         />
+      )}
+
+      {!screenOn && (
+        <div className="flex flex-col gap-2 rounded-xl border border-border/60 bg-muted/30 p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant={vtuberMode ? "default" : "outline"}
+              size="sm"
+              className={cn("rounded-xl gap-1.5", vtuberMode && "bg-violet-600 hover:bg-violet-700")}
+              disabled={goingLive && whipConnected}
+              onClick={() => void toggleVtuber()}
+            >
+              <Sparkles className="h-4 w-4" />
+              VTuber 아바타
+            </Button>
+            {vtuberMode && (
+              <>
+                <Button
+                  type="button"
+                  variant={avatarLayout === "avatar" ? "secondary" : "outline"}
+                  size="sm"
+                  className="rounded-xl text-xs"
+                  onClick={() => void setVtuberLayout("avatar")}
+                >
+                  아바타만
+                </Button>
+                <Button
+                  type="button"
+                  variant={avatarLayout === "camera-bg" ? "secondary" : "outline"}
+                  size="sm"
+                  className="rounded-xl text-xs"
+                  onClick={() => void setVtuberLayout("camera-bg")}
+                >
+                  카메라+아바타
+                </Button>
+              </>
+            )}
+            <Button type="button" variant="ghost" size="sm" className="rounded-xl text-xs" asChild>
+              <Link href="/avatar/studio" target="_blank" rel="noopener noreferrer">
+                아바타 꾸미기 ↗
+              </Link>
+            </Button>
+          </div>
+          {vtuberMode && (
+            <p className="text-[11px] text-muted-foreground">
+              {vtuberFaceOk
+                ? "얼굴·몸 트래킹 연동 중 — WHIP으로 아바타가 송출됩니다."
+                : "카메라를 정면으로 비추면 표정·몸이 따라 움직입니다."}
+            </p>
+          )}
+        </div>
       )}
 
       <div className="flex flex-wrap gap-2">
