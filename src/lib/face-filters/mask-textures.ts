@@ -3,9 +3,17 @@ import { FACE_OVAL_INDICES } from "@/lib/face-filters/presets";
 export type FaceMask3dId = "dog-face" | "cat-face" | "bear-face" | "clown-face" | "fox-face";
 
 const SIZE = 512;
-const cache = new Map<FaceMask3dId, HTMLCanvasElement>();
+const TEXTURE_VERSION = 2;
+const cache = new Map<string, HTMLCanvasElement>();
 
-/** 마스크 텍스처와 맞춘 표준 얼굴 랜드마크 UV (0~1) */
+/** 512×512 마스크 텍스처에서 얼굴 영역 4점 (TL, TR, BR, BL) */
+export const FACE_TEXTURE_QUAD: [{ x: number; y: number }, { x: number; y: number }, { x: number; y: number }, { x: number; y: number }] = [
+  { x: 72, y: 88 },
+  { x: 440, y: 88 },
+  { x: 428, y: 468 },
+  { x: 84, y: 468 },
+];
+
 const templateCache = new Map<number, { u: number; v: number }>();
 
 function buildTemplatePoints() {
@@ -47,12 +55,13 @@ export function getMaskTemplatePoint(index: number): { u: number; v: number } {
 }
 
 function roundFace(ctx: CanvasRenderingContext2D, color: string) {
-  const g = ctx.createRadialGradient(256, 270, 40, 256, 270, 210);
+  const g = ctx.createRadialGradient(256, 268, 30, 256, 275, 215);
   g.addColorStop(0, color);
+  g.addColorStop(0.85, color);
   g.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = g;
   ctx.beginPath();
-  ctx.ellipse(256, 270, 185, 220, 0, 0, Math.PI * 2);
+  ctx.ellipse(256, 275, 178, 210, 0, 0, Math.PI * 2);
   ctx.fill();
 }
 
@@ -207,7 +216,8 @@ const painters: Record<FaceMask3dId, (ctx: CanvasRenderingContext2D) => void> = 
 
 export function getMaskTexture(id: FaceMask3dId): HTMLCanvasElement {
   buildTemplatePoints();
-  const hit = cache.get(id);
+  const key = `${id}-v${TEXTURE_VERSION}`;
+  const hit = cache.get(key);
   if (hit) return hit;
 
   const canvas = document.createElement("canvas");
@@ -218,6 +228,6 @@ export function getMaskTexture(id: FaceMask3dId): HTMLCanvasElement {
 
   ctx.clearRect(0, 0, SIZE, SIZE);
   painters[id](ctx);
-  cache.set(id, canvas);
+  cache.set(key, canvas);
   return canvas;
 }
