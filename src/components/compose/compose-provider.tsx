@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -47,10 +48,20 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
   const [communityId, setCommunityId] = useState<string | undefined>();
   const [formKey, setFormKey] = useState(0);
   const [successOpen, setSuccessOpen] = useState(false);
+  const [pendingOpen, setPendingOpen] = useState<ComposeOptions | null>(null);
+
+  const showComposeSheet = useCallback((opts?: ComposeOptions) => {
+    setCommunityId(opts?.communityId);
+    setFormKey((k) => k + 1);
+    setOpen(true);
+  }, []);
 
   const openCompose = useCallback(
     (opts?: ComposeOptions) => {
-      if (status === "loading") return;
+      if (status === "loading") {
+        setPendingOpen(opts ?? {});
+        return;
+      }
       if (!session?.user) {
         const callback = pathname || "/";
         router.push(
@@ -58,12 +69,22 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
         );
         return;
       }
-      setCommunityId(opts?.communityId);
-      setFormKey((k) => k + 1);
-      setOpen(true);
+      showComposeSheet(opts);
     },
-    [pathname, router, session?.user, status]
+    [pathname, router, session?.user, showComposeSheet, status]
   );
+
+  useEffect(() => {
+    if (status === "loading" || pendingOpen === null) return;
+    const opts = pendingOpen;
+    setPendingOpen(null);
+    if (!session?.user) {
+      const callback = pathname || "/";
+      router.push(`/auth/signin?callbackUrl=${encodeURIComponent(callback)}`);
+      return;
+    }
+    showComposeSheet(opts);
+  }, [status, pendingOpen, session?.user, pathname, router, showComposeSheet]);
 
   const closeCompose = useCallback(() => {
     setOpen(false);

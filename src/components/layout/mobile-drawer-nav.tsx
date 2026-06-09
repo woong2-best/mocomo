@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { mainNavItems } from "@/lib/nav-items";
+import { useCompose } from "@/components/compose/compose-provider";
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
@@ -26,6 +27,7 @@ type MobileDrawerNavProps = {
 export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
   const pathname = usePathname();
   const { t } = useLocale();
+  const { openCompose } = useCompose();
 
   const items = isLiveFeatureEnabled()
     ? mainNavItems
@@ -57,7 +59,27 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
             const active =
               href === "/"
                 ? pathname === "/"
-                : pathname === href || pathname.startsWith(`${href}/`);
+                : href === "/compose"
+                  ? false
+                  : pathname === href || pathname.startsWith(`${href}/`);
+
+            if (href === "/compose") {
+              return (
+                <button
+                  key={href}
+                  type="button"
+                  onClick={() => {
+                    onOpenChange(false);
+                    openCompose();
+                  }}
+                  className="sidebar-block w-full text-left"
+                >
+                  <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
+                  <span className="truncate">{t(labelKey)}</span>
+                </button>
+              );
+            }
+
             return (
               <Link
                 key={href}

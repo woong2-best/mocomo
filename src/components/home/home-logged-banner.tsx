@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PenSquare, Compass } from "lucide-react";
+import { ComposeOpenButton } from "@/components/compose/compose-open-button";
 import { FolkBrushDivider, FolkMoonFace } from "@/components/brand/folk-decor";
 
 export function HomeLoggedBanner() {
@@ -16,13 +17,10 @@ export function HomeLoggedBanner() {
       </div>
       <FolkBrushDivider className="my-3 opacity-50" />
       <div className="flex flex-wrap gap-2 relative z-10">
-        <Link
-          href="/compose"
-          className="folk-nav-tile !flex-row !py-2 !px-4 gap-2 text-sm"
-        >
+        <ComposeOpenButton className="folk-nav-tile !flex-row !py-2 !px-4 gap-2 text-sm">
           <PenSquare className="h-4 w-4 text-folk-terracotta" />
           글쓰기
-        </Link>
+        </ComposeOpenButton>
         <Link href="/explore" className="folk-nav-tile !flex-row !py-2 !px-4 gap-2 text-sm">
           <Compass className="h-4 w-4 text-folk-cobalt" />
           탐색
