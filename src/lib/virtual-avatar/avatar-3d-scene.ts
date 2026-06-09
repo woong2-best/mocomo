@@ -162,6 +162,7 @@ export class VirtualAvatar3DScene {
       this.controls.autoRotate = false;
       this.lastRenderKey = "";
       this.renderStack.setQuality("studio");
+      this.renderStack.setLiveCaptureQuality(true);
       this.fitVtuberBroadcastView();
     } else {
       this.controls.enabled = true;
@@ -179,6 +180,12 @@ export class VirtualAvatar3DScene {
       return;
     }
     await this.loadVrmFromUrl(DEFAULT_VRM, "기본 VRM");
+  }
+
+  /** 스튜디오·다른 탭에서 프리셋 변경 시 액세서리·머티리얼 재적용 */
+  refreshExternalConfig() {
+    this.lastEquippedKey = "";
+    this.lastRenderKey = "";
   }
 
   getCanvasElement() {

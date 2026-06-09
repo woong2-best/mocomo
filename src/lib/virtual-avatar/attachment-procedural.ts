@@ -59,6 +59,19 @@ function pm(
   return mesh;
 }
 
+function softTorso(w: number, h: number, d: number, color: string, opts?: Parameters<typeof mat>[1]) {
+  return group("torso", [
+    pm(new THREE.BoxGeometry(w, h, d, 3, 3, 3), color, 0, 0, 0, undefined, opts),
+    pm(new THREE.SphereGeometry(w * 0.2, 14, 12), color, -w * 0.44, h * 0.32, 0, undefined, opts),
+    pm(new THREE.SphereGeometry(w * 0.2, 14, 12), color, w * 0.44, h * 0.32, 0, undefined, opts),
+    pm(new THREE.SphereGeometry(w * 0.16, 12, 10), color, 0, h * 0.48, 0, undefined, opts),
+  ]);
+}
+
+function softSleeve(color: string, side: -1 | 1, length = 0.22) {
+  return pm(new THREE.CylinderGeometry(0.055, 0.048, length, 12), color, side * 0.24, 0.02, 0, { z: side * 0.15 });
+}
+
 function hairStrands(count: number, color: string, length: number, spread: number) {
   const g = new THREE.Group();
   for (let i = 0; i < count; i++) {
@@ -229,19 +242,32 @@ const ACCESSORY_BUILDERS: Record<string, (o: AttachmentBuildOptions) => THREE.Ob
 };
 
 const TOP_BUILDERS: Record<string, (o: AttachmentBuildOptions) => THREE.Object3D> = {
-  tee: (o) => new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.22, 0.18), mat(o.primaryColor)).translateY(-0.05),
+  tee: (o) =>
+    group("tee", [
+      softTorso(0.38, 0.22, 0.18, o.primaryColor, { roughness: 0.68 }),
+      softSleeve(o.primaryColor, -1),
+      softSleeve(o.primaryColor, 1),
+    ]),
   hoodie: (o) =>
     group("hoodie", [
-      new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.24, 0.2), mat(o.primaryColor)),
-      new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.5), mat(o.secondaryColor ?? o.primaryColor)).translateY(0.14).translateZ(-0.02),
+      softTorso(0.4, 0.24, 0.2, o.primaryColor, { roughness: 0.82 }),
+      softSleeve(o.primaryColor, -1, 0.26),
+      softSleeve(o.primaryColor, 1, 0.26),
+      pm(new THREE.SphereGeometry(0.13, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.52), o.secondaryColor ?? o.primaryColor, 0, 0.14, -0.02, undefined, { roughness: 0.88 }),
+      pm(new THREE.TorusGeometry(0.09, 0.012, 8, 16, Math.PI), o.secondaryColor ?? "#334155", 0, -0.02, 0.1, { x: Math.PI / 2 }),
     ]),
-  crop: (o) => new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.14, 0.16), mat(o.primaryColor)).translateY(0.02),
-  blouse: (o) => new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 0.2, 12, 1, true), mat(o.primaryColor)).translateY(-0.04),
-  jacket: (o) => group("jacket", [
-    new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.26, 0.22), mat(o.primaryColor)),
-    pm(new THREE.BoxGeometry(0.08, 0.24, 0.12), o.secondaryColor ?? o.primaryColor, -0.22, 0, 0),
-    pm(new THREE.BoxGeometry(0.08, 0.24, 0.12), o.secondaryColor ?? o.primaryColor, 0.22, 0, 0),
-  ]),
+  crop: (o) => softTorso(0.34, 0.14, 0.16, o.primaryColor).translateY(0.02),
+  blouse: (o) => {
+    const g = pm(new THREE.CylinderGeometry(0.16, 0.22, 0.2, 16, 1, true), o.primaryColor, 0, -0.04, 0, undefined, { roughness: 0.62 });
+    return g;
+  },
+  jacket: (o) =>
+    group("jacket", [
+      softTorso(0.42, 0.26, 0.22, o.primaryColor, { roughness: 0.45, metalness: 0.12 }),
+      pm(new THREE.BoxGeometry(0.09, 0.26, 0.13, 2, 2, 2), o.secondaryColor ?? o.primaryColor, -0.23, 0, 0.02),
+      pm(new THREE.BoxGeometry(0.09, 0.26, 0.13, 2, 2, 2), o.secondaryColor ?? o.primaryColor, 0.23, 0, 0.02),
+      pm(new THREE.BoxGeometry(0.14, 0.04, 0.18), o.accentColor ?? "#64748b", 0, 0.1, 0.12, undefined, { metalness: 0.7 }),
+    ]),
   cardigan: (o) => new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.28, 0.2, 1, 1, 1), mat(o.primaryColor, { roughness: 0.85 })).translateY(-0.03),
   leather: (o) => new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.24, 0.2), mat(o.primaryColor, { metalness: 0.25, roughness: 0.35 })),
   frill: (o) => group("frill", [

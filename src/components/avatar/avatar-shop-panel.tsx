@@ -7,6 +7,7 @@ import {
 } from "@/components/avatar/studio-controls";
 import {
   AVATAR_CATALOG,
+  getCatalogItem,
   SHOP_CATEGORY_LABELS,
   SHOP_FILTER_TABS,
   type CatalogItem,
@@ -14,30 +15,41 @@ import {
 import type { ShopCategory } from "@/lib/virtual-avatar/types";
 import type { VirtualAvatarStudioState } from "@/hooks/use-virtual-avatar-studio";
 import { cn } from "@/lib/utils";
-import { Heart, Sparkles } from "lucide-react";
+import { Heart, ShoppingBag, Sparkles, X } from "lucide-react";
 
 type ShopFilter = "all" | "my" | "wish" | "hot" | "new";
 
-function ItemPreview({ item }: { item: CatalogItem }) {
+function ItemPreview({ item, large }: { item: CatalogItem; large?: boolean }) {
   return (
     <div
-      className="relative aspect-square rounded-2xl overflow-hidden border border-white/10 shadow-sm"
+      className={cn(
+        "relative overflow-hidden border border-white/15 shadow-md transition-transform",
+        large ? "aspect-[4/5] rounded-3xl" : "aspect-square rounded-2xl"
+      )}
       style={{
         background: item.previewTo
-          ? `linear-gradient(145deg, ${item.previewFrom}, ${item.previewTo})`
+          ? `linear-gradient(155deg, ${item.previewFrom} 0%, ${item.previewTo} 100%)`
           : item.previewFrom,
       }}
     >
       {item.emoji && (
-        <span className="absolute inset-0 flex items-center justify-center text-3xl opacity-80">
+        <span
+          className={cn(
+            "absolute inset-0 flex items-center justify-center opacity-90 drop-shadow-sm",
+            large ? "text-5xl" : "text-3xl"
+          )}
+        >
           {item.emoji}
         </span>
       )}
+      <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/25 to-transparent pointer-events-none" />
       {item.tags?.includes("new") && (
-        <span className="absolute top-1.5 left-1.5 h-2 w-2 rounded-full bg-violet-500 ring-2 ring-white" />
+        <span className="absolute top-2 left-2 text-[8px] font-black bg-violet-500 text-white px-1.5 py-0.5 rounded-full shadow">
+          NEW
+        </span>
       )}
       {item.tags?.includes("hot") && (
-        <span className="absolute top-1.5 right-1.5 text-[9px] font-bold bg-orange-500 text-white px-1 rounded">
+        <span className="absolute top-2 right-2 text-[8px] font-black bg-orange-500 text-white px-1.5 py-0.5 rounded-full shadow">
           HOT
         </span>
       )}
@@ -48,7 +60,22 @@ function ItemPreview({ item }: { item: CatalogItem }) {
 export function AvatarShopPanel({ studio }: { studio: VirtualAvatarStudioState }) {
   const [category, setCategory] = useState<ShopCategory>("all");
   const [filter, setFilter] = useState<ShopFilter>("all");
-  const { wishlist, equipCatalogItem, toggleWishlist, isItemEquipped, shopMsg, setShopMsg } = studio;
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const { wishlist, equipCatalogItem, toggleWishlist, isItemEquipped, shopMsg, setShopMsg, config } = studio;
+
+  const equippedItems = useMemo(() => {
+    const ids = [
+      config.equipped.hairId,
+      config.equipped.topId,
+      config.equipped.bottomId,
+      config.equipped.shoesId,
+      config.equipped.headwearId,
+      config.equipped.accessoryId,
+      config.equipped.fullOutfitId,
+      config.equipped.makeupId,
+    ].filter(Boolean) as string[];
+    return [...new Set(ids)].map((id) => getCatalogItem(id)).filter(Boolean) as CatalogItem[];
+  }, [config.equipped]);
 
   const items = useMemo(() => {
     let list = AVATAR_CATALOG;
@@ -60,8 +87,94 @@ export function AvatarShopPanel({ studio }: { studio: VirtualAvatarStudioState }
     return list;
   }, [category, filter, wishlist, isItemEquipped]);
 
+  const previewItem = previewId ? getCatalogItem(previewId) : items[0] ?? null;
+
+  const handleEquip = (item: CatalogItem) => {
+    equipCatalogItem(item);
+    setPreviewId(item.id);
+    setTimeout(() => setShopMsg(""), 2000);
+  };
+
   return (
-    <StudioPanel title="아바타 옷장" className="lg:col-span-3">
+    <StudioPanel
+      title="ZEPETO式 옷장"
+      className="lg:col-span-3 border-pink-200/40 dark:border-pink-900/30 bg-gradient-to-b from-pink-50/40 to-card dark:from-pink-950/20"
+    >
+      <div className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-500 text-white px-3 py-2 shadow-sm">
+        <ShoppingBag className="h-4 w-4 shrink-0" />
+        <p className="text-[11px] font-semibold leading-snug flex-1">
+          탭하면 즉시 착용 · 전 아이템 무료 · 스튜디오 저장 시 라이브 VTuber에 자동 반영
+        </p>
+      </div>
+
+      {equippedItems.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none -mx-0.5">
+          {equippedItems.slice(0, 8).map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              title={item.name}
+              onClick={() => setPreviewId(item.id)}
+              className="shrink-0 w-11 h-11 rounded-xl border-2 border-pink-400 ring-2 ring-pink-200/60 overflow-hidden"
+              style={{
+                background: item.previewTo
+                  ? `linear-gradient(145deg, ${item.previewFrom}, ${item.previewTo})`
+                  : item.previewFrom,
+              }}
+            >
+              <span className="text-lg">{item.emoji ?? "✨"}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {previewItem && (
+        <div className="relative rounded-3xl border-2 border-pink-300/50 bg-card/60 p-2.5 shadow-inner">
+          <button
+            type="button"
+            className="absolute top-3 right-3 z-10 h-7 w-7 rounded-full bg-black/20 text-white flex items-center justify-center"
+            onClick={() => setPreviewId(null)}
+            aria-label="미리보기 닫기"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] gap-3 items-center">
+            <ItemPreview item={previewItem} large />
+            <div className="min-w-0 space-y-2">
+              <p className="text-sm font-bold leading-tight line-clamp-2">{previewItem.name}</p>
+              <p className="text-[10px] text-muted-foreground">
+                {SHOP_CATEGORY_LABELS.find((c) => c.id === previewItem.category)?.label ?? "아이템"}
+              </p>
+              <button
+                type="button"
+                onClick={() => handleEquip(previewItem)}
+                className={cn(
+                  "w-full rounded-xl py-2 text-xs font-bold transition-all",
+                  isItemEquipped(previewItem)
+                    ? "bg-pink-500 text-white shadow-md"
+                    : "bg-foreground text-background hover:opacity-90"
+                )}
+              >
+                {isItemEquipped(previewItem) ? "착용 중 ✓" : "착용하기"}
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleWishlist(previewItem.id)}
+                className={cn(
+                  "w-full flex items-center justify-center gap-1 rounded-xl py-1.5 text-[10px] font-semibold border",
+                  wishlist.includes(previewItem.id)
+                    ? "border-pink-400 text-pink-600 bg-pink-50/80"
+                    : "border-border text-muted-foreground"
+                )}
+              >
+                <Heart className={cn("h-3 w-3", wishlist.includes(previewItem.id) && "fill-pink-500 text-pink-500")} />
+                위시리스트
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
         {SHOP_FILTER_TABS.map((tab) => (
           <button
@@ -69,11 +182,11 @@ export function AvatarShopPanel({ studio }: { studio: VirtualAvatarStudioState }
             type="button"
             onClick={() => setFilter(tab.id === filter ? "all" : tab.id)}
             className={cn(
-              "shrink-0 h-9 w-9 rounded-full border-2 text-[10px] font-bold flex items-center justify-center transition-all",
+              "shrink-0 h-9 min-w-9 px-2 rounded-full border-2 text-[10px] font-bold flex items-center justify-center transition-all",
               filter === tab.id
-                ? "border-pink-500 bg-pink-500 text-white"
+                ? "border-pink-500 bg-pink-500 text-white shadow-md"
                 : tab.id === "hot"
-                  ? "border-neutral-800 bg-neutral-900 text-white"
+                  ? "border-orange-400/60 bg-orange-50 dark:bg-orange-950/30 text-orange-600"
                   : "border-border bg-card text-muted-foreground hover:border-pink-300"
             )}
             title={tab.label}
@@ -90,19 +203,20 @@ export function AvatarShopPanel({ studio }: { studio: VirtualAvatarStudioState }
             type="button"
             onClick={() => setCategory(cat.id)}
             className={cn(
-              "shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all",
+              "shrink-0 px-2.5 py-2 rounded-2xl text-[10px] font-bold border transition-all flex items-center gap-1",
               category === cat.id
-                ? "bg-foreground text-background border-foreground"
-                : "bg-card border-border text-muted-foreground hover:text-foreground"
+                ? "bg-gradient-to-r from-pink-500 to-violet-500 text-white border-transparent shadow-md scale-[1.02]"
+                : "bg-card border-border text-muted-foreground hover:border-pink-300 hover:text-foreground"
             )}
           >
+            <span>{cat.emoji}</span>
             {cat.label}
           </button>
         ))}
       </div>
 
-      <StudioSection title={`${items.length}개 · 탭하면 바로 착용`}>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[min(52vh,520px)] overflow-y-auto pr-0.5">
+      <StudioSection title={`${items.length}개 · 탭 = 착용`}>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[min(48vh,480px)] overflow-y-auto pr-0.5">
           {items.map((item) => {
             const equipped = isItemEquipped(item);
             const wished = wishlist.includes(item.id);
@@ -110,19 +224,17 @@ export function AvatarShopPanel({ studio }: { studio: VirtualAvatarStudioState }
               <div
                 key={item.id}
                 className={cn(
-                  "group rounded-2xl border-2 p-2 transition-all bg-card/80",
+                  "group rounded-2xl border-2 p-2 transition-all bg-card/90 hover:shadow-md",
                   equipped
-                    ? "border-pink-500 ring-2 ring-pink-200/50"
-                    : "border-border/60 hover:border-pink-300/60"
+                    ? "border-pink-500 ring-2 ring-pink-200/50 scale-[1.01]"
+                    : "border-border/60 hover:border-pink-300/70"
                 )}
               >
                 <button
                   type="button"
                   className="w-full text-left"
-                  onClick={() => {
-                    equipCatalogItem(item);
-                    setTimeout(() => setShopMsg(""), 2000);
-                  }}
+                  onClick={() => handleEquip(item)}
+                  onMouseEnter={() => setPreviewId(item.id)}
                 >
                   <ItemPreview item={item} />
                   <p className="mt-2 text-[11px] font-semibold line-clamp-2 leading-tight min-h-[2rem]">
@@ -154,15 +266,11 @@ export function AvatarShopPanel({ studio }: { studio: VirtualAvatarStudioState }
       </StudioSection>
 
       {shopMsg && (
-        <p className="text-center text-[11px] font-semibold text-pink-600 flex items-center justify-center gap-1">
+        <p className="text-center text-[11px] font-semibold text-pink-600 flex items-center justify-center gap-1 animate-pulse">
           <Sparkles className="h-3.5 w-3.5" />
           {shopMsg}
         </p>
       )}
-
-      <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
-        모든 아이템 무료 · 탭하면 즉시 착용 · ♥ 위시 · HOT · NEW 필터
-      </p>
     </StudioPanel>
   );
 }

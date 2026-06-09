@@ -1,4 +1,6 @@
 import type {
+  AvatarFaceParams,
+  AvatarMakeupParams,
   BackgroundId,
   FaceShape,
   GenderExpression,
@@ -81,6 +83,65 @@ export const FACE_SHAPES: { id: FaceShape; label: string }[] = [
   { id: "square", label: "각진" },
   { id: "long", label: "긴" },
   { id: "diamond", label: "다이아" },
+];
+
+/** ZEPETO式 원터치 얼굴 프리셋 */
+export const FACE_QUICK_PRESETS: {
+  id: string;
+  label: string;
+  patch: Partial<Omit<AvatarFaceParams, "makeup">> & { makeup?: Partial<AvatarMakeupParams> };
+}[] = [
+  {
+    id: "cute",
+    label: "귀여움",
+    patch: {
+      faceShape: "round",
+      eyeSize: 68,
+      eyeSpacing: 46,
+      jawWidth: 42,
+      chinLength: 44,
+      lipThickness: 52,
+      makeup: { blushIntensity: 48, lipstick: 35, eyeshadow: 28, eyeliner: 20, mascara: 32, contour: 10, highlight: 28, lipColorIndex: 4 },
+    },
+  },
+  {
+    id: "cool",
+    label: "쿨",
+    patch: {
+      faceShape: "diamond",
+      eyeSize: 54,
+      eyeTilt: 58,
+      jawAngle: 58,
+      noseBridge: 55,
+      browThickness: 52,
+      makeup: { blushIntensity: 18, lipstick: 28, eyeliner: 42, contour: 32, highlight: 15, lipColorIndex: 5 },
+    },
+  },
+  {
+    id: "mature",
+    label: "성숙",
+    patch: {
+      faceShape: "oval",
+      eyeSize: 50,
+      chinLength: 56,
+      cheekbone: 58,
+      noseHeight: 54,
+      makeup: { blushIntensity: 22, lipstick: 48, contour: 28, eyeliner: 30, lipColorIndex: 1 },
+    },
+  },
+  {
+    id: "anime",
+    label: "애니",
+    patch: {
+      faceShape: "heart",
+      eyeSize: 72,
+      pupilSize: 58,
+      doubleEyelid: 75,
+      jawWidth: 38,
+      eyeColorIndex: 5,
+      makeup: { eyeshadow: 35, mascara: 45, blushIntensity: 40, lipstick: 32, lipColorIndex: 2 },
+    },
+  },
 ];
 
 export const GENDER_OPTIONS: { id: GenderExpression; label: string }[] = [

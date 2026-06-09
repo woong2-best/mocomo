@@ -15,6 +15,7 @@ export class AvatarRenderStack {
   private pmrem: THREE.PMREMGenerator | null = null;
   private quality: RenderQuality = "studio";
   private transparentMode = false;
+  private liveCaptureQuality = false;
 
   constructor(
     private renderer: THREE.WebGLRenderer,
@@ -44,6 +45,15 @@ export class AvatarRenderStack {
     this.rebuildComposer();
   }
 
+  /** WHIP VTuber — 투명 배경이어도 블룸·톤매핑 유지 */
+  setLiveCaptureQuality(on: boolean) {
+    this.liveCaptureQuality = on;
+    if (on) {
+      this.renderer.toneMappingExposure = 1.12;
+    }
+    this.rebuildComposer();
+  }
+
   setQuality(quality: RenderQuality) {
     if (this.quality === quality) return;
     this.quality = quality;
@@ -63,20 +73,23 @@ export class AvatarRenderStack {
     this.bloomPass = null;
     this.ssaoPass = null;
 
-    if (this.quality === "performance" || this.transparentMode) return;
+    if (this.quality === "performance") return;
+    if (this.transparentMode && !this.liveCaptureQuality) return;
 
     const w = this.renderer.domElement.width;
     const h = this.renderer.domElement.height;
     const composer = new EffectComposer(this.renderer);
     composer.addPass(new RenderPass(this.scene, this.camera));
 
+    const bloomStrength = this.liveCaptureQuality ? 0.22 : 0.28;
+    const bloomRadius = this.liveCaptureQuality ? 0.28 : 0.35;
     if (this.quality === "studio" || this.quality === "cinematic") {
-      const bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.28, 0.35, 0.92);
+      const bloom = new UnrealBloomPass(new THREE.Vector2(w, h), bloomStrength, bloomRadius, 0.92);
       composer.addPass(bloom);
       this.bloomPass = bloom;
     }
 
-    if (this.quality === "cinematic") {
+    if (this.quality === "cinematic" && !this.liveCaptureQuality) {
       const ssao = new SSAOPass(this.scene, this.camera, w, h);
       ssao.kernelRadius = 12;
       ssao.minDistance = 0.002;
@@ -100,7 +113,7 @@ export class AvatarRenderStack {
   }
 
   render() {
-    if (this.composer && !this.transparentMode && this.quality !== "performance") {
+    if (this.composer && this.quality !== "performance" && (!this.transparentMode || this.liveCaptureQuality)) {
       this.composer.render();
       return;
     }

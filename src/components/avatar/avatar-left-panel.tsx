@@ -14,6 +14,7 @@ import {
 import {
   EYE_COLORS,
   FACE_SHAPES,
+  FACE_QUICK_PRESETS,
   GENDER_OPTIONS,
   HAIR_COLORS,
   LIP_COLORS,
@@ -79,6 +80,28 @@ export function AvatarLeftPanel({ studio }: { studio: VirtualAvatarStudioState }
             value={faceTab}
             onChange={setFaceTab}
           />
+
+          <StudioSection title="원터치 프리셋">
+            <div className="grid grid-cols-2 gap-1.5">
+              {FACE_QUICK_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() =>
+                    setFace({
+                      ...preset.patch,
+                      makeup: preset.patch.makeup
+                        ? { ...config.face.makeup, ...preset.patch.makeup }
+                        : config.face.makeup,
+                    })
+                  }
+                  className={studioChipSm(false, "py-2 text-[10px] font-bold bg-gradient-to-br from-pink-50 to-violet-50 dark:from-pink-950/40 dark:to-violet-950/30")}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </StudioSection>
 
           {faceTab === "base" && (
             <>

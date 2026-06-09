@@ -380,16 +380,16 @@ export const AVATAR_CATALOG: CatalogItem[] = [
 
 export const CATALOG_BY_ID = new Map(AVATAR_CATALOG.map((item) => [item.id, item]));
 
-export const SHOP_CATEGORY_LABELS: { id: ShopCategory; label: string }[] = [
-  { id: "all", label: "전체" },
-  { id: "hair", label: "헤어" },
-  { id: "fullOutfit", label: "한벌" },
-  { id: "top", label: "상의" },
-  { id: "bottom", label: "하의" },
-  { id: "headwear", label: "헤드웨어" },
-  { id: "shoes", label: "신발" },
-  { id: "accessory", label: "액세서리" },
-  { id: "makeup", label: "메이크업" },
+export const SHOP_CATEGORY_LABELS: { id: ShopCategory; label: string; emoji: string }[] = [
+  { id: "all", label: "전체", emoji: "✨" },
+  { id: "hair", label: "헤어", emoji: "💇" },
+  { id: "fullOutfit", label: "한벌", emoji: "👗" },
+  { id: "top", label: "상의", emoji: "👕" },
+  { id: "bottom", label: "하의", emoji: "👖" },
+  { id: "headwear", label: "모자", emoji: "🧢" },
+  { id: "shoes", label: "신발", emoji: "👟" },
+  { id: "accessory", label: "액세", emoji: "💎" },
+  { id: "makeup", label: "메이크업", emoji: "💄" },
 ];
 
 export const SHOP_FILTER_TABS = [

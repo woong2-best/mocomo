@@ -120,6 +120,7 @@ export function LiveBrowserStudio({
   const [avatarLayout, setAvatarLayout] = useState<LiveAvatarLayout>(() => readVtuberLayout());
   const [avatarBackground, setAvatarBackground] = useState<LiveAvatarBackground>(() => readVtuberBackground());
   const [vtuberFaceOk, setVtuberFaceOk] = useState(false);
+  const [vtuberTracking, setVtuberTracking] = useState({ face: false, body: false, hands: false });
 
   const serverLive =
     publishState === "live_here" || publishState === "live_elsewhere";
@@ -131,7 +132,13 @@ export function LiveBrowserStudio({
   useEffect(() => {
     if (!vtuberMode || !ready) return;
     const poll = () => {
-      setVtuberFaceOk(avatarPublishRef.current?.isFaceDetected() ?? false);
+      const status = avatarPublishRef.current?.getTrackingStatus();
+      if (status) {
+        setVtuberTracking({ face: status.face, body: status.body, hands: status.hands });
+        setVtuberFaceOk(status.face || status.body);
+      } else {
+        setVtuberFaceOk(avatarPublishRef.current?.isFaceDetected() ?? false);
+      }
     };
     poll();
     const id = window.setInterval(poll, 400);
@@ -230,13 +237,19 @@ export function LiveBrowserStudio({
         raw.getVideoTracks().every((t) => t.readyState === "ended");
 
       if (needsNewRaw) {
+        const mobile = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
         raw = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: "user",
-            width: { ideal: useVtuber ? 1920 : 1280 },
-            height: { ideal: useVtuber ? 1080 : 720 },
+            width: { ideal: useVtuber ? (mobile ? 1280 : 1920) : mobile ? 960 : 1280 },
+            height: { ideal: useVtuber ? (mobile ? 720 : 1080) : mobile ? 540 : 720 },
+            frameRate: { ideal: mobile ? 24 : 30, max: 30 },
           },
-          audio: true,
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
         });
         rawStreamRef.current = raw;
       }
@@ -794,10 +807,10 @@ export function LiveBrowserStudio({
             </Button>
           </div>
           {vtuberMode && (
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
               {vtuberFaceOk
-                ? "얼굴·몸 트래킹 연동 중 — WHIP으로 아바타가 송출됩니다."
-                : "카메라를 정면으로 비추면 표정·몸이 따라 움직입니다."}
+                ? `트래킹 ON — 얼굴${vtuberTracking.body ? "·몸" : ""}${vtuberTracking.hands ? "·손" : ""} · WHIP 1080p 송출`
+                : "카메라를 정면·상반신까지 비추면 표정·몸·손이 따라 움직입니다. (합방·모바일 VTuber 지원)"}
             </p>
           )}
         </div>

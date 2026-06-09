@@ -29,8 +29,8 @@ function tuneMToonMaterial(mat: MToonLike, quality: RenderQuality) {
     return;
   }
 
-  mat.shadingToonyFactor = 0.88;
-  mat.outlineWidthFactor = 0.0035;
+  mat.shadingToonyFactor = 0.9;
+  mat.outlineWidthFactor = 0.0038;
 }
 
 export function convertStandardToToonLook(mat: THREE.MeshStandardMaterial, quality: RenderQuality) {

@@ -23,6 +23,7 @@ import type { MocapPreset } from "@/lib/virtual-avatar/face-tracking";
 import { TrackingTimelineRecorder } from "@/lib/virtual-avatar/tracking/tracking-timeline";
 import { AvatarCanvasRecorder } from "@/lib/virtual-avatar/avatar-recorder";
 import { downloadBlob } from "@/lib/virtual-avatar/avatar-export";
+import { AVATAR_MOCAP_STREAM_KEY } from "@/lib/virtual-avatar/avatar-preset-sync";
 
 export function AvatarCanvasView({
   studio,
@@ -76,6 +77,7 @@ export function AvatarCanvasView({
   const connectMocapStream = useCallback(async () => {
     const url = window.prompt("WebSocket 모캡 URL (ws://localhost:8080 등)");
     if (!url?.trim()) return;
+    localStorage.setItem(AVATAR_MOCAP_STREAM_KEY, url.trim());
     const ok = await sceneRef.current?.connectMocapStream(url.trim());
     if (ok) setMocapPreset(null);
   }, []);

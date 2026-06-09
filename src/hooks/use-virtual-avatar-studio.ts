@@ -30,54 +30,17 @@ import {
   type VrmSlotMeta,
 } from "@/lib/virtual-avatar/vrm-storage";
 import { exportPresetBlob, importPresetFile } from "@/lib/virtual-avatar/avatar-export";
+import {
+  AVATAR_PRESET_STORAGE_KEY,
+  AVATAR_UPDATED_EVENT,
+  loadAvatarPresetFromStorage,
+  mergeStoredConfig,
+  notifyVrmSlotChanged,
+  publishAvatarPreset,
+  subscribeAvatarPresetSync,
+} from "@/lib/virtual-avatar/avatar-preset-sync";
 
-const STORAGE_KEY = "mocomo_avatar_preset_v2";
-export const AVATAR_PRESET_STORAGE_KEY = STORAGE_KEY;
-export const AVATAR_UPDATED_EVENT = "mocomo-avatar-updated";
-
-function mergeStoredConfig(parsed: Partial<AvatarConfig>): AvatarConfig {
-  return {
-    ...DEFAULT_AVATAR_CONFIG,
-    ...parsed,
-    style: parsed.style ?? DEFAULT_AVATAR_CONFIG.style,
-    body: {
-      ...DEFAULT_AVATAR_CONFIG.body,
-      ...parsed.body,
-      armThickness: parsed.body?.armThickness ?? DEFAULT_AVATAR_CONFIG.body.armThickness,
-    },
-    face: {
-      ...DEFAULT_AVATAR_CONFIG.face,
-      ...parsed.face,
-      makeup: {
-        ...DEFAULT_AVATAR_CONFIG.face.makeup,
-        ...parsed.face?.makeup,
-      },
-    },
-    skin: { ...DEFAULT_AVATAR_CONFIG.skin, ...parsed.skin },
-    outfit: {
-      ...DEFAULT_AVATAR_CONFIG.outfit,
-      ...parsed.outfit,
-      layers: { ...DEFAULT_AVATAR_CONFIG.outfit.layers, ...parsed.outfit?.layers },
-    },
-    hair: { ...DEFAULT_AVATAR_CONFIG.hair, ...parsed.hair },
-    effects: { ...DEFAULT_AVATAR_CONFIG.effects, ...parsed.effects },
-    view: { ...DEFAULT_AVATAR_CONFIG.view, ...parsed.view },
-    equipped: { ...DEFAULT_AVATAR_CONFIG.equipped, ...parsed.equipped },
-    paint: { ...DEFAULT_AVATAR_CONFIG.paint, ...parsed.paint, strokes: parsed.paint?.strokes ?? DEFAULT_AVATAR_CONFIG.paint.strokes },
-    sculpt: { ...DEFAULT_AVATAR_CONFIG.sculpt, ...parsed.sculpt, deltas: parsed.sculpt?.deltas ?? DEFAULT_AVATAR_CONFIG.sculpt.deltas },
-  };
-}
-
-function loadStoredPreset(): AvatarConfig | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem("mocomo_avatar_preset_v1");
-    if (!raw) return null;
-    return mergeStoredConfig(JSON.parse(raw) as Partial<AvatarConfig>);
-  } catch {
-    return null;
-  }
-}
+export { AVATAR_PRESET_STORAGE_KEY, AVATAR_UPDATED_EVENT };
 
 export function useVirtualAvatarStudio() {
   const [config, setConfig] = useState<AvatarConfig>(DEFAULT_AVATAR_CONFIG);
@@ -97,19 +60,27 @@ export function useVirtualAvatarStudio() {
   }, []);
 
   useEffect(() => {
-    const stored = loadStoredPreset();
+    const stored = loadAvatarPresetFromStorage();
     if (stored) setConfig(stored);
     setWishlist(loadWishlist());
     void refreshVrmSlots();
     setLoaded(true);
   }, [refreshVrmSlots]);
 
-  /** 스튜디오 변경 → localStorage 자동 저장 + 라이브 VTuber 동기화 */
+  /** 다른 탭·기기(클라우드)에서 프리셋 변경 시 반영 */
+  useEffect(() => {
+    if (!loaded) return;
+    return subscribeAvatarPresetSync((next, source) => {
+      if (source === "local") return;
+      setConfig(next);
+    });
+  }, [loaded]);
+
+  /** 스튜디오 변경 → localStorage + BroadcastChannel + 라이브 VTuber 동기화 */
   useEffect(() => {
     if (!loaded) return;
     const timer = window.setTimeout(() => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-      window.dispatchEvent(new Event(AVATAR_UPDATED_EVENT));
+      publishAvatarPreset(config);
     }, 600);
     return () => window.clearTimeout(timer);
   }, [config, loaded]);
@@ -214,8 +185,7 @@ export function useVirtualAvatarStudio() {
   }, [config.effects.animationPlaying, setEffects]);
 
   const savePreset = useCallback(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-    window.dispatchEvent(new Event(AVATAR_UPDATED_EVENT));
+    publishAvatarPreset(config);
     void fetch("/api/avatar/preset", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -238,7 +208,7 @@ export function useVirtualAvatarStudio() {
   }, []);
 
   const loadPreset = useCallback(() => {
-    const stored = loadStoredPreset();
+    const stored = loadAvatarPresetFromStorage();
     if (stored) setConfig(stored);
     return !!stored;
   }, []);
@@ -253,7 +223,7 @@ export function useVirtualAvatarStudio() {
   const selectVrmSlot = useCallback(async (id: string) => {
     await setActiveVrmSlotId(id);
     await refreshVrmSlots();
-    window.dispatchEvent(new Event(AVATAR_UPDATED_EVENT));
+    notifyVrmSlotChanged();
     return loadVrmSlot(id);
   }, [refreshVrmSlots]);
 

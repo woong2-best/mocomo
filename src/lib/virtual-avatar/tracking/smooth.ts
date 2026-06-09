@@ -90,7 +90,7 @@ export class TrackingSmoother {
 
   smoothBody(target: BodyTrackingState, dt: number): BodyTrackingState {
     if (!target.detected) return target;
-    const t = Math.min(1, dt * 12);
+    const t = Math.min(1, dt * 14);
 
     if (target.leftArm) {
       this.leftArm.upper = lerpRot(this.leftArm.upper, target.leftArm.upper, t);
@@ -130,7 +130,7 @@ export class TrackingSmoother {
   }
 
   smoothHandAngle(key: string, target: number, dt: number): number {
-    const t = Math.min(1, dt * 20);
+    const t = Math.min(1, dt * 16);
     const prev = this.handAngles.get(key) ?? target;
     const next = lerp(prev, target, t);
     this.handAngles.set(key, next);

@@ -12,16 +12,24 @@ import type { LiveOverlayState } from "@/lib/live-overlays/types";
 import { VirtualAvatar3DScene } from "@/lib/virtual-avatar/avatar-3d-scene";
 import { LiveAvatarCompositor } from "@/lib/live/live-avatar-compositor";
 import {
+  AVATAR_MOCAP_STREAM_KEY,
   AVATAR_PRESET_STORAGE_KEY,
-  AVATAR_UPDATED_EVENT,
-  useVirtualAvatarStudio,
-} from "@/hooks/use-virtual-avatar-studio";
+  AVATAR_VRM_SLOT_EVENT,
+  loadAvatarPresetFromStorage,
+  subscribeAvatarPresetSync,
+} from "@/lib/virtual-avatar/avatar-preset-sync";
 import { useAvatarFaceTracking } from "@/hooks/use-avatar-face-tracking";
-import type { AvatarConfig } from "@/lib/virtual-avatar/types";
-import { DEFAULT_AVATAR_CONFIG } from "@/lib/virtual-avatar/types";
+import { DEFAULT_AVATAR_CONFIG, type AvatarConfig } from "@/lib/virtual-avatar/types";
 
 export type LiveAvatarLayout = "avatar" | "camera-bg";
 export type LiveAvatarBackground = "gradient" | "chroma";
+
+export type LiveAvatarTrackingStatus = {
+  face: boolean;
+  body: boolean;
+  hands: boolean;
+  active: boolean;
+};
 
 export type LiveAvatarPublishHandle = {
   getPublishStream: () => MediaStream | null;
@@ -34,43 +42,10 @@ export type LiveAvatarPublishHandle = {
   setCameraVisible: (visible: boolean) => void;
   setOverlayState: (state: LiveOverlayState | null) => void;
   isFaceDetected: () => boolean;
+  getTrackingStatus: () => LiveAvatarTrackingStatus;
 };
 
 const VTUBER_CAPTURE = { w: 1920, h: 1080 };
-
-function mergeStoredConfig(parsed: Partial<AvatarConfig>): AvatarConfig {
-  return {
-    ...DEFAULT_AVATAR_CONFIG,
-    ...parsed,
-    body: { ...DEFAULT_AVATAR_CONFIG.body, ...parsed.body },
-    face: {
-      ...DEFAULT_AVATAR_CONFIG.face,
-      ...parsed.face,
-      makeup: { ...DEFAULT_AVATAR_CONFIG.face.makeup, ...parsed.face?.makeup },
-    },
-    skin: { ...DEFAULT_AVATAR_CONFIG.skin, ...parsed.skin },
-    outfit: { ...DEFAULT_AVATAR_CONFIG.outfit, ...parsed.outfit },
-    hair: { ...DEFAULT_AVATAR_CONFIG.hair, ...parsed.hair },
-    effects: { ...DEFAULT_AVATAR_CONFIG.effects, ...parsed.effects },
-    view: { ...DEFAULT_AVATAR_CONFIG.view, ...parsed.view },
-    equipped: { ...DEFAULT_AVATAR_CONFIG.equipped, ...parsed.equipped },
-    paint: parsed.paint ?? DEFAULT_AVATAR_CONFIG.paint,
-    sculpt: parsed.sculpt ?? DEFAULT_AVATAR_CONFIG.sculpt,
-  };
-}
-
-function loadConfigFromStorage(): AvatarConfig | null {
-  if (typeof window === "undefined") return null;
-  const raw =
-    localStorage.getItem(AVATAR_PRESET_STORAGE_KEY) ??
-    localStorage.getItem("mocomo_avatar_preset_v1");
-  if (!raw) return null;
-  try {
-    return mergeStoredConfig(JSON.parse(raw) as Partial<AvatarConfig>);
-  } catch {
-    return null;
-  }
-}
 
 export const LiveAvatarPublishLayer = forwardRef<
   LiveAvatarPublishHandle,
@@ -91,9 +66,10 @@ export const LiveAvatarPublishLayer = forwardRef<
   const overlayRef = useRef<LiveOverlayState | null>(overlayState);
   const frameCountRef = useRef(0);
 
-  const studio = useVirtualAvatarStudio();
-  const configRef = useRef(studio.config);
-  configRef.current = studio.config;
+  const [config, setConfig] = useState<AvatarConfig>(() => loadAvatarPresetFromStorage() ?? DEFAULT_AVATAR_CONFIG);
+  const [presetReady, setPresetReady] = useState(false);
+  const configRef = useRef(config);
+  configRef.current = config;
 
   const faceTracking = useAvatarFaceTracking();
   const getFrameRef = useRef(faceTracking.getFrame);
@@ -104,6 +80,15 @@ export const LiveAvatarPublishLayer = forwardRef<
   const [sceneMounted, setSceneMounted] = useState(false);
 
   overlayRef.current = overlayState;
+
+  useEffect(() => {
+    const stored = loadAvatarPresetFromStorage();
+    if (stored) setConfig(stored);
+    setPresetReady(true);
+    return subscribeAvatarPresetSync((next) => {
+      setConfig(next);
+    });
+  }, []);
 
   const stopPublishTracks = useCallback(() => {
     publishStreamRef.current?.getVideoTracks().forEach((t) => t.stop());
@@ -143,8 +128,12 @@ export const LiveAvatarPublishLayer = forwardRef<
   }, [effectiveLayout, stopPublishTracks]);
 
   const reloadAvatarAssets = useCallback(async () => {
-    const stored = loadConfigFromStorage();
-    if (stored) configRef.current = stored;
+    const stored = loadAvatarPresetFromStorage();
+    if (stored) {
+      setConfig(stored);
+      configRef.current = stored;
+    }
+    sceneRef.current?.refreshExternalConfig();
     await sceneRef.current?.reloadActiveVrmFromStorage();
     sceneRef.current?.fitVtuberBroadcastView?.();
     if (sceneMounted) rebuildPublishStream();
@@ -162,8 +151,9 @@ export const LiveAvatarPublishLayer = forwardRef<
   }, [overlayState]);
 
   useEffect(() => {
-    configRef.current = studio.config;
-  }, [studio.config]);
+    configRef.current = config;
+    sceneRef.current?.refreshExternalConfig();
+  }, [config]);
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
@@ -171,19 +161,19 @@ export const LiveAvatarPublishLayer = forwardRef<
         void reloadAvatarAssets();
       }
     };
-    const onUpdated = () => {
+    const onVrm = () => {
       void reloadAvatarAssets();
     };
     window.addEventListener("storage", onStorage);
-    window.addEventListener(AVATAR_UPDATED_EVENT, onUpdated);
+    window.addEventListener(AVATAR_VRM_SLOT_EVENT, onVrm);
     return () => {
       window.removeEventListener("storage", onStorage);
-      window.removeEventListener(AVATAR_UPDATED_EVENT, onUpdated);
+      window.removeEventListener(AVATAR_VRM_SLOT_EVENT, onVrm);
     };
   }, [reloadAvatarAssets]);
 
   useEffect(() => {
-    if (!enabled || !studio.loaded) return;
+    if (!enabled || !presetReady) return;
 
     const host = hostRef.current;
     if (!host) return;
@@ -207,6 +197,10 @@ export const LiveAvatarPublishLayer = forwardRef<
         frameCountRef.current += 1;
         if (frameCountRef.current >= 4) {
           scene.fitVtuberBroadcastView();
+          const mocapUrl = localStorage.getItem(AVATAR_MOCAP_STREAM_KEY);
+          if (mocapUrl?.trim()) {
+            void scene.connectMocapStream(mocapUrl.trim());
+          }
           setSceneMounted(true);
           rebuildPublishStream();
           return;
@@ -226,7 +220,7 @@ export const LiveAvatarPublishLayer = forwardRef<
       scene.stop();
       sceneRef.current = null;
     };
-  }, [enabled, studio.loaded, faceTracking, rebuildPublishStream, stopPublishTracks]);
+  }, [enabled, presetReady, faceTracking, rebuildPublishStream, stopPublishTracks]);
 
   useImperativeHandle(
     ref,
@@ -278,6 +272,12 @@ export const LiveAvatarPublishLayer = forwardRef<
         compositorRef.current?.setOverlayState(state);
       },
       isFaceDetected: () => faceTracking.faceDetected,
+      getTrackingStatus: () => ({
+        face: faceTracking.faceDetected,
+        body: faceTracking.bodyDetected,
+        hands: faceTracking.handsDetected,
+        active: faceTracking.active,
+      }),
     }),
     [effectiveLayout, faceTracking, rebuildPublishStream, stopPublishTracks]
   );
