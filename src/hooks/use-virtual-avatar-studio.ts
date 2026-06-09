@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DEFAULT_AVATAR_CONFIG,
   type AvatarConfig,
@@ -77,10 +77,21 @@ export function useVirtualAvatarStudio() {
   }, [loaded]);
 
   /** 스튜디오 변경 → localStorage + BroadcastChannel + 라이브 VTuber 동기화 */
+  const lastCloudPushRef = useRef(0);
+
   useEffect(() => {
     if (!loaded) return;
     const timer = window.setTimeout(() => {
       publishAvatarPreset(config);
+      const now = Date.now();
+      if (now - lastCloudPushRef.current > 45_000) {
+        lastCloudPushRef.current = now;
+        void fetch("/api/avatar/preset", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: "기본", config }),
+        }).catch(() => undefined);
+      }
     }, 600);
     return () => window.clearTimeout(timer);
   }, [config, loaded]);

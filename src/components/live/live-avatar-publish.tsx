@@ -200,6 +200,8 @@ export const LiveAvatarPublishLayer = forwardRef<
           const mocapUrl = localStorage.getItem(AVATAR_MOCAP_STREAM_KEY);
           if (mocapUrl?.trim()) {
             void scene.connectMocapStream(mocapUrl.trim());
+          } else {
+            void scene.loadCachedMocapBvh();
           }
           setSceneMounted(true);
           rebuildPublishStream();

@@ -53,8 +53,16 @@ export class VrmMocapPlayer {
 
   async loadBvhFile(vrm: VRM, file: File): Promise<boolean> {
     try {
-      const { BVHLoader } = await import("three/addons/loaders/BVHLoader.js");
       const text = await file.text();
+      return this.loadBvhText(vrm, text);
+    } catch {
+      return false;
+    }
+  }
+
+  async loadBvhText(vrm: VRM, text: string): Promise<boolean> {
+    try {
+      const { BVHLoader } = await import("three/addons/loaders/BVHLoader.js");
       const loader = new BVHLoader();
       const result = loader.parse(text);
       return this.applyClip(vrm, result.clip);

@@ -26,6 +26,7 @@ import { FacePaintLayer } from "@/lib/virtual-avatar/face-paint-layer";
 import { BodyPaintLayer } from "@/lib/virtual-avatar/body-paint-layer";
 import { createStudioFloor, enhanceVrmForStudio } from "@/lib/virtual-avatar/vrm-material-pro";
 import { VrmAttachmentManager } from "@/lib/virtual-avatar/vrm-attachment-manager";
+import { loadCachedBvhText } from "@/lib/virtual-avatar/avatar-mocap-cache";
 import { avatarSculptSession } from "@/lib/virtual-avatar/avatar-sculpt";
 import { collectSceneMaterials, tickMToonMaterials } from "@/lib/virtual-avatar/material-utils";
 
@@ -453,6 +454,13 @@ export class VirtualAvatar3DScene {
   async loadMocapBvh(file: File): Promise<boolean> {
     if (!this.vrm) return false;
     return this.mocapPlayer.loadBvhFile(this.vrm, file);
+  }
+
+  async loadCachedMocapBvh(): Promise<boolean> {
+    if (!this.vrm) return false;
+    const text = await loadCachedBvhText();
+    if (!text) return false;
+    return this.mocapPlayer.loadBvhText(this.vrm, text);
   }
 
   async loadMocapFbx(file: File): Promise<boolean> {

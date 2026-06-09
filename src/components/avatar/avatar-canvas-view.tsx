@@ -24,6 +24,7 @@ import { TrackingTimelineRecorder } from "@/lib/virtual-avatar/tracking/tracking
 import { AvatarCanvasRecorder } from "@/lib/virtual-avatar/avatar-recorder";
 import { downloadBlob } from "@/lib/virtual-avatar/avatar-export";
 import { AVATAR_MOCAP_STREAM_KEY } from "@/lib/virtual-avatar/avatar-preset-sync";
+import { cacheBvhFile } from "@/lib/virtual-avatar/avatar-mocap-cache";
 
 export function AvatarCanvasView({
   studio,
@@ -65,6 +66,7 @@ export function AvatarCanvasView({
   }, []);
 
   const onBvhUpload = useCallback(async (file: File) => {
+    await cacheBvhFile(file);
     const ok = await sceneRef.current?.loadMocapBvh(file);
     if (ok) setMocapPreset(null);
   }, []);
