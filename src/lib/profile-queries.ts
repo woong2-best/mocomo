@@ -12,9 +12,9 @@ export const profilePostInclude = {
   _count: { select: { likes: true, comments: true, votes: true } },
 } satisfies Prisma.PostInclude;
 
-export type ProfileTab = "posts" | "replies" | "media" | "likes";
+export type ProfileTab = "posts" | "replies" | "media" | "likes" | "wiki";
 
 export function parseProfileTab(tab?: string | null): ProfileTab {
-  if (tab === "replies" || tab === "media" || tab === "likes") return tab;
+  if (tab === "replies" || tab === "media" || tab === "likes" || tab === "wiki") return tab;
   return "posts";
 }

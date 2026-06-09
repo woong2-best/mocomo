@@ -15,6 +15,7 @@ export type CreatePostInput = {
   content: string;
   title?: string;
   communityId?: string;
+  animeId?: string;
   isNsfw?: boolean;
   tagNames?: string[];
   media?: { url: string; type: MediaType }[];
@@ -54,6 +55,15 @@ export async function createPostForUser(
       if (!community) communityId = undefined;
     }
 
+    let animeId: string | undefined = data.animeId?.trim() || undefined;
+    if (animeId) {
+      const anime = await db.anime.findUnique({
+        where: { id: animeId },
+        select: { id: true },
+      });
+      if (!anime) animeId = undefined;
+    }
+
     const mediaRows = (data.media ?? [])
       .filter((m) => m.url && isPersistableMediaUrl(m.url))
       .map((m) => ({ url: m.url.trim(), type: m.type }));
@@ -68,6 +78,7 @@ export async function createPostForUser(
         content,
         authorId: user.id,
         communityId,
+        animeId,
         isNsfw: data.isNsfw ?? false,
         hotScore: calcHotScore(0, 0, new Date()),
         media:

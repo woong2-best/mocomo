@@ -1,6 +1,7 @@
 import { getProfileHeader, getProfileTimeline } from "@/actions/profile-page";
 import { getViewerPlatformSupport } from "@/actions/support";
 import { PlatformSupportCard } from "@/components/support/platform-support-card";
+import { ProfileWikiContributions } from "@/components/profile/profile-wiki-contributions";
 import { parseProfileTab } from "@/lib/profile-queries";
 import { ProfileTimeline, type TimelineItem } from "@/components/profile/profile-timeline";
 
@@ -9,6 +10,7 @@ const emptyMessages: Record<string, string> = {
   replies: "아직 남긴 답글이 없습니다.",
   media: "미디어가 포함된 게시물이 없습니다.",
   likes: "좋아요한 게시물이 없습니다.",
+  wiki: "위키 기여가 없습니다.",
 };
 
 /** 타임라인 우선 로드 — 후원 블록보다 먼저 표시 */
@@ -25,10 +27,25 @@ export async function ProfileTimelineAsync({
   const tab = parseProfileTab(tabParam);
   const effectiveTab = tab === "likes" && !header.isSelf ? "posts" : tab;
 
-  const [platformSupport, timeline] = await Promise.all([
-    header.isSelf ? getViewerPlatformSupport() : Promise.resolve(null),
-    getProfileTimeline(header.user.id, effectiveTab),
-  ]);
+  const platformSupport = header.isSelf ? await getViewerPlatformSupport() : null;
+
+  if (effectiveTab === "wiki") {
+    return (
+      <>
+        {header.isSelf && platformSupport && (
+          <PlatformSupportCard
+            sentTotal={platformSupport.sent.total}
+            sentTier={platformSupport.sent.tier}
+            receivedTotal={platformSupport.received.total}
+            receivedTier={platformSupport.received.tier}
+          />
+        )}
+        <ProfileWikiContributions userId={header.user.id} />
+      </>
+    );
+  }
+
+  const timeline = await getProfileTimeline(header.user.id, effectiveTab);
 
   const { items, nextCursor } = timeline;
 

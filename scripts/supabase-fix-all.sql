@@ -615,6 +615,38 @@ CREATE TABLE IF NOT EXISTS "PostPollVote" (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "PostPollVote_pollId_userId_key" ON "PostPollVote"("pollId", "userId");
 
+-- T) 애니 위키 확장 (수정 기록·보호·삭제 요청·검색어)
+ALTER TABLE "Anime" ADD COLUMN IF NOT EXISTS "isProtected" BOOLEAN NOT NULL DEFAULT false;
+CREATE TABLE IF NOT EXISTS "AnimeRevision" (
+  "id" TEXT NOT NULL,
+  "animeId" TEXT NOT NULL,
+  "editorId" TEXT NOT NULL,
+  "summary" TEXT,
+  "snapshot" JSONB NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "AnimeRevision_pkey" PRIMARY KEY ("id")
+);
+CREATE INDEX IF NOT EXISTS "AnimeRevision_animeId_createdAt_idx" ON "AnimeRevision"("animeId", "createdAt" DESC);
+CREATE TABLE IF NOT EXISTS "AnimeDeleteRequest" (
+  "id" TEXT NOT NULL,
+  "animeId" TEXT NOT NULL,
+  "requesterId" TEXT NOT NULL,
+  "reason" TEXT NOT NULL,
+  "status" TEXT NOT NULL DEFAULT 'PENDING',
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "AnimeDeleteRequest_pkey" PRIMARY KEY ("id")
+);
+CREATE INDEX IF NOT EXISTS "AnimeDeleteRequest_status_createdAt_idx" ON "AnimeDeleteRequest"("status", "createdAt" DESC);
+CREATE TABLE IF NOT EXISTS "WikiSearchQuery" (
+  "id" TEXT NOT NULL,
+  "query" TEXT NOT NULL,
+  "count" INTEGER NOT NULL DEFAULT 1,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "WikiSearchQuery_pkey" PRIMARY KEY ("id")
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "WikiSearchQuery_query_key" ON "WikiSearchQuery"("query");
+
 -- R) 라이브 플랫폼 확장 (카테고리·클립·스트리머 프로필)
 DO $$ BEGIN
   CREATE TYPE "LiveStreamCategory" AS ENUM ('LIVE', 'JUST_CHATTING', 'GAME', 'MUSIC', 'IRL');

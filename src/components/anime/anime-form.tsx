@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createAnime, updateAnime } from "@/actions/anime";
+import { AnimeWikiField } from "@/components/anime/anime-wiki-field";
 import { ANIME_GENRES } from "@/lib/anime-genres";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,6 +61,7 @@ export function AnimeForm({
       bannerUrl: (form.get("bannerUrl") as string) || undefined,
       charactersText: (form.get("charactersText") as string) || undefined,
       tags: (form.get("tags") as string) || undefined,
+      editSummary: (form.get("editSummary") as string) || undefined,
     };
 
     const result =
@@ -111,7 +113,7 @@ export function AnimeForm({
           </div>
           <div>
             <label className="text-sm font-medium">표지 이미지 URL</label>
-            <Input name="coverUrl" type="url" defaultValue={initial?.coverUrl ?? ""} placeholder="https://..." className="mt-1 rounded-xl" />
+            <Input name="coverUrl" type="url" defaultValue={initial?.coverUrl ?? ""} placeholder="https://... 또는 편집기에서 이미지 업로드" className="mt-1 rounded-xl" />
           </div>
           <div>
             <label className="text-sm font-medium">배너 이미지 URL</label>
@@ -121,25 +123,18 @@ export function AnimeForm({
             <label className="text-sm font-medium">제작사</label>
             <Input name="studio" defaultValue={initial?.studio ?? ""} className="mt-1 rounded-xl" />
           </div>
-          <div>
-            <label className="text-sm font-medium">줄거리 / 설명</label>
-            <textarea
-              name="synopsis"
-              defaultValue={initial?.synopsis ?? ""}
-              rows={5}
-              className="mt-1 w-full rounded-xl border border-border bg-background p-3 text-sm"
-              placeholder="나무위키처럼 자유롭게 설명을 적어주세요"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium">세계관</label>
-            <textarea
-              name="worldInfo"
-              defaultValue={initial?.worldInfo ?? ""}
-              rows={3}
-              className="mt-1 w-full rounded-xl border border-border bg-background p-3 text-sm"
-            />
-          </div>
+          <AnimeWikiField
+            name="synopsis"
+            label="줄거리 / 설명"
+            defaultValue={initial?.synopsis ?? ""}
+            placeholder="[[다른 문서]] 링크, 표, 유튜브, 접기, 각주 사용 가능"
+          />
+          <AnimeWikiField
+            name="worldInfo"
+            label="세계관"
+            defaultValue={initial?.worldInfo ?? ""}
+            rows={5}
+          />
           <div>
             <label className="text-sm font-medium">등장인물 (한 줄에 한 명)</label>
             <textarea
@@ -153,6 +148,16 @@ export function AnimeForm({
             <label className="text-sm font-medium">태그 (쉼표 구분)</label>
             <Input name="tags" defaultValue={initial?.tags?.join(", ") ?? ""} className="mt-1 rounded-xl" />
           </div>
+          {mode === "edit" && (
+            <div>
+              <label className="text-sm font-medium">수정 요약 (선택)</label>
+              <Input
+                name="editSummary"
+                placeholder="예: 줄거리 보강, 오타 수정"
+                className="mt-1 rounded-xl"
+              />
+            </div>
+          )}
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "저장 중..." : mode === "create" ? "등록하기" : "수정 저장"}

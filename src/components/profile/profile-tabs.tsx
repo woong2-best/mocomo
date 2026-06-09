@@ -9,6 +9,7 @@ const tabs: { id: ProfileTab; label: string }[] = [
   { id: "posts", label: "게시물" },
   { id: "replies", label: "답글" },
   { id: "media", label: "미디어" },
+  { id: "wiki", label: "위키" },
   { id: "likes", label: "좋아요" },
 ];
 

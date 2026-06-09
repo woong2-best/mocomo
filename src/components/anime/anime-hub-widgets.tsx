@@ -82,6 +82,12 @@ export function AnimeHubWidgets({
             <Sparkles className="h-4 w-4" />
             신규 글
           </Link>
+          <Link
+            href="/anime/delete-requests"
+            className="flex items-center gap-2 text-sm font-medium hover:text-folk-cobalt"
+          >
+            삭제 요청
+          </Link>
         </CardContent>
       </Card>
 

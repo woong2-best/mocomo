@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
     content: String(body.content ?? ""),
     title: body.title ? String(body.title) : undefined,
     communityId: body.communityId ? String(body.communityId) : undefined,
+    animeId: body.animeId ? String(body.animeId) : undefined,
     isNsfw: Boolean(body.isNsfw),
     tagNames: Array.isArray(body.tagNames) ? body.tagNames.map(String) : [],
     media,

@@ -146,6 +146,8 @@ model User {
   creatorSupportsReceived CreatorSupport[] @relation("Creator")
   animeFollows  AnimeFollow[]
   animesCreated Anime[] @relation("AnimeCreator")
+  animeRevisions AnimeRevision[] @relation("AnimeRevisionEditor")
+  animeDeleteRequests AnimeDeleteRequest[]
   platformDevSupporter Boolean @default(false)
 
   pushSubscriptions PushSubscription[]
@@ -1375,11 +1377,14 @@ model Anime {
   tags        String[]
   followerCount Int    @default(0)
   viewCount     Int    @default(0)
+  isProtected   Boolean @default(false)
   creatorId   String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   creator     User     @relation("AnimeCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  revisions   AnimeRevision[]
+  deleteRequests AnimeDeleteRequest[]
 
   @@index([viewCount])
   @@index([updatedAt(sort: Desc)])
@@ -1387,6 +1392,42 @@ model Anime {
   followers   AnimeFollow[]
   cosplayers  CosplayerAnime[]
   goods       AnimeGoods[]
+}
+
+model AnimeRevision {
+  id        String   @id @default(cuid())
+  animeId   String
+  editorId  String
+  summary   String?
+  snapshot  Json
+  createdAt DateTime @default(now())
+
+  anime  Anime @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  editor User  @relation("AnimeRevisionEditor", fields: [editorId], references: [id], onDelete: Cascade)
+
+  @@index([animeId, createdAt(sort: Desc)])
+}
+
+model AnimeDeleteRequest {
+  id          String   @id @default(cuid())
+  animeId     String
+  requesterId String
+  reason      String   @db.Text
+  status      String   @default("PENDING")
+  createdAt   DateTime @default(now())
+
+  anime     Anime @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  requester User  @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt(sort: Desc)])
+}
+
+model WikiSearchQuery {
+  id        String   @id @default(cuid())
+  query     String   @unique
+  count     Int      @default(1)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
 }
 
 model AnimeFollow {

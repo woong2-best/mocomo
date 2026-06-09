@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { filterChannelsWithPresentHost } from "@/lib/live-abandon";
+import { logWikiSearchQuery } from "@/lib/wiki-search";
 import type { SupportTierLevel } from "@prisma/client";
 export type FastSearchResult = {
   users: { username: string; name: string | null; supportTierSent: SupportTierLevel }[];
@@ -14,6 +15,8 @@ export async function runFastSearch(query: string): Promise<FastSearchResult> {
   if (q.length < 2) {
     return { users: [], animes: [], posts: [], liveStreams: [] };
   }
+
+  void logWikiSearchQuery(q);
 
   const userWhere =
     q.length <= 20 && !/\s/.test(q)
@@ -52,6 +55,8 @@ export async function runFastSearch(query: string): Promise<FastSearchResult> {
         OR: [
           { title: { contains: q, mode: "insensitive" } },
           { titleEn: { contains: q, mode: "insensitive" } },
+          { synopsis: { contains: q, mode: "insensitive" } },
+          { worldInfo: { contains: q, mode: "insensitive" } },
         ],
       },
       take: 8,

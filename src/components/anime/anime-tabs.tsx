@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { History } from "lucide-react";
 
 const tabs = [
   { id: "info", label: "정보" },
@@ -35,6 +36,16 @@ export function AnimeTabs({
           {t.label}
         </Link>
       ))}
+      <Link
+        href={`/anime/${slug}/history`}
+        className={cn(
+          "px-3 py-3 text-sm font-medium border-b-2 -mb-px whitespace-nowrap transition-colors flex items-center gap-1",
+          "border-transparent text-muted-foreground hover:text-foreground"
+        )}
+      >
+        <History className="h-3.5 w-3.5" />
+        기록
+      </Link>
       {showEditLink && (
         <Link
           href={`/anime/${slug}/edit`}

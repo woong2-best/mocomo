@@ -8,11 +8,14 @@ import { AnimeTabs } from "@/components/anime/anime-tabs";
 import { AnimeFollowButton } from "@/components/anime/anime-follow-button";
 import { AnimeViewTracker } from "@/components/anime/anime-view-tracker";
 import { AnimeGoodsPanel } from "@/components/anime/anime-goods-panel";
-import { getCachedSession } from "@/lib/auth";
+import { AnimeCommunityPanel } from "@/components/anime/anime-community-panel";
+import { WikiContent } from "@/components/anime/wiki-content";
+import { getCachedSession, isSiteOperator } from "@/lib/auth";
+import { UserRole } from "@prisma/client";
 
 export const revalidate = 120;
 import { getGenreInfo, genreToParam } from "@/lib/anime-genres";
-import { Pencil } from "lucide-react";
+import { Pencil, Shield } from "lucide-react";
 
 function formatKoreanDate(d: Date) {
   return new Intl.DateTimeFormat("ko-KR", {
@@ -60,7 +63,7 @@ export default async function AnimeDetailPage({
       },
       goods: { take: 24 },
       posts: {
-        take: 6,
+        take: 30,
         orderBy: { createdAt: "desc" },
         include: { author: { select: { username: true, image: true } } },
       },
@@ -71,6 +74,14 @@ export default async function AnimeDetailPage({
 
   const genreInfo = getGenreInfo(anime.genre);
   const isLoggedIn = !!session?.user;
+  const canEditProtected =
+    !!session?.user &&
+    (session.user.role === UserRole.ADMIN ||
+      session.user.role === UserRole.MODERATOR ||
+      (session.user.username
+        ? isSiteOperator(session.user as { username: string; role: string; email?: string | null })
+        : false));
+  const canEdit = isLoggedIn && (!anime.isProtected || canEditProtected);
   const characterNames = parseCharacterNames(anime.characters);
 
   const following = session?.user?.id
@@ -100,6 +111,12 @@ export default async function AnimeDetailPage({
           </Link>
           <h1 className="text-2xl md:text-3xl font-bold">{anime.title}</h1>
           {anime.titleEn && <p className="text-muted-foreground text-sm">{anime.titleEn}</p>}
+          {anime.isProtected && (
+            <p className="inline-flex items-center gap-1 text-xs mt-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-200">
+              <Shield className="h-3 w-3" />
+              보호된 문서
+            </p>
+          )}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {session?.user ? (
               <AnimeFollowButton animeId={anime.id} initialFollowing={following} />
@@ -108,13 +125,18 @@ export default async function AnimeDetailPage({
                 <Button size="sm">팔로우</Button>
               </Link>
             )}
-            {isLoggedIn ? (
+            {canEdit ? (
               <Link href={`/anime/${slug}/edit`}>
                 <Button size="sm" variant="outline" className="gap-1">
                   <Pencil className="h-3.5 w-3.5" />
                   편집
                 </Button>
               </Link>
+            ) : isLoggedIn && anime.isProtected ? (
+              <Button size="sm" variant="outline" className="gap-1" disabled title="운영진만 편집 가능">
+                <Shield className="h-3.5 w-3.5" />
+                편집 제한
+              </Button>
             ) : (
               <Link href={`/auth/signin?callbackUrl=${encodeURIComponent(`/anime/${slug}/edit`)}`}>
                 <Button size="sm" variant="outline" className="gap-1">
@@ -140,7 +162,7 @@ export default async function AnimeDetailPage({
         </div>
       </div>
 
-      <AnimeTabs activeTab={tab} slug={slug} showEditLink={isLoggedIn} />
+      <AnimeTabs activeTab={tab} slug={slug} showEditLink={canEdit} />
 
       <div className="p-4 lg:p-6">
         {tab === "info" && (
@@ -154,13 +176,13 @@ export default async function AnimeDetailPage({
             {anime.synopsis && (
               <section>
                 <h2 className="text-lg font-semibold">줄거리</h2>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{anime.synopsis}</p>
+                <WikiContent source={anime.synopsis} className="text-sm text-muted-foreground" />
               </section>
             )}
             {anime.worldInfo && (
               <section>
                 <h2 className="text-lg font-semibold">세계관</h2>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{anime.worldInfo}</p>
+                <WikiContent source={anime.worldInfo} className="text-sm text-muted-foreground" />
               </section>
             )}
             {characterNames.length > 0 && (
@@ -247,18 +269,12 @@ export default async function AnimeDetailPage({
         )}
 
         {tab === "community" && (
-          <div className="space-y-3">
-            {anime.posts.map((p) => (
-              <Link key={p.id} href={`/post/${p.id}`}>
-                <Card className="hover:border-primary/30">
-                  <CardContent className="p-4">
-                    <p className="text-sm font-medium">{p.author.username}</p>
-                    <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{p.content}</p>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
+          <AnimeCommunityPanel
+            animeId={anime.id}
+            slug={slug}
+            posts={anime.posts}
+            isLoggedIn={isLoggedIn}
+          />
         )}
       </div>
     </div>
