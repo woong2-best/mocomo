@@ -16,10 +16,10 @@ import {
   FACE_SHAPES,
   FACE_QUICK_PRESETS,
   GENDER_OPTIONS,
-  HAIR_COLORS,
   LIP_COLORS,
   SKIN_TONES,
 } from "@/lib/virtual-avatar/presets";
+import { StudioColorField } from "@/components/avatar/studio-color-field";
 import { getFaceShapePatch } from "@/lib/virtual-avatar/face-shape-profiles";
 import type { VirtualAvatarStudioState } from "@/hooks/use-virtual-avatar-studio";
 import { cn } from "@/lib/utils";
@@ -143,10 +143,21 @@ export function AvatarLeftPanel({ studio }: { studio: VirtualAvatarStudioState }
                 <StudioSlider label="쌍꺼풀" value={config.face.doubleEyelid} min={0} max={100} onChange={(doubleEyelid) => setFace({ doubleEyelid })} />
               </StudioSection>
               <StudioSection title="눈 색">
-                <div className="grid grid-cols-5 gap-2">
+                <StudioColorField
+                  label="눈동자 색"
+                  value={config.face.eyeColorHex}
+                  onChange={(eyeColorHex) => setFace({ eyeColorHex })}
+                />
+                <div className="grid grid-cols-5 gap-2 mt-2">
                   {EYE_COLORS.map((c, i) => (
-                    <button key={c.label} type="button" title={c.label} onClick={() => setFace({ eyeColorIndex: i })} className={cn(studioSwatchRing(config.face.eyeColorIndex === i), "aspect-square rounded-full p-0.5")}>
-                      <span className="block w-full h-full rounded-full" style={{ backgroundColor: c.hex }} />
+                    <button
+                      key={c.label}
+                      type="button"
+                      title={c.label}
+                      onClick={() => setFace({ eyeColorIndex: i, eyeColorHex: c.hex })}
+                      className={cn(studioSwatchRing(config.face.eyeColorHex === c.hex), "aspect-square rounded-full p-0.5")}
+                    >
+                      <span className="block w-full h-full rounded-full border border-black/10" style={{ backgroundColor: c.hex }} />
                     </button>
                   ))}
                 </div>
@@ -194,22 +205,31 @@ export function AvatarLeftPanel({ studio }: { studio: VirtualAvatarStudioState }
                 <StudioSlider label="하이라이트" value={config.face.makeup.highlight} min={0} max={100} onChange={(highlight) => setMakeup({ highlight })} />
               </StudioSection>
               <StudioSection title="립 컬러">
-                <div className="grid grid-cols-4 gap-2">
+                <StudioColorField
+                  label="립스틱 색"
+                  value={config.face.makeup.lipColorHex}
+                  onChange={(lipColorHex) => setMakeup({ lipColorHex })}
+                />
+                <div className="grid grid-cols-4 gap-2 mt-2">
                   {LIP_COLORS.map((c, i) => (
-                    <button key={c.label} type="button" title={c.label} onClick={() => setMakeup({ lipColorIndex: i })} className={cn(studioSwatchRing(config.face.makeup.lipColorIndex === i), "aspect-square rounded-full p-0.5")}>
-                      <span className="block w-full h-full rounded-full" style={{ backgroundColor: c.hex }} />
+                    <button
+                      key={c.label}
+                      type="button"
+                      title={c.label}
+                      onClick={() => setMakeup({ lipColorIndex: i, lipColorHex: c.hex })}
+                      className={cn(studioSwatchRing(config.face.makeup.lipColorHex === c.hex), "aspect-square rounded-full p-0.5")}
+                    >
+                      <span className="block w-full h-full rounded-full border border-black/10" style={{ backgroundColor: c.hex }} />
                     </button>
                   ))}
                 </div>
               </StudioSection>
-              <StudioSection title="헤어 컬러 (착용)">
-                <div className="grid grid-cols-5 gap-2">
-                  {HAIR_COLORS.slice(0, 10).map((tone, i) => (
-                    <button key={tone.label} type="button" title={tone.label} onClick={() => setHair({ colorIndex: i })} className={cn(studioSwatchRing(config.hair.colorIndex === i), "aspect-square rounded-full p-0.5")}>
-                      <span className="block w-full h-full rounded-full" style={{ backgroundColor: tone.hex === "linear" ? "#6366f1" : tone.hex }} />
-                    </button>
-                  ))}
-                </div>
+              <StudioSection title="헤어">
+                <StudioColorField
+                  label="헤어 색상"
+                  value={config.hair.colorHex}
+                  onChange={(colorHex) => setHair({ colorHex })}
+                />
                 <StudioSlider label="볼륨" value={config.hair.volume} min={0} max={100} onChange={(volume) => setHair({ volume })} />
                 <StudioSlider label="길이" value={config.hair.length} min={0} max={100} onChange={(length) => setHair({ length })} />
               </StudioSection>
@@ -223,8 +243,14 @@ export function AvatarLeftPanel({ studio }: { studio: VirtualAvatarStudioState }
           <StudioSection title="피부톤">
             <div className="grid grid-cols-5 gap-2">
               {SKIN_TONES.map((tone, i) => (
-                <button key={tone.label} type="button" title={tone.label} onClick={() => setSkin({ toneIndex: i })} className={cn(studioSwatchRing(config.skin.toneIndex === i), "aspect-square rounded-full p-0.5")}>
-                  <span className="block w-full h-full rounded-full" style={{ backgroundColor: tone.hex }} />
+                <button
+                  key={tone.label}
+                  type="button"
+                  title={tone.label}
+                  onClick={() => setSkin({ toneIndex: i })}
+                  className={cn(studioSwatchRing(config.skin.toneIndex === i), "aspect-square rounded-full p-0.5")}
+                >
+                  <span className="block w-full h-full rounded-full border border-black/10" style={{ backgroundColor: tone.hex }} />
                 </button>
               ))}
             </div>

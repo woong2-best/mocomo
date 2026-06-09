@@ -67,6 +67,7 @@ export interface AvatarMakeupParams {
   blushIntensity: number;
   lipstick: number;
   lipColorIndex: number;
+  lipColorHex: string;
   contour: number;
   highlight: number;
 }
@@ -80,6 +81,7 @@ export interface AvatarFaceParams {
   eyeDepth: number;
   doubleEyelid: number;
   eyeColorIndex: number;
+  eyeColorHex: string;
   pupilSize: number;
   browHeight: number;
   browThickness: number;
@@ -142,6 +144,7 @@ export interface AvatarHairParams {
   volume: number;
   length: number;
   colorIndex: number;
+  colorHex: string;
   gradient: boolean;
   highlight: boolean;
 }
@@ -209,6 +212,7 @@ export const DEFAULT_MAKEUP: AvatarMakeupParams = {
   blushIntensity: 35,
   lipstick: 40,
   lipColorIndex: 2,
+  lipColorHex: "#e879a0",
   contour: 15,
   highlight: 20,
 };
@@ -245,6 +249,7 @@ export const DEFAULT_AVATAR_CONFIG: AvatarConfig = {
     eyeDepth: 48,
     doubleEyelid: 62,
     eyeColorIndex: 1,
+    eyeColorHex: "#4a6741",
     pupilSize: 50,
     browHeight: 52,
     browThickness: 45,
@@ -287,6 +292,7 @@ export const DEFAULT_AVATAR_CONFIG: AvatarConfig = {
     volume: 55,
     length: 50,
     colorIndex: 0,
+    colorHex: "#1a1a1a",
     gradient: false,
     highlight: false,
   },

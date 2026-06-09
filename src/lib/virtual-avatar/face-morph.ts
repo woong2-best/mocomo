@@ -302,10 +302,10 @@ export function applyAppearanceToVrm(vrm: VRM, config: AvatarConfig) {
 
   const hairCatalog = equipped.hairId ? getCatalogItem(equipped.hairId) : undefined;
   const hairStyle = hairCatalog?.appearance.hairStyle ?? hair.style;
-  const hairColor = new THREE.Color(HAIR_COLOR_BY_INDEX[hair.colorIndex] ?? "#1a1a1a");
+  const hairColor = new THREE.Color(hair.colorHex || HAIR_COLOR_BY_INDEX[hair.colorIndex] || "#1a1a1a");
 
-  const eyeColor = new THREE.Color(EYE_COLORS[face.eyeColorIndex]?.hex ?? "#4a6741");
-  const lipColor = new THREE.Color(LIP_COLORS[face.makeup.lipColorIndex]?.hex ?? "#e879a0");
+  const eyeColor = new THREE.Color(face.eyeColorHex || EYE_COLORS[face.eyeColorIndex]?.hex || "#4a6741");
+  const lipColor = new THREE.Color(face.makeup.lipColorHex || LIP_COLORS[face.makeup.lipColorIndex]?.hex || "#e879a0");
   const accentColor = new THREE.Color(outfit.accentColor);
 
   vrm.scene.traverse((obj) => {

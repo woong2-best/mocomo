@@ -43,9 +43,11 @@ export function mergeStoredConfig(parsed: Partial<AvatarConfig>): AvatarConfig {
       ...DEFAULT_AVATAR_CONFIG.face,
       ...parsed.face,
       faceShape: normalizeFaceShape(parsed.face?.faceShape),
+      eyeColorHex: parsed.face?.eyeColorHex ?? DEFAULT_AVATAR_CONFIG.face.eyeColorHex,
       makeup: {
         ...DEFAULT_AVATAR_CONFIG.face.makeup,
         ...parsed.face?.makeup,
+        lipColorHex: parsed.face?.makeup?.lipColorHex ?? DEFAULT_AVATAR_CONFIG.face.makeup.lipColorHex,
       },
     },
     skin: { ...DEFAULT_AVATAR_CONFIG.skin, ...parsed.skin },
@@ -54,7 +56,13 @@ export function mergeStoredConfig(parsed: Partial<AvatarConfig>): AvatarConfig {
       ...parsed.outfit,
       layers: { ...DEFAULT_AVATAR_CONFIG.outfit.layers, ...parsed.outfit?.layers },
     },
-    hair: { ...DEFAULT_AVATAR_CONFIG.hair, ...parsed.hair },
+    hair: {
+      ...DEFAULT_AVATAR_CONFIG.hair,
+      ...parsed.hair,
+      colorHex:
+        parsed.hair?.colorHex ??
+        DEFAULT_AVATAR_CONFIG.hair.colorHex,
+    },
     effects: { ...DEFAULT_AVATAR_CONFIG.effects, ...parsed.effects },
     view: { ...DEFAULT_AVATAR_CONFIG.view, ...parsed.view },
     equipped: { ...DEFAULT_EQUIPPED },
