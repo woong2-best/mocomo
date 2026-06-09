@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand/brand-logo";
-import { FolkSunFace } from "@/components/brand/folk-decor";
+import { FolkThemeCelestial } from "@/components/brand/folk-theme-celestial";
 import { HeaderSearch } from "@/components/search/header-search";
 import { BRAND } from "@/lib/brand";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
@@ -19,7 +19,7 @@ export function Header() {
         <div className="app-header-interactive flex items-center gap-2 shrink-0 lg:hidden">
           <MobileMenuButton onClick={() => setMenuOpen(true)} />
           <Link href="/" className="flex items-center gap-2 text-foreground min-w-0">
-            <FolkSunFace size={32} className="animate-folk-float lg:hidden" />
+            <FolkThemeCelestial size={32} className="animate-folk-float lg:hidden" />
             <span className="font-display font-bold text-base truncate folk-chunky-text text-folk-cobalt">
               {BRAND.name}
             </span>

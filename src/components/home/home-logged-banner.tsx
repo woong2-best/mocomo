@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { PenSquare, Compass } from "lucide-react";
 import { ComposeOpenButton } from "@/components/compose/compose-open-button";
-import { FolkBrushDivider, FolkMoonFace } from "@/components/brand/folk-decor";
+import { FolkBrushDivider } from "@/components/brand/folk-decor";
+import { FolkThemeCelestial } from "@/components/brand/folk-theme-celestial";
 
 export function HomeLoggedBanner() {
   return (
@@ -13,7 +14,7 @@ export function HomeLoggedBanner() {
           </p>
           <p className="text-sm text-folk-forest/80 mt-0.5">새 이야기를 그려 보세요</p>
         </div>
-        <FolkMoonFace size={44} className="opacity-80 shrink-0" />
+        <FolkThemeCelestial size={44} className="opacity-80 shrink-0" />
       </div>
       <FolkBrushDivider className="my-3 opacity-50" />
       <div className="flex flex-wrap gap-2 relative z-10">

@@ -1,71 +1,7 @@
 import { cn } from "@/lib/utils";
+import { FolkThemeCelestial } from "@/components/brand/folk-theme-celestial";
 
-/** Hand-painted sun with closed eyes — folk motif */
-export function FolkSunFace({ className, size = 48 }: { className?: string; size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 64 64"
-      fill="none"
-      className={cn("shrink-0", className)}
-      aria-hidden
-    >
-      <circle cx="32" cy="32" r="28" fill="#D4A843" stroke="#1B3A8C" strokeWidth="3" />
-      {[0, 45, 90, 135, 180, 225, 270, 315].map((deg) => (
-        <line
-          key={deg}
-          x1="32"
-          y1="4"
-          x2="32"
-          y2="10"
-          stroke="#C4522A"
-          strokeWidth="3"
-          strokeLinecap="round"
-          transform={`rotate(${deg} 32 32)`}
-        />
-      ))}
-      <path d="M18 28 Q22 24 26 28" stroke="#1B3A8C" strokeWidth="3" strokeLinecap="round" fill="none" />
-      <path d="M38 28 Q42 24 46 28" stroke="#1B3A8C" strokeWidth="3" strokeLinecap="round" fill="none" />
-      <path d="M24 40 Q32 48 40 40" stroke="#1B3A8C" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-    </svg>
-  );
-}
-
-export function FolkMoonFace({ className, size = 48 }: { className?: string; size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 64 64"
-      fill="none"
-      className={cn("shrink-0", className)}
-      aria-hidden
-    >
-      <path
-        d="M44 12 A28 28 0 1 0 44 52 A22 22 0 1 1 44 12"
-        fill="#F5F0E8"
-        stroke="#1B3A8C"
-        strokeWidth="3"
-      />
-      <path d="M36 30 Q40 26 44 30" stroke="#1B3A8C" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-      <circle cx="48" cy="24" r="2" fill="#C4522A" />
-      {[0, 60, 120, 180, 240, 300].map((deg) => (
-        <line
-          key={deg}
-          x1="32"
-          y1="6"
-          x2="32"
-          y2="11"
-          stroke="#D4A843"
-          strokeWidth="2"
-          strokeLinecap="round"
-          transform={`rotate(${deg} 32 32)`}
-        />
-      ))}
-    </svg>
-  );
-}
+export { FolkMoonFace, FolkSunFace } from "@/components/brand/folk-sun-moon";
 
 export function FolkBrushDivider({ className }: { className?: string }) {
   return (
@@ -140,11 +76,7 @@ export function FolkSectionTitle({
 }) {
   return (
     <div className={cn("flex items-center gap-3", className)}>
-      {icon === "moon" ? (
-        <FolkMoonFace size={36} className="opacity-90" />
-      ) : (
-        <FolkSunFace size={36} className="opacity-90 animate-folk-float" />
-      )}
+      {icon ? <FolkThemeCelestial size={36} className="opacity-90 animate-folk-float" /> : null}
       <div>
         <h2 className="font-display font-bold text-xl sm:text-2xl text-folk-cobalt folk-chunky-text leading-tight">
           {children}
@@ -169,13 +101,9 @@ export function FolkArtStage({
     <div className={cn("folk-art-stage relative", className)}>
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
         <FolkFloralField className={cn("absolute inset-0", dense ? "opacity-[0.14]" : "opacity-[0.09]")} />
-        <FolkSunFace
+        <FolkThemeCelestial
           size={dense ? 64 : 96}
           className="absolute -top-4 -right-2 sm:right-8 opacity-[0.18] animate-folk-float"
-        />
-        <FolkMoonFace
-          size={dense ? 48 : 72}
-          className="absolute bottom-16 -left-4 opacity-[0.12] hidden sm:block"
         />
         <FolkFloralAccent className="absolute top-1/3 right-0 w-32 h-20 opacity-40 hidden lg:block" />
         <FolkFloralAccent className="absolute bottom-1/4 left-0 w-28 h-16 opacity-30 scale-x-[-1] hidden md:block" />
@@ -200,8 +128,7 @@ export function FolkArtFrame({
         className
       )}
     >
-      <FolkSunFace size={40} className="absolute -top-5 -right-3 opacity-80 pointer-events-none" />
-      <FolkMoonFace size={32} className="absolute -bottom-4 -left-3 opacity-70 hidden sm:block pointer-events-none" />
+      <FolkThemeCelestial size={40} className="absolute -top-5 -right-3 opacity-80 pointer-events-none" />
       {children}
     </div>
   );

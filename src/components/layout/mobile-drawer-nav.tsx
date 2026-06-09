@@ -15,7 +15,8 @@ import { useCompose } from "@/components/compose/compose-provider";
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
-import { FolkBrushDivider, FolkFloralAccent, FolkSunFace } from "@/components/brand/folk-decor";
+import { FolkBrushDivider, FolkFloralAccent } from "@/components/brand/folk-decor";
+import { FolkThemeCelestial } from "@/components/brand/folk-theme-celestial";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { BRAND } from "@/lib/brand";
 
@@ -39,7 +40,7 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
         <FolkFloralAccent className="absolute bottom-8 right-0 w-24 opacity-40 pointer-events-none" />
         <DialogHeader className="flex flex-row items-center justify-between gap-2 border-b-2 border-folk-cobalt/20 px-4 py-3 pt-safe shrink-0 bg-folk-gold/10">
           <DialogTitle className="flex items-center gap-2 text-base font-display font-bold text-folk-cobalt">
-            <FolkSunFace size={28} />
+            <FolkThemeCelestial size={28} />
             {BRAND.name}
           </DialogTitle>
           <Button
