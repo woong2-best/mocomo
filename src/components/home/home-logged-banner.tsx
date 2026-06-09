@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { PenSquare, Compass } from "lucide-react";
+import { PenSquare } from "lucide-react";
 import { ComposeOpenButton } from "@/components/compose/compose-open-button";
 import { FolkBrushDivider } from "@/components/brand/folk-decor";
 import { FolkThemeCelestial } from "@/components/brand/folk-theme-celestial";
@@ -22,10 +21,6 @@ export function HomeLoggedBanner() {
           <PenSquare className="h-4 w-4 text-folk-terracotta" />
           글쓰기
         </ComposeOpenButton>
-        <Link href="/explore" className="folk-nav-tile !flex-row !py-2 !px-4 gap-2 text-sm">
-          <Compass className="h-4 w-4 text-folk-cobalt" />
-          탐색
-        </Link>
       </div>
     </div>
   );
