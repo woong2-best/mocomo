@@ -20,6 +20,7 @@ import type { HostPublishState } from "@/lib/live-publisher-lock";
 import { startBrowserLiveBroadcast } from "@/actions/live-stream";
 import {
   LiveAvatarPublishLayer,
+  LIVE_AVATAR_PREVIEW_READY_EVENT,
   type LiveAvatarBackground,
   type LiveAvatarLayout,
   type LiveAvatarPublishHandle,
@@ -123,6 +124,7 @@ export function LiveBrowserStudio({
   const [avatarBackground, setAvatarBackground] = useState<LiveAvatarBackground>(() => readVtuberBackground());
   const equipped2dId = useLive2dLibraryActiveId();
   const [previewCanvasMounted, setPreviewCanvasMounted] = useState(false);
+  const [previewLoadTimedOut, setPreviewLoadTimedOut] = useState(false);
 
   const serverLive =
     publishState === "live_here" || publishState === "live_elsewhere";
@@ -134,6 +136,7 @@ export function LiveBrowserStudio({
   useEffect(() => {
     if (!vtuberMode) {
       setPreviewCanvasMounted(false);
+      setPreviewLoadTimedOut(false);
       return;
     }
     if (!hasLibraryCharacters() || !getActiveLibraryCharacterId()) {
@@ -357,10 +360,11 @@ export function LiveBrowserStudio({
 
   useEffect(() => {
     if (!vtuberMode || screenOn || !ready) return;
+    setPreviewLoadTimedOut(false);
     let cancelled = false;
     let attempts = 0;
     const tryAttach = () => {
-      if (cancelled || attempts > 120) return;
+      if (cancelled || attempts > 300) return;
       attempts += 1;
       attachPreviewCanvas();
       if (!avatarPublishRef.current?.getPreviewCanvas()) {
@@ -368,10 +372,17 @@ export function LiveBrowserStudio({
       }
     };
     tryAttach();
+    const onPreviewReady = () => attachPreviewCanvas();
+    window.addEventListener(LIVE_AVATAR_PREVIEW_READY_EVENT, onPreviewReady);
+    const timeout = window.setTimeout(() => {
+      if (!cancelled && !previewCanvasMounted) setPreviewLoadTimedOut(true);
+    }, 12000);
     return () => {
       cancelled = true;
+      window.removeEventListener(LIVE_AVATAR_PREVIEW_READY_EVENT, onPreviewReady);
+      window.clearTimeout(timeout);
     };
-  }, [vtuberMode, screenOn, ready, attachPreviewCanvas, equipped2dId]);
+  }, [vtuberMode, screenOn, ready, attachPreviewCanvas, equipped2dId, previewCanvasMounted]);
 
   const handleWhipDisconnect = useCallback(() => {
     setWhipConnected(false);
@@ -703,9 +714,20 @@ export function LiveBrowserStudio({
       )}
       {vtuberMode && !screenOn && !previewCanvasMounted && (
         <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 bg-gradient-to-b from-zinc-800 to-black text-white/80 px-4 text-center">
-          <Loader2 className="h-7 w-7 animate-spin opacity-80" />
-          <p className="text-sm font-medium">2D 캐릭터 불러오는 중…</p>
-          <p className="text-[11px] text-white/55">잠시 후 미리보기가 표시됩니다</p>
+          {previewLoadTimedOut ? (
+            <>
+              <p className="text-sm font-medium text-amber-200">2D 캐릭터를 불러오지 못했습니다</p>
+              <p className="text-[11px] text-white/55">
+                라이브러리에서 캐릭터를 다시 더블클릭하거나 2D 스튜디오에서 재저장해 보세요.
+              </p>
+            </>
+          ) : (
+            <>
+              <Loader2 className="h-7 w-7 animate-spin opacity-80" />
+              <p className="text-sm font-medium">2D 캐릭터 불러오는 중…</p>
+              <p className="text-[11px] text-white/55">잠시 후 미리보기가 표시됩니다</p>
+            </>
+          )}
         </div>
       )}
       <LiveOverlayLayer className="z-20" />
@@ -829,6 +851,7 @@ export function LiveBrowserStudio({
       <LiveAvatarPublishLayer
         ref={avatarPublishRef}
         enabled={vtuberMode && ready}
+        renderMode="flat2d"
         layout={avatarLayout}
         overlayState={overlayCtx?.state ?? null}
       />

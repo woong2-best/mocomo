@@ -14,8 +14,8 @@ import { Flat2dAvatarScene } from "@/lib/avatar-2d/flat-2d-scene";
 import { AVATAR_2D_CHANGED_EVENT } from "@/lib/avatar-2d/storage";
 import { createAvatarScene, reloadAvatarScene, type AvatarSceneInstance } from "@/lib/avatar-render/create-scene";
 import { PhotoAvatarScene } from "@/lib/photo-avatar/photo-avatar-scene";
-import { usePhotoAvatarMode } from "@/hooks/use-photo-avatar-mode";
-import { PHOTO_AVATAR_CHANGED_EVENT } from "@/lib/photo-avatar/photo-avatar-storage";
+import { getPhotoAvatarRenderMode, PHOTO_AVATAR_CHANGED_EVENT } from "@/lib/photo-avatar/photo-avatar-storage";
+import type { PhotoAvatarRenderMode } from "@/lib/photo-avatar/types";
 import { LiveAvatarCompositor } from "@/lib/live/live-avatar-compositor";
 import {
   AVATAR_MOCAP_STREAM_KEY,
@@ -53,14 +53,25 @@ export type LiveAvatarPublishHandle = {
 
 const VTUBER_CAPTURE = { w: 1920, h: 1080 };
 
+export const LIVE_AVATAR_PREVIEW_READY_EVENT = "mocomo-live-avatar-preview-ready";
+
+function notifyPreviewReady() {
+  window.dispatchEvent(new Event(LIVE_AVATAR_PREVIEW_READY_EVENT));
+}
+
 export const LiveAvatarPublishLayer = forwardRef<
   LiveAvatarPublishHandle,
   {
     enabled: boolean;
     layout?: LiveAvatarLayout;
     overlayState?: LiveOverlayState | null;
+    /** 라방 2D 모드 — React state 경쟁 없이 flat2d 강제 */
+    renderMode?: PhotoAvatarRenderMode;
   }
->(function LiveAvatarPublishLayer({ enabled, layout = "avatar", overlayState = null }, ref) {
+>(function LiveAvatarPublishLayer(
+  { enabled, layout = "avatar", overlayState = null, renderMode },
+  ref
+) {
   const hostRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<AvatarSceneInstance | null>(null);
   const compositorRef = useRef<LiveAvatarCompositor | null>(null);
@@ -82,8 +93,6 @@ export const LiveAvatarPublishLayer = forwardRef<
   getFrameRef.current = faceTracking.getFrame;
   const faceActiveRef = useRef(faceTracking.active);
   faceActiveRef.current = faceTracking.active;
-
-  const { mode } = usePhotoAvatarMode();
 
   const [sceneMounted, setSceneMounted] = useState(false);
 
@@ -132,6 +141,7 @@ export const LiveAvatarPublishLayer = forwardRef<
     if (!videoTrack) return null;
 
     publishStreamRef.current = new MediaStream([videoTrack, ...audioTracks]);
+    notifyPreviewReady();
     return publishStreamRef.current;
   }, [effectiveLayout, stopPublishTracks]);
 
@@ -189,64 +199,86 @@ export const LiveAvatarPublishLayer = forwardRef<
   useEffect(() => {
     if (!enabled || !presetReady) return;
 
-    const host = hostRef.current;
-    if (!host) return;
+    let cancelled = false;
+    let hostAttempts = 0;
 
-    host.replaceChildren();
-    host.style.width = `${VTUBER_CAPTURE.w}px`;
-    host.style.height = `${VTUBER_CAPTURE.h}px`;
-
-    const scene = createAvatarScene(host, mode);
-    sceneRef.current = scene;
-    frameCountRef.current = 0;
-    if (scene instanceof VirtualAvatar3DScene) {
-      scene.setLiveCaptureMode(true);
-    }
-
-    scene.start(
-      () => configRef.current,
-      () => (faceActiveRef.current ? getFrameRef.current() : null)
-    );
-
-    const tickReady = () => {
-      if (!sceneRef.current) return;
-      if (scene.isReady()) {
-        frameCountRef.current += 1;
-        if (frameCountRef.current >= 2) {
-          scene.fitVtuberBroadcastView();
-          if (scene instanceof VirtualAvatar3DScene) {
-            const mocapUrl = localStorage.getItem(AVATAR_MOCAP_STREAM_KEY);
-            if (mocapUrl?.trim()) {
-              void scene.connectMocapStream(mocapUrl.trim());
-            } else {
-              void scene.loadCachedMocapBvh();
-            }
-          }
-          setSceneMounted(true);
-          rebuildPublishStream();
-          return;
-        }
+    const mountScene = () => {
+      if (cancelled) return;
+      const host = hostRef.current;
+      if (!host) {
+        if (hostAttempts++ < 60) requestAnimationFrame(mountScene);
+        return;
       }
+
+      host.replaceChildren();
+      host.style.width = `${VTUBER_CAPTURE.w}px`;
+      host.style.height = `${VTUBER_CAPTURE.h}px`;
+
+      const mode = renderMode ?? getPhotoAvatarRenderMode();
+      const scene = createAvatarScene(host, mode);
+      sceneRef.current = scene;
+      frameCountRef.current = 0;
+      if (scene instanceof VirtualAvatar3DScene) {
+        scene.setLiveCaptureMode(true);
+      }
+
+      scene.start(
+        () => configRef.current,
+        () => (faceActiveRef.current ? getFrameRef.current() : null)
+      );
+
+      const tickReady = () => {
+        if (cancelled || !sceneRef.current) return;
+        if (scene.isReady()) {
+          frameCountRef.current += 1;
+          if (frameCountRef.current >= 2) {
+            scene.fitVtuberBroadcastView();
+            if (scene instanceof VirtualAvatar3DScene) {
+              const mocapUrl = localStorage.getItem(AVATAR_MOCAP_STREAM_KEY);
+              if (mocapUrl?.trim()) {
+                void scene.connectMocapStream(mocapUrl.trim());
+              } else {
+                void scene.loadCachedMocapBvh();
+              }
+            }
+            setSceneMounted(true);
+            rebuildPublishStream();
+            notifyPreviewReady();
+            return;
+          }
+        }
+        requestAnimationFrame(tickReady);
+      };
       requestAnimationFrame(tickReady);
     };
-    requestAnimationFrame(tickReady);
+
+    mountScene();
 
     return () => {
+      cancelled = true;
+      const scene = sceneRef.current;
       setSceneMounted(false);
       frameCountRef.current = 0;
-      scene.setOnAfterRender(null);
-      faceTracking.detachExternalStream();
-      cameraStreamRef.current = null;
-      stopPublishTracks();
-      scene.stop();
-      if (scene instanceof PhotoAvatarScene || scene instanceof Flat2dAvatarScene) scene.dispose();
+      if (scene) {
+        scene.setOnAfterRender(null);
+        faceTracking.detachExternalStream();
+        cameraStreamRef.current = null;
+        stopPublishTracks();
+        scene.stop();
+        if (scene instanceof PhotoAvatarScene || scene instanceof Flat2dAvatarScene) scene.dispose();
+      }
       sceneRef.current = null;
     };
-  }, [enabled, presetReady, mode, faceTracking, rebuildPublishStream, stopPublishTracks]);
+  }, [enabled, presetReady, renderMode, faceTracking, rebuildPublishStream, stopPublishTracks]);
 
   useEffect(() => {
     const onAvatarChange = () => {
-      if (enabled && presetReady) setSceneMounted(false);
+      if (!enabled || !presetReady) return;
+      void reloadAvatarAssets().then(() => {
+        setSceneMounted(true);
+        rebuildPublishStream();
+        notifyPreviewReady();
+      });
     };
     window.addEventListener(PHOTO_AVATAR_CHANGED_EVENT, onAvatarChange);
     window.addEventListener(AVATAR_2D_CHANGED_EVENT, onAvatarChange);
@@ -254,28 +286,35 @@ export const LiveAvatarPublishLayer = forwardRef<
       window.removeEventListener(PHOTO_AVATAR_CHANGED_EVENT, onAvatarChange);
       window.removeEventListener(AVATAR_2D_CHANGED_EVENT, onAvatarChange);
     };
-  }, [enabled, presetReady]);
+  }, [enabled, presetReady, reloadAvatarAssets, rebuildPublishStream]);
 
   useImperativeHandle(
     ref,
     () => ({
       getPublishStream: () => publishStreamRef.current ?? rebuildPublishStream(),
-      getPreviewCanvas: () => compositorRef.current?.getCanvas() ?? sceneRef.current?.getCanvasElement() ?? null,
+      getPreviewCanvas: () =>
+        compositorRef.current?.getCanvas() ?? sceneRef.current?.getCanvasElement() ?? null,
       waitForReady: async () => {
         const timeoutMs = 25000;
         const start = performance.now();
         while (performance.now() - start < timeoutMs) {
-          if (sceneRef.current?.isReady() && publishStreamRef.current) return;
           if (sceneRef.current?.isReady()) {
             rebuildPublishStream();
             if (publishStreamRef.current) {
+              notifyPreviewReady();
+              await new Promise<void>((r) => setTimeout(r, 200));
+              return;
+            }
+            const sceneCanvas = sceneRef.current.getCanvasElement();
+            if (sceneCanvas) {
+              notifyPreviewReady();
               await new Promise<void>((r) => setTimeout(r, 200));
               return;
             }
           }
           await new Promise<void>((r) => requestAnimationFrame(() => r()));
         }
-        throw new Error("VTuber 아바타 준비 시간이 초과되었습니다.");
+        throw new Error("2D 아바타 준비 시간이 초과되었습니다.");
       },
       attachCameraStream: async (stream: MediaStream) => {
         cameraStreamRef.current = stream;

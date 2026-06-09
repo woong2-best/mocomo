@@ -28,7 +28,9 @@ export class Flat2dAvatarRenderer {
     this.imageLoaded = false;
     this.loadPromise = new Promise((resolve, reject) => {
       const img = new Image();
-      img.crossOrigin = "anonymous";
+      if (!url.startsWith("blob:") && !url.startsWith("data:")) {
+        img.crossOrigin = "anonymous";
+      }
       img.onload = () => {
         this.image = img;
         this.imageLoaded = true;

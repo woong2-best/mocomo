@@ -44,20 +44,26 @@ export class Flat2dAvatarScene {
   refreshExternalConfig() {}
 
   async reloadFromStorage() {
-    const meta = await loadFlat2dAvatarMeta();
-    if (!meta) {
+    try {
+      const meta = await loadFlat2dAvatarMeta();
+      if (!meta) {
+        this.ready = false;
+        this.renderer = null;
+        return false;
+      }
+      if (!this.renderer) {
+        this.renderer = new Flat2dAvatarRenderer(this.canvas, meta);
+      } else {
+        this.renderer.updateMeta(meta);
+      }
+      await this.renderer.waitReady();
+      this.renderer.render(null);
+      this.ready = true;
+      return true;
+    } catch {
       this.ready = false;
-      this.renderer = null;
       return false;
     }
-    if (!this.renderer) {
-      this.renderer = new Flat2dAvatarRenderer(this.canvas, meta);
-    } else {
-      this.renderer.updateMeta(meta);
-    }
-    await this.renderer.waitReady();
-    this.ready = true;
-    return true;
   }
 
   start(_getConfig: () => unknown, getFrame: () => AvatarTrackingFrame | null) {
