@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createAnime, updateAnime } from "@/actions/anime";
 import { AnimeWikiField } from "@/components/anime/anime-wiki-field";
+import { AnimeImageUrlField } from "@/components/anime/anime-image-url-field";
 import { ANIME_GENRES } from "@/lib/anime-genres";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -111,14 +112,22 @@ export function AnimeForm({
               ))}
             </select>
           </div>
-          <div>
-            <label className="text-sm font-medium">표지 이미지 URL</label>
-            <Input name="coverUrl" type="url" defaultValue={initial?.coverUrl ?? ""} placeholder="https://... 또는 편집기에서 이미지 업로드" className="mt-1 rounded-xl" />
-          </div>
-          <div>
-            <label className="text-sm font-medium">배너 이미지 URL</label>
-            <Input name="bannerUrl" type="url" defaultValue={initial?.bannerUrl ?? ""} placeholder="https://..." className="mt-1 rounded-xl" />
-          </div>
+          <AnimeImageUrlField
+            name="coverUrl"
+            label="표지 이미지 URL"
+            defaultValue={initial?.coverUrl ?? ""}
+            placeholder="https://... 또는 아래에서 업로드"
+            previewAspect="square"
+            uploadLabel="표지 이미지 업로드"
+          />
+          <AnimeImageUrlField
+            name="bannerUrl"
+            label="배너 이미지 URL"
+            defaultValue={initial?.bannerUrl ?? ""}
+            placeholder="https://... 또는 아래에서 업로드"
+            previewAspect="banner"
+            uploadLabel="배너 이미지 업로드"
+          />
           <div>
             <label className="text-sm font-medium">제작사</label>
             <Input name="studio" defaultValue={initial?.studio ?? ""} className="mt-1 rounded-xl" />
