@@ -22,4 +22,4 @@ export type PhotoAvatarRig = {
   mouthSplitY: number;
 };
 
-export type PhotoAvatarRenderMode = "vrm" | "photo";
+export type PhotoAvatarRenderMode = "vrm" | "photo" | "flat2d";

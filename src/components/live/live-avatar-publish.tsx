@@ -10,6 +10,9 @@ import {
 } from "react";
 import type { LiveOverlayState } from "@/lib/live-overlays/types";
 import { VirtualAvatar3DScene } from "@/lib/virtual-avatar/avatar-3d-scene";
+import { Flat2dAvatarScene } from "@/lib/avatar-2d/flat-2d-scene";
+import { AVATAR_2D_CHANGED_EVENT } from "@/lib/avatar-2d/storage";
+import { createAvatarScene, reloadAvatarScene, type AvatarSceneInstance } from "@/lib/avatar-render/create-scene";
 import { PhotoAvatarScene } from "@/lib/photo-avatar/photo-avatar-scene";
 import { usePhotoAvatarMode } from "@/hooks/use-photo-avatar-mode";
 import { PHOTO_AVATAR_CHANGED_EVENT } from "@/lib/photo-avatar/photo-avatar-storage";
@@ -59,7 +62,7 @@ export const LiveAvatarPublishLayer = forwardRef<
   }
 >(function LiveAvatarPublishLayer({ enabled, layout = "avatar", overlayState = null }, ref) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<VirtualAvatar3DScene | PhotoAvatarScene | null>(null);
+  const sceneRef = useRef<AvatarSceneInstance | null>(null);
   const compositorRef = useRef<LiveAvatarCompositor | null>(null);
   const publishStreamRef = useRef<MediaStream | null>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
@@ -80,7 +83,7 @@ export const LiveAvatarPublishLayer = forwardRef<
   const faceActiveRef = useRef(faceTracking.active);
   faceActiveRef.current = faceTracking.active;
 
-  const { isPhotoMode } = usePhotoAvatarMode();
+  const { mode } = usePhotoAvatarMode();
 
   const [sceneMounted, setSceneMounted] = useState(false);
 
@@ -144,9 +147,8 @@ export const LiveAvatarPublishLayer = forwardRef<
     if (scene instanceof VirtualAvatar3DScene) {
       await scene.reloadActiveVrmFromStorage();
       scene.fitVtuberBroadcastView();
-    } else if (scene instanceof PhotoAvatarScene) {
-      await scene.reloadFromStorage();
-      scene.fitVtuberBroadcastView();
+    } else {
+      await reloadAvatarScene(scene);
     }
     if (sceneMounted) rebuildPublishStream();
   }, [rebuildPublishStream, sceneMounted]);
@@ -194,7 +196,7 @@ export const LiveAvatarPublishLayer = forwardRef<
     host.style.width = `${VTUBER_CAPTURE.w}px`;
     host.style.height = `${VTUBER_CAPTURE.h}px`;
 
-    const scene = isPhotoMode ? new PhotoAvatarScene(host) : new VirtualAvatar3DScene(host);
+    const scene = createAvatarScene(host, mode);
     sceneRef.current = scene;
     frameCountRef.current = 0;
     if (scene instanceof VirtualAvatar3DScene) {
@@ -237,17 +239,21 @@ export const LiveAvatarPublishLayer = forwardRef<
       cameraStreamRef.current = null;
       stopPublishTracks();
       scene.stop();
-      if (scene instanceof PhotoAvatarScene) scene.dispose();
+      if (scene instanceof PhotoAvatarScene || scene instanceof Flat2dAvatarScene) scene.dispose();
       sceneRef.current = null;
     };
-  }, [enabled, presetReady, isPhotoMode, faceTracking, rebuildPublishStream, stopPublishTracks]);
+  }, [enabled, presetReady, mode, faceTracking, rebuildPublishStream, stopPublishTracks]);
 
   useEffect(() => {
-    const onPhotoChange = () => {
+    const onAvatarChange = () => {
       if (enabled && presetReady) setSceneMounted(false);
     };
-    window.addEventListener(PHOTO_AVATAR_CHANGED_EVENT, onPhotoChange);
-    return () => window.removeEventListener(PHOTO_AVATAR_CHANGED_EVENT, onPhotoChange);
+    window.addEventListener(PHOTO_AVATAR_CHANGED_EVENT, onAvatarChange);
+    window.addEventListener(AVATAR_2D_CHANGED_EVENT, onAvatarChange);
+    return () => {
+      window.removeEventListener(PHOTO_AVATAR_CHANGED_EVENT, onAvatarChange);
+      window.removeEventListener(AVATAR_2D_CHANGED_EVENT, onAvatarChange);
+    };
   }, [enabled, presetReady]);
 
   useImperativeHandle(

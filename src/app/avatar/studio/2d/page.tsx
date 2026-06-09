@@ -5,7 +5,7 @@ import { isLiveFeatureEnabled } from "@/lib/live-feature";
 
 export const metadata = {
   title: "2D 아바타 편집 | MoCoMo",
-  description: "2D 버츄얼 아바타 편집 (준비 중)",
+  description: "사이트에서 그리거나 PNG 업로드 → 투명 PNG로 라이브·OBS 방송",
 };
 
 export default async function Avatar2dStudioPage() {

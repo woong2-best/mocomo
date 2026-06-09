@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { VirtualAvatar3DScene } from "@/lib/virtual-avatar/avatar-3d-scene";
+import { Flat2dAvatarScene } from "@/lib/avatar-2d/flat-2d-scene";
+import { AVATAR_2D_CHANGED_EVENT } from "@/lib/avatar-2d/storage";
+import { createAvatarScene, reloadAvatarScene, type AvatarSceneInstance } from "@/lib/avatar-render/create-scene";
 import { PhotoAvatarScene } from "@/lib/photo-avatar/photo-avatar-scene";
 import { usePhotoAvatarMode } from "@/hooks/use-photo-avatar-mode";
 import { PHOTO_AVATAR_CHANGED_EVENT } from "@/lib/photo-avatar/photo-avatar-storage";
@@ -30,8 +33,8 @@ async function attachOptionalMocap(scene: VirtualAvatar3DScene) {
 
 export function AvatarBroadcastView({ bgMode = "transparent" }: { bgMode?: BroadcastBgMode }) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<VirtualAvatar3DScene | PhotoAvatarScene | null>(null);
-  const { isPhotoMode } = usePhotoAvatarMode();
+  const sceneRef = useRef<AvatarSceneInstance | null>(null);
+  const { mode } = usePhotoAvatarMode();
   const syncRef = useRef(true);
 
   const [config, setConfig] = useState<AvatarConfig>(() => loadAvatarPresetFromStorage() ?? DEFAULT_AVATAR_CONFIG);
@@ -58,9 +61,8 @@ export function AvatarBroadcastView({ bgMode = "transparent" }: { bgMode?: Broad
       await sceneRef.current.reloadActiveVrmFromStorage();
       sceneRef.current.fitVtuberBroadcastView?.();
       await attachOptionalMocap(sceneRef.current);
-    } else if (sceneRef.current instanceof PhotoAvatarScene) {
-      await sceneRef.current.reloadFromStorage();
-      sceneRef.current.fitVtuberBroadcastView();
+    } else {
+      await reloadAvatarScene(sceneRef.current);
     }
   }, []);
 
@@ -101,7 +103,7 @@ export function AvatarBroadcastView({ bgMode = "transparent" }: { bgMode?: Broad
 
     host.replaceChildren();
 
-    const scene = isPhotoMode ? new PhotoAvatarScene(host) : new VirtualAvatar3DScene(host);
+    const scene = createAvatarScene(host, mode);
     if (scene instanceof VirtualAvatar3DScene) {
       scene.setBroadcastMode(bgMode);
     }
@@ -135,11 +137,21 @@ export function AvatarBroadcastView({ bgMode = "transparent" }: { bgMode?: Broad
       syncRef.current = false;
       faceTracking.stop();
       scene.stop();
-      if (scene instanceof PhotoAvatarScene) scene.dispose();
+      if (scene instanceof PhotoAvatarScene || scene instanceof Flat2dAvatarScene) scene.dispose();
       sceneRef.current = null;
       setSceneReady(false);
     };
-  }, [presetReady, bgMode, isPhotoMode, faceTracking.stop]);
+  }, [presetReady, bgMode, mode, faceTracking.stop]);
+
+  useEffect(() => {
+    const onAvatarChange = () => void reloadFromSync();
+    window.addEventListener(PHOTO_AVATAR_CHANGED_EVENT, onAvatarChange);
+    window.addEventListener(AVATAR_2D_CHANGED_EVENT, onAvatarChange);
+    return () => {
+      window.removeEventListener(PHOTO_AVATAR_CHANGED_EVENT, onAvatarChange);
+      window.removeEventListener(AVATAR_2D_CHANGED_EVENT, onAvatarChange);
+    };
+  }, [reloadFromSync]);
 
   useEffect(() => {
     if (!sceneReady) return;

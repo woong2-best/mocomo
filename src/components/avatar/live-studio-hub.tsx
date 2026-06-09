@@ -20,7 +20,7 @@ const STUDIOS = [
     icon: Layers,
     tag: "2D",
     title: "2D 아바타 편집",
-    description: "2D 버츄얼 아바타 편집 (준비 중)",
+    description: "그리기·PNG 업로드 → 투명 PNG 방송 아바타",
     accent: "border-folk-cobalt/35 bg-folk-cobalt/5 hover:border-folk-cobalt/55",
     iconWrap: "bg-folk-cobalt/15 text-folk-cobalt",
   },

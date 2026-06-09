@@ -16,9 +16,10 @@ export function PhotoAvatarUploadPanel({ onReady }: { onReady?: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [mode, setMode] = useState<"vrm" | "photo">(() =>
-    typeof window !== "undefined" ? getPhotoAvatarRenderMode() : "vrm"
-  );
+  const [mode, setMode] = useState<"vrm" | "photo">(() => {
+    if (typeof window === "undefined") return "vrm";
+    return getPhotoAvatarRenderMode() === "photo" ? "photo" : "vrm";
+  });
   const [hasRig, setHasRig] = useState(() =>
     typeof window !== "undefined" ? hasPhotoAvatarRig() : false
   );

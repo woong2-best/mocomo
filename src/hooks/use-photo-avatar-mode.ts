@@ -30,5 +30,11 @@ export function usePhotoAvatarMode() {
     };
   }, [refresh]);
 
-  return { mode, isPhotoMode: mode === "photo", refresh };
+  return {
+    mode,
+    isPhotoMode: mode === "photo",
+    isFlat2dMode: mode === "flat2d",
+    isVrmMode: mode === "vrm",
+    refresh,
+  };
 }
