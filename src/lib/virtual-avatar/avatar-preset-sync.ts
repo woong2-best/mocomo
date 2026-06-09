@@ -2,6 +2,7 @@ import {
   DEFAULT_AVATAR_CONFIG,
   type AvatarConfig,
 } from "@/lib/virtual-avatar/types";
+import { normalizeFaceShape } from "@/lib/virtual-avatar/face-shape-profiles";
 
 export const AVATAR_PRESET_STORAGE_KEY = "mocomo_avatar_preset_v2";
 export const AVATAR_PRESET_VERSION_KEY = "mocomo_avatar_preset_ver";
@@ -40,6 +41,7 @@ export function mergeStoredConfig(parsed: Partial<AvatarConfig>): AvatarConfig {
     face: {
       ...DEFAULT_AVATAR_CONFIG.face,
       ...parsed.face,
+      faceShape: normalizeFaceShape(parsed.face?.faceShape),
       makeup: {
         ...DEFAULT_AVATAR_CONFIG.face.makeup,
         ...parsed.face?.makeup,

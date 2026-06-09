@@ -15,6 +15,7 @@ import {
   getCatalogItem,
   type CatalogItem,
 } from "@/lib/virtual-avatar/avatar-catalog";
+import { getFaceShapeLabel } from "@/lib/virtual-avatar/face-shape-profiles";
 import {
   loadWishlist,
   saveWishlist,
@@ -263,7 +264,7 @@ export function useVirtualAvatarStudio() {
     return {
       height: `${body.height}cm`,
       weight: `${body.weight}kg`,
-      faceShape: face.faceShape,
+      faceShape: getFaceShapeLabel(face.faceShape),
       outfit: outfit.preset,
       hairStyle: hairItem?.name ?? hair.style,
       motion: effects.motion,

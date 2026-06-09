@@ -1,5 +1,13 @@
 export type GenderExpression = "female" | "male" | "neutral";
-export type FaceShape = "oval" | "round" | "heart" | "square" | "long" | "diamond";
+export type FaceShape =
+  | "oval"
+  | "round"
+  | "square"
+  | "long"
+  | "heart"
+  | "invertedTriangle"
+  | "diamond"
+  | "triangle";
 export type OutfitPreset = "casual" | "dressy" | "office" | "game" | "fantasy" | "cyberpunk";
 export type MotionId = "idle" | "wave" | "dance" | "talk" | "smile" | "bow";
 export type ParticleEffect = "none" | "glitter" | "hearts" | "stars" | "fireworks";

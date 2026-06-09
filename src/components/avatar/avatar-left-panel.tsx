@@ -20,6 +20,7 @@ import {
   LIP_COLORS,
   SKIN_TONES,
 } from "@/lib/virtual-avatar/presets";
+import { getFaceShapePatch } from "@/lib/virtual-avatar/face-shape-profiles";
 import type { VirtualAvatarStudioState } from "@/hooks/use-virtual-avatar-studio";
 import { cn } from "@/lib/utils";
 
@@ -106,9 +107,14 @@ export function AvatarLeftPanel({ studio }: { studio: VirtualAvatarStudioState }
           {faceTab === "base" && (
             <>
               <StudioSection title="얼굴형">
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-4 gap-1.5">
                   {FACE_SHAPES.map((shape) => (
-                    <button key={shape.id} type="button" onClick={() => setFace({ faceShape: shape.id })} className={studioChipSm(config.face.faceShape === shape.id, "py-2")}>
+                    <button
+                      key={shape.id}
+                      type="button"
+                      onClick={() => setFace(getFaceShapePatch(shape.id))}
+                      className={studioChipSm(config.face.faceShape === shape.id, "py-2 text-[10px] leading-tight")}
+                    >
                       {shape.label}
                     </button>
                   ))}

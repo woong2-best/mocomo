@@ -242,17 +242,21 @@ export class VirtualAvatarRenderer {
   private faceScale(shape: FaceShape): { sx: number; sy: number } {
     switch (shape) {
       case "round":
-        return { sx: 1.08, sy: 1.05 };
+        return { sx: 1.14, sy: 1.06 };
       case "heart":
-        return { sx: 1.05, sy: 1.1 };
+        return { sx: 1.1, sy: 1.08 };
       case "square":
-        return { sx: 1.1, sy: 1.02 };
+        return { sx: 1.16, sy: 1.02 };
       case "long":
-        return { sx: 0.92, sy: 1.15 };
+        return { sx: 0.86, sy: 1.18 };
       case "diamond":
-        return { sx: 0.95, sy: 1.08 };
+        return { sx: 0.88, sy: 1.1 };
+      case "invertedTriangle":
+        return { sx: 1.12, sy: 1.04 };
+      case "triangle":
+        return { sx: 1.12, sy: 1.0 };
       default:
-        return { sx: 1, sy: 1 };
+        return { sx: 0.94, sy: 1.08 };
     }
   }
 

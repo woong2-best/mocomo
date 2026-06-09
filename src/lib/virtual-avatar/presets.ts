@@ -8,6 +8,7 @@ import type {
   OutfitPreset,
   RenderQuality,
 } from "@/lib/virtual-avatar/types";
+import { FACE_SHAPE_LABELS } from "@/lib/virtual-avatar/face-shape-profiles";
 
 export const RENDER_QUALITIES: { id: RenderQuality; label: string; hint: string }[] = [
   { id: "performance", label: "경량", hint: "방송·저사양" },
@@ -76,14 +77,9 @@ export const LIP_COLORS = [
   { label: "오렌지", hex: "#f97316" },
 ] as const;
 
-export const FACE_SHAPES: { id: FaceShape; label: string }[] = [
-  { id: "oval", label: "타원" },
-  { id: "round", label: "둥근" },
-  { id: "heart", label: "하트" },
-  { id: "square", label: "각진" },
-  { id: "long", label: "긴" },
-  { id: "diamond", label: "다이아" },
-];
+export const FACE_SHAPES: { id: FaceShape; label: string }[] = (
+  Object.entries(FACE_SHAPE_LABELS) as [FaceShape, string][]
+).map(([id, label]) => ({ id, label }));
 
 /** ZEPETO式 원터치 얼굴 프리셋 */
 export const FACE_QUICK_PRESETS: {

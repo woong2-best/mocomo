@@ -1,7 +1,8 @@
 import * as THREE from "three";
 import type { VRM } from "@pixiv/three-vrm";
 import type { VRMHumanBoneName } from "@pixiv/three-vrm-core";
-import type { AvatarConfig, AvatarFaceParams, FaceShape } from "@/lib/virtual-avatar/types";
+import type { AvatarConfig, AvatarFaceParams } from "@/lib/virtual-avatar/types";
+import { getFaceShapeBones } from "@/lib/virtual-avatar/face-shape-profiles";
 import { EYE_COLORS, LIP_COLORS, SKIN_TONES, adjustSkinColor } from "@/lib/virtual-avatar/presets";
 import { setMaterialColor } from "@/lib/virtual-avatar/material-utils";
 import { getCatalogItem } from "@/lib/virtual-avatar/avatar-catalog";
@@ -70,20 +71,30 @@ function eyeOpenAmount(eyeSize: number): number {
   return clamp01(0.1 + (eyeSize / 100) * 0.9);
 }
 
-function faceShapeScale(shape: FaceShape): Vec3 {
-  switch (shape) {
-    case "round":
-      return v(1.06, 1.05, 1.02);
+function applyFaceShapeMorphs(mesh: THREE.Mesh, face: AvatarFaceParams) {
+  const shape = getFaceShapeBones(face.faceShape);
+  const widthHint = shape.jaw.x;
+  if (widthHint > 1.05) {
+    setMorph(mesh, "mthLarge", clamp01((widthHint - 1) * 0.35));
+    setMorph(mesh, "mthSmall", 0);
+  } else if (widthHint < 0.95) {
+    setMorph(mesh, "mthSmall", clamp01((1 - widthHint) * 0.4));
+    setMorph(mesh, "mthLarge", 0);
+  }
+
+  switch (face.faceShape) {
     case "heart":
-      return v(1.04, 1.07, 0.98);
-    case "square":
-      return v(1.08, 1.03, 1.03);
+    case "invertedTriangle":
+      setMorph(mesh, "mthUp", 0.12);
+      break;
     case "long":
-      return v(0.95, 1.1, 0.98);
-    case "diamond":
-      return v(0.96, 1.06, 0.97);
+      setMorph(mesh, "mthDown", 0.1);
+      break;
+    case "round":
+      setMorph(mesh, "eyeJoy", 0.08);
+      break;
     default:
-      return v(1, 1, 1);
+      break;
   }
 }
 
@@ -185,12 +196,12 @@ function applyMouthMorphs(mesh: THREE.Mesh, face: AvatarFaceParams) {
 }
 
 function applyHeadStructure(vrm: VRM, face: AvatarFaceParams) {
-  const shape = faceShapeScale(face.faceShape);
-  const jawWidthD = norm(face.jawWidth, 48, 48);
+  const bones = getFaceShapeBones(face.faceShape);
+  const jawWidthD = norm(face.jawWidth, 50, 50);
   const jawAngleD = norm(face.jawAngle, 50, 50);
   const chinLenD = norm(face.chinLength, 50, 50);
-  const chinPointD = norm(face.chinPoint, 48, 48);
-  const cheekD = norm(face.cheekbone, 52, 52);
+  const chinPointD = norm(face.chinPoint, 50, 50);
+  const cheekD = norm(face.cheekbone, 50, 50);
   const foreheadD = norm(face.forehead, 50, 50);
   const noseSizeD = norm(face.noseSize, 42, 42);
   const noseHeightD = norm(face.noseHeight, 50, 50);
@@ -199,15 +210,15 @@ function applyHeadStructure(vrm: VRM, face: AvatarFaceParams) {
   const noseTipD = norm(face.noseTip, 48, 48);
 
   setRawBoneScale(vrm, "head", {
-    x: shape.x * (1 + jawWidthD * 0.06 + cheekD * 0.04 + noseWidthD * 0.05),
-    y: shape.y * (1 + foreheadD * 0.05 + chinLenD * 0.04 + noseHeightD * 0.05),
-    z: shape.z * (1 + noseSizeD * 0.08 + noseBridgeD * 0.06 + noseTipD * 0.07 + chinPointD * 0.05),
+    x: bones.head.x * (1 + jawWidthD * 0.12 + cheekD * 0.1 + noseWidthD * 0.06),
+    y: bones.head.y * (1 + foreheadD * 0.1 + chinLenD * 0.08 + noseHeightD * 0.06),
+    z: bones.head.z * (1 + noseSizeD * 0.1 + noseBridgeD * 0.08 + noseTipD * 0.08 + chinPointD * 0.06),
   });
 
   setRawBoneScale(vrm, "jaw", {
-    x: 1 + jawWidthD * 0.12,
-    y: 1 + chinLenD * 0.1 + chinPointD * 0.08,
-    z: 1 + jawAngleD * 0.06,
+    x: bones.jaw.x * (1 + jawWidthD * 0.16),
+    y: bones.jaw.y * (1 + chinLenD * 0.14 + chinPointD * 0.1),
+    z: bones.jaw.z * (1 + jawAngleD * 0.12),
   });
 }
 
@@ -251,8 +262,10 @@ export function applyFaceMorphToVrm(
     applyEyeMorphs(mesh, face);
     applyBrowMorphs(mesh, face);
     applyMouthMorphs(mesh, face);
+    applyFaceShapeMorphs(mesh, face);
   } else {
     applyBrowMorphs(mesh, face);
+    applyFaceShapeMorphs(mesh, face);
   }
 }
 
