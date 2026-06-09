@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Flat2dAvatarScene } from "@/lib/avatar-2d/flat-2d-scene";
 import { hasFlat2dAvatar } from "@/lib/avatar-2d/storage";
-import { AVATAR_2D_CHANGED_EVENT } from "@/lib/avatar-2d/storage";
+import { AVATAR_2D_CHANGED_EVENT, MOCOMO_2D_LIBRARY_NAME } from "@/lib/avatar-2d/storage";
 
 export function Avatar2dPreview() {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -32,9 +32,9 @@ export function Avatar2dPreview() {
   if (!hasAvatar) {
     return (
       <p className="text-xs text-muted-foreground text-center py-8">
-        등록된 2D 아바타가 없습니다.
+        {MOCOMO_2D_LIBRARY_NAME}가 비어 있습니다.
         <br />
-        그리기 또는 업로드 후 「방송 적용」을 눌러 주세요.
+        그리기 또는 업로드 후 저장하면 여기에 쌓입니다.
       </p>
     );
   }

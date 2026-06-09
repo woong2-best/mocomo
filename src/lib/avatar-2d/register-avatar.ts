@@ -2,13 +2,13 @@
 
 import { uploadImageBlob } from "@/lib/client-upload";
 import { setPhotoAvatarRenderMode } from "@/lib/photo-avatar/photo-avatar-storage";
-import { saveFlat2dAvatarMeta } from "@/lib/avatar-2d/storage";
+import { addCharacterToLibrary } from "@/lib/avatar-2d/library";
 import type { Flat2dAvatarSource } from "@/lib/avatar-2d/types";
 
 export async function registerFlat2dAvatar(
   pngBlob: Blob,
-  opts: { width: number; height: number; source: Flat2dAvatarSource }
-): Promise<{ cloudUrl?: string }> {
+  opts: { width: number; height: number; source: Flat2dAvatarSource; name?: string }
+): Promise<{ cloudUrl?: string; characterId: string }> {
   let cloudUrl: string | undefined;
   try {
     cloudUrl = await uploadImageBlob(pngBlob, `avatar-2d-${Date.now()}.png`);
@@ -16,21 +16,15 @@ export async function registerFlat2dAvatar(
     /* 로컬 저장만 */
   }
 
-  await saveFlat2dAvatarMeta(
-    {
-      version: 1,
-      width: opts.width,
-      height: opts.height,
-      source: opts.source,
-      imageUrl: cloudUrl ?? "idb://avatar2d",
-      cloudUrl,
-      registeredAt: new Date().toISOString(),
-    },
-    pngBlob
-  );
+  const characterId = await addCharacterToLibrary(pngBlob, {
+    width: opts.width,
+    height: opts.height,
+    source: opts.source,
+    cloudUrl,
+  });
 
   setPhotoAvatarRenderMode("flat2d");
-  return { cloudUrl };
+  return { cloudUrl, characterId };
 }
 
 /** File → PNG blob (투명 유지) */

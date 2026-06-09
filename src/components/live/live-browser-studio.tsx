@@ -1,10 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Mic, MicOff, MonitorUp, Radio, Sparkles, Video, VideoOff } from "lucide-react";
+import { Loader2, Mic, MicOff, MonitorUp, Radio, Video, VideoOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { cn } from "@/lib/utils";
 import { FaceFilterStrip } from "@/components/media/face-filter-strip";
 import { LiveHostCollabPasswordStrip } from "@/components/live/live-host-collab-password-strip";
 import { LiveHostPublishBlocked } from "@/components/live/live-host-publish-blocked";
@@ -26,6 +24,8 @@ import {
   type LiveAvatarLayout,
   type LiveAvatarPublishHandle,
 } from "@/components/live/live-avatar-publish";
+import { Live2dLibraryPanel, useLive2dLibraryActiveId } from "@/components/live/live-2d-library-panel";
+import { setPhotoAvatarRenderMode } from "@/lib/photo-avatar/photo-avatar-storage";
 
 const VTUBER_STORAGE_KEY = "mocomo_live_vtuber";
 const VTUBER_LAYOUT_KEY = "mocomo_live_vtuber_layout";
@@ -119,8 +119,7 @@ export function LiveBrowserStudio({
   const [vtuberMode, setVtuberMode] = useState(() => readVtuberEnabled());
   const [avatarLayout, setAvatarLayout] = useState<LiveAvatarLayout>(() => readVtuberLayout());
   const [avatarBackground, setAvatarBackground] = useState<LiveAvatarBackground>(() => readVtuberBackground());
-  const [vtuberFaceOk, setVtuberFaceOk] = useState(false);
-  const [vtuberTracking, setVtuberTracking] = useState({ face: false, body: false, hands: false });
+  const equipped2dId = useLive2dLibraryActiveId();
 
   const serverLive =
     publishState === "live_here" || publishState === "live_elsewhere";
@@ -128,22 +127,6 @@ export function LiveBrowserStudio({
   useEffect(() => {
     onAirChange?.(whipConnected && publishState === "live_here");
   }, [whipConnected, publishState, onAirChange]);
-
-  useEffect(() => {
-    if (!vtuberMode || !ready) return;
-    const poll = () => {
-      const status = avatarPublishRef.current?.getTrackingStatus();
-      if (status) {
-        setVtuberTracking({ face: status.face, body: status.body, hands: status.hands });
-        setVtuberFaceOk(status.face || status.body);
-      } else {
-        setVtuberFaceOk(avatarPublishRef.current?.isFaceDetected() ?? false);
-      }
-    };
-    poll();
-    const id = window.setInterval(poll, 400);
-    return () => window.clearInterval(id);
-  }, [vtuberMode, ready]);
 
   useEffect(() => {
     if (!vtuberMode || !ready) return;
@@ -270,7 +253,6 @@ export function LiveBrowserStudio({
         const pub = avatar.getPublishStream();
         if (!pub) throw new Error("VTuber 송출 스트림을 만들지 못했습니다.");
         streamRef.current = pub;
-        setVtuberFaceOk(avatar.isFaceDetected());
         return pub;
       }
 
@@ -380,6 +362,7 @@ export function LiveBrowserStudio({
       sessionStorage.setItem(VTUBER_LAYOUT_KEY, layout);
 
       if (next) {
+        setPhotoAvatarRenderMode("flat2d");
         await stopFilterPipeline();
         await new Promise<void>((r) => requestAnimationFrame(() => r()));
       } else {
@@ -404,37 +387,16 @@ export function LiveBrowserStudio({
     ]
   );
 
-  const toggleVtuber = useCallback(async () => {
-    try {
-      await applyVtuberMode(!vtuberMode);
-    } catch (e) {
-      setLiveError(e instanceof Error ? e.message : "VTuber 모드 전환 실패");
-    }
-  }, [applyVtuberMode, vtuberMode]);
-
-  const setVtuberLayout = useCallback(
-    async (layout: LiveAvatarLayout) => {
-      setAvatarLayout(layout);
-      sessionStorage.setItem(VTUBER_LAYOUT_KEY, layout);
-      avatarPublishRef.current?.setLayout(layout);
-      if (!vtuberMode) return;
-      try {
-        streamRef.current = null;
-        const stream = await ensureLocalStream({ vtuber: true, layout });
-        attachPreviewCanvas();
-        if (whipConnected && stream) await restartWhipWithStream(stream);
-      } catch (e) {
-        setLiveError(e instanceof Error ? e.message : "VTuber 레이아웃 변경 실패");
-      }
+  const equip2dCharacter = useCallback(
+    async (_characterId: string) => {
+      await applyVtuberMode(true);
     },
-    [attachPreviewCanvas, ensureLocalStream, restartWhipWithStream, vtuberMode, whipConnected]
+    [applyVtuberMode]
   );
 
-  const setVtuberBackground = useCallback((bg: LiveAvatarBackground) => {
-    setAvatarBackground(bg);
-    sessionStorage.setItem(VTUBER_BG_KEY, bg);
-    avatarPublishRef.current?.setBackground(bg);
-  }, []);
+  const unequip2dCharacter = useCallback(async () => {
+    await applyVtuberMode(false);
+  }, [applyVtuberMode]);
 
   useEffect(() => {
     if (!ready || (publishState !== "idle" && publishState !== "live_here")) return;
@@ -700,7 +662,7 @@ export function LiveBrowserStudio({
       )}
       {vtuberMode && !screenOn && (
         <span className="absolute top-3 right-3 px-2 py-0.5 rounded bg-violet-600 text-white text-[10px] font-bold z-10">
-          VTUBER
+          2D
         </span>
       )}
       <LiveOverlayLayer className="z-20" />
@@ -747,73 +709,24 @@ export function LiveBrowserStudio({
       )}
 
       {!screenOn && (
-        <div className="flex flex-col gap-2 rounded-xl border border-border/60 bg-muted/30 p-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant={vtuberMode ? "default" : "outline"}
-              size="sm"
-              className={cn("rounded-xl gap-1.5", vtuberMode && "bg-violet-600 hover:bg-violet-700")}
-              disabled={goingLive && whipConnected}
-              onClick={() => void toggleVtuber()}
-            >
-              <Sparkles className="h-4 w-4" />
-              VTuber 아바타
-            </Button>
-            {vtuberMode && (
-              <>
-                <Button
-                  type="button"
-                  variant={avatarLayout === "avatar" ? "secondary" : "outline"}
-                  size="sm"
-                  className="rounded-xl text-xs"
-                  onClick={() => void setVtuberLayout("avatar")}
-                >
-                  아바타만
-                </Button>
-                <Button
-                  type="button"
-                  variant={avatarLayout === "camera-bg" ? "secondary" : "outline"}
-                  size="sm"
-                  className="rounded-xl text-xs"
-                  onClick={() => void setVtuberLayout("camera-bg")}
-                >
-                  카메라+아바타
-                </Button>
-                <Button
-                  type="button"
-                  variant={avatarBackground === "gradient" ? "secondary" : "outline"}
-                  size="sm"
-                  className="rounded-xl text-xs"
-                  onClick={() => setVtuberBackground("gradient")}
-                >
-                  그라데이션
-                </Button>
-                <Button
-                  type="button"
-                  variant={avatarBackground === "chroma" ? "secondary" : "outline"}
-                  size="sm"
-                  className="rounded-xl text-xs"
-                  onClick={() => setVtuberBackground("chroma")}
-                >
-                  크로마(#00FF00)
-                </Button>
-              </>
-            )}
-            <Button type="button" variant="ghost" size="sm" className="rounded-xl text-xs" asChild>
-              <Link href="/avatar/studio/3d" target="_blank" rel="noopener noreferrer">
-                아바타 꾸미기 ↗
-              </Link>
-            </Button>
-          </div>
-          {vtuberMode && (
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              {vtuberFaceOk
-                ? `트래킹 ON — 얼굴${vtuberTracking.body ? "·몸" : ""}${vtuberTracking.hands ? "·손" : ""} · WHIP 1080p 송출`
-                : "카메라를 정면·상반신까지 비추면 표정·몸·손이 따라 움직입니다. (합방·모바일 VTuber 지원)"}
-            </p>
-          )}
-        </div>
+        <Live2dLibraryPanel
+          equippedId={equipped2dId}
+          vtuberActive={vtuberMode}
+          onEquip={async (id) => {
+            try {
+              await equip2dCharacter(id);
+            } catch (e) {
+              setLiveError(e instanceof Error ? e.message : "2D 아바타 적용 실패");
+            }
+          }}
+          onUnequip={async () => {
+            try {
+              await unequip2dCharacter();
+            } catch (e) {
+              setLiveError(e instanceof Error ? e.message : "2D 아바타 해제 실패");
+            }
+          }}
+        />
       )}
 
       <div className="flex flex-wrap gap-2">

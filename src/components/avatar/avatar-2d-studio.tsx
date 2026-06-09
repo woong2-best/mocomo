@@ -9,6 +9,7 @@ import { Avatar2dUploadPanel } from "@/components/avatar/avatar-2d-upload-panel"
 import { StudioBackLink } from "@/components/avatar/studio-back-link";
 import { FolkBrushDivider } from "@/components/brand/folk-decor";
 import { Button } from "@/components/ui/button";
+import { MOCOMO_2D_LIBRARY_NAME } from "@/lib/avatar-2d/library";
 import { canvasToPngBlob, registerFlat2dAvatar } from "@/lib/avatar-2d/register-avatar";
 import { AVATAR_2D_SIZE } from "@/lib/avatar-2d/types";
 import { cn } from "@/lib/utils";
@@ -49,7 +50,7 @@ export function Avatar2dStudio() {
         height: AVATAR_2D_SIZE,
         source: "draw",
       });
-      setMsg("2D 아바타가 등록되었습니다. OBS·라이브 방송에 적용됩니다.");
+      setMsg(`${MOCOMO_2D_LIBRARY_NAME}에 저장되었습니다. 라방에서 더블클릭해 방송에 붙이세요.`);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "등록 실패");
     } finally {
@@ -125,7 +126,11 @@ export function Avatar2dStudio() {
               </Button>
             </>
           ) : (
-            <Avatar2dUploadPanel onRegistered={() => setMsg("2D 아바타가 등록되었습니다.")} />
+            <Avatar2dUploadPanel
+              onRegistered={() =>
+                setMsg(`${MOCOMO_2D_LIBRARY_NAME}에 저장되었습니다. 라방에서 더블클릭해 방송에 붙이세요.`)
+              }
+            />
           )}
           {err && <p className="text-sm text-destructive mt-3">{err}</p>}
           {msg && <p className="text-sm text-emerald-600 mt-3">{msg}</p>}
@@ -133,7 +138,7 @@ export function Avatar2dStudio() {
 
         <div className="xl:col-span-4 space-y-4">
           <div className="folk-card p-4">
-            <h2 className="text-sm font-bold text-folk-cobalt mb-3">등록된 아바타</h2>
+            <h2 className="text-sm font-bold text-folk-cobalt mb-3">{MOCOMO_2D_LIBRARY_NAME}</h2>
             <Avatar2dPreview />
           </div>
 
@@ -143,7 +148,7 @@ export function Avatar2dStudio() {
               <li>연필 · 펜 · G펜 · 에어브러시 · 지우개 · 채우기 · 스포이드</li>
               <li>실행 취소 · 다시 실행 (Ctrl+Z / Ctrl+Y)</li>
               <li>PNG/JPG 업로드 → 투명 PNG 저장</li>
-              <li>라이브·OBS 브라우저 소스 자동 연동</li>
+              <li>라이브에서 {MOCOMO_2D_LIBRARY_NAME} 더블클릭으로 방송 적용</li>
             </ul>
           </div>
 
