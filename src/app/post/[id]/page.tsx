@@ -15,11 +15,8 @@ export const dynamic = "force-dynamic";
 
 export default async function PostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [post, locale, session] = await Promise.all([
-    getPostDetail(id),
-    getRequestLocale(),
-    auth(),
-  ]);
+  const [locale, session] = await Promise.all([getRequestLocale(), auth()]);
+  const post = await getPostDetail(id, session?.user?.id);
 
   if (!post) notFound();
 

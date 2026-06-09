@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import { PostMediaComposer, type PostMediaItem } from "@/components/media/post-media-composer";
+import { ComposePollEditor } from "@/components/compose/compose-poll-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { CreatePostPollInput } from "@/lib/post-poll";
+import { validatePostPollInput } from "@/lib/post-poll";
 
 function friendlyPostError(err: unknown, apiError?: string): string {
   if (apiError) return apiError;
@@ -32,6 +35,7 @@ export function ComposeForm({
   const [mediaUploading, setMediaUploading] = useState(false);
   const [error, setError] = useState("");
   const [media, setMedia] = useState<PostMediaItem[]>([]);
+  const [poll, setPoll] = useState<CreatePostPollInput | null>(null);
   const submitBusy = loading || mediaUploading;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -52,6 +56,15 @@ export function ComposeForm({
 
     const form = new FormData(formEl);
     const tags = (form.get("tags") as string)?.split(",").map((t) => t.trim()).filter(Boolean);
+
+    if (poll) {
+      const pollErr = validatePostPollInput(poll);
+      if (pollErr) {
+        setError(pollErr);
+        return;
+      }
+    }
+
     const payload = {
       title: (form.get("title") as string) || undefined,
       content: form.get("content") as string,
@@ -59,6 +72,7 @@ export function ComposeForm({
       isNsfw: form.get("isNsfw") === "on",
       tagNames: tags,
       media: media.map((m) => ({ url: m.url, type: m.type })),
+      poll: poll ?? undefined,
     };
 
     setLoading(true);
@@ -124,6 +138,7 @@ export function ComposeForm({
         placeholder="태그 (쉼표로 구분) 예: 원신, 코스프레"
         className="rounded-xl"
       />
+      <ComposePollEditor value={poll} onChange={setPoll} disabled={submitBusy} />
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="isNsfw" />
         NSFW

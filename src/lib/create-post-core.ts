@@ -5,6 +5,11 @@ import { calcHotScore, tagSlugFromName } from "@/lib/utils";
 import type { MediaType } from "@prisma/client";
 import { revalidateTag } from "next/cache";
 import { notifyNewPostMentions } from "@/lib/notifications";
+import {
+  pollClosesAtFromDuration,
+  validatePostPollInput,
+  type CreatePostPollInput,
+} from "@/lib/post-poll";
 
 export type CreatePostInput = {
   content: string;
@@ -13,6 +18,7 @@ export type CreatePostInput = {
   isNsfw?: boolean;
   tagNames?: string[];
   media?: { url: string; type: MediaType }[];
+  poll?: CreatePostPollInput;
 };
 
 function isPersistableMediaUrl(url: string): boolean {
@@ -33,6 +39,11 @@ export async function createPostForUser(
   const content = data.content?.trim();
   if (!content) return { error: "내용을 입력해 주세요." };
 
+  if (data.poll) {
+    const pollErr = validatePostPollInput(data.poll);
+    if (pollErr) return { error: pollErr };
+  }
+
   try {
     let communityId: string | undefined = data.communityId?.trim() || undefined;
     if (communityId) {
@@ -47,6 +58,10 @@ export async function createPostForUser(
       .filter((m) => m.url && isPersistableMediaUrl(m.url))
       .map((m) => ({ url: m.url.trim(), type: m.type }));
 
+    const pollOptions = data.poll
+      ? data.poll.options.map((o) => o.trim()).filter(Boolean)
+      : [];
+
     const post = await db.post.create({
       data: {
         title: data.title?.trim() || null,
@@ -58,6 +73,17 @@ export async function createPostForUser(
         media:
           mediaRows.length > 0
             ? { create: mediaRows.map((m, i) => ({ ...m, order: i })) }
+            : undefined,
+        poll:
+          data.poll && pollOptions.length >= 2
+            ? {
+                create: {
+                  closesAt: pollClosesAtFromDuration(data.poll.durationMinutes),
+                  options: {
+                    create: pollOptions.map((label, order) => ({ label, order })),
+                  },
+                },
+              }
             : undefined,
       },
       select: { id: true },

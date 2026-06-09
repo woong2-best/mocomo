@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { formatCompactNumberKo, formatFeedRelativeTime } from "@/lib/format-feed";
 import type { GridPost } from "@/components/feed/feed-post-card";
+import { PostPollCard } from "@/components/post/post-poll-card";
 import { engageStar, postEngage } from "@/lib/post-engage-client";
 
 const CAPTION_PREVIEW_LEN = 80;
@@ -306,6 +307,8 @@ export function FeedPhotoPostCard({
           </p>
         </div>
       )}
+
+      {post.poll && <PostPollCard postId={post.id} poll={post.poll} compact />}
 
       {actionError && <p className="px-3 pb-2 text-xs text-destructive">{actionError}</p>}
     </article>

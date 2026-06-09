@@ -588,6 +588,33 @@ CREATE TABLE IF NOT EXISTS "ChatPollVote" (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "ChatPollVote_pollId_userId_key" ON "ChatPollVote"("pollId", "userId");
 
+-- S) 게시글 투표 (트위터 스타일)
+CREATE TABLE IF NOT EXISTS "PostPoll" (
+  "id" TEXT NOT NULL,
+  "postId" TEXT NOT NULL,
+  "closesAt" TIMESTAMP(3) NOT NULL,
+  "closed" BOOLEAN NOT NULL DEFAULT false,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "PostPoll_pkey" PRIMARY KEY ("id")
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "PostPoll_postId_key" ON "PostPoll"("postId");
+CREATE TABLE IF NOT EXISTS "PostPollOption" (
+  "id" TEXT NOT NULL,
+  "pollId" TEXT NOT NULL,
+  "label" TEXT NOT NULL,
+  "order" INTEGER NOT NULL DEFAULT 0,
+  CONSTRAINT "PostPollOption_pkey" PRIMARY KEY ("id")
+);
+CREATE TABLE IF NOT EXISTS "PostPollVote" (
+  "id" TEXT NOT NULL,
+  "pollId" TEXT NOT NULL,
+  "optionId" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "votedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "PostPollVote_pkey" PRIMARY KEY ("id")
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "PostPollVote_pollId_userId_key" ON "PostPollVote"("pollId", "userId");
+
 -- R) 라이브 플랫폼 확장 (카테고리·클립·스트리머 프로필)
 DO $$ BEGIN
   CREATE TYPE "LiveStreamCategory" AS ENUM ('LIVE', 'JUST_CHATTING', 'GAME', 'MUSIC', 'IRL');

@@ -13,6 +13,7 @@ import { formatNumber, cn } from "@/lib/utils";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { userDisplayName } from "@/lib/user-public-select";
 import type { GridPost } from "@/components/feed/feed-post-card";
+import { PostPollCard } from "@/components/post/post-poll-card";
 import { engageStar, postEngage } from "@/lib/post-engage-client";
 
 const typeLabels: Record<string, string> = {
@@ -183,6 +184,10 @@ export function FeedTextPostCard({
           )}
           <p className="text-sm text-foreground/85 line-clamp-6 whitespace-pre-wrap">{post.content}</p>
         </Link>
+
+        {post.poll && (
+          <PostPollCard postId={post.id} poll={post.poll} compact />
+        )}
 
         {post.anime && (
           <Link

@@ -8,6 +8,7 @@ import { formatNumber } from "@/lib/utils";
 import type { SupportTierLevel } from "@prisma/client";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { userDisplayName } from "@/lib/user-public-select";
+import type { PostPollView } from "@/lib/post-poll";
 
 export type GridPost = {
   id: string;
@@ -26,6 +27,7 @@ export type GridPost = {
   };
   anime?: { title: string; slug: string } | null;
   media?: { url: string; type: string }[];
+  poll?: PostPollView | null;
   _count?: { likes: number; comments: number; votes: number; reposts?: number };
 };
 

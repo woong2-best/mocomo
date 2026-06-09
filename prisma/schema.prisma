@@ -105,6 +105,7 @@ model User {
   messageReads  MessageRead[]
   chatPollsCreated ChatPoll[]
   chatPollVotes    ChatPollVote[]
+  postPollVotes    PostPollVote[]
 
   voiceMembers  VoiceMember[]
   liveChatMessages LiveChatMessage[]
@@ -334,6 +335,7 @@ model Post {
   reports   Report[]
   likes     Like[]
   reposts   Repost[]
+  poll      PostPoll?
 
   @@index([createdAt(sort: Desc)])
   @@index([hotScore(sort: Desc), createdAt(sort: Desc)])
@@ -405,6 +407,42 @@ model Vote {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
   @@unique([userId, postId])
+}
+
+model PostPoll {
+  id        String   @id @default(cuid())
+  postId    String   @unique
+  closesAt  DateTime
+  closed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  post    Post             @relation(fields: [postId], references: [id], onDelete: Cascade)
+  options PostPollOption[]
+  votes   PostPollVote[]
+}
+
+model PostPollOption {
+  id     String @id @default(cuid())
+  pollId String
+  label  String
+  order  Int    @default(0)
+
+  poll  PostPoll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes PostPollVote[]
+}
+
+model PostPollVote {
+  id       String   @id @default(cuid())
+  pollId   String
+  optionId String
+  userId   String
+  votedAt  DateTime @default(now())
+
+  poll   PostPoll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  option PostPollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, userId])
 }
 
 model Bookmark {

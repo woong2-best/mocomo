@@ -8,7 +8,7 @@ import { getTipRanking } from "@/actions/monetization";
 import { getRankings } from "@/actions/events";
 import { getAnimeCountByGenre } from "@/actions/anime";
 import { getWeeklyHighlights } from "@/lib/weekly-highlights";
-import { feedPostListSelect, trimFeedPostContent } from "@/lib/feed-query";
+import { feedPostListSelect, mapFeedPost } from "@/lib/feed-query";
 
 export const getCachedWeeklyHighlights = unstable_cache(
   async () => getWeeklyHighlights(2),
@@ -24,9 +24,9 @@ export const getCachedFeedPosts = unstable_cache(
         orderBy: { createdAt: "desc" },
         select: feedPostListSelect,
       });
-      return posts.map(trimFeedPostContent);
+      return posts.map(mapFeedPost);
     } catch (e) {
-      console.error("[home-feed] reposts count", e);
+      console.error("[home-feed] poll/reposts", e);
       const posts = await db.post.findMany({
         take: 12,
         orderBy: { createdAt: "desc" },
@@ -36,8 +36,9 @@ export const getCachedFeedPosts = unstable_cache(
         },
       });
       return posts.map((p) =>
-        trimFeedPostContent({
+        mapFeedPost({
           ...p,
+          poll: null,
           _count: { ...p._count, reposts: 0 },
         })
       );

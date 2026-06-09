@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import type { Locale } from "@/lib/i18n/config";
 import type { getPostDetail } from "@/lib/post-queries";
+import { PostPollCard } from "@/components/post/post-poll-card";
 
 const dateLocales = { ko, en: enUS, ja, zh: zhCN } as const;
 
@@ -44,6 +45,9 @@ export function PostDetailCard({
         </div>
         {post.title && <h1 className="text-xl font-bold">{post.title}</h1>}
         <p className="whitespace-pre-wrap">{post.content}</p>
+        {post.poll && (
+          <PostPollCard postId={post.id} poll={post.poll} />
+        )}
         {post.media.map((m) => (
           // eslint-disable-next-line @next/next/no-img-element
           <img key={m.id} src={m.url} alt="" className="rounded-lg max-w-full" loading="lazy" />

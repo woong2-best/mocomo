@@ -3,6 +3,7 @@ import { FEED_POSTS_CACHE_TAG } from "@/lib/cache-tags";
 import { db } from "@/lib/db";
 import { userPublicSelect } from "@/lib/user-public-select";
 import { postMediaPreview } from "@/lib/post-media-select";
+import { postPollSelect, mapPostPollRow } from "@/lib/post-poll";
 
 const FEED_POST_MAX_CONTENT = 520;
 
@@ -16,6 +17,7 @@ export const feedPostListSelect = {
   author: { select: userPublicSelect },
   anime: { select: { title: true, slug: true } },
   media: postMediaPreview,
+  poll: { select: postPollSelect },
   _count: { select: { likes: true, comments: true, votes: true, reposts: true } },
 } as const;
 
@@ -37,9 +39,33 @@ export function trimFeedPostContent<T extends { content: string }>(post: T): T {
   return { ...post, content: `${post.content.slice(0, FEED_POST_MAX_CONTENT)}…` };
 }
 
+function mapFeedPost<T extends { poll: Parameters<typeof mapPostPollRow>[0] | null; content: string }>(
+  post: T
+) {
+  return trimFeedPostContent({
+    ...post,
+    poll: post.poll ? mapPostPollRow(post.poll) : null,
+  });
+}
+
+export { mapFeedPost };
+
 const feedPostListSelectNoReposts = {
   ...feedPostListSelect,
   _count: { select: { likes: true, comments: true, votes: true } },
+} as const;
+
+const feedPostListSelectNoPoll = {
+  id: true,
+  title: true,
+  content: true,
+  postType: true,
+  createdAt: true,
+  isNsfw: true,
+  author: { select: userPublicSelect },
+  anime: { select: { title: true, slug: true } },
+  media: postMediaPreview,
+  _count: { select: { likes: true, comments: true, votes: true, reposts: true } },
 } as const;
 
 export async function fetchFeedPostsPage(cursor: string | null, limit: number) {
@@ -51,16 +77,23 @@ export async function fetchFeedPostsPage(cursor: string | null, limit: number) {
 
   try {
     const posts = await db.post.findMany({ ...query, select: feedPostListSelect });
-    return posts.map(trimFeedPostContent);
+    return posts.map(mapFeedPost);
   } catch (e) {
-    console.error("[feed] reposts count", e);
-    const posts = await db.post.findMany({ ...query, select: feedPostListSelectNoReposts });
-    return posts.map((p) =>
-      trimFeedPostContent({
-        ...p,
-        _count: { ...p._count, reposts: 0 },
-      })
-    );
+    console.error("[feed] poll/reposts", e);
+    try {
+      const posts = await db.post.findMany({ ...query, select: feedPostListSelectNoReposts });
+      return posts.map((p) =>
+        mapFeedPost({
+          ...p,
+          poll: null,
+          _count: { ...p._count, reposts: 0 },
+        })
+      );
+    } catch (e2) {
+      console.error("[feed] fallback", e2);
+      const posts = await db.post.findMany({ ...query, select: feedPostListSelectNoPoll });
+      return posts.map((p) => trimFeedPostContent({ ...p, poll: null }));
+    }
   }
 }
 

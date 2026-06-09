@@ -44,6 +44,14 @@ export async function POST(req: NextRequest) {
     isNsfw: Boolean(body.isNsfw),
     tagNames: Array.isArray(body.tagNames) ? body.tagNames.map(String) : [],
     media,
+    poll: body.poll
+      ? {
+          options: Array.isArray(body.poll.options)
+            ? body.poll.options.map(String)
+            : [],
+          durationMinutes: Number(body.poll.durationMinutes),
+        }
+      : undefined,
   });
 
   if (result.error) {
