@@ -547,7 +547,7 @@ export class VirtualAvatar3DScene {
     if (key === this.lastEquippedKey || this.attachmentSyncPending) return;
     this.lastEquippedKey = key;
     this.attachmentSyncPending = true;
-    void this.attachments.sync(this.vrm, config).finally(() => {
+    void this.attachments.sync(this.vrm).finally(() => {
       this.attachmentSyncPending = false;
     });
   }

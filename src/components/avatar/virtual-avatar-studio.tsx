@@ -3,7 +3,7 @@
 import { useCallback, useRef } from "react";
 import { AvatarCanvasView } from "@/components/avatar/avatar-canvas-view";
 import { AvatarLeftPanel } from "@/components/avatar/avatar-left-panel";
-import { AvatarShopPanel } from "@/components/avatar/avatar-shop-panel";
+import { AvatarBasicOutfitPanel } from "@/components/avatar/avatar-basic-outfit-panel";
 import { AvatarStudioExtrasPanel } from "@/components/avatar/avatar-studio-extras-panel";
 import { AvatarTexturePaintPanel } from "@/components/avatar/avatar-texture-paint-panel";
 import { useVirtualAvatarStudio } from "@/hooks/use-virtual-avatar-studio";
@@ -60,7 +60,7 @@ export function VirtualAvatarStudio() {
             버츄얼 아바타 스튜디오
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            3D 부착 · MToon · UV 페인트 · 메시 스컬pt · 74종 무료 옷장 · 클라우드 프리셋
+            3D VRM · 체형·얼굴·기본 의상 색상 · UV 페인트 · 라이브 VTuber 연동
           </p>
         </div>
         <div className="flex flex-wrap gap-1 rounded-xl bg-muted/50 border border-[hsl(var(--folk-cobalt)/0.12)] p-1 w-full sm:w-auto">
@@ -100,7 +100,7 @@ export function VirtualAvatarStudio() {
         <AvatarLeftPanel studio={studio} />
         <AvatarCanvasView studio={studio} onRendererReady={handleRendererReady} />
         <div className="lg:col-span-3 flex flex-col gap-3 min-h-0 overflow-y-auto">
-          <AvatarShopPanel studio={studio} />
+          <AvatarBasicOutfitPanel studio={studio} />
           <AvatarTexturePaintPanel studio={studio} sceneRef={rendererRef} />
           <AvatarStudioExtrasPanel studio={studio} onExportPng={exportPng} sceneRef={rendererRef} />
         </div>

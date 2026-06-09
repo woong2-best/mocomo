@@ -30,6 +30,8 @@ export const SKIN_TONES = [
 ] as const;
 
 export const TOP_COLORS = [
+  "#e8d4b8",
+  "#f8fafc",
   "#3b82f6",
   "#06b6d4",
   "#22c55e",
@@ -37,7 +39,29 @@ export const TOP_COLORS = [
   "#f97316",
   "#ec4899",
   "#6366f1",
+  "#1e293b",
+] as const;
+
+export const BOTTOM_COLORS = [
+  "#475569",
+  "#334155",
+  "#1e293b",
+  "#4c1d95",
+  "#831843",
+  "#374151",
+  "#0f172a",
+  "#64748b",
+] as const;
+
+export const SHOE_COLORS = [
+  "#c4a574",
   "#f8fafc",
+  "#1a1a1a",
+  "#5c4033",
+  "#ffffff",
+  "#334155",
+  "#dc2626",
+  "#3b82f6",
 ] as const;
 
 export const HAIR_COLORS = [

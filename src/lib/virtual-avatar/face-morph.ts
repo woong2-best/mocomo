@@ -291,7 +291,7 @@ export function applyAppearanceToVrm(vrm: VRM, config: AvatarConfig) {
   const skinHex = SKIN_TONES[skin.toneIndex]?.hex ?? SKIN_TONES[2].hex;
   const skinColor = new THREE.Color(adjustSkinColor(skinHex, skin.brightness, skin.saturation));
 
-  const hairCatalog = getCatalogItem(equipped.hairId);
+  const hairCatalog = equipped.hairId ? getCatalogItem(equipped.hairId) : undefined;
   const hairStyle = hairCatalog?.appearance.hairStyle ?? hair.style;
   const hairColor = new THREE.Color(HAIR_COLOR_BY_INDEX[hair.colorIndex] ?? "#1a1a1a");
 

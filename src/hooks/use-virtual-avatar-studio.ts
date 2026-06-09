@@ -260,7 +260,7 @@ export function useVirtualAvatarStudio() {
 
   const summary = useMemo(() => {
     const { body, face, outfit, hair, effects, equipped } = config;
-    const hairItem = getCatalogItem(equipped.hairId);
+    const hairItem = equipped.hairId ? getCatalogItem(equipped.hairId) : undefined;
     return {
       height: `${body.height}cm`,
       weight: `${body.weight}kg`,

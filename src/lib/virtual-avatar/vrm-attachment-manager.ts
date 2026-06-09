@@ -2,10 +2,9 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import type { VRM } from "@pixiv/three-vrm";
 import type { AvatarConfig } from "@/lib/virtual-avatar/types";
-import { getCatalogItem, type CatalogAttachment } from "@/lib/virtual-avatar/avatar-catalog";
 import { buildProceduralAttachment } from "@/lib/virtual-avatar/attachment-procedural";
 import { cacheAttachmentGlb, loadCachedAttachmentGlb } from "@/lib/virtual-avatar/attachment-glb-cache";
-import { HAIR_COLOR_BY_INDEX } from "@/lib/virtual-avatar/face-morph-colors";
+import type { CatalogAttachment } from "@/lib/virtual-avatar/avatar-catalog";
 
 type VrmBoneName =
   | "head"
@@ -44,101 +43,11 @@ export class VrmAttachmentManager {
     this.mountedVrm = null;
   }
 
-  async sync(vrm: VRM, config: AvatarConfig) {
-    const key = JSON.stringify({
-      e: config.equipped,
-      h: config.hair,
-      o: config.outfit,
-    });
-    if (key === this.cacheKey) return;
-    this.cacheKey = key;
+  async sync(vrm: VRM) {
+    if (this.cacheKey === "native-only") return;
+    this.cacheKey = "native-only";
     this.clear();
     this.setDefaultHairVisible(vrm, true);
-
-    const full = config.equipped.fullOutfitId ? getCatalogItem(config.equipped.fullOutfitId) : null;
-    if (full?.appearance.attachment) {
-      await this.attachItem(
-        vrm,
-        full.appearance.attachment,
-        config,
-        full.appearance.topColor ?? config.outfit.topColor,
-        undefined,
-        false
-      );
-      return;
-    }
-
-    const hair = getCatalogItem(config.equipped.hairId);
-    if (hair?.appearance.attachment) {
-      this.setDefaultHairVisible(vrm, false);
-      await this.attachItem(
-        vrm,
-        hair.appearance.attachment,
-        config,
-        HAIR_COLOR_BY_INDEX[config.hair.colorIndex] ?? hair.appearance.topColor ?? "#1a1a1a",
-        hair.previewTo
-      );
-    }
-
-    const top = getCatalogItem(config.equipped.topId);
-    if (top?.appearance.attachment && config.outfit.layers.top) {
-      await this.attachItem(
-        vrm,
-        top.appearance.attachment,
-        config,
-        top.appearance.topColor ?? config.outfit.topColor,
-        undefined,
-        false
-      );
-    }
-
-    const bottom = getCatalogItem(config.equipped.bottomId);
-    if (bottom?.appearance.attachment && config.outfit.layers.bottom) {
-      await this.attachItem(
-        vrm,
-        bottom.appearance.attachment,
-        config,
-        bottom.appearance.bottomColor ?? config.outfit.bottomColor,
-        undefined,
-        false
-      );
-    }
-
-    if (config.outfit.layers.shoes) {
-      const shoes = getCatalogItem(config.equipped.shoesId);
-      if (shoes?.appearance.attachment) {
-        await this.attachItem(
-          vrm,
-          { ...shoes.appearance.attachment, bone: "leftFoot" },
-          config,
-          shoes.appearance.accentColor ?? config.outfit.accentColor,
-          undefined,
-          false
-        );
-        await this.attachItem(
-          vrm,
-          { ...shoes.appearance.attachment, bone: "rightFoot", offset: { x: 0, y: 0, z: 0 } },
-          config,
-          shoes.appearance.accentColor ?? config.outfit.accentColor,
-          undefined,
-          false
-        );
-      }
-    }
-
-    if (config.outfit.layers.headwear && config.equipped.headwearId) {
-      const head = getCatalogItem(config.equipped.headwearId);
-      if (head?.appearance.attachment) {
-        await this.attachItem(vrm, head.appearance.attachment, config, head.appearance.accentColor ?? config.outfit.accentColor);
-      }
-    }
-
-    if (config.outfit.layers.accessories && config.equipped.accessoryId) {
-      const acc = getCatalogItem(config.equipped.accessoryId);
-      if (acc?.appearance.attachment) {
-        await this.attachItem(vrm, acc.appearance.attachment, config, acc.appearance.accentColor ?? config.outfit.accentColor);
-      }
-    }
   }
 
   private async attachItem(

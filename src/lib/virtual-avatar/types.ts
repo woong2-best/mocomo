@@ -162,10 +162,10 @@ export interface AvatarViewState {
 }
 
 export interface AvatarEquippedItems {
-  hairId: string;
-  topId: string;
-  bottomId: string;
-  shoesId: string;
+  hairId: string | null;
+  topId: string | null;
+  bottomId: string | null;
+  shoesId: string | null;
   headwearId: string | null;
   accessoryId: string | null;
   fullOutfitId: string | null;
@@ -214,10 +214,10 @@ export const DEFAULT_MAKEUP: AvatarMakeupParams = {
 };
 
 export const DEFAULT_EQUIPPED: AvatarEquippedItems = {
-  hairId: "hair_001",
-  topId: "top_001",
-  bottomId: "bottom_001",
-  shoesId: "shoes_001",
+  hairId: null,
+  topId: null,
+  bottomId: null,
+  shoesId: null,
   headwearId: null,
   accessoryId: null,
   fullOutfitId: null,
@@ -277,10 +277,10 @@ export const DEFAULT_AVATAR_CONFIG: AvatarConfig = {
   },
   outfit: {
     preset: "casual",
-    topColor: "#3b82f6",
-    bottomColor: "#334155",
-    accentColor: "#ffffff",
-    layers: { top: true, bottom: true, shoes: true, accessories: true, headwear: true },
+    topColor: "#e8d4b8",
+    bottomColor: "#475569",
+    accentColor: "#c4a574",
+    layers: { top: true, bottom: true, shoes: true, accessories: false, headwear: false },
   },
   hair: {
     style: 0,

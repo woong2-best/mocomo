@@ -423,7 +423,7 @@ export function applyEquippedToConfig(
     return next;
   }
 
-  const hair = getCatalogItem(equipped.hairId);
+  const hair = equipped.hairId ? getCatalogItem(equipped.hairId) : null;
   if (hair?.appearance) {
     next.hair = {
       ...base.hair,
@@ -432,9 +432,9 @@ export function applyEquippedToConfig(
     };
   }
 
-  const top = getCatalogItem(equipped.topId);
-  const bottom = getCatalogItem(equipped.bottomId);
-  const shoes = getCatalogItem(equipped.shoesId);
+  const top = equipped.topId ? getCatalogItem(equipped.topId) : null;
+  const bottom = equipped.bottomId ? getCatalogItem(equipped.bottomId) : null;
+  const shoes = equipped.shoesId ? getCatalogItem(equipped.shoesId) : null;
   next.outfit = {
     ...base.outfit,
     preset: top?.appearance.outfitPreset ?? base.outfit.preset,

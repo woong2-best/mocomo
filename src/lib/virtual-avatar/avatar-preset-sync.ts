@@ -1,10 +1,11 @@
 import {
   DEFAULT_AVATAR_CONFIG,
+  DEFAULT_EQUIPPED,
   type AvatarConfig,
 } from "@/lib/virtual-avatar/types";
 import { normalizeFaceShape } from "@/lib/virtual-avatar/face-shape-profiles";
 
-export const AVATAR_PRESET_STORAGE_KEY = "mocomo_avatar_preset_v2";
+export const AVATAR_PRESET_STORAGE_KEY = "mocomo_avatar_preset_v3";
 export const AVATAR_PRESET_VERSION_KEY = "mocomo_avatar_preset_ver";
 export const AVATAR_UPDATED_EVENT = "mocomo-avatar-updated";
 export const AVATAR_VRM_SLOT_EVENT = "mocomo-avatar-vrm-changed";
@@ -56,7 +57,7 @@ export function mergeStoredConfig(parsed: Partial<AvatarConfig>): AvatarConfig {
     hair: { ...DEFAULT_AVATAR_CONFIG.hair, ...parsed.hair },
     effects: { ...DEFAULT_AVATAR_CONFIG.effects, ...parsed.effects },
     view: { ...DEFAULT_AVATAR_CONFIG.view, ...parsed.view },
-    equipped: { ...DEFAULT_AVATAR_CONFIG.equipped, ...parsed.equipped },
+    equipped: { ...DEFAULT_EQUIPPED },
     paint: {
       ...DEFAULT_AVATAR_CONFIG.paint,
       ...parsed.paint,
