@@ -45,12 +45,17 @@ export function StudioColorField({ label, value, onChange, className, compact }:
           type="button"
           title={`${label} 색 선택`}
           aria-label={`${label} 색 선택`}
-          onClick={(e) => {
+          onPointerDown={(e) => {
+            e.preventDefault();
             e.stopPropagation();
-            setOpen(true);
+          }}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.requestAnimationFrame(() => setOpen(true));
           }}
           className={cn(
-            "shrink-0 inline-flex items-center justify-center rounded-lg border border-border/80 bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors",
+            "relative z-10 shrink-0 inline-flex items-center justify-center rounded-lg border border-border/80 bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer",
             compact ? "h-7 w-7" : "h-9 w-9"
           )}
         >

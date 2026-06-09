@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { clamp, hexToHsv, hsvToHex, normalizeHex, type Hsv } from "@/lib/color-picker-utils";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
 
 type StudioSimpleColorPickerDialogProps = {
   open: boolean;
@@ -22,8 +23,11 @@ export function StudioSimpleColorPickerDialog({
 }: StudioSimpleColorPickerDialogProps) {
   const initialHex = useRef(normalizeHex(value) ?? "#000000");
   const [hsv, setHsv] = useState<Hsv>(() => hexToHsv(initialHex.current));
+  const [mounted, setMounted] = useState(false);
   const mainRef = useRef<HTMLDivElement>(null);
   const valueRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!open) return;
@@ -31,6 +35,23 @@ export function StudioSimpleColorPickerDialog({
     initialHex.current = hex;
     setHsv(hexToHsv(hex));
   }, [open, value]);
+
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onLiveChange(initialHex.current);
+        onOpenChange(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open, onLiveChange, onOpenChange]);
 
   const pickMain = useCallback(
     (clientX: number, clientY: number) => {
@@ -79,22 +100,48 @@ export function StudioSimpleColorPickerDialog({
     []
   );
 
-  const cancel = () => {
+  const closeCancel = () => {
     onLiveChange(initialHex.current);
+    onOpenChange(false);
+  };
+
+  const closeConfirm = () => {
     onOpenChange(false);
   };
 
   const preview = hsvToHex(hsv);
 
-  return (
-    <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : cancel())}>
-      <DialogContent
-        layer="stack"
-        className="max-w-[320px] gap-3 p-4 bg-[#1e1e1e] border-neutral-700 text-neutral-100"
+  if (!open || !mounted) return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[300] flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+    >
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/65"
+        aria-label="닫기"
+        onClick={closeCancel}
+      />
+
+      <div
+        className="relative z-10 w-full max-w-[320px] rounded-lg border border-neutral-600 bg-[#1e1e1e] p-4 text-neutral-100 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
       >
-        <DialogHeader className="space-y-0">
-          <DialogTitle className="text-sm text-neutral-100">{title}</DialogTitle>
-        </DialogHeader>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold">{title}</h2>
+          <button
+            type="button"
+            onClick={closeCancel}
+            className="rounded p-1 text-neutral-400 hover:bg-neutral-800 hover:text-white"
+            aria-label="닫기"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
 
         <div className="flex gap-2">
           <div
@@ -133,7 +180,7 @@ export function StudioSimpleColorPickerDialog({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="mt-3 flex items-center gap-2">
           <span className="h-8 w-8 shrink-0 rounded border border-neutral-600" style={{ backgroundColor: preview }} />
           <input
             value={preview.toUpperCase()}
@@ -142,21 +189,27 @@ export function StudioSimpleColorPickerDialog({
           />
         </div>
 
-        <div className="flex justify-end gap-2">
+        <div className="mt-3 flex justify-end gap-2">
           <Button
             type="button"
             size="sm"
             variant="outline"
             className="h-8 border-neutral-600 bg-neutral-800 text-neutral-100 hover:bg-neutral-700"
-            onClick={cancel}
+            onClick={closeCancel}
           >
             취소
           </Button>
-          <Button type="button" size="sm" className="h-8 bg-[#0078d4] hover:bg-[#006cbd] text-white" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            size="sm"
+            className="h-8 bg-[#0078d4] hover:bg-[#006cbd] text-white"
+            onClick={closeConfirm}
+          >
             확인
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>,
+    document.body
   );
 }
