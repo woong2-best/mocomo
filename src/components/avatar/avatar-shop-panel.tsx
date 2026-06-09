@@ -97,7 +97,7 @@ export function AvatarShopPanel({ studio }: { studio: VirtualAvatarStudioState }
 
   return (
     <StudioPanel
-      title="ZEPETO式 옷장"
+      title="옷장"
       className="lg:col-span-3 border-pink-200/40 dark:border-pink-900/30 bg-gradient-to-b from-pink-50/40 to-card dark:from-pink-950/20"
     >
       <div className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-500 text-white px-3 py-2 shadow-sm">
