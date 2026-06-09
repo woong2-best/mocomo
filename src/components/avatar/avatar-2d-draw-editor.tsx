@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Redo2, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { floodFillCanvas } from "@/lib/avatar-2d/flood-fill";
@@ -10,6 +11,8 @@ import {
   type Avatar2dDrawTool,
 } from "@/lib/avatar-2d/types";
 import { cn } from "@/lib/utils";
+
+const HISTORY_MAX = 48;
 
 function hexToRgba(hex: string, alpha: number): [number, number, number, number] {
   const h = hex.replace("#", "");
@@ -31,12 +34,67 @@ type Avatar2dDrawEditorProps = {
 export function Avatar2dDrawEditor({ onCanvasReady }: Avatar2dDrawEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawingRef = useRef(false);
+  const strokeStartedRef = useRef(false);
   const lastRef = useRef<{ x: number; y: number } | null>(null);
+  const historyRef = useRef<ImageData[]>([]);
+  const historyIndexRef = useRef(-1);
 
   const [tool, setTool] = useState<Avatar2dDrawTool>("pen");
   const [color, setColor] = useState("#1a1a2e");
   const [size, setSize] = useState(8);
   const [opacity, setOpacity] = useState(100);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
+  const syncHistoryFlags = useCallback(() => {
+    setCanUndo(historyIndexRef.current > 0);
+    setCanRedo(historyIndexRef.current < historyRef.current.length - 1);
+  }, []);
+
+  const captureSnapshot = useCallback((): ImageData | null => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return null;
+    return ctx.getImageData(0, 0, canvas.width, canvas.height);
+  }, []);
+
+  const restoreSnapshot = useCallback((data: ImageData) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
+    ctx.putImageData(data, 0, 0);
+  }, []);
+
+  const pushHistory = useCallback(() => {
+    const snap = captureSnapshot();
+    if (!snap) return;
+    const next = historyRef.current.slice(0, historyIndexRef.current + 1);
+    next.push(snap);
+    if (next.length > HISTORY_MAX) {
+      next.shift();
+      historyIndexRef.current = next.length - 1;
+    } else {
+      historyIndexRef.current = next.length - 1;
+    }
+    historyRef.current = next;
+    syncHistoryFlags();
+  }, [captureSnapshot, syncHistoryFlags]);
+
+  const undo = useCallback(() => {
+    if (historyIndexRef.current <= 0) return;
+    historyIndexRef.current -= 1;
+    const snap = historyRef.current[historyIndexRef.current];
+    if (snap) restoreSnapshot(snap);
+    syncHistoryFlags();
+  }, [restoreSnapshot, syncHistoryFlags]);
+
+  const redo = useCallback(() => {
+    if (historyIndexRef.current >= historyRef.current.length - 1) return;
+    historyIndexRef.current += 1;
+    const snap = historyRef.current[historyIndexRef.current];
+    if (snap) restoreSnapshot(snap);
+    syncHistoryFlags();
+  }, [restoreSnapshot, syncHistoryFlags]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -45,7 +103,27 @@ export function Avatar2dDrawEditor({ onCanvasReady }: Avatar2dDrawEditorProps) {
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     onCanvasReady?.(canvas);
-  }, [onCanvasReady]);
+    historyRef.current = [];
+    historyIndexRef.current = -1;
+    pushHistory();
+  }, [onCanvasReady, pushHistory]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      } else if (e.key === "y" || (e.key === "z" && e.shiftKey)) {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undo, redo]);
 
   const canvasPoint = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -124,11 +202,13 @@ export function Avatar2dDrawEditor({ onCanvasReady }: Avatar2dDrawEditorProps) {
     if (tool === "fill") {
       const rgba = hexToRgba(color, opacity / 100);
       floodFillCanvas(ctx, pt.x, pt.y, rgba, 36);
+      pushHistory();
       return;
     }
 
     e.currentTarget.setPointerCapture(e.pointerId);
     drawingRef.current = true;
+    strokeStartedRef.current = true;
     lastRef.current = pt;
     const pressure = e.pressure > 0 ? e.pressure : 1;
     applyStrokeStyle(ctx, tool);
@@ -147,8 +227,11 @@ export function Avatar2dDrawEditor({ onCanvasReady }: Avatar2dDrawEditorProps) {
   };
 
   const onPointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const hadStroke = strokeStartedRef.current && drawingRef.current;
     drawingRef.current = false;
+    strokeStartedRef.current = false;
     lastRef.current = null;
+    if (hadStroke) pushHistory();
     try {
       e.currentTarget.releasePointerCapture(e.pointerId);
     } catch {
@@ -161,6 +244,7 @@ export function Avatar2dDrawEditor({ onCanvasReady }: Avatar2dDrawEditorProps) {
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pushHistory();
   };
 
   const importImage = (file: File) => {
@@ -176,6 +260,7 @@ export function Avatar2dDrawEditor({ onCanvasReady }: Avatar2dDrawEditorProps) {
       const h = img.height * scale;
       ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
       URL.revokeObjectURL(url);
+      pushHistory();
     };
     img.src = url;
   };
@@ -237,6 +322,32 @@ export function Avatar2dDrawEditor({ onCanvasReady }: Avatar2dDrawEditorProps) {
             className="flex-1"
           />
         </label>
+        <div className="flex items-center gap-1 ml-auto">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 rounded-lg"
+            disabled={!canUndo}
+            onClick={undo}
+            aria-label="실행 취소"
+            title="실행 취소 (Ctrl+Z)"
+          >
+            <Undo2 className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 rounded-lg"
+            disabled={!canRedo}
+            onClick={redo}
+            aria-label="다시 실행"
+            title="다시 실행 (Ctrl+Y)"
+          >
+            <Redo2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <div

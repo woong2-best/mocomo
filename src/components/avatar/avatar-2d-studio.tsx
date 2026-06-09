@@ -141,7 +141,7 @@ export function Avatar2dStudio() {
             <h2 className="text-sm font-bold text-folk-cobalt">지금 사용 가능</h2>
             <ul className="text-[11px] text-muted-foreground space-y-1 list-disc list-inside">
               <li>연필 · 펜 · G펜 · 에어브러시 · 지우개 · 채우기 · 스포이드</li>
-              <li>브러시 크기·불투명도 · 필압(펜/터치)</li>
+              <li>실행 취소 · 다시 실행 (Ctrl+Z / Ctrl+Y)</li>
               <li>PNG/JPG 업로드 → 투명 PNG 저장</li>
               <li>라이브·OBS 브라우저 소스 자동 연동</li>
             </ul>
