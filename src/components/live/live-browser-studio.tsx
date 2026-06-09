@@ -25,6 +25,7 @@ import {
   type LiveAvatarPublishHandle,
 } from "@/components/live/live-avatar-publish";
 import { Live2dLibraryPanel, useLive2dLibraryActiveId } from "@/components/live/live-2d-library-panel";
+import { getActiveLibraryCharacterId, hasLibraryCharacters } from "@/lib/avatar-2d/library";
 import { setPhotoAvatarRenderMode } from "@/lib/photo-avatar/photo-avatar-storage";
 
 const VTUBER_STORAGE_KEY = "mocomo_live_vtuber";
@@ -38,7 +39,8 @@ function readVtuberBackground(): "gradient" | "chroma" {
 
 function readVtuberEnabled() {
   if (typeof window === "undefined") return false;
-  return sessionStorage.getItem(VTUBER_STORAGE_KEY) === "1";
+  if (sessionStorage.getItem(VTUBER_STORAGE_KEY) !== "1") return false;
+  return hasLibraryCharacters() && !!getActiveLibraryCharacterId();
 }
 
 function readVtuberLayout(): LiveAvatarLayout {
@@ -120,6 +122,7 @@ export function LiveBrowserStudio({
   const [avatarLayout, setAvatarLayout] = useState<LiveAvatarLayout>(() => readVtuberLayout());
   const [avatarBackground, setAvatarBackground] = useState<LiveAvatarBackground>(() => readVtuberBackground());
   const equipped2dId = useLive2dLibraryActiveId();
+  const [previewCanvasMounted, setPreviewCanvasMounted] = useState(false);
 
   const serverLive =
     publishState === "live_here" || publishState === "live_elsewhere";
@@ -127,6 +130,17 @@ export function LiveBrowserStudio({
   useEffect(() => {
     onAirChange?.(whipConnected && publishState === "live_here");
   }, [whipConnected, publishState, onAirChange]);
+
+  useEffect(() => {
+    if (!vtuberMode) {
+      setPreviewCanvasMounted(false);
+      return;
+    }
+    if (!hasLibraryCharacters() || !getActiveLibraryCharacterId()) {
+      setVtuberMode(false);
+      sessionStorage.setItem(VTUBER_STORAGE_KEY, "0");
+    }
+  }, [vtuberMode]);
 
   useEffect(() => {
     if (!vtuberMode || !ready) return;
@@ -286,9 +300,13 @@ export function LiveBrowserStudio({
         if (canvas) {
           canvas.className = "absolute inset-0 w-full h-full object-cover";
           host.appendChild(canvas);
+          setPreviewCanvasMounted(true);
+        } else {
+          setPreviewCanvasMounted(false);
         }
         return;
       }
+      setPreviewCanvasMounted(false);
       if (displayCanvas && !screenOn) {
         displayCanvas.className = "absolute inset-0 w-full h-full object-cover";
         host.appendChild(displayCanvas);
@@ -336,6 +354,24 @@ export function LiveBrowserStudio({
       }
     };
   }, [attachPreviewCanvas, splitCollab?.coHostUserId, vtuberMode, avatarLayout, displayCanvas, screenOn]);
+
+  useEffect(() => {
+    if (!vtuberMode || screenOn || !ready) return;
+    let cancelled = false;
+    let attempts = 0;
+    const tryAttach = () => {
+      if (cancelled || attempts > 120) return;
+      attempts += 1;
+      attachPreviewCanvas();
+      if (!avatarPublishRef.current?.getPreviewCanvas()) {
+        requestAnimationFrame(tryAttach);
+      }
+    };
+    tryAttach();
+    return () => {
+      cancelled = true;
+    };
+  }, [vtuberMode, screenOn, ready, attachPreviewCanvas, equipped2dId]);
 
   const handleWhipDisconnect = useCallback(() => {
     setWhipConnected(false);
@@ -636,10 +672,10 @@ export function LiveBrowserStudio({
     : "flex flex-col gap-5 w-full";
   const previewClass = immersive
     ? "relative flex-1 min-h-0 overflow-hidden bg-black"
-    : "relative w-full aspect-video rounded-xl overflow-hidden bg-black ring-1 ring-border/50 shadow-sm";
+    : "relative w-full aspect-video max-h-[min(46vh,480px)] rounded-xl overflow-hidden bg-black ring-1 ring-border/50 shadow-sm";
   const controlsWrapClass = immersive
-    ? "absolute bottom-0 left-0 right-0 z-10 px-3 pb-[calc(env(safe-area-inset-bottom)+8.5rem)] pt-8 bg-gradient-to-t from-black/90 via-black/50 to-transparent space-y-2"
-    : "flex flex-col gap-3 w-full pb-4";
+    ? "absolute bottom-0 left-0 right-0 z-30 px-3 pb-[calc(env(safe-area-inset-bottom)+9rem)] pt-6 bg-gradient-to-t from-black/95 via-black/70 to-transparent space-y-2 pointer-events-auto"
+    : "flex flex-col gap-3 w-full pb-2";
 
   const previewInner = (
     <>
@@ -665,39 +701,44 @@ export function LiveBrowserStudio({
           2D
         </span>
       )}
+      {vtuberMode && !screenOn && !previewCanvasMounted && (
+        <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 bg-gradient-to-b from-zinc-800 to-black text-white/80 px-4 text-center">
+          <Loader2 className="h-7 w-7 animate-spin opacity-80" />
+          <p className="text-sm font-medium">2D 캐릭터 불러오는 중…</p>
+          <p className="text-[11px] text-white/55">잠시 후 미리보기가 표시됩니다</p>
+        </div>
+      )}
       <LiveOverlayLayer className="z-20" />
     </>
   );
 
-  return (
-    <div className={rootClass}>
-      <LiveAvatarPublishLayer
-        ref={avatarPublishRef}
-        enabled={vtuberMode && ready}
-        layout={avatarLayout}
-        overlayState={overlayCtx?.state ?? null}
-      />
+  const libraryPanel = !screenOn ? (
+    <Live2dLibraryPanel
+      compact={immersive}
+      equippedId={equipped2dId}
+      vtuberActive={vtuberMode}
+      onEquip={async (id) => {
+        try {
+          await equip2dCharacter(id);
+        } catch (e) {
+          setLiveError(e instanceof Error ? e.message : "2D 아바타 적용 실패");
+        }
+      }}
+      onUnequip={async () => {
+        try {
+          await unequip2dCharacter();
+        } catch (e) {
+          setLiveError(e instanceof Error ? e.message : "2D 아바타 해제 실패");
+        }
+      }}
+    />
+  ) : null;
 
-      {splitCollab && !immersive ? (
-        <LiveHostCollabPreview
-          channelId={channelId}
-          coHostUserId={splitCollab.coHostUserId}
-          coHostLabel={splitCollab.coHostLabel}
-        >
-          {previewInner}
-        </LiveHostCollabPreview>
-      ) : (
-        <div className={previewClass}>{previewInner}</div>
-      )}
+  const broadcastControls = (
+    <>
+      <LiveOverlayToolbar compact={immersive} />
 
-      {!immersive && (
-        <LiveHostCollabPasswordStrip channelId={channelId} password={collabPassword} />
-      )}
-
-      <div className={controlsWrapClass}>
-        <LiveOverlayToolbar compact={immersive} />
-
-      {!screenOn && (
+      {!screenOn && !vtuberMode && (
         <FaceFilterStrip
           value={filterId}
           onChange={setFilterId}
@@ -705,27 +746,6 @@ export function LiveBrowserStudio({
           faceTrackingNeeded={faceTrackingNeeded}
           faceTrackingReady={faceTrackingReady}
           landmarkerState={landmarkerState}
-        />
-      )}
-
-      {!screenOn && (
-        <Live2dLibraryPanel
-          equippedId={equipped2dId}
-          vtuberActive={vtuberMode}
-          onEquip={async (id) => {
-            try {
-              await equip2dCharacter(id);
-            } catch (e) {
-              setLiveError(e instanceof Error ? e.message : "2D 아바타 적용 실패");
-            }
-          }}
-          onUnequip={async () => {
-            try {
-              await unequip2dCharacter();
-            } catch (e) {
-              setLiveError(e instanceof Error ? e.message : "2D 아바타 해제 실패");
-            }
-          }}
         />
       )}
 
@@ -801,7 +821,49 @@ export function LiveBrowserStudio({
           이 기기·브라우저에서만 방송 중입니다. 종료는 상단 「방송 종료」.
         </p>
       )}
-      </div>
+    </>
+  );
+
+  return (
+    <div className={rootClass}>
+      <LiveAvatarPublishLayer
+        ref={avatarPublishRef}
+        enabled={vtuberMode && ready}
+        layout={avatarLayout}
+        overlayState={overlayCtx?.state ?? null}
+      />
+
+      {!immersive && (
+        <div className="flex flex-col gap-3 w-full">
+          {libraryPanel}
+        </div>
+      )}
+
+      {splitCollab && !immersive ? (
+        <LiveHostCollabPreview
+          channelId={channelId}
+          coHostUserId={splitCollab.coHostUserId}
+          coHostLabel={splitCollab.coHostLabel}
+        >
+          {previewInner}
+        </LiveHostCollabPreview>
+      ) : (
+        <div className={previewClass}>{previewInner}</div>
+      )}
+
+      {!immersive && (
+        <div className="flex flex-col gap-3 w-full">
+          {broadcastControls}
+          <LiveHostCollabPasswordStrip channelId={channelId} password={collabPassword} compact />
+        </div>
+      )}
+
+      {immersive && (
+        <div className={controlsWrapClass}>
+          {libraryPanel}
+          {broadcastControls}
+        </div>
+      )}
     </div>
   );
 }

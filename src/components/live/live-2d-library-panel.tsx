@@ -19,6 +19,7 @@ type Live2dLibraryPanelProps = {
   onUnequip?: () => void | Promise<void>;
   equippedId: string | null;
   vtuberActive: boolean;
+  compact?: boolean;
 };
 
 export function Live2dLibraryPanel({
@@ -26,6 +27,7 @@ export function Live2dLibraryPanel({
   onUnequip,
   equippedId,
   vtuberActive,
+  compact = false,
 }: Live2dLibraryPanelProps) {
   const [loading, setLoading] = useState(true);
   const [characters, setCharacters] = useState<
@@ -68,7 +70,13 @@ export function Live2dLibraryPanel({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-muted/30 p-6 text-sm text-muted-foreground">
+      <div
+        className={
+          compact
+            ? "flex items-center gap-2 rounded-lg bg-black/50 backdrop-blur-sm px-3 py-2 text-xs text-white/80"
+            : "flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-muted/30 p-6 text-sm text-muted-foreground"
+        }
+      >
         <Loader2 className="h-4 w-4 animate-spin" />
         {MOCOMO_2D_LIBRARY_NAME} 불러오는 중…
       </div>
@@ -77,18 +85,39 @@ export function Live2dLibraryPanel({
 
   if (!hasLibrary || characters.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-folk-cobalt/30 bg-muted/20 p-4 space-y-2">
-        <p className="text-sm font-semibold text-folk-cobalt flex items-center gap-2">
-          <Layers className="h-4 w-4" />
+      <div
+        className={
+          compact
+            ? "rounded-lg bg-black/50 backdrop-blur-sm border border-white/15 px-3 py-2 space-y-1"
+            : "rounded-xl border border-dashed border-folk-cobalt/30 bg-muted/20 p-4 space-y-2"
+        }
+      >
+        <p
+          className={
+            compact
+              ? "text-xs font-semibold text-white flex items-center gap-1.5"
+              : "text-sm font-semibold text-folk-cobalt flex items-center gap-2"
+          }
+        >
+          <Layers className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
           {MOCOMO_2D_LIBRARY_NAME}
         </p>
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          2D 캐릭터를 만들거나 업로드하면 이 라이브러리에 자동 저장됩니다. 저장 후 여기서 더블클릭해
-          방송에 붙이세요.
+        <p
+          className={
+            compact
+              ? "text-[10px] text-white/70 leading-snug"
+              : "text-xs text-muted-foreground leading-relaxed"
+          }
+        >
+          2D 캐릭터를 만들면 여기에 저장됩니다. 더블클릭해 방송에 붙이세요.
         </p>
         <Link
           href="/avatar/studio/2d"
-          className="inline-flex text-xs font-medium text-primary hover:underline"
+          className={
+            compact
+              ? "inline-flex text-[10px] font-medium text-violet-300 hover:underline"
+              : "inline-flex text-xs font-medium text-primary hover:underline"
+          }
         >
           2D 아바타 스튜디오 →
         </Link>
@@ -97,21 +126,48 @@ export function Live2dLibraryPanel({
   }
 
   return (
-    <div className="rounded-xl border border-border/60 bg-muted/30 p-3 space-y-3">
+    <div
+      className={
+        compact
+          ? "rounded-lg bg-black/50 backdrop-blur-sm border border-white/15 p-2 space-y-2"
+          : "rounded-xl border border-border/60 bg-muted/30 p-3 space-y-3"
+      }
+    >
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-folk-cobalt flex items-center gap-2">
-          <Layers className="h-4 w-4" />
+        <p
+          className={
+            compact
+              ? "text-xs font-semibold text-white flex items-center gap-1.5"
+              : "text-sm font-semibold text-folk-cobalt flex items-center gap-2"
+          }
+        >
+          <Layers className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
           {MOCOMO_2D_LIBRARY_NAME}
         </p>
-        <Link href="/avatar/studio/2d" className="text-[11px] text-primary hover:underline shrink-0">
+        <Link
+          href="/avatar/studio/2d"
+          className={
+            compact
+              ? "text-[10px] text-violet-300 hover:underline shrink-0"
+              : "text-[11px] text-primary hover:underline shrink-0"
+          }
+        >
           + 더 만들기
         </Link>
       </div>
-      <p className="text-[11px] text-muted-foreground">
-        캐릭터를 <strong className="text-foreground">더블클릭</strong>하면 방송 화면에 붙습니다. 다시
-        더블클릭하면 해제됩니다.
-      </p>
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-52 overflow-y-auto pr-1">
+      {!compact && (
+        <p className="text-[11px] text-muted-foreground">
+          캐릭터를 <strong className="text-foreground">더블클릭</strong>하면 방송 화면에 붙습니다. 다시
+          더블클릭하면 해제됩니다.
+        </p>
+      )}
+      <div
+        className={
+          compact
+            ? "flex gap-2 overflow-x-auto pb-1 max-w-full"
+            : "grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-40 overflow-y-auto pr-1"
+        }
+      >
         {characters.map((c) => {
           const active = equippedId === c.id && vtuberActive;
           return (
@@ -120,11 +176,14 @@ export function Live2dLibraryPanel({
               type="button"
               onDoubleClick={() => void handleDoubleClick(c.id)}
               className={cn(
-                "group relative aspect-square rounded-xl border-2 overflow-hidden bg-[length:12px_12px] transition-all",
+                "group relative rounded-xl border-2 overflow-hidden bg-[length:12px_12px] transition-all shrink-0",
+                compact ? "h-16 w-16" : "aspect-square",
                 "hover:border-folk-terracotta hover:shadow-md active:scale-[0.98]",
                 active
                   ? "border-folk-terracotta ring-2 ring-folk-terracotta/40"
-                  : "border-border/70"
+                  : compact
+                    ? "border-white/30"
+                    : "border-border/70"
               )}
               style={{
                 backgroundImage:
@@ -146,7 +205,7 @@ export function Live2dLibraryPanel({
           );
         })}
       </div>
-      {vtuberFaceHint()}
+      {!compact && vtuberFaceHint()}
     </div>
   );
 }
