@@ -14,6 +14,7 @@ import { downloadBlob } from "@/lib/virtual-avatar/avatar-export";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Download, Link2, Save, Upload } from "lucide-react";
+import { PhotoAvatarUploadPanel } from "@/components/avatar/photo-avatar-upload-panel";
 
 type ExtraTab = "effects" | "output";
 
@@ -118,6 +119,14 @@ export function AvatarStudioExtrasPanel({
 
       {tab === "output" && (
         <>
+          <StudioSection title="사진 아바타" defaultOpen>
+            <PhotoAvatarUploadPanel
+              onReady={() => {
+                flash("사진 아바타 적용");
+                window.dispatchEvent(new Event("mocomo-photo-avatar-reload"));
+              }}
+            />
+          </StudioSection>
           <StudioSection title="VRM · OBS" defaultOpen={false}>
             <p className="text-[10px] text-muted-foreground mb-2">{vrmModelName ?? "기본 VRM"}</p>
             <div className="grid grid-cols-2 gap-1.5">

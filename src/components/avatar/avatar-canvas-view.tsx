@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { VirtualAvatar3DScene } from "@/lib/virtual-avatar/avatar-3d-scene";
+import { PhotoAvatarScene } from "@/lib/photo-avatar/photo-avatar-scene";
+import { usePhotoAvatarMode } from "@/hooks/use-photo-avatar-mode";
 import type { VirtualAvatarStudioState } from "@/hooks/use-virtual-avatar-studio";
 import { useAvatarFaceTracking } from "@/hooks/use-avatar-face-tracking";
 import { cn } from "@/lib/utils";
@@ -34,7 +36,8 @@ export function AvatarCanvasView({
   onRendererReady?: (renderer: VirtualAvatar3DScene | null) => void;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<VirtualAvatar3DScene | null>(null);
+  const sceneRef = useRef<VirtualAvatar3DScene | PhotoAvatarScene | null>(null);
+  const { isPhotoMode } = usePhotoAvatarMode();
   const configRef = useRef(studio.config);
   configRef.current = studio.config;
 
@@ -56,31 +59,38 @@ export function AvatarCanvasView({
   const [loadError, setLoadError] = useState("");
 
   const playMocap = useCallback((preset: MocapPreset) => {
-    sceneRef.current?.playMocapPreset(preset);
+    if (sceneRef.current instanceof VirtualAvatar3DScene) {
+      sceneRef.current.playMocapPreset(preset);
+    }
     setMocapPreset(preset);
   }, []);
 
   const stopMocap = useCallback(() => {
-    sceneRef.current?.stopMocap();
+    if (sceneRef.current instanceof VirtualAvatar3DScene) {
+      sceneRef.current.stopMocap();
+    }
     setMocapPreset(null);
   }, []);
 
   const onBvhUpload = useCallback(async (file: File) => {
+    if (!(sceneRef.current instanceof VirtualAvatar3DScene)) return;
     await cacheBvhFile(file);
-    const ok = await sceneRef.current?.loadMocapBvh(file);
+    const ok = await sceneRef.current.loadMocapBvh(file);
     if (ok) setMocapPreset(null);
   }, []);
 
   const onFbxUpload = useCallback(async (file: File) => {
-    const ok = await sceneRef.current?.loadMocapFbx(file);
+    if (!(sceneRef.current instanceof VirtualAvatar3DScene)) return;
+    const ok = await sceneRef.current.loadMocapFbx(file);
     if (ok) setMocapPreset(null);
   }, []);
 
   const connectMocapStream = useCallback(async () => {
+    if (!(sceneRef.current instanceof VirtualAvatar3DScene)) return;
     const url = window.prompt("WebSocket 모캡 URL (ws://localhost:8080 등)");
     if (!url?.trim()) return;
     localStorage.setItem(AVATAR_MOCAP_STREAM_KEY, url.trim());
-    const ok = await sceneRef.current?.connectMocapStream(url.trim());
+    const ok = await sceneRef.current.connectMocapStream(url.trim());
     if (ok) setMocapPreset(null);
   }, []);
 
@@ -100,34 +110,61 @@ export function AvatarCanvasView({
     const host = hostRef.current;
     if (!host) return;
 
-    let scene: VirtualAvatar3DScene;
+    host.replaceChildren();
+
+    let scene: VirtualAvatar3DScene | PhotoAvatarScene;
     try {
-      scene = new VirtualAvatar3DScene(host);
-      sceneRef.current = scene;
-      onRendererReady?.(scene);
-      scene.start(
-        () => configRef.current,
-        () => {
-          if (!syncEnabledRef.current || !faceTracking.active) return null;
-          return getFrameRef.current();
-        }
-      );
+      if (isPhotoMode) {
+        const photoScene = new PhotoAvatarScene(host);
+        scene = photoScene;
+        sceneRef.current = photoScene;
+        onRendererReady?.(null);
+        photoScene.start(
+          () => configRef.current,
+          () => {
+            if (!syncEnabledRef.current || !faceTracking.active) return null;
+            return getFrameRef.current();
+          }
+        );
+      } else {
+        const vrmScene = new VirtualAvatar3DScene(host);
+        scene = vrmScene;
+        sceneRef.current = vrmScene;
+        onRendererReady?.(vrmScene);
+        vrmScene.start(
+          () => configRef.current,
+          () => {
+            if (!syncEnabledRef.current || !faceTracking.active) return null;
+            return getFrameRef.current();
+          }
+        );
+      }
     } catch (e) {
-      setLoadError(e instanceof Error ? e.message : "3D 초기화 실패");
+      setLoadError(e instanceof Error ? e.message : "아바타 초기화 실패");
       return;
     }
 
     const statTimer = window.setInterval(() => {
-      if (sceneRef.current) setStats(sceneRef.current.getStats());
+      const s = sceneRef.current;
+      if (s && "getStats" in s) setStats(s.getStats());
     }, 500);
 
+    const onReload = () => {
+      if (isPhotoMode && sceneRef.current instanceof PhotoAvatarScene) {
+        void sceneRef.current.reloadFromStorage();
+      }
+    };
+    window.addEventListener("mocomo-photo-avatar-reload", onReload);
+
     return () => {
+      window.removeEventListener("mocomo-photo-avatar-reload", onReload);
       window.clearInterval(statTimer);
       scene.stop();
+      if (scene instanceof PhotoAvatarScene) scene.dispose();
       sceneRef.current = null;
       onRendererReady?.(null);
     };
-  }, [onRendererReady]);
+  }, [onRendererReady, isPhotoMode]);
 
   useEffect(() => {
     if (!syncEnabled || !timelineRecording) return;
@@ -230,7 +267,9 @@ export function AvatarCanvasView({
             title="뷰 리셋"
             onClick={() => {
               resetView();
-              sceneRef.current?.fitFullBodyView();
+              if (sceneRef.current instanceof VirtualAvatar3DScene) {
+                sceneRef.current.fitFullBodyView();
+              }
             }}
           >
             <RefreshCw className="h-4 w-4" />
@@ -340,7 +379,9 @@ export function AvatarCanvasView({
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) {
-                void sceneRef.current?.loadTrackingTimeline(file);
+                if (sceneRef.current instanceof VirtualAvatar3DScene) {
+                  void sceneRef.current.loadTrackingTimeline(file);
+                }
                 stopMocap();
               }
               e.target.value = "";
