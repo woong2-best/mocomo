@@ -56,21 +56,23 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className={`${folkDisplay.variable} ${geistSans.variable} ${geistMono.variable} font-sans folk-canvas`}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-          <LocaleProvider initialLocale={locale} initialCountryCode={countryCode}>
-            <AppProviders>
-              <AppShell
-              rightPanel={
-                <Suspense fallback={<RightPanelSkeleton />}>
-                  <RightPanelLoader />
-                </Suspense>
-              }
-            >
-              {children}
-              </AppShell>
-            </AppProviders>
-          </LocaleProvider>
-        </ThemeProvider>
+        <div className="folk-app-shell">
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+            <LocaleProvider initialLocale={locale} initialCountryCode={countryCode}>
+              <AppProviders>
+                <AppShell
+                  rightPanel={
+                    <Suspense fallback={<RightPanelSkeleton />}>
+                      <RightPanelLoader />
+                    </Suspense>
+                  }
+                >
+                  {children}
+                </AppShell>
+              </AppProviders>
+            </LocaleProvider>
+          </ThemeProvider>
+        </div>
       </body>
     </html>
   );
