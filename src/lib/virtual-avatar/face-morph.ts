@@ -4,8 +4,9 @@ import type { VRMHumanBoneName } from "@pixiv/three-vrm-core";
 import type { AvatarConfig, AvatarFaceParams } from "@/lib/virtual-avatar/types";
 import { getFaceShapeBones } from "@/lib/virtual-avatar/face-shape-profiles";
 import { EYE_COLORS, LIP_COLORS, SKIN_TONES, adjustSkinColor } from "@/lib/virtual-avatar/presets";
-import { setMaterialColor } from "@/lib/virtual-avatar/material-utils";
+import { setMaterialColor, setSolidClothingColor } from "@/lib/virtual-avatar/material-utils";
 import { getCatalogItem } from "@/lib/virtual-avatar/avatar-catalog";
+import { HAIR_COLOR_BY_INDEX } from "@/lib/virtual-avatar/face-morph-colors";
 
 const FACE_BONES = ["head", "jaw"] as const satisfies readonly VRMHumanBoneName[];
 
@@ -286,6 +287,14 @@ function setMeshColor(
   });
 }
 
+function setHairMeshColor(mesh: THREE.Mesh, color: THREE.Color) {
+  mesh.visible = true;
+  const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+  mats.forEach((m) => {
+    setSolidClothingColor(m, color, { shadeDarken: 0.68, roughness: 0.74 });
+  });
+}
+
 export function applyAppearanceToVrm(vrm: VRM, config: AvatarConfig) {
   const { face, skin, hair, outfit, equipped } = config;
   const skinHex = SKIN_TONES[skin.toneIndex]?.hex ?? SKIN_TONES[2].hex;
@@ -307,7 +316,7 @@ export function applyAppearanceToVrm(vrm: VRM, config: AvatarConfig) {
     if (name.includes("hair")) {
       const vol = 0.92 + (hair.volume / 100) * 0.22 + (hairStyle % 5) * 0.02;
       mesh.scale.set(vol, 0.85 + (hair.length / 100) * 0.35, vol);
-      setMeshColor(mesh, hairColor);
+      setHairMeshColor(mesh, hairColor);
       return;
     }
 
@@ -361,5 +370,3 @@ export function applyAppearanceToVrm(vrm: VRM, config: AvatarConfig) {
     });
   }
 }
-
-import { HAIR_COLOR_BY_INDEX } from "@/lib/virtual-avatar/face-morph-colors";

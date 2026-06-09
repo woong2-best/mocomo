@@ -10,8 +10,25 @@ export type MToonLike = THREE.Material & {
   emissiveIntensity?: number;
   emissiveMap?: THREE.Texture | null;
   map?: THREE.Texture | null;
+  shadeMultiplyTexture?: THREE.Texture | null;
+  rimMultiplyTexture?: THREE.Texture | null;
+  matcapTexture?: THREE.Texture | null;
   update?: (delta: number) => void;
 };
+
+const MTOON_TINT_TEXTURE_KEYS = [
+  "map",
+  "emissiveMap",
+  "shadeMultiplyTexture",
+  "rimMultiplyTexture",
+  "matcapTexture",
+] as const;
+
+function clearMToonTintTextures(mat: MToonLike) {
+  for (const key of MTOON_TINT_TEXTURE_KEYS) {
+    if (key in mat) mat[key] = null;
+  }
+}
 
 export function isMToonMaterial(mat: THREE.Material): mat is MToonLike {
   return !!(mat as MToonLike).isMToonMaterial;
@@ -58,7 +75,7 @@ export function setSolidClothingColor(mat: THREE.Material, color: THREE.Color, o
   setMaterialColor(mat, color, opts);
 
   if (isMToonMaterial(mat)) {
-    mat.map = null;
+    clearMToonTintTextures(mat);
     if (opts?.emissiveIntensity && mat.emissive instanceof THREE.Color) {
       mat.emissive.copy(color);
       mat.emissiveIntensity = opts.emissiveIntensity;
