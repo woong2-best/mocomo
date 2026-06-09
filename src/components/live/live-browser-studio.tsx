@@ -801,7 +801,7 @@ export function LiveBrowserStudio({
               </>
             )}
             <Button type="button" variant="ghost" size="sm" className="rounded-xl text-xs" asChild>
-              <Link href="/avatar/studio" target="_blank" rel="noopener noreferrer">
+              <Link href="/avatar/studio/3d" target="_blank" rel="noopener noreferrer">
                 아바타 꾸미기 ↗
               </Link>
             </Button>

@@ -9,6 +9,7 @@ import { AvatarTexturePaintPanel } from "@/components/avatar/avatar-texture-pain
 import { useVirtualAvatarStudio } from "@/hooks/use-virtual-avatar-studio";
 import type { VirtualAvatar3DScene } from "@/lib/virtual-avatar/avatar-3d-scene";
 import { FolkBrushDivider } from "@/components/brand/folk-decor";
+import { StudioBackLink } from "@/components/avatar/studio-back-link";
 import { Button } from "@/components/ui/button";
 import { Radio, Sparkles } from "lucide-react";
 import Link from "next/link";
@@ -50,14 +51,16 @@ export function VirtualAvatarStudio() {
 
   return (
     <div className="live-page-shell w-full max-w-none space-y-3 sm:space-y-4 pb-nav lg:pb-4 min-h-[calc(100dvh-var(--header-h))]">
+      <StudioBackLink />
+
       <header className="live-hero flex flex-wrap items-center gap-3 sm:gap-4">
         <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl border-2 border-folk-cobalt/25 bg-folk-gold/25 text-folk-cobalt shrink-0">
           <Sparkles className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="folk-tag mb-1.5 w-fit">라이브 스튜디오</p>
+          <p className="folk-tag mb-1.5 w-fit">3D · VRM</p>
           <h1 className="text-xl sm:text-2xl font-display font-bold text-folk-cobalt folk-chunky-text">
-            버츄얼 아바타 스튜디오
+            3D 아바타 스튜디오
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             3D VRM · 체형·얼굴·기본 의상 색상 · UV 페인트 · 라이브 VTuber 연동
