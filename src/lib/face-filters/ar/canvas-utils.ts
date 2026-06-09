@@ -255,3 +255,83 @@ export function drawPhiltrumY(
   ctx.stroke();
   ctx.restore();
 }
+
+/** 반투명 3D 버블 구체 */
+export function drawBubbleSphere(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+  hue: string,
+  alpha = 0.75,
+  tick = 0
+) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, r * 0.05, x, y, r);
+  g.addColorStop(0, `rgba(255,255,255,0.95)`);
+  g.addColorStop(0.25, `${hue}88`);
+  g.addColorStop(0.65, `${hue}44`);
+  g.addColorStop(1, `${hue}11`);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(255,255,255,0.35)";
+  ctx.lineWidth = Math.max(0.8, r * 0.06);
+  ctx.beginPath();
+  ctx.arc(x, y, r * 0.92, 0, Math.PI * 2);
+  ctx.stroke();
+
+  const shimmer = 0.5 + 0.5 * Math.sin(tick * 0.005);
+  ctx.fillStyle = `rgba(255,255,255,${0.7 * shimmer})`;
+  ctx.beginPath();
+  ctx.ellipse(x - r * 0.28, y - r * 0.32, r * 0.22, r * 0.14, -0.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+/** 홀로그램 스타 별 */
+export function drawIridescentStar(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+  tick: number,
+  alpha = 1
+) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(tick * 0.002);
+  ctx.globalAlpha = alpha;
+
+  const colors = ["#FFB6E1", "#E1B6FF", "#B6E1FF", "#FFD6B6"];
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+    const outer = size;
+    const inner = size * 0.42;
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.beginPath();
+    for (let j = 0; j < 10; j++) {
+      const ang = a + (j * Math.PI) / 5;
+      const rr = j % 2 === 0 ? outer : inner;
+      const px = Math.cos(ang) * rr;
+      const py = Math.sin(ang) * rr;
+      if (j === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.globalAlpha = alpha * 0.85;
+    ctx.fill();
+  }
+
+  ctx.globalAlpha = alpha * 0.9;
+  ctx.fillStyle = "#FFFFFF";
+  ctx.beginPath();
+  ctx.arc(-size * 0.15, -size * 0.15, size * 0.12, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}

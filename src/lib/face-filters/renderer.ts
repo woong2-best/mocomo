@@ -6,6 +6,8 @@ import {
 } from "@/lib/face-filters/presets";
 import { drawFaceMask3d } from "@/lib/face-filters/mesh-warp";
 import { drawPremiumArOverlay } from "@/lib/face-filters/ar/index";
+import { drawPremiumBeauty } from "@/lib/face-filters/beauty-pro";
+import { drawFaceGlitterMask } from "@/lib/face-filters/ar/glitter-mask";
 import { landmarkPt } from "@/lib/face-filters/face-coords";
 
 type NormPoint = { x: number; y: number };
@@ -95,8 +97,16 @@ export function renderFilteredFrame(
   ctx.filter = "none";
 
   if (filterId !== "none" && landmarkerResult) {
-    drawFaceBeauty(ctx, source, landmarkerResult, w, h, preset.beauty);
-    if (preset.blush) drawBlush(ctx, landmarkerResult, w, h, preset.blush);
+    if (preset.beautyPro) {
+      drawPremiumBeauty(ctx, source, landmarkerResult, w, h, preset.beautyPro);
+    } else {
+      drawFaceBeauty(ctx, source, landmarkerResult, w, h, preset.beauty);
+      if (preset.blush) drawBlush(ctx, landmarkerResult, w, h, preset.blush);
+    }
+
+    if (preset.glitter) {
+      drawFaceGlitterMask(ctx, landmarkerResult, w, h, preset.glitter, tick);
+    }
 
     if (preset.mask3d) {
       drawFaceMask3d(ctx, landmarkerResult, w, h, preset.mask3d, tick);

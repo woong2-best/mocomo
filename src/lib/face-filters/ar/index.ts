@@ -7,6 +7,11 @@ import { drawBunnyOverlay } from "@/lib/face-filters/ar/bunny";
 import { drawCrownOverlay } from "@/lib/face-filters/ar/crown";
 import { drawGlassesOverlay } from "@/lib/face-filters/ar/glasses";
 import { drawHeartsOverlay } from "@/lib/face-filters/ar/hearts";
+import { drawBubbleHeartsOverlay } from "@/lib/face-filters/ar/bubble-hearts";
+import { drawBubblesStarOverlay } from "@/lib/face-filters/ar/bubbles-star";
+import { drawDalmatianOverlay } from "@/lib/face-filters/ar/dalmatian";
+import { drawGlitterDogOverlay } from "@/lib/face-filters/ar/glitter-dog";
+import { drawMochiBearOverlay } from "@/lib/face-filters/ar/mochi-bear";
 
 export function drawPremiumArOverlay(
   ctx: CanvasRenderingContext2D,
@@ -37,6 +42,21 @@ export function drawPremiumArOverlay(
       break;
     case "hearts":
       drawHeartsOverlay(ctx, face);
+      break;
+    case "bubble-hearts":
+      drawBubbleHeartsOverlay(ctx, face);
+      break;
+    case "bubbles-star":
+      drawBubblesStarOverlay(ctx, face);
+      break;
+    case "dalmatian":
+      drawDalmatianOverlay(ctx, face);
+      break;
+    case "glitter-dog":
+      drawGlitterDogOverlay(ctx, face);
+      break;
+    case "mochi-bear":
+      drawMochiBearOverlay(ctx, face);
       break;
   }
 }

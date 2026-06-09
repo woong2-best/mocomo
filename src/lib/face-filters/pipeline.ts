@@ -40,7 +40,7 @@ export class FaceFilterPipeline {
   setFilter(id: FaceFilterId) {
     this.filterId = id;
     const preset = getFaceFilterPreset(id);
-    this.detectEvery = preset.overlay || preset.mask3d ? 1 : 2;
+    this.detectEvery = preset.overlay || preset.mask3d || preset.beautyPro ? 1 : 2;
   }
 
   setMirrored(mirrored: boolean) {

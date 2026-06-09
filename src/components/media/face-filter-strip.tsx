@@ -28,6 +28,20 @@ const TABS: { id: FaceFilterCategory; label: string }[] = [
   { id: "mask3d", label: "3D 마스크" },
 ];
 
+const AR_FILTER_HINTS: Partial<Record<string, string>> = {
+  "bubble-hearts": "BUBBLE · HEART · DREAMY",
+  "bubbles-star": "IRIDESCENT · STAR · BUBBLE",
+  dalmatian: "SPOTTED · GLITTER · PLAYFUL",
+  "glitter-dog": "BROWN EARS · FULL GLITTER",
+  "mochi-bear": "ROUND BEAR · MOCHI GLITTER",
+  dog: "WARM · FLUFFY · COCKER SPANIEL",
+  cat: "SLEEK · MYSTERIOUS · CALICO",
+  bunny: "SOFT · FLUFFY · ANGORA STYLE",
+  crown: "REGAL · METALLIC · 3D JEWELED",
+  glasses: "CHIC · OVERSIZED · ACETATE 3D",
+  hearts: "ROMANTIC · PARTICLE · DREAMY",
+};
+
 export function FaceFilterStrip({
   value,
   onChange,
@@ -83,14 +97,15 @@ export function FaceFilterStrip({
         </p>
       )}
 
-      {tab === "ar" && (
+      {tab === "beauty" && (
         <p className="text-[10px] text-muted-foreground px-0.5 leading-snug">
-          {value === "dog" && "WARM · FLUFFY · COCKER SPANIEL"}
-          {value === "cat" && "SLEEK · MYSTERIOUS · CALICO"}
-          {value === "bunny" && "SOFT · FLUFFY · ANGORA STYLE"}
-          {value === "crown" && "REGAL · METALLIC · 3D JEWELED"}
-          {value === "glasses" && "CHIC · OVERSIZED · ACETATE 3D"}
-          {value === "hearts" && "ROMANTIC · PARTICLE · DREAMY"}
+          ♡ 블러시 · 글래스 · 소프트 — 인스타급 스킨·눈·입술 보정
+        </p>
+      )}
+
+      {tab === "ar" && AR_FILTER_HINTS[value] && (
+        <p className="text-[10px] text-muted-foreground px-0.5 leading-snug">
+          {AR_FILTER_HINTS[value]}
         </p>
       )}
 
