@@ -4,7 +4,9 @@ import type { VRMHumanBoneName } from "@pixiv/three-vrm-core";
 import type { AvatarConfig, AvatarFaceParams } from "@/lib/virtual-avatar/types";
 import { getFaceShapeBones } from "@/lib/virtual-avatar/face-shape-profiles";
 import { EYE_COLORS, LIP_COLORS, SKIN_TONES, adjustSkinColor } from "@/lib/virtual-avatar/presets";
-import { setMaterialColor, setSolidClothingColor } from "@/lib/virtual-avatar/material-utils";
+import { setMaterialColor, isHairMaterial, isNativeClothMaterial, isSkinMaterial } from "@/lib/virtual-avatar/material-utils";
+import { applyVrmHairTint } from "@/lib/virtual-avatar/vrm-hair-tint";
+import { normalizeHex } from "@/lib/color-picker-utils";
 import { getCatalogItem } from "@/lib/virtual-avatar/avatar-catalog";
 import { HAIR_COLOR_BY_INDEX } from "@/lib/virtual-avatar/face-morph-colors";
 
@@ -287,12 +289,13 @@ function setMeshColor(
   });
 }
 
-function setHairMeshColor(mesh: THREE.Mesh, color: THREE.Color) {
-  mesh.visible = true;
-  const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-  mats.forEach((m) => {
-    setSolidClothingColor(m, color, { shadeDarken: 0.68, roughness: 0.74 });
-  });
+function applySkinColorToMaterial(
+  mat: THREE.Material,
+  color: THREE.Color,
+  emissive?: THREE.Color,
+  emissiveIntensity?: number
+) {
+  setMaterialColor(mat, color, { emissive, emissiveIntensity, shadeDarken: 0.72 });
 }
 
 export function applyAppearanceToVrm(vrm: VRM, config: AvatarConfig) {
@@ -302,7 +305,12 @@ export function applyAppearanceToVrm(vrm: VRM, config: AvatarConfig) {
 
   const hairCatalog = equipped.hairId ? getCatalogItem(equipped.hairId) : undefined;
   const hairStyle = hairCatalog?.appearance.hairStyle ?? hair.style;
-  const hairColor = new THREE.Color(hair.colorHex || HAIR_COLOR_BY_INDEX[hair.colorIndex] || "#1a1a1a");
+  const hairHex =
+    normalizeHex(hair.colorHex) ?? HAIR_COLOR_BY_INDEX[hair.colorIndex] ?? "#1a1a1a";
+  applyVrmHairTint(vrm, hairHex, {
+    skinHex: skinHex,
+    autoSkinContrast: hair.autoSkinContrast !== false,
+  });
 
   const eyeColor = new THREE.Color(face.eyeColorHex || EYE_COLORS[face.eyeColorIndex]?.hex || "#4a6741");
   const lipColor = new THREE.Color(face.makeup.lipColorHex || LIP_COLORS[face.makeup.lipColorIndex]?.hex || "#e879a0");
@@ -316,7 +324,6 @@ export function applyAppearanceToVrm(vrm: VRM, config: AvatarConfig) {
     if (name.includes("hair")) {
       const vol = 0.92 + (hair.volume / 100) * 0.22 + (hairStyle % 5) * 0.02;
       mesh.scale.set(vol, 0.85 + (hair.length / 100) * 0.35, vol);
-      setHairMeshColor(mesh, hairColor);
       return;
     }
 
@@ -326,8 +333,15 @@ export function applyAppearanceToVrm(vrm: VRM, config: AvatarConfig) {
     }
 
     if (name.includes("face") || name.includes("body") || name.includes("skin")) {
-      setMeshColor(mesh, skinColor);
-      if (skin.glow) setMeshColor(mesh, skinColor, skinColor, 0.06);
+      mesh.visible = true;
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      mats.forEach((mat) => {
+        if (isHairMaterial(mat) || isNativeClothMaterial(mat)) return;
+        if (isSkinMaterial(mat) || mats.length === 1) {
+          applySkinColorToMaterial(mat, skinColor);
+          if (skin.glow) applySkinColorToMaterial(mat, skinColor, skinColor, 0.06);
+        }
+      });
       return;
     }
 

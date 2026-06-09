@@ -62,6 +62,9 @@ export function mergeStoredConfig(parsed: Partial<AvatarConfig>): AvatarConfig {
       colorHex:
         parsed.hair?.colorHex ??
         DEFAULT_AVATAR_CONFIG.hair.colorHex,
+      autoSkinContrast:
+        parsed.hair?.autoSkinContrast ??
+        DEFAULT_AVATAR_CONFIG.hair.autoSkinContrast,
     },
     effects: { ...DEFAULT_AVATAR_CONFIG.effects, ...parsed.effects },
     view: { ...DEFAULT_AVATAR_CONFIG.view, ...parsed.view },

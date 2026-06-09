@@ -2,17 +2,30 @@ import * as THREE from "three";
 
 export type MToonLike = THREE.Material & {
   isMToonMaterial?: boolean;
+  isOutline?: boolean;
   color?: THREE.Color;
+  litFactor?: THREE.Color;
   shadeColorFactor?: THREE.Color;
+  parametricRimColorFactor?: THREE.Color;
+  matcapFactor?: THREE.Color;
   shadingToonyFactor?: number;
+  giEqualizationFactor?: number;
+  rimLightingMixFactor?: number;
   outlineWidthFactor?: number;
+  outlineColorFactor?: THREE.Color;
+  outlineLightingMixFactor?: number;
   emissive?: THREE.Color;
   emissiveIntensity?: number;
   emissiveMap?: THREE.Texture | null;
   map?: THREE.Texture | null;
+  normalMap?: THREE.Texture | null;
   shadeMultiplyTexture?: THREE.Texture | null;
+  shadingShiftTexture?: THREE.Texture | null;
   rimMultiplyTexture?: THREE.Texture | null;
   matcapTexture?: THREE.Texture | null;
+  outlineWidthMultiplyTexture?: THREE.Texture | null;
+  uvAnimationMaskTexture?: THREE.Texture | null;
+  uniformsNeedUpdate?: boolean;
   update?: (delta: number) => void;
 };
 
@@ -20,8 +33,11 @@ const MTOON_TINT_TEXTURE_KEYS = [
   "map",
   "emissiveMap",
   "shadeMultiplyTexture",
+  "shadingShiftTexture",
   "rimMultiplyTexture",
   "matcapTexture",
+  "outlineWidthMultiplyTexture",
+  "uvAnimationMaskTexture",
 ] as const;
 
 function clearMToonTintTextures(mat: MToonLike) {
@@ -32,6 +48,27 @@ function clearMToonTintTextures(mat: MToonLike) {
 
 export function isMToonMaterial(mat: THREE.Material): mat is MToonLike {
   return !!(mat as MToonLike).isMToonMaterial;
+}
+
+export function isHairMaterial(mat: THREE.Material): boolean {
+  const name = (mat.name || "").toLowerCase();
+  return name.includes("hair") || name.endsWith("_hair");
+}
+
+export function isSkinMaterial(mat: THREE.Material): boolean {
+  const name = (mat.name || "").toLowerCase();
+  if (isHairMaterial(mat)) return false;
+  return name.includes("skin") || name.includes("face") || name.includes("body");
+}
+
+export function isNativeClothMaterial(mat: THREE.Material): boolean {
+  const name = (mat.name || "").toLowerCase();
+  return (
+    name.includes("tops_") ||
+    name.includes("bottoms_") ||
+    name.includes("shoes_") ||
+    name.endsWith("_cloth")
+  );
 }
 
 export type ClothingMaterialOpts = {
@@ -49,10 +86,21 @@ export function setMaterialColor(
 ) {
   if (isMToonMaterial(mat)) {
     if (mat.color instanceof THREE.Color) mat.color.copy(color);
+    if (mat.litFactor instanceof THREE.Color) mat.litFactor.copy(color);
     if (mat.shadeColorFactor instanceof THREE.Color) {
       const shade = color.clone();
       shade.multiplyScalar(opts?.shadeDarken ?? 0.72);
       mat.shadeColorFactor.copy(shade);
+    }
+    if (mat.parametricRimColorFactor instanceof THREE.Color) {
+      const rim = color.clone();
+      rim.multiplyScalar(0.92);
+      mat.parametricRimColorFactor.copy(rim);
+    }
+    if (mat.matcapFactor instanceof THREE.Color) mat.matcapFactor.setRGB(1, 1, 1);
+    if (mat.emissive instanceof THREE.Color) mat.emissive.setRGB(0, 0, 0);
+    if ("emissiveIntensity" in mat && typeof mat.emissiveIntensity === "number") {
+      mat.emissiveIntensity = 0;
     }
   } else if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshPhysicalMaterial) {
     mat.color.copy(color);
@@ -76,10 +124,13 @@ export function setSolidClothingColor(mat: THREE.Material, color: THREE.Color, o
 
   if (isMToonMaterial(mat)) {
     clearMToonTintTextures(mat);
+    if (mat.normalMap) mat.normalMap = null;
     if (opts?.emissiveIntensity && mat.emissive instanceof THREE.Color) {
       mat.emissive.copy(color);
       mat.emissiveIntensity = opts.emissiveIntensity;
     }
+    mat.uniformsNeedUpdate = true;
+    mat.needsUpdate = true;
     return;
   }
 
@@ -95,6 +146,25 @@ export function setSolidClothingColor(mat: THREE.Material, color: THREE.Color, o
     }
     mat.needsUpdate = true;
   }
+}
+
+/** VRM 헤어(MToon) 단색 — lit/shade/outline 텍스처까지 제거 */
+export function setSolidHairColor(mat: THREE.Material, color: THREE.Color) {
+  setSolidClothingColor(mat, color, { shadeDarken: 0.55, roughness: 0.74 });
+
+  if (!isMToonMaterial(mat)) return;
+
+  if (mat.outlineColorFactor instanceof THREE.Color) {
+    const hsl = { h: 0, s: 0, l: 0 };
+    color.getHSL(hsl);
+    const outline = color.clone();
+    outline.multiplyScalar(hsl.l < 0.08 ? 0.85 : 0.42);
+    mat.outlineColorFactor.copy(outline);
+  }
+  if (typeof mat.outlineLightingMixFactor === "number") {
+    mat.outlineLightingMixFactor = 0;
+  }
+  mat.uniformsNeedUpdate = true;
 }
 
 export function applyTextureToMaterial(

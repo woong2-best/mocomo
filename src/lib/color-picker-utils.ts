@@ -98,6 +98,70 @@ export function hueToHex(h: number): string {
   return hsvToHex({ h, s: 100, v: 100 });
 }
 
+/** SV 평면 좌표(0~1) → HSV. x=채도, y=0이 최대 밝기 */
+export function svPointToHsv(h: number, x: number, y: number): Hsv {
+  return {
+    h: clamp(h, 0, 359.9),
+    s: clamp(x, 0, 1) * 100,
+    v: clamp(1 - y, 0, 1) * 100,
+  };
+}
+
+/** HSV → SV 평면 좌표(0~1) */
+export function hsvToSvPoint({ s, v }: Pick<Hsv, "s" | "v">) {
+  return { x: clamp(s, 0, 100) / 100, y: 1 - clamp(v, 0, 100) / 100 };
+}
+
+/** 현재 색상(H) 기준 SV 캔버스 — 화면 픽셀과 hex가 1:1로 일치 */
+export function drawSaturationValuePlane(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  hue: number
+) {
+  if (width <= 0 || height <= 0) return;
+  const image = ctx.createImageData(width, height);
+  const data = image.data;
+  const maxX = Math.max(width - 1, 1);
+  const maxY = Math.max(height - 1, 1);
+
+  for (let y = 0; y < height; y += 1) {
+    const v = (1 - y / maxY) * 100;
+    for (let x = 0; x < width; x += 1) {
+      const s = (x / maxX) * 100;
+      const { r, g, b } = hsvToRgb({ h: hue, s, v });
+      const i = (y * width + x) * 4;
+      data[i] = Math.round(r);
+      data[i + 1] = Math.round(g);
+      data[i + 2] = Math.round(b);
+      data[i + 3] = 255;
+    }
+  }
+
+  ctx.putImageData(image, 0, 0);
+}
+
+export function drawHueStrip(ctx: CanvasRenderingContext2D, width: number, height: number) {
+  if (width <= 0 || height <= 0) return;
+  const image = ctx.createImageData(width, height);
+  const data = image.data;
+  const maxY = Math.max(height - 1, 1);
+
+  for (let y = 0; y < height; y += 1) {
+    const h = (y / maxY) * 360;
+    const { r, g, b } = hsvToRgb({ h, s: 100, v: 100 });
+    for (let x = 0; x < width; x += 1) {
+      const i = (y * width + x) * 4;
+      data[i] = Math.round(r);
+      data[i + 1] = Math.round(g);
+      data[i + 2] = Math.round(b);
+      data[i + 3] = 255;
+    }
+  }
+
+  ctx.putImageData(image, 0, 0);
+}
+
 export function loadCustomColors(): string[] {
   if (typeof window === "undefined") {
     return Array.from({ length: CUSTOM_COLOR_SLOTS }, () => "#ffffff");

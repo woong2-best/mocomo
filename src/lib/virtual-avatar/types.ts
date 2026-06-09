@@ -145,6 +145,8 @@ export interface AvatarHairParams {
   length: number;
   colorIndex: number;
   colorHex: string;
+  /** 피부와 헤어 명도가 비슷할 때 헤어색 자동 보정 */
+  autoSkinContrast?: boolean;
   gradient: boolean;
   highlight: boolean;
 }
@@ -293,6 +295,7 @@ export const DEFAULT_AVATAR_CONFIG: AvatarConfig = {
     length: 50,
     colorIndex: 0,
     colorHex: "#1a1a1a",
+    autoSkinContrast: true,
     gradient: false,
     highlight: false,
   },

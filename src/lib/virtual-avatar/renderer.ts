@@ -7,6 +7,8 @@ import {
   HAIR_COLORS,
   SKIN_TONES,
 } from "@/lib/virtual-avatar/presets";
+import { buildHairColorPalette } from "@/lib/virtual-avatar/hair-color-model";
+import { normalizeHex } from "@/lib/color-picker-utils";
 import type { AvatarConfig, FaceShape, MotionId, ParticleEffect } from "@/lib/virtual-avatar/types";
 
 type Particle = { x: number; y: number; vx: number; vy: number; life: number; size: number; hue: number };
@@ -408,7 +410,9 @@ export class VirtualAvatarRenderer {
 
   private drawHair(ctx: CanvasRenderingContext2D, config: AvatarConfig) {
     const hair = config.hair;
-    const base = HAIR_COLORS[hair.colorIndex]?.hex ?? "#1a1a1a";
+    const hex =
+      normalizeHex(hair.colorHex) ?? HAIR_COLORS[hair.colorIndex]?.hex ?? "#1a1a1a";
+    const palette = buildHairColorPalette(hex);
     const vol = 0.7 + hair.volume / 100;
     const len = 0.6 + hair.length / 100;
     const style = hair.style;
@@ -416,12 +420,12 @@ export class VirtualAvatarRenderer {
     ctx.save();
     ctx.translate(0, -95);
 
-    let grad: CanvasGradient | string = base;
+    let grad: CanvasGradient | string = palette.base;
     if (hair.gradient || hair.colorIndex === 9) {
       grad = ctx.createLinearGradient(-30, -50, 30, 20);
-      grad.addColorStop(0, base === "linear" ? "#f472b6" : base);
-      grad.addColorStop(0.5, hair.colorIndex === 9 ? "#a855f7" : base);
-      grad.addColorStop(1, hair.colorIndex === 9 ? "#22d3ee" : "#4a3728");
+      grad.addColorStop(0, palette.highlight);
+      grad.addColorStop(0.45, palette.base);
+      grad.addColorStop(1, palette.shadow);
     }
     ctx.fillStyle = grad;
 
@@ -484,8 +488,10 @@ export class VirtualAvatarRenderer {
     }
 
     if (hair.highlight) {
-      ctx.fillStyle = "rgba(255,255,255,0.15)";
+      ctx.fillStyle = palette.highlight;
+      ctx.globalAlpha = 0.22;
       drawBlob(-8, -42, 14, 18);
+      ctx.globalAlpha = 1;
     }
 
     ctx.restore();

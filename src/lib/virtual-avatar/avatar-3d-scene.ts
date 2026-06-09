@@ -26,10 +26,12 @@ import { AvatarRenderStack } from "@/lib/virtual-avatar/avatar-render-stack";
 import { FacePaintLayer } from "@/lib/virtual-avatar/face-paint-layer";
 import { BodyPaintLayer } from "@/lib/virtual-avatar/body-paint-layer";
 import { createStudioFloor, enhanceVrmForStudio } from "@/lib/virtual-avatar/vrm-material-pro";
+import { registerVrmHairTint, applyVrmHairTint, disposeVrmHairTint } from "@/lib/virtual-avatar/vrm-hair-tint";
 import { VrmAttachmentManager } from "@/lib/virtual-avatar/vrm-attachment-manager";
 import { loadCachedBvhText } from "@/lib/virtual-avatar/avatar-mocap-cache";
 import { avatarSculptSession } from "@/lib/virtual-avatar/avatar-sculpt";
 import { collectSceneMaterials, tickMToonMaterials } from "@/lib/virtual-avatar/material-utils";
+import { SKIN_TONES } from "@/lib/virtual-avatar/presets";
 
 const DEFAULT_VRM = "/avatars/default.vrm";
 export const DEFAULT_AVATAR_VRM_URL = DEFAULT_VRM;
@@ -422,6 +424,7 @@ export class VirtualAvatar3DScene {
 
   private mountVrm(vrm: VRM, name: string) {
     if (this.vrm) {
+      disposeVrmHairTint(this.vrm);
       this.mocapPlayer.stop(this.vrm);
       this.attachments.unmount();
       this.scene.remove(this.vrm.scene);
@@ -436,6 +439,12 @@ export class VirtualAvatar3DScene {
     const quality = this.getConfig().effects?.renderQuality ?? "studio";
     const cel = this.getConfig().effects?.celShading ?? true;
     enhanceVrmForStudio(vrm, this.renderStack.getEnvironmentMap(), quality, cel);
+    registerVrmHairTint(vrm);
+    const cfg = this.getConfig();
+    applyVrmHairTint(vrm, cfg.hair.colorHex, {
+      skinHex: SKIN_TONES[cfg.skin.toneIndex]?.hex,
+      autoSkinContrast: cfg.hair.autoSkinContrast !== false,
+    });
     this.mtoonMaterials = collectSceneMaterials(vrm.scene);
     this.attachments.mount(vrm);
     initSpringPhysics(vrm);

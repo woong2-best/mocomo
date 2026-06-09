@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BASIC_COLORS,
   CUSTOM_COLOR_SLOTS,
@@ -8,13 +8,13 @@ import {
   hexToHsv,
   hexToRgb,
   hsvToHex,
-  hueToHex,
   loadCustomColors,
   normalizeHex,
   rgbToHex,
   saveCustomColors,
   type Hsv,
 } from "@/lib/color-picker-utils";
+import { StudioColorPickerPlane } from "@/components/avatar/studio-color-picker-plane";
 import {
   Dialog,
   DialogContent,
@@ -72,9 +72,6 @@ export function StudioColorPickerDialog({
   const [hsv, setHsv] = useState<Hsv>(() => hexToHsv(normalizeHex(value) ?? "#000000"));
   const [customColors, setCustomColors] = useState<string[]>(() => loadCustomColors());
   const [htmlInput, setHtmlInput] = useState(draft);
-  const svRef = useRef<HTMLDivElement>(null);
-  const hueRef = useRef<HTMLDivElement>(null);
-  const lumRef = useRef<HTMLDivElement>(null);
 
   const syncFromHex = useCallback((hex: string) => {
     const next = normalizeHex(hex) ?? "#000000";
@@ -95,55 +92,6 @@ export function StudioColorPickerDialog({
   }, []);
 
   const rgb = useMemo(() => hexToRgb(draft), [draft]);
-
-  const pickFromSv = useCallback(
-    (clientX: number, clientY: number) => {
-      const el = svRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const s = clamp(((clientX - rect.left) / rect.width) * 100, 0, 100);
-      const v = clamp(100 - ((clientY - rect.top) / rect.height) * 100, 0, 100);
-      applyHsv({ ...hsv, s, v });
-    },
-    [applyHsv, hsv]
-  );
-
-  const pickFromHue = useCallback(
-    (clientY: number) => {
-      const el = hueRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const h = clamp(((clientY - rect.top) / rect.height) * 360, 0, 359.9);
-      applyHsv({ ...hsv, h });
-    },
-    [applyHsv, hsv]
-  );
-
-  const pickFromLum = useCallback(
-    (clientY: number) => {
-      const el = lumRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const v = clamp(100 - ((clientY - rect.top) / rect.height) * 100, 0, 100);
-      applyHsv({ ...hsv, v });
-    },
-    [applyHsv, hsv]
-  );
-
-  const bindDrag = useCallback(
-    (move: (x: number, y: number) => void) => (e: React.PointerEvent) => {
-      e.preventDefault();
-      const onMove = (ev: PointerEvent) => move(ev.clientX, ev.clientY);
-      const onUp = () => {
-        window.removeEventListener("pointermove", onMove);
-        window.removeEventListener("pointerup", onUp);
-      };
-      move(e.clientX, e.clientY);
-      window.addEventListener("pointermove", onMove);
-      window.addEventListener("pointerup", onUp);
-    },
-    []
-  );
 
   const addToCustom = () => {
     const next = [...customColors];
@@ -233,54 +181,10 @@ export function StudioColorPickerDialog({
             </button>
           </div>
 
-          <div className="flex flex-1 gap-2 min-w-0">
-            <div
-              ref={svRef}
-              className="relative h-[220px] flex-1 cursor-crosshair rounded border border-neutral-500 touch-none"
-              style={{ backgroundColor: hueToHex(hsv.h) }}
-              onPointerDown={bindDrag((x, y) => pickFromSv(x, y))}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-white to-transparent rounded" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent rounded" />
-              <span
-                className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow"
-                style={{
-                  left: `${hsv.s}%`,
-                  top: `${100 - hsv.v}%`,
-                  backgroundColor: draft,
-                }}
-              />
+          <div className="flex flex-1 gap-2 min-w-0 items-start">
+            <div className="min-w-0 flex-1">
+              <StudioColorPickerPlane hsv={hsv} onChange={applyHsv} height={220} />
             </div>
-
-            <div
-              ref={hueRef}
-              className="relative w-4 h-[220px] rounded border border-neutral-500 cursor-ns-resize touch-none"
-              style={{
-                background:
-                  "linear-gradient(to bottom,#ff0000 0%,#ffff00 17%,#00ff00 33%,#00ffff 50%,#0000ff 67%,#ff00ff 83%,#ff0000 100%)",
-              }}
-              onPointerDown={bindDrag((_x, y) => pickFromHue(y))}
-            >
-              <span
-                className="absolute left-1/2 h-1 w-full -translate-x-1/2 -translate-y-1/2 border border-white shadow"
-                style={{ top: `${(hsv.h / 360) * 100}%`, backgroundColor: hueToHex(hsv.h) }}
-              />
-            </div>
-
-            <div
-              ref={lumRef}
-              className="relative w-4 h-[220px] rounded border border-neutral-500 cursor-ns-resize touch-none"
-              style={{
-                background: `linear-gradient(to bottom, #000 0%, ${hueToHex(hsv.h)} 100%)`,
-              }}
-              onPointerDown={bindDrag((_x, y) => pickFromLum(y))}
-            >
-              <span
-                className="absolute left-1/2 h-1 w-full -translate-x-1/2 -translate-y-1/2 border border-white bg-white shadow"
-                style={{ top: `${100 - hsv.v}%` }}
-              />
-            </div>
-
             <div className="w-10 h-[220px] rounded border border-neutral-500 shrink-0" style={{ backgroundColor: draft }} />
           </div>
         </div>

@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import type { VRM } from "@pixiv/three-vrm";
 import type { AvatarConfig } from "@/lib/virtual-avatar/types";
-import { setSolidClothingColor } from "@/lib/virtual-avatar/material-utils";
+import { isNativeClothMaterial, setSolidClothingColor } from "@/lib/virtual-avatar/material-utils";
 
 const CLOTHING = {
   top: ["Tops_01", "Tops_01_CLOTH"],
@@ -33,6 +33,25 @@ function findMeshes(vrm: VRM, keys: readonly string[]): THREE.Mesh[] {
   return meshes;
 }
 
+function findClothMaterials(vrm: VRM, keys: readonly string[]): THREE.Material[] {
+  const mats = new Set<THREE.Material>();
+  vrm.scene.traverse((obj) => {
+    const mesh = obj as THREE.Mesh;
+    if (!mesh.isMesh || !mesh.material) return;
+    const list = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    list.forEach((mat) => {
+      const matName = mat.name || "";
+      if (keys.some((key) => matName === key || matName.startsWith(`${key}_`))) {
+        mats.add(mat);
+      }
+      if (isNativeClothMaterial(mat) && keys.some((key) => matName.toLowerCase().includes(key.toLowerCase()))) {
+        mats.add(mat);
+      }
+    });
+  });
+  return [...mats];
+}
+
 function rememberTransform(obj: THREE.Object3D) {
   if (!originalTransforms.has(obj)) {
     originalTransforms.set(obj, {
@@ -51,6 +70,11 @@ function resetTransform(mesh: THREE.Mesh) {
     mesh.scale.set(1, 1, 1);
     mesh.position.set(0, 0, 0);
   }
+}
+
+function paintMaterials(materials: THREE.Material[], color: THREE.Color, slot: Slot) {
+  const matOpts = SLOT_MATERIAL[slot];
+  materials.forEach((mat) => setSolidClothingColor(mat, color, matOpts));
 }
 
 function paintMeshes(meshes: THREE.Mesh[], color: THREE.Color, slot: Slot, visible: boolean) {
@@ -78,16 +102,21 @@ export function applyNativeClothing(vrm: VRM, config: AvatarConfig) {
     "top",
     outfit.layers.top
   );
+  paintMaterials(findClothMaterials(vrm, CLOTHING.top), new THREE.Color(outfit.topColor), "top");
+
   paintMeshes(
     findMeshes(vrm, CLOTHING.bottom),
     new THREE.Color(outfit.bottomColor),
     "bottom",
     outfit.layers.bottom
   );
+  paintMaterials(findClothMaterials(vrm, CLOTHING.bottom), new THREE.Color(outfit.bottomColor), "bottom");
+
   paintMeshes(
     findMeshes(vrm, CLOTHING.shoes),
     new THREE.Color(outfit.accentColor),
     "shoes",
     outfit.layers.shoes
   );
+  paintMaterials(findClothMaterials(vrm, CLOTHING.shoes), new THREE.Color(outfit.accentColor), "shoes");
 }
