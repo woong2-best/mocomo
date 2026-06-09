@@ -297,8 +297,6 @@ export function applyAppearanceToVrm(vrm: VRM, config: AvatarConfig) {
 
   const eyeColor = new THREE.Color(EYE_COLORS[face.eyeColorIndex]?.hex ?? "#4a6741");
   const lipColor = new THREE.Color(LIP_COLORS[face.makeup.lipColorIndex]?.hex ?? "#e879a0");
-  const topColor = new THREE.Color(outfit.topColor);
-  const bottomColor = new THREE.Color(outfit.bottomColor);
   const accentColor = new THREE.Color(outfit.accentColor);
 
   vrm.scene.traverse((obj) => {
@@ -324,35 +322,12 @@ export function applyAppearanceToVrm(vrm: VRM, config: AvatarConfig) {
       return;
     }
 
-    if (!outfit.layers.top && (name.includes("shirt") || name.includes("top") || name.includes("upper"))) {
-      mesh.visible = false;
-      return;
-    }
-    if (!outfit.layers.bottom && (name.includes("pants") || name.includes("skirt") || name.includes("bottom"))) {
-      mesh.visible = false;
-      return;
-    }
-    if (!outfit.layers.shoes && (name.includes("shoe") || name.includes("foot"))) {
-      mesh.visible = false;
-      return;
-    }
-
-    if (name.includes("shoe") || name.includes("foot")) {
-      setMeshColor(mesh, accentColor);
-      return;
-    }
-    if (name.includes("pants") || name.includes("skirt") || name.includes("bottom") || name.includes("leg")) {
-      setMeshColor(mesh, bottomColor);
-      return;
-    }
     if (
-      name.includes("shirt") ||
-      name.includes("top") ||
-      name.includes("jacket") ||
-      name.includes("coat") ||
-      name.includes("upper")
+      name.includes("tops_") ||
+      name.includes("bottoms_") ||
+      name.includes("shoes_") ||
+      name.endsWith("_cloth")
     ) {
-      setMeshColor(mesh, topColor);
       return;
     }
 

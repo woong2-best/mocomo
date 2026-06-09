@@ -17,10 +17,18 @@ export function isMToonMaterial(mat: THREE.Material): mat is MToonLike {
   return !!(mat as MToonLike).isMToonMaterial;
 }
 
+export type ClothingMaterialOpts = {
+  emissive?: THREE.Color;
+  emissiveIntensity?: number;
+  shadeDarken?: number;
+  roughness?: number;
+  metalness?: number;
+};
+
 export function setMaterialColor(
   mat: THREE.Material,
   color: THREE.Color,
-  opts?: { emissive?: THREE.Color; emissiveIntensity?: number; shadeDarken?: number }
+  opts?: ClothingMaterialOpts
 ) {
   if (isMToonMaterial(mat)) {
     if (mat.color instanceof THREE.Color) mat.color.copy(color);
@@ -42,6 +50,33 @@ export function setMaterialColor(
         (mat as THREE.MeshStandardMaterial).emissiveIntensity = opts.emissiveIntensity;
       }
     }
+  }
+}
+
+/** 의상 단색 적용 — 기존 텍스처(줄무늬 등)를 제거해 카탈로그 색이 그대로 보이게 */
+export function setSolidClothingColor(mat: THREE.Material, color: THREE.Color, opts?: ClothingMaterialOpts) {
+  setMaterialColor(mat, color, opts);
+
+  if (isMToonMaterial(mat)) {
+    mat.map = null;
+    if (opts?.emissiveIntensity && mat.emissive instanceof THREE.Color) {
+      mat.emissive.copy(color);
+      mat.emissiveIntensity = opts.emissiveIntensity;
+    }
+    return;
+  }
+
+  if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshPhysicalMaterial) {
+    mat.map = null;
+    mat.normalMap = null;
+    mat.aoMap = null;
+    if (typeof opts?.roughness === "number") mat.roughness = opts.roughness;
+    if (typeof opts?.metalness === "number") mat.metalness = opts.metalness;
+    if (typeof opts?.emissiveIntensity === "number") {
+      mat.emissive.copy(color);
+      mat.emissiveIntensity = opts.emissiveIntensity;
+    }
+    mat.needsUpdate = true;
   }
 }
 

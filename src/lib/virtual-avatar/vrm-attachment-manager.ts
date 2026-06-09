@@ -57,7 +57,14 @@ export class VrmAttachmentManager {
 
     const full = config.equipped.fullOutfitId ? getCatalogItem(config.equipped.fullOutfitId) : null;
     if (full?.appearance.attachment) {
-      await this.attachItem(vrm, full.appearance.attachment, config, full.appearance.topColor ?? config.outfit.topColor);
+      await this.attachItem(
+        vrm,
+        full.appearance.attachment,
+        config,
+        full.appearance.topColor ?? config.outfit.topColor,
+        undefined,
+        false
+      );
       return;
     }
 
@@ -75,19 +82,47 @@ export class VrmAttachmentManager {
 
     const top = getCatalogItem(config.equipped.topId);
     if (top?.appearance.attachment && config.outfit.layers.top) {
-      await this.attachItem(vrm, top.appearance.attachment, config, top.appearance.topColor ?? config.outfit.topColor);
+      await this.attachItem(
+        vrm,
+        top.appearance.attachment,
+        config,
+        top.appearance.topColor ?? config.outfit.topColor,
+        undefined,
+        false
+      );
     }
 
     const bottom = getCatalogItem(config.equipped.bottomId);
     if (bottom?.appearance.attachment && config.outfit.layers.bottom) {
-      await this.attachItem(vrm, bottom.appearance.attachment, config, bottom.appearance.bottomColor ?? config.outfit.bottomColor);
+      await this.attachItem(
+        vrm,
+        bottom.appearance.attachment,
+        config,
+        bottom.appearance.bottomColor ?? config.outfit.bottomColor,
+        undefined,
+        false
+      );
     }
 
     if (config.outfit.layers.shoes) {
       const shoes = getCatalogItem(config.equipped.shoesId);
       if (shoes?.appearance.attachment) {
-        await this.attachItem(vrm, { ...shoes.appearance.attachment, bone: "leftFoot" }, config, shoes.appearance.accentColor ?? config.outfit.accentColor);
-        await this.attachItem(vrm, { ...shoes.appearance.attachment, bone: "rightFoot", offset: { x: 0, y: 0, z: 0 } }, config, shoes.appearance.accentColor ?? config.outfit.accentColor);
+        await this.attachItem(
+          vrm,
+          { ...shoes.appearance.attachment, bone: "leftFoot" },
+          config,
+          shoes.appearance.accentColor ?? config.outfit.accentColor,
+          undefined,
+          false
+        );
+        await this.attachItem(
+          vrm,
+          { ...shoes.appearance.attachment, bone: "rightFoot", offset: { x: 0, y: 0, z: 0 } },
+          config,
+          shoes.appearance.accentColor ?? config.outfit.accentColor,
+          undefined,
+          false
+        );
       }
     }
 
@@ -111,14 +146,19 @@ export class VrmAttachmentManager {
     attachment: CatalogAttachment,
     config: AvatarConfig,
     primaryColor: string,
-    secondaryColor?: string
+    secondaryColor?: string,
+    allowProceduralFallback = true
   ) {
-    const obj = await this.resolveAttachment(attachment, {
-      primaryColor,
-      secondaryColor,
-      accentColor: config.outfit.accentColor,
-      scale: 1 + (config.hair.volume - 50) / 200,
-    });
+    const obj = await this.resolveAttachment(
+      attachment,
+      {
+        primaryColor,
+        secondaryColor,
+        accentColor: config.outfit.accentColor,
+        scale: 1 + (config.hair.volume - 50) / 200,
+      },
+      allowProceduralFallback
+    );
     if (!obj) return;
 
     const bone = vrm.humanoid?.getNormalizedBoneNode(attachment.bone as VrmBoneName);
@@ -129,7 +169,8 @@ export class VrmAttachmentManager {
 
   private async resolveAttachment(
     attachment: CatalogAttachment,
-    options: Parameters<typeof buildProceduralAttachment>[1]
+    options: Parameters<typeof buildProceduralAttachment>[1],
+    allowProceduralFallback = true
   ): Promise<THREE.Object3D | null> {
     if (attachment.glbUrl) {
       const cached = GLB_CACHE.get(attachment.glbUrl);
@@ -155,6 +196,7 @@ export class VrmAttachmentManager {
         }
       }
     }
+    if (!allowProceduralFallback) return null;
     const procedural = buildProceduralAttachment(attachment, options);
     if (procedural && attachment.glbUrl) {
       cacheAttachmentGlb(attachment.glbUrl, procedural);

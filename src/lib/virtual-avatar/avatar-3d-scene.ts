@@ -19,6 +19,7 @@ import {
   compensateFeetToFloor,
 } from "@/lib/virtual-avatar/body-morph";
 import { applyFaceMorphToVrm, applyFaceNormalizedAdjustments, applyAppearanceToVrm, stabilizeVrmSpringBones } from "@/lib/virtual-avatar/face-morph";
+import { applyNativeClothing } from "@/lib/virtual-avatar/vrm-native-clothing";
 import { tickSpringPhysics, initSpringPhysics } from "@/lib/virtual-avatar/tracking/spring-physics";
 import { VrmMocapPlayer, type MocapPreset } from "@/lib/virtual-avatar/tracking/mocap-player";
 import { AvatarRenderStack } from "@/lib/virtual-avatar/avatar-render-stack";
@@ -514,6 +515,7 @@ export class VirtualAvatar3DScene {
         applyFaceMorphToVrm(this.vrm, config.face, { trackingLive: false });
       }
       applyBodyMorphToVrm(this.vrm, config.body);
+      applyNativeClothing(this.vrm, config);
       applyAppearanceToVrm(this.vrm, config);
       if (config.effects.renderQuality !== "performance") {
         this.facePaint.applyToVrm(this.vrm, config);
