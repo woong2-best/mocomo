@@ -957,4 +957,91 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+-- ============ 크리에이터 작품 (웹툰·사진·영상) ============
+DO $$ BEGIN
+  CREATE TYPE "CreatorWorkKind" AS ENUM ('WEBTOON', 'PHOTO', 'VIDEO');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TYPE "PaymentIntentType" ADD VALUE IF NOT EXISTS 'CREATOR_EPISODE';
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS "CreatorSeries" (
+  "id" TEXT NOT NULL,
+  "authorId" TEXT NOT NULL,
+  "title" TEXT NOT NULL,
+  "description" TEXT,
+  "coverUrl" TEXT NOT NULL,
+  "kind" "CreatorWorkKind" NOT NULL,
+  "status" TEXT NOT NULL DEFAULT 'ONGOING',
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "CreatorSeries_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "CreatorEpisode" (
+  "id" TEXT NOT NULL,
+  "seriesId" TEXT NOT NULL,
+  "authorId" TEXT NOT NULL,
+  "title" TEXT NOT NULL,
+  "episodeNo" INTEGER NOT NULL,
+  "price" INTEGER NOT NULL DEFAULT 0,
+  "previewUrls" JSONB NOT NULL DEFAULT '[]',
+  "contentUrls" JSONB NOT NULL DEFAULT '[]',
+  "videoUrl" TEXT,
+  "freePreviewCount" INTEGER NOT NULL DEFAULT 1,
+  "salesCount" INTEGER NOT NULL DEFAULT 0,
+  "published" BOOLEAN NOT NULL DEFAULT true,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "CreatorEpisode_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "CreatorEpisodePurchase" (
+  "id" TEXT NOT NULL,
+  "buyerId" TEXT NOT NULL,
+  "episodeId" TEXT NOT NULL,
+  "price" INTEGER NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "CreatorEpisodePurchase_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "CreatorEpisode_seriesId_episodeNo_key" ON "CreatorEpisode"("seriesId", "episodeNo");
+CREATE UNIQUE INDEX IF NOT EXISTS "CreatorEpisodePurchase_buyerId_episodeId_key" ON "CreatorEpisodePurchase"("buyerId", "episodeId");
+CREATE INDEX IF NOT EXISTS "CreatorSeries_authorId_createdAt_idx" ON "CreatorSeries"("authorId", "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "CreatorSeries_kind_createdAt_idx" ON "CreatorSeries"("kind", "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "CreatorEpisode_seriesId_episodeNo_idx" ON "CreatorEpisode"("seriesId", "episodeNo");
+CREATE INDEX IF NOT EXISTS "CreatorEpisodePurchase_buyerId_createdAt_idx" ON "CreatorEpisodePurchase"("buyerId", "createdAt" DESC);
+
+DO $$ BEGIN
+  ALTER TABLE "CreatorSeries" ADD CONSTRAINT "CreatorSeries_authorId_fkey"
+    FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "CreatorEpisode" ADD CONSTRAINT "CreatorEpisode_seriesId_fkey"
+    FOREIGN KEY ("seriesId") REFERENCES "CreatorSeries"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "CreatorEpisode" ADD CONSTRAINT "CreatorEpisode_authorId_fkey"
+    FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "CreatorEpisodePurchase" ADD CONSTRAINT "CreatorEpisodePurchase_buyerId_fkey"
+    FOREIGN KEY ("buyerId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "CreatorEpisodePurchase" ADD CONSTRAINT "CreatorEpisodePurchase_episodeId_fkey"
+    FOREIGN KEY ("episodeId") REFERENCES "CreatorEpisode"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 -- 완료 후 터미널: npx prisma db push && npm run db:seed

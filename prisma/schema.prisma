@@ -153,6 +153,10 @@ model User {
   pushSubscriptions PushSubscription[]
   avatarPresets     AvatarPreset[]
 
+  creatorSeries            CreatorSeries[]          @relation("CreatorSeriesAuthor")
+  creatorEpisodes          CreatorEpisode[]         @relation("CreatorEpisodeAuthor")
+  creatorEpisodePurchases  CreatorEpisodePurchase[]
+
   wallet           Wallet?
   bankAccount      BankAccount?
   payoutRequests   PayoutRequest[]
@@ -960,6 +964,7 @@ enum PaymentIntentType {
   LISTING_FEE
   PHYSICAL_GOODS
   EVENT_REGISTRATION
+  CREATOR_EPISODE
 }
 
 enum EventPublishStatus {
@@ -1643,6 +1648,69 @@ model Notification {
 
   @@index([userId, read, createdAt])
   @@index([userId, createdAt])
+}
+
+// ============ 크리에이터 작품 (웹툰·사진·영상 판매) ============
+
+enum CreatorWorkKind {
+  WEBTOON
+  PHOTO
+  VIDEO
+}
+
+model CreatorSeries {
+  id          String          @id @default(cuid())
+  authorId    String
+  title       String
+  description String?         @db.Text
+  coverUrl    String
+  kind        CreatorWorkKind
+  status      String          @default("ONGOING")
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  author   User             @relation("CreatorSeriesAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  episodes CreatorEpisode[]
+
+  @@index([authorId, createdAt(sort: Desc)])
+  @@index([kind, createdAt(sort: Desc)])
+}
+
+model CreatorEpisode {
+  id               String          @id @default(cuid())
+  seriesId         String
+  authorId         String
+  title            String
+  episodeNo        Int
+  price            Int             @default(0)
+  previewUrls      Json            @default("[]")
+  contentUrls      Json            @default("[]")
+  videoUrl         String?
+  freePreviewCount Int             @default(1)
+  salesCount       Int             @default(0)
+  published        Boolean         @default(true)
+  createdAt        DateTime        @default(now())
+
+  series    CreatorSeries            @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  author    User                     @relation("CreatorEpisodeAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  purchases CreatorEpisodePurchase[]
+
+  @@unique([seriesId, episodeNo])
+  @@index([seriesId, episodeNo])
+}
+
+model CreatorEpisodePurchase {
+  id        String   @id @default(cuid())
+  buyerId   String
+  episodeId String
+  price     Int
+  createdAt DateTime @default(now())
+
+  buyer   User           @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  episode CreatorEpisode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@unique([buyerId, episodeId])
+  @@index([buyerId, createdAt(sort: Desc)])
 }
 
 // ============ VIRTUAL AVATAR STUDIO ============

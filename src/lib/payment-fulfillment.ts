@@ -14,6 +14,7 @@ import {
   fulfillListingFee,
   fulfillPhysicalGoodsPayment,
 } from "@/actions/goods-shop";
+import { fulfillCreatorEpisodePurchase } from "@/actions/creator-works";
 import { calcPlatformFee } from "@/lib/utils";
 import { tierFromAmount } from "@/lib/tiers";
 import { notifyTip } from "@/lib/notifications";
@@ -255,6 +256,26 @@ export async function fulfillPaymentIntent(
       });
     }
     revalidatePath("/support");
+  }
+
+  if (intent.type === "CREATOR_EPISODE") {
+    const r = await fulfillCreatorEpisodePurchase(userId, meta.episodeId, amount, intent.id);
+    if ("error" in r && r.error) return { ok: false, error: r.error };
+    if ("success" in r && r.success && !r.alreadyOwned) {
+      await recordPlatformFee(r.platformFee, {
+        referenceType: "creator_episode",
+        referenceId: r.referenceId,
+        paymentIntentId: intent.id,
+      });
+      await creditSellerEarning(r.authorId, r.sellerAmount, {
+        referenceType: "creator_episode",
+        referenceId: r.referenceId,
+        paymentIntentId: intent.id,
+        memo: "크리에이터 작품 판매",
+      });
+    }
+    revalidatePath("/works");
+    revalidatePath(`/works/e/${meta.episodeId}`);
   }
 
   await db.paymentIntent.update({

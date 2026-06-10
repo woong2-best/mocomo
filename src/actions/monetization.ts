@@ -73,6 +73,19 @@ async function validatePaymentInput(
     if (event.registrationFeePaid) return { error: "이미 등록비가 결제되었습니다." };
   }
 
+  if (input.type === "CREATOR_EPISODE") {
+    const episodeId = input.metadata.episodeId as string;
+    const episode = await db.creatorEpisode.findUnique({ where: { id: episodeId } });
+    if (!episode) return { error: "작품 회차를 찾을 수 없습니다." };
+    if (episode.price !== input.amount) return { error: "가격이 일치하지 않습니다." };
+    if (episode.price <= 0) return { error: "무료 회차는 구매가 필요 없습니다." };
+    if (episode.authorId === userId) return { error: "본인 작품은 구매할 수 없습니다." };
+    const owned = await db.creatorEpisodePurchase.findUnique({
+      where: { buyerId_episodeId: { buyerId: userId, episodeId } },
+    });
+    if (owned) return { error: "이미 구매한 회차입니다." };
+  }
+
   return null;
 }
 
@@ -186,6 +199,12 @@ export async function confirmStripeCheckout(sessionId: string) {
     const meta = intent.metadata as Record<string, string | undefined>;
     if (meta.eventId) redirectPath = `/events/new?eventId=${meta.eventId}&paid=1`;
     else redirectPath = "/events";
+  }
+
+  if (result.type === "CREATOR_EPISODE") {
+    const meta = intent.metadata as Record<string, string | undefined>;
+    if (meta.episodeId) redirectPath = `/works/e/${meta.episodeId}?paid=1`;
+    else redirectPath = "/works";
   }
 
   return {
