@@ -76,8 +76,18 @@ export async function userOwnsEpisode(userId: string, episodeId: string) {
 }
 
 export async function getEpisodeAccess(userId: string | null, episodeId: string) {
-  const episode = await getCreatorEpisode(episodeId);
+  const episode = await db.creatorEpisode.findUnique({
+    where: { id: episodeId, published: true },
+    include: {
+      author: { select: { id: true, username: true, name: true, image: true } },
+      series: { select: { id: true, title: true, kind: true, coverUrl: true } },
+    },
+  });
   if (!episode) return { error: "작품을 찾을 수 없습니다." as const };
+  const isAuthor = userId === episode.authorId;
+  if (!isAuthor && episode.scheduledAt && episode.scheduledAt > new Date()) {
+    return { error: "아직 공개되지 않은 회차입니다." as const };
+  }
 
   const owned = userId ? await userOwnsEpisode(userId, episodeId) : episode.price <= 0;
   const previewUrls = parseUrlList(episode.previewUrls);
@@ -134,6 +144,7 @@ export async function publishCreatorEpisode(input: {
   contentUrls?: string[];
   videoUrl?: string;
   freePreviewCount?: number;
+  scheduledAt?: string | null;
 }) {
   const user = await requireAuth();
   const series = await db.creatorSeries.findUnique({ where: { id: input.seriesId } });
@@ -155,6 +166,9 @@ export async function publishCreatorEpisode(input: {
   });
   if (existing) return { error: "같은 회차 번호가 이미 있습니다." };
 
+  const scheduledAt = input.scheduledAt ? new Date(input.scheduledAt) : null;
+  const isFuture = scheduledAt && scheduledAt > new Date();
+
   const episode = await db.creatorEpisode.create({
     data: {
       seriesId: input.seriesId,
@@ -166,6 +180,8 @@ export async function publishCreatorEpisode(input: {
       contentUrls,
       videoUrl: input.videoUrl?.trim() || null,
       freePreviewCount: input.freePreviewCount ?? (series.kind === "WEBTOON" ? 1 : 0),
+      scheduledAt,
+      publishedAt: isFuture ? null : new Date(),
     },
   });
 

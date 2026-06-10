@@ -29,6 +29,7 @@ export const STUDIO_TOOLS: { id: StudioToolId; label: string; group: string }[] 
   { id: "text", label: "텍스트", group: "text" },
   { id: "speechBubble", label: "말풍선", group: "manga" },
   { id: "speedLines", label: "속도선", group: "manga" },
+  { id: "screentone", label: "스크린톤", group: "manga" },
   { id: "ruler", label: "직선 보조", group: "guide" },
 ];
 
@@ -56,6 +57,14 @@ export const LAYER_FILTERS = [
   { id: "brightness", label: "밝기" },
   { id: "saturation", label: "채도" },
 ] as const;
+
+export const SCREENTONE_PATTERNS = [
+  { id: "dots", label: "점 ton" },
+  { id: "lines", label: "선 ton" },
+  { id: "cross", label: "교차 ton" },
+] as const;
+
+export type ScreentonePatternId = (typeof SCREENTONE_PATTERNS)[number]["id"];
 
 export function createEmptyPage(name: string, index: number): StudioPage {
   const layerId = crypto.randomUUID();
@@ -89,6 +98,7 @@ export function createDefaultProject(name = "새 웹툰"): StudioProject {
     name,
     pages: [createEmptyPage("1페이지", 0)],
     activePageIndex: 0,
+    dialogues: [],
     createdAt: now,
     updatedAt: now,
   };

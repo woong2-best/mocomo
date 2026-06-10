@@ -20,6 +20,7 @@ export type StudioToolId =
   | "text"
   | "speechBubble"
   | "speedLines"
+  | "screentone"
   | "ruler";
 
 export type StudioLayerType = "raster" | "text" | "group" | "folder" | "effect";
@@ -65,14 +66,25 @@ export type StudioBrushPreset = {
   group?: string;
 };
 
+export type StudioDialogue = {
+  id: string;
+  pageId: string;
+  speaker: string;
+  text: string;
+  x: number;
+  y: number;
+};
+
 export type StudioProject = {
   id: string;
   name: string;
   pages: StudioPage[];
   activePageIndex: number;
+  dialogues: StudioDialogue[];
   createdAt: string;
   updatedAt: string;
   favorite?: boolean;
+  cloudId?: string;
 };
 
 export type StudioViewport = {

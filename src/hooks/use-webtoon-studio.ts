@@ -9,6 +9,7 @@ import {
   stabilizePoint,
   type BrushRuntime,
 } from "@/lib/webtoon-studio/brush";
+import { applyLayerFilter, drawPageText, drawSpeechBubble, drawSpeedLines, drawScreentone } from "@/lib/webtoon-studio/effects";
 import {
   AUTOSAVE_MS,
   createDefaultProject,
@@ -16,8 +17,13 @@ import {
   DEFAULT_BRUSHES,
   HISTORY_MAX,
   STUDIO_RECENT_COLORS_KEY,
+  type ScreentonePatternId,
 } from "@/lib/webtoon-studio/constants";
-import { applyLayerFilter, drawPageText, drawSpeechBubble, drawSpeedLines } from "@/lib/webtoon-studio/effects";
+import {
+  getStudioSettings,
+  saveCloudStudioProject,
+  syncStudioSettings,
+} from "@/actions/webtoon-studio-cloud";
 import {
   compositePage,
   duplicateLayer,
@@ -64,13 +70,18 @@ export function useWebtoonStudio(initialProject?: StudioProject) {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [savedProjects, setSavedProjects] = useState<StudioProject[]>([]);
   const [speechTemplate, setSpeechTemplate] = useState<"normal" | "think" | "shout">("normal");
+  const [showGuides, setShowGuides] = useState(true);
+  const [screentonePattern, setScreentonePattern] = useState<ScreentonePatternId>("dots");
+  const [savedPalette, setSavedPalette] = useState<string[]>([]);
 
   const layerCanvasRef = useRef<Map<string, HTMLCanvasElement>>(new Map());
   const drawingRef = useRef(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
   const stabRef = useRef<{ x: number; y: number }[]>([]);
   const rulerStartRef = useRef<{ x: number; y: number } | null>(null);
+  const rulerEndRef = useRef<{ x: number; y: number } | null>(null);
   const selectStartRef = useRef<{ x: number; y: number } | null>(null);
+  const lassoPointsRef = useRef<{ x: number; y: number }[]>([]);
 
   const page = project.pages[project.activePageIndex]!;
 
@@ -186,8 +197,78 @@ export function useWebtoonStudio(initialProject?: StudioProject) {
   }, [project]);
 
   useEffect(() => {
+    void getStudioSettings().then((s) => {
+      if (s.brushes.length > 0) setCustomBrushes(s.brushes);
+      if (s.palette.length > 0) setSavedPalette(s.palette);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (customBrushes.length === 0 && savedPalette.length === 0) return;
+    void syncStudioSettings({ brushes: customBrushes, palette: savedPalette });
+  }, [customBrushes, savedPalette]);
+
+  useEffect(() => {
     void listStudioProjects().then(setSavedProjects);
   }, [project.updatedAt]);
+
+  const addDialogue = useCallback(
+    (speaker: string, text: string) => {
+      commitProject({
+        ...project,
+        dialogues: [
+          ...(project.dialogues ?? []),
+          {
+            id: crypto.randomUUID(),
+            pageId: page.id,
+            speaker,
+            text,
+            x: 120,
+            y: 120,
+          },
+        ],
+      });
+    },
+    [commitProject, page.id, project]
+  );
+
+  const updateDialogue = useCallback(
+    (id: string, patch: Partial<{ speaker: string; text: string }>) => {
+      commitProject(
+        {
+          ...project,
+          dialogues: (project.dialogues ?? []).map((d) => (d.id === id ? { ...d, ...patch } : d)),
+        },
+        false
+      );
+    },
+    [commitProject, project]
+  );
+
+  const removeDialogue = useCallback(
+    (id: string) => {
+      commitProject({
+        ...project,
+        dialogues: (project.dialogues ?? []).filter((d) => d.id !== id),
+      });
+    },
+    [commitProject, project]
+  );
+
+  const saveCloud = useCallback(async () => {
+    const payload = { ...project, dialogues: project.dialogues ?? [] };
+    const res = await saveCloudStudioProject(payload);
+    if (res.cloudId) {
+      setProject((p) => ({ ...p, cloudId: res.cloudId }));
+    }
+    await saveStudioProject(payload);
+    const list = await listStudioProjects();
+    setSavedProjects(list);
+  }, [project]);
+
+  const savePaletteColor = useCallback((c: string) => {
+    setSavedPalette((prev) => [c, ...prev.filter((x) => x !== c)].slice(0, 16));
+  }, []);
 
   const pickColor = useCallback((c: string) => {
     setColor(c);
@@ -364,8 +445,20 @@ export function useWebtoonStudio(initialProject?: StudioProject) {
         return;
       }
 
-      if (tool === "rectSelect") {
+      if (tool === "rectSelect" || tool === "ellipseSelect") {
         selectStartRef.current = { x, y };
+        return;
+      }
+
+      if (tool === "lassoSelect") {
+        lassoPointsRef.current = [{ x, y }];
+        selectStartRef.current = { x, y };
+        return;
+      }
+
+      if (tool === "screentone") {
+        drawScreentone(ctx, screentonePattern, x - 120, y - 120, 240, 240);
+        syncActiveLayerFromCanvas();
         return;
       }
 
@@ -390,8 +483,8 @@ export function useWebtoonStudio(initialProject?: StudioProject) {
 
       if (tool === "ruler" || (shiftKey && isDrawingTool(tool))) {
         rulerStartRef.current = { x, y };
+        rulerEndRef.current = { x, y };
         drawingRef.current = true;
-        lastPointRef.current = { x, y };
         return;
       }
 
@@ -413,6 +506,7 @@ export function useWebtoonStudio(initialProject?: StudioProject) {
       page,
       pickColor,
       speechTemplate,
+      screentonePattern,
       syncActiveLayerFromCanvas,
       tool,
     ]
@@ -431,6 +525,37 @@ export function useWebtoonStudio(initialProject?: StudioProject) {
         return;
       }
 
+      if (tool === "ellipseSelect" && selectStartRef.current) {
+        const s = selectStartRef.current;
+        const rx = Math.abs(x - s.x);
+        const ry = Math.abs(y - s.y);
+        setSelection({
+          x: s.x - rx,
+          y: s.y - ry,
+          w: rx * 2,
+          h: ry * 2,
+        });
+        return;
+      }
+
+      if (tool === "lassoSelect" && selectStartRef.current) {
+        lassoPointsRef.current.push({ x, y });
+        const pts = lassoPointsRef.current;
+        const xs = pts.map((p) => p.x);
+        const ys = pts.map((p) => p.y);
+        const minX = Math.min(...xs);
+        const maxX = Math.max(...xs);
+        const minY = Math.min(...ys);
+        const maxY = Math.max(...ys);
+        setSelection({ x: minX, y: minY, w: maxX - minX, h: maxY - minY });
+        return;
+      }
+
+      if (tool === "ruler" && rulerStartRef.current) {
+        rulerEndRef.current = { x, y };
+        return;
+      }
+
       if (!drawingRef.current || !lastPointRef.current) return;
       const lc = getLayerCanvas(activeLayer);
       const ctx = lc.getContext("2d")!;
@@ -438,26 +563,53 @@ export function useWebtoonStudio(initialProject?: StudioProject) {
       stabRef.current.push(stab);
 
       const from = lastPointRef.current;
-      const to = rulerStartRef.current ?? stab;
+      const to = stab;
 
       drawBrushLine(ctx, from.x, from.y, to.x, to.y, tool, color, brushRuntime, pressure);
-      lastPointRef.current = rulerStartRef.current ? { x, y } : to;
+      lastPointRef.current = to;
     },
     [activeLayer, brush.stabilization, brushRuntime, color, getLayerCanvas, tool]
   );
 
-  const pointerUp = useCallback(() => {
-    if (selectStartRef.current) {
-      selectStartRef.current = null;
-      return;
-    }
-    if (drawingRef.current) {
-      drawingRef.current = false;
-      rulerStartRef.current = null;
-      lastPointRef.current = null;
-      syncActiveLayerFromCanvas();
-    }
-  }, [syncActiveLayerFromCanvas]);
+  const pointerUp = useCallback(
+    (x?: number, y?: number) => {
+      if (tool === "ruler" && rulerStartRef.current) {
+        const end = rulerEndRef.current ?? (x != null && y != null ? { x, y } : null);
+        if (end) {
+          const lc = getLayerCanvas(activeLayer);
+          const ctx = lc.getContext("2d")!;
+          drawBrushLine(
+            ctx,
+            rulerStartRef.current.x,
+            rulerStartRef.current.y,
+            end.x,
+            end.y,
+            tool,
+            color,
+            brushRuntime,
+            1
+          );
+          syncActiveLayerFromCanvas();
+        }
+        rulerStartRef.current = null;
+        rulerEndRef.current = null;
+        drawingRef.current = false;
+        return;
+      }
+
+      if (selectStartRef.current) {
+        selectStartRef.current = null;
+        lassoPointsRef.current = [];
+        return;
+      }
+      if (drawingRef.current) {
+        drawingRef.current = false;
+        lastPointRef.current = null;
+        syncActiveLayerFromCanvas();
+      }
+    },
+    [activeLayer, brushRuntime, color, getLayerCanvas, syncActiveLayerFromCanvas, tool]
+  );
 
   const saveProjectNow = useCallback(async () => {
     await saveStudioProject(project);
@@ -467,8 +619,16 @@ export function useWebtoonStudio(initialProject?: StudioProject) {
 
   const loadProject = useCallback((p: StudioProject) => {
     layerCanvasRef.current.clear();
-    setProject(p);
-    setHistory([p]);
+    const normalized = {
+      ...p,
+      dialogues: p.dialogues ?? [],
+      pages: p.pages.map((pg) => ({
+        ...pg,
+        layers: pg.layers.map((l) => ({ ...l })),
+      })),
+    };
+    setProject(normalized);
+    setHistory([normalized]);
     setHistoryIndex(0);
   }, []);
 
@@ -547,6 +707,16 @@ export function useWebtoonStudio(initialProject?: StudioProject) {
     savedProjects,
     speechTemplate,
     setSpeechTemplate,
+    showGuides,
+    setShowGuides,
+    screentonePattern,
+    setScreentonePattern,
+    savedPalette,
+    savePaletteColor,
+    addDialogue,
+    updateDialogue,
+    removeDialogue,
+    saveCloud,
     renameProject: (name: string) => commitProject({ ...project, name }, false),
     duplicateProject: () => {
       const copy = {

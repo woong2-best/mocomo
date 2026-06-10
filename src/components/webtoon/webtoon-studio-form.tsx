@@ -33,6 +33,7 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
   const [episodeNo, setEpisodeNo] = useState(1);
   const [price, setPrice] = useState(500);
   const [freePreviewCount, setFreePreviewCount] = useState(1);
+  const [scheduledAt, setScheduledAt] = useState("");
   const [contentUrls, setContentUrls] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
@@ -97,6 +98,7 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
       contentUrls,
       previewUrls: contentUrls.slice(0, 1),
       freePreviewCount,
+      scheduledAt: scheduledAt.trim() || null,
     });
     setLoading(false);
     if ("error" in res && res.error) {
@@ -255,6 +257,16 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
           className="rounded-xl"
         />
         <p className="text-[11px] text-muted-foreground -mt-2">무료 미리보기 장 수</p>
+        <label className="block space-y-1">
+          <span className="text-xs text-muted-foreground">예약 공개 (선택)</span>
+          <Input
+            type="datetime-local"
+            value={scheduledAt}
+            onChange={(e) => setScheduledAt(e.target.value)}
+            className="rounded-xl"
+          />
+        </label>
+        <p className="text-[11px] text-muted-foreground -mt-1">미래 시각이면 해당 시간까지 비공개로 등록됩니다.</p>
         <label className="inline-flex items-center gap-2 cursor-pointer text-sm font-medium">
           <Upload className="h-4 w-4" />
           웹툰 컷 업로드 (여러 장)

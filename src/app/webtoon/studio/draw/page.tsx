@@ -14,7 +14,7 @@ export default async function WebtoonDrawStudioPage() {
   return (
     <div className="space-y-2">
       <p className="text-xs text-muted-foreground px-1">
-        웹툰 연재 원고 · 레이어 · 브러시 · 말풍선 · 속도선 · 다중 페이지 · 자동 저장(로컬)
+        웹툰 연재 원고 · 레이어 · 브러시 · 클라우드 저장 · 대사 스크립트 · 다중 페이지
       </p>
       <WebtoonDrawStudio />
     </div>

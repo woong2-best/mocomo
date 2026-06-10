@@ -111,3 +111,56 @@ export function drawPageText(
   ctx.fillText(text, x, y);
   ctx.restore();
 }
+
+export function drawScreentone(
+  ctx: CanvasRenderingContext2D,
+  pattern: "dots" | "lines" | "cross",
+  x: number,
+  y: number,
+  w: number,
+  h: number
+) {
+  const tile = document.createElement("canvas");
+  tile.width = 12;
+  tile.height = 12;
+  const tctx = tile.getContext("2d")!;
+  tctx.fillStyle = "#fff";
+  tctx.fillRect(0, 0, 12, 12);
+  tctx.fillStyle = "rgba(0,0,0,0.35)";
+  if (pattern === "dots") {
+    tctx.beginPath();
+    tctx.arc(6, 6, 1.5, 0, Math.PI * 2);
+    tctx.fill();
+  } else if (pattern === "lines") {
+    tctx.fillRect(0, 5, 12, 1);
+  } else {
+    tctx.fillRect(0, 5, 12, 1);
+    tctx.fillRect(5, 0, 1, 12);
+  }
+  ctx.save();
+  const pat = ctx.createPattern(tile, "repeat");
+  if (pat) {
+    ctx.fillStyle = pat;
+    ctx.fillRect(x, y, w, h);
+  }
+  ctx.restore();
+}
+
+export function drawGuideGrid(ctx: CanvasRenderingContext2D, width: number, height: number, step = 80) {
+  ctx.save();
+  ctx.strokeStyle = "rgba(59,130,246,0.25)";
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= width; x += step) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= height; y += step) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+}

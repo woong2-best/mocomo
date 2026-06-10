@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutGrid, PenLine } from "lucide-react";
+import { LayoutGrid, PenLine, BarChart3 } from "lucide-react";
 import { hasWebtoonAccess } from "@/actions/webtoon";
 import { WebtoonShell } from "@/components/webtoon/webtoon-shell";
 
@@ -28,6 +28,13 @@ export default async function WebtoonLayout({ children }: { children: React.Reac
             >
               <PenLine className="h-3 w-3" />
               드로잉 스튜디오
+            </Link>
+            <Link
+              href="/webtoon/studio/dashboard"
+              className="px-3 py-1.5 rounded-full text-xs font-medium bg-muted/60 hover:bg-muted flex items-center gap-1"
+            >
+              <BarChart3 className="h-3 w-3" />
+              작가 통계
             </Link>
             <Link
               href="/webtoon/studio"

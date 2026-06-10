@@ -1063,4 +1063,44 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+-- 웹툰 회차 조회·예약 공개
+ALTER TABLE "CreatorEpisode" ADD COLUMN IF NOT EXISTS "viewCount" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "CreatorEpisode" ADD COLUMN IF NOT EXISTS "scheduledAt" TIMESTAMP(3);
+ALTER TABLE "CreatorEpisode" ADD COLUMN IF NOT EXISTS "publishedAt" TIMESTAMP(3);
+
+-- 웹툰 드로잉 스튜디오 (클라우드)
+CREATE TABLE IF NOT EXISTS "WebtoonStudioProject" (
+  "id" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "data" JSONB NOT NULL,
+  "favorite" BOOLEAN NOT NULL DEFAULT false,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "WebtoonStudioProject_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "WebtoonStudioSettings" (
+  "userId" TEXT NOT NULL,
+  "brushes" JSONB NOT NULL DEFAULT '[]',
+  "palette" JSONB NOT NULL DEFAULT '[]',
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "WebtoonStudioSettings_pkey" PRIMARY KEY ("userId")
+);
+
+CREATE INDEX IF NOT EXISTS "WebtoonStudioProject_userId_updatedAt_idx" ON "WebtoonStudioProject"("userId", "updatedAt" DESC);
+CREATE INDEX IF NOT EXISTS "WebtoonStudioProject_userId_favorite_idx" ON "WebtoonStudioProject"("userId", "favorite");
+
+DO $$ BEGIN
+  ALTER TABLE "WebtoonStudioProject" ADD CONSTRAINT "WebtoonStudioProject_userId_fkey"
+    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "WebtoonStudioSettings" ADD CONSTRAINT "WebtoonStudioSettings_userId_fkey"
+    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 -- 완료 후 터미널: npx prisma db push && npm run db:seed

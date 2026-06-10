@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import type { CreatorWorkKind } from "@prisma/client";
+import { incrementEpisodeView } from "@/actions/webtoon-studio-cloud";
 import { PurchaseEpisodeButton } from "@/components/works/purchase-episode-button";
 
 type EpisodeViewerProps = {
@@ -28,6 +30,12 @@ export function EpisodeViewer({
   previewVideoBlocked,
   paymentsEnabled,
 }: EpisodeViewerProps) {
+  useEffect(() => {
+    if (visibleUrls.length > 0) {
+      void incrementEpisodeView(episodeId);
+    }
+  }, [episodeId, visibleUrls.length]);
+
   return (
     <div className="space-y-4">
       {kind === "VIDEO" && videoUrl && (

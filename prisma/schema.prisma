@@ -156,6 +156,8 @@ model User {
   creatorSeries            CreatorSeries[]          @relation("CreatorSeriesAuthor")
   creatorEpisodes          CreatorEpisode[]         @relation("CreatorEpisodeAuthor")
   creatorEpisodePurchases  CreatorEpisodePurchase[]
+  webtoonStudioProjects    WebtoonStudioProject[]
+  webtoonStudioSettings    WebtoonStudioSettings?
 
   wallet           Wallet?
   bankAccount      BankAccount?
@@ -1726,7 +1728,10 @@ model CreatorEpisode {
   videoUrl         String?
   freePreviewCount Int             @default(1)
   salesCount       Int             @default(0)
+  viewCount        Int             @default(0)
   published        Boolean         @default(true)
+  scheduledAt      DateTime?
+  publishedAt      DateTime?
   createdAt        DateTime        @default(now())
 
   series    CreatorSeries            @relation(fields: [seriesId], references: [id], onDelete: Cascade)
@@ -1749,6 +1754,32 @@ model CreatorEpisodePurchase {
 
   @@unique([buyerId, episodeId])
   @@index([buyerId, createdAt(sort: Desc)])
+}
+
+// ============ 웹툰 드로잉 스튜디오 (클라우드) ============
+
+model WebtoonStudioProject {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  data      Json
+  favorite  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt(sort: Desc)])
+  @@index([userId, favorite])
+}
+
+model WebtoonStudioSettings {
+  userId    String   @id
+  brushes   Json     @default("[]")
+  palette   Json     @default("[]")
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ============ VIRTUAL AVATAR STUDIO ============

@@ -3,8 +3,11 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import {
+  BarChart3,
   Cloud,
   Download,
+  Grid3X3,
+  Home,
   Layers,
   Maximize2,
   Minimize2,
@@ -13,20 +16,32 @@ import {
   Save,
   Undo2,
   Upload,
-  Users,
 } from "lucide-react";
 import { useWebtoonStudio } from "@/hooks/use-webtoon-studio";
 import { StudioCanvas } from "@/components/webtoon-studio/studio-canvas";
+import { StudioDialoguePanel } from "@/components/webtoon-studio/studio-dialogue-panel";
+import { StudioHome } from "@/components/webtoon-studio/studio-home";
+import { StudioScrollPreview } from "@/components/webtoon-studio/studio-scroll-preview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   DEFAULT_BRUSHES,
   LAYER_FILTERS,
+  SCREENTONE_PATTERNS,
   SPEECH_BUBBLE_TEMPLATES,
   STUDIO_TOOLS,
 } from "@/lib/webtoon-studio/constants";
 import { uploadImageBlob } from "@/lib/client-upload";
 import { cn } from "@/lib/utils";
+
+const ROADMAP_DONE = new Set([
+  "클라우드 저장",
+  "브러시 동기화",
+  "팔레트 동기화",
+  "자동 백업",
+  "예약 업로드",
+  "조회·구독 통계",
+]);
 
 const ROADMAP_SECTIONS = [
   { title: "클라우드 · 동기화", items: ["클라우드 저장", "브러시 동기화", "팔레트 동기화", "자동 백업"] },
@@ -37,10 +52,12 @@ const ROADMAP_SECTIONS = [
 
 export function WebtoonDrawStudio() {
   const studio = useWebtoonStudio();
+  const [screen, setScreen] = useState<"home" | "editor">("home");
   const [panel, setPanel] = useState<"layers" | "color" | "brush" | "manga" | "roadmap">("layers");
   const [fullscreen, setFullscreen] = useState(false);
   const [msg, setMsg] = useState("");
   const [publishOpen, setPublishOpen] = useState(false);
+  const [cloudMsg, setCloudMsg] = useState("");
   const [episodeNo, setEpisodeNo] = useState(1);
   const [price, setPrice] = useState(0);
 
@@ -69,9 +86,35 @@ export function WebtoonDrawStudio() {
     }
   }, [episodeNo, studio]);
 
+  const saveCloud = useCallback(async () => {
+    setCloudMsg("");
+    try {
+      await studio.saveCloud();
+      setCloudMsg("클라우드에 저장되었습니다.");
+    } catch (e) {
+      setCloudMsg(e instanceof Error ? e.message : "클라우드 저장 실패");
+    }
+  }, [studio]);
+
+  if (screen === "home") {
+    return (
+      <div className={shellClass}>
+        <StudioHome
+          onOpen={(p) => {
+            studio.loadProject({ ...p, dialogues: p.dialogues ?? [] });
+            setScreen("editor");
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={shellClass}>
       <header className="shrink-0 flex flex-wrap items-center gap-2 border-b border-border/60 px-3 py-2 bg-card/80">
+        <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => setScreen("home")} title="프로젝트 홈">
+          <Home className="h-4 w-4" />
+        </Button>
         <Input
           value={studio.project.name}
           onChange={(e) => studio.renameProject(e.target.value)}
@@ -87,7 +130,11 @@ export function WebtoonDrawStudio() {
         </div>
         <Button type="button" size="sm" variant="outline" className="h-8 gap-1" onClick={() => void studio.saveProjectNow()}>
           <Save className="h-3.5 w-3.5" />
-          저장
+          로컬 저장
+        </Button>
+        <Button type="button" size="sm" variant="outline" className="h-8 gap-1" onClick={() => void saveCloud()}>
+          <Cloud className="h-3.5 w-3.5" />
+          클라우드
         </Button>
         <Button type="button" size="sm" variant="outline" className="h-8 gap-1" onClick={() => void downloadPng()}>
           <Download className="h-3.5 w-3.5" />
@@ -118,6 +165,12 @@ export function WebtoonDrawStudio() {
           <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => setFullscreen((v) => !v)}>
             {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </Button>
+          <Link href="/webtoon/studio/dashboard">
+            <Button type="button" size="sm" variant="ghost" className="h-8 text-xs gap-1">
+              <BarChart3 className="h-3.5 w-3.5" />
+              통계
+            </Button>
+          </Link>
           <Link href="/webtoon/studio">
             <Button type="button" size="sm" variant="ghost" className="h-8 text-xs">
               연재 관리
@@ -143,6 +196,7 @@ export function WebtoonDrawStudio() {
         </div>
       )}
       {msg && <p className="text-xs px-3 py-1 text-emerald-600 shrink-0">{msg}</p>}
+      {cloudMsg && <p className="text-xs px-3 py-1 text-sky-600 shrink-0">{cloudMsg}</p>}
 
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <aside className="w-14 shrink-0 border-r border-border/60 bg-muted/20 flex flex-col items-center py-2 gap-1 overflow-y-auto">
@@ -170,7 +224,7 @@ export function WebtoonDrawStudio() {
                 ["color", Palette, "색"],
                 ["brush", Save, "브러시"],
                 ["manga", Cloud, "만화"],
-                ["roadmap", Users, "로드맵"],
+                ["roadmap", BarChart3, "로드맵"],
               ] as const
             ).map(([id, Icon, label]) => (
               <button
@@ -258,14 +312,39 @@ export function WebtoonDrawStudio() {
             )}
             {panel === "color" && (
               <>
-                <input type="color" value={studio.color} onChange={(e) => studio.pickColor(e.target.value)} className="w-full h-10 rounded border" />
-                <Input value={studio.color} onChange={(e) => studio.pickColor(e.target.value)} className="h-7 font-mono text-[10px]" />
+                <input
+                  type="color"
+                  value={studio.color}
+                  onChange={(e) => {
+                    studio.pickColor(e.target.value);
+                    studio.savePaletteColor(e.target.value);
+                  }}
+                  className="w-full h-10 rounded border"
+                />
+                <Input
+                  value={studio.color}
+                  onChange={(e) => {
+                    studio.pickColor(e.target.value);
+                    studio.savePaletteColor(e.target.value);
+                  }}
+                  className="h-7 font-mono text-[10px]"
+                />
                 <p className="font-semibold text-muted-foreground">최근 색상</p>
                 <div className="flex flex-wrap gap-1">
                   {studio.recentColors.map((c) => (
                     <button key={c} type="button" className="w-6 h-6 rounded border" style={{ background: c }} onClick={() => studio.pickColor(c)} />
                   ))}
                 </div>
+                {studio.savedPalette.length > 0 && (
+                  <>
+                    <p className="font-semibold text-muted-foreground pt-1">클라우드 팔레트</p>
+                    <div className="flex flex-wrap gap-1">
+                      {studio.savedPalette.map((c) => (
+                        <button key={c} type="button" className="w-6 h-6 rounded border" style={{ background: c }} onClick={() => studio.pickColor(c)} />
+                      ))}
+                    </div>
+                  </>
+                )}
               </>
             )}
             {panel === "brush" && (
@@ -325,16 +404,44 @@ export function WebtoonDrawStudio() {
                 <Button type="button" size="sm" variant="outline" className="w-full mt-2 h-7" onClick={() => studio.setTool("speedLines")}>
                   속도선 배치
                 </Button>
+                <p className="font-semibold pt-2">스크린톤</p>
+                {SCREENTONE_PATTERNS.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className={cn("w-full rounded border px-2 py-1 text-left", studio.screentonePattern === p.id && "border-red-500")}
+                    onClick={() => {
+                      studio.setScreentonePattern(p.id);
+                      studio.setTool("screentone");
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+                <p className="font-semibold pt-2">대사 스크립트</p>
+                <StudioDialoguePanel studio={studio} />
               </>
             )}
             {panel === "roadmap" && (
               <div className="space-y-3 text-[10px] text-muted-foreground">
+                <StudioScrollPreview studio={studio} />
+                <label className="flex items-center gap-2 text-foreground">
+                  <input type="checkbox" checked={studio.showGuides} onChange={(e) => studio.setShowGuides(e.target.checked)} />
+                  <Grid3X3 className="h-3.5 w-3.5" />
+                  가이드 그리드
+                </label>
+                <Link href="/webtoon/studio/dashboard" className="block text-emerald-600 font-medium">
+                  작가 대시보드 열기 →
+                </Link>
                 {ROADMAP_SECTIONS.map((s) => (
                   <div key={s.title}>
                     <p className="font-bold text-foreground mb-1">{s.title}</p>
                     <ul className="list-disc pl-4 space-y-0.5">
                       {s.items.map((i) => (
-                        <li key={i}>{i} · 준비 중</li>
+                        <li key={i} className={ROADMAP_DONE.has(i) ? "text-emerald-600" : undefined}>
+                          {i}
+                          {ROADMAP_DONE.has(i) ? " · 완료" : " · 준비 중"}
+                        </li>
                       ))}
                     </ul>
                   </div>
