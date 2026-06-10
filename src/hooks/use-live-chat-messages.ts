@@ -1,18 +1,24 @@
 "use client";
 
+import { useLiveChatOptional } from "@/components/live/live-chat-provider";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { subscribeLiveChat, useLiveSocket } from "@/hooks/use-live-socket";
 import { ensureArray } from "@/lib/ensure-array";
 import type { LiveChatMessage } from "@/components/live/live-chat";
 
-/** 라이브 채팅 — 초기 로드 + 소켓 + 폴링 (사이드바·오버레이 공통) */
+/** LiveChatProvider 밖에서만 쓰는 폴백 — 방송방 안에서는 Provider가 단일 소켓·목록을 제공 */
 export function useLiveChatMessages(
   channelId: string,
   userId: string | undefined,
   maxKeep = 150,
   onViewerCount?: (n: number) => void
 ) {
-  const { socket, connected } = useLiveSocket(userId, channelId);
+  const fromProvider = useLiveChatOptional();
+  const standalone = !fromProvider;
+  const { socket, connected } = useLiveSocket(
+    standalone ? userId : undefined,
+    standalone ? channelId : undefined
+  );
   const [messages, setMessages] = useState<LiveChatMessage[]>([]);
   const lastSyncRef = useRef<string>(new Date(0).toISOString());
 
@@ -40,6 +46,7 @@ export function useLiveChatMessages(
   );
 
   useEffect(() => {
+    if (!standalone) return;
     let cancelled = false;
     lastSyncRef.current = new Date(0).toISOString();
     fetch(`/api/live/${channelId}/chat?initial=1`, { credentials: "include", cache: "no-store" })
@@ -57,13 +64,12 @@ export function useLiveChatMessages(
     return () => {
       cancelled = true;
     };
-  }, [channelId, maxKeep]);
+  }, [channelId, maxKeep, standalone]);
 
-  useEffect(() => subscribeLiveChat(socket, appendMessage, onViewerCount), [
-    socket,
-    appendMessage,
-    onViewerCount,
-  ]);
+  useEffect(() => {
+    if (!standalone) return;
+    return subscribeLiveChat(socket, appendMessage, onViewerCount);
+  }, [socket, appendMessage, onViewerCount, standalone]);
 
   const poll = useCallback(async () => {
     try {
@@ -83,11 +89,21 @@ export function useLiveChatMessages(
   }, [channelId, mergeMessages, onViewerCount]);
 
   useEffect(() => {
+    if (!standalone) return;
     void poll();
     const ms = connected ? 3000 : 2000;
     const id = setInterval(poll, ms);
     return () => clearInterval(id);
-  }, [poll, connected]);
+  }, [poll, connected, standalone]);
+
+  if (fromProvider) {
+    return {
+      messages: fromProvider.messages,
+      socket: fromProvider.socket,
+      connected: fromProvider.connected,
+      appendMessage: fromProvider.appendMessage,
+    };
+  }
 
   return { messages, socket, connected, appendMessage };
 }

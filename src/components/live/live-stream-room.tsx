@@ -1,9 +1,11 @@
 "use client";
 
 import { memo } from "react";
+import { useSession } from "next-auth/react";
 import { LiveBroadcastStudio } from "@/components/live/live-broadcast-studio";
 import { LiveViewerPlayer } from "@/components/live/live-viewer-player";
 import { LiveChat } from "@/components/live/live-chat";
+import { LiveChatProvider } from "@/components/live/live-chat-provider";
 import { LiveStudioErrorBoundary } from "@/components/live/live-studio-error-boundary";
 import { LiveDonationBar } from "@/components/live/live-donation-bar";
 import { LiveHostSettings } from "@/components/live/live-host-settings";
@@ -54,7 +56,14 @@ function LiveStreamRoomInner({
   chatBannedWords?: string[];
   paymentsEnabled?: boolean;
 }) {
+  const { data: session } = useSession();
+
   return (
+    <LiveChatProvider
+      channelId={channelId}
+      userId={session?.user?.id}
+      onViewerCount={onViewerCount}
+    >
     <div className="live-studio-panel space-y-4 p-3 sm:p-5">
       <div className="flex flex-wrap items-center gap-3 border-b border-border pb-4">
         <span className="live-badge text-xs px-3 py-1">
@@ -155,6 +164,7 @@ function LiveStreamRoomInner({
         </LiveStudioErrorBoundary>
       </div>
     </div>
+    </LiveChatProvider>
   );
 }
 

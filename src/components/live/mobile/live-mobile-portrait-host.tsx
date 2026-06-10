@@ -1,6 +1,5 @@
 "use client";
 
-import { useSession } from "next-auth/react";
 import { Eye, Radio, Settings2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +13,7 @@ import { LiveBrowserStudio } from "@/components/live/live-browser-studio";
 import { LiveHostCollabPasswordStrip } from "@/components/live/live-host-collab-password-strip";
 import { LiveHostSettings } from "@/components/live/live-host-settings";
 import { LiveMobileOverlayChat } from "@/components/live/mobile/live-mobile-overlay-chat";
-import { useLiveChatOverlay } from "@/hooks/use-live-chat-overlay";
+import { useLiveChat } from "@/components/live/live-chat-provider";
 import { ensureStringArray } from "@/lib/ensure-array";
 import type { LiveStreamCategory } from "@prisma/client";
 
@@ -41,8 +40,7 @@ export function LiveMobilePortraitHost({
   chatBannedWords,
   collabPassword,
 }: LiveMobilePortraitHostProps) {
-  const { data: session } = useSession();
-  const { chatOverlayEnabled } = useLiveChatOverlay(channelId, session?.user?.id, true);
+  const { chatOverlayEnabled } = useLiveChat();
 
   return (
     <div className="live-mobile-portrait-root fixed inset-0 z-[110] bg-black text-white">

@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Send, Users, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,11 +11,8 @@ import { deleteLiveChatMessage } from "@/actions/live-stream";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { UserProfileLink } from "@/components/user/user-profile-link";
 import { ReportButton } from "@/components/report/report-button";
-import {
-  relayLiveChatMessage,
-  subscribeLiveChat,
-  useLiveSocket,
-} from "@/hooks/use-live-socket";
+import { relayLiveChatMessage } from "@/hooks/use-live-socket";
+import { useLiveChat } from "@/components/live/live-chat-provider";
 import { ensureArray } from "@/lib/ensure-array";
 import { TipCreatorDialog } from "@/components/support/tip-creator-dialog";
 
@@ -34,7 +31,6 @@ export const LiveChat = memo(LiveChatInner);
 function LiveChatInner({
   channelId,
   viewerCount,
-  onViewerCount,
   isHost,
   canModerate,
   hostUserId,
@@ -57,109 +53,23 @@ function LiveChatInner({
   paymentsEnabled?: boolean;
 }) {
   const { data: session } = useSession();
-  const userId = session?.user?.id;
   const username = session?.user?.username ?? session?.user?.name ?? "me";
-  const { socket, connected } = useLiveSocket(userId, channelId);
-  const [messages, setMessages] = useState<LiveChatMessage[]>([]);
+  const {
+    messages,
+    appendMessage,
+    replaceOptimistic,
+    removeMessage: removeFromFeed,
+    socket,
+    connected,
+    historyError,
+  } = useLiveChat();
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
-  const [historyError, setHistoryError] = useState("");
-  const lastSyncRef = useRef<string>(new Date(0).toISOString());
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
   const pendingIdRef = useRef(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    setHistoryError("");
-    fetch(`/api/live/${channelId}/chat?initial=1`, { credentials: "include" })
-      .then(async (res) => {
-        if (cancelled) return;
-        const body = await res.json();
-        if (!res.ok || !body.ok) {
-          setHistoryError("채팅 기록을 불러오지 못했습니다. DB 마이그레이션을 확인해 주세요.");
-          return;
-        }
-        const list = ensureArray<LiveChatMessage>(body.messages);
-        setMessages(list);
-        if (list.length > 0) {
-          lastSyncRef.current = new Date(list[list.length - 1].at).toISOString();
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setHistoryError("채팅 기록을 불러오지 못했습니다.");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [channelId]);
-
-  const onViewerCountRef = useRef(onViewerCount);
-  onViewerCountRef.current = onViewerCount;
-  const viewerCountRef = useRef(viewerCount);
-  viewerCountRef.current = viewerCount;
-
-  const appendMessage = useCallback((m: LiveChatMessage) => {
-    setMessages((prev) => {
-      const safePrev = ensureArray<LiveChatMessage>(prev);
-      if (safePrev.some((x) => x.id === m.id)) return safePrev;
-      return [...safePrev, m].slice(-150);
-    });
-  }, []);
-
-  useEffect(() => {
-    return subscribeLiveChat(
-      socket,
-      (m) => {
-        appendMessage(m);
-        lastSyncRef.current = new Date(m.at).toISOString();
-        stickToBottomRef.current = true;
-      },
-      (count) => {
-        if (count !== viewerCountRef.current) {
-          viewerCountRef.current = count;
-          onViewerCountRef.current?.(count);
-        }
-      }
-    );
-  }, [socket, appendMessage]);
-
-  const poll = useCallback(async () => {
-    try {
-      const res = await fetch(
-        `/api/live/${channelId}/chat?since=${encodeURIComponent(lastSyncRef.current)}`,
-        { credentials: "include", cache: "no-store" }
-      );
-      const body = await res.json();
-      if (!res.ok || !body.ok) return;
-      if (typeof body.viewerCount === "number" && body.viewerCount !== viewerCountRef.current) {
-        viewerCountRef.current = body.viewerCount;
-        onViewerCountRef.current?.(body.viewerCount);
-      }
-      const incoming = ensureArray<LiveChatMessage>(body.messages);
-      if (incoming.length > 0) {
-        setMessages((prev) => {
-          const safePrev = ensureArray<LiveChatMessage>(prev);
-          const ids = new Set(safePrev.map((m) => m.id));
-          const added = incoming.filter((m) => !ids.has(m.id));
-          return [...safePrev, ...added].slice(-150);
-        });
-        const last = incoming[incoming.length - 1];
-        lastSyncRef.current = new Date(last.at).toISOString();
-      }
-    } catch {
-      /* ignore */
-    }
-  }, [channelId]);
-
-  useEffect(() => {
-    poll();
-    const ms = connected ? 12000 : 4000;
-    const id = setInterval(poll, ms);
-    return () => clearInterval(id);
-  }, [poll, connected]);
 
   useEffect(() => {
     if (!stickToBottomRef.current) return;
@@ -201,21 +111,16 @@ function LiveChatInner({
       });
       const body = await res.json();
       if (!res.ok || !body.ok || !body.message) {
-        setMessages((prev) => ensureArray<LiveChatMessage>(prev).filter((m) => m.id !== tempId));
+        removeFromFeed(tempId);
         setError(body.error ?? "전송에 실패했습니다.");
         setText(content);
         return;
       }
       const saved = body.message as LiveChatMessage;
-      setMessages((prev) => {
-        const without = ensureArray<LiveChatMessage>(prev).filter((m) => m.id !== tempId);
-        if (without.some((m) => m.id === saved.id)) return without;
-        return [...without, saved].slice(-150);
-      });
-      lastSyncRef.current = new Date(saved.at).toISOString();
+      replaceOptimistic(tempId, saved);
       relayLiveChatMessage(socket, channelId, saved);
     } catch {
-      setMessages((prev) => ensureArray<LiveChatMessage>(prev).filter((m) => m.id !== tempId));
+      removeFromFeed(tempId);
       setError("네트워크 오류로 전송하지 못했습니다.");
       setText(content);
     } finally {
@@ -229,7 +134,7 @@ function LiveChatInner({
       setError(res.error);
       return;
     }
-    setMessages((prev) => ensureArray<LiveChatMessage>(prev).filter((m) => m.id !== messageId));
+    removeFromFeed(messageId);
   }
 
   return (
@@ -279,7 +184,7 @@ function LiveChatInner({
                   <button
                     type="button"
                     className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive p-0.5"
-                    onClick={() => removeMessage(m.id)}
+                    onClick={() => void removeMessage(m.id)}
                     aria-label="채팅 삭제"
                   >
                     <Trash2 className="h-3 w-3" />
@@ -324,7 +229,7 @@ function LiveChatInner({
             <Input
               value={text}
               onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && void send()}
               placeholder="채팅 입력…"
               className="rounded-lg text-sm h-9"
               maxLength={200}
@@ -333,7 +238,7 @@ function LiveChatInner({
             <Button
               size="sm"
               className="rounded-lg shrink-0 h-9 px-3"
-              onClick={send}
+              onClick={() => void send()}
               disabled={sending || !text.trim()}
             >
               <Send className="h-4 w-4" />

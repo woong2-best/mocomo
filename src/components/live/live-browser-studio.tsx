@@ -830,7 +830,7 @@ export function LiveBrowserStudio({
           화면 공유
         </span>
       )}
-      {chatOverlayEnabled && !immersive && <LiveVideoChatOverlay channelId={channelId} />}
+      {chatOverlayEnabled && !immersive && <LiveVideoChatOverlay />}
       <LiveOverlayLayer className="z-20" />
     </>
   );

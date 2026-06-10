@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Heart, Send } from "lucide-react";
+import { useLiveChat } from "@/components/live/live-chat-provider";
 import { LiveOverlayCommentFeed } from "@/components/live/live-overlay-comment-feed";
-import { useLiveChatMessages } from "@/hooks/use-live-chat-messages";
 import { useLiveOverlayDisplayQueue } from "@/hooks/use-live-overlay-display-queue";
 import { relayLiveChatMessage } from "@/hooks/use-live-socket";
 import type { LiveChatMessage } from "@/components/live/live-chat";
@@ -14,7 +14,6 @@ import type { SupportTierLevel } from "@prisma/client";
 /** 인스타 라이브 스타일 — 영상 위 채팅 오버레이 + 입력 */
 export function LiveMobileOverlayChat({
   channelId,
-  onViewerCount,
   hostUserId,
   hostUsername,
   hostDisplayName,
@@ -31,21 +30,15 @@ export function LiveMobileOverlayChat({
   paymentsEnabled?: boolean;
   viewerSupportTier?: SupportTierLevel;
   viewerSupportTotal?: number;
-  /** false면 영상 위 채팅 글자 숨김 (입력창은 유지) */
   showMessages?: boolean;
 }) {
   const { data: session } = useSession();
-  const userId = session?.user?.id;
-  const { messages, socket, appendMessage } = useLiveChatMessages(
-    channelId,
-    userId,
-    80,
-    onViewerCount
-  );
+  const { messages, socket, appendMessage, replaceOptimistic, removeMessage } = useLiveChat();
   const visible = useLiveOverlayDisplayQueue(messages);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const feedEndRef = useRef<HTMLDivElement>(null);
+  const pendingIdRef = useRef(0);
 
   useEffect(() => {
     if (!showMessages) return;
@@ -55,6 +48,17 @@ export function LiveMobileOverlayChat({
   async function send() {
     const content = text.trim();
     if (!content || !session?.user || sending) return;
+
+    const tempId = `pending-${++pendingIdRef.current}`;
+    appendMessage({
+      id: tempId,
+      userId: session.user.id,
+      username: session.user.username ?? session.user.name ?? "me",
+      content,
+      at: Date.now(),
+      image: session.user.image ?? null,
+    });
+
     setSending(true);
     setText("");
     try {
@@ -66,13 +70,15 @@ export function LiveMobileOverlayChat({
       });
       const body = await res.json();
       if (!res.ok || !body.ok || !body.message) {
+        removeMessage(tempId);
         setText(content);
         return;
       }
       const saved = body.message as LiveChatMessage;
-      appendMessage(saved);
+      replaceOptimistic(tempId, saved);
       relayLiveChatMessage(socket, channelId, saved);
     } catch {
+      removeMessage(tempId);
       setText(content);
     } finally {
       setSending(false);

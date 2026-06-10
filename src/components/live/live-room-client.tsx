@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { KeyRound, Loader2, Users } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { LiveOverlayProvider } from "@/components/live/overlays/live-overlay-context";
+import { LiveChatProvider } from "@/components/live/live-chat-provider";
 
 export function LiveRoomClient({
   channelId,
@@ -230,6 +231,11 @@ export function LiveRoomClient({
 
   return (
     <LiveOverlayProvider {...overlayProviderProps}>
+    <LiveChatProvider
+      channelId={channelId}
+      userId={session?.user?.id}
+      onViewerCount={setViewerCount}
+    >
     <div className={isHost ? "relative" : "space-y-4 relative"}>
       <LiveStudioStatsSync channelId={channelId} onStats={handleStats} />
       {isHost && joined && <LiveHostPresenceSync channelId={channelId} enabled />}
@@ -284,6 +290,7 @@ export function LiveRoomClient({
         )}
       </LiveStudioErrorBoundary>
     </div>
+    </LiveChatProvider>
     </LiveOverlayProvider>
   );
 }
