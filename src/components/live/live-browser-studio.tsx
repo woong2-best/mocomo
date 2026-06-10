@@ -967,12 +967,6 @@ export function LiveBrowserStudio({
         overlayState={overlayCtx?.state ?? null}
       />
 
-      {!immersive && (
-        <div className="flex flex-col gap-3 w-full">
-          {libraryPanel}
-        </div>
-      )}
-
       {splitCollab && !immersive ? (
         <LiveHostCollabPreview
           channelId={channelId}
@@ -989,6 +983,12 @@ export function LiveBrowserStudio({
         <div className="flex flex-col gap-3 w-full">
           {broadcastControls}
           <LiveHostCollabPasswordStrip channelId={channelId} password={collabPassword} compact />
+        </div>
+      )}
+
+      {!immersive && libraryPanel && (
+        <div className="flex flex-col gap-3 w-full mt-2 pt-4 border-t border-border/50">
+          {libraryPanel}
         </div>
       )}
 
