@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
-import { useSession } from "next-auth/react";
 import { PostMediaComposer, type PostMediaItem } from "@/components/media/post-media-composer";
 import { ComposePollEditor } from "@/components/compose/compose-poll-editor";
 import { Button } from "@/components/ui/button";
@@ -32,7 +30,6 @@ export function ComposeForm({
   onPosted?: () => void;
   onNeedSignIn?: () => void;
 }) {
-  const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [mediaUploading, setMediaUploading] = useState(false);
   const [error, setError] = useState("");
@@ -117,20 +114,9 @@ export function ComposeForm({
   }
 
   if (variant === "inline") {
-    const avatar = session?.user?.image;
-    const initial = session?.user?.name?.[0] ?? session?.user?.username?.[0] ?? "?";
-
     return (
       <form onSubmit={handleSubmit} className="space-y-3">
-        <div className="flex gap-3 items-start">
-          <div className="shrink-0 h-10 w-10 rounded-full overflow-hidden bg-folk-cream border-2 border-folk-cobalt/20 flex items-center justify-center text-sm font-bold text-folk-cobalt">
-            {avatar ? (
-              <Image src={avatar} alt="" width={40} height={40} className="h-full w-full object-cover" />
-            ) : (
-              initial
-            )}
-          </div>
-          <div className="flex-1 min-w-0 space-y-3">
+        <div className="space-y-3">
             <textarea
               name="content"
               value={content}
@@ -199,9 +185,8 @@ export function ComposeForm({
                 </label>
               </div>
             )}
-          </div>
         </div>
-        {error && <p className="text-sm text-destructive pl-[52px]">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
       </form>
     );
   }
