@@ -11,10 +11,12 @@ import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
 import { useLocale } from "@/components/providers/locale-provider";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
 import { isNavItemActive } from "@/lib/nav-active";
+import { useSidebarToggle } from "@/components/providers/sidebar-toggle-provider";
 
 export function Sidebar() {
   const pathname = usePathname();
   const { t } = useLocale();
+  const { open } = useSidebarToggle();
 
   const navItems = mainNavItems.filter(
     (item) =>
@@ -28,7 +30,20 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="hidden lg:flex w-[17rem] xl:w-[18rem] flex-col shrink-0 sticky top-[var(--header-h)] h-app bg-[hsl(var(--folk-cream)/0.6)] dark:bg-background border-r-2 border-folk-cobalt/20 p-4 gap-3 overflow-y-auto relative z-[1]">
+    <div
+      className={cn(
+        "hidden lg:block shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out",
+        open ? "w-[17rem] xl:w-[18rem]" : "w-0 pointer-events-none"
+      )}
+      aria-hidden={!open}
+    >
+      <aside
+        className={cn(
+          "flex w-[17rem] xl:w-[18rem] flex-col shrink-0 sticky top-[var(--header-h)] h-app bg-[hsl(var(--folk-cream)/0.6)] dark:bg-background border-r-2 border-folk-cobalt/20 p-4 gap-3 overflow-y-auto relative z-[1]",
+          "transition-transform duration-300 ease-in-out",
+          open ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
       <FolkFloralAccent className="absolute -right-2 top-24 w-24 h-16 pointer-events-none" />
 
       <nav className="flex flex-col gap-2 flex-1 min-h-0">
@@ -60,6 +75,7 @@ export function Sidebar() {
           글쓰기
         </ComposeOpenButton>
       )}
-    </aside>
+      </aside>
+    </div>
   );
 }
