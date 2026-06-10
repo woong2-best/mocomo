@@ -15,7 +15,7 @@ const s3 = process.env.S3_ACCESS_KEY_ID
 export async function getUploadPresignedUrl(
   key: string,
   contentType: string,
-  maxSize = 50 * 1024 * 1024
+  _maxSize = 50 * 1024 * 1024
 ): Promise<{ uploadUrl: string; publicUrl: string } | null> {
   if (!s3 || !process.env.S3_BUCKET_NAME) return null;
   const bucket = process.env.S3_BUCKET_NAME;
@@ -23,7 +23,6 @@ export async function getUploadPresignedUrl(
     Bucket: bucket,
     Key: key,
     ContentType: contentType,
-    ContentLength: maxSize,
   });
   const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 3600 });
   const publicUrl = process.env.S3_PUBLIC_URL

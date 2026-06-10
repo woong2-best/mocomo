@@ -10,6 +10,7 @@ import {
   normalizeAudioMime,
 } from "@/lib/storage";
 import { createSupabaseSignedUpload } from "@/lib/supabase-storage";
+import { getUploadMaxBytes } from "@/lib/upload-limits";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -41,8 +42,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid file type" }, { status: 400 });
   }
 
-  const maxSize =
-    session.user.premiumTier === "PREMIUM" ? 100 * 1024 * 1024 : 25 * 1024 * 1024;
+  const maxSize = getUploadMaxBytes(session.user.premiumTier, category);
   const key = `uploads/${session.user.id}/${Date.now()}-${filename}`;
   const result = await getUploadPresignedUrl(key, mime, maxSize);
   if (result) return NextResponse.json(result);

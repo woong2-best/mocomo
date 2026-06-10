@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useId, useRef, useState, type ReactNode } from "react";
 import {
   Camera,
   Film,
@@ -8,7 +8,6 @@ import {
   Loader2,
   Pencil,
   Trash2,
-  Video,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImageCropDialog } from "@/components/media/image-crop-dialog";
@@ -34,6 +33,13 @@ type PostMediaComposerProps = {
   maxImages?: number;
   maxVideos?: number;
   allowVideo?: boolean;
+  /** false면 영상 촬영 버튼 숨김 */
+  allowVideoCapture?: boolean;
+  layout?: "default" | "toolbar";
+  /** toolbar 레이아웃 하단 우측 (게시하기 등) */
+  toolbarFooter?: ReactNode;
+  /** toolbar 레이아웃 하단 좌측, 아이콘 옆 */
+  toolbarFooterStart?: ReactNode;
   /** 중고거래: 자르기 없이 바로 업로드 (실패 줄임) */
   quickUpload?: boolean;
   /** false면 중고거래 등 — 얼굴 필터 없이 원본 카메라만 */
@@ -51,6 +57,10 @@ export function PostMediaComposer({
   maxImages = 4,
   maxVideos = 1,
   allowVideo = true,
+  allowVideoCapture = false,
+  layout = "default",
+  toolbarFooter,
+  toolbarFooterStart,
   quickUpload = false,
   enableFaceFilter = true,
   disabled = false,
@@ -72,7 +82,6 @@ export function PostMediaComposer({
   const [cropFilename, setCropFilename] = useState("post-image.jpg");
 
   const [cameraOpen, setCameraOpen] = useState(false);
-  const [cameraMode, setCameraMode] = useState<"photo" | "video">("photo");
 
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
   const [videoEditOpen, setVideoEditOpen] = useState(false);
@@ -148,17 +157,13 @@ export function PostMediaComposer({
   }
 
   function onCameraCapture(blob: Blob, mimeType: string) {
-    if (mimeType.startsWith("image/")) {
-      if (quickUpload) {
-        const name = mimeType.includes("png") ? "camera.png" : "camera.jpg";
-        void uploadFilesDirect([new File([blob], name, { type: mimeType || "image/jpeg" })]);
-        return;
-      }
-      openImageCrop(blob, "camera-photo.jpg");
+    if (!mimeType.startsWith("image/")) return;
+    if (quickUpload) {
+      const name = mimeType.includes("png") ? "camera.png" : "camera.jpg";
+      void uploadFilesDirect([new File([blob], name, { type: mimeType || "image/jpeg" })]);
       return;
     }
-    setVideoBlob(blob);
-    setVideoEditOpen(true);
+    openImageCrop(blob, "camera-photo.jpg");
   }
 
   function openVideoEditor(file: File | Blob) {
@@ -242,9 +247,63 @@ export function PostMediaComposer({
     }
   }
 
+  const iconBtnClass =
+    "h-9 w-9 rounded-full flex items-center justify-center text-primary hover:bg-primary/10 transition-colors disabled:opacity-40";
+
+  const toolbarIcons = (
+    <>
+      {canAddImage && (
+        <>
+          <button
+            type="button"
+            className={iconBtnClass}
+            disabled={disabled || uploading}
+            onClick={() => galleryInputRef.current?.click()}
+            aria-label="사진 선택"
+            title="사진"
+          >
+            <ImagePlus className="h-[18px] w-[18px]" />
+          </button>
+          <button
+            type="button"
+            className={iconBtnClass}
+            disabled={disabled || uploading}
+            onClick={() => setCameraOpen(true)}
+            aria-label="사진 촬영"
+            title="카메라"
+          >
+            <Camera className="h-[18px] w-[18px]" />
+          </button>
+        </>
+      )}
+      {canAddVideo && (
+        <button
+          type="button"
+          className={iconBtnClass}
+          disabled={disabled || uploading}
+          onClick={() => {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = "video/*";
+            input.onchange = (ev) => {
+              const file = (ev.target as HTMLInputElement).files?.[0];
+              if (file) openVideoEditor(file);
+            };
+            input.click();
+          }}
+          aria-label="영상 파일"
+          title="영상"
+        >
+          <Film className="h-[18px] w-[18px]" />
+        </button>
+      )}
+    </>
+  );
+
   return (
     <div className={cn("space-y-3", className)}>
-      <div className="flex flex-wrap gap-2">
+      {items.length > 0 && (
+        <div className="flex flex-wrap gap-2">
         {items.map((m, i) => (
           <div key={`${m.url}-${i}`} className="relative h-20 w-20 rounded-xl overflow-hidden border border-border group">
             {m.type === "VIDEO" ? (
@@ -284,7 +343,7 @@ export function PostMediaComposer({
             )}
           </div>
         ))}
-        {(canAddImage || canAddVideo) && (
+        {(canAddImage || canAddVideo) && layout === "default" && (
           <div className="h-20 w-20 rounded-xl border-2 border-dashed border-border flex items-center justify-center bg-muted/30">
             {uploading ? (
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -293,8 +352,18 @@ export function PostMediaComposer({
             )}
           </div>
         )}
-      </div>
+        </div>
+      )}
 
+      {layout === "toolbar" ? (
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40">
+          <div className="flex items-center gap-0.5 flex-wrap min-w-0">
+            {toolbarIcons}
+            {toolbarFooterStart}
+          </div>
+          {toolbarFooter}
+        </div>
+      ) : (
       <div className="flex flex-wrap gap-2">
         {canAddImage && (
           <>
@@ -304,10 +373,7 @@ export function PostMediaComposer({
               size="sm"
               className="rounded-xl gap-1.5"
               disabled={disabled || uploading}
-              onClick={() => {
-                setCameraMode("photo");
-                setCameraOpen(true);
-              }}
+              onClick={() => setCameraOpen(true)}
             >
               <Camera className="h-4 w-4" />
               사진 찍기
@@ -327,20 +393,19 @@ export function PostMediaComposer({
         )}
         {canAddVideo && (
           <>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="rounded-xl gap-1.5"
-              disabled={disabled || uploading}
-              onClick={() => {
-                setCameraMode("video");
-                setCameraOpen(true);
-              }}
-            >
-              <Video className="h-4 w-4" />
-              영상 촬영
-            </Button>
+            {allowVideoCapture && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-xl gap-1.5"
+                disabled={disabled || uploading}
+                onClick={() => setCameraOpen(true)}
+              >
+                <Video className="h-4 w-4" />
+                영상 촬영
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -364,6 +429,18 @@ export function PostMediaComposer({
           </>
         )}
       </div>
+      )}
+
+      {layout === "default" && (
+      <p className="text-xs text-muted-foreground">
+        {allowVideo
+          ? `사진 최대 ${maxImages}장 · 영상 ${maxVideos}개 (갤러리는 바로 업로드, 연필로 편집)`
+          : enableFaceFilter
+            ? `사진 최대 ${maxImages}장 (갤러리 바로 업로드 · 촬영 후 자르기)`
+            : `사진 최대 ${maxImages}장 (갤러리·카메라, 필터 없음)`}
+      </p>
+      )}
+      {error && <p className="text-xs text-destructive">{error}</p>}
 
       <input
         id={galleryInputId}
@@ -375,15 +452,6 @@ export function PostMediaComposer({
         disabled={disabled || uploading}
         onChange={onGalleryImagePick}
       />
-
-      <p className="text-xs text-muted-foreground">
-        {allowVideo
-          ? `사진 최대 ${maxImages}장 · 영상 ${maxVideos}개 (갤러리는 바로 업로드, 연필로 편집)`
-          : enableFaceFilter
-            ? `사진 최대 ${maxImages}장 (갤러리 바로 업로드 · 촬영 후 자르기)`
-            : `사진 최대 ${maxImages}장 (갤러리·카메라, 필터 없음)`}
-      </p>
-      {error && <p className="text-xs text-destructive">{error}</p>}
 
       {cropSrc && (
         <ImageCropDialog
@@ -406,7 +474,7 @@ export function PostMediaComposer({
       <CameraCaptureDialog
         open={cameraOpen}
         onOpenChange={setCameraOpen}
-        mode={cameraMode}
+        mode="photo"
         enableFaceFilter={enableFaceFilter}
         onCapture={onCameraCapture}
       />

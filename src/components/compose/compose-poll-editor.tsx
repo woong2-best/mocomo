@@ -15,9 +15,10 @@ type ComposePollEditorProps = {
   value: CreatePostPollInput | null;
   onChange: (poll: CreatePostPollInput | null) => void;
   disabled?: boolean;
+  compact?: boolean;
 };
 
-export function ComposePollEditor({ value, onChange, disabled }: ComposePollEditorProps) {
+export function ComposePollEditor({ value, onChange, disabled, compact }: ComposePollEditorProps) {
   const [enabled, setEnabled] = useState(!!value);
   const poll = value ?? {
     options: ["", ""],
@@ -38,6 +39,20 @@ export function ComposePollEditor({ value, onChange, disabled }: ComposePollEdit
   }
 
   if (!enabled) {
+    if (compact) {
+      return (
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => toggle(true)}
+          className="h-9 w-9 rounded-full flex items-center justify-center text-primary hover:bg-primary/10 transition-colors"
+          aria-label="투표 추가"
+          title="투표"
+        >
+          <BarChart3 className="h-[18px] w-[18px]" />
+        </button>
+      );
+    }
     return (
       <Button
         type="button"

@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
+import { useSession } from "next-auth/react";
 import { PostMediaComposer, type PostMediaItem } from "@/components/media/post-media-composer";
 import { ComposePollEditor } from "@/components/compose/compose-poll-editor";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { CreatePostPollInput } from "@/lib/post-poll";
 import { validatePostPollInput } from "@/lib/post-poll";
+import { cn } from "@/lib/utils";
 
 function friendlyPostError(err: unknown, apiError?: string): string {
   if (apiError) return apiError;
@@ -27,21 +28,24 @@ export function ComposeForm({
   onNeedSignIn,
 }: {
   communityId?: string;
-  variant?: "page" | "sheet";
+  variant?: "page" | "sheet" | "inline";
   onPosted?: () => void;
   onNeedSignIn?: () => void;
 }) {
+  const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [mediaUploading, setMediaUploading] = useState(false);
   const [error, setError] = useState("");
   const [media, setMedia] = useState<PostMediaItem[]>([]);
   const [poll, setPoll] = useState<CreatePostPollInput | null>(null);
+  const [content, setContent] = useState("");
+  const [showOptions, setShowOptions] = useState(false);
   const submitBusy = loading || mediaUploading;
+  const canSubmit = content.trim().length > 0 || media.length > 0;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const formEl = e.currentTarget;
-    if (!formEl) return;
+    if (!canSubmit) return;
 
     const invalidMedia = media.some(
       (m) =>
@@ -54,7 +58,7 @@ export function ComposeForm({
       return;
     }
 
-    const form = new FormData(formEl);
+    const form = new FormData(e.currentTarget);
     const tags = (form.get("tags") as string)?.split(",").map((t) => t.trim()).filter(Boolean);
 
     if (poll) {
@@ -67,7 +71,7 @@ export function ComposeForm({
 
     const payload = {
       title: (form.get("title") as string) || undefined,
-      content: form.get("content") as string,
+      content: content.trim(),
       communityId,
       isNsfw: form.get("isNsfw") === "on",
       tagNames: tags,
@@ -112,11 +116,101 @@ export function ComposeForm({
     }
   }
 
+  if (variant === "inline") {
+    const avatar = session?.user?.image;
+    const initial = session?.user?.name?.[0] ?? session?.user?.username?.[0] ?? "?";
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="flex gap-3 items-start">
+          <div className="shrink-0 h-10 w-10 rounded-full overflow-hidden bg-folk-cream border-2 border-folk-cobalt/20 flex items-center justify-center text-sm font-bold text-folk-cobalt">
+            {avatar ? (
+              <Image src={avatar} alt="" width={40} height={40} className="h-full w-full object-cover" />
+            ) : (
+              initial
+            )}
+          </div>
+          <div className="flex-1 min-w-0 space-y-3">
+            <textarea
+              name="content"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="무슨 일이 일어나고 있나요?"
+              rows={3}
+              className={cn(
+                "w-full resize-none bg-transparent text-[15px] leading-relaxed",
+                "placeholder:text-muted-foreground/70 outline-none border-0 p-0 min-h-[72px]"
+              )}
+            />
+
+            <PostMediaComposer
+              items={media}
+              onChange={setMedia}
+              maxImages={4}
+              maxVideos={1}
+              layout="toolbar"
+              allowVideoCapture={false}
+              onUploadingChange={setMediaUploading}
+              toolbarFooterStart={
+                <>
+                  {!poll && (
+                    <ComposePollEditor
+                      value={poll}
+                      onChange={setPoll}
+                      disabled={submitBusy}
+                      compact
+                    />
+                  )}
+                  <button
+                    type="button"
+                    className="text-[11px] text-muted-foreground hover:text-foreground px-2 py-1 rounded-lg hover:bg-muted/60 shrink-0"
+                    onClick={() => setShowOptions((v) => !v)}
+                  >
+                    {showOptions ? "옵션 닫기" : "태그·NSFW"}
+                  </button>
+                </>
+              }
+              toolbarFooter={
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="rounded-full px-5 font-semibold shrink-0"
+                  disabled={submitBusy || !canSubmit}
+                >
+                  {mediaUploading ? "업로드 중…" : loading ? "게시 중…" : "게시하기"}
+                </Button>
+              }
+            />
+
+            {poll && (
+              <ComposePollEditor value={poll} onChange={setPoll} disabled={submitBusy} />
+            )}
+
+            {showOptions && (
+              <div className="space-y-2 pt-1 border-t border-border/40">
+                <input
+                  name="tags"
+                  placeholder="태그 (쉼표로 구분)"
+                  className="w-full rounded-lg border border-border/60 bg-background/50 px-3 py-2 text-sm"
+                />
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <input type="checkbox" name="isNsfw" />
+                  NSFW
+                </label>
+              </div>
+            )}
+          </div>
+        </div>
+        {error && <p className="text-sm text-destructive pl-[52px]">{error}</p>}
+      </form>
+    );
+  }
+
   const formBody = (
     <form onSubmit={handleSubmit} className="space-y-4">
       {variant === "sheet" && (
         <p className="text-sm text-muted-foreground -mt-1">
-          사진·영상을 찍거나 고른 뒤, 앱 안에서 자르기·구간 편집할 수 있습니다.
+          사진·영상을 고른 뒤, 앱 안에서 자르기·구간 편집할 수 있습니다.
         </p>
       )}
       <PostMediaComposer
@@ -124,19 +218,20 @@ export function ComposeForm({
         onChange={setMedia}
         maxImages={4}
         maxVideos={1}
+        allowVideoCapture={false}
         onUploadingChange={setMediaUploading}
       />
-      <Input name="title" placeholder="제목 (선택)" className="rounded-xl" />
+      <input name="title" placeholder="제목 (선택)" className="w-full rounded-xl border border-border bg-background/50 px-3 py-2 text-sm" />
       <textarea
         name="content"
         placeholder="내용을 입력하세요..."
         required
         className="w-full min-h-[160px] rounded-xl border border-border bg-background/50 p-3 text-sm resize-y"
       />
-      <Input
+      <input
         name="tags"
         placeholder="태그 (쉼표로 구분) 예: 원신, 코스프레"
-        className="rounded-xl"
+        className="w-full rounded-xl border border-border bg-background/50 px-3 py-2 text-sm"
       />
       <ComposePollEditor value={poll} onChange={setPoll} disabled={submitBusy} />
       <label className="flex items-center gap-2 text-sm">
@@ -155,14 +250,14 @@ export function ComposeForm({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>글쓰기</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          사진·영상을 찍거나 고른 뒤, 앱 안에서 자르기·구간 편집할 수 있습니다.
+    <div className="folk-card p-5 space-y-4">
+      <div>
+        <h2 className="font-bold text-folk-cobalt">글쓰기</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          사진·영상 파일을 고른 뒤 편집할 수 있습니다.
         </p>
-      </CardHeader>
-      <CardContent>{formBody}</CardContent>
-    </Card>
+      </div>
+      {formBody}
+    </div>
   );
 }

@@ -13,6 +13,8 @@ import { Loader2, Scissors } from "lucide-react";
 import { trimVideoBlob } from "@/lib/video-trim";
 import { guessVideoMime } from "@/lib/gallery-video-upload";
 import { uploadVideoBlob } from "@/lib/client-upload";
+import { getUploadMaxBytes, uploadSizeExceededMessage } from "@/lib/upload-limits";
+import { useSession } from "next-auth/react";
 
 type VideoEditDialogProps = {
   open: boolean;
@@ -33,6 +35,7 @@ export function VideoEditDialog({
   onComplete,
   onUploadingChange,
 }: VideoEditDialogProps) {
+  const { data: session } = useSession();
   const videoRef = useRef<HTMLVideoElement>(null);
   const previewUrlRef = useRef<string | null>(null);
   const [duration, setDuration] = useState(0);
@@ -121,6 +124,13 @@ export function VideoEditDialog({
 
   async function applyUpload(skipTrim: boolean) {
     if (!videoBlob) return;
+
+    const maxBytes = getUploadMaxBytes(session?.user?.premiumTier, "video");
+    if (videoBlob.size > maxBytes) {
+      setError(uploadSizeExceededMessage(session?.user?.premiumTier, "video"));
+      return;
+    }
+
     if (!skipTrim && clipLen < 0.3) {
       setError("1초 이상 구간을 선택해 주세요.");
       return;
@@ -179,7 +189,7 @@ export function VideoEditDialog({
             영상 편집
           </DialogTitle>
           <DialogDescription>
-            구간을 조절하거나 원본 그대로 업로드할 수 있습니다.
+            구간을 조절하거나 원본 그대로 업로드할 수 있습니다. (일반 계정 최대 50MB, 프리미엄 100MB)
           </DialogDescription>
         </DialogHeader>
 

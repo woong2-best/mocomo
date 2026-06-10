@@ -14,6 +14,10 @@ import {
   isSupabaseStorageConfigured,
   uploadBufferToSupabase,
 } from "@/lib/supabase-storage";
+import {
+  getUploadMaxBytes,
+  uploadSizeExceededMessage,
+} from "@/lib/upload-limits";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -98,14 +102,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid file type" }, { status: 400 });
   }
 
-  const maxSize =
-    session.user.premiumTier === "PREMIUM" ? 100 * 1024 * 1024 : 25 * 1024 * 1024;
+  const cat = category === "video" ? "video" : category === "audio" ? "audio" : "image";
+  const maxSize = getUploadMaxBytes(session.user.premiumTier, cat);
   if (file.size > maxSize) {
-    return NextResponse.json({ error: "File too large" }, { status: 400 });
+    return NextResponse.json(
+      { error: uploadSizeExceededMessage(session.user.premiumTier, cat) },
+      { status: 400 }
+    );
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const cat = category === "video" ? "video" : category === "audio" ? "audio" : "image";
 
   if (isSupabaseStorageConfigured()) {
     const uploaded = await uploadBufferToSupabase(
