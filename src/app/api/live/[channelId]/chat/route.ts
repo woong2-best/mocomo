@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { resolveLiveChannelAccess, countActiveLiveViewers } from "@/lib/live-room-access";
 import { filterLiveChatContent, looksLikeSpamDuplicate } from "@/lib/live-chat-filter";
+import { checkLiveChatBurstLimit, LIVE_CHAT_BURST_SIZE } from "@/lib/live-chat-burst-limit";
 import { moderateLiveChatFast } from "@/lib/ai-moderation";
 import { ensureStringArray } from "@/lib/ensure-array";
 import { userPublicSelectMinimal } from "@/lib/user-public-select";
@@ -134,6 +135,29 @@ export async function POST(
     return NextResponse.json({ error: mod.error }, { status: 400 });
   }
 
+  if (!access.isHost) {
+    const recentBurst = await db.liveChatMessage.findMany({
+      where: { channelId, userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      take: 12,
+      select: { createdAt: true, content: true },
+    });
+
+    const burst = checkLiveChatBurstLimit(recentBurst);
+    if (!burst.ok) {
+      return NextResponse.json(
+        {
+          error: `연속 ${LIVE_CHAT_BURST_SIZE}개까지 보낼 수 있습니다. ${burst.waitSec}초 후에 다시 보내 주세요.`,
+        },
+        { status: 429 }
+      );
+    }
+
+    if (recentBurst[0] && looksLikeSpamDuplicate(recentBurst[0].content, filtered.text)) {
+      return NextResponse.json({ error: "같은 메시지를 연속으로 보낼 수 없습니다." }, { status: 429 });
+    }
+  }
+
   if (channel.slowModeSeconds > 0 && !access.isHost) {
     const last = await db.liveChatMessage.findFirst({
       where: { channelId, userId: session.user.id },
@@ -149,9 +173,6 @@ export async function POST(
           },
           { status: 429 }
         );
-      }
-      if (looksLikeSpamDuplicate(last.content, filtered.text)) {
-        return NextResponse.json({ error: "같은 메시지를 연속으로 보낼 수 없습니다." }, { status: 429 });
       }
     }
   }
