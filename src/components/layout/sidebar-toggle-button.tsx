@@ -21,7 +21,7 @@ export function SidebarToggleButton() {
         aria-label={sidebarOpen ? "사이드바 숨기기" : "사이드바 보이기"}
         aria-expanded={sidebarOpen}
         className={cn(
-          "group/icon rounded-xl p-1 transition-colors",
+          "rounded-xl p-1 transition-colors",
           "hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-folk-terracotta/50",
           !sidebarOpen && "bg-muted/30 ring-2 ring-folk-terracotta/35"
         )}
@@ -29,24 +29,26 @@ export function SidebarToggleButton() {
         <span
           className={cn(
             "relative h-9 w-9 rounded-lg shrink-0 overflow-hidden border-2 shadow-folk-sm transition-colors block",
-            "border-folk-cobalt/25 group-hover/icon:border-folk-cobalt/40"
+            sidebarOpen
+              ? "border-folk-cobalt/40 ring-2 ring-folk-terracotta/30 bg-folk-cream"
+              : "border-folk-cobalt/25"
           )}
         >
           <span
             className={cn(
               "absolute inset-0 flex items-center justify-center bg-[hsl(224,38%,16%)] transition-opacity duration-200",
-              "group-hover/icon:opacity-0 group-hover/icon:pointer-events-none"
+              sidebarOpen ? "opacity-0 pointer-events-none" : "opacity-100"
             )}
-            aria-hidden
+            aria-hidden={sidebarOpen}
           >
             <Menu className="h-4 w-4 text-white" strokeWidth={2.25} />
           </span>
           <span
             className={cn(
-              "absolute inset-0 flex items-center justify-center bg-folk-cream p-0.5 opacity-0 transition-opacity duration-200",
-              "group-hover/icon:opacity-100"
+              "absolute inset-0 flex items-center justify-center bg-folk-cream p-0.5 transition-opacity duration-200",
+              sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
             )}
-            aria-hidden
+            aria-hidden={!sidebarOpen}
           >
             <BrandLogo size={30} priority />
           </span>
