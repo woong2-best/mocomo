@@ -25,10 +25,12 @@ export function CreatorStudioForm({ mySeries }: { mySeries: MySeries }) {
   const [price, setPrice] = useState(500);
   const [freePreviewCount, setFreePreviewCount] = useState(1);
   const [contentUrls, setContentUrls] = useState<string[]>([]);
-  const selected = mySeries.find((s) => s.id === seriesId);
-  const activeKind = selected?.kind ?? kind;
+  const [videoUrl, setVideoUrl] = useState("");
+  const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+  const selected = mySeries.find((s) => s.id === seriesId);
+  const activeKind = selected?.kind ?? kind;
 
   async function uploadCover(file: File) {
     setLoading(true);
