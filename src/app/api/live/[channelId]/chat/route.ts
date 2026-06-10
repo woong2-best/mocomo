@@ -5,6 +5,7 @@ import { resolveLiveChannelAccess, countActiveLiveViewers } from "@/lib/live-roo
 import { filterLiveChatContent, looksLikeSpamDuplicate } from "@/lib/live-chat-filter";
 import { checkLiveChatBurstLimit, LIVE_CHAT_BURST_SIZE } from "@/lib/live-chat-burst-limit";
 import { moderateLiveChatFast } from "@/lib/ai-moderation";
+import { relayLiveChatToSocket } from "@/lib/live-chat-socket-relay";
 import { ensureStringArray } from "@/lib/ensure-array";
 import { userPublicSelectMinimal } from "@/lib/user-public-select";
 import type { SupportTierLevel } from "@prisma/client";
@@ -182,7 +183,9 @@ export async function POST(
       data: { channelId, userId: session.user.id, content: filtered.text },
       include: { user: { select: userPublicSelectMinimal } },
     });
-    return NextResponse.json({ ok: true, message: mapMsg(msg) });
+    const mapped = mapMsg(msg);
+    void relayLiveChatToSocket(channelId, mapped);
+    return NextResponse.json({ ok: true, message: mapped });
   } catch (e) {
     console.error("[api/live/chat] create", e);
     const msg = e instanceof Error ? e.message : "";
