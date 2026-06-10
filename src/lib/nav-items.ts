@@ -13,7 +13,6 @@ import {
   BookOpen,
   LayoutGrid,
   PenLine,
-  Home,
   Compass,
   Users,
   Camera,
@@ -26,7 +25,6 @@ import type { MessageKey } from "@/lib/i18n/messages";
 export type NavItem = { href: string; icon: LucideIcon; labelKey: MessageKey };
 
 export const mainNavItems: NavItem[] = [
-  { href: "/", icon: Home, labelKey: "nav.home" },
   { href: "/explore", icon: Compass, labelKey: "nav.explore" },
   { href: "/my-page", icon: User, labelKey: "nav.myPage" },
   { href: "/communities", icon: Users, labelKey: "nav.communities" },
