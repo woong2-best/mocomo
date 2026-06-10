@@ -10,21 +10,22 @@ import { mainNavItems } from "@/lib/nav-items";
 import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
 import { useLocale } from "@/components/providers/locale-provider";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
+import { isNavItemActive } from "@/lib/nav-active";
 
 export function Sidebar() {
   const pathname = usePathname();
   const { t } = useLocale();
-
-  function isActive(href: string) {
-    if (href === "/") return pathname === "/";
-    return pathname === href || pathname.startsWith(href + "/");
-  }
 
   const navItems = mainNavItems.filter(
     (item) =>
       item.href !== "/compose" &&
       (isLiveFeatureEnabled() || !isLiveNavHref(item.href))
   );
+  const navHrefs = navItems.map((item) => item.href);
+
+  function isActive(href: string) {
+    return isNavItemActive(pathname, href, navHrefs);
+  }
 
   return (
     <aside className="hidden lg:flex w-[17rem] xl:w-[18rem] flex-col shrink-0 sticky top-[var(--header-h)] h-app bg-[hsl(var(--folk-cream)/0.6)] dark:bg-background border-r-2 border-folk-cobalt/20 p-4 gap-3 overflow-y-auto relative z-[1]">

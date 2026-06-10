@@ -15,6 +15,7 @@ import { useCompose } from "@/components/compose/compose-provider";
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
+import { isNavItemActive } from "@/lib/nav-active";
 import { FolkBrushDivider, FolkFloralAccent } from "@/components/brand/folk-decor";
 import { FolkThemeCelestial } from "@/components/brand/folk-theme-celestial";
 import { BrandLogo } from "@/components/brand/brand-logo";
@@ -33,6 +34,7 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
   const items = isLiveFeatureEnabled()
     ? mainNavItems
     : mainNavItems.filter((item) => !isLiveNavHref(item.href));
+  const navHrefs = items.map((item) => item.href);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -58,11 +60,9 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
         <nav className="flex-1 overflow-y-auto overscroll-contain p-3 space-y-1 pb-nav pb-safe">
           {items.map(({ href, icon: Icon, labelKey }) => {
             const active =
-              href === "/"
-                ? pathname === "/"
-                : href === "/compose"
-                  ? false
-                  : pathname === href || pathname.startsWith(`${href}/`);
+              href === "/compose"
+                ? false
+                : isNavItemActive(pathname, href, navHrefs);
 
             if (href === "/compose") {
               return (
