@@ -3,11 +3,16 @@ export function isAvatarStudioPath(pathname: string): boolean {
   return pathname.startsWith("/avatar/studio");
 }
 
+export function isWebtoonDrawStudioPath(pathname: string): boolean {
+  return pathname.startsWith("/webtoon/studio/draw");
+}
+
 export function shouldShowRightPanel(pathname: string): boolean {
   if (pathname.startsWith("/auth")) return false;
   if (pathname.startsWith("/legal")) return false;
   if (pathname.startsWith("/live")) return false;
   if (isAvatarStudioPath(pathname)) return false;
+  if (isWebtoonDrawStudioPath(pathname)) return false;
   if (pathname.startsWith("/messages")) return false;
   if (pathname.startsWith("/used")) return false;
   if (pathname.startsWith("/voice/") && pathname !== "/voice/new") return false;
