@@ -23,11 +23,17 @@ export default async function WebtoonLayout({ children }: { children: React.Reac
               요일별 전체
             </Link>
             <Link
+              href="/webtoon/studio/draw"
+              className="px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-600/90 text-white hover:bg-emerald-600 flex items-center gap-1"
+            >
+              <PenLine className="h-3 w-3" />
+              드로잉 스튜디오
+            </Link>
+            <Link
               href="/webtoon/studio"
               className="px-3 py-1.5 rounded-full text-xs font-medium bg-muted/60 hover:bg-muted flex items-center gap-1"
             >
-              <PenLine className="h-3 w-3" />
-              웹툰 스튜디오
+              연재·등록
             </Link>
           </nav>
         </header>
