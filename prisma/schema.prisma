@@ -1658,22 +1658,34 @@ enum CreatorWorkKind {
   VIDEO
 }
 
+enum WebtoonPublishDay {
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+  SUN
+}
+
 model CreatorSeries {
-  id          String          @id @default(cuid())
+  id          String             @id @default(cuid())
   authorId    String
   title       String
-  description String?         @db.Text
+  description String?            @db.Text
   coverUrl    String
   kind        CreatorWorkKind
-  status      String          @default("ONGOING")
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  publishDay  WebtoonPublishDay?
+  status      String             @default("ONGOING")
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
 
   author   User             @relation("CreatorSeriesAuthor", fields: [authorId], references: [id], onDelete: Cascade)
   episodes CreatorEpisode[]
 
   @@index([authorId, createdAt(sort: Desc)])
   @@index([kind, createdAt(sort: Desc)])
+  @@index([kind, publishDay])
 }
 
 model CreatorEpisode {

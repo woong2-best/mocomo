@@ -12,6 +12,8 @@ export type MessageKey =
   | "nav.cosplay"
   | "nav.live"
   | "nav.liveStudio"
+  | "nav.webtoon"
+  | "nav.webtoonStudio"
   | "nav.works"
   | "nav.used"
   | "nav.market"
@@ -63,6 +65,8 @@ const ko: Record<MessageKey, string> = {
   "nav.cosplay": "코스프레",
   "nav.live": "라이브",
   "nav.liveStudio": "라이브 스튜디오",
+  "nav.webtoon": "웹툰",
+  "nav.webtoonStudio": "웹툰 스튜디오",
   "nav.works": "작품 판매",
   "nav.used": "중고거래",
   "nav.market": "굿즈샵",
@@ -115,6 +119,8 @@ const en: Record<MessageKey, string> = {
   "nav.cosplay": "Cosplay",
   "nav.live": "Live",
   "nav.liveStudio": "Live Studio",
+  "nav.webtoon": "Webtoon",
+  "nav.webtoonStudio": "Webtoon Studio",
   "nav.works": "Creator Works",
   "nav.used": "Used Market",
   "nav.market": "Shop",
@@ -167,6 +173,8 @@ const ja: Record<MessageKey, string> = {
   "nav.cosplay": "コスプレ",
   "nav.live": "ライブ",
   "nav.liveStudio": "ライブスタジオ",
+  "nav.webtoon": "ウェブトゥーン",
+  "nav.webtoonStudio": "ウェブトゥーンスタジオ",
   "nav.works": "作品販売",
   "nav.used": "フリマ",
   "nav.market": "ショップ",
@@ -219,6 +227,8 @@ const zh: Record<MessageKey, string> = {
   "nav.cosplay": "Cosplay",
   "nav.live": "直播",
   "nav.liveStudio": "直播工作室",
+  "nav.webtoon": "网漫",
+  "nav.webtoonStudio": "网漫工作室",
   "nav.works": "作品销售",
   "nav.used": "二手",
   "nav.market": "商店",
