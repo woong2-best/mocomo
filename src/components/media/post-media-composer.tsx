@@ -8,6 +8,7 @@ import {
   Loader2,
   Pencil,
   Trash2,
+  Video,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImageCropDialog } from "@/components/media/image-crop-dialog";
