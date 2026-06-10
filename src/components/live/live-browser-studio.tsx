@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Mic, MicOff, MonitorUp, Radio, Video, VideoOff } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { Loader2, MessageSquare, Mic, MicOff, MonitorUp, Radio, Video, VideoOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FaceFilterStrip } from "@/components/media/face-filter-strip";
 import { LiveHostCollabPasswordStrip } from "@/components/live/live-host-collab-password-strip";
@@ -28,6 +29,9 @@ import {
 import { Live2dLibraryPanel, useLive2dLibraryActiveId } from "@/components/live/live-2d-library-panel";
 import { getActiveLibraryCharacterId, hasLibraryCharacters } from "@/lib/avatar-2d/library";
 import { setPhotoAvatarRenderMode } from "@/lib/photo-avatar/photo-avatar-storage";
+import { LiveScreenShareCompositor } from "@/lib/live/live-screen-share-compositor";
+import { LiveVideoChatOverlay } from "@/components/live/live-video-chat-overlay";
+import { useLiveChatOverlay } from "@/hooks/use-live-chat-overlay";
 
 const VTUBER_STORAGE_KEY = "mocomo_live_vtuber";
 const VTUBER_LAYOUT_KEY = "mocomo_live_vtuber_layout";
@@ -92,6 +96,15 @@ export function LiveBrowserStudio({
   const whipRef = useRef<CloudflareWhipPublisher | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rawStreamRef = useRef<MediaStream | null>(null);
+  const screenCompositorRef = useRef<LiveScreenShareCompositor | null>(null);
+  const screenDisplayRef = useRef<MediaStream | null>(null);
+
+  const { data: session } = useSession();
+  const { chatOverlayEnabled, setChatOverlayEnabled } = useLiveChatOverlay(
+    channelId,
+    session?.user?.id,
+    true
+  );
 
   const {
     displayCanvas,
@@ -216,10 +229,61 @@ export function LiveBrowserStudio({
     };
   }, [loadStudioState, loadIngest]);
 
+  const stopScreenShare = useCallback(async () => {
+    screenCompositorRef.current?.stop();
+    screenDisplayRef.current?.getTracks().forEach((t) => t.stop());
+    screenDisplayRef.current = null;
+    setScreenOn(false);
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+  }, []);
+
+  const buildScreenShareStream = useCallback(async (display: MediaStream) => {
+    if (!rawStreamRef.current?.active) {
+      const mobile = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      rawStreamRef.current = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: "user",
+          width: { ideal: mobile ? 960 : 1280 },
+          height: { ideal: mobile ? 540 : 720 },
+          frameRate: { ideal: 30, max: 30 },
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+    }
+
+    let compositor = screenCompositorRef.current;
+    if (!compositor) {
+      compositor = new LiveScreenShareCompositor();
+      screenCompositorRef.current = compositor;
+    }
+
+    compositor.start(display, rawStreamRef.current);
+    screenDisplayRef.current = display;
+
+    const video = compositor.getStream();
+    const audio = rawStreamRef.current?.getAudioTracks() ?? [];
+    const out = new MediaStream([...(video?.getVideoTracks() ?? []), ...audio]);
+    streamRef.current = out;
+    return out;
+  }, []);
+
   const ensureLocalStream = useCallback(
     async (opts?: { vtuber?: boolean; layout?: LiveAvatarLayout }) => {
       const useVtuber = opts?.vtuber ?? vtuberMode;
       const layout = opts?.layout ?? avatarLayout;
+
+      if (screenOn && screenCompositorRef.current?.getStream()) {
+        const video = screenCompositorRef.current.getStream()!;
+        const audio = rawStreamRef.current?.getAudioTracks() ?? [];
+        const out = new MediaStream([...video.getVideoTracks(), ...audio]);
+        streamRef.current = out;
+        return out;
+      }
 
       if (!screenOn && streamRef.current && rawStreamRef.current) {
         if (useVtuber && avatarPublishRef.current?.getPublishStream()) {
@@ -298,6 +362,14 @@ export function LiveBrowserStudio({
   const mountPreviewCanvas = useCallback(
     (host: HTMLDivElement) => {
       host.innerHTML = "";
+      if (screenOn) {
+        const canvas = screenCompositorRef.current?.canvas;
+        if (canvas) {
+          canvas.className = "absolute inset-0 w-full h-full object-contain bg-black";
+          host.appendChild(canvas);
+        }
+        return;
+      }
       if (vtuberMode && !screenOn) {
         const canvas = avatarPublishRef.current?.getPreviewCanvas();
         if (canvas) {
@@ -320,16 +392,17 @@ export function LiveBrowserStudio({
 
   const attachPreviewCanvas = useCallback(() => {
     const host = previewHostRef.current;
-    if (!host || screenOn) return;
+    if (!host) return;
     mountPreviewCanvas(host);
-  }, [mountPreviewCanvas, screenOn]);
+  }, [mountPreviewCanvas]);
 
   const bindPreviewHostRef = useCallback(
     (host: HTMLDivElement | null) => {
       const prev = previewHostRef.current;
       if (prev) {
-        const canvas =
-          vtuberMode && !screenOn
+        const canvas = screenOn
+          ? screenCompositorRef.current?.canvas
+          : vtuberMode && !screenOn
             ? avatarPublishRef.current?.getPreviewCanvas()
             : displayCanvas;
         if (canvas && canvas.parentElement === prev) {
@@ -459,6 +532,8 @@ export function LiveBrowserStudio({
     return () => {
       whipRef.current?.stop();
       avatarPublishRef.current?.detachCameraStream();
+      screenCompositorRef.current?.stop();
+      screenDisplayRef.current?.getTracks().forEach((t) => t.stop());
       void stopFilterPipeline();
       rawStreamRef.current?.getTracks().forEach((t) => t.stop());
       rawStreamRef.current = null;
@@ -579,6 +654,12 @@ export function LiveBrowserStudio({
     if (!stream) return;
     const next = !camOn;
 
+    if (screenOn) {
+      screenCompositorRef.current?.setCameraVisible(next);
+      setCamOn(next);
+      return;
+    }
+
     if (vtuberMode && !screenOn) {
       avatarPublishRef.current?.setCameraVisible(next);
       setCamOn(next);
@@ -596,49 +677,66 @@ export function LiveBrowserStudio({
     if (!screenOn) {
       try {
         const display = await navigator.mediaDevices.getDisplayMedia({
-          video: true,
+          video: { frameRate: { ideal: 30, max: 30 } },
           audio: false,
         });
-        const videoTrack = display.getVideoTracks()[0];
-        if (!videoTrack) return;
-
         await stopFilterPipeline();
-        const audioTracks =
-          rawStreamRef.current?.getAudioTracks() ??
-          streamRef.current?.getAudioTracks().filter((t) => t.kind === "audio") ??
-          [];
-        const screenStream = new MediaStream([videoTrack, ...audioTracks]);
-        streamRef.current = screenStream;
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = screenStream;
-          await videoRef.current.play().catch(() => undefined);
+        if (vtuberMode) {
+          avatarPublishRef.current?.detachCameraStream();
         }
-
+        const stream = await buildScreenShareStream(display);
+        attachPreviewCanvas();
         if (whipConnected) {
-          whipRef.current?.stop();
-          const pub = new CloudflareWhipPublisher();
-          whipRef.current = pub;
-          await pub.start(channelId, screenStream, { onDisconnect: handleWhipDisconnect });
+          await restartWhipWithStream(stream);
         }
         setScreenOn(true);
         setCamOn(true);
+        setLiveError("");
       } catch {
         setLiveError("화면 공유가 취소되었습니다.");
       }
       return;
     }
-    setScreenOn(false);
+
+    await stopScreenShare();
     streamRef.current = null;
     const stream = await ensureLocalStream();
-    if (videoRef.current) videoRef.current.srcObject = null;
+    attachPreviewCanvas();
     if (whipConnected && stream) {
-      whipRef.current?.stop();
-      const pub = new CloudflareWhipPublisher();
-      whipRef.current = pub;
-      await pub.start(channelId, stream, { onDisconnect: handleWhipDisconnect });
+      await restartWhipWithStream(stream);
     }
   }
+
+  const handleScreenShareEnded = useCallback(async () => {
+    if (!screenOn) return;
+    await stopScreenShare();
+    streamRef.current = null;
+    try {
+      const stream = await ensureLocalStream();
+      attachPreviewCanvas();
+      if (whipConnected && stream) await restartWhipWithStream(stream);
+    } catch {
+      /* ignore */
+    }
+  }, [
+    screenOn,
+    stopScreenShare,
+    ensureLocalStream,
+    attachPreviewCanvas,
+    whipConnected,
+    restartWhipWithStream,
+  ]);
+
+  useEffect(() => {
+    if (!screenOn) return;
+    const track = screenDisplayRef.current?.getVideoTracks()[0];
+    if (!track) return;
+    const onEnded = () => {
+      void handleScreenShareEnded();
+    };
+    track.addEventListener("ended", onEnded);
+    return () => track.removeEventListener("ended", onEnded);
+  }, [screenOn, handleScreenShareEnded]);
 
   if (publishState === "loading") {
     return (
@@ -690,16 +788,13 @@ export function LiveBrowserStudio({
 
   const previewInner = (
     <>
-      <div
-        ref={bindPreviewHostRef}
-        className={screenOn ? "hidden" : "absolute inset-0 z-0"}
-      />
+      <div ref={bindPreviewHostRef} className="absolute inset-0 z-0" />
       <video
         ref={videoRef}
         autoPlay
         playsInline
         muted
-        className={`w-full h-full ${immersive || !screenOn ? "object-cover" : "object-contain"} ${screenOn ? "block" : "hidden"}`}
+        className="hidden"
       />
       {whipConnected && !immersive && !splitCollab && (
         <span className="absolute top-3 left-3 px-2 py-0.5 rounded bg-folk-terracotta text-white text-[10px] font-bold z-10 flex items-center gap-1">
@@ -730,6 +825,12 @@ export function LiveBrowserStudio({
           )}
         </div>
       )}
+      {screenOn && (
+        <span className="absolute top-3 right-3 px-2 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-bold z-10">
+          화면 공유
+        </span>
+      )}
+      {chatOverlayEnabled && !immersive && <LiveVideoChatOverlay channelId={channelId} />}
       <LiveOverlayLayer className="z-20" />
     </>
   );
@@ -802,6 +903,16 @@ export function LiveBrowserStudio({
         >
           <MonitorUp className="h-4 w-4" />
           {screenOn ? "화면공유 끔" : "화면 공유"}
+        </Button>
+        <Button
+          type="button"
+          variant={chatOverlayEnabled ? "default" : "outline"}
+          size="sm"
+          className="rounded-xl gap-1"
+          onClick={() => setChatOverlayEnabled(!chatOverlayEnabled)}
+        >
+          <MessageSquare className="h-4 w-4" />
+          {chatOverlayEnabled ? "채팅 오버레이 끔" : "채팅 오버레이"}
         </Button>
       </div>
 

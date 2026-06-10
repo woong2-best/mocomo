@@ -24,6 +24,7 @@ export function LiveMobileOverlayChat({
   paymentsEnabled,
   viewerSupportTier,
   viewerSupportTotal,
+  showMessages = true,
 }: {
   channelId: string;
   onViewerCount?: (n: number) => void;
@@ -33,6 +34,8 @@ export function LiveMobileOverlayChat({
   paymentsEnabled?: boolean;
   viewerSupportTier?: SupportTierLevel;
   viewerSupportTotal?: number;
+  /** false면 영상 위 채팅 글자 숨김 (입력창은 유지) */
+  showMessages?: boolean;
 }) {
   const { data: session } = useSession();
   const userId = session?.user?.id;
@@ -110,6 +113,7 @@ export function LiveMobileOverlayChat({
 
   return (
     <div className="flex flex-col justify-end min-h-0 pointer-events-none">
+      {showMessages && (
       <div
         ref={scrollRef}
         className="max-h-[38vh] overflow-y-auto overflow-x-hidden px-3 pb-2 space-y-2 mask-fade-top pointer-events-none"
@@ -130,6 +134,7 @@ export function LiveMobileOverlayChat({
         ))}
         <div ref={bottomRef} />
       </div>
+      )}
 
       {session?.user ? (
         <div className="flex items-center gap-2 px-3 pb-safe pt-2 pointer-events-auto">

@@ -1,5 +1,6 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import { Eye, Radio, Settings2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +14,7 @@ import { LiveBrowserStudio } from "@/components/live/live-browser-studio";
 import { LiveHostCollabPasswordStrip } from "@/components/live/live-host-collab-password-strip";
 import { LiveHostSettings } from "@/components/live/live-host-settings";
 import { LiveMobileOverlayChat } from "@/components/live/mobile/live-mobile-overlay-chat";
+import { useLiveChatOverlay } from "@/hooks/use-live-chat-overlay";
 import { ensureStringArray } from "@/lib/ensure-array";
 import type { LiveStreamCategory } from "@prisma/client";
 
@@ -39,6 +41,9 @@ export function LiveMobilePortraitHost({
   chatBannedWords,
   collabPassword,
 }: LiveMobilePortraitHostProps) {
+  const { data: session } = useSession();
+  const { chatOverlayEnabled } = useLiveChatOverlay(channelId, session?.user?.id, true);
+
   return (
     <div className="live-mobile-portrait-root fixed inset-0 z-[110] bg-black text-white">
       <div className="absolute inset-0 z-0">
@@ -102,7 +107,11 @@ export function LiveMobilePortraitHost({
       </div>
 
       <div className="absolute left-0 right-0 bottom-0 z-20 max-h-[42vh] pointer-events-none">
-        <LiveMobileOverlayChat channelId={channelId} onViewerCount={onViewerCount} />
+        <LiveMobileOverlayChat
+          channelId={channelId}
+          onViewerCount={onViewerCount}
+          showMessages={chatOverlayEnabled}
+        />
       </div>
 
       <div className="absolute bottom-[calc(env(safe-area-inset-bottom)+7.5rem)] left-0 right-0 z-20 flex justify-center pointer-events-none">

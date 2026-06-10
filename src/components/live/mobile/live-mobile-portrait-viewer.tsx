@@ -9,6 +9,8 @@ import { LiveViewerPlayer } from "@/components/live/live-viewer-player";
 import { LiveRoomFollowButton } from "@/components/live/live-room-follow-button";
 import { LiveMobileOverlayChat } from "@/components/live/mobile/live-mobile-overlay-chat";
 import { LiveOverlayLayer } from "@/components/live/overlays/live-overlay-layer";
+import { useLiveChatOverlay } from "@/hooks/use-live-chat-overlay";
+import { useSession } from "next-auth/react";
 import type { LiveBroadcastMode, LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 
 export type LiveMobilePortraitViewerProps = {
@@ -47,6 +49,8 @@ export function LiveMobilePortraitViewer({
 }: LiveMobilePortraitViewerProps) {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
+  const { data: session } = useSession();
+  const { chatOverlayEnabled } = useLiveChatOverlay(channelId, session?.user?.id, true);
 
   function share() {
     const url =
@@ -145,6 +149,7 @@ export function LiveMobilePortraitViewer({
           hostUsername={hostUsername}
           hostDisplayName={hostDisplayName}
           paymentsEnabled={paymentsEnabled}
+          showMessages={chatOverlayEnabled}
         />
       </div>
     </div>

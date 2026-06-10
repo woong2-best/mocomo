@@ -148,6 +148,9 @@ const io = new Server(httpServer, {
   },
 });
 
+/** 채널별 영상 위 채팅 오버레이 표시 여부 */
+const liveChatOverlayByChannel = new Map<string, boolean>();
+
 io.on("connection", (socket: AuthedSocket) => {
   const userId = resolveUserId(socket);
   if (!userId) {
@@ -330,6 +333,12 @@ io.on("connection", (socket: AuthedSocket) => {
     if (overlay) {
       socket.emit("live_overlay_state", { channelId, state: overlay });
     }
+    if (liveChatOverlayByChannel.has(channelId)) {
+      socket.emit("live_chat_overlay_state", {
+        channelId,
+        enabled: liveChatOverlayByChannel.get(channelId),
+      });
+    }
   });
 
   socket.on("leave_live", (channelId: string) => {
@@ -354,6 +363,28 @@ io.on("connection", (socket: AuthedSocket) => {
         };
         liveOverlayByChannel.set(channelId, state);
         io.to(`live:${channelId}`).emit("live_overlay_state", { channelId, state });
+      } catch {
+        /* ignore */
+      }
+    }
+  );
+
+  socket.on(
+    "live_chat_overlay_publish",
+    async (data: { channelId?: string; enabled?: boolean }) => {
+      const channelId = data.channelId?.trim();
+      if (!channelId || channelId.length > 64 || typeof data.enabled !== "boolean") return;
+      try {
+        const channel = await prisma.voiceChannel.findUnique({
+          where: { id: channelId },
+          select: { createdBy: true },
+        });
+        if (!channel || channel.createdBy !== userId) return;
+        liveChatOverlayByChannel.set(channelId, data.enabled);
+        io.to(`live:${channelId}`).emit("live_chat_overlay_state", {
+          channelId,
+          enabled: data.enabled,
+        });
       } catch {
         /* ignore */
       }
