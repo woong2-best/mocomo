@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { isPaymentsConfigured } from "@/lib/payments";
 import { PurchaseEpisodeButton } from "@/components/works/purchase-episode-button";
-import { WEBTOON_DAY_FULL } from "@/lib/webtoon/constants";
-import type { WebtoonPublishDay } from "@prisma/client";
+import { WEBTOON_DAY_FULL, WEBTOON_GENRE_LABEL } from "@/lib/webtoon/constants";
+import type { WebtoonGenre, WebtoonPublishDay } from "@prisma/client";
 import { BookOpen } from "lucide-react";
 
 type ProfileSeries = {
@@ -10,6 +10,7 @@ type ProfileSeries = {
   title: string;
   coverUrl: string;
   publishDay: WebtoonPublishDay | null;
+  genre: WebtoonGenre | null;
   episodes: {
     id: string;
     title: string;
@@ -48,6 +49,9 @@ export function ProfileWebtoonsPanel({
               </Link>
               {s.publishDay && (
                 <p className="text-[10px] text-emerald-700 font-medium">{WEBTOON_DAY_FULL[s.publishDay]}</p>
+              )}
+              {s.genre && (
+                <p className="text-[10px] text-muted-foreground">{WEBTOON_GENRE_LABEL[s.genre]}</p>
               )}
               <ul className="space-y-2">
                 {s.episodes.map((ep) => (

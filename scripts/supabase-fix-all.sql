@@ -969,6 +969,15 @@ EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
+  CREATE TYPE "WebtoonGenre" AS ENUM (
+    'SCHOOL', 'ACTION', 'SF', 'STORY', 'FANTASY', 'BL_GL', 'COMEDY', 'PURE_LOVE',
+    'DRAMA', 'ROMANCE', 'HISTORICAL', 'SPORTS', 'SLICE_OF_LIFE', 'MYSTERY', 'HORROR',
+    'ADULT', 'OMNIBUS', 'EPISODE', 'MARTIAL_ARTS', 'SHONEN', 'OTHER'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
   ALTER TYPE "PaymentIntentType" ADD VALUE IF NOT EXISTS 'CREATOR_EPISODE';
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
@@ -1019,6 +1028,8 @@ CREATE INDEX IF NOT EXISTS "CreatorSeries_kind_createdAt_idx" ON "CreatorSeries"
 CREATE INDEX IF NOT EXISTS "CreatorSeries_kind_publishDay_idx" ON "CreatorSeries"("kind", "publishDay");
 
 ALTER TABLE "CreatorSeries" ADD COLUMN IF NOT EXISTS "publishDay" "WebtoonPublishDay";
+ALTER TABLE "CreatorSeries" ADD COLUMN IF NOT EXISTS "genre" "WebtoonGenre";
+CREATE INDEX IF NOT EXISTS "CreatorSeries_kind_genre_idx" ON "CreatorSeries"("kind", "genre");
 CREATE INDEX IF NOT EXISTS "CreatorEpisode_seriesId_episodeNo_idx" ON "CreatorEpisode"("seriesId", "episodeNo");
 CREATE INDEX IF NOT EXISTS "CreatorEpisodePurchase_buyerId_createdAt_idx" ON "CreatorEpisodePurchase"("buyerId", "createdAt" DESC);
 

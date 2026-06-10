@@ -1668,6 +1668,30 @@ enum WebtoonPublishDay {
   SUN
 }
 
+enum WebtoonGenre {
+  SCHOOL
+  ACTION
+  SF
+  STORY
+  FANTASY
+  BL_GL
+  COMEDY
+  PURE_LOVE
+  DRAMA
+  ROMANCE
+  HISTORICAL
+  SPORTS
+  SLICE_OF_LIFE
+  MYSTERY
+  HORROR
+  ADULT
+  OMNIBUS
+  EPISODE
+  MARTIAL_ARTS
+  SHONEN
+  OTHER
+}
+
 model CreatorSeries {
   id          String             @id @default(cuid())
   authorId    String
@@ -1676,6 +1700,7 @@ model CreatorSeries {
   coverUrl    String
   kind        CreatorWorkKind
   publishDay  WebtoonPublishDay?
+  genre       WebtoonGenre?
   status      String             @default("ONGOING")
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
@@ -1686,6 +1711,7 @@ model CreatorSeries {
   @@index([authorId, createdAt(sort: Desc)])
   @@index([kind, createdAt(sort: Desc)])
   @@index([kind, publishDay])
+  @@index([kind, genre])
 }
 
 model CreatorEpisode {

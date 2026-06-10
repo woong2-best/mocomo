@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getCreatorSeries } from "@/actions/creator-works";
-import { WEBTOON_DAY_FULL } from "@/lib/webtoon/constants";
+import { WEBTOON_DAY_FULL, WEBTOON_GENRE_LABEL } from "@/lib/webtoon/constants";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 
@@ -32,6 +32,11 @@ export default async function WebtoonSeriesPage({ params }: { params: Promise<{ 
           <p className="text-sm text-muted-foreground mt-1">@{series.author.username}</p>
           {series.publishDay && (
             <p className="text-xs text-emerald-600 font-medium mt-2">{WEBTOON_DAY_FULL[series.publishDay]}</p>
+          )}
+          {series.genre && (
+            <span className="inline-block mt-2 rounded-full border border-border/70 bg-muted/50 px-2.5 py-0.5 text-[11px] font-medium">
+              {WEBTOON_GENRE_LABEL[series.genre]}
+            </span>
           )}
           {series.description && <p className="text-sm mt-3 text-muted-foreground">{series.description}</p>}
         </div>

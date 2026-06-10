@@ -1,7 +1,8 @@
 import Link from "next/link";
-import type { WebtoonPublishDay } from "@prisma/client";
+import type { WebtoonGenre, WebtoonPublishDay } from "@prisma/client";
 import {
   WEBTOON_DAY_FULL,
+  WEBTOON_GENRE_LABEL,
   WEBTOON_WEEK_DAYS,
   getTodayWebtoonDay,
 } from "@/lib/webtoon/constants";
@@ -17,8 +18,10 @@ type SeriesItem = {
 
 export function WebtoonWeeklyGrid({
   byDay,
+  activeGenre,
 }: {
   byDay: Record<WebtoonPublishDay, SeriesItem[]>;
+  activeGenre?: WebtoonGenre | null;
 }) {
   const today = getTodayWebtoonDay();
 
@@ -27,7 +30,11 @@ export function WebtoonWeeklyGrid({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold">요일별 전체 웹툰</h1>
-          <p className="text-xs text-muted-foreground mt-1">작가가 설정한 연재 요일별로 모아 봅니다.</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {activeGenre
+              ? `${WEBTOON_GENRE_LABEL[activeGenre]} · 작가가 설정한 연재 요일별로 모아 봅니다.`
+              : "작가가 설정한 연재 요일별로 모아 봅니다."}
+          </p>
         </div>
         <div className="flex gap-2 text-xs text-muted-foreground">
           <span className="font-semibold text-foreground">업데이트순</span>

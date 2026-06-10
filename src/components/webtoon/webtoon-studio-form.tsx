@@ -1,6 +1,6 @@
 "use client";
 
-import type { WebtoonPublishDay } from "@prisma/client";
+import type { WebtoonGenre, WebtoonPublishDay } from "@prisma/client";
 import { useState } from "react";
 import Link from "next/link";
 import { Loader2, Plus, Upload } from "lucide-react";
@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { publishCreatorEpisode } from "@/actions/creator-works";
-import { createWebtoonSeries, updateWebtoonPublishDay } from "@/actions/webtoon";
+import { createWebtoonSeries, updateWebtoonGenre, updateWebtoonPublishDay } from "@/actions/webtoon";
 import {
   WEBTOON_DAY_FULL,
+  WEBTOON_GENRE_LABEL,
+  WEBTOON_GENRES,
   WEBTOON_WEEK_DAYS,
 } from "@/lib/webtoon/constants";
 import { uploadImageBlob } from "@/lib/client-upload";
@@ -25,6 +27,7 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
   const [description, setDescription] = useState("");
   const [coverUrl, setCoverUrl] = useState("");
   const [publishDay, setPublishDay] = useState<WebtoonPublishDay>("MON");
+  const [genre, setGenre] = useState<WebtoonGenre>("STORY");
   const [seriesId, setSeriesId] = useState(myWebtoons[0]?.id ?? "");
   const [episodeTitle, setEpisodeTitle] = useState("");
   const [episodeNo, setEpisodeNo] = useState(1);
@@ -68,7 +71,7 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
     setLoading(true);
     setErr("");
     setMsg("");
-    const res = await createWebtoonSeries({ title, description, coverUrl, publishDay });
+    const res = await createWebtoonSeries({ title, description, coverUrl, publishDay, genre });
     setLoading(false);
     if ("error" in res && res.error) {
       setErr(res.error);
@@ -118,10 +121,22 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
     setMsg("연재 요일이 변경되었습니다.");
   }
 
+  async function onChangeGenre(id: string, nextGenre: WebtoonGenre) {
+    setLoading(true);
+    setErr("");
+    const res = await updateWebtoonGenre(id, nextGenre);
+    setLoading(false);
+    if ("error" in res && res.error) {
+      setErr(res.error);
+      return;
+    }
+    setMsg("장르가 변경되었습니다.");
+  }
+
   return (
     <div className="space-y-8">
       <section className="folk-card p-5 space-y-4">
-        <h2 className="font-bold text-folk-cobalt">1. 웹툰 시리즈 · 연재 요일</h2>
+        <h2 className="font-bold text-folk-cobalt">1. 웹툰 시리즈 · 연재 요일 · 장르</h2>
         <Input placeholder="웹툰 제목" value={title} onChange={(e) => setTitle(e.target.value)} className="rounded-xl" />
         <Textarea
           placeholder="소개 (선택)"
@@ -145,6 +160,26 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
               {WEBTOON_DAY_FULL[d]}
             </button>
           ))}
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground mb-2">장르</p>
+          <div className="flex flex-wrap gap-2">
+            {WEBTOON_GENRES.map((g) => (
+              <button
+                key={g}
+                type="button"
+                onClick={() => setGenre(g)}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-xs font-medium",
+                  genre === g
+                    ? "border-red-600 bg-red-600 text-white"
+                    : "border-border/70 bg-muted/40 text-foreground hover:bg-muted/70"
+                )}
+              >
+                {WEBTOON_GENRE_LABEL[g]}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <label className="inline-flex items-center gap-2 cursor-pointer text-sm font-medium">
@@ -239,26 +274,43 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
 
       {myWebtoons.length > 0 && (
         <section className="folk-card p-5 space-y-3">
-          <h3 className="font-bold text-sm">내 웹툰 · 연재 요일 변경</h3>
-          {myWebtoons.map((s) => (
-            <div key={s.id} className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 p-3">
-              <Link href={`/webtoon/series/${s.id}`} className="font-medium text-sm flex-1 min-w-[120px] hover:text-primary">
-                {s.title}
-              </Link>
-              <select
-                defaultValue={(s as MyWebtoon & { publishDay?: WebtoonPublishDay | null }).publishDay ?? "MON"}
-                className="rounded-lg border border-input bg-background px-2 py-1 text-xs"
-                onChange={(e) => void onChangePublishDay(s.id, e.target.value as WebtoonPublishDay)}
-                disabled={loading}
-              >
-                {WEBTOON_WEEK_DAYS.map((d) => (
-                  <option key={d} value={d}>
-                    {WEBTOON_DAY_FULL[d]}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ))}
+          <h3 className="font-bold text-sm">내 웹툰 · 연재 요일 · 장르 변경</h3>
+          {myWebtoons.map((s) => {
+            const row = s as MyWebtoon & { publishDay?: WebtoonPublishDay | null; genre?: WebtoonGenre | null };
+            return (
+              <div key={s.id} className="rounded-xl border border-border/60 p-3 space-y-2">
+                <Link href={`/webtoon/series/${s.id}`} className="font-medium text-sm hover:text-primary">
+                  {s.title}
+                </Link>
+                <div className="flex flex-wrap gap-2">
+                  <select
+                    defaultValue={row.publishDay ?? "MON"}
+                    className="rounded-lg border border-input bg-background px-2 py-1 text-xs"
+                    onChange={(e) => void onChangePublishDay(s.id, e.target.value as WebtoonPublishDay)}
+                    disabled={loading}
+                  >
+                    {WEBTOON_WEEK_DAYS.map((d) => (
+                      <option key={d} value={d}>
+                        {WEBTOON_DAY_FULL[d]}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    defaultValue={row.genre ?? "STORY"}
+                    className="rounded-lg border border-input bg-background px-2 py-1 text-xs min-w-[120px]"
+                    onChange={(e) => void onChangeGenre(s.id, e.target.value as WebtoonGenre)}
+                    disabled={loading}
+                  >
+                    {WEBTOON_GENRES.map((g) => (
+                      <option key={g} value={g}>
+                        {WEBTOON_GENRE_LABEL[g]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            );
+          })}
         </section>
       )}
 

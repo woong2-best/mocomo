@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-import type { WebtoonPublishDay } from "@prisma/client";
+import type { WebtoonGenre, WebtoonPublishDay } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
@@ -40,9 +40,13 @@ export async function hasWebtoonAccess(): Promise<boolean> {
   return Number.isFinite(until) && until > Date.now();
 }
 
-export async function listWebtoonWeeklyGrid() {
+export async function listWebtoonWeeklyGrid(genre?: WebtoonGenre | null) {
   const series = await db.creatorSeries.findMany({
-    where: { kind: "WEBTOON", publishDay: { not: null } },
+    where: {
+      kind: "WEBTOON",
+      publishDay: { not: null },
+      ...(genre ? { genre } : {}),
+    },
     orderBy: [{ publishDay: "asc" }, { updatedAt: "desc" }],
     include: {
       author: { select: { username: true, name: true } },
@@ -130,11 +134,27 @@ export async function updateWebtoonPublishDay(seriesId: string, publishDay: Webt
   return { success: true as const };
 }
 
+export async function updateWebtoonGenre(seriesId: string, genre: WebtoonGenre) {
+  const user = await requireAuth();
+  const series = await db.creatorSeries.findUnique({ where: { id: seriesId } });
+  if (!series || series.authorId !== user.id || series.kind !== "WEBTOON") {
+    return { error: "웹툰 시리즈를 찾을 수 없습니다." };
+  }
+  await db.creatorSeries.update({
+    where: { id: seriesId },
+    data: { genre, updatedAt: new Date() },
+  });
+  revalidatePath("/webtoon");
+  revalidatePath("/webtoon/studio");
+  return { success: true as const };
+}
+
 export async function createWebtoonSeries(input: {
   title: string;
   description?: string;
   coverUrl: string;
   publishDay: WebtoonPublishDay;
+  genre: WebtoonGenre;
 }) {
   const user = await requireAuth();
   if (!input.title.trim()) return { error: "제목을 입력해 주세요." };
@@ -148,6 +168,7 @@ export async function createWebtoonSeries(input: {
       coverUrl: input.coverUrl.trim(),
       kind: "WEBTOON",
       publishDay: input.publishDay,
+      genre: input.genre,
     },
   });
   revalidatePath("/webtoon");
