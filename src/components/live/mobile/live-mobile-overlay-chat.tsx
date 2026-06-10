@@ -1,20 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Heart, Send } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  relayLiveChatMessage,
-  subscribeLiveChat,
-  useLiveSocket,
-} from "@/hooks/use-live-socket";
-import { ensureArray } from "@/lib/ensure-array";
+import { LiveOverlayCommentFeed } from "@/components/live/live-overlay-comment-feed";
+import { useLiveChatMessages } from "@/hooks/use-live-chat-messages";
+import { useLiveOverlayDisplayQueue } from "@/hooks/use-live-overlay-display-queue";
+import { relayLiveChatMessage } from "@/hooks/use-live-socket";
 import type { LiveChatMessage } from "@/components/live/live-chat";
 import { TipCreatorDialog } from "@/components/support/tip-creator-dialog";
 import type { SupportTierLevel } from "@prisma/client";
 
-/** 인스타 라이브 스타일 — 영상 위 채팅 오버레이 */
+/** 인스타 라이브 스타일 — 영상 위 채팅 오버레이 + 입력 */
 export function LiveMobileOverlayChat({
   channelId,
   onViewerCount,
@@ -39,49 +36,21 @@ export function LiveMobileOverlayChat({
 }) {
   const { data: session } = useSession();
   const userId = session?.user?.id;
-  const username = session?.user?.username ?? session?.user?.name ?? "me";
-  const { socket } = useLiveSocket(userId, channelId);
-  const [messages, setMessages] = useState<LiveChatMessage[]>([]);
+  const { messages, socket, appendMessage } = useLiveChatMessages(
+    channelId,
+    userId,
+    80,
+    onViewerCount
+  );
+  const visible = useLiveOverlayDisplayQueue(messages);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
-  const lastSyncRef = useRef<string>(new Date(0).toISOString());
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  const appendMessage = useCallback((m: LiveChatMessage) => {
-    setMessages((prev) => {
-      const safe = ensureArray<LiveChatMessage>(prev);
-      if (safe.some((x) => x.id === m.id)) return safe;
-      return [...safe, m].slice(-80);
-    });
-  }, []);
+  const feedEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/live/${channelId}/chat?initial=1`, { credentials: "include" })
-      .then(async (res) => {
-        if (cancelled) return;
-        const body = await res.json();
-        if (!res.ok || !body.ok) return;
-        const list = ensureArray<LiveChatMessage>(body.messages);
-        setMessages(list);
-        if (list.length > 0) {
-          lastSyncRef.current = new Date(list[list.length - 1].at).toISOString();
-        }
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [channelId]);
-
-  useEffect(() => {
-    return subscribeLiveChat(socket, appendMessage, (count) => onViewerCount?.(count));
-  }, [socket, appendMessage, onViewerCount]);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (!showMessages) return;
+    feedEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [visible, showMessages]);
 
   async function send() {
     const content = text.trim();
@@ -102,7 +71,6 @@ export function LiveMobileOverlayChat({
       }
       const saved = body.message as LiveChatMessage;
       appendMessage(saved);
-      lastSyncRef.current = new Date(saved.at).toISOString();
       relayLiveChatMessage(socket, channelId, saved);
     } catch {
       setText(content);
@@ -112,28 +80,12 @@ export function LiveMobileOverlayChat({
   }
 
   return (
-    <div className="flex flex-col justify-end min-h-0 pointer-events-none">
-      {showMessages && (
-      <div
-        ref={scrollRef}
-        className="max-h-[38vh] overflow-y-auto overflow-x-hidden px-3 pb-2 space-y-2 mask-fade-top pointer-events-none"
-      >
-        {ensureArray<LiveChatMessage>(messages).map((m) => (
-          <div key={m.id} className="flex items-start gap-2 pointer-events-auto max-w-[92%]">
-            <Avatar className="h-7 w-7 shrink-0 border border-white/20">
-              <AvatarImage src={m.image ?? undefined} />
-              <AvatarFallback className="text-[9px] bg-black/40 text-white">
-                {m.username[0]?.toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <p className="text-sm text-white leading-snug drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-              <span className="font-bold mr-1.5">{m.username}</span>
-              {m.content}
-            </p>
-          </div>
-        ))}
-        <div ref={bottomRef} />
-      </div>
+    <div className="flex flex-col justify-end min-h-0 pointer-events-none w-full">
+      {showMessages && visible.length > 0 && (
+        <div className="px-3 pb-2 max-h-[34vh] overflow-hidden pointer-events-none mask-fade-top">
+          <LiveOverlayCommentFeed messages={visible} avatarSize="sm" />
+          <div ref={feedEndRef} className="h-px w-full shrink-0" aria-hidden />
+        </div>
       )}
 
       {session?.user ? (

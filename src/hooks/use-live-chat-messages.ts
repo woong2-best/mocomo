@@ -9,7 +9,8 @@ import type { LiveChatMessage } from "@/components/live/live-chat";
 export function useLiveChatMessages(
   channelId: string,
   userId: string | undefined,
-  maxKeep = 150
+  maxKeep = 150,
+  onViewerCount?: (n: number) => void
 ) {
   const { socket, connected } = useLiveSocket(userId, channelId);
   const [messages, setMessages] = useState<LiveChatMessage[]>([]);
@@ -58,7 +59,11 @@ export function useLiveChatMessages(
     };
   }, [channelId, maxKeep]);
 
-  useEffect(() => subscribeLiveChat(socket, appendMessage), [socket, appendMessage]);
+  useEffect(() => subscribeLiveChat(socket, appendMessage, onViewerCount), [
+    socket,
+    appendMessage,
+    onViewerCount,
+  ]);
 
   const poll = useCallback(async () => {
     try {
@@ -68,11 +73,14 @@ export function useLiveChatMessages(
       );
       const body = await res.json();
       if (!res.ok || !body.ok) return;
+      if (typeof body.viewerCount === "number") {
+        onViewerCount?.(body.viewerCount);
+      }
       mergeMessages(ensureArray<LiveChatMessage>(body.messages));
     } catch {
       /* ignore */
     }
-  }, [channelId, mergeMessages]);
+  }, [channelId, mergeMessages, onViewerCount]);
 
   useEffect(() => {
     void poll();

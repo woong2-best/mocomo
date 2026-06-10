@@ -43,7 +43,7 @@ export function LiveViewerPlayer({
       {showOverlays && (
         <LiveOverlayLayer pointerEvents="none" className="z-[15]" />
       )}
-      {chatOverlayEnabled && (
+      {showOverlays && chatOverlayEnabled && (
         <LiveVideoChatOverlay channelId={channelId} className="z-[16]" />
       )}
     </div>
