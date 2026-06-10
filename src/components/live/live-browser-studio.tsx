@@ -781,7 +781,7 @@ export function LiveBrowserStudio({
     : "flex flex-col gap-5 w-full";
   const previewClass = immersive
     ? "relative flex-1 min-h-0 overflow-hidden bg-black"
-    : "relative w-full aspect-video max-h-[min(46vh,480px)] rounded-xl overflow-hidden bg-black ring-1 ring-border/50 shadow-sm";
+    : "relative w-full aspect-video rounded-xl overflow-hidden bg-black ring-1 ring-border/50 shadow-sm";
   const controlsWrapClass = immersive
     ? "absolute bottom-0 left-0 right-0 z-30 px-3 pb-[calc(env(safe-area-inset-bottom)+9rem)] pt-6 bg-gradient-to-t from-black/95 via-black/70 to-transparent space-y-2 pointer-events-auto"
     : "flex flex-col gap-3 w-full pb-2";
