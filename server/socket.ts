@@ -4,6 +4,19 @@ import { PrismaClient } from "@prisma/client";
 import { verifySocketAuthToken } from "../src/lib/socket-auth-token";
 import { sanitizeChatAttachments } from "../src/lib/chat-attachments";
 import { notifyChatMessageSocket } from "./chat-notify";
+import {
+  initSketchQuizStore,
+  sketchQuizCreate,
+  sketchQuizJoin,
+  sketchQuizLeave,
+  sketchQuizStart,
+  sketchQuizStroke,
+  sketchQuizClear,
+  sketchQuizGuess,
+  sketchQuizUpdateSocket,
+  sketchQuizReplayWord,
+} from "./sketch-quiz-store";
+import { isValidRoomCode } from "../src/lib/sketch-quiz-words";
 
 const prisma = new PrismaClient();
 const PORT = parseInt(process.env.PORT || process.env.SOCKET_PORT || "3001", 10);
@@ -179,6 +192,8 @@ const io = new Server(httpServer, {
     credentials: true,
   },
 });
+
+initSketchQuizStore(io);
 
 /** 채널별 영상 위 채팅 오버레이 표시 여부 */
 const liveChatOverlayByChannel = new Map<string, boolean>();
@@ -542,6 +557,88 @@ io.on("connection", (socket: AuthedSocket) => {
     if (!data.callId || !data.peerId || data.peerId === userId) return;
     io.to(`user:${data.peerId}`).emit("call_ended", { callId: data.callId });
   });
+
+  socket.on(
+    "sketch_quiz_create",
+    (data: { roomId?: string; username?: string }, ack?: (r: unknown) => void) => {
+      const roomId = data.roomId?.trim().toUpperCase();
+      const username = data.username?.trim().slice(0, 32) || "플레이어";
+      if (!roomId || !isValidRoomCode(roomId)) {
+        ack?.({ ok: false, error: "유효하지 않은 방 코드입니다." });
+        return;
+      }
+      const result = sketchQuizCreate(roomId, userId, username, socket.id);
+      if (!result.ok) {
+        ack?.(result);
+        return;
+      }
+      socket.join(`sketch:${roomId}`);
+      ack?.({ ok: true, state: result.state });
+      io.to(`sketch:${roomId}`).emit("sketch_quiz_state", result.state);
+    }
+  );
+
+  socket.on(
+    "sketch_quiz_join",
+    (data: { roomId?: string; username?: string }, ack?: (r: unknown) => void) => {
+      const roomId = data.roomId?.trim().toUpperCase();
+      const username = data.username?.trim().slice(0, 32) || "플레이어";
+      if (!roomId || !isValidRoomCode(roomId)) {
+        ack?.({ ok: false, error: "유효하지 않은 방 코드입니다." });
+        return;
+      }
+      const result = sketchQuizJoin(roomId, userId, username, socket.id);
+      if (!result.ok) {
+        ack?.(result);
+        return;
+      }
+      socket.join(`sketch:${roomId}`);
+      sketchQuizUpdateSocket(roomId, userId, socket.id);
+      ack?.({ ok: true, state: result.state });
+      io.to(`sketch:${roomId}`).emit("sketch_quiz_state", result.state);
+      sketchQuizReplayWord(roomId, userId);
+    }
+  );
+
+  socket.on("sketch_quiz_leave", (roomId: string) => {
+    const id = roomId?.trim().toUpperCase();
+    if (!id) return;
+    socket.leave(`sketch:${id}`);
+    sketchQuizLeave(id, userId);
+  });
+
+  socket.on("sketch_quiz_start", (roomId: string, ack?: (r: unknown) => void) => {
+    const id = roomId?.trim().toUpperCase();
+    if (!id) return;
+    const result = sketchQuizStart(id, userId);
+    ack?.(result);
+  });
+
+  socket.on(
+    "sketch_quiz_stroke",
+    (data: { roomId?: string; stroke?: { id: string; points: { x: number; y: number }[]; color: string; width: number } }) => {
+      const roomId = data.roomId?.trim().toUpperCase();
+      if (!roomId || !data.stroke?.points?.length) return;
+      sketchQuizStroke(roomId, userId, data.stroke);
+    }
+  );
+
+  socket.on("sketch_quiz_clear", (roomId: string) => {
+    const id = roomId?.trim().toUpperCase();
+    if (!id) return;
+    sketchQuizClear(id, userId);
+  });
+
+  socket.on(
+    "sketch_quiz_guess",
+    (data: { roomId?: string; text?: string; username?: string }) => {
+      const roomId = data.roomId?.trim().toUpperCase();
+      const text = data.text?.trim();
+      const username = data.username?.trim().slice(0, 32) || "플레이어";
+      if (!roomId || !text) return;
+      sketchQuizGuess(roomId, userId, username, text);
+    }
+  );
 
   socket.on("disconnect", () => {
     const wentOffline = setUserOnline(userId, false);
