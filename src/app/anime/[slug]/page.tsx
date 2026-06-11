@@ -175,6 +175,7 @@ export default async function AnimeDetailPage({
               coverUrl={anime.coverUrl}
               synopsis={anime.synopsis}
               worldInfo={anime.worldInfo}
+              infobox={anime.infobox}
               characters={characterNames}
               tags={anime.tags}
               updatedAt={anime.updatedAt}

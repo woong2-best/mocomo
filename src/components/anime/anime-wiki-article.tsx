@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { AnimeGenre } from "@prisma/client";
+import { AnimeWikiInfobox } from "@/components/anime/anime-wiki-infobox";
 import { WikiContent } from "@/components/anime/wiki-content";
 import { getGenreInfo, genreToParam } from "@/lib/anime-genres";
 import { wikiHeadingId } from "@/lib/anime-revision";
@@ -13,6 +14,7 @@ type AnimeWikiArticleProps = {
   coverUrl: string | null;
   synopsis: string | null;
   worldInfo: string | null;
+  infobox: string | null;
   characters: string[];
   tags: string[];
   updatedAt: Date;
@@ -49,6 +51,7 @@ export function AnimeWikiArticle({
   coverUrl,
   synopsis,
   worldInfo,
+  infobox,
   characters,
   tags,
   updatedAt,
@@ -64,7 +67,7 @@ export function AnimeWikiArticle({
 
   return (
     <article className={cn("space-y-6", className)}>
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_240px]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_min(100%,300px)]">
         <div className="space-y-6 min-w-0 order-2 lg:order-1">
           {headings.length > 0 && (
             <nav
@@ -124,7 +127,7 @@ export function AnimeWikiArticle({
           )}
         </div>
 
-        <aside className="order-1 lg:order-2 lg:sticky lg:top-[5rem] lg:self-start">
+        <aside className="order-1 lg:order-2 lg:sticky lg:top-[5rem] lg:self-start space-y-3">
           <div className="rounded-2xl border border-border/70 bg-card/80 overflow-hidden shadow-sm">
             <div className="px-3 py-2 border-b border-border/60 bg-muted/30 text-center">
               <p className="text-xs font-semibold text-muted-foreground">문서 정보</p>
@@ -137,14 +140,14 @@ export function AnimeWikiArticle({
                 {genreInfo.emoji}
               </div>
             )}
-            <dl className="px-3 py-3 space-y-2 text-sm">
+            <dl className="px-3 py-3 space-y-2 text-sm border-b border-border/50">
               <div>
                 <dt className="text-xs text-muted-foreground">제목</dt>
                 <dd className="font-semibold leading-snug">{title}</dd>
                 {titleEn && <dd className="text-xs text-muted-foreground mt-0.5">{titleEn}</dd>}
               </div>
               <div>
-                <dt className="text-xs text-muted-foreground">장르</dt>
+                <dt className="text-xs text-muted-foreground">분류</dt>
                 <dd>
                   <Link
                     href={`/anime/list/${genreToParam(genre)}`}
@@ -166,6 +169,8 @@ export function AnimeWikiArticle({
               </div>
             </dl>
           </div>
+
+          <AnimeWikiInfobox source={infobox} />
         </aside>
       </div>
     </article>

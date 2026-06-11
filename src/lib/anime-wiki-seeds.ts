@@ -1,5 +1,6 @@
 import type { AnimeGenre, PrismaClient } from "@prisma/client";
 import { animeSlugFromTitle, isValidAnimeSlug } from "@/lib/utils";
+import { KABANERI_INFOBOX } from "@/lib/anime-wiki-infobox";
 
 export type AnimeWikiSeed = {
   title: string;
@@ -10,6 +11,7 @@ export type AnimeWikiSeed = {
   bannerUrl?: string;
   synopsis: string;
   worldInfo?: string;
+  infobox?: string;
   characters: string[];
   tags: string[];
   isProtected?: boolean;
@@ -49,6 +51,7 @@ export const ANIME_WIKI_SEEDS: AnimeWikiSeed[] = [
 **카바네리** — 감염됐으나 인간의 의지를 유지하는 존재. 인간과 카바네 양쪽에서 적대받기 쉽다.`,
     characters: ["생驹", "無名(이름 없는)", "美馬", "菖蒲", "来栖"],
     tags: ["액션", "스팀펑크", "좀비", "WIT STUDIO", "오리지널"],
+    infobox: KABANERI_INFOBOX,
   },
   {
     title: "귀멸의 칼날",
@@ -494,13 +497,15 @@ export async function ensureAnimeWikiSeeds(prisma: PrismaClient, creatorId: stri
         !existing.synopsis?.trim() ||
         existing.synopsis.length < 80 ||
         (seed.isProtected && !existing.isProtected);
+      const needsInfobox = !!seed.infobox && !existing.infobox?.trim();
 
-      if (!needsSlugFix && !needsContent) continue;
+      if (!needsSlugFix && !needsContent && !needsInfobox) continue;
 
       await prisma.anime.update({
         where: { id: existing.id },
         data: {
           ...(needsSlugFix ? { slug: await uniqueSlug(prisma, slug, existing.id) } : {}),
+          ...(needsInfobox ? { infobox: seed.infobox } : {}),
           ...(needsContent
             ? {
                 titleEn: existing.titleEn ?? seed.titleEn,
@@ -530,6 +535,7 @@ export async function ensureAnimeWikiSeeds(prisma: PrismaClient, creatorId: stri
         studio: seed.studio,
         synopsis: seed.synopsis,
         worldInfo: seed.worldInfo ?? null,
+        infobox: seed.infobox ?? null,
         coverUrl: seed.coverUrl ?? null,
         bannerUrl: seed.bannerUrl ?? null,
         characters,

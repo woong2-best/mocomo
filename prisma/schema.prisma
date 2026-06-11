@@ -1380,6 +1380,7 @@ model Anime {
   characters  Json?
   voiceActors Json?
   worldInfo   String?  @db.Text
+  infobox     String?  @db.Text
   airedFrom   DateTime?
   tags        String[]
   followerCount Int    @default(0)

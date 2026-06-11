@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { wikiHeadingId, wikiLinkSlug } from "@/lib/anime-revision";
+import { wikiHeadingId } from "@/lib/anime-revision";
+import { WikiInline } from "@/components/anime/wiki-inline";
 
 type FootnoteMap = Map<string, string>;
 
@@ -21,53 +21,7 @@ function parseFootnotes(source: string): { body: string; notes: FootnoteMap } {
 }
 
 function renderInline(text: string, notes: FootnoteMap, keyPrefix: string) {
-  const parts: React.ReactNode[] = [];
-  const re =
-    /(\[\[(?:[^\]|]+\|)?([^\]|]+)\]\]|\[\^(\d+)\]|!\[([^\]]*)\]\(([^)]+)\)|\*\*([^*]+)\*\*)/g;
-  let last = 0;
-  let i = 0;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(text)) !== null) {
-    if (m.index > last) parts.push(text.slice(last, m.index));
-    if (m[0].startsWith("[[")) {
-      const label = m[0].includes("|") ? m[0].slice(2, m[0].indexOf("|")) : m[2];
-      const target = m[2].trim();
-      parts.push(
-        <Link
-          key={`${keyPrefix}-wl-${i++}`}
-          href={`/anime/${wikiLinkSlug(target)}`}
-          className="text-primary font-medium hover:underline"
-        >
-          {label.trim()}
-        </Link>
-      );
-    } else if (m[3]) {
-      const id = m[3];
-      parts.push(
-        <sup key={`${keyPrefix}-fn-${i++}`} className="text-primary">
-          <a href={`#wiki-fn-${id}`} id={`wiki-fn-ref-${id}`} className="hover:underline">
-            [{id}]
-          </a>
-        </sup>
-      );
-    } else if (m[4] !== undefined && m[5]) {
-      parts.push(
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          key={`${keyPrefix}-img-${i++}`}
-          src={m[5]}
-          alt={m[4]}
-          className="rounded-lg max-w-full my-2 border border-border/60"
-          loading="lazy"
-        />
-      );
-    } else if (m[6]) {
-      parts.push(<strong key={`${keyPrefix}-b-${i++}`}>{m[6]}</strong>);
-    }
-    last = m.index + m[0].length;
-  }
-  if (last < text.length) parts.push(text.slice(last));
-  return parts.length ? parts : text;
+  return <WikiInline text={text} notes={notes} keyPrefix={keyPrefix} />;
 }
 
 function YoutubeEmbed({ id }: { id: string }) {
@@ -225,4 +179,4 @@ export function WikiContent({
 }
 
 export const WIKI_EDITOR_HELP =
-  "[[글 제목]] · [[표시|링크]] · [youtube:ID] · ![설명](URL) · | 표 | · {{collapse|제목|내용}} · [^1] 각주";
+  "[[글 제목]] · [텍스트](URL) · {{뱃지}} · [youtube:ID] · ![설명](URL) · | 표 | · {{collapse|제목|내용}} · [^1] 각주";

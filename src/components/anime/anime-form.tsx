@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createAnime, updateAnime } from "@/actions/anime";
+import { AnimeInfoboxField } from "@/components/anime/anime-infobox-field";
 import { AnimeWikiField } from "@/components/anime/anime-wiki-field";
 import { AnimeImageUrlField } from "@/components/anime/anime-image-url-field";
 import { ANIME_GENRES } from "@/lib/anime-genres";
@@ -18,6 +19,7 @@ type AnimeFormData = {
   synopsis?: string | null;
   studio?: string | null;
   worldInfo?: string | null;
+  infobox?: string | null;
   coverUrl?: string | null;
   bannerUrl?: string | null;
   characters?: unknown;
@@ -58,6 +60,7 @@ export function AnimeForm({
       synopsis: (form.get("synopsis") as string) || undefined,
       studio: (form.get("studio") as string) || undefined,
       worldInfo: (form.get("worldInfo") as string) || undefined,
+      infobox: (form.get("infobox") as string) || undefined,
       coverUrl: (form.get("coverUrl") as string) || undefined,
       bannerUrl: (form.get("bannerUrl") as string) || undefined,
       charactersText: (form.get("charactersText") as string) || undefined,
@@ -80,7 +83,7 @@ export function AnimeForm({
   }
 
   return (
-    <Card className="rounded-2xl shadow-md max-w-2xl mx-auto">
+    <Card className="rounded-2xl shadow-md max-w-3xl mx-auto">
       <CardHeader>
         <CardTitle>{mode === "create" ? "새 애니 글" : "글 편집"}</CardTitle>
         <p className="text-sm text-muted-foreground">
@@ -132,6 +135,11 @@ export function AnimeForm({
             <label className="text-sm font-medium">제작사</label>
             <Input name="studio" defaultValue={initial?.studio ?? ""} className="mt-1 rounded-xl" />
           </div>
+          <AnimeInfoboxField
+            name="infobox"
+            label="작품 정보표 (나무위키 스타일)"
+            defaultValue={initial?.infobox ?? ""}
+          />
           <AnimeWikiField
             name="synopsis"
             label="줄거리 / 설명"

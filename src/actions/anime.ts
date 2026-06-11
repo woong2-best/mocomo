@@ -15,6 +15,7 @@ const animeSchema = z.object({
   synopsis: z.string().optional(),
   studio: z.string().optional(),
   worldInfo: z.string().optional(),
+  infobox: z.string().optional(),
   coverUrl: z.string().url().optional().or(z.literal("")),
   bannerUrl: z.string().url().optional().or(z.literal("")),
   charactersText: z.string().optional(),
@@ -67,6 +68,7 @@ function snapshotToUpdateData(snapshot: AnimeRevisionSnapshot) {
     synopsis: snapshot.synopsis,
     studio: snapshot.studio,
     worldInfo: snapshot.worldInfo,
+    infobox: snapshot.infobox,
     coverUrl: snapshot.coverUrl,
     bannerUrl: snapshot.bannerUrl,
     characters: snapshot.characters ?? undefined,
@@ -79,7 +81,7 @@ export async function createAnime(data: z.infer<typeof animeSchema>) {
   const parsed = animeSchema.safeParse(data);
   if (!parsed.success) return { error: "입력값을 확인해주세요." };
 
-  const { title, titleEn, genre, synopsis, studio, worldInfo, coverUrl, bannerUrl, charactersText, tags } =
+  const { title, titleEn, genre, synopsis, studio, worldInfo, infobox, coverUrl, bannerUrl, charactersText, tags } =
     parsed.data;
 
   let slug = animeSlugFromTitle(title, titleEn);
@@ -103,6 +105,7 @@ export async function createAnime(data: z.infer<typeof animeSchema>) {
       synopsis: synopsis || null,
       studio: studio || null,
       worldInfo: worldInfo || null,
+      infobox: infobox || null,
       coverUrl: coverUrl || null,
       bannerUrl: bannerUrl || null,
       characters: parseCharacters(charactersText),
@@ -132,7 +135,7 @@ export async function updateAnime(
     return { error: "보호된 문서는 운영진만 편집할 수 있습니다." };
   }
 
-  const { title, titleEn, genre, synopsis, studio, worldInfo, coverUrl, bannerUrl, charactersText, tags, editSummary } =
+  const { title, titleEn, genre, synopsis, studio, worldInfo, infobox, coverUrl, bannerUrl, charactersText, tags, editSummary } =
     parsed.data;
 
   await saveAnimeRevision(existing.id, user.id, animeToSnapshot(existing), editSummary);
@@ -151,6 +154,7 @@ export async function updateAnime(
       synopsis: synopsis || null,
       studio: studio || null,
       worldInfo: worldInfo || null,
+      infobox: infobox || null,
       coverUrl: coverUrl || null,
       bannerUrl: bannerUrl || null,
       characters: parseCharacters(charactersText),

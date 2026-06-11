@@ -1110,3 +1110,5 @@ END $$;
 -- 앱 배포 시 ensureAnimeWikiCatalog / repairBrokenAnimeSlugs 가 자동 처리합니다.
 -- 수동 확인: SELECT id, slug, title, "titleEn" FROM "Anime" WHERE slug = '' OR slug !~ '^[a-zA-Z0-9-]{2,}$';
 -- =============================================================================
+
+ALTER TABLE "Anime" ADD COLUMN IF NOT EXISTS "infobox" TEXT;

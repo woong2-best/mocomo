@@ -7,6 +7,7 @@ export type AnimeRevisionSnapshot = {
   synopsis: string | null;
   studio: string | null;
   worldInfo: string | null;
+  infobox: string | null;
   coverUrl: string | null;
   bannerUrl: string | null;
   characters: unknown;
@@ -20,6 +21,7 @@ export function animeToSnapshot(anime: {
   synopsis: string | null;
   studio: string | null;
   worldInfo: string | null;
+  infobox: string | null;
   coverUrl: string | null;
   bannerUrl: string | null;
   characters: unknown;
@@ -32,6 +34,7 @@ export function animeToSnapshot(anime: {
     synopsis: anime.synopsis,
     studio: anime.studio,
     worldInfo: anime.worldInfo,
+    infobox: anime.infobox,
     coverUrl: anime.coverUrl,
     bannerUrl: anime.bannerUrl,
     characters: anime.characters,
