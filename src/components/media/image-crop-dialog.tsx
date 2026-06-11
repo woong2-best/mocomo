@@ -193,7 +193,7 @@ export function ImageCropDialog({
             onZoomChange={setZoom}
             onRotationChange={setRotation}
             onCropComplete={onCropComplete}
-            objectFit="auto-cover"
+            objectFit="cover"
             restrictPosition
             minZoom={1}
             maxZoom={6}
