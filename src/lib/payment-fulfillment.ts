@@ -45,7 +45,14 @@ async function fulfillTip(
   const sellerAmount = amount - platformFee;
 
   await db.tip.create({
-    data: { senderId, receiverId, amount, message: message || null, platformFee },
+    data: {
+      senderId,
+      receiverId,
+      amount,
+      message: message || null,
+      platformFee,
+      channelId: channelId?.trim() || null,
+    },
   });
 
   await recordPlatformFee(platformFee, {

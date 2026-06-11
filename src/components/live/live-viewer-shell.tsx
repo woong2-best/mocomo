@@ -6,6 +6,7 @@ import { LiveStudioHeader } from "@/components/live/live-studio-header";
 import { LiveMobilePortraitViewer } from "@/components/live/mobile/live-mobile-portrait-viewer";
 import { useLiveMobilePortrait } from "@/hooks/use-live-mobile-portrait";
 import type { LiveBroadcastMode, LiveStreamCategory, SupportTierLevel } from "@prisma/client";
+import { LiveDonationAlertOverlay, type LiveTipAlert } from "@/components/live/live-donation-alert-overlay";
 
 export function LiveViewerShell({
   channelId,
@@ -28,6 +29,7 @@ export function LiveViewerShell({
   broadcastMode,
   isLiveOnAir,
   hostImage,
+  recentTips = [],
 }: {
   channelId: string;
   channelName: string;
@@ -49,6 +51,7 @@ export function LiveViewerShell({
   hostFollowing?: boolean;
   broadcastMode?: LiveBroadcastMode | null;
   isLiveOnAir?: boolean;
+  recentTips?: LiveTipAlert[];
 }) {
   const mobilePortrait = useLiveMobilePortrait();
 
@@ -70,6 +73,7 @@ export function LiveViewerShell({
         hostFollowing={hostFollowing}
         broadcastMode={broadcastMode}
         isLiveOnAir={isLiveOnAir}
+        recentTips={recentTips}
       />
     );
   }
@@ -104,6 +108,7 @@ export function LiveViewerShell({
             broadcastMode={broadcastMode}
             isLiveOnAir={isLiveOnAir}
           />
+          <LiveDonationAlertOverlay tips={recentTips} />
         </div>
         <div className="xl:sticky xl:top-16 min-h-[min(70vh,560px)]">
           <LiveChat

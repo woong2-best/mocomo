@@ -18,6 +18,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
+import { LiveDonationAlertOverlay, type LiveTipAlert } from "@/components/live/live-donation-alert-overlay";
 
 /** 호스트 스튜디오 — 브라우저 송출 + 채팅 + 설정 */
 export function LiveHostStudioShell({
@@ -30,6 +31,7 @@ export function LiveHostStudioShell({
   slowModeSeconds,
   chatBannedWords,
   collabPassword,
+  recentTips = [],
 }: {
   channelId: string;
   channelName: string;
@@ -49,6 +51,7 @@ export function LiveHostStudioShell({
   chatBannedWords?: string[];
   paymentsEnabled?: boolean;
   collabPassword?: string | null;
+  recentTips?: LiveTipAlert[];
 }) {
   const mobilePortrait = useLiveMobilePortrait();
   const collab = useLiveCollabState(channelId);
@@ -67,6 +70,7 @@ export function LiveHostStudioShell({
         slowModeSeconds={slowModeSeconds}
         chatBannedWords={chatBannedWords}
         collabPassword={collabPassword}
+        recentTips={recentTips}
       />
     );
   }
@@ -120,7 +124,7 @@ export function LiveHostStudioShell({
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-4 lg:gap-6 mt-3 items-start">
-        <div className="min-w-0 w-full">
+        <div className="min-w-0 w-full relative">
           <LiveBrowserStudio
             channelId={channelId}
             channelName={channelName}
@@ -132,6 +136,7 @@ export function LiveHostStudioShell({
                 : undefined
             }
           />
+          <LiveDonationAlertOverlay tips={recentTips} />
         </div>
         <div className="min-h-[360px] lg:sticky lg:top-[3.25rem] lg:max-h-[calc(100vh-5rem)] border border-border/60 rounded-xl overflow-hidden bg-card/30">
           <LiveChat

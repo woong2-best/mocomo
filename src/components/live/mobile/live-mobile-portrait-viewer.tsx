@@ -11,6 +11,7 @@ import { LiveMobileOverlayChat } from "@/components/live/mobile/live-mobile-over
 import { LiveOverlayLayer } from "@/components/live/overlays/live-overlay-layer";
 import { useLiveChat } from "@/components/live/live-chat-provider";
 import type { LiveBroadcastMode, LiveStreamCategory, SupportTierLevel } from "@prisma/client";
+import { LiveDonationAlertOverlay, type LiveTipAlert } from "@/components/live/live-donation-alert-overlay";
 
 export type LiveMobilePortraitViewerProps = {
   channelId: string;
@@ -28,6 +29,7 @@ export type LiveMobilePortraitViewerProps = {
   hostFollowing?: boolean;
   broadcastMode?: LiveBroadcastMode | null;
   isLiveOnAir?: boolean;
+  recentTips?: LiveTipAlert[];
 };
 
 /** 시청자 — 모바일 세로 인스타 라이브 UI (데스크탑과 분리) */
@@ -46,6 +48,7 @@ export function LiveMobilePortraitViewer({
   hostFollowing,
   broadcastMode,
   isLiveOnAir,
+  recentTips = [],
 }: LiveMobilePortraitViewerProps) {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
@@ -76,6 +79,8 @@ export function LiveMobilePortraitViewer({
       </div>
 
       <LiveOverlayLayer pointerEvents="none" className="z-[22]" />
+
+      <LiveDonationAlertOverlay tips={recentTips} />
 
       <div className="absolute inset-0 z-[10] bg-gradient-to-b from-black/55 via-transparent to-black/70 pointer-events-none" />
 

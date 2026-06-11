@@ -5,7 +5,7 @@ import { getCachedLiveTipsForChannel } from "@/lib/cached-live-tips";
 import { db } from "@/lib/db";
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ channelId: string }> }
 ) {
   const session = await auth();
@@ -27,7 +27,11 @@ export async function GET(
     return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   }
 
-  const since = new Date(Date.now() - 120_000);
+  const sinceParam = req.nextUrl.searchParams.get("since");
+  const sinceMs = sinceParam ? Number(sinceParam) : NaN;
+  const sinceDate = Number.isFinite(sinceMs)
+    ? new Date(sinceMs)
+    : new Date(Date.now() - 120_000);
 
   const [{ tipTotalKrw, tipRanking }, recentRows] = await Promise.all([
     getCachedLiveTipsForChannel(channel.createdBy, channel.createdAt),
@@ -35,15 +39,17 @@ export async function GET(
       .findMany({
         where: {
           receiverId: channel.createdBy,
-          createdAt: { gt: since },
+          createdAt: { gt: sinceDate },
+          OR: [{ channelId }, { channelId: null, createdAt: { gte: channel.createdAt } }],
         },
-        orderBy: { createdAt: "desc" },
-        take: 5,
+        orderBy: { createdAt: "asc" },
+        take: 8,
         select: {
           id: true,
           amount: true,
           message: true,
           createdAt: true,
+          channelId: true,
           sender: { select: { username: true } },
         },
       })
@@ -63,5 +69,6 @@ export async function GET(
     tipTotalKrw,
     tipRanking,
     recentTips,
+    serverTime: Date.now(),
   });
 }

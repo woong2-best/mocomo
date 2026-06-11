@@ -895,12 +895,14 @@ model Tip {
   amount     Int
   message    String?
   platformFee Int
+  channelId  String?
   createdAt  DateTime @default(now())
   sender   User @relation("TipSender", fields: [senderId], references: [id])
   receiver User @relation("TipReceiver", fields: [receiverId], references: [id])
 
   @@index([receiverId, createdAt(sort: Desc)])
   @@index([receiverId, senderId])
+  @@index([channelId, createdAt(sort: Desc)])
 }
 
 model Subscription {

@@ -18,7 +18,7 @@ import { useLiveMobilePortrait } from "@/hooks/use-live-mobile-portrait";
 import { LiveStudioErrorBoundary } from "@/components/live/live-studio-error-boundary";
 import { LiveStudioStatsSync } from "@/components/live/live-studio-stats-sync";
 import { LiveHostPresenceSync } from "@/components/live/live-host-presence-sync";
-import { LiveTipAlerts, type LiveTipAlert } from "@/components/live/live-tip-alerts";
+import { LiveDonationAlertOverlay, type LiveTipAlert } from "@/components/live/live-donation-alert-overlay";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { KeyRound, Loader2, Users } from "lucide-react";
@@ -102,7 +102,7 @@ export function LiveRoomClient({
         setRecentTips((prev) => {
           const ids = new Set(prev.map((t) => t.id));
           const fresh = data.recentTips.filter((t) => !ids.has(t.id));
-          return fresh.length ? [...fresh, ...prev].slice(0, 5) : prev;
+          return fresh.length ? [...fresh, ...prev].slice(0, 30) : prev;
         });
       }
     },
@@ -196,6 +196,7 @@ export function LiveRoomClient({
     hostFollowing,
     isLiveOnAir,
     collabPassword: storedPassword,
+    recentTips,
   };
 
   const overlayProviderProps = {
@@ -239,7 +240,6 @@ export function LiveRoomClient({
     <div className={isHost ? "relative" : "space-y-4 relative"}>
       <LiveStudioStatsSync channelId={channelId} onStats={handleStats} />
       {isHost && joined && <LiveHostPresenceSync channelId={channelId} enabled />}
-      {!mobilePortrait && !isHost && <LiveTipAlerts tips={recentTips} />}
       {!mobilePortrait && !isHost && viewerJoinError && (
         <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
           {viewerJoinError}

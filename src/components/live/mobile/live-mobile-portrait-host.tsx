@@ -16,6 +16,7 @@ import { LiveMobileOverlayChat } from "@/components/live/mobile/live-mobile-over
 import { useLiveChat } from "@/components/live/live-chat-provider";
 import { ensureStringArray } from "@/lib/ensure-array";
 import type { LiveStreamCategory } from "@prisma/client";
+import { LiveDonationAlertOverlay, type LiveTipAlert } from "@/components/live/live-donation-alert-overlay";
 
 export type LiveMobilePortraitHostProps = {
   channelId: string;
@@ -27,6 +28,7 @@ export type LiveMobilePortraitHostProps = {
   slowModeSeconds?: number;
   chatBannedWords?: string[];
   collabPassword?: string | null;
+  recentTips?: LiveTipAlert[];
 };
 
 /** 호스트 — 모바일 세로 인스타 라이브 UI (데스크탑과 분리) */
@@ -39,6 +41,7 @@ export function LiveMobilePortraitHost({
   slowModeSeconds,
   chatBannedWords,
   collabPassword,
+  recentTips = [],
 }: LiveMobilePortraitHostProps) {
   const { chatOverlayEnabled } = useLiveChat();
 
@@ -55,6 +58,8 @@ export function LiveMobilePortraitHost({
       </div>
 
       <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/75 pointer-events-none z-10" />
+
+      <LiveDonationAlertOverlay tips={recentTips} />
 
       <header className="absolute top-0 left-0 right-0 z-20 flex items-center gap-2 px-3 pt-safe pb-2 pointer-events-auto">
         <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-gradient-to-r from-pink-500 to-orange-500">

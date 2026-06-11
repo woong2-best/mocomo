@@ -1112,3 +1112,6 @@ END $$;
 -- =============================================================================
 
 ALTER TABLE "Anime" ADD COLUMN IF NOT EXISTS "infobox" TEXT;
+
+ALTER TABLE "Tip" ADD COLUMN IF NOT EXISTS "channelId" TEXT;
+CREATE INDEX IF NOT EXISTS "Tip_channelId_createdAt_idx" ON "Tip"("channelId", "createdAt" DESC);

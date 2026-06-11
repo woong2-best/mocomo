@@ -6,6 +6,7 @@ import { LiveCollabPublishStudio } from "@/components/live/live-collab-publish-s
 import { LiveStudioHeader } from "@/components/live/live-studio-header";
 import { useLiveMobilePortrait } from "@/hooks/use-live-mobile-portrait";
 import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
+import { LiveDonationAlertOverlay, type LiveTipAlert } from "@/components/live/live-donation-alert-overlay";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { leaveLiveStream } from "@/actions/live-stream";
@@ -29,6 +30,7 @@ export function LiveCollabStudioShell({
   chatBannedWords,
   paymentsEnabled,
   hostFollowing,
+  recentTips = [],
 }: {
   channelId: string;
   channelName: string;
@@ -47,6 +49,7 @@ export function LiveCollabStudioShell({
   chatBannedWords?: string[];
   paymentsEnabled?: boolean;
   hostFollowing?: boolean;
+  recentTips?: LiveTipAlert[];
 }) {
   const router = useRouter();
   const mobilePortrait = useLiveMobilePortrait();
@@ -105,8 +108,9 @@ export function LiveCollabStudioShell({
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-4 mt-3 items-start">
-        <div className="min-w-0 space-y-4">
+        <div className="min-w-0 space-y-4 relative">
           <LiveCollabPublishStudio channelId={channelId} />
+          <LiveDonationAlertOverlay tips={recentTips} />
         </div>
         <div className="min-h-[360px] lg:sticky lg:top-[3.25rem] lg:max-h-[calc(100vh-5rem)] border border-border/60 rounded-xl overflow-hidden bg-card/30">
           <LiveChat
