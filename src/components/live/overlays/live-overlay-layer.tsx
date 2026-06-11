@@ -3,6 +3,7 @@
 import { useLiveOverlayContextOptional } from "@/components/live/overlays/live-overlay-context";
 import { LiveOverlayWidgetFrame } from "@/components/live/overlays/live-overlay-widget-frame";
 import {
+  ChosungOverlayWidget,
   LotteryOverlayWidget,
   QuizOverlayWidget,
   TextOverlayWidget,
@@ -10,6 +11,7 @@ import {
   WordGuessOverlayWidget,
 } from "@/components/live/overlays/live-overlay-widgets";
 import type {
+  LiveOverlayChosungQuizProps,
   LiveOverlayLotteryProps,
   LiveOverlayQuizProps,
   LiveOverlayTextProps,
@@ -67,6 +69,9 @@ export function LiveOverlayLayer({
           )}
           {widget.type === "wordGuess" && (
             <WordGuessOverlayWidget props={widget.props as LiveOverlayWordGuessProps} />
+          )}
+          {widget.type === "chosungQuiz" && (
+            <ChosungOverlayWidget props={widget.props as LiveOverlayChosungQuizProps} />
           )}
         </LiveOverlayWidgetFrame>
       ))}

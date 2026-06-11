@@ -1,4 +1,5 @@
 import type {
+  LiveOverlayChosungQuizProps,
   LiveOverlayLotteryProps,
   LiveOverlayQuizProps,
   LiveOverlayState,
@@ -8,6 +9,7 @@ import type {
   LiveOverlayWidget,
   LiveOverlayWidgetType,
 } from "@/lib/live-overlays/types";
+import { toChosung } from "@/lib/live-overlays/chosung";
 import { createDefaultWheelProps } from "@/lib/live-overlays/wheel-theme";
 
 export function emptyOverlayState(): LiveOverlayState {
@@ -88,6 +90,20 @@ const defaultProps: Record<LiveOverlayWidgetType, LiveOverlayWidget["props"]> = 
     winner: null,
     recentGuesses: [],
   } satisfies LiveOverlayWordGuessProps,
+  chosungQuiz: {
+    title: "초성 퀴즈",
+    category: "애니",
+    answer: "원피스",
+    chosung: toChosung("원피스"),
+    hint: "",
+    phase: "idle",
+    timeLeft: 0,
+    durationSec: 40,
+    winner: null,
+    points: 10,
+    scores: [],
+    recentGuesses: [],
+  } satisfies LiveOverlayChosungQuizProps,
 };
 
 const defaultLayout: Record<
@@ -99,6 +115,7 @@ const defaultLayout: Record<
   lottery: { x: 8, y: 8, w: 48, h: 42 },
   quiz: { x: 8, y: 12, w: 52, h: 40 },
   wordGuess: { x: 8, y: 12, w: 48, h: 34 },
+  chosungQuiz: { x: 8, y: 12, w: 52, h: 38 },
 };
 
 export function createOverlayWidget(type: LiveOverlayWidgetType, z: number): LiveOverlayWidget {

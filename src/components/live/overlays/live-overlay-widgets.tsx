@@ -1,6 +1,7 @@
 "use client";
 
 import type {
+  LiveOverlayChosungQuizProps,
   LiveOverlayLotteryProps,
   LiveOverlayQuizProps,
   LiveOverlayTextProps,
@@ -10,6 +11,7 @@ import type {
 import { LiveOverlayWheel } from "@/components/live/overlays/live-overlay-wheel";
 import { LiveOverlayQuiz } from "@/components/live/overlays/live-overlay-quiz";
 import { LiveOverlayWordGuess } from "@/components/live/overlays/live-overlay-word-guess";
+import { LiveOverlayChosungQuiz } from "@/components/live/overlays/live-overlay-chosung-quiz";
 
 export function TextOverlayWidget({ props }: { props: LiveOverlayTextProps }) {
   return (
@@ -77,4 +79,8 @@ export function QuizOverlayWidget({ props }: { props: LiveOverlayQuizProps }) {
 
 export function WordGuessOverlayWidget({ props }: { props: LiveOverlayWordGuessProps }) {
   return <LiveOverlayWordGuess props={props} />;
+}
+
+export function ChosungOverlayWidget({ props }: { props: LiveOverlayChosungQuizProps }) {
+  return <LiveOverlayChosungQuiz props={props} />;
 }

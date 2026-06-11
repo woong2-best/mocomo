@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useLiveChatOptional } from "@/components/live/live-chat-provider";
 import { useLiveOverlayContextOptional } from "@/components/live/overlays/live-overlay-context";
 import type {
+  LiveOverlayChosungQuizProps,
   LiveOverlayQuizProps,
   LiveOverlayWordGuessProps,
 } from "@/lib/live-overlays/types";
@@ -54,6 +55,16 @@ export function LiveOverlayGamesBridge() {
             update(w.id, { ...props, timeLeft: next });
           }
         }
+        if (w.type === "chosungQuiz") {
+          const props = w.props as LiveOverlayChosungQuizProps;
+          if (props.phase !== "active" || props.timeLeft <= 0) continue;
+          const next = props.timeLeft - 1;
+          if (next <= 0) {
+            update(w.id, { ...props, phase: "reveal", timeLeft: 0 });
+          } else {
+            update(w.id, { ...props, timeLeft: next });
+          }
+        }
       }
     }, 1000);
 
@@ -74,8 +85,11 @@ export function LiveOverlayGamesBridge() {
     const activeWord = widgets.find(
       (w) => w.type === "wordGuess" && (w.props as LiveOverlayWordGuessProps).phase === "active"
     );
+    const activeChosung = widgets.find(
+      (w) => w.type === "chosungQuiz" && (w.props as LiveOverlayChosungQuizProps).phase === "active"
+    );
 
-    if (!activeQuiz && !activeWord) return;
+    if (!activeQuiz && !activeWord && !activeChosung) return;
 
     for (const msg of messages) {
       if (processedIds.current.has(msg.id)) continue;
@@ -130,6 +144,35 @@ export function LiveOverlayGamesBridge() {
           });
         } else {
           update(activeWord.id, { ...props, recentGuesses });
+        }
+        continue;
+      }
+
+      if (activeChosung) {
+        const props = activeChosung.props as LiveOverlayChosungQuizProps;
+        if (props.winner) continue;
+        const correct = isWordGuessCorrect(msg.content, props.answer);
+        const entry = {
+          username: msg.username,
+          text: correct ? props.answer : msg.content.trim().slice(0, 40),
+          correct,
+        };
+        const recentGuesses = [...props.recentGuesses, entry].slice(-12);
+        if (correct) {
+          const scores = [...props.scores];
+          const idx = scores.findIndex((s) => s.username === msg.username);
+          if (idx >= 0) scores[idx] = { username: msg.username, score: scores[idx].score + props.points };
+          else scores.push({ username: msg.username, score: props.points });
+          update(activeChosung.id, {
+            ...props,
+            scores,
+            winner: msg.username,
+            recentGuesses,
+            phase: "reveal",
+            timeLeft: 0,
+          });
+        } else {
+          update(activeChosung.id, { ...props, recentGuesses });
         }
       }
     }

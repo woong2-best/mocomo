@@ -1,16 +1,18 @@
 "use client";
 
-import { CircleDot, Gift, Type, RotateCw, Sparkles, HelpCircle, MessageSquareText } from "lucide-react";
+import { CircleDot, Gift, Type, RotateCw, Sparkles, HelpCircle, MessageSquareText, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLiveOverlayContextOptional } from "@/components/live/overlays/live-overlay-context";
 import type {
+  LiveOverlayChosungQuizProps,
   LiveOverlayLotteryProps,
   LiveOverlayQuizProps,
   LiveOverlayTextProps,
   LiveOverlayWheelProps,
   LiveOverlayWordGuessProps,
 } from "@/lib/live-overlays/types";
+import { toChosung } from "@/lib/live-overlays/chosung";
 
 export function LiveOverlayToolbar({ compact = false }: { compact?: boolean }) {
   const ctx = useLiveOverlayContextOptional();
@@ -33,6 +35,10 @@ export function LiveOverlayToolbar({ compact = false }: { compact?: boolean }) {
     startWordGuess,
     revealWordGuess,
     resetWordGuessRound,
+    startChosungQuiz,
+    revealChosungQuiz,
+    resetChosungQuizRound,
+    clearChosungQuizScores,
   } = ctx;
 
   const selected = state.widgets.find((w) => w.id === selectedId);
@@ -52,6 +58,10 @@ export function LiveOverlayToolbar({ compact = false }: { compact?: boolean }) {
         <Button type="button" size="sm" variant={compact ? "secondary" : "outline"} className="rounded-lg h-8 gap-1" onClick={() => addWidget("quiz")}>
           <HelpCircle className="h-3.5 w-3.5" />
           퀴즈
+        </Button>
+        <Button type="button" size="sm" variant={compact ? "secondary" : "outline"} className="rounded-lg h-8 gap-1" onClick={() => addWidget("chosungQuiz")}>
+          <Languages className="h-3.5 w-3.5" />
+          초성 퀴즈
         </Button>
         <Button type="button" size="sm" variant={compact ? "secondary" : "outline"} className="rounded-lg h-8 gap-1" onClick={() => addWidget("wordGuess")}>
           <MessageSquareText className="h-3.5 w-3.5" />
@@ -124,6 +134,17 @@ export function LiveOverlayToolbar({ compact = false }: { compact?: boolean }) {
               onStart={() => startWordGuess(selected.id)}
               onReveal={() => revealWordGuess(selected.id)}
               onReset={() => resetWordGuessRound(selected.id)}
+            />
+          )}
+          {selected.type === "chosungQuiz" && (
+            <ChosungQuizEditor
+              props={selected.props as LiveOverlayChosungQuizProps}
+              compact={compact}
+              onChange={(props) => updateWidgetProps(selected.id, props)}
+              onStart={() => startChosungQuiz(selected.id)}
+              onReveal={() => revealChosungQuiz(selected.id)}
+              onReset={() => resetChosungQuizRound(selected.id)}
+              onClearScores={() => clearChosungQuizScores(selected.id)}
             />
           )}
 
@@ -280,6 +301,85 @@ function WordGuessEditor({
         </Button>
       </div>
       <p className="text-[10px] opacity-70">시청자: 채팅으로 정답 입력</p>
+    </div>
+  );
+}
+
+function ChosungQuizEditor({
+  props,
+  compact,
+  onChange,
+  onStart,
+  onReveal,
+  onReset,
+  onClearScores,
+}: {
+  props: LiveOverlayChosungQuizProps;
+  compact: boolean;
+  onChange: (p: LiveOverlayChosungQuizProps) => void;
+  onStart: () => void;
+  onReveal: () => void;
+  onReset: () => void;
+  onClearScores: () => void;
+}) {
+  const inputCls = compact ? "h-8 bg-black/40 border-white/20 text-white" : "h-9";
+
+  return (
+    <div className="space-y-2">
+      <Input value={props.title} onChange={(e) => onChange({ ...props, title: e.target.value })} placeholder="게임 제목" className={inputCls} />
+      <Input value={props.category} onChange={(e) => onChange({ ...props, category: e.target.value })} placeholder="카테고리" className={inputCls} />
+      <Input
+        value={props.answer}
+        onChange={(e) => {
+          const answer = e.target.value;
+          onChange({ ...props, answer, chosung: toChosung(answer) });
+        }}
+        placeholder="정답 (초성 자동 생성)"
+        className={inputCls}
+      />
+      {props.chosung && (
+        <p className="text-center text-lg font-black tracking-widest text-sky-300 py-1">
+          {props.chosung}
+        </p>
+      )}
+      <Input value={props.hint} onChange={(e) => onChange({ ...props, hint: e.target.value })} placeholder="추가 힌트 (선택)" className={inputCls} />
+      <label className="text-[10px] flex items-center gap-2">
+        제한 시간
+        <input
+          type="range"
+          min={15}
+          max={90}
+          value={props.durationSec}
+          onChange={(e) => onChange({ ...props, durationSec: Number(e.target.value) })}
+        />
+        {props.durationSec}초
+      </label>
+      <label className="text-[10px] flex items-center gap-2">
+        정답 점수
+        <input
+          type="number"
+          min={1}
+          max={100}
+          value={props.points}
+          onChange={(e) => onChange({ ...props, points: Number(e.target.value) || 10 })}
+          className="w-14 rounded border px-1"
+        />
+      </label>
+      <div className="flex flex-wrap gap-1.5">
+        <Button type="button" size="sm" className="rounded-lg h-8 flex-1" disabled={props.phase === "active"} onClick={onStart}>
+          시작
+        </Button>
+        <Button type="button" size="sm" variant="secondary" className="rounded-lg h-8 flex-1" onClick={onReveal}>
+          정답 공개
+        </Button>
+        <Button type="button" size="sm" variant="outline" className="rounded-lg h-8 flex-1" onClick={onReset}>
+          대기
+        </Button>
+        <Button type="button" size="sm" variant="outline" className="rounded-lg h-8 flex-1" onClick={onClearScores}>
+          점수 초기화
+        </Button>
+      </div>
+      <p className="text-[10px] opacity-70">시청자: 초성을 보고 채팅으로 정답 단어 입력</p>
     </div>
   );
 }

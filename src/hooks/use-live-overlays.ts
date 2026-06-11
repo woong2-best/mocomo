@@ -358,6 +358,62 @@ export function useLiveOverlays(
     [isHost, updateWidgetProps]
   );
 
+  const startChosungQuiz = useCallback(
+    (id: string) => {
+      if (!isHost) return;
+      const widget = stateRef.current.widgets.find((w) => w.id === id);
+      if (!widget || widget.type !== "chosungQuiz") return;
+      const props = widget.props as import("@/lib/live-overlays/types").LiveOverlayChosungQuizProps;
+      updateWidgetProps(id, {
+        ...props,
+        phase: "active",
+        timeLeft: props.durationSec,
+        winner: null,
+        recentGuesses: [],
+      });
+    },
+    [isHost, updateWidgetProps]
+  );
+
+  const revealChosungQuiz = useCallback(
+    (id: string) => {
+      if (!isHost) return;
+      const widget = stateRef.current.widgets.find((w) => w.id === id);
+      if (!widget || widget.type !== "chosungQuiz") return;
+      const props = widget.props as import("@/lib/live-overlays/types").LiveOverlayChosungQuizProps;
+      updateWidgetProps(id, { ...props, phase: "reveal", timeLeft: 0 });
+    },
+    [isHost, updateWidgetProps]
+  );
+
+  const resetChosungQuizRound = useCallback(
+    (id: string) => {
+      if (!isHost) return;
+      const widget = stateRef.current.widgets.find((w) => w.id === id);
+      if (!widget || widget.type !== "chosungQuiz") return;
+      const props = widget.props as import("@/lib/live-overlays/types").LiveOverlayChosungQuizProps;
+      updateWidgetProps(id, {
+        ...props,
+        phase: "idle",
+        timeLeft: 0,
+        winner: null,
+        recentGuesses: [],
+      });
+    },
+    [isHost, updateWidgetProps]
+  );
+
+  const clearChosungQuizScores = useCallback(
+    (id: string) => {
+      if (!isHost) return;
+      const widget = stateRef.current.widgets.find((w) => w.id === id);
+      if (!widget || widget.type !== "chosungQuiz") return;
+      const props = widget.props as import("@/lib/live-overlays/types").LiveOverlayChosungQuizProps;
+      updateWidgetProps(id, { ...props, scores: [] });
+    },
+    [isHost, updateWidgetProps]
+  );
+
   return {
     state,
     selectedId,
@@ -378,5 +434,9 @@ export function useLiveOverlays(
     startWordGuess,
     revealWordGuess,
     resetWordGuessRound,
+    startChosungQuiz,
+    revealChosungQuiz,
+    resetChosungQuizRound,
+    clearChosungQuizScores,
   };
 }

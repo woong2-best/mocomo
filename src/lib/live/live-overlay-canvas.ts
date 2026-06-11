@@ -1,4 +1,5 @@
 import type {
+  LiveOverlayChosungQuizProps,
   LiveOverlayLotteryProps,
   LiveOverlayQuizProps,
   LiveOverlayState,
@@ -155,6 +156,41 @@ function drawWordGuessWidget(
   }
 }
 
+function drawChosungQuizWidget(
+  ctx: CanvasRenderingContext2D,
+  props: LiveOverlayChosungQuizProps,
+  w: number,
+  h: number
+) {
+  ctx.fillStyle = "rgba(10,25,45,0.92)";
+  roundRect(ctx, 4, 4, w - 8, h - 8, 12);
+  ctx.fill();
+  ctx.fillStyle = "#7dd3fc";
+  ctx.font = `bold ${Math.round(w * 0.07)}px system-ui`;
+  ctx.textAlign = "left";
+  ctx.fillText(props.title.slice(0, 14), 12, h * 0.12);
+  ctx.fillStyle = "#fff";
+  ctx.font = `${Math.round(w * 0.055)}px system-ui`;
+  ctx.fillText(`[${props.category}]`, 12, h * 0.22);
+  if (props.phase !== "idle" && props.chosung) {
+    ctx.fillStyle = "#bae6fd";
+    ctx.font = `bold ${Math.round(w * 0.14)}px system-ui`;
+    ctx.textAlign = "center";
+    ctx.fillText(props.chosung, w / 2, h * 0.48);
+  }
+  if (props.phase === "reveal") {
+    ctx.fillStyle = "#fbbf24";
+    ctx.font = `bold ${Math.round(w * 0.09)}px system-ui`;
+    ctx.fillText(props.answer, w / 2, h * 0.68);
+  }
+  if (props.phase === "active" && props.timeLeft > 0) {
+    ctx.fillStyle = "#fcd34d";
+    ctx.font = `bold ${Math.round(w * 0.07)}px system-ui`;
+    ctx.textAlign = "right";
+    ctx.fillText(`${props.timeLeft}s`, w - 12, h * 0.12);
+  }
+}
+
 function wrapText(
   ctx: CanvasRenderingContext2D,
   text: string,
@@ -196,6 +232,8 @@ function drawWidget(ctx: CanvasRenderingContext2D, widget: LiveOverlayWidget, ca
   if (widget.type === "quiz") drawQuizWidget(ctx, widget.props as LiveOverlayQuizProps, w, h);
   if (widget.type === "wordGuess")
     drawWordGuessWidget(ctx, widget.props as LiveOverlayWordGuessProps, w, h);
+  if (widget.type === "chosungQuiz")
+    drawChosungQuizWidget(ctx, widget.props as LiveOverlayChosungQuizProps, w, h);
   ctx.restore();
 }
 
