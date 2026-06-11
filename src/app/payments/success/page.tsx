@@ -54,6 +54,13 @@ export default async function PaymentSuccessPage({
             ? "이벤트 보기"
             : "홈으로"
       }
+      subMessage={
+        result.type === "TIP" &&
+        typeof redirectPath === "string" &&
+        redirectPath.includes("videoDonation=")
+          ? "결제 후 YouTube 영상 링크를 입력해 주세요."
+          : undefined
+      }
     />
   );
 }
@@ -62,12 +69,14 @@ function Result({
   ok,
   title,
   message,
+  subMessage,
   primaryHref = "/",
   primaryLabel = "홈으로",
 }: {
   ok: boolean;
   title: string;
   message: string;
+  subMessage?: string;
   primaryHref?: string;
   primaryLabel?: string;
 }) {
@@ -80,6 +89,7 @@ function Result({
       )}
       <h1 className="text-xl font-bold">{title}</h1>
       <p className="text-muted-foreground text-sm">{message}</p>
+      {subMessage && <p className="text-sm text-primary font-medium">{subMessage}</p>}
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
         <Link href={primaryHref}>
           <Button className="rounded-xl w-full sm:w-auto">{primaryLabel}</Button>

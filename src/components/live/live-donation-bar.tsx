@@ -5,12 +5,16 @@ import { Gem } from "lucide-react";
 export function LiveDonationBar({
   goalKrw,
   totalKrw,
+  cheerCp,
 }: {
   goalKrw: number | null;
   totalKrw: number;
+  /** 가상 응원 CP — 목표 게이지에 합산 */
+  cheerCp?: number;
 }) {
   if (!goalKrw || goalKrw <= 0) return null;
-  const pct = Math.min(100, Math.round((totalKrw / goalKrw) * 100));
+  const combined = totalKrw + (cheerCp ?? 0);
+  const pct = Math.min(100, Math.round((combined / goalKrw) * 100));
   return (
     <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 space-y-2">
       <div className="flex items-center justify-between text-xs font-medium">
@@ -19,9 +23,14 @@ export function LiveDonationBar({
           후원 목표
         </span>
         <span className="tabular-nums">
-          {totalKrw.toLocaleString()} / {goalKrw.toLocaleString()}원 ({pct}%)
+          {combined.toLocaleString()} / {goalKrw.toLocaleString()}원 ({pct}%)
         </span>
       </div>
+      {(cheerCp ?? 0) > 0 && (
+        <p className="text-[10px] text-muted-foreground">
+          실제 후원 {totalKrw.toLocaleString()}원 + 응원 CP {(cheerCp ?? 0).toLocaleString()}
+        </p>
+      )}
       <div className="h-2 rounded-full bg-background/80 overflow-hidden">
         <div
           className="h-full bg-gradient-to-r from-amber-500 to-red-500 transition-all duration-500"

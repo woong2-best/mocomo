@@ -25,6 +25,7 @@ export function LiveCollabStudioShell({
   category,
   donationGoalKrw,
   tipTotalKrw,
+  cheerTotalCp,
   tipRanking,
   slowModeSeconds,
   chatBannedWords,
@@ -44,6 +45,7 @@ export function LiveCollabStudioShell({
   category?: LiveStreamCategory;
   donationGoalKrw?: number | null;
   tipTotalKrw?: number;
+  cheerTotalCp?: number;
   tipRanking?: { username: string; amount: number }[];
   slowModeSeconds?: number;
   chatBannedWords?: string[];
@@ -100,6 +102,7 @@ export function LiveCollabStudioShell({
         category={category}
         donationGoalKrw={donationGoalKrw}
         tipTotalKrw={tipTotalKrw}
+        cheerTotalCp={cheerTotalCp}
         tipRanking={tipRanking}
         slowModeSeconds={slowModeSeconds}
         chatBannedWords={chatBannedWords}

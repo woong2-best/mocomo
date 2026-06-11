@@ -40,6 +40,22 @@ enum LiveVisibility {
   PRIVATE
 }
 
+enum LiveSupportEventType {
+  GENERAL
+  TTS
+  ROULETTE
+  SOUND
+  VOTE
+}
+
+enum LiveSupportMissionStatus {
+  PENDING
+  ACCEPTED
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
 enum PremiumTier {
   FREE
   PREMIUM
@@ -164,6 +180,15 @@ model User {
   payoutRequests   PayoutRequest[]
   ledgerEntries    LedgerEntry[]
   payoutsProcessed PayoutRequest[] @relation("PayoutProcessor")
+
+  liveSupportSent              LiveSupportEvent[]     @relation("LiveSupportSender")
+  liveSupportReceived          LiveSupportEvent[]     @relation("LiveSupportReceiver")
+  liveSupportMissionsSent      LiveSupportMission[]   @relation("LiveMissionSender")
+  liveSupportMissionsReceived  LiveSupportMission[]   @relation("LiveMissionReceiver")
+  liveSupportPollsHosted       LiveSupportPoll[]      @relation("LivePollHost")
+  liveSupportPollVotes         LiveSupportPollVote[]
+  liveVideoDonationsSent       LiveVideoDonation[]    @relation("LiveVideoDonationSender")
+  liveVideoDonationsReceived   LiveVideoDonation[]    @relation("LiveVideoDonationReceiver")
 }
 
 model Account {
@@ -709,6 +734,10 @@ model VoiceChannel {
   members        VoiceMember[]
   chatMessages   LiveChatMessage[]
   clips          StreamClip[]
+  liveSupportEvents   LiveSupportEvent[]
+  liveSupportMissions LiveSupportMission[]
+  liveSupportPolls    LiveSupportPoll[]
+  liveVideoDonations  LiveVideoDonation[]
 
   @@index([isLive, liveStatus, createdAt(sort: Desc)])
   @@index([isLive, liveStatus, category, createdAt(sort: Desc)])
@@ -899,10 +928,116 @@ model Tip {
   createdAt  DateTime @default(now())
   sender   User @relation("TipSender", fields: [senderId], references: [id])
   receiver User @relation("TipReceiver", fields: [receiverId], references: [id])
+  videoDonation LiveVideoDonation?
 
   @@index([receiverId, createdAt(sort: Desc)])
   @@index([receiverId, senderId])
   @@index([channelId, createdAt(sort: Desc)])
+}
+
+/** 라이브 가상 응원 (결제 없음 — 응원 포인트 CP) */
+model LiveSupportEvent {
+  id         String               @id @default(cuid())
+  channelId  String
+  senderId   String
+  receiverId String
+  type       LiveSupportEventType
+  amount     Int
+  message    String?
+  metadata   Json?
+  createdAt  DateTime             @default(now())
+
+  sender   User         @relation("LiveSupportSender", fields: [senderId], references: [id])
+  receiver User         @relation("LiveSupportReceiver", fields: [receiverId], references: [id])
+  channel  VoiceChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, createdAt(sort: Desc)])
+  @@index([receiverId, createdAt(sort: Desc)])
+}
+
+model LiveSupportMission {
+  id           String                   @id @default(cuid())
+  channelId    String
+  senderId     String
+  receiverId   String
+  title        String
+  rewardAmount Int
+  status       LiveSupportMissionStatus @default(PENDING)
+  deadline     DateTime?
+  createdAt    DateTime                 @default(now())
+  resolvedAt   DateTime?
+
+  sender   User         @relation("LiveMissionSender", fields: [senderId], references: [id])
+  receiver User         @relation("LiveMissionReceiver", fields: [receiverId], references: [id])
+  channel  VoiceChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, status])
+}
+
+model LiveSupportPoll {
+  id        String   @id @default(cuid())
+  channelId String
+  hostId    String
+  question  String
+  options   Json
+  voteCost  Int      @default(100)
+  status    String   @default("OPEN")
+  endsAt    DateTime?
+  createdAt DateTime @default(now())
+
+  channel VoiceChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  host    User         @relation("LivePollHost", fields: [hostId], references: [id])
+  votes   LiveSupportPollVote[]
+
+  @@index([channelId, status])
+}
+
+model LiveSupportPollVote {
+  id       String   @id @default(cuid())
+  pollId   String
+  userId   String
+  optionId String
+  amount   Int
+  createdAt DateTime @default(now())
+
+  poll LiveSupportPoll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  user User            @relation(fields: [userId], references: [id])
+
+  @@unique([pollId, userId])
+}
+
+enum LiveVideoDonationStatus {
+  AWAITING_URL
+  PENDING_REVIEW
+  QUEUED
+  PLAYING
+  PLAYED
+  REJECTED
+}
+
+/** 유료 영상 후원 — 결제 후 YouTube URL 제출 */
+model LiveVideoDonation {
+  id           String                  @id @default(cuid())
+  tipId        String                  @unique
+  channelId    String
+  senderId     String
+  receiverId   String
+  videoUrl     String?
+  videoTitle   String?
+  status       LiveVideoDonationStatus @default(AWAITING_URL)
+  rejectReason String?
+  amount       Int
+  createdAt    DateTime                @default(now())
+  reviewedAt   DateTime?
+  playedAt     DateTime?
+
+  tip      Tip          @relation(fields: [tipId], references: [id], onDelete: Cascade)
+  channel  VoiceChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  sender   User         @relation("LiveVideoDonationSender", fields: [senderId], references: [id])
+  receiver User         @relation("LiveVideoDonationReceiver", fields: [receiverId], references: [id])
+
+  @@index([channelId, status])
+  @@index([senderId, createdAt(sort: Desc)])
 }
 
 model Subscription {

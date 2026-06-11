@@ -25,6 +25,7 @@ export function LiveStudioHeader({
   category,
   donationGoalKrw,
   tipTotalKrw,
+  cheerTotalCp,
   tipRanking,
   slowModeSeconds,
   chatBannedWords,
@@ -43,6 +44,7 @@ export function LiveStudioHeader({
   category?: LiveStreamCategory;
   donationGoalKrw?: number | null;
   tipTotalKrw?: number;
+  cheerTotalCp?: number;
   tipRanking?: { username: string; amount: number }[];
   slowModeSeconds?: number;
   chatBannedWords?: string[];
@@ -121,7 +123,7 @@ export function LiveStudioHeader({
         />
       </div>
 
-      <LiveDonationBar goalKrw={donationGoalKrw ?? null} totalKrw={tipTotalKrw ?? 0} />
+      <LiveDonationBar goalKrw={donationGoalKrw ?? null} totalKrw={tipTotalKrw ?? 0} cheerCp={cheerTotalCp} />
 
       {ensureArray(tipRanking).length > 0 && (
         <div className="flex flex-wrap gap-2 text-xs">

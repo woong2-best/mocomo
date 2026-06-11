@@ -15,6 +15,7 @@ import { relayLiveChatMessage } from "@/hooks/use-live-socket";
 import { useLiveChat } from "@/components/live/live-chat-provider";
 import { ensureArray } from "@/lib/ensure-array";
 import { TipCreatorDialog } from "@/components/support/tip-creator-dialog";
+import { LiveSupportSidebar } from "@/components/live/live-support-sidebar";
 
 export type LiveChatMessage = {
   id: string;
@@ -150,6 +151,14 @@ function LiveChatInner({
           {viewerCount}
         </span>
       </div>
+      <LiveSupportSidebar
+        channelId={channelId}
+        isHost={!!isHost}
+        hostDisplayName={hostDisplayName ?? hostUsername ?? "스트리머"}
+        hostUserId={hostUserId}
+        hostUsername={hostUsername}
+        paymentsEnabled={paymentsEnabled}
+      />
       <div
         ref={scrollRef}
         onScroll={onScroll}

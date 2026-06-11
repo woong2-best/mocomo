@@ -17,6 +17,7 @@ import {
   sketchQuizReplayWord,
 } from "./sketch-quiz-store";
 import { isValidRoomCode } from "../src/lib/sketch-quiz-words";
+import { registerLiveSupportHandlers } from "./live-support";
 
 const prisma = new PrismaClient();
 const PORT = parseInt(process.env.PORT || process.env.SOCKET_PORT || "3001", 10);
@@ -474,6 +475,8 @@ io.on("connection", (socket: AuthedSocket) => {
       io.to(`live:${data.channelId}`).emit("live_chat_message", data.message);
     }
   );
+
+  registerLiveSupportHandlers(io, socket, userId, prisma);
 
   socket.on("webrtc_signal", (data: { channelId: string; to: string; signal: unknown }) => {
     if (!data.to || !data.channelId) return;

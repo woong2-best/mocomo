@@ -27,7 +27,8 @@ async function fulfillTip(
   amount: number,
   message?: string,
   paymentIntentId?: string,
-  channelId?: string
+  channelId?: string,
+  tipKind?: string
 ) {
   const receiver = await db.user.findUnique({
     where: { id: receiverId },
@@ -44,7 +45,7 @@ async function fulfillTip(
   const platformFee = calcPlatformFee(amount, PLATFORM_FEE_RATE);
   const sellerAmount = amount - platformFee;
 
-  await db.tip.create({
+  const tip = await db.tip.create({
     data: {
       senderId,
       receiverId,
@@ -54,6 +55,19 @@ async function fulfillTip(
       channelId: channelId?.trim() || null,
     },
   });
+
+  if (tipKind === "video" && channelId?.trim()) {
+    await db.liveVideoDonation.create({
+      data: {
+        tipId: tip.id,
+        channelId: channelId.trim(),
+        senderId,
+        receiverId,
+        amount,
+        status: "AWAITING_URL",
+      },
+    });
+  }
 
   await recordPlatformFee(platformFee, {
     referenceType: "tip",
@@ -120,7 +134,7 @@ async function fulfillTip(
     revalidatePath(`/voice/${channelId}`);
     revalidatePath("/live");
   }
-  return { success: true };
+  return { success: true, tipId: tip.id, videoTip: tipKind === "video" && !!channelId?.trim() };
 }
 
 /**
@@ -152,7 +166,8 @@ export async function fulfillPaymentIntent(
       amount,
       meta.message,
       intent.id,
-      meta.channelId
+      meta.channelId,
+      meta.tipKind
     );
     if ("error" in r && r.error) return { ok: false, error: r.error };
   }

@@ -7,6 +7,7 @@ import { LiveMobilePortraitViewer } from "@/components/live/mobile/live-mobile-p
 import { useLiveMobilePortrait } from "@/hooks/use-live-mobile-portrait";
 import type { LiveBroadcastMode, LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 import { LiveDonationAlertOverlay, type LiveTipAlert } from "@/components/live/live-donation-alert-overlay";
+import { LiveVideoDonationOverlay } from "@/components/live/live-video-donation-panel";
 
 export function LiveViewerShell({
   channelId,
@@ -21,6 +22,7 @@ export function LiveViewerShell({
   category,
   donationGoalKrw,
   tipTotalKrw,
+  cheerTotalCp,
   tipRanking,
   slowModeSeconds,
   chatBannedWords,
@@ -44,6 +46,7 @@ export function LiveViewerShell({
   category?: LiveStreamCategory;
   donationGoalKrw?: number | null;
   tipTotalKrw?: number;
+  cheerTotalCp?: number;
   tipRanking?: { username: string; amount: number }[];
   slowModeSeconds?: number;
   chatBannedWords?: string[];
@@ -93,6 +96,7 @@ export function LiveViewerShell({
         category={category}
         donationGoalKrw={donationGoalKrw}
         tipTotalKrw={tipTotalKrw}
+        cheerTotalCp={cheerTotalCp}
         tipRanking={tipRanking}
         slowModeSeconds={slowModeSeconds}
         chatBannedWords={chatBannedWords}
@@ -109,6 +113,7 @@ export function LiveViewerShell({
             isLiveOnAir={isLiveOnAir}
           />
           <LiveDonationAlertOverlay tips={recentTips} />
+          <LiveVideoDonationOverlay channelId={channelId} />
         </div>
         <div className="xl:sticky xl:top-16 min-h-[min(70vh,560px)]">
           <LiveChat

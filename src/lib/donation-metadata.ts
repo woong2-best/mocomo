@@ -6,6 +6,8 @@ export type TipPaymentMetadata = {
   username?: string;
   channelId?: string;
   returnPath?: string;
+  /** standard | video — 영상 후원은 결제 후 URL 입력 */
+  tipKind?: "standard" | "video";
 };
 
 export function tipMetadataForCheckout(input: {
@@ -14,6 +16,7 @@ export function tipMetadataForCheckout(input: {
   username?: string;
   channelId?: string;
   returnPath?: string;
+  tipKind?: "standard" | "video";
 }): TipPaymentMetadata {
   const meta: TipPaymentMetadata = { receiverId: input.receiverId };
   const msg = input.message?.trim();
@@ -21,6 +24,7 @@ export function tipMetadataForCheckout(input: {
   if (input.username?.trim()) meta.username = input.username.trim();
   if (input.channelId?.trim()) meta.channelId = input.channelId.trim();
   if (input.returnPath?.startsWith("/")) meta.returnPath = input.returnPath.trim();
+  if (input.tipKind === "video") meta.tipKind = "video";
   return meta;
 }
 

@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 import { LiveDonationAlertOverlay, type LiveTipAlert } from "@/components/live/live-donation-alert-overlay";
+import { LiveVideoDonationOverlay } from "@/components/live/live-video-donation-panel";
 
 /** 호스트 스튜디오 — 브라우저 송출 + 채팅 + 설정 */
 export function LiveHostStudioShell({
@@ -137,6 +138,7 @@ export function LiveHostStudioShell({
             }
           />
           <LiveDonationAlertOverlay tips={recentTips} />
+          <LiveVideoDonationOverlay channelId={channelId} />
         </div>
         <div className="min-h-[360px] lg:sticky lg:top-[3.25rem] lg:max-h-[calc(100vh-5rem)] border border-border/60 rounded-xl overflow-hidden bg-card/30">
           <LiveChat

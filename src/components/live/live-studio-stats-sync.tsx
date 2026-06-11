@@ -10,6 +10,8 @@ export function LiveStudioStatsSync({
   channelId: string;
   onStats: (data: {
     tipTotalKrw: number;
+    cheerTotalCp?: number;
+    combinedGoalTotal?: number;
     tipRanking: { username: string; amount: number }[];
     recentTips: { id: string; amount: number; message: string | null; username: string; at: number }[];
   }) => void;
@@ -33,6 +35,8 @@ export function LiveStudioStatsSync({
         sinceRef.current = typeof body.serverTime === "number" ? body.serverTime : Date.now();
         onStatsRef.current({
           tipTotalKrw: body.tipTotalKrw ?? 0,
+          cheerTotalCp: body.cheerTotalCp ?? 0,
+          combinedGoalTotal: body.combinedGoalTotal ?? body.tipTotalKrw ?? 0,
           tipRanking: body.tipRanking ?? [],
           recentTips: body.recentTips ?? [],
         });

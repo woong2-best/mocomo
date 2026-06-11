@@ -33,7 +33,7 @@ export async function GET(
     ? new Date(sinceMs)
     : new Date(Date.now() - 120_000);
 
-  const [{ tipTotalKrw, tipRanking }, recentRows] = await Promise.all([
+  const [{ tipTotalKrw, tipRanking }, recentRows, cheerAgg, recentCheerRows] = await Promise.all([
     getCachedLiveTipsForChannel(channel.createdBy, channel.createdAt),
     db.tip
       .findMany({
@@ -54,20 +54,99 @@ export async function GET(
         },
       })
       .catch(() => []),
+    db.liveSupportEvent
+      .aggregate({
+        where: { channelId, createdAt: { gte: channel.createdAt } },
+        _sum: { amount: true },
+      })
+      .catch(() => ({ _sum: { amount: 0 } })),
+    db.liveSupportEvent
+      .findMany({
+        where: { channelId, createdAt: { gt: sinceDate } },
+        orderBy: { createdAt: "asc" },
+        take: 8,
+        select: {
+          id: true,
+          type: true,
+          amount: true,
+          message: true,
+          metadata: true,
+          createdAt: true,
+          sender: { select: { username: true } },
+        },
+      })
+      .catch(() => []),
   ]);
 
-  const recentTips = recentRows.map((t) => ({
-    id: t.id,
-    amount: t.amount,
-    message: t.message,
-    username: t.sender.username,
-    at: t.createdAt.getTime(),
-  }));
+  const cheerTotalCp = cheerAgg._sum.amount ?? 0;
+
+  const cheerRankingRows = await db.liveSupportEvent
+    .groupBy({
+      by: ["senderId"],
+      where: { channelId, createdAt: { gte: channel.createdAt } },
+      _sum: { amount: true },
+    })
+    .catch(() => []);
+
+  const topCheerRows = [...cheerRankingRows]
+    .sort((a, b) => (b._sum.amount ?? 0) - (a._sum.amount ?? 0))
+    .slice(0, 5);
+
+  const cheerSenderIds = topCheerRows.map((r) => r.senderId);
+  const cheerSenders =
+    cheerSenderIds.length > 0
+      ? await db.user.findMany({
+          where: { id: { in: cheerSenderIds } },
+          select: { id: true, username: true },
+        })
+      : [];
+  const cheerSenderMap = new Map(cheerSenders.map((u) => [u.id, u.username]));
+
+  const mergedRankingMap = new Map<string, number>();
+  for (const r of tipRanking) {
+    mergedRankingMap.set(r.username, (mergedRankingMap.get(r.username) ?? 0) + r.amount);
+  }
+  for (const r of topCheerRows) {
+    const username = cheerSenderMap.get(r.senderId) ?? "unknown";
+    mergedRankingMap.set(username, (mergedRankingMap.get(username) ?? 0) + (r._sum.amount ?? 0));
+  }
+  const mergedRanking = [...mergedRankingMap.entries()]
+    .map(([username, amount]) => ({ username, amount }))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 5);
+
+  const recentTips = [
+    ...recentRows.map((t) => ({
+      id: t.id,
+      amount: t.amount,
+      message: t.message,
+      username: t.sender.username,
+      at: t.createdAt.getTime(),
+      kind: "tip" as const,
+    })),
+    ...recentCheerRows.map((t) => ({
+      id: t.id,
+      amount: t.amount,
+      message: t.message,
+      username: t.sender.username,
+      at: t.createdAt.getTime(),
+      kind: "cheer" as const,
+      eventType: t.type,
+      rouletteLabel:
+        typeof (t.metadata as { rouletteLabel?: string } | null)?.rouletteLabel === "string"
+          ? (t.metadata as { rouletteLabel: string }).rouletteLabel
+          : undefined,
+    })),
+  ]
+    .sort((a, b) => a.at - b.at)
+    .slice(-12);
 
   return NextResponse.json({
     ok: true,
     tipTotalKrw,
-    tipRanking,
+    cheerTotalCp,
+    combinedGoalTotal: tipTotalKrw + cheerTotalCp,
+    tipRanking: mergedRanking,
     recentTips,
     serverTime: Date.now(),
   });

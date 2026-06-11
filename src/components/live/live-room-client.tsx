@@ -26,6 +26,9 @@ import { useSession } from "next-auth/react";
 import { LiveOverlayProvider } from "@/components/live/overlays/live-overlay-context";
 import { LiveChatProvider } from "@/components/live/live-chat-provider";
 import { LiveOverlayGamesBridge } from "@/components/live/overlays/live-overlay-games-bridge";
+import { LiveSupportProvider } from "@/components/live/live-support-provider";
+import { LiveVideoTipUrlPrompt } from "@/components/live/live-video-tip-url-prompt";
+import { Suspense } from "react";
 
 export function LiveRoomClient({
   channelId,
@@ -89,15 +92,19 @@ export function LiveRoomClient({
   const [viewerCount, setViewerCount] = useState(1);
   const [recentTips, setRecentTips] = useState<LiveTipAlert[]>([]);
   const [tipTotalKrw, setTipTotalKrw] = useState(initialTipTotalKrw ?? 0);
+  const [cheerTotalCp, setCheerTotalCp] = useState(0);
   const [tipRanking, setTipRanking] = useState(initialTipRanking ?? []);
 
   const handleStats = useCallback(
     (data: {
       tipTotalKrw: number;
+      cheerTotalCp?: number;
+      combinedGoalTotal?: number;
       tipRanking: { username: string; amount: number }[];
       recentTips: LiveTipAlert[];
     }) => {
       setTipTotalKrw(data.tipTotalKrw);
+      setCheerTotalCp(data.cheerTotalCp ?? 0);
       setTipRanking(data.tipRanking);
       if (data.recentTips.length > 0) {
         setRecentTips((prev) => {
@@ -175,6 +182,13 @@ export function LiveRoomClient({
     void endLiveStream(channelId);
   }
 
+  const appendSupportAlert = useCallback((alert: LiveTipAlert) => {
+    setRecentTips((prev) => {
+      if (prev.some((t) => t.id === alert.id)) return prev;
+      return [alert, ...prev].slice(0, 30);
+    });
+  }, []);
+
   const studioProps = {
     channelId,
     channelName,
@@ -189,6 +203,7 @@ export function LiveRoomClient({
     category,
     donationGoalKrw,
     tipTotalKrw,
+    cheerTotalCp,
     tipRanking,
     slowModeSeconds,
     chatBannedWords,
@@ -238,6 +253,10 @@ export function LiveRoomClient({
       userId={session?.user?.id}
       onViewerCount={setViewerCount}
     >
+    <LiveSupportProvider channelId={channelId} isHost={isHost} onAlert={appendSupportAlert}>
+    <Suspense fallback={null}>
+      <LiveVideoTipUrlPrompt channelId={channelId} />
+    </Suspense>
     <LiveOverlayGamesBridge />
     <div className={isHost ? "relative" : "space-y-4 relative"}>
       <LiveStudioStatsSync channelId={channelId} onStats={handleStats} />
@@ -292,6 +311,7 @@ export function LiveRoomClient({
         )}
       </LiveStudioErrorBoundary>
     </div>
+    </LiveSupportProvider>
     </LiveChatProvider>
     </LiveOverlayProvider>
   );

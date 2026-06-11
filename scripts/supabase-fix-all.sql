@@ -1115,3 +1115,189 @@ ALTER TABLE "Anime" ADD COLUMN IF NOT EXISTS "infobox" TEXT;
 
 ALTER TABLE "Tip" ADD COLUMN IF NOT EXISTS "channelId" TEXT;
 CREATE INDEX IF NOT EXISTS "Tip_channelId_createdAt_idx" ON "Tip"("channelId", "createdAt" DESC);
+
+-- =============================================================================
+-- Z) 라이브 가상 응원 (CP) — 결제 없음: TTS·미션·투표·룰렛·사운드
+-- =============================================================================
+
+DO $$ BEGIN
+  CREATE TYPE "LiveSupportEventType" AS ENUM ('GENERAL', 'TTS', 'ROULETTE', 'SOUND', 'VOTE');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "LiveSupportMissionStatus" AS ENUM ('PENDING', 'ACCEPTED', 'COMPLETED', 'FAILED', 'CANCELLED');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS "LiveSupportEvent" (
+  "id" TEXT NOT NULL,
+  "channelId" TEXT NOT NULL,
+  "senderId" TEXT NOT NULL,
+  "receiverId" TEXT NOT NULL,
+  "type" "LiveSupportEventType" NOT NULL,
+  "amount" INTEGER NOT NULL,
+  "message" TEXT,
+  "metadata" JSONB,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "LiveSupportEvent_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "LiveSupportMission" (
+  "id" TEXT NOT NULL,
+  "channelId" TEXT NOT NULL,
+  "senderId" TEXT NOT NULL,
+  "receiverId" TEXT NOT NULL,
+  "title" TEXT NOT NULL,
+  "rewardAmount" INTEGER NOT NULL,
+  "status" "LiveSupportMissionStatus" NOT NULL DEFAULT 'PENDING',
+  "deadline" TIMESTAMP(3),
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "resolvedAt" TIMESTAMP(3),
+  CONSTRAINT "LiveSupportMission_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "LiveSupportPoll" (
+  "id" TEXT NOT NULL,
+  "channelId" TEXT NOT NULL,
+  "hostId" TEXT NOT NULL,
+  "question" TEXT NOT NULL,
+  "options" JSONB NOT NULL,
+  "voteCost" INTEGER NOT NULL DEFAULT 100,
+  "status" TEXT NOT NULL DEFAULT 'OPEN',
+  "endsAt" TIMESTAMP(3),
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "LiveSupportPoll_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "LiveSupportPollVote" (
+  "id" TEXT NOT NULL,
+  "pollId" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "optionId" TEXT NOT NULL,
+  "amount" INTEGER NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "LiveSupportPollVote_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX IF NOT EXISTS "LiveSupportEvent_channelId_createdAt_idx" ON "LiveSupportEvent"("channelId", "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "LiveSupportEvent_receiverId_createdAt_idx" ON "LiveSupportEvent"("receiverId", "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "LiveSupportMission_channelId_status_idx" ON "LiveSupportMission"("channelId", "status");
+CREATE INDEX IF NOT EXISTS "LiveSupportPoll_channelId_status_idx" ON "LiveSupportPoll"("channelId", "status");
+CREATE UNIQUE INDEX IF NOT EXISTS "LiveSupportPollVote_pollId_userId_key" ON "LiveSupportPollVote"("pollId", "userId");
+
+DO $$ BEGIN
+  ALTER TABLE "LiveSupportEvent" ADD CONSTRAINT "LiveSupportEvent_channelId_fkey"
+    FOREIGN KEY ("channelId") REFERENCES "VoiceChannel"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "LiveSupportEvent" ADD CONSTRAINT "LiveSupportEvent_senderId_fkey"
+    FOREIGN KEY ("senderId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "LiveSupportEvent" ADD CONSTRAINT "LiveSupportEvent_receiverId_fkey"
+    FOREIGN KEY ("receiverId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "LiveSupportMission" ADD CONSTRAINT "LiveSupportMission_channelId_fkey"
+    FOREIGN KEY ("channelId") REFERENCES "VoiceChannel"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "LiveSupportMission" ADD CONSTRAINT "LiveSupportMission_senderId_fkey"
+    FOREIGN KEY ("senderId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "LiveSupportMission" ADD CONSTRAINT "LiveSupportMission_receiverId_fkey"
+    FOREIGN KEY ("receiverId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "LiveSupportPoll" ADD CONSTRAINT "LiveSupportPoll_channelId_fkey"
+    FOREIGN KEY ("channelId") REFERENCES "VoiceChannel"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "LiveSupportPoll" ADD CONSTRAINT "LiveSupportPoll_hostId_fkey"
+    FOREIGN KEY ("hostId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "LiveSupportPollVote" ADD CONSTRAINT "LiveSupportPollVote_pollId_fkey"
+    FOREIGN KEY ("pollId") REFERENCES "LiveSupportPoll"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "LiveSupportPollVote" ADD CONSTRAINT "LiveSupportPollVote_userId_fkey"
+    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- =============================================================================
+-- Z2) 유료 영상 후원 (결제 → YouTube URL → 검수 → 재생)
+-- =============================================================================
+
+DO $$ BEGIN
+  CREATE TYPE "LiveVideoDonationStatus" AS ENUM (
+    'AWAITING_URL', 'PENDING_REVIEW', 'QUEUED', 'PLAYING', 'PLAYED', 'REJECTED'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS "LiveVideoDonation" (
+  "id" TEXT NOT NULL,
+  "tipId" TEXT NOT NULL,
+  "channelId" TEXT NOT NULL,
+  "senderId" TEXT NOT NULL,
+  "receiverId" TEXT NOT NULL,
+  "videoUrl" TEXT,
+  "videoTitle" TEXT,
+  "status" "LiveVideoDonationStatus" NOT NULL DEFAULT 'AWAITING_URL',
+  "rejectReason" TEXT,
+  "amount" INTEGER NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "reviewedAt" TIMESTAMP(3),
+  "playedAt" TIMESTAMP(3),
+  CONSTRAINT "LiveVideoDonation_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "LiveVideoDonation_tipId_key" ON "LiveVideoDonation"("tipId");
+CREATE INDEX IF NOT EXISTS "LiveVideoDonation_channelId_status_idx" ON "LiveVideoDonation"("channelId", "status");
+CREATE INDEX IF NOT EXISTS "LiveVideoDonation_senderId_createdAt_idx" ON "LiveVideoDonation"("senderId", "createdAt" DESC);
+
+DO $$ BEGIN
+  ALTER TABLE "LiveVideoDonation" ADD CONSTRAINT "LiveVideoDonation_tipId_fkey"
+    FOREIGN KEY ("tipId") REFERENCES "Tip"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "LiveVideoDonation" ADD CONSTRAINT "LiveVideoDonation_channelId_fkey"
+    FOREIGN KEY ("channelId") REFERENCES "VoiceChannel"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "LiveVideoDonation" ADD CONSTRAINT "LiveVideoDonation_senderId_fkey"
+    FOREIGN KEY ("senderId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "LiveVideoDonation" ADD CONSTRAINT "LiveVideoDonation_receiverId_fkey"
+    FOREIGN KEY ("receiverId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
