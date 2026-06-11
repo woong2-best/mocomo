@@ -4,8 +4,9 @@ import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Heart, MessageCircle, Star, Repeat2 } from "lucide-react";
+import { Heart, MessageCircle, Star } from "lucide-react";
 import { PostShareMenu } from "@/components/post/post-share-menu";
+import { PostRepostMenu } from "@/components/post/post-repost-menu";
 import { formatNumber, cn } from "@/lib/utils";
 import { engageStar, postEngage } from "@/lib/post-engage-client";
 
@@ -36,10 +37,8 @@ export function PostDetailActions({
 }) {
   const [liked, setLiked] = useState(initialLiked);
   const [starred, setStarred] = useState(initialStarred);
-  const [reposted, setReposted] = useState(initialReposted);
   const [likeCount, setLikeCount] = useState(initialLikeCount);
-  const [repostCount, setRepostCount] = useState(initialRepostCount);
-  const [busy, setBusy] = useState<"like" | "repost" | "star" | null>(null);
+  const [busy, setBusy] = useState<"like" | "star" | null>(null);
   const [actionError, setActionError] = useState("");
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -89,27 +88,6 @@ export function PostDetailActions({
     }
   }
 
-  async function handleRepost() {
-    if (!requireLogin() || busy) return;
-    setActionError("");
-    const prevReposted = reposted;
-    const prevCount = repostCount;
-    setReposted(!reposted);
-    setRepostCount((c) => (reposted ? Math.max(0, c - 1) : c + 1));
-    setBusy("repost");
-    try {
-      const data = await postEngage(postId, "repost");
-      setReposted(!!data.reposted);
-      if (typeof data.repostCount === "number") setRepostCount(data.repostCount);
-    } catch (err) {
-      setReposted(prevReposted);
-      setRepostCount(prevCount);
-      setActionError(err instanceof Error ? err.message : "리포스트에 실패했습니다.");
-    } finally {
-      setBusy(null);
-    }
-  }
-
   return (
     <div className="rounded-xl border border-border/60 bg-card px-4 py-3">
       <div className="flex items-center justify-between text-muted-foreground">
@@ -133,18 +111,17 @@ export function PostDetailActions({
             <MessageCircle className="h-4 w-4" />
             <span>{formatNumber(commentCount)}</span>
           </Link>
-          <button
-            type="button"
-            disabled={busy === "repost"}
-            onClick={handleRepost}
-            className={cn(
-              "flex items-center gap-1 min-h-9 px-1",
-              reposted ? "text-green-600" : "hover:text-green-600"
-            )}
-          >
-            <Repeat2 className="h-4 w-4" />
-            <span>{formatNumber(repostCount)}</span>
-          </button>
+          <PostRepostMenu
+            postId={postId}
+            authorUsername={authorUsername}
+            title={title}
+            content={content}
+            initialReposted={initialReposted}
+            repostCount={initialRepostCount}
+            size="detail"
+            requireLogin={requireLogin}
+            onActionError={setActionError}
+          />
           <PostShareMenu
             postId={postId}
             authorUsername={authorUsername}

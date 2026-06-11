@@ -8,8 +8,9 @@ import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, MessageCircle, Star, Repeat2 } from "lucide-react";
+import { Heart, MessageCircle, Star } from "lucide-react";
 import { PostShareMenu } from "@/components/post/post-share-menu";
+import { PostRepostMenu } from "@/components/post/post-repost-menu";
 import { formatNumber, cn } from "@/lib/utils";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { userDisplayName } from "@/lib/user-public-select";
@@ -40,10 +41,8 @@ export function FeedTextPostCard({
 }) {
   const [liked, setLiked] = useState(initialLiked);
   const [starred, setStarred] = useState(initialStarred);
-  const [reposted, setReposted] = useState(initialReposted);
   const [likeCount, setLikeCount] = useState(post._count?.likes ?? 0);
-  const [repostCount, setRepostCount] = useState(post._count?.reposts ?? 0);
-  const [busy, setBusy] = useState<"like" | "repost" | "star" | null>(null);
+  const [busy, setBusy] = useState<"like" | "star" | null>(null);
   const [actionError, setActionError] = useState("");
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -95,29 +94,6 @@ export function FeedTextPostCard({
     } catch (err) {
       setStarred(prev);
       setActionError(err instanceof Error ? err.message : "STAR 저장에 실패했습니다.");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function handleRepost(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!requireLogin() || busy) return;
-    setActionError("");
-    const prevReposted = reposted;
-    const prevCount = repostCount;
-    setReposted(!reposted);
-    setRepostCount((c) => (reposted ? Math.max(0, c - 1) : c + 1));
-    setBusy("repost");
-    try {
-      const data = await postEngage(post.id, "repost");
-      setReposted(!!data.reposted);
-      if (typeof data.repostCount === "number") setRepostCount(data.repostCount);
-    } catch (err) {
-      setReposted(prevReposted);
-      setRepostCount(prevCount);
-      setActionError(err instanceof Error ? err.message : "리포스트에 실패했습니다.");
     } finally {
       setBusy(null);
     }
@@ -205,18 +181,16 @@ export function FeedTextPostCard({
               <MessageCircle className="h-3.5 w-3.5" />
               <span>{formatNumber(post._count?.comments ?? 0)}</span>
             </Link>
-            <button
-              type="button"
-              disabled={busy === "repost"}
-              onClick={handleRepost}
-              className={cn(
-                "flex items-center gap-0.5 min-h-8 min-w-8 justify-center",
-                reposted ? "text-folk-forest" : "hover:text-folk-forest"
-              )}
-            >
-              <Repeat2 className="h-3.5 w-3.5 pointer-events-none" />
-              <span className="pointer-events-none">{formatNumber(repostCount)}</span>
-            </button>
+            <PostRepostMenu
+              postId={post.id}
+              authorUsername={post.author.username}
+              title={post.title}
+              content={post.content}
+              initialReposted={initialReposted}
+              repostCount={post._count?.reposts ?? 0}
+              requireLogin={requireLogin}
+              onActionError={setActionError}
+            />
             <PostShareMenu
               postId={post.id}
               authorUsername={post.author.username}

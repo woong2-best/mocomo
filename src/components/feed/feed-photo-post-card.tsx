@@ -8,11 +8,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Heart,
   MessageCircle,
-  Repeat2,
   Bookmark,
   MoreHorizontal,
 } from "lucide-react";
 import { PostShareMenu } from "@/components/post/post-share-menu";
+import { PostRepostMenu } from "@/components/post/post-repost-menu";
 import { cn } from "@/lib/utils";
 import { formatCompactNumberKo, formatFeedRelativeTime } from "@/lib/format-feed";
 import type { GridPost } from "@/components/feed/feed-post-card";
@@ -34,10 +34,8 @@ export function FeedPhotoPostCard({
 }) {
   const [liked, setLiked] = useState(initialLiked);
   const [starred, setStarred] = useState(initialStarred);
-  const [reposted, setReposted] = useState(initialReposted);
   const [likeCount, setLikeCount] = useState(post._count?.likes ?? 0);
-  const [repostCount, setRepostCount] = useState(post._count?.reposts ?? 0);
-  const [busy, setBusy] = useState<"like" | "repost" | "star" | null>(null);
+  const [busy, setBusy] = useState<"like" | "star" | null>(null);
   const [actionError, setActionError] = useState("");
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const { data: session, status } = useSession();
@@ -95,29 +93,6 @@ export function FeedPhotoPostCard({
     } catch (err) {
       setStarred(prev);
       setActionError(err instanceof Error ? err.message : "저장에 실패했습니다.");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function handleRepost(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!requireLogin() || busy) return;
-    setActionError("");
-    const prevReposted = reposted;
-    const prevCount = repostCount;
-    setReposted(!reposted);
-    setRepostCount((c) => (reposted ? Math.max(0, c - 1) : c + 1));
-    setBusy("repost");
-    try {
-      const data = await postEngage(post.id, "repost");
-      setReposted(!!data.reposted);
-      if (typeof data.repostCount === "number") setRepostCount(data.repostCount);
-    } catch (err) {
-      setReposted(prevReposted);
-      setRepostCount(prevCount);
-      setActionError(err instanceof Error ? err.message : "리포스트에 실패했습니다.");
     } finally {
       setBusy(null);
     }
@@ -222,23 +197,19 @@ export function FeedPhotoPostCard({
                 </span>
               )}
             </Link>
-            <button
-              type="button"
-              disabled={busy === "repost"}
-              onClick={handleRepost}
-              className={cn(
-                "flex items-center gap-1.5 min-h-9 hover:opacity-70",
-                reposted && "text-green-500"
-              )}
-              aria-label="리포스트"
-            >
-              <Repeat2 className="h-6 w-6" strokeWidth={1.5} />
-              {repostCount > 0 && (
-                <span className="text-sm font-medium tabular-nums">
-                  {formatCompactNumberKo(repostCount)}
-                </span>
-              )}
-            </button>
+            <PostRepostMenu
+              postId={post.id}
+              authorUsername={username}
+              title={post.title}
+              content={post.content}
+              initialReposted={initialReposted}
+              repostCount={post._count?.reposts ?? 0}
+              size="md"
+              tone="plain"
+              requireLogin={requireLogin}
+              onActionError={setActionError}
+              formatCount={formatCompactNumberKo}
+            />
             <PostShareMenu
               postId={post.id}
               authorUsername={username}
