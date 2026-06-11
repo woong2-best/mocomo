@@ -114,18 +114,6 @@ export function ImageCropDialog({
     setCroppedAreaPixels(pixels);
   }, []);
 
-  const onMediaLoaded = useCallback(
-    (media: { naturalWidth: number; naturalHeight: number }) => {
-      setCroppedAreaPixels({
-        x: 0,
-        y: 0,
-        width: media.naturalWidth,
-        height: media.naturalHeight,
-      });
-    },
-    []
-  );
-
   function handleReset() {
     const t = resetTransforms();
     setCrop(t.crop);
@@ -193,7 +181,7 @@ export function ImageCropDialog({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <div className="relative w-full h-[min(44vh,320px)] sm:h-[min(48vh,360px)] bg-black shrink-0 touch-none">
+        <div className="relative w-full h-[min(44vh,320px)] sm:h-[min(48vh,360px)] bg-neutral-900 shrink-0 touch-none">
           <Cropper
             image={imageSrc}
             crop={crop}
@@ -205,10 +193,9 @@ export function ImageCropDialog({
             onZoomChange={setZoom}
             onRotationChange={setRotation}
             onCropComplete={onCropComplete}
-            onMediaLoaded={onMediaLoaded}
-            objectFit="contain"
-            restrictPosition={false}
-            minZoom={0.5}
+            objectFit="auto-cover"
+            restrictPosition
+            minZoom={1}
             maxZoom={6}
             zoomWithScroll
           />
@@ -265,6 +252,7 @@ export function ImageCropDialog({
                   onClick={() => {
                     setCropAspect(p.aspect);
                     setCrop({ x: 0, y: 0 });
+                    setZoom(1);
                   }}
                 >
                   {p.label}
@@ -324,8 +312,8 @@ export function ImageCropDialog({
               size="icon"
               className="rounded-xl h-10 w-10"
               title="축소"
-              disabled={busy || zoom <= 0.5}
-              onClick={() => setZoom((z) => Math.max(0.5, Math.round((z - 0.15) * 100) / 100))}
+              disabled={busy || zoom <= 1}
+              onClick={() => setZoom((z) => Math.max(1, Math.round((z - 0.15) * 100) / 100))}
             >
               <ZoomOut className="h-4 w-4" />
             </Button>
@@ -363,7 +351,7 @@ export function ImageCropDialog({
               </div>
               <input
                 type="range"
-                min={0.5}
+                min={1}
                 max={6}
                 step={0.01}
                 value={zoom}
