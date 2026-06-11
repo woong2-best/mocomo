@@ -4,13 +4,17 @@ import { useLiveOverlayContextOptional } from "@/components/live/overlays/live-o
 import { LiveOverlayWidgetFrame } from "@/components/live/overlays/live-overlay-widget-frame";
 import {
   LotteryOverlayWidget,
+  QuizOverlayWidget,
   TextOverlayWidget,
   WheelOverlayWidget,
+  WordGuessOverlayWidget,
 } from "@/components/live/overlays/live-overlay-widgets";
 import type {
   LiveOverlayLotteryProps,
+  LiveOverlayQuizProps,
   LiveOverlayTextProps,
   LiveOverlayWheelProps,
+  LiveOverlayWordGuessProps,
 } from "@/lib/live-overlays/types";
 
 /** 미리보기·시청 화면 위 오버레이 (WHIP 스트림과 분리) */
@@ -57,6 +61,12 @@ export function LiveOverlayLayer({
           )}
           {widget.type === "lottery" && (
             <LotteryOverlayWidget props={widget.props as LiveOverlayLotteryProps} />
+          )}
+          {widget.type === "quiz" && (
+            <QuizOverlayWidget props={widget.props as LiveOverlayQuizProps} />
+          )}
+          {widget.type === "wordGuess" && (
+            <WordGuessOverlayWidget props={widget.props as LiveOverlayWordGuessProps} />
           )}
         </LiveOverlayWidgetFrame>
       ))}

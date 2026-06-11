@@ -1,8 +1,10 @@
 import type {
   LiveOverlayLotteryProps,
+  LiveOverlayQuizProps,
   LiveOverlayState,
   LiveOverlayTextProps,
   LiveOverlayWheelProps,
+  LiveOverlayWordGuessProps,
   LiveOverlayWidget,
   LiveOverlayWidgetType,
 } from "@/lib/live-overlays/types";
@@ -62,6 +64,30 @@ const defaultProps: Record<LiveOverlayWidgetType, LiveOverlayWidget["props"]> = 
     removeWinner: true,
     history: [],
   } satisfies LiveOverlayLotteryProps,
+  quiz: {
+    title: "라이브 퀴즈",
+    question: "MoCoMo는 어떤 커뮤니티?",
+    options: ["서브컬처·코스프레", "주식", "요리", "스포츠"],
+    correctIndex: 0,
+    phase: "idle",
+    timeLeft: 0,
+    durationSec: 30,
+    scores: [],
+    answeredIds: [],
+    lastWinner: null,
+    points: 10,
+  } satisfies LiveOverlayQuizProps,
+  wordGuess: {
+    title: "단어 맞히기",
+    category: "애니",
+    answer: "원피스",
+    hint: "대표작 · 루피",
+    phase: "idle",
+    timeLeft: 0,
+    durationSec: 45,
+    winner: null,
+    recentGuesses: [],
+  } satisfies LiveOverlayWordGuessProps,
 };
 
 const defaultLayout: Record<
@@ -71,6 +97,8 @@ const defaultLayout: Record<
   text: { x: 8, y: 72, w: 84, h: 14 },
   wheel: { x: 62, y: 10, w: 28, h: 28 },
   lottery: { x: 8, y: 8, w: 48, h: 42 },
+  quiz: { x: 8, y: 12, w: 52, h: 40 },
+  wordGuess: { x: 8, y: 12, w: 48, h: 34 },
 };
 
 export function createOverlayWidget(type: LiveOverlayWidgetType, z: number): LiveOverlayWidget {

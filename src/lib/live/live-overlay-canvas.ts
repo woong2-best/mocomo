@@ -1,8 +1,10 @@
 import type {
   LiveOverlayLotteryProps,
+  LiveOverlayQuizProps,
   LiveOverlayState,
   LiveOverlayTextProps,
   LiveOverlayWheelProps,
+  LiveOverlayWordGuessProps,
   LiveOverlayWidget,
 } from "@/lib/live-overlays/types";
 
@@ -95,6 +97,88 @@ function drawLotteryWidget(ctx: CanvasRenderingContext2D, props: LiveOverlayLott
   ctx.fillText(label, w / 2, h * 0.55);
 }
 
+function drawQuizWidget(ctx: CanvasRenderingContext2D, props: LiveOverlayQuizProps, w: number, h: number) {
+  ctx.fillStyle = "rgba(20,10,40,0.9)";
+  roundRect(ctx, 4, 4, w - 8, h - 8, 12);
+  ctx.fill();
+  ctx.fillStyle = "#c4b5fd";
+  ctx.font = `bold ${Math.round(w * 0.07)}px system-ui`;
+  ctx.textAlign = "left";
+  ctx.fillText(props.title.slice(0, 16), 12, h * 0.12);
+  ctx.fillStyle = "#fff";
+  ctx.font = `bold ${Math.round(w * 0.085)}px system-ui`;
+  wrapText(ctx, props.question, 12, h * 0.22, w - 24, h * 0.1);
+  const labels = ["1", "2", "3", "4"];
+  props.options.forEach((opt, i) => {
+    const col = i % 2;
+    const row = Math.floor(i / 2);
+    const ox = 12 + col * (w / 2 - 8);
+    const oy = h * 0.42 + row * (h * 0.18);
+    const isCorrect = props.phase === "reveal" && i === props.correctIndex;
+    ctx.fillStyle = isCorrect ? "rgba(16,185,129,0.35)" : "rgba(255,255,255,0.12)";
+    roundRect(ctx, ox, oy, w / 2 - 16, h * 0.14, 8);
+    ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.font = `${Math.round(w * 0.06)}px system-ui`;
+    ctx.fillText(`${labels[i]} ${opt.slice(0, 14)}`, ox + 6, oy + h * 0.09);
+  });
+  if (props.phase === "active" && props.timeLeft > 0) {
+    ctx.fillStyle = "#fcd34d";
+    ctx.font = `bold ${Math.round(w * 0.08)}px system-ui`;
+    ctx.textAlign = "right";
+    ctx.fillText(`${props.timeLeft}s`, w - 12, h * 0.12);
+  }
+}
+
+function drawWordGuessWidget(
+  ctx: CanvasRenderingContext2D,
+  props: LiveOverlayWordGuessProps,
+  w: number,
+  h: number
+) {
+  ctx.fillStyle = "rgba(30,15,10,0.9)";
+  roundRect(ctx, 4, 4, w - 8, h - 8, 12);
+  ctx.fill();
+  ctx.fillStyle = "#fcd34d";
+  ctx.font = `bold ${Math.round(w * 0.08)}px system-ui`;
+  ctx.textAlign = "left";
+  ctx.fillText(props.title.slice(0, 14), 12, h * 0.14);
+  ctx.fillStyle = "#fff";
+  ctx.font = `${Math.round(w * 0.065)}px system-ui`;
+  ctx.fillText(`[${props.category}]`, 12, h * 0.28);
+  if (props.hint) wrapText(ctx, props.hint, 12, h * 0.38, w - 24, h * 0.08);
+  if (props.phase === "reveal") {
+    ctx.fillStyle = "#fbbf24";
+    ctx.font = `bold ${Math.round(w * 0.1)}px system-ui`;
+    ctx.textAlign = "center";
+    ctx.fillText(props.answer, w / 2, h * 0.62);
+  }
+}
+
+function wrapText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxW: number,
+  lineH: number
+) {
+  const words = text.split(" ");
+  let line = "";
+  let cy = y;
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word;
+    if (ctx.measureText(test).width > maxW && line) {
+      ctx.fillText(line, x, cy);
+      line = word;
+      cy += lineH;
+    } else {
+      line = test;
+    }
+  }
+  if (line) ctx.fillText(line, x, cy);
+}
+
 function drawWidget(ctx: CanvasRenderingContext2D, widget: LiveOverlayWidget, canvasW: number, canvasH: number) {
   if (!widget.visible) return;
   const x = px(widget.x, canvasW);
@@ -109,6 +193,9 @@ function drawWidget(ctx: CanvasRenderingContext2D, widget: LiveOverlayWidget, ca
   if (widget.type === "text") drawTextWidget(ctx, widget.props as LiveOverlayTextProps, w, h);
   if (widget.type === "wheel") drawWheelWidget(ctx, widget.props as LiveOverlayWheelProps, w, h);
   if (widget.type === "lottery") drawLotteryWidget(ctx, widget.props as LiveOverlayLotteryProps, w, h);
+  if (widget.type === "quiz") drawQuizWidget(ctx, widget.props as LiveOverlayQuizProps, w, h);
+  if (widget.type === "wordGuess")
+    drawWordGuessWidget(ctx, widget.props as LiveOverlayWordGuessProps, w, h);
   ctx.restore();
 }
 

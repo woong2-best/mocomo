@@ -25,6 +25,7 @@ import { KeyRound, Loader2, Users } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { LiveOverlayProvider } from "@/components/live/overlays/live-overlay-context";
 import { LiveChatProvider } from "@/components/live/live-chat-provider";
+import { LiveOverlayGamesBridge } from "@/components/live/overlays/live-overlay-games-bridge";
 
 export function LiveRoomClient({
   channelId,
@@ -237,6 +238,7 @@ export function LiveRoomClient({
       userId={session?.user?.id}
       onViewerCount={setViewerCount}
     >
+    <LiveOverlayGamesBridge />
     <div className={isHost ? "relative" : "space-y-4 relative"}>
       <LiveStudioStatsSync channelId={channelId} onStats={handleStats} />
       {isHost && joined && <LiveHostPresenceSync channelId={channelId} enabled />}

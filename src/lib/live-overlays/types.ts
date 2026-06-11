@@ -1,6 +1,6 @@
 /** 라이브 방송 오버레이 — 돌림판·추첨·텍스트 (시청자 CSS 동기화, WHIP 미변경) */
 
-export type LiveOverlayWidgetType = "text" | "wheel" | "lottery";
+export type LiveOverlayWidgetType = "text" | "wheel" | "lottery" | "quiz" | "wordGuess";
 
 export type LiveOverlayTextProps = {
   content: string;
@@ -35,10 +35,46 @@ export type LiveOverlayLotteryProps = {
   history: string[];
 };
 
+export type LiveOverlayQuizScore = { username: string; score: number };
+
+export type LiveOverlayQuizProps = {
+  title: string;
+  question: string;
+  options: [string, string, string, string];
+  correctIndex: number;
+  phase: "idle" | "active" | "reveal";
+  timeLeft: number;
+  durationSec: number;
+  scores: LiveOverlayQuizScore[];
+  answeredIds: string[];
+  lastWinner: string | null;
+  points: number;
+};
+
+export type LiveOverlayWordGuessEntry = {
+  username: string;
+  text: string;
+  correct: boolean;
+};
+
+export type LiveOverlayWordGuessProps = {
+  title: string;
+  category: string;
+  answer: string;
+  hint: string;
+  phase: "idle" | "active" | "reveal";
+  timeLeft: number;
+  durationSec: number;
+  winner: string | null;
+  recentGuesses: LiveOverlayWordGuessEntry[];
+};
+
 export type LiveOverlayWidgetProps =
   | LiveOverlayTextProps
   | LiveOverlayWheelProps
-  | LiveOverlayLotteryProps;
+  | LiveOverlayLotteryProps
+  | LiveOverlayQuizProps
+  | LiveOverlayWordGuessProps;
 
 export type LiveOverlayWidget = {
   id: string;

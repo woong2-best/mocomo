@@ -1,7 +1,15 @@
 "use client";
 
-import type { LiveOverlayLotteryProps, LiveOverlayTextProps, LiveOverlayWheelProps } from "@/lib/live-overlays/types";
+import type {
+  LiveOverlayLotteryProps,
+  LiveOverlayQuizProps,
+  LiveOverlayTextProps,
+  LiveOverlayWheelProps,
+  LiveOverlayWordGuessProps,
+} from "@/lib/live-overlays/types";
 import { LiveOverlayWheel } from "@/components/live/overlays/live-overlay-wheel";
+import { LiveOverlayQuiz } from "@/components/live/overlays/live-overlay-quiz";
+import { LiveOverlayWordGuess } from "@/components/live/overlays/live-overlay-word-guess";
 
 export function TextOverlayWidget({ props }: { props: LiveOverlayTextProps }) {
   return (
@@ -61,4 +69,12 @@ export function LotteryOverlayWidget({ props }: { props: LiveOverlayLotteryProps
       )}
     </div>
   );
+}
+
+export function QuizOverlayWidget({ props }: { props: LiveOverlayQuizProps }) {
+  return <LiveOverlayQuiz props={props} />;
+}
+
+export function WordGuessOverlayWidget({ props }: { props: LiveOverlayWordGuessProps }) {
+  return <LiveOverlayWordGuess props={props} />;
 }
