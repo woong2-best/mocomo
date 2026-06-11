@@ -1301,3 +1301,21 @@ DO $$ BEGIN
     FOREIGN KEY ("receiverId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+-- =============================================================================
+-- Z3) 영상 후원 확장 (구간·설명·호스트 과금 설정)
+-- =============================================================================
+
+ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "videoDonationRateKrw" INTEGER NOT NULL DEFAULT 100;
+ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "videoDonationMinKrw" INTEGER NOT NULL DEFAULT 5000;
+ALTER TABLE "VoiceChannel" ADD COLUMN IF NOT EXISTS "videoDonationMaxSec" INTEGER NOT NULL DEFAULT 120;
+
+ALTER TABLE "LiveVideoDonation" ADD COLUMN IF NOT EXISTS "thumbnailUrl" TEXT;
+ALTER TABLE "LiveVideoDonation" ADD COLUMN IF NOT EXISTS "description" TEXT;
+ALTER TABLE "LiveVideoDonation" ADD COLUMN IF NOT EXISTS "startSec" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "LiveVideoDonation" ADD COLUMN IF NOT EXISTS "endSec" INTEGER;
+ALTER TABLE "LiveVideoDonation" ADD COLUMN IF NOT EXISTS "playToEnd" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "LiveVideoDonation" ADD COLUMN IF NOT EXISTS "durationSec" INTEGER;
+ALTER TABLE "LiveVideoDonation" ADD COLUMN IF NOT EXISTS "anonymous" BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE "LiveVideoDonation" ALTER COLUMN "status" SET DEFAULT 'PENDING_REVIEW';

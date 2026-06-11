@@ -14,7 +14,7 @@ import { ReportButton } from "@/components/report/report-button";
 import { relayLiveChatMessage } from "@/hooks/use-live-socket";
 import { useLiveChat } from "@/components/live/live-chat-provider";
 import { ensureArray } from "@/lib/ensure-array";
-import { TipCreatorDialog } from "@/components/support/tip-creator-dialog";
+import { LiveDonationToolbar } from "@/components/live/live-donation-toolbar";
 import { LiveSupportSidebar } from "@/components/live/live-support-sidebar";
 
 export type LiveChatMessage = {
@@ -218,22 +218,14 @@ function LiveChatInner({
       </div>
       {session?.user ? (
         <div className="p-2.5 border-t border-border/60 shrink-0 space-y-1">
-          {!isHost && hostUserId && hostUsername && (
-            <div className="flex justify-end pb-1">
-              <TipCreatorDialog
-                creatorId={hostUserId}
-                username={hostUsername}
-                displayName={hostDisplayName ?? hostUsername}
-                currentTier={viewerSupportTier}
-                currentTotal={viewerSupportTotal}
-                paymentsEnabled={!!paymentsEnabled}
-                channelId={channelId}
-                returnPath={`/voice/${channelId}`}
-                triggerVariant="outline"
-                triggerSize="sm"
-              />
-            </div>
-          )}
+          <LiveDonationToolbar
+            channelId={channelId}
+            hostDisplayName={hostDisplayName ?? hostUsername ?? "스트리머"}
+            hostUserId={hostUserId}
+            hostUsername={hostUsername}
+            paymentsEnabled={paymentsEnabled}
+            isHost={isHost}
+          />
           <div className="flex gap-2">
             <Input
               value={text}

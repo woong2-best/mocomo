@@ -5,7 +5,7 @@ import { LiveSupportDialog } from "@/components/live/live-support-dialog";
 import { LiveSupportMissionPanel } from "@/components/live/live-support-mission-panel";
 import { LiveSupportPollBar } from "@/components/live/live-support-poll-bar";
 import { LiveVideoDonationPanel } from "@/components/live/live-video-donation-panel";
-import { VideoTipCreatorDialog } from "@/components/support/video-tip-creator-dialog";
+import { VideoTipWizardDialog } from "@/components/support/video-tip-wizard-dialog";
 import { useLiveSupport } from "@/components/live/live-support-provider";
 
 export function LiveSupportSidebar({
@@ -37,7 +37,7 @@ export function LiveSupportSidebar({
             connected={connected}
           />
           {hostUserId && hostUsername && paymentsEnabled && (
-            <VideoTipCreatorDialog
+            <VideoTipWizardDialog
               creatorId={hostUserId}
               username={hostUsername}
               displayName={hostDisplayName}

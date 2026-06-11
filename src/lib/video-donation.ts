@@ -1,11 +1,10 @@
-/** YouTube 영상 URL 검증 (영상 후원용) */
+/** YouTube 영상 후원 — 치지직 스타일 설정·계산 */
 
 const YOUTUBE_ID = /^[a-zA-Z0-9_-]{11}$/;
 
 export function extractYoutubeVideoId(raw: string): string | null {
   const url = raw.trim();
   if (!url) return null;
-
   if (YOUTUBE_ID.test(url)) return url;
 
   try {
@@ -44,12 +43,73 @@ export function normalizeYoutubeUrl(raw: string): string | null {
   return `https://www.youtube.com/watch?v=${id}`;
 }
 
-export function youtubeEmbedUrl(videoId: string, autoplay = false): string {
-  const params = autoplay ? "?autoplay=1&rel=0" : "?rel=0";
-  return `https://www.youtube-nocookie.com/embed/${videoId}${params}`;
+export function youtubeEmbedUrl(
+  videoId: string,
+  opts?: { autoplay?: boolean; startSec?: number; endSec?: number }
+): string {
+  const params = new URLSearchParams();
+  if (opts?.autoplay) params.set("autoplay", "1");
+  params.set("rel", "0");
+  if (opts?.startSec && opts.startSec > 0) params.set("start", String(Math.floor(opts.startSec)));
+  if (opts?.endSec && opts.endSec > 0) params.set("end", String(Math.floor(opts.endSec)));
+  const q = params.toString();
+  return `https://www.youtube-nocookie.com/embed/${videoId}${q ? `?${q}` : ""}`;
 }
 
-export const VIDEO_TIP_MIN_KRW = 5_000;
+export type VideoDonationSettings = {
+  rateKrwPerSec: number;
+  minKrw: number;
+  maxSec: number;
+};
+
+export const DEFAULT_VIDEO_DONATION_SETTINGS: VideoDonationSettings = {
+  rateKrwPerSec: 100,
+  minKrw: 5_000,
+  maxSec: 120,
+};
+
+/** @deprecated DEFAULT_VIDEO_DONATION_SETTINGS.minKrw 사용 */
+export const VIDEO_TIP_MIN_KRW = DEFAULT_VIDEO_DONATION_SETTINGS.minKrw;
+
+export function calcVideoDonationAmount(
+  durationSec: number,
+  settings: VideoDonationSettings
+): number {
+  const sec = Math.max(1, Math.min(durationSec, settings.maxSec));
+  const raw = sec * settings.rateKrwPerSec;
+  return Math.max(settings.minKrw, Math.round(raw));
+}
+
+export function calcSegmentDurationSec(input: {
+  startSec: number;
+  endSec: number | null;
+  playToEnd: boolean;
+  maxSec: number;
+}): number {
+  if (input.playToEnd) return input.maxSec;
+  const start = Math.max(0, Math.floor(input.startSec));
+  const end = Math.max(start + 1, Math.floor(input.endSec ?? start + 1));
+  return Math.min(end - start, input.maxSec);
+}
+
+export function formatSecLabel(sec: number): string {
+  const s = Math.max(0, Math.floor(sec));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
+}
+
+export type VideoDonationCheckoutMeta = {
+  videoUrl: string;
+  videoTitle?: string;
+  thumbnailUrl?: string;
+  description?: string;
+  startSec: number;
+  endSec?: number;
+  playToEnd: boolean;
+  durationSec: number;
+  anonymous: boolean;
+};
 
 export type LiveVideoDonationPayload = {
   id: string;
@@ -59,11 +119,28 @@ export type LiveVideoDonationPayload = {
   videoUrl: string | null;
   videoId: string | null;
   videoTitle: string | null;
+  thumbnailUrl: string | null;
+  description: string | null;
+  startSec: number;
+  endSec: number | null;
+  playToEnd: boolean;
+  durationSec: number | null;
+  anonymous: boolean;
   status: string;
   rejectReason: string | null;
   username: string;
   senderId: string;
   message: string | null;
+  at: number;
+};
+
+export type VideoDonationHistoryItem = {
+  id: string;
+  videoUrl: string;
+  videoId: string;
+  videoTitle: string | null;
+  thumbnailUrl: string | null;
+  amount: number;
   at: number;
 };
 
@@ -74,6 +151,13 @@ export function toVideoDonationPayload(row: {
   amount: number;
   videoUrl: string | null;
   videoTitle: string | null;
+  thumbnailUrl?: string | null;
+  description?: string | null;
+  startSec?: number;
+  endSec?: number | null;
+  playToEnd?: boolean;
+  durationSec?: number | null;
+  anonymous?: boolean;
   status: string;
   rejectReason: string | null;
   senderId: string;
@@ -90,11 +174,22 @@ export function toVideoDonationPayload(row: {
     videoUrl: row.videoUrl,
     videoId,
     videoTitle: row.videoTitle,
+    thumbnailUrl: row.thumbnailUrl ?? null,
+    description: row.description ?? null,
+    startSec: row.startSec ?? 0,
+    endSec: row.endSec ?? null,
+    playToEnd: row.playToEnd ?? false,
+    durationSec: row.durationSec ?? null,
+    anonymous: row.anonymous ?? false,
     status: row.status,
     rejectReason: row.rejectReason,
-    username: row.sender.username,
+    username: row.anonymous ? "익명" : row.sender.username,
     senderId: row.senderId,
     message: row.tip.message,
     at: row.createdAt.getTime(),
   };
+}
+
+export function displayDonorName(username: string, anonymous: boolean): string {
+  return anonymous ? "익명" : username;
 }

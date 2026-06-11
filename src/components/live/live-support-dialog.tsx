@@ -50,6 +50,8 @@ export function LiveSupportDialog({
   triggerVariant = "outline",
   triggerSize = "sm",
   triggerClassName,
+  trigger,
+  triggerLabel = "응원 CP",
 }: {
   channelId: string;
   hostDisplayName: string;
@@ -58,6 +60,8 @@ export function LiveSupportDialog({
   triggerVariant?: "default" | "outline" | "secondary" | "ghost";
   triggerSize?: "default" | "sm" | "icon";
   triggerClassName?: string;
+  trigger?: ReactNode;
+  triggerLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<string>("GENERAL");
@@ -132,10 +136,12 @@ export function LiveSupportDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant={triggerVariant} size={triggerSize} className={triggerClass} disabled={!connected}>
-          <Music2 className="h-4 w-4" />
-          응원 CP
-        </Button>
+        {trigger ?? (
+          <Button variant={triggerVariant} size={triggerSize} className={triggerClass} disabled={!connected}>
+            <Music2 className="h-4 w-4" />
+            {triggerLabel}
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>

@@ -18,6 +18,8 @@ import { fulfillCreatorEpisodePurchase } from "@/actions/creator-works";
 import { calcPlatformFee } from "@/lib/utils";
 import { tierFromAmount } from "@/lib/tiers";
 import { notifyTip } from "@/lib/notifications";
+import { parseVideoTipMeta } from "@/lib/donation-metadata";
+import { normalizeYoutubeUrl } from "@/lib/video-donation";
 
 const PLATFORM_FEE_RATE = 0.1;
 
@@ -28,7 +30,8 @@ async function fulfillTip(
   message?: string,
   paymentIntentId?: string,
   channelId?: string,
-  tipKind?: string
+  tipKind?: string,
+  rawMeta?: Record<string, unknown>
 ) {
   const receiver = await db.user.findUnique({
     where: { id: receiverId },
@@ -57,6 +60,8 @@ async function fulfillTip(
   });
 
   if (tipKind === "video" && channelId?.trim()) {
+    const video = rawMeta ? parseVideoTipMeta(rawMeta) : null;
+    const normalizedUrl = video?.videoUrl ? normalizeYoutubeUrl(video.videoUrl) : null;
     await db.liveVideoDonation.create({
       data: {
         tipId: tip.id,
@@ -64,7 +69,16 @@ async function fulfillTip(
         senderId,
         receiverId,
         amount,
-        status: "AWAITING_URL",
+        status: normalizedUrl ? "PENDING_REVIEW" : "AWAITING_URL",
+        videoUrl: normalizedUrl,
+        videoTitle: video?.videoTitle ?? null,
+        thumbnailUrl: video?.thumbnailUrl ?? null,
+        description: video?.description ?? null,
+        startSec: video?.startSec ?? 0,
+        endSec: video?.endSec ?? null,
+        playToEnd: video?.playToEnd ?? false,
+        durationSec: video?.durationSec ?? null,
+        anonymous: video?.anonymous ?? false,
       },
     });
   }
@@ -167,7 +181,8 @@ export async function fulfillPaymentIntent(
       meta.message,
       intent.id,
       meta.channelId,
-      meta.tipKind
+      meta.tipKind,
+      meta as Record<string, unknown>
     );
     if ("error" in r && r.error) return { ok: false, error: r.error };
   }

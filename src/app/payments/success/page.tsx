@@ -57,8 +57,8 @@ export default async function PaymentSuccessPage({
       subMessage={
         result.type === "TIP" &&
         typeof redirectPath === "string" &&
-        redirectPath.includes("videoDonation=")
-          ? "결제 후 YouTube 영상 링크를 입력해 주세요."
+        redirectPath.startsWith("/voice/")
+          ? "영상 후원은 호스트 검수 후 방송에 재생됩니다."
           : undefined
       }
     />

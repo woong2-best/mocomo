@@ -27,8 +27,6 @@ import { LiveOverlayProvider } from "@/components/live/overlays/live-overlay-con
 import { LiveChatProvider } from "@/components/live/live-chat-provider";
 import { LiveOverlayGamesBridge } from "@/components/live/overlays/live-overlay-games-bridge";
 import { LiveSupportProvider } from "@/components/live/live-support-provider";
-import { LiveVideoTipUrlPrompt } from "@/components/live/live-video-tip-url-prompt";
-import { Suspense } from "react";
 
 export function LiveRoomClient({
   channelId,
@@ -254,9 +252,6 @@ export function LiveRoomClient({
       onViewerCount={setViewerCount}
     >
     <LiveSupportProvider channelId={channelId} isHost={isHost} onAlert={appendSupportAlert}>
-    <Suspense fallback={null}>
-      <LiveVideoTipUrlPrompt channelId={channelId} />
-    </Suspense>
     <LiveOverlayGamesBridge />
     <div className={isHost ? "relative" : "space-y-4 relative"}>
       <LiveStudioStatsSync channelId={channelId} onStats={handleStats} />

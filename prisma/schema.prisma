@@ -713,6 +713,10 @@ model VoiceChannel {
   slowModeSeconds  Int      @default(0)
   chatBannedWords  String[] @default([])
   donationGoalKrw  Int?
+  /** 영상 후원 — 초당 과금(원), 최소금액, 최대 재생초 */
+  videoDonationRateKrw Int @default(100)
+  videoDonationMinKrw  Int @default(5000)
+  videoDonationMaxSec  Int @default(120)
   vodUrl           String?
   egressId         String?
   broadcastMode    LiveBroadcastMode @default(BROWSER)
@@ -1015,7 +1019,7 @@ enum LiveVideoDonationStatus {
   REJECTED
 }
 
-/** 유료 영상 후원 — 결제 후 YouTube URL 제출 */
+/** 유료 영상 후원 — YouTube URL + 구간 + 결제 */
 model LiveVideoDonation {
   id           String                  @id @default(cuid())
   tipId        String                  @unique
@@ -1024,7 +1028,14 @@ model LiveVideoDonation {
   receiverId   String
   videoUrl     String?
   videoTitle   String?
-  status       LiveVideoDonationStatus @default(AWAITING_URL)
+  thumbnailUrl String?
+  description  String?
+  startSec     Int                     @default(0)
+  endSec       Int?
+  playToEnd    Boolean                 @default(false)
+  durationSec  Int?
+  anonymous    Boolean                 @default(false)
+  status       LiveVideoDonationStatus @default(PENDING_REVIEW)
   rejectReason String?
   amount       Int
   createdAt    DateTime                @default(now())

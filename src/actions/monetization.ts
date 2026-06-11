@@ -11,6 +11,11 @@ import { fulfillPaymentIntent } from "@/lib/payment-fulfillment";
 import { getAppOrigin, getStripe, isStripeConfigured } from "@/lib/stripe";
 import { verifyStripeCheckoutSession } from "@/lib/stripe-checkout";
 import { safeReturnPath } from "@/lib/donation-metadata";
+import {
+  calcVideoDonationAmount,
+  DEFAULT_VIDEO_DONATION_SETTINGS,
+  normalizeYoutubeUrl,
+} from "@/lib/video-donation";
 
 async function validatePaymentInput(
   userId: string,
@@ -21,12 +26,43 @@ async function validatePaymentInput(
     if (!receiverId || receiverId === userId) return { error: "유효하지 않은 후원 대상입니다." };
     const tipKind = input.metadata.tipKind as string | undefined;
     const channelId = input.metadata.channelId as string | undefined;
-    const min = tipKind === "video" ? 5_000 : 100;
-    if (input.amount < min) {
-      return { error: tipKind === "video" ? "영상 후원 최소 금액은 5,000원입니다." : "최소 후원 금액은 100원입니다." };
-    }
     if (tipKind === "video" && !channelId?.trim()) {
       return { error: "영상 후원은 라이브 방송 중에만 가능합니다." };
+    }
+    if (tipKind === "video") {
+      const videoUrl = normalizeYoutubeUrl(String(input.metadata.videoUrl ?? ""));
+      if (!videoUrl) return { error: "YouTube URL을 입력해 주세요." };
+      const durationSec = Math.max(
+        1,
+        parseInt(String(input.metadata.durationSec ?? 0), 10) || 0
+      );
+      const channel = channelId
+        ? await db.voiceChannel.findUnique({
+            where: { id: channelId },
+            select: {
+              videoDonationRateKrw: true,
+              videoDonationMinKrw: true,
+              videoDonationMaxSec: true,
+            },
+          })
+        : null;
+      const settings = {
+        rateKrwPerSec:
+          channel?.videoDonationRateKrw ?? DEFAULT_VIDEO_DONATION_SETTINGS.rateKrwPerSec,
+        minKrw: channel?.videoDonationMinKrw ?? DEFAULT_VIDEO_DONATION_SETTINGS.minKrw,
+        maxSec: channel?.videoDonationMaxSec ?? DEFAULT_VIDEO_DONATION_SETTINGS.maxSec,
+      };
+      const expected = calcVideoDonationAmount(durationSec, settings);
+      if (input.amount < expected) {
+        return {
+          error: `영상 후원 최소 금액은 ${expected.toLocaleString()}원입니다.`,
+        };
+      }
+    } else {
+      const min = 100;
+      if (input.amount < min) {
+        return { error: "최소 후원 금액은 100원입니다." };
+      }
     }
     if (input.amount > 10_000_000) return { error: "1회 후원 한도는 1,000만원입니다." };
   }
@@ -202,18 +238,6 @@ export async function confirmStripeCheckout(sessionId: string) {
     );
     if (meta.channelId) {
       redirectPath = `/voice/${meta.channelId}`;
-      if (meta.tipKind === "video") {
-        const vd = await db.liveVideoDonation.findFirst({
-          where: {
-            senderId: user.id,
-            channelId: meta.channelId,
-            status: "AWAITING_URL",
-          },
-          orderBy: { createdAt: "desc" },
-          select: { id: true },
-        });
-        if (vd) redirectPath = `/voice/${meta.channelId}?videoDonation=${vd.id}`;
-      }
     }
   }
 
