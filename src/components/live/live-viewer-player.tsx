@@ -37,7 +37,7 @@ export function LiveViewerPlayer({
         <LiveOverlayLayer pointerEvents="none" className="z-[15]" />
       )}
       {showOverlays && chatOverlayEnabled && chat && (
-        <LiveVideoChatOverlay channelId={channelId} className="z-[16]" />
+        <LiveVideoChatOverlay channelId={channelId} className="z-[16]" variant="vtuber" />
       )}
     </div>
   );

@@ -40,9 +40,11 @@ export type LiveAvatarTrackingStatus = {
 export type LiveAvatarPublishHandle = {
   getPublishStream: () => MediaStream | null;
   getPreviewCanvas: () => HTMLCanvasElement | null;
+  getAvatarCanvas: () => HTMLCanvasElement | null;
   waitForReady: () => Promise<void>;
   attachCameraStream: (stream: MediaStream) => Promise<void>;
   detachCameraStream: () => void;
+  setScreenOverlayMode: (enabled: boolean) => void;
   setLayout: (layout: LiveAvatarLayout) => void;
   setBackground: (mode: LiveAvatarBackground) => void;
   setCameraVisible: (visible: boolean) => void;
@@ -81,6 +83,7 @@ export const LiveAvatarPublishLayer = forwardRef<
   const backgroundRef = useRef<LiveAvatarBackground>("gradient");
   const cameraVisibleRef = useRef(true);
   const overlayRef = useRef<LiveOverlayState | null>(overlayState);
+  const screenOverlayModeRef = useRef(false);
   const frameCountRef = useRef(0);
 
   const [config, setConfig] = useState<AvatarConfig>(() => loadAvatarPresetFromStorage() ?? DEFAULT_AVATAR_CONFIG);
@@ -294,6 +297,7 @@ export const LiveAvatarPublishLayer = forwardRef<
       getPublishStream: () => publishStreamRef.current ?? rebuildPublishStream(),
       getPreviewCanvas: () =>
         compositorRef.current?.getCanvas() ?? sceneRef.current?.getCanvasElement() ?? null,
+      getAvatarCanvas: () => sceneRef.current?.getCanvasElement() ?? null,
       waitForReady: async () => {
         const timeoutMs = 25000;
         const start = performance.now();
@@ -319,12 +323,23 @@ export const LiveAvatarPublishLayer = forwardRef<
       attachCameraStream: async (stream: MediaStream) => {
         cameraStreamRef.current = stream;
         await faceTracking.attachExternalStream(stream);
-        rebuildPublishStream();
+        if (!screenOverlayModeRef.current) {
+          rebuildPublishStream();
+        }
       },
       detachCameraStream: () => {
         faceTracking.detachExternalStream();
         cameraStreamRef.current = null;
+        screenOverlayModeRef.current = false;
         stopPublishTracks();
+      },
+      setScreenOverlayMode: (enabled: boolean) => {
+        screenOverlayModeRef.current = enabled;
+        if (enabled) {
+          stopPublishTracks();
+        } else if (sceneMounted) {
+          rebuildPublishStream();
+        }
       },
       setLayout: (next: LiveAvatarLayout) => {
         layoutRef.current = next;

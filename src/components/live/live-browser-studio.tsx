@@ -233,6 +233,7 @@ export function LiveBrowserStudio({
     screenCompositorRef.current?.stop();
     screenDisplayRef.current?.getTracks().forEach((t) => t.stop());
     screenDisplayRef.current = null;
+    avatarPublishRef.current?.setScreenOverlayMode(false);
     setScreenOn(false);
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
@@ -262,7 +263,17 @@ export function LiveBrowserStudio({
       screenCompositorRef.current = compositor;
     }
 
-    compositor.start(display, rawStreamRef.current);
+    let avatarCanvas: HTMLCanvasElement | null = null;
+    if (vtuberMode && avatarPublishRef.current) {
+      avatarPublishRef.current.setScreenOverlayMode(true);
+      await avatarPublishRef.current.waitForReady();
+      await avatarPublishRef.current.attachCameraStream(rawStreamRef.current);
+      avatarCanvas = avatarPublishRef.current.getAvatarCanvas();
+    }
+
+    compositor.start(display, avatarCanvas ? null : rawStreamRef.current, {
+      avatarCanvas,
+    });
     screenDisplayRef.current = display;
 
     const video = compositor.getStream();
@@ -270,7 +281,7 @@ export function LiveBrowserStudio({
     const out = new MediaStream([...(video?.getVideoTracks() ?? []), ...audio]);
     streamRef.current = out;
     return out;
-  }, []);
+  }, [vtuberMode]);
 
   const ensureLocalStream = useCallback(
     async (opts?: { vtuber?: boolean; layout?: LiveAvatarLayout }) => {
@@ -655,7 +666,11 @@ export function LiveBrowserStudio({
     const next = !camOn;
 
     if (screenOn) {
-      screenCompositorRef.current?.setCameraVisible(next);
+      if (vtuberMode) {
+        screenCompositorRef.current?.setAvatarVisible(next);
+      } else {
+        screenCompositorRef.current?.setCameraVisible(next);
+      }
       setCamOn(next);
       return;
     }
@@ -682,7 +697,7 @@ export function LiveBrowserStudio({
         });
         await stopFilterPipeline();
         if (vtuberMode) {
-          avatarPublishRef.current?.detachCameraStream();
+          avatarPublishRef.current?.setScreenOverlayMode(true);
         }
         const stream = await buildScreenShareStream(display);
         attachPreviewCanvas();
@@ -827,10 +842,12 @@ export function LiveBrowserStudio({
       )}
       {screenOn && (
         <span className="absolute top-3 right-3 px-2 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-bold z-10">
-          화면 공유
+          {vtuberMode ? "2D + 화면공유" : "화면 공유"}
         </span>
       )}
-      {chatOverlayEnabled && !immersive && <LiveVideoChatOverlay />}
+      {chatOverlayEnabled && !immersive && (
+        <LiveVideoChatOverlay variant={vtuberMode || screenOn ? "vtuber" : "default"} />
+      )}
       <LiveOverlayLayer className="z-20" />
     </>
   );
@@ -892,7 +909,13 @@ export function LiveBrowserStudio({
           onClick={() => void toggleCam()}
         >
           {camOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
-          {camOn ? "카메라 끔" : "카메라"}
+          {screenOn && vtuberMode
+            ? camOn
+              ? "2D 아바타 끔"
+              : "2D 아바타"
+            : camOn
+              ? "카메라 끔"
+              : "카메라"}
         </Button>
         <Button
           type="button"

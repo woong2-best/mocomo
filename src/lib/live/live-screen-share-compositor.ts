@@ -1,6 +1,6 @@
 "use client";
 
-/** WHIP 송출 — 화면 공유 전체 + 카메라 PiP (우하단) */
+/** WHIP 송출 — 화면 공유 전체 + 카메라 PiP 또는 2D 아바타(우하단) */
 export class LiveScreenShareCompositor {
   readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D;
@@ -9,7 +9,9 @@ export class LiveScreenShareCompositor {
   private rafId = 0;
   private screenVideo: HTMLVideoElement | null = null;
   private cameraVideo: HTMLVideoElement | null = null;
+  private avatarCanvas: HTMLCanvasElement | null = null;
   private cameraVisible = true;
+  private avatarVisible = true;
   private width = 1920;
   private height = 1080;
   private screenEndedHandler: (() => void) | null = null;
@@ -30,11 +32,16 @@ export class LiveScreenShareCompositor {
   start(
     screenStream: MediaStream,
     cameraStream: MediaStream | null,
-    opts?: { onScreenEnded?: () => void }
+    opts?: {
+      onScreenEnded?: () => void;
+      /** 2D 아바타 캔버스 — 있으면 카메라 PiP 대신 우하단 VTuber 오버레이 */
+      avatarCanvas?: HTMLCanvasElement | null;
+    }
   ) {
     this.stop();
     this.canvas.width = this.width;
     this.canvas.height = this.height;
+    this.avatarCanvas = opts?.avatarCanvas ?? null;
 
     const screenTrack = screenStream.getVideoTracks()[0];
     if (!screenTrack) throw new Error("화면 공유 영상이 없습니다.");
@@ -52,7 +59,7 @@ export class LiveScreenShareCompositor {
       screenTrack.addEventListener("ended", this.screenEndedHandler);
     }
 
-    if (cameraStream && cameraStream.getVideoTracks().length > 0) {
+    if (!this.avatarCanvas && cameraStream && cameraStream.getVideoTracks().length > 0) {
       const camVideo = document.createElement("video");
       camVideo.srcObject = new MediaStream(cameraStream.getVideoTracks());
       camVideo.muted = true;
@@ -63,13 +70,23 @@ export class LiveScreenShareCompositor {
     }
 
     this.cameraVisible = true;
+    this.avatarVisible = true;
     this.running = true;
     this.loop();
     this.outputStream = this.canvas.captureStream(30);
   }
 
+  setAvatarCanvas(canvas: HTMLCanvasElement | null) {
+    this.avatarCanvas = canvas;
+    if (canvas) this.cameraVideo = null;
+  }
+
   setCameraVisible(visible: boolean) {
     this.cameraVisible = visible;
+  }
+
+  setAvatarVisible(visible: boolean) {
+    this.avatarVisible = visible;
   }
 
   getStream(): MediaStream | null {
@@ -101,6 +118,7 @@ export class LiveScreenShareCompositor {
       this.cameraVideo.srcObject = null;
       this.cameraVideo = null;
     }
+    this.avatarCanvas = null;
   }
 
   private loop = () => {
@@ -114,7 +132,7 @@ export class LiveScreenShareCompositor {
     const w = this.width;
     const h = this.height;
 
-    ctx.fillStyle = "#000";
+    ctx.fillStyle = "#0a0a0a";
     ctx.fillRect(0, 0, w, h);
 
     const screen = this.screenVideo;
@@ -122,14 +140,40 @@ export class LiveScreenShareCompositor {
       this.drawVideoContain(ctx, screen, 0, 0, w, h);
     }
 
-    const cam = this.cameraVideo;
-    if (this.cameraVisible && cam && cam.readyState >= 2 && cam.videoWidth > 0) {
-      const pipW = w * 0.22;
-      const pipH = h * 0.24;
-      const pipX = w - pipW - w * 0.025;
-      const pipY = h - pipH - h * 0.04;
-      this.drawCameraPip(ctx, cam, pipX, pipY, pipW, pipH);
+    const avatar = this.avatarCanvas;
+    if (this.avatarVisible && avatar && avatar.width > 0 && avatar.height > 0) {
+      this.drawAvatarVtuberCorner(ctx, avatar, w, h);
+    } else {
+      const cam = this.cameraVideo;
+      if (this.cameraVisible && cam && cam.readyState >= 2 && cam.videoWidth > 0) {
+        const pipW = w * 0.22;
+        const pipH = h * 0.24;
+        const pipX = w - pipW - w * 0.025;
+        const pipY = h - pipH - h * 0.04;
+        this.drawCameraPip(ctx, cam, pipX, pipY, pipW, pipH);
+      }
     }
+  }
+
+  /** 캐치마인드·VTuber 반응 방송 — 화면 우하단 2D 아바타 (투명 PNG) */
+  private drawAvatarVtuberCorner(
+    ctx: CanvasRenderingContext2D,
+    avatar: HTMLCanvasElement,
+    w: number,
+    h: number
+  ) {
+    const targetW = w * 0.34;
+    const scale = targetW / avatar.width;
+    const targetH = avatar.height * scale;
+    const x = w - targetW - w * 0.012;
+    const y = h - targetH + h * 0.04;
+
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.42)";
+    ctx.shadowBlur = 22;
+    ctx.shadowOffsetY = 8;
+    ctx.drawImage(avatar, 0, 0, avatar.width, avatar.height, x, y, targetW, targetH);
+    ctx.restore();
   }
 
   private drawVideoContain(
