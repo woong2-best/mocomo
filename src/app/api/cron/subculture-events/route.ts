@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { syncSubcultureEventsIfDue } from "@/lib/subculture-events";
 
-/** KR/JP 공식 사이트 자동 수집 — Vercel cron 1시간마다 */
+/** KR/JP 공식 사이트 자동 수집 — Vercel cron 매일 (Hobby) + 지도 접속 시 1시간 간격 */
 export async function GET(req: NextRequest) {
   const auth = req.headers.get("authorization");
   const secret = process.env.CRON_SECRET?.trim();

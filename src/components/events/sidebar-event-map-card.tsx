@@ -21,7 +21,7 @@ export function SidebarEventMapCard({ pins }: { pins: MapEventPin[] }) {
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-[10px] text-muted-foreground leading-snug">
-          🇰🇷 코믹월드·지스타 · 🇯🇵 コミケ·ワンフェス·TGS — 공식 사이트 <strong>1시간마다</strong> 자동 수집
+          🇰🇷 코믹월드·지스타 · 🇯🇵 コミケ·ワンフェス·TGS — 공식 사이트 <strong>자동 수집</strong>
         </p>
         <SubcultureEventsMapLazy pins={pins} heightClassName="h-40" interactive={false} />
         <ul className="space-y-1.5">

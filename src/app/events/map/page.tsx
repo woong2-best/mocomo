@@ -32,7 +32,7 @@ export default async function EventsMapPage() {
           서브컬처·애니 행사 지도
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          한국·일본 공식 사이트에서 <strong>1시간마다 자동 수집</strong> · 지도·목록 약 10분마다 갱신
+          공식 사이트 <strong>자동 수집</strong> · 지도 접속·매일 cron 갱신
         </p>
       </div>
 
