@@ -2,20 +2,15 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { AnimeTabs } from "@/components/anime/anime-tabs";
 import { AnimeFollowButton } from "@/components/anime/anime-follow-button";
 import { AnimeViewTracker } from "@/components/anime/anime-view-tracker";
-import { AnimeGoodsPanel } from "@/components/anime/anime-goods-panel";
-import { AnimeCommunityPanel } from "@/components/anime/anime-community-panel";
-import { AnimeWikiArticle } from "@/components/anime/anime-wiki-article";
+import { AnimeDetailTabs } from "@/components/anime/anime-detail-tabs";
 import { getCachedSession, isSiteOperator } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
-
-export const revalidate = 120;
 import { getGenreInfo, genreToParam } from "@/lib/anime-genres";
 import { Pencil, Shield } from "lucide-react";
+
+export const revalidate = 120;
 
 function formatKoreanDate(d: Date) {
   return new Intl.DateTimeFormat("ko-KR", {
@@ -43,32 +38,34 @@ export default async function AnimeDetailPage({
 }) {
   const { slug } = await params;
   const { tab = "info" } = await searchParams;
-  const session = await getCachedSession();
 
-  const anime = await db.anime.findUnique({
-    where: { slug },
-    include: {
-      creator: { select: { id: true, username: true, name: true, image: true } },
-      cosplayers: {
-        take: 24,
-        include: {
-          profile: {
-            select: {
-              stageName: true,
-              user: { select: { username: true, image: true } },
-              photos: { take: 1, select: { url: true } },
+  const [session, anime] = await Promise.all([
+    getCachedSession(),
+    db.anime.findUnique({
+      where: { slug },
+      include: {
+        creator: { select: { id: true, username: true, name: true, image: true } },
+        cosplayers: {
+          take: 24,
+          include: {
+            profile: {
+              select: {
+                stageName: true,
+                user: { select: { username: true, image: true } },
+                photos: { take: 1, select: { url: true } },
+              },
             },
           },
         },
+        goods: { take: 24 },
+        posts: {
+          take: 30,
+          orderBy: { createdAt: "desc" },
+          include: { author: { select: { username: true, image: true } } },
+        },
       },
-      goods: { take: 24 },
-      posts: {
-        take: 30,
-        orderBy: { createdAt: "desc" },
-        include: { author: { select: { username: true, image: true } } },
-      },
-    },
-  });
+    }),
+  ]);
 
   if (!anime) notFound();
 
@@ -162,97 +159,29 @@ export default async function AnimeDetailPage({
         </div>
       </div>
 
-      <AnimeTabs activeTab={tab} slug={slug} showEditLink={canEdit} />
-
-      <div className="p-4 lg:p-6">
-        {tab === "info" && (
-          <div className="space-y-8">
-            <AnimeWikiArticle
-              title={anime.title}
-              titleEn={anime.titleEn}
-              genre={anime.genre}
-              studio={anime.studio}
-              coverUrl={anime.coverUrl}
-              synopsis={anime.synopsis}
-              worldInfo={anime.worldInfo}
-              infobox={anime.infobox}
-              characters={characterNames}
-              tags={anime.tags}
-              updatedAt={anime.updatedAt}
-            />
-            {anime.cosplayers.length > 0 && (
-              <section className="pt-4 border-t border-border/50">
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-lg font-semibold">관련 코스어</h2>
-                  <Link href={`/anime/${slug}?tab=cosplayers`} className="text-sm text-primary hover:underline">
-                    전체 보기 ({anime.cosplayers.length})
-                  </Link>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {anime.cosplayers.slice(0, 6).map((link) => (
-                    <Link
-                      key={link.id}
-                      href={`/cosplay/${link.profile.user.username}`}
-                      className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border border-border/60 hover:bg-muted/40 text-sm"
-                    >
-                      <Avatar className="h-7 w-7">
-                        <AvatarImage src={link.profile.user.image ?? undefined} />
-                        <AvatarFallback>{link.character?.[0] || "?"}</AvatarFallback>
-                      </Avatar>
-                      <span className="font-medium">{link.profile.stageName || link.profile.user.username}</span>
-                      {link.character && (
-                        <span className="text-muted-foreground text-xs">· {link.character}</span>
-                      )}
-                    </Link>
-                  ))}
-                </div>
-              </section>
-            )}
-          </div>
-        )}
-
-        {tab === "cosplayers" && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {anime.cosplayers.length === 0 ? (
-              <p className="text-muted-foreground col-span-full">연결된 코스어가 없습니다.</p>
-            ) : (
-              anime.cosplayers.map((link) => (
-                <Link key={link.id} href={`/cosplay/${link.profile.user.username}`}>
-                  <Card className="overflow-hidden hover:border-primary/40">
-                    {link.profile.photos[0] && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={link.profile.photos[0].url} alt="" className="w-full aspect-square object-cover" />
-                    )}
-                    <CardContent className="p-3 flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={link.profile.user.image} />
-                        <AvatarFallback>{link.character?.[0] || "?"}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium text-sm">{link.profile.stageName || link.profile.user.username}</p>
-                        {link.character && <p className="text-xs text-muted-foreground">{link.character}</p>}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))
-            )}
-          </div>
-        )}
-
-        {tab === "goods" && (
-          <AnimeGoodsPanel animeId={anime.id} slug={slug} goods={anime.goods} canEdit={isLoggedIn} />
-        )}
-
-        {tab === "community" && (
-          <AnimeCommunityPanel
-            animeId={anime.id}
-            slug={slug}
-            posts={anime.posts}
-            isLoggedIn={isLoggedIn}
-          />
-        )}
-      </div>
+      <AnimeDetailTabs
+        slug={slug}
+        initialTab={tab}
+        showEditLink={canEdit}
+        isLoggedIn={isLoggedIn}
+        characterNames={characterNames}
+        cosplayers={anime.cosplayers}
+        goods={anime.goods}
+        posts={anime.posts}
+        anime={{
+          id: anime.id,
+          title: anime.title,
+          titleEn: anime.titleEn,
+          genre: anime.genre,
+          studio: anime.studio,
+          coverUrl: anime.coverUrl,
+          synopsis: anime.synopsis,
+          worldInfo: anime.worldInfo,
+          infobox: anime.infobox,
+          tags: anime.tags,
+          updatedAt: anime.updatedAt.toISOString(),
+        }}
+      />
     </div>
   );
 }
