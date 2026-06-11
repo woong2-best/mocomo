@@ -9,11 +9,10 @@ import {
   Heart,
   MessageCircle,
   Repeat2,
-  Send,
   Bookmark,
   MoreHorizontal,
-  Check,
 } from "lucide-react";
+import { PostShareMenu } from "@/components/post/post-share-menu";
 import { cn } from "@/lib/utils";
 import { formatCompactNumberKo, formatFeedRelativeTime } from "@/lib/format-feed";
 import type { GridPost } from "@/components/feed/feed-post-card";
@@ -39,7 +38,6 @@ export function FeedPhotoPostCard({
   const [likeCount, setLikeCount] = useState(post._count?.likes ?? 0);
   const [repostCount, setRepostCount] = useState(post._count?.reposts ?? 0);
   const [busy, setBusy] = useState<"like" | "repost" | "star" | null>(null);
-  const [shareDone, setShareDone] = useState(false);
   const [actionError, setActionError] = useState("");
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const { data: session, status } = useSession();
@@ -122,25 +120,6 @@ export function FeedPhotoPostCard({
       setActionError(err instanceof Error ? err.message : "리포스트에 실패했습니다.");
     } finally {
       setBusy(null);
-    }
-  }
-
-  async function handleSend(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    setActionError("");
-    const url = `${window.location.origin}/post/${post.id}`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: caption.slice(0, 40) || username, url });
-      } else {
-        await navigator.clipboard.writeText(url);
-        setShareDone(true);
-        window.setTimeout(() => setShareDone(false), 2000);
-      }
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") return;
-      setActionError("공유에 실패했습니다.");
     }
   }
 
@@ -260,18 +239,16 @@ export function FeedPhotoPostCard({
                 </span>
               )}
             </button>
-            <button
-              type="button"
-              onClick={handleSend}
-              className="min-h-9 hover:opacity-70"
-              aria-label={shareDone ? "링크 복사됨" : "공유"}
-            >
-              {shareDone ? (
-                <Check className="h-6 w-6 text-green-500" strokeWidth={1.5} />
-              ) : (
-                <Send className="h-6 w-6" strokeWidth={1.5} />
-              )}
-            </button>
+            <PostShareMenu
+              postId={post.id}
+              authorUsername={username}
+              title={post.title}
+              content={post.content}
+              hasVideo={media.some((m) => m.type === "VIDEO")}
+              size="md"
+              tone="plain"
+              onActionError={setActionError}
+            />
           </div>
           <button
             type="button"

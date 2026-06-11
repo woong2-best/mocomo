@@ -8,7 +8,8 @@ import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, MessageCircle, Share2, Star, Repeat2, Check } from "lucide-react";
+import { Heart, MessageCircle, Star, Repeat2 } from "lucide-react";
+import { PostShareMenu } from "@/components/post/post-share-menu";
 import { formatNumber, cn } from "@/lib/utils";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { userDisplayName } from "@/lib/user-public-select";
@@ -43,7 +44,6 @@ export function FeedTextPostCard({
   const [likeCount, setLikeCount] = useState(post._count?.likes ?? 0);
   const [repostCount, setRepostCount] = useState(post._count?.reposts ?? 0);
   const [busy, setBusy] = useState<"like" | "repost" | "star" | null>(null);
-  const [shareDone, setShareDone] = useState(false);
   const [actionError, setActionError] = useState("");
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -120,25 +120,6 @@ export function FeedTextPostCard({
       setActionError(err instanceof Error ? err.message : "리포스트에 실패했습니다.");
     } finally {
       setBusy(null);
-    }
-  }
-
-  async function handleShare(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    setActionError("");
-    const url = `${window.location.origin}/post/${post.id}`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: post.title || displayName, url });
-      } else {
-        await navigator.clipboard.writeText(url);
-        setShareDone(true);
-        window.setTimeout(() => setShareDone(false), 2000);
-      }
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") return;
-      setActionError("공유에 실패했습니다.");
     }
   }
 
@@ -236,18 +217,14 @@ export function FeedTextPostCard({
               <Repeat2 className="h-3.5 w-3.5 pointer-events-none" />
               <span className="pointer-events-none">{formatNumber(repostCount)}</span>
             </button>
-            <button
-              type="button"
-              onClick={handleShare}
-              className="hover:text-foreground min-h-8 min-w-8 flex items-center justify-center"
-              title={shareDone ? "링크 복사됨" : "공유"}
-            >
-              {shareDone ? (
-                <Check className="h-3.5 w-3.5 text-folk-forest" />
-              ) : (
-                <Share2 className="h-3.5 w-3.5" />
-              )}
-            </button>
+            <PostShareMenu
+              postId={post.id}
+              authorUsername={post.author.username}
+              title={post.title}
+              content={post.content}
+              hasVideo={post.media?.some((m) => m.type === "VIDEO")}
+              onActionError={setActionError}
+            />
           </div>
           <button
             type="button"

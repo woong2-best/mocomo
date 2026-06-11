@@ -53,6 +53,10 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
       <PostDetailCard post={post} locale={locale} />
       <PostDetailActions
         postId={post.id}
+        authorUsername={post.author.username}
+        title={post.title}
+        content={post.content}
+        hasVideo={post.media?.some((m) => m.type === "VIDEO")}
         likeCount={post._count.likes}
         commentCount={post._count.comments}
         repostCount={repostCount}

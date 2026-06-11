@@ -1,10 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, MessageCircle, Share2, ArrowBigUp } from "lucide-react";
+import { Heart, MessageCircle, ArrowBigUp } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
+import { PostShareMenu } from "@/components/post/post-share-menu";
 
 type PostCardProps = {
   post: {
@@ -27,7 +30,7 @@ export function PostCard({ post }: PostCardProps) {
         <div className="flex items-start gap-3">
           <Link href={`/u/${post.author.username}`}>
             <Avatar className="h-10 w-10">
-              <AvatarImage src={post.author.image} />
+              <AvatarImage src={post.author.image ?? undefined} />
               <AvatarFallback>{post.author.username[0]?.toUpperCase()}</AvatarFallback>
             </Avatar>
           </Link>
@@ -98,7 +101,15 @@ export function PostCard({ post }: PostCardProps) {
             <ArrowBigUp className="h-4 w-4" />
             {formatNumber(post._count?.votes ?? 0)}
           </span>
-          <Share2 className="h-4 w-4 hover:text-foreground cursor-pointer ml-auto" />
+          <PostShareMenu
+            postId={post.id}
+            authorUsername={post.author.username}
+            title={post.title}
+            content={post.content}
+            hasVideo={post.media?.some((m) => m.type === "VIDEO")}
+            tone="plain"
+            className="ml-auto"
+          />
         </div>
       </CardContent>
     </Card>

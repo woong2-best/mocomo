@@ -3,7 +3,8 @@ import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, MessageCircle, Share2, Star } from "lucide-react";
+import { Heart, MessageCircle, Star } from "lucide-react";
+import { PostShareMenu } from "@/components/post/post-share-menu";
 import { formatNumber } from "@/lib/utils";
 import type { SupportTierLevel } from "@prisma/client";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
@@ -115,7 +116,14 @@ export function FeedPostCard({ post }: { post: GridPost }) {
               <MessageCircle className="h-3.5 w-3.5" />
               {formatNumber(post._count?.comments ?? 0)}
             </span>
-            <Share2 className="h-3.5 w-3.5 hover:text-foreground" />
+            <PostShareMenu
+              postId={post.id}
+              authorUsername={post.author.username}
+              title={post.title}
+              content={post.content}
+              hasVideo={post.media?.some((m) => m.type === "VIDEO")}
+              tone="plain"
+            />
           </div>
           <Star className="h-4 w-4 text-yellow-500/70" aria-hidden />
         </div>

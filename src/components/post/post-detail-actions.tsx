@@ -4,12 +4,17 @@ import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Heart, MessageCircle, Share2, Star, Repeat2, Check } from "lucide-react";
+import { Heart, MessageCircle, Star, Repeat2 } from "lucide-react";
+import { PostShareMenu } from "@/components/post/post-share-menu";
 import { formatNumber, cn } from "@/lib/utils";
 import { engageStar, postEngage } from "@/lib/post-engage-client";
 
 export function PostDetailActions({
   postId,
+  authorUsername,
+  title,
+  content,
+  hasVideo = false,
   likeCount: initialLikeCount,
   commentCount,
   repostCount: initialRepostCount,
@@ -18,6 +23,10 @@ export function PostDetailActions({
   initialReposted = false,
 }: {
   postId: string;
+  authorUsername: string;
+  title?: string | null;
+  content?: string | null;
+  hasVideo?: boolean;
   likeCount: number;
   commentCount: number;
   repostCount: number;
@@ -31,7 +40,6 @@ export function PostDetailActions({
   const [likeCount, setLikeCount] = useState(initialLikeCount);
   const [repostCount, setRepostCount] = useState(initialRepostCount);
   const [busy, setBusy] = useState<"like" | "repost" | "star" | null>(null);
-  const [shareDone, setShareDone] = useState(false);
   const [actionError, setActionError] = useState("");
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -102,23 +110,6 @@ export function PostDetailActions({
     }
   }
 
-  async function handleShare() {
-    setActionError("");
-    const url = `${window.location.origin}/post/${postId}`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: document.title, url });
-      } else {
-        await navigator.clipboard.writeText(url);
-        setShareDone(true);
-        window.setTimeout(() => setShareDone(false), 2000);
-      }
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") return;
-      setActionError("공유에 실패했습니다.");
-    }
-  }
-
   return (
     <div className="rounded-xl border border-border/60 bg-card px-4 py-3">
       <div className="flex items-center justify-between text-muted-foreground">
@@ -154,18 +145,15 @@ export function PostDetailActions({
             <Repeat2 className="h-4 w-4" />
             <span>{formatNumber(repostCount)}</span>
           </button>
-          <button
-            type="button"
-            onClick={handleShare}
-            className="hover:text-foreground min-h-9 px-1"
-            title={shareDone ? "링크 복사됨" : "공유"}
-          >
-            {shareDone ? (
-              <Check className="h-4 w-4 text-green-600" />
-            ) : (
-              <Share2 className="h-4 w-4" />
-            )}
-          </button>
+          <PostShareMenu
+            postId={postId}
+            authorUsername={authorUsername}
+            title={title}
+            content={content}
+            hasVideo={hasVideo}
+            size="detail"
+            onActionError={setActionError}
+          />
         </div>
         <button
           type="button"
