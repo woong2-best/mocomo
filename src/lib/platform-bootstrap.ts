@@ -2,6 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
 import { ensureEmoticonCatalog } from "@/lib/goods-shop";
+import { ensureAnimeWikiCatalog } from "@/lib/anime-wiki-seeds";
 const PLATFORM_EMAIL = "platform@mocomo.app";
 const PLATFORM_USERNAME = "mocomo_official";
 
@@ -146,6 +147,8 @@ export async function ensurePlatformBootstrap(prisma: PrismaClient) {
   } catch {
     /* 테이블 없으면 market fallback UI 사용 */
   }
+
+  await ensureAnimeWikiCatalog(prisma);
 
   globalBootstrap.mocomoBootstrapped = true;
 }

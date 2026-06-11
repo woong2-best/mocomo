@@ -1,4 +1,4 @@
-import { slugify } from "@/lib/utils";
+import { animeSlugFromTitle } from "@/lib/utils";
 
 export type AnimeRevisionSnapshot = {
   title: string;
@@ -40,5 +40,16 @@ export function animeToSnapshot(anime: {
 }
 
 export function wikiLinkSlug(title: string): string {
-  return slugify(title.trim()) || encodeURIComponent(title.trim());
+  return animeSlugFromTitle(title);
+}
+
+export function wikiHeadingId(text: string): string {
+  return (
+    text
+      .toLowerCase()
+      .replace(/\[\[([^|\]]+\|)?([^\]]+)\]\]/g, "$2")
+      .replace(/[^\w가-힣\s-]/g, "")
+      .trim()
+      .replace(/\s+/g, "-") || "section"
+  );
 }

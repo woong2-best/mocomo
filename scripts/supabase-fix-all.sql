@@ -1104,3 +1104,9 @@ EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 -- 완료 후 터미널: npx prisma db push && npm run db:seed
+
+-- =============================================================================
+-- Y) 애니 위키 slug 복구 (한글 제목 → 빈 slug → /anime/ 허브로 튕김)
+-- 앱 배포 시 ensureAnimeWikiCatalog / repairBrokenAnimeSlugs 가 자동 처리합니다.
+-- 수동 확인: SELECT id, slug, title, "titleEn" FROM "Anime" WHERE slug = '' OR slug !~ '^[a-zA-Z0-9-]{2,}$';
+-- =============================================================================

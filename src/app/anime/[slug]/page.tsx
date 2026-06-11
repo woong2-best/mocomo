@@ -9,7 +9,7 @@ import { AnimeFollowButton } from "@/components/anime/anime-follow-button";
 import { AnimeViewTracker } from "@/components/anime/anime-view-tracker";
 import { AnimeGoodsPanel } from "@/components/anime/anime-goods-panel";
 import { AnimeCommunityPanel } from "@/components/anime/anime-community-panel";
-import { WikiContent } from "@/components/anime/wiki-content";
+import { AnimeWikiArticle } from "@/components/anime/anime-wiki-article";
 import { getCachedSession, isSiteOperator } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
 
@@ -166,41 +166,23 @@ export default async function AnimeDetailPage({
 
       <div className="p-4 lg:p-6">
         {tab === "info" && (
-          <div className="space-y-6 prose prose-invert max-w-none">
-            {anime.studio && (
-              <section>
-                <h2 className="text-lg font-semibold text-neon-cyan">제작사</h2>
-                <p className="text-sm">{anime.studio}</p>
-              </section>
-            )}
-            {anime.synopsis && (
-              <section>
-                <h2 className="text-lg font-semibold">줄거리</h2>
-                <WikiContent source={anime.synopsis} className="text-sm text-muted-foreground" />
-              </section>
-            )}
-            {anime.worldInfo && (
-              <section>
-                <h2 className="text-lg font-semibold">세계관</h2>
-                <WikiContent source={anime.worldInfo} className="text-sm text-muted-foreground" />
-              </section>
-            )}
-            {characterNames.length > 0 && (
-              <section>
-                <h2 className="text-lg font-semibold">등장인물</h2>
-                <ul className="flex flex-wrap gap-2 mt-2">
-                  {characterNames.map((name) => (
-                    <li key={name} className="text-sm px-3 py-1 rounded-full bg-muted/50">
-                      {name}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
+          <div className="space-y-8">
+            <AnimeWikiArticle
+              title={anime.title}
+              titleEn={anime.titleEn}
+              genre={anime.genre}
+              studio={anime.studio}
+              coverUrl={anime.coverUrl}
+              synopsis={anime.synopsis}
+              worldInfo={anime.worldInfo}
+              characters={characterNames}
+              tags={anime.tags}
+              updatedAt={anime.updatedAt}
+            />
             {anime.cosplayers.length > 0 && (
-              <section>
+              <section className="pt-4 border-t border-border/50">
                 <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-lg font-semibold">코스어</h2>
+                  <h2 className="text-lg font-semibold">관련 코스어</h2>
                   <Link href={`/anime/${slug}?tab=cosplayers`} className="text-sm text-primary hover:underline">
                     전체 보기 ({anime.cosplayers.length})
                   </Link>
@@ -225,13 +207,6 @@ export default async function AnimeDetailPage({
                 </div>
               </section>
             )}
-            <div className="flex flex-wrap gap-2">
-              {anime.tags.map((t) => (
-                <span key={t} className="text-xs px-2 py-1 rounded-full bg-primary/20">
-                  #{t}
-                </span>
-              ))}
-            </div>
           </div>
         )}
 

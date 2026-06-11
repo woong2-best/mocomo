@@ -12,10 +12,18 @@ import {
   getCachedPopularAnime,
   getCachedRecentAnime,
 } from "@/lib/cached-data";
+import { repairBrokenAnimeSlugs } from "@/lib/anime-wiki-seeds";
+import { db } from "@/lib/db";
 
 export const revalidate = 120;
 
 export default async function AnimeHubPage() {
+  try {
+    await repairBrokenAnimeSlugs(db);
+  } catch {
+    /* DB 미연결 시 무시 */
+  }
+
   let counts: Awaited<ReturnType<typeof getCachedAnimeGenreCounts>> = [];
   let popular: Awaited<ReturnType<typeof getCachedPopularAnime>> = [];
   let recent: Awaited<ReturnType<typeof getCachedRecentAnime>> = [];

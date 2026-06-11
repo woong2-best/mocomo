@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { genreFromParam, getGenreInfo } from "@/lib/anime-genres";
+import { animeSlugFromTitle, isValidAnimeSlug } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Plus } from "lucide-react";
@@ -93,8 +94,12 @@ export default async function AnimeGenreListPage({
             </Link>
           </p>
         ) : (
-          animes.map((a) => (
-            <Link key={a.id} href={`/anime/${a.slug}`}>
+          animes.map((a) => {
+            const href = isValidAnimeSlug(a.slug)
+              ? `/anime/${a.slug}`
+              : `/anime/${animeSlugFromTitle(a.title, a.titleEn)}`;
+            return (
+            <Link key={a.id} href={href}>
               <Card className="overflow-hidden hover:border-primary/40 h-full rounded-2xl">
                 {a.coverUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -111,7 +116,8 @@ export default async function AnimeGenreListPage({
                 </CardContent>
               </Card>
             </Link>
-          ))
+            );
+          })
         )}
       </div>
     </div>

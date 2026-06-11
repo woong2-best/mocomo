@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { isSiteOperator, requireAuth, requireAdmin } from "@/lib/auth";
-import { slugify } from "@/lib/utils";
+import { animeSlugFromTitle, isValidAnimeSlug } from "@/lib/utils";
 import { AnimeGenre, UserRole, type Prisma } from "@prisma/client";
 import { z } from "zod";
 import { animeToSnapshot, type AnimeRevisionSnapshot } from "@/lib/anime-revision";
@@ -82,7 +82,10 @@ export async function createAnime(data: z.infer<typeof animeSchema>) {
   const { title, titleEn, genre, synopsis, studio, worldInfo, coverUrl, bannerUrl, charactersText, tags } =
     parsed.data;
 
-  let slug = slugify(title);
+  let slug = animeSlugFromTitle(title, titleEn);
+  if (!isValidAnimeSlug(slug)) {
+    return { error: "글 주소(slug)를 만들 수 없습니다. 영문 부제를 입력해 주세요." };
+  }
   const exists = await db.anime.findUnique({ where: { slug } });
   if (exists) slug = `${slug}-${Date.now().toString(36)}`;
 

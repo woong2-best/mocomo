@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { wikiLinkSlug } from "@/lib/anime-revision";
+import { wikiHeadingId, wikiLinkSlug } from "@/lib/anime-revision";
 
 type FootnoteMap = Map<string, string>;
 
@@ -116,7 +116,15 @@ function CollapseBlock({ title, body }: { title: string; body: string }) {
   );
 }
 
-export function WikiContent({ source, className }: { source: string; className?: string }) {
+export function WikiContent({
+  source,
+  className,
+  headingIdPrefix = "w",
+}: {
+  source: string;
+  className?: string;
+  headingIdPrefix?: string;
+}) {
   const { body, notes } = parseFootnotes(source);
   const blocks = body.split(/\n{2,}/);
   const rendered: React.ReactNode[] = [];
@@ -162,10 +170,23 @@ export function WikiContent({ source, className }: { source: string; className?:
       return;
     }
 
-    if (trimmed.startsWith("# ")) {
+    if (trimmed.startsWith("## ")) {
+      const label = trimmed.slice(3);
+      const id = `${headingIdPrefix}-${wikiHeadingId(label)}`;
       rendered.push(
-        <h3 key={`h-${bi}`} className="text-base font-bold mt-4 mb-1">
-          {renderInline(trimmed.slice(2), notes, `h-${bi}`)}
+        <h2 key={`h2-${bi}`} id={id} className="text-lg font-bold mt-5 mb-2 scroll-mt-24">
+          {renderInline(label, notes, `h2-${bi}`)}
+        </h2>
+      );
+      return;
+    }
+
+    if (trimmed.startsWith("# ")) {
+      const label = trimmed.slice(2);
+      const id = `${headingIdPrefix}-${wikiHeadingId(label)}`;
+      rendered.push(
+        <h3 key={`h-${bi}`} id={id} className="text-base font-bold mt-4 mb-1 scroll-mt-24">
+          {renderInline(label, notes, `h-${bi}`)}
         </h3>
       );
       return;

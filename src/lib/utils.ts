@@ -14,17 +14,39 @@ export function slugify(text: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+function hashSlug(prefix: string, source: string): string {
+  let hash = 0;
+  for (let i = 0; i < source.length; i++) {
+    hash = (hash * 31 + source.charCodeAt(i)) >>> 0;
+  }
+  return `${prefix}-${hash.toString(36)}`;
+}
+
 /** 한글 등 비라틴 태그명 → 고유 slug */
 export function tagSlugFromName(name: string): string {
   const base = slugify(name);
   if (base.length >= 2) return base;
   const trimmed = name.trim();
   if (!trimmed) return "";
-  let hash = 0;
-  for (let i = 0; i < trimmed.length; i++) {
-    hash = (hash * 31 + trimmed.charCodeAt(i)) >>> 0;
+  return hashSlug("t", trimmed);
+}
+
+/** 애니 위키 글 slug — 영문 부제 우선, 한글 제목은 해시 fallback */
+export function animeSlugFromTitle(title: string, titleEn?: string | null): string {
+  const en = titleEn?.trim();
+  if (en) {
+    const fromEn = slugify(en);
+    if (fromEn.length >= 2) return fromEn;
   }
-  return `t-${hash.toString(36)}`;
+  const fromTitle = slugify(title);
+  if (fromTitle.length >= 2) return fromTitle;
+  const source = en || title.trim();
+  if (!source) return hashSlug("anime", String(Date.now()));
+  return hashSlug("a", source);
+}
+
+export function isValidAnimeSlug(slug: string): boolean {
+  return slug.length >= 2 && /^[a-z0-9-]+$/i.test(slug);
 }
 
 export function calcHotScore(likes: number, comments: number, createdAt: Date): number {
