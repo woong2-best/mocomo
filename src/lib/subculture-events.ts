@@ -4,18 +4,22 @@ import { kakaoSearchPlace } from "@/lib/kakao-local";
 import {
   SUBCULTURE_EVENT_SEEDS,
   SUBCULTURE_EVENT_CATEGORY_LABELS,
+  type SubcultureEventCountry,
 } from "@/lib/subculture-event-seeds";
+import { fetchAllSubcultureEvents } from "@/lib/subculture-event-fetch";
+import type { FetchedSubcultureEvent } from "@/lib/subculture-event-fetch/types";
 
 /** DB 메타 행 — 지도에 노출되지 않음 */
 export const SUBCULTURE_SYNC_META_KEY = "__sync_meta__";
 
 export const SUBCULTURE_MAP_PINS_CACHE_TAG = "subculture-event-pins";
 
-const SYNC_INTERVAL_MS = 60 * 60 * 1000;
+const SYNC_INTERVAL_MS = 60 * 60 * 1000; // 1시간
 
 export type MapEventPin = {
   id: string;
   title: string;
+  country: SubcultureEventCountry;
   category: string;
   categoryLabel: string;
   venueName: string | null;
@@ -28,21 +32,38 @@ export type MapEventPin = {
   source: string;
 };
 
-function mapSeedsToPins(limit: number): MapEventPin[] {
-  return SUBCULTURE_EVENT_SEEDS.slice(0, limit).map((s, i) => ({
-    id: `seed-${s.externalKey}-${i}`,
-    title: s.title,
-    category: s.category,
-    categoryLabel: SUBCULTURE_EVENT_CATEGORY_LABELS[s.category] ?? s.category,
-    venueName: s.venueName,
-    description: s.description ?? null,
-    lat: s.lat,
-    lng: s.lng,
-    startsAt: s.startsAt,
-    endsAt: s.endsAt,
-    sourceUrl: s.officialNoticeUrl ?? s.sourceUrl,
-    source: "official",
-  }));
+function inferEventCountry(
+  lat: number,
+  lng: number,
+  externalKey?: string | null
+): SubcultureEventCountry {
+  if (
+    externalKey?.startsWith("official-jp-") ||
+    externalKey?.startsWith("auto-comiket") ||
+    externalKey?.startsWith("auto-wonfes") ||
+    externalKey?.startsWith("auto-kyomaf") ||
+    externalKey?.startsWith("auto-tgs") ||
+    externalKey?.startsWith("auto-comicw") ||
+    externalKey?.startsWith("auto-gstar") ||
+    externalKey?.startsWith("auto-seoulpopcon")
+  ) {
+    return "jp";
+  }
+  return lng >= 132 ? "jp" : "kr";
+}
+
+export function mapLinkForEvent(pin: MapEventPin): { label: string; url: string } {
+  if (pin.country === "jp") {
+    const q = encodeURIComponent(`${pin.venueName ?? pin.title} ${pin.lat},${pin.lng}`);
+    return {
+      label: "Google 지도",
+      url: `https://www.google.com/maps/search/?api=1&query=${q}`,
+    };
+  }
+  return {
+    label: "카카오맵",
+    url: `https://map.kakao.com/link/map/${pin.lat},${pin.lng}`,
+  };
 }
 
 function mapRowsToPins(
@@ -58,6 +79,7 @@ function mapRowsToPins(
     endsAt: Date | null;
     sourceUrl: string | null;
     source: string;
+    externalKey: string | null;
   }[]
 ): MapEventPin[] {
   return rows
@@ -65,6 +87,7 @@ function mapRowsToPins(
     .map((r) => ({
       id: r.id,
       title: r.title,
+      country: inferEventCountry(r.lat!, r.lng!, r.externalKey),
       category: r.category,
       categoryLabel:
         SUBCULTURE_EVENT_CATEGORY_LABELS[r.category] ?? r.category,
@@ -79,10 +102,10 @@ function mapRowsToPins(
     }));
 }
 
-/** DB만 조회 — 동기화·지오코딩 없음 (지도·사이드바용) */
+/** DB 조회 — cron이 1시간마다 공식 사이트에서 자동 수집 반영 */
 export async function querySubcultureMapPins(limit: number): Promise<MapEventPin[]> {
+  const now = new Date();
   try {
-    const now = new Date();
     const rows = await db.subcultureEventPin.findMany({
       where: {
         externalKey: { not: SUBCULTURE_SYNC_META_KEY },
@@ -95,53 +118,75 @@ export async function querySubcultureMapPins(limit: number): Promise<MapEventPin
     });
 
     const pins = mapRowsToPins(rows);
-    return pins.length > 0 ? pins : mapSeedsToPins(limit);
+    if (pins.length > 0) return pins;
   } catch {
-    return mapSeedsToPins(limit);
+    /* fall through */
   }
+
+  const { events } = await fetchAllSubcultureEvents();
+  return events.slice(0, limit).map((e, i) => ({
+    id: `auto-fallback-${e.externalKey}-${i}`,
+    title: e.title,
+    country: e.country,
+    category: e.category,
+    categoryLabel: SUBCULTURE_EVENT_CATEGORY_LABELS[e.category] ?? e.category,
+    venueName: e.venueName,
+    description: e.description ?? null,
+    lat: e.lat,
+    lng: e.lng,
+    startsAt: e.startsAt,
+    endsAt: e.endsAt,
+    sourceUrl: e.officialNoticeUrl ?? e.sourceUrl,
+    source: e.externalKey.startsWith("auto-") ? "auto" : "official",
+  }));
 }
 
 /** 캐시된 핀 목록 (읽기 전용, 빠름) */
-export async function getSubcultureMapPins(limit = 32): Promise<MapEventPin[]> {
+export async function getSubcultureMapPins(limit = 48): Promise<MapEventPin[]> {
+  const sync = await syncSubcultureEventsIfDue({ geocodeMax: 3 });
+  if (sync.synced) return querySubcultureMapPins(limit);
+
   return unstable_cache(
     async () => querySubcultureMapPins(limit),
-    ["subculture-map-pins-v2", String(limit)],
+    ["subculture-map-pins-v4", String(limit)],
     { revalidate: 600, tags: [SUBCULTURE_MAP_PINS_CACHE_TAG] }
   )();
 }
 
-export async function ensureSubcultureEventSeeds(): Promise<void> {
+export async function upsertFetchedSubcultureEvents(
+  events: FetchedSubcultureEvent[]
+): Promise<number> {
   await Promise.all(
-    SUBCULTURE_EVENT_SEEDS.map((s) =>
+    events.map((e) =>
       db.subcultureEventPin
         .upsert({
-          where: { externalKey: s.externalKey },
+          where: { externalKey: e.externalKey },
           create: {
-            externalKey: s.externalKey,
-            title: s.title,
-            description: s.description,
-            category: s.category,
-            venueName: s.venueName,
-            address: s.address,
-            lat: s.lat,
-            lng: s.lng,
-            startsAt: new Date(s.startsAt),
-            endsAt: new Date(s.endsAt),
-            sourceUrl: s.officialNoticeUrl ?? s.sourceUrl,
-            source: "official",
+            externalKey: e.externalKey,
+            title: e.title,
+            description: e.description,
+            category: e.category,
+            venueName: e.venueName,
+            address: e.address,
+            lat: e.lat,
+            lng: e.lng,
+            startsAt: new Date(e.startsAt),
+            endsAt: new Date(e.endsAt),
+            sourceUrl: e.officialNoticeUrl ?? e.sourceUrl,
+            source: e.externalKey.startsWith("auto-") ? "auto" : "official",
           },
           update: {
-            title: s.title,
-            description: s.description,
-            category: s.category,
-            venueName: s.venueName,
-            address: s.address,
-            lat: s.lat,
-            lng: s.lng,
-            startsAt: new Date(s.startsAt),
-            endsAt: new Date(s.endsAt),
-            sourceUrl: s.officialNoticeUrl ?? s.sourceUrl,
-            source: "official",
+            title: e.title,
+            description: e.description,
+            category: e.category,
+            venueName: e.venueName,
+            address: e.address,
+            lat: e.lat,
+            lng: e.lng,
+            startsAt: new Date(e.startsAt),
+            endsAt: new Date(e.endsAt),
+            sourceUrl: e.officialNoticeUrl ?? e.sourceUrl,
+            source: e.externalKey.startsWith("auto-") ? "auto" : "official",
           },
         })
         .catch(() => undefined)
@@ -149,19 +194,29 @@ export async function ensureSubcultureEventSeeds(): Promise<void> {
   );
 
   try {
-    const validKeys = [
-      ...SUBCULTURE_EVENT_SEEDS.map((s) => s.externalKey),
-      SUBCULTURE_SYNC_META_KEY,
-    ];
+    const validKeys = [...events.map((e) => e.externalKey), SUBCULTURE_SYNC_META_KEY];
     await db.subcultureEventPin.deleteMany({
       where: {
-        source: { in: ["seed", "official"] },
+        source: { in: ["seed", "official", "auto"] },
         externalKey: { notIn: validKeys },
       },
     });
   } catch {
     /* ignore */
   }
+
+  return events.length;
+}
+
+/** @deprecated upsertFetchedSubcultureEvents 사용 */
+export async function ensureSubcultureEventSeeds(): Promise<void> {
+  await upsertFetchedSubcultureEvents(
+    SUBCULTURE_EVENT_SEEDS.map((s) => ({
+      ...s,
+      country: s.country ?? "kr",
+      sourceId: "seed",
+    }))
+  );
 }
 
 async function touchSubcultureSyncMeta(): Promise<void> {
@@ -197,19 +252,25 @@ async function isSubcultureSyncDue(): Promise<boolean> {
   }
 }
 
-/** 시드 반영 + 지오코딩 — cron 전용 (페이지 로드에서 호출하지 않음) */
+/** 공식 사이트 자동 수집 + DB 반영 — cron 1시간마다 */
 export async function syncSubcultureEventsIfDue(options?: {
   force?: boolean;
   geocodeMax?: number;
-}): Promise<{ synced: boolean; geocoded: number }> {
+}): Promise<{
+  synced: boolean;
+  geocoded: number;
+  fetched: number;
+  fetchErrors: string[];
+}> {
   const force = options?.force ?? false;
-  const geocodeMax = options?.geocodeMax ?? 3;
+  const geocodeMax = options?.geocodeMax ?? 5;
 
   if (!force && !(await isSubcultureSyncDue())) {
-    return { synced: false, geocoded: 0 };
+    return { synced: false, geocoded: 0, fetched: 0, fetchErrors: [] };
   }
 
-  await ensureSubcultureEventSeeds();
+  const { events, results } = await fetchAllSubcultureEvents();
+  await upsertFetchedSubcultureEvents(events);
   const geocoded = await geocodePendingSubcultureEvents(geocodeMax);
   await touchSubcultureSyncMeta();
 
@@ -220,7 +281,12 @@ export async function syncSubcultureEventsIfDue(options?: {
     /* ignore */
   }
 
-  return { synced: true, geocoded };
+  return {
+    synced: true,
+    geocoded,
+    fetched: events.length,
+    fetchErrors: results.filter((r) => r.error).map((r) => `${r.sourceId}: ${r.error}`),
+  };
 }
 
 /** 좌표 없는 행사 — 카카오 로컬로 보강 (cron·수동) */

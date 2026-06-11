@@ -21,13 +21,16 @@ export function SidebarEventMapCard({ pins }: { pins: MapEventPin[] }) {
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-[10px] text-muted-foreground leading-snug">
-          지스타·팝콘·코믹월드 등 공식 일정 · 약 1시간마다 자동 반영
+          🇰🇷 코믹월드·지스타 · 🇯🇵 コミケ·ワンフェス·TGS — 공식 사이트 <strong>1시간마다</strong> 자동 수집
         </p>
         <SubcultureEventsMapLazy pins={pins} heightClassName="h-40" interactive={false} />
         <ul className="space-y-1.5">
           {preview.map((p) => (
             <li key={p.id} className="text-xs min-w-0">
-              <span className="font-medium text-foreground truncate block">{p.title}</span>
+              <span className="font-medium text-foreground truncate block">
+                {p.country === "jp" ? "🇯🇵 " : "🇰🇷 "}
+                {p.title}
+              </span>
               <span className="text-muted-foreground">
                 {format(new Date(p.startsAt), "M월 d일", { locale: ko })}
                 {p.venueName ? ` · ${p.venueName}` : ""}

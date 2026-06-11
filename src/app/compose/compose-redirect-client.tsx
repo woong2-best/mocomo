@@ -18,7 +18,13 @@ export function ComposeRedirectClient() {
     handled.current = true;
 
     const community = searchParams.get("community") ?? undefined;
-    openCompose({ communityId: community });
+    const text = searchParams.get("text") ?? undefined;
+    const title = searchParams.get("title") ?? undefined;
+    openCompose({
+      communityId: community,
+      initialContent: text ?? undefined,
+      initialTitle: title ?? undefined,
+    });
 
     const from = searchParams.get("from");
     const target = from && from.startsWith("/") ? from : "/";

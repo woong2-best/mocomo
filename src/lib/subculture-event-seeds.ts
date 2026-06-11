@@ -7,8 +7,11 @@
  * - 서울일러스트코리아 / 서일페 / 일러스타 / AGF / BIAF
  */
 
+export type SubcultureEventCountry = "kr" | "jp";
+
 export type SubcultureEventSeed = {
   externalKey: string;
+  country?: SubcultureEventCountry;
   title: string;
   description?: string;
   category: "comic" | "anime" | "cosplay" | "goods" | "other";
@@ -201,6 +204,93 @@ export const SUBCULTURE_EVENT_SEEDS: SubcultureEventSeed[] = [
     endsAt: "2026-09-27T18:00:00+09:00",
     sourceUrl: "https://www.bgwf.co.kr/",
   },
+
+  // —— 일본 (공식·공개 일정) ——
+  {
+    externalKey: "official-jp-wonfes-2026-summer",
+    country: "jp",
+    title: "ワンダーフェスティバル2026[夏] (원피스)",
+    description: "프라모델·피규어·가레키지 즉売. 7/26(日) 10:00~17:00",
+    category: "goods",
+    venueName: "幕張メッセ 国際展示場 1~8ホール",
+    address: "千葉県千葉市美浜区中瀬2-1",
+    lat: 35.6481,
+    lng: 140.0347,
+    startsAt: "2026-07-26T10:00:00+09:00",
+    endsAt: "2026-07-26T17:00:00+09:00",
+    sourceUrl: "https://wonfes.jp/",
+  },
+  {
+    externalKey: "official-jp-comiket-108",
+    country: "jp",
+    title: "Comic Market 108 (夏コミケ C108)",
+    description: "세계 최대 동인即売会 · 50주년 여름 · 8/15~16",
+    category: "comic",
+    venueName: "東京ビッグサイト",
+    address: "東京都江東区有明3-11-1",
+    lat: 35.6312,
+    lng: 139.7967,
+    startsAt: "2026-08-15T10:00:00+09:00",
+    endsAt: "2026-08-16T17:00:00+09:00",
+    sourceUrl: "https://www.comiket.co.jp/",
+    officialNoticeUrl: "https://www.comiket.co.jp/info-a/TAFO/C108TAFO/index.html",
+  },
+  {
+    externalKey: "official-jp-kyomaf-2026",
+    country: "jp",
+    title: "京都国際マンガ・アニメフェア2026 (京まふ)",
+    description: "서일본 최대급 · 15회 · 9/19~20 · みやこめっせ",
+    category: "anime",
+    venueName: "みやこめっせ / ロームシアター京都",
+    address: "京都府京都市左京区岡崎成勝寺町9-1",
+    lat: 35.0178,
+    lng: 135.7815,
+    startsAt: "2026-09-19T09:00:00+09:00",
+    endsAt: "2026-09-20T16:00:00+09:00",
+    sourceUrl: "https://kyomaf.kyoto/",
+  },
+  {
+    externalKey: "official-jp-tgs-2026",
+    country: "jp",
+    title: "東京ゲームショウ2026 (TGS)",
+    description: "30주년 · 5일간 · 일반 공개 9/19(土)~21(月·祝)",
+    category: "anime",
+    venueName: "幕張メッセ",
+    address: "千葉県千葉市美浜区中瀬2-1",
+    lat: 35.6481,
+    lng: 140.0347,
+    startsAt: "2026-09-19T09:30:00+09:00",
+    endsAt: "2026-09-21T16:00:00+09:00",
+    sourceUrl: "https://tgs.cesa.or.jp/",
+  },
+  {
+    externalKey: "official-jp-comiket-109",
+    country: "jp",
+    title: "Comic Market 109 (冬コミケ C109)",
+    description: "2019년 이후 3일 개최 · 12/29~31 · 東京ビッグサイト",
+    category: "comic",
+    venueName: "東京ビッグサイト",
+    address: "東京都江東区有明3-11-1",
+    lat: 35.6312,
+    lng: 139.7967,
+    startsAt: "2026-12-29T10:00:00+09:00",
+    endsAt: "2026-12-31T17:00:00+09:00",
+    sourceUrl: "https://www.comiket.co.jp/",
+  },
+  {
+    externalKey: "official-jp-animejapan-2027",
+    country: "jp",
+    title: "AnimeJapan 2027 (예정)",
+    description: "세계 최대 애니 이벤트 · 3월 말 도쿄빅사이트 관례 · 공식 일정 발표 시 갱신",
+    category: "anime",
+    venueName: "東京ビッグサイト",
+    address: "東京都江東区有明3-11-1",
+    lat: 35.6312,
+    lng: 139.7967,
+    startsAt: "2027-03-27T09:00:00+09:00",
+    endsAt: "2027-03-29T17:00:00+09:00",
+    sourceUrl: "https://www.anime-japan.jp/",
+  },
 ];
 
 export const SUBCULTURE_EVENT_CATEGORY_LABELS: Record<string, string> = {
@@ -209,4 +299,9 @@ export const SUBCULTURE_EVENT_CATEGORY_LABELS: Record<string, string> = {
   cosplay: "코스프레",
   goods: "굿즈·일러스트",
   other: "기타",
+};
+
+export const SUBCULTURE_EVENT_COUNTRY_LABELS: Record<SubcultureEventCountry, string> = {
+  kr: "한국",
+  jp: "일본",
 };

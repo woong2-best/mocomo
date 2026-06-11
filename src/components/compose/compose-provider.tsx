@@ -17,7 +17,11 @@ import { ComposeForm } from "@/components/compose/compose-form";
 import { composeSheetRegionClass } from "@/lib/compose-sheet-layout";
 import { cn } from "@/lib/utils";
 
-type ComposeOptions = { communityId?: string };
+type ComposeOptions = {
+  communityId?: string;
+  initialContent?: string;
+  initialTitle?: string;
+};
 
 type ComposeContextValue = {
   open: boolean;
@@ -46,12 +50,16 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
   const [communityId, setCommunityId] = useState<string | undefined>();
+  const [initialContent, setInitialContent] = useState<string | undefined>();
+  const [initialTitle, setInitialTitle] = useState<string | undefined>();
   const [formKey, setFormKey] = useState(0);
   const [successOpen, setSuccessOpen] = useState(false);
   const [pendingOpen, setPendingOpen] = useState<ComposeOptions | null>(null);
 
   const showComposeSheet = useCallback((opts?: ComposeOptions) => {
     setCommunityId(opts?.communityId);
+    setInitialContent(opts?.initialContent);
+    setInitialTitle(opts?.initialTitle);
     setFormKey((k) => k + 1);
     setOpen(true);
   }, []);
@@ -157,6 +165,8 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
               <ComposeForm
                 key={formKey}
                 communityId={communityId}
+                initialContent={initialContent}
+                initialTitle={initialTitle}
                 variant="sheet"
                 onPosted={handlePosted}
                 onNeedSignIn={() => {

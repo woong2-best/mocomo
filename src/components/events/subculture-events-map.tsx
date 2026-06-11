@@ -83,10 +83,11 @@ export function SubcultureEventsMap({
 
         const dateStr = format(new Date(pin.startsAt), "M/d", { locale: ko });
         const official =
-          pin.source === "official"
-            ? '<span style="font-size:10px;color:#7c3aed">공식 일정</span><br/>'
+          pin.source === "official" || pin.source === "auto"
+            ? '<span style="font-size:10px;color:#7c3aed">공식 자동</span><br/>'
             : "";
-        const popup = `${official}<strong>${pin.title}</strong><br/><span style="font-size:11px">${dateStr} · ${pin.venueName ?? ""}</span>`;
+        const countryLabel = pin.country === "jp" ? "🇯🇵" : "🇰🇷";
+        const popup = `${official}<strong>${pin.title}</strong><br/><span style="font-size:11px">${countryLabel} ${dateStr} · ${pin.venueName ?? ""}</span>`;
         marker.bindPopup(popup, { closeButton: false, maxWidth: 200 });
 
         if (onPinClick) {
@@ -97,11 +98,16 @@ export function SubcultureEventsMap({
       }
 
       if (bounds.length === 1) {
-        map.setView(bounds[0], 12);
+        map.setView(bounds[0], pins[0].country === "jp" ? 11 : 12);
       } else if (bounds.length > 1) {
-        map.fitBounds(bounds, { padding: [24, 24], maxZoom: 11 });
+        const lngs = bounds.map((b) => b[1]);
+        const lngSpan = Math.max(...lngs) - Math.min(...lngs);
+        map.fitBounds(bounds, {
+          padding: [32, 32],
+          maxZoom: lngSpan > 8 ? 5 : lngSpan > 4 ? 6 : 10,
+        });
       } else {
-        map.setView([36.5, 127.8], 7);
+        map.setView([36.2, 133.5], 5);
       }
 
       mapRef.current = map;

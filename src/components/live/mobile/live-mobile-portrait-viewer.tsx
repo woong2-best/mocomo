@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { Check, ChevronDown, Eye, Send, X } from "lucide-react";
+import { ChevronDown, Eye, X } from "lucide-react";
+import { LiveShareMenu } from "@/components/live/live-share-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LiveViewerPlayer } from "@/components/live/live-viewer-player";
 import { LiveRoomFollowButton } from "@/components/live/live-room-follow-button";
@@ -33,6 +33,7 @@ export type LiveMobilePortraitViewerProps = {
 /** 시청자 — 모바일 세로 인스타 라이브 UI (데스크탑과 분리) */
 export function LiveMobilePortraitViewer({
   channelId,
+  channelName,
   hostUserId,
   hostUsername,
   hostDisplayName,
@@ -47,18 +48,7 @@ export function LiveMobilePortraitViewer({
   isLiveOnAir,
 }: LiveMobilePortraitViewerProps) {
   const router = useRouter();
-  const [copied, setCopied] = useState(false);
   const { chatOverlayEnabled } = useLiveChat();
-
-  function share() {
-    const url =
-      typeof window !== "undefined"
-        ? `${window.location.origin}/voice/${channelId}`
-        : `/voice/${channelId}`;
-    void navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
 
   return (
     <div className="live-mobile-portrait-root fixed inset-0 z-[110] bg-black text-white">
@@ -110,14 +100,7 @@ export function LiveMobilePortraitViewer({
         </span>
 
         <div className="shrink-0 flex items-center gap-1">
-          <button
-            type="button"
-            onClick={share}
-            className="h-9 w-9 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center"
-            aria-label="공유"
-          >
-            {copied ? <Check className="h-4 w-4" /> : <Send className="h-4 w-4" />}
-          </button>
+          <LiveShareMenu channelId={channelId} channelName={channelName} variant="icon" />
           <button
             type="button"
             onClick={() => router.push("/live")}

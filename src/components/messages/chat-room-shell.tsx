@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import type { SupportTierLevel } from "@prisma/client";
 import { ChatSocketProvider } from "@/components/messages/chat-socket-context";
 import { ChatHeader } from "@/components/messages/chat-header";
@@ -74,14 +75,16 @@ export function ChatRoomShell({
             joinCode={groupMeta.joinCode}
           />
         ) : null}
-        <ChatRoomClient
-          roomId={roomId}
-          userId={userId}
-          username={username}
-          userImage={userImage}
-          userSupportTier={userSupportTier}
-          initialMessages={initialMessages}
-        />
+        <Suspense fallback={<div className="flex-1 min-h-0 bg-muted/20 animate-pulse" />}>
+          <ChatRoomClient
+            roomId={roomId}
+            userId={userId}
+            username={username}
+            userImage={userImage}
+            userSupportTier={userSupportTier}
+            initialMessages={initialMessages}
+          />
+        </Suspense>
       </div>
     </ChatSocketProvider>
   );

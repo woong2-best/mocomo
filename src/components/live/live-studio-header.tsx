@@ -91,7 +91,7 @@ export function LiveStudioHeader({
             initialFollowing={!!hostFollowing}
           />
         )}
-        <LiveShareButton channelId={channelId} />
+        <LiveShareButton channelId={channelId} channelName={channelName} />
         {!isHost && hostUsername && paymentsEnabled && (
           <TipCreatorDialog
             creatorId={hostUserId}

@@ -1,15 +1,26 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getOrCreateDM } from "@/actions/chat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronLeft, Search, Users } from "lucide-react";
+import { ChevronLeft, Search, Users, Radio } from "lucide-react";
 
 export default function NewMessagePage() {
+  return (
+    <Suspense fallback={<div className="flex-1 min-h-0 animate-pulse bg-muted/20" />}>
+      <NewMessagePageInner />
+    </Suspense>
+  );
+}
+
+function NewMessagePageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const shareText = searchParams.get("share")?.trim() ?? "";
+  const shareLabel = searchParams.get("label")?.trim() ?? "라이브";
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -37,7 +48,14 @@ export default function NewMessagePage() {
       setError(result.error);
       return;
     }
-    if ("room" in result && result.room) router.push(`/messages/${result.room.id}`);
+    if ("room" in result && result.room) {
+      const base = `/messages/${result.room.id}`;
+      if (shareText) {
+        router.push(`${base}?send=${encodeURIComponent(shareText)}`);
+      } else {
+        router.push(base);
+      }
+    }
   }
 
   return (
@@ -50,6 +68,20 @@ export default function NewMessagePage() {
       </header>
 
       <div className="flex-1 overflow-y-auto p-4 max-w-lg mx-auto w-full space-y-6">
+        {shareText ? (
+          <section className="rounded-2xl border border-violet-500/25 bg-violet-500/5 p-4 space-y-2">
+            <div className="flex items-center gap-2 text-sm font-semibold text-violet-700">
+              <Radio className="h-4 w-4" />
+              {shareLabel} 링크 보내기
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              받는 사람을 선택하면 아래 라이브 링크가 자동으로 전송됩니다.
+            </p>
+            <p className="text-xs rounded-xl bg-background/80 border border-border/60 px-3 py-2 whitespace-pre-wrap break-all">
+              {shareText}
+            </p>
+          </section>
+        ) : null}
         <section className="space-y-3">
           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Search className="h-4 w-4" />

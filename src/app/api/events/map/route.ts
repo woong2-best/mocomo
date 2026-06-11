@@ -3,7 +3,7 @@ import { getSubcultureMapPins } from "@/lib/subculture-events";
 
 export async function GET() {
   try {
-    const pins = await getSubcultureMapPins(40);
+    const pins = await getSubcultureMapPins(48);
     return NextResponse.json(
       { ok: true, pins },
       {

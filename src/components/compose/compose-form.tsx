@@ -22,11 +22,15 @@ function friendlyPostError(err: unknown, apiError?: string): string {
 export function ComposeForm({
   communityId,
   variant = "page",
+  initialContent,
+  initialTitle,
   onPosted,
   onNeedSignIn,
 }: {
   communityId?: string;
   variant?: "page" | "sheet" | "inline";
+  initialContent?: string;
+  initialTitle?: string;
   onPosted?: () => void;
   onNeedSignIn?: () => void;
 }) {
@@ -35,7 +39,8 @@ export function ComposeForm({
   const [error, setError] = useState("");
   const [media, setMedia] = useState<PostMediaItem[]>([]);
   const [poll, setPoll] = useState<CreatePostPollInput | null>(null);
-  const [content, setContent] = useState("");
+  const [content, setContent] = useState(initialContent ?? "");
+  const [defaultTitle] = useState(initialTitle ?? "");
   const [showOptions, setShowOptions] = useState(false);
   const submitBusy = loading || mediaUploading;
   const canSubmit = content.trim().length > 0 || media.length > 0;
@@ -206,7 +211,12 @@ export function ComposeForm({
         allowVideoCapture={false}
         onUploadingChange={setMediaUploading}
       />
-      <input name="title" placeholder="제목 (선택)" className="w-full rounded-xl border border-border bg-background/50 px-3 py-2 text-sm" />
+      <input
+        name="title"
+        defaultValue={defaultTitle}
+        placeholder="제목 (선택)"
+        className="w-full rounded-xl border border-border bg-background/50 px-3 py-2 text-sm"
+      />
       <textarea
         name="content"
         placeholder="내용을 입력하세요..."

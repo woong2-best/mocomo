@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { SupportTierLevel } from "@prisma/client";
 import { sendMessage } from "@/actions/chat";
 import { useChatSocket } from "@/components/messages/chat-socket-context";
@@ -45,6 +46,9 @@ export function ChatRoomClient({
   const [input, setInput] = useState("");
   const [error, setError] = useState("");
   const { socket, socketReady, realtimeOff, isUserOnline, subscribeMessages } = useChatSocket();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const autoSendRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
   const sendLockRef = useRef(false);
@@ -277,6 +281,21 @@ export function ChatRoomClient({
       sendLockRef.current = false;
     });
   }
+
+  useEffect(() => {
+    const text = searchParams.get("send")?.trim();
+    if (!text || autoSendRef.current) return;
+    autoSendRef.current = true;
+    stickToBottomRef.current = true;
+
+    const pendingId = addOptimistic(text);
+    if (socketReady && socket?.connected) {
+      socket.emit("send_message", { roomId, content: text });
+    } else {
+      void sendViaAction(text, pendingId);
+    }
+    router.replace(`/messages/${roomId}`, { scroll: false });
+  }, [roomId, router, searchParams, socket, socketReady]);
 
   return (
     <div className="flex flex-col flex-1 min-h-0 bg-muted/20">
