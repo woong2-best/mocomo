@@ -46,10 +46,10 @@ export function WebtoonAccessGate() {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/95 backdrop-blur-sm p-4">
       <div className="w-full max-w-md rounded-2xl border border-border bg-card shadow-xl p-6 space-y-4">
         <div className="text-center space-y-2">
-          <ShieldCheck className="h-10 w-10 mx-auto text-emerald-600" />
-          <h2 className="text-lg font-bold">웹툰 서비스 접속 확인</h2>
+          <ShieldCheck className="h-10 w-10 mx-auto text-[#0096fa]" />
+          <h2 className="text-lg font-bold">일러스트 구역 접속 확인</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            웹툰 구역은 캡처·녹화가 제한됩니다. 먼저 사람인지 간단히 확인해 주세요.
+            판매 작품 구역은 캡처·녹화가 제한됩니다. 먼저 사람인지 간단히 확인해 주세요.
           </p>
         </div>
         {challenge ? (

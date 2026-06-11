@@ -80,7 +80,7 @@ export async function getEpisodeAccess(userId: string | null, episodeId: string)
     where: { id: episodeId, published: true },
     include: {
       author: { select: { id: true, username: true, name: true, image: true } },
-      series: { select: { id: true, title: true, kind: true, coverUrl: true } },
+      series: { select: { id: true, title: true, kind: true, coverUrl: true, genre: true } },
     },
   });
   if (!episode) return { error: "작품을 찾을 수 없습니다." as const };
@@ -251,7 +251,7 @@ export async function getMyPurchasedEpisodes(userId: string) {
     include: {
       episode: {
         include: {
-          series: { select: { id: true, title: true, kind: true, coverUrl: true } },
+          series: { select: { id: true, title: true, kind: true, coverUrl: true, genre: true } },
         },
       },
     },

@@ -3,8 +3,8 @@ import { auth } from "@/lib/auth";
 import { WebtoonDrawStudio } from "@/components/webtoon-studio/webtoon-draw-studio";
 
 export const metadata = {
-  title: "웹툰 드로잉 스튜디오 | MoCoMo",
-  description: "웹툰 전용 레이어·브러시·만화 도구 · 연재 원고 제작",
+  title: "그리기 스튜디오 | MoCoMo",
+  description: "일러스트 제작 · 레이어·브러시 · 클라우드 저장",
 };
 
 export default async function WebtoonDrawStudioPage() {

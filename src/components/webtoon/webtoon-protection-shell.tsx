@@ -65,7 +65,7 @@ export function WebtoonProtectionShell({ children }: { children: React.ReactNode
       {blurred && (
         <div className="fixed inset-0 z-[90] bg-background flex items-center justify-center p-6 text-center">
           <p className="text-sm font-medium text-muted-foreground">
-            다른 창으로 전환되면 웹툰 화면이 가려집니다. 다시 이 탭으로 돌아와 주세요.
+            다른 창으로 전환되면 작품 화면이 가려집니다. 다시 이 탭으로 돌아와 주세요.
           </p>
         </div>
       )}

@@ -10,6 +10,7 @@ import {
   WEBTOON_ACCESS_COOKIE,
   WEBTOON_ACCESS_HOURS,
   WEBTOON_WEEK_DAYS,
+  type IllustrationMarketSort,
 } from "@/lib/webtoon/constants";
 
 export async function issueWebtoonHumanChallenge() {
@@ -71,6 +72,119 @@ export async function listWebtoonWeeklyGrid(genre?: WebtoonGenre | null) {
     if (s.publishDay) byDay[s.publishDay].push(s);
   }
   return byDay;
+}
+
+function parseEpisodeUrls(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((u): u is string => typeof u === "string" && u.trim().length > 0);
+}
+
+function episodeThumbnail(input: {
+  previewUrls: unknown;
+  contentUrls: unknown;
+  series: { coverUrl: string };
+}): string {
+  const preview = parseEpisodeUrls(input.previewUrls);
+  const content = parseEpisodeUrls(input.contentUrls);
+  return preview[0] ?? content[0] ?? input.series.coverUrl;
+}
+
+export type IllustrationMarketItem = {
+  id: string;
+  title: string;
+  price: number;
+  viewCount: number;
+  salesCount: number;
+  thumbnailUrl: string;
+  publishedAt: Date | null;
+  author: { username: string | null; name: string | null; image: string | null };
+  series: { id: string; title: string; genre: WebtoonGenre | null };
+};
+
+/** 픽시브 스타일 — 개별 일러스트 작품 피드 */
+export async function listIllustrationMarketFeed(opts: {
+  genre?: WebtoonGenre | null;
+  sort?: IllustrationMarketSort;
+  take?: number;
+}): Promise<IllustrationMarketItem[]> {
+  const sort = opts.sort ?? "latest";
+  const rows = await db.creatorEpisode.findMany({
+    where: {
+      published: true,
+      series: {
+        kind: "WEBTOON",
+        ...(opts.genre ? { genre: opts.genre } : {}),
+      },
+      OR: [{ scheduledAt: null }, { scheduledAt: { lte: new Date() } }],
+    },
+    orderBy:
+      sort === "popular"
+        ? [{ salesCount: "desc" }, { viewCount: "desc" }, { publishedAt: "desc" }]
+        : [{ publishedAt: "desc" }, { createdAt: "desc" }],
+    take: opts.take ?? 72,
+    include: {
+      author: { select: { username: true, name: true, image: true } },
+      series: { select: { id: true, title: true, coverUrl: true, genre: true } },
+    },
+  });
+
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    price: row.price,
+    viewCount: row.viewCount,
+    salesCount: row.salesCount,
+    thumbnailUrl: episodeThumbnail(row),
+    publishedAt: row.publishedAt,
+    author: row.author,
+    series: { id: row.series.id, title: row.series.title, genre: row.series.genre },
+  }));
+}
+
+export type ProfileIllustrationItem = {
+  id: string;
+  title: string;
+  price: number;
+  thumbnailUrl: string;
+  owned: boolean;
+  seriesTitle: string;
+};
+
+export async function getProfileIllustrations(authorId: string, viewerId: string | null) {
+  const rows = await db.creatorEpisode.findMany({
+    where: {
+      authorId,
+      published: true,
+      series: { kind: "WEBTOON" },
+      OR: [{ scheduledAt: null }, { scheduledAt: { lte: new Date() } }],
+    },
+    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+    take: 24,
+    include: {
+      series: { select: { title: true, coverUrl: true } },
+    },
+  });
+
+  if (rows.length === 0) return [];
+
+  const purchases =
+    viewerId && viewerId !== authorId
+      ? await db.creatorEpisodePurchase.findMany({
+          where: { buyerId: viewerId, episodeId: { in: rows.map((r) => r.id) } },
+          select: { episodeId: true },
+        })
+      : [];
+  const ownedSet = new Set(purchases.map((p) => p.episodeId));
+  const isAuthor = viewerId === authorId;
+
+  return rows.map((row): ProfileIllustrationItem => ({
+    id: row.id,
+    title: row.title,
+    price: row.price,
+    thumbnailUrl: episodeThumbnail({ ...row, series: row.series }),
+    owned: isAuthor || row.price <= 0 || ownedSet.has(row.id),
+    seriesTitle: row.series.title,
+  }));
 }
 
 export async function getProfileWebtoons(authorId: string, viewerId: string | null) {
@@ -153,7 +267,7 @@ export async function createWebtoonSeries(input: {
   title: string;
   description?: string;
   coverUrl: string;
-  publishDay: WebtoonPublishDay;
+  publishDay?: WebtoonPublishDay | null;
   genre: WebtoonGenre;
 }) {
   const user = await requireAuth();
@@ -167,7 +281,7 @@ export async function createWebtoonSeries(input: {
       description: input.description?.trim() || null,
       coverUrl: input.coverUrl.trim(),
       kind: "WEBTOON",
-      publishDay: input.publishDay,
+      publishDay: input.publishDay ?? null,
       genre: input.genre,
     },
   });

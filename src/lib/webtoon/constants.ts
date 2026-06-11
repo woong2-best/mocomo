@@ -96,3 +96,9 @@ export function parseWebtoonGenre(raw: string | undefined | null): WebtoonGenre 
   const key = raw.trim().toUpperCase();
   return WEBTOON_GENRE_SET.has(key) ? (key as WebtoonGenre) : null;
 }
+
+export type IllustrationMarketSort = "latest" | "popular";
+
+export function parseIllustrationSort(raw: string | undefined | null): IllustrationMarketSort {
+  return raw === "popular" ? "popular" : "latest";
+}

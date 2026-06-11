@@ -28,11 +28,11 @@ export default async function WorksHomePage() {
   return (
     <div className="space-y-8">
       <p className="text-sm text-muted-foreground leading-relaxed">
-        웹툰 연재, 사진·영상(PD) 판매를 MoCoMo 안에서 할 수 있습니다. 크리에이터는{" "}
+        일러스트·사진·영상을 MoCoMo 안에서 판매할 수 있습니다. 크리에이터는{" "}
         <Link href="/works/studio" className="text-primary font-medium hover:underline">
           판매 등록
         </Link>
-        에서 시리즈를 만들고 회차별 가격을 설정하세요.
+        에서 포트폴리오를 만들고 작품별 가격을 설정하세요.
       </p>
 
       {sections.map(({ kind, items }) => {
@@ -58,7 +58,7 @@ export default async function WorksHomePage() {
                       <CardContent className="p-3">
                         <p className="font-semibold text-sm line-clamp-2">{s.title}</p>
                         <p className="text-xs text-muted-foreground mt-1">@{s.author.username}</p>
-                        <p className="text-xs text-primary mt-1">{s.episodes.length}화</p>
+                        <p className="text-xs text-primary mt-1">{s.episodes.length}작품</p>
                       </CardContent>
                     </Card>
                   </Link>

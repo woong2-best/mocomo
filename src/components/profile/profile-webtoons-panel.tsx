@@ -1,98 +1,71 @@
 import Link from "next/link";
 import { isPaymentsConfigured } from "@/lib/payments";
 import { PurchaseEpisodeButton } from "@/components/works/purchase-episode-button";
-import { WEBTOON_DAY_FULL, WEBTOON_GENRE_LABEL } from "@/lib/webtoon/constants";
-import type { WebtoonGenre, WebtoonPublishDay } from "@prisma/client";
-import { BookOpen } from "lucide-react";
-
-type ProfileSeries = {
-  id: string;
-  title: string;
-  coverUrl: string;
-  publishDay: WebtoonPublishDay | null;
-  genre: WebtoonGenre | null;
-  episodes: {
-    id: string;
-    title: string;
-    episodeNo: number;
-    price: number;
-    owned: boolean;
-  }[];
-};
+import type { ProfileIllustrationItem } from "@/actions/webtoon";
+import { ImageIcon } from "lucide-react";
 
 export function ProfileWebtoonsPanel({
-  series,
+  works,
   username,
 }: {
-  series: ProfileSeries[];
+  works: ProfileIllustrationItem[];
   username: string;
 }) {
-  if (series.length === 0) return null;
+  if (works.length === 0) return null;
   const paymentsEnabled = isPaymentsConfigured();
 
   return (
     <aside className="border-t lg:border-t-0 lg:border-l border-border/40 bg-muted/20 lg:min-h-[320px]">
       <div className="sticky top-14 p-4 space-y-4 max-h-[calc(100vh-3.5rem)] overflow-y-auto">
         <div className="flex items-center gap-2">
-          <BookOpen className="h-4 w-4 text-emerald-600" />
-          <h2 className="font-bold text-sm">웹툰</h2>
+          <ImageIcon className="h-4 w-4 text-[#0096fa]" />
+          <h2 className="font-bold text-sm">판매 작품</h2>
         </div>
-        {series.map((s) => (
-          <div key={s.id} className="rounded-xl border border-border/60 bg-card overflow-hidden">
-            <Link href={`/webtoon/series/${s.id}`} className="block">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={s.coverUrl} alt="" className="w-full aspect-[3/4] object-cover" />
-            </Link>
-            <div className="p-3 space-y-2">
-              <Link href={`/webtoon/series/${s.id}`} className="font-semibold text-sm hover:text-primary line-clamp-2">
-                {s.title}
+
+        <div className="grid grid-cols-2 gap-2">
+          {works.map((work) => (
+            <div key={work.id} className="rounded-xl border border-border/60 bg-card overflow-hidden">
+              <Link href={`/webtoon/e/${work.id}`} className="block">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={work.thumbnailUrl} alt="" className="w-full aspect-square object-cover" />
               </Link>
-              {s.publishDay && (
-                <p className="text-[10px] text-emerald-700 font-medium">{WEBTOON_DAY_FULL[s.publishDay]}</p>
-              )}
-              {s.genre && (
-                <p className="text-[10px] text-muted-foreground">{WEBTOON_GENRE_LABEL[s.genre]}</p>
-              )}
-              <ul className="space-y-2">
-                {s.episodes.map((ep) => (
-                  <li key={ep.id} className="rounded-lg border border-border/50 p-2 space-y-1.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <Link href={`/webtoon/e/${ep.id}`} className="text-xs font-medium hover:text-primary">
-                        {ep.episodeNo}화 {ep.title ? `· ${ep.title}` : ""}
-                      </Link>
-                      <span className="text-[10px] text-muted-foreground shrink-0">
-                        {ep.price <= 0 ? "무료" : `${ep.price.toLocaleString()}원`}
-                      </span>
-                    </div>
-                    {ep.owned ? (
-                      <Link
-                        href={`/webtoon/e/${ep.id}`}
-                        className="block text-center text-[11px] font-medium text-emerald-600 py-1"
-                      >
-                        보기
-                      </Link>
-                    ) : ep.price > 0 ? (
-                      <PurchaseEpisodeButton
-                        episodeId={ep.id}
-                        price={ep.price}
-                        title={`${s.title} ${ep.episodeNo}화`}
-                        paymentsEnabled={paymentsEnabled}
-                      />
-                    ) : (
-                      <Link
-                        href={`/webtoon/e/${ep.id}`}
-                        className="block text-center text-[11px] font-medium text-primary py-1"
-                      >
-                        무료 보기
-                      </Link>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              <div className="p-2 space-y-1.5">
+                <Link href={`/webtoon/e/${work.id}`} className="text-[11px] font-semibold line-clamp-2 hover:text-[#0096fa]">
+                  {work.title}
+                </Link>
+                <p className="text-[10px] text-muted-foreground">
+                  {work.price <= 0 ? "무료" : `${work.price.toLocaleString()}원`}
+                </p>
+                {work.owned ? (
+                  <Link
+                    href={`/webtoon/e/${work.id}`}
+                    className="block text-center text-[10px] font-medium text-[#0096fa] py-0.5"
+                  >
+                    보기
+                  </Link>
+                ) : work.price > 0 ? (
+                  <PurchaseEpisodeButton
+                    episodeId={work.id}
+                    price={work.price}
+                    title={work.title}
+                    paymentsEnabled={paymentsEnabled}
+                  />
+                ) : (
+                  <Link
+                    href={`/webtoon/e/${work.id}`}
+                    className="block text-center text-[10px] font-medium text-[#0096fa] py-0.5"
+                  >
+                    무료 보기
+                  </Link>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
-        <p className="text-[10px] text-muted-foreground text-center">@{username}의 웹툰 · 회차별 개별 결제</p>
+          ))}
+        </div>
+
+        <Link href="/webtoon" className="block text-[10px] text-center text-[#0096fa] hover:underline">
+          @{username}의 일러스트 더 보기
+        </Link>
       </div>
     </aside>
   );
