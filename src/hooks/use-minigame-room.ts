@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Socket } from "socket.io-client";
 import { useAppSocket } from "@/components/providers/app-socket-provider";
 import type { MinigamePublicState, MinigameChatMessage } from "@/lib/minigames/shared-types";
 import {
   peekGameCreateOptions,
-  readGameCreateOptions,
+  clearGameCreateOptions,
   peekGameJoinOptions,
   clearGameJoinOptions,
   type GameCreateOptions,
@@ -15,8 +16,8 @@ type AckResult =
   | { ok: true; state?: MinigamePublicState }
   | { ok: false; error: string };
 
-const SOCKET_WAIT_MS = 12_000;
-const ACK_MS = 10_000;
+const SOCKET_WAIT_MS = 15_000;
+const ACK_MS = 12_000;
 
 export function useMinigameRoom(
   gameId: string,
@@ -25,12 +26,13 @@ export function useMinigameRoom(
   username: string,
   mode: "create" | "join" | "spectate"
 ) {
-  const { socket, socketReady, realtimeOff } = useAppSocket();
+  const { socket, socketReady, realtimeOff, connectionFailed } = useAppSocket();
   const [state, setState] = useState<MinigamePublicState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [joined, setJoined] = useState(false);
   const [connecting, setConnecting] = useState(true);
   const [needsPassword, setNeedsPassword] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const joinedRef = useRef(false);
   const [chatMessages, setChatMessages] = useState<MinigameChatMessage[]>([]);
   const roomCode = roomId.toUpperCase();
@@ -39,15 +41,16 @@ export function useMinigameRoom(
     const deadline = Date.now() + SOCKET_WAIT_MS;
     while (Date.now() < deadline) {
       if (socket?.connected && socketReady) return socket;
-      await new Promise((r) => setTimeout(r, 250));
+      await new Promise((r) => setTimeout(r, 200));
     }
     return socket?.connected ? socket : null;
   }, [socket, socketReady]);
 
   const emitAck = useCallback(
-    (event: string, payload: unknown): Promise<AckResult> =>
+    (event: string, payload: unknown, target?: Socket | null): Promise<AckResult> =>
       new Promise((resolve) => {
-        if (!socket?.connected) {
+        const active = target ?? socket;
+        if (!active?.connected) {
           resolve({ ok: false, error: "실시간 연결이 없습니다." });
           return;
         }
@@ -55,9 +58,9 @@ export function useMinigameRoom(
         const timer = window.setTimeout(() => {
           if (settled) return;
           settled = true;
-          resolve({ ok: false, error: "서버 응답이 없습니다." });
+          resolve({ ok: false, error: "서버 응답이 없습니다. Render 소켓 서버를 확인해 주세요." });
         }, ACK_MS);
-        socket.emit(event, payload, (res: AckResult) => {
+        active.emit(event, payload, (res: AckResult) => {
           if (settled) return;
           settled = true;
           window.clearTimeout(timer);
@@ -76,22 +79,23 @@ export function useMinigameRoom(
     setError(null);
     setConnecting(false);
     clearGameJoinOptions(gameId);
+    clearGameCreateOptions(gameId);
   }, [gameId]);
 
   const joinRoom = useCallback(
-    async (password?: string) => {
-      const result = await emitAck("minigame_join", {
-        gameId,
-        roomId: roomCode,
-        username,
-        password: password?.trim() || undefined,
-      });
+    async (password: string | undefined, active: Socket) => {
+      const result = await emitAck(
+        "minigame_join",
+        {
+          gameId,
+          roomId: roomCode,
+          username,
+          password: password?.trim() || undefined,
+        },
+        active
+      );
       if (!result.ok) {
-        if (
-          result.error.includes("비밀번호")
-        ) {
-          setNeedsPassword(true);
-        }
+        if (result.error.includes("비밀번호")) setNeedsPassword(true);
         setError(result.error);
         setConnecting(false);
         return false;
@@ -103,24 +107,28 @@ export function useMinigameRoom(
   );
 
   const createRoom = useCallback(
-    async (createOpts: GameCreateOptions) => {
-      const created = await emitAck("minigame_create", {
-        gameId,
-        roomId: roomCode,
-        username,
-        password: createOpts.password,
-        requireFollow: createOpts.requireFollow,
-        ruleMode: createOpts.ruleMode,
-        timeControl: createOpts.timeControl,
-        spectatorChat: createOpts.spectatorChat,
-        accessMode: "private",
-      });
+    async (createOpts: GameCreateOptions, active: Socket) => {
+      const created = await emitAck(
+        "minigame_create",
+        {
+          gameId,
+          roomId: roomCode,
+          username,
+          password: createOpts.password,
+          requireFollow: createOpts.requireFollow,
+          ruleMode: createOpts.ruleMode,
+          timeControl: createOpts.timeControl,
+          spectatorChat: createOpts.spectatorChat,
+          accessMode: "private",
+        },
+        active
+      );
       if (created.ok && created.state) {
         applyJoinSuccess(created.state);
         return true;
       }
       if (!created.ok && created.error?.includes("이미 사용")) {
-        return joinRoom(createOpts.password);
+        return joinRoom(createOpts.password, active);
       }
       setError(!created.ok ? created.error : "방을 만들 수 없습니다.");
       setConnecting(false);
@@ -134,16 +142,33 @@ export function useMinigameRoom(
       if (!userId || joinedRef.current) return;
       setConnecting(true);
       setError(null);
+      setNeedsPassword(false);
 
-      const activeSocket = await waitForSocket();
-      if (!activeSocket) {
+      if (realtimeOff || connectionFailed) {
         setConnecting(false);
-        setError("실시간 서버에 연결할 수 없습니다.");
+        setError(
+          connectionFailed
+            ? "실시간 서버에 연결할 수 없습니다. AUTH_SECRET·SOCKET_CORS_ORIGINS 설정 후 Render를 재배포해 주세요."
+            : "실시간 서버 URL이 설정되지 않았습니다."
+        );
+        return;
+      }
+
+      const active = await waitForSocket();
+      if (!active) {
+        setConnecting(false);
+        setError(
+          "실시간 서버에 연결할 수 없습니다. Render(mocomo-socket)가 켜져 있는지, Vercel NEXT_PUBLIC_SOCKET_URL을 확인해 주세요."
+        );
         return;
       }
 
       if (mode === "spectate") {
-        const result = await emitAck("minigame_spectate", { gameId, roomId: roomCode, username });
+        const result = await emitAck(
+          "minigame_spectate",
+          { gameId, roomId: roomCode, username },
+          active
+        );
         if (!result.ok) {
           setError(result.error);
           setConnecting(false);
@@ -154,20 +179,26 @@ export function useMinigameRoom(
       }
 
       if (mode === "create") {
-        const createOpts = readGameCreateOptions(gameId) ?? peekGameCreateOptions(gameId) ?? {};
-        const pwd = createOpts.password ?? password;
-        if (pwd) await createRoom({ ...createOpts, password: pwd });
-        else await createRoom(createOpts);
+        const createOpts = peekGameCreateOptions(gameId) ?? {};
+        if (!createOpts.password && !password) {
+          setError("방 만들기 정보가 없습니다. 로비에서 다시 방 만들기를 눌러 주세요.");
+          setConnecting(false);
+          return;
+        }
+        await createRoom(
+          { ...createOpts, password: password ?? createOpts.password },
+          active
+        );
         return;
       }
 
       const stored = peekGameJoinOptions(gameId);
-      const pwd = password ?? stored?.password;
-      await joinRoom(pwd);
-      return;
+      await joinRoom(password ?? stored?.password, active);
     },
     [
       userId,
+      realtimeOff,
+      connectionFailed,
       waitForSocket,
       mode,
       emitAck,
@@ -180,21 +211,15 @@ export function useMinigameRoom(
     ]
   );
 
-  const startedRef = useRef(false);
-
   useEffect(() => {
-    if (!userId || joinedRef.current || startedRef.current) {
-      if (realtimeOff) setConnecting(false);
-      return;
-    }
-    if (realtimeOff) {
+    if (!userId || joinedRef.current) return;
+    if (realtimeOff && !connectionFailed) {
       setConnecting(false);
+      setError("실시간 서버 URL이 설정되지 않았습니다.");
       return;
     }
-    if (!socketReady || !socket?.connected) return;
-    startedRef.current = true;
     void enterRoom();
-  }, [userId, socketReady, socket, realtimeOff, enterRoom]);
+  }, [userId, realtimeOff, connectionFailed, attempt, enterRoom]);
 
   useEffect(() => {
     if (!socket || !joined) return;
@@ -231,10 +256,25 @@ export function useMinigameRoom(
     (password: string) => {
       setError(null);
       setConnecting(true);
-      void joinRoom(password);
+      void (async () => {
+        const active = await waitForSocket();
+        if (!active) {
+          setConnecting(false);
+          setError("실시간 서버에 연결할 수 없습니다.");
+          return;
+        }
+        if (mode === "create") await createRoom({ password }, active);
+        else await joinRoom(password, active);
+      })();
     },
-    [joinRoom]
+    [waitForSocket, mode, createRoom, joinRoom]
   );
+
+  const retryConnection = useCallback(() => {
+    setError(null);
+    setConnecting(true);
+    setAttempt((n) => n + 1);
+  }, []);
 
   const setReady = useCallback(
     async (ready: boolean) => {
@@ -294,7 +334,7 @@ export function useMinigameRoom(
     connecting,
     needsPassword,
     isHost,
-    realtimeOff,
+    realtimeOff: realtimeOff || connectionFailed,
     setReady,
     startGame,
     sendMove,
@@ -303,5 +343,6 @@ export function useMinigameRoom(
     chatMessages,
     setError,
     retryJoinWithPassword,
+    retryConnection,
   };
 }

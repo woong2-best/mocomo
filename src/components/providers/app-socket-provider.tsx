@@ -12,16 +12,20 @@ import type { Socket } from "socket.io-client";
 import { useSession } from "next-auth/react";
 import { resolveSocketUrl } from "@/lib/socket-url";
 
+const CONNECT_TIMEOUT_MS = 15_000;
+
 type AppSocketContextValue = {
   socket: Socket | null;
   socketReady: boolean;
   realtimeOff: boolean;
+  connectionFailed: boolean;
 };
 
 const AppSocketContext = createContext<AppSocketContextValue>({
   socket: null,
   socketReady: false,
   realtimeOff: true,
+  connectionFailed: false,
 });
 
 /** 로그인 사용자 — 앱 어디서든 접속 중 표시·실시간 채팅용 단일 소켓 */
@@ -30,20 +34,26 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
   const userId = session?.user?.id;
   const [socket, setSocket] = useState<Socket | null>(null);
   const [socketReady, setSocketReady] = useState(false);
-  const [realtimeOff, setRealtimeOff] = useState(false);
+  const [realtimeOff, setRealtimeOff] = useState(() => !resolveSocketUrl());
+  const [connectionFailed, setConnectionFailed] = useState(false);
 
   useEffect(() => {
     const socketUrl = resolveSocketUrl();
     if (!socketUrl || status !== "authenticated" || !userId) {
       setRealtimeOff(true);
+      setConnectionFailed(false);
       setSocketReady(false);
       setSocket(null);
       return;
     }
 
+    setRealtimeOff(false);
+    setConnectionFailed(false);
+
     let disposed = false;
     let activeSocket: Socket | null = null;
     let tokenRefreshTimer: number | undefined;
+    let connectTimeout: number | undefined;
 
     import("socket.io-client").then(async ({ io }) => {
       if (disposed) return;
@@ -51,6 +61,7 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
       const token = await fetchSocketAuthToken();
       if (disposed || !token) {
         setRealtimeOff(true);
+        setConnectionFailed(true);
         return;
       }
 
@@ -61,7 +72,14 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
         reconnectionAttempts: Infinity,
         reconnectionDelay: 600,
         reconnectionDelayMax: 3000,
+        timeout: 12_000,
       });
+
+      connectTimeout = window.setTimeout(() => {
+        if (disposed || activeSocket?.connected) return;
+        setConnectionFailed(true);
+        setSocketReady(false);
+      }, CONNECT_TIMEOUT_MS);
 
       const refreshAuth = async () => {
         const next = await fetchSocketAuthToken();
@@ -76,6 +94,8 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
 
       activeSocket.on("connect", () => {
         if (disposed) return;
+        if (connectTimeout) window.clearTimeout(connectTimeout);
+        setConnectionFailed(false);
         setSocket(activeSocket);
         setSocketReady(true);
         setRealtimeOff(false);
@@ -86,11 +106,16 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
       });
 
       activeSocket.on("connect_error", () => {
-        void refreshAuth();
+        void refreshAuth().then((ok) => {
+          if (ok && activeSocket && !activeSocket.connected) {
+            activeSocket.connect();
+          }
+        });
       });
 
       activeSocket.io.on("reconnect", () => {
         if (disposed) return;
+        setConnectionFailed(false);
         setSocketReady(true);
         setRealtimeOff(false);
       });
@@ -99,6 +124,7 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
     return () => {
       disposed = true;
       if (tokenRefreshTimer) window.clearInterval(tokenRefreshTimer);
+      if (connectTimeout) window.clearTimeout(connectTimeout);
       setSocketReady(false);
       setSocket(null);
       activeSocket?.disconnect();
@@ -106,8 +132,8 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
   }, [userId, status]);
 
   const value = useMemo(
-    () => ({ socket, socketReady, realtimeOff }),
-    [socket, socketReady, realtimeOff]
+    () => ({ socket, socketReady, realtimeOff, connectionFailed }),
+    [socket, socketReady, realtimeOff, connectionFailed]
   );
 
   return <AppSocketContext.Provider value={value}>{children}</AppSocketContext.Provider>;

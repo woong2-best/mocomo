@@ -49,6 +49,7 @@ export function PlayRoomClient({
     chatMessages,
     setError,
     retryJoinWithPassword,
+    retryConnection,
   } = useMinigameRoom(gameId, roomId, userId, username, mode);
 
   const isSpectator = mode === "spectate";
@@ -81,6 +82,7 @@ export function PlayRoomClient({
           password={joinPassword}
           onPasswordChange={setJoinPassword}
           onSubmit={() => retryJoinWithPassword(joinPassword)}
+          onRetry={retryConnection}
           submitLabel="입장"
         />
         {mode === "create" && error && !needsPassword && (

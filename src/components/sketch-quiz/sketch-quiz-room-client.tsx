@@ -50,6 +50,7 @@ export function SketchQuizRoomClient({ roomId, mode }: SketchQuizRoomClientProps
     socketReady,
     realtimeOff,
     retryJoinWithPassword,
+    retryConnection,
   } = useSketchQuizRoom(roomId, userId, username, mode);
 
   const [guess, setGuess] = useState("");
@@ -117,6 +118,7 @@ export function SketchQuizRoomClient({ roomId, mode }: SketchQuizRoomClientProps
           password={joinPassword}
           onPasswordChange={setJoinPassword}
           onSubmit={() => retryJoinWithPassword(joinPassword)}
+          onRetry={retryConnection}
         />
       </div>
     );

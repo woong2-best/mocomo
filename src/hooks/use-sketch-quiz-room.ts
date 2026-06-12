@@ -9,7 +9,6 @@ import type {
   SketchQuizGuess,
 } from "@/lib/sketch-quiz-types";
 import {
-  readGameCreateOptions,
   peekGameCreateOptions,
   peekGameJoinOptions,
   clearGameJoinOptions,
@@ -29,7 +28,7 @@ export function useSketchQuizRoom(
   username: string,
   mode: "create" | "join"
 ) {
-  const { socket, socketReady, realtimeOff } = useAppSocket();
+  const { socket, socketReady, realtimeOff, connectionFailed } = useAppSocket();
   const [state, setState] = useState<SketchQuizPublicState | null>(null);
   const [secretWord, setSecretWord] = useState<SketchQuizWordPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +38,7 @@ export function useSketchQuizRoom(
   const [timeLeft, setTimeLeft] = useState(0);
   const strokesRef = useRef<SketchStroke[]>([]);
   const joinedRef = useRef(false);
-  const startedRef = useRef(false);
+  const [attempt, setAttempt] = useState(0);
 
   const roomCode = roomId.toUpperCase();
 
@@ -121,8 +120,7 @@ export function useSketchQuizRoom(
       }
 
       if (mode === "create") {
-        const createOpts =
-          readGameCreateOptions(GAME_ID) ?? peekGameCreateOptions(GAME_ID) ?? {};
+        const createOpts = peekGameCreateOptions(GAME_ID) ?? {};
         const created = await emitAck("sketch_quiz_create", {
           roomId: roomCode,
           username,
@@ -150,18 +148,14 @@ export function useSketchQuizRoom(
   );
 
   useEffect(() => {
-    if (!userId || joinedRef.current || startedRef.current) {
-      if (realtimeOff) setConnecting(false);
-      return;
-    }
-    if (realtimeOff) {
+    if (!userId || joinedRef.current) return;
+    if (realtimeOff || connectionFailed) {
       setConnecting(false);
+      setError("실시간 서버에 연결할 수 없습니다.");
       return;
     }
-    if (!socketReady || !socket?.connected) return;
-    startedRef.current = true;
     void enterRoom();
-  }, [userId, socketReady, socket, realtimeOff, enterRoom]);
+  }, [userId, realtimeOff, connectionFailed, attempt, enterRoom]);
 
   useEffect(() => {
     if (!socket || !joined) return;
@@ -260,11 +254,16 @@ export function useSketchQuizRoom(
     clearCanvas,
     sendGuess,
     socketReady,
-    realtimeOff,
+    realtimeOff: realtimeOff || connectionFailed,
     retryJoinWithPassword: (password: string) => {
       setConnecting(true);
       setError(null);
       void joinRoom(password);
+    },
+    retryConnection: () => {
+      setError(null);
+      setConnecting(true);
+      setAttempt((n) => n + 1);
     },
   };
 }

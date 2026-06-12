@@ -16,6 +16,7 @@ type Props = {
   password: string;
   onPasswordChange: (value: string) => void;
   onSubmit: () => void;
+  onRetry?: () => void;
   submitLabel?: string;
 };
 
@@ -29,16 +30,23 @@ export function GameRoomGate({
   password,
   onPasswordChange,
   onSubmit,
+  onRetry,
   submitLabel = "입장",
 }: Props) {
-  if (realtimeOff) {
+  if (realtimeOff && !connecting && !needsPassword) {
     return (
       <Card className="border-2 border-destructive/30">
-        <CardContent className="p-8 text-center space-y-3">
+        <CardContent className="p-8 text-center space-y-4">
           <p className="font-semibold text-destructive">실시간 서버에 연결할 수 없습니다</p>
-          <p className="text-sm text-muted-foreground">
-            NEXT_PUBLIC_SOCKET_URL 설정을 확인한 뒤 페이지를 새로고침해 주세요.
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {error ??
+              "Vercel NEXT_PUBLIC_SOCKET_URL · Render AUTH_SECRET · SOCKET_CORS_ORIGINS 설정을 확인한 뒤 재배포해 주세요."}
           </p>
+          {onRetry && (
+            <Button type="button" variant="outline" className="rounded-xl" onClick={onRetry}>
+              다시 연결
+            </Button>
+          )}
         </CardContent>
       </Card>
     );
@@ -50,6 +58,7 @@ export function GameRoomGate({
         <CardContent className="p-12 flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-folk-cobalt" />
           <p className="text-sm text-muted-foreground">실시간 서버에 연결하는 중…</p>
+          <p className="text-xs text-muted-foreground">최대 15초 · Render cold start 시 잠시 걸릴 수 있음</p>
         </CardContent>
       </Card>
     );
@@ -63,7 +72,7 @@ export function GameRoomGate({
           <p className="text-2xl font-mono font-bold tracking-widest">{roomId}</p>
         </div>
 
-        {needsPassword && (
+        {needsPassword ? (
           <form
             className="space-y-3"
             onSubmit={(e) => {
@@ -84,10 +93,14 @@ export function GameRoomGate({
               {submitLabel}
             </Button>
           </form>
+        ) : (
+          error && <p className="text-sm text-destructive text-center">{error}</p>
         )}
 
-        {!needsPassword && error && (
-          <p className="text-sm text-destructive text-center">{error}</p>
+        {onRetry && !needsPassword && (
+          <Button type="button" variant="outline" className="w-full rounded-xl" onClick={onRetry}>
+            다시 연결
+          </Button>
         )}
       </CardContent>
     </Card>
