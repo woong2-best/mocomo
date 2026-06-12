@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getAllMinigames } from "@/lib/minigames/registry";
-import { getMinigameRoute } from "@/lib/minigames/game-meta";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";

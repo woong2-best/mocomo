@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useMinigameRoom } from "@/hooks/use-minigame-room";
-import type { MinigamePublicState } from "@/lib/minigames/shared-types";
 import { getMinigameById } from "@/lib/minigames/registry";
 import { getMinigameRoute } from "@/lib/minigames/game-meta";
 import {

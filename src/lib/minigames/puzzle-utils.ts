@@ -14,7 +14,7 @@ export function xyToIndex(x: number, y: number, size: number): number {
 }
 
 export function shuffleSolvableSlide(size: number): number[] {
-  let tiles = createSolvedGrid(size);
+  const tiles = createSolvedGrid(size);
   let empty = size * size - 1;
   for (let i = 0; i < size * size * 20; i++) {
     const { x, y } = indexToXY(empty, size);

@@ -7,8 +7,6 @@ import {
 import {
   createEmptyOmokBoard,
   type OmokBoard,
-  checkOmokWin,
-  OMOK_BOARD_SIZE,
 } from "./omok-logic";
 
 export type ReplayStep = {
@@ -53,7 +51,7 @@ export function snapshotAtStep(
   const slice = moves.slice(0, step);
 
   if (gameId === "omok") {
-    let board: OmokBoard = createEmptyOmokBoard();
+    const board: OmokBoard = createEmptyOmokBoard();
     for (const raw of slice) {
       const m = raw as { move?: { x: number; y: number }; x?: number; y?: number; stone?: number };
       const x = m.move?.x ?? m.x;

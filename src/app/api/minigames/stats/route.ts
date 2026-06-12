@@ -50,8 +50,6 @@ export async function GET(req: NextRequest) {
         })
       : [];
 
-    const achSet = new Set(achievements.map((a) => a.achievementId));
-
     return NextResponse.json({
       userId: uid,
       totalMatches: matchCount,
