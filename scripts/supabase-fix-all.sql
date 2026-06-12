@@ -1353,3 +1353,51 @@ CREATE TABLE IF NOT EXISTS "MinigameRating" (
 CREATE UNIQUE INDEX IF NOT EXISTS "MinigameRating_userId_gameId_key" ON "MinigameRating"("userId", "gameId");
 CREATE INDEX IF NOT EXISTS "MinigameRating_gameId_mmr_idx" ON "MinigameRating"("gameId", "mmr");
 
+ALTER TABLE "MinigameMatch" ADD COLUMN IF NOT EXISTS "playerNames" JSONB;
+ALTER TABLE "MinigameMatch" ADD COLUMN IF NOT EXISTS "initialState" JSONB;
+ALTER TABLE "MinigameMatch" ADD COLUMN IF NOT EXISTS "seasonId" TEXT;
+CREATE INDEX IF NOT EXISTS "MinigameMatch_gameId_endedAt_idx" ON "MinigameMatch"("gameId", "endedAt");
+
+ALTER TABLE "MinigameRating" ADD COLUMN IF NOT EXISTS "winStreak" INTEGER NOT NULL DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS "MinigameSeason" (
+  "id" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "startsAt" TIMESTAMP(3) NOT NULL,
+  "endsAt" TIMESTAMP(3) NOT NULL,
+  "active" BOOLEAN NOT NULL DEFAULT false,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "MinigameSeason_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "MinigameSeasonRating" (
+  "id" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "gameId" TEXT NOT NULL,
+  "seasonId" TEXT NOT NULL,
+  "mmr" INTEGER NOT NULL DEFAULT 1000,
+  "tier" TEXT NOT NULL DEFAULT 'BRONZE',
+  "wins" INTEGER NOT NULL DEFAULT 0,
+  "losses" INTEGER NOT NULL DEFAULT 0,
+  "draws" INTEGER NOT NULL DEFAULT 0,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "MinigameSeasonRating_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "MinigameSeasonRating_userId_gameId_seasonId_key"
+  ON "MinigameSeasonRating"("userId", "gameId", "seasonId");
+CREATE INDEX IF NOT EXISTS "MinigameSeasonRating_seasonId_gameId_mmr_idx"
+  ON "MinigameSeasonRating"("seasonId", "gameId", "mmr");
+
+CREATE TABLE IF NOT EXISTS "MinigameUserAchievement" (
+  "id" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "achievementId" TEXT NOT NULL,
+  "unlockedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "MinigameUserAchievement_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "MinigameUserAchievement_userId_achievementId_key"
+  ON "MinigameUserAchievement"("userId", "achievementId");
+CREATE INDEX IF NOT EXISTS "MinigameUserAchievement_userId_idx" ON "MinigameUserAchievement"("userId");
+

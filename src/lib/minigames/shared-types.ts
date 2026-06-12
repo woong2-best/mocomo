@@ -19,6 +19,19 @@ export type MinigameRoomPublicBase = {
   spectatorCount: number;
   winnerId: string | null;
   resultMessage: string | null;
+  matchId?: string | null;
+  timeControl?: string;
+  clocks?: Record<string, number>;
+  turnTimeLeft?: number;
+  spectatorChatEnabled?: boolean;
+  recentChat?: MinigameChatMessage[];
+};
+
+export type MinigameChatMessage = {
+  userId: string;
+  username: string;
+  text: string;
+  at: number;
 };
 
 /** 모든 게임 공통 퍼블릭 상태 — game 페이로드는 게임별 JSON */

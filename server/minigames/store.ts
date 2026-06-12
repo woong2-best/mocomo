@@ -4,7 +4,8 @@ import { generateRoomCode, isValidRoomCode } from "../../src/lib/sketch-quiz-wor
 import type { MinigamePublicState } from "../../src/lib/minigames/shared-types";
 import { attachOmokRuleMode } from "./plugins/omok";
 import { PLUGIN_BY_ID } from "./plugins/index";
-import { persistMinigameResult } from "./persistence";
+import { persistMinigameResult, ensureDefaultSeason } from "./persistence";
+import { initRoomClocks, setTurnUser, checkClockTimeout, startClockTicker } from "./clocks";
 import type {
   MinigameCreateOptions,
   MinigameJoinOptions,
@@ -98,13 +99,36 @@ function transferHost(room: MinigameRoomInternal) {
   if (next) room.hostId = next.userId;
 }
 
+function extractTurnUserId(room: MinigameRoomInternal): string | null {
+  const gs = room.gameState as Record<string, unknown> | null;
+  if (!gs) return null;
+  if (typeof gs.turnUserId === "string") return gs.turnUserId;
+  if (gs.turn === "black" && typeof gs.blackUserId === "string") return gs.blackUserId;
+  if (gs.turn === "white" && typeof gs.whiteUserId === "string") return gs.whiteUserId;
+  if (typeof gs.turnRed === "boolean") {
+    return gs.turnRed ? (gs.redUserId as string) : (gs.blueUserId as string);
+  }
+  if (typeof gs.turn === "number") {
+    return gs.turn === 1 ? (gs.blackUserId as string) : (gs.whiteUserId as string);
+  }
+  return room.turnUserId ?? null;
+}
+
 function finishGame(room: MinigameRoomInternal, win: { winnerId: string; resultMessage: string }) {
   room.status = "finished";
   room.winnerId = win.winnerId || null;
   room.resultMessage = win.resultMessage;
   const plugin = getPlugin(room.gameId);
   plugin?.onGameEnd?.(room);
-  if (prismaRef) void persistMinigameResult(prismaRef, room);
+  clearRoomTimers(room);
+  if (prismaRef) {
+    void persistMinigameResult(prismaRef, room).then((matchId) => {
+      if (matchId) {
+        room.lastMatchId = matchId;
+        broadcastState(room);
+      }
+    });
+  }
   broadcastState(room);
 }
 
@@ -118,9 +142,27 @@ function startGameInternal(room: MinigameRoomInternal): { ok: true; state: Minig
   room.winnerId = null;
   room.resultMessage = null;
   room.moveHistory = [];
+  room.gameStartedAt = Date.now();
   room.gameState = plugin.initGameState(room);
+  room.initialGameState = room.gameState;
+  initRoomClocks(room);
   attachBroadcast(room);
   plugin.onGameStart?.(room);
+
+  const gs = room.gameState as Record<string, unknown> | null;
+  const firstTurn =
+    (typeof gs?.turnUserId === "string" ? gs.turnUserId : null) ??
+    (typeof gs?.blackUserId === "string" ? gs.blackUserId : null) ??
+    [...room.players.keys()][0] ??
+    null;
+  setTurnUser(room, firstTurn);
+
+  startClockTicker(room, () => {
+    const win = checkClockTimeout(room);
+    if (win && room.status === "playing") finishGame(room, win);
+    else broadcastState(room);
+  });
+
   const state = plugin.toPublicState(room);
   broadcastState(room);
   return { ok: true, state };
@@ -177,6 +219,9 @@ function createPublicMatchRoom(
     resultMessage: null,
     moveHistory: [],
     timers: [],
+    spectatorChatEnabled: true,
+    chatLog: [],
+    timeControl: "unlimited",
   };
 
   for (const e of entries) {
@@ -205,6 +250,7 @@ function createPublicMatchRoom(
 export function initMinigameStore(io: Server, prisma?: PrismaClient) {
   ioRef = io;
   prismaRef = prisma ?? null;
+  if (prismaRef) void ensureDefaultSeason(prismaRef);
 }
 
 export function minigameCreate(
@@ -240,6 +286,10 @@ export function minigameCreate(
     resultMessage: null,
     moveHistory: [],
     timers: [],
+    spectatorChatEnabled: opts.spectatorChat !== false,
+    chatLog: [],
+    timeControl: opts.timeControl ?? "unlimited",
+    ruleMode: opts.ruleMode,
   };
 
   if (gameId === "omok" && opts.ruleMode) attachOmokRuleMode(room, opts.ruleMode);
@@ -389,6 +439,14 @@ export function minigameMove(gameId: string, roomId: string, userId: string, mov
   if (err) return { ok: false as const, error: err };
 
   plugin.applyMove(room, userId, move);
+  setTurnUser(room, extractTurnUserId(room));
+
+  const clockWin = checkClockTimeout(room);
+  if (clockWin) {
+    finishGame(room, clockWin);
+    return { ok: true as const, state: plugin.toPublicState(room) };
+  }
+
   const win = plugin.checkWin(room);
   if (win) {
     finishGame(room, win);
@@ -505,6 +563,33 @@ export function listLiveMinigameRooms(gameId: string): MinigamePublicState[] {
   return [...rooms.values()]
     .filter((r) => r.gameId === gameId && (r.status === "playing" || r.accessMode === "public"))
     .map((r) => plugin.toPublicState(r));
+}
+
+export function minigameChat(
+  gameId: string,
+  roomId: string,
+  userId: string,
+  username: string,
+  text: string
+) {
+  const room = getRoom(gameId, roomId);
+  if (!room) return { ok: false as const, error: "방 없음" };
+  const trimmed = text.trim().slice(0, 200);
+  if (!trimmed) return { ok: false as const, error: "메시지 없음" };
+  const isPlayer = room.players.has(userId);
+  const isSpectator = room.spectators.has(userId);
+  if (!isPlayer && !isSpectator) return { ok: false as const, error: "참가자만 채팅 가능" };
+  if (!isPlayer && isSpectator && !room.spectatorChatEnabled) {
+    return { ok: false as const, error: "관전 채팅이 꺼져 있습니다" };
+  }
+  const msg = { userId, username, text: trimmed, at: Date.now() };
+  room.chatLog.push(msg);
+  if (room.chatLog.length > 100) room.chatLog.shift();
+  if (ioRef) {
+    ioRef.to(roomKey(gameId, room.id)).emit("minigame_chat", { gameId, roomId: room.id, message: msg });
+  }
+  broadcastState(room);
+  return { ok: true as const };
 }
 
 export { roomKey, getPlugin };

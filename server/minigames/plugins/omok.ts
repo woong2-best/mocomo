@@ -5,6 +5,7 @@ import {
   isOmokBoardFull,
   type OmokBoard,
 } from "../../../src/lib/minigames/omok-logic";
+import { isRenjuForbidden } from "../../../src/lib/minigames/renju-logic";
 import type { MinigamePublicState } from "../../../src/lib/minigames/shared-types";
 import { basePublicFields, type MinigamePlugin, type MinigameRoomInternal } from "../types";
 
@@ -79,6 +80,9 @@ export const omokPlugin: MinigamePlugin = {
     const turnUserId = gs.turn === "black" ? gs.blackUserId : gs.whiteUserId;
     if (userId !== turnUserId) return "상대 턴입니다.";
     if (gs.board[m.y]![m.x] !== 0) return "이미 돌이 있습니다.";
+    if (gs.ruleMode === "renju" && gs.turn === "black" && isRenjuForbidden(gs.board, m.x, m.y)) {
+      return "렌주 금수입니다.";
+    }
     return null;
   },
 

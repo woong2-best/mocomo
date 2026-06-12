@@ -15,8 +15,11 @@ import {
   type GamePlayMode,
 } from "@/lib/games-lobby";
 import { generateRoomCode, isValidRoomCode } from "@/lib/sketch-quiz-words";
+import { TIME_CONTROL_OPTIONS } from "@/lib/minigames/time-control";
 import { useMinigameMatch } from "@/hooks/use-minigame-match";
 import type { LucideIcon } from "lucide-react";
+
+const BOARD_GAMES = new Set(["omok", "chess", "janggi", "baduk", "reversi"]);
 
 type Props = {
   gameId: string;
@@ -45,7 +48,11 @@ export function MinigameHubShell({
   const [joinPassword, setJoinPassword] = useState("");
   const [createPassword, setCreatePassword] = useState("");
   const [requireFollow, setRequireFollow] = useState(false);
+  const [ruleMode, setRuleMode] = useState<"free" | "renju">("free");
+  const [timeControl, setTimeControl] = useState("unlimited");
+  const [spectatorChat, setSpectatorChat] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const showBoardOpts = BOARD_GAMES.has(gameId);
 
   const username =
     session?.user?.name || session?.user?.username || session?.user?.email || "플레이어";
@@ -58,6 +65,9 @@ export function MinigameHubShell({
     saveGameCreateOptions(gameId, {
       password: createPassword.trim() || undefined,
       requireFollow,
+      ruleMode: gameId === "omok" ? ruleMode : undefined,
+      timeControl: showBoardOpts ? timeControl : undefined,
+      spectatorChat,
     });
     router.push(`${routeBase}/${code}`);
   }
@@ -120,6 +130,39 @@ export function MinigameHubShell({
                 onChange={(e) => setCreatePassword(e.target.value)}
                 type="password"
               />
+              {gameId === "omok" && (
+                <div className="flex gap-2 text-xs">
+                  <label className="flex items-center gap-1">
+                    <input type="radio" checked={ruleMode === "free"} onChange={() => setRuleMode("free")} />
+                    자유
+                  </label>
+                  <label className="flex items-center gap-1">
+                    <input type="radio" checked={ruleMode === "renju"} onChange={() => setRuleMode("renju")} />
+                    렌주
+                  </label>
+                </div>
+              )}
+              {showBoardOpts && (
+                <select
+                  className="w-full border rounded-lg px-3 py-2 text-xs"
+                  value={timeControl}
+                  onChange={(e) => setTimeControl(e.target.value)}
+                >
+                  {TIME_CONTROL_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <label className="flex items-center gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  checked={spectatorChat}
+                  onChange={(e) => setSpectatorChat(e.target.checked)}
+                />
+                관전자 채팅 허용
+              </label>
               <Button onClick={createFriendRoom} className="w-full rounded-xl gap-2">
                 <PlusCircle className="h-4 w-4" />
                 방 만들기
@@ -185,8 +228,14 @@ export function MinigameHubShell({
 
       {children}
 
-      <div className="text-center">
-        <Link href="/games" className="text-xs text-muted-foreground hover:underline">
+      <div className="flex flex-wrap justify-center gap-3 text-xs">
+        <Link href="/games/ranking" className="text-muted-foreground hover:underline">
+          랭킹
+        </Link>
+        <Link href="/games/achievements" className="text-muted-foreground hover:underline">
+          업적
+        </Link>
+        <Link href="/games" className="text-muted-foreground hover:underline">
           ← 미니게임 허브
         </Link>
       </div>

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppSocket } from "@/components/providers/app-socket-provider";
-import type { MinigamePublicState } from "@/lib/minigames/shared-types";
+import type { MinigamePublicState, MinigameChatMessage } from "@/lib/minigames/shared-types";
 import {
   readGameCreateOptions,
   readGameJoinOptions,
@@ -26,6 +26,7 @@ export function useMinigameRoom(
   const [error, setError] = useState<string | null>(null);
   const [joined, setJoined] = useState(false);
   const joinedRef = useRef(false);
+  const [chatMessages, setChatMessages] = useState<MinigameChatMessage[]>([]);
   const roomCode = roomId.toUpperCase();
 
   const emitAck = useCallback(
@@ -102,6 +103,9 @@ export function useMinigameRoom(
         username,
         password: createOpts.password,
         requireFollow: createOpts.requireFollow,
+        ruleMode: createOpts.ruleMode,
+        timeControl: createOpts.timeControl,
+        spectatorChat: createOpts.spectatorChat,
         accessMode: "private",
       });
       if (cancelled) return;
@@ -126,11 +130,19 @@ export function useMinigameRoom(
       if (payload.gameId !== gameId || !payload.state) return;
       if (payload.state.roomId !== roomCode) return;
       setState(payload.state);
+      if (payload.state.recentChat) setChatMessages(payload.state.recentChat);
+    };
+
+    const onChat = (payload: { gameId?: string; roomId?: string; message?: MinigameChatMessage }) => {
+      if (payload.gameId !== gameId || payload.roomId !== roomCode || !payload.message) return;
+      setChatMessages((prev) => [...prev.slice(-29), payload.message!]);
     };
 
     socket.on("minigame_state", onState);
+    socket.on("minigame_chat", onChat);
     return () => {
       socket.off("minigame_state", onState);
+      socket.off("minigame_chat", onChat);
     };
   }, [socket, joined, gameId, roomCode]);
 
@@ -173,6 +185,14 @@ export function useMinigameRoom(
     [emitAck, gameId, roomCode]
   );
 
+  const sendChat = useCallback(
+    async (text: string) => {
+      if (!socket) return;
+      socket.emit("minigame_chat", { gameId, roomId: roomCode, text, username });
+    },
+    [socket, gameId, roomCode, username]
+  );
+
   const isHost = state?.hostId === userId;
 
   return {
@@ -183,6 +203,8 @@ export function useMinigameRoom(
     setReady,
     startGame,
     sendMove,
+    sendChat,
+    chatMessages,
     setError,
   };
 }

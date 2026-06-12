@@ -1946,15 +1946,21 @@ model AvatarPreset {
 // ============ MINIGAMES ============
 
 model MinigameMatch {
-  id        String   @id @default(cuid())
-  gameId    String
-  roomId    String
-  winnerId  String?
-  result    String?
-  playerIds Json
-  moves     Json?
-  startedAt DateTime @default(now())
-  endedAt   DateTime @default(now())
+  id           String   @id @default(cuid())
+  gameId       String
+  roomId       String
+  winnerId     String?
+  result       String?
+  playerIds    Json
+  playerNames  Json?
+  moves        Json?
+  initialState Json?
+  seasonId     String?
+  startedAt    DateTime @default(now())
+  endedAt      DateTime @default(now())
+
+  @@index([gameId, endedAt])
+  @@index([winnerId])
 }
 
 model MinigameRating {
@@ -1966,8 +1972,44 @@ model MinigameRating {
   wins      Int      @default(0)
   losses    Int      @default(0)
   draws     Int      @default(0)
+  winStreak Int      @default(0)
   updatedAt DateTime @updatedAt
 
   @@unique([userId, gameId])
   @@index([gameId, mmr])
+}
+
+model MinigameSeason {
+  id        String   @id @default(cuid())
+  name      String
+  startsAt  DateTime
+  endsAt    DateTime
+  active    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model MinigameSeasonRating {
+  id        String   @id @default(cuid())
+  userId    String
+  gameId    String
+  seasonId  String
+  mmr       Int      @default(1000)
+  tier      String   @default("BRONZE")
+  wins      Int      @default(0)
+  losses    Int      @default(0)
+  draws     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, gameId, seasonId])
+  @@index([seasonId, gameId, mmr])
+}
+
+model MinigameUserAchievement {
+  id            String   @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  @@unique([userId, achievementId])
+  @@index([userId])
 }

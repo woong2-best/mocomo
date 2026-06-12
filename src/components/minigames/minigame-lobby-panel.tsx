@@ -1,10 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { MinigamePublicState } from "@/lib/minigames/shared-types";
 import { cn } from "@/lib/utils";
-import { Copy, Eye, Loader2 } from "lucide-react";
+import { Copy, Eye, Loader2, RotateCcw } from "lucide-react";
 
 type Props = {
   state: MinigamePublicState | null;
@@ -131,16 +132,31 @@ export function MinigameLobbyPanel({
   );
 }
 
-export function MinigameFinishedBanner({ state }: { state: MinigamePublicState }) {
+export function MinigameFinishedBanner({
+  state,
+  gameId,
+}: {
+  state: MinigamePublicState;
+  gameId: string;
+}) {
   if (state.status !== "finished") return null;
+  const replayHref = state.matchId ? `/play/${gameId}/replay/${state.matchId}` : null;
   return (
     <Card className="border-2 border-folk-gold/40 bg-folk-gold/10">
-      <CardContent className="p-4 text-center">
+      <CardContent className="p-4 text-center space-y-2">
         <p className="font-bold text-lg">{state.resultMessage ?? "게임 종료"}</p>
         {state.winnerId && (
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground">
             승자: {state.players.find((p) => p.userId === state.winnerId)?.username ?? "—"}
           </p>
+        )}
+        {replayHref && (
+          <Link href={replayHref}>
+            <Button variant="outline" size="sm" className="rounded-lg gap-1 mt-1">
+              <RotateCcw className="h-3 w-3" />
+              리플레이 보기
+            </Button>
+          </Link>
         )}
       </CardContent>
     </Card>

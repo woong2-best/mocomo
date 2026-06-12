@@ -13,6 +13,7 @@ import {
   minigameSpectate,
   minigameStart,
   minigameUpdateSocket,
+  minigameChat,
   roomKey,
   tryMatchFromQueue,
 } from "./store";
@@ -36,6 +37,8 @@ export function registerMinigameHandlers(
         requireFollow?: boolean;
         accessMode?: "private" | "public";
         ruleMode?: "free" | "renju";
+        timeControl?: string;
+        spectatorChat?: boolean;
       },
       ack?: (r: unknown) => void
     ) => {
@@ -55,6 +58,8 @@ export function registerMinigameHandlers(
         passwordHash,
         requireFollow: !!data.requireFollow,
         ruleMode: data.ruleMode,
+        timeControl: data.timeControl,
+        spectatorChat: data.spectatorChat,
       });
       if (!result.ok) {
         ack?.(result);
@@ -218,6 +223,19 @@ export function registerMinigameHandlers(
       const roomId = data?.roomId?.trim().toUpperCase();
       if (!gameId || !roomId) return;
       const result = minigameMove(gameId, roomId, userId, data.move);
+      ack?.(result);
+    }
+  );
+
+  socket.on(
+    "minigame_chat",
+    (data: { gameId?: string; roomId?: string; text?: string; username?: string }, ack?: (r: unknown) => void) => {
+      const gameId = data?.gameId?.trim();
+      const roomId = data?.roomId?.trim().toUpperCase();
+      const text = data?.text ?? "";
+      const username = data?.username?.trim().slice(0, 32) || "플레이어";
+      if (!gameId || !roomId) return;
+      const result = minigameChat(gameId, roomId, userId, username, text);
       ack?.(result);
     }
   );

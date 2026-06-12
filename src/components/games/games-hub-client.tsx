@@ -51,10 +51,19 @@ export function GamesHubClient() {
             <Users className="h-3 w-3" />
             2~5명 매칭 · 친구 방
           </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-folk-gold/20 text-folk-cobalt px-2.5 py-1">
+          <Link
+            href="/games/ranking"
+            className="inline-flex items-center gap-1 rounded-full bg-folk-gold/20 text-folk-cobalt px-2.5 py-1 hover:bg-folk-gold/30 transition-colors"
+          >
             <Trophy className="h-3 w-3" />
-            MMR · 티어 (예정)
-          </span>
+            랭킹 · MMR
+          </Link>
+          <Link
+            href="/games/achievements"
+            className="inline-flex items-center gap-1 rounded-full bg-folk-gold/20 text-folk-cobalt px-2.5 py-1 hover:bg-folk-gold/30 transition-colors"
+          >
+            업적
+          </Link>
         </div>
       </div>
 

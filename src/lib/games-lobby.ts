@@ -3,6 +3,9 @@ export type GamePlayMode = "friends" | "match";
 export type GameCreateOptions = {
   password?: string;
   requireFollow?: boolean;
+  ruleMode?: "free" | "renju";
+  timeControl?: string;
+  spectatorChat?: boolean;
 };
 
 export type GameJoinOptions = {

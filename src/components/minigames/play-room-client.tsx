@@ -10,6 +10,8 @@ import {
   MinigameFinishedBanner,
   MinigameLobbyPanel,
 } from "@/components/minigames/minigame-lobby-panel";
+import { MinigameChatPanel } from "@/components/minigames/minigame-chat-panel";
+import { MinigameClockBar } from "@/components/minigames/minigame-clock-bar";
 import { GameActiveView } from "@/components/minigames/game-views";
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
@@ -29,8 +31,18 @@ export function PlayRoomClient({
   const username =
     session?.user?.name || session?.user?.username || session?.user?.email || "플레이어";
 
-  const { state, error, joined, isHost, setReady, startGame, sendMove, setError } =
-    useMinigameRoom(gameId, roomId, userId, username, mode);
+  const {
+    state,
+    error,
+    joined,
+    isHost,
+    setReady,
+    startGame,
+    sendMove,
+    sendChat,
+    chatMessages,
+    setError,
+  } = useMinigameRoom(gameId, roomId, userId, username, mode);
 
   const isSpectator = mode === "spectate";
   const route = getMinigameRoute(gameId);
@@ -56,7 +68,7 @@ export function PlayRoomClient({
         )}
       </div>
 
-      {state && <MinigameFinishedBanner state={state} />}
+      {state && <MinigameFinishedBanner state={state} gameId={gameId} />}
 
       {state?.status === "lobby" && !isSpectator && (
         <MinigameLobbyPanel
@@ -70,16 +82,28 @@ export function PlayRoomClient({
         />
       )}
 
-      {state?.status === "playing" && (
-        <GameActiveView
-          gameId={gameId}
-          state={state}
-          userId={userId}
-          isSpectator={isSpectator}
-          onMove={(m) => sendMove(m)}
-          error={error}
-          onClearError={() => setError(null)}
-        />
+      {(state?.status === "playing" || state?.status === "finished") && (
+        <div className="grid lg:grid-cols-[1fr_280px] gap-4">
+          <div className="space-y-3">
+            {state.status === "playing" && <MinigameClockBar state={state} userId={userId} />}
+            {state.game && (
+              <GameActiveView
+                gameId={gameId}
+                state={state}
+                userId={userId}
+                isSpectator={isSpectator || state.status === "finished"}
+                onMove={(m) => sendMove(m)}
+                error={error}
+                onClearError={() => setError(null)}
+              />
+            )}
+          </div>
+          <MinigameChatPanel
+            messages={chatMessages}
+            onSend={(t) => sendChat(t)}
+            disabled={isSpectator && !state.spectatorChatEnabled}
+          />
+        </div>
       )}
 
       {joined && !state && error && (
