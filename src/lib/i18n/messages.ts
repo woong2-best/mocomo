@@ -18,7 +18,7 @@ export type MessageKey =
   | "nav.used"
   | "nav.market"
   | "nav.events"
-  | "nav.sketchQuiz"
+  | "nav.games"
   | "nav.rankings"
   | "nav.support"
   | "nav.wallet"
@@ -72,7 +72,7 @@ const ko: Record<MessageKey, string> = {
   "nav.used": "중고거래",
   "nav.market": "굿즈샵",
   "nav.events": "이벤트",
-  "nav.sketchQuiz": "스케치퀴즈",
+  "nav.games": "GAME",
   "nav.rankings": "후원 랭킹",
   "nav.support": "후원",
   "nav.wallet": "정산·출금",
@@ -127,7 +127,7 @@ const en: Record<MessageKey, string> = {
   "nav.used": "Used Market",
   "nav.market": "Shop",
   "nav.events": "Events",
-  "nav.sketchQuiz": "Sketch Quiz",
+  "nav.games": "GAME",
   "nav.rankings": "Rankings",
   "nav.support": "Support",
   "nav.wallet": "Wallet",
@@ -182,7 +182,7 @@ const ja: Record<MessageKey, string> = {
   "nav.used": "フリマ",
   "nav.market": "ショップ",
   "nav.events": "イベント",
-  "nav.sketchQuiz": "スケッチクイズ",
+  "nav.games": "GAME",
   "nav.rankings": "ランキング",
   "nav.support": "支援",
   "nav.wallet": "ウォレット",
@@ -237,7 +237,7 @@ const zh: Record<MessageKey, string> = {
   "nav.used": "二手",
   "nav.market": "商店",
   "nav.events": "活动",
-  "nav.sketchQuiz": "你画我猜",
+  "nav.games": "GAME",
   "nav.rankings": "排行榜",
   "nav.support": "赞助",
   "nav.wallet": "钱包",

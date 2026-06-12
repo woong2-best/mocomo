@@ -18,7 +18,6 @@ import {
   Camera,
   Calendar,
   Crown,
-  PencilLine,
   Tags,
 } from "lucide-react";
 import type { MessageKey } from "@/lib/i18n/messages";
@@ -40,7 +39,6 @@ export const mainNavItems: NavItem[] = [
   { href: "/works", icon: BookOpen, labelKey: "nav.works" },
   { href: "/used", icon: Tags, labelKey: "nav.used" },
   { href: "/events", icon: Calendar, labelKey: "nav.events" },
-  { href: "/sketch-quiz", icon: PencilLine, labelKey: "nav.sketchQuiz" },
   { href: "/rankings", icon: Trophy, labelKey: "nav.rankings" },
   { href: "/support", icon: Wallet, labelKey: "nav.support" },
   { href: "/wallet", icon: Banknote, labelKey: "nav.wallet" },

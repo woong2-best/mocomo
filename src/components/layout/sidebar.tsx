@@ -11,6 +11,7 @@ import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
 import { useLocale } from "@/components/providers/locale-provider";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
 import { isNavItemActive } from "@/lib/nav-active";
+import { GamesNavSection } from "@/components/layout/games-nav-section";
 import { useSidebarToggle } from "@/components/providers/sidebar-toggle-provider";
 
 export function Sidebar() {
@@ -67,6 +68,8 @@ export function Sidebar() {
             <span className="truncate">{t(labelKey)}</span>
           </Link>
         ))}
+
+        <GamesNavSection pathname={pathname} />
       </nav>
 
       {!shouldShowRightPanel(pathname) && (

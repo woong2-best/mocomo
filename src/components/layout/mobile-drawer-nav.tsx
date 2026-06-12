@@ -20,6 +20,7 @@ import { FolkBrushDivider, FolkFloralAccent } from "@/components/brand/folk-deco
 import { FolkThemeCelestial } from "@/components/brand/folk-theme-celestial";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { BRAND } from "@/lib/brand";
+import { GamesNavSection } from "@/components/layout/games-nav-section";
 
 type MobileDrawerNavProps = {
   open: boolean;
@@ -96,6 +97,11 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
               </Link>
             );
           })}
+          <GamesNavSection
+            pathname={pathname}
+            variant="drawer"
+            onNavigate={() => onOpenChange(false)}
+          />
         </nav>
       </DialogContent>
     </Dialog>
