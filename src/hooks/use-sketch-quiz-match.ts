@@ -5,14 +5,36 @@ import { useRouter } from "next/navigation";
 import { useAppSocket } from "@/components/providers/app-socket-provider";
 import type { SketchQuizPublicState } from "@/lib/sketch-quiz-types";
 
+const MATCH_ACK_MS = 12_000;
+const SOCKET_WAIT_MS = 10_000;
+
+type MatchAck = {
+  ok?: boolean;
+  status?: "waiting" | "matched";
+  queueSize?: number;
+  roomId?: string;
+  autoStarted?: boolean;
+  error?: string;
+};
+
 export function useSketchQuizMatch(userId: string | undefined, username: string) {
   const router = useRouter();
-  const { socket, socketReady } = useAppSocket();
+  const { socket, socketReady, realtimeOff } = useAppSocket();
   const [matching, setMatching] = useState(false);
   const [queueSize, setQueueSize] = useState(0);
   const [statusMessage, setStatusMessage] = useState("다른 유저를 찾고 있습니다…");
   const [error, setError] = useState<string | null>(null);
   const matchingRef = useRef(false);
+  const socketRef = useRef(socket);
+  const socketReadyRef = useRef(socketReady);
+
+  useEffect(() => {
+    socketRef.current = socket;
+  }, [socket]);
+
+  useEffect(() => {
+    socketReadyRef.current = socketReady;
+  }, [socketReady]);
 
   const goToRoom = useCallback(
     (roomId: string) => {
@@ -23,84 +45,148 @@ export function useSketchQuizMatch(userId: string | undefined, username: string)
     [router]
   );
 
+  const emitMatch = useCallback(
+    (targetSocket: NonNullable<typeof socket>) =>
+      new Promise<MatchAck>((resolve) => {
+        let settled = false;
+        const timer = window.setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          resolve({ ok: false, error: "매칭 서버 응답이 없습니다. 소켓 서버 배포 상태를 확인해 주세요." });
+        }, MATCH_ACK_MS);
+
+        targetSocket.emit("sketch_quiz_match", { username }, (res: MatchAck) => {
+          if (settled) return;
+          settled = true;
+          window.clearTimeout(timer);
+          resolve(res ?? { ok: false, error: "매칭 응답이 없습니다." });
+        });
+      }),
+    [username]
+  );
+
+  const waitForSocket = useCallback(async (): Promise<NonNullable<typeof socket> | null> => {
+    const deadline = Date.now() + SOCKET_WAIT_MS;
+    while (Date.now() < deadline) {
+      const s = socketRef.current;
+      if (s?.connected && socketReadyRef.current) return s;
+      await new Promise((r) => setTimeout(r, 300));
+    }
+    return socketRef.current?.connected ? socketRef.current : null;
+  }, []);
+
   useEffect(() => {
     if (!socket || !matching) return;
 
     const onQueue = (payload: { queueSize?: number; message?: string }) => {
       if (payload.queueSize != null) setQueueSize(payload.queueSize);
-      if (payload.message) setStatusMessage(payload.message);
+      setStatusMessage(payload.message ?? "다른 유저를 찾고 있습니다…");
     };
 
-    const onMatched = (payload: { roomId: string; state?: SketchQuizPublicState }) => {
-      if (!payload.roomId) return;
+    const onMatched = (payload: { roomId?: string }) => {
+      if (!payload.roomId || !matchingRef.current) return;
       setStatusMessage("매칭되었습니다! 게임방으로 이동합니다…");
       goToRoom(payload.roomId);
     };
 
+    const onReconnect = () => {
+      if (!matchingRef.current) return;
+      void emitMatch(socket).then((res) => {
+        if (!matchingRef.current) return;
+        if (!res.ok) {
+          setError(res.error ?? "매칭 재시도에 실패했습니다.");
+          return;
+        }
+        if (res.status === "waiting") {
+          setQueueSize(res.queueSize ?? 1);
+          setStatusMessage("다른 유저를 찾고 있습니다…");
+        } else if (res.status === "matched" && res.roomId) {
+          setStatusMessage(
+            res.autoStarted ? "매칭 완료! 게임을 시작합니다…" : "매칭 완료! 게임방으로 이동합니다…"
+          );
+          goToRoom(res.roomId);
+        }
+      });
+    };
+
     socket.on("sketch_quiz_match_queue", onQueue);
     socket.on("sketch_quiz_matched", onMatched);
+    socket.io.on("reconnect", onReconnect);
     return () => {
       socket.off("sketch_quiz_match_queue", onQueue);
       socket.off("sketch_quiz_matched", onMatched);
+      socket.io.off("reconnect", onReconnect);
     };
-  }, [socket, matching, goToRoom]);
+  }, [socket, matching, goToRoom, emitMatch]);
 
-  const startMatch = useCallback(() => {
-    if (!socket || !socketReady || !userId) {
-      setError("로그인 및 실시간 연결이 필요합니다.");
+  const startMatch = useCallback(async () => {
+    if (!userId) {
+      setError("로그인이 필요합니다.");
       return;
     }
+    if (realtimeOff && !socketRef.current) {
+      setError("실시간 서버가 설정되지 않았습니다. (NEXT_PUBLIC_SOCKET_URL)");
+      return;
+    }
+
     setError(null);
     setMatching(true);
     matchingRef.current = true;
     setQueueSize(1);
     setStatusMessage("다른 유저를 찾고 있습니다…");
 
-    socket.emit(
-      "sketch_quiz_match",
-      { username },
-      (res: {
-        ok?: boolean;
-        status?: "waiting" | "matched";
-        queueSize?: number;
-        roomId?: string;
-        autoStarted?: boolean;
-        error?: string;
-      }) => {
-        if (!res?.ok) {
-          matchingRef.current = false;
-          setMatching(false);
-          setError(res?.error ?? "매칭에 실패했습니다.");
-          return;
-        }
-        if (res.status === "waiting") {
-          setQueueSize(res.queueSize ?? 1);
-          setStatusMessage("다른 유저를 찾고 있습니다…");
-          return;
-        }
-        if (res.status === "matched" && res.roomId) {
-          setStatusMessage(
-            res.autoStarted ? "매칭 완료! 게임을 시작합니다…" : "매칭 완료! 게임방으로 이동합니다…"
-          );
-          goToRoom(res.roomId);
-        }
-      }
-    );
-  }, [socket, socketReady, userId, username, goToRoom]);
+    const target = socketRef.current?.connected ? socketRef.current : await waitForSocket();
+    if (!target?.connected) {
+      matchingRef.current = false;
+      setMatching(false);
+      setError("실시간 서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.");
+      return;
+    }
+
+    const res = await emitMatch(target);
+    if (!matchingRef.current) return;
+
+    if (!res.ok) {
+      matchingRef.current = false;
+      setMatching(false);
+      setError(res.error ?? "매칭에 실패했습니다.");
+      return;
+    }
+    if (res.status === "waiting") {
+      setQueueSize(res.queueSize ?? 1);
+      setStatusMessage("다른 유저를 찾고 있습니다…");
+      return;
+    }
+    if (res.status === "matched" && res.roomId) {
+      setStatusMessage(
+        res.autoStarted ? "매칭 완료! 게임을 시작합니다…" : "매칭 완료! 게임방으로 이동합니다…"
+      );
+      goToRoom(res.roomId);
+    }
+  }, [userId, realtimeOff, waitForSocket, emitMatch, goToRoom]);
 
   const cancelMatch = useCallback(() => {
     matchingRef.current = false;
     setMatching(false);
     setQueueSize(0);
     setStatusMessage("다른 유저를 찾고 있습니다…");
-    socket?.emit("sketch_quiz_match_cancel");
-  }, [socket]);
+    socketRef.current?.emit("sketch_quiz_match_cancel");
+  }, []);
 
   useEffect(() => {
     return () => {
-      if (matchingRef.current) socket?.emit("sketch_quiz_match_cancel");
+      if (matchingRef.current) socketRef.current?.emit("sketch_quiz_match_cancel");
     };
-  }, [socket]);
+  }, []);
 
-  return { matching, queueSize, statusMessage, error, startMatch, cancelMatch, socketReady };
+  return {
+    matching,
+    queueSize,
+    statusMessage,
+    error,
+    startMatch,
+    cancelMatch,
+    socketReady,
+    realtimeOff,
+  };
 }

@@ -40,7 +40,7 @@ export function SketchQuizHubClient() {
   const username =
     session?.user?.name || session?.user?.username || session?.user?.email || "플레이어";
 
-  const { matching, queueSize, statusMessage, error: matchError, startMatch, cancelMatch, socketReady } =
+  const { matching, queueSize, statusMessage, error: matchError, startMatch, cancelMatch, socketReady, realtimeOff } =
     useSketchQuizMatch(session?.user?.id, username);
 
   function createFriendRoom() {
@@ -165,28 +165,35 @@ export function SketchQuizHubClient() {
             <p className="text-sm text-muted-foreground">
               다른 유저와 자동 매칭됩니다. (2~5명 · 매칭 즉시 게임 시작)
             </p>
+            {!matching && !socketReady && !realtimeOff && (
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                실시간 서버 연결 중… 연결 후 매칭할 수 있습니다.
+              </p>
+            )}
+            {realtimeOff && (
+              <p className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
+                실시간 서버가 연결되지 않았습니다. NEXT_PUBLIC_SOCKET_URL 설정을 확인해 주세요.
+              </p>
+            )}
             {matching ? (
-              <div className="space-y-3">
-                <p className="text-sm font-medium text-folk-cobalt">{statusMessage}</p>
-                <p className="text-xs flex items-center justify-center gap-2 text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+              <div className="space-y-3 rounded-xl bg-folk-cobalt/5 border border-folk-cobalt/20 p-4">
+                <p className="text-base font-semibold text-folk-cobalt">{statusMessage}</p>
+                <p className="text-sm flex items-center justify-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin shrink-0 text-folk-cobalt" />
                   {queueSize < 2
-                    ? `대기 중 (${queueSize}명) · 상대를 기다리는 중…`
-                    : `매칭 중 (${queueSize}명)`}
+                    ? `대기 ${queueSize}명 · 다른 유저를 찾는 중…`
+                    : `매칭 ${queueSize}명 · 곧 시작합니다…`}
                 </p>
-                {!socketReady && (
-                  <p className="text-xs text-muted-foreground">실시간 서버 연결 중…</p>
-                )}
                 <Button type="button" variant="outline" className="rounded-xl" onClick={cancelMatch}>
-                  취소
+                  매칭 취소
                 </Button>
               </div>
             ) : (
               <Button
                 type="button"
-                className="rounded-xl gap-2 bg-folk-cobalt hover:bg-folk-cobalt/90"
-                onClick={startMatch}
-                disabled={!socketReady}
+                className="rounded-xl gap-2 bg-folk-cobalt hover:bg-folk-cobalt/90 min-w-[10rem]"
+                onClick={() => void startMatch()}
+                disabled={realtimeOff}
               >
                 매칭 시작
               </Button>

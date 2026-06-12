@@ -73,6 +73,21 @@ type RoomInternal = {
 const rooms = new Map<string, RoomInternal>();
 const matchQueue: MatchQueueEntry[] = [];
 let ioRef: Server | null = null;
+let matchQueueTimer: ReturnType<typeof setInterval> | null = null;
+
+function startMatchQueueTicker() {
+  if (matchQueueTimer) return;
+  matchQueueTimer = setInterval(() => {
+    if (matchQueue.length === 0) {
+      if (matchQueueTimer) {
+        clearInterval(matchQueueTimer);
+        matchQueueTimer = null;
+      }
+      return;
+    }
+    notifyMatchQueueWaiters();
+  }, 2500);
+}
 
 function roomKey(roomId: string) {
   return `sketch:${roomId.toUpperCase()}`;
@@ -547,6 +562,7 @@ export function sketchQuizMatchEnqueue(
 
   matchQueue.push({ userId, username, socketId, joinedAt: Date.now() });
   notifyMatchQueueWaiters();
+  startMatchQueueTicker();
 
   if (matchQueue.length < MIN_PLAYERS) {
     return { ok: true, status: "waiting", queueSize: matchQueue.length };
