@@ -97,11 +97,7 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
               </Link>
             );
           })}
-          <GamesNavSection
-            pathname={pathname}
-            variant="drawer"
-            onNavigate={() => onOpenChange(false)}
-          />
+          <GamesNavSection pathname={pathname} onNavigate={() => onOpenChange(false)} />
         </nav>
       </DialogContent>
     </Dialog>
