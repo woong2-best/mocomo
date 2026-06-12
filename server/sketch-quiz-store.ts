@@ -8,12 +8,33 @@ import {
   type SketchWordEntry,
   pickRandomSketchWord,
   isSketchAnswerCorrect,
+  generateRoomCode,
 } from "../src/lib/sketch-quiz-words";
 
 const ROUND_SECONDS = 80;
 const MAX_PLAYERS = 8;
 const MIN_PLAYERS = 2;
+const MATCH_BATCH_SIZE = 4;
 const ROUND_END_PAUSE_MS = 4000;
+
+export type SketchQuizCreateOptions = {
+  accessMode?: "private" | "public";
+  passwordHash?: string;
+  requireFollow?: boolean;
+};
+
+export type SketchQuizJoinOptions = {
+  password?: string;
+  verifyPassword?: (password: string, hash: string) => Promise<boolean>;
+  canJoinRoom?: (room: RoomInternal, userId: string) => Promise<boolean>;
+};
+
+type MatchQueueEntry = {
+  userId: string;
+  username: string;
+  socketId: string;
+  joinedAt: number;
+};
 
 type PlayerInternal = {
   userId: string;
@@ -26,6 +47,9 @@ type RoomInternal = {
   id: string;
   hostId: string;
   status: "lobby" | "playing" | "round_end" | "finished";
+  accessMode: "private" | "public";
+  passwordHash?: string;
+  requireFollow: boolean;
   players: Map<string, PlayerInternal>;
   drawerOrder: string[];
   drawerIndex: number;
@@ -43,6 +67,7 @@ type RoomInternal = {
 };
 
 const rooms = new Map<string, RoomInternal>();
+const matchQueue: MatchQueueEntry[] = [];
 let ioRef: Server | null = null;
 
 function roomKey(roomId: string) {
@@ -75,6 +100,9 @@ function toPublicState(room: RoomInternal): SketchQuizPublicState {
     roomId: room.id,
     hostId: room.hostId,
     status: room.status,
+    accessMode: room.accessMode,
+    hasPassword: !!room.passwordHash,
+    requireFollow: room.requireFollow,
     players: [...room.players.values()].map((p) => ({
       userId: p.userId,
       username: p.username,
@@ -188,7 +216,8 @@ export function sketchQuizCreate(
   roomId: string,
   userId: string,
   username: string,
-  socketId: string
+  socketId: string,
+  options: SketchQuizCreateOptions = {}
 ): { ok: true; state: SketchQuizPublicState } | { ok: false; error: string } {
   const id = roomId.toUpperCase();
   if (rooms.has(id)) {
@@ -199,6 +228,9 @@ export function sketchQuizCreate(
     id,
     hostId: userId,
     status: "lobby",
+    accessMode: options.accessMode ?? "private",
+    passwordHash: options.passwordHash,
+    requireFollow: !!options.requireFollow,
     players: new Map(),
     drawerOrder: [],
     drawerIndex: 0,
@@ -221,15 +253,33 @@ export function sketchQuizCreate(
   return { ok: true, state: toPublicState(room) };
 }
 
-export function sketchQuizJoin(
+export async function sketchQuizJoin(
   roomId: string,
   userId: string,
   username: string,
-  socketId: string
-): { ok: true; state: SketchQuizPublicState } | { ok: false; error: string } {
+  socketId: string,
+  options: SketchQuizJoinOptions = {}
+): Promise<{ ok: true; state: SketchQuizPublicState } | { ok: false; error: string }> {
   const id = roomId.toUpperCase();
   const room = rooms.get(id);
   if (!room) return { ok: false, error: "방을 찾을 수 없습니다." };
+
+  if (room.passwordHash) {
+    const pwd = options.password?.trim();
+    if (!pwd) return { ok: false, error: "비밀번호가 필요합니다." };
+    const verify = options.verifyPassword;
+    if (!verify) return { ok: false, error: "비밀번호 확인을 할 수 없습니다." };
+    const ok = await verify(pwd, room.passwordHash);
+    if (!ok) return { ok: false, error: "비밀번호가 일치하지 않습니다." };
+  }
+
+  if (room.requireFollow && userId !== room.hostId) {
+    const canJoin = options.canJoinRoom ? await options.canJoinRoom(room, userId) : false;
+    if (!canJoin) {
+      return { ok: false, error: "호스트를 팔로우한 사용자만 입장할 수 있습니다." };
+    }
+  }
+
   if (room.status !== "lobby" && !room.players.has(userId)) {
     return { ok: false, error: "이미 진행 중인 게임입니다." };
   }
@@ -248,6 +298,7 @@ export function sketchQuizJoin(
 }
 
 export function sketchQuizLeave(roomId: string, userId: string) {
+  removeFromMatchQueue(userId);
   const room = rooms.get(roomId.toUpperCase());
   if (!room) return;
 
@@ -386,4 +437,110 @@ export function sketchQuizReplayWord(roomId: string, userId: string) {
   const drawerId = room.drawerOrder[room.drawerIndex];
   if (drawerId !== userId) return;
   emitWordToDrawer(room);
+}
+
+function removeFromMatchQueue(userId: string) {
+  const idx = matchQueue.findIndex((e) => e.userId === userId);
+  if (idx >= 0) matchQueue.splice(idx, 1);
+}
+
+function createPublicMatchRoom(players: MatchQueueEntry[]): {
+  roomId: string;
+  state: SketchQuizPublicState;
+} | null {
+  if (players.length < MIN_PLAYERS) return null;
+
+  let roomId = generateRoomCode();
+  while (rooms.has(roomId)) roomId = generateRoomCode();
+
+  const host = players[0]!;
+  const room: RoomInternal = {
+    id: roomId,
+    hostId: host.userId,
+    status: "lobby",
+    accessMode: "public",
+    requireFollow: false,
+    players: new Map(),
+    drawerOrder: [],
+    drawerIndex: 0,
+    round: 1,
+    maxRounds: 0,
+    currentWord: null,
+    strokes: [],
+    recentGuesses: [],
+    usedWords: new Set(),
+    roundEndsAt: null,
+    roundTimer: null,
+    roundEndTimer: null,
+    lastCorrect: null,
+    roundMessage: null,
+  };
+
+  for (const p of players) {
+    room.players.set(p.userId, {
+      userId: p.userId,
+      username: p.username,
+      score: 0,
+      socketId: p.socketId,
+    });
+  }
+
+  rooms.set(roomId, room);
+  return { roomId, state: toPublicState(room) };
+}
+
+export type SketchQuizMatchResult =
+  | { ok: true; status: "waiting"; queueSize: number }
+  | { ok: true; status: "matched"; roomId: string; state: SketchQuizPublicState; socketIds: string[] }
+  | { ok: false; error: string };
+
+export function sketchQuizMatchEnqueue(
+  userId: string,
+  username: string,
+  socketId: string
+): SketchQuizMatchResult {
+  removeFromMatchQueue(userId);
+
+  const existingRoom = [...rooms.values()].find(
+    (r) => r.accessMode === "public" && r.status === "lobby" && r.players.size < MAX_PLAYERS
+  );
+  if (existingRoom && !existingRoom.players.has(userId)) {
+    existingRoom.players.set(userId, { userId, username, score: 0, socketId });
+    return {
+      ok: true,
+      status: "matched",
+      roomId: existingRoom.id,
+      state: toPublicState(existingRoom),
+      socketIds: [socketId],
+    };
+  }
+
+  matchQueue.push({ userId, username, socketId, joinedAt: Date.now() });
+
+  if (matchQueue.length < MIN_PLAYERS) {
+    return { ok: true, status: "waiting", queueSize: matchQueue.length };
+  }
+
+  const batchSize = Math.min(MATCH_BATCH_SIZE, matchQueue.length);
+  const batch = matchQueue.splice(0, batchSize);
+  const created = createPublicMatchRoom(batch);
+  if (!created) {
+    return { ok: false, error: "매칭 방을 만들 수 없습니다." };
+  }
+
+  return {
+    ok: true,
+    status: "matched",
+    roomId: created.roomId,
+    state: created.state,
+    socketIds: batch.map((p) => p.socketId),
+  };
+}
+
+export function sketchQuizMatchCancel(userId: string) {
+  removeFromMatchQueue(userId);
+}
+
+export function sketchQuizMatchQueueSize(): number {
+  return matchQueue.length;
 }

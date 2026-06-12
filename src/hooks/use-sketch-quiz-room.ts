@@ -8,6 +8,14 @@ import type {
   SketchStroke,
   SketchQuizGuess,
 } from "@/lib/sketch-quiz-types";
+import {
+  readGameCreateOptions,
+  readGameJoinOptions,
+  type GameCreateOptions,
+  type GameJoinOptions,
+} from "@/lib/games-lobby";
+
+const GAME_ID = "sketch-quiz";
 
 type AckResult =
   | { ok: true; state?: SketchQuizPublicState }
@@ -58,8 +66,15 @@ export function useSketchQuizRoom(
     let cancelled = false;
 
     void (async () => {
+      const createOpts: GameCreateOptions = readGameCreateOptions(GAME_ID) ?? {};
+      const joinOpts: GameJoinOptions = readGameJoinOptions(GAME_ID) ?? {};
+
       if (mode === "join") {
-        const result = await emitAck("sketch_quiz_join", { roomId: roomCode, username });
+        const result = await emitAck("sketch_quiz_join", {
+          roomId: roomCode,
+          username,
+          password: joinOpts.password,
+        });
         if (cancelled) return;
         if (!result.ok) {
           setError(result.error);
@@ -71,7 +86,11 @@ export function useSketchQuizRoom(
         return;
       }
 
-      const joinedExisting = await emitAck("sketch_quiz_join", { roomId: roomCode, username });
+      const joinedExisting = await emitAck("sketch_quiz_join", {
+        roomId: roomCode,
+        username,
+        password: joinOpts.password,
+      });
       if (cancelled) return;
       if (joinedExisting.ok) {
         if (joinedExisting.state) setState(joinedExisting.state);
@@ -80,7 +99,13 @@ export function useSketchQuizRoom(
         return;
       }
 
-      const created = await emitAck("sketch_quiz_create", { roomId: roomCode, username });
+      const created = await emitAck("sketch_quiz_create", {
+        roomId: roomCode,
+        username,
+        password: createOpts.password,
+        requireFollow: createOpts.requireFollow,
+        accessMode: "private",
+      });
       if (cancelled) return;
       if (!created.ok) {
         setError(created.error);

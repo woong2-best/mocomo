@@ -136,6 +136,21 @@ export function SketchQuizRoomClient({ roomId, mode }: SketchQuizRoomClientProps
             </span>
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
+            {state.accessMode === "public" && (
+              <span className="inline-flex items-center rounded-md bg-folk-cobalt/10 text-folk-cobalt px-1.5 py-0.5 text-[10px] font-semibold mr-1">
+                랜덤 매칭
+              </span>
+            )}
+            {state.accessMode === "private" && state.hasPassword && (
+              <span className="inline-flex items-center rounded-md bg-folk-terracotta/10 text-folk-terracotta px-1.5 py-0.5 text-[10px] font-semibold mr-1">
+                비밀번호 방
+              </span>
+            )}
+            {state.requireFollow && (
+              <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold mr-1">
+                팔로워 전용
+              </span>
+            )}
             {inLobby
               ? "친구를 초대하고 방장이 게임을 시작하세요."
               : finished

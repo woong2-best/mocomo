@@ -15,8 +15,11 @@ import {
   sketchQuizGuess,
   sketchQuizUpdateSocket,
   sketchQuizReplayWord,
+  sketchQuizMatchEnqueue,
+  sketchQuizMatchCancel,
 } from "./sketch-quiz-store";
 import { isValidRoomCode } from "../src/lib/sketch-quiz-words";
+import { hashLiveJoinPassword, verifyLiveJoinPassword } from "../src/lib/live-password";
 import { registerLiveSupportHandlers } from "./live-support";
 
 const prisma = new PrismaClient();
@@ -563,14 +566,31 @@ io.on("connection", (socket: AuthedSocket) => {
 
   socket.on(
     "sketch_quiz_create",
-    (data: { roomId?: string; username?: string }, ack?: (r: unknown) => void) => {
+    async (
+      data: {
+        roomId?: string;
+        username?: string;
+        password?: string;
+        requireFollow?: boolean;
+        accessMode?: "private" | "public";
+      },
+      ack?: (r: unknown) => void
+    ) => {
       const roomId = data.roomId?.trim().toUpperCase();
       const username = data.username?.trim().slice(0, 32) || "플레이어";
       if (!roomId || !isValidRoomCode(roomId)) {
         ack?.({ ok: false, error: "유효하지 않은 방 코드입니다." });
         return;
       }
-      const result = sketchQuizCreate(roomId, userId, username, socket.id);
+      let passwordHash: string | undefined;
+      if (data.password?.trim()) {
+        passwordHash = await hashLiveJoinPassword(data.password);
+      }
+      const result = sketchQuizCreate(roomId, userId, username, socket.id, {
+        accessMode: data.accessMode ?? "private",
+        passwordHash,
+        requireFollow: !!data.requireFollow,
+      });
       if (!result.ok) {
         ack?.(result);
         return;
@@ -583,14 +603,29 @@ io.on("connection", (socket: AuthedSocket) => {
 
   socket.on(
     "sketch_quiz_join",
-    (data: { roomId?: string; username?: string }, ack?: (r: unknown) => void) => {
+    async (
+      data: { roomId?: string; username?: string; password?: string },
+      ack?: (r: unknown) => void
+    ) => {
       const roomId = data.roomId?.trim().toUpperCase();
       const username = data.username?.trim().slice(0, 32) || "플레이어";
       if (!roomId || !isValidRoomCode(roomId)) {
         ack?.({ ok: false, error: "유효하지 않은 방 코드입니다." });
         return;
       }
-      const result = sketchQuizJoin(roomId, userId, username, socket.id);
+      const result = await sketchQuizJoin(roomId, userId, username, socket.id, {
+        password: data.password,
+        verifyPassword: verifyLiveJoinPassword,
+        canJoinRoom: async (room, joinerId) => {
+          if (joinerId === room.hostId) return true;
+          const follow = await prisma.follow.findUnique({
+            where: {
+              followerId_followingId: { followerId: joinerId, followingId: room.hostId },
+            },
+          });
+          return !!follow;
+        },
+      });
       if (!result.ok) {
         ack?.(result);
         return;
@@ -602,6 +637,39 @@ io.on("connection", (socket: AuthedSocket) => {
       sketchQuizReplayWord(roomId, userId);
     }
   );
+
+  socket.on(
+    "sketch_quiz_match",
+    (data: { username?: string }, ack?: (r: unknown) => void) => {
+      const username = data.username?.trim().slice(0, 32) || "플레이어";
+      const result = sketchQuizMatchEnqueue(userId, username, socket.id);
+      if (!result.ok) {
+        ack?.(result);
+        return;
+      }
+      if (result.status === "waiting") {
+        ack?.({ ok: true, status: "waiting", queueSize: result.queueSize });
+        return;
+      }
+
+      const roomId = result.roomId;
+      for (const sid of result.socketIds) {
+        const peer = io.sockets.sockets.get(sid);
+        if (peer) {
+          peer.join(`sketch:${roomId}`);
+          if (sid !== socket.id) {
+            peer.emit("sketch_quiz_matched", { roomId, state: result.state });
+          }
+        }
+      }
+      ack?.({ ok: true, status: "matched", roomId, state: result.state });
+      io.to(`sketch:${roomId}`).emit("sketch_quiz_state", result.state);
+    }
+  );
+
+  socket.on("sketch_quiz_match_cancel", () => {
+    sketchQuizMatchCancel(userId);
+  });
 
   socket.on("sketch_quiz_leave", (roomId: string) => {
     const id = roomId?.trim().toUpperCase();
@@ -644,6 +712,7 @@ io.on("connection", (socket: AuthedSocket) => {
   );
 
   socket.on("disconnect", () => {
+    sketchQuizMatchCancel(userId);
     const wentOffline = setUserOnline(userId, false);
     if (wentOffline.wasOnline && !wentOffline.isOnline) {
       void broadcastPresenceToMemberRooms(userId, false);

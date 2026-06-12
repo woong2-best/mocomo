@@ -28,6 +28,9 @@ export type SketchQuizPublicState = {
   roomId: string;
   hostId: string;
   status: SketchQuizStatus;
+  accessMode: "private" | "public";
+  hasPassword: boolean;
+  requireFollow: boolean;
   players: SketchQuizPlayer[];
   round: number;
   maxRounds: number;

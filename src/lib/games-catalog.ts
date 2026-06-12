@@ -16,7 +16,7 @@ const GAMES: GameCatalogEntry[] = [
     name: "스케치퀴즈",
     href: "/sketch-quiz",
     icon: PencilLine,
-    description: "그림으로 맞히는 캐치마인드 퀴즈",
+    description: "그림 맞히기 · 친구 방 / 랜덤 매칭",
   },
 ];
 

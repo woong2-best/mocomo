@@ -16,7 +16,7 @@ export function GamesHubClient() {
           GAME
         </FolkSectionTitle>
         <p className="text-sm text-muted-foreground">
-          MoCoMo 미니게임 모음입니다. ㄱ부터 ㅎ 순으로 정렬되어 있습니다.
+          MoCoMo 미니게임 모음입니다. 친구·팔로워 방 또는 랜덤 매칭으로 플레이할 수 있습니다.
         </p>
       </div>
 
