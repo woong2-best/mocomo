@@ -12,10 +12,14 @@ import {
 } from "../src/lib/sketch-quiz-words";
 
 const ROUND_SECONDS = 80;
-const MAX_PLAYERS = 8;
+const MAX_PLAYERS_PRIVATE = 8;
+const MAX_PLAYERS_PUBLIC = 5;
 const MIN_PLAYERS = 2;
-const MATCH_BATCH_SIZE = 4;
 const ROUND_END_PAUSE_MS = 4000;
+
+function maxPlayersFor(room: RoomInternal): number {
+  return room.accessMode === "public" ? MAX_PLAYERS_PUBLIC : MAX_PLAYERS_PRIVATE;
+}
 
 export type SketchQuizCreateOptions = {
   accessMode?: "private" | "public";
@@ -283,7 +287,7 @@ export async function sketchQuizJoin(
   if (room.status !== "lobby" && !room.players.has(userId)) {
     return { ok: false, error: "이미 진행 중인 게임입니다." };
   }
-  if (room.players.size >= MAX_PLAYERS && !room.players.has(userId)) {
+  if (room.players.size >= maxPlayersFor(room) && !room.players.has(userId)) {
     return { ok: false, error: "방이 가득 찼습니다." };
   }
 
@@ -439,9 +443,23 @@ export function sketchQuizReplayWord(roomId: string, userId: string) {
   emitWordToDrawer(room);
 }
 
-function removeFromMatchQueue(userId: string) {
-  const idx = matchQueue.findIndex((e) => e.userId === userId);
-  if (idx >= 0) matchQueue.splice(idx, 1);
+function notifyMatchQueueWaiters() {
+  if (!ioRef) return;
+  for (const entry of matchQueue) {
+    ioRef.to(entry.socketId).emit("sketch_quiz_match_queue", {
+      queueSize: matchQueue.length,
+      message: "다른 유저를 찾고 있습니다…",
+    });
+  }
+}
+
+/** 공개 매칭 방 — 2명 이상이면 즉시 게임 시작 */
+export function sketchQuizAutoStartPublic(roomId: string): boolean {
+  const room = rooms.get(roomId.toUpperCase());
+  if (!room || room.accessMode !== "public" || room.status !== "lobby") return false;
+  if (room.players.size < MIN_PLAYERS) return false;
+  const result = sketchQuizStart(roomId, room.hostId);
+  return result.ok;
 }
 
 function createPublicMatchRoom(players: MatchQueueEntry[]): {
@@ -491,7 +509,14 @@ function createPublicMatchRoom(players: MatchQueueEntry[]): {
 
 export type SketchQuizMatchResult =
   | { ok: true; status: "waiting"; queueSize: number }
-  | { ok: true; status: "matched"; roomId: string; state: SketchQuizPublicState; socketIds: string[] }
+  | {
+      ok: true;
+      status: "matched";
+      roomId: string;
+      state: SketchQuizPublicState;
+      socketIds: string[];
+      autoStarted: boolean;
+    }
   | { ok: false; error: string };
 
 export function sketchQuizMatchEnqueue(
@@ -502,39 +527,53 @@ export function sketchQuizMatchEnqueue(
   removeFromMatchQueue(userId);
 
   const existingRoom = [...rooms.values()].find(
-    (r) => r.accessMode === "public" && r.status === "lobby" && r.players.size < MAX_PLAYERS
+    (r) =>
+      r.accessMode === "public" &&
+      r.status === "lobby" &&
+      r.players.size < maxPlayersFor(r)
   );
   if (existingRoom && !existingRoom.players.has(userId)) {
     existingRoom.players.set(userId, { userId, username, score: 0, socketId });
+    const autoStarted = sketchQuizAutoStartPublic(existingRoom.id);
     return {
       ok: true,
       status: "matched",
       roomId: existingRoom.id,
       state: toPublicState(existingRoom),
       socketIds: [socketId],
+      autoStarted,
     };
   }
 
   matchQueue.push({ userId, username, socketId, joinedAt: Date.now() });
+  notifyMatchQueueWaiters();
 
   if (matchQueue.length < MIN_PLAYERS) {
     return { ok: true, status: "waiting", queueSize: matchQueue.length };
   }
 
-  const batchSize = Math.min(MATCH_BATCH_SIZE, matchQueue.length);
+  const batchSize = Math.min(MAX_PLAYERS_PUBLIC, matchQueue.length);
   const batch = matchQueue.splice(0, batchSize);
   const created = createPublicMatchRoom(batch);
   if (!created) {
     return { ok: false, error: "매칭 방을 만들 수 없습니다." };
   }
 
+  const autoStarted = sketchQuizAutoStartPublic(created.roomId);
+
   return {
     ok: true,
     status: "matched",
     roomId: created.roomId,
-    state: created.state,
+    state: toPublicState(rooms.get(created.roomId)!),
     socketIds: batch.map((p) => p.socketId),
+    autoStarted,
   };
+}
+
+function removeFromMatchQueue(userId: string) {
+  const idx = matchQueue.findIndex((e) => e.userId === userId);
+  if (idx >= 0) matchQueue.splice(idx, 1);
 }
 
 export function sketchQuizMatchCancel(userId: string) {

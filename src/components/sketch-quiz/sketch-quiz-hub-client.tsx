@@ -40,7 +40,7 @@ export function SketchQuizHubClient() {
   const username =
     session?.user?.name || session?.user?.username || session?.user?.email || "플레이어";
 
-  const { matching, queueSize, error: matchError, startMatch, cancelMatch, socketReady } =
+  const { matching, queueSize, statusMessage, error: matchError, startMatch, cancelMatch, socketReady } =
     useSketchQuizMatch(session?.user?.id, username);
 
   function createFriendRoom() {
@@ -163,13 +163,16 @@ export function SketchQuizHubClient() {
             <Globe className="h-10 w-10 mx-auto text-folk-cobalt" />
             <h2 className="font-display font-bold">랜덤 매칭</h2>
             <p className="text-sm text-muted-foreground">
-              대기열에서 다른 유저와 자동으로 매칭됩니다. (최소 2명)
+              다른 유저와 자동 매칭됩니다. (2~5명 · 매칭 즉시 게임 시작)
             </p>
             {matching ? (
               <div className="space-y-3">
-                <p className="text-sm flex items-center justify-center gap-2 text-folk-cobalt">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  매칭 중… {queueSize > 0 && `(대기 ${queueSize}명)`}
+                <p className="text-sm font-medium text-folk-cobalt">{statusMessage}</p>
+                <p className="text-xs flex items-center justify-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                  {queueSize < 2
+                    ? `대기 중 (${queueSize}명) · 상대를 기다리는 중…`
+                    : `매칭 중 (${queueSize}명)`}
                 </p>
                 {!socketReady && (
                   <p className="text-xs text-muted-foreground">실시간 서버 연결 중…</p>
@@ -196,7 +199,7 @@ export function SketchQuizHubClient() {
       <div className="rounded-xl border-2 border-dashed border-folk-cobalt/20 p-4 text-xs text-muted-foreground space-y-1">
         <p className="font-medium text-foreground">플레이 방법</p>
         <p>1. 친구 방: 비밀번호·팔로워 제한 설정 후 코드 공유</p>
-        <p>2. 랜덤: 매칭 후 자동 입장 · 방장이 게임 시작 (2명 이상)</p>
+        <p>2. 랜덤: 매칭 즉시 입장 · 2~5명 · 자동 게임 시작</p>
         <p>3. 순서대로 그리고 채팅으로 정답 · 80초 라운드</p>
       </div>
 

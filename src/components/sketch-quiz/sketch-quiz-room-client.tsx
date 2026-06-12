@@ -214,7 +214,9 @@ export function SketchQuizRoomClient({ roomId, mode }: SketchQuizRoomClientProps
                   ))}
                 </ul>
                 <p className="text-xs text-muted-foreground">
-                  최소 2명 · 최대 8명 · 한 명이 그리면 나머지가 채팅으로 정답을 맞혀요.
+                  {state.accessMode === "public"
+                    ? "랜덤 매칭 · 2~5명 · 매칭 시 자동 시작"
+                    : "최소 2명 · 최대 8명 · 한 명이 그리면 나머지가 채팅으로 정답을 맞혀요."}
                 </p>
               </CardContent>
             </Card>

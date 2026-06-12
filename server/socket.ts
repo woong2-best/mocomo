@@ -653,17 +653,29 @@ io.on("connection", (socket: AuthedSocket) => {
       }
 
       const roomId = result.roomId;
+      const state = result.state;
       for (const sid of result.socketIds) {
         const peer = io.sockets.sockets.get(sid);
         if (peer) {
           peer.join(`sketch:${roomId}`);
           if (sid !== socket.id) {
-            peer.emit("sketch_quiz_matched", { roomId, state: result.state });
+            peer.emit("sketch_quiz_matched", {
+              roomId,
+              state,
+              autoStarted: result.autoStarted,
+            });
           }
         }
       }
-      ack?.({ ok: true, status: "matched", roomId, state: result.state });
-      io.to(`sketch:${roomId}`).emit("sketch_quiz_state", result.state);
+      socket.join(`sketch:${roomId}`);
+      ack?.({
+        ok: true,
+        status: "matched",
+        roomId,
+        state,
+        autoStarted: result.autoStarted,
+      });
+      io.to(`sketch:${roomId}`).emit("sketch_quiz_state", state);
     }
   );
 
