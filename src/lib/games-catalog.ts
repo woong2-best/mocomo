@@ -1,5 +1,6 @@
+/** @deprecated src/lib/minigames/registry.ts 사용 */
 import type { LucideIcon } from "lucide-react";
-import { PencilLine } from "lucide-react";
+import { getSortedLiveGamesForNav, isMinigamePath } from "@/lib/minigames/registry";
 
 export type GameCatalogEntry = {
   id: string;
@@ -9,22 +10,16 @@ export type GameCatalogEntry = {
   description?: string;
 };
 
-/** MoCoMo 독립 게임 목록 — ㄱ~ㅎ 가나다순 */
-const GAMES: GameCatalogEntry[] = [
-  {
-    id: "sketch-quiz",
-    name: "스케치퀴즈",
-    href: "/sketch-quiz",
-    icon: PencilLine,
-    description: "그림 맞히기 · 친구 방 / 랜덤 매칭",
-  },
-];
-
 export function getSortedGames(): GameCatalogEntry[] {
-  return [...GAMES].sort((a, b) => a.name.localeCompare(b.name, "ko"));
+  return getSortedLiveGamesForNav().map((g) => ({
+    id: g.id,
+    name: g.name,
+    href: g.href!,
+    icon: g.icon,
+    description: g.description,
+  }));
 }
 
 export function isGamesPath(pathname: string): boolean {
-  if (pathname === "/games") return true;
-  return GAMES.some((g) => pathname === g.href || pathname.startsWith(`${g.href}/`));
+  return isMinigamePath(pathname);
 }

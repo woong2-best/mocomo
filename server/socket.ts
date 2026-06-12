@@ -21,6 +21,8 @@ import {
 import { isValidRoomCode } from "../src/lib/sketch-quiz-words";
 import { hashLiveJoinPassword, verifyLiveJoinPassword } from "../src/lib/live-password";
 import { registerLiveSupportHandlers } from "./live-support";
+import { initMinigameStore, minigameMatchCancelAll } from "./minigames/store";
+import { registerMinigameHandlers } from "./minigames/register-handlers";
 
 const prisma = new PrismaClient();
 const PORT = parseInt(process.env.PORT || process.env.SOCKET_PORT || "3001", 10);
@@ -198,6 +200,7 @@ const io = new Server(httpServer, {
 });
 
 initSketchQuizStore(io);
+initMinigameStore(io);
 
 /** 채널별 영상 위 채팅 오버레이 표시 여부 */
 const liveChatOverlayByChannel = new Map<string, boolean>();
@@ -480,6 +483,7 @@ io.on("connection", (socket: AuthedSocket) => {
   );
 
   registerLiveSupportHandlers(io, socket, userId, prisma);
+  registerMinigameHandlers(io, socket, userId, prisma);
 
   socket.on("webrtc_signal", (data: { channelId: string; to: string; signal: unknown }) => {
     if (!data.to || !data.channelId) return;
@@ -725,6 +729,7 @@ io.on("connection", (socket: AuthedSocket) => {
 
   socket.on("disconnect", () => {
     sketchQuizMatchCancel(userId);
+    minigameMatchCancelAll(userId);
     const wentOffline = setUserOnline(userId, false);
     if (wentOffline.wasOnline && !wentOffline.isOnline) {
       void broadcastPresenceToMemberRooms(userId, false);
