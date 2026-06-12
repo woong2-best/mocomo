@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { SketchCanvas } from "@/components/sketch-quiz/sketch-canvas";
 import { useSketchQuizRoom } from "@/hooks/use-sketch-quiz-room";
+import { GameRoomGate } from "@/components/minigames/game-room-gate";
 import { cn } from "@/lib/utils";
 
 type SketchQuizRoomClientProps = {
@@ -37,6 +38,8 @@ export function SketchQuizRoomClient({ roomId, mode }: SketchQuizRoomClientProps
     secretWord,
     error,
     joined,
+    connecting,
+    needsPassword,
     timeLeft,
     isHost,
     isDrawer,
@@ -45,11 +48,14 @@ export function SketchQuizRoomClient({ roomId, mode }: SketchQuizRoomClientProps
     clearCanvas,
     sendGuess,
     socketReady,
+    realtimeOff,
+    retryJoinWithPassword,
   } = useSketchQuizRoom(roomId, userId, username, mode);
 
   const [guess, setGuess] = useState("");
   const [starting, setStarting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [joinPassword, setJoinPassword] = useState("");
 
   const inviteUrl =
     typeof window !== "undefined"
@@ -95,26 +101,23 @@ export function SketchQuizRoomClient({ roomId, mode }: SketchQuizRoomClientProps
     );
   }
 
-  if (error) {
-    return (
-      <Card className="border-2 border-destructive/30">
-        <CardContent className="p-8 text-center space-y-4">
-          <p className="text-destructive font-medium">{error}</p>
-          <Link href="/sketch-quiz">
-            <Button variant="outline" className="rounded-xl">
-              로비로 돌아가기
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
-    );
-  }
-
   if (!joined || !state) {
     return (
-      <div className="flex items-center justify-center py-20 text-muted-foreground gap-2">
-        <Loader2 className="h-5 w-5 animate-spin" />
-        {!socketReady ? "실시간 서버 연결 중…" : "방 입장 중…"}
+      <div className="space-y-4">
+        <Link href="/sketch-quiz" className="text-xs text-muted-foreground hover:underline">
+          ← 스케치퀴즈 로비
+        </Link>
+        <GameRoomGate
+          roomId={roomId}
+          title={mode === "create" ? "방 만드는 중" : "방 입장"}
+          connecting={connecting}
+          realtimeOff={realtimeOff}
+          needsPassword={needsPassword}
+          error={error}
+          password={joinPassword}
+          onPasswordChange={setJoinPassword}
+          onSubmit={() => retryJoinWithPassword(joinPassword)}
+        />
       </div>
     );
   }

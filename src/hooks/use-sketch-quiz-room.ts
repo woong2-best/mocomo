@@ -10,12 +10,14 @@ import type {
 } from "@/lib/sketch-quiz-types";
 import {
   readGameCreateOptions,
-  readGameJoinOptions,
-  type GameCreateOptions,
-  type GameJoinOptions,
+  peekGameCreateOptions,
+  peekGameJoinOptions,
+  clearGameJoinOptions,
 } from "@/lib/games-lobby";
 
 const GAME_ID = "sketch-quiz";
+const SOCKET_WAIT_MS = 12_000;
+const ACK_MS = 10_000;
 
 type AckResult =
   | { ok: true; state?: SketchQuizPublicState }
@@ -27,14 +29,17 @@ export function useSketchQuizRoom(
   username: string,
   mode: "create" | "join"
 ) {
-  const { socket, socketReady } = useAppSocket();
+  const { socket, socketReady, realtimeOff } = useAppSocket();
   const [state, setState] = useState<SketchQuizPublicState | null>(null);
   const [secretWord, setSecretWord] = useState<SketchQuizWordPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [joined, setJoined] = useState(false);
+  const [connecting, setConnecting] = useState(true);
+  const [needsPassword, setNeedsPassword] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const strokesRef = useRef<SketchStroke[]>([]);
   const joinedRef = useRef(false);
+  const startedRef = useRef(false);
 
   const roomCode = roomId.toUpperCase();
 
@@ -49,77 +54,114 @@ export function useSketchQuizRoom(
   const emitAck = useCallback(
     (event: string, payload: unknown): Promise<AckResult> =>
       new Promise((resolve) => {
-        if (!socket) {
+        if (!socket?.connected) {
           resolve({ ok: false, error: "실시간 연결이 없습니다." });
           return;
         }
+        let settled = false;
+        const timer = window.setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          resolve({ ok: false, error: "서버 응답이 없습니다." });
+        }, ACK_MS);
         socket.emit(event, payload, (res: AckResult) => {
+          if (settled) return;
+          settled = true;
+          window.clearTimeout(timer);
           resolve(res ?? { ok: false, error: "응답 없음" });
         });
       }),
     [socket]
   );
 
-  useEffect(() => {
-    if (!socket || !socketReady || !userId || joinedRef.current) return;
+  const waitForSocket = useCallback(async () => {
+    const deadline = Date.now() + SOCKET_WAIT_MS;
+    while (Date.now() < deadline) {
+      if (socket?.connected && socketReady) return socket;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    return socket?.connected ? socket : null;
+  }, [socket, socketReady]);
 
-    let cancelled = false;
+  const applyJoined = useCallback((next: SketchQuizPublicState) => {
+    setState(next);
+    joinedRef.current = true;
+    setJoined(true);
+    setConnecting(false);
+    setNeedsPassword(false);
+    clearGameJoinOptions(GAME_ID);
+  }, []);
 
-    void (async () => {
-      const createOpts: GameCreateOptions = readGameCreateOptions(GAME_ID) ?? {};
-      const joinOpts: GameJoinOptions = readGameJoinOptions(GAME_ID) ?? {};
+  const joinRoom = useCallback(
+    async (password?: string) => {
+      const result = await emitAck("sketch_quiz_join", {
+        roomId: roomCode,
+        username,
+        password: password?.trim() || undefined,
+      });
+      if (!result.ok) {
+        if (result.error.includes("비밀번호")) setNeedsPassword(true);
+        setError(result.error);
+        setConnecting(false);
+        return false;
+      }
+      if (result.state) applyJoined(result.state);
+      return true;
+    },
+    [emitAck, roomCode, username, applyJoined]
+  );
 
-      if (mode === "join") {
-        const result = await emitAck("sketch_quiz_join", {
+  const enterRoom = useCallback(
+    async (password?: string) => {
+      const active = await waitForSocket();
+      if (!active) {
+        setConnecting(false);
+        setError("실시간 서버에 연결할 수 없습니다.");
+        return;
+      }
+
+      if (mode === "create") {
+        const createOpts =
+          readGameCreateOptions(GAME_ID) ?? peekGameCreateOptions(GAME_ID) ?? {};
+        const created = await emitAck("sketch_quiz_create", {
           roomId: roomCode,
           username,
-          password: joinOpts.password,
+          password: createOpts.password ?? password,
+          requireFollow: createOpts.requireFollow,
+          accessMode: "private",
         });
-        if (cancelled) return;
-        if (!result.ok) {
-          setError(result.error);
+        if (created.ok && created.state) {
+          applyJoined(created.state);
           return;
         }
-        if (result.state) setState(result.state);
-        joinedRef.current = true;
-        setJoined(true);
+        if (!created.ok && created.error?.includes("이미 사용")) {
+          await joinRoom(createOpts.password ?? password);
+          return;
+        }
+        setError(!created.ok ? created.error : "방을 만들 수 없습니다.");
+        setConnecting(false);
         return;
       }
 
-      const joinedExisting = await emitAck("sketch_quiz_join", {
-        roomId: roomCode,
-        username,
-        password: joinOpts.password,
-      });
-      if (cancelled) return;
-      if (joinedExisting.ok) {
-        if (joinedExisting.state) setState(joinedExisting.state);
-        joinedRef.current = true;
-        setJoined(true);
-        return;
-      }
+      const stored = peekGameJoinOptions(GAME_ID);
+      await joinRoom(password ?? stored?.password);
+    },
+    [waitForSocket, mode, emitAck, roomCode, username, applyJoined, joinRoom]
+  );
 
-      const created = await emitAck("sketch_quiz_create", {
-        roomId: roomCode,
-        username,
-        password: createOpts.password,
-        requireFollow: createOpts.requireFollow,
-        accessMode: "private",
-      });
-      if (cancelled) return;
-      if (!created.ok) {
-        setError(created.error);
-        return;
-      }
-      if (created.state) setState(created.state);
-      joinedRef.current = true;
-      setJoined(true);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [socket, socketReady, userId, roomCode, username, mode, emitAck]);
+  useEffect(() => {
+    if (!userId || joinedRef.current || startedRef.current) {
+      if (realtimeOff) setConnecting(false);
+      return;
+    }
+    if (realtimeOff) {
+      setConnecting(false);
+      return;
+    }
+    if (!socketReady || !socket?.connected) return;
+    startedRef.current = true;
+    void enterRoom();
+  }, [userId, socketReady, socket, realtimeOff, enterRoom]);
 
   useEffect(() => {
     if (!socket || !joined) return;
@@ -208,6 +250,8 @@ export function useSketchQuizRoom(
     secretWord,
     error,
     joined,
+    connecting,
+    needsPassword,
     timeLeft,
     isHost,
     isDrawer,
@@ -216,5 +260,11 @@ export function useSketchQuizRoom(
     clearCanvas,
     sendGuess,
     socketReady,
+    realtimeOff,
+    retryJoinWithPassword: (password: string) => {
+      setConnecting(true);
+      setError(null);
+      void joinRoom(password);
+    },
   };
 }

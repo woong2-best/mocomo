@@ -20,6 +20,8 @@ import { GamePlayModeTabs } from "@/components/games/game-play-mode-tabs";
 import {
   saveGameCreateOptions,
   saveGameJoinOptions,
+  isValidGameRoomPassword,
+  MIN_GAME_ROOM_PASSWORD_LENGTH,
   type GamePlayMode,
 } from "@/lib/games-lobby";
 import { generateRoomCode, isValidRoomCode } from "@/lib/sketch-quiz-words";
@@ -33,6 +35,7 @@ export function SketchQuizHubClient() {
   const [mode, setMode] = useState<GamePlayMode>("friends");
   const [joinCode, setJoinCode] = useState("");
   const [joinPassword, setJoinPassword] = useState("");
+  const [createCode, setCreateCode] = useState("");
   const [createPassword, setCreatePassword] = useState("");
   const [requireFollow, setRequireFollow] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,12 +47,21 @@ export function SketchQuizHubClient() {
     useSketchQuizMatch(session?.user?.id, username);
 
   function createFriendRoom() {
-    const code = generateRoomCode();
+    const code = (createCode.trim() || generateRoomCode()).toUpperCase();
+    if (!isValidRoomCode(code)) {
+      setError("방 코드는 4~8자 영문·숫자입니다.");
+      return;
+    }
+    if (!isValidGameRoomPassword(createPassword)) {
+      setError(`비밀번호는 ${MIN_GAME_ROOM_PASSWORD_LENGTH}~32자로 설정하세요.`);
+      return;
+    }
+    setError(null);
     saveGameCreateOptions(GAME_ID, {
-      password: createPassword.trim() || undefined,
+      password: createPassword.trim(),
       requireFollow,
     });
-    router.push(`/sketch-quiz/${code}`);
+    router.push(`/sketch-quiz/${code}?create=1`);
   }
 
   function joinFriendRoom(e: React.FormEvent) {
@@ -59,8 +71,12 @@ export function SketchQuizHubClient() {
       setError("4~8자 영문·숫자 방 코드를 입력하세요.");
       return;
     }
+    if (!isValidGameRoomPassword(joinPassword)) {
+      setError(`비밀번호를 ${MIN_GAME_ROOM_PASSWORD_LENGTH}자 이상 입력하세요.`);
+      return;
+    }
     setError(null);
-    saveGameJoinOptions(GAME_ID, { password: joinPassword.trim() || undefined });
+    saveGameJoinOptions(GAME_ID, { password: joinPassword.trim() });
     router.push(`/sketch-quiz/${code}?join=1`);
   }
 
@@ -102,11 +118,19 @@ export function SketchQuizHubClient() {
                 방 코드와 비밀번호를 공유해 아는 사람만 초대하세요.
               </p>
               <Input
-                value={createPassword}
-                onChange={(e) => setCreatePassword(e.target.value.toUpperCase())}
-                placeholder="비밀번호 (선택, 4~8자)"
+                value={createCode}
+                onChange={(e) => setCreateCode(e.target.value.toUpperCase())}
+                placeholder="방 코드 (4~8자, 비우면 자동)"
                 className="rounded-xl border-2 font-mono uppercase tracking-widest text-center"
                 maxLength={8}
+              />
+              <Input
+                value={createPassword}
+                onChange={(e) => setCreatePassword(e.target.value)}
+                placeholder={`비밀번호 (${MIN_GAME_ROOM_PASSWORD_LENGTH}자 이상, 필수)`}
+                type="password"
+                className="rounded-xl border-2 text-center"
+                required
               />
               <label className="flex items-center gap-2 text-xs cursor-pointer">
                 <input
@@ -144,10 +168,11 @@ export function SketchQuizHubClient() {
                 />
                 <Input
                   value={joinPassword}
-                  onChange={(e) => setJoinPassword(e.target.value.toUpperCase())}
-                  placeholder="비밀번호 (있을 경우)"
-                  className="rounded-xl border-2 font-mono uppercase tracking-widest text-center"
-                  maxLength={8}
+                  onChange={(e) => setJoinPassword(e.target.value)}
+                  placeholder={`비밀번호 (${MIN_GAME_ROOM_PASSWORD_LENGTH}자 이상, 필수)`}
+                  type="password"
+                  className="rounded-xl border-2 text-center"
+                  required
                 />
                 {error && <p className="text-xs text-destructive">{error}</p>}
                 <Button type="submit" variant="outline" className="w-full rounded-xl">

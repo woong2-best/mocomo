@@ -55,6 +55,9 @@ export function MinigameLobbyPanel({
           <div>
             <p className="text-xs text-muted-foreground">방 코드</p>
             <p className="text-2xl font-mono font-bold tracking-widest">{state.roomId}</p>
+            {state.passwordRequired && (
+              <p className="text-[11px] text-muted-foreground mt-1">🔒 비밀번호로 보호된 방</p>
+            )}
           </div>
           <Button
             variant="outline"

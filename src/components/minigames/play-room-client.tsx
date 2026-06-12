@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useMinigameRoom } from "@/hooks/use-minigame-room";
 import { getMinigameById } from "@/lib/minigames/registry";
@@ -12,6 +13,7 @@ import {
 import { MinigameChatPanel } from "@/components/minigames/minigame-chat-panel";
 import { MinigameClockBar } from "@/components/minigames/minigame-clock-bar";
 import { GameActiveView } from "@/components/minigames/game-views";
+import { GameRoomGate } from "@/components/minigames/game-room-gate";
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
 
@@ -29,12 +31,16 @@ export function PlayRoomClient({
   const userId = session?.user?.id;
   const username =
     session?.user?.name || session?.user?.username || session?.user?.email || "플레이어";
+  const [joinPassword, setJoinPassword] = useState("");
 
   const {
     state,
     error,
     joined,
+    connecting,
+    needsPassword,
     isHost,
+    realtimeOff,
     setReady,
     startGame,
     sendMove,
@@ -42,10 +48,52 @@ export function PlayRoomClient({
     requestRematch,
     chatMessages,
     setError,
+    retryJoinWithPassword,
   } = useMinigameRoom(gameId, roomId, userId, username, mode);
 
   const isSpectator = mode === "spectate";
   const route = getMinigameRoute(gameId);
+
+  if (!session?.user) {
+    return (
+      <div className="text-center space-y-4 py-12">
+        <p className="text-sm text-muted-foreground">로그인 후 게임방에 입장할 수 있습니다.</p>
+        <Link href={`/auth/signin?callbackUrl=${route}/${roomId}`}>
+          <Button className="rounded-xl">로그인</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  if (!joined) {
+    return (
+      <div className="space-y-4">
+        <Link href={route} className="text-xs text-muted-foreground hover:underline">
+          ← {game?.name ?? "게임"} 로비
+        </Link>
+        <GameRoomGate
+          roomId={roomId}
+          title={mode === "create" ? "방 만드는 중" : "방 입장"}
+          connecting={connecting}
+          realtimeOff={realtimeOff}
+          needsPassword={needsPassword}
+          error={error}
+          password={joinPassword}
+          onPasswordChange={setJoinPassword}
+          onSubmit={() => retryJoinWithPassword(joinPassword)}
+          submitLabel="입장"
+        />
+        {mode === "create" && error && !needsPassword && (
+          <p className="text-center text-sm text-muted-foreground">
+            <Link href={route} className="text-primary underline">
+              로비에서 방 만들기
+            </Link>
+            를 다시 시도해 주세요.
+          </p>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -93,7 +141,7 @@ export function PlayRoomClient({
         <div className="grid lg:grid-cols-[1fr_280px] gap-4">
           <div className="space-y-3">
             {state.status === "playing" && <MinigameClockBar state={state} userId={userId} />}
-            {state.game && (
+            {state.game ? (
               <GameActiveView
                 gameId={gameId}
                 state={state}
@@ -103,6 +151,8 @@ export function PlayRoomClient({
                 error={error}
                 onClearError={() => setError(null)}
               />
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">게임 데이터를 불러오는 중…</p>
             )}
           </div>
           <MinigameChatPanel
@@ -113,8 +163,16 @@ export function PlayRoomClient({
         </div>
       )}
 
-      {joined && !state && error && (
-        <p className="text-sm text-destructive text-center">{error}</p>
+      {state?.status === "lobby" && isSpectator && (
+        <MinigameLobbyPanel
+          state={state}
+          joined={joined}
+          error={error}
+          userId={userId}
+          isHost={false}
+          onReady={() => {}}
+          onStart={() => {}}
+        />
       )}
     </div>
   );

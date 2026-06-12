@@ -12,6 +12,8 @@ import { GamePlayModeTabs } from "@/components/games/game-play-mode-tabs";
 import {
   saveGameCreateOptions,
   saveGameJoinOptions,
+  isValidGameRoomPassword,
+  MIN_GAME_ROOM_PASSWORD_LENGTH,
   type GamePlayMode,
 } from "@/lib/games-lobby";
 import { generateRoomCode, isValidRoomCode } from "@/lib/sketch-quiz-words";
@@ -46,6 +48,7 @@ export function MinigameHubShell({
   const { data: session } = useSession();
   const [joinCode, setJoinCode] = useState("");
   const [joinPassword, setJoinPassword] = useState("");
+  const [createCode, setCreateCode] = useState("");
   const [createPassword, setCreatePassword] = useState("");
   const [requireFollow, setRequireFollow] = useState(false);
   const [ruleMode, setRuleMode] = useState<"free" | "renju">("free");
@@ -61,15 +64,24 @@ export function MinigameHubShell({
     useMinigameMatch(gameId, routeBase, session?.user?.id, username);
 
   function createFriendRoom() {
-    const code = generateRoomCode();
+    const code = (createCode.trim() || generateRoomCode()).toUpperCase();
+    if (!isValidRoomCode(code)) {
+      setError("방 코드는 4~8자 영문·숫자입니다.");
+      return;
+    }
+    if (!isValidGameRoomPassword(createPassword)) {
+      setError(`비밀번호는 ${MIN_GAME_ROOM_PASSWORD_LENGTH}~32자로 설정하세요.`);
+      return;
+    }
+    setError(null);
     saveGameCreateOptions(gameId, {
-      password: createPassword.trim() || undefined,
+      password: createPassword.trim(),
       requireFollow,
       ruleMode: gameId === "omok" ? ruleMode : undefined,
       timeControl: showBoardOpts ? timeControl : undefined,
       spectatorChat,
     });
-    router.push(`${routeBase}/${code}`);
+    router.push(`${routeBase}/${code}?create=1`);
   }
 
   function joinFriendRoom(e: React.FormEvent) {
@@ -79,8 +91,12 @@ export function MinigameHubShell({
       setError("4~8자 영문·숫자 방 코드를 입력하세요.");
       return;
     }
+    if (!isValidGameRoomPassword(joinPassword)) {
+      setError(`비밀번호를 ${MIN_GAME_ROOM_PASSWORD_LENGTH}자 이상 입력하세요.`);
+      return;
+    }
     setError(null);
-    saveGameJoinOptions(gameId, { password: joinPassword.trim() || undefined });
+    saveGameJoinOptions(gameId, { password: joinPassword.trim() });
     router.push(`${routeBase}/${code}?join=1`);
   }
 
@@ -114,21 +130,24 @@ export function MinigameHubShell({
             <CardContent className="p-6 space-y-4">
               <h2 className="font-display font-bold flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                친구 · 팔로워 방
+                방 만들기
               </h2>
-              <label className="flex items-center gap-2 text-xs">
-                <input
-                  type="checkbox"
-                  checked={requireFollow}
-                  onChange={(e) => setRequireFollow(e.target.checked)}
-                />
-                팔로워만 입장
-              </label>
+              <p className="text-xs text-muted-foreground">
+                방 코드와 비밀번호를 정한 뒤 친구에게 공유하세요.
+              </p>
               <Input
-                placeholder="비밀번호 (선택)"
+                placeholder="방 코드 (4~8자, 비우면 자동)"
+                value={createCode}
+                onChange={(e) => setCreateCode(e.target.value.toUpperCase())}
+                maxLength={8}
+                className="font-mono uppercase tracking-widest"
+              />
+              <Input
+                placeholder={`비밀번호 (${MIN_GAME_ROOM_PASSWORD_LENGTH}자 이상, 필수)`}
                 value={createPassword}
                 onChange={(e) => setCreatePassword(e.target.value)}
                 type="password"
+                required
               />
               {gameId === "omok" && (
                 <div className="flex gap-2 text-xs">
@@ -158,11 +177,20 @@ export function MinigameHubShell({
               <label className="flex items-center gap-2 text-xs">
                 <input
                   type="checkbox"
+                  checked={requireFollow}
+                  onChange={(e) => setRequireFollow(e.target.checked)}
+                />
+                팔로워만 입장
+              </label>
+              <label className="flex items-center gap-2 text-xs">
+                <input
+                  type="checkbox"
                   checked={spectatorChat}
                   onChange={(e) => setSpectatorChat(e.target.checked)}
                 />
                 관전자 채팅 허용
               </label>
+              {error && <p className="text-xs text-destructive">{error}</p>}
               <Button onClick={createFriendRoom} className="w-full rounded-xl gap-2">
                 <PlusCircle className="h-4 w-4" />
                 방 만들기
@@ -181,12 +209,15 @@ export function MinigameHubShell({
                   value={joinCode}
                   onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                   maxLength={8}
+                  className="font-mono uppercase tracking-widest"
+                  required
                 />
                 <Input
-                  placeholder="비밀번호 (선택)"
+                  placeholder={`비밀번호 (${MIN_GAME_ROOM_PASSWORD_LENGTH}자 이상, 필수)`}
                   value={joinPassword}
                   onChange={(e) => setJoinPassword(e.target.value)}
                   type="password"
+                  required
                 />
                 {error && <p className="text-xs text-destructive">{error}</p>}
                 <Button type="submit" variant="outline" className="w-full rounded-xl">

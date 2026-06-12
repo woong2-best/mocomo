@@ -25,6 +25,8 @@ export type MinigameRoomPublicBase = {
   turnTimeLeft?: number;
   spectatorChatEnabled?: boolean;
   recentChat?: MinigameChatMessage[];
+  /** 입장 시 비밀번호 필요 여부 */
+  passwordRequired?: boolean;
 };
 
 export type MinigameChatMessage = {

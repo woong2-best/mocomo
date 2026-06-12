@@ -116,5 +116,6 @@ export function basePublicFields(room: MinigameRoomInternal): MinigameRoomPublic
     turnTimeLeft,
     spectatorChatEnabled: room.spectatorChatEnabled,
     recentChat: room.chatLog.slice(-30),
+    passwordRequired: !!room.passwordHash,
   };
 }
