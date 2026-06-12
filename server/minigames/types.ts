@@ -39,6 +39,7 @@ export type MinigameRoomInternal = {
   spectatorChatEnabled: boolean;
   chatLog: MinigameChatMessage[];
   lastMatchId?: string;
+  lastMoveAt?: Record<string, number>;
   gameStartedAt?: number;
   initialGameState?: unknown;
   ruleMode?: "free" | "renju";

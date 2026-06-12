@@ -137,6 +137,10 @@ export function useMinigameMatch(
     setQueueSize(1);
     setStatusMessage("다른 유저를 찾고 있습니다…");
 
+    if (typeof Notification !== "undefined" && Notification.permission === "default") {
+      void Notification.requestPermission();
+    }
+
     const target = socketRef.current?.connected ? socketRef.current : await waitForSocket();
     if (!target?.connected) {
       matchingRef.current = false;
@@ -159,6 +163,9 @@ export function useMinigameMatch(
       return;
     }
     if (res.status === "matched" && res.roomId) {
+      if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+        new Notification("매칭 완료", { body: "게임방으로 이동합니다.", tag: "minigame-match" });
+      }
       goToRoom(res.roomId);
     }
   }, [userId, realtimeOff, waitForSocket, emitMatch, goToRoom]);

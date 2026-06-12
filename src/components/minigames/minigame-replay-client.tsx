@@ -39,8 +39,8 @@ export function MinigameReplayClient({ gameId, matchId }: { gameId: string; matc
     [gameId, moves, match?.playerNames]
   );
   const snapshot = useMemo(
-    () => snapshotAtStep(gameId, moves, step, match?.initialState),
-    [gameId, moves, step, match?.initialState]
+    () => snapshotAtStep(gameId, moves, step, match?.initialState, match?.playerNames),
+    [gameId, moves, step, match?.initialState, match?.playerNames]
   );
 
   useEffect(() => {

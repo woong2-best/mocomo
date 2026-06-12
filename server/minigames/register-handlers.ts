@@ -10,12 +10,14 @@ import {
   minigameMatchEnqueue,
   minigameMove,
   minigameReady,
+  minigameRematch,
   minigameSpectate,
   minigameStart,
   minigameUpdateSocket,
   minigameChat,
+  listLiveMinigameRoomSummaries,
   roomKey,
-  tryMatchFromQueue,
+  tryMatchFromQueueMmr,
 } from "./store";
 
 type AuthedSocket = Socket & { data: { userId?: string } };
@@ -132,7 +134,7 @@ export function registerMinigameHandlers(
 
   socket.on(
     "minigame_match",
-    (data: { gameId?: string; username?: string }, ack?: (r: unknown) => void) => {
+    async (data: { gameId?: string; username?: string }, ack?: (r: unknown) => void) => {
       const gameId = data.gameId?.trim();
       const username = data.username?.trim().slice(0, 32) || "플레이어";
       if (!gameId) {
@@ -147,7 +149,7 @@ export function registerMinigameHandlers(
       }
 
       if (result.status === "waiting") {
-        const matched = tryMatchFromQueue(gameId);
+        const matched = await tryMatchFromQueueMmr(gameId);
         if (matched) {
           result = {
             ok: true,
@@ -237,6 +239,26 @@ export function registerMinigameHandlers(
       if (!gameId || !roomId) return;
       const result = minigameChat(gameId, roomId, userId, username, text);
       ack?.(result);
+    }
+  );
+
+  socket.on("minigame_list_live", (data: { gameId?: string }, ack?: (r: unknown) => void) => {
+    const gameId = data?.gameId?.trim();
+    const rooms = listLiveMinigameRoomSummaries(gameId || undefined);
+    ack?.({ ok: true, rooms });
+  });
+
+  socket.on(
+    "minigame_rematch",
+    (data: { gameId?: string; roomId?: string }, ack?: (r: unknown) => void) => {
+      const gameId = data?.gameId?.trim();
+      const roomId = data?.roomId?.trim().toUpperCase();
+      if (!gameId || !roomId) return;
+      const result = minigameRematch(gameId, roomId, userId);
+      ack?.(result);
+      if (result.ok && "state" in result) {
+        io.to(roomKey(gameId, roomId)).emit("minigame_state", { gameId, state: result.state });
+      }
     }
   );
 }

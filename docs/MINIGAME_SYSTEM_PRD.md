@@ -11,10 +11,16 @@
 | 스케치퀴즈 | ✅ `/sketch-quiz` (별도) |
 | **플랫폼 게임 16종** | ✅ 전부 live |
 | 소켓 `minigame_*` | ✅ Render 배포 필요 |
-| MMR·전적 DB | ✅ 스키마 + 종료 시 저장 (Z4 SQL) |
-| 관전 | ✅ 전 게임 |
-| 리플레이 UI | ⏳ moves 저장만 |
-| 시즌·업적·수익화 | ⏳ Phase 5 |
+| MMR·전적 DB | ✅ 종료·퇴장 시 저장 (Z4 SQL) |
+| 관전 | ✅ 전 게임 + `/games/live` 목록 |
+| 리플레이 | ✅ UI + 오목/체스/리버시/RPS/끝말잇기 |
+| 랭킹·시즌·업적 | ✅ `/games/ranking` · `/season` · `/achievements` |
+| 전적·프로필 | ✅ `/games/history` · 프로필 MMR 패널 |
+| 방 채팅·시간제·렌주 | ✅ |
+| MMR 근접 매칭 | ✅ 2인 랭크 게임 |
+| 재대국·매칭 알림 | ✅ |
+| 부정행위 방지 (기본) | ✅ 턴 검증 + 입력 레이트리밋 |
+| 수익화 | ⏸️ 제외 |
 
 ### Live 게임
 
@@ -43,4 +49,4 @@ prisma MinigameMatch/Rating     — 전적·MMR
 
 - Vercel: 프론트 자동 배포
 - Render `mocomo-socket`: **필수** 재배포
-- Supabase: `scripts/supabase-fix-all.sql` **Z4** 실행 (MMR/전적)
+- Supabase: `scripts/supabase-fix-all.sql` **Z4** 실행 (MMR/전적/시즌/업적)

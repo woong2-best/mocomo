@@ -3,6 +3,7 @@ import { ProfileHeaderAsync } from "@/components/profile/profile-header-async";
 import { ProfileTimelineAsync } from "@/components/profile/profile-timeline-async";
 import { ProfileSupportAsync } from "@/components/profile/profile-support-async";
 import { ProfileWebtoonsAsync } from "@/components/profile/profile-webtoons-async";
+import { ProfileMinigameAsync } from "@/components/profile/profile-minigame-async";
 import { ProfileSupportSkeleton } from "@/components/profile/profile-support-skeleton";
 import { ProfileHeaderSkeleton, ProfileTimelineSkeleton } from "@/components/ui/content-skeletons";
 
@@ -29,7 +30,10 @@ export default function UserProfilePage({
             </aside>
           }
         >
-          <ProfilePageWebtoons params={params} />
+          <aside className="hidden lg:block border-l border-border/40 p-4 space-y-4">
+            <ProfilePageWebtoons params={params} />
+            <ProfilePageMinigame params={params} />
+          </aside>
         </Suspense>
       </div>
       <Suspense fallback={<ProfileSupportSkeleton />}>
@@ -71,4 +75,9 @@ async function ProfilePageSupport({ params }: { params: Promise<{ username: stri
 async function ProfilePageWebtoons({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
   return <ProfileWebtoonsAsync username={username} />;
+}
+
+async function ProfilePageMinigame({ params }: { params: Promise<{ username: string }> }) {
+  const { username } = await params;
+  return <ProfileMinigameAsync username={username} />;
 }

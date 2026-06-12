@@ -135,9 +135,13 @@ export function MinigameLobbyPanel({
 export function MinigameFinishedBanner({
   state,
   gameId,
+  isHost,
+  onRematch,
 }: {
   state: MinigamePublicState;
   gameId: string;
+  isHost?: boolean;
+  onRematch?: () => void;
 }) {
   if (state.status !== "finished") return null;
   const replayHref = state.matchId ? `/play/${gameId}/replay/${state.matchId}` : null;
@@ -150,14 +154,21 @@ export function MinigameFinishedBanner({
             승자: {state.players.find((p) => p.userId === state.winnerId)?.username ?? "—"}
           </p>
         )}
-        {replayHref && (
-          <Link href={replayHref}>
-            <Button variant="outline" size="sm" className="rounded-lg gap-1 mt-1">
-              <RotateCcw className="h-3 w-3" />
-              리플레이 보기
+        <div className="flex flex-wrap gap-2 justify-center">
+          {replayHref && (
+            <Link href={replayHref}>
+              <Button variant="outline" size="sm" className="rounded-lg gap-1">
+                <RotateCcw className="h-3 w-3" />
+                리플레이
+              </Button>
+            </Link>
+          )}
+          {isHost && onRematch && (
+            <Button size="sm" className="rounded-lg gap-1" onClick={onRematch}>
+              재대국
             </Button>
-          </Link>
-        )}
+          )}
+        </div>
       </CardContent>
     </Card>
   );

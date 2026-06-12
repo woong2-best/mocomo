@@ -40,6 +40,7 @@ export function PlayRoomClient({
     startGame,
     sendMove,
     sendChat,
+    requestRematch,
     chatMessages,
     setError,
   } = useMinigameRoom(gameId, roomId, userId, username, mode);
@@ -68,7 +69,14 @@ export function PlayRoomClient({
         )}
       </div>
 
-      {state && <MinigameFinishedBanner state={state} gameId={gameId} />}
+      {state && (
+        <MinigameFinishedBanner
+          state={state}
+          gameId={gameId}
+          isHost={isHost && !isSpectator}
+          onRematch={() => void requestRematch()}
+        />
+      )}
 
       {state?.status === "lobby" && !isSpectator && (
         <MinigameLobbyPanel

@@ -18,10 +18,16 @@ type Entry = {
   losses: number;
 };
 
-export function MinigameRankingClient() {
+export function MinigameRankingClient({
+  defaultPeriod = "all",
+  compact = false,
+}: {
+  defaultPeriod?: "all" | "season";
+  compact?: boolean;
+}) {
   const games = getAllMinigames().filter((g) => g.id !== "sketch-quiz");
   const [gameId, setGameId] = useState(games[0]?.id ?? "omok");
-  const [period, setPeriod] = useState<"all" | "season">("all");
+  const [period, setPeriod] = useState<"all" | "season">(defaultPeriod);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [seasonName, setSeasonName] = useState<string | null>(null);
 
@@ -35,13 +41,15 @@ export function MinigameRankingClient() {
   }, [gameId, period]);
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-display font-bold">미니게임 랭킹</h1>
-        <Link href="/games" className="text-xs text-muted-foreground hover:underline">
-          ← 허브
-        </Link>
-      </div>
+    <div className={`space-y-6 ${compact ? "" : "max-w-2xl mx-auto"}`}>
+      {!compact && (
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-display font-bold">미니게임 랭킹</h1>
+          <Link href="/games" className="text-xs text-muted-foreground hover:underline">
+            ← 허브
+          </Link>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <select className="border rounded-lg px-3 py-2 text-sm" value={gameId} onChange={(e) => setGameId(e.target.value)}>

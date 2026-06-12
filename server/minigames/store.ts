@@ -11,6 +11,7 @@ import type {
   MinigameJoinOptions,
   MinigamePlugin,
   MinigameRoomInternal,
+  RoomStatus,
 } from "./types";
 
 const plugins = PLUGIN_BY_ID;
@@ -393,11 +394,13 @@ export function minigameLeave(gameId: string, roomId: string, userId: string) {
   if (room.hostId === userId) transferHost(room);
 
   if (room.status === "playing") {
-    room.status = "finished";
-    room.resultMessage = "상대가 나갔습니다.";
     const remaining = [...room.players.keys()][0];
-    room.winnerId = remaining ?? null;
-    clearRoomTimers(room);
+    finishGame(room, {
+      winnerId: remaining ?? "",
+      resultMessage: "상대가 나갔습니다.",
+    });
+    broadcastState(room);
+    return;
   }
 
   broadcastState(room);
@@ -434,6 +437,12 @@ export function minigameMove(gameId: string, roomId: string, userId: string, mov
   const plugin = getPlugin(gameId);
   if (!room || !plugin) return { ok: false as const, error: "방을 찾을 수 없습니다." };
   if (room.spectators.has(userId)) return { ok: false as const, error: "관전자는 수를 둘 수 없습니다." };
+
+  if (!room.lastMoveAt) room.lastMoveAt = {};
+  const now = Date.now();
+  const lastAt = room.lastMoveAt[userId] ?? 0;
+  if (now - lastAt < 80) return { ok: false as const, error: "너무 빠른 입력입니다." };
+  room.lastMoveAt[userId] = now;
 
   const err = plugin.validateMove(room, userId, move);
   if (err) return { ok: false as const, error: err };
@@ -543,6 +552,68 @@ export function tryMatchFromQueue(gameId: string) {
   return null;
 }
 
+/** MMR 근접 매칭 (2인 랭크 게임) */
+export async function tryMatchFromQueueMmr(gameId: string): Promise<ReturnType<typeof createPublicMatchRoom> | null> {
+  const plugin = getPlugin(gameId);
+  if (!plugin || !prismaRef) return tryMatchFromQueue(gameId);
+
+  const queue = matchQueues.get(gameId) ?? [];
+  if (queue.length < plugin.minPlayers) return null;
+
+  if (plugin.minPlayers === 2 && (plugin.maxPlayersPublic ?? plugin.maxPlayers) === 2) {
+    const withMmr = await Promise.all(
+      queue.map(async (e) => {
+        const r = await prismaRef!.minigameRating.findUnique({
+          where: { userId_gameId: { userId: e.userId, gameId } },
+        });
+        return { entry: e, mmr: r?.mmr ?? 1000 };
+      })
+    );
+    let bestA = 0;
+    let bestB = 1;
+    let bestDiff = Math.abs(withMmr[0]!.mmr - withMmr[1]!.mmr);
+    for (let i = 0; i < withMmr.length; i++) {
+      for (let j = i + 1; j < withMmr.length; j++) {
+        const diff = Math.abs(withMmr[i]!.mmr - withMmr[j]!.mmr);
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          bestA = i;
+          bestB = j;
+        }
+      }
+    }
+    const batch = [withMmr[bestA]!.entry, withMmr[bestB]!.entry];
+    const rest = queue.filter((e) => !batch.some((b) => b.userId === e.userId));
+    matchQueues.set(gameId, rest);
+    return createPublicMatchRoom(gameId, batch);
+  }
+
+  return tryMatchFromQueue(gameId);
+}
+
+export function minigameRematch(gameId: string, roomId: string, userId: string) {
+  const room = getRoom(gameId, roomId);
+  const plugin = getPlugin(gameId);
+  if (!room || !plugin) return { ok: false as const, error: "방을 찾을 수 없습니다." };
+  if (room.status !== "finished") return { ok: false as const, error: "게임이 끝난 뒤에만 가능합니다." };
+  if (room.hostId !== userId) return { ok: false as const, error: "호스트만 재대국을 요청할 수 있습니다." };
+
+  clearRoomTimers(room);
+  room.status = "lobby";
+  room.winnerId = null;
+  room.resultMessage = null;
+  room.lastMatchId = undefined;
+  room.gameState = null;
+  room.moveHistory = [];
+  room.lastMoveAt = {};
+  room.gameStartedAt = undefined;
+  room.initialGameState = undefined;
+  for (const p of room.players.values()) p.ready = false;
+
+  broadcastState(room);
+  return { ok: true as const, state: plugin.toPublicState(room) };
+}
+
 export function minigameUpdateSocket(gameId: string, roomId: string, userId: string, socketId: string) {
   const room = getRoom(gameId, roomId);
   if (!room) return;
@@ -563,6 +634,30 @@ export function listLiveMinigameRooms(gameId: string): MinigamePublicState[] {
   return [...rooms.values()]
     .filter((r) => r.gameId === gameId && (r.status === "playing" || r.accessMode === "public"))
     .map((r) => plugin.toPublicState(r));
+}
+
+export type LiveMinigameRoomSummary = {
+  gameId: string;
+  roomId: string;
+  status: RoomStatus;
+  playerCount: number;
+  spectatorCount: number;
+  players: { username: string }[];
+  timeControl?: string;
+};
+
+export function listLiveMinigameRoomSummaries(gameId?: string): LiveMinigameRoomSummary[] {
+  return [...rooms.values()]
+    .filter((r) => r.status === "playing" && (!gameId || r.gameId === gameId))
+    .map((r) => ({
+      gameId: r.gameId,
+      roomId: r.id,
+      status: r.status,
+      playerCount: r.players.size,
+      spectatorCount: r.spectators.size,
+      players: [...r.players.values()].map((p) => ({ username: p.username })),
+      timeControl: r.timeControl,
+    }));
 }
 
 export function minigameChat(

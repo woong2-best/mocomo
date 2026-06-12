@@ -1,0 +1,84 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { getAllMinigames } from "@/lib/minigames/registry";
+import { getMinigameRoute } from "@/lib/minigames/game-meta";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { RotateCcw } from "lucide-react";
+
+type MatchRow = {
+  id: string;
+  gameId: string;
+  roomId: string;
+  winnerId: string | null;
+  result: string | null;
+  playerNames?: Record<string, string>;
+  endedAt: string;
+  moveCount: number;
+};
+
+export function MinigameHistoryClient() {
+  const games = getAllMinigames().filter((g) => g.id !== "sketch-quiz");
+  const [gameId, setGameId] = useState<string>("");
+  const [rows, setRows] = useState<MatchRow[]>([]);
+
+  useEffect(() => {
+    const q = gameId ? `?gameId=${gameId}` : "";
+    void fetch(`/api/minigames/matches${q}`)
+      .then((r) => r.json())
+      .then((d) => setRows(d.matches ?? []));
+  }, [gameId]);
+
+  return (
+    <div className="space-y-6 max-w-2xl mx-auto">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-display font-bold">내 전적</h1>
+        <Link href="/games" className="text-xs text-muted-foreground hover:underline">
+          ← 허브
+        </Link>
+      </div>
+
+      <select
+        className="border rounded-lg px-3 py-2 text-sm"
+        value={gameId}
+        onChange={(e) => setGameId(e.target.value)}
+      >
+        <option value="">전체 게임</option>
+        {games.map((g) => (
+          <option key={g.id} value={g.id}>
+            {g.name}
+          </option>
+        ))}
+      </select>
+
+      <Card className="border-2 border-folk-cobalt/20">
+        <CardContent className="p-0 divide-y">
+          {rows.length === 0 && (
+            <p className="p-6 text-sm text-muted-foreground text-center">전적 없음 (로그인 + Z4 SQL)</p>
+          )}
+          {rows.map((m) => {
+            const game = games.find((g) => g.id === m.gameId);
+            const replay = game?.supportsReplay !== false;
+            return (
+              <div key={m.id} className="px-4 py-3 flex flex-wrap items-center gap-2 text-sm">
+                <span className="font-semibold w-24">{game?.name ?? m.gameId}</span>
+                <span className="flex-1 text-muted-foreground truncate">{m.result ?? "—"}</span>
+                <span className="text-xs text-muted-foreground">{m.moveCount}수</span>
+                {replay && (
+                  <Link href={`/play/${m.gameId}/replay/${m.id}`}>
+                    <Button variant="outline" size="sm" className="h-7 text-xs gap-1 rounded-lg">
+                      <RotateCcw className="h-3 w-3" />
+                      리플레이
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

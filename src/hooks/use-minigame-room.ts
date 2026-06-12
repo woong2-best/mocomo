@@ -193,6 +193,16 @@ export function useMinigameRoom(
     [socket, gameId, roomCode, username]
   );
 
+  const requestRematch = useCallback(async () => {
+    const result = await emitAck("minigame_rematch", { gameId, roomId: roomCode });
+    if (!result.ok) {
+      setError(result.error);
+      return false;
+    }
+    if (result.state) setState(result.state);
+    return true;
+  }, [emitAck, gameId, roomCode]);
+
   const isHost = state?.hostId === userId;
 
   return {
@@ -204,6 +214,7 @@ export function useMinigameRoom(
     startGame,
     sendMove,
     sendChat,
+    requestRematch,
     chatMessages,
     setError,
   };

@@ -47,7 +47,8 @@ export function snapshotAtStep(
   gameId: string,
   moves: unknown[],
   step: number,
-  initialState?: Record<string, unknown> | null
+  initialState?: Record<string, unknown> | null,
+  playerNames?: Record<string, string>
 ): ReplaySnapshot {
   const slice = moves.slice(0, step);
 
@@ -102,6 +103,33 @@ export function snapshotAtStep(
       }
     }
     return { step, gameId, fen: chess.fen(), label: `${step}수` };
+  }
+
+  if (gameId === "word-chain") {
+    const words: string[] = [];
+    for (const raw of slice) {
+      const m = raw as { word?: string };
+      if (m.word) words.push(m.word);
+    }
+    const last = words[words.length - 1];
+    return {
+      step,
+      gameId,
+      label: last ? `${step}수 · ${last}` : `${step}수`,
+    };
+  }
+
+  if (gameId === "rps") {
+    const rounds: string[] = [];
+    for (const raw of slice) {
+      const m = raw as { userId?: string; choice?: string };
+      if (m.choice) {
+        const name =
+          m.userId && playerNames?.[m.userId] ? playerNames[m.userId] : m.userId?.slice(0, 6) ?? "?";
+        rounds.push(`${name}: ${m.choice}`);
+      }
+    }
+    return { step, gameId, label: rounds[rounds.length - 1] ?? `${step}수` };
   }
 
   return { step, gameId, label: `${step} / ${moves.length}수` };
