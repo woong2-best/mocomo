@@ -1,10 +1,10 @@
 import type { Server } from "socket.io";
+import type { PrismaClient } from "@prisma/client";
 import { generateRoomCode, isValidRoomCode } from "../../src/lib/sketch-quiz-words";
 import type { MinigamePublicState } from "../../src/lib/minigames/shared-types";
 import { attachOmokRuleMode } from "./plugins/omok";
-import { omokPlugin } from "./plugins/omok";
-import { rpsPlugin } from "./plugins/rps";
-import { wordChainPlugin } from "./plugins/word-chain";
+import { PLUGIN_BY_ID } from "./plugins/index";
+import { persistMinigameResult } from "./persistence";
 import type {
   MinigameCreateOptions,
   MinigameJoinOptions,
@@ -12,11 +12,7 @@ import type {
   MinigameRoomInternal,
 } from "./types";
 
-const plugins = new Map<string, MinigamePlugin>([
-  [omokPlugin.id, omokPlugin],
-  [rpsPlugin.id, rpsPlugin],
-  [wordChainPlugin.id, wordChainPlugin],
-]);
+const plugins = PLUGIN_BY_ID;
 
 type MatchQueueEntry = {
   gameId: string;
@@ -31,6 +27,7 @@ const matchQueues = new Map<string, MatchQueueEntry[]>();
 const userRoomIndex = new Map<string, string>(); // `${gameId}:${userId}` -> roomId
 
 let ioRef: Server | null = null;
+let prismaRef: PrismaClient | null = null;
 const queueTimers = new Map<string, ReturnType<typeof setInterval>>();
 
 function roomKey(gameId: string, roomId: string) {
@@ -107,6 +104,7 @@ function finishGame(room: MinigameRoomInternal, win: { winnerId: string; resultM
   room.resultMessage = win.resultMessage;
   const plugin = getPlugin(room.gameId);
   plugin?.onGameEnd?.(room);
+  if (prismaRef) void persistMinigameResult(prismaRef, room);
   broadcastState(room);
 }
 
@@ -204,8 +202,9 @@ function createPublicMatchRoom(
   return { roomId, state, socketIds: entries.map((e) => e.socketId), autoStarted };
 }
 
-export function initMinigameStore(io: Server) {
+export function initMinigameStore(io: Server, prisma?: PrismaClient) {
   ioRef = io;
+  prismaRef = prisma ?? null;
 }
 
 export function minigameCreate(

@@ -21,41 +21,18 @@ export type MinigameRoomPublicBase = {
   resultMessage: string | null;
 };
 
-export type OmokMove = { x: number; y: number };
-
-export type OmokPublicState = MinigameRoomPublicBase & {
-  game: {
-    board: number[][];
-    turn: "black" | "white" | null;
-    turnUserId: string | null;
-    lastMove: OmokMove | null;
-    ruleMode: "free" | "renju";
-    blackUserId: string;
-    whiteUserId: string;
-  } | null;
+/** 모든 게임 공통 퍼블릭 상태 — game 페이로드는 게임별 JSON */
+export type MinigamePublicState = MinigameRoomPublicBase & {
+  game: Record<string, unknown> | null;
 };
+
+export type OmokMove = { x: number; y: number };
 
 export type RpsChoice = "rock" | "paper" | "scissors";
 
-export type RpsPublicState = MinigameRoomPublicBase & {
-  game: {
-    round: number;
-    maxRounds: number;
-    scores: Record<string, number>;
-    phase: "pick" | "reveal" | "round_end" | "done";
-    picks: Record<string, RpsChoice | null>;
-    lastRound?: { picks: Record<string, RpsChoice>; winnerId: string | null };
-  } | null;
-};
+/** @deprecated OmokPublicState — MinigamePublicState.game 사용 */
+export type OmokPublicState = MinigamePublicState;
 
-export type WordChainPublicState = MinigameRoomPublicBase & {
-  game: {
-    currentWord: string | null;
-    turnUserId: string | null;
-    usedWords: string[];
-    turnEndsAt: number | null;
-    timeLeft: number;
-  } | null;
-};
+export type RpsPublicState = MinigamePublicState;
 
-export type MinigamePublicState = OmokPublicState | RpsPublicState | WordChainPublicState;
+export type WordChainPublicState = MinigamePublicState;

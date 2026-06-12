@@ -1942,3 +1942,32 @@ model AvatarPreset {
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+// ============ MINIGAMES ============
+
+model MinigameMatch {
+  id        String   @id @default(cuid())
+  gameId    String
+  roomId    String
+  winnerId  String?
+  result    String?
+  playerIds Json
+  moves     Json?
+  startedAt DateTime @default(now())
+  endedAt   DateTime @default(now())
+}
+
+model MinigameRating {
+  id        String   @id @default(cuid())
+  userId    String
+  gameId    String
+  mmr       Int      @default(1000)
+  tier      String   @default("BRONZE")
+  wins      Int      @default(0)
+  losses    Int      @default(0)
+  draws     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, gameId])
+  @@index([gameId, mmr])
+}

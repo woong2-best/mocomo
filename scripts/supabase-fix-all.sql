@@ -1319,3 +1319,37 @@ ALTER TABLE "LiveVideoDonation" ADD COLUMN IF NOT EXISTS "durationSec" INTEGER;
 ALTER TABLE "LiveVideoDonation" ADD COLUMN IF NOT EXISTS "anonymous" BOOLEAN NOT NULL DEFAULT false;
 
 ALTER TABLE "LiveVideoDonation" ALTER COLUMN "status" SET DEFAULT 'PENDING_REVIEW';
+
+-- =============================================================================
+-- Z4) 미니게임 전적 · MMR (선택 — Prisma db push 또는 아래 SQL)
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS "MinigameMatch" (
+  "id" TEXT NOT NULL,
+  "gameId" TEXT NOT NULL,
+  "roomId" TEXT NOT NULL,
+  "winnerId" TEXT,
+  "result" TEXT,
+  "playerIds" JSONB NOT NULL,
+  "moves" JSONB,
+  "startedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "endedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "MinigameMatch_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "MinigameRating" (
+  "id" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "gameId" TEXT NOT NULL,
+  "mmr" INTEGER NOT NULL DEFAULT 1000,
+  "tier" TEXT NOT NULL DEFAULT 'BRONZE',
+  "wins" INTEGER NOT NULL DEFAULT 0,
+  "losses" INTEGER NOT NULL DEFAULT 0,
+  "draws" INTEGER NOT NULL DEFAULT 0,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "MinigameRating_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "MinigameRating_userId_gameId_key" ON "MinigameRating"("userId", "gameId");
+CREATE INDEX IF NOT EXISTS "MinigameRating_gameId_mmr_idx" ON "MinigameRating"("gameId", "mmr");
+

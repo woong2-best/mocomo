@@ -10,242 +10,181 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { MinigameCategory, MinigameDefinition, MinigameStatus } from "./types";
+import { getMinigameRoute } from "./game-meta";
 
 export type MinigameCatalogItem = MinigameDefinition & {
   icon: LucideIcon;
 };
 
+function live(id: string, overrides: Partial<MinigameCatalogItem> & Pick<MinigameCatalogItem, "name" | "category" | "description" | "minPlayers" | "maxPlayers">): MinigameCatalogItem {
+  const icons: Record<string, LucideIcon> = {
+    "sketch-quiz": PencilLine,
+    "word-chain": Type,
+    "chosung-quiz": Sparkles,
+    "word-guess": Type,
+    omok: Grid3X3,
+    chess: Shapes,
+    janggi: Shapes,
+    alkkagi: Circle,
+    baduk: Grid3X3,
+    reversi: Circle,
+    jigsaw: Puzzle,
+    "slide-puzzle": Puzzle,
+    "picture-match": Puzzle,
+    "spot-diff": Puzzle,
+    rps: Zap,
+    "number-guess": Zap,
+    "memory-cards": Zap,
+  };
+  return {
+    id,
+    status: "live",
+    href: getMinigameRoute(id),
+    icon: icons[id] ?? Puzzle,
+    supportsSpectate: true,
+    supportsRanked: true,
+    supportsReplay: true,
+    ...overrides,
+  } as MinigameCatalogItem;
+}
+
 /** 플러그인 레지스트리 — 새 게임은 여기에 추가만 하면 허브·매칭·랭킹에 연결 가능 */
 const REGISTRY: MinigameCatalogItem[] = [
-  // ── 단어 (live) ──
-  {
-    id: "sketch-quiz",
+  live("sketch-quiz", {
     name: "스케치퀴즈",
     category: "word",
-    status: "live",
-    href: "/sketch-quiz",
-    icon: PencilLine,
     description: "그림으로 맞히는 캐치마인드 · 친구 방 / 랜덤 매칭",
     minPlayers: 2,
     maxPlayers: 5,
     supportsSpectate: false,
     supportsRanked: false,
     supportsReplay: false,
-  },
-  {
-    id: "word-chain",
+  }),
+  live("word-chain", {
     name: "끝말잇기",
     category: "word",
-    status: "live",
-    href: "/word-chain",
-    icon: Type,
     description: "국어사전 검증 · 실시간 턴제",
     minPlayers: 2,
     maxPlayers: 8,
-    supportsSpectate: true,
-    supportsRanked: true,
-    supportsReplay: true,
-  },
-  {
-    id: "chosung-quiz",
+  }),
+  live("chosung-quiz", {
     name: "초성퀴즈",
     category: "word",
-    status: "coming_soon",
-    icon: Sparkles,
-    description: "초성으로 단어 맞히기",
+    description: "초성으로 단어 맞히기 · 5라운드",
     minPlayers: 2,
     maxPlayers: 8,
-    supportsSpectate: true,
-    supportsRanked: true,
     supportsReplay: false,
-  },
-  {
-    id: "word-guess",
+  }),
+  live("word-guess", {
     name: "단어 맞추기",
     category: "word",
-    status: "coming_soon",
-    icon: Type,
-    description: "힌트·시간제한 단어 퀴즈",
+    description: "힌트·피드백 단어 퀴즈",
     minPlayers: 2,
     maxPlayers: 6,
-    supportsSpectate: true,
     supportsRanked: false,
     supportsReplay: false,
-  },
-  // ── 보드 ──
-  {
-    id: "omok",
+  }),
+  live("omok", {
     name: "오목",
     category: "board",
-    status: "live",
-    href: "/omok",
-    icon: Grid3X3,
-    description: "15×15 · 렌주/자유룰 · 자동 승리 판정",
+    description: "15×15 · 5목 승리 · 관전",
     minPlayers: 2,
     maxPlayers: 2,
-    supportsSpectate: true,
-    supportsRanked: true,
-    supportsReplay: true,
-  },
-  {
-    id: "chess",
+  }),
+  live("chess", {
     name: "체스",
     category: "board",
-    status: "coming_soon",
-    icon: Shapes,
-    description: "FIDE 규칙 · 기보 · 시간제",
+    description: "FIDE 규칙 · chess.js 엔진",
     minPlayers: 2,
     maxPlayers: 2,
-    supportsSpectate: true,
-    supportsRanked: true,
-    supportsReplay: true,
-  },
-  {
-    id: "janggi",
+  }),
+  live("janggi", {
     name: "장기",
     category: "board",
-    status: "coming_soon",
-    icon: Shapes,
-    description: "한국 장기 · 초/한 차림",
+    description: "한국 장기 · 간소 규칙",
     minPlayers: 2,
     maxPlayers: 2,
-    supportsSpectate: true,
-    supportsRanked: true,
-    supportsReplay: true,
-  },
-  {
-    id: "alkkagi",
+  }),
+  live("alkkagi", {
     name: "알까기",
     category: "board",
-    status: "coming_soon",
-    icon: Circle,
-    description: "물리 엔진 · 드래그 발사",
+    description: "물리 시뮬 · 드래그 발사",
     minPlayers: 2,
     maxPlayers: 2,
-    supportsSpectate: true,
-    supportsRanked: true,
-    supportsReplay: true,
-  },
-  {
-    id: "baduk",
+  }),
+  live("baduk", {
     name: "바둑",
     category: "board",
-    status: "coming_soon",
-    icon: Grid3X3,
-    description: "19×19 · 집 계산 · 기보",
+    description: "9×9 · 패스·집 판정",
     minPlayers: 2,
     maxPlayers: 2,
-    supportsSpectate: true,
-    supportsRanked: true,
-    supportsReplay: true,
-  },
-  {
-    id: "reversi",
+  }),
+  live("reversi", {
     name: "리버시",
     category: "board",
-    status: "coming_soon",
-    icon: Circle,
     description: "오셀로 · 8×8",
     minPlayers: 2,
     maxPlayers: 2,
-    supportsSpectate: true,
-    supportsRanked: true,
-    supportsReplay: true,
-  },
-  // ── 퍼즐 ──
-  {
-    id: "jigsaw",
+  }),
+  live("jigsaw", {
     name: "직소 퍼즐",
     category: "puzzle",
-    status: "coming_soon",
-    icon: Puzzle,
-    description: "협동/대결 · 난이도·조각 수",
+    description: "4×4 조각 맞추기",
     minPlayers: 1,
     maxPlayers: 4,
-    supportsSpectate: true,
     supportsRanked: false,
-    supportsReplay: true,
-  },
-  {
-    id: "slide-puzzle",
+  }),
+  live("slide-puzzle", {
     name: "슬라이드 퍼즐",
     category: "puzzle",
-    status: "coming_soon",
-    icon: Puzzle,
     description: "15-puzzle · 최단 기록",
     minPlayers: 1,
     maxPlayers: 2,
     supportsSpectate: false,
-    supportsRanked: true,
-    supportsReplay: true,
-  },
-  {
-    id: "picture-match",
+  }),
+  live("picture-match", {
     name: "그림 맞추기",
     category: "puzzle",
-    status: "coming_soon",
-    icon: Puzzle,
-    description: "카드 뒤집기 메모리",
-    minPlayers: 1,
+    description: "메모리 카드 6쌍",
+    minPlayers: 2,
     maxPlayers: 4,
-    supportsSpectate: true,
     supportsRanked: false,
     supportsReplay: false,
-  },
-  {
-    id: "spot-diff",
+  }),
+  live("spot-diff", {
     name: "틀린 그림 찾기",
     category: "puzzle",
-    status: "coming_soon",
-    icon: Puzzle,
-    description: "차이점 찾기 · 시간 경쟁",
+    description: "60초 · 5곳 찾기",
     minPlayers: 1,
     maxPlayers: 4,
-    supportsSpectate: true,
-    supportsRanked: true,
     supportsReplay: false,
-  },
-  // ── 캐주얼 ──
-  {
-    id: "rps",
+  }),
+  live("rps", {
     name: "가위바위보",
     category: "casual",
-    status: "live",
-    href: "/rps",
-    icon: Zap,
-    description: "베스트 오브 · 토너먼트",
+    description: "3판 2선승",
     minPlayers: 2,
     maxPlayers: 8,
-    supportsSpectate: true,
     supportsRanked: false,
     supportsReplay: false,
-  },
-  {
-    id: "number-guess",
+  }),
+  live("number-guess", {
     name: "숫자 맞추기",
     category: "casual",
-    status: "coming_soon",
-    icon: Zap,
-    description: "업다운 · 범위 축소",
+    description: "UP/DOWN · 1~100",
     minPlayers: 2,
     maxPlayers: 6,
-    supportsSpectate: true,
     supportsRanked: false,
     supportsReplay: false,
-  },
-  {
-    id: "memory-cards",
+  }),
+  live("memory-cards", {
     name: "카드 뒤집기",
     category: "casual",
-    status: "coming_soon",
-    icon: Zap,
-    description: "짝 맞추기 · 멀티 대결",
+    description: "8쌍 메모리 대결",
     minPlayers: 2,
     maxPlayers: 4,
-    supportsSpectate: true,
     supportsRanked: false,
-    supportsReplay: true,
-  },
+  }),
 ];
 
 export function getAllMinigames(): MinigameCatalogItem[] {
@@ -278,6 +217,7 @@ export function countByStatus(status: MinigameStatus): number {
 
 export function isMinigamePath(pathname: string): boolean {
   if (pathname === "/games" || pathname.startsWith("/games/")) return true;
+  if (pathname.startsWith("/play/")) return true;
   return REGISTRY.some(
     (g) => g.href && (pathname === g.href || pathname.startsWith(`${g.href}/`))
   );

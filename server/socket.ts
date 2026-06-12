@@ -200,7 +200,7 @@ const io = new Server(httpServer, {
 });
 
 initSketchQuizStore(io);
-initMinigameStore(io);
+initMinigameStore(io, prisma);
 
 /** 채널별 영상 위 채팅 오버레이 표시 여부 */
 const liveChatOverlayByChannel = new Map<string, boolean>();

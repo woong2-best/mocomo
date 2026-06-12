@@ -130,9 +130,9 @@ export function GamesHubClient() {
         })}
       </div>
 
-      <p className="text-xs text-center text-muted-foreground">
-        오목 · 체스 · 장기 · 끝말잇기 등은 공통 매칭·관전·리플레이 엔진 위에 순차 출시됩니다.
-      </p>
+        <p className="text-xs text-center text-muted-foreground">
+          17종 미니게임 · 친구 방 / 랜덤 매칭 / 관전 · `/play/게임ID`
+        </p>
     </div>
   );
 }

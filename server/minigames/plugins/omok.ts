@@ -5,8 +5,10 @@ import {
   isOmokBoardFull,
   type OmokBoard,
 } from "../../../src/lib/minigames/omok-logic";
-import type { OmokMove, OmokPublicState } from "../../../src/lib/minigames/shared-types";
+import type { MinigamePublicState } from "../../../src/lib/minigames/shared-types";
 import { basePublicFields, type MinigamePlugin, type MinigameRoomInternal } from "../types";
+
+type OmokMove = { x: number; y: number };
 
 type OmokGameState = {
   board: OmokBoard;
@@ -47,7 +49,7 @@ export const omokPlugin: MinigamePlugin = {
     } satisfies OmokGameState;
   },
 
-  toPublicState(room): OmokPublicState {
+  toPublicState(room): MinigamePublicState {
     const base = basePublicFields(room);
     if (room.status === "lobby" || !room.gameState) {
       return { ...base, game: null };
