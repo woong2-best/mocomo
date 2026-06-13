@@ -154,9 +154,9 @@ const REGISTRY: MinigameCatalogItem[] = [
   live("spot-diff", {
     name: "틀린 그림 찾기",
     category: "puzzle",
-    description: "60초 · 5곳 찾기",
+    description: "3분 · 반경 판정 · 대결/협동 · 힌트 · 확대",
     minPlayers: 1,
-    maxPlayers: 4,
+    maxPlayers: 8,
     supportsReplay: false,
   }),
   live("rps", {

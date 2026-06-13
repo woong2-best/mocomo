@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { OmokGamePanel } from "@/components/omok/omok-game-panel";
 import { OmokBoard } from "@/components/omok/omok-board";
 import { ReversiGamePanel } from "@/components/reversi/reversi-game-panel";
+import type { SpotDiffMode, SpotShape } from "@/lib/minigames/spot-diff-logic";
+import { SpotDiffGamePanel } from "@/components/spot-diff/spot-diff-game-panel";
 import { AlkkagiBoard } from "@/components/minigames/alkkagi-board";
 import { WordChainPanel } from "@/components/minigames/word-chain-panel";
 import { BadukGamePanel } from "@/components/baduk/baduk-game-panel";
@@ -232,7 +234,35 @@ export function GameActiveView({ gameId, state, userId, isSpectator, onMove, err
     case "slide-puzzle":
       return <SlideView g={g} userId={userId} isSpectator={isSpectator} onMove={onMove} />;
     case "spot-diff":
-      return <SpotDiffView g={g} userId={userId} isSpectator={isSpectator} onMove={onMove} />;
+      return (
+        <SpotDiffGamePanel
+          width={(g.width as number) ?? 400}
+          height={(g.height as number) ?? 260}
+          left={(g.left as SpotShape[]) ?? []}
+          right={(g.right as SpotShape[]) ?? []}
+          found={(g.found as { id: number; x: number; y: number; radius: number; foundBy?: string }[]) ?? []}
+          totalDiffs={(g.totalDiffs as number) ?? 7}
+          scores={(g.scores as Record<string, number>) ?? {}}
+          combos={(g.combos as Record<string, number>) ?? {}}
+          wrongCounts={(g.wrongCounts as Record<string, number>) ?? {}}
+          hintsUsed={(g.hintsUsed as Record<string, number>) ?? {}}
+          hintFlash={(g.hintFlash as { x: number; y: number; until: number } | null) ?? null}
+          mode={(g.mode as SpotDiffMode) ?? "solo"}
+          theme={(g.theme as string) ?? "풍경"}
+          timeLeftMs={(g.timeLeftMs as number) ?? 0}
+          paused={!!g.paused}
+          lastFeedback={
+            g.lastFeedback && userId && (g.lastFeedback as { userId: string }).userId === userId
+              ? (g.lastFeedback as { ok: boolean; message: string })
+              : null
+          }
+          userId={userId}
+          isSpectator={isSpectator}
+          finished={state.status === "finished"}
+          players={state.players}
+          onMove={onMove}
+        />
+      );
     case "jigsaw":
       return <JigsawView g={g} userId={userId} isSpectator={isSpectator} onMove={onMove} />;
     default:
@@ -367,33 +397,6 @@ function SlideView({ g, userId, isSpectator, onMove }: { g: Record<string, unkno
             ))}
           </div>
         )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function SpotDiffView({ g, userId, isSpectator, onMove }: { g: Record<string, unknown>; userId?: string; isSpectator: boolean; onMove: Props["onMove"] }) {
-  const right = g.right as number[][];
-  const found = new Set((g.found as { x: number; y: number }[]).map((f) => `${f.x},${f.y}`));
-  const myTurn = g.turnUserId === userId && !isSpectator;
-  return (
-    <Card className="border-2 border-folk-cobalt/20">
-      <CardContent className="p-4 space-y-2 text-center">
-        <p className="text-sm">{g.timeLeft as number}초 · {found.size}/{g.totalDiffs as number}</p>
-        <div className="inline-grid gap-0" style={{ gridTemplateColumns: `repeat(${right[0]?.length ?? 8}, 28px)` }}>
-          {right.map((row, y) =>
-            row.map((cell, x) => (
-              <button
-                key={`${x}-${y}`}
-                type="button"
-                disabled={!myTurn || found.has(`${x},${y}`)}
-                onClick={() => onMove({ x, y })}
-                className={cn("w-7 h-7 border text-[10px]", found.has(`${x},${y}`) && "ring-2 ring-emerald-500")}
-                style={{ background: `hsl(${cell * 50}, 60%, 55%)` }}
-              />
-            ))
-          )}
-        </div>
       </CardContent>
     </Card>
   );

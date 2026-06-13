@@ -4,6 +4,7 @@ import {
   createInitialReversiBoard,
   type ReversiBoard,
 } from "./reversi-logic";
+import { generateSpotDiffPuzzle } from "./spot-diff-logic";
 import {
   createEmptyOmokBoard,
   type OmokBoard,
@@ -36,7 +37,9 @@ export function buildReplaySteps(
     let label = `${name}: ${JSON.stringify(m)}`;
     if (m.x != null && m.y != null) label = `${name}: (${m.x}, ${m.y})`;
     if (m.from && m.to) label = `${name}: ${m.from}→${m.to}`;
-    if (m.pass) label = `${name}: 패스`;
+    if (m.id != null) label = `${name}: #${m.id} (+${m.points ?? 0})`;
+    if (m.hint) label = `${name}: 힌트`;
+    if (m.miss) label = `${name}: 오답`;
     return { index, userId: uid, move: m, label };
   });
 }
@@ -85,6 +88,25 @@ export function snapshotAtStep(
       }
     }
     return { step, gameId, board: board.map((r) => [...r]), label: `${step}수` };
+  }
+
+  if (gameId === "spot-diff") {
+    const seed =
+      (initialState?.puzzle as { seed?: number } | undefined)?.seed ??
+      (initialState as { seed?: number } | undefined)?.seed ??
+      1;
+    const puzzle = generateSpotDiffPuzzle(seed, 7);
+    const foundIds: number[] = [];
+    for (const raw of slice) {
+      const m = raw as { move?: { id?: number }; id?: number };
+      const id = m.move?.id ?? m.id;
+      if (typeof id === "number") foundIds.push(id);
+    }
+    return {
+      step,
+      gameId,
+      label: `${step}수 · ${foundIds.length}/${puzzle.differences.length} 발견`,
+    };
   }
 
   if (gameId === "chess") {
