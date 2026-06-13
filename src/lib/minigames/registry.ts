@@ -122,7 +122,7 @@ const REGISTRY: MinigameCatalogItem[] = [
   live("reversi", {
     name: "리버시",
     category: "board",
-    description: "오셀로 · 8×8",
+    description: "8×8 오셀로 · 8방향 뒤집기 · 자동 패스 · 돌 개수 승패",
     minPlayers: 2,
     maxPlayers: 2,
   }),

@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { OmokGamePanel } from "@/components/omok/omok-game-panel";
 import { OmokBoard } from "@/components/omok/omok-board";
+import { ReversiGamePanel } from "@/components/reversi/reversi-game-panel";
 import { AlkkagiBoard } from "@/components/minigames/alkkagi-board";
 import { WordChainPanel } from "@/components/minigames/word-chain-panel";
 import { BadukGamePanel } from "@/components/baduk/baduk-game-panel";
@@ -56,20 +57,26 @@ export function GameActiveView({ gameId, state, userId, isSpectator, onMove, err
       );
     case "reversi":
       return (
-        <BoardView
+        <ReversiGamePanel
           board={g.board as number[][]}
+          turn={g.turn as 1 | 2}
           turnUserId={g.turnUserId as string | null}
+          blackUserId={g.blackUserId as string}
+          whiteUserId={g.whiteUserId as string}
+          validMoves={(g.validMoves as { x: number; y: number }[]) ?? []}
+          scores={(g.scores as { black: number; white: number }) ?? { black: 2, white: 2 }}
+          passStreak={(g.passStreak as number) ?? 0}
+          lastMove={(g.lastMove as { x: number; y: number } | null) ?? null}
+          lastNotice={(g.lastNotice as string | null) ?? null}
+          useTurnTimer={!!g.useTurnTimer}
+          timeLeft={(g.timeLeft as number) ?? 0}
+          turnLimit={(g.turnLimit as number) ?? 30}
+          finalScore={(g.finalScore as { black: number; white: number } | null) ?? null}
           userId={userId}
           isSpectator={isSpectator}
-          onCell={(x, y) => onMove({ x, y })}
-          label={`점수 흑${(g.scores as { black: number }).black} : 백${(g.scores as { white: number }).white}`}
-          extra={
-            userId === g.turnUserId && !isSpectator ? (
-              <Button variant="outline" size="sm" className="rounded-lg" onClick={() => onMove({ pass: true })}>
-                패스
-              </Button>
-            ) : null
-          }
+          finished={state.status === "finished"}
+          players={state.players}
+          onMove={onMove}
         />
       );
     case "chess":
