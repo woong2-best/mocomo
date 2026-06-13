@@ -1,6 +1,12 @@
-/** 틀린그림 찾기 문제 카탈로그 — 절手 seed + (선택) public PNG */
+/** 틀린그림 찾기 문제 카탈로그 — 절手 seed + public SVG/PNG 이미지 */
 
-import { generateSpotDiffPuzzle, type SpotDiffPuzzle } from "./spot-diff-logic";
+import {
+  generateSpotDiffPuzzle,
+  SPOT_DIFF_HEIGHT,
+  SPOT_DIFF_WIDTH,
+  type SpotDifference,
+  type SpotDiffPuzzle,
+} from "./spot-diff-logic";
 
 export type SpotDiffDifficulty = "easy" | "medium" | "hard";
 
@@ -10,14 +16,52 @@ export type SpotDiffCatalogEntry = {
   theme: string;
   difficulty: SpotDiffDifficulty;
   diffCount: number;
-  /** 절手 생성 seed (무료) */
   seed: number;
-  /** 추후: /spot-diff/park-left.png */
+  /** /spot-diff/zoo-left.svg 또는 .png */
   imageLeft?: string;
   imageRight?: string;
+  /** 이미지 퍼즐일 때 서버 판정용 고정 좌표 */
+  differences?: SpotDifference[];
+  width?: number;
+  height?: number;
 };
 
 export const SPOT_DIFF_CATALOG: SpotDiffCatalogEntry[] = [
+  {
+    id: "img-zoo",
+    title: "동물원",
+    theme: "동물",
+    difficulty: "easy",
+    diffCount: 5,
+    seed: 42001,
+    imageLeft: "/spot-diff/zoo-left.svg",
+    imageRight: "/spot-diff/zoo-right.svg",
+    differences: [
+      { id: 1, x: 330, y: 45, radius: 28 },
+      { id: 2, x: 246, y: 55, radius: 24 },
+      { id: 3, x: 61, y: 118, radius: 26 },
+      { id: 4, x: 159, y: 200, radius: 26 },
+      { id: 5, x: 220, y: 178, radius: 22 },
+    ],
+  },
+  {
+    id: "img-picnic",
+    title: "해변 피크닉",
+    theme: "음식",
+    difficulty: "medium",
+    diffCount: 6,
+    seed: 42002,
+    imageLeft: "/spot-diff/picnic-left.svg",
+    imageRight: "/spot-diff/picnic-right.svg",
+    differences: [
+      { id: 1, x: 200, y: 190, radius: 42 },
+      { id: 2, x: 109, y: 211, radius: 24 },
+      { id: 3, x: 250, y: 210, radius: 22 },
+      { id: 4, x: 305, y: 200, radius: 24 },
+      { id: 5, x: 306, y: 174, radius: 28 },
+      { id: 6, x: 64, y: 226, radius: 22 },
+    ],
+  },
   { id: "park-easy", title: "공원 산책", theme: "공원", difficulty: "easy", diffCount: 5, seed: 41001 },
   { id: "beach-easy", title: "해변 휴가", theme: "해변", difficulty: "easy", diffCount: 5, seed: 41002 },
   { id: "village-med", title: "마을 풍경", theme: "마을", difficulty: "medium", diffCount: 7, seed: 41003 },
@@ -37,6 +81,23 @@ export function getCatalogEntry(id: string): SpotDiffCatalogEntry | undefined {
 }
 
 export function loadCatalogPuzzle(entry: SpotDiffCatalogEntry): SpotDiffPuzzle {
+  if (entry.imageLeft && entry.imageRight && entry.differences?.length) {
+    return {
+      width: entry.width ?? SPOT_DIFF_WIDTH,
+      height: entry.height ?? SPOT_DIFF_HEIGHT,
+      left: [],
+      right: [],
+      differences: entry.differences,
+      seed: entry.seed,
+      theme: entry.theme,
+      puzzleId: entry.id,
+      title: entry.title,
+      difficulty: entry.difficulty,
+      imageLeft: entry.imageLeft,
+      imageRight: entry.imageRight,
+    };
+  }
+
   const base = generateSpotDiffPuzzle(entry.seed, entry.diffCount);
   return {
     ...base,
@@ -66,4 +127,27 @@ export function pickCatalogPuzzle(opts?: {
 
 export function pickNextInfinitePuzzle(usedIds: string[]): SpotDiffPuzzle {
   return pickCatalogPuzzle({ excludeIds: usedIds.slice(-6) });
+}
+
+/** 새 이미지 퍼즐 추가 시 참고용 템플릿 */
+export function spotDiffImagePuzzleTemplate(
+  id: string,
+  title: string,
+  theme: string,
+  left: string,
+  right: string,
+  differences: SpotDifference[],
+  difficulty: SpotDiffDifficulty = "medium"
+): SpotDiffCatalogEntry {
+  return {
+    id,
+    title,
+    theme,
+    difficulty,
+    diffCount: differences.length,
+    seed: 0,
+    imageLeft: left,
+    imageRight: right,
+    differences,
+  };
 }

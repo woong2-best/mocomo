@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" width="400" height="260">
+  <rect width="400" height="165" fill="#87ceeb"/>
+  <rect y="165" width="400" height="95" fill="#5a8f3c"/>
+  <!-- diff 1: sun color -->
+  <circle cx="330" cy="45" r="26" fill="#ff9800"/>
+  <circle cx="60" cy="55" r="18" fill="#ffffff"/>
+  <circle cx="76" cy="50" r="14" fill="#ffffff"/>
+  <circle cx="48" cy="52" r="12" fill="#ffffff"/>
+  <!-- diff 2: cloud removed -->
+  <circle cx="246" cy="55" r="18" fill="#ecf0f1"/>
+  <rect x="54" y="130" width="14" height="42" fill="#6e3b12"/>
+  <!-- diff 3: tree crown smaller -->
+  <circle cx="61" cy="118" r="14" fill="#229954"/>
+  <!-- diff 4: lion moved -->
+  <circle cx="168" cy="200" r="22" fill="#e67e22"/>
+  <circle cx="160" cy="192" r="4" fill="#2c3e50"/>
+  <circle cx="176" cy="192" r="4" fill="#2c3e50"/>
+  <ellipse cx="168" cy="206" rx="8" ry="5" fill="#d35400"/>
+  <rect x="280" y="120" width="80" height="48" fill="#5dade2"/>
+  <polygon points="280,120 340,95 360,120" fill="#2874a6"/>
+  <circle cx="90" cy="200" r="11" fill="#e74c3c"/>
+  <!-- diff 5: extra bird -->
+  <circle cx="220" cy="178" r="9" fill="#3498db"/>
+  <rect x="30" y="140" width="340" height="8" fill="#bdc3c7"/>
+</svg>

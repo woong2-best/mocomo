@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" width="400" height="260">
+  <rect width="400" height="165" fill="#87ceeb"/>
+  <rect y="165" width="400" height="95" fill="#5a8f3c"/>
+  <circle cx="330" cy="45" r="26" fill="#ffd54f"/>
+  <circle cx="60" cy="55" r="18" fill="#ffffff"/>
+  <circle cx="76" cy="50" r="14" fill="#ffffff"/>
+  <circle cx="48" cy="52" r="12" fill="#ffffff"/>
+  <circle cx="246" cy="55" r="18" fill="#ffffff"/>
+  <circle cx="262" cy="50" r="14" fill="#ffffff"/>
+  <rect x="54" y="130" width="14" height="42" fill="#6e3b12"/>
+  <circle cx="61" cy="118" r="28" fill="#229954"/>
+  <circle cx="150" cy="200" r="22" fill="#e67e22"/>
+  <circle cx="142" cy="192" r="4" fill="#2c3e50"/>
+  <circle cx="158" cy="192" r="4" fill="#2c3e50"/>
+  <ellipse cx="150" cy="206" rx="8" ry="5" fill="#d35400"/>
+  <rect x="280" y="120" width="80" height="48" fill="#5dade2"/>
+  <polygon points="280,120 340,95 360,120" fill="#2874a6"/>
+  <circle cx="90" cy="200" r="11" fill="#e74c3c"/>
+  <rect x="30" y="140" width="340" height="8" fill="#bdc3c7"/>
+</svg>
