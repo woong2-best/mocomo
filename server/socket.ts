@@ -104,7 +104,17 @@ const RELAY_SECRET = process.env.SOCKET_RELAY_SECRET?.trim();
 
 const httpServer = createServer((req, res) => {
   if (req.method === "GET" && (req.url === "/" || req.url === "/health")) {
-    res.writeHead(200, { "Content-Type": "application/json" });
+    const origin = req.headers.origin;
+    const allowed = socketCorsOrigins();
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (
+      origin &&
+      (allowed.includes(origin) || origin.endsWith(".vercel.app"))
+    ) {
+      headers["Access-Control-Allow-Origin"] = origin;
+      headers["Vary"] = "Origin";
+    }
+    res.writeHead(200, headers);
     res.end(JSON.stringify({ ok: true, service: "mocomo-socket" }));
     return;
   }

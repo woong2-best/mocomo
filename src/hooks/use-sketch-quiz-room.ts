@@ -13,10 +13,11 @@ import {
   peekGameJoinOptions,
   clearGameJoinOptions,
 } from "@/lib/games-lobby";
+import { resolveSocketUrl } from "@/lib/socket-url";
+import { SOCKET_ACK_MS, SOCKET_WAIT_MS, wakeSocketServer } from "@/lib/socket-timing";
 
 const GAME_ID = "sketch-quiz";
-const SOCKET_WAIT_MS = 12_000;
-const ACK_MS = 10_000;
+const ACK_MS = SOCKET_ACK_MS;
 
 type AckResult =
   | { ok: true; state?: SketchQuizPublicState }
@@ -112,10 +113,17 @@ export function useSketchQuizRoom(
 
   const enterRoom = useCallback(
     async (password?: string) => {
+      const socketUrl = resolveSocketUrl();
+      if (!socketUrl) {
+        setConnecting(false);
+        setError("실시간 서버 URL이 설정되지 않았습니다.");
+        return;
+      }
+      await wakeSocketServer(socketUrl);
       const active = await waitForSocket();
       if (!active) {
         setConnecting(false);
-        setError("실시간 서버에 연결할 수 없습니다.");
+        setError("실시간 서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.");
         return;
       }
 
@@ -149,13 +157,13 @@ export function useSketchQuizRoom(
 
   useEffect(() => {
     if (!userId || joinedRef.current) return;
-    if (realtimeOff || connectionFailed) {
+    if (!resolveSocketUrl()) {
       setConnecting(false);
-      setError("실시간 서버에 연결할 수 없습니다.");
+      setError("실시간 서버 URL이 설정되지 않았습니다.");
       return;
     }
     void enterRoom();
-  }, [userId, realtimeOff, connectionFailed, attempt, enterRoom]);
+  }, [userId, attempt, enterRoom]);
 
   useEffect(() => {
     if (!socket || !joined) return;

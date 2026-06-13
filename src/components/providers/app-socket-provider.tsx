@@ -11,8 +11,13 @@ import {
 import type { Socket } from "socket.io-client";
 import { useSession } from "next-auth/react";
 import { resolveSocketUrl } from "@/lib/socket-url";
+import {
+  SOCKET_CONNECT_TIMEOUT_MS,
+  SOCKET_IO_TIMEOUT_MS,
+  wakeSocketServer,
+} from "@/lib/socket-timing";
 
-const CONNECT_TIMEOUT_MS = 15_000;
+const CONNECT_TIMEOUT_MS = SOCKET_CONNECT_TIMEOUT_MS;
 
 type AppSocketContextValue = {
   socket: Socket | null;
@@ -57,6 +62,8 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
 
     import("socket.io-client").then(async ({ io }) => {
       if (disposed) return;
+      await wakeSocketServer(socketUrl);
+      if (disposed) return;
       const { fetchSocketAuthToken } = await import("@/lib/socket-client");
       const token = await fetchSocketAuthToken();
       if (disposed || !token) {
@@ -72,7 +79,7 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
         reconnectionAttempts: Infinity,
         reconnectionDelay: 600,
         reconnectionDelayMax: 3000,
-        timeout: 12_000,
+        timeout: SOCKET_IO_TIMEOUT_MS,
       });
 
       connectTimeout = window.setTimeout(() => {

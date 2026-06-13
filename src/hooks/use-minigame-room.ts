@@ -11,13 +11,14 @@ import {
   clearGameJoinOptions,
   type GameCreateOptions,
 } from "@/lib/games-lobby";
+import { resolveSocketUrl } from "@/lib/socket-url";
+import { SOCKET_ACK_MS, SOCKET_WAIT_MS, wakeSocketServer } from "@/lib/socket-timing";
 
 type AckResult =
   | { ok: true; state?: MinigamePublicState }
   | { ok: false; error: string };
 
-const SOCKET_WAIT_MS = 15_000;
-const ACK_MS = 12_000;
+const ACK_MS = SOCKET_ACK_MS;
 
 export function useMinigameRoom(
   gameId: string,
@@ -144,21 +145,19 @@ export function useMinigameRoom(
       setError(null);
       setNeedsPassword(false);
 
-      if (realtimeOff || connectionFailed) {
+      const socketUrl = resolveSocketUrl();
+      if (!socketUrl) {
         setConnecting(false);
-        setError(
-          connectionFailed
-            ? "실시간 서버에 연결할 수 없습니다. AUTH_SECRET·SOCKET_CORS_ORIGINS 설정 후 Render를 재배포해 주세요."
-            : "실시간 서버 URL이 설정되지 않았습니다."
-        );
+        setError("실시간 서버 URL이 설정되지 않았습니다.");
         return;
       }
 
+      await wakeSocketServer(socketUrl);
       const active = await waitForSocket();
       if (!active) {
         setConnecting(false);
         setError(
-          "실시간 서버에 연결할 수 없습니다. Render(mocomo-socket)가 켜져 있는지, Vercel NEXT_PUBLIC_SOCKET_URL을 확인해 주세요."
+          "실시간 서버에 연결할 수 없습니다. Render(mocomo-socket)가 sleep 상태일 수 있습니다. 「다시 연결」을 누르거나 1분 정도 기다려 주세요."
         );
         return;
       }
@@ -197,8 +196,6 @@ export function useMinigameRoom(
     },
     [
       userId,
-      realtimeOff,
-      connectionFailed,
       waitForSocket,
       mode,
       emitAck,
@@ -213,13 +210,13 @@ export function useMinigameRoom(
 
   useEffect(() => {
     if (!userId || joinedRef.current) return;
-    if (realtimeOff && !connectionFailed) {
+    if (!resolveSocketUrl()) {
       setConnecting(false);
       setError("실시간 서버 URL이 설정되지 않았습니다.");
       return;
     }
     void enterRoom();
-  }, [userId, realtimeOff, connectionFailed, attempt, enterRoom]);
+  }, [userId, attempt, enterRoom]);
 
   useEffect(() => {
     if (!socket || !joined) return;
@@ -273,6 +270,8 @@ export function useMinigameRoom(
   const retryConnection = useCallback(() => {
     setError(null);
     setConnecting(true);
+    const url = resolveSocketUrl();
+    if (url) void wakeSocketServer(url);
     setAttempt((n) => n + 1);
   }, []);
 

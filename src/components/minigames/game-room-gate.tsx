@@ -58,7 +58,7 @@ export function GameRoomGate({
         <CardContent className="p-12 flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-folk-cobalt" />
           <p className="text-sm text-muted-foreground">실시간 서버에 연결하는 중…</p>
-          <p className="text-xs text-muted-foreground">최대 15초 · Render cold start 시 잠시 걸릴 수 있음</p>
+          <p className="text-xs text-muted-foreground">최대 1분 · Render 무료 플랜은 sleep 후 첫 연결이 느릴 수 있습니다</p>
         </CardContent>
       </Card>
     );

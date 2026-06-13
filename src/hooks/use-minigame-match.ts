@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppSocket } from "@/components/providers/app-socket-provider";
+import { resolveSocketUrl } from "@/lib/socket-url";
+import { SOCKET_ACK_MS, SOCKET_WAIT_MS, wakeSocketServer } from "@/lib/socket-timing";
 
-const MATCH_ACK_MS = 12_000;
-const SOCKET_WAIT_MS = 10_000;
+const MATCH_ACK_MS = SOCKET_ACK_MS;
 
 type MatchAck = {
   ok?: boolean;
@@ -140,6 +141,9 @@ export function useMinigameMatch(
     if (typeof Notification !== "undefined" && Notification.permission === "default") {
       void Notification.requestPermission();
     }
+
+    const socketUrl = resolveSocketUrl();
+    if (socketUrl) await wakeSocketServer(socketUrl);
 
     const target = socketRef.current?.connected ? socketRef.current : await waitForSocket();
     if (!target?.connected) {
