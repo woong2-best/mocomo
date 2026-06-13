@@ -3,14 +3,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Timer } from "lucide-react";
 import {
-  ALKKAGI_BOARD_H,
-  ALKKAGI_BOARD_W,
+  ALKKAGI_CANVAS_SIZE,
   ALKKAGI_MAX_PULL,
   ALKKAGI_STONE_R,
-  powerColor,
   simulateAlkkagiShot,
+  type AlkkagiFrame,
   type AlkkagiStone,
 } from "@/lib/minigames/alkkagi-physics";
+import {
+  computeBoardLayout,
+  drawAlkkagiBoardSurface,
+  drawGoStone,
+  drawRubberBand,
+  stoneScreenPos,
+} from "@/lib/minigames/alkkagi-board-art";
 import type { MinigamePlayerPublic } from "@/lib/minigames/shared-types";
 import { cn } from "@/lib/utils";
 
@@ -64,7 +70,6 @@ export function AlkkagiBoard({
   stoneCounts,
   timeLeft,
   turnLimit,
-  phase,
   lastKnockouts,
   lastShooterId,
   lastShot,
@@ -73,7 +78,7 @@ export function AlkkagiBoard({
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const [displayStones, setDisplayStones] = useState(stones);
+  const [displayFrame, setDisplayFrame] = useState<AlkkagiFrame>({ onBoard: stones, falling: [] });
   const [drag, setDrag] = useState<DragState | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [animating, setAnimating] = useState(false);
@@ -82,23 +87,18 @@ export function AlkkagiBoard({
   const lastShotSeq = useRef(0);
   const prevStonesRef = useRef(stones);
   const animRef = useRef<number | null>(null);
+  const layoutRef = useRef(computeBoardLayout(560, 560, width, height));
 
   const myTurn = turnUserId === userId && !isSpectator && !animating;
-  const scale = useRef(1);
-
-  const boardToScreen = useCallback((bx: number, by: number, canvasW: number, canvasH: number) => {
-    const s = Math.min(canvasW / width, canvasH / height);
-    const ox = (canvasW - width * s) / 2;
-    const oy = (canvasH - height * s) / 2;
-    return { x: ox + bx * s, y: oy + by * s, s };
-  }, [width, height]);
 
   const screenToBoard = useCallback(
     (sx: number, sy: number, canvasW: number, canvasH: number) => {
-      const s = Math.min(canvasW / width, canvasH / height);
-      const ox = (canvasW - width * s) / 2;
-      const oy = (canvasH - height * s) / 2;
-      return { x: (sx - ox) / s, y: (sy - oy) / s, s };
+      const layout = computeBoardLayout(canvasW, canvasH, width, height);
+      layoutRef.current = layout;
+      return {
+        x: (sx - layout.ox) / layout.s,
+        y: (sy - layout.oy) / layout.s,
+      };
     },
     [width, height]
   );
@@ -110,7 +110,7 @@ export function AlkkagiBoard({
 
     const dpr = window.devicePixelRatio || 1;
     const rect = wrap.getBoundingClientRect();
-    const cssW = Math.min(rect.width, 560);
+    const cssW = Math.min(rect.width, 600);
     const cssH = cssW;
     canvas.style.width = `${cssW}px`;
     canvas.style.height = `${cssH}px`;
@@ -120,101 +120,45 @@ export function AlkkagiBoard({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, cssW, cssH);
 
-    const { s } = boardToScreen(0, 0, cssW, cssH);
-    scale.current = s;
-    const ox = (cssW - width * s) / 2;
-    const oy = (cssH - height * s) / 2;
+    const layout = computeBoardLayout(cssW, cssH, width, height);
+    layoutRef.current = layout;
 
-    // board
-    ctx.save();
-    ctx.fillStyle = "#c4a574";
-    ctx.strokeStyle = "#5c3d1e";
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.roundRect(ox, oy, width * s, height * s, 8);
-    ctx.fill();
-    ctx.stroke();
+    // felt table background
+    ctx.fillStyle = "#2a4a3a";
+    ctx.fillRect(0, 0, cssW, cssH);
+    const felt = ctx.createRadialGradient(cssW / 2, cssH / 2, 0, cssW / 2, cssH / 2, cssW * 0.7);
+    felt.addColorStop(0, "#3d6b52");
+    felt.addColorStop(1, "#1e3328");
+    ctx.fillStyle = felt;
+    ctx.fillRect(0, 0, cssW, cssH);
 
-    // center line hint
-    ctx.strokeStyle = "rgba(92,61,30,0.25)";
-    ctx.lineWidth = 1;
-    ctx.setLineDash([6, 6]);
-    ctx.beginPath();
-    ctx.moveTo(ox + (width * s) / 2, oy);
-    ctx.lineTo(ox + (width * s) / 2, oy + height * s);
-    ctx.stroke();
-    ctx.setLineDash([]);
+    drawAlkkagiBoardSurface(ctx, layout, width, height);
 
-    // rubber band
     if (drag && myTurn) {
-      const stone = displayStones.find((st) => st.id === drag.stoneId);
+      const stone = displayFrame.onBoard.find((st) => st.id === drag.stoneId);
       if (stone) {
-        const sx = ox + stone.x * s;
-        const sy = oy + stone.y * s;
+        const { x: sx, y: sy } = stoneScreenPos(stone, layout);
         const dx = drag.pullX - drag.startX;
         const dy = drag.pullY - drag.startY;
-        const pullDist = Math.min(Math.hypot(dx, dy), ALKKAGI_MAX_PULL * s);
-        const power = pullDist / (ALKKAGI_MAX_PULL * s);
+        const pullDist = Math.min(Math.hypot(dx, dy), ALKKAGI_MAX_PULL * layout.s);
+        const power = pullDist / (ALKKAGI_MAX_PULL * layout.s);
         const angle = Math.atan2(-dy, -dx);
-        const bandEndX = sx - Math.cos(angle) * pullDist;
-        const bandEndY = sy - Math.sin(angle) * pullDist;
-
-        ctx.strokeStyle = powerColor(power);
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(sx, sy);
-        ctx.lineTo(bandEndX, bandEndY);
-        ctx.stroke();
-
-        ctx.fillStyle = powerColor(power);
-        ctx.beginPath();
-        ctx.arc(bandEndX, bandEndY, 5, 0, Math.PI * 2);
-        ctx.fill();
-
-        // aim arrow
-        const arrowLen = 24 + power * 40;
-        ctx.strokeStyle = powerColor(power);
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(sx, sy);
-        ctx.lineTo(sx + Math.cos(angle) * arrowLen, sy + Math.sin(angle) * arrowLen);
-        ctx.stroke();
+        drawRubberBand(ctx, sx, sy, pullDist, angle, power);
       }
     }
 
-    // stones
-    for (const stone of displayStones) {
-      const sx = ox + stone.x * s;
-      const sy = oy + stone.y * s;
-      const r = ALKKAGI_STONE_R * s;
-      const mine = stone.ownerId === userId;
-
-      ctx.beginPath();
-      ctx.arc(sx, sy, r, 0, Math.PI * 2);
-      ctx.fillStyle = mine ? "#1a1a1a" : "#f5f5f4";
-      ctx.fill();
-      ctx.strokeStyle = mine ? "#fafafa" : "#737373";
-      ctx.lineWidth = selectedId === stone.id ? 3 : 2;
-      ctx.stroke();
-
-      if (selectedId === stone.id) {
-        ctx.strokeStyle = "#e07a5f";
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(sx, sy, r + 4, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-
-      ctx.fillStyle = mine ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.08)";
-      ctx.beginPath();
-      ctx.arc(sx - r * 0.25, sy - r * 0.25, r * 0.35, 0, Math.PI * 2);
-      ctx.fill();
+    for (const stone of displayFrame.onBoard) {
+      const { x, y, r } = stoneScreenPos(stone, layout);
+      drawGoStone(ctx, x, y, r, stone.ownerId === userId, selectedId === stone.id);
     }
 
-    ctx.restore();
-  }, [boardToScreen, displayStones, drag, height, myTurn, selectedId, userId, width]);
+    for (const stone of displayFrame.falling) {
+      const { x, y, r } = stoneScreenPos(stone, layout);
+      const fade = stone.y > height ? Math.max(0.15, 1 - (stone.y - height) / (height * 0.5)) : 1;
+      drawGoStone(ctx, x, y, r, stone.ownerId === userId, false, fade);
+    }
+  }, [displayFrame, drag, height, myTurn, selectedId, userId, width]);
 
   useEffect(() => {
     draw();
@@ -233,15 +177,15 @@ export function AlkkagiBoard({
 
       const step = () => {
         if (i >= frames.length) {
-          setDisplayStones(result.stones);
+          setDisplayFrame({ onBoard: result.stones, falling: [] });
           setAnimating(false);
           setSelectedId(null);
           return;
         }
-        setDisplayStones(frames[i]!);
+        setDisplayFrame(frames[i]!);
         i += 1;
         animRef.current = requestAnimationFrame(() => {
-          setTimeout(step, 16);
+          setTimeout(step, 14);
         });
       };
       step();
@@ -249,12 +193,12 @@ export function AlkkagiBoard({
     [height, width]
   );
 
-  // sync stones when not animating
   useEffect(() => {
-    if (!animating) setDisplayStones(stones);
+    if (!animating) {
+      setDisplayFrame({ onBoard: stones, falling: [] });
+    }
   }, [stones, animating]);
 
-  // remote shot animation (pre-shot stones kept in prevStonesRef)
   useEffect(() => {
     if (!lastShot || lastShot.seq === lastShotSeq.current) {
       prevStonesRef.current = stones;
@@ -284,8 +228,8 @@ export function AlkkagiBoard({
   }, [lastShot, lastKnockouts, lastShooterId, stones, userId, runAnimation]);
 
   function hitStone(bx: number, by: number): AlkkagiStone | null {
-    for (const s of displayStones) {
-      if (Math.hypot(s.x - bx, s.y - by) <= ALKKAGI_STONE_R * 1.2) return s;
+    for (const s of displayFrame.onBoard) {
+      if (Math.hypot(s.x - bx, s.y - by) <= ALKKAGI_STONE_R * 1.35) return s;
     }
     return null;
   }
@@ -333,8 +277,7 @@ export function AlkkagiBoard({
     }
 
     const angle = Math.atan2(-dy, -dx);
-    const base = displayStones;
-    runAnimation(base, drag.stoneId, angle, power);
+    runAnimation(displayFrame.onBoard, drag.stoneId, angle, power);
     await onMove({ stoneId: drag.stoneId, angle, power });
   }
 
@@ -394,20 +337,21 @@ export function AlkkagiBoard({
 
       {showHint && myTurn && (
         <p className="text-center text-xs text-muted-foreground">
-          내 알을 터치한 뒤 반대 방향으로 당겨 놓으면 발사됩니다
+          내 돌을 당겨 놓으세요 — 상대 돌을 판 밖으로 떨어뜨리면 OUT
         </p>
       )}
 
       <div
         ref={wrapRef}
         className={cn(
-          "mx-auto w-full max-w-[560px] touch-none select-none",
+          "mx-auto w-full touch-none select-none",
           myTurn ? "cursor-crosshair" : "cursor-default"
         )}
+        style={{ maxWidth: ALKKAGI_CANVAS_SIZE + 40 }}
       >
         <canvas
           ref={canvasRef}
-          className="w-full rounded-xl shadow-md border-2 border-amber-900/40"
+          className="w-full rounded-2xl shadow-2xl ring-1 ring-black/20"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
