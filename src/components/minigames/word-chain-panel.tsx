@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Send, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import {
   previewWordChainInput,
   wordChainNextRequiredChar,
 } from "@/lib/minigames/word-chain-dict";
+import { ensureClientWordChainDictionary } from "@/lib/minigames/word-chain/client-init";
 import type { MinigamePlayerPublic } from "@/lib/minigames/shared-types";
 import { cn } from "@/lib/utils";
 
@@ -58,6 +59,10 @@ export function WordChainPanel({
 }: Props) {
   const [word, setWord] = useState("");
   const [checking, setChecking] = useState(false);
+
+  useEffect(() => {
+    ensureClientWordChainDictionary();
+  }, []);
 
   const myTurn = turnUserId === userId && !isSpectator && !finished && !eliminated.includes(userId ?? "");
   const turnName = turnUserId ? playerName(players, turnUserId) : "—";

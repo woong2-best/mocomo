@@ -24,6 +24,7 @@ import { hashLiveJoinPassword, verifyLiveJoinPassword } from "../src/lib/live-pa
 import { registerLiveSupportHandlers } from "./live-support";
 import { initMinigameStore, minigameMatchCancelAll } from "./minigames/store";
 import { registerMinigameHandlers } from "./minigames/register-handlers";
+import { loadWordChainDictionaryFromDisk } from "./word-chain/load-dictionary";
 
 const prisma = new PrismaClient();
 const PORT = parseInt(process.env.PORT || process.env.SOCKET_PORT || "3001", 10);
@@ -212,6 +213,7 @@ const io = new Server(httpServer, {
 
 initSketchQuizStore(io);
 initMinigameStore(io, prisma);
+loadWordChainDictionaryFromDisk();
 
 /** 채널별 영상 위 채팅 오버레이 표시 여부 */
 const liveChatOverlayByChannel = new Map<string, boolean>();

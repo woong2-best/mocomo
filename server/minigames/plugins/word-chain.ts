@@ -1,5 +1,6 @@
 import {
   normalizeWordChainWord,
+  validateWordChain,
   validateWordChainMove,
   wordChainNextRequiredChar,
   WORD_CHAIN_TURN_MS,
@@ -169,7 +170,12 @@ export const wordChainPlugin: MinigamePlugin = {
     if (Date.now() > state.turnEndsAt) return "턴 시간이 지났습니다.";
     const word = normalizeWordChainWord(String(move ?? ""));
     if (!word) return "단어를 입력하세요.";
-    return validateWordChainMove(word, state.currentWord, state.usedWords);
+    const result = validateWordChain(
+      word,
+      { currentWord: state.currentWord, usedWords: state.usedWords },
+      { requireNoun: false }
+    );
+    return result.ok ? null : result.message ?? "검증 실패";
   },
 
   applyMove(room, userId, move) {

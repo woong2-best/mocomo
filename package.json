@@ -24,7 +24,9 @@
     "postinstall": "prisma generate && node scripts/copy-mediapipe-assets.cjs && node scripts/copy-avatar-assets.cjs",
     "mediapipe:assets": "node scripts/copy-mediapipe-assets.cjs",
     "avatar:assets": "node scripts/copy-avatar-assets.cjs",
-    "avatar:parts": "npx tsx scripts/generate-avatar-parts.ts"
+    "avatar:parts": "npx tsx scripts/generate-avatar-parts.ts",
+    "word-chain:build": "tsx scripts/build-word-chain-dictionary.ts",
+    "word-chain:import-opendict": "tsx scripts/import-opendict-xml.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",
