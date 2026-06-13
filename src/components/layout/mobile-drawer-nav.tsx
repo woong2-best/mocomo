@@ -39,7 +39,7 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="fixed inset-y-0 left-0 right-auto top-0 z-[60] flex h-[100dvh] max-h-[100dvh] w-[min(100vw-3rem,20rem)] max-w-none translate-x-0 translate-y-0 flex-col gap-0 rounded-none border-r-2 border-folk-cobalt/30 bg-folk-cream p-0 [&>button]:hidden">
+      <DialogContent className="fixed inset-y-0 left-0 right-auto top-0 z-[60] flex h-[100dvh] max-h-[100dvh] w-[min(100vw-3rem,20rem)] max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-r-2 border-folk-cobalt/30 bg-folk-cream p-0 [&>button]:hidden">
         <FolkFloralAccent className="absolute bottom-8 right-0 w-24 opacity-40 pointer-events-none" />
         <DialogHeader className="flex flex-row items-center justify-between gap-2 border-b-2 border-folk-cobalt/20 px-4 py-3 pt-safe shrink-0 bg-folk-gold/10">
           <DialogTitle className="flex items-center gap-2 text-base font-display font-bold text-folk-cobalt">
@@ -58,47 +58,51 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
           </Button>
         </DialogHeader>
         <FolkBrushDivider className="opacity-40 shrink-0" />
-        <nav className="flex-1 overflow-y-auto overscroll-contain p-3 space-y-1 pb-nav pb-safe">
-          {items.map(({ href, icon: Icon, labelKey }) => {
-            const active =
-              href === "/compose"
-                ? false
-                : isNavItemActive(pathname, href, navHrefs);
+        <div className="flex min-h-0 flex-1 flex-col">
+          <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 space-y-1">
+            {items.map(({ href, icon: Icon, labelKey }) => {
+              const active =
+                href === "/compose"
+                  ? false
+                  : isNavItemActive(pathname, href, navHrefs);
 
-            if (href === "/compose") {
+              if (href === "/compose") {
+                return (
+                  <button
+                    key={href}
+                    type="button"
+                    onClick={() => {
+                      onOpenChange(false);
+                      openCompose();
+                    }}
+                    className="sidebar-block w-full text-left"
+                  >
+                    <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
+                    <span className="truncate">{t(labelKey)}</span>
+                  </button>
+                );
+              }
+
               return (
-                <button
+                <Link
                   key={href}
-                  type="button"
-                  onClick={() => {
-                    onOpenChange(false);
-                    openCompose();
-                  }}
-                  className="sidebar-block w-full text-left"
+                  href={href}
+                  onClick={() => onOpenChange(false)}
+                  className={cn(
+                    "sidebar-block",
+                    active && "sidebar-block-active"
+                  )}
                 >
                   <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
                   <span className="truncate">{t(labelKey)}</span>
-                </button>
+                </Link>
               );
-            }
-
-            return (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => onOpenChange(false)}
-                className={cn(
-                  "sidebar-block",
-                  active && "sidebar-block-active"
-                )}
-              >
-                <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
-                <span className="truncate">{t(labelKey)}</span>
-              </Link>
-            );
-          })}
-          <GamesNavSection pathname={pathname} onNavigate={() => onOpenChange(false)} />
-        </nav>
+            })}
+          </nav>
+          <div className="shrink-0 border-t-2 border-folk-cobalt/20 bg-folk-gold/10 p-3 pb-nav">
+            <GamesNavSection pathname={pathname} onNavigate={() => onOpenChange(false)} />
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
