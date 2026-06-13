@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { OmokGamePanel } from "@/components/omok/omok-game-panel";
 import { OmokBoard } from "@/components/omok/omok-board";
 import { AlkkagiBoard } from "@/components/minigames/alkkagi-board";
+import { WordChainPanel } from "@/components/minigames/word-chain-panel";
 import { RPS_LABELS } from "@/lib/minigames/rps-logic";
 import type { MinigamePublicState, RpsChoice } from "@/lib/minigames/shared-types";
 import type { AlkkagiStone } from "@/lib/minigames/alkkagi-physics";
@@ -111,7 +112,32 @@ export function GameActiveView({ gameId, state, userId, isSpectator, onMove, err
     case "rps":
       return <RpsView g={g} userId={userId} isSpectator={isSpectator} onMove={onMove} />;
     case "word-chain":
-      return <WordChainView g={g} userId={userId} isSpectator={isSpectator} onMove={onMove} />;
+      return (
+        <WordChainPanel
+          currentWord={(g.currentWord as string | null) ?? null}
+          turnUserId={(g.turnUserId as string | null) ?? null}
+          usedWords={(g.usedWords as string[]) ?? []}
+          timeLeft={(g.timeLeft as number) ?? 0}
+          turnLimit={(g.turnLimit as number) ?? 20}
+          requiredChar={(g.requiredChar as string | null) ?? null}
+          history={
+            (g.history as {
+              userId: string;
+              word: string;
+              status: "ok" | "fail" | "timeout";
+              reason?: string;
+              at: number;
+            }[]) ?? []
+          }
+          eliminated={(g.eliminated as string[]) ?? []}
+          scores={(g.scores as Record<string, number>) ?? {}}
+          userId={userId}
+          isSpectator={isSpectator}
+          finished={state.status === "finished"}
+          players={state.players}
+          onMove={onMove}
+        />
+      );
     case "chosung-quiz":
     case "word-guess":
     case "number-guess":
@@ -294,25 +320,6 @@ function RpsView({ g, userId, isSpectator, onMove }: { g: Record<string, unknown
               <Button key={c} className="rounded-xl" onClick={() => onMove(c)}>{RPS_LABELS[c]}</Button>
             ))}
           </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function WordChainView({ g, userId, isSpectator, onMove }: { g: Record<string, unknown>; userId?: string; isSpectator: boolean; onMove: Props["onMove"] }) {
-  const [word, setWord] = useState("");
-  const myTurn = g.turnUserId === userId && !isSpectator;
-  return (
-    <Card className="border-2 border-folk-cobalt/20">
-      <CardContent className="p-6 space-y-3 text-center">
-        <p className="text-2xl font-bold">{(g.currentWord as string) ?? "시작"}</p>
-        <p className="text-sm text-folk-terracotta">{g.timeLeft as number}초</p>
-        {myTurn && (
-          <form onSubmit={(e) => { e.preventDefault(); void onMove(word).then(() => setWord("")); }} className="flex gap-2">
-            <Input value={word} onChange={(e) => setWord(e.target.value)} />
-            <Button type="submit">제출</Button>
-          </form>
         )}
       </CardContent>
     </Card>

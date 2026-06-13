@@ -465,7 +465,21 @@ export function minigameMove(gameId: string, roomId: string, userId: string, mov
   room.lastMoveAt[userId] = now;
 
   const err = plugin.validateMove(room, userId, move);
-  if (err) return { ok: false as const, error: err };
+  if (err) {
+    const handled = plugin.onMoveRejected?.(room, userId, move, err);
+    if (handled) {
+      const win = plugin.checkWin(room);
+      if (win) {
+        finishGame(room, win);
+      } else if (room.status === "finished") {
+        broadcastState(room);
+      } else {
+        broadcastState(room);
+      }
+      return { ok: true as const, state: plugin.toPublicState(room), warning: err };
+    }
+    return { ok: false as const, error: err };
+  }
 
   plugin.applyMove(room, userId, move);
   setTurnUser(room, extractTurnUserId(room));

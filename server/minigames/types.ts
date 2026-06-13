@@ -71,6 +71,13 @@ export type MinigamePlugin = {
   validateMove: (room: MinigameRoomInternal, userId: string, move: unknown) => string | null;
   applyMove: (room: MinigameRoomInternal, userId: string, move: unknown) => void;
   checkWin: (room: MinigameRoomInternal) => { winnerId: string; resultMessage: string } | null;
+  /** false 반환 시 클라에 에러만 표시. true면 게임 상태 갱신(탈락 등) */
+  onMoveRejected?: (
+    room: MinigameRoomInternal,
+    userId: string,
+    move: unknown,
+    reason: string
+  ) => boolean;
   onGameStart?: (room: MinigameRoomInternal) => void;
   onGameEnd?: (room: MinigameRoomInternal) => void;
   clearTimers?: (room: MinigameRoomInternal) => void;

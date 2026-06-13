@@ -1,4 +1,5 @@
-/** 끝말잇기 MVP — 확장 시 사전 API로 교체 */
+/** 끝말잇기 — 로컬 사전 + 검증 */
+export const WORD_CHAIN_TURN_MS = 20_000;
 const WORDS = [
   "사과",
   "과일",
@@ -467,6 +468,24 @@ export function wordChainNextRequiredChar(currentWord: string | null): string | 
   const w = normalizeWordChainWord(currentWord);
   if (!w) return null;
   return w[w.length - 1]!;
+}
+
+export function previewWordChainInput(
+  word: string,
+  currentWord: string | null,
+  usedWords: string[]
+): { ok: boolean; hint: string | null } {
+  const w = normalizeWordChainWord(word);
+  if (!w) return { ok: false, hint: null };
+  const required = wordChainNextRequiredChar(currentWord);
+  if (required && w[0] !== required) {
+    return { ok: false, hint: `「${required}」로 시작해야 합니다` };
+  }
+  if (usedWords.includes(w)) return { ok: false, hint: "이미 사용한 단어입니다" };
+  if (!/^[가-힣]+$/.test(w)) return { ok: false, hint: "한글만 입력 가능합니다" };
+  if (w.length < 2) return { ok: false, hint: "2글자 이상 입력하세요" };
+  if (!isValidWordChainWord(w)) return { ok: false, hint: "사전에 없는 단어입니다" };
+  return { ok: true, hint: null };
 }
 
 export function validateWordChainMove(
