@@ -74,6 +74,8 @@ function broadcastState(room: MinigameRoomInternal) {
 
 function attachBroadcast(room: MinigameRoomInternal) {
   (room as MinigameRoomInternal & { _broadcast?: () => void })._broadcast = () => broadcastState(room);
+  (room as MinigameRoomInternal & { _finishGame?: (win: { winnerId: string; resultMessage: string }) => void })._finishGame =
+    (win) => finishGame(room, win);
 }
 
 function removeUserFromIndex(gameId: string, userId: string) {

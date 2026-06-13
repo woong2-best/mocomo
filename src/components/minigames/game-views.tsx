@@ -5,6 +5,7 @@ import { Chess } from "chess.js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { OmokGamePanel } from "@/components/omok/omok-game-panel";
 import { OmokBoard } from "@/components/omok/omok-board";
 import { AlkkagiBoard } from "@/components/minigames/alkkagi-board";
 import { RPS_LABELS } from "@/lib/minigames/rps-logic";
@@ -29,14 +30,23 @@ export function GameActiveView({ gameId, state, userId, isSpectator, onMove, err
   switch (gameId) {
     case "omok":
       return (
-        <BoardView
+        <OmokGamePanel
           board={g.board as number[][]}
-          lastMove={g.lastMove as { x: number; y: number } | null}
+          turn={(g.turn as "black" | "white") ?? "black"}
           turnUserId={g.turnUserId as string | null}
+          blackUserId={g.blackUserId as string}
+          whiteUserId={g.whiteUserId as string}
+          lastMove={(g.lastMove as { x: number; y: number } | null) ?? null}
+          winLine={(g.winLine as { x: number; y: number }[] | null) ?? null}
+          timeLeft={(g.timeLeft as number) ?? 0}
+          turnLimit={(g.turnLimit as number) ?? 20}
+          ruleMode={(g.ruleMode as "free" | "renju") ?? "free"}
+          moveCount={(g.moveCount as number) ?? 0}
           userId={userId}
           isSpectator={isSpectator}
-          onCell={(x, y) => onMove({ x, y })}
-          label={`${g.turn === "black" ? "흑" : "백"} 턴`}
+          finished={state.status === "finished"}
+          players={state.players}
+          onMove={onMove}
         />
       );
     case "reversi":
@@ -145,7 +155,7 @@ function BoardView({
       <CardContent className="p-4 flex flex-col items-center gap-3">
         <p className="text-sm font-semibold">{myTurn ? "내 턴" : label}</p>
         {extra}
-        <OmokBoard board={board} lastMove={lastMove} disabled={!myTurn} onCellClick={onCell} turnUserId={turnUserId} />
+        <OmokBoard board={board} lastMove={lastMove} disabled={!myTurn} onCellClick={onCell} />
       </CardContent>
     </Card>
   );

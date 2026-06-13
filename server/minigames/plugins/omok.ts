@@ -2,7 +2,10 @@ import {
   boardToNumbers,
   checkOmokWin,
   createEmptyOmokBoard,
+  getOmokWinLine,
   isOmokBoardFull,
+  OMOK_BOARD_SIZE,
+  OMOK_TURN_MS,
   type OmokBoard,
 } from "../../../src/lib/minigames/omok-logic";
 import { isRenjuForbidden } from "../../../src/lib/minigames/renju-logic";
@@ -18,10 +21,98 @@ type OmokGameState = {
   whiteUserId: string;
   lastMove: OmokMove | null;
   ruleMode: "free" | "renju";
+  turnEndsAt: number;
+  timer: ReturnType<typeof setInterval> | null;
+  winLine: { x: number; y: number }[] | null;
 };
+
+function gs(room: MinigameRoomInternal): OmokGameState {
+  return room.gameState as OmokGameState;
+}
 
 function playerIds(room: MinigameRoomInternal): string[] {
   return [...room.players.keys()];
+}
+
+function pickRandomMove(state: OmokGameState): OmokMove | null {
+  const candidates: OmokMove[] = [];
+  for (let y = 0; y < OMOK_BOARD_SIZE; y++) {
+    for (let x = 0; x < OMOK_BOARD_SIZE; x++) {
+      if (state.board[y]![x] !== 0) continue;
+      if (state.ruleMode === "renju" && state.turn === "black" && isRenjuForbidden(state.board, x, y)) {
+        continue;
+      }
+      candidates.push({ x, y });
+    }
+  }
+  if (!candidates.length) return null;
+  return candidates[Math.floor(Math.random() * candidates.length)]!;
+}
+
+function placeStone(room: MinigameRoomInternal, userId: string, m: OmokMove) {
+  const state = gs(room);
+  const stone: 1 | 2 = state.turn === "black" ? 1 : 2;
+  state.board[m.y]![m.x] = stone;
+  state.lastMove = { x: m.x, y: m.y };
+  const line = getOmokWinLine(state.board, m.x, m.y, stone);
+  if (line) state.winLine = line;
+  state.turn = state.turn === "black" ? "white" : "black";
+  state.turnEndsAt = Date.now() + OMOK_TURN_MS;
+  room.moveHistory.push({ userId, move: m, stone });
+}
+
+function checkWinInternal(room: MinigameRoomInternal) {
+  const state = gs(room);
+  if (!state.lastMove) return null;
+  const { x, y } = state.lastMove;
+  const stone = state.board[y]![x]! as 1 | 2;
+  if (!checkOmokWin(state.board, x, y, stone)) {
+    if (isOmokBoardFull(state.board)) {
+      return { winnerId: "", resultMessage: "무승부입니다." };
+    }
+    return null;
+  }
+  const winnerId = stone === 1 ? state.blackUserId : state.whiteUserId;
+  const color = stone === 1 ? "흑" : "백";
+  if (!state.winLine) {
+    state.winLine = getOmokWinLine(state.board, x, y, stone);
+  }
+  return { winnerId, resultMessage: `${color} 승리 (5목)` };
+}
+
+function resolveAfterMove(room: MinigameRoomInternal) {
+  const win = checkWinInternal(room);
+  const finish = (room as MinigameRoomInternal & { _finishGame?: (w: { winnerId: string; resultMessage: string }) => void })
+    ._finishGame;
+  if (win && finish) {
+    finish(win);
+    return;
+  }
+  const state = gs(room);
+  if (isOmokBoardFull(state.board) && finish) {
+    finish({ winnerId: "", resultMessage: "무승부입니다." });
+  }
+}
+
+function startTurnTimer(room: MinigameRoomInternal, state: OmokGameState) {
+  if (state.timer) clearInterval(state.timer);
+  state.timer = setInterval(() => {
+    if (room.status !== "playing") return;
+    if (Date.now() < state.turnEndsAt) {
+      (room as MinigameRoomInternal & { _broadcast?: () => void })._broadcast?.();
+      return;
+    }
+    const turnUserId = state.turn === "black" ? state.blackUserId : state.whiteUserId;
+    const pick = pickRandomMove(state);
+    if (pick) {
+      placeStone(room, turnUserId, pick);
+      resolveAfterMove(room);
+    } else {
+      state.turnEndsAt = Date.now() + OMOK_TURN_MS;
+    }
+    (room as MinigameRoomInternal & { _broadcast?: () => void })._broadcast?.();
+  }, 500);
+  room.timers.push(state.timer);
 }
 
 export const omokPlugin: MinigamePlugin = {
@@ -47,7 +138,19 @@ export const omokPlugin: MinigamePlugin = {
       whiteUserId,
       lastMove: null,
       ruleMode,
+      turnEndsAt: Date.now() + OMOK_TURN_MS,
+      timer: null,
+      winLine: null,
     } satisfies OmokGameState;
+  },
+
+  onGameStart(room) {
+    startTurnTimer(room, gs(room));
+  },
+
+  clearTimers(room) {
+    const state = room.gameState as OmokGameState | null;
+    if (state?.timer) clearInterval(state.timer);
   },
 
   toPublicState(room): MinigamePublicState {
@@ -55,63 +158,50 @@ export const omokPlugin: MinigamePlugin = {
     if (room.status === "lobby" || !room.gameState) {
       return { ...base, game: null };
     }
-    const gs = room.gameState as OmokGameState;
-    const turnUserId = gs.turn === "black" ? gs.blackUserId : gs.whiteUserId;
+    const state = gs(room);
+    const turnUserId = state.turn === "black" ? state.blackUserId : state.whiteUserId;
+    const timeLeft = Math.max(0, Math.ceil((state.turnEndsAt - Date.now()) / 1000));
     return {
       ...base,
       game: {
-        board: boardToNumbers(gs.board),
-        turn: gs.turn,
+        board: boardToNumbers(state.board),
+        turn: state.turn,
         turnUserId,
-        lastMove: gs.lastMove,
-        ruleMode: gs.ruleMode,
-        blackUserId: gs.blackUserId,
-        whiteUserId: gs.whiteUserId,
+        lastMove: state.lastMove,
+        ruleMode: state.ruleMode,
+        blackUserId: state.blackUserId,
+        whiteUserId: state.whiteUserId,
+        timeLeft,
+        turnLimit: OMOK_TURN_MS / 1000,
+        winLine: state.winLine,
+        moveCount: room.moveHistory.length,
       },
     };
   },
 
   validateMove(room, userId, move) {
     if (room.status !== "playing") return "게임이 진행 중이 아닙니다.";
-    const gs = room.gameState as OmokGameState;
+    const state = gs(room);
     const m = move as OmokMove;
     if (typeof m?.x !== "number" || typeof m?.y !== "number") return "잘못된 수입니다.";
-    if (m.x < 0 || m.x >= 15 || m.y < 0 || m.y >= 15) return "보드 범위를 벗어났습니다.";
-    const turnUserId = gs.turn === "black" ? gs.blackUserId : gs.whiteUserId;
+    if (m.x < 0 || m.x >= OMOK_BOARD_SIZE || m.y < 0 || m.y >= OMOK_BOARD_SIZE) {
+      return "보드 범위를 벗어났습니다.";
+    }
+    const turnUserId = state.turn === "black" ? state.blackUserId : state.whiteUserId;
     if (userId !== turnUserId) return "상대 턴입니다.";
-    if (gs.board[m.y]![m.x] !== 0) return "이미 돌이 있습니다.";
-    if (gs.ruleMode === "renju" && gs.turn === "black" && isRenjuForbidden(gs.board, m.x, m.y)) {
+    if (Date.now() > state.turnEndsAt) return "턴 시간이 지났습니다.";
+    if (state.board[m.y]![m.x] !== 0) return "이미 돌이 있습니다.";
+    if (state.ruleMode === "renju" && state.turn === "black" && isRenjuForbidden(state.board, m.x, m.y)) {
       return "렌주 금수입니다.";
     }
     return null;
   },
 
   applyMove(room, userId, move) {
-    const gs = room.gameState as OmokGameState;
-    const m = move as OmokMove;
-    const stone: 1 | 2 = gs.turn === "black" ? 1 : 2;
-    gs.board[m.y]![m.x] = stone;
-    gs.lastMove = { x: m.x, y: m.y };
-    gs.turn = gs.turn === "black" ? "white" : "black";
-    room.moveHistory.push({ userId, move: m, stone });
-    void userId;
+    placeStone(room, userId, move as OmokMove);
   },
 
-  checkWin(room) {
-    const gs = room.gameState as OmokGameState;
-    if (!gs.lastMove) return null;
-    const { x, y } = gs.lastMove;
-    const stone = gs.board[y]![x]! as 1 | 2;
-    if (!checkOmokWin(gs.board, x, y, stone)) {
-      if (isOmokBoardFull(gs.board)) {
-        return { winnerId: "", resultMessage: "무승부입니다." };
-      }
-      return null;
-    }
-    const winnerId = stone === 1 ? gs.blackUserId : gs.whiteUserId;
-    const color = stone === 1 ? "흑" : "백";
-    return { winnerId, resultMessage: `${color} 승리 (5목)` };
-  },
+  checkWin: checkWinInternal,
 };
 
 /** ruleMode를 room에 붙이기 위한 헬퍼 */
