@@ -93,6 +93,8 @@ export function GameActiveView({ gameId, state, userId, isSpectator, onMove, err
             } | null) ?? null
           }
           players={state.players}
+          blackPlayerId={(g.blackPlayerId as string | null) ?? null}
+          whitePlayerId={(g.whitePlayerId as string | null) ?? null}
           onMove={onMove}
         />
       );

@@ -43,6 +43,8 @@ type Props = {
   lastKnockouts: number;
   lastShooterId: string | null;
   lastShot: LastShot | null;
+  blackPlayerId: string | null;
+  whitePlayerId: string | null;
   players: MinigamePlayerPublic[];
   onMove: (move: { stoneId: string; angle: number; power: number }) => Promise<boolean>;
 };
@@ -73,6 +75,8 @@ export function AlkkagiBoard({
   lastKnockouts,
   lastShooterId,
   lastShot,
+  blackPlayerId,
+  whitePlayerId,
   players,
   onMove,
 }: Props) {
@@ -90,6 +94,14 @@ export function AlkkagiBoard({
   const layoutRef = useRef(computeBoardLayout(560, 560, width, height));
 
   const myTurn = turnUserId === userId && !isSpectator && !animating;
+  const iAmBlack = userId != null && userId === blackPlayerId;
+  const iAmWhite = userId != null && userId === whitePlayerId;
+  const myColorLabel = iAmBlack ? "흑" : iAmWhite ? "백" : null;
+
+  const isBlackStone = useCallback(
+    (ownerId: string) => (blackPlayerId ? ownerId === blackPlayerId : ownerId === userId),
+    [blackPlayerId, userId]
+  );
 
   const screenToBoard = useCallback(
     (sx: number, sy: number, canvasW: number, canvasH: number) => {
@@ -150,15 +162,21 @@ export function AlkkagiBoard({
 
     for (const stone of displayFrame.onBoard) {
       const { x, y, r } = stoneScreenPos(stone, layout);
-      drawGoStone(ctx, x, y, r, stone.ownerId === userId, selectedId === stone.id);
+      drawGoStone(ctx, x, y, r, isBlackStone(stone.ownerId), selectedId === stone.id);
     }
 
     for (const stone of displayFrame.falling) {
       const { x, y, r } = stoneScreenPos(stone, layout);
-      const fade = stone.y > height ? Math.max(0.15, 1 - (stone.y - height) / (height * 0.5)) : 1;
-      drawGoStone(ctx, x, y, r, stone.ownerId === userId, false, fade);
+      const offDist = Math.max(
+        Math.max(0, -stone.x),
+        Math.max(0, stone.x - width),
+        Math.max(0, -stone.y),
+        Math.max(0, stone.y - height)
+      );
+      const fade = Math.max(0.12, 1 - offDist / (width * 0.45));
+      drawGoStone(ctx, x, y, r, isBlackStone(stone.ownerId), false, fade);
     }
-  }, [displayFrame, drag, height, myTurn, selectedId, userId, width]);
+  }, [displayFrame, drag, height, isBlackStone, myTurn, selectedId, width]);
 
   useEffect(() => {
     draw();
@@ -323,11 +341,27 @@ export function AlkkagiBoard({
           />
         </div>
         <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-          {players.slice(0, 2).map((p) => (
-            <span key={p.userId}>
-              {p.username}: {stoneCounts[p.userId] ?? 0}알 · {scores[p.userId] ?? 0}점
+          {myColorLabel && !isSpectator && (
+            <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
+              <span
+                className={cn(
+                  "inline-block w-3 h-3 rounded-full border",
+                  iAmBlack ? "bg-neutral-900 border-neutral-600" : "bg-neutral-100 border-neutral-400"
+                )}
+              />
+              내 돌: {myColorLabel}
             </span>
-          ))}
+          )}
+          {players.slice(0, 2).map((p) => {
+            const color =
+              p.userId === blackPlayerId ? "흑" : p.userId === whitePlayerId ? "백" : "";
+            return (
+              <span key={p.userId}>
+                {p.username}
+                {color ? ` (${color})` : ""}: {stoneCounts[p.userId] ?? 0}알 · {scores[p.userId] ?? 0}점
+              </span>
+            );
+          })}
         </div>
       </div>
 

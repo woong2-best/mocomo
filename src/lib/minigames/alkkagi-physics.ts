@@ -35,8 +35,8 @@ const STONE_RESTITUTION = 0.9;
 const MAX_STEPS = 700;
 const REST_VEL = 0.1;
 const MAX_SPEED = 16;
-const FALL_GRAVITY = 0.35;
-const FALL_FRICTION = 0.995;
+const FALL_FRICTION = 0.996;
+const MIN_EXIT_SPEED = 4;
 
 function cloneStones(stones: AlkkagiStone[]): AlkkagiStone[] {
   return stones.map((s) => ({ ...s }));
@@ -47,7 +47,7 @@ export function isKnockedOut(s: AlkkagiStone, w: number, h: number, r: number): 
   return s.x - r < 0 || s.x + r > w || s.y - r < 0 || s.y + r > h;
 }
 
-function resolveStonePair(a: AlkkagiStone, b: AlkkagiStone, r: number) {
+function resolveStonePair(a: AlkkagiStone, b: AlkkagiStone, r: number, w: number, h: number) {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   const dist = Math.hypot(dx, dy) || 0.001;
@@ -56,10 +56,17 @@ function resolveStonePair(a: AlkkagiStone, b: AlkkagiStone, r: number) {
   const nx = dx / dist;
   const ny = dy / dist;
   const overlap = r * 2 - dist;
-  a.x -= nx * overlap * 0.5;
-  a.y -= ny * overlap * 0.5;
-  b.x += nx * overlap * 0.5;
-  b.y += ny * overlap * 0.5;
+  const aOut = isKnockedOut(a, w, h, r);
+  const bOut = isKnockedOut(b, w, h, r);
+
+  if (!aOut) {
+    a.x -= nx * overlap * (bOut ? 1 : 0.5);
+    a.y -= ny * overlap * (bOut ? 1 : 0.5);
+  }
+  if (!bOut) {
+    b.x += nx * overlap * (aOut ? 1 : 0.5);
+    b.y += ny * overlap * (aOut ? 1 : 0.5);
+  }
 
   const dvx = a.vx - b.vx;
   const dvy = a.vy - b.vy;
@@ -71,6 +78,27 @@ function resolveStonePair(a: AlkkagiStone, b: AlkkagiStone, r: number) {
   a.vy -= impulse * ny;
   b.vx += impulse * nx;
   b.vy += impulse * ny;
+}
+
+/** OUT 순간 — 맞고 나간 방향 그대로 유지·가속 */
+function lockExitVelocity(s: AlkkagiStone, w: number, h: number) {
+  let nx = s.vx;
+  let ny = s.vy;
+  let speed = Math.hypot(nx, ny);
+
+  if (speed < 0.8) {
+    const cx = w / 2;
+    const cy = h / 2;
+    nx = s.x - cx;
+    ny = s.y - cy;
+    speed = Math.hypot(nx, ny) || 1;
+  }
+
+  nx /= speed || 1;
+  ny /= speed || 1;
+  const outSpeed = Math.max(speed, MIN_EXIT_SPEED);
+  s.vx = nx * outSpeed;
+  s.vy = ny * outSpeed;
 }
 
 /** 벽 반발 없음 — 알까기는 판 밖으로 떨어짐 */
@@ -88,20 +116,20 @@ function physicsStep(stones: AlkkagiStone[], w: number, h: number, r: number) {
   }
   for (let i = 0; i < stones.length; i++) {
     for (let j = i + 1; j < stones.length; j++) {
-      resolveStonePair(stones[i]!, stones[j]!, r);
+      resolveStonePair(stones[i]!, stones[j]!, r, w, h);
     }
   }
 }
 
 function stepFalling(falling: AlkkagiStone[], w: number, h: number, r: number): AlkkagiStone[] {
   const next: AlkkagiStone[] = [];
+  const margin = r * 12;
   for (const s of falling) {
     s.x += s.vx;
     s.y += s.vy;
-    s.vy += FALL_GRAVITY;
     s.vx *= FALL_FRICTION;
     s.vy *= FALL_FRICTION;
-    if (s.y < h + r * 6 && s.x > -r * 4 && s.x < w + r * 4) {
+    if (s.x > -margin && s.x < w + margin && s.y > -margin && s.y < h + margin) {
       next.push(s);
     }
   }
@@ -167,7 +195,9 @@ export function simulateAlkkagiShot(
       if (isKnockedOut(s, w, h, r)) {
         if (!knockedOut.some((k) => k.stoneId === s.id)) {
           knockedOut.push({ stoneId: s.id, ownerId: s.ownerId });
-          falling.push({ ...s });
+          const fallingStone = { ...s };
+          lockExitVelocity(fallingStone, w, h);
+          falling.push(fallingStone);
         }
       } else {
         remaining.push(s);

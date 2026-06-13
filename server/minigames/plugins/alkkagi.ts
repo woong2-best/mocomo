@@ -107,6 +107,8 @@ export const alkkagiPlugin: MinigamePlugin = {
         lastShooterId: state.lastShooterId,
         lastShot: state.lastShot,
         playerIds: state.playerIds,
+        blackPlayerId: state.playerIds[0] ?? null,
+        whitePlayerId: state.playerIds[1] ?? null,
       },
     };
   },

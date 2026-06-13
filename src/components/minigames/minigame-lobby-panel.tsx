@@ -163,11 +163,14 @@ export function MinigameFinishedBanner({
   state,
   gameId,
   isHost,
+  canRematch,
   onRematch,
 }: {
   state: MinigamePublicState;
   gameId: string;
   isHost?: boolean;
+  /** false = 관전 등. true면 승패 무관 재대국 버튼 표시 */
+  canRematch?: boolean;
   onRematch?: () => void;
 }) {
   if (state.status !== "finished") return null;
@@ -190,7 +193,7 @@ export function MinigameFinishedBanner({
               </Button>
             </Link>
           )}
-          {isHost && onRematch && (
+          {canRematch && onRematch && (
             <Button size="sm" className="rounded-lg gap-1" onClick={onRematch}>
               재대국
             </Button>

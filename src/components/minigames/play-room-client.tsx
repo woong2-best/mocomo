@@ -153,6 +153,7 @@ export function PlayRoomClient({
           state={state}
           gameId={gameId}
           isHost={isHost && !isSpectator}
+          canRematch={!isSpectator}
           onRematch={() => void requestRematch()}
         />
       )}

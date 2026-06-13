@@ -614,7 +614,9 @@ export function minigameRematch(gameId: string, roomId: string, userId: string) 
   const plugin = getPlugin(gameId);
   if (!room || !plugin) return { ok: false as const, error: "방을 찾을 수 없습니다." };
   if (room.status !== "finished") return { ok: false as const, error: "게임이 끝난 뒤에만 가능합니다." };
-  if (room.hostId !== userId) return { ok: false as const, error: "호스트만 재대국을 요청할 수 있습니다." };
+  if (!room.players.has(userId)) {
+    return { ok: false as const, error: "플레이어만 재대국을 요청할 수 있습니다." };
+  }
 
   clearRoomTimers(room);
   room.status = "lobby";
