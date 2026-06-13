@@ -119,11 +119,23 @@ export function useSketchQuizRoom(
         setError("실시간 서버 URL이 설정되지 않았습니다.");
         return;
       }
+
+      const authError = await (await import("@/lib/socket-client")).diagnoseSocketAuth();
+      if (authError) {
+        setConnecting(false);
+        setError(authError);
+        return;
+      }
+
       await wakeSocketServer(socketUrl);
       const active = await waitForSocket();
       if (!active) {
         setConnecting(false);
-        setError("실시간 서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.");
+        setError(
+          connectionFailed
+            ? "실시간 서버 인증 실패. Vercel·Render AUTH_SECRET이 같은지 확인 후 양쪽 재배포해 주세요."
+            : "실시간 서버에 연결할 수 없습니다. 「다시 연결」을 누르거나 1분 정도 기다려 주세요."
+        );
         return;
       }
 
@@ -152,7 +164,7 @@ export function useSketchQuizRoom(
       const stored = peekGameJoinOptions(GAME_ID);
       await joinRoom(password ?? stored?.password);
     },
-    [waitForSocket, mode, emitAck, roomCode, username, applyJoined, joinRoom]
+    [waitForSocket, mode, emitAck, roomCode, username, applyJoined, joinRoom, connectionFailed]
   );
 
   useEffect(() => {
@@ -271,6 +283,8 @@ export function useSketchQuizRoom(
     retryConnection: () => {
       setError(null);
       setConnecting(true);
+      const url = resolveSocketUrl();
+      if (url) void wakeSocketServer(url);
       setAttempt((n) => n + 1);
     },
   };
