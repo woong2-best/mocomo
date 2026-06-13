@@ -1,76 +1,49 @@
+import {
+  ALKKAGI_BOARD_H,
+  ALKKAGI_BOARD_W,
+  ALKKAGI_TURN_MS,
+  initAlkkagiStones,
+  simulateAlkkagiShot,
+  type AlkkagiStone,
+} from "../../../src/lib/minigames/alkkagi-physics";
 import { basePublicFields, type MinigamePlugin, type MinigameRoomInternal } from "../types";
 
-type Stone = { id: string; x: number; y: number; ownerId: string; vx: number; vy: number };
-
 type AlkkagiState = {
-  stones: Stone[];
+  stones: AlkkagiStone[];
   turnUserId: string;
   playerIds: string[];
   width: number;
   height: number;
+  scores: Record<string, number>;
+  turnEndsAt: number;
+  turnIndex: number;
+  timer: ReturnType<typeof setInterval> | null;
+  lastKnockouts: number;
+  lastShooterId: string | null;
+  shotSeq: number;
+  lastShot: { stoneId: string; angle: number; power: number; shooterId: string; seq: number } | null;
 };
-
-const W = 400;
-const H = 400;
-const R = 18;
 
 function gs(room: MinigameRoomInternal): AlkkagiState {
   return room.gameState as AlkkagiState;
 }
 
-function initStones(playerIds: string[]): Stone[] {
-  const [a, b] = playerIds;
-  return [
-    { id: "a1", x: 120, y: 120, ownerId: a!, vx: 0, vy: 0 },
-    { id: "a2", x: 160, y: 140, ownerId: a!, vx: 0, vy: 0 },
-    { id: "a3", x: 140, y: 180, ownerId: a!, vx: 0, vy: 0 },
-    { id: "b1", x: 280, y: 280, ownerId: b!, vx: 0, vy: 0 },
-    { id: "b2", x: 240, y: 260, ownerId: b!, vx: 0, vy: 0 },
-    { id: "b3", x: 260, y: 220, ownerId: b!, vx: 0, vy: 0 },
-  ];
+function advanceTurn(state: AlkkagiState) {
+  state.turnIndex = (state.turnIndex + 1) % state.playerIds.length;
+  state.turnUserId = state.playerIds[state.turnIndex]!;
+  state.turnEndsAt = Date.now() + ALKKAGI_TURN_MS;
 }
 
-function simulateFlick(stones: Stone[], stoneId: string, angle: number, power: number): Stone[] {
-  const next = stones.map((s) => ({ ...s }));
-  const stone = next.find((s) => s.id === stoneId);
-  if (!stone) return next;
-  stone.vx = Math.cos(angle) * power * 8;
-  stone.vy = Math.sin(angle) * power * 8;
-
-  for (let step = 0; step < 60; step++) {
-    for (const s of next) {
-      s.x += s.vx;
-      s.y += s.vy;
-      s.vx *= 0.92;
-      s.vy *= 0.92;
+function startTurnTimer(room: MinigameRoomInternal, state: AlkkagiState) {
+  if (state.timer) clearInterval(state.timer);
+  state.timer = setInterval(() => {
+    if (room.status !== "playing") return;
+    if (Date.now() >= state.turnEndsAt) {
+      advanceTurn(state);
     }
-    for (let i = 0; i < next.length; i++) {
-      for (let j = i + 1; j < next.length; j++) {
-        const a = next[i]!;
-        const b = next[j]!;
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
-        const dist = Math.hypot(dx, dy) || 1;
-        if (dist < R * 2) {
-          const nx = dx / dist;
-          const ny = dy / dist;
-          const overlap = R * 2 - dist;
-          a.x -= nx * overlap * 0.5;
-          a.y -= ny * overlap * 0.5;
-          b.x += nx * overlap * 0.5;
-          b.y += ny * overlap * 0.5;
-          const tv = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
-          if (tv > 0) {
-            a.vx -= tv * nx * 0.8;
-            a.vy -= tv * ny * 0.8;
-            b.vx += tv * nx * 0.8;
-            b.vy += tv * ny * 0.8;
-          }
-        }
-      }
-    }
-  }
-  return next.filter((s) => s.x > R && s.x < W - R && s.y > R && s.y < H - R);
+    (room as MinigameRoomInternal & { _broadcast?: () => void })._broadcast?.();
+  }, 500);
+  room.timers.push(state.timer);
 }
 
 export const alkkagiPlugin: MinigamePlugin = {
@@ -84,18 +57,38 @@ export const alkkagiPlugin: MinigamePlugin = {
     const ids = [...room.players.keys()];
     for (const p of room.players.values()) p.ready = true;
     return {
-      stones: initStones(ids),
+      stones: initAlkkagiStones(ids),
       turnUserId: room.hostId,
       playerIds: ids,
-      width: W,
-      height: H,
+      width: ALKKAGI_BOARD_W,
+      height: ALKKAGI_BOARD_H,
+      scores: Object.fromEntries(ids.map((id) => [id, 0])),
+      turnEndsAt: Date.now() + ALKKAGI_TURN_MS,
+      turnIndex: Math.max(0, ids.indexOf(room.hostId)),
+      timer: null,
+      lastKnockouts: 0,
+      lastShooterId: null,
+      shotSeq: 0,
+      lastShot: null,
     };
+  },
+
+  onGameStart(room) {
+    startTurnTimer(room, gs(room));
+  },
+
+  clearTimers(room) {
+    const state = room.gameState as AlkkagiState | null;
+    if (state?.timer) clearInterval(state.timer);
   },
 
   toPublicState(room) {
     const base = basePublicFields(room);
     if (room.status === "lobby" || !room.gameState) return { ...base, game: null };
     const state = gs(room);
+    const timeLeft = Math.max(0, Math.ceil((state.turnEndsAt - Date.now()) / 1000));
+    const myTurn = timeLeft > 0;
+
     return {
       ...base,
       game: {
@@ -103,9 +96,17 @@ export const alkkagiPlugin: MinigamePlugin = {
         turnUserId: state.turnUserId,
         width: state.width,
         height: state.height,
-        scores: Object.fromEntries(
+        scores: { ...state.scores },
+        stoneCounts: Object.fromEntries(
           state.playerIds.map((id) => [id, state.stones.filter((s) => s.ownerId === id).length])
         ),
+        timeLeft,
+        turnLimit: ALKKAGI_TURN_MS / 1000,
+        phase: myTurn ? "active" : "waiting",
+        lastKnockouts: state.lastKnockouts,
+        lastShooterId: state.lastShooterId,
+        lastShot: state.lastShot,
+        playerIds: state.playerIds,
       },
     };
   },
@@ -114,21 +115,56 @@ export const alkkagiPlugin: MinigamePlugin = {
     if (room.status !== "playing") return "게임이 진행 중이 아닙니다.";
     const state = gs(room);
     if (userId !== state.turnUserId) return "상대 턴입니다.";
+    if (Date.now() > state.turnEndsAt) return "턴 시간이 지났습니다.";
+
     const m = move as { stoneId?: string; angle?: number; power?: number };
-    if (!m.stoneId || typeof m.angle !== "number" || typeof m.power !== "number") return "잘못된 입력";
-    if (m.power < 0 || m.power > 1) return "힘은 0~1";
+    if (!m.stoneId || typeof m.angle !== "number" || typeof m.power !== "number") {
+      return "잘못된 입력입니다.";
+    }
+    if (m.power < 0.05 || m.power > 1) return "힘은 5%~100% 사이여야 합니다.";
+    if (!Number.isFinite(m.angle)) return "각도가 올바르지 않습니다.";
+
     const stone = state.stones.find((s) => s.id === m.stoneId);
-    if (!stone || stone.ownerId !== userId) return "내 돌이 아닙니다";
+    if (!stone || stone.ownerId !== userId) return "내 돌을 선택하세요.";
+    if (Math.hypot(stone.vx, stone.vy) > 0.5) return "돌이 아직 움직이는 중입니다.";
     return null;
   },
 
   applyMove(room, userId, move) {
     const state = gs(room);
     const m = move as { stoneId: string; angle: number; power: number };
-    state.stones = simulateFlick(state.stones, m.stoneId, m.angle, m.power);
-    const idx = state.playerIds.indexOf(userId);
-    state.turnUserId = state.playerIds[(idx + 1) % state.playerIds.length]!;
-    room.moveHistory.push({ userId, ...m });
+
+    const result = simulateAlkkagiShot(state.stones, m.stoneId, m.angle, m.power, state.width, state.height);
+
+    const opponentKnocked = result.knockedOut.filter((k) => k.ownerId !== userId).length;
+    const bonus = opponentKnocked >= 2 ? opponentKnocked - 1 : 0;
+    const points = opponentKnocked + bonus;
+
+    if (points > 0) {
+      state.scores[userId] = (state.scores[userId] ?? 0) + points;
+    }
+
+    state.stones = result.stones;
+    state.lastKnockouts = opponentKnocked;
+    state.lastShooterId = userId;
+    state.shotSeq += 1;
+    state.lastShot = {
+      stoneId: m.stoneId,
+      angle: m.angle,
+      power: m.power,
+      shooterId: userId,
+      seq: state.shotSeq,
+    };
+
+    advanceTurn(state);
+    room.moveHistory.push({
+      userId,
+      stoneId: m.stoneId,
+      angle: m.angle,
+      power: m.power,
+      knockedOut: result.knockedOut,
+      points,
+    });
   },
 
   checkWin(room) {
@@ -138,12 +174,29 @@ export const alkkagiPlugin: MinigamePlugin = {
       n: state.stones.filter((s) => s.ownerId === id).length,
     }));
     const alive = counts.filter((c) => c.n > 0);
+
     if (alive.length === 1) {
-      return { winnerId: alive[0]!.id, resultMessage: "알까기 승리!" };
+      const winner = alive[0]!.id;
+      const name = room.players.get(winner)?.username ?? "플레이어";
+      return {
+        winnerId: winner,
+        resultMessage:
+          state.lastKnockouts >= 2
+            ? `${name} 승리! ${state.lastKnockouts}개 한 방에 OUT`
+            : `${name} 승리!`,
+      };
     }
+
     if (state.stones.length === 0) {
-      return { winnerId: "", resultMessage: "무승부" };
+      const byScore = [...state.playerIds].sort(
+        (a, b) => (state.scores[b] ?? 0) - (state.scores[a] ?? 0)
+      );
+      return {
+        winnerId: byScore[0] ?? "",
+        resultMessage: "무승부 — 점수로 결정",
+      };
     }
+
     return null;
   },
 };

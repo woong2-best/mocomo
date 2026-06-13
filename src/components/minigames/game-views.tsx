@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { OmokBoard } from "@/components/omok/omok-board";
+import { AlkkagiBoard } from "@/components/minigames/alkkagi-board";
 import { RPS_LABELS } from "@/lib/minigames/rps-logic";
 import type { MinigamePublicState, RpsChoice } from "@/lib/minigames/shared-types";
+import type { AlkkagiStone } from "@/lib/minigames/alkkagi-physics";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -66,7 +68,34 @@ export function GameActiveView({ gameId, state, userId, isSpectator, onMove, err
         <BadukView g={g} userId={userId} isSpectator={isSpectator} onMove={onMove} />
       );
     case "alkkagi":
-      return <AlkkagiView g={g} userId={userId} isSpectator={isSpectator} onMove={onMove} />;
+      return (
+        <AlkkagiBoard
+          stones={(g.stones as AlkkagiStone[]) ?? []}
+          turnUserId={g.turnUserId as string}
+          userId={userId}
+          isSpectator={isSpectator}
+          width={(g.width as number) ?? 520}
+          height={(g.height as number) ?? 520}
+          scores={(g.scores as Record<string, number>) ?? {}}
+          stoneCounts={(g.stoneCounts as Record<string, number>) ?? {}}
+          timeLeft={(g.timeLeft as number) ?? 0}
+          turnLimit={(g.turnLimit as number) ?? 20}
+          phase={(g.phase as string) ?? "waiting"}
+          lastKnockouts={(g.lastKnockouts as number) ?? 0}
+          lastShooterId={(g.lastShooterId as string | null) ?? null}
+          lastShot={
+            (g.lastShot as {
+              stoneId: string;
+              angle: number;
+              power: number;
+              shooterId: string;
+              seq: number;
+            } | null) ?? null
+          }
+          players={state.players}
+          onMove={onMove}
+        />
+      );
     case "rps":
       return <RpsView g={g} userId={userId} isSpectator={isSpectator} onMove={onMove} />;
     case "word-chain":
@@ -234,46 +263,6 @@ function BadukView({ g, userId, isSpectator, onMove }: { g: Record<string, unkno
           <Button variant="outline" size="sm" className="rounded-lg" onClick={() => onMove({ pass: true })}>
             패스
           </Button>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function AlkkagiView({ g, userId, isSpectator, onMove }: { g: Record<string, unknown>; userId?: string; isSpectator: boolean; onMove: Props["onMove"] }) {
-  const stones = g.stones as { id: string; x: number; y: number; ownerId: string }[];
-  const myTurn = g.turnUserId === userId && !isSpectator;
-  const [sel, setSel] = useState<string | null>(null);
-  const [power, setPower] = useState(0.5);
-
-  return (
-    <Card className="border-2 border-folk-cobalt/20">
-      <CardContent className="p-4 space-y-3">
-        <div className="relative mx-auto bg-amber-100 border-2 border-amber-800 rounded-lg" style={{ width: 320, height: 320 }}>
-          {stones.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              disabled={!myTurn || s.ownerId !== userId}
-              onClick={() => setSel(s.id)}
-              className={cn(
-                "absolute rounded-full w-9 h-9 -translate-x-1/2 -translate-y-1/2 border-2",
-                s.ownerId === userId ? "bg-neutral-900 border-white" : "bg-white border-neutral-400",
-                sel === s.id && "ring-2 ring-folk-terracotta"
-              )}
-              style={{ left: (s.x / 400) * 320, top: (s.y / 400) * 320 }}
-            />
-          ))}
-        </div>
-        {myTurn && sel && (
-          <div className="flex flex-wrap gap-2 items-center justify-center">
-            <input type="range" min={0.1} max={1} step={0.1} value={power} onChange={(e) => setPower(Number(e.target.value))} />
-            {[0, 45, 90, 135, 180, 225, 270, 315].map((deg) => (
-              <Button key={deg} size="sm" variant="outline" className="rounded-lg text-xs" onClick={() => void onMove({ stoneId: sel, angle: (deg * Math.PI) / 180, power })}>
-                {deg}°
-              </Button>
-            ))}
-          </div>
         )}
       </CardContent>
     </Card>
