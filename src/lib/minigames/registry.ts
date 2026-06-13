@@ -94,7 +94,7 @@ const REGISTRY: MinigameCatalogItem[] = [
   live("chess", {
     name: "체스",
     category: "board",
-    description: "FIDE 규칙 · chess.js 엔진",
+    description: "FIDE 규칙 · 블리츠/인크 · 무승부·50수 · 퍼즐 · a1~h8",
     minPlayers: 2,
     maxPlayers: 2,
   }),

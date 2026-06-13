@@ -13,6 +13,8 @@ export type TimeControlPreset =
   | "3m"
   | "5m"
   | "10m"
+  | "1m+2s"
+  | "3m+2s"
   | "5m+3s"
   | "10m+5s";
 

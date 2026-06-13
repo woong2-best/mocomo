@@ -7,6 +7,8 @@ export const TIME_CONTROL_OPTIONS: { value: TimeControlPreset; label: string; ms
   { value: "3m", label: "3분", ms: 180_000 },
   { value: "5m", label: "5분", ms: 300_000 },
   { value: "10m", label: "10분", ms: 600_000 },
+  { value: "1m+2s", label: "1분 + 2초 (불릿)", ms: 60_000, incrementMs: 2000 },
+  { value: "3m+2s", label: "3분 + 2초 (블리츠)", ms: 180_000, incrementMs: 2000 },
   { value: "5m+3s", label: "5분 + 3초", ms: 300_000, incrementMs: 3000 },
   { value: "10m+5s", label: "10분 + 5초", ms: 600_000, incrementMs: 5000 },
 ];
@@ -16,6 +18,11 @@ export function parseTimeControl(preset: string): { ms: number; incrementMs: num
   if (!found || found.ms === 0) return { ms: 0, incrementMs: 0 };
   return { ms: found.ms, incrementMs: found.incrementMs ?? 0 };
 }
+
+/** 체스 허브 — 블리츠/불릿 + 인크리먼트 프리셋 */
+export const CHESS_TIME_CONTROL_OPTIONS = TIME_CONTROL_OPTIONS.filter((o) =>
+  ["unlimited", "1m", "3m", "1m+2s", "3m+2s", "5m+3s", "10m+5s"].includes(o.value)
+);
 
 export function formatClockMs(ms: number): string {
   if (ms <= 0) return "0:00";

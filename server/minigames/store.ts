@@ -3,6 +3,7 @@ import type { PrismaClient } from "@prisma/client";
 import { generateRoomCode, isValidRoomCode } from "../../src/lib/sketch-quiz-words";
 import type { MinigamePublicState } from "../../src/lib/minigames/shared-types";
 import { attachOmokRuleMode } from "./plugins/omok";
+import { getTurnUserId } from "../../src/lib/minigames/chess-logic";
 import { PLUGIN_BY_ID } from "./plugins/index";
 import { persistMinigameResult, ensureDefaultSeason } from "./persistence";
 import { initRoomClocks, setTurnUser, checkClockTimeout, startClockTicker } from "./clocks";
@@ -113,6 +114,9 @@ function extractTurnUserId(room: MinigameRoomInternal): string | null {
   }
   if (typeof gs.turn === "number") {
     return gs.turn === 1 ? (gs.blackUserId as string) : (gs.whiteUserId as string);
+  }
+  if (typeof gs.fen === "string" && typeof gs.whiteUserId === "string" && typeof gs.blackUserId === "string") {
+    return getTurnUserId(gs.fen, gs.whiteUserId, gs.blackUserId);
   }
   return room.turnUserId ?? null;
 }

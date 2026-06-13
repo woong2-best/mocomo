@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Chess } from "chess.js";
+import { ChessGamePanel } from "@/components/chess/chess-game-panel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -73,7 +73,30 @@ export function GameActiveView({ gameId, state, userId, isSpectator, onMove, err
         />
       );
     case "chess":
-      return <ChessView g={g} userId={userId} isSpectator={isSpectator} onMove={onMove} />;
+      return (
+        <ChessGamePanel
+          fen={g.fen as string}
+          turnUserId={g.turnUserId as string | null}
+          whiteUserId={g.whiteUserId as string}
+          blackUserId={g.blackUserId as string}
+          isCheck={!!g.isCheck}
+          isCheckmate={!!g.isCheckmate}
+          isStalemate={!!g.isStalemate}
+          isDraw={!!g.isDraw}
+          lastMove={(g.lastMove as { from: string; to: string; san?: string } | null) ?? null}
+          halfmoveClock={(g.halfmoveClock as number) ?? 0}
+          drawOfferFrom={(g.drawOfferFrom as string | null) ?? null}
+          useTurnTimer={!!g.useTurnTimer}
+          timeLeft={(g.timeLeft as number) ?? 0}
+          turnLimit={(g.turnLimit as number) ?? 30}
+          pgn={(g.pgn as string[]) ?? []}
+          userId={userId}
+          isSpectator={isSpectator}
+          finished={state.status === "finished"}
+          players={state.players}
+          onMove={onMove}
+        />
+      );
     case "janggi":
       return (
         <JanggiGamePanel
@@ -239,61 +262,6 @@ function BoardView({
       </CardContent>
     </Card>
   );
-}
-
-function ChessView({ g, userId, isSpectator, onMove }: { g: Record<string, unknown>; userId?: string; isSpectator: boolean; onMove: Props["onMove"] }) {
-  const [sel, setSel] = useState<string | null>(null);
-  const fen = g.fen as string;
-  const chess = new Chess(fen);
-  const board = chess.board();
-  const myTurn = g.turnUserId === userId && !isSpectator;
-
-  return (
-    <Card className="border-2 border-folk-cobalt/20">
-      <CardContent className="p-4 space-y-3">
-        <p className="text-sm text-center font-semibold">
-          {g.isCheck ? "체크! · " : ""}
-          {myTurn ? "내 턴" : "상대 턴"}
-        </p>
-        <div className="grid grid-cols-8 gap-0 mx-auto w-fit border">
-          {board.flatMap((row, yi) =>
-            row.map((cell, xi) => {
-              const sq = `${"abcdefgh"[xi]}${8 - yi}`;
-              const light = (xi + yi) % 2 === 0;
-              return (
-                <button
-                  key={sq}
-                  type="button"
-                  disabled={!myTurn}
-                  onClick={() => {
-                    if (!sel) {
-                      if (cell) setSel(sq);
-                      return;
-                    }
-                    void onMove({ from: sel, to: sq }).then((ok) => ok && setSel(null));
-                    setSel(null);
-                  }}
-                  className={cn(
-                    "w-9 h-9 text-lg flex items-center justify-center",
-                    light ? "bg-amber-100" : "bg-amber-700/40",
-                    sel === sq && "ring-2 ring-folk-terracotta"
-                  )}
-                >
-                  {cell ? pieceChar(cell.type, cell.color) : ""}
-                </button>
-              );
-            })
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function pieceChar(type: string, color: string) {
-  const map: Record<string, string> = { p: "♟", n: "♞", b: "♝", r: "♜", q: "♛", k: "♚" };
-  const c = map[type] ?? type;
-  return color === "w" ? c : c;
 }
 
 function RpsView({ g, userId, isSpectator, onMove }: { g: Record<string, unknown>; userId?: string; isSpectator: boolean; onMove: Props["onMove"] }) {

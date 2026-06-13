@@ -17,7 +17,7 @@ import {
   type GamePlayMode,
 } from "@/lib/games-lobby";
 import { generateRoomCode, isValidRoomCode } from "@/lib/sketch-quiz-words";
-import { TIME_CONTROL_OPTIONS } from "@/lib/minigames/time-control";
+import { TIME_CONTROL_OPTIONS, CHESS_TIME_CONTROL_OPTIONS } from "@/lib/minigames/time-control";
 import { useMinigameMatch } from "@/hooks/use-minigame-match";
 import type { LucideIcon } from "lucide-react";
 
@@ -56,6 +56,7 @@ export function MinigameHubShell({
   const [spectatorChat, setSpectatorChat] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const showBoardOpts = BOARD_GAMES.has(gameId);
+  const timeOptions = gameId === "chess" ? CHESS_TIME_CONTROL_OPTIONS : TIME_CONTROL_OPTIONS;
 
   const username =
     session?.user?.name || session?.user?.username || session?.user?.email || "플레이어";
@@ -167,7 +168,7 @@ export function MinigameHubShell({
                   value={timeControl}
                   onChange={(e) => setTimeControl(e.target.value)}
                 >
-                  {TIME_CONTROL_OPTIONS.map((o) => (
+                  {timeOptions.map((o) => (
                     <option key={o.value} value={o.value}>
                       {o.label}
                     </option>
