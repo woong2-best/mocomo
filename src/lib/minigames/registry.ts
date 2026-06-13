@@ -101,7 +101,7 @@ const REGISTRY: MinigameCatalogItem[] = [
   live("janggi", {
     name: "장기",
     category: "board",
-    description: "한국 장기 · 간소 규칙",
+    description: "한국 장기 · 9×10 · 장군 · 턴 타이머",
     minPlayers: 2,
     maxPlayers: 2,
   }),

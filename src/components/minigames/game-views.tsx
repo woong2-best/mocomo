@@ -9,6 +9,8 @@ import { OmokGamePanel } from "@/components/omok/omok-game-panel";
 import { OmokBoard } from "@/components/omok/omok-board";
 import { AlkkagiBoard } from "@/components/minigames/alkkagi-board";
 import { WordChainPanel } from "@/components/minigames/word-chain-panel";
+import { JanggiGamePanel } from "@/components/janggi/janggi-game-panel";
+import type { JanggiBoard, JanggiMove } from "@/lib/minigames/janggi-logic";
 import { RPS_LABELS } from "@/lib/minigames/rps-logic";
 import type { MinigamePublicState, RpsChoice } from "@/lib/minigames/shared-types";
 import type { AlkkagiStone } from "@/lib/minigames/alkkagi-physics";
@@ -72,7 +74,28 @@ export function GameActiveView({ gameId, state, userId, isSpectator, onMove, err
       return <ChessView g={g} userId={userId} isSpectator={isSpectator} onMove={onMove} />;
     case "janggi":
       return (
-        <JanggiView g={g} userId={userId} isSpectator={isSpectator} onMove={onMove} />
+        <JanggiGamePanel
+          board={g.board as JanggiBoard}
+          turnRed={!!g.turnRed}
+          turnUserId={g.turnUserId as string | null}
+          redUserId={g.redUserId as string}
+          blueUserId={g.blueUserId as string}
+          lastMove={(g.lastMove as JanggiMove | null) ?? null}
+          checkRed={!!g.checkRed}
+          checkBlue={!!g.checkBlue}
+          timeLeft={(g.timeLeft as number) ?? 0}
+          turnLimit={(g.turnLimit as number) ?? 20}
+          userId={userId}
+          isSpectator={isSpectator}
+          finished={state.status === "finished"}
+          players={state.players}
+          onMove={onMove}
+          onResign={
+            userId === g.turnUserId && !isSpectator && state.status !== "finished"
+              ? () => void onMove({ resign: true })
+              : undefined
+          }
+        />
       );
     case "baduk":
       return (
@@ -240,40 +263,6 @@ function pieceChar(type: string, color: string) {
   const map: Record<string, string> = { p: "♟", n: "♞", b: "♝", r: "♜", q: "♛", k: "♚" };
   const c = map[type] ?? type;
   return color === "w" ? c : c;
-}
-
-function JanggiView({ g, userId, isSpectator, onMove }: { g: Record<string, unknown>; userId?: string; isSpectator: boolean; onMove: Props["onMove"] }) {
-  const board = g.board as (string | null)[][];
-  const [from, setFrom] = useState<{ x: number; y: number } | null>(null);
-  const myTurn = g.turnUserId === userId && !isSpectator;
-  return (
-    <Card className="border-2 border-folk-cobalt/20 overflow-x-auto">
-      <CardContent className="p-4">
-        <div className="inline-grid gap-0" style={{ gridTemplateColumns: `repeat(${board[0]?.length ?? 9}, 1fr)` }}>
-          {board.map((row, y) =>
-            row.map((cell, x) => (
-              <button
-                key={`${x}-${y}`}
-                type="button"
-                disabled={!myTurn}
-                onClick={() => {
-                  if (!from) {
-                    if (cell) setFrom({ x, y });
-                    return;
-                  }
-                  void onMove({ fromX: from.x, fromY: from.y, toX: x, toY: y });
-                  setFrom(null);
-                }}
-                className={cn("w-8 h-8 text-[10px] border", from?.x === x && from?.y === y && "ring-2 ring-folk-terracotta")}
-              >
-                {cell ? String(cell).slice(1) : ""}
-              </button>
-            ))
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
 }
 
 function BadukView({ g, userId, isSpectator, onMove }: { g: Record<string, unknown>; userId?: string; isSpectator: boolean; onMove: Props["onMove"] }) {

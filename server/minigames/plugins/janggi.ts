@@ -1,74 +1,16 @@
-/** 장기 MVP — 9×10 간소화 (마·상·사·차·포·졸·장) */
-
-const W = 9;
-const H = 10;
-
-type Piece = string; // e.g. "rK" red king
-type JanggiBoard = (Piece | null)[][];
-
-function emptyBoard(): JanggiBoard {
-  return Array.from({ length: H }, () => Array.from({ length: W }, () => null));
-}
-
-function initialJanggi(): JanggiBoard {
-  const b = emptyBoard();
-  const red = [
-    ["rC", "rE", "rE", "rG", "rK", "rG", "rE", "rE", "rC"],
-    [null, null, null, null, null, null, null, null, null],
-    [null, "rA", null, null, null, null, null, "rA", null],
-    ["rP", null, "rP", null, "rP", null, "rP", null, "rP"],
-    [null, null, null, null, null, null, null, null, null],
-    [null, null, null, null, null, null, null, null, null],
-    ["bP", null, "bP", null, "bP", null, "bP", null, "bP"],
-    [null, "bA", null, null, null, null, null, "bA", null],
-    [null, null, null, null, null, null, null, null, null],
-    ["bC", "bE", "bE", "bG", "bK", "bG", "bE", "bE", "bC"],
-  ];
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      b[y]![x] = red[y]![x] ?? null;
-    }
-  }
-  return b;
-}
-
-function isRed(p: Piece) {
-  return p.startsWith("r");
-}
-
-function findKing(board: JanggiBoard, red: boolean): { x: number; y: number } | null {
-  const k = red ? "rK" : "bK";
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      if (board[y]![x] === k) return { x, y };
-    }
-  }
-  return null;
-}
-
-function canMoveSimple(board: JanggiBoard, fx: number, fy: number, tx: number, ty: number): boolean {
-  if (tx < 0 || tx >= W || ty < 0 || ty >= H) return false;
-  const piece = board[fy]![fx];
-  if (!piece) return false;
-  const target = board[ty]![tx];
-  if (target && isRed(piece) === isRed(target)) return false;
-  const dx = Math.abs(tx - fx);
-  const dy = Math.abs(ty - fy);
-  const kind = piece[1];
-  if (kind === "K") return dx + dy === 1;
-  if (kind === "G") return (dx === 1 && dy === 2) || (dx === 2 && dy === 1);
-  if (kind === "E" || kind === "A") return dx + dy === 1;
-  if (kind === "C" || kind === "P") {
-    if (dx + dy !== 1) return false;
-    if (kind === "P") {
-      const forward = isRed(piece) ? -1 : 1;
-      if (ty - fy !== forward && Math.abs(fy - 3) > 1 && Math.abs(fy - 6) > 1) return false;
-    }
-    return true;
-  }
-  return false;
-}
-
+import {
+  allLegalMoves,
+  applyJanggiMove,
+  createInitialJanggiBoard,
+  findKing,
+  isCheckmate,
+  isInCheck,
+  isLegalJanggiMove,
+  isRedPiece,
+  JANGGI_TURN_MS,
+  type JanggiBoard,
+  type JanggiMove,
+} from "../../../src/lib/minigames/janggi-logic";
 import { basePublicFields, type MinigamePlugin, type MinigameRoomInternal } from "../types";
 
 type JanggiState = {
@@ -76,10 +18,84 @@ type JanggiState = {
   turnRed: boolean;
   redUserId: string;
   blueUserId: string;
+  lastMove: JanggiMove | null;
+  checkRed: boolean;
+  checkBlue: boolean;
+  turnEndsAt: number;
+  timer: ReturnType<typeof setInterval> | null;
 };
 
 function gs(room: MinigameRoomInternal): JanggiState {
   return room.gameState as JanggiState;
+}
+
+function turnUserId(state: JanggiState): string {
+  return state.turnRed ? state.redUserId : state.blueUserId;
+}
+
+function refreshCheck(state: JanggiState) {
+  state.checkRed = isInCheck(state.board, true);
+  state.checkBlue = isInCheck(state.board, false);
+}
+
+function applyJanggiMoveState(state: JanggiState, move: JanggiMove) {
+  state.board = applyJanggiMove(state.board, move);
+  state.lastMove = move;
+  state.turnRed = !state.turnRed;
+  state.turnEndsAt = Date.now() + JANGGI_TURN_MS;
+  refreshCheck(state);
+}
+
+function checkWinInternal(room: MinigameRoomInternal) {
+  const state = gs(room);
+  const lastHist = room.moveHistory[room.moveHistory.length - 1] as { captured?: string } | undefined;
+  if (lastHist?.captured === "bK") {
+    return { winnerId: state.redUserId, resultMessage: "楚(초) 승리 — 궁 포획!" };
+  }
+  if (lastHist?.captured === "rK") {
+    return { winnerId: state.blueUserId, resultMessage: "漢(한) 승리 — 궁 포획!" };
+  }
+
+  if (!findKing(state.board, true)) {
+    return { winnerId: state.blueUserId, resultMessage: "漢(한) 승리" };
+  }
+  if (!findKing(state.board, false)) {
+    return { winnerId: state.redUserId, resultMessage: "楚(초) 승리" };
+  }
+
+  const loserRed = state.turnRed;
+  if (isCheckmate(state.board, loserRed)) {
+    const winnerId = loserRed ? state.blueUserId : state.redUserId;
+    const side = loserRed ? "漢(한)" : "楚(초)";
+    return { winnerId, resultMessage: `${side} 승리 — 외통수!` };
+  }
+
+  return null;
+}
+
+function resolveAfterMove(room: MinigameRoomInternal) {
+  const win = checkWinInternal(room);
+  const finish = (room as MinigameRoomInternal & { _finishGame?: (w: { winnerId: string; resultMessage: string }) => void })
+    ._finishGame;
+  if (win && finish) finish(win);
+}
+
+function startTurnTimer(room: MinigameRoomInternal, state: JanggiState) {
+  if (state.timer) clearInterval(state.timer);
+  state.timer = setInterval(() => {
+    if (room.status !== "playing") return;
+    if (Date.now() < state.turnEndsAt) {
+      (room as MinigameRoomInternal & { _broadcast?: () => void })._broadcast?.();
+      return;
+    }
+    const loser = turnUserId(state);
+    const winner = loser === state.redUserId ? state.blueUserId : state.redUserId;
+    const finish = (room as MinigameRoomInternal & { _finishGame?: (w: { winnerId: string; resultMessage: string }) => void })
+      ._finishGame;
+    if (finish) finish({ winnerId: winner, resultMessage: "시간 초과 패배" });
+    (room as MinigameRoomInternal & { _broadcast?: () => void })._broadcast?.();
+  }, 500);
+  room.timers.push(state.timer);
 }
 
 export const janggiPlugin: MinigamePlugin = {
@@ -97,21 +113,49 @@ export const janggiPlugin: MinigamePlugin = {
       p.role = p.userId === redUserId ? "red" : "blue";
       p.ready = true;
     }
-    return { board: initialJanggi(), turnRed: true, redUserId, blueUserId };
+    const board = createInitialJanggiBoard();
+    return {
+      board,
+      turnRed: true,
+      redUserId,
+      blueUserId,
+      lastMove: null,
+      checkRed: false,
+      checkBlue: false,
+      turnEndsAt: Date.now() + JANGGI_TURN_MS,
+      timer: null,
+    } satisfies JanggiState;
+  },
+
+  onGameStart(room) {
+    const state = gs(room);
+    refreshCheck(state);
+    startTurnTimer(room, state);
+  },
+
+  clearTimers(room) {
+    const state = room.gameState as JanggiState | null;
+    if (state?.timer) clearInterval(state.timer);
   },
 
   toPublicState(room) {
     const base = basePublicFields(room);
     if (room.status === "lobby" || !room.gameState) return { ...base, game: null };
     const state = gs(room);
+    const timeLeft = Math.max(0, Math.ceil((state.turnEndsAt - Date.now()) / 1000));
     return {
       ...base,
       game: {
         board: state.board,
         turnRed: state.turnRed,
-        turnUserId: state.turnRed ? state.redUserId : state.blueUserId,
+        turnUserId: turnUserId(state),
         redUserId: state.redUserId,
         blueUserId: state.blueUserId,
+        lastMove: state.lastMove,
+        checkRed: state.checkRed,
+        checkBlue: state.checkBlue,
+        timeLeft,
+        turnLimit: JANGGI_TURN_MS / 1000,
       },
     };
   },
@@ -119,40 +163,67 @@ export const janggiPlugin: MinigamePlugin = {
   validateMove(room, userId, move) {
     if (room.status !== "playing") return "게임이 진행 중이 아닙니다.";
     const state = gs(room);
-    const turnUserId = state.turnRed ? state.redUserId : state.blueUserId;
-    if (userId !== turnUserId) return "상대 턴입니다.";
-    const m = move as { fromX?: number; fromY?: number; toX?: number; toY?: number };
+    if (userId !== turnUserId(state)) return "상대 턴입니다.";
+
+    if (move && typeof move === "object" && (move as { resign?: boolean }).resign) {
+      return null;
+    }
+
+    if (Date.now() > state.turnEndsAt) return "턴 시간이 지났습니다.";
+
+    const m = move as Partial<JanggiMove>;
     if ([m.fromX, m.fromY, m.toX, m.toY].some((v) => typeof v !== "number")) return "잘못된 수";
-    const piece = state.board[m.fromY!]![m.fromX!];
-    if (!piece) return "기물 없음";
-    if (state.turnRed !== isRed(piece)) return "내 기물이 아닙니다";
-    if (!canMoveSimple(state.board, m.fromX!, m.fromY!, m.toX!, m.toY!)) return "불법 수";
+
+    const jmove: JanggiMove = {
+      fromX: m.fromX!,
+      fromY: m.fromY!,
+      toX: m.toX!,
+      toY: m.toY!,
+    };
+
+    const piece = state.board[jmove.fromY]?.[jmove.fromX];
+    if (!piece) return "기물이 없습니다.";
+    if (isRedPiece(piece) !== state.turnRed) return "내 기물이 아닙니다.";
+    if (!isLegalJanggiMove(state.board, state.turnRed, jmove)) return "불법 수입니다.";
+
     return null;
   },
 
   applyMove(room, userId, move) {
     const state = gs(room);
-    const m = move as { fromX: number; fromY: number; toX: number; toY: number };
-    const captured = state.board[m.toY]![m.toX];
-    state.board[m.toY]![m.toX] = state.board[m.fromY]![m.fromX];
-    state.board[m.fromY]![m.fromX] = null;
-    state.turnRed = !state.turnRed;
+    if (move && typeof move === "object" && (move as { resign?: boolean }).resign) {
+      const win = janggiForceResign(room, userId);
+      const finish = (room as MinigameRoomInternal & { _finishGame?: (w: { winnerId: string; resultMessage: string }) => void })
+        ._finishGame;
+      if (finish) finish(win);
+      return;
+    }
+    const m = move as JanggiMove;
+    const captured = state.board[m.toY]?.[m.toX] ?? undefined;
+    applyJanggiMoveState(state, m);
     room.moveHistory.push({ userId, ...m, captured });
-    if (captured === "bK") room.winnerId = state.redUserId;
-    if (captured === "rK") room.winnerId = state.blueUserId;
+    resolveAfterMove(room);
+    if (room.status === "playing") startTurnTimer(room, state);
   },
 
   checkWin(room) {
-    const state = gs(room);
-    if (room.winnerId) {
-      return { winnerId: room.winnerId, resultMessage: "장군! 승리" };
-    }
-    if (!findKing(state.board, true)) {
-      return { winnerId: state.blueUserId, resultMessage: "적 장군 포획" };
-    }
-    if (!findKing(state.board, false)) {
-      return { winnerId: state.redUserId, resultMessage: "적 장군 포획" };
-    }
-    return null;
+    return checkWinInternal(room);
+  },
+
+  onGameEnd(room) {
+    janggiPlugin.clearTimers?.(room);
   },
 };
+
+/** 기권 등 — store에서 호출 가능 */
+export function janggiForceResign(room: MinigameRoomInternal, userId: string) {
+  const state = gs(room);
+  const winner =
+    userId === state.redUserId ? state.blueUserId : state.redUserId;
+  return { winnerId: winner, resultMessage: "기권 — 패배" };
+}
+
+export function janggiHasAnyLegalMove(room: MinigameRoomInternal): boolean {
+  const state = gs(room);
+  return allLegalMoves(state.board, state.turnRed).length > 0;
+}
