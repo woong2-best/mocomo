@@ -371,6 +371,24 @@ export function minigameSpectate(
   return { ok: true as const, state };
 }
 
+export function minigameCloseRoom(gameId: string, roomId: string, userId: string) {
+  const room = getRoom(gameId, roomId);
+  if (!room) return { ok: false as const, error: "방을 찾을 수 없습니다." };
+  if (room.hostId !== userId) return { ok: false as const, error: "호스트만 방을 닫을 수 있습니다." };
+  if (room.status === "playing") {
+    return { ok: false as const, error: "게임 중에는 방을 닫을 수 없습니다. 나가기를 이용해 주세요." };
+  }
+  if (ioRef) {
+    ioRef.to(roomKey(gameId, room.id)).emit("minigame_closed", {
+      gameId,
+      roomId: room.id,
+      reason: "host_closed",
+    });
+  }
+  deleteRoom(room);
+  return { ok: true as const };
+}
+
 export function minigameLeave(gameId: string, roomId: string, userId: string) {
   const room = getRoom(gameId, roomId);
   if (!room) return;

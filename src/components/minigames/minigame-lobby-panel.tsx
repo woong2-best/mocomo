@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { MinigamePublicState } from "@/lib/minigames/shared-types";
 import { cn } from "@/lib/utils";
-import { Copy, Eye, Loader2, RotateCcw } from "lucide-react";
+import { Copy, Eye, Loader2, LogOut, RotateCcw, Trash2 } from "lucide-react";
 
 type Props = {
   state: MinigamePublicState | null;
@@ -15,6 +15,8 @@ type Props = {
   isHost: boolean;
   onReady: (ready: boolean) => void;
   onStart: () => void;
+  onLeave?: () => void;
+  onCloseRoom?: () => void;
   spectateUrl?: string;
   children?: React.ReactNode;
 };
@@ -27,6 +29,8 @@ export function MinigameLobbyPanel({
   isHost,
   onReady,
   onStart,
+  onLeave,
+  onCloseRoom,
   spectateUrl,
   children,
 }: Props) {
@@ -130,6 +134,26 @@ export function MinigameLobbyPanel({
         </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}
+
+        <div className="flex flex-wrap gap-2 pt-1 border-t border-dashed">
+          {onLeave && (
+            <Button type="button" variant="outline" className="rounded-xl gap-1.5" onClick={onLeave}>
+              <LogOut className="h-3.5 w-3.5" />
+              나가기
+            </Button>
+          )}
+          {isHost && onCloseRoom && (
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl gap-1.5 text-destructive border-destructive/40 hover:bg-destructive/10"
+              onClick={onCloseRoom}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              방 닫기
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

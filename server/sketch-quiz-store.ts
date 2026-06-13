@@ -316,6 +316,24 @@ export async function sketchQuizJoin(
   return { ok: true, state: toPublicState(room) };
 }
 
+export function sketchQuizCloseRoom(roomId: string, userId: string) {
+  const room = rooms.get(roomId.toUpperCase());
+  if (!room) return { ok: false as const, error: "방을 찾을 수 없습니다." };
+  if (room.hostId !== userId) return { ok: false as const, error: "호스트만 방을 닫을 수 있습니다." };
+  if (room.status === "playing" || room.status === "round_end") {
+    return { ok: false as const, error: "게임 중에는 방을 닫을 수 없습니다. 나가기를 이용해 주세요." };
+  }
+  if (ioRef) {
+    ioRef.to(`sketch:${room.id}`).emit("sketch_quiz_closed", {
+      roomId: room.id,
+      reason: "host_closed",
+    });
+  }
+  clearRoomTimers(room);
+  rooms.delete(room.id);
+  return { ok: true as const };
+}
+
 export function sketchQuizLeave(roomId: string, userId: string) {
   removeFromMatchQueue(userId);
   const room = rooms.get(roomId.toUpperCase());

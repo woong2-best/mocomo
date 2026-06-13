@@ -9,6 +9,7 @@ import {
   sketchQuizCreate,
   sketchQuizJoin,
   sketchQuizLeave,
+  sketchQuizCloseRoom,
   sketchQuizStart,
   sketchQuizStroke,
   sketchQuizClear,
@@ -702,6 +703,14 @@ io.on("connection", (socket: AuthedSocket) => {
     if (!id) return;
     socket.leave(`sketch:${id}`);
     sketchQuizLeave(id, userId);
+  });
+
+  socket.on("sketch_quiz_close", (roomId: string, ack?: (r: unknown) => void) => {
+    const id = roomId?.trim().toUpperCase();
+    if (!id) return;
+    const result = sketchQuizCloseRoom(id, userId);
+    if (result.ok) socket.leave(`sketch:${id}`);
+    ack?.(result);
   });
 
   socket.on("sketch_quiz_start", (roomId: string, ack?: (r: unknown) => void) => {

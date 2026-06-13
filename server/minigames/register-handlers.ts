@@ -6,6 +6,7 @@ import {
   minigameCreate,
   minigameJoin,
   minigameLeave,
+  minigameCloseRoom,
   minigameMatchCancel,
   minigameMatchEnqueue,
   minigameMove,
@@ -195,6 +196,18 @@ export function registerMinigameHandlers(
     socket.leave(roomKey(gameId, roomId));
     minigameLeave(gameId, roomId, userId);
   });
+
+  socket.on(
+    "minigame_close",
+    (data: { gameId?: string; roomId?: string }, ack?: (r: unknown) => void) => {
+      const gameId = data?.gameId?.trim();
+      const roomId = data?.roomId?.trim().toUpperCase();
+      if (!gameId || !roomId) return;
+      const result = minigameCloseRoom(gameId, roomId, userId);
+      if (result.ok) socket.leave(roomKey(gameId, roomId));
+      ack?.(result);
+    }
+  );
 
   socket.on(
     "minigame_ready",

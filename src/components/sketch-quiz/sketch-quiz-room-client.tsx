@@ -2,15 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   Copy,
   Crown,
   Loader2,
+  LogOut,
   PencilLine,
   Play,
   Share2,
   Timer,
+  Trash2,
   Trophy,
   Users,
 } from "lucide-react";
@@ -28,10 +31,12 @@ type SketchQuizRoomClientProps = {
 };
 
 export function SketchQuizRoomClient({ roomId, mode }: SketchQuizRoomClientProps) {
+  const router = useRouter();
   const { data: session } = useSession();
   const userId = session?.user?.id;
   const username =
     session?.user?.name || session?.user?.username || session?.user?.email || "플레이어";
+  const goToHub = () => router.push("/sketch-quiz");
 
   const {
     state,
@@ -51,7 +56,21 @@ export function SketchQuizRoomClient({ roomId, mode }: SketchQuizRoomClientProps
     realtimeOff,
     retryJoinWithPassword,
     retryConnection,
-  } = useSketchQuizRoom(roomId, userId, username, mode);
+    leaveRoom,
+    closeRoom,
+  } = useSketchQuizRoom(roomId, userId, username, mode, goToHub);
+
+  function handleLeave() {
+    leaveRoom();
+    goToHub();
+  }
+
+  async function handleCloseRoom() {
+    if (!window.confirm("방을 닫으면 모든 플레이어가 퇴장합니다. 계속할까요?")) return;
+    const res = await closeRoom();
+    if (res.ok) goToHub();
+    else if (res.error) alert(res.error);
+  }
 
   const [guess, setGuess] = useState("");
   const [starting, setStarting] = useState(false);
@@ -174,6 +193,28 @@ export function SketchQuizRoomClient({ roomId, mode }: SketchQuizRoomClientProps
             {copied ? <Copy className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
             {copied ? "복사됨" : "초대 링크"}
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-xl gap-1.5"
+            onClick={handleLeave}
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            나가기
+          </Button>
+          {isHost && inLobby && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-xl gap-1.5 text-destructive border-destructive/40 hover:bg-destructive/10"
+              onClick={handleCloseRoom}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              방 닫기
+            </Button>
+          )}
           {isHost && inLobby && (
             <Button
               type="button"

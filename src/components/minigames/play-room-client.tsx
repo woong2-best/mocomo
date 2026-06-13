@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useMinigameRoom } from "@/hooks/use-minigame-room";
 import { getMinigameById } from "@/lib/minigames/registry";
@@ -15,7 +16,7 @@ import { MinigameClockBar } from "@/components/minigames/minigame-clock-bar";
 import { GameActiveView } from "@/components/minigames/game-views";
 import { GameRoomGate } from "@/components/minigames/game-room-gate";
 import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
+import { Eye, LogOut } from "lucide-react";
 
 export function PlayRoomClient({
   gameId,
@@ -27,11 +28,14 @@ export function PlayRoomClient({
   mode: "create" | "join" | "spectate";
 }) {
   const game = getMinigameById(gameId);
+  const router = useRouter();
   const { data: session } = useSession();
   const userId = session?.user?.id;
   const username =
     session?.user?.name || session?.user?.username || session?.user?.email || "플레이어";
   const [joinPassword, setJoinPassword] = useState("");
+  const route = getMinigameRoute(gameId);
+  const goToHub = () => router.push(route);
 
   const {
     state,
@@ -50,10 +54,22 @@ export function PlayRoomClient({
     setError,
     retryJoinWithPassword,
     retryConnection,
-  } = useMinigameRoom(gameId, roomId, userId, username, mode);
+    leaveRoom,
+    closeRoom,
+  } = useMinigameRoom(gameId, roomId, userId, username, mode, goToHub);
 
   const isSpectator = mode === "spectate";
-  const route = getMinigameRoute(gameId);
+
+  function handleLeave() {
+    leaveRoom();
+    goToHub();
+  }
+
+  async function handleCloseRoom() {
+    if (!window.confirm("방을 닫으면 모든 플레이어가 퇴장합니다. 계속할까요?")) return;
+    const ok = await closeRoom();
+    if (ok) goToHub();
+  }
 
   if (!session?.user) {
     return (
@@ -103,19 +119,33 @@ export function PlayRoomClient({
         <Link href={route} className="text-xs text-muted-foreground hover:underline">
           ← {game?.name ?? "게임"} 로비
         </Link>
-        {!isSpectator && (
-          <Link href={`${route}/${roomId}?spectate=1`}>
-            <Button variant="outline" size="sm" className="gap-1 rounded-lg text-xs">
-              <Eye className="h-3 w-3" />
-              관전
+        <div className="flex items-center gap-2">
+          {!isSpectator && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1 rounded-lg text-xs"
+              onClick={handleLeave}
+            >
+              <LogOut className="h-3 w-3" />
+              나가기
             </Button>
-          </Link>
-        )}
-        {isSpectator && (
-          <span className="text-xs font-semibold text-folk-cobalt bg-folk-gold/20 px-2 py-1 rounded">
-            관전 중
-          </span>
-        )}
+          )}
+          {!isSpectator && (
+            <Link href={`${route}/${roomId}?spectate=1`}>
+              <Button variant="outline" size="sm" className="gap-1 rounded-lg text-xs">
+                <Eye className="h-3 w-3" />
+                관전
+              </Button>
+            </Link>
+          )}
+          {isSpectator && (
+            <span className="text-xs font-semibold text-folk-cobalt bg-folk-gold/20 px-2 py-1 rounded">
+              관전 중
+            </span>
+          )}
+        </div>
       </div>
 
       {state && (
@@ -136,6 +166,8 @@ export function PlayRoomClient({
           isHost={isHost}
           onReady={(r) => void setReady(r)}
           onStart={() => void startGame()}
+          onLeave={handleLeave}
+          onCloseRoom={isHost ? handleCloseRoom : undefined}
         />
       )}
 

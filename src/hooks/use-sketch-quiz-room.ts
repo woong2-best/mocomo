@@ -27,9 +27,12 @@ export function useSketchQuizRoom(
   roomId: string,
   userId: string | undefined,
   username: string,
-  mode: "create" | "join"
+  mode: "create" | "join",
+  onRoomClosed?: () => void
 ) {
   const { socket, socketReady, realtimeOff, connectionFailed } = useAppSocket();
+  const onRoomClosedRef = useRef(onRoomClosed);
+  onRoomClosedRef.current = onRoomClosed;
   const [state, setState] = useState<SketchQuizPublicState | null>(null);
   const [secretWord, setSecretWord] = useState<SketchQuizWordPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -203,6 +206,13 @@ export function useSketchQuizRoom(
       );
     };
     const onTick = (data: { timeLeft: number }) => setTimeLeft(data.timeLeft);
+    const onClosed = (payload: { roomId?: string }) => {
+      if (payload.roomId !== roomCode) return;
+      joinedRef.current = false;
+      setJoined(false);
+      setState(null);
+      onRoomClosedRef.current?.();
+    };
 
     socket.on("sketch_quiz_state", onState);
     socket.on("sketch_quiz_word", onWord);
@@ -210,6 +220,7 @@ export function useSketchQuizRoom(
     socket.on("sketch_quiz_clear", onClear);
     socket.on("sketch_quiz_guess", onGuess);
     socket.on("sketch_quiz_tick", onTick);
+    socket.on("sketch_quiz_closed", onClosed);
 
     return () => {
       socket.off("sketch_quiz_state", onState);
@@ -218,7 +229,8 @@ export function useSketchQuizRoom(
       socket.off("sketch_quiz_clear", onClear);
       socket.off("sketch_quiz_guess", onGuess);
       socket.off("sketch_quiz_tick", onTick);
-      socket.emit("sketch_quiz_leave", roomCode);
+      socket.off("sketch_quiz_closed", onClosed);
+      if (joinedRef.current) socket.emit("sketch_quiz_leave", roomCode);
       joinedRef.current = false;
     };
   }, [socket, joined, roomCode]);
@@ -256,6 +268,26 @@ export function useSketchQuizRoom(
     [socket, roomCode, username]
   );
 
+  const leaveRoom = useCallback(() => {
+    joinedRef.current = false;
+    setJoined(false);
+    if (socket?.connected) socket.emit("sketch_quiz_leave", roomCode);
+  }, [socket, roomCode]);
+
+  const closeRoom = useCallback(async () => {
+    if (!socket?.connected) return { ok: false as const, error: "연결 없음" };
+    return new Promise<{ ok: boolean; error?: string }>((resolve) => {
+      socket.emit("sketch_quiz_close", roomCode, (res: { ok: boolean; error?: string }) => {
+        if (res?.ok) {
+          joinedRef.current = false;
+          setJoined(false);
+          setState(null);
+        }
+        resolve(res ?? { ok: false, error: "방 닫기 실패" });
+      });
+    });
+  }, [socket, roomCode]);
+
   const isHost = state?.hostId === userId;
   const isDrawer = state?.drawerId === userId;
 
@@ -287,5 +319,7 @@ export function useSketchQuizRoom(
       if (url) void wakeSocketServer(url);
       setAttempt((n) => n + 1);
     },
+    leaveRoom,
+    closeRoom,
   };
 }

@@ -25,9 +25,12 @@ export function useMinigameRoom(
   roomId: string,
   userId: string | undefined,
   username: string,
-  mode: "create" | "join" | "spectate"
+  mode: "create" | "join" | "spectate",
+  onRoomClosed?: () => void
 ) {
   const { socket, socketReady, realtimeOff, connectionFailed } = useAppSocket();
+  const onRoomClosedRef = useRef(onRoomClosed);
+  onRoomClosedRef.current = onRoomClosed;
   const [state, setState] = useState<MinigamePublicState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [joined, setJoined] = useState(false);
@@ -233,11 +236,21 @@ export function useMinigameRoom(
       setChatMessages((prev) => [...prev.slice(-29), payload.message!]);
     };
 
+    const onClosed = (payload: { gameId?: string; roomId?: string }) => {
+      if (payload.gameId !== gameId || payload.roomId !== roomCode) return;
+      joinedRef.current = false;
+      setJoined(false);
+      setState(null);
+      onRoomClosedRef.current?.();
+    };
+
     socket.on("minigame_state", onState);
     socket.on("minigame_chat", onChat);
+    socket.on("minigame_closed", onClosed);
     return () => {
       socket.off("minigame_state", onState);
       socket.off("minigame_chat", onChat);
+      socket.off("minigame_closed", onClosed);
     };
   }, [socket, joined, gameId, roomCode]);
 
@@ -324,6 +337,26 @@ export function useMinigameRoom(
     return true;
   }, [emitAck, gameId, roomCode]);
 
+  const leaveRoom = useCallback(() => {
+    joinedRef.current = false;
+    setJoined(false);
+    if (socket?.connected) {
+      socket.emit("minigame_leave", { gameId, roomId: roomCode });
+    }
+  }, [socket, gameId, roomCode]);
+
+  const closeRoom = useCallback(async () => {
+    const result = await emitAck("minigame_close", { gameId, roomId: roomCode });
+    if (!result.ok) {
+      setError(result.error);
+      return false;
+    }
+    joinedRef.current = false;
+    setJoined(false);
+    setState(null);
+    return true;
+  }, [emitAck, gameId, roomCode]);
+
   const isHost = state?.hostId === userId;
 
   return {
@@ -343,5 +376,7 @@ export function useMinigameRoom(
     setError,
     retryJoinWithPassword,
     retryConnection,
+    leaveRoom,
+    closeRoom,
   };
 }
