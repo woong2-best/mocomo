@@ -12,7 +12,6 @@ import {
   PencilLine,
   Play,
   Share2,
-  Timer,
   Trash2,
   Trophy,
   Users,
@@ -21,6 +20,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { SketchCanvas } from "@/components/sketch-quiz/sketch-canvas";
+import { SketchQuizTurnPanel } from "@/components/sketch-quiz/sketch-quiz-turn-panel";
+import { SketchQuizTimerBar } from "@/components/sketch-quiz/sketch-quiz-timer-bar";
 import { useSketchQuizRoom } from "@/hooks/use-sketch-quiz-room";
 import { GameRoomGate } from "@/components/minigames/game-room-gate";
 import { cn } from "@/lib/utils";
@@ -262,48 +263,52 @@ export function SketchQuizRoomClient({ roomId, mode }: SketchQuizRoomClientProps
                 <p className="text-xs text-muted-foreground">
                   {state.accessMode === "public"
                     ? "랜덤 매칭 · 2~5명 · 매칭 시 자동 시작"
-                    : "최소 2명 · 최대 8명 · 한 명이 그리면 나머지가 채팅으로 정답을 맞혀요."}
+                    : `최소 2명 · 최대 8명 · 턴당 ${state.roundSeconds || 80}초 · 순서는 시작 시 무작위`}
                 </p>
+                <SketchQuizTurnPanel state={state} userId={userId} variant="lobby" />
               </CardContent>
             </Card>
           )}
 
           {inGame && (
             <>
-              <div className="flex flex-wrap items-center gap-3 rounded-xl border-2 border-folk-cobalt/20 bg-folk-gold/10 px-4 py-3">
-                <div className="flex items-center gap-2 font-display font-bold">
-                  <Timer className="h-4 w-4 text-folk-terracotta" />
-                  <span className={cn(timeLeft <= 10 && "text-destructive animate-pulse")}>
-                    {timeLeft}초
-                  </span>
-                </div>
-                <span className="text-sm text-muted-foreground">
-                  라운드 {state.round}/{state.maxRounds}
-                </span>
+              <SketchQuizTimerBar
+                timeLeft={timeLeft}
+                roundSeconds={state.roundSeconds || 80}
+                round={state.round}
+                maxRounds={state.maxRounds}
+                roundMessage={
+                  state.status === "playing"
+                    ? state.roundMessage
+                    : state.status === "round_end"
+                      ? state.roundMessage
+                      : null
+                }
+              />
+
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-folk-cobalt/15 bg-background/80 px-3 py-2 text-sm">
                 {isDrawer && secretWord ? (
-                  <span className="text-sm font-bold text-folk-cobalt ml-auto">
+                  <span className="font-bold text-folk-cobalt">
                     그릴 단어: <span className="text-folk-terracotta">{secretWord.word}</span>
                     <span className="font-normal text-muted-foreground ml-2">
                       ({secretWord.category})
                     </span>
                   </span>
                 ) : (
-                  <span className="text-sm ml-auto">
-                    카테고리: <strong>{state.category ?? "?"}</strong>
+                  <>
+                    <span>
+                      카테고리: <strong>{state.category ?? "?"}</strong>
+                    </span>
                     {state.wordLength > 0 && (
-                      <span className="text-muted-foreground ml-2">
-                        · {state.wordLength}글자
-                      </span>
+                      <span className="text-muted-foreground">· {state.wordLength}글자</span>
                     )}
                     {state.drawerId && (
-                      <span className="ml-2">
-                        출제:{" "}
-                        <strong>
-                          {state.players.find((p) => p.userId === state.drawerId)?.username}
-                        </strong>
+                      <span className="ml-auto text-folk-terracotta font-medium">
+                        {state.players.find((p) => p.userId === state.drawerId)?.username}님이
+                        그리는 중
                       </span>
                     )}
-                  </span>
+                  </>
                 )}
               </div>
 
@@ -378,6 +383,10 @@ export function SketchQuizRoomClient({ roomId, mode }: SketchQuizRoomClientProps
         </div>
 
         <aside className="space-y-3">
+          {(inGame || inLobby) && state.turnOrder.length > 0 && !inLobby && (
+            <SketchQuizTurnPanel state={state} userId={userId} variant="game" />
+          )}
+
           <Card className="border-2 border-folk-cobalt/20">
             <CardHeader className="pb-2 py-3">
               <CardTitle className="text-sm">플레이어</CardTitle>

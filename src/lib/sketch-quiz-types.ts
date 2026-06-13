@@ -23,6 +23,12 @@ export type SketchQuizGuess = {
   at: number;
 };
 
+export type SketchQuizTurnEntry = {
+  userId: string;
+  username: string;
+  order: number;
+};
+
 /** 클라이언트에 전달되는 공개 방 상태 (정답 단어 제외) */
 export type SketchQuizPublicState = {
   roomId: string;
@@ -35,6 +41,11 @@ export type SketchQuizPublicState = {
   round: number;
   maxRounds: number;
   drawerId: string | null;
+  nextDrawerId: string | null;
+  firstDrawerId: string | null;
+  /** 1번부터 그리기 순서 (로비: 입장 순, 시작 후: 확정 순서) */
+  turnOrder: SketchQuizTurnEntry[];
+  roundSeconds: number;
   category: string | null;
   wordLength: number;
   timeLeft: number;

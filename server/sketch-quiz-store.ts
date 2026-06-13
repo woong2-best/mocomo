@@ -12,6 +12,7 @@ import {
 } from "../src/lib/sketch-quiz-words";
 
 const ROUND_SECONDS = 80;
+export const SKETCH_QUIZ_ROUND_SECONDS = ROUND_SECONDS;
 const MAX_PLAYERS_PRIVATE = 8;
 const MAX_PLAYERS_PUBLIC = 5;
 const MIN_PLAYERS = 2;
@@ -109,11 +110,39 @@ function getTimeLeft(room: RoomInternal): number {
   return Math.max(0, Math.ceil((room.roundEndsAt - Date.now()) / 1000));
 }
 
+function shuffleUserIds(ids: string[]): string[] {
+  const order = [...ids];
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return order;
+}
+
+function buildTurnOrder(room: RoomInternal): SketchQuizPublicState["turnOrder"] {
+  const ids = room.drawerOrder.length > 0 ? room.drawerOrder : [...room.players.keys()];
+  return ids
+    .filter((userId) => room.players.has(userId))
+    .map((userId, index) => ({
+      userId,
+      username: room.players.get(userId)?.username ?? "플레이어",
+      order: index + 1,
+    }));
+}
+
+function nextDrawerIdFor(room: RoomInternal): string | null {
+  if (room.drawerOrder.length === 0) return null;
+  if (room.status !== "playing" && room.status !== "round_end") return null;
+  const nextIndex = (room.drawerIndex + 1) % room.drawerOrder.length;
+  return room.drawerOrder[nextIndex] ?? null;
+}
+
 function toPublicState(room: RoomInternal): SketchQuizPublicState {
   const drawerId =
     room.status === "playing" || room.status === "round_end"
       ? room.drawerOrder[room.drawerIndex] ?? null
       : null;
+  const turnOrder = buildTurnOrder(room);
 
   return {
     roomId: room.id,
@@ -132,6 +161,10 @@ function toPublicState(room: RoomInternal): SketchQuizPublicState {
     round: room.round,
     maxRounds: room.maxRounds,
     drawerId,
+    nextDrawerId: nextDrawerIdFor(room),
+    firstDrawerId: room.drawerOrder[0] ?? turnOrder[0]?.userId ?? null,
+    turnOrder,
+    roundSeconds: ROUND_SECONDS,
     category: room.currentWord?.category ?? null,
     wordLength: room.currentWord?.word.replace(/\s/g, "").length ?? 0,
     timeLeft: getTimeLeft(room),
@@ -169,6 +202,16 @@ function startRound(room: RoomInternal) {
   room.usedWords.add(room.currentWord.word);
   room.roundEndsAt = Date.now() + ROUND_SECONDS * 1000;
   room.status = "playing";
+
+  const drawerId = room.drawerOrder[room.drawerIndex];
+  const drawerName = room.players.get(drawerId)?.username ?? "플레이어";
+  const nextId = nextDrawerIdFor(room);
+  const nextName = nextId ? room.players.get(nextId)?.username ?? "플레이어" : null;
+  if (room.round === 1 && room.drawerIndex === 0) {
+    room.roundMessage = `${drawerName}님이 첫 번째로 그립니다!${nextName && nextName !== drawerName ? ` · 다음: ${nextName}님` : ""}`;
+  } else {
+    room.roundMessage = `${drawerName}님이 그립니다${nextName ? ` · 다음: ${nextName}님` : ""}`;
+  }
 
   emitState(room);
   emitWordToDrawer(room);
@@ -375,7 +418,7 @@ export function sketchQuizStart(
     return { ok: false, error: `최소 ${MIN_PLAYERS}명이 필요합니다.` };
   }
 
-  room.drawerOrder = [...room.players.keys()];
+  room.drawerOrder = shuffleUserIds([...room.players.keys()]);
   room.drawerIndex = 0;
   room.round = 1;
   room.maxRounds = room.drawerOrder.length * 2;
