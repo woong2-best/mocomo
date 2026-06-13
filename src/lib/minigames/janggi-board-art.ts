@@ -107,7 +107,7 @@ export function drawJanggiBoardSurface(
   ctx.fillStyle = "rgba(70, 100, 140, 0.35)";
   ctx.font = `${Math.max(10, layout.cellW * 0.22)}px serif`;
   ctx.textAlign = "center";
-  ctx.fillText(flip ? "漢 河 楚" : "楚 河 漢", px(4), riverY + 4);
+  ctx.fillText(flip ? "楚 河 漢" : "漢 河 楚", px(4), riverY + 4);
 }
 
 export function drawJanggiPiece(

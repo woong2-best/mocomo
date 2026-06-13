@@ -9,23 +9,10 @@ export type JanggiBoard = (JanggiPiece | null)[][];
 export type JanggiCoord = { x: number; y: number };
 export type JanggiMove = { fromX: number; fromY: number; toX: number; toY: number };
 
-const RED_PALACE = { xMin: 3, xMax: 5, yMin: 0, yMax: 2 };
-const BLUE_PALACE = { xMin: 3, xMax: 5, yMin: 7, yMax: 9 };
+const RED_PALACE = { xMin: 3, xMax: 5, yMin: 7, yMax: 9 };
+const BLUE_PALACE = { xMin: 3, xMax: 5, yMin: 0, yMax: 2 };
 
 const RED_PALACE_DIAGS: JanggiCoord[][] = [
-  [
-    { x: 3, y: 0 },
-    { x: 4, y: 1 },
-    { x: 5, y: 2 },
-  ],
-  [
-    { x: 5, y: 0 },
-    { x: 4, y: 1 },
-    { x: 3, y: 2 },
-  ],
-];
-
-const BLUE_PALACE_DIAGS: JanggiCoord[][] = [
   [
     { x: 3, y: 7 },
     { x: 4, y: 8 },
@@ -35,6 +22,19 @@ const BLUE_PALACE_DIAGS: JanggiCoord[][] = [
     { x: 5, y: 7 },
     { x: 4, y: 8 },
     { x: 3, y: 9 },
+  ],
+];
+
+const BLUE_PALACE_DIAGS: JanggiCoord[][] = [
+  [
+    { x: 3, y: 0 },
+    { x: 4, y: 1 },
+    { x: 5, y: 2 },
+  ],
+  [
+    { x: 5, y: 0 },
+    { x: 4, y: 1 },
+    { x: 3, y: 2 },
   ],
 ];
 
@@ -49,25 +49,7 @@ export function createInitialJanggiBoard(): JanggiBoard {
   const place = (x: number, y: number, p: JanggiPiece) => {
     b[y]![x] = p;
   };
-  // 초(적) — 위쪽
-  for (const [x, p] of [
-    [0, "rC"],
-    [1, "rH"],
-    [2, "rE"],
-    [3, "rA"],
-    [4, "rK"],
-    [5, "rA"],
-    [6, "rE"],
-    [7, "rH"],
-    [8, "rC"],
-  ] as const) {
-    place(x, 0, p);
-  }
-  place(1, 1, "rO");
-  place(7, 1, "rO");
-  for (const x of [0, 2, 4, 6, 8]) place(x, 3, "rP");
-
-  // 한(청) — 아래쪽
+  // 漢(한·北) — 위쪽
   for (const [x, p] of [
     [0, "bC"],
     [1, "bH"],
@@ -79,11 +61,29 @@ export function createInitialJanggiBoard(): JanggiBoard {
     [7, "bH"],
     [8, "bC"],
   ] as const) {
+    place(x, 0, p);
+  }
+  place(1, 1, "bO");
+  place(7, 1, "bO");
+  for (const x of [0, 2, 4, 6, 8]) place(x, 3, "bP");
+
+  // 楚(초·南) — 아래쪽
+  for (const [x, p] of [
+    [0, "rC"],
+    [1, "rH"],
+    [2, "rE"],
+    [3, "rA"],
+    [4, "rK"],
+    [5, "rA"],
+    [6, "rE"],
+    [7, "rH"],
+    [8, "rC"],
+  ] as const) {
     place(x, 9, p);
   }
-  place(1, 8, "bO");
-  place(7, 8, "bO");
-  for (const x of [0, 2, 4, 6, 8]) place(x, 6, "bP");
+  place(1, 8, "rO");
+  place(7, 8, "rO");
+  for (const x of [0, 2, 4, 6, 8]) place(x, 6, "rP");
 
   return b;
 }
@@ -110,7 +110,7 @@ export function resolveJanggiMyRed(
 
 /**
  * 본인 말이 논리 좌표 상단(y≈0)에 있으면 보드를 뒤집어 화면 아래에 배치.
- * 초(楚·red) y=0 → flip / 한(漢·blue) y=9 → no flip
+ * 漢(한·blue) y=0(北·위) → flip / 楚(초·red) y=9(南·아래) → no flip
  */
 export function shouldFlipJanggiBoard(board: JanggiBoard, myRed: boolean): boolean {
   let sumY = 0;
@@ -330,10 +330,10 @@ function kingAdvisorMoves(board: JanggiBoard, moves: JanggiCoord[], fx: number, 
 
 function pawnMoves(board: JanggiBoard, moves: JanggiCoord[], fx: number, fy: number, piece: JanggiPiece) {
   const red = isRedPiece(piece);
-  const forward = red ? 1 : -1;
+  const forward = red ? -1 : 1;
   addMove(board, moves, fx, fy, fx, fy + forward, piece);
 
-  const crossed = red ? fy >= 5 : fy <= 4;
+  const crossed = red ? fy <= 4 : fy >= 5;
   if (crossed) {
     addMove(board, moves, fx, fy, fx - 1, fy, piece);
     addMove(board, moves, fx, fy, fx + 1, fy, piece);
@@ -343,7 +343,7 @@ function pawnMoves(board: JanggiBoard, moves: JanggiCoord[], fx: number, fy: num
     const line = onSamePalaceDiag(fx, fy, red);
     if (line) {
       const idx = line.findIndex((c) => c.x === fx && c.y === fy);
-      const next = line[idx + (red ? 1 : -1)];
+      const next = line[idx + (red ? -1 : 1)];
       if (next) addMove(board, moves, fx, fy, next.x, next.y, piece);
     }
   }
