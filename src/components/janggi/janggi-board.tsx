@@ -76,18 +76,21 @@ export function JanggiBoard({
       : lastMove
     : null;
 
+  const displaySelected = selected ? flipCoord(selected, flip) : null;
+  const displayLegalMoves = legalMoves.map((m) => flipCoord(m, flip));
+
   const checkKing = (() => {
     if (checkRed) {
       for (let y = 0; y < 10; y++) {
         for (let x = 0; x < 9; x++) {
-          if (board[y]?.[x] === "rK") return flip ? { x: 8 - x, y: 9 - y } : { x, y };
+          if (board[y]?.[x] === "rK") return flip ? flipCoord({ x, y }, flip) : { x, y };
         }
       }
     }
     if (checkBlue) {
       for (let y = 0; y < 10; y++) {
         for (let x = 0; x < 9; x++) {
-          if (board[y]?.[x] === "bK") return flip ? { x: 8 - x, y: 9 - y } : { x, y };
+          if (board[y]?.[x] === "bK") return flip ? flipCoord({ x, y }, flip) : { x, y };
         }
       }
     }
@@ -124,14 +127,14 @@ export function JanggiBoard({
     ctx.fillRect(0, 0, cssW, cssH);
 
     const layout = computeJanggiLayout(cssW, cssH);
-    drawJanggiBoardSurface(ctx, layout);
+    drawJanggiBoardSurface(ctx, layout, flip);
     drawJanggiScene(ctx, layout, displayBoard, {
-      selected,
-      legalMoves,
+      selected: displaySelected,
+      legalMoves: displayLegalMoves,
       lastMove: displayLast,
       checkKing,
     });
-  }, [checkKing, displayBoard, displayLast, legalMoves, selected]);
+  }, [checkKing, displayBoard, displayLast, displayLegalMoves, displaySelected, flip, legalMoves, selected]);
 
   useEffect(() => {
     draw();

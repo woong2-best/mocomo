@@ -32,6 +32,7 @@ type Props = {
   mode: GamePlayMode;
   onModeChange: (mode: GamePlayMode) => void;
   children?: React.ReactNode;
+  createOptionsExtra?: Partial<import("@/lib/games-lobby").GameCreateOptions>;
 };
 
 export function MinigameHubShell({
@@ -43,6 +44,7 @@ export function MinigameHubShell({
   mode,
   onModeChange,
   children,
+  createOptionsExtra,
 }: Props) {
   const router = useRouter();
   const { data: session } = useSession();
@@ -81,6 +83,7 @@ export function MinigameHubShell({
       ruleMode: gameId === "omok" ? ruleMode : undefined,
       timeControl: showBoardOpts ? timeControl : undefined,
       spectatorChat,
+      ...createOptionsExtra,
     });
     router.push(`${routeBase}/${code}?create=1`);
   }

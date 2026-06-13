@@ -44,6 +44,8 @@ export type MinigameRoomInternal = {
   initialGameState?: unknown;
   ruleMode?: "free" | "renju";
   spotDiffPlayStyle?: "normal" | "infinite";
+  pianoRushMode?: "solo" | "duel" | "battle";
+  pianoRushChartId?: string;
 };
 
 export type MinigameCreateOptions = {
@@ -54,6 +56,8 @@ export type MinigameCreateOptions = {
   timeControl?: string;
   spectatorChat?: boolean;
   spotDiffPlayStyle?: "normal" | "infinite";
+  pianoRushMode?: "solo" | "duel" | "battle";
+  pianoRushChartId?: string;
 };
 
 export type MinigameJoinOptions = {

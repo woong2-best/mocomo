@@ -10,6 +10,8 @@ import { OmokBoard } from "@/components/omok/omok-board";
 import { ReversiGamePanel } from "@/components/reversi/reversi-game-panel";
 import type { SpotDiffMode, SpotDiffPlayStyle, SpotShape } from "@/lib/minigames/spot-diff-logic";
 import { SpotDiffGamePanel } from "@/components/spot-diff/spot-diff-game-panel";
+import { PianoRushGamePanel } from "@/components/piano-rush/piano-rush-game-panel";
+import type { PianoChartNote, PianoRushMode } from "@/lib/minigames/piano-rush-logic";
 import { AlkkagiBoard } from "@/components/minigames/alkkagi-board";
 import { WordChainPanel } from "@/components/minigames/word-chain-panel";
 import { BadukGamePanel } from "@/components/baduk/baduk-game-panel";
@@ -262,6 +264,30 @@ export function GameActiveView({ gameId, state, userId, isSpectator, onMove, err
               ? (g.lastFeedback as { ok: boolean; message: string })
               : null
           }
+          userId={userId}
+          isSpectator={isSpectator}
+          finished={state.status === "finished"}
+          players={state.players}
+          onMove={onMove}
+        />
+      );
+    case "piano-rush":
+      return (
+        <PianoRushGamePanel
+          chartTitle={(g.chartTitle as string) ?? "곡"}
+          chartArtist={(g.chartArtist as string) ?? ""}
+          category={(g.category as string) ?? "piano"}
+          difficulty={(g.difficulty as string) ?? "NORMAL"}
+          bpm={(g.bpm as number) ?? 120}
+          durationMs={(g.durationMs as number) ?? 60000}
+          notes={(g.notes as PianoChartNote[]) ?? []}
+          mode={(g.mode as PianoRushMode) ?? "duel"}
+          phase={(g.phase as "countdown" | "playing" | "finished") ?? "countdown"}
+          startedAt={(g.startedAt as number) ?? Date.now()}
+          elapsedMs={(g.elapsedMs as number) ?? 0}
+          timeLeftMs={(g.timeLeftMs as number) ?? 0}
+          stats={(g.stats as Record<string, { score: number; combo: number; maxCombo: number; accuracy: number; lives: number; eliminated: boolean; debuffShakeUntil: number; debuffSpeedUntil: number; hitNotes?: string[] }>) ?? {}}
+          lastFeedback={(g.lastFeedback as Record<string, { judge: string; message: string } | null>) ?? {}}
           userId={userId}
           isSpectator={isSpectator}
           finished={state.status === "finished"}

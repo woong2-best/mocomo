@@ -11,6 +11,8 @@ export type GameCreateOptions = {
   timeControl?: string;
   spectatorChat?: boolean;
   spotDiffPlayStyle?: "normal" | "infinite";
+  pianoRushMode?: "solo" | "duel" | "battle";
+  pianoRushChartId?: string;
 };
 
 export type GameJoinOptions = {

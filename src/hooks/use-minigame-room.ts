@@ -124,6 +124,8 @@ export function useMinigameRoom(
           timeControl: createOpts.timeControl,
           spectatorChat: createOpts.spectatorChat,
           spotDiffPlayStyle: createOpts.spotDiffPlayStyle,
+          pianoRushMode: createOpts.pianoRushMode,
+          pianoRushChartId: createOpts.pianoRushChartId,
           accessMode: "private",
         },
         active

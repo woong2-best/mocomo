@@ -7,6 +7,7 @@ import {
   Sparkles,
   Type,
   Zap,
+  Music,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { MinigameCategory, MinigameDefinition, MinigameStatus } from "./types";
@@ -32,6 +33,7 @@ function live(id: string, overrides: Partial<MinigameCatalogItem> & Pick<Minigam
     "slide-puzzle": Puzzle,
     "picture-match": Puzzle,
     "spot-diff": Puzzle,
+    "piano-rush": Music,
     rps: Zap,
     "number-guess": Zap,
     "memory-cards": Zap,
@@ -157,6 +159,15 @@ const REGISTRY: MinigameCatalogItem[] = [
     description: "이미지 14종 · 무한 · 대결/협동 · 클리어 랭킹",
     minPlayers: 1,
     maxPlayers: 8,
+    supportsRanked: true,
+    supportsReplay: false,
+  }),
+  live("piano-rush", {
+    name: "피아노 러쉬",
+    category: "casual",
+    description: "PD 클래식 8곡 · Beethoven·Bach·Mozart · 1:1·배틀·싱글 · 서버 판정",
+    minPlayers: 1,
+    maxPlayers: 50,
     supportsRanked: true,
     supportsReplay: false,
   }),

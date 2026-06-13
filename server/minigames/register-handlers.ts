@@ -43,6 +43,8 @@ export function registerMinigameHandlers(
         timeControl?: string;
         spectatorChat?: boolean;
         spotDiffPlayStyle?: "normal" | "infinite";
+        pianoRushMode?: "solo" | "duel" | "battle";
+        pianoRushChartId?: string;
       },
       ack?: (r: unknown) => void
     ) => {
@@ -65,6 +67,8 @@ export function registerMinigameHandlers(
         timeControl: data.timeControl,
         spectatorChat: data.spectatorChat,
         spotDiffPlayStyle: data.spotDiffPlayStyle,
+        pianoRushMode: data.pianoRushMode,
+        pianoRushChartId: data.pianoRushChartId,
       });
       if (!result.ok) {
         ack?.(result);

@@ -92,6 +92,41 @@ export function isRedPiece(p: JanggiPiece): boolean {
   return p.startsWith("r");
 }
 
+/** 플레이어가 楚(초·red)인지 — role 우선, 없으면 redUserId 비교 */
+export function resolveJanggiMyRed(
+  userId: string | undefined,
+  redUserId: string,
+  blueUserId: string,
+  players: { userId: string; role?: string }[]
+): boolean | null {
+  if (!userId) return null;
+  const me = players.find((p) => p.userId === userId);
+  if (me?.role === "red") return true;
+  if (me?.role === "blue") return false;
+  if (userId === redUserId) return true;
+  if (userId === blueUserId) return false;
+  return null;
+}
+
+/**
+ * 본인 말이 논리 좌표 상단(y≈0)에 있으면 보드를 뒤집어 화면 아래에 배치.
+ * 초(楚·red) y=0 → flip / 한(漢·blue) y=9 → no flip
+ */
+export function shouldFlipJanggiBoard(board: JanggiBoard, myRed: boolean): boolean {
+  let sumY = 0;
+  let count = 0;
+  for (let y = 0; y < JANGGI_H; y++) {
+    for (let x = 0; x < JANGGI_W; x++) {
+      const p = board[y]?.[x];
+      if (!p || isRedPiece(p) !== myRed) continue;
+      sumY += y;
+      count++;
+    }
+  }
+  if (count === 0) return myRed;
+  return sumY / count < JANGGI_H / 2;
+}
+
 export function pieceKind(p: JanggiPiece): string {
   return p[1] ?? "";
 }

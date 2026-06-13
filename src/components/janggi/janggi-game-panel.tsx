@@ -5,7 +5,7 @@ import { Flag, Timer } from "lucide-react";
 import { JanggiBoard } from "@/components/janggi/janggi-board";
 import { Button } from "@/components/ui/button";
 import type { JanggiBoard as JanggiBoardType, JanggiMove } from "@/lib/minigames/janggi-logic";
-import { JANGGI_TURN_MS } from "@/lib/minigames/janggi-logic";
+import { JANGGI_TURN_MS, resolveJanggiMyRed, shouldFlipJanggiBoard } from "@/lib/minigames/janggi-logic";
 import type { MinigamePlayerPublic } from "@/lib/minigames/shared-types";
 import { cn } from "@/lib/utils";
 
@@ -52,10 +52,10 @@ export function JanggiGamePanel({
 }: Props) {
   const [placing, setPlacing] = useState(false);
   const myTurn = turnUserId === userId && !isSpectator && !finished;
-  const iAmRed = userId === redUserId;
-  const iAmBlue = userId === blueUserId;
-  const flip = iAmBlue;
-  const myRed = iAmRed;
+  const mySide = resolveJanggiMyRed(userId, redUserId, blueUserId, players);
+  const myRed = isSpectator ? turnRed : (mySide ?? userId === redUserId);
+  // 본인 진영(초/한)이 항상 화면 아래
+  const flip = !isSpectator && shouldFlipJanggiBoard(board, myRed);
   const turnName = turnUserId ? playerName(players, turnUserId) : "—";
   const pct = turnLimit > 0 ? Math.min(100, (timeLeft / turnLimit) * 100) : 0;
   const urgent = timeLeft <= 5 && !finished;
@@ -108,7 +108,7 @@ export function JanggiGamePanel({
       <JanggiBoard
         board={board}
         turnRed={turnRed}
-        myRed={isSpectator ? turnRed : myRed}
+        myRed={myRed}
         lastMove={lastMove}
         checkRed={checkRed}
         checkBlue={checkBlue}

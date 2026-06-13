@@ -298,6 +298,8 @@ export function minigameCreate(
     timeControl: opts.timeControl ?? "unlimited",
     ruleMode: opts.ruleMode,
     spotDiffPlayStyle: opts.spotDiffPlayStyle,
+    pianoRushMode: opts.pianoRushMode,
+    pianoRushChartId: opts.pianoRushChartId,
   };
 
   if (gameId === "omok" && opts.ruleMode) attachOmokRuleMode(room, opts.ruleMode);

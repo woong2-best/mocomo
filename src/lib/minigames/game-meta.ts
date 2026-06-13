@@ -25,5 +25,6 @@ export const PLATFORM_GAME_IDS = [
   "picture-match",
   "slide-puzzle",
   "spot-diff",
+  "piano-rush",
   "jigsaw",
 ] as const;

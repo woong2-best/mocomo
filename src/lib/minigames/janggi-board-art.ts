@@ -40,20 +40,30 @@ export function computeJanggiLayout(cssW: number, cssH: number): JanggiLayout {
   };
 }
 
-function drawPalace(ctx: CanvasRenderingContext2D, layout: JanggiLayout, yStart: number) {
+function drawPalace(
+  ctx: CanvasRenderingContext2D,
+  layout: JanggiLayout,
+  yStart: number,
+  flip = false
+) {
+  const px = (x: number) => layout.pointX(flip ? 8 - x : x);
+  const py = (y: number) => layout.pointY(flip ? 9 - y : y);
   const x0 = 3;
   const x1 = 5;
   const y0 = yStart;
   const y1 = yStart + 2;
-  const tl = { x: layout.pointX(x0), y: layout.pointY(y0) };
-  const tr = { x: layout.pointX(x1), y: layout.pointY(y0) };
-  const bl = { x: layout.pointX(x0), y: layout.pointY(y1) };
-  const br = { x: layout.pointX(x1), y: layout.pointY(y1) };
-  const mid = { x: layout.pointX(4), y: layout.pointY(yStart + 1) };
+  const tl = { x: px(x0), y: py(y0) };
+  const tr = { x: px(x1), y: py(y0) };
+  const bl = { x: px(x0), y: py(y1) };
+  const br = { x: px(x1), y: py(y1) };
+  const left = Math.min(tl.x, tr.x);
+  const top = Math.min(tl.y, bl.y);
+  const w = Math.abs(tr.x - tl.x);
+  const h = Math.abs(bl.y - tl.y);
 
   ctx.strokeStyle = "rgba(120, 60, 30, 0.55)";
   ctx.lineWidth = 1.2;
-  ctx.strokeRect(tl.x, tl.y, tr.x - tl.x, bl.y - tl.y);
+  ctx.strokeRect(left, top, w, h);
   ctx.beginPath();
   ctx.moveTo(tl.x, tl.y);
   ctx.lineTo(br.x, br.y);
@@ -61,37 +71,43 @@ function drawPalace(ctx: CanvasRenderingContext2D, layout: JanggiLayout, yStart:
   ctx.lineTo(bl.x, bl.y);
   ctx.stroke();
   ctx.fillStyle = "rgba(180, 120, 60, 0.08)";
-  ctx.fillRect(tl.x, tl.y, tr.x - tl.x, bl.y - tl.y);
+  ctx.fillRect(left, top, w, h);
 }
 
-export function drawJanggiBoardSurface(ctx: CanvasRenderingContext2D, layout: JanggiLayout) {
+export function drawJanggiBoardSurface(
+  ctx: CanvasRenderingContext2D,
+  layout: JanggiLayout,
+  flip = false
+) {
+  const px = (x: number) => layout.pointX(flip ? 8 - x : x);
+  const py = (y: number) => layout.pointY(flip ? 9 - y : y);
+
   ctx.strokeStyle = "rgba(90, 50, 25, 0.85)";
   ctx.lineWidth = 1.4;
 
   for (let y = 0; y < JANGGI_H; y++) {
     ctx.beginPath();
-    ctx.moveTo(layout.pointX(0), layout.pointY(y));
-    ctx.lineTo(layout.pointX(JANGGI_W - 1), layout.pointY(y));
+    ctx.moveTo(px(0), py(y));
+    ctx.lineTo(px(JANGGI_W - 1), py(y));
     ctx.stroke();
   }
   for (let x = 0; x < JANGGI_W; x++) {
     ctx.beginPath();
-    ctx.moveTo(layout.pointX(x), layout.pointY(0));
-    ctx.lineTo(layout.pointX(x), layout.pointY(JANGGI_H - 1));
+    ctx.moveTo(px(x), py(0));
+    ctx.lineTo(px(x), py(JANGGI_H - 1));
     ctx.stroke();
   }
 
-  drawPalace(ctx, layout, 0);
-  drawPalace(ctx, layout, 7);
+  drawPalace(ctx, layout, 0, flip);
+  drawPalace(ctx, layout, 7, flip);
 
-  // 강 표시
-  const riverY = layout.pointY(4.5);
+  const riverY = py(4.5);
   ctx.fillStyle = "rgba(70, 130, 180, 0.12)";
-  ctx.fillRect(layout.pointX(0), riverY - layout.cellH * 0.45, layout.width - layout.pad * 2, layout.cellH * 0.9);
+  ctx.fillRect(px(0), riverY - layout.cellH * 0.45, layout.width - layout.pad * 2, layout.cellH * 0.9);
   ctx.fillStyle = "rgba(70, 100, 140, 0.35)";
   ctx.font = `${Math.max(10, layout.cellW * 0.22)}px serif`;
   ctx.textAlign = "center";
-  ctx.fillText("楚 河 漢", layout.pointX(4), riverY + 4);
+  ctx.fillText(flip ? "漢 河 楚" : "楚 河 漢", px(4), riverY + 4);
 }
 
 export function drawJanggiPiece(
