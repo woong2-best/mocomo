@@ -115,7 +115,7 @@ const REGISTRY: MinigameCatalogItem[] = [
   live("baduk", {
     name: "바둑",
     category: "board",
-    description: "9×9 · 패스·집 판정",
+    description: "19×19 · 따내기 · 패 · 집 계산 · 30초 턴",
     minPlayers: 2,
     maxPlayers: 2,
   }),

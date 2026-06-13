@@ -9,6 +9,8 @@ import { OmokGamePanel } from "@/components/omok/omok-game-panel";
 import { OmokBoard } from "@/components/omok/omok-board";
 import { AlkkagiBoard } from "@/components/minigames/alkkagi-board";
 import { WordChainPanel } from "@/components/minigames/word-chain-panel";
+import { BadukGamePanel } from "@/components/baduk/baduk-game-panel";
+import type { Stone } from "@/lib/minigames/baduk-logic";
 import { JanggiGamePanel } from "@/components/janggi/janggi-game-panel";
 import type { JanggiBoard, JanggiMove } from "@/lib/minigames/janggi-logic";
 import { RPS_LABELS } from "@/lib/minigames/rps-logic";
@@ -99,7 +101,36 @@ export function GameActiveView({ gameId, state, userId, isSpectator, onMove, err
       );
     case "baduk":
       return (
-        <BadukView g={g} userId={userId} isSpectator={isSpectator} onMove={onMove} />
+        <BadukGamePanel
+          board={g.board as Stone[][]}
+          boardSize={(g.boardSize as number) ?? (g.board as Stone[][])?.length ?? 19}
+          turn={(g.turn as 1 | 2) ?? 1}
+          turnUserId={g.turnUserId as string | null}
+          blackUserId={g.blackUserId as string}
+          whiteUserId={g.whiteUserId as string}
+          captures={(g.captures as { black: number; white: number }) ?? { black: 0, white: 0 }}
+          passStreak={(g.passStreak as number) ?? 0}
+          lastMove={(g.lastMove as { x: number; y: number } | null) ?? null}
+          timeLeft={(g.timeLeft as number) ?? 0}
+          turnLimit={(g.turnLimit as number) ?? 30}
+          komi={(g.komi as number) ?? 6.5}
+          finalScore={
+            (g.finalScore as {
+              black: number;
+              white: number;
+              blackTerritory: number;
+              whiteTerritory: number;
+              blackCaptures: number;
+              whiteCaptures: number;
+              komi: number;
+            } | null) ?? null
+          }
+          userId={userId}
+          isSpectator={isSpectator}
+          finished={state.status === "finished"}
+          players={state.players}
+          onMove={onMove}
+        />
       );
     case "alkkagi":
       return (
@@ -263,37 +294,6 @@ function pieceChar(type: string, color: string) {
   const map: Record<string, string> = { p: "♟", n: "♞", b: "♝", r: "♜", q: "♛", k: "♚" };
   const c = map[type] ?? type;
   return color === "w" ? c : c;
-}
-
-function BadukView({ g, userId, isSpectator, onMove }: { g: Record<string, unknown>; userId?: string; isSpectator: boolean; onMove: Props["onMove"] }) {
-  const board = g.board as number[][];
-  const myTurn = g.turnUserId === userId && !isSpectator;
-  return (
-    <Card className="border-2 border-folk-cobalt/20 overflow-x-auto">
-      <CardContent className="p-4 flex flex-col items-center gap-3">
-        <div className="inline-grid gap-0" style={{ gridTemplateColumns: `repeat(${board[0]?.length ?? 9}, 1fr)` }}>
-          {board.map((row, y) =>
-            row.map((cell, x) => (
-              <button
-                key={`${x}-${y}`}
-                type="button"
-                disabled={!myTurn || cell !== 0}
-                onClick={() => onMove({ x, y })}
-                className="w-8 h-8 border border-amber-900/20 flex items-center justify-center"
-              >
-                {cell === 1 ? <span className="w-5 h-5 rounded-full bg-neutral-900" /> : cell === 2 ? <span className="w-5 h-5 rounded-full bg-white border" /> : null}
-              </button>
-            ))
-          )}
-        </div>
-        {myTurn && (
-          <Button variant="outline" size="sm" className="rounded-lg" onClick={() => onMove({ pass: true })}>
-            패스
-          </Button>
-        )}
-      </CardContent>
-    </Card>
-  );
 }
 
 function RpsView({ g, userId, isSpectator, onMove }: { g: Record<string, unknown>; userId?: string; isSpectator: boolean; onMove: Props["onMove"] }) {

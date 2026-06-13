@@ -89,15 +89,27 @@ export function drawGoBoardSurface(ctx: CanvasRenderingContext2D, layout: GoBoar
     ctx.stroke();
   }
 
-  if (grid === 15) {
-    const stars = [3, 7, 11];
+  const starSets: Record<number, [number, number][]> = {
+    19: [
+      [3, 3], [9, 3], [15, 3], [3, 9], [9, 9], [15, 9], [3, 15], [9, 15], [15, 15],
+    ],
+    15: [
+      [3, 3], [7, 3], [11, 3], [3, 7], [7, 7], [11, 7], [3, 11], [7, 11], [11, 11],
+    ],
+    13: [
+      [3, 3], [9, 3], [6, 6], [3, 9], [9, 9],
+    ],
+    9: [
+      [2, 2], [6, 2], [4, 4], [2, 6], [6, 6],
+    ],
+  };
+  const stars = starSets[grid];
+  if (stars) {
     ctx.fillStyle = "rgba(20,12,4,0.85)";
-    for (const sy of stars) {
-      for (const sx of stars) {
-        ctx.beginPath();
-        ctx.arc(ox + sx * cell, oy + sy * cell, Math.max(2, 2.8 * s), 0, Math.PI * 2);
-        ctx.fill();
-      }
+    for (const [sx, sy] of stars) {
+      ctx.beginPath();
+      ctx.arc(ox + sx * cell, oy + sy * cell, Math.max(2, 2.8 * s), 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 
