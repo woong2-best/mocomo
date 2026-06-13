@@ -49,13 +49,13 @@ export function createInitialJanggiBoard(): JanggiBoard {
   const place = (x: number, y: number, p: JanggiPiece) => {
     b[y]![x] = p;
   };
-  // 漢(한·北) — 위쪽
+  // 漢(한·北) — 위쪽 · 2번 참고 배치
+  // 1단(뒤): 차·마·상·사 — 장은 궁 중앙(y=1)에만
   for (const [x, p] of [
     [0, "bC"],
     [1, "bH"],
     [2, "bE"],
     [3, "bA"],
-    [4, "bK"],
     [5, "bA"],
     [6, "bE"],
     [7, "bH"],
@@ -63,6 +63,7 @@ export function createInitialJanggiBoard(): JanggiBoard {
   ] as const) {
     place(x, 0, p);
   }
+  place(4, 1, "bK");
   place(1, 1, "bO");
   place(7, 1, "bO");
   for (const x of [0, 2, 4, 6, 8]) place(x, 3, "bP");
@@ -73,7 +74,6 @@ export function createInitialJanggiBoard(): JanggiBoard {
     [1, "rH"],
     [2, "rE"],
     [3, "rA"],
-    [4, "rK"],
     [5, "rA"],
     [6, "rE"],
     [7, "rH"],
@@ -81,6 +81,7 @@ export function createInitialJanggiBoard(): JanggiBoard {
   ] as const) {
     place(x, 9, p);
   }
+  place(4, 8, "rK");
   place(1, 8, "rO");
   place(7, 8, "rO");
   for (const x of [0, 2, 4, 6, 8]) place(x, 6, "rP");
