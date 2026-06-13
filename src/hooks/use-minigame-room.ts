@@ -123,6 +123,7 @@ export function useMinigameRoom(
           ruleMode: createOpts.ruleMode,
           timeControl: createOpts.timeControl,
           spectatorChat: createOpts.spectatorChat,
+          spotDiffPlayStyle: createOpts.spotDiffPlayStyle,
           accessMode: "private",
         },
         active

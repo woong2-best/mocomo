@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Lightbulb, Pause, Play, Timer } from "lucide-react";
 import { SpotDiffBoard } from "@/components/spot-diff/spot-diff-board";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,10 @@ import {
   SPOT_DIFF_WRONG_PENALTY_MS,
   formatSpotTime,
   type SpotDiffMode,
+  type SpotDiffPlayStyle,
   type SpotShape,
 } from "@/lib/minigames/spot-diff-logic";
+import { playSpotSound } from "@/lib/minigames/spot-diff-sounds";
 import type { MinigamePlayerPublic } from "@/lib/minigames/shared-types";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +30,12 @@ type Props = {
   hintsUsed: Record<string, number>;
   hintFlash: { x: number; y: number; until: number } | null;
   mode: SpotDiffMode;
+  playStyle?: SpotDiffPlayStyle;
+  round?: number;
+  puzzlesCleared?: number;
+  puzzleTitle?: string;
+  imageLeft?: string;
+  imageRight?: string;
   theme: string;
   timeLeftMs: number;
   paused: boolean;
@@ -58,6 +66,12 @@ export function SpotDiffGamePanel({
   hintsUsed,
   hintFlash,
   mode,
+  playStyle = "normal",
+  round = 1,
+  puzzlesCleared = 0,
+  puzzleTitle,
+  imageLeft,
+  imageRight,
   theme,
   timeLeftMs,
   paused,
@@ -80,6 +94,17 @@ export function SpotDiffGamePanel({
       ? { x: hintFlash.x, y: hintFlash.y }
       : null;
 
+  useEffect(() => {
+    if (!lastFeedback || finished) return;
+    if (lastFeedback.ok) {
+      if (lastFeedback.message.includes("클리어")) playSpotSound("clear");
+      else if (lastFeedback.message.includes("힌트")) playSpotSound("hint");
+      else playSpotSound("correct");
+    } else {
+      playSpotSound("wrong");
+    }
+  }, [lastFeedback, finished]);
+
   async function act(move: Parameters<Props["onMove"]>[0]) {
     if (!canPlay && !("pause" in move) && !("resume" in move)) return;
     setPlacing(true);
@@ -91,13 +116,21 @@ export function SpotDiffGamePanel({
   }
 
   const modeLabel =
-    mode === "solo" ? "솔로" : mode === "versus" ? "대결 — 먼저 찾은 사람 점수" : "협동 — 함께 찾기";
+    playStyle === "infinite"
+      ? `무한 · ${puzzlesCleared}판 클리어 · 라운드 ${round}`
+      : mode === "solo"
+        ? "솔로"
+        : mode === "versus"
+          ? "대결 — 먼저 찾은 사람 점수"
+          : "협동 — 함께 찾기";
 
   return (
     <div className="space-y-3">
       <div className="rounded-xl border-2 border-folk-cobalt/20 bg-folk-gold/10 px-4 py-3 space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-          <span className="font-medium">{theme} · {modeLabel}</span>
+          <span className="font-medium">
+            {puzzleTitle ?? theme} · {modeLabel}
+          </span>
           <span className={cn("font-mono tabular-nums flex items-center gap-1", urgent && "text-red-600 font-bold")}>
             <Timer className={cn("h-4 w-4", urgent && "animate-pulse")} />
             {formatSpotTime(timeLeftMs)}
@@ -144,6 +177,8 @@ export function SpotDiffGamePanel({
         height={height}
         left={left}
         right={right}
+        imageLeft={imageLeft}
+        imageRight={imageRight}
         found={found.map((f) => ({
           x: f.x,
           y: f.y,

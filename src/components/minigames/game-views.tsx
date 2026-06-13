@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { OmokGamePanel } from "@/components/omok/omok-game-panel";
 import { OmokBoard } from "@/components/omok/omok-board";
 import { ReversiGamePanel } from "@/components/reversi/reversi-game-panel";
-import type { SpotDiffMode, SpotShape } from "@/lib/minigames/spot-diff-logic";
+import type { SpotDiffMode, SpotDiffPlayStyle, SpotShape } from "@/lib/minigames/spot-diff-logic";
 import { SpotDiffGamePanel } from "@/components/spot-diff/spot-diff-game-panel";
 import { AlkkagiBoard } from "@/components/minigames/alkkagi-board";
 import { WordChainPanel } from "@/components/minigames/word-chain-panel";
@@ -240,6 +240,9 @@ export function GameActiveView({ gameId, state, userId, isSpectator, onMove, err
           height={(g.height as number) ?? 260}
           left={(g.left as SpotShape[]) ?? []}
           right={(g.right as SpotShape[]) ?? []}
+          imageLeft={g.imageLeft as string | undefined}
+          imageRight={g.imageRight as string | undefined}
+          puzzleTitle={g.puzzleTitle as string | undefined}
           found={(g.found as { id: number; x: number; y: number; radius: number; foundBy?: string }[]) ?? []}
           totalDiffs={(g.totalDiffs as number) ?? 7}
           scores={(g.scores as Record<string, number>) ?? {}}
@@ -248,6 +251,9 @@ export function GameActiveView({ gameId, state, userId, isSpectator, onMove, err
           hintsUsed={(g.hintsUsed as Record<string, number>) ?? {}}
           hintFlash={(g.hintFlash as { x: number; y: number; until: number } | null) ?? null}
           mode={(g.mode as SpotDiffMode) ?? "solo"}
+          playStyle={(g.playStyle as SpotDiffPlayStyle) ?? "normal"}
+          round={(g.round as number) ?? 1}
+          puzzlesCleared={(g.puzzlesCleared as number) ?? 0}
           theme={(g.theme as string) ?? "풍경"}
           timeLeftMs={(g.timeLeftMs as number) ?? 0}
           paused={!!g.paused}

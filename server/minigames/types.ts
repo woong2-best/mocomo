@@ -43,6 +43,7 @@ export type MinigameRoomInternal = {
   gameStartedAt?: number;
   initialGameState?: unknown;
   ruleMode?: "free" | "renju";
+  spotDiffPlayStyle?: "normal" | "infinite";
 };
 
 export type MinigameCreateOptions = {
@@ -52,6 +53,7 @@ export type MinigameCreateOptions = {
   ruleMode?: "free" | "renju";
   timeControl?: string;
   spectatorChat?: boolean;
+  spotDiffPlayStyle?: "normal" | "infinite";
 };
 
 export type MinigameJoinOptions = {

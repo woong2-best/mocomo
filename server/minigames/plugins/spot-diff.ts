@@ -1,18 +1,22 @@
 import {
+  SPOT_DIFF_COMBO_WINDOW_MS,
   SPOT_DIFF_HINT_PENALTY_MS,
+  SPOT_DIFF_INFINITE_BONUS_MS,
+  SPOT_DIFF_INFINITE_TIME_MS,
   SPOT_DIFF_TIME_MS,
   SPOT_DIFF_WRONG_PENALTY_MS,
-  SPOT_DIFF_COMBO_WINDOW_MS,
   buildSpotResultMessage,
   computeSpotScore,
   findSpotHit,
-  generateSpotDiffPuzzle,
+  formatSpotTime,
   isNearFoundSpot,
   pickHintTarget,
   spotDiffMode,
   type SpotDiffMode,
+  type SpotDiffPlayStyle,
   type SpotDiffPuzzle,
 } from "../../../src/lib/minigames/spot-diff-logic";
+import { pickCatalogPuzzle, pickNextInfinitePuzzle } from "../../../src/lib/minigames/spot-diff-catalog";
 import { basePublicFields, type MinigamePlugin, type MinigameRoomInternal } from "../types";
 
 type SpotState = {
@@ -26,6 +30,10 @@ type SpotState = {
   hintsUsed: Record<string, number>;
   hintFlash: { x: number; y: number; until: number } | null;
   mode: SpotDiffMode;
+  playStyle: SpotDiffPlayStyle;
+  round: number;
+  puzzlesCleared: number;
+  usedPuzzleIds: string[];
   startedAt: number;
   endsAt: number;
   pausedAt: number | null;
@@ -37,18 +45,70 @@ function gs(room: MinigameRoomInternal): SpotState {
   return room.gameState as SpotState;
 }
 
-function finishSpot(
-  room: MinigameRoomInternal,
-  state: SpotState,
-  allFound: boolean
-) {
+function playStyleOf(room: MinigameRoomInternal): SpotDiffPlayStyle {
+  return room.spotDiffPlayStyle === "infinite" ? "infinite" : "normal";
+}
+
+function appendSummary(room: MinigameRoomInternal, state: SpotState) {
+  const uid = [...room.players.keys()][0];
+  if (!uid) return;
+  room.moveHistory.push({
+    type: "spot_summary",
+    userId: uid,
+    playStyle: state.playStyle,
+    round: state.round,
+    puzzlesCleared: state.puzzlesCleared,
+    totalScore: state.scores[uid] ?? 0,
+    hintsUsed: state.hintsUsed[uid] ?? 0,
+    wrongCount: state.wrongCounts[uid] ?? 0,
+    elapsedMs: Date.now() - state.startedAt,
+    cleared: state.puzzlesCleared > 0,
+  });
+}
+
+function finishSpot(room: MinigameRoomInternal, state: SpotState, allFound: boolean) {
+  appendSummary(room, state);
   const finish = (room as MinigameRoomInternal & { _finishGame?: (w: { winnerId: string; resultMessage: string }) => void })
     ._finishGame;
   if (!finish) return;
   const names = Object.fromEntries([...room.players.values()].map((p) => [p.userId, p.username]));
   const elapsed = Date.now() - state.startedAt;
+
+  if (state.playStyle === "infinite") {
+    const uid = [...room.players.keys()][0] ?? "";
+    finish({
+      winnerId: uid,
+      resultMessage: `무한 모드 · ${state.puzzlesCleared}판 클리어 · ${formatSpotTime(elapsed)} · ${state.scores[uid] ?? 0}점`,
+    });
+    return;
+  }
+
   const result = buildSpotResultMessage(state.mode, state.scores, names, elapsed, allFound);
   finish(result);
+}
+
+function advanceInfiniteRound(room: MinigameRoomInternal, state: SpotState, userId: string) {
+  const clearedTitle = state.puzzle.title ?? state.puzzle.theme;
+  const clearedId = state.puzzle.puzzleId ?? `seed-${state.puzzle.seed}`;
+  state.puzzlesCleared++;
+  state.usedPuzzleIds.push(clearedId);
+  state.puzzle = pickNextInfinitePuzzle(state.usedPuzzleIds);
+  state.round++;
+  state.foundIds = [];
+  state.foundBy = {};
+  state.hintFlash = null;
+  state.endsAt += SPOT_DIFF_INFINITE_BONUS_MS;
+  state.lastFeedback = {
+    userId,
+    ok: true,
+    message: `${clearedTitle} 클리어! +${SPOT_DIFF_INFINITE_BONUS_MS / 1000}초 · ${state.puzzle.title ?? state.puzzle.theme}`,
+  };
+  room.moveHistory.push({
+    userId,
+    type: "spot_round_clear",
+    round: state.puzzlesCleared,
+    puzzleId: clearedId,
+  });
 }
 
 function timeLeftMs(state: SpotState): number {
@@ -77,6 +137,15 @@ function startTimer(room: MinigameRoomInternal, state: SpotState) {
   room.timers.push(state.timer);
 }
 
+function initPuzzle(room: MinigameRoomInternal, playerCount: number): SpotDiffPuzzle {
+  const playStyle = playStyleOf(room);
+  if (playStyle === "infinite") {
+    return pickNextInfinitePuzzle([]);
+  }
+  const diffCount = playerCount >= 3 ? 10 : playerCount === 1 ? 7 : 7;
+  return pickCatalogPuzzle({ excludeIds: [] });
+}
+
 export const spotDiffPlugin: MinigamePlugin = {
   id: "spot-diff",
   minPlayers: 1,
@@ -87,10 +156,10 @@ export const spotDiffPlugin: MinigamePlugin = {
   initGameState(room) {
     const order = [...room.players.keys()];
     for (const p of room.players.values()) p.ready = true;
-    const seed = Math.floor(Math.random() * 1e9);
-    const diffCount = order.length >= 3 ? 10 : 7;
-    const puzzle = generateSpotDiffPuzzle(seed, diffCount);
+    const playStyle = playStyleOf(room);
+    const puzzle = initPuzzle(room, order.length);
     const now = Date.now();
+    const limit = playStyle === "infinite" ? SPOT_DIFF_INFINITE_TIME_MS : SPOT_DIFF_TIME_MS;
     return {
       puzzle,
       foundIds: [],
@@ -101,9 +170,13 @@ export const spotDiffPlugin: MinigamePlugin = {
       wrongCounts: Object.fromEntries(order.map((id) => [id, 0])),
       hintsUsed: Object.fromEntries(order.map((id) => [id, 0])),
       hintFlash: null,
-      mode: spotDiffMode(order.length),
+      mode: playStyle === "infinite" ? "solo" : spotDiffMode(order.length),
+      playStyle,
+      round: 1,
+      puzzlesCleared: 0,
+      usedPuzzleIds: [],
       startedAt: now,
-      endsAt: now + SPOT_DIFF_TIME_MS,
+      endsAt: now + limit,
       pausedAt: null,
       lastFeedback: null,
       timer: null,
@@ -139,9 +212,7 @@ export const spotDiffPlugin: MinigamePlugin = {
       .filter(Boolean);
 
     const feedback =
-      state.lastFeedback && room.status === "playing"
-        ? state.lastFeedback
-        : null;
+      state.lastFeedback && room.status === "playing" ? state.lastFeedback : null;
 
     return {
       ...base,
@@ -150,6 +221,11 @@ export const spotDiffPlugin: MinigamePlugin = {
         height: puzzle.height,
         left: puzzle.left,
         right: puzzle.right,
+        imageLeft: puzzle.imageLeft,
+        imageRight: puzzle.imageRight,
+        puzzleTitle: puzzle.title ?? puzzle.theme,
+        puzzleId: puzzle.puzzleId,
+        difficulty: puzzle.difficulty,
         theme: puzzle.theme,
         found,
         totalDiffs: puzzle.differences.length,
@@ -159,6 +235,9 @@ export const spotDiffPlugin: MinigamePlugin = {
         hintsUsed: { ...state.hintsUsed },
         hintFlash: state.hintFlash,
         mode: state.mode,
+        playStyle: state.playStyle,
+        round: state.round,
+        puzzlesCleared: state.puzzlesCleared,
         timeLeftMs: timeLeftMs(state),
         paused: !!state.pausedAt,
         lastFeedback: feedback,
@@ -256,7 +335,11 @@ export const spotDiffPlugin: MinigamePlugin = {
       });
 
       if (state.foundIds.length >= state.puzzle.differences.length) {
-        finishSpot(room, state, true);
+        if (state.playStyle === "infinite") {
+          advanceInfiniteRound(room, state, userId);
+        } else {
+          finishSpot(room, state, true);
+        }
       }
       return;
     }

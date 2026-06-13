@@ -10,6 +10,7 @@ export type GameCreateOptions = {
   ruleMode?: "free" | "renju";
   timeControl?: string;
   spectatorChat?: boolean;
+  spotDiffPlayStyle?: "normal" | "infinite";
 };
 
 export type GameJoinOptions = {

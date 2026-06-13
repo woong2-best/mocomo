@@ -29,7 +29,17 @@ export type SpotDiffPuzzle = {
   differences: SpotDifference[];
   seed: number;
   theme: string;
+  puzzleId?: string;
+  title?: string;
+  difficulty?: "easy" | "medium" | "hard";
+  imageLeft?: string;
+  imageRight?: string;
 };
+
+export type SpotDiffPlayStyle = "normal" | "infinite";
+
+export const SPOT_DIFF_INFINITE_BONUS_MS = 30_000;
+export const SPOT_DIFF_INFINITE_TIME_MS = 300_000;
 
 export type SpotDiffMode = "solo" | "versus" | "coop";
 

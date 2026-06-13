@@ -297,6 +297,7 @@ export function minigameCreate(
     chatLog: [],
     timeControl: opts.timeControl ?? "unlimited",
     ruleMode: opts.ruleMode,
+    spotDiffPlayStyle: opts.spotDiffPlayStyle,
   };
 
   if (gameId === "omok" && opts.ruleMode) attachOmokRuleMode(room, opts.ruleMode);

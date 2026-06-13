@@ -11,6 +11,8 @@ type Props = {
   height: number;
   left: SpotShape[];
   right: SpotShape[];
+  imageLeft?: string;
+  imageRight?: string;
   found: FoundMark[];
   hintFlash?: { x: number; y: number } | null;
   disabled?: boolean;
@@ -62,17 +64,11 @@ function drawShape(ctx: CanvasRenderingContext2D, s: SpotShape) {
   ctx.restore();
 }
 
-function drawScene(
+function drawOverlays(
   ctx: CanvasRenderingContext2D,
-  shapes: SpotShape[],
   found: FoundMark[],
-  hintFlash: { x: number; y: number } | null | undefined,
-  w: number,
-  h: number
+  hintFlash: { x: number; y: number } | null | undefined
 ) {
-  ctx.clearRect(0, 0, w, h);
-  for (const s of shapes) drawShape(ctx, s);
-
   for (const f of found) {
     ctx.beginPath();
     ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
@@ -82,7 +78,6 @@ function drawScene(
     ctx.fillStyle = "rgba(34,197,94,0.15)";
     ctx.fill();
   }
-
   if (hintFlash) {
     ctx.beginPath();
     ctx.arc(hintFlash.x, hintFlash.y, 32, 0, Math.PI * 2);
@@ -96,8 +91,27 @@ function drawScene(
   }
 }
 
+function drawScene(
+  ctx: CanvasRenderingContext2D,
+  shapes: SpotShape[],
+  found: FoundMark[],
+  hintFlash: { x: number; y: number } | null | undefined,
+  w: number,
+  h: number,
+  image?: HTMLImageElement | null
+) {
+  ctx.clearRect(0, 0, w, h);
+  if (image?.complete) {
+    ctx.drawImage(image, 0, 0, w, h);
+  } else {
+    for (const s of shapes) drawShape(ctx, s);
+  }
+  drawOverlays(ctx, found, hintFlash);
+}
+
 function SceneCanvas({
   shapes,
+  imageUrl,
   found,
   hintFlash,
   width,
@@ -108,6 +122,7 @@ function SceneCanvas({
   onTap,
 }: {
   shapes: SpotShape[];
+  imageUrl?: string;
   found: FoundMark[];
   hintFlash?: { x: number; y: number } | null;
   width: number;
@@ -119,6 +134,17 @@ function SceneCanvas({
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const [img, setImg] = useState<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    if (!imageUrl) {
+      setImg(null);
+      return;
+    }
+    const el = new Image();
+    el.onload = () => setImg(el);
+    el.src = imageUrl;
+  }, [imageUrl]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -138,8 +164,8 @@ function SceneCanvas({
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.scale(cssW / width, cssH / height);
-    drawScene(ctx, shapes, found, hintFlash, width, height);
-  }, [found, height, hintFlash, shapes, width]);
+    drawScene(ctx, shapes, found, hintFlash, width, height, imageUrl ? img : null);
+  }, [found, height, hintFlash, imageUrl, img, shapes, width]);
 
   useEffect(() => {
     draw();
@@ -182,6 +208,8 @@ export function SpotDiffBoard({
   height,
   left,
   right,
+  imageLeft,
+  imageRight,
   found,
   hintFlash,
   disabled,
@@ -263,6 +291,7 @@ export function SpotDiffBoard({
             <p className="text-[10px] font-medium text-center mb-1 text-muted-foreground">왼쪽</p>
             <SceneCanvas
               shapes={left}
+              imageUrl={imageLeft}
               found={found}
               hintFlash={hintFlash}
               width={width}
@@ -277,6 +306,7 @@ export function SpotDiffBoard({
             <p className="text-[10px] font-medium text-center mb-1 text-muted-foreground">오른쪽</p>
             <SceneCanvas
               shapes={right}
+              imageUrl={imageRight}
               found={found}
               hintFlash={hintFlash}
               width={width}

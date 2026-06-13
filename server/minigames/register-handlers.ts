@@ -42,6 +42,7 @@ export function registerMinigameHandlers(
         ruleMode?: "free" | "renju";
         timeControl?: string;
         spectatorChat?: boolean;
+        spotDiffPlayStyle?: "normal" | "infinite";
       },
       ack?: (r: unknown) => void
     ) => {
@@ -63,6 +64,7 @@ export function registerMinigameHandlers(
         ruleMode: data.ruleMode,
         timeControl: data.timeControl,
         spectatorChat: data.spectatorChat,
+        spotDiffPlayStyle: data.spotDiffPlayStyle,
       });
       if (!result.ok) {
         ack?.(result);
