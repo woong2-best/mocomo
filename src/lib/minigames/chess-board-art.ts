@@ -11,4 +11,4 @@ export const CHESS_TARGET_EMPTY = "rgba(0, 0, 0, 0.18)";
 export const CHESS_TARGET_CAPTURE = "rgba(232, 17, 35, 0.75)";
 
 export const CHESS_BOARD_MAX_PX = 480;
-export const CHESS_PIECE_SCALE = 0.92;
+export const CHESS_PIECE_SCALE = 0.94;
