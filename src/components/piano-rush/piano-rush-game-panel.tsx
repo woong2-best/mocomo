@@ -12,7 +12,14 @@ import {
   type PianoRushMode,
   type PianoRushMove,
 } from "@/lib/minigames/piano-rush-logic";
-import { playAttackReceived, playJudgeSound, startChartMelody, stopChartMelody } from "@/lib/minigames/piano-rush-sounds";
+import {
+  playAttackReceived,
+  playJudgeSound,
+  preloadChartTrack,
+  startChartMelody,
+  startChartTrack,
+  stopAllChartAudio,
+} from "@/lib/minigames/piano-rush-sounds";
 import type { MinigamePlayerPublic } from "@/lib/minigames/shared-types";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +43,9 @@ type Props = {
   bpm: number;
   durationMs: number;
   notes: PianoChartNote[];
+  audioUrl?: string;
+  audioOffsetMs?: number;
+  license?: string;
   mode: PianoRushMode;
   phase: "countdown" | "playing" | "finished";
   startedAt: number;
@@ -60,7 +70,11 @@ export function PianoRushGamePanel({
   category,
   difficulty,
   bpm,
+  durationMs,
   notes,
+  audioUrl,
+  audioOffsetMs,
+  license,
   mode,
   phase,
   startedAt,
@@ -92,16 +106,30 @@ export function PianoRushGamePanel({
   }, [lastFeedback, userId]);
 
   useEffect(() => {
-    if (phase !== "playing" || finished || isSpectator) {
-      stopChartMelody();
+    if (audioUrl && (phase === "countdown" || phase === "playing")) {
+      preloadChartTrack(audioUrl);
+    }
+  }, [audioUrl, phase]);
+
+  useEffect(() => {
+    if (phase !== "playing" || finished) {
+      stopAllChartAudio();
+      return;
+    }
+    if (audioUrl) {
+      const stop = startChartTrack({ audioUrl, audioOffsetMs }, startedAt);
+      return () => stop();
+    }
+    if (isSpectator) {
+      stopAllChartAudio();
       return;
     }
     const stop = startChartMelody(notes, startedAt);
-    return () => {
-      stop();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 멜로디는 곡 시작 시 1회만 스케줄
-  }, [phase, startedAt, finished, isSpectator]);
+    return () => stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 멜로디/트랙은 곡 시작 시 1회만
+  }, [phase, startedAt, finished, isSpectator, audioUrl, audioOffsetMs]);
+
+  useEffect(() => () => stopAllChartAudio(), []);
 
   async function sendMove(move: PianoRushMove) {
     if (!canPlay || placing) return;
@@ -133,7 +161,8 @@ export function PianoRushGamePanel({
             <p className="font-semibold text-violet-100">{chartTitle}</p>
             <p className="text-xs text-muted-foreground">
               {chartArtist} · {PIANO_CATEGORY_LABELS[category as keyof typeof PIANO_CATEGORY_LABELS] ?? category} ·{" "}
-              {difficulty} · {bpm} BPM · PD 클래식
+              {difficulty} · {bpm} BPM
+              {audioUrl ? ` · ${license ?? "CC PD"}` : " · 합성음"}
             </p>
           </div>
           <span className="rounded-md bg-violet-600/30 px-2 py-0.5 text-xs font-medium text-violet-200">

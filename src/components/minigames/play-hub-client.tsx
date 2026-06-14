@@ -36,7 +36,7 @@ export function PlayHubClient({ gameId }: { gameId: string }) {
   const [pianoPassword, setPianoPassword] = useState("1234");
   const [infError, setInfError] = useState<string | null>(null);
   const [pianoError, setPianoError] = useState<string | null>(null);
-  const [pianoChartId, setPianoChartId] = useState("twinkle-star");
+  const [pianoChartId, setPianoChartId] = useState("pd-nocturne-eb-op9-2");
 
   if (!game || game.status === "coming_soon" || !game.href) notFound();
 

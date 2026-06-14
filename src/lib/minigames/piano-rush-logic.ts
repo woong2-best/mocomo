@@ -46,6 +46,11 @@ export type PianoChart = {
   bpm: number;
   durationMs: number;
   notes: PianoChartNote[];
+  /** MP3 등 실제 연주 음원 (없으면 Web Audio 합성) */
+  audioUrl?: string;
+  /** 곡 파일 내 재생 시작 위치(ms) — 인트로 스킵 */
+  audioOffsetMs?: number;
+  license?: string;
 };
 
 export type PianoPlayerStats = {

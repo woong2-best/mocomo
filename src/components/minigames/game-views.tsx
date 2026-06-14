@@ -281,6 +281,9 @@ export function GameActiveView({ gameId, state, userId, isSpectator, onMove, err
           bpm={(g.bpm as number) ?? 120}
           durationMs={(g.durationMs as number) ?? 60000}
           notes={(g.notes as PianoChartNote[]) ?? []}
+          audioUrl={g.audioUrl as string | undefined}
+          audioOffsetMs={(g.audioOffsetMs as number) ?? 0}
+          license={g.license as string | undefined}
           mode={(g.mode as PianoRushMode) ?? "duel"}
           phase={(g.phase as "countdown" | "playing" | "finished") ?? "countdown"}
           startedAt={(g.startedAt as number) ?? Date.now()}
