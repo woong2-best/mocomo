@@ -2,10 +2,22 @@
 
 import { useMemo, useState } from "react";
 import { Chess, type Square } from "chess.js";
+import { ChessPieceSvg } from "@/components/chess/chess-piece-svg";
+import {
+  CHESS_BOARD_MAX_PX,
+  CHESS_CHECK,
+  CHESS_DARK,
+  CHESS_FRAME,
+  CHESS_FRAME_INNER,
+  CHESS_LAST_MOVE,
+  CHESS_LIGHT,
+  CHESS_PIECE_SCALE,
+  CHESS_SELECTED,
+  CHESS_TARGET_EMPTY,
+} from "@/lib/minigames/chess-board-art";
 import {
   getLegalTargets,
   isPromotionMove,
-  pieceUnicode,
   type ChessMoveInput,
   type ChessPromotion,
 } from "@/lib/minigames/chess-logic";
@@ -121,12 +133,15 @@ export function ChessBoard({
     submitMove(selected, sq);
   }
 
+  const squareSize = `calc(min(${CHESS_BOARD_MAX_PX}px, 92vw) / 8)`;
+
   const grid = (
     <div
       className={cn(
-        "grid grid-cols-8 border-2 border-amber-900/40 rounded-lg overflow-hidden shadow-lg",
-        (disabled || placing) && "opacity-90"
+        "grid grid-cols-8 overflow-hidden rounded-[3px]",
+        (disabled || placing) && "opacity-95"
       )}
+      style={{ width: `calc(${squareSize} * 8)` }}
     >
       {Array.from({ length: 8 }, (_, rank) =>
         Array.from({ length: 8 }, (_, file) => {
@@ -153,38 +168,63 @@ export function ChessBoard({
                 }
               }}
               className={cn(
-                "relative w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center text-2xl select-none touch-none",
-                light ? "bg-amber-100" : "bg-amber-700/45",
-                isSelected && "ring-2 ring-inset ring-orange-500",
-                isLast && "bg-emerald-200/60",
-                isKingCheck && "bg-red-300/70 ring-2 ring-red-600"
+                "relative flex items-center justify-center select-none touch-none transition-colors duration-75",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-inset"
               )}
+              style={{
+                width: squareSize,
+                height: squareSize,
+                backgroundColor: light ? CHESS_LIGHT : CHESS_DARK,
+                boxShadow: isSelected
+                  ? `inset 0 0 0 999px ${CHESS_SELECTED}`
+                  : isLast
+                    ? `inset 0 0 0 999px ${CHESS_LAST_MOVE}`
+                    : isKingCheck
+                      ? `inset 0 0 0 999px ${CHESS_CHECK}`
+                      : undefined,
+              }}
             >
-              {showCoordinates && (
+              {showCoordinates && file === 0 && (
                 <span
-                  className={cn(
-                    "absolute bottom-0.5 right-0.5 text-[9px] font-mono leading-none pointer-events-none",
-                    light ? "text-amber-800/55" : "text-amber-100/70"
-                  )}
+                  className="absolute top-0.5 left-0.5 text-[10px] font-semibold leading-none pointer-events-none"
+                  style={{ color: light ? "rgba(60,80,40,0.55)" : "rgba(255,255,255,0.5)" }}
                 >
-                  {sq}
+                  {rankLabel(rank, flip)}
                 </span>
               )}
-              {cell ? (
+              {showCoordinates && rank === 7 && (
                 <span
-                  className={cn(
-                    "leading-none drop-shadow-sm",
-                    cell.color === "w" ? "text-neutral-100" : "text-neutral-900"
-                  )}
+                  className="absolute bottom-0.5 right-0.5 text-[10px] font-semibold leading-none pointer-events-none"
+                  style={{ color: light ? "rgba(60,80,40,0.55)" : "rgba(255,255,255,0.5)" }}
                 >
-                  {pieceUnicode(cell.color, cell.type)}
+                  {fileLabel(file, flip)}
                 </span>
+              )}
+
+              {cell ? (
+                <ChessPieceSvg
+                  color={cell.color}
+                  type={cell.type}
+                  className="pointer-events-none"
+                  style={{
+                    width: `${CHESS_PIECE_SCALE * 100}%`,
+                    height: `${CHESS_PIECE_SCALE * 100}%`,
+                  }}
+                />
               ) : null}
+
               {isTarget && !cell && (
-                <span className="absolute w-3 h-3 rounded-full bg-emerald-600/50" />
+                <span
+                  className="absolute rounded-full pointer-events-none"
+                  style={{
+                    width: "28%",
+                    height: "28%",
+                    backgroundColor: CHESS_TARGET_EMPTY,
+                  }}
+                />
               )}
               {isTarget && cell && (
-                <span className="absolute inset-1 rounded-full ring-2 ring-red-500/70" />
+                <span className="absolute inset-[8%] rounded-full pointer-events-none ring-[3px] ring-red-600/80 ring-inset" />
               )}
             </button>
           );
@@ -193,38 +233,21 @@ export function ChessBoard({
     </div>
   );
 
-  if (!showCoordinates) {
-    return (
-      <div className="relative mx-auto w-fit">
-        {grid}
-        {pending && <PromotionModal pending={pending} onPick={submitMove} onCancel={() => setPending(null)} />}
-      </div>
-    );
-  }
+  const boardFrame = (
+    <div
+      className="rounded-xl p-[6px] shadow-2xl"
+      style={{
+        background: `linear-gradient(145deg, ${CHESS_FRAME_INNER} 0%, ${CHESS_FRAME} 50%, #2d2118 100%)`,
+        boxShadow: "0 12px 40px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.12)",
+      }}
+    >
+      <div className="rounded-md p-[3px] bg-[#2a1f16]">{grid}</div>
+    </div>
+  );
 
   return (
-    <div className="relative mx-auto w-fit">
-      <div className="flex items-stretch gap-1">
-        <div className="flex flex-col justify-around py-0.5 text-[10px] font-mono text-muted-foreground w-4">
-          {Array.from({ length: 8 }, (_, r) => (
-            <span key={r} className="h-10 sm:h-11 flex items-center justify-center">
-              {rankLabel(r, flip)}
-            </span>
-          ))}
-        </div>
-        {grid}
-      </div>
-      <div className="flex pl-5 mt-1">
-        {Array.from({ length: 8 }, (_, f) => (
-          <span
-            key={f}
-            className="w-10 sm:w-11 text-center text-[10px] font-mono text-muted-foreground"
-          >
-            {fileLabel(f, flip)}
-          </span>
-        ))}
-      </div>
-
+    <div className="relative mx-auto w-fit max-w-full">
+      {boardFrame}
       {pending && <PromotionModal pending={pending} onPick={submitMove} onCancel={() => setPending(null)} />}
     </div>
   );
@@ -240,7 +263,7 @@ function PromotionModal({
   onCancel: () => void;
 }) {
   return (
-    <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 rounded-lg">
+    <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 rounded-xl backdrop-blur-[2px]">
       <div className="bg-background border rounded-xl p-4 shadow-xl space-y-3 min-w-[200px]">
         <p className="text-sm font-semibold text-center">프로모션 — 기물 선택</p>
         <div className="grid grid-cols-2 gap-2">

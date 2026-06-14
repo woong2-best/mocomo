@@ -67,7 +67,7 @@ export function ChessGamePanel({
   const iAmWhite = userId === whiteUserId;
   const iAmBlack = userId === blackUserId;
   const iAmPlayer = iAmWhite || iAmBlack;
-  const orientation = iAmWhite ? "white" : "black";
+  const orientation = iAmWhite ? "white" : iAmBlack ? "black" : "white";
   const turnName = turnUserId ? playerName(players, turnUserId) : "—";
   const pct = turnLimit > 0 ? Math.min(100, (timeLeft / turnLimit) * 100) : 0;
   const urgent = useTurnTimer && timeLeft <= 10 && !finished;
