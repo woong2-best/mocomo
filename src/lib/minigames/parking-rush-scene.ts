@@ -391,17 +391,13 @@ export class ParkingRushScene {
       MIDDLE: THREE.MOUSE.DOLLY,
       RIGHT: THREE.MOUSE.ROTATE,
     };
-    this.controls.enabled = false;
     this.renderer.domElement.style.cursor = "grab";
     this.controls.addEventListener("start", () => {
-      if (!this.freeCamera) {
-        this.userOrbiting = true;
-        this.controls.enabled = true;
-      }
+      if (!this.freeCamera) this.userOrbiting = true;
       this.renderer.domElement.style.cursor = "grabbing";
     });
     this.controls.addEventListener("end", () => {
-      if (!this.freeCamera) this.orbitIdleUntil = Date.now() + 2500;
+      if (!this.freeCamera) this.orbitIdleUntil = Date.now() + 4500;
       this.renderer.domElement.style.cursor = "grab";
     });
 
@@ -519,7 +515,6 @@ export class ParkingRushScene {
 
   setFreeCamera(free: boolean) {
     this.freeCamera = free;
-    this.controls.enabled = free;
     if (free) {
       this.userOrbiting = false;
       this.orbitIdleUntil = 0;
@@ -529,7 +524,6 @@ export class ParkingRushScene {
   resetCamera() {
     this.userOrbiting = false;
     this.orbitIdleUntil = 0;
-    this.controls.enabled = false;
   }
 
   setZoom(delta: number) {
@@ -584,18 +578,13 @@ export class ParkingRushScene {
     }
   }
 
-  private updateCamera(local: SceneCar | undefined) {
-    if (!local) return;
+  private updateCamera(local: SceneCar | undefined): "chase" | "orbit" | "none" {
+    if (!local) return "none";
 
     const interp = this.carInterp.get(local.userId);
-    if (!interp) return;
+    if (!interp) return "none";
 
     const speed = Math.abs(interp.speed);
-    if (!this.freeCamera && speed > 0.12) {
-      this.userOrbiting = false;
-      this.orbitIdleUntil = 0;
-    }
-
     const lookAhead = Math.min(5, speed * 0.65);
     const fx = Math.cos(interp.angle);
     const fz = Math.sin(interp.angle);
@@ -606,19 +595,17 @@ export class ParkingRushScene {
     );
 
     if (this.freeCamera) {
-      this.controls.enabled = true;
       this.controls.target.lerp(target, 0.12);
-      return;
+      return "orbit";
     }
 
     const inOrbitMode = this.userOrbiting || Date.now() < this.orbitIdleUntil;
     if (inOrbitMode) {
-      this.controls.enabled = true;
       this.controls.target.lerp(target, 0.22);
-      return;
+      return "orbit";
     }
 
-    this.controls.enabled = false;
+    // 추적 카메라 — OrbitControls.update()는 호출하지 않음 (위치 덮어쓰기 방지)
     this.controls.target.copy(target);
 
     const height = 4.8 + speed * 0.14;
@@ -638,6 +625,7 @@ export class ParkingRushScene {
     this.camera.lookAt(target);
     this.camera.fov = this.baseFov + speed * 0.85;
     this.camera.updateProjectionMatrix();
+    return "chase";
   }
 
   private onResize = () => {
@@ -687,14 +675,18 @@ export class ParkingRushScene {
       applyCarLights(mesh, { ...c, car: { ...c.car, speed: interp.speed } }, this.tick);
     }
 
+    let cameraMode: "chase" | "orbit" | "none" = "none";
     if (localCar) {
       const interp = this.carInterp.get(localCar.userId);
       if (interp) {
-        this.updateCamera({ ...localCar, car: { ...localCar.car, x: interp.x, y: interp.y, angle: interp.angle, speed: interp.speed } });
+        cameraMode = this.updateCamera({
+          ...localCar,
+          car: { ...localCar.car, x: interp.x, y: interp.y, angle: interp.angle, speed: interp.speed },
+        });
       }
     }
 
-    if (this.controls.enabled) {
+    if (cameraMode === "orbit") {
       this.controls.update();
     }
     this.renderer.render(this.scene, this.camera);
