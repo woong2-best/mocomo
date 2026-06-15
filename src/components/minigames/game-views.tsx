@@ -313,6 +313,7 @@ export function GameActiveView({ gameId, state, userId, isSpectator, onMove, err
           walls={(g.walls as unknown[]) ?? []}
           obstacles={(g.obstacles as unknown[]) ?? []}
           parkingSpots={(g.parkingSpots as unknown[]) ?? []}
+          bounds={(g.bounds as { x: number; y: number; w: number; h: number }) ?? undefined}
           groundColor={(g.groundColor as string) ?? "#2a3444"}
           accentColor={(g.accentColor as string) ?? "#22d3ee"}
           stats={(g.stats as Record<string, ParkingRushPlayerStats>) ?? {}}

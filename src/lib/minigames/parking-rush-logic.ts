@@ -266,7 +266,7 @@ export const RANK_TIER_LABELS: Record<RankTier, string> = {
 };
 
 export const MAP_TYPE_LABELS: Record<MapType, string> = {
-  parking_lot: "주차장",
+  parking_lot: "미국식 야외 주차장",
   mart: "대형마트",
   apartment: "아파트",
   downtown: "도심",

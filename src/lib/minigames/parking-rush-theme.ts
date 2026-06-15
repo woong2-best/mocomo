@@ -20,21 +20,21 @@ export type ParkingMapTheme = {
 
 export const PARKING_MAP_THEMES: Record<MapType, ParkingMapTheme> = {
   parking_lot: {
-    skyTop: "#0c1222",
-    skyBottom: "#1e293b",
-    fog: "#0f172a",
-    fogNear: 28,
-    fogFar: 95,
-    ambient: 0.42,
+    skyTop: "#2563eb",
+    skyBottom: "#93c5fd",
+    fog: "#bae6fd",
+    fogNear: 48,
+    fogFar: 130,
+    ambient: 0.58,
     hemiSky: 0x7dd3fc,
-    hemiGround: 0x1e293b,
-    sunColor: 0xffe4b5,
-    sunIntensity: 0.75,
-    sunPos: [18, 32, 12],
-    lampColor: 0xfde68a,
-    lampIntensity: 0.55,
-    neon: "#22d3ee",
-    gridColor: "#164e63",
+    hemiGround: 0x57534e,
+    sunColor: 0xfff7ed,
+    sunIntensity: 1.08,
+    sunPos: [38, 58, 28],
+    lampColor: 0xfef9c3,
+    lampIntensity: 0.28,
+    neon: "#facc15",
+    gridColor: "#52525b",
   },
   mart: {
     skyTop: "#1a1033",
@@ -205,6 +205,78 @@ export function createAsphaltTexture(
   ctx.moveTo(256, 0);
   ctx.lineTo(256, 512);
   ctx.stroke();
+
+  return canvas;
+}
+
+/** US big-box outdoor lot: yellow aisle lines + white stall marks */
+export function createUsAsphaltTexture(
+  baseColor: string,
+  yellowLine: string,
+  width: number,
+  height: number
+): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext("2d")!;
+
+  ctx.fillStyle = baseColor;
+  ctx.fillRect(0, 0, 512, 512);
+
+  for (let i = 0; i < 12000; i++) {
+    const g = 28 + Math.floor(Math.random() * 28);
+    ctx.fillStyle = `rgba(${g},${g + 2},${g},0.06)`;
+    ctx.fillRect(Math.random() * 512, Math.random() * 512, 1 + Math.random() * 3, 1 + Math.random() * 2);
+  }
+
+  const cols = Math.max(6, Math.round(width / 5));
+  const rows = Math.max(8, Math.round(height / 6.5));
+  const cellW = 512 / cols;
+  const cellH = 512 / rows;
+
+  ctx.strokeStyle = "#f8fafc";
+  ctx.globalAlpha = 0.42;
+  ctx.lineWidth = 2;
+  for (let c = 0; c <= cols; c++) {
+    ctx.beginPath();
+    ctx.moveTo(c * cellW, 0);
+    ctx.lineTo(c * cellW, 512);
+    ctx.stroke();
+  }
+  for (let r = 0; r <= rows; r++) {
+    ctx.beginPath();
+    ctx.moveTo(0, r * cellH);
+    ctx.lineTo(512, r * cellH);
+    ctx.stroke();
+  }
+
+  ctx.globalAlpha = 0.75;
+  ctx.setLineDash([]);
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = yellowLine;
+  ctx.beginPath();
+  ctx.moveTo(256, 0);
+  ctx.lineTo(256, 512);
+  ctx.stroke();
+
+  ctx.setLineDash([22, 16]);
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(128, 0);
+  ctx.lineTo(128, 512);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(384, 0);
+  ctx.lineTo(384, 512);
+  ctx.stroke();
+
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 0.35;
+  ctx.fillStyle = "#2563eb";
+  for (let i = 0; i < 4; i++) {
+    ctx.fillRect(24 + i * cellW * 1.2, 512 - cellH * 1.1, cellW * 0.55, cellH * 0.35);
+  }
 
   return canvas;
 }

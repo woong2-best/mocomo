@@ -4,7 +4,8 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { CarState, MapType, Obstacle, ParkingInput, ParkingLevel, ParkingSpot, VehicleTypeId } from "./parking-rush-logic";
 import { VEHICLE_SPECS } from "./parking-rush-logic";
-import { createAsphaltTexture, PARKING_MAP_THEMES, type ParkingMapTheme } from "./parking-rush-theme";
+import { createAsphaltTexture, createUsAsphaltTexture, PARKING_MAP_THEMES, type ParkingMapTheme } from "./parking-rush-theme";
+import { addUsSky, buildUsMegaLotEnvironment } from "./parking-rush-scene-environment";
 
 export type SceneCar = {
   userId: string;
@@ -159,7 +160,7 @@ function lowPolyCar(spec: (typeof VEHICLE_SPECS)[VehicleTypeId], color: string, 
     g.add(glow);
   }
 
-  (g.userData as { lights: CarLightRefs; bodyColor: string; wheels: THREE.Mesh[] }).lights = {
+  (g.userData as { lights: CarLightRefs; bodyColor: string; wheels: THREE.Mesh[]; frontWheels?: THREE.Mesh[] }).lights = {
     body: bodyMat,
     headL,
     headR,
@@ -169,8 +170,9 @@ function lowPolyCar(spec: (typeof VEHICLE_SPECS)[VehicleTypeId], color: string, 
     signalR,
     glow,
   };
-  (g.userData as { bodyColor: string; wheels: THREE.Mesh[] }).bodyColor = color;
-  (g.userData as { wheels: THREE.Mesh[] }).wheels = wheels;
+  (g.userData as { bodyColor: string; wheels: THREE.Mesh[]; frontWheels?: THREE.Mesh[] }).bodyColor = color;
+  (g.userData as { wheels: THREE.Mesh[]; frontWheels?: THREE.Mesh[] }).wheels = wheels;
+  (g.userData as { frontWheels?: THREE.Mesh[] }).frontWheels = [wheels[0]!, wheels[1]!];
 
   return g;
 }
@@ -337,6 +339,8 @@ export class ParkingRushScene {
   private hemi: THREE.HemisphereLight;
   private localUserId: string | null = null;
   private freeCamera = false;
+  private userOrbiting = false;
+  private orbitIdleUntil = 0;
   private cameraOffset = new THREE.Vector3(0, 5.5, 9.5);
   private zoom = 1;
   private lastCars: SceneCar[] = [];
@@ -378,6 +382,21 @@ export class ParkingRushScene {
     this.controls.minDistance = 4;
     this.controls.maxDistance = 42;
     this.controls.enablePan = false;
+    this.controls.enableRotate = true;
+    this.controls.mouseButtons = {
+      LEFT: THREE.MOUSE.ROTATE,
+      MIDDLE: THREE.MOUSE.DOLLY,
+      RIGHT: THREE.MOUSE.ROTATE,
+    };
+    this.renderer.domElement.style.cursor = "grab";
+    this.controls.addEventListener("start", () => {
+      if (!this.freeCamera) this.userOrbiting = true;
+      this.renderer.domElement.style.cursor = "grabbing";
+    });
+    this.controls.addEventListener("end", () => {
+      if (!this.freeCamera) this.orbitIdleUntil = Date.now() + 4500;
+      this.renderer.domElement.style.cursor = "grab";
+    });
 
     this.amb = new THREE.AmbientLight(0xffffff, 0.42);
     this.hemi = new THREE.HemisphereLight(0x7dd3fc, 0x1e293b, 0.35);
@@ -423,9 +442,12 @@ export class ParkingRushScene {
 
     const mapType = level.mapType as MapType;
     const theme = PARKING_MAP_THEMES[mapType] ?? PARKING_MAP_THEMES.parking_lot;
+    const isUsLot = mapType === "parking_lot";
     this.applyTheme(theme);
 
-    const asphaltCanvas = createAsphaltTexture(level.groundColor, theme.neon, level.bounds.w, level.bounds.h);
+    const asphaltCanvas = isUsLot
+      ? createUsAsphaltTexture(level.groundColor, theme.neon, level.bounds.w, level.bounds.h)
+      : createAsphaltTexture(level.groundColor, theme.neon, level.bounds.w, level.bounds.h);
     this.asphaltTex = new THREE.CanvasTexture(asphaltCanvas);
     this.asphaltTex.wrapS = THREE.RepeatWrapping;
     this.asphaltTex.wrapT = THREE.RepeatWrapping;
@@ -444,23 +466,43 @@ export class ParkingRushScene {
     ground.receiveShadow = true;
     this.levelGroup.add(ground);
 
-    const grid = new THREE.GridHelper(
-      Math.max(level.bounds.w, level.bounds.h),
-      24,
-      theme.neon,
-      theme.gridColor
-    );
-    grid.position.set(level.bounds.w / 2, 0.015, level.bounds.h / 2);
-    (grid.material as THREE.Material).transparent = true;
-    (grid.material as THREE.Material).opacity = 0.22;
-    this.levelGroup.add(grid);
+    if (!isUsLot) {
+      const grid = new THREE.GridHelper(
+        Math.max(level.bounds.w, level.bounds.h),
+        24,
+        theme.neon,
+        theme.gridColor
+      );
+      grid.position.set(level.bounds.w / 2, 0.015, level.bounds.h / 2);
+      (grid.material as THREE.Material).transparent = true;
+      (grid.material as THREE.Material).opacity = 0.22;
+      this.levelGroup.add(grid);
+    }
 
     for (const w of level.walls) addObstacleMesh(this.levelGroup, w);
     for (const o of level.obstacles) addObstacleMesh(this.levelGroup, o);
-    for (const s of level.parkingSpots) addSpotMesh(this.levelGroup, s, s.id === localSpotId, theme.neon);
 
-    addStreetLamps(this.levelGroup, level, theme);
-    addSkyBackdrop(this.levelGroup, level, theme);
+    if (isUsLot) {
+      buildUsMegaLotEnvironment(this.levelGroup, level, theme, localSpotId);
+      addUsSky(this.levelGroup, level, theme);
+    } else {
+      for (const s of level.parkingSpots) addSpotMesh(this.levelGroup, s, s.id === localSpotId, theme.neon);
+      addStreetLamps(this.levelGroup, level, theme);
+      addSkyBackdrop(this.levelGroup, level, theme);
+    }
+
+    const lotSize = Math.max(level.bounds.w, level.bounds.h);
+    this.controls.maxDistance = lotSize * 0.85;
+    this.sun.shadow.camera.left = -lotSize * 0.55;
+    this.sun.shadow.camera.right = lotSize * 0.55;
+    this.sun.shadow.camera.top = lotSize * 0.55;
+    this.sun.shadow.camera.bottom = -lotSize * 0.55;
+    this.sun.shadow.camera.far = lotSize * 1.4;
+    this.sun.position.set(
+      theme.sunPos[0] + level.bounds.w * 0.15,
+      theme.sunPos[1],
+      theme.sunPos[2] + level.bounds.h * 0.1
+    );
   }
 
   setLocalUser(userId: string | null) {
@@ -469,7 +511,15 @@ export class ParkingRushScene {
 
   setFreeCamera(free: boolean) {
     this.freeCamera = free;
-    this.controls.enableRotate = free;
+    if (free) {
+      this.userOrbiting = false;
+      this.orbitIdleUntil = 0;
+    }
+  }
+
+  resetCamera() {
+    this.userOrbiting = false;
+    this.orbitIdleUntil = 0;
   }
 
   setZoom(delta: number) {
@@ -525,7 +575,7 @@ export class ParkingRushScene {
   }
 
   private updateCamera(local: SceneCar | undefined) {
-    if (!local || this.freeCamera) return;
+    if (!local) return;
 
     const interp = this.carInterp.get(local.userId);
     if (!interp) return;
@@ -537,6 +587,12 @@ export class ParkingRushScene {
       0,
       worldZ(interp.y) + Math.sin(interp.angle) * lookAhead
     );
+    this.controls.target.lerp(target, 0.18);
+
+    if (this.freeCamera) return;
+
+    const inOrbitMode = this.userOrbiting || Date.now() < this.orbitIdleUntil;
+    if (inOrbitMode) return;
 
     const height = 5 + speed * 0.12;
     const dist = (9 + speed * 0.08) * this.zoom;
@@ -550,7 +606,6 @@ export class ParkingRushScene {
     camPos.y += shakeY;
 
     this.camera.position.lerp(camPos, 0.14);
-    this.controls.target.lerp(target, 0.16);
     this.camera.fov = this.baseFov + speed * 1.2;
     this.camera.updateProjectionMatrix();
   }
@@ -591,6 +646,12 @@ export class ParkingRushScene {
       if (wheels) {
         const spin = interp.speed * 0.35;
         for (const w of wheels) w.rotation.x += spin;
+      }
+
+      const frontWheels = (mesh.userData as { frontWheels?: THREE.Mesh[] }).frontWheels;
+      if (frontWheels) {
+        const steerAngle = c.car.steer * 0.85;
+        for (const fw of frontWheels) fw.rotation.y = steerAngle;
       }
 
       applyCarLights(mesh, { ...c, car: { ...c.car, speed: interp.speed } }, this.tick);

@@ -17,6 +17,19 @@ const KEYS = {
   right: ["d", "arrowright"],
 };
 
+const KEY_HELP = [
+  { key: "W", label: "전진", color: "text-emerald-300" },
+  { key: "S", label: "후진", color: "text-amber-300" },
+  { key: "A", label: "좌회전", color: "text-sky-300" },
+  { key: "D", label: "우회전", color: "text-sky-300" },
+  { key: "Q", label: "좌 깜박이", color: "text-yellow-300" },
+  { key: "E", label: "우 깜박이", color: "text-yellow-300" },
+  { key: "X", label: "비상등", color: "text-orange-300" },
+  { key: "Space", label: "핸드브레이크", color: "text-red-300" },
+  { key: "H", label: "경적", color: "text-amber-200" },
+  { key: "C", label: "카메라 리셋", color: "text-blue-300" },
+] as const;
+
 export function ParkingRushControls({ disabled, onInput }: Props) {
   const held = useRef({ forward: false, back: false, left: false, right: false, handbrake: false, horn: false });
   const steerRef = useRef(0);
@@ -56,8 +69,8 @@ export function ParkingRushControls({ disabled, onInput }: Props) {
         e.preventDefault();
       }
       if (k === "h") held.current.horn = true;
-      if (k === "q") setBlinker("left");
-      if (k === "e") setBlinker("right");
+      if (k === "q") setBlinker((b) => (b === "left" ? "off" : "left"));
+      if (k === "e") setBlinker((b) => (b === "right" ? "off" : "right"));
       if (k === "x") setBlinker((b) => (b === "hazard" ? "off" : "hazard"));
     }
     function up(e: KeyboardEvent) {
@@ -121,24 +134,51 @@ export function ParkingRushControls({ disabled, onInput }: Props) {
   const steerVisual = keySteer || mobileSteer;
 
   return (
-    <div className="rounded-2xl border border-cyan-500/20 bg-gradient-to-b from-slate-950/90 to-black/80 p-3 space-y-3">
-      <div className="hidden sm:flex items-center justify-center gap-2 text-[10px] text-white/45 tracking-wide">
-        <kbd className="px-1.5 py-0.5 rounded bg-white/10 border border-white/15">WASD</kbd>
-        <span>운전</span>
-        <kbd className="px-1.5 py-0.5 rounded bg-white/10 border border-white/15">Space</kbd>
-        <span>핸드브레이크</span>
-        <kbd className="px-1.5 py-0.5 rounded bg-white/10 border border-white/15">Q/E/X</kbd>
-        <span>등화</span>
+    <div className="rounded-2xl border border-amber-400/25 bg-gradient-to-b from-slate-900/95 via-stone-900/90 to-black/85 p-3 space-y-3 shadow-[0_8px_32px_rgba(0,0,0,0.45)]">
+      <div className="hidden lg:grid grid-cols-5 sm:grid-cols-5 gap-1.5">
+        {KEY_HELP.map(({ key, label, color }) => (
+          <div
+            key={key}
+            className="flex flex-col items-center rounded-lg border border-white/10 bg-black/35 px-1 py-1.5"
+          >
+            <kbd className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-400/30 text-amber-100">
+              {key}
+            </kbd>
+            <span className={cn("text-[9px] mt-0.5 text-center leading-tight", color)}>{label}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden sm:flex lg:hidden flex-wrap items-center justify-center gap-2 text-[10px] text-white/50">
+        <kbd className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-400/25">W/S</kbd>
+        <span>전진·후진</span>
+        <kbd className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-400/25">A/D</kbd>
+        <span>조향</span>
+        <kbd className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-400/25">Q/E</kbd>
+        <span>깜박이</span>
+        <kbd className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-400/25">드래그</kbd>
+        <span>시점</span>
       </div>
 
       <div className="flex flex-wrap justify-center gap-2">
-        <LightBtn active={blinker === "left"} onClick={() => setBlinker((b) => (b === "left" ? "off" : "left"))} icon={<ChevronLeft className="h-4 w-4" />} />
         <LightBtn
+          label="Q"
+          active={blinker === "left"}
+          onClick={() => setBlinker((b) => (b === "left" ? "off" : "left"))}
+          icon={<ChevronLeft className="h-4 w-4" />}
+        />
+        <LightBtn
+          label="X"
           active={blinker === "hazard"}
           onClick={() => setBlinker((b) => (b === "hazard" ? "off" : "hazard"))}
           icon={<AlertTriangle className="h-3.5 w-3.5" />}
         />
-        <LightBtn active={blinker === "right"} onClick={() => setBlinker((b) => (b === "right" ? "off" : "right"))} icon={<ChevronRight className="h-4 w-4" />} />
+        <LightBtn
+          label="E"
+          active={blinker === "right"}
+          onClick={() => setBlinker((b) => (b === "right" ? "off" : "right"))}
+          icon={<ChevronRight className="h-4 w-4" />}
+        />
         <button
           type="button"
           disabled={disabled}
@@ -158,7 +198,8 @@ export function ParkingRushControls({ disabled, onInput }: Props) {
         <SteerWheel active={steerVisual} />
         <div className="flex flex-col gap-2 w-16">
           <Pedal
-            label="D"
+            label="W"
+            sub="전진"
             active={keyForward}
             color="emerald"
             onDown={() => {
@@ -171,7 +212,8 @@ export function ParkingRushControls({ disabled, onInput }: Props) {
             }}
           />
           <Pedal
-            label="R"
+            label="S"
+            sub="후진"
             active={keyBack}
             color="amber"
             onDown={() => {
@@ -209,7 +251,7 @@ export function ParkingRushControls({ disabled, onInput }: Props) {
       <div className="sm:hidden grid grid-cols-3 gap-2 select-none touch-none">
         <div className="col-span-2 flex items-center justify-center">
           <div
-            className="relative w-full max-w-[220px] h-28 rounded-2xl border border-cyan-500/30 bg-black/50 shadow-inner"
+            className="relative w-full max-w-[220px] h-28 rounded-2xl border border-amber-400/30 bg-black/50 shadow-inner"
             onPointerDown={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
               const x = (e.clientX - rect.left) / rect.width;
@@ -226,7 +268,7 @@ export function ParkingRushControls({ disabled, onInput }: Props) {
           >
             <div className="absolute inset-x-4 top-1/2 h-px bg-white/15" />
             <div
-              className="absolute top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-700 border-2 border-white/50 shadow-lg"
+              className="absolute top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-amber-700 border-2 border-white/50 shadow-lg"
               style={{ left: `calc(${((mobileSteer + 1) / 2) * 100}% - 24px)` }}
             />
           </div>
@@ -244,7 +286,7 @@ export function ParkingRushControls({ disabled, onInput }: Props) {
             onPointerUp={() => setAccel(0)}
             onPointerLeave={() => setAccel(0)}
           >
-            D
+            W
           </button>
           <button
             type="button"
@@ -255,7 +297,7 @@ export function ParkingRushControls({ disabled, onInput }: Props) {
             onPointerDown={() => setReverse(true)}
             onPointerUp={() => setReverse(false)}
           >
-            R
+            S
           </button>
           <button
             type="button"
@@ -276,13 +318,13 @@ export function ParkingRushControls({ disabled, onInput }: Props) {
 
 function SteerWheel({ active }: { active: number }) {
   return (
-    <div className="relative h-24 w-24 mx-auto rounded-full border-2 border-white/20 bg-gradient-to-b from-slate-800 to-slate-950 shadow-inner">
+    <div className="relative h-24 w-24 mx-auto rounded-full border-2 border-amber-400/30 bg-gradient-to-b from-stone-700 to-stone-950 shadow-inner">
       <div
         className="absolute inset-2 rounded-full border border-white/10 transition-transform duration-75"
         style={{ transform: `rotate(${active * 45}deg)` }}
       >
-        <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1 h-4 bg-cyan-400 rounded-full" />
-        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-slate-700 border border-white/20" />
+        <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1 h-4 bg-amber-400 rounded-full" />
+        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-stone-800 border border-white/20" />
       </div>
     </div>
   );
@@ -290,12 +332,14 @@ function SteerWheel({ active }: { active: number }) {
 
 function Pedal({
   label,
+  sub,
   active,
   color,
   onDown,
   onUp,
 }: {
   label: string;
+  sub: string;
   active: boolean;
   color: "emerald" | "amber";
   onDown: () => void;
@@ -305,7 +349,7 @@ function Pedal({
     <button
       type="button"
       className={cn(
-        "h-12 rounded-xl font-black text-lg border transition-all active:scale-95",
+        "h-12 rounded-xl font-black border transition-all active:scale-95 flex flex-col items-center justify-center leading-none",
         active
           ? color === "emerald"
             ? "bg-emerald-600 border-emerald-300 text-white shadow-[0_0_18px_rgba(52,211,153,0.35)]"
@@ -316,16 +360,19 @@ function Pedal({
       onPointerUp={onUp}
       onPointerLeave={onUp}
     >
-      {label}
+      <span className="text-lg">{label}</span>
+      <span className="text-[9px] font-normal opacity-70">{sub}</span>
     </button>
   );
 }
 
 function LightBtn({
+  label,
   active,
   onClick,
   icon,
 }: {
+  label?: string;
   active: boolean;
   onClick: () => void;
   icon?: React.ReactNode;
@@ -335,11 +382,12 @@ function LightBtn({
       type="button"
       onClick={onClick}
       className={cn(
-        "rounded-xl px-3 py-2 border min-w-[44px] transition-colors",
-        active ? "bg-amber-500/25 border-amber-400 text-amber-100" : "bg-black/40 border-white/15 text-white/70"
+        "rounded-xl px-3 py-2 border min-w-[44px] transition-colors flex flex-col items-center gap-0.5",
+        active ? "bg-amber-500/30 border-amber-400 text-amber-50 shadow-[0_0_12px_rgba(251,191,36,0.25)]" : "bg-black/40 border-white/15 text-white/70"
       )}
     >
       {icon}
+      {label && <span className="text-[9px] font-bold">{label}</span>}
     </button>
   );
 }

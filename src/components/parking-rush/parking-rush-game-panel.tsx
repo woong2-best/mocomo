@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Car, Crown, MapPin, Pin, Timer, Trophy, Users, ZoomIn, ZoomOut } from "lucide-react";
+import { Car, Crown, MapPin, Pin, RotateCcw, Timer, Trophy, Users, ZoomIn, ZoomOut } from "lucide-react";
 import { ParkingRushControls } from "@/components/parking-rush/parking-rush-controls";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +18,7 @@ import {
 import { ParkingRushScene, type SceneCar } from "@/lib/minigames/parking-rush-scene";
 import type { CarState } from "@/lib/minigames/parking-rush-logic";
 import type { MinigamePlayerPublic } from "@/lib/minigames/shared-types";
+import { cn } from "@/lib/utils";
 
 export type ParkingRushPlayerStats = {
   vehicleId: VehicleTypeId;
@@ -48,6 +49,7 @@ type Props = {
   walls: unknown[];
   obstacles: unknown[];
   parkingSpots: unknown[];
+  bounds?: { x: number; y: number; w: number; h: number };
   groundColor: string;
   accentColor: string;
   stats: Record<string, ParkingRushPlayerStats>;
@@ -75,6 +77,7 @@ export function ParkingRushGamePanel({
   walls,
   obstacles,
   parkingSpots,
+  bounds,
   groundColor,
   accentColor,
   stats,
@@ -103,13 +106,16 @@ export function ParkingRushGamePanel({
     ? Math.round(Math.abs(myStats.car.speed) * (80 / 12))
     : 0;
   const themeNeon =
-    mapType === "underground" || mapType === "rooftop"
-      ? "#fbbf24"
-      : mapType === "mart" || mapType === "airport"
-        ? "#a78bfa"
-        : mapType === "harbor"
-          ? "#38bdf8"
-          : "#22d3ee";
+    mapType === "parking_lot"
+      ? "#facc15"
+      : mapType === "underground" || mapType === "rooftop"
+        ? "#fbbf24"
+        : mapType === "mart" || mapType === "airport"
+          ? "#a78bfa"
+          : mapType === "harbor"
+            ? "#38bdf8"
+            : "#22d3ee";
+  const isUsLot = mapType === "parking_lot";
 
   const pinShowcase = useCallback(async () => {
     if (!myStats) return;
@@ -167,7 +173,7 @@ export function ParkingRushGamePanel({
         mapType: mapType as "parking_lot",
         difficulty: difficulty as "beginner",
         timeLimitMs: 120000,
-        bounds: { x: 0, y: 0, w: 42, h: 58 },
+        bounds: bounds ?? { x: 0, y: 0, w: 42, h: 58 },
         walls: walls as never[],
         obstacles: obstacles as never[],
         parkingSpots: parkingSpots as never[],
@@ -178,7 +184,18 @@ export function ParkingRushGamePanel({
       myStats?.spotId
     );
     levelLoaded.current = true;
-  }, [walls, obstacles, parkingSpots, levelName, mapType, difficulty, groundColor, accentColor, myStats?.spotId]);
+  }, [walls, obstacles, parkingSpots, levelName, mapType, difficulty, groundColor, accentColor, myStats?.spotId, bounds]);
+
+  useEffect(() => {
+    if (isSpectator || !canDrive) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key.toLowerCase() === "c") {
+        sceneRef.current?.resetCamera();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isSpectator, canDrive]);
 
   useEffect(() => {
     const cars: SceneCar[] = playerOrder
@@ -226,10 +243,17 @@ export function ParkingRushGamePanel({
 
   return (
     <div className="space-y-3">
-      <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-slate-950/80 via-cyan-950/20 to-black/60 px-4 py-3 space-y-2">
+      <div
+        className={cn(
+          "rounded-2xl border px-4 py-3 space-y-2",
+          isUsLot
+            ? "border-amber-400/30 bg-gradient-to-br from-sky-950/50 via-stone-900/60 to-amber-950/30"
+            : "border-cyan-500/30 bg-gradient-to-br from-slate-950/80 via-cyan-950/20 to-black/60"
+        )}
+      >
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="flex items-start gap-2 min-w-0">
-            <Car className="h-5 w-5 shrink-0 mt-0.5 text-cyan-300" />
+            <Car className={cn("h-5 w-5 shrink-0 mt-0.5", isUsLot ? "text-amber-300" : "text-cyan-300")} />
             <div className="min-w-0">
               <p className="font-bold text-cyan-50 truncate">{levelName}</p>
               <p className="text-xs text-muted-foreground truncate">
@@ -238,8 +262,13 @@ export function ParkingRushGamePanel({
               </p>
             </div>
           </div>
-          <span className="rounded-lg bg-cyan-600/30 px-2 py-1 text-xs font-bold text-cyan-100 border border-cyan-400/30">
-            주차 러쉬
+          <span
+            className={cn(
+              "rounded-lg px-2 py-1 text-xs font-bold border",
+              isUsLot ? "bg-amber-500/25 text-amber-100 border-amber-400/35" : "bg-cyan-600/30 text-cyan-100 border-cyan-400/30"
+            )}
+          >
+            {isUsLot ? "US Mega Lot" : "주차 러쉬"}
           </span>
         </div>
 
@@ -289,11 +318,15 @@ export function ParkingRushGamePanel({
         )}
       </div>
 
-      {isSpectator && (
+      {isSpectator ? (
         <p className="text-center text-xs text-muted-foreground inline-flex items-center justify-center gap-1">
-          <Users className="h-3 w-3" /> 관전 중 · 자유 시점 3D (드래그 회전)
+          <Users className="h-3 w-3" /> 관전 중 · 마우스 드래그로 자유 시점
         </p>
-      )}
+      ) : canDrive ? (
+        <p className="text-center text-[11px] text-amber-200/70">
+          3D 화면을 드래그하면 자유 각도 시점 · <kbd className="px-1 rounded bg-black/40 border border-white/15">C</kbd> 추적 카메라 복귀
+        </p>
+      ) : null}
 
       <div
         className="relative rounded-2xl overflow-hidden border-2 shadow-2xl bg-black"
@@ -342,6 +375,18 @@ export function ParkingRushGamePanel({
         )}
 
         <div className="absolute top-2 right-2 flex gap-1 z-10">
+          {!isSpectator && canDrive && (
+            <Button
+              type="button"
+              size="icon"
+              variant="secondary"
+              className="h-8 w-8 bg-black/50"
+              title="카메라 리셋 (C)"
+              onClick={() => sceneRef.current?.resetCamera()}
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+          )}
           <Button
             type="button"
             size="icon"
