@@ -342,9 +342,7 @@ export class ParkingRushScene {
   private hemi: THREE.HemisphereLight;
   private localUserId: string | null = null;
   private freeCamera = false;
-  private userOrbiting = false;
-  private orbitIdleUntil = 0;
-  private cameraOffset = new THREE.Vector3(0, 5.5, 9.5);
+  private cameraSnapped = false;
   private zoom = 1;
   private lastCars: SceneCar[] = [];
   private theme: ParkingMapTheme = PARKING_MAP_THEMES.parking_lot;
@@ -393,11 +391,9 @@ export class ParkingRushScene {
     };
     this.renderer.domElement.style.cursor = "grab";
     this.controls.addEventListener("start", () => {
-      if (!this.freeCamera) this.userOrbiting = true;
       this.renderer.domElement.style.cursor = "grabbing";
     });
     this.controls.addEventListener("end", () => {
-      if (!this.freeCamera) this.orbitIdleUntil = Date.now() + 4500;
       this.renderer.domElement.style.cursor = "grab";
     });
 
@@ -515,19 +511,35 @@ export class ParkingRushScene {
 
   setFreeCamera(free: boolean) {
     this.freeCamera = free;
-    if (free) {
-      this.userOrbiting = false;
-      this.orbitIdleUntil = 0;
-    }
   }
 
   resetCamera() {
-    this.userOrbiting = false;
-    this.orbitIdleUntil = 0;
+    this.cameraSnapped = false;
+    const local = this.lastCars.find((c) => c.userId === this.localUserId);
+    if (!local) return;
+    const interp = this.carInterp.get(local.userId);
+    if (interp) this.snapCameraBehindCar(interp);
+  }
+
+  private snapCameraBehindCar(interp: CarInterp) {
+    const fx = Math.cos(interp.angle);
+    const fz = Math.sin(interp.angle);
+    const target = new THREE.Vector3(worldX(interp.x), 0, worldZ(interp.y));
+    const dist = 11 * this.zoom;
+    this.controls.target.copy(target);
+    this.camera.position.set(target.x + fx * dist, 5.5, target.z + fz * dist);
+    this.cameraSnapped = true;
   }
 
   setZoom(delta: number) {
     this.zoom = Math.max(0.55, Math.min(1.5, this.zoom + delta));
+    const offset = this.camera.position.clone().sub(this.controls.target);
+    if (offset.lengthSq() < 0.01) return;
+    const dist = Math.max(
+      this.controls.minDistance,
+      Math.min(this.controls.maxDistance, offset.length() * (1 - delta * 0.12))
+    );
+    this.camera.position.copy(this.controls.target).add(offset.normalize().multiplyScalar(dist));
   }
 
   setCollisionShake(amount = 0.35) {
@@ -578,11 +590,15 @@ export class ParkingRushScene {
     }
   }
 
-  private updateCamera(local: SceneCar | undefined): "chase" | "orbit" | "none" {
-    if (!local) return "none";
+  private updateCamera(local: SceneCar | undefined) {
+    if (!local) return;
 
     const interp = this.carInterp.get(local.userId);
-    if (!interp) return "none";
+    if (!interp) return;
+
+    if (!this.cameraSnapped && !this.freeCamera) {
+      this.snapCameraBehindCar(interp);
+    }
 
     const speed = Math.abs(interp.speed);
     const lookAhead = Math.min(5, speed * 0.65);
@@ -594,38 +610,18 @@ export class ParkingRushScene {
       worldZ(interp.y) + fz * lookAhead
     );
 
-    if (this.freeCamera) {
-      this.controls.target.lerp(target, 0.12);
-      return "orbit";
+    // 마우스로 잡은 각도·거리(줌)는 유지하고, 타깃 이동분만큼 카메라도 같이 이동
+    const prevTarget = this.controls.target.clone();
+    this.controls.target.lerp(target, this.freeCamera ? 0.12 : 0.28);
+    this.camera.position.add(this.controls.target.clone().sub(prevTarget));
+
+    if (this.shake > 0.01) {
+      this.camera.position.x += (Math.random() - 0.5) * this.shake * 0.12;
+      this.camera.position.y += (Math.random() - 0.5) * this.shake * 0.08;
     }
 
-    const inOrbitMode = this.userOrbiting || Date.now() < this.orbitIdleUntil;
-    if (inOrbitMode) {
-      this.controls.target.lerp(target, 0.22);
-      return "orbit";
-    }
-
-    // 추적 카메라 — OrbitControls.update()는 호출하지 않음 (위치 덮어쓰기 방지)
-    this.controls.target.copy(target);
-
-    const height = 4.8 + speed * 0.14;
-    const dist = (8 + speed * 0.12) * this.zoom;
-    const camPos = new THREE.Vector3(
-      worldX(interp.x) + fx * dist,
-      height,
-      worldZ(interp.y) + fz * dist
-    );
-
-    const shakeX = (Math.random() - 0.5) * this.shake * 0.45;
-    const shakeY = (Math.random() - 0.5) * this.shake * 0.25;
-    camPos.x += shakeX;
-    camPos.y += shakeY;
-
-    this.camera.position.lerp(camPos, 0.22);
-    this.camera.lookAt(target);
     this.camera.fov = this.baseFov + speed * 0.85;
     this.camera.updateProjectionMatrix();
-    return "chase";
   }
 
   private onResize = () => {
@@ -675,20 +671,17 @@ export class ParkingRushScene {
       applyCarLights(mesh, { ...c, car: { ...c.car, speed: interp.speed } }, this.tick);
     }
 
-    let cameraMode: "chase" | "orbit" | "none" = "none";
     if (localCar) {
       const interp = this.carInterp.get(localCar.userId);
       if (interp) {
-        cameraMode = this.updateCamera({
+        this.updateCamera({
           ...localCar,
           car: { ...localCar.car, x: interp.x, y: interp.y, angle: interp.angle, speed: interp.speed },
         });
       }
     }
 
-    if (cameraMode === "orbit") {
-      this.controls.update();
-    }
+    this.controls.update();
     this.renderer.render(this.scene, this.camera);
   }
 
