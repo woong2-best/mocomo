@@ -9,6 +9,7 @@ import {
   Zap,
   Music,
   Car,
+  Layers,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { MinigameCategory, MinigameDefinition, MinigameStatus } from "./types";
@@ -36,6 +37,7 @@ function live(id: string, overrides: Partial<MinigameCatalogItem> & Pick<Minigam
     "spot-diff": Puzzle,
     "piano-rush": Music,
     "parking-rush": Car,
+    "tower-rush": Layers,
     rps: Zap,
     "number-guess": Zap,
     "memory-cards": Zap,
@@ -179,6 +181,15 @@ const REGISTRY: MinigameCatalogItem[] = [
     description: "로우폴리 3D 주차 · 최대 16인 · 싱글·대전·랭크 · PC·모바일",
     minPlayers: 1,
     maxPlayers: 16,
+    supportsRanked: true,
+    supportsReplay: true,
+  }),
+  live("tower-rush", {
+    name: "타워 러쉬",
+    category: "casual",
+    description: "블록 타이밍 쌓기 · Perfect 정렬 · 50인 배틀로얄 · PC·모바일·태블릿",
+    minPlayers: 1,
+    maxPlayers: 50,
     supportsRanked: true,
     supportsReplay: true,
   }),

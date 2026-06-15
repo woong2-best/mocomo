@@ -49,6 +49,8 @@ export function registerMinigameHandlers(
         parkingRushLevelId?: string;
         parkingRushDifficulty?: "beginner" | "intermediate" | "advanced" | "expert";
         parkingRushCarColor?: string;
+        towerRushMode?: "solo" | "duel" | "party" | "battle_royale" | "ranked";
+        towerRushMapId?: string;
       },
       ack?: (r: unknown) => void
     ) => {
@@ -77,6 +79,8 @@ export function registerMinigameHandlers(
         parkingRushLevelId: data.parkingRushLevelId,
         parkingRushDifficulty: data.parkingRushDifficulty,
         parkingRushCarColor: data.parkingRushCarColor,
+        towerRushMode: data.towerRushMode,
+        towerRushMapId: data.towerRushMapId,
       });
       if (!result.ok) {
         ack?.(result);

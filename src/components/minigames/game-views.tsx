@@ -12,8 +12,10 @@ import type { SpotDiffMode, SpotDiffPlayStyle, SpotShape } from "@/lib/minigames
 import { SpotDiffGamePanel } from "@/components/spot-diff/spot-diff-game-panel";
 import { PianoRushGamePanel } from "@/components/piano-rush/piano-rush-game-panel";
 import { ParkingRushGamePanel, type ParkingRushPlayerStats } from "@/components/parking-rush/parking-rush-game-panel";
+import { TowerRushGamePanel, type TowerRushPlayerStats } from "@/components/tower-rush/tower-rush-game-panel";
 import type { PianoChartNote, PianoRushMode } from "@/lib/minigames/piano-rush-logic";
 import type { ParkingRushMode } from "@/lib/minigames/parking-rush-logic";
+import type { TowerRushMode } from "@/lib/minigames/tower-rush-logic";
 import { AlkkagiBoard } from "@/components/minigames/alkkagi-board";
 import { WordChainPanel } from "@/components/minigames/word-chain-panel";
 import { BadukGamePanel } from "@/components/baduk/baduk-game-panel";
@@ -324,6 +326,25 @@ export function GameActiveView({ gameId, state, userId, isSpectator, onMove, err
           finished={state.status === "finished"}
           players={state.players}
           onMove={onMove}
+        />
+      );
+    case "tower-rush":
+      return (
+        <TowerRushGamePanel
+          mapId={(g.mapId as string) ?? "city"}
+          mapName={(g.mapName as string) ?? "도심"}
+          mode={(g.mode as TowerRushMode) ?? "solo"}
+          phase={(g.phase as "countdown" | "playing" | "finished") ?? "countdown"}
+          startedAt={(g.startedAt as number) ?? Date.now()}
+          timeLeftMs={(g.timeLeftMs as number) ?? 0}
+          stats={(g.stats as Record<string, TowerRushPlayerStats>) ?? {}}
+          playerOrder={(g.playerOrder as string[]) ?? []}
+          finishOrder={(g.finishOrder as string[]) ?? []}
+          userId={userId}
+          isSpectator={isSpectator}
+          finished={state.status === "finished"}
+          players={state.players}
+          onDrop={() => onMove({ drop: true })}
         />
       );
     case "jigsaw":

@@ -14,6 +14,7 @@ import { slidePuzzlePlugin } from "./slide-puzzle";
 import { spotDiffPlugin } from "./spot-diff";
 import { pianoRushPlugin } from "./piano-rush";
 import { parkingRushPlugin } from "./parking-rush";
+import { towerRushPlugin } from "./tower-rush";
 import { jigsawPlugin } from "./jigsaw";
 import type { MinigamePlugin } from "../types";
 
@@ -35,6 +36,7 @@ export const ALL_MINIGAME_PLUGINS: MinigamePlugin[] = [
   spotDiffPlugin,
   pianoRushPlugin,
   parkingRushPlugin,
+  towerRushPlugin,
   jigsawPlugin,
 ];
 

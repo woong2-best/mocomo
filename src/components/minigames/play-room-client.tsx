@@ -19,6 +19,8 @@ import { Button } from "@/components/ui/button";
 import { Eye, LogOut } from "lucide-react";
 import type { ParkingRushMode } from "@/lib/minigames/parking-rush-logic";
 import { isParkingInstantPlayMode } from "@/lib/minigames/parking-rush-logic";
+import type { TowerRushMode } from "@/lib/minigames/tower-rush-logic";
+import { isTowerInstantPlayMode } from "@/lib/minigames/tower-rush-logic";
 
 export function PlayRoomClient({
   gameId,
@@ -64,9 +66,13 @@ export function PlayRoomClient({
 
   const parkingMode =
     (state?.game?.mode as ParkingRushMode | undefined) ?? state?.parkingRushMode;
+  const towerMode = (state?.game?.mode as TowerRushMode | undefined);
   const isParkingInstant =
     gameId === "parking-rush" && !!parkingMode && isParkingInstantPlayMode(parkingMode);
-  const showSpectator = !isParkingInstant;
+  const isTowerInstant =
+    gameId === "tower-rush" && !!towerMode && isTowerInstantPlayMode(towerMode);
+  const isInstantPlay = isParkingInstant || isTowerInstant;
+  const showSpectator = !isInstantPlay;
 
   function handleLeave() {
     leaveRoom();
@@ -181,7 +187,7 @@ export function PlayRoomClient({
       )}
 
       {(state?.status === "playing" || state?.status === "finished") && (
-        <div className={isParkingInstant ? "space-y-3" : "grid lg:grid-cols-[1fr_280px] gap-4"}>
+        <div className={isInstantPlay ? "space-y-3" : "grid lg:grid-cols-[1fr_280px] gap-4"}>
           <div className="space-y-3">
             {state.status === "playing" && <MinigameClockBar state={state} userId={userId} />}
             {state.game ? (
@@ -198,7 +204,7 @@ export function PlayRoomClient({
               <p className="text-sm text-muted-foreground text-center py-8">게임 데이터를 불러오는 중…</p>
             )}
           </div>
-          {!isParkingInstant && (
+          {!isInstantPlay && (
             <MinigameChatPanel
               gameId={gameId}
               messages={chatMessages}

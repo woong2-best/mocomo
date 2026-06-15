@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
-import { Crown, Infinity, Music, Trophy, Users, Car, Timer } from "lucide-react";
+import { Crown, Infinity, Layers, Music, Trophy, Users, Car, Timer } from "lucide-react";
 import { getMinigameById } from "@/lib/minigames/registry";
 import { getMinigameRoute } from "@/lib/minigames/game-meta";
 import { MinigameHubShell } from "@/components/minigames/minigame-hub-shell";
@@ -18,6 +18,8 @@ import { ParkingColorPicker } from "@/components/parking-rush/parking-color-pick
 import { ParkingRushLeaderboard } from "@/components/parking-rush/parking-rush-leaderboard";
 import { ParkingRushTournamentPanel } from "@/components/parking-rush/parking-rush-tournament-panel";
 import type { CarColorId } from "@/lib/minigames/parking-rush-logic";
+import { TOWER_MAPS } from "@/lib/minigames/tower-rush-theme";
+import type { TowerMapId } from "@/lib/minigames/tower-rush-logic";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -51,7 +53,12 @@ export function PlayHubClient({ gameId }: { gameId: string }) {
   const isSpotDiff = gameId === "spot-diff";
   const isPianoRush = gameId === "piano-rush";
   const isParkingRush = gameId === "parking-rush";
+  const isTowerRush = gameId === "tower-rush";
   const [parkingTab, setParkingTab] = useState<"solo" | "duel" | "ranked" | "time_attack" | "tournament">("duel");
+  const [towerTab, setTowerTab] = useState<"solo" | "duel" | "battle">("duel");
+  const [towerMapId, setTowerMapId] = useState<TowerMapId>("city");
+  const [towerPassword, setTowerPassword] = useState("1234");
+  const [towerError, setTowerError] = useState<string | null>(null);
   const [parkingLevelId, setParkingLevelId] = useState("lot-beginner");
   const [parkingPassword, setParkingPassword] = useState("1234");
   const [parkingError, setParkingError] = useState<string | null>(null);
@@ -107,6 +114,24 @@ export function PlayHubClient({ gameId }: { gameId: string }) {
       parkingRushMode: mode,
       parkingRushLevelId: parkingLevelId,
       parkingRushCarColor: parkingCarColor,
+    });
+    router.push(`${routeBase}/${code}?create=1`);
+  }
+
+  function startTowerMode(mode: "solo" | "duel" | "battle_royale") {
+    if (!session?.user) {
+      router.push(`/auth/signin?callbackUrl=${routeBase}`);
+      return;
+    }
+    if (!isValidGameRoomPassword(towerPassword)) {
+      setTowerError(`비밀번호는 ${MIN_GAME_ROOM_PASSWORD_LENGTH}~32자입니다.`);
+      return;
+    }
+    const code = generateRoomCode();
+    saveGameCreateOptions(gameId, {
+      password: towerPassword.trim(),
+      towerRushMode: mode,
+      towerRushMapId: towerMapId,
     });
     router.push(`${routeBase}/${code}?create=1`);
   }
@@ -218,10 +243,52 @@ export function PlayHubClient({ gameId }: { gameId: string }) {
         </div>
       )}
 
+      {isTowerRush && (
+        <div className="flex justify-center gap-1 p-1 rounded-xl bg-muted/60 max-w-md mx-auto">
+          {(
+            [
+              ["solo", "싱글", Layers],
+              ["duel", "1:1", Users],
+              ["battle", "배틀로얄", Crown],
+            ] as const
+          ).map(([id, label, TabIcon]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setTowerTab(id)}
+              className={cn(
+                "flex-1 rounded-lg px-2 py-2 text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1",
+                towerTab === id ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <TabIcon className="h-3.5 w-3.5" />
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {isParkingRush && parkingTab !== "ranked" && parkingTab !== "tournament" && (
         <div className="max-w-md mx-auto space-y-3">
           <ParkingLevelPicker levelId={parkingLevelId} onLevelId={setParkingLevelId} />
           <ParkingColorPicker value={parkingCarColor} onChange={setParkingCarColor} />
+        </div>
+      )}
+
+      {isTowerRush && towerTab !== "duel" && (
+        <div className="max-w-md mx-auto">
+          <label className="text-xs text-muted-foreground block mb-1">맵 선택</label>
+          <select
+            className="w-full border rounded-lg px-3 py-2 text-sm bg-background"
+            value={towerMapId}
+            onChange={(e) => setTowerMapId(e.target.value as TowerMapId)}
+          >
+            {TOWER_MAPS.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
         </div>
       )}
 
@@ -273,6 +340,38 @@ export function PlayHubClient({ gameId }: { gameId: string }) {
         </div>
       ) : isParkingRush && parkingTab === "tournament" ? (
         <ParkingRushTournamentPanel routeBase={routeBase} />
+      ) : isTowerRush && (towerTab === "solo" || towerTab === "battle") ? (
+        <div className="space-y-4 max-w-md mx-auto">
+          <Card className="border-2 border-indigo-500/25">
+            <CardContent className="p-6 space-y-4 text-center">
+              <Layers className="h-10 w-10 mx-auto text-indigo-400" />
+              <div>
+                <h2 className="font-display font-bold text-lg">
+                  {towerTab === "solo" ? "싱글 타워" : "배틀로얄"}
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {towerTab === "solo"
+                    ? "클릭/Space로 블록 쌓기 · Perfect 정렬 · 최고 층 도전"
+                    : "최대 50명 · 붕괴 시 탈락 · 마지막 생존자 우승"}
+                </p>
+              </div>
+              <input
+                type="password"
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+                placeholder={`방 비밀번호 (${MIN_GAME_ROOM_PASSWORD_LENGTH}자 이상)`}
+                value={towerPassword}
+                onChange={(e) => setTowerPassword(e.target.value)}
+              />
+              {towerError && <p className="text-xs text-destructive">{towerError}</p>}
+              <Button
+                className="w-full rounded-xl"
+                onClick={() => startTowerMode(towerTab === "solo" ? "solo" : "battle_royale")}
+              >
+                {towerTab === "solo" ? "싱글 시작" : "배틀 방 만들기"}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       ) : isParkingRush && (parkingTab === "solo" || parkingTab === "time_attack") ? (
         <div className="space-y-4 max-w-md mx-auto">
           <Card className="border-2 border-cyan-500/25">
@@ -354,7 +453,9 @@ export function PlayHubClient({ gameId }: { gameId: string }) {
                       parkingRushLevelId: parkingLevelId,
                       parkingRushCarColor: parkingCarColor,
                     }
-                  : undefined
+                  : isTowerRush && towerTab === "duel"
+                    ? { towerRushMode: "duel" as const, towerRushMapId: towerMapId }
+                    : undefined
             }
           />
           {isSpotDiff && <SpotDiffLeaderboard limit={5} />}

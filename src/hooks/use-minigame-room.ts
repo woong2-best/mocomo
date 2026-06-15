@@ -130,6 +130,8 @@ export function useMinigameRoom(
           parkingRushLevelId: createOpts.parkingRushLevelId,
           parkingRushDifficulty: createOpts.parkingRushDifficulty,
           parkingRushCarColor: createOpts.parkingRushCarColor,
+          towerRushMode: createOpts.towerRushMode,
+          towerRushMapId: createOpts.towerRushMapId,
           accessMode: "private",
         },
         active
