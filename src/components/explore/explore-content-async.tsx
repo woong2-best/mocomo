@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { TrendingUp, Users, Radio } from "lucide-react";
+import { TrendingUp, Users, Radio, Sparkles } from "lucide-react";
 import { getCachedLiveChannels } from "@/lib/cached-data";
 import { Button } from "@/components/ui/button";
 import { getCachedExploreData } from "@/lib/cached-data";
@@ -55,6 +55,23 @@ export async function ExploreContentAsync() {
           </Link>
         </p>
       )}
+
+      <Card className="rounded-2xl border-violet-500/25 bg-gradient-to-br from-violet-950/15 to-fuchsia-950/10 overflow-hidden">
+        <CardContent className="p-4 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-display font-bold flex items-center gap-1.5 text-violet-900 dark:text-violet-100">
+              <Sparkles className="h-4 w-4 text-violet-500" />
+              친구 · 코스어 매칭
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              원할 때만 참여 · 취향·거리·나이 필터 · ㅊㅊ &amp; 매칭
+            </p>
+          </div>
+          <Button asChild size="sm" className="rounded-xl shrink-0 bg-gradient-to-r from-violet-600 to-fuchsia-600">
+            <Link href="/discover">시작</Link>
+          </Button>
+        </CardContent>
+      </Card>
 
       {isLiveFeatureEnabled() && liveChannels.length > 0 && (
         <section>

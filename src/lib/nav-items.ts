@@ -26,6 +26,7 @@ export type NavItem = { href: string; icon: LucideIcon; labelKey: MessageKey };
 
 export const mainNavItems: NavItem[] = [
   { href: "/explore", icon: Compass, labelKey: "nav.explore" },
+  { href: "/discover", icon: Sparkles, labelKey: "nav.discover" },
   { href: "/my-page", icon: User, labelKey: "nav.myPage" },
   { href: "/communities", icon: Users, labelKey: "nav.communities" },
   { href: "/messages", icon: MessageCircle, labelKey: "nav.messages" },

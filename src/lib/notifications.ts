@@ -203,6 +203,42 @@ export async function notifyFollow(targetUserId: string, actorId: string) {
   });
 }
 
+export async function notifyDiscoveryLike(targetUserId: string, actorId: string) {
+  const actor = await getActor(actorId);
+  scheduleNotification({
+    userId: targetUserId,
+    actorId,
+    type: "discovery_like",
+    title: "관심 표현",
+    body: `${actorLabel(actor)}님이 회원님에게 관심을 보냈어요.`,
+    link: "/discover/matches",
+  });
+}
+
+export async function notifyDiscoveryCheer(targetUserId: string, actorId: string) {
+  const actor = await getActor(actorId);
+  scheduleNotification({
+    userId: targetUserId,
+    actorId,
+    type: "discovery_cheer",
+    title: "응원 · 팔로우",
+    body: `${actorLabel(actor)}님이 ㅊㅊ! · 팔로우했어요.`,
+    link: actor?.username ? `/u/${actor.username}` : "/discover",
+  });
+}
+
+export async function notifyDiscoveryMatch(targetUserId: string, actorId: string) {
+  const actor = await getActor(actorId);
+  scheduleNotification({
+    userId: targetUserId,
+    actorId,
+    type: "discovery_match",
+    title: "매칭 성공!",
+    body: `${actorLabel(actor)}님과 연결됐어요. 메시지를 보내보세요.`,
+    link: "/discover/matches",
+  });
+}
+
 export async function notifyPostVote(
   postId: string,
   authorId: string,

@@ -81,6 +81,29 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
 
+      <Card className="border-violet-500/20 bg-gradient-to-br from-violet-950/10 to-fuchsia-950/5">
+        <CardHeader>
+          <CardTitle>친구 · 코스어 매칭</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            원할 때만 참여 · 거리·나이·취향 필터 · ㅊㅊ·좋아요·매칭
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/discover">
+              <Button size="sm" className="rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600">
+                매칭 시작
+              </Button>
+            </Link>
+            <Link href="/discover/settings">
+              <Button variant="outline" size="sm">
+                매칭 설정
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>코스프레</CardTitle>

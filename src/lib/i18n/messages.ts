@@ -3,6 +3,7 @@ import type { Locale } from "@/lib/i18n/config";
 export type MessageKey =
   | "nav.home"
   | "nav.explore"
+  | "nav.discover"
   | "nav.notifications"
   | "nav.myPage"
   | "nav.communities"
@@ -57,6 +58,7 @@ export type MessageKey =
 const ko: Record<MessageKey, string> = {
   "nav.home": "홈",
   "nav.explore": "탐색",
+  "nav.discover": "매칭",
   "nav.notifications": "알림",
   "nav.myPage": "My Page",
   "nav.communities": "커뮤니티",
@@ -112,6 +114,7 @@ const ko: Record<MessageKey, string> = {
 const en: Record<MessageKey, string> = {
   "nav.home": "Home",
   "nav.explore": "Explore",
+  "nav.discover": "Match",
   "nav.notifications": "Notifications",
   "nav.myPage": "My Page",
   "nav.communities": "Communities",
@@ -167,6 +170,7 @@ const en: Record<MessageKey, string> = {
 const ja: Record<MessageKey, string> = {
   "nav.home": "ホーム",
   "nav.explore": "探索",
+  "nav.discover": "マッチ",
   "nav.notifications": "通知",
   "nav.myPage": "マイページ",
   "nav.communities": "コミュニティ",
@@ -222,6 +226,7 @@ const ja: Record<MessageKey, string> = {
 const zh: Record<MessageKey, string> = {
   "nav.home": "首页",
   "nav.explore": "探索",
+  "nav.discover": "マッチ",
   "nav.notifications": "通知",
   "nav.myPage": "我的",
   "nav.communities": "社区",

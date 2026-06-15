@@ -20,6 +20,7 @@ export function shouldHideMobileNav(pathname: string): boolean {
   if (/^\/messages\/[^/]+$/.test(pathname)) return true;
   if (isUsedDetailPath(pathname)) return true;
   if (/^\/voice\/[^/]+$/.test(pathname) && pathname !== "/voice/new") return true;
+  if (pathname === "/discover") return true;
   return false;
 }
 
