@@ -438,31 +438,37 @@ export function stepCarPhysics(
 ): CollisionEvent | null {
   const throttle = input.throttle;
   const handbrake = !!input.handbrake;
+  const absSpeed = Math.abs(car.speed);
 
   if (throttle > 0.05) {
-    car.speed += spec.acceleration * throttle * dt;
+    const speedRatio = absSpeed / spec.maxSpeed;
+    const accelScale = 1 - Math.min(0.45, speedRatio * speedRatio);
+    car.speed += spec.acceleration * throttle * accelScale * dt;
   } else if (throttle < -0.05) {
-    if (car.speed > 0.3) {
+    if (car.speed > 0.35) {
       car.speed -= spec.brakeForce * Math.abs(throttle) * dt;
     } else {
-      car.speed -= spec.reverseAccel * throttle * dt;
+      car.speed += spec.reverseAccel * throttle * dt;
     }
   }
 
-  const friction = handbrake ? 14 : 4.5;
+  const friction = handbrake ? 20 : 6;
   if (Math.abs(throttle) < 0.05) {
     if (car.speed > 0) car.speed = Math.max(0, car.speed - friction * dt);
     else car.speed = Math.min(0, car.speed + friction * dt);
   }
 
-  car.speed = Math.max(-spec.maxSpeed * 0.45, Math.min(spec.maxSpeed, car.speed));
+  car.speed = Math.max(-spec.maxSpeed * 0.5, Math.min(spec.maxSpeed, car.speed));
 
-  const steerInput = input.steer * (handbrake ? 1.35 : 1);
-  const targetSteer = steerInput * 0.55;
-  car.steer += (targetSteer - car.steer) * Math.min(1, dt * 8);
+  const steerInput = input.steer * (handbrake ? 1.5 : 1);
+  const targetSteer = steerInput * 0.62;
+  car.steer += (targetSteer - car.steer) * Math.min(1, dt * 12);
 
-  const turnFactor = Math.min(1, Math.abs(car.speed) / 3.5);
-  car.angle += car.steer * spec.turnRate * turnFactor * dt * Math.sign(car.speed || 1);
+  const moving = absSpeed > 0.08;
+  const turnFactor = Math.min(1, absSpeed / 2.6) * (handbrake && absSpeed < 1.5 ? 1.35 : 1);
+  const lowSpeedBoost = absSpeed < 1.4 ? 1.2 : 1;
+  const steerSign = moving ? Math.sign(car.speed) : throttle < -0.05 ? -1 : 1;
+  car.angle += car.steer * spec.turnRate * turnFactor * lowSpeedBoost * dt * steerSign;
 
   car.x += Math.cos(car.angle) * car.speed * dt;
   car.y += Math.sin(car.angle) * car.speed * dt;

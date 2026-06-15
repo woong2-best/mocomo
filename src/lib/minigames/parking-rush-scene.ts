@@ -53,6 +53,9 @@ const GEO: GeoCache = {
   box: new THREE.BoxGeometry(1, 1, 1),
 };
 
+/** lowPolyCar 전방(+X)을 물리 heading (cos/sin angle)과 일치 */
+const CAR_MESH_Y_FROM_ANGLE = (angle: number) => -angle;
+
 function worldX(x: number) {
   return x;
 }
@@ -229,7 +232,7 @@ function addObstacleMesh(parent: THREE.Group, o: Obstacle) {
   mesh.position.x = worldX(o.x);
   mesh.position.z = worldZ(o.y);
   if (o.kind !== "car") mesh.position.y = mesh.position.y || h / 2;
-  mesh.rotation.y = o.angle ?? 0;
+  mesh.rotation.y = o.kind === "car" ? CAR_MESH_Y_FROM_ANGLE(o.angle ?? 0) : (o.angle ?? 0);
   mesh.castShadow = o.kind !== "fence";
   mesh.receiveShadow = true;
   parent.add(mesh);
@@ -581,32 +584,37 @@ export class ParkingRushScene {
     if (!interp) return;
 
     const speed = Math.abs(interp.speed);
-    const lookAhead = Math.min(4, speed * 0.55);
+    const lookAhead = Math.min(5, speed * 0.65);
+    const fx = Math.cos(interp.angle);
+    const fz = Math.sin(interp.angle);
     const target = new THREE.Vector3(
-      worldX(interp.x) + Math.cos(interp.angle) * lookAhead,
+      worldX(interp.x) + fx * lookAhead,
       0,
-      worldZ(interp.y) + Math.sin(interp.angle) * lookAhead
+      worldZ(interp.y) + fz * lookAhead
     );
-    this.controls.target.lerp(target, 0.18);
+    this.controls.target.lerp(target, 0.22);
 
     if (this.freeCamera) return;
 
     const inOrbitMode = this.userOrbiting || Date.now() < this.orbitIdleUntil;
     if (inOrbitMode) return;
 
-    const height = 5 + speed * 0.12;
-    const dist = (9 + speed * 0.08) * this.zoom;
-    const off = new THREE.Vector3(0, height, dist);
-    off.applyAxisAngle(new THREE.Vector3(0, 1, 0), -interp.angle + Math.PI / 2);
+    const height = 4.8 + speed * 0.14;
+    const dist = (8 + speed * 0.12) * this.zoom;
+    // 전방(forward) 쪽 = 화면 아래(카메라) — W 누르면 카메라 방향으로 전진
+    const camPos = new THREE.Vector3(
+      worldX(interp.x) + fx * dist,
+      height,
+      worldZ(interp.y) + fz * dist
+    );
 
     const shakeX = (Math.random() - 0.5) * this.shake * 0.45;
     const shakeY = (Math.random() - 0.5) * this.shake * 0.25;
-    const camPos = target.clone().add(off);
     camPos.x += shakeX;
     camPos.y += shakeY;
 
-    this.camera.position.lerp(camPos, 0.14);
-    this.camera.fov = this.baseFov + speed * 1.2;
+    this.camera.position.lerp(camPos, 0.2);
+    this.camera.fov = this.baseFov + speed * 0.85;
     this.camera.updateProjectionMatrix();
   }
 
@@ -633,14 +641,14 @@ export class ParkingRushScene {
       const mesh = this.carMeshes.get(c.userId);
       if (!interp || !mesh) continue;
 
-      const t = c.isLocal ? 0.32 : 0.22;
+      const t = c.isLocal ? 0.42 : 0.28;
       interp.x += (interp.tx - interp.x) * t;
       interp.y += (interp.ty - interp.y) * t;
       interp.angle = lerpAngle(interp.angle, interp.ta, t);
       interp.speed += (interp.ts - interp.speed) * t;
 
       mesh.position.set(worldX(interp.x), 0, worldZ(interp.y));
-      mesh.rotation.y = -interp.angle + Math.PI / 2;
+      mesh.rotation.y = CAR_MESH_Y_FROM_ANGLE(interp.angle);
 
       const wheels = (mesh.userData as { wheels?: THREE.Mesh[] }).wheels;
       if (wheels) {

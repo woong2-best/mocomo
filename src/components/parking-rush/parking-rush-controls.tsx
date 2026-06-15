@@ -33,6 +33,7 @@ const KEY_HELP = [
 export function ParkingRushControls({ disabled, onInput }: Props) {
   const held = useRef({ forward: false, back: false, left: false, right: false, handbrake: false, horn: false });
   const steerRef = useRef(0);
+  const throttleRef = useRef(0);
   const [mobileSteer, setMobileSteer] = useState(0);
   const [accel, setAccel] = useState(0);
   const [reverse, setReverse] = useState(false);
@@ -113,21 +114,23 @@ export function ParkingRushControls({ disabled, onInput }: Props) {
       if (held.current.right) steer += 1;
       steer = steer || mobileSteer;
 
-      let throttle = 0;
-      if (held.current.forward) throttle = 1;
-      else if (held.current.back) throttle = -1;
-      else if (reverse) throttle = -0.85;
-      else throttle = accel;
+      let targetThrottle = 0;
+      if (held.current.forward) targetThrottle = 1;
+      else if (held.current.back) targetThrottle = -1;
+      else if (reverse) targetThrottle = -0.9;
+      else targetThrottle = accel;
 
-      steerRef.current += (steer - steerRef.current) * 0.35;
+      throttleRef.current += (targetThrottle - throttleRef.current) * 0.42;
+      steerRef.current += (steer - steerRef.current) * 0.48;
+
       onInput({
-        throttle,
+        throttle: throttleRef.current,
         steer: steerRef.current,
         handbrake: held.current.handbrake || handbrake,
         horn: held.current.horn,
         blinker,
       });
-    }, 50);
+    }, 16);
     return () => clearInterval(id);
   }, [disabled, onInput, mobileSteer, accel, reverse, handbrake, blinker]);
 
