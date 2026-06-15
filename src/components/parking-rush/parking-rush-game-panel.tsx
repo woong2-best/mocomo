@@ -96,6 +96,20 @@ export function ParkingRushGamePanel({
   const [countdown, setCountdown] = useState<number | null>(null);
   const [pinning, setPinning] = useState(false);
   const [pinned, setPinned] = useState(false);
+  const [collisionFlash, setCollisionFlash] = useState(false);
+  const lastCollisionRef = useRef<string | null>(null);
+
+  const speedKmh = myStats
+    ? Math.round(Math.abs(myStats.car.speed) * (80 / 12))
+    : 0;
+  const themeNeon =
+    mapType === "underground" || mapType === "rooftop"
+      ? "#fbbf24"
+      : mapType === "mart" || mapType === "airport"
+        ? "#a78bfa"
+        : mapType === "harbor"
+          ? "#38bdf8"
+          : "#22d3ee";
 
   const pinShowcase = useCallback(async () => {
     if (!myStats) return;
@@ -167,11 +181,6 @@ export function ParkingRushGamePanel({
   }, [walls, obstacles, parkingSpots, levelName, mapType, difficulty, groundColor, accentColor, myStats?.spotId]);
 
   useEffect(() => {
-    sceneRef.current?.setLocalUser(isSpectator ? null : userId ?? null);
-    sceneRef.current?.setFreeCamera(!!isSpectator);
-  }, [userId, isSpectator]);
-
-  useEffect(() => {
     const cars: SceneCar[] = playerOrder
       .filter((id) => stats[id])
       .map((id) => ({
@@ -187,6 +196,23 @@ export function ParkingRushGamePanel({
       }));
     sceneRef.current?.updateCars(cars);
   }, [stats, playerOrder, userId]);
+
+  useEffect(() => {
+    sceneRef.current?.setLocalUser(isSpectator ? null : userId ?? null);
+    sceneRef.current?.setFreeCamera(!!isSpectator);
+  }, [userId, isSpectator]);
+
+  useEffect(() => {
+    const hit = myStats?.lastCollision;
+    if (!hit) return;
+    const key = `${hit.strength}-${myStats?.collisions ?? 0}`;
+    if (lastCollisionRef.current === key) return;
+    lastCollisionRef.current = key;
+    sceneRef.current?.setCollisionShake(hit.strength === "heavy" ? 0.55 : 0.3);
+    setCollisionFlash(true);
+    const id = window.setTimeout(() => setCollisionFlash(false), 180);
+    return () => window.clearTimeout(id);
+  }, [myStats?.lastCollision, myStats?.collisions]);
 
   const sendInput = useCallback(
     (input: ParkingInput) => {
@@ -269,8 +295,52 @@ export function ParkingRushGamePanel({
         </p>
       )}
 
-      <div className="relative rounded-2xl overflow-hidden border-2 border-cyan-500/25 shadow-2xl shadow-cyan-900/30 bg-black">
+      <div
+        className="relative rounded-2xl overflow-hidden border-2 shadow-2xl bg-black"
+        style={{
+          borderColor: `${themeNeon}55`,
+          boxShadow: `0 0 40px ${themeNeon}22, 0 20px 50px rgba(0,0,0,0.5)`,
+        }}
+      >
         <div ref={canvasMount} className="w-full aspect-[4/3] min-h-[280px]" />
+        <div
+          className="pointer-events-none absolute inset-0 z-[5]"
+          style={{
+            background: `radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%)`,
+          }}
+        />
+        <div
+          className="pointer-events-none absolute inset-0 z-[5] opacity-[0.04]"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.5) 2px, rgba(255,255,255,0.5) 4px)",
+          }}
+        />
+
+        {!isSpectator && canDrive && (
+          <div className="pointer-events-none absolute bottom-3 left-3 z-10 flex items-end gap-3">
+            <div
+              className="rounded-xl border px-3 py-2 backdrop-blur-md bg-black/50"
+              style={{ borderColor: `${themeNeon}66` }}
+            >
+              <p className="text-[10px] uppercase tracking-widest text-white/60">SPEED</p>
+              <p className="text-3xl font-black tabular-nums leading-none" style={{ color: themeNeon }}>
+                {speedKmh}
+                <span className="text-sm font-bold text-white/50 ml-0.5">km/h</span>
+              </p>
+            </div>
+            {myStats && (
+              <div className="rounded-xl border border-white/15 px-2 py-1.5 backdrop-blur-md bg-black/40 text-[10px] text-white/70">
+                <span className={myStats.car.speed < -0.1 ? "text-amber-300 font-bold" : "text-emerald-300 font-bold"}>
+                  {myStats.car.speed < -0.1 ? "R" : "D"}
+                </span>
+                <span className="mx-1">·</span>
+                <span>{Math.round(myStats.parkProgress * 100)}%</span>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="absolute top-2 right-2 flex gap-1 z-10">
           <Button
             type="button"
@@ -298,8 +368,11 @@ export function ParkingRushGamePanel({
             </span>
           </div>
         )}
-        {myStats?.lastCollision && (
-          <div className="absolute top-3 left-3 z-10 px-2 py-1 rounded bg-red-600/80 text-xs font-bold text-white">
+        {collisionFlash && (
+          <div className="absolute inset-0 z-[15] bg-red-500/25 mix-blend-screen pointer-events-none animate-pulse" />
+        )}
+        {myStats?.lastCollision && collisionFlash && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[16] px-3 py-1 rounded-full bg-red-600/90 text-xs font-bold text-white border border-red-300/50">
             {myStats.lastCollision.strength === "heavy" ? "강한 충돌!" : "충돌"}
           </div>
         )}
