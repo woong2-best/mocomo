@@ -2,16 +2,29 @@
 
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import type { CarState, Obstacle, ParkingLevel, ParkingSpot, VehicleTypeId } from "./parking-rush-logic";
+import type { CarState, Obstacle, ParkingInput, ParkingLevel, ParkingSpot, VehicleTypeId } from "./parking-rush-logic";
 import { VEHICLE_SPECS } from "./parking-rush-logic";
 
 export type SceneCar = {
   userId: string;
   car: CarState;
   vehicleId: VehicleTypeId;
+  color?: string;
   isLocal: boolean;
   parked?: boolean;
   spotId?: string;
+  blinker?: ParkingInput["blinker"];
+  hornActive?: boolean;
+};
+
+type CarLightRefs = {
+  body: THREE.MeshLambertMaterial;
+  headL: THREE.MeshBasicMaterial;
+  headR: THREE.MeshBasicMaterial;
+  tailL: THREE.MeshBasicMaterial;
+  tailR: THREE.MeshBasicMaterial;
+  signalL: THREE.MeshBasicMaterial;
+  signalR: THREE.MeshBasicMaterial;
 };
 
 function worldX(x: number) {
@@ -23,10 +36,8 @@ function worldZ(y: number) {
 
 function lowPolyCar(spec: (typeof VEHICLE_SPECS)[VehicleTypeId], color: string): THREE.Group {
   const g = new THREE.Group();
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(spec.length, 0.9, spec.width),
-    new THREE.MeshLambertMaterial({ color })
-  );
+  const bodyMat = new THREE.MeshLambertMaterial({ color });
+  const body = new THREE.Mesh(new THREE.BoxGeometry(spec.length, 0.9, spec.width), bodyMat);
   body.position.y = 0.55;
   body.castShadow = true;
   g.add(body);
@@ -55,19 +66,67 @@ function lowPolyCar(spec: (typeof VEHICLE_SPECS)[VehicleTypeId], color: string):
     g.add(w);
   }
 
-  const lightMat = new THREE.MeshBasicMaterial({ color: "#fef08a" });
-  const tailMat = new THREE.MeshBasicMaterial({ color: "#ef4444" });
-  const headL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 0.2), lightMat);
-  headL.position.set(spec.length / 2 - 0.05, 0.45, spec.width / 2 - 0.35);
-  const headR = headL.clone();
-  headR.position.z = -spec.width / 2 + 0.35;
-  const tailL = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.1, 0.18), tailMat);
-  tailL.position.set(-spec.length / 2 + 0.05, 0.45, spec.width / 2 - 0.35);
-  const tailR = tailL.clone();
-  tailR.position.z = -spec.width / 2 + 0.35;
-  g.add(headL, headR, tailL, tailR);
+  const headL = new THREE.MeshBasicMaterial({ color: "#fef08a" });
+  const headR = new THREE.MeshBasicMaterial({ color: "#fef08a" });
+  const tailL = new THREE.MeshBasicMaterial({ color: "#7f1d1d" });
+  const tailR = new THREE.MeshBasicMaterial({ color: "#7f1d1d" });
+  const signalL = new THREE.MeshBasicMaterial({ color: "#422006" });
+  const signalR = new THREE.MeshBasicMaterial({ color: "#422006" });
+
+  const headLMesh = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 0.2), headL);
+  headLMesh.position.set(spec.length / 2 - 0.05, 0.45, spec.width / 2 - 0.35);
+  const headRMesh = headLMesh.clone();
+  headRMesh.material = headR;
+  headRMesh.position.z = -spec.width / 2 + 0.35;
+
+  const tailLMesh = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.1, 0.18), tailL);
+  tailLMesh.position.set(-spec.length / 2 + 0.05, 0.45, spec.width / 2 - 0.35);
+  const tailRMesh = tailLMesh.clone();
+  tailRMesh.material = tailR;
+  tailRMesh.position.z = -spec.width / 2 + 0.35;
+
+  const signalLMesh = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.08, 0.12), signalL);
+  signalLMesh.position.set(spec.length / 2 - 0.2, 0.72, spec.width / 2 - 0.2);
+  const signalRMesh = signalLMesh.clone();
+  signalRMesh.material = signalR;
+  signalRMesh.position.z = -spec.width / 2 + 0.2;
+
+  g.add(headLMesh, headRMesh, tailLMesh, tailRMesh, signalLMesh, signalRMesh);
+
+  (g.userData as { lights: CarLightRefs; bodyColor: string }).lights = {
+    body: bodyMat,
+    headL,
+    headR,
+    tailL,
+    tailR,
+    signalL,
+    signalR,
+  };
+  (g.userData as { bodyColor: string }).bodyColor = color;
 
   return g;
+}
+
+function applyCarLights(
+  mesh: THREE.Group,
+  car: SceneCar,
+  tick: number
+) {
+  const refs = (mesh.userData as { lights?: CarLightRefs }).lights;
+  if (!refs) return;
+  const blink = Math.floor(tick * 0.008) % 2 === 0;
+  const reversing = car.car.speed < -0.15;
+  const hazard = car.blinker === "hazard";
+  const left = car.blinker === "left" || hazard;
+  const right = car.blinker === "right" || hazard;
+  const horn = !!car.hornActive;
+
+  refs.headL.color.setHex(horn ? 0xffffff : 0xfef08a);
+  refs.headR.color.setHex(horn ? 0xffffff : 0xfef08a);
+  refs.tailL.color.setHex(reversing ? 0xffffff : hazard && blink ? 0xfbbf24 : 0xef4444);
+  refs.tailR.color.setHex(reversing ? 0xffffff : hazard && blink ? 0xfbbf24 : 0xef4444);
+  refs.signalL.color.setHex(left && blink ? 0xfbbf24 : 0x422006);
+  refs.signalR.color.setHex(right && blink ? 0xfbbf24 : 0x422006);
 }
 
 function addObstacleMesh(parent: THREE.Group, o: Obstacle) {
@@ -121,12 +180,15 @@ export class ParkingRushScene {
   private controls: OrbitControls;
   private mount: HTMLElement;
   private raf = 0;
+  private tick = 0;
   private carMeshes = new Map<string, THREE.Group>();
   private levelGroup = new THREE.Group();
   private carsGroup = new THREE.Group();
   private localUserId: string | null = null;
+  private freeCamera = false;
   private cameraOffset = new THREE.Vector3(0, 6, 10);
   private zoom = 1;
+  private lastCars: SceneCar[] = [];
 
   constructor(mount: HTMLElement) {
     this.mount = mount;
@@ -197,26 +259,36 @@ export class ParkingRushScene {
     this.localUserId = userId;
   }
 
+  setFreeCamera(free: boolean) {
+    this.freeCamera = free;
+  }
+
   setZoom(delta: number) {
     this.zoom = Math.max(0.6, Math.min(1.6, this.zoom + delta));
   }
 
   updateCars(cars: SceneCar[]) {
+    this.lastCars = cars;
     const seen = new Set<string>();
     for (const c of cars) {
       seen.add(c.userId);
       let mesh = this.carMeshes.get(c.userId);
       const spec = VEHICLE_SPECS[c.vehicleId];
-      const color = c.isLocal ? spec.color : "#94a3b8";
+      const color = c.color ?? spec.color;
       if (!mesh) {
         mesh = lowPolyCar(spec, color);
         this.carMeshes.set(c.userId, mesh);
         this.carsGroup.add(mesh);
+      } else if ((mesh.userData as { bodyColor?: string }).bodyColor !== color) {
+        const refs = (mesh.userData as { lights?: CarLightRefs }).lights;
+        if (refs) refs.body.color.set(color);
+        (mesh.userData as { bodyColor?: string }).bodyColor = color;
       }
       mesh.position.set(worldX(c.car.x), 0, worldZ(c.car.y));
       mesh.rotation.y = -c.car.angle + Math.PI / 2;
+      applyCarLights(mesh, c, this.tick);
 
-      if (c.isLocal) {
+      if (c.isLocal && !this.freeCamera) {
         const target = new THREE.Vector3(worldX(c.car.x), 0, worldZ(c.car.y));
         const off = this.cameraOffset.clone().multiplyScalar(this.zoom);
         off.applyAxisAngle(new THREE.Vector3(0, 1, 0), -c.car.angle + Math.PI / 2);
@@ -243,6 +315,11 @@ export class ParkingRushScene {
   };
 
   private loop() {
+    this.tick += 1;
+    for (const c of this.lastCars) {
+      const mesh = this.carMeshes.get(c.userId);
+      if (mesh) applyCarLights(mesh, c, this.tick);
+    }
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
     this.raf = requestAnimationFrame(this.loop);

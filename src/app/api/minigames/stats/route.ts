@@ -87,6 +87,10 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch {
-    return NextResponse.json({ ratings: [], totalMatches: 0, achievements: { unlocked: 0, total: 7 } });
+    return NextResponse.json({
+      ratings: [],
+      totalMatches: 0,
+      achievements: { unlocked: 0, total: MINIGAME_ACHIEVEMENTS.length },
+    });
   }
 }

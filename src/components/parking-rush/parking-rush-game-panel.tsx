@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Car, Crown, MapPin, Timer, Trophy, Users, ZoomIn, ZoomOut } from "lucide-react";
+import { Car, Crown, MapPin, Pin, Timer, Trophy, Users, ZoomIn, ZoomOut } from "lucide-react";
 import { ParkingRushControls } from "@/components/parking-rush/parking-rush-controls";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +20,9 @@ import type { MinigamePlayerPublic } from "@/lib/minigames/shared-types";
 
 export type ParkingRushPlayerStats = {
   vehicleId: VehicleTypeId;
+  carColor?: string;
+  blinker?: ParkingInput["blinker"];
+  hornActive?: boolean;
   car: CarState;
   spotId: string;
   score: number;
@@ -89,6 +92,30 @@ export function ParkingRushGamePanel({
   const canDrive = !isSpectator && !finished && phase === "playing" && !!myStats && !myStats.finished;
 
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [pinning, setPinning] = useState(false);
+  const [pinned, setPinned] = useState(false);
+
+  const pinShowcase = useCallback(async () => {
+    if (!myStats) return;
+    setPinning(true);
+    try {
+      const res = await fetch("/api/minigames/parking-rush/showcase", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          vehicleId: myStats.vehicleId,
+          carColor: myStats.carColor,
+          tier: myStats.tier,
+          score: myStats.score,
+          levelName,
+          parked: myStats.parked,
+        }),
+      });
+      if (res.ok) setPinned(true);
+    } finally {
+      setPinning(false);
+    }
+  }, [myStats, levelName]);
 
   useEffect(() => {
     if (phase !== "countdown") {
@@ -139,6 +166,7 @@ export function ParkingRushGamePanel({
 
   useEffect(() => {
     sceneRef.current?.setLocalUser(isSpectator ? null : userId ?? null);
+    sceneRef.current?.setFreeCamera(!!isSpectator);
   }, [userId, isSpectator]);
 
   useEffect(() => {
@@ -148,9 +176,12 @@ export function ParkingRushGamePanel({
         userId: id,
         car: stats[id]!.car,
         vehicleId: stats[id]!.vehicleId,
+        color: stats[id]!.carColor,
         isLocal: id === userId,
         parked: stats[id]!.parked,
         spotId: stats[id]!.spotId,
+        blinker: stats[id]!.blinker,
+        hornActive: stats[id]!.hornActive,
       }));
     sceneRef.current?.updateCars(cars);
   }, [stats, playerOrder, userId]);
@@ -232,7 +263,7 @@ export function ParkingRushGamePanel({
 
       {isSpectator && (
         <p className="text-center text-xs text-muted-foreground inline-flex items-center justify-center gap-1">
-          <Users className="h-3 w-3" /> 관전 중 · 실시간 3D
+          <Users className="h-3 w-3" /> 관전 중 · 자유 시점 3D (드래그 회전)
         </p>
       )}
 
@@ -278,7 +309,8 @@ export function ParkingRushGamePanel({
 
       {myStats && (
         <p className="text-center text-xs text-muted-foreground">
-          {VEHICLE_SPECS[myStats.vehicleId].label} · 목표 구역 {myStats.spotId.replace("spot-", "#")}
+          {VEHICLE_SPECS[myStats.vehicleId].label} · 목표 #{myStats.spotId.replace("spot-", "")}
+          {myStats.blinker && myStats.blinker !== "off" ? ` · ${myStats.blinker === "hazard" ? "비상등" : "방향지시"}` : ""}
         </p>
       )}
 
@@ -295,6 +327,17 @@ export function ParkingRushGamePanel({
               <Trophy className="h-4 w-4" /> {myStats.rank}위
             </p>
           )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-xl border-cyan-500/40"
+            disabled={pinning || pinned}
+            onClick={() => void pinShowcase()}
+          >
+            <Pin className="h-3.5 w-3.5 mr-1" />
+            {pinned ? "프로필에 전시됨" : pinning ? "저장 중…" : "프로필에 전시"}
+          </Button>
         </div>
       )}
 

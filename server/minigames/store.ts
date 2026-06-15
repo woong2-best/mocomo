@@ -303,6 +303,7 @@ export function minigameCreate(
     parkingRushMode: opts.parkingRushMode,
     parkingRushLevelId: opts.parkingRushLevelId,
     parkingRushDifficulty: opts.parkingRushDifficulty,
+    parkingRushCarColor: opts.parkingRushCarColor,
   };
 
   if (gameId === "omok" && opts.ruleMode) attachOmokRuleMode(room, opts.ruleMode);

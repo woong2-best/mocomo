@@ -16,6 +16,7 @@ export type GameCreateOptions = {
   parkingRushMode?: "solo" | "duel" | "ranked" | "time_attack";
   parkingRushLevelId?: string;
   parkingRushDifficulty?: "beginner" | "intermediate" | "advanced" | "expert";
+  parkingRushCarColor?: string;
 };
 
 export type GameJoinOptions = {

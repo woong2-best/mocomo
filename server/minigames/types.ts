@@ -49,6 +49,7 @@ export type MinigameRoomInternal = {
   parkingRushMode?: "solo" | "duel" | "ranked" | "time_attack";
   parkingRushLevelId?: string;
   parkingRushDifficulty?: "beginner" | "intermediate" | "advanced" | "expert";
+  parkingRushCarColor?: string;
 };
 
 export type MinigameCreateOptions = {
@@ -64,6 +65,7 @@ export type MinigameCreateOptions = {
   parkingRushMode?: "solo" | "duel" | "ranked" | "time_attack";
   parkingRushLevelId?: string;
   parkingRushDifficulty?: "beginner" | "intermediate" | "advanced" | "expert";
+  parkingRushCarColor?: string;
 };
 
 export type MinigameJoinOptions = {

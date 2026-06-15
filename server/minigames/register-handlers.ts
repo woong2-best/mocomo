@@ -48,6 +48,7 @@ export function registerMinigameHandlers(
         parkingRushMode?: "solo" | "duel" | "ranked" | "time_attack";
         parkingRushLevelId?: string;
         parkingRushDifficulty?: "beginner" | "intermediate" | "advanced" | "expert";
+        parkingRushCarColor?: string;
       },
       ack?: (r: unknown) => void
     ) => {
@@ -75,6 +76,7 @@ export function registerMinigameHandlers(
         parkingRushMode: data.parkingRushMode,
         parkingRushLevelId: data.parkingRushLevelId,
         parkingRushDifficulty: data.parkingRushDifficulty,
+        parkingRushCarColor: data.parkingRushCarColor,
       });
       if (!result.ok) {
         ack?.(result);

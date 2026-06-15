@@ -89,6 +89,35 @@ export const PARKING_LEVELS: ParkingLevel[] = [
     { x: 22, y: 45, w: 0.5, h: 0.5, kind: "cone", color: "#f97316" },
     { x: 6, y: 50, w: 12, h: 0.3, kind: "fence", color: "#ef4444" },
   ]),
+  baseLot("apartment-surface", "아파트 옥외주차장", "apartment", "intermediate", 95_000, 12, "#4b5563", "#86efac", [
+    { x: 24, y: 32, w: 1.3, h: 1.3, kind: "pillar", color: "#9ca3af" },
+    { x: 14, y: 44, w: 5, h: 2, kind: "car", color: "#374151" },
+    { x: 30, y: 18, w: 0.5, h: 0.5, kind: "cone", color: "#f97316" },
+  ]),
+  baseLot("harbor-advanced", "항구 물류주차장", "harbor", "advanced", 85_000, 14, "#1e3a5f", "#38bdf8", [
+    { x: 20, y: 26, w: 2, h: 2, kind: "pillar", color: "#64748b" },
+    { x: 32, y: 40, w: 2, h: 2, kind: "pillar", color: "#64748b" },
+    { x: 12, y: 35, w: 6, h: 2.4, angle: 0.25, kind: "car", color: "#334155" },
+    { x: 28, y: 22, w: 8, h: 0.4, kind: "fence", color: "#fcd34d" },
+    { x: 18, y: 48, w: 0.5, h: 0.5, kind: "cone", color: "#f97316" },
+    { x: 19, y: 49, w: 0.5, h: 0.5, kind: "cone", color: "#f97316" },
+  ]),
+  baseLot("airport-expert", "공항 장기주차장", "airport", "expert", 70_000, 16, "#312e81", "#c4b5fd", [
+    { x: 21, y: 30, w: 1.5, h: 1.5, kind: "pillar", color: "#818cf8" },
+    { x: 11, y: 22, w: 1.5, h: 1.5, kind: "pillar", color: "#818cf8" },
+    { x: 31, y: 42, w: 1.5, h: 1.5, kind: "pillar", color: "#818cf8" },
+    { x: 26, y: 16, w: 5.5, h: 2, angle: 0.15, kind: "car", color: "#1e1b4b" },
+    { x: 15, y: 46, w: 4.8, h: 1.9, kind: "car", color: "#4338ca" },
+    { x: 8, y: 38, w: 14, h: 0.35, kind: "fence", color: "#e0e7ff" },
+    { x: 23, y: 40, w: 0.5, h: 0.5, kind: "cone", color: "#f97316" },
+    { x: 24, y: 41, w: 0.5, h: 0.5, kind: "cone", color: "#f97316" },
+    { x: 25, y: 42, w: 0.5, h: 0.5, kind: "cone", color: "#f97316" },
+  ]),
+  baseLot("rooftop-intermediate", "옥상주차장", "rooftop", "intermediate", 100_000, 10, "#475569", "#fde68a", [
+    { x: 21, y: 34, w: 1.1, h: 1.1, kind: "pillar", color: "#94a3b8" },
+    { x: 29, y: 20, w: 4, h: 1.8, kind: "car", color: "#334155" },
+    { x: 5, y: 52, w: 10, h: 0.3, kind: "fence", color: "#ef4444" },
+  ]),
 ];
 
 export const PARKING_LEVEL_IDS = PARKING_LEVELS.map((l) => l.id);

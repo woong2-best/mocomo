@@ -6,6 +6,52 @@ export const PARKING_RUSH_PHYSICS_DT = 1 / 60;
 export const PARKING_RUSH_MAX_SPEED_KMH = 80;
 export const PARKING_RUSH_PARK_HOLD_MS = 800;
 export const PARKING_RUSH_MAX_COLLISIONS = 12;
+export const PARKING_RUSH_FRAME_RECORD_MS = 500;
+
+export const CAR_COLOR_PRESETS = [
+  { id: "cyan", label: "시안", hex: "#22d3ee" },
+  { id: "violet", label: "바이올렛", hex: "#a78bfa" },
+  { id: "pink", label: "핑크", hex: "#f472b6" },
+  { id: "gold", label: "골드", hex: "#fbbf24" },
+  { id: "mint", label: "민트", hex: "#34d399" },
+  { id: "orange", label: "오렌지", hex: "#fb923c" },
+  { id: "white", label: "화이트", hex: "#e2e8f0" },
+  { id: "red", label: "레드", hex: "#ef4444" },
+] as const;
+
+export type CarColorId = (typeof CAR_COLOR_PRESETS)[number]["id"];
+
+export function resolveCarColor(id?: string, fallback?: string): string {
+  const preset = CAR_COLOR_PRESETS.find((c) => c.id === id);
+  if (preset) return preset.hex;
+  if (fallback && /^#[0-9a-f]{6}$/i.test(fallback)) return fallback;
+  return CAR_COLOR_PRESETS[0]!.hex;
+}
+
+export type ParkingFrame = {
+  type: "parking_frame";
+  t: number;
+  cars: Record<
+    string,
+    {
+      x: number;
+      y: number;
+      angle: number;
+      speed: number;
+      vehicleId: VehicleTypeId;
+      color?: string;
+      blinker?: ParkingInput["blinker"];
+    }
+  >;
+};
+
+export type ParkingCollisionRecord = {
+  type: "parking_collision";
+  userId: string;
+  t: number;
+  kind: string;
+  strength: string;
+};
 
 export type ParkingRushMode = "solo" | "duel" | "ranked" | "time_attack";
 export type ParkingDifficulty = "beginner" | "intermediate" | "advanced" | "expert";
@@ -187,6 +233,9 @@ export type CollisionEvent = {
 
 export type PlayerParkingStats = {
   vehicleId: VehicleTypeId;
+  carColor: string;
+  blinker: ParkingInput["blinker"];
+  hornUntil: number;
   car: CarState;
   spotId: string;
   score: number;
@@ -538,11 +587,15 @@ export function emptyPlayerStats(
   userId: string,
   vehicleId: VehicleTypeId,
   spotId: string,
-  spawn: { x: number; y: number; angle: number }
+  spawn: { x: number; y: number; angle: number },
+  carColor?: string
 ): PlayerParkingStats {
   void userId;
   return {
     vehicleId,
+    carColor: carColor ?? VEHICLE_SPECS[vehicleId].color,
+    blinker: "off",
+    hornUntil: 0,
     car: { x: spawn.x, y: spawn.y, angle: spawn.angle, speed: 0, steer: 0, vehicleId },
     spotId,
     score: 0,
@@ -566,6 +619,9 @@ export function emptyPlayerStats(
 export function statsPublic(st: PlayerParkingStats) {
   return {
     vehicleId: st.vehicleId,
+    carColor: st.carColor,
+    blinker: st.blinker,
+    hornActive: st.hornUntil > Date.now(),
     car: st.car,
     spotId: st.spotId,
     score: st.score,

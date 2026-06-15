@@ -1,6 +1,7 @@
 import { pickParkingLevel } from "../../../src/lib/minigames/parking-rush-levels";
 import {
   PARKING_RUSH_COUNTDOWN_MS,
+  PARKING_RUSH_FRAME_RECORD_MS,
   PARKING_RUSH_PHYSICS_DT,
   PARKING_RUSH_TICK_MS,
   applyCollisionScore,
@@ -9,6 +10,7 @@ import {
   emptyPlayerStats,
   normalizeInput,
   parkingModeFromPlayers,
+  resolveCarColor,
   scoreParkingSuccess,
   statsPublic,
   stepCarPhysics,
@@ -36,6 +38,7 @@ type ParkingState = {
   timer: ReturnType<typeof setInterval> | null;
   physicsAcc: number;
   finishOrder: string[];
+  lastFrameAt: number;
 };
 
 function gs(room: MinigameRoomInternal): ParkingState {
@@ -69,8 +72,38 @@ function finishGame(room: MinigameRoomInternal, state: ParkingState) {
       collisions: st.collisions,
       tier: st.tier,
       vehicleId: st.vehicleId,
+      reversePark: st.reversePark,
+      rank: st.rank,
+      carColor: st.carColor,
     });
   }
+}
+
+function recordFrame(room: MinigameRoomInternal, state: ParkingState) {
+  const t = elapsedMs(state);
+  if (t - state.lastFrameAt < PARKING_RUSH_FRAME_RECORD_MS) return;
+  state.lastFrameAt = t;
+  room.moveHistory.push({
+    type: "parking_frame",
+    t,
+    cars: Object.fromEntries(
+      state.playerOrder.map((uid) => {
+        const st = state.stats[uid]!;
+        return [
+          uid,
+          {
+            x: st.car.x,
+            y: st.car.y,
+            angle: st.car.angle,
+            speed: st.car.speed,
+            vehicleId: st.vehicleId,
+            color: st.carColor,
+            blinker: st.blinker,
+          },
+        ];
+      })
+    ),
+  });
 }
 
 function assignRanks(state: ParkingState) {
@@ -91,7 +124,11 @@ function physicsStep(room: MinigameRoomInternal, state: ParkingState) {
     if (!st || st.finished || st.parked) continue;
 
     const input = state.inputs[uid] ?? { throttle: 0, steer: 0 };
-    if (input.horn) st.hornCount += 1;
+    if (input.horn) {
+      st.hornUntil = now + 350;
+      st.hornCount += 1;
+    }
+    st.blinker = input.blinker ?? "off";
 
     const spec = VEHICLE_SPECS[st.vehicleId];
     const car = { ...st.car };
@@ -100,6 +137,13 @@ function physicsStep(room: MinigameRoomInternal, state: ParkingState) {
 
     if (hit) {
       st = applyCollisionScore(st, hit);
+      room.moveHistory.push({
+        type: "parking_collision",
+        userId: uid,
+        t: elapsed,
+        kind: hit.kind,
+        strength: hit.strength,
+      });
       if (st.collisions >= 12) st.score = Math.max(0, st.score - 200);
     } else if (Math.abs(car.speed) > 0.2) {
       st.combo += 1;
@@ -125,6 +169,8 @@ function physicsStep(room: MinigameRoomInternal, state: ParkingState) {
     st.car = car;
     state.stats[uid] = st;
   }
+
+  if (state.phase === "playing") recordFrame(room, state);
 
   if (state.mode === "duel" || state.mode === "ranked") {
     const parkedCount = Object.values(state.stats).filter((s) => s.parked).length;
@@ -176,12 +222,13 @@ export const parkingRushPlugin: MinigamePlugin = {
     });
     const now = Date.now();
     const startedAt = now + PARKING_RUSH_COUNTDOWN_MS;
+    const carColor = resolveCarColor(room.parkingRushCarColor);
 
     const stats: Record<string, PlayerParkingStats> = {};
     order.forEach((uid, i) => {
       const spot = level.parkingSpots[i % level.parkingSpots.length]!;
       const spawn = level.spawnPoints[i % level.spawnPoints.length]!;
-      stats[uid] = emptyPlayerStats(uid, vehicleForPlayer(i), spot.id, spawn);
+      stats[uid] = emptyPlayerStats(uid, vehicleForPlayer(i), spot.id, spawn, carColor);
     });
 
     return {
@@ -191,11 +238,12 @@ export const parkingRushPlugin: MinigamePlugin = {
       startedAt,
       endsAt: startedAt + level.timeLimitMs,
       stats,
-      inputs: Object.fromEntries(order.map((id) => [id, { throttle: 0, steer: 0 }])),
+      inputs: Object.fromEntries(order.map((id) => [id, { throttle: 0, steer: 0, blinker: "off" as const }])),
       playerOrder: order,
       timer: null,
       physicsAcc: 0,
       finishOrder: [],
+      lastFrameAt: -PARKING_RUSH_FRAME_RECORD_MS,
     };
   },
 

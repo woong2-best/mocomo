@@ -191,6 +191,7 @@ export function PlayRoomClient({
             )}
           </div>
           <MinigameChatPanel
+            gameId={gameId}
             messages={chatMessages}
             onSend={(t) => sendChat(t)}
             disabled={isSpectator && !state.spectatorChatEnabled}

@@ -37,6 +37,9 @@ export function buildReplaySteps(
     let label = `${name}: ${JSON.stringify(m)}`;
     if (m.x != null && m.y != null) label = `${name}: (${m.x}, ${m.y})`;
     if (m.from && m.to) label = `${name}: ${m.from}→${m.to}`;
+    if (m.type === "parking_frame") label = `${name}: ${Math.floor((m.t as number) / 1000)}초`;
+    if (m.type === "parking_collision") label = `${name}: 충돌 (${m.strength})`;
+    if (m.type === "parking_summary") label = `${name}: ${m.score}점 ${m.parked ? "주차성공" : ""}`;
     if (m.id != null) label = `${name}: #${m.id} (+${m.points ?? 0})`;
     if (m.hint) label = `${name}: 힌트`;
     if (m.miss) label = `${name}: 오답`;
@@ -136,6 +139,16 @@ export function snapshotAtStep(
       step,
       gameId,
       label: last ? `${step}수 · ${last}` : `${step}수`,
+    };
+  }
+
+  if (gameId === "parking-rush") {
+    const frames = slice.filter((m) => (m as { type?: string }).type === "parking_frame");
+    const last = frames[frames.length - 1] as { t?: number } | undefined;
+    return {
+      step,
+      gameId,
+      label: last?.t != null ? `${(last.t / 1000).toFixed(1)}초` : `${step}프레임`,
     };
   }
 

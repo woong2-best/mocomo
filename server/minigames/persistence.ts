@@ -1,5 +1,10 @@
 import type { PrismaClient } from "@prisma/client";
 import { mmrDelta, tierFromMmr } from "../../src/lib/minigames/mmr";
+import {
+  checkParkingAchievements,
+  parseParkingSummaries,
+  upsertParkingRating,
+} from "../../src/lib/minigames/parking-rush-postgame";
 import type { MinigameRoomInternal } from "./types";
 
 async function getActiveSeasonId(prisma: PrismaClient): Promise<string | null> {
@@ -148,6 +153,15 @@ export async function persistMinigameResult(
           await apply(b!, rb, delta.win, true, false);
           await apply(a!, ra, delta.lose, false, true);
         }
+      }
+    }
+
+    if (room.gameId === "parking-rush") {
+      const summaries = parseParkingSummaries(room.moveHistory);
+      for (const s of summaries) {
+        const won = room.winnerId === s.userId;
+        await upsertParkingRating(prisma, s.userId, s, won, seasonId);
+        await checkParkingAchievements(prisma, s.userId, s, won);
       }
     }
 

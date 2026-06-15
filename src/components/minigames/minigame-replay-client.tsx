@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { OmokBoard } from "@/components/omok/omok-board";
 import { buildReplaySteps, snapshotAtStep } from "@/lib/minigames/replay";
+import { ParkingRushReplayView } from "@/components/parking-rush/parking-rush-replay-view";
 import { getMinigameById } from "@/lib/minigames/registry";
 import { getMinigameRoute } from "@/lib/minigames/game-meta";
 import { Chess } from "chess.js";
@@ -64,12 +65,18 @@ export function MinigameReplayClient({ gameId, matchId }: { gameId: string; matc
 
       <Card className="border-2 border-folk-cobalt/20">
         <CardContent className="p-4 flex flex-col items-center gap-4">
-          {(gameId === "omok" || gameId === "reversi") && snapshot.board && (
-            <OmokBoard board={snapshot.board} disabled />
-          )}
-          {gameId === "chess" && snapshot.fen && <ChessMiniBoard fen={snapshot.fen} />}
-          {!snapshot.board && !snapshot.fen && (
-            <p className="text-sm">{snapshot.label}</p>
+          {gameId === "parking-rush" ? (
+            <ParkingRushReplayView moves={moves} initialState={match?.initialState} playerNames={match?.playerNames} />
+          ) : (
+            <>
+              {(gameId === "omok" || gameId === "reversi") && snapshot.board && (
+                <OmokBoard board={snapshot.board} disabled />
+              )}
+              {gameId === "chess" && snapshot.fen && <ChessMiniBoard fen={snapshot.fen} />}
+              {!snapshot.board && !snapshot.fen && gameId !== "parking-rush" && (
+                <p className="text-sm">{snapshot.label}</p>
+              )}
+            </>
           )}
           <p className="text-xs text-muted-foreground">
             {step} / {moves.length}수
@@ -78,6 +85,7 @@ export function MinigameReplayClient({ gameId, matchId }: { gameId: string; matc
         </CardContent>
       </Card>
 
+      {gameId !== "parking-rush" && (
       <div className="flex flex-wrap gap-2 items-center justify-center">
         <Button variant="outline" size="sm" onClick={() => setStep(0)} disabled={step === 0}>
           처음
@@ -98,7 +106,9 @@ export function MinigameReplayClient({ gameId, matchId }: { gameId: string; matc
           <option value={4}>4x</option>
         </select>
       </div>
+      )}
 
+      {gameId !== "parking-rush" && (
       <div className="max-h-40 overflow-y-auto text-xs space-y-1 border rounded-lg p-2">
         {steps.map((s) => (
           <button
@@ -111,6 +121,7 @@ export function MinigameReplayClient({ gameId, matchId }: { gameId: string; matc
           </button>
         ))}
       </div>
+      )}
     </div>
   );
 }

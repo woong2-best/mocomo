@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
-import { Infinity, Music, Trophy, Users, Car, Timer } from "lucide-react";
+import { Crown, Infinity, Music, Trophy, Users, Car, Timer } from "lucide-react";
 import { getMinigameById } from "@/lib/minigames/registry";
 import { getMinigameRoute } from "@/lib/minigames/game-meta";
 import { MinigameHubShell } from "@/components/minigames/minigame-hub-shell";
@@ -14,6 +14,10 @@ import { SpotDiffLeaderboard } from "@/components/spot-diff/spot-diff-leaderboar
 import { PianoRushLeaderboard } from "@/components/piano-rush/piano-rush-leaderboard";
 import { PianoSongPicker } from "@/components/piano-rush/piano-song-picker";
 import { ParkingLevelPicker } from "@/components/parking-rush/parking-level-picker";
+import { ParkingColorPicker } from "@/components/parking-rush/parking-color-picker";
+import { ParkingRushLeaderboard } from "@/components/parking-rush/parking-rush-leaderboard";
+import { ParkingRushTournamentPanel } from "@/components/parking-rush/parking-rush-tournament-panel";
+import type { CarColorId } from "@/lib/minigames/parking-rush-logic";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -47,10 +51,11 @@ export function PlayHubClient({ gameId }: { gameId: string }) {
   const isSpotDiff = gameId === "spot-diff";
   const isPianoRush = gameId === "piano-rush";
   const isParkingRush = gameId === "parking-rush";
-  const [parkingTab, setParkingTab] = useState<"solo" | "duel" | "ranked" | "time_attack">("duel");
+  const [parkingTab, setParkingTab] = useState<"solo" | "duel" | "ranked" | "time_attack" | "tournament">("duel");
   const [parkingLevelId, setParkingLevelId] = useState("lot-beginner");
   const [parkingPassword, setParkingPassword] = useState("1234");
   const [parkingError, setParkingError] = useState<string | null>(null);
+  const [parkingCarColor, setParkingCarColor] = useState<CarColorId>("cyan");
 
   function startInfinite() {
     if (!session?.user) {
@@ -101,6 +106,7 @@ export function PlayHubClient({ gameId }: { gameId: string }) {
       password: parkingPassword.trim(),
       parkingRushMode: mode,
       parkingRushLevelId: parkingLevelId,
+      parkingRushCarColor: parkingCarColor,
     });
     router.push(`${routeBase}/${code}?create=1`);
   }
@@ -193,6 +199,7 @@ export function PlayHubClient({ gameId }: { gameId: string }) {
               ["solo", "싱글", Car],
               ["ranked", "랭크", Trophy],
               ["time_attack", "타임", Timer],
+              ["tournament", "토너", Crown],
             ] as const
           ).map(([id, label, TabIcon]) => (
             <button
@@ -211,9 +218,10 @@ export function PlayHubClient({ gameId }: { gameId: string }) {
         </div>
       )}
 
-      {isParkingRush && (
-        <div className="max-w-md mx-auto">
+      {isParkingRush && parkingTab !== "ranked" && parkingTab !== "tournament" && (
+        <div className="max-w-md mx-auto space-y-3">
           <ParkingLevelPicker levelId={parkingLevelId} onLevelId={setParkingLevelId} />
+          <ParkingColorPicker value={parkingCarColor} onChange={setParkingCarColor} />
         </div>
       )}
 
@@ -259,6 +267,12 @@ export function PlayHubClient({ gameId }: { gameId: string }) {
           </Card>
           <SpotDiffLeaderboard />
         </div>
+      ) : isParkingRush && parkingTab === "ranked" ? (
+        <div className="max-w-md mx-auto space-y-4">
+          <ParkingRushLeaderboard />
+        </div>
+      ) : isParkingRush && parkingTab === "tournament" ? (
+        <ParkingRushTournamentPanel routeBase={routeBase} />
       ) : isParkingRush && (parkingTab === "solo" || parkingTab === "time_attack") ? (
         <div className="space-y-4 max-w-md mx-auto">
           <Card className="border-2 border-cyan-500/25">
@@ -338,12 +352,14 @@ export function PlayHubClient({ gameId }: { gameId: string }) {
                   ? {
                       parkingRushMode: parkingTab === "ranked" ? "ranked" : "duel",
                       parkingRushLevelId: parkingLevelId,
+                      parkingRushCarColor: parkingCarColor,
                     }
                   : undefined
             }
           />
           {isSpotDiff && <SpotDiffLeaderboard limit={5} />}
           {isPianoRush && pianoTab === "duel" && <PianoRushLeaderboard />}
+          {isParkingRush && parkingTab === "duel" && <ParkingRushLeaderboard />}
         </>
       )}
     </div>
