@@ -11,6 +11,9 @@ import {
   tryReversiMove,
   type ReversiBoard,
 } from "../../../src/lib/minigames/reversi-logic";
+import { pickReversiAiMove } from "../../../src/lib/minigames/reversi-ai";
+import { getRoomAiDifficulty, isCpuSoloRoom, MINIGAME_CPU_USER_ID, scheduleCpuTurn } from "../cpu-solo";
+import { setTurnUser } from "../clocks";
 import { basePublicFields, type MinigamePlugin, type MinigameRoomInternal } from "../types";
 
 type ReversiState = {
@@ -128,6 +131,7 @@ export const reversiPlugin: MinigamePlugin = {
 
   onGameStart(room) {
     startTurnTimer(room, gs(room));
+    scheduleReversiCpuMoveIfNeeded(room);
   },
 
   clearTimers(room) {
@@ -247,3 +251,31 @@ export const reversiPlugin: MinigamePlugin = {
     reversiPlugin.clearTimers?.(room);
   },
 };
+
+function finishFromWin(room: MinigameRoomInternal, win: { winnerId: string; resultMessage: string } | null) {
+  if (!win) return;
+  const finish = (room as MinigameRoomInternal & { _finishGame?: (w: { winnerId: string; resultMessage: string }) => void })
+    ._finishGame;
+  finish?.(win);
+}
+
+function executeReversiCpuTurn(room: MinigameRoomInternal) {
+  if (!isCpuSoloRoom(room) || room.status !== "playing") return;
+  const state = gs(room);
+  if (turnUserId(state) !== MINIGAME_CPU_USER_ID) return;
+
+  const ai = pickReversiAiMove(state.board, state.turn, getRoomAiDifficulty(room));
+  reversiPlugin.applyMove(room, MINIGAME_CPU_USER_ID, "pass" in ai && ai.pass ? { pass: true } : ai);
+  setTurnUser(room, turnUserId(gs(room)));
+  finishFromWin(room, reversiPlugin.checkWin(room));
+  if (room.status === "playing") {
+    (room as MinigameRoomInternal & { _broadcast?: () => void })._broadcast?.();
+    if (turnUserId(gs(room)) === MINIGAME_CPU_USER_ID) scheduleReversiCpuMoveIfNeeded(room);
+  }
+}
+
+export function scheduleReversiCpuMoveIfNeeded(room: MinigameRoomInternal) {
+  if (!isCpuSoloRoom(room) || room.status !== "playing") return;
+  if (turnUserId(gs(room)) !== MINIGAME_CPU_USER_ID) return;
+  scheduleCpuTurn(room, () => executeReversiCpuTurn(room));
+}

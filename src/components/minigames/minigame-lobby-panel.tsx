@@ -50,8 +50,8 @@ export function MinigameLobbyPanel({
 
   const me = state.players.find((p) => p.userId === userId);
   const allReady = state.players.every((p) => p.ready);
-  const isOmokSolo = state.gameId === "omok" && state.omokMode === "solo";
-  const minMet = isOmokSolo ? state.players.length >= 1 : state.players.length >= 2;
+  const isCpuSolo = state.cpuOpponent || (state.gameId === "omok" && state.omokMode === "solo");
+  const minMet = isCpuSolo ? state.players.length >= 1 : state.players.length >= 2;
 
   return (
     <Card className="border-2 border-folk-cobalt/20">

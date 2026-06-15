@@ -134,6 +134,8 @@ export function useMinigameRoom(
           towerRushMapId: createOpts.towerRushMapId,
           omokMode: createOpts.omokMode,
           omokAiDifficulty: createOpts.omokAiDifficulty,
+          cpuOpponent: createOpts.cpuOpponent,
+          aiDifficulty: createOpts.aiDifficulty,
           accessMode: "private",
         },
         active

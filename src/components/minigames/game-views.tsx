@@ -60,7 +60,11 @@ export function GameActiveView({ gameId, state, userId, isSpectator, onMove, err
           isSpectator={isSpectator}
           finished={state.status === "finished"}
           players={state.players}
-          aiDifficulty={state.omokMode === "solo" ? state.omokAiDifficulty : undefined}
+          aiDifficulty={
+            state.cpuOpponent || state.omokMode === "solo"
+              ? state.aiDifficulty ?? state.omokAiDifficulty
+              : undefined
+          }
           onMove={onMove}
         />
       );

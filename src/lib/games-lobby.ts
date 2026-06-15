@@ -21,6 +21,8 @@ export type GameCreateOptions = {
   towerRushMapId?: string;
   omokMode?: "pvp" | "solo";
   omokAiDifficulty?: "easy" | "normal" | "hard";
+  cpuOpponent?: boolean;
+  aiDifficulty?: "easy" | "normal" | "hard";
 };
 
 export type GameJoinOptions = {

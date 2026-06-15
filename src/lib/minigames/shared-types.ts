@@ -30,6 +30,8 @@ export type MinigameRoomPublicBase = {
   parkingRushMode?: "solo" | "duel" | "ranked" | "time_attack";
   omokMode?: "pvp" | "solo";
   omokAiDifficulty?: "easy" | "normal" | "hard";
+  cpuOpponent?: boolean;
+  aiDifficulty?: "easy" | "normal" | "hard";
 };
 
 export type MinigameChatMessage = {

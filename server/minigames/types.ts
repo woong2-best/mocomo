@@ -54,6 +54,8 @@ export type MinigameRoomInternal = {
   towerRushMapId?: string;
   omokMode?: "pvp" | "solo";
   omokAiDifficulty?: "easy" | "normal" | "hard";
+  cpuOpponent?: boolean;
+  aiDifficulty?: "easy" | "normal" | "hard";
 };
 
 export type MinigameCreateOptions = {
@@ -74,6 +76,8 @@ export type MinigameCreateOptions = {
   towerRushMapId?: string;
   omokMode?: "pvp" | "solo";
   omokAiDifficulty?: "easy" | "normal" | "hard";
+  cpuOpponent?: boolean;
+  aiDifficulty?: "easy" | "normal" | "hard";
 };
 
 export type MinigameJoinOptions = {
@@ -149,5 +153,7 @@ export function basePublicFields(room: MinigameRoomInternal): MinigameRoomPublic
     parkingRushMode: room.parkingRushMode,
     omokMode: room.omokMode,
     omokAiDifficulty: room.omokAiDifficulty,
+    cpuOpponent: room.cpuOpponent,
+    aiDifficulty: room.aiDifficulty,
   };
 }

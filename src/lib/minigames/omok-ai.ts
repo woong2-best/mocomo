@@ -8,10 +8,13 @@ import {
 } from "./omok-logic";
 import { isRenjuForbidden } from "./renju-logic";
 
-export type OmokAiDifficulty = "easy" | "normal" | "hard";
+import type { MinigameAiDifficulty } from "./minigame-cpu";
+export type OmokAiDifficulty = MinigameAiDifficulty;
 
-export const OMOK_CPU_USER_ID = "__omok_cpu__";
-export const OMOK_CPU_USERNAME = "CPU";
+export {
+  MINIGAME_CPU_USER_ID as OMOK_CPU_USER_ID,
+  MINIGAME_CPU_USERNAME as OMOK_CPU_USERNAME,
+} from "./minigame-cpu";
 
 const CENTER = Math.floor(OMOK_BOARD_SIZE / 2);
 

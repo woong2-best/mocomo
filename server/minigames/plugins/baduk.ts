@@ -10,6 +10,9 @@ import {
   type BadukPoint,
   type BadukScore,
 } from "../../../src/lib/minigames/baduk-logic";
+import { pickBadukAiMove } from "../../../src/lib/minigames/baduk-ai";
+import { getRoomAiDifficulty, isCpuSoloRoom, MINIGAME_CPU_USER_ID, scheduleCpuTurn } from "../cpu-solo";
+import { setTurnUser } from "../clocks";
 import { basePublicFields, type MinigamePlugin, type MinigameRoomInternal } from "../types";
 
 type BadukState = {
@@ -111,6 +114,7 @@ export const badukPlugin: MinigamePlugin = {
 
   onGameStart(room) {
     startTurnTimer(room, gs(room));
+    scheduleBadukCpuMoveIfNeeded(room);
   },
 
   clearTimers(room) {
@@ -216,3 +220,23 @@ export const badukPlugin: MinigamePlugin = {
     badukPlugin.clearTimers?.(room);
   },
 };
+
+function executeBadukCpuTurn(room: MinigameRoomInternal) {
+  if (!isCpuSoloRoom(room) || room.status !== "playing") return;
+  const state = gs(room);
+  if (turnUserId(state) !== MINIGAME_CPU_USER_ID) return;
+
+  const ai = pickBadukAiMove(state.board, state.turn, state.koPoint, getRoomAiDifficulty(room));
+  badukPlugin.applyMove(room, MINIGAME_CPU_USER_ID, "pass" in ai && ai.pass ? { pass: true } : ai);
+  setTurnUser(room, turnUserId(gs(room)));
+  if (room.status === "playing") {
+    (room as MinigameRoomInternal & { _broadcast?: () => void })._broadcast?.();
+    if (turnUserId(gs(room)) === MINIGAME_CPU_USER_ID) scheduleBadukCpuMoveIfNeeded(room);
+  }
+}
+
+export function scheduleBadukCpuMoveIfNeeded(room: MinigameRoomInternal) {
+  if (!isCpuSoloRoom(room) || room.status !== "playing") return;
+  if (turnUserId(gs(room)) !== MINIGAME_CPU_USER_ID) return;
+  scheduleCpuTurn(room, () => executeBadukCpuTurn(room));
+}

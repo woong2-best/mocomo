@@ -11,6 +11,9 @@ import {
   type JanggiBoard,
   type JanggiMove,
 } from "../../../src/lib/minigames/janggi-logic";
+import { pickJanggiAiMove } from "../../../src/lib/minigames/janggi-ai";
+import { getRoomAiDifficulty, isCpuSoloRoom, MINIGAME_CPU_USER_ID, scheduleCpuTurn } from "../cpu-solo";
+import { setTurnUser } from "../clocks";
 import { basePublicFields, type MinigamePlugin, type MinigameRoomInternal } from "../types";
 
 type JanggiState = {
@@ -131,6 +134,7 @@ export const janggiPlugin: MinigamePlugin = {
     const state = gs(room);
     refreshCheck(state);
     startTurnTimer(room, state);
+    scheduleJanggiCpuMoveIfNeeded(room);
   },
 
   clearTimers(room) {
@@ -226,4 +230,26 @@ export function janggiForceResign(room: MinigameRoomInternal, userId: string) {
 export function janggiHasAnyLegalMove(room: MinigameRoomInternal): boolean {
   const state = gs(room);
   return allLegalMoves(state.board, state.turnRed).length > 0;
+}
+
+function executeJanggiCpuTurn(room: MinigameRoomInternal) {
+  if (!isCpuSoloRoom(room) || room.status !== "playing") return;
+  const state = gs(room);
+  if (turnUserId(state) !== MINIGAME_CPU_USER_ID) return;
+
+  const ai = pickJanggiAiMove(state.board, state.turnRed, getRoomAiDifficulty(room));
+  if (!ai) return;
+
+  janggiPlugin.applyMove(room, MINIGAME_CPU_USER_ID, ai);
+  setTurnUser(room, turnUserId(gs(room)));
+  if (room.status === "playing") {
+    (room as MinigameRoomInternal & { _broadcast?: () => void })._broadcast?.();
+    if (turnUserId(gs(room)) === MINIGAME_CPU_USER_ID) scheduleJanggiCpuMoveIfNeeded(room);
+  }
+}
+
+export function scheduleJanggiCpuMoveIfNeeded(room: MinigameRoomInternal) {
+  if (!isCpuSoloRoom(room) || room.status !== "playing") return;
+  if (turnUserId(gs(room)) !== MINIGAME_CPU_USER_ID) return;
+  scheduleCpuTurn(room, () => executeJanggiCpuTurn(room));
 }

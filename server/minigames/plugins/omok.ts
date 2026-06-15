@@ -9,16 +9,17 @@ import {
   type OmokBoard,
 } from "../../../src/lib/minigames/omok-logic";
 import {
-  OMOK_CPU_USER_ID,
   pickOmokAiMove,
   type OmokAiDifficulty,
 } from "../../../src/lib/minigames/omok-ai";
+import { MINIGAME_CPU_USER_ID } from "../../../src/lib/minigames/minigame-cpu";
 import { isRenjuForbidden } from "../../../src/lib/minigames/renju-logic";
 import type { MinigamePublicState } from "../../../src/lib/minigames/shared-types";
+import { getRoomAiDifficulty, isCpuSoloRoom, scheduleCpuTurn } from "../cpu-solo";
 import { setTurnUser } from "../clocks";
 import { basePublicFields, type MinigamePlugin, type MinigameRoomInternal } from "../types";
 
-export { OMOK_CPU_USER_ID } from "../../../src/lib/minigames/omok-ai";
+export { MINIGAME_CPU_USER_ID as OMOK_CPU_USER_ID } from "../../../src/lib/minigames/minigame-cpu";
 
 type OmokMove = { x: number; y: number };
 
@@ -44,8 +45,8 @@ function playerIds(room: MinigameRoomInternal): string[] {
 
 function pickFallbackMove(state: OmokGameState, room: MinigameRoomInternal): OmokMove | null {
   const turnUserId = state.turn === "black" ? state.blackUserId : state.whiteUserId;
-  if (room.omokMode === "solo" && turnUserId === OMOK_CPU_USER_ID) {
-    const difficulty = room.omokAiDifficulty ?? "normal";
+  if (isCpuSoloRoom(room) && turnUserId === MINIGAME_CPU_USER_ID) {
+    const difficulty = getRoomAiDifficulty(room);
     return pickOmokAiMove(state.board, state.turn, state.ruleMode, difficulty);
   }
   const candidates: OmokMove[] = [];
@@ -228,22 +229,20 @@ export function getOmokState(room: MinigameRoomInternal): OmokGameState | null {
   return room.gameState as OmokGameState | null;
 }
 
-const cpuMovePending = new WeakSet<MinigameRoomInternal>();
-
 function currentTurnUserId(state: OmokGameState): string {
   return state.turn === "black" ? state.blackUserId : state.whiteUserId;
 }
 
 function executeOmokCpuMove(room: MinigameRoomInternal) {
-  if (room.omokMode !== "solo" || room.status !== "playing") return;
+  if (!isCpuSoloRoom(room) || room.status !== "playing") return;
   const state = gs(room);
-  if (currentTurnUserId(state) !== OMOK_CPU_USER_ID) return;
+  if (currentTurnUserId(state) !== MINIGAME_CPU_USER_ID) return;
 
-  const difficulty: OmokAiDifficulty = room.omokAiDifficulty ?? "normal";
+  const difficulty: OmokAiDifficulty = getRoomAiDifficulty(room);
   const move = pickOmokAiMove(state.board, state.turn, state.ruleMode, difficulty);
   if (!move) return;
 
-  placeStone(room, OMOK_CPU_USER_ID, move);
+  placeStone(room, MINIGAME_CPU_USER_ID, move);
   setTurnUser(room, currentTurnUserId(gs(room)));
 
   const win = checkWinInternal(room);
@@ -263,17 +262,8 @@ function executeOmokCpuMove(room: MinigameRoomInternal) {
 }
 
 export function scheduleOmokCpuMoveIfNeeded(room: MinigameRoomInternal) {
-  if (room.omokMode !== "solo" || room.status !== "playing") return;
+  if (!isCpuSoloRoom(room) || room.status !== "playing") return;
   const state = gs(room);
-  if (currentTurnUserId(state) !== OMOK_CPU_USER_ID) return;
-  if (cpuMovePending.has(room)) return;
-  cpuMovePending.add(room);
-
-  const delay = 350 + Math.floor(Math.random() * 500);
-  const timer = setTimeout(() => {
-    cpuMovePending.delete(room);
-    executeOmokCpuMove(room);
-    if (room.status === "playing") scheduleOmokCpuMoveIfNeeded(room);
-  }, delay);
-  room.timers.push(timer);
+  if (currentTurnUserId(state) !== MINIGAME_CPU_USER_ID) return;
+  scheduleCpuTurn(room, () => executeOmokCpuMove(room));
 }

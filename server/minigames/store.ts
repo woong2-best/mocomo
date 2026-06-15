@@ -2,8 +2,16 @@ import type { Server } from "socket.io";
 import type { PrismaClient } from "@prisma/client";
 import { generateRoomCode, isValidRoomCode } from "../../src/lib/sketch-quiz-words";
 import type { MinigamePublicState } from "../../src/lib/minigames/shared-types";
-import { attachOmokRuleMode, OMOK_CPU_USER_ID, scheduleOmokCpuMoveIfNeeded } from "./plugins/omok";
-import { OMOK_CPU_USERNAME } from "../../src/lib/minigames/omok-ai";
+import { attachOmokRuleMode, scheduleOmokCpuMoveIfNeeded } from "./plugins/omok";
+import { scheduleReversiCpuMoveIfNeeded } from "./plugins/reversi";
+import { scheduleChessCpuMoveIfNeeded } from "./plugins/chess";
+import { scheduleJanggiCpuMoveIfNeeded } from "./plugins/janggi";
+import { scheduleBadukCpuMoveIfNeeded } from "./plugins/baduk";
+import {
+  attachCpuPlayer,
+  isCpuSoloInstantCreate,
+  isCpuSoloRoom,
+} from "./cpu-solo";
 import { getTurnUserId } from "../../src/lib/minigames/chess-logic";
 import { PLUGIN_BY_ID } from "./plugins/index";
 import { persistMinigameResult, ensureDefaultSeason } from "./persistence";
@@ -176,6 +184,27 @@ function startGameInternal(room: MinigameRoomInternal): { ok: true; state: Minig
   return { ok: true, state };
 }
 
+function scheduleCpuMoveIfNeeded(room: MinigameRoomInternal) {
+  if (!isCpuSoloRoom(room)) return;
+  switch (room.gameId) {
+    case "omok":
+      scheduleOmokCpuMoveIfNeeded(room);
+      break;
+    case "reversi":
+      scheduleReversiCpuMoveIfNeeded(room);
+      break;
+    case "chess":
+      scheduleChessCpuMoveIfNeeded(room);
+      break;
+    case "janggi":
+      scheduleJanggiCpuMoveIfNeeded(room);
+      break;
+    case "baduk":
+      scheduleBadukCpuMoveIfNeeded(room);
+      break;
+  }
+}
+
 function notifyQueueWaiters(gameId: string) {
   if (!ioRef) return;
   const queue = matchQueues.get(gameId) ?? [];
@@ -309,7 +338,14 @@ export function minigameCreate(
     towerRushMapId: opts.towerRushMapId,
     omokMode: opts.omokMode,
     omokAiDifficulty: opts.omokAiDifficulty,
+    cpuOpponent: opts.cpuOpponent ?? (gameId === "omok" && opts.omokMode === "solo"),
+    aiDifficulty: opts.aiDifficulty ?? opts.omokAiDifficulty,
   };
+
+  if (room.cpuOpponent && gameId === "omok") {
+    room.omokMode = "solo";
+    room.omokAiDifficulty = room.aiDifficulty;
+  }
 
   if (gameId === "omok" && opts.ruleMode) attachOmokRuleMode(room, opts.ruleMode);
   indexUser(gameId, userId, room.id);
@@ -320,17 +356,9 @@ export function minigameCreate(
     gameId === "parking-rush" &&
     (opts.parkingRushMode === "solo" || opts.parkingRushMode === "time_attack");
   const isTowerInstant = gameId === "tower-rush" && opts.towerRushMode === "solo";
-  const isOmokSolo = gameId === "omok" && opts.omokMode === "solo";
-  if (isOmokSolo) {
-    room.players.set(OMOK_CPU_USER_ID, {
-      userId: OMOK_CPU_USER_ID,
-      username: OMOK_CPU_USERNAME,
-      socketId: "",
-      ready: true,
-      role: "white",
-    });
-  }
-  if (isParkingInstant || isTowerInstant || isOmokSolo) {
+  const isCpuInstant = isCpuSoloInstantCreate(gameId, opts);
+  if (isCpuInstant) attachCpuPlayer(room);
+  if (isParkingInstant || isTowerInstant || isCpuInstant) {
     for (const p of room.players.values()) p.ready = true;
     const started = startGameInternal(room);
     if (started.ok) return { ok: true as const, state: started.state };
@@ -411,7 +439,7 @@ export function minigameSpectate(
   if (room.gameId === "tower-rush" && room.towerRushMode === "solo") {
     return { ok: false as const, error: "싱글 모드는 관전할 수 없습니다." };
   }
-  if (room.gameId === "omok" && room.omokMode === "solo") {
+  if (isCpuSoloRoom(room)) {
     return { ok: false as const, error: "싱글 모드는 관전할 수 없습니다." };
   }
 
@@ -550,9 +578,7 @@ export function minigameMove(gameId: string, roomId: string, userId: string, mov
   }
 
   broadcastState(room);
-  if (room.gameId === "omok" && room.omokMode === "solo") {
-    scheduleOmokCpuMoveIfNeeded(room);
-  }
+  scheduleCpuMoveIfNeeded(room);
   return { ok: true as const, state: plugin.toPublicState(room) };
 }
 
@@ -697,7 +723,7 @@ export function minigameRematch(gameId: string, roomId: string, userId: string) 
   room.initialGameState = undefined;
   for (const p of room.players.values()) p.ready = false;
 
-  if (room.gameId === "omok" && room.omokMode === "solo") {
+  if (isCpuSoloRoom(room)) {
     for (const p of room.players.values()) p.ready = true;
     return startGameInternal(room);
   }

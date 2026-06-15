@@ -53,6 +53,8 @@ export function registerMinigameHandlers(
         towerRushMapId?: string;
         omokMode?: "pvp" | "solo";
         omokAiDifficulty?: "easy" | "normal" | "hard";
+        cpuOpponent?: boolean;
+        aiDifficulty?: "easy" | "normal" | "hard";
       },
       ack?: (r: unknown) => void
     ) => {
@@ -85,6 +87,8 @@ export function registerMinigameHandlers(
         towerRushMapId: data.towerRushMapId,
         omokMode: data.omokMode,
         omokAiDifficulty: data.omokAiDifficulty,
+        cpuOpponent: data.cpuOpponent,
+        aiDifficulty: data.aiDifficulty,
       });
       if (!result.ok) {
         ack?.(result);
