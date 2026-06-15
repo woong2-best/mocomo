@@ -50,7 +50,11 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
         isStaff={isStaff}
         isLoggedIn={!!session?.user}
       />
-      <PostDetailCard post={post} locale={locale} />
+      <PostDetailCard
+        post={post}
+        locale={locale}
+        isOwner={session?.user?.id === post.author.id}
+      />
       <PostDetailActions
         postId={post.id}
         authorUsername={post.author.username}

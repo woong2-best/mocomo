@@ -22,12 +22,14 @@ export function ProfileTimeline({
   initialItems,
   initialCursor,
   emptyMessage,
+  isSelf = false,
 }: {
   username: string;
   tab: ProfileTab;
   initialItems: TimelineItem[];
   initialCursor: string | null;
   emptyMessage: string;
+  isSelf?: boolean;
 }) {
   const [items, setItems] = useState(initialItems);
   const [cursor, setCursor] = useState(initialCursor);
@@ -82,7 +84,7 @@ export function ProfileTimeline({
     <>
       {items.map((item) => {
         if (item.type === "post") {
-          return <ProfilePostCard key={`post-${item.post.id}`} post={item.post} />;
+          return <ProfilePostCard key={`post-${item.post.id}`} post={item.post} isSelf={isSelf} />;
         }
         if (item.type === "reply") {
           return (

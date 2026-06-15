@@ -14,6 +14,7 @@ export const feedPostListSelect = {
   postType: true,
   createdAt: true,
   isNsfw: true,
+  isPinned: true,
   author: { select: userPublicSelect },
   anime: { select: { title: true, slug: true } },
   media: postMediaPreview,
@@ -28,6 +29,7 @@ export type FeedPostRow = {
   postType: string;
   createdAt: Date;
   isNsfw: boolean;
+  isPinned: boolean;
   author: { id: string; username: string; image: string | null; supportTierSent: string };
   anime: { title: string; slug: string } | null;
   media: { url: string; type: string }[];
@@ -62,6 +64,7 @@ const feedPostListSelectNoPoll = {
   postType: true,
   createdAt: true,
   isNsfw: true,
+  isPinned: true,
   author: { select: userPublicSelect },
   anime: { select: { title: true, slug: true } },
   media: postMediaPreview,

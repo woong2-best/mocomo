@@ -37,10 +37,7 @@ export async function ProfileHeaderAsync({
         paymentsEnabled={paymentsEnabled}
       />
       {pinned && effectiveTab === "posts" && (
-        <div className="border-b border-border/60">
-          <p className="px-4 pt-3 text-xs text-muted-foreground">고정된 게시물</p>
-          <ProfilePostCard post={pinned} />
-        </div>
+        <ProfilePostCard post={pinned} isSelf={header.isSelf} pinnedHighlight />
       )}
       <ProfileTabs username={username} showLikesTab={header.isSelf} />
     </>

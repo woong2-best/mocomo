@@ -9,10 +9,10 @@ import {
   Heart,
   MessageCircle,
   Bookmark,
-  MoreHorizontal,
 } from "lucide-react";
 import { PostShareMenu } from "@/components/post/post-share-menu";
 import { PostRepostMenu } from "@/components/post/post-repost-menu";
+import { PostOwnerMenu } from "@/components/post/post-owner-menu";
 import { cn } from "@/lib/utils";
 import { formatCompactNumberKo, formatFeedRelativeTime } from "@/lib/format-feed";
 import type { GridPost } from "@/components/feed/feed-post-card";
@@ -44,6 +44,7 @@ export function FeedPhotoPostCard({
   const createdAt = typeof post.createdAt === "string" ? new Date(post.createdAt) : post.createdAt;
   const username = post.author.username;
   const media = post.media ?? [];
+  const isOwner = session?.user?.id === post.author.id;
   const caption = [post.title, post.content].filter(Boolean).join("\n").trim();
   const captionLong = caption.length > CAPTION_PREVIEW_LEN;
   const captionPreview =
@@ -121,13 +122,12 @@ export function FeedPhotoPostCard({
             </span>
           )}
         </div>
-        <Link
-          href={`/post/${post.id}`}
-          className="p-2 -mr-1 text-foreground hover:opacity-70"
-          aria-label="게시글 더보기"
-        >
-          <MoreHorizontal className="h-5 w-5" />
-        </Link>
+        <PostOwnerMenu
+          postId={post.id}
+          isPinned={post.isPinned}
+          isOwner={isOwner}
+          size="md"
+        />
       </header>
 
       <Link href={`/post/${post.id}`} className="block px-3">

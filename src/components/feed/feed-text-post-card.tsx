@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Heart, MessageCircle, Star } from "lucide-react";
 import { PostShareMenu } from "@/components/post/post-share-menu";
 import { PostRepostMenu } from "@/components/post/post-repost-menu";
+import { PostOwnerMenu } from "@/components/post/post-owner-menu";
 import { formatNumber, cn } from "@/lib/utils";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { userDisplayName } from "@/lib/user-public-select";
@@ -49,6 +50,7 @@ export function FeedTextPostCard({
 
   const createdAt = typeof post.createdAt === "string" ? new Date(post.createdAt) : post.createdAt;
   const displayName = userDisplayName(post.author);
+  const isOwner = session?.user?.id === post.author.id;
 
   function requireLogin() {
     if (status === "loading") return false;
@@ -130,9 +132,16 @@ export function FeedTextPostCard({
               )}
             </div>
           </div>
-          <span className="text-[10px] text-muted-foreground shrink-0">
-            {formatDistanceToNow(createdAt, { addSuffix: true, locale: ko })}
-          </span>
+          <div className="flex items-center gap-1 shrink-0">
+            <span className="text-[10px] text-muted-foreground">
+              {formatDistanceToNow(createdAt, { addSuffix: true, locale: ko })}
+            </span>
+            <PostOwnerMenu
+              postId={post.id}
+              isPinned={post.isPinned}
+              isOwner={isOwner}
+            />
+          </div>
         </div>
 
         <Link href={`/post/${post.id}`} className="block flex-1 px-3 pb-3">

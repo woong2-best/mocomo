@@ -86,6 +86,7 @@ export async function ProfileTimelineAsync({
         initialItems={initialItems}
         initialCursor={nextCursor}
         emptyMessage={emptyMessages[effectiveTab]}
+        isSelf={header.isSelf}
       />
     </>
   );

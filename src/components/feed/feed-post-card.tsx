@@ -18,6 +18,7 @@ export type GridPost = {
   postType?: string;
   createdAt: Date | string;
   isNsfw: boolean;
+  isPinned?: boolean;
   author: {
     id: string;
     username: string;

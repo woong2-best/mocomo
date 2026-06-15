@@ -7,6 +7,7 @@ const postDetailSelect = {
   title: true,
   content: true,
   createdAt: true,
+  isPinned: true,
   viewCount: true,
   author: { select: userPublicSelect },
   media: {
