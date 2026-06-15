@@ -15,9 +15,8 @@ function n(
   return { id, t, lane, type, ...extra };
 }
 
-const LANE_CYCLE = [0, 2, 1, 3, 2, 0, 3, 1] as const;
 
-/** BPM · beatDiv(2=8분음표) 그리드로 노트 생성 */
+/** BPM · beatDiv(2=8분음표) — 콤보·동시노트·연타 패턴 */
 function generateBeatNotes(
   prefix: string,
   bpm: number,
@@ -28,17 +27,45 @@ function generateBeatNotes(
   const stepMs = 60000 / bpm / beatDiv;
   const steps = Math.max(1, Math.floor(playMs / stepMs));
   const out: PianoChartNote[] = [];
+  const lanes = [0, 2, 1, 3, 2, 0, 3, 1] as const;
 
   for (let i = 0; i < steps; i++) {
     const t = noteStartMs + Math.round(i * stepMs);
-    const lane = LANE_CYCLE[i % LANE_CYCLE.length]!;
+    const lane = lanes[i % lanes.length]!;
+
+    // 드럼 롤 — 같은 레인 4연타
+    if (i > 8 && i % 28 === 0) {
+      for (let j = 0; j < 4; j++) {
+        out.push(n(`${prefix}-roll-${i}-${j}`, t + Math.round(j * (stepMs / 2)), lane));
+      }
+      continue;
+    }
+
+    // 양손 동시치 (2레인)
+    if (i > 4 && i % 12 === 0) {
+      const a = lane;
+      const b = ((lane + 2) % 4) as 0 | 1 | 2 | 3;
+      out.push(n(`${prefix}-ch-${i}-a`, t, a));
+      out.push(n(`${prefix}-ch-${i}-b`, t, b));
+      continue;
+    }
+
+    // 계단 패턴
+    if (i > 6 && i % 18 === 6) {
+      for (let j = 0; j < 4; j++) {
+        out.push(n(`${prefix}-st-${i}-${j}`, t + Math.round(j * stepMs * 0.5), j as 0 | 1 | 2 | 3));
+      }
+      continue;
+    }
 
     if (i > 0 && i % 16 === 0) {
-      out.push(n(`${prefix}-lg-${i}`, t, lane, "long", { dur: Math.round(stepMs * 3) }));
-    } else if (i > 0 && i % 20 === 10) {
-      out.push(n(`${prefix}-sl-${i}`, t, lane, "slide", { dir: i % 40 === 10 ? "right" : "left" }));
-    } else if (i > 0 && i % 24 === 12) {
-      out.push(n(`${prefix}-sp-${i}`, t, lane, "spam", { taps: 4 }));
+      out.push(n(`${prefix}-lg-${i}`, t, lane, "long", { dur: Math.round(stepMs * 4) }));
+    } else if (i > 0 && i % 22 === 11) {
+      out.push(n(`${prefix}-sl-${i}`, t, lane, "slide", { dir: i % 44 === 11 ? "right" : "left" }));
+    } else if (i > 0 && i % 26 === 13) {
+      out.push(n(`${prefix}-sp-${i}`, t, lane, "spam", { taps: 5 }));
+    } else if (i > 40 && i % 40 === 20) {
+      out.push(n(`${prefix}-bm-${i}`, t, lane, "bomb"));
     } else {
       out.push(n(`${prefix}-${i}`, t, lane));
     }

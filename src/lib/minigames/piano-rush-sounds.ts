@@ -1,4 +1,4 @@
-/** Web Audio 타격음 + MP3 곡 재생 (Musopen CC PD) */
+/** Web Audio — 리듬게임 타격·판정·곡 재생 */
 
 import type { PianoChartNote } from "./piano-rush-logic";
 
@@ -9,6 +9,7 @@ let melodyTimers: ReturnType<typeof setTimeout>[] = [];
 let track: HTMLAudioElement | null = null;
 let trackTimer: ReturnType<typeof setTimeout> | null = null;
 let preloadEl: HTMLAudioElement | null = null;
+let comboStreak = 0;
 
 function ac(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -21,7 +22,7 @@ export async function unlockPianoAudio() {
   if (c?.state === "suspended") await c.resume();
 }
 
-function tone(freq: number, dur = 0.12, type: OscillatorType = "triangle", gain = 0.15) {
+function tone(freq: number, dur = 0.12, type: OscillatorType = "triangle", gain = 0.15, detune = 0) {
   const c = ac();
   if (!c) return;
   if (c.state === "suspended") void c.resume();
@@ -30,6 +31,7 @@ function tone(freq: number, dur = 0.12, type: OscillatorType = "triangle", gain 
   const g = c.createGain();
   osc.type = type;
   osc.frequency.value = freq;
+  osc.detune.value = detune;
   g.gain.setValueAtTime(gain, t0);
   g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
   osc.connect(g);
@@ -38,34 +40,72 @@ function tone(freq: number, dur = 0.12, type: OscillatorType = "triangle", gain 
   osc.stop(t0 + dur + 0.02);
 }
 
-export function playLaneNote(lane: number) {
+function pianoHit(freq: number, gain = 0.22) {
+  tone(freq, 0.08, "sine", gain * 0.9);
+  tone(freq * 2, 0.06, "triangle", gain * 0.35, 4);
+  tone(freq * 0.5, 0.14, "sine", gain * 0.25, -8);
+}
+
+export function playLaneNote(lane: number, combo = 0) {
   void unlockPianoAudio();
   const f = LANE_FREQ[lane] ?? LANE_FREQ[0];
-  tone(f, 0.14, "triangle", 0.2);
+  const pitchUp = Math.min(combo, 50) * 2;
+  pianoHit(f, 0.24);
+  if (combo > 0 && combo % 10 === 0) {
+    tone(f * 1.5, 0.12, "sine", 0.1);
+    tone(f * 2, 0.1, "square", 0.05);
+  }
+  void pitchUp;
 }
 
 export function playJudgeSound(judge: "PERFECT" | "GREAT" | "GOOD" | "MISS") {
-  if (judge === "PERFECT") tone(880, 0.08, "sine", 0.12);
-  else if (judge === "GREAT") tone(660, 0.08, "sine", 0.1);
-  else if (judge === "GOOD") tone(440, 0.08, "sine", 0.08);
-  else tone(120, 0.2, "sawtooth", 0.1);
+  if (judge === "MISS") {
+    comboStreak = 0;
+    tone(80, 0.25, "sawtooth", 0.14);
+    tone(60, 0.3, "square", 0.08);
+    return;
+  }
+  comboStreak += 1;
+  if (judge === "PERFECT") {
+    pianoHit(880, 0.18);
+    pianoHit(1320, 0.12);
+    tone(1760, 0.06, "sine", 0.08);
+  } else if (judge === "GREAT") {
+    pianoHit(660, 0.14);
+    tone(990, 0.08, "sine", 0.07);
+  } else {
+    pianoHit(440, 0.1);
+  }
 }
 
 export function playCountdownTick(n: number) {
   void unlockPianoAudio();
-  tone(n === 0 ? 523.25 : 330, n === 0 ? 0.25 : 0.1, "square", 0.08);
+  if (n === 0) {
+    pianoHit(523.25, 0.28);
+    tone(784, 0.2, "sine", 0.12);
+    tone(1046, 0.15, "triangle", 0.08);
+  } else {
+    tone(330, 0.1, "square", 0.1);
+    tone(440, 0.06, "sine", 0.06);
+  }
 }
 
 export function playLongHold(lane: number) {
   const f = (LANE_FREQ[lane] ?? LANE_FREQ[0]) * 0.5;
-  tone(f, 0.06, "sine", 0.06);
+  tone(f, 0.06, "sine", 0.08);
 }
 
 export function playAttackReceived() {
-  tone(90, 0.35, "sawtooth", 0.14);
+  tone(90, 0.35, "sawtooth", 0.16);
+  tone(55, 0.4, "square", 0.1);
 }
 
-/** 카운트다운 중 MP3 프리로드 */
+export function playFeverStart() {
+  pianoHit(523.25, 0.2);
+  pianoHit(659.25, 0.18);
+  pianoHit(783.99, 0.16);
+}
+
 export function preloadChartTrack(audioUrl: string) {
   if (preloadEl?.src.includes(audioUrl)) return;
   preloadEl = new Audio(audioUrl);
@@ -80,7 +120,7 @@ export function startChartTrack(
   stopChartTrack();
   track = new Audio(chart.audioUrl);
   track.preload = "auto";
-  track.volume = 0.88;
+  track.volume = 0.92;
 
   const offsetSec = (chart.audioOffsetMs ?? 0) / 1000;
 
@@ -114,7 +154,6 @@ export function stopChartTrack() {
   }
 }
 
-/** 합성음 차트용 — audioUrl 없을 때만 */
 export function startChartMelody(notes: PianoChartNote[], startedAt: number): () => void {
   stopChartMelody();
   const now = Date.now();
