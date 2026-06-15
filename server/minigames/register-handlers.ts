@@ -51,6 +51,8 @@ export function registerMinigameHandlers(
         parkingRushCarColor?: string;
         towerRushMode?: "solo" | "duel" | "party" | "battle_royale" | "ranked";
         towerRushMapId?: string;
+        omokMode?: "pvp" | "solo";
+        omokAiDifficulty?: "easy" | "normal" | "hard";
       },
       ack?: (r: unknown) => void
     ) => {
@@ -81,6 +83,8 @@ export function registerMinigameHandlers(
         parkingRushCarColor: data.parkingRushCarColor,
         towerRushMode: data.towerRushMode,
         towerRushMapId: data.towerRushMapId,
+        omokMode: data.omokMode,
+        omokAiDifficulty: data.omokAiDifficulty,
       });
       if (!result.ok) {
         ack?.(result);

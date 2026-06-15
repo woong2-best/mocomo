@@ -19,6 +19,8 @@ export type GameCreateOptions = {
   parkingRushCarColor?: string;
   towerRushMode?: "solo" | "duel" | "party" | "battle_royale" | "ranked";
   towerRushMapId?: string;
+  omokMode?: "pvp" | "solo";
+  omokAiDifficulty?: "easy" | "normal" | "hard";
 };
 
 export type GameJoinOptions = {

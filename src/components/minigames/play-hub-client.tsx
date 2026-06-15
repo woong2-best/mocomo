@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
-import { Crown, Infinity, Layers, Music, Trophy, Users, Car, Timer } from "lucide-react";
+import { Crown, Infinity, Layers, Music, Trophy, Users, Car, Timer, Bot, Grid3X3 } from "lucide-react";
 import { getMinigameById } from "@/lib/minigames/registry";
 import { getMinigameRoute } from "@/lib/minigames/game-meta";
 import { MinigameHubShell } from "@/components/minigames/minigame-hub-shell";
@@ -29,7 +29,14 @@ import {
   type GamePlayMode,
 } from "@/lib/games-lobby";
 import { generateRoomCode } from "@/lib/sketch-quiz-words";
+import type { OmokAiDifficulty } from "@/lib/minigames/omok-ai";
 import { cn } from "@/lib/utils";
+
+const OMOK_DIFFICULTY_OPTIONS: { id: OmokAiDifficulty; label: string; hint: string }[] = [
+  { id: "easy", label: "EASY", hint: "가끔 실수 · 초보에게 적합" },
+  { id: "normal", label: "NORMAL", hint: "균형 잡힌 휴리스틱 AI" },
+  { id: "hard", label: "HARD", hint: "3수 앞 minimax · 강함" },
+];
 
 export function PlayHubClient({ gameId }: { gameId: string }) {
   const game = getMinigameById(gameId);
@@ -54,8 +61,14 @@ export function PlayHubClient({ gameId }: { gameId: string }) {
   const isPianoRush = gameId === "piano-rush";
   const isParkingRush = gameId === "parking-rush";
   const isTowerRush = gameId === "tower-rush";
+  const isOmok = gameId === "omok";
   const [parkingTab, setParkingTab] = useState<"solo" | "duel" | "ranked" | "time_attack" | "tournament">("duel");
   const [towerTab, setTowerTab] = useState<"solo" | "duel" | "battle">("duel");
+  const [omokTab, setOmokTab] = useState<"solo" | "multi">("multi");
+  const [omokDifficulty, setOmokDifficulty] = useState<OmokAiDifficulty>("normal");
+  const [omokRuleMode, setOmokRuleMode] = useState<"free" | "renju">("free");
+  const [omokPassword, setOmokPassword] = useState("1234");
+  const [omokError, setOmokError] = useState<string | null>(null);
   const [towerMapId, setTowerMapId] = useState<TowerMapId>("city");
   const [towerPassword, setTowerPassword] = useState("1234");
   const [towerError, setTowerError] = useState<string | null>(null);
@@ -132,6 +145,26 @@ export function PlayHubClient({ gameId }: { gameId: string }) {
       password: towerPassword.trim(),
       towerRushMode: mode,
       towerRushMapId: towerMapId,
+    });
+    router.push(`${routeBase}/${code}?create=1`);
+  }
+
+  function startOmokSolo() {
+    if (!session?.user) {
+      router.push(`/auth/signin?callbackUrl=${routeBase}`);
+      return;
+    }
+    if (!isValidGameRoomPassword(omokPassword)) {
+      setOmokError(`비밀번호는 ${MIN_GAME_ROOM_PASSWORD_LENGTH}~32자입니다.`);
+      return;
+    }
+    setOmokError(null);
+    const code = generateRoomCode();
+    saveGameCreateOptions(gameId, {
+      password: omokPassword.trim(),
+      ruleMode: omokRuleMode,
+      omokMode: "solo",
+      omokAiDifficulty: omokDifficulty,
     });
     router.push(`${routeBase}/${code}?create=1`);
   }
@@ -268,6 +301,33 @@ export function PlayHubClient({ gameId }: { gameId: string }) {
         </div>
       )}
 
+      {isOmok && (
+        <div className="flex justify-center gap-1 p-1 rounded-xl bg-muted/60 max-w-xs mx-auto">
+          <button
+            type="button"
+            onClick={() => setOmokTab("multi")}
+            className={cn(
+              "flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors flex items-center justify-center gap-1",
+              omokTab === "multi" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Users className="h-3.5 w-3.5" />
+            대전
+          </button>
+          <button
+            type="button"
+            onClick={() => setOmokTab("solo")}
+            className={cn(
+              "flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors flex items-center justify-center gap-1",
+              omokTab === "solo" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Bot className="h-3.5 w-3.5" />
+            vs CPU
+          </button>
+        </div>
+      )}
+
       {isParkingRush && parkingTab !== "ranked" && parkingTab !== "tournament" && (
         <div className="max-w-md mx-auto space-y-3">
           <ParkingLevelPicker levelId={parkingLevelId} onLevelId={setParkingLevelId} />
@@ -401,6 +461,59 @@ export function PlayHubClient({ gameId }: { gameId: string }) {
             </CardContent>
           </Card>
         </div>
+      ) : isOmok && omokTab === "solo" ? (
+        <div className="space-y-4 max-w-md mx-auto">
+          <Card className="border-2 border-folk-terracotta/30">
+            <CardContent className="p-6 space-y-4">
+              <div className="text-center space-y-2">
+                <Grid3X3 className="h-10 w-10 mx-auto text-folk-terracotta" />
+                <h2 className="font-display font-bold text-lg">CPU 대전</h2>
+                <p className="text-sm text-muted-foreground">
+                  흑(선공)으로 CPU와 대국 · 외부 AI 없이 내장 엔진
+                </p>
+              </div>
+              <div className="flex gap-3 text-xs justify-center">
+                <label className="flex items-center gap-1">
+                  <input type="radio" checked={omokRuleMode === "free"} onChange={() => setOmokRuleMode("free")} />
+                  자유
+                </label>
+                <label className="flex items-center gap-1">
+                  <input type="radio" checked={omokRuleMode === "renju"} onChange={() => setOmokRuleMode("renju")} />
+                  렌주
+                </label>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {OMOK_DIFFICULTY_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setOmokDifficulty(opt.id)}
+                    className={cn(
+                      "rounded-xl border-2 px-2 py-3 text-center transition-colors",
+                      omokDifficulty === opt.id
+                        ? "border-folk-terracotta bg-folk-terracotta/10"
+                        : "border-muted hover:border-folk-cobalt/30"
+                    )}
+                  >
+                    <span className="block text-xs font-bold">{opt.label}</span>
+                    <span className="block text-[10px] text-muted-foreground mt-1 leading-tight">{opt.hint}</span>
+                  </button>
+                ))}
+              </div>
+              <input
+                type="password"
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+                placeholder={`방 비밀번호 (${MIN_GAME_ROOM_PASSWORD_LENGTH}자 이상)`}
+                value={omokPassword}
+                onChange={(e) => setOmokPassword(e.target.value)}
+              />
+              {omokError && <p className="text-xs text-destructive text-center">{omokError}</p>}
+              <Button className="w-full rounded-xl" onClick={startOmokSolo}>
+                {OMOK_DIFFICULTY_OPTIONS.find((o) => o.id === omokDifficulty)?.label} CPU와 대국
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       ) : isPianoRush && pianoTab === "rank" ? (
         <div className="max-w-md mx-auto space-y-4">
           <PianoRushLeaderboard />
@@ -434,6 +547,18 @@ export function PlayHubClient({ gameId }: { gameId: string }) {
             </CardContent>
           </Card>
         </div>
+      ) : isOmok && omokTab === "multi" ? (
+        <>
+          <MinigameHubShell
+            gameId={gameId}
+            routeBase={routeBase}
+            title={game.name}
+            description={game.description}
+            icon={Icon}
+            mode={mode}
+            onModeChange={setMode}
+          />
+        </>
       ) : (
         <>
           <MinigameHubShell

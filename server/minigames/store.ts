@@ -2,7 +2,8 @@ import type { Server } from "socket.io";
 import type { PrismaClient } from "@prisma/client";
 import { generateRoomCode, isValidRoomCode } from "../../src/lib/sketch-quiz-words";
 import type { MinigamePublicState } from "../../src/lib/minigames/shared-types";
-import { attachOmokRuleMode } from "./plugins/omok";
+import { attachOmokRuleMode, OMOK_CPU_USER_ID, scheduleOmokCpuMoveIfNeeded } from "./plugins/omok";
+import { OMOK_CPU_USERNAME } from "../../src/lib/minigames/omok-ai";
 import { getTurnUserId } from "../../src/lib/minigames/chess-logic";
 import { PLUGIN_BY_ID } from "./plugins/index";
 import { persistMinigameResult, ensureDefaultSeason } from "./persistence";
@@ -306,6 +307,8 @@ export function minigameCreate(
     parkingRushCarColor: opts.parkingRushCarColor,
     towerRushMode: opts.towerRushMode,
     towerRushMapId: opts.towerRushMapId,
+    omokMode: opts.omokMode,
+    omokAiDifficulty: opts.omokAiDifficulty,
   };
 
   if (gameId === "omok" && opts.ruleMode) attachOmokRuleMode(room, opts.ruleMode);
@@ -317,7 +320,17 @@ export function minigameCreate(
     gameId === "parking-rush" &&
     (opts.parkingRushMode === "solo" || opts.parkingRushMode === "time_attack");
   const isTowerInstant = gameId === "tower-rush" && opts.towerRushMode === "solo";
-  if (isParkingInstant || isTowerInstant) {
+  const isOmokSolo = gameId === "omok" && opts.omokMode === "solo";
+  if (isOmokSolo) {
+    room.players.set(OMOK_CPU_USER_ID, {
+      userId: OMOK_CPU_USER_ID,
+      username: OMOK_CPU_USERNAME,
+      socketId: "",
+      ready: true,
+      role: "white",
+    });
+  }
+  if (isParkingInstant || isTowerInstant || isOmokSolo) {
     for (const p of room.players.values()) p.ready = true;
     const started = startGameInternal(room);
     if (started.ok) return { ok: true as const, state: started.state };
@@ -396,6 +409,9 @@ export function minigameSpectate(
     return { ok: false as const, error: "싱글 모드는 관전할 수 없습니다." };
   }
   if (room.gameId === "tower-rush" && room.towerRushMode === "solo") {
+    return { ok: false as const, error: "싱글 모드는 관전할 수 없습니다." };
+  }
+  if (room.gameId === "omok" && room.omokMode === "solo") {
     return { ok: false as const, error: "싱글 모드는 관전할 수 없습니다." };
   }
 
@@ -534,6 +550,9 @@ export function minigameMove(gameId: string, roomId: string, userId: string, mov
   }
 
   broadcastState(room);
+  if (room.gameId === "omok" && room.omokMode === "solo") {
+    scheduleOmokCpuMoveIfNeeded(room);
+  }
   return { ok: true as const, state: plugin.toPublicState(room) };
 }
 
@@ -677,6 +696,11 @@ export function minigameRematch(gameId: string, roomId: string, userId: string) 
   room.gameStartedAt = undefined;
   room.initialGameState = undefined;
   for (const p of room.players.values()) p.ready = false;
+
+  if (room.gameId === "omok" && room.omokMode === "solo") {
+    for (const p of room.players.values()) p.ready = true;
+    return startGameInternal(room);
+  }
 
   broadcastState(room);
   return { ok: true as const, state: plugin.toPublicState(room) };

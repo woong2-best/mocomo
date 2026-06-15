@@ -6,6 +6,7 @@ import {
   upsertParkingRating,
 } from "../../src/lib/minigames/parking-rush-postgame";
 import type { MinigameRoomInternal } from "./types";
+import { OMOK_CPU_USER_ID } from "../../src/lib/minigames/omok-ai";
 
 async function getActiveSeasonId(prisma: PrismaClient): Promise<string | null> {
   const season = await prisma.minigameSeason.findFirst({
@@ -71,10 +72,12 @@ export async function persistMinigameResult(
     });
 
     const isDraw = !room.winnerId && room.resultMessage?.includes("무");
+    const isOmokSolo = room.gameId === "omok" && room.omokMode === "solo";
+    const ratedPlayerIds = playerIds.filter((id) => id !== OMOK_CPU_USER_ID);
 
-    if (playerIds.length === 2) {
-      const [a, b] = playerIds;
-      for (const uid of playerIds) {
+    if (ratedPlayerIds.length === 2 && !isOmokSolo) {
+      const [a, b] = ratedPlayerIds;
+      for (const uid of ratedPlayerIds) {
         await prisma.minigameRating.upsert({
           where: { userId_gameId: { userId: uid, gameId: room.gameId } },
           create: {

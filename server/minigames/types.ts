@@ -52,6 +52,8 @@ export type MinigameRoomInternal = {
   parkingRushCarColor?: string;
   towerRushMode?: "solo" | "duel" | "party" | "battle_royale" | "ranked";
   towerRushMapId?: string;
+  omokMode?: "pvp" | "solo";
+  omokAiDifficulty?: "easy" | "normal" | "hard";
 };
 
 export type MinigameCreateOptions = {
@@ -70,6 +72,8 @@ export type MinigameCreateOptions = {
   parkingRushCarColor?: string;
   towerRushMode?: "solo" | "duel" | "party" | "battle_royale" | "ranked";
   towerRushMapId?: string;
+  omokMode?: "pvp" | "solo";
+  omokAiDifficulty?: "easy" | "normal" | "hard";
 };
 
 export type MinigameJoinOptions = {
@@ -143,5 +147,7 @@ export function basePublicFields(room: MinigameRoomInternal): MinigameRoomPublic
     recentChat: room.chatLog.slice(-30),
     passwordRequired: !!room.passwordHash,
     parkingRushMode: room.parkingRushMode,
+    omokMode: room.omokMode,
+    omokAiDifficulty: room.omokAiDifficulty,
   };
 }

@@ -8,9 +8,17 @@ import {
   OMOK_TURN_MS,
   type OmokBoard,
 } from "../../../src/lib/minigames/omok-logic";
+import {
+  OMOK_CPU_USER_ID,
+  pickOmokAiMove,
+  type OmokAiDifficulty,
+} from "../../../src/lib/minigames/omok-ai";
 import { isRenjuForbidden } from "../../../src/lib/minigames/renju-logic";
 import type { MinigamePublicState } from "../../../src/lib/minigames/shared-types";
+import { setTurnUser } from "../clocks";
 import { basePublicFields, type MinigamePlugin, type MinigameRoomInternal } from "../types";
+
+export { OMOK_CPU_USER_ID } from "../../../src/lib/minigames/omok-ai";
 
 type OmokMove = { x: number; y: number };
 
@@ -34,7 +42,12 @@ function playerIds(room: MinigameRoomInternal): string[] {
   return [...room.players.keys()];
 }
 
-function pickRandomMove(state: OmokGameState): OmokMove | null {
+function pickFallbackMove(state: OmokGameState, room: MinigameRoomInternal): OmokMove | null {
+  const turnUserId = state.turn === "black" ? state.blackUserId : state.whiteUserId;
+  if (room.omokMode === "solo" && turnUserId === OMOK_CPU_USER_ID) {
+    const difficulty = room.omokAiDifficulty ?? "normal";
+    return pickOmokAiMove(state.board, state.turn, state.ruleMode, difficulty);
+  }
   const candidates: OmokMove[] = [];
   for (let y = 0; y < OMOK_BOARD_SIZE; y++) {
     for (let x = 0; x < OMOK_BOARD_SIZE; x++) {
@@ -103,9 +116,10 @@ function startTurnTimer(room: MinigameRoomInternal, state: OmokGameState) {
       return;
     }
     const turnUserId = state.turn === "black" ? state.blackUserId : state.whiteUserId;
-    const pick = pickRandomMove(state);
+    const pick = pickFallbackMove(state, room);
     if (pick) {
       placeStone(room, turnUserId, pick);
+      setTurnUser(room, currentTurnUserId(gs(room)));
       resolveAfterMove(room);
     } else {
       state.turnEndsAt = Date.now() + OMOK_TURN_MS;
@@ -146,6 +160,7 @@ export const omokPlugin: MinigamePlugin = {
 
   onGameStart(room) {
     startTurnTimer(room, gs(room));
+    scheduleOmokCpuMoveIfNeeded(room);
   },
 
   clearTimers(room) {
@@ -211,4 +226,54 @@ export function attachOmokRuleMode(room: MinigameRoomInternal, ruleMode: "free" 
 
 export function getOmokState(room: MinigameRoomInternal): OmokGameState | null {
   return room.gameState as OmokGameState | null;
+}
+
+const cpuMovePending = new WeakSet<MinigameRoomInternal>();
+
+function currentTurnUserId(state: OmokGameState): string {
+  return state.turn === "black" ? state.blackUserId : state.whiteUserId;
+}
+
+function executeOmokCpuMove(room: MinigameRoomInternal) {
+  if (room.omokMode !== "solo" || room.status !== "playing") return;
+  const state = gs(room);
+  if (currentTurnUserId(state) !== OMOK_CPU_USER_ID) return;
+
+  const difficulty: OmokAiDifficulty = room.omokAiDifficulty ?? "normal";
+  const move = pickOmokAiMove(state.board, state.turn, state.ruleMode, difficulty);
+  if (!move) return;
+
+  placeStone(room, OMOK_CPU_USER_ID, move);
+  setTurnUser(room, currentTurnUserId(gs(room)));
+
+  const win = checkWinInternal(room);
+  const finish = (room as MinigameRoomInternal & { _finishGame?: (w: { winnerId: string; resultMessage: string }) => void })
+    ._finishGame;
+  const broadcast = (room as MinigameRoomInternal & { _broadcast?: () => void })._broadcast;
+
+  if (win && finish) {
+    finish(win);
+    return;
+  }
+  if (isOmokBoardFull(gs(room).board) && finish) {
+    finish({ winnerId: "", resultMessage: "무승부입니다." });
+    return;
+  }
+  broadcast?.();
+}
+
+export function scheduleOmokCpuMoveIfNeeded(room: MinigameRoomInternal) {
+  if (room.omokMode !== "solo" || room.status !== "playing") return;
+  const state = gs(room);
+  if (currentTurnUserId(state) !== OMOK_CPU_USER_ID) return;
+  if (cpuMovePending.has(room)) return;
+  cpuMovePending.add(room);
+
+  const delay = 350 + Math.floor(Math.random() * 500);
+  const timer = setTimeout(() => {
+    cpuMovePending.delete(room);
+    executeOmokCpuMove(room);
+    if (room.status === "playing") scheduleOmokCpuMoveIfNeeded(room);
+  }, delay);
+  room.timers.push(timer);
 }

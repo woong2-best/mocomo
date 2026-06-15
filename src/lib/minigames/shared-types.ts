@@ -28,6 +28,8 @@ export type MinigameRoomPublicBase = {
   /** 입장 시 비밀번호 필요 여부 */
   passwordRequired?: boolean;
   parkingRushMode?: "solo" | "duel" | "ranked" | "time_attack";
+  omokMode?: "pvp" | "solo";
+  omokAiDifficulty?: "easy" | "normal" | "hard";
 };
 
 export type MinigameChatMessage = {

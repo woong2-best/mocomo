@@ -22,6 +22,7 @@ type Props = {
   isSpectator: boolean;
   finished?: boolean;
   players: MinigamePlayerPublic[];
+  aiDifficulty?: "easy" | "normal" | "hard";
   onMove: (move: { x: number; y: number }) => Promise<boolean>;
 };
 
@@ -45,6 +46,7 @@ export function OmokGamePanel({
   isSpectator,
   finished,
   players,
+  aiDifficulty,
   onMove,
 }: Props) {
   const [placing, setPlacing] = useState(false);
@@ -125,6 +127,9 @@ export function OmokGamePanel({
             흑 {playerName(players, blackUserId)} · 백 {playerName(players, whiteUserId)}
           </span>
           <span>{moveCount}수 · {ruleMode === "renju" ? "렌주" : "자유"}</span>
+          {aiDifficulty && (
+            <span className="font-semibold text-folk-cobalt">CPU · {aiDifficulty.toUpperCase()}</span>
+          )}
         </div>
       </div>
 
