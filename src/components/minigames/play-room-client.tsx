@@ -17,6 +17,8 @@ import { GameActiveView } from "@/components/minigames/game-views";
 import { GameRoomGate } from "@/components/minigames/game-room-gate";
 import { Button } from "@/components/ui/button";
 import { Eye, LogOut } from "lucide-react";
+import type { ParkingRushMode } from "@/lib/minigames/parking-rush-logic";
+import { isParkingInstantPlayMode } from "@/lib/minigames/parking-rush-logic";
 
 export function PlayRoomClient({
   gameId,
@@ -59,6 +61,12 @@ export function PlayRoomClient({
   } = useMinigameRoom(gameId, roomId, userId, username, mode, goToHub);
 
   const isSpectator = mode === "spectate";
+
+  const parkingMode =
+    (state?.game?.mode as ParkingRushMode | undefined) ?? state?.parkingRushMode;
+  const isParkingInstant =
+    gameId === "parking-rush" && !!parkingMode && isParkingInstantPlayMode(parkingMode);
+  const showSpectator = !isParkingInstant;
 
   function handleLeave() {
     leaveRoom();
@@ -132,7 +140,7 @@ export function PlayRoomClient({
               나가기
             </Button>
           )}
-          {!isSpectator && (
+          {!isSpectator && showSpectator && (
             <Link href={`${route}/${roomId}?spectate=1`}>
               <Button variant="outline" size="sm" className="gap-1 rounded-lg text-xs">
                 <Eye className="h-3 w-3" />
@@ -173,7 +181,7 @@ export function PlayRoomClient({
       )}
 
       {(state?.status === "playing" || state?.status === "finished") && (
-        <div className="grid lg:grid-cols-[1fr_280px] gap-4">
+        <div className={isParkingInstant ? "space-y-3" : "grid lg:grid-cols-[1fr_280px] gap-4"}>
           <div className="space-y-3">
             {state.status === "playing" && <MinigameClockBar state={state} userId={userId} />}
             {state.game ? (
@@ -190,12 +198,14 @@ export function PlayRoomClient({
               <p className="text-sm text-muted-foreground text-center py-8">게임 데이터를 불러오는 중…</p>
             )}
           </div>
-          <MinigameChatPanel
-            gameId={gameId}
-            messages={chatMessages}
-            onSend={(t) => sendChat(t)}
-            disabled={isSpectator && !state.spectatorChatEnabled}
-          />
+          {!isParkingInstant && (
+            <MinigameChatPanel
+              gameId={gameId}
+              messages={chatMessages}
+              onSend={(t) => sendChat(t)}
+              disabled={isSpectator && !state.spectatorChatEnabled}
+            />
+          )}
         </div>
       )}
 

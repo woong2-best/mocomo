@@ -9,6 +9,7 @@ import {
   MODE_LABELS,
   RANK_TIER_LABELS,
   VEHICLE_SPECS,
+  isParkingInstantPlayMode,
   type ParkingInput,
   type ParkingRushMode,
   type RankTier,
@@ -89,6 +90,7 @@ export function ParkingRushGamePanel({
   const sceneRef = useRef<ParkingRushScene | null>(null);
   const levelLoaded = useRef(false);
   const myStats = userId ? stats[userId] : undefined;
+  const instantPlay = isParkingInstantPlayMode(mode);
   const canDrive = !isSpectator && !finished && phase === "playing" && !!myStats && !myStats.finished;
 
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -118,7 +120,7 @@ export function ParkingRushGamePanel({
   }, [myStats, levelName]);
 
   useEffect(() => {
-    if (phase !== "countdown") {
+    if (instantPlay || phase !== "countdown") {
       setCountdown(null);
       return;
     }
@@ -126,7 +128,7 @@ export function ParkingRushGamePanel({
     tick();
     const id = setInterval(tick, 80);
     return () => clearInterval(id);
-  }, [phase, startedAt]);
+  }, [phase, startedAt, instantPlay]);
 
   useEffect(() => {
     const el = canvasMount.current;
@@ -218,7 +220,7 @@ export function ParkingRushGamePanel({
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
           <span className="inline-flex items-center gap-1 text-cyan-200">
             <Timer className="h-4 w-4" />
-            {finished ? "종료" : phase === "countdown" ? "준비…" : `${Math.ceil(timeLeftMs / 1000)}초`}
+            {finished ? "종료" : phase === "countdown" && !instantPlay ? "준비…" : `${Math.ceil(timeLeftMs / 1000)}초`}
           </span>
           {myStats && (
             <>
@@ -289,7 +291,7 @@ export function ParkingRushGamePanel({
             <ZoomOut className="h-4 w-4" />
           </Button>
         </div>
-        {phase === "countdown" && countdown !== null && (
+        {phase === "countdown" && !instantPlay && countdown !== null && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-20">
             <span className="text-7xl font-black text-white tabular-nums animate-[pianoCountPop_0.55s_ease-out]">
               {countdown > 0 ? countdown : "GO!"}

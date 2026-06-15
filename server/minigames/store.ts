@@ -311,6 +311,15 @@ export function minigameCreate(
   rooms.set(roomStorageKey(gameId, room.id), room);
   attachBroadcast(room);
 
+  const isParkingInstant =
+    gameId === "parking-rush" &&
+    (opts.parkingRushMode === "solo" || opts.parkingRushMode === "time_attack");
+  if (isParkingInstant) {
+    for (const p of room.players.values()) p.ready = true;
+    const started = startGameInternal(room);
+    if (started.ok) return { ok: true as const, state: started.state };
+  }
+
   const state = plugin.toPublicState(room);
   return { ok: true as const, state };
 }
@@ -376,6 +385,12 @@ export function minigameSpectate(
   if (!room) return { ok: false as const, error: "방을 찾을 수 없습니다." };
   if (room.players.has(userId)) {
     return { ok: false as const, error: "플레이어는 관전할 수 없습니다. 방에 참가 중입니다." };
+  }
+  if (
+    room.gameId === "parking-rush" &&
+    (room.parkingRushMode === "solo" || room.parkingRushMode === "time_attack")
+  ) {
+    return { ok: false as const, error: "싱글 모드는 관전할 수 없습니다." };
   }
 
   room.spectators.set(userId, { userId, username, socketId });

@@ -27,6 +27,7 @@ export type MinigameRoomPublicBase = {
   recentChat?: MinigameChatMessage[];
   /** 입장 시 비밀번호 필요 여부 */
   passwordRequired?: boolean;
+  parkingRushMode?: "solo" | "duel" | "ranked" | "time_attack";
 };
 
 export type MinigameChatMessage = {

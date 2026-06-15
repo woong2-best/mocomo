@@ -290,6 +290,11 @@ export function parkingModeFromPlayers(count: number, requested?: ParkingRushMod
   return requested ?? "duel";
 }
 
+/** 싱글·타임어택: 로비/카운트다운 없이 즉시 플레이 */
+export function isParkingInstantPlayMode(mode: ParkingRushMode): boolean {
+  return mode === "solo" || mode === "time_attack";
+}
+
 export function vehicleForPlayer(index: number): VehicleTypeId {
   const order: VehicleTypeId[] = ["compact", "sedan", "suv", "van", "pickup", "bus"];
   return order[index % order.length]!;

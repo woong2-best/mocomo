@@ -138,5 +138,6 @@ export function basePublicFields(room: MinigameRoomInternal): MinigameRoomPublic
     spectatorChatEnabled: room.spectatorChatEnabled,
     recentChat: room.chatLog.slice(-30),
     passwordRequired: !!room.passwordHash,
+    parkingRushMode: room.parkingRushMode,
   };
 }

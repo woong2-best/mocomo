@@ -9,6 +9,7 @@ import {
   checkParkingProgress,
   emptyPlayerStats,
   normalizeInput,
+  isParkingInstantPlayMode,
   parkingModeFromPlayers,
   resolveCarColor,
   scoreParkingSuccess,
@@ -221,7 +222,8 @@ export const parkingRushPlugin: MinigamePlugin = {
       difficulty: room.parkingRushDifficulty,
     });
     const now = Date.now();
-    const startedAt = now + PARKING_RUSH_COUNTDOWN_MS;
+    const instant = isParkingInstantPlayMode(mode);
+    const startedAt = instant ? now : now + PARKING_RUSH_COUNTDOWN_MS;
     const carColor = resolveCarColor(room.parkingRushCarColor);
 
     const stats: Record<string, PlayerParkingStats> = {};
@@ -234,7 +236,7 @@ export const parkingRushPlugin: MinigamePlugin = {
     return {
       level,
       mode,
-      phase: "countdown" as Phase,
+      phase: (instant ? "playing" : "countdown") as Phase,
       startedAt,
       endsAt: startedAt + level.timeLimitMs,
       stats,
