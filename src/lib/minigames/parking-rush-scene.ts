@@ -391,13 +391,17 @@ export class ParkingRushScene {
       MIDDLE: THREE.MOUSE.DOLLY,
       RIGHT: THREE.MOUSE.ROTATE,
     };
+    this.controls.enabled = false;
     this.renderer.domElement.style.cursor = "grab";
     this.controls.addEventListener("start", () => {
-      if (!this.freeCamera) this.userOrbiting = true;
+      if (!this.freeCamera) {
+        this.userOrbiting = true;
+        this.controls.enabled = true;
+      }
       this.renderer.domElement.style.cursor = "grabbing";
     });
     this.controls.addEventListener("end", () => {
-      if (!this.freeCamera) this.orbitIdleUntil = Date.now() + 4500;
+      if (!this.freeCamera) this.orbitIdleUntil = Date.now() + 2500;
       this.renderer.domElement.style.cursor = "grab";
     });
 
@@ -506,6 +510,7 @@ export class ParkingRushScene {
       theme.sunPos[1],
       theme.sunPos[2] + level.bounds.h * 0.1
     );
+    this.resetCamera();
   }
 
   setLocalUser(userId: string | null) {
@@ -514,6 +519,7 @@ export class ParkingRushScene {
 
   setFreeCamera(free: boolean) {
     this.freeCamera = free;
+    this.controls.enabled = free;
     if (free) {
       this.userOrbiting = false;
       this.orbitIdleUntil = 0;
@@ -523,6 +529,7 @@ export class ParkingRushScene {
   resetCamera() {
     this.userOrbiting = false;
     this.orbitIdleUntil = 0;
+    this.controls.enabled = false;
   }
 
   setZoom(delta: number) {
@@ -584,6 +591,11 @@ export class ParkingRushScene {
     if (!interp) return;
 
     const speed = Math.abs(interp.speed);
+    if (!this.freeCamera && speed > 0.12) {
+      this.userOrbiting = false;
+      this.orbitIdleUntil = 0;
+    }
+
     const lookAhead = Math.min(5, speed * 0.65);
     const fx = Math.cos(interp.angle);
     const fz = Math.sin(interp.angle);
@@ -592,16 +604,25 @@ export class ParkingRushScene {
       0,
       worldZ(interp.y) + fz * lookAhead
     );
-    this.controls.target.lerp(target, 0.22);
 
-    if (this.freeCamera) return;
+    if (this.freeCamera) {
+      this.controls.enabled = true;
+      this.controls.target.lerp(target, 0.12);
+      return;
+    }
 
     const inOrbitMode = this.userOrbiting || Date.now() < this.orbitIdleUntil;
-    if (inOrbitMode) return;
+    if (inOrbitMode) {
+      this.controls.enabled = true;
+      this.controls.target.lerp(target, 0.22);
+      return;
+    }
+
+    this.controls.enabled = false;
+    this.controls.target.copy(target);
 
     const height = 4.8 + speed * 0.14;
     const dist = (8 + speed * 0.12) * this.zoom;
-    // 전방(forward) 쪽 = 화면 아래(카메라) — W 누르면 카메라 방향으로 전진
     const camPos = new THREE.Vector3(
       worldX(interp.x) + fx * dist,
       height,
@@ -613,7 +634,8 @@ export class ParkingRushScene {
     camPos.x += shakeX;
     camPos.y += shakeY;
 
-    this.camera.position.lerp(camPos, 0.2);
+    this.camera.position.lerp(camPos, 0.22);
+    this.camera.lookAt(target);
     this.camera.fov = this.baseFov + speed * 0.85;
     this.camera.updateProjectionMatrix();
   }
@@ -672,7 +694,9 @@ export class ParkingRushScene {
       }
     }
 
-    this.controls.update();
+    if (this.controls.enabled) {
+      this.controls.update();
+    }
     this.renderer.render(this.scene, this.camera);
   }
 
