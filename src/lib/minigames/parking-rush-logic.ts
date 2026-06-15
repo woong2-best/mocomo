@@ -78,7 +78,7 @@ export type Rect = { x: number; y: number; w: number; h: number; angle?: number 
 
 export type ObstacleKind = "wall" | "pillar" | "car" | "fence" | "cone";
 
-export type Obstacle = Rect & { kind: ObstacleKind; color?: string };
+export type Obstacle = Rect & { kind: ObstacleKind; color?: string; spotId?: string };
 
 export type ParkingSpot = {
   id: string;
@@ -224,12 +224,19 @@ export type ParkingInput = {
   blinker?: "left" | "right" | "hazard" | "off";
 };
 
+export type CollisionKind = ObstacleKind | "boundary" | "player";
+
 export type CollisionEvent = {
-  kind: ObstacleKind | "boundary";
+  kind: CollisionKind;
   strength: "light" | "heavy";
   speed: number;
   atMs: number;
+  instantFail?: boolean;
 };
+
+export function isInstantFailCollision(kind: CollisionKind): boolean {
+  return kind === "car" || kind === "pillar" || kind === "player";
+}
 
 export type PlayerParkingStats = {
   vehicleId: VehicleTypeId;
@@ -246,6 +253,11 @@ export type PlayerParkingStats = {
   parkedAt: number | null;
   parkHoldMs: number;
   reversePark: boolean;
+  spotsCompleted: number;
+  failed: boolean;
+  failReason: string | null;
+  parkGraceUntil: number;
+  graceSpotId: string | null;
   rank: number | null;
   finished: boolean;
   combo: number;
@@ -388,6 +400,24 @@ export function checkParkingProgress(
   return { holdMs: 0, parked: false, alignment: 0, reversePark: false };
 }
 
+function carOverlapsRect(car: CarState, spec: VehicleSpec, rect: Rect): boolean {
+  const cos = Math.cos(rect.angle ?? 0);
+  const sin = Math.sin(rect.angle ?? 0);
+  const hw = rect.w / 2;
+  const hh = rect.h / 2;
+  const dx = car.x - rect.x;
+  const dy = car.y - rect.y;
+  const lx = dx * cos + dy * sin;
+  const ly = -dx * sin + dy * cos;
+  const carHw = spec.width / 2 + 0.05;
+  const carHl = spec.length / 2 + 0.05;
+  return Math.abs(lx) < carHl + hw && Math.abs(ly) < carHw + hh;
+}
+
+export function carsOverlap(a: CarState, specA: VehicleSpec, b: CarState, specB: VehicleSpec): boolean {
+  return carOverlapsRect(a, specA, { x: b.x, y: b.y, w: specB.length, h: specB.width, angle: b.angle });
+}
+
 function resolveRectCollision(car: CarState, spec: VehicleSpec, rect: Rect, restitution = 0.35) {
   const cos = Math.cos(rect.angle ?? 0);
   const sin = Math.sin(rect.angle ?? 0);
@@ -475,7 +505,8 @@ export function stepCarPhysics(
 
   const { bounds, walls, obstacles } = level;
   let hitSpeed = 0;
-  let hitKind: ObstacleKind | "boundary" = "boundary";
+  let hitKind: CollisionKind = "boundary";
+  let failContact: CollisionKind | null = null;
 
   if (car.x < bounds.x + spec.length / 2) {
     car.x = bounds.x + spec.length / 2;
@@ -506,11 +537,25 @@ export function stepCarPhysics(
     }
   }
   for (const o of obstacles) {
+    if (isInstantFailCollision(o.kind) && carOverlapsRect(car, spec, o)) {
+      failContact = o.kind;
+    }
     const s = resolveRectCollision(car, spec, o, o.kind === "cone" ? 0.15 : 0.32);
     if (s !== null) {
       hitSpeed = Math.max(hitSpeed, s);
       hitKind = o.kind;
+      if (isInstantFailCollision(o.kind)) failContact = o.kind;
     }
+  }
+
+  if (failContact) {
+    return {
+      kind: failContact,
+      strength: "heavy",
+      speed: Math.max(hitSpeed, 0.6),
+      atMs: Date.now(),
+      instantFail: true,
+    };
   }
 
   if (hitSpeed > 0.5) {
@@ -578,11 +623,18 @@ export function buildParkingResultMessage(
   const winnerName = names[winnerId] ?? "플레이어";
 
   if (mode === "solo" || mode === "time_attack") {
+    if (wst.failed) {
+      return {
+        winnerId,
+        resultMessage: `${winnerName} · ${wst.spotsCompleted}칸 주차 후 충돌 실패 · ${wst.score.toLocaleString()}점`,
+      };
+    }
     return {
       winnerId,
-      resultMessage: wst.parked
-        ? `${winnerName} · ${levelName} 주차 성공! ${wst.score.toLocaleString()}점 (${RANK_TIER_LABELS[wst.tier]})`
-        : `${winnerName} · 시간 초과 · ${wst.score.toLocaleString()}점`,
+      resultMessage:
+        wst.spotsCompleted > 0
+          ? `${winnerName} · ${wst.spotsCompleted}칸 주차 · ${wst.score.toLocaleString()}점 (${RANK_TIER_LABELS[wst.tier]})`
+          : `${winnerName} · 시간 초과 · ${wst.score.toLocaleString()}점`,
     };
   }
 
@@ -617,6 +669,11 @@ export function emptyPlayerStats(
     parkedAt: null,
     parkHoldMs: 0,
     reversePark: false,
+    spotsCompleted: 0,
+    failed: false,
+    failReason: null,
+    parkGraceUntil: 0,
+    graceSpotId: null,
     rank: null,
     finished: false,
     combo: 0,
@@ -643,6 +700,9 @@ export function statsPublic(st: PlayerParkingStats) {
     parkedAt: st.parkedAt,
     parkProgress: Math.min(1, st.parkHoldMs / PARKING_RUSH_PARK_HOLD_MS),
     reversePark: st.reversePark,
+    spotsCompleted: st.spotsCompleted,
+    failed: st.failed,
+    failReason: st.failReason,
     rank: st.rank,
     finished: st.finished,
     combo: st.combo,

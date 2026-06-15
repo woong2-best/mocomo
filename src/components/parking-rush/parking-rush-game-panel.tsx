@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Car, Crown, MapPin, Pin, RotateCcw, Timer, Trophy, Users, ZoomIn, ZoomOut } from "lucide-react";
+import { Car, Crown, Pin, RotateCcw, Timer, Trophy, Users, ZoomIn, ZoomOut } from "lucide-react";
 import { ParkingRushControls } from "@/components/parking-rush/parking-rush-controls";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +31,10 @@ export type ParkingRushPlayerStats = {
   collisions: number;
   parked: boolean;
   parkProgress: number;
+  spotsCompleted: number;
+  failed: boolean;
+  failReason: string | null;
+  runtimeObstacles?: unknown[];
   rank: number | null;
   tier: RankTier;
   finished: boolean;
@@ -91,10 +95,12 @@ export function ParkingRushGamePanel({
 }: Props) {
   const canvasMount = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<ParkingRushScene | null>(null);
-  const levelLoaded = useRef(false);
+  const levelSigRef = useRef("");
   const myStats = userId ? stats[userId] : undefined;
   const instantPlay = isParkingInstantPlayMode(mode);
   const canDrive = !isSpectator && !finished && phase === "playing" && !!myStats && !myStats.finished;
+  const runtimeObstacles = (myStats?.runtimeObstacles as never[] | undefined) ?? [];
+  const mergedObstacles = [...obstacles, ...runtimeObstacles];
 
   const [countdown, setCountdown] = useState<number | null>(null);
   const [pinning, setPinning] = useState(false);
@@ -158,14 +164,16 @@ export function ParkingRushGamePanel({
     return () => {
       scene.dispose();
       sceneRef.current = null;
-      levelLoaded.current = false;
+      levelSigRef.current = "";
     };
   }, []);
 
   useEffect(() => {
     const scene = sceneRef.current;
-    if (!scene || levelLoaded.current) return;
-    if (!walls.length) return;
+    if (!scene || !walls.length) return;
+    const sig = `${myStats?.spotId ?? ""}:${mergedObstacles.length}:${JSON.stringify(mergedObstacles.map((o) => (o as { x?: number; y?: number; spotId?: string }).spotId ?? `${(o as { x?: number }).x}-${(o as { y?: number }).y}`))}`;
+    if (levelSigRef.current === sig) return;
+    levelSigRef.current = sig;
     scene.loadLevel(
       {
         id: "",
@@ -175,7 +183,7 @@ export function ParkingRushGamePanel({
         timeLimitMs: 120000,
         bounds: bounds ?? { x: 0, y: 0, w: 42, h: 58 },
         walls: walls as never[],
-        obstacles: obstacles as never[],
+        obstacles: mergedObstacles as never[],
         parkingSpots: parkingSpots as never[],
         spawnPoints: [],
         groundColor,
@@ -183,8 +191,19 @@ export function ParkingRushGamePanel({
       },
       myStats?.spotId
     );
-    levelLoaded.current = true;
-  }, [walls, obstacles, parkingSpots, levelName, mapType, difficulty, groundColor, accentColor, myStats?.spotId, bounds]);
+  }, [
+    walls,
+    obstacles,
+    runtimeObstacles,
+    parkingSpots,
+    levelName,
+    mapType,
+    difficulty,
+    groundColor,
+    accentColor,
+    myStats?.spotId,
+    bounds,
+  ]);
 
   useEffect(() => {
     if (isSpectator || !canDrive) return;
@@ -282,17 +301,16 @@ export function ParkingRushGamePanel({
               <span className="font-black text-yellow-300 tabular-nums">{myStats.score.toLocaleString()}</span>
               <span className="text-emerald-400">{myStats.combo}c</span>
               <span className="text-red-400">충돌 {myStats.collisions}</span>
+              <span className="text-amber-200">{myStats.spotsCompleted}칸</span>
               <span className="text-violet-300">{RANK_TIER_LABELS[myStats.tier]}</span>
-              {myStats.parked && (
-                <span className="text-green-400 font-bold inline-flex items-center gap-1">
-                  <MapPin className="h-3 w-3" /> 주차 완료
-                </span>
+              {myStats.failed && (
+                <span className="text-red-400 font-bold">{myStats.failReason ?? "충돌 실패"}</span>
               )}
             </>
           )}
         </div>
 
-        {myStats && phase === "playing" && !myStats.parked && (
+        {myStats && phase === "playing" && !myStats.finished && (
           <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-green-500 to-emerald-300 transition-all"
@@ -418,7 +436,7 @@ export function ParkingRushGamePanel({
         )}
         {myStats?.lastCollision && collisionFlash && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[16] px-3 py-1 rounded-full bg-red-600/90 text-xs font-bold text-white border border-red-300/50">
-            {myStats.lastCollision.strength === "heavy" ? "강한 충돌!" : "충돌"}
+            {myStats.failed ? myStats.failReason ?? "충돌 실패!" : myStats.lastCollision.strength === "heavy" ? "강한 충돌!" : "충돌"}
           </div>
         )}
       </div>
@@ -429,7 +447,8 @@ export function ParkingRushGamePanel({
 
       {myStats && (
         <p className="text-center text-xs text-muted-foreground">
-          {VEHICLE_SPECS[myStats.vehicleId].label} · 목표 #{myStats.spotId.replace("spot-", "")}
+          {VEHICLE_SPECS[myStats.vehicleId].label} · 목표 #{myStats.spotId.replace("spot-", "")} · 완료{" "}
+          {myStats.spotsCompleted}칸
           {myStats.blinker && myStats.blinker !== "off" ? ` · ${myStats.blinker === "hazard" ? "비상등" : "방향지시"}` : ""}
         </p>
       )}
@@ -439,8 +458,12 @@ export function ParkingRushGamePanel({
           <Crown className="h-8 w-8 mx-auto text-yellow-400" />
           <p className="font-black text-2xl text-yellow-100">{myStats.score.toLocaleString()}</p>
           <p className="text-sm text-muted-foreground">
-            {myStats.parked ? "주차 성공" : "시간 종료"} · {RANK_TIER_LABELS[myStats.tier]} · 충돌{" "}
-            {myStats.collisions}회
+            {myStats.failed
+              ? `${myStats.failReason ?? "충돌"} · ${myStats.spotsCompleted}칸 주차`
+              : myStats.spotsCompleted > 0
+                ? `${myStats.spotsCompleted}칸 주차 완료`
+                : "시간 종료"}{" "}
+            · {RANK_TIER_LABELS[myStats.tier]} · 충돌 {myStats.collisions}회
           </p>
           {myStats.rank && (
             <p className="text-cyan-300 inline-flex items-center justify-center gap-1">

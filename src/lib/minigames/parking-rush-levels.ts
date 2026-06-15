@@ -1,4 +1,5 @@
 import type { MapType, ParkingDifficulty, ParkingLevel } from "./parking-rush-logic";
+import { buildLightPoleObstacles } from "./parking-rush-lot-runtime";
 
 /** American outdoor mega parking lot (Costco/Walmart scale) */
 function usMegaLot(
@@ -61,16 +62,12 @@ function usMegaLot(
       { x: w - 1, y: h / 2, w: 2, h, kind: "wall", color: "#78716c" },
     ],
     obstacles: [
-      { x: 10, y: 33, w: 4.6, h: 1.95, angle: Math.PI / 2, kind: "car", color: "#64748b" },
-      { x: 21, y: 51, w: 4.6, h: 1.95, angle: Math.PI / 2, kind: "car", color: "#334155" },
-      { x: 47, y: 42, w: 4.6, h: 1.95, angle: -Math.PI / 2, kind: "car", color: "#475569" },
-      { x: 58, y: 24, w: 4.6, h: 1.95, angle: -Math.PI / 2, kind: "car", color: "#1e293b" },
       { x: w / 2 - 3, y: h - 9, w: 0.55, h: 0.55, kind: "cone", color: "#f97316" },
       { x: w / 2 + 3, y: h - 9, w: 0.55, h: 0.55, kind: "cone", color: "#f97316" },
       { x: w / 2, y: h - 11, w: 10, h: 0.28, kind: "fence", color: "#facc15" },
       { x: 36, y: h - 14, w: 0.7, h: 0.7, kind: "cone", color: "#94a3b8" },
       { x: 37, y: h - 13, w: 0.7, h: 0.7, kind: "cone", color: "#94a3b8" },
-      { x: w / 2, y: 48, w: 1.4, h: 1.4, kind: "pillar", color: "#a8a29e" },
+      ...buildLightPoleObstacles(w, h),
     ],
     parkingSpots: spots,
     spawnPoints: spots.map((s, i) => ({
@@ -142,7 +139,7 @@ function baseLot(
 }
 
 export const PARKING_LEVELS: ParkingLevel[] = [
-  usMegaLot("lot-beginner", "미국식 대형 야외 주차장", "parking_lot", "beginner", 120_000, 12),
+  usMegaLot("lot-beginner", "미국식 대형 야외 주차장", "parking_lot", "beginner", 120_000, 28),
   baseLot("mart-intermediate", "대형마트 주차장", "mart", "intermediate", 100_000, 12, "#374151", "#a78bfa", [
     { x: 14, y: 30, w: 6, h: 0.4, kind: "fence", color: "#e2e8f0" },
     { x: 28, y: 38, w: 0.5, h: 0.5, kind: "cone", color: "#f97316" },

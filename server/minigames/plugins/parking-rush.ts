@@ -1,11 +1,18 @@
 import { pickParkingLevel } from "../../../src/lib/minigames/parking-rush-levels";
 import {
+  advancePlayerLotRuntime,
+  initPlayerLotRuntime,
+  mergePlayerObstacles,
+  type PlayerLotRuntime,
+} from "../../../src/lib/minigames/parking-rush-lot-runtime";
+import {
   PARKING_RUSH_COUNTDOWN_MS,
   PARKING_RUSH_FRAME_RECORD_MS,
   PARKING_RUSH_PHYSICS_DT,
   PARKING_RUSH_TICK_MS,
   applyCollisionScore,
   buildParkingResultMessage,
+  carsOverlap,
   checkParkingProgress,
   emptyPlayerStats,
   normalizeInput,
@@ -34,6 +41,7 @@ type ParkingState = {
   startedAt: number;
   endsAt: number;
   stats: Record<string, PlayerParkingStats>;
+  playerLots: Record<string, PlayerLotRuntime>;
   inputs: Record<string, ParkingInput>;
   playerOrder: string[];
   timer: ReturnType<typeof setInterval> | null;
@@ -41,6 +49,24 @@ type ParkingState = {
   finishOrder: string[];
   lastFrameAt: number;
 };
+
+function isChainParkingMode(mode: ParkingRushMode): boolean {
+  return mode === "solo" || mode === "time_attack";
+}
+
+function levelForPlayer(state: ParkingState, uid: string, now: number): ParkingLevel {
+  const lot = state.playerLots[uid];
+  const st = state.stats[uid];
+  if (!lot) return state.level;
+  let obstacles = mergePlayerObstacles(state.level.obstacles, lot);
+  if (st && st.parkGraceUntil > now && st.graceSpotId) {
+    obstacles = obstacles.filter((o) => o.spotId !== st.graceSpotId);
+  }
+  return {
+    ...state.level,
+    obstacles,
+  };
+}
 
 function gs(room: MinigameRoomInternal): ParkingState {
   return room.gameState as ParkingState;
@@ -119,10 +145,11 @@ function physicsStep(room: MinigameRoomInternal, state: ParkingState) {
   const dt = PARKING_RUSH_PHYSICS_DT;
   const now = Date.now();
   const elapsed = elapsedMs(state);
+  const chainMode = isChainParkingMode(state.mode);
 
   for (const uid of state.playerOrder) {
     let st = state.stats[uid];
-    if (!st || st.finished || st.parked) continue;
+    if (!st || st.finished) continue;
 
     const input = state.inputs[uid] ?? { throttle: 0, steer: 0 };
     if (input.horn) {
@@ -133,37 +160,113 @@ function physicsStep(room: MinigameRoomInternal, state: ParkingState) {
 
     const spec = VEHICLE_SPECS[st.vehicleId];
     const car = { ...st.car };
-    const hit = stepCarPhysics(car, spec, input, state.level, dt);
+    const playerLevel = levelForPlayer(state, uid, now);
+    const hit = stepCarPhysics(car, spec, input, playerLevel, dt);
     st = { ...st, car };
 
     if (hit) {
-      st = applyCollisionScore(st, hit);
-      room.moveHistory.push({
-        type: "parking_collision",
-        userId: uid,
-        t: elapsed,
-        kind: hit.kind,
-        strength: hit.strength,
-      });
-      if (st.collisions >= 12) st.score = Math.max(0, st.score - 200);
+      if (hit.instantFail) {
+        st = applyCollisionScore(st, hit);
+        st.failed = true;
+        st.failReason =
+          hit.kind === "player"
+            ? "다른 차량과 충돌"
+            : hit.kind === "pillar"
+              ? "전봇대 충돌"
+              : "주차된 차량 충돌";
+        st.finished = true;
+        st.parkedAt = now;
+        room.moveHistory.push({
+          type: "parking_collision",
+          userId: uid,
+          t: elapsed,
+          kind: hit.kind,
+          strength: "heavy",
+        });
+        if (!state.finishOrder.includes(uid)) state.finishOrder.push(uid);
+        assignRanks(state);
+      } else {
+        st = applyCollisionScore(st, hit);
+        room.moveHistory.push({
+          type: "parking_collision",
+          userId: uid,
+          t: elapsed,
+          kind: hit.kind,
+          strength: hit.strength,
+        });
+        if (st.collisions >= 12) st.score = Math.max(0, st.score - 200);
+      }
     } else if (Math.abs(car.speed) > 0.2) {
       st.combo += 1;
       st.maxCombo = Math.max(st.maxCombo, st.combo);
     }
 
+    if (!st.failed) {
+      for (const otherId of state.playerOrder) {
+        if (otherId === uid) continue;
+        const other = state.stats[otherId];
+        if (!other || other.finished) continue;
+        const otherSpec = VEHICLE_SPECS[other.vehicleId];
+        if (carsOverlap(car, spec, other.car, otherSpec)) {
+          st = applyCollisionScore(st, {
+            kind: "player",
+            strength: "heavy",
+            speed: Math.max(Math.abs(car.speed), Math.abs(other.car.speed), 0.6),
+            atMs: now,
+            instantFail: true,
+          });
+          st.failed = true;
+          st.failReason = "다른 차량과 충돌";
+          st.finished = true;
+          st.parkedAt = now;
+          room.moveHistory.push({
+            type: "parking_collision",
+            userId: uid,
+            t: elapsed,
+            kind: "player",
+            strength: "heavy",
+          });
+          if (!state.finishOrder.includes(uid)) state.finishOrder.push(uid);
+          assignRanks(state);
+          break;
+        }
+      }
+    }
+
     const spot = state.level.parkingSpots.find((s) => s.id === st.spotId);
-    if (spot) {
+    if (spot && !st.failed) {
       const prog = checkParkingProgress(car, spec, spot, st.parkHoldMs, PARKING_RUSH_TICK_MS);
       st.parkHoldMs = prog.holdMs;
       st.reversePark = prog.reversePark;
       if (prog.parked && !st.parked) {
-        st.parked = true;
-        st.parkedAt = now;
-        st.finished = true;
-        st.score = scoreParkingSuccess(st, elapsed, state.level.timeLimitMs, prog.alignment, prog.reversePark);
-        st.tier = tierFromScore(st.score);
-        state.finishOrder.push(uid);
-        assignRanks(state);
+        if (chainMode) {
+          const completedSpotId = st.spotId;
+          st.spotsCompleted += 1;
+          st.score += scoreParkingSuccess(st, elapsed, state.level.timeLimitMs, prog.alignment, prog.reversePark);
+          st.tier = tierFromScore(st.score);
+          st.combo += 3;
+          st.maxCombo = Math.max(st.maxCombo, st.combo);
+          st.parkHoldMs = 0;
+          st.parked = false;
+          st.parkGraceUntil = now + 1800;
+          st.graceSpotId = completedSpotId;
+          const push = 2.2;
+          car.x += Math.cos(car.angle) * push;
+          car.y += Math.sin(car.angle) * push;
+          car.speed = 0;
+          const lot = state.playerLots[uid] ?? initPlayerLotRuntime(state.level.parkingSpots);
+          const nextLot = advancePlayerLotRuntime(state.level.parkingSpots, lot, completedSpotId);
+          state.playerLots[uid] = nextLot;
+          st.spotId = nextLot.targetSpotId;
+        } else {
+          st.parked = true;
+          st.parkedAt = now;
+          st.finished = true;
+          st.score = scoreParkingSuccess(st, elapsed, state.level.timeLimitMs, prog.alignment, prog.reversePark);
+          st.tier = tierFromScore(st.score);
+          state.finishOrder.push(uid);
+          assignRanks(state);
+        }
       }
     }
 
@@ -172,6 +275,14 @@ function physicsStep(room: MinigameRoomInternal, state: ParkingState) {
   }
 
   if (state.phase === "playing") recordFrame(room, state);
+
+  if (chainMode) {
+    const allDone = state.playerOrder.every((id) => state.stats[id]?.finished);
+    if (allDone && state.playerOrder.length > 0) {
+      finishGame(room, state);
+      return;
+    }
+  }
 
   if (state.mode === "duel" || state.mode === "ranked") {
     const parkedCount = Object.values(state.stats).filter((s) => s.parked).length;
@@ -227,10 +338,12 @@ export const parkingRushPlugin: MinigamePlugin = {
     const carColor = resolveCarColor(room.parkingRushCarColor);
 
     const stats: Record<string, PlayerParkingStats> = {};
+    const playerLots: Record<string, PlayerLotRuntime> = {};
     order.forEach((uid, i) => {
-      const spot = level.parkingSpots[i % level.parkingSpots.length]!;
+      const lot = initPlayerLotRuntime(level.parkingSpots);
+      playerLots[uid] = lot;
       const spawn = level.spawnPoints[i % level.spawnPoints.length]!;
-      stats[uid] = emptyPlayerStats(uid, vehicleForPlayer(i), spot.id, spawn, carColor);
+      stats[uid] = emptyPlayerStats(uid, vehicleForPlayer(i), lot.targetSpotId, spawn, carColor);
     });
 
     return {
@@ -240,6 +353,7 @@ export const parkingRushPlugin: MinigamePlugin = {
       startedAt,
       endsAt: startedAt + level.timeLimitMs,
       stats,
+      playerLots,
       inputs: Object.fromEntries(order.map((id) => [id, { throttle: 0, steer: 0, blinker: "off" as const }])),
       playerOrder: order,
       timer: null,
@@ -284,7 +398,18 @@ export const parkingRushPlugin: MinigamePlugin = {
         parkingSpots: state.level.parkingSpots,
         groundColor: state.level.groundColor,
         accentColor: state.level.accentColor,
-        stats: Object.fromEntries(Object.entries(state.stats).map(([k, v]) => [k, statsPublic(v)])),
+        stats: Object.fromEntries(
+          Object.entries(state.stats).map(([k, v]) => {
+            const lot = state.playerLots[k];
+            return [
+              k,
+              {
+                ...statsPublic(v),
+                runtimeObstacles: lot?.parkedCarObstacles ?? [],
+              },
+            ];
+          })
+        ),
         playerOrder: state.playerOrder,
         finishOrder: state.finishOrder,
       },
@@ -297,7 +422,7 @@ export const parkingRushPlugin: MinigamePlugin = {
     if (state.phase !== "playing") return "아직 시작 전입니다.";
     const st = state.stats[userId];
     if (!st) return "플레이어 상태 없음";
-    if (st.finished || st.parked) return "이미 주차 완료";
+    if (st.finished) return "이미 종료됨";
     if (!move || typeof move !== "object") return "잘못된 입력";
     return null;
   },
