@@ -126,6 +126,9 @@ export function useMinigameRoom(
           spotDiffPlayStyle: createOpts.spotDiffPlayStyle,
           pianoRushMode: createOpts.pianoRushMode,
           pianoRushChartId: createOpts.pianoRushChartId,
+          parkingRushMode: createOpts.parkingRushMode,
+          parkingRushLevelId: createOpts.parkingRushLevelId,
+          parkingRushDifficulty: createOpts.parkingRushDifficulty,
           accessMode: "private",
         },
         active

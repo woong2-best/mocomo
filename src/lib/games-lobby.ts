@@ -13,6 +13,9 @@ export type GameCreateOptions = {
   spotDiffPlayStyle?: "normal" | "infinite";
   pianoRushMode?: "solo" | "duel" | "battle";
   pianoRushChartId?: string;
+  parkingRushMode?: "solo" | "duel" | "ranked" | "time_attack";
+  parkingRushLevelId?: string;
+  parkingRushDifficulty?: "beginner" | "intermediate" | "advanced" | "expert";
 };
 
 export type GameJoinOptions = {

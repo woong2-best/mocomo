@@ -46,6 +46,9 @@ export type MinigameRoomInternal = {
   spotDiffPlayStyle?: "normal" | "infinite";
   pianoRushMode?: "solo" | "duel" | "battle";
   pianoRushChartId?: string;
+  parkingRushMode?: "solo" | "duel" | "ranked" | "time_attack";
+  parkingRushLevelId?: string;
+  parkingRushDifficulty?: "beginner" | "intermediate" | "advanced" | "expert";
 };
 
 export type MinigameCreateOptions = {
@@ -58,6 +61,9 @@ export type MinigameCreateOptions = {
   spotDiffPlayStyle?: "normal" | "infinite";
   pianoRushMode?: "solo" | "duel" | "battle";
   pianoRushChartId?: string;
+  parkingRushMode?: "solo" | "duel" | "ranked" | "time_attack";
+  parkingRushLevelId?: string;
+  parkingRushDifficulty?: "beginner" | "intermediate" | "advanced" | "expert";
 };
 
 export type MinigameJoinOptions = {

@@ -8,6 +8,7 @@ import {
   Type,
   Zap,
   Music,
+  Car,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { MinigameCategory, MinigameDefinition, MinigameStatus } from "./types";
@@ -34,6 +35,7 @@ function live(id: string, overrides: Partial<MinigameCatalogItem> & Pick<Minigam
     "picture-match": Puzzle,
     "spot-diff": Puzzle,
     "piano-rush": Music,
+    "parking-rush": Car,
     rps: Zap,
     "number-guess": Zap,
     "memory-cards": Zap,
@@ -170,6 +172,15 @@ const REGISTRY: MinigameCatalogItem[] = [
     maxPlayers: 50,
     supportsRanked: true,
     supportsReplay: false,
+  }),
+  live("parking-rush", {
+    name: "주차 러쉬",
+    category: "casual",
+    description: "로우폴리 3D 주차 · 최대 16인 · 싱글·대전·랭크 · PC·모바일",
+    minPlayers: 1,
+    maxPlayers: 16,
+    supportsRanked: true,
+    supportsReplay: true,
   }),
   live("rps", {
     name: "가위바위보",

@@ -300,6 +300,9 @@ export function minigameCreate(
     spotDiffPlayStyle: opts.spotDiffPlayStyle,
     pianoRushMode: opts.pianoRushMode,
     pianoRushChartId: opts.pianoRushChartId,
+    parkingRushMode: opts.parkingRushMode,
+    parkingRushLevelId: opts.parkingRushLevelId,
+    parkingRushDifficulty: opts.parkingRushDifficulty,
   };
 
   if (gameId === "omok" && opts.ruleMode) attachOmokRuleMode(room, opts.ruleMode);

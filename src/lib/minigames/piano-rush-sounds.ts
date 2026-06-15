@@ -10,6 +10,7 @@ let track: HTMLAudioElement | null = null;
 let trackTimer: ReturnType<typeof setTimeout> | null = null;
 let preloadEl: HTMLAudioElement | null = null;
 let comboStreak = 0;
+let lastBeatKickAt = 0;
 
 function ac(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -46,6 +47,62 @@ function pianoHit(freq: number, gain = 0.22) {
   tone(freq * 0.5, 0.14, "sine", gain * 0.25, -8);
 }
 
+function noiseBurst(dur = 0.04, gain = 0.06) {
+  const c = ac();
+  if (!c) return;
+  const t0 = c.currentTime;
+  const bufferSize = c.sampleRate * dur;
+  const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+  const src = c.createBufferSource();
+  src.buffer = buffer;
+  const g = c.createGain();
+  const filt = c.createBiquadFilter();
+  filt.type = "highpass";
+  filt.frequency.value = 800;
+  g.gain.setValueAtTime(gain, t0);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  src.connect(filt);
+  filt.connect(g);
+  g.connect(c.destination);
+  src.start(t0);
+  src.stop(t0 + dur + 0.01);
+}
+
+/** BPM 킥 — fever 시 더 강하게 */
+export function playBeatKick(bpm: number, elapsedMs: number, fever = false) {
+  const beatMs = 60000 / bpm;
+  const beatIdx = Math.floor(elapsedMs / beatMs);
+  if (beatIdx === lastBeatKickAt) return;
+  lastBeatKickAt = beatIdx;
+  const c = ac();
+  if (!c) return;
+  const t0 = c.currentTime;
+  const osc = c.createOscillator();
+  const g = c.createGain();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(fever ? 90 : 70, t0);
+  osc.frequency.exponentialRampToValueAtTime(35, t0 + 0.08);
+  g.gain.setValueAtTime(fever ? 0.14 : 0.07, t0);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.12);
+  osc.connect(g);
+  g.connect(c.destination);
+  osc.start(t0);
+  osc.stop(t0 + 0.14);
+  if (fever && beatIdx % 2 === 1) noiseBurst(0.025, 0.04);
+}
+
+export function playComboMilestone(combo: number) {
+  void unlockPianoAudio();
+  const base = 440 + Math.min(combo, 200) * 0.5;
+  pianoHit(base, 0.2);
+  pianoHit(base * 1.25, 0.16);
+  pianoHit(base * 1.5, 0.14);
+  tone(base * 2, 0.2, "sine", 0.1);
+  tone(base * 2.5, 0.15, "triangle", 0.06);
+}
+
 export function playLaneNote(lane: number, combo = 0) {
   void unlockPianoAudio();
   const f = LANE_FREQ[lane] ?? LANE_FREQ[0];
@@ -67,9 +124,11 @@ export function playJudgeSound(judge: "PERFECT" | "GREAT" | "GOOD" | "MISS") {
   }
   comboStreak += 1;
   if (judge === "PERFECT") {
-    pianoHit(880, 0.18);
-    pianoHit(1320, 0.12);
-    tone(1760, 0.06, "sine", 0.08);
+    pianoHit(880, 0.22);
+    pianoHit(1320, 0.16);
+    tone(1760, 0.08, "sine", 0.1);
+    tone(2200, 0.05, "triangle", 0.06);
+    noiseBurst(0.03, 0.05);
   } else if (judge === "GREAT") {
     pianoHit(660, 0.14);
     tone(990, 0.08, "sine", 0.07);

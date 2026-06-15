@@ -13,6 +13,7 @@ import { memoryCardsPlugin, pictureMatchPlugin } from "./memory-match";
 import { slidePuzzlePlugin } from "./slide-puzzle";
 import { spotDiffPlugin } from "./spot-diff";
 import { pianoRushPlugin } from "./piano-rush";
+import { parkingRushPlugin } from "./parking-rush";
 import { jigsawPlugin } from "./jigsaw";
 import type { MinigamePlugin } from "../types";
 
@@ -33,6 +34,7 @@ export const ALL_MINIGAME_PLUGINS: MinigamePlugin[] = [
   slidePuzzlePlugin,
   spotDiffPlugin,
   pianoRushPlugin,
+  parkingRushPlugin,
   jigsawPlugin,
 ];
 

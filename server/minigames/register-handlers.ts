@@ -45,6 +45,9 @@ export function registerMinigameHandlers(
         spotDiffPlayStyle?: "normal" | "infinite";
         pianoRushMode?: "solo" | "duel" | "battle";
         pianoRushChartId?: string;
+        parkingRushMode?: "solo" | "duel" | "ranked" | "time_attack";
+        parkingRushLevelId?: string;
+        parkingRushDifficulty?: "beginner" | "intermediate" | "advanced" | "expert";
       },
       ack?: (r: unknown) => void
     ) => {
@@ -69,6 +72,9 @@ export function registerMinigameHandlers(
         spotDiffPlayStyle: data.spotDiffPlayStyle,
         pianoRushMode: data.pianoRushMode,
         pianoRushChartId: data.pianoRushChartId,
+        parkingRushMode: data.parkingRushMode,
+        parkingRushLevelId: data.parkingRushLevelId,
+        parkingRushDifficulty: data.parkingRushDifficulty,
       });
       if (!result.ok) {
         ack?.(result);

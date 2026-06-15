@@ -11,7 +11,9 @@ import { ReversiGamePanel } from "@/components/reversi/reversi-game-panel";
 import type { SpotDiffMode, SpotDiffPlayStyle, SpotShape } from "@/lib/minigames/spot-diff-logic";
 import { SpotDiffGamePanel } from "@/components/spot-diff/spot-diff-game-panel";
 import { PianoRushGamePanel } from "@/components/piano-rush/piano-rush-game-panel";
+import { ParkingRushGamePanel, type ParkingRushPlayerStats } from "@/components/parking-rush/parking-rush-game-panel";
 import type { PianoChartNote, PianoRushMode } from "@/lib/minigames/piano-rush-logic";
+import type { ParkingRushMode } from "@/lib/minigames/parking-rush-logic";
 import { AlkkagiBoard } from "@/components/minigames/alkkagi-board";
 import { WordChainPanel } from "@/components/minigames/word-chain-panel";
 import { BadukGamePanel } from "@/components/baduk/baduk-game-panel";
@@ -291,6 +293,31 @@ export function GameActiveView({ gameId, state, userId, isSpectator, onMove, err
           timeLeftMs={(g.timeLeftMs as number) ?? 0}
           stats={(g.stats as Record<string, { score: number; combo: number; maxCombo: number; accuracy: number; lives: number; eliminated: boolean; debuffShakeUntil: number; debuffSpeedUntil: number; hitNotes?: string[] }>) ?? {}}
           lastFeedback={(g.lastFeedback as Record<string, { judge: string; message: string } | null>) ?? {}}
+          userId={userId}
+          isSpectator={isSpectator}
+          finished={state.status === "finished"}
+          players={state.players}
+          onMove={onMove}
+        />
+      );
+    case "parking-rush":
+      return (
+        <ParkingRushGamePanel
+          levelName={(g.levelName as string) ?? "주차장"}
+          mapType={(g.mapType as string) ?? "parking_lot"}
+          difficulty={(g.difficulty as string) ?? "beginner"}
+          mode={(g.mode as ParkingRushMode) ?? "solo"}
+          phase={(g.phase as "countdown" | "playing" | "finished") ?? "countdown"}
+          startedAt={(g.startedAt as number) ?? Date.now()}
+          timeLeftMs={(g.timeLeftMs as number) ?? 0}
+          walls={(g.walls as unknown[]) ?? []}
+          obstacles={(g.obstacles as unknown[]) ?? []}
+          parkingSpots={(g.parkingSpots as unknown[]) ?? []}
+          groundColor={(g.groundColor as string) ?? "#2a3444"}
+          accentColor={(g.accentColor as string) ?? "#22d3ee"}
+          stats={(g.stats as Record<string, ParkingRushPlayerStats>) ?? {}}
+          playerOrder={(g.playerOrder as string[]) ?? []}
+          finishOrder={(g.finishOrder as string[]) ?? []}
           userId={userId}
           isSpectator={isSpectator}
           finished={state.status === "finished"}

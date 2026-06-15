@@ -88,8 +88,9 @@ export function PianoRushGamePanel({
   players,
   onMove,
 }: Props) {
-  const [placing, setPlacing] = useState(false);
   const feverPlayed = useRef(false);
+  const [placing, setPlacing] = useState(false);
+  const [scorePop, setScorePop] = useState(false);
   const myStats = userId ? stats[userId] : undefined;
   const canPlay = !isSpectator && !finished && phase === "playing" && !myStats?.eliminated;
   const now = Date.now();
@@ -111,6 +112,11 @@ export function PianoRushGamePanel({
     if (!userId || !lastFeedback[userId]) return;
     const fb = lastFeedback[userId]!;
     if (fb.judge === "ATTACK") playAttackReceived();
+    if (fb.judge === "PERFECT" || fb.judge === "GREAT") {
+      setScorePop(true);
+      const t = window.setTimeout(() => setScorePop(false), 400);
+      return () => clearTimeout(t);
+    }
   }, [lastFeedback, userId]);
 
   useEffect(() => {
@@ -215,7 +221,14 @@ export function PianoRushGamePanel({
           </span>
           {myStats && (
             <>
-              <span className="font-black text-yellow-300 tabular-nums">{myStats.score.toLocaleString()}</span>
+              <span
+                className={cn(
+                  "font-black text-yellow-300 tabular-nums",
+                  scorePop && "animate-[pianoScorePop_0.4s_ease-out]"
+                )}
+              >
+                {myStats.score.toLocaleString()}
+              </span>
               <span
                 className={cn(
                   "font-bold tabular-nums inline-flex items-center gap-1",

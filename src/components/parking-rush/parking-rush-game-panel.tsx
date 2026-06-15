@@ -1,0 +1,306 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Car, Crown, MapPin, Timer, Trophy, Users, ZoomIn, ZoomOut } from "lucide-react";
+import { ParkingRushControls } from "@/components/parking-rush/parking-rush-controls";
+import { Button } from "@/components/ui/button";
+import {
+  MAP_TYPE_LABELS,
+  MODE_LABELS,
+  RANK_TIER_LABELS,
+  VEHICLE_SPECS,
+  type ParkingInput,
+  type ParkingRushMode,
+  type RankTier,
+  type VehicleTypeId,
+} from "@/lib/minigames/parking-rush-logic";
+import { ParkingRushScene, type SceneCar } from "@/lib/minigames/parking-rush-scene";
+import type { CarState } from "@/lib/minigames/parking-rush-logic";
+import type { MinigamePlayerPublic } from "@/lib/minigames/shared-types";
+
+export type ParkingRushPlayerStats = {
+  vehicleId: VehicleTypeId;
+  car: CarState;
+  spotId: string;
+  score: number;
+  collisions: number;
+  parked: boolean;
+  parkProgress: number;
+  rank: number | null;
+  tier: RankTier;
+  finished: boolean;
+  combo: number;
+  lastCollision: { strength: string } | null;
+};
+
+type Props = {
+  levelName: string;
+  mapType: string;
+  difficulty: string;
+  mode: ParkingRushMode;
+  phase: "countdown" | "playing" | "finished";
+  startedAt: number;
+  timeLeftMs: number;
+  walls: unknown[];
+  obstacles: unknown[];
+  parkingSpots: unknown[];
+  groundColor: string;
+  accentColor: string;
+  stats: Record<string, ParkingRushPlayerStats>;
+  playerOrder: string[];
+  finishOrder: string[];
+  userId?: string;
+  isSpectator: boolean;
+  finished?: boolean;
+  players: MinigamePlayerPublic[];
+  onMove: (move: ParkingInput) => Promise<boolean>;
+};
+
+function playerName(players: MinigamePlayerPublic[], id: string) {
+  return players.find((p) => p.userId === id)?.username ?? "플레이어";
+}
+
+export function ParkingRushGamePanel({
+  levelName,
+  mapType,
+  difficulty,
+  mode,
+  phase,
+  startedAt,
+  timeLeftMs,
+  walls,
+  obstacles,
+  parkingSpots,
+  groundColor,
+  accentColor,
+  stats,
+  playerOrder,
+  finishOrder,
+  userId,
+  isSpectator,
+  finished,
+  players,
+  onMove,
+}: Props) {
+  const canvasMount = useRef<HTMLDivElement>(null);
+  const sceneRef = useRef<ParkingRushScene | null>(null);
+  const levelLoaded = useRef(false);
+  const myStats = userId ? stats[userId] : undefined;
+  const canDrive = !isSpectator && !finished && phase === "playing" && !!myStats && !myStats.finished;
+
+  const [countdown, setCountdown] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (phase !== "countdown") {
+      setCountdown(null);
+      return;
+    }
+    const tick = () => setCountdown(Math.max(0, Math.ceil((startedAt - Date.now()) / 1000)));
+    tick();
+    const id = setInterval(tick, 80);
+    return () => clearInterval(id);
+  }, [phase, startedAt]);
+
+  useEffect(() => {
+    const el = canvasMount.current;
+    if (!el) return;
+    const scene = new ParkingRushScene(el);
+    sceneRef.current = scene;
+    return () => {
+      scene.dispose();
+      sceneRef.current = null;
+      levelLoaded.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene || levelLoaded.current) return;
+    if (!walls.length) return;
+    scene.loadLevel(
+      {
+        id: "",
+        name: levelName,
+        mapType: mapType as "parking_lot",
+        difficulty: difficulty as "beginner",
+        timeLimitMs: 120000,
+        bounds: { x: 0, y: 0, w: 42, h: 58 },
+        walls: walls as never[],
+        obstacles: obstacles as never[],
+        parkingSpots: parkingSpots as never[],
+        spawnPoints: [],
+        groundColor,
+        accentColor,
+      },
+      myStats?.spotId
+    );
+    levelLoaded.current = true;
+  }, [walls, obstacles, parkingSpots, levelName, mapType, difficulty, groundColor, accentColor, myStats?.spotId]);
+
+  useEffect(() => {
+    sceneRef.current?.setLocalUser(isSpectator ? null : userId ?? null);
+  }, [userId, isSpectator]);
+
+  useEffect(() => {
+    const cars: SceneCar[] = playerOrder
+      .filter((id) => stats[id])
+      .map((id) => ({
+        userId: id,
+        car: stats[id]!.car,
+        vehicleId: stats[id]!.vehicleId,
+        isLocal: id === userId,
+        parked: stats[id]!.parked,
+        spotId: stats[id]!.spotId,
+      }));
+    sceneRef.current?.updateCars(cars);
+  }, [stats, playerOrder, userId]);
+
+  const sendInput = useCallback(
+    (input: ParkingInput) => {
+      if (!canDrive) return;
+      void onMove(input);
+    },
+    [canDrive, onMove]
+  );
+
+  const opponents = players.filter((p) => p.userId !== userId);
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-slate-950/80 via-cyan-950/20 to-black/60 px-4 py-3 space-y-2">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="flex items-start gap-2 min-w-0">
+            <Car className="h-5 w-5 shrink-0 mt-0.5 text-cyan-300" />
+            <div className="min-w-0">
+              <p className="font-bold text-cyan-50 truncate">{levelName}</p>
+              <p className="text-xs text-muted-foreground truncate">
+                {MAP_TYPE_LABELS[mapType as keyof typeof MAP_TYPE_LABELS] ?? mapType} · {difficulty} ·{" "}
+                {MODE_LABELS[mode]}
+              </p>
+            </div>
+          </div>
+          <span className="rounded-lg bg-cyan-600/30 px-2 py-1 text-xs font-bold text-cyan-100 border border-cyan-400/30">
+            주차 러쉬
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          <span className="inline-flex items-center gap-1 text-cyan-200">
+            <Timer className="h-4 w-4" />
+            {finished ? "종료" : phase === "countdown" ? "준비…" : `${Math.ceil(timeLeftMs / 1000)}초`}
+          </span>
+          {myStats && (
+            <>
+              <span className="font-black text-yellow-300 tabular-nums">{myStats.score.toLocaleString()}</span>
+              <span className="text-emerald-400">{myStats.combo}c</span>
+              <span className="text-red-400">충돌 {myStats.collisions}</span>
+              <span className="text-violet-300">{RANK_TIER_LABELS[myStats.tier]}</span>
+              {myStats.parked && (
+                <span className="text-green-400 font-bold inline-flex items-center gap-1">
+                  <MapPin className="h-3 w-3" /> 주차 완료
+                </span>
+              )}
+            </>
+          )}
+        </div>
+
+        {myStats && phase === "playing" && !myStats.parked && (
+          <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-green-500 to-emerald-300 transition-all"
+              style={{ width: `${myStats.parkProgress * 100}%` }}
+            />
+          </div>
+        )}
+
+        {mode !== "solo" && opponents.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {opponents.map((p) => {
+              const st = stats[p.userId];
+              if (!st) return null;
+              return (
+                <div key={p.userId} className="rounded-lg border border-white/15 bg-black/30 px-2 py-1 text-xs">
+                  <span className="font-semibold">{playerName(players, p.userId)}</span>
+                  <span className="ml-2 text-yellow-200">{st.score}</span>
+                  {st.parked && <span className="ml-1 text-green-400">✓</span>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {isSpectator && (
+        <p className="text-center text-xs text-muted-foreground inline-flex items-center justify-center gap-1">
+          <Users className="h-3 w-3" /> 관전 중 · 실시간 3D
+        </p>
+      )}
+
+      <div className="relative rounded-2xl overflow-hidden border-2 border-cyan-500/25 shadow-2xl shadow-cyan-900/30 bg-black">
+        <div ref={canvasMount} className="w-full aspect-[4/3] min-h-[280px]" />
+        <div className="absolute top-2 right-2 flex gap-1 z-10">
+          <Button
+            type="button"
+            size="icon"
+            variant="secondary"
+            className="h-8 w-8 bg-black/50"
+            onClick={() => sceneRef.current?.setZoom(-0.1)}
+          >
+            <ZoomIn className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="secondary"
+            className="h-8 w-8 bg-black/50"
+            onClick={() => sceneRef.current?.setZoom(0.1)}
+          >
+            <ZoomOut className="h-4 w-4" />
+          </Button>
+        </div>
+        {phase === "countdown" && countdown !== null && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-20">
+            <span className="text-7xl font-black text-white tabular-nums animate-[pianoCountPop_0.55s_ease-out]">
+              {countdown > 0 ? countdown : "GO!"}
+            </span>
+          </div>
+        )}
+        {myStats?.lastCollision && (
+          <div className="absolute top-3 left-3 z-10 px-2 py-1 rounded bg-red-600/80 text-xs font-bold text-white">
+            {myStats.lastCollision.strength === "heavy" ? "강한 충돌!" : "충돌"}
+          </div>
+        )}
+      </div>
+
+      {!isSpectator && (
+        <ParkingRushControls disabled={!canDrive} onInput={sendInput} />
+      )}
+
+      {myStats && (
+        <p className="text-center text-xs text-muted-foreground">
+          {VEHICLE_SPECS[myStats.vehicleId].label} · 목표 구역 {myStats.spotId.replace("spot-", "#")}
+        </p>
+      )}
+
+      {finished && userId && myStats && (
+        <div className="rounded-2xl border border-cyan-500/40 bg-gradient-to-b from-cyan-950/40 to-black/60 p-5 text-center space-y-2">
+          <Crown className="h-8 w-8 mx-auto text-yellow-400" />
+          <p className="font-black text-2xl text-yellow-100">{myStats.score.toLocaleString()}</p>
+          <p className="text-sm text-muted-foreground">
+            {myStats.parked ? "주차 성공" : "시간 종료"} · {RANK_TIER_LABELS[myStats.tier]} · 충돌{" "}
+            {myStats.collisions}회
+          </p>
+          {myStats.rank && (
+            <p className="text-cyan-300 inline-flex items-center justify-center gap-1">
+              <Trophy className="h-4 w-4" /> {myStats.rank}위
+            </p>
+          )}
+        </div>
+      )}
+
+      {finishOrder.length > 1 && phase === "playing" && (
+        <div className="text-center text-xs text-cyan-300/80">실시간 순위 · 서버 권한 판정</div>
+      )}
+    </div>
+  );
+}
