@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
-import { AuthTopBanner } from "@/components/layout/auth-top-banner";
 import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
 import { FolkArtStage } from "@/components/brand/folk-decor";
 import { mainScrollPaddingClass, shouldHideMobileNav } from "@/lib/mobile-shell";
@@ -42,7 +41,6 @@ function AppShellInner({
   return (
     <>
       <Header />
-      <AuthTopBanner />
       <div className="flex min-h-app">
         <Sidebar />
         <main
