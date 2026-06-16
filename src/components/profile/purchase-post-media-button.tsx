@@ -19,6 +19,8 @@ export function PurchasePostMediaButton({
   username?: string;
   postId?: string;
 }) {
+  const returnPath = usePathname();
+
   if (!mediaId) {
     return null;
   }
@@ -29,8 +31,6 @@ export function PurchasePostMediaButton({
       </p>
     );
   }
-
-  const returnPath = usePathname();
 
   return (
     <PayButton
