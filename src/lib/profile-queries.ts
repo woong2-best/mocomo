@@ -14,7 +14,27 @@ export const profilePostInclude = {
 
 export type ProfileTab = "posts" | "replies" | "media" | "likes" | "wiki";
 
+export type ProfileSort = "new" | "popular";
+
+export type ProfileMediaKind = "photo" | "video";
+
 export function parseProfileTab(tab?: string | null): ProfileTab {
   if (tab === "replies" || tab === "media" || tab === "likes" || tab === "wiki") return tab;
   return "posts";
+}
+
+export function parseProfileSort(sort?: string | null): ProfileSort {
+  return sort === "popular" ? "popular" : "new";
+}
+
+export function parseProfileMediaKind(kind?: string | null): ProfileMediaKind | null {
+  if (kind === "photo" || kind === "video") return kind;
+  return null;
+}
+
+export function profilePostsOrderBy(sort: ProfileSort) {
+  if (sort === "popular") {
+    return [{ hotScore: "desc" as const }, { createdAt: "desc" as const }];
+  }
+  return [{ createdAt: "desc" as const }];
 }

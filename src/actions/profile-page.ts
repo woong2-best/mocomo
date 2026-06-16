@@ -1,11 +1,38 @@
 "use server";
 
 import { cache } from "react";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getAuthUserId } from "@/lib/auth";
-import { profilePostInclude, type ProfileTab } from "@/lib/profile-queries";
+import {
+  attachMediaAccess,
+  getPurchasedPostMediaIds,
+} from "@/lib/post-paid-media";
+import {
+  profilePostInclude,
+  parseProfileMediaKind,
+  parseProfileSort,
+  profilePostsOrderBy,
+  type ProfileTab,
+  type ProfileMediaKind,
+  type ProfileSort,
+} from "@/lib/profile-queries";
 
 const PAGE_SIZE = 15;
+
+type ProfilePostRow = Prisma.PostGetPayload<{ include: typeof profilePostInclude }>;
+
+async function enrichPostsWithMediaAccess(posts: ProfilePostRow[], viewerId: string | null) {
+  const mediaIds = posts.flatMap((p) => p.media?.map((m) => m.id) ?? []);
+  const purchasedIds = await getPurchasedPostMediaIds(viewerId, mediaIds);
+  return posts.map((p) => attachMediaAccess(p, viewerId, purchasedIds));
+}
+
+function mediaTypeFilter(kind: ProfileMediaKind | null) {
+  if (kind === "photo") return { type: "IMAGE" as const };
+  if (kind === "video") return { type: "VIDEO" as const };
+  return undefined;
+}
 
 export const getProfileHeader = cache(async function getProfileHeader(username: string) {
   const viewerId = await getAuthUserId();
@@ -66,27 +93,43 @@ export const getProfileHeader = cache(async function getProfileHeader(username: 
   };
 });
 
-export const getProfilePinnedPost = cache(async function getProfilePinnedPost(userId: string) {
-  return db.post.findFirst({
+export const getProfilePinnedPost = cache(async function getProfilePinnedPost(
+  userId: string,
+  viewerId: string | null
+) {
+  const post = await db.post.findFirst({
     where: { authorId: userId, isPinned: true },
     include: profilePostInclude,
   });
+  if (!post) return null;
+  const [enriched] = await enrichPostsWithMediaAccess([post], viewerId);
+  return enriched;
 });
 
 export async function getProfileTimeline(
   userId: string,
   tab: ProfileTab,
-  cursor?: string
+  cursor?: string,
+  options?: { sort?: ProfileSort; mediaKind?: ProfileMediaKind | null }
 ) {
+  const viewerId = await getAuthUserId();
+  const sort = options?.sort ?? "new";
+  const mediaKind = options?.mediaKind ?? null;
+  const typeFilter = mediaTypeFilter(mediaKind);
+
   if (tab === "posts") {
     const posts = await db.post.findMany({
       where: { authorId: userId, isPinned: false },
       take: PAGE_SIZE,
       ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-      orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
+      orderBy: profilePostsOrderBy(sort),
       include: profilePostInclude,
     });
-    return { items: posts.map((p) => ({ type: "post" as const, post: p })), nextCursor: posts.length === PAGE_SIZE ? posts[posts.length - 1]?.id : null };
+    const enriched = await enrichPostsWithMediaAccess(posts, viewerId);
+    return {
+      items: enriched.map((p) => ({ type: "post" as const, post: p })),
+      nextCursor: posts.length === PAGE_SIZE ? posts[posts.length - 1]?.id : null,
+    };
   }
 
   if (tab === "replies") {
@@ -99,21 +142,41 @@ export async function getProfileTimeline(
         post: { include: profilePostInclude },
       },
     });
+    const posts = comments.map((c) => c.post);
+    const enrichedPosts = await enrichPostsWithMediaAccess(posts, viewerId);
+    const postById = new Map(enrichedPosts.map((p) => [p.id, p]));
     return {
-      items: comments.map((c) => ({ type: "reply" as const, comment: c, post: c.post })),
+      items: comments.map((c) => ({
+        type: "reply" as const,
+        comment: c,
+        post: postById.get(c.post.id) ?? c.post,
+      })),
       nextCursor: comments.length === PAGE_SIZE ? comments[comments.length - 1]?.id : null,
     };
   }
 
   if (tab === "media") {
     const posts = await db.post.findMany({
-      where: { authorId: userId, media: { some: {} } },
+      where: {
+        authorId: userId,
+        media: typeFilter ? { some: typeFilter } : { some: {} },
+      },
       take: PAGE_SIZE,
       ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-      orderBy: { createdAt: "desc" },
+      orderBy: profilePostsOrderBy(sort),
       include: profilePostInclude,
     });
-    return { items: posts.map((p) => ({ type: "post" as const, post: p })), nextCursor: posts.length === PAGE_SIZE ? posts[posts.length - 1]?.id : null };
+    const filtered = typeFilter
+      ? posts.map((p) => ({
+          ...p,
+          media: p.media.filter((m) => m.type === typeFilter.type),
+        }))
+      : posts;
+    const enriched = await enrichPostsWithMediaAccess(filtered, viewerId);
+    return {
+      items: enriched.map((p) => ({ type: "post" as const, post: p })),
+      nextCursor: posts.length === PAGE_SIZE ? posts[posts.length - 1]?.id : null,
+    };
   }
 
   const likes = await db.like.findMany({
@@ -123,8 +186,14 @@ export async function getProfileTimeline(
     orderBy: { createdAt: "desc" },
     include: { post: { include: profilePostInclude } },
   });
+  const posts = likes.map((l) => l.post);
+  const enrichedPosts = await enrichPostsWithMediaAccess(posts, viewerId);
+  const postById = new Map(enrichedPosts.map((p) => [p.id, p]));
   return {
-    items: likes.map((l) => ({ type: "like" as const, post: l.post })),
+    items: likes.map((l) => ({
+      type: "like" as const,
+      post: postById.get(l.post.id) ?? l.post,
+    })),
     nextCursor: likes.length === PAGE_SIZE ? likes[likes.length - 1]?.id : null,
   };
 }

@@ -7,6 +7,8 @@ import { formatNumber, cn } from "@/lib/utils";
 import type { GridPost } from "@/components/feed/feed-post-card";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { userDisplayName } from "@/lib/user-public-select";
+import { PaidPostMediaGrid } from "@/components/profile/paid-post-media-grid";
+import type { ProfilePostMediaItem } from "@/components/profile/paid-post-media-grid";
 import { PostOwnerMenu } from "@/components/post/post-owner-menu";
 
 export function ProfilePostCard({
@@ -14,11 +16,13 @@ export function ProfilePostCard({
   meta,
   isSelf = false,
   pinnedHighlight = false,
+  paymentsEnabled = false,
 }: {
   post: GridPost & { createdAt: Date | string; isPinned?: boolean };
   meta?: string;
   isSelf?: boolean;
   pinnedHighlight?: boolean;
+  paymentsEnabled?: boolean;
 }) {
   const createdAt = typeof post.createdAt === "string" ? new Date(post.createdAt) : post.createdAt;
   const displayName = userDisplayName(post.author);
@@ -75,18 +79,12 @@ export function ProfilePostCard({
                 <p className="text-[15px] whitespace-pre-wrap break-words line-clamp-6">{post.content}</p>
               </Link>
               {post.media && post.media.length > 0 && (
-                <Link href={`/post/${post.id}`} className="block">
-                  <div
-                    className={`mt-3 grid gap-1 rounded-2xl overflow-hidden border border-border/50 ${
-                      post.media.length > 1 ? "grid-cols-2" : "grid-cols-1"
-                    }`}
-                  >
-                    {post.media.slice(0, 4).map((m) => (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img key={m.url} src={m.url} alt="" className="w-full max-h-80 object-cover" />
-                    ))}
-                  </div>
-                </Link>
+                <PaidPostMediaGrid
+                  media={post.media as ProfilePostMediaItem[]}
+                  postId={post.id}
+                  authorUsername={post.author.username}
+                  paymentsEnabled={paymentsEnabled}
+                />
               )}
               <div className="flex gap-6 mt-3 text-muted-foreground text-xs">
                 <span className="flex items-center gap-1">

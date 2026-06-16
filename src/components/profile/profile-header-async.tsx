@@ -6,6 +6,7 @@ import { ProfileHeader } from "@/components/profile/profile-header";
 import { parseProfileTab, type ProfileTab } from "@/lib/profile-queries";
 import { ProfileTabs } from "@/components/profile/profile-tabs";
 import { ProfilePostCard } from "@/components/profile/profile-post-card";
+import { getAuthUserId } from "@/lib/auth";
 
 export async function ProfileHeaderAsync({
   username,
@@ -19,10 +20,11 @@ export async function ProfileHeaderAsync({
 
   const tab = parseProfileTab(tabParam);
   const effectiveTab = tab === "likes" && !header.isSelf ? "posts" : tab;
+  const viewerId = await getAuthUserId();
 
   const [viewerSupport, pinned] = await Promise.all([
     header.isSelf ? Promise.resolve(null) : getViewerSupportForCreator(header.user.id),
-    effectiveTab === "posts" ? getProfilePinnedPost(header.user.id) : Promise.resolve(null),
+    effectiveTab === "posts" ? getProfilePinnedPost(header.user.id, viewerId) : Promise.resolve(null),
   ]);
   const paymentsEnabled = isPaymentsConfigured();
 
@@ -37,9 +39,14 @@ export async function ProfileHeaderAsync({
         paymentsEnabled={paymentsEnabled}
       />
       {pinned && effectiveTab === "posts" && (
-        <ProfilePostCard post={pinned} isSelf={header.isSelf} pinnedHighlight />
+        <ProfilePostCard
+          post={pinned}
+          isSelf={header.isSelf}
+          pinnedHighlight
+          paymentsEnabled={paymentsEnabled}
+        />
       )}
-      <ProfileTabs username={username} showLikesTab={header.isSelf} />
+      <ProfileTabs username={username} showLikesTab={header.isSelf} isSelf={header.isSelf} />
     </>
   );
 }

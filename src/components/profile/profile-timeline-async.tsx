@@ -1,8 +1,9 @@
 import { getProfileHeader, getProfileTimeline } from "@/actions/profile-page";
 import { getViewerPlatformSupport } from "@/actions/support";
+import { isPaymentsConfigured } from "@/lib/payments";
 import { PlatformSupportCard } from "@/components/support/platform-support-card";
 import { ProfileWikiContributions } from "@/components/profile/profile-wiki-contributions";
-import { parseProfileTab } from "@/lib/profile-queries";
+import { parseProfileMediaKind, parseProfileSort, parseProfileTab } from "@/lib/profile-queries";
 import { ProfileTimeline, type TimelineItem } from "@/components/profile/profile-timeline";
 
 const emptyMessages: Record<string, string> = {
@@ -17,17 +18,24 @@ const emptyMessages: Record<string, string> = {
 export async function ProfileTimelineAsync({
   username,
   tabParam,
+  sortParam,
+  kindParam,
 }: {
   username: string;
   tabParam?: string;
+  sortParam?: string;
+  kindParam?: string;
 }) {
   const header = await getProfileHeader(username);
   if (!header) return null;
 
   const tab = parseProfileTab(tabParam);
   const effectiveTab = tab === "likes" && !header.isSelf ? "posts" : tab;
+  const sort = parseProfileSort(sortParam);
+  const mediaKind = parseProfileMediaKind(kindParam);
 
   const platformSupport = header.isSelf ? await getViewerPlatformSupport() : null;
+  const paymentsEnabled = isPaymentsConfigured();
 
   if (effectiveTab === "wiki") {
     return (
@@ -45,7 +53,10 @@ export async function ProfileTimelineAsync({
     );
   }
 
-  const timeline = await getProfileTimeline(header.user.id, effectiveTab);
+  const timeline = await getProfileTimeline(header.user.id, effectiveTab, undefined, {
+    sort,
+    mediaKind: effectiveTab === "media" ? mediaKind ?? "photo" : null,
+  });
 
   const { items, nextCursor } = timeline;
 
@@ -83,10 +94,13 @@ export async function ProfileTimelineAsync({
       <ProfileTimeline
         username={username}
         tab={effectiveTab}
+        sort={sort}
+        mediaKind={effectiveTab === "media" ? mediaKind ?? "photo" : null}
         initialItems={initialItems}
         initialCursor={nextCursor}
         emptyMessage={emptyMessages[effectiveTab]}
         isSelf={header.isSelf}
+        paymentsEnabled={paymentsEnabled}
       />
     </>
   );

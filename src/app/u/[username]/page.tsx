@@ -12,7 +12,7 @@ export default function UserProfilePage({
   searchParams,
 }: {
   params: Promise<{ username: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; sort?: string; kind?: string }>;
 }) {
   return (
     <div className="max-w-5xl mx-auto min-h-screen border-x border-border/40">
@@ -60,11 +60,18 @@ async function ProfilePageTimeline({
   searchParams,
 }: {
   params: Promise<{ username: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; sort?: string; kind?: string }>;
 }) {
   const { username } = await params;
-  const { tab } = await searchParams;
-  return <ProfileTimelineAsync username={username} tabParam={tab} />;
+  const { tab, sort, kind } = await searchParams;
+  return (
+    <ProfileTimelineAsync
+      username={username}
+      tabParam={tab}
+      sortParam={sort}
+      kindParam={kind}
+    />
+  );
 }
 
 async function ProfilePageSupport({ params }: { params: Promise<{ username: string }> }) {

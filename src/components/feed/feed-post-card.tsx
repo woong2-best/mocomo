@@ -28,7 +28,13 @@ export type GridPost = {
     cosplayerProfile?: { stageName: string | null } | null;
   };
   anime?: { title: string; slug: string } | null;
-  media?: { url: string; type: string }[];
+  media?: {
+    id?: string;
+    url: string;
+    type: string;
+    priceKrw?: number;
+    locked?: boolean;
+  }[];
   poll?: PostPollView | null;
   _count?: { likes: number; comments: number; votes: number; reposts?: number };
 };

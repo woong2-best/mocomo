@@ -18,7 +18,7 @@ export type CreatePostInput = {
   animeId?: string;
   isNsfw?: boolean;
   tagNames?: string[];
-  media?: { url: string; type: MediaType }[];
+  media?: { url: string; type: MediaType; priceKrw?: number }[];
   poll?: CreatePostPollInput;
 };
 
@@ -66,7 +66,11 @@ export async function createPostForUser(
 
     const mediaRows = (data.media ?? [])
       .filter((m) => m.url && isPersistableMediaUrl(m.url))
-      .map((m) => ({ url: m.url.trim(), type: m.type }));
+      .map((m) => ({
+        url: m.url.trim(),
+        type: m.type,
+        priceKrw: Math.max(0, Math.floor(m.priceKrw ?? 0)),
+      }));
 
     const pollOptions = data.poll
       ? data.poll.options.map((o) => o.trim()).filter(Boolean)

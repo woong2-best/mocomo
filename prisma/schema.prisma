@@ -172,6 +172,7 @@ model User {
   creatorSeries            CreatorSeries[]          @relation("CreatorSeriesAuthor")
   creatorEpisodes          CreatorEpisode[]         @relation("CreatorEpisodeAuthor")
   creatorEpisodePurchases  CreatorEpisodePurchase[]
+  postMediaPurchases       PostMediaPurchase[]
   webtoonStudioProjects    WebtoonStudioProject[]
   webtoonStudioSettings    WebtoonStudioSettings?
 
@@ -390,15 +391,33 @@ enum MediaType {
 }
 
 model PostMedia {
-  id        String    @id @default(cuid())
-  postId    String
-  url       String
-  type      MediaType
-  width     Int?
-  height    Int?
-  duration  Int?
-  order     Int       @default(0)
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  id             String    @id @default(cuid())
+  postId         String
+  url            String
+  type           MediaType
+  width          Int?
+  height         Int?
+  duration       Int?
+  order          Int       @default(0)
+  priceKrw       Int       @default(0)
+  purchaseCount  Int       @default(0)
+  post           Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  purchases      PostMediaPurchase[]
+}
+
+model PostMediaPurchase {
+  id        String   @id @default(cuid())
+  buyerId   String
+  mediaId   String
+  price     Int
+  createdAt DateTime @default(now())
+
+  buyer User      @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  media PostMedia @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([buyerId, mediaId])
+  @@index([buyerId, createdAt(sort: Desc)])
+  @@index([mediaId])
 }
 
 model Tag {
@@ -1123,6 +1142,7 @@ enum PaymentIntentType {
   PHYSICAL_GOODS
   EVENT_REGISTRATION
   CREATOR_EPISODE
+  POST_MEDIA
 }
 
 enum EventPublishStatus {

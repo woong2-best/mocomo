@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCachedSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getProfileTimeline } from "@/actions/profile-page";
-import { parseProfileTab } from "@/lib/profile-queries";
+import { parseProfileMediaKind, parseProfileSort, parseProfileTab } from "@/lib/profile-queries";
 
 function serializePost(post: { createdAt: Date; [key: string]: unknown }) {
   return { ...post, createdAt: post.createdAt.toISOString() };
@@ -14,6 +14,8 @@ export async function GET(
 ) {
   const { username } = await params;
   const tab = parseProfileTab(req.nextUrl.searchParams.get("tab"));
+  const sort = parseProfileSort(req.nextUrl.searchParams.get("sort"));
+  const mediaKind = parseProfileMediaKind(req.nextUrl.searchParams.get("kind"));
   const cursor = req.nextUrl.searchParams.get("cursor") ?? undefined;
 
   const user = await db.user.findUnique({
@@ -31,7 +33,10 @@ export async function GET(
     }
   }
 
-  const { items, nextCursor } = await getProfileTimeline(user.id, tab, cursor);
+  const { items, nextCursor } = await getProfileTimeline(user.id, tab, cursor, {
+    sort,
+    mediaKind: tab === "media" ? mediaKind ?? "photo" : null,
+  });
 
   const serialized = items.map((item) => {
     if (item.type === "post") {

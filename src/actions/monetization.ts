@@ -130,6 +130,22 @@ async function validatePaymentInput(
     if (owned) return { error: "이미 구매한 회차입니다." };
   }
 
+  if (input.type === "POST_MEDIA") {
+    const mediaId = input.metadata.mediaId as string;
+    const media = await db.postMedia.findUnique({
+      where: { id: mediaId },
+      include: { post: { select: { authorId: true } } },
+    });
+    if (!media) return { error: "미디어를 찾을 수 없습니다." };
+    if (media.priceKrw !== input.amount) return { error: "가격이 일치하지 않습니다." };
+    if (media.priceKrw <= 0) return { error: "무료 미디어는 구매가 필요 없습니다." };
+    if (media.post.authorId === userId) return { error: "본인 콘텐츠는 구매할 수 없습니다." };
+    const owned = await db.postMediaPurchase.findUnique({
+      where: { buyerId_mediaId: { buyerId: userId, mediaId } },
+    });
+    if (owned) return { error: "이미 구매한 미디어입니다." };
+  }
+
   return null;
 }
 
@@ -251,6 +267,17 @@ export async function confirmStripeCheckout(sessionId: string) {
     const meta = intent.metadata as Record<string, string | undefined>;
     if (meta.episodeId) redirectPath = `/works/e/${meta.episodeId}?paid=1`;
     else redirectPath = "/works";
+  }
+
+  if (result.type === "POST_MEDIA") {
+    const meta = intent.metadata as Record<string, string | undefined>;
+    if (meta.returnPath) {
+      redirectPath = safeReturnPath(meta.returnPath, "/");
+    } else if (meta.username) {
+      redirectPath = `/u/${meta.username}?paid=1`;
+    } else {
+      redirectPath = "/";
+    }
   }
 
   return {

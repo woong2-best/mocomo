@@ -15,6 +15,7 @@ import {
   fulfillPhysicalGoodsPayment,
 } from "@/actions/goods-shop";
 import { fulfillCreatorEpisodePurchase } from "@/actions/creator-works";
+import { fulfillPostMediaPurchase } from "@/actions/post-media-purchase";
 import { calcPlatformFee } from "@/lib/utils";
 import { tierFromAmount } from "@/lib/tiers";
 import { notifyTip } from "@/lib/notifications";
@@ -313,6 +314,27 @@ export async function fulfillPaymentIntent(
     }
     revalidatePath("/works");
     revalidatePath(`/works/e/${meta.episodeId}`);
+  }
+
+  if (intent.type === "POST_MEDIA") {
+    const r = await fulfillPostMediaPurchase(userId, meta.mediaId, amount, intent.id);
+    if ("error" in r && r.error) return { ok: false, error: r.error };
+    if ("success" in r && r.success && !r.alreadyOwned) {
+      await recordPlatformFee(r.platformFee, {
+        referenceType: "post_media",
+        referenceId: r.referenceId,
+        paymentIntentId: intent.id,
+      });
+      await creditSellerEarning(r.authorId, r.sellerAmount, {
+        referenceType: "post_media",
+        referenceId: r.referenceId,
+        paymentIntentId: intent.id,
+        memo: "프로필 유료 미디어",
+      });
+    }
+    if (meta.username) revalidatePath(`/u/${meta.username}`);
+    if ("postId" in r && r.postId) revalidatePath(`/post/${r.postId}`);
+    revalidatePath("/");
   }
 
   await db.paymentIntent.update({

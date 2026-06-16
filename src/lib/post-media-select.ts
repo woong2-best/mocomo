@@ -9,5 +9,5 @@ export const postMediaPreview = {
 export const postMediaGallery = {
   take: 8,
   orderBy: { order: "asc" as const },
-  select: { id: true, url: true, type: true, order: true },
+  select: { id: true, url: true, type: true, order: true, priceKrw: true, purchaseCount: true },
 };
