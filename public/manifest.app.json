@@ -1,0 +1,24 @@
+{
+  "name": "MoCoMo",
+  "short_name": "MoCoMo",
+  "description": "서브컬처 · 애니덕질 · 코스프레 · 굿즈",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F0E8",
+  "theme_color": "#1B3A8C",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/mocomo-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/mocomo-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

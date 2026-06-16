@@ -4,11 +4,13 @@ import { Fredoka, Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { AppProviders } from "@/components/providers/app-providers";
 import { LocaleProvider } from "@/components/providers/locale-provider";
-import { AppShell } from "@/components/layout/app-shell";
+import { ShellRouter } from "@/components/layout/shell-router";
 import { getRequestI18n } from "@/lib/i18n/server";
+import { resolveClientPlatform, CLIENT_PLATFORM_COOKIE } from "@/lib/client-platform";
 import { RightPanelLoader } from "@/components/layout/right-panel-loader";
 import { RightPanelSkeleton } from "@/components/layout/right-panel-content";
 import { BRAND } from "@/lib/brand";
+import { cookies, headers } from "next/headers";
 import "./globals.css";
 
 const folkDisplay = Fredoka({
@@ -52,15 +54,26 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { locale, countryCode } = await getRequestI18n();
+  const cookieStore = await cookies();
+  const headerStore = await headers();
+  const initialPlatform = resolveClientPlatform({
+    cookie: cookieStore.get(CLIENT_PLATFORM_COOKIE)?.value,
+    host: headerStore.get("host") ?? undefined,
+  });
 
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html
+      lang={locale}
+      data-client={initialPlatform}
+      suppressHydrationWarning
+    >
       <body className={`${folkDisplay.variable} ${geistSans.variable} ${geistMono.variable} font-sans folk-canvas`}>
         <div className="folk-app-shell">
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
             <LocaleProvider initialLocale={locale} initialCountryCode={countryCode}>
               <AppProviders>
-                <AppShell
+                <ShellRouter
+                  initialPlatform={initialPlatform}
                   rightPanel={
                     <Suspense fallback={<RightPanelSkeleton />}>
                       <RightPanelLoader />
@@ -68,7 +81,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   }
                 >
                   {children}
-                </AppShell>
+                </ShellRouter>
               </AppProviders>
             </LocaleProvider>
           </ThemeProvider>

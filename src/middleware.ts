@@ -1,6 +1,12 @@
 import { edgeAuth } from "@/lib/auth.edge";
 import { isOperatorIdentity } from "@/lib/operator-config";
+import {
+  CLIENT_PLATFORM_COOKIE,
+  CLIENT_PLATFORM_MAX_AGE,
+  isAppHostname,
+} from "@/lib/client-platform";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 const protectedRoutes = [
   "/settings",
@@ -23,14 +29,49 @@ const protectedRoutes = [
 ];
 const authRoutes = ["/auth/signin", "/auth/signup"];
 
+function setAppClientCookie(res: NextResponse) {
+  res.cookies.set(CLIENT_PLATFORM_COOKIE, "app", {
+    path: "/",
+    maxAge: CLIENT_PLATFORM_MAX_AGE,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  });
+}
+
+function applyAppClientRedirect(req: NextRequest): NextResponse | null {
+  if (req.nextUrl.searchParams.get("client") !== "app") return null;
+  const url = req.nextUrl.clone();
+  url.searchParams.delete("client");
+  const res = NextResponse.redirect(url);
+  setAppClientCookie(res);
+  return res;
+}
+
+function stampAppClientIfNeeded(req: NextRequest, res: NextResponse) {
+  const host = req.nextUrl.hostname;
+  const wantsApp =
+    isAppHostname(host) ||
+    req.nextUrl.searchParams.get("client") === "app" ||
+    req.cookies.get(CLIENT_PLATFORM_COOKIE)?.value === "app";
+
+  if (wantsApp && req.cookies.get(CLIENT_PLATFORM_COOKIE)?.value !== "app") {
+    setAppClientCookie(res);
+  }
+}
+
 export default edgeAuth((req) => {
+  const clientRedirect = applyAppClientRedirect(req);
+  if (clientRedirect) return clientRedirect;
+
   const { pathname } = req.nextUrl;
 
   if (
     process.env.NEXT_PUBLIC_LIVE_ENABLED === "false" &&
     (pathname.startsWith("/live") || pathname.startsWith("/voice"))
   ) {
-    return NextResponse.redirect(new URL("/", req.url));
+    const res = NextResponse.redirect(new URL("/", req.url));
+    stampAppClientIfNeeded(req, res);
+    return res;
   }
 
   const isLoggedIn = !!req.auth?.user?.id;
@@ -42,19 +83,25 @@ export default edgeAuth((req) => {
   if (isLoggedIn && isBanned) {
     const signOut = new URL("/auth/signin", req.url);
     signOut.searchParams.set("error", "banned");
-    return NextResponse.redirect(signOut);
+    const res = NextResponse.redirect(signOut);
+    stampAppClientIfNeeded(req, res);
+    return res;
   }
 
   if (isProtected && !isLoggedIn) {
     const signIn = new URL("/auth/signin", req.url);
     signIn.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(signIn);
+    const res = NextResponse.redirect(signIn);
+    stampAppClientIfNeeded(req, res);
+    return res;
   }
   if (isAuthPage && isLoggedIn && !isBanned) {
     const callback = req.nextUrl.searchParams.get("callbackUrl");
     const dest =
       callback?.startsWith("/") && !callback.startsWith("//") ? callback : "/";
-    return NextResponse.redirect(new URL(dest, req.url));
+    const res = NextResponse.redirect(new URL(dest, req.url));
+    stampAppClientIfNeeded(req, res);
+    return res;
   }
   const sessionUser = req.auth?.user;
   const isOperator =
@@ -65,35 +112,18 @@ export default edgeAuth((req) => {
       role: sessionUser.role,
     });
   if (isAdmin && !isOperator) {
-    return NextResponse.redirect(new URL("/", req.url));
+    const res = NextResponse.redirect(new URL("/", req.url));
+    stampAppClientIfNeeded(req, res);
+    return res;
   }
-  return NextResponse.next();
+
+  const res = NextResponse.next();
+  stampAppClientIfNeeded(req, res);
+  return res;
 });
 
 export const config = {
   matcher: [
-    "/settings/:path*",
-    "/messages/:path*",
-    "/admin/:path*",
-    "/compose",
-    "/compose/:path*",
-    "/notifications/:path*",
-    "/star/:path*",
-    "/bookmarks",
-    "/bookmarks/:path*",
-    "/my-page/:path*",
-    "/wallet/:path*",
-    "/used/new",
-    "/used/my",
-    "/used/verify",
-  "/used/adult-verify",
-    "/premium/:path*",
-    "/support/:path*",
-    "/voice/:path*",
-    "/avatar/:path*",
-    "/live/:path*",
-    "/cosplay/apply",
-    "/auth/signin",
-    "/auth/signup",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|wasm|task|js|css|woff2?)$).*)",
   ],
 };

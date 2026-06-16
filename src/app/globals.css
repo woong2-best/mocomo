@@ -86,6 +86,9 @@
   .pb-nav {
     padding-bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px));
   }
+  .pb-native-nav {
+    padding-bottom: calc(3.25rem + env(safe-area-inset-bottom, 0px));
+  }
   @media (min-width: 1024px) {
     .pb-nav {
       padding-bottom: 0;
@@ -142,6 +145,14 @@
   position: relative;
   z-index: 1;
   min-height: 100dvh;
+}
+
+/* Play Store / app.mocomo.net — 트위터식 앱 셸 */
+html[data-client="app"] .folk-canvas::before {
+  opacity: 0.02;
+}
+html[data-client="app"] body {
+  background: hsl(var(--background));
 }
 
 .folk-brush-border-b {
