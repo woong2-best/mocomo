@@ -10,6 +10,8 @@ import { StartDmButton } from "@/components/messages/start-dm-button";
 import { TipCreatorDialog } from "@/components/support/tip-creator-dialog";
 import { SupportTierLevel } from "@prisma/client";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
+import { CreatorFollowerBadge } from "@/components/user/creator-follower-badge";
+import { creatorBadgeFromFollowerCount } from "@/lib/creator-follower-badge";
 import { CountryFlag } from "@/components/user/country-flag";
 
 type SnsLinks = { website?: string; location?: string; twitter?: string };
@@ -55,6 +57,7 @@ export function ProfileHeader({
 }) {
   const sns = (user.profile?.snsLinks ?? {}) as SnsLinks;
   const displayName = user.name || user.username;
+  const creatorBadge = creatorBadgeFromFollowerCount(user._count.followers);
   const showBirthday =
     !!user.birthDate &&
     (isSelf || !!user.profile?.showBirthdayOnProfile);
@@ -74,6 +77,7 @@ export function ProfileHeader({
               nameClassName="font-bold"
               compact
             />
+            <CreatorFollowerBadge badge={creatorBadge} size="sm" showLabel={false} />
           </div>
           <p className="text-xs text-muted-foreground">{user._count.posts}개 게시물</p>
         </div>
@@ -130,6 +134,7 @@ export function ProfileHeader({
                 tier={user.supportTierSent}
                 nameClassName="text-xl font-bold"
               />
+              <CreatorFollowerBadge badge={creatorBadge} size="md" />
             </div>
             {user.userBadges.length > 0 && (
               <BadgeCheck className="h-5 w-5 text-sky-500 shrink-0" aria-label="뱃지" />

@@ -6,7 +6,9 @@ import Link from "next/link";
 import type { LiveBroadcastMode, LiveStreamCategory, LiveVisibility, SupportTierLevel } from "@prisma/client";
 import { SUPPORT_TIERS } from "@/lib/tiers";
 import { tierLabelKo } from "@/lib/live-viewer-access";
-import { createLiveStream, releaseStaleHostLiveSessions } from "@/actions/live-stream";
+import { createLiveStream, getLiveHostEligibilityAction, releaseStaleHostLiveSessions } from "@/actions/live-stream";
+import { LIVE_HOST_MIN_FOLLOWERS } from "@/lib/creator-follower-badge";
+import { CreatorFollowerBadge } from "@/components/user/creator-follower-badge";
 import { LIVE_CATEGORIES } from "@/lib/live-categories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,6 +78,12 @@ export default function NewVoicePage() {
   const [prepNotice, setPrepNotice] = useState("");
   const [blockingChannelId, setBlockingChannelId] = useState<string | null>(null);
   const [releasing, setReleasing] = useState(false);
+  const [hostEligible, setHostEligible] = useState<boolean | null>(null);
+  const [hostEligibilityMsg, setHostEligibilityMsg] = useState("");
+  const [followerCount, setFollowerCount] = useState(0);
+  const [creatorBadge, setCreatorBadge] = useState<
+    import("@/lib/creator-follower-badge").CreatorFollowerBadgeId | null
+  >(null);
 
   async function runSessionPrepare() {
     const res = await releaseStaleHostLiveSessions();
@@ -86,7 +94,13 @@ export default function NewVoicePage() {
   }
 
   useEffect(() => {
-    void runSessionPrepare();
+    void getLiveHostEligibilityAction().then((res) => {
+      setHostEligible(res.eligible);
+      setHostEligibilityMsg(res.message ?? "");
+      setFollowerCount(res.followerCount);
+      setCreatorBadge(res.badge);
+      if (res.eligible) void runSessionPrepare();
+    });
   }, []);
 
   useEffect(() => {
@@ -261,6 +275,29 @@ export default function NewVoicePage() {
         </h1>
       </div>
 
+      {hostEligible === false && (
+        <Card className="rounded-2xl border-amber-500/30 bg-amber-500/5">
+          <CardContent className="pt-6 space-y-3">
+            <p className="font-semibold text-amber-900 dark:text-amber-100">라이브 방송 자격 필요</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {hostEligibilityMsg ||
+                `팔로워 ${LIVE_HOST_MIN_FOLLOWERS.toLocaleString()}명 이상이면 실버 크리에이터 뱃지가 부여되며 라이브 방송을 시작할 수 있습니다.`}
+            </p>
+            <p className="text-sm">
+              현재 팔로워{" "}
+              <strong className="text-foreground">{followerCount.toLocaleString()}명</strong>
+              {creatorBadge ? (
+                <>
+                  {" · "}
+                  <CreatorFollowerBadge badge={creatorBadge} size="md" />
+                </>
+              ) : null}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {hostEligible !== false && (
       <Card className="rounded-2xl">
         <CardHeader>
           <CardTitle className="text-base">방송 설정</CardTitle>
@@ -421,6 +458,7 @@ export default function NewVoicePage() {
           </form>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

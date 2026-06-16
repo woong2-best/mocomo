@@ -39,6 +39,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { liveRoomCacheTag } from "@/lib/cached-live-meta";
 import { revalidateLiveHubCache } from "@/lib/live-hub-data";
 import { autoEndAbandonedLiveChannels } from "@/lib/live-abandon";
+import { assertLiveHostEligible, fetchLiveHostEligibility } from "@/lib/live-host-eligibility";
 
 function mapLiveChatMessage(m: {
   id: string;
@@ -60,6 +61,12 @@ function mapLiveChatMessage(m: {
     content: m.content,
     at: m.createdAt.getTime(),
   };
+}
+
+/** 방송 만들기 버튼·페이지 — 실버(팔로워 1,000+) 자격 */
+export async function getLiveHostEligibilityAction() {
+  const user = await requireAuthMinimal();
+  return fetchLiveHostEligibility(user.id);
 }
 
 /** 방송 시작 페이지 진입 시 — 종료됐는데 남은 isLive 플래그 정리 */
@@ -91,6 +98,9 @@ export async function createLiveStream(data: {
 }) {
   try {
     const user = await requireAuthMinimal();
+    const hostCheck = await assertLiveHostEligible(user.id);
+    if (!hostCheck.ok) return { error: hostCheck.error };
+
     const title = data.name?.trim() || "라이브 방송";
     const joinPassword = generateLiveJoinPassword();
     const joinPasswordHash = await hashLiveJoinPassword(joinPassword);
@@ -210,6 +220,9 @@ export async function createLiveStream(data: {
 
 export async function startScheduledLiveStream(channelId: string) {
   const user = await requireAuth();
+  const hostCheck = await assertLiveHostEligible(user.id);
+  if (!hostCheck.ok) return { error: hostCheck.error };
+
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
     select: { createdBy: true, liveStatus: true, name: true },
@@ -320,6 +333,9 @@ export async function startBrowserLiveBroadcast(
   publisherTabId: string
 ) {
   const user = await requireAuth();
+  const hostCheck = await assertLiveHostEligible(user.id);
+  if (!hostCheck.ok) return { error: hostCheck.error };
+
   const tabId = publisherTabId?.trim();
   if (!tabId || tabId.length > 64) {
     return { error: "방송 세션이 올바르지 않습니다. 페이지를 새로고침해 주세요." };
