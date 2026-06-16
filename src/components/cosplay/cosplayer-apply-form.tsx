@@ -6,6 +6,7 @@ import { applyAsCosplayer } from "@/actions/cosplayer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PostMediaComposer, type PostMediaItem } from "@/components/media/post-media-composer";
 import { Camera, Link2, CheckCircle2, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
@@ -37,6 +38,8 @@ export function CosplayerApplyForm({
   const [animeId, setAnimeId] = useState("");
   const [characterName, setCharacterName] = useState("");
   const [bio, setBio] = useState("");
+  const [photo, setPhoto] = useState<PostMediaItem[]>([]);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const selectedAnime = useMemo(() => animes.find((a) => a.id === animeId), [animes, animeId]);
 
@@ -56,10 +59,17 @@ export function CosplayerApplyForm({
     setResult(null);
 
     const form = new FormData(e.currentTarget);
+    const photoUrl = photo[0]?.url?.trim();
+    if (!photoUrl || photoUrl.startsWith("blob:")) {
+      setError("대표 사진을 업로드해 주세요.");
+      setLoading(false);
+      return;
+    }
+
     const res = await applyAsCosplayer({
       stageName: (form.get("stageName") as string) || undefined,
       bio: form.get("bio") as string,
-      photoUrl: form.get("photoUrl") as string,
+      photoUrl,
       animeId,
       characterName,
     });
@@ -123,15 +133,21 @@ export function CosplayerApplyForm({
           </div>
 
           <div>
-            <label className="text-sm font-medium">대표 사진 URL * (1장만)</label>
-            <Input
-              name="photoUrl"
-              type="url"
-              required
-              placeholder="https://..."
-              className="mt-1 rounded-xl"
+            <label className="text-sm font-medium">대표 사진 * (1장만)</label>
+            <PostMediaComposer
+              className="mt-2"
+              items={photo}
+              onChange={setPhoto}
+              maxImages={1}
+              maxVideos={0}
+              allowVideo={false}
+              quickUpload
+              disabled={loading}
+              onUploadingChange={setUploadingPhoto}
             />
-            <p className="text-xs text-muted-foreground mt-1">코스프레 대표 사진 링크를 붙여넣어 주세요.</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              갤러리에서 선택하거나 카메라로 촬영해 업로드하세요.
+            </p>
           </div>
 
           <div>
@@ -233,7 +249,11 @@ export function CosplayerApplyForm({
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <Button type="submit" className="w-full rounded-xl" disabled={loading || !animeId}>
+          <Button
+            type="submit"
+            className="w-full rounded-xl"
+            disabled={loading || uploadingPhoto || !animeId || photo.length === 0}
+          >
             {loading ? "등록 중..." : "코스어 등록하기"}
           </Button>
         </form>

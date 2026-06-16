@@ -12,10 +12,16 @@ import { z } from "zod";
 
 const BIO_MAX = 300;
 
+function isPersistablePhotoUrl(url: string) {
+  const u = url.trim();
+  if (!u || u.startsWith("blob:") || u.startsWith("data:")) return false;
+  return u.startsWith("http://") || u.startsWith("https://") || u.startsWith("/");
+}
+
 const applySchema = z.object({
   stageName: z.string().max(50).optional(),
   bio: z.string().min(1).max(BIO_MAX),
-  photoUrl: z.string().url(),
+  photoUrl: z.string().min(1).refine(isPersistablePhotoUrl, { message: "사진을 업로드해 주세요." }),
   animeId: z.string().min(1),
   characterName: z.string().min(1).max(80),
 });
@@ -129,6 +135,9 @@ export async function updateCosplayerProfile(data: {
   });
 
   if (data.photoUrl) {
+    if (!isPersistablePhotoUrl(data.photoUrl)) {
+      return { error: "유효한 사진을 업로드해 주세요." };
+    }
     await db.cosplayPhoto.deleteMany({ where: { profileId: profile.id } });
     await db.cosplayPhoto.create({
       data: {
