@@ -74,7 +74,7 @@ export async function ProfileTimelineAsync({
       : getViewerCreatorSubscription(header.user.id),
     profileBlocked
       ? Promise.resolve({ items: [], nextCursor: null })
-      : getProfileTimeline(header.user.id, effectiveTab, undefined, {
+      : getProfileTimeline(header.user.id, effectiveTab, header.author, undefined, {
           sort,
           mediaKind: effectiveTab === "media" ? mediaKind ?? "photo" : null,
         }),

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
-import { FEED_POSTS_CACHE_TAG } from "@/lib/cache-tags";
+import { FEED_POSTS_CACHE_TAG, profileUserCacheTag } from "@/lib/cache-tags";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { validateUsernameAndName } from "@/lib/forbidden-admin-sequence";
@@ -78,6 +78,7 @@ export async function updateProfile(data: {
     }
   }
   revalidatePath(`/u/${user.username}`);
+  revalidateTag(profileUserCacheTag(user.username));
   revalidatePath("/settings/profile");
   return { success: true };
 }

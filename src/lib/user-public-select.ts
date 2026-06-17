@@ -22,7 +22,7 @@ export type UserPublicFields = {
   username: string;
   name?: string | null;
   image: string | null;
-  level?: number;
+  level: number;
   supportTierSent: SupportTierLevel;
 };
 

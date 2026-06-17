@@ -5,15 +5,12 @@ import { ArrowLeft, Calendar, Cake, Link2, MapPin, Camera, BadgeCheck } from "lu
 import { formatProfileBirthday } from "@/lib/birth-date";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ProfileFollowButton } from "@/components/profile/profile-follow-button";
 import { ProfileActionMenu } from "@/components/profile/profile-action-menu";
-import { StartDmButton } from "@/components/messages/start-dm-button";
-import { TipCreatorDialog } from "@/components/support/tip-creator-dialog";
 import { SupportTierLevel } from "@prisma/client";
+import type { ReactNode } from "react";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { CreatorFollowerBadge } from "@/components/user/creator-follower-badge";
 import { creatorBadgeFromFollowerCount } from "@/lib/creator-follower-badge";
-import { SubscribeCreatorButton } from "@/components/monetization/subscribe-creator-button";
 import { CountryFlag } from "@/components/user/country-flag";
 import { userAvatarFallbackInitial, userDisplayName } from "@/lib/user-public-select";
 
@@ -24,13 +21,10 @@ export function ProfileHeader({
   isSelf,
   isFollowing,
   followsYou,
-  viewerSupport,
-  paymentsEnabled,
-  subscriptionPriceKrw = 16_900,
-  subscribed = false,
   blockedByViewer = false,
   blockedViewer = false,
   mutedByViewer = false,
+  actionBar,
 }: {
   user: {
     id: string;
@@ -62,16 +56,10 @@ export function ProfileHeader({
   isSelf: boolean;
   isFollowing: boolean;
   followsYou: boolean;
-  viewerSupport?: {
-    tier: SupportTierLevel;
-    totalAmount: number;
-  } | null;
-  paymentsEnabled: boolean;
-  subscriptionPriceKrw?: number;
-  subscribed?: boolean;
   blockedByViewer?: boolean;
   blockedViewer?: boolean;
   mutedByViewer?: boolean;
+  actionBar?: ReactNode | null;
 }) {
   const sns = (user.profile?.snsLinks ?? {}) as SnsLinks;
   const displayName = userDisplayName(user);
@@ -126,7 +114,7 @@ export function ProfileHeader({
             <AvatarImage src={user.image ?? undefined} />
             <AvatarFallback className="text-2xl">{userAvatarFallbackInitial(user)}</AvatarFallback>
           </Avatar>
-          <div className="pt-3 flex gap-2 flex-wrap justify-end">
+          <div className="pt-3 flex gap-2 flex-wrap justify-end min-h-10">
             {isSelf ? (
               <>
                 <Link href="/settings/profile">
@@ -140,27 +128,8 @@ export function ProfileHeader({
                   </Button>
                 </Link>
               </>
-            ) : isBlocked ? null : (
-              <>
-                <ProfileFollowButton userId={user.id} username={user.username} initialFollowing={isFollowing} />
-                <SubscribeCreatorButton
-                  creatorId={user.id}
-                  username={user.username}
-                  priceKrw={subscriptionPriceKrw}
-                  paymentsEnabled={paymentsEnabled}
-                  subscribed={subscribed}
-                />
-                <TipCreatorDialog
-                  creatorId={user.id}
-                  username={user.username}
-                  displayName={displayName}
-                  currentTier={viewerSupport?.tier}
-                  currentTotal={viewerSupport?.totalAmount}
-                  paymentsEnabled={paymentsEnabled}
-                  returnPath={`/u/${user.username}`}
-                />
-                <StartDmButton userId={user.id} />
-              </>
+            ) : (
+              actionBar
             )}
           </div>
         </div>

@@ -1,6 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { profileUserCacheTag } from "@/lib/cache-tags";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import {
@@ -96,6 +97,7 @@ export async function applyAsCosplayer(data: z.infer<typeof applySchema>) {
   revalidatePath("/cosplay");
   revalidatePath(`/cosplay/${user.username}`);
   revalidatePath(`/u/${user.username}`);
+  revalidateTag(profileUserCacheTag(user.username));
   revalidatePath(`/anime/${anime.slug}`);
 
   return {

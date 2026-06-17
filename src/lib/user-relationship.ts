@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { db } from "@/lib/db";
 
 export type UserRelationshipState = {
@@ -6,26 +7,19 @@ export type UserRelationshipState = {
   mutedByViewer: boolean;
 };
 
-export async function getUserRelationship(
-  viewerId: string | null,
+async function fetchUserRelationship(
+  viewerId: string,
   targetUserId: string
 ): Promise<UserRelationshipState> {
-  if (!viewerId || viewerId === targetUserId) {
-    return { blockedByViewer: false, blockedViewer: false, mutedByViewer: false };
-  }
-
-  const [blockOut, blockIn, mute] = await Promise.all([
-    db.userBlock.findUnique({
+  const [blocks, mute] = await Promise.all([
+    db.userBlock.findMany({
       where: {
-        blockerId_blockedId: { blockerId: viewerId, blockedId: targetUserId },
+        OR: [
+          { blockerId: viewerId, blockedId: targetUserId },
+          { blockerId: targetUserId, blockedId: viewerId },
+        ],
       },
-      select: { id: true },
-    }),
-    db.userBlock.findUnique({
-      where: {
-        blockerId_blockedId: { blockerId: targetUserId, blockedId: viewerId },
-      },
-      select: { id: true },
+      select: { blockerId: true, blockedId: true },
     }),
     db.userMute.findUnique({
       where: {
@@ -36,11 +30,22 @@ export async function getUserRelationship(
   ]);
 
   return {
-    blockedByViewer: !!blockOut,
-    blockedViewer: !!blockIn,
+    blockedByViewer: blocks.some((b) => b.blockerId === viewerId && b.blockedId === targetUserId),
+    blockedViewer: blocks.some((b) => b.blockerId === targetUserId && b.blockedId === viewerId),
     mutedByViewer: !!mute,
   };
 }
+
+/** 요청당 차단·뮤트 상태 1회만 조회 */
+export const getUserRelationship = cache(async function getUserRelationship(
+  viewerId: string | null,
+  targetUserId: string
+): Promise<UserRelationshipState> {
+  if (!viewerId || viewerId === targetUserId) {
+    return { blockedByViewer: false, blockedViewer: false, mutedByViewer: false };
+  }
+  return fetchUserRelationship(viewerId, targetUserId);
+});
 
 export function isProfileBlocked(relationship: UserRelationshipState) {
   return relationship.blockedByViewer || relationship.blockedViewer;

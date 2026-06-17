@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCachedSession } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { getProfileTimeline } from "@/actions/profile-page";
+import { getProfileAuthorByUsername, getProfileTimeline } from "@/actions/profile-page";
 import { parseProfileMediaKind, parseProfileSort, parseProfileTab } from "@/lib/profile-queries";
 
 function serializePost(post: { createdAt: Date; [key: string]: unknown }) {
@@ -18,22 +17,19 @@ export async function GET(
   const mediaKind = parseProfileMediaKind(req.nextUrl.searchParams.get("kind"));
   const cursor = req.nextUrl.searchParams.get("cursor") ?? undefined;
 
-  const user = await db.user.findUnique({
-    where: { username },
-    select: { id: true },
-  });
-  if (!user) {
+  const author = await getProfileAuthorByUsername(username);
+  if (!author) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 
   if (tab === "likes") {
     const session = await getCachedSession();
-    if (!session?.user?.id || session.user.id !== user.id) {
+    if (!session?.user?.id || session.user.id !== author.id) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
   }
 
-  const { items, nextCursor } = await getProfileTimeline(user.id, tab, cursor, {
+  const { items, nextCursor } = await getProfileTimeline(author.id, tab, author, cursor, {
     sort,
     mediaKind: tab === "media" ? mediaKind ?? "photo" : null,
   });
