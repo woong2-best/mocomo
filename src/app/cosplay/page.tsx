@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Camera, UserPlus } from "lucide-react";
+import { userAvatarFallbackInitial, userDisplayName } from "@/lib/user-public-select";
 
 export default async function CosplayPage() {
   const session = await getCachedSession();
@@ -22,7 +23,7 @@ export default async function CosplayPage() {
     ReturnType<
       typeof db.cosplayerProfile.findMany<{
         include: {
-          user: { select: { username: true; image: true } };
+          user: { select: { username: true, name: true, image: true } };
           photos: { take: 1 };
           animeLinks: { include: { anime: { select: { title: true } } } };
         };
@@ -35,7 +36,7 @@ export default async function CosplayPage() {
       take: 24,
       orderBy: { followerCount: "desc" },
       include: {
-        user: { select: { username: true, image: true } },
+        user: { select: { username: true, name: true, image: true } },
         photos: { take: 1 },
         animeLinks: { take: 1, include: { anime: { select: { title: true } } } },
       },
@@ -96,10 +97,10 @@ export default async function CosplayPage() {
                 <CardContent className="p-4 flex items-center gap-3">
                   <Avatar>
                     <AvatarImage src={cp.user.image ?? undefined} />
-                    <AvatarFallback>{cp.user.username[0]}</AvatarFallback>
+                    <AvatarFallback>{userAvatarFallbackInitial(cp.user)}</AvatarFallback>
                   </Avatar>
                   <div className="min-w-0">
-                    <p className="font-semibold truncate">{cp.stageName || cp.user.username}</p>
+                    <p className="font-semibold truncate">{userDisplayName(cp.user)}</p>
                     {cp.photos[0]?.character && (
                       <p className="text-xs text-muted-foreground truncate">{cp.photos[0].character}</p>
                     )}

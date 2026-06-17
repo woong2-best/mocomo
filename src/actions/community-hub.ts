@@ -9,6 +9,7 @@ import { notifyCommunityJoin } from "@/lib/notifications";
 import type { CommunityCategory } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import { postMediaPreview } from "@/lib/post-media-select";
+import { userPublicSelect } from "@/lib/user-public-select";
 
 const COMMUNITY_CATEGORIES = [
   "ANIME",
@@ -123,14 +124,7 @@ export async function getCommunityBySlug(slug: string) {
           orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
           include: {
             author: {
-              select: {
-                id: true,
-                username: true,
-                image: true,
-                level: true,
-                supportTierSent: true,
-                cosplayerProfile: { select: { stageName: true } },
-              },
+              select: userPublicSelect,
             },
             community: { select: { name: true, slug: true } },
             media: postMediaPreview,

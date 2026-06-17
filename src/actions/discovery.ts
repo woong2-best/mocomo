@@ -36,7 +36,6 @@ const candidateSelect = {
   },
   cosplayerProfile: {
     select: {
-      stageName: true,
       bio: true,
       photos: { take: 3, orderBy: { createdAt: "desc" as const }, select: { url: true, character: true, series: true } },
       animes: { take: 4, select: { character: true, anime: { select: { title: true } } } },

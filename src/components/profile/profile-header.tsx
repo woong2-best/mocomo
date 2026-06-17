@@ -6,13 +6,16 @@ import { formatProfileBirthday } from "@/lib/birth-date";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ProfileFollowButton } from "@/components/profile/profile-follow-button";
+import { ProfileActionMenu } from "@/components/profile/profile-action-menu";
 import { StartDmButton } from "@/components/messages/start-dm-button";
 import { TipCreatorDialog } from "@/components/support/tip-creator-dialog";
 import { SupportTierLevel } from "@prisma/client";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { CreatorFollowerBadge } from "@/components/user/creator-follower-badge";
 import { creatorBadgeFromFollowerCount } from "@/lib/creator-follower-badge";
+import { SubscribeCreatorButton } from "@/components/monetization/subscribe-creator-button";
 import { CountryFlag } from "@/components/user/country-flag";
+import { userAvatarFallbackInitial, userDisplayName } from "@/lib/user-public-select";
 
 type SnsLinks = { website?: string; location?: string; twitter?: string };
 
@@ -23,6 +26,11 @@ export function ProfileHeader({
   followsYou,
   viewerSupport,
   paymentsEnabled,
+  subscriptionPriceKrw = 16_900,
+  subscribed = false,
+  blockedByViewer = false,
+  blockedViewer = false,
+  mutedByViewer = false,
 }: {
   user: {
     id: string;
@@ -42,7 +50,12 @@ export function ProfileHeader({
       snsLinks: unknown;
       showBirthdayOnProfile?: boolean;
     } | null;
-    cosplayerProfile: { id: string; stageName: string | null } | null;
+    cosplayerProfile: {
+      id: string;
+      bio: string | null;
+      photos: { id: string; url: string; character: string | null }[];
+      animeLinks: { id: string; character: string | null; anime: { title: string; slug: string } }[];
+    } | null;
     userBadges: { badge: { name: string; imageUrl?: string | null } }[];
     _count: { followers: number; following: number; posts: number };
   };
@@ -54,13 +67,19 @@ export function ProfileHeader({
     totalAmount: number;
   } | null;
   paymentsEnabled: boolean;
+  subscriptionPriceKrw?: number;
+  subscribed?: boolean;
+  blockedByViewer?: boolean;
+  blockedViewer?: boolean;
+  mutedByViewer?: boolean;
 }) {
   const sns = (user.profile?.snsLinks ?? {}) as SnsLinks;
-  const displayName = user.name || user.username;
+  const displayName = userDisplayName(user);
   const creatorBadge = creatorBadgeFromFollowerCount(user._count.followers);
   const showBirthday =
     !!user.birthDate &&
     (isSelf || !!user.profile?.showBirthdayOnProfile);
+  const isBlocked = blockedByViewer || blockedViewer;
 
   return (
     <div className="border-b border-border/60">
@@ -68,7 +87,7 @@ export function ProfileHeader({
         <Link href="/" className="p-2 -ml-2 rounded-full hover:bg-muted/80">
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 min-w-0">
             {user.countryCode && <CountryFlag code={user.countryCode} className="text-lg" />}
             <DisplayNameWithSupportTier
@@ -81,6 +100,15 @@ export function ProfileHeader({
           </div>
           <p className="text-xs text-muted-foreground">{user._count.posts}개 게시물</p>
         </div>
+        {!isSelf && (
+          <ProfileActionMenu
+            userId={user.id}
+            username={user.username}
+            initialBlocked={blockedByViewer}
+            initialMuted={mutedByViewer}
+            className="ml-auto shrink-0"
+          />
+        )}
       </div>
 
       <div
@@ -96,18 +124,32 @@ export function ProfileHeader({
         <div className="flex justify-between items-start -mt-14 sm:-mt-16">
           <Avatar className="h-24 w-24 sm:h-28 sm:w-28 ring-4 ring-background">
             <AvatarImage src={user.image ?? undefined} />
-            <AvatarFallback className="text-2xl">{user.username[0]?.toUpperCase()}</AvatarFallback>
+            <AvatarFallback className="text-2xl">{userAvatarFallbackInitial(user)}</AvatarFallback>
           </Avatar>
-          <div className="pt-3 flex gap-2">
+          <div className="pt-3 flex gap-2 flex-wrap justify-end">
             {isSelf ? (
-              <Link href="/settings/profile">
-                <Button variant="outline" className="rounded-full font-bold px-5">
-                  프로필 수정
-                </Button>
-              </Link>
-            ) : (
+              <>
+                <Link href="/settings/profile">
+                  <Button variant="outline" className="rounded-full font-bold px-5">
+                    프로필 수정
+                  </Button>
+                </Link>
+                <Link href="/settings/creator">
+                  <Button variant="outline" className="rounded-full font-bold px-5">
+                    수익 설정
+                  </Button>
+                </Link>
+              </>
+            ) : isBlocked ? null : (
               <>
                 <ProfileFollowButton userId={user.id} username={user.username} initialFollowing={isFollowing} />
+                <SubscribeCreatorButton
+                  creatorId={user.id}
+                  username={user.username}
+                  priceKrw={subscriptionPriceKrw}
+                  paymentsEnabled={paymentsEnabled}
+                  subscribed={subscribed}
+                />
                 <TipCreatorDialog
                   creatorId={user.id}
                   username={user.username}
@@ -141,12 +183,26 @@ export function ProfileHeader({
             )}
           </div>
           <p className="text-muted-foreground">@{user.username}</p>
-          {followsYou && !isSelf && (
+          {followsYou && !isSelf && !isBlocked && (
             <span className="inline-block mt-1 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
               나를 팔로우 중
             </span>
           )}
         </div>
+
+        {!isSelf && isBlocked && (
+          <div className="mt-3 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 text-sm">
+            {blockedByViewer ? (
+              <p>@{user.username} 님을 차단했습니다. 게시물과 알림이 표시되지 않습니다.</p>
+            ) : (
+              <p>@{user.username} 님이 회원님을 차단했습니다.</p>
+            )}
+          </div>
+        )}
+
+        {!isSelf && mutedByViewer && !isBlocked && (
+          <p className="mt-2 text-xs text-muted-foreground">뮤트된 사용자입니다.</p>
+        )}
 
         {user.profile?.bio && (
           <p className="mt-3 text-[15px] whitespace-pre-wrap">{user.profile.bio}</p>
@@ -216,13 +272,57 @@ export function ProfileHeader({
         )}
 
         {user.cosplayerProfile ? (
-          <Link
-            href={`/cosplay/${user.username}`}
-            className="mt-4 flex items-center gap-2 text-sm text-primary hover:underline"
-          >
-            <Camera className="h-4 w-4" />
-            코스어 프로필 보기
-          </Link>
+          <div className="mt-4 rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Camera className="h-4 w-4 text-pink-500" />
+                코스어
+              </div>
+              <Link
+                href={`/cosplay/${user.username}`}
+                className="text-xs text-primary hover:underline shrink-0"
+              >
+                갤러리 보기 →
+              </Link>
+            </div>
+            {user.cosplayerProfile.bio && (
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                {user.cosplayerProfile.bio}
+              </p>
+            )}
+            {user.cosplayerProfile.animeLinks.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {user.cosplayerProfile.animeLinks.map((link) => (
+                  <Link
+                    key={link.id}
+                    href={`/anime/${link.anime.slug}?tab=cosplayers`}
+                    className="text-xs px-2.5 py-1 rounded-full bg-primary/15 hover:bg-primary/25 text-primary"
+                  >
+                    {link.anime.title}
+                    {link.character ? ` · ${link.character}` : ""}
+                  </Link>
+                ))}
+              </div>
+            )}
+            {user.cosplayerProfile.photos.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {user.cosplayerProfile.photos.map((photo) => (
+                  <Link
+                    key={photo.id}
+                    href={`/cosplay/${user.username}`}
+                    className="shrink-0 rounded-lg overflow-hidden border border-border/60 hover:border-primary/40"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={photo.url}
+                      alt={photo.character || "코스프레"}
+                      className="h-24 w-20 object-cover"
+                    />
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         ) : isSelf ? (
           <Link
             href="/cosplay/apply"

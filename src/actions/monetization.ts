@@ -4,7 +4,13 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { ProductType, PaymentIntentType, Prisma } from "@prisma/client";
-import { isPaymentsConfigured, PREMIUM_PRICE } from "@/lib/payments";
+import {
+  checkoutCurrencyForType,
+  isPaymentsConfigured,
+  PREMIUM_USD_CENTS,
+} from "@/lib/payments";
+import { isMediaContentLocked } from "@/lib/content-access";
+import { isSubscriptionActive } from "@/lib/creator-subscription";
 import { LISTING_FEE_KRW } from "@/lib/goods-shop";
 import { EVENT_REGISTRATION_FEE_KRW } from "@/lib/event-registration";
 import { fulfillPaymentIntent } from "@/lib/payment-fulfillment";
@@ -75,7 +81,31 @@ async function validatePaymentInput(
   }
 
   if (input.type === "PREMIUM") {
-    if (input.amount !== PREMIUM_PRICE) return { error: "프리미엄 가격이 올바르지 않습니다." };
+    if (input.amount !== PREMIUM_USD_CENTS) {
+      return { error: "프리미엄 가격이 올바르지 않습니다." };
+    }
+  }
+
+  if (input.type === "CREATOR_SUBSCRIPTION") {
+    const creatorId = input.metadata.creatorId as string;
+    if (!creatorId || creatorId === userId) {
+      return { error: "유효하지 않은 구독 대상입니다." };
+    }
+    const creator = await db.user.findUnique({
+      where: { id: creatorId },
+      select: { creatorSubscriptionPriceKrw: true },
+    });
+    if (!creator) return { error: "크리에이터를 찾을 수 없습니다." };
+    if (creator.creatorSubscriptionPriceKrw !== input.amount) {
+      return { error: "구독 가격이 일치하지 않습니다." };
+    }
+    const existing = await db.subscription.findUnique({
+      where: { subscriberId_creatorId: { subscriberId: userId, creatorId } },
+      select: { status: true, currentPeriodEnd: true, subscribedSince: true },
+    });
+    if (existing && isSubscriptionActive(existing)) {
+      return { error: "이미 구독 중입니다." };
+    }
   }
 
   if (input.type === "EMOTICON") {
@@ -134,16 +164,39 @@ async function validatePaymentInput(
     const mediaId = input.metadata.mediaId as string;
     const media = await db.postMedia.findUnique({
       where: { id: mediaId },
-      include: { post: { select: { authorId: true } } },
+      include: {
+        post: {
+          select: {
+            authorId: true,
+            visibility: true,
+            instantPurchasePriceKrw: true,
+          },
+        },
+      },
     });
     if (!media) return { error: "미디어를 찾을 수 없습니다." };
-    if (media.priceKrw !== input.amount) return { error: "가격이 일치하지 않습니다." };
-    if (media.priceKrw <= 0) return { error: "무료 미디어는 구매가 필요 없습니다." };
     if (media.post.authorId === userId) return { error: "본인 콘텐츠는 구매할 수 없습니다." };
     const owned = await db.postMediaPurchase.findUnique({
       where: { buyerId_mediaId: { buyerId: userId, mediaId } },
     });
     if (owned) return { error: "이미 구매한 미디어입니다." };
+    const sub = await db.subscription.findUnique({
+      where: {
+        subscriberId_creatorId: { subscriberId: userId, creatorId: media.post.authorId },
+      },
+      select: { subscribedSince: true, currentPeriodEnd: true, status: true },
+    });
+    const { priceKrw, locked } = isMediaContentLocked({
+      viewerId: userId,
+      authorId: media.post.authorId,
+      visibility: media.post.visibility,
+      instantPurchasePriceKrw: media.post.instantPurchasePriceKrw,
+      mediaPriceKrw: media.priceKrw,
+      purchased: false,
+      subscription: sub,
+    });
+    if (!locked || priceKrw <= 0) return { error: "구매가 필요 없는 콘텐츠입니다." };
+    if (input.amount !== priceKrw) return { error: "가격이 일치하지 않습니다." };
   }
 
   return null;
@@ -178,6 +231,7 @@ export async function createStripeCheckout(input: {
 
   const origin = getAppOrigin();
   const stripe = getStripe();
+  const currency = checkoutCurrencyForType(input.type);
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -185,7 +239,7 @@ export async function createStripeCheckout(input: {
     line_items: [
       {
         price_data: {
-          currency: "krw",
+          currency,
           unit_amount: input.amount,
           product_data: { name: input.orderName },
         },
@@ -278,6 +332,11 @@ export async function confirmStripeCheckout(sessionId: string) {
     } else {
       redirectPath = "/";
     }
+  }
+
+  if (result.type === "CREATOR_SUBSCRIPTION") {
+    const meta = intent.metadata as Record<string, string | undefined>;
+    redirectPath = meta.username ? `/u/${meta.username}?subscribed=1` : "/";
   }
 
   return {

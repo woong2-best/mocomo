@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { AnimeFollowButton } from "@/components/anime/anime-follow-button";
 import { AnimeViewTracker } from "@/components/anime/anime-view-tracker";
-import { AnimeDetailTabs } from "@/components/anime/anime-detail-tabs";
+import { AnimeDetailTabs, type AnimeDetailTabsProps } from "@/components/anime/anime-detail-tabs";
 import { getCachedSession, isSiteOperator } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
 import { getGenreInfo, genreToParam } from "@/lib/anime-genres";
@@ -38,33 +38,59 @@ export default async function AnimeDetailPage({
 }) {
   const { slug } = await params;
   const { tab = "info" } = await searchParams;
+  const activeTab = tab === "cosplayers" || tab === "goods" || tab === "community" ? tab : "info";
 
-  const [session, anime] = await Promise.all([
+  const [session, anime, tabExtras] = await Promise.all([
     getCachedSession(),
     db.anime.findUnique({
       where: { slug },
-      include: {
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        titleEn: true,
+        genre: true,
+        studio: true,
+        bannerUrl: true,
+        coverUrl: true,
+        synopsis: true,
+        worldInfo: true,
+        infobox: true,
+        tags: true,
+        characters: true,
+        isProtected: true,
+        createdAt: true,
+        updatedAt: true,
         creator: { select: { id: true, username: true, name: true, image: true } },
-        cosplayers: {
+      },
+    }),
+    activeTab === "cosplayers"
+      ? db.cosplayerAnime.findMany({
+          where: { anime: { slug } },
           take: 24,
           include: {
             profile: {
               select: {
-                stageName: true,
-                user: { select: { username: true, image: true } },
+                user: { select: { username: true, name: true, image: true } },
                 photos: { take: 1, select: { url: true } },
               },
             },
           },
-        },
-        goods: { take: 24 },
-        posts: {
-          take: 30,
-          orderBy: { createdAt: "desc" },
-          include: { author: { select: { username: true, image: true } } },
-        },
-      },
-    }),
+        })
+      : activeTab === "goods"
+        ? db.animeGoods.findMany({ where: { anime: { slug } }, take: 24 })
+        : activeTab === "community"
+          ? db.post.findMany({
+              where: { anime: { slug } },
+              take: 30,
+              orderBy: { createdAt: "desc" },
+              select: {
+                id: true,
+                content: true,
+                author: { select: { username: true, image: true } },
+              },
+            })
+          : Promise.resolve([]),
   ]);
 
   if (!anime) notFound();
@@ -80,6 +106,13 @@ export default async function AnimeDetailPage({
         : false));
   const canEdit = isLoggedIn && (!anime.isProtected || canEditProtected);
   const characterNames = parseCharacterNames(anime.characters);
+
+  const cosplayers: AnimeDetailTabsProps["cosplayers"] =
+    activeTab === "cosplayers" ? (tabExtras as AnimeDetailTabsProps["cosplayers"]) : [];
+  const goods: AnimeDetailTabsProps["goods"] =
+    activeTab === "goods" ? (tabExtras as AnimeDetailTabsProps["goods"]) : [];
+  const posts: AnimeDetailTabsProps["posts"] =
+    activeTab === "community" ? (tabExtras as AnimeDetailTabsProps["posts"]) : [];
 
   const following = session?.user?.id
     ? !!(await db.animeFollow.findUnique({
@@ -165,9 +198,9 @@ export default async function AnimeDetailPage({
         showEditLink={canEdit}
         isLoggedIn={isLoggedIn}
         characterNames={characterNames}
-        cosplayers={anime.cosplayers}
-        goods={anime.goods}
-        posts={anime.posts}
+        cosplayers={cosplayers}
+        goods={goods}
+        posts={posts}
         anime={{
           id: anime.id,
           title: anime.title,

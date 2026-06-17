@@ -4,15 +4,12 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 
-export async function enableCosplayerProfile(data: {
-  stageName?: string;
-  bio?: string;
-}) {
+export async function enableCosplayerProfile(data: { bio?: string }) {
   const user = await requireAuth();
   const profile = await db.cosplayerProfile.upsert({
     where: { userId: user.id },
-    create: { userId: user.id, stageName: data.stageName, bio: data.bio },
-    update: { stageName: data.stageName, bio: data.bio },
+    create: { userId: user.id, bio: data.bio },
+    update: { bio: data.bio },
   });
   revalidatePath(`/u/${user.username}`);
   return { profile };

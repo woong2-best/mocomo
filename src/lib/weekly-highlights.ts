@@ -22,7 +22,6 @@ export type WeeklyHighlightPost = {
     name: string | null;
     image: string | null;
     supportTierSent: SupportTierLevel;
-    cosplayerProfile?: { stageName: string | null } | null;
   };
   media: { url: string }[];
   _count: { likes: number; comments: number };

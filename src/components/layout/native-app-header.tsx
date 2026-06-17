@@ -55,10 +55,10 @@ export function NativeAppHeader() {
       <div className="flex w-10 shrink-0 items-center justify-end gap-1">
         {!showBack && (
           <Link
-            href="/explore"
+            href="/search"
             className={cn(
               "inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted/60",
-              pathname === "/explore" && "text-primary"
+              pathname.startsWith("/search") && "text-primary"
             )}
             aria-label="검색"
           >

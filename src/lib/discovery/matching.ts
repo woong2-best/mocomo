@@ -17,7 +17,6 @@ type CandidateUser = {
     snsLinks: unknown;
   } | null;
   cosplayerProfile: {
-    stageName: string | null;
     bio: string | null;
     photos: { url: string; character: string | null; series: string | null }[];
     animes: { character: string | null; anime: { title: string } }[];

@@ -8,6 +8,7 @@ import { getTipRanking } from "@/actions/monetization";
 import { getRankings } from "@/actions/events";
 import { getAnimeCountByGenre } from "@/actions/anime";
 import { getWeeklyHighlights } from "@/lib/weekly-highlights";
+import { getSubcultureMapPins } from "@/lib/subculture-events";
 import { feedPostListSelect, mapFeedPost } from "@/lib/feed-query";
 
 export const getCachedWeeklyHighlights = unstable_cache(
@@ -139,10 +140,7 @@ export const getCachedExploreData = unstable_cache(
       db.post.findMany({
         take: 8,
         orderBy: [{ hotScore: "desc" }, { createdAt: "desc" }],
-        include: {
-          author: { select: userPublicSelect },
-          _count: { select: { likes: true, comments: true } },
-        },
+        select: feedPostListSelect,
       }),
       db.user.findMany({
         take: 6,
@@ -153,11 +151,25 @@ export const getCachedExploreData = unstable_cache(
         },
       }),
     ]);
-    return { trendingPosts, suggestedUsers };
+    return {
+      trendingPosts: trendingPosts.map(mapFeedPost),
+      suggestedUsers,
+    };
   },
-  ["explore-data"],
+  ["explore-data-v2"],
   { revalidate: 60 }
 );
+
+/** 우측 패널 — 서버에서 직접 로드 (클라이언트 fetch waterfall 제거) */
+export async function getCachedSidebarPanelData() {
+  const [animes, tips, sidebarAds, eventPins] = await Promise.all([
+    getCachedPopularAnime(),
+    getCachedSidebarTips(),
+    getCachedSidebarAds(),
+    getSubcultureMapPins(12),
+  ]);
+  return { animes, tips, sidebarAds, eventPins };
+}
 
 export const getCachedRankingsData = unstable_cache(
   async () => {

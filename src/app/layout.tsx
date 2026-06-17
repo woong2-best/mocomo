@@ -7,7 +7,7 @@ import { LocaleProvider } from "@/components/providers/locale-provider";
 import { ShellRouter } from "@/components/layout/shell-router";
 import { getRequestI18n } from "@/lib/i18n/server";
 import { resolveClientPlatform, CLIENT_PLATFORM_COOKIE } from "@/lib/client-platform";
-import { RightPanelLoader } from "@/components/layout/right-panel-loader";
+import { RightPanelAsync } from "@/components/layout/right-panel-async";
 import { RightPanelSkeleton } from "@/components/layout/right-panel-content";
 import { BRAND } from "@/lib/brand";
 import { cookies, headers } from "next/headers";
@@ -76,7 +76,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   initialPlatform={initialPlatform}
                   rightPanel={
                     <Suspense fallback={<RightPanelSkeleton />}>
-                      <RightPanelLoader />
+                      <RightPanelAsync />
                     </Suspense>
                   }
                 >

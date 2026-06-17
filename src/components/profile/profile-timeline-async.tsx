@@ -1,4 +1,9 @@
-import { getProfileHeader, getProfileTimeline } from "@/actions/profile-page";
+import {
+  getProfileHeader,
+  getProfileTimeline,
+  getViewerCreatorSubscription,
+} from "@/actions/profile-page";
+import { creatorSubscriptionPriceForUser } from "@/lib/creator-subscription";
 import { getViewerPlatformSupport } from "@/actions/support";
 import { isPaymentsConfigured } from "@/lib/payments";
 import { PlatformSupportCard } from "@/components/support/platform-support-card";
@@ -36,8 +41,18 @@ export async function ProfileTimelineAsync({
 
   const platformSupport = header.isSelf ? await getViewerPlatformSupport() : null;
   const paymentsEnabled = isPaymentsConfigured();
+  const subscriptionPriceKrw = creatorSubscriptionPriceForUser(header.user.creatorSubscriptionPriceKrw);
+  const profileBlocked =
+    !header.isSelf &&
+    (header.relationship.blockedByViewer || header.relationship.blockedViewer);
+  const blockedEmptyMessage = header.relationship.blockedByViewer
+    ? `@${header.user.username} 님을 차단했습니다. 게시물을 볼 수 없습니다.`
+    : `@${header.user.username} 님이 회원님을 차단했습니다.`;
 
   if (effectiveTab === "wiki") {
+    const viewerSub = header.isSelf
+      ? { subscribed: false as const }
+      : await getViewerCreatorSubscription(header.user.id);
     return (
       <>
         {header.isSelf && platformSupport && (
@@ -53,10 +68,18 @@ export async function ProfileTimelineAsync({
     );
   }
 
-  const timeline = await getProfileTimeline(header.user.id, effectiveTab, undefined, {
-    sort,
-    mediaKind: effectiveTab === "media" ? mediaKind ?? "photo" : null,
-  });
+  const [viewerSub, timeline] = await Promise.all([
+    header.isSelf
+      ? Promise.resolve({ subscribed: false as const })
+      : getViewerCreatorSubscription(header.user.id),
+    profileBlocked
+      ? Promise.resolve({ items: [], nextCursor: null })
+      : getProfileTimeline(header.user.id, effectiveTab, undefined, {
+          sort,
+          mediaKind: effectiveTab === "media" ? mediaKind ?? "photo" : null,
+        }),
+  ]);
+  const subscribed = "subscribed" in viewerSub ? viewerSub.subscribed : false;
 
   const { items, nextCursor } = timeline;
 
@@ -98,9 +121,12 @@ export async function ProfileTimelineAsync({
         mediaKind={effectiveTab === "media" ? mediaKind ?? "photo" : null}
         initialItems={initialItems}
         initialCursor={nextCursor}
-        emptyMessage={emptyMessages[effectiveTab]}
+        emptyMessage={profileBlocked ? blockedEmptyMessage : emptyMessages[effectiveTab]}
         isSelf={header.isSelf}
         paymentsEnabled={paymentsEnabled}
+        authorId={header.user.id}
+        subscriptionPriceKrw={subscriptionPriceKrw}
+        subscribed={subscribed}
       />
     </>
   );

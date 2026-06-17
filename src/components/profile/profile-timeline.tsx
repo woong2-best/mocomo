@@ -33,6 +33,9 @@ export function ProfileTimeline({
   emptyMessage,
   isSelf = false,
   paymentsEnabled = false,
+  authorId,
+  subscriptionPriceKrw,
+  subscribed = false,
 }: {
   username: string;
   tab: ProfileTab;
@@ -43,6 +46,9 @@ export function ProfileTimeline({
   emptyMessage: string;
   isSelf?: boolean;
   paymentsEnabled?: boolean;
+  authorId?: string;
+  subscriptionPriceKrw?: number;
+  subscribed?: boolean;
 }) {
   const [items, setItems] = useState(initialItems);
   const [cursor, setCursor] = useState(initialCursor);
@@ -111,6 +117,9 @@ export function ProfileTimeline({
               post={item.post}
               isSelf={isSelf}
               paymentsEnabled={paymentsEnabled}
+              authorId={authorId}
+              subscriptionPriceKrw={subscriptionPriceKrw}
+              subscribed={subscribed}
             />
           );
         }
@@ -121,6 +130,9 @@ export function ProfileTimeline({
               post={item.post}
               meta="답글"
               paymentsEnabled={paymentsEnabled}
+              authorId={authorId}
+              subscriptionPriceKrw={subscriptionPriceKrw}
+              subscribed={subscribed}
             />
           );
         }
@@ -130,6 +142,9 @@ export function ProfileTimeline({
             post={item.post}
             meta="좋아요한 게시물"
             paymentsEnabled={paymentsEnabled}
+            authorId={authorId}
+            subscriptionPriceKrw={subscriptionPriceKrw}
+            subscribed={subscribed}
           />
         );
       })}

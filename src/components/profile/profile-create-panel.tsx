@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PostMediaComposer, type PostMediaItem } from "@/components/media/post-media-composer";
+import { ContentVisibilitySelect } from "@/components/monetization/content-visibility-select";
 import { createProfileMediaPost } from "@/actions/profile-create-media";
 import { cn } from "@/lib/utils";
+import type { ContentVisibility } from "@prisma/client";
 
 type MediaKind = "photo" | "video";
 
@@ -22,15 +24,21 @@ export function ProfileCreatePanel({
   const router = useRouter();
   const [kind, setKind] = useState<MediaKind>("photo");
   const [content, setContent] = useState("");
+  const [visibility, setVisibility] = useState<ContentVisibility>("PUBLIC");
   const [priceKrw, setPriceKrw] = useState("");
+  const [instantPriceKrw, setInstantPriceKrw] = useState("");
   const [media, setMedia] = useState<PostMediaItem[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
 
+  const showInstantPurchase = visibility !== "PUBLIC";
+
   function reset() {
     setContent("");
+    setVisibility("PUBLIC");
     setPriceKrw("");
+    setInstantPriceKrw("");
     setMedia([]);
     setError("");
     setKind("photo");
@@ -60,7 +68,11 @@ export function ProfileCreatePanel({
         content,
         mediaUrl: item.url,
         mediaType: kind === "video" ? "VIDEO" : "IMAGE",
+        visibility,
         priceKrw: priceKrw.trim() ? Number(priceKrw.replace(/,/g, "")) : 0,
+        instantPurchasePriceKrw: instantPriceKrw.trim()
+          ? Number(instantPriceKrw.replace(/,/g, ""))
+          : 0,
       });
       if (res.error) {
         setError(res.error);
@@ -135,10 +147,16 @@ export function ProfileCreatePanel({
         onUploadingChange={setUploading}
       />
 
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="space-y-1.5 flex-1 min-w-[140px]">
+      <ContentVisibilitySelect
+        value={visibility}
+        onChange={setVisibility}
+        disabled={pending}
+      />
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
           <label htmlFor="profile-media-price" className="text-xs font-medium text-muted-foreground">
-            유료 설정 (선택, 100원~)
+            유료 판매 (선택, 100원~)
           </label>
           <Input
             id="profile-media-price"
@@ -150,6 +168,28 @@ export function ProfileCreatePanel({
             className="rounded-xl"
           />
         </div>
+        {showInstantPurchase && (
+          <div className="space-y-1.5">
+            <label
+              htmlFor="profile-instant-price"
+              className="text-xs font-medium text-muted-foreground"
+            >
+              즉시 구매 (등급 미달 시)
+            </label>
+            <Input
+              id="profile-instant-price"
+              inputMode="numeric"
+              placeholder="예: 80,000"
+              value={instantPriceKrw}
+              onChange={(e) => setInstantPriceKrw(e.target.value.replace(/[^\d,]/g, ""))}
+              disabled={pending}
+              className="rounded-xl"
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="flex justify-end">
         <Button
           type="button"
           className="rounded-xl gap-1.5"

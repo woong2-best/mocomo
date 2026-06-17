@@ -61,6 +61,15 @@ enum PremiumTier {
   PREMIUM
 }
 
+enum ContentVisibility {
+  PUBLIC
+  SUBSCRIBERS
+  SUBSCRIBER_1M
+  SUBSCRIBER_3M
+  SUBSCRIBER_6M
+  SUBSCRIBER_12M
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String?   @unique
@@ -93,6 +102,11 @@ model User {
   birthDate       DateTime? @db.Date
   /** 계정당 1개 — OBS 방송 키 (방송 세션마다 바뀌지 않음) */
   obsRtmpStreamKey String? @unique
+  /** 크리에이터 월 구독료 (원) — Stripe Subscription 연동 전에도 UI·검증용 */
+  creatorSubscriptionPriceKrw Int @default(16900)
+  /** Stripe Connect — 정산용 (추후 onboarding) */
+  stripeConnectAccountId String?
+  stripeConnectOnboardedAt DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -198,6 +212,10 @@ model User {
   discoveryMatchesAsB     DiscoveryMatch[] @relation("DiscoveryMatchB")
   discoveryBlocks         DiscoveryBlock[] @relation("DiscoveryBlocker")
   discoveryBlockedBy      DiscoveryBlock[] @relation("DiscoveryBlocked")
+  userBlocks              UserBlock[]      @relation("UserBlocker")
+  userBlockedBy           UserBlock[]      @relation("UserBlocked")
+  userMutes               UserMute[]       @relation("UserMuter")
+  userMutedBy             UserMute[]       @relation("UserMuted")
 }
 
 model Account {
@@ -363,6 +381,9 @@ model Post {
   shareCount  Int      @default(0)
   hotScore    Float    @default(0)
   isPinned    Boolean  @default(false)
+  visibility  ContentVisibility @default(PUBLIC)
+  /** 구독 등급 미달 시 즉시 구매로 열람 (원, 0=비활성) */
+  instantPurchasePriceKrw Int @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -381,6 +402,9 @@ model Post {
 
   @@index([createdAt(sort: Desc)])
   @@index([hotScore(sort: Desc), createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
+  @@index([authorId, isPinned])
+  @@index([communityId, createdAt(sort: Desc)])
 }
 
 enum MediaType {
@@ -403,6 +427,8 @@ model PostMedia {
   purchaseCount  Int       @default(0)
   post           Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
   purchases      PostMediaPurchase[]
+
+  @@index([postId, order])
 }
 
 model PostMediaPurchase {
@@ -452,6 +478,9 @@ model Comment {
   parent   Comment? @relation("CommentReplies", fields: [parentId], references: [id])
   replies  Comment[] @relation("CommentReplies")
   reports  Report[]
+
+  @@index([postId, parentId, createdAt])
+  @@index([authorId, createdAt(sort: Desc)])
 }
 
 enum VoteType {
@@ -526,6 +555,34 @@ model Follow {
   following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
   @@unique([followerId, followingId])
   @@index([followerId])
+  @@index([followingId, createdAt(sort: Desc)])
+}
+
+model UserBlock {
+  id        String   @id @default(cuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker User @relation("UserBlocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("UserBlocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
+}
+
+model UserMute {
+  id        String   @id @default(cuid())
+  muterId   String
+  mutedId   String
+  createdAt DateTime @default(now())
+
+  muter User @relation("UserMuter", fields: [muterId], references: [id], onDelete: Cascade)
+  muted User @relation("UserMuted", fields: [mutedId], references: [id], onDelete: Cascade)
+
+  @@unique([muterId, mutedId])
+  @@index([muterId])
 }
 
 model Like {
@@ -536,6 +593,7 @@ model Like {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
   @@unique([userId, postId])
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 model Repost {
@@ -645,6 +703,7 @@ model ChatMember {
   room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
   user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@unique([roomId, userId])
+  @@index([userId])
 }
 
 enum MessageAttachmentType {
@@ -673,6 +732,8 @@ model Message {
   attachments MessageAttachment[]
   reads     MessageRead[]
   pinned    PinnedMessage?
+
+  @@index([roomId, createdAt])
 }
 
 model MessageAttachment {
@@ -1085,7 +1146,9 @@ model Subscription {
   tier       String   @default("basic")
   amount     Int
   status     String   @default("active")
+  subscribedSince DateTime @default(now())
   currentPeriodEnd DateTime
+  stripeSubscriptionId String?
   createdAt  DateTime @default(now())
   subscriber User @relation("Subscriber", fields: [subscriberId], references: [id])
   creator    User @relation("Creator", fields: [creatorId], references: [id])
@@ -1143,6 +1206,7 @@ enum PaymentIntentType {
   EVENT_REGISTRATION
   CREATOR_EPISODE
   POST_MEDIA
+  CREATOR_SUBSCRIPTION
 }
 
 enum EventPublishStatus {

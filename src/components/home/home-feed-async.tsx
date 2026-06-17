@@ -16,7 +16,11 @@ function serializeCreatedAt<T extends { createdAt: Date | string }>(rows: T[]): 
 
 export async function HomeFeedAsync() {
   try {
-    const [posts, feedAds] = await Promise.all([getCachedFeedPosts(), getCachedFeedAds()]);
+    const [posts, feedAds, session] = await Promise.all([
+      getCachedFeedPosts(),
+      getCachedFeedAds(),
+      getCachedSession(),
+    ]);
     const ads: FeedAdData[] = feedAds.length > 0 ? feedAds : [...FALLBACK_FEED_ADS];
     const serialized = serializeCreatedAt(posts);
     const mixed = mixFeedWithAds(serialized, ads, {
@@ -26,7 +30,6 @@ export async function HomeFeedAsync() {
     });
     const nextCursor = posts.length === 12 ? posts[posts.length - 1]?.id ?? null : null;
     const hasDbPosts = mixed.some((item) => item.type === "post");
-    const session = await getCachedSession();
     const postIds = mixed.filter((i) => i.type === "post").map((i) => i.data.id);
     let engagement = { likedIds: [] as string[], starredIds: [] as string[], repostedIds: [] as string[] };
     if (session?.user?.id && postIds.length > 0) {

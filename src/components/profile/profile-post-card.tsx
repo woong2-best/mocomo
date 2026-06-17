@@ -17,12 +17,18 @@ export function ProfilePostCard({
   isSelf = false,
   pinnedHighlight = false,
   paymentsEnabled = false,
+  authorId,
+  subscriptionPriceKrw,
+  subscribed = false,
 }: {
   post: GridPost & { createdAt: Date | string; isPinned?: boolean };
   meta?: string;
   isSelf?: boolean;
   pinnedHighlight?: boolean;
   paymentsEnabled?: boolean;
+  authorId?: string;
+  subscriptionPriceKrw?: number;
+  subscribed?: boolean;
 }) {
   const createdAt = typeof post.createdAt === "string" ? new Date(post.createdAt) : post.createdAt;
   const displayName = userDisplayName(post.author);
@@ -83,7 +89,10 @@ export function ProfilePostCard({
                   media={post.media as ProfilePostMediaItem[]}
                   postId={post.id}
                   authorUsername={post.author.username}
+                  authorId={authorId ?? post.author.id}
+                  subscriptionPriceKrw={subscriptionPriceKrw}
                   paymentsEnabled={paymentsEnabled}
+                  subscribed={subscribed}
                 />
               )}
               <div className="flex gap-6 mt-3 text-muted-foreground text-xs">

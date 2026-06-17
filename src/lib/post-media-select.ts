@@ -11,3 +11,10 @@ export const postMediaGallery = {
   orderBy: { order: "asc" as const },
   select: { id: true, url: true, type: true, order: true, priceKrw: true, purchaseCount: true },
 };
+
+/** 프로필 타임라인 — 유료 미디어 id 포함, 최대 4장 */
+export const postMediaProfileTimeline = {
+  take: 4,
+  orderBy: { order: "asc" as const },
+  select: { id: true, url: true, type: true, order: true, priceKrw: true },
+};

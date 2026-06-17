@@ -1,20 +1,10 @@
 import { NextResponse } from "next/server";
-import {
-  getCachedPopularAnime,
-  getCachedSidebarAds,
-  getCachedSidebarTips,
-} from "@/lib/cached-data";
-import { getSubcultureMapPins } from "@/lib/subculture-events";
+import { getCachedSidebarPanelData } from "@/lib/cached-data";
 
 /** 우측 패널 데이터 — CDN/브라우저 캐시로 반복 요청 완화 */
 export async function GET() {
   try {
-    const [animes, tips, sidebarAds, eventPins] = await Promise.all([
-      getCachedPopularAnime(),
-      getCachedSidebarTips(),
-      getCachedSidebarAds(),
-      getSubcultureMapPins(12),
-    ]);
+    const { animes, tips, sidebarAds, eventPins } = await getCachedSidebarPanelData();
     return NextResponse.json(
       { ok: true, animes, tips, sidebarAds, eventPins },
       {

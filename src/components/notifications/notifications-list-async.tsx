@@ -9,10 +9,15 @@ export async function NotificationsListAsync() {
   const session = await getCachedSession();
   if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/notifications");
 
-  await db.notification.updateMany({
+  const unreadCount = await db.notification.count({
     where: { userId: session.user.id, read: false },
-    data: { read: true },
   });
+  if (unreadCount > 0) {
+    await db.notification.updateMany({
+      where: { userId: session.user.id, read: false },
+      data: { read: true },
+    });
+  }
 
   const notifications = await db.notification.findMany({
     where: { userId: session.user.id },

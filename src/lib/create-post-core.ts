@@ -18,6 +18,8 @@ export type CreatePostInput = {
   animeId?: string;
   isNsfw?: boolean;
   tagNames?: string[];
+  visibility?: import("@prisma/client").ContentVisibility;
+  instantPurchasePriceKrw?: number;
   media?: { url: string; type: MediaType; priceKrw?: number }[];
   poll?: CreatePostPollInput;
 };
@@ -84,6 +86,8 @@ export async function createPostForUser(
         communityId,
         animeId,
         isNsfw: data.isNsfw ?? false,
+        visibility: data.visibility ?? "PUBLIC",
+        instantPurchasePriceKrw: Math.max(0, Math.floor(data.instantPurchasePriceKrw ?? 0)),
         hotScore: calcHotScore(0, 0, new Date()),
         media:
           mediaRows.length > 0

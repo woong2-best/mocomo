@@ -3,6 +3,7 @@
 import { PayButton } from "@/components/payments/pay-button";
 import { usePathname } from "next/navigation";
 import { Lock } from "lucide-react";
+import { formatKrwWithMocoHint } from "@/lib/moco-display";
 
 export function PurchasePostMediaButton({
   mediaId,
@@ -32,16 +33,21 @@ export function PurchasePostMediaButton({
     );
   }
 
+  const buttonLabel = label ?? "유료 미디어";
+
   return (
-    <PayButton
-      type="POST_MEDIA"
-      amount={priceKrw}
-      orderName={label ?? "유료 미디어"}
-      metadata={{ mediaId, username, postId, returnPath }}
-      className="rounded-full h-9 px-4 text-xs gap-1.5 bg-white text-foreground hover:bg-white/90"
-    >
-      <Lock className="h-3.5 w-3.5" />
-      {priceKrw.toLocaleString()}원 · 잠금 해제
-    </PayButton>
+    <div className="flex flex-col items-center gap-1">
+      <PayButton
+        type="POST_MEDIA"
+        amount={priceKrw}
+        orderName={buttonLabel}
+        metadata={{ mediaId, username, postId, returnPath }}
+        className="rounded-full h-9 px-4 text-xs gap-1.5 bg-white text-foreground hover:bg-white/90"
+      >
+        <Lock className="h-3.5 w-3.5" />
+        {priceKrw.toLocaleString()}원 · {buttonLabel}
+      </PayButton>
+      <p className="text-[10px] text-white/75">{formatKrwWithMocoHint(priceKrw)}</p>
+    </div>
   );
 }

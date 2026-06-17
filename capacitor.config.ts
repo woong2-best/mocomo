@@ -3,7 +3,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 const appServerUrl =
   process.env.CAPACITOR_SERVER_URL ??
   process.env.NEXT_PUBLIC_APP_URL ??
-  "https://mocomo.net?client=app";
+  "https://app.mocomo.net";
 
 const config: CapacitorConfig = {
   appId: "net.mocomo.app",

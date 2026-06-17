@@ -8,7 +8,6 @@ export const userPublicSelect = {
   image: true,
   level: true,
   supportTierSent: true,
-  cosplayerProfile: { select: { stageName: true } },
 } satisfies Prisma.UserSelect;
 
 export const userPublicSelectMinimal = {
@@ -25,13 +24,19 @@ export type UserPublicFields = {
   image: string | null;
   level?: number;
   supportTierSent: SupportTierLevel;
-  cosplayerProfile?: { stageName: string | null } | null;
 };
 
+/** 프로필 설정 이름 — 피드·게시물·프로필·코스어 등 전역 표시용 */
 export function userDisplayName(user: {
   username: string;
   name?: string | null;
-  cosplayerProfile?: { stageName: string | null } | null;
 }): string {
-  return user.cosplayerProfile?.stageName || user.name || user.username;
+  return user.name?.trim() || user.username;
+}
+
+export function userAvatarFallbackInitial(user: {
+  username: string;
+  name?: string | null;
+}): string {
+  return userDisplayName(user)[0]?.toUpperCase() ?? "?";
 }

@@ -16,6 +16,7 @@ import {
 } from "@/actions/goods-shop";
 import { fulfillCreatorEpisodePurchase } from "@/actions/creator-works";
 import { fulfillPostMediaPurchase } from "@/actions/post-media-purchase";
+import { fulfillCreatorSubscriptionPurchase } from "@/actions/creator-subscription-purchase";
 import { calcPlatformFee } from "@/lib/utils";
 import { tierFromAmount } from "@/lib/tiers";
 import { notifyTip } from "@/lib/notifications";
@@ -314,6 +315,31 @@ export async function fulfillPaymentIntent(
     }
     revalidatePath("/works");
     revalidatePath(`/works/e/${meta.episodeId}`);
+  }
+
+  if (intent.type === "CREATOR_SUBSCRIPTION") {
+    const r = await fulfillCreatorSubscriptionPurchase(
+      userId,
+      meta.creatorId,
+      amount,
+      intent.id
+    );
+    if ("error" in r && r.error) return { ok: false, error: r.error };
+    if ("success" in r && r.success) {
+      await recordPlatformFee(r.platformFee, {
+        referenceType: "creator_subscription",
+        referenceId: r.referenceId,
+        paymentIntentId: intent.id,
+        memo: "크리에이터 구독",
+      });
+      await creditSellerEarning(r.creatorId, r.sellerAmount, {
+        referenceType: "creator_subscription",
+        referenceId: r.referenceId,
+        paymentIntentId: intent.id,
+        memo: "크리에이터 구독 정산",
+      });
+    }
+    if (r.username) revalidatePath(`/u/${r.username}`);
   }
 
   if (intent.type === "POST_MEDIA") {

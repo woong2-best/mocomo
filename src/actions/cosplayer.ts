@@ -19,7 +19,6 @@ function isPersistablePhotoUrl(url: string) {
 }
 
 const applySchema = z.object({
-  stageName: z.string().max(50).optional(),
   bio: z.string().min(1).max(BIO_MAX),
   photoUrl: z.string().min(1).refine(isPersistablePhotoUrl, { message: "사진을 업로드해 주세요." }),
   animeId: z.string().min(1),
@@ -57,7 +56,7 @@ export async function applyAsCosplayer(data: z.infer<typeof applySchema>) {
   const parsed = applySchema.safeParse(data);
   if (!parsed.success) return { error: "입력값을 확인해주세요." };
 
-  const { stageName, bio, photoUrl, animeId, characterName } = parsed.data;
+  const { bio, photoUrl, animeId, characterName } = parsed.data;
 
   const existing = await db.cosplayerProfile.findUnique({ where: { userId: user.id } });
   if (existing) return { error: "이미 코스어로 등록되어 있습니다." };
@@ -71,7 +70,6 @@ export async function applyAsCosplayer(data: z.infer<typeof applySchema>) {
   const profile = await db.cosplayerProfile.create({
     data: {
       userId: user.id,
-      stageName: stageName?.trim() || user.name || user.username,
       bio: bio.trim(),
       photos: {
         create: {
@@ -109,7 +107,6 @@ export async function applyAsCosplayer(data: z.infer<typeof applySchema>) {
 }
 
 export async function updateCosplayerProfile(data: {
-  stageName?: string;
   bio?: string;
   photoUrl?: string;
   animeId?: string;
@@ -129,7 +126,6 @@ export async function updateCosplayerProfile(data: {
   await db.cosplayerProfile.update({
     where: { id: profile.id },
     data: {
-      ...(data.stageName !== undefined && { stageName: data.stageName || null }),
       ...(data.bio !== undefined && { bio: data.bio }),
     },
   });

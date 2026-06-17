@@ -4,27 +4,40 @@ import Link from "next/link";
 import { Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PurchasePostMediaButton } from "@/components/profile/purchase-post-media-button";
+import {
+  SubscribeCreatorButton,
+  SubscribeCreatorHint,
+} from "@/components/monetization/subscribe-creator-button";
+import type { ContentLockReason } from "@/lib/content-access";
 
 export type ProfilePostMediaItem = {
   id?: string;
   url: string;
   type: string;
   priceKrw?: number;
+  instantPurchasePriceKrw?: number;
   locked?: boolean;
+  lockReason?: ContentLockReason;
 };
 
 export function PaidPostMediaGrid({
   media,
   postId,
   authorUsername,
+  authorId,
+  subscriptionPriceKrw,
   paymentsEnabled,
+  subscribed = false,
   linkToPost = true,
   className,
 }: {
   media: ProfilePostMediaItem[];
   postId: string;
   authorUsername: string;
+  authorId?: string;
+  subscriptionPriceKrw?: number;
   paymentsEnabled: boolean;
+  subscribed?: boolean;
   linkToPost?: boolean;
   className?: string;
 }) {
@@ -44,7 +57,10 @@ export function PaidPostMediaGrid({
           media={m}
           postId={postId}
           authorUsername={authorUsername}
+          authorId={authorId}
+          subscriptionPriceKrw={subscriptionPriceKrw}
           paymentsEnabled={paymentsEnabled}
+          subscribed={subscribed}
         />
       ))}
     </div>
@@ -63,14 +79,22 @@ function PaidPostMediaTile({
   media,
   postId,
   authorUsername,
+  authorId,
+  subscriptionPriceKrw,
   paymentsEnabled,
+  subscribed,
 }: {
   media: ProfilePostMediaItem;
   postId: string;
   authorUsername: string;
+  authorId?: string;
+  subscriptionPriceKrw?: number;
   paymentsEnabled: boolean;
+  subscribed?: boolean;
 }) {
-  const locked = !!media.locked && (media.priceKrw ?? 0) > 0 && !!media.id;
+  const locked = !!media.locked && !!media.id;
+  const lockReason = media.lockReason ?? "none";
+  const purchasePrice = media.instantPurchasePriceKrw ?? media.priceKrw ?? 0;
 
   return (
     <div className="relative aspect-square bg-muted/30 overflow-hidden">
@@ -97,7 +121,7 @@ function PaidPostMediaTile({
           onClick={(e) => e.preventDefault()}
         >
           <div
-            className="flex flex-col items-center gap-2"
+            className="flex flex-col items-center gap-2 px-2"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -106,13 +130,32 @@ function PaidPostMediaTile({
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/55 text-white ring-2 ring-white/30">
               <Lock className="h-5 w-5" />
             </div>
-            <PurchasePostMediaButton
-              mediaId={media.id}
-              priceKrw={media.priceKrw ?? 0}
-              paymentsEnabled={paymentsEnabled}
-              username={authorUsername}
-              postId={postId}
-            />
+
+            {lockReason === "subscription" && authorId && subscriptionPriceKrw ? (
+              <>
+                <p className="text-xs text-white text-center font-medium">구독자 전용</p>
+                <SubscribeCreatorButton
+                  creatorId={authorId}
+                  username={authorUsername}
+                  priceKrw={subscriptionPriceKrw}
+                  paymentsEnabled={paymentsEnabled}
+                  subscribed={subscribed}
+                  compact
+                />
+                <SubscribeCreatorHint priceKrw={subscriptionPriceKrw} />
+              </>
+            ) : lockReason === "purchase" && purchasePrice > 0 ? (
+              <PurchasePostMediaButton
+                mediaId={media.id}
+                priceKrw={purchasePrice}
+                paymentsEnabled={paymentsEnabled}
+                username={authorUsername}
+                postId={postId}
+                label={purchasePrice >= 10_000 ? "즉시 구매" : "유료 미디어"}
+              />
+            ) : (
+              <p className="text-xs text-white/90 text-center">열람 권한이 없습니다.</p>
+            )}
           </div>
         </div>
       )}

@@ -5,9 +5,15 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getAuthUserId } from "@/lib/auth";
 import {
-  attachMediaAccess,
-  getPurchasedPostMediaIds,
-} from "@/lib/post-paid-media";
+  attachPostContentAccess,
+  getSubscriptionsForViewer,
+} from "@/lib/content-access";
+import {
+  isSubscriptionActive,
+  monthsSubscribed,
+  tierFromSubscriptionMonths,
+} from "@/lib/creator-subscription";
+import { getPurchasedPostMediaIds } from "@/lib/post-paid-media";
 import {
   profilePostInclude,
   parseProfileMediaKind,
@@ -17,6 +23,7 @@ import {
   type ProfileMediaKind,
   type ProfileSort,
 } from "@/lib/profile-queries";
+import { getUserRelationship, isProfileBlocked } from "@/lib/user-relationship";
 
 const PAGE_SIZE = 15;
 
@@ -24,8 +31,14 @@ type ProfilePostRow = Prisma.PostGetPayload<{ include: typeof profilePostInclude
 
 async function enrichPostsWithMediaAccess(posts: ProfilePostRow[], viewerId: string | null) {
   const mediaIds = posts.flatMap((p) => p.media?.map((m) => m.id) ?? []);
-  const purchasedIds = await getPurchasedPostMediaIds(viewerId, mediaIds);
-  return posts.map((p) => attachMediaAccess(p, viewerId, purchasedIds));
+  const creatorIds = [...new Set(posts.map((p) => p.authorId))];
+  const [purchasedIds, subscriptions] = await Promise.all([
+    getPurchasedPostMediaIds(viewerId, mediaIds),
+    getSubscriptionsForViewer(viewerId, creatorIds),
+  ]);
+  return posts.map((p) =>
+    attachPostContentAccess(p, viewerId, purchasedIds, subscriptions.get(p.authorId))
+  );
 }
 
 function mediaTypeFilter(kind: ProfileMediaKind | null) {
@@ -52,8 +65,19 @@ export const getProfileHeader = cache(async function getProfileHeader(username: 
       locale: true,
       countryCode: true,
       birthDate: true,
+      creatorSubscriptionPriceKrw: true,
       profile: true,
-      cosplayerProfile: { select: { id: true, stageName: true, bio: true } },
+      cosplayerProfile: {
+        select: {
+          id: true,
+          bio: true,
+          photos: { take: 4, orderBy: { createdAt: "desc" }, select: { id: true, url: true, character: true } },
+          animeLinks: {
+            take: 6,
+            include: { anime: { select: { title: true, slug: true } } },
+          },
+        },
+      },
       userBadges: { include: { badge: true }, take: 6 },
       _count: { select: { followers: true, following: true, posts: true } },
     },
@@ -62,8 +86,9 @@ export const getProfileHeader = cache(async function getProfileHeader(username: 
 
   let isFollowing = false;
   let followsYou = false;
+  let relationship = { blockedByViewer: false, blockedViewer: false, mutedByViewer: false };
   if (viewerId && viewerId !== user.id) {
-    const [a, b] = await Promise.all([
+    const [a, b, rel] = await Promise.all([
       db.follow.findUnique({
         where: {
           followerId_followingId: {
@@ -80,9 +105,11 @@ export const getProfileHeader = cache(async function getProfileHeader(username: 
           },
         },
       }),
+      getUserRelationship(viewerId, user.id),
     ]);
     isFollowing = !!a;
     followsYou = !!b;
+    relationship = rel;
   }
 
   return {
@@ -90,6 +117,7 @@ export const getProfileHeader = cache(async function getProfileHeader(username: 
     isSelf: viewerId === user.id,
     isFollowing,
     followsYou,
+    relationship,
   };
 });
 
@@ -97,6 +125,11 @@ export const getProfilePinnedPost = cache(async function getProfilePinnedPost(
   userId: string,
   viewerId: string | null
 ) {
+  if (viewerId && viewerId !== userId) {
+    const relationship = await getUserRelationship(viewerId, userId);
+    if (isProfileBlocked(relationship)) return null;
+  }
+
   const post = await db.post.findFirst({
     where: { authorId: userId, isPinned: true },
     include: profilePostInclude,
@@ -113,6 +146,13 @@ export async function getProfileTimeline(
   options?: { sort?: ProfileSort; mediaKind?: ProfileMediaKind | null }
 ) {
   const viewerId = await getAuthUserId();
+  if (viewerId && viewerId !== userId) {
+    const relationship = await getUserRelationship(viewerId, userId);
+    if (isProfileBlocked(relationship)) {
+      return { items: [], nextCursor: null };
+    }
+  }
+
   const sort = options?.sort ?? "new";
   const mediaKind = options?.mediaKind ?? null;
   const typeFilter = mediaTypeFilter(mediaKind);
@@ -234,5 +274,28 @@ export async function getFollowList(
     profileUser: user,
     users,
     nextCursor: rows.length === 30 ? rows[rows.length - 1]?.id : null,
+  };
+}
+
+export async function getViewerCreatorSubscription(creatorId: string) {
+  const viewerId = await getAuthUserId();
+  if (!viewerId || viewerId === creatorId) {
+    return { subscribed: false as const, tier: "NONE" as const, months: 0 };
+  }
+
+  const sub = await db.subscription.findUnique({
+    where: { subscriberId_creatorId: { subscriberId: viewerId, creatorId } },
+    select: { subscribedSince: true, currentPeriodEnd: true, status: true },
+  });
+
+  if (!sub || !isSubscriptionActive(sub)) {
+    return { subscribed: false as const, tier: "NONE" as const, months: 0 };
+  }
+
+  const months = monthsSubscribed(sub.subscribedSince);
+  return {
+    subscribed: true as const,
+    tier: tierFromSubscriptionMonths(months),
+    months,
   };
 }

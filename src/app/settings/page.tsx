@@ -72,6 +72,11 @@ export default async function SettingsPage() {
                 프로필 수정
               </Button>
             </Link>
+            <Link href="/settings/creator">
+              <Button variant="outline" size="sm">
+                크리에이터 수익
+              </Button>
+            </Link>
             <Link href="/support">
               <Button variant="ghost" size="sm">
                 후원 등급
@@ -160,8 +165,20 @@ export default async function SettingsPage() {
           <Link href="/legal/terms" className="block text-primary hover:underline">
             이용약관
           </Link>
+          <Link href="/legal/creator-terms" className="block text-primary hover:underline">
+            크리에이터 약관
+          </Link>
+          <Link href="/legal/payment" className="block text-primary hover:underline">
+            결제 및 환불 정책
+          </Link>
+          <Link href="/legal/copyright" className="block text-primary hover:underline">
+            저작권 정책
+          </Link>
           <Link href="/legal/privacy" className="block text-primary hover:underline">
             개인정보처리방침
+          </Link>
+          <Link href="/legal/account-deletion" className="block text-primary hover:underline">
+            계정 및 데이터 삭제
           </Link>
           <Link href="/legal/policy" className="block text-primary hover:underline">
             운영원칙 및 이용정책

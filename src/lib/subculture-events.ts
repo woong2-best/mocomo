@@ -141,14 +141,11 @@ export async function querySubcultureMapPins(limit: number): Promise<MapEventPin
   }));
 }
 
-/** 캐시된 핀 목록 (읽기 전용, 빠름) */
+/** 캐시된 핀 목록 (읽기 전용, 빠름) — sync는 cron 전용 */
 export async function getSubcultureMapPins(limit = 48): Promise<MapEventPin[]> {
-  const sync = await syncSubcultureEventsIfDue({ geocodeMax: 3 });
-  if (sync.synced) return querySubcultureMapPins(limit);
-
   return unstable_cache(
     async () => querySubcultureMapPins(limit),
-    ["subculture-map-pins-v4", String(limit)],
+    ["subculture-map-pins-v5", String(limit)],
     { revalidate: 600, tags: [SUBCULTURE_MAP_PINS_CACHE_TAG] }
   )();
 }

@@ -11,11 +11,24 @@ import {
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import dynamic from "next/dynamic";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { CheckCircle2, X } from "lucide-react";
-import { ComposeForm } from "@/components/compose/compose-form";
+import { CheckCircle2, X, Loader2 } from "lucide-react";
 import { composeSheetRegionClass } from "@/lib/compose-sheet-layout";
 import { cn } from "@/lib/utils";
+
+const ComposeForm = dynamic(
+  () => import("@/components/compose/compose-form").then((m) => m.ComposeForm),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center py-16 text-sm text-muted-foreground gap-2">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        작성 도구 불러오는 중…
+      </div>
+    ),
+  }
+);
 
 type ComposeOptions = {
   communityId?: string;
@@ -162,20 +175,22 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
               </DialogPrimitive.Close>
             </div>
             <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-6 pb-safe">
-              <ComposeForm
-                key={formKey}
-                communityId={communityId}
-                initialContent={initialContent}
-                initialTitle={initialTitle}
-                variant="sheet"
-                onPosted={handlePosted}
-                onNeedSignIn={() => {
-                  closeCompose();
-                  router.push(
-                    `/auth/signin?callbackUrl=${encodeURIComponent(pathname || "/")}`
-                  );
-                }}
-              />
+              {open ? (
+                <ComposeForm
+                  key={formKey}
+                  communityId={communityId}
+                  initialContent={initialContent}
+                  initialTitle={initialTitle}
+                  variant="sheet"
+                  onPosted={handlePosted}
+                  onNeedSignIn={() => {
+                    closeCompose();
+                    router.push(
+                      `/auth/signin?callbackUrl=${encodeURIComponent(pathname || "/")}`
+                    );
+                  }}
+                />
+              ) : null}
             </div>
             </DialogPrimitive.Content>
           </div>

@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client";
-import { postMediaGallery } from "@/lib/post-media-select";
+import { postMediaProfileTimeline } from "@/lib/post-media-select";
 import { userPublicSelect } from "@/lib/user-public-select";
 
 export const profilePostInclude = {
@@ -8,7 +8,7 @@ export const profilePostInclude = {
   },
   community: { select: { name: true, slug: true } },
   anime: { select: { title: true, slug: true } },
-  media: postMediaGallery,
+  media: postMediaProfileTimeline,
   _count: { select: { likes: true, comments: true, votes: true } },
 } satisfies Prisma.PostInclude;
 

@@ -17,17 +17,28 @@ export function isAppHostname(host: string | null | undefined): boolean {
   return getAppHostnames().some((h) => h.toLowerCase() === bare);
 }
 
+/** 서버·미들웨어: 앱 서브도메인에서만 app 셸 */
 export function resolveClientPlatform(input: {
   cookie?: string | null;
   host?: string | null;
   queryClient?: string | null;
 }): ClientPlatform {
-  if (input.queryClient === "app") return "app";
   if (isAppHostname(input.host)) return "app";
-  if (input.cookie === "app") return "app";
+  if (input.queryClient === "app" && isAppHostname(input.host)) return "app";
   return "web";
 }
 
 export function isNativeAppPlatform(platform: ClientPlatform): boolean {
   return platform === "app";
+}
+
+/** 클라이언트: Capacitor 네이티브 또는 앱 서브도메인 */
+export function resolveClientPlatformInBrowser(input: {
+  hostname: string;
+  initialPlatform: ClientPlatform;
+  isCapacitorNative: boolean;
+}): ClientPlatform {
+  if (input.isCapacitorNative) return "app";
+  if (isAppHostname(input.hostname)) return "app";
+  return "web";
 }

@@ -67,7 +67,6 @@ export function CosplayerApplyForm({
     }
 
     const res = await applyAsCosplayer({
-      stageName: (form.get("stageName") as string) || undefined,
       bio: form.get("bio") as string,
       photoUrl,
       animeId,
@@ -122,16 +121,12 @@ export function CosplayerApplyForm({
           코스어 신청
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          사진 1장 · 자기소개 {BIO_MAX}자 · 코스 애니/캐릭터를 등록하면 해당 애니 페이지에 표시됩니다.
+          닉네임·프사는 프로필 설정에서 수정합니다. 여기서는 코스 사진·활동 소개·애니/캐릭터만
+          등록합니다.
         </p>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="text-sm font-medium">활동명 (선택)</label>
-            <Input name="stageName" placeholder="무대에서 쓰는 이름" className="mt-1 rounded-xl" />
-          </div>
-
           <div>
             <label className="text-sm font-medium">대표 사진 * (1장만)</label>
             <PostMediaComposer

@@ -38,9 +38,33 @@ function setAppClientCookie(res: NextResponse) {
   });
 }
 
+function clearAppClientCookie(res: NextResponse) {
+  res.cookies.set(CLIENT_PLATFORM_COOKIE, "", {
+    path: "/",
+    maxAge: 0,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  });
+}
+
+/** mocomo.net?client=app → app.mocomo.net (앱 전용 서브도메인) */
 function applyAppClientRedirect(req: NextRequest): NextResponse | null {
   if (req.nextUrl.searchParams.get("client") !== "app") return null;
+
+  const host = req.nextUrl.hostname;
+  if (isAppHostname(host)) {
+    const url = req.nextUrl.clone();
+    url.searchParams.delete("client");
+    const res = NextResponse.redirect(url);
+    setAppClientCookie(res);
+    return res;
+  }
+
+  const appHost = process.env.NEXT_PUBLIC_APP_HOST?.trim() || "app.mocomo.net";
   const url = req.nextUrl.clone();
+  url.hostname = appHost.split(":")[0] ?? appHost;
+  url.port = "";
+  url.protocol = "https:";
   url.searchParams.delete("client");
   const res = NextResponse.redirect(url);
   setAppClientCookie(res);
@@ -49,12 +73,15 @@ function applyAppClientRedirect(req: NextRequest): NextResponse | null {
 
 function stampAppClientIfNeeded(req: NextRequest, res: NextResponse) {
   const host = req.nextUrl.hostname;
-  const wantsApp =
-    isAppHostname(host) ||
-    req.nextUrl.searchParams.get("client") === "app" ||
-    req.cookies.get(CLIENT_PLATFORM_COOKIE)?.value === "app";
 
-  if (wantsApp && req.cookies.get(CLIENT_PLATFORM_COOKIE)?.value !== "app") {
+  if (!isAppHostname(host)) {
+    if (req.cookies.get(CLIENT_PLATFORM_COOKIE)?.value === "app") {
+      clearAppClientCookie(res);
+    }
+    return;
+  }
+
+  if (req.cookies.get(CLIENT_PLATFORM_COOKIE)?.value !== "app") {
     setAppClientCookie(res);
   }
 }
@@ -118,6 +145,7 @@ export default edgeAuth((req) => {
   }
 
   const res = NextResponse.next();
+  res.headers.set("x-pathname", pathname);
   stampAppClientIfNeeded(req, res);
   return res;
 });

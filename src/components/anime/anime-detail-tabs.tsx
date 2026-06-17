@@ -10,6 +10,7 @@ import { AnimeCommunityPanel } from "@/components/anime/anime-community-panel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { userAvatarFallbackInitial, userDisplayName } from "@/lib/user-public-select";
 
 const TAB_IDS = ["info", "cosplayers", "goods", "community"] as const;
 type TabId = (typeof TAB_IDS)[number];
@@ -30,8 +31,7 @@ type CosplayerLink = {
   id: string;
   character: string | null;
   profile: {
-    stageName: string | null;
-    user: { username: string; image: string | null };
+    user: { username: string; name: string | null; image: string | null };
     photos: { url: string }[];
   };
 };
@@ -174,9 +174,9 @@ export function AnimeDetailTabs({
                     >
                       <Avatar className="h-7 w-7">
                         <AvatarImage src={link.profile.user.image ?? undefined} />
-                        <AvatarFallback>{link.character?.[0] || "?"}</AvatarFallback>
+                        <AvatarFallback>{userAvatarFallbackInitial(link.profile.user)}</AvatarFallback>
                       </Avatar>
-                      <span className="font-medium">{link.profile.stageName || link.profile.user.username}</span>
+                      <span className="font-medium">{userDisplayName(link.profile.user)}</span>
                       {link.character && (
                         <span className="text-muted-foreground text-xs">· {link.character}</span>
                       )}
@@ -203,10 +203,10 @@ export function AnimeDetailTabs({
                     <CardContent className="p-3 flex items-center gap-2">
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={link.profile.user.image ?? undefined} />
-                        <AvatarFallback>{link.character?.[0] || "?"}</AvatarFallback>
+                        <AvatarFallback>{userAvatarFallbackInitial(link.profile.user)}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium text-sm">{link.profile.stageName || link.profile.user.username}</p>
+                        <p className="font-medium text-sm">{userDisplayName(link.profile.user)}</p>
                         {link.character && <p className="text-xs text-muted-foreground">{link.character}</p>}
                       </div>
                     </CardContent>

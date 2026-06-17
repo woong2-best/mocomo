@@ -1,6 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { FEED_POSTS_CACHE_TAG } from "@/lib/cache-tags";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { validateUsernameAndName } from "@/lib/forbidden-admin-sequence";
@@ -71,6 +72,10 @@ export async function updateProfile(data: {
 
   if (Object.keys(userUpdate).length > 0) {
     await db.user.update({ where: { id: user.id }, data: userUpdate });
+    if (userUpdate.name !== undefined || userUpdate.image !== undefined) {
+      revalidateTag(FEED_POSTS_CACHE_TAG);
+      revalidatePath(`/cosplay/${user.username}`);
+    }
   }
   revalidatePath(`/u/${user.username}`);
   revalidatePath("/settings/profile");

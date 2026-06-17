@@ -22,10 +22,10 @@ export type GridPost = {
   author: {
     id: string;
     username: string;
+    name?: string | null;
     image: string | null;
     level: number;
     supportTierSent: SupportTierLevel;
-    cosplayerProfile?: { stageName: string | null } | null;
   };
   anime?: { title: string; slug: string } | null;
   media?: {

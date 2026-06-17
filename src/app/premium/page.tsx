@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
-import { isPaymentsConfigured, PREMIUM_PRICE } from "@/lib/payments";
+import { isPaymentsConfigured, PREMIUM_USD_CENTS } from "@/lib/payments";
+import { formatMocoDisplay, usdCentsToMocoDisplay } from "@/lib/moco-display";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Crown, Check } from "lucide-react";
 import { PayButton } from "@/components/payments/pay-button";
@@ -9,7 +10,8 @@ import { Button } from "@/components/ui/button";
 const benefits = [
   "광고 제거",
   "프로필 꾸미기 확장",
-  "고화질 업로드 (100MB)",
+  "고급 기능 · 스트리밍 확장",
+  "추가 저장공간",
   "특별 배지",
 ];
 
@@ -17,13 +19,16 @@ export default async function PremiumPage() {
   const session = await auth();
   const isPremium = session?.user?.premiumTier === "PREMIUM";
   const paymentsEnabled = isPaymentsConfigured();
+  const priceUsd = (PREMIUM_USD_CENTS / 100).toFixed(2);
+  const mocoHint = formatMocoDisplay(usdCentsToMocoDisplay(PREMIUM_USD_CENTS));
 
   return (
     <div className="max-w-lg mx-auto p-4 space-y-6 pb-24 lg:pb-6">
       <div className="text-center">
         <Crown className="h-12 w-12 text-yellow-400 mx-auto mb-2" />
         <h1 className="text-2xl font-bold">MoCoMo Premium</h1>
-        <p className="text-muted-foreground mt-2">월 {PREMIUM_PRICE.toLocaleString()}원</p>
+        <p className="text-muted-foreground mt-2">월 ${priceUsd}</p>
+        <p className="text-xs text-muted-foreground mt-1">{mocoHint} (표시 단위만)</p>
       </div>
 
       <Card className="border-yellow-500/30 bg-gradient-to-b from-yellow-500/10 to-transparent rounded-2xl">
@@ -46,12 +51,12 @@ export default async function PremiumPage() {
         paymentsEnabled ? (
           <PayButton
             type="PREMIUM"
-            amount={PREMIUM_PRICE}
-            orderName="MoCoMo Premium (1개월)"
+            amount={PREMIUM_USD_CENTS}
+            orderName="MoCoMo Premium (1 month)"
             metadata={{}}
             className="w-full rounded-xl"
           >
-            {PREMIUM_PRICE.toLocaleString()}원 구독하기
+            ${priceUsd}/월 구독하기
           </PayButton>
         ) : (
           <p className="text-center text-sm text-muted-foreground">
