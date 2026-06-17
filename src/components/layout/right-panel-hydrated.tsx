@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
+import { useLocale } from "@/components/providers/locale-provider";
 import {
   RightPanelContent,
   RightPanelSkeleton,
@@ -10,9 +11,16 @@ import {
 } from "@/components/layout/right-panel-content";
 
 /** 서버 prefetch + 클라이언트 네비게이션 시 lazy fetch */
-export function RightPanelHydrated({ initialData }: { initialData: SidebarPanelData | null }) {
+export function RightPanelHydrated({
+  initialData,
+  countryCode: initialCountryCode,
+}: {
+  initialData: SidebarPanelData | null;
+  countryCode: string;
+}) {
   const pathname = usePathname();
   const show = shouldShowRightPanel(pathname);
+  const { countryCode } = useLocale();
   const [data, setData] = useState<SidebarPanelData | null>(initialData);
   const [loading, setLoading] = useState(false);
 
@@ -26,7 +34,10 @@ export function RightPanelHydrated({ initialData }: { initialData: SidebarPanelD
 
     (async () => {
       try {
-        const res = await fetch("/api/sidebar", { signal: ac.signal });
+        const res = await fetch(
+          `/api/sidebar?country=${encodeURIComponent(countryCode || initialCountryCode)}`,
+          { signal: ac.signal }
+        );
         const body = await res.json();
         if (cancelled || !body.ok) return;
         setData({
@@ -48,7 +59,7 @@ export function RightPanelHydrated({ initialData }: { initialData: SidebarPanelD
       cancelled = true;
       ac.abort();
     };
-  }, [show, data]);
+  }, [show, data, countryCode, initialCountryCode]);
 
   if (!show) return null;
   if (!data) return loading ? <RightPanelSkeleton /> : null;

@@ -1,15 +1,30 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPin } from "lucide-react";
 import { SubcultureEventsMapLazy } from "@/components/events/subculture-events-map-lazy";
+import { useLocale } from "@/components/providers/locale-provider";
+import {
+  eventCountryFlag,
+  getSubcultureMapDefaultView,
+  resolveSubculturePinsForUser,
+  subcultureCountrySummary,
+} from "@/lib/subculture-event-countries";
 import type { MapEventPin } from "@/lib/subculture-events";
 
 export function SidebarEventMapCard({ pins }: { pins: MapEventPin[] }) {
-  const preview = pins.slice(0, 4);
+  const { countryCode, locale } = useLocale();
+  const localPins = useMemo(
+    () => resolveSubculturePinsForUser(pins, countryCode).slice(0, 12),
+    [pins, countryCode]
+  );
+  const preview = localPins.slice(0, 4);
+  const defaultView = getSubcultureMapDefaultView(countryCode);
+  const summary = subcultureCountrySummary(countryCode, locale);
 
   return (
     <Card className="rounded-2xl shadow-sm border-violet-500/25 overflow-hidden">
@@ -21,14 +36,19 @@ export function SidebarEventMapCard({ pins }: { pins: MapEventPin[] }) {
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-[10px] text-muted-foreground leading-snug">
-          🇰🇷 코믹월드·지스타 · 🇯🇵 コミケ·ワンフェス·TGS — 공식 사이트 <strong>자동 수집</strong>
+          {summary}
         </p>
-        <SubcultureEventsMapLazy pins={pins} heightClassName="h-40" interactive={false} />
+        <SubcultureEventsMapLazy
+          pins={localPins}
+          heightClassName="h-40"
+          interactive={false}
+          defaultView={defaultView}
+        />
         <ul className="space-y-1.5">
           {preview.map((p) => (
             <li key={p.id} className="text-xs min-w-0">
               <span className="font-medium text-foreground truncate block">
-                {p.country === "jp" ? "🇯🇵 " : "🇰🇷 "}
+                {eventCountryFlag(p.country)}{" "}
                 {p.title}
               </span>
               <span className="text-muted-foreground">

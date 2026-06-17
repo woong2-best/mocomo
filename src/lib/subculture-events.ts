@@ -6,6 +6,11 @@ import {
   SUBCULTURE_EVENT_CATEGORY_LABELS,
   type SubcultureEventCountry,
 } from "@/lib/subculture-event-seeds";
+import {
+  inferEventCountryFromCoords,
+  isKoreaEventCountry,
+  resolveSubculturePinsForUser,
+} from "@/lib/subculture-event-countries";
 import { fetchAllSubcultureEvents } from "@/lib/subculture-event-fetch";
 import type { FetchedSubcultureEvent } from "@/lib/subculture-event-fetch/types";
 
@@ -37,32 +42,20 @@ function inferEventCountry(
   lng: number,
   externalKey?: string | null
 ): SubcultureEventCountry {
-  if (
-    externalKey?.startsWith("official-jp-") ||
-    externalKey?.startsWith("auto-comiket") ||
-    externalKey?.startsWith("auto-wonfes") ||
-    externalKey?.startsWith("auto-kyomaf") ||
-    externalKey?.startsWith("auto-tgs") ||
-    externalKey?.startsWith("auto-comicw") ||
-    externalKey?.startsWith("auto-gstar") ||
-    externalKey?.startsWith("auto-seoulpopcon")
-  ) {
-    return "jp";
-  }
-  return lng >= 132 ? "jp" : "kr";
+  return inferEventCountryFromCoords(lat, lng, externalKey);
 }
 
 export function mapLinkForEvent(pin: MapEventPin): { label: string; url: string } {
-  if (pin.country === "jp") {
-    const q = encodeURIComponent(`${pin.venueName ?? pin.title} ${pin.lat},${pin.lng}`);
+  if (isKoreaEventCountry(pin.country)) {
     return {
-      label: "Google 지도",
-      url: `https://www.google.com/maps/search/?api=1&query=${q}`,
+      label: "카카오맵",
+      url: `https://map.kakao.com/link/map/${pin.lat},${pin.lng}`,
     };
   }
+  const q = encodeURIComponent(`${pin.venueName ?? pin.title} ${pin.lat},${pin.lng}`);
   return {
-    label: "카카오맵",
-    url: `https://map.kakao.com/link/map/${pin.lat},${pin.lng}`,
+    label: "Google 지도",
+    url: `https://www.google.com/maps/search/?api=1&query=${q}`,
   };
 }
 
@@ -145,9 +138,23 @@ export async function querySubcultureMapPins(limit: number): Promise<MapEventPin
 export async function getSubcultureMapPins(limit = 48): Promise<MapEventPin[]> {
   return unstable_cache(
     async () => querySubcultureMapPins(limit),
-    ["subculture-map-pins-v5", String(limit)],
+    ["subculture-map-pins-v6", String(limit)],
     { revalidate: 600, tags: [SUBCULTURE_MAP_PINS_CACHE_TAG] }
   )();
+}
+
+/** 사용자 기본 국가에 맞는 행사만 반환 */
+export async function getSubcultureMapPinsForUser(
+  limit = 48,
+  userCountryCode?: string
+): Promise<MapEventPin[]> {
+  let country = userCountryCode;
+  if (!country) {
+    const { getRequestCountryCode } = await import("@/lib/i18n/server");
+    country = await getRequestCountryCode();
+  }
+  const all = await getSubcultureMapPins(Math.max(limit * 3, 72));
+  return resolveSubculturePinsForUser(all, country).slice(0, limit);
 }
 
 export async function upsertFetchedSubcultureEvents(
@@ -286,7 +293,24 @@ export async function syncSubcultureEventsIfDue(options?: {
   };
 }
 
-/** 좌표 없는 행사 — 카카오 로컬로 보강 (cron·수동) */
+async function geocodeWithNominatim(query: string): Promise<{ lat: number; lng: number; label: string } | null> {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": "mocomo-subculture-events/1.0" },
+      next: { revalidate: 86400 },
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { lat: string; lon: string; display_name: string }[];
+    const hit = data[0];
+    if (!hit) return null;
+    return { lat: Number(hit.lat), lng: Number(hit.lon), label: hit.display_name };
+  } catch {
+    return null;
+  }
+}
+
+/** 좌표 없는 행사 — 한국은 카카오, 그 외 Nominatim (cron·수동) */
 export async function geocodePendingSubcultureEvents(max = 5): Promise<number> {
   try {
     await db.subcultureEventPin.findFirst({ select: { id: true } });
@@ -308,7 +332,10 @@ export async function geocodePendingSubcultureEvents(max = 5): Promise<number> {
     const q = [row.venueName, row.address].filter(Boolean).join(" ");
     if (!q.trim()) continue;
     try {
-      const coord = await kakaoSearchPlace(q);
+      const country = inferEventCountryFromCoords(row.lat ?? 0, row.lng ?? 0, row.externalKey);
+      const coord = isKoreaEventCountry(country)
+        ? await kakaoSearchPlace(q)
+        : await geocodeWithNominatim(q);
       if (!coord) continue;
       await db.subcultureEventPin.update({
         where: { id: row.id },

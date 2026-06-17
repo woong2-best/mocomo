@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
-import { getSubcultureMapPins } from "@/lib/subculture-events";
+import { getSubcultureMapPinsForUser } from "@/lib/subculture-events";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const pins = await getSubcultureMapPins(48);
+    const { searchParams } = new URL(req.url);
+    const country = searchParams.get("country") ?? undefined;
+    const pins = await getSubcultureMapPinsForUser(48, country ?? undefined);
     return NextResponse.json(
       { ok: true, pins },
       {

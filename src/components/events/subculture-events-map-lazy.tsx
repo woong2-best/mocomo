@@ -18,12 +18,14 @@ export function SubcultureEventsMapLazy({
   className,
   interactive = true,
   onPinClick,
+  defaultView,
 }: {
   pins: MapEventPin[];
   heightClassName?: string;
   className?: string;
   interactive?: boolean;
   onPinClick?: (pin: MapEventPin) => void;
+  defaultView?: { lat: number; lng: number; zoom: number };
 }) {
   if (pins.length === 0) {
     return (
@@ -46,6 +48,7 @@ export function SubcultureEventsMapLazy({
       className={className}
       interactive={interactive}
       onPinClick={onPinClick}
+      defaultView={defaultView}
     />
   );
 }

@@ -5,18 +5,31 @@ import { MapPin, ChevronLeft, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SubcultureEventsMapLazy } from "@/components/events/subculture-events-map-lazy";
-import { getSubcultureMapPins, mapLinkForEvent } from "@/lib/subculture-events";
 import {
-  SUBCULTURE_EVENT_CATEGORY_LABELS,
+  eventCountryFlag,
+  getSubcultureMapDefaultView,
   SUBCULTURE_EVENT_COUNTRY_LABELS,
-} from "@/lib/subculture-event-seeds";
+  subcultureCountrySummary,
+  userCountryToEventCountry,
+} from "@/lib/subculture-event-countries";
+import { getRequestCountryCode, getRequestLocale } from "@/lib/i18n/server";
+import {
+  getSubcultureMapPinsForUser,
+  mapLinkForEvent,
+} from "@/lib/subculture-events";
+import { SUBCULTURE_EVENT_CATEGORY_LABELS } from "@/lib/subculture-event-seeds";
 
 export const revalidate = 600;
 
 export default async function EventsMapPage() {
-  const pins = await getSubcultureMapPins(56);
-  const krCount = pins.filter((p) => p.country === "kr").length;
-  const jpCount = pins.filter((p) => p.country === "jp").length;
+  const [countryCode, locale] = await Promise.all([
+    getRequestCountryCode(),
+    getRequestLocale(),
+  ]);
+  const pins = await getSubcultureMapPinsForUser(56, countryCode);
+  const eventCountry = userCountryToEventCountry(countryCode);
+  const defaultView = getSubcultureMapDefaultView(countryCode);
+  const summary = subcultureCountrySummary(countryCode, locale);
 
   return (
     <div className="p-4 lg:p-6 max-w-4xl mx-auto space-y-6">
@@ -32,7 +45,10 @@ export default async function EventsMapPage() {
           서브컬처·애니 행사 지도
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          공식 사이트 <strong>자동 수집</strong> · 지도 접속·매일 cron 갱신
+          {summary} · 매일 cron 갱신
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          {eventCountryFlag(eventCountry)} {SUBCULTURE_EVENT_COUNTRY_LABELS[eventCountry]} 기준 · 설정에서 국가 변경 가능
         </p>
       </div>
 
@@ -40,6 +56,7 @@ export default async function EventsMapPage() {
         pins={pins}
         heightClassName="h-[min(420px,55vh)]"
         interactive
+        defaultView={defaultView}
       />
 
       <div className="space-y-3">
@@ -58,7 +75,7 @@ export default async function EventsMapPage() {
                 <CardContent className="p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                   <div className="min-w-0">
                     <p className="font-semibold flex items-center gap-2 flex-wrap">
-                      <span>{p.country === "jp" ? "🇯🇵" : "🇰🇷"}</span>
+                      <span>{eventCountryFlag(p.country)}</span>
                       {p.title}
                     </p>
                     <p className="text-xs text-violet-600 mt-0.5">

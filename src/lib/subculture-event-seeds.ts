@@ -7,24 +7,19 @@
  * - 서울일러스트코리아 / 서일페 / 일러스타 / AGF / BIAF
  */
 
-export type SubcultureEventCountry = "kr" | "jp";
+import { INTERNATIONAL_SUBCULTURE_EVENT_SEEDS } from "@/lib/subculture-event-seeds-international";
+import type { SubcultureEventCountry } from "@/lib/subculture-event-countries";
+import {
+  SUBCULTURE_EVENT_CATEGORY_LABELS,
+  type SubcultureEventSeed,
+} from "@/lib/subculture-event-types";
 
-export type SubcultureEventSeed = {
-  externalKey: string;
-  country?: SubcultureEventCountry;
-  title: string;
-  description?: string;
-  category: "comic" | "anime" | "cosplay" | "goods" | "other";
-  venueName: string;
-  address: string;
-  lat: number;
-  lng: number;
-  startsAt: string;
-  endsAt: string;
-  sourceUrl: string;
-  /** 공식 관람안내 등 직접 링크 */
-  officialNoticeUrl?: string;
-};
+export type { SubcultureEventCountry, SubcultureEventSeed };
+export {
+  SUBCULTURE_EVENT_COUNTRY_LABELS,
+  eventCountryFlag,
+} from "@/lib/subculture-event-countries";
+export { SUBCULTURE_EVENT_CATEGORY_LABELS } from "@/lib/subculture-event-types";
 
 export const SUBCULTURE_EVENT_SEEDS: SubcultureEventSeed[] = [
   {
@@ -293,15 +288,7 @@ export const SUBCULTURE_EVENT_SEEDS: SubcultureEventSeed[] = [
   },
 ];
 
-export const SUBCULTURE_EVENT_CATEGORY_LABELS: Record<string, string> = {
-  comic: "코믹·동인",
-  anime: "애니",
-  cosplay: "코스프레",
-  goods: "굿즈·일러스트",
-  other: "기타",
-};
-
-export const SUBCULTURE_EVENT_COUNTRY_LABELS: Record<SubcultureEventCountry, string> = {
-  kr: "한국",
-  jp: "일본",
-};
+export const ALL_SUBCULTURE_EVENT_SEEDS: SubcultureEventSeed[] = [
+  ...SUBCULTURE_EVENT_SEEDS,
+  ...INTERNATIONAL_SUBCULTURE_EVENT_SEEDS,
+];

@@ -1,13 +1,25 @@
 import { headers } from "next/headers";
 import { getCachedSidebarPanelData } from "@/lib/cached-data";
+import { resolveSubculturePinsForUser } from "@/lib/subculture-event-countries";
+import { getRequestCountryCode } from "@/lib/i18n/server";
 import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
 import { RightPanelHydrated } from "@/components/layout/right-panel-hydrated";
 
 export async function RightPanelAsync() {
   const pathname = (await headers()).get("x-pathname") ?? "/";
-  const initialData = shouldShowRightPanel(pathname)
-    ? await getCachedSidebarPanelData()
-    : null;
+  const show = shouldShowRightPanel(pathname);
+  if (!show) {
+    return <RightPanelHydrated initialData={null} countryCode="KR" />;
+  }
 
-  return <RightPanelHydrated initialData={initialData} />;
+  const countryCode = await getRequestCountryCode();
+  const raw = await getCachedSidebarPanelData();
+  const eventPins = resolveSubculturePinsForUser(raw.eventPins, countryCode).slice(0, 12);
+
+  return (
+    <RightPanelHydrated
+      initialData={{ ...raw, eventPins }}
+      countryCode={countryCode}
+    />
+  );
 }

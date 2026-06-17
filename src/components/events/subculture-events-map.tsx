@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Map as LeafletMap } from "leaflet";
 import type { MapEventPin } from "@/lib/subculture-events";
+import { eventCountryFlag } from "@/lib/subculture-event-countries";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -27,12 +28,14 @@ export function SubcultureEventsMap({
   heightClassName = "h-44",
   interactive = true,
   onPinClick,
+  defaultView,
 }: {
   pins: MapEventPin[];
   className?: string;
   heightClassName?: string;
   interactive?: boolean;
   onPinClick?: (pin: MapEventPin) => void;
+  defaultView?: { lat: number; lng: number; zoom: number };
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
@@ -86,7 +89,7 @@ export function SubcultureEventsMap({
           pin.source === "official" || pin.source === "auto"
             ? '<span style="font-size:10px;color:#7c3aed">공식 자동</span><br/>'
             : "";
-        const countryLabel = pin.country === "jp" ? "🇯🇵" : "🇰🇷";
+        const countryLabel = eventCountryFlag(pin.country);
         const popup = `${official}<strong>${pin.title}</strong><br/><span style="font-size:11px">${countryLabel} ${dateStr} · ${pin.venueName ?? ""}</span>`;
         marker.bindPopup(popup, { closeButton: false, maxWidth: 200 });
 
@@ -98,14 +101,16 @@ export function SubcultureEventsMap({
       }
 
       if (bounds.length === 1) {
-        map.setView(bounds[0], pins[0].country === "jp" ? 11 : 12);
+        map.setView(bounds[0], defaultView?.zoom ?? 11);
       } else if (bounds.length > 1) {
         const lngs = bounds.map((b) => b[1]);
         const lngSpan = Math.max(...lngs) - Math.min(...lngs);
         map.fitBounds(bounds, {
           padding: [32, 32],
-          maxZoom: lngSpan > 8 ? 5 : lngSpan > 4 ? 6 : 10,
+          maxZoom: lngSpan > 40 ? 4 : lngSpan > 20 ? 5 : lngSpan > 8 ? 6 : lngSpan > 4 ? 7 : 10,
         });
+      } else if (defaultView) {
+        map.setView([defaultView.lat, defaultView.lng], defaultView.zoom);
       } else {
         map.setView([36.2, 133.5], 5);
       }
@@ -123,7 +128,7 @@ export function SubcultureEventsMap({
       setReady(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- pins identity drives rebuild
-  }, [pins, interactive]);
+  }, [pins, interactive, defaultView]);
 
   if (pins.length === 0) {
     return (

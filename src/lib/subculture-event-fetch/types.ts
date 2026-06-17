@@ -1,4 +1,5 @@
-import type { SubcultureEventCountry, SubcultureEventSeed } from "@/lib/subculture-event-seeds";
+import type { SubcultureEventCountry } from "@/lib/subculture-event-countries";
+import type { SubcultureEventSeed } from "@/lib/subculture-event-types";
 
 export type FetchedSubcultureEvent = SubcultureEventSeed & {
   country: SubcultureEventCountry;

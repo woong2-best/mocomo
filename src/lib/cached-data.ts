@@ -166,7 +166,7 @@ export async function getCachedSidebarPanelData() {
     getCachedPopularAnime(),
     getCachedSidebarTips(),
     getCachedSidebarAds(),
-    getSubcultureMapPins(12),
+    getSubcultureMapPins(36),
   ]);
   return { animes, tips, sidebarAds, eventPins };
 }
