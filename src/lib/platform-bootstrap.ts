@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
 import { ensureEmoticonCatalog } from "@/lib/goods-shop";
 import { ensureAnimeWikiCatalog } from "@/lib/anime-wiki-seeds";
+import { ensureCosplayBoardSeed } from "@/lib/cosplay-board-seed";
 const PLATFORM_EMAIL = "platform@mocomo.app";
 const PLATFORM_USERNAME = "mocomo_official";
 
@@ -149,6 +150,7 @@ export async function ensurePlatformBootstrap(prisma: PrismaClient) {
   }
 
   await ensureAnimeWikiCatalog(prisma);
+  await ensureCosplayBoardSeed(prisma);
 
   globalBootstrap.mocomoBootstrapped = true;
 }

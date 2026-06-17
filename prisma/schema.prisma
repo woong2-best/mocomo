@@ -163,6 +163,8 @@ model User {
   usedListingChats UsedListingChat[] @relation("UsedListingChatBuyer")
   usedAuctionBids  UsedAuctionBid[]
   usedAuctionWins  UsedListing[]     @relation("UsedAuctionWinner")
+  cosplayBoardPosts CosplayBoardPost[]
+  cosplayBoardComments CosplayBoardComment[]
   userBadges    UserBadge[]
   notifications Notification[]
   events        EventParticipant[]
@@ -1571,6 +1573,59 @@ model UsedListingChat {
 
   @@unique([listingId, buyerId])
   @@index([listingId])
+}
+
+// ============ COSPLAY BOARD (대여·구매) ============
+
+enum CosplayBoardMode {
+  RENTAL
+  PURCHASE
+}
+
+enum CosplayBoardStatus {
+  OPEN
+  CLOSED
+}
+
+model CosplayBoardPost {
+  id         String             @id @default(cuid())
+  authorId   String
+  mode       CosplayBoardMode
+  title      String             @db.VarChar(200)
+  content    String             @db.Text
+  /** 원 단위 — 대여는 1일 기준, 구매는 판매가 */
+  price      Int?
+  priceLabel String?            @db.VarChar(80)
+  region     String?            @db.VarChar(80)
+  workTitle  String?            @db.VarChar(120)
+  character  String?            @db.VarChar(80)
+  sizeLabel  String?            @db.VarChar(40)
+  images     Json               @default("[]")
+  viewCount  Int                @default(0)
+  isNotice   Boolean            @default(false)
+  status     CosplayBoardStatus @default(OPEN)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  author   User                  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments CosplayBoardComment[]
+
+  @@index([mode, status, createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
+  @@index([isNotice])
+}
+
+model CosplayBoardComment {
+  id        String   @id @default(cuid())
+  postId    String
+  authorId  String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  post   CosplayBoardPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
 }
 
 model AdSlot {

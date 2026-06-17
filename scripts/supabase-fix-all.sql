@@ -1401,3 +1401,74 @@ CREATE UNIQUE INDEX IF NOT EXISTS "MinigameUserAchievement_userId_achievementId_
   ON "MinigameUserAchievement"("userId", "achievementId");
 CREATE INDEX IF NOT EXISTS "MinigameUserAchievement_userId_idx" ON "MinigameUserAchievement"("userId");
 
+-- =============================================================================
+-- Z5) 코스프레 대여·구매 게시판 (CosplayBoardPost)
+-- =============================================================================
+
+DO $$ BEGIN
+  CREATE TYPE "CosplayBoardMode" AS ENUM ('RENTAL', 'PURCHASE');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "CosplayBoardStatus" AS ENUM ('OPEN', 'CLOSED');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS "CosplayBoardPost" (
+  "id" TEXT NOT NULL,
+  "authorId" TEXT NOT NULL,
+  "mode" "CosplayBoardMode" NOT NULL,
+  "title" VARCHAR(200) NOT NULL,
+  "content" TEXT NOT NULL,
+  "price" INTEGER,
+  "priceLabel" VARCHAR(80),
+  "region" VARCHAR(80),
+  "workTitle" VARCHAR(120),
+  "character" VARCHAR(80),
+  "sizeLabel" VARCHAR(40),
+  "images" JSONB NOT NULL DEFAULT '[]',
+  "viewCount" INTEGER NOT NULL DEFAULT 0,
+  "isNotice" BOOLEAN NOT NULL DEFAULT false,
+  "status" "CosplayBoardStatus" NOT NULL DEFAULT 'OPEN',
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "CosplayBoardPost_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "CosplayBoardComment" (
+  "id" TEXT NOT NULL,
+  "postId" TEXT NOT NULL,
+  "authorId" TEXT NOT NULL,
+  "content" TEXT NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "CosplayBoardComment_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX IF NOT EXISTS "CosplayBoardPost_mode_status_createdAt_idx"
+  ON "CosplayBoardPost"("mode", "status", "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "CosplayBoardPost_authorId_createdAt_idx"
+  ON "CosplayBoardPost"("authorId", "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "CosplayBoardPost_isNotice_idx"
+  ON "CosplayBoardPost"("isNotice");
+CREATE INDEX IF NOT EXISTS "CosplayBoardComment_postId_createdAt_idx"
+  ON "CosplayBoardComment"("postId", "createdAt");
+
+DO $$ BEGIN
+  ALTER TABLE "CosplayBoardPost" ADD CONSTRAINT "CosplayBoardPost_authorId_fkey"
+    FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "CosplayBoardComment" ADD CONSTRAINT "CosplayBoardComment_postId_fkey"
+    FOREIGN KEY ("postId") REFERENCES "CosplayBoardPost"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "CosplayBoardComment" ADD CONSTRAINT "CosplayBoardComment_authorId_fkey"
+    FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+

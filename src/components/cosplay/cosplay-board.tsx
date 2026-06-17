@@ -6,19 +6,21 @@ import { useCallback, useTransition } from "react";
 import { Camera, PenSquare, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  getCosplayBoardPosts,
+  cosplayBoardListHref,
+  formatCosplayBoardDate,
   parseCosplayBoardMode,
+  type CosplayBoardListItem,
   type CosplayBoardMode,
-  type CosplayBoardPost,
 } from "@/lib/cosplay-board-data";
 import { Button } from "@/components/ui/button";
+import { DbSetupBanner } from "@/components/ui/db-setup-banner";
 
 const MODES: { id: CosplayBoardMode; label: string }[] = [
   { id: "rental", label: "코스프레 대여" },
   { id: "purchase", label: "구매" },
 ];
 
-function BoardRow({ post, index }: { post: CosplayBoardPost; index: number }) {
+function BoardRow({ post, index }: { post: CosplayBoardListItem; index: number }) {
   return (
     <tr
       className={cn(
@@ -49,11 +51,16 @@ function BoardRow({ post, index }: { post: CosplayBoardPost; index: number }) {
           </span>
         </Link>
       </td>
-      <td className="py-2 px-2 text-center text-[12px] text-[#555] dark:text-muted-foreground hidden sm:table-cell truncate max-w-[6rem]">
-        {post.author}
+      <td className="py-2 px-2 text-center hidden sm:table-cell">
+        <Link
+          href={`/u/${post.authorUsername}`}
+          className="text-[12px] text-[#555] dark:text-muted-foreground hover:underline truncate block max-w-[6rem] mx-auto"
+        >
+          {post.author}
+        </Link>
       </td>
       <td className="py-2 px-2 text-center text-[11px] text-[#888] dark:text-muted-foreground hidden md:table-cell tabular-nums">
-        {post.createdAt}
+        {formatCosplayBoardDate(post.createdAt)}
       </td>
       <td className="py-2 px-2 text-center text-[11px] text-[#888] dark:text-muted-foreground hidden md:table-cell tabular-nums">
         {post.viewCount}
@@ -62,30 +69,49 @@ function BoardRow({ post, index }: { post: CosplayBoardPost; index: number }) {
   );
 }
 
-export function CosplayBoard({ initialMode }: { initialMode: CosplayBoardMode }) {
+export function CosplayBoard({
+  initialMode,
+  posts,
+  totalCount,
+  currentPage,
+  totalPages,
+  dbReady,
+}: {
+  initialMode: CosplayBoardMode;
+  posts: CosplayBoardListItem[];
+  totalCount: number;
+  currentPage: number;
+  totalPages: number;
+  dbReady: boolean;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
 
   const mode = parseCosplayBoardMode(searchParams.get("mode") ?? initialMode);
-  const posts = getCosplayBoardPosts(mode);
+  const page = Math.max(1, Number(searchParams.get("page")) || currentPage);
 
   const setMode = useCallback(
     (next: CosplayBoardMode) => {
       if (next === mode) return;
       startTransition(() => {
-        const params = new URLSearchParams(searchParams.toString());
-        if (next === "rental") {
-          params.delete("mode");
-        } else {
-          params.set("mode", next);
-        }
-        const qs = params.toString();
-        router.replace(qs ? `/cosplay?${qs}` : "/cosplay", { scroll: false });
+        router.replace(cosplayBoardListHref(next), { scroll: false });
       });
     },
-    [mode, router, searchParams]
+    [mode, router]
   );
+
+  const goPage = useCallback(
+    (nextPage: number) => {
+      if (nextPage < 1 || nextPage > totalPages || nextPage === page) return;
+      startTransition(() => {
+        router.replace(cosplayBoardListHref(mode, nextPage), { scroll: false });
+      });
+    },
+    [mode, page, router, totalPages]
+  );
+
+  const regularPosts = posts.filter((p) => !p.isNotice);
 
   return (
     <div className="space-y-4">
@@ -107,13 +133,17 @@ export function CosplayBoard({ initialMode }: { initialMode: CosplayBoardMode })
             </Link>
           </Button>
           <Button size="sm" className="rounded-lg gap-1.5 text-xs" asChild>
-            <Link href={`/used/new?category=COSPLAY&mode=${mode}`}>
+            <Link href={`/cosplay/board/new?mode=${mode}`}>
               <PenSquare className="h-3.5 w-3.5" />
               글쓰기
             </Link>
           </Button>
         </div>
       </div>
+
+      {!dbReady && (
+        <DbSetupBanner title="코스프레 게시판 DB가 준비되지 않았습니다. Supabase SQL 섹션 Z5 실행 후 다시 시도해 주세요." />
+      )}
 
       <div className="flex items-center justify-center">
         <div
@@ -153,7 +183,7 @@ export function CosplayBoard({ initialMode }: { initialMode: CosplayBoardMode })
         <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-[#d6d6d6] dark:border-border bg-[#f7f7f7] dark:bg-muted/30 text-[11px] text-muted-foreground">
           <span>
             {mode === "rental" ? "코스프레 대여" : "구매"} 게시판 · 총{" "}
-            <strong className="text-foreground">{posts.length}</strong>개
+            <strong className="text-foreground">{totalCount}</strong>개
           </span>
           <span className="hidden sm:inline">번호 · 제목 · 글쓴이 · 날짜 · 조회</span>
         </div>
@@ -173,23 +203,26 @@ export function CosplayBoard({ initialMode }: { initialMode: CosplayBoardMode })
               {posts.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-16 text-center text-sm text-muted-foreground">
-                    등록된 글이 없습니다.
+                    {dbReady ? (
+                      <>
+                        등록된 글이 없습니다.{" "}
+                        <Link href={`/cosplay/board/new?mode=${mode}`} className="text-primary hover:underline">
+                          첫 글 올리기
+                        </Link>
+                      </>
+                    ) : (
+                      "게시판을 불러올 수 없습니다."
+                    )}
                   </td>
                 </tr>
               ) : (
                 posts.map((post, i) => {
-                  const regularIndex = posts
-                    .slice(0, i + 1)
-                    .filter((p) => !p.isNotice).length;
+                  const regularIndex = posts.slice(0, i + 1).filter((p) => !p.isNotice).length;
                   const displayNum = post.isNotice
                     ? null
-                    : posts.filter((p) => !p.isNotice).length - regularIndex + 1;
+                    : regularPosts.length - regularIndex + 1;
                   return (
-                    <BoardRow
-                      key={post.id}
-                      post={post}
-                      index={displayNum ?? 0}
-                    />
+                    <BoardRow key={post.id} post={post} index={displayNum ?? 0} />
                   );
                 })
               )}
@@ -197,19 +230,25 @@ export function CosplayBoard({ initialMode }: { initialMode: CosplayBoardMode })
           </table>
         </div>
 
-        <div className="flex items-center justify-center gap-1 px-3 py-2 border-t border-[#d6d6d6] dark:border-border bg-[#f7f7f7] dark:bg-muted/30">
-          <span className="inline-flex h-7 min-w-7 items-center justify-center rounded border border-[#3b4890] bg-[#3b4890] text-[11px] font-bold text-white">
-            1
-          </span>
-          {[2, 3, 4, 5].map((n) => (
-            <span
-              key={n}
-              className="inline-flex h-7 min-w-7 items-center justify-center rounded border border-[#ccc] dark:border-border text-[11px] text-muted-foreground"
-            >
-              {n}
-            </span>
-          ))}
-        </div>
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-1 px-3 py-2 border-t border-[#d6d6d6] dark:border-border bg-[#f7f7f7] dark:bg-muted/30">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => goPage(n)}
+                className={cn(
+                  "inline-flex h-7 min-w-7 items-center justify-center rounded border text-[11px] font-bold transition-colors",
+                  n === page
+                    ? "border-[#3b4890] bg-[#3b4890] text-white"
+                    : "border-[#ccc] dark:border-border text-muted-foreground hover:bg-muted/50"
+                )}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
