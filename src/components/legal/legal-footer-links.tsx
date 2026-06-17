@@ -2,7 +2,11 @@ import Link from "next/link";
 
 const links = [
   { href: "/legal/terms", label: "이용약관" },
+  { href: "/legal/creator-terms", label: "크리에이터 약관" },
+  { href: "/legal/payment", label: "결제·환불" },
+  { href: "/legal/copyright", label: "저작권" },
   { href: "/legal/privacy", label: "개인정보처리방침" },
+  { href: "/legal/account-deletion", label: "계정 삭제" },
   { href: "/legal/policy", label: "운영정책" },
 ] as const;
 

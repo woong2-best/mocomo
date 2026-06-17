@@ -36,7 +36,19 @@ function renderBlock(block: LegalDocument["blocks"][number], key: number) {
       return (
         <ul key={key} className="list-disc pl-5 space-y-1.5 text-sm text-muted-foreground mb-4">
           {block.items.map((item) => (
-            <li key={item}>{item}</li>
+            <li key={item}>
+              {item.includes(LEGAL_CONTACT_EMAIL) ? (
+                <>
+                  {item.split(LEGAL_CONTACT_EMAIL)[0]}
+                  <a href={`mailto:${LEGAL_CONTACT_EMAIL}`} className="text-primary hover:underline">
+                    {LEGAL_CONTACT_EMAIL}
+                  </a>
+                  {item.split(LEGAL_CONTACT_EMAIL)[1]}
+                </>
+              ) : (
+                item
+              )}
+            </li>
           ))}
         </ul>
       );
