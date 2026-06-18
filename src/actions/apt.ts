@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { createDefaultFloorPlan } from "@/lib/apt/floor-plan-logic";
+import { APT_DEFAULT_FLOOR } from "@/lib/apt/constants";
+import { clampFloor, emptyFloorPlans, getRoomsForFloor } from "@/lib/apt/floor-plan-store";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import {
   defaultFurnitureForPlan,
@@ -12,7 +13,6 @@ import {
   type ResidentAgent,
   type SimulationSnapshot,
 } from "@/lib/apt/simulation/types";
-import { APT_DEFAULT_FLOOR } from "@/lib/apt/constants";
 
 export type AptProfileDto = {
   homeFloor: number;
@@ -24,10 +24,7 @@ export type AptProfileDto = {
 };
 
 function defaultPlans(): Record<number, AptRoom[]> {
-  const base = createDefaultFloorPlan().rooms;
-  const out: Record<number, AptRoom[]> = {};
-  for (let f = 1; f <= 12; f++) out[f] = base.map((r) => ({ ...r }));
-  return out;
+  return emptyFloorPlans();
 }
 
 function parseJson<T>(raw: unknown, fallback: T): T {
@@ -40,7 +37,7 @@ export async function getAptProfile(): Promise<AptProfileDto | null> {
   if (!user) return null;
 
   const plans = defaultPlans();
-  const rooms = plans[APT_DEFAULT_FLOOR];
+  const rooms = getRoomsForFloor(plans, APT_DEFAULT_FLOOR);
   const fallback: AptProfileDto = {
     homeFloor: APT_DEFAULT_FLOOR,
     moveInCompleted: false,
@@ -59,7 +56,7 @@ export async function getAptProfile(): Promise<AptProfileDto | null> {
 
   const floorPlans = parseJson<Record<number, AptRoom[]>>(row.floorPlans, defaultPlans());
   const homeFloor = row.homeFloor ?? APT_DEFAULT_FLOOR;
-  const rooms = floorPlans[homeFloor] ?? createDefaultFloorPlan().rooms;
+  const rooms = getRoomsForFloor(floorPlans, homeFloor);
 
   return {
     homeFloor,
@@ -81,8 +78,9 @@ export async function completeAptMoveIn(homeFloor: number) {
   const user = await getCachedCurrentUser();
   if (!user) return { error: "로그인이 필요합니다." };
 
+  const floor = clampFloor(homeFloor);
   const plans = defaultPlans();
-  const rooms = plans[homeFloor] ?? createDefaultFloorPlan().rooms;
+  const rooms = getRoomsForFloor(plans, floor);
   const furniture = defaultFurnitureForPlan(rooms);
   const residents = defaultResidents({
     userId: user.id,
@@ -94,7 +92,7 @@ export async function completeAptMoveIn(homeFloor: number) {
       where: { userId: user.id },
       create: {
         userId: user.id,
-        homeFloor,
+        homeFloor: floor,
         moveInCompletedAt: new Date(),
         floorPlans: plans,
         furniture,
@@ -102,7 +100,7 @@ export async function completeAptMoveIn(homeFloor: number) {
         simulationState: {},
       },
       update: {
-        homeFloor,
+        homeFloor: floor,
         moveInCompletedAt: new Date(),
         floorPlans: plans,
         furniture,
@@ -175,7 +173,7 @@ export async function placeAptTv() {
   if (!profile) return { error: "프로필 없음" };
 
   const floor = profile.homeFloor;
-  const rooms = profile.floorPlans[floor] ?? createDefaultFloorPlan().rooms;
+  const rooms = getRoomsForFloor(profile.floorPlans, floor);
   const living = rooms.find((r) => r.type === "living");
   if (!living) return { error: "거실이 없습니다." };
 

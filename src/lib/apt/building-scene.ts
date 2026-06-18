@@ -8,7 +8,7 @@ import {
   disposeGroup,
 } from "@/lib/apt/building-from-plan";
 import { APT_DEFAULT_FLOOR, APT_TOTAL_FLOORS, FLOOR_HEIGHT } from "@/lib/apt/constants";
-import { createDefaultFloorPlan } from "@/lib/apt/floor-plan-logic";
+import { getRoomsForFloor } from "@/lib/apt/floor-plan-store";
 import { PLAN_H, PLAN_W, type AptRoom } from "@/lib/apt/floor-plan-types";
 import { AptSimulationLayer } from "@/lib/apt/simulation/simulation-layer";
 import type { FurnitureItem, ResidentAgent, SimulationSnapshot } from "@/lib/apt/simulation/types";
@@ -16,7 +16,8 @@ import type { FurnitureItem, ResidentAgent, SimulationSnapshot } from "@/lib/apt
 export { APT_DEFAULT_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
 
 const MIN_DISTANCE = 5;
-const MAX_DISTANCE = 36;
+const MAX_DISTANCE = 55;
+const BUILDING_H = APT_TOTAL_FLOORS * FLOOR_HEIGHT;
 
 type FloorRefs = {
   group: THREE.Group;
@@ -36,7 +37,10 @@ export class AptBuildingScene {
   private camera: THREE.PerspectiveCamera;
   private controls: OrbitControls;
   private building = new THREE.Group();
-  private floorRefs: FloorRefs[] = [];
+  private towerGroup = new THREE.Group();
+  private towerMats: THREE.MeshStandardMaterial[] = [];
+  private detailRef: FloorRefs | null = null;
+  private raycastTargets: THREE.Object3D[] = [];
   private raycaster = new THREE.Raycaster();
   private pointer = new THREE.Vector2();
   private focusTarget = new THREE.Vector3();
@@ -62,11 +66,11 @@ export class AptBuildingScene {
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0xe8e4dc);
-    this.scene.fog = new THREE.Fog(0xe8e4dc, 32, 58);
+    this.scene.fog = new THREE.Fog(0xe8e4dc, 40, BUILDING_H + 80);
 
     const w = Math.max(mount.clientWidth, 320);
     const h = Math.max(mount.clientHeight, 400);
-    this.camera = new THREE.PerspectiveCamera(38, w / h, 0.1, 120);
+    this.camera = new THREE.PerspectiveCamera(38, w / h, 0.1, BUILDING_H + 120);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -100,7 +104,8 @@ export class AptBuildingScene {
     this.initFloorPlans();
     this.addLights();
     this.addGround();
-    this.rebuildAllFloors();
+    this.buildTowerShell();
+    this.rebuildDetailFloor();
     this.scene.add(this.building);
     this.simulation = new AptSimulationLayer(this.building);
     this.simulation.setOnChange((snap) => this.callbacks.onSimulationChange?.(snap));
@@ -118,10 +123,11 @@ export class AptBuildingScene {
   }
 
   private initFloorPlans() {
-    const d = createDefaultFloorPlan().rooms;
-    for (let f = 1; f <= APT_TOTAL_FLOORS; f++) {
-      this.floorPlans[f] = d.map((r) => ({ ...r }));
-    }
+    this.floorPlans = {};
+  }
+
+  private roomsFor(floor: number) {
+    return getRoomsForFloor(this.floorPlans, floor);
   }
 
   setCallbacks(cb: AptBuildingCallbacks) {
@@ -133,7 +139,7 @@ export class AptBuildingScene {
     residents: ResidentAgent[],
     furniture: FurnitureItem[]
   ) {
-    const rooms = this.floorPlans[floor] ?? createDefaultFloorPlan().rooms;
+    const rooms = this.roomsFor(floor);
     await this.simulation.bootstrap(floor, rooms, residents, furniture);
     this.simEnabled = true;
   }
@@ -148,17 +154,17 @@ export class AptBuildingScene {
 
   setFloorPlans(plans: Record<number, AptRoom[]>) {
     this.floorPlans = plans;
-    this.rebuildAllFloors();
+    this.rebuildDetailFloor();
   }
 
   setSelectedRoomIds(ids: string[]) {
     this.selectedIds = ids;
-    this.rebuildFloor(this.currentFloor);
+    this.rebuildDetailFloor();
   }
 
   updateFloorRooms(floor: number, rooms: AptRoom[]) {
     this.floorPlans[floor] = rooms;
-    this.rebuildFloor(floor);
+    if (floor === this.currentFloor) this.rebuildDetailFloor();
     if (this.simEnabled && floor === this.currentFloor) {
       this.simulation.updateContext(floor, rooms);
     }
@@ -170,12 +176,12 @@ export class AptBuildingScene {
 
   setFloor(floor: number) {
     const clamped = Math.min(APT_TOTAL_FLOORS, Math.max(1, floor));
+    if (clamped === this.currentFloor) return;
     this.currentFloor = clamped;
     this.targetBuildingY = this.floorToBuildingY(clamped);
-    this.updateFloorHighlight();
+    this.rebuildDetailFloor();
     if (this.simEnabled) {
-      const rooms = this.floorPlans[clamped] ?? createDefaultFloorPlan().rooms;
-      this.simulation.updateContext(clamped, rooms);
+      this.simulation.updateContext(clamped, this.roomsFor(clamped));
     }
   }
 
@@ -243,62 +249,80 @@ export class AptBuildingScene {
     this.scene.add(ground);
   }
 
-  private rebuildFloor(floorIndex: number) {
-    const idx = floorIndex - 1;
-    if (idx < 0 || idx >= APT_TOTAL_FLOORS) return;
-    const prev = this.floorRefs[idx];
-    if (prev) {
-      this.building.remove(prev.group);
-      disposeGroup(prev.group);
-    }
-    const rooms = this.floorPlans[floorIndex] ?? createDefaultFloorPlan().rooms;
-    const { group, shellMats } = buildFloorGroup(rooms, {
-      selectedIds: floorIndex === this.currentFloor ? this.selectedIds : [],
-      floorIndex,
-    });
-    group.position.y = (floorIndex - 1) * FLOOR_HEIGHT;
-    this.floorRefs[idx] = { group, shellMats };
-    this.building.add(group);
-    this.updateFloorHighlight();
-  }
-
-  private rebuildAllFloors() {
-    for (const ref of this.floorRefs) {
-      this.building.remove(ref.group);
-      disposeGroup(ref.group);
-    }
-    this.floorRefs = [];
+  private buildTowerShell() {
+    const w = PLAN_W * SCALE;
+    const d = PLAN_H * SCALE;
+    const geo = new THREE.BoxGeometry(w, FLOOR_HEIGHT * 0.82, d);
+    this.towerMats = [];
 
     for (let f = 1; f <= APT_TOTAL_FLOORS; f++) {
-      const rooms = this.floorPlans[f] ?? createDefaultFloorPlan().rooms;
-      const { group, shellMats } = buildFloorGroup(rooms, {
-        selectedIds: f === this.currentFloor ? this.selectedIds : [],
-        floorIndex: f,
+      const mat = new THREE.MeshStandardMaterial({
+        color: f === this.currentFloor ? 0x3d5f8f : 0x2a4a7a,
+        transparent: true,
+        opacity: f === this.currentFloor ? 0.5 : 0.22,
+        roughness: 0.55,
       });
-      group.position.y = (f - 1) * FLOOR_HEIGHT;
-      this.floorRefs.push({ group, shellMats });
-      this.building.add(group);
+      this.towerMats.push(mat);
+      const slab = new THREE.Mesh(geo, mat);
+      slab.position.y = (f - 1) * FLOOR_HEIGHT + FLOOR_HEIGHT * 0.45;
+      slab.userData.floor = f;
+      this.towerGroup.add(slab);
     }
-    this.updateFloorHighlight();
+    this.building.add(this.towerGroup);
+    this.syncRaycastTargets();
   }
 
-  private updateFloorHighlight() {
-    for (let i = 0; i < this.floorRefs.length; i++) {
-      const hl = this.floorRefs[i].group.getObjectByName("floor-highlight") as THREE.Mesh | undefined;
-      if (hl) {
-        (hl.material as THREE.MeshBasicMaterial).opacity = i + 1 === this.currentFloor ? 0.18 : 0;
-      }
+  private rebuildDetailFloor() {
+    if (this.detailRef) {
+      this.building.remove(this.detailRef.group);
+      disposeGroup(this.detailRef.group);
+      this.detailRef = null;
     }
+
+    const floorIndex = this.currentFloor;
+    const rooms = this.roomsFor(floorIndex);
+    const built = buildFloorGroup(rooms, {
+      selectedIds: this.selectedIds,
+      floorIndex,
+    });
+    built.group.position.y = (floorIndex - 1) * FLOOR_HEIGHT;
+    this.detailRef = built;
+    this.building.add(built.group);
+    this.updateTowerHighlight();
+    this.syncRaycastTargets();
+  }
+
+  private updateTowerHighlight() {
+    for (let i = 0; i < this.towerMats.length; i++) {
+      const f = i + 1;
+      const active = f === this.currentFloor;
+      const mat = this.towerMats[i];
+      mat.color.setHex(active ? 0x3d5f8f : 0x2a4a7a);
+      mat.opacity = active ? 0.55 : 0.2;
+    }
+    const hl = this.detailRef?.group.getObjectByName("floor-highlight") as THREE.Mesh | undefined;
+    if (hl) (hl.material as THREE.MeshBasicMaterial).opacity = 0.18;
+  }
+
+  private syncRaycastTargets() {
+    this.raycastTargets = [
+      ...this.towerGroup.children,
+      ...(this.detailRef ? [this.detailRef.group] : []),
+    ];
   }
 
   private applyXray() {
     const t = this.xrayCurrent;
-    for (const { shellMats } of this.floorRefs) {
-      for (const mat of shellMats) {
+    if (this.detailRef) {
+      for (const mat of this.detailRef.shellMats) {
         const base = mat.color.getHex() === 0x1e3a6e ? 0.78 : 0.58;
         mat.opacity = THREE.MathUtils.lerp(base, 0.1, t);
         mat.depthWrite = t < 0.55;
       }
+    }
+    for (const mat of this.towerMats) {
+      const base = 0.22;
+      mat.opacity = THREE.MathUtils.lerp(base, 0.06, t);
     }
   }
 
@@ -319,10 +343,7 @@ export class AptBuildingScene {
     this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
     this.raycaster.setFromCamera(this.pointer, this.camera);
 
-    const hits = this.raycaster.intersectObjects(
-      this.floorRefs.map((f) => f.group),
-      true
-    );
+    const hits = this.raycaster.intersectObjects(this.raycastTargets, true);
     if (!hits.length) return;
 
     let obj: THREE.Object3D | null = hits[0].object;
@@ -379,7 +400,14 @@ export class AptBuildingScene {
     canvas.removeEventListener("pointercancel", this.onPointerUp);
     this.controls.dispose();
     this.simulation.dispose();
-    for (const ref of this.floorRefs) disposeGroup(ref.group);
+    if (this.detailRef) disposeGroup(this.detailRef.group);
+    this.towerGroup.traverse((o) => {
+      if (o instanceof THREE.Mesh) {
+        o.geometry.dispose();
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        mats.forEach((m) => m.dispose());
+      }
+    });
     this.renderer.dispose();
     canvas.remove();
   }

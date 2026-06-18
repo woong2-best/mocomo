@@ -81,22 +81,32 @@ export function AptMoveInClient({ username }: { username: string }) {
         {step === 1 && (
           <div className="space-y-4">
             <h2 className="text-lg font-bold text-folk-cobalt text-center">거주할 층을 선택하세요</h2>
-            <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1">
-              {Array.from({ length: APT_TOTAL_FLOORS }, (_, i) => i + 1).map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => setFloor(f)}
-                  className={cn(
-                    "rounded-xl border-2 py-2.5 text-sm font-bold transition-all",
-                    floor === f
-                      ? "border-folk-terracotta bg-folk-terracotta/15 text-folk-terracotta scale-105"
-                      : "border-[hsl(var(--folk-cobalt)/0.2)] hover:bg-[hsl(var(--folk-gold)/0.1)]"
-                  )}
-                >
-                  {f}층
-                </button>
-              ))}
+            <p className="text-4xl font-display font-bold text-folk-terracotta tabular-nums text-center">
+              {floor}층
+            </p>
+            <input
+              type="range"
+              min={1}
+              max={APT_TOTAL_FLOORS}
+              value={floor}
+              onChange={(e) => setFloor(Number(e.target.value))}
+              className="w-full accent-folk-terracotta"
+              aria-label="층 선택"
+            />
+            <div className="flex items-center justify-center gap-2">
+              <input
+                type="number"
+                min={1}
+                max={APT_TOTAL_FLOORS}
+                value={floor}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  if (Number.isFinite(n)) setFloor(Math.min(APT_TOTAL_FLOORS, Math.max(1, n)));
+                }}
+                className="w-20 rounded-xl border-2 border-[hsl(var(--folk-cobalt)/0.2)] bg-background px-2 py-1.5 text-center text-sm font-bold tabular-nums"
+                aria-label="층 번호 입력"
+              />
+              <span className="text-sm text-muted-foreground">/ {APT_TOTAL_FLOORS}층</span>
             </div>
             <p className="text-xs text-center text-muted-foreground">
               기본 평면도(현관·주방·화장실 고정)와 TV가 설치됩니다.

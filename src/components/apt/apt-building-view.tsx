@@ -29,6 +29,7 @@ import {
   removeRoom,
   splitRoom,
 } from "@/lib/apt/floor-plan-logic";
+import { getRoomsForFloor } from "@/lib/apt/floor-plan-store";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import type { SimulationSnapshot } from "@/lib/apt/simulation/types";
 import { loadActiveVrm } from "@/lib/virtual-avatar/vrm-storage";
@@ -38,10 +39,7 @@ function initPlansFromProfile(profile: AptProfileDto | null): Record<number, Apt
   if (profile?.floorPlans && Object.keys(profile.floorPlans).length > 0) {
     return profile.floorPlans;
   }
-  const d = createDefaultFloorPlan().rooms;
-  const out: Record<number, AptRoom[]> = {};
-  for (let f = 1; f <= APT_TOTAL_FLOORS; f++) out[f] = d.map((r) => ({ ...r }));
-  return out;
+  return {};
 }
 
 export function AptBuildingView({
@@ -67,7 +65,7 @@ export function AptBuildingView({
   const [toast, setToast] = useState<string | null>(null);
   const [simSnap, setSimSnap] = useState<SimulationSnapshot | null>(null);
 
-  const rooms = plans[floor] ?? createDefaultFloorPlan().rooms;
+  const rooms = getRoomsForFloor(plans, floor);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -343,6 +341,19 @@ export function AptBuildingView({
           </div>
 
           <p className="text-[10px] text-muted-foreground tabular-nums">1 – {APT_TOTAL_FLOORS}층</p>
+          <input
+            type="number"
+            min={1}
+            max={APT_TOTAL_FLOORS}
+            value={floor}
+            disabled={moving}
+            onChange={(e) => {
+              const n = Number(e.target.value);
+              if (Number.isFinite(n)) goToFloor(n);
+            }}
+            className="w-full rounded-lg border border-[hsl(var(--folk-cobalt)/0.25)] bg-background px-1 py-1 text-center text-xs font-bold tabular-nums disabled:opacity-40"
+            aria-label="층 직접 이동"
+          />
           <p className="text-[9px] text-center text-muted-foreground leading-snug px-1">
             고정: 현관·주방·화장실
           </p>
