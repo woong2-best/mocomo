@@ -4,8 +4,15 @@ import { Building2 } from "lucide-react";
 import { FolkSectionTitle } from "@/components/brand/folk-decor";
 import { AptBuildingView } from "@/components/apt/apt-building-view";
 import { useLocale } from "@/components/providers/locale-provider";
+import type { AptProfileDto } from "@/actions/apt";
 
-export function AptHubClient() {
+export function AptHubClient({
+  initialProfile,
+  isLoggedIn,
+}: {
+  initialProfile: AptProfileDto | null;
+  isLoggedIn: boolean;
+}) {
   const { t } = useLocale();
 
   return (
@@ -16,11 +23,13 @@ export function AptHubClient() {
           {t("nav.apt")}
         </FolkSectionTitle>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          3D 아파트에서 층별 집 구조를 확인하세요. 휠로 확대/축소하고, 방을 클릭해 추가·삭제·합칠 수 있습니다. 현관·주방·화장실은 고정입니다.
+          {isLoggedIn
+            ? "3D 아파트에서 아바타가 생활합니다. 휠로 확대/축소하고, 방을 편집하거나 TV 시청·청소·요리 활동을 관찰하세요."
+            : "로그인 후 입주하면 나만의 APT와 아바타 생활 시뮬레이션이 시작됩니다."}
         </p>
       </div>
 
-      <AptBuildingView />
+      <AptBuildingView initialProfile={initialProfile} isLoggedIn={isLoggedIn} />
     </div>
   );
 }

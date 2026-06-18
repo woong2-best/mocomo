@@ -9,6 +9,8 @@ import {
 } from "@/lib/apt/building-from-plan";
 import { createDefaultFloorPlan } from "@/lib/apt/floor-plan-logic";
 import { PLAN_H, PLAN_W, type AptRoom } from "@/lib/apt/floor-plan-types";
+import { AptSimulationLayer } from "@/lib/apt/simulation/simulation-layer";
+import type { FurnitureItem, ResidentAgent, SimulationSnapshot } from "@/lib/apt/simulation/types";
 
 export const APT_TOTAL_FLOORS = 12;
 export const APT_DEFAULT_FLOOR = 7;
@@ -25,6 +27,7 @@ type FloorRefs = {
 export type AptBuildingCallbacks = {
   onFloorClick?: (floor: number) => void;
   onRoomClick?: (roomId: string, multi: boolean) => void;
+  onSimulationChange?: (snapshot: SimulationSnapshot) => void;
 };
 
 export class AptBuildingScene {
@@ -52,6 +55,9 @@ export class AptBuildingScene {
   private floorPlans: Record<number, AptRoom[]> = {};
   private selectedIds: string[] = [];
   private callbacks: AptBuildingCallbacks = {};
+  private simulation: AptSimulationLayer;
+  private clock = new THREE.Clock();
+  private simEnabled = false;
 
   constructor(mount: HTMLElement) {
     this.mount = mount;
@@ -77,6 +83,8 @@ export class AptBuildingScene {
     this.addGround();
     this.rebuildAllFloors();
     this.scene.add(this.building);
+    this.simulation = new AptSimulationLayer(this.building);
+    this.simulation.setOnChange((snap) => this.callbacks.onSimulationChange?.(snap));
 
     this.targetBuildingY = this.floorToBuildingY(this.currentFloor);
     this.building.position.y = this.targetBuildingY;
@@ -102,6 +110,24 @@ export class AptBuildingScene {
     this.callbacks = cb;
   }
 
+  async startSimulation(
+    floor: number,
+    residents: ResidentAgent[],
+    furniture: FurnitureItem[]
+  ) {
+    const rooms = this.floorPlans[floor] ?? createDefaultFloorPlan().rooms;
+    await this.simulation.bootstrap(floor, rooms, residents, furniture);
+    this.simEnabled = true;
+  }
+
+  setSimulationFurniture(furniture: FurnitureItem[]) {
+    this.simulation.setFurniture(furniture);
+  }
+
+  getSimulationSnapshot() {
+    return this.simulation.getSnapshot();
+  }
+
   setFloorPlans(plans: Record<number, AptRoom[]>) {
     this.floorPlans = plans;
     this.rebuildAllFloors();
@@ -115,6 +141,9 @@ export class AptBuildingScene {
   updateFloorRooms(floor: number, rooms: AptRoom[]) {
     this.floorPlans[floor] = rooms;
     this.rebuildFloor(floor);
+    if (this.simEnabled && floor === this.currentFloor) {
+      this.simulation.updateContext(floor, rooms);
+    }
   }
 
   getFloor() {
@@ -126,6 +155,10 @@ export class AptBuildingScene {
     this.currentFloor = clamped;
     this.targetBuildingY = this.floorToBuildingY(clamped);
     this.updateFloorHighlight();
+    if (this.simEnabled) {
+      const rooms = this.floorPlans[clamped] ?? createDefaultFloorPlan().rooms;
+      this.simulation.updateContext(clamped, rooms);
+    }
   }
 
   setXray(enabled: boolean) {
@@ -300,12 +333,14 @@ export class AptBuildingScene {
   private loop = () => {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.loop);
+    const dt = Math.min(this.clock.getDelta(), 0.05);
 
     this.building.position.y += (this.targetBuildingY - this.building.position.y) * 0.09;
     this.zoom += (this.targetZoom - this.zoom) * 0.12;
     this.xrayCurrent += (this.xrayTarget - this.xrayCurrent) * 0.1;
     this.updateCamera();
     this.applyXray();
+    if (this.simEnabled) this.simulation.tick(dt);
 
     this.renderer.render(this.scene, this.camera);
   };
@@ -320,6 +355,7 @@ export class AptBuildingScene {
     canvas.removeEventListener("pointerup", this.onPointerUp);
     canvas.removeEventListener("pointercancel", this.onPointerUp);
     canvas.removeEventListener("wheel", this.onWheel);
+    this.simulation.dispose();
     for (const ref of this.floorRefs) disposeGroup(ref.group);
     this.renderer.dispose();
     canvas.remove();

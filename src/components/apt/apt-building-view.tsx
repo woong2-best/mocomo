@@ -10,8 +10,12 @@ import {
   RotateCcw,
   SplitSquareHorizontal,
   Trash2,
+  Tv,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { AptProfileDto } from "@/actions/apt";
+import { placeAptTv, saveAptFloorPlan } from "@/actions/apt";
+import { AptSimulationHud } from "@/components/apt/apt-simulation-hud";
 import {
   APT_DEFAULT_FLOOR,
   APT_TOTAL_FLOORS,
@@ -26,30 +30,42 @@ import {
   splitRoom,
 } from "@/lib/apt/floor-plan-logic";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
+import type { SimulationSnapshot } from "@/lib/apt/simulation/types";
+import { loadActiveVrm } from "@/lib/virtual-avatar/vrm-storage";
 import { cn } from "@/lib/utils";
 
-function initAllFloorPlans(): Record<number, AptRoom[]> {
+function initPlansFromProfile(profile: AptProfileDto | null): Record<number, AptRoom[]> {
+  if (profile?.floorPlans && Object.keys(profile.floorPlans).length > 0) {
+    return profile.floorPlans;
+  }
   const d = createDefaultFloorPlan().rooms;
   const out: Record<number, AptRoom[]> = {};
-  for (let f = 1; f <= APT_TOTAL_FLOORS; f++) {
-    out[f] = d.map((r) => ({ ...r }));
-  }
+  for (let f = 1; f <= APT_TOTAL_FLOORS; f++) out[f] = d.map((r) => ({ ...r }));
   return out;
 }
 
-export function AptBuildingView() {
+export function AptBuildingView({
+  initialProfile,
+  isLoggedIn,
+}: {
+  initialProfile: AptProfileDto | null;
+  isLoggedIn: boolean;
+}) {
+  const homeFloor = initialProfile?.homeFloor ?? APT_DEFAULT_FLOOR;
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<AptBuildingScene | null>(null);
-  const floorRef = useRef(APT_DEFAULT_FLOOR);
+  const floorRef = useRef(homeFloor);
   const xrayRef = useRef(false);
-  const plansRef = useRef<Record<number, AptRoom[]>>(initAllFloorPlans());
+  const simReadyRef = useRef(false);
+  const plansRef = useRef<Record<number, AptRoom[]>>(initPlansFromProfile(initialProfile));
 
-  const [floor, setFloor] = useState(APT_DEFAULT_FLOOR);
+  const [floor, setFloor] = useState(homeFloor);
   const [xray, setXray] = useState(false);
   const [moving, setMoving] = useState(false);
-  const [plans, setPlans] = useState(initAllFloorPlans);
+  const [plans, setPlans] = useState(() => initPlansFromProfile(initialProfile));
   const [selected, setSelected] = useState<string[]>([]);
   const [toast, setToast] = useState<string | null>(null);
+  const [simSnap, setSimSnap] = useState<SimulationSnapshot | null>(null);
 
   const rooms = plans[floor] ?? createDefaultFloorPlan().rooms;
 
@@ -63,8 +79,9 @@ export function AptBuildingView() {
       plansRef.current = { ...plansRef.current, [floor]: next };
       setPlans((p) => ({ ...p, [floor]: next }));
       sceneRef.current?.updateFloorRooms(floor, next);
+      if (isLoggedIn) void saveAptFloorPlan(floor, next);
     },
-    [floor]
+    [floor, isLoggedIn]
   );
 
   const goToFloor = useCallback((next: number) => {
@@ -105,16 +122,35 @@ export function AptBuildingView() {
           return [id];
         });
       },
+      onSimulationChange: (snap) => setSimSnap(snap),
     });
     sceneRef.current = scene;
-    plansRef.current = plans;
-    scene.setFloorPlans(plans);
+    scene.setFloorPlans(plansRef.current);
+    scene.setFloor(homeFloor);
+
+    if (isLoggedIn && initialProfile?.moveInCompleted) {
+      void (async () => {
+        let residents = initialProfile.residents;
+        try {
+          const slot = await loadActiveVrm();
+          if (slot?.blob) {
+            const url = URL.createObjectURL(slot.blob);
+            residents = residents.map((r) => (r.isOwner ? { ...r, vrmUrl: url } : r));
+          }
+        } catch {
+          /* default vrm */
+        }
+        await scene.startSimulation(homeFloor, residents, initialProfile.furniture);
+        simReadyRef.current = true;
+      })();
+    }
 
     return () => {
       scene.dispose();
       sceneRef.current = null;
+      simReadyRef.current = false;
     };
-  }, [goToFloor]);
+  }, [goToFloor, homeFloor, initialProfile, isLoggedIn]);
 
   useEffect(() => {
     plansRef.current = plans;
@@ -170,14 +206,37 @@ export function AptBuildingView() {
     showToast("기본 구조로 초기화했습니다");
   };
 
+  const handlePlaceTv = async () => {
+    if (!isLoggedIn) {
+      showToast("로그인 후 TV를 설치할 수 있습니다");
+      return;
+    }
+    const res = await placeAptTv();
+    if ("error" in res && res.error) {
+      showToast(res.error);
+      return;
+    }
+    if (res.furniture) {
+      sceneRef.current?.setSimulationFurniture(res.furniture);
+      showToast("거실에 TV를 설치했습니다");
+    }
+  };
+
+  const hasTv = initialProfile?.furniture.some((f) => f.type === "tv") ?? simSnap?.furniture.some((f) => f.type === "tv");
+
   return (
     <div className="folk-card overflow-hidden">
       <div className="flex flex-col lg:flex-row min-h-[min(80dvh,760px)]">
         <div className="relative flex-1 min-h-[480px] bg-[hsl(var(--folk-cream)/0.45)]">
           <div ref={mountRef} className="absolute inset-0" />
 
+          <AptSimulationHud snapshot={simSnap} />
+
           <div className="pointer-events-none absolute left-3 top-3 rounded-lg border-2 border-[hsl(var(--folk-cobalt)/0.2)] bg-background/90 px-2.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm">
             층 클릭 · {floor}층
+            {isLoggedIn && initialProfile?.moveInCompleted && floor === homeFloor && (
+              <span className="ml-1 text-folk-terracotta">· 생활 중</span>
+            )}
           </div>
 
           <div className="pointer-events-none absolute left-3 bottom-3 rounded-lg border border-[hsl(var(--folk-cobalt)/0.15)] bg-background/90 px-2.5 py-1 text-[10px] text-muted-foreground backdrop-blur-sm">
@@ -199,6 +258,10 @@ export function AptBuildingView() {
           )}
 
           <div className="absolute bottom-3 right-3 left-3 lg:left-auto lg:right-[8.5rem] flex flex-wrap items-center justify-center gap-1.5 rounded-xl border border-[hsl(var(--folk-cobalt)/0.2)] bg-background/92 p-2 shadow-folk-sm backdrop-blur-md">
+            <Button type="button" size="sm" variant="outline" className="h-8 gap-1 rounded-lg text-xs" onClick={handlePlaceTv} disabled={!!hasTv}>
+              <Tv className="h-3.5 w-3.5" />
+              TV 설치
+            </Button>
             <Button type="button" size="sm" variant="outline" className="h-8 gap-1 rounded-lg text-xs" onClick={handleAdd}>
               <Plus className="h-3.5 w-3.5" />
               방 추가

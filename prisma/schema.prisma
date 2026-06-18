@@ -184,6 +184,7 @@ model User {
 
   pushSubscriptions PushSubscription[]
   avatarPresets     AvatarPreset[]
+  aptProfile        AptProfile?
 
   creatorSeries            CreatorSeries[]          @relation("CreatorSeriesAuthor")
   creatorEpisodes          CreatorEpisode[]         @relation("CreatorEpisodeAuthor")
@@ -2088,6 +2089,22 @@ model AvatarPreset {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ============ APT (아파트 생활 시뮬레이션) ============
+
+model AptProfile {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  moveInCompletedAt DateTime?
+  homeFloor         Int       @default(7)
+  floorPlans        Json      @default("{}")
+  furniture         Json      @default("[]")
+  residents         Json      @default("[]")
+  simulationState   Json      @default("{}")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ============ MINIGAMES ============

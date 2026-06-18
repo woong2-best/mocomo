@@ -153,7 +153,7 @@ export function EmailVerifyFormInner() {
         redirect: false,
       });
       if (!signInResult?.error) {
-        router.replace("/");
+        router.replace("/apt/move-in");
         return;
       }
       setSignupPassword(stored);

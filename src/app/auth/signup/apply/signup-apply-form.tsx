@@ -261,7 +261,7 @@ export function SignupApplyForm({
                   <Button
                     type="button"
                     className="w-full rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white"
-                    onClick={() => signIn("discord", { callbackUrl: "/" })}
+                    onClick={() => signIn("discord", { callbackUrl: "/apt/move-in" })}
                   >
                     Discord로 가입
                   </Button>
@@ -271,7 +271,7 @@ export function SignupApplyForm({
                     type="button"
                     variant="outline"
                     className="w-full rounded-xl"
-                    onClick={() => signIn("google", { callbackUrl: "/" })}
+                    onClick={() => signIn("google", { callbackUrl: "/apt/move-in" })}
                   >
                     Google로 가입
                   </Button>
