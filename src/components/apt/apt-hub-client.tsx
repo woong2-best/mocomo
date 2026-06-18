@@ -16,7 +16,7 @@ export function AptHubClient() {
           {t("nav.apt")}
         </FolkSectionTitle>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          아파트 층을 탐색하세요. 화살표·층 클릭으로 이동하고, 상단 버튼으로 내부 구조를 투명하게 볼 수 있습니다.
+          층별 평면도를 편집하세요. 마우스 휠로 확대/축소하고, 현관·주방·화장실은 고정이며 나머지 방은 추가·삭제·합칠 수 있습니다.
         </p>
       </div>
 

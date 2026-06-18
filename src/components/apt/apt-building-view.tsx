@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Box, ChevronDown, ChevronUp } from "lucide-react";
+import { AptFloorPlanEditor } from "@/components/apt/apt-floor-plan-editor";
 import {
   APT_DEFAULT_FLOOR,
   APT_TOTAL_FLOORS,
@@ -53,19 +54,24 @@ export function AptBuildingView() {
 
   return (
     <div className="folk-card overflow-hidden">
-      <div className="flex flex-col lg:flex-row min-h-[min(72dvh,640px)]">
-        <div className="relative flex-1 min-h-[340px] lg:min-h-0 bg-[hsl(var(--folk-cream)/0.5)]">
-          <div ref={mountRef} className="absolute inset-0" />
-          <div className="pointer-events-none absolute left-3 top-3 rounded-lg border-2 border-[hsl(var(--folk-cobalt)/0.2)] bg-background/85 px-2.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm">
-            층을 클릭해 이동
-          </div>
-          {moving && (
-            <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
-              <span className="rounded-full border-2 border-[hsl(var(--folk-cobalt)/0.2)] bg-background/90 px-3 py-1 text-xs font-semibold text-folk-cobalt animate-pulse">
-                {floor}층으로 이동 중…
-              </span>
+      <div className="flex flex-col lg:flex-row min-h-[min(78dvh,720px)]">
+        <div className="relative flex flex-1 flex-col min-h-[420px] lg:min-h-0">
+          <div className="relative h-[200px] shrink-0 border-b border-[hsl(var(--folk-cobalt)/0.12)] bg-[hsl(var(--folk-cream)/0.4)]">
+            <div ref={mountRef} className="absolute inset-0" />
+            <div className="pointer-events-none absolute left-3 top-3 rounded-lg border-2 border-[hsl(var(--folk-cobalt)/0.2)] bg-background/85 px-2.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm">
+              층 클릭 · {floor}층
             </div>
-          )}
+            {moving && (
+              <div className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center">
+                <span className="rounded-full border-2 border-[hsl(var(--folk-cobalt)/0.2)] bg-background/90 px-3 py-1 text-xs font-semibold text-folk-cobalt animate-pulse">
+                  {floor}층으로 이동 중…
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="flex-1 min-h-[360px]">
+            <AptFloorPlanEditor floor={floor} />
+          </div>
         </div>
 
         <aside className="flex w-full lg:w-[7.5rem] shrink-0 flex-col items-center border-t-2 lg:border-t-0 lg:border-l-2 border-[hsl(var(--folk-cobalt)/0.2)] bg-[hsl(var(--folk-cream)/0.65)] px-4 py-6 gap-3">
