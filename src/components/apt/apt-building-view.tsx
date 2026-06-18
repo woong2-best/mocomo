@@ -240,7 +240,7 @@ export function AptBuildingView({
           </div>
 
           <div className="pointer-events-none absolute left-3 bottom-3 rounded-lg border border-[hsl(var(--folk-cobalt)/0.15)] bg-background/90 px-2.5 py-1 text-[10px] text-muted-foreground backdrop-blur-sm">
-            휠 확대/축소 · 드래그 이동 · 방 클릭 선택
+            휠 확대/축소 · 드래그 회전 · 방 클릭 선택
           </div>
 
           {moving && (

@@ -1,6 +1,7 @@
 "use client";
 
 import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import {
   SCALE,
   buildFloorGroup,
@@ -14,9 +15,8 @@ import type { FurnitureItem, ResidentAgent, SimulationSnapshot } from "@/lib/apt
 
 export { APT_DEFAULT_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
 
-const MIN_ZOOM = 6;
-const MAX_ZOOM = 28;
-const DEFAULT_ZOOM = 14;
+const MIN_DISTANCE = 5;
+const MAX_DISTANCE = 36;
 
 type FloorRefs = {
   group: THREE.Group;
@@ -34,10 +34,13 @@ export class AptBuildingScene {
   private renderer: THREE.WebGLRenderer;
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
+  private controls: OrbitControls;
   private building = new THREE.Group();
   private floorRefs: FloorRefs[] = [];
   private raycaster = new THREE.Raycaster();
   private pointer = new THREE.Vector2();
+  private focusTarget = new THREE.Vector3();
+  private pointerStart: { x: number; y: number } | null = null;
   private raf = 0;
   private disposed = false;
 
@@ -46,10 +49,6 @@ export class AptBuildingScene {
   private xrayMode = false;
   private xrayTarget = 0;
   private xrayCurrent = 0;
-  private zoom = DEFAULT_ZOOM;
-  private targetZoom = DEFAULT_ZOOM;
-  private pan = { x: 0, z: 0 };
-  private drag: { x: number; y: number; px: number; pz: number } | null = null;
 
   private floorPlans: Record<number, AptRoom[]> = {};
   private selectedIds: string[] = [];
@@ -68,7 +67,6 @@ export class AptBuildingScene {
     const w = Math.max(mount.clientWidth, 320);
     const h = Math.max(mount.clientHeight, 400);
     this.camera = new THREE.PerspectiveCamera(38, w / h, 0.1, 120);
-    this.updateCamera();
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -76,6 +74,28 @@ export class AptBuildingScene {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     mount.appendChild(this.renderer.domElement);
+
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.08;
+    this.controls.enablePan = false;
+    this.controls.enableRotate = true;
+    this.controls.minDistance = MIN_DISTANCE;
+    this.controls.maxDistance = MAX_DISTANCE;
+    this.controls.maxPolarAngle = Math.PI / 2.1;
+    this.controls.minPolarAngle = 0.2;
+    this.controls.mouseButtons = {
+      LEFT: THREE.MOUSE.ROTATE,
+      MIDDLE: THREE.MOUSE.DOLLY,
+      RIGHT: THREE.MOUSE.ROTATE,
+    };
+    this.renderer.domElement.style.cursor = "grab";
+    this.controls.addEventListener("start", () => {
+      this.renderer.domElement.style.cursor = "grabbing";
+    });
+    this.controls.addEventListener("end", () => {
+      this.renderer.domElement.style.cursor = "grab";
+    });
 
     this.initFloorPlans();
     this.addLights();
@@ -87,13 +107,12 @@ export class AptBuildingScene {
 
     this.targetBuildingY = this.floorToBuildingY(this.currentFloor);
     this.building.position.y = this.targetBuildingY;
+    this.snapCameraToFloor(true);
 
     const canvas = this.renderer.domElement;
     canvas.addEventListener("pointerdown", this.onPointerDown);
-    canvas.addEventListener("pointermove", this.onPointerMove);
     canvas.addEventListener("pointerup", this.onPointerUp);
     canvas.addEventListener("pointercancel", this.onPointerUp);
-    canvas.addEventListener("wheel", this.onWheel, { passive: false });
     window.addEventListener("resize", this.onResize);
     this.loop();
   }
@@ -160,6 +179,17 @@ export class AptBuildingScene {
     }
   }
 
+  /** 운전 게임과 동일 — 시선 고정 상태에서 거리만 조절 */
+  setZoom(delta: number) {
+    const offset = this.camera.position.clone().sub(this.controls.target);
+    if (offset.lengthSq() < 0.01) return;
+    const dist = Math.max(
+      this.controls.minDistance,
+      Math.min(this.controls.maxDistance, offset.length() * (1 - delta * 0.12))
+    );
+    this.camera.position.copy(this.controls.target).add(offset.normalize().multiplyScalar(dist));
+  }
+
   setXray(enabled: boolean) {
     this.xrayMode = enabled;
     this.xrayTarget = enabled ? 1 : 0;
@@ -169,14 +199,25 @@ export class AptBuildingScene {
     return -(floor - 1) * FLOOR_HEIGHT;
   }
 
-  private updateCamera() {
-    const focusY = (this.currentFloor - 1) * FLOOR_HEIGHT + FLOOR_HEIGHT * 0.45;
-    this.camera.position.set(
-      8.5 + this.pan.x,
-      focusY + this.zoom * 0.55,
-      10.5 + this.pan.z
+  private floorFocusY() {
+    return (
+      this.building.position.y +
+      (this.currentFloor - 1) * FLOOR_HEIGHT +
+      FLOOR_HEIGHT * 0.45
     );
-    this.camera.lookAt(this.pan.x * 0.3, focusY, this.pan.z * 0.3);
+  }
+
+  private snapCameraToFloor(instant = false) {
+    const focusY = this.floorFocusY();
+    this.focusTarget.set(0, focusY, 0);
+    if (instant) {
+      this.controls.target.copy(this.focusTarget);
+      this.camera.position.set(9.5, focusY + 8, 11.5);
+      return;
+    }
+    const prev = this.controls.target.clone();
+    this.controls.target.copy(this.focusTarget);
+    this.camera.position.add(this.controls.target.clone().sub(prev));
   }
 
   private addLights() {
@@ -261,37 +302,15 @@ export class AptBuildingScene {
     }
   }
 
-  private onWheel = (e: WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? 1.08 : 0.92;
-    this.targetZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, this.targetZoom * delta));
-  };
-
   private onPointerDown = (e: PointerEvent) => {
-    if (e.button !== 0) return;
-    this.drag = { x: e.clientX, y: e.clientY, px: this.pan.x, pz: this.pan.z };
-    this.renderer.domElement.setPointerCapture(e.pointerId);
-  };
-
-  private onPointerMove = (e: PointerEvent) => {
-    if (!this.drag) return;
-    const dx = (e.clientX - this.drag.x) * 0.012;
-    const dy = (e.clientY - this.drag.y) * 0.012;
-    this.pan.x = this.drag.px - dx;
-    this.pan.z = this.drag.pz - dy;
-    this.updateCamera();
+    if (e.button === 0) this.pointerStart = { x: e.clientX, y: e.clientY };
   };
 
   private onPointerUp = (e: PointerEvent) => {
-    if (!this.drag) return;
-    const moved = Math.abs(e.clientX - this.drag.x) + Math.abs(e.clientY - this.drag.y);
+    if (!this.pointerStart) return;
+    const moved = Math.hypot(e.clientX - this.pointerStart.x, e.clientY - this.pointerStart.y);
     if (moved < 6) this.pick(e);
-    this.drag = null;
-    try {
-      this.renderer.domElement.releasePointerCapture(e.pointerId);
-    } catch {
-      /* ignore */
-    }
+    this.pointerStart = null;
   };
 
   private pick(e: PointerEvent) {
@@ -335,9 +354,15 @@ export class AptBuildingScene {
     const dt = Math.min(this.clock.getDelta(), 0.05);
 
     this.building.position.y += (this.targetBuildingY - this.building.position.y) * 0.09;
-    this.zoom += (this.targetZoom - this.zoom) * 0.12;
     this.xrayCurrent += (this.xrayTarget - this.xrayCurrent) * 0.1;
-    this.updateCamera();
+
+    const focusY = this.floorFocusY();
+    const prevTarget = this.controls.target.clone();
+    this.focusTarget.set(0, focusY, 0);
+    this.controls.target.lerp(this.focusTarget, 0.14);
+    this.camera.position.add(this.controls.target.clone().sub(prevTarget));
+
+    this.controls.update();
     this.applyXray();
     if (this.simEnabled) this.simulation.tick(dt);
 
@@ -350,10 +375,9 @@ export class AptBuildingScene {
     window.removeEventListener("resize", this.onResize);
     const canvas = this.renderer.domElement;
     canvas.removeEventListener("pointerdown", this.onPointerDown);
-    canvas.removeEventListener("pointermove", this.onPointerMove);
     canvas.removeEventListener("pointerup", this.onPointerUp);
     canvas.removeEventListener("pointercancel", this.onPointerUp);
-    canvas.removeEventListener("wheel", this.onWheel);
+    this.controls.dispose();
     this.simulation.dispose();
     for (const ref of this.floorRefs) disposeGroup(ref.group);
     this.renderer.dispose();
