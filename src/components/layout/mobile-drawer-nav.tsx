@@ -21,6 +21,7 @@ import { FolkThemeCelestial } from "@/components/brand/folk-theme-celestial";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { BRAND } from "@/lib/brand";
 import { GamesNavSection } from "@/components/layout/games-nav-section";
+import { AptNavSection } from "@/components/layout/apt-nav-section";
 
 type MobileDrawerNavProps = {
   open: boolean;
@@ -99,8 +100,9 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
               );
             })}
           </nav>
-          <div className="shrink-0 border-t-2 border-folk-cobalt/20 bg-folk-gold/10 p-3 pb-nav">
+          <div className="shrink-0 space-y-1 border-t-2 border-folk-cobalt/20 bg-folk-gold/10 p-3 pb-nav">
             <GamesNavSection pathname={pathname} onNavigate={() => onOpenChange(false)} />
+            <AptNavSection pathname={pathname} onNavigate={() => onOpenChange(false)} />
           </div>
         </div>
       </DialogContent>

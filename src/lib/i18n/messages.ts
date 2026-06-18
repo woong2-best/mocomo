@@ -20,6 +20,7 @@ export type MessageKey =
   | "nav.market"
   | "nav.events"
   | "nav.games"
+  | "nav.apt"
   | "nav.rankings"
   | "nav.support"
   | "nav.wallet"
@@ -75,6 +76,7 @@ const ko: Record<MessageKey, string> = {
   "nav.market": "굿즈샵",
   "nav.events": "이벤트",
   "nav.games": "GAME",
+  "nav.apt": "APT",
   "nav.rankings": "후원 랭킹",
   "nav.support": "후원",
   "nav.wallet": "정산·출금",
@@ -131,6 +133,7 @@ const en: Record<MessageKey, string> = {
   "nav.market": "Shop",
   "nav.events": "Events",
   "nav.games": "GAME",
+  "nav.apt": "APT",
   "nav.rankings": "Rankings",
   "nav.support": "Support",
   "nav.wallet": "Wallet",
@@ -187,6 +190,7 @@ const ja: Record<MessageKey, string> = {
   "nav.market": "ショップ",
   "nav.events": "イベント",
   "nav.games": "GAME",
+  "nav.apt": "APT",
   "nav.rankings": "ランキング",
   "nav.support": "支援",
   "nav.wallet": "ウォレット",
@@ -243,6 +247,7 @@ const zh: Record<MessageKey, string> = {
   "nav.market": "商店",
   "nav.events": "活动",
   "nav.games": "GAME",
+  "nav.apt": "APT",
   "nav.rankings": "排行榜",
   "nav.support": "赞助",
   "nav.wallet": "钱包",

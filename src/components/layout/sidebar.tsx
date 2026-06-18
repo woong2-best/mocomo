@@ -12,6 +12,7 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
 import { isNavItemActive } from "@/lib/nav-active";
 import { GamesNavSection } from "@/components/layout/games-nav-section";
+import { AptNavSection } from "@/components/layout/apt-nav-section";
 import { useSidebarToggle } from "@/components/providers/sidebar-toggle-provider";
 
 export function Sidebar() {
@@ -72,6 +73,7 @@ export function Sidebar() {
 
       <div className="shrink-0 space-y-2 border-t-2 border-folk-cobalt/20 pt-3 bg-[hsl(var(--folk-cream)/0.6)] dark:bg-background">
         <GamesNavSection pathname={pathname} />
+        <AptNavSection pathname={pathname} />
         {!shouldShowRightPanel(pathname) && (
           <ComposeOpenButton className="block w-full shrink-0 bg-folk-terracotta text-white flex items-center justify-center gap-2 py-3 text-sm font-display font-bold rounded-xl hover:bg-folk-terracotta-dark transition-colors border-2 border-folk-cobalt/25 shadow-folk">
             <PenSquare className="h-4 w-4" />
