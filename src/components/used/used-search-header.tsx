@@ -119,7 +119,15 @@ export function UsedSearchHeader() {
             <button
               key={c.id}
               type="button"
-              onClick={() => apply({ category: c.id })}
+              onClick={() => {
+                if (c.id === "COSPLAY") {
+                  startTransition(() => {
+                    router.push("/cosplay");
+                  });
+                  return;
+                }
+                apply({ category: c.id });
+              }}
               className={cn(
                 "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap",
                 searchParams.get("category") === c.id
