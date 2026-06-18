@@ -5,6 +5,7 @@ import { requireAuth, requireAuthMinimal } from "@/lib/auth";
 import { canAccessDm } from "@/lib/tiers";
 import { ChatRoomType, SupportTierLevel } from "@prisma/client";
 import { userPublicSelectMinimal } from "@/lib/user-public-select";
+import { chatMessageInclude, serializeChatMessage } from "@/lib/chat-message-serialize";
 import { sanitizeChatAttachments } from "@/lib/chat-attachments";
 import { notifyChatMessage } from "@/lib/notifications";
 import { relayChatMessageToSocket } from "@/lib/chat-socket-relay";
@@ -131,6 +132,14 @@ export async function sendMessage(data: {
   });
   if (!room) throw new Error("ROOM_NOT_FOUND");
 
+  if (data.replyToId) {
+    const parent = await db.message.findFirst({
+      where: { id: data.replyToId, roomId: data.roomId },
+      select: { id: true },
+    });
+    if (!parent) throw new Error("REPLY_NOT_FOUND");
+  }
+
   const message = await db.$transaction(async (tx) => {
     const msg = await tx.message.create({
       data: {
@@ -143,10 +152,7 @@ export async function sendMessage(data: {
           ? { create: attachments.map((a) => ({ url: a.url, type: a.type, name: a.name })) }
           : undefined,
       },
-      include: {
-        sender: { select: userPublicSelectMinimal },
-        attachments: true,
-      },
+      include: chatMessageInclude,
     });
     await tx.chatRoom.update({
       where: { id: data.roomId },
@@ -168,20 +174,7 @@ export async function sendMessage(data: {
     createdAt: message.createdAt.toISOString(),
   });
 
-  return {
-    message: {
-      id: message.id,
-      content: message.content,
-      createdAt: message.createdAt.toISOString(),
-      sender: message.sender,
-      attachments: message.attachments.map((a) => ({
-        id: a.id,
-        url: a.url,
-        type: a.type,
-        name: a.name,
-      })),
-    },
-  };
+  return { message: serializeChatMessage(message) };
 }
 
 export async function markMessageRead(messageId: string) {

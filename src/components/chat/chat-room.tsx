@@ -2,12 +2,15 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { CornerUpLeft } from "lucide-react";
 import type { SupportTierLevel } from "@prisma/client";
 import { sendMessage } from "@/actions/chat";
 import { useChatSocket } from "@/components/messages/chat-socket-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChatMediaComposer } from "@/components/chat/chat-media-composer";
 import { ChatMessageAttachments } from "@/components/chat/chat-message-attachments";
+import { ChatMessageReplyQuote } from "@/components/chat/chat-message-reply-quote";
+import { ChatReplyComposerBar } from "@/components/chat/chat-reply-composer-bar";
 import { PresenceAvatar } from "@/components/user/presence-avatar";
 import {
   formatBubbleTime,
@@ -44,6 +47,7 @@ export function ChatRoomClient({
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
+  const [replyTarget, setReplyTarget] = useState<Message | null>(null);
   const [error, setError] = useState("");
   const { socket, socketReady, realtimeOff, isUserOnline, subscribeMessages } = useChatSocket();
   const router = useRouter();
@@ -52,6 +56,7 @@ export function ChatRoomClient({
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
   const sendLockRef = useRef(false);
+  const composerInputRef = useRef<HTMLTextAreaElement | null>(null);
   const lastSyncedAtRef = useRef<string | null>(
     initialMessages.length
       ? initialMessages[initialMessages.length - 1]?.createdAt ?? null
@@ -184,9 +189,29 @@ export function ChatRoomClient({
     stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 96;
   }
 
+  function startReply(message: Message) {
+    if (isPendingMessageId(message.id)) return;
+    setReplyTarget(message);
+    queueMicrotask(() => composerInputRef.current?.focus());
+  }
+
+  function clearReply() {
+    setReplyTarget(null);
+  }
+
+  function replySnapshot(message: Message): Message["replyTo"] {
+    return {
+      id: message.id,
+      content: message.content,
+      sender: message.sender,
+      attachments: message.attachments,
+    };
+  }
+
   function addOptimistic(
     text: string | null,
-    attachments?: ChatAttachmentInput[]
+    attachments?: ChatAttachmentInput[],
+    replyTo?: Message["replyTo"]
   ): string {
     const pendingId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const optimistic: Message = {
@@ -200,6 +225,7 @@ export function ChatRoomClient({
         type: a.type,
         name: a.name ?? null,
       })),
+      replyTo,
     };
     setMessages((prev) => [...prev, optimistic]);
     return pendingId;
@@ -212,13 +238,15 @@ export function ChatRoomClient({
   async function sendViaAction(
     text: string | null,
     pendingId: string,
-    attachments?: ChatAttachmentInput[]
+    attachments?: ChatAttachmentInput[],
+    replyToId?: string
   ) {
     try {
       const result = await sendMessage({
         roomId,
         content: text ?? undefined,
         attachments,
+        replyToId,
       });
       const confirmed = normalizeChatMessage(
         {
@@ -232,6 +260,7 @@ export function ChatRoomClient({
         const without = prev.filter((m) => m.id !== pendingId && m.id !== confirmed.id);
         return [...without, confirmed];
       });
+      clearReply();
     } catch (e) {
       removePending(pendingId);
       const msg = e instanceof Error ? e.message : "";
@@ -252,17 +281,20 @@ export function ChatRoomClient({
     stickToBottomRef.current = true;
     setInput("");
 
-    const pendingId = addOptimistic(text);
+    const replyToId = replyTarget?.id;
+    const replyTo = replyTarget ? replySnapshot(replyTarget) : undefined;
+    clearReply();
+    const pendingId = addOptimistic(text, undefined, replyTo);
 
     if (socketReady && socket?.connected) {
-      socket.emit("send_message", { roomId, content: text });
+      socket.emit("send_message", { roomId, content: text, replyToId });
       queueMicrotask(() => {
         sendLockRef.current = false;
       });
       return;
     }
 
-    void sendViaAction(text, pendingId).finally(() => {
+    void sendViaAction(text, pendingId, undefined, replyToId).finally(() => {
       sendLockRef.current = false;
     });
   }
@@ -274,10 +306,12 @@ export function ChatRoomClient({
     setError("");
     stickToBottomRef.current = true;
 
-    const pendingId = addOptimistic(caption ?? null, attachments);
+    const replyToId = replyTarget?.id;
+    const replyTo = replyTarget ? replySnapshot(replyTarget) : undefined;
+    clearReply();
+    const pendingId = addOptimistic(caption ?? null, attachments, replyTo);
 
-    // 첨부는 서버 액션으로 저장·릴레이 (URL 검증·DB·상대 수신 일관)
-    await sendViaAction(caption ?? null, pendingId, attachments).finally(() => {
+    await sendViaAction(caption ?? null, pendingId, attachments, replyToId).finally(() => {
       sendLockRef.current = false;
     });
   }
@@ -339,7 +373,7 @@ export function ChatRoomClient({
               )}
               <div
                 className={cn(
-                  "flex gap-2 mb-0.5",
+                  "flex gap-1.5 mb-0.5 group",
                   isMine ? "justify-end" : "justify-start",
                   showAvatar ? "mt-3" : "mt-0.5",
                   pending && isMine && "opacity-80"
@@ -366,7 +400,8 @@ export function ChatRoomClient({
                     )}
                   </div>
                 )}
-                <div className={cn("flex flex-col max-w-[78%] sm:max-w-[70%]", isMine && "items-end")}>
+                <div className={cn("flex items-end gap-1 max-w-[78%] sm:max-w-[70%]", isMine && "flex-row-reverse")}>
+                  <div className={cn("flex flex-col min-w-0", isMine && "items-end")}>
                   {!isMine && showAvatar && (
                     <DisplayNameWithSupportTier
                       name={m.sender.username}
@@ -379,7 +414,26 @@ export function ChatRoomClient({
                   )}
                   <div className="space-y-1.5">
                     {hasAttachments && m.attachments && (
-                      <ChatMessageAttachments attachments={m.attachments} isMine={isMine} />
+                      <div
+                        className={cn(
+                          "overflow-hidden",
+                          m.replyTo &&
+                            (isMine
+                              ? "rounded-2xl rounded-br-md bg-primary text-primary-foreground"
+                              : "rounded-2xl rounded-bl-md bg-background border border-border/60")
+                        )}
+                      >
+                        {m.replyTo && (
+                          <div className="px-3 pt-2">
+                            <ChatMessageReplyQuote
+                              replyTo={m.replyTo}
+                              isMine={isMine}
+                              selfUserId={userId}
+                            />
+                          </div>
+                        )}
+                        <ChatMessageAttachments attachments={m.attachments} isMine={isMine} />
+                      </div>
                     )}
                     {!hasAttachments && !hasText && (
                       <div
@@ -402,6 +456,13 @@ export function ChatRoomClient({
                             : "rounded-2xl rounded-bl-md bg-background border border-border/60"
                         )}
                       >
+                        {m.replyTo && !hasAttachments && (
+                          <ChatMessageReplyQuote
+                            replyTo={m.replyTo}
+                            isMine={isMine}
+                            selfUserId={userId}
+                          />
+                        )}
                         {m.content}
                       </div>
                     )}
@@ -416,6 +477,17 @@ export function ChatRoomClient({
                       {formatBubbleTime(m.createdAt)}
                     </span>
                   )}
+                  </div>
+                  {!pending && (
+                    <button
+                      type="button"
+                      onClick={() => startReply(m)}
+                      className="h-7 w-7 shrink-0 self-end mb-5 rounded-md bg-muted/70 hover:bg-muted border border-border/40 flex items-center justify-center text-muted-foreground opacity-80 hover:opacity-100 transition-opacity"
+                      aria-label="답장"
+                    >
+                      <CornerUpLeft className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -424,12 +496,22 @@ export function ChatRoomClient({
       </div>
 
       {error && <p className="text-xs text-destructive px-4 pb-1 text-center">{error}</p>}
-      <ChatMediaComposer
-        value={input}
-        onChange={setInput}
-        onSendText={send}
-        onSendAttachments={sendAttachments}
-      />
+      <div className="shrink-0 border-t border-border/60 bg-background">
+        {replyTarget && (
+          <ChatReplyComposerBar
+            target={replyTarget}
+            selfUserId={userId}
+            onCancel={clearReply}
+          />
+        )}
+        <ChatMediaComposer
+          value={input}
+          onChange={setInput}
+          onSendText={send}
+          onSendAttachments={sendAttachments}
+          inputRef={composerInputRef}
+        />
+      </div>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { redirect, notFound } from "next/navigation";
 import { getGroupRoomMeta } from "@/actions/group-chat";
 import { getConversationMeta } from "@/lib/chat-display";
 import { userPublicSelectMinimal } from "@/lib/user-public-select";
+import { chatMessageInclude, serializeChatMessage } from "@/lib/chat-message-serialize";
 import { ChatRoomShell } from "@/components/messages/chat-room-shell";
 
 export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
@@ -34,10 +35,7 @@ export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
       where: { roomId },
       take: 50,
       orderBy: { createdAt: "asc" },
-      include: {
-        sender: { select: userPublicSelectMinimal },
-        attachments: true,
-      },
+      include: chatMessageInclude,
     }),
     room.type === "COSPLAYER_GROUP" || room.type === "SOCIAL_GROUP"
       ? getGroupRoomMeta(roomId)
@@ -48,18 +46,7 @@ export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
   const otherMember =
     room.type === "DM" ? room.members.find((m) => m.userId !== session.user.id)?.user : undefined;
 
-  const initialMessages = messages.map((m) => ({
-    id: m.id,
-    content: m.content,
-    createdAt: m.createdAt.toISOString(),
-    sender: m.sender,
-    attachments: m.attachments.map((a) => ({
-      id: a.id,
-      url: a.url,
-      type: a.type,
-      name: a.name,
-    })),
-  }));
+  const initialMessages = messages.map(serializeChatMessage);
 
   return (
     <ChatRoomShell

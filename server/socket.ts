@@ -3,6 +3,7 @@ import { Server, type Socket } from "socket.io";
 import { PrismaClient } from "@prisma/client";
 import { verifySocketAuthToken } from "../src/lib/socket-auth-token";
 import { sanitizeChatAttachments } from "../src/lib/chat-attachments";
+import { chatMessageInclude } from "../src/lib/chat-message-serialize";
 import { notifyChatMessageSocket } from "./chat-notify";
 import {
   initSketchQuizStore,
@@ -276,6 +277,14 @@ io.on("connection", (socket: AuthedSocket) => {
       });
       if (!member) return;
 
+      if (data.replyToId) {
+        const parent = await prisma.message.findFirst({
+          where: { id: data.replyToId, roomId: data.roomId },
+          select: { id: true },
+        });
+        if (!parent) return;
+      }
+
       const message = await prisma.message.create({
         data: {
           roomId: data.roomId,
@@ -287,12 +296,7 @@ io.on("connection", (socket: AuthedSocket) => {
             ? { create: attachments.map((a) => ({ url: a.url, type: a.type, name: a.name })) }
             : undefined,
         },
-        include: {
-          sender: {
-            select: { id: true, username: true, image: true, supportTierSent: true },
-          },
-          attachments: true,
-        },
+        include: chatMessageInclude,
       });
       const room = await prisma.chatRoom.findUnique({
         where: { id: data.roomId },

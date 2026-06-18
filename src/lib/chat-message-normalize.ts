@@ -13,7 +13,53 @@ export type ChatMessageView = {
     supportTierSent?: SupportTierLevel;
   };
   attachments?: ChatAttachmentView[];
+  replyTo?: {
+    id: string;
+    content: string | null;
+    sender: {
+      id: string;
+      username: string;
+      image: string | null;
+      supportTierSent?: SupportTierLevel;
+    };
+    attachments?: ChatAttachmentView[];
+  };
 };
+
+export function getChatMessageReplyPreview(
+  m: Pick<ChatMessageView, "content" | "attachments">
+): string {
+  const text = m.content?.trim();
+  if (text) return text.length > 100 ? `${text.slice(0, 100)}…` : text;
+  const att = m.attachments?.[0];
+  if (!att) return "메시지";
+  if (att.type === "IMAGE" || att.type === "GIF") return "사진";
+  if (att.type === "VIDEO") return "동영상";
+  if (att.type === "AUDIO") return "음성 메시지";
+  return "첨부 파일";
+}
+
+function normalizeReplyTo(raw: unknown): ChatMessageView["replyTo"] {
+  if (!raw || typeof raw !== "object") return undefined;
+  const r = raw as Record<string, unknown>;
+  const id = typeof r.id === "string" ? r.id : null;
+  if (!id) return undefined;
+  const sender = r.sender as Record<string, unknown> | undefined;
+  const senderId = typeof sender?.id === "string" ? sender.id : "";
+  const senderUsername =
+    typeof sender?.username === "string" ? sender.username : "user";
+  return {
+    id,
+    content: typeof r.content === "string" ? r.content : null,
+    sender: {
+      id: senderId,
+      username: senderUsername,
+      image: typeof sender?.image === "string" ? sender.image : null,
+      supportTierSent: sender?.supportTierSent as SupportTierLevel | undefined,
+    },
+    attachments: normalizeAttachments(r.attachments),
+  };
+}
 
 function normalizeAttachments(raw: unknown): ChatAttachmentView[] | undefined {
   if (!Array.isArray(raw) || raw.length === 0) return undefined;
@@ -70,6 +116,7 @@ export function normalizeChatMessage(
         (sender?.supportTierSent as SupportTierLevel | undefined) ?? fallback?.supportTierSent,
     },
     attachments: normalizeAttachments(m.attachments),
+    replyTo: normalizeReplyTo(m.replyTo),
   };
 }
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { userPublicSelectMinimal } from "@/lib/user-public-select";
+import { chatMessageInclude, serializeChatMessage } from "@/lib/chat-message-serialize";
 
 export const maxDuration = 10;
 
@@ -20,10 +20,7 @@ async function fetchNewMessages(roomId: string, after: Date | null) {
     },
     orderBy: { createdAt: "asc" },
     take: 50,
-    include: {
-      sender: { select: userPublicSelectMinimal },
-      attachments: true,
-    },
+    include: chatMessageInclude,
   });
 }
 
@@ -60,18 +57,7 @@ export async function GET(
     const messages = await fetchNewMessages(roomId, afterDate);
     if (messages.length > 0) {
       return NextResponse.json({
-        messages: messages.map((m) => ({
-          id: m.id,
-          content: m.content,
-          createdAt: m.createdAt.toISOString(),
-          sender: m.sender,
-          attachments: m.attachments.map((a) => ({
-            id: a.id,
-            url: a.url,
-            type: a.type,
-            name: a.name,
-          })),
-        })),
+        messages: messages.map(serializeChatMessage),
       });
     }
     await sleep(POLL_MS);

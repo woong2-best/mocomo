@@ -26,6 +26,7 @@ type ChatMediaComposerProps = {
   onSendText: () => void;
   onSendAttachments: (attachments: ChatAttachmentInput[], caption?: string) => Promise<void>;
   disabled?: boolean;
+  inputRef?: React.RefObject<HTMLTextAreaElement | null>;
 };
 
 export function ChatMediaComposer({
@@ -34,6 +35,7 @@ export function ChatMediaComposer({
   onSendText,
   onSendAttachments,
   disabled,
+  inputRef,
 }: ChatMediaComposerProps) {
   const galleryInputId = useId();
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -198,7 +200,7 @@ export function ChatMediaComposer({
   const canSendText = !!value.trim() && !uploading && !recording && !disabled;
 
   return (
-    <div className="shrink-0 border-t border-border/60 bg-background px-2 py-2 sm:px-3 pb-safe">
+    <div className="shrink-0 bg-background px-2 py-2 sm:px-3 pb-safe">
       {error && (
         <p className="text-[11px] text-destructive text-center px-2 mb-1">{error}</p>
       )}
@@ -277,6 +279,7 @@ export function ChatMediaComposer({
             </div>
           ) : (
             <textarea
+              ref={inputRef}
               value={value}
               onChange={(e) => onChange(e.target.value)}
               placeholder="메시지를 입력하세요"
