@@ -27,7 +27,7 @@ export function ProfileHeaderActionBar({
   } | null;
 }) {
   return (
-    <div className="pt-3 flex gap-2 flex-wrap justify-end">
+    <div className="flex gap-2 flex-wrap">
       <ProfileFollowButton userId={userId} username={username} initialFollowing={initialFollowing} />
       <SubscribeCreatorButton
         creatorId={userId}

@@ -16,7 +16,7 @@ import { ProfilePostCard } from "@/components/profile/profile-post-card";
 import { getAuthUserId } from "@/lib/auth";
 
 function ActionBarSkeleton() {
-  return <div className="pt-3 flex gap-2 flex-wrap justify-end h-10" aria-hidden />;
+  return <div className="flex gap-2 flex-wrap h-10" aria-hidden />;
 }
 
 function PinnedPostSkeleton() {
