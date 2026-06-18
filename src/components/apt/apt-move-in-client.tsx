@@ -6,7 +6,7 @@ import { Building2, Home, Sparkles, Tv } from "lucide-react";
 import { completeAptMoveIn } from "@/actions/apt";
 import { FolkSectionTitle } from "@/components/brand/folk-decor";
 import { Button } from "@/components/ui/button";
-import { APT_DEFAULT_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/building-scene";
+import { APT_DEFAULT_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
 import { cn } from "@/lib/utils";
 
 const STEPS = ["환영", "층 선택", "입주 완료"] as const;

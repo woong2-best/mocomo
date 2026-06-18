@@ -1,8 +1,9 @@
 import * as THREE from "three";
 import { PLAN_H, PLAN_W, type AptRoom, type FloorStyle } from "./floor-plan-types";
+import { FLOOR_HEIGHT } from "@/lib/apt/constants";
 
 export const SCALE = 0.01;
-export const FLOOR_HEIGHT = 2.75;
+export { FLOOR_HEIGHT };
 export const WALL_THICK = 0.07;
 export const WALL_H = 2.35;
 

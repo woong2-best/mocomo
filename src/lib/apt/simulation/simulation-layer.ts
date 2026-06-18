@@ -1,7 +1,7 @@
 "use client";
 
 import * as THREE from "three";
-import { FLOOR_HEIGHT } from "@/lib/apt/building-from-plan";
+import { FLOOR_HEIGHT } from "@/lib/apt/constants";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import { createInitialSnapshot, tickSimulation } from "./engine";
 import { syncFurnitureGroup } from "./furniture-meshes";

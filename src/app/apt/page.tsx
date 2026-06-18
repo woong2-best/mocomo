@@ -8,15 +8,20 @@ export const metadata = {
   description: "MoCoMo APT — 3D 아파트 생활 시뮬레이션",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function AptPage() {
-  const user = await getCachedCurrentUser();
-  if (user) {
-    const profile = await getAptProfile();
-    if (profile && !profile.moveInCompleted) {
+  try {
+    const user = await getCachedCurrentUser();
+    const profile = user ? await getAptProfile() : null;
+
+    if (user && profile && !profile.moveInCompleted) {
       redirect("/apt/move-in");
     }
-  }
 
-  const profile = user ? await getAptProfile() : null;
-  return <AptHubClient initialProfile={profile} isLoggedIn={!!user} />;
+    return <AptHubClient initialProfile={profile} isLoggedIn={!!user} />;
+  } catch (e) {
+    console.error("[AptPage]", e);
+    return <AptHubClient initialProfile={null} isLoggedIn={false} />;
+  }
 }

@@ -2,18 +2,17 @@
 
 import * as THREE from "three";
 import {
-  FLOOR_HEIGHT,
   SCALE,
   buildFloorGroup,
   disposeGroup,
 } from "@/lib/apt/building-from-plan";
+import { APT_DEFAULT_FLOOR, APT_TOTAL_FLOORS, FLOOR_HEIGHT } from "@/lib/apt/constants";
 import { createDefaultFloorPlan } from "@/lib/apt/floor-plan-logic";
 import { PLAN_H, PLAN_W, type AptRoom } from "@/lib/apt/floor-plan-types";
 import { AptSimulationLayer } from "@/lib/apt/simulation/simulation-layer";
 import type { FurnitureItem, ResidentAgent, SimulationSnapshot } from "@/lib/apt/simulation/types";
 
-export const APT_TOTAL_FLOORS = 12;
-export const APT_DEFAULT_FLOOR = 7;
+export { APT_DEFAULT_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
 
 const MIN_ZOOM = 6;
 const MAX_ZOOM = 28;

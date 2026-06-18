@@ -12,7 +12,7 @@ import {
   type ResidentAgent,
   type SimulationSnapshot,
 } from "@/lib/apt/simulation/types";
-import { APT_DEFAULT_FLOOR } from "@/lib/apt/building-scene";
+import { APT_DEFAULT_FLOOR } from "@/lib/apt/constants";
 
 export type AptProfileDto = {
   homeFloor: number;
@@ -89,29 +89,34 @@ export async function completeAptMoveIn(homeFloor: number) {
     displayName: user.name ?? user.username,
   });
 
-  await db.aptProfile.upsert({
-    where: { userId: user.id },
-    create: {
-      userId: user.id,
-      homeFloor,
-      moveInCompletedAt: new Date(),
-      floorPlans: plans,
-      furniture,
-      residents,
-      simulationState: {},
-    },
-    update: {
-      homeFloor,
-      moveInCompletedAt: new Date(),
-      floorPlans: plans,
-      furniture,
-      residents,
-    },
-  });
+  try {
+    await db.aptProfile.upsert({
+      where: { userId: user.id },
+      create: {
+        userId: user.id,
+        homeFloor,
+        moveInCompletedAt: new Date(),
+        floorPlans: plans,
+        furniture,
+        residents,
+        simulationState: {},
+      },
+      update: {
+        homeFloor,
+        moveInCompletedAt: new Date(),
+        floorPlans: plans,
+        furniture,
+        residents,
+      },
+    });
 
-  revalidatePath("/apt");
-  revalidatePath("/apt/move-in");
-  return { ok: true as const };
+    revalidatePath("/apt");
+    revalidatePath("/apt/move-in");
+    return { ok: true as const };
+  } catch (e) {
+    console.error("[completeAptMoveIn]", e);
+    return { error: "입주 저장에 실패했습니다. 잠시 후 다시 시도해 주세요." };
+  }
 }
 
 export async function saveAptFloorPlan(floor: number, rooms: AptRoom[]) {
