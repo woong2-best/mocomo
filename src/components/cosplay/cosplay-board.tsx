@@ -122,7 +122,7 @@ export function CosplayBoard({
             코스프레 마켓
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            대여·구매 게시판 — 디시인사이드형 목록
+            대여·구매 게시판
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
