@@ -1,31 +1,81 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Box, ChevronDown, ChevronUp } from "lucide-react";
-import { AptFloorPlanEditor } from "@/components/apt/apt-floor-plan-editor";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Box,
+  ChevronDown,
+  ChevronUp,
+  Combine,
+  Plus,
+  RotateCcw,
+  SplitSquareHorizontal,
+  Trash2,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   APT_DEFAULT_FLOOR,
   APT_TOTAL_FLOORS,
   AptBuildingScene,
 } from "@/lib/apt/building-scene";
+import {
+  addRoom,
+  canMerge,
+  createDefaultFloorPlan,
+  mergeRooms,
+  removeRoom,
+  splitRoom,
+} from "@/lib/apt/floor-plan-logic";
+import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import { cn } from "@/lib/utils";
+
+function initAllFloorPlans(): Record<number, AptRoom[]> {
+  const d = createDefaultFloorPlan().rooms;
+  const out: Record<number, AptRoom[]> = {};
+  for (let f = 1; f <= APT_TOTAL_FLOORS; f++) {
+    out[f] = d.map((r) => ({ ...r }));
+  }
+  return out;
+}
 
 export function AptBuildingView() {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<AptBuildingScene | null>(null);
   const floorRef = useRef(APT_DEFAULT_FLOOR);
   const xrayRef = useRef(false);
+  const plansRef = useRef<Record<number, AptRoom[]>>(initAllFloorPlans());
+
   const [floor, setFloor] = useState(APT_DEFAULT_FLOOR);
   const [xray, setXray] = useState(false);
   const [moving, setMoving] = useState(false);
+  const [plans, setPlans] = useState(initAllFloorPlans);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const rooms = plans[floor] ?? createDefaultFloorPlan().rooms;
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    window.setTimeout(() => setToast(null), 2200);
+  };
+
+  const setRooms = useCallback(
+    (next: AptRoom[]) => {
+      plansRef.current = { ...plansRef.current, [floor]: next };
+      setPlans((p) => ({ ...p, [floor]: next }));
+      sceneRef.current?.updateFloorRooms(floor, next);
+    },
+    [floor]
+  );
 
   const goToFloor = useCallback((next: number) => {
     const clamped = Math.min(APT_TOTAL_FLOORS, Math.max(1, next));
     if (clamped === floorRef.current) return;
     floorRef.current = clamped;
     setFloor(clamped);
+    setSelected([]);
     setMoving(true);
     sceneRef.current?.setFloor(clamped);
+    sceneRef.current?.setSelectedRoomIds([]);
     sceneRef.current?.setXray(true);
     window.setTimeout(() => {
       setMoving(false);
@@ -39,12 +89,26 @@ export function AptBuildingView() {
   }, [xray, moving]);
 
   useEffect(() => {
+    sceneRef.current?.setSelectedRoomIds(selected);
+  }, [selected]);
+
+  useEffect(() => {
     const el = mountRef.current;
     if (!el) return;
 
     const scene = new AptBuildingScene(el);
-    scene.setFloorClickHandler((f) => goToFloor(f));
+    scene.setCallbacks({
+      onFloorClick: (f) => goToFloor(f),
+      onRoomClick: (id, multi) => {
+        setSelected((prev) => {
+          if (multi) return prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+          return [id];
+        });
+      },
+    });
     sceneRef.current = scene;
+    plansRef.current = plans;
+    scene.setFloorPlans(plans);
 
     return () => {
       scene.dispose();
@@ -52,25 +116,109 @@ export function AptBuildingView() {
     };
   }, [goToFloor]);
 
+  useEffect(() => {
+    plansRef.current = plans;
+  }, [plans]);
+
+  const mergeable = useMemo(() => {
+    if (selected.length !== 2) return false;
+    const ra = rooms.find((r) => r.id === selected[0]);
+    const rb = rooms.find((r) => r.id === selected[1]);
+    return !!(ra && rb && canMerge(ra, rb));
+  }, [selected, rooms]);
+
+  const selectedFlexible = selected.filter((id) => !rooms.find((r) => r.id === id)?.locked);
+
+  const handleRemove = () => {
+    if (selectedFlexible.length !== 1) return;
+    const next = removeRoom(rooms, selectedFlexible[0]);
+    if (!next) return showToast("고정 공간은 삭제할 수 없습니다");
+    setRooms(next);
+    setSelected([]);
+    showToast("방을 삭제했습니다");
+  };
+
+  const handleMerge = () => {
+    if (!mergeable) return;
+    const next = mergeRooms(rooms, selected[0], selected[1]);
+    if (!next) return showToast("인접한 방만 합칠 수 있습니다");
+    setRooms(next);
+    setSelected([]);
+    showToast("방을 합쳤습니다");
+  };
+
+  const handleSplit = () => {
+    if (selectedFlexible.length !== 1) return;
+    const next = splitRoom(rooms, selectedFlexible[0]);
+    if (!next) return showToast("이 방은 더 나눌 수 없습니다");
+    setRooms(next);
+    setSelected([]);
+    showToast("방을 분할했습니다");
+  };
+
+  const handleAdd = () => {
+    const next = addRoom(rooms);
+    if (!next) return showToast("추가할 공간이 없습니다");
+    setRooms(next);
+    showToast("방을 추가했습니다");
+  };
+
+  const handleReset = () => {
+    const d = createDefaultFloorPlan().rooms;
+    setRooms(d.map((r) => ({ ...r })));
+    setSelected([]);
+    showToast("기본 구조로 초기화했습니다");
+  };
+
   return (
     <div className="folk-card overflow-hidden">
-      <div className="flex flex-col lg:flex-row min-h-[min(78dvh,720px)]">
-        <div className="relative flex flex-1 flex-col min-h-[420px] lg:min-h-0">
-          <div className="relative h-[200px] shrink-0 border-b border-[hsl(var(--folk-cobalt)/0.12)] bg-[hsl(var(--folk-cream)/0.4)]">
-            <div ref={mountRef} className="absolute inset-0" />
-            <div className="pointer-events-none absolute left-3 top-3 rounded-lg border-2 border-[hsl(var(--folk-cobalt)/0.2)] bg-background/85 px-2.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm">
-              층 클릭 · {floor}층
-            </div>
-            {moving && (
-              <div className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center">
-                <span className="rounded-full border-2 border-[hsl(var(--folk-cobalt)/0.2)] bg-background/90 px-3 py-1 text-xs font-semibold text-folk-cobalt animate-pulse">
-                  {floor}층으로 이동 중…
-                </span>
-              </div>
-            )}
+      <div className="flex flex-col lg:flex-row min-h-[min(80dvh,760px)]">
+        <div className="relative flex-1 min-h-[480px] bg-[hsl(var(--folk-cream)/0.45)]">
+          <div ref={mountRef} className="absolute inset-0" />
+
+          <div className="pointer-events-none absolute left-3 top-3 rounded-lg border-2 border-[hsl(var(--folk-cobalt)/0.2)] bg-background/90 px-2.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm">
+            층 클릭 · {floor}층
           </div>
-          <div className="flex-1 min-h-[360px]">
-            <AptFloorPlanEditor floor={floor} />
+
+          <div className="pointer-events-none absolute left-3 bottom-3 rounded-lg border border-[hsl(var(--folk-cobalt)/0.15)] bg-background/90 px-2.5 py-1 text-[10px] text-muted-foreground backdrop-blur-sm">
+            휠 확대/축소 · 드래그 이동 · 방 클릭 선택
+          </div>
+
+          {moving && (
+            <div className="pointer-events-none absolute inset-x-0 top-14 flex justify-center">
+              <span className="rounded-full border-2 border-[hsl(var(--folk-cobalt)/0.2)] bg-background/90 px-3 py-1 text-xs font-semibold text-folk-cobalt animate-pulse">
+                {floor}층으로 이동 중…
+              </span>
+            </div>
+          )}
+
+          {toast && (
+            <div className="pointer-events-none absolute top-14 left-1/2 -translate-x-1/2 rounded-full border border-[hsl(var(--folk-cobalt)/0.2)] bg-background/95 px-4 py-1.5 text-xs font-semibold text-folk-cobalt shadow-folk-sm">
+              {toast}
+            </div>
+          )}
+
+          <div className="absolute bottom-3 right-3 left-3 lg:left-auto lg:right-[8.5rem] flex flex-wrap items-center justify-center gap-1.5 rounded-xl border border-[hsl(var(--folk-cobalt)/0.2)] bg-background/92 p-2 shadow-folk-sm backdrop-blur-md">
+            <Button type="button" size="sm" variant="outline" className="h-8 gap-1 rounded-lg text-xs" onClick={handleAdd}>
+              <Plus className="h-3.5 w-3.5" />
+              방 추가
+            </Button>
+            <Button type="button" size="sm" variant="outline" className="h-8 gap-1 rounded-lg text-xs" disabled={selectedFlexible.length !== 1} onClick={handleSplit}>
+              <SplitSquareHorizontal className="h-3.5 w-3.5" />
+              분할
+            </Button>
+            <Button type="button" size="sm" variant="outline" className="h-8 gap-1 rounded-lg text-xs" disabled={!mergeable} onClick={handleMerge}>
+              <Combine className="h-3.5 w-3.5" />
+              합치기
+            </Button>
+            <Button type="button" size="sm" variant="outline" className="h-8 gap-1 rounded-lg text-xs text-destructive hover:text-destructive" disabled={selectedFlexible.length !== 1} onClick={handleRemove}>
+              <Trash2 className="h-3.5 w-3.5" />
+              삭제
+            </Button>
+            <Button type="button" size="sm" variant="ghost" className="h-8 gap-1 rounded-lg text-xs" onClick={handleReset}>
+              <RotateCcw className="h-3.5 w-3.5" />
+              초기화
+            </Button>
           </div>
         </div>
 
@@ -131,8 +279,9 @@ export function AptBuildingView() {
             </button>
           </div>
 
-          <p className="text-[10px] text-muted-foreground tabular-nums">
-            1 – {APT_TOTAL_FLOORS}층
+          <p className="text-[10px] text-muted-foreground tabular-nums">1 – {APT_TOTAL_FLOORS}층</p>
+          <p className="text-[9px] text-center text-muted-foreground leading-snug px-1">
+            고정: 현관·주방·화장실
           </p>
         </aside>
       </div>

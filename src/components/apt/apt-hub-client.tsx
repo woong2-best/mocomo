@@ -16,7 +16,7 @@ export function AptHubClient() {
           {t("nav.apt")}
         </FolkSectionTitle>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          층별 평면도를 편집하세요. 마우스 휠로 확대/축소하고, 현관·주방·화장실은 고정이며 나머지 방은 추가·삭제·합칠 수 있습니다.
+          3D 아파트에서 층별 집 구조를 확인하세요. 휠로 확대/축소하고, 방을 클릭해 추가·삭제·합칠 수 있습니다. 현관·주방·화장실은 고정입니다.
         </p>
       </div>
 

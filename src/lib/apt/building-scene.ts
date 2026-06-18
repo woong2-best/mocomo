@@ -1,18 +1,30 @@
 "use client";
 
 import * as THREE from "three";
+import {
+  FLOOR_HEIGHT,
+  SCALE,
+  buildFloorGroup,
+  disposeGroup,
+} from "@/lib/apt/building-from-plan";
+import { createDefaultFloorPlan } from "@/lib/apt/floor-plan-logic";
+import { PLAN_H, PLAN_W, type AptRoom } from "@/lib/apt/floor-plan-types";
 
 export const APT_TOTAL_FLOORS = 12;
 export const APT_DEFAULT_FLOOR = 7;
-const FLOOR_H = 2.6;
-const BUILDING_W = 5.2;
-const BUILDING_D = 4;
-const WALL_T = 0.14;
+
+const MIN_ZOOM = 6;
+const MAX_ZOOM = 28;
+const DEFAULT_ZOOM = 14;
 
 type FloorRefs = {
   group: THREE.Group;
   shellMats: THREE.MeshStandardMaterial[];
-  highlight: THREE.Mesh;
+};
+
+export type AptBuildingCallbacks = {
+  onFloorClick?: (floor: number) => void;
+  onRoomClick?: (roomId: string, multi: boolean) => void;
 };
 
 export class AptBuildingScene {
@@ -32,57 +44,88 @@ export class AptBuildingScene {
   private xrayMode = false;
   private xrayTarget = 0;
   private xrayCurrent = 0;
-  private onFloorClick?: (floor: number) => void;
+  private zoom = DEFAULT_ZOOM;
+  private targetZoom = DEFAULT_ZOOM;
+  private pan = { x: 0, z: 0 };
+  private drag: { x: number; y: number; px: number; pz: number } | null = null;
+
+  private floorPlans: Record<number, AptRoom[]> = {};
+  private selectedIds: string[] = [];
+  private callbacks: AptBuildingCallbacks = {};
 
   constructor(mount: HTMLElement) {
     this.mount = mount;
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0xe8e4dc);
-    this.scene.fog = new THREE.Fog(0xe8e4dc, 28, 52);
+    this.scene.fog = new THREE.Fog(0xe8e4dc, 32, 58);
 
     const w = Math.max(mount.clientWidth, 320);
-    const h = Math.max(mount.clientHeight, 360);
-    this.camera = new THREE.PerspectiveCamera(42, w / h, 0.1, 120);
-    this.camera.position.set(9.5, 7.5, 11.5);
-    this.camera.lookAt(0, 4, 0);
+    const h = Math.max(mount.clientHeight, 400);
+    this.camera = new THREE.PerspectiveCamera(38, w / h, 0.1, 120);
+    this.updateCamera();
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(w, h);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     mount.appendChild(this.renderer.domElement);
 
+    this.initFloorPlans();
     this.addLights();
     this.addGround();
-    this.buildFloors();
+    this.rebuildAllFloors();
     this.scene.add(this.building);
 
     this.targetBuildingY = this.floorToBuildingY(this.currentFloor);
     this.building.position.y = this.targetBuildingY;
 
-    this.renderer.domElement.addEventListener("pointerdown", this.onPointerDown);
+    const canvas = this.renderer.domElement;
+    canvas.addEventListener("pointerdown", this.onPointerDown);
+    canvas.addEventListener("pointermove", this.onPointerMove);
+    canvas.addEventListener("pointerup", this.onPointerUp);
+    canvas.addEventListener("pointercancel", this.onPointerUp);
+    canvas.addEventListener("wheel", this.onWheel, { passive: false });
     window.addEventListener("resize", this.onResize);
     this.loop();
+  }
+
+  private initFloorPlans() {
+    const d = createDefaultFloorPlan().rooms;
+    for (let f = 1; f <= APT_TOTAL_FLOORS; f++) {
+      this.floorPlans[f] = d.map((r) => ({ ...r }));
+    }
+  }
+
+  setCallbacks(cb: AptBuildingCallbacks) {
+    this.callbacks = cb;
+  }
+
+  setFloorPlans(plans: Record<number, AptRoom[]>) {
+    this.floorPlans = plans;
+    this.rebuildAllFloors();
+  }
+
+  setSelectedRoomIds(ids: string[]) {
+    this.selectedIds = ids;
+    this.rebuildFloor(this.currentFloor);
+  }
+
+  updateFloorRooms(floor: number, rooms: AptRoom[]) {
+    this.floorPlans[floor] = rooms;
+    this.rebuildFloor(floor);
   }
 
   getFloor() {
     return this.currentFloor;
   }
 
-  setFloorClickHandler(handler: (floor: number) => void) {
-    this.onFloorClick = handler;
-  }
-
-  setFloor(floor: number, animate = true) {
+  setFloor(floor: number) {
     const clamped = Math.min(APT_TOTAL_FLOORS, Math.max(1, floor));
     this.currentFloor = clamped;
     this.targetBuildingY = this.floorToBuildingY(clamped);
-    this.updateHighlights();
-    if (!animate) {
-      this.building.position.y = this.targetBuildingY;
-    }
+    this.updateFloorHighlight();
   }
 
   setXray(enabled: boolean) {
@@ -90,195 +133,88 @@ export class AptBuildingScene {
     this.xrayTarget = enabled ? 1 : 0;
   }
 
-  toggleXray() {
-    this.setXray(!this.xrayMode);
-    return this.xrayMode;
-  }
-
-  moveFloor(delta: number) {
-    this.setFloor(this.currentFloor + delta);
-  }
-
   private floorToBuildingY(floor: number) {
-    return -(floor - 1) * FLOOR_H;
+    return -(floor - 1) * FLOOR_HEIGHT;
+  }
+
+  private updateCamera() {
+    const focusY = (this.currentFloor - 1) * FLOOR_HEIGHT + FLOOR_HEIGHT * 0.45;
+    this.camera.position.set(
+      8.5 + this.pan.x,
+      focusY + this.zoom * 0.55,
+      10.5 + this.pan.z
+    );
+    this.camera.lookAt(this.pan.x * 0.3, focusY, this.pan.z * 0.3);
   }
 
   private addLights() {
-    const ambient = new THREE.AmbientLight(0xfff8f0, 0.72);
-    this.scene.add(ambient);
-
-    const sun = new THREE.DirectionalLight(0xfff4e6, 1.05);
-    sun.position.set(8, 16, 6);
+    this.scene.add(new THREE.AmbientLight(0xfff8f0, 0.78));
+    const sun = new THREE.DirectionalLight(0xfff4e6, 1.1);
+    sun.position.set(10, 18, 8);
     sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
-    sun.shadow.camera.near = 2;
-    sun.shadow.camera.far = 40;
-    sun.shadow.camera.left = -12;
-    sun.shadow.camera.right = 12;
-    sun.shadow.camera.top = 14;
-    sun.shadow.camera.bottom = -4;
     this.scene.add(sun);
-
-    const fill = new THREE.DirectionalLight(0xc8d8f0, 0.35);
-    fill.position.set(-6, 8, -4);
+    const fill = new THREE.DirectionalLight(0xc8d8f0, 0.38);
+    fill.position.set(-8, 10, -6);
     this.scene.add(fill);
   }
 
   private addGround() {
     const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(40, 40),
-      new THREE.MeshStandardMaterial({ color: 0xd8d2c8, roughness: 0.92, metalness: 0 })
+      new THREE.PlaneGeometry(50, 50),
+      new THREE.MeshStandardMaterial({ color: 0xd8d2c8, roughness: 0.92 })
     );
     ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -0.02;
+    ground.position.y = -0.03;
     ground.receiveShadow = true;
     this.scene.add(ground);
   }
 
-  private buildFloors() {
+  private rebuildFloor(floorIndex: number) {
+    const idx = floorIndex - 1;
+    if (idx < 0 || idx >= APT_TOTAL_FLOORS) return;
+    const prev = this.floorRefs[idx];
+    if (prev) {
+      this.building.remove(prev.group);
+      disposeGroup(prev.group);
+    }
+    const rooms = this.floorPlans[floorIndex] ?? createDefaultFloorPlan().rooms;
+    const { group, shellMats } = buildFloorGroup(rooms, {
+      selectedIds: floorIndex === this.currentFloor ? this.selectedIds : [],
+      floorIndex,
+    });
+    group.position.y = (floorIndex - 1) * FLOOR_HEIGHT;
+    this.floorRefs[idx] = { group, shellMats };
+    this.building.add(group);
+    this.updateFloorHighlight();
+  }
+
+  private rebuildAllFloors() {
+    for (const ref of this.floorRefs) {
+      this.building.remove(ref.group);
+      disposeGroup(ref.group);
+    }
+    this.floorRefs = [];
+
     for (let f = 1; f <= APT_TOTAL_FLOORS; f++) {
-      const floorGroup = new THREE.Group();
-      floorGroup.position.y = (f - 1) * FLOOR_H;
-      floorGroup.userData.floor = f;
-
-      const shellMats: THREE.MeshStandardMaterial[] = [];
-      const yBase = 0.08;
-
-      const slab = new THREE.Mesh(
-        new THREE.BoxGeometry(BUILDING_W, 0.12, BUILDING_D),
-        new THREE.MeshStandardMaterial({ color: 0xf0ebe3, roughness: 0.85, metalness: 0 })
-      );
-      slab.position.y = yBase;
-      slab.receiveShadow = true;
-      floorGroup.add(slab);
-
-      const roomMat = new THREE.MeshStandardMaterial({
-        color: 0x2a4a7a,
-        roughness: 0.55,
-        metalness: 0.08,
-        transparent: true,
-        opacity: 0.88,
+      const rooms = this.floorPlans[f] ?? createDefaultFloorPlan().rooms;
+      const { group, shellMats } = buildFloorGroup(rooms, {
+        selectedIds: f === this.currentFloor ? this.selectedIds : [],
+        floorIndex: f,
       });
-      const innerMat = new THREE.MeshStandardMaterial({
-        color: 0x3d5f8f,
-        roughness: 0.5,
-        metalness: 0.05,
-        transparent: true,
-        opacity: 0.82,
-      });
-
-      const wallFront = this.wall(BUILDING_W, FLOOR_H - 0.2, WALL_T, roomMat);
-      wallFront.position.set(0, FLOOR_H / 2, BUILDING_D / 2);
-      shellMats.push(roomMat);
-
-      const backMat = roomMat.clone();
-      const wallBack = this.wall(BUILDING_W, FLOOR_H - 0.2, WALL_T, backMat);
-      wallBack.position.set(0, FLOOR_H / 2, -BUILDING_D / 2);
-      shellMats.push(backMat);
-
-      const leftMat = roomMat.clone();
-      const wallLeft = this.wall(WALL_T, FLOOR_H - 0.2, BUILDING_D, leftMat);
-      wallLeft.position.set(-BUILDING_W / 2, FLOOR_H / 2, 0);
-      shellMats.push(leftMat);
-
-      const rightMat = roomMat.clone();
-      const wallRight = this.wall(WALL_T, FLOOR_H - 0.2, BUILDING_D, rightMat);
-      wallRight.position.set(BUILDING_W / 2, FLOOR_H / 2, 0);
-      shellMats.push(rightMat);
-
-      floorGroup.add(wallFront, wallBack, wallLeft, wallRight);
-
-      const dividerV = this.wall(WALL_T, FLOOR_H - 0.35, BUILDING_D - 0.3, innerMat);
-      dividerV.position.set(0, FLOOR_H / 2, 0);
-      const dividerH = this.wall(BUILDING_W - 0.3, FLOOR_H - 0.35, WALL_T, innerMat.clone());
-      dividerH.position.set(0, FLOOR_H / 2, 0);
-      floorGroup.add(dividerV, dividerH);
-
-      this.addWindows(floorGroup, f);
-      this.addRoomProps(floorGroup, f);
-
-      const highlight = new THREE.Mesh(
-        new THREE.BoxGeometry(BUILDING_W + 0.28, FLOOR_H + 0.08, BUILDING_D + 0.28),
-        new THREE.MeshBasicMaterial({
-          color: 0xc45a32,
-          transparent: true,
-          opacity: 0,
-          depthWrite: false,
-        })
-      );
-      highlight.position.y = FLOOR_H / 2;
-      floorGroup.add(highlight);
-
-      this.floorRefs.push({ group: floorGroup, shellMats, highlight });
-      this.building.add(floorGroup);
+      group.position.y = (f - 1) * FLOOR_HEIGHT;
+      this.floorRefs.push({ group, shellMats });
+      this.building.add(group);
     }
-
-    this.updateHighlights();
+    this.updateFloorHighlight();
   }
 
-  private wall(w: number, h: number, d: number, mat: THREE.MeshStandardMaterial) {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    return mesh;
-  }
-
-  private addWindows(floorGroup: THREE.Group, floor: number) {
-    const winMat = new THREE.MeshStandardMaterial({
-      color: 0xa8cce8,
-      emissive: 0x224466,
-      emissiveIntensity: floor % 2 === 0 ? 0.35 : 0.18,
-      roughness: 0.2,
-      metalness: 0.1,
-      transparent: true,
-      opacity: 0.75,
-    });
-
-    const cols = 3;
-    const rows = 2;
-    const gapX = BUILDING_W / (cols + 1);
-    const gapY = (FLOOR_H - 0.5) / (rows + 1);
-
-    for (let c = 0; c < cols; c++) {
-      for (let r = 0; r < rows; r++) {
-        const win = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.65, 0.06), winMat.clone());
-        win.position.set(
-          -BUILDING_W / 2 + gapX * (c + 1),
-          0.55 + gapY * (r + 1),
-          BUILDING_D / 2 + 0.04
-        );
-        floorGroup.add(win);
-      }
-    }
-  }
-
-  private addRoomProps(floorGroup: THREE.Group, floor: number) {
-    const palette = [0xc45a32, 0x5a7ab0, 0x8b6f4e, 0x6b8f71];
-    const rooms: [number, number, number, number, number][] = [
-      [-1.1, 0.35, -0.9, 1.2, 0.5],
-      [1.0, 0.28, -0.8, 0.9, 0.45],
-      [-0.9, 0.32, 0.85, 1.0, 0.55],
-      [1.1, 0.4, 1.0, 0.85, 0.4],
-    ];
-
-    rooms.forEach(([x, h, z, w, d], i) => {
-      const mat = new THREE.MeshStandardMaterial({
-        color: palette[(floor + i) % palette.length],
-        roughness: 0.6,
-        metalness: 0.12,
-      });
-      const prop = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-      prop.position.set(x, 0.14 + h / 2, z);
-      prop.castShadow = true;
-      floorGroup.add(prop);
-    });
-  }
-
-  private updateHighlights() {
+  private updateFloorHighlight() {
     for (let i = 0; i < this.floorRefs.length; i++) {
-      const active = i + 1 === this.currentFloor;
-      const mat = this.floorRefs[i].highlight.material as THREE.MeshBasicMaterial;
-      mat.opacity = active ? 0.22 : 0;
+      const hl = this.floorRefs[i].group.getObjectByName("floor-highlight") as THREE.Mesh | undefined;
+      if (hl) {
+        (hl.material as THREE.MeshBasicMaterial).opacity = i + 1 === this.currentFloor ? 0.18 : 0;
+      }
     }
   }
 
@@ -286,13 +222,47 @@ export class AptBuildingScene {
     const t = this.xrayCurrent;
     for (const { shellMats } of this.floorRefs) {
       for (const mat of shellMats) {
-        mat.opacity = THREE.MathUtils.lerp(0.9, 0.14, t);
-        mat.depthWrite = t < 0.65;
+        const base = mat.color.getHex() === 0x1e3a6e ? 0.78 : 0.58;
+        mat.opacity = THREE.MathUtils.lerp(base, 0.1, t);
+        mat.depthWrite = t < 0.55;
       }
     }
   }
 
+  private onWheel = (e: WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 1.08 : 0.92;
+    this.targetZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, this.targetZoom * delta));
+  };
+
   private onPointerDown = (e: PointerEvent) => {
+    if (e.button !== 0) return;
+    this.drag = { x: e.clientX, y: e.clientY, px: this.pan.x, pz: this.pan.z };
+    this.renderer.domElement.setPointerCapture(e.pointerId);
+  };
+
+  private onPointerMove = (e: PointerEvent) => {
+    if (!this.drag) return;
+    const dx = (e.clientX - this.drag.x) * 0.012;
+    const dy = (e.clientY - this.drag.y) * 0.012;
+    this.pan.x = this.drag.px - dx;
+    this.pan.z = this.drag.pz - dy;
+    this.updateCamera();
+  };
+
+  private onPointerUp = (e: PointerEvent) => {
+    if (!this.drag) return;
+    const moved = Math.abs(e.clientX - this.drag.x) + Math.abs(e.clientY - this.drag.y);
+    if (moved < 6) this.pick(e);
+    this.drag = null;
+    try {
+      this.renderer.domElement.releasePointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  private pick(e: PointerEvent) {
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -305,10 +275,18 @@ export class AptBuildingScene {
     if (!hits.length) return;
 
     let obj: THREE.Object3D | null = hits[0].object;
-    while (obj && obj.userData.floor == null) obj = obj.parent;
-    const floor = obj?.userData.floor as number | undefined;
-    if (floor) this.onFloorClick?.(floor);
-  };
+    while (obj) {
+      if (obj.userData.roomId) {
+        this.callbacks.onRoomClick?.(obj.userData.roomId as string, e.shiftKey);
+        return;
+      }
+      if (obj.userData.floor) {
+        this.callbacks.onFloorClick?.(obj.userData.floor as number);
+        return;
+      }
+      obj = obj.parent;
+    }
+  }
 
   private onResize = () => {
     const w = this.mount.clientWidth;
@@ -324,7 +302,9 @@ export class AptBuildingScene {
     this.raf = requestAnimationFrame(this.loop);
 
     this.building.position.y += (this.targetBuildingY - this.building.position.y) * 0.09;
+    this.zoom += (this.targetZoom - this.zoom) * 0.12;
     this.xrayCurrent += (this.xrayTarget - this.xrayCurrent) * 0.1;
+    this.updateCamera();
     this.applyXray();
 
     this.renderer.render(this.scene, this.camera);
@@ -334,10 +314,16 @@ export class AptBuildingScene {
     this.disposed = true;
     cancelAnimationFrame(this.raf);
     window.removeEventListener("resize", this.onResize);
-    this.renderer.domElement.removeEventListener("pointerdown", this.onPointerDown);
+    const canvas = this.renderer.domElement;
+    canvas.removeEventListener("pointerdown", this.onPointerDown);
+    canvas.removeEventListener("pointermove", this.onPointerMove);
+    canvas.removeEventListener("pointerup", this.onPointerUp);
+    canvas.removeEventListener("pointercancel", this.onPointerUp);
+    canvas.removeEventListener("wheel", this.onWheel);
+    for (const ref of this.floorRefs) disposeGroup(ref.group);
     this.renderer.dispose();
-    if (this.renderer.domElement.parentElement) {
-      this.renderer.domElement.parentElement.removeChild(this.renderer.domElement);
-    }
+    canvas.remove();
   }
 }
+
+export { PLAN_W, PLAN_H, SCALE };
