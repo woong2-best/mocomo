@@ -2097,7 +2097,12 @@ model AptProfile {
   id                String    @id @default(cuid())
   userId            String    @unique
   moveInCompletedAt DateTime?
-  homeFloor         Int       @default(7)
+  housingType       String    @default("apartment")
+  countryCode       String    @default("KR")
+  latitude          Float?
+  longitude         Float?
+  regionLabel       String?
+  homeFloor         Int       @default(50)
   floorPlans        Json      @default("{}")
   furniture         Json      @default("[]")
   residents         Json      @default("[]")

@@ -5,6 +5,7 @@ import { getCachedCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { APT_DEFAULT_FLOOR } from "@/lib/apt/constants";
 import { clampFloor, emptyFloorPlans, getRoomsForFloor } from "@/lib/apt/floor-plan-store";
+import type { HousingLocation, HousingType } from "@/lib/apt/housing-types";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import {
   defaultFurnitureForPlan,
@@ -15,12 +16,26 @@ import {
 } from "@/lib/apt/simulation/types";
 
 export type AptProfileDto = {
+  housingType: HousingType;
+  countryCode: string;
+  latitude: number | null;
+  longitude: number | null;
+  regionLabel: string | null;
   homeFloor: number;
   moveInCompleted: boolean;
   floorPlans: Record<number, AptRoom[]>;
   furniture: FurnitureItem[];
   residents: ResidentAgent[];
   simulation: Partial<SimulationSnapshot>;
+};
+
+export type MoveInPayload = {
+  housingType: HousingType;
+  homeFloor?: number;
+  countryCode: string;
+  latitude: number;
+  longitude: number;
+  regionLabel: string;
 };
 
 function defaultPlans(): Record<number, AptRoom[]> {
@@ -32,6 +47,44 @@ function parseJson<T>(raw: unknown, fallback: T): T {
   return raw as T;
 }
 
+function rowToDto(
+  row: {
+    housingType: string;
+    countryCode: string;
+    latitude: number | null;
+    longitude: number | null;
+    regionLabel: string | null;
+    homeFloor: number;
+    moveInCompletedAt: Date | null;
+    floorPlans: unknown;
+    furniture: unknown;
+    residents: unknown;
+    simulationState: unknown;
+  },
+  user: { id: string; name: string | null; username: string }
+): AptProfileDto {
+  const floorPlans = parseJson<Record<number, AptRoom[]>>(row.floorPlans, defaultPlans());
+  const homeFloor = row.homeFloor ?? APT_DEFAULT_FLOOR;
+  const rooms = getRoomsForFloor(floorPlans, homeFloor);
+
+  return {
+    housingType: (row.housingType === "house" ? "house" : "apartment") as HousingType,
+    countryCode: row.countryCode ?? "KR",
+    latitude: row.latitude,
+    longitude: row.longitude,
+    regionLabel: row.regionLabel,
+    homeFloor,
+    moveInCompleted: !!row.moveInCompletedAt,
+    floorPlans,
+    furniture: parseJson(row.furniture, defaultFurnitureForPlan(rooms)),
+    residents: parseJson(
+      row.residents,
+      defaultResidents({ userId: user.id, displayName: user.name ?? user.username })
+    ),
+    simulation: parseJson(row.simulationState, {}),
+  };
+}
+
 export async function getAptProfile(): Promise<AptProfileDto | null> {
   const user = await getCachedCurrentUser();
   if (!user) return null;
@@ -39,6 +92,11 @@ export async function getAptProfile(): Promise<AptProfileDto | null> {
   const plans = defaultPlans();
   const rooms = getRoomsForFloor(plans, APT_DEFAULT_FLOOR);
   const fallback: AptProfileDto = {
+    housingType: "apartment",
+    countryCode: user.countryCode ?? "KR",
+    latitude: null,
+    longitude: null,
+    regionLabel: null,
     homeFloor: APT_DEFAULT_FLOOR,
     moveInCompleted: false,
     floorPlans: plans,
@@ -53,34 +111,20 @@ export async function getAptProfile(): Promise<AptProfileDto | null> {
   try {
     const row = await db.aptProfile.findUnique({ where: { userId: user.id } });
     if (!row) return fallback;
-
-  const floorPlans = parseJson<Record<number, AptRoom[]>>(row.floorPlans, defaultPlans());
-  const homeFloor = row.homeFloor ?? APT_DEFAULT_FLOOR;
-  const rooms = getRoomsForFloor(floorPlans, homeFloor);
-
-  return {
-    homeFloor,
-    moveInCompleted: !!row.moveInCompletedAt,
-    floorPlans,
-    furniture: parseJson(row.furniture, defaultFurnitureForPlan(rooms)),
-    residents: parseJson(
-      row.residents,
-      defaultResidents({ userId: user.id, displayName: user.name ?? user.username })
-    ),
-    simulation: parseJson(row.simulationState, {}),
-  };
+    return rowToDto(row, user);
   } catch {
     return fallback;
   }
 }
 
-export async function completeAptMoveIn(homeFloor: number) {
+export async function completeAptMoveIn(payload: MoveInPayload) {
   const user = await getCachedCurrentUser();
   if (!user) return { error: "로그인이 필요합니다." };
 
-  const floor = clampFloor(homeFloor);
+  const housingType = payload.housingType === "house" ? "house" : "apartment";
+  const floor = housingType === "apartment" ? clampFloor(payload.homeFloor ?? APT_DEFAULT_FLOOR) : 0;
   const plans = defaultPlans();
-  const rooms = getRoomsForFloor(plans, floor);
+  const rooms = getRoomsForFloor(plans, floor || APT_DEFAULT_FLOOR);
   const furniture = defaultFurnitureForPlan(rooms);
   const residents = defaultResidents({
     userId: user.id,
@@ -92,7 +136,12 @@ export async function completeAptMoveIn(homeFloor: number) {
       where: { userId: user.id },
       create: {
         userId: user.id,
-        homeFloor: floor,
+        housingType,
+        countryCode: payload.countryCode.toUpperCase(),
+        latitude: payload.latitude,
+        longitude: payload.longitude,
+        regionLabel: payload.regionLabel,
+        homeFloor: floor || APT_DEFAULT_FLOOR,
         moveInCompletedAt: new Date(),
         floorPlans: plans,
         furniture,
@@ -100,7 +149,12 @@ export async function completeAptMoveIn(homeFloor: number) {
         simulationState: {},
       },
       update: {
-        homeFloor: floor,
+        housingType,
+        countryCode: payload.countryCode.toUpperCase(),
+        latitude: payload.latitude,
+        longitude: payload.longitude,
+        regionLabel: payload.regionLabel,
+        homeFloor: floor || APT_DEFAULT_FLOOR,
         moveInCompletedAt: new Date(),
         floorPlans: plans,
         furniture,
@@ -110,7 +164,8 @@ export async function completeAptMoveIn(homeFloor: number) {
 
     revalidatePath("/apt");
     revalidatePath("/apt/move-in");
-    return { ok: true as const };
+    revalidatePath("/apt/house");
+    return { ok: true as const, housingType };
   } catch (e) {
     console.error("[completeAptMoveIn]", e);
     return { error: "입주 저장에 실패했습니다. 잠시 후 다시 시도해 주세요." };
@@ -191,3 +246,5 @@ export async function placeAptTv() {
   revalidatePath("/apt");
   return { ok: true as const, furniture };
 }
+
+export type { HousingLocation };
