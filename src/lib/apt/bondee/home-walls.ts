@@ -24,19 +24,21 @@ export type HomeWall = {
   thickness: number;
 };
 
+export const HOME_WALL_BASE_HEIGHT = 1.12;
+
 export const HOME_WALL_RENDER = {
   EXTERIOR: {
     opacity: 1.0,
     occludeOpacity: 0.22,
-    thicknessPlan: 12,
-    heightMul: 1.1,
+    thicknessPlan: 14,
+    heightMul: 1.12,
     castShadow: true,
   },
   INTERIOR: {
     opacity: 0.35,
     occludeOpacity: 0.35,
-    thicknessPlan: 4,
-    heightMul: 0.65,
+    thicknessPlan: 5,
+    heightMul: 0.94,
     castShadow: false,
   },
 } as const;
@@ -122,7 +124,7 @@ export function resolveWallBuild(
 }
 
 /** 집 생성 시 모든 벽 세그먼트를 EXTERIOR / INTERIOR 로 분류 */
-export function deriveHomeWalls(rooms: AptRoom[], baseWallHeight = 0.2): HomeWall[] {
+export function deriveHomeWalls(rooms: AptRoom[], baseWallHeight = HOME_WALL_BASE_HEIGHT): HomeWall[] {
   const doorways = computeHomeDoorways(rooms);
   const walls: HomeWall[] = [];
   let seq = 0;

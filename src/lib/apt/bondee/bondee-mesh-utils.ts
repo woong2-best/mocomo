@@ -304,14 +304,14 @@ export function setObjectRenderLayer(root: THREE.Object3D, order: number) {
 }
 
 /** Cute round window for exterior walls */
-export function buildRoundWindow(radius = 0.08): THREE.Group {
+export function buildRoundWindow(radius = 0.1): THREE.Group {
   const g = new THREE.Group();
   const frame = new THREE.Mesh(
-    new THREE.TorusGeometry(radius, 0.018, 8, 20),
+    new THREE.TorusGeometry(radius, 0.022, 8, 20),
     bondeeMat(BONDEE_PALETTE.trim)
   );
   frame.rotation.x = Math.PI / 2;
-  frame.position.y = 0.22;
+  frame.position.y = 0;
   g.add(frame);
 
   const glass = new THREE.Mesh(
@@ -319,11 +319,11 @@ export function buildRoundWindow(radius = 0.08): THREE.Group {
     bondeeMat(0xb8e8ff, { transparent: true, opacity: 0.55, roughness: 0.1, metalness: 0.1 })
   );
   glass.rotation.x = -Math.PI / 2;
-  glass.position.y = 0.22;
+  glass.position.y = 0;
   g.add(glass);
 
-  const sill = new THREE.Mesh(roundedBox(radius * 2.2, 0.025, 0.04, 0.008), bondeeMat(BONDEE_PALETTE.wallWhite));
-  sill.position.set(0, 0.12, 0.03);
+  const sill = new THREE.Mesh(roundedBox(radius * 2.2, 0.03, 0.05, 0.01), bondeeMat(BONDEE_PALETTE.wallWhite));
+  sill.position.set(0, -radius * 0.55, 0.03);
   g.add(sill);
 
   return g;

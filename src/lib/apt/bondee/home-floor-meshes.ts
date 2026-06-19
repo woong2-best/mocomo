@@ -30,10 +30,11 @@ import {
   resolveWallBuild,
   wallHeightWorld,
   wallThicknessWorld,
+  HOME_WALL_BASE_HEIGHT,
   type HomeWallSide,
 } from "./home-walls";
 
-const WALL_H = 0.34;
+const WALL_H = HOME_WALL_BASE_HEIGHT;
 const ITEM_GRID = 0.38;
 
 const ROOM_ACCENT: Record<string, number> = {
@@ -252,9 +253,9 @@ function buildInteriorDoor(door: HomeDoorway, wallHeight: number, _accent: numbe
   g.name = `door-${door.id}`;
   g.userData.doorId = door.id;
 
-  const doorH = wallHeight * 0.58;
-  const doorW = Math.min(door.span * 0.9, 0.5);
-  const frameT = 0.028;
+  const doorH = wallHeight * 0.84;
+  const doorW = Math.min(door.span * 0.92, 0.58);
+  const frameT = 0.042;
 
   const frameMat = bondeeMat(BONDEE_PALETTE.trim, { transparent: true, opacity: 0.85 });
   const makeInteriorSeg = (geo: THREE.BufferGeometry, x: number, y: number, z: number) => {
@@ -267,7 +268,7 @@ function buildInteriorDoor(door: HomeDoorway, wallHeight: number, _accent: numbe
   const pivot = new THREE.Group();
   pivot.position.set(door.cx, 0, door.cz);
 
-  const leaf = new THREE.Mesh(roundedBox(doorW, doorH, frameT, 0.006), bondeeMat(0xc9a882));
+  const leaf = new THREE.Mesh(roundedBox(doorW, doorH, frameT, 0.008), bondeeMat(0xc9a882));
   leaf.position.y = doorH / 2 + 0.05;
   if (door.axis === "x") {
     leaf.position.z = (door.swing * doorW) / 2;
@@ -282,15 +283,15 @@ function buildInteriorDoor(door: HomeDoorway, wallHeight: number, _accent: numbe
   pivot.add(leaf);
   g.add(pivot);
 
-  const lintelH = wallHeight * 0.28;
-  const lintel = new THREE.Mesh(roundedBox(doorW + 0.06, lintelH, frameT + 0.01, 0.005), frameMat);
-  lintel.position.set(door.cx, doorH + lintelH / 2 + 0.04, door.cz);
+  const transomH = Math.max(0.06, wallHeight - doorH);
+  const lintel = new THREE.Mesh(roundedBox(doorW + 0.08, transomH, frameT + 0.012, 0.006), frameMat);
+  lintel.position.set(door.cx, doorH + transomH / 2 + 0.04, door.cz);
   g.add(lintel);
 
   const jambDepth = frameT + 0.02;
   if (door.axis === "x") {
     for (const sign of [-1, 1] as const) {
-      const jamb = new THREE.Mesh(roundedBox(frameT, doorH, jambDepth, 0.004), frameMat);
+      const jamb = new THREE.Mesh(roundedBox(frameT, doorH, jambDepth, 0.006), frameMat);
       jamb.position.set(door.cx, doorH / 2 + 0.05, door.cz + sign * (doorW / 2 + frameT / 2));
       g.add(jamb);
     }
@@ -298,9 +299,9 @@ function buildInteriorDoor(door: HomeDoorway, wallHeight: number, _accent: numbe
     if (sideLen > 0.06) {
       for (const sign of [-1, 1] as const) {
         const seg = makeInteriorSeg(
-          roundedBox(frameT, wallHeight * 0.35, sideLen, 0.004),
+          roundedBox(frameT, wallHeight, sideLen, 0.006),
           door.cx,
-          wallHeight * 0.2 + 0.05,
+          wallHeight / 2 + 0.05,
           door.cz + sign * (doorW / 2 + sideLen / 2 + 0.02)
         );
         g.add(seg);
@@ -308,7 +309,7 @@ function buildInteriorDoor(door: HomeDoorway, wallHeight: number, _accent: numbe
     }
   } else {
     for (const sign of [-1, 1] as const) {
-      const jamb = new THREE.Mesh(roundedBox(jambDepth, doorH, frameT, 0.004), frameMat);
+      const jamb = new THREE.Mesh(roundedBox(jambDepth, doorH, frameT, 0.006), frameMat);
       jamb.position.set(door.cx + sign * (doorW / 2 + frameT / 2), doorH / 2 + 0.05, door.cz);
       g.add(jamb);
     }
@@ -316,9 +317,9 @@ function buildInteriorDoor(door: HomeDoorway, wallHeight: number, _accent: numbe
     if (sideLen > 0.06) {
       for (const sign of [-1, 1] as const) {
         const seg = makeInteriorSeg(
-          roundedBox(sideLen, wallHeight * 0.35, frameT, 0.004),
+          roundedBox(sideLen, wallHeight, frameT, 0.006),
           door.cx + sign * (doorW / 2 + sideLen / 2 + 0.02),
-          wallHeight * 0.2 + 0.05,
+          wallHeight / 2 + 0.05,
           door.cz
         );
         g.add(seg);
@@ -330,7 +331,7 @@ function buildInteriorDoor(door: HomeDoorway, wallHeight: number, _accent: numbe
   return g;
 }
 
-export { deriveHomeWalls, type HomeWall, type HomeWallType } from "./home-walls";
+export { deriveHomeWalls, HOME_WALL_BASE_HEIGHT, type HomeWall, type HomeWallType } from "./home-walls";
 
 /** Room shells only — floors, walls, labels (no furniture) */
 export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | "furnitureMode">): THREE.Group {
@@ -411,7 +412,10 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
       const wallId = wallMeta?.id;
 
       if (resolved.kind === "door") {
-        if (resolved.doorway) doorRoot.add(buildInteriorDoor(resolved.doorway, wallHeight, accent));
+        if (resolved.doorway) {
+          const doorWallH = wallHeightWorld(wallHeight, "INTERIOR");
+          doorRoot.add(buildInteriorDoor(resolved.doorway, doorWallH, accent));
+        }
         continue;
       }
       if (resolved.kind === "skip") continue;
@@ -436,8 +440,8 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
       (isExterior ? exteriorWallRoot : interiorWallRoot).add(wallGroup);
 
       if (isExterior && room.type !== "balcony") {
-        const win = buildRoundWindow(0.07);
-        win.position.set(dims.px, 0, dims.pz + (side === "n" ? 0.04 : side === "s" ? -0.04 : 0));
+        const win = buildRoundWindow(0.1);
+        win.position.set(dims.px, h * 0.52, dims.pz + (side === "n" ? 0.04 : side === "s" ? -0.04 : 0));
         if (side === "w" || side === "e") win.rotation.y = Math.PI / 2;
         exteriorWallRoot.add(win);
       }
