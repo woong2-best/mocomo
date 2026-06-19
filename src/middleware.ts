@@ -40,6 +40,7 @@ const studioProtectedPrefixes = [
   "/studio/library",
   "/studio/wallet",
   "/studio/settings",
+  "/studio/following",
   "/studio/admin",
 ];
 

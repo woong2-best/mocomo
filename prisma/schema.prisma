@@ -1221,6 +1221,7 @@ enum PaymentIntentType {
   CREATOR_EPISODE
   POST_MEDIA
   CREATOR_SUBSCRIPTION
+  STUDIO_ASSET
 }
 
 enum EventPublishStatus {

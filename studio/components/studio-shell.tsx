@@ -6,12 +6,14 @@ import { signOut, useSession } from "next-auth/react";
 import {
   BookOpen,
   Box,
+  Heart,
   Home,
   LayoutGrid,
   Library,
   Palette,
   Settings,
   Shield,
+  Users,
   Wallet,
 } from "lucide-react";
 import { getMocomoBaseUrl, getStudioBaseUrl } from "@/studio/lib/host";
@@ -23,6 +25,8 @@ const NAV = [
   { href: "/studio/assets", label: "내 자산", icon: Box },
   { href: "/studio/library", label: "보관함", icon: Library },
   { href: "/studio/market", label: "마켓", icon: LayoutGrid },
+  { href: "/studio/discover", label: "탐색", icon: Users },
+  { href: "/studio/following", label: "팔로우", icon: Heart },
   { href: "/studio/wallet", label: "수익", icon: Wallet },
   { href: "/studio/settings", label: "설정", icon: Settings },
 ];
@@ -115,7 +119,7 @@ export function StudioShell({ children, isReviewer }: { children: React.ReactNod
       <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
 
       <nav className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-pink-100 bg-white/95 md:hidden">
-        {[NAV[0], NAV[1], NAV[3], NAV[4], NAV[6]].map(({ href, label, icon: Icon, exact }) => {
+        {[NAV[0], NAV[1], NAV[4], NAV[5], NAV[7]].map(({ href, label, icon: Icon, exact }) => {
           const active = exact ? pathname === href : pathname.startsWith(href);
           return (
             <Link

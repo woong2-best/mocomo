@@ -4,8 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import type { StudioAssetCategory } from "@prisma/client";
-import { STUDIO_PLATFORM_FEE_PERCENT } from "@/studio/lib/constants";
-import { grantStudioInventory } from "@/studio/lib/inventory";
+import { fulfillStudioAssetPurchase } from "@/studio/actions/checkout";
 
 export async function listPublishedAssets(opts?: {
   category?: StudioAssetCategory;
@@ -35,6 +34,7 @@ export async function listPublishedAssets(opts?: {
   });
 }
 
+/** 테스트·Stripe 미설정 시 즉시 구매 */
 export async function purchaseStudioAsset(assetId: string) {
   const user = await requireAuth();
   const asset = await db.studioAsset.findUnique({ where: { id: assetId } });
@@ -42,65 +42,9 @@ export async function purchaseStudioAsset(assetId: string) {
   if (asset.creatorId === user.id) return { error: "본인 작품은 구매할 수 없습니다." };
   if (asset.isFree || asset.priceKrw <= 0) return { error: "무료 자산입니다." };
 
-  const existing = await db.studioAssetPurchase.findUnique({
-    where: { buyerId_assetId: { buyerId: user.id, assetId } },
-  });
-  if (existing) return { error: "이미 구매한 자산입니다." };
+  const r = await fulfillStudioAssetPurchase(user.id, assetId, asset.priceKrw);
+  if (r.error) return { error: r.error };
 
-  const platformFee = Math.floor((asset.priceKrw * STUDIO_PLATFORM_FEE_PERCENT) / 100);
-  const creatorEarn = asset.priceKrw - platformFee;
-
-  await db.$transaction(async (tx) => {
-    await tx.studioAssetPurchase.create({
-      data: {
-        buyerId: user.id,
-        assetId,
-        priceKrw: asset.priceKrw,
-        platformFee,
-        creatorEarn,
-      },
-    });
-
-    await tx.studioAsset.update({
-      where: { id: assetId },
-      data: { saleCount: { increment: 1 } },
-    });
-
-    const wallet = await tx.studioWallet.upsert({
-      where: { userId: asset.creatorId },
-      create: {
-        userId: asset.creatorId,
-        availableBalance: creatorEarn,
-        totalEarned: creatorEarn,
-      },
-      update: {
-        availableBalance: { increment: creatorEarn },
-        totalEarned: { increment: creatorEarn },
-      },
-    });
-
-    await tx.studioWalletTransaction.create({
-      data: {
-        userId: asset.creatorId,
-        type: "SALE",
-        amount: creatorEarn,
-        balanceAfter: wallet.availableBalance,
-        referenceType: "StudioAssetPurchase",
-        referenceId: assetId,
-        memo: asset.name,
-      },
-    });
-
-    await tx.studioCreatorProfile.updateMany({
-      where: { userId: asset.creatorId },
-      data: { totalSales: { increment: 1 } },
-    });
-
-    await grantStudioInventory(user.id, assetId, "PURCHASE");
-  });
-
-  revalidatePath("/studio/market");
-  revalidatePath(`/studio/market/${assetId}`);
   revalidatePath("/studio/wallet");
   return { success: true };
 }

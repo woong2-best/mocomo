@@ -21,7 +21,11 @@ export default async function StudioLibraryPage() {
         <p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">
           보관함이 비어 있습니다.{" "}
           <Link href="/studio/market" className="text-pink-600 hover:underline">
-            마켓에서 자산 획득
+            마켓에서 획득
+          </Link>
+          {" · "}
+          <Link href="/apt" className="text-pink-600 hover:underline">
+            APT에서 배치
           </Link>
         </p>
       )}

@@ -363,6 +363,24 @@ export async function fulfillPaymentIntent(
     revalidatePath("/");
   }
 
+  if (intent.type === "STUDIO_ASSET") {
+    const { fulfillStudioAssetPurchase } = await import("@/studio/actions/checkout");
+    const assetId = String(meta.studioAssetId ?? "");
+    const r = await fulfillStudioAssetPurchase(userId, assetId, amount);
+    if ("error" in r && r.error) return { ok: false, error: r.error };
+    if ("success" in r && r.success && !r.alreadyOwned && r.platformFee != null) {
+      await recordPlatformFee(r.platformFee, {
+        referenceType: "studio_asset",
+        referenceId: assetId,
+        paymentIntentId: intent.id,
+        memo: "MoCoMo Studio 자산",
+      });
+    }
+    revalidatePath("/studio/market");
+    revalidatePath("/studio/library");
+    revalidatePath("/apt");
+  }
+
   await db.paymentIntent.update({
     where: { id: orderId },
     data: { status: "PAID", paymentKey: paymentRef, paidAt: new Date() },

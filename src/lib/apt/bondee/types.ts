@@ -43,6 +43,10 @@ export type BondeePlacedItem = {
   gx: number;
   gz: number;
   rot: 0 | 1 | 2 | 3;
+  /** MoCoMo Studio GLB — set when placed from Studio inventory */
+  studioAssetId?: string;
+  glbUrl?: string;
+  studioLabel?: string;
 };
 
 /** @deprecated alias — same as BondeeHomeState */

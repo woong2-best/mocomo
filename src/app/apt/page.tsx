@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { getAptProfile } from "@/actions/apt";
 import { getBondeeHome } from "@/actions/apt-bondee";
+import { getAptStudioInventory } from "@/studio/actions/library";
 import { DEFAULT_BONDEE_HOME } from "@/lib/apt/bondee/types";
 import { createDefaultFloorPlan } from "@/lib/apt/floor-plan-logic";
 import { AptHubClient } from "@/components/apt/apt-hub-client";
@@ -23,6 +24,7 @@ export default async function AptPage() {
     }
 
     const bondee = user ? await getBondeeHome(profile?.homeFloor) : null;
+    const studioInventory = user ? await getAptStudioInventory().catch(() => []) : [];
 
     return (
       <AptHubClient
@@ -30,6 +32,7 @@ export default async function AptPage() {
         bondeeHome={bondee?.home ?? DEFAULT_BONDEE_HOME}
         homeRooms={bondee?.rooms ?? createDefaultFloorPlan().rooms}
         isLoggedIn={!!user}
+        studioInventory={studioInventory}
       />
     );
   } catch (e) {

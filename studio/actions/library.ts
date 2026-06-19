@@ -21,6 +21,25 @@ export async function getMyStudioLibrary() {
   return rows.filter((r) => r.asset.status === "PUBLISHED");
 }
 
+export async function getAptStudioInventory() {
+  const user = await requireAuth();
+  const rows = await db.studioUserInventory.findMany({
+    where: { userId: user.id },
+    include: { asset: true },
+    orderBy: { acquiredAt: "desc" },
+  });
+
+  return rows
+    .filter((r) => r.asset.status === "PUBLISHED" && r.asset.glbUrl)
+    .map((r) => ({
+      studioAssetId: r.studioAssetId,
+      name: r.asset.name,
+      glbUrl: r.asset.glbUrl!,
+      thumbnailUrl: r.asset.thumbnailUrl,
+      category: r.asset.category,
+    }));
+}
+
 export async function acquireFreeStudioAsset(assetId: string) {
   const user = await requireAuth();
   const asset = await db.studioAsset.findUnique({ where: { id: assetId } });

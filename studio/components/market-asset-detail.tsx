@@ -3,8 +3,10 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { purchaseStudioAsset, toggleStudioAssetLike } from "@/studio/actions/market";
+import { createStudioAssetCheckout } from "@/studio/actions/checkout";
 import { downloadStudioAsset } from "@/studio/actions/assets";
 import { acquireFreeStudioAsset } from "@/studio/actions/library";
+import { isPaymentsConfigured } from "@/lib/payments";
 import type { StudioAsset, User } from "@prisma/client";
 import { AssetPreviewViewer } from "./asset-preview-viewer";
 import { STUDIO_CATEGORY_LABELS } from "@/studio/lib/constants";
@@ -34,18 +36,35 @@ export function MarketAssetActions({ asset, liked, owned, isOwner }: Props) {
       </Button>
 
       {!isOwner && !isFree && !owned && (
-        <Button
-          size="sm"
-          disabled={pending}
-          onClick={() =>
-            startTransition(async () => {
-              const r = await purchaseStudioAsset(asset.id);
-              if (!r.error) router.refresh();
-            })
-          }
-        >
-          {asset.priceKrw.toLocaleString()}원 구매
-        </Button>
+        <>
+          {isPaymentsConfigured() ? (
+            <Button
+              size="sm"
+              disabled={pending}
+              onClick={() =>
+                startTransition(async () => {
+                  const r = await createStudioAssetCheckout(asset.id);
+                  if ("checkoutUrl" in r && r.checkoutUrl) window.location.href = r.checkoutUrl;
+                })
+              }
+            >
+              {asset.priceKrw.toLocaleString()}원 Stripe 결제
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              disabled={pending}
+              onClick={() =>
+                startTransition(async () => {
+                  const r = await purchaseStudioAsset(asset.id);
+                  if (!r.error) router.refresh();
+                })
+              }
+            >
+              {asset.priceKrw.toLocaleString()}원 구매 (테스트)
+            </Button>
+          )}
+        </>
       )}
 
       {!isOwner && isFree && !owned && (

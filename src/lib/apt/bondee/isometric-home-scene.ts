@@ -12,6 +12,8 @@ import {
   migrateItems,
 } from "./home-floor-meshes";
 import type { BondeeHomeState, BondeePlacedItem, ChibiAvatarConfig, ChibiPose } from "./types";
+import type { StudioDecorTool } from "@/studio/lib/apt-types";
+import { hydrateStudioGltfMeshes } from "./studio-gltf-meshes";
 
 const MOVE_SPEED = 2.4;
 const INTERACT_DIST = 0.55;
@@ -40,6 +42,7 @@ export class IsometricHomeScene {
   private decorMode = false;
   private deleteMode = false;
   private selectedTool: BondeePlacedItem["kind"] | null = null;
+  private selectedStudioTool: StudioDecorTool | null = null;
   private activeRoomId: string | null = null;
   private selectedItemId: string | null = null;
   private callbacks: IsometricHomeCallbacks = {};
@@ -126,12 +129,21 @@ export class IsometricHomeScene {
     return { ...this.state, activeRoomId: this.activeRoomId ?? undefined };
   }
 
-  setDecorMode(on: boolean, tool: BondeePlacedItem["kind"] | null, deleteMode = false) {
+  setDecorMode(
+    on: boolean,
+    tool: BondeePlacedItem["kind"] | null,
+    deleteMode = false,
+    studioTool: StudioDecorTool | null = null
+  ) {
     this.decorMode = on;
     this.deleteMode = deleteMode;
-    this.selectedTool = tool;
-    if (!on) this.selectedTool = null;
-    this.walkMode = !(on && (tool || deleteMode));
+    this.selectedTool = studioTool ? null : tool;
+    this.selectedStudioTool = studioTool;
+    if (!on) {
+      this.selectedTool = null;
+      this.selectedStudioTool = null;
+    }
+    this.walkMode = !(on && (tool || studioTool || deleteMode));
   }
 
   setActiveRoom(roomId: string) {
@@ -180,6 +192,7 @@ export class IsometricHomeScene {
       selectedItemId: this.selectedItemId,
     });
     this.homeRoot.add(this.floorGroup);
+    void hydrateStudioGltfMeshes(this.floorGroup);
     this.applyAvatar();
   }
 
@@ -270,7 +283,7 @@ export class IsometricHomeScene {
   }
 
   private onKeyDown = (e: KeyboardEvent) => {
-    if (this.decorMode && this.selectedTool) return;
+    if (this.decorMode && (this.selectedTool || this.selectedStudioTool)) return;
     const k = e.key.toLowerCase();
     if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) {
       this.keys.add(k);
@@ -314,7 +327,7 @@ export class IsometricHomeScene {
       }
     }
 
-    if (this.deleteMode || (this.decorMode && !this.selectedTool)) {
+    if (this.deleteMode || (this.decorMode && !this.selectedTool && !this.selectedStudioTool)) {
       const hits = this.raycaster.intersectObjects(this.floorGroup?.children ?? [], true);
       for (const hit of hits) {
         let obj: THREE.Object3D | null = hit.object;
@@ -331,7 +344,7 @@ export class IsometricHomeScene {
       return;
     }
 
-    if (!this.decorMode || !this.selectedTool || !this.activeRoomId) return;
+    if (!this.decorMode || (!this.selectedTool && !this.selectedStudioTool) || !this.activeRoomId) return;
 
     const room = this.rooms.find((r) => r.id === this.activeRoomId);
     if (!room) return;
@@ -349,10 +362,29 @@ export class IsometricHomeScene {
     if (Math.abs(gx) > 3 || Math.abs(gz) > 3) return;
 
     const id = `item-${Date.now()}`;
-    const items = [
-      ...this.state.items,
-      { id, kind: this.selectedTool, roomId: this.activeRoomId, gx, gz, rot: 0 as const },
-    ];
+    const base = {
+      id,
+      roomId: this.activeRoomId,
+      gx,
+      gz,
+      rot: 0 as const,
+    };
+
+    const items = this.selectedStudioTool
+      ? [
+          ...this.state.items,
+          {
+            ...base,
+            kind: "plant" as const,
+            studioAssetId: this.selectedStudioTool.studioAssetId,
+            glbUrl: this.selectedStudioTool.glbUrl,
+            studioLabel: this.selectedStudioTool.name,
+          },
+        ]
+      : [
+          ...this.state.items,
+          { ...base, kind: this.selectedTool! },
+        ];
     this.updateItems(items);
   };
 

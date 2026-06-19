@@ -25,6 +25,7 @@ import {
   type ChibiAvatarConfig,
   type ChibiPose,
 } from "@/lib/apt/bondee/types";
+import type { AptStudioInventoryItem } from "@/studio/lib/apt-types";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import { cn } from "@/lib/utils";
 import { AptChibiCustomizer } from "@/components/apt/apt-chibi-customizer";
@@ -48,11 +49,13 @@ export function AptBondeeRoom({
   initialState,
   rooms,
   isLoggedIn,
+  studioInventory = [],
   onHomeChange,
 }: {
   initialState: BondeeHomeState;
   rooms: AptRoom[];
   isLoggedIn: boolean;
+  studioInventory?: AptStudioInventoryItem[];
   onHomeChange?: (state: BondeeHomeState) => void;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -66,6 +69,7 @@ export function AptBondeeRoom({
   const [panel, setPanel] = useState<"avatar" | "decor" | null>("decor");
   const [decorCat, setDecorCat] = useState(0);
   const [placeTool, setPlaceTool] = useState<BondeeFurnitureKind | null>(null);
+  const [studioTool, setStudioTool] = useState<AptStudioInventoryItem | null>(null);
   const [deleteMode, setDeleteMode] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -75,7 +79,7 @@ export function AptBondeeRoom({
   const { runWithIris, IrisOverlay } = useGameIrisTransition();
   const openGamesRef = useRef<() => void>(() => {});
 
-  const movementDisabled = panel === "decor" && (!!placeTool || deleteMode);
+  const movementDisabled = panel === "decor" && (!!placeTool || !!studioTool || deleteMode);
 
   const roomTabs = useMemo(
     () => rooms.filter((r) => r.type !== "hall" && r.type !== "balcony"),
@@ -155,8 +159,8 @@ export function AptBondeeRoom({
   );
 
   useEffect(() => {
-    sceneRef.current?.setDecorMode(panel === "decor", placeTool, deleteMode);
-  }, [panel, placeTool, deleteMode]);
+    sceneRef.current?.setDecorMode(panel === "decor", placeTool, deleteMode, studioTool);
+  }, [panel, placeTool, deleteMode, studioTool]);
 
   useEffect(() => {
     if (activeRoomId) sceneRef.current?.setActiveRoom(activeRoomId);
@@ -176,6 +180,14 @@ export function AptBondeeRoom({
 
   const onPlaceTool = (kind: BondeeFurnitureKind) => {
     setPlaceTool(kind);
+    setStudioTool(null);
+    setDeleteMode(false);
+    setPanel("decor");
+  };
+
+  const onPlaceStudio = (item: AptStudioInventoryItem) => {
+    setStudioTool(item);
+    setPlaceTool(null);
     setDeleteMode(false);
     setPanel("decor");
   };
@@ -311,10 +323,41 @@ export function AptBondeeRoom({
             <p className="text-[10px] text-muted-foreground">
               {deleteMode
                 ? "삭제 모드 — 가구를 클릭하면 제거됩니다"
-                : placeTool
-                  ? `${BONDEE_FURNITURE_LABELS[placeTool]} → ${roomTabs.find((r) => r.id === activeRoomId)?.label ?? "방"} 바닥 클릭`
-                  : "가구를 선택하거나 삭제 모드를 켜세요"}
+                : studioTool
+                  ? `Studio: ${studioTool.name} → 바닥 클릭`
+                  : placeTool
+                    ? `${BONDEE_FURNITURE_LABELS[placeTool]} → ${roomTabs.find((r) => r.id === activeRoomId)?.label ?? "방"} 바닥 클릭`
+                    : "가구를 선택하거나 삭제 모드를 켜세요"}
             </p>
+
+            {studioInventory.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-pink-600">MoCoMo Studio 보관함</p>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {studioInventory.map((item) => (
+                    <button
+                      key={item.studioAssetId}
+                      type="button"
+                      onClick={() => onPlaceStudio(item)}
+                      className={cn(
+                        "shrink-0 rounded-xl border p-2 text-[10px] font-semibold min-w-[4.5rem]",
+                        studioTool?.studioAssetId === item.studioAssetId
+                          ? "border-pink-400 bg-pink-50 text-pink-700"
+                          : "border-pink-100 bg-white"
+                      )}
+                    >
+                      {item.thumbnailUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={item.thumbnailUrl} alt="" className="mx-auto mb-1 h-8 w-8 rounded object-cover" />
+                      ) : (
+                        <Sparkles className="mx-auto mb-1 h-5 w-5 text-pink-400" />
+                      )}
+                      <span className="line-clamp-2">{item.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
               {BONDEE_FURNITURE_CATEGORIES[decorCat].kinds.map((kind) => (
@@ -339,6 +382,7 @@ export function AptBondeeRoom({
                 onClick={() => {
                   setDeleteMode((v) => !v);
                   setPlaceTool(null);
+                  setStudioTool(null);
                 }}
                 className={cn(
                   "flex items-center gap-1 rounded-lg border px-3 py-1.5 text-[10px] font-bold",

@@ -199,6 +199,19 @@ async function validatePaymentInput(
     if (input.amount !== priceKrw) return { error: "가격이 일치하지 않습니다." };
   }
 
+  if (input.type === "STUDIO_ASSET") {
+    const assetId = input.metadata.studioAssetId as string;
+    const asset = await db.studioAsset.findUnique({ where: { id: assetId } });
+    if (!asset || asset.status !== "PUBLISHED") return { error: "Studio 자산을 찾을 수 없습니다." };
+    if (asset.creatorId === userId) return { error: "본인 작품은 구매할 수 없습니다." };
+    if (asset.isFree || asset.priceKrw <= 0) return { error: "무료 자산입니다." };
+    if (asset.priceKrw !== input.amount) return { error: "가격이 일치하지 않습니다." };
+    const owned = await db.studioUserInventory.findUnique({
+      where: { userId_studioAssetId: { userId, studioAssetId: assetId } },
+    });
+    if (owned) return { error: "이미 보유 중입니다." };
+  }
+
   return null;
 }
 

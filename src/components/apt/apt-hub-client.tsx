@@ -33,16 +33,20 @@ const AptBondeeRoom = dynamic(
   }
 );
 
+import type { AptStudioInventoryItem } from "@/studio/lib/apt-types";
+
 export function AptHubClient({
   initialProfile,
   bondeeHome,
   homeRooms: initialHomeRooms,
   isLoggedIn,
+  studioInventory = [],
 }: {
   initialProfile: AptProfileDto | null;
   bondeeHome: BondeeHomeState;
   homeRooms: AptRoom[];
   isLoggedIn: boolean;
+  studioInventory?: AptStudioInventoryItem[];
 }) {
   const [tab, setTab] = useState<"home" | "tower">("home");
   const [homeState, setHomeState] = useState(bondeeHome);
@@ -96,6 +100,7 @@ export function AptHubClient({
             initialState={homeState}
             rooms={homeRooms}
             isLoggedIn={isLoggedIn}
+            studioInventory={studioInventory}
             onHomeChange={setHomeState}
           />
         ) : (

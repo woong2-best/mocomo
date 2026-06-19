@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { SCALE, roomCenter, roomSize } from "@/lib/apt/building-from-plan";
 import { PLAN_H, PLAN_W, type AptRoom, type FloorStyle } from "@/lib/apt/floor-plan-types";
 import { buildFurnitureMesh } from "./furniture-meshes";
+import { studioPlaceholderMesh } from "./studio-gltf-meshes";
 import type { BondeePlacedItem } from "./types";
 
 const FLOOR_COLORS: Record<FloorStyle, number> = {
@@ -187,10 +188,21 @@ export function buildHomeFloorGroup(opts: HomeFloorBuildOptions): THREE.Group {
   for (const item of items) {
     const room = rooms.find((r) => r.id === item.roomId);
     if (!room) continue;
-    const mesh = buildFurnitureMesh(item.kind);
-    mesh.scale.setScalar(0.62 * scale);
+
+    let mesh: THREE.Group | THREE.Mesh;
+    if (item.studioAssetId && item.glbUrl) {
+      const group = new THREE.Group();
+      const ph = studioPlaceholderMesh();
+      group.add(ph);
+      group.userData.studioGlbUrl = item.glbUrl;
+      mesh = group;
+    } else {
+      mesh = buildFurnitureMesh(item.kind);
+    }
+
     const p = itemWorldPos(item, room);
     mesh.position.set(p.x, 0.06, p.z);
+    mesh.scale.setScalar(item.studioAssetId ? scale : 0.62 * scale);
     mesh.rotation.y = (item.rot * Math.PI) / 2;
     mesh.userData.placedId = item.id;
     mesh.userData.roomId = item.roomId;
