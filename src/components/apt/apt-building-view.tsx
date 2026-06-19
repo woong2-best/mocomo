@@ -87,7 +87,6 @@ export const AptBuildingView = memo(function AptBuildingView({
   const [floorOccupants, setFloorOccupants] = useState<FloorOccupant[]>([]);
   const [browseTarget, setBrowseTarget] = useState<CountryAptPreview | null>(null);
   const [loadingCountry, setLoadingCountry] = useState(false);
-  const movingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savePlanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const countryAptsRef = useRef(countryApts);
@@ -132,22 +131,10 @@ export const AptBuildingView = memo(function AptBuildingView({
 
   const goToFloor = useCallback((next: number) => {
     const clamped = Math.min(APT_TOTAL_FLOORS, Math.max(APT_LOBBY_FLOOR, next));
-    if (clamped === floorRef.current) return;
-    const prev = floorRef.current;
-    floorRef.current = clamped;
-    setFloor(clamped);
+    if (clamped === floorRef.current && !sceneRef.current?.isRiding()) return;
     setSelected([]);
-    setMoving(true);
     sceneRef.current?.setFloor(clamped);
     sceneRef.current?.setSelectedRoomIds([]);
-    sceneRef.current?.setXray(true);
-    if (movingTimerRef.current) clearTimeout(movingTimerRef.current);
-    const distance = Math.abs(clamped - prev);
-    const duration = distance <= 1 ? 520 : Math.min(8000, distance * 75 + 300);
-    movingTimerRef.current = setTimeout(() => {
-      setMoving(false);
-      sceneRef.current?.setXray(xrayRef.current);
-    }, duration);
   }, []);
 
   const goToFloorRef = useRef(goToFloor);
@@ -218,6 +205,12 @@ export const AptBuildingView = memo(function AptBuildingView({
     scene.setCallbacks({
       onFloorClick: (f) => goToFloorRef.current(f),
       onFloorScroll: (f) => goToFloorRef.current(f),
+      onFloorDisplay: (f) => {
+        floorRef.current = f;
+        setFloor(f);
+      },
+      onRideStart: () => setMoving(true),
+      onRideEnd: () => setMoving(false),
       onResidentClick: (f, resident) => {
         const apt =
           countryAptsRef.current.find((a) => a.userId === resident.userId) ??
@@ -249,7 +242,6 @@ export const AptBuildingView = memo(function AptBuildingView({
     });
     sceneRef.current = scene;
     scene.setFloorPlans(plansRef.current);
-    scene.setFloor(homeFloor);
     scene.setBondeeRoom(bondeeRoom);
 
     if (isLoggedIn && initialProfile?.moveInCompleted) {

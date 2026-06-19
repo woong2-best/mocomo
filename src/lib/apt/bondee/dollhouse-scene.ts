@@ -29,9 +29,27 @@ export { APT_DEFAULT_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
 
 const VISIBLE_FLOORS = APT_VISIBLE_FLOOR_RADIUS * 2 + 1;
 const FRUSTUM_DEFAULT = 5.8;
-const ELEV_STEP_SEC = 0.07;
-const SCROLL_EPS = 0.004;
-const ELEV_EPS = 0.02;
+const SCROLL_EPS = 0.002;
+const MIN_RIDE_SEC = 0.85;
+const MAX_RIDE_SEC = 18;
+const SEC_PER_FLOOR = 0.34;
+
+type ElevatorRide = {
+  from: number;
+  to: number;
+  elapsed: number;
+  duration: number;
+};
+
+function easeInOutQuint(t: number) {
+  return t < 0.5 ? 16 * t * t * t * t * t : 1 - Math.pow(-2 * t + 2, 5) / 2;
+}
+
+function rideDurationSec(from: number, to: number) {
+  const d = Math.abs(to - from);
+  if (d < 0.01) return MIN_RIDE_SEC;
+  return Math.min(MAX_RIDE_SEC, Math.max(MIN_RIDE_SEC, MIN_RIDE_SEC * 0.65 + d * SEC_PER_FLOOR));
+}
 
 export type FloorResident = {
   userId: string;
@@ -55,6 +73,10 @@ export type DollhouseCallbacks = {
   onSimulationChange?: (snapshot: SimulationSnapshot) => void;
   onFloorScroll?: (floor: number) => void;
   onResidentClick?: (floor: number, resident: FloorResident) => void;
+  /** Fired as the elevator passes each floor during a ride */
+  onFloorDisplay?: (floor: number) => void;
+  onRideStart?: () => void;
+  onRideEnd?: () => void;
 };
 
 export type AptBuildingCallbacks = DollhouseCallbacks;
@@ -77,13 +99,13 @@ export class DollhouseBuildingScene {
   private clock = new THREE.Clock();
 
   private currentFloor = APT_DEFAULT_FLOOR;
+  private virtualFloor = APT_DEFAULT_FLOOR;
+  private lastDisplayedFloor = APT_DEFAULT_FLOOR;
+  private elevatorRide: ElevatorRide | null = null;
   private targetScrollY = 0;
   private scrollY = 0;
   private elevCarY = 0;
-  private targetElevY = 0;
   private moving = false;
-  private animTargetFloor: number | null = null;
-  private elevStepAcc = 0;
   private floorResidents: Map<number, FloorResident> = new Map();
   private homeFloor: number | null = null;
   private lastRangeStart = -1;
@@ -103,6 +125,8 @@ export class DollhouseBuildingScene {
   constructor(mount: HTMLElement, initialFloor = APT_DEFAULT_FLOOR) {
     this.mount = mount;
     this.currentFloor = Math.min(APT_TOTAL_FLOORS, Math.max(APT_LOBBY_FLOOR, initialFloor));
+    this.virtualFloor = this.currentFloor;
+    this.lastDisplayedFloor = this.currentFloor;
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(PASTEL.bg);
@@ -148,9 +172,9 @@ export class DollhouseBuildingScene {
     this.needsRender = true;
   }
 
-  private visibleRange() {
+  private visibleRange(centerFloor = this.currentFloor) {
     const half = APT_VISIBLE_FLOOR_RADIUS;
-    let start = this.currentFloor - half;
+    let start = centerFloor - half;
     let end = start + VISIBLE_FLOORS - 1;
     if (start < APT_LOBBY_FLOOR) {
       start = APT_LOBBY_FLOOR;
@@ -167,10 +191,19 @@ export class DollhouseBuildingScene {
     return (floor - rangeStart) * DOLLHOUSE_FLOOR_H;
   }
 
-  private scrollForFloor(floor: number) {
-    const { start } = this.visibleRange();
-    const local = this.floorLocalY(floor, start);
+  private scrollForVirtualFloor(vf: number) {
+    const { start } = this.visibleRange(Math.round(vf));
+    const local = (vf - start) * DOLLHOUSE_FLOOR_H;
     return -local + ((VISIBLE_FLOORS - 1) * DOLLHOUSE_FLOOR_H) / 2;
+  }
+
+  private elevatorYForVirtualFloor(vf: number) {
+    const { start } = this.visibleRange(Math.round(vf));
+    return (vf - start) * DOLLHOUSE_FLOOR_H;
+  }
+
+  private scrollForFloor(floor: number) {
+    return this.scrollForVirtualFloor(floor);
   }
 
   private buildUnitForFloor(f: number, start: number) {
@@ -264,8 +297,10 @@ export class DollhouseBuildingScene {
     this.elevatorRoot = buildElevatorShaft(APT_TOTAL_FLOORS, start, count);
     this.shellRoot.add(this.elevatorRoot);
 
-    this.targetElevY = this.floorLocalY(this.currentFloor, start);
-    this.elevCarY = this.targetElevY;
+    this.elevCarY = this.elevatorYForVirtualFloor(this.virtualFloor);
+    this.scrollY = this.scrollForVirtualFloor(this.virtualFloor);
+    this.targetScrollY = this.scrollY;
+    this.building.position.y = this.scrollY;
     this.updateElevatorCar();
     this.requestRender();
   }
@@ -291,13 +326,143 @@ export class DollhouseBuildingScene {
   }
 
   private updateElevatorCar() {
-    const car = this.elevatorRoot?.getObjectByName("elevator-car");
-    if (car) car.position.y = this.elevCarY;
+    const car = this.elevatorRoot?.getObjectByName("elevator-car") as THREE.Group | undefined;
+    if (!car) return;
+    car.position.y = this.elevCarY;
+    const shaftX = (this.elevatorRoot?.userData.shaftX as number | undefined) ?? 0;
+    if (this.elevatorRide) {
+      const phase = this.elevatorRide.elapsed * 9;
+      car.position.x = shaftX + Math.sin(phase) * 0.004;
+      car.rotation.z = Math.sin(phase * 0.7) * 0.006;
+    } else {
+      car.position.x = shaftX;
+      car.rotation.z = THREE.MathUtils.lerp(car.rotation.z, 0, 0.12);
+    }
+
+    const panel = car.getObjectByName("elevator-floor-panel");
+    if (panel && this.elevatorRide) {
+      panel.scale.y = 1 + Math.sin(this.elevatorRide.elapsed * 12) * 0.05;
+    } else if (panel) {
+      panel.scale.y = THREE.MathUtils.lerp(panel.scale.y, 1, 0.15);
+    }
+  }
+
+  private syncRideVisuals() {
+    this.elevCarY = this.elevatorYForVirtualFloor(this.virtualFloor);
+    this.scrollY = this.scrollForVirtualFloor(this.virtualFloor);
+    this.targetScrollY = this.scrollY;
+    this.building.position.y = this.scrollY;
+    this.updateElevatorCar();
+    this.syncAvatar(this.elevCarY);
+  }
+
+  private onDisplayedFloorChange(prevFloor: number, nextFloor: number) {
+    if (nextFloor === this.lastDisplayedFloor) return;
+    this.lastDisplayedFloor = nextFloor;
+    this.currentFloor = nextFloor;
+
+    const prevRange = this.visibleRange(prevFloor);
+    const nextRange = this.visibleRange(nextFloor);
+    const rangeChanged =
+      prevRange.start !== nextRange.start || prevRange.end !== nextRange.end;
+
+    if (rangeChanged) {
+      this.rebuildBuilding();
+    } else {
+      this.refreshFloorFocus(prevFloor);
+    }
+    this.callbacks.onFloorDisplay?.(nextFloor);
+  }
+
+  private startElevatorRide(to: number) {
+    const from = this.virtualFloor;
+    if (Math.abs(to - from) < 0.001) return;
+
+    this.elevatorRide = {
+      from,
+      to,
+      elapsed: 0,
+      duration: rideDurationSec(from, to),
+    };
+    this.moving = true;
+    this.callbacks.onRideStart?.();
+    this.requestRender();
+  }
+
+  private retargetElevatorRide(to: number) {
+    const from = this.virtualFloor;
+    if (Math.abs(to - from) < 0.001) {
+      this.completeElevatorRide();
+      return;
+    }
+    this.elevatorRide = {
+      from,
+      to,
+      elapsed: 0,
+      duration: rideDurationSec(from, to),
+    };
+    this.moving = true;
+    this.requestRender();
+  }
+
+  private tickElevatorRide(delta: number): boolean {
+    const ride = this.elevatorRide;
+    if (!ride) return false;
+
+    ride.elapsed += delta;
+    const t = Math.min(1, ride.elapsed / ride.duration);
+    const eased = easeInOutQuint(t);
+    const prevDisplayed = this.lastDisplayedFloor;
+    this.virtualFloor = ride.from + (ride.to - ride.from) * eased;
+
+    const displayed = Math.min(
+      APT_TOTAL_FLOORS,
+      Math.max(APT_LOBBY_FLOOR, Math.round(this.virtualFloor))
+    );
+    if (displayed !== prevDisplayed) {
+      this.onDisplayedFloorChange(prevDisplayed, displayed);
+    }
+
+    this.syncRideVisuals();
+
+    if (t >= 1) {
+      this.completeElevatorRide();
+      return false;
+    }
+    return true;
+  }
+
+  private completeElevatorRide() {
+    const target = this.elevatorRide?.to ?? this.virtualFloor;
+    this.elevatorRide = null;
+    this.virtualFloor = target;
+
+    const prev = this.lastDisplayedFloor;
+    const rounded = Math.min(APT_TOTAL_FLOORS, Math.max(APT_LOBBY_FLOOR, Math.round(target)));
+    if (rounded !== prev) {
+      this.onDisplayedFloorChange(prev, rounded);
+    } else {
+      this.currentFloor = rounded;
+      this.refreshFloorFocus(prev);
+    }
+
+    this.syncRideVisuals();
+    this.moving = false;
+    this.callbacks.onFloorDisplay?.(rounded);
+    this.callbacks.onRideEnd?.();
+    this.requestRender();
   }
 
   private snapScroll(instant = false) {
-    this.targetScrollY = this.scrollForFloor(this.currentFloor);
-    if (instant) this.scrollY = this.targetScrollY;
+    this.targetScrollY = this.scrollForVirtualFloor(this.virtualFloor);
+    if (instant) {
+      this.scrollY = this.targetScrollY;
+      this.building.position.y = this.scrollY;
+    }
+  }
+
+  isRiding() {
+    return this.elevatorRide !== null || this.moving;
   }
 
   setCallbacks(cb: DollhouseCallbacks) {
@@ -319,32 +484,6 @@ export class DollhouseBuildingScene {
     } else {
       this.rebuildBuilding();
     }
-  }
-
-  private applyFloor(floor: number, lightweight = false) {
-    const clamped = Math.min(APT_TOTAL_FLOORS, Math.max(APT_LOBBY_FLOOR, floor));
-    if (clamped === this.currentFloor) return;
-    const prev = this.currentFloor;
-    this.currentFloor = clamped;
-
-    const { start, end } = this.visibleRange();
-    const rangeChanged = start !== this.lastRangeStart || end !== this.lastRangeEnd;
-
-    if (lightweight && !rangeChanged && this.lastRangeStart >= 0) {
-      this.refreshFloorFocus(prev);
-      this.snapScroll();
-      this.targetElevY = this.floorLocalY(this.currentFloor, start);
-      this.requestRender();
-      return;
-    }
-
-    if (rangeChanged || this.lastRangeStart < 0) {
-      this.rebuildBuilding();
-    } else {
-      this.refreshFloorFocus(prev);
-    }
-    this.snapScroll();
-    this.requestRender();
   }
 
   setBondeeRoom(room: BondeeHomeState | null) {
@@ -385,24 +524,20 @@ export class DollhouseBuildingScene {
 
   setFloor(floor: number) {
     const clamped = Math.min(APT_TOTAL_FLOORS, Math.max(APT_LOBBY_FLOOR, floor));
-    if (clamped === this.currentFloor) return;
-
-    if (Math.abs(clamped - this.currentFloor) <= 1) {
-      this.moving = true;
-      this.applyFloor(clamped);
-      window.setTimeout(() => {
-        this.moving = false;
-      }, 480);
+    if (this.elevatorRide) {
+      if (Math.abs(clamped - this.elevatorRide.to) < 0.001) return;
+      this.retargetElevatorRide(clamped);
       return;
     }
-
-    this.moving = true;
-    this.animTargetFloor = clamped;
+    if (Math.abs(clamped - this.virtualFloor) < 0.001) return;
+    this.startElevatorRide(clamped);
   }
 
   cancelFloorAnimation() {
-    this.animTargetFloor = null;
-    this.moving = false;
+    if (!this.elevatorRide) return;
+    const target = this.elevatorRide.to;
+    this.virtualFloor = target;
+    this.completeElevatorRide();
   }
 
   setZoom(delta: number) {
@@ -514,39 +649,19 @@ export class DollhouseBuildingScene {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.loop);
     if (this.paused) return;
-    const delta = this.clock.getDelta();
+    const delta = Math.min(0.05, this.clock.getDelta());
 
     let animating = false;
 
-    if (this.animTargetFloor !== null && this.animTargetFloor !== this.currentFloor) {
-      animating = true;
-      this.elevStepAcc += delta;
-      const target = this.animTargetFloor;
-      while (this.elevStepAcc >= ELEV_STEP_SEC && target !== this.currentFloor) {
-        this.elevStepAcc -= ELEV_STEP_SEC;
-        const dir = Math.sign(target - this.currentFloor);
-        this.applyFloor(this.currentFloor + dir, true);
-        if (this.currentFloor === target) {
-          this.animTargetFloor = null;
-          this.moving = false;
-          this.refreshFloorFocus(this.currentFloor);
-        }
+    if (this.elevatorRide) {
+      animating = this.tickElevatorRide(delta) || animating;
+    } else {
+      const scrollDelta = this.targetScrollY - this.scrollY;
+      if (Math.abs(scrollDelta) > SCROLL_EPS) {
+        animating = true;
+        this.scrollY += scrollDelta * 0.14;
+        this.building.position.y = this.scrollY;
       }
-    }
-
-    const scrollDelta = this.targetScrollY - this.scrollY;
-    if (Math.abs(scrollDelta) > SCROLL_EPS) {
-      animating = true;
-      this.scrollY += scrollDelta * 0.12;
-      this.building.position.y = this.scrollY;
-    }
-
-    const elevDelta = this.targetElevY - this.elevCarY;
-    if (Math.abs(elevDelta) > ELEV_EPS) {
-      animating = true;
-      const elevSpeed = this.moving ? 0.18 : 0.24;
-      this.elevCarY += elevDelta * elevSpeed;
-      this.updateElevatorCar();
     }
 
     if (animating) this.needsRender = true;

@@ -471,6 +471,15 @@ export function buildElevatorShaft(totalFloors: number, visibleStart: number, vi
     DOLLHOUSE_FLOOR_H * 0.38,
     DOLLHOUSE_ELEVATOR_W * 0.38
   );
+  // Floor indicator on car front
+  const floorPanel = new THREE.Mesh(
+    roundedBox(DOLLHOUSE_ELEVATOR_W * 0.38, DOLLHOUSE_FLOOR_H * 0.14, 0.03, 0.02),
+    pastelMat(0xffffff)
+  );
+  floorPanel.position.set(0, DOLLHOUSE_FLOOR_H * 0.52, DOLLHOUSE_ELEVATOR_W * 0.42);
+  floorPanel.name = "elevator-floor-panel";
+  car.add(floorPanel);
+
   car.position.set(shaftX, 0, 0);
   g.add(car);
 
