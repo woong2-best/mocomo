@@ -19,6 +19,7 @@ import {
   type FurnitureArchitecture,
 } from "./furniture-architecture";
 import { findRoomAt, isWalkable } from "./home-walkability";
+import { computeHomeDoorways, isNearDoor, type HomeDoorway } from "./home-doorways";
 import type { BondeeHomeState, BondeePlacedItem, ChibiAvatarConfig, ChibiPose } from "./types";
 import type { StudioDecorTool } from "@/studio/lib/apt-types";
 import { hydrateStudioGltfMeshes } from "./studio-gltf-meshes";
@@ -30,6 +31,15 @@ const INTERACT_DIST = 0.55;
 const CAM_LERP = 6;
 const ZOOM_MIN = 4.2;
 const ZOOM_MAX = 8.5;
+
+const POSE_BY_KEY: Record<string, ChibiPose> = {
+  "1": "stand",
+  "2": "sit",
+  "3": "lie",
+  "4": "lie_prone",
+  "5": "run",
+  "6": "wave",
+};
 
 export type NearbyFurnitureInteract = {
   itemId: string;
@@ -98,6 +108,8 @@ export class IsometricHomeScene {
   private dragLast: { x: number; y: number } | null = null;
   private avatarShadow: THREE.Mesh;
   private lightRoot = new THREE.Group();
+  private doorways: HomeDoorway[] = [];
+  private doorPivots = new Map<string, THREE.Object3D>();
 
   constructor(mount: HTMLElement, rooms: AptRoom[], initial: BondeeHomeState) {
     this.mount = mount;
@@ -107,6 +119,7 @@ export class IsometricHomeScene {
       this.state.items = defaultItemsForRooms(rooms);
     }
     this.activeRoomId = initial.activeRoomId ?? rooms.find((r) => r.type === "living")?.id ?? rooms[0]?.id ?? null;
+    this.doorways = computeHomeDoorways(rooms);
     this.avatar = new ChibiAvatarMesh();
 
     const living = rooms.find((r) => r.type === "living") ?? rooms[0];
@@ -171,6 +184,7 @@ export class IsometricHomeScene {
 
   setRooms(rooms: AptRoom[]) {
     this.rooms = rooms;
+    this.doorways = computeHomeDoorways(rooms);
     this.state = { ...this.state, items: migrateItems(this.state.items, rooms) };
     this.rebuildFloor();
   }
@@ -253,9 +267,21 @@ export class IsometricHomeScene {
     this.moveInput.z = z;
   }
 
+  private isDecorBlocking() {
+    return this.decorMode && (this.selectedTool || this.selectedStudioTool || this.deleteMode);
+  }
+
   private canInteractWithConsole() {
-    const decorBlocking = this.decorMode && (this.selectedTool || this.selectedStudioTool || this.deleteMode);
-    return this.nearConsole && !decorBlocking;
+    return this.nearConsole && !this.isDecorBlocking();
+  }
+
+  setPose(pose: ChibiPose) {
+    if (this.state.pose === pose) return;
+    this.state = { ...this.state, pose };
+    this.walking = false;
+    this.applyAvatar();
+    this.callbacks.onPoseChange?.(pose);
+    this.requestRender();
   }
 
   tryInteract() {
@@ -263,7 +289,7 @@ export class IsometricHomeScene {
       this.callbacks.onGameConsoleInteract?.();
       return;
     }
-    if (this.decorMode || !this.nearbyFurniture) return;
+    if (this.isDecorBlocking() || !this.nearbyFurniture) return;
 
     const poses = this.nearbyFurniture.poses;
     if (!poses.length) return;
@@ -354,7 +380,32 @@ export class IsometricHomeScene {
     });
     stripShadows(shell);
     this.floorGroup.add(shell);
+    this.collectDoorPivots();
     this.requestRender();
+  }
+
+  private collectDoorPivots() {
+    this.doorPivots.clear();
+    this.floorGroup?.traverse((obj) => {
+      if (!obj.userData.isHomeDoorLeaf || !obj.parent) return;
+      this.doorPivots.set(obj.userData.doorId as string, obj.parent);
+    });
+  }
+
+  private updateDoors(dt: number) {
+    for (const door of this.doorways) {
+      const pivot = this.doorPivots.get(door.id);
+      if (!pivot) continue;
+      const near = isNearDoor(this.avatarX, this.avatarZ, door);
+      const base = (pivot.userData.baseRotY as number) ?? 0;
+      const openAngle = door.swing * (Math.PI / 2.15);
+      const target = near ? base + openAngle : base;
+      const next = THREE.MathUtils.lerp(pivot.rotation.y, target, Math.min(1, 10 * dt));
+      if (Math.abs(next - pivot.rotation.y) > 0.002) {
+        pivot.rotation.y = next;
+        this.needsRender = true;
+      }
+    }
   }
 
   private syncSelectionHighlight() {
@@ -414,6 +465,7 @@ export class IsometricHomeScene {
     this.floorGroup.add(this.furnitureRoot);
 
     this.homeRoot.add(this.floorGroup);
+    this.collectDoorPivots();
     this.applyAvatar();
     this.requestRender();
     this.scheduleFurnitureLoad(visibleRooms);
@@ -637,6 +689,16 @@ export class IsometricHomeScene {
       this.avatarRotY = Math.atan2(dx, dz);
       this.walking = true;
       this.syncActiveRoomFromAvatar();
+    } else if (this.isInsideAnyRoom(nx, this.avatarZ)) {
+      this.avatarX = nx;
+      this.avatarRotY = Math.atan2(dx, 0.01);
+      this.walking = true;
+      this.syncActiveRoomFromAvatar();
+    } else if (this.isInsideAnyRoom(this.avatarX, nz)) {
+      this.avatarZ = nz;
+      this.avatarRotY = Math.atan2(0.01, dz);
+      this.walking = true;
+      this.syncActiveRoomFromAvatar();
     }
 
     this.syncAvatarTransform();
@@ -664,16 +726,27 @@ export class IsometricHomeScene {
   }
 
   private onKeyDown = (e: KeyboardEvent) => {
+    if (this.isTypingTarget(e)) return;
     if (this.decorMode && (this.selectedTool || this.selectedStudioTool)) return;
     const k = e.key.toLowerCase();
     if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) {
       this.keys.add(k);
       e.preventDefault();
     }
+    if (POSE_BY_KEY[k]) {
+      this.setPose(POSE_BY_KEY[k]);
+      e.preventDefault();
+      return;
+    }
     if (k === "e" || k === " " || k === "enter") {
       this.tryInteract();
       e.preventDefault();
     }
+  };
+
+  private isTypingTarget(e: KeyboardEvent) {
+    const t = e.target as HTMLElement | null;
+    return !!t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable);
   };
 
   private onKeyUp = (e: KeyboardEvent) => {
@@ -804,6 +877,7 @@ export class IsometricHomeScene {
     const dt = this.clock.getDelta();
     this.animPhase += dt;
     this.updateMovement(dt);
+    this.updateDoors(dt);
     const camMoving =
       Math.abs(this.targetCamYaw - this.camYaw) > 0.002 ||
       Math.abs(this.targetCamDist - this.frustum) > 0.02;

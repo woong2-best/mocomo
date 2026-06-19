@@ -17,7 +17,9 @@ import {
   buildTileFloor,
   buildWoodFloor,
   bondeeMat,
+  roundedBox,
 } from "./bondee-mesh-utils";
+import { computeHomeDoorways, doorwayForRoomSide, type HomeDoorway } from "./home-doorways";
 
 const WALL_H = 0.2;
 const WALL_THICK = 0.035;
@@ -195,12 +197,84 @@ function shouldShowRoom(roomId: string, visibleRoomIds?: Set<string> | null) {
   return visibleRoomIds.has(roomId);
 }
 
+function buildInteriorDoor(door: HomeDoorway, wallHeight: number, accent: number): THREE.Group {
+  const g = new THREE.Group();
+  g.name = `door-${door.id}`;
+  g.userData.doorId = door.id;
+
+  const doorH = wallHeight * 0.58;
+  const doorW = Math.min(door.span * 0.9, 0.5);
+  const frameT = 0.028;
+
+  const frameMat = bondeeMat(BONDEE_PALETTE.trim, { transparent: true, opacity: 0.85 });
+  const wallMat = bondeeMat(accent, { transparent: true, opacity: 0.22 });
+
+  const pivot = new THREE.Group();
+  pivot.position.set(door.cx, 0, door.cz);
+
+  const leaf = new THREE.Mesh(roundedBox(doorW, doorH, frameT, 0.006), bondeeMat(0xc9a882));
+  leaf.position.y = doorH / 2 + 0.05;
+  if (door.axis === "x") {
+    leaf.position.z = (door.swing * doorW) / 2;
+    pivot.rotation.y = door.swing > 0 ? 0 : Math.PI;
+  } else {
+    leaf.position.x = (door.swing * doorW) / 2;
+    pivot.rotation.y = door.swing > 0 ? Math.PI / 2 : -Math.PI / 2;
+  }
+  pivot.userData.baseRotY = pivot.rotation.y;
+  leaf.userData.isHomeDoorLeaf = true;
+  leaf.userData.doorId = door.id;
+  pivot.add(leaf);
+  g.add(pivot);
+
+  const lintelH = wallHeight * 0.28;
+  const lintel = new THREE.Mesh(roundedBox(doorW + 0.06, lintelH, frameT + 0.01, 0.005), frameMat);
+  lintel.position.set(door.cx, doorH + lintelH / 2 + 0.04, door.cz);
+  g.add(lintel);
+
+  const jambDepth = frameT + 0.02;
+  if (door.axis === "x") {
+    for (const sign of [-1, 1] as const) {
+      const jamb = new THREE.Mesh(roundedBox(frameT, doorH, jambDepth, 0.004), frameMat);
+      jamb.position.set(door.cx, doorH / 2 + 0.05, door.cz + sign * (doorW / 2 + frameT / 2));
+      g.add(jamb);
+    }
+    const sideLen = Math.max(0, door.span - doorW - 0.08);
+    if (sideLen > 0.06) {
+      for (const sign of [-1, 1] as const) {
+        const seg = new THREE.Mesh(roundedBox(frameT, wallHeight * 0.35, sideLen, 0.004), wallMat);
+        seg.position.set(door.cx, wallHeight * 0.2 + 0.05, door.cz + sign * (doorW / 2 + sideLen / 2 + 0.02));
+        g.add(seg);
+      }
+    }
+  } else {
+    for (const sign of [-1, 1] as const) {
+      const jamb = new THREE.Mesh(roundedBox(jambDepth, doorH, frameT, 0.004), frameMat);
+      jamb.position.set(door.cx + sign * (doorW / 2 + frameT / 2), doorH / 2 + 0.05, door.cz);
+      g.add(jamb);
+    }
+    const sideLen = Math.max(0, door.span - doorW - 0.08);
+    if (sideLen > 0.06) {
+      for (const sign of [-1, 1] as const) {
+        const seg = new THREE.Mesh(roundedBox(sideLen, wallHeight * 0.35, frameT, 0.004), wallMat);
+        seg.position.set(door.cx + sign * (doorW / 2 + sideLen / 2 + 0.02), wallHeight * 0.2 + 0.05, door.cz);
+        g.add(seg);
+      }
+    }
+  }
+
+  return g;
+}
+
 /** Room shells only — floors, walls, labels (no furniture) */
 export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | "furnitureMode">): THREE.Group {
   const { rooms, scale = 1, wallHeight = WALL_H, highlightRoomId, visibleRoomIds, wallStyle = "default" } = opts;
   const dollhouse = wallStyle === "dollhouse-open";
   const root = new THREE.Group();
   root.name = "home-shell";
+  const doorways = computeHomeDoorways(rooms);
+  const doorRoot = new THREE.Group();
+  doorRoot.name = "home-doors";
 
   for (const room of rooms) {
     if (!shouldShowRoom(room.id, visibleRoomIds)) continue;
@@ -288,12 +362,17 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
         divider.position.set(s.px, wallHeight * 0.35 + 0.05, s.pz);
         roomGroup.add(divider);
       } else {
-        const divider = new THREE.Mesh(
-          new THREE.BoxGeometry(s.wx, wallHeight * 0.35, s.wz),
-          bondeeMat(accent, { transparent: true, opacity: 0.18 })
-        );
-        divider.position.set(s.px, wallHeight * 0.2 + 0.05, s.pz);
-        roomGroup.add(divider);
+        const doorway = doorwayForRoomSide(room.id, s.side, doorways);
+        if (doorway && doorway.roomA === room.id) {
+          doorRoot.add(buildInteriorDoor(doorway, wallHeight, accent));
+        } else if (!doorway) {
+          const divider = new THREE.Mesh(
+            new THREE.BoxGeometry(s.wx, wallHeight * 0.35, s.wz),
+            bondeeMat(accent, { transparent: true, opacity: 0.18 })
+          );
+          divider.position.set(s.px, wallHeight * 0.2 + 0.05, s.pz);
+          roomGroup.add(divider);
+        }
       }
     }
 
@@ -318,6 +397,7 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
     root.add(roomGroup);
   }
 
+  root.add(doorRoot);
   root.scale.setScalar(scale);
   return root;
 }

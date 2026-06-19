@@ -1,5 +1,6 @@
 import { PLAN_H, PLAN_W, type AptRoom } from "@/lib/apt/floor-plan-types";
 import { roomCenter, roomSize } from "@/lib/apt/building-from-plan";
+import { computeHomeDoorways, isInDoorPortal } from "./home-doorways";
 
 type Side = "n" | "s" | "e" | "w";
 
@@ -49,8 +50,13 @@ function roomBounds(room: AptRoom, rooms: AptRoom[]) {
   };
 }
 
-/** Walkable anywhere inside a room; interior walls use a thin inset so doorways stay open. */
+/** Walkable inside a room or through a door portal between rooms. */
 export function isWalkable(x: number, z: number, rooms: AptRoom[]): boolean {
+  const doorways = computeHomeDoorways(rooms);
+  for (const door of doorways) {
+    if (isInDoorPortal(x, z, door)) return true;
+  }
+
   for (const room of rooms) {
     const b = roomBounds(room, rooms);
     if (x >= b.minX && x <= b.maxX && z >= b.minZ && z <= b.maxZ) return true;

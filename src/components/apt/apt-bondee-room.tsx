@@ -39,13 +39,13 @@ const GamesHubClient = dynamic(
   { ssr: false }
 );
 
-const POSE_OPTIONS: { id: ChibiPose; label: string; icon: typeof Sofa }[] = [
-  { id: "stand", label: "서기", icon: PersonStanding },
-  { id: "sit", label: "앉기", icon: Sofa },
-  { id: "lie", label: "눕기", icon: Bed },
-  { id: "lie_prone", label: "엎드리기", icon: ArrowDownToLine },
-  { id: "run", label: "체조", icon: Footprints },
-  { id: "wave", label: "인사", icon: Waves },
+const POSE_OPTIONS: { id: ChibiPose; label: string; icon: typeof Sofa; key: string }[] = [
+  { id: "stand", label: "서기", icon: PersonStanding, key: "1" },
+  { id: "sit", label: "앉기", icon: Sofa, key: "2" },
+  { id: "lie", label: "눕기", icon: Bed, key: "3" },
+  { id: "lie_prone", label: "엎드리기", icon: ArrowDownToLine, key: "4" },
+  { id: "run", label: "체조", icon: Footprints, key: "5" },
+  { id: "wave", label: "인사", icon: Waves, key: "6" },
 ];
 
 function AptBondeeRoomInner({
@@ -255,7 +255,7 @@ function AptBondeeRoomInner({
         <div className="pointer-events-none absolute left-3 top-3 rounded-2xl border-2 border-pink-200/80 bg-white/90 px-3 py-2 text-xs text-muted-foreground backdrop-blur-md shadow-sm space-y-0.5">
           <p className="font-bold text-folk-cobalt">🏠 내 집 · {rooms.length}개 공간{saving && " · 저장 중…"}</p>
           <p className="text-[10px] text-folk-terracotta font-medium">
-            WASD 이동 · 방 사이 자유 이동 · 가구 근처 E · Shift+드래그 회전 · 휠 줌
+            WASD 이동 · 문 통과 시 자동 개방 · 가구 근처 E · 자세 1~6 · Shift+드래그 회전 · 휠 줌
           </p>
           {nearbyFurniture && !movementDisabled && (
             <p className="text-[10px] text-folk-cobalt font-semibold">
@@ -286,7 +286,7 @@ function AptBondeeRoomInner({
             <button
               key={p.id}
               type="button"
-              title={p.label}
+              title={`${p.label} (${p.key})`}
               onClick={() => onPoseChange(p.id)}
               className={cn(
                 "flex h-9 w-9 items-center justify-center rounded-xl border bg-white shadow-sm transition-colors",
