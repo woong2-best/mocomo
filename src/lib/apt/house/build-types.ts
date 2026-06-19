@@ -9,6 +9,16 @@ export type BuildTool =
   | "tree"
   | "lamp"
   | "garage"
+  | "stairs"
+  | "pillar"
+  | "pool"
+  | "sofa"
+  | "bed"
+  | "table"
+  | "chimney"
+  | "balcony"
+  | "mailbox"
+  | "driveway"
   | "erase";
 
 export type BuildPiece = {
@@ -27,7 +37,9 @@ export type HouseBuildState = {
   timeOfDay: number;
 };
 
-export type HouseWorldMode = "build" | "explore" | "drive";
+export type HouseWorldMode = "build" | "explore" | "drive" | "avatar" | "interior";
+
+export type OutdoorActivity = "idle" | "walk" | "sit" | "wave";
 
 export const BUILD_TOOL_LABELS: Record<BuildTool, string> = {
   foundation: "기초",
@@ -40,7 +52,23 @@ export const BUILD_TOOL_LABELS: Record<BuildTool, string> = {
   tree: "나무",
   lamp: "가로등",
   garage: "차고",
+  stairs: "계단",
+  pillar: "기둥",
+  pool: "수영장",
+  sofa: "소파",
+  bed: "침대",
+  table: "테이블",
+  chimney: "굴뚝",
+  balcony: "발코니",
+  mailbox: "우편함",
+  driveway: "진입로",
   erase: "삭제",
+};
+
+export const BUILD_TOOL_GROUPS = {
+  structure: ["foundation", "wall", "floor", "roof", "door", "window", "stairs", "pillar", "chimney", "balcony"] as BuildTool[],
+  outdoor: ["fence", "tree", "lamp", "garage", "pool", "mailbox", "driveway"] as BuildTool[],
+  furniture: ["sofa", "bed", "table"] as BuildTool[],
 };
 
 export const PLOT_HALF_DEFAULT = 5.5;
@@ -53,4 +81,11 @@ export function emptyHouseBuild(plotHalf = PLOT_HALF_DEFAULT, seed = 42): HouseB
 
 export function seedFromCoords(lat: number, lng: number) {
   return Math.abs(Math.floor(lat * 1000 + lng * 777)) % 100000;
+}
+
+export function canEnterInterior(pieces: BuildPiece[]) {
+  const walls = pieces.filter((p) => p.kind === "wall").length;
+  const floors = pieces.filter((p) => p.kind === "floor" || p.kind === "foundation").length;
+  const doors = pieces.filter((p) => p.kind === "door").length;
+  return (walls >= 3 && floors >= 2) || doors >= 1;
 }

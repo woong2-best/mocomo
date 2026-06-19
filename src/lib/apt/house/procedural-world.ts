@@ -59,6 +59,8 @@ export function buildRoadNetwork(seed: number): THREE.Group {
     [-WORLD_SIZE * 0.35, 0, WORLD_SIZE * 0.35, 6],
     [0, -WORLD_SIZE * 0.3, 8, WORLD_SIZE * 0.6],
     [WORLD_SIZE * 0.15, 0, 5, WORLD_SIZE * 0.4],
+    [-WORLD_SIZE * 0.1, WORLD_SIZE * 0.2, WORLD_SIZE * 0.5, 5],
+    [WORLD_SIZE * 0.28, -WORLD_SIZE * 0.15, 6, WORLD_SIZE * 0.35],
   ];
 
   for (const [cx, cz, w, d] of roads) {
@@ -71,6 +73,113 @@ export function buildRoadNetwork(seed: number): THREE.Group {
     const stripe = new THREE.Mesh(new THREE.BoxGeometry(w * 0.04, 0.11, d * 0.9), lineMat);
     stripe.position.set(cx, y + 0.01, cz);
     g.add(stripe);
+  }
+  return g;
+}
+
+export function buildSidewalks(seed: number): THREE.Group {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color: 0xb8b0a4, roughness: 0.92 });
+  const spots: [number, number, number, number][] = [
+    [-WORLD_SIZE * 0.35, 3.2, WORLD_SIZE * 0.35, 7],
+    [4.5, -WORLD_SIZE * 0.3, 9.5, WORLD_SIZE * 0.62],
+    [WORLD_SIZE * 0.15, 2.8, 6, WORLD_SIZE * 0.42],
+  ];
+  for (const [cx, cz, w, d] of spots) {
+    const y = terrainHeight(cx, cz, seed) + 0.12;
+    const sw = new THREE.Mesh(new THREE.BoxGeometry(w, 0.08, d), mat);
+    sw.position.set(cx, y, cz);
+    sw.receiveShadow = true;
+    g.add(sw);
+  }
+  return g;
+}
+
+export function buildCityBlocks(seed: number, plotHalf: number): THREE.Group {
+  const g = new THREE.Group();
+  const count = 18;
+  for (let i = 0; i < count; i++) {
+    const angle = ((seed + i * 47) % 360) * (Math.PI / 180);
+    const r = plotHalf + 14 + ((seed + i * 31) % 28);
+    const x = Math.cos(angle) * r;
+    const z = Math.sin(angle) * r;
+    if (Math.abs(x) < plotHalf + 3 && Math.abs(z) < plotHalf + 3) continue;
+
+    const h = terrainHeight(x, z, seed);
+    const building = new THREE.Group();
+    const floors = 2 + ((seed + i) % 4);
+    const bw = 3 + (i % 3);
+    const bd = 3 + ((i + 1) % 4);
+    const bh = floors * 1.1;
+
+    const isShop = i % 5 === 0;
+    const wallColor = isShop ? 0xd8d0c0 : [0xc8b8a8, 0xa8b8c8, 0xb8c8a8, 0xd0c8b8][i % 4];
+
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(bw, bh, bd),
+      new THREE.MeshStandardMaterial({ color: wallColor, roughness: 0.85 })
+    );
+    body.position.y = bh / 2;
+    body.castShadow = true;
+    building.add(body);
+
+    if (isShop) {
+      const sign = new THREE.Mesh(
+        new THREE.BoxGeometry(bw * 0.8, 0.4, 0.08),
+        new THREE.MeshStandardMaterial({ color: 0xe85d4a, emissive: 0x662211, emissiveIntensity: 0.2 })
+      );
+      sign.position.set(0, bh * 0.7, bd / 2 + 0.05);
+      building.add(sign);
+    }
+
+    const roof = new THREE.Mesh(
+      new THREE.BoxGeometry(bw + 0.2, 0.15, bd + 0.2),
+      new THREE.MeshStandardMaterial({ color: 0x4a4a4a })
+    );
+    roof.position.y = bh + 0.08;
+    building.add(roof);
+
+    for (let f = 0; f < floors; f++) {
+      for (let w = 0; w < 2; w++) {
+        const win = new THREE.Mesh(
+          new THREE.BoxGeometry(0.5, 0.55, 0.06),
+          new THREE.MeshStandardMaterial({ color: 0x9ec8e8, emissive: 0x112233, emissiveIntensity: 0.12 })
+        );
+        win.position.set(-0.6 + w * 1.2, 0.8 + f * 1.1, bd / 2 + 0.04);
+        building.add(win);
+      }
+    }
+
+    building.position.set(x, h, z);
+    building.rotation.y = (seed + i) * 0.17;
+    g.add(building);
+  }
+  return g;
+}
+
+export function buildStreetLamps(seed: number): THREE.Group {
+  const g = new THREE.Group();
+  const poleMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a });
+  for (let i = 0; i < 14; i++) {
+    const t = i / 14;
+    const x = THREE.MathUtils.lerp(-WORLD_SIZE * 0.3, WORLD_SIZE * 0.3, t);
+    const z = Math.sin(t * Math.PI * 2 + seed) * WORLD_SIZE * 0.2;
+    const y = terrainHeight(x, z, seed);
+    const pole = new THREE.Group();
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 4, 6), poleMat);
+    post.position.y = 2;
+    pole.add(post);
+    const bulb = new THREE.Mesh(
+      new THREE.SphereGeometry(0.2, 8, 8),
+      new THREE.MeshStandardMaterial({ color: 0xfff4c8, emissive: 0xffaa44, emissiveIntensity: 0.5 })
+    );
+    bulb.position.y = 4;
+    pole.add(bulb);
+    const light = new THREE.PointLight(0xffcc88, 0.6, 16);
+    light.position.y = 4;
+    pole.add(light);
+    pole.position.set(x, y, z);
+    g.add(pole);
   }
   return g;
 }

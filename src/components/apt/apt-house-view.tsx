@@ -1,14 +1,15 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Car, Hammer, Home, MapPin, Save, Trees } from "lucide-react";
+import { Car, DoorOpen, Hammer, Home, MapPin, Save, Trees, User } from "lucide-react";
 import type { AptProfileDto } from "@/actions/apt";
 import { saveAptHouseBuild } from "@/actions/apt";
 import { emptyHouseBuild, seedFromCoords } from "@/lib/apt/house/build-types";
 import type { HouseBuildState } from "@/lib/apt/house/build-types";
 import { formatCoords } from "@/lib/apt/world/geo-math";
+import { loadActiveVrm } from "@/lib/virtual-avatar/vrm-storage";
 import { Button } from "@/components/ui/button";
 
 const AptHouseScene = dynamic(
@@ -26,6 +27,18 @@ const AptHouseScene = dynamic(
 export function AptHouseView({ profile }: { profile: AptProfileDto }) {
   const lat = profile.latitude ?? 37.5;
   const lng = profile.longitude ?? 127.0;
+  const [vrmUrl, setVrmUrl] = useState<string | undefined>(profile.residents.find((r) => r.isOwner)?.vrmUrl);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const slot = await loadActiveVrm();
+        if (slot?.blob) setVrmUrl(URL.createObjectURL(slot.blob));
+      } catch {
+        /* default */
+      }
+    })();
+  }, []);
 
   const initialBuild = useMemo<HouseBuildState>(() => {
     if (profile.houseBuild?.pieces) return profile.houseBuild;
@@ -68,29 +81,40 @@ export function AptHouseView({ profile }: { profile: AptProfileDto }) {
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span className="tabular-nums">{formatCoords(lat, lng)}</span>
           <span>· 블록 {pieceCount}개</span>
+          {vrmUrl && <span className="text-folk-cobalt flex items-center gap-0.5"><User className="h-3 w-3" /> VRM</span>}
           {saving && <span className="text-folk-terracotta">저장 중…</span>}
           {saved && <span className="text-primary">저장됨</span>}
         </div>
       </div>
 
-      <AptHouseScene lat={lat} lng={lng} initialBuild={initialBuild} onBuildChange={onBuildChange} />
+      <AptHouseScene
+        lat={lat}
+        lng={lng}
+        initialBuild={initialBuild}
+        vrmUrl={vrmUrl}
+        onBuildChange={onBuildChange}
+      />
 
-      <div className="grid gap-3 border-t border-[hsl(var(--folk-cobalt)/0.12)] p-4 sm:grid-cols-4">
+      <div className="grid gap-3 border-t border-[hsl(var(--folk-cobalt)/0.12)] p-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="rounded-xl border border-[hsl(var(--folk-cobalt)/0.15)] bg-background/80 p-3 text-xs space-y-1">
-          <p className="font-bold text-folk-cobalt flex items-center gap-1"><Trees className="h-3.5 w-3.5" /> 오픈월드</p>
-          <p className="text-muted-foreground">지형·도로·이웃 주택·나무 자동 생성</p>
+          <p className="font-bold text-folk-cobalt flex items-center gap-1"><Trees className="h-3.5 w-3.5" /> 도시</p>
+          <p className="text-muted-foreground">18동 상가·인도·가로등·보행자</p>
         </div>
         <div className="rounded-xl border border-[hsl(var(--folk-cobalt)/0.15)] bg-background/80 p-3 text-xs space-y-1">
-          <p className="font-bold text-folk-cobalt flex items-center gap-1"><Hammer className="h-3.5 w-3.5" /> 건설</p>
-          <p className="text-muted-foreground">벽·지붕·문·차고 등 클릭 배치</p>
+          <p className="font-bold text-folk-cobalt flex items-center gap-1"><Hammer className="h-3.5 w-3.5" /> 건축 20종</p>
+          <p className="text-muted-foreground">계단·수영장·소파·발코니 등</p>
+        </div>
+        <div className="rounded-xl border border-[hsl(var(--folk-cobalt)/0.15)] bg-background/80 p-3 text-xs space-y-1">
+          <p className="font-bold text-folk-cobalt flex items-center gap-1"><DoorOpen className="h-3.5 w-3.5" /> 실내</p>
+          <p className="text-muted-foreground">문 클릭 또는 E — 1인칭 실내 이동</p>
+        </div>
+        <div className="rounded-xl border border-[hsl(var(--folk-cobalt)/0.15)] bg-background/80 p-3 text-xs space-y-1">
+          <p className="font-bold text-folk-cobalt flex items-center gap-1"><User className="h-3.5 w-3.5" /> 아바타</p>
+          <p className="text-muted-foreground">VRM 야외 산책·휴식·인사</p>
         </div>
         <div className="rounded-xl border border-[hsl(var(--folk-cobalt)/0.15)] bg-background/80 p-3 text-xs space-y-1">
           <p className="font-bold text-folk-cobalt flex items-center gap-1"><Car className="h-3.5 w-3.5" /> 운전</p>
-          <p className="text-muted-foreground">WASD로 차량 운전 · 낮/밤 순환</p>
-        </div>
-        <div className="rounded-xl border border-[hsl(var(--folk-cobalt)/0.15)] bg-background/80 p-3 text-xs space-y-1">
-          <p className="font-bold text-folk-cobalt flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> 위치</p>
-          <p className="text-muted-foreground">{profile.countryCode} · 실제 좌표 기반 시드</p>
+          <p className="text-muted-foreground">WASD · 낮/밤 순환</p>
         </div>
       </div>
 
