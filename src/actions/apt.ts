@@ -5,6 +5,8 @@ import { getCachedCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { APT_DEFAULT_FLOOR } from "@/lib/apt/constants";
 import { clampFloor, emptyFloorPlans, getRoomsForFloor } from "@/lib/apt/floor-plan-store";
+import type { HouseBuildState } from "@/lib/apt/house/build-types";
+import { emptyHouseBuild, seedFromCoords } from "@/lib/apt/house/build-types";
 import type { HousingLocation, HousingType } from "@/lib/apt/housing-types";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import {
@@ -27,6 +29,7 @@ export type AptProfileDto = {
   furniture: FurnitureItem[];
   residents: ResidentAgent[];
   simulation: Partial<SimulationSnapshot>;
+  houseBuild: HouseBuildState;
 };
 
 export type MoveInPayload = {
@@ -60,6 +63,7 @@ function rowToDto(
     furniture: unknown;
     residents: unknown;
     simulationState: unknown;
+    houseBuild: unknown;
   },
   user: { id: string; name: string | null; username: string }
 ): AptProfileDto {
@@ -82,6 +86,7 @@ function rowToDto(
       defaultResidents({ userId: user.id, displayName: user.name ?? user.username })
     ),
     simulation: parseJson(row.simulationState, {}),
+    houseBuild: parseJson(row.houseBuild, emptyHouseBuild()),
   };
 }
 
@@ -106,6 +111,7 @@ export async function getAptProfile(): Promise<AptProfileDto | null> {
       displayName: user.name ?? user.username,
     }),
     simulation: {},
+    houseBuild: emptyHouseBuild(seedFromCoords(user.countryCode === "KR" ? 37.5 : 0, 127)),
   };
 
   try {
@@ -147,6 +153,7 @@ export async function completeAptMoveIn(payload: MoveInPayload) {
         furniture,
         residents,
         simulationState: {},
+        houseBuild: emptyHouseBuild(seedFromCoords(payload.latitude, payload.longitude)),
       },
       update: {
         housingType,
@@ -245,6 +252,29 @@ export async function placeAptTv() {
 
   revalidatePath("/apt");
   return { ok: true as const, furniture };
+}
+
+export async function saveAptHouseBuild(state: HouseBuildState) {
+  const user = await getCachedCurrentUser();
+  if (!user) return { error: "로그인이 필요합니다." };
+
+  try {
+    await db.aptProfile.upsert({
+      where: { userId: user.id },
+      create: {
+        userId: user.id,
+        housingType: "house",
+        moveInCompletedAt: new Date(),
+        houseBuild: state,
+      },
+      update: { houseBuild: state },
+    });
+    revalidatePath("/apt/house");
+    return { ok: true as const };
+  } catch (e) {
+    console.error("[saveAptHouseBuild]", e);
+    return { error: "건설 저장에 실패했습니다." };
+  }
 }
 
 export type { HousingLocation };

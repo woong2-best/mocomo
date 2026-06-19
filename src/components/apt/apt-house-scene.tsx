@@ -1,130 +1,116 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import * as THREE from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { BuildTool, HouseBuildState, HouseWorldMode } from "@/lib/apt/house/build-types";
+import { BUILD_TOOL_LABELS } from "@/lib/apt/house/build-types";
+import { HouseWorldScene } from "@/lib/apt/house/world-scene";
 
 export function AptHouseScene({
   lat,
   lng,
-  footprintUnits,
-  regionLabel,
+  initialBuild,
+  onBuildChange,
 }: {
   lat: number;
   lng: number;
-  footprintUnits: number;
-  regionLabel: string;
+  initialBuild: HouseBuildState;
+  onBuildChange?: (state: HouseBuildState) => void;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const sceneRef = useRef<HouseWorldScene | null>(null);
+  const onBuildRef = useRef(onBuildChange);
+  const buildSeedRef = useRef(`${initialBuild.worldSeed}-${initialBuild.pieces.length}`);
+  onBuildRef.current = onBuildChange;
+  const [mode, setMode] = useState<HouseWorldMode>("explore");
 
   useEffect(() => {
-    const mount = mountRef.current;
-    if (!mount) return;
-
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87c8f0);
-    scene.fog = new THREE.Fog(0x87c8f0, 30, 90);
-
-    const w = Math.max(mount.clientWidth, 320);
-    const h = Math.max(mount.clientHeight, 400);
-    const camera = new THREE.PerspectiveCamera(42, w / h, 0.1, 200);
-    camera.position.set(14, 10, 14);
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(w, h);
-    renderer.shadowMap.enabled = true;
-    mount.appendChild(renderer.domElement);
-
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.maxPolarAngle = Math.PI / 2.2;
-    controls.target.set(0, 0.5, 0);
-
-    scene.add(new THREE.AmbientLight(0xfff8f0, 0.65));
-    const sun = new THREE.DirectionalLight(0xfff4e0, 1.1);
-    sun.position.set(8, 14, 6);
-    sun.castShadow = true;
-    scene.add(sun);
-
-    const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(60, 60, 24, 24),
-      new THREE.MeshStandardMaterial({ color: 0x5a9e4a, roughness: 0.9 })
-    );
-    ground.rotation.x = -Math.PI / 2;
-    ground.receiveShadow = true;
-    scene.add(ground);
-
-    const plot = new THREE.Mesh(
-      new THREE.BoxGeometry(footprintUnits, 0.15, footprintUnits),
-      new THREE.MeshStandardMaterial({ color: 0xc9a66b, roughness: 0.85 })
-    );
-    plot.position.y = 0.08;
-    plot.castShadow = true;
-    plot.receiveShadow = true;
-    scene.add(plot);
-
-    const post = new THREE.Mesh(
-      new THREE.BoxGeometry(0.12, 1.2, 0.12),
-      new THREE.MeshStandardMaterial({ color: 0x4a3728 })
-    );
-    post.position.set(footprintUnits * 0.42, 0.75, footprintUnits * 0.42);
-    scene.add(post);
-
-    const board = new THREE.Mesh(
-      new THREE.BoxGeometry(1.8, 0.7, 0.06),
-      new THREE.MeshStandardMaterial({ color: 0xf5f0e6 })
-    );
-    board.position.set(footprintUnits * 0.42, 1.35, footprintUnits * 0.42);
-    scene.add(board);
-
-    const grid = new THREE.GridHelper(footprintUnits, 8, 0x8b7355, 0xa08060);
-    grid.position.y = 0.16;
-    scene.add(grid);
-
-    let raf = 0;
-    const loop = () => {
-      raf = requestAnimationFrame(loop);
-      controls.update();
-      renderer.render(scene, camera);
-    };
-    loop();
-
-    const onResize = () => {
-      const rw = mount.clientWidth;
-      const rh = mount.clientHeight;
-      if (!rw || !rh) return;
-      camera.aspect = rw / rh;
-      camera.updateProjectionMatrix();
-      renderer.setSize(rw, rh);
-    };
-    window.addEventListener("resize", onResize);
-
+    const el = mountRef.current;
+    if (!el) return;
+    const scene = new HouseWorldScene(el, initialBuild);
+    scene.setCallbacks({
+      onBuildChange: (s) => onBuildRef.current?.(s),
+      onModeChange: setMode,
+    });
+    sceneRef.current = scene;
+    buildSeedRef.current = `${initialBuild.worldSeed}`;
     return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("resize", onResize);
-      controls.dispose();
-      renderer.dispose();
-      mount.removeChild(renderer.domElement);
-      scene.traverse((o) => {
-        if (o instanceof THREE.Mesh) {
-          o.geometry.dispose();
-          const mats = Array.isArray(o.material) ? o.material : [o.material];
-          mats.forEach((m) => m.dispose());
-        }
-      });
+      scene.dispose();
+      sceneRef.current = null;
     };
-  }, [footprintUnits, lat, lng, regionLabel]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount once per world seed
+  }, [lat, lng, initialBuild.worldSeed]);
+
+  const setTool = useCallback((tool: BuildTool) => {
+    sceneRef.current?.setTool(tool);
+    sceneRef.current?.setMode("build");
+    setMode("build");
+  }, []);
+
+  const setWorldMode = useCallback((m: HouseWorldMode) => {
+    sceneRef.current?.setMode(m);
+    setMode(m);
+  }, []);
+
+  const rotate = useCallback(() => sceneRef.current?.rotatePiece(), []);
 
   return (
-    <div className="relative min-h-[min(70dvh,640px)]">
+    <div className="relative min-h-[min(75dvh,720px)]">
       <div ref={mountRef} className="absolute inset-0" />
-      <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-white/30 bg-black/35 px-2.5 py-1 text-xs text-white backdrop-blur-sm">
-        주택 부지 · {regionLabel || `${lat.toFixed(2)}°, ${lng.toFixed(2)}°`}
-      </div>
-      <div className="pointer-events-none absolute bottom-3 left-3 right-3 rounded-lg border border-white/20 bg-black/30 px-3 py-2 text-[10px] text-white/90 backdrop-blur-sm text-center">
-        GTA5급 주택 건설·도시 환경은 순차 업데이트 예정 · 드래그 회전 · 휠 확대
-      </div>
+      <HouseSceneHud mode={mode} onTool={setTool} onMode={setWorldMode} onRotate={rotate} />
     </div>
+  );
+}
+
+function HouseSceneHud({
+  mode,
+  onTool,
+  onMode,
+  onRotate,
+}: {
+  mode: HouseWorldMode;
+  onTool: (t: BuildTool) => void;
+  onMode: (m: HouseWorldMode) => void;
+  onRotate: () => void;
+}) {
+  const tools: BuildTool[] = ["foundation", "wall", "floor", "roof", "door", "window", "fence", "tree", "lamp", "garage", "erase"];
+
+  return (
+    <>
+      <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-white/25 bg-black/45 px-2.5 py-1.5 text-xs text-white backdrop-blur-sm space-y-0.5">
+        <p className="font-bold">
+          {mode === "build" ? "건설 모드" : mode === "drive" ? "운전 모드" : "탐색 모드"}
+        </p>
+        <p className="text-white/75 text-[10px]">Tab 전환 · WASD 이동/운전 · R 회전</p>
+      </div>
+
+      <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-end justify-between gap-2">
+        <div className="flex flex-wrap gap-1 rounded-xl border border-white/20 bg-black/50 p-1.5 backdrop-blur-md max-w-full">
+          {tools.map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => onTool(t)}
+              className="rounded-lg px-2 py-1 text-[10px] font-bold text-white/90 hover:bg-white/15 transition-colors"
+            >
+              {BUILD_TOOL_LABELS[t]}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-1">
+          <button type="button" onClick={() => onMode("explore")} className="rounded-lg bg-black/50 px-2.5 py-1.5 text-[10px] font-bold text-white border border-white/20">
+            탐색
+          </button>
+          <button type="button" onClick={() => onMode("build")} className="rounded-lg bg-black/50 px-2.5 py-1.5 text-[10px] font-bold text-white border border-white/20">
+            건설
+          </button>
+          <button type="button" onClick={() => onMode("drive")} className="rounded-lg bg-folk-terracotta/90 px-2.5 py-1.5 text-[10px] font-bold text-white">
+            운전
+          </button>
+          <button type="button" onClick={onRotate} className="rounded-lg bg-black/50 px-2.5 py-1.5 text-[10px] font-bold text-white border border-white/20">
+            R 회전
+          </button>
+        </div>
+      </div>
+    </>
   );
 }

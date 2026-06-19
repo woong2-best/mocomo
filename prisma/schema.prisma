@@ -2107,6 +2107,7 @@ model AptProfile {
   furniture         Json      @default("[]")
   residents         Json      @default("[]")
   simulationState   Json      @default("{}")
+  houseBuild        Json      @default("{}")
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)

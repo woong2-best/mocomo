@@ -9,7 +9,7 @@ export function AptHouseHubClient({ initialProfile }: { initialProfile: AptProfi
       <div className="space-y-2">
         <h1 className="text-2xl font-bold text-folk-cobalt">주택</h1>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          지구본에서 선택한 부지입니다. 실제 지구 비율에 맞춘 집 크기로 건설 모드가 확장됩니다.
+          GTA 스타일 오픈월드 주택 부지입니다. 건설·운전·낮/밤이 가능합니다.
         </p>
       </div>
       <AptHouseView profile={initialProfile} />

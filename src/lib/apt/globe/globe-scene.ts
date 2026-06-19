@@ -62,6 +62,7 @@ export class AptGlobeScene {
   private disposed = false;
   private pick: GlobePick | null = null;
   private focusCountry: WorldCountry | null = null;
+  private detailGroup = new THREE.Group();
 
   constructor(mount: HTMLElement, initialCountryCode?: string) {
     this.mount = mount;
@@ -81,7 +82,7 @@ export class AptGlobeScene {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.06;
-    this.controls.minDistance = 5.2;
+    this.controls.minDistance = 5.85;
     this.controls.maxDistance = 18;
     this.controls.enablePan = false;
 
@@ -161,6 +162,46 @@ export class AptGlobeScene {
     this.pick = { lat, lng, country, zoomLevel };
     this.callbacks.onPick?.(this.pick);
     this.callbacks.onZoomChange?.(zoomLevel);
+    this.updateDetailOverlay(lat, lng);
+  }
+
+  private updateDetailOverlay(lat: number, lng: number) {
+    while (this.detailGroup.children.length) this.detailGroup.remove(this.detailGroup.children[0]);
+    const dist = this.camera.position.distanceTo(this.controls.target);
+    const zoom = zoomLevelFromDistance(dist);
+    if (zoom < 2) {
+      this.scene.remove(this.detailGroup);
+      return;
+    }
+
+    const v = latLngToVector3(lat, lng, GLOBE_RADIUS_UNITS);
+    const normal = new THREE.Vector3(v.x, v.y, v.z).normalize();
+    const size = zoom >= 3 ? 1.8 : 3.2;
+    const patch = new THREE.Mesh(
+      new THREE.PlaneGeometry(size, size, zoom >= 3 ? 24 : 12, zoom >= 3 ? 24 : 12),
+      new THREE.MeshStandardMaterial({
+        color: zoom >= 3 ? 0x4a9f5a : 0x2d6a3a,
+        roughness: 0.95,
+        transparent: true,
+        opacity: 0.92,
+      })
+    );
+    patch.position.copy(normal.clone().multiplyScalar(GLOBE_RADIUS_UNITS + 0.08));
+    const up = new THREE.Vector3(0, 1, 0);
+    const tangent = new THREE.Vector3().crossVectors(up, normal).normalize();
+    if (tangent.lengthSq() < 0.01) tangent.set(1, 0, 0);
+    const bitangent = new THREE.Vector3().crossVectors(normal, tangent);
+    const m = new THREE.Matrix4().makeBasis(tangent, normal, bitangent);
+    patch.setRotationFromMatrix(m);
+    this.detailGroup.add(patch);
+
+    if (zoom >= 3) {
+      const grid = new THREE.GridHelper(size, 16, 0xf4a261, 0x6a9a5a);
+      grid.position.copy(patch.position).add(normal.clone().multiplyScalar(0.02));
+      grid.setRotationFromMatrix(m);
+      this.detailGroup.add(grid);
+    }
+    if (!this.scene.children.includes(this.detailGroup)) this.scene.add(this.detailGroup);
   }
 
   private onControlsChange = () => {
@@ -172,6 +213,7 @@ export class AptGlobeScene {
       this.callbacks.onZoomChange?.(zoomLevel);
       this.callbacks.onPick?.(this.pick);
     }
+    this.updateDetailOverlay(this.pick.lat, this.pick.lng);
   };
 
   private onPointerDown = (e: PointerEvent) => {
@@ -183,7 +225,8 @@ export class AptGlobeScene {
     if (!hits.length) return;
     const p = hits[0].point;
     const { lat, lng } = vector3ToLatLng(p.x, p.y, p.z);
-    this.flyTo(lat, lng, Math.min(this.camera.position.distanceTo(this.controls.target), 7.5));
+    this.flyTo(lat, lng, Math.min(this.camera.position.distanceTo(this.controls.target), 6.2));
+    this.updateDetailOverlay(lat, lng);
   };
 
   private onResize = () => {
