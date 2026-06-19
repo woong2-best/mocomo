@@ -71,13 +71,15 @@ function overlapDoor(a: AptRoom, b: AptRoom, side: DoorSide): Omit<HomeDoorway, 
 
 const doorwayCache = new WeakMap<AptRoom[], HomeDoorway[]>();
 
-/** 복도 접점 1곳만 문 허용 — 옆방 직통 문 금지, 발코니는 거실만 */
+/** 복도는 개방 통로(문 없음), 발코니는 거실·엘리베이터만 개방 연결 */
 function allowsDoorwayBetween(a: AptRoom, b: AptRoom): boolean {
+  if (a.id === "hall-corridor" || b.id === "hall-corridor") return false;
+
   if (a.type === "balcony" || b.type === "balcony") {
     const other = a.type === "balcony" ? b : a;
     return other.id === "living" || other.type === "living";
   }
-  if (a.id === "hall-corridor" || b.id === "hall-corridor") return true;
+
   return false;
 }
 
