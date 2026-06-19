@@ -110,6 +110,13 @@ export class IsometricHomeScene {
   private lightRoot = new THREE.Group();
   private doorways: HomeDoorway[] = [];
   private doorPivots = new Map<string, THREE.Object3D>();
+  private wallMeshes: THREE.Mesh[] = [];
+  private readonly avatarWorldPos = new THREE.Vector3();
+  private readonly camWorldPos = new THREE.Vector3();
+  private readonly wallWorldPos = new THREE.Vector3();
+  private readonly toCam = new THREE.Vector3();
+  private readonly toWall = new THREE.Vector3();
+  private readonly projPoint = new THREE.Vector3();
 
   constructor(mount: HTMLElement, rooms: AptRoom[], initial: BondeeHomeState) {
     this.mount = mount;
@@ -159,6 +166,10 @@ export class IsometricHomeScene {
     this.avatarShadow.position.y = 0.01;
     this.homeRoot.add(this.avatarShadow);
     this.homeRoot.add(this.avatar.root);
+    this.avatar.root.renderOrder = 20;
+    this.avatar.root.traverse((o) => {
+      if (o instanceof THREE.Mesh) o.renderOrder = 20;
+    });
     this.scene.add(this.homeRoot);
     this.rebuildFloor();
     this.applyAvatar();
@@ -381,7 +392,58 @@ export class IsometricHomeScene {
     stripShadows(shell);
     this.floorGroup.add(shell);
     this.collectDoorPivots();
+    this.collectWallMeshes();
     this.requestRender();
+  }
+
+  private collectWallMeshes() {
+    this.wallMeshes = [];
+    this.floorGroup?.traverse((obj) => {
+      if (obj instanceof THREE.Mesh && obj.userData.isHomeWall) {
+        this.wallMeshes.push(obj);
+      }
+    });
+  }
+
+  private updateWallOcclusion(dt: number) {
+    if (!this.wallMeshes.length) return;
+
+    this.avatarWorldPos.set(this.avatarX, 0.12, this.avatarZ);
+    this.camera.getWorldPosition(this.camWorldPos);
+    this.toCam.subVectors(this.camWorldPos, this.avatarWorldPos);
+    const camLenSq = this.toCam.lengthSq();
+    if (camLenSq < 0.0001) return;
+    const camLen = Math.sqrt(camLenSq);
+
+    for (const mesh of this.wallMeshes) {
+      mesh.getWorldPosition(this.wallWorldPos);
+      this.wallWorldPos.y = 0.1;
+      this.toWall.subVectors(this.wallWorldPos, this.avatarWorldPos);
+      const wallDist = this.toWall.length();
+      const t = this.toWall.dot(this.toCam) / camLenSq;
+
+      let blocks = false;
+      if (t > 0.04 && t < 0.95 && wallDist < camLen * 0.98) {
+        this.projPoint.copy(this.avatarWorldPos).addScaledVector(this.toCam, t);
+        const perpendicular = this.wallWorldPos.distanceTo(this.projPoint);
+        const radius = mesh.userData.wallKind === "exterior" ? 0.48 : 0.38;
+        blocks = perpendicular < radius;
+      }
+
+      const mat = mesh.material as THREE.MeshStandardMaterial;
+      if (!mat || !("opacity" in mat)) continue;
+      const base = (mesh.userData.baseOpacity as number) ?? 0.3;
+      const occlude = (mesh.userData.occludeOpacity as number) ?? 0.15;
+      const target = blocks ? occlude : base;
+      const next = THREE.MathUtils.lerp(mat.opacity, target, Math.min(1, 14 * dt));
+      if (Math.abs(next - mat.opacity) > 0.004) {
+        mat.opacity = next;
+        mat.transparent = true;
+        mat.depthWrite = next > 0.55;
+        mat.needsUpdate = true;
+        this.needsRender = true;
+      }
+    }
   }
 
   private collectDoorPivots() {
@@ -462,10 +524,12 @@ export class IsometricHomeScene {
 
     this.furnitureRoot = new THREE.Group();
     this.furnitureRoot.name = "home-furniture";
+    this.furnitureRoot.renderOrder = 10;
     this.floorGroup.add(this.furnitureRoot);
 
     this.homeRoot.add(this.floorGroup);
     this.collectDoorPivots();
+    this.collectWallMeshes();
     this.applyAvatar();
     this.requestRender();
     this.scheduleFurnitureLoad(visibleRooms);
@@ -561,6 +625,9 @@ export class IsometricHomeScene {
   private applyAvatar() {
     if (!this.walking) {
       this.avatar.rebuild(this.state.avatar, this.state.pose);
+      this.avatar.root.traverse((o) => {
+        if (o instanceof THREE.Mesh) o.renderOrder = 20;
+      });
     }
     this.syncAvatarTransform();
   }
@@ -878,6 +945,7 @@ export class IsometricHomeScene {
     this.animPhase += dt;
     this.updateMovement(dt);
     this.updateDoors(dt);
+    this.updateWallOcclusion(dt);
     const camMoving =
       Math.abs(this.targetCamYaw - this.camYaw) > 0.002 ||
       Math.abs(this.targetCamDist - this.frustum) > 0.02;

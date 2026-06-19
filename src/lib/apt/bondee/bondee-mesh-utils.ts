@@ -170,27 +170,107 @@ export function buildCarpetFloor(w: number, d: number, color: number = BONDEE_PA
   return g;
 }
 
-/** Low semi-transparent Bondee wall */
+/** Low semi-transparent Bondee wall — legacy; prefer buildExteriorWall / buildInteriorWall */
 export function buildLowWall(wx: number, h: number, wz: number, exterior: boolean): THREE.Group {
+  return exterior ? buildExteriorWall(wx, h, wz) : buildInteriorWall(wx, h, wz);
+}
+
+export const WALL_EXTERIOR_COLOR = 0xf5f5f5;
+export const WALL_INTERIOR_COLOR = 0xf5f5f5;
+export const WALL_EXTERIOR_OPACITY = 0.95;
+export const WALL_INTERIOR_OPACITY = 0.3;
+export const WALL_OCCLUDE_INTERIOR = 0.15;
+export const WALL_OCCLUDE_EXTERIOR = 0.28;
+
+export type HomeWallKind = "exterior" | "interior";
+
+export function tagHomeWall(mesh: THREE.Mesh, kind: HomeWallKind) {
+  const baseOpacity = kind === "exterior" ? WALL_EXTERIOR_OPACITY : WALL_INTERIOR_OPACITY;
+  mesh.userData.isHomeWall = true;
+  mesh.userData.wallKind = kind;
+  mesh.userData.baseOpacity = baseOpacity;
+  mesh.userData.occludeOpacity = kind === "exterior" ? WALL_OCCLUDE_EXTERIOR : WALL_OCCLUDE_INTERIOR;
+  mesh.renderOrder = kind === "exterior" ? 1 : 2;
+  const mat = mesh.material as THREE.MeshStandardMaterial;
+  mat.transparent = true;
+  mat.opacity = baseOpacity;
+  mat.depthWrite = kind === "exterior";
+}
+
+/** Solid exterior shell — opaque, thick, with top cap and ground shadow */
+export function buildExteriorWall(wx: number, h: number, wz: number): THREE.Group {
   const g = new THREE.Group();
-  const opacity = exterior ? 0.42 : 0.22;
+  g.userData.wallGroupKind = "exterior";
+
   const wall = new THREE.Mesh(
-    roundedBox(wx, h, wz, 0.015),
-    bondeeMat(BONDEE_PALETTE.wallWhite, { transparent: true, opacity })
+    roundedBox(wx, h, wz, 0.02),
+    bondeeMat(WALL_EXTERIOR_COLOR, { transparent: true, opacity: WALL_EXTERIOR_OPACITY, roughness: 0.84 })
   );
   wall.position.y = h / 2 + 0.05;
-  wall.castShadow = !exterior;
-  wall.receiveShadow = true;
+  tagHomeWall(wall, "exterior");
   g.add(wall);
 
-  const trim = new THREE.Mesh(
-    roundedBox(wx + 0.01, 0.025, wz + 0.01, 0.008),
-    bondeeMat(BONDEE_PALETTE.trim, { transparent: true, opacity: 0.65 })
+  const top = new THREE.Mesh(
+    roundedBox(wx + 0.006, 0.02, wz + 0.006, 0.006),
+    bondeeMat(0xffffff, { transparent: true, opacity: 0.98, roughness: 0.7 })
   );
-  trim.position.y = 0.06;
+  top.position.y = h + 0.058;
+  tagHomeWall(top, "exterior");
+  g.add(top);
+
+  const shadow = new THREE.Mesh(
+    roundedBox(wx + 0.024, 0.01, wz + 0.05, 0.004),
+    bondeeMat(0x000000, { transparent: true, opacity: 0.14, depthWrite: false })
+  );
+  shadow.position.y = 0.064;
+  shadow.renderOrder = 0;
+  g.add(shadow);
+
+  const trim = new THREE.Mesh(
+    roundedBox(wx + 0.014, 0.034, wz + 0.014, 0.008),
+    bondeeMat(BONDEE_PALETTE.trim, { transparent: true, opacity: 0.8 })
+  );
+  trim.position.y = 0.068;
+  trim.renderOrder = 1;
   g.add(trim);
 
   return g;
+}
+
+/** Interior partition — semi-transparent for sight lines */
+export function buildInteriorWall(wx: number, h: number, wz: number): THREE.Group {
+  const g = new THREE.Group();
+  g.userData.wallGroupKind = "interior";
+
+  const wall = new THREE.Mesh(
+    roundedBox(wx, h, wz, 0.012),
+    bondeeMat(WALL_INTERIOR_COLOR, {
+      transparent: true,
+      opacity: WALL_INTERIOR_OPACITY,
+      depthWrite: false,
+      roughness: 0.8,
+    })
+  );
+  wall.position.y = h / 2 + 0.05;
+  tagHomeWall(wall, "interior");
+  g.add(wall);
+
+  const top = new THREE.Mesh(
+    roundedBox(wx + 0.003, 0.01, wz + 0.003, 0.003),
+    bondeeMat(0xffffff, { transparent: true, opacity: 0.22, depthWrite: false })
+  );
+  top.position.y = h + 0.052;
+  tagHomeWall(top, "interior");
+  g.add(top);
+
+  return g;
+}
+
+export function setObjectRenderLayer(root: THREE.Object3D, order: number) {
+  root.renderOrder = order;
+  root.traverse((o) => {
+    if (o instanceof THREE.Mesh) o.renderOrder = order;
+  });
 }
 
 /** Cute round window for exterior walls */

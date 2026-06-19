@@ -11,18 +11,23 @@ import type { BondeePlacedItem } from "./types";
 import {
   BONDEE_PALETTE,
   buildCarpetFloor,
-  buildLowWall,
+  buildExteriorWall,
+  buildInteriorWall,
   buildRoomLabel,
   buildRoundWindow,
   buildTileFloor,
   buildWoodFloor,
   bondeeMat,
   roundedBox,
+  setObjectRenderLayer,
+  tagHomeWall,
+  WALL_INTERIOR_COLOR,
 } from "./bondee-mesh-utils";
 import { computeHomeDoorways, doorwayForRoomSide, type HomeDoorway } from "./home-doorways";
 
 const WALL_H = 0.2;
-const WALL_THICK = 0.035;
+const WALL_THICK_EXTERIOR = 0.052;
+const WALL_THICK_INTERIOR = 0.028;
 const ITEM_GRID = 0.38;
 
 const ROOM_ACCENT: Record<string, number> = {
@@ -197,7 +202,7 @@ function shouldShowRoom(roomId: string, visibleRoomIds?: Set<string> | null) {
   return visibleRoomIds.has(roomId);
 }
 
-function buildInteriorDoor(door: HomeDoorway, wallHeight: number, accent: number): THREE.Group {
+function buildInteriorDoor(door: HomeDoorway, wallHeight: number, _accent: number): THREE.Group {
   const g = new THREE.Group();
   g.name = `door-${door.id}`;
   g.userData.doorId = door.id;
@@ -207,7 +212,12 @@ function buildInteriorDoor(door: HomeDoorway, wallHeight: number, accent: number
   const frameT = 0.028;
 
   const frameMat = bondeeMat(BONDEE_PALETTE.trim, { transparent: true, opacity: 0.85 });
-  const wallMat = bondeeMat(accent, { transparent: true, opacity: 0.22 });
+  const makeInteriorSeg = (geo: THREE.BufferGeometry, x: number, y: number, z: number) => {
+    const seg = new THREE.Mesh(geo, bondeeMat(WALL_INTERIOR_COLOR, { transparent: true, opacity: 0.3, depthWrite: false }));
+    seg.position.set(x, y, z);
+    tagHomeWall(seg, "interior");
+    return seg;
+  };
 
   const pivot = new THREE.Group();
   pivot.position.set(door.cx, 0, door.cz);
@@ -242,8 +252,12 @@ function buildInteriorDoor(door: HomeDoorway, wallHeight: number, accent: number
     const sideLen = Math.max(0, door.span - doorW - 0.08);
     if (sideLen > 0.06) {
       for (const sign of [-1, 1] as const) {
-        const seg = new THREE.Mesh(roundedBox(frameT, wallHeight * 0.35, sideLen, 0.004), wallMat);
-        seg.position.set(door.cx, wallHeight * 0.2 + 0.05, door.cz + sign * (doorW / 2 + sideLen / 2 + 0.02));
+        const seg = makeInteriorSeg(
+          roundedBox(frameT, wallHeight * 0.35, sideLen, 0.004),
+          door.cx,
+          wallHeight * 0.2 + 0.05,
+          door.cz + sign * (doorW / 2 + sideLen / 2 + 0.02)
+        );
         g.add(seg);
       }
     }
@@ -256,13 +270,18 @@ function buildInteriorDoor(door: HomeDoorway, wallHeight: number, accent: number
     const sideLen = Math.max(0, door.span - doorW - 0.08);
     if (sideLen > 0.06) {
       for (const sign of [-1, 1] as const) {
-        const seg = new THREE.Mesh(roundedBox(sideLen, wallHeight * 0.35, frameT, 0.004), wallMat);
-        seg.position.set(door.cx + sign * (doorW / 2 + sideLen / 2 + 0.02), wallHeight * 0.2 + 0.05, door.cz);
+        const seg = makeInteriorSeg(
+          roundedBox(sideLen, wallHeight * 0.35, frameT, 0.004),
+          door.cx + sign * (doorW / 2 + sideLen / 2 + 0.02),
+          wallHeight * 0.2 + 0.05,
+          door.cz
+        );
         g.add(seg);
       }
     }
   }
 
+  setObjectRenderLayer(g, 3);
   return g;
 }
 
@@ -275,6 +294,19 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
   const doorways = computeHomeDoorways(rooms);
   const doorRoot = new THREE.Group();
   doorRoot.name = "home-doors";
+  doorRoot.renderOrder = 3;
+
+  const exteriorWallRoot = new THREE.Group();
+  exteriorWallRoot.name = "home-exterior-walls";
+  exteriorWallRoot.renderOrder = 1;
+
+  const interiorWallRoot = new THREE.Group();
+  interiorWallRoot.name = "home-interior-walls";
+  interiorWallRoot.renderOrder = 2;
+
+  const floorRoot = new THREE.Group();
+  floorRoot.name = "home-floors";
+  floorRoot.renderOrder = 0;
 
   for (const room of rooms) {
     if (!shouldShowRoom(room.id, visibleRoomIds)) continue;
@@ -320,10 +352,34 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
     if (!dollhouse) roomGroup.add(label);
 
     const sides: { side: "n" | "s" | "e" | "w"; wx: number; wz: number; px: number; pz: number }[] = [
-      { side: "n", wx: w, wz: WALL_THICK, px: cx, pz: cz - d / 2 + WALL_THICK / 2 },
-      { side: "s", wx: w, wz: WALL_THICK, px: cx, pz: cz + d / 2 - WALL_THICK / 2 },
-      { side: "w", wx: WALL_THICK, wz: d, px: cx - w / 2 + WALL_THICK / 2, pz: cz },
-      { side: "e", wx: WALL_THICK, wz: d, px: cx + w / 2 - WALL_THICK / 2, pz: cz },
+      {
+        side: "n",
+        wx: w,
+        wz: WALL_THICK_EXTERIOR,
+        px: cx,
+        pz: cz - d / 2 + WALL_THICK_EXTERIOR / 2,
+      },
+      {
+        side: "s",
+        wx: w,
+        wz: WALL_THICK_EXTERIOR,
+        px: cx,
+        pz: cz + d / 2 - WALL_THICK_EXTERIOR / 2,
+      },
+      {
+        side: "w",
+        wx: WALL_THICK_EXTERIOR,
+        wz: d,
+        px: cx - w / 2 + WALL_THICK_EXTERIOR / 2,
+        pz: cz,
+      },
+      {
+        side: "e",
+        wx: WALL_THICK_EXTERIOR,
+        wz: d,
+        px: cx + w / 2 - WALL_THICK_EXTERIOR / 2,
+        pz: cz,
+      },
     ];
 
     for (const s of sides) {
@@ -331,6 +387,15 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
 
       const exterior = isExteriorEdge(room, s.side) || room.type === "balcony";
       const neighbor = hasNeighbor(room, rooms, s.side);
+      const thick = exterior ? WALL_THICK_EXTERIOR : WALL_THICK_INTERIOR;
+      if (s.side === "n" || s.side === "s") {
+        s.wz = thick;
+        s.pz = cz + (s.side === "n" ? -d / 2 + thick / 2 : d / 2 - thick / 2);
+      } else {
+        s.wx = thick;
+        s.px = cx + (s.side === "w" ? -w / 2 + thick / 2 : w / 2 - thick / 2);
+      }
+
       if (!neighbor || exterior) {
         const h = exterior ? wallHeight * 1.1 : wallHeight * 0.65;
         if (dollhouse) {
@@ -341,9 +406,11 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
           wallMesh.position.set(s.px, h / 2 + 0.05, s.pz);
           roomGroup.add(wallMesh);
         } else {
-          const wallGroup = buildLowWall(s.wx, h, s.wz, exterior);
+          const wallGroup = exterior
+            ? buildExteriorWall(s.wx, h, s.wz)
+            : buildInteriorWall(s.wx, h, s.wz);
           wallGroup.position.set(s.px, 0, s.pz);
-          roomGroup.add(wallGroup);
+          (exterior ? exteriorWallRoot : interiorWallRoot).add(wallGroup);
 
           if (exterior && room.type !== "balcony") {
             const win = buildRoundWindow(0.07);
@@ -351,7 +418,7 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
             if (s.side === "w" || s.side === "e") {
               win.rotation.y = Math.PI / 2;
             }
-            roomGroup.add(win);
+            exteriorWallRoot.add(win);
           }
         }
       } else if (dollhouse) {
@@ -366,12 +433,9 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
         if (doorway && doorway.roomA === room.id) {
           doorRoot.add(buildInteriorDoor(doorway, wallHeight, accent));
         } else if (!doorway) {
-          const divider = new THREE.Mesh(
-            new THREE.BoxGeometry(s.wx, wallHeight * 0.35, s.wz),
-            bondeeMat(accent, { transparent: true, opacity: 0.18 })
-          );
-          divider.position.set(s.px, wallHeight * 0.2 + 0.05, s.pz);
-          roomGroup.add(divider);
+          const dividerGroup = buildInteriorWall(s.wx, wallHeight * 0.65, s.wz);
+          dividerGroup.position.set(s.px, 0, s.pz);
+          interiorWallRoot.add(dividerGroup);
         }
       }
     }
@@ -394,9 +458,12 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
       roomGroup.add(rail);
     }
 
-    root.add(roomGroup);
+    floorRoot.add(roomGroup);
   }
 
+  root.add(floorRoot);
+  root.add(exteriorWallRoot);
+  root.add(interiorWallRoot);
   root.add(doorRoot);
   root.scale.setScalar(scale);
   return root;
@@ -448,8 +515,10 @@ export function appendFurniturePiece(
     if (o instanceof THREE.Mesh) {
       o.castShadow = false;
       o.receiveShadow = false;
+      o.renderOrder = 10;
     }
   });
+  mesh.renderOrder = 10;
 
   furnitureRoot.add(mesh);
 }
