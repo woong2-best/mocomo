@@ -156,3 +156,25 @@ export function walkInsetForSide(room: AptRoom, rooms: AptRoom[], side: HomeWall
   const type = classifyWallEdge(room, rooms, side);
   return type === "EXTERIOR" ? EXTERIOR_WALK_INSET : INTERIOR_WALK_INSET;
 }
+
+/** 평면도 방향 → world XZ 법선 (카메라 남동쪽 구도) */
+export function planSideWorldNormal(side: HomeWallSide): { x: number; z: number } {
+  switch (side) {
+    case "n":
+      return { x: 0, z: -1 };
+    case "s":
+      return { x: 0, z: 1 };
+    case "e":
+      return { x: 1, z: 0 };
+    case "w":
+      return { x: -1, z: 0 };
+  }
+}
+
+/** 회전 각도에 따라 카메라를 향하는 벽인지 (투명 벽 후보) */
+export function wallSideFacesCamera(side: HomeWallSide, camYaw: number, threshold = 0.22): boolean {
+  const camDirX = Math.sin(camYaw);
+  const camDirZ = Math.cos(camYaw);
+  const n = planSideWorldNormal(side);
+  return n.x * camDirX + n.z * camDirZ > threshold;
+}

@@ -193,13 +193,14 @@ export function homeWallTagToKind(tag: HomeWallTypeTag): HomeWallKind {
   return tag === "EXTERIOR" ? "exterior" : "interior";
 }
 
-export function tagHomeWall(mesh: THREE.Mesh, kind: HomeWallKind, wallId?: string) {
+export function tagHomeWall(mesh: THREE.Mesh, kind: HomeWallKind, wallId?: string, wallSide?: string) {
   const tag = homeWallKindToTag(kind);
   const baseOpacity = kind === "exterior" ? WALL_EXTERIOR_OPACITY : WALL_INTERIOR_OPACITY;
   mesh.userData.isHomeWall = true;
   mesh.userData.wallKind = kind;
   mesh.userData.wallType = tag;
   mesh.userData.wallId = wallId;
+  mesh.userData.wallSide = wallSide;
   mesh.userData.baseOpacity = baseOpacity;
   mesh.userData.occludeOpacity = kind === "exterior" ? WALL_OCCLUDE_EXTERIOR : WALL_OCCLUDE_INTERIOR;
   mesh.userData.occlusionEnabled = kind === "exterior";
@@ -211,17 +212,24 @@ export function tagHomeWall(mesh: THREE.Mesh, kind: HomeWallKind, wallId?: strin
 }
 
 /** Solid exterior shell — thick opaque box (dollhouse toy-house feel) */
-export function buildExteriorWall(wx: number, h: number, wz: number, wallId?: string): THREE.Group {
+export function buildExteriorWall(
+  wx: number,
+  h: number,
+  wz: number,
+  wallId?: string,
+  wallSide?: string
+): THREE.Group {
   const g = new THREE.Group();
   g.userData.wallGroupKind = "exterior";
   g.userData.wallType = "EXTERIOR";
+  g.userData.wallSide = wallSide;
 
   const wall = new THREE.Mesh(
     roundedBox(wx, h, wz, 0.03),
     bondeeMat(WALL_EXTERIOR_COLOR, { transparent: false, opacity: WALL_EXTERIOR_OPACITY, roughness: 0.84 })
   );
   wall.position.y = h / 2 + 0.05;
-  tagHomeWall(wall, "exterior", wallId);
+  tagHomeWall(wall, "exterior", wallId, wallSide);
   g.add(wall);
 
   const top = new THREE.Mesh(
@@ -229,7 +237,7 @@ export function buildExteriorWall(wx: number, h: number, wz: number, wallId?: st
     bondeeMat(0xffffff, { transparent: true, opacity: 0.98, roughness: 0.7 })
   );
   top.position.y = h + 0.058;
-  tagHomeWall(top, "exterior", wallId);
+  tagHomeWall(top, "exterior", wallId, wallSide);
   g.add(top);
 
   const shadow = new THREE.Mesh(
@@ -252,10 +260,17 @@ export function buildExteriorWall(wx: number, h: number, wz: number, wallId?: st
 }
 
 /** Interior partition — thin semi-transparent divider between rooms */
-export function buildInteriorWall(wx: number, h: number, wz: number, wallId?: string): THREE.Group {
+export function buildInteriorWall(
+  wx: number,
+  h: number,
+  wz: number,
+  wallId?: string,
+  wallSide?: string
+): THREE.Group {
   const g = new THREE.Group();
   g.userData.wallGroupKind = "interior";
   g.userData.wallType = "INTERIOR";
+  g.userData.wallSide = wallSide;
 
   const wall = new THREE.Mesh(
     roundedBox(wx, h, wz, 0.018),
@@ -267,7 +282,7 @@ export function buildInteriorWall(wx: number, h: number, wz: number, wallId?: st
     })
   );
   wall.position.y = h / 2 + 0.05;
-  tagHomeWall(wall, "interior", wallId);
+  tagHomeWall(wall, "interior", wallId, wallSide);
   g.add(wall);
 
   const top = new THREE.Mesh(
@@ -275,7 +290,7 @@ export function buildInteriorWall(wx: number, h: number, wz: number, wallId?: st
     bondeeMat(0xffffff, { transparent: true, opacity: 0.22, depthWrite: false })
   );
   top.position.y = h + 0.052;
-  tagHomeWall(top, "interior", wallId);
+  tagHomeWall(top, "interior", wallId, wallSide);
   g.add(top);
 
   return g;

@@ -13,86 +13,64 @@ export function newRoomId() {
   return `room-${roomSeq}`;
 }
 
-/** 참고 평면도 기본 배치 */
+/** 구상도 기반 Bondee 아파트 — 틈 없이 타일링되는 직사각형 구조 */
 export function createDefaultFloorPlan(): FloorPlanState {
   return {
     rooms: [
       {
-        id: "kitchen",
-        type: "kitchen",
-        x: 120,
-        y: 0,
-        w: 390,
-        h: 200,
-        label: "주방/식당",
-        locked: true,
-        floor: "wood",
-      },
-      {
-        id: "entrance",
-        type: "entrance",
-        x: 0,
-        y: 200,
-        w: 270,
-        h: 140,
-        label: "현관",
-        locked: true,
-        floor: "tile-check",
-      },
-      {
         id: "living",
         type: "living",
-        x: 510,
+        x: 0,
         y: 0,
-        w: 360,
-        h: 240,
-        label: "거실/침실",
+        w: 440,
+        h: 420,
+        label: "거실",
         locked: false,
         floor: "wood",
       },
       {
-        id: "bedroom-a",
-        type: "bedroom",
-        x: 0,
-        y: 340,
-        w: 270,
-        h: 230,
-        label: "침실",
+        id: "living-open",
+        type: "living",
+        x: 440,
+        y: 130,
+        w: 430,
+        h: 290,
+        label: "거실",
         locked: false,
-        floor: "beige",
-      },
-      {
-        id: "hall",
-        type: "hall",
-        x: 270,
-        y: 340,
-        w: 60,
-        h: 230,
-        label: "복도",
-        locked: false,
-        floor: "beige",
+        floor: "wood",
       },
       {
         id: "bathroom",
         type: "bathroom",
-        x: 330,
-        y: 400,
-        w: 180,
-        h: 170,
+        x: 440,
+        y: 0,
+        w: 190,
+        h: 130,
         label: "화장실",
         locked: true,
         floor: "bathroom",
       },
       {
-        id: "bedroom-b",
-        type: "bedroom",
-        x: 510,
-        y: 240,
-        w: 360,
-        h: 330,
-        label: "침실",
-        locked: false,
-        floor: "beige",
+        id: "entrance",
+        type: "entrance",
+        x: 630,
+        y: 0,
+        w: 240,
+        h: 130,
+        label: "현관",
+        locked: true,
+        floor: "tile-check",
+      },
+      {
+        id: "kitchen",
+        type: "kitchen",
+        x: 0,
+        y: 420,
+        w: 870,
+        h: 150,
+        label: "주방/식당",
+        locked: true,
+        floor: "wood",
       },
       {
         id: "balcony",
@@ -100,13 +78,32 @@ export function createDefaultFloorPlan(): FloorPlanState {
         x: 870,
         y: 0,
         w: 130,
-        h: 570,
+        h: PLAN_H,
         label: "발코니",
         locked: true,
         floor: "balcony",
       },
     ],
   };
+}
+
+/** 이전(복도·침실 분할) 평면도 → 구상도 레이아웃으로 교체 */
+export function isLegacyFloorPlan(rooms: AptRoom[]): boolean {
+  if (!rooms.length) return true;
+  return rooms.some(
+    (r) =>
+      r.id === "bedroom-a" ||
+      r.id === "bedroom-b" ||
+      r.id === "hall" ||
+      (r.type === "living" && r.x > 500)
+  );
+}
+
+export function migrateFloorPlan(rooms: AptRoom[]): AptRoom[] {
+  if (!rooms.length || isLegacyFloorPlan(rooms)) {
+    return createDefaultFloorPlan().rooms.map((r) => ({ ...r }));
+  }
+  return rooms;
 }
 
 export function getFlexibleRooms(rooms: AptRoom[]) {
@@ -173,7 +170,7 @@ export function mergeRooms(rooms: AptRoom[], idA: string, idB: string): AptRoom[
     y: ny,
     w: nw,
     h: nh,
-    label: a.type === "living" || b.type === "living" ? "거실/침실" : "침실",
+    label: a.type === "living" || b.type === "living" ? "거실" : "침실",
     locked: false,
     floor: a.floor === "wood" || b.floor === "wood" ? "wood" : "beige",
   };
@@ -279,7 +276,7 @@ export function defaultLabel(type: RoomType) {
     case "bathroom":
       return "화장실";
     case "living":
-      return "거실/침실";
+      return "거실";
     case "balcony":
       return "발코니";
     case "hall":

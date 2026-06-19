@@ -88,6 +88,9 @@ export function computeHomeDoorways(rooms: AptRoom[]): HomeDoorway[] {
 
         const spec = overlapDoor(a, b, side);
         if (!spec) continue;
+        if (a.type === "living" && b.type === "living") {
+          spec.span = Math.min(spec.span * 1.8, side === "e" || side === "w" ? Math.abs(worldBounds(a).maxZ - worldBounds(a).minZ) * 0.92 : Math.abs(worldBounds(a).maxX - worldBounds(a).minX) * 0.92);
+        }
         doorways.push({ id: key, roomA: a.id, roomB: b.id, ...spec });
       }
     }

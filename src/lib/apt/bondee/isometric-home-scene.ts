@@ -19,6 +19,7 @@ import {
   type FurnitureArchitecture,
 } from "./furniture-architecture";
 import { findRoomAt, isWalkable } from "./home-walkability";
+import { wallSideFacesCamera, type HomeWallSide } from "./home-walls";
 import { computeHomeDoorways, isNearDoor, type HomeDoorway } from "./home-doorways";
 import type { BondeeHomeState, BondeePlacedItem, ChibiAvatarConfig, ChibiPose } from "./types";
 import type { StudioDecorTool } from "@/studio/lib/apt-types";
@@ -137,11 +138,14 @@ export class IsometricHomeScene {
     this.doorways = computeHomeDoorways(rooms);
     this.avatar = new ChibiAvatarMesh();
 
-    const living = rooms.find((r) => r.type === "living") ?? rooms[0];
+    const living =
+      rooms.find((r) => r.id === "living-open") ??
+      rooms.find((r) => r.type === "living") ??
+      rooms[0];
     if (living) {
       const c = roomCenter(living);
       this.avatarX = c.x - 0.2;
-      this.avatarZ = c.z + 0.5;
+      this.avatarZ = c.z + 0.3;
     }
 
     this.scene = new THREE.Scene();
@@ -435,50 +439,47 @@ export class IsometricHomeScene {
     this.camera.getWorldPosition(this.camWorldPos);
     this.toCam.subVectors(this.camWorldPos, this.avatarWorldPos);
     const camLenSq = this.toCam.lengthSq();
-    if (camLenSq < 0.0001) return;
-    const camLen = Math.sqrt(camLenSq);
+    const camLen = camLenSq < 0.0001 ? 0 : Math.sqrt(camLenSq);
 
     for (const mesh of this.wallMeshes) {
       const mat = mesh.material as THREE.MeshStandardMaterial;
       if (!mat || !("opacity" in mat)) continue;
+
+      const wallSide = mesh.userData.wallSide as HomeWallSide | undefined;
+      const facesCam = wallSide ? wallSideFacesCamera(wallSide, this.camYaw) : false;
 
       const isExterior =
         mesh.userData.wallType === "EXTERIOR" ||
         mesh.userData.wallKind === "exterior" ||
         mesh.userData.occlusionEnabled === true;
       const base = (mesh.userData.baseOpacity as number) ?? 0.35;
-
-      if (!isExterior) {
-        if (Math.abs(mat.opacity - base) > 0.004) {
-          mat.opacity = base;
-          mat.transparent = true;
-          mat.depthWrite = false;
-          mat.needsUpdate = true;
-          this.needsRender = true;
-        }
-        continue;
-      }
-
-      mesh.getWorldPosition(this.wallWorldPos);
-      this.wallWorldPos.y = 0.1;
-      this.toWall.subVectors(this.wallWorldPos, this.avatarWorldPos);
-      const wallDist = this.toWall.length();
-      const t = this.toWall.dot(this.toCam) / camLenSq;
-
-      let blocks = false;
-      if (t > 0.04 && t < 0.95 && wallDist < camLen * 0.98) {
-        this.projPoint.copy(this.avatarWorldPos).addScaledVector(this.toCam, t);
-        const perpendicular = this.wallWorldPos.distanceTo(this.projPoint);
-        blocks = perpendicular < 0.52;
-      }
-
       const occlude = (mesh.userData.occludeOpacity as number) ?? 0.22;
-      const target = blocks ? occlude : base;
+
+      let blocksAvatar = false;
+      if (camLen > 0.01 && isExterior) {
+        mesh.getWorldPosition(this.wallWorldPos);
+        this.wallWorldPos.y = 0.1;
+        this.toWall.subVectors(this.wallWorldPos, this.avatarWorldPos);
+        const wallDist = this.toWall.length();
+        const t = this.toWall.dot(this.toCam) / camLenSq;
+        if (t > 0.04 && t < 0.95 && wallDist < camLen * 0.98) {
+          this.projPoint.copy(this.avatarWorldPos).addScaledVector(this.toCam, t);
+          blocksAvatar = this.wallWorldPos.distanceTo(this.projPoint) < 0.52;
+        }
+      }
+
+      let target = base;
+      if (isExterior) {
+        if (facesCam || blocksAvatar) target = occlude;
+      } else if (facesCam) {
+        target = 0.16;
+      }
+
       const next = THREE.MathUtils.lerp(mat.opacity, target, Math.min(1, 14 * dt));
       if (Math.abs(next - mat.opacity) > 0.004) {
         mat.opacity = next;
         mat.transparent = next < 0.999;
-        mat.depthWrite = next > 0.55;
+        mat.depthWrite = isExterior && next > 0.55;
         mat.needsUpdate = true;
         this.needsRender = true;
       }

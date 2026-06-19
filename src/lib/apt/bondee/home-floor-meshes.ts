@@ -33,7 +33,7 @@ import {
   type HomeWallSide,
 } from "./home-walls";
 
-const WALL_H = 0.2;
+const WALL_H = 0.34;
 const ITEM_GRID = 0.38;
 
 const ROOM_ACCENT: Record<string, number> = {
@@ -104,8 +104,14 @@ export function defaultItemsForRooms(rooms: AptRoom[]): BondeePlacedItem[] {
     items.push({ id: `${roomId}-${kind}-${n++}`, kind, roomId, gx, gz, rot });
   };
 
+  const mainLiving =
+    rooms
+      .filter((r) => r.type === "living")
+      .sort((a, b) => b.w * b.h - a.w * a.h)[0]?.id ??
+    rooms.find((r) => r.type === "living")?.id;
+
   for (const r of rooms) {
-    if (r.type === "living") {
+    if (r.type === "living" && r.id === mainLiving) {
       add(r.id, "rug", 0, 0);
       add(r.id, "sofa", -1, 0);
       add(r.id, "coffee_table", 0, 1);
@@ -114,6 +120,9 @@ export function defaultItemsForRooms(rooms: AptRoom[]): BondeePlacedItem[] {
       add(r.id, "plant", 2, 1);
       add(r.id, "bookshelf", -2, -1, 2);
       add(r.id, "gramophone", 2, 0, 2);
+    } else if (r.type === "living") {
+      add(r.id, "plant", 0, 0);
+      add(r.id, "rug", -1, 1);
     } else if (r.type === "kitchen") {
       add(r.id, "shelf_small", 0, -1);
       add(r.id, "desk", 0, 0);
@@ -147,16 +156,22 @@ export function defaultItemsForRooms(rooms: AptRoom[]): BondeePlacedItem[] {
 }
 
 export function migrateItems(items: BondeePlacedItem[], rooms: AptRoom[]): BondeePlacedItem[] {
-  const living = rooms.find((r) => r.type === "living")?.id ?? rooms[0]?.id ?? "living";
+  const mainLiving =
+    rooms
+      .filter((r) => r.type === "living")
+      .sort((a, b) => b.w * b.h - a.w * a.h)[0]?.id ??
+    rooms.find((r) => r.type === "living")?.id ??
+    rooms[0]?.id ??
+    "living";
   const migrated = items.map((it) => ({
     ...it,
-    roomId: it.roomId ?? living,
+    roomId: rooms.some((r) => r.id === it.roomId) ? it.roomId : mainLiving,
   }));
   if (!migrated.some((it) => it.kind === "gramophone")) {
     migrated.push({
-      id: `${living}-gramophone-migrated`,
+      id: `${mainLiving}-gramophone-migrated`,
       kind: "gramophone",
-      roomId: living,
+      roomId: mainLiving,
       gx: 2,
       gz: 0,
       rot: 2,
@@ -405,8 +420,8 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
       }
 
       const wallGroup = isExterior
-        ? buildExteriorWall(dims.wx, h, dims.wz, wallId)
-        : buildInteriorWall(dims.wx, h, dims.wz, wallId);
+        ? buildExteriorWall(dims.wx, h, dims.wz, wallId, side)
+        : buildInteriorWall(dims.wx, h, dims.wz, wallId, side);
       wallGroup.position.set(dims.px, 0, dims.pz);
       (isExterior ? exteriorWallRoot : interiorWallRoot).add(wallGroup);
 
