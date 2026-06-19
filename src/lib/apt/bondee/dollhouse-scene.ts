@@ -7,7 +7,6 @@ import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import { ChibiAvatarMesh } from "./chibi-avatar";
 import {
   createAptRenderer,
-  enableAvatarShadows,
   stripShadows,
 } from "./scene-perf";
 import {
@@ -239,23 +238,11 @@ export class DollhouseBuildingScene {
     return unit;
   }
 
-  private syncAvatar(unitY: number) {
-    if (!this.bondeeRoom || this.visitHomeFloor) {
-      if (this.avatar) {
-        this.avatar.dispose();
-        this.avatar = null;
-      }
-      return;
+  private syncAvatar(_unitY: number) {
+    if (this.avatar) {
+      this.avatar.dispose();
+      this.avatar = null;
     }
-    if (!this.avatar) {
-      this.avatar = new ChibiAvatarMesh();
-      enableAvatarShadows(this.avatar.root);
-      this.unitsRoot.add(this.avatar.root);
-    }
-    this.avatar.rebuild(this.bondeeRoom.avatar, this.bondeeRoom.pose);
-    this.avatar.root.position.set(0.2, unitY + 0.08, 0.35);
-    this.avatar.root.rotation.y = -0.35;
-    this.avatar.root.scale.setScalar(0.85);
   }
 
   private rebuildBuilding() {
