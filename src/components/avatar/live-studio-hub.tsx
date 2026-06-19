@@ -43,7 +43,7 @@ export function LiveStudioHub() {
           <Sparkles className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="folk-tag mb-1.5 w-fit">라이브 스튜디오</p>
+          <p className="folk-tag mb-1.5 w-fit">스튜디오</p>
           <h1 className="text-xl sm:text-2xl font-display font-bold text-folk-cobalt folk-chunky-text">
             스튜디오 선택
           </h1>

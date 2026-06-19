@@ -4,7 +4,7 @@ import { LiveStudioHub } from "@/components/avatar/live-studio-hub";
 import { isLiveFeatureEnabled } from "@/lib/live-feature";
 
 export const metadata = {
-  title: "라이브 스튜디오 | MoCoMo",
+  title: "스튜디오 | MoCoMo",
   description: "방송 스튜디오 · 2D 아바타 · 3D VRM 아바타 스튜디오",
 };
 
