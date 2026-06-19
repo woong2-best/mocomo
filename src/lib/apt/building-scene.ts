@@ -103,7 +103,6 @@ export class AptBuildingScene {
 
     this.initFloorPlans();
     this.addLights();
-    this.addGround();
     this.buildTowerShell();
     this.rebuildDetailFloor();
     this.scene.add(this.building);
@@ -236,17 +235,6 @@ export class AptBuildingScene {
     const fill = new THREE.DirectionalLight(0xf0f0f0, 0.45);
     fill.position.set(-8, 10, -6);
     this.scene.add(fill);
-  }
-
-  private addGround() {
-    const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(50, 50),
-      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95 })
-    );
-    ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -0.03;
-    ground.receiveShadow = true;
-    this.scene.add(ground);
   }
 
   private towerEdges: THREE.LineSegments[] = [];
