@@ -15,13 +15,15 @@ import { AssetMetadataForm } from "./asset-metadata-form";
 import { AssetPreviewViewer } from "./asset-preview-viewer";
 import { AssetStatusBadge } from "./asset-status-badge";
 import { ValidationReport } from "./validation-report";
-import { STUDIO_CATEGORY_LABELS } from "@/studio/lib/constants";
+import { STUDIO_CATEGORY_LABELS, STUDIO_IMPORT_EXTENSIONS } from "@/studio/lib/constants";
+import { prepareStudioUploadFile } from "@/studio/lib/convert-to-glb";
 import { Button } from "@/components/ui/button";
 
 export function AssetEditor({ asset, canEdit }: { asset: StudioAsset; canEdit: boolean }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(asset.glbUrl);
   const [stats, setStats] = useState<{ polygonCount: number; textureMaxSize: number } | null>(null);
 
@@ -33,34 +35,42 @@ export function AssetEditor({ asset, canEdit }: { asset: StudioAsset; canEdit: b
 
   async function uploadFile(file: File) {
     setError(null);
-    const form = new FormData();
-    form.append("file", file);
-    form.append("assetId", asset.id);
-    if (stats) {
-      form.append("polygonCount", String(stats.polygonCount));
-      form.append("textureMaxSize", String(stats.textureMaxSize));
-    }
+    setUploading(true);
+    try {
+      const prepared = await prepareStudioUploadFile(file);
+      const form = new FormData();
+      form.append("file", prepared);
+      form.append("assetId", asset.id);
+      if (stats) {
+        form.append("polygonCount", String(stats.polygonCount));
+        form.append("textureMaxSize", String(stats.textureMaxSize));
+      }
 
-    const res = await fetch("/api/studio/upload", { method: "POST", body: form });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error ?? "업로드 실패");
-      return;
-    }
+      const res = await fetch("/api/studio/upload", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "업로드 실패");
+        return;
+      }
 
-    setPreviewUrl(URL.createObjectURL(file));
+      setPreviewUrl(URL.createObjectURL(prepared));
 
-    startTransition(async () => {
-      const attach = await attachStudioAssetFile(asset.id, {
-        glbUrl: data.publicUrl,
-        fileSizeBytes: file.size,
-        filename: file.name,
-        polygonCount: stats?.polygonCount,
-        textureMaxSize: stats?.textureMaxSize,
+      startTransition(async () => {
+        const attach = await attachStudioAssetFile(asset.id, {
+          glbUrl: data.publicUrl,
+          fileSizeBytes: prepared.size,
+          filename: prepared.name,
+          polygonCount: stats?.polygonCount,
+          textureMaxSize: stats?.textureMaxSize,
+        });
+        if (attach.error) setError(attach.error);
+        else router.refresh();
       });
-      if (attach.error) setError(attach.error);
-      else router.refresh();
-    });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "파일 변환 또는 업로드 실패");
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function uploadThumbnail(file: File) {
@@ -118,11 +128,15 @@ export function AssetEditor({ asset, canEdit }: { asset: StudioAsset; canEdit: b
         {editable && (
           <>
             <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-pink-300 bg-white p-6 text-sm hover:bg-pink-50">
-              <span className="font-medium text-pink-600">.glb / .gltf 업로드</span>
+              <span className="font-medium text-pink-600">
+                {uploading ? "변환·업로드 중…" : "3D 파일 업로드 (.glb · .gltf · .obj · .fbx)"}
+              </span>
+              <span className="mt-1 text-xs text-muted-foreground">OBJ/FBX는 자동으로 GLB로 변환됩니다</span>
               <input
                 type="file"
-                accept=".glb,.gltf,model/gltf-binary,model/gltf+json"
+                accept={STUDIO_IMPORT_EXTENSIONS.join(",")}
                 className="hidden"
+                disabled={uploading}
                 onChange={(e) => {
                   const f = e.target.files?.[0];
                   if (f) uploadFile(f);

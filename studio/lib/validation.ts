@@ -79,6 +79,19 @@ export function validateUploadMeta(input: {
   };
 }
 
+const SUSPICIOUS_GLTF_PATTERNS = [
+  /<script/i,
+  /javascript:/i,
+  /onerror\s*=/i,
+  /data:text\/html/i,
+  /vbscript:/i,
+  /eval\s*\(/i,
+];
+
+function hasSuspiciousGltfContent(text: string): boolean {
+  return SUSPICIOUS_GLTF_PATTERNS.some((pat) => pat.test(text));
+}
+
 /** GLB magic + JSON chunk 기본 검사 */
 export function sniffGlb(buffer: Buffer): { valid: boolean; reason?: string } {
   if (buffer.length < 12) return { valid: false, reason: "too_small" };
@@ -87,4 +100,36 @@ export function sniffGlb(buffer: Buffer): { valid: boolean; reason?: string } {
   const version = buffer.readUInt32LE(4);
   if (version !== 2) return { valid: false, reason: "bad_version" };
   return { valid: true };
+}
+
+/** GLB JSON 청크 악성 패턴 검사 */
+export function scanGlbBuffer(buffer: Buffer): { safe: boolean; reason?: string } {
+  const sniff = sniffGlb(buffer);
+  if (!sniff.valid) return { safe: false, reason: sniff.reason };
+
+  let offset = 12;
+  while (offset + 8 <= buffer.length) {
+    const chunkLength = buffer.readUInt32LE(offset);
+    const chunkType = buffer.readUInt32LE(offset + 4);
+    offset += 8;
+    const dataLength = chunkLength - 8;
+    if (chunkLength < 8 || dataLength < 0 || offset + dataLength > buffer.length) break;
+
+    if (chunkType === 0x4e4f534a) {
+      const jsonStr = buffer.subarray(offset, offset + dataLength).toString("utf8");
+      if (hasSuspiciousGltfContent(jsonStr)) {
+        return { safe: false, reason: "suspicious_content" };
+      }
+    }
+    offset += dataLength;
+  }
+  return { safe: true };
+}
+
+/** glTF JSON 텍스트 악성 패턴 검사 */
+export function scanGltfText(text: string): { safe: boolean; reason?: string } {
+  if (hasSuspiciousGltfContent(text)) {
+    return { safe: false, reason: "suspicious_content" };
+  }
+  return { safe: true };
 }

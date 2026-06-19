@@ -5,9 +5,10 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getSupabaseAdmin, publicStorageUrl, isSupabaseStorageConfigured } from "@/lib/supabase-storage";
 import { STUDIO_MAX_FILE_BYTES } from "@/studio/lib/constants";
-import { validateUploadMeta, sniffGlb } from "@/studio/lib/validation";
+import { validateUploadMeta, scanGlbBuffer, scanGltfText } from "@/studio/lib/validation";
 
-const BUCKET = process.env.SUPABASE_STORAGE_BUCKET || "mocomo-uploads";
+const BUCKET =
+  process.env.STUDIO_STORAGE_BUCKET || process.env.SUPABASE_STORAGE_BUCKET || "mocomo-uploads";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -53,9 +54,14 @@ export async function POST(req: NextRequest) {
   const buffer = Buffer.from(await file.arrayBuffer());
   const ext = file.name.toLowerCase();
   if (ext.endsWith(".glb")) {
-    const sniff = sniffGlb(buffer);
-    if (!sniff.valid) {
-      return NextResponse.json({ error: "Invalid GLB file" }, { status: 400 });
+    const scan = scanGlbBuffer(buffer);
+    if (!scan.safe) {
+      return NextResponse.json({ error: "유효하지 않거나 안전하지 않은 GLB 파일입니다" }, { status: 400 });
+    }
+  } else if (ext.endsWith(".gltf")) {
+    const scan = scanGltfText(buffer.toString("utf8"));
+    if (!scan.safe) {
+      return NextResponse.json({ error: "유효하지 않거나 안전하지 않은 glTF 파일입니다" }, { status: 400 });
     }
   }
 

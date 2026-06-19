@@ -139,10 +139,15 @@ export async function submitStudioAssetForReview(assetId: string) {
     return { error: "제출할 수 없는 상태입니다." };
   }
 
+  const issues = (asset.validationLog as { severity: string }[] | null) ?? [];
+  if (issues.some((i) => i.severity === "error")) {
+    return { error: "검증 오류를 해결한 뒤 제출해 주세요." };
+  }
+
   await db.studioAsset.update({
     where: { id: assetId },
     data: {
-      status: "SUBMITTED",
+      status: "REVIEWING",
       submittedAt: new Date(),
       rejectReason: null,
     },

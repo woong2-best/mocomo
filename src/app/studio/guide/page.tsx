@@ -21,7 +21,7 @@ export default function StudioGuidePage() {
       <section className="rounded-2xl border border-pink-100 bg-white p-6">
         <h2 className="font-semibold text-pink-600">기술 규격</h2>
         <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
-          <li>형식: .glb, .gltf</li>
+          <li>형식: .glb, .gltf, .obj, .fbx (OBJ/FBX는 자동 GLB 변환)</li>
           <li>최대 파일: 50MB</li>
           <li>텍스처: 2048px 이하</li>
           <li>미리보기 프리셋으로 APT 홈 분위기 확인 권장</li>

@@ -48,10 +48,10 @@ export async function updateStudioCreatorProfile(data: {
   await db.studioCreatorProfile.update({
     where: { userId: user.id },
     data: {
-      displayName: data.displayName?.trim(),
-      bio: data.bio?.trim() || null,
-      bannerUrl: data.bannerUrl || null,
-      featuredAssetId: data.featuredAssetId ?? undefined,
+      ...(data.displayName !== undefined ? { displayName: data.displayName.trim() } : {}),
+      ...(data.bio !== undefined ? { bio: data.bio.trim() || null } : {}),
+      ...(data.bannerUrl !== undefined ? { bannerUrl: data.bannerUrl || null } : {}),
+      ...(data.featuredAssetId !== undefined ? { featuredAssetId: data.featuredAssetId } : {}),
     },
   });
 

@@ -352,6 +352,14 @@ export async function confirmStripeCheckout(sessionId: string) {
     redirectPath = meta.username ? `/u/${meta.username}?subscribed=1` : "/";
   }
 
+  if (result.type === "STUDIO_ASSET") {
+    const meta = intent.metadata as Record<string, string | undefined>;
+    redirectPath = meta.studioAssetId ? `/studio/library?purchased=${meta.studioAssetId}` : "/studio/library";
+    revalidatePath("/studio/library");
+    revalidatePath("/studio/market");
+    revalidatePath("/apt");
+  }
+
   return {
     success: true,
     type: result.type,

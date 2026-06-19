@@ -7,6 +7,9 @@ export const STUDIO_MAX_FILE_BYTES = 50 * 1024 * 1024;
 export const STUDIO_MAX_POLYGONS = 50_000;
 export const STUDIO_MAX_TEXTURE_SIZE = 2048;
 
+/** 업로드 UI에서 선택 가능한 원본 형식 */
+export const STUDIO_IMPORT_EXTENSIONS = [".glb", ".gltf", ".obj", ".fbx"] as const;
+/** 스토리지에 저장되는 형식 (OBJ/FBX는 클라이언트에서 GLB로 변환) */
 export const STUDIO_ALLOWED_EXTENSIONS = [".glb", ".gltf"] as const;
 
 export const STUDIO_CATEGORY_LABELS: Record<StudioAssetCategory, string> = {

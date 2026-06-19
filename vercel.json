@@ -27,6 +27,9 @@
     },
     "src/app/api/cron/abandoned-live/route.ts": {
       "maxDuration": 60
+    },
+    "src/app/api/studio/upload/route.ts": {
+      "maxDuration": 60
     }
   }
 }

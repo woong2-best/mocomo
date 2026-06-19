@@ -21,6 +21,27 @@ export function StudioSettingsForm({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
+  const [bannerUrl, setBannerUrl] = useState(profile.bannerUrl ?? "");
+
+  async function uploadBanner(file: File) {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("category", "image");
+    const res = await fetch("/api/upload/local", { method: "POST", body: form });
+    const data = await res.json();
+    if (!res.ok) {
+      setMsg(data.error ?? "배너 업로드 실패");
+      return;
+    }
+    setBannerUrl(data.publicUrl);
+    startTransition(async () => {
+      const r = await updateStudioCreatorProfile({ bannerUrl: data.publicUrl });
+      if (r.success) {
+        setMsg("배너 저장됨");
+        router.refresh();
+      }
+    });
+  }
 
   return (
     <div className="mx-auto max-w-lg space-y-6">
@@ -44,6 +65,26 @@ export function StudioSettingsForm({
       >
         <h1 className="font-display text-2xl font-semibold">크리에이터 설정</h1>
         <p className="text-sm text-muted-foreground">핸들: @{profile.handle}</p>
+
+        <div>
+          <p className="mb-2 text-sm font-medium">프로필 배너</p>
+          <div
+            className="mb-2 h-24 rounded-xl border border-pink-100 bg-gradient-to-r from-pink-100 to-violet-100 bg-cover bg-center"
+            style={bannerUrl ? { backgroundImage: `url(${bannerUrl})` } : undefined}
+          />
+          <label className="inline-flex cursor-pointer items-center rounded-lg border border-pink-200 px-3 py-2 text-xs hover:bg-pink-50">
+            배너 이미지 업로드
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) uploadBanner(f);
+              }}
+            />
+          </label>
+        </div>
 
         <Input name="displayName" defaultValue={profile.displayName} required />
         <Textarea name="bio" rows={4} defaultValue={profile.bio ?? ""} />

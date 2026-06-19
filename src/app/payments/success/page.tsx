@@ -34,6 +34,7 @@ export default async function PaymentSuccessPage({
     LISTING_FEE: "굿즈 등록비",
     PHYSICAL_GOODS: "굿즈 주문",
     EVENT_REGISTRATION: "이벤트 등록",
+    STUDIO_ASSET: "Studio 자산 구매",
   };
 
   const redirectPath =
@@ -52,7 +53,9 @@ export default async function PaymentSuccessPage({
           ? "돌아가기"
           : result.type === "EVENT_REGISTRATION"
             ? "이벤트 보기"
-            : "홈으로"
+            : result.type === "STUDIO_ASSET"
+              ? "Studio 보관함"
+              : "홈으로"
       }
       subMessage={
         result.type === "TIP" &&

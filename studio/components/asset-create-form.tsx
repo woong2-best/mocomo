@@ -45,7 +45,7 @@ export function AssetCreateForm() {
   return (
     <form onSubmit={onSubmit} className="mx-auto max-w-lg space-y-4 rounded-2xl border border-pink-100 bg-white p-6 shadow-sm">
       <h1 className="font-display text-2xl font-semibold text-pink-700">새 자산 만들기</h1>
-      <p className="text-sm text-muted-foreground">Bondee 스타일 · 파스텔 · 저폴리곤 · .glb/.gltf</p>
+      <p className="text-sm text-muted-foreground">Bondee 스타일 · 파스텔 · 저폴리곤 · GLB/OBJ/FBX</p>
 
       <div>
         <label className="mb-1 block text-sm font-medium">이름</label>
