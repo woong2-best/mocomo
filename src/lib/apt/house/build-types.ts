@@ -37,7 +37,7 @@ export type HouseBuildState = {
   timeOfDay: number;
 };
 
-export type HouseWorldMode = "build" | "explore" | "drive" | "avatar" | "interior";
+export type HouseWorldMode = "build" | "explore" | "drive" | "avatar" | "interior" | "city_interior";
 
 export type OutdoorActivity = "idle" | "walk" | "sit" | "wave";
 

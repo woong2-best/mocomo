@@ -3,11 +3,14 @@
 import * as THREE from "three";
 import type { BuildPiece, BuildTool, HouseBuildState, HouseWorldMode, OutdoorActivity } from "@/lib/apt/house/build-types";
 import { canEnterInterior, GRID_UNIT, PLOT_HALF_DEFAULT } from "@/lib/apt/house/build-types";
+import { buildEnterableCity } from "@/lib/apt/house/city-buildings";
+import type { CityBuildingMeta } from "@/lib/apt/house/city-building-types";
+import { buildCityInterior, disposeCityInterior } from "@/lib/apt/house/city-interiors";
 import { createPieceMesh, disposeObject3D } from "@/lib/apt/house/build-meshes";
 import { buildInteriorScene, disposeInterior, type InteriorBounds } from "@/lib/apt/house/interior-scene";
 import { OutdoorAvatarController } from "@/lib/apt/house/outdoor-avatar";
+import { RemotePlayersLayer, type RemoteWorldPlayer } from "@/lib/apt/house/remote-players-layer";
 import {
-  buildCityBlocks,
   buildNeighborHouses,
   buildRoadNetwork,
   buildSidewalks,
@@ -23,6 +26,8 @@ import {
 export type HouseWorldInit = {
   state: HouseBuildState;
   vrmUrl?: string;
+  readOnly?: boolean;
+  visitLabel?: string;
 };
 
 export type HouseWorldCallbacks = {
@@ -30,6 +35,7 @@ export type HouseWorldCallbacks = {
   onModeChange?: (mode: HouseWorldMode) => void;
   onActivityChange?: (activity: OutdoorActivity) => void;
   onInteriorChange?: (inside: boolean) => void;
+  onPositionChange?: (pos: { x: number; z: number; mode: HouseWorldMode; activity: OutdoorActivity }) => void;
 };
 
 function snapGrid(v: number) {
@@ -45,7 +51,9 @@ export class HouseWorldScene {
   private sky: THREE.Mesh;
   private outdoorRoot = new THREE.Group();
   private buildRoot = new THREE.Group();
+  private cityRoot = new THREE.Group();
   private interiorRoot: THREE.Group | null = null;
+  private cityInteriorRoot: THREE.Group | null = null;
   private plotMarker: THREE.Mesh;
   private raycaster = new THREE.Raycaster();
   private pointer = new THREE.Vector2();
@@ -53,6 +61,8 @@ export class HouseWorldScene {
   private raf = 0;
   private disposed = false;
   private clock = new THREE.Clock();
+  private readOnly: boolean;
+  private visitLabel?: string;
 
   private state: HouseBuildState;
   private tool: BuildTool = "wall";
@@ -61,6 +71,9 @@ export class HouseWorldScene {
   private callbacks: HouseWorldCallbacks = {};
   private interiorBounds: InteriorBounds | null = null;
   private interiorCam = { x: 0, z: 0, yaw: 0 };
+  private cityBuildings: CityBuildingMeta[] = [];
+  private activeCityBuilding: CityBuildingMeta | null = null;
+  private cityInteriorCam = { x: 0, z: 0, yaw: 0 };
 
   private keys = new Set<string>();
   private camYaw = 0.8;
@@ -74,17 +87,21 @@ export class HouseWorldScene {
   private carAngle = 0;
   private pedestrians: { mesh: THREE.Group; x: number; z: number; a: number; s: number }[] = [];
   private avatar: OutdoorAvatarController | null = null;
+  private remotePlayers: RemotePlayersLayer;
+  private emitPosTimer = 0;
 
   constructor(mount: HTMLElement, init: HouseWorldInit) {
     this.mount = mount;
     this.state = { ...init.state, pieces: [...init.state.pieces] };
+    this.readOnly = !!init.readOnly;
+    this.visitLabel = init.visitLabel;
 
     this.scene = new THREE.Scene();
-    this.scene.fog = new THREE.Fog(skyColorForHour(init.state.timeOfDay), 40, 140);
+    this.scene.fog = new THREE.Fog(skyColorForHour(init.state.timeOfDay), 40, 150);
 
     const w = Math.max(mount.clientWidth, 320);
     const h = Math.max(mount.clientHeight, 400);
-    this.camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 280);
+    this.camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 300);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -95,17 +112,16 @@ export class HouseWorldScene {
 
     this.sky = buildSkyDome();
     this.scene.add(this.sky);
-
     this.scene.add(new THREE.AmbientLight(0xfff8f0, 0.35));
     this.sun = new THREE.DirectionalLight(0xfff4e0, 1.15);
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(2048, 2048);
     this.sun.shadow.camera.near = 1;
-    this.sun.shadow.camera.far = 90;
-    this.sun.shadow.camera.left = -50;
-    this.sun.shadow.camera.right = 50;
-    this.sun.shadow.camera.top = 50;
-    this.sun.shadow.camera.bottom = -50;
+    this.sun.shadow.camera.far = 95;
+    this.sun.shadow.camera.left = -55;
+    this.sun.shadow.camera.right = 55;
+    this.sun.shadow.camera.top = 55;
+    this.sun.shadow.camera.bottom = -55;
     this.scene.add(this.sun);
 
     const seed = this.state.worldSeed;
@@ -113,27 +129,32 @@ export class HouseWorldScene {
     this.outdoorRoot.add(this.terrain);
     this.outdoorRoot.add(buildRoadNetwork(seed));
     this.outdoorRoot.add(buildSidewalks(seed));
-    this.outdoorRoot.add(buildCityBlocks(seed, this.state.plotHalf));
+
+    const city = buildEnterableCity(seed, this.state.plotHalf);
+    this.cityBuildings = city.buildings;
+    this.cityRoot.add(city.group);
+    this.outdoorRoot.add(this.cityRoot);
+
     this.outdoorRoot.add(buildNeighborHouses(seed, this.state.plotHalf));
     this.outdoorRoot.add(buildStreetLamps(seed));
-    this.outdoorRoot.add(scatterTrees(seed, 64, this.state.plotHalf + 4));
+    this.outdoorRoot.add(scatterTrees(seed, 72, this.state.plotHalf + 4));
     this.scene.add(this.outdoorRoot);
+
+    this.remotePlayers = new RemotePlayersLayer(this.outdoorRoot);
 
     const plotGeo = new THREE.PlaneGeometry(this.state.plotHalf * 2, this.state.plotHalf * 2);
     plotGeo.rotateX(-Math.PI / 2);
     this.plotMarker = new THREE.Mesh(
       plotGeo,
-      new THREE.MeshBasicMaterial({ color: 0xf4a261, transparent: true, opacity: 0.22, side: THREE.DoubleSide })
+      new THREE.MeshBasicMaterial({
+        color: this.readOnly ? 0x4a7ae8 : 0xf4a261,
+        transparent: true,
+        opacity: 0.22,
+        side: THREE.DoubleSide,
+      })
     );
     this.plotMarker.position.y = terrainHeight(0, 0, seed) + 0.12;
     this.outdoorRoot.add(this.plotMarker);
-
-    const border = new THREE.LineSegments(
-      new THREE.EdgesGeometry(new THREE.BoxGeometry(this.state.plotHalf * 2, 0.1, this.state.plotHalf * 2)),
-      new THREE.LineBasicMaterial({ color: 0xe85d4a })
-    );
-    border.position.y = this.plotMarker.position.y + 0.05;
-    this.outdoorRoot.add(border);
 
     this.outdoorRoot.add(this.buildRoot);
     this.rebuildPieces();
@@ -141,7 +162,7 @@ export class HouseWorldScene {
     this.spawnPedestrians();
     this.applyTimeOfDay(init.state.timeOfDay);
 
-    if (init.vrmUrl) {
+    if (init.vrmUrl && !this.readOnly) {
       this.avatar = new OutdoorAvatarController(init.vrmUrl, seed, this.state.plotHalf);
       void this.avatar.load().then(() => {
         if (!this.disposed && this.avatar) this.outdoorRoot.add(this.avatar.root);
@@ -154,7 +175,6 @@ export class HouseWorldScene {
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
     window.addEventListener("resize", this.onResize);
-
     this.updateCamera();
     this.loop();
   }
@@ -164,14 +184,17 @@ export class HouseWorldScene {
   }
 
   setTool(tool: BuildTool) {
+    if (this.readOnly) return;
     this.tool = tool;
     if (tool !== "erase") this.setMode("build");
   }
 
   setMode(mode: HouseWorldMode) {
+    if (mode === "build" && this.readOnly) return;
     if (mode === "interior" && !canEnterInterior(this.state.pieces)) return;
-    if (mode === "interior") this.enterInterior();
-    else if (this.mode === "interior") this.exitInterior();
+    if (mode === "interior") this.enterHomeInterior();
+    else if (mode === "city_interior") return;
+    else if (this.mode === "interior" || this.mode === "city_interior") this.exitAllInteriors();
     this.mode = mode;
     this.callbacks.onModeChange?.(mode);
   }
@@ -185,35 +208,65 @@ export class HouseWorldScene {
   }
 
   rotatePiece() {
+    if (this.readOnly) return;
     this.rot = ((this.rot + 1) % 4) as 0 | 1 | 2 | 3;
   }
 
-  private enterInterior() {
+  syncRemotePlayers(players: RemoteWorldPlayer[]) {
+    this.remotePlayers.sync(players, (x, z) => terrainHeight(x, z, this.state.worldSeed));
+  }
+
+  loadVisitBuild(state: HouseBuildState, label: string) {
+    this.state = { ...state, pieces: [...state.pieces] };
+    this.visitLabel = label;
+    this.readOnly = true;
+    this.rebuildPieces();
+    (this.plotMarker.material as THREE.MeshBasicMaterial).color.setHex(0x4a7ae8);
+  }
+
+  private enterHomeInterior() {
     if (this.interiorRoot) return;
     const groundY = terrainHeight(0, 0, this.state.worldSeed);
     this.interiorRoot = buildInteriorScene(this.state.pieces, groundY);
     this.interiorBounds = this.interiorRoot.userData.bounds as InteriorBounds;
-    const floorY = this.interiorRoot.userData.floorY as number;
     this.scene.add(this.interiorRoot);
     this.outdoorRoot.visible = false;
     this.interiorCam.x = this.interiorBounds.centerX;
     this.interiorCam.z = this.interiorBounds.centerZ;
-    this.interiorCam.yaw = 0;
     this.mode = "interior";
     this.callbacks.onInteriorChange?.(true);
     this.callbacks.onModeChange?.("interior");
   }
 
-  private exitInterior() {
-    if (!this.interiorRoot) return;
-    this.scene.remove(this.interiorRoot);
-    disposeInterior(this.interiorRoot);
-    this.interiorRoot = null;
-    this.interiorBounds = null;
+  private enterCityInterior(meta: CityBuildingMeta) {
+    this.exitAllInteriors();
+    const groundY = terrainHeight(meta.x, meta.z, this.state.worldSeed) + 0.1;
+    this.cityInteriorRoot = buildCityInterior(meta.type, meta.label, groundY);
+    this.activeCityBuilding = meta;
+    this.scene.add(this.cityInteriorRoot);
+    this.outdoorRoot.visible = false;
+    this.cityInteriorCam.x = 0;
+    this.cityInteriorCam.z = 0;
+    this.mode = "city_interior";
+    this.callbacks.onInteriorChange?.(true);
+    this.callbacks.onModeChange?.("city_interior");
+  }
+
+  private exitAllInteriors() {
+    if (this.interiorRoot) {
+      this.scene.remove(this.interiorRoot);
+      disposeInterior(this.interiorRoot);
+      this.interiorRoot = null;
+      this.interiorBounds = null;
+    }
+    if (this.cityInteriorRoot) {
+      this.scene.remove(this.cityInteriorRoot);
+      disposeCityInterior(this.cityInteriorRoot);
+      this.cityInteriorRoot = null;
+      this.activeCityBuilding = null;
+    }
     this.outdoorRoot.visible = true;
-    this.mode = "explore";
     this.callbacks.onInteriorChange?.(false);
-    this.callbacks.onModeChange?.("explore");
   }
 
   private spawnCar() {
@@ -224,19 +277,6 @@ export class HouseWorldScene {
     body.position.y = 0.85;
     body.castShadow = true;
     this.car.add(body);
-    const cabin = new THREE.Mesh(
-      new THREE.BoxGeometry(1.5, 0.55, 1.8),
-      new THREE.MeshStandardMaterial({ color: 0x1a3050, metalness: 0.3, roughness: 0.4 })
-    );
-    cabin.position.set(0, 1.35, -0.2);
-    this.car.add(cabin);
-    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
-    for (const [wx, wz] of [[-0.85, 1.2], [0.85, 1.2], [-0.85, -1.2], [0.85, -1.2]] as const) {
-      const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.22, 12), wheelMat);
-      wheel.rotation.z = Math.PI / 2;
-      wheel.position.set(wx, 0.35, wz);
-      this.car.add(wheel);
-    }
     this.car.position.set(-6, terrainHeight(-6, 8, this.state.worldSeed), 8);
     this.carAngle = -Math.PI / 2;
     this.car.rotation.y = this.carAngle;
@@ -244,31 +284,28 @@ export class HouseWorldScene {
   }
 
   private spawnPedestrians() {
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 12; i++) {
       const ped = new THREE.Group();
       const body = new THREE.Mesh(
         new THREE.CapsuleGeometry(0.25, 0.9, 4, 8),
-        new THREE.MeshStandardMaterial({ color: [0x4466aa, 0xaa5544, 0x55aa66, 0x8844aa][i % 4] })
+        new THREE.MeshStandardMaterial({ color: [0x4466aa, 0xaa5544, 0x55aa66][i % 3] })
       );
       body.position.y = 0.95;
       body.castShadow = true;
       ped.add(body);
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), new THREE.MeshStandardMaterial({ color: 0xffd8b8 }));
-      head.position.y = 1.65;
-      ped.add(head);
-      const angle = (i / 10) * Math.PI * 2;
-      const r = 16 + i * 1.5;
+      const angle = (i / 12) * Math.PI * 2;
+      const r = 18 + i;
       const x = Math.cos(angle) * r;
       const z = Math.sin(angle) * r;
       ped.position.set(x, terrainHeight(x, z, this.state.worldSeed), z);
       this.outdoorRoot.add(ped);
-      this.pedestrians.push({ mesh: ped, x, z, a: angle, s: 0.5 + (i % 4) * 0.15 });
+      this.pedestrians.push({ mesh: ped, x, z, a: angle, s: 0.5 + (i % 3) * 0.12 });
     }
   }
 
   private updatePedestrians(dt: number) {
     for (const p of this.pedestrians) {
-      p.a += dt * p.s * 0.12;
+      p.a += dt * p.s * 0.1;
       p.x += Math.cos(p.a) * dt * p.s;
       p.z += Math.sin(p.a) * dt * p.s;
       p.mesh.position.set(p.x, terrainHeight(p.x, p.z, this.state.worldSeed), p.z);
@@ -302,23 +339,46 @@ export class HouseWorldScene {
     return Math.abs(gx) <= half && Math.abs(gz) <= half;
   }
 
-  private pickGround(e: PointerEvent): { gx: number; gz: number } | null {
+  private setPointer(e: PointerEvent) {
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
     this.raycaster.setFromCamera(this.pointer, this.camera);
-    const hits = this.raycaster.intersectObject(this.terrain);
-    if (!hits.length) return null;
-    const p = hits[0].point;
-    return { gx: snapGrid(p.x), gz: snapGrid(p.z) };
+  }
+
+  private findCityBuilding(id: string) {
+    return this.cityBuildings.find((b) => b.id === id) ?? null;
   }
 
   private onPointerDown = (e: PointerEvent) => {
-    if (this.mode === "build" && e.button === 0) {
-      const hit = this.pickGround(e);
-      if (!hit || !this.inPlot(hit.gx, hit.gz)) return;
+    this.setPointer(e);
+
+    if (this.mode === "city_interior") {
+      const hits = this.raycaster.intersectObjects(this.cityInteriorRoot?.children ?? [], true);
+      for (const h of hits) {
+        let o: THREE.Object3D | null = h.object;
+        while (o) {
+          if (o.userData.isCityExit) {
+            this.exitAllInteriors();
+            this.mode = "explore";
+            this.callbacks.onModeChange?.("explore");
+            return;
+          }
+          o = o.parent;
+        }
+      }
+      return;
+    }
+
+    if (this.mode === "build" && !this.readOnly && e.button === 0) {
+      const hits = this.raycaster.intersectObject(this.terrain);
+      if (!hits.length) return;
+      const p = hits[0].point;
+      const gx = snapGrid(p.x);
+      const gz = snapGrid(p.z);
+      if (!this.inPlot(gx, gz)) return;
       if (this.tool === "erase") {
-        const idx = this.state.pieces.findIndex((p) => p.gx === hit.gx && p.gz === hit.gz);
+        const idx = this.state.pieces.findIndex((x) => x.gx === gx && x.gz === gz);
         if (idx >= 0) {
           this.state.pieces.splice(idx, 1);
           this.rebuildPieces();
@@ -326,15 +386,8 @@ export class HouseWorldScene {
         }
         return;
       }
-      const existing = this.state.pieces.findIndex((p) => p.gx === hit.gx && p.gz === hit.gz);
-      const piece: BuildPiece = {
-        id: `p-${Date.now()}`,
-        kind: this.tool,
-        gx: hit.gx,
-        gz: hit.gz,
-        gy: 0,
-        rot: this.rot,
-      };
+      const existing = this.state.pieces.findIndex((x) => x.gx === gx && x.gz === gz);
+      const piece: BuildPiece = { id: `p-${Date.now()}`, kind: this.tool, gx, gz, gy: 0, rot: this.rot };
       if (existing >= 0) this.state.pieces[existing] = piece;
       else this.state.pieces.push(piece);
       this.rebuildPieces();
@@ -343,16 +396,18 @@ export class HouseWorldScene {
     }
 
     if (this.mode === "explore" || this.mode === "avatar") {
-      const rect = this.renderer.domElement.getBoundingClientRect();
-      this.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-      this.raycaster.setFromCamera(this.pointer, this.camera);
-      const hits = this.raycaster.intersectObjects(this.buildRoot.children, true);
+      const targets = [...this.buildRoot.children, ...this.cityRoot.children];
+      const hits = this.raycaster.intersectObjects(targets, true);
       for (const h of hits) {
         let o: THREE.Object3D | null = h.object;
         while (o) {
+          if (o.userData.isCityDoor && o.userData.cityBuildingId) {
+            const meta = this.findCityBuilding(o.userData.cityBuildingId as string);
+            if (meta) this.enterCityInterior(meta);
+            return;
+          }
           if (o.userData.isDoor && canEnterInterior(this.state.pieces)) {
-            this.enterInterior();
+            this.enterHomeInterior();
             return;
           }
           o = o.parent;
@@ -363,26 +418,36 @@ export class HouseWorldScene {
 
   private onWheel = (e: WheelEvent) => {
     e.preventDefault();
-    this.camDist = Math.max(8, Math.min(45, this.camDist + e.deltaY * 0.02));
+    this.camDist = Math.max(8, Math.min(48, this.camDist + e.deltaY * 0.02));
   };
 
   private onKeyDown = (e: KeyboardEvent) => {
     this.keys.add(e.key.toLowerCase());
     if (e.key === "r" || e.key === "R") this.rotatePiece();
     if (e.key === "e" || e.key === "E") {
-      if (this.mode === "interior") this.exitInterior();
-      else if (canEnterInterior(this.state.pieces)) this.enterInterior();
+      if (this.mode === "interior" || this.mode === "city_interior") {
+        this.exitAllInteriors();
+        this.mode = "explore";
+        this.callbacks.onModeChange?.("explore");
+      } else if (canEnterInterior(this.state.pieces)) {
+        this.enterHomeInterior();
+      }
     }
     if (e.key === "f" || e.key === "F") {
-      if (this.mode === "interior") this.exitInterior();
+      if (this.mode === "interior" || this.mode === "city_interior") {
+        this.exitAllInteriors();
+        this.mode = "explore";
+        this.callbacks.onModeChange?.("explore");
+      }
     }
     if (e.key === "Tab") {
       e.preventDefault();
-      const order: HouseWorldMode[] = ["explore", "build", "drive", "avatar"];
-      const idx = order.indexOf(this.mode === "interior" ? "explore" : this.mode);
-      const next = order[(idx + 1) % order.length];
-      if (this.mode === "interior") this.exitInterior();
-      this.setMode(next);
+      if (this.mode === "interior" || this.mode === "city_interior") return;
+      const order: HouseWorldMode[] = this.readOnly
+        ? ["explore", "drive"]
+        : ["explore", "build", "drive", "avatar"];
+      const idx = order.indexOf(this.mode);
+      this.setMode(order[(idx + 1) % order.length]);
     }
   };
 
@@ -390,32 +455,37 @@ export class HouseWorldScene {
     this.keys.delete(e.key.toLowerCase());
   };
 
-  private updateInteriorCamera(dt: number) {
-    if (!this.interiorBounds) return;
-    const floorY = (this.interiorRoot?.userData.floorY as number) ?? 0;
+  private updateInteriorCamera(dt: number, floorY: number, bounds: { minX: number; maxX: number; minZ: number; maxZ: number }) {
     const speed = 2.8 * dt;
     const fwd = (this.keys.has("w") ? 1 : 0) - (this.keys.has("s") ? 1 : 0);
     const str = (this.keys.has("d") ? 1 : 0) - (this.keys.has("a") ? 1 : 0);
+    const cam = this.mode === "city_interior" ? this.cityInteriorCam : this.interiorCam;
     if (fwd || str) {
-      this.interiorCam.x += str * speed;
-      this.interiorCam.z -= fwd * speed;
-      this.interiorCam.yaw = Math.atan2(-str, -fwd);
+      cam.x += str * speed;
+      cam.z -= fwd * speed;
+      cam.yaw = Math.atan2(-str, -fwd);
     }
-    const b = this.interiorBounds;
-    const margin = 0.4;
-    this.interiorCam.x = THREE.MathUtils.clamp(this.interiorCam.x, b.minX + margin, b.maxX - margin);
-    this.interiorCam.z = THREE.MathUtils.clamp(this.interiorCam.z, b.minZ + margin, b.maxZ - margin);
-
+    const m = 0.45;
+    cam.x = THREE.MathUtils.clamp(cam.x, bounds.minX + m, bounds.maxX - m);
+    cam.z = THREE.MathUtils.clamp(cam.z, bounds.minZ + m, bounds.maxZ - m);
     const eyeH = floorY + 1.65;
-    this.camera.position.set(this.interiorCam.x, eyeH, this.interiorCam.z + 0.01);
-    const lookX = this.interiorCam.x + Math.sin(this.interiorCam.yaw) * 2;
-    const lookZ = this.interiorCam.z + Math.cos(this.interiorCam.yaw) * 2;
-    this.camera.lookAt(lookX, eyeH - 0.1, lookZ);
+    this.camera.position.set(cam.x, eyeH, cam.z + 0.01);
+    this.camera.lookAt(cam.x + Math.sin(cam.yaw) * 2, eyeH - 0.1, cam.z + Math.cos(cam.yaw) * 2);
   }
 
   private updateCamera() {
-    if (this.mode === "interior") return;
-
+    if (this.mode === "interior" && this.interiorBounds && this.interiorRoot) {
+      const floorY = this.interiorRoot.userData.floorY as number;
+      this.updateInteriorCamera(0.016, floorY, this.interiorBounds);
+      return;
+    }
+    if (this.mode === "city_interior" && this.cityInteriorRoot) {
+      const floorY = this.cityInteriorRoot.userData.floorY as number;
+      const w = this.cityInteriorRoot.userData.interiorW as number;
+      const d = this.cityInteriorRoot.userData.interiorD as number;
+      this.updateInteriorCamera(0.016, floorY, { minX: -w / 2, maxX: w / 2, minZ: -d / 2, maxZ: d / 2 });
+      return;
+    }
     if (this.mode === "drive") {
       const behind = new THREE.Vector3(
         this.car.position.x - Math.sin(this.carAngle) * 7,
@@ -426,20 +496,13 @@ export class HouseWorldScene {
       this.camera.lookAt(this.car.position.x, this.car.position.y + 1, this.car.position.z);
       return;
     }
-
     if (this.mode === "avatar" && this.avatar?.isReady()) {
       const pos = this.avatar.getPosition();
       const y = terrainHeight(pos.x, pos.z, this.state.worldSeed);
-      const behind = new THREE.Vector3(
-        pos.x - Math.sin(pos.rotY) * 5,
-        y + 2.8,
-        pos.z - Math.cos(pos.rotY) * 5
-      );
-      this.camera.position.lerp(behind, 0.1);
+      this.camera.position.lerp(new THREE.Vector3(pos.x - Math.sin(pos.rotY) * 5, y + 2.8, pos.z - Math.cos(pos.rotY) * 5), 0.1);
       this.camera.lookAt(pos.x, y + 1.4, pos.z);
       return;
     }
-
     if (this.mode === "explore") {
       const pan = 0.15;
       if (this.keys.has("w")) this.camTarget.z -= pan;
@@ -448,7 +511,6 @@ export class HouseWorldScene {
       if (this.keys.has("d")) this.camTarget.x += pan;
       if (this.keys.has("q")) this.camYaw -= 0.03;
     }
-
     const x = this.camTarget.x + Math.sin(this.camYaw) * Math.cos(this.camPitch) * this.camDist;
     const y = this.camTarget.y + Math.sin(this.camPitch) * this.camDist;
     const z = this.camTarget.z + Math.cos(this.camYaw) * Math.cos(this.camPitch) * this.camDist;
@@ -472,8 +534,23 @@ export class HouseWorldScene {
     this.car.rotation.y = this.carAngle;
   }
 
+  private emitPosition(dt: number) {
+    this.emitPosTimer += dt;
+    if (this.emitPosTimer < 0.35) return;
+    this.emitPosTimer = 0;
+    let x = this.camTarget.x;
+    let z = this.camTarget.z;
+    const act = this.avatar?.getActivity() ?? "idle";
+    if (this.mode === "avatar" && this.avatar?.isReady()) {
+      const p = this.avatar.getPosition();
+      x = p.x;
+      z = p.z;
+    }
+    this.callbacks.onPositionChange?.({ x, z, mode: this.mode, activity: act });
+  }
+
   private tickTime(dt: number) {
-    if (this.mode === "interior") return;
+    if (this.mode === "interior" || this.mode === "city_interior") return;
     this.state.timeOfDay = (this.state.timeOfDay + dt * 0.25) % 24;
     this.applyTimeOfDay(this.state.timeOfDay);
   }
@@ -492,8 +569,16 @@ export class HouseWorldScene {
     this.raf = requestAnimationFrame(this.loop);
     const dt = Math.min(this.clock.getDelta(), 0.05);
 
-    if (this.mode === "interior") {
-      this.updateInteriorCamera(dt);
+    if (this.mode === "interior" || this.mode === "city_interior") {
+      const floorY =
+        this.mode === "city_interior"
+          ? (this.cityInteriorRoot?.userData.floorY as number) ?? 0
+          : (this.interiorRoot?.userData.floorY as number) ?? 0;
+      const bounds =
+        this.mode === "city_interior"
+          ? { minX: -5, maxX: 5, minZ: -4, maxZ: 4 }
+          : this.interiorBounds!;
+      if (bounds) this.updateInteriorCamera(dt, floorY, bounds);
     } else {
       this.updateCar(dt);
       this.updatePedestrians(dt);
@@ -503,6 +588,7 @@ export class HouseWorldScene {
       }
       this.updateCamera();
       this.tickTime(dt);
+      this.emitPosition(dt);
     }
 
     this.renderer.render(this.scene, this.camera);
@@ -518,7 +604,9 @@ export class HouseWorldScene {
     canvas.removeEventListener("pointerdown", this.onPointerDown);
     canvas.removeEventListener("wheel", this.onWheel);
     this.avatar?.dispose();
+    this.remotePlayers.dispose();
     if (this.interiorRoot) disposeInterior(this.interiorRoot);
+    if (this.cityInteriorRoot) disposeCityInterior(this.cityInteriorRoot);
     this.scene.traverse((o) => {
       if (o instanceof THREE.Mesh) {
         o.geometry.dispose();

@@ -25,6 +25,7 @@ export type AptProfileDto = {
   regionLabel: string | null;
   homeFloor: number;
   moveInCompleted: boolean;
+  homePublic: boolean;
   floorPlans: Record<number, AptRoom[]>;
   furniture: FurnitureItem[];
   residents: ResidentAgent[];
@@ -59,6 +60,7 @@ function rowToDto(
     regionLabel: string | null;
     homeFloor: number;
     moveInCompletedAt: Date | null;
+    homePublic: boolean;
     floorPlans: unknown;
     furniture: unknown;
     residents: unknown;
@@ -79,6 +81,7 @@ function rowToDto(
     regionLabel: row.regionLabel,
     homeFloor,
     moveInCompleted: !!row.moveInCompletedAt,
+    homePublic: row.homePublic ?? true,
     floorPlans,
     furniture: parseJson(row.furniture, defaultFurnitureForPlan(rooms)),
     residents: parseJson(
@@ -104,6 +107,7 @@ export async function getAptProfile(): Promise<AptProfileDto | null> {
     regionLabel: null,
     homeFloor: APT_DEFAULT_FLOOR,
     moveInCompleted: false,
+    homePublic: true,
     floorPlans: plans,
     furniture: defaultFurnitureForPlan(rooms),
     residents: defaultResidents({

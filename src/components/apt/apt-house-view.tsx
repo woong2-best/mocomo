@@ -3,14 +3,16 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Car, DoorOpen, Hammer, Home, MapPin, Save, Trees, User } from "lucide-react";
+import { Car, DoorOpen, Globe2, Hammer, Home, Save, Trees, User, Users } from "lucide-react";
 import type { AptProfileDto } from "@/actions/apt";
 import { saveAptHouseBuild } from "@/actions/apt";
+import { getPublicHome, setHomePublic, type PublicHomeDto } from "@/actions/apt-world";
 import { emptyHouseBuild, seedFromCoords } from "@/lib/apt/house/build-types";
 import type { HouseBuildState } from "@/lib/apt/house/build-types";
 import { formatCoords } from "@/lib/apt/world/geo-math";
 import { loadActiveVrm } from "@/lib/virtual-avatar/vrm-storage";
 import { Button } from "@/components/ui/button";
+import { AptWorldVisitorsPanel } from "@/components/apt/apt-world-visitors-panel";
 
 const AptHouseScene = dynamic(
   () => import("@/components/apt/apt-house-scene").then((m) => m.AptHouseScene),
@@ -28,6 +30,9 @@ export function AptHouseView({ profile }: { profile: AptProfileDto }) {
   const lat = profile.latitude ?? 37.5;
   const lng = profile.longitude ?? 127.0;
   const [vrmUrl, setVrmUrl] = useState<string | undefined>(profile.residents.find((r) => r.isOwner)?.vrmUrl);
+  const [homePublic, setHomePublicState] = useState(profile.homePublic);
+  const [visiting, setVisiting] = useState<PublicHomeDto | null>(null);
+  const [visitLoading, setVisitLoading] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -71,42 +76,108 @@ export function AptHouseView({ profile }: { profile: AptProfileDto }) {
     setSaved(true);
   };
 
+  const toggleHomePublic = async (checked: boolean) => {
+    setHomePublicState(checked);
+    await setHomePublic(checked);
+  };
+
+  const handleVisit = async (home: PublicHomeDto) => {
+    setVisitLoading(true);
+    try {
+      const fresh = await getPublicHome(home.userId);
+      setVisiting(fresh ?? home);
+    } finally {
+      setVisitLoading(false);
+    }
+  };
+
+  const sceneLat = visiting?.latitude ?? lat;
+  const sceneLng = visiting?.longitude ?? lng;
+  const sceneBuild = visiting?.houseBuild ?? initialBuild;
+  const readOnly = !!visiting;
+
   return (
     <div className="folk-card overflow-hidden">
       <div className="border-b border-[hsl(var(--folk-cobalt)/0.15)] bg-[hsl(var(--folk-cream)/0.5)] px-4 py-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-sm">
           <Home className="h-4 w-4 text-folk-terracotta" />
-          <span className="font-semibold text-folk-cobalt">{profile.regionLabel ?? "내 주택 부지"}</span>
+          <span className="font-semibold text-folk-cobalt">
+            {visiting ? `${visiting.displayName}님 집` : profile.regionLabel ?? "내 주택 부지"}
+          </span>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="tabular-nums">{formatCoords(lat, lng)}</span>
-          <span>· 블록 {pieceCount}개</span>
-          {vrmUrl && <span className="text-folk-cobalt flex items-center gap-0.5"><User className="h-3 w-3" /> VRM</span>}
-          {saving && <span className="text-folk-terracotta">저장 중…</span>}
-          {saved && <span className="text-primary">저장됨</span>}
+          <span className="tabular-nums">{formatCoords(sceneLat, sceneLng)}</span>
+          <span>· 블록 {visiting ? visiting.houseBuild.pieces.length : pieceCount}개</span>
+          {vrmUrl && !visiting && (
+            <span className="text-folk-cobalt flex items-center gap-0.5">
+              <User className="h-3 w-3" /> VRM
+            </span>
+          )}
+          {visitLoading && <span className="text-folk-terracotta">방문 로딩…</span>}
+          {!visiting && saving && <span className="text-folk-terracotta">저장 중…</span>}
+          {!visiting && saved && <span className="text-primary">저장됨</span>}
         </div>
       </div>
 
-      <AptHouseScene
-        lat={lat}
-        lng={lng}
-        initialBuild={initialBuild}
-        vrmUrl={vrmUrl}
-        onBuildChange={onBuildChange}
-      />
+      <div className="grid gap-0 lg:grid-cols-[1fr_280px]">
+        <AptHouseScene
+          key={visiting?.userId ?? "home"}
+          lat={sceneLat}
+          lng={sceneLng}
+          initialBuild={sceneBuild}
+          vrmUrl={visiting ? undefined : vrmUrl}
+          readOnly={readOnly}
+          visitLabel={visiting?.displayName}
+          onBuildChange={visiting ? undefined : onBuildChange}
+        />
 
-      <div className="grid gap-3 border-t border-[hsl(var(--folk-cobalt)/0.12)] p-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="border-t lg:border-t-0 lg:border-l border-[hsl(var(--folk-cobalt)/0.12)] p-3 space-y-3 bg-[hsl(var(--folk-cream)/0.25)]">
+          <AptWorldVisitorsPanel
+            lat={lat}
+            lng={lng}
+            visiting={visiting}
+            onVisit={handleVisit}
+            onReturnHome={() => setVisiting(null)}
+          />
+
+          {!visiting && (
+            <button
+              type="button"
+              onClick={() => void toggleHomePublic(!homePublic)}
+              className="flex w-full items-center justify-between gap-2 rounded-xl border border-[hsl(var(--folk-cobalt)/0.15)] bg-background/80 px-3 py-2.5 text-left transition-colors hover:bg-[hsl(var(--folk-gold)/0.08)]"
+            >
+              <span className="text-xs font-semibold text-folk-cobalt flex items-center gap-1.5">
+                <Globe2 className="h-3.5 w-3.5" />
+                집 공개
+              </span>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                  homePublic ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {homePublic ? "ON" : "OFF"}
+              </span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="grid gap-3 border-t border-[hsl(var(--folk-cobalt)/0.12)] p-4 sm:grid-cols-2 lg:grid-cols-6">
         <div className="rounded-xl border border-[hsl(var(--folk-cobalt)/0.15)] bg-background/80 p-3 text-xs space-y-1">
           <p className="font-bold text-folk-cobalt flex items-center gap-1"><Trees className="h-3.5 w-3.5" /> 도시</p>
-          <p className="text-muted-foreground">18동 상가·인도·가로등·보행자</p>
+          <p className="text-muted-foreground">22동 입주 가능·상가·인도·보행자</p>
+        </div>
+        <div className="rounded-xl border border-[hsl(var(--folk-cobalt)/0.15)] bg-background/80 p-3 text-xs space-y-1">
+          <p className="font-bold text-folk-cobalt flex items-center gap-1"><DoorOpen className="h-3.5 w-3.5" /> 도시 실내</p>
+          <p className="text-muted-foreground">문 클릭 또는 E — 카페·상점·오피스</p>
+        </div>
+        <div className="rounded-xl border border-[hsl(var(--folk-cobalt)/0.15)] bg-background/80 p-3 text-xs space-y-1">
+          <p className="font-bold text-folk-cobalt flex items-center gap-1"><Users className="h-3.5 w-3.5" /> 멀티</p>
+          <p className="text-muted-foreground">이웃 집 방문·같은 지역 유저 실시간</p>
         </div>
         <div className="rounded-xl border border-[hsl(var(--folk-cobalt)/0.15)] bg-background/80 p-3 text-xs space-y-1">
           <p className="font-bold text-folk-cobalt flex items-center gap-1"><Hammer className="h-3.5 w-3.5" /> 건축 20종</p>
           <p className="text-muted-foreground">계단·수영장·소파·발코니 등</p>
-        </div>
-        <div className="rounded-xl border border-[hsl(var(--folk-cobalt)/0.15)] bg-background/80 p-3 text-xs space-y-1">
-          <p className="font-bold text-folk-cobalt flex items-center gap-1"><DoorOpen className="h-3.5 w-3.5" /> 실내</p>
-          <p className="text-muted-foreground">문 클릭 또는 E — 1인칭 실내 이동</p>
         </div>
         <div className="rounded-xl border border-[hsl(var(--folk-cobalt)/0.15)] bg-background/80 p-3 text-xs space-y-1">
           <p className="font-bold text-folk-cobalt flex items-center gap-1"><User className="h-3.5 w-3.5" /> 아바타</p>
@@ -118,15 +189,17 @@ export function AptHouseView({ profile }: { profile: AptProfileDto }) {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 px-4 pb-4">
-        <Button variant="outline" size="sm" className="rounded-xl gap-1" onClick={manualSave} disabled={saving}>
-          <Save className="h-3.5 w-3.5" />
-          저장
-        </Button>
-        <Button asChild variant="ghost" size="sm" className="rounded-xl">
-          <Link href="/apt/move-in">입주 설정</Link>
-        </Button>
-      </div>
+      {!visiting && (
+        <div className="flex flex-wrap gap-2 px-4 pb-4">
+          <Button variant="outline" size="sm" className="rounded-xl gap-1" onClick={manualSave} disabled={saving}>
+            <Save className="h-3.5 w-3.5" />
+            저장
+          </Button>
+          <Button asChild variant="ghost" size="sm" className="rounded-xl">
+            <Link href="/apt/move-in">입주 설정</Link>
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
