@@ -71,6 +71,16 @@ function overlapDoor(a: AptRoom, b: AptRoom, side: DoorSide): Omit<HomeDoorway, 
 
 const doorwayCache = new WeakMap<AptRoom[], HomeDoorway[]>();
 
+/** 복도 접점 1곳만 문 허용 — 옆방 직통 문 금지, 발코니는 거실만 */
+function allowsDoorwayBetween(a: AptRoom, b: AptRoom): boolean {
+  if (a.type === "balcony" || b.type === "balcony") {
+    const other = a.type === "balcony" ? b : a;
+    return other.id === "living" || other.type === "living";
+  }
+  if (a.id === "hall-corridor" || b.id === "hall-corridor") return true;
+  return false;
+}
+
 export function computeHomeDoorways(rooms: AptRoom[]): HomeDoorway[] {
   const cached = doorwayCache.get(rooms);
   if (cached) return cached;
@@ -82,15 +92,13 @@ export function computeHomeDoorways(rooms: AptRoom[]): HomeDoorway[] {
     for (const side of ["n", "s", "e", "w"] as DoorSide[]) {
       for (const b of rooms) {
         if (a.id === b.id || !sharesEdge(a, b, side)) continue;
+        if (!allowsDoorwayBetween(a, b)) continue;
         const key = [a.id, b.id].sort().join("|");
         if (seen.has(key)) continue;
         seen.add(key);
 
         const spec = overlapDoor(a, b, side);
         if (!spec) continue;
-        if (a.type === "living" && b.type === "living") {
-          spec.span = Math.min(spec.span * 1.8, side === "e" || side === "w" ? Math.abs(worldBounds(a).maxZ - worldBounds(a).minZ) * 0.92 : Math.abs(worldBounds(a).maxX - worldBounds(a).minX) * 0.92);
-        }
         doorways.push({ id: key, roomA: a.id, roomB: b.id, ...spec });
       }
     }

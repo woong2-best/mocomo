@@ -105,20 +105,20 @@ export function defaultItemsForRooms(rooms: AptRoom[]): BondeePlacedItem[] {
     items.push({ id: `${roomId}-${kind}-${n++}`, kind, roomId, gx, gz, rot });
   };
 
-  const mainLiving = rooms.find((r) => r.id === "living-main")?.id ?? rooms.find((r) => r.type === "living")?.id;
+  const mainLiving = rooms.find((r) => r.id === "living")?.id ?? rooms.find((r) => r.type === "living")?.id;
 
   for (const r of rooms) {
-    if (r.id === "living-main") {
-      add(r.id, "rug", 0, 1);
+    if (r.id === "living") {
+      add(r.id, "rug", 0, 0);
       add(r.id, "sofa", -1, 0);
       add(r.id, "tv_stand", 1, -1);
       add(r.id, "floor_lamp", -2, 1, 1);
-      add(r.id, "plant", 2, 1);
-      add(r.id, "gramophone", 2, 0, 2);
-    } else if (r.id === "living-dining") {
-      add(r.id, "coffee_table", 0, 0);
-      add(r.id, "desk", -1, -1);
       add(r.id, "plant", 1, 1);
+      add(r.id, "gramophone", 2, 0, 1);
+    } else if (r.id === "hall-corridor") {
+      add(r.id, "rug", 0, 0);
+      add(r.id, "plant", -2, 0);
+      add(r.id, "clock", 2, 0);
     } else if (r.type === "living" && r.id === mainLiving) {
       add(r.id, "rug", 0, 0);
       add(r.id, "sofa", -1, 0);
@@ -153,6 +153,9 @@ export function defaultItemsForRooms(rooms: AptRoom[]): BondeePlacedItem[] {
       add(r.id, "plant", 0, 0);
       add(r.id, "rug", 0, 1);
       add(r.id, "floor_lamp", -1, -1, 1);
+    } else if (r.id === "elevator") {
+      add(r.id, "plant", 0, 0);
+      add(r.id, "rug", -1, 1);
     } else if (r.type === "hall") {
       add(r.id, "rug", 0, 0);
       add(r.id, "plant", -1, 0);
@@ -168,12 +171,12 @@ export function defaultItemsForRooms(rooms: AptRoom[]): BondeePlacedItem[] {
 
 export function migrateItems(items: BondeePlacedItem[], rooms: AptRoom[]): BondeePlacedItem[] {
   const mainLiving =
-    rooms.find((r) => r.id === "living-main")?.id ??
+    rooms.find((r) => r.id === "living")?.id ??
     rooms
       .filter((r) => r.type === "living")
       .sort((a, b) => b.w * b.h - a.w * a.h)[0]?.id ??
     rooms[0]?.id ??
-    "living-main";
+    "living";
   const migrated = items.map((it) => ({
     ...it,
     roomId: rooms.some((r) => r.id === it.roomId) ? it.roomId : mainLiving,
