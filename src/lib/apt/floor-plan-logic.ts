@@ -13,71 +13,106 @@ export function newRoomId() {
   return `room-${roomSeq}`;
 }
 
-/** 구상도 기반 Bondee 아파트 — 틈 없이 타일링되는 직사각형 구조 */
+/**
+ * 사용자 구상도 (빨강=외벽, 파랑=내벽) 기반 평면도
+ *
+ * ┌────방2────┬────방1────┬─화장실─┬엘리베이터┐  ← 뒤(북)
+ * │           │           │        │         │
+ * ├───────────┴───────────┤        │         │
+ * │      거실 (TV)        │ 식탁   │         │
+ * │                       │ 구역   │         │
+ * ├───────────────────────┴────────┤         │
+ * │           거실                 │  부엌   │
+ * └────────────────────────────────┴─────────┘  ← 앞(남·카메라)
+ */
 export function createDefaultFloorPlan(): FloorPlanState {
+  const INTERIOR_W = 870;
+
   return {
     rooms: [
       {
-        id: "living",
-        type: "living",
+        id: "bedroom-2",
+        type: "bedroom",
         x: 0,
         y: 0,
-        w: 440,
-        h: 420,
-        label: "거실",
+        w: 285,
+        h: 155,
+        label: "방 2",
         locked: false,
-        floor: "wood",
+        floor: "beige",
       },
       {
-        id: "living-open",
-        type: "living",
-        x: 440,
-        y: 130,
-        w: 430,
-        h: 290,
-        label: "거실",
+        id: "bedroom-1",
+        type: "bedroom",
+        x: 285,
+        y: 0,
+        w: 275,
+        h: 155,
+        label: "방 1",
         locked: false,
-        floor: "wood",
+        floor: "beige",
       },
       {
         id: "bathroom",
         type: "bathroom",
-        x: 440,
+        x: 560,
         y: 0,
-        w: 190,
-        h: 130,
+        w: 175,
+        h: 155,
         label: "화장실",
         locked: true,
         floor: "bathroom",
       },
       {
-        id: "entrance",
-        type: "entrance",
-        x: 630,
+        id: "elevator",
+        type: "hall",
+        x: 735,
         y: 0,
-        w: 240,
-        h: 130,
-        label: "현관",
+        w: 135,
+        h: 155,
+        label: "엘리베이터",
         locked: true,
-        floor: "tile-check",
+        floor: "tile-light",
+      },
+      {
+        id: "living-main",
+        type: "living",
+        x: 0,
+        y: 155,
+        w: 560,
+        h: 415,
+        label: "거실",
+        locked: false,
+        floor: "wood",
+      },
+      {
+        id: "living-dining",
+        type: "living",
+        x: 560,
+        y: 155,
+        w: 310,
+        h: 235,
+        label: "식탁",
+        locked: false,
+        floor: "wood",
       },
       {
         id: "kitchen",
         type: "kitchen",
-        x: 0,
-        y: 420,
-        w: 870,
-        h: 150,
-        label: "주방/식당",
+        x: 560,
+        y: 390,
+        w: 310,
+        h: 180,
+        label: "부엌",
         locked: true,
         floor: "wood",
       },
       {
         id: "balcony",
         type: "balcony",
-        x: 870,
+        x: INTERIOR_W,
         y: 0,
-        w: 130,
+        w: PLAN_W - INTERIOR_W,
         h: PLAN_H,
         label: "발코니",
         locked: true,
@@ -87,16 +122,20 @@ export function createDefaultFloorPlan(): FloorPlanState {
   };
 }
 
-/** 이전(복도·침실 분할) 평면도 → 구상도 레이아웃으로 교체 */
-export function isLegacyFloorPlan(rooms: AptRoom[]): boolean {
-  if (!rooms.length) return true;
-  return rooms.some(
-    (r) =>
-      r.id === "bedroom-a" ||
-      r.id === "bedroom-b" ||
-      r.id === "hall" ||
-      (r.type === "living" && r.x > 500)
+/** 구상도 v3 평면도가 아니면 새 레이아웃으로 교체 */
+export function isSketchFloorPlan(rooms: AptRoom[]): boolean {
+  const ids = new Set(rooms.map((r) => r.id));
+  return (
+    ids.has("bedroom-2") &&
+    ids.has("bedroom-1") &&
+    ids.has("living-main") &&
+    ids.has("living-dining") &&
+    ids.has("elevator")
   );
+}
+
+export function isLegacyFloorPlan(rooms: AptRoom[]): boolean {
+  return !isSketchFloorPlan(rooms);
 }
 
 export function migrateFloorPlan(rooms: AptRoom[]): AptRoom[] {
@@ -270,7 +309,7 @@ export function renameRoom(rooms: AptRoom[], id: string, label: string) {
 export function defaultLabel(type: RoomType) {
   switch (type) {
     case "kitchen":
-      return "주방/식당";
+      return "부엌";
     case "entrance":
       return "현관";
     case "bathroom":
@@ -280,7 +319,7 @@ export function defaultLabel(type: RoomType) {
     case "balcony":
       return "발코니";
     case "hall":
-      return "복도";
+      return "엘리베이터";
     default:
       return "침실";
   }

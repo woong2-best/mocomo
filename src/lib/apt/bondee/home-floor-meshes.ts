@@ -52,7 +52,7 @@ const ROOM_LABELS: Record<string, string> = {
   kitchen: "주방",
   bathroom: "욕실",
   entrance: "현관",
-  hall: "복도",
+  hall: "엘리베이터",
   balcony: "발코니",
 };
 
@@ -104,25 +104,35 @@ export function defaultItemsForRooms(rooms: AptRoom[]): BondeePlacedItem[] {
     items.push({ id: `${roomId}-${kind}-${n++}`, kind, roomId, gx, gz, rot });
   };
 
-  const mainLiving =
-    rooms
-      .filter((r) => r.type === "living")
-      .sort((a, b) => b.w * b.h - a.w * a.h)[0]?.id ??
-    rooms.find((r) => r.type === "living")?.id;
+  const mainLiving = rooms.find((r) => r.id === "living-main")?.id ?? rooms.find((r) => r.type === "living")?.id;
 
   for (const r of rooms) {
-    if (r.type === "living" && r.id === mainLiving) {
+    if (r.id === "living-main") {
+      add(r.id, "rug", 0, 1);
+      add(r.id, "sofa", -1, 0);
+      add(r.id, "tv_stand", 1, -1);
+      add(r.id, "floor_lamp", -2, 1, 1);
+      add(r.id, "plant", 2, 1);
+      add(r.id, "gramophone", 2, 0, 2);
+    } else if (r.id === "living-dining") {
+      add(r.id, "coffee_table", 0, 0);
+      add(r.id, "desk", -1, -1);
+      add(r.id, "plant", 1, 1);
+    } else if (r.type === "living" && r.id === mainLiving) {
       add(r.id, "rug", 0, 0);
       add(r.id, "sofa", -1, 0);
       add(r.id, "coffee_table", 0, 1);
       add(r.id, "tv_stand", 1, -1);
-      add(r.id, "floor_lamp", -2, 1, 1);
-      add(r.id, "plant", 2, 1);
-      add(r.id, "bookshelf", -2, -1, 2);
-      add(r.id, "gramophone", 2, 0, 2);
     } else if (r.type === "living") {
       add(r.id, "plant", 0, 0);
-      add(r.id, "rug", -1, 1);
+    } else if (r.id === "bedroom-2") {
+      add(r.id, "bed", 0, 0);
+      add(r.id, "tv_stand", 1, -1);
+      add(r.id, "floor_lamp", -1, 1);
+    } else if (r.id === "bedroom-1") {
+      add(r.id, "bed", 0, 0);
+      add(r.id, "rug", 1, 1);
+      add(r.id, "bookshelf", -2, -1, 2);
     } else if (r.type === "kitchen") {
       add(r.id, "shelf_small", 0, -1);
       add(r.id, "desk", 0, 0);
@@ -157,12 +167,12 @@ export function defaultItemsForRooms(rooms: AptRoom[]): BondeePlacedItem[] {
 
 export function migrateItems(items: BondeePlacedItem[], rooms: AptRoom[]): BondeePlacedItem[] {
   const mainLiving =
+    rooms.find((r) => r.id === "living-main")?.id ??
     rooms
       .filter((r) => r.type === "living")
       .sort((a, b) => b.w * b.h - a.w * a.h)[0]?.id ??
-    rooms.find((r) => r.type === "living")?.id ??
     rooms[0]?.id ??
-    "living";
+    "living-main";
   const migrated = items.map((it) => ({
     ...it,
     roomId: rooms.some((r) => r.id === it.roomId) ? it.roomId : mainLiving,
@@ -386,7 +396,7 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
       roomGroup.add(hl);
     }
 
-    const label = buildRoomLabel(ROOM_LABELS[room.type] ?? room.label ?? room.type, accent);
+    const label = buildRoomLabel(room.label ?? ROOM_LABELS[room.type] ?? room.type, accent);
     label.position.set(cx - w / 2 + 0.28, 0, cz - d / 2 + 0.18);
     if (!dollhouse) roomGroup.add(label);
 

@@ -139,13 +139,13 @@ export class IsometricHomeScene {
     this.avatar = new ChibiAvatarMesh();
 
     const living =
-      rooms.find((r) => r.id === "living-open") ??
+      rooms.find((r) => r.id === "living-main") ??
       rooms.find((r) => r.type === "living") ??
       rooms[0];
     if (living) {
       const c = roomCenter(living);
-      this.avatarX = c.x - 0.2;
-      this.avatarZ = c.z + 0.3;
+      this.avatarX = c.x - 0.5;
+      this.avatarZ = c.z + 0.8;
     }
 
     this.scene = new THREE.Scene();

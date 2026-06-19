@@ -14,13 +14,13 @@ function parseBondee(raw: unknown, rooms: AptRoom[]): BondeeHomeState {
       ...DEFAULT_BONDEE_HOME,
       ...o,
       items,
-      activeRoomId: o.activeRoomId ?? rooms.find((r) => r.type === "living")?.id ?? rooms[0]?.id,
+      activeRoomId: o.activeRoomId ?? rooms.find((r) => r.id === "living-main")?.id ?? rooms.find((r) => r.type === "living")?.id ?? rooms[0]?.id,
     };
   }
   return {
     ...DEFAULT_BONDEE_HOME,
     items: defaultItemsForRooms(rooms),
-    activeRoomId: rooms.find((r) => r.type === "living")?.id ?? rooms[0]?.id,
+    activeRoomId: rooms.find((r) => r.id === "living-main")?.id ?? rooms.find((r) => r.type === "living")?.id ?? rooms[0]?.id,
   };
 }
 
