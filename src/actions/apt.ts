@@ -131,7 +131,7 @@ export async function completeAptMoveIn(payload: MoveInPayload) {
   const user = await getCachedCurrentUser();
   if (!user) return { error: "로그인이 필요합니다." };
 
-  const housingType = payload.housingType === "house" ? "house" : "apartment";
+  const housingType = "apartment";
   const floor = housingType === "apartment" ? clampFloor(payload.homeFloor ?? APT_DEFAULT_FLOOR) : 0;
   const plans = defaultPlans();
   const rooms = getRoomsForFloor(plans, floor || APT_DEFAULT_FLOOR);
@@ -279,6 +279,38 @@ export async function saveAptHouseBuild(state: HouseBuildState) {
     console.error("[saveAptHouseBuild]", e);
     return { error: "건설 저장에 실패했습니다." };
   }
+}
+
+export type CountryAptPreview = {
+  userId: string;
+  displayName: string;
+  homeFloor: number;
+  floorPlans: Record<number, AptRoom[]>;
+};
+
+export async function listCountryApartments(countryCode: string): Promise<CountryAptPreview[]> {
+  const user = await getCachedCurrentUser();
+  const rows = await db.aptProfile.findMany({
+    where: {
+      moveInCompletedAt: { not: null },
+      housingType: "apartment",
+      countryCode: countryCode.toUpperCase(),
+      homePublic: true,
+      ...(user ? { userId: { not: user.id } } : {}),
+    },
+    include: {
+      user: { select: { id: true, name: true, username: true } },
+    },
+    take: 60,
+    orderBy: { updatedAt: "desc" },
+  });
+
+  return rows.map((row) => ({
+    userId: row.user.id,
+    displayName: row.user.name ?? row.user.username,
+    homeFloor: row.homeFloor ?? APT_DEFAULT_FLOOR,
+    floorPlans: parseJson<Record<number, AptRoom[]>>(row.floorPlans, defaultPlans()),
+  }));
 }
 
 export type { HousingLocation };

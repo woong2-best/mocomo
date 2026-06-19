@@ -1,23 +1,19 @@
 "use client";
 
 import { useEffect } from "react";
-import { Building2, Home, PartyPopper, Sparkles } from "lucide-react";
+import { Building2, PartyPopper, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { HousingType } from "@/lib/apt/housing-types";
-import { HOUSING_TYPE_LABELS } from "@/lib/apt/housing-types";
 import { cn } from "@/lib/utils";
 
 export function AptMoveInCelebration({
   open,
   username,
-  housingType,
   regionLabel,
   homeFloor,
   onClose,
 }: {
   open: boolean;
   username: string;
-  housingType: HousingType;
   regionLabel: string;
   homeFloor?: number;
   onClose: () => void;
@@ -30,19 +26,17 @@ export function AptMoveInCelebration({
 
   if (!open) return null;
 
-  const isApt = housingType === "apartment";
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
       <div
         className={cn(
-          "folk-card relative max-w-md w-full p-8 text-center space-y-5 animate-in fade-in zoom-in-95 duration-300",
-          "border-[3px] border-folk-terracotta/40 shadow-folk-lg"
+          "folk-card relative max-w-md w-full p-8 text-center space-y-5 animate-in fade-in zoom-in-95 duration-300 bg-white",
+          "border-[3px] border-neutral-200 shadow-folk-lg"
         )}
         role="dialog"
         aria-labelledby="move-in-celebration-title"
       >
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[hsl(var(--folk-gold)/0.2)]">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100">
           <PartyPopper className="h-8 w-8 text-folk-terracotta" />
         </div>
 
@@ -55,7 +49,7 @@ export function AptMoveInCelebration({
 
         <p className="text-sm text-muted-foreground leading-relaxed">
           <span className="font-semibold text-folk-cobalt">{regionLabel}</span>
-          {isApt && homeFloor != null && (
+          {homeFloor != null && (
             <>
               {" "}
               <span className="font-bold text-folk-terracotta">{homeFloor}층</span>
@@ -63,26 +57,22 @@ export function AptMoveInCelebration({
           )}
           에{" "}
           <span className="inline-flex items-center gap-1 font-semibold text-folk-cobalt">
-            {isApt ? <Building2 className="h-4 w-4" /> : <Home className="h-4 w-4" />}
-            {HOUSING_TYPE_LABELS[housingType]}
+            <Building2 className="h-4 w-4" />
+            아파트
           </span>
           입주가 완료되었습니다.
         </p>
 
-        <div className="rounded-xl border border-[hsl(var(--folk-cobalt)/0.15)] bg-[hsl(var(--folk-cream)/0.5)] px-4 py-3 text-left text-xs text-muted-foreground space-y-1.5">
+        <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-left text-xs text-muted-foreground space-y-1.5">
           <p className="flex gap-2">
             <Sparkles className="h-3.5 w-3.5 shrink-0 text-folk-terracotta" />
             3D 아바타가 새 집에서 생활을 시작합니다.
           </p>
-          {isApt ? (
-            <p>· APT에서 방 편집, TV 시청, 일상 시뮬레이션을 즐겨보세요.</p>
-          ) : (
-            <p>· 주택 건설 모드에서 부지를 꾸미고 집을 지을 수 있습니다. (확장 예정)</p>
-          )}
+          <p>· APT에서 방 편집, TV 시청, 일상 시뮬레이션을 즐겨보세요.</p>
         </div>
 
         <Button className="w-full rounded-xl" onClick={onClose}>
-          내 집으로 가기
+          내 아파트로 가기
         </Button>
       </div>
     </div>

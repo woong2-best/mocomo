@@ -65,8 +65,8 @@ export class AptBuildingScene {
     this.mount = mount;
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0xe8e4dc);
-    this.scene.fog = new THREE.Fog(0xe8e4dc, 40, BUILDING_H + 80);
+    this.scene.background = new THREE.Color(0xffffff);
+    this.scene.fog = new THREE.Fog(0xffffff, 50, BUILDING_H + 90);
 
     const w = Math.max(mount.clientWidth, 320);
     const h = Math.max(mount.clientHeight, 400);
@@ -227,13 +227,13 @@ export class AptBuildingScene {
   }
 
   private addLights() {
-    this.scene.add(new THREE.AmbientLight(0xfff8f0, 0.78));
-    const sun = new THREE.DirectionalLight(0xfff4e6, 1.1);
+    this.scene.add(new THREE.AmbientLight(0xffffff, 0.92));
+    const sun = new THREE.DirectionalLight(0xffffff, 0.95);
     sun.position.set(10, 18, 8);
     sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
     this.scene.add(sun);
-    const fill = new THREE.DirectionalLight(0xc8d8f0, 0.38);
+    const fill = new THREE.DirectionalLight(0xf0f0f0, 0.45);
     fill.position.set(-8, 10, -6);
     this.scene.add(fill);
   }
@@ -241,7 +241,7 @@ export class AptBuildingScene {
   private addGround() {
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(50, 50),
-      new THREE.MeshStandardMaterial({ color: 0xd8d2c8, roughness: 0.92 })
+      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95 })
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.03;
@@ -249,24 +249,42 @@ export class AptBuildingScene {
     this.scene.add(ground);
   }
 
+  private towerEdges: THREE.LineSegments[] = [];
+
   private buildTowerShell() {
     const w = PLAN_W * SCALE;
     const d = PLAN_H * SCALE;
     const geo = new THREE.BoxGeometry(w, FLOOR_HEIGHT * 0.82, d);
     this.towerMats = [];
+    this.towerEdges = [];
 
     for (let f = 1; f <= APT_TOTAL_FLOORS; f++) {
+      const active = f === this.currentFloor;
       const mat = new THREE.MeshStandardMaterial({
-        color: f === this.currentFloor ? 0x3d5f8f : 0x2a4a7a,
+        color: 0xffffff,
         transparent: true,
-        opacity: f === this.currentFloor ? 0.5 : 0.22,
-        roughness: 0.55,
+        opacity: active ? 0.92 : 0.42,
+        roughness: 0.25,
+        metalness: 0,
       });
       this.towerMats.push(mat);
       const slab = new THREE.Mesh(geo, mat);
       slab.position.y = (f - 1) * FLOOR_HEIGHT + FLOOR_HEIGHT * 0.45;
       slab.userData.floor = f;
       this.towerGroup.add(slab);
+
+      const edges = new THREE.LineSegments(
+        new THREE.EdgesGeometry(geo),
+        new THREE.LineBasicMaterial({
+          color: 0xffffff,
+          transparent: true,
+          opacity: active ? 1 : 0.65,
+        })
+      );
+      edges.position.copy(slab.position);
+      edges.userData.floor = f;
+      this.towerEdges.push(edges);
+      this.towerGroup.add(edges);
     }
     this.building.add(this.towerGroup);
     this.syncRaycastTargets();
@@ -297,8 +315,12 @@ export class AptBuildingScene {
       const f = i + 1;
       const active = f === this.currentFloor;
       const mat = this.towerMats[i];
-      mat.color.setHex(active ? 0x3d5f8f : 0x2a4a7a);
-      mat.opacity = active ? 0.55 : 0.2;
+      mat.color.setHex(0xffffff);
+      mat.opacity = active ? 0.92 : 0.38;
+      const edge = this.towerEdges[i];
+      if (edge) {
+        (edge.material as THREE.LineBasicMaterial).opacity = active ? 1 : 0.55;
+      }
     }
     const hl = this.detailRef?.group.getObjectByName("floor-highlight") as THREE.Mesh | undefined;
     if (hl) (hl.material as THREE.MeshBasicMaterial).opacity = 0.18;
@@ -315,13 +337,13 @@ export class AptBuildingScene {
     const t = this.xrayCurrent;
     if (this.detailRef) {
       for (const mat of this.detailRef.shellMats) {
-        const base = mat.color.getHex() === 0x1e3a6e ? 0.78 : 0.58;
+        const base = mat.userData.exterior ? 0.82 : 0.65;
         mat.opacity = THREE.MathUtils.lerp(base, 0.1, t);
         mat.depthWrite = t < 0.55;
       }
     }
     for (const mat of this.towerMats) {
-      const base = 0.22;
+      const base = 0.38;
       mat.opacity = THREE.MathUtils.lerp(base, 0.06, t);
     }
   }
@@ -406,6 +428,10 @@ export class AptBuildingScene {
         o.geometry.dispose();
         const mats = Array.isArray(o.material) ? o.material : [o.material];
         mats.forEach((m) => m.dispose());
+      }
+      if (o instanceof THREE.LineSegments) {
+        o.geometry.dispose();
+        (o.material as THREE.Material).dispose();
       }
     });
     this.renderer.dispose();

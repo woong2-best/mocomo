@@ -31,15 +31,13 @@ export function AptHubClient({
         </h1>
         <p className="text-sm text-muted-foreground leading-relaxed">
           {isLoggedIn
-            ? initialProfile?.housingType === "house"
-              ? "주택에 입주하셨습니다. 주택 부지는 주택 메뉴에서 확인할 수 있습니다."
-              : "3D 아파트에서 아바타가 생활합니다. 휠로 확대/축소하고, 방을 편집하거나 TV 시청·청소·요리 활동을 관찰하세요."
-            : "로그인 후 지구본에서 위치를 고르고 아파트 또는 주택에 입주하세요."}
+            ? "3D 아파트에서 아바타가 생활합니다. 휠로 확대/축소하고, 방을 편집하거나 TV 시청·청소·요리 활동을 관찰하세요."
+            : "로그인 후 가입 국가 아파트에 입주하세요."}
         </p>
         {isLoggedIn && initialProfile?.regionLabel && (
           <p className="text-xs text-folk-terracotta font-medium flex items-center gap-1">
             📍 {initialProfile.regionLabel}
-            {initialProfile.housingType === "apartment" && ` · ${initialProfile.homeFloor}층`}
+            {` · ${initialProfile.homeFloor}층`}
           </p>
         )}
       </div>

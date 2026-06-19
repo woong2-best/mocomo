@@ -13,8 +13,8 @@ export default async function AptMoveInPage() {
   if (!user) redirect("/auth/signin?callbackUrl=/apt/move-in");
 
   const profile = await getAptProfile();
-  if (profile?.moveInCompleted) {
-    redirect(profile.housingType === "house" ? "/apt/house" : "/apt");
+    if (profile?.moveInCompleted) {
+    redirect("/apt");
   }
 
   return (

@@ -19,10 +19,6 @@ export default async function AptPage() {
       redirect("/apt/move-in");
     }
 
-    if (user && profile?.moveInCompleted && profile.housingType === "house") {
-      redirect("/apt/house");
-    }
-
     return <AptHubClient initialProfile={profile} isLoggedIn={!!user} />;
   } catch (e) {
     console.error("[AptPage]", e);

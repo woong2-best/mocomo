@@ -8,12 +8,12 @@ export const WALL_THICK = 0.07;
 export const WALL_H = 2.35;
 
 const FLOOR_COLORS: Record<FloorStyle, number> = {
-  wood: 0xe8c9a0,
-  "tile-check": 0xeeecea,
-  "tile-light": 0xebe8e3,
-  bathroom: 0xc8dff0,
-  beige: 0xf0ebe3,
-  balcony: 0xddd9d2,
+  wood: 0xf5f0ea,
+  "tile-check": 0xf8f8f8,
+  "tile-light": 0xf4f4f4,
+  bathroom: 0xedf2f7,
+  beige: 0xf6f4f0,
+  balcony: 0xeeeeee,
 };
 
 type Side = "n" | "s" | "e" | "w";
@@ -66,18 +66,28 @@ function makeWall(
   h: number,
   d: number,
   exterior: boolean
-): { mesh: THREE.Mesh; mat: THREE.MeshStandardMaterial } {
+): { mesh: THREE.Mesh; mat: THREE.MeshStandardMaterial; edges?: THREE.LineSegments } {
   const mat = new THREE.MeshStandardMaterial({
-    color: exterior ? 0x1e3a6e : 0x3d5f8f,
-    roughness: 0.35,
-    metalness: 0.12,
+    color: 0xffffff,
+    roughness: 0.2,
+    metalness: 0,
     transparent: true,
-    opacity: exterior ? 0.72 : 0.55,
+    opacity: exterior ? 0.88 : 0.72,
   });
+  mat.userData.exterior = exterior;
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
-  return { mesh, mat };
+
+  let edges: THREE.LineSegments | undefined;
+  if (exterior) {
+    edges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(mesh.geometry),
+      new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95 })
+    );
+    edges.position.copy(mesh.position);
+  }
+  return { mesh, mat, edges };
 }
 
 function addProps(group: THREE.Group, room: AptRoom) {
@@ -178,9 +188,13 @@ export function buildFloorGroup(
         roomGroup.add(mesh);
         shellMats.push(mat);
       } else if (!neighbor || exterior) {
-        const { mesh, mat } = makeWall(s.wx, WALL_H, s.wz, true);
+        const { mesh, mat, edges } = makeWall(s.wx, WALL_H, s.wz, true);
         mesh.position.set(s.px, WALL_H / 2 + 0.1, s.pz);
         roomGroup.add(mesh);
+        if (edges) {
+          edges.position.set(s.px, WALL_H / 2 + 0.1, s.pz);
+          roomGroup.add(edges);
+        }
         shellMats.push(mat);
       }
     }
@@ -193,11 +207,11 @@ export function buildFloorGroup(
         const win = new THREE.Mesh(
           new THREE.BoxGeometry(0.55, 0.42, 0.04),
           new THREE.MeshStandardMaterial({
-            color: 0xa8cce8,
-            emissive: 0x224466,
-            emissiveIntensity: 0.25,
+            color: 0xe8f0f8,
+            emissive: 0x8899aa,
+            emissiveIntensity: 0.08,
             transparent: true,
-            opacity: 0.8,
+            opacity: 0.65,
           })
         );
         win.position.set(
@@ -212,7 +226,7 @@ export function buildFloorGroup(
     if (options.selectedIds.includes(room.id)) {
       const glow = new THREE.Mesh(
         new THREE.BoxGeometry(w + 0.06, 0.12, d + 0.06),
-        new THREE.MeshBasicMaterial({ color: 0xc45a32, transparent: true, opacity: 0.45 })
+        new THREE.MeshBasicMaterial({ color: 0xd4d4d4, transparent: true, opacity: 0.35 })
       );
       glow.position.set(cx, 0.12, cz);
       roomGroup.add(glow);
@@ -223,7 +237,7 @@ export function buildFloorGroup(
 
   const active = new THREE.Mesh(
     new THREE.BoxGeometry(PLAN_W * SCALE + 0.2, 0.04, PLAN_H * SCALE + 0.2),
-    new THREE.MeshBasicMaterial({ color: 0xc45a32, transparent: true, opacity: 0 })
+    new THREE.MeshBasicMaterial({ color: 0xe0e0e0, transparent: true, opacity: 0 })
   );
   active.position.set(0, 0.02, 0);
   active.name = "floor-highlight";
