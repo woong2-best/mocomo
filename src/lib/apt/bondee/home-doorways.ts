@@ -71,9 +71,16 @@ function overlapDoor(a: AptRoom, b: AptRoom, side: DoorSide): Omit<HomeDoorway, 
 
 const doorwayCache = new WeakMap<AptRoom[], HomeDoorway[]>();
 
-/** 복도는 개방 통로(문 없음), 발코니는 거실·엘리베이터만 개방 연결 */
+/**
+ * 문 허용 규칙.
+ * 거실은 벽·문 없이 완전 개방되므로 문을 만들지 않는다.
+ * 그 외 방은 복도(hall-corridor) 접점 1곳에만 문을 둔다.
+ * 발코니는 거실에서만 출입(거실은 개방이므로 실제 문은 없음).
+ */
 function allowsDoorwayBetween(a: AptRoom, b: AptRoom): boolean {
-  if (a.id === "hall-corridor" || b.id === "hall-corridor") return false;
+  if (a.id === "living" || b.id === "living") return false;
+
+  if (a.id === "hall-corridor" || b.id === "hall-corridor") return true;
 
   if (a.type === "balcony" || b.type === "balcony") {
     const other = a.type === "balcony" ? b : a;
