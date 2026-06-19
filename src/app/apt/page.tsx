@@ -9,7 +9,7 @@ import { AptHubClient } from "@/components/apt/apt-hub-client";
 
 export const metadata = {
   title: "APT | MoCoMo",
-  description: "MoCoMo APT — 치비 아바타 내 집 & 100층 타워",
+  description: "MoCoMo APT — 치비 아바타 내 집 & 1000층 타워",
 };
 
 export const dynamic = "force-dynamic";

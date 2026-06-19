@@ -15,7 +15,7 @@ const AptBuildingView = dynamic(
     ssr: false,
     loading: () => (
       <div className="folk-card flex min-h-[min(88dvh,920px)] items-center justify-center text-sm text-muted-foreground bg-[#fef6f8]">
-        100층 타워 불러오는 중…
+        1000층 타워 불러오는 중…
       </div>
     ),
   }
@@ -58,7 +58,7 @@ export function AptHubClient({
         <h1 className="text-2xl font-bold flex items-center gap-2 text-folk-cobalt">APT</h1>
         <p className="text-sm text-muted-foreground leading-relaxed">
           {isLoggedIn
-            ? "내 집에서 치비 아바타와 가구를 꾸미고, 100층 타워에서 같은 구조의 집이 포함된 건물 전체를 봅니다."
+            ? "내 집에서 치비 아바타와 가구를 꾸미고, 1000층 타워에서 입구·펜트하우스까지 엘리베이터로 이동하며 다른 집도 방문할 수 있습니다."
             : "로그인 후 가입 국가 아파트에 입주하세요."}
         </p>
         {isLoggedIn && initialProfile?.regionLabel && (
@@ -90,7 +90,7 @@ export function AptHubClient({
           )}
         >
           <Building2 className="h-4 w-4" />
-          100층 타워
+          1000층 타워
         </button>
       </div>
 

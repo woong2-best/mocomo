@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import {
   Box,
   ChevronDown,
   ChevronUp,
   Combine,
+  ExternalLink,
   Globe2,
   Home,
   Plus,
@@ -13,13 +15,16 @@ import {
   SplitSquareHorizontal,
   Trash2,
   Tv,
+  UserRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { AptProfileDto, CountryAptPreview } from "@/actions/apt";
-import { listCountryApartments, placeAptTv, saveAptFloorPlan } from "@/actions/apt";
+import type { AptProfileDto, CountryAptPreview, FloorOccupant } from "@/actions/apt";
+import { getCountryFloorOccupants, listCountryApartments, placeAptTv, saveAptFloorPlan } from "@/actions/apt";
 import { AptSimulationHud } from "@/components/apt/apt-simulation-hud";
 import {
   APT_DEFAULT_FLOOR,
+  APT_LOBBY_FLOOR,
+  APT_PENTHOUSE_FLOOR,
   APT_TOTAL_FLOORS,
   DollhouseBuildingScene,
 } from "@/lib/apt/building-scene";
@@ -77,8 +82,15 @@ export function AptBuildingView({
   const [viewCountry, setViewCountry] = useState(homeCountry);
   const [countryOpen, setCountryOpen] = useState(false);
   const [countryApts, setCountryApts] = useState<CountryAptPreview[]>([]);
+  const [floorOccupants, setFloorOccupants] = useState<FloorOccupant[]>([]);
   const [browseTarget, setBrowseTarget] = useState<CountryAptPreview | null>(null);
   const [loadingCountry, setLoadingCountry] = useState(false);
+  const movingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const countryAptsRef = useRef(countryApts);
+  useEffect(() => {
+    countryAptsRef.current = countryApts;
+  }, [countryApts]);
 
   const isOwnApt = viewCountry === homeCountry && !browseTarget;
   const viewCountryInfo = findCountry(viewCountry);
@@ -109,8 +121,9 @@ export function AptBuildingView({
   );
 
   const goToFloor = useCallback((next: number) => {
-    const clamped = Math.min(APT_TOTAL_FLOORS, Math.max(1, next));
+    const clamped = Math.min(APT_TOTAL_FLOORS, Math.max(APT_LOBBY_FLOOR, next));
     if (clamped === floorRef.current) return;
+    const prev = floorRef.current;
     floorRef.current = clamped;
     setFloor(clamped);
     setSelected([]);
@@ -118,10 +131,13 @@ export function AptBuildingView({
     sceneRef.current?.setFloor(clamped);
     sceneRef.current?.setSelectedRoomIds([]);
     sceneRef.current?.setXray(true);
-    window.setTimeout(() => {
+    if (movingTimerRef.current) clearTimeout(movingTimerRef.current);
+    const distance = Math.abs(clamped - prev);
+    const duration = distance <= 1 ? 520 : Math.min(8000, distance * 75 + 300);
+    movingTimerRef.current = setTimeout(() => {
       setMoving(false);
       sceneRef.current?.setXray(xrayRef.current);
-    }, 520);
+    }, duration);
   }, []);
 
   useEffect(() => {
@@ -137,14 +153,25 @@ export function AptBuildingView({
     void (async () => {
       setLoadingCountry(true);
       try {
-        const list = await listCountryApartments(viewCountry);
+        const [list, occupants] = await Promise.all([
+          listCountryApartments(viewCountry),
+          getCountryFloorOccupants(viewCountry),
+        ]);
         setCountryApts(list);
+        setFloorOccupants(occupants);
         setBrowseTarget(null);
       } finally {
         setLoadingCountry(false);
       }
     })();
   }, [viewCountry]);
+
+  useEffect(() => {
+    sceneRef.current?.setFloorResidents(
+      floorOccupants,
+      isOwnApt ? homeFloor : null
+    );
+  }, [floorOccupants, homeFloor, isOwnApt]);
 
   useEffect(() => {
     sceneRef.current?.setBondeeRoom(isOwnApt ? bondeeRoom : null);
@@ -177,6 +204,28 @@ export function AptBuildingView({
     const scene = new DollhouseBuildingScene(el);
     scene.setCallbacks({
       onFloorClick: (f) => goToFloor(f),
+      onFloorScroll: (f) => goToFloor(f),
+      onResidentClick: (f, resident) => {
+        const apt =
+          countryAptsRef.current.find((a) => a.userId === resident.userId) ??
+          countryAptsRef.current.find((a) => a.homeFloor === f);
+        if (apt) {
+          setBrowseTarget(apt);
+          goToFloor(apt.homeFloor);
+          showToast(`${apt.displayName}의 집을 구경합니다`);
+          return;
+        }
+        setBrowseTarget({
+          userId: resident.userId,
+          username: resident.username,
+          displayName: resident.displayName,
+          homeFloor: resident.homeFloor,
+          floorPlans: {},
+          bondeeRoom: DEFAULT_BONDEE_ROOM,
+        });
+        goToFloor(resident.homeFloor);
+        showToast(`${resident.displayName} · 프로필에서 더 보기`);
+      },
       onRoomClick: (id, multi) => {
         setSelected((prev) => {
           if (multi) return prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
@@ -289,7 +338,9 @@ export function AptBuildingView({
           <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-neutral-200 bg-white/95 px-2.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm">
             {isOwnApt ? (
               <>
-                100층 타워 · {floor}층
+                {APT_TOTAL_FLOORS}층 타워 · {floor}층
+                {floor === APT_PENTHOUSE_FLOOR && <span className="ml-1 text-folk-cobalt">· PH</span>}
+                {floor === APT_LOBBY_FLOOR && <span className="ml-1 text-folk-cobalt">· 입구</span>}
                 {isLoggedIn && initialProfile?.moveInCompleted && floor === homeFloor && (
                   <span className="ml-1 text-folk-terracotta">· 내 집</span>
                 )}
@@ -302,14 +353,64 @@ export function AptBuildingView({
             )}
           </div>
 
-          <div className="pointer-events-none absolute left-3 bottom-3 rounded-lg border border-pink-100 bg-white/95 px-2.5 py-1 text-[10px] text-muted-foreground backdrop-blur-sm">
-            휠 확대/축소 · 층 클릭 · 엘리베이터로 이동
+          {/* Full-tower vertical navigator */}
+          <div className="absolute right-[8.75rem] top-1/2 z-10 hidden lg:flex -translate-y-1/2 flex-col items-center gap-1 rounded-xl border border-neutral-200 bg-white/95 px-1.5 py-2 shadow-sm backdrop-blur-sm">
+            <button
+              type="button"
+              className="text-[8px] font-bold text-folk-terracotta hover:underline"
+              onClick={() => goToFloor(APT_PENTHOUSE_FLOOR)}
+              disabled={moving}
+            >
+              PH
+            </button>
+            <input
+              type="range"
+              min={APT_LOBBY_FLOOR}
+              max={APT_PENTHOUSE_FLOOR}
+              value={floor}
+              disabled={moving}
+              onChange={(e) => goToFloor(Number(e.target.value))}
+              className="h-[min(52vh,480px)] w-4 accent-folk-terracotta cursor-pointer"
+              style={{ writingMode: "vertical-lr", direction: "rtl" }}
+              aria-label="전체 층 이동"
+            />
+            <button
+              type="button"
+              className="text-[8px] font-bold text-folk-cobalt hover:underline"
+              onClick={() => goToFloor(APT_LOBBY_FLOOR)}
+              disabled={moving}
+            >
+              입구
+            </button>
+          </div>
+
+          {browseTarget && !isOwnApt && (
+            <div className="absolute top-14 right-3 z-10 max-w-[220px] rounded-xl border border-folk-terracotta/40 bg-white/95 p-3 shadow-md backdrop-blur-sm space-y-2">
+              <p className="text-xs font-bold text-folk-cobalt flex items-center gap-1.5">
+                <UserRound className="h-3.5 w-3.5" />
+                {browseTarget.displayName} · {browseTarget.homeFloor}층
+              </p>
+              <p className="text-[10px] text-muted-foreground leading-snug">
+                현관을 클릭했거나 층을 선택해 집 내부를 구경 중입니다.
+              </p>
+              <Button asChild size="sm" className="w-full h-8 rounded-lg text-xs gap-1">
+                <Link href={`/u/${browseTarget.username}`}>
+                  프로필 보기
+                  <ExternalLink className="h-3 w-3" />
+                </Link>
+              </Button>
+            </div>
+          )}
+
+          <div className="pointer-events-none absolute left-3 bottom-3 rounded-lg border border-pink-100 bg-white/95 px-2.5 py-1 text-[10px] text-muted-foreground backdrop-blur-sm max-w-[240px] leading-snug">
+            휠 위·아래 층 이동 · Ctrl+휠 확대 · 현관 클릭 · 엘리베이터
           </div>
 
           {moving && (
-            <div className="pointer-events-none absolute inset-x-0 top-14 flex justify-center">
-              <span className="rounded-full border border-pink-100 bg-white/95 px-3 py-1 text-xs font-semibold text-pink-700 animate-pulse">
-                엘리베이터 · {floor}층
+            <div className="pointer-events-none absolute inset-x-0 top-14 flex justify-center z-10">
+              <span className="rounded-full border border-pink-100 bg-white/95 px-3 py-1 text-xs font-semibold text-pink-700 animate-pulse flex items-center gap-1.5">
+                <span className="inline-block h-2 w-2 rounded-full bg-pink-500 animate-bounce" />
+                엘리베이터 이동 · {floor}층
               </span>
             </div>
           )}
@@ -349,7 +450,17 @@ export function AptBuildingView({
             </Button>
               </>
             ) : (
-              <p className="text-xs text-muted-foreground px-2">다른 유저의 집 내부를 구경할 수 있습니다</p>
+              <div className="flex flex-wrap items-center justify-center gap-2 px-2">
+                <p className="text-xs text-muted-foreground">입주 중인 집 · 현관 클릭으로 방문</p>
+                {browseTarget && (
+                  <Button asChild size="sm" variant="outline" className="h-8 rounded-lg text-xs gap-1">
+                    <Link href={`/u/${browseTarget.username}`}>
+                      <UserRound className="h-3.5 w-3.5" />
+                      프로필
+                    </Link>
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -471,7 +582,7 @@ export function AptBuildingView({
             <div
               className={cn(
                 "flex h-16 w-full items-center justify-center rounded-xl border-[3px] border-neutral-200 bg-white font-display text-3xl font-bold tabular-nums text-neutral-800 shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-transform duration-300",
-                moving && "scale-95"
+                moving && "scale-95 border-pink-300"
               )}
             >
               {floor}
@@ -479,7 +590,7 @@ export function AptBuildingView({
 
             <button
               type="button"
-              disabled={floor <= 1 || moving}
+              disabled={floor <= APT_LOBBY_FLOOR || moving}
               onClick={() => goToFloor(floor - 1)}
               className={cn(
                 "flex h-12 w-full items-center justify-center rounded-xl border-2 border-neutral-200 bg-white text-neutral-700 transition-all",
@@ -491,10 +602,10 @@ export function AptBuildingView({
             </button>
           </div>
 
-          <p className="text-[10px] text-muted-foreground tabular-nums">1 – {APT_TOTAL_FLOORS}층</p>
+          <p className="text-[10px] text-muted-foreground tabular-nums">{APT_LOBBY_FLOOR} – {APT_TOTAL_FLOORS}층</p>
           <input
             type="number"
-            min={1}
+            min={APT_LOBBY_FLOOR}
             max={APT_TOTAL_FLOORS}
             value={floor}
             disabled={moving}

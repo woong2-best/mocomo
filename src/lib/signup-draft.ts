@@ -11,6 +11,7 @@ export type SignupDraft = {
   name?: string;
   locale: Locale;
   countryCode: string;
+  homeFloor: number;
 };
 
 export function saveSignupDraft(draft: SignupDraft): void {
@@ -25,6 +26,9 @@ export function loadSignupDraft(): SignupDraft | null {
   try {
     const parsed = JSON.parse(raw) as SignupDraft;
     if (!parsed.email || !parsed.username || !parsed.password) return null;
+    if (typeof parsed.homeFloor !== "number") {
+      parsed.homeFloor = 500;
+    }
     return parsed;
   } catch {
     return null;

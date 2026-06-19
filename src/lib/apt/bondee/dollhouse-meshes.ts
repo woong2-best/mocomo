@@ -112,11 +112,13 @@ export type DollhouseUnitOptions = {
   room?: BondeeHomeState;
   rooms?: AptRoom[];
   seed?: number;
+  resident?: { userId: string; username: string; displayName: string; homeFloor: number };
+  isHomeFloor?: boolean;
 };
 
 /** Single apartment unit — open front cross-section with visible furniture */
 export function buildDollhouseUnit(opts: DollhouseUnitOptions): THREE.Group {
-  const { floorIndex, active, visited, room, rooms, seed = floorIndex * 17 } = opts;
+  const { floorIndex, active, visited, room, rooms, seed = floorIndex * 17, resident, isHomeFloor } = opts;
   const g = new THREE.Group();
   g.userData.floor = floorIndex;
 
@@ -231,6 +233,129 @@ export function buildDollhouseUnit(opts: DollhouseUnitOptions): THREE.Group {
   pick.position.y = DOLLHOUSE_FLOOR_H * 0.25;
   pick.userData.floor = floorIndex;
   g.add(pick);
+
+  // Entrance door for occupied units (click → visit / profile)
+  if (resident && !isHomeFloor) {
+    const door = new THREE.Mesh(
+      roundedBox(0.42, 0.72, 0.06, 0.03),
+      pastelMat(PASTEL.elevatorDoor)
+    );
+    door.position.set(0.55, DOLLHOUSE_FLOOR_H * 0.38, DOLLHOUSE_UNIT_D / 2 - 0.02);
+    door.userData.floor = floorIndex;
+    door.userData.resident = resident;
+    door.name = "entrance-door";
+    g.add(door);
+
+    const nameplate = new THREE.Mesh(
+      roundedBox(0.5, 0.14, 0.04, 0.02),
+      pastelMat(PASTEL.highlight)
+    );
+    nameplate.position.set(0.55, DOLLHOUSE_FLOOR_H * 0.78, DOLLHOUSE_UNIT_D / 2 - 0.01);
+    nameplate.userData.floor = floorIndex;
+    nameplate.userData.resident = resident;
+    g.add(nameplate);
+  }
+
+  return g;
+}
+
+/** Ground lobby / building entrance */
+export function buildLobbyEntrance(): THREE.Group {
+  const g = new THREE.Group();
+  g.name = "lobby-entrance";
+
+  const totalW = DOLLHOUSE_UNIT_W + DOLLHOUSE_ELEVATOR_W + 0.5;
+  const lobbyH = DOLLHOUSE_FLOOR_H * 0.85;
+
+  addMesh(
+    g,
+    roundedBox(totalW + 0.8, 0.12, DOLLHOUSE_UNIT_D + 1.2, 0.06),
+    pastelMat(PASTEL.shellTrim),
+    0,
+    -0.06,
+    0.2
+  );
+
+  addMesh(
+    g,
+    roundedBox(totalW * 0.55, lobbyH, 0.14, 0.04),
+    pastelMat(PASTEL.shell),
+    0,
+    lobbyH / 2,
+    DOLLHOUSE_UNIT_D / 2 + 0.35
+  );
+
+  for (const x of [-0.55, 0.55]) {
+    addMesh(
+      g,
+      roundedBox(0.5, lobbyH * 0.92, 0.08, 0.03),
+      pastelMat(PASTEL.glass, { transparent: true, opacity: 0.55 }),
+      x,
+      lobbyH / 2,
+      DOLLHOUSE_UNIT_D / 2 + 0.38
+    );
+  }
+
+  addMesh(
+    g,
+    roundedBox(totalW + 0.4, 0.08, 0.35, 0.03),
+    pastelMat(PASTEL.accent),
+    0,
+    lobbyH + 0.04,
+    DOLLHOUSE_UNIT_D / 2 + 0.55
+  );
+
+  const awning = new THREE.Mesh(
+    roundedBox(totalW + 0.6, 0.06, 0.9, 0.03),
+    pastelMat(PASTEL.wallPeach)
+  );
+  awning.position.set(0, lobbyH + 0.12, DOLLHOUSE_UNIT_D / 2 + 0.7);
+  awning.rotation.x = -0.12;
+  g.add(awning);
+
+  return g;
+}
+
+/** Penthouse crown at the top of the tower */
+export function buildPenthouseCap(): THREE.Group {
+  const g = new THREE.Group();
+  g.name = "penthouse-cap";
+
+  const totalW = DOLLHOUSE_UNIT_W + DOLLHOUSE_ELEVATOR_W + 0.5;
+
+  addMesh(
+    g,
+    roundedBox(totalW + 0.5, 0.35, DOLLHOUSE_UNIT_D + 0.6, 0.1),
+    pastelMat(PASTEL.accent),
+    0,
+    0.18,
+    0
+  );
+
+  addMesh(
+    g,
+    roundedBox(totalW * 0.7, 0.22, DOLLHOUSE_UNIT_D * 0.5, 0.08),
+    pastelMat(PASTEL.wallLavender),
+    0,
+    0.55,
+    0
+  );
+
+  for (const side of [-1, 1] as const) {
+    const spire = new THREE.Mesh(
+      roundedBox(0.12, 0.45, 0.12, 0.04),
+      pastelMat(PASTEL.highlight)
+    );
+    spire.position.set(side * totalW * 0.35, 0.85, 0);
+    g.add(spire);
+  }
+
+  const star = new THREE.Mesh(
+    new THREE.OctahedronGeometry(0.16, 0),
+    pastelMat(0xffd700, { metalness: 0.35, roughness: 0.4 })
+  );
+  star.position.set(0, 1.05, 0);
+  g.add(star);
 
   return g;
 }

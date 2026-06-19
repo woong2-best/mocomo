@@ -80,6 +80,7 @@ export function SignupVerifyForm() {
         name: draft.name,
         locale: draft.locale,
         countryCode: draft.countryCode,
+        homeFloor: draft.homeFloor,
         availabilityPrechecked: true,
         humanChallengeToken: challenge.token,
         humanChallengeAnswer: selectedId,

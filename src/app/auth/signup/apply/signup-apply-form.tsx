@@ -1,10 +1,11 @@
 ﻿"use client";
 
 import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { registerUser, prepareSignupVerify } from "@/actions/auth";
+import { AptFloorPicker } from "@/components/apt/apt-floor-picker";
 import {
   containsForbiddenAdminSequence,
   FORBIDDEN_ADMIN_SEQUENCE_MESSAGE,
@@ -22,6 +23,8 @@ import type { Locale } from "@/lib/i18n/config";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
 import { isValidSignupEmail } from "@/lib/signup-email-domains";
 import { EmailAddressField } from "@/components/auth/email-address-field";
+import { APT_DEFAULT_FLOOR } from "@/lib/apt/constants";
+import { findCountry } from "@/lib/apt/world/world-countries";
 
 export function SignupApplyForm({
   googleOAuth,
@@ -36,9 +39,16 @@ export function SignupApplyForm({
   const [loading, setLoading] = useState(false);
   const [locale, setLocale] = useState<Locale>("ko");
   const [countryCode, setCountryCode] = useState("KR");
+  const [homeFloor, setHomeFloor] = useState(APT_DEFAULT_FLOOR);
+  const [floorTaken, setFloorTaken] = useState(false);
 
   const showSocial = googleOAuth || discordOAuth;
   const needsHumanVerify = isSignupHumanVerifyRequired();
+  const countryLabel = `${findCountry(countryCode)?.nameKo ?? countryCode} APT`;
+
+  const handleFloorChange = useCallback((next: number) => {
+    setHomeFloor(next);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -65,6 +75,12 @@ export function SignupApplyForm({
       return;
     }
 
+    if (floorTaken) {
+      setError("선택한 층은 이미 입주 중입니다. 다른 층을 선택해 주세요.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const maxAge = 60 * 60 * 24 * 365;
       document.cookie = `${LOCALE_COOKIE}=${locale};path=/;max-age=${maxAge};SameSite=Lax`;
@@ -77,12 +93,14 @@ export function SignupApplyForm({
         name: displayName || undefined,
         locale,
         countryCode,
+        homeFloor,
         website: (form.get("website") as string) || undefined,
       });
 
       if (!("ok" in check) || !check.ok) {
         const msg = "error" in check && check.error ? check.error : "가입 정보를 확인할 수 없습니다.";
         setError(msg);
+        if (msg.includes("입주 중")) setFloorTaken(true);
         return;
       }
 
@@ -95,6 +113,7 @@ export function SignupApplyForm({
         name: displayName || undefined,
         locale,
         countryCode,
+        homeFloor,
       };
 
       if (needsHumanVerify) {
@@ -117,6 +136,7 @@ export function SignupApplyForm({
 
       if (result.error) {
         setError(result.error);
+        if (result.error.includes("입주 중")) setFloorTaken(true);
         return;
       }
 
@@ -143,7 +163,9 @@ export function SignupApplyForm({
           </div>
           <SignupStepIndicator step={1} />
           <CardTitle className="text-2xl">{BRAND.name} 회원가입</CardTitle>
-          <p className="text-sm text-muted-foreground">가입 정보를 입력한 뒤 다음 단계로 진행합니다.</p>
+          <p className="text-sm text-muted-foreground">
+            가입 정보와 아파트 입주 층을 함께 선택합니다.
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-3">
@@ -175,7 +197,7 @@ export function SignupApplyForm({
             />
             <div className="grid grid-cols-2 gap-2">
               <label className="space-y-1">
-                <span className="text-xs text-muted-foreground">국가</span>
+                <span className="text-xs text-muted-foreground">국가 · APT</span>
                 <select
                   value={countryCode}
                   onChange={(e) => setCountryCode(e.target.value)}
@@ -203,6 +225,19 @@ export function SignupApplyForm({
                 </select>
               </label>
             </div>
+
+            <div className="rounded-xl border border-folk-terracotta/30 bg-folk-terracotta/5 p-3">
+              <p className="text-xs font-bold text-folk-cobalt mb-2">아파트 입주 층 (빈 층만)</p>
+              <AptFloorPicker
+                countryCode={countryCode}
+                countryLabel={countryLabel}
+                floor={homeFloor}
+                onFloorChange={handleFloorChange}
+                onTakenChange={setFloorTaken}
+                compact
+              />
+            </div>
+
             <input
               type="text"
               name="website"
@@ -237,7 +272,7 @@ export function SignupApplyForm({
               에 동의한 것으로 간주됩니다.
             </p>
 
-            <Button type="submit" className="w-full rounded-xl" disabled={loading}>
+            <Button type="submit" className="w-full rounded-xl" disabled={loading || floorTaken}>
               {loading
                 ? "확인 중..."
                 : needsHumanVerify
@@ -253,7 +288,7 @@ export function SignupApplyForm({
                   <span className="w-full border-t border-border" />
                 </div>
                 <div className="relative flex justify-center text-xs text-muted-foreground bg-card px-2">
-                  또는 소셜로 가입
+                  또는 소셜로 가입 (층은 입주 단계에서 선택)
                 </div>
               </div>
               <div className="space-y-2">

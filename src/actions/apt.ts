@@ -26,6 +26,8 @@ export type AptProfileDto = {
   regionLabel: string | null;
   homeFloor: number;
   moveInCompleted: boolean;
+  /** 회원가입 시 층을 미리 선택해 AptProfile이 생성된 경우 */
+  floorPresetFromSignup: boolean;
   homePublic: boolean;
   floorPlans: Record<number, AptRoom[]>;
   furniture: FurnitureItem[];
@@ -82,6 +84,7 @@ function rowToDto(
     regionLabel: row.regionLabel,
     homeFloor,
     moveInCompleted: !!row.moveInCompletedAt,
+    floorPresetFromSignup: false,
     homePublic: row.homePublic ?? true,
     floorPlans,
     furniture: parseJson(row.furniture, defaultFurnitureForPlan(rooms)),
@@ -108,6 +111,7 @@ export async function getAptProfile(): Promise<AptProfileDto | null> {
     regionLabel: null,
     homeFloor: APT_DEFAULT_FLOOR,
     moveInCompleted: false,
+    floorPresetFromSignup: false,
     homePublic: true,
     floorPlans: plans,
     furniture: defaultFurnitureForPlan(rooms),
@@ -122,7 +126,11 @@ export async function getAptProfile(): Promise<AptProfileDto | null> {
   try {
     const row = await db.aptProfile.findUnique({ where: { userId: user.id } });
     if (!row) return fallback;
-    return rowToDto(row, user);
+    const dto = rowToDto(row, user);
+    return {
+      ...dto,
+      floorPresetFromSignup: !row.moveInCompletedAt,
+    };
   } catch {
     return fallback;
   }
@@ -134,6 +142,11 @@ export async function completeAptMoveIn(payload: MoveInPayload) {
 
   const housingType = "apartment";
   const floor = housingType === "apartment" ? clampFloor(payload.homeFloor ?? APT_DEFAULT_FLOOR) : 0;
+
+  if (await isFloorOccupied(payload.countryCode, floor, user.id)) {
+    return { error: `${floor}층은 이미 입주 중입니다. 다른 층을 선택해 주세요.` };
+  }
+
   const plans = defaultPlans();
   const rooms = getRoomsForFloor(plans, floor || APT_DEFAULT_FLOOR);
   const furniture = defaultFurnitureForPlan(rooms);
@@ -284,11 +297,68 @@ export async function saveAptHouseBuild(state: HouseBuildState) {
 
 export type CountryAptPreview = {
   userId: string;
+  username: string;
   displayName: string;
   homeFloor: number;
   floorPlans: Record<number, AptRoom[]>;
   bondeeRoom: BondeeRoomState;
 };
+
+export type FloorOccupant = {
+  userId: string;
+  username: string;
+  displayName: string;
+  homeFloor: number;
+};
+
+/** 국가별 층 점유 현황 (입주 완료 유저) */
+export async function getCountryFloorOccupants(countryCode: string): Promise<FloorOccupant[]> {
+  const rows = await db.aptProfile.findMany({
+    where: {
+      moveInCompletedAt: { not: null },
+      housingType: "apartment",
+      countryCode: countryCode.toUpperCase(),
+    },
+    include: {
+      user: { select: { id: true, name: true, username: true } },
+    },
+  });
+
+  return rows.map((row) => ({
+    userId: row.user.id,
+    username: row.user.username,
+    displayName: row.user.name ?? row.user.username,
+    homeFloor: row.homeFloor ?? APT_DEFAULT_FLOOR,
+  }));
+}
+
+export async function getOccupiedFloorsForCountry(countryCode: string): Promise<number[]> {
+  const occupants = await getCountryFloorOccupants(countryCode);
+  return occupants.map((o) => o.homeFloor);
+}
+
+async function isFloorOccupied(countryCode: string, floor: number, excludeUserId?: string) {
+  const existing = await db.aptProfile.findFirst({
+    where: {
+      moveInCompletedAt: { not: null },
+      housingType: "apartment",
+      countryCode: countryCode.toUpperCase(),
+      homeFloor: floor,
+      ...(excludeUserId ? { userId: { not: excludeUserId } } : {}),
+    },
+    select: { userId: true },
+  });
+  return !!existing;
+}
+
+/** 회원가입·입주 시 층 가용 여부 */
+export async function checkFloorAvailableForSignup(countryCode: string, floor: number) {
+  const clamped = clampFloor(floor);
+  if (await isFloorOccupied(countryCode, clamped)) {
+    return { ok: false as const, error: `${clamped}층은 이미 입주 중입니다. 다른 층을 선택해 주세요.` };
+  }
+  return { ok: true as const, floor: clamped };
+}
 
 export async function listCountryApartments(countryCode: string): Promise<CountryAptPreview[]> {
   const user = await getCachedCurrentUser();
@@ -319,6 +389,7 @@ export async function listCountryApartments(countryCode: string): Promise<Countr
 
     return {
       userId: row.user.id,
+      username: row.user.username,
       displayName: row.user.name ?? row.user.username,
       homeFloor: row.homeFloor ?? APT_DEFAULT_FLOOR,
       floorPlans: parseJson<Record<number, AptRoom[]>>(row.floorPlans, defaultPlans()),

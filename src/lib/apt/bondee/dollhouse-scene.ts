@@ -1,7 +1,7 @@
 "use client";
 
 import * as THREE from "three";
-import { APT_DEFAULT_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
+import { APT_DEFAULT_FLOOR, APT_LOBBY_FLOOR, APT_PENTHOUSE_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
 import { getRoomsForFloor } from "@/lib/apt/floor-plan-store";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import { ChibiAvatarMesh } from "./chibi-avatar";
@@ -13,6 +13,8 @@ import {
   buildDollhouseShell,
   buildDollhouseUnit,
   buildElevatorShaft,
+  buildLobbyEntrance,
+  buildPenthouseCap,
   disposeGroup,
 } from "./dollhouse-meshes";
 import type { BondeeHomeState } from "./types";
@@ -20,13 +22,23 @@ import type { FurnitureItem, ResidentAgent, SimulationSnapshot } from "@/lib/apt
 
 export { APT_DEFAULT_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
 
-const VISIBLE_FLOORS = 7;
-const FRUSTUM_DEFAULT = 5.2;
+const VISIBLE_FLOORS = 9;
+const FRUSTUM_DEFAULT = 5.8;
+const ELEV_STEP_SEC = 0.07;
+
+export type FloorResident = {
+  userId: string;
+  username: string;
+  displayName: string;
+  homeFloor: number;
+};
 
 export type DollhouseCallbacks = {
   onFloorClick?: (floor: number) => void;
   onRoomClick?: (roomId: string, multi: boolean) => void;
   onSimulationChange?: (snapshot: SimulationSnapshot) => void;
+  onFloorScroll?: (floor: number) => void;
+  onResidentClick?: (floor: number, resident: FloorResident) => void;
 };
 
 export type AptBuildingCallbacks = DollhouseCallbacks;
@@ -54,6 +66,10 @@ export class DollhouseBuildingScene {
   private elevCarY = 0;
   private targetElevY = 0;
   private moving = false;
+  private animTargetFloor: number | null = null;
+  private elevStepAcc = 0;
+  private floorResidents: Map<number, FloorResident> = new Map();
+  private homeFloor: number | null = null;
 
   private floorPlans: Record<number, AptRoom[]> = {};
   private bondeeRoom: BondeeHomeState | null = null;
@@ -115,8 +131,8 @@ export class DollhouseBuildingScene {
     const half = Math.floor(VISIBLE_FLOORS / 2);
     let start = this.currentFloor - half;
     let end = start + VISIBLE_FLOORS - 1;
-    if (start < 1) {
-      start = 1;
+    if (start < APT_LOBBY_FLOOR) {
+      start = APT_LOBBY_FLOOR;
       end = VISIBLE_FLOORS;
     }
     if (end > APT_TOTAL_FLOORS) {
@@ -159,6 +175,7 @@ export class DollhouseBuildingScene {
             : undefined;
 
       const planRooms = getRoomsForFloor(this.floorPlans, f);
+      const resident = this.floorResidents.get(f);
       const unit = buildDollhouseUnit({
         floorIndex: f,
         active,
@@ -166,6 +183,8 @@ export class DollhouseBuildingScene {
         room,
         rooms: planRooms,
         seed: f * 31 + (this.visitHomeFloor ?? 0),
+        resident,
+        isHomeFloor: this.homeFloor === f,
       });
       unit.position.y = this.floorLocalY(f, start);
       this.unitsRoot.add(unit);
@@ -181,6 +200,19 @@ export class DollhouseBuildingScene {
     }
 
     this.shellRoot.add(buildDollhouseShell(count));
+
+    if (start === APT_LOBBY_FLOOR) {
+      const lobby = buildLobbyEntrance();
+      lobby.position.y = -DOLLHOUSE_FLOOR_H * 0.92;
+      this.shellRoot.add(lobby);
+    }
+
+    if (end >= APT_PENTHOUSE_FLOOR) {
+      const penthouse = buildPenthouseCap();
+      penthouse.position.y = count * DOLLHOUSE_FLOOR_H + DOLLHOUSE_FLOOR_H * 0.15;
+      this.shellRoot.add(penthouse);
+    }
+
     this.elevatorRoot = buildElevatorShaft(APT_TOTAL_FLOORS, start, count);
     this.shellRoot.add(this.elevatorRoot);
 
@@ -201,6 +233,20 @@ export class DollhouseBuildingScene {
 
   setCallbacks(cb: DollhouseCallbacks) {
     this.callbacks = cb;
+  }
+
+  setFloorResidents(residents: FloorResident[], homeFloor: number | null) {
+    this.homeFloor = homeFloor;
+    this.floorResidents = new Map(residents.map((r) => [r.homeFloor, r]));
+    this.rebuildBuilding();
+  }
+
+  private applyFloor(floor: number) {
+    const clamped = Math.min(APT_TOTAL_FLOORS, Math.max(APT_LOBBY_FLOOR, floor));
+    if (clamped === this.currentFloor) return;
+    this.currentFloor = clamped;
+    this.rebuildBuilding();
+    this.snapScroll();
   }
 
   setBondeeRoom(room: BondeeHomeState | null) {
@@ -232,15 +278,25 @@ export class DollhouseBuildingScene {
   }
 
   setFloor(floor: number) {
-    const clamped = Math.min(APT_TOTAL_FLOORS, Math.max(1, floor));
+    const clamped = Math.min(APT_TOTAL_FLOORS, Math.max(APT_LOBBY_FLOOR, floor));
     if (clamped === this.currentFloor) return;
-    this.currentFloor = clamped;
+
+    if (Math.abs(clamped - this.currentFloor) <= 1) {
+      this.moving = true;
+      this.applyFloor(clamped);
+      window.setTimeout(() => {
+        this.moving = false;
+      }, 480);
+      return;
+    }
+
     this.moving = true;
-    this.rebuildBuilding();
-    this.snapScroll();
-    window.setTimeout(() => {
-      this.moving = false;
-    }, 480);
+    this.animTargetFloor = clamped;
+  }
+
+  cancelFloorAnimation() {
+    this.animTargetFloor = null;
+    this.moving = false;
   }
 
   setZoom(delta: number) {
@@ -304,7 +360,17 @@ export class DollhouseBuildingScene {
 
   private onWheel = (e: WheelEvent) => {
     e.preventDefault();
-    this.setZoom(e.deltaY > 0 ? 1 : -1);
+    if (e.ctrlKey || e.metaKey) {
+      this.setZoom(e.deltaY > 0 ? 1 : -1);
+      return;
+    }
+    const steps = Math.max(1, Math.min(8, Math.round(Math.abs(e.deltaY) / 60)));
+    const dir = e.deltaY > 0 ? -1 : 1;
+    const next = Math.min(
+      APT_TOTAL_FLOORS,
+      Math.max(APT_LOBBY_FLOOR, this.currentFloor + dir * steps)
+    );
+    this.callbacks.onFloorScroll?.(next);
   };
 
   private pick(e: PointerEvent) {
@@ -317,6 +383,13 @@ export class DollhouseBuildingScene {
     for (const hit of hits) {
       let obj: THREE.Object3D | null = hit.object;
       while (obj) {
+        if (obj.userData.resident && typeof obj.userData.floor === "number") {
+          this.callbacks.onResidentClick?.(
+            obj.userData.floor as number,
+            obj.userData.resident as FloorResident
+          );
+          return;
+        }
         if (typeof obj.userData.floor === "number") {
           this.callbacks.onFloorClick?.(obj.userData.floor as number);
           return;
@@ -343,13 +416,28 @@ export class DollhouseBuildingScene {
   private loop = () => {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.loop);
-    this.clock.getDelta();
+    const delta = this.clock.getDelta();
+
+    if (this.animTargetFloor !== null && this.animTargetFloor !== this.currentFloor) {
+      this.elevStepAcc += delta;
+      const target = this.animTargetFloor;
+      while (this.elevStepAcc >= ELEV_STEP_SEC && target !== this.currentFloor) {
+        this.elevStepAcc -= ELEV_STEP_SEC;
+        const dir = Math.sign(target - this.currentFloor);
+        this.applyFloor(this.currentFloor + dir);
+        if (this.currentFloor === target) {
+          this.animTargetFloor = null;
+          this.moving = false;
+        }
+      }
+    }
 
     this.scrollY += (this.targetScrollY - this.scrollY) * 0.1;
     this.building.position.y = this.scrollY;
 
     this.targetElevY = this.floorLocalY(this.currentFloor, this.visibleRange().start);
-    this.elevCarY += (this.targetElevY - this.elevCarY) * (this.moving ? 0.14 : 0.22);
+    const elevSpeed = this.moving ? 0.18 : 0.24;
+    this.elevCarY += (this.targetElevY - this.elevCarY) * elevSpeed;
     this.updateElevatorCar();
 
     this.renderer.render(this.scene, this.camera);

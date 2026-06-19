@@ -21,6 +21,8 @@ export default async function AptMoveInPage() {
     <AptMoveInClient
       username={user.name ?? user.username}
       countryCode={user.countryCode ?? "KR"}
+      initialHomeFloor={profile?.homeFloor}
+      presetFromSignup={!!profile?.floorPresetFromSignup}
     />
   );
 }
