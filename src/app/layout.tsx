@@ -7,6 +7,7 @@ import { LocaleProvider } from "@/components/providers/locale-provider";
 import { ShellRouter } from "@/components/layout/shell-router";
 import { getRequestI18n } from "@/lib/i18n/server";
 import { resolveClientPlatform, CLIENT_PLATFORM_COOKIE } from "@/lib/client-platform";
+import { isStudioHostname, resolveRequestHostname } from "@/studio/lib/host";
 import { RightPanelAsync } from "@/components/layout/right-panel-async";
 import { RightPanelSkeleton } from "@/components/layout/right-panel-content";
 import { BRAND } from "@/lib/brand";
@@ -60,6 +61,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     cookie: cookieStore.get(CLIENT_PLATFORM_COOKIE)?.value,
     host: headerStore.get("host") ?? undefined,
   });
+  const isStudioHost = isStudioHostname(
+    resolveRequestHostname(headerStore.get("x-forwarded-host") ?? headerStore.get("host"))
+  );
 
   return (
     <html
@@ -74,6 +78,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <AppProviders>
                 <ShellRouter
                   initialPlatform={initialPlatform}
+                  isStudioHost={isStudioHost}
                   rightPanel={
                     <Suspense fallback={<RightPanelSkeleton />}>
                       <RightPanelAsync />

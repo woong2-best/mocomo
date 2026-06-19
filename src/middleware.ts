@@ -9,6 +9,7 @@ import {
   getMocomoSignInUrl,
   getStudioBaseUrl,
   isStudioHostname,
+  resolveRequestHostname,
   studioInternalPath,
 } from "@/studio/lib/host";
 import { NextResponse } from "next/server";
@@ -105,7 +106,10 @@ export default edgeAuth((req) => {
   const clientRedirect = applyAppClientRedirect(req);
   if (clientRedirect) return clientRedirect;
 
-  const host = req.nextUrl.hostname;
+  const host = resolveRequestHostname(
+    req.headers.get("x-forwarded-host") ?? req.headers.get("host"),
+    req.nextUrl.hostname
+  );
   const { pathname } = req.nextUrl;
 
   if (isStudioHostname(host)) {
@@ -117,7 +121,9 @@ export default edgeAuth((req) => {
     ) {
       const url = req.nextUrl.clone();
       url.pathname = studioInternalPath(pathname);
-      return NextResponse.rewrite(url);
+      const res = NextResponse.rewrite(url);
+      res.headers.set("x-studio-host", "1");
+      return res;
     }
   }
 

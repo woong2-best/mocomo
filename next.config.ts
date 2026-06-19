@@ -1,10 +1,38 @@
 import type { NextConfig } from "next";
 import { SECURITY_HEADERS } from "./src/lib/security-headers";
 
+const STUDIO_REWRITE_HOSTS = [
+  process.env.NEXT_PUBLIC_STUDIO_HOST?.trim(),
+  "studio.mocomo.net",
+  "studio.mocomo.com",
+  "studio.localhost",
+  "studio-staging.mocomo.com",
+].filter((h): h is string => Boolean(h));
+
+function studioHostRewrites() {
+  return STUDIO_REWRITE_HOSTS.flatMap((host) => [
+    {
+      source: "/",
+      has: [{ type: "host" as const, value: host }],
+      destination: "/studio",
+    },
+    {
+      source: "/:path((?!studio|api|auth|_next).*)",
+      has: [{ type: "host" as const, value: host }],
+      destination: "/studio/:path",
+    },
+  ]);
+}
+
 const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
   transpilePackages: ["@mediapipe/tasks-vision", "@pixiv/three-vrm", "three"],
+  async rewrites() {
+    return {
+      beforeFiles: studioHostRewrites(),
+    };
+  },
   async redirects() {
     return [
       { source: "/market", destination: "/support?tab=emoticons", permanent: true },

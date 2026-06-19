@@ -6,6 +6,15 @@ export function getStudioHostnames(): string[] {
   return DEFAULT_STUDIO_HOSTS;
 }
 
+/** Edge middleware — Host / X-Forwarded-Host 기준 (Vercel 커스텀 도메인) */
+export function resolveRequestHostname(
+  hostHeader: string | null | undefined,
+  fallback?: string | null
+): string {
+  const raw = hostHeader ?? fallback ?? "";
+  return raw.split(":")[0]?.toLowerCase() ?? "";
+}
+
 export function isStudioHostname(host: string | null | undefined): boolean {
   if (!host) return false;
   const bare = host.split(":")[0]?.toLowerCase() ?? "";
