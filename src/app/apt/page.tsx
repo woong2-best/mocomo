@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { getAptProfile } from "@/actions/apt";
+import { getBondeeRoom } from "@/actions/apt-bondee";
+import { DEFAULT_BONDEE_ROOM } from "@/lib/apt/bondee/types";
 import { AptHubClient } from "@/components/apt/apt-hub-client";
 
 export const metadata = {
@@ -19,9 +21,15 @@ export default async function AptPage() {
       redirect("/apt/move-in");
     }
 
-    return <AptHubClient initialProfile={profile} isLoggedIn={!!user} />;
+    const bondeeRoom = user ? await getBondeeRoom() : DEFAULT_BONDEE_ROOM;
+
+    return (
+      <AptHubClient initialProfile={profile} bondeeRoom={bondeeRoom} isLoggedIn={!!user} />
+    );
   } catch (e) {
     console.error("[AptPage]", e);
-    return <AptHubClient initialProfile={null} isLoggedIn={false} />;
+    return (
+      <AptHubClient initialProfile={null} bondeeRoom={DEFAULT_BONDEE_ROOM} isLoggedIn={false} />
+    );
   }
 }
