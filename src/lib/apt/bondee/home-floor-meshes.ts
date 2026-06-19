@@ -157,6 +157,8 @@ export type HomeFloorBuildOptions = {
   furnitureMode?: "full" | "instanced" | "none";
   /** Only build shells for these rooms (frustum / proximity cull) */
   visibleRoomIds?: Set<string> | null;
+  /** default = transparent Bondee walls, dollhouse-open = opaque + front cutaway */
+  wallStyle?: "default" | "dollhouse-open";
 };
 
 const ROOM_PRIORITY: Record<string, number> = {
@@ -194,7 +196,8 @@ function shouldShowRoom(roomId: string, visibleRoomIds?: Set<string> | null) {
 
 /** Room shells only — floors, walls, labels (no furniture) */
 export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | "furnitureMode">): THREE.Group {
-  const { rooms, scale = 1, wallHeight = WALL_H, highlightRoomId, visibleRoomIds } = opts;
+  const { rooms, scale = 1, wallHeight = WALL_H, highlightRoomId, visibleRoomIds, wallStyle = "default" } = opts;
+  const dollhouse = wallStyle === "dollhouse-open";
   const root = new THREE.Group();
   root.name = "home-shell";
 
@@ -239,7 +242,7 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
 
     const label = buildRoomLabel(ROOM_LABELS[room.type] ?? room.label ?? room.type, accent);
     label.position.set(cx - w / 2 + 0.28, 0, cz - d / 2 + 0.18);
-    roomGroup.add(label);
+    if (!dollhouse) roomGroup.add(label);
 
     const sides: { side: "n" | "s" | "e" | "w"; wx: number; wz: number; px: number; pz: number }[] = [
       { side: "n", wx: w, wz: WALL_THICK, px: cx, pz: cz - d / 2 + WALL_THICK / 2 },
@@ -249,22 +252,40 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
     ];
 
     for (const s of sides) {
+      if (dollhouse && s.side === "s") continue;
+
       const exterior = isExteriorEdge(room, s.side) || room.type === "balcony";
       const neighbor = hasNeighbor(room, rooms, s.side);
       if (!neighbor || exterior) {
         const h = exterior ? wallHeight * 1.1 : wallHeight * 0.65;
-        const wallGroup = buildLowWall(s.wx, h, s.wz, exterior);
-        wallGroup.position.set(s.px, 0, s.pz);
-        roomGroup.add(wallGroup);
+        if (dollhouse) {
+          const wallMesh = new THREE.Mesh(
+            new THREE.BoxGeometry(s.wx, h, s.wz),
+            bondeeMat(BONDEE_PALETTE.wallWhite)
+          );
+          wallMesh.position.set(s.px, h / 2 + 0.05, s.pz);
+          roomGroup.add(wallMesh);
+        } else {
+          const wallGroup = buildLowWall(s.wx, h, s.wz, exterior);
+          wallGroup.position.set(s.px, 0, s.pz);
+          roomGroup.add(wallGroup);
 
-        if (exterior && room.type !== "balcony") {
-          const win = buildRoundWindow(0.07);
-          win.position.set(s.px, 0, s.pz + (s.side === "n" ? 0.04 : s.side === "s" ? -0.04 : 0));
-          if (s.side === "w" || s.side === "e") {
-            win.rotation.y = Math.PI / 2;
+          if (exterior && room.type !== "balcony") {
+            const win = buildRoundWindow(0.07);
+            win.position.set(s.px, 0, s.pz + (s.side === "n" ? 0.04 : s.side === "s" ? -0.04 : 0));
+            if (s.side === "w" || s.side === "e") {
+              win.rotation.y = Math.PI / 2;
+            }
+            roomGroup.add(win);
           }
-          roomGroup.add(win);
         }
+      } else if (dollhouse) {
+        const divider = new THREE.Mesh(
+          new THREE.BoxGeometry(s.wx, wallHeight * 0.65, s.wz),
+          bondeeMat(BONDEE_PALETTE.wallWhite)
+        );
+        divider.position.set(s.px, wallHeight * 0.35 + 0.05, s.pz);
+        roomGroup.add(divider);
       } else {
         const divider = new THREE.Mesh(
           new THREE.BoxGeometry(s.wx, wallHeight * 0.35, s.wz),
@@ -273,6 +294,15 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
         divider.position.set(s.px, wallHeight * 0.2 + 0.05, s.pz);
         roomGroup.add(divider);
       }
+    }
+
+    if (dollhouse) {
+      const ceil = new THREE.Mesh(
+        new THREE.BoxGeometry(w - 0.02, 0.04, d - 0.02),
+        bondeeMat(0xffffff)
+      );
+      ceil.position.set(cx, wallHeight * 1.05 + 0.05, cz);
+      roomGroup.add(ceil);
     }
 
     if (room.type === "balcony") {
@@ -352,12 +382,13 @@ export function buildHomeFloorGroup(opts: HomeFloorBuildOptions): THREE.Group {
     selectedItemId,
     furnitureMode = "full",
     visibleRoomIds,
+    wallStyle = "default",
   } = opts;
 
   const root = new THREE.Group();
   root.name = "home-floor";
 
-  const shell = buildHomeShellGroup({ rooms, scale: 1, wallHeight, highlightRoomId, visibleRoomIds });
+  const shell = buildHomeShellGroup({ rooms, scale: 1, wallHeight, highlightRoomId, visibleRoomIds, wallStyle });
   root.add(shell);
 
   if (furnitureMode === "none") {

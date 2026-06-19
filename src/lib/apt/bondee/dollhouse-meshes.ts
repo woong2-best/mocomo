@@ -107,7 +107,14 @@ export function buildUnitFurniture(
 ): THREE.Group {
   const migrated = migrateItems(items, rooms);
   const s = fitScaleToBox(DOLLHOUSE_UNIT_W * 0.88, DOLLHOUSE_UNIT_D * 0.88);
-  return buildHomeFloorGroup({ rooms, items: migrated, scale: s, wallHeight: 0.22, furnitureMode });
+  return buildHomeFloorGroup({
+    rooms,
+    items: migrated,
+    scale: s,
+    wallHeight: 0.22,
+    furnitureMode,
+    wallStyle: "dollhouse-open",
+  });
 }
 
 export type DollhouseUnitOptions = {
@@ -119,31 +126,29 @@ export type DollhouseUnitOptions = {
   seed?: number;
   resident?: { userId: string; username: string; displayName: string; homeFloor: number };
   isHomeFloor?: boolean;
-  /** full = furniture + decor, minimal = shell only (neighbor floors) */
-  detail?: "full" | "minimal";
+  /** full = furniture + decor, minimal = legacy alias, opaque = solid white block */
+  detail?: "full" | "minimal" | "opaque";
 };
 
-/** Lightweight shell — no furniture (neighbor / background floors) */
-function buildMinimalDollhouseUnit(opts: DollhouseUnitOptions): THREE.Group {
+/** Solid white block — neighbor floors & non-active units (no see-through) */
+function buildOpaqueNeighborUnit(opts: DollhouseUnitOptions): THREE.Group {
   const { floorIndex, active, resident, isHomeFloor } = opts;
   const g = new THREE.Group();
   g.userData.floor = floorIndex;
 
-  const floorColor = floorIndex % 2 === 0 ? PASTEL.floorWood : PASTEL.floorWoodAlt;
-  addMesh(g, roundedBox(DOLLHOUSE_UNIT_W, 0.08, DOLLHOUSE_UNIT_D, 0.04), pastelMat(floorColor), 0, 0.04, 0);
-  const wallColor = WALL_COLORS[floorIndex % WALL_COLORS.length];
+  const white = pastelMat(0xffffff);
   addMesh(
     g,
-    roundedBox(DOLLHOUSE_UNIT_W, DOLLHOUSE_FLOOR_H * 0.88, 0.07, 0.03),
-    pastelMat(wallColor),
+    roundedBox(DOLLHOUSE_UNIT_W, DOLLHOUSE_FLOOR_H * 0.96, DOLLHOUSE_UNIT_D, 0.04),
+    white,
     0,
-    DOLLHOUSE_FLOOR_H * 0.46,
-    -DOLLHOUSE_UNIT_D / 2 + 0.04
+    DOLLHOUSE_FLOOR_H * 0.48,
+    0
   );
 
   const badge = new THREE.Mesh(
     roundedBox(0.55, 0.28, 0.06, 0.04),
-    pastelMat(active ? PASTEL.highlight : 0xffffff)
+    pastelMat(active ? PASTEL.highlight : 0xf5f5f5)
   );
   badge.position.set(-DOLLHOUSE_UNIT_W / 2 + 0.45, DOLLHOUSE_FLOOR_H * 0.78, DOLLHOUSE_UNIT_D / 2 - 0.05);
   g.add(badge);
@@ -172,8 +177,8 @@ function buildMinimalDollhouseUnit(opts: DollhouseUnitOptions): THREE.Group {
 
 /** Single apartment unit — open front cross-section with visible furniture */
 export function buildDollhouseUnit(opts: DollhouseUnitOptions): THREE.Group {
-  const detail = opts.detail ?? (opts.active || opts.visited ? "full" : "minimal");
-  if (detail === "minimal") return buildMinimalDollhouseUnit(opts);
+  const detail = opts.detail ?? (opts.active ? "full" : "opaque");
+  if (detail === "opaque" || detail === "minimal") return buildOpaqueNeighborUnit(opts);
 
   const { floorIndex, active, visited, room, rooms, seed = floorIndex * 17, resident, isHomeFloor } = opts;
   const g = new THREE.Group();
@@ -249,11 +254,11 @@ export function buildDollhouseUnit(opts: DollhouseUnitOptions): THREE.Group {
     DOLLHOUSE_UNIT_D / 2 - 0.03
   );
 
-  // Ceiling slab
+  // Ceiling slab — opaque so upper floors don't show through
   addMesh(
     g,
     roundedBox(DOLLHOUSE_UNIT_W + 0.04, 0.05, DOLLHOUSE_UNIT_D + 0.04, 0.02),
-    pastelMat(0xffffff, { transparent: true, opacity: 0.55 }),
+    pastelMat(0xffffff),
     0,
     DOLLHOUSE_FLOOR_H * 0.92,
     0

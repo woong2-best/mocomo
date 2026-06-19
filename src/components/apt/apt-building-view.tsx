@@ -214,7 +214,7 @@ export const AptBuildingView = memo(function AptBuildingView({
     const el = mountRef.current;
     if (!el) return;
 
-    const scene = new DollhouseBuildingScene(el);
+    const scene = new DollhouseBuildingScene(el, homeFloor);
     scene.setCallbacks({
       onFloorClick: (f) => goToFloorRef.current(f),
       onFloorScroll: (f) => goToFloorRef.current(f),
@@ -556,6 +556,7 @@ export const AptBuildingView = memo(function AptBuildingView({
               onClick={() => {
                 setViewCountry(homeCountry);
                 setBrowseTarget(null);
+                goToFloor(homeFloor);
               }}
               className="flex w-full items-center justify-center gap-1 rounded-lg border border-neutral-200 bg-white py-1.5 text-[9px] font-bold text-folk-cobalt hover:bg-neutral-50"
             >

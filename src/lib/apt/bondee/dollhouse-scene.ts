@@ -100,8 +100,9 @@ export class DollhouseBuildingScene {
   private simEnabled = false;
   private frustum = FRUSTUM_DEFAULT;
 
-  constructor(mount: HTMLElement) {
+  constructor(mount: HTMLElement, initialFloor = APT_DEFAULT_FLOOR) {
     this.mount = mount;
+    this.currentFloor = Math.min(APT_TOTAL_FLOORS, Math.max(APT_LOBBY_FLOOR, initialFloor));
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(PASTEL.bg);
@@ -174,20 +175,24 @@ export class DollhouseBuildingScene {
 
   private buildUnitForFloor(f: number, start: number) {
     const active = f === this.currentFloor;
-    const visited = this.visitHomeFloor === f;
+    const viewingVisit = this.visitHomeFloor != null;
+    const revealInterior = active && (!viewingVisit || f === this.visitHomeFloor);
+
     const room =
-      active && this.bondeeRoom && !this.visitHomeFloor
-        ? this.bondeeRoom
-        : visited && this.visitRoom
-          ? this.visitRoom
+      revealInterior && viewingVisit && this.visitRoom
+        ? this.visitRoom
+        : revealInterior && this.bondeeRoom
+          ? this.bondeeRoom
           : undefined;
+
     const planRooms = getRoomsForFloor(this.floorPlans, f);
     const resident = this.floorResidents.get(f);
-    const detail = active || visited ? "full" : "minimal";
+    const detail = revealInterior ? "full" : "opaque";
+
     const unit = buildDollhouseUnit({
       floorIndex: f,
       active,
-      visited,
+      visited: revealInterior,
       room,
       rooms: planRooms,
       seed: f * 31 + (this.visitHomeFloor ?? 0),
