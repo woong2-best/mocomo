@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { auth } from "@/lib/auth";
-import { getSupportDashboard } from "@/actions/support";
+import { getSupportDashboard, getSupportRankingWithAvatars } from "@/actions/support";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { OreTierBadge } from "@/components/support/ore-tier-button";
@@ -12,7 +12,9 @@ import { SupportEmoticonsPanel } from "@/components/support/support-emoticons-pa
 import { SupportStoragePanel } from "@/components/support/support-storage-panel";
 import { SupportGiftsPanel } from "@/components/support/support-gifts-panel";
 import { MarketDbBannerAsync } from "@/components/market/market-db-banner-async";
-import { Gem, Send, Inbox, Trophy, Sparkles, Archive, Gift } from "lucide-react";
+import { SupportRankingPodium } from "@/components/support/support-ranking-podium";
+import { SupportTrophyIcon } from "@/components/icons/support-trophy-icon";
+import { Send, Inbox, Sparkles, Archive, Gift, Gem } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { SupportTierLevel } from "@prisma/client";
@@ -42,11 +44,11 @@ export default async function SupportPage({
     : "sent";
   const priceFilter = params.price;
 
-  const dashboard =
-    tab === "sent" || tab === "received" || tab === "tiers"
-      ? await getSupportDashboard()
-      : null;
-  if ((tab === "sent" || tab === "received" || tab === "tiers") && !dashboard) {
+  const [dashboard, rankingEntries] = await Promise.all([
+    getSupportDashboard(),
+    getSupportRankingWithAvatars(20),
+  ]);
+  if (!dashboard) {
     redirect("/auth/signin");
   }
 
@@ -60,10 +62,12 @@ export default async function SupportPage({
   ] as const;
 
   return (
-    <div className="p-4 lg:p-6 max-w-2xl mx-auto space-y-6">
+    <div className="p-4 lg:p-6 max-w-3xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Gem className="h-7 w-7 text-pink-500" />
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-folk-cobalt/15 bg-folk-cream text-folk-cobalt">
+            <SupportTrophyIcon className="h-5 w-5" />
+          </span>
           후원
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -71,19 +75,12 @@ export default async function SupportPage({
         </p>
       </div>
 
+      <SupportRankingPodium entries={rankingEntries} />
+
       {(tab === "emoticons" || tab === "storage") && (
         <Suspense fallback={null}>
           <MarketDbBannerAsync />
         </Suspense>
-      )}
-
-      {dashboard?.platform && (
-        <PlatformSupportCard
-          sentTotal={dashboard.platform.sentTotal}
-          sentTier={dashboard.platform.sentTier}
-          receivedTotal={dashboard.platform.receivedTotal}
-          receivedTier={dashboard.platform.receivedTier}
-        />
       )}
 
       <nav className="flex border-b border-border/60 gap-1 overflow-x-auto scrollbar-none">
@@ -215,43 +212,23 @@ export default async function SupportPage({
       )}
 
       {tab === "tiers" && dashboard && (
-        <div className="space-y-4">
-          <Card className="rounded-2xl">
-            <CardHeader>
-              <CardTitle className="text-base">광석 등급표 (19단계)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SupportTierTable />
-            </CardContent>
-          </Card>
+        <Card className="rounded-2xl">
+          <CardHeader>
+            <CardTitle className="text-base">광석 등급표 (19단계)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SupportTierTable />
+          </CardContent>
+        </Card>
+      )}
 
-          <Card className="rounded-2xl">
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Trophy className="h-5 w-5" />
-                후원 랭킹 TOP 10
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {dashboard.ranking.map((r) => (
-                <div key={r.rank} className="flex items-center gap-3 text-sm">
-                  <span className="font-bold w-6 text-muted-foreground">#{r.rank}</span>
-                  {r.user ? (
-                    <Link href={`/u/${r.user.username}`} className="flex-1 hover:underline font-medium">
-                      @{r.user.username}
-                    </Link>
-                  ) : (
-                    <span className="flex-1">—</span>
-                  )}
-                  <span>{r.total?.toLocaleString()}원</span>
-                </div>
-              ))}
-              <Link href="/rankings" className="text-sm text-primary block pt-2 hover:underline">
-                전체 랭킹 보기 →
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
+      {dashboard?.platform && (
+        <PlatformSupportCard
+          sentTotal={dashboard.platform.sentTotal}
+          sentTier={dashboard.platform.sentTier}
+          receivedTotal={dashboard.platform.receivedTotal}
+          receivedTier={dashboard.platform.receivedTier}
+        />
       )}
     </div>
   );

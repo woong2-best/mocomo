@@ -2,9 +2,8 @@
 import type { SupportTierLevel } from "@prisma/client";
 import { FALLBACK_SIDEBAR_ADS } from "@/lib/default-ads";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, Tv, Megaphone } from "lucide-react";
+import { Tv, Megaphone } from "lucide-react";
 import { sanitizeAdLink, isExternalUrl } from "@/lib/safe-link";
-import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { RightPanelComposeButton } from "@/components/layout/right-panel-compose";
 import { SidebarEventMapCard } from "@/components/events/sidebar-event-map-card";
 import type { MapEventPin } from "@/lib/subculture-events";
@@ -37,7 +36,7 @@ export function RightPanelSkeleton() {
   );
 }
 
-export function RightPanelContent({ animes, tips, sidebarAds, eventPins }: SidebarPanelData) {
+export function RightPanelContent({ animes, sidebarAds, eventPins }: SidebarPanelData) {
   const ads =
     sidebarAds.length > 0
       ? sidebarAds
@@ -99,42 +98,6 @@ export function RightPanelContent({ animes, tips, sidebarAds, eventPins }: Sideb
               </Link>
             ))
           )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2 font-display font-bold text-folk-cobalt">
-            <TrendingUp className="h-4 w-4 text-folk-gold" />
-            후원 랭킹
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {tips.length === 0 ? (
-            <p className="text-xs text-muted-foreground">아직 랭킹 없음</p>
-          ) : (
-            tips.map((t) => (
-              <div key={t.rank} className="flex justify-between items-center gap-2 text-xs">
-                <span className="flex items-center gap-1 min-w-0">
-                  <span className="shrink-0">#{t.rank}</span>
-                  {t.user ? (
-                    <DisplayNameWithSupportTier
-                      name={t.user.username}
-                      tier={t.user.supportTierSent ?? "PEBBLE"}
-                      compact
-                      className="min-w-0"
-                    />
-                  ) : (
-                    "—"
-                  )}
-                </span>
-                <span className="text-muted-foreground">{(t.total ?? 0).toLocaleString()}원</span>
-              </div>
-            ))
-          )}
-          <Link href="/rankings" className="text-xs text-primary hover:underline">
-            더보기
-          </Link>
         </CardContent>
       </Card>
 

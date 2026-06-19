@@ -4,6 +4,9 @@ import { cache } from "react";
 import { db } from "@/lib/db";
 import { getCachedSession } from "@/lib/auth";
 import { getTipRanking } from "@/actions/monetization";
+import { bondeeFromAptRow } from "@/lib/apt/bondee/bondee-profile";
+import type { ChibiAvatarConfig } from "@/lib/apt/bondee/types";
+import { chibiAvatarFromSeed } from "@/components/apt/chibi-avatar-svg";
 import { getTierInfo, getNextTierInfo, tierFromAmount } from "@/lib/tiers";
 import { revalidatePath } from "next/cache";
 import { SupportTierLevel } from "@prisma/client";
@@ -102,6 +105,32 @@ export const getViewerPlatformSupport = cache(async function getViewerPlatformSu
     },
   };
 });
+
+export async function getSupportRankingWithAvatars(limit = 20) {
+  const ranking = await getTipRanking(limit);
+  const userIds = ranking.map((r) => r.user?.id).filter((id): id is string => Boolean(id));
+
+  const aptRows =
+    userIds.length > 0
+      ? await db.aptProfile.findMany({
+          where: { userId: { in: userIds } },
+          select: { userId: true, simulationState: true, homeFloor: true, floorPlans: true },
+        })
+      : [];
+
+  const avatarByUser = new Map<string, ChibiAvatarConfig>();
+  for (const row of aptRows) {
+    const { home } = bondeeFromAptRow(row, row.homeFloor ?? undefined);
+    avatarByUser.set(row.userId, home.avatar);
+  }
+
+  return ranking.map((r) => ({
+    ...r,
+    chibiAvatar: r.user
+      ? (avatarByUser.get(r.user.id) ?? chibiAvatarFromSeed(r.user.username))
+      : chibiAvatarFromSeed(`rank-${r.rank}`),
+  }));
+}
 
 export async function getSupportDashboard() {
   const session = await getCachedSession();

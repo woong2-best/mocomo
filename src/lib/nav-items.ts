@@ -3,9 +3,7 @@ import {
   User,
   MessageCircle,
   Star,
-  Wallet,
   Banknote,
-  Trophy,
   Tv,
   PenSquare,
   Radio,
@@ -19,8 +17,11 @@ import {
   Tags,
 } from "lucide-react";
 import type { MessageKey } from "@/lib/i18n/messages";
+import { SupportTrophyIcon } from "@/components/icons/support-trophy-icon";
 
-export type NavItem = { href: string; icon: LucideIcon; labelKey: MessageKey };
+export type NavIcon = LucideIcon | typeof SupportTrophyIcon;
+
+export type NavItem = { href: string; icon: NavIcon; labelKey: MessageKey };
 
 export const mainNavItems: NavItem[] = [
   { href: "/explore", icon: Compass, labelKey: "nav.explore" },
@@ -36,8 +37,7 @@ export const mainNavItems: NavItem[] = [
   { href: "/webtoon", icon: LayoutGrid, labelKey: "nav.webtoon" },
   { href: "/used", icon: Tags, labelKey: "nav.used" },
   { href: "/events", icon: Calendar, labelKey: "nav.events" },
-  { href: "/rankings", icon: Trophy, labelKey: "nav.rankings" },
-  { href: "/support", icon: Wallet, labelKey: "nav.support" },
+  { href: "/support", icon: SupportTrophyIcon, labelKey: "nav.support" },
   { href: "/wallet", icon: Banknote, labelKey: "nav.wallet" },
   { href: "/premium", icon: Crown, labelKey: "nav.premium" },
   { href: "/compose", icon: PenSquare, labelKey: "nav.compose" },
