@@ -1,0 +1,29 @@
+---
+description: MoCoMo Studio 신규 개발만 — 기존 MoCoMo 변경 금지
+globs: studio/**,**/studio/**,docs/MOCOMO_STUDIO_PRD.md
+alwaysApply: false
+---
+
+# MoCoMo Studio 개발 규칙
+
+**이 규칙은 MoCoMo Studio(`studio.mocomo.com`) 신규 개발에만 적용된다.**
+
+## 절대 금지
+
+- `mocomo.com` 기존 MoCoMo의 기능, UI, 데이터 구조, 페이지, UX 변경
+- Studio 요구사항을 MoCoMo 본 앱(`src/app` APT·게임·SNS 등)에 직접 구현
+
+## 역할 분리
+
+- **MoCoMo** = 소비 공간 (유지)
+- **MoCoMo Studio** = 제작·마켓·크리에이터 플랫폼 (신규)
+
+## 연동
+
+- MoCoMo 계정 SSO, 별도 회원가입 없음
+- 승인된 자산만 MoCoMo **인벤토리 등록 API**로 공급 (단방향)
+- `/avatar/studio`(라이브 아바타)와 **별개** 서비스
+
+## 상세 스펙
+
+전체 PRD: `docs/MOCOMO_STUDIO_PRD.md`
