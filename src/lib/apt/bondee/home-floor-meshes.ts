@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { SCALE, roomCenter, roomSize } from "@/lib/apt/building-from-plan";
 import { PLAN_H, PLAN_W, type AptRoom, type FloorStyle } from "@/lib/apt/floor-plan-types";
 import { buildFurnitureMesh } from "./furniture-meshes";
+import { architecturesForKind } from "./furniture-architecture";
 import { buildInstancedFurnitureGroup } from "./furniture-instances";
 import { studioPlaceholderMesh } from "./studio-gltf-meshes";
 import type { BondeePlacedItem } from "./types";
@@ -349,6 +350,7 @@ export function appendFurniturePiece(
   mesh.rotation.y = (item.rot * Math.PI) / 2;
   mesh.userData.placedId = item.id;
   mesh.userData.roomId = item.roomId;
+  mesh.userData.architectures = architecturesForKind(item.kind);
   mesh.frustumCulled = true;
 
   if (opts.selectedItemId === item.id) {

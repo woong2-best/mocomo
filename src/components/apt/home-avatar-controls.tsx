@@ -8,9 +8,10 @@ type Props = {
   onMove: (x: number, z: number) => void;
   onInteract?: () => void;
   canInteract?: boolean;
+  interactLabel?: string;
 };
 
-export function HomeAvatarControls({ disabled, onMove, onInteract, canInteract }: Props) {
+export function HomeAvatarControls({ disabled, onMove, onInteract, canInteract, interactLabel }: Props) {
   const btn =
     "flex h-11 w-11 items-center justify-center rounded-xl border-2 border-folk-cobalt/25 bg-white/95 text-folk-cobalt shadow-folk-sm active:scale-95 transition-transform disabled:opacity-40";
 
@@ -22,7 +23,7 @@ export function HomeAvatarControls({ disabled, onMove, onInteract, canInteract }
           onClick={onInteract}
           className="rounded-xl border-2 border-folk-terracotta bg-folk-terracotta px-4 py-2 text-xs font-bold text-white shadow-folk animate-pulse"
         >
-          게임기 시작 (E)
+          {interactLabel ?? "상호작용 (E)"}
         </button>
       )}
 

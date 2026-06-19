@@ -13,6 +13,12 @@ import {
   migrateItems,
   sortFurnitureLoadOrder,
 } from "./home-floor-meshes";
+import {
+  architecturesForKind,
+  posesForArchitectures,
+  type FurnitureArchitecture,
+} from "./furniture-architecture";
+import { findRoomAt, isWalkable } from "./home-walkability";
 import type { BondeeHomeState, BondeePlacedItem, ChibiAvatarConfig, ChibiPose } from "./types";
 import type { StudioDecorTool } from "@/studio/lib/apt-types";
 import { hydrateStudioGltfMeshes } from "./studio-gltf-meshes";
@@ -25,10 +31,21 @@ const CAM_LERP = 6;
 const ZOOM_MIN = 4.2;
 const ZOOM_MAX = 8.5;
 
+export type NearbyFurnitureInteract = {
+  itemId: string;
+  kind: BondeePlacedItem["kind"];
+  architectures: FurnitureArchitecture[];
+  poses: ChibiPose[];
+  label: string;
+};
+
 export type IsometricHomeCallbacks = {
   onItemSelect?: (id: string | null) => void;
   onNearConsoleChange?: (near: boolean) => void;
   onGameConsoleInteract?: () => void;
+  onActiveRoomChange?: (roomId: string) => void;
+  onNearbyFurnitureChange?: (nearby: NearbyFurnitureInteract | null) => void;
+  onPoseChange?: (pose: ChibiPose) => void;
 };
 
 export class IsometricHomeScene {
@@ -68,6 +85,8 @@ export class IsometricHomeScene {
   private moveInput = { x: 0, z: 0 };
   private keys = new Set<string>();
   private nearConsole = false;
+  private nearbyFurniture: NearbyFurnitureInteract | null = null;
+  private interactPoseIdx = 0;
   private walking = false;
   private needsRender = true;
   private camYaw = Math.PI / 4;
@@ -234,10 +253,40 @@ export class IsometricHomeScene {
     this.moveInput.z = z;
   }
 
+  private canInteractWithConsole() {
+    const decorBlocking = this.decorMode && (this.selectedTool || this.selectedStudioTool || this.deleteMode);
+    return this.nearConsole && !decorBlocking;
+  }
+
   tryInteract() {
-    if (this.nearConsole && !this.decorMode) {
+    if (this.canInteractWithConsole()) {
       this.callbacks.onGameConsoleInteract?.();
+      return;
     }
+    if (this.decorMode || !this.nearbyFurniture) return;
+
+    const poses = this.nearbyFurniture.poses;
+    if (!poses.length) return;
+
+    const pose = poses[this.interactPoseIdx % poses.length];
+    this.interactPoseIdx = (this.interactPoseIdx + 1) % poses.length;
+    this.applyFurniturePose(pose, this.nearbyFurniture);
+  }
+
+  private applyFurniturePose(pose: ChibiPose, target: NearbyFurnitureInteract) {
+    const item = this.state.items.find((it) => it.id === target.itemId);
+    const room = item ? this.rooms.find((r) => r.id === item.roomId) : null;
+    if (item && room) {
+      const p = itemWorldPos(item, room);
+      this.avatarX = p.x;
+      this.avatarZ = p.z + (pose === "sit" ? 0.12 : pose === "run" ? 0.08 : 0.05);
+      this.avatarRotY = (item.rot * Math.PI) / 2;
+      this.walking = false;
+    }
+    this.state = { ...this.state, pose };
+    this.applyAvatar();
+    this.callbacks.onPoseChange?.(pose);
+    this.requestRender();
   }
 
   updateAvatar(config: ChibiAvatarConfig, pose: ChibiPose) {
@@ -379,21 +428,20 @@ export class IsometricHomeScene {
     void this.loadFurnitureStaged(loadGen, priorityRooms);
   }
 
-  /** Rooms near avatar + active room always visible */
+  /** Rooms near avatar + current room always visible */
   private visibleRoomIdsNearAvatar(): Set<string> {
     const ids = new Set<string>();
+    const at = findRoomAt(this.avatarX, this.avatarZ, this.rooms);
+    if (at) ids.add(at.id);
     if (this.activeRoomId) ids.add(this.activeRoomId);
 
     for (const room of this.rooms) {
       const c = roomCenter(room);
       const { w, d } = roomSize(room);
-      if (Math.abs(this.avatarX - c.x) <= w / 2 + 0.5 && Math.abs(this.avatarZ - c.z) <= d / 2 + 0.5) {
+      if (Math.abs(this.avatarX - c.x) <= w / 2 + 0.6 && Math.abs(this.avatarZ - c.z) <= d / 2 + 0.6) {
         ids.add(room.id);
       }
     }
-
-    const living = this.rooms.find((r) => r.type === "living");
-    if (living) ids.add(living.id);
 
     if (ids.size === 0 && this.rooms[0]) ids.add(this.rooms[0].id);
     return ids;
@@ -506,14 +554,54 @@ export class IsometricHomeScene {
   }
 
   private isInsideAnyRoom(x: number, z: number) {
-    for (const room of this.rooms) {
-      const c = roomCenter(room);
-      const { w, d } = roomSize(room);
-      if (Math.abs(x - c.x) <= w / 2 - 0.12 && Math.abs(z - c.z) <= d / 2 - 0.12) {
-        return true;
-      }
+    return isWalkable(x, z, this.rooms);
+  }
+
+  private syncActiveRoomFromAvatar() {
+    const room = findRoomAt(this.avatarX, this.avatarZ, this.rooms);
+    if (!room || room.id === this.activeRoomId) return;
+    this.activeRoomId = room.id;
+    this.callbacks.onActiveRoomChange?.(room.id);
+    void this.appendMissingFurnitureForRooms(this.visibleRoomIdsNearAvatar());
+  }
+
+  private findNearbyFurniture(): NearbyFurnitureInteract | null {
+    let best: NearbyFurnitureInteract | null = null;
+    let bestDist = INTERACT_DIST;
+
+    for (const item of this.state.items) {
+      const archs = architecturesForKind(item.kind);
+      if (!archs.length) continue;
+      const room = this.rooms.find((r) => r.id === item.roomId);
+      if (!room) continue;
+      const p = itemWorldPos(item, room);
+      const dist = Math.hypot(this.avatarX - p.x, this.avatarZ - p.z);
+      if (dist >= bestDist) continue;
+
+      const poses = posesForArchitectures(archs);
+      bestDist = dist;
+      best = {
+        itemId: item.id,
+        kind: item.kind,
+        architectures: archs,
+        poses,
+        label: item.studioLabel ?? item.kind,
+      };
     }
-    return false;
+    return best;
+  }
+
+  private checkFurnitureProximity() {
+    const nearby = this.findNearbyFurniture();
+    if (
+      nearby?.itemId === this.nearbyFurniture?.itemId &&
+      nearby?.poses.join() === this.nearbyFurniture?.poses.join()
+    ) {
+      return;
+    }
+    this.nearbyFurniture = nearby;
+    if (!nearby) this.interactPoseIdx = 0;
+    this.callbacks.onNearbyFurnitureChange?.(nearby);
   }
 
   private updateMovement(dt: number) {
@@ -534,6 +622,7 @@ export class IsometricHomeScene {
       this.walking = false;
       this.syncAvatarTransform();
       this.checkConsoleProximity();
+      this.checkFurnitureProximity();
       return;
     }
 
@@ -547,10 +636,12 @@ export class IsometricHomeScene {
       this.avatarZ = nz;
       this.avatarRotY = Math.atan2(dx, dz);
       this.walking = true;
+      this.syncActiveRoomFromAvatar();
     }
 
     this.syncAvatarTransform();
     this.checkConsoleProximity();
+    this.checkFurnitureProximity();
 
     if (this.loadedFurnitureIds.size < this.state.items.length) {
       void this.appendMissingFurnitureForRooms(this.visibleRoomIdsNearAvatar());
@@ -723,7 +814,7 @@ export class IsometricHomeScene {
       this.needsRender = true;
     } else {
       this.avatar.animateWalk(this.animPhase, false);
-      if (this.nearConsole && !this.decorMode) {
+      if (this.canInteractWithConsole()) {
         this.avatar.root.rotation.y = THREE.MathUtils.lerp(this.avatar.root.rotation.y, Math.PI, 0.05);
         this.needsRender = true;
       }

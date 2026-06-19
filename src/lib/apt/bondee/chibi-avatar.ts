@@ -280,6 +280,11 @@ export class ChibiAvatarMesh {
     } else if (pose === "lie") {
       this.body.position.set(0, 0.22, 0.1);
       this.body.rotation.set(-Math.PI / 2 + 0.2, 0, 0);
+    } else if (pose === "lie_prone") {
+      this.body.position.set(0, 0.12, 0.08);
+      this.body.rotation.set(Math.PI / 2 - 0.15, 0, 0);
+      if (this.armL) this.armL.rotation.set(0.3, 0, 0.5);
+      if (this.armR) this.armR.rotation.set(0.3, 0, -0.5);
     } else if (pose === "run") {
       this.body.position.y = 0.05;
       this.body.rotation.x = 0.15;

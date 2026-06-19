@@ -14,9 +14,11 @@ import {
   Sparkles,
   Trash2,
   Waves,
+  ArrowDownToLine,
 } from "lucide-react";
 import { saveBondeeHome } from "@/actions/apt-bondee";
-import { IsometricHomeScene } from "@/lib/apt/bondee/isometric-home-scene";
+import { IsometricHomeScene, type NearbyFurnitureInteract } from "@/lib/apt/bondee/isometric-home-scene";
+import { ARCHITECTURE_LABELS } from "@/lib/apt/bondee/furniture-architecture";
 import {
   BONDEE_FURNITURE_CATEGORIES,
   BONDEE_FURNITURE_LABELS,
@@ -41,7 +43,8 @@ const POSE_OPTIONS: { id: ChibiPose; label: string; icon: typeof Sofa }[] = [
   { id: "stand", label: "서기", icon: PersonStanding },
   { id: "sit", label: "앉기", icon: Sofa },
   { id: "lie", label: "눕기", icon: Bed },
-  { id: "run", label: "운동", icon: Footprints },
+  { id: "lie_prone", label: "엎드리기", icon: ArrowDownToLine },
+  { id: "run", label: "체조", icon: Footprints },
   { id: "wave", label: "인사", icon: Waves },
 ];
 
@@ -77,6 +80,7 @@ function AptBondeeRoomInner({
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [nearConsole, setNearConsole] = useState(false);
+  const [nearbyFurniture, setNearbyFurniture] = useState<NearbyFurnitureInteract | null>(null);
   const [gamesOpen, setGamesOpen] = useState(false);
   const router = useRouter();
   const { runWithIris, IrisOverlay } = useGameIrisTransition();
@@ -134,6 +138,15 @@ function AptBondeeRoomInner({
 
   openGamesRef.current = openGames;
 
+  const onPoseChange = useCallback((pose: ChibiPose) => {
+    const next = { ...stateRef.current, pose, activeRoomId: activeRoomId ?? undefined };
+    stateRef.current = next;
+    setState(next);
+    sceneRef.current?.updateAvatar(next.avatar, pose);
+    onHomeChange?.(next);
+    persist(next);
+  }, [activeRoomId, onHomeChange, persist]);
+
   useEffect(() => {
     sceneRef.current?.setPaused(paused);
   }, [paused]);
@@ -149,6 +162,9 @@ function AptBondeeRoomInner({
       onItemSelect: setSelectedItemId,
       onNearConsoleChange: setNearConsole,
       onGameConsoleInteract: () => openGamesRef.current(),
+      onActiveRoomChange: (roomId) => setActiveRoomId(roomId),
+      onNearbyFurnitureChange: setNearbyFurniture,
+      onPoseChange,
     });
     sceneRef.current = scene;
     return () => {
@@ -191,15 +207,6 @@ function AptBondeeRoomInner({
     stateRef.current = next;
     setState(next);
     sceneRef.current?.updateAvatar(avatar, next.pose);
-    onHomeChange?.(next);
-    persist(next);
-  };
-
-  const onPoseChange = (pose: ChibiPose) => {
-    const next = { ...stateRef.current, pose, activeRoomId: activeRoomId ?? undefined };
-    stateRef.current = next;
-    setState(next);
-    sceneRef.current?.updateAvatar(next.avatar, pose);
     onHomeChange?.(next);
     persist(next);
   };
@@ -247,13 +254,28 @@ function AptBondeeRoomInner({
 
         <div className="pointer-events-none absolute left-3 top-3 rounded-2xl border-2 border-pink-200/80 bg-white/90 px-3 py-2 text-xs text-muted-foreground backdrop-blur-md shadow-sm space-y-0.5">
           <p className="font-bold text-folk-cobalt">🏠 내 집 · {rooms.length}개 공간{saving && " · 저장 중…"}</p>
-          <p className="text-[10px] text-folk-terracotta font-medium">WASD 이동 · Shift+드래그 회전 · 휠 줌 · TV에서 E</p>
+          <p className="text-[10px] text-folk-terracotta font-medium">
+            WASD 이동 · 방 사이 자유 이동 · 가구 근처 E · Shift+드래그 회전 · 휠 줌
+          </p>
+          {nearbyFurniture && !movementDisabled && (
+            <p className="text-[10px] text-folk-cobalt font-semibold">
+              {BONDEE_FURNITURE_LABELS[nearbyFurniture.kind] ?? nearbyFurniture.label} —{" "}
+              {nearbyFurniture.architectures.map((a) => ARCHITECTURE_LABELS[a]).join(" · ")} (E)
+            </p>
+          )}
         </div>
 
         <div className="absolute left-3 bottom-3 pointer-events-auto">
           <HomeAvatarControls
             disabled={movementDisabled}
-            canInteract={nearConsole && !movementDisabled}
+            canInteract={(nearConsole || !!nearbyFurniture) && !movementDisabled}
+            interactLabel={
+              nearConsole
+                ? "게임기 시작 (E)"
+                : nearbyFurniture
+                  ? `${BONDEE_FURNITURE_LABELS[nearbyFurniture.kind] ?? nearbyFurniture.label} (E)`
+                  : undefined
+            }
             onMove={(x, z) => sceneRef.current?.setMoveInput(x, z)}
             onInteract={() => sceneRef.current?.tryInteract()}
           />

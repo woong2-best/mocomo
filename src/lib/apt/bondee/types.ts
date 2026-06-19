@@ -3,7 +3,7 @@ export type ChibiEyeStyle = 0 | 1 | 2 | 3;
 export type ChibiMouthStyle = 0 | 1 | 2 | 3;
 export type ChibiTopStyle = 0 | 1 | 2;
 export type ChibiBottomStyle = 0 | 1;
-export type ChibiPose = "stand" | "sit" | "lie" | "run" | "wave";
+export type ChibiPose = "stand" | "sit" | "lie" | "lie_prone" | "run" | "wave";
 
 export type ChibiAvatarConfig = {
   skinColor: string;
