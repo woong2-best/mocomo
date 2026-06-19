@@ -60,17 +60,16 @@ export function addTo(
   const mesh = new THREE.Mesh(geo, material);
   mesh.position.set(x, y, z);
   mesh.rotation.set(rx, ry, rz);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
+  mesh.castShadow = false;
+  mesh.receiveShadow = false;
   parent.add(mesh);
   return mesh;
 }
 
 export function enableBondeeRenderer(renderer: THREE.WebGLRenderer) {
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.enabled = false;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.08;
+  renderer.toneMappingExposure = 1.05;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 }
 
@@ -86,16 +85,7 @@ export function setupBondeeLights(scene: THREE.Scene, target: THREE.Object3D) {
 
   const sun = new THREE.DirectionalLight(0xfff5eb, 0.72);
   sun.position.set(6, 12, 8);
-  sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
-  sun.shadow.camera.near = 0.5;
-  sun.shadow.camera.far = 30;
-  sun.shadow.camera.left = -8;
-  sun.shadow.camera.right = 8;
-  sun.shadow.camera.top = 8;
-  sun.shadow.camera.bottom = -8;
-  sun.shadow.bias = -0.0004;
-  sun.shadow.radius = 3;
+  sun.castShadow = false;
   scene.add(sun);
 
   const fill = new THREE.DirectionalLight(0xd8eeff, 0.28);
@@ -267,11 +257,11 @@ export function buildRoomLabel(text: string, accent: number): THREE.Group {
   return g;
 }
 
-export function shadowizeGroup(g: THREE.Object3D) {
+export function shadowizeGroup(g: THREE.Object3D, enabled = false) {
   g.traverse((o) => {
     if (o instanceof THREE.Mesh) {
-      o.castShadow = true;
-      o.receiveShadow = true;
+      o.castShadow = enabled;
+      o.receiveShadow = enabled;
     }
   });
 }

@@ -68,7 +68,7 @@ function addMesh(
   x: number,
   y: number,
   z: number,
-  shadow = true
+  shadow = false
 ) {
   const mesh = new THREE.Mesh(geo, material);
   mesh.position.set(x, y, z);
@@ -82,8 +82,8 @@ function addMesh(
 
 /** Procedural furniture for floors without saved room data */
 export function seededRoomItems(seed: number, roomId = "living"): BondeePlacedItem[] {
-  const kinds = ["sofa", "plant", "tv_stand", "coffee_table", "bed", "desk", "floor_lamp", "bookshelf"] as const;
-  const count = 3 + (seed % 3);
+  const kinds = ["sofa", "plant", "tv_stand", "coffee_table", "bed", "desk"] as const;
+  const count = 2 + (seed % 2);
   const items: BondeePlacedItem[] = [];
   for (let i = 0; i < count; i++) {
     const kind = kinds[(seed + i * 7) % kinds.length];
@@ -114,10 +114,62 @@ export type DollhouseUnitOptions = {
   seed?: number;
   resident?: { userId: string; username: string; displayName: string; homeFloor: number };
   isHomeFloor?: boolean;
+  /** full = furniture + decor, minimal = shell only (neighbor floors) */
+  detail?: "full" | "minimal";
 };
+
+/** Lightweight shell — no furniture (neighbor / background floors) */
+function buildMinimalDollhouseUnit(opts: DollhouseUnitOptions): THREE.Group {
+  const { floorIndex, active, resident, isHomeFloor } = opts;
+  const g = new THREE.Group();
+  g.userData.floor = floorIndex;
+
+  const floorColor = floorIndex % 2 === 0 ? PASTEL.floorWood : PASTEL.floorWoodAlt;
+  addMesh(g, roundedBox(DOLLHOUSE_UNIT_W, 0.08, DOLLHOUSE_UNIT_D, 0.04), pastelMat(floorColor), 0, 0.04, 0);
+  const wallColor = WALL_COLORS[floorIndex % WALL_COLORS.length];
+  addMesh(
+    g,
+    roundedBox(DOLLHOUSE_UNIT_W, DOLLHOUSE_FLOOR_H * 0.88, 0.07, 0.03),
+    pastelMat(wallColor),
+    0,
+    DOLLHOUSE_FLOOR_H * 0.46,
+    -DOLLHOUSE_UNIT_D / 2 + 0.04
+  );
+
+  const badge = new THREE.Mesh(
+    roundedBox(0.55, 0.28, 0.06, 0.04),
+    pastelMat(active ? PASTEL.highlight : 0xffffff)
+  );
+  badge.position.set(-DOLLHOUSE_UNIT_W / 2 + 0.45, DOLLHOUSE_FLOOR_H * 0.78, DOLLHOUSE_UNIT_D / 2 - 0.05);
+  g.add(badge);
+
+  if (resident && !isHomeFloor) {
+    const door = new THREE.Mesh(
+      roundedBox(0.42, 0.72, 0.06, 0.03),
+      pastelMat(PASTEL.elevatorDoor)
+    );
+    door.position.set(0.55, DOLLHOUSE_FLOOR_H * 0.38, DOLLHOUSE_UNIT_D / 2 - 0.02);
+    door.userData.floor = floorIndex;
+    door.userData.resident = resident;
+    g.add(door);
+  }
+
+  const pick = new THREE.Mesh(
+    new THREE.BoxGeometry(DOLLHOUSE_UNIT_W, DOLLHOUSE_FLOOR_H * 0.5, DOLLHOUSE_UNIT_D),
+    new THREE.MeshBasicMaterial({ visible: false })
+  );
+  pick.position.y = DOLLHOUSE_FLOOR_H * 0.25;
+  pick.userData.floor = floorIndex;
+  g.add(pick);
+
+  return g;
+}
 
 /** Single apartment unit — open front cross-section with visible furniture */
 export function buildDollhouseUnit(opts: DollhouseUnitOptions): THREE.Group {
+  const detail = opts.detail ?? (opts.active || opts.visited ? "full" : "minimal");
+  if (detail === "minimal") return buildMinimalDollhouseUnit(opts);
+
   const { floorIndex, active, visited, room, rooms, seed = floorIndex * 17, resident, isHomeFloor } = opts;
   const g = new THREE.Group();
   g.userData.floor = floorIndex;

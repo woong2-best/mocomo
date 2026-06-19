@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Box,
@@ -52,7 +52,7 @@ function initPlansFromProfile(profile: AptProfileDto | null): Record<number, Apt
   return {};
 }
 
-export function AptBuildingView({
+export const AptBuildingView = memo(function AptBuildingView({
   initialProfile,
   bondeeRoom,
   isLoggedIn,
@@ -103,10 +103,12 @@ export function AptBuildingView({
 
   const rooms = getRoomsForFloor(plans, floor);
 
-  const showToast = (msg: string) => {
+  const showToast = useCallback((msg: string) => {
     setToast(msg);
     window.setTimeout(() => setToast(null), 2200);
-  };
+  }, []);
+  const showToastRef = useRef(showToast);
+  showToastRef.current = showToast;
 
   const setRooms = useCallback(
     (next: AptRoom[]) => {
@@ -139,6 +141,9 @@ export function AptBuildingView({
       sceneRef.current?.setXray(xrayRef.current);
     }, duration);
   }, []);
+
+  const goToFloorRef = useRef(goToFloor);
+  goToFloorRef.current = goToFloor;
 
   useEffect(() => {
     xrayRef.current = xray;
@@ -203,16 +208,16 @@ export function AptBuildingView({
 
     const scene = new DollhouseBuildingScene(el);
     scene.setCallbacks({
-      onFloorClick: (f) => goToFloor(f),
-      onFloorScroll: (f) => goToFloor(f),
+      onFloorClick: (f) => goToFloorRef.current(f),
+      onFloorScroll: (f) => goToFloorRef.current(f),
       onResidentClick: (f, resident) => {
         const apt =
           countryAptsRef.current.find((a) => a.userId === resident.userId) ??
           countryAptsRef.current.find((a) => a.homeFloor === f);
         if (apt) {
           setBrowseTarget(apt);
-          goToFloor(apt.homeFloor);
-          showToast(`${apt.displayName}의 집을 구경합니다`);
+          goToFloorRef.current(apt.homeFloor);
+          showToastRef.current(`${apt.displayName}의 집을 구경합니다`);
           return;
         }
         setBrowseTarget({
@@ -223,8 +228,8 @@ export function AptBuildingView({
           floorPlans: {},
           bondeeRoom: DEFAULT_BONDEE_ROOM,
         });
-        goToFloor(resident.homeFloor);
-        showToast(`${resident.displayName} · 프로필에서 더 보기`);
+        goToFloorRef.current(resident.homeFloor);
+        showToastRef.current(`${resident.displayName} · 프로필에서 더 보기`);
       },
       onRoomClick: (id, multi) => {
         setSelected((prev) => {
@@ -239,7 +244,7 @@ export function AptBuildingView({
     scene.setFloor(homeFloor);
     scene.setBondeeRoom(bondeeRoom);
 
-    if (isLoggedIn && initialProfile?.moveInCompleted && isOwnApt) {
+    if (isLoggedIn && initialProfile?.moveInCompleted) {
       void scene.startSimulation(homeFloor, initialProfile.residents, initialProfile.furniture);
       simReadyRef.current = true;
     }
@@ -249,7 +254,8 @@ export function AptBuildingView({
       sceneRef.current = null;
       simReadyRef.current = false;
     };
-  }, [bondeeRoom, goToFloor, homeFloor, initialProfile, isLoggedIn, isOwnApt]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount WebGL once
+  }, []);
 
   useEffect(() => {
     plansRef.current = plans;
@@ -623,4 +629,4 @@ export function AptBuildingView({
       </div>
     </div>
   );
-}
+});

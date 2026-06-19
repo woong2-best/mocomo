@@ -16,6 +16,7 @@ import {
   pastelMat,
 } from "./dollhouse-meshes";
 import { DEFAULT_CHIBI_AVATAR } from "./types";
+import { createAptRenderer, stripShadows } from "./scene-perf";
 
 export type MoveInPhase =
   | "walk-in"
@@ -91,14 +92,12 @@ export class MoveInEntryScene {
     this.camera.position.set(8, 6, 8);
     this.camera.lookAt(0, 2.5, 0);
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.setSize(mount.clientWidth, mount.clientHeight);
-    this.renderer.shadowMap.enabled = true;
+    this.renderer = createAptRenderer(mount);
     mount.appendChild(this.renderer.domElement);
 
     this.addLights();
     this.buildWorld();
+    stripShadows(this.world);
     this.buildPath();
 
     this.avatar = new ChibiAvatarMesh();
@@ -160,15 +159,14 @@ export class MoveInEntryScene {
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.02;
-    ground.receiveShadow = true;
+    ground.receiveShadow = false;
     this.world.add(ground);
   }
 
   private addLights() {
-    this.scene.add(new THREE.AmbientLight(0xfff8fc, 0.85));
-    const sun = new THREE.DirectionalLight(0xfff0f8, 0.7);
+    this.scene.add(new THREE.AmbientLight(0xfff8fc, 0.88));
+    const sun = new THREE.DirectionalLight(0xfff0f8, 0.68);
     sun.position.set(6, 12, 8);
-    sun.castShadow = true;
     this.scene.add(sun);
     const fill = new THREE.DirectionalLight(0xe8f4ff, 0.35);
     fill.position.set(-5, 6, -4);

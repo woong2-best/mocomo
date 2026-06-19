@@ -15,6 +15,7 @@ import type { BondeeHomeState, BondeePlacedItem, ChibiAvatarConfig, ChibiPose } 
 import type { StudioDecorTool } from "@/studio/lib/apt-types";
 import { hydrateStudioGltfMeshes } from "./studio-gltf-meshes";
 import { enableBondeeRenderer, setupBondeeLights } from "./bondee-mesh-utils";
+import { cappedPixelRatio, stripShadows } from "./scene-perf";
 
 const MOVE_SPEED = 2.4;
 const INTERACT_DIST = 0.55;
@@ -60,6 +61,7 @@ export class IsometricHomeScene {
   private keys = new Set<string>();
   private nearConsole = false;
   private walking = false;
+  private needsRender = true;
   private camYaw = Math.PI / 4;
   private camPitch = 0.55;
   private camDist = 5.8;
@@ -100,9 +102,9 @@ export class IsometricHomeScene {
     );
     this.updateCameraPosition();
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    this.renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio <= 1.25, alpha: false, powerPreference: "high-performance" });
     enableBondeeRenderer(this.renderer);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(cappedPixelRatio());
     this.renderer.setSize(mount.clientWidth, mount.clientHeight);
     mount.appendChild(this.renderer.domElement);
 
@@ -130,6 +132,10 @@ export class IsometricHomeScene {
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
     this.loop();
+  }
+
+  private requestRender() {
+    this.needsRender = true;
   }
 
   setCallbacks(cb: IsometricHomeCallbacks) {
@@ -215,9 +221,11 @@ export class IsometricHomeScene {
       highlightRoomId: this.decorMode ? this.activeRoomId : null,
       selectedItemId: this.selectedItemId,
     });
+    stripShadows(this.floorGroup);
     this.homeRoot.add(this.floorGroup);
     void hydrateStudioGltfMeshes(this.floorGroup);
     this.applyAvatar();
+    this.requestRender();
   }
 
   private applyAvatar() {
@@ -461,6 +469,7 @@ export class IsometricHomeScene {
     this.camera.bottom = -this.frustum / 2;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
+    this.requestRender();
   };
 
   private loop = () => {
@@ -469,17 +478,25 @@ export class IsometricHomeScene {
     const dt = this.clock.getDelta();
     this.animPhase += dt;
     this.updateMovement(dt);
+    const camMoving =
+      Math.abs(this.targetCamYaw - this.camYaw) > 0.002 ||
+      Math.abs(this.targetCamDist - this.frustum) > 0.02;
     this.lerpCamera(dt);
 
     if (this.walking) {
       this.avatar.animateWalk(this.animPhase, true);
+      this.needsRender = true;
     } else {
       this.avatar.animateWalk(this.animPhase, false);
       if (this.nearConsole && !this.decorMode) {
         this.avatar.root.rotation.y = THREE.MathUtils.lerp(this.avatar.root.rotation.y, Math.PI, 0.05);
+        this.needsRender = true;
       }
     }
 
+    if (camMoving || this.dragging) this.needsRender = true;
+    if (!this.needsRender) return;
+    this.needsRender = false;
     this.renderer.render(this.scene, this.camera);
   };
 

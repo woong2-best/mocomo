@@ -17,7 +17,18 @@ export function gridToWorld(gx: number, gz: number) {
   return { x: gx * GRID, z: gz * GRID };
 }
 
+const FURNITURE_PROTOTYPES = new Map<BondeeFurnitureKind, THREE.Group>();
+
 export function buildFurnitureMesh(kind: BondeeFurnitureKind): THREE.Group {
+  let proto = FURNITURE_PROTOTYPES.get(kind);
+  if (!proto) {
+    proto = buildFurnitureMeshPrototype(kind);
+    FURNITURE_PROTOTYPES.set(kind, proto);
+  }
+  return proto.clone(true);
+}
+
+function buildFurnitureMeshPrototype(kind: BondeeFurnitureKind): THREE.Group {
   const g = new THREE.Group();
   g.userData.kind = kind;
 
@@ -69,7 +80,7 @@ export function buildFurnitureMesh(kind: BondeeFurnitureKind): THREE.Group {
       break;
   }
 
-  shadowizeGroup(g);
+  shadowizeGroup(g, false);
   return g;
 }
 
