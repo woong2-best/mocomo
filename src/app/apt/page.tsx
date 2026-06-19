@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { getAptProfile } from "@/actions/apt";
-import { getBondeeHome } from "@/actions/apt-bondee";
+import { bondeeFromAptProfile } from "@/lib/apt/bondee/bondee-profile";
 import { getAptStudioInventory } from "@/studio/actions/library";
 import { DEFAULT_BONDEE_HOME } from "@/lib/apt/bondee/types";
 import { createDefaultFloorPlan } from "@/lib/apt/floor-plan-logic";
@@ -17,20 +17,24 @@ export const dynamic = "force-dynamic";
 export default async function AptPage() {
   try {
     const user = await getCachedCurrentUser();
-    const profile = user ? await getAptProfile() : null;
+    const [profile, studioInventory] = await Promise.all([
+      user ? getAptProfile() : Promise.resolve(null),
+      user ? getAptStudioInventory().catch(() => []) : Promise.resolve([]),
+    ]);
 
     if (user && profile && !profile.moveInCompleted) {
       redirect("/apt/move-in");
     }
 
-    const bondee = user ? await getBondeeHome(profile?.homeFloor) : null;
-    const studioInventory = user ? await getAptStudioInventory().catch(() => []) : [];
+    const { home: bondeeHome, rooms: homeRooms } = user
+      ? bondeeFromAptProfile(profile)
+      : { home: DEFAULT_BONDEE_HOME, rooms: createDefaultFloorPlan().rooms };
 
     return (
       <AptHubClient
         initialProfile={profile}
-        bondeeHome={bondee?.home ?? DEFAULT_BONDEE_HOME}
-        homeRooms={bondee?.rooms ?? createDefaultFloorPlan().rooms}
+        bondeeHome={bondeeHome}
+        homeRooms={homeRooms}
         isLoggedIn={!!user}
         studioInventory={studioInventory}
       />

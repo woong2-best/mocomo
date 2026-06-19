@@ -16,7 +16,7 @@ import {
 import type { BondeeHomeState, BondeePlacedItem, ChibiAvatarConfig, ChibiPose } from "./types";
 import type { StudioDecorTool } from "@/studio/lib/apt-types";
 import { hydrateStudioGltfMeshes } from "./studio-gltf-meshes";
-import { enableBondeeRenderer, setupBondeeLights } from "./bondee-mesh-utils";
+import { enableBondeeRenderer, setupBondeeLights, BONDEE_PALETTE } from "./bondee-mesh-utils";
 import { cappedPixelRatio, stripShadows } from "./scene-perf";
 
 const MOVE_SPEED = 2.4;
@@ -42,6 +42,8 @@ export class IsometricHomeScene {
   private furnitureLoadGen = 0;
   private loadedFurnitureIds = new Set<string>();
   private furnitureLoadBusy = false;
+  private pendingFurnitureLoad = false;
+  private paused = false;
   private avatar: ChibiAvatarMesh;
   private raycaster = new THREE.Raycaster();
   private pointer = new THREE.Vector2();
@@ -155,10 +157,40 @@ export class IsometricHomeScene {
   }
 
   setState(state: BondeeHomeState) {
-    this.state = { ...state, items: migrateItems(state.items, this.rooms) };
-    if (state.activeRoomId) this.activeRoomId = state.activeRoomId;
-    this.rebuildFloor();
-    this.applyAvatar();
+    const nextItems = migrateItems(state.items, this.rooms);
+    if (state.activeRoomId && state.activeRoomId !== this.activeRoomId) {
+      this.activeRoomId = state.activeRoomId;
+      this.refreshShellOnly();
+    }
+    const itemsChanged =
+      nextItems.length !== this.state.items.length ||
+      nextItems.some((it, i) => {
+        const prev = this.state.items[i];
+        return (
+          !prev ||
+          prev.id !== it.id ||
+          prev.kind !== it.kind ||
+          prev.roomId !== it.roomId ||
+          prev.gx !== it.gx ||
+          prev.gz !== it.gz ||
+          prev.rot !== it.rot ||
+          prev.studioAssetId !== it.studioAssetId
+        );
+      });
+    if (itemsChanged) {
+      this.syncFurnitureItems(nextItems);
+    }
+    const avatarChanged =
+      JSON.stringify(state.avatar) !== JSON.stringify(this.state.avatar) ||
+      state.pose !== this.state.pose;
+    this.state = { ...state, items: nextItems };
+    if (avatarChanged) this.applyAvatar();
+    else this.requestRender();
+  }
+
+  setPaused(paused: boolean) {
+    this.paused = paused;
+    if (!paused) this.requestRender();
   }
 
   getState(): BondeeHomeState {
@@ -180,17 +212,21 @@ export class IsometricHomeScene {
       this.selectedStudioTool = null;
     }
     this.walkMode = !(on && (tool || studioTool || deleteMode));
+    this.refreshShellOnly();
   }
 
   setActiveRoom(roomId: string) {
+    if (this.activeRoomId === roomId) return;
     this.activeRoomId = roomId;
-    this.rebuildFloor();
+    this.refreshShellOnly();
   }
 
   setSelectedItem(id: string | null) {
+    if (this.selectedItemId === id) return;
     this.selectedItemId = id;
-    this.rebuildFloor();
+    this.syncSelectionHighlight();
     this.callbacks.onItemSelect?.(id);
+    this.requestRender();
   }
 
   setMoveInput(x: number, z: number) {
@@ -210,9 +246,96 @@ export class IsometricHomeScene {
   }
 
   updateItems(items: BondeePlacedItem[]) {
-    this.state = { ...this.state, items: migrateItems(items, this.rooms) };
-    this.rebuildFloor();
+    this.syncFurnitureItems(migrateItems(items, this.rooms));
     this.applyAvatar();
+  }
+
+  private itemSignature(item: BondeePlacedItem) {
+    return `${item.id}:${item.roomId}:${item.gx}:${item.gz}:${item.rot}:${item.kind}:${item.studioAssetId ?? ""}`;
+  }
+
+  private syncFurnitureItems(nextItems: BondeePlacedItem[]) {
+    const prevById = new Map(this.state.items.map((it) => [it.id, it]));
+    const nextIds = new Set(nextItems.map((it) => it.id));
+
+    for (const prev of this.state.items) {
+      if (!nextIds.has(prev.id)) this.removeFurnitureById(prev.id);
+    }
+
+    for (const item of nextItems) {
+      const prev = prevById.get(item.id);
+      if (!prev) {
+        this.appendItemIfNew(item);
+        continue;
+      }
+      if (this.itemSignature(prev) !== this.itemSignature(item)) {
+        this.removeFurnitureById(item.id);
+        this.loadedFurnitureIds.delete(item.id);
+        this.appendItemIfNew(item);
+      }
+    }
+
+    this.state = { ...this.state, items: nextItems };
+    this.requestRender();
+    void this.hydrateStudioIfNeeded();
+  }
+
+  private removeFurnitureById(id: string) {
+    if (!this.furnitureRoot) return;
+    for (let i = this.furnitureRoot.children.length - 1; i >= 0; i--) {
+      const child = this.furnitureRoot.children[i];
+      if (child.userData.placedId === id) {
+        this.furnitureRoot.remove(child);
+        disposeHomeGroup(child);
+        this.loadedFurnitureIds.delete(id);
+      }
+    }
+  }
+
+  private refreshShellOnly() {
+    if (!this.floorGroup) return;
+    const oldShell = this.floorGroup.getObjectByName("home-shell");
+    if (oldShell) {
+      this.floorGroup.remove(oldShell);
+      disposeHomeGroup(oldShell);
+    }
+    const shell = buildHomeShellGroup({
+      rooms: this.rooms,
+      highlightRoomId: this.decorMode ? this.activeRoomId : null,
+    });
+    stripShadows(shell);
+    this.floorGroup.add(shell);
+    this.requestRender();
+  }
+
+  private syncSelectionHighlight() {
+    if (!this.furnitureRoot) return;
+    this.furnitureRoot.traverse((obj) => {
+      if (!obj.userData.placedId) return;
+      const existing = obj.getObjectByName("selection-ring");
+      if (existing) obj.remove(existing);
+      if (obj.userData.placedId === this.selectedItemId) {
+        const ring = new THREE.Mesh(
+          new THREE.RingGeometry(0.22, 0.32, 16),
+          new THREE.MeshBasicMaterial({
+            color: BONDEE_PALETTE.accent,
+            transparent: true,
+            opacity: 0.75,
+            side: THREE.DoubleSide,
+          })
+        );
+        ring.name = "selection-ring";
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.y = 0.02;
+        obj.add(ring);
+      }
+    });
+  }
+
+  private async hydrateStudioIfNeeded() {
+    if (!this.floorGroup) return;
+    await hydrateStudioGltfMeshes(this.floorGroup);
+    this.requestRender();
   }
 
   private rebuildFloor() {
@@ -244,7 +367,16 @@ export class IsometricHomeScene {
     this.homeRoot.add(this.floorGroup);
     this.applyAvatar();
     this.requestRender();
-    void this.loadFurnitureStaged(loadGen, visibleRooms);
+    this.scheduleFurnitureLoad(visibleRooms);
+  }
+
+  private scheduleFurnitureLoad(priorityRooms: Set<string>) {
+    const loadGen = this.furnitureLoadGen;
+    if (this.furnitureLoadBusy) {
+      this.pendingFurnitureLoad = true;
+      return;
+    }
+    void this.loadFurnitureStaged(loadGen, priorityRooms);
   }
 
   /** Rooms near avatar + active room always visible */
@@ -276,9 +408,8 @@ export class IsometricHomeScene {
   }
 
   private async loadFurnitureStaged(loadGen: number, priorityRooms: Set<string>) {
-    if (this.furnitureLoadBusy) return;
     this.furnitureLoadBusy = true;
-    const BATCH = 3;
+    const BATCH = 4;
 
     try {
       const ordered = sortFurnitureLoadOrder(this.state.items, this.rooms, this.activeRoomId);
@@ -293,7 +424,6 @@ export class IsometricHomeScene {
           for (const item of batch.slice(i, i + BATCH)) {
             this.appendItemIfNew(item);
           }
-          stripShadows(this.furnitureRoot);
           this.requestRender();
         }
       }
@@ -303,6 +433,11 @@ export class IsometricHomeScene {
       this.requestRender();
     } finally {
       this.furnitureLoadBusy = false;
+      if (this.pendingFurnitureLoad) {
+        this.pendingFurnitureLoad = false;
+        const gen = this.furnitureLoadGen;
+        void this.loadFurnitureStaged(gen, this.visibleRoomIdsNearAvatar());
+      }
     }
   }
 
@@ -319,7 +454,6 @@ export class IsometricHomeScene {
       for (const item of missing.slice(i, i + 3)) {
         this.appendItemIfNew(item);
       }
-      stripShadows(this.furnitureRoot);
       this.requestRender();
     }
   }
@@ -575,6 +709,7 @@ export class IsometricHomeScene {
   private loop = () => {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.loop);
+    if (this.paused) return;
     const dt = this.clock.getDelta();
     this.animPhase += dt;
     this.updateMovement(dt);

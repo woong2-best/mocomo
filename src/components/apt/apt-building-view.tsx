@@ -57,11 +57,13 @@ export const AptBuildingView = memo(function AptBuildingView({
   bondeeRoom,
   isLoggedIn,
   onHomeRoomsChange,
+  paused = false,
 }: {
   initialProfile: AptProfileDto | null;
   bondeeRoom: BondeeRoomState;
   isLoggedIn: boolean;
   onHomeRoomsChange?: (rooms: AptRoom[]) => void;
+  paused?: boolean;
 }) {
   const homeCountry = initialProfile?.countryCode ?? "KR";
   const homeFloor = initialProfile?.homeFloor ?? APT_DEFAULT_FLOOR;
@@ -86,6 +88,7 @@ export const AptBuildingView = memo(function AptBuildingView({
   const [browseTarget, setBrowseTarget] = useState<CountryAptPreview | null>(null);
   const [loadingCountry, setLoadingCountry] = useState(false);
   const movingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savePlanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const countryAptsRef = useRef(countryApts);
   useEffect(() => {
@@ -117,7 +120,12 @@ export const AptBuildingView = memo(function AptBuildingView({
       setPlans((p) => ({ ...p, [floor]: next }));
       sceneRef.current?.updateFloorRooms(floor, next);
       if (floor === homeFloor) onHomeRoomsChange?.(next);
-      if (isLoggedIn) void saveAptFloorPlan(floor, next);
+      if (isLoggedIn) {
+        if (savePlanTimerRef.current) clearTimeout(savePlanTimerRef.current);
+        savePlanTimerRef.current = setTimeout(() => {
+          void saveAptFloorPlan(floor, next);
+        }, 800);
+      }
     },
     [floor, homeFloor, isLoggedIn, isOwnApt, onHomeRoomsChange]
   );
@@ -256,6 +264,10 @@ export const AptBuildingView = memo(function AptBuildingView({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount WebGL once
   }, []);
+
+  useEffect(() => {
+    sceneRef.current?.setPaused(paused);
+  }, [paused]);
 
   useEffect(() => {
     plansRef.current = plans;

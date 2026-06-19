@@ -40,6 +40,15 @@ export type FloorResident = {
   homeFloor: number;
 };
 
+function residentsEqual(a: Map<number, FloorResident>, b: Map<number, FloorResident>) {
+  if (a.size !== b.size) return false;
+  for (const [k, v] of a) {
+    const o = b.get(k);
+    if (!o || o.userId !== v.userId || o.displayName !== v.displayName) return false;
+  }
+  return true;
+}
+
 export type DollhouseCallbacks = {
   onFloorClick?: (floor: number) => void;
   onRoomClick?: (roomId: string, multi: boolean) => void;
@@ -80,6 +89,7 @@ export class DollhouseBuildingScene {
   private lastRangeStart = -1;
   private lastRangeEnd = -1;
   private needsRender = true;
+  private paused = false;
 
   private floorPlans: Record<number, AptRoom[]> = {};
   private bondeeRoom: BondeeHomeState | null = null;
@@ -289,10 +299,21 @@ export class DollhouseBuildingScene {
     this.callbacks = cb;
   }
 
+  setPaused(paused: boolean) {
+    this.paused = paused;
+    if (!paused) this.requestRender();
+  }
+
   setFloorResidents(residents: FloorResident[], homeFloor: number | null) {
+    const next = new Map(residents.map((r) => [r.homeFloor, r]));
+    if (this.homeFloor === homeFloor && residentsEqual(this.floorResidents, next)) return;
     this.homeFloor = homeFloor;
-    this.floorResidents = new Map(residents.map((r) => [r.homeFloor, r]));
-    this.rebuildBuilding();
+    this.floorResidents = next;
+    if (this.lastRangeStart >= 0) {
+      this.refreshFloorFocus(this.currentFloor);
+    } else {
+      this.rebuildBuilding();
+    }
   }
 
   private applyFloor(floor: number, lightweight = false) {
@@ -305,6 +326,7 @@ export class DollhouseBuildingScene {
     const rangeChanged = start !== this.lastRangeStart || end !== this.lastRangeEnd;
 
     if (lightweight && !rangeChanged && this.lastRangeStart >= 0) {
+      this.refreshFloorFocus(prev);
       this.snapScroll();
       this.targetElevY = this.floorLocalY(this.currentFloor, start);
       this.requestRender();
@@ -486,6 +508,7 @@ export class DollhouseBuildingScene {
   private loop = () => {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.loop);
+    if (this.paused) return;
     const delta = this.clock.getDelta();
 
     let animating = false;
@@ -501,7 +524,7 @@ export class DollhouseBuildingScene {
         if (this.currentFloor === target) {
           this.animTargetFloor = null;
           this.moving = false;
-          this.rebuildBuilding();
+          this.refreshFloorFocus(this.currentFloor);
         }
       }
     }

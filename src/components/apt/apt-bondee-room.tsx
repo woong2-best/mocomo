@@ -51,17 +51,20 @@ function AptBondeeRoomInner({
   isLoggedIn,
   studioInventory = [],
   onHomeChange,
+  paused = false,
 }: {
   initialState: BondeeHomeState;
   rooms: AptRoom[];
   isLoggedIn: boolean;
   studioInventory?: AptStudioInventoryItem[];
   onHomeChange?: (state: BondeeHomeState) => void;
+  paused?: boolean;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<IsometricHomeScene | null>(null);
   const stateRef = useRef(initialState);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveSeq = useRef(0);
   const [state, setState] = useState(initialState);
   const [activeRoomId, setActiveRoomId] = useState(
     initialState.activeRoomId ?? rooms.find((r) => r.type === "living")?.id ?? rooms[0]?.id
@@ -90,13 +93,26 @@ function AptBondeeRoomInner({
     (next: BondeeHomeState) => {
       if (!isLoggedIn) return;
       if (saveTimer.current) clearTimeout(saveTimer.current);
+      const seq = ++saveSeq.current;
       saveTimer.current = setTimeout(async () => {
         setSaving(true);
         await saveBondeeHome(next);
-        setSaving(false);
+        if (seq === saveSeq.current) setSaving(false);
       }, 900);
     },
     [isLoggedIn]
+  );
+
+  const applyItems = useCallback(
+    (items: BondeeHomeState["items"]) => {
+      const next = { ...stateRef.current, items, activeRoomId: activeRoomId ?? undefined };
+      stateRef.current = next;
+      setState(next);
+      sceneRef.current?.updateItems(items);
+      onHomeChange?.(next);
+      persist(next);
+    },
+    [activeRoomId, onHomeChange, persist]
   );
 
   const applyState = useCallback(
@@ -119,8 +135,8 @@ function AptBondeeRoomInner({
   openGamesRef.current = openGames;
 
   useEffect(() => {
-    stateRef.current = state;
-  }, [state]);
+    sceneRef.current?.setPaused(paused);
+  }, [paused]);
 
   useEffect(() => {
     const el = mountRef.current;
@@ -141,6 +157,10 @@ function AptBondeeRoomInner({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rooms]);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   const closeGames = useCallback(() => {
     void runWithIris(() => {
@@ -167,13 +187,19 @@ function AptBondeeRoomInner({
   }, [activeRoomId]);
 
   const onAvatarChange = (avatar: ChibiAvatarConfig) => {
-    applyState({ ...state, avatar, activeRoomId: activeRoomId ?? undefined });
+    const next = { ...stateRef.current, avatar, activeRoomId: activeRoomId ?? undefined };
+    stateRef.current = next;
+    setState(next);
+    sceneRef.current?.updateAvatar(avatar, next.pose);
+    onHomeChange?.(next);
+    persist(next);
   };
 
   const onPoseChange = (pose: ChibiPose) => {
-    const next = { ...state, pose, activeRoomId: activeRoomId ?? undefined };
+    const next = { ...stateRef.current, pose, activeRoomId: activeRoomId ?? undefined };
+    stateRef.current = next;
     setState(next);
-    sceneRef.current?.updateAvatar(state.avatar, pose);
+    sceneRef.current?.updateAvatar(next.avatar, pose);
     onHomeChange?.(next);
     persist(next);
   };
@@ -194,20 +220,17 @@ function AptBondeeRoomInner({
 
   const rotateSelected = () => {
     if (!selectedItemId) return;
-    const items = state.items.map((it) =>
+    const items = stateRef.current.items.map((it) =>
       it.id === selectedItemId ? { ...it, rot: ((it.rot + 1) % 4) as 0 | 1 | 2 | 3 } : it
     );
-    applyState({ ...state, items, activeRoomId: activeRoomId ?? undefined });
+    applyItems(items);
   };
 
   const deleteSelected = () => {
     if (!selectedItemId) return;
-    applyState({
-      ...state,
-      items: state.items.filter((i) => i.id !== selectedItemId),
-      activeRoomId: activeRoomId ?? undefined,
-    });
+    applyItems(stateRef.current.items.filter((i) => i.id !== selectedItemId));
     setSelectedItemId(null);
+    sceneRef.current?.setSelectedItem(null);
   };
 
   return (

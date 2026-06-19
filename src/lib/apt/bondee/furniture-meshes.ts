@@ -23,9 +23,37 @@ export function buildFurnitureMesh(kind: BondeeFurnitureKind): THREE.Group {
   let proto = FURNITURE_PROTOTYPES.get(kind);
   if (!proto) {
     proto = buildFurnitureMeshPrototype(kind);
+    shadowizeGroup(proto, false);
     FURNITURE_PROTOTYPES.set(kind, proto);
   }
-  return proto.clone(true);
+  return cloneFurnitureShared(proto);
+}
+
+function cloneFurnitureShared(src: THREE.Object3D): THREE.Group {
+  const root = new THREE.Group();
+  root.userData.kind = src.userData.kind;
+  src.children.forEach((child) => {
+    root.add(cloneFurnitureNode(child));
+  });
+  return root;
+}
+
+function cloneFurnitureNode(src: THREE.Object3D): THREE.Object3D {
+  if (src instanceof THREE.Mesh) {
+    const m = new THREE.Mesh(src.geometry, src.material);
+    m.position.copy(src.position);
+    m.rotation.copy(src.rotation);
+    m.scale.copy(src.scale);
+    m.castShadow = false;
+    m.receiveShadow = false;
+    return m;
+  }
+  const g = new THREE.Group();
+  g.position.copy(src.position);
+  g.rotation.copy(src.rotation);
+  g.scale.copy(src.scale);
+  src.children.forEach((c) => g.add(cloneFurnitureNode(c)));
+  return g;
 }
 
 function buildFurnitureMeshPrototype(kind: BondeeFurnitureKind): THREE.Group {

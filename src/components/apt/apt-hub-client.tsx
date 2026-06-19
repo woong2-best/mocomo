@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Building2, Home } from "lucide-react";
 import type { AptProfileDto } from "@/actions/apt";
 import type { BondeeHomeState } from "@/lib/apt/bondee/types";
@@ -49,8 +49,13 @@ export function AptHubClient({
   studioInventory?: AptStudioInventoryItem[];
 }) {
   const [tab, setTab] = useState<"home" | "tower">("home");
+  const [towerMounted, setTowerMounted] = useState(false);
   const [homeState, setHomeState] = useState(bondeeHome);
   const [homeRooms, setHomeRooms] = useState(initialHomeRooms);
+
+  useEffect(() => {
+    if (tab === "tower") setTowerMounted(true);
+  }, [tab]);
 
   return (
     <div className="w-full max-w-none px-3 sm:px-5 lg:px-8 py-4 lg:py-6 pb-16 space-y-5">
@@ -95,22 +100,31 @@ export function AptHubClient({
       </div>
 
       <AptSceneErrorBoundary>
-        {tab === "home" ? (
+        <div className={cn(tab !== "home" && "hidden")}>
           <AptBondeeRoom
             initialState={homeState}
             rooms={homeRooms}
             isLoggedIn={isLoggedIn}
             studioInventory={studioInventory}
             onHomeChange={setHomeState}
+            paused={tab !== "home"}
           />
-        ) : (
-          <AptBuildingView
-            initialProfile={initialProfile}
-            bondeeRoom={homeState}
-            isLoggedIn={isLoggedIn}
-            onHomeRoomsChange={setHomeRooms}
-          />
-        )}
+        </div>
+        <div className={cn(tab !== "tower" && "hidden")}>
+          {towerMounted ? (
+            <AptBuildingView
+              initialProfile={initialProfile}
+              bondeeRoom={homeState}
+              isLoggedIn={isLoggedIn}
+              onHomeRoomsChange={setHomeRooms}
+              paused={tab !== "tower"}
+            />
+          ) : (
+            <div className="folk-card flex min-h-[min(88dvh,920px)] items-center justify-center text-sm text-muted-foreground bg-[#fef6f8]">
+              1000층 타워 불러오는 중…
+            </div>
+          )}
+        </div>
       </AptSceneErrorBoundary>
     </div>
   );

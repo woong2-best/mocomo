@@ -326,10 +326,18 @@ export function appendFurniturePiece(
       new THREE.RingGeometry(0.22, 0.32, 16),
       new THREE.MeshBasicMaterial({ color: BONDEE_PALETTE.accent, transparent: true, opacity: 0.75, side: THREE.DoubleSide })
     );
+    ring.name = "selection-ring";
     ring.rotation.x = -Math.PI / 2;
     ring.position.y = 0.02;
     mesh.add(ring);
   }
+
+  mesh.traverse((o) => {
+    if (o instanceof THREE.Mesh) {
+      o.castShadow = false;
+      o.receiveShadow = false;
+    }
+  });
 
   furnitureRoot.add(mesh);
 }
