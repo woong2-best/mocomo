@@ -6,6 +6,7 @@ import { requireAuth } from "@/lib/auth";
 import type { StudioAssetCategory } from "@prisma/client";
 import { validateUploadMeta } from "@/studio/lib/validation";
 import { publishStudioAsset } from "@/studio/lib/publish";
+import { grantStudioInventory } from "@/studio/lib/inventory";
 
 function revalidateStudio() {
   revalidatePath("/studio");
@@ -152,6 +153,25 @@ export async function submitStudioAssetForReview(assetId: string) {
   return { success: true };
 }
 
+export async function capturePreviewThumbnail(assetId: string, thumbnailUrl: string) {
+  const user = await requireAuth();
+  const asset = await db.studioAsset.findFirst({
+    where: { id: assetId, creatorId: user.id },
+  });
+  if (!asset) return { error: "자산을 찾을 수 없습니다." };
+  if (asset.status !== "DRAFT" && asset.status !== "REJECTED") {
+    return { error: "초안 상태에서만 썸네일을 변경할 수 있습니다." };
+  }
+
+  await db.studioAsset.update({
+    where: { id: assetId },
+    data: { thumbnailUrl },
+  });
+
+  revalidatePath(`/studio/assets/${assetId}`);
+  return { success: true };
+}
+
 export async function deleteStudioAsset(assetId: string) {
   const user = await requireAuth();
   const asset = await db.studioAsset.findFirst({
@@ -209,10 +229,17 @@ export async function downloadStudioAsset(assetId: string) {
 
   const isOwner = asset.creatorId === user.id;
   if (!isOwner && !asset.isFree) {
+    const owned = await db.studioUserInventory.findUnique({
+      where: { userId_studioAssetId: { userId: user.id, studioAssetId: assetId } },
+    });
     const purchased = await db.studioAssetPurchase.findUnique({
       where: { buyerId_assetId: { buyerId: user.id, assetId } },
     });
-    if (!purchased) return { error: "구매 후 다운로드할 수 있습니다." };
+    if (!owned && !purchased) return { error: "구매 또는 무료 획득 후 다운로드할 수 있습니다." };
+  }
+
+  if (!isOwner && asset.isFree) {
+    await grantStudioInventory(user.id, assetId, "FREE");
   }
 
   await db.$transaction([

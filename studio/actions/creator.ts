@@ -76,7 +76,17 @@ export async function getStudioCreatorByHandle(handle: string) {
     take: 48,
   });
 
-  return { profile, assets };
+  let featured: (typeof assets)[0] | null = null;
+  if (profile.featuredAssetId) {
+    featured = assets.find((a) => a.id === profile.featuredAssetId) ?? null;
+    if (!featured) {
+      featured = await db.studioAsset.findFirst({
+        where: { id: profile.featuredAssetId, creatorId: profile.userId, status: "PUBLISHED" },
+      });
+    }
+  }
+
+  return { profile, assets, featured };
 }
 
 export async function toggleStudioFollow(creatorUserId: string) {

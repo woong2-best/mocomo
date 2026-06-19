@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { purchaseStudioAsset, toggleStudioAssetLike } from "@/studio/actions/market";
 import { downloadStudioAsset } from "@/studio/actions/assets";
+import { acquireFreeStudioAsset } from "@/studio/actions/library";
 import type { StudioAsset, User } from "@prisma/client";
 import { AssetPreviewViewer } from "./asset-preview-viewer";
 import { STUDIO_CATEGORY_LABELS } from "@/studio/lib/constants";
@@ -12,13 +13,14 @@ import { Button } from "@/components/ui/button";
 type Props = {
   asset: StudioAsset & { creator: Pick<User, "id" | "username" | "name" | "image"> };
   liked?: boolean;
-  purchased?: boolean;
+  owned?: boolean;
   isOwner?: boolean;
 };
 
-export function MarketAssetActions({ asset, liked, purchased, isOwner }: Props) {
+export function MarketAssetActions({ asset, liked, owned, isOwner }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const isFree = asset.isFree || asset.priceKrw <= 0;
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -31,7 +33,7 @@ export function MarketAssetActions({ asset, liked, purchased, isOwner }: Props) 
         {liked ? "♥ 좋아요 취소" : "♡ 좋아요"} ({asset.likeCount})
       </Button>
 
-      {!isOwner && !asset.isFree && asset.priceKrw > 0 && !purchased && (
+      {!isOwner && !isFree && !owned && (
         <Button
           size="sm"
           disabled={pending}
@@ -46,7 +48,22 @@ export function MarketAssetActions({ asset, liked, purchased, isOwner }: Props) 
         </Button>
       )}
 
-      {(asset.isFree || purchased || isOwner) && (
+      {!isOwner && isFree && !owned && (
+        <Button
+          size="sm"
+          disabled={pending}
+          onClick={() =>
+            startTransition(async () => {
+              const r = await acquireFreeStudioAsset(asset.id);
+              if (!r.error) router.refresh();
+            })
+          }
+        >
+          무료 획득
+        </Button>
+      )}
+
+      {(owned || isOwner) && (
         <Button
           size="sm"
           variant="secondary"
@@ -65,12 +82,7 @@ export function MarketAssetActions({ asset, liked, purchased, isOwner }: Props) 
   );
 }
 
-export function MarketAssetDetail({
-  asset,
-  liked,
-  purchased,
-  isOwner,
-}: Props) {
+export function MarketAssetDetail({ asset, liked, owned, isOwner }: Props) {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       {asset.glbUrl ? (
@@ -92,9 +104,10 @@ export function MarketAssetDetail({
             ))}
           </div>
         )}
-        <MarketAssetActions asset={asset} liked={liked} purchased={purchased} isOwner={isOwner} />
+        <MarketAssetActions asset={asset} liked={liked} owned={owned} isOwner={isOwner} />
         <p className="text-xs text-muted-foreground">
           다운로드 {asset.downloadCount} · 판매 {asset.saleCount}
+          {owned && !isOwner ? " · 보유 중" : ""}
         </p>
       </div>
     </div>

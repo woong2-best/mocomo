@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import type { StudioAssetCategory } from "@prisma/client";
 import { STUDIO_PLATFORM_FEE_PERCENT } from "@/studio/lib/constants";
+import { grantStudioInventory } from "@/studio/lib/inventory";
 
 export async function listPublishedAssets(opts?: {
   category?: StudioAssetCategory;
@@ -94,6 +95,8 @@ export async function purchaseStudioAsset(assetId: string) {
       where: { userId: asset.creatorId },
       data: { totalSales: { increment: 1 } },
     });
+
+    await grantStudioInventory(user.id, assetId, "PURCHASE");
   });
 
   revalidatePath("/studio/market");

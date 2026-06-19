@@ -1,4 +1,4 @@
-const DEFAULT_STUDIO_HOSTS = ["studio.mocomo.com", "studio.localhost", "studio.mocomo.net"];
+const DEFAULT_STUDIO_HOSTS = ["studio.mocomo.com", "studio.localhost", "studio.mocomo.net", "studio-staging.mocomo.com"];
 
 export function getStudioHostnames(): string[] {
   const fromEnv = process.env.NEXT_PUBLIC_STUDIO_HOST?.trim();

@@ -11,18 +11,22 @@ import { Button } from "@/components/ui/button";
 type Props = {
   profile: StudioCreatorProfile & { user: Pick<User, "id" | "username" | "name" | "image"> };
   assets: StudioAsset[];
+  featured: StudioAsset | null;
   isFollowing: boolean;
   isSelf: boolean;
 };
 
-export function CreatorProfileClient({ profile, assets, isFollowing, isSelf }: Props) {
+export function CreatorProfileClient({ profile, assets, featured, isFollowing, isSelf }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   return (
     <div className="space-y-8">
       <div className="overflow-hidden rounded-3xl border border-pink-100 bg-white">
-        <div className="h-32 bg-gradient-to-r from-pink-100 to-violet-100" />
+        <div
+          className="h-32 bg-gradient-to-r from-pink-100 to-violet-100"
+          style={profile.bannerUrl ? { backgroundImage: `url(${profile.bannerUrl})`, backgroundSize: "cover" } : undefined}
+        />
         <div className="px-6 pb-6">
           <div className="-mt-10 flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -49,6 +53,15 @@ export function CreatorProfileClient({ profile, assets, isFollowing, isSelf }: P
           </div>
         </div>
       </div>
+
+      {featured && (
+        <section>
+          <h2 className="mb-3 font-semibold">대표 작품</h2>
+          <Link href={`/studio/market/${featured.id}`} className="block max-w-sm">
+            <AssetCard asset={{ ...featured, creator: profile.user }} href={`/studio/market/${featured.id}`} />
+          </Link>
+        </section>
+      )}
 
       <section>
         <h2 className="mb-4 font-semibold">작품</h2>

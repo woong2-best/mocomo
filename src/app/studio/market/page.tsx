@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { listPublishedAssets } from "@/studio/actions/market";
 import { AssetCard } from "@/studio/components/asset-card";
+import { MarketSearchForm } from "@/studio/components/market-search-form";
 import { STUDIO_CATEGORIES, STUDIO_CATEGORY_LABELS } from "@/studio/lib/constants";
 import type { StudioAssetCategory } from "@prisma/client";
 
@@ -17,21 +19,26 @@ export default async function StudioMarketPage({
 
   return (
     <div className="space-y-6">
-      <h1 className="font-display text-2xl font-semibold">Asset Marketplace</h1>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="font-display text-2xl font-semibold">Asset Marketplace</h1>
+        <Suspense fallback={null}>
+          <MarketSearchForm />
+        </Suspense>
+      </div>
 
       <div className="flex flex-wrap gap-2">
         <Link
           href="/studio/market"
-          className={`rounded-full px-3 py-1 text-sm ${!category ? "bg-pink-100 text-pink-700" : "bg-white border"}`}
+          className={`rounded-full px-3 py-1 text-sm ${!category ? "bg-pink-100 text-pink-700" : "border bg-white"}`}
         >
           전체
         </Link>
         {STUDIO_CATEGORIES.map((c) => (
           <Link
             key={c}
-            href={`/studio/market?category=${c}`}
+            href={`/studio/market?category=${c}${sp.q ? `&q=${encodeURIComponent(sp.q)}` : ""}`}
             className={`rounded-full px-3 py-1 text-sm ${
-              category === c ? "bg-pink-100 text-pink-700" : "bg-white border"
+              category === c ? "bg-pink-100 text-pink-700" : "border bg-white"
             }`}
           >
             {STUDIO_CATEGORY_LABELS[c]}

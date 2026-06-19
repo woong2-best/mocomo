@@ -21,6 +21,7 @@ export default async function StudioCreatorPage({
     <CreatorProfileClient
       profile={data.profile}
       assets={data.assets}
+      featured={data.featured}
       isFollowing={!!isFollowing}
       isSelf={isSelf}
     />

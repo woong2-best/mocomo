@@ -1,39 +1,58 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import {
+  PREVIEW_PRESETS,
+  PREVIEW_PRESET_IDS,
+  type PreviewPresetId,
+} from "@/studio/lib/preview-presets";
 
 type Props = {
   url: string;
   className?: string;
   onStats?: (stats: { polygonCount: number; textureMaxSize: number }) => void;
+  showPresets?: boolean;
+  onCapture?: (dataUrl: string) => void;
 };
 
-export function AssetPreviewViewer({ url, className, onStats }: Props) {
+export function AssetPreviewViewer({
+  url,
+  className,
+  onStats,
+  showPresets = true,
+  onCapture,
+}: Props) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const [preset, setPreset] = useState<PreviewPresetId>("pastel");
 
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount || !url) return;
 
+    const p = PREVIEW_PRESETS[preset];
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xfef6f8);
+    scene.background = new THREE.Color(p.background);
+    sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 100);
     camera.position.set(1.8, 1.2, 2.2);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: !!onCapture });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     mount.appendChild(renderer.domElement);
+    rendererRef.current = renderer;
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.target.set(0, 0.4, 0);
 
-    const hemi = new THREE.HemisphereLight(0xfff0f5, 0xc8d8ff, 1.1);
+    const hemi = new THREE.HemisphereLight(p.hemiSky, p.hemiGround, 1.1);
     scene.add(hemi);
     const key = new THREE.DirectionalLight(0xffffff, 0.85);
     key.position.set(2, 4, 3);
@@ -41,10 +60,9 @@ export function AssetPreviewViewer({ url, className, onStats }: Props) {
 
     const floor = new THREE.Mesh(
       new THREE.CircleGeometry(2.5, 48),
-      new THREE.MeshStandardMaterial({ color: 0xf5e8ef, roughness: 0.95 })
+      new THREE.MeshStandardMaterial({ color: p.floor, roughness: 0.95 })
     );
     floor.rotation.x = -Math.PI / 2;
-    floor.position.y = 0;
     scene.add(floor);
 
     let model: THREE.Group | null = null;
@@ -85,9 +103,7 @@ export function AssetPreviewViewer({ url, className, onStats }: Props) {
                 const tex = (mat as THREE.MeshStandardMaterial)[key];
                 if (tex?.image) {
                   const img = tex.image as { width?: number; height?: number };
-                  const w = img.width ?? 0;
-                  const h = img.height ?? 0;
-                  textureMaxSize = Math.max(textureMaxSize, w, h);
+                  textureMaxSize = Math.max(textureMaxSize, img.width ?? 0, img.height ?? 0);
                 }
               }
             }
@@ -124,6 +140,8 @@ export function AssetPreviewViewer({ url, className, onStats }: Props) {
       ro.disconnect();
       controls.dispose();
       renderer.dispose();
+      rendererRef.current = null;
+      sceneRef.current = null;
       if (model) {
         model.traverse((obj) => {
           if ((obj as THREE.Mesh).isMesh) {
@@ -136,12 +154,45 @@ export function AssetPreviewViewer({ url, className, onStats }: Props) {
       }
       if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement);
     };
-  }, [url, onStats]);
+  }, [url, onStats, preset, onCapture]);
+
+  function captureFrame() {
+    const renderer = rendererRef.current;
+    if (!renderer || !onCapture) return;
+    onCapture(renderer.domElement.toDataURL("image/png"));
+  }
 
   return (
-    <div
-      ref={mountRef}
-      className={className ?? "h-[320px] w-full overflow-hidden rounded-xl border border-border bg-[#fef6f8]"}
-    />
+    <div className="space-y-2">
+      {showPresets && (
+        <div className="flex flex-wrap gap-1">
+          {PREVIEW_PRESET_IDS.map((id) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setPreset(id)}
+              className={`rounded-full px-3 py-1 text-xs ${
+                preset === id ? "bg-pink-100 text-pink-700" : "bg-white border text-muted-foreground"
+              }`}
+            >
+              {PREVIEW_PRESETS[id].label}
+            </button>
+          ))}
+          {onCapture && (
+            <button
+              type="button"
+              onClick={captureFrame}
+              className="rounded-full border bg-white px-3 py-1 text-xs text-pink-600"
+            >
+              썸네일 캡처
+            </button>
+          )}
+        </div>
+      )}
+      <div
+        ref={mountRef}
+        className={className ?? "h-[320px] w-full overflow-hidden rounded-xl border border-border bg-[#fef6f8]"}
+      />
+    </div>
   );
 }

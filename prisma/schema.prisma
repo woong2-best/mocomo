@@ -228,6 +228,8 @@ model User {
   studioAssetPurchases    StudioAssetPurchase[]
   studioWallet            StudioWallet?
   studioPayoutRequests    StudioPayoutRequest[]
+  studioBankAccount       StudioBankAccount?
+  studioUserInventory     StudioUserInventory[]
 }
 
 model Account {
@@ -2357,6 +2359,7 @@ model StudioAsset {
   likes           StudioAssetLike[]
   purchases       StudioAssetPurchase[]
   catalogEntry    MocomoStudioCatalogItem?
+  userInventory   StudioUserInventory[]
 
   @@index([creatorId, status])
   @@index([status, publishedAt])
@@ -2453,4 +2456,43 @@ model MocomoStudioCatalogItem {
 
   @@index([category, publishedAt])
   @@index([creatorId])
+}
+
+model StudioBankAccount {
+  userId        String @id
+  bankName      String
+  accountNumber String
+  holderName    String
+  updatedAt     DateTime @updatedAt
+  user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/** 유저가 보유한 Studio 자산 (무료 획득·구매) — MoCoMo APT 연동용 */
+model StudioUserInventory {
+  id            String   @id @default(cuid())
+  userId        String
+  studioAssetId String
+  source        String
+  acquiredAt    DateTime @default(now())
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  asset         StudioAsset @relation(fields: [studioAssetId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, studioAssetId])
+  @@index([userId, acquiredAt])
+}
+
+/** MoCoMo 인앱 구매 → Studio 정산 이벤트 */
+model StudioSettlementEvent {
+  id            String   @id @default(cuid())
+  userId        String
+  studioAssetId String
+  amountKrw     Int
+  platformFee   Int
+  creatorEarn   Int
+  source        String   @default("MOCOMO_INAPP")
+  externalRef   String?
+  createdAt     DateTime @default(now())
+
+  @@index([studioAssetId, createdAt])
+  @@index([userId])
 }

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getStudioAsset } from "@/studio/actions/assets";
+import { userHasStudioAsset } from "@/studio/actions/library";
 import { MarketAssetDetail } from "@/studio/components/market-asset-detail";
 
 export default async function StudioMarketDetailPage({
@@ -15,15 +16,18 @@ export default async function StudioMarketDetailPage({
   const asset = await getStudioAsset(id);
   if (!asset || asset.status !== "PUBLISHED") notFound();
 
+  const creatorProfile = await db.studioCreatorProfile.findUnique({
+    where: { userId: asset.creatorId },
+    select: { handle: true },
+  });
+
   let liked = false;
-  let purchased = false;
+  let owned = false;
   if (session?.user?.id) {
     liked = !!(await db.studioAssetLike.findUnique({
       where: { userId_assetId: { userId: session.user.id, assetId: id } },
     }));
-    purchased = !!(await db.studioAssetPurchase.findUnique({
-      where: { buyerId_assetId: { buyerId: session.user.id, assetId: id } },
-    }));
+    owned = await userHasStudioAsset(session.user.id, id);
   }
 
   return (
@@ -34,15 +38,17 @@ export default async function StudioMarketDetailPage({
       <MarketAssetDetail
         asset={asset}
         liked={liked}
-        purchased={purchased}
+        owned={owned}
         isOwner={session?.user?.id === asset.creatorId}
       />
-      <p className="text-sm text-muted-foreground">
-        by{" "}
-        <Link href={`/studio/creator/${asset.creator.username}`} className="text-pink-600 hover:underline">
-          {asset.creator.name ?? asset.creator.username}
-        </Link>
-      </p>
+      {creatorProfile && (
+        <p className="text-sm text-muted-foreground">
+          by{" "}
+          <Link href={`/studio/creator/${creatorProfile.handle}`} className="text-pink-600 hover:underline">
+            {asset.creator.name ?? asset.creator.username}
+          </Link>
+        </p>
+      )}
     </div>
   );
 }

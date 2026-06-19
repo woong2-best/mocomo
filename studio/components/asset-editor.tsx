@@ -3,14 +3,18 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useState, useTransition } from "react";
 import type { StudioAsset } from "@prisma/client";
+import type { ValidationIssue } from "@/studio/lib/validation";
 import {
   attachStudioAssetFile,
+  capturePreviewThumbnail,
   deleteStudioAsset,
   publishApprovedAsset,
   submitStudioAssetForReview,
 } from "@/studio/actions/assets";
+import { AssetMetadataForm } from "./asset-metadata-form";
 import { AssetPreviewViewer } from "./asset-preview-viewer";
 import { AssetStatusBadge } from "./asset-status-badge";
+import { ValidationReport } from "./validation-report";
 import { STUDIO_CATEGORY_LABELS } from "@/studio/lib/constants";
 import { Button } from "@/components/ui/button";
 
@@ -24,6 +28,8 @@ export function AssetEditor({ asset, canEdit }: { asset: StudioAsset; canEdit: b
   const onStats = useCallback((s: { polygonCount: number; textureMaxSize: number }) => {
     setStats(s);
   }, []);
+
+  const validationIssues = (asset.validationLog as ValidationIssue[] | null) ?? null;
 
   async function uploadFile(file: File) {
     setError(null);
@@ -42,8 +48,7 @@ export function AssetEditor({ asset, canEdit }: { asset: StudioAsset; canEdit: b
       return;
     }
 
-    const localUrl = URL.createObjectURL(file);
-    setPreviewUrl(localUrl);
+    setPreviewUrl(URL.createObjectURL(file));
 
     startTransition(async () => {
       const attach = await attachStudioAssetFile(asset.id, {
@@ -58,6 +63,31 @@ export function AssetEditor({ asset, canEdit }: { asset: StudioAsset; canEdit: b
     });
   }
 
+  async function uploadThumbnail(file: File) {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("category", "image");
+    const res = await fetch("/api/upload/local", { method: "POST", body: form });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error ?? "썸네일 업로드 실패");
+      return;
+    }
+    startTransition(async () => {
+      const r = await capturePreviewThumbnail(asset.id, data.publicUrl);
+      if (r.error) setError(r.error);
+      else router.refresh();
+    });
+  }
+
+  async function saveCapturedThumbnail(dataUrl: string) {
+    const blob = await (await fetch(dataUrl)).blob();
+    const file = new File([blob], "preview.png", { type: "image/png" });
+    await uploadThumbnail(file);
+  }
+
+  const editable = canEdit && (asset.status === "DRAFT" || asset.status === "REJECTED");
+
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <div className="space-y-4">
@@ -66,7 +96,6 @@ export function AssetEditor({ asset, canEdit }: { asset: StudioAsset; canEdit: b
           <AssetStatusBadge status={asset.status} />
         </div>
         <p className="text-sm text-muted-foreground">{STUDIO_CATEGORY_LABELS[asset.category]}</p>
-        {asset.description && <p className="text-sm">{asset.description}</p>}
         {asset.rejectReason && (
           <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
             반려 사유: {asset.rejectReason}
@@ -74,97 +103,125 @@ export function AssetEditor({ asset, canEdit }: { asset: StudioAsset; canEdit: b
         )}
 
         {previewUrl ? (
-          <AssetPreviewViewer url={previewUrl} className="h-[360px] w-full rounded-2xl border border-pink-100" onStats={onStats} />
+          <AssetPreviewViewer
+            url={previewUrl}
+            className="h-[360px] w-full rounded-2xl border border-pink-100"
+            onStats={onStats}
+            onCapture={editable ? saveCapturedThumbnail : undefined}
+          />
         ) : (
           <div className="flex h-[360px] items-center justify-center rounded-2xl border border-dashed border-pink-200 bg-pink-50/50 text-muted-foreground">
             3D 파일을 업로드하면 미리보기가 표시됩니다
           </div>
         )}
 
-        {canEdit && (asset.status === "DRAFT" || asset.status === "REJECTED") && (
-          <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-pink-300 bg-white p-6 text-sm hover:bg-pink-50">
-            <span className="font-medium text-pink-600">.glb / .gltf 업로드</span>
-            <span className="mt-1 text-xs text-muted-foreground">최대 50MB · 자동 검사</span>
-            <input
-              type="file"
-              accept=".glb,.gltf,model/gltf-binary,model/gltf+json"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) uploadFile(f);
-              }}
-            />
-          </label>
+        {editable && (
+          <>
+            <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-pink-300 bg-white p-6 text-sm hover:bg-pink-50">
+              <span className="font-medium text-pink-600">.glb / .gltf 업로드</span>
+              <input
+                type="file"
+                accept=".glb,.gltf,model/gltf-binary,model/gltf+json"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) uploadFile(f);
+                }}
+              />
+            </label>
+            <label className="flex cursor-pointer items-center justify-center rounded-lg border border-pink-200 bg-white p-3 text-xs text-muted-foreground hover:bg-pink-50">
+              미리보기 이미지 직접 업로드
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) uploadThumbnail(f);
+                }}
+              />
+            </label>
+          </>
         )}
 
-        {asset.polygonCount != null && (
-          <p className="text-xs text-muted-foreground">
-            폴리곤 {asset.polygonCount.toLocaleString()} · 파일 {((asset.fileSizeBytes ?? 0) / 1024).toFixed(1)}KB
-          </p>
+        {asset.thumbnailUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={asset.thumbnailUrl} alt="" className="h-20 w-20 rounded-lg border object-cover" />
         )}
+
+        <ValidationReport
+          issues={validationIssues}
+          polygonCount={asset.polygonCount ?? stats?.polygonCount}
+          fileSizeBytes={asset.fileSizeBytes}
+          textureMaxSize={asset.textureMaxSize ?? stats?.textureMaxSize}
+        />
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-pink-100 bg-white p-5">
-        <h2 className="font-medium">작업</h2>
-        {error && <p className="text-sm text-destructive">{error}</p>}
+      <div className="space-y-4">
+        {editable && <AssetMetadataForm asset={asset} />}
 
-        {canEdit && asset.status === "DRAFT" && asset.glbUrl && (
-          <Button
-            className="w-full"
-            disabled={pending}
-            onClick={() =>
-              startTransition(async () => {
-                const r = await submitStudioAssetForReview(asset.id);
-                if (r.error) setError(r.error);
-                else router.refresh();
-              })
-            }
-          >
-            검수 제출
-          </Button>
-        )}
+        <div className="space-y-3 rounded-2xl border border-pink-100 bg-white p-5">
+          <h2 className="font-medium">작업</h2>
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
-        {canEdit && asset.status === "APPROVED" && (
-          <Button
-            className="w-full"
-            disabled={pending}
-            onClick={() =>
-              startTransition(async () => {
-                const r = await publishApprovedAsset(asset.id);
-                if (r.error) setError(r.error);
-                else router.refresh();
-              })
-            }
-          >
-            마켓 배포
-          </Button>
-        )}
-
-        {canEdit && asset.status !== "PUBLISHED" && (
-          <Button
-            variant="outline"
-            className="w-full text-destructive"
-            disabled={pending}
-            onClick={() => {
-              if (!confirm("삭제할까요?")) return;
-              startTransition(async () => {
-                const r = await deleteStudioAsset(asset.id);
-                if (r.error) setError(r.error);
-                else router.push("/studio/assets");
-              });
-            }}
-          >
-            삭제
-          </Button>
-        )}
-
-        {asset.status === "PUBLISHED" && asset.glbUrl && (
-          <a href={asset.glbUrl} download className="block">
-            <Button variant="outline" className="w-full">
-              GLB 다운로드
+          {editable && asset.glbUrl && (
+            <Button
+              className="w-full"
+              disabled={pending}
+              onClick={() =>
+                startTransition(async () => {
+                  const r = await submitStudioAssetForReview(asset.id);
+                  if (r.error) setError(r.error);
+                  else router.refresh();
+                })
+              }
+            >
+              검수 제출
             </Button>
-          </a>
-        )}
+          )}
+
+          {canEdit && asset.status === "APPROVED" && (
+            <Button
+              className="w-full"
+              disabled={pending}
+              onClick={() =>
+                startTransition(async () => {
+                  const r = await publishApprovedAsset(asset.id);
+                  if (r.error) setError(r.error);
+                  else router.refresh();
+                })
+              }
+            >
+              마켓 배포
+            </Button>
+          )}
+
+          {canEdit && asset.status !== "PUBLISHED" && (
+            <Button
+              variant="outline"
+              className="w-full text-destructive"
+              disabled={pending}
+              onClick={() => {
+                if (!confirm("삭제할까요?")) return;
+                startTransition(async () => {
+                  const r = await deleteStudioAsset(asset.id);
+                  if (r.error) setError(r.error);
+                  else router.push("/studio/assets");
+                });
+              }}
+            >
+              삭제
+            </Button>
+          )}
+
+          {asset.status === "PUBLISHED" && asset.glbUrl && (
+            <a href={asset.glbUrl} download className="block">
+              <Button variant="outline" className="w-full">
+                GLB 다운로드
+              </Button>
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );

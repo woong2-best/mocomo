@@ -2,50 +2,103 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import type { StudioAsset, StudioBankAccount, StudioCreatorProfile } from "@prisma/client";
 import { updateStudioCreatorProfile } from "@/studio/actions/creator";
-import type { StudioCreatorProfile } from "@prisma/client";
+import { saveStudioBankAccount } from "@/studio/actions/wallet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-export function StudioSettingsForm({ profile }: { profile: StudioCreatorProfile }) {
+export function StudioSettingsForm({
+  profile,
+  bankAccount,
+  publishedAssets,
+}: {
+  profile: StudioCreatorProfile;
+  bankAccount: StudioBankAccount | null;
+  publishedAssets: StudioAsset[];
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
 
   return (
-    <form
-      className="mx-auto max-w-lg space-y-4 rounded-2xl border border-pink-100 bg-white p-6"
-      onSubmit={(e) => {
-        e.preventDefault();
-        const fd = new FormData(e.currentTarget);
-        startTransition(async () => {
-          const r = await updateStudioCreatorProfile({
-            displayName: String(fd.get("displayName") ?? ""),
-            bio: String(fd.get("bio") ?? ""),
+    <div className="mx-auto max-w-lg space-y-6">
+      <form
+        className="space-y-4 rounded-2xl border border-pink-100 bg-white p-6"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const fd = new FormData(e.currentTarget);
+          startTransition(async () => {
+            const r = await updateStudioCreatorProfile({
+              displayName: String(fd.get("displayName") ?? ""),
+              bio: String(fd.get("bio") ?? ""),
+              featuredAssetId: String(fd.get("featuredAssetId") ?? "") || null,
+            });
+            if (r.success) {
+              setMsg("프로필 저장됨");
+              router.refresh();
+            }
           });
-          if (r.success) {
-            setMsg("저장되었습니다.");
-            router.refresh();
-          }
-        });
-      }}
-    >
-      <h1 className="font-display text-2xl font-semibold">크리에이터 설정</h1>
-      <p className="text-sm text-muted-foreground">핸들: @{profile.handle}</p>
+        }}
+      >
+        <h1 className="font-display text-2xl font-semibold">크리에이터 설정</h1>
+        <p className="text-sm text-muted-foreground">핸들: @{profile.handle}</p>
 
-      <div>
-        <label className="mb-1 block text-sm font-medium">표시 이름</label>
         <Input name="displayName" defaultValue={profile.displayName} required />
-      </div>
-      <div>
-        <label className="mb-1 block text-sm font-medium">소개</label>
         <Textarea name="bio" rows={4} defaultValue={profile.bio ?? ""} />
-      </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium">대표 작품</label>
+          <select
+            name="featuredAssetId"
+            className="w-full rounded-md border px-3 py-2 text-sm"
+            defaultValue={profile.featuredAssetId ?? ""}
+          >
+            <option value="">선택 안 함</option>
+            {publishedAssets.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <Button type="submit" disabled={pending}>
+          프로필 저장
+        </Button>
+      </form>
+
+      <form
+        className="space-y-4 rounded-2xl border border-pink-100 bg-white p-6"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const fd = new FormData(e.currentTarget);
+          startTransition(async () => {
+            const r = await saveStudioBankAccount({
+              bankName: String(fd.get("bankName") ?? ""),
+              accountNumber: String(fd.get("accountNumber") ?? ""),
+              holderName: String(fd.get("holderName") ?? ""),
+            });
+            if (r.error) setMsg(r.error);
+            else {
+              setMsg("정산 계좌 저장됨");
+              router.refresh();
+            }
+          });
+        }}
+      >
+        <h2 className="font-semibold">Studio 정산 계좌</h2>
+        <p className="text-xs text-muted-foreground">MoCoMo 지갑과 별도 · Studio 수익 출금용</p>
+        <Input name="bankName" defaultValue={bankAccount?.bankName ?? ""} placeholder="은행명" required />
+        <Input name="accountNumber" defaultValue={bankAccount?.accountNumber ?? ""} placeholder="계좌번호" required />
+        <Input name="holderName" defaultValue={bankAccount?.holderName ?? ""} placeholder="예금주" required />
+        <Button type="submit" variant="outline" disabled={pending}>
+          계좌 저장
+        </Button>
+      </form>
+
       {msg && <p className="text-sm text-emerald-600">{msg}</p>}
-      <Button type="submit" disabled={pending}>
-        저장
-      </Button>
-    </form>
+    </div>
   );
 }

@@ -16,7 +16,12 @@ export function StudioWalletPanel({ summary }: { summary: Summary }) {
   return (
     <div className="space-y-6">
       <h1 className="font-display text-2xl font-semibold">Studio 수익</h1>
-      <p className="text-sm text-muted-foreground">플랫폼 수수료 {STUDIO_PLATFORM_FEE_PERCENT}% · MoCoMo 지갑과 별도</p>
+      <p className="text-sm text-muted-foreground">
+        플랫폼 수수료 {STUDIO_PLATFORM_FEE_PERCENT}% · MoCoMo 지갑과 별도
+        {!summary.bankAccount && (
+          <span className="ml-2 text-amber-600">· 정산 계좌 미등록</span>
+        )}
+      </p>
 
       <div className="grid gap-4 sm:grid-cols-3">
         {[

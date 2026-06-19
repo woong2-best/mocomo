@@ -37,6 +37,7 @@ const authRoutes = ["/auth/signin", "/auth/signup"];
 const studioProtectedPrefixes = [
   "/studio/create",
   "/studio/assets",
+  "/studio/library",
   "/studio/wallet",
   "/studio/settings",
   "/studio/admin",
