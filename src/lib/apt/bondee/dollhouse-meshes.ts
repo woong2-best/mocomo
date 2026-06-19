@@ -2,8 +2,15 @@
 
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
-import { buildFurnitureMesh } from "./furniture-meshes";
-import type { BondeePlacedItem, BondeeRoomState } from "./types";
+import {
+  buildHomeFloorGroup,
+  defaultItemsForRooms,
+  disposeHomeGroup,
+  fitScaleToBox,
+  migrateItems,
+} from "./home-floor-meshes";
+import type { AptRoom } from "@/lib/apt/floor-plan-types";
+import type { BondeePlacedItem, BondeeHomeState } from "./types";
 
 export const DOLLHOUSE_UNIT_W = 3.4;
 export const DOLLHOUSE_UNIT_D = 2.2;
@@ -74,7 +81,7 @@ function addMesh(
 }
 
 /** Procedural furniture for floors without saved room data */
-export function seededRoomItems(seed: number): BondeePlacedItem[] {
+export function seededRoomItems(seed: number, roomId = "living"): BondeePlacedItem[] {
   const kinds = ["sofa", "plant", "tv_stand", "coffee_table", "bed", "desk", "floor_lamp", "bookshelf"] as const;
   const count = 3 + (seed % 3);
   const items: BondeePlacedItem[] = [];
@@ -83,6 +90,7 @@ export function seededRoomItems(seed: number): BondeePlacedItem[] {
     items.push({
       id: `seed-${seed}-${i}`,
       kind,
+      roomId,
       gx: -1 + ((seed + i * 3) % 3),
       gz: -1 + ((seed + i * 5) % 3),
       rot: ((seed + i) % 4) as 0 | 1 | 2 | 3,
@@ -91,67 +99,48 @@ export function seededRoomItems(seed: number): BondeePlacedItem[] {
   return items;
 }
 
-export function buildUnitFurniture(items: BondeePlacedItem[], scale = 0.72): THREE.Group {
-  const root = new THREE.Group();
-  root.name = "unit-furniture";
-  for (const item of items) {
-    const mesh = buildFurnitureMesh(item.kind);
-    mesh.scale.setScalar(scale);
-    mesh.position.set(item.gx * 0.55 * scale, 0, item.gz * 0.55 * scale);
-    mesh.rotation.y = (item.rot * Math.PI) / 2;
-    root.add(mesh);
-  }
-  return root;
+export function buildUnitFurniture(items: BondeePlacedItem[], rooms: AptRoom[], scale = 0.72): THREE.Group {
+  const migrated = migrateItems(items, rooms);
+  const s = fitScaleToBox(DOLLHOUSE_UNIT_W * 0.88, DOLLHOUSE_UNIT_D * 0.88);
+  return buildHomeFloorGroup({ rooms, items: migrated, scale: s, wallHeight: 0.32 });
 }
 
 export type DollhouseUnitOptions = {
   floorIndex: number;
   active: boolean;
   visited: boolean;
-  room?: BondeeRoomState;
+  room?: BondeeHomeState;
+  rooms?: AptRoom[];
   seed?: number;
 };
 
 /** Single apartment unit — open front cross-section with visible furniture */
 export function buildDollhouseUnit(opts: DollhouseUnitOptions): THREE.Group {
-  const { floorIndex, active, visited, room, seed = floorIndex * 17 } = opts;
+  const { floorIndex, active, visited, room, rooms, seed = floorIndex * 17 } = opts;
   const g = new THREE.Group();
   g.userData.floor = floorIndex;
 
-  const wallColor = WALL_COLORS[floorIndex % WALL_COLORS.length];
-  const floorColor = floorIndex % 2 === 0 ? PASTEL.floorWood : PASTEL.floorWoodAlt;
+  const planRooms = rooms ?? [];
+  const items =
+    room?.items?.length
+      ? migrateItems(room.items, planRooms.length ? planRooms : [{ id: "living", type: "living", x: 0, y: 0, w: 500, h: 300, label: "", locked: false, floor: "wood" }])
+      : seededRoomItems(seed);
 
-  // Floor slab
-  addMesh(
-    g,
-    roundedBox(DOLLHOUSE_UNIT_W, 0.08, DOLLHOUSE_UNIT_D, 0.04),
-    pastelMat(floorColor),
-    0,
-    0.04,
-    0
-  );
+  if (planRooms.length > 0) {
+    const home = buildUnitFurniture(items, planRooms);
+    home.position.set(0, 0.06, 0);
+    g.add(home);
+  } else {
+    const floorColor = floorIndex % 2 === 0 ? PASTEL.floorWood : PASTEL.floorWoodAlt;
+    addMesh(g, roundedBox(DOLLHOUSE_UNIT_W, 0.08, DOLLHOUSE_UNIT_D, 0.04), pastelMat(floorColor), 0, 0.04, 0);
+    const wallColor = WALL_COLORS[floorIndex % WALL_COLORS.length];
+    addMesh(g, roundedBox(DOLLHOUSE_UNIT_W, DOLLHOUSE_FLOOR_H * 0.88, 0.07, 0.03), pastelMat(wallColor), 0, DOLLHOUSE_FLOOR_H * 0.46, -DOLLHOUSE_UNIT_D / 2 + 0.04);
+    const furniture = buildUnitFurniture(items, [{ id: "u", type: "living", x: 0, y: 0, w: 800, h: 500, label: "", locked: false, floor: "wood" }]);
+    furniture.position.set(0, 0.08, 0.1);
+    g.add(furniture);
+  }
 
-  // Back wall
-  addMesh(
-    g,
-    roundedBox(DOLLHOUSE_UNIT_W, DOLLHOUSE_FLOOR_H * 0.88, 0.07, 0.03),
-    pastelMat(wallColor),
-    0,
-    DOLLHOUSE_FLOOR_H * 0.46,
-    -DOLLHOUSE_UNIT_D / 2 + 0.04
-  );
-
-  // Left wall (partial — dollhouse cutaway)
-  addMesh(
-    g,
-    roundedBox(0.07, DOLLHOUSE_FLOOR_H * 0.88, DOLLHOUSE_UNIT_D * 0.65, 0.03),
-    pastelMat(wallColor, { color: new THREE.Color(wallColor).multiplyScalar(0.95) }),
-    -DOLLHOUSE_UNIT_W / 2 + 0.04,
-    DOLLHOUSE_FLOOR_H * 0.46,
-    -DOLLHOUSE_UNIT_D * 0.18
-  );
-
-  // Front lip (thin trim, not blocking view)
+  // Front lip
   addMesh(
     g,
     roundedBox(DOLLHOUSE_UNIT_W, 0.06, 0.06, 0.02),
@@ -161,7 +150,7 @@ export function buildDollhouseUnit(opts: DollhouseUnitOptions): THREE.Group {
     DOLLHOUSE_UNIT_D / 2 - 0.03
   );
 
-  // Ceiling slab (thin, between floors)
+  // Ceiling slab
   addMesh(
     g,
     roundedBox(DOLLHOUSE_UNIT_W + 0.04, 0.05, DOLLHOUSE_UNIT_D + 0.04, 0.02),
@@ -170,12 +159,6 @@ export function buildDollhouseUnit(opts: DollhouseUnitOptions): THREE.Group {
     DOLLHOUSE_FLOOR_H * 0.92,
     0
   );
-
-  // Furniture
-  const items = room?.items ?? seededRoomItems(seed);
-  const furniture = buildUnitFurniture(items);
-  furniture.position.set(0, 0.08, 0.1);
-  g.add(furniture);
 
   // Active floor glow ring
   if (active || visited) {

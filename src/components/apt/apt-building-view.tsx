@@ -51,10 +51,12 @@ export function AptBuildingView({
   initialProfile,
   bondeeRoom,
   isLoggedIn,
+  onHomeRoomsChange,
 }: {
   initialProfile: AptProfileDto | null;
   bondeeRoom: BondeeRoomState;
   isLoggedIn: boolean;
+  onHomeRoomsChange?: (rooms: AptRoom[]) => void;
 }) {
   const homeCountry = initialProfile?.countryCode ?? "KR";
   const homeFloor = initialProfile?.homeFloor ?? APT_DEFAULT_FLOOR;
@@ -100,9 +102,10 @@ export function AptBuildingView({
       plansRef.current = { ...plansRef.current, [floor]: next };
       setPlans((p) => ({ ...p, [floor]: next }));
       sceneRef.current?.updateFloorRooms(floor, next);
+      if (floor === homeFloor) onHomeRoomsChange?.(next);
       if (isLoggedIn) void saveAptFloorPlan(floor, next);
     },
-    [floor, isLoggedIn, isOwnApt]
+    [floor, homeFloor, isLoggedIn, isOwnApt, onHomeRoomsChange]
   );
 
   const goToFloor = useCallback((next: number) => {
@@ -286,7 +289,7 @@ export function AptBuildingView({
           <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-neutral-200 bg-white/95 px-2.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm">
             {isOwnApt ? (
               <>
-                인형의 집 · {floor}층
+                100층 타워 · {floor}층
                 {isLoggedIn && initialProfile?.moveInCompleted && floor === homeFloor && (
                   <span className="ml-1 text-folk-terracotta">· 내 집</span>
                 )}
@@ -448,7 +451,7 @@ export function AptBuildingView({
           </button>
 
           <p className="text-[10px] text-center leading-snug text-muted-foreground px-1">
-            {xray ? "인형의 집 단면" : "외관 보기"}
+            {xray ? "집 단면도" : "건물 외관"}
           </p>
 
           <div className="flex flex-1 flex-col items-center justify-center gap-2 w-full max-w-[4.5rem]">

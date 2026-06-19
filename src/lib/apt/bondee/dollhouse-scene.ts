@@ -15,7 +15,7 @@ import {
   buildElevatorShaft,
   disposeGroup,
 } from "./dollhouse-meshes";
-import type { BondeeRoomState } from "./types";
+import type { BondeeHomeState } from "./types";
 import type { FurnitureItem, ResidentAgent, SimulationSnapshot } from "@/lib/apt/simulation/types";
 
 export { APT_DEFAULT_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
@@ -56,8 +56,8 @@ export class DollhouseBuildingScene {
   private moving = false;
 
   private floorPlans: Record<number, AptRoom[]> = {};
-  private bondeeRoom: BondeeRoomState | null = null;
-  private visitRoom: BondeeRoomState | null = null;
+  private bondeeRoom: BondeeHomeState | null = null;
+  private visitRoom: BondeeHomeState | null = null;
   private visitHomeFloor: number | null = null;
   private selectedIds: string[] = [];
   private callbacks: DollhouseCallbacks = {};
@@ -158,11 +158,13 @@ export class DollhouseBuildingScene {
             ? this.visitRoom
             : undefined;
 
+      const planRooms = getRoomsForFloor(this.floorPlans, f);
       const unit = buildDollhouseUnit({
         floorIndex: f,
         active,
         visited,
         room,
+        rooms: planRooms,
         seed: f * 31 + (this.visitHomeFloor ?? 0),
       });
       unit.position.y = this.floorLocalY(f, start);
@@ -201,12 +203,12 @@ export class DollhouseBuildingScene {
     this.callbacks = cb;
   }
 
-  setBondeeRoom(room: BondeeRoomState | null) {
+  setBondeeRoom(room: BondeeHomeState | null) {
     this.bondeeRoom = room;
     this.rebuildBuilding();
   }
 
-  setVisitRoom(room: BondeeRoomState | null, homeFloor: number | null) {
+  setVisitRoom(room: BondeeHomeState | null, homeFloor: number | null) {
     this.visitRoom = room;
     this.visitHomeFloor = homeFloor;
     this.rebuildBuilding();
@@ -214,6 +216,7 @@ export class DollhouseBuildingScene {
 
   setFloorPlans(plans: Record<number, AptRoom[]>) {
     this.floorPlans = plans;
+    this.rebuildBuilding();
   }
 
   setSelectedRoomIds(ids: string[]) {

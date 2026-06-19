@@ -39,16 +39,21 @@ export type BondeeFurnitureKind =
 export type BondeePlacedItem = {
   id: string;
   kind: BondeeFurnitureKind;
+  roomId: string;
   gx: number;
   gz: number;
   rot: 0 | 1 | 2 | 3;
 };
 
-export type BondeeRoomState = {
+/** @deprecated alias — same as BondeeHomeState */
+export type BondeeRoomState = BondeeHomeState;
+
+export type BondeeHomeState = {
   avatar: ChibiAvatarConfig;
   items: BondeePlacedItem[];
   floorStyle: "wood" | "carpet";
   pose: ChibiPose;
+  activeRoomId?: string;
 };
 
 export const DEFAULT_CHIBI_AVATAR: ChibiAvatarConfig = {
@@ -65,19 +70,15 @@ export const DEFAULT_CHIBI_AVATAR: ChibiAvatarConfig = {
   blush: true,
 };
 
-export const DEFAULT_BONDEE_ROOM: BondeeRoomState = {
+export const DEFAULT_BONDEE_ROOM: BondeeHomeState = {
   avatar: DEFAULT_CHIBI_AVATAR,
   floorStyle: "wood",
   pose: "sit",
-  items: [
-    { id: "bs1", kind: "bookshelf", gx: -1, gz: -1, rot: 0 },
-    { id: "sf1", kind: "sofa", gx: 0, gz: 0, rot: 0 },
-    { id: "tv1", kind: "tv_stand", gx: 1, gz: -1, rot: 0 },
-    { id: "lm1", kind: "floor_lamp", gx: -1, gz: 1, rot: 0 },
-    { id: "pl1", kind: "plant", gx: 1, gz: 1, rot: 0 },
-    { id: "ct1", kind: "coffee_table", gx: 0, gz: 1, rot: 0 },
-  ],
+  activeRoomId: "living",
+  items: [],
 };
+
+export const DEFAULT_BONDEE_HOME = DEFAULT_BONDEE_ROOM;
 
 export const BONDEE_FURNITURE_LABELS: Record<BondeeFurnitureKind, string> = {
   bookshelf: "책장",

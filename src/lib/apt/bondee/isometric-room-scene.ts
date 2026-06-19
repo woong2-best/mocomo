@@ -208,7 +208,7 @@ export class IsometricRoomScene {
     const gz = Math.round(p.z / 0.55);
     if (Math.abs(gx) > 2 || Math.abs(gz) > 2) return;
     const id = `item-${Date.now()}`;
-    const items = [...this.state.items, { id, kind: this.selectedTool, gx, gz, rot: 0 as const }];
+    const items = [...this.state.items, { id, kind: this.selectedTool, roomId: "living", gx, gz, rot: 0 as const }];
     this.updateItems(items);
   };
 

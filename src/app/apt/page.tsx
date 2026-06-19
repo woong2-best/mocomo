@@ -1,13 +1,14 @@
 import { redirect } from "next/navigation";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { getAptProfile } from "@/actions/apt";
-import { getBondeeRoom } from "@/actions/apt-bondee";
-import { DEFAULT_BONDEE_ROOM } from "@/lib/apt/bondee/types";
+import { getBondeeHome } from "@/actions/apt-bondee";
+import { DEFAULT_BONDEE_HOME } from "@/lib/apt/bondee/types";
+import { createDefaultFloorPlan } from "@/lib/apt/floor-plan-logic";
 import { AptHubClient } from "@/components/apt/apt-hub-client";
 
 export const metadata = {
   title: "APT | MoCoMo",
-  description: "MoCoMo APT — Bondee 스타일 인형의 집 소셜 메타버스",
+  description: "MoCoMo APT — 치비 아바타 내 집 & 100층 타워",
 };
 
 export const dynamic = "force-dynamic";
@@ -21,15 +22,25 @@ export default async function AptPage() {
       redirect("/apt/move-in");
     }
 
-    const bondeeRoom = user ? await getBondeeRoom() : DEFAULT_BONDEE_ROOM;
+    const bondee = user ? await getBondeeHome(profile?.homeFloor) : null;
 
     return (
-      <AptHubClient initialProfile={profile} bondeeRoom={bondeeRoom} isLoggedIn={!!user} />
+      <AptHubClient
+        initialProfile={profile}
+        bondeeHome={bondee?.home ?? DEFAULT_BONDEE_HOME}
+        homeRooms={bondee?.rooms ?? createDefaultFloorPlan().rooms}
+        isLoggedIn={!!user}
+      />
     );
   } catch (e) {
     console.error("[AptPage]", e);
     return (
-      <AptHubClient initialProfile={null} bondeeRoom={DEFAULT_BONDEE_ROOM} isLoggedIn={false} />
+      <AptHubClient
+        initialProfile={null}
+        bondeeHome={DEFAULT_BONDEE_HOME}
+        homeRooms={createDefaultFloorPlan().rooms}
+        isLoggedIn={false}
+      />
     );
   }
 }

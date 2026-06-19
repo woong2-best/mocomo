@@ -58,6 +58,15 @@ export function buildFurnitureMesh(kind: BondeeFurnitureKind): THREE.Group {
       (glow.material as THREE.MeshStandardMaterial).emissive = new THREE.Color(0x4488cc);
       (glow.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.4;
       g.add(glow);
+      const console = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.06, 0.14), mat(0x2a2a3a, 0.3));
+      console.position.set(0.12, 0.38, 0.18);
+      g.add(console);
+      const consoleLed = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.02, 0.02), mat(0x44ff88, 0.2));
+      consoleLed.position.set(0.12, 0.42, 0.18);
+      (consoleLed.material as THREE.MeshStandardMaterial).emissive = new THREE.Color(0x22cc66);
+      (consoleLed.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.8;
+      g.add(consoleLed);
+      g.userData.interactKind = "game_console";
       break;
     }
     case "coffee_table": {

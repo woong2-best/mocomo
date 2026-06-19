@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Gamepad2, Radio, Trophy, Users } from "lucide-react";
+import { Gamepad2, Radio, Trophy, Users, X } from "lucide-react";
 import { FolkSectionTitle } from "@/components/brand/folk-decor";
 import { cn } from "@/lib/utils";
 import {
@@ -16,7 +16,15 @@ import {
   getMinigamesByCategory,
 } from "@/lib/minigames/registry";
 
-export function GamesHubClient() {
+export function GamesHubClient({
+  embedded,
+  onClose,
+  onGameNavigate,
+}: {
+  embedded?: boolean;
+  onClose?: () => void;
+  onGameNavigate?: (href: string) => void;
+}) {
   const [category, setCategory] = useState<MinigameCategory | "all">("all");
   const liveCount = countByStatus("live") + countByStatus("beta");
   const soonCount = countByStatus("coming_soon");
@@ -29,7 +37,17 @@ export function GamesHubClient() {
   }, [category]);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 pb-16 space-y-6">
+    <div className={cn("space-y-6", embedded ? "px-2 py-4" : "max-w-4xl mx-auto px-4 py-8 pb-16")}>
+      {embedded && onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          className="fixed top-[calc(var(--header-h)+0.75rem)] right-4 z-[210] flex items-center gap-1.5 rounded-xl border-2 border-folk-cobalt/25 bg-white px-3 py-2 text-xs font-bold text-folk-cobalt shadow-folk hover:bg-folk-cream transition-colors"
+        >
+          <X className="h-4 w-4" />
+          게임 닫기
+        </button>
+      )}
       <div className="space-y-3">
         <FolkSectionTitle icon="sun" className="flex items-center gap-2">
           <Gamepad2 className="h-6 w-6 text-folk-terracotta" />
@@ -134,6 +152,18 @@ export function GamesHubClient() {
           );
 
           if (playable && game.href) {
+            if (embedded && onGameNavigate) {
+              return (
+                <button
+                  key={game.id}
+                  type="button"
+                  onClick={() => onGameNavigate(game.href!)}
+                  className="group flex flex-col items-center gap-2 rounded-2xl border-2 border-folk-cobalt/20 bg-folk-cream/60 p-4 hover:border-folk-terracotta/50 hover:bg-folk-gold/10 transition-colors text-left w-full"
+                >
+                  {inner}
+                </button>
+              );
+            }
             return (
               <Link
                 key={game.id}
