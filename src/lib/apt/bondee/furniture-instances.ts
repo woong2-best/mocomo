@@ -25,6 +25,7 @@ const PROXY: Record<BondeeFurnitureKind, { size: [number, number, number]; color
   washer: { size: [0.38, 0.48, 0.38], color: 0xffffff },
   hoop: { size: [0.32, 0.72, 0.32], color: 0xff6633 },
   shelf_small: { size: [0.38, 0.52, 0.22], color: 0xe8d4bc },
+  gramophone: { size: [0.72, 0.78, 0.42], color: 0xd4a84b },
 };
 
 const _matrix = new THREE.Matrix4();

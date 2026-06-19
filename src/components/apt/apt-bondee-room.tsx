@@ -32,6 +32,7 @@ import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import { cn } from "@/lib/utils";
 import { AptChibiCustomizer } from "@/components/apt/apt-chibi-customizer";
 import { HomeAvatarControls } from "@/components/apt/home-avatar-controls";
+import { GramophonePanel } from "@/components/apt/gramophone-panel";
 import { useGameIrisTransition } from "@/components/games/game-iris-transition";
 
 const GamesHubClient = dynamic(
@@ -80,11 +81,15 @@ function AptBondeeRoomInner({
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [nearConsole, setNearConsole] = useState(false);
+  const [nearGramophone, setNearGramophone] = useState(false);
+  const [gramophoneOpen, setGramophoneOpen] = useState(false);
+  const [gramophonePlaying, setGramophonePlaying] = useState(false);
   const [nearbyFurniture, setNearbyFurniture] = useState<NearbyFurnitureInteract | null>(null);
   const [gamesOpen, setGamesOpen] = useState(false);
   const router = useRouter();
   const { runWithIris, IrisOverlay } = useGameIrisTransition();
   const openGamesRef = useRef<() => void>(() => {});
+  const openGramophoneRef = useRef<() => void>(() => {});
 
   const movementDisabled = panel === "decor" && (!!placeTool || !!studioTool || deleteMode);
 
@@ -138,6 +143,16 @@ function AptBondeeRoomInner({
 
   openGamesRef.current = openGames;
 
+  const openGramophone = useCallback(() => {
+    setGramophoneOpen(true);
+  }, []);
+
+  openGramophoneRef.current = openGramophone;
+
+  useEffect(() => {
+    sceneRef.current?.setGramophonePlaying(gramophonePlaying);
+  }, [gramophonePlaying]);
+
   const onPoseChange = useCallback((pose: ChibiPose) => {
     const next = { ...stateRef.current, pose, activeRoomId: activeRoomId ?? undefined };
     stateRef.current = next;
@@ -162,6 +177,8 @@ function AptBondeeRoomInner({
       onItemSelect: setSelectedItemId,
       onNearConsoleChange: setNearConsole,
       onGameConsoleInteract: () => openGamesRef.current(),
+      onNearGramophoneChange: setNearGramophone,
+      onGramophoneInteract: () => openGramophoneRef.current(),
       onActiveRoomChange: (roomId) => setActiveRoomId(roomId),
       onNearbyFurnitureChange: setNearbyFurniture,
       onPoseChange,
@@ -252,11 +269,23 @@ function AptBondeeRoomInner({
       <div className="relative min-h-[min(80dvh,820px)] bg-gradient-to-b from-[#fef6f8] to-[#ffe8f0]">
         <div ref={mountRef} className="absolute inset-0" />
 
+        <GramophonePanel
+          open={gramophoneOpen}
+          onClose={() => {
+            setGramophoneOpen(false);
+            setGramophonePlaying(false);
+          }}
+          onPlayingChange={setGramophonePlaying}
+        />
+
         <div className="pointer-events-none absolute left-3 top-3 rounded-2xl border-2 border-pink-200/80 bg-white/90 px-3 py-2 text-xs text-muted-foreground backdrop-blur-md shadow-sm space-y-0.5">
           <p className="font-bold text-folk-cobalt">🏠 내 집 · {rooms.length}개 공간{saving && " · 저장 중…"}</p>
           <p className="text-[10px] text-folk-terracotta font-medium">
             WASD 이동 · 문 통과 시 자동 개방 · 가구 근처 E · 자세 1~6 · Shift+드래그 회전 · 휠 줌
           </p>
+          {nearGramophone && !movementDisabled && !gramophoneOpen && (
+            <p className="text-[10px] text-amber-700 font-semibold">그라모폰 — MP3 재생 (E)</p>
+          )}
           {nearbyFurniture && !movementDisabled && (
             <p className="text-[10px] text-folk-cobalt font-semibold">
               {BONDEE_FURNITURE_LABELS[nearbyFurniture.kind] ?? nearbyFurniture.label} —{" "}
@@ -268,13 +297,15 @@ function AptBondeeRoomInner({
         <div className="absolute left-3 bottom-3 pointer-events-auto">
           <HomeAvatarControls
             disabled={movementDisabled}
-            canInteract={(nearConsole || !!nearbyFurniture) && !movementDisabled}
+            canInteract={(nearConsole || nearGramophone || !!nearbyFurniture) && !movementDisabled}
             interactLabel={
               nearConsole
                 ? "게임기 시작 (E)"
-                : nearbyFurniture
-                  ? `${BONDEE_FURNITURE_LABELS[nearbyFurniture.kind] ?? nearbyFurniture.label} (E)`
-                  : undefined
+                : nearGramophone
+                  ? "그라모폰 MP3 (E)"
+                  : nearbyFurniture
+                    ? `${BONDEE_FURNITURE_LABELS[nearbyFurniture.kind] ?? nearbyFurniture.label} (E)`
+                    : undefined
             }
             onMove={(x, z) => sceneRef.current?.setMoveInput(x, z)}
             onInteract={() => sceneRef.current?.tryInteract()}

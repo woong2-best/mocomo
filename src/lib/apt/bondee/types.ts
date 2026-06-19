@@ -34,7 +34,8 @@ export type BondeeFurnitureKind =
   | "rug"
   | "washer"
   | "hoop"
-  | "shelf_small";
+  | "shelf_small"
+  | "gramophone";
 
 export type BondeePlacedItem = {
   id: string;
@@ -100,11 +101,12 @@ export const BONDEE_FURNITURE_LABELS: Record<BondeeFurnitureKind, string> = {
   washer: "세탁기",
   hoop: "농구골",
   shelf_small: "선반",
+  gramophone: "그라모폰",
 };
 
 export const BONDEE_FURNITURE_CATEGORIES: { label: string; kinds: BondeeFurnitureKind[] }[] = [
   { label: "가구", kinds: ["sofa", "bed", "desk", "bookshelf", "shelf_small"] },
-  { label: "가전", kinds: ["tv_stand", "ac", "washer", "treadmill"] },
+  { label: "가전", kinds: ["tv_stand", "gramophone", "ac", "washer", "treadmill"] },
   { label: "소품", kinds: ["coffee_table", "floor_lamp", "plant", "clock", "hoop"] },
   { label: "바닥", kinds: ["rug"] },
 ];

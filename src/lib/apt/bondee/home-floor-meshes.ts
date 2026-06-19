@@ -105,6 +105,7 @@ export function defaultItemsForRooms(rooms: AptRoom[]): BondeePlacedItem[] {
       add(r.id, "floor_lamp", -2, 1, 1);
       add(r.id, "plant", 2, 1);
       add(r.id, "bookshelf", -2, -1, 2);
+      add(r.id, "gramophone", 2, 0, 2);
     } else if (r.type === "kitchen") {
       add(r.id, "shelf_small", 0, -1);
       add(r.id, "desk", 0, 0);
@@ -139,10 +140,21 @@ export function defaultItemsForRooms(rooms: AptRoom[]): BondeePlacedItem[] {
 
 export function migrateItems(items: BondeePlacedItem[], rooms: AptRoom[]): BondeePlacedItem[] {
   const living = rooms.find((r) => r.type === "living")?.id ?? rooms[0]?.id ?? "living";
-  return items.map((it) => ({
+  const migrated = items.map((it) => ({
     ...it,
     roomId: it.roomId ?? living,
   }));
+  if (!migrated.some((it) => it.kind === "gramophone")) {
+    migrated.push({
+      id: `${living}-gramophone-migrated`,
+      kind: "gramophone",
+      roomId: living,
+      gx: 2,
+      gz: 0,
+      rot: 2,
+    });
+  }
+  return migrated;
 }
 
 export function itemWorldPos(item: BondeePlacedItem, room: AptRoom) {

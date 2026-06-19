@@ -6,20 +6,14 @@ import {
   Box,
   ChevronDown,
   ChevronUp,
-  Combine,
   ExternalLink,
   Globe2,
   Home,
-  Plus,
-  RotateCcw,
-  SplitSquareHorizontal,
-  Trash2,
-  Tv,
   UserRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { AptProfileDto, CountryAptPreview, FloorOccupant } from "@/actions/apt";
-import { getCountryFloorOccupants, listCountryApartments, placeAptTv, saveAptFloorPlan } from "@/actions/apt";
+import { getCountryFloorOccupants, listCountryApartments } from "@/actions/apt";
 import { AptSimulationHud } from "@/components/apt/apt-simulation-hud";
 import {
   APT_DEFAULT_FLOOR,
@@ -28,15 +22,6 @@ import {
   APT_TOTAL_FLOORS,
   DollhouseBuildingScene,
 } from "@/lib/apt/building-scene";
-import {
-  addRoom,
-  canMerge,
-  createDefaultFloorPlan,
-  mergeRooms,
-  removeRoom,
-  splitRoom,
-} from "@/lib/apt/floor-plan-logic";
-import { getRoomsForFloor } from "@/lib/apt/floor-plan-store";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import type { BondeeRoomState } from "@/lib/apt/bondee/types";
 import { DEFAULT_BONDEE_ROOM } from "@/lib/apt/bondee/types";
@@ -78,7 +63,6 @@ export const AptBuildingView = memo(function AptBuildingView({
   const [xray, setXray] = useState(true);
   const [moving, setMoving] = useState(false);
   const [plans, setPlans] = useState(() => initPlansFromProfile(initialProfile));
-  const [selected, setSelected] = useState<string[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const [simSnap, setSimSnap] = useState<SimulationSnapshot | null>(null);
   const [viewCountry, setViewCountry] = useState(homeCountry);
@@ -87,7 +71,6 @@ export const AptBuildingView = memo(function AptBuildingView({
   const [floorOccupants, setFloorOccupants] = useState<FloorOccupant[]>([]);
   const [browseTarget, setBrowseTarget] = useState<CountryAptPreview | null>(null);
   const [loadingCountry, setLoadingCountry] = useState(false);
-  const savePlanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const countryAptsRef = useRef(countryApts);
   useEffect(() => {
@@ -103,8 +86,6 @@ export const AptBuildingView = memo(function AptBuildingView({
     return {};
   }, [isOwnApt, plans, browseTarget]);
 
-  const rooms = getRoomsForFloor(plans, floor);
-
   const showToast = useCallback((msg: string) => {
     setToast(msg);
     window.setTimeout(() => setToast(null), 2200);
@@ -112,29 +93,10 @@ export const AptBuildingView = memo(function AptBuildingView({
   const showToastRef = useRef(showToast);
   showToastRef.current = showToast;
 
-  const setRooms = useCallback(
-    (next: AptRoom[]) => {
-      if (!isOwnApt) return;
-      plansRef.current = { ...plansRef.current, [floor]: next };
-      setPlans((p) => ({ ...p, [floor]: next }));
-      sceneRef.current?.updateFloorRooms(floor, next);
-      if (floor === homeFloor) onHomeRoomsChange?.(next);
-      if (isLoggedIn) {
-        if (savePlanTimerRef.current) clearTimeout(savePlanTimerRef.current);
-        savePlanTimerRef.current = setTimeout(() => {
-          void saveAptFloorPlan(floor, next);
-        }, 800);
-      }
-    },
-    [floor, homeFloor, isLoggedIn, isOwnApt, onHomeRoomsChange]
-  );
-
   const goToFloor = useCallback((next: number) => {
     const clamped = Math.min(APT_TOTAL_FLOORS, Math.max(APT_LOBBY_FLOOR, next));
     if (clamped === floorRef.current && !sceneRef.current?.isRiding()) return;
-    setSelected([]);
     sceneRef.current?.setFloor(clamped);
-    sceneRef.current?.setSelectedRoomIds([]);
   }, []);
 
   const goToFloorRef = useRef(goToFloor);
@@ -144,10 +106,6 @@ export const AptBuildingView = memo(function AptBuildingView({
     xrayRef.current = xray;
     if (!moving) sceneRef.current?.setXray(xray);
   }, [xray, moving]);
-
-  useEffect(() => {
-    sceneRef.current?.setSelectedRoomIds(selected);
-  }, [selected]);
 
   useEffect(() => {
     void (async () => {
@@ -232,12 +190,6 @@ export const AptBuildingView = memo(function AptBuildingView({
         goToFloorRef.current(resident.homeFloor);
         showToastRef.current(`${resident.displayName} · 프로필에서 더 보기`);
       },
-      onRoomClick: (id, multi) => {
-        setSelected((prev) => {
-          if (multi) return prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-          return [id];
-        });
-      },
       onSimulationChange: (snap) => setSimSnap(snap),
     });
     sceneRef.current = scene;
@@ -264,78 +216,6 @@ export const AptBuildingView = memo(function AptBuildingView({
   useEffect(() => {
     plansRef.current = plans;
   }, [plans]);
-
-  const mergeable = useMemo(() => {
-    if (selected.length !== 2) return false;
-    const ra = rooms.find((r) => r.id === selected[0]);
-    const rb = rooms.find((r) => r.id === selected[1]);
-    return !!(ra && rb && canMerge(ra, rb));
-  }, [selected, rooms]);
-
-  const selectedFlexible = selected.filter((id) => !rooms.find((r) => r.id === id)?.locked);
-
-  const handleRemove = () => {
-    if (selectedFlexible.length !== 1) return;
-    const next = removeRoom(rooms, selectedFlexible[0]);
-    if (!next) return showToast("고정 공간은 삭제할 수 없습니다");
-    setRooms(next);
-    setSelected([]);
-    showToast("방을 삭제했습니다");
-  };
-
-  const handleMerge = () => {
-    if (!mergeable) return;
-    const next = mergeRooms(rooms, selected[0], selected[1]);
-    if (!next) return showToast("인접한 방만 합칠 수 있습니다");
-    setRooms(next);
-    setSelected([]);
-    showToast("방을 합쳤습니다");
-  };
-
-  const handleSplit = () => {
-    if (selectedFlexible.length !== 1) return;
-    const next = splitRoom(rooms, selectedFlexible[0]);
-    if (!next) return showToast("이 방은 더 나눌 수 없습니다");
-    setRooms(next);
-    setSelected([]);
-    showToast("방을 분할했습니다");
-  };
-
-  const handleAdd = () => {
-    const next = addRoom(rooms);
-    if (!next) return showToast("추가할 공간이 없습니다");
-    setRooms(next);
-    showToast("방을 추가했습니다");
-  };
-
-  const handleReset = () => {
-    const d = createDefaultFloorPlan().rooms;
-    setRooms(d.map((r) => ({ ...r })));
-    setSelected([]);
-    showToast("기본 구조로 초기화했습니다");
-  };
-
-  const handlePlaceTv = async () => {
-    if (!isLoggedIn) {
-      showToast("로그인 후 TV를 설치할 수 있습니다");
-      return;
-    }
-    if (!isOwnApt) {
-      showToast("내 아파트에서만 TV를 설치할 수 있습니다");
-      return;
-    }
-    const res = await placeAptTv();
-    if ("error" in res && res.error) {
-      showToast(res.error);
-      return;
-    }
-    if (res.furniture) {
-      sceneRef.current?.setSimulationFurniture(res.furniture);
-      showToast("거실에 TV를 설치했습니다");
-    }
-  };
-
-  const hasTv = initialProfile?.furniture.some((f) => f.type === "tv") ?? simSnap?.furniture.some((f) => f.type === "tv");
 
   return (
     <div className="folk-card overflow-hidden">
@@ -431,48 +311,6 @@ export const AptBuildingView = memo(function AptBuildingView({
             </div>
           )}
 
-          <div className="absolute bottom-3 right-3 left-3 lg:left-auto lg:right-[8.5rem] flex flex-wrap items-center justify-center gap-1.5 rounded-xl border border-neutral-200 bg-white/95 p-2 shadow-sm backdrop-blur-md">
-            {isOwnApt ? (
-              <>
-            <Button type="button" size="sm" variant="outline" className="h-8 gap-1 rounded-lg text-xs" onClick={handlePlaceTv} disabled={!!hasTv}>
-              <Tv className="h-3.5 w-3.5" />
-              TV 설치
-            </Button>
-            <Button type="button" size="sm" variant="outline" className="h-8 gap-1 rounded-lg text-xs" onClick={handleAdd}>
-              <Plus className="h-3.5 w-3.5" />
-              방 추가
-            </Button>
-            <Button type="button" size="sm" variant="outline" className="h-8 gap-1 rounded-lg text-xs" disabled={selectedFlexible.length !== 1} onClick={handleSplit}>
-              <SplitSquareHorizontal className="h-3.5 w-3.5" />
-              분할
-            </Button>
-            <Button type="button" size="sm" variant="outline" className="h-8 gap-1 rounded-lg text-xs" disabled={!mergeable} onClick={handleMerge}>
-              <Combine className="h-3.5 w-3.5" />
-              합치기
-            </Button>
-            <Button type="button" size="sm" variant="outline" className="h-8 gap-1 rounded-lg text-xs text-destructive hover:text-destructive" disabled={selectedFlexible.length !== 1} onClick={handleRemove}>
-              <Trash2 className="h-3.5 w-3.5" />
-              삭제
-            </Button>
-            <Button type="button" size="sm" variant="ghost" className="h-8 gap-1 rounded-lg text-xs" onClick={handleReset}>
-              <RotateCcw className="h-3.5 w-3.5" />
-              초기화
-            </Button>
-              </>
-            ) : (
-              <div className="flex flex-wrap items-center justify-center gap-2 px-2">
-                <p className="text-xs text-muted-foreground">입주 중인 집 · 현관 클릭으로 방문</p>
-                {browseTarget && (
-                  <Button asChild size="sm" variant="outline" className="h-8 rounded-lg text-xs gap-1">
-                    <Link href={`/u/${browseTarget.username}`}>
-                      <UserRound className="h-3.5 w-3.5" />
-                      프로필
-                    </Link>
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
         </div>
 
         <aside className="flex w-full lg:w-[7.5rem] shrink-0 flex-col items-center border-t lg:border-t-0 lg:border-l border-neutral-200 bg-white px-3 py-4 gap-2 relative">

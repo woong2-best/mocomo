@@ -33,6 +33,7 @@ export const FURNITURE_ARCHITECTURES: Record<BondeeFurnitureKind, FurnitureArchi
   clock: [],
   washer: [],
   shelf_small: [],
+  gramophone: [],
 };
 
 export function architecturesForKind(kind: BondeeFurnitureKind): FurnitureArchitecture[] {

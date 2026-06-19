@@ -106,6 +106,9 @@ function buildFurnitureMeshPrototype(kind: BondeeFurnitureKind): THREE.Group {
     case "shelf_small":
       buildShelfSmall(g);
       break;
+    case "gramophone":
+      buildGramophone(g);
+      break;
   }
 
   shadowizeGroup(g, false);
@@ -300,6 +303,67 @@ function buildShelfSmall(g: THREE.Group) {
     addTo(g, roundedBox(0.34, 0.025, 0.18, 0.01), bondeeMat(BONDEE_PALETTE.woodDark), 0, 0.12 + i * 0.18, 0);
     addTo(g, roundedBox(0.06, 0.1, 0.06, 0.01), bondeeMat(0xffaa88), -0.08 + i * 0.08, 0.2 + i * 0.18, 0.04);
   }
+}
+
+function buildGramophone(g: THREE.Group) {
+  const wood = bondeeMat(BONDEE_PALETTE.woodDark);
+  const woodLight = bondeeMat(BONDEE_PALETTE.wood);
+  const brass = bondeeMat(0xd4a84b, { metalness: 0.5, roughness: 0.38 });
+  const brassBright = bondeeMat(0xe8c868, { metalness: 0.58, roughness: 0.32 });
+  const black = bondeeMat(0x1a1a1a);
+  const grille = bondeeMat(0x222228);
+
+  addTo(g, roundedBox(0.72, 0.28, 0.42, 0.05), woodLight, 0, 0.16, 0);
+  addTo(g, roundedBox(0.68, 0.22, 0.04, 0.02), grille, 0, 0.16, 0.21);
+  addTo(g, roundedBox(0.14, 0.035, 0.008, 0.004), bondeeMat(0xeeeeee), 0, 0.16, 0.235);
+
+  for (const [x, z] of [
+    [-0.28, -0.16],
+    [0.28, -0.16],
+    [-0.28, 0.16],
+    [0.28, 0.16],
+  ] as const) {
+    addTo(g, roundedBox(0.06, 0.04, 0.06, 0.015), black, x, 0.02, z);
+  }
+
+  addTo(g, roundedBox(0.05, 0.04, 0.05, 0.015), bondeeMat(0xcccccc, { metalness: 0.7 }), -0.22, 0.32, -0.1);
+
+  const vinyl = new THREE.Group();
+  vinyl.name = "gramophone-vinyl";
+  const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.015, 24), black);
+  disc.rotation.x = Math.PI / 2;
+  disc.castShadow = false;
+  vinyl.add(disc);
+  const label = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.018, 16), bondeeMat(0xa8e060));
+  label.rotation.x = Math.PI / 2;
+  label.castShadow = false;
+  vinyl.add(label);
+  vinyl.position.set(0, 0.32, 0.02);
+  g.add(vinyl);
+
+  const arm = new THREE.Group();
+  addTo(arm, roundedBox(0.04, 0.04, 0.18, 0.01), brass, 0, 0, -0.09);
+  addTo(arm, roundedBox(0.22, 0.025, 0.025, 0.008), brassBright, 0.11, 0.02, 0.02, 0, -0.35, 0.12);
+  arm.position.set(-0.2, 0.34, 0.05);
+  g.add(arm);
+
+  addTo(g, roundedBox(0.08, 0.08, 0.2, 0.03), brass, -0.24, 0.38, -0.12, -0.4, 0.5, 0);
+
+  const horn = new THREE.Group();
+  for (let i = 0; i < 4; i++) {
+    const s = 0.12 + i * 0.08;
+    addTo(horn, roundedBox(s, s * 0.7, 0.06, 0.03), brassBright, 0, i * 0.05, 0);
+  }
+  horn.position.set(-0.32, 0.42, -0.22);
+  horn.rotation.set(-0.5, 0.4, 0);
+  g.add(horn);
+
+  const mouth = new THREE.Object3D();
+  mouth.name = "gramophone-horn-mouth";
+  mouth.position.set(-0.38, 0.72, -0.28);
+  g.add(mouth);
+
+  g.userData.interactKind = "gramophone";
 }
 
 export function syncRoomFurniture(root: THREE.Group, items: BondeePlacedItem[]) {

@@ -25,6 +25,7 @@ import type { StudioDecorTool } from "@/studio/lib/apt-types";
 import { hydrateStudioGltfMeshes } from "./studio-gltf-meshes";
 import { enableBondeeRenderer, setupBondeeLights, BONDEE_PALETTE } from "./bondee-mesh-utils";
 import { cappedPixelRatio, stripShadows } from "./scene-perf";
+import { GramophoneNoteFx } from "./gramophone-notes";
 
 const MOVE_SPEED = 2.4;
 const INTERACT_DIST = 0.55;
@@ -53,6 +54,8 @@ export type IsometricHomeCallbacks = {
   onItemSelect?: (id: string | null) => void;
   onNearConsoleChange?: (near: boolean) => void;
   onGameConsoleInteract?: () => void;
+  onNearGramophoneChange?: (near: boolean) => void;
+  onGramophoneInteract?: () => void;
   onActiveRoomChange?: (roomId: string) => void;
   onNearbyFurnitureChange?: (nearby: NearbyFurnitureInteract | null) => void;
   onPoseChange?: (pose: ChibiPose) => void;
@@ -95,6 +98,9 @@ export class IsometricHomeScene {
   private moveInput = { x: 0, z: 0 };
   private keys = new Set<string>();
   private nearConsole = false;
+  private nearGramophone = false;
+  private gramophonePlaying = false;
+  private noteFx: GramophoneNoteFx;
   private nearbyFurniture: NearbyFurnitureInteract | null = null;
   private interactPoseIdx = 0;
   private walking = false;
@@ -116,6 +122,8 @@ export class IsometricHomeScene {
   private readonly wallWorldPos = new THREE.Vector3();
   private readonly toCam = new THREE.Vector3();
   private readonly toWall = new THREE.Vector3();
+  private readonly hornMouthPos = new THREE.Vector3();
+  private readonly hornMouthScratch: THREE.Vector3[] = [];
   private readonly projPoint = new THREE.Vector3();
 
   constructor(mount: HTMLElement, rooms: AptRoom[], initial: BondeeHomeState) {
@@ -171,6 +179,7 @@ export class IsometricHomeScene {
       if (o instanceof THREE.Mesh) o.renderOrder = 20;
     });
     this.scene.add(this.homeRoot);
+    this.noteFx = new GramophoneNoteFx(this.homeRoot);
     this.rebuildFloor();
     this.applyAvatar();
 
@@ -286,6 +295,16 @@ export class IsometricHomeScene {
     return this.nearConsole && !this.isDecorBlocking();
   }
 
+  private canInteractWithGramophone() {
+    return this.nearGramophone && !this.isDecorBlocking();
+  }
+
+  setGramophonePlaying(playing: boolean) {
+    if (this.gramophonePlaying === playing) return;
+    this.gramophonePlaying = playing;
+    this.requestRender();
+  }
+
   setPose(pose: ChibiPose) {
     if (this.state.pose === pose) return;
     this.state = { ...this.state, pose };
@@ -298,6 +317,10 @@ export class IsometricHomeScene {
   tryInteract() {
     if (this.canInteractWithConsole()) {
       this.callbacks.onGameConsoleInteract?.();
+      return;
+    }
+    if (this.canInteractWithGramophone()) {
+      this.callbacks.onGramophoneInteract?.();
       return;
     }
     if (this.isDecorBlocking() || !this.nearbyFurniture) return;
@@ -672,6 +695,49 @@ export class IsometricHomeScene {
     return positions;
   }
 
+  private getGramophonePositions(): { x: number; z: number }[] {
+    const positions: { x: number; z: number }[] = [];
+    for (const item of this.state.items) {
+      if (item.kind !== "gramophone") continue;
+      const room = this.rooms.find((r) => r.id === item.roomId);
+      if (!room) continue;
+      const p = itemWorldPos(item, room);
+      const rot = (item.rot * Math.PI) / 2;
+      positions.push({
+        x: p.x + Math.sin(rot) * 0.28,
+        z: p.z + Math.cos(rot) * 0.28,
+      });
+    }
+    return positions;
+  }
+
+  private collectHornMouthPositions(): THREE.Vector3[] {
+    this.hornMouthScratch.length = 0;
+    if (!this.furnitureRoot) return this.hornMouthScratch;
+    this.furnitureRoot.traverse((obj) => {
+      if (obj.name !== "gramophone-horn-mouth") return;
+      obj.getWorldPosition(this.hornMouthPos);
+      this.hornMouthScratch.push(this.hornMouthPos.clone());
+    });
+    return this.hornMouthScratch;
+  }
+
+  private spinGramophoneVinyls(dt: number) {
+    if (!this.furnitureRoot) return;
+    this.furnitureRoot.traverse((obj) => {
+      if (obj.name === "gramophone-vinyl") {
+        obj.rotation.y += dt * 2.8;
+      }
+    });
+  }
+
+  private updateGramophoneFx(dt: number) {
+    const emitters = this.collectHornMouthPositions();
+    const notesAlive = this.noteFx.tick(dt, this.gramophonePlaying, emitters);
+    if (this.gramophonePlaying) this.spinGramophoneVinyls(dt);
+    if (this.gramophonePlaying || notesAlive) this.needsRender = true;
+  }
+
   private isInsideAnyRoom(x: number, z: number) {
     return isWalkable(x, z, this.rooms);
   }
@@ -741,6 +807,7 @@ export class IsometricHomeScene {
       this.walking = false;
       this.syncAvatarTransform();
       this.checkConsoleProximity();
+      this.checkGramophoneProximity();
       this.checkFurnitureProximity();
       return;
     }
@@ -770,6 +837,7 @@ export class IsometricHomeScene {
 
     this.syncAvatarTransform();
     this.checkConsoleProximity();
+    this.checkGramophoneProximity();
     this.checkFurnitureProximity();
 
     if (this.loadedFurnitureIds.size < this.state.items.length) {
@@ -789,6 +857,21 @@ export class IsometricHomeScene {
     if (near !== this.nearConsole) {
       this.nearConsole = near;
       this.callbacks.onNearConsoleChange?.(near);
+    }
+  }
+
+  private checkGramophoneProximity() {
+    const gramophones = this.getGramophonePositions();
+    let near = false;
+    for (const c of gramophones) {
+      if (Math.hypot(this.avatarX - c.x, this.avatarZ - c.z) < INTERACT_DIST) {
+        near = true;
+        break;
+      }
+    }
+    if (near !== this.nearGramophone) {
+      this.nearGramophone = near;
+      this.callbacks.onNearGramophoneChange?.(near);
     }
   }
 
@@ -837,8 +920,12 @@ export class IsometricHomeScene {
       for (const hit of hits) {
         let obj: THREE.Object3D | null = hit.object;
         while (obj) {
-          if (obj.userData.interactKind === "game_console" || obj.userData.kind === "tv_stand") {
-            if (this.nearConsole) this.tryInteract();
+          if (
+            obj.userData.interactKind === "game_console" ||
+            obj.userData.kind === "tv_stand" ||
+            obj.userData.interactKind === "gramophone"
+          ) {
+            if (this.nearConsole || this.nearGramophone) this.tryInteract();
             return;
           }
           obj = obj.parent;
@@ -946,6 +1033,7 @@ export class IsometricHomeScene {
     this.updateMovement(dt);
     this.updateDoors(dt);
     this.updateWallOcclusion(dt);
+    this.updateGramophoneFx(dt);
     const camMoving =
       Math.abs(this.targetCamYaw - this.camYaw) > 0.002 ||
       Math.abs(this.targetCamDist - this.frustum) > 0.02;
@@ -956,7 +1044,7 @@ export class IsometricHomeScene {
       this.needsRender = true;
     } else {
       this.avatar.animateWalk(this.animPhase, false);
-      if (this.canInteractWithConsole()) {
+      if (this.canInteractWithConsole() || this.canInteractWithGramophone()) {
         this.avatar.root.rotation.y = THREE.MathUtils.lerp(this.avatar.root.rotation.y, Math.PI, 0.05);
         this.needsRender = true;
       }
@@ -980,6 +1068,7 @@ export class IsometricHomeScene {
     this.renderer.domElement.removeEventListener("pointercancel", this.onPointerUp);
     this.renderer.domElement.removeEventListener("wheel", this.onWheel);
     if (this.floorGroup) disposeHomeGroup(this.floorGroup);
+    this.noteFx.dispose();
     this.avatar.dispose();
     this.renderer.dispose();
     this.renderer.domElement.remove();
