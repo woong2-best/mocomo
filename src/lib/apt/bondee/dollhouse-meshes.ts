@@ -99,10 +99,15 @@ export function seededRoomItems(seed: number, roomId = "living"): BondeePlacedIt
   return items;
 }
 
-export function buildUnitFurniture(items: BondeePlacedItem[], rooms: AptRoom[], scale = 0.72): THREE.Group {
+export function buildUnitFurniture(
+  items: BondeePlacedItem[],
+  rooms: AptRoom[],
+  scale = 0.72,
+  furnitureMode: "full" | "instanced" = "full"
+): THREE.Group {
   const migrated = migrateItems(items, rooms);
   const s = fitScaleToBox(DOLLHOUSE_UNIT_W * 0.88, DOLLHOUSE_UNIT_D * 0.88);
-  return buildHomeFloorGroup({ rooms, items: migrated, scale: s, wallHeight: 0.22 });
+  return buildHomeFloorGroup({ rooms, items: migrated, scale: s, wallHeight: 0.22, furnitureMode });
 }
 
 export type DollhouseUnitOptions = {
@@ -181,7 +186,8 @@ export function buildDollhouseUnit(opts: DollhouseUnitOptions): THREE.Group {
       : seededRoomItems(seed);
 
   if (planRooms.length > 0) {
-    const home = buildUnitFurniture(items, planRooms);
+    const furnitureMode = active ? "full" : "instanced";
+    const home = buildUnitFurniture(items, planRooms, 0.72, furnitureMode);
     home.position.set(0, 0.06, 0);
     g.add(home);
   } else {

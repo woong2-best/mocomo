@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { SCALE, roomCenter, roomSize } from "@/lib/apt/building-from-plan";
 import { PLAN_H, PLAN_W, type AptRoom, type FloorStyle } from "@/lib/apt/floor-plan-types";
 import { buildFurnitureMesh } from "./furniture-meshes";
+import { buildInstancedFurnitureGroup } from "./furniture-instances";
 import { studioPlaceholderMesh } from "./studio-gltf-meshes";
 import type { BondeePlacedItem } from "./types";
 import {
@@ -152,21 +153,54 @@ export type HomeFloorBuildOptions = {
   showLabels?: boolean;
   highlightRoomId?: string | null;
   selectedItemId?: string | null;
+  /** full = mesh clone, instanced = InstancedMesh proxies, none = skip furniture */
+  furnitureMode?: "full" | "instanced" | "none";
+  /** Only build shells for these rooms (frustum / proximity cull) */
+  visibleRoomIds?: Set<string> | null;
 };
 
-export function buildHomeFloorGroup(opts: HomeFloorBuildOptions): THREE.Group {
-  const {
-    rooms,
-    items,
-    scale = 1,
-    wallHeight = WALL_H,
-    highlightRoomId,
-    selectedItemId,
-  } = opts;
+const ROOM_PRIORITY: Record<string, number> = {
+  living: 0,
+  entrance: 1,
+  bedroom: 2,
+  kitchen: 3,
+  bathroom: 4,
+  hall: 5,
+  balcony: 6,
+};
+
+/** Sort: active room → living → rest */
+export function sortFurnitureLoadOrder(
+  items: BondeePlacedItem[],
+  rooms: AptRoom[],
+  activeRoomId?: string | null
+): BondeePlacedItem[] {
+  const roomType = new Map(rooms.map((r) => [r.id, r.type]));
+  return [...items].sort((a, b) => {
+    if (activeRoomId) {
+      if (a.roomId === activeRoomId && b.roomId !== activeRoomId) return -1;
+      if (b.roomId === activeRoomId && a.roomId !== activeRoomId) return 1;
+    }
+    const pa = ROOM_PRIORITY[roomType.get(a.roomId) ?? ""] ?? 9;
+    const pb = ROOM_PRIORITY[roomType.get(b.roomId) ?? ""] ?? 9;
+    return pa - pb;
+  });
+}
+
+function shouldShowRoom(roomId: string, visibleRoomIds?: Set<string> | null) {
+  if (!visibleRoomIds || visibleRoomIds.size === 0) return true;
+  return visibleRoomIds.has(roomId);
+}
+
+/** Room shells only — floors, walls, labels (no furniture) */
+export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | "furnitureMode">): THREE.Group {
+  const { rooms, scale = 1, wallHeight = WALL_H, highlightRoomId, visibleRoomIds } = opts;
   const root = new THREE.Group();
-  root.name = "home-floor";
+  root.name = "home-shell";
 
   for (const room of rooms) {
+    if (!shouldShowRoom(room.id, visibleRoomIds)) continue;
+
     const roomGroup = new THREE.Group();
     roomGroup.name = `room-${room.id}`;
     roomGroup.userData.roomId = room.id;
@@ -180,6 +214,7 @@ export function buildHomeFloorGroup(opts: HomeFloorBuildOptions): THREE.Group {
     floorMesh.traverse((o) => {
       if (o instanceof THREE.Mesh) {
         o.userData.roomId = room.id;
+        o.frustumCulled = true;
         if (o.geometry.type.includes("Box") && !o.name) {
           o.name = `floor-${room.id}`;
         }
@@ -194,7 +229,7 @@ export function buildHomeFloorGroup(opts: HomeFloorBuildOptions): THREE.Group {
 
     if (highlightRoomId === room.id) {
       const hl = new THREE.Mesh(
-        new THREE.RingGeometry(Math.min(w, d) * 0.28, Math.min(w, d) * 0.34, 24),
+        new THREE.RingGeometry(Math.min(w, d) * 0.28, Math.min(w, d) * 0.34, 16),
         new THREE.MeshBasicMaterial({ color: BONDEE_PALETTE.accent, transparent: true, opacity: 0.45, side: THREE.DoubleSide })
       );
       hl.rotation.x = -Math.PI / 2;
@@ -252,49 +287,89 @@ export function buildHomeFloorGroup(opts: HomeFloorBuildOptions): THREE.Group {
     root.add(roomGroup);
   }
 
+  root.scale.setScalar(scale);
+  return root;
+}
+
+/** Append a single furniture piece (for staged loading) */
+export function appendFurniturePiece(
+  furnitureRoot: THREE.Group,
+  item: BondeePlacedItem,
+  rooms: AptRoom[],
+  opts: { scale?: number; selectedItemId?: string | null }
+) {
+  const room = rooms.find((r) => r.id === item.roomId);
+  if (!room) return;
+
+  const scale = opts.scale ?? 1;
+
+  let mesh: THREE.Group | THREE.Mesh;
+  if (item.studioAssetId && item.glbUrl) {
+    const group = new THREE.Group();
+    group.add(studioPlaceholderMesh());
+    group.userData.studioGlbUrl = item.glbUrl;
+    mesh = group;
+  } else {
+    mesh = buildFurnitureMesh(item.kind);
+  }
+
+  const p = itemWorldPos(item, room);
+  mesh.position.set(p.x, 0.06, p.z);
+  mesh.scale.setScalar(item.studioAssetId ? scale : 0.68 * scale);
+  mesh.rotation.y = (item.rot * Math.PI) / 2;
+  mesh.userData.placedId = item.id;
+  mesh.userData.roomId = item.roomId;
+  mesh.frustumCulled = true;
+
+  if (opts.selectedItemId === item.id) {
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(0.22, 0.32, 16),
+      new THREE.MeshBasicMaterial({ color: BONDEE_PALETTE.accent, transparent: true, opacity: 0.75, side: THREE.DoubleSide })
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.02;
+    mesh.add(ring);
+  }
+
+  furnitureRoot.add(mesh);
+}
+
+export function buildHomeFloorGroup(opts: HomeFloorBuildOptions): THREE.Group {
+  const {
+    rooms,
+    items,
+    scale = 1,
+    wallHeight = WALL_H,
+    highlightRoomId,
+    selectedItemId,
+    furnitureMode = "full",
+    visibleRoomIds,
+  } = opts;
+
+  const root = new THREE.Group();
+  root.name = "home-floor";
+
+  const shell = buildHomeShellGroup({ rooms, scale: 1, wallHeight, highlightRoomId, visibleRoomIds });
+  root.add(shell);
+
+  if (furnitureMode === "none") {
+    root.scale.setScalar(scale);
+    return root;
+  }
+
+  const visibleItems = items.filter((it) => shouldShowRoom(it.roomId, visibleRoomIds));
   const furnitureRoot = new THREE.Group();
   furnitureRoot.name = "home-furniture";
-  for (const item of items) {
-    const room = rooms.find((r) => r.id === item.roomId);
-    if (!room) continue;
 
-    let mesh: THREE.Group | THREE.Mesh;
-    if (item.studioAssetId && item.glbUrl) {
-      const group = new THREE.Group();
-      group.add(studioPlaceholderMesh());
-      group.userData.studioGlbUrl = item.glbUrl;
-      mesh = group;
-    } else {
-      mesh = buildFurnitureMesh(item.kind);
+  if (furnitureMode === "instanced") {
+    furnitureRoot.add(buildInstancedFurnitureGroup(visibleItems, rooms, 0.68 * scale));
+  } else {
+    for (const item of visibleItems) {
+      appendFurniturePiece(furnitureRoot, item, rooms, { scale, selectedItemId });
     }
-
-    const p = itemWorldPos(item, room);
-    mesh.position.set(p.x, 0.06, p.z);
-    mesh.scale.setScalar(item.studioAssetId ? scale : 0.68 * scale);
-    mesh.rotation.y = (item.rot * Math.PI) / 2;
-    mesh.userData.placedId = item.id;
-    mesh.userData.roomId = item.roomId;
-
-    if (selectedItemId === item.id) {
-      const ring = new THREE.Mesh(
-        new THREE.RingGeometry(0.22, 0.32, 20),
-        new THREE.MeshBasicMaterial({ color: BONDEE_PALETTE.accent, transparent: true, opacity: 0.75, side: THREE.DoubleSide })
-      );
-      ring.rotation.x = -Math.PI / 2;
-      ring.position.y = 0.02;
-      mesh.add(ring);
-      const ghost = new THREE.Mesh(
-        new THREE.RingGeometry(0.18, 0.2, 16),
-        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6, side: THREE.DoubleSide })
-      );
-      ghost.rotation.x = -Math.PI / 2;
-      ghost.position.y = 0.025;
-      mesh.add(ghost);
-    }
-    furnitureRoot.add(mesh);
   }
-  root.add(furnitureRoot);
 
+  root.add(furnitureRoot);
   root.scale.setScalar(scale);
   return root;
 }
@@ -307,6 +382,12 @@ export function fitScaleToBox(maxW: number, maxD: number) {
 
 export function disposeHomeGroup(group: THREE.Object3D) {
   group.traverse((o) => {
+    if (o instanceof THREE.InstancedMesh) {
+      o.geometry.dispose();
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      mats.forEach((m) => m.dispose());
+      return;
+    }
     if (o instanceof THREE.Mesh || o instanceof THREE.LineSegments) {
       o.geometry.dispose();
       const mats = Array.isArray(o.material) ? o.material : [o.material];

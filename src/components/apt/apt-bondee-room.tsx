@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
@@ -45,7 +45,7 @@ const POSE_OPTIONS: { id: ChibiPose; label: string; icon: typeof Sofa }[] = [
   { id: "wave", label: "인사", icon: Waves },
 ];
 
-export function AptBondeeRoom({
+function AptBondeeRoomInner({
   initialState,
   rooms,
   isLoggedIn,
@@ -431,6 +431,8 @@ export function AptBondeeRoom({
     </div>
   );
 }
+
+export const AptBondeeRoom = memo(AptBondeeRoomInner);
 
 /** @deprecated alias */
 export const AptBondeeHome = AptBondeeRoom;

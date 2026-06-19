@@ -187,13 +187,13 @@ function buildPlant(g: THREE.Group) {
     );
     leaf.position.set(Math.cos(a) * 0.1, 0.28 + (i % 2) * 0.06, Math.sin(a) * 0.1);
     leaf.scale.set(1, 1.3, 1);
-    leaf.castShadow = true;
+    leaf.castShadow = false;
     g.add(leaf);
   }
-  const top = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 10), bondeeMat(0x88cc99));
+  const top = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), bondeeMat(0x88cc99));
   top.position.y = 0.42;
   top.scale.set(1, 1.2, 1);
-  top.castShadow = true;
+  top.castShadow = false;
   g.add(top);
 }
 
@@ -228,7 +228,7 @@ function buildClock(g: THREE.Group) {
   );
   face.rotation.x = Math.PI / 2;
   face.position.y = 0.58;
-  face.castShadow = true;
+  face.castShadow = false;
   g.add(face);
   addTo(g, roundedBox(0.01, 0.06, 0.008, 0.003), bondeeMat(0x333333), 0, 0.6, 0.02);
   addTo(g, roundedBox(0.06, 0.008, 0.008, 0.003), bondeeMat(0x333333), 0.02, 0.6, 0.02);
@@ -248,7 +248,7 @@ function buildWasher(g: THREE.Group) {
   );
   door.rotation.x = Math.PI / 2;
   door.position.set(0, 0.28, 0.2);
-  door.castShadow = true;
+  door.castShadow = false;
   g.add(door);
   addTo(g, roundedBox(0.28, 0.04, 0.02, 0.01), bondeeMat(0xe8e8e8), 0, 0.46, 0.18);
 }
@@ -260,7 +260,7 @@ function buildHoop(g: THREE.Group) {
   );
   rim.position.y = 0.72;
   rim.rotation.x = Math.PI / 2;
-  rim.castShadow = true;
+  rim.castShadow = false;
   g.add(rim);
   addTo(g, roundedBox(0.05, 0.52, 0.32, 0.02), bondeeMat(0x555566), 0, 0.46, -0.1);
   addTo(g, roundedBox(0.24, 0.04, 0.24, 0.02), bondeeMat(BONDEE_PALETTE.woodDark), 0, 0.02, 0);

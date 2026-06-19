@@ -5,11 +5,13 @@ import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import { roomCenter, roomSize } from "@/lib/apt/building-from-plan";
 import { ChibiAvatarMesh } from "./chibi-avatar";
 import {
-  buildHomeFloorGroup,
+  appendFurniturePiece,
+  buildHomeShellGroup,
   defaultItemsForRooms,
   disposeHomeGroup,
   itemWorldPos,
   migrateItems,
+  sortFurnitureLoadOrder,
 } from "./home-floor-meshes";
 import type { BondeeHomeState, BondeePlacedItem, ChibiAvatarConfig, ChibiPose } from "./types";
 import type { StudioDecorTool } from "@/studio/lib/apt-types";
@@ -36,6 +38,10 @@ export class IsometricHomeScene {
   private camera: THREE.OrthographicCamera;
   private homeRoot = new THREE.Group();
   private floorGroup: THREE.Group | null = null;
+  private furnitureRoot: THREE.Group | null = null;
+  private furnitureLoadGen = 0;
+  private loadedFurnitureIds = new Set<string>();
+  private furnitureLoadBusy = false;
   private avatar: ChibiAvatarMesh;
   private raycaster = new THREE.Raycaster();
   private pointer = new THREE.Vector2();
@@ -214,18 +220,108 @@ export class IsometricHomeScene {
       this.homeRoot.remove(this.floorGroup);
       disposeHomeGroup(this.floorGroup);
       this.floorGroup = null;
+      this.furnitureRoot = null;
     }
-    this.floorGroup = buildHomeFloorGroup({
+
+    const loadGen = ++this.furnitureLoadGen;
+    this.loadedFurnitureIds.clear();
+    const visibleRooms = this.visibleRoomIdsNearAvatar();
+
+    this.floorGroup = new THREE.Group();
+    this.floorGroup.name = "home-floor-staged";
+
+    const shell = buildHomeShellGroup({
       rooms: this.rooms,
-      items: this.state.items,
       highlightRoomId: this.decorMode ? this.activeRoomId : null,
-      selectedItemId: this.selectedItemId,
     });
-    stripShadows(this.floorGroup);
+    stripShadows(shell);
+    this.floorGroup.add(shell);
+
+    this.furnitureRoot = new THREE.Group();
+    this.furnitureRoot.name = "home-furniture";
+    this.floorGroup.add(this.furnitureRoot);
+
     this.homeRoot.add(this.floorGroup);
-    void hydrateStudioGltfMeshes(this.floorGroup);
     this.applyAvatar();
     this.requestRender();
+    void this.loadFurnitureStaged(loadGen, visibleRooms);
+  }
+
+  /** Rooms near avatar + active room always visible */
+  private visibleRoomIdsNearAvatar(): Set<string> {
+    const ids = new Set<string>();
+    if (this.activeRoomId) ids.add(this.activeRoomId);
+
+    for (const room of this.rooms) {
+      const c = roomCenter(room);
+      const { w, d } = roomSize(room);
+      if (Math.abs(this.avatarX - c.x) <= w / 2 + 0.5 && Math.abs(this.avatarZ - c.z) <= d / 2 + 0.5) {
+        ids.add(room.id);
+      }
+    }
+
+    const living = this.rooms.find((r) => r.type === "living");
+    if (living) ids.add(living.id);
+
+    if (ids.size === 0 && this.rooms[0]) ids.add(this.rooms[0].id);
+    return ids;
+  }
+
+  private appendItemIfNew(item: BondeePlacedItem) {
+    if (!this.furnitureRoot || this.loadedFurnitureIds.has(item.id)) return;
+    appendFurniturePiece(this.furnitureRoot, item, this.rooms, {
+      selectedItemId: this.selectedItemId,
+    });
+    this.loadedFurnitureIds.add(item.id);
+  }
+
+  private async loadFurnitureStaged(loadGen: number, priorityRooms: Set<string>) {
+    if (this.furnitureLoadBusy) return;
+    this.furnitureLoadBusy = true;
+    const BATCH = 3;
+
+    try {
+      const ordered = sortFurnitureLoadOrder(this.state.items, this.rooms, this.activeRoomId);
+      const priority = ordered.filter((it) => priorityRooms.has(it.roomId));
+      const deferred = ordered.filter((it) => !priorityRooms.has(it.roomId));
+
+      for (const batch of [priority, deferred]) {
+        for (let i = 0; i < batch.length; i += BATCH) {
+          if (loadGen !== this.furnitureLoadGen || !this.furnitureRoot) return;
+          await new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+          for (const item of batch.slice(i, i + BATCH)) {
+            this.appendItemIfNew(item);
+          }
+          stripShadows(this.furnitureRoot);
+          this.requestRender();
+        }
+      }
+
+      if (loadGen !== this.furnitureLoadGen || !this.floorGroup) return;
+      await hydrateStudioGltfMeshes(this.floorGroup);
+      this.requestRender();
+    } finally {
+      this.furnitureLoadBusy = false;
+    }
+  }
+
+  private async appendMissingFurnitureForRooms(roomIds: Set<string>) {
+    if (this.furnitureLoadBusy || !this.furnitureRoot) return;
+    const missing = sortFurnitureLoadOrder(this.state.items, this.rooms, this.activeRoomId).filter(
+      (it) => roomIds.has(it.roomId) && !this.loadedFurnitureIds.has(it.id)
+    );
+    if (missing.length === 0) return;
+
+    for (let i = 0; i < missing.length; i += 3) {
+      if (!this.furnitureRoot) return;
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
+      for (const item of missing.slice(i, i + 3)) {
+        this.appendItemIfNew(item);
+      }
+      stripShadows(this.furnitureRoot);
+      this.requestRender();
+    }
   }
 
   private applyAvatar() {
@@ -321,6 +417,10 @@ export class IsometricHomeScene {
 
     this.syncAvatarTransform();
     this.checkConsoleProximity();
+
+    if (this.loadedFurnitureIds.size < this.state.items.length) {
+      void this.appendMissingFurnitureForRooms(this.visibleRoomIdsNearAvatar());
+    }
   }
 
   private checkConsoleProximity() {
