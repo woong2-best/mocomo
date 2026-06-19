@@ -21,7 +21,7 @@ import { AptSimulationHud } from "@/components/apt/apt-simulation-hud";
 import {
   APT_DEFAULT_FLOOR,
   APT_TOTAL_FLOORS,
-  AptBuildingScene,
+  DollhouseBuildingScene,
 } from "@/lib/apt/building-scene";
 import {
   addRoom,
@@ -33,8 +33,9 @@ import {
 } from "@/lib/apt/floor-plan-logic";
 import { getRoomsForFloor } from "@/lib/apt/floor-plan-store";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
+import type { BondeeRoomState } from "@/lib/apt/bondee/types";
+import { DEFAULT_BONDEE_ROOM } from "@/lib/apt/bondee/types";
 import type { SimulationSnapshot } from "@/lib/apt/simulation/types";
-import { loadActiveVrm } from "@/lib/virtual-avatar/vrm-storage";
 import { WORLD_COUNTRIES, findCountry } from "@/lib/apt/world/world-countries";
 import { countryFlag } from "@/lib/i18n/config";
 import { cn } from "@/lib/utils";
@@ -48,22 +49,24 @@ function initPlansFromProfile(profile: AptProfileDto | null): Record<number, Apt
 
 export function AptBuildingView({
   initialProfile,
+  bondeeRoom,
   isLoggedIn,
 }: {
   initialProfile: AptProfileDto | null;
+  bondeeRoom: BondeeRoomState;
   isLoggedIn: boolean;
 }) {
   const homeCountry = initialProfile?.countryCode ?? "KR";
   const homeFloor = initialProfile?.homeFloor ?? APT_DEFAULT_FLOOR;
   const mountRef = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<AptBuildingScene | null>(null);
+  const sceneRef = useRef<DollhouseBuildingScene | null>(null);
   const floorRef = useRef(homeFloor);
   const xrayRef = useRef(false);
   const simReadyRef = useRef(false);
   const plansRef = useRef<Record<number, AptRoom[]>>(initPlansFromProfile(initialProfile));
 
   const [floor, setFloor] = useState(homeFloor);
-  const [xray, setXray] = useState(false);
+  const [xray, setXray] = useState(true);
   const [moving, setMoving] = useState(false);
   const [plans, setPlans] = useState(() => initPlansFromProfile(initialProfile));
   const [selected, setSelected] = useState<string[]>([]);
@@ -141,6 +144,21 @@ export function AptBuildingView({
   }, [viewCountry]);
 
   useEffect(() => {
+    sceneRef.current?.setBondeeRoom(isOwnApt ? bondeeRoom : null);
+  }, [bondeeRoom, isOwnApt]);
+
+  useEffect(() => {
+    if (browseTarget) {
+      sceneRef.current?.setVisitRoom(
+        browseTarget.bondeeRoom ?? DEFAULT_BONDEE_ROOM,
+        browseTarget.homeFloor
+      );
+    } else {
+      sceneRef.current?.setVisitRoom(null, null);
+    }
+  }, [browseTarget]);
+
+  useEffect(() => {
     sceneRef.current?.setFloorPlans(displayPlans);
   }, [displayPlans]);
 
@@ -153,7 +171,7 @@ export function AptBuildingView({
     const el = mountRef.current;
     if (!el) return;
 
-    const scene = new AptBuildingScene(el);
+    const scene = new DollhouseBuildingScene(el);
     scene.setCallbacks({
       onFloorClick: (f) => goToFloor(f),
       onRoomClick: (id, multi) => {
@@ -167,22 +185,11 @@ export function AptBuildingView({
     sceneRef.current = scene;
     scene.setFloorPlans(plansRef.current);
     scene.setFloor(homeFloor);
+    scene.setBondeeRoom(bondeeRoom);
 
     if (isLoggedIn && initialProfile?.moveInCompleted && isOwnApt) {
-      void (async () => {
-        let residents = initialProfile.residents;
-        try {
-          const slot = await loadActiveVrm();
-          if (slot?.blob) {
-            const url = URL.createObjectURL(slot.blob);
-            residents = residents.map((r) => (r.isOwner ? { ...r, vrmUrl: url } : r));
-          }
-        } catch {
-          /* default vrm */
-        }
-        await scene.startSimulation(homeFloor, residents, initialProfile.furniture);
-        simReadyRef.current = true;
-      })();
+      void scene.startSimulation(homeFloor, initialProfile.residents, initialProfile.furniture);
+      simReadyRef.current = true;
     }
 
     return () => {
@@ -190,7 +197,7 @@ export function AptBuildingView({
       sceneRef.current = null;
       simReadyRef.current = false;
     };
-  }, [goToFloor, homeFloor, initialProfile, isLoggedIn, isOwnApt]);
+  }, [bondeeRoom, goToFloor, homeFloor, initialProfile, isLoggedIn, isOwnApt]);
 
   useEffect(() => {
     plansRef.current = plans;
@@ -270,8 +277,8 @@ export function AptBuildingView({
 
   return (
     <div className="folk-card overflow-hidden">
-      <div className="flex flex-col lg:flex-row min-h-[min(80dvh,760px)]">
-        <div className="relative flex-1 min-h-[480px] bg-white">
+      <div className="flex flex-col lg:flex-row min-h-[min(88dvh,920px)]">
+        <div className="relative flex-1 min-h-[560px] bg-[#fef6f8]">
           <div ref={mountRef} className="absolute inset-0" />
 
           <AptSimulationHud snapshot={simSnap} />
@@ -279,27 +286,27 @@ export function AptBuildingView({
           <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-neutral-200 bg-white/95 px-2.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm">
             {isOwnApt ? (
               <>
-                층 클릭 · {floor}층
+                인형의 집 · {floor}층
                 {isLoggedIn && initialProfile?.moveInCompleted && floor === homeFloor && (
-                  <span className="ml-1 text-folk-terracotta">· 생활 중</span>
+                  <span className="ml-1 text-folk-terracotta">· 내 집</span>
                 )}
               </>
             ) : (
               <>
                 {countryFlag(viewCountry)} {viewCountryInfo?.nameKo ?? viewCountry} 둘러보기
-                {browseTarget && <span className="ml-1">· {browseTarget.displayName}</span>}
+                {browseTarget && <span className="ml-1">· {browseTarget.displayName}의 집</span>}
               </>
             )}
           </div>
 
-          <div className="pointer-events-none absolute left-3 bottom-3 rounded-lg border border-neutral-200 bg-white/95 px-2.5 py-1 text-[10px] text-muted-foreground backdrop-blur-sm">
-            휠 확대/축소 · 드래그 회전 · 방 클릭 선택
+          <div className="pointer-events-none absolute left-3 bottom-3 rounded-lg border border-pink-100 bg-white/95 px-2.5 py-1 text-[10px] text-muted-foreground backdrop-blur-sm">
+            휠 확대/축소 · 층 클릭 · 엘리베이터로 이동
           </div>
 
           {moving && (
             <div className="pointer-events-none absolute inset-x-0 top-14 flex justify-center">
-              <span className="rounded-full border border-neutral-200 bg-white/95 px-3 py-1 text-xs font-semibold text-neutral-700 animate-pulse">
-                {floor}층으로 이동 중…
+              <span className="rounded-full border border-pink-100 bg-white/95 px-3 py-1 text-xs font-semibold text-pink-700 animate-pulse">
+                엘리베이터 · {floor}층
               </span>
             </div>
           )}
@@ -339,7 +346,7 @@ export function AptBuildingView({
             </Button>
               </>
             ) : (
-              <p className="text-xs text-muted-foreground px-2">다른 국가 아파트는 둘러보기만 가능합니다</p>
+              <p className="text-xs text-muted-foreground px-2">다른 유저의 집 내부를 구경할 수 있습니다</p>
             )}
           </div>
         </div>
@@ -431,17 +438,17 @@ export function AptBuildingView({
             className={cn(
               "flex h-11 w-11 items-center justify-center rounded-xl border-2 transition-all",
               xray
-                ? "border-neutral-400 bg-neutral-100 text-neutral-700 shadow-sm"
+                ? "border-pink-300 bg-pink-50 text-pink-600 shadow-sm"
                 : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
             )}
-            aria-label="집 구조 투명 보기"
-            title="집 구조 투명 보기"
+            aria-label="단면도 보기"
+            title="단면도 보기"
           >
             <Box className="h-5 w-5" strokeWidth={2.25} />
           </button>
 
           <p className="text-[10px] text-center leading-snug text-muted-foreground px-1">
-            {xray ? "내부 구조 표시" : "외벽 표시"}
+            {xray ? "인형의 집 단면" : "외관 보기"}
           </p>
 
           <div className="flex flex-1 flex-col items-center justify-center gap-2 w-full max-w-[4.5rem]">
@@ -496,7 +503,7 @@ export function AptBuildingView({
             aria-label="층 직접 이동"
           />
           <p className="text-[9px] text-center text-muted-foreground leading-snug px-1">
-            고정: 현관·주방·화장실
+            층을 클릭하거나 엘리베이터로 이동
           </p>
         </aside>
       </div>

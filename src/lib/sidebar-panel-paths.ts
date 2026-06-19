@@ -15,6 +15,7 @@ export function shouldShowRightPanel(pathname: string): boolean {
   if (isWebtoonDrawStudioPath(pathname)) return false;
   if (pathname.startsWith("/messages")) return false;
   if (pathname.startsWith("/used")) return false;
+  if (pathname.startsWith("/apt")) return false;
   if (pathname.startsWith("/voice/") && pathname !== "/voice/new") return false;
   return true;
 }

@@ -7,7 +7,7 @@ import { AptHubClient } from "@/components/apt/apt-hub-client";
 
 export const metadata = {
   title: "APT | MoCoMo",
-  description: "MoCoMo APT — 3D 아파트 생활 시뮬레이션",
+  description: "MoCoMo APT — Bondee 스타일 인형의 집 소셜 메타버스",
 };
 
 export const dynamic = "force-dynamic";

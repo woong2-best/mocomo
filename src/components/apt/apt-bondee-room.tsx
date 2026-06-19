@@ -37,9 +37,11 @@ const POSE_OPTIONS: { id: ChibiPose; label: string; icon: typeof Sofa }[] = [
 export function AptBondeeRoom({
   initialState,
   isLoggedIn,
+  onRoomChange,
 }: {
   initialState: BondeeRoomState;
   isLoggedIn: boolean;
+  onRoomChange?: (state: BondeeRoomState) => void;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<IsometricRoomScene | null>(null);
@@ -67,9 +69,10 @@ export function AptBondeeRoom({
     (next: BondeeRoomState) => {
       setState(next);
       sceneRef.current?.setState(next);
+      onRoomChange?.(next);
       persist(next);
     },
-    [persist]
+    [onRoomChange, persist]
   );
 
   useEffect(() => {
@@ -110,7 +113,7 @@ export function AptBondeeRoom({
 
   return (
     <div className="folk-card overflow-hidden bg-white">
-      <div className="relative min-h-[min(70dvh,640px)] bg-[#f5f5f5]">
+      <div className="relative min-h-[min(80dvh,820px)] bg-[#fef6f8]">
         <div ref={mountRef} className="absolute inset-0" />
 
         <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-neutral-200 bg-white/95 px-2.5 py-1.5 text-xs text-muted-foreground backdrop-blur-sm">

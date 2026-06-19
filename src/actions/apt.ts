@@ -9,6 +9,7 @@ import type { HouseBuildState } from "@/lib/apt/house/build-types";
 import { emptyHouseBuild, seedFromCoords } from "@/lib/apt/house/build-types";
 import type { HousingLocation, HousingType } from "@/lib/apt/housing-types";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
+import { DEFAULT_BONDEE_ROOM, type BondeeRoomState } from "@/lib/apt/bondee/types";
 import {
   defaultFurnitureForPlan,
   defaultResidents,
@@ -286,6 +287,7 @@ export type CountryAptPreview = {
   displayName: string;
   homeFloor: number;
   floorPlans: Record<number, AptRoom[]>;
+  bondeeRoom: BondeeRoomState;
 };
 
 export async function listCountryApartments(countryCode: string): Promise<CountryAptPreview[]> {
@@ -305,12 +307,24 @@ export async function listCountryApartments(countryCode: string): Promise<Countr
     orderBy: { updatedAt: "desc" },
   });
 
-  return rows.map((row) => ({
-    userId: row.user.id,
-    displayName: row.user.name ?? row.user.username,
-    homeFloor: row.homeFloor ?? APT_DEFAULT_FLOOR,
-    floorPlans: parseJson<Record<number, AptRoom[]>>(row.floorPlans, defaultPlans()),
-  }));
+  return rows.map((row) => {
+    const sim =
+      row.simulationState && typeof row.simulationState === "object"
+        ? (row.simulationState as Record<string, unknown>)
+        : {};
+    const bondee =
+      sim.bondee && typeof sim.bondee === "object" && "items" in (sim.bondee as object)
+        ? (sim.bondee as BondeeRoomState)
+        : DEFAULT_BONDEE_ROOM;
+
+    return {
+      userId: row.user.id,
+      displayName: row.user.name ?? row.user.username,
+      homeFloor: row.homeFloor ?? APT_DEFAULT_FLOOR,
+      floorPlans: parseJson<Record<number, AptRoom[]>>(row.floorPlans, defaultPlans()),
+      bondeeRoom: bondee,
+    };
+  });
 }
 
 export type { HousingLocation };

@@ -34,7 +34,7 @@ export class IsometricRoomScene {
     this.avatar = new ChibiAvatarMesh();
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0xf5f5f5);
+    this.scene.background = new THREE.Color(0xfef6f8);
 
     const aspect = Math.max(mount.clientWidth, 320) / Math.max(mount.clientHeight, 400);
     const frustum = 2.8;
@@ -151,7 +151,7 @@ export class IsometricRoomScene {
     floor.name = "room-floor";
     this.roomRoot.add(floor);
 
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35 });
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0xffe8f0, roughness: 0.35 });
     const back = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.4, 0.06), wallMat);
     back.position.set(0, 0.65, -1.2);
     back.receiveShadow = true;

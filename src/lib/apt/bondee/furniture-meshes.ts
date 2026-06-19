@@ -19,7 +19,7 @@ export function buildFurnitureMesh(kind: BondeeFurnitureKind): THREE.Group {
 
   switch (kind) {
     case "bookshelf": {
-      const frame = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.1, 0.28), mat(0x8b6914));
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.1, 0.28), mat(0xe8c8a8));
       frame.position.y = 0.55;
       g.add(frame);
       for (let row = 0; row < 4; row++) {
@@ -35,13 +35,13 @@ export function buildFurnitureMesh(kind: BondeeFurnitureKind): THREE.Group {
       break;
     }
     case "sofa": {
-      const base = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.28, 0.45), mat(0x8b5a3c));
+      const base = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.28, 0.45), mat(0xffb8c8));
       base.position.y = 0.18;
       g.add(base);
-      const back = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.35, 0.12), mat(0x7a4a32));
+      const back = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.35, 0.12), mat(0xffa0b8));
       back.position.set(0, 0.38, -0.18);
       g.add(back);
-      const cushion = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.08, 0.35), mat(0xc9956a));
+      const cushion = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.08, 0.35), mat(0xffd0dc));
       cushion.position.set(0, 0.32, 0.02);
       g.add(cushion);
       break;
@@ -61,11 +61,11 @@ export function buildFurnitureMesh(kind: BondeeFurnitureKind): THREE.Group {
       break;
     }
     case "coffee_table": {
-      const top = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.04, 0.3), mat(0x2a2a2a));
+      const top = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.04, 0.3), mat(0xffe8d8));
       top.position.y = 0.22;
       g.add(top);
       for (const [x, z] of [[-0.15, -0.1], [0.15, -0.1], [-0.15, 0.1], [0.15, 0.1]] as const) {
-        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.2), mat(0x2a2a2a));
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.2), mat(0xf0d8c8));
         leg.position.set(x, 0.1, z);
         g.add(leg);
       }
@@ -81,10 +81,10 @@ export function buildFurnitureMesh(kind: BondeeFurnitureKind): THREE.Group {
       break;
     }
     case "plant": {
-      const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, 0.14), mat(0xc47a5a));
+      const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, 0.14), mat(0xffc8b0));
       pot.position.y = 0.07;
       g.add(pot);
-      const leaves = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 10), mat(0x4a8a4a));
+      const leaves = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 10), mat(0x98d8a8));
       leaves.position.y = 0.28;
       leaves.scale.set(1, 1.2, 1);
       g.add(leaves);
@@ -113,7 +113,7 @@ export function buildFurnitureMesh(kind: BondeeFurnitureKind): THREE.Group {
       break;
     }
     case "bed": {
-      const frame = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.2, 0.9), mat(0xd4c4b0));
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.2, 0.9), mat(0xe8d8ff));
       frame.position.y = 0.12;
       g.add(frame);
       const pillow = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 0.18), mat(0xf8f8f8));
