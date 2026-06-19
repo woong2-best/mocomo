@@ -219,6 +219,15 @@ model User {
   userBlockedBy           UserBlock[]      @relation("UserBlocked")
   userMutes               UserMute[]       @relation("UserMuter")
   userMutedBy             UserMute[]       @relation("UserMuted")
+
+  studioCreatorProfile    StudioCreatorProfile?
+  studioAssets            StudioAsset[]
+  studioFollows           StudioCreatorFollow[] @relation("StudioFollower")
+  studioFollowers         StudioCreatorFollow[] @relation("StudioFollowing")
+  studioAssetLikes        StudioAssetLike[]
+  studioAssetPurchases    StudioAssetPurchase[]
+  studioWallet            StudioWallet?
+  studioPayoutRequests    StudioPayoutRequest[]
 }
 
 model Account {
@@ -2274,4 +2283,174 @@ model DiscoveryBlock {
   blocked User @relation("DiscoveryBlocked", fields: [blockedId], references: [id], onDelete: Cascade)
 
   @@unique([blockerId, blockedId])
+}
+
+// ============ MoCoMo Studio (studio.mocomo.com — MoCoMo 본 서비스와 분리) ============
+
+enum StudioAssetStatus {
+  DRAFT
+  SUBMITTED
+  REVIEWING
+  APPROVED
+  REJECTED
+  PUBLISHED
+}
+
+enum StudioAssetCategory {
+  FURNITURE
+  DECOR
+  WALLPAPER
+  FLOORING
+  LIGHTING
+  PLANT
+  POSTER
+  HOUSEHOLD
+  AVATAR_ACCESSORY
+  AVATAR_CLOTHING
+}
+
+model StudioCreatorProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  handle          String   @unique
+  displayName     String
+  bio             String?  @db.Text
+  bannerUrl       String?
+  featuredAssetId String?
+  totalLikes      Int      @default(0)
+  totalDownloads  Int      @default(0)
+  totalSales      Int      @default(0)
+  followerCount   Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([handle])
+}
+
+model StudioAsset {
+  id              String              @id @default(cuid())
+  creatorId       String
+  name            String
+  description     String?             @db.Text
+  category        StudioAssetCategory
+  status          StudioAssetStatus   @default(DRAFT)
+  glbUrl          String?
+  thumbnailUrl    String?
+  tags            String[]            @default([])
+  priceKrw        Int                 @default(0)
+  isFree          Boolean             @default(true)
+  polygonCount    Int?
+  textureMaxSize  Int?
+  fileSizeBytes   Int?
+  validationLog   Json?
+  rejectReason    String?             @db.Text
+  likeCount       Int                 @default(0)
+  downloadCount   Int                 @default(0)
+  saleCount       Int                 @default(0)
+  submittedAt     DateTime?
+  reviewedAt      DateTime?
+  publishedAt     DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  creator         User                @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  likes           StudioAssetLike[]
+  purchases       StudioAssetPurchase[]
+  catalogEntry    MocomoStudioCatalogItem?
+
+  @@index([creatorId, status])
+  @@index([status, publishedAt])
+  @@index([category, status])
+}
+
+model StudioCreatorFollow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  follower    User     @relation("StudioFollower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("StudioFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+}
+
+model StudioAssetLike {
+  id        String   @id @default(cuid())
+  userId    String
+  assetId   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  asset     StudioAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, assetId])
+}
+
+model StudioAssetPurchase {
+  id          String   @id @default(cuid())
+  buyerId     String
+  assetId     String
+  priceKrw    Int
+  platformFee Int
+  creatorEarn Int
+  createdAt   DateTime @default(now())
+  buyer       User     @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  asset       StudioAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([buyerId, assetId])
+  @@index([assetId])
+}
+
+model StudioWallet {
+  userId           String   @id
+  availableBalance Int      @default(0)
+  totalEarned      Int      @default(0)
+  totalWithdrawn   Int      @default(0)
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model StudioWalletTransaction {
+  id            String   @id @default(cuid())
+  userId        String
+  type          String
+  amount        Int
+  balanceAfter  Int
+  referenceType String?
+  referenceId   String?
+  memo          String?
+  createdAt     DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model StudioPayoutRequest {
+  id          String   @id @default(cuid())
+  userId      String
+  amountKrw   Int
+  status      String   @default("PENDING")
+  processedAt DateTime?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+}
+
+/** MoCoMo 인벤토리 연동 — Published 자산 캐시 (APT 등에서 조회) */
+model MocomoStudioCatalogItem {
+  id            String   @id @default(cuid())
+  studioAssetId String   @unique
+  category      String
+  name          String
+  glbUrl        String
+  thumbnailUrl  String?
+  tags          String[] @default([])
+  creatorId     String
+  priceKrw      Int      @default(0)
+  publishedAt   DateTime
+  createdAt     DateTime @default(now())
+  asset         StudioAsset @relation(fields: [studioAssetId], references: [id], onDelete: Cascade)
+
+  @@index([category, publishedAt])
+  @@index([creatorId])
 }

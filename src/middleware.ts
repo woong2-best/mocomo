@@ -5,6 +5,12 @@ import {
   CLIENT_PLATFORM_MAX_AGE,
   isAppHostname,
 } from "@/lib/client-platform";
+import {
+  getMocomoSignInUrl,
+  getStudioBaseUrl,
+  isStudioHostname,
+  studioInternalPath,
+} from "@/studio/lib/host";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -28,6 +34,13 @@ const protectedRoutes = [
   "/cosplay/apply",
 ];
 const authRoutes = ["/auth/signin", "/auth/signup"];
+const studioProtectedPrefixes = [
+  "/studio/create",
+  "/studio/assets",
+  "/studio/wallet",
+  "/studio/settings",
+  "/studio/admin",
+];
 
 function setAppClientCookie(res: NextResponse) {
   res.cookies.set(CLIENT_PLATFORM_COOKIE, "app", {
@@ -90,7 +103,21 @@ export default edgeAuth((req) => {
   const clientRedirect = applyAppClientRedirect(req);
   if (clientRedirect) return clientRedirect;
 
+  const host = req.nextUrl.hostname;
   const { pathname } = req.nextUrl;
+
+  if (isStudioHostname(host)) {
+    if (
+      !pathname.startsWith("/studio") &&
+      !pathname.startsWith("/api") &&
+      !pathname.startsWith("/auth") &&
+      !pathname.startsWith("/_next")
+    ) {
+      const url = req.nextUrl.clone();
+      url.pathname = studioInternalPath(pathname);
+      return NextResponse.rewrite(url);
+    }
+  }
 
   if (
     process.env.NEXT_PUBLIC_LIVE_ENABLED === "false" &&
@@ -104,8 +131,19 @@ export default edgeAuth((req) => {
   const isLoggedIn = !!req.auth?.user?.id;
   const isBanned = Boolean(req.auth?.user?.isBanned);
   const isProtected = protectedRoutes.some((r) => pathname.startsWith(r));
+  const isStudioProtected = studioProtectedPrefixes.some((r) => pathname.startsWith(r));
   const isAuthPage = authRoutes.some((r) => pathname.startsWith(r));
   const isAdmin = pathname.startsWith("/admin");
+
+  if (isStudioProtected && !isLoggedIn) {
+    const callback = isStudioHostname(host)
+      ? `${getStudioBaseUrl()}${pathname.replace(/^\/studio/, "") || "/"}`
+      : pathname;
+    const signIn = new URL(getMocomoSignInUrl(callback));
+    const res = NextResponse.redirect(signIn);
+    stampAppClientIfNeeded(req, res);
+    return res;
+  }
 
   if (isLoggedIn && isBanned) {
     const signOut = new URL("/auth/signin", req.url);

@@ -1,0 +1,10 @@
+.studio-theme {
+  --background: 330 60% 98%;
+  --foreground: 330 25% 22%;
+  --primary: 330 65% 55%;
+  --primary-foreground: 0 0% 100%;
+  --muted: 330 30% 94%;
+  --muted-foreground: 330 15% 42%;
+  --border: 330 35% 88%;
+  --card: 0 0% 100%;
+}
