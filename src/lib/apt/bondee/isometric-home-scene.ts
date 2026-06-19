@@ -439,6 +439,26 @@ export class IsometricHomeScene {
     const camLen = Math.sqrt(camLenSq);
 
     for (const mesh of this.wallMeshes) {
+      const mat = mesh.material as THREE.MeshStandardMaterial;
+      if (!mat || !("opacity" in mat)) continue;
+
+      const isExterior =
+        mesh.userData.wallType === "EXTERIOR" ||
+        mesh.userData.wallKind === "exterior" ||
+        mesh.userData.occlusionEnabled === true;
+      const base = (mesh.userData.baseOpacity as number) ?? 0.35;
+
+      if (!isExterior) {
+        if (Math.abs(mat.opacity - base) > 0.004) {
+          mat.opacity = base;
+          mat.transparent = true;
+          mat.depthWrite = false;
+          mat.needsUpdate = true;
+          this.needsRender = true;
+        }
+        continue;
+      }
+
       mesh.getWorldPosition(this.wallWorldPos);
       this.wallWorldPos.y = 0.1;
       this.toWall.subVectors(this.wallWorldPos, this.avatarWorldPos);
@@ -449,19 +469,15 @@ export class IsometricHomeScene {
       if (t > 0.04 && t < 0.95 && wallDist < camLen * 0.98) {
         this.projPoint.copy(this.avatarWorldPos).addScaledVector(this.toCam, t);
         const perpendicular = this.wallWorldPos.distanceTo(this.projPoint);
-        const radius = mesh.userData.wallKind === "exterior" ? 0.48 : 0.38;
-        blocks = perpendicular < radius;
+        blocks = perpendicular < 0.52;
       }
 
-      const mat = mesh.material as THREE.MeshStandardMaterial;
-      if (!mat || !("opacity" in mat)) continue;
-      const base = (mesh.userData.baseOpacity as number) ?? 0.3;
-      const occlude = (mesh.userData.occludeOpacity as number) ?? 0.15;
+      const occlude = (mesh.userData.occludeOpacity as number) ?? 0.22;
       const target = blocks ? occlude : base;
       const next = THREE.MathUtils.lerp(mat.opacity, target, Math.min(1, 14 * dt));
       if (Math.abs(next - mat.opacity) > 0.004) {
         mat.opacity = next;
-        mat.transparent = true;
+        mat.transparent = next < 0.999;
         mat.depthWrite = next > 0.55;
         mat.needsUpdate = true;
         this.needsRender = true;

@@ -177,37 +177,51 @@ export function buildLowWall(wx: number, h: number, wz: number, exterior: boolea
 
 export const WALL_EXTERIOR_COLOR = 0xf5f5f5;
 export const WALL_INTERIOR_COLOR = 0xf5f5f5;
-export const WALL_EXTERIOR_OPACITY = 0.95;
-export const WALL_INTERIOR_OPACITY = 0.3;
-export const WALL_OCCLUDE_INTERIOR = 0.15;
-export const WALL_OCCLUDE_EXTERIOR = 0.28;
+export const WALL_EXTERIOR_OPACITY = 1.0;
+export const WALL_INTERIOR_OPACITY = 0.35;
+export const WALL_OCCLUDE_INTERIOR = 0.35;
+export const WALL_OCCLUDE_EXTERIOR = 0.22;
 
 export type HomeWallKind = "exterior" | "interior";
+export type HomeWallTypeTag = "EXTERIOR" | "INTERIOR";
 
-export function tagHomeWall(mesh: THREE.Mesh, kind: HomeWallKind) {
+export function homeWallKindToTag(kind: HomeWallKind): HomeWallTypeTag {
+  return kind === "exterior" ? "EXTERIOR" : "INTERIOR";
+}
+
+export function homeWallTagToKind(tag: HomeWallTypeTag): HomeWallKind {
+  return tag === "EXTERIOR" ? "exterior" : "interior";
+}
+
+export function tagHomeWall(mesh: THREE.Mesh, kind: HomeWallKind, wallId?: string) {
+  const tag = homeWallKindToTag(kind);
   const baseOpacity = kind === "exterior" ? WALL_EXTERIOR_OPACITY : WALL_INTERIOR_OPACITY;
   mesh.userData.isHomeWall = true;
   mesh.userData.wallKind = kind;
+  mesh.userData.wallType = tag;
+  mesh.userData.wallId = wallId;
   mesh.userData.baseOpacity = baseOpacity;
   mesh.userData.occludeOpacity = kind === "exterior" ? WALL_OCCLUDE_EXTERIOR : WALL_OCCLUDE_INTERIOR;
+  mesh.userData.occlusionEnabled = kind === "exterior";
   mesh.renderOrder = kind === "exterior" ? 1 : 2;
   const mat = mesh.material as THREE.MeshStandardMaterial;
-  mat.transparent = true;
+  mat.transparent = kind !== "exterior" || baseOpacity < 1;
   mat.opacity = baseOpacity;
   mat.depthWrite = kind === "exterior";
 }
 
-/** Solid exterior shell — opaque, thick, with top cap and ground shadow */
-export function buildExteriorWall(wx: number, h: number, wz: number): THREE.Group {
+/** Solid exterior shell — thick opaque box (dollhouse toy-house feel) */
+export function buildExteriorWall(wx: number, h: number, wz: number, wallId?: string): THREE.Group {
   const g = new THREE.Group();
   g.userData.wallGroupKind = "exterior";
+  g.userData.wallType = "EXTERIOR";
 
   const wall = new THREE.Mesh(
-    roundedBox(wx, h, wz, 0.02),
-    bondeeMat(WALL_EXTERIOR_COLOR, { transparent: true, opacity: WALL_EXTERIOR_OPACITY, roughness: 0.84 })
+    roundedBox(wx, h, wz, 0.03),
+    bondeeMat(WALL_EXTERIOR_COLOR, { transparent: false, opacity: WALL_EXTERIOR_OPACITY, roughness: 0.84 })
   );
   wall.position.y = h / 2 + 0.05;
-  tagHomeWall(wall, "exterior");
+  tagHomeWall(wall, "exterior", wallId);
   g.add(wall);
 
   const top = new THREE.Mesh(
@@ -215,7 +229,7 @@ export function buildExteriorWall(wx: number, h: number, wz: number): THREE.Grou
     bondeeMat(0xffffff, { transparent: true, opacity: 0.98, roughness: 0.7 })
   );
   top.position.y = h + 0.058;
-  tagHomeWall(top, "exterior");
+  tagHomeWall(top, "exterior", wallId);
   g.add(top);
 
   const shadow = new THREE.Mesh(
@@ -237,13 +251,14 @@ export function buildExteriorWall(wx: number, h: number, wz: number): THREE.Grou
   return g;
 }
 
-/** Interior partition — semi-transparent for sight lines */
-export function buildInteriorWall(wx: number, h: number, wz: number): THREE.Group {
+/** Interior partition — thin semi-transparent divider between rooms */
+export function buildInteriorWall(wx: number, h: number, wz: number, wallId?: string): THREE.Group {
   const g = new THREE.Group();
   g.userData.wallGroupKind = "interior";
+  g.userData.wallType = "INTERIOR";
 
   const wall = new THREE.Mesh(
-    roundedBox(wx, h, wz, 0.012),
+    roundedBox(wx, h, wz, 0.018),
     bondeeMat(WALL_INTERIOR_COLOR, {
       transparent: true,
       opacity: WALL_INTERIOR_OPACITY,
@@ -252,7 +267,7 @@ export function buildInteriorWall(wx: number, h: number, wz: number): THREE.Grou
     })
   );
   wall.position.y = h / 2 + 0.05;
-  tagHomeWall(wall, "interior");
+  tagHomeWall(wall, "interior", wallId);
   g.add(wall);
 
   const top = new THREE.Mesh(
@@ -260,7 +275,7 @@ export function buildInteriorWall(wx: number, h: number, wz: number): THREE.Grou
     bondeeMat(0xffffff, { transparent: true, opacity: 0.22, depthWrite: false })
   );
   top.position.y = h + 0.052;
-  tagHomeWall(top, "interior");
+  tagHomeWall(top, "interior", wallId);
   g.add(top);
 
   return g;

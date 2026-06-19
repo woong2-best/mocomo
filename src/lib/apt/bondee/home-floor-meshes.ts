@@ -23,11 +23,17 @@ import {
   tagHomeWall,
   WALL_INTERIOR_COLOR,
 } from "./bondee-mesh-utils";
-import { computeHomeDoorways, doorwayForRoomSide, type HomeDoorway } from "./home-doorways";
+import { computeHomeDoorways, type HomeDoorway } from "./home-doorways";
+import {
+  classifyWallEdge,
+  deriveHomeWalls,
+  resolveWallBuild,
+  wallHeightWorld,
+  wallThicknessWorld,
+  type HomeWallSide,
+} from "./home-walls";
 
 const WALL_H = 0.2;
-const WALL_THICK_EXTERIOR = 0.052;
-const WALL_THICK_INTERIOR = 0.028;
 const ITEM_GRID = 0.38;
 
 const ROOM_ACCENT: Record<string, number> = {
@@ -50,26 +56,28 @@ const ROOM_LABELS: Record<string, string> = {
   balcony: "발코니",
 };
 
-function isExteriorEdge(room: AptRoom, side: "n" | "s" | "e" | "w") {
-  const r = { x1: room.x, y1: room.y, x2: room.x + room.w, y2: room.y + room.h };
-  if (side === "w" && r.x1 <= 1) return true;
-  if (side === "n" && r.y1 <= 1) return true;
-  if (side === "s" && r.y2 >= PLAN_H - 1) return true;
-  if (side === "e" && r.x2 >= PLAN_W - 1) return true;
-  return false;
-}
-
-function sharesEdge(a: AptRoom, b: AptRoom, side: "n" | "s" | "e" | "w", tol = 2) {
-  const ra = { x1: a.x, y1: a.y, x2: a.x + a.w, y2: a.y + a.h };
-  const rb = { x1: b.x, y1: b.y, x2: b.x + b.w, y2: b.y + b.h };
-  if (side === "e") return Math.abs(ra.x2 - rb.x1) <= tol && ra.y1 < rb.y2 - tol && ra.y2 > rb.y1 + tol;
-  if (side === "w") return Math.abs(ra.x1 - rb.x2) <= tol && ra.y1 < rb.y2 - tol && ra.y2 > rb.y1 + tol;
-  if (side === "s") return Math.abs(ra.y2 - rb.y1) <= tol && ra.x1 < rb.x2 - tol && ra.x2 > rb.x1 + tol;
-  return Math.abs(ra.y1 - rb.y2) <= tol && ra.x1 < rb.x2 - tol && ra.x2 > rb.x1 + tol;
-}
-
-function hasNeighbor(room: AptRoom, rooms: AptRoom[], side: "n" | "s" | "e" | "w") {
-  return rooms.some((o) => o.id !== room.id && sharesEdge(room, o, side));
+function sideWallDims(
+  side: HomeWallSide,
+  w: number,
+  d: number,
+  cx: number,
+  cz: number,
+  thick: number
+) {
+  if (side === "n" || side === "s") {
+    return {
+      wx: w,
+      wz: thick,
+      px: cx,
+      pz: cz + (side === "n" ? -d / 2 + thick / 2 : d / 2 - thick / 2),
+    };
+  }
+  return {
+    wx: thick,
+    wz: d,
+    px: cx + (side === "w" ? -w / 2 + thick / 2 : w / 2 - thick / 2),
+    pz: cz,
+  };
 }
 
 function buildFloorForRoom(room: AptRoom, w: number, d: number): THREE.Group {
@@ -297,6 +305,8 @@ function buildInteriorDoor(door: HomeDoorway, wallHeight: number, _accent: numbe
   return g;
 }
 
+export { deriveHomeWalls, type HomeWall, type HomeWallType } from "./home-walls";
+
 /** Room shells only — floors, walls, labels (no furniture) */
 export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | "furnitureMode">): THREE.Group {
   const { rooms, scale = 1, wallHeight = WALL_H, highlightRoomId, visibleRoomIds, wallStyle = "default" } = opts;
@@ -304,6 +314,8 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
   const root = new THREE.Group();
   root.name = "home-shell";
   const doorways = computeHomeDoorways(rooms);
+  const wallCatalog = deriveHomeWalls(rooms, wallHeight);
+  const wallByKey = new Map(wallCatalog.map((w) => [`${w.roomId}:${w.side}`, w]));
   const doorRoot = new THREE.Group();
   doorRoot.name = "home-doors";
   doorRoot.renderOrder = 3;
@@ -363,92 +375,46 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
     label.position.set(cx - w / 2 + 0.28, 0, cz - d / 2 + 0.18);
     if (!dollhouse) roomGroup.add(label);
 
-    const sides: { side: "n" | "s" | "e" | "w"; wx: number; wz: number; px: number; pz: number }[] = [
-      {
-        side: "n",
-        wx: w,
-        wz: WALL_THICK_EXTERIOR,
-        px: cx,
-        pz: cz - d / 2 + WALL_THICK_EXTERIOR / 2,
-      },
-      {
-        side: "s",
-        wx: w,
-        wz: WALL_THICK_EXTERIOR,
-        px: cx,
-        pz: cz + d / 2 - WALL_THICK_EXTERIOR / 2,
-      },
-      {
-        side: "w",
-        wx: WALL_THICK_EXTERIOR,
-        wz: d,
-        px: cx - w / 2 + WALL_THICK_EXTERIOR / 2,
-        pz: cz,
-      },
-      {
-        side: "e",
-        wx: WALL_THICK_EXTERIOR,
-        wz: d,
-        px: cx + w / 2 - WALL_THICK_EXTERIOR / 2,
-        pz: cz,
-      },
-    ];
+    for (const side of ["n", "s", "e", "w"] as const) {
+      if (dollhouse && side === "s") continue;
 
-    for (const s of sides) {
-      if (dollhouse && s.side === "s") continue;
+      const resolved = resolveWallBuild(room, side, rooms, doorways);
+      const wallType = classifyWallEdge(room, rooms, side);
+      const thick = wallThicknessWorld(wallType);
+      const dims = sideWallDims(side, w, d, cx, cz, thick);
+      const wallMeta = wallByKey.get(`${room.id}:${side}`);
+      const wallId = wallMeta?.id;
 
-      const exterior = isExteriorEdge(room, s.side) || room.type === "balcony";
-      const neighbor = hasNeighbor(room, rooms, s.side);
-      const thick = exterior ? WALL_THICK_EXTERIOR : WALL_THICK_INTERIOR;
-      if (s.side === "n" || s.side === "s") {
-        s.wz = thick;
-        s.pz = cz + (s.side === "n" ? -d / 2 + thick / 2 : d / 2 - thick / 2);
-      } else {
-        s.wx = thick;
-        s.px = cx + (s.side === "w" ? -w / 2 + thick / 2 : w / 2 - thick / 2);
+      if (resolved.kind === "door") {
+        if (resolved.doorway) doorRoot.add(buildInteriorDoor(resolved.doorway, wallHeight, accent));
+        continue;
       }
+      if (resolved.kind === "skip") continue;
 
-      if (!neighbor || exterior) {
-        const h = exterior ? wallHeight * 1.1 : wallHeight * 0.65;
-        if (dollhouse) {
-          const wallMesh = new THREE.Mesh(
-            new THREE.BoxGeometry(s.wx, h, s.wz),
-            bondeeMat(BONDEE_PALETTE.wallWhite)
-          );
-          wallMesh.position.set(s.px, h / 2 + 0.05, s.pz);
-          roomGroup.add(wallMesh);
-        } else {
-          const wallGroup = exterior
-            ? buildExteriorWall(s.wx, h, s.wz)
-            : buildInteriorWall(s.wx, h, s.wz);
-          wallGroup.position.set(s.px, 0, s.pz);
-          (exterior ? exteriorWallRoot : interiorWallRoot).add(wallGroup);
+      const h = wallHeightWorld(wallHeight, wallType);
+      const isExterior = wallType === "EXTERIOR";
 
-          if (exterior && room.type !== "balcony") {
-            const win = buildRoundWindow(0.07);
-            win.position.set(s.px, 0, s.pz + (s.side === "n" ? 0.04 : s.side === "s" ? -0.04 : 0));
-            if (s.side === "w" || s.side === "e") {
-              win.rotation.y = Math.PI / 2;
-            }
-            exteriorWallRoot.add(win);
-          }
-        }
-      } else if (dollhouse) {
-        const divider = new THREE.Mesh(
-          new THREE.BoxGeometry(s.wx, wallHeight * 0.65, s.wz),
+      if (dollhouse) {
+        const wallMesh = new THREE.Mesh(
+          new THREE.BoxGeometry(dims.wx, h, dims.wz),
           bondeeMat(BONDEE_PALETTE.wallWhite)
         );
-        divider.position.set(s.px, wallHeight * 0.35 + 0.05, s.pz);
-        roomGroup.add(divider);
-      } else {
-        const doorway = doorwayForRoomSide(room.id, s.side, doorways);
-        if (doorway && doorway.roomA === room.id) {
-          doorRoot.add(buildInteriorDoor(doorway, wallHeight, accent));
-        } else if (!doorway) {
-          const dividerGroup = buildInteriorWall(s.wx, wallHeight * 0.65, s.wz);
-          dividerGroup.position.set(s.px, 0, s.pz);
-          interiorWallRoot.add(dividerGroup);
-        }
+        wallMesh.position.set(dims.px, h / 2 + 0.05, dims.pz);
+        roomGroup.add(wallMesh);
+        continue;
+      }
+
+      const wallGroup = isExterior
+        ? buildExteriorWall(dims.wx, h, dims.wz, wallId)
+        : buildInteriorWall(dims.wx, h, dims.wz, wallId);
+      wallGroup.position.set(dims.px, 0, dims.pz);
+      (isExterior ? exteriorWallRoot : interiorWallRoot).add(wallGroup);
+
+      if (isExterior && room.type !== "balcony") {
+        const win = buildRoundWindow(0.07);
+        win.position.set(dims.px, 0, dims.pz + (side === "n" ? 0.04 : side === "s" ? -0.04 : 0));
+        if (side === "w" || side === "e") win.rotation.y = Math.PI / 2;
+        exteriorWallRoot.add(win);
       }
     }
 
