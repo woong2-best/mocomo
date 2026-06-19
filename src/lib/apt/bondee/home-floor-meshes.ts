@@ -6,29 +6,40 @@ import { PLAN_H, PLAN_W, type AptRoom, type FloorStyle } from "@/lib/apt/floor-p
 import { buildFurnitureMesh } from "./furniture-meshes";
 import { studioPlaceholderMesh } from "./studio-gltf-meshes";
 import type { BondeePlacedItem } from "./types";
+import {
+  BONDEE_PALETTE,
+  buildCarpetFloor,
+  buildLowWall,
+  buildRoomLabel,
+  buildRoundWindow,
+  buildTileFloor,
+  buildWoodFloor,
+  bondeeMat,
+} from "./bondee-mesh-utils";
 
-const FLOOR_COLORS: Record<FloorStyle, number> = {
-  wood: 0xf5e6d3,
-  "tile-check": 0xf8f8f8,
-  "tile-light": 0xf4f4f4,
-  bathroom: 0xd8eeff,
-  beige: 0xf6f4f0,
-  balcony: 0xe8e8e8,
-};
-
-const ROOM_TYPE_COLORS: Record<string, number> = {
-  kitchen: 0xffecd9,
-  bathroom: 0xd8eeff,
-  living: 0xffe0ec,
-  bedroom: 0xe8e0ff,
-  entrance: 0xf0f8ff,
-  hall: 0xf5f5f5,
-  balcony: 0xe8f4e8,
-};
-
-const WALL_H = 0.42;
-const WALL_THICK = 0.04;
+const WALL_H = 0.2;
+const WALL_THICK = 0.035;
 const ITEM_GRID = 0.38;
+
+const ROOM_ACCENT: Record<string, number> = {
+  living: BONDEE_PALETTE.wallPink,
+  bedroom: BONDEE_PALETTE.wallLavender,
+  kitchen: BONDEE_PALETTE.wallPeach,
+  bathroom: BONDEE_PALETTE.bathroom,
+  entrance: BONDEE_PALETTE.wallMint,
+  hall: 0xf0f0f0,
+  balcony: BONDEE_PALETTE.balcony,
+};
+
+const ROOM_LABELS: Record<string, string> = {
+  living: "거실",
+  bedroom: "침실",
+  kitchen: "주방",
+  bathroom: "욕실",
+  entrance: "현관",
+  hall: "복도",
+  balcony: "발코니",
+};
 
 function isExteriorEdge(room: AptRoom, side: "n" | "s" | "e" | "w") {
   const r = { x1: room.x, y1: room.y, x2: room.x + room.w, y2: room.y + room.h };
@@ -52,34 +63,66 @@ function hasNeighbor(room: AptRoom, rooms: AptRoom[], side: "n" | "s" | "e" | "w
   return rooms.some((o) => o.id !== room.id && sharesEdge(room, o, side));
 }
 
-function mat(color: number, opts?: Partial<THREE.MeshStandardMaterialParameters>) {
-  return new THREE.MeshStandardMaterial({ color, roughness: 0.65, metalness: 0.02, ...opts });
+function buildFloorForRoom(room: AptRoom, w: number, d: number): THREE.Group {
+  if (room.type === "bathroom" || room.floor === "tile-check" || room.floor === "tile-light") {
+    return buildTileFloor(w, d);
+  }
+  if (room.type === "bedroom" || room.type === "living") {
+    return buildWoodFloor(w, d);
+  }
+  if (room.type === "balcony") {
+    return buildTileFloor(w, d);
+  }
+  if (room.floor === "beige") {
+    return buildCarpetFloor(w, d, BONDEE_PALETTE.wallPeach);
+  }
+  return buildWoodFloor(w, d, BONDEE_PALETTE.wood);
 }
 
+/** Rich default layout — lived-in Bondee home */
 export function defaultItemsForRooms(rooms: AptRoom[]): BondeePlacedItem[] {
   const items: BondeePlacedItem[] = [];
-  const add = (roomId: string, kind: BondeePlacedItem["kind"], gx: number, gz: number) => {
-    items.push({ id: `${roomId}-${kind}`, kind, roomId, gx, gz, rot: 0 });
+  let n = 0;
+  const add = (roomId: string, kind: BondeePlacedItem["kind"], gx: number, gz: number, rot: 0 | 1 | 2 | 3 = 0) => {
+    items.push({ id: `${roomId}-${kind}-${n++}`, kind, roomId, gx, gz, rot });
   };
+
   for (const r of rooms) {
     if (r.type === "living") {
-      add(r.id, "sofa", 0, 0);
-      add(r.id, "tv_stand", 1, -1);
+      add(r.id, "rug", 0, 0);
+      add(r.id, "sofa", -1, 0);
       add(r.id, "coffee_table", 0, 1);
+      add(r.id, "tv_stand", 1, -1);
+      add(r.id, "floor_lamp", -2, 1, 1);
+      add(r.id, "plant", 2, 1);
+      add(r.id, "bookshelf", -2, -1, 2);
     } else if (r.type === "kitchen") {
-      add(r.id, "shelf_small", 0, 0);
-      add(r.id, "desk", -1, 1);
+      add(r.id, "shelf_small", 0, -1);
+      add(r.id, "desk", 0, 0);
+      add(r.id, "clock", 1, -1);
+      add(r.id, "plant", -1, 1);
     } else if (r.type === "bedroom") {
       add(r.id, "bed", 0, 0);
       add(r.id, "floor_lamp", -1, 1);
+      add(r.id, "rug", 1, 1);
+      add(r.id, "bookshelf", -2, -1, 2);
+      add(r.id, "plant", 2, -1);
     } else if (r.type === "bathroom") {
       add(r.id, "washer", 0, 0);
+      add(r.id, "plant", -1, 1);
+      add(r.id, "shelf_small", 1, -1);
     } else if (r.type === "entrance") {
       add(r.id, "plant", 0, 0);
+      add(r.id, "rug", 0, 1);
+      add(r.id, "floor_lamp", -1, -1, 1);
     } else if (r.type === "hall") {
       add(r.id, "rug", 0, 0);
+      add(r.id, "plant", -1, 0);
+      add(r.id, "clock", 1, 0);
     } else if (r.type === "balcony") {
       add(r.id, "plant", 0, 0);
+      add(r.id, "plant", -1, 1);
+      add(r.id, "hoop", 1, -1);
     }
   }
   return items;
@@ -130,26 +173,38 @@ export function buildHomeFloorGroup(opts: HomeFloorBuildOptions): THREE.Group {
 
     const { x: cx, z: cz } = roomCenter(room);
     const { w, d } = roomSize(room);
-    const floorColor = FLOOR_COLORS[room.floor] ?? ROOM_TYPE_COLORS[room.type] ?? 0xf5f5f5;
+    const accent = ROOM_ACCENT[room.type] ?? BONDEE_PALETTE.wallPink;
 
-    const floor = new THREE.Mesh(
-      new THREE.BoxGeometry(w - 0.02, 0.05, d - 0.02),
-      mat(floorColor)
-    );
-    floor.position.set(cx, 0.025, cz);
-    floor.receiveShadow = true;
-    floor.userData.roomId = room.id;
-    floor.name = `floor-${room.id}`;
-    roomGroup.add(floor);
+    const floorMesh = buildFloorForRoom(room, w, d);
+    floorMesh.position.set(cx, 0, cz);
+    floorMesh.traverse((o) => {
+      if (o instanceof THREE.Mesh) {
+        o.userData.roomId = room.id;
+        if (o.geometry.type.includes("Box") && !o.name) {
+          o.name = `floor-${room.id}`;
+        }
+      }
+    });
+    const pickFloor = floorMesh.children[0] as THREE.Mesh | undefined;
+    if (pickFloor) {
+      pickFloor.name = `floor-${room.id}`;
+      pickFloor.userData.roomId = room.id;
+    }
+    roomGroup.add(floorMesh);
 
     if (highlightRoomId === room.id) {
       const hl = new THREE.Mesh(
-        new THREE.BoxGeometry(w + 0.02, 0.02, d + 0.02),
-        new THREE.MeshBasicMaterial({ color: 0xff9ec4, transparent: true, opacity: 0.35 })
+        new THREE.RingGeometry(Math.min(w, d) * 0.28, Math.min(w, d) * 0.34, 24),
+        new THREE.MeshBasicMaterial({ color: BONDEE_PALETTE.accent, transparent: true, opacity: 0.45, side: THREE.DoubleSide })
       );
-      hl.position.set(cx, 0.06, cz);
+      hl.rotation.x = -Math.PI / 2;
+      hl.position.set(cx, 0.08, cz);
       roomGroup.add(hl);
     }
+
+    const label = buildRoomLabel(ROOM_LABELS[room.type] ?? room.label ?? room.type, accent);
+    label.position.set(cx - w / 2 + 0.28, 0, cz - d / 2 + 0.18);
+    roomGroup.add(label);
 
     const sides: { side: "n" | "s" | "e" | "w"; wx: number; wz: number; px: number; pz: number }[] = [
       { side: "n", wx: w, wz: WALL_THICK, px: cx, pz: cz - d / 2 + WALL_THICK / 2 },
@@ -162,22 +217,36 @@ export function buildHomeFloorGroup(opts: HomeFloorBuildOptions): THREE.Group {
       const exterior = isExteriorEdge(room, s.side) || room.type === "balcony";
       const neighbor = hasNeighbor(room, rooms, s.side);
       if (!neighbor || exterior) {
-        const h = exterior ? wallHeight : wallHeight * 0.55;
-        const wall = new THREE.Mesh(
-          new THREE.BoxGeometry(s.wx, h, s.wz),
-          mat(0xffffff, { transparent: true, opacity: exterior ? 0.92 : 0.75 })
-        );
-        wall.position.set(s.px, h / 2 + 0.05, s.pz);
-        wall.castShadow = true;
-        roomGroup.add(wall);
+        const h = exterior ? wallHeight * 1.1 : wallHeight * 0.65;
+        const wallGroup = buildLowWall(s.wx, h, s.wz, exterior);
+        wallGroup.position.set(s.px, 0, s.pz);
+        roomGroup.add(wallGroup);
 
-        const edges = new THREE.LineSegments(
-          new THREE.EdgesGeometry(wall.geometry),
-          new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 })
+        if (exterior && room.type !== "balcony") {
+          const win = buildRoundWindow(0.07);
+          win.position.set(s.px, 0, s.pz + (s.side === "n" ? 0.04 : s.side === "s" ? -0.04 : 0));
+          if (s.side === "w" || s.side === "e") {
+            win.rotation.y = Math.PI / 2;
+          }
+          roomGroup.add(win);
+        }
+      } else {
+        const divider = new THREE.Mesh(
+          new THREE.BoxGeometry(s.wx, wallHeight * 0.35, s.wz),
+          bondeeMat(accent, { transparent: true, opacity: 0.18 })
         );
-        edges.position.copy(wall.position);
-        roomGroup.add(edges);
+        divider.position.set(s.px, wallHeight * 0.2 + 0.05, s.pz);
+        roomGroup.add(divider);
       }
+    }
+
+    if (room.type === "balcony") {
+      const rail = new THREE.Mesh(
+        new THREE.BoxGeometry(w - 0.04, 0.06, 0.03),
+        bondeeMat(BONDEE_PALETTE.trim, { transparent: true, opacity: 0.7 })
+      );
+      rail.position.set(cx, 0.12, cz + d / 2 - 0.04);
+      roomGroup.add(rail);
     }
 
     root.add(roomGroup);
@@ -192,8 +261,7 @@ export function buildHomeFloorGroup(opts: HomeFloorBuildOptions): THREE.Group {
     let mesh: THREE.Group | THREE.Mesh;
     if (item.studioAssetId && item.glbUrl) {
       const group = new THREE.Group();
-      const ph = studioPlaceholderMesh();
-      group.add(ph);
+      group.add(studioPlaceholderMesh());
       group.userData.studioGlbUrl = item.glbUrl;
       mesh = group;
     } else {
@@ -202,18 +270,26 @@ export function buildHomeFloorGroup(opts: HomeFloorBuildOptions): THREE.Group {
 
     const p = itemWorldPos(item, room);
     mesh.position.set(p.x, 0.06, p.z);
-    mesh.scale.setScalar(item.studioAssetId ? scale : 0.62 * scale);
+    mesh.scale.setScalar(item.studioAssetId ? scale : 0.68 * scale);
     mesh.rotation.y = (item.rot * Math.PI) / 2;
     mesh.userData.placedId = item.id;
     mesh.userData.roomId = item.roomId;
+
     if (selectedItemId === item.id) {
       const ring = new THREE.Mesh(
-        new THREE.RingGeometry(0.2, 0.28, 16),
-        new THREE.MeshBasicMaterial({ color: 0xff9ec4, transparent: true, opacity: 0.7, side: THREE.DoubleSide })
+        new THREE.RingGeometry(0.22, 0.32, 20),
+        new THREE.MeshBasicMaterial({ color: BONDEE_PALETTE.accent, transparent: true, opacity: 0.75, side: THREE.DoubleSide })
       );
       ring.rotation.x = -Math.PI / 2;
       ring.position.y = 0.02;
       mesh.add(ring);
+      const ghost = new THREE.Mesh(
+        new THREE.RingGeometry(0.18, 0.2, 16),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6, side: THREE.DoubleSide })
+      );
+      ghost.rotation.x = -Math.PI / 2;
+      ghost.position.y = 0.025;
+      mesh.add(ghost);
     }
     furnitureRoot.add(mesh);
   }
@@ -234,7 +310,10 @@ export function disposeHomeGroup(group: THREE.Object3D) {
     if (o instanceof THREE.Mesh || o instanceof THREE.LineSegments) {
       o.geometry.dispose();
       const mats = Array.isArray(o.material) ? o.material : [o.material];
-      mats.forEach((m) => m.dispose());
+      mats.forEach((m) => {
+        if ("map" in m && m.map instanceof THREE.Texture) m.map.dispose();
+        m.dispose();
+      });
     }
   });
 }

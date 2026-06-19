@@ -102,7 +102,7 @@ export function seededRoomItems(seed: number, roomId = "living"): BondeePlacedIt
 export function buildUnitFurniture(items: BondeePlacedItem[], rooms: AptRoom[], scale = 0.72): THREE.Group {
   const migrated = migrateItems(items, rooms);
   const s = fitScaleToBox(DOLLHOUSE_UNIT_W * 0.88, DOLLHOUSE_UNIT_D * 0.88);
-  return buildHomeFloorGroup({ rooms, items: migrated, scale: s, wallHeight: 0.32 });
+  return buildHomeFloorGroup({ rooms, items: migrated, scale: s, wallHeight: 0.22 });
 }
 
 export type DollhouseUnitOptions = {
@@ -139,6 +139,45 @@ export function buildDollhouseUnit(opts: DollhouseUnitOptions): THREE.Group {
     furniture.position.set(0, 0.08, 0.1);
     g.add(furniture);
   }
+
+  // Per-floor window glow (different interior mood per floor)
+  const glowColors = [0xffe0ec, 0xd4f0e8, 0xe8e0ff, 0xffecd9, 0xd8eeff, 0xfff0d8, 0xffe8f0];
+  const glowColor = glowColors[floorIndex % glowColors.length];
+  for (const side of [-1, 1] as const) {
+    const winGlow = new THREE.Mesh(
+      new THREE.CircleGeometry(0.09, 12),
+      new THREE.MeshBasicMaterial({ color: glowColor, transparent: true, opacity: active ? 0.55 : 0.28 })
+    );
+    winGlow.rotation.y = side * Math.PI / 2;
+    winGlow.position.set(side * (DOLLHOUSE_UNIT_W / 2 - 0.02), DOLLHOUSE_FLOOR_H * 0.55, 0.2);
+    g.add(winGlow);
+  }
+
+  // Balcony plant pots on active/visited floors
+  if (active || visited) {
+    for (const x of [-0.9, 0.9]) {
+      const pot = new THREE.Mesh(
+        roundedBox(0.12, 0.1, 0.12, 0.03),
+        pastelMat(PASTEL.wallMint)
+      );
+      pot.position.set(x, DOLLHOUSE_FLOOR_H * 0.82, DOLLHOUSE_UNIT_D / 2 - 0.08);
+      g.add(pot);
+      const leaf = new THREE.Mesh(
+        new THREE.SphereGeometry(0.08, 8, 8),
+        pastelMat(0x98d8a8)
+      );
+      leaf.position.set(x, DOLLHOUSE_FLOOR_H * 0.9, DOLLHOUSE_UNIT_D / 2 - 0.08);
+      g.add(leaf);
+    }
+  }
+
+  // Corridor light strip between units
+  const corridor = new THREE.Mesh(
+    roundedBox(0.08, 0.04, DOLLHOUSE_UNIT_D * 0.6, 0.02),
+    new THREE.MeshBasicMaterial({ color: 0xfff8e8, transparent: true, opacity: 0.4 })
+  );
+  corridor.position.set(-DOLLHOUSE_UNIT_W / 2 - 0.12, DOLLHOUSE_FLOOR_H * 0.92, 0);
+  g.add(corridor);
 
   // Front lip
   addMesh(

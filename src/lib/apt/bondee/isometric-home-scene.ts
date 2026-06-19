@@ -14,9 +14,13 @@ import {
 import type { BondeeHomeState, BondeePlacedItem, ChibiAvatarConfig, ChibiPose } from "./types";
 import type { StudioDecorTool } from "@/studio/lib/apt-types";
 import { hydrateStudioGltfMeshes } from "./studio-gltf-meshes";
+import { enableBondeeRenderer, setupBondeeLights } from "./bondee-mesh-utils";
 
 const MOVE_SPEED = 2.4;
 const INTERACT_DIST = 0.55;
+const CAM_LERP = 6;
+const ZOOM_MIN = 4.2;
+const ZOOM_MAX = 8.5;
 
 export type IsometricHomeCallbacks = {
   onItemSelect?: (id: string | null) => void;
@@ -56,6 +60,15 @@ export class IsometricHomeScene {
   private keys = new Set<string>();
   private nearConsole = false;
   private walking = false;
+  private camYaw = Math.PI / 4;
+  private camPitch = 0.55;
+  private camDist = 5.8;
+  private targetCamYaw = Math.PI / 4;
+  private targetCamDist = 5.8;
+  private dragging = false;
+  private dragLast: { x: number; y: number } | null = null;
+  private avatarShadow: THREE.Mesh;
+  private lightRoot = new THREE.Group();
 
   constructor(mount: HTMLElement, rooms: AptRoom[], initial: BondeeHomeState) {
     this.mount = mount;
@@ -75,7 +88,6 @@ export class IsometricHomeScene {
     }
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0xfef6f8);
 
     const aspect = Math.max(mount.clientWidth, 320) / Math.max(mount.clientHeight, 400);
     this.camera = new THREE.OrthographicCamera(
@@ -86,22 +98,34 @@ export class IsometricHomeScene {
       0.1,
       80
     );
-    this.camera.position.set(8, 9, 8);
-    this.camera.lookAt(0, 0.3, 0);
+    this.updateCameraPosition();
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    enableBondeeRenderer(this.renderer);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(mount.clientWidth, mount.clientHeight);
-    this.renderer.shadowMap.enabled = true;
     mount.appendChild(this.renderer.domElement);
 
-    this.addLights();
+    setupBondeeLights(this.scene, this.lightRoot);
+    this.scene.add(this.lightRoot);
+
+    this.avatarShadow = new THREE.Mesh(
+      new THREE.CircleGeometry(0.14, 20),
+      new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.18 })
+    );
+    this.avatarShadow.rotation.x = -Math.PI / 2;
+    this.avatarShadow.position.y = 0.01;
+    this.homeRoot.add(this.avatarShadow);
     this.homeRoot.add(this.avatar.root);
     this.scene.add(this.homeRoot);
     this.rebuildFloor();
     this.applyAvatar();
 
     this.renderer.domElement.addEventListener("pointerdown", this.onPointerDown);
+    this.renderer.domElement.addEventListener("pointermove", this.onPointerMove);
+    this.renderer.domElement.addEventListener("pointerup", this.onPointerUp);
+    this.renderer.domElement.addEventListener("pointercancel", this.onPointerUp);
+    this.renderer.domElement.addEventListener("wheel", this.onWheel, { passive: false });
     window.addEventListener("resize", this.onResize);
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
@@ -197,14 +221,38 @@ export class IsometricHomeScene {
   }
 
   private applyAvatar() {
-    const pose = this.walkMode && this.walking ? "stand" : this.state.pose;
-    this.avatar.rebuild(this.state.avatar, pose);
+    if (!this.walking) {
+      this.avatar.rebuild(this.state.avatar, this.state.pose);
+    }
     this.syncAvatarTransform();
   }
 
   private syncAvatarTransform() {
     this.avatar.root.position.set(this.avatarX, 0, this.avatarZ);
     this.avatar.root.rotation.y = this.avatarRotY;
+    this.avatarShadow.position.set(this.avatarX, 0.01, this.avatarZ);
+    this.avatarShadow.scale.setScalar(this.walking ? 0.85 : 1);
+    this.lightRoot.position.set(this.avatarX, 0, this.avatarZ);
+  }
+
+  private updateCameraPosition() {
+    const cx = Math.cos(this.camYaw) * Math.cos(this.camPitch) * this.camDist;
+    const cy = Math.sin(this.camPitch) * this.camDist + 1.2;
+    const cz = Math.sin(this.camYaw) * Math.cos(this.camPitch) * this.camDist;
+    this.camera.position.set(cx, cy, cz);
+    this.camera.lookAt(0, 0.35, 0);
+  }
+
+  private lerpCamera(dt: number) {
+    this.camYaw += (this.targetCamYaw - this.camYaw) * Math.min(1, dt * CAM_LERP);
+    this.frustum += (this.targetCamDist - this.frustum) * Math.min(1, dt * CAM_LERP);
+    this.updateCameraPosition();
+    const aspect = Math.max(this.mount.clientWidth, 320) / Math.max(this.mount.clientHeight, 400);
+    this.camera.left = (-this.frustum * aspect) / 2;
+    this.camera.right = (this.frustum * aspect) / 2;
+    this.camera.top = this.frustum / 2;
+    this.camera.bottom = -this.frustum / 2;
+    this.camera.updateProjectionMatrix();
   }
 
   private getConsolePositions(): { x: number; z: number }[] {
@@ -263,7 +311,7 @@ export class IsometricHomeScene {
       this.walking = true;
     }
 
-    this.applyAvatar();
+    this.syncAvatarTransform();
     this.checkConsoleProximity();
   }
 
@@ -299,15 +347,13 @@ export class IsometricHomeScene {
     this.keys.delete(e.key.toLowerCase());
   };
 
-  private addLights() {
-    this.scene.add(new THREE.AmbientLight(0xffffff, 0.88));
-    const sun = new THREE.DirectionalLight(0xffffff, 0.6);
-    sun.position.set(5, 10, 7);
-    sun.castShadow = true;
-    this.scene.add(sun);
-  }
-
   private onPointerDown = (e: PointerEvent) => {
+    if (e.button === 1 || e.button === 2 || e.altKey || e.shiftKey) {
+      this.dragging = true;
+      this.dragLast = { x: e.clientX, y: e.clientY };
+      return;
+    }
+
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -381,11 +427,27 @@ export class IsometricHomeScene {
             studioLabel: this.selectedStudioTool.name,
           },
         ]
-      : [
-          ...this.state.items,
-          { ...base, kind: this.selectedTool! },
-        ];
+      : [...this.state.items, { ...base, kind: this.selectedTool! }];
     this.updateItems(items);
+  };
+
+  private onPointerMove = (e: PointerEvent) => {
+    if (!this.dragging || !this.dragLast) return;
+    const dx = e.clientX - this.dragLast.x;
+    const dy = e.clientY - this.dragLast.y;
+    this.dragLast = { x: e.clientX, y: e.clientY };
+    this.targetCamYaw -= dx * 0.008;
+    this.camPitch = THREE.MathUtils.clamp(this.camPitch + dy * 0.004, 0.35, 0.75);
+  };
+
+  private onPointerUp = () => {
+    this.dragging = false;
+    this.dragLast = null;
+  };
+
+  private onWheel = (e: WheelEvent) => {
+    e.preventDefault();
+    this.targetCamDist = THREE.MathUtils.clamp(this.targetCamDist + e.deltaY * 0.004, ZOOM_MIN, ZOOM_MAX);
   };
 
   private onResize = () => {
@@ -407,11 +469,17 @@ export class IsometricHomeScene {
     const dt = this.clock.getDelta();
     this.animPhase += dt;
     this.updateMovement(dt);
+    this.lerpCamera(dt);
+
     if (this.walking) {
-      this.avatar.root.position.y = Math.sin(this.animPhase * 10) * 0.015;
-    } else if (this.state.pose === "run") {
-      this.avatar.root.position.y = Math.sin(this.animPhase * 8) * 0.02;
+      this.avatar.animateWalk(this.animPhase, true);
+    } else {
+      this.avatar.animateWalk(this.animPhase, false);
+      if (this.nearConsole && !this.decorMode) {
+        this.avatar.root.rotation.y = THREE.MathUtils.lerp(this.avatar.root.rotation.y, Math.PI, 0.05);
+      }
     }
+
     this.renderer.render(this.scene, this.camera);
   };
 
@@ -422,6 +490,10 @@ export class IsometricHomeScene {
     window.removeEventListener("keydown", this.onKeyDown);
     window.removeEventListener("keyup", this.onKeyUp);
     this.renderer.domElement.removeEventListener("pointerdown", this.onPointerDown);
+    this.renderer.domElement.removeEventListener("pointermove", this.onPointerMove);
+    this.renderer.domElement.removeEventListener("pointerup", this.onPointerUp);
+    this.renderer.domElement.removeEventListener("pointercancel", this.onPointerUp);
+    this.renderer.domElement.removeEventListener("wheel", this.onWheel);
     if (this.floorGroup) disposeHomeGroup(this.floorGroup);
     this.avatar.dispose();
     this.renderer.dispose();

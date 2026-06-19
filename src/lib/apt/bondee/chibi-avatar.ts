@@ -6,8 +6,8 @@ import type { ChibiAvatarConfig, ChibiPose } from "./types";
 const MAT = (color: string | number, opts?: Partial<THREE.MeshStandardMaterialParameters>) =>
   new THREE.MeshStandardMaterial({
     color: typeof color === "string" ? color : color,
-    roughness: 0.55,
-    metalness: 0.02,
+    roughness: 0.62,
+    metalness: 0.01,
     ...opts,
   });
 
@@ -20,6 +20,11 @@ export class ChibiAvatarMesh {
   private body = new THREE.Group();
   private hairRoot = new THREE.Group();
   private parts: THREE.Object3D[] = [];
+  private currentPose: ChibiPose = "stand";
+  private legL: THREE.Mesh | null = null;
+  private legR: THREE.Mesh | null = null;
+  private armL: THREE.Object3D | null = null;
+  private armR: THREE.Object3D | null = null;
 
   constructor() {
     this.root.add(this.body);
@@ -31,7 +36,30 @@ export class ChibiAvatarMesh {
     this.buildBody(config);
     this.buildHair(config);
     this.buildFace(config);
+    this.currentPose = pose;
     this.applyPose(pose);
+  }
+
+  /** Walk cycle without full rebuild */
+  animateWalk(phase: number, moving: boolean) {
+    if (!moving) {
+      if (this.currentPose === "stand") return;
+      this.body.position.y = 0;
+      if (this.legL) this.legL.rotation.x = 0;
+      if (this.legR) this.legR.rotation.x = 0;
+      if (this.armL) this.armL.rotation.x = 0;
+      if (this.armR) this.armR.rotation.x = 0;
+      return;
+    }
+
+    const bounce = Math.sin(phase * 10) * 0.018;
+    this.body.position.y = bounce;
+
+    const swing = Math.sin(phase * 10) * 0.45;
+    if (this.legL) this.legL.rotation.x = swing;
+    if (this.legR) this.legR.rotation.x = -swing;
+    if (this.armL) this.armL.rotation.x = -swing * 0.6;
+    if (this.armR) this.armR.rotation.x = swing * 0.6;
   }
 
   private clearParts() {
@@ -46,6 +74,10 @@ export class ChibiAvatarMesh {
       p.parent?.remove(p);
     }
     this.parts = [];
+    this.legL = null;
+    this.legR = null;
+    this.armL = null;
+    this.armR = null;
     while (this.body.children.length > 1) this.body.remove(this.body.children[this.body.children.length - 1]);
     while (this.hairRoot.children.length) this.hairRoot.remove(this.hairRoot.children[0]);
   }
@@ -62,11 +94,13 @@ export class ChibiAvatarMesh {
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 20, 20), skin);
     head.position.y = 0.72;
     head.scale.set(1.05, 1, 0.95);
+    head.castShadow = true;
     this.add(head);
 
     const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.18, 0.22, 6, 10), MAT(config.topColor));
     torso.position.y = 0.38;
     torso.scale.set(1.1, 1, 0.85);
+    torso.castShadow = true;
     this.add(torso);
 
     if (config.topStyle === 1) {
@@ -83,21 +117,20 @@ export class ChibiAvatarMesh {
       this.add(hood);
     }
 
-    const hips = new THREE.Mesh(
-      new THREE.BoxGeometry(0.3, 0.12, 0.2),
-      MAT(config.bottomStyle === 1 ? config.bottomColor : config.bottomColor)
-    );
+    const hips = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.2), MAT(config.bottomColor));
     hips.position.y = 0.2;
     this.add(hips);
 
     const legGeo = new THREE.CapsuleGeometry(0.07, 0.18, 4, 8);
     const legMat = MAT(config.bottomColor);
-    const legL = new THREE.Mesh(legGeo, legMat);
-    legL.position.set(-0.09, 0.06, 0);
-    const legR = legL.clone();
-    legR.position.x = 0.09;
-    this.add(legL);
-    this.add(legR);
+    this.legL = new THREE.Mesh(legGeo, legMat);
+    this.legL.position.set(-0.09, 0.06, 0);
+    this.legL.name = "leg-l";
+    this.legR = this.legL.clone();
+    this.legR.position.x = 0.09;
+    this.legR.name = "leg-r";
+    this.add(this.legL);
+    this.add(this.legR);
 
     const shoeMat = MAT(config.shoeColor, { roughness: 0.35 });
     for (const x of [-0.09, 0.09]) {
@@ -108,16 +141,16 @@ export class ChibiAvatarMesh {
 
     const armGeo = new THREE.CapsuleGeometry(0.05, 0.16, 4, 6);
     const armMat = MAT(config.topColor);
-    const armL = new THREE.Mesh(armGeo, armMat);
-    armL.position.set(-0.24, 0.4, 0);
-    armL.rotation.z = 0.25;
-    armL.name = "arm-l";
-    const armR = armL.clone();
-    armR.position.x = 0.24;
-    armR.rotation.z = -0.25;
-    armR.name = "arm-r";
-    this.add(armL);
-    this.add(armR);
+    this.armL = new THREE.Mesh(armGeo, armMat);
+    this.armL.position.set(-0.24, 0.4, 0);
+    this.armL.rotation.z = 0.25;
+    this.armL.name = "arm-l";
+    this.armR = this.armL.clone();
+    this.armR.position.x = 0.24;
+    this.armR.rotation.z = -0.25;
+    this.armR.name = "arm-r";
+    this.add(this.armL);
+    this.add(this.armR);
   }
 
   private buildHair(config: ChibiAvatarConfig) {
@@ -232,27 +265,26 @@ export class ChibiAvatarMesh {
   private applyPose(pose: ChibiPose) {
     this.body.rotation.set(0, 0, 0);
     this.body.position.set(0, 0, 0);
-    const armL = this.body.getObjectByName("arm-l");
-    const armR = this.body.getObjectByName("arm-r");
 
     if (pose === "stand" || pose === "wave") {
-      this.body.position.y = 0;
-      if (pose === "wave" && armR) {
-        armR.rotation.set(-1.2, 0, -0.8);
+      if (pose === "wave" && this.armR) {
+        this.armR.rotation.set(-1.2, 0, -0.8);
       }
     } else if (pose === "sit") {
       this.body.position.set(0, 0.08, 0.05);
       this.body.rotation.x = -0.15;
-      if (armL) armL.rotation.set(0.5, 0, 0.6);
-      if (armR) armR.rotation.set(0.5, 0, -0.6);
+      if (this.armL) this.armL.rotation.set(0.5, 0, 0.6);
+      if (this.armR) this.armR.rotation.set(0.5, 0, -0.6);
+      if (this.legL) this.legL.rotation.x = 1.1;
+      if (this.legR) this.legR.rotation.x = 1.1;
     } else if (pose === "lie") {
       this.body.position.set(0, 0.22, 0.1);
       this.body.rotation.set(-Math.PI / 2 + 0.2, 0, 0);
     } else if (pose === "run") {
       this.body.position.y = 0.05;
       this.body.rotation.x = 0.15;
-      if (armL) armL.rotation.set(-0.8, 0, 0.3);
-      if (armR) armR.rotation.set(0.6, 0, -0.3);
+      if (this.armL) this.armL.rotation.set(-0.8, 0, 0.3);
+      if (this.armR) this.armR.rotation.set(0.6, 0, -0.3);
     }
   }
 
