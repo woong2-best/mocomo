@@ -407,10 +407,13 @@ function buildClock(g: THREE.Group) {
   );
   face.rotation.x = Math.PI / 2;
   face.position.y = 0.58;
+  face.name = "clock-face";
   face.castShadow = false;
   g.add(face);
-  addTo(g, roundedBox(0.01, 0.06, 0.008, 0.003), bondeeMat(0x333333), 0, 0.6, 0.02);
-  addTo(g, roundedBox(0.06, 0.008, 0.008, 0.003), bondeeMat(0x333333), 0.02, 0.6, 0.02);
+  const hour = addTo(g, roundedBox(0.01, 0.06, 0.008, 0.003), bondeeMat(0x333333), 0, 0.6, 0.02);
+  hour.name = "clock-hour-hand";
+  const minute = addTo(g, roundedBox(0.06, 0.008, 0.008, 0.003), bondeeMat(0x333333), 0.02, 0.6, 0.02);
+  minute.name = "clock-minute-hand";
 }
 
 function buildRug(g: THREE.Group) {
@@ -427,6 +430,7 @@ function buildWasher(g: THREE.Group) {
   );
   door.rotation.x = Math.PI / 2;
   door.position.set(0, 0.28, 0.2);
+  door.name = "washer-drum";
   door.castShadow = false;
   g.add(door);
   addTo(g, roundedBox(0.28, 0.04, 0.02, 0.01), bondeeMat(0xe8e8e8), 0, 0.46, 0.18);

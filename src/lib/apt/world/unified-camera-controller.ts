@@ -10,9 +10,15 @@ export type CameraPreset = {
 };
 
 const DISTRICT: CameraPreset = {
-  position: new THREE.Vector3(22, 28, 22),
-  target: new THREE.Vector3(0, 18, 0),
-  fov: 42,
+  position: new THREE.Vector3(14, 52, 18),
+  target: new THREE.Vector3(0, 38, 0),
+  fov: 38,
+};
+
+const LOBBY: CameraPreset = {
+  position: new THREE.Vector3(0, 3.2, 8.5),
+  target: new THREE.Vector3(0, 1.2, 0),
+  fov: 54,
 };
 
 const TOWER: CameraPreset = {
@@ -53,9 +59,11 @@ export class UnifiedCameraController {
         ? DISTRICT
         : mode === "tower" || mode === "elevator"
           ? TOWER
-          : mode === "corridor"
-            ? CORRIDOR
-            : null;
+          : mode === "lobby"
+            ? LOBBY
+            : mode === "corridor"
+              ? CORRIDOR
+              : null;
     if (preset) this.transitionTo(preset, instant ? 0 : 0.85);
     if (mode !== "corridor") this.follow = null;
   }
@@ -100,6 +108,10 @@ export class UnifiedCameraController {
   followObject(obj: THREE.Object3D, offset?: THREE.Vector3) {
     this.follow = obj;
     if (offset) this.followOffset.copy(offset);
+  }
+
+  clearFollow() {
+    this.follow = null;
   }
 
   setEnabled(v: boolean) {

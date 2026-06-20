@@ -1,6 +1,7 @@
 "use client";
 
 import * as THREE from "three";
+import type { FloorOccupant } from "@/actions/apt";
 import { APT_DEFAULT_FLOOR, APT_LOBBY_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
 import { DollhouseBuildingScene, type DollhouseCallbacks, type FloorResident } from "@/lib/apt/bondee/dollhouse-scene";
 import { IsometricHomeScene, type IsometricHomeCallbacks } from "@/lib/apt/bondee/isometric-home-scene";
@@ -11,14 +12,34 @@ import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import type { BondeeHomeState, ChibiAvatarConfig } from "@/lib/apt/bondee/types";
 import { DEFAULT_CHIBI_AVATAR } from "@/lib/apt/bondee/types";
 import type { AptSceneEmbed } from "./apt-scene-embed";
-import { buildCorridorFloor, type CorridorDoorSlot } from "./corridor-meshes";
+import { AptVisitSystem, type VisitTarget } from "./apt-visit-system";
+import { cullGroupByDistance } from "./apt-lod-manager";
+import {
+  buildCorridorFromPlan,
+  type CorridorDoorSlot,
+  findCorridorInteractables,
+} from "./corridor-meshes";
+import { buildCorridorGhosts } from "./corridor-mp-ghosts";
 import { CorridorWalkController } from "./corridor-walk-controller";
+import {
+  buildElevatorHallInterior,
+  updateElevatorFloorDisplay,
+} from "./elevator-hall-interior";
+import { buildLobbyParkingLevel } from "./lobby-parking-mesh";
+import { LobbyWalkController } from "./lobby-walk-controller";
+import {
+  buildDistrictComplex,
+  megaFloorToWorldY,
+  type MegatowerFacade,
+} from "./megatower-facade";
 import { UnifiedCameraController } from "./unified-camera-controller";
 import type { AptWorldMode, DoorState } from "./world-types";
 
 export type UnifiedWorldCallbacks = DollhouseCallbacks & {
   onModeChange?: (mode: AptWorldMode) => void;
   onNearHomeDoor?: (canEnter: boolean, doorState: DoorState) => void;
+  onVisitMessage?: (msg: string) => void;
+  onVisitPhase?: (phase: string) => void;
 };
 
 export class UnifiedAptWorldScene {
@@ -26,19 +47,32 @@ export class UnifiedAptWorldScene {
   private renderer: THREE.WebGLRenderer;
   private scene: THREE.Scene;
   private cameraCtrl: UnifiedCameraController;
+  private districtSlot = new THREE.Group();
   private buildingSlot = new THREE.Group();
+  private lobbySlot = new THREE.Group();
   private corridorSlot = new THREE.Group();
   private interiorSlot = new THREE.Group();
   private building!: DollhouseBuildingScene;
   private interior!: IsometricHomeScene;
+  private districtComplex: ReturnType<typeof buildDistrictComplex> | null = null;
+  private megafacade: MegatowerFacade | null = null;
+  private lobbyMesh: THREE.Group | null = null;
+  private lobbyWalk: LobbyWalkController | null = null;
   private corridorMesh: THREE.Group | null = null;
   private corridorWalk: CorridorWalkController | null = null;
+  private corridorGhosts: THREE.Group | null = null;
   private corridorDoors: CorridorDoorSlot[] = [];
+  private elevInterior: THREE.Group | null = null;
+  private visitSystem = new AptVisitSystem();
   private mode: AptWorldMode = "district";
   private homeFloor: number;
+  private homeRooms: AptRoom[];
   private homeState: BondeeHomeState;
   private avatarConfig: ChibiAvatarConfig;
   private doorOpen = true;
+  private currentCorridorFloor = APT_DEFAULT_FLOOR;
+  private floorOccupants: FloorOccupant[] = [];
+  private ownUserId: string | null = null;
   private raf = 0;
   private disposed = false;
   private clock = new THREE.Clock();
@@ -46,6 +80,10 @@ export class UnifiedAptWorldScene {
   private paused = false;
   private transitionToInterior = 0;
   private callbacks: UnifiedWorldCallbacks = {};
+  private pointer = new THREE.Vector2();
+  private raycaster = new THREE.Raycaster();
+  private animPhase = 0;
+  private visitToastCooldown = 0;
 
   constructor(
     mount: HTMLElement,
@@ -54,17 +92,20 @@ export class UnifiedAptWorldScene {
       rooms: AptRoom[];
       homeState: BondeeHomeState;
       doorOpen?: boolean;
+      userId?: string | null;
     }
   ) {
     this.mount = mount;
     this.homeFloor = opts.homeFloor ?? APT_DEFAULT_FLOOR;
+    this.homeRooms = opts.rooms;
     this.doorOpen = opts.doorOpen ?? true;
     this.homeState = opts.homeState;
     this.avatarConfig = opts.homeState.avatar ?? DEFAULT_CHIBI_AVATAR;
+    this.ownUserId = opts.userId ?? null;
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(PASTEL.bg);
-    this.scene.fog = new THREE.Fog(PASTEL.bg, 14, 55);
+    this.scene.fog = new THREE.Fog(PASTEL.bg, 14, 95);
 
     const aspect = Math.max(mount.clientWidth, 320) / Math.max(mount.clientHeight, 400);
     this.cameraCtrl = new UnifiedCameraController(aspect);
@@ -79,11 +120,15 @@ export class UnifiedAptWorldScene {
     this.renderer.setSize(mount.clientWidth, mount.clientHeight);
     mount.appendChild(this.renderer.domElement);
 
+    this.scene.add(this.districtSlot);
     this.scene.add(this.buildingSlot);
+    this.scene.add(this.lobbySlot);
     this.scene.add(this.corridorSlot);
     this.scene.add(this.interiorSlot);
-    this.corridorSlot.visible = false;
-    this.interiorSlot.visible = false;
+
+    this.districtComplex = buildDistrictComplex(this.homeFloor);
+    this.megafacade = this.districtComplex.main;
+    this.districtSlot.add(this.districtComplex.root);
 
     const embedBase: Omit<AptSceneEmbed, "attachRoot"> = {
       sharedRenderer: this.renderer,
@@ -95,6 +140,7 @@ export class UnifiedAptWorldScene {
       ...embedBase,
       attachRoot: this.buildingSlot,
     });
+    this.buildingSlot.visible = false;
 
     this.interior = new IsometricHomeScene(mount, opts.rooms, opts.homeState, {
       ...embedBase,
@@ -102,7 +148,9 @@ export class UnifiedAptWorldScene {
     });
 
     this.cameraCtrl.attach(this.renderer.domElement);
+    this.renderer.domElement.addEventListener("pointerdown", this.onPointerDown);
     window.addEventListener("resize", this.onResize);
+    this.syncLayerVisibility();
     this.loop();
     this.callbacks.onModeChange?.("district");
   }
@@ -123,10 +171,32 @@ export class UnifiedAptWorldScene {
     return this.corridorWalk;
   }
 
+  getLobbyWalk() {
+    return this.lobbyWalk;
+  }
+
+  getVisitSystem() {
+    return this.visitSystem;
+  }
+
   updateHomeState(state: BondeeHomeState) {
     this.homeState = state;
     this.avatarConfig = state.avatar ?? DEFAULT_CHIBI_AVATAR;
-    this.interior.setState(state);
+    if (!this.visitSystem.isVisiting()) {
+      this.interior.setState(state);
+    }
+  }
+
+  updateHomeRooms(rooms: AptRoom[]) {
+    this.homeRooms = rooms;
+    if (!this.visitSystem.isVisiting()) {
+      this.interior.setRooms(rooms);
+    }
+  }
+
+  setFloorOccupants(occupants: FloorOccupant[]) {
+    this.floorOccupants = occupants;
+    if (this.mode === "corridor") this.refreshCorridorGhosts();
   }
 
   private buildingCallbacks: DollhouseCallbacks = {};
@@ -146,6 +216,10 @@ export class UnifiedAptWorldScene {
       ...this.buildingCallbacks,
       ...this.callbacks,
       onCorridorEnter: (floor) => this.enterCorridor(floor),
+      onFloorDisplay: (f) => {
+        this.callbacks.onFloorDisplay?.(f);
+        this.syncElevatorDisplays(f);
+      },
     });
   }
 
@@ -168,33 +242,83 @@ export class UnifiedAptWorldScene {
     this.interior.setPaused(v);
   }
 
-  /** 단지 전체 보기 */
   showDistrict() {
-    this.building.setPaused(false);
+    this.visitSystem.clearVisit();
+    this.building.setPaused(true);
     this.setMode("district");
   }
 
-  /** 타워 층 뷰 */
   showTower() {
     this.building.setPaused(false);
     this.setMode("tower");
   }
 
-  /** 엘리베이터로 층 이동 */
+  showLobby() {
+    this.enterLobby();
+  }
+
   goToFloor(floor: number) {
     this.building.setPaused(false);
     this.setMode("elevator");
     this.building.setFloor(floor);
   }
 
-  /** 복도에서 집 현관문 입장 */
+  /** 이웃 집 방문 — 복도→현관→내부 동일 흐름 */
+  startVisit(target: VisitTarget) {
+    this.visitSystem.startVisit(target);
+    this.interior.setRooms(target.rooms);
+    this.interior.setState(target.homeState);
+    this.goToFloor(target.homeFloor);
+  }
+
+  clearVisit() {
+    this.visitSystem.clearVisit();
+    this.interior.setRooms(this.homeRooms);
+    this.interior.setState(this.homeState);
+  }
+
+  knockOrBell() {
+    if (this.visitSystem.isVisiting()) {
+      const phase = this.visitSystem.getPhase();
+      if (phase === "idle" || phase === "denied") this.visitSystem.knock();
+      else if (phase === "waiting") this.visitSystem.ringBell();
+      else return;
+      this.corridorWalk?.knockOrBell();
+      return;
+    }
+    this.corridorWalk?.knockOrBell();
+  }
+
   tryEnterHome() {
-    if (this.mode !== "corridor" || !this.corridorWalk?.canEnterHome()) return false;
-    this.beginInteriorTransition();
+    if (this.mode !== "corridor" || !this.corridorWalk) return false;
+
+    if (this.visitSystem.isVisiting()) {
+      if (!this.visitSystem.canEnter()) return false;
+      if (!this.corridorWalk.canEnterHome()) return false;
+      this.beginInteriorTransition(true);
+      return true;
+    }
+
+    if (!this.corridorWalk.canEnterHome()) return false;
+    this.beginInteriorTransition(false);
     return true;
   }
 
-  /** 집에서 복도로 나가기 */
+  interactCorridorProp() {
+    if (this.mode !== "corridor" || !this.corridorMesh || !this.corridorWalk) return;
+    const avatar = this.corridorWalk.root.position;
+    for (const prop of findCorridorInteractables(this.corridorMesh)) {
+      const p = new THREE.Vector3();
+      prop.getWorldPosition(p);
+      if (avatar.distanceTo(p) > 1.6) continue;
+      const kind = prop.userData.interact as string;
+      if (kind === "cctv") this.callbacks.onVisitMessage?.("CCTV — 복도 실시간 모니터링");
+      else if (kind === "fire-extinguisher") this.callbacks.onVisitMessage?.("소화기 — 비상 시 사용");
+      else if (kind === "sign") this.callbacks.onVisitMessage?.(`${this.currentCorridorFloor}층 복도 안내`);
+      break;
+    }
+  }
+
   exitToCorridor() {
     this.interior.detachInput(this.renderer.domElement);
     this.cameraCtrl.setEnabled(true);
@@ -202,8 +326,71 @@ export class UnifiedAptWorldScene {
     this.interiorSlot.visible = false;
     this.corridorSlot.visible = true;
     this.buildingSlot.visible = false;
+    this.districtSlot.visible = false;
+    this.lobbySlot.visible = false;
     this.setMode("corridor");
     this.cameraCtrl.followObject(this.corridorWalk!.avatar.root);
+  }
+
+  /** 단지에서 층 클릭 → 외벽 관통 → 복도 */
+  flyToFloorFromDistrict(floor: number) {
+    if (floor === APT_LOBBY_FLOOR) {
+      this.enterLobby();
+      return;
+    }
+    this.currentCorridorFloor = floor;
+    const y = megaFloorToWorldY(floor);
+    const ext = new THREE.Vector3(-6, y + 8, 12);
+    const thru = new THREE.Vector3(-2.8, y + 2.5, 4);
+    const inner = new THREE.Vector3(-0.8, y + 1.8, 2.8);
+    this.cameraCtrl.flyThroughWall(ext, thru, inner, 1.5);
+    window.setTimeout(() => this.enterCorridor(floor), 1400);
+  }
+
+  private enterLobby() {
+    if (this.lobbyMesh) {
+      this.lobbySlot.remove(this.lobbyMesh);
+      this.lobbyMesh = null;
+    }
+    this.lobbyWalk?.dispose();
+    this.lobbyWalk = null;
+
+    this.lobbyMesh = buildLobbyParkingLevel();
+    this.lobbySlot.add(this.lobbyMesh);
+
+    const elevInt = buildElevatorHallInterior(APT_LOBBY_FLOOR);
+    const lobbyElev = this.lobbyMesh.getObjectByName("lobby-elevator-hall");
+    if (lobbyElev) lobbyElev.add(elevInt);
+    this.elevInterior = elevInt;
+
+    this.lobbyWalk = new LobbyWalkController(this.avatarConfig, "stand");
+    const bounds = this.lobbyMesh.userData.walkBounds as {
+      minX: number;
+      maxX: number;
+      minZ: number;
+      maxZ: number;
+    };
+    if (bounds) this.lobbyWalk.setBounds(bounds);
+    this.lobbyWalk.bindElevatorHall(this.lobbyMesh.getObjectByName("lobby-elevator-hall") ?? null);
+    this.lobbySlot.add(this.lobbyWalk.root);
+
+    this.building.setPaused(true);
+    this.setMode("lobby");
+    this.cameraCtrl.followObject(this.lobbyWalk.avatar.root, new THREE.Vector3(0, 1.5, 2.8));
+  }
+
+  lobbyUseElevator() {
+    if (this.mode !== "lobby") return;
+    this.building.setPaused(false);
+    this.setMode("elevator");
+    this.building.setFloor(this.homeFloor);
+    this.syncLayerVisibility();
+  }
+
+  lobbyUseStairs() {
+    if (this.mode !== "lobby") return;
+    this.callbacks.onVisitMessage?.("계단 — 2층으로 올라갑니다 (엘리베이터 이용 권장)");
+    this.goToFloor(Math.min(APT_TOTAL_FLOORS, APT_LOBBY_FLOOR + 1));
   }
 
   private setMode(mode: AptWorldMode, opts?: { skipCamera?: boolean }) {
@@ -225,34 +412,78 @@ export class UnifiedAptWorldScene {
 
   private syncLayerVisibility() {
     const m = this.mode;
-    this.buildingSlot.visible = m === "district" || m === "tower" || m === "elevator";
+    this.districtSlot.visible = m === "district";
+    this.buildingSlot.visible = m === "tower" || m === "elevator";
+    this.lobbySlot.visible = m === "lobby";
     this.corridorSlot.visible = m === "corridor";
     this.interiorSlot.visible = m === "interior" || this.transitionToInterior > 0;
+
     if (m === "corridor" && this.corridorWalk) {
       this.cameraCtrl.followObject(this.corridorWalk.avatar.root);
+    } else if (m === "lobby" && this.lobbyWalk) {
+      this.cameraCtrl.followObject(this.lobbyWalk.avatar.root, new THREE.Vector3(0, 1.5, 2.8));
+    } else if (m === "district" || m === "tower") {
+      this.cameraCtrl.clearFollow();
     }
   }
 
+  private syncElevatorDisplays(floor: number) {
+    if (this.elevInterior) updateElevatorFloorDisplay(this.elevInterior, floor);
+    if (this.corridorMesh) {
+      const hall = this.corridorMesh.getObjectByName("elevator-hall");
+      if (hall) updateElevatorFloorDisplay(hall, floor);
+    }
+    this.building.getBuildingGroup()?.traverse((o) => {
+      if (o.name === "elevator-hall-interior" || o.name === "elevator-floor-number") {
+        updateElevatorFloorDisplay(o.parent ?? o, floor);
+      }
+    });
+  }
+
   private enterCorridor(floor: number) {
+    this.currentCorridorFloor = floor;
     this.building.setPaused(true);
+
     if (this.corridorMesh) {
       this.corridorSlot.remove(this.corridorMesh);
       this.corridorMesh = null;
     }
-    this.corridorMesh = buildCorridorFloor(floor, 1, 3);
+    if (this.corridorGhosts) {
+      this.corridorSlot.remove(this.corridorGhosts);
+      this.corridorGhosts = null;
+    }
+    this.corridorWalk?.dispose();
+    this.corridorWalk = null;
+
+    const rooms = this.visitSystem.isVisiting()
+      ? this.visitSystem.getTarget()!.rooms
+      : this.homeRooms;
+    const isVisit = this.visitSystem.isVisiting();
+    const visitDoorOpen = this.visitSystem.getTarget()?.doorOpen ?? false;
+
+    this.corridorMesh = buildCorridorFromPlan(floor, rooms, 1, 3);
     this.corridorDoors = (this.corridorMesh.userData.doors as CorridorDoorSlot[]) ?? [];
+
     const home = this.corridorDoors.find((d) => d.isHome);
     if (home) {
-      home.state = this.doorOpen ? "open" : "closed";
+      if (isVisit) {
+        home.state = visitDoorOpen ? "open" : "locked";
+      } else {
+        home.state = this.doorOpen ? "open" : "closed";
+      }
     }
-    this.corridorSlot.add(this.corridorMesh);
-    this.corridorSlot.position.copy(this.buildingSlot.position);
 
+    const elevInt = buildElevatorHallInterior(floor);
     const elevHall = this.corridorMesh.getObjectByName("elevator-hall");
+    if (elevHall) elevHall.add(elevInt);
+    this.elevInterior = elevInt;
+
+    this.corridorSlot.add(this.corridorMesh);
+    this.corridorSlot.position.set(0, 0, 0);
+    this.refreshCorridorGhosts();
 
     this.corridorWalk = new CorridorWalkController(this.avatarConfig, "stand");
-    this.corridorWalk.avatar.rebuild(this.avatarConfig, "stand");
-    this.corridorWalk.bindElevatorHall(this.corridorMesh.getObjectByName("elevator-hall") ?? null);
+    this.corridorWalk.bindElevatorHall(elevHall ?? null);
     this.corridorWalk.setDoors(
       this.corridorDoors.map((d) => ({
         pivot: d.pivot,
@@ -266,17 +497,30 @@ export class UnifiedAptWorldScene {
     );
     this.corridorSlot.add(this.corridorWalk.root);
 
-    const buildingPos = this.buildingSlot.position;
-    const exterior = new THREE.Vector3(buildingPos.x - 8, buildingPos.y + 12, buildingPos.z + 10);
-    const through = new THREE.Vector3(buildingPos.x - 2.5, buildingPos.y + 2.2, buildingPos.z + 1.5);
-    const interior = new THREE.Vector3(buildingPos.x - 0.8, buildingPos.y + 1.8, buildingPos.z + 2.8);
-    this.cameraCtrl.flyThroughWall(exterior, through, interior, 1.35);
+    if (this.mode !== "corridor") {
+      const y = megaFloorToWorldY(floor);
+      const exterior = new THREE.Vector3(-8, y + 12, 10);
+      const through = new THREE.Vector3(-2.5, y + 2.2, 1.5);
+      const interior = new THREE.Vector3(-0.8, y + 1.8, 2.8);
+      this.cameraCtrl.flyThroughWall(exterior, through, interior, 1.35);
+    }
 
-    this.setMode("corridor", { skipCamera: true });
+    this.setMode("corridor", { skipCamera: this.mode === "corridor" });
     this.buildingSlot.visible = false;
+    this.districtSlot.visible = false;
+    this.lobbySlot.visible = false;
+    this.syncElevatorDisplays(floor);
   }
 
-  private beginInteriorTransition() {
+  private refreshCorridorGhosts() {
+    if (!this.corridorMesh) return;
+    if (this.corridorGhosts) this.corridorSlot.remove(this.corridorGhosts);
+    const onFloor = this.floorOccupants.filter((o) => o.homeFloor === this.currentCorridorFloor);
+    this.corridorGhosts = buildCorridorGhosts(onFloor, this.ownUserId ?? undefined);
+    this.corridorSlot.add(this.corridorGhosts);
+  }
+
+  private beginInteriorTransition(isVisit: boolean) {
     this.transitionToInterior = 1;
     this.interiorSlot.visible = true;
     this.interiorSlot.position.copy(this.corridorSlot.position);
@@ -298,8 +542,19 @@ export class UnifiedAptWorldScene {
       this.transitionToInterior = 0;
       this.corridorSlot.visible = false;
       this.setMode("interior");
+      if (isVisit) this.callbacks.onVisitMessage?.("이웃 집에 입장했습니다");
     }, 1200);
   }
+
+  private onPointerDown = (e: PointerEvent) => {
+    if (this.mode !== "district" || !this.megafacade) return;
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    this.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    this.raycaster.setFromCamera(this.pointer, this.cameraCtrl.camera);
+    const floor = this.megafacade.pickFloor(this.raycaster.ray, this.districtComplex!.main.root);
+    if (floor != null) this.flyToFloorFromDistrict(floor);
+  };
 
   private onResize = () => {
     const w = this.mount.clientWidth;
@@ -316,15 +571,38 @@ export class UnifiedAptWorldScene {
     if (this.paused) return;
 
     const dt = Math.min(0.05, this.clock.getDelta());
+    this.animPhase += dt;
     let anim = false;
 
     if (this.mode === "interior") {
       anim = this.interior.tickFrame() || anim;
     } else {
       if (this.buildingSlot.visible) anim = this.building.tickFrame() || anim;
+      if (this.mode === "district" && this.megafacade) {
+        anim = this.megafacade.tick(this.animPhase) || anim;
+        cullGroupByDistance(this.districtSlot, this.cameraCtrl.camera, 120);
+      }
+      if (this.mode === "lobby" && this.lobbyWalk) {
+        anim = this.lobbyWalk.tick(dt) || anim;
+      }
       if (this.mode === "corridor" && this.corridorWalk) {
         anim = this.corridorWalk.tick(dt) || anim;
-        const canEnter = this.corridorWalk.canEnterHome();
+        const visitResult = this.visitSystem.tick(dt);
+        if (visitResult.message && this.visitToastCooldown <= 0) {
+          this.callbacks.onVisitMessage?.(visitResult.message);
+          this.callbacks.onVisitPhase?.(visitResult.phase);
+          this.visitToastCooldown = 2.5;
+          const home = this.corridorDoors.find((d) => d.isHome);
+          if (home) {
+            home.state = visitResult.doorState;
+            this.corridorWalk.setDoorState(home.unitIndex, visitResult.doorState);
+          }
+        }
+        this.visitToastCooldown -= dt;
+
+        const canEnter = this.visitSystem.isVisiting()
+          ? this.visitSystem.canEnter() && this.corridorWalk.canEnterHome()
+          : this.corridorWalk.canEnterHome();
         const home = this.corridorDoors.find((d) => d.isHome);
         this.callbacks.onNearHomeDoor?.(canEnter, home?.state ?? "closed");
       }
@@ -345,8 +623,11 @@ export class UnifiedAptWorldScene {
     this.disposed = true;
     cancelAnimationFrame(this.raf);
     window.removeEventListener("resize", this.onResize);
+    this.renderer.domElement.removeEventListener("pointerdown", this.onPointerDown);
     this.cameraCtrl.detach(this.renderer.domElement);
+    this.lobbyWalk?.dispose();
     this.corridorWalk?.dispose();
+    this.megafacade?.dispose();
     this.building.dispose();
     this.interior.dispose();
     this.renderer.dispose();
@@ -354,4 +635,4 @@ export class UnifiedAptWorldScene {
   }
 }
 
-export type { FloorResident };
+export type { FloorResident, VisitTarget };

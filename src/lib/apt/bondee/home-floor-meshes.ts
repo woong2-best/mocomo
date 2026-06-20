@@ -10,19 +10,22 @@ import { studioPlaceholderMesh } from "./studio-gltf-meshes";
 import type { BondeePlacedItem } from "./types";
 import {
   BONDEE_PALETTE,
-  buildCarpetFloor,
   buildExteriorWall,
   buildInteriorWall,
   buildRoomLabel,
   buildRoundWindow,
-  buildTileFloor,
-  buildWoodFloor,
   bondeeMat,
   roundedBox,
   setObjectRenderLayer,
   tagHomeWall,
   WALL_INTERIOR_COLOR,
 } from "./bondee-mesh-utils";
+import {
+  applyThemedWallSurface,
+  bondeeThemedFloorMat,
+  buildRoomAmbience,
+  getRoomTheme,
+} from "./bondee-textures";
 import { computeHomeDoorways, type HomeDoorway } from "./home-doorways";
 import {
   classifyWallEdge,
@@ -82,19 +85,32 @@ function sideWallDims(
 }
 
 function buildFloorForRoom(room: AptRoom, w: number, d: number): THREE.Group {
-  if (room.type === "bathroom" || room.floor === "tile-check" || room.floor === "tile-light") {
-    return buildTileFloor(w, d);
+  const theme = getRoomTheme(room);
+  const g = new THREE.Group();
+  g.name = `floor-${room.id}`;
+  const mat = bondeeThemedFloorMat(theme);
+  const base = new THREE.Mesh(roundedBox(w - 0.02, 0.06, d - 0.02, 0.02), mat);
+  base.position.y = 0.03;
+  base.receiveShadow = true;
+  base.name = `floor-surface-${room.id}`;
+  g.add(base);
+
+  if (theme.floorKind === "wood-light" || theme.floorKind === "wood-dark") {
+    const plankW = 0.14;
+    const count = Math.max(2, Math.floor(d / plankW));
+    for (let i = 0; i < count; i++) {
+      const plank = new THREE.Mesh(
+        roundedBox(w - 0.06, 0.012, plankW - 0.008, 0.004),
+        bondeeMat(i % 2 === 0 ? BONDEE_PALETTE.woodDark : BONDEE_PALETTE.woodGrain, {
+          transparent: true,
+          opacity: 0.28,
+        })
+      );
+      plank.position.set(0, 0.065, -d / 2 + plankW / 2 + i * plankW);
+      g.add(plank);
+    }
   }
-  if (room.type === "bedroom" || room.type === "living") {
-    return buildWoodFloor(w, d);
-  }
-  if (room.type === "balcony") {
-    return buildTileFloor(w, d);
-  }
-  if (room.floor === "beige") {
-    return buildCarpetFloor(w, d, BONDEE_PALETTE.wallPeach);
-  }
-  return buildWoodFloor(w, d, BONDEE_PALETTE.wood);
+  return g;
 }
 
 /** Rich default layout — lived-in Bondee home */
@@ -402,7 +418,8 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
 
     const { x: cx, z: cz } = roomCenter(room);
     const { w, d } = roomSize(room);
-    const accent = ROOM_ACCENT[room.type] ?? BONDEE_PALETTE.wallPink;
+    const theme = getRoomTheme(room);
+    const accent = theme.wallAccent;
 
     const floorMesh = buildFloorForRoom(room, w, d);
     floorMesh.position.set(cx, 0, cz);
@@ -488,6 +505,9 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
         ? buildExteriorWall(dims.wx, h, dims.wz, wallId, side)
         : buildInteriorWall(dims.wx, h, dims.wz, wallId, side);
       wallGroup.position.set(dims.px, 0, dims.pz);
+      wallGroup.traverse((obj) => {
+        if (obj instanceof THREE.Mesh) applyThemedWallSurface(obj, theme);
+      });
       (isExterior ? exteriorWallRoot : interiorWallRoot).add(wallGroup);
 
       if (isExterior && room.type !== "balcony") {
@@ -514,6 +534,10 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
       );
       rail.position.set(cx, 0.12, cz + d / 2 - 0.04);
       roomGroup.add(rail);
+    }
+
+    if (room.type !== "balcony" && !dollhouse) {
+      roomGroup.add(buildRoomAmbience(room, w, d, cx, cz, theme));
     }
 
     floorRoot.add(roomGroup);

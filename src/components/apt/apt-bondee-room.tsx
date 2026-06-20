@@ -119,6 +119,7 @@ function AptBondeeRoomInner({
   const [consoleBlend, setConsoleBlend] = useState(0);
   const [consoleContent, setConsoleContent] = useState<ConsoleContentMode>(null);
   const [smartphoneOpen, setSmartphoneOpen] = useState(false);
+  const [furnitureToast, setFurnitureToast] = useState<string | null>(null);
   const emitMoveRef = useRef<(x: number, z: number, pose: string, activity: string) => void>(() => {});
   const emitInstrumentNoteRef = useRef<(kind: InstrumentKind, midi: number, pad?: number) => void>(() => {});
 
@@ -337,6 +338,10 @@ function AptBondeeRoomInner({
         persist(next);
       },
       onSmartphoneInteract: () => setSmartphoneOpen(true),
+      onFurnitureToast: (msg) => {
+        setFurnitureToast(msg);
+        window.setTimeout(() => setFurnitureToast(null), 2600);
+      },
       onConsoleModeChange: (phase) => {
         setConsolePhase(phase);
         if (phase === "off") setConsoleContent(null);
@@ -420,6 +425,12 @@ function AptBondeeRoomInner({
       )}
     >
       {!skipSceneMount && <div ref={mountRef} className="absolute inset-0" />}
+
+      {furnitureToast && (
+        <div className="pointer-events-none absolute top-24 left-1/2 z-30 -translate-x-1/2 rounded-full border border-white/20 bg-black/70 px-4 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur-md">
+          {furnitureToast}
+        </div>
+      )}
 
         <GramophonePanel
           open={gramophoneOpen}

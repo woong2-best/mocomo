@@ -114,6 +114,7 @@ export type IsometricHomeCallbacks = {
   onSmartphoneInteract?: () => void;
   onPositionChange?: (pos: { x: number; z: number; pose: ChibiPose; activity: string }) => void;
   onTimeChange?: (hour: number, phaseLabel: string) => void;
+  onFurnitureToast?: (message: string) => void;
 };
 
 export class IsometricHomeScene {
@@ -336,7 +337,7 @@ export class IsometricHomeScene {
     if (this.acManager.hasUnits() && this.acManager.tick(this.animPhase, this.state.acOn)) {
       this.needsRender = true;
     }
-    if (this.ambientFx.tick(this.animPhase, this.state.lightsOn)) {
+    if (this.ambientFx.tick(this.animPhase, this.state.lightsOn, this.state.furnitureOpen)) {
       this.needsRender = true;
     }
     const camMoving =
@@ -726,8 +727,24 @@ export class IsometricHomeScene {
       this.toggleAc(target.itemId, !this.isAcOn(target.itemId));
       return;
     }
-    if (target.kind === "refrigerator" || target.kind === "window") {
-      this.toggleFurnitureOpen(target.itemId, !this.isFurnitureOpen(target.itemId));
+    if (target.kind === "refrigerator" || target.kind === "window" || target.kind === "washer") {
+      const opening = !this.isFurnitureOpen(target.itemId);
+      this.toggleFurnitureOpen(target.itemId, opening);
+      if (target.kind === "washer") {
+        this.callbacks.onFurnitureToast?.(opening ? "세탁기를 시작했습니다" : "세탁기를 멈췄습니다");
+      }
+      return;
+    }
+    if (target.kind === "clock") {
+      const now = new Date();
+      this.callbacks.onFurnitureToast?.(
+        `지금은 ${now.getHours()}시 ${String(now.getMinutes()).padStart(2, "0")}분입니다`
+      );
+      return;
+    }
+    if (target.kind === "shelf_small" || target.kind === "bookshelf") {
+      this.applyFurniturePose("stand", target);
+      this.callbacks.onFurnitureToast?.("선반을 살펴봤습니다");
       return;
     }
     if (target.kind === "plant") {
@@ -1077,7 +1094,7 @@ export class IsometricHomeScene {
 
       if (loadGen !== this.furnitureLoadGen || !this.floorGroup) return;
       await hydrateStudioGltfMeshes(this.floorGroup);
-      this.ambientFx.scan(this.floorGroup, this.state.lightsOn);
+      this.ambientFx.scan(this.floorGroup, this.state.lightsOn, this.state.furnitureOpen);
       this.requestRender();
     } finally {
       this.furnitureLoadBusy = false;

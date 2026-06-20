@@ -33,12 +33,14 @@ export function AptHubClient({
   homeRooms: initialHomeRooms,
   isLoggedIn,
   studioInventory = [],
+  currentUserId = null,
 }: {
   initialProfile: AptProfileDto | null;
   bondeeHome: BondeeHomeState;
   homeRooms: AptRoom[];
   isLoggedIn: boolean;
   studioInventory?: AptStudioInventoryItem[];
+  currentUserId?: string | null;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<UnifiedAptWorldScene | null>(null);
@@ -48,6 +50,7 @@ export function AptHubClient({
   const [doorOpen, setDoorOpen] = useState(initialProfile?.homePublic ?? true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [nearHomeDoor, setNearHomeDoor] = useState(false);
+  const [visitToast, setVisitToast] = useState<string | null>(null);
   const homeFloor = initialProfile?.homeFloor ?? APT_DEFAULT_FLOOR;
 
   const toggleDoor = useCallback(async () => {
@@ -70,6 +73,10 @@ export function AptHubClient({
   }, [homeState]);
 
   useEffect(() => {
+    worldRef.current?.updateHomeRooms(homeRooms);
+  }, [homeRooms]);
+
+  useEffect(() => {
     const el = mountRef.current;
     if (!el) return;
 
@@ -78,11 +85,16 @@ export function AptHubClient({
       rooms: homeRooms,
       homeState,
       doorOpen,
+      userId: currentUserId,
     });
 
     world.setCallbacks({
       onModeChange: setWorldMode,
       onNearHomeDoor: (canEnter) => setNearHomeDoor(canEnter),
+      onVisitMessage: (msg) => {
+        setVisitToast(msg);
+        window.setTimeout(() => setVisitToast(null), 2800);
+      },
     });
 
     worldRef.current = world;
@@ -96,6 +108,7 @@ export function AptHubClient({
 
   const inInterior = worldMode === "interior";
   const inCorridor = worldMode === "corridor";
+  const inLobby = worldMode === "lobby";
   const inWorld = worldMode === "district" || worldMode === "tower" || worldMode === "elevator";
 
   return (
@@ -109,7 +122,7 @@ export function AptHubClient({
             bondeeRoom={homeState}
             isLoggedIn={isLoggedIn}
             onHomeRoomsChange={setHomeRooms}
-            paused={!inWorld && !inCorridor}
+            paused={!inWorld && !inCorridor && !inLobby}
             doorOpen={doorOpen}
             onDoorToggle={() => void toggleDoor()}
             unifiedWorldRef={worldRef}
@@ -137,19 +150,54 @@ export function AptHubClient({
         <>
           <div className="pointer-events-none absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 z-10">
             <AptInteractPrompt
-              label={nearHomeDoor ? "현관문 입장 (E)" : "복도"}
+              label={nearHomeDoor ? "현관문 입장 (E)" : "복도 · F 상호작용"}
               visible={nearHomeDoor}
             />
           </div>
-          <div className="absolute left-3 bottom-3 pointer-events-auto z-10">
+          <div className="absolute left-3 bottom-3 pointer-events-auto z-10 flex flex-col gap-2">
             <HomeAvatarControls
               onMove={(x, z) => worldRef.current?.getCorridorWalk()?.setMoveInput(x, z)}
-              onInteract={() => worldRef.current?.tryEnterHome()}
-              canInteract={nearHomeDoor}
-              interactLabel="현관문 입장 (E)"
+              onInteract={() => {
+                if (nearHomeDoor) worldRef.current?.tryEnterHome();
+                else worldRef.current?.knockOrBell();
+              }}
+              canInteract
+              interactLabel={nearHomeDoor ? "현관문 입장 (E)" : "노크/벨 (E)"}
             />
+            <button
+              type="button"
+              onClick={() => worldRef.current?.interactCorridorProp()}
+              className="rounded-xl border border-white/20 bg-black/50 px-3 py-1.5 text-[10px] font-bold text-white/80 backdrop-blur-md"
+            >
+              CCTV · 안내판 (F)
+            </button>
           </div>
         </>
+      )}
+
+      {/* 로비 — 보행·엘리베이터·계단 */}
+      {inLobby && (
+        <div className="absolute left-3 bottom-3 pointer-events-auto z-10 flex flex-col gap-2">
+          <HomeAvatarControls
+            onMove={(x, z) => worldRef.current?.getLobbyWalk()?.setMoveInput(x, z)}
+            onInteract={() => worldRef.current?.lobbyUseElevator()}
+            canInteract
+            interactLabel="엘리베이터 (E)"
+          />
+          <button
+            type="button"
+            onClick={() => worldRef.current?.lobbyUseStairs()}
+            className="rounded-xl border border-white/20 bg-black/50 px-3 py-2 text-xs font-bold text-white/90 backdrop-blur-md"
+          >
+            계단 이용
+          </button>
+        </div>
+      )}
+
+      {visitToast && (
+        <div className="pointer-events-none absolute top-28 left-1/2 -translate-x-1/2 z-30 rounded-full border border-white/20 bg-black/70 px-4 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur-md">
+          {visitToast}
+        </div>
       )}
 
       {/* 통합 월드 HUD — 탭 없음, 하나의 연속 공간 */}
@@ -205,6 +253,19 @@ export function AptHubClient({
             <Building2 className="h-4 w-4" />
             <span className="hidden sm:inline">타워</span>
           </button>
+          <button
+            type="button"
+            onClick={() => worldRef.current?.showLobby()}
+            className={cn(
+              "flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all",
+              inLobby
+                ? "bg-emerald-500/90 text-white shadow-md"
+                : "text-white/70 hover:text-white hover:bg-white/10"
+            )}
+          >
+            <Home className="h-4 w-4" />
+            <span className="hidden sm:inline">로비</span>
+          </button>
           {isLoggedIn && (
             <button
               type="button"
@@ -234,7 +295,8 @@ export function AptHubClient({
 
       {/* 모드 안내 */}
       <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 z-10 rounded-full border border-white/15 bg-black/50 px-4 py-1.5 text-[10px] font-semibold text-white/70 backdrop-blur-md">
-        {worldMode === "district" && "1000층 아파트 단지 · 드래그·줌으로 둘러보기"}
+        {worldMode === "district" && "1000층 단지 · 층을 클릭하면 복도로 진입"}
+        {worldMode === "lobby" && "로비 · 주차장 · 우편함 · 엘리베이터"}
         {worldMode === "tower" && "층별 단면 · 엘리베이터로 이동"}
         {worldMode === "elevator" && "엘리베이터 이동 중…"}
         {worldMode === "corridor" && "복도 · 현관문으로 입장"}

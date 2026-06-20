@@ -3,6 +3,8 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { PASTEL, pastelMat } from "@/lib/apt/bondee/dollhouse-meshes";
+import type { AptRoom } from "@/lib/apt/floor-plan-types";
+import { PLAN_W } from "@/lib/apt/floor-plan-types";
 
 export const CORRIDOR_LEN = 9.5;
 export const CORRIDOR_W = 2.35;
@@ -75,10 +77,16 @@ export function buildCorridorFloor(floorIndex: number, homeDoorIndex = 1, doorCo
   g.add(elevHall);
 
   // 소화기 · CCTV · 화분 · 안내판
-  add(g, box(0.12, 0.42, 0.1, 0.02), pastelMat(0xcc2222), -1.2, 0.55, -CORRIDOR_W / 2 + 0.06);
-  add(g, box(0.08, 0.08, 0.06), pastelMat(0x333344), 0.5, CORRIDOR_H - 0.35, -CORRIDOR_W / 2 + 0.06);
+  const fireExt = add(g, box(0.12, 0.42, 0.1, 0.02), pastelMat(0xcc2222), -1.2, 0.55, -CORRIDOR_W / 2 + 0.06);
+  fireExt.name = "corridor-fire-extinguisher";
+  fireExt.userData.interact = "fire-extinguisher";
+  const cctv = add(g, box(0.08, 0.08, 0.06), pastelMat(0x333344), 0.5, CORRIDOR_H - 0.35, -CORRIDOR_W / 2 + 0.06);
+  cctv.name = "corridor-cctv";
+  cctv.userData.interact = "cctv";
   add(g, box(0.14, 0.12, 0.14, 0.03), pastelMat(PASTEL.wallMint), 2.1, 0.12, CORRIDOR_W / 2 - 0.2);
-  add(g, box(0.35, 0.22, 0.03, 0.01), pastelMat(0xffffff), -0.3, 1.45, -CORRIDOR_W / 2 + 0.055);
+  const sign = add(g, box(0.35, 0.22, 0.03, 0.01), pastelMat(0xffffff), -0.3, 1.45, -CORRIDOR_W / 2 + 0.055);
+  sign.name = "corridor-sign";
+  sign.userData.interact = "sign";
 
   const doors: CorridorDoorSlot[] = [];
   for (let i = 0; i < doorCount; i++) {
@@ -91,6 +99,37 @@ export function buildCorridorFloor(floorIndex: number, homeDoorIndex = 1, doorCo
   g.userData.doors = doors;
 
   return g;
+}
+
+/** 평면도 hall-corridor 치수에 맞춘 복도 (없으면 기본 복도) */
+export function buildCorridorFromPlan(
+  floorIndex: number,
+  rooms: AptRoom[],
+  homeDoorIndex = 1,
+  doorCount = 3
+): THREE.Group {
+  const corridor = rooms.find((r) => r.id === "hall-corridor");
+  if (!corridor) return buildCorridorFloor(floorIndex, homeDoorIndex, doorCount);
+
+  const lenScale = corridor.w / PLAN_W;
+  const wScale = corridor.h / 95;
+  const len = THREE.MathUtils.clamp(CORRIDOR_LEN * (0.85 + lenScale * 0.3), 7.5, 12);
+  const width = THREE.MathUtils.clamp(CORRIDOR_W * (0.9 + wScale * 0.15), 2.1, 2.8);
+
+  const g = buildCorridorFloor(floorIndex, homeDoorIndex, doorCount);
+  g.scale.set(len / CORRIDOR_LEN, 1, width / CORRIDOR_W);
+  g.userData.scaledLen = len;
+  g.userData.scaledW = width;
+  g.userData.fromPlan = true;
+  return g;
+}
+
+export function findCorridorInteractables(root: THREE.Object3D): THREE.Object3D[] {
+  const out: THREE.Object3D[] = [];
+  root.traverse((o) => {
+    if (o.userData.interact) out.push(o);
+  });
+  return out;
 }
 
 function buildApartmentDoor(index: number, z: number, isHome: boolean): CorridorDoorSlot {

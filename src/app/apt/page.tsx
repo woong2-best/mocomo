@@ -37,6 +37,7 @@ export default async function AptPage() {
         homeRooms={homeRooms}
         isLoggedIn={!!user}
         studioInventory={studioInventory}
+        currentUserId={user?.id ?? null}
       />
     );
   } catch (e) {

@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import type { RefObject } from "react";
 import type { UnifiedAptWorldScene } from "@/lib/apt/world/unified-apt-world-scene";
 import type { AptWorldMode } from "@/lib/apt/world/world-types";
+import { createDefaultFloorPlan } from "@/lib/apt/floor-plan-logic";
 
 function initPlansFromProfile(profile: AptProfileDto | null): Record<number, AptRoom[]> {
   if (profile?.floorPlans && Object.keys(profile.floorPlans).length > 0) {
@@ -164,6 +165,33 @@ export const AptBuildingView = memo(function AptBuildingView({
     if (!browseTarget || isOwnApt) return;
     goToFloor(browseTarget.homeFloor);
   }, [browseTarget, isOwnApt, goToFloor]);
+
+  useEffect(() => {
+    if (!skipSceneMount) return;
+    unifiedWorldRef?.current?.setFloorOccupants(floorOccupants);
+  }, [floorOccupants, skipSceneMount, unifiedWorldRef?.current]);
+
+  useEffect(() => {
+    const world = unifiedWorldRef?.current;
+    if (!world || !skipSceneMount) return;
+    if (!browseTarget || isOwnApt) {
+      world.clearVisit();
+      return;
+    }
+    const rooms =
+      browseTarget.floorPlans[browseTarget.homeFloor] ??
+      Object.values(browseTarget.floorPlans)[0] ??
+      createDefaultFloorPlan().rooms;
+    const occ = floorOccupants.find((o) => o.userId === browseTarget.userId);
+    world.startVisit({
+      userId: browseTarget.userId,
+      displayName: browseTarget.displayName,
+      homeFloor: browseTarget.homeFloor,
+      rooms,
+      homeState: browseTarget.bondeeRoom ?? DEFAULT_BONDEE_ROOM,
+      doorOpen: occ?.doorOpen ?? false,
+    });
+  }, [browseTarget, isOwnApt, floorOccupants, skipSceneMount, unifiedWorldRef?.current]);
 
   useEffect(() => {
     if (skipSceneMount) {

@@ -1,0 +1,147 @@
+"use client";
+
+import * as THREE from "three";
+import { APT_LOBBY_FLOOR, APT_PENTHOUSE_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
+import { PASTEL, pastelMat } from "@/lib/apt/bondee/dollhouse-meshes";
+
+export const MEGA_FLOOR_H = 0.092;
+export const MEGA_TOWER_W = 2.8;
+export const MEGA_TOWER_D = 2.2;
+
+const LABEL_FLOORS = [1, 496, 711, 999, APT_PENTHOUSE_FLOOR];
+
+function floorLabelSprite(floor: number): THREE.Sprite {
+  const canvas = document.createElement("canvas");
+  canvas.width = 128;
+  canvas.height = 48;
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "rgba(0,0,0,0.55)";
+  if (typeof ctx.roundRect === "function") ctx.roundRect(4, 4, 120, 40, 8);
+  else ctx.fillRect(4, 4, 120, 40);
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 22px system-ui,sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const text = floor === APT_PENTHOUSE_FLOOR ? "PH" : floor === APT_LOBBY_FLOOR ? "로비" : `${floor}F`;
+  ctx.fillText(text, 64, 24);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+  sp.scale.set(1.1, 0.42, 1);
+  sp.userData.floor = floor;
+  sp.name = `floor-label-${floor}`;
+  return sp;
+}
+
+export type MegatowerFacade = {
+  root: THREE.Group;
+  pickFloor: (ray: THREE.Ray, root: THREE.Group) => number | null;
+  tick: (phase: number) => boolean;
+  dispose: () => void;
+};
+
+export function buildMegatowerFacade(homeFloor: number): MegatowerFacade {
+  const root = new THREE.Group();
+  root.name = "megatower-facade";
+  const totalH = APT_TOTAL_FLOORS * MEGA_FLOOR_H;
+  const count = APT_TOTAL_FLOORS;
+
+  const slabGeo = new THREE.BoxGeometry(MEGA_TOWER_W, MEGA_FLOOR_H * 0.88, MEGA_TOWER_D);
+  const slabMat = pastelMat(PASTEL.shell, { roughness: 0.82 });
+  const floorSlabs = new THREE.InstancedMesh(slabGeo, slabMat, count);
+  const winGeo = new THREE.BoxGeometry(MEGA_TOWER_W * 0.08, MEGA_FLOOR_H * 0.45, 0.04);
+  const winMat = new THREE.MeshStandardMaterial({
+    color: 0xfff0c8,
+    emissive: new THREE.Color(0xffe8a0),
+    emissiveIntensity: 0.2,
+    transparent: true,
+    opacity: 0.6,
+  });
+  const windows = new THREE.InstancedMesh(winGeo, winMat, count * 2);
+
+  const m = new THREE.Matrix4();
+  for (let f = 1; f <= count; f++) {
+    const y = (f - 0.5) * MEGA_FLOOR_H;
+    m.makeTranslation(0, y, 0);
+    floorSlabs.setMatrixAt(f - 1, m);
+    m.makeTranslation(-MEGA_TOWER_W * 0.28, y, MEGA_TOWER_D / 2 + 0.05);
+    windows.setMatrixAt((f - 1) * 2, m);
+    m.makeTranslation(MEGA_TOWER_W * 0.28, y, MEGA_TOWER_D / 2 + 0.05);
+    windows.setMatrixAt((f - 1) * 2 + 1, m);
+  }
+  floorSlabs.instanceMatrix.needsUpdate = true;
+  windows.instanceMatrix.needsUpdate = true;
+  root.add(floorSlabs);
+  root.add(windows);
+
+  const roof = new THREE.Mesh(
+    new THREE.BoxGeometry(MEGA_TOWER_W + 0.4, 0.15, MEGA_TOWER_D + 0.4),
+    pastelMat(PASTEL.accent)
+  );
+  roof.position.y = totalH + 0.08;
+  root.add(roof);
+
+  for (const fl of new Set([...LABEL_FLOORS, homeFloor])) {
+    if (fl < 1 || fl > APT_TOTAL_FLOORS) continue;
+    const sp = floorLabelSprite(fl);
+    sp.position.set(MEGA_TOWER_W / 2 + 0.65, (fl - 0.5) * MEGA_FLOOR_H, 0);
+    root.add(sp);
+  }
+
+  root.userData.totalHeight = totalH;
+  root.userData.pickBox = new THREE.Box3(
+    new THREE.Vector3(-MEGA_TOWER_W / 2, 0, -MEGA_TOWER_D / 2),
+    new THREE.Vector3(MEGA_TOWER_W / 2, totalH, MEGA_TOWER_D / 2)
+  );
+
+  return {
+    root,
+    pickFloor(ray, towerRoot) {
+      const hit = new THREE.Vector3();
+      const localBox = (towerRoot.userData.pickBox as THREE.Box3).clone();
+      const inv = towerRoot.matrixWorld.clone().invert();
+      const localRay = ray.clone().applyMatrix4(inv);
+      if (!localRay.intersectBox(localBox, hit)) return null;
+      const floor = Math.round(hit.y / MEGA_FLOOR_H + 0.5);
+      return Math.min(APT_TOTAL_FLOORS, Math.max(APT_LOBBY_FLOOR, floor));
+    },
+    tick(phase) {
+      const pulse = 0.2 + Math.sin(phase * 1.3) * 0.06;
+      if (Math.abs(winMat.emissiveIntensity - pulse) > 0.02) {
+        winMat.emissiveIntensity = pulse;
+        return true;
+      }
+      return false;
+    },
+    dispose() {
+      slabGeo.dispose();
+      slabMat.dispose();
+      winGeo.dispose();
+      winMat.dispose();
+    },
+  };
+}
+
+export function buildDistrictComplex(homeFloor: number): { root: THREE.Group; main: MegatowerFacade } {
+  const root = new THREE.Group();
+  root.name = "apt-district-complex";
+  const main = buildMegatowerFacade(homeFloor);
+  root.add(main.root);
+  const b = buildMegatowerFacade(Math.min(APT_TOTAL_FLOORS, homeFloor + 120));
+  b.root.position.set(-5.5, 0, 2);
+  b.root.scale.setScalar(0.72);
+  root.add(b.root);
+  const c = buildMegatowerFacade(Math.min(APT_TOTAL_FLOORS, homeFloor + 280));
+  c.root.position.set(5.8, 0, -1.5);
+  c.root.scale.setScalar(0.65);
+  root.add(c.root);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(36, 28), pastelMat(PASTEL.floorWoodAlt));
+  ground.rotation.x = -Math.PI / 2;
+  root.add(ground);
+  return { root, main };
+}
+
+export function megaFloorToWorldY(floor: number) {
+  return (floor - 0.5) * MEGA_FLOOR_H;
+}
