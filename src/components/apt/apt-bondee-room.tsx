@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Armchair,
   Bed,
@@ -34,8 +34,13 @@ import { cn } from "@/lib/utils";
 import { AptChibiCustomizer } from "@/components/apt/apt-chibi-customizer";
 import { HomeAvatarControls } from "@/components/apt/home-avatar-controls";
 import { GramophonePanel } from "@/components/apt/gramophone-panel";
+import { InstrumentPlayPanel } from "@/components/apt/instrument-play-panel";
+import type { InstrumentKind } from "@/lib/apt/bondee/instruments/types";
+import { specForInstrument } from "@/lib/apt/bondee/instruments/architecture";
 import { AptEntranceDoorToggle } from "@/components/apt/apt-entrance-door-toggle";
 import { AptTimeHud } from "@/components/apt/apt-time-hud";
+import { useCompose } from "@/components/compose/compose-provider";
+import { parseAptMailboxParams } from "@/lib/apt/mailbox-compose-route";
 
 const POSE_OPTIONS: { id: ChibiPose; label: string; icon: typeof Sofa; key: string }[] = [
   { id: "stand", label: "서기", icon: PersonStanding, key: "1" },
@@ -84,11 +89,26 @@ function AptBondeeRoomInner({
   const [nearGramophone, setNearGramophone] = useState(false);
   const [gramophoneOpen, setGramophoneOpen] = useState(false);
   const [gramophonePlaying, setGramophonePlaying] = useState(false);
+  const [nearInstrument, setNearInstrument] = useState<{ itemId: string; kind: InstrumentKind } | null>(null);
+  const [instrumentOpen, setInstrumentOpen] = useState(false);
+  const [instrumentPlaying, setInstrumentPlaying] = useState(false);
+  const [activeInstrument, setActiveInstrument] = useState<InstrumentKind | null>(null);
   const [nearbyFurniture, setNearbyFurniture] = useState<NearbyFurnitureInteract | null>(null);
   const [worldHour, setWorldHour] = useState<number | null>(null);
   const [dayPhaseLabel, setDayPhaseLabel] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { openCompose } = useCompose();
   const openGramophoneRef = useRef<() => void>(() => {});
+  const openInstrumentRef = useRef<(kind: InstrumentKind) => void>(() => {});
+  const mailboxComposeRef = useRef<() => void>(() => {});
+  const mailboxParams = useMemo(() => parseAptMailboxParams(searchParams), [searchParams]);
+  const pendingComposeRef = useRef(mailboxParams);
+  pendingComposeRef.current = mailboxParams;
+  const hasMailbox = useMemo(
+    () => state.items.some((it) => it.kind === "mailbox"),
+    [state.items]
+  );
 
   const movementDisabled = panel === "decor" && (!!placeTool || !!studioTool || deleteMode);
 
@@ -138,11 +158,45 @@ function AptBondeeRoomInner({
     setGramophoneOpen(true);
   }, []);
 
+  const openInstrument = useCallback((kind: InstrumentKind) => {
+    setActiveInstrument(kind);
+    setInstrumentOpen(true);
+  }, []);
+
   openGramophoneRef.current = openGramophone;
+  openInstrumentRef.current = openInstrument;
+
+  useEffect(() => {
+    if (!mailboxParams.decorMailbox || !isLoggedIn) return;
+    setPanel("decor");
+    setPlaceTool("mailbox");
+    setStudioTool(null);
+    setDeleteMode(false);
+    const entrance = rooms.find((r) => r.type === "entrance");
+    if (entrance) setActiveRoomId(entrance.id);
+    const decorIdx = BONDEE_FURNITURE_CATEGORIES.findIndex((c) => c.kinds.includes("mailbox"));
+    if (decorIdx >= 0) setDecorCat(decorIdx);
+  }, [mailboxParams.decorMailbox, isLoggedIn, rooms]);
+
+  const handleMailboxCompose = useCallback(() => {
+    const pending = pendingComposeRef.current;
+    openCompose({
+      viaMailbox: true,
+      communityId: pending.communityId,
+      initialContent: pending.initialContent,
+      initialTitle: pending.initialTitle,
+    });
+  }, [openCompose]);
+
+  mailboxComposeRef.current = handleMailboxCompose;
 
   useEffect(() => {
     sceneRef.current?.setGramophonePlaying(gramophonePlaying);
   }, [gramophonePlaying]);
+
+  useEffect(() => {
+    sceneRef.current?.setInstrumentPlaying(instrumentPlaying);
+  }, [instrumentPlaying]);
 
   const onPoseChange = useCallback((pose: ChibiPose) => {
     const next = { ...stateRef.current, pose, activeRoomId: activeRoomId ?? undefined };
@@ -168,7 +222,10 @@ function AptBondeeRoomInner({
       onItemSelect: setSelectedItemId,
       onNearGramophoneChange: setNearGramophone,
       onGramophoneInteract: () => openGramophoneRef.current(),
+      onNearInstrumentChange: setNearInstrument,
+      onInstrumentInteract: (_itemId, kind) => openInstrumentRef.current(kind),
       onNavigateInteract: (href) => router.push(href),
+      onComposeInteract: () => mailboxComposeRef.current(),
       onActiveRoomChange: (roomId) => setActiveRoomId(roomId),
       onNearbyFurnitureChange: setNearbyFurniture,
       onPoseChange,
@@ -179,6 +236,14 @@ function AptBondeeRoomInner({
       onLightToggle: (itemId, on) => {
         const lightsOn = { ...(stateRef.current.lightsOn ?? {}), [itemId]: on };
         const next = { ...stateRef.current, lightsOn };
+        stateRef.current = next;
+        setState(next);
+        onHomeChange?.(next);
+        persist(next);
+      },
+      onAcToggle: (itemId, on) => {
+        const acOn = { ...(stateRef.current.acOn ?? {}), [itemId]: on };
+        const next = { ...stateRef.current, acOn };
         stateRef.current = next;
         setState(next);
         onHomeChange?.(next);
@@ -257,15 +322,42 @@ function AptBondeeRoomInner({
           onPlayingChange={setGramophonePlaying}
         />
 
+        <InstrumentPlayPanel
+          open={instrumentOpen}
+          kind={activeInstrument}
+          crafted={state.diyCrafted}
+          onClose={() => {
+            setInstrumentOpen(false);
+            setInstrumentPlaying(false);
+            setActiveInstrument(null);
+          }}
+          onPlayingChange={setInstrumentPlaying}
+          onCraft={(kind) => {
+            const diyCrafted = { ...(stateRef.current.diyCrafted ?? {}), [kind]: true };
+            applyState({ ...stateRef.current, diyCrafted });
+          }}
+        />
+
         <div className="pointer-events-none absolute left-3 top-3 rounded-2xl border-2 border-pink-200/80 bg-white/90 px-3 py-2 text-xs text-muted-foreground backdrop-blur-md shadow-sm space-y-0.5 max-w-[min(100%,16rem)]">
           <p className="font-bold text-folk-cobalt">🏠 내 집 · {rooms.filter((r) => r.id !== "hall-corridor").length}개 공간{saving && " · 저장 중…"}</p>
           <p className="text-[10px] text-folk-terracotta font-medium">
-            WASD 이동 · 조명 근처 E로 켜기/끄기 · 자세 1~6 · Shift+드래그 회전 · 휠 줌
+            WASD 이동 · 컴퓨터·모니터 E로 MoCoMo · 악기·그라모폰 E · 조명·에어컨 E · 자세 1~6 · Shift+드래그 · 휠 줌
           </p>
-          {nearGramophone && !movementDisabled && !gramophoneOpen && (
+          {mailboxParams.decorMailbox && !hasMailbox && (
+            <p className="text-[10px] text-folk-cobalt font-semibold">
+              우편함을 배치한 뒤 가까이 가서 E키로 글·사진·영상을 올리세요
+            </p>
+          )}
+          {nearInstrument && !movementDisabled && !instrumentOpen && (
+            <p className="text-[10px] text-violet-700 font-semibold">
+              {specForInstrument(nearInstrument.kind).emoji}{" "}
+              {specForInstrument(nearInstrument.kind).label} — 연주 (E)
+            </p>
+          )}
+          {nearGramophone && !movementDisabled && !gramophoneOpen && !nearInstrument && (
             <p className="text-[10px] text-amber-700 font-semibold">그라모폰 — MP3 재생 (E)</p>
           )}
-          {nearbyFurniture && !nearGramophone && !movementDisabled && (
+          {nearbyFurniture && !nearGramophone && !nearInstrument && !movementDisabled && (
             <p className="text-[10px] text-folk-cobalt font-semibold">
               {BONDEE_FURNITURE_LABELS[nearbyFurniture.kind] ?? nearbyFurniture.label} —{" "}
               {nearbyFurniture.actionLabel} (E)
@@ -276,13 +368,15 @@ function AptBondeeRoomInner({
         <div className="absolute left-3 bottom-3 pointer-events-auto">
           <HomeAvatarControls
             disabled={movementDisabled}
-            canInteract={(nearGramophone || !!nearbyFurniture) && !movementDisabled}
+            canInteract={(nearGramophone || !!nearInstrument || !!nearbyFurniture) && !movementDisabled}
             interactLabel={
-              nearGramophone
-                ? "그라모폰 MP3 (E)"
-                : nearbyFurniture
-                  ? `${nearbyFurniture.actionLabel} (E)`
-                  : undefined
+              nearInstrument
+                ? `${specForInstrument(nearInstrument.kind).label} 연주 (E)`
+                : nearGramophone
+                  ? "그라모폰 MP3 (E)"
+                  : nearbyFurniture
+                    ? `${nearbyFurniture.actionLabel} (E)`
+                    : undefined
             }
             onMove={(x, z) => sceneRef.current?.setMoveInput(x, z)}
             onInteract={() => sceneRef.current?.tryInteract()}

@@ -115,6 +115,8 @@ export function defaultItemsForRooms(rooms: AptRoom[]): BondeePlacedItem[] {
       add(r.id, "floor_lamp", -2, 1, 1);
       add(r.id, "plant", 1, 1);
       add(r.id, "gramophone", 2, 0, 1);
+      add(r.id, "upright_piano", -2, -1, 0);
+      add(r.id, "acoustic_guitar", 2, 1, 2);
       add(r.id, "window", -2, -1, 2);
     } else if (r.id === "hall-corridor") {
       add(r.id, "rug", 0, 0);

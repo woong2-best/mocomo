@@ -10,6 +10,8 @@ import {
   shadowizeGroup,
   BONDEE_PALETTE,
 } from "./bondee-mesh-utils";
+import { buildInstrumentMesh } from "./instruments/meshes";
+import { isInstrumentKind } from "./instruments/types";
 
 const GRID = 0.55;
 
@@ -20,6 +22,9 @@ export function gridToWorld(gx: number, gz: number) {
 const FURNITURE_PROTOTYPES = new Map<BondeeFurnitureKind, THREE.Group>();
 
 export function buildFurnitureMesh(kind: BondeeFurnitureKind): THREE.Group {
+  if (isInstrumentKind(kind)) {
+    return buildInstrumentMesh(kind);
+  }
   let proto = FURNITURE_PROTOTYPES.get(kind);
   if (!proto) {
     proto = buildFurnitureMeshPrototype(kind);
@@ -41,6 +46,7 @@ function cloneFurnitureShared(src: THREE.Object3D): THREE.Group {
 function cloneFurnitureNode(src: THREE.Object3D): THREE.Object3D {
   if (src instanceof THREE.Mesh) {
     const m = new THREE.Mesh(src.geometry, src.material);
+    m.name = src.name;
     m.position.copy(src.position);
     m.rotation.copy(src.rotation);
     m.scale.copy(src.scale);
@@ -49,6 +55,7 @@ function cloneFurnitureNode(src: THREE.Object3D): THREE.Object3D {
     return m;
   }
   const g = new THREE.Group();
+  g.name = src.name;
   g.position.copy(src.position);
   g.rotation.copy(src.rotation);
   g.scale.copy(src.scale);
@@ -123,6 +130,9 @@ function buildFurnitureMeshPrototype(kind: BondeeFurnitureKind): THREE.Group {
       break;
     case "window":
       buildWindow(g);
+      break;
+    case "mailbox":
+      buildMailbox(g);
       break;
   }
 
@@ -268,11 +278,86 @@ function buildTreadmill(g: THREE.Group) {
 }
 
 function buildAc(g: THREE.Group) {
-  addTo(g, roundedBox(0.52, 0.2, 0.14, 0.03), bondeeMat(0xffffff), 0, 0.62, 0);
-  addTo(g, roundedBox(0.44, 0.04, 0.02, 0.01), bondeeMat(0xe8e8e8), 0, 0.62, 0.08);
+  const bodyW = 0.28;
+  const bodyH = 0.68;
+  const bodyD = 0.22;
+  const bodyY = bodyH / 2;
+
+  addTo(g, roundedBox(bodyW, bodyH, bodyD, 0.03), bondeeMat(0xffffff), 0, bodyY, 0);
+  addTo(g, roundedBox(0.012, bodyH * 0.88, bodyD + 0.008, 0.004), bondeeMat(0xe4e4e4), -bodyW / 2 + 0.006, bodyY, 0);
+  addTo(g, roundedBox(0.012, bodyH * 0.88, bodyD + 0.008, 0.004), bondeeMat(0xe4e4e4), bodyW / 2 - 0.006, bodyY, 0);
+
+  const ventY = bodyH - 0.07;
+  addTo(g, roundedBox(bodyW * 0.9, 0.1, 0.035, 0.012), bondeeMat(0x1a1a1a), 0, ventY, bodyD / 2 - 0.008);
   for (let i = 0; i < 5; i++) {
-    addTo(g, roundedBox(0.38, 0.008, 0.008, 0.003), bondeeMat(0xf0f0f0), 0, 0.58 - i * 0.028, 0.075);
+    addTo(
+      g,
+      roundedBox(bodyW * 0.78, 0.005, 0.008, 0.002),
+      bondeeMat(0x2a2a2a),
+      0,
+      ventY + 0.028 - i * 0.018,
+      bodyD / 2 + 0.004
+    );
   }
+
+  const panelY = ventY - 0.1;
+  addTo(g, roundedBox(bodyW * 0.86, 0.048, 0.012, 0.008), bondeeMat(0xf8f8f8), 0, panelY, bodyD / 2 + 0.001);
+  const led = addTo(
+    g,
+    roundedBox(0.014, 0.014, 0.006, 0.003),
+    bondeeMat(0x88eeff, { emissive: 0x44ccff, emissiveIntensity: 0.92 }),
+    bodyW * 0.22,
+    panelY + 0.004,
+    bodyD / 2 + 0.01
+  );
+  led.name = "ac-led";
+
+  for (let i = 0; i < 8; i++) {
+    addTo(
+      g,
+      roundedBox(bodyW * 0.84, 0.007, 0.01, 0.003),
+      bondeeMat(0xf4f4f4),
+      0,
+      0.1 + i * 0.055,
+      bodyD / 2 + 0.002
+    );
+  }
+
+  const wind = new THREE.Mesh(
+    new THREE.PlaneGeometry(bodyW * 0.72, 0.11),
+    new THREE.MeshBasicMaterial({
+      color: 0xd8eeff,
+      transparent: true,
+      opacity: 0.06,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    })
+  );
+  wind.name = "ac-wind";
+  wind.position.set(0, ventY - 0.05, bodyD / 2 + 0.055);
+  wind.rotation.x = -0.32;
+  g.add(wind);
+
+  const stripsGroup = new THREE.Group();
+  stripsGroup.name = "ac-strips";
+  const stripCount = 6;
+  const stripTopY = ventY - 0.048;
+  for (let i = 0; i < stripCount; i++) {
+    const pivot = new THREE.Group();
+    const x = -bodyW * 0.34 + (i / (stripCount - 1)) * bodyW * 0.68;
+    pivot.position.set(x, stripTopY, bodyD / 2 + 0.006);
+    const stripLen = 0.042 + (i % 3) * 0.009;
+    addTo(
+      pivot,
+      roundedBox(0.007, stripLen, 0.001, 0.001),
+      bondeeMat(0xffffff, { roughness: 0.92 }),
+      0,
+      -stripLen / 2,
+      0
+    );
+    stripsGroup.add(pivot);
+  }
+  g.add(stripsGroup);
 }
 
 function buildClock(g: THREE.Group) {
@@ -457,6 +542,16 @@ function buildWindow(g: THREE.Group) {
   addTo(g, roundedBox(0.5, 0.04, 0.08, 0.015), sill, 0, 0.04, 0.04);
   addTo(g, roundedBox(0.08, 0.06, 0.04, 0.01), bondeeMat(0xffd8b0), 0.14, 0.1, 0.06);
   g.userData.wallMount = true;
+}
+
+function buildMailbox(g: THREE.Group) {
+  const body = bondeeMat(0x3a5a8a);
+  const trim = bondeeMat(0x2a4a72);
+  const flag = bondeeMat(0xff6b6b);
+  addTo(g, roundedBox(0.22, 0.28, 0.18, 0.03), body, 0, 0.18, 0);
+  addTo(g, roundedBox(0.24, 0.06, 0.2, 0.02), trim, 0, 0.34, 0);
+  addTo(g, roundedBox(0.04, 0.08, 0.02, 0.01), flag, 0.1, 0.38, 0.02);
+  addTo(g, roundedBox(0.04, 0.04, 0.04, 0.01), trim, 0, 0.02, 0);
 }
 
 export function syncRoomFurniture(root: THREE.Group, items: BondeePlacedItem[]) {

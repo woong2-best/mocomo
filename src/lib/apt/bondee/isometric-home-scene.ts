@@ -35,6 +35,8 @@ import {
 } from "@/lib/apt/day-night-environment";
 import { getDayPhaseLabel } from "@/lib/apt/day-night";
 import { GramophoneNoteFx } from "./gramophone-notes";
+import { isInstrumentKind, type InstrumentKind } from "./instruments/types";
+import { AcEffectManager, isAcRunning } from "./ac-effects";
 import { cappedPixelRatio, stripShadows } from "./scene-perf";
 
 const MOVE_SPEED = 2.4;
@@ -79,6 +81,7 @@ export type NearbyFurnitureInteract = {
   label: string;
   actionLabel: string;
   navigateHref?: string;
+  composeAction?: boolean;
   singleAction?: boolean;
 };
 
@@ -92,11 +95,15 @@ export type IsometricHomeCallbacks = {
   onConsoleModeChange?: (phase: ConsoleModePhase) => void;
   onNearGramophoneChange?: (near: boolean) => void;
   onGramophoneInteract?: () => void;
+  onNearInstrumentChange?: (near: { itemId: string; kind: InstrumentKind } | null) => void;
+  onInstrumentInteract?: (itemId: string, kind: InstrumentKind) => void;
   onNavigateInteract?: (href: string) => void;
+  onComposeInteract?: () => void;
   onActiveRoomChange?: (roomId: string) => void;
   onNearbyFurnitureChange?: (nearby: NearbyFurnitureInteract | null) => void;
   onPoseChange?: (pose: ChibiPose) => void;
   onLightToggle?: (itemId: string, on: boolean) => void;
+  onAcToggle?: (itemId: string, on: boolean) => void;
   onTimeChange?: (hour: number, phaseLabel: string) => void;
 };
 
@@ -139,7 +146,9 @@ export class IsometricHomeScene {
   private keys = new Set<string>();
   private nearConsole = false;
   private nearGramophone = false;
+  private nearInstrument: { itemId: string; kind: InstrumentKind } | null = null;
   private gramophonePlaying = false;
+  private instrumentPlaying = false;
   private noteFx: GramophoneNoteFx;
   private nearbyFurniture: NearbyFurnitureInteract | null = null;
   private interactPoseIdx = 0;
@@ -156,6 +165,7 @@ export class IsometricHomeScene {
   private sceneLighting: SceneLightingRefs;
   private dayNight = new DayNightTicker();
   private lampManager: LampLightManager;
+  private acManager = new AcEffectManager();
   private doorways: HomeDoorway[] = [];
   private doorPivots = new Map<string, THREE.Object3D>();
   private wallMeshes: THREE.Mesh[] = [];
@@ -301,8 +311,13 @@ export class IsometricHomeScene {
       state.pose !== this.state.pose;
     const lightsChanged =
       JSON.stringify(state.lightsOn ?? {}) !== JSON.stringify(this.state.lightsOn ?? {});
+    const acChanged = JSON.stringify(state.acOn ?? {}) !== JSON.stringify(this.state.acOn ?? {});
     this.state = { ...state, items: nextItems };
     if (lightsChanged) this.syncLampLights();
+    if (acChanged) {
+      this.acManager.syncAll(this.state.acOn);
+      this.requestRender();
+    }
     if (avatarChanged) this.applyAvatar();
     else this.requestRender();
   }
@@ -325,6 +340,19 @@ export class IsometricHomeScene {
     this.syncLampLights();
     this.checkFurnitureProximity();
     this.callbacks.onLightToggle?.(itemId, on);
+    this.requestRender();
+  }
+
+  isAcOn(itemId: string) {
+    return isAcRunning(this.state.acOn, itemId);
+  }
+
+  toggleAc(itemId: string, on: boolean) {
+    const acOn = { ...(this.state.acOn ?? {}), [itemId]: on };
+    this.state = { ...this.state, acOn };
+    this.acManager.syncAll(acOn);
+    this.checkFurnitureProximity();
+    this.callbacks.onAcToggle?.(itemId, on);
     this.requestRender();
   }
 
@@ -467,9 +495,19 @@ export class IsometricHomeScene {
     return this.nearGramophone && !this.isDecorBlocking();
   }
 
+  private canInteractWithInstrument() {
+    return this.nearInstrument !== null && !this.isDecorBlocking();
+  }
+
   setGramophonePlaying(playing: boolean) {
     if (this.gramophonePlaying === playing) return;
     this.gramophonePlaying = playing;
+    this.requestRender();
+  }
+
+  setInstrumentPlaying(playing: boolean) {
+    if (this.instrumentPlaying === playing) return;
+    this.instrumentPlaying = playing;
     this.requestRender();
   }
 
@@ -484,6 +522,10 @@ export class IsometricHomeScene {
 
   tryInteract() {
     if (this.consolePhase === "active") return;
+    if (this.canInteractWithInstrument() && this.nearInstrument) {
+      this.callbacks.onInstrumentInteract?.(this.nearInstrument.itemId, this.nearInstrument.kind);
+      return;
+    }
     if (this.canInteractWithGramophone()) {
       this.callbacks.onGramophoneInteract?.();
       return;
@@ -495,8 +537,16 @@ export class IsometricHomeScene {
       this.toggleLight(target.itemId, !this.isLightOn(target.itemId));
       return;
     }
+    if (target.kind === "ac") {
+      this.toggleAc(target.itemId, !this.isAcOn(target.itemId));
+      return;
+    }
     if (target.navigateHref) {
       this.callbacks.onNavigateInteract?.(target.navigateHref);
+      return;
+    }
+    if (target.composeAction) {
+      this.callbacks.onComposeInteract?.();
       return;
     }
 
@@ -568,6 +618,7 @@ export class IsometricHomeScene {
 
   private removeFurnitureById(id: string) {
     if (!this.furnitureRoot) return;
+    this.acManager.unregister(id);
     for (let i = this.furnitureRoot.children.length - 1; i >= 0; i--) {
       const child = this.furnitureRoot.children[i];
       if (child.userData.placedId === id) {
@@ -785,6 +836,13 @@ export class IsometricHomeScene {
     this.loadedFurnitureIds.add(item.id);
     const mesh = this.furnitureRoot.children.find((c) => c.userData.placedId === item.id);
     if (mesh && item.kind === "floor_lamp") this.registerLampGlow(mesh, item.id);
+    if (mesh && item.kind === "ac") this.registerAcEffects(mesh, item.id);
+  }
+
+  private registerAcEffects(mesh: THREE.Object3D, itemId: string) {
+    if (mesh.userData.kind !== "ac") return;
+    this.acManager.register(itemId, mesh);
+    this.acManager.syncAll(this.state.acOn);
   }
 
   private async loadFurnitureStaged(loadGen: number, priorityRooms: Set<string>) {
@@ -1020,11 +1078,23 @@ export class IsometricHomeScene {
     return positions;
   }
 
-  private collectHornMouthPositions(): THREE.Vector3[] {
+  private getInstrumentProximityTargets(): { itemId: string; kind: InstrumentKind; x: number; z: number }[] {
+    const positions: { itemId: string; kind: InstrumentKind; x: number; z: number }[] = [];
+    for (const item of this.state.items) {
+      if (!isInstrumentKind(item.kind)) continue;
+      const room = this.rooms.find((r) => r.id === item.roomId);
+      if (!room) continue;
+      const p = itemWorldPos(item, room);
+      positions.push({ itemId: item.id, kind: item.kind, x: p.x, z: p.z });
+    }
+    return positions;
+  }
+
+  private collectSoundEmitterPositions(): THREE.Vector3[] {
     this.hornMouthScratch.length = 0;
     if (!this.furnitureRoot) return this.hornMouthScratch;
     this.furnitureRoot.traverse((obj) => {
-      if (obj.name !== "gramophone-horn-mouth") return;
+      if (obj.name !== "gramophone-horn-mouth" && obj.name !== "instrument-sound-emitter") return;
       obj.getWorldPosition(this.hornMouthPos);
       this.hornMouthScratch.push(this.hornMouthPos.clone());
     });
@@ -1040,11 +1110,12 @@ export class IsometricHomeScene {
     });
   }
 
-  private updateGramophoneFx(dt: number) {
-    const emitters = this.collectHornMouthPositions();
-    const notesAlive = this.noteFx.tick(dt, this.gramophonePlaying, emitters);
+  private updateMusicFx(dt: number) {
+    const playing = this.gramophonePlaying || this.instrumentPlaying;
+    const emitters = this.collectSoundEmitterPositions();
+    const notesAlive = this.noteFx.tick(dt, playing, emitters);
     if (this.gramophonePlaying) this.spinGramophoneVinyls(dt);
-    if (this.gramophonePlaying || notesAlive) this.needsRender = true;
+    if (playing || notesAlive) this.needsRender = true;
   }
 
   private isInsideAnyRoom(x: number, z: number) {
@@ -1087,8 +1158,13 @@ export class IsometricHomeScene {
             ? this.isLightOn(item.id)
               ? "조명 끄기"
               : "조명 켜기"
-            : spec.label,
+            : item.kind === "ac"
+              ? this.isAcOn(item.id)
+                ? "에어컨 끄기"
+                : "에어컨 켜기"
+              : spec.label,
         navigateHref: spec.href,
+        composeAction: spec.composeAction,
         singleAction: spec.singleAction,
       };
     }
@@ -1131,6 +1207,7 @@ export class IsometricHomeScene {
       this.walking = false;
       this.syncAvatarTransform();
       this.checkGramophoneProximity();
+      this.checkInstrumentProximity();
       this.checkFurnitureProximity();
       return;
     }
@@ -1160,10 +1237,30 @@ export class IsometricHomeScene {
 
     this.syncAvatarTransform();
     this.checkGramophoneProximity();
+    this.checkInstrumentProximity();
     this.checkFurnitureProximity();
 
     if (this.loadedFurnitureIds.size < this.state.items.length) {
       void this.appendMissingFurnitureForRooms(this.visibleRoomIdsNearAvatar());
+    }
+  }
+
+  private checkInstrumentProximity() {
+    const instruments = this.getInstrumentProximityTargets();
+    let best: { itemId: string; kind: InstrumentKind } | null = null;
+    let bestDist = INTERACT_DIST;
+    for (const c of instruments) {
+      const d = Math.hypot(this.avatarX - c.x, this.avatarZ - c.z);
+      if (d < bestDist) {
+        bestDist = d;
+        best = { itemId: c.itemId, kind: c.kind };
+      }
+    }
+    const changed =
+      best?.itemId !== this.nearInstrument?.itemId || best?.kind !== this.nearInstrument?.kind;
+    if (changed) {
+      this.nearInstrument = best;
+      this.callbacks.onNearInstrumentChange?.(best);
     }
   }
 
@@ -1232,9 +1329,10 @@ export class IsometricHomeScene {
             obj.userData.interactKind === "game_console" ||
             obj.userData.kind === "tv_stand" ||
             obj.userData.interactKind === "gramophone" ||
+            obj.userData.interactKind === "instrument" ||
             interactSpecForKind(obj.userData.kind as BondeePlacedItem["kind"])
           ) {
-            if (this.nearGramophone || this.nearbyFurniture) this.tryInteract();
+            if (this.nearGramophone || this.nearInstrument || this.nearbyFurniture) this.tryInteract();
             return;
           }
           obj = obj.parent;
@@ -1347,8 +1445,11 @@ export class IsometricHomeScene {
     this.updateMovement(dt);
     this.updateDoors(dt);
     this.updateWallOcclusion(dt);
-    this.updateGramophoneFx(dt);
+    this.updateMusicFx(dt);
     this.updateConsoleTransition(dt);
+    if (this.acManager.hasUnits() && this.acManager.tick(this.animPhase, this.state.acOn)) {
+      this.needsRender = true;
+    }
     const camMoving =
       this.consolePhase !== "off" ||
       Math.abs(this.targetCamYaw - this.camYaw) > 0.002 ||
@@ -1369,7 +1470,7 @@ export class IsometricHomeScene {
       this.needsRender = true;
     } else {
       this.avatar.animateWalk(this.animPhase, false);
-      if ((this.nearbyFurniture || this.canInteractWithGramophone()) && this.consolePhase === "off") {
+      if ((this.nearbyFurniture || this.canInteractWithGramophone() || this.canInteractWithInstrument()) && this.consolePhase === "off") {
         this.avatar.root.rotation.y = THREE.MathUtils.lerp(this.avatar.root.rotation.y, Math.PI, 0.05);
         this.needsRender = true;
       }
@@ -1395,6 +1496,7 @@ export class IsometricHomeScene {
     if (this.floorGroup) disposeHomeGroup(this.floorGroup);
     this.noteFx.dispose();
     this.lampManager.dispose();
+    this.acManager.dispose();
     this.avatar.dispose();
     this.renderer.dispose();
     this.renderer.domElement.remove();
