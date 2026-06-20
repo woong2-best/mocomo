@@ -138,39 +138,44 @@ export function AptHubClient({
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      <div ref={mountRef} className="absolute inset-0" />
+      {/* 3D canvas — 최하단 */}
+      <div ref={mountRef} className="absolute inset-0 z-0" />
 
-      <AptSceneErrorBoundary>
-        <Suspense fallback={null}>
-          <AptBuildingView
-            initialProfile={initialProfile}
-            bondeeRoom={homeState}
-            isLoggedIn={isLoggedIn}
-            onHomeRoomsChange={setHomeRooms}
-            paused={!inWorld && !inCorridor && !inLobby}
-            doorOpen={doorOpen}
-            onDoorToggle={() => void toggleDoor()}
-            unifiedWorldRef={worldRef}
-            skipSceneMount
-            worldMode={worldMode}
-          />
-          <AptBondeeRoom
-            initialState={homeState}
-            rooms={homeRooms}
-            isLoggedIn={isLoggedIn}
-            studioInventory={studioInventory}
-            onHomeChange={setHomeState}
-            paused={!inInterior}
-            doorOpen={doorOpen}
-            onDoorToggle={() => void toggleDoor()}
-            unifiedWorldRef={worldRef}
-            skipSceneMount
-            worldMode={worldMode}
-          />
-        </Suspense>
-      </AptSceneErrorBoundary>
+      {/* 타워/집 UI 오버레이 — 클릭 통과 */}
+      <div className="absolute inset-0 z-20 pointer-events-none">
+        <AptSceneErrorBoundary>
+          <Suspense fallback={null}>
+            <AptBuildingView
+              initialProfile={initialProfile}
+              bondeeRoom={homeState}
+              isLoggedIn={isLoggedIn}
+              onHomeRoomsChange={setHomeRooms}
+              paused={!inWorld && !inCorridor && !inLobby}
+              doorOpen={doorOpen}
+              onDoorToggle={() => void toggleDoor()}
+              unifiedWorldRef={worldRef}
+              skipSceneMount
+              worldMode={worldMode}
+            />
+            <AptBondeeRoom
+              initialState={homeState}
+              rooms={homeRooms}
+              isLoggedIn={isLoggedIn}
+              studioInventory={studioInventory}
+              onHomeChange={setHomeState}
+              paused={!inInterior}
+              doorOpen={doorOpen}
+              onDoorToggle={() => void toggleDoor()}
+              unifiedWorldRef={worldRef}
+              skipSceneMount
+              worldMode={worldMode}
+            />
+          </Suspense>
+        </AptSceneErrorBoundary>
+      </div>
 
-      {/* 복도 — 보행·입장 */}
+      {/* 복도 / 로비 조작 UI */}
+      <div className="absolute inset-0 z-40 pointer-events-none">
       {inCorridor && (
         <>
           <div className="pointer-events-none absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 z-10">
@@ -249,13 +254,14 @@ export function AptHubClient({
       )}
 
       {visitToast && (
-        <div className="pointer-events-none absolute top-28 left-1/2 -translate-x-1/2 z-30 rounded-full border border-white/20 bg-black/70 px-4 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur-md">
+        <div className="pointer-events-none absolute top-28 left-1/2 -translate-x-1/2 z-[60] rounded-full border border-white/20 bg-black/70 px-4 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur-md">
           {visitToast}
         </div>
       )}
+      </div>
 
-      {/* 통합 월드 HUD — 탭 없음, 하나의 연속 공간 */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between p-3 sm:p-4">
+      {/* 상단 네비 HUD — 항상 최상단 */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-50 flex items-start justify-between p-3 sm:p-4">
         <div className="pointer-events-auto flex items-center gap-2">
           <button
             type="button"
@@ -309,7 +315,10 @@ export function AptHubClient({
           </button>
           <button
             type="button"
-            onClick={() => worldRef.current?.showLobby()}
+            onClick={(e) => {
+              e.stopPropagation();
+              worldRef.current?.showLobby();
+            }}
             className={cn(
               "flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all",
               inLobby
@@ -357,7 +366,7 @@ export function AptHubClient({
       </div>
 
       {/* 모드 안내 */}
-      <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 z-10 rounded-full border border-white/15 bg-black/50 px-4 py-1.5 text-[10px] font-semibold text-white/70 backdrop-blur-md">
+      <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 z-50 rounded-full border border-white/15 bg-black/50 px-4 py-1.5 text-[10px] font-semibold text-white/70 backdrop-blur-md">
         {worldMode === "district" && "1000층 단지 · 층을 클릭하면 복도로 진입"}
         {worldMode === "lobby" && `로비 · ${avatarMode === "vrm" ? "VRM 아바타" : "주차장·우편함·엘리베이터"}`}
         {worldMode === "tower" && "층별 단면 · 엘리베이터로 이동"}

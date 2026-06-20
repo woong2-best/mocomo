@@ -311,7 +311,7 @@ export const AptBuildingView = memo(function AptBuildingView({
   return (
     <div
       className={cn(
-        "relative h-full w-full",
+        "absolute inset-0",
         skipSceneMount &&
           (worldMode === "interior" ? "pointer-events-none invisible" : "pointer-events-none")
       )}

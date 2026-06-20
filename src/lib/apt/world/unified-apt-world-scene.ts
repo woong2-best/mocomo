@@ -307,8 +307,25 @@ export class UnifiedAptWorldScene {
     if (this.mode === "interior") {
       this.interior.detachInput(this.renderer.domElement);
       this.interiorSlot.visible = false;
+      this.transitionToInterior = 0;
     }
+
+    if (this.mode === "corridor") {
+      this.corridorWalk?.dispose();
+      this.corridorWalk = null;
+      if (this.corridorMesh) {
+        this.corridorSlot.remove(this.corridorMesh);
+        this.corridorMesh = null;
+      }
+      if (this.corridorGhosts) {
+        this.corridorSlot.remove(this.corridorGhosts);
+        this.corridorGhosts = null;
+      }
+    }
+
+    this.building.setPaused(true);
     this.enterLobby();
+    this.needsRender = true;
   }
 
   goToFloor(floor: number, opts?: { force?: boolean }) {
@@ -728,7 +745,7 @@ export class UnifiedAptWorldScene {
       }
     }
 
-    if (anim || this.needsRender || this.transitionToInterior > 0) {
+    if (anim || this.needsRender || this.transitionToInterior > 0 || this.mode !== "interior") {
       this.needsRender = false;
       if (this.mode === "interior") {
         this.renderer.render(this.scene, this.interior.getActiveRenderCamera());
