@@ -41,7 +41,7 @@ export class UnifiedCameraController {
   private dragging = false;
   private lastX = 0;
   private lastY = 0;
-  private mode: AptWorldMode = "district";
+  private mode: AptWorldMode = "tower";
   private transition: { from: CameraPreset; to: CameraPreset; t: number; dur: number } | null = null;
   private follow: THREE.Object3D | null = null;
   private followOffset = new THREE.Vector3(0, 1.6, 2.4);

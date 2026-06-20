@@ -44,7 +44,7 @@ export function AptHubClient({
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<UnifiedAptWorldScene | null>(null);
-  const [worldMode, setWorldMode] = useState<AptWorldMode>("district");
+  const [worldMode, setWorldMode] = useState<AptWorldMode>("tower");
   const [homeState, setHomeState] = useState(bondeeHome);
   const [homeRooms, setHomeRooms] = useState(initialHomeRooms);
   const [doorOpen, setDoorOpen] = useState(initialProfile?.homePublic ?? true);
@@ -134,7 +134,7 @@ export function AptHubClient({
   const inInterior = worldMode === "interior";
   const inCorridor = worldMode === "corridor";
   const inLobby = worldMode === "lobby";
-  const inWorld = worldMode === "district" || worldMode === "tower" || worldMode === "elevator";
+  const inWorld = worldMode === "tower" || worldMode === "elevator";
 
   return (
     <div className="relative h-full w-full overflow-hidden">
@@ -289,23 +289,10 @@ export function AptHubClient({
         <div className="pointer-events-auto flex gap-1.5 rounded-2xl border border-white/15 bg-black/45 p-1 backdrop-blur-md shadow-lg">
           <button
             type="button"
-            onClick={() => worldRef.current?.showDistrict()}
-            className={cn(
-              "flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all",
-              worldMode === "district"
-                ? "bg-violet-500/90 text-white shadow-md"
-                : "text-white/70 hover:text-white hover:bg-white/10"
-            )}
-          >
-            <Building2 className="h-4 w-4" />
-            <span className="hidden sm:inline">단지</span>
-          </button>
-          <button
-            type="button"
             onClick={() => worldRef.current?.showTower()}
             className={cn(
               "flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all",
-              inWorld && worldMode !== "district"
+              inWorld
                 ? "bg-sky-500/90 text-white shadow-md"
                 : "text-white/70 hover:text-white hover:bg-white/10"
             )}
@@ -367,10 +354,9 @@ export function AptHubClient({
 
       {/* 모드 안내 */}
       <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 z-50 rounded-full border border-white/15 bg-black/50 px-4 py-1.5 text-[10px] font-semibold text-white/70 backdrop-blur-md">
-        {worldMode === "district" && "1000층 단지 · 층을 클릭하면 복도로 진입"}
-        {worldMode === "lobby" && `로비 · ${avatarMode === "vrm" ? "VRM 아바타" : "주차장·우편함·엘리베이터"}`}
         {worldMode === "tower" && "층별 단면 · 엘리베이터로 이동"}
         {worldMode === "elevator" && "엘리베이터 이동 중…"}
+        {worldMode === "lobby" && `로비 · ${avatarMode === "vrm" ? "VRM 아바타" : "주차장·우편함·엘리베이터"}`}
         {worldMode === "corridor" && `복도 · ${avatarMode === "vrm" ? "VRM" : "노크/벨 · EV · 입장"}`}
         {worldMode === "interior" && (isVisiting ? "이웃 집 · 가구와 상호작용" : "내 집 · 가구와 상호작용")}
       </div>

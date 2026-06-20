@@ -21,7 +21,7 @@ import type { AptSceneEmbed } from "./apt-scene-embed";
 import { AptVisitSystem, type VisitTarget } from "./apt-visit-system";
 import { resolveAptWorldVrmUrl } from "./apt-world-avatar";
 import { disposeAptTextureAtlas } from "@/lib/apt/bondee/apt-texture-atlas";
-import { AptWorldPerfManager, cullGroupByDistance } from "./apt-lod-manager";
+import { AptWorldPerfManager } from "./apt-lod-manager";
 import {
   buildCorridorFromPlan,
   type CorridorDoorSlot,
@@ -37,9 +37,7 @@ import { buildLobbyParkingLevel } from "./lobby-parking-mesh";
 import { LobbyWalkController } from "./lobby-walk-controller";
 import { StairClimbController } from "./stair-climb-controller";
 import {
-  buildDistrictComplex,
   megaFloorToWorldY,
-  type MegatowerFacade,
 } from "./megatower-facade";
 import { UnifiedCameraController } from "./unified-camera-controller";
 import type { AptWorldMode, DoorState } from "./world-types";
@@ -57,15 +55,12 @@ export class UnifiedAptWorldScene {
   private renderer: THREE.WebGLRenderer;
   private scene: THREE.Scene;
   private cameraCtrl: UnifiedCameraController;
-  private districtSlot = new THREE.Group();
   private buildingSlot = new THREE.Group();
   private lobbySlot = new THREE.Group();
   private corridorSlot = new THREE.Group();
   private interiorSlot = new THREE.Group();
   private building!: DollhouseBuildingScene;
   private interior!: IsometricHomeScene;
-  private districtComplex: ReturnType<typeof buildDistrictComplex> | null = null;
-  private megafacade: MegatowerFacade | null = null;
   private lobbyMesh: THREE.Group | null = null;
   private lobbyWalk: LobbyWalkController | null = null;
   private corridorMesh: THREE.Group | null = null;
@@ -74,7 +69,7 @@ export class UnifiedAptWorldScene {
   private corridorDoors: CorridorDoorSlot[] = [];
   private elevInterior: THREE.Group | null = null;
   private visitSystem = new AptVisitSystem();
-  private mode: AptWorldMode = "district";
+  private mode: AptWorldMode = "tower";
   private homeFloor: number;
   private homeRooms: AptRoom[];
   private homeState: BondeeHomeState;
@@ -91,8 +86,6 @@ export class UnifiedAptWorldScene {
   private paused = false;
   private transitionToInterior = 0;
   private callbacks: UnifiedWorldCallbacks = {};
-  private pointer = new THREE.Vector2();
-  private raycaster = new THREE.Raycaster();
   private animPhase = 0;
   private visitToastCooldown = 0;
   private perf = new AptWorldPerfManager();
@@ -138,17 +131,10 @@ export class UnifiedAptWorldScene {
     this.renderer.setSize(mount.clientWidth, mount.clientHeight);
     mount.appendChild(this.renderer.domElement);
 
-    this.scene.add(this.districtSlot);
     this.scene.add(this.buildingSlot);
     this.scene.add(this.lobbySlot);
     this.scene.add(this.corridorSlot);
     this.scene.add(this.interiorSlot);
-
-    this.districtComplex = buildDistrictComplex(this.homeFloor);
-    this.megafacade = this.districtComplex.main;
-    this.districtSlot.add(this.districtComplex.root);
-    this.perf.registerCullRoot(this.districtSlot);
-    for (const lod of this.districtComplex.sideLods) this.perf.registerLod(lod);
 
     const embedBase: Omit<AptSceneEmbed, "attachRoot"> = {
       sharedRenderer: this.renderer,
@@ -160,7 +146,6 @@ export class UnifiedAptWorldScene {
       ...embedBase,
       attachRoot: this.buildingSlot,
     });
-    this.buildingSlot.visible = false;
 
     this.interior = new IsometricHomeScene(mount, opts.rooms, opts.homeState, {
       ...embedBase,
@@ -168,13 +153,12 @@ export class UnifiedAptWorldScene {
     });
 
     this.cameraCtrl.attach(this.renderer.domElement);
-    this.renderer.domElement.addEventListener("pointerdown", this.onPointerDown);
     window.addEventListener("resize", this.onResize);
-    this.syncLayerVisibility();
+    this.building.setPaused(false);
+    this.setMode("tower");
     this.loop();
     const { lighting } = this.dayNight.tick();
     applyDayNightToScene(this.scene, this.sceneLighting, lighting, this.renderer);
-    this.callbacks.onModeChange?.("district");
     void resolveAptWorldVrmUrl().then((url) => {
       this.vrmUrl = url;
     });
@@ -292,12 +276,6 @@ export class UnifiedAptWorldScene {
     this.interior.setPaused(v);
   }
 
-  showDistrict() {
-    this.visitSystem.clearVisit();
-    this.building.setPaused(true);
-    this.setMode("district");
-  }
-
   showTower() {
     this.building.setPaused(false);
     this.setMode("tower");
@@ -333,7 +311,7 @@ export class UnifiedAptWorldScene {
     const atFloor =
       !this.building.isRiding() && Math.abs(this.building.getFloor() - clamped) < 0.01;
 
-    if (clamped === APT_LOBBY_FLOOR && (opts?.force || this.mode === "district" || atFloor)) {
+    if (clamped === APT_LOBBY_FLOOR && (opts?.force || atFloor)) {
       this.enterLobby();
       return;
     }
@@ -361,11 +339,6 @@ export class UnifiedAptWorldScene {
     if (this.mode === "interior") {
       this.interior.detachInput(this.renderer.domElement);
       this.interiorSlot.visible = false;
-    }
-
-    if (this.mode === "district") {
-      this.flyToFloorFromDistrict(this.homeFloor);
-      return;
     }
 
     this.goToFloor(this.homeFloor, { force: true });
@@ -438,25 +411,9 @@ export class UnifiedAptWorldScene {
     this.interiorSlot.visible = false;
     this.corridorSlot.visible = true;
     this.buildingSlot.visible = false;
-    this.districtSlot.visible = false;
     this.lobbySlot.visible = false;
     this.setMode("corridor");
     this.cameraCtrl.followObject(this.corridorWalk!.avatar.root);
-  }
-
-  /** 단지에서 층 클릭 → 외벽 관통 → 복도 */
-  flyToFloorFromDistrict(floor: number) {
-    if (floor === APT_LOBBY_FLOOR) {
-      this.enterLobby();
-      return;
-    }
-    this.currentCorridorFloor = floor;
-    const y = megaFloorToWorldY(floor);
-    const ext = new THREE.Vector3(-6, y + 8, 12);
-    const thru = new THREE.Vector3(-2.8, y + 2.5, 4);
-    const inner = new THREE.Vector3(-0.8, y + 1.8, 2.8);
-    this.cameraCtrl.flyThroughWall(ext, thru, inner, 1.5);
-    window.setTimeout(() => this.enterCorridor(floor), 1400);
   }
 
   private enterLobby() {
@@ -528,7 +485,6 @@ export class UnifiedAptWorldScene {
 
   private syncLayerVisibility() {
     const m = this.mode;
-    this.districtSlot.visible = m === "district";
     this.buildingSlot.visible = m === "tower" || m === "elevator";
     this.lobbySlot.visible = m === "lobby";
     this.corridorSlot.visible = m === "corridor";
@@ -538,7 +494,7 @@ export class UnifiedAptWorldScene {
       this.cameraCtrl.followObject(this.corridorWalk.avatar.root);
     } else if (m === "lobby" && this.lobbyWalk) {
       this.cameraCtrl.followObject(this.lobbyWalk.avatar.root, new THREE.Vector3(0, 1.5, 2.8));
-    } else if (m === "district" || m === "tower") {
+    } else if (m === "tower") {
       this.cameraCtrl.clearFollow();
     }
   }
@@ -627,7 +583,6 @@ export class UnifiedAptWorldScene {
 
     this.setMode("corridor", { skipCamera: this.mode === "corridor" });
     this.buildingSlot.visible = false;
-    this.districtSlot.visible = false;
     this.lobbySlot.visible = false;
     this.syncElevatorDisplays(floor);
   }
@@ -666,16 +621,6 @@ export class UnifiedAptWorldScene {
     }, 1200);
   }
 
-  private onPointerDown = (e: PointerEvent) => {
-    if (this.mode !== "district" || !this.megafacade) return;
-    const rect = this.renderer.domElement.getBoundingClientRect();
-    this.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-    this.raycaster.setFromCamera(this.pointer, this.cameraCtrl.camera);
-    const floor = this.megafacade.pickFloor(this.raycaster.ray, this.districtComplex!.main.root);
-    if (floor != null) this.flyToFloorFromDistrict(floor);
-  };
-
   private onResize = () => {
     const w = this.mount.clientWidth;
     const h = this.mount.clientHeight;
@@ -698,10 +643,6 @@ export class UnifiedAptWorldScene {
       anim = this.interior.tickFrame() || anim;
     } else {
       if (this.buildingSlot.visible) anim = this.building.tickFrame() || anim;
-      if (this.mode === "district" && this.megafacade) {
-        anim = this.megafacade.tick(this.animPhase) || anim;
-        cullGroupByDistance(this.districtSlot, this.cameraCtrl.camera, 120);
-      }
       if (this.mode === "lobby" && this.lobbyWalk) {
         if (this.stairClimb.active) {
           const climb = this.stairClimb.tick(dt);
@@ -739,7 +680,7 @@ export class UnifiedAptWorldScene {
         this.callbacks.onNearHomeDoor?.(canEnter, home?.state ?? "closed");
       }
       anim = this.cameraCtrl.tick(dt) || anim;
-      if (this.mode === "district" || this.mode === "tower") {
+      if (this.mode === "tower") {
         this.focalPoint.set(0, megaFloorToWorldY(this.homeFloor), 0);
         anim = this.perf.tick(this.cameraCtrl.camera, this.focalPoint, dt) || anim;
       }
@@ -759,11 +700,9 @@ export class UnifiedAptWorldScene {
     this.disposed = true;
     cancelAnimationFrame(this.raf);
     window.removeEventListener("resize", this.onResize);
-    this.renderer.domElement.removeEventListener("pointerdown", this.onPointerDown);
     this.cameraCtrl.detach(this.renderer.domElement);
     this.lobbyWalk?.dispose();
     this.corridorWalk?.dispose();
-    this.megafacade?.dispose();
     this.perf.dispose();
     disposeAptTextureAtlas();
     this.building.dispose();

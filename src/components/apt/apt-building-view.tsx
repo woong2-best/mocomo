@@ -342,7 +342,7 @@ export const AptBuildingView = memo(function AptBuildingView({
       {/* Country / visit info */}
       <div className="pointer-events-none absolute left-3 top-14 rounded-xl border border-white/15 bg-black/45 px-3 py-2 text-xs text-white/80 backdrop-blur-md shadow-lg max-w-[220px]">
         {isOwnApt ? (
-          <p>{APT_TOTAL_FLOORS}층 아파트 단지</p>
+          <p>{APT_TOTAL_FLOORS}층 아파트</p>
         ) : (
           <p>
             {countryFlag(viewCountry)} {viewCountryInfo?.nameKo ?? viewCountry}
