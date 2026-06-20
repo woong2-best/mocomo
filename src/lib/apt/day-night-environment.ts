@@ -3,8 +3,6 @@
 import * as THREE from "three";
 import {
   getDayNightLighting,
-  getRealWorldHour,
-  isLampEffective,
   type DayNightLighting,
 } from "@/lib/apt/day-night";
 import type { BondeePlacedItem } from "@/lib/apt/bondee/types";
@@ -149,18 +147,16 @@ export class LampLightManager {
   }
 }
 
-export class DayNightTicker {
-  private hour = getRealWorldHour();
-  private lighting = getDayNightLighting(this.hour);
-  private lastTick = -1;
+/** APT 조명 — 항상 밝은 낮(흰 하늘) 고정, 실시간 낮/밤 전환 없음 */
+const FIXED_DAY_HOUR = 14;
+const FIXED_DAY_LIGHTING = getDayNightLighting(FIXED_DAY_HOUR);
 
-  tick(now = new Date()): { hour: number; lighting: DayNightLighting; changed: boolean } {
-    this.hour = getRealWorldHour(now);
-    const tickKey = Math.floor(now.getTime() / 1000);
-    const changed = tickKey !== this.lastTick;
-    this.lastTick = tickKey;
-    this.lighting = getDayNightLighting(this.hour);
-    return { hour: this.hour, lighting: this.lighting, changed };
+export class DayNightTicker {
+  private readonly hour = FIXED_DAY_HOUR;
+  private readonly lighting = FIXED_DAY_LIGHTING;
+
+  tick(_now = new Date()): { hour: number; lighting: DayNightLighting; changed: boolean } {
+    return { hour: this.hour, lighting: this.lighting, changed: false };
   }
 
   getHour() {
@@ -172,7 +168,7 @@ export class DayNightTicker {
   }
 
   lampsEffective() {
-    return isLampEffective(this.lighting.darkness);
+    return false;
   }
 }
 

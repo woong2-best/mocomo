@@ -8,7 +8,6 @@ import { IsometricHomeScene, type IsometricHomeCallbacks } from "@/lib/apt/bonde
 import { PASTEL } from "@/lib/apt/bondee/dollhouse-meshes";
 import { enableBondeeRenderer } from "@/lib/apt/bondee/bondee-mesh-utils";
 import { cappedPixelRatio } from "@/lib/apt/bondee/scene-perf";
-import { getDayPhaseLabel } from "@/lib/apt/day-night";
 import {
   applyDayNightToScene,
   createSceneLighting,
@@ -37,7 +36,6 @@ import {
 import { buildLobbyParkingLevel } from "./lobby-parking-mesh";
 import { LobbyWalkController } from "./lobby-walk-controller";
 import { StairClimbController } from "./stair-climb-controller";
-import { updateCorridorAmbientLights } from "./apt-world-environment";
 import {
   buildDistrictComplex,
   megaFloorToWorldY,
@@ -51,7 +49,6 @@ export type UnifiedWorldCallbacks = DollhouseCallbacks & {
   onNearHomeDoor?: (canEnter: boolean, doorState: DoorState) => void;
   onVisitMessage?: (msg: string) => void;
   onVisitPhase?: (phase: string) => void;
-  onTimeChange?: (hour: number, phaseLabel: string) => void;
   onVisitClear?: () => void;
 };
 
@@ -104,7 +101,6 @@ export class UnifiedAptWorldScene {
   private focalPoint = new THREE.Vector3();
   private dayNight = new DayNightTicker();
   private sceneLighting!: SceneLightingRefs;
-  private lastDayNightKey = -1;
 
   constructor(
     mount: HTMLElement,
@@ -176,9 +172,8 @@ export class UnifiedAptWorldScene {
     window.addEventListener("resize", this.onResize);
     this.syncLayerVisibility();
     this.loop();
-    const { hour, lighting } = this.dayNight.tick();
+    const { lighting } = this.dayNight.tick();
     applyDayNightToScene(this.scene, this.sceneLighting, lighting, this.renderer);
-    this.callbacks.onTimeChange?.(hour, getDayPhaseLabel(hour));
     this.callbacks.onModeChange?.("district");
     void resolveAptWorldVrmUrl().then((url) => {
       this.vrmUrl = url;
@@ -309,13 +304,54 @@ export class UnifiedAptWorldScene {
   }
 
   showLobby() {
+    if (this.mode === "interior") {
+      this.interior.detachInput(this.renderer.domElement);
+      this.interiorSlot.visible = false;
+    }
     this.enterLobby();
   }
 
-  goToFloor(floor: number) {
+  goToFloor(floor: number, opts?: { force?: boolean }) {
+    const clamped = Math.min(APT_TOTAL_FLOORS, Math.max(APT_LOBBY_FLOOR, floor));
+    const atFloor =
+      !this.building.isRiding() && Math.abs(this.building.getFloor() - clamped) < 0.01;
+
+    if (clamped === APT_LOBBY_FLOOR && (opts?.force || this.mode === "district" || atFloor)) {
+      this.enterLobby();
+      return;
+    }
+
+    if (atFloor) {
+      if (opts?.force) {
+        this.enterCorridor(clamped);
+        return;
+      }
+      this.building.setPaused(false);
+      this.setMode("tower");
+      return;
+    }
+
     this.building.setPaused(false);
     this.setMode("elevator");
-    this.building.setFloor(floor);
+    this.building.setFloor(clamped);
+  }
+
+  /** HUD 「내 집」— 복도까지 이동 (같은 층이어도 진입) */
+  goToMyHome() {
+    this.clearVisit();
+    if (this.mode === "interior" && !this.visitSystem.isVisiting()) return;
+
+    if (this.mode === "interior") {
+      this.interior.detachInput(this.renderer.domElement);
+      this.interiorSlot.visible = false;
+    }
+
+    if (this.mode === "district") {
+      this.flyToFloorFromDistrict(this.homeFloor);
+      return;
+    }
+
+    this.goToFloor(this.homeFloor, { force: true });
   }
 
   /** 이웃 집 방문 — 복도→현관→내부 동일 흐름 */
@@ -441,10 +477,7 @@ export class UnifiedAptWorldScene {
 
   lobbyUseElevator() {
     if (this.mode !== "lobby") return;
-    this.building.setPaused(false);
-    this.setMode("elevator");
-    this.building.setFloor(this.homeFloor);
-    this.syncLayerVisibility();
+    this.goToFloor(this.homeFloor, { force: true });
   }
 
   lobbyUseStairs() {
@@ -643,18 +676,6 @@ export class UnifiedAptWorldScene {
     const dt = Math.min(0.05, this.clock.getDelta());
     this.animPhase += dt;
     let anim = false;
-
-    if (this.mode !== "interior") {
-      const { hour, lighting, changed } = this.dayNight.tick();
-      if (changed || this.lastDayNightKey !== hour) {
-        this.lastDayNightKey = hour;
-        applyDayNightToScene(this.scene, this.sceneLighting, lighting, this.renderer);
-        this.callbacks.onTimeChange?.(hour, getDayPhaseLabel(hour));
-        if (this.corridorMesh) updateCorridorAmbientLights(this.corridorMesh, lighting.darkness);
-        if (this.lobbyMesh) updateCorridorAmbientLights(this.lobbyMesh, lighting.darkness);
-        anim = true;
-      }
-    }
 
     if (this.mode === "interior") {
       anim = this.interior.tickFrame() || anim;

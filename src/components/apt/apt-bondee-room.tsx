@@ -40,7 +40,6 @@ import { InstrumentPlayPanel } from "@/components/apt/instrument-play-panel";
 import type { InstrumentKind } from "@/lib/apt/bondee/instruments/types";
 import { specForInstrument } from "@/lib/apt/bondee/instruments/architecture";
 import { AptEntranceDoorToggle } from "@/components/apt/apt-entrance-door-toggle";
-import { AptTimeHud } from "@/components/apt/apt-time-hud";
 import { AptInteractPrompt } from "@/components/apt/apt-interact-prompt";
 import { AptLiveTvPanel } from "@/components/apt/apt-live-tv-panel";
 import { AptConsoleScreen } from "@/components/apt/apt-console-screen";
@@ -113,8 +112,6 @@ function AptBondeeRoomInner({
   const [instrumentPlaying, setInstrumentPlaying] = useState(false);
   const [activeInstrument, setActiveInstrument] = useState<InstrumentKind | null>(null);
   const [nearbyFurniture, setNearbyFurniture] = useState<NearbyFurnitureInteract | null>(null);
-  const [worldHour, setWorldHour] = useState<number | null>(null);
-  const [dayPhaseLabel, setDayPhaseLabel] = useState<string | null>(null);
   const [consolePhase, setConsolePhase] = useState<ConsoleModePhase>("off");
   const [consoleBlend, setConsoleBlend] = useState(0);
   const [consoleContent, setConsoleContent] = useState<ConsoleContentMode>(null);
@@ -309,10 +306,6 @@ function AptBondeeRoomInner({
       onActiveRoomChange: (roomId) => setActiveRoomId(roomId),
       onNearbyFurnitureChange: setNearbyFurniture,
       onPoseChange,
-      onTimeChange: (hour, phase) => {
-        setWorldHour(hour);
-        setDayPhaseLabel(phase);
-      },
       onLightToggle: (itemId, on) => {
         const lightsOn = { ...(stateRef.current.lightsOn ?? {}), [itemId]: on };
         const next = { ...stateRef.current, lightsOn };
@@ -508,7 +501,6 @@ function AptBondeeRoomInner({
         </div>
 
         <div className="absolute right-3 top-14 flex flex-col gap-1.5 z-10">
-          <AptTimeHud hour={worldHour} phaseLabel={dayPhaseLabel} className="pointer-events-none w-[11rem] border-white/15 bg-black/45 text-white [&_*]:text-white/90" />
           {isLoggedIn && onDoorToggle && (
             <div className="w-[11rem] pointer-events-auto">
               <AptEntranceDoorToggle doorOpen={doorOpen} onToggle={onDoorToggle} compact />

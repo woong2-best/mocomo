@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import type { AptProfileDto, CountryAptPreview, FloorOccupant } from "@/actions/apt";
 import { getCountryFloorOccupants, listCountryApartments } from "@/actions/apt";
 import { AptSimulationHud } from "@/components/apt/apt-simulation-hud";
-import { AptTimeHud } from "@/components/apt/apt-time-hud";
 import { AptEntranceDoorToggle } from "@/components/apt/apt-entrance-door-toggle";
 import {
   APT_DEFAULT_FLOOR,
@@ -84,8 +83,6 @@ export const AptBuildingView = memo(function AptBuildingView({
   const [floorOccupants, setFloorOccupants] = useState<FloorOccupant[]>([]);
   const [browseTarget, setBrowseTarget] = useState<CountryAptPreview | null>(null);
   const [loadingCountry, setLoadingCountry] = useState(false);
-  const [worldHour, setWorldHour] = useState<number | null>(null);
-  const [dayPhaseLabel, setDayPhaseLabel] = useState<string | null>(null);
   const [elevatorOpen, setElevatorOpen] = useState(false);
 
   const countryAptsRef = useRef(countryApts);
@@ -113,14 +110,25 @@ export const AptBuildingView = memo(function AptBuildingView({
     (next: number) => {
       const clamped = Math.min(APT_TOTAL_FLOORS, Math.max(APT_LOBBY_FLOOR, next));
       if (skipSceneMount && unifiedWorldRef?.current) {
-        if (clamped === floorRef.current && !unifiedWorldRef.current.getBuilding().isRiding()) return;
+        if (clamped === homeFloor) {
+          unifiedWorldRef.current.goToMyHome();
+          return;
+        }
+        if (clamped === APT_LOBBY_FLOOR) {
+          unifiedWorldRef.current.showLobby();
+          return;
+        }
+        if (clamped === floorRef.current && !unifiedWorldRef.current.getBuilding().isRiding()) {
+          unifiedWorldRef.current.goToFloor(clamped);
+          return;
+        }
         unifiedWorldRef.current.goToFloor(clamped);
         return;
       }
       if (clamped === floorRef.current && !sceneRef.current?.isRiding()) return;
       sceneRef.current?.setFloor(clamped);
     },
-    [skipSceneMount, unifiedWorldRef]
+    [skipSceneMount, unifiedWorldRef, homeFloor]
   );
 
   const goToFloorRef = useRef(goToFloor);
@@ -275,10 +283,6 @@ export const AptBuildingView = memo(function AptBuildingView({
           goToFloorRef.current(resident.homeFloor);
         },
         onSimulationChange: (snap: SimulationSnapshot) => setSimSnap(snap),
-        onTimeChange: (hour: number, phase: string) => {
-          setWorldHour(hour);
-          setDayPhaseLabel(phase);
-        },
       };
 
       if (skipSceneMount && unifiedWorldRef?.current) {
@@ -308,19 +312,13 @@ export const AptBuildingView = memo(function AptBuildingView({
     <div
       className={cn(
         "relative h-full w-full",
-        skipSceneMount && (worldMode === "interior" ? "pointer-events-none invisible" : "")
+        skipSceneMount &&
+          (worldMode === "interior" ? "pointer-events-none invisible" : "pointer-events-none")
       )}
     >
       {!skipSceneMount && <div ref={mountRef} className="absolute inset-0" />}
 
       <AptSimulationHud snapshot={simSnap} />
-      {!skipSceneMount && (
-        <AptTimeHud
-          hour={worldHour}
-          phaseLabel={dayPhaseLabel}
-          className="absolute top-14 right-3 z-10 max-w-[min(100%,14rem)] border-white/15 bg-black/45 [&_*]:text-white/90"
-        />
-      )}
 
       {/* Floor indicator — elevator style */}
       <div className="pointer-events-none absolute left-1/2 top-14 z-10 -translate-x-1/2">
@@ -360,7 +358,7 @@ export const AptBuildingView = memo(function AptBuildingView({
       )}
 
       {browseTarget && !isOwnApt && (
-        <div className="absolute top-[5.5rem] right-3 z-10 max-w-[220px] rounded-xl border border-pink-400/30 bg-black/60 p-3 shadow-xl backdrop-blur-md space-y-2">
+        <div className="pointer-events-auto absolute top-[5.5rem] right-3 z-10 max-w-[220px] rounded-xl border border-pink-400/30 bg-black/60 p-3 shadow-xl backdrop-blur-md space-y-2">
           <p className="text-xs font-bold text-white flex items-center gap-1.5">
             <UserRound className="h-3.5 w-3.5" />
             {browseTarget.displayName} · {browseTarget.homeFloor}층
@@ -384,7 +382,7 @@ export const AptBuildingView = memo(function AptBuildingView({
       )}
 
       {/* Elevator call panel — only way to change floors */}
-      <div className="absolute right-3 bottom-24 z-10 flex flex-col items-end gap-2">
+      <div className="pointer-events-auto absolute right-3 bottom-24 z-10 flex flex-col items-end gap-2">
         <button
           type="button"
           onClick={() => setElevatorOpen((v) => !v)}
@@ -454,7 +452,7 @@ export const AptBuildingView = memo(function AptBuildingView({
       </div>
 
       {/* Country picker */}
-      <div className="absolute left-3 bottom-24 z-10">
+      <div className="pointer-events-auto absolute left-3 bottom-24 z-10">
         <div className="relative">
           <button
             type="button"

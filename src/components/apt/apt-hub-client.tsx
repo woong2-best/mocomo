@@ -16,8 +16,6 @@ import type { AptWorldMode } from "@/lib/apt/world/world-types";
 import { APT_DEFAULT_FLOOR } from "@/lib/apt/constants";
 import { AptInteractPrompt } from "@/components/apt/apt-interact-prompt";
 import { HomeAvatarControls } from "@/components/apt/home-avatar-controls";
-import { AptTimeHud } from "@/components/apt/apt-time-hud";
-import { getDayPhaseLabel } from "@/lib/apt/day-night";
 
 const AptBuildingView = dynamic(
   () => import("@/components/apt/apt-building-view").then((m) => m.AptBuildingView),
@@ -57,8 +55,6 @@ export function AptHubClient({
   const [nearElevator, setNearElevator] = useState(false);
   const [nearLobbyStairs, setNearLobbyStairs] = useState(false);
   const [isVisiting, setIsVisiting] = useState(false);
-  const [worldHour, setWorldHour] = useState<number | null>(null);
-  const [dayPhaseLabel, setDayPhaseLabel] = useState<string | null>(null);
   const homeFloor = initialProfile?.homeFloor ?? APT_DEFAULT_FLOOR;
 
   const toggleDoor = useCallback(async () => {
@@ -123,10 +119,6 @@ export function AptHubClient({
       onVisitMessage: (msg) => {
         setVisitToast(msg);
         window.setTimeout(() => setVisitToast(null), 2800);
-      },
-      onTimeChange: (hour, phase) => {
-        setWorldHour(hour);
-        setDayPhaseLabel(phase);
       },
     });
 
@@ -262,17 +254,8 @@ export function AptHubClient({
         </div>
       )}
 
-      {/* 시간대 — 단지·복도·로비 */}
-      {(worldMode === "district" || inCorridor || inLobby || inWorld) && (
-        <AptTimeHud
-          hour={worldHour}
-          phaseLabel={dayPhaseLabel ?? (worldHour != null ? getDayPhaseLabel(worldHour) : null)}
-          className="pointer-events-none absolute top-14 right-3 z-20 max-w-[min(100%,14rem)] border-white/15 bg-black/45 [&_*]:text-white/90"
-        />
-      )}
-
       {/* 통합 월드 HUD — 탭 없음, 하나의 연속 공간 */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between p-3 sm:p-4">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between p-3 sm:p-4">
         <div className="pointer-events-auto flex items-center gap-2">
           <button
             type="button"
@@ -340,7 +323,7 @@ export function AptHubClient({
           {isLoggedIn && (
             <button
               type="button"
-              onClick={() => worldRef.current?.goToFloor(homeFloor)}
+              onClick={() => worldRef.current?.goToMyHome()}
               className={cn(
                 "flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all",
                 inInterior || inCorridor
