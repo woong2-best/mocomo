@@ -164,7 +164,8 @@ export function defaultItemsForRooms(rooms: AptRoom[]): BondeePlacedItem[] {
       add(r.id, "rug", 0, 1);
       add(r.id, "floor_lamp", -1, -1, 1);
     } else if (r.id === "elevator") {
-      /* 엘리베이터실 — buildHomeElevatorMesh가 3D 승강장을 배치 */
+      add(r.id, "plant", 0, 0);
+      add(r.id, "rug", -1, 1);
     } else if (r.type === "hall") {
       add(r.id, "rug", 0, 0);
       add(r.id, "plant", -1, 0);
@@ -351,98 +352,6 @@ function buildInteriorDoor(
   return g;
 }
 
-/** 복도 끝 엘리베이터실 — 타워 승강장과 같은 스타일의 미니 엘리베이터 */
-function buildHomeElevatorMesh(room: AptRoom, wallHeight: number): THREE.Group {
-  const g = new THREE.Group();
-  g.name = "home-elevator";
-  g.userData.isHomeElevator = true;
-
-  const { w, d } = roomSize(room);
-  const carW = Math.min(w * 0.72, 1.55);
-  const carD = Math.min(d * 0.52, 0.95);
-  const carH = wallHeight * 0.82;
-  const doorH = carH * 0.78;
-  const doorHalfW = carW * 0.38;
-
-  const shaftMat = bondeeMat(0xc8e8f8, { transparent: true, opacity: 0.38, roughness: 0.15 });
-  const carMat = bondeeMat(0xf0f8ff, { metalness: 0.1, roughness: 0.35 });
-  const frameMat = bondeeMat(0xb8d4e8, { metalness: 0.08, roughness: 0.4 });
-  const panelMat = bondeeMat(0xffffff);
-
-  // 유리 승강로 (위로 연장)
-  const shaftH = wallHeight * 1.35;
-  const shaft = new THREE.Mesh(roundedBox(carW + 0.12, shaftH, carD + 0.1, 0.04), shaftMat);
-  shaft.position.set(0, shaftH / 2, 0);
-  g.add(shaft);
-
-  // 승강로 프레임 기둥
-  for (const sx of [-1, 1] as const) {
-    const pillar = new THREE.Mesh(roundedBox(0.05, shaftH, 0.05, 0.015), frameMat);
-    pillar.position.set(sx * (carW / 2 + 0.04), shaftH / 2, carD / 2 + 0.02);
-    g.add(pillar);
-  }
-
-  // 카 본체
-  const car = new THREE.Mesh(roundedBox(carW, carH, carD, 0.04), carMat);
-  car.position.set(0, carH / 2 + 0.04, 0);
-  g.add(car);
-
-  // 카 앞 유리
-  const glass = new THREE.Mesh(
-    roundedBox(carW * 0.55, carH * 0.62, 0.035, 0.02),
-    bondeeMat(0xd4f0ff, { transparent: true, opacity: 0.45 })
-  );
-  glass.position.set(0, carH * 0.48, carD / 2 + 0.01);
-  g.add(glass);
-
-  // 슬라이딩 도어 (양쪽)
-  const doorZ = carD / 2 + 0.02;
-  const doorL = new THREE.Mesh(roundedBox(doorHalfW, doorH, 0.035, 0.012), carMat);
-  doorL.name = "home-elevator-door-left";
-  doorL.position.set(-doorHalfW * 0.48, doorH / 2 + 0.06, doorZ);
-  g.add(doorL);
-
-  const doorR = new THREE.Mesh(roundedBox(doorHalfW, doorH, 0.035, 0.012), carMat);
-  doorR.name = "home-elevator-door-right";
-  doorR.position.set(doorHalfW * 0.48, doorH / 2 + 0.06, doorZ);
-  g.add(doorR);
-
-  // 층 표시 패널
-  const floorPanel = new THREE.Mesh(roundedBox(carW * 0.32, carH * 0.12, 0.028, 0.012), panelMat);
-  floorPanel.name = "home-elevator-floor-panel";
-  floorPanel.position.set(0, carH * 0.72, carD / 2 + 0.025);
-  g.add(floorPanel);
-
-  // 호출 버튼 패널 (오른쪽 벽)
-  const callPanel = new THREE.Mesh(roundedBox(0.14, 0.42, 0.045, 0.015), frameMat);
-  callPanel.position.set(w / 2 - 0.22, carH * 0.42, 0);
-  g.add(callPanel);
-
-  for (let i = 0; i < 3; i++) {
-    const btn = new THREE.Mesh(
-      new THREE.CircleGeometry(0.028, 10),
-      bondeeMat(i === 1 ? 0xffb347 : 0xe8e8e8)
-    );
-    btn.rotation.y = -Math.PI / 2;
-    btn.position.set(w / 2 - 0.19, carH * 0.32 + i * 0.1, 0);
-    g.add(btn);
-  }
-
-  // 상단 케이블
-  const cable = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.012, 0.012, shaftH * 0.25, 6),
-    bondeeMat(0x888888, { metalness: 0.5, roughness: 0.3 })
-  );
-  cable.position.set(0, shaftH - shaftH * 0.12, 0);
-  g.add(cable);
-
-  g.userData.interactX = 0;
-  g.userData.interactZ = carD * 0.15;
-
-  setObjectRenderLayer(g, 4);
-  return g;
-}
-
 export { deriveHomeWalls, HOME_WALL_BASE_HEIGHT, type HomeWall, type HomeWallType } from "./home-walls";
 
 /** Room shells only — floors, walls, labels (no furniture) */
@@ -575,12 +484,6 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
       );
       rail.position.set(cx, 0.12, cz + d / 2 - 0.04);
       roomGroup.add(rail);
-    }
-
-    if (room.id === "elevator") {
-      const elev = buildHomeElevatorMesh(room, wallHeight);
-      elev.position.set(cx, 0, cz - d * 0.06);
-      roomGroup.add(elev);
     }
 
     floorRoot.add(roomGroup);

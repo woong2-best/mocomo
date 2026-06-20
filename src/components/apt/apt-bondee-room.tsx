@@ -55,9 +55,6 @@ function AptBondeeRoomInner({
   paused = false,
   doorOpen = true,
   onDoorToggle,
-  embedded = false,
-  onElevatorUse,
-  className,
 }: {
   initialState: BondeeHomeState;
   rooms: AptRoom[];
@@ -67,10 +64,6 @@ function AptBondeeRoomInner({
   paused?: boolean;
   doorOpen?: boolean;
   onDoorToggle?: () => void;
-  /** 타워 뷰 위 오버레이로 임베드할 때 */
-  embedded?: boolean;
-  onElevatorUse?: () => void;
-  className?: string;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<IsometricHomeScene | null>(null);
@@ -92,7 +85,6 @@ function AptBondeeRoomInner({
   const [gramophoneOpen, setGramophoneOpen] = useState(false);
   const [gramophonePlaying, setGramophonePlaying] = useState(false);
   const [nearbyFurniture, setNearbyFurniture] = useState<NearbyFurnitureInteract | null>(null);
-  const [nearElevator, setNearElevator] = useState(false);
   const [worldHour, setWorldHour] = useState<number | null>(null);
   const [dayPhaseLabel, setDayPhaseLabel] = useState<string | null>(null);
   const router = useRouter();
@@ -163,9 +155,6 @@ function AptBondeeRoomInner({
 
   useEffect(() => {
     sceneRef.current?.setPaused(paused);
-    if (!paused) {
-      window.dispatchEvent(new Event("resize"));
-    }
   }, [paused]);
 
   useEffect(() => {
@@ -182,8 +171,6 @@ function AptBondeeRoomInner({
       onNavigateInteract: (href) => router.push(href),
       onActiveRoomChange: (roomId) => setActiveRoomId(roomId),
       onNearbyFurnitureChange: setNearbyFurniture,
-      onNearElevatorChange: setNearElevator,
-      onElevatorInteract: onElevatorUse,
       onPoseChange,
       onTimeChange: (hour, phase) => {
         setWorldHour(hour);
@@ -256,91 +243,77 @@ function AptBondeeRoomInner({
     sceneRef.current?.setSelectedItem(null);
   };
 
-  const canInteract = (nearGramophone || !!nearbyFurniture || nearElevator) && !movementDisabled;
-  const interactLabel = nearElevator
-    ? "엘리베이터 타기 (E)"
-    : nearGramophone
-      ? "그라모폰 MP3 (E)"
-      : nearbyFurniture
-        ? `${nearbyFurniture.actionLabel} (E)`
-        : undefined;
+  return (
+    <div className="folk-card overflow-hidden bg-white">
+      <div className="relative min-h-[min(80dvh,820px)] bg-gradient-to-b from-[#fef6f8] to-[#ffe8f0]">
+        <div ref={mountRef} className="absolute inset-0" />
 
-  const viewport = (
-    <div
-      className={cn(
-        embedded ? "relative h-full min-h-0 bg-gradient-to-b from-[#fef6f8] to-[#ffe8f0]" : "relative min-h-[min(80dvh,820px)] bg-gradient-to-b from-[#fef6f8] to-[#ffe8f0]",
-        className
-      )}
-    >
-      <div ref={mountRef} className="absolute inset-0" />
-
-      <GramophonePanel
-        open={gramophoneOpen}
-        onClose={() => {
-          setGramophoneOpen(false);
-          setGramophonePlaying(false);
-        }}
-        onPlayingChange={setGramophonePlaying}
-      />
-
-      <div className="pointer-events-none absolute left-3 top-3 rounded-2xl border-2 border-pink-200/80 bg-white/90 px-3 py-2 text-xs text-muted-foreground backdrop-blur-md shadow-sm space-y-0.5 max-w-[min(100%,16rem)]">
-        <p className="font-bold text-folk-cobalt">
-          🏠 내 집 · {rooms.filter((r) => r.id !== "hall-corridor").length}개 공간{saving && " · 저장 중…"}
-        </p>
-        <p className="text-[10px] text-folk-terracotta font-medium">
-          WASD 이동 · 조명 근처 E · 자세 1~6 · Shift+드래그 회전 · 휠 줌
-        </p>
-        {nearElevator && !movementDisabled && (
-          <p className="text-[10px] text-sky-700 font-semibold">엘리베이터 — 다른 층 방문 (E)</p>
-        )}
-        {nearGramophone && !movementDisabled && !gramophoneOpen && (
-          <p className="text-[10px] text-amber-700 font-semibold">그라모폰 — MP3 재생 (E)</p>
-        )}
-        {nearbyFurniture && !nearGramophone && !nearElevator && !movementDisabled && (
-          <p className="text-[10px] text-folk-cobalt font-semibold">
-            {BONDEE_FURNITURE_LABELS[nearbyFurniture.kind] ?? nearbyFurniture.label} —{" "}
-            {nearbyFurniture.actionLabel} (E)
-          </p>
-        )}
-      </div>
-
-      <div className="absolute left-3 bottom-3 pointer-events-auto">
-        <HomeAvatarControls
-          disabled={movementDisabled}
-          canInteract={canInteract}
-          interactLabel={interactLabel}
-          onMove={(x, z) => sceneRef.current?.setMoveInput(x, z)}
-          onInteract={() => sceneRef.current?.tryInteract()}
+        <GramophonePanel
+          open={gramophoneOpen}
+          onClose={() => {
+            setGramophoneOpen(false);
+            setGramophonePlaying(false);
+          }}
+          onPlayingChange={setGramophonePlaying}
         />
+
+        <div className="pointer-events-none absolute left-3 top-3 rounded-2xl border-2 border-pink-200/80 bg-white/90 px-3 py-2 text-xs text-muted-foreground backdrop-blur-md shadow-sm space-y-0.5 max-w-[min(100%,16rem)]">
+          <p className="font-bold text-folk-cobalt">🏠 내 집 · {rooms.filter((r) => r.id !== "hall-corridor").length}개 공간{saving && " · 저장 중…"}</p>
+          <p className="text-[10px] text-folk-terracotta font-medium">
+            WASD 이동 · 조명 근처 E로 켜기/끄기 · 자세 1~6 · Shift+드래그 회전 · 휠 줌
+          </p>
+          {nearGramophone && !movementDisabled && !gramophoneOpen && (
+            <p className="text-[10px] text-amber-700 font-semibold">그라모폰 — MP3 재생 (E)</p>
+          )}
+          {nearbyFurniture && !nearGramophone && !movementDisabled && (
+            <p className="text-[10px] text-folk-cobalt font-semibold">
+              {BONDEE_FURNITURE_LABELS[nearbyFurniture.kind] ?? nearbyFurniture.label} —{" "}
+              {nearbyFurniture.actionLabel} (E)
+            </p>
+          )}
+        </div>
+
+        <div className="absolute left-3 bottom-3 pointer-events-auto">
+          <HomeAvatarControls
+            disabled={movementDisabled}
+            canInteract={(nearGramophone || !!nearbyFurniture) && !movementDisabled}
+            interactLabel={
+              nearGramophone
+                ? "그라모폰 MP3 (E)"
+                : nearbyFurniture
+                  ? `${nearbyFurniture.actionLabel} (E)`
+                  : undefined
+            }
+            onMove={(x, z) => sceneRef.current?.setMoveInput(x, z)}
+            onInteract={() => sceneRef.current?.tryInteract()}
+          />
+        </div>
+
+        <div className="absolute right-3 top-3 flex flex-col gap-1.5">
+          <AptTimeHud hour={worldHour} phaseLabel={dayPhaseLabel} className="pointer-events-none w-[11rem]" />
+          {isLoggedIn && onDoorToggle && (
+            <div className="mb-1 w-[11rem] pointer-events-auto">
+              <AptEntranceDoorToggle doorOpen={doorOpen} onToggle={onDoorToggle} compact />
+            </div>
+          )}
+          {POSE_OPTIONS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              title={`${p.label} (${p.key})`}
+              onClick={() => onPoseChange(p.id)}
+              className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-xl border bg-white shadow-sm transition-colors",
+                state.pose === p.id ? "border-folk-terracotta text-folk-terracotta" : "border-neutral-200 text-neutral-600"
+              )}
+            >
+              <p.icon className="h-4 w-4" />
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="absolute right-3 top-3 flex flex-col gap-1.5">
-        {!embedded && <AptTimeHud hour={worldHour} phaseLabel={dayPhaseLabel} className="pointer-events-none w-[11rem]" />}
-        {isLoggedIn && onDoorToggle && !embedded && (
-          <div className="mb-1 w-[11rem] pointer-events-auto">
-            <AptEntranceDoorToggle doorOpen={doorOpen} onToggle={onDoorToggle} compact />
-          </div>
-        )}
-        {POSE_OPTIONS.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            title={`${p.label} (${p.key})`}
-            onClick={() => onPoseChange(p.id)}
-            className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-xl border bg-white shadow-sm transition-colors",
-              state.pose === p.id ? "border-folk-terracotta text-folk-terracotta" : "border-neutral-200 text-neutral-600"
-            )}
-          >
-            <p.icon className="h-4 w-4" />
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-
-  const decorPanel = (
-    <div className="border-t border-pink-100 bg-gradient-to-b from-white to-[#fff8fa] p-3 space-y-3">
+      <div className="border-t border-pink-100 bg-gradient-to-b from-white to-[#fff8fa] p-3 space-y-3">
         <div className="flex gap-2">
           <button
             type="button"
@@ -514,21 +487,6 @@ function AptBondeeRoomInner({
           </div>
         )}
       </div>
-  );
-
-  if (embedded) {
-    return (
-      <div className="flex h-full min-h-0 flex-col">
-        <div className="relative min-h-0 flex-1">{viewport}</div>
-        {decorPanel}
-      </div>
-    );
-  }
-
-  return (
-    <div className="folk-card overflow-hidden bg-white">
-      {viewport}
-      {decorPanel}
     </div>
   );
 }

@@ -370,27 +370,3 @@ html[data-client="app"] body {
   40% { transform: scale(1.18); color: rgb(253 224 71); }
   100% { transform: scale(1); }
 }
-
-@keyframes apt-fade-to-black {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes apt-fade-from-black {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
-
-.apt-black-curtain {
-  background: #000;
-  pointer-events: none;
-}
-
-.apt-fade-to-black {
-  animation: apt-fade-to-black 0.38s ease-in forwards;
-}
-
-.apt-fade-from-black {
-  animation: apt-fade-from-black 0.42s ease-out forwards;
-  opacity: 1;
-}

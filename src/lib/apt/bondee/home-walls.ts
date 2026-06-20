@@ -105,14 +105,6 @@ function planSegment(room: AptRoom, side: HomeWallSide) {
 
 export type HomeWallBuildKind = "solid" | "door" | "skip";
 
-function isElevatorPassage(room: AptRoom, neighbor: AptRoom | null): boolean {
-  if (!neighbor) return false;
-  return (
-    (room.id === "elevator" && neighbor.id === "hall-corridor") ||
-    (room.id === "hall-corridor" && neighbor.id === "elevator")
-  );
-}
-
 export function resolveWallBuild(
   room: AptRoom,
   side: HomeWallSide,
@@ -121,11 +113,6 @@ export function resolveWallBuild(
 ): { type: HomeWallType; kind: HomeWallBuildKind; doorway?: HomeDoorway } {
   const exterior = isExteriorPlanEdge(room, side);
   const neighbor = hasRoomNeighbor(room, rooms, side);
-  const neighborRoom = neighborRoomAt(room, rooms, side);
-
-  if (isElevatorPassage(room, neighborRoom)) {
-    return { type: "INTERIOR", kind: "skip" };
-  }
 
   const exitDoor = doorwayForRoomSide(room.id, side, doorways);
   if (exitDoor?.roomB === EXIT_ROOM_ID) {

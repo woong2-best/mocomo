@@ -98,8 +98,6 @@ export type IsometricHomeCallbacks = {
   onPoseChange?: (pose: ChibiPose) => void;
   onLightToggle?: (itemId: string, on: boolean) => void;
   onTimeChange?: (hour: number, phaseLabel: string) => void;
-  onNearElevatorChange?: (near: boolean) => void;
-  onElevatorInteract?: () => void;
 };
 
 export class IsometricHomeScene {
@@ -144,8 +142,6 @@ export class IsometricHomeScene {
   private gramophonePlaying = false;
   private noteFx: GramophoneNoteFx;
   private nearbyFurniture: NearbyFurnitureInteract | null = null;
-  private nearElevator = false;
-  private elevatorInteractPos: { x: number; z: number } | null = null;
   private interactPoseIdx = 0;
   private walking = false;
   private needsRender = true;
@@ -488,10 +484,6 @@ export class IsometricHomeScene {
 
   tryInteract() {
     if (this.consolePhase === "active") return;
-    if (this.nearElevator) {
-      this.callbacks.onElevatorInteract?.();
-      return;
-    }
     if (this.canInteractWithGramophone()) {
       this.callbacks.onGramophoneInteract?.();
       return;
@@ -751,7 +743,6 @@ export class IsometricHomeScene {
 
     this.homeRoot.add(this.floorGroup);
     this.collectDoorPivots();
-    this.collectElevatorInteractPos();
     this.collectWallMeshes();
     this.applyAvatar();
     this.requestRender();
@@ -1068,38 +1059,6 @@ export class IsometricHomeScene {
     void this.appendMissingFurnitureForRooms(this.visibleRoomIdsNearAvatar());
   }
 
-  private collectElevatorInteractPos() {
-    this.elevatorInteractPos = null;
-    if (!this.floorGroup) return;
-    const elev = this.floorGroup.getObjectByName("home-elevator");
-    if (!elev) return;
-    elev.getWorldPosition(this.avatarWorldPos);
-    this.elevatorInteractPos = {
-      x: this.avatarWorldPos.x + ((elev.userData.interactX as number) ?? 0),
-      z: this.avatarWorldPos.z + ((elev.userData.interactZ as number) ?? 0),
-    };
-  }
-
-  private checkElevatorProximity() {
-    const room = findRoomAt(this.avatarX, this.avatarZ, this.rooms);
-    const inElevatorRoom = room?.id === "elevator";
-    if (!inElevatorRoom || !this.elevatorInteractPos) {
-      if (this.nearElevator) {
-        this.nearElevator = false;
-        this.callbacks.onNearElevatorChange?.(false);
-      }
-      return;
-    }
-    const dist = Math.hypot(
-      this.avatarX - this.elevatorInteractPos.x,
-      this.avatarZ - this.elevatorInteractPos.z
-    );
-    const near = dist < INTERACT_DIST;
-    if (near === this.nearElevator) return;
-    this.nearElevator = near;
-    this.callbacks.onNearElevatorChange?.(near);
-  }
-
   private findNearbyFurniture(): NearbyFurnitureInteract | null {
     let best: NearbyFurnitureInteract | null = null;
     let bestDist = INTERACT_DIST;
@@ -1172,7 +1131,6 @@ export class IsometricHomeScene {
       this.walking = false;
       this.syncAvatarTransform();
       this.checkGramophoneProximity();
-      this.checkElevatorProximity();
       this.checkFurnitureProximity();
       return;
     }
@@ -1202,7 +1160,6 @@ export class IsometricHomeScene {
 
     this.syncAvatarTransform();
     this.checkGramophoneProximity();
-    this.checkElevatorProximity();
     this.checkFurnitureProximity();
 
     if (this.loadedFurnitureIds.size < this.state.items.length) {
@@ -1412,7 +1369,7 @@ export class IsometricHomeScene {
       this.needsRender = true;
     } else {
       this.avatar.animateWalk(this.animPhase, false);
-      if ((this.nearbyFurniture || this.nearElevator || this.canInteractWithGramophone()) && this.consolePhase === "off") {
+      if ((this.nearbyFurniture || this.canInteractWithGramophone()) && this.consolePhase === "off") {
         this.avatar.root.rotation.y = THREE.MathUtils.lerp(this.avatar.root.rotation.y, Math.PI, 0.05);
         this.needsRender = true;
       }
