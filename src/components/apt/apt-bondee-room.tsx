@@ -163,6 +163,9 @@ function AptBondeeRoomInner({
 
   useEffect(() => {
     sceneRef.current?.setPaused(paused);
+    if (!paused) {
+      window.dispatchEvent(new Event("resize"));
+    }
   }, [paused]);
 
   useEffect(() => {

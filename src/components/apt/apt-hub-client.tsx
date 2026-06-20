@@ -9,6 +9,12 @@ import type { BondeeHomeState } from "@/lib/apt/bondee/types";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import { AptSceneErrorBoundary } from "@/components/apt/apt-scene-error-boundary";
 import type { AptStudioInventoryItem } from "@/studio/lib/apt-types";
+import {
+  APT_FADE_HOLD_MS,
+  APT_FADE_IN_MS,
+  APT_FADE_OUT_MS,
+  type AptHomeTransitionPhase,
+} from "@/components/apt/apt-home-transition";
 
 const AptBuildingView = dynamic(
   () => import("@/components/apt/apt-building-view").then((m) => m.AptBuildingView),
@@ -45,7 +51,7 @@ export function AptHubClient({
 }) {
   const homeFloor = initialProfile?.homeFloor ?? APT_DEFAULT_FLOOR;
   const [insideHome, setInsideHome] = useState(isLoggedIn);
-  const [transition, setTransition] = useState<"enter" | "exit" | null>(null);
+  const [transitionPhase, setTransitionPhase] = useState<AptHomeTransitionPhase>(null);
   const userExitedAtHomeRef = useRef(false);
   const [homeState, setHomeState] = useState(bondeeHome);
   const [homeRooms, setHomeRooms] = useState(initialHomeRooms);
@@ -62,21 +68,27 @@ export function AptHubClient({
   }, [initialProfile?.homePublic]);
 
   const runEnterHome = useCallback(() => {
-    setTransition("enter");
+    setTransitionPhase("enter-out");
     window.setTimeout(() => {
       setInsideHome(true);
-      setTransition(null);
-      userExitedAtHomeRef.current = false;
-    }, 420);
+      setTransitionPhase("enter-in");
+      window.setTimeout(() => {
+        setTransitionPhase(null);
+        userExitedAtHomeRef.current = false;
+      }, APT_FADE_IN_MS);
+    }, APT_FADE_OUT_MS + APT_FADE_HOLD_MS);
   }, []);
 
   const runExitHome = useCallback(() => {
-    setTransition("exit");
+    setTransitionPhase("exit-out");
     window.setTimeout(() => {
       setInsideHome(false);
-      setTransition(null);
-      userExitedAtHomeRef.current = true;
-    }, 380);
+      setTransitionPhase("exit-in");
+      window.setTimeout(() => {
+        setTransitionPhase(null);
+        userExitedAtHomeRef.current = true;
+      }, APT_FADE_IN_MS);
+    }, APT_FADE_OUT_MS + APT_FADE_HOLD_MS);
   }, []);
 
   const instantExitHome = useCallback(() => {
@@ -133,7 +145,7 @@ export function AptHubClient({
           onDoorToggle={() => void toggleDoor()}
           homeFloor={homeFloor}
           insideHome={insideHome}
-          transition={transition}
+          transitionPhase={transitionPhase}
           onEnterHome={runEnterHome}
           onExitHome={runExitHome}
           onFloorChange={handleFloorChange}
@@ -147,7 +159,7 @@ export function AptHubClient({
                 isLoggedIn={isLoggedIn}
                 studioInventory={studioInventory}
                 onHomeChange={setHomeState}
-                paused={!insideHome || !!transition}
+                paused={!insideHome}
                 doorOpen={doorOpen}
                 onDoorToggle={() => void toggleDoor()}
                 onElevatorUse={handleElevatorFromHome}

@@ -33,6 +33,8 @@ import type { SimulationSnapshot } from "@/lib/apt/simulation/types";
 import { WORLD_COUNTRIES, findCountry } from "@/lib/apt/world/world-countries";
 import { countryFlag } from "@/lib/i18n/config";
 import { cn } from "@/lib/utils";
+import type { AptHomeTransitionPhase } from "@/components/apt/apt-home-transition";
+import { isTransitioning } from "@/components/apt/apt-home-transition";
 
 function initPlansFromProfile(profile: AptProfileDto | null): Record<number, AptRoom[]> {
   if (profile?.floorPlans && Object.keys(profile.floorPlans).length > 0) {
@@ -52,7 +54,7 @@ export const AptBuildingView = memo(function AptBuildingView({
   interiorOverlay,
   homeFloor: homeFloorProp,
   insideHome = false,
-  transition = null,
+  transitionPhase = null,
   onEnterHome,
   onExitHome,
   onFloorChange,
@@ -68,7 +70,7 @@ export const AptBuildingView = memo(function AptBuildingView({
   interiorOverlay?: ReactNode;
   homeFloor?: number;
   insideHome?: boolean;
-  transition?: "enter" | "exit" | null;
+  transitionPhase?: AptHomeTransitionPhase;
   onEnterHome?: () => void;
   onExitHome?: () => void;
   onFloorChange?: (floor: number) => void;
@@ -110,7 +112,8 @@ export const AptBuildingView = memo(function AptBuildingView({
   isOwnAptRef.current = isOwnApt;
   const viewCountryInfo = findCountry(viewCountry);
   const atHomeFloor = floor === homeFloor && isOwnApt;
-  const showTower = !insideHome || !!transition;
+  const transitioning = isTransitioning(transitionPhase);
+  const showTower = !insideHome || transitionPhase === "exit-in";
 
   const displayPlans = useMemo(() => {
     if (isOwnApt) return plans;
@@ -261,8 +264,8 @@ export const AptBuildingView = memo(function AptBuildingView({
   }, []);
 
   useEffect(() => {
-    sceneRef.current?.setPaused(paused || insideHome || !!transition);
-  }, [paused, insideHome, transition]);
+    sceneRef.current?.setPaused(paused || insideHome || transitioning);
+  }, [paused, insideHome, transitioning]);
 
   useEffect(() => {
     plansRef.current = plans;
@@ -281,35 +284,31 @@ export const AptBuildingView = memo(function AptBuildingView({
             )}
           />
 
-          {/* 집 실내 3D */}
+          {/* 집 실내 3D — IsometricHomeScene */}
           {interiorOverlay && (
             <div
               className={cn(
-                "absolute inset-0 z-20 flex flex-col",
-                !insideHome && !transition && "hidden",
-                insideHome && !transition && "apt-view-enter"
+                "absolute inset-0 flex flex-col",
+                insideHome || transitionPhase === "enter-in"
+                  ? "z-20 opacity-100"
+                  : "z-0 opacity-0 pointer-events-none"
               )}
             >
               {interiorOverlay}
             </div>
           )}
 
-          {/* AC 스타일 전환 오버레이 */}
-          {transition && (
+          {/* 동물의숲 스타일 검은 화면 전환 */}
+          {transitionPhase && (
             <div
               className={cn(
-                "absolute inset-0 z-40 flex items-center justify-center bg-gradient-to-b from-[#fef6f8]/95 to-[#ffe8f0]/95 backdrop-blur-sm pointer-events-none",
-                transition === "enter" ? "apt-home-enter-overlay" : "apt-home-exit-overlay"
+                "apt-black-curtain absolute inset-0 z-50 pointer-events-auto",
+                transitionPhase === "enter-out" || transitionPhase === "exit-out"
+                  ? "apt-fade-to-black"
+                  : "apt-fade-from-black"
               )}
-            >
-              <div className="rounded-2xl border-2 border-white/80 bg-white/90 px-8 py-5 shadow-xl text-center space-y-1">
-                <p className="text-2xl">{transition === "enter" ? "🏠" : "🏢"}</p>
-                <p className="text-sm font-bold text-folk-cobalt">
-                  {transition === "enter" ? "집으로 들어가는 중…" : "타워로 나가는 중…"}
-                </p>
-                <p className="text-[10px] text-muted-foreground">{homeFloor}층</p>
-              </div>
-            </div>
+              aria-hidden
+            />
           )}
 
           <AptSimulationHud snapshot={simSnap} />
@@ -321,7 +320,7 @@ export const AptBuildingView = memo(function AptBuildingView({
 
           {/* 상태 배지 */}
           <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-xl border border-white/80 bg-white/92 px-3 py-2 text-xs font-medium shadow-sm backdrop-blur-md">
-            {insideHome && !transition ? (
+            {insideHome && !transitioning ? (
               <div className="space-y-0.5">
                 <p className="font-bold text-folk-terracotta flex items-center gap-1.5">
                   <Home className="h-3.5 w-3.5" />
@@ -349,7 +348,7 @@ export const AptBuildingView = memo(function AptBuildingView({
           </div>
 
           {/* 내 집층 + 타워 뷰 → 집 들어가기 */}
-          {atHomeFloor && isLoggedIn && !insideHome && !transition && onEnterHome && (
+          {atHomeFloor && isLoggedIn && !insideHome && !transitioning && onEnterHome && (
             <div className="pointer-events-auto absolute inset-x-0 bottom-[4.5rem] z-30 flex justify-center px-4">
               <button
                 type="button"
@@ -369,7 +368,7 @@ export const AptBuildingView = memo(function AptBuildingView({
           )}
 
           {/* 집 안 → 나가기 */}
-          {insideHome && !transition && onExitHome && (
+          {insideHome && !transitioning && onExitHome && (
             <div className="pointer-events-auto absolute left-3 top-14 z-30">
               <button
                 type="button"
