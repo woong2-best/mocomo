@@ -42,8 +42,10 @@ export function AptHubClient({
   isLoggedIn: boolean;
   studioInventory?: AptStudioInventoryItem[];
 }) {
-  const [sceneMode, setSceneMode] = useState<"building" | "interior">("building");
-  const [interiorMounted, setInteriorMounted] = useState(false);
+  const [sceneMode, setSceneMode] = useState<"building" | "interior">(
+    isLoggedIn ? "interior" : "building"
+  );
+  const [interiorMounted, setInteriorMounted] = useState(isLoggedIn);
   const [homeState, setHomeState] = useState(bondeeHome);
   const [homeRooms, setHomeRooms] = useState(initialHomeRooms);
   const [doorOpen, setDoorOpen] = useState(initialProfile?.homePublic ?? true);
@@ -61,6 +63,11 @@ export function AptHubClient({
   const enterInterior = useCallback(() => {
     setInteriorMounted(true);
     setSceneMode("interior");
+  }, []);
+
+  const handleSceneModeChange = useCallback((mode: "building" | "interior") => {
+    if (mode === "interior") setInteriorMounted(true);
+    setSceneMode(mode);
   }, []);
 
   const exitInterior = useCallback(() => {
@@ -97,12 +104,12 @@ export function AptHubClient({
           doorOpen={doorOpen}
           onDoorToggle={() => void toggleDoor()}
           sceneMode={sceneMode}
-          onSceneModeChange={setSceneMode}
+          onSceneModeChange={handleSceneModeChange}
           interiorActive={sceneMode === "interior"}
           onEnterInterior={enterInterior}
           onExitInterior={exitInterior}
           interiorOverlay={
-            interiorMounted ? (
+            interiorMounted || isLoggedIn ? (
               <AptBondeeRoom
                 embedded
                 initialState={homeState}

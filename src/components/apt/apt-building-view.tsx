@@ -285,7 +285,7 @@ export const AptBuildingView = memo(function AptBuildingView({
                     : "text-neutral-600 hover:bg-neutral-50"
                 )}
               >
-                🏠 실내
+                🏠 내 집
               </button>
             </div>
           )}

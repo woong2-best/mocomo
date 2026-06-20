@@ -282,7 +282,7 @@ function AptBondeeRoomInner({
 
       <div className="pointer-events-none absolute left-3 top-3 rounded-2xl border-2 border-pink-200/80 bg-white/90 px-3 py-2 text-xs text-muted-foreground backdrop-blur-md shadow-sm space-y-0.5 max-w-[min(100%,16rem)]">
         <p className="font-bold text-folk-cobalt">
-          🏠 실내 · {rooms.filter((r) => r.id !== "hall-corridor").length}개 공간{saving && " · 저장 중…"}
+          🏠 내 집 · {rooms.filter((r) => r.id !== "hall-corridor").length}개 공간{saving && " · 저장 중…"}
         </p>
         <p className="text-[10px] text-folk-terracotta font-medium">
           WASD 이동 · 조명 근처 E · 자세 1~6 · Shift+드래그 회전 · 휠 줌
