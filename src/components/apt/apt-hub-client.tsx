@@ -16,6 +16,8 @@ import type { AptWorldMode } from "@/lib/apt/world/world-types";
 import { APT_DEFAULT_FLOOR } from "@/lib/apt/constants";
 import { AptInteractPrompt } from "@/components/apt/apt-interact-prompt";
 import { HomeAvatarControls } from "@/components/apt/home-avatar-controls";
+import { AptTimeHud } from "@/components/apt/apt-time-hud";
+import { getDayPhaseLabel } from "@/lib/apt/day-night";
 
 const AptBuildingView = dynamic(
   () => import("@/components/apt/apt-building-view").then((m) => m.AptBuildingView),
@@ -52,6 +54,11 @@ export function AptHubClient({
   const [nearHomeDoor, setNearHomeDoor] = useState(false);
   const [visitToast, setVisitToast] = useState<string | null>(null);
   const [avatarMode, setAvatarMode] = useState<"chibi" | "vrm" | null>(null);
+  const [nearElevator, setNearElevator] = useState(false);
+  const [nearLobbyStairs, setNearLobbyStairs] = useState(false);
+  const [isVisiting, setIsVisiting] = useState(false);
+  const [worldHour, setWorldHour] = useState<number | null>(null);
+  const [dayPhaseLabel, setDayPhaseLabel] = useState<string | null>(null);
   const homeFloor = initialProfile?.homeFloor ?? APT_DEFAULT_FLOOR;
 
   const toggleDoor = useCallback(async () => {
@@ -87,7 +94,14 @@ export function AptHubClient({
     const id = window.setInterval(() => {
       const walk = inCorr ? worldRef.current?.getCorridorWalk() : worldRef.current?.getLobbyWalk();
       setAvatarMode(walk?.avatar.getMode() ?? null);
-    }, 800);
+      if (inCorr) {
+        setNearElevator(worldRef.current?.getCorridorWalk()?.getNearElevator() ?? false);
+      }
+      if (inLob) {
+        setNearLobbyStairs(worldRef.current?.getLobbyWalk()?.getNearStairs() ?? false);
+      }
+      setIsVisiting(worldRef.current?.isVisiting() ?? false);
+    }, 400);
     return () => window.clearInterval(id);
   }, [worldMode]);
 
@@ -109,6 +123,10 @@ export function AptHubClient({
       onVisitMessage: (msg) => {
         setVisitToast(msg);
         window.setTimeout(() => setVisitToast(null), 2800);
+      },
+      onTimeChange: (hour, phase) => {
+        setWorldHour(hour);
+        setDayPhaseLabel(phase);
       },
     });
 
@@ -165,8 +183,14 @@ export function AptHubClient({
         <>
           <div className="pointer-events-none absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 z-10">
             <AptInteractPrompt
-              label={nearHomeDoor ? "현관문 입장 (E)" : "복도 · F 상호작용"}
-              visible={nearHomeDoor}
+              label={
+                nearHomeDoor
+                  ? "현관문 입장 (E)"
+                  : nearElevator
+                    ? "엘리베이터 (E)"
+                    : "복도 · F 상호작용"
+              }
+              visible={nearHomeDoor || nearElevator}
             />
           </div>
           <div className="absolute left-3 bottom-3 pointer-events-auto z-10 flex flex-col gap-2">
@@ -174,10 +198,19 @@ export function AptHubClient({
               onMove={(x, z) => worldRef.current?.getCorridorWalk()?.setMoveInput(x, z)}
               onInteract={() => {
                 if (nearHomeDoor) worldRef.current?.tryEnterHome();
+                else if (nearElevator) worldRef.current?.corridorUseElevator();
                 else worldRef.current?.knockOrBell();
               }}
               canInteract
-              interactLabel={nearHomeDoor ? "현관문 입장 (E)" : "노크/벨 (E)"}
+              interactLabel={
+                nearHomeDoor
+                  ? "현관문 입장 (E)"
+                  : nearElevator
+                    ? "엘리베이터 (E)"
+                    : isVisiting
+                      ? "노크/벨 (E)"
+                      : "노크 (E)"
+              }
             />
             <button
               type="button"
@@ -186,6 +219,15 @@ export function AptHubClient({
             >
               CCTV · 안내판 (F)
             </button>
+            {isVisiting && (
+              <button
+                type="button"
+                onClick={() => worldRef.current?.exitVisit()}
+                className="rounded-xl border border-pink-400/40 bg-pink-500/20 px-3 py-2 text-xs font-bold text-pink-100 backdrop-blur-md"
+              >
+                방문 종료
+              </button>
+            )}
           </div>
         </>
       )}
@@ -193,6 +235,11 @@ export function AptHubClient({
       {/* 로비 — 보행·엘리베이터·계단 */}
       {inLobby && (
         <div className="absolute left-3 bottom-3 pointer-events-auto z-10 flex flex-col gap-2">
+          {nearLobbyStairs && (
+            <div className="pointer-events-none rounded-xl border border-emerald-400/30 bg-emerald-500/15 px-3 py-1.5 text-[10px] font-bold text-emerald-100 backdrop-blur-md">
+              계단 근처 — 아래 버튼으로 이용
+            </div>
+          )}
           <HomeAvatarControls
             onMove={(x, z) => worldRef.current?.getLobbyWalk()?.setMoveInput(x, z)}
             onInteract={() => worldRef.current?.lobbyUseElevator()}
@@ -213,6 +260,15 @@ export function AptHubClient({
         <div className="pointer-events-none absolute top-28 left-1/2 -translate-x-1/2 z-30 rounded-full border border-white/20 bg-black/70 px-4 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur-md">
           {visitToast}
         </div>
+      )}
+
+      {/* 시간대 — 단지·복도·로비 */}
+      {(worldMode === "district" || inCorridor || inLobby || inWorld) && (
+        <AptTimeHud
+          hour={worldHour}
+          phaseLabel={dayPhaseLabel ?? (worldHour != null ? getDayPhaseLabel(worldHour) : null)}
+          className="pointer-events-none absolute top-14 right-3 z-20 max-w-[min(100%,14rem)] border-white/15 bg-black/45 [&_*]:text-white/90"
+        />
       )}
 
       {/* 통합 월드 HUD — 탭 없음, 하나의 연속 공간 */}
@@ -305,6 +361,15 @@ export function AptHubClient({
               나가기
             </button>
           )}
+          {inInterior && isVisiting && (
+            <button
+              type="button"
+              onClick={() => worldRef.current?.exitVisit()}
+              className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-pink-200 hover:bg-pink-500/20"
+            >
+              방문 종료
+            </button>
+          )}
         </div>
       </div>
 
@@ -314,8 +379,8 @@ export function AptHubClient({
         {worldMode === "lobby" && `로비 · ${avatarMode === "vrm" ? "VRM 아바타" : "주차장·우편함·엘리베이터"}`}
         {worldMode === "tower" && "층별 단면 · 엘리베이터로 이동"}
         {worldMode === "elevator" && "엘리베이터 이동 중…"}
-        {worldMode === "corridor" && `복도 · ${avatarMode === "vrm" ? "VRM 아바타" : "노크/벨 · 현관문 입장"}`}
-        {worldMode === "interior" && "내 집 · 가구와 상호작용"}
+        {worldMode === "corridor" && `복도 · ${avatarMode === "vrm" ? "VRM" : "노크/벨 · EV · 입장"}`}
+        {worldMode === "interior" && (isVisiting ? "이웃 집 · 가구와 상호작용" : "내 집 · 가구와 상호작용")}
       </div>
     </div>
   );

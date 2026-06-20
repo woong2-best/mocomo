@@ -76,6 +76,10 @@ export class CorridorWalkController {
     return this.doors.find((d) => d.isHome) ?? null;
   }
 
+  getNearElevator(): boolean {
+    return Math.hypot(this.avatarX - (-CORRIDOR_LEN / 2 + 0.85), this.avatarZ) < 1.05;
+  }
+
   canEnterHome(): boolean {
     const home = this.getNearestHomeDoor();
     if (!home) return false;

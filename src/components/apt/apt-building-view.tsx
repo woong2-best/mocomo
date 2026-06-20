@@ -109,11 +109,19 @@ export const AptBuildingView = memo(function AptBuildingView({
   const showToastRef = useRef(showToast);
   showToastRef.current = showToast;
 
-  const goToFloor = useCallback((next: number) => {
-    const clamped = Math.min(APT_TOTAL_FLOORS, Math.max(APT_LOBBY_FLOOR, next));
-    if (clamped === floorRef.current && !sceneRef.current?.isRiding()) return;
-    sceneRef.current?.setFloor(clamped);
-  }, []);
+  const goToFloor = useCallback(
+    (next: number) => {
+      const clamped = Math.min(APT_TOTAL_FLOORS, Math.max(APT_LOBBY_FLOOR, next));
+      if (skipSceneMount && unifiedWorldRef?.current) {
+        if (clamped === floorRef.current && !unifiedWorldRef.current.getBuilding().isRiding()) return;
+        unifiedWorldRef.current.goToFloor(clamped);
+        return;
+      }
+      if (clamped === floorRef.current && !sceneRef.current?.isRiding()) return;
+      sceneRef.current?.setFloor(clamped);
+    },
+    [skipSceneMount, unifiedWorldRef]
+  );
 
   const goToFloorRef = useRef(goToFloor);
   goToFloorRef.current = goToFloor;
@@ -192,6 +200,18 @@ export const AptBuildingView = memo(function AptBuildingView({
       doorOpen: occ?.doorOpen ?? false,
     });
   }, [browseTarget, isOwnApt, floorOccupants, skipSceneMount, unifiedWorldRef?.current]);
+
+  useEffect(() => {
+    if (!skipSceneMount) return;
+    const id = window.setInterval(() => {
+      const visiting = unifiedWorldRef?.current?.isVisiting();
+      if (!visiting && browseTarget && !isOwnApt) {
+        setBrowseTarget(null);
+        goToFloor(homeFloor);
+      }
+    }, 450);
+    return () => window.clearInterval(id);
+  }, [browseTarget, skipSceneMount, isOwnApt, homeFloor, goToFloor, unifiedWorldRef]);
 
   useEffect(() => {
     if (skipSceneMount) {
@@ -294,11 +314,13 @@ export const AptBuildingView = memo(function AptBuildingView({
       {!skipSceneMount && <div ref={mountRef} className="absolute inset-0" />}
 
       <AptSimulationHud snapshot={simSnap} />
-      <AptTimeHud
-        hour={worldHour}
-        phaseLabel={dayPhaseLabel}
-        className="absolute top-14 right-3 z-10 max-w-[min(100%,14rem)] border-white/15 bg-black/45 [&_*]:text-white/90"
-      />
+      {!skipSceneMount && (
+        <AptTimeHud
+          hour={worldHour}
+          phaseLabel={dayPhaseLabel}
+          className="absolute top-14 right-3 z-10 max-w-[min(100%,14rem)] border-white/15 bg-black/45 [&_*]:text-white/90"
+        />
+      )}
 
       {/* Floor indicator — elevator style */}
       <div className="pointer-events-none absolute left-1/2 top-14 z-10 -translate-x-1/2">

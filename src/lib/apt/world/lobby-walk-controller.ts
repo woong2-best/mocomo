@@ -42,12 +42,12 @@ export class LobbyWalkController {
     this.moveZ = z;
   }
 
-  getNearStairs() {
-    return this.nearStairs;
-  }
-
   getNearElevator() {
     return this.nearElevator;
+  }
+
+  getNearStairs() {
+    return this.nearStairs;
   }
 
   getNearMailbox() {

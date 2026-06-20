@@ -8,6 +8,13 @@ import { IsometricHomeScene, type IsometricHomeCallbacks } from "@/lib/apt/bonde
 import { PASTEL } from "@/lib/apt/bondee/dollhouse-meshes";
 import { enableBondeeRenderer } from "@/lib/apt/bondee/bondee-mesh-utils";
 import { cappedPixelRatio } from "@/lib/apt/bondee/scene-perf";
+import { getDayPhaseLabel } from "@/lib/apt/day-night";
+import {
+  applyDayNightToScene,
+  createSceneLighting,
+  DayNightTicker,
+  type SceneLightingRefs,
+} from "@/lib/apt/day-night-environment";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import type { BondeeHomeState, ChibiAvatarConfig } from "@/lib/apt/bondee/types";
 import { DEFAULT_CHIBI_AVATAR } from "@/lib/apt/bondee/types";
@@ -30,6 +37,7 @@ import {
 import { buildLobbyParkingLevel } from "./lobby-parking-mesh";
 import { LobbyWalkController } from "./lobby-walk-controller";
 import { StairClimbController } from "./stair-climb-controller";
+import { updateCorridorAmbientLights } from "./apt-world-environment";
 import {
   buildDistrictComplex,
   megaFloorToWorldY,
@@ -43,6 +51,8 @@ export type UnifiedWorldCallbacks = DollhouseCallbacks & {
   onNearHomeDoor?: (canEnter: boolean, doorState: DoorState) => void;
   onVisitMessage?: (msg: string) => void;
   onVisitPhase?: (phase: string) => void;
+  onTimeChange?: (hour: number, phaseLabel: string) => void;
+  onVisitClear?: () => void;
 };
 
 export class UnifiedAptWorldScene {
@@ -92,6 +102,9 @@ export class UnifiedAptWorldScene {
   private stairClimb = new StairClimbController();
   private stairTargetFloor = APT_DEFAULT_FLOOR;
   private focalPoint = new THREE.Vector3();
+  private dayNight = new DayNightTicker();
+  private sceneLighting!: SceneLightingRefs;
+  private lastDayNightKey = -1;
 
   constructor(
     mount: HTMLElement,
@@ -114,6 +127,7 @@ export class UnifiedAptWorldScene {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(PASTEL.bg);
     this.scene.fog = new THREE.Fog(PASTEL.bg, 14, 95);
+    this.sceneLighting = createSceneLighting(this.scene);
 
     const aspect = Math.max(mount.clientWidth, 320) / Math.max(mount.clientHeight, 400);
     this.cameraCtrl = new UnifiedCameraController(aspect);
@@ -162,6 +176,9 @@ export class UnifiedAptWorldScene {
     window.addEventListener("resize", this.onResize);
     this.syncLayerVisibility();
     this.loop();
+    const { hour, lighting } = this.dayNight.tick();
+    applyDayNightToScene(this.scene, this.sceneLighting, lighting, this.renderer);
+    this.callbacks.onTimeChange?.(hour, getDayPhaseLabel(hour));
     this.callbacks.onModeChange?.("district");
     void resolveAptWorldVrmUrl().then((url) => {
       this.vrmUrl = url;
@@ -190,6 +207,29 @@ export class UnifiedAptWorldScene {
 
   getVisitSystem() {
     return this.visitSystem;
+  }
+
+  isVisiting() {
+    return this.visitSystem.isVisiting();
+  }
+
+  exitVisit() {
+    if (!this.visitSystem.isVisiting()) return;
+    this.clearVisit();
+    if (this.mode === "interior") {
+      this.interiorSlot.visible = false;
+      this.interior.detachInput(this.renderer.domElement);
+    }
+    this.enterCorridor(this.homeFloor);
+    this.callbacks.onVisitMessage?.("방문 종료 — 내 집 층 복도로 이동");
+  }
+
+  corridorUseElevator() {
+    if (this.mode !== "corridor" || !this.corridorWalk?.getNearElevator()) return;
+    this.building.setPaused(false);
+    this.setMode("elevator");
+    this.corridorWalk.avatar.setAction("elevator_idle");
+    this.callbacks.onVisitMessage?.("엘리베이터 — 우측 패널에서 목적 층을 선택하세요");
   }
 
   updateHomeState(state: BondeeHomeState) {
@@ -290,6 +330,7 @@ export class UnifiedAptWorldScene {
     this.visitSystem.clearVisit();
     this.interior.setRooms(this.homeRooms);
     this.interior.setState(this.homeState);
+    this.callbacks.onVisitClear?.();
   }
 
   knockOrBell() {
@@ -493,6 +534,9 @@ export class UnifiedAptWorldScene {
     if (home) {
       if (isVisit) {
         home.state = visitDoorOpen ? "open" : "locked";
+        if (visitDoorOpen) {
+          this.callbacks.onVisitMessage?.("현관문이 열려 있습니다 — 입장하세요");
+        }
       } else {
         home.state = this.doorOpen ? "open" : "closed";
       }
@@ -599,6 +643,18 @@ export class UnifiedAptWorldScene {
     const dt = Math.min(0.05, this.clock.getDelta());
     this.animPhase += dt;
     let anim = false;
+
+    if (this.mode !== "interior") {
+      const { hour, lighting, changed } = this.dayNight.tick();
+      if (changed || this.lastDayNightKey !== hour) {
+        this.lastDayNightKey = hour;
+        applyDayNightToScene(this.scene, this.sceneLighting, lighting, this.renderer);
+        this.callbacks.onTimeChange?.(hour, getDayPhaseLabel(hour));
+        if (this.corridorMesh) updateCorridorAmbientLights(this.corridorMesh, lighting.darkness);
+        if (this.lobbyMesh) updateCorridorAmbientLights(this.lobbyMesh, lighting.darkness);
+        anim = true;
+      }
+    }
 
     if (this.mode === "interior") {
       anim = this.interior.tickFrame() || anim;
