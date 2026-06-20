@@ -1,9 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { AptProfileDto } from "@/actions/apt";
 import { setHomePublic } from "@/actions/apt-world";
+import { APT_DEFAULT_FLOOR } from "@/lib/apt/building-scene";
 import type { BondeeHomeState } from "@/lib/apt/bondee/types";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import { AptSceneErrorBoundary } from "@/components/apt/apt-scene-error-boundary";
@@ -42,10 +43,10 @@ export function AptHubClient({
   isLoggedIn: boolean;
   studioInventory?: AptStudioInventoryItem[];
 }) {
-  const [sceneMode, setSceneMode] = useState<"building" | "interior">(
-    isLoggedIn ? "interior" : "building"
-  );
-  const [interiorMounted, setInteriorMounted] = useState(isLoggedIn);
+  const homeFloor = initialProfile?.homeFloor ?? APT_DEFAULT_FLOOR;
+  const [insideHome, setInsideHome] = useState(isLoggedIn);
+  const [transition, setTransition] = useState<"enter" | "exit" | null>(null);
+  const userExitedAtHomeRef = useRef(false);
   const [homeState, setHomeState] = useState(bondeeHome);
   const [homeRooms, setHomeRooms] = useState(initialHomeRooms);
   const [doorOpen, setDoorOpen] = useState(initialProfile?.homePublic ?? true);
@@ -60,38 +61,65 @@ export function AptHubClient({
     if (initialProfile) setDoorOpen(initialProfile.homePublic);
   }, [initialProfile?.homePublic]);
 
-  const enterInterior = useCallback(() => {
-    setInteriorMounted(true);
-    setSceneMode("interior");
+  const runEnterHome = useCallback(() => {
+    setTransition("enter");
+    window.setTimeout(() => {
+      setInsideHome(true);
+      setTransition(null);
+      userExitedAtHomeRef.current = false;
+    }, 420);
   }, []);
 
-  const handleSceneModeChange = useCallback((mode: "building" | "interior") => {
-    if (mode === "interior") setInteriorMounted(true);
-    setSceneMode(mode);
+  const runExitHome = useCallback(() => {
+    setTransition("exit");
+    window.setTimeout(() => {
+      setInsideHome(false);
+      setTransition(null);
+      userExitedAtHomeRef.current = true;
+    }, 380);
   }, []);
 
-  const exitInterior = useCallback(() => {
-    setSceneMode("building");
+  const instantExitHome = useCallback(() => {
+    setInsideHome(false);
   }, []);
 
-  const useElevator = useCallback(() => {
-    setSceneMode("building");
-  }, []);
+  /** 다른 층으로 이동할 때 — 즉시 타워 뷰 */
+  const handleFloorChange = useCallback(
+    (floor: number) => {
+      if (floor !== homeFloor) {
+        userExitedAtHomeRef.current = false;
+        instantExitHome();
+      }
+    },
+    [homeFloor, instantExitHome]
+  );
+
+  /** 엘리베이터로 내 집층 도착 — 자동으로 집 안으로 */
+  const handleArriveHomeFloor = useCallback(() => {
+    if (!isLoggedIn || userExitedAtHomeRef.current) return;
+    runEnterHome();
+  }, [isLoggedIn, runEnterHome]);
+
+  /** 집 안 엘리베이터 → 타워에서 층 선택 */
+  const handleElevatorFromHome = useCallback(() => {
+    runExitHome();
+  }, [runExitHome]);
 
   return (
     <div className="w-full max-w-none px-3 sm:px-5 lg:px-8 py-4 lg:py-6 pb-16 space-y-5">
       <div className="space-y-2">
         <h1 className="text-2xl font-bold flex items-center gap-2 text-folk-cobalt">APT</h1>
-        <p className="text-sm text-muted-foreground leading-relaxed">
+        <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">
           {isLoggedIn
-            ? "1000층 타워에서 층을 이동하고, 실내에서 아바타·가구를 꾸미며, 복도 끝 엘리베이터로 타워 전체를 오갈 수 있습니다."
+            ? `${homeFloor}층이 내 집입니다. 집 안에서 꾸미고, 엘리베이터로 1000층 타워를 오갈 수 있습니다.`
             : "로그인 후 가입 국가 아파트에 입주하세요."}
         </p>
         {isLoggedIn && initialProfile?.regionLabel && (
-          <p className="text-xs text-folk-terracotta font-medium flex items-center gap-1">
-            📍 {initialProfile.regionLabel}
-            {` · ${initialProfile.homeFloor}층 · 주방·거실·화장실·침실`}
-          </p>
+          <div className="inline-flex items-center gap-2 rounded-full border border-folk-terracotta/25 bg-folk-terracotta/8 px-3 py-1 text-xs font-semibold text-folk-terracotta">
+            <span>📍 {initialProfile.regionLabel}</span>
+            <span className="text-folk-terracotta/40">·</span>
+            <span>{homeFloor}층 입주</span>
+          </div>
         )}
       </div>
 
@@ -103,13 +131,15 @@ export function AptHubClient({
           onHomeRoomsChange={setHomeRooms}
           doorOpen={doorOpen}
           onDoorToggle={() => void toggleDoor()}
-          sceneMode={sceneMode}
-          onSceneModeChange={handleSceneModeChange}
-          interiorActive={sceneMode === "interior"}
-          onEnterInterior={enterInterior}
-          onExitInterior={exitInterior}
+          homeFloor={homeFloor}
+          insideHome={insideHome}
+          transition={transition}
+          onEnterHome={runEnterHome}
+          onExitHome={runExitHome}
+          onFloorChange={handleFloorChange}
+          onArriveHomeFloor={handleArriveHomeFloor}
           interiorOverlay={
-            interiorMounted || isLoggedIn ? (
+            isLoggedIn ? (
               <AptBondeeRoom
                 embedded
                 initialState={homeState}
@@ -117,10 +147,10 @@ export function AptHubClient({
                 isLoggedIn={isLoggedIn}
                 studioInventory={studioInventory}
                 onHomeChange={setHomeState}
-                paused={sceneMode !== "interior"}
+                paused={!insideHome || !!transition}
                 doorOpen={doorOpen}
                 onDoorToggle={() => void toggleDoor()}
-                onElevatorUse={useElevator}
+                onElevatorUse={handleElevatorFromHome}
               />
             ) : null
           }
