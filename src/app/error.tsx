@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 
 export default function Error({
   error,
@@ -26,7 +27,7 @@ export default function Error({
           다시 시도
         </Button>
         <Button asChild>
-          <Link href="/">홈으로</Link>
+          <Link href={DEFAULT_LANDING_PATH}>홈으로</Link>
         </Button>
       </div>
     </div>

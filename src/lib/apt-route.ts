@@ -1,3 +1,5 @@
+import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+
 export function isAptPath(pathname: string): boolean {
-  return pathname === "/apt" || pathname.startsWith("/apt/");
+  return pathname === DEFAULT_LANDING_PATH || pathname.startsWith("/apt/");
 }

@@ -4,10 +4,11 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft, Search } from "lucide-react";
 import { BRAND } from "@/lib/brand";
+import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { HeaderAuth } from "@/components/layout/header-auth";
 import { cn } from "@/lib/utils";
 
-const ROOT_PATHS = new Set(["/", "/explore", "/notifications", "/messages"]);
+const ROOT_PATHS = new Set(["/", DEFAULT_LANDING_PATH, "/explore", "/notifications", "/messages"]);
 
 function titleForPath(pathname: string): string | null {
   if (pathname.startsWith("/u/")) return "프로필";
@@ -46,7 +47,7 @@ export function NativeAppHeader() {
         {title ? (
           <h1 className="truncate text-base font-bold">{title}</h1>
         ) : (
-          <Link href="/" className="inline-flex items-center gap-2">
+          <Link href={DEFAULT_LANDING_PATH} className="inline-flex items-center gap-2">
             <span className="font-display text-lg font-bold text-folk-cobalt">{BRAND.name}</span>
           </Link>
         )}

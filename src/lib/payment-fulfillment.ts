@@ -22,6 +22,7 @@ import { tierFromAmount } from "@/lib/tiers";
 import { notifyTip } from "@/lib/notifications";
 import { parseVideoTipMeta } from "@/lib/donation-metadata";
 import { normalizeYoutubeUrl } from "@/lib/video-donation";
+import { COMMUNITY_FEED_PATH } from "@/lib/site-routes";
 
 const PLATFORM_FEE_RATE = 0.1;
 
@@ -360,7 +361,7 @@ export async function fulfillPaymentIntent(
     }
     if (meta.username) revalidatePath(`/u/${meta.username}`);
     if ("postId" in r && r.postId) revalidatePath(`/post/${r.postId}`);
-    revalidatePath("/");
+    revalidatePath(COMMUNITY_FEED_PATH);
   }
 
   if (intent.type === "STUDIO_ASSET") {

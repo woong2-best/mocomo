@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { ReportStatus, type ReportTargetType } from "@prisma/client";
+import { COMMUNITY_FEED_PATH } from "@/lib/site-routes";
 
 export async function banUser(targetId: string, reason: string, until?: Date) {
   const admin = await requireAdmin();
@@ -89,7 +90,7 @@ export async function adminForceDeletePost(postId: string, modReason?: string) {
     },
   });
 
-  revalidatePath("/");
+  revalidatePath(COMMUNITY_FEED_PATH);
   revalidatePath("/admin");
   revalidatePath(`/post/${postId}`);
   return { success: true };

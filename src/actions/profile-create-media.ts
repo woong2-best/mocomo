@@ -5,6 +5,7 @@ import { requireAuth } from "@/lib/auth";
 import { createPostForUser } from "@/lib/create-post-core";
 import { parseContentVisibility } from "@/lib/creator-subscription";
 import type { MediaType } from "@prisma/client";
+import { COMMUNITY_FEED_PATH } from "@/lib/site-routes";
 
 export async function createProfileMediaPost(input: {
   content: string;
@@ -48,7 +49,7 @@ export async function createProfileMediaPost(input: {
   if (user.username) {
     revalidatePath(`/u/${user.username}`);
   }
-  revalidatePath("/");
+  revalidatePath(COMMUNITY_FEED_PATH);
 
   return { success: true as const, postId: result.postId };
 }

@@ -12,6 +12,7 @@ import {
   resolveRequestHostname,
   studioInternalPath,
 } from "@/studio/lib/host";
+import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -131,7 +132,7 @@ export default edgeAuth((req) => {
     process.env.NEXT_PUBLIC_LIVE_ENABLED === "false" &&
     (pathname.startsWith("/live") || pathname.startsWith("/voice"))
   ) {
-    const res = NextResponse.redirect(new URL("/", req.url));
+    const res = NextResponse.redirect(new URL(DEFAULT_LANDING_PATH, req.url));
     stampAppClientIfNeeded(req, res);
     return res;
   }
@@ -171,7 +172,7 @@ export default edgeAuth((req) => {
   if (isAuthPage && isLoggedIn && !isBanned) {
     const callback = req.nextUrl.searchParams.get("callbackUrl");
     const dest =
-      callback?.startsWith("/") && !callback.startsWith("//") ? callback : "/";
+      callback?.startsWith("/") && !callback.startsWith("//") ? callback : DEFAULT_LANDING_PATH;
     const res = NextResponse.redirect(new URL(dest, req.url));
     stampAppClientIfNeeded(req, res);
     return res;
@@ -185,7 +186,7 @@ export default edgeAuth((req) => {
       role: sessionUser.role,
     });
   if (isAdmin && !isOperator) {
-    const res = NextResponse.redirect(new URL("/", req.url));
+    const res = NextResponse.redirect(new URL(DEFAULT_LANDING_PATH, req.url));
     stampAppClientIfNeeded(req, res);
     return res;
   }

@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Bell, Home, Mail, Search, User } from "lucide-react";
+import { Bell, Home, Search, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { MessageKey } from "@/lib/i18n/messages";
+import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 
 type TabDef = {
   href: string;
@@ -17,10 +18,10 @@ type TabDef = {
 
 const guestTabs: TabDef[] = [
   {
-    href: "/",
+    href: DEFAULT_LANDING_PATH,
     icon: Home,
     labelKey: "nav.home",
-    match: (p) => p === "/",
+    match: (p) => p === DEFAULT_LANDING_PATH || p.startsWith("/apt/"),
   },
   {
     href: "/explore",
@@ -39,10 +40,10 @@ const guestTabs: TabDef[] = [
 function userTabs(username: string): TabDef[] {
   return [
     {
-      href: "/",
+      href: DEFAULT_LANDING_PATH,
       icon: Home,
       labelKey: "nav.home",
-      match: (p) => p === "/",
+      match: (p) => p === DEFAULT_LANDING_PATH || p.startsWith("/apt/"),
     },
     {
       href: "/explore",
@@ -55,12 +56,6 @@ function userTabs(username: string): TabDef[] {
       icon: Bell,
       labelKey: "nav.notifications",
       match: (p) => p.startsWith("/notifications"),
-    },
-    {
-      href: "/messages",
-      icon: Mail,
-      labelKey: "nav.messages",
-      match: (p) => p === "/messages" || p.startsWith("/messages/"),
     },
     {
       href: `/u/${username}`,

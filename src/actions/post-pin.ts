@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getAuthUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { COMMUNITY_FEED_PATH } from "@/lib/site-routes";
 
 async function assertOwnPost(postId: string, userId: string) {
   const post = await db.post.findUnique({
@@ -17,7 +18,7 @@ async function assertOwnPost(postId: string, userId: string) {
 function revalidateProfile(username: string, postId: string) {
   revalidatePath(`/u/${username}`);
   revalidatePath(`/post/${postId}`);
-  revalidatePath("/");
+  revalidatePath(COMMUNITY_FEED_PATH);
 }
 
 export async function pinPostToProfile(postId: string): Promise<{ ok?: true; error?: string }> {

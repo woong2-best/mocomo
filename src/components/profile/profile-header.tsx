@@ -13,6 +13,7 @@ import { CreatorFollowerBadge } from "@/components/user/creator-follower-badge";
 import { creatorBadgeFromFollowerCount } from "@/lib/creator-follower-badge";
 import { CountryFlag } from "@/components/user/country-flag";
 import { userAvatarFallbackInitial, userDisplayName } from "@/lib/user-public-select";
+import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 
 type SnsLinks = { website?: string; location?: string; twitter?: string };
 
@@ -72,7 +73,7 @@ export function ProfileHeader({
   return (
     <div className="border-b border-border/60">
       <div className="sticky top-14 z-20 flex items-center gap-4 px-4 py-2 bg-background/90 backdrop-blur-md border-b border-border/40">
-        <Link href="/" className="p-2 -ml-2 rounded-full hover:bg-muted/80">
+        <Link href={DEFAULT_LANDING_PATH} className="p-2 -ml-2 rounded-full hover:bg-muted/80">
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div className="min-w-0 flex-1">

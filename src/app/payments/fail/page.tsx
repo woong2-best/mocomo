@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { XCircle } from "lucide-react";
+import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 
 export default async function PaymentFailPage({
   searchParams,
@@ -15,7 +16,7 @@ export default async function PaymentFailPage({
       <XCircle className="h-14 w-14 text-destructive mx-auto" />
       <h1 className="text-xl font-bold">결제 실패</h1>
       <p className="text-muted-foreground text-sm">{text}</p>
-      <Link href="/">
+      <Link href={DEFAULT_LANDING_PATH}>
         <Button variant="outline" className="rounded-xl">
           홈으로
         </Button>

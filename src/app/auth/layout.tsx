@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
 import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
+import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col bg-muted/20">
       <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-background/95">
-        <Link href="/" className="font-black text-lg">
+        <Link href={DEFAULT_LANDING_PATH} className="font-black text-lg">
           {BRAND.name}
         </Link>
         <div className="flex items-center gap-3 text-sm">

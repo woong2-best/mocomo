@@ -7,9 +7,8 @@ import { useState } from "react";
 import {
   Home,
   Compass,
-  PenLine,
+  Mailbox,
   Radio,
-  MessageCircle,
   User,
   LogIn,
   Tags,
@@ -20,10 +19,11 @@ import { useLocale } from "@/components/providers/locale-provider";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
 import { MobileDrawerNav } from "@/components/layout/mobile-drawer-nav";
-import { useCompose } from "@/components/compose/compose-provider";
+import { buildAptMailboxUrl } from "@/lib/apt/mailbox-compose-route";
+import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 
 const guestTabs: { href: string; icon: typeof Home; labelKey: MessageKey }[] = [
-  { href: "/", icon: Home, labelKey: "nav.home" },
+  { href: DEFAULT_LANDING_PATH, icon: Home, labelKey: "nav.home" },
   { href: "/explore", icon: Compass, labelKey: "nav.explore" },
   { href: "/live", icon: Radio, labelKey: "nav.live" },
   { href: "/auth/signin", icon: LogIn, labelKey: "nav.signin" },
@@ -31,17 +31,15 @@ const guestTabs: { href: string; icon: typeof Home; labelKey: MessageKey }[] = [
 ];
 
 const userTabs: { href: string; icon: typeof Home; labelKey: MessageKey }[] = [
-  { href: "/", icon: Home, labelKey: "nav.home" },
+  { href: DEFAULT_LANDING_PATH, icon: Home, labelKey: "nav.home" },
   { href: "/used", icon: Tags, labelKey: "nav.used" },
-  { href: "/compose", icon: PenLine, labelKey: "nav.compose" },
-  { href: "/messages", icon: MessageCircle, labelKey: "nav.messages" },
+  { href: "/apt?decor=mailbox", icon: Mailbox, labelKey: "nav.compose" },
 ];
 
 export function MobileNav() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const { t } = useLocale();
-  const { openCompose } = useCompose();
   const [moreOpen, setMoreOpen] = useState(false);
   const rawTabs = session?.user ? userTabs : guestTabs;
   const tabs = isLiveFeatureEnabled()
@@ -54,35 +52,18 @@ export function MobileNav() {
         <div className="flex justify-around items-center h-14 max-w-lg mx-auto">
           {tabs.map(({ href, icon: Icon, labelKey }) => {
             const active =
-              href === "/"
-                ? pathname === "/"
+              href === DEFAULT_LANDING_PATH
+                ? pathname === DEFAULT_LANDING_PATH || pathname.startsWith("/apt/")
                 : href.startsWith("/auth")
                   ? pathname.startsWith("/auth")
-                  : href === "/compose"
-                    ? false
+                  : href.startsWith("/apt")
+                    ? pathname.startsWith("/apt")
                     : pathname === href || pathname.startsWith(`${href}/`);
-
-            if (href === "/compose") {
-              return (
-                <button
-                  key={href}
-                  type="button"
-                  onClick={() => openCompose()}
-                  className={cn(
-                    "flex flex-col items-center justify-center gap-0.5 flex-1 h-full min-w-0 px-0.5 text-[10px]",
-                    "text-muted-foreground"
-                  )}
-                >
-                  <Icon className="h-5 w-5 shrink-0" />
-                  <span className="truncate max-w-full">{t(labelKey)}</span>
-                </button>
-              );
-            }
 
             return (
               <Link
                 key={href}
-                href={href}
+                href={href.startsWith("/apt") ? buildAptMailboxUrl() : href}
                 className={cn(
                   "flex flex-col items-center justify-center gap-0.5 flex-1 h-full min-w-0 px-0.5 text-[10px]",
                   active ? "text-primary font-semibold" : "text-muted-foreground"

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Radio } from "lucide-react";
+import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 
 /** 라이브 기능 비활성 시 안내 (코드 삭제 없음) */
 export function LiveFeatureDisabledNotice() {
@@ -14,7 +15,7 @@ export function LiveFeatureDisabledNotice() {
         다른 서비스는 그대로 이용할 수 있습니다.
       </p>
       <Button asChild className="rounded-xl">
-        <Link href="/">홈으로</Link>
+        <Link href={DEFAULT_LANDING_PATH}>홈으로</Link>
       </Button>
     </div>
   );

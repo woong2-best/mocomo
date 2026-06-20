@@ -5,12 +5,13 @@ import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { BRAND } from "@/lib/brand";
+import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { useSidebarToggle } from "@/components/providers/sidebar-toggle-provider";
 import { cn } from "@/lib/utils";
 
 export function SidebarToggleButton() {
   const pathname = usePathname();
-  const isHome = pathname === "/";
+  const isHome = pathname === DEFAULT_LANDING_PATH || pathname.startsWith("/apt/");
   const { open: sidebarOpen, toggle: toggleSidebar } = useSidebarToggle();
 
   return (
@@ -56,7 +57,7 @@ export function SidebarToggleButton() {
       </button>
 
       <Link
-        href="/"
+        href={DEFAULT_LANDING_PATH}
         className={cn(
           "group/home relative inline-block min-w-[5.5rem] rounded-lg px-1 py-0.5 transition-colors",
           "hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-folk-terracotta/50"

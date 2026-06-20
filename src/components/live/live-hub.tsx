@@ -22,6 +22,7 @@ import type { LiveStreamCategory } from "@prisma/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
+import { COMMUNITY_FEED_PATH } from "@/lib/site-routes";
 
 const FEATURES = [
   { icon: Video, label: "웹캠 · 화면공유" },
@@ -187,7 +188,7 @@ export function LiveHub({
             <p className="text-sm text-muted-foreground mt-1">팔로우한 크리에이터의 게시물은 홈 피드에서 확인할 수 있습니다.</p>
           </div>
           <Button asChild variant="outline" className="rounded-xl">
-            <Link href="/">홈 피드로 이동</Link>
+            <Link href={COMMUNITY_FEED_PATH}>홈 피드로 이동</Link>
           </Button>
         </section>
       </div>
