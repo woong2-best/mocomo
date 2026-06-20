@@ -89,12 +89,14 @@ function isOpenPlanRoom(room: AptRoom): boolean {
 
 /**
  * 개방 구간 — 문·내벽 없이 통로로 연결.
- * 거실/부엌은 복도와 트여 하나의 공간(거실↔복도↔부엌)을 이룬다.
+ * 거실↔부엌 그리고 거실/부엌↔복도는 벽 없이 트여 하나의 큰 공간을 이룬다.
  * 방·화장실·엘리베이터는 복도와 문으로만 연결되므로 개방 구간이 아니다.
  */
 export function isOpenPassageEdge(room: AptRoom, rooms: AptRoom[], side: HomeWallSide): boolean {
   const neighbor = neighborRoomAt(room, rooms, side);
   if (!neighbor) return false;
+
+  if (isOpenPlanRoom(room) && isOpenPlanRoom(neighbor)) return true;
 
   if (
     (room.id === "hall-corridor" && isOpenPlanRoom(neighbor)) ||

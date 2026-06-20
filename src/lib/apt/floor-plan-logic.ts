@@ -14,40 +14,33 @@ export function newRoomId() {
 }
 
 /**
- * 복도 중심 Bondee 아파트 — 방마다 복도로만 출입 (옆방 직통 문 없음)
+ * 오픈형 Bondee 아파트 (v5)
  *
- * ┌─거실──┬─방2──┬─방1──┬화장실┐  ← 상단 라인 (북)
- * ├───────┴──────┴──────┴──────┤
- * │          복 도              │
- * ├─────────────┬───────────────┤
- * │    부엌     │  엘리베이터   │  ← 하단 라인 (남)
- * └─────────────┴───────────────┘
+ * ┌─방2──┬─방1──┬화장실┬엘리베이터┐  ← 상단: 방들 (각자 벽 + 복도 문 1개)
+ * ├──────┴──────┴──────┴──────────┤
+ * │            복 도               │  ← 복도 (방 출입)
+ * ├───────────────┬───────────────┤
+ * │     거실      │     부엌      │  ← 하단: 거실+부엌 (벽 없는 하나의 오픈 공간)
+ * └───────────────┴───────────────┘
+ *
+ * 거실·부엌·복도는 벽 없이 트여 하나의 큰 공간을 이루고,
+ * 윗줄 방들은 복도로 통하는 문 1개씩만 둔다.
  */
 export function createDefaultFloorPlan(): FloorPlanState {
   const INTERIOR_W = 870;
-  const TOP_H = 210;
-  const HALL_H = 95;
-  const BOTTOM_H = PLAN_H - TOP_H - HALL_H;
+  const TOP_H = 240;
+  const HALL_H = 90;
+  const BOTTOM_Y = TOP_H + HALL_H;
+  const BOTTOM_H = PLAN_H - BOTTOM_Y;
 
   return {
     rooms: [
       {
-        id: "living",
-        type: "living",
-        x: 0,
-        y: 0,
-        w: 270,
-        h: TOP_H,
-        label: "거실",
-        locked: false,
-        floor: "wood",
-      },
-      {
         id: "bedroom-2",
         type: "bedroom",
-        x: 270,
+        x: 0,
         y: 0,
-        w: 200,
+        w: 250,
         h: TOP_H,
         label: "방 2",
         locked: false,
@@ -56,9 +49,9 @@ export function createDefaultFloorPlan(): FloorPlanState {
       {
         id: "bedroom-1",
         type: "bedroom",
-        x: 470,
+        x: 250,
         y: 0,
-        w: 200,
+        w: 250,
         h: TOP_H,
         label: "방 1",
         locked: false,
@@ -67,13 +60,24 @@ export function createDefaultFloorPlan(): FloorPlanState {
       {
         id: "bathroom",
         type: "bathroom",
-        x: 670,
+        x: 500,
         y: 0,
-        w: 200,
+        w: 190,
         h: TOP_H,
         label: "화장실",
         locked: true,
         floor: "bathroom",
+      },
+      {
+        id: "elevator",
+        type: "hall",
+        x: 690,
+        y: 0,
+        w: 180,
+        h: TOP_H,
+        label: "엘리베이터",
+        locked: true,
+        floor: "tile-light",
       },
       {
         id: "hall-corridor",
@@ -87,26 +91,26 @@ export function createDefaultFloorPlan(): FloorPlanState {
         floor: "beige",
       },
       {
+        id: "living",
+        type: "living",
+        x: 0,
+        y: BOTTOM_Y,
+        w: 480,
+        h: BOTTOM_H,
+        label: "거실",
+        locked: false,
+        floor: "wood",
+      },
+      {
         id: "kitchen",
         type: "kitchen",
-        x: 0,
-        y: TOP_H + HALL_H,
-        w: 580,
+        x: 480,
+        y: BOTTOM_Y,
+        w: INTERIOR_W - 480,
         h: BOTTOM_H,
         label: "부엌",
         locked: true,
         floor: "wood",
-      },
-      {
-        id: "elevator",
-        type: "hall",
-        x: 580,
-        y: TOP_H + HALL_H,
-        w: 290,
-        h: BOTTOM_H,
-        label: "엘리베이터",
-        locked: true,
-        floor: "tile-light",
       },
       {
         id: "balcony",
@@ -123,17 +127,12 @@ export function createDefaultFloorPlan(): FloorPlanState {
   };
 }
 
-/** 복도형 v4 평면도 */
+/** 오픈형 v5 평면도 — 거실이 복도 아래(오픈 공간)에 있으면 최신 */
 export function isSketchFloorPlan(rooms: AptRoom[]): boolean {
-  const ids = new Set(rooms.map((r) => r.id));
-  return (
-    ids.has("living") &&
-    ids.has("hall-corridor") &&
-    ids.has("bedroom-2") &&
-    ids.has("bedroom-1") &&
-    ids.has("kitchen") &&
-    !ids.has("living-main")
-  );
+  const living = rooms.find((r) => r.id === "living");
+  const corridor = rooms.find((r) => r.id === "hall-corridor");
+  const kitchen = rooms.find((r) => r.id === "kitchen");
+  return Boolean(living && corridor && kitchen && living.y > corridor.y);
 }
 
 export function isLegacyFloorPlan(rooms: AptRoom[]): boolean {
