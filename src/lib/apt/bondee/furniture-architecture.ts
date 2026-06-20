@@ -42,6 +42,7 @@ export const FURNITURE_ARCHITECTURES: Record<BondeeFurnitureKind, FurnitureArchi
   smartphone: [],
   window: [],
   mailbox: [],
+  telephone: [],
   ...Object.fromEntries(INSTRUMENT_KINDS.map((k) => [k, [] as FurnitureArchitecture[]])) as Record<
     (typeof INSTRUMENT_KINDS)[number],
     FurnitureArchitecture[]
@@ -76,6 +77,7 @@ export const FURNITURE_INTERACT: Partial<Record<BondeeFurnitureKind, FurnitureIn
   plant: { label: "화분", poses: ["wave"], singleAction: true },
   window: { label: "창문", poses: ["stand"], singleAction: true },
   mailbox: { label: "글쓰기", poses: ["stand"], composeAction: true, singleAction: true },
+  telephone: { label: "메시지 열기", poses: ["stand"], href: "/messages", singleAction: true },
   bookshelf: { label: "책꼂이", poses: ["stand"], singleAction: true },
   rug: { label: "쉬기", poses: ["lie_prone", "run"] },
   treadmill: { label: "운동", poses: ["run"], singleAction: true },
@@ -101,6 +103,8 @@ export function interactAnchorOffset(kind: BondeeFurnitureKind, rot: number): { 
       return { dx: Math.sin(rad) * 0.14, dz: 0.2 + Math.cos(rad) * 0.1 };
     case "desk":
       return { dx: Math.sin(rad) * 0.1, dz: 0.16 + Math.cos(rad) * 0.08 };
+    case "telephone":
+      return { dx: Math.sin(rad) * 0.08, dz: 0.12 + Math.cos(rad) * 0.08 };
     default:
       return { dx: 0, dz: 0 };
   }

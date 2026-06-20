@@ -135,6 +135,7 @@ export function defaultItemsForRooms(rooms: AptRoom[]): BondeePlacedItem[] {
       add(r.id, "floor_lamp", -1, 1);
       add(r.id, "bookshelf", -2, -1, 2);
       add(r.id, "smartphone", 1, 1);
+      add(r.id, "telephone", 0, 1);
     } else if (r.id === "bedroom-1") {
       add(r.id, "bed", 0, 0);
       add(r.id, "rug", 1, 1);
@@ -197,6 +198,17 @@ export function migrateItems(items: BondeePlacedItem[], rooms: AptRoom[]): Bonde
       gx: 2,
       gz: 0,
       rot: 2,
+    });
+  }
+  const bedroom2 = rooms.find((r) => r.id === "bedroom-2")?.id;
+  if (bedroom2 && !migrated.some((it) => it.kind === "telephone")) {
+    migrated.push({
+      id: `${bedroom2}-telephone-migrated`,
+      kind: "telephone",
+      roomId: bedroom2,
+      gx: 0,
+      gz: 1,
+      rot: 0,
     });
   }
   return migrated;

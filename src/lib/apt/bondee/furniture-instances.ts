@@ -32,6 +32,7 @@ const PROXY: Record<BondeeFurnitureKind, { size: [number, number, number]; color
   smartphone: { size: [0.06, 0.12, 0.02], color: 0x1a1a22 },
   window: { size: [0.52, 0.62, 0.08], color: 0xfaf8f5 },
   mailbox: { size: [0.22, 0.38, 0.18], color: 0x3a5a8a },
+  telephone: { size: [0.18, 0.32, 0.14], color: 0x2a2a32 },
   acoustic_guitar: { size: [0.32, 0.42, 0.22], color: 0xe8d4bc },
   electric_guitar: { size: [0.32, 0.42, 0.22], color: 0x2a2a32 },
   bass_guitar: { size: [0.38, 0.44, 0.24], color: 0x2a2a32 },

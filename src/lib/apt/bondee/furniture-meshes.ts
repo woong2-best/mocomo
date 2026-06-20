@@ -134,6 +134,9 @@ function buildFurnitureMeshPrototype(kind: BondeeFurnitureKind): THREE.Group {
     case "mailbox":
       buildMailbox(g);
       break;
+    case "telephone":
+      buildTelephone(g);
+      break;
   }
 
   shadowizeGroup(g, false);
@@ -552,6 +555,22 @@ function buildMailbox(g: THREE.Group) {
   addTo(g, roundedBox(0.24, 0.06, 0.2, 0.02), trim, 0, 0.34, 0);
   addTo(g, roundedBox(0.04, 0.08, 0.02, 0.01), flag, 0.1, 0.38, 0.02);
   addTo(g, roundedBox(0.04, 0.04, 0.04, 0.01), trim, 0, 0.02, 0);
+}
+
+function buildTelephone(g: THREE.Group) {
+  const base = bondeeMat(0x2a2a32);
+  const handset = bondeeMat(0x1a1a22);
+  const accent = bondeeMat(0x3a5a8a);
+  const dial = bondeeGlowMat(0xffeedd, 0.35);
+
+  addTo(g, roundedBox(0.18, 0.04, 0.14, 0.008), base, 0, 0.04, 0);
+  addTo(g, roundedBox(0.1, 0.04, 0.08, 0.006), base, 0, 0.08, 0);
+  addTo(g, roundedBox(0.08, 0.08, 0.04, 0.008), dial, 0, 0.12, 0.02);
+  addTo(g, roundedBox(0.02, 0.02, 0.02, 0.004), accent, -0.02, 0.12, 0.04);
+  addTo(g, roundedBox(0.02, 0.02, 0.02, 0.004), accent, 0.02, 0.12, 0.04);
+  addTo(g, roundedBox(0.06, 0.03, 0.03, 0.006), handset, 0, 0.2, 0.04);
+  addTo(g, roundedBox(0.04, 0.08, 0.03, 0.006), handset, 0, 0.28, 0.04);
+  addTo(g, roundedBox(0.015, 0.12, 0.015, 0.004), bondeeMat(0x444455), 0, 0.22, 0.02);
 }
 
 export function syncRoomFurniture(root: THREE.Group, items: BondeePlacedItem[]) {

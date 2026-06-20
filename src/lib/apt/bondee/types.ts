@@ -42,6 +42,7 @@ export type BondeeFurnitureKind =
   | "smartphone"
   | "window"
   | "mailbox"
+  | "telephone"
   | "acoustic_guitar"
   | "electric_guitar"
   | "bass_guitar"
@@ -164,6 +165,7 @@ export const BONDEE_FURNITURE_LABELS: Record<BondeeFurnitureKind, string> = {
   smartphone: "스마트폰",
   window: "창문",
   mailbox: "우편함",
+  telephone: "전화기",
   acoustic_guitar: "어쿠스틱 기타",
   electric_guitar: "일렉트릭 기타",
   bass_guitar: "베이스 기타",
@@ -192,7 +194,7 @@ export const BONDEE_FURNITURE_CATEGORIES: { label: string; kinds: BondeeFurnitur
     label: "가전",
     kinds: ["tv_stand", "refrigerator", "ac", "washer", "treadmill", "computer", "monitor", "smartphone"],
   },
-  { label: "소품", kinds: ["coffee_table", "floor_lamp", "plant", "clock", "hoop", "gramophone", "mailbox"] },
+  { label: "소품", kinds: ["coffee_table", "floor_lamp", "plant", "clock", "hoop", "gramophone", "mailbox", "telephone"] },
   {
     label: "악기",
     kinds: [

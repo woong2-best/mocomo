@@ -1,7 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
   User,
-  MessageCircle,
   Star,
   Banknote,
   Tv,
@@ -28,7 +27,6 @@ export const mainNavItems: NavItem[] = [
   { href: "/discover", icon: Sparkles, labelKey: "nav.discover" },
   { href: "/my-page", icon: User, labelKey: "nav.myPage" },
   { href: "/communities", icon: Users, labelKey: "nav.communities" },
-  { href: "/messages", icon: MessageCircle, labelKey: "nav.messages" },
   { href: "/star", icon: Star, labelKey: "nav.star" },
   { href: "/anime", icon: Tv, labelKey: "nav.anime" },
   { href: "/cosplay", icon: Camera, labelKey: "nav.cosplay" },
@@ -40,5 +38,5 @@ export const mainNavItems: NavItem[] = [
   { href: "/support", icon: SupportTrophyIcon, labelKey: "nav.support" },
   { href: "/wallet", icon: Banknote, labelKey: "nav.wallet" },
   { href: "/premium", icon: Crown, labelKey: "nav.premium" },
-  { href: "/compose", icon: PenSquare, labelKey: "nav.compose" },
+  { href: "/apt?decor=mailbox", icon: PenSquare, labelKey: "nav.compose" },
 ];
