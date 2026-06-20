@@ -251,7 +251,17 @@ function shouldShowRoom(roomId: string, visibleRoomIds?: Set<string> | null) {
   return visibleRoomIds.has(roomId);
 }
 
-function buildInteriorDoor(door: HomeDoorway, wallHeight: number, _accent: number): THREE.Group {
+/**
+ * 문이 뚫린 내벽 한 장 전체를 만든다.
+ * 문짝(여닫이) + 상인방 + 좌우 벽을 공유 변(`dims`) 전체에 채워,
+ * 문 구멍을 제외한 면은 빈틈 없이 막힌다(통과 벽·공중에 뜬 문틀 방지).
+ */
+function buildInteriorDoor(
+  door: HomeDoorway,
+  wallHeight: number,
+  _accent: number,
+  dims: { wx: number; wz: number; px: number; pz: number }
+): THREE.Group {
   const g = new THREE.Group();
   g.name = `door-${door.id}`;
   g.userData.doorId = door.id;
@@ -298,17 +308,16 @@ function buildInteriorDoor(door: HomeDoorway, wallHeight: number, _accent: numbe
       jamb.position.set(door.cx, doorH / 2 + 0.05, door.cz + sign * (doorW / 2 + frameT / 2));
       g.add(jamb);
     }
-    const sideLen = Math.max(0, door.span - doorW - 0.08);
-    if (sideLen > 0.06) {
-      for (const sign of [-1, 1] as const) {
-        const seg = makeInteriorSeg(
-          roundedBox(frameT, wallHeight, sideLen, 0.006),
-          door.cx,
-          wallHeight / 2 + 0.05,
-          door.cz + sign * (doorW / 2 + sideLen / 2 + 0.02)
-        );
-        g.add(seg);
-      }
+    // e/w 벽: z축을 따라 면 전체를 채운다
+    const minZ = dims.pz - dims.wz / 2;
+    const maxZ = dims.pz + dims.wz / 2;
+    const negLen = door.cz - doorW / 2 - frameT - minZ;
+    if (negLen > 0.02) {
+      g.add(makeInteriorSeg(roundedBox(frameT, wallHeight, negLen, 0.006), door.cx, wallHeight / 2 + 0.05, minZ + negLen / 2));
+    }
+    const posLen = maxZ - (door.cz + doorW / 2 + frameT);
+    if (posLen > 0.02) {
+      g.add(makeInteriorSeg(roundedBox(frameT, wallHeight, posLen, 0.006), door.cx, wallHeight / 2 + 0.05, maxZ - posLen / 2));
     }
   } else {
     for (const sign of [-1, 1] as const) {
@@ -316,17 +325,23 @@ function buildInteriorDoor(door: HomeDoorway, wallHeight: number, _accent: numbe
       jamb.position.set(door.cx + sign * (doorW / 2 + frameT / 2), doorH / 2 + 0.05, door.cz);
       g.add(jamb);
     }
-    const sideLen = Math.max(0, door.span - doorW - 0.08);
-    if (sideLen > 0.06) {
-      for (const sign of [-1, 1] as const) {
-        const seg = makeInteriorSeg(
-          roundedBox(sideLen, wallHeight, frameT, 0.006),
-          door.cx + sign * (doorW / 2 + sideLen / 2 + 0.02),
+    // n/s 벽: x축을 따라 면 전체를 채운다
+    const minX = dims.px - dims.wx / 2;
+    const maxX = dims.px + dims.wx / 2;
+    const negLen = door.cx - doorW / 2 - frameT - minX;
+    if (negLen > 0.02) {
+      g.add(makeInteriorSeg(roundedBox(negLen, wallHeight, frameT, 0.006), minX + negLen / 2, wallHeight / 2 + 0.05, door.cz));
+    }
+    const posLen = maxX - (door.cx + doorW / 2 + frameT);
+    if (posLen > 0.02) {
+      g.add(
+        makeInteriorSeg(
+          roundedBox(posLen, wallHeight, frameT, 0.006),
+          maxX - posLen / 2,
           wallHeight / 2 + 0.05,
           door.cz
-        );
-        g.add(seg);
-      }
+        )
+      );
     }
   }
 
@@ -417,7 +432,7 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
       if (resolved.kind === "door") {
         if (resolved.doorway) {
           const doorWallH = wallHeightWorld(wallHeight, "INTERIOR");
-          doorRoot.add(buildInteriorDoor(resolved.doorway, doorWallH, accent));
+          doorRoot.add(buildInteriorDoor(resolved.doorway, doorWallH, accent, dims));
         }
         continue;
       }

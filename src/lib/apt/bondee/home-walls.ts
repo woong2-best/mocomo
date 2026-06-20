@@ -82,25 +82,23 @@ export function neighborRoomAt(room: AptRoom, rooms: AptRoom[], side: HomeWallSi
   return rooms.find((o) => o.id !== room.id && sharesPlanEdge(room, o, side)) ?? null;
 }
 
+/** 복도와 벽·문 없이 완전히 트인 공간(거실·부엌) */
+function isOpenPlanRoom(room: AptRoom): boolean {
+  return room.id === "living" || room.id === "kitchen";
+}
+
 /**
  * 개방 구간 — 문·내벽 없이 통로로 연결.
- * 거실은 복도/옆방과 마주보는 모든 내부 면을 개방(벽·문 없음).
- * 그 외 방은 복도와 문으로만 연결되므로 개방 구간이 아니다.
+ * 거실/부엌은 복도와 트여 하나의 공간(거실↔복도↔부엌)을 이룬다.
+ * 방·화장실·엘리베이터는 복도와 문으로만 연결되므로 개방 구간이 아니다.
  */
 export function isOpenPassageEdge(room: AptRoom, rooms: AptRoom[], side: HomeWallSide): boolean {
   const neighbor = neighborRoomAt(room, rooms, side);
   if (!neighbor) return false;
 
   if (
-    (room.id === "living" && neighbor.type !== "balcony") ||
-    (neighbor.id === "living" && room.type !== "balcony")
-  ) {
-    return true;
-  }
-
-  if (
-    (room.id === "elevator" && neighbor.type === "balcony") ||
-    (room.type === "balcony" && neighbor.id === "elevator")
+    (room.id === "hall-corridor" && isOpenPlanRoom(neighbor)) ||
+    (neighbor.id === "hall-corridor" && isOpenPlanRoom(room))
   ) {
     return true;
   }
