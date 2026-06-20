@@ -266,8 +266,8 @@ function buildInteriorDoor(
   g.name = `door-${door.id}`;
   g.userData.doorId = door.id;
 
-  const doorH = wallHeight * 0.84;
-  const doorW = Math.min(door.span * 0.92, 0.58);
+  const doorH = wallHeight * 0.86;
+  const doorW = Math.min(door.span * 0.94, 1.0);
   const frameT = 0.042;
 
   const frameMat = bondeeMat(BONDEE_PALETTE.trim, { transparent: true, opacity: 0.85 });

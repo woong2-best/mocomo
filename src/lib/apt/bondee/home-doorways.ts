@@ -18,10 +18,10 @@ export type HomeDoorway = {
   swing: 1 | -1;
 };
 
-const DOOR_MIN = 0.36;
-const DOOR_MAX = 0.54;
-export const DOOR_PORTAL_DEPTH = 0.2;
-const DOOR_OPEN_DIST = 0.45;
+const DOOR_MIN = 0.6;
+const DOOR_MAX = 0.98;
+export const DOOR_PORTAL_DEPTH = 0.5;
+const DOOR_OPEN_DIST = 0.6;
 
 function planRect(room: AptRoom) {
   return { x1: room.x, y1: room.y, x2: room.x + room.w, y2: room.y + room.h };
@@ -116,7 +116,7 @@ export function computeHomeDoorways(rooms: AptRoom[]): HomeDoorway[] {
 }
 
 export function isInDoorPortal(x: number, z: number, door: HomeDoorway): boolean {
-  const pad = 0.06;
+  const pad = 0.12;
   if (door.axis === "x") {
     return Math.abs(x - door.cx) <= DOOR_PORTAL_DEPTH / 2 + pad && Math.abs(z - door.cz) <= door.span / 2 + pad;
   }
