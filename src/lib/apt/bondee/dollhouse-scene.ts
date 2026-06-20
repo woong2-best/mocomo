@@ -22,6 +22,7 @@ import {
   disposeGroup,
 } from "./dollhouse-meshes";
 import type { BondeeHomeState } from "./types";
+import { DEFAULT_CHIBI_AVATAR } from "./types";
 import type { FurnitureItem, ResidentAgent, SimulationSnapshot } from "@/lib/apt/simulation/types";
 
 export { APT_DEFAULT_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
@@ -32,6 +33,10 @@ const SCROLL_EPS = 0.002;
 const MIN_RIDE_SEC = 0.85;
 const MAX_RIDE_SEC = 18;
 const SEC_PER_FLOOR = 0.34;
+const WALK_TO_ELEVATOR_SEC = 0.75;
+const ENTER_ELEVATOR_SEC = 0.55;
+const EXIT_ELEVATOR_SEC = 0.75;
+const AVATAR_SCALE = 0.88;
 
 type ElevatorRide = {
   from: number;
@@ -39,6 +44,8 @@ type ElevatorRide = {
   elapsed: number;
   duration: number;
 };
+
+type RidePhase = "pre-walk" | "pre-enter" | "riding" | "post-exit";
 
 function easeInOutQuint(t: number) {
   return t < 0.5 ? 16 * t * t * t * t * t : 1 - Math.pow(-2 * t + 2, 5) / 2;
@@ -55,13 +62,16 @@ export type FloorResident = {
   username: string;
   displayName: string;
   homeFloor: number;
+  doorOpen: boolean;
 };
 
 function residentsEqual(a: Map<number, FloorResident>, b: Map<number, FloorResident>) {
   if (a.size !== b.size) return false;
   for (const [k, v] of a) {
     const o = b.get(k);
-    if (!o || o.userId !== v.userId || o.displayName !== v.displayName) return false;
+    if (!o || o.userId !== v.userId || o.displayName !== v.displayName || o.doorOpen !== v.doorOpen) {
+      return false;
+    }
   }
   return true;
 }
@@ -101,6 +111,9 @@ export class DollhouseBuildingScene {
   private virtualFloor = APT_DEFAULT_FLOOR;
   private lastDisplayedFloor = APT_DEFAULT_FLOOR;
   private elevatorRide: ElevatorRide | null = null;
+  private ridePhase: RidePhase | null = null;
+  private ridePhaseTime = 0;
+  private avatarWalkPhase = 0;
   private targetScrollY = 0;
   private scrollY = 0;
   private elevCarY = 0;
@@ -238,11 +251,152 @@ export class DollhouseBuildingScene {
     return unit;
   }
 
-  private syncAvatar(_unitY: number) {
-    if (this.avatar) {
-      this.avatar.dispose();
-      this.avatar = null;
+  private shaftX() {
+    return DOLLHOUSE_UNIT_W / 2 + DOLLHOUSE_ELEVATOR_W / 2 + 0.15;
+  }
+
+  private avatarLocalYForFloor(floor: number) {
+    const { start } = this.visibleRange(Math.round(floor));
+    return this.floorLocalY(Math.round(floor), start);
+  }
+
+  private easeSmooth(u: number) {
+    return u * u * (3 - 2 * u);
+  }
+
+  private ensureAvatar() {
+    const config = this.bondeeRoom?.avatar ?? DEFAULT_CHIBI_AVATAR;
+    const pose = this.bondeeRoom?.pose ?? "stand";
+    if (!this.avatar) {
+      this.avatar = new ChibiAvatarMesh();
+      this.avatar.root.scale.setScalar(AVATAR_SCALE);
+      this.avatar.root.name = "floor-avatar";
+      this.building.add(this.avatar.root);
     }
+    this.avatar.rebuild(config, pose);
+    this.avatar.root.visible = true;
+  }
+
+  private hideAvatar() {
+    if (!this.avatar) return;
+    this.avatar.dispose();
+    this.building.remove(this.avatar.root);
+    this.avatar = null;
+  }
+
+  private setAvatarPose(x: number, y: number, z: number, rotY: number) {
+    if (!this.avatar) return;
+    this.avatar.root.position.set(x, y, z);
+    this.avatar.root.rotation.y = rotY;
+  }
+
+  private lerpAvatarOnFloor(
+    floor: number,
+    from: { x: number; z: number; rotY: number },
+    to: { x: number; z: number; rotY: number },
+    u: number,
+    moving: boolean
+  ) {
+    const eased = this.easeSmooth(u);
+    const localY = this.avatarLocalYForFloor(floor);
+    this.setAvatarPose(
+      THREE.MathUtils.lerp(from.x, to.x, eased),
+      localY + 0.02,
+      THREE.MathUtils.lerp(from.z, to.z, eased),
+      THREE.MathUtils.lerp(from.rotY, to.rotY, eased)
+    );
+    this.avatar?.animateWalk(this.avatarWalkPhase, moving);
+  }
+
+  private syncAvatarInElevator() {
+    if (!this.avatar) return;
+    const sx = this.shaftX();
+    this.setAvatarPose(sx, this.elevCarY + 0.05, 0.15, -0.55);
+    this.avatar.animateWalk(this.avatarWalkPhase, false);
+    const sway = Math.sin(this.avatarWalkPhase * 4) * 0.012;
+    this.avatar.root.position.y = this.elevCarY + 0.05 + sway;
+  }
+
+  private tickAvatarPhases(delta: number): boolean {
+    const ride = this.elevatorRide;
+    if (!ride || !this.ridePhase || !this.avatar) return false;
+
+    this.ridePhaseTime += delta;
+    this.avatarWalkPhase += delta;
+    const sx = this.shaftX();
+    const fromFloor = Math.round(ride.from);
+    const toFloor = Math.round(ride.to);
+
+    if (this.ridePhase === "pre-walk" || this.ridePhase === "pre-enter") {
+      this.virtualFloor = ride.from;
+      this.elevCarY = this.elevatorYForVirtualFloor(ride.from);
+      this.scrollY = this.scrollForVirtualFloor(ride.from);
+      this.targetScrollY = this.scrollY;
+      this.building.position.y = this.scrollY;
+    } else if (this.ridePhase === "post-exit") {
+      this.virtualFloor = ride.to;
+      this.elevCarY = this.elevatorYForVirtualFloor(ride.to);
+      this.scrollY = this.scrollForVirtualFloor(ride.to);
+      this.targetScrollY = this.scrollY;
+      this.building.position.y = this.scrollY;
+    }
+
+    switch (this.ridePhase) {
+      case "pre-walk": {
+        const u = Math.min(1, this.ridePhaseTime / WALK_TO_ELEVATOR_SEC);
+        this.lerpAvatarOnFloor(
+          fromFloor,
+          { x: -0.15, z: 0.42, rotY: 0.1 },
+          { x: sx - 0.12, z: 0.2, rotY: -0.45 },
+          u,
+          u < 0.92
+        );
+        if (u >= 1) {
+          this.ridePhase = "pre-enter";
+          this.ridePhaseTime = 0;
+        }
+        break;
+      }
+      case "pre-enter": {
+        const u = Math.min(1, this.ridePhaseTime / ENTER_ELEVATOR_SEC);
+        const localY = this.avatarLocalYForFloor(fromFloor);
+        const eased = this.easeSmooth(u);
+        this.setAvatarPose(
+          THREE.MathUtils.lerp(sx - 0.12, sx, eased),
+          localY + 0.02 + eased * 0.03,
+          THREE.MathUtils.lerp(0.2, 0.15, eased),
+          THREE.MathUtils.lerp(-0.45, -0.55, eased)
+        );
+        this.avatar.animateWalk(this.ridePhaseTime, u < 0.7);
+        if (u >= 1) {
+          this.ridePhase = "riding";
+          this.ridePhaseTime = 0;
+          this.syncAvatarInElevator();
+        }
+        break;
+      }
+      case "post-exit": {
+        const u = Math.min(1, this.ridePhaseTime / EXIT_ELEVATOR_SEC);
+        this.lerpAvatarOnFloor(
+          toFloor,
+          { x: sx, z: 0.15, rotY: -0.55 },
+          { x: -0.1, z: 0.4, rotY: 0.05 },
+          u,
+          u < 0.85
+        );
+        if (u >= 1) {
+          this.ridePhase = null;
+          this.ridePhaseTime = 0;
+          this.completeElevatorRide();
+        }
+        break;
+      }
+      default:
+        break;
+    }
+
+    this.updateElevatorCar();
+    return true;
   }
 
   private rebuildBuilding() {
@@ -250,9 +404,8 @@ export class DollhouseBuildingScene {
     disposeGroup(this.shellRoot);
     while (this.unitsRoot.children.length) this.unitsRoot.remove(this.unitsRoot.children[0]);
     while (this.shellRoot.children.length) this.shellRoot.remove(this.shellRoot.children[0]);
-    if (this.avatar) {
-      this.avatar.dispose();
-      this.avatar = null;
+    if (!this.elevatorRide && !this.ridePhase) {
+      this.hideAvatar();
     }
 
     const { start, end, count } = this.visibleRange();
@@ -265,7 +418,30 @@ export class DollhouseBuildingScene {
     }
 
     const activeUnitY = this.floorLocalY(this.currentFloor, start);
-    this.syncAvatar(activeUnitY);
+    if (this.ridePhase) {
+      if (this.ridePhase === "riding" || this.ridePhase === "pre-enter") {
+        this.syncAvatarInElevator();
+      } else if (this.ridePhase === "pre-walk") {
+        this.lerpAvatarOnFloor(
+          Math.round(this.elevatorRide?.from ?? this.currentFloor),
+          { x: -0.15, z: 0.42, rotY: 0.1 },
+          { x: this.shaftX() - 0.12, z: 0.2, rotY: -0.45 },
+          Math.min(1, this.ridePhaseTime / WALK_TO_ELEVATOR_SEC),
+          true
+        );
+      } else if (this.ridePhase === "post-exit") {
+        this.lerpAvatarOnFloor(
+          Math.round(this.elevatorRide?.to ?? this.currentFloor),
+          { x: this.shaftX(), z: 0.15, rotY: -0.55 },
+          { x: -0.1, z: 0.4, rotY: 0.05 },
+          Math.min(1, this.ridePhaseTime / EXIT_ELEVATOR_SEC),
+          true
+        );
+      }
+    } else if (!this.elevatorRide) {
+      this.hideAvatar();
+    }
+    void activeUnitY;
 
     this.shellRoot.add(buildDollhouseShell(count));
 
@@ -299,7 +475,7 @@ export class DollhouseBuildingScene {
       const floorNum = f as number;
       if (floorNum < this.lastRangeStart || floorNum > this.lastRangeEnd) continue;
       const idx = this.unitsRoot.children.findIndex(
-        (c) => c.userData.floor === floorNum && c !== this.avatar?.root
+        (c) => c.userData.floor === floorNum && c.name !== "floor-avatar"
       );
       if (idx === -1) continue;
       const old = this.unitsRoot.children[idx];
@@ -308,7 +484,9 @@ export class DollhouseBuildingScene {
       const unit = this.buildUnitForFloor(floorNum, start);
       this.unitsRoot.add(unit);
     }
-    this.syncAvatar(this.floorLocalY(this.currentFloor, start));
+    if (this.ridePhase === "riding") {
+      this.syncAvatarInElevator();
+    }
     this.requestRender();
   }
 
@@ -340,7 +518,9 @@ export class DollhouseBuildingScene {
     this.targetScrollY = this.scrollY;
     this.building.position.y = this.scrollY;
     this.updateElevatorCar();
-    this.syncAvatar(this.elevCarY);
+    if (this.ridePhase === "riding") {
+      this.syncAvatarInElevator();
+    }
   }
 
   private onDisplayedFloorChange(prevFloor: number, nextFloor: number) {
@@ -371,6 +551,10 @@ export class DollhouseBuildingScene {
       elapsed: 0,
       duration: rideDurationSec(from, to),
     };
+    this.ridePhase = "pre-walk";
+    this.ridePhaseTime = 0;
+    this.avatarWalkPhase = 0;
+    this.ensureAvatar();
     this.moving = true;
     this.callbacks.onRideStart?.();
     this.requestRender();
@@ -388,15 +572,25 @@ export class DollhouseBuildingScene {
       elapsed: 0,
       duration: rideDurationSec(from, to),
     };
+    if (this.ridePhase === "post-exit") {
+      this.ridePhase = "riding";
+      this.ridePhaseTime = 0;
+    } else if (!this.ridePhase) {
+      this.ridePhase = "pre-walk";
+      this.ridePhaseTime = 0;
+      this.avatarWalkPhase = 0;
+      this.ensureAvatar();
+    }
     this.moving = true;
     this.requestRender();
   }
 
   private tickElevatorRide(delta: number): boolean {
     const ride = this.elevatorRide;
-    if (!ride) return false;
+    if (!ride || this.ridePhase !== "riding") return false;
 
     ride.elapsed += delta;
+    this.avatarWalkPhase += delta;
     const t = Math.min(1, ride.elapsed / ride.duration);
     const eased = easeInOutQuint(t);
     const prevDisplayed = this.lastDisplayedFloor;
@@ -411,10 +605,12 @@ export class DollhouseBuildingScene {
     }
 
     this.syncRideVisuals();
+    this.syncAvatarInElevator();
 
     if (t >= 1) {
-      this.completeElevatorRide();
-      return false;
+      this.ridePhase = "post-exit";
+      this.ridePhaseTime = 0;
+      return true;
     }
     return true;
   }
@@ -422,6 +618,8 @@ export class DollhouseBuildingScene {
   private completeElevatorRide() {
     const target = this.elevatorRide?.to ?? this.virtualFloor;
     this.elevatorRide = null;
+    this.ridePhase = null;
+    this.ridePhaseTime = 0;
     this.virtualFloor = target;
 
     const prev = this.lastDisplayedFloor;
@@ -434,6 +632,7 @@ export class DollhouseBuildingScene {
     }
 
     this.syncRideVisuals();
+    this.hideAvatar();
     this.moving = false;
     this.callbacks.onFloorDisplay?.(rounded);
     this.callbacks.onRideEnd?.();
@@ -475,6 +674,9 @@ export class DollhouseBuildingScene {
 
   setBondeeRoom(room: BondeeHomeState | null) {
     this.bondeeRoom = room;
+    if (this.avatar && room) {
+      this.avatar.rebuild(room.avatar, room.pose ?? "stand");
+    }
     if (this.lastRangeStart >= 0) {
       this.refreshFloorFocus(this.currentFloor);
     } else {
@@ -524,6 +726,8 @@ export class DollhouseBuildingScene {
     if (!this.elevatorRide) return;
     const target = this.elevatorRide.to;
     this.virtualFloor = target;
+    this.ridePhase = null;
+    this.ridePhaseTime = 0;
     this.completeElevatorRide();
   }
 
@@ -640,8 +844,16 @@ export class DollhouseBuildingScene {
 
     let animating = false;
 
-    if (this.elevatorRide) {
+    if (
+      this.ridePhase === "pre-walk" ||
+      this.ridePhase === "pre-enter" ||
+      this.ridePhase === "post-exit"
+    ) {
+      animating = this.tickAvatarPhases(delta) || animating;
+    } else if (this.elevatorRide && this.ridePhase === "riding") {
       animating = this.tickElevatorRide(delta) || animating;
+    } else if (this.elevatorRide) {
+      animating = true;
     } else {
       const scrollDelta = this.targetScrollY - this.scrollY;
       if (Math.abs(scrollDelta) > SCROLL_EPS) {
@@ -668,7 +880,7 @@ export class DollhouseBuildingScene {
     canvas.removeEventListener("wheel", this.onWheel);
     disposeGroup(this.unitsRoot);
     disposeGroup(this.shellRoot);
-    this.avatar?.dispose();
+    this.hideAvatar();
     this.renderer.dispose();
     canvas.remove();
   }

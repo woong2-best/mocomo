@@ -1,7 +1,6 @@
 "use client";
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
   Armchair,
@@ -17,8 +16,10 @@ import {
   ArrowDownToLine,
 } from "lucide-react";
 import { saveBondeeHome } from "@/actions/apt-bondee";
-import { IsometricHomeScene, type NearbyFurnitureInteract } from "@/lib/apt/bondee/isometric-home-scene";
-import { ARCHITECTURE_LABELS } from "@/lib/apt/bondee/furniture-architecture";
+import {
+  IsometricHomeScene,
+  type NearbyFurnitureInteract,
+} from "@/lib/apt/bondee/isometric-home-scene";
 import {
   BONDEE_FURNITURE_CATEGORIES,
   BONDEE_FURNITURE_LABELS,
@@ -33,12 +34,7 @@ import { cn } from "@/lib/utils";
 import { AptChibiCustomizer } from "@/components/apt/apt-chibi-customizer";
 import { HomeAvatarControls } from "@/components/apt/home-avatar-controls";
 import { GramophonePanel } from "@/components/apt/gramophone-panel";
-import { useGameIrisTransition } from "@/components/games/game-iris-transition";
-
-const GamesHubClient = dynamic(
-  () => import("@/components/games/games-hub-client").then((m) => m.GamesHubClient),
-  { ssr: false }
-);
+import { AptEntranceDoorToggle } from "@/components/apt/apt-entrance-door-toggle";
 
 const POSE_OPTIONS: { id: ChibiPose; label: string; icon: typeof Sofa; key: string }[] = [
   { id: "stand", label: "서기", icon: PersonStanding, key: "1" },
@@ -56,6 +52,8 @@ function AptBondeeRoomInner({
   studioInventory = [],
   onHomeChange,
   paused = false,
+  doorOpen = true,
+  onDoorToggle,
 }: {
   initialState: BondeeHomeState;
   rooms: AptRoom[];
@@ -63,6 +61,8 @@ function AptBondeeRoomInner({
   studioInventory?: AptStudioInventoryItem[];
   onHomeChange?: (state: BondeeHomeState) => void;
   paused?: boolean;
+  doorOpen?: boolean;
+  onDoorToggle?: () => void;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<IsometricHomeScene | null>(null);
@@ -80,15 +80,11 @@ function AptBondeeRoomInner({
   const [deleteMode, setDeleteMode] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [nearConsole, setNearConsole] = useState(false);
   const [nearGramophone, setNearGramophone] = useState(false);
   const [gramophoneOpen, setGramophoneOpen] = useState(false);
   const [gramophonePlaying, setGramophonePlaying] = useState(false);
   const [nearbyFurniture, setNearbyFurniture] = useState<NearbyFurnitureInteract | null>(null);
-  const [gamesOpen, setGamesOpen] = useState(false);
   const router = useRouter();
-  const { runWithIris, IrisOverlay } = useGameIrisTransition();
-  const openGamesRef = useRef<() => void>(() => {});
   const openGramophoneRef = useRef<() => void>(() => {});
 
   const movementDisabled = panel === "decor" && (!!placeTool || !!studioTool || deleteMode);
@@ -135,14 +131,6 @@ function AptBondeeRoomInner({
     [onHomeChange, persist]
   );
 
-  const openGames = useCallback(() => {
-    void runWithIris(() => {
-      setGamesOpen(true);
-    });
-  }, [runWithIris]);
-
-  openGamesRef.current = openGames;
-
   const openGramophone = useCallback(() => {
     setGramophoneOpen(true);
   }, []);
@@ -175,10 +163,9 @@ function AptBondeeRoomInner({
     });
     scene.setCallbacks({
       onItemSelect: setSelectedItemId,
-      onNearConsoleChange: setNearConsole,
-      onGameConsoleInteract: () => openGamesRef.current(),
       onNearGramophoneChange: setNearGramophone,
       onGramophoneInteract: () => openGramophoneRef.current(),
+      onNavigateInteract: (href) => router.push(href),
       onActiveRoomChange: (roomId) => setActiveRoomId(roomId),
       onNearbyFurnitureChange: setNearbyFurniture,
       onPoseChange,
@@ -194,22 +181,6 @@ function AptBondeeRoomInner({
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
-
-  const closeGames = useCallback(() => {
-    void runWithIris(() => {
-      setGamesOpen(false);
-    });
-  }, [runWithIris]);
-
-  const navigateToGame = useCallback(
-    (href: string) => {
-      void runWithIris(() => {
-        setGamesOpen(false);
-        router.push(href);
-      });
-    },
-    [runWithIris, router]
-  );
 
   useEffect(() => {
     sceneRef.current?.setDecorMode(panel === "decor", placeTool, deleteMode, studioTool);
@@ -259,13 +230,6 @@ function AptBondeeRoomInner({
 
   return (
     <div className="folk-card overflow-hidden bg-white">
-      <IrisOverlay />
-      {gamesOpen && (
-        <div className="fixed inset-0 z-[190] overflow-y-auto bg-folk-cream">
-          <GamesHubClient embedded onClose={closeGames} onGameNavigate={navigateToGame} />
-        </div>
-      )}
-
       <div className="relative min-h-[min(80dvh,820px)] bg-gradient-to-b from-[#fef6f8] to-[#ffe8f0]">
         <div ref={mountRef} className="absolute inset-0" />
 
@@ -286,10 +250,10 @@ function AptBondeeRoomInner({
           {nearGramophone && !movementDisabled && !gramophoneOpen && (
             <p className="text-[10px] text-amber-700 font-semibold">그라모폰 — MP3 재생 (E)</p>
           )}
-          {nearbyFurniture && !movementDisabled && (
+          {nearbyFurniture && !nearGramophone && !movementDisabled && (
             <p className="text-[10px] text-folk-cobalt font-semibold">
               {BONDEE_FURNITURE_LABELS[nearbyFurniture.kind] ?? nearbyFurniture.label} —{" "}
-              {nearbyFurniture.architectures.map((a) => ARCHITECTURE_LABELS[a]).join(" · ")} (E)
+              {nearbyFurniture.actionLabel} (E)
             </p>
           )}
         </div>
@@ -297,15 +261,13 @@ function AptBondeeRoomInner({
         <div className="absolute left-3 bottom-3 pointer-events-auto">
           <HomeAvatarControls
             disabled={movementDisabled}
-            canInteract={(nearConsole || nearGramophone || !!nearbyFurniture) && !movementDisabled}
+            canInteract={(nearGramophone || !!nearbyFurniture) && !movementDisabled}
             interactLabel={
-              nearConsole
-                ? "게임기 시작 (E)"
-                : nearGramophone
-                  ? "그라모폰 MP3 (E)"
-                  : nearbyFurniture
-                    ? `${BONDEE_FURNITURE_LABELS[nearbyFurniture.kind] ?? nearbyFurniture.label} (E)`
-                    : undefined
+              nearGramophone
+                ? "그라모폰 MP3 (E)"
+                : nearbyFurniture
+                  ? `${nearbyFurniture.actionLabel} (E)`
+                  : undefined
             }
             onMove={(x, z) => sceneRef.current?.setMoveInput(x, z)}
             onInteract={() => sceneRef.current?.tryInteract()}
@@ -313,6 +275,11 @@ function AptBondeeRoomInner({
         </div>
 
         <div className="absolute right-3 top-3 flex flex-col gap-1.5">
+          {isLoggedIn && onDoorToggle && (
+            <div className="mb-1 w-[11rem] pointer-events-auto">
+              <AptEntranceDoorToggle doorOpen={doorOpen} onToggle={onDoorToggle} compact />
+            </div>
+          )}
           {POSE_OPTIONS.map((p) => (
             <button
               key={p.id}

@@ -61,7 +61,7 @@ export function AptWorldVisitorsPanel({
       <div className="max-h-52 overflow-y-auto p-2 space-y-1.5">
         {loading && <p className="text-xs text-muted-foreground text-center py-4">불러오는 중…</p>}
         {!loading && homes.length === 0 && (
-          <p className="text-xs text-muted-foreground text-center py-4">공개된 이웃 집이 없습니다</p>
+          <p className="text-xs text-muted-foreground text-center py-4">현관문이 열린 이웃 집이 없습니다</p>
         )}
         {homes.map((h) => (
           <button

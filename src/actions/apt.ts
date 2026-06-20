@@ -309,6 +309,8 @@ export type FloorOccupant = {
   username: string;
   displayName: string;
   homeFloor: number;
+  /** true = 현관문 열림 → 다른 유저가 집 구경 가능 */
+  doorOpen: boolean;
 };
 
 /** 국가별 층 점유 현황 (입주 완료 유저) */
@@ -329,6 +331,7 @@ export async function getCountryFloorOccupants(countryCode: string): Promise<Flo
     username: row.user.username,
     displayName: row.user.name ?? row.user.username,
     homeFloor: row.homeFloor ?? APT_DEFAULT_FLOOR,
+    doorOpen: row.homePublic ?? true,
   }));
 }
 

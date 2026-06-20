@@ -6,8 +6,6 @@ import { ChibiAvatarMesh } from "./chibi-avatar";
 import {
   DOLLHOUSE_ELEVATOR_W,
   DOLLHOUSE_FLOOR_H,
-  DOLLHOUSE_UNIT_D,
-  DOLLHOUSE_UNIT_W,
   PASTEL,
   buildDollhouseUnit,
   buildElevatorShaft,
@@ -21,8 +19,11 @@ import { createAptRenderer, stripShadows } from "./scene-perf";
 export type MoveInPhase =
   | "walk-in"
   | "to-elevator"
+  | "doors-opening-lobby"
   | "enter-elevator"
+  | "doors-closing"
   | "elevator-ride"
+  | "doors-opening"
   | "exit-elevator"
   | "to-home"
   | "done";
@@ -30,15 +31,19 @@ export type MoveInPhase =
 export type MoveInEntryCallbacks = {
   onPhaseChange?: (phase: MoveInPhase) => void;
   onFloorDisplay?: (floor: number) => void;
+  onDoorProgress?: (closed: number) => void;
   onComplete?: () => void;
 };
 
 const PHASE_LABEL: Record<MoveInPhase, string> = {
   "walk-in": "아파트 입구로 들어가는 중…",
-  "to-elevator": "엘리베이터로 이동 중…",
+  "to-elevator": "엘리베이터 앞으로 이동 중…",
+  "doors-opening-lobby": "엘리베이터 문이 열립니다",
   "enter-elevator": "엘리베이터 탑승",
+  "doors-closing": "문이 닫히는 중…",
   "elevator-ride": "엘리베이터 상승 중…",
-  "exit-elevator": "목적 층 도착",
+  "doors-opening": "목적 층 도착 · 문이 열립니다",
+  "exit-elevator": "엘리베이터에서 내리는 중…",
   "to-home": "내 집 현관으로 이동…",
   done: "입주 완료!",
 };
@@ -47,14 +52,33 @@ export { PHASE_LABEL as MOVE_IN_PHASE_LABEL };
 
 type PathKeyframe = { t: number; x: number; y: number; z: number; rotY: number };
 
+const DOOR_OPEN_LEFT = -DOLLHOUSE_ELEVATOR_W * 0.21;
+const DOOR_OPEN_RIGHT = DOLLHOUSE_ELEVATOR_W * 0.21;
+const DOOR_CLOSED_LEFT = -0.03;
+const DOOR_CLOSED_RIGHT = 0.03;
+
+function easeInOutQuint(t: number) {
+  return t < 0.5 ? 16 * t * t * t * t * t : 1 - Math.pow(-2 * t + 2, 5) / 2;
+}
+
+function moveInRideDurationSec(from: number, to: number) {
+  const d = Math.abs(to - from);
+  if (d <= 1) return 2.5;
+  return Math.min(14, Math.max(4, 2.8 + d * 0.022));
+}
+
 export class MoveInEntryScene {
   private mount: HTMLElement;
   private renderer: THREE.WebGLRenderer;
   private scene: THREE.Scene;
   private camera: THREE.OrthographicCamera;
   private world = new THREE.Group();
+  private buildingScroll = new THREE.Group();
   private avatar: ChibiAvatarMesh;
-  private elevatorCar: THREE.Object3D | null = null;
+  private elevatorCar: THREE.Group | null = null;
+  private doorLeft: THREE.Object3D | null = null;
+  private doorRight: THREE.Object3D | null = null;
+  private shaftMarkers = new THREE.Group();
   private unitsRoot = new THREE.Group();
   private homeUnit: THREE.Group | null = null;
   private raf = 0;
@@ -66,14 +90,17 @@ export class MoveInEntryScene {
   private phase: MoveInPhase = "walk-in";
   private phaseTime = 0;
   private displayFloor = APT_LOBBY_FLOOR;
-  private elevDisplayY = 0;
-  private walkPhase = 0;
+  private lastTickFloor = APT_LOBBY_FLOOR;
+  private doorClosed = 1;
+  private rideDuration = 6;
+  private shaftX = 1.9;
 
   private readonly path: PathKeyframe[] = [];
 
   constructor(mount: HTMLElement, homeFloor: number) {
     this.mount = mount;
     this.homeFloor = homeFloor;
+    this.rideDuration = moveInRideDurationSec(APT_LOBBY_FLOOR, homeFloor);
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(PASTEL.bg);
@@ -107,6 +134,8 @@ export class MoveInEntryScene {
     this.scene.add(this.world);
 
     this.applyPath(0);
+    this.setDoorProgress(1);
+    this.callbacks.onFloorDisplay?.(APT_LOBBY_FLOOR);
     window.addEventListener("resize", this.onResize);
     this.callbacks.onPhaseChange?.("walk-in");
     this.loop();
@@ -121,11 +150,11 @@ export class MoveInEntryScene {
       { t: 0, x: -5.2, y: 0, z: 1.4, rotY: 0.15 },
       { t: 2.8, x: -1.2, y: 0, z: 0.9, rotY: 0.05 },
       { t: 4.2, x: 0.15, y: 0, z: 0.55, rotY: -0.1 },
-      { t: 5.8, x: 1.55, y: 0, z: 0.15, rotY: -0.55 },
-      { t: 6.8, x: 1.55, y: 0.05, z: 0.15, rotY: -0.55 },
-      { t: 8.2, x: 1.55, y: this.elevYForFloor(this.homeFloor), z: 0.15, rotY: -0.55 },
-      { t: 9.4, x: 0.35, y: this.elevYForFloor(this.homeFloor), z: 0.35, rotY: -0.2 },
-      { t: 10.8, x: -0.15, y: this.elevYForFloor(this.homeFloor), z: 0.45, rotY: 0 }
+      { t: 5.8, x: this.shaftX, y: 0.05, z: 0.15, rotY: -0.55 },
+      { t: 6.8, x: this.shaftX, y: 0.05, z: 0.15, rotY: -0.55 },
+      { t: 8.2, x: this.shaftX, y: 0.05, z: 0.15, rotY: -0.55 },
+      { t: 9.4, x: 0.35, y: 0.05, z: 0.35, rotY: -0.2 },
+      { t: 10.8, x: -0.15, y: 0.05, z: 0.45, rotY: 0 }
     );
   }
 
@@ -133,14 +162,40 @@ export class MoveInEntryScene {
     return (floor - APT_LOBBY_FLOOR) * DOLLHOUSE_FLOOR_H;
   }
 
+  private buildShaftMarkers(shaftX: number) {
+    this.shaftMarkers.name = "shaft-markers";
+    for (let i = 0; i < 28; i++) {
+      const line = new THREE.Mesh(
+        new THREE.BoxGeometry(DOLLHOUSE_ELEVATOR_W * 0.88, 0.025, 0.025),
+        pastelMat(PASTEL.shellTrim)
+      );
+      line.position.set(shaftX, i * DOLLHOUSE_FLOOR_H, DOLLHOUSE_ELEVATOR_W * 0.43);
+      this.shaftMarkers.add(line);
+    }
+    this.buildingScroll.add(this.shaftMarkers);
+  }
+
   private buildWorld() {
     const lobby = buildLobbyEntrance();
     lobby.position.y = -DOLLHOUSE_FLOOR_H * 0.15;
-    this.world.add(lobby);
+    this.buildingScroll.add(lobby);
 
     const shaft = buildElevatorShaft(this.homeFloor, APT_LOBBY_FLOOR, Math.min(8, this.homeFloor));
-    this.elevatorCar = shaft.getObjectByName("elevator-car") ?? null;
-    this.world.add(shaft);
+    this.shaftX = (shaft.userData.shaftX as number | undefined) ?? 1.9;
+    this.buildShaftMarkers(this.shaftX);
+    this.buildingScroll.add(shaft);
+
+    const car = shaft.getObjectByName("elevator-car") as THREE.Group | undefined;
+    this.elevatorCar = car ?? null;
+    if (car) {
+      shaft.remove(car);
+      car.position.set(this.shaftX, 0, 0);
+      this.world.add(car);
+      const left = car.getObjectByName("elevator-door-left");
+      const right = car.getObjectByName("elevator-door-right");
+      this.doorLeft = left === undefined ? null : left;
+      this.doorRight = right === undefined ? null : right;
+    }
 
     const homeUnit = buildDollhouseUnit({
       floorIndex: this.homeFloor,
@@ -151,7 +206,7 @@ export class MoveInEntryScene {
     homeUnit.position.y = this.elevYForFloor(this.homeFloor);
     this.homeUnit = homeUnit;
     this.unitsRoot.add(homeUnit);
-    this.world.add(this.unitsRoot);
+    this.buildingScroll.add(this.unitsRoot);
 
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(16, 10),
@@ -161,6 +216,7 @@ export class MoveInEntryScene {
     ground.position.y = -0.02;
     ground.receiveShadow = false;
     this.world.add(ground);
+    this.world.add(this.buildingScroll);
   }
 
   private addLights() {
@@ -179,6 +235,55 @@ export class MoveInEntryScene {
     this.phaseTime = 0;
     this.callbacks.onPhaseChange?.(next);
     if (next === "done") this.callbacks.onComplete?.();
+  }
+
+  private setDoorProgress(closed: number) {
+    this.doorClosed = THREE.MathUtils.clamp(closed, 0, 1);
+    this.callbacks.onDoorProgress?.(this.doorClosed);
+    if (this.doorLeft) {
+      this.doorLeft.position.x = THREE.MathUtils.lerp(DOOR_OPEN_LEFT, DOOR_CLOSED_LEFT, this.doorClosed);
+    }
+    if (this.doorRight) {
+      this.doorRight.position.x = THREE.MathUtils.lerp(DOOR_OPEN_RIGHT, DOOR_CLOSED_RIGHT, this.doorClosed);
+    }
+  }
+
+  private animateDoors(fromClosed: number, toClosed: number, t: number, duration: number) {
+    const u = Math.min(1, t / duration);
+    const eased = u * u * (3 - 2 * u);
+    this.setDoorProgress(THREE.MathUtils.lerp(fromClosed, toClosed, eased));
+  }
+
+  private tickDisplayFloor(floor: number) {
+    const clamped = Math.max(APT_LOBBY_FLOOR, Math.min(this.homeFloor, Math.round(floor)));
+    if (clamped === this.lastTickFloor) return;
+    this.lastTickFloor = clamped;
+    this.displayFloor = clamped;
+    this.callbacks.onFloorDisplay?.(clamped);
+  }
+
+  private syncRideVisuals(floorF: number) {
+    this.buildingScroll.position.y = -this.elevYForFloor(floorF);
+    this.shaftMarkers.position.y = -(floorF - APT_LOBBY_FLOOR) * DOLLHOUSE_FLOOR_H * 0.35;
+
+    if (this.elevatorCar) {
+      this.elevatorCar.position.y = 0;
+      const wobble = this.phase === "elevator-ride" ? Math.sin(this.phaseTime * 14) * 0.004 : 0;
+      this.elevatorCar.position.x = this.shaftX + wobble;
+      this.elevatorCar.rotation.z = wobble * 0.8;
+    }
+
+    if (this.homeUnit) {
+      this.homeUnit.visible = floorF >= this.homeFloor * 0.82;
+    }
+
+    this.camera.position.set(this.shaftX + 6.5, 5.8, 6.5);
+    this.camera.lookAt(this.shaftX, 1.4, 0);
+  }
+
+  private avatarInCar() {
+    this.avatar.root.position.set(this.shaftX, 0.05, 0.15);
+    this.avatar.root.rotation.y = -0.55;
   }
 
   private applyPath(globalT: number) {
@@ -221,69 +326,83 @@ export class MoveInEntryScene {
       case "walk-in":
         this.applyPath(t);
         this.avatar.animateWalk(t, true);
-        this.world.position.y = THREE.MathUtils.lerp(0, 0, 1);
         if (t >= 4.2) this.setPhase("to-elevator");
         break;
 
       case "to-elevator":
         this.applyPath(4.2 + t);
         this.avatar.animateWalk(4.2 + t, true);
-        if (t >= 1.6) this.setPhase("enter-elevator");
+        this.setDoorProgress(1);
+        if (t >= 1.6) this.setPhase("doors-opening-lobby");
+        break;
+
+      case "doors-opening-lobby":
+        this.animateDoors(1, 0, t, 0.75);
+        this.applyPath(5.8);
+        this.avatar.animateWalk(t, false);
+        if (t >= 0.75) this.setPhase("enter-elevator");
         break;
 
       case "enter-elevator":
+        this.setDoorProgress(0);
         this.applyPath(5.8 + Math.min(t, 1));
-        this.avatar.animateWalk(t, t < 0.8);
-        if (t >= 1.2) this.setPhase("elevator-ride");
+        this.avatar.animateWalk(t, t < 0.85);
+        if (t >= 1.1) this.setPhase("doors-closing");
+        break;
+
+      case "doors-closing":
+        this.animateDoors(0, 1, t, 0.85);
+        this.avatarInCar();
+        this.avatar.animateWalk(t, false);
+        this.tickDisplayFloor(APT_LOBBY_FLOOR);
+        this.syncRideVisuals(APT_LOBBY_FLOOR);
+        if (t >= 0.85) this.setPhase("elevator-ride");
         break;
 
       case "elevator-ride": {
-        const rideDur = Math.min(6, 2 + this.homeFloor / 180);
-        const u = Math.min(1, t / rideDur);
-        const eased = u * u * (3 - 2 * u);
+        const u = Math.min(1, t / this.rideDuration);
+        const eased = easeInOutQuint(u);
         const floorF = APT_LOBBY_FLOOR + (this.homeFloor - APT_LOBBY_FLOOR) * eased;
-        this.displayFloor = Math.max(APT_LOBBY_FLOOR, Math.round(floorF));
-        this.callbacks.onFloorDisplay?.(this.displayFloor);
-
-        const targetY = this.elevYForFloor(floorF);
-        const visualCarY = Math.min(targetY, DOLLHOUSE_FLOOR_H * 5.5);
-        this.elevDisplayY = visualCarY;
-        if (this.elevatorCar) this.elevatorCar.position.y = visualCarY;
-        this.avatar.root.position.set(1.55, visualCarY + 0.05, 0.15);
-        this.avatar.root.rotation.y = -0.55;
+        this.tickDisplayFloor(floorF);
+        this.setDoorProgress(1);
+        this.avatarInCar();
         this.avatar.animateWalk(t, false);
-
-        if (this.homeUnit) {
-          this.homeUnit.position.y = this.elevYForFloor(floorF);
-          this.homeUnit.visible = floorF >= this.homeFloor * 0.85;
-        }
-
-        this.camera.position.set(8, visualCarY + 5.5, 8);
-        this.camera.lookAt(1.2, visualCarY + 1.5, 0);
+        this.syncRideVisuals(floorF);
 
         if (u >= 1) {
-          this.displayFloor = this.homeFloor;
-          this.callbacks.onFloorDisplay?.(this.homeFloor);
-          if (this.homeUnit) {
-            this.homeUnit.position.y = this.elevYForFloor(this.homeFloor);
-            this.homeUnit.visible = true;
-          }
-          this.setPhase("exit-elevator");
+          this.tickDisplayFloor(this.homeFloor);
+          this.syncRideVisuals(this.homeFloor);
+          this.setPhase("doors-opening");
         }
         break;
       }
 
+      case "doors-opening":
+        this.animateDoors(1, 0, t, 0.85);
+        this.tickDisplayFloor(this.homeFloor);
+        this.avatarInCar();
+        this.avatar.animateWalk(t, false);
+        this.syncRideVisuals(this.homeFloor);
+        if (t >= 0.85) this.setPhase("exit-elevator");
+        break;
+
       case "exit-elevator":
+        this.setDoorProgress(0);
+        this.buildingScroll.position.y = -this.elevYForFloor(this.homeFloor);
+        if (this.elevatorCar) this.elevatorCar.position.y = 0;
         this.applyPath(8.2 + t * 0.6);
         this.avatar.animateWalk(t, t < 1);
+        this.camera.position.set(8, 6, 8);
+        this.camera.lookAt(0, 2.5, 0);
         if (t >= 1.4) this.setPhase("to-home");
         break;
 
       case "to-home":
+        this.buildingScroll.position.y = -this.elevYForFloor(this.homeFloor);
         this.applyPath(9.4 + t * 0.75);
         this.avatar.animateWalk(9.4 + t, true);
-        this.camera.position.set(8, this.elevYForFloor(this.homeFloor) + 6, 8);
-        this.camera.lookAt(0, this.elevYForFloor(this.homeFloor) + 2.5, 0);
+        this.camera.position.set(8, 6, 8);
+        this.camera.lookAt(0, 2.5, 0);
         if (t >= 1.6) this.setPhase("done");
         break;
 
@@ -297,7 +416,6 @@ export class MoveInEntryScene {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.loop);
     const dt = Math.min(0.05, this.clock.getDelta());
-    this.walkPhase += dt;
     this.updatePhase(dt);
     this.renderer.render(this.scene, this.camera);
   };

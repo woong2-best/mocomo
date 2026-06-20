@@ -109,6 +109,21 @@ function buildFurnitureMeshPrototype(kind: BondeeFurnitureKind): THREE.Group {
     case "gramophone":
       buildGramophone(g);
       break;
+    case "refrigerator":
+      buildRefrigerator(g);
+      break;
+    case "computer":
+      buildComputer(g);
+      break;
+    case "monitor":
+      buildMonitor(g);
+      break;
+    case "smartphone":
+      buildSmartphone(g);
+      break;
+    case "window":
+      buildWindow(g);
+      break;
   }
 
   shadowizeGroup(g, false);
@@ -165,7 +180,9 @@ function buildTvStand(g: THREE.Group) {
     addTo(g, roundedBox(0.22, 0.06, 0.2, 0.02), bondeeMat(0xf0ece8), x, 0.28, 0.02);
   }
   addTo(g, roundedBox(0.68, 0.4, 0.05, 0.02), bondeeMat(0x1a1a22, { roughness: 0.15 }), 0, 0.58, 0.04);
-  addTo(g, roundedBox(0.58, 0.32, 0.02, 0.01), bondeeGlowMat(0x88ccff, 0.5), 0, 0.57, 0.08);
+  const screen = addTo(g, roundedBox(0.58, 0.32, 0.02, 0.01), bondeeGlowMat(0x88ccff, 0.5), 0, 0.57, 0.08);
+  screen.name = "console-screen";
+  screen.userData.isConsoleScreen = true;
   addTo(g, roundedBox(0.24, 0.07, 0.15, 0.025), bondeeMat(0x3a3a4a), 0.14, 0.4, 0.2);
   addTo(g, roundedBox(0.05, 0.025, 0.025, 0.008), bondeeGlowMat(0x44ff88, 0.9), 0.14, 0.44, 0.2);
   addTo(g, roundedBox(0.08, 0.02, 0.04, 0.008), bondeeMat(0x222222), -0.2, 0.36, 0.18);
@@ -229,11 +246,18 @@ function buildPlant(g: THREE.Group) {
 }
 
 function buildDesk(g: THREE.Group) {
-  addTo(g, roundedBox(0.64, 0.05, 0.38, 0.025), bondeeMat(BONDEE_PALETTE.wood), 0, 0.4, 0);
-  addTo(g, roundedBox(0.58, 0.34, 0.32, 0.03), bondeeMat(0xffffff), 0, 0.2, 0);
-  addTo(g, roundedBox(0.24, 0.02, 0.16, 0.008), bondeeMat(0xccccdd), 0, 0.44, 0);
-  addTo(g, roundedBox(0.22, 0.14, 0.02, 0.008), bondeeMat(0x333344), 0, 0.48, 0);
-  addTo(g, roundedBox(0.08, 0.06, 0.06, 0.015), bondeeMat(0xffcc88), 0.2, 0.44, 0.1);
+  const wood = bondeeMat(BONDEE_PALETTE.wood);
+  const woodDark = bondeeMat(BONDEE_PALETTE.woodDark);
+  const leg = bondeeMat(BONDEE_PALETTE.woodDark);
+
+  addTo(g, roundedBox(0.72, 0.05, 0.42, 0.025), wood, 0, 0.42, 0);
+  addTo(g, roundedBox(0.66, 0.02, 0.36, 0.012), woodDark, 0, 0.455, 0);
+  for (const [x, z] of [[-0.28, -0.14], [0.28, -0.14], [-0.28, 0.14], [0.28, 0.14]] as const) {
+    addTo(g, roundedBox(0.05, 0.38, 0.05, 0.015), leg, x, 0.19, z);
+  }
+  addTo(g, roundedBox(0.14, 0.12, 0.02, 0.01), bondeeMat(0xffffff), -0.22, 0.52, 0.18);
+  addTo(g, roundedBox(0.08, 0.06, 0.06, 0.015), bondeeMat(0xffcc88), 0.22, 0.48, -0.1);
+  addTo(g, roundedBox(0.06, 0.04, 0.04, 0.01), bondeeMat(0x88bbee), 0.08, 0.485, 0.12);
 }
 
 function buildTreadmill(g: THREE.Group) {
@@ -364,6 +388,75 @@ function buildGramophone(g: THREE.Group) {
   g.add(mouth);
 
   g.userData.interactKind = "gramophone";
+}
+
+function buildRefrigerator(g: THREE.Group) {
+  const body = bondeeMat(0xf5f8ff);
+  const bodyDark = bondeeMat(0xe8edf5);
+  const handle = bondeeMat(0xccccdd, { metalness: 0.35, roughness: 0.35 });
+  const seal = bondeeMat(0xd8dde8);
+
+  addTo(g, roundedBox(0.42, 0.92, 0.38, 0.04), body, 0, 0.48, 0);
+  addTo(g, roundedBox(0.38, 0.44, 0.02, 0.015), bodyDark, 0, 0.68, 0.2);
+  addTo(g, roundedBox(0.38, 0.38, 0.02, 0.015), seal, 0, 0.24, 0.2);
+  addTo(g, roundedBox(0.02, 0.18, 0.025, 0.008), handle, 0.16, 0.68, 0.22);
+  addTo(g, roundedBox(0.02, 0.12, 0.025, 0.008), handle, 0.16, 0.24, 0.22);
+  addTo(g, roundedBox(0.1, 0.04, 0.02, 0.008), bondeeMat(0x444455), 0, 0.88, 0.18);
+  addTo(g, roundedBox(0.04, 0.025, 0.025, 0.008), bondeeGlowMat(0x66ccff, 0.4), -0.12, 0.88, 0.18);
+}
+
+function buildComputer(g: THREE.Group) {
+  const tower = bondeeMat(0x2a2a32);
+  const towerAccent = bondeeMat(0x444455);
+  const rgb = bondeeGlowMat(0x88ccff, 0.55);
+
+  addTo(g, roundedBox(0.16, 0.34, 0.28, 0.025), tower, 0, 0.19, 0);
+  addTo(g, roundedBox(0.12, 0.02, 0.22, 0.008), towerAccent, 0, 0.36, 0.02);
+  addTo(g, roundedBox(0.08, 0.06, 0.02, 0.006), rgb, 0.04, 0.22, 0.15);
+  addTo(g, roundedBox(0.02, 0.02, 0.02, 0.004), bondeeGlowMat(0x44ff88, 0.8), -0.04, 0.32, 0.14);
+  addTo(g, roundedBox(0.04, 0.015, 0.015, 0.004), bondeeMat(0x666677), 0, 0.02, 0.12);
+}
+
+function buildMonitor(g: THREE.Group) {
+  const frame = bondeeMat(0x222228);
+  const bezel = bondeeMat(0x333344);
+  const stand = bondeeMat(0x444455);
+
+  addTo(g, roundedBox(0.34, 0.22, 0.03, 0.012), frame, 0, 0.38, 0);
+  addTo(g, roundedBox(0.28, 0.16, 0.015, 0.008), bondeeGlowMat(0x99ccff, 0.35), 0, 0.38, 0.018);
+  addTo(g, roundedBox(0.02, 0.08, 0.02, 0.006), bezel, 0, 0.38, 0.03);
+  addTo(g, roundedBox(0.08, 0.02, 0.06, 0.008), stand, 0, 0.24, 0.02);
+  addTo(g, roundedBox(0.14, 0.015, 0.08, 0.006), stand, 0, 0.16, 0.02);
+}
+
+function buildSmartphone(g: THREE.Group) {
+  const body = bondeeMat(0x1a1a22);
+  const screen = bondeeGlowMat(0xaaccff, 0.45);
+  const button = bondeeMat(0x666677);
+
+  addTo(g, roundedBox(0.06, 0.11, 0.012, 0.006), body, 0, 0.08, 0);
+  addTo(g, roundedBox(0.048, 0.092, 0.006, 0.004), screen, 0, 0.082, 0.004);
+  addTo(g, roundedBox(0.012, 0.012, 0.004, 0.002), button, 0, 0.03, 0.004);
+  addTo(g, roundedBox(0.008, 0.008, 0.004, 0.002), bondeeMat(0x333344), 0, 0.125, 0.004);
+}
+
+function buildWindow(g: THREE.Group) {
+  const frame = bondeeMat(BONDEE_PALETTE.trim);
+  const frameLight = bondeeMat(BONDEE_PALETTE.wallWhite);
+  const glass = bondeeMat(0xb8e8ff, { transparent: true, opacity: 0.5, roughness: 0.08, metalness: 0.12 });
+  const sill = bondeeMat(BONDEE_PALETTE.wallWhite);
+
+  addTo(g, roundedBox(0.52, 0.62, 0.06, 0.025), frame, 0, 0.38, 0);
+  addTo(g, roundedBox(0.44, 0.54, 0.02, 0.012), frameLight, 0, 0.38, 0.025);
+  addTo(g, roundedBox(0.2, 0.24, 0.012, 0.008), glass, -0.1, 0.48, 0.032);
+  addTo(g, roundedBox(0.2, 0.24, 0.012, 0.008), glass, 0.1, 0.48, 0.032);
+  addTo(g, roundedBox(0.2, 0.2, 0.012, 0.008), glass, -0.1, 0.22, 0.032);
+  addTo(g, roundedBox(0.2, 0.2, 0.012, 0.008), glass, 0.1, 0.22, 0.032);
+  addTo(g, roundedBox(0.02, 0.54, 0.015, 0.006), frame, 0, 0.38, 0.035);
+  addTo(g, roundedBox(0.44, 0.02, 0.04, 0.008), frame, 0, 0.08, 0.04);
+  addTo(g, roundedBox(0.5, 0.04, 0.08, 0.015), sill, 0, 0.04, 0.04);
+  addTo(g, roundedBox(0.08, 0.06, 0.04, 0.01), bondeeMat(0xffd8b0), 0.14, 0.1, 0.06);
+  g.userData.wallMount = true;
 }
 
 export function syncRoomFurniture(root: THREE.Group, items: BondeePlacedItem[]) {

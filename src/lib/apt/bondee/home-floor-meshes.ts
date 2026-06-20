@@ -115,6 +115,7 @@ export function defaultItemsForRooms(rooms: AptRoom[]): BondeePlacedItem[] {
       add(r.id, "floor_lamp", -2, 1, 1);
       add(r.id, "plant", 1, 1);
       add(r.id, "gramophone", 2, 0, 1);
+      add(r.id, "window", -2, -1, 2);
     } else if (r.id === "hall-corridor") {
       add(r.id, "rug", 0, 0);
       add(r.id, "plant", -2, 0);
@@ -130,13 +131,22 @@ export function defaultItemsForRooms(rooms: AptRoom[]): BondeePlacedItem[] {
       add(r.id, "bed", 0, 0);
       add(r.id, "tv_stand", 1, -1);
       add(r.id, "floor_lamp", -1, 1);
+      add(r.id, "bookshelf", -2, -1, 2);
+      add(r.id, "smartphone", 1, 1);
     } else if (r.id === "bedroom-1") {
       add(r.id, "bed", 0, 0);
       add(r.id, "rug", 1, 1);
       add(r.id, "bookshelf", -2, -1, 2);
+      add(r.id, "window", 2, -1, 0);
+      add(r.id, "ac", 2, 1, 2);
     } else if (r.type === "kitchen") {
+      add(r.id, "refrigerator", -1, -1, 2);
       add(r.id, "shelf_small", 0, -1);
       add(r.id, "desk", 0, 0);
+      add(r.id, "monitor", 0, 1);
+      add(r.id, "computer", 1, 0, 1);
+      add(r.id, "smartphone", -1, 1);
+      add(r.id, "ac", 2, -1, 2);
       add(r.id, "clock", 1, -1);
       add(r.id, "plant", -1, 1);
     } else if (r.type === "bedroom") {

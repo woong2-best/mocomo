@@ -82,7 +82,7 @@ function addMesh(
 
 /** Procedural furniture for floors without saved room data */
 export function seededRoomItems(seed: number, roomId = "living"): BondeePlacedItem[] {
-  const kinds = ["sofa", "plant", "tv_stand", "coffee_table", "bed", "desk"] as const;
+  const kinds = ["sofa", "plant", "tv_stand", "coffee_table", "bed", "desk", "refrigerator", "monitor"] as const;
   const count = 2 + (seed % 2);
   const items: BondeePlacedItem[] = [];
   for (let i = 0; i < count; i++) {
@@ -124,11 +124,58 @@ export type DollhouseUnitOptions = {
   room?: BondeeHomeState;
   rooms?: AptRoom[];
   seed?: number;
-  resident?: { userId: string; username: string; displayName: string; homeFloor: number };
+  resident?: {
+    userId: string;
+    username: string;
+    displayName: string;
+    homeFloor: number;
+    doorOpen: boolean;
+  };
   isHomeFloor?: boolean;
   /** full = furniture + decor, minimal = legacy alias, opaque = solid white block */
   detail?: "full" | "minimal" | "opaque";
 };
+
+function addEntranceDoorMesh(
+  g: THREE.Group,
+  floorIndex: number,
+  resident: NonNullable<DollhouseUnitOptions["resident"]>,
+  doorY: number,
+  doorZ: number
+) {
+  const open = resident.doorOpen;
+  const doorGroup = new THREE.Group();
+  doorGroup.position.set(0.55, doorY, doorZ);
+  doorGroup.userData.floor = floorIndex;
+  doorGroup.userData.resident = resident;
+  doorGroup.name = "entrance-door";
+
+  const door = new THREE.Mesh(
+    roundedBox(0.42, 0.72, 0.06, 0.03),
+    pastelMat(open ? 0xd4e8ff : PASTEL.elevatorDoor)
+  );
+  door.position.y = 0;
+  if (open) door.rotation.y = Math.PI / 3.2;
+  doorGroup.add(door);
+
+  const status = new THREE.Mesh(
+    new THREE.CircleGeometry(0.05, 10),
+    new THREE.MeshBasicMaterial({ color: open ? 0x4ade80 : 0x94a3b8, transparent: true, opacity: 0.9 })
+  );
+  status.position.set(0.22, 0.38, 0.04);
+  doorGroup.add(status);
+
+  g.add(doorGroup);
+
+  const nameplate = new THREE.Mesh(
+    roundedBox(0.5, 0.14, 0.04, 0.02),
+    pastelMat(open ? PASTEL.highlight : 0xe2e8f0)
+  );
+  nameplate.position.set(0.55, doorY + 0.4, doorZ + 0.01);
+  nameplate.userData.floor = floorIndex;
+  nameplate.userData.resident = resident;
+  g.add(nameplate);
+}
 
 /** Solid white block — neighbor floors & non-active units (no see-through) */
 function buildOpaqueNeighborUnit(opts: DollhouseUnitOptions): THREE.Group {
@@ -154,14 +201,7 @@ function buildOpaqueNeighborUnit(opts: DollhouseUnitOptions): THREE.Group {
   g.add(badge);
 
   if (resident && !isHomeFloor) {
-    const door = new THREE.Mesh(
-      roundedBox(0.42, 0.72, 0.06, 0.03),
-      pastelMat(PASTEL.elevatorDoor)
-    );
-    door.position.set(0.55, DOLLHOUSE_FLOOR_H * 0.38, DOLLHOUSE_UNIT_D / 2 - 0.02);
-    door.userData.floor = floorIndex;
-    door.userData.resident = resident;
-    g.add(door);
+    addEntranceDoorMesh(g, floorIndex, resident, DOLLHOUSE_FLOOR_H * 0.38, DOLLHOUSE_UNIT_D / 2 - 0.02);
   }
 
   const pick = new THREE.Mesh(
@@ -299,24 +339,7 @@ export function buildDollhouseUnit(opts: DollhouseUnitOptions): THREE.Group {
 
   // Entrance door for occupied units (click → visit / profile)
   if (resident && !isHomeFloor) {
-    const door = new THREE.Mesh(
-      roundedBox(0.42, 0.72, 0.06, 0.03),
-      pastelMat(PASTEL.elevatorDoor)
-    );
-    door.position.set(0.55, DOLLHOUSE_FLOOR_H * 0.38, DOLLHOUSE_UNIT_D / 2 - 0.02);
-    door.userData.floor = floorIndex;
-    door.userData.resident = resident;
-    door.name = "entrance-door";
-    g.add(door);
-
-    const nameplate = new THREE.Mesh(
-      roundedBox(0.5, 0.14, 0.04, 0.02),
-      pastelMat(PASTEL.highlight)
-    );
-    nameplate.position.set(0.55, DOLLHOUSE_FLOOR_H * 0.78, DOLLHOUSE_UNIT_D / 2 - 0.01);
-    nameplate.userData.floor = floorIndex;
-    nameplate.userData.resident = resident;
-    g.add(nameplate);
+    addEntranceDoorMesh(g, floorIndex, resident, DOLLHOUSE_FLOOR_H * 0.38, DOLLHOUSE_UNIT_D / 2 - 0.02);
   }
 
   return g;
@@ -479,6 +502,25 @@ export function buildElevatorShaft(totalFloors: number, visibleStart: number, vi
   floorPanel.position.set(0, DOLLHOUSE_FLOOR_H * 0.52, DOLLHOUSE_ELEVATOR_W * 0.42);
   floorPanel.name = "elevator-floor-panel";
   car.add(floorPanel);
+
+  const doorHalfW = DOLLHOUSE_ELEVATOR_W * 0.38;
+  const doorH = DOLLHOUSE_FLOOR_H * 0.58;
+  const doorZ = DOLLHOUSE_ELEVATOR_W * 0.41;
+  const doorL = new THREE.Mesh(
+    roundedBox(doorHalfW, doorH, 0.04, 0.02),
+    pastelMat(PASTEL.elevatorDoor, { metalness: 0.12, roughness: 0.35 })
+  );
+  doorL.name = "elevator-door-left";
+  doorL.position.set(-doorHalfW * 0.45, DOLLHOUSE_FLOOR_H * 0.38, doorZ);
+  car.add(doorL);
+
+  const doorR = new THREE.Mesh(
+    roundedBox(doorHalfW, doorH, 0.04, 0.02),
+    pastelMat(PASTEL.elevatorDoor, { metalness: 0.12, roughness: 0.35 })
+  );
+  doorR.name = "elevator-door-right";
+  doorR.position.set(doorHalfW * 0.45, DOLLHOUSE_FLOOR_H * 0.38, doorZ);
+  car.add(doorR);
 
   car.position.set(shaftX, 0, 0);
   g.add(car);

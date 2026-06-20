@@ -35,7 +35,12 @@ export type BondeeFurnitureKind =
   | "washer"
   | "hoop"
   | "shelf_small"
-  | "gramophone";
+  | "gramophone"
+  | "refrigerator"
+  | "computer"
+  | "monitor"
+  | "smartphone"
+  | "window";
 
 export type BondeePlacedItem = {
   id: string;
@@ -86,7 +91,7 @@ export const DEFAULT_BONDEE_ROOM: BondeeHomeState = {
 export const DEFAULT_BONDEE_HOME = DEFAULT_BONDEE_ROOM;
 
 export const BONDEE_FURNITURE_LABELS: Record<BondeeFurnitureKind, string> = {
-  bookshelf: "책장",
+  bookshelf: "책꽂이",
   sofa: "소파",
   tv_stand: "TV",
   coffee_table: "테이블",
@@ -102,11 +107,19 @@ export const BONDEE_FURNITURE_LABELS: Record<BondeeFurnitureKind, string> = {
   hoop: "농구골",
   shelf_small: "선반",
   gramophone: "그라모폰",
+  refrigerator: "냉장고",
+  computer: "컴퓨터",
+  monitor: "모니터",
+  smartphone: "스마트폰",
+  window: "창문",
 };
 
 export const BONDEE_FURNITURE_CATEGORIES: { label: string; kinds: BondeeFurnitureKind[] }[] = [
-  { label: "가구", kinds: ["sofa", "bed", "desk", "bookshelf", "shelf_small"] },
-  { label: "가전", kinds: ["tv_stand", "gramophone", "ac", "washer", "treadmill"] },
-  { label: "소품", kinds: ["coffee_table", "floor_lamp", "plant", "clock", "hoop"] },
+  { label: "가구", kinds: ["sofa", "bed", "desk", "bookshelf", "shelf_small", "window"] },
+  {
+    label: "가전",
+    kinds: ["tv_stand", "refrigerator", "ac", "washer", "treadmill", "computer", "monitor", "smartphone"],
+  },
+  { label: "소품", kinds: ["coffee_table", "floor_lamp", "plant", "clock", "hoop", "gramophone"] },
   { label: "바닥", kinds: ["rug"] },
 ];

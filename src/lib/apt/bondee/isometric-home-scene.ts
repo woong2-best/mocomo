@@ -14,8 +14,8 @@ import {
   sortFurnitureLoadOrder,
 } from "./home-floor-meshes";
 import {
-  architecturesForKind,
-  posesForArchitectures,
+  interactAnchorOffset,
+  interactSpecForKind,
   type FurnitureArchitecture,
 } from "./furniture-architecture";
 import { findRoomAt, isWalkable } from "./home-walkability";
@@ -29,10 +29,29 @@ import { cappedPixelRatio, stripShadows } from "./scene-perf";
 import { GramophoneNoteFx } from "./gramophone-notes";
 
 const MOVE_SPEED = 2.4;
-const INTERACT_DIST = 0.55;
+const INTERACT_DIST = 0.72;
 const CAM_LERP = 6;
 const ZOOM_MIN = 4.2;
 const ZOOM_MAX = 8.5;
+const CONSOLE_TRANSITION_SPEED = 1.35;
+const CONSOLE_TV_SCALE = 1.22;
+const CONSOLE_SEAT_DIST = 0.52;
+
+export type ConsoleModePhase = "off" | "entering" | "active" | "exiting";
+
+function easeInOutCubic(t: number) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+type ConsoleAnchor = {
+  itemId: string;
+  seatX: number;
+  seatZ: number;
+  lookX: number;
+  lookY: number;
+  lookZ: number;
+  avatarRotY: number;
+};
 
 const POSE_BY_KEY: Record<string, ChibiPose> = {
   "1": "stand",
@@ -49,14 +68,22 @@ export type NearbyFurnitureInteract = {
   architectures: FurnitureArchitecture[];
   poses: ChibiPose[];
   label: string;
+  actionLabel: string;
+  navigateHref?: string;
+  singleAction?: boolean;
 };
 
 export type IsometricHomeCallbacks = {
   onItemSelect?: (id: string | null) => void;
+  /** @deprecated TV는 nearbyFurniture + onNavigateInteract 사용 */
   onNearConsoleChange?: (near: boolean) => void;
+  /** @deprecated */
   onGameConsoleInteract?: () => void;
+  /** @deprecated */
+  onConsoleModeChange?: (phase: ConsoleModePhase) => void;
   onNearGramophoneChange?: (near: boolean) => void;
   onGramophoneInteract?: () => void;
+  onNavigateInteract?: (href: string) => void;
   onActiveRoomChange?: (roomId: string) => void;
   onNearbyFurnitureChange?: (nearby: NearbyFurnitureInteract | null) => void;
   onPoseChange?: (pose: ChibiPose) => void;
@@ -67,6 +94,7 @@ export class IsometricHomeScene {
   private renderer: THREE.WebGLRenderer;
   private scene: THREE.Scene;
   private camera: THREE.OrthographicCamera;
+  private perspCamera: THREE.PerspectiveCamera;
   private homeRoot = new THREE.Group();
   private floorGroup: THREE.Group | null = null;
   private furnitureRoot: THREE.Group | null = null;
@@ -126,6 +154,18 @@ export class IsometricHomeScene {
   private readonly hornMouthPos = new THREE.Vector3();
   private readonly hornMouthScratch: THREE.Vector3[] = [];
   private readonly projPoint = new THREE.Vector3();
+  private consolePhase: ConsoleModePhase = "off";
+  private consoleBlend = 0;
+  private consoleAnchor: ConsoleAnchor | null = null;
+  private consoleTvMesh: THREE.Object3D | null = null;
+  private consoleTvBaseScale = 1;
+  private activeRenderCamera: THREE.Camera;
+  private readonly isoCamPos = new THREE.Vector3();
+  private readonly isoLookAt = new THREE.Vector3();
+  private readonly consoleCamPos = new THREE.Vector3();
+  private readonly consoleLookAt = new THREE.Vector3();
+  private readonly blendedCamPos = new THREE.Vector3();
+  private readonly blendedLookAt = new THREE.Vector3();
 
   constructor(mount: HTMLElement, rooms: AptRoom[], initial: BondeeHomeState) {
     this.mount = mount;
@@ -159,6 +199,8 @@ export class IsometricHomeScene {
       0.1,
       80
     );
+    this.perspCamera = new THREE.PerspectiveCamera(52, aspect, 0.05, 80);
+    this.activeRenderCamera = this.camera;
     this.updateCameraPosition();
 
     this.renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio <= 1.25, alpha: false, powerPreference: "high-performance" });
@@ -291,6 +333,61 @@ export class IsometricHomeScene {
     this.moveInput.z = z;
   }
 
+  getConsoleMode(): ConsoleModePhase {
+    return this.consolePhase;
+  }
+
+  getConsoleBlend(): number {
+    return this.consoleBlend;
+  }
+
+  enterConsoleMode(): boolean {
+    if (this.consolePhase !== "off" || !this.canInteractWithConsole()) return false;
+    const target = this.findNearestConsoleItem();
+    if (!target) return false;
+
+    this.consoleAnchor = this.computeConsoleAnchor(target.item, target.room);
+    this.consolePhase = "entering";
+    this.consoleBlend = 0;
+    this.walkMode = false;
+    this.walking = false;
+
+    this.avatarX = this.consoleAnchor.seatX;
+    this.avatarZ = this.consoleAnchor.seatZ;
+    this.avatarRotY = this.consoleAnchor.avatarRotY;
+    this.state = { ...this.state, pose: "sit" };
+    this.applyAvatar();
+    this.callbacks.onPoseChange?.("sit");
+
+    this.locateConsoleTvMesh(this.consoleAnchor.itemId);
+    this.callbacks.onConsoleModeChange?.("entering");
+    this.requestRender();
+    return true;
+  }
+
+  exitConsoleMode() {
+    if (this.consolePhase === "off" || this.consolePhase === "exiting") return;
+    this.consolePhase = "exiting";
+    this.callbacks.onConsoleModeChange?.("exiting");
+    this.requestRender();
+  }
+
+  private finishExitConsoleMode() {
+    this.consolePhase = "off";
+    this.consoleBlend = 0;
+    this.consoleAnchor = null;
+    this.resetConsoleTvScale();
+    this.consoleTvMesh = null;
+    this.walkMode = !this.isDecorBlocking();
+    this.avatar.root.visible = true;
+    this.avatarShadow.visible = true;
+    this.state = { ...this.state, pose: "stand" };
+    this.applyAvatar();
+    this.callbacks.onPoseChange?.("stand");
+    this.callbacks.onConsoleModeChange?.("off");
+    this.requestRender();
+  }
+
   private isDecorBlocking() {
     return this.decorMode && (this.selectedTool || this.selectedStudioTool || this.deleteMode);
   }
@@ -319,22 +416,27 @@ export class IsometricHomeScene {
   }
 
   tryInteract() {
-    if (this.canInteractWithConsole()) {
-      this.callbacks.onGameConsoleInteract?.();
-      return;
-    }
+    if (this.consolePhase === "active") return;
     if (this.canInteractWithGramophone()) {
       this.callbacks.onGramophoneInteract?.();
       return;
     }
     if (this.isDecorBlocking() || !this.nearbyFurniture) return;
 
-    const poses = this.nearbyFurniture.poses;
+    const target = this.nearbyFurniture;
+    if (target.navigateHref) {
+      this.callbacks.onNavigateInteract?.(target.navigateHref);
+      return;
+    }
+
+    const poses = target.poses;
     if (!poses.length) return;
 
-    const pose = poses[this.interactPoseIdx % poses.length];
-    this.interactPoseIdx = (this.interactPoseIdx + 1) % poses.length;
-    this.applyFurniturePose(pose, this.nearbyFurniture);
+    const pose = target.singleAction ? poses[0] : poses[this.interactPoseIdx % poses.length];
+    if (!target.singleAction) {
+      this.interactPoseIdx = (this.interactPoseIdx + 1) % poses.length;
+    }
+    this.applyFurniturePose(pose, target);
   }
 
   private applyFurniturePose(pose: ChibiPose, target: NearbyFurnitureInteract) {
@@ -681,16 +783,131 @@ export class IsometricHomeScene {
   }
 
   private updateCameraPosition() {
-    const cx = Math.cos(this.camYaw) * Math.cos(this.camPitch) * this.camDist;
+    const lookX = this.avatarX;
+    const lookZ = this.avatarZ;
+    const cx = lookX + Math.cos(this.camYaw) * Math.cos(this.camPitch) * this.camDist;
     const cy = Math.sin(this.camPitch) * this.camDist + 1.2;
-    const cz = Math.sin(this.camYaw) * Math.cos(this.camPitch) * this.camDist;
-    this.camera.position.set(cx, cy, cz);
-    this.camera.lookAt(0, 0.35, 0);
+    const cz = lookZ + Math.sin(this.camYaw) * Math.cos(this.camPitch) * this.camDist;
+    this.isoCamPos.set(cx, cy, cz);
+    this.isoLookAt.set(lookX, 0.35, lookZ);
+    this.camera.position.copy(this.isoCamPos);
+    this.camera.lookAt(this.isoLookAt);
+  }
+
+  private updateConsoleCameraTargets() {
+    if (!this.consoleAnchor) return;
+    const { seatX, seatZ, lookX, lookY, lookZ } = this.consoleAnchor;
+    const fwdX = lookX - seatX;
+    const fwdZ = lookZ - seatZ;
+    const len = Math.hypot(fwdX, fwdZ) || 1;
+    const nx = fwdX / len;
+    const nz = fwdZ / len;
+    this.consoleCamPos.set(seatX + nx * 0.04, 0.44, seatZ + nz * 0.04);
+    this.consoleLookAt.set(lookX, lookY, lookZ);
+  }
+
+  private updateConsoleTransition(dt: number) {
+    if (this.consolePhase === "off") return;
+
+    this.updateIsoCameraState();
+
+    if (this.consolePhase === "entering") {
+      this.consoleBlend = Math.min(1, this.consoleBlend + dt * CONSOLE_TRANSITION_SPEED);
+      if (this.consoleBlend >= 1) {
+        this.consoleBlend = 1;
+        this.consolePhase = "active";
+        this.callbacks.onConsoleModeChange?.("active");
+      }
+    } else if (this.consolePhase === "exiting") {
+      this.consoleBlend = Math.max(0, this.consoleBlend - dt * CONSOLE_TRANSITION_SPEED);
+      if (this.consoleBlend <= 0) {
+        this.finishExitConsoleMode();
+        return;
+      }
+    }
+
+    this.updateConsoleCameraTargets();
+    const t = easeInOutCubic(this.consoleBlend);
+    this.blendedCamPos.lerpVectors(this.isoCamPos, this.consoleCamPos, t);
+    this.blendedLookAt.lerpVectors(this.isoLookAt, this.consoleLookAt, t);
+
+    this.perspCamera.position.copy(this.blendedCamPos);
+    this.perspCamera.lookAt(this.blendedLookAt);
+    this.perspCamera.fov = THREE.MathUtils.lerp(48, 38, t);
+    this.perspCamera.updateProjectionMatrix();
+
+    this.updateConsoleTvScale(t);
+    const hideAvatar = t > 0.2;
+    this.avatar.root.visible = !hideAvatar;
+    this.avatarShadow.visible = !hideAvatar;
+    this.needsRender = true;
+  }
+
+  private findNearestConsoleItem(): { item: BondeePlacedItem; room: AptRoom } | null {
+    let best: { item: BondeePlacedItem; room: AptRoom; dist: number } | null = null;
+    for (const item of this.state.items) {
+      if (item.kind !== "tv_stand") continue;
+      const room = this.rooms.find((r) => r.id === item.roomId);
+      if (!room) continue;
+      const p = itemWorldPos(item, room);
+      const dist = Math.hypot(this.avatarX - (p.x + 0.08), this.avatarZ - (p.z + 0.22));
+      if (dist >= INTERACT_DIST) continue;
+      if (!best || dist < best.dist) best = { item, room, dist };
+    }
+    return best ? { item: best.item, room: best.room } : null;
+  }
+
+  private computeConsoleAnchor(item: BondeePlacedItem, room: AptRoom): ConsoleAnchor {
+    const p = itemWorldPos(item, room);
+    const rot = (item.rot * Math.PI) / 2;
+    const fwdX = Math.sin(rot);
+    const fwdZ = Math.cos(rot);
+    const seatX = p.x - fwdX * CONSOLE_SEAT_DIST;
+    const seatZ = p.z - fwdZ * CONSOLE_SEAT_DIST;
+    return {
+      itemId: item.id,
+      seatX,
+      seatZ,
+      lookX: p.x,
+      lookY: 0.57,
+      lookZ: p.z + fwdZ * 0.08,
+      avatarRotY: Math.atan2(fwdX, fwdZ),
+    };
+  }
+
+  private locateConsoleTvMesh(itemId: string) {
+    this.consoleTvMesh = null;
+    if (!this.furnitureRoot) return;
+    this.furnitureRoot.traverse((obj) => {
+      if (obj.userData.placedId === itemId && !this.consoleTvMesh) {
+        this.consoleTvMesh = obj;
+        this.consoleTvBaseScale = obj.scale.x;
+      }
+    });
+  }
+
+  private updateConsoleTvScale(t: number) {
+    if (!this.consoleTvMesh) return;
+    const scale = this.consoleTvBaseScale * THREE.MathUtils.lerp(1, CONSOLE_TV_SCALE, t);
+    this.consoleTvMesh.scale.setScalar(scale);
+  }
+
+  private resetConsoleTvScale() {
+    if (!this.consoleTvMesh) return;
+    this.consoleTvMesh.scale.setScalar(this.consoleTvBaseScale);
   }
 
   private lerpCamera(dt: number) {
+    if (this.consolePhase !== "off") {
+      this.updateIsoCameraState();
+      return;
+    }
     this.camYaw += (this.targetCamYaw - this.camYaw) * Math.min(1, dt * CAM_LERP);
     this.frustum += (this.targetCamDist - this.frustum) * Math.min(1, dt * CAM_LERP);
+    this.updateIsoCameraState();
+  }
+
+  private updateIsoCameraState() {
     this.updateCameraPosition();
     const aspect = Math.max(this.mount.clientWidth, 320) / Math.max(this.mount.clientHeight, 400);
     this.camera.left = (-this.frustum * aspect) / 2;
@@ -698,6 +915,8 @@ export class IsometricHomeScene {
     this.camera.top = this.frustum / 2;
     this.camera.bottom = -this.frustum / 2;
     this.camera.updateProjectionMatrix();
+    this.perspCamera.aspect = aspect;
+    this.perspCamera.updateProjectionMatrix();
   }
 
   private getConsolePositions(): { x: number; z: number }[] {
@@ -772,22 +991,27 @@ export class IsometricHomeScene {
     let bestDist = INTERACT_DIST;
 
     for (const item of this.state.items) {
-      const archs = architecturesForKind(item.kind);
-      if (!archs.length) continue;
+      const spec = interactSpecForKind(item.kind);
+      if (!spec) continue;
       const room = this.rooms.find((r) => r.id === item.roomId);
       if (!room) continue;
       const p = itemWorldPos(item, room);
-      const dist = Math.hypot(this.avatarX - p.x, this.avatarZ - p.z);
+      const off = interactAnchorOffset(item.kind, item.rot);
+      const ax = p.x + off.dx;
+      const az = p.z + off.dz;
+      const dist = Math.hypot(this.avatarX - ax, this.avatarZ - az);
       if (dist >= bestDist) continue;
 
-      const poses = posesForArchitectures(archs);
       bestDist = dist;
       best = {
         itemId: item.id,
         kind: item.kind,
-        architectures: archs,
-        poses,
+        architectures: [],
+        poses: spec.poses,
         label: item.studioLabel ?? item.kind,
+        actionLabel: spec.label,
+        navigateHref: spec.href,
+        singleAction: spec.singleAction,
       };
     }
     return best;
@@ -797,17 +1021,22 @@ export class IsometricHomeScene {
     const nearby = this.findNearbyFurniture();
     if (
       nearby?.itemId === this.nearbyFurniture?.itemId &&
-      nearby?.poses.join() === this.nearbyFurniture?.poses.join()
+      nearby?.actionLabel === this.nearbyFurniture?.actionLabel
     ) {
       return;
     }
     this.nearbyFurniture = nearby;
     if (!nearby) this.interactPoseIdx = 0;
     this.callbacks.onNearbyFurnitureChange?.(nearby);
+    const nearTv = nearby?.kind === "tv_stand";
+    if (nearTv !== this.nearConsole) {
+      this.nearConsole = nearTv;
+      this.callbacks.onNearConsoleChange?.(nearTv);
+    }
   }
 
   private updateMovement(dt: number) {
-    if (!this.walkMode) return;
+    if (!this.walkMode || this.consolePhase !== "off") return;
 
     let dx = this.moveInput.x;
     let dz = this.moveInput.z;
@@ -823,7 +1052,6 @@ export class IsometricHomeScene {
     if (mag < 0.01) {
       this.walking = false;
       this.syncAvatarTransform();
-      this.checkConsoleProximity();
       this.checkGramophoneProximity();
       this.checkFurnitureProximity();
       return;
@@ -853,27 +1081,11 @@ export class IsometricHomeScene {
     }
 
     this.syncAvatarTransform();
-    this.checkConsoleProximity();
     this.checkGramophoneProximity();
     this.checkFurnitureProximity();
 
     if (this.loadedFurnitureIds.size < this.state.items.length) {
       void this.appendMissingFurnitureForRooms(this.visibleRoomIdsNearAvatar());
-    }
-  }
-
-  private checkConsoleProximity() {
-    const consoles = this.getConsolePositions();
-    let near = false;
-    for (const c of consoles) {
-      if (Math.hypot(this.avatarX - c.x, this.avatarZ - c.z) < INTERACT_DIST) {
-        near = true;
-        break;
-      }
-    }
-    if (near !== this.nearConsole) {
-      this.nearConsole = near;
-      this.callbacks.onNearConsoleChange?.(near);
     }
   }
 
@@ -894,6 +1106,7 @@ export class IsometricHomeScene {
 
   private onKeyDown = (e: KeyboardEvent) => {
     if (this.isTypingTarget(e)) return;
+    if (this.consolePhase !== "off") return;
     if (this.decorMode && (this.selectedTool || this.selectedStudioTool)) return;
     const k = e.key.toLowerCase();
     if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) {
@@ -940,9 +1153,10 @@ export class IsometricHomeScene {
           if (
             obj.userData.interactKind === "game_console" ||
             obj.userData.kind === "tv_stand" ||
-            obj.userData.interactKind === "gramophone"
+            obj.userData.interactKind === "gramophone" ||
+            interactSpecForKind(obj.userData.kind as BondeePlacedItem["kind"])
           ) {
-            if (this.nearConsole || this.nearGramophone) this.tryInteract();
+            if (this.nearGramophone || this.nearbyFurniture) this.tryInteract();
             return;
           }
           obj = obj.parent;
@@ -1009,6 +1223,7 @@ export class IsometricHomeScene {
   };
 
   private onPointerMove = (e: PointerEvent) => {
+    if (this.consolePhase !== "off") return;
     if (!this.dragging || !this.dragLast) return;
     const dx = e.clientX - this.dragLast.x;
     const dy = e.clientY - this.dragLast.y;
@@ -1023,6 +1238,7 @@ export class IsometricHomeScene {
   };
 
   private onWheel = (e: WheelEvent) => {
+    if (this.consolePhase !== "off") return;
     e.preventDefault();
     this.targetCamDist = THREE.MathUtils.clamp(this.targetCamDist + e.deltaY * 0.004, ZOOM_MIN, ZOOM_MAX);
   };
@@ -1037,6 +1253,8 @@ export class IsometricHomeScene {
     this.camera.top = this.frustum / 2;
     this.camera.bottom = -this.frustum / 2;
     this.camera.updateProjectionMatrix();
+    this.perspCamera.aspect = aspect;
+    this.perspCamera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
     this.requestRender();
   };
@@ -1051,17 +1269,28 @@ export class IsometricHomeScene {
     this.updateDoors(dt);
     this.updateWallOcclusion(dt);
     this.updateGramophoneFx(dt);
+    this.updateConsoleTransition(dt);
     const camMoving =
+      this.consolePhase !== "off" ||
       Math.abs(this.targetCamYaw - this.camYaw) > 0.002 ||
       Math.abs(this.targetCamDist - this.frustum) > 0.02;
     this.lerpCamera(dt);
+
+    if (this.consolePhase !== "off") {
+      this.activeRenderCamera = this.perspCamera;
+      this.needsRender = true;
+    } else if (this.consoleBlend > 0.001) {
+      this.activeRenderCamera = this.perspCamera;
+    } else {
+      this.activeRenderCamera = this.camera;
+    }
 
     if (this.walking) {
       this.avatar.animateWalk(this.animPhase, true);
       this.needsRender = true;
     } else {
       this.avatar.animateWalk(this.animPhase, false);
-      if (this.canInteractWithConsole() || this.canInteractWithGramophone()) {
+      if ((this.nearbyFurniture || this.canInteractWithGramophone()) && this.consolePhase === "off") {
         this.avatar.root.rotation.y = THREE.MathUtils.lerp(this.avatar.root.rotation.y, Math.PI, 0.05);
         this.needsRender = true;
       }
@@ -1070,7 +1299,7 @@ export class IsometricHomeScene {
     if (camMoving || this.dragging) this.needsRender = true;
     if (!this.needsRender) return;
     this.needsRender = false;
-    this.renderer.render(this.scene, this.camera);
+    this.renderer.render(this.scene, this.activeRenderCamera);
   };
 
   dispose() {

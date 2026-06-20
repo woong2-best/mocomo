@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Car, DoorOpen, Globe2, Hammer, Home, Save, Trees, User, Users } from "lucide-react";
+import { Car, DoorOpen, Hammer, Home, Save, Trees, User, Users } from "lucide-react";
 import type { AptProfileDto } from "@/actions/apt";
 import { saveAptHouseBuild } from "@/actions/apt";
 import { getPublicHome, setHomePublic, type PublicHomeDto } from "@/actions/apt-world";
@@ -13,6 +13,7 @@ import { formatCoords } from "@/lib/apt/world/geo-math";
 import { loadActiveVrm } from "@/lib/virtual-avatar/vrm-storage";
 import { Button } from "@/components/ui/button";
 import { AptWorldVisitorsPanel } from "@/components/apt/apt-world-visitors-panel";
+import { AptEntranceDoorToggle } from "@/components/apt/apt-entrance-door-toggle";
 
 const AptHouseScene = dynamic(
   () => import("@/components/apt/apt-house-scene").then((m) => m.AptHouseScene),
@@ -85,7 +86,11 @@ export function AptHouseView({ profile }: { profile: AptProfileDto }) {
     setVisitLoading(true);
     try {
       const fresh = await getPublicHome(home.userId);
-      setVisiting(fresh ?? home);
+      if (!fresh) {
+        window.alert("현관문이 닫혀 있어 이 집을 구경할 수 없습니다.");
+        return;
+      }
+      setVisiting(fresh);
     } finally {
       setVisitLoading(false);
     }
@@ -141,23 +146,10 @@ export function AptHouseView({ profile }: { profile: AptProfileDto }) {
           />
 
           {!visiting && (
-            <button
-              type="button"
-              onClick={() => void toggleHomePublic(!homePublic)}
-              className="flex w-full items-center justify-between gap-2 rounded-xl border border-[hsl(var(--folk-cobalt)/0.15)] bg-background/80 px-3 py-2.5 text-left transition-colors hover:bg-[hsl(var(--folk-gold)/0.08)]"
-            >
-              <span className="text-xs font-semibold text-folk-cobalt flex items-center gap-1.5">
-                <Globe2 className="h-3.5 w-3.5" />
-                집 공개
-              </span>
-              <span
-                className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                  homePublic ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
-                }`}
-              >
-                {homePublic ? "ON" : "OFF"}
-              </span>
-            </button>
+            <AptEntranceDoorToggle
+              doorOpen={homePublic}
+              onToggle={() => void toggleHomePublic(!homePublic)}
+            />
           )}
         </div>
       </div>

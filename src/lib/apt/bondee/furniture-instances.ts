@@ -26,6 +26,11 @@ const PROXY: Record<BondeeFurnitureKind, { size: [number, number, number]; color
   hoop: { size: [0.32, 0.72, 0.32], color: 0xff6633 },
   shelf_small: { size: [0.38, 0.52, 0.22], color: 0xe8d4bc },
   gramophone: { size: [0.72, 0.78, 0.42], color: 0xd4a84b },
+  refrigerator: { size: [0.42, 0.92, 0.38], color: 0xf5f8ff },
+  computer: { size: [0.16, 0.34, 0.28], color: 0x2a2a32 },
+  monitor: { size: [0.34, 0.38, 0.08], color: 0x222228 },
+  smartphone: { size: [0.06, 0.12, 0.02], color: 0x1a1a22 },
+  window: { size: [0.52, 0.62, 0.08], color: 0xfaf8f5 },
 };
 
 const _matrix = new THREE.Matrix4();

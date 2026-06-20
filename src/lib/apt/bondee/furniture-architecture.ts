@@ -34,7 +34,62 @@ export const FURNITURE_ARCHITECTURES: Record<BondeeFurnitureKind, FurnitureArchi
   washer: [],
   shelf_small: [],
   gramophone: [],
+  refrigerator: [],
+  computer: [],
+  monitor: [],
+  smartphone: [],
+  window: [],
 };
+
+export type FurnitureInteractSpec = {
+  /** E키 버튼에 표시할 동작 라벨 */
+  label: string;
+  poses: ChibiPose[];
+  /** 설정 시 E키로 해당 페이지 이동 */
+  href?: string;
+  /** true면 첫 pose만 사용 (순환 없음) */
+  singleAction?: boolean;
+};
+
+/** Bondee 가구 E키 상호작용 — gramophone은 별도 패널 */
+export const FURNITURE_INTERACT: Partial<Record<BondeeFurnitureKind, FurnitureInteractSpec>> = {
+  sofa: { label: "앉기", poses: ["sit"], singleAction: true },
+  bed: { label: "잠자기", poses: ["lie"], singleAction: true },
+  tv_stand: { label: "라이브 방송", poses: ["sit"], href: "/live", singleAction: true },
+  desk: { label: "앉기", poses: ["sit"], singleAction: true },
+  coffee_table: { label: "앉기", poses: ["sit"], singleAction: true },
+  refrigerator: { label: "냉장고", poses: ["stand"], singleAction: true },
+  computer: { label: "컴퓨터", poses: ["sit"], singleAction: true },
+  monitor: { label: "모니터", poses: ["sit"], singleAction: true },
+  smartphone: { label: "스마트폰", poses: ["stand"], singleAction: true },
+  ac: { label: "에어컨", poses: ["stand"], singleAction: true },
+  floor_lamp: { label: "조명", poses: ["stand"], singleAction: true },
+  plant: { label: "화분", poses: ["wave"], singleAction: true },
+  window: { label: "창문", poses: ["stand"], singleAction: true },
+  bookshelf: { label: "책꼂이", poses: ["stand"], singleAction: true },
+  rug: { label: "쉬기", poses: ["lie_prone", "run"] },
+  treadmill: { label: "운동", poses: ["run"], singleAction: true },
+  hoop: { label: "운동", poses: ["run"], singleAction: true },
+};
+
+export function interactSpecForKind(kind: BondeeFurnitureKind): FurnitureInteractSpec | null {
+  return FURNITURE_INTERACT[kind] ?? null;
+}
+
+/** 가구별 상호작용 감지 오프셋 (월드 좌표) */
+export function interactAnchorOffset(kind: BondeeFurnitureKind, rot: number): { dx: number; dz: number } {
+  const rad = (rot * Math.PI) / 2;
+  switch (kind) {
+    case "tv_stand":
+      return { dx: 0.08 + Math.sin(rad) * 0.12, dz: 0.22 + Math.cos(rad) * 0.12 };
+    case "sofa":
+      return { dx: Math.sin(rad) * 0.1, dz: Math.cos(rad) * 0.18 };
+    case "bed":
+      return { dx: 0, dz: 0.05 };
+    default:
+      return { dx: 0, dz: 0 };
+  }
+}
 
 export function architecturesForKind(kind: BondeeFurnitureKind): FurnitureArchitecture[] {
   return expandArchitectures(FURNITURE_ARCHITECTURES[kind] ?? []);
@@ -62,6 +117,8 @@ export function posesForArchitectures(archs: FurnitureArchitecture[]): ChibiPose
 }
 
 export function preferredPoseForKind(kind: BondeeFurnitureKind): ChibiPose | null {
+  const spec = interactSpecForKind(kind);
+  if (spec?.poses.length) return spec.poses[0];
   const archs = architecturesForKind(kind);
   if (!archs.length) return null;
   return poseForArchitecture(archs[0]);

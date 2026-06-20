@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import type { AptProfileDto, CountryAptPreview, FloorOccupant } from "@/actions/apt";
 import { getCountryFloorOccupants, listCountryApartments } from "@/actions/apt";
 import { AptSimulationHud } from "@/components/apt/apt-simulation-hud";
+import { AptEntranceDoorToggle } from "@/components/apt/apt-entrance-door-toggle";
 import {
   APT_DEFAULT_FLOOR,
   APT_LOBBY_FLOOR,
@@ -43,12 +44,16 @@ export const AptBuildingView = memo(function AptBuildingView({
   isLoggedIn,
   onHomeRoomsChange,
   paused = false,
+  doorOpen = true,
+  onDoorToggle,
 }: {
   initialProfile: AptProfileDto | null;
   bondeeRoom: BondeeRoomState;
   isLoggedIn: boolean;
   onHomeRoomsChange?: (rooms: AptRoom[]) => void;
   paused?: boolean;
+  doorOpen?: boolean;
+  onDoorToggle?: () => void;
 }) {
   const homeCountry = initialProfile?.countryCode ?? "KR";
   const homeFloor = initialProfile?.homeFloor ?? APT_DEFAULT_FLOOR;
@@ -170,13 +175,17 @@ export const AptBuildingView = memo(function AptBuildingView({
       onRideStart: () => setMoving(true),
       onRideEnd: () => setMoving(false),
       onResidentClick: (f, resident) => {
+        if (!resident.doorOpen) {
+          showToastRef.current(`${resident.displayName}님 — 현관문이 닫혀 있어 구경할 수 없습니다`);
+          return;
+        }
         const apt =
           countryAptsRef.current.find((a) => a.userId === resident.userId) ??
           countryAptsRef.current.find((a) => a.homeFloor === f);
         if (apt) {
           setBrowseTarget(apt);
           goToFloorRef.current(apt.homeFloor);
-          showToastRef.current(`${apt.displayName}의 집을 구경합니다`);
+          showToastRef.current(`${apt.displayName}님 집을 구경합니다`);
           return;
         }
         setBrowseTarget({
@@ -188,7 +197,7 @@ export const AptBuildingView = memo(function AptBuildingView({
           bondeeRoom: DEFAULT_BONDEE_ROOM,
         });
         goToFloorRef.current(resident.homeFloor);
-        showToastRef.current(`${resident.displayName} · 프로필에서 더 보기`);
+        showToastRef.current(`${resident.displayName}님 집을 구경합니다`);
       },
       onSimulationChange: (snap) => setSimSnap(snap),
     });
@@ -274,6 +283,12 @@ export const AptBuildingView = memo(function AptBuildingView({
             </button>
           </div>
 
+          {isOwnApt && isLoggedIn && onDoorToggle && (
+            <div className="absolute left-3 top-14 z-10 w-[min(100%,220px)] pointer-events-auto">
+              <AptEntranceDoorToggle doorOpen={doorOpen} onToggle={onDoorToggle} compact />
+            </div>
+          )}
+
           {browseTarget && !isOwnApt && (
             <div className="absolute top-14 right-3 z-10 max-w-[220px] rounded-xl border border-folk-terracotta/40 bg-white/95 p-3 shadow-md backdrop-blur-sm space-y-2">
               <p className="text-xs font-bold text-folk-cobalt flex items-center gap-1.5">
@@ -281,7 +296,7 @@ export const AptBuildingView = memo(function AptBuildingView({
                 {browseTarget.displayName} · {browseTarget.homeFloor}층
               </p>
               <p className="text-[10px] text-muted-foreground leading-snug">
-                현관을 클릭했거나 층을 선택해 집 내부를 구경 중입니다.
+                현관문이 열린 집만 구경할 수 있습니다. 현관 클릭 또는 층 선택으로 내부를 봅니다.
               </p>
               <Button asChild size="sm" className="w-full h-8 rounded-lg text-xs gap-1">
                 <Link href={`/u/${browseTarget.username}`}>
@@ -293,14 +308,14 @@ export const AptBuildingView = memo(function AptBuildingView({
           )}
 
           <div className="pointer-events-none absolute left-3 bottom-3 rounded-lg border border-pink-100 bg-white/95 px-2.5 py-1 text-[10px] text-muted-foreground backdrop-blur-sm max-w-[240px] leading-snug">
-            휠 위·아래 층 이동 · Ctrl+휠 확대 · 현관 클릭 · 엘리베이터
+            휠 위·아래 층 이동 · Ctrl+휠 확대 · 현관문 열린 집만 방문 · 아바타 엘리베이터 이동
           </div>
 
           {moving && (
             <div className="pointer-events-none absolute inset-x-0 top-14 flex justify-center z-10">
               <span className="rounded-full border border-pink-100 bg-white/95 px-3 py-1 text-xs font-semibold text-pink-700 animate-pulse flex items-center gap-1.5">
                 <span className="inline-block h-2 w-2 rounded-full bg-pink-500 animate-bounce" />
-                엘리베이터 이동 · {floor}층
+                아바타 엘리베이터 이동 · {floor}층
               </span>
             </div>
           )}
@@ -360,7 +375,7 @@ export const AptBuildingView = memo(function AptBuildingView({
             <div className="w-full space-y-1 max-h-28 overflow-y-auto">
               {loadingCountry && <p className="text-[9px] text-center text-muted-foreground">불러오는 중…</p>}
               {!loadingCountry && countryApts.length === 0 && (
-                <p className="text-[9px] text-center text-muted-foreground leading-snug">공개 아파트 없음</p>
+                <p className="text-[9px] text-center text-muted-foreground leading-snug">현관문 열린 아파트 없음</p>
               )}
               {countryApts.map((apt) => (
                 <button

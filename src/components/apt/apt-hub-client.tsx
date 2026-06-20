@@ -1,9 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Building2, Home } from "lucide-react";
 import type { AptProfileDto } from "@/actions/apt";
+import { setHomePublic } from "@/actions/apt-world";
 import type { BondeeHomeState } from "@/lib/apt/bondee/types";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import { AptSceneErrorBoundary } from "@/components/apt/apt-scene-error-boundary";
@@ -52,6 +53,17 @@ export function AptHubClient({
   const [towerMounted, setTowerMounted] = useState(false);
   const [homeState, setHomeState] = useState(bondeeHome);
   const [homeRooms, setHomeRooms] = useState(initialHomeRooms);
+  const [doorOpen, setDoorOpen] = useState(initialProfile?.homePublic ?? true);
+
+  const toggleDoor = useCallback(async () => {
+    const next = !doorOpen;
+    setDoorOpen(next);
+    await setHomePublic(next);
+  }, [doorOpen]);
+
+  useEffect(() => {
+    if (initialProfile) setDoorOpen(initialProfile.homePublic);
+  }, [initialProfile?.homePublic]);
 
   useEffect(() => {
     if (tab === "tower") setTowerMounted(true);
@@ -108,6 +120,8 @@ export function AptHubClient({
             studioInventory={studioInventory}
             onHomeChange={setHomeState}
             paused={tab !== "home"}
+            doorOpen={doorOpen}
+            onDoorToggle={() => void toggleDoor()}
           />
         </div>
         <div className={cn(tab !== "tower" && "hidden")}>
@@ -118,6 +132,8 @@ export function AptHubClient({
               isLoggedIn={isLoggedIn}
               onHomeRoomsChange={setHomeRooms}
               paused={tab !== "tower"}
+              doorOpen={doorOpen}
+              onDoorToggle={() => void toggleDoor()}
             />
           ) : (
             <div className="folk-card flex min-h-[min(88dvh,920px)] items-center justify-center text-sm text-muted-foreground bg-[#fef6f8]">
