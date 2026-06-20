@@ -83,12 +83,13 @@ function allowsDoorwayBetween(a: AptRoom, b: AptRoom): boolean {
 
   if (touchesCorridor) {
     const other = a.id === corridorId ? b : a;
+    // 엘리베이터실은 문 대신 개방형 승강장 — 복도와 직접 연결
+    if (other.id === "elevator" || a.id === "elevator") return false;
     return (
       other.type === "living" ||
       other.type === "bedroom" ||
       other.type === "bathroom" ||
       other.type === "kitchen" ||
-      other.id === "elevator" ||
       other.id === "entrance"
     );
   }

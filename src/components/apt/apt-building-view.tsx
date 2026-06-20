@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
   Box,
@@ -47,6 +47,12 @@ export const AptBuildingView = memo(function AptBuildingView({
   paused = false,
   doorOpen = true,
   onDoorToggle,
+  interiorOverlay,
+  interiorActive = false,
+  onEnterInterior,
+  onExitInterior,
+  sceneMode,
+  onSceneModeChange,
 }: {
   initialProfile: AptProfileDto | null;
   bondeeRoom: BondeeRoomState;
@@ -55,6 +61,12 @@ export const AptBuildingView = memo(function AptBuildingView({
   paused?: boolean;
   doorOpen?: boolean;
   onDoorToggle?: () => void;
+  interiorOverlay?: ReactNode;
+  interiorActive?: boolean;
+  onEnterInterior?: () => void;
+  onExitInterior?: () => void;
+  sceneMode?: "building" | "interior";
+  onSceneModeChange?: (mode: "building" | "interior") => void;
 }) {
   const homeCountry = initialProfile?.countryCode ?? "KR";
   const homeFloor = initialProfile?.homeFloor ?? APT_DEFAULT_FLOOR;
@@ -226,8 +238,8 @@ export const AptBuildingView = memo(function AptBuildingView({
   }, []);
 
   useEffect(() => {
-    sceneRef.current?.setPaused(paused);
-  }, [paused]);
+    sceneRef.current?.setPaused(paused || interiorActive);
+  }, [paused, interiorActive]);
 
   useEffect(() => {
     plansRef.current = plans;
@@ -237,16 +249,61 @@ export const AptBuildingView = memo(function AptBuildingView({
     <div className="folk-card overflow-hidden">
       <div className="flex flex-col lg:flex-row min-h-[min(88dvh,920px)]">
         <div className="relative flex-1 min-h-[560px] bg-[#fef6f8]">
-          <div ref={mountRef} className="absolute inset-0" />
+          <div ref={mountRef} className={cn("absolute inset-0", interiorActive && "invisible")} />
+
+          {interiorOverlay && (
+            <div className={cn("absolute inset-0 z-20 flex flex-col", !interiorActive && "hidden")}>
+              {interiorOverlay}
+            </div>
+          )}
+
+          {/* 통합 뷰 전환 — 탭 대신 뷰포트 내 칩 */}
+          {isOwnApt && isLoggedIn && onSceneModeChange && (
+            <div className="absolute left-1/2 top-3 z-30 flex -translate-x-1/2 gap-1 rounded-xl border border-neutral-200 bg-white/95 p-1 shadow-sm backdrop-blur-sm pointer-events-auto">
+              <button
+                type="button"
+                onClick={() => onSceneModeChange("building")}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-[10px] font-bold transition-colors",
+                  sceneMode === "building"
+                    ? "bg-folk-terracotta/15 text-folk-terracotta"
+                    : "text-neutral-600 hover:bg-neutral-50"
+                )}
+              >
+                🏢 1000층
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onEnterInterior?.();
+                  onSceneModeChange("interior");
+                }}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-[10px] font-bold transition-colors",
+                  sceneMode === "interior"
+                    ? "bg-folk-terracotta/15 text-folk-terracotta"
+                    : "text-neutral-600 hover:bg-neutral-50"
+                )}
+              >
+                🏠 실내
+              </button>
+            </div>
+          )}
 
           <AptSimulationHud snapshot={simSnap} />
           <AptTimeHud
             hour={worldHour}
             phaseLabel={dayPhaseLabel}
-            className="absolute top-3 right-3 z-10 max-w-[min(100%,14rem)]"
+            className={cn(
+              "absolute top-3 right-3 z-10 max-w-[min(100%,14rem)]",
+              interiorActive && "opacity-0 pointer-events-none"
+            )}
           />
 
-          <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-neutral-200 bg-white/95 px-2.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm">
+          <div className={cn(
+            "pointer-events-none absolute left-3 top-3 rounded-lg border border-neutral-200 bg-white/95 px-2.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm",
+            interiorActive && "hidden"
+          )}>
             {isOwnApt ? (
               <>
                 {APT_TOTAL_FLOORS}층 타워 · {floor}층
@@ -265,7 +322,10 @@ export const AptBuildingView = memo(function AptBuildingView({
           </div>
 
           {/* Full-tower vertical navigator */}
-          <div className="absolute right-[8.75rem] top-1/2 z-10 hidden lg:flex -translate-y-1/2 flex-col items-center gap-1 rounded-xl border border-neutral-200 bg-white/95 px-1.5 py-2 shadow-sm backdrop-blur-sm">
+          <div className={cn(
+            "absolute right-[8.75rem] top-1/2 z-10 hidden lg:flex -translate-y-1/2 flex-col items-center gap-1 rounded-xl border border-neutral-200 bg-white/95 px-1.5 py-2 shadow-sm backdrop-blur-sm",
+            interiorActive && "opacity-30 pointer-events-none"
+          )}>
             <button
               type="button"
               className="text-[8px] font-bold text-folk-terracotta hover:underline"
@@ -295,7 +355,7 @@ export const AptBuildingView = memo(function AptBuildingView({
             </button>
           </div>
 
-          {isOwnApt && isLoggedIn && onDoorToggle && (
+          {isOwnApt && isLoggedIn && onDoorToggle && !interiorActive && (
             <div className="absolute left-3 top-14 z-10 w-[min(100%,220px)] pointer-events-auto">
               <AptEntranceDoorToggle doorOpen={doorOpen} onToggle={onDoorToggle} compact />
             </div>
@@ -319,9 +379,24 @@ export const AptBuildingView = memo(function AptBuildingView({
             </div>
           )}
 
-          <div className="pointer-events-none absolute left-3 bottom-3 rounded-lg border border-pink-100 bg-white/95 px-2.5 py-1 text-[10px] text-muted-foreground backdrop-blur-sm max-w-[240px] leading-snug">
-            휠 위·아래 층 이동 · Ctrl+휠 확대 · 현관문 열린 집만 방문 · 아바타 엘리베이터 이동
+          <div className={cn(
+            "pointer-events-none absolute left-3 bottom-3 rounded-lg border border-pink-100 bg-white/95 px-2.5 py-1 text-[10px] text-muted-foreground backdrop-blur-sm max-w-[240px] leading-snug",
+            interiorActive && "hidden"
+          )}>
+            휠 위·아래 층 이동 · Ctrl+휠 확대 · 엘리베이터로 층 이동 · 실내에서 엘리베이터 탑승
           </div>
+
+          {interiorActive && onExitInterior && (
+            <div className="pointer-events-auto absolute left-3 bottom-3 z-30">
+              <button
+                type="button"
+                onClick={onExitInterior}
+                className="rounded-xl border border-sky-200 bg-white/95 px-3 py-1.5 text-[10px] font-bold text-sky-700 shadow-sm hover:bg-sky-50"
+              >
+                🏢 타워로 돌아가기
+              </button>
+            </div>
+          )}
 
           {moving && (
             <div className="pointer-events-none absolute inset-x-0 top-14 flex justify-center z-10">
