@@ -24,6 +24,15 @@ import {
 import type { BondeeHomeState } from "./types";
 import { DEFAULT_CHIBI_AVATAR } from "./types";
 import type { FurnitureItem, ResidentAgent, SimulationSnapshot } from "@/lib/apt/simulation/types";
+import {
+  applyDayNightToScene,
+  collectFloorLampSpecs,
+  createSceneLighting,
+  DayNightTicker,
+  LampLightManager,
+  type SceneLightingRefs,
+} from "@/lib/apt/day-night-environment";
+import { getDayPhaseLabel } from "@/lib/apt/day-night";
 
 export { APT_DEFAULT_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
 
@@ -86,6 +95,7 @@ export type DollhouseCallbacks = {
   onFloorDisplay?: (floor: number) => void;
   onRideStart?: () => void;
   onRideEnd?: () => void;
+  onTimeChange?: (hour: number, phaseLabel: string) => void;
 };
 
 export type AptBuildingCallbacks = DollhouseCallbacks;
@@ -133,6 +143,9 @@ export class DollhouseBuildingScene {
   private callbacks: DollhouseCallbacks = {};
   private simEnabled = false;
   private frustum = FRUSTUM_DEFAULT;
+  private sceneLighting!: SceneLightingRefs;
+  private dayNight = new DayNightTicker();
+  private lampManager: LampLightManager;
 
   constructor(mount: HTMLElement, initialFloor = APT_DEFAULT_FLOOR) {
     this.mount = mount;
@@ -159,6 +172,8 @@ export class DollhouseBuildingScene {
     mount.appendChild(this.renderer.domElement);
 
     this.addLights();
+    this.lampManager = new LampLightManager(this.building);
+    this.updateDayNight(true);
     this.building.add(this.unitsRoot);
     this.building.add(this.shellRoot);
     this.scene.add(this.building);
@@ -465,6 +480,7 @@ export class DollhouseBuildingScene {
     this.targetScrollY = this.scrollY;
     this.building.position.y = this.scrollY;
     this.updateElevatorCar();
+    this.syncActiveFloorLamps();
     this.requestRender();
   }
 
@@ -760,13 +776,48 @@ export class DollhouseBuildingScene {
   }
 
   private addLights() {
-    this.scene.add(new THREE.AmbientLight(0xfff8fc, 0.88));
-    const sun = new THREE.DirectionalLight(0xfff0f8, 0.68);
-    sun.position.set(6, 14, 8);
-    this.scene.add(sun);
-    const fill = new THREE.DirectionalLight(0xe8f4ff, 0.32);
-    fill.position.set(-6, 8, -4);
-    this.scene.add(fill);
+    this.sceneLighting = createSceneLighting(this.scene);
+  }
+
+  private updateDayNight(force = false) {
+    const { hour, lighting, changed } = this.dayNight.tick();
+    if (!force && !changed) return;
+    applyDayNightToScene(this.scene, this.sceneLighting, lighting, this.renderer);
+    this.lampManager.setDarkness(lighting.darkness);
+    this.syncActiveFloorLamps();
+    this.callbacks.onTimeChange?.(hour, getDayPhaseLabel(hour));
+    this.requestRender();
+  }
+
+  private syncActiveFloorLamps() {
+    const viewingVisit = this.visitHomeFloor != null;
+    const revealInterior =
+      this.currentFloor === (this.visitHomeFloor ?? this.homeFloor ?? this.currentFloor) &&
+      (!viewingVisit || this.currentFloor === this.visitHomeFloor);
+
+    const room =
+      viewingVisit && this.visitRoom
+        ? this.visitRoom
+        : revealInterior
+          ? this.bondeeRoom
+          : null;
+    const floor = viewingVisit ? (this.visitHomeFloor ?? this.currentFloor) : this.currentFloor;
+    const planRooms = getRoomsForFloor(this.floorPlans, floor);
+    if (!room || !planRooms.length || !revealInterior) {
+      this.lampManager.sync([], false);
+      return;
+    }
+    const { start } = this.visibleRange();
+    const unitY = this.floorLocalY(floor, start) + 0.06;
+    const specs = collectFloorLampSpecs(
+      room.items,
+      planRooms,
+      room.lightsOn ?? {},
+      0.72,
+      { x: 0, y: unitY, z: 0 }
+    );
+    this.lampManager.sync(specs, this.dayNight.lampsEffective());
+    this.lampManager.updateGlows(room.lightsOn ?? {}, this.dayNight.lampsEffective());
   }
 
   private onPointerDown = (e: PointerEvent) => {
@@ -840,6 +891,7 @@ export class DollhouseBuildingScene {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.loop);
     if (this.paused) return;
+    this.updateDayNight();
     const delta = Math.min(0.05, this.clock.getDelta());
 
     let animating = false;
@@ -881,6 +933,7 @@ export class DollhouseBuildingScene {
     disposeGroup(this.unitsRoot);
     disposeGroup(this.shellRoot);
     this.hideAvatar();
+    this.lampManager.dispose();
     this.renderer.dispose();
     canvas.remove();
   }

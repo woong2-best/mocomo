@@ -64,6 +64,8 @@ export type BondeeHomeState = {
   floorStyle: "wood" | "carpet";
   pose: ChibiPose;
   activeRoomId?: string;
+  /** floor_lamp 등 가구 조명 on/off (itemId → true) */
+  lightsOn?: Record<string, boolean>;
 };
 
 export const DEFAULT_CHIBI_AVATAR: ChibiAvatarConfig = {

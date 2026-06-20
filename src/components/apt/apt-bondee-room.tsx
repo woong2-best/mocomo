@@ -35,6 +35,7 @@ import { AptChibiCustomizer } from "@/components/apt/apt-chibi-customizer";
 import { HomeAvatarControls } from "@/components/apt/home-avatar-controls";
 import { GramophonePanel } from "@/components/apt/gramophone-panel";
 import { AptEntranceDoorToggle } from "@/components/apt/apt-entrance-door-toggle";
+import { AptTimeHud } from "@/components/apt/apt-time-hud";
 
 const POSE_OPTIONS: { id: ChibiPose; label: string; icon: typeof Sofa; key: string }[] = [
   { id: "stand", label: "서기", icon: PersonStanding, key: "1" },
@@ -84,6 +85,8 @@ function AptBondeeRoomInner({
   const [gramophoneOpen, setGramophoneOpen] = useState(false);
   const [gramophonePlaying, setGramophonePlaying] = useState(false);
   const [nearbyFurniture, setNearbyFurniture] = useState<NearbyFurnitureInteract | null>(null);
+  const [worldHour, setWorldHour] = useState<number | null>(null);
+  const [dayPhaseLabel, setDayPhaseLabel] = useState<string | null>(null);
   const router = useRouter();
   const openGramophoneRef = useRef<() => void>(() => {});
 
@@ -169,6 +172,18 @@ function AptBondeeRoomInner({
       onActiveRoomChange: (roomId) => setActiveRoomId(roomId),
       onNearbyFurnitureChange: setNearbyFurniture,
       onPoseChange,
+      onTimeChange: (hour, phase) => {
+        setWorldHour(hour);
+        setDayPhaseLabel(phase);
+      },
+      onLightToggle: (itemId, on) => {
+        const lightsOn = { ...(stateRef.current.lightsOn ?? {}), [itemId]: on };
+        const next = { ...stateRef.current, lightsOn };
+        stateRef.current = next;
+        setState(next);
+        onHomeChange?.(next);
+        persist(next);
+      },
     });
     sceneRef.current = scene;
     return () => {
@@ -242,10 +257,10 @@ function AptBondeeRoomInner({
           onPlayingChange={setGramophonePlaying}
         />
 
-        <div className="pointer-events-none absolute left-3 top-3 rounded-2xl border-2 border-pink-200/80 bg-white/90 px-3 py-2 text-xs text-muted-foreground backdrop-blur-md shadow-sm space-y-0.5">
+        <div className="pointer-events-none absolute left-3 top-3 rounded-2xl border-2 border-pink-200/80 bg-white/90 px-3 py-2 text-xs text-muted-foreground backdrop-blur-md shadow-sm space-y-0.5 max-w-[min(100%,16rem)]">
           <p className="font-bold text-folk-cobalt">🏠 내 집 · {rooms.filter((r) => r.id !== "hall-corridor").length}개 공간{saving && " · 저장 중…"}</p>
           <p className="text-[10px] text-folk-terracotta font-medium">
-            WASD 이동 · 문 통과 시 자동 개방 · 가구 근처 E · 자세 1~6 · Shift+드래그 회전 · 휠 줌
+            WASD 이동 · 조명 근처 E로 켜기/끄기 · 자세 1~6 · Shift+드래그 회전 · 휠 줌
           </p>
           {nearGramophone && !movementDisabled && !gramophoneOpen && (
             <p className="text-[10px] text-amber-700 font-semibold">그라모폰 — MP3 재생 (E)</p>
@@ -275,6 +290,7 @@ function AptBondeeRoomInner({
         </div>
 
         <div className="absolute right-3 top-3 flex flex-col gap-1.5">
+          <AptTimeHud hour={worldHour} phaseLabel={dayPhaseLabel} className="pointer-events-none w-[11rem]" />
           {isLoggedIn && onDoorToggle && (
             <div className="mb-1 w-[11rem] pointer-events-auto">
               <AptEntranceDoorToggle doorOpen={doorOpen} onToggle={onDoorToggle} compact />

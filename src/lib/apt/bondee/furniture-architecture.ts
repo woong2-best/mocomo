@@ -63,7 +63,7 @@ export const FURNITURE_INTERACT: Partial<Record<BondeeFurnitureKind, FurnitureIn
   monitor: { label: "모니터", poses: ["sit"], singleAction: true },
   smartphone: { label: "스마트폰", poses: ["stand"], singleAction: true },
   ac: { label: "에어컨", poses: ["stand"], singleAction: true },
-  floor_lamp: { label: "조명", poses: ["stand"], singleAction: true },
+  floor_lamp: { label: "조명 켜기", poses: [], singleAction: true },
   plant: { label: "화분", poses: ["wave"], singleAction: true },
   window: { label: "창문", poses: ["stand"], singleAction: true },
   bookshelf: { label: "책꼂이", poses: ["stand"], singleAction: true },

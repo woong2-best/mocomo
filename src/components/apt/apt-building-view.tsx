@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import type { AptProfileDto, CountryAptPreview, FloorOccupant } from "@/actions/apt";
 import { getCountryFloorOccupants, listCountryApartments } from "@/actions/apt";
 import { AptSimulationHud } from "@/components/apt/apt-simulation-hud";
+import { AptTimeHud } from "@/components/apt/apt-time-hud";
 import { AptEntranceDoorToggle } from "@/components/apt/apt-entrance-door-toggle";
 import {
   APT_DEFAULT_FLOOR,
@@ -76,6 +77,8 @@ export const AptBuildingView = memo(function AptBuildingView({
   const [floorOccupants, setFloorOccupants] = useState<FloorOccupant[]>([]);
   const [browseTarget, setBrowseTarget] = useState<CountryAptPreview | null>(null);
   const [loadingCountry, setLoadingCountry] = useState(false);
+  const [worldHour, setWorldHour] = useState<number | null>(null);
+  const [dayPhaseLabel, setDayPhaseLabel] = useState<string | null>(null);
 
   const countryAptsRef = useRef(countryApts);
   useEffect(() => {
@@ -200,6 +203,10 @@ export const AptBuildingView = memo(function AptBuildingView({
         showToastRef.current(`${resident.displayName}님 집을 구경합니다`);
       },
       onSimulationChange: (snap) => setSimSnap(snap),
+      onTimeChange: (hour, phase) => {
+        setWorldHour(hour);
+        setDayPhaseLabel(phase);
+      },
     });
     sceneRef.current = scene;
     scene.setFloorPlans(plansRef.current);
@@ -233,6 +240,11 @@ export const AptBuildingView = memo(function AptBuildingView({
           <div ref={mountRef} className="absolute inset-0" />
 
           <AptSimulationHud snapshot={simSnap} />
+          <AptTimeHud
+            hour={worldHour}
+            phaseLabel={dayPhaseLabel}
+            className="absolute top-3 right-3 z-10 max-w-[min(100%,14rem)]"
+          />
 
           <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-neutral-200 bg-white/95 px-2.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm">
             {isOwnApt ? (

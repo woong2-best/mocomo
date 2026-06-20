@@ -24,9 +24,18 @@ import { computeHomeDoorways, isNearDoor, type HomeDoorway } from "./home-doorwa
 import type { BondeeHomeState, BondeePlacedItem, ChibiAvatarConfig, ChibiPose } from "./types";
 import type { StudioDecorTool } from "@/studio/lib/apt-types";
 import { hydrateStudioGltfMeshes } from "./studio-gltf-meshes";
-import { enableBondeeRenderer, setupBondeeLights, BONDEE_PALETTE } from "./bondee-mesh-utils";
-import { cappedPixelRatio, stripShadows } from "./scene-perf";
+import { enableBondeeRenderer, BONDEE_PALETTE } from "./bondee-mesh-utils";
+import {
+  applyDayNightToScene,
+  createSceneLighting,
+  DayNightTicker,
+  LampLightManager,
+  collectFloorLampSpecs,
+  type SceneLightingRefs,
+} from "@/lib/apt/day-night-environment";
+import { getDayPhaseLabel } from "@/lib/apt/day-night";
 import { GramophoneNoteFx } from "./gramophone-notes";
+import { cappedPixelRatio, stripShadows } from "./scene-perf";
 
 const MOVE_SPEED = 2.4;
 const INTERACT_DIST = 0.72;
@@ -87,6 +96,8 @@ export type IsometricHomeCallbacks = {
   onActiveRoomChange?: (roomId: string) => void;
   onNearbyFurnitureChange?: (nearby: NearbyFurnitureInteract | null) => void;
   onPoseChange?: (pose: ChibiPose) => void;
+  onLightToggle?: (itemId: string, on: boolean) => void;
+  onTimeChange?: (hour: number, phaseLabel: string) => void;
 };
 
 export class IsometricHomeScene {
@@ -142,7 +153,9 @@ export class IsometricHomeScene {
   private dragging = false;
   private dragLast: { x: number; y: number } | null = null;
   private avatarShadow: THREE.Mesh;
-  private lightRoot = new THREE.Group();
+  private sceneLighting: SceneLightingRefs;
+  private dayNight = new DayNightTicker();
+  private lampManager: LampLightManager;
   private doorways: HomeDoorway[] = [];
   private doorPivots = new Map<string, THREE.Object3D>();
   private wallMeshes: THREE.Mesh[] = [];
@@ -189,6 +202,7 @@ export class IsometricHomeScene {
     }
 
     this.scene = new THREE.Scene();
+    this.scene.fog = new THREE.Fog(BONDEE_PALETTE.bg, 14, 28);
 
     const aspect = Math.max(mount.clientWidth, 320) / Math.max(mount.clientHeight, 400);
     this.camera = new THREE.OrthographicCamera(
@@ -209,8 +223,9 @@ export class IsometricHomeScene {
     this.renderer.setSize(mount.clientWidth, mount.clientHeight);
     mount.appendChild(this.renderer.domElement);
 
-    setupBondeeLights(this.scene, this.lightRoot);
-    this.scene.add(this.lightRoot);
+    this.sceneLighting = createSceneLighting(this.scene);
+    this.lampManager = new LampLightManager(this.homeRoot);
+    this.updateDayNight(true);
 
     this.avatarShadow = new THREE.Mesh(
       new THREE.CircleGeometry(0.14, 20),
@@ -278,18 +293,69 @@ export class IsometricHomeScene {
       });
     if (itemsChanged) {
       this.syncFurnitureItems(nextItems);
+      this.syncLampLights();
     }
     const avatarChanged =
       JSON.stringify(state.avatar) !== JSON.stringify(this.state.avatar) ||
       state.pose !== this.state.pose;
+    const lightsChanged =
+      JSON.stringify(state.lightsOn ?? {}) !== JSON.stringify(this.state.lightsOn ?? {});
     this.state = { ...state, items: nextItems };
+    if (lightsChanged) this.syncLampLights();
     if (avatarChanged) this.applyAvatar();
     else this.requestRender();
   }
 
   setPaused(paused: boolean) {
     this.paused = paused;
-    if (!paused) this.requestRender();
+    if (!paused) {
+      this.updateDayNight(true);
+      this.requestRender();
+    }
+  }
+
+  isLightOn(itemId: string) {
+    return !!this.state.lightsOn?.[itemId];
+  }
+
+  toggleLight(itemId: string, on: boolean) {
+    const lightsOn = { ...(this.state.lightsOn ?? {}), [itemId]: on };
+    this.state = { ...this.state, lightsOn };
+    this.syncLampLights();
+    this.checkFurnitureProximity();
+    this.callbacks.onLightToggle?.(itemId, on);
+    this.requestRender();
+  }
+
+  private updateDayNight(force = false) {
+    const { hour, lighting, changed } = this.dayNight.tick();
+    if (!force && !changed) return;
+    applyDayNightToScene(this.scene, this.sceneLighting, lighting, this.renderer);
+    this.lampManager.setDarkness(lighting.darkness);
+    this.syncLampLights();
+    this.callbacks.onTimeChange?.(hour, getDayPhaseLabel(hour));
+    this.requestRender();
+  }
+
+  private syncLampLights() {
+    const effective = this.dayNight.lampsEffective();
+    const specs = collectFloorLampSpecs(
+      this.state.items,
+      this.rooms,
+      this.state.lightsOn ?? {}
+    );
+    this.lampManager.sync(specs, effective);
+    this.lampManager.updateGlows(this.state.lightsOn ?? {}, effective);
+  }
+
+  private registerLampGlow(mesh: THREE.Object3D, itemId: string) {
+    if (mesh.userData.kind !== "floor_lamp") return;
+    mesh.traverse((o) => {
+      if (o instanceof THREE.Mesh && o.material && "emissive" in (o.material as THREE.MeshStandardMaterial)) {
+        this.lampManager.attachGlowMesh(itemId, o);
+      }
+    });
+    this.syncLampLights();
   }
 
   getState(): BondeeHomeState {
@@ -424,6 +490,10 @@ export class IsometricHomeScene {
     if (this.isDecorBlocking() || !this.nearbyFurniture) return;
 
     const target = this.nearbyFurniture;
+    if (target.kind === "floor_lamp") {
+      this.toggleLight(target.itemId, !this.isLightOn(target.itemId));
+      return;
+    }
     if (target.navigateHref) {
       this.callbacks.onNavigateInteract?.(target.navigateHref);
       return;
@@ -711,6 +781,8 @@ export class IsometricHomeScene {
       selectedItemId: this.selectedItemId,
     });
     this.loadedFurnitureIds.add(item.id);
+    const mesh = this.furnitureRoot.children.find((c) => c.userData.placedId === item.id);
+    if (mesh && item.kind === "floor_lamp") this.registerLampGlow(mesh, item.id);
   }
 
   private async loadFurnitureStaged(loadGen: number, priorityRooms: Set<string>) {
@@ -779,7 +851,6 @@ export class IsometricHomeScene {
     this.avatar.root.rotation.y = this.avatarRotY;
     this.avatarShadow.position.set(this.avatarX, 0.01, this.avatarZ);
     this.avatarShadow.scale.setScalar(this.walking ? 0.85 : 1);
-    this.lightRoot.position.set(this.avatarX, 0, this.avatarZ);
   }
 
   private updateCameraPosition() {
@@ -1009,7 +1080,12 @@ export class IsometricHomeScene {
         architectures: [],
         poses: spec.poses,
         label: item.studioLabel ?? item.kind,
-        actionLabel: spec.label,
+        actionLabel:
+          item.kind === "floor_lamp"
+            ? this.isLightOn(item.id)
+              ? "조명 끄기"
+              : "조명 켜기"
+            : spec.label,
         navigateHref: spec.href,
         singleAction: spec.singleAction,
       };
@@ -1263,6 +1339,7 @@ export class IsometricHomeScene {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.loop);
     if (this.paused) return;
+    this.updateDayNight();
     const dt = this.clock.getDelta();
     this.animPhase += dt;
     this.updateMovement(dt);
@@ -1315,6 +1392,7 @@ export class IsometricHomeScene {
     this.renderer.domElement.removeEventListener("wheel", this.onWheel);
     if (this.floorGroup) disposeHomeGroup(this.floorGroup);
     this.noteFx.dispose();
+    this.lampManager.dispose();
     this.avatar.dispose();
     this.renderer.dispose();
     this.renderer.domElement.remove();
