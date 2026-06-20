@@ -1,9 +1,9 @@
 "use client";
 
 import * as THREE from "three";
-import { ChibiAvatarMesh } from "@/lib/apt/bondee/chibi-avatar";
+import { AptWorldAvatar } from "./apt-world-avatar";
 import { ElevatorDoorAnimator } from "@/lib/apt/bondee/elevator-door";
-import type { ChibiAvatarConfig, ChibiPose } from "@/lib/apt/bondee/types";
+import type { ChibiAvatarConfig } from "@/lib/apt/bondee/types";
 import { CORRIDOR_LEN } from "./corridor-meshes";
 import type { DoorState } from "./world-types";
 
@@ -19,7 +19,7 @@ export type CorridorDoorHandle = {
 
 export class CorridorWalkController {
   readonly root = new THREE.Group();
-  readonly avatar: ChibiAvatarMesh;
+  readonly avatar: AptWorldAvatar;
   avatarX = -CORRIDOR_LEN / 2 + 1.2;
   avatarZ = 0;
   avatarRot = Math.PI / 2;
@@ -31,9 +31,9 @@ export class CorridorWalkController {
   private knockTimer = 0;
   private elevDoors = new ElevatorDoorAnimator();
 
-  constructor(avatarConfig: ChibiAvatarConfig, pose: ChibiPose = "stand") {
-    this.avatar = new ChibiAvatarMesh();
-    this.avatar.rebuild(avatarConfig, pose);
+  constructor(avatarConfig: ChibiAvatarConfig, vrmUrl?: string | null) {
+    this.avatar = new AptWorldAvatar();
+    void this.avatar.init(avatarConfig, vrmUrl);
     this.root.add(this.avatar.root);
     this.syncAvatar();
   }
@@ -61,6 +61,10 @@ export class CorridorWalkController {
       target: state === "open" ? Math.PI / 2.2 : 0,
       state,
     });
+    if (state === "open") {
+      this.avatar.setAction("door_open");
+      window.setTimeout(() => this.avatar.setAction("stand"), 900);
+    }
   }
 
   setMoveInput(x: number, z: number) {
@@ -82,13 +86,14 @@ export class CorridorWalkController {
     return Math.hypot(dx, dz) < 0.65;
   }
 
-  knockOrBell() {
-    this.knockTimer = 0.6;
+  knockOrBell(kind: "knock" | "bell" = "knock") {
+    this.knockTimer = 0.75;
+    this.avatar.setAction(kind);
     const home = this.getNearestHomeDoor();
-    if (home?.knocker) {
+    if (kind === "knock" && home?.knocker) {
       home.knocker.rotation.z = 0.25;
     }
-    if (home?.bell && home.bell.material instanceof THREE.MeshStandardMaterial) {
+    if (kind === "bell" && home?.bell && home.bell.material instanceof THREE.MeshStandardMaterial) {
       home.bell.material.emissive = new THREE.Color(0xffd700);
       home.bell.material.emissiveIntensity = 0.8;
     }
@@ -98,24 +103,11 @@ export class CorridorWalkController {
     let anim = false;
     anim = this.elevDoors.tick(dt) || anim;
 
-    const home = this.getNearestHomeDoor();
-    if (home && home.state === "open") {
-      const dx = this.avatarX - (CORRIDOR_LEN / 2 - 1.1);
-      const dz = this.avatarZ - (home.pivot.parent?.position.z ?? 0);
-      if (Math.hypot(dx, dz) < 1.2 && home.state === "open") {
-        /* already open */
-      }
-    } else if (home && home.state === "closed") {
-      const dx = this.avatarX - (CORRIDOR_LEN / 2 - 1.1);
-      const dz = this.avatarZ - (home.pivot.parent?.position.z ?? 0);
-      if (Math.hypot(dx, dz) < 0.85) {
-        this.setDoorState(home.unitIndex, "open");
-      }
-    }
-
     const speed = 1.35;
     const len = Math.hypot(this.moveX, this.moveZ);
-    if (len > 0.08) {
+    const moving = len > 0.08;
+
+    if (moving && this.knockTimer <= 0) {
       const nx = this.moveX / len;
       const nz = this.moveZ / len;
       this.avatarX = THREE.MathUtils.clamp(this.avatarX + nx * speed * dt, -CORRIDOR_LEN / 2 + 0.5, CORRIDOR_LEN / 2 - 0.6);
@@ -124,7 +116,7 @@ export class CorridorWalkController {
       this.walkPhase += dt;
       this.avatar.animateWalk(this.walkPhase, true);
       anim = true;
-    } else {
+    } else if (this.knockTimer <= 0) {
       this.avatar.animateWalk(this.walkPhase, false);
     }
 
@@ -155,12 +147,11 @@ export class CorridorWalkController {
 
     if (this.knockTimer > 0) {
       this.knockTimer -= dt;
-      this.avatar.root.rotation.z = Math.sin(this.knockTimer * 28) * 0.04;
       anim = true;
-    } else {
-      this.avatar.root.rotation.z = 0;
+      if (this.knockTimer <= 0) this.avatar.setAction("stand");
     }
 
+    anim = this.avatar.tick(dt, moving) || anim;
     this.syncAvatar();
     return anim;
   }

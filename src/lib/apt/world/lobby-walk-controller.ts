@@ -1,13 +1,13 @@
 "use client";
 
 import * as THREE from "three";
-import { ChibiAvatarMesh } from "@/lib/apt/bondee/chibi-avatar";
+import { AptWorldAvatar } from "./apt-world-avatar";
 import { ElevatorDoorAnimator } from "@/lib/apt/bondee/elevator-door";
-import type { ChibiAvatarConfig, ChibiPose } from "@/lib/apt/bondee/types";
+import type { ChibiAvatarConfig } from "@/lib/apt/bondee/types";
 
 export class LobbyWalkController {
   readonly root = new THREE.Group();
-  readonly avatar: ChibiAvatarMesh;
+  readonly avatar: AptWorldAvatar;
   avatarX = 0;
   avatarZ = 2;
   avatarRot = Math.PI;
@@ -20,9 +20,9 @@ export class LobbyWalkController {
   private nearElevator = false;
   private nearMailbox = false;
 
-  constructor(avatarConfig: ChibiAvatarConfig, pose: ChibiPose = "stand") {
-    this.avatar = new ChibiAvatarMesh();
-    this.avatar.rebuild(avatarConfig, pose);
+  constructor(avatarConfig: ChibiAvatarConfig, vrmUrl?: string | null) {
+    this.avatar = new AptWorldAvatar();
+    void this.avatar.init(avatarConfig, vrmUrl);
     this.root.add(this.avatar.root);
     this.syncAvatar();
   }
@@ -53,12 +53,17 @@ export class LobbyWalkController {
     return this.nearMailbox;
   }
 
+  setElevatorAction(riding: boolean) {
+    this.avatar.setAction(riding ? "elevator_ride" : "elevator_idle");
+  }
+
   tick(dt: number): boolean {
     let anim = this.elevDoors.tick(dt);
 
     const speed = 1.25;
     const len = Math.hypot(this.moveX, this.moveZ);
-    if (len > 0.08) {
+    const moving = len > 0.08;
+    if (moving) {
       const nx = this.moveX / len;
       const nz = this.moveZ / len;
       this.avatarX = THREE.MathUtils.clamp(this.avatarX + nx * speed * dt, this.bounds.minX, this.bounds.maxX);
@@ -75,6 +80,7 @@ export class LobbyWalkController {
     this.nearElevator = Math.hypot(this.avatarX, this.avatarZ - 3.5) < 1.0;
     this.nearMailbox = Math.hypot(this.avatarX - 2, this.avatarZ + 4.5) < 1.2;
 
+    anim = this.avatar.tick(dt, moving) || anim;
     this.syncAvatar();
     return anim;
   }

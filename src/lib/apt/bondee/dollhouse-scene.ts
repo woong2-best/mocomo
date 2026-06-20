@@ -443,10 +443,20 @@ export class DollhouseBuildingScene {
   private syncAvatarInElevator() {
     if (!this.avatar) return;
     const sx = this.shaftX();
+    const riding = this.ridePhase === "riding";
     this.setAvatarPose(sx, this.elevCarY + 0.05, 0.15, -0.55);
     this.avatar.animateWalk(this.avatarWalkPhase, false);
-    const sway = Math.sin(this.avatarWalkPhase * 4) * 0.012;
-    this.avatar.root.position.y = this.elevCarY + 0.05 + sway;
+    const sway = riding
+      ? Math.sin(this.avatarWalkPhase * 5.5) * 0.022
+      : Math.sin(this.avatarWalkPhase * 4) * 0.012;
+    const bump = riding ? Math.sin(this.avatarWalkPhase * 11) * 0.008 : 0;
+    this.avatar.root.position.y = this.elevCarY + 0.05 + sway + bump;
+    this.avatar.root.rotation.z = riding ? Math.sin(this.avatarWalkPhase * 3.2) * 0.04 : 0;
+    if (riding) {
+      this.avatar.root.rotation.x = 0.04;
+    } else {
+      this.avatar.root.rotation.x = 0;
+    }
   }
 
   private tickAvatarPhases(delta: number): boolean {

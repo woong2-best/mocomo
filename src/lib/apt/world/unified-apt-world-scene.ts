@@ -13,6 +13,7 @@ import type { BondeeHomeState, ChibiAvatarConfig } from "@/lib/apt/bondee/types"
 import { DEFAULT_CHIBI_AVATAR } from "@/lib/apt/bondee/types";
 import type { AptSceneEmbed } from "./apt-scene-embed";
 import { AptVisitSystem, type VisitTarget } from "./apt-visit-system";
+import { resolveAptWorldVrmUrl } from "./apt-world-avatar";
 import { cullGroupByDistance } from "./apt-lod-manager";
 import {
   buildCorridorFromPlan,
@@ -69,6 +70,7 @@ export class UnifiedAptWorldScene {
   private homeRooms: AptRoom[];
   private homeState: BondeeHomeState;
   private avatarConfig: ChibiAvatarConfig;
+  private vrmUrl: string | null = null;
   private doorOpen = true;
   private currentCorridorFloor = APT_DEFAULT_FLOOR;
   private floorOccupants: FloorOccupant[] = [];
@@ -153,6 +155,9 @@ export class UnifiedAptWorldScene {
     this.syncLayerVisibility();
     this.loop();
     this.callbacks.onModeChange?.("district");
+    void resolveAptWorldVrmUrl().then((url) => {
+      this.vrmUrl = url;
+    });
   }
 
   getMode() {
@@ -182,6 +187,8 @@ export class UnifiedAptWorldScene {
   updateHomeState(state: BondeeHomeState) {
     this.homeState = state;
     this.avatarConfig = state.avatar ?? DEFAULT_CHIBI_AVATAR;
+    this.corridorWalk?.avatar.rebuild(this.avatarConfig);
+    this.lobbyWalk?.avatar.rebuild(this.avatarConfig);
     if (!this.visitSystem.isVisiting()) {
       this.interior.setState(state);
     }
@@ -280,13 +287,16 @@ export class UnifiedAptWorldScene {
   knockOrBell() {
     if (this.visitSystem.isVisiting()) {
       const phase = this.visitSystem.getPhase();
-      if (phase === "idle" || phase === "denied") this.visitSystem.knock();
-      else if (phase === "waiting") this.visitSystem.ringBell();
-      else return;
-      this.corridorWalk?.knockOrBell();
+      if (phase === "idle" || phase === "denied") {
+        this.visitSystem.knock();
+        this.corridorWalk?.knockOrBell("knock");
+      } else if (phase === "waiting") {
+        this.visitSystem.ringBell();
+        this.corridorWalk?.knockOrBell("bell");
+      }
       return;
     }
-    this.corridorWalk?.knockOrBell();
+    this.corridorWalk?.knockOrBell("knock");
   }
 
   tryEnterHome() {
@@ -363,7 +373,7 @@ export class UnifiedAptWorldScene {
     if (lobbyElev) lobbyElev.add(elevInt);
     this.elevInterior = elevInt;
 
-    this.lobbyWalk = new LobbyWalkController(this.avatarConfig, "stand");
+    this.lobbyWalk = new LobbyWalkController(this.avatarConfig, this.vrmUrl);
     const bounds = this.lobbyMesh.userData.walkBounds as {
       minX: number;
       maxX: number;
@@ -482,7 +492,7 @@ export class UnifiedAptWorldScene {
     this.corridorSlot.position.set(0, 0, 0);
     this.refreshCorridorGhosts();
 
-    this.corridorWalk = new CorridorWalkController(this.avatarConfig, "stand");
+    this.corridorWalk = new CorridorWalkController(this.avatarConfig, this.vrmUrl);
     this.corridorWalk.bindElevatorHall(elevHall ?? null);
     this.corridorWalk.setDoors(
       this.corridorDoors.map((d) => ({

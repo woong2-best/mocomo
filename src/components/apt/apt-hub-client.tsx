@@ -51,6 +51,7 @@ export function AptHubClient({
   const [menuOpen, setMenuOpen] = useState(false);
   const [nearHomeDoor, setNearHomeDoor] = useState(false);
   const [visitToast, setVisitToast] = useState<string | null>(null);
+  const [avatarMode, setAvatarMode] = useState<"chibi" | "vrm" | null>(null);
   const homeFloor = initialProfile?.homeFloor ?? APT_DEFAULT_FLOOR;
 
   const toggleDoor = useCallback(async () => {
@@ -75,6 +76,20 @@ export function AptHubClient({
   useEffect(() => {
     worldRef.current?.updateHomeRooms(homeRooms);
   }, [homeRooms]);
+
+  useEffect(() => {
+    const inCorr = worldMode === "corridor";
+    const inLob = worldMode === "lobby";
+    if (!inCorr && !inLob) {
+      setAvatarMode(null);
+      return;
+    }
+    const id = window.setInterval(() => {
+      const walk = inCorr ? worldRef.current?.getCorridorWalk() : worldRef.current?.getLobbyWalk();
+      setAvatarMode(walk?.avatar.getMode() ?? null);
+    }, 800);
+    return () => window.clearInterval(id);
+  }, [worldMode]);
 
   useEffect(() => {
     const el = mountRef.current;
@@ -296,10 +311,10 @@ export function AptHubClient({
       {/* 모드 안내 */}
       <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 z-10 rounded-full border border-white/15 bg-black/50 px-4 py-1.5 text-[10px] font-semibold text-white/70 backdrop-blur-md">
         {worldMode === "district" && "1000층 단지 · 층을 클릭하면 복도로 진입"}
-        {worldMode === "lobby" && "로비 · 주차장 · 우편함 · 엘리베이터"}
+        {worldMode === "lobby" && `로비 · ${avatarMode === "vrm" ? "VRM 아바타" : "주차장·우편함·엘리베이터"}`}
         {worldMode === "tower" && "층별 단면 · 엘리베이터로 이동"}
         {worldMode === "elevator" && "엘리베이터 이동 중…"}
-        {worldMode === "corridor" && "복도 · 현관문으로 입장"}
+        {worldMode === "corridor" && `복도 · ${avatarMode === "vrm" ? "VRM 아바타" : "노크/벨 · 현관문 입장"}`}
         {worldMode === "interior" && "내 집 · 가구와 상호작용"}
       </div>
     </div>

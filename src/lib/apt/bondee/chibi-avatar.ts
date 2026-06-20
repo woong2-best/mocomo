@@ -6,8 +6,9 @@ import type { ChibiAvatarConfig, ChibiPose } from "./types";
 const MAT = (color: string | number, opts?: Partial<THREE.MeshStandardMaterialParameters>) =>
   new THREE.MeshStandardMaterial({
     color: typeof color === "string" ? color : color,
-    roughness: 0.62,
-    metalness: 0.01,
+    roughness: 0.52,
+    metalness: 0.02,
+    envMapIntensity: 0.35,
     ...opts,
   });
 
@@ -91,7 +92,7 @@ export class ChibiAvatarMesh {
   private buildBody(config: ChibiAvatarConfig) {
     const skin = MAT(config.skinColor);
 
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 20, 20), skin);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 24, 24), skin);
     head.position.y = 0.72;
     head.scale.set(1.05, 1, 0.95);
     head.castShadow = true;
