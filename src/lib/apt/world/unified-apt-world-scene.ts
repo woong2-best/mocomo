@@ -14,7 +14,8 @@ import { DEFAULT_CHIBI_AVATAR } from "@/lib/apt/bondee/types";
 import type { AptSceneEmbed } from "./apt-scene-embed";
 import { AptVisitSystem, type VisitTarget } from "./apt-visit-system";
 import { resolveAptWorldVrmUrl } from "./apt-world-avatar";
-import { cullGroupByDistance } from "./apt-lod-manager";
+import { disposeAptTextureAtlas } from "@/lib/apt/bondee/apt-texture-atlas";
+import { AptWorldPerfManager, cullGroupByDistance } from "./apt-lod-manager";
 import {
   buildCorridorFromPlan,
   type CorridorDoorSlot,
@@ -28,6 +29,7 @@ import {
 } from "./elevator-hall-interior";
 import { buildLobbyParkingLevel } from "./lobby-parking-mesh";
 import { LobbyWalkController } from "./lobby-walk-controller";
+import { StairClimbController } from "./stair-climb-controller";
 import {
   buildDistrictComplex,
   megaFloorToWorldY,
@@ -86,6 +88,10 @@ export class UnifiedAptWorldScene {
   private raycaster = new THREE.Raycaster();
   private animPhase = 0;
   private visitToastCooldown = 0;
+  private perf = new AptWorldPerfManager();
+  private stairClimb = new StairClimbController();
+  private stairTargetFloor = APT_DEFAULT_FLOOR;
+  private focalPoint = new THREE.Vector3();
 
   constructor(
     mount: HTMLElement,
@@ -131,6 +137,8 @@ export class UnifiedAptWorldScene {
     this.districtComplex = buildDistrictComplex(this.homeFloor);
     this.megafacade = this.districtComplex.main;
     this.districtSlot.add(this.districtComplex.root);
+    this.perf.registerCullRoot(this.districtSlot);
+    for (const lod of this.districtComplex.sideLods) this.perf.registerLod(lod);
 
     const embedBase: Omit<AptSceneEmbed, "attachRoot"> = {
       sharedRenderer: this.renderer,
@@ -358,6 +366,7 @@ export class UnifiedAptWorldScene {
   }
 
   private enterLobby() {
+    this.stairClimb.cancel();
     if (this.lobbyMesh) {
       this.lobbySlot.remove(this.lobbyMesh);
       this.lobbyMesh = null;
@@ -398,9 +407,15 @@ export class UnifiedAptWorldScene {
   }
 
   lobbyUseStairs() {
-    if (this.mode !== "lobby") return;
-    this.callbacks.onVisitMessage?.("계단 — 2층으로 올라갑니다 (엘리베이터 이용 권장)");
-    this.goToFloor(Math.min(APT_TOTAL_FLOORS, APT_LOBBY_FLOOR + 1));
+    if (this.mode !== "lobby" || !this.lobbyWalk || this.stairClimb.active) return;
+    const target =
+      this.homeFloor > APT_LOBBY_FLOOR
+        ? Math.min(this.homeFloor, APT_TOTAL_FLOORS)
+        : Math.min(APT_LOBBY_FLOOR + 1, APT_TOTAL_FLOORS);
+    this.stairTargetFloor = target;
+    this.stairClimb.start(APT_LOBBY_FLOOR, target);
+    this.lobbyWalk.setClimbingStairs(true);
+    this.callbacks.onVisitMessage?.(`계단 — ${target}층으로 올라갑니다`);
   }
 
   private setMode(mode: AptWorldMode, opts?: { skipCamera?: boolean }) {
@@ -506,6 +521,7 @@ export class UnifiedAptWorldScene {
       }))
     );
     this.corridorSlot.add(this.corridorWalk.root);
+    this.perf.collectOccluders(this.corridorMesh);
 
     if (this.mode !== "corridor") {
       const y = megaFloorToWorldY(floor);
@@ -593,10 +609,22 @@ export class UnifiedAptWorldScene {
         cullGroupByDistance(this.districtSlot, this.cameraCtrl.camera, 120);
       }
       if (this.mode === "lobby" && this.lobbyWalk) {
-        anim = this.lobbyWalk.tick(dt) || anim;
+        if (this.stairClimb.active) {
+          const climb = this.stairClimb.tick(dt);
+          this.lobbyWalk.setAvatarPose(climb.avatarX, climb.avatarY, climb.avatarZ, climb.avatarRot);
+          anim = this.lobbyWalk.tick(dt) || anim;
+          if (climb.done) {
+            this.lobbyWalk.setClimbingStairs(false);
+            this.enterCorridor(this.stairTargetFloor);
+          }
+        } else {
+          anim = this.lobbyWalk.tick(dt) || anim;
+        }
       }
       if (this.mode === "corridor" && this.corridorWalk) {
         anim = this.corridorWalk.tick(dt) || anim;
+        this.focalPoint.copy(this.corridorWalk.avatar.root.position);
+        anim = this.perf.tick(this.cameraCtrl.camera, this.focalPoint, dt) || anim;
         const visitResult = this.visitSystem.tick(dt);
         if (visitResult.message && this.visitToastCooldown <= 0) {
           this.callbacks.onVisitMessage?.(visitResult.message);
@@ -617,6 +645,10 @@ export class UnifiedAptWorldScene {
         this.callbacks.onNearHomeDoor?.(canEnter, home?.state ?? "closed");
       }
       anim = this.cameraCtrl.tick(dt) || anim;
+      if (this.mode === "district" || this.mode === "tower") {
+        this.focalPoint.set(0, megaFloorToWorldY(this.homeFloor), 0);
+        anim = this.perf.tick(this.cameraCtrl.camera, this.focalPoint, dt) || anim;
+      }
     }
 
     if (anim || this.needsRender || this.transitionToInterior > 0) {
@@ -638,6 +670,8 @@ export class UnifiedAptWorldScene {
     this.lobbyWalk?.dispose();
     this.corridorWalk?.dispose();
     this.megafacade?.dispose();
+    this.perf.dispose();
+    disposeAptTextureAtlas();
     this.building.dispose();
     this.interior.dispose();
     this.renderer.dispose();

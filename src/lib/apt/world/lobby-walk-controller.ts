@@ -19,6 +19,7 @@ export class LobbyWalkController {
   private nearStairs = false;
   private nearElevator = false;
   private nearMailbox = false;
+  private climbingStairs = false;
 
   constructor(avatarConfig: ChibiAvatarConfig, vrmUrl?: string | null) {
     this.avatar = new AptWorldAvatar();
@@ -57,8 +58,30 @@ export class LobbyWalkController {
     this.avatar.setAction(riding ? "elevator_ride" : "elevator_idle");
   }
 
+  setClimbingStairs(climbing: boolean) {
+    this.climbingStairs = climbing;
+    if (climbing) {
+      this.moveX = 0;
+      this.moveZ = 0;
+      this.avatar.setAction("elevator_ride");
+    }
+  }
+
+  setAvatarPose(x: number, y: number, z: number, rot: number) {
+    this.avatarX = x;
+    this.avatarZ = z;
+    this.avatarRot = rot;
+    this.avatar.root.position.set(x, y, z);
+    this.avatar.root.rotation.y = rot;
+  }
+
   tick(dt: number): boolean {
     let anim = this.elevDoors.tick(dt);
+
+    if (this.climbingStairs) {
+      anim = this.avatar.tick(dt, false) || anim;
+      return anim;
+    }
 
     const speed = 1.25;
     const len = Math.hypot(this.moveX, this.moveZ);

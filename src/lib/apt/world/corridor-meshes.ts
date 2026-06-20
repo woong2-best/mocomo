@@ -2,6 +2,7 @@
 
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+import { getAptAtlasMaterial } from "@/lib/apt/bondee/apt-texture-atlas";
 import { PASTEL, pastelMat } from "@/lib/apt/bondee/dollhouse-meshes";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import { PLAN_W } from "@/lib/apt/floor-plan-types";
@@ -40,25 +41,33 @@ export function buildCorridorFloor(floorIndex: number, homeDoorIndex = 1, doorCo
   g.name = "apt-corridor";
   g.userData.floor = floorIndex;
 
-  const floorMat = pastelMat(floorIndex % 2 === 0 ? PASTEL.floorWood : PASTEL.floorWoodAlt);
-  const wallMat = pastelMat(0xf4f0f2);
-  const trimMat = pastelMat(PASTEL.shellTrim);
+  const floorMat = getAptAtlasMaterial(floorIndex % 2 === 0 ? "floorWood" : "floorAlt");
+  const wallMat = getAptAtlasMaterial("wall");
+  const trimMat = getAptAtlasMaterial("trim");
 
   add(g, box(CORRIDOR_LEN, 0.1, CORRIDOR_W), floorMat, 0, 0.05, 0);
-  add(g, box(CORRIDOR_LEN, CORRIDOR_H, 0.1), wallMat, 0, CORRIDOR_H / 2, -CORRIDOR_W / 2);
-  add(g, box(CORRIDOR_LEN, CORRIDOR_H, 0.1), wallMat, 0, CORRIDOR_H / 2, CORRIDOR_W / 2 - 0.05);
+  const wallN = add(g, box(CORRIDOR_LEN, CORRIDOR_H, 0.1), wallMat, 0, CORRIDOR_H / 2, -CORRIDOR_W / 2);
+  wallN.userData.isOccluder = true;
+  wallN.userData.baseOpacity = 1;
+  wallN.userData.occludeOpacity = 0.28;
+  const wallS = add(g, box(CORRIDOR_LEN, CORRIDOR_H, 0.1), wallMat.clone(), 0, CORRIDOR_H / 2, CORRIDOR_W / 2 - 0.05);
+  wallS.userData.isOccluder = true;
+  wallS.userData.baseOpacity = 1;
+  wallS.userData.occludeOpacity = 0.28;
 
-  // 천장 + 복도 조명
   add(g, box(CORRIDOR_LEN, 0.06, CORRIDOR_W), trimMat, 0, CORRIDOR_H - 0.03, 0);
-  for (let i = -3; i <= 3; i++) {
-    const light = new THREE.Mesh(
-      box(0.55, 0.04, 0.14, 0.02),
-      new THREE.MeshBasicMaterial({ color: 0xfff4d8, transparent: true, opacity: 0.75 })
-    );
-    light.name = "corridor-ceiling-light";
-    light.position.set(i * 1.15, CORRIDOR_H - 0.12, 0);
-    g.add(light);
+  const lightGeo = box(0.55, 0.04, 0.14, 0.02);
+  const lightMat = new THREE.MeshBasicMaterial({ color: 0xfff4d8, transparent: true, opacity: 0.75 });
+  const lightCount = 7;
+  const lights = new THREE.InstancedMesh(lightGeo, lightMat, lightCount);
+  lights.name = "corridor-ceiling-lights-instanced";
+  const m = new THREE.Matrix4();
+  for (let i = 0; i < lightCount; i++) {
+    m.makeTranslation((i - 3) * 1.15, CORRIDOR_H - 0.12, 0);
+    lights.setMatrixAt(i, m);
   }
+  lights.instanceMatrix.needsUpdate = true;
+  g.add(lights);
 
   // 엘리베이터 홀
   const elevHall = new THREE.Group();

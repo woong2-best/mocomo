@@ -3,6 +3,7 @@
 import * as THREE from "three";
 import { APT_LOBBY_FLOOR, APT_PENTHOUSE_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
 import { PASTEL, pastelMat } from "@/lib/apt/bondee/dollhouse-meshes";
+import { createLodGroup } from "./apt-lod-manager";
 
 export const MEGA_FLOOR_H = 0.092;
 export const MEGA_TOWER_W = 2.8;
@@ -123,23 +124,49 @@ export function buildMegatowerFacade(homeFloor: number): MegatowerFacade {
   };
 }
 
-export function buildDistrictComplex(homeFloor: number): { root: THREE.Group; main: MegatowerFacade } {
+function sideTowerLod(facade: MegatowerFacade, scale: number): THREE.LOD {
+  const totalH = facade.root.userData.totalHeight as number;
+  const low = new THREE.Mesh(
+    new THREE.BoxGeometry(MEGA_TOWER_W * scale, totalH, MEGA_TOWER_D * scale),
+    pastelMat(PASTEL.shell, { transparent: true, opacity: 0.88 })
+  );
+  low.position.y = totalH / 2;
+  low.name = "side-tower-lod-low";
+  return createLodGroup([
+    { mesh: facade.root, distance: 0 },
+    { mesh: low, distance: 42 },
+  ]);
+}
+
+export function buildDistrictComplex(homeFloor: number): {
+  root: THREE.Group;
+  main: MegatowerFacade;
+  sideLods: THREE.LOD[];
+} {
   const root = new THREE.Group();
   root.name = "apt-district-complex";
   const main = buildMegatowerFacade(homeFloor);
   root.add(main.root);
+
+  const sideLods: THREE.LOD[] = [];
   const b = buildMegatowerFacade(Math.min(APT_TOTAL_FLOORS, homeFloor + 120));
-  b.root.position.set(-5.5, 0, 2);
   b.root.scale.setScalar(0.72);
-  root.add(b.root);
+  const bLod = sideTowerLod(b, 0.72);
+  bLod.position.set(-5.5, 0, 2);
+  root.add(bLod);
+  sideLods.push(bLod);
+
   const c = buildMegatowerFacade(Math.min(APT_TOTAL_FLOORS, homeFloor + 280));
-  c.root.position.set(5.8, 0, -1.5);
   c.root.scale.setScalar(0.65);
-  root.add(c.root);
+  const cLod = sideTowerLod(c, 0.65);
+  cLod.position.set(5.8, 0, -1.5);
+  root.add(cLod);
+  sideLods.push(cLod);
+
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(36, 28), pastelMat(PASTEL.floorWoodAlt));
   ground.rotation.x = -Math.PI / 2;
   root.add(ground);
-  return { root, main };
+  return { root, main, sideLods };
 }
 
 export function megaFloorToWorldY(floor: number) {
