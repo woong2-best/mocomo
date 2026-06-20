@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { AptProfileDto } from "@/actions/apt";
 import { setHomePublic } from "@/actions/apt-world";
 import { APT_DEFAULT_FLOOR } from "@/lib/apt/building-scene";
@@ -15,26 +15,27 @@ import {
   APT_FADE_OUT_MS,
   type AptHomeTransitionPhase,
 } from "@/components/apt/apt-home-transition";
+import { cn } from "@/lib/utils";
 
 const AptBuildingView = dynamic(
   () => import("@/components/apt/apt-building-view").then((m) => m.AptBuildingView),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="folk-card flex min-h-[min(88dvh,920px)] items-center justify-center text-sm text-muted-foreground bg-[#fef6f8]">
-        아파트 불러오는 중…
-      </div>
-    ),
-  }
+  { ssr: false, loading: () => null }
 );
 
 const AptBondeeRoom = dynamic(
   () => import("@/components/apt/apt-bondee-room").then((m) => m.AptBondeeRoom),
   {
     ssr: false,
-    loading: () => null,
+    loading: () => (
+      <div className="folk-card flex min-h-[min(80dvh,820px)] items-center justify-center text-sm text-muted-foreground bg-[#fef6f8]">
+        내 집 불러오는 중…
+      </div>
+    ),
   }
 );
+
+/** home = 내 집 실내(베이스) · tower = 1000층 이동(엘리베이터 탈 때만) */
+type AptViewMode = "home" | "tower";
 
 export function AptHubClient({
   initialProfile,
@@ -50,9 +51,9 @@ export function AptHubClient({
   studioInventory?: AptStudioInventoryItem[];
 }) {
   const homeFloor = initialProfile?.homeFloor ?? APT_DEFAULT_FLOOR;
-  const [insideHome, setInsideHome] = useState(isLoggedIn);
+  const [viewMode, setViewMode] = useState<AptViewMode>(isLoggedIn ? "home" : "tower");
+  const [towerMounted, setTowerMounted] = useState(!isLoggedIn);
   const [transitionPhase, setTransitionPhase] = useState<AptHomeTransitionPhase>(null);
-  const userExitedAtHomeRef = useRef(false);
   const [homeState, setHomeState] = useState(bondeeHome);
   const [homeRooms, setHomeRooms] = useState(initialHomeRooms);
   const [doorOpen, setDoorOpen] = useState(initialProfile?.homePublic ?? true);
@@ -67,106 +68,109 @@ export function AptHubClient({
     if (initialProfile) setDoorOpen(initialProfile.homePublic);
   }, [initialProfile?.homePublic]);
 
-  const runEnterHome = useCallback(() => {
-    setTransitionPhase("enter-out");
-    window.setTimeout(() => {
-      setInsideHome(true);
-      setTransitionPhase("enter-in");
-      window.setTimeout(() => {
-        setTransitionPhase(null);
-        userExitedAtHomeRef.current = false;
-      }, APT_FADE_IN_MS);
-    }, APT_FADE_OUT_MS + APT_FADE_HOLD_MS);
-  }, []);
-
-  const runExitHome = useCallback(() => {
+  /** 집 → 타워 (엘리베이터 탑승) */
+  const switchToTower = useCallback(() => {
+    setTowerMounted(true);
     setTransitionPhase("exit-out");
     window.setTimeout(() => {
-      setInsideHome(false);
+      setViewMode("tower");
       setTransitionPhase("exit-in");
-      window.setTimeout(() => {
-        setTransitionPhase(null);
-        userExitedAtHomeRef.current = true;
-      }, APT_FADE_IN_MS);
+      window.setTimeout(() => setTransitionPhase(null), APT_FADE_IN_MS);
     }, APT_FADE_OUT_MS + APT_FADE_HOLD_MS);
   }, []);
 
-  const instantExitHome = useCallback(() => {
-    setInsideHome(false);
+  /** 타워 → 집 (내 집층 도착 또는 내 집으로 버튼) */
+  const switchToHome = useCallback(() => {
+    setTransitionPhase("enter-out");
+    window.setTimeout(() => {
+      setViewMode("home");
+      setTransitionPhase("enter-in");
+      window.setTimeout(() => setTransitionPhase(null), APT_FADE_IN_MS);
+    }, APT_FADE_OUT_MS + APT_FADE_HOLD_MS);
   }, []);
 
-  /** 다른 층으로 이동할 때 — 즉시 타워 뷰 */
-  const handleFloorChange = useCallback(
-    (floor: number) => {
-      if (floor !== homeFloor) {
-        userExitedAtHomeRef.current = false;
-        instantExitHome();
-      }
-    },
-    [homeFloor, instantExitHome]
-  );
-
-  /** 엘리베이터로 내 집층 도착 — 자동으로 집 안으로 */
-  const handleArriveHomeFloor = useCallback(() => {
-    if (!isLoggedIn || userExitedAtHomeRef.current) return;
-    runEnterHome();
-  }, [isLoggedIn, runEnterHome]);
-
-  /** 집 안 엘리베이터 → 타워에서 층 선택 */
-  const handleElevatorFromHome = useCallback(() => {
-    runExitHome();
-  }, [runExitHome]);
+  const transitioning = transitionPhase !== null;
 
   return (
     <div className="w-full max-w-none px-3 sm:px-5 lg:px-8 py-4 lg:py-6 pb-16 space-y-5">
       <div className="space-y-2">
-        <h1 className="text-2xl font-bold flex items-center gap-2 text-folk-cobalt">APT</h1>
+        <h1 className="text-2xl font-bold text-folk-cobalt">APT</h1>
         <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">
           {isLoggedIn
-            ? `${homeFloor}층이 내 집입니다. 집 안에서 꾸미고, 엘리베이터로 1000층 타워를 오갈 수 있습니다.`
+            ? viewMode === "home"
+              ? `${homeFloor}층 · 내 집에서 아바타와 가구를 꾸미세요. 복도 끝 엘리베이터로 다른 층을 방문할 수 있습니다.`
+              : `1000층 타워 · ${homeFloor}층에서 다른 층으로 이동 중입니다.`
             : "로그인 후 가입 국가 아파트에 입주하세요."}
         </p>
-        {isLoggedIn && initialProfile?.regionLabel && (
+        {isLoggedIn && initialProfile?.regionLabel && viewMode === "home" && (
           <div className="inline-flex items-center gap-2 rounded-full border border-folk-terracotta/25 bg-folk-terracotta/8 px-3 py-1 text-xs font-semibold text-folk-terracotta">
             <span>📍 {initialProfile.regionLabel}</span>
-            <span className="text-folk-terracotta/40">·</span>
-            <span>{homeFloor}층 입주</span>
+            <span className="opacity-40">·</span>
+            <span>{homeFloor}층</span>
           </div>
         )}
       </div>
 
       <AptSceneErrorBoundary>
-        <AptBuildingView
-          initialProfile={initialProfile}
-          bondeeRoom={homeState}
-          isLoggedIn={isLoggedIn}
-          onHomeRoomsChange={setHomeRooms}
-          doorOpen={doorOpen}
-          onDoorToggle={() => void toggleDoor()}
-          homeFloor={homeFloor}
-          insideHome={insideHome}
-          transitionPhase={transitionPhase}
-          onEnterHome={runEnterHome}
-          onExitHome={runExitHome}
-          onFloorChange={handleFloorChange}
-          onArriveHomeFloor={handleArriveHomeFloor}
-          interiorOverlay={
-            isLoggedIn ? (
+        <div className="relative">
+          {/* 동물의숲 검은 페이드 */}
+          {transitionPhase && (
+            <div
+              className={cn(
+                "apt-black-curtain absolute inset-0 z-[60] pointer-events-auto rounded-[inherit]",
+                transitionPhase === "enter-out" || transitionPhase === "exit-out"
+                  ? "apt-fade-to-black"
+                  : "apt-fade-from-black"
+              )}
+              aria-hidden
+            />
+          )}
+
+          {/* ■ 베이스: 내 집 (처음 접속 = 이것만) */}
+          {isLoggedIn && (
+            <div className={cn(viewMode !== "home" && "hidden")}>
               <AptBondeeRoom
-                embedded
                 initialState={homeState}
                 rooms={homeRooms}
                 isLoggedIn={isLoggedIn}
                 studioInventory={studioInventory}
                 onHomeChange={setHomeState}
-                paused={!insideHome}
+                paused={viewMode !== "home" || transitioning}
                 doorOpen={doorOpen}
                 onDoorToggle={() => void toggleDoor()}
-                onElevatorUse={handleElevatorFromHome}
+                onElevatorUse={switchToTower}
               />
-            ) : null
-          }
-        />
+            </div>
+          )}
+
+          {/* ■ 부가: 1000층 타워 (엘리베이터 탈 때만) */}
+          {towerMounted && (
+            <div className={cn(viewMode !== "tower" && "hidden")}>
+              <AptBuildingView
+                initialProfile={initialProfile}
+                bondeeRoom={homeState}
+                isLoggedIn={isLoggedIn}
+                onHomeRoomsChange={setHomeRooms}
+                doorOpen={doorOpen}
+                onDoorToggle={() => void toggleDoor()}
+                homeFloor={homeFloor}
+                paused={viewMode !== "tower" || transitioning}
+                onReturnHome={switchToHome}
+                onArriveHomeFloor={switchToHome}
+              />
+            </div>
+          )}
+
+          {/* 비로그인: 타워만 */}
+          {!isLoggedIn && (
+            <AptBuildingView
+              initialProfile={initialProfile}
+              bondeeRoom={homeState}
+              isLoggedIn={false}
+              homeFloor={homeFloor}
+            />
+          )}
+        </div>
       </AptSceneErrorBoundary>
     </div>
   );

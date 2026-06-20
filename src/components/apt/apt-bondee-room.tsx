@@ -291,7 +291,7 @@ function AptBondeeRoomInner({
           WASD 이동 · 조명 근처 E · 자세 1~6 · Shift+드래그 회전 · 휠 줌
         </p>
         {nearElevator && !movementDisabled && (
-          <p className="text-[10px] text-sky-700 font-semibold">엘리베이터 — 1000층 타워 이동 (E)</p>
+          <p className="text-[10px] text-sky-700 font-semibold">엘리베이터 — 다른 층 방문 (E)</p>
         )}
         {nearGramophone && !movementDisabled && !gramophoneOpen && (
           <p className="text-[10px] text-amber-700 font-semibold">그라모폰 — MP3 재생 (E)</p>
