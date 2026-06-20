@@ -84,7 +84,7 @@ const ko: Record<MessageKey, string> = {
   "nav.settings": "설정",
   "nav.signup": "가입",
   "nav.signin": "로그인",
-  "nav.compose": "글쓰기",
+  "nav.compose": "우편함",
   "nav.more": "더보기",
   "auth.signupTitle": "회원가입",
   "auth.signupDesc": "서브컬처·코스프레 커뮤니티",

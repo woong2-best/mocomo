@@ -3,35 +3,28 @@
 import { useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useCompose } from "@/components/compose/compose-provider";
+import { buildAptMailboxUrl } from "@/lib/apt/mailbox-compose-route";
 
-/** /compose 링크 호환 — 현재 페이지에서 바텀시트만 열기 (불필요한 전체 새로고침 방지) */
+/** /compose 링크 호환 — APT 우편함으로 이동 */
 export function ComposeRedirectClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { status } = useSession();
-  const { openCompose } = useCompose();
   const handled = useRef(false);
 
   useEffect(() => {
     if (handled.current || status === "loading") return;
     handled.current = true;
 
-    const community = searchParams.get("community") ?? undefined;
-    const text = searchParams.get("text") ?? undefined;
-    const title = searchParams.get("title") ?? undefined;
-    openCompose({
-      communityId: community,
-      initialContent: text ?? undefined,
-      initialTitle: title ?? undefined,
-    });
-
-    const from = searchParams.get("from");
-    const target = from && from.startsWith("/") ? from : "/";
-    if (window.location.pathname === "/compose") {
-      router.replace(target, { scroll: false });
-    }
-  }, [openCompose, router, searchParams, status]);
+    router.replace(
+      buildAptMailboxUrl({
+        communityId: searchParams.get("community") ?? undefined,
+        initialContent: searchParams.get("text") ?? undefined,
+        initialTitle: searchParams.get("title") ?? undefined,
+      }),
+      { scroll: false }
+    );
+  }, [router, searchParams, status]);
 
   return null;
 }

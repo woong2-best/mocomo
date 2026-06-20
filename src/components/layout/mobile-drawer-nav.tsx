@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { mainNavItems } from "@/lib/nav-items";
-import { useCompose } from "@/components/compose/compose-provider";
+import { buildAptMailboxUrl } from "@/lib/apt/mailbox-compose-route";
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
@@ -30,7 +30,6 @@ type MobileDrawerNavProps = {
 export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
   const pathname = usePathname();
   const { t } = useLocale();
-  const { openCompose } = useCompose();
 
   const items = isLiveFeatureEnabled()
     ? mainNavItems
@@ -62,24 +61,21 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
           <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 space-y-1">
             {items.map(({ href, icon: Icon, labelKey }) => {
               const active =
-                href === "/compose"
-                  ? false
+                href.startsWith("/apt")
+                  ? pathname.startsWith("/apt")
                   : isNavItemActive(pathname, href, navHrefs);
 
-              if (href === "/compose") {
+              if (href.startsWith("/apt")) {
                 return (
-                  <button
+                  <Link
                     key={href}
-                    type="button"
-                    onClick={() => {
-                      onOpenChange(false);
-                      openCompose();
-                    }}
-                    className="sidebar-block w-full text-left"
+                    href={buildAptMailboxUrl()}
+                    onClick={() => onOpenChange(false)}
+                    className={cn("sidebar-block w-full text-left", active && "sidebar-block-active")}
                   >
                     <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
                     <span className="truncate">{t(labelKey)}</span>
-                  </button>
+                  </Link>
                 );
               }
 

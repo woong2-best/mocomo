@@ -12,6 +12,7 @@ import {
 import { useComposeOptional } from "@/components/compose/compose-provider";
 import { postEngage } from "@/lib/post-engage-client";
 import { buildPostRepostQuoteDraft } from "@/lib/post-share";
+import { buildAptMailboxUrl } from "@/lib/apt/mailbox-compose-route";
 import { cn, formatNumber } from "@/lib/utils";
 
 type PostRepostMenuProps = {
@@ -117,7 +118,10 @@ export function PostRepostMenu({
       return;
     }
     router.push(
-      `/compose?from=${encodeURIComponent(typeof window !== "undefined" ? window.location.pathname : `/post/${postId}`)}&text=${encodeURIComponent(quoteBlock)}&title=${encodeURIComponent(`@${authorUsername} 인용`)}`
+      buildAptMailboxUrl({
+        initialContent: quoteBlock,
+        initialTitle: `@${authorUsername} 인용`,
+      })
     );
   }
 

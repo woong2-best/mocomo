@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { Building2, Home } from "lucide-react";
 import type { AptProfileDto } from "@/actions/apt";
 import { setHomePublic } from "@/actions/apt-world";
@@ -75,7 +75,7 @@ export function AptHubClient({
         <h1 className="text-2xl font-bold flex items-center gap-2 text-folk-cobalt">APT</h1>
         <p className="text-sm text-muted-foreground leading-relaxed">
           {isLoggedIn
-            ? "내 집에서 치비 아바타와 가구를 꾸미고, 1000층 타워에서 입구·펜트하우스까지 엘리베이터로 이동하며 다른 집도 방문할 수 있습니다."
+            ? "내 집에서 우편함을 만들고 글·사진·영상을 올리세요. 치비 아바타와 가구를 꾸미고, 1000층 타워에서 다른 집도 방문할 수 있습니다."
             : "로그인 후 가입 국가 아파트에 입주하세요."}
         </p>
         {isLoggedIn && initialProfile?.regionLabel && (
@@ -113,16 +113,24 @@ export function AptHubClient({
 
       <AptSceneErrorBoundary>
         <div className={cn(tab !== "home" && "hidden")}>
-          <AptBondeeRoom
-            initialState={homeState}
-            rooms={homeRooms}
-            isLoggedIn={isLoggedIn}
-            studioInventory={studioInventory}
-            onHomeChange={setHomeState}
-            paused={tab !== "home"}
-            doorOpen={doorOpen}
-            onDoorToggle={() => void toggleDoor()}
-          />
+          <Suspense
+            fallback={
+              <div className="folk-card flex min-h-[min(80dvh,820px)] items-center justify-center text-sm text-muted-foreground bg-[#fef6f8]">
+                내 집 불러오는 중…
+              </div>
+            }
+          >
+            <AptBondeeRoom
+              initialState={homeState}
+              rooms={homeRooms}
+              isLoggedIn={isLoggedIn}
+              studioInventory={studioInventory}
+              onHomeChange={setHomeState}
+              paused={tab !== "home"}
+              doorOpen={doorOpen}
+              onDoorToggle={() => void toggleDoor()}
+            />
+          </Suspense>
         </div>
         <div className={cn(tab !== "tower" && "hidden")}>
           {towerMounted ? (

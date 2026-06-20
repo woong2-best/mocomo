@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PenSquare } from "lucide-react";
-import { ComposeOpenButton } from "@/components/compose/compose-open-button";
+import { Mailbox } from "lucide-react";
+import { AptMailboxLink } from "@/components/compose/apt-mailbox-link";
 import { FolkFloralAccent } from "@/components/brand/folk-decor";
 import { cn } from "@/lib/utils";
 import { mainNavItems } from "@/lib/nav-items";
@@ -20,9 +20,7 @@ export function Sidebar() {
   const { open } = useSidebarToggle();
 
   const navItems = mainNavItems.filter(
-    (item) =>
-      item.href !== "/compose" &&
-      (isLiveFeatureEnabled() || !isLiveNavHref(item.href))
+    (item) => isLiveFeatureEnabled() || !isLiveNavHref(item.href)
   );
   const navHrefs = navItems.map((item) => item.href);
 
@@ -73,10 +71,10 @@ export function Sidebar() {
       <div className="shrink-0 space-y-2 border-t-2 border-folk-cobalt/20 pt-3 bg-[hsl(var(--folk-cream)/0.6)] dark:bg-background">
         <AptNavSection pathname={pathname} />
         {!shouldShowRightPanel(pathname) && (
-          <ComposeOpenButton className="block w-full shrink-0 bg-folk-terracotta text-white flex items-center justify-center gap-2 py-3 text-sm font-display font-bold rounded-xl hover:bg-folk-terracotta-dark transition-colors border-2 border-folk-cobalt/25 shadow-folk">
-            <PenSquare className="h-4 w-4" />
-            글쓰기
-          </ComposeOpenButton>
+          <AptMailboxLink className="block w-full shrink-0 bg-folk-terracotta text-white flex items-center justify-center gap-2 py-3 text-sm font-display font-bold rounded-xl hover:bg-folk-terracotta-dark transition-colors border-2 border-folk-cobalt/25 shadow-folk">
+            <Mailbox className="h-4 w-4" />
+            우편함
+          </AptMailboxLink>
         )}
       </div>
       </aside>

@@ -15,6 +15,7 @@ import dynamic from "next/dynamic";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { CheckCircle2, X, Loader2 } from "lucide-react";
 import { composeSheetRegionClass } from "@/lib/compose-sheet-layout";
+import { buildAptMailboxUrl } from "@/lib/apt/mailbox-compose-route";
 import { cn } from "@/lib/utils";
 
 const ComposeForm = dynamic(
@@ -34,6 +35,8 @@ type ComposeOptions = {
   communityId?: string;
   initialContent?: string;
   initialTitle?: string;
+  /** APT 우편함 상호작용으로만 글쓰기 시트를 엽니다 */
+  viaMailbox?: boolean;
 };
 
 type ComposeContextValue = {
@@ -65,6 +68,7 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
   const [communityId, setCommunityId] = useState<string | undefined>();
   const [initialContent, setInitialContent] = useState<string | undefined>();
   const [initialTitle, setInitialTitle] = useState<string | undefined>();
+  const [viaMailbox, setViaMailbox] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const [successOpen, setSuccessOpen] = useState(false);
   const [pendingOpen, setPendingOpen] = useState<ComposeOptions | null>(null);
@@ -73,6 +77,7 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
     setCommunityId(opts?.communityId);
     setInitialContent(opts?.initialContent);
     setInitialTitle(opts?.initialTitle);
+    setViaMailbox(Boolean(opts?.viaMailbox));
     setFormKey((k) => k + 1);
     setOpen(true);
   }, []);
@@ -87,6 +92,16 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
         const callback = pathname || "/";
         router.push(
           `/auth/signin?callbackUrl=${encodeURIComponent(callback)}`
+        );
+        return;
+      }
+      if (!opts?.viaMailbox) {
+        router.push(
+          buildAptMailboxUrl({
+            communityId: opts?.communityId,
+            initialContent: opts?.initialContent,
+            initialTitle: opts?.initialTitle,
+          })
         );
         return;
       }
@@ -165,7 +180,7 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
             </div>
             <div className="flex items-center justify-between px-4 pb-2 shrink-0">
               <DialogPrimitive.Title className="text-lg font-bold">
-                글쓰기
+                {viaMailbox ? "우편함" : "글쓰기"}
               </DialogPrimitive.Title>
               <DialogPrimitive.Close
                 className="rounded-full p-2 hover:bg-muted"
@@ -176,7 +191,13 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
             </div>
             <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-6 pb-safe">
               {open ? (
-                <ComposeForm
+                <>
+                  {viaMailbox && (
+                    <p className="text-sm text-muted-foreground mb-3 -mt-1">
+                      APT 우편함에서 사진·영상·글을 올립니다.
+                    </p>
+                  )}
+                  <ComposeForm
                   key={formKey}
                   communityId={communityId}
                   initialContent={initialContent}
@@ -190,6 +211,7 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
                     );
                   }}
                 />
+                </>
               ) : null}
             </div>
             </DialogPrimitive.Content>

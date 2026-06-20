@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Dialog, DialogPortal, DialogOverlay, DialogTitle } from "@/components/ui/dialog";
 import { useComposeOptional } from "@/components/compose/compose-provider";
+import { buildAptMailboxUrl } from "@/lib/apt/mailbox-compose-route";
 import { cn } from "@/lib/utils";
 
 export type ContentShareMenuProps = {
@@ -128,7 +129,10 @@ export function ContentShareMenu({
       return;
     }
     router.push(
-      `/compose?from=${encodeURIComponent(typeof window !== "undefined" ? window.location.pathname : pathFromUrl(url))}&text=${encodeURIComponent(composeDraft)}&title=${encodeURIComponent(composeTitle ?? "")}`
+      buildAptMailboxUrl({
+        initialContent: composeDraft,
+        initialTitle: composeTitle,
+      })
     );
   }
 
