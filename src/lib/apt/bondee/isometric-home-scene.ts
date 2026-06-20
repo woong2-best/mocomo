@@ -41,6 +41,7 @@ import { AcEffectManager, isAcRunning } from "./ac-effects";
 import { RemoteChibiPlayersLayer, type RemoteHomePlayer } from "./remote-chibi-players-layer";
 import { playInstrumentNote } from "./instruments/audio-engine";
 import { cappedPixelRatio, stripShadows } from "./scene-perf";
+import type { AptSceneEmbed } from "@/lib/apt/world/apt-scene-embed";
 
 const MOVE_SPEED = 2.4;
 const INTERACT_DIST = 0.72;
@@ -116,10 +117,12 @@ export type IsometricHomeCallbacks = {
 
 export class IsometricHomeScene {
   private mount: HTMLElement;
-  private renderer: THREE.WebGLRenderer;
+  private renderer!: THREE.WebGLRenderer;
   private scene: THREE.Scene;
   private camera: THREE.OrthographicCamera;
   private perspCamera: THREE.PerspectiveCamera;
+  private embed: AptSceneEmbed | null = null;
+  private externalLoop = false;
   private homeRoot = new THREE.Group();
   private floorGroup: THREE.Group | null = null;
   private furnitureRoot: THREE.Group | null = null;
@@ -201,8 +204,10 @@ export class IsometricHomeScene {
   private readonly blendedCamPos = new THREE.Vector3();
   private readonly blendedLookAt = new THREE.Vector3();
 
-  constructor(mount: HTMLElement, rooms: AptRoom[], initial: BondeeHomeState) {
+  constructor(mount: HTMLElement, rooms: AptRoom[], initial: BondeeHomeState, embed?: AptSceneEmbed) {
     this.mount = mount;
+    this.embed = embed ?? null;
+    this.externalLoop = embed?.externalLoop ?? false;
     this.rooms = rooms;
     this.state = { ...initial, items: migrateItems(initial.items, rooms) };
     if (!this.state.items.length) {
@@ -223,8 +228,14 @@ export class IsometricHomeScene {
       this.avatarZ = c.z + 0.2;
     }
 
-    this.scene = new THREE.Scene();
-    this.scene.fog = new THREE.Fog(BONDEE_PALETTE.bg, 14, 28);
+    if (embed) {
+      this.scene = embed.parentScene;
+      this.renderer = embed.sharedRenderer;
+      embed.attachRoot.add(this.homeRoot);
+    } else {
+      this.scene = new THREE.Scene();
+      this.scene.fog = new THREE.Fog(BONDEE_PALETTE.bg, 14, 28);
+    }
 
     const aspect = Math.max(mount.clientWidth, 320) / Math.max(mount.clientHeight, 400);
     this.camera = new THREE.OrthographicCamera(
@@ -239,11 +250,13 @@ export class IsometricHomeScene {
     this.activeRenderCamera = this.camera;
     this.updateCameraPosition();
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio <= 1.25, alpha: false, powerPreference: "high-performance" });
-    enableBondeeRenderer(this.renderer);
-    this.renderer.setPixelRatio(cappedPixelRatio());
-    this.renderer.setSize(mount.clientWidth, mount.clientHeight);
-    mount.appendChild(this.renderer.domElement);
+    if (!embed) {
+      this.renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio <= 1.25, alpha: false, powerPreference: "high-performance" });
+      enableBondeeRenderer(this.renderer);
+      this.renderer.setPixelRatio(cappedPixelRatio());
+      this.renderer.setSize(mount.clientWidth, mount.clientHeight);
+      mount.appendChild(this.renderer.domElement);
+    }
 
     this.sceneLighting = createSceneLighting(this.scene);
     this.lampManager = new LampLightManager(this.homeRoot);
@@ -261,21 +274,100 @@ export class IsometricHomeScene {
     this.avatar.root.traverse((o) => {
       if (o instanceof THREE.Mesh) o.renderOrder = 20;
     });
-    this.scene.add(this.homeRoot);
+    if (!embed) {
+      this.scene.add(this.homeRoot);
+    }
     this.noteFx = new GramophoneNoteFx(this.homeRoot);
     this.remotePlayers = new RemoteChibiPlayersLayer(this.homeRoot);
     this.rebuildFloor();
     this.applyAvatar();
 
-    this.renderer.domElement.addEventListener("pointerdown", this.onPointerDown);
-    this.renderer.domElement.addEventListener("pointermove", this.onPointerMove);
-    this.renderer.domElement.addEventListener("pointerup", this.onPointerUp);
-    this.renderer.domElement.addEventListener("pointercancel", this.onPointerUp);
-    this.renderer.domElement.addEventListener("wheel", this.onWheel, { passive: false });
+    if (!embed) {
+      this.renderer.domElement.addEventListener("pointerdown", this.onPointerDown);
+      this.renderer.domElement.addEventListener("pointermove", this.onPointerMove);
+      this.renderer.domElement.addEventListener("pointerup", this.onPointerUp);
+      this.renderer.domElement.addEventListener("pointercancel", this.onPointerUp);
+      this.renderer.domElement.addEventListener("wheel", this.onWheel, { passive: false });
+    }
     window.addEventListener("resize", this.onResize);
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
-    this.loop();
+    if (!this.externalLoop) this.loop();
+  }
+
+  getHomeRoot() {
+    return this.homeRoot;
+  }
+
+  getActiveRenderCamera() {
+    return this.activeRenderCamera;
+  }
+
+  attachInput(canvas: HTMLCanvasElement) {
+    canvas.addEventListener("pointerdown", this.onPointerDown);
+    canvas.addEventListener("pointermove", this.onPointerMove);
+    canvas.addEventListener("pointerup", this.onPointerUp);
+    canvas.addEventListener("pointercancel", this.onPointerUp);
+    canvas.addEventListener("wheel", this.onWheel, { passive: false });
+  }
+
+  detachInput(canvas: HTMLCanvasElement) {
+    canvas.removeEventListener("pointerdown", this.onPointerDown);
+    canvas.removeEventListener("pointermove", this.onPointerMove);
+    canvas.removeEventListener("pointerup", this.onPointerUp);
+    canvas.removeEventListener("pointercancel", this.onPointerUp);
+    canvas.removeEventListener("wheel", this.onWheel);
+  }
+
+  /** 통합 월드 루프에서 호출 */
+  tickFrame(): boolean {
+    if (this.disposed || this.paused) return false;
+    this.updateDayNight();
+    const dt = this.clock.getDelta();
+    this.animPhase += dt;
+    this.updateMovement(dt);
+    this.updateDoors(dt);
+    if (this.updateFurniturePivots(dt)) this.needsRender = true;
+    this.updateWallOcclusion(dt);
+    this.updateMusicFx(dt);
+    this.updateConsoleTransition(dt);
+    if (this.acManager.hasUnits() && this.acManager.tick(this.animPhase, this.state.acOn)) {
+      this.needsRender = true;
+    }
+    const camMoving =
+      this.consolePhase !== "off" ||
+      Math.abs(this.targetCamYaw - this.camYaw) > 0.002 ||
+      Math.abs(this.targetCamDist - this.frustum) > 0.02;
+    this.lerpCamera(dt);
+
+    if (this.consolePhase !== "off") {
+      this.activeRenderCamera = this.perspCamera;
+      this.needsRender = true;
+    } else if (this.consoleBlend > 0.001) {
+      this.activeRenderCamera = this.perspCamera;
+    } else {
+      this.activeRenderCamera = this.camera;
+    }
+
+    if (this.walking) {
+      this.avatar.animateWalk(this.animPhase, true);
+      this.needsRender = true;
+    } else {
+      this.avatar.animateWalk(this.animPhase, false);
+      if ((this.nearbyFurniture || this.canInteractWithGramophone() || this.canInteractWithInstrument()) && this.consolePhase === "off") {
+        this.avatar.root.rotation.y = THREE.MathUtils.lerp(this.avatar.root.rotation.y, Math.PI, 0.05);
+        this.needsRender = true;
+      }
+    }
+
+    if (camMoving || this.dragging) this.needsRender = true;
+    return this.needsRender;
+  }
+
+  renderExternal() {
+    if (this.disposed) return;
+    this.needsRender = false;
+    this.renderer.render(this.scene, this.activeRenderCamera);
   }
 
   private requestRender() {
@@ -1568,49 +1660,11 @@ export class IsometricHomeScene {
   private loop = () => {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.loop);
+    if (this.externalLoop) return;
     if (this.paused) return;
-    this.updateDayNight();
-    const dt = this.clock.getDelta();
-    this.animPhase += dt;
-    this.updateMovement(dt);
-    this.updateDoors(dt);
-    if (this.updateFurniturePivots(dt)) this.needsRender = true;
-    this.updateWallOcclusion(dt);
-    this.updateMusicFx(dt);
-    this.updateConsoleTransition(dt);
-    if (this.acManager.hasUnits() && this.acManager.tick(this.animPhase, this.state.acOn)) {
-      this.needsRender = true;
-    }
-    const camMoving =
-      this.consolePhase !== "off" ||
-      Math.abs(this.targetCamYaw - this.camYaw) > 0.002 ||
-      Math.abs(this.targetCamDist - this.frustum) > 0.02;
-    this.lerpCamera(dt);
-
-    if (this.consolePhase !== "off") {
-      this.activeRenderCamera = this.perspCamera;
-      this.needsRender = true;
-    } else if (this.consoleBlend > 0.001) {
-      this.activeRenderCamera = this.perspCamera;
-    } else {
-      this.activeRenderCamera = this.camera;
-    }
-
-    if (this.walking) {
-      this.avatar.animateWalk(this.animPhase, true);
-      this.needsRender = true;
-    } else {
-      this.avatar.animateWalk(this.animPhase, false);
-      if ((this.nearbyFurniture || this.canInteractWithGramophone() || this.canInteractWithInstrument()) && this.consolePhase === "off") {
-        this.avatar.root.rotation.y = THREE.MathUtils.lerp(this.avatar.root.rotation.y, Math.PI, 0.05);
-        this.needsRender = true;
-      }
-    }
-
-    if (camMoving || this.dragging) this.needsRender = true;
-    if (!this.needsRender) return;
-    this.needsRender = false;
-    this.renderer.render(this.scene, this.activeRenderCamera);
+    const animating = this.tickFrame();
+    if (!animating) return;
+    this.renderExternal();
   };
 
   dispose() {
@@ -1619,18 +1673,22 @@ export class IsometricHomeScene {
     window.removeEventListener("resize", this.onResize);
     window.removeEventListener("keydown", this.onKeyDown);
     window.removeEventListener("keyup", this.onKeyUp);
-    this.renderer.domElement.removeEventListener("pointerdown", this.onPointerDown);
-    this.renderer.domElement.removeEventListener("pointermove", this.onPointerMove);
-    this.renderer.domElement.removeEventListener("pointerup", this.onPointerUp);
-    this.renderer.domElement.removeEventListener("pointercancel", this.onPointerUp);
-    this.renderer.domElement.removeEventListener("wheel", this.onWheel);
+    if (!this.embed) {
+      this.renderer.domElement.removeEventListener("pointerdown", this.onPointerDown);
+      this.renderer.domElement.removeEventListener("pointermove", this.onPointerMove);
+      this.renderer.domElement.removeEventListener("pointerup", this.onPointerUp);
+      this.renderer.domElement.removeEventListener("pointercancel", this.onPointerUp);
+      this.renderer.domElement.removeEventListener("wheel", this.onWheel);
+    }
     if (this.floorGroup) disposeHomeGroup(this.floorGroup);
     this.noteFx.dispose();
     this.lampManager.dispose();
     this.acManager.dispose();
     this.remotePlayers.dispose();
     this.avatar.dispose();
-    this.renderer.dispose();
-    this.renderer.domElement.remove();
+    if (!this.embed) {
+      this.renderer.dispose();
+      this.renderer.domElement.remove();
+    }
   }
 }

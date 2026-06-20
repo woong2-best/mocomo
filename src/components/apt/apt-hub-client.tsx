@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Building2, Home, Menu, X } from "lucide-react";
 import Link from "next/link";
 import type { AptProfileDto } from "@/actions/apt";
@@ -11,29 +11,20 @@ import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import { AptSceneErrorBoundary } from "@/components/apt/apt-scene-error-boundary";
 import type { AptStudioInventoryItem } from "@/studio/lib/apt-types";
 import { cn } from "@/lib/utils";
+import { UnifiedAptWorldScene } from "@/lib/apt/world/unified-apt-world-scene";
+import type { AptWorldMode } from "@/lib/apt/world/world-types";
+import { APT_DEFAULT_FLOOR } from "@/lib/apt/constants";
+import { AptInteractPrompt } from "@/components/apt/apt-interact-prompt";
+import { HomeAvatarControls } from "@/components/apt/home-avatar-controls";
 
 const AptBuildingView = dynamic(
   () => import("@/components/apt/apt-building-view").then((m) => m.AptBuildingView),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-full w-full items-center justify-center text-sm text-white/60">
-        1000층 타워 불러오는 중…
-      </div>
-    ),
-  }
+  { ssr: false }
 );
 
 const AptBondeeRoom = dynamic(
   () => import("@/components/apt/apt-bondee-room").then((m) => m.AptBondeeRoom),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-full w-full items-center justify-center text-sm text-white/60">
-        내 집 불러오는 중…
-      </div>
-    ),
-  }
+  { ssr: false }
 );
 
 export function AptHubClient({
@@ -49,16 +40,20 @@ export function AptHubClient({
   isLoggedIn: boolean;
   studioInventory?: AptStudioInventoryItem[];
 }) {
-  const [tab, setTab] = useState<"home" | "tower">("home");
-  const [towerMounted, setTowerMounted] = useState(false);
+  const mountRef = useRef<HTMLDivElement>(null);
+  const worldRef = useRef<UnifiedAptWorldScene | null>(null);
+  const [worldMode, setWorldMode] = useState<AptWorldMode>("district");
   const [homeState, setHomeState] = useState(bondeeHome);
   const [homeRooms, setHomeRooms] = useState(initialHomeRooms);
   const [doorOpen, setDoorOpen] = useState(initialProfile?.homePublic ?? true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [nearHomeDoor, setNearHomeDoor] = useState(false);
+  const homeFloor = initialProfile?.homeFloor ?? APT_DEFAULT_FLOOR;
 
   const toggleDoor = useCallback(async () => {
     const next = !doorOpen;
     setDoorOpen(next);
+    worldRef.current?.setDoorOpen(next);
     await setHomePublic(next);
   }, [doorOpen]);
 
@@ -67,53 +62,97 @@ export function AptHubClient({
   }, [initialProfile?.homePublic]);
 
   useEffect(() => {
-    if (tab === "tower") setTowerMounted(true);
-  }, [tab]);
+    worldRef.current?.setDoorOpen(doorOpen);
+  }, [doorOpen]);
+
+  useEffect(() => {
+    worldRef.current?.updateHomeState(homeState);
+  }, [homeState]);
+
+  useEffect(() => {
+    const el = mountRef.current;
+    if (!el) return;
+
+    const world = new UnifiedAptWorldScene(el, {
+      homeFloor,
+      rooms: homeRooms,
+      homeState,
+      doorOpen,
+    });
+
+    world.setCallbacks({
+      onModeChange: setWorldMode,
+      onNearHomeDoor: (canEnter) => setNearHomeDoor(canEnter),
+    });
+
+    worldRef.current = world;
+
+    return () => {
+      world.dispose();
+      worldRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const inInterior = worldMode === "interior";
+  const inCorridor = worldMode === "corridor";
+  const inWorld = worldMode === "district" || worldMode === "tower" || worldMode === "elevator";
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      {/* 3D world — full viewport */}
+      <div ref={mountRef} className="absolute inset-0" />
+
       <AptSceneErrorBoundary>
-        <div className={cn("absolute inset-0", tab !== "home" && "invisible pointer-events-none")}>
-          <Suspense
-            fallback={
-              <div className="flex h-full w-full items-center justify-center text-sm text-white/60">
-                내 집 불러오는 중…
-              </div>
-            }
-          >
-            <AptBondeeRoom
-              initialState={homeState}
-              rooms={homeRooms}
-              isLoggedIn={isLoggedIn}
-              studioInventory={studioInventory}
-              onHomeChange={setHomeState}
-              paused={tab !== "home"}
-              doorOpen={doorOpen}
-              onDoorToggle={() => void toggleDoor()}
-            />
-          </Suspense>
-        </div>
-        <div className={cn("absolute inset-0", tab !== "tower" && "invisible pointer-events-none")}>
-          {towerMounted ? (
-            <AptBuildingView
-              initialProfile={initialProfile}
-              bondeeRoom={homeState}
-              isLoggedIn={isLoggedIn}
-              onHomeRoomsChange={setHomeRooms}
-              paused={tab !== "tower"}
-              doorOpen={doorOpen}
-              onDoorToggle={() => void toggleDoor()}
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-sm text-white/60">
-              1000층 타워 불러오는 중…
-            </div>
-          )}
-        </div>
+        <Suspense fallback={null}>
+          <AptBuildingView
+            initialProfile={initialProfile}
+            bondeeRoom={homeState}
+            isLoggedIn={isLoggedIn}
+            onHomeRoomsChange={setHomeRooms}
+            paused={!inWorld && !inCorridor}
+            doorOpen={doorOpen}
+            onDoorToggle={() => void toggleDoor()}
+            unifiedWorldRef={worldRef}
+            skipSceneMount
+            worldMode={worldMode}
+          />
+          <AptBondeeRoom
+            initialState={homeState}
+            rooms={homeRooms}
+            isLoggedIn={isLoggedIn}
+            studioInventory={studioInventory}
+            onHomeChange={setHomeState}
+            paused={!inInterior}
+            doorOpen={doorOpen}
+            onDoorToggle={() => void toggleDoor()}
+            unifiedWorldRef={worldRef}
+            skipSceneMount
+            worldMode={worldMode}
+          />
+        </Suspense>
       </AptSceneErrorBoundary>
 
-      {/* Minimal floating HUD */}
+      {/* 복도 — 보행·입장 */}
+      {inCorridor && (
+        <>
+          <div className="pointer-events-none absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 z-10">
+            <AptInteractPrompt
+              label={nearHomeDoor ? "현관문 입장 (E)" : "복도"}
+              visible={nearHomeDoor}
+            />
+          </div>
+          <div className="absolute left-3 bottom-3 pointer-events-auto z-10">
+            <HomeAvatarControls
+              onMove={(x, z) => worldRef.current?.getCorridorWalk()?.setMoveInput(x, z)}
+              onInteract={() => worldRef.current?.tryEnterHome()}
+              canInteract={nearHomeDoor}
+              interactLabel="현관문 입장 (E)"
+            />
+          </div>
+        </>
+      )}
+
+      {/* 통합 월드 HUD — 탭 없음, 하나의 연속 공간 */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between p-3 sm:p-4">
         <div className="pointer-events-auto flex items-center gap-2">
           <button
@@ -142,23 +181,23 @@ export function AptHubClient({
         <div className="pointer-events-auto flex gap-1.5 rounded-2xl border border-white/15 bg-black/45 p-1 backdrop-blur-md shadow-lg">
           <button
             type="button"
-            onClick={() => setTab("home")}
+            onClick={() => worldRef.current?.showDistrict()}
             className={cn(
               "flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all",
-              tab === "home"
-                ? "bg-pink-500/90 text-white shadow-md"
+              worldMode === "district"
+                ? "bg-violet-500/90 text-white shadow-md"
                 : "text-white/70 hover:text-white hover:bg-white/10"
             )}
           >
-            <Home className="h-4 w-4" />
-            <span className="hidden sm:inline">내 집</span>
+            <Building2 className="h-4 w-4" />
+            <span className="hidden sm:inline">단지</span>
           </button>
           <button
             type="button"
-            onClick={() => setTab("tower")}
+            onClick={() => worldRef.current?.showTower()}
             className={cn(
               "flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all",
-              tab === "tower"
+              inWorld && worldMode !== "district"
                 ? "bg-sky-500/90 text-white shadow-md"
                 : "text-white/70 hover:text-white hover:bg-white/10"
             )}
@@ -166,7 +205,40 @@ export function AptHubClient({
             <Building2 className="h-4 w-4" />
             <span className="hidden sm:inline">타워</span>
           </button>
+          {isLoggedIn && (
+            <button
+              type="button"
+              onClick={() => worldRef.current?.goToFloor(homeFloor)}
+              className={cn(
+                "flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all",
+                inInterior || inCorridor
+                  ? "bg-pink-500/90 text-white shadow-md"
+                  : "text-white/70 hover:text-white hover:bg-white/10"
+              )}
+            >
+              <Home className="h-4 w-4" />
+              <span className="hidden sm:inline">내 집</span>
+            </button>
+          )}
+          {inInterior && (
+            <button
+              type="button"
+              onClick={() => worldRef.current?.exitToCorridor()}
+              className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-white/80 hover:bg-white/10"
+            >
+              나가기
+            </button>
+          )}
         </div>
+      </div>
+
+      {/* 모드 안내 */}
+      <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 z-10 rounded-full border border-white/15 bg-black/50 px-4 py-1.5 text-[10px] font-semibold text-white/70 backdrop-blur-md">
+        {worldMode === "district" && "1000층 아파트 단지 · 드래그·줌으로 둘러보기"}
+        {worldMode === "tower" && "층별 단면 · 엘리베이터로 이동"}
+        {worldMode === "elevator" && "엘리베이터 이동 중…"}
+        {worldMode === "corridor" && "복도 · 현관문으로 입장"}
+        {worldMode === "interior" && "내 집 · 가구와 상호작용"}
       </div>
     </div>
   );

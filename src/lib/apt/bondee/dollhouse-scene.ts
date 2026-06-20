@@ -33,6 +33,7 @@ import {
   type SceneLightingRefs,
 } from "@/lib/apt/day-night-environment";
 import { getDayPhaseLabel } from "@/lib/apt/day-night";
+import type { AptSceneEmbed } from "@/lib/apt/world/apt-scene-embed";
 
 export { APT_DEFAULT_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
 
@@ -95,6 +96,8 @@ export type DollhouseCallbacks = {
   onFloorDisplay?: (floor: number) => void;
   onRideStart?: () => void;
   onRideEnd?: () => void;
+  /** 엘리베이터 하차 후 복도 진입 직전 (통합 월드) */
+  onCorridorEnter?: (floor: number) => void;
   onTimeChange?: (hour: number, phaseLabel: string) => void;
 };
 
@@ -102,9 +105,11 @@ export type AptBuildingCallbacks = DollhouseCallbacks;
 
 export class DollhouseBuildingScene {
   private mount: HTMLElement;
-  private renderer: THREE.WebGLRenderer;
+  private renderer!: THREE.WebGLRenderer;
   private scene: THREE.Scene;
   private camera: THREE.OrthographicCamera;
+  private embed: AptSceneEmbed | null = null;
+  private externalLoop = false;
   private building = new THREE.Group();
   private unitsRoot = new THREE.Group();
   private shellRoot = new THREE.Group();
@@ -123,6 +128,7 @@ export class DollhouseBuildingScene {
   private elevatorRide: ElevatorRide | null = null;
   private ridePhase: RidePhase | null = null;
   private ridePhaseTime = 0;
+  private corridorEnterFired = false;
   private avatarWalkPhase = 0;
   private targetScrollY = 0;
   private scrollY = 0;
@@ -148,15 +154,23 @@ export class DollhouseBuildingScene {
   private dayNight = new DayNightTicker();
   private lampManager: LampLightManager;
 
-  constructor(mount: HTMLElement, initialFloor = APT_DEFAULT_FLOOR) {
+  constructor(mount: HTMLElement, initialFloor = APT_DEFAULT_FLOOR, embed?: AptSceneEmbed) {
     this.mount = mount;
+    this.embed = embed ?? null;
+    this.externalLoop = embed?.externalLoop ?? false;
     this.currentFloor = Math.min(APT_TOTAL_FLOORS, Math.max(APT_LOBBY_FLOOR, initialFloor));
     this.virtualFloor = this.currentFloor;
     this.lastDisplayedFloor = this.currentFloor;
 
-    this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(PASTEL.bg);
-    this.scene.fog = new THREE.Fog(PASTEL.bg, 18, 42);
+    if (embed) {
+      this.scene = embed.parentScene;
+      this.renderer = embed.sharedRenderer;
+      embed.attachRoot.add(this.building);
+    } else {
+      this.scene = new THREE.Scene();
+      this.scene.background = new THREE.Color(PASTEL.bg);
+      this.scene.fog = new THREE.Fog(PASTEL.bg, 18, 42);
+    }
 
     const aspect = Math.max(mount.clientWidth, 320) / Math.max(mount.clientHeight, 400);
     this.camera = new THREE.OrthographicCamera(
@@ -169,26 +183,80 @@ export class DollhouseBuildingScene {
     );
     this.setCameraPose();
 
-    this.renderer = createAptRenderer(mount);
-    mount.appendChild(this.renderer.domElement);
+    if (!embed) {
+      this.renderer = createAptRenderer(mount);
+      mount.appendChild(this.renderer.domElement);
+    }
 
     this.addLights();
     this.lampManager = new LampLightManager(this.building);
     this.updateDayNight(true);
     this.building.add(this.unitsRoot);
     this.building.add(this.shellRoot);
-    this.scene.add(this.building);
+    if (!embed) {
+      this.scene.add(this.building);
+    }
 
     this.rebuildBuilding();
     this.snapScroll(true);
 
     const canvas = this.renderer.domElement;
-    canvas.addEventListener("pointerdown", this.onPointerDown);
-    canvas.addEventListener("pointerup", this.onPointerUp);
-    canvas.addEventListener("pointercancel", this.onPointerUp);
-    canvas.addEventListener("wheel", this.onWheel, { passive: false });
+    if (!embed) {
+      canvas.addEventListener("pointerdown", this.onPointerDown);
+      canvas.addEventListener("pointerup", this.onPointerUp);
+      canvas.addEventListener("pointercancel", this.onPointerUp);
+      canvas.addEventListener("wheel", this.onWheel, { passive: false });
+    }
     window.addEventListener("resize", this.onResize);
-    this.loop();
+    if (!this.externalLoop) this.loop();
+  }
+
+  getBuildingGroup() {
+    return this.building;
+  }
+
+  getRenderCamera() {
+    return this.camera;
+  }
+
+  /** 통합 월드 루프에서 호출 */
+  tickFrame(): boolean {
+    if (this.disposed || this.paused) return false;
+    this.updateDayNight();
+    const delta = Math.min(0.05, this.clock.getDelta());
+    this.animPhase += delta;
+
+    let animating = false;
+    animating = this.updateEntranceDoors(delta) || animating;
+    this.updateCorridorLights();
+
+    if (
+      this.ridePhase === "pre-walk" ||
+      this.ridePhase === "pre-enter" ||
+      this.ridePhase === "post-exit"
+    ) {
+      animating = this.tickAvatarPhases(delta) || animating;
+    } else if (this.elevatorRide && this.ridePhase === "riding") {
+      animating = this.tickElevatorRide(delta) || animating;
+    } else if (this.elevatorRide) {
+      animating = true;
+    } else {
+      const scrollDelta = this.targetScrollY - this.scrollY;
+      if (Math.abs(scrollDelta) > SCROLL_EPS) {
+        animating = true;
+        this.scrollY += scrollDelta * 0.14;
+        this.building.position.y = this.scrollY;
+      }
+    }
+
+    if (animating) this.needsRender = true;
+    return animating || this.needsRender;
+  }
+
+  renderExternal(camera?: THREE.Camera) {
+    if (this.disposed) return;
+    this.needsRender = false;
+    this.renderer.render(this.scene, camera ?? this.camera);
   }
 
   private setCameraPose() {
@@ -393,6 +461,10 @@ export class DollhouseBuildingScene {
       }
       case "post-exit": {
         const u = Math.min(1, this.ridePhaseTime / EXIT_ELEVATOR_SEC);
+        if (!this.corridorEnterFired) {
+          this.corridorEnterFired = true;
+          this.callbacks.onCorridorEnter?.(Math.round(ride.to));
+        }
         this.lerpAvatarOnFloor(
           toFloor,
           { x: sx, z: 0.15, rotY: -0.55 },
@@ -570,6 +642,7 @@ export class DollhouseBuildingScene {
     };
     this.ridePhase = "pre-walk";
     this.ridePhaseTime = 0;
+    this.corridorEnterFired = false;
     this.avatarWalkPhase = 0;
     this.ensureAvatar();
     this.moving = true;
@@ -955,55 +1028,32 @@ export class DollhouseBuildingScene {
   private loop = () => {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.loop);
+    if (this.externalLoop) return;
     if (this.paused) return;
-    this.updateDayNight();
-    const delta = Math.min(0.05, this.clock.getDelta());
-    this.animPhase += delta;
-
-    let animating = false;
-    animating = this.updateEntranceDoors(delta) || animating;
-    this.updateCorridorLights();
-
-    if (
-      this.ridePhase === "pre-walk" ||
-      this.ridePhase === "pre-enter" ||
-      this.ridePhase === "post-exit"
-    ) {
-      animating = this.tickAvatarPhases(delta) || animating;
-    } else if (this.elevatorRide && this.ridePhase === "riding") {
-      animating = this.tickElevatorRide(delta) || animating;
-    } else if (this.elevatorRide) {
-      animating = true;
-    } else {
-      const scrollDelta = this.targetScrollY - this.scrollY;
-      if (Math.abs(scrollDelta) > SCROLL_EPS) {
-        animating = true;
-        this.scrollY += scrollDelta * 0.14;
-        this.building.position.y = this.scrollY;
-      }
-    }
-
-    if (animating) this.needsRender = true;
-    if (!this.needsRender) return;
-    this.needsRender = false;
-    this.renderer.render(this.scene, this.camera);
+    const animating = this.tickFrame();
+    if (!animating) return;
+    this.renderExternal();
   };
 
   dispose() {
     this.disposed = true;
     cancelAnimationFrame(this.raf);
     window.removeEventListener("resize", this.onResize);
-    const canvas = this.renderer.domElement;
-    canvas.removeEventListener("pointerdown", this.onPointerDown);
-    canvas.removeEventListener("pointerup", this.onPointerUp);
-    canvas.removeEventListener("pointercancel", this.onPointerUp);
-    canvas.removeEventListener("wheel", this.onWheel);
+    if (!this.embed) {
+      const canvas = this.renderer.domElement;
+      canvas.removeEventListener("pointerdown", this.onPointerDown);
+      canvas.removeEventListener("pointerup", this.onPointerUp);
+      canvas.removeEventListener("pointercancel", this.onPointerUp);
+      canvas.removeEventListener("wheel", this.onWheel);
+    }
     disposeGroup(this.unitsRoot);
     disposeGroup(this.shellRoot);
     this.hideAvatar();
     this.lampManager.dispose();
-    this.renderer.dispose();
-    canvas.remove();
+    if (!this.embed) {
+      this.renderer.dispose();
+      this.renderer.domElement.remove();
+    }
   }
 }
 

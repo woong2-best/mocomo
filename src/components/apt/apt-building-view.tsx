@@ -30,6 +30,9 @@ import type { SimulationSnapshot } from "@/lib/apt/simulation/types";
 import { WORLD_COUNTRIES, findCountry } from "@/lib/apt/world/world-countries";
 import { countryFlag } from "@/lib/i18n/config";
 import { cn } from "@/lib/utils";
+import type { RefObject } from "react";
+import type { UnifiedAptWorldScene } from "@/lib/apt/world/unified-apt-world-scene";
+import type { AptWorldMode } from "@/lib/apt/world/world-types";
 
 function initPlansFromProfile(profile: AptProfileDto | null): Record<number, AptRoom[]> {
   if (profile?.floorPlans && Object.keys(profile.floorPlans).length > 0) {
@@ -46,6 +49,9 @@ export const AptBuildingView = memo(function AptBuildingView({
   paused = false,
   doorOpen = true,
   onDoorToggle,
+  unifiedWorldRef,
+  skipSceneMount = false,
+  worldMode = "tower",
 }: {
   initialProfile: AptProfileDto | null;
   bondeeRoom: BondeeRoomState;
@@ -54,6 +60,9 @@ export const AptBuildingView = memo(function AptBuildingView({
   paused?: boolean;
   doorOpen?: boolean;
   onDoorToggle?: () => void;
+  unifiedWorldRef?: RefObject<UnifiedAptWorldScene | null>;
+  skipSceneMount?: boolean;
+  worldMode?: AptWorldMode;
 }) {
   const homeCountry = initialProfile?.countryCode ?? "KR";
   const homeFloor = initialProfile?.homeFloor ?? APT_DEFAULT_FLOOR;
@@ -157,65 +166,87 @@ export const AptBuildingView = memo(function AptBuildingView({
   }, [browseTarget, isOwnApt, goToFloor]);
 
   useEffect(() => {
-    const el = mountRef.current;
-    if (!el) return;
+    if (skipSceneMount) {
+      sceneRef.current = unifiedWorldRef?.current?.getBuilding() ?? null;
+    } else {
+      const el = mountRef.current;
+      if (!el) return;
 
-    const scene = new DollhouseBuildingScene(el, homeFloor);
-    scene.setCallbacks({
-      onFloorClick: (f) => goToFloorRef.current(f),
-      onFloorScroll: (f) => goToFloorRef.current(f),
-      onFloorDisplay: (f) => {
-        floorRef.current = f;
-        setFloor(f);
-      },
-      onRideStart: () => setMoving(true),
-      onRideEnd: () => setMoving(false),
-      onResidentClick: (f, resident) => {
-        if (!resident.doorOpen) {
-          showToastRef.current(`${resident.displayName}님 — 현관문이 닫혀 있어 방문할 수 없습니다`);
-          return;
-        }
-        showToastRef.current(`${resident.displayName}님 집 — 노크 후 입장`);
-        const apt =
-          countryAptsRef.current.find((a) => a.userId === resident.userId) ??
-          countryAptsRef.current.find((a) => a.homeFloor === f);
-        if (apt) {
-          setBrowseTarget(apt);
-          goToFloorRef.current(apt.homeFloor);
-          return;
-        }
-        setBrowseTarget({
-          userId: resident.userId,
-          username: resident.username,
-          displayName: resident.displayName,
-          homeFloor: resident.homeFloor,
-          floorPlans: {},
-          bondeeRoom: DEFAULT_BONDEE_ROOM,
-        });
-        goToFloorRef.current(resident.homeFloor);
-      },
-      onSimulationChange: (snap) => setSimSnap(snap),
-      onTimeChange: (hour, phase) => {
-        setWorldHour(hour);
-        setDayPhaseLabel(phase);
-      },
-    });
-    sceneRef.current = scene;
-    scene.setFloorPlans(plansRef.current);
-    scene.setBondeeRoom(bondeeRoom);
+      const scene = new DollhouseBuildingScene(el, homeFloor);
+      sceneRef.current = scene;
+      scene.setFloorPlans(plansRef.current);
+      scene.setBondeeRoom(bondeeRoom);
 
-    if (isLoggedIn && initialProfile?.moveInCompleted) {
-      void scene.startSimulation(homeFloor, initialProfile.residents, initialProfile.furniture);
-      simReadyRef.current = true;
+      if (isLoggedIn && initialProfile?.moveInCompleted) {
+        void scene.startSimulation(homeFloor, initialProfile.residents, initialProfile.furniture);
+        simReadyRef.current = true;
+      }
+
+      return () => {
+        scene.dispose();
+        sceneRef.current = null;
+        simReadyRef.current = false;
+      };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [skipSceneMount]);
 
-    return () => {
-      scene.dispose();
-      sceneRef.current = null;
-      simReadyRef.current = false;
+  useEffect(() => {
+    const apply = () => {
+      const cb = {
+        onFloorClick: (f: number) => goToFloorRef.current(f),
+        onFloorScroll: (f: number) => goToFloorRef.current(f),
+        onFloorDisplay: (f: number) => {
+          floorRef.current = f;
+          setFloor(f);
+        },
+        onRideStart: () => setMoving(true),
+        onRideEnd: () => setMoving(false),
+        onResidentClick: (f: number, resident: import("@/lib/apt/bondee/dollhouse-scene").FloorResident) => {
+          if (!resident.doorOpen) {
+            showToastRef.current(`${resident.displayName}님 — 현관문이 닫혀 있어 방문할 수 없습니다`);
+            return;
+          }
+          showToastRef.current(`${resident.displayName}님 집 — 노크 후 입장`);
+          const apt =
+            countryAptsRef.current.find((a) => a.userId === resident.userId) ??
+            countryAptsRef.current.find((a) => a.homeFloor === f);
+          if (apt) {
+            setBrowseTarget(apt);
+            goToFloorRef.current(apt.homeFloor);
+            return;
+          }
+          setBrowseTarget({
+            userId: resident.userId,
+            username: resident.username,
+            displayName: resident.displayName,
+            homeFloor: resident.homeFloor,
+            floorPlans: {},
+            bondeeRoom: DEFAULT_BONDEE_ROOM,
+          });
+          goToFloorRef.current(resident.homeFloor);
+        },
+        onSimulationChange: (snap: SimulationSnapshot) => setSimSnap(snap),
+        onTimeChange: (hour: number, phase: string) => {
+          setWorldHour(hour);
+          setDayPhaseLabel(phase);
+        },
+      };
+
+      if (skipSceneMount && unifiedWorldRef?.current) {
+        unifiedWorldRef.current.applyBuildingCallbacks(cb);
+        const building = unifiedWorldRef.current.getBuilding();
+        sceneRef.current = building;
+        if (isLoggedIn && initialProfile?.moveInCompleted && !simReadyRef.current) {
+          void building.startSimulation(homeFloor, initialProfile.residents, initialProfile.furniture);
+          simReadyRef.current = true;
+        }
+        return;
+      }
+      sceneRef.current?.setCallbacks(cb);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount WebGL once
-  }, []);
+    apply();
+  }, [skipSceneMount, unifiedWorldRef?.current, isLoggedIn, homeFloor, initialProfile]);
 
   useEffect(() => {
     sceneRef.current?.setPaused(paused);
@@ -226,8 +257,13 @@ export const AptBuildingView = memo(function AptBuildingView({
   }, [plans]);
 
   return (
-    <div className="relative h-full w-full">
-      <div ref={mountRef} className="absolute inset-0" />
+    <div
+      className={cn(
+        "relative h-full w-full",
+        skipSceneMount && (worldMode === "interior" ? "pointer-events-none invisible" : "")
+      )}
+    >
+      {!skipSceneMount && <div ref={mountRef} className="absolute inset-0" />}
 
       <AptSimulationHud snapshot={simSnap} />
       <AptTimeHud

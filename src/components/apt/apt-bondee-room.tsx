@@ -49,6 +49,9 @@ import { useAptHomeSocket } from "@/hooks/use-apt-home-socket";
 import { useSession } from "next-auth/react";
 import { useCompose } from "@/components/compose/compose-provider";
 import { parseAptMailboxParams } from "@/lib/apt/mailbox-compose-route";
+import type { RefObject } from "react";
+import type { UnifiedAptWorldScene } from "@/lib/apt/world/unified-apt-world-scene";
+import type { AptWorldMode } from "@/lib/apt/world/world-types";
 
 const POSE_OPTIONS: { id: ChibiPose; label: string; icon: typeof Sofa; key: string }[] = [
   { id: "stand", label: "서기", icon: PersonStanding, key: "1" },
@@ -68,6 +71,9 @@ function AptBondeeRoomInner({
   paused = false,
   doorOpen = true,
   onDoorToggle,
+  unifiedWorldRef,
+  skipSceneMount = false,
+  worldMode = "interior",
 }: {
   initialState: BondeeHomeState;
   rooms: AptRoom[];
@@ -77,6 +83,9 @@ function AptBondeeRoomInner({
   paused?: boolean;
   doorOpen?: boolean;
   onDoorToggle?: () => void;
+  unifiedWorldRef?: RefObject<UnifiedAptWorldScene | null>;
+  skipSceneMount?: boolean;
+  worldMode?: AptWorldMode;
 }) {
   const { data: session } = useSession();
   const homeOwnerId = session?.user?.id ?? null;
@@ -267,12 +276,27 @@ function AptBondeeRoomInner({
   }, [paused]);
 
   useEffect(() => {
+    if (skipSceneMount) {
+      sceneRef.current = unifiedWorldRef?.current?.getInterior() ?? null;
+      return;
+    }
     const el = mountRef.current;
     if (!el) return;
     const scene = new IsometricHomeScene(el, rooms, {
       ...stateRef.current,
       activeRoomId: activeRoomId ?? undefined,
     });
+    sceneRef.current = scene;
+    return () => {
+      scene.dispose();
+      sceneRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rooms, skipSceneMount]);
+
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
     scene.setCallbacks({
       onItemSelect: setSelectedItemId,
       onNearGramophoneChange: setNearGramophone,
@@ -321,13 +345,12 @@ function AptBondeeRoomInner({
         emitMoveRef.current(x, z, pose, activity);
       },
     });
-    sceneRef.current = scene;
-    return () => {
-      scene.dispose();
-      sceneRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rooms]);
+  }, [skipSceneMount, unifiedWorldRef?.current, onPoseChange, onHomeChange, persist, router]);
+
+  useEffect(() => {
+    if (!skipSceneMount || !unifiedWorldRef?.current) return;
+    sceneRef.current = unifiedWorldRef.current.getInterior();
+  }, [skipSceneMount, unifiedWorldRef?.current]);
 
   useEffect(() => {
     stateRef.current = state;
@@ -390,8 +413,13 @@ function AptBondeeRoomInner({
     !movementDisabled && !instrumentOpen && !gramophoneOpen && !!interactLabel;
 
   return (
-    <div className="relative h-full w-full">
-      <div ref={mountRef} className="absolute inset-0" />
+    <div
+      className={cn(
+        "relative h-full w-full",
+        skipSceneMount && worldMode !== "interior" ? "pointer-events-none invisible" : ""
+      )}
+    >
+      {!skipSceneMount && <div ref={mountRef} className="absolute inset-0" />}
 
         <GramophonePanel
           open={gramophoneOpen}
