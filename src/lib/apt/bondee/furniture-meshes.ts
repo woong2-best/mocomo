@@ -361,6 +361,25 @@ function buildAc(g: THREE.Group) {
     stripsGroup.add(pivot);
   }
   g.add(stripsGroup);
+
+  const particlesGroup = new THREE.Group();
+  particlesGroup.name = "ac-particles";
+  for (let i = 0; i < 5; i++) {
+    const p = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.018, 0.018),
+      new THREE.MeshBasicMaterial({
+        color: 0xd8eeff,
+        transparent: true,
+        opacity: 0.05,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      })
+    );
+    p.position.set(-0.06 + i * 0.03, 0, bodyD / 2 + 0.07);
+    p.rotation.x = -0.4;
+    particlesGroup.add(p);
+  }
+  g.add(particlesGroup);
 }
 
 function buildClock(g: THREE.Group) {
@@ -485,9 +504,15 @@ function buildRefrigerator(g: THREE.Group) {
   const seal = bondeeMat(0xd8dde8);
 
   addTo(g, roundedBox(0.42, 0.92, 0.38, 0.04), body, 0, 0.48, 0);
-  addTo(g, roundedBox(0.38, 0.44, 0.02, 0.015), bodyDark, 0, 0.68, 0.2);
+
+  const pivot = new THREE.Group();
+  pivot.name = "fridge-door-pivot";
+  pivot.position.set(0.19, 0.68, 0.2);
+  addTo(pivot, roundedBox(0.38, 0.44, 0.02, 0.015), bodyDark, -0.19, 0, 0);
+  addTo(pivot, roundedBox(0.02, 0.18, 0.025, 0.008), handle, -0.02, 0, 0.02);
+  g.add(pivot);
+
   addTo(g, roundedBox(0.38, 0.38, 0.02, 0.015), seal, 0, 0.24, 0.2);
-  addTo(g, roundedBox(0.02, 0.18, 0.025, 0.008), handle, 0.16, 0.68, 0.22);
   addTo(g, roundedBox(0.02, 0.12, 0.025, 0.008), handle, 0.16, 0.24, 0.22);
   addTo(g, roundedBox(0.1, 0.04, 0.02, 0.008), bondeeMat(0x444455), 0, 0.88, 0.18);
   addTo(g, roundedBox(0.04, 0.025, 0.025, 0.008), bondeeGlowMat(0x66ccff, 0.4), -0.12, 0.88, 0.18);
@@ -536,11 +561,17 @@ function buildWindow(g: THREE.Group) {
 
   addTo(g, roundedBox(0.52, 0.62, 0.06, 0.025), frame, 0, 0.38, 0);
   addTo(g, roundedBox(0.44, 0.54, 0.02, 0.012), frameLight, 0, 0.38, 0.025);
-  addTo(g, roundedBox(0.2, 0.24, 0.012, 0.008), glass, -0.1, 0.48, 0.032);
-  addTo(g, roundedBox(0.2, 0.24, 0.012, 0.008), glass, 0.1, 0.48, 0.032);
-  addTo(g, roundedBox(0.2, 0.2, 0.012, 0.008), glass, -0.1, 0.22, 0.032);
-  addTo(g, roundedBox(0.2, 0.2, 0.012, 0.008), glass, 0.1, 0.22, 0.032);
-  addTo(g, roundedBox(0.02, 0.54, 0.015, 0.006), frame, 0, 0.38, 0.035);
+
+  const sashPivot = new THREE.Group();
+  sashPivot.name = "window-sash-pivot";
+  sashPivot.position.set(0, 0.38, 0.032);
+  addTo(sashPivot, roundedBox(0.2, 0.24, 0.012, 0.008), glass, -0.1, 0.1, 0);
+  addTo(sashPivot, roundedBox(0.2, 0.24, 0.012, 0.008), glass, 0.1, 0.1, 0);
+  addTo(sashPivot, roundedBox(0.2, 0.2, 0.012, 0.008), glass, -0.1, -0.16, 0);
+  addTo(sashPivot, roundedBox(0.2, 0.2, 0.012, 0.008), glass, 0.1, -0.16, 0);
+  addTo(sashPivot, roundedBox(0.02, 0.54, 0.015, 0.006), frame, 0, 0, 0.003);
+  g.add(sashPivot);
+
   addTo(g, roundedBox(0.44, 0.02, 0.04, 0.008), frame, 0, 0.08, 0.04);
   addTo(g, roundedBox(0.5, 0.04, 0.08, 0.015), sill, 0, 0.04, 0.04);
   addTo(g, roundedBox(0.08, 0.06, 0.04, 0.01), bondeeMat(0xffd8b0), 0.14, 0.1, 0.06);

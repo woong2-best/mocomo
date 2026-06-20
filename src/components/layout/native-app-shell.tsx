@@ -6,6 +6,7 @@ import { NativeAppHeader } from "@/components/layout/native-app-header";
 import { NativeAppNav } from "@/components/layout/native-app-nav";
 import { NativeAppComposeFab } from "@/components/layout/native-app-compose-fab";
 import { nativeAppMainPadding, shouldHideNativeAppNav } from "@/lib/native-app-shell";
+import { isAptImmersivePath } from "@/lib/apt-route";
 
 function NativeAppShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -14,9 +15,14 @@ function NativeAppShellInner({ children }: { children: React.ReactNode }) {
   const hideNav = shouldHideNativeAppNav(pathname);
   const mainPb = nativeAppMainPadding(pathname);
   const isVoiceRoom = pathname.startsWith("/voice/") && pathname !== "/voice/new";
+  const isAptImmersive = isAptImmersivePath(pathname ?? "");
 
   if (isVoiceRoom) {
     return <main className="min-h-dvh bg-background">{children}</main>;
+  }
+
+  if (isAptImmersive) {
+    return <main className="fixed inset-0 z-40 overflow-hidden bg-[#0a0a12]">{children}</main>;
   }
 
   if (isAuthRoute || isLegalRoute) {

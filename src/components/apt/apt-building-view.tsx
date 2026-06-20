@@ -3,7 +3,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  Box,
   ChevronDown,
   ChevronUp,
   ExternalLink,
@@ -61,12 +60,10 @@ export const AptBuildingView = memo(function AptBuildingView({
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<DollhouseBuildingScene | null>(null);
   const floorRef = useRef(homeFloor);
-  const xrayRef = useRef(false);
   const simReadyRef = useRef(false);
   const plansRef = useRef<Record<number, AptRoom[]>>(initPlansFromProfile(initialProfile));
 
   const [floor, setFloor] = useState(homeFloor);
-  const [xray, setXray] = useState(true);
   const [moving, setMoving] = useState(false);
   const [plans, setPlans] = useState(() => initPlansFromProfile(initialProfile));
   const [toast, setToast] = useState<string | null>(null);
@@ -79,6 +76,7 @@ export const AptBuildingView = memo(function AptBuildingView({
   const [loadingCountry, setLoadingCountry] = useState(false);
   const [worldHour, setWorldHour] = useState<number | null>(null);
   const [dayPhaseLabel, setDayPhaseLabel] = useState<string | null>(null);
+  const [elevatorOpen, setElevatorOpen] = useState(false);
 
   const countryAptsRef = useRef(countryApts);
   useEffect(() => {
@@ -109,11 +107,6 @@ export const AptBuildingView = memo(function AptBuildingView({
 
   const goToFloorRef = useRef(goToFloor);
   goToFloorRef.current = goToFloor;
-
-  useEffect(() => {
-    xrayRef.current = xray;
-    if (!moving) sceneRef.current?.setXray(xray);
-  }, [xray, moving]);
 
   useEffect(() => {
     void (async () => {
@@ -179,16 +172,16 @@ export const AptBuildingView = memo(function AptBuildingView({
       onRideEnd: () => setMoving(false),
       onResidentClick: (f, resident) => {
         if (!resident.doorOpen) {
-          showToastRef.current(`${resident.displayName}님 — 현관문이 닫혀 있어 구경할 수 없습니다`);
+          showToastRef.current(`${resident.displayName}님 — 현관문이 닫혀 있어 방문할 수 없습니다`);
           return;
         }
+        showToastRef.current(`${resident.displayName}님 집 — 노크 후 입장`);
         const apt =
           countryAptsRef.current.find((a) => a.userId === resident.userId) ??
           countryAptsRef.current.find((a) => a.homeFloor === f);
         if (apt) {
           setBrowseTarget(apt);
           goToFloorRef.current(apt.homeFloor);
-          showToastRef.current(`${apt.displayName}님 집을 구경합니다`);
           return;
         }
         setBrowseTarget({
@@ -200,7 +193,6 @@ export const AptBuildingView = memo(function AptBuildingView({
           bondeeRoom: DEFAULT_BONDEE_ROOM,
         });
         goToFloorRef.current(resident.homeFloor);
-        showToastRef.current(`${resident.displayName}님 집을 구경합니다`);
       },
       onSimulationChange: (snap) => setSimSnap(snap),
       onTimeChange: (hour, phase) => {
@@ -234,268 +226,224 @@ export const AptBuildingView = memo(function AptBuildingView({
   }, [plans]);
 
   return (
-    <div className="folk-card overflow-hidden">
-      <div className="flex flex-col lg:flex-row min-h-[min(88dvh,920px)]">
-        <div className="relative flex-1 min-h-[560px] bg-[#fef6f8]">
-          <div ref={mountRef} className="absolute inset-0" />
+    <div className="relative h-full w-full">
+      <div ref={mountRef} className="absolute inset-0" />
 
-          <AptSimulationHud snapshot={simSnap} />
-          <AptTimeHud
-            hour={worldHour}
-            phaseLabel={dayPhaseLabel}
-            className="absolute top-3 right-3 z-10 max-w-[min(100%,14rem)]"
-          />
+      <AptSimulationHud snapshot={simSnap} />
+      <AptTimeHud
+        hour={worldHour}
+        phaseLabel={dayPhaseLabel}
+        className="absolute top-14 right-3 z-10 max-w-[min(100%,14rem)] border-white/15 bg-black/45 [&_*]:text-white/90"
+      />
 
-          <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-neutral-200 bg-white/95 px-2.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm">
-            {isOwnApt ? (
-              <>
-                {APT_TOTAL_FLOORS}층 타워 · {floor}층
-                {floor === APT_PENTHOUSE_FLOOR && <span className="ml-1 text-folk-cobalt">· PH</span>}
-                {floor === APT_LOBBY_FLOOR && <span className="ml-1 text-folk-cobalt">· 입구</span>}
-                {isLoggedIn && initialProfile?.moveInCompleted && floor === homeFloor && (
-                  <span className="ml-1 text-folk-terracotta">· 내 집</span>
-                )}
-              </>
-            ) : (
-              <>
-                {countryFlag(viewCountry)} {viewCountryInfo?.nameKo ?? viewCountry} 둘러보기
-                {browseTarget && <span className="ml-1">· {browseTarget.displayName}의 집</span>}
-              </>
-            )}
-          </div>
-
-          {/* Full-tower vertical navigator */}
-          <div className="absolute right-[8.75rem] top-1/2 z-10 hidden lg:flex -translate-y-1/2 flex-col items-center gap-1 rounded-xl border border-neutral-200 bg-white/95 px-1.5 py-2 shadow-sm backdrop-blur-sm">
-            <button
-              type="button"
-              className="text-[8px] font-bold text-folk-terracotta hover:underline"
-              onClick={() => goToFloor(APT_PENTHOUSE_FLOOR)}
-              disabled={moving}
-            >
-              PH
-            </button>
-            <input
-              type="range"
-              min={APT_LOBBY_FLOOR}
-              max={APT_PENTHOUSE_FLOOR}
-              value={floor}
-              disabled={moving}
-              onChange={(e) => goToFloor(Number(e.target.value))}
-              className="h-[min(52vh,480px)] w-4 accent-folk-terracotta cursor-pointer"
-              style={{ writingMode: "vertical-lr", direction: "rtl" }}
-              aria-label="전체 층 이동"
-            />
-            <button
-              type="button"
-              className="text-[8px] font-bold text-folk-cobalt hover:underline"
-              onClick={() => goToFloor(APT_LOBBY_FLOOR)}
-              disabled={moving}
-            >
-              입구
-            </button>
-          </div>
-
-          {isOwnApt && isLoggedIn && onDoorToggle && (
-            <div className="absolute left-3 top-14 z-10 w-[min(100%,220px)] pointer-events-auto">
-              <AptEntranceDoorToggle doorOpen={doorOpen} onToggle={onDoorToggle} compact />
-            </div>
+      {/* Floor indicator — elevator style */}
+      <div className="pointer-events-none absolute left-1/2 top-14 z-10 -translate-x-1/2">
+        <div
+          className={cn(
+            "flex items-center gap-2 rounded-2xl border border-white/20 bg-black/55 px-4 py-2 backdrop-blur-md shadow-xl transition-all",
+            moving && "border-sky-400/50 scale-105"
           )}
-
-          {browseTarget && !isOwnApt && (
-            <div className="absolute top-14 right-3 z-10 max-w-[220px] rounded-xl border border-folk-terracotta/40 bg-white/95 p-3 shadow-md backdrop-blur-sm space-y-2">
-              <p className="text-xs font-bold text-folk-cobalt flex items-center gap-1.5">
-                <UserRound className="h-3.5 w-3.5" />
-                {browseTarget.displayName} · {browseTarget.homeFloor}층
-              </p>
-              <p className="text-[10px] text-muted-foreground leading-snug">
-                현관문이 열린 집만 구경할 수 있습니다. 현관 클릭 또는 층 선택으로 내부를 봅니다.
-              </p>
-              <Button asChild size="sm" className="w-full h-8 rounded-lg text-xs gap-1">
-                <Link href={`/u/${browseTarget.username}`}>
-                  프로필 보기
-                  <ExternalLink className="h-3 w-3" />
-                </Link>
-              </Button>
-            </div>
-          )}
-
-          <div className="pointer-events-none absolute left-3 bottom-3 rounded-lg border border-pink-100 bg-white/95 px-2.5 py-1 text-[10px] text-muted-foreground backdrop-blur-sm max-w-[240px] leading-snug">
-            휠 위·아래 층 이동 · Ctrl+휠 확대 · 현관문 열린 집만 방문 · 아바타 엘리베이터 이동
-          </div>
-
+        >
           {moving && (
-            <div className="pointer-events-none absolute inset-x-0 top-14 flex justify-center z-10">
-              <span className="rounded-full border border-pink-100 bg-white/95 px-3 py-1 text-xs font-semibold text-pink-700 animate-pulse flex items-center gap-1.5">
-                <span className="inline-block h-2 w-2 rounded-full bg-pink-500 animate-bounce" />
-                아바타 엘리베이터 이동 · {floor}층
-              </span>
-            </div>
+            <span className="inline-block h-2 w-2 rounded-full bg-sky-400 animate-pulse" />
           )}
-
-          {toast && (
-            <div className="pointer-events-none absolute top-14 left-1/2 -translate-x-1/2 rounded-full border border-neutral-200 bg-white/95 px-4 py-1.5 text-xs font-semibold text-neutral-700 shadow-sm">
-              {toast}
-            </div>
-          )}
-
+          <span className="text-2xl font-black tabular-nums text-white">{floor}</span>
+          <span className="text-[10px] font-bold text-white/60">
+            {floor === APT_PENTHOUSE_FLOOR ? "PH" : floor === APT_LOBBY_FLOOR ? "로비" : "층"}
+            {isOwnApt && isLoggedIn && floor === homeFloor && " · 내 집"}
+          </span>
         </div>
+      </div>
 
-        <aside className="flex w-full lg:w-[7.5rem] shrink-0 flex-col items-center border-t lg:border-t-0 lg:border-l border-neutral-200 bg-white px-3 py-4 gap-2 relative">
-          <div className="relative w-full">
-            <button
-              type="button"
-              onClick={() => setCountryOpen((v) => !v)}
-              className={cn(
-                "flex w-full flex-col items-center justify-center gap-0.5 rounded-xl border-2 py-2 transition-all",
-                countryOpen
-                  ? "border-folk-terracotta bg-folk-terracotta/10"
-                  : "border-neutral-200 bg-white hover:bg-neutral-50"
-              )}
-              title="국가별 아파트 보기"
-            >
-              <Globe2 className="h-4 w-4 text-folk-cobalt" />
-              <span className="text-lg leading-none">{countryFlag(viewCountry)}</span>
-              <span className="text-[9px] font-bold text-folk-cobalt truncate max-w-full px-1">
-                {viewCountryInfo?.nameKo ?? viewCountry}
-              </span>
-            </button>
+      {/* Country / visit info */}
+      <div className="pointer-events-none absolute left-3 top-14 rounded-xl border border-white/15 bg-black/45 px-3 py-2 text-xs text-white/80 backdrop-blur-md shadow-lg max-w-[220px]">
+        {isOwnApt ? (
+          <p>{APT_TOTAL_FLOORS}층 아파트 단지</p>
+        ) : (
+          <p>
+            {countryFlag(viewCountry)} {viewCountryInfo?.nameKo ?? viewCountry}
+            {browseTarget && ` · ${browseTarget.displayName}의 집`}
+          </p>
+        )}
+      </div>
 
-            {countryOpen && (
-              <div className="absolute bottom-full left-0 right-0 z-20 mb-1 max-h-52 overflow-y-auto rounded-xl border border-neutral-200 bg-white shadow-lg">
-                {WORLD_COUNTRIES.map((c) => (
-                  <button
-                    key={c.code}
-                    type="button"
-                    onClick={() => {
-                      setViewCountry(c.code);
-                      setCountryOpen(false);
-                    }}
-                    className={cn(
-                      "flex w-full items-center gap-2 px-2 py-1.5 text-left text-[10px] hover:bg-neutral-50",
-                      viewCountry === c.code && "bg-folk-terracotta/10 font-bold"
-                    )}
-                  >
-                    <span>{countryFlag(c.code)}</span>
-                    <span className="truncate">{c.nameKo}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+      {isOwnApt && isLoggedIn && onDoorToggle && (
+        <div className="absolute left-3 top-[5.5rem] z-10 w-[min(100%,220px)] pointer-events-auto">
+          <AptEntranceDoorToggle doorOpen={doorOpen} onToggle={onDoorToggle} compact />
+        </div>
+      )}
 
-          {!isOwnApt && (
-            <div className="w-full space-y-1 max-h-28 overflow-y-auto">
-              {loadingCountry && <p className="text-[9px] text-center text-muted-foreground">불러오는 중…</p>}
-              {!loadingCountry && countryApts.length === 0 && (
-                <p className="text-[9px] text-center text-muted-foreground leading-snug">현관문 열린 아파트 없음</p>
-              )}
-              {countryApts.map((apt) => (
+      {browseTarget && !isOwnApt && (
+        <div className="absolute top-[5.5rem] right-3 z-10 max-w-[220px] rounded-xl border border-pink-400/30 bg-black/60 p-3 shadow-xl backdrop-blur-md space-y-2">
+          <p className="text-xs font-bold text-white flex items-center gap-1.5">
+            <UserRound className="h-3.5 w-3.5" />
+            {browseTarget.displayName} · {browseTarget.homeFloor}층
+          </p>
+          <p className="text-[10px] text-white/60 leading-snug">
+            현관문이 열린 집만 방문할 수 있습니다
+          </p>
+          <Button asChild size="sm" className="w-full h-8 rounded-lg text-xs gap-1">
+            <Link href={`/u/${browseTarget.username}`}>
+              프로필 보기
+              <ExternalLink className="h-3 w-3" />
+            </Link>
+          </Button>
+        </div>
+      )}
+
+      {toast && (
+        <div className="pointer-events-none absolute top-28 left-1/2 -translate-x-1/2 z-20 rounded-full border border-white/20 bg-black/70 px-4 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur-md">
+          {toast}
+        </div>
+      )}
+
+      {/* Elevator call panel — only way to change floors */}
+      <div className="absolute right-3 bottom-24 z-10 flex flex-col items-end gap-2">
+        <button
+          type="button"
+          onClick={() => setElevatorOpen((v) => !v)}
+          disabled={moving}
+          className={cn(
+            "flex h-14 w-14 flex-col items-center justify-center rounded-2xl border border-white/20 bg-black/55 text-white backdrop-blur-md shadow-xl transition hover:bg-black/70 disabled:opacity-40",
+            elevatorOpen && "border-sky-400/50 bg-sky-500/25"
+          )}
+          aria-label="엘리베이터"
+        >
+          <ChevronUp className="h-5 w-5" />
+          <span className="text-[9px] font-bold">EV</span>
+          <ChevronDown className="h-5 w-5" />
+        </button>
+
+        {elevatorOpen && (
+          <div className="animate-in fade-in slide-in-from-right-2 rounded-2xl border border-white/15 bg-black/75 p-3 backdrop-blur-xl shadow-2xl w-[11rem] space-y-2">
+            <p className="text-[10px] font-bold text-white/70 text-center">엘리베이터 호출</p>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                disabled={floor <= APT_LOBBY_FLOOR || moving}
+                onClick={() => goToFloor(floor - 1)}
+                className="flex-1 rounded-xl border border-white/15 py-2 text-white/80 hover:bg-white/10 disabled:opacity-30"
+              >
+                <ChevronDown className="h-5 w-5 mx-auto" />
+              </button>
+              <button
+                type="button"
+                disabled={floor >= APT_TOTAL_FLOORS || moving}
+                onClick={() => goToFloor(floor + 1)}
+                className="flex-1 rounded-xl border border-white/15 py-2 text-white/80 hover:bg-white/10 disabled:opacity-30"
+              >
+                <ChevronUp className="h-5 w-5 mx-auto" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-1">
+              <button
+                type="button"
+                disabled={moving}
+                onClick={() => goToFloor(APT_LOBBY_FLOOR)}
+                className="rounded-lg border border-white/10 py-1.5 text-[9px] font-bold text-white/70 hover:bg-white/10 disabled:opacity-30"
+              >
+                로비
+              </button>
+              <button
+                type="button"
+                disabled={moving}
+                onClick={() => goToFloor(APT_PENTHOUSE_FLOOR)}
+                className="rounded-lg border border-white/10 py-1.5 text-[9px] font-bold text-white/70 hover:bg-white/10 disabled:opacity-30"
+              >
+                PH
+              </button>
+              {isOwnApt && isLoggedIn && (
                 <button
-                  key={apt.userId}
                   type="button"
-                  onClick={() => setBrowseTarget(apt)}
+                  disabled={moving}
+                  onClick={() => goToFloor(homeFloor)}
+                  className="col-span-2 rounded-lg border border-pink-400/30 py-1.5 text-[9px] font-bold text-pink-200 hover:bg-pink-500/15 disabled:opacity-30"
+                >
+                  내 집 ({homeFloor}층)
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Country picker */}
+      <div className="absolute left-3 bottom-24 z-10">
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setCountryOpen((v) => !v)}
+            className={cn(
+              "flex items-center gap-2 rounded-2xl border border-white/20 bg-black/55 px-3 py-2 text-white backdrop-blur-md shadow-xl transition hover:bg-black/70",
+              countryOpen && "border-sky-400/50"
+            )}
+          >
+            <Globe2 className="h-4 w-4" />
+            <span className="text-lg">{countryFlag(viewCountry)}</span>
+          </button>
+
+          {countryOpen && (
+            <div className="absolute bottom-full left-0 mb-2 max-h-52 w-48 overflow-y-auto rounded-xl border border-white/15 bg-black/80 shadow-2xl backdrop-blur-xl">
+              {WORLD_COUNTRIES.map((c) => (
+                <button
+                  key={c.code}
+                  type="button"
+                  onClick={() => {
+                    setViewCountry(c.code);
+                    setCountryOpen(false);
+                  }}
                   className={cn(
-                    "w-full rounded-lg border px-1.5 py-1 text-[9px] text-left truncate",
-                    browseTarget?.userId === apt.userId
-                      ? "border-folk-terracotta bg-folk-terracotta/10"
-                      : "border-neutral-200 hover:bg-neutral-50"
+                    "flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] text-white/80 hover:bg-white/10",
+                    viewCountry === c.code && "bg-sky-500/20 font-bold text-white"
                   )}
                 >
-                  {apt.displayName} · {apt.homeFloor}층
+                  <span>{countryFlag(c.code)}</span>
+                  <span className="truncate">{c.nameKo}</span>
                 </button>
               ))}
             </div>
           )}
+        </div>
 
-          {!isOwnApt && (
-            <button
-              type="button"
-              onClick={() => {
-                setViewCountry(homeCountry);
-                setBrowseTarget(null);
-                goToFloor(homeFloor);
-              }}
-              className="flex w-full items-center justify-center gap-1 rounded-lg border border-neutral-200 bg-white py-1.5 text-[9px] font-bold text-folk-cobalt hover:bg-neutral-50"
-            >
-              <Home className="h-3 w-3" />
-              내 아파트
-            </button>
-          )}
-
+        {!isOwnApt && (
           <button
             type="button"
-            onClick={() => setXray((v) => !v)}
-            className={cn(
-              "flex h-11 w-11 items-center justify-center rounded-xl border-2 transition-all",
-              xray
-                ? "border-pink-300 bg-pink-50 text-pink-600 shadow-sm"
-                : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
-            )}
-            aria-label="단면도 보기"
-            title="단면도 보기"
-          >
-            <Box className="h-5 w-5" strokeWidth={2.25} />
-          </button>
-
-          <p className="text-[10px] text-center leading-snug text-muted-foreground px-1">
-            {xray ? "집 단면도" : "건물 외관"}
-          </p>
-
-          <div className="flex flex-1 flex-col items-center justify-center gap-2 w-full max-w-[4.5rem]">
-            <button
-              type="button"
-              disabled={floor >= APT_TOTAL_FLOORS || moving}
-              onClick={() => goToFloor(floor + 1)}
-              className={cn(
-                "flex h-12 w-full items-center justify-center rounded-xl border-2 border-neutral-200 bg-white text-neutral-700 transition-all",
-                "hover:bg-neutral-50 hover:-translate-y-0.5 disabled:opacity-35 disabled:pointer-events-none"
-              )}
-              aria-label="위층"
-            >
-              <ChevronUp className="h-7 w-7" strokeWidth={2.5} />
-            </button>
-
-            <div
-              className={cn(
-                "flex h-16 w-full items-center justify-center rounded-xl border-[3px] border-neutral-200 bg-white font-display text-3xl font-bold tabular-nums text-neutral-800 shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-transform duration-300",
-                moving && "scale-95 border-pink-300"
-              )}
-            >
-              {floor}
-            </div>
-
-            <button
-              type="button"
-              disabled={floor <= APT_LOBBY_FLOOR || moving}
-              onClick={() => goToFloor(floor - 1)}
-              className={cn(
-                "flex h-12 w-full items-center justify-center rounded-xl border-2 border-neutral-200 bg-white text-neutral-700 transition-all",
-                "hover:bg-neutral-50 hover:translate-y-0.5 disabled:opacity-35 disabled:pointer-events-none"
-              )}
-              aria-label="아래층"
-            >
-              <ChevronDown className="h-7 w-7" strokeWidth={2.5} />
-            </button>
-          </div>
-
-          <p className="text-[10px] text-muted-foreground tabular-nums">{APT_LOBBY_FLOOR} – {APT_TOTAL_FLOORS}층</p>
-          <input
-            type="number"
-            min={APT_LOBBY_FLOOR}
-            max={APT_TOTAL_FLOORS}
-            value={floor}
-            disabled={moving}
-            onChange={(e) => {
-              const n = Number(e.target.value);
-              if (Number.isFinite(n)) goToFloor(n);
+            onClick={() => {
+              setViewCountry(homeCountry);
+              setBrowseTarget(null);
+              goToFloor(homeFloor);
             }}
-            className="w-full rounded-lg border border-neutral-200 bg-white px-1 py-1 text-center text-xs font-bold tabular-nums disabled:opacity-40"
-            aria-label="층 직접 이동"
-          />
-          <p className="text-[9px] text-center text-muted-foreground leading-snug px-1">
-            층을 클릭하거나 엘리베이터로 이동
-          </p>
-        </aside>
+            className="mt-2 flex items-center gap-1 rounded-xl border border-white/15 bg-black/55 px-3 py-2 text-[10px] font-bold text-white/80 backdrop-blur-md shadow-lg hover:bg-black/70"
+          >
+            <Home className="h-3 w-3" />
+            내 아파트
+          </button>
+        )}
+
+        {!isOwnApt && countryApts.length > 0 && (
+          <div className="mt-2 max-h-28 w-48 overflow-y-auto rounded-xl border border-white/10 bg-black/60 backdrop-blur-md">
+            {loadingCountry && <p className="p-2 text-[9px] text-white/50">불러오는 중…</p>}
+            {countryApts.map((apt) => (
+              <button
+                key={apt.userId}
+                type="button"
+                onClick={() => setBrowseTarget(apt)}
+                className={cn(
+                  "w-full px-2 py-1.5 text-left text-[9px] truncate text-white/70 hover:bg-white/10",
+                  browseTarget?.userId === apt.userId && "bg-pink-500/20 text-pink-200 font-bold"
+                )}
+              >
+                {apt.displayName} · {apt.homeFloor}층
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
+        <p className="rounded-full border border-white/10 bg-black/40 px-3 py-1 text-[10px] text-white/50 backdrop-blur-sm">
+          현관문 열린 집만 방문 · 엘리베이터로 층 이동 · 현관 클릭으로 입장
+        </p>
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
 import { FolkArtStage } from "@/components/brand/folk-decor";
 import { mainScrollPaddingClass, shouldHideMobileNav } from "@/lib/mobile-shell";
 import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
+import { isAptImmersivePath } from "@/lib/apt-route";
 
 function AppShellInner({
   children,
@@ -22,6 +23,7 @@ function AppShellInner({
   const isLegalRoute = pathname.startsWith("/legal");
   const isMessagesRoute = pathname.startsWith("/messages");
   const isVoiceRoom = pathname.startsWith("/voice/") && pathname !== "/voice/new";
+  const isAptImmersive = isAptImmersivePath(pathname ?? "");
   const hideMobileNav = shouldHideMobileNav(pathname);
   const mainPb = mainScrollPaddingClass(pathname);
   const showRightPanel = shouldShowRightPanel(pathname);
@@ -36,6 +38,10 @@ function AppShellInner({
 
   if (isVoiceRoom) {
     return <main className="min-h-screen bg-background">{children}</main>;
+  }
+
+  if (isAptImmersive) {
+    return <main className="fixed inset-0 z-40 overflow-hidden bg-[#0a0a12]">{children}</main>;
   }
 
   return (

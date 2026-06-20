@@ -148,33 +148,61 @@ function addEntranceDoorMesh(
   doorGroup.position.set(0.55, doorY, doorZ);
   doorGroup.userData.floor = floorIndex;
   doorGroup.userData.resident = resident;
+  doorGroup.userData.doorOpen = open;
   doorGroup.name = "entrance-door";
+
+  const pivot = new THREE.Group();
+  pivot.name = "entrance-door-pivot";
+  pivot.position.set(-0.18, 0, 0);
+  doorGroup.add(pivot);
 
   const door = new THREE.Mesh(
     roundedBox(0.42, 0.72, 0.06, 0.03),
     pastelMat(open ? 0xd4e8ff : PASTEL.elevatorDoor)
   );
-  door.position.y = 0;
-  if (open) door.rotation.y = Math.PI / 3.2;
-  doorGroup.add(door);
+  door.position.set(0.18, 0, 0);
+  pivot.add(door);
+
+  const peephole = new THREE.Mesh(
+    new THREE.CircleGeometry(0.025, 8),
+    new THREE.MeshBasicMaterial({ color: 0x334455 })
+  );
+  peephole.position.set(0.28, 0.12, 0.04);
+  pivot.add(peephole);
 
   const status = new THREE.Mesh(
     new THREE.CircleGeometry(0.05, 10),
     new THREE.MeshBasicMaterial({ color: open ? 0x4ade80 : 0x94a3b8, transparent: true, opacity: 0.9 })
   );
+  status.name = "door-status-led";
   status.position.set(0.22, 0.38, 0.04);
   doorGroup.add(status);
 
+  pivot.rotation.y = open ? Math.PI / 2.4 : 0;
   g.add(doorGroup);
+
+  const frame = new THREE.Mesh(
+    roundedBox(0.52, 0.78, 0.08, 0.02),
+    pastelMat(PASTEL.shellTrim)
+  );
+  frame.position.set(0.55, doorY, doorZ - 0.02);
+  g.add(frame);
 
   const nameplate = new THREE.Mesh(
     roundedBox(0.5, 0.14, 0.04, 0.02),
     pastelMat(open ? PASTEL.highlight : 0xe2e8f0)
   );
-  nameplate.position.set(0.55, doorY + 0.4, doorZ + 0.01);
+  nameplate.position.set(0.55, doorY + 0.44, doorZ + 0.01);
   nameplate.userData.floor = floorIndex;
   nameplate.userData.resident = resident;
   g.add(nameplate);
+
+  const mailbox = new THREE.Mesh(
+    roundedBox(0.12, 0.1, 0.08, 0.02),
+    pastelMat(0x3a5a8a)
+  );
+  mailbox.position.set(-0.35, doorY + 0.08, doorZ + 0.04);
+  g.add(mailbox);
 }
 
 /** Solid white block — neighbor floors & non-active units (no see-through) */
@@ -277,12 +305,44 @@ export function buildDollhouseUnit(opts: DollhouseUnitOptions): THREE.Group {
   }
 
   // Corridor light strip between units
-  const corridor = new THREE.Mesh(
-    roundedBox(0.08, 0.04, DOLLHOUSE_UNIT_D * 0.6, 0.02),
-    new THREE.MeshBasicMaterial({ color: 0xfff8e8, transparent: true, opacity: 0.4 })
+  const corridorLight = new THREE.Mesh(
+    roundedBox(0.12, 0.05, DOLLHOUSE_UNIT_D * 0.65, 0.02),
+    new THREE.MeshBasicMaterial({ color: 0xfff8e8, transparent: true, opacity: 0.55 })
   );
-  corridor.position.set(-DOLLHOUSE_UNIT_W / 2 - 0.12, DOLLHOUSE_FLOOR_H * 0.92, 0);
-  g.add(corridor);
+  corridorLight.name = "corridor-light";
+  corridorLight.position.set(-DOLLHOUSE_UNIT_W / 2 - 0.12, DOLLHOUSE_FLOOR_H * 0.92, 0);
+  g.add(corridorLight);
+
+  // Balcony railing
+  for (const x of [-0.95, 0.95]) {
+    addMesh(
+      g,
+      roundedBox(0.04, 0.14, DOLLHOUSE_UNIT_D * 0.55, 0.015),
+      pastelMat(PASTEL.shellTrim),
+      x,
+      DOLLHOUSE_FLOOR_H * 0.82,
+      DOLLHOUSE_UNIT_D / 2 - 0.06
+    );
+    for (let z = -0.35; z <= 0.35; z += 0.18) {
+      addMesh(
+        g,
+        roundedBox(0.03, 0.1, 0.03, 0.01),
+        pastelMat(PASTEL.shellTrim),
+        x,
+        DOLLHOUSE_FLOOR_H * 0.86,
+        DOLLHOUSE_UNIT_D / 2 - 0.06 + z
+      );
+    }
+  }
+
+  // Floor number plaque
+  const floorNum = new THREE.Mesh(
+    roundedBox(0.38, 0.22, 0.04, 0.02),
+    pastelMat(active ? PASTEL.highlight : 0xffffff)
+  );
+  floorNum.name = "floor-plaque";
+  floorNum.position.set(-DOLLHOUSE_UNIT_W / 2 + 0.35, DOLLHOUSE_FLOOR_H * 0.55, DOLLHOUSE_UNIT_D / 2 - 0.02);
+  g.add(floorNum);
 
   // Front lip
   addMesh(
@@ -538,7 +598,7 @@ export function buildElevatorShaft(totalFloors: number, visibleStart: number, vi
   return g;
 }
 
-/** Outer dollhouse shell — cute rounded exterior framing the cutaway */
+/** Outer dollhouse shell — apartment building exterior with corridor hall */
 export function buildDollhouseShell(floorCount: number): THREE.Group {
   const g = new THREE.Group();
   g.name = "dollhouse-shell";
@@ -546,45 +606,122 @@ export function buildDollhouseShell(floorCount: number): THREE.Group {
   const h = floorCount * DOLLHOUSE_FLOOR_H;
   const totalW = DOLLHOUSE_UNIT_W + DOLLHOUSE_ELEVATOR_W + 0.5;
   const totalD = DOLLHOUSE_UNIT_D + 0.3;
+  const corridorW = 0.55;
 
-  // Base platform
+  // Base platform with entrance steps
   addMesh(
     g,
-    roundedBox(totalW + 0.6, 0.18, totalD + 0.5, 0.08),
+    roundedBox(totalW + corridorW + 0.8, 0.18, totalD + 0.8, 0.08),
     pastelMat(PASTEL.shellTrim),
-    0,
+    -corridorW / 2,
     -0.09,
+    0.15
+  );
+  for (const step of [0, 1, 2]) {
+    addMesh(
+      g,
+      roundedBox(totalW + 0.4 - step * 0.15, 0.05, 0.35 - step * 0.08, 0.02),
+      pastelMat(PASTEL.floorWoodAlt),
+      0,
+      0.025 + step * 0.05,
+      totalD / 2 + 0.55 + step * 0.12
+    );
+  }
+
+  // Corridor hall — shared hallway
+  addMesh(
+    g,
+    roundedBox(corridorW, h + 0.15, totalD + 0.15, 0.04),
+    pastelMat(0xf8f0f4),
+    -totalW / 2 - corridorW / 2 - 0.08,
+    h / 2,
     0
   );
 
-  // Left exterior wall with round windows
+  // Corridor ceiling lights per visible floor
+  for (let f = 0; f < floorCount; f++) {
+    const ly = f * DOLLHOUSE_FLOOR_H + DOLLHOUSE_FLOOR_H * 0.88;
+    const light = new THREE.Mesh(
+      roundedBox(corridorW * 0.7, 0.04, 0.12, 0.015),
+      new THREE.MeshBasicMaterial({ color: 0xfff4d8, transparent: true, opacity: 0.65 })
+    );
+    light.name = "corridor-ceiling-light";
+    light.userData.floorIndex = f;
+    light.position.set(-totalW / 2 - corridorW / 2 - 0.08, ly, 0.15);
+    g.add(light);
+  }
+
+  // Left exterior wall with windows
   addMesh(
     g,
     roundedBox(0.1, h + 0.2, totalD, 0.04),
     pastelMat(PASTEL.shell),
-    -totalW / 2 - 0.02,
+    -totalW / 2 - corridorW - 0.06,
     h / 2,
     0
+  );
+
+  for (let f = 0; f < floorCount; f++) {
+    const wy = f * DOLLHOUSE_FLOOR_H + DOLLHOUSE_FLOOR_H * 0.55;
+    for (const z of [-0.35, 0.35]) {
+      const winFrame = new THREE.Mesh(
+        roundedBox(0.06, 0.28, 0.22, 0.015),
+        pastelMat(PASTEL.shellTrim)
+      );
+      winFrame.position.set(-totalW / 2 - corridorW - 0.04, wy, z);
+      g.add(winFrame);
+      const winGlass = new THREE.Mesh(
+        roundedBox(0.04, 0.22, 0.16, 0.01),
+        pastelMat(PASTEL.glass, { transparent: true, opacity: 0.45 })
+      );
+      winGlass.name = "exterior-window";
+      winGlass.userData.floorIndex = f;
+      winGlass.position.set(-totalW / 2 - corridorW - 0.035, wy, z);
+      g.add(winGlass);
+    }
+  }
+
+  // Wall art / notice board in corridor
+  const sign = new THREE.Mesh(
+    roundedBox(0.28, 0.2, 0.03, 0.02),
+    pastelMat(0xffffff)
+  );
+  sign.position.set(-totalW / 2 - corridorW / 2 - 0.08, DOLLHOUSE_FLOOR_H * 0.55, -totalD / 2 + 0.12);
+  g.add(sign);
+  addMesh(
+    g,
+    roundedBox(0.22, 0.14, 0.01, 0.005),
+    pastelMat(PASTEL.wallPeach),
+    -totalW / 2 - corridorW / 2 - 0.08,
+    DOLLHOUSE_FLOOR_H * 0.55,
+    -totalD / 2 + 0.14
   );
 
   // Roof cap
   addMesh(
     g,
-    roundedBox(totalW + 0.3, 0.22, totalD + 0.2, 0.08),
+    roundedBox(totalW + corridorW + 0.4, 0.22, totalD + 0.2, 0.08),
     pastelMat(PASTEL.accent),
-    0,
+    -corridorW / 2,
     h + 0.12,
     0
   );
 
-  // Cute roof decoration
-  const deco = new THREE.Mesh(
-    new THREE.SphereGeometry(0.14, 8, 8),
-    pastelMat(PASTEL.wallMint)
-  );
-  deco.position.set(-totalW / 4, h + 0.32, 0);
-  deco.scale.set(1, 1.3, 1);
-  g.add(deco);
+  // Rooftop plants
+  for (const x of [-0.8, 0.3, 1.0]) {
+    const pot = new THREE.Mesh(
+      roundedBox(0.14, 0.12, 0.14, 0.03),
+      pastelMat(PASTEL.wallMint)
+    );
+    pot.position.set(x, h + 0.28, 0.2);
+    g.add(pot);
+    const leaf = new THREE.Mesh(
+      new THREE.SphereGeometry(0.1, 8, 8),
+      pastelMat(0x98d8a8)
+    );
+    leaf.position.set(x, h + 0.38, 0.2);
+    g.add(leaf);
+  }
 
   // Back exterior
   addMesh(

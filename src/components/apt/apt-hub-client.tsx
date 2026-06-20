@@ -2,12 +2,14 @@
 
 import dynamic from "next/dynamic";
 import { Suspense, useCallback, useEffect, useState } from "react";
-import { Building2, Home } from "lucide-react";
+import { Building2, Home, Menu, X } from "lucide-react";
+import Link from "next/link";
 import type { AptProfileDto } from "@/actions/apt";
 import { setHomePublic } from "@/actions/apt-world";
 import type { BondeeHomeState } from "@/lib/apt/bondee/types";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import { AptSceneErrorBoundary } from "@/components/apt/apt-scene-error-boundary";
+import type { AptStudioInventoryItem } from "@/studio/lib/apt-types";
 import { cn } from "@/lib/utils";
 
 const AptBuildingView = dynamic(
@@ -15,7 +17,7 @@ const AptBuildingView = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="folk-card flex min-h-[min(88dvh,920px)] items-center justify-center text-sm text-muted-foreground bg-[#fef6f8]">
+      <div className="flex h-full w-full items-center justify-center text-sm text-white/60">
         1000층 타워 불러오는 중…
       </div>
     ),
@@ -27,14 +29,12 @@ const AptBondeeRoom = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="folk-card flex min-h-[min(80dvh,820px)] items-center justify-center text-sm text-muted-foreground bg-[#fef6f8]">
+      <div className="flex h-full w-full items-center justify-center text-sm text-white/60">
         내 집 불러오는 중…
       </div>
     ),
   }
 );
-
-import type { AptStudioInventoryItem } from "@/studio/lib/apt-types";
 
 export function AptHubClient({
   initialProfile,
@@ -54,6 +54,7 @@ export function AptHubClient({
   const [homeState, setHomeState] = useState(bondeeHome);
   const [homeRooms, setHomeRooms] = useState(initialHomeRooms);
   const [doorOpen, setDoorOpen] = useState(initialProfile?.homePublic ?? true);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const toggleDoor = useCallback(async () => {
     const next = !doorOpen;
@@ -70,52 +71,13 @@ export function AptHubClient({
   }, [tab]);
 
   return (
-    <div className="w-full max-w-none px-3 sm:px-5 lg:px-8 py-4 lg:py-6 pb-16 space-y-5">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold flex items-center gap-2 text-folk-cobalt">APT</h1>
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          {isLoggedIn
-            ? "내 집에서 우편함을 만들고 글·사진·영상을 올리세요. 치비 아바타와 가구를 꾸미고, 1000층 타워에서 다른 집도 방문할 수 있습니다."
-            : "로그인 후 가입 국가 아파트에 입주하세요."}
-        </p>
-        {isLoggedIn && initialProfile?.regionLabel && (
-          <p className="text-xs text-folk-terracotta font-medium flex items-center gap-1">
-            📍 {initialProfile.regionLabel}
-            {` · ${initialProfile.homeFloor}층 · 주방·거실·화장실·침실`}
-          </p>
-        )}
-      </div>
-
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setTab("home")}
-          className={cn(
-            "flex items-center gap-1.5 rounded-xl border px-4 py-2 text-xs font-bold transition-colors",
-            tab === "home" ? "border-folk-terracotta bg-folk-terracotta/10 text-folk-terracotta" : "border-neutral-200 bg-white"
-          )}
-        >
-          <Home className="h-4 w-4" />
-          내 집
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("tower")}
-          className={cn(
-            "flex items-center gap-1.5 rounded-xl border px-4 py-2 text-xs font-bold transition-colors",
-            tab === "tower" ? "border-folk-terracotta bg-folk-terracotta/10 text-folk-terracotta" : "border-neutral-200 bg-white"
-          )}
-        >
-          <Building2 className="h-4 w-4" />
-          1000층 타워
-        </button>
-      </div>
-
+    <div className="relative h-full w-full overflow-hidden">
+      {/* 3D world — full viewport */}
       <AptSceneErrorBoundary>
-        <div className={cn(tab !== "home" && "hidden")}>
+        <div className={cn("absolute inset-0", tab !== "home" && "invisible pointer-events-none")}>
           <Suspense
             fallback={
-              <div className="folk-card flex min-h-[min(80dvh,820px)] items-center justify-center text-sm text-muted-foreground bg-[#fef6f8]">
+              <div className="flex h-full w-full items-center justify-center text-sm text-white/60">
                 내 집 불러오는 중…
               </div>
             }
@@ -132,7 +94,7 @@ export function AptHubClient({
             />
           </Suspense>
         </div>
-        <div className={cn(tab !== "tower" && "hidden")}>
+        <div className={cn("absolute inset-0", tab !== "tower" && "invisible pointer-events-none")}>
           {towerMounted ? (
             <AptBuildingView
               initialProfile={initialProfile}
@@ -144,12 +106,68 @@ export function AptHubClient({
               onDoorToggle={() => void toggleDoor()}
             />
           ) : (
-            <div className="folk-card flex min-h-[min(88dvh,920px)] items-center justify-center text-sm text-muted-foreground bg-[#fef6f8]">
+            <div className="flex h-full w-full items-center justify-center text-sm text-white/60">
               1000층 타워 불러오는 중…
             </div>
           )}
         </div>
       </AptSceneErrorBoundary>
+
+      {/* Minimal floating HUD */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between p-3 sm:p-4">
+        <div className="pointer-events-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setMenuOpen((v) => !v)}
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 bg-black/45 text-white backdrop-blur-md shadow-lg transition hover:bg-black/60"
+            aria-label="메뉴"
+          >
+            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+          {menuOpen && (
+            <div className="animate-in fade-in slide-in-from-left-2 rounded-xl border border-white/15 bg-black/70 px-3 py-2 text-xs text-white/90 backdrop-blur-md shadow-xl space-y-1 min-w-[10rem]">
+              <Link href="/" className="block font-bold text-white hover:text-pink-200">
+                MoCoMo 홈
+              </Link>
+              {isLoggedIn && initialProfile?.regionLabel && (
+                <p className="text-white/60">
+                  📍 {initialProfile.regionLabel} · {initialProfile.homeFloor}층
+                </p>
+              )}
+              {!isLoggedIn && <p className="text-white/60">로그인 후 입주하세요</p>}
+            </div>
+          )}
+        </div>
+
+        <div className="pointer-events-auto flex gap-1.5 rounded-2xl border border-white/15 bg-black/45 p-1 backdrop-blur-md shadow-lg">
+          <button
+            type="button"
+            onClick={() => setTab("home")}
+            className={cn(
+              "flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all",
+              tab === "home"
+                ? "bg-pink-500/90 text-white shadow-md"
+                : "text-white/70 hover:text-white hover:bg-white/10"
+            )}
+          >
+            <Home className="h-4 w-4" />
+            <span className="hidden sm:inline">내 집</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("tower")}
+            className={cn(
+              "flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all",
+              tab === "tower"
+                ? "bg-sky-500/90 text-white shadow-md"
+                : "text-white/70 hover:text-white hover:bg-white/10"
+            )}
+          >
+            <Building2 className="h-4 w-4" />
+            <span className="hidden sm:inline">타워</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

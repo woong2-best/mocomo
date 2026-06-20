@@ -65,17 +65,17 @@ export type FurnitureInteractSpec = {
 export const FURNITURE_INTERACT: Partial<Record<BondeeFurnitureKind, FurnitureInteractSpec>> = {
   sofa: { label: "앉기", poses: ["sit"], singleAction: true },
   bed: { label: "잠자기", poses: ["lie"], singleAction: true },
-  tv_stand: { label: "라이브 방송", poses: ["sit"], href: "/live", singleAction: true },
+  tv_stand: { label: "라이브 방송", poses: ["sit"], singleAction: true },
   desk: { label: "앉기", poses: ["sit"], singleAction: true },
   coffee_table: { label: "앉기", poses: ["sit"], singleAction: true },
-  refrigerator: { label: "냉장고", poses: ["stand"], singleAction: true },
-  computer: { label: "MoCoMo 열기", poses: ["sit"], href: COMMUNITY_FEED_PATH, singleAction: true },
-  monitor: { label: "MoCoMo 열기", poses: ["sit"], href: COMMUNITY_FEED_PATH, singleAction: true },
-  smartphone: { label: "스마트폰", poses: ["stand"], singleAction: true },
+  refrigerator: { label: "냉장고 열기", poses: ["stand"], singleAction: true },
+  computer: { label: "게임/PC", poses: ["sit"], singleAction: true },
+  monitor: { label: "화면 켜기", poses: ["sit"], singleAction: true },
+  smartphone: { label: "SNS", poses: ["stand"], singleAction: true },
   ac: { label: "에어컨", poses: ["stand"], singleAction: true },
-  floor_lamp: { label: "조명 켜기", poses: [], singleAction: true },
-  plant: { label: "화분", poses: ["wave"], singleAction: true },
-  window: { label: "창문", poses: ["stand"], singleAction: true },
+  floor_lamp: { label: "조명", poses: [], singleAction: true },
+  plant: { label: "물주기", poses: ["wave"], singleAction: true },
+  window: { label: "창문 열기", poses: ["stand"], singleAction: true },
   mailbox: { label: "글쓰기", poses: ["stand"], composeAction: true, singleAction: true },
   telephone: { label: "메시지 열기", poses: ["stand"], href: "/messages", singleAction: true },
   bookshelf: { label: "책꼂이", poses: ["stand"], singleAction: true },
@@ -133,6 +133,36 @@ export function posesForArchitectures(archs: FurnitureArchitecture[]): ChibiPose
     poses.add(poseForArchitecture(arch));
   }
   return [...poses];
+}
+
+export function actionLabelForKind(
+  kind: BondeeFurnitureKind,
+  ctx: { lightOn?: boolean; acOn?: boolean; open?: boolean }
+): string {
+  switch (kind) {
+    case "floor_lamp":
+      return ctx.lightOn ? "조명 끄기" : "조명 켜기";
+    case "ac":
+      return ctx.acOn ? "에어컨 끄기" : "에어컨 켜기";
+    case "refrigerator":
+      return ctx.open ? "냉장고 닫기" : "냉장고 열기";
+    case "window":
+      return ctx.open ? "창문 닫기" : "창문 열기";
+    case "plant":
+      return "물주기";
+    case "desk":
+      return "PC 사용";
+    case "monitor":
+      return "화면 켜기";
+    case "computer":
+      return "인터넷";
+    case "smartphone":
+      return "SNS";
+    case "tv_stand":
+      return "라이브 방송";
+    default:
+      return FURNITURE_INTERACT[kind]?.label ?? kind;
+  }
 }
 
 export function preferredPoseForKind(kind: BondeeFurnitureKind): ChibiPose | null {

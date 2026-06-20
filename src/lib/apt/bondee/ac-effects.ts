@@ -14,6 +14,8 @@ type AcUnit = {
   led: THREE.Mesh;
   wind: THREE.Mesh | null;
   strips: AcStrip[];
+  particles: THREE.Mesh[];
+  particlePhases: number[];
 };
 
 const STRIP_SPECS = [
@@ -42,10 +44,24 @@ export class AcEffectManager {
     });
 
     const wind = mesh.getObjectByName("ac-wind");
+    const particles: THREE.Mesh[] = [];
+    const particlePhases: number[] = [];
+    const particlesRoot = mesh.getObjectByName("ac-particles");
+    if (particlesRoot instanceof THREE.Group) {
+      particlesRoot.children.forEach((child, i) => {
+        if (child instanceof THREE.Mesh) {
+          particles.push(child);
+          particlePhases.push(i * 0.7);
+        }
+      });
+    }
+
     this.units.set(itemId, {
       led,
       wind: wind instanceof THREE.Mesh ? wind : null,
       strips,
+      particles,
+      particlePhases,
     });
   }
 
@@ -80,6 +96,7 @@ export class AcEffectManager {
       if (!on) {
         this.resetStrips(unit);
         if (unit.wind) unit.wind.visible = false;
+        for (const p of unit.particles) p.visible = false;
         continue;
       }
       animating = true;
@@ -93,6 +110,15 @@ export class AcEffectManager {
         const mat = unit.wind.material as THREE.MeshBasicMaterial;
         mat.opacity = 0.055 + Math.sin(phase * 3.4 + id.length * 0.3) * 0.022;
       }
+      unit.particles.forEach((p, i) => {
+        p.visible = true;
+        const ph = phase + (unit.particlePhases[i] ?? 0);
+        const drift = (ph * 0.35 + i * 0.12) % 1;
+        p.position.y = -drift * 0.14;
+        p.position.x = Math.sin(ph * 2.1 + i) * 0.025;
+        const mat = p.material as THREE.MeshBasicMaterial;
+        mat.opacity = 0.04 + Math.sin(ph * 4) * 0.02;
+      });
     }
     return animating;
   }

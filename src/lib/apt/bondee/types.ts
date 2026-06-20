@@ -90,6 +90,8 @@ export type BondeeHomeState = {
   lightsOn?: Record<string, boolean>;
   /** 에어컨 on/off (itemId → false면 꺼짐, 미설정·true면 켜짐) */
   acOn?: Record<string, boolean>;
+  /** 냉장고·창문 등 개폐 상태 (itemId → true면 열림) */
+  furnitureOpen?: Record<string, boolean>;
   /** DIY 제작 완료 악기 (pan_flute, ocarina) */
   diyCrafted?: Partial<
     Record<

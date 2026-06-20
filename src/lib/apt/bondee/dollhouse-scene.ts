@@ -142,7 +142,8 @@ export class DollhouseBuildingScene {
   private selectedIds: string[] = [];
   private callbacks: DollhouseCallbacks = {};
   private simEnabled = false;
-  private frustum = FRUSTUM_DEFAULT;
+  private frustum = 6.8;
+  private animPhase = 0;
   private sceneLighting!: SceneLightingRefs;
   private dayNight = new DayNightTicker();
   private lampManager: LampLightManager;
@@ -872,6 +873,70 @@ export class DollhouseBuildingScene {
     }
   }
 
+  private updateEntranceDoors(delta: number) {
+    let animating = false;
+    this.unitsRoot.traverse((obj) => {
+      if (obj.name !== "entrance-door") return;
+      const pivot = obj.getObjectByName("entrance-door-pivot");
+      if (!pivot) return;
+      const open = !!obj.userData.doorOpen;
+      const target = open ? Math.PI / 2.4 : 0;
+      const diff = Math.abs(pivot.rotation.y - target);
+      if (diff > 0.008) {
+        animating = true;
+        pivot.rotation.y = THREE.MathUtils.lerp(pivot.rotation.y, target, Math.min(1, delta * 5));
+      } else {
+        pivot.rotation.y = target;
+      }
+      const led = obj.getObjectByName("door-status-led");
+      if (led instanceof THREE.Mesh && led.material instanceof THREE.MeshBasicMaterial) {
+        led.material.color.setHex(open ? 0x4ade80 : 0x94a3b8);
+      }
+    });
+    return animating;
+  }
+
+  private updateCorridorLights() {
+    const lighting = this.dayNight.getLighting();
+    const night = lighting.darkness > 0.45;
+    const evening = lighting.darkness > 0.15 && lighting.darkness <= 0.45;
+    this.building.traverse((obj) => {
+      if (obj.name === "corridor-light" || obj.name === "corridor-ceiling-light") {
+        if (!(obj instanceof THREE.Mesh)) return;
+        const mat = obj.material;
+        if (!(mat instanceof THREE.MeshBasicMaterial)) return;
+        if (night) {
+          mat.color.setHex(0xffe8b8);
+          mat.opacity = 0.85;
+        } else if (evening) {
+          mat.color.setHex(0xffd8a0);
+          mat.opacity = 0.55;
+        } else {
+          mat.color.setHex(0xfff8e8);
+          mat.opacity = 0.35;
+        }
+      }
+      if (obj.name === "exterior-window") {
+        if (!(obj instanceof THREE.Mesh)) return;
+        const mat = obj.material;
+        if (!(mat instanceof THREE.MeshStandardMaterial)) return;
+        if (night) {
+          mat.emissive.setHex(0xffe0c0);
+          mat.emissiveIntensity = 0.35;
+          mat.opacity = 0.7;
+        } else if (evening) {
+          mat.emissive.setHex(0xffcc88);
+          mat.emissiveIntensity = 0.15;
+          mat.opacity = 0.55;
+        } else {
+          mat.emissive.setHex(0x000000);
+          mat.emissiveIntensity = 0;
+          mat.opacity = 0.45;
+        }
+      }
+    });
+  }
+
   private onResize = () => {
     const w = this.mount.clientWidth;
     const h = this.mount.clientHeight;
@@ -893,8 +958,11 @@ export class DollhouseBuildingScene {
     if (this.paused) return;
     this.updateDayNight();
     const delta = Math.min(0.05, this.clock.getDelta());
+    this.animPhase += delta;
 
     let animating = false;
+    animating = this.updateEntranceDoors(delta) || animating;
+    this.updateCorridorLights();
 
     if (
       this.ridePhase === "pre-walk" ||

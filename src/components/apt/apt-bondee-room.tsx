@@ -18,6 +18,8 @@ import {
 import { saveBondeeHome } from "@/actions/apt-bondee";
 import {
   IsometricHomeScene,
+  type ConsoleContentMode,
+  type ConsoleModePhase,
   type NearbyFurnitureInteract,
 } from "@/lib/apt/bondee/isometric-home-scene";
 import {
@@ -39,6 +41,12 @@ import type { InstrumentKind } from "@/lib/apt/bondee/instruments/types";
 import { specForInstrument } from "@/lib/apt/bondee/instruments/architecture";
 import { AptEntranceDoorToggle } from "@/components/apt/apt-entrance-door-toggle";
 import { AptTimeHud } from "@/components/apt/apt-time-hud";
+import { AptInteractPrompt } from "@/components/apt/apt-interact-prompt";
+import { AptLiveTvPanel } from "@/components/apt/apt-live-tv-panel";
+import { AptConsoleScreen } from "@/components/apt/apt-console-screen";
+import { AptSmartphonePanel } from "@/components/apt/apt-smartphone-panel";
+import { useAptHomeSocket } from "@/hooks/use-apt-home-socket";
+import { useSession } from "next-auth/react";
 import { useCompose } from "@/components/compose/compose-provider";
 import { parseAptMailboxParams } from "@/lib/apt/mailbox-compose-route";
 
@@ -70,6 +78,8 @@ function AptBondeeRoomInner({
   doorOpen?: boolean;
   onDoorToggle?: () => void;
 }) {
+  const { data: session } = useSession();
+  const homeOwnerId = session?.user?.id ?? null;
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<IsometricHomeScene | null>(null);
   const stateRef = useRef(initialState);
@@ -96,6 +106,18 @@ function AptBondeeRoomInner({
   const [nearbyFurniture, setNearbyFurniture] = useState<NearbyFurnitureInteract | null>(null);
   const [worldHour, setWorldHour] = useState<number | null>(null);
   const [dayPhaseLabel, setDayPhaseLabel] = useState<string | null>(null);
+  const [consolePhase, setConsolePhase] = useState<ConsoleModePhase>("off");
+  const [consoleBlend, setConsoleBlend] = useState(0);
+  const [consoleContent, setConsoleContent] = useState<ConsoleContentMode>(null);
+  const [smartphoneOpen, setSmartphoneOpen] = useState(false);
+  const emitMoveRef = useRef<(x: number, z: number, pose: string, activity: string) => void>(() => {});
+  const emitInstrumentNoteRef = useRef<(kind: InstrumentKind, midi: number, pad?: number) => void>(() => {});
+
+  const { peers, emitMove, emitInstrumentNote, onRemoteNote } = useAptHomeSocket(
+    isLoggedIn && doorOpen ? homeOwnerId : null
+  );
+  emitMoveRef.current = emitMove;
+  emitInstrumentNoteRef.current = emitInstrumentNote;
   const router = useRouter();
   const searchParams = useSearchParams();
   const { openCompose } = useCompose();
@@ -198,6 +220,39 @@ function AptBondeeRoomInner({
     sceneRef.current?.setInstrumentPlaying(instrumentPlaying);
   }, [instrumentPlaying]);
 
+  useEffect(() => {
+    sceneRef.current?.syncRemotePlayers(peers);
+  }, [peers]);
+
+  useEffect(() => {
+    const unsub = onRemoteNote((note) => {
+      sceneRef.current?.playRemoteInstrumentNote(note.kind, note.midi, note.padIndex);
+    });
+    return () => {
+      unsub();
+    };
+  }, [onRemoteNote]);
+
+  useEffect(() => {
+    if (consolePhase === "off") {
+      sceneRef.current?.setTvScreenActive(false);
+      return;
+    }
+    let raf = 0;
+    const tick = () => {
+      const scene = sceneRef.current;
+      if (scene) {
+        setConsoleBlend(scene.getConsoleBlend());
+        const c = scene.getConsoleContent();
+        if (c) setConsoleContent(c);
+        scene.setTvScreenActive(c === "live" && consolePhase === "active");
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [consolePhase]);
+
   const onPoseChange = useCallback((pose: ChibiPose) => {
     const next = { ...stateRef.current, pose, activeRoomId: activeRoomId ?? undefined };
     stateRef.current = next;
@@ -248,6 +303,22 @@ function AptBondeeRoomInner({
         setState(next);
         onHomeChange?.(next);
         persist(next);
+      },
+      onFurnitureOpenToggle: (itemId, open) => {
+        const furnitureOpen = { ...(stateRef.current.furnitureOpen ?? {}), [itemId]: open };
+        const next = { ...stateRef.current, furnitureOpen };
+        stateRef.current = next;
+        setState(next);
+        onHomeChange?.(next);
+        persist(next);
+      },
+      onSmartphoneInteract: () => setSmartphoneOpen(true),
+      onConsoleModeChange: (phase) => {
+        setConsolePhase(phase);
+        if (phase === "off") setConsoleContent(null);
+      },
+      onPositionChange: ({ x, z, pose, activity }) => {
+        emitMoveRef.current(x, z, pose, activity);
       },
     });
     sceneRef.current = scene;
@@ -308,10 +379,19 @@ function AptBondeeRoomInner({
     sceneRef.current?.setSelectedItem(null);
   };
 
+  const interactLabel = nearInstrument
+    ? `${specForInstrument(nearInstrument.kind).label} 연주`
+    : nearGramophone
+      ? "그라모폰 재생"
+      : nearbyFurniture
+        ? nearbyFurniture.actionLabel
+        : null;
+  const showInteract =
+    !movementDisabled && !instrumentOpen && !gramophoneOpen && !!interactLabel;
+
   return (
-    <div className="folk-card overflow-hidden bg-white">
-      <div className="relative min-h-[min(80dvh,820px)] bg-gradient-to-b from-[#fef6f8] to-[#ffe8f0]">
-        <div ref={mountRef} className="absolute inset-0" />
+    <div className="relative h-full w-full">
+      <div ref={mountRef} className="absolute inset-0" />
 
         <GramophonePanel
           open={gramophoneOpen}
@@ -332,35 +412,40 @@ function AptBondeeRoomInner({
             setActiveInstrument(null);
           }}
           onPlayingChange={setInstrumentPlaying}
+          onNotePlayed={(kind, midi, pad) => emitInstrumentNoteRef.current(kind, midi, pad)}
           onCraft={(kind) => {
             const diyCrafted = { ...(stateRef.current.diyCrafted ?? {}), [kind]: true };
             applyState({ ...stateRef.current, diyCrafted });
           }}
         />
 
-        <div className="pointer-events-none absolute left-3 top-3 rounded-2xl border-2 border-pink-200/80 bg-white/90 px-3 py-2 text-xs text-muted-foreground backdrop-blur-md shadow-sm space-y-0.5 max-w-[min(100%,16rem)]">
-          <p className="font-bold text-folk-cobalt">🏠 내 집 · {rooms.filter((r) => r.id !== "hall-corridor").length}개 공간{saving && " · 저장 중…"}</p>
-          <p className="text-[10px] text-folk-terracotta font-medium">
-            WASD 이동 · 컴퓨터·모니터 E로 MoCoMo · 악기·그라모폰 E · 조명·에어컨 E · 자세 1~6 · Shift+드래그 · 휠 줌
-          </p>
+        <AptLiveTvPanel
+          phase={consoleContent === "live" ? consolePhase : "off"}
+          blend={consoleBlend}
+          onPowerOff={() => sceneRef.current?.exitConsoleMode()}
+        />
+
+        <AptConsoleScreen
+          phase={consoleContent === "games" ? consolePhase : "off"}
+          blend={consoleBlend}
+          onPowerOff={() => sceneRef.current?.exitConsoleMode()}
+          onGameNavigate={(href) => router.push(href)}
+        />
+
+        <AptSmartphonePanel open={smartphoneOpen} onClose={() => setSmartphoneOpen(false)} />
+
+        <div className="pointer-events-none absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 z-10">
+          <AptInteractPrompt label={interactLabel ?? ""} visible={showInteract} />
+        </div>
+
+        <div className="pointer-events-none absolute left-3 top-14 rounded-2xl border border-white/15 bg-black/40 px-3 py-2 text-[10px] text-white/80 backdrop-blur-md shadow-lg space-y-0.5 max-w-[min(100%,14rem)]">
+          {saving && <p className="font-semibold text-pink-200">저장 중…</p>}
+          {peers.length > 0 && (
+            <p className="font-semibold text-green-300">방문자 {peers.length}명</p>
+          )}
           {mailboxParams.decorMailbox && !hasMailbox && (
-            <p className="text-[10px] text-folk-cobalt font-semibold">
-              우편함을 배치한 뒤 가까이 가서 E키로 글·사진·영상을 올리세요
-            </p>
-          )}
-          {nearInstrument && !movementDisabled && !instrumentOpen && (
-            <p className="text-[10px] text-violet-700 font-semibold">
-              {specForInstrument(nearInstrument.kind).emoji}{" "}
-              {specForInstrument(nearInstrument.kind).label} — 연주 (E)
-            </p>
-          )}
-          {nearGramophone && !movementDisabled && !gramophoneOpen && !nearInstrument && (
-            <p className="text-[10px] text-amber-700 font-semibold">그라모폰 — MP3 재생 (E)</p>
-          )}
-          {nearbyFurniture && !nearGramophone && !nearInstrument && !movementDisabled && (
-            <p className="text-[10px] text-folk-cobalt font-semibold">
-              {BONDEE_FURNITURE_LABELS[nearbyFurniture.kind] ?? nearbyFurniture.label} —{" "}
-              {nearbyFurniture.actionLabel} (E)
+            <p className="text-sky-200 font-semibold">
+              우편함 배치 후 E키로 글·사진·영상 올리기
             </p>
           )}
         </div>
@@ -383,10 +468,10 @@ function AptBondeeRoomInner({
           />
         </div>
 
-        <div className="absolute right-3 top-3 flex flex-col gap-1.5">
-          <AptTimeHud hour={worldHour} phaseLabel={dayPhaseLabel} className="pointer-events-none w-[11rem]" />
+        <div className="absolute right-3 top-14 flex flex-col gap-1.5 z-10">
+          <AptTimeHud hour={worldHour} phaseLabel={dayPhaseLabel} className="pointer-events-none w-[11rem] border-white/15 bg-black/45 text-white [&_*]:text-white/90" />
           {isLoggedIn && onDoorToggle && (
-            <div className="mb-1 w-[11rem] pointer-events-auto">
+            <div className="w-[11rem] pointer-events-auto">
               <AptEntranceDoorToggle doorOpen={doorOpen} onToggle={onDoorToggle} compact />
             </div>
           )}
@@ -397,26 +482,32 @@ function AptBondeeRoomInner({
               title={`${p.label} (${p.key})`}
               onClick={() => onPoseChange(p.id)}
               className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-xl border bg-white shadow-sm transition-colors",
-                state.pose === p.id ? "border-folk-terracotta text-folk-terracotta" : "border-neutral-200 text-neutral-600"
+                "flex h-9 w-9 items-center justify-center rounded-xl border border-white/20 bg-black/45 shadow-lg backdrop-blur-md transition-colors",
+                state.pose === p.id ? "border-pink-400 text-pink-300" : "text-white/70 hover:text-white"
               )}
             >
               <p.icon className="h-4 w-4" />
             </button>
           ))}
         </div>
-      </div>
 
-      <div className="border-t border-pink-100 bg-gradient-to-b from-white to-[#fff8fa] p-3 space-y-3">
-        <div className="flex gap-2">
+      {/* Slide-up decor / avatar panel */}
+      <div
+        className={cn(
+          "absolute inset-x-0 bottom-0 z-20 transition-transform duration-300 ease-out",
+          panel ? "translate-y-0" : "translate-y-[calc(100%-3.25rem)]"
+        )}
+      >
+        <div className="border-t border-white/10 bg-black/75 backdrop-blur-xl shadow-2xl rounded-t-2xl">
+          <div className="flex gap-2 p-3 border-b border-white/10">
           <button
             type="button"
             onClick={() => setPanel(panel === "avatar" ? null : "avatar")}
             className={cn(
-              "flex-1 rounded-2xl border-2 py-2.5 text-xs font-bold transition-all shadow-sm",
+              "flex-1 rounded-2xl border py-2.5 text-xs font-bold transition-all",
               panel === "avatar"
-                ? "border-folk-terracotta bg-folk-terracotta/15 text-folk-terracotta scale-[1.02]"
-                : "border-pink-100 bg-white hover:border-pink-200"
+                ? "border-pink-400/60 bg-pink-500/20 text-pink-200"
+                : "border-white/15 bg-white/5 text-white/70 hover:bg-white/10"
             )}
           >
             <Sparkles className="h-4 w-4 inline mr-1" />
@@ -429,10 +520,10 @@ function AptBondeeRoomInner({
               setDeleteMode(false);
             }}
             className={cn(
-              "flex-1 rounded-2xl border-2 py-2.5 text-xs font-bold transition-all shadow-sm",
+              "flex-1 rounded-2xl border py-2.5 text-xs font-bold transition-all",
               panel === "decor"
-                ? "border-folk-terracotta bg-folk-terracotta/15 text-folk-terracotta scale-[1.02]"
-                : "border-pink-100 bg-white hover:border-pink-200"
+                ? "border-pink-400/60 bg-pink-500/20 text-pink-200"
+                : "border-white/15 bg-white/5 text-white/70 hover:bg-white/10"
             )}
           >
             <LayoutGrid className="h-4 w-4 inline mr-1" />
@@ -440,20 +531,25 @@ function AptBondeeRoomInner({
           </button>
         </div>
 
-        {panel === "avatar" && <AptChibiCustomizer config={state.avatar} onChange={onAvatarChange} />}
+        {panel === "avatar" && (
+          <div className="max-h-[min(42dvh,360px)] overflow-y-auto p-3">
+            <AptChibiCustomizer config={state.avatar} onChange={onAvatarChange} />
+          </div>
+        )}
 
         {panel === "decor" && (
-          <div className="space-y-3 rounded-2xl border-2 border-pink-100 bg-white/80 p-3 shadow-sm">
+          <div className="max-h-[min(42dvh,360px)] overflow-y-auto p-3 space-y-3">
+          <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-3">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-bold text-folk-cobalt">✨ 심즈 스타일 꾸미기</p>
+              <p className="text-xs font-bold text-white/90">✨ 집 꾸미기</p>
               {(placeTool || studioTool) && (
-                <span className="text-[10px] rounded-full bg-folk-terracotta/15 text-folk-terracotta px-2 py-0.5 font-bold">
+                <span className="text-[10px] rounded-full bg-pink-500/25 text-pink-200 px-2 py-0.5 font-bold">
                   배치 모드
                 </span>
               )}
             </div>
 
-            <p className="text-[10px] font-bold text-muted-foreground">1. 방 선택</p>
+            <p className="text-[10px] font-bold text-white/50">1. 방 선택</p>
             <div className="flex gap-1 overflow-x-auto pb-1">
               {roomTabs.map((r) => (
                 <button
@@ -462,7 +558,7 @@ function AptBondeeRoomInner({
                   onClick={() => setActiveRoomId(r.id)}
                   className={cn(
                     "shrink-0 rounded-full px-3 py-1 text-[10px] font-bold border",
-                    activeRoomId === r.id ? "border-folk-terracotta bg-folk-terracotta/10" : "border-neutral-200"
+                    activeRoomId === r.id ? "border-pink-400/60 bg-pink-500/20 text-pink-200" : "border-white/15 text-white/70"
                   )}
                 >
                   {r.label}
@@ -470,7 +566,7 @@ function AptBondeeRoomInner({
               ))}
             </div>
 
-            <p className="text-[10px] font-bold text-muted-foreground">2. 가구 카테고리</p>
+            <p className="text-[10px] font-bold text-white/50">2. 가구 카테고리</p>
             <div className="flex gap-1 overflow-x-auto pb-1">
               {BONDEE_FURNITURE_CATEGORIES.map((cat, i) => (
                 <button
@@ -479,7 +575,7 @@ function AptBondeeRoomInner({
                   onClick={() => setDecorCat(i)}
                   className={cn(
                     "shrink-0 rounded-full px-3 py-1 text-[10px] font-bold border",
-                    decorCat === i ? "border-folk-terracotta bg-folk-terracotta/10" : "border-neutral-200"
+                    decorCat === i ? "border-pink-400/60 bg-pink-500/20 text-pink-200" : "border-white/15 text-white/70"
                   )}
                 >
                   {cat.label}
@@ -487,8 +583,8 @@ function AptBondeeRoomInner({
               ))}
             </div>
 
-            <p className="text-[10px] font-bold text-muted-foreground">3. 가구 선택 → 바닥 클릭 배치</p>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[10px] font-bold text-white/50">3. 가구 선택 → 바닥 클릭 배치</p>
+            <p className="text-[10px] text-white/50">
               {deleteMode
                 ? "삭제 모드 — 가구를 클릭하면 제거됩니다"
                 : studioTool
@@ -500,7 +596,7 @@ function AptBondeeRoomInner({
 
             {studioInventory.length > 0 && (
               <div className="space-y-1">
-                <p className="text-[10px] font-bold text-pink-600">MoCoMo Studio 보관함</p>
+                <p className="text-[10px] font-bold text-pink-300">MoCoMo Studio 보관함</p>
                 <div className="flex gap-2 overflow-x-auto pb-1">
                   {studioInventory.map((item) => (
                     <button
@@ -510,8 +606,8 @@ function AptBondeeRoomInner({
                       className={cn(
                         "shrink-0 rounded-xl border p-2 text-[10px] font-semibold min-w-[4.5rem]",
                         studioTool?.studioAssetId === item.studioAssetId
-                          ? "border-pink-400 bg-pink-50 text-pink-700"
-                          : "border-pink-100 bg-white"
+                          ? "border-pink-400/60 bg-pink-500/20 text-pink-200"
+                          : "border-white/15 bg-white/5 text-white/70"
                       )}
                     >
                       {item.thumbnailUrl ? (
@@ -535,10 +631,10 @@ function AptBondeeRoomInner({
                   onClick={() => onPlaceTool(kind)}
                   className={cn(
                     "rounded-xl border p-2 text-center text-[10px] font-semibold transition-colors",
-                    placeTool === kind ? "border-folk-terracotta bg-folk-terracotta/10" : "border-neutral-200 hover:bg-neutral-50"
+                    placeTool === kind ? "border-pink-400/60 bg-pink-500/20 text-pink-200" : "border-white/15 bg-white/5 text-white/70 hover:bg-white/10"
                   )}
                 >
-                  <Armchair className="h-5 w-5 mx-auto mb-1 text-neutral-500" />
+                  <Armchair className="h-5 w-5 mx-auto mb-1 text-white/40" />
                   {BONDEE_FURNITURE_LABELS[kind]}
                 </button>
               ))}
@@ -554,7 +650,7 @@ function AptBondeeRoomInner({
                 }}
                 className={cn(
                   "flex items-center gap-1 rounded-lg border px-3 py-1.5 text-[10px] font-bold",
-                  deleteMode ? "border-destructive bg-destructive/10 text-destructive" : "border-neutral-200"
+                  deleteMode ? "border-red-400/60 bg-red-500/20 text-red-200" : "border-white/15 text-white/70"
                 )}
               >
                 <Trash2 className="h-3 w-3" />
@@ -564,7 +660,7 @@ function AptBondeeRoomInner({
                 type="button"
                 disabled={!selectedItemId}
                 onClick={rotateSelected}
-                className="flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-[10px] font-bold disabled:opacity-40"
+                className="flex items-center gap-1 rounded-lg border border-white/15 px-3 py-1.5 text-[10px] font-bold text-white/70 disabled:opacity-40"
               >
                 <RotateCw className="h-3 w-3" />
                 회전
@@ -573,13 +669,15 @@ function AptBondeeRoomInner({
                 type="button"
                 disabled={!selectedItemId}
                 onClick={deleteSelected}
-                className="flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-[10px] font-bold text-destructive disabled:opacity-40"
+                className="flex items-center gap-1 rounded-lg border border-white/15 px-3 py-1.5 text-[10px] font-bold text-red-300 disabled:opacity-40"
               >
                 선택 삭제
               </button>
             </div>
           </div>
+          </div>
         )}
+        </div>
       </div>
     </div>
   );

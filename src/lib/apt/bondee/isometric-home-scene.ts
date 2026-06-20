@@ -16,6 +16,7 @@ import {
 import {
   interactAnchorOffset,
   interactSpecForKind,
+  actionLabelForKind,
   type FurnitureArchitecture,
 } from "./furniture-architecture";
 import { findRoomAt, isWalkable } from "./home-walkability";
@@ -37,6 +38,8 @@ import { getDayPhaseLabel } from "@/lib/apt/day-night";
 import { GramophoneNoteFx } from "./gramophone-notes";
 import { isInstrumentKind, type InstrumentKind } from "./instruments/types";
 import { AcEffectManager, isAcRunning } from "./ac-effects";
+import { RemoteChibiPlayersLayer, type RemoteHomePlayer } from "./remote-chibi-players-layer";
+import { playInstrumentNote } from "./instruments/audio-engine";
 import { cappedPixelRatio, stripShadows } from "./scene-perf";
 
 const MOVE_SPEED = 2.4;
@@ -48,6 +51,7 @@ const CONSOLE_TRANSITION_SPEED = 1.35;
 const CONSOLE_TV_SCALE = 1.22;
 const CONSOLE_SEAT_DIST = 0.52;
 
+export type ConsoleContentMode = "live" | "games" | null;
 export type ConsoleModePhase = "off" | "entering" | "active" | "exiting";
 
 function easeInOutCubic(t: number) {
@@ -104,6 +108,9 @@ export type IsometricHomeCallbacks = {
   onPoseChange?: (pose: ChibiPose) => void;
   onLightToggle?: (itemId: string, on: boolean) => void;
   onAcToggle?: (itemId: string, on: boolean) => void;
+  onFurnitureOpenToggle?: (itemId: string, open: boolean) => void;
+  onSmartphoneInteract?: () => void;
+  onPositionChange?: (pos: { x: number; z: number; pose: ChibiPose; activity: string }) => void;
   onTimeChange?: (hour: number, phaseLabel: string) => void;
 };
 
@@ -137,7 +144,7 @@ export class IsometricHomeScene {
   private selectedItemId: string | null = null;
   private callbacks: IsometricHomeCallbacks = {};
   private animPhase = 0;
-  private frustum = 5.8;
+  private frustum = 6.6;
   private walkMode = true;
   private avatarX = 0;
   private avatarZ = 0;
@@ -156,9 +163,9 @@ export class IsometricHomeScene {
   private needsRender = true;
   private camYaw = Math.PI / 4;
   private camPitch = 0.55;
-  private camDist = 5.8;
+  private camDist = 6.4;
   private targetCamYaw = Math.PI / 4;
-  private targetCamDist = 5.8;
+  private targetCamDist = 6.4;
   private dragging = false;
   private dragLast: { x: number; y: number } | null = null;
   private avatarShadow: THREE.Mesh;
@@ -166,8 +173,11 @@ export class IsometricHomeScene {
   private dayNight = new DayNightTicker();
   private lampManager: LampLightManager;
   private acManager = new AcEffectManager();
+  private remotePlayers: RemoteChibiPlayersLayer;
+  private lastEmitPos = { x: NaN, z: NaN, pose: "", activity: "" };
   private doorways: HomeDoorway[] = [];
   private doorPivots = new Map<string, THREE.Object3D>();
+  private furniturePivots = new Map<string, { pivot: THREE.Object3D; kind: "fridge" | "window" }>();
   private wallMeshes: THREE.Mesh[] = [];
   private readonly avatarWorldPos = new THREE.Vector3();
   private readonly camWorldPos = new THREE.Vector3();
@@ -178,6 +188,7 @@ export class IsometricHomeScene {
   private readonly hornMouthScratch: THREE.Vector3[] = [];
   private readonly projPoint = new THREE.Vector3();
   private consolePhase: ConsoleModePhase = "off";
+  private consoleContent: ConsoleContentMode = null;
   private consoleBlend = 0;
   private consoleAnchor: ConsoleAnchor | null = null;
   private consoleTvMesh: THREE.Object3D | null = null;
@@ -252,6 +263,7 @@ export class IsometricHomeScene {
     });
     this.scene.add(this.homeRoot);
     this.noteFx = new GramophoneNoteFx(this.homeRoot);
+    this.remotePlayers = new RemoteChibiPlayersLayer(this.homeRoot);
     this.rebuildFloor();
     this.applyAvatar();
 
@@ -356,6 +368,45 @@ export class IsometricHomeScene {
     this.requestRender();
   }
 
+  isFurnitureOpen(itemId: string) {
+    return !!this.state.furnitureOpen?.[itemId];
+  }
+
+  toggleFurnitureOpen(itemId: string, open: boolean) {
+    const furnitureOpen = { ...(this.state.furnitureOpen ?? {}), [itemId]: open };
+    this.state = { ...this.state, furnitureOpen };
+    this.checkFurnitureProximity();
+    this.callbacks.onFurnitureOpenToggle?.(itemId, open);
+    this.requestRender();
+  }
+
+  private registerFurniturePivot(mesh: THREE.Object3D, itemId: string) {
+    const fridge = mesh.getObjectByName("fridge-door-pivot");
+    if (fridge) {
+      this.furniturePivots.set(itemId, { pivot: fridge, kind: "fridge" });
+      return;
+    }
+    const windowSash = mesh.getObjectByName("window-sash-pivot");
+    if (windowSash) {
+      this.furniturePivots.set(itemId, { pivot: windowSash, kind: "window" });
+    }
+  }
+
+  private updateFurniturePivots(delta: number) {
+    let animating = false;
+    for (const [itemId, entry] of this.furniturePivots) {
+      const open = this.isFurnitureOpen(itemId);
+      const target = entry.kind === "fridge" ? (open ? -Math.PI / 2.8 : 0) : open ? Math.PI / 3.5 : 0;
+      if (Math.abs(entry.pivot.rotation.y - target) > 0.008) {
+        animating = true;
+        entry.pivot.rotation.y = THREE.MathUtils.lerp(entry.pivot.rotation.y, target, Math.min(1, delta * 6));
+      } else {
+        entry.pivot.rotation.y = target;
+      }
+    }
+    return animating;
+  }
+
   private updateDayNight(force = false) {
     const { hour, lighting, changed } = this.dayNight.tick();
     if (!force && !changed) return;
@@ -428,6 +479,40 @@ export class IsometricHomeScene {
     this.moveInput.z = z;
   }
 
+  getConsoleContent(): ConsoleContentMode {
+    return this.consoleContent;
+  }
+
+  syncRemotePlayers(players: RemoteHomePlayer[]) {
+    this.remotePlayers.sync(players);
+    if (players.length) this.requestRender();
+  }
+
+  playRemoteInstrumentNote(kind: string, midi: number, padIndex?: number) {
+    if (!isInstrumentKind(kind)) return;
+    void playInstrumentNote(kind, midi, padIndex);
+    this.setInstrumentPlaying(true);
+    setTimeout(() => this.setInstrumentPlaying(false), 200);
+    this.requestRender();
+  }
+
+  private emitPositionIfChanged() {
+    const pose = this.state.pose;
+    const activity = this.walking ? "walk" : pose;
+    const x = this.avatarX;
+    const z = this.avatarZ;
+    if (
+      Math.abs(x - this.lastEmitPos.x) < 0.04 &&
+      Math.abs(z - this.lastEmitPos.z) < 0.04 &&
+      pose === this.lastEmitPos.pose &&
+      activity === this.lastEmitPos.activity
+    ) {
+      return;
+    }
+    this.lastEmitPos = { x, z, pose, activity };
+    this.callbacks.onPositionChange?.({ x, z, pose, activity });
+  }
+
   getConsoleMode(): ConsoleModePhase {
     return this.consolePhase;
   }
@@ -436,9 +521,11 @@ export class IsometricHomeScene {
     return this.consoleBlend;
   }
 
-  enterConsoleMode(): boolean {
-    if (this.consolePhase !== "off" || !this.canInteractWithConsole()) return false;
-    const target = this.findNearestConsoleItem();
+  enterConsoleMode(content: ConsoleContentMode = "games"): boolean {
+    if (this.consolePhase !== "off") return false;
+    this.consoleContent = content;
+    const kinds = content === "live" ? (["tv_stand"] as const) : (["computer", "monitor", "tv_stand"] as const);
+    const target = this.findNearestConsoleItem(...kinds);
     if (!target) return false;
 
     this.consoleAnchor = this.computeConsoleAnchor(target.item, target.room);
@@ -469,6 +556,7 @@ export class IsometricHomeScene {
 
   private finishExitConsoleMode() {
     this.consolePhase = "off";
+    this.consoleContent = null;
     this.consoleBlend = 0;
     this.consoleAnchor = null;
     this.resetConsoleTvScale();
@@ -539,6 +627,26 @@ export class IsometricHomeScene {
     }
     if (target.kind === "ac") {
       this.toggleAc(target.itemId, !this.isAcOn(target.itemId));
+      return;
+    }
+    if (target.kind === "refrigerator" || target.kind === "window") {
+      this.toggleFurnitureOpen(target.itemId, !this.isFurnitureOpen(target.itemId));
+      return;
+    }
+    if (target.kind === "plant") {
+      this.applyFurniturePose("wave", target);
+      return;
+    }
+    if (target.kind === "smartphone") {
+      this.callbacks.onSmartphoneInteract?.();
+      return;
+    }
+    if (target.kind === "tv_stand") {
+      this.enterConsoleMode("live");
+      return;
+    }
+    if (target.kind === "computer" || target.kind === "monitor") {
+      this.enterConsoleMode("games");
       return;
     }
     if (target.navigateHref) {
@@ -619,6 +727,7 @@ export class IsometricHomeScene {
   private removeFurnitureById(id: string) {
     if (!this.furnitureRoot) return;
     this.acManager.unregister(id);
+    this.furniturePivots.delete(id);
     for (let i = this.furnitureRoot.children.length - 1; i >= 0; i--) {
       const child = this.furnitureRoot.children[i];
       if (child.userData.placedId === id) {
@@ -837,6 +946,9 @@ export class IsometricHomeScene {
     const mesh = this.furnitureRoot.children.find((c) => c.userData.placedId === item.id);
     if (mesh && item.kind === "floor_lamp") this.registerLampGlow(mesh, item.id);
     if (mesh && item.kind === "ac") this.registerAcEffects(mesh, item.id);
+    if (mesh && (item.kind === "refrigerator" || item.kind === "window")) {
+      this.registerFurniturePivot(mesh, item.id);
+    }
   }
 
   private registerAcEffects(mesh: THREE.Object3D, itemId: string) {
@@ -974,10 +1086,11 @@ export class IsometricHomeScene {
     this.needsRender = true;
   }
 
-  private findNearestConsoleItem(): { item: BondeePlacedItem; room: AptRoom } | null {
+  private findNearestConsoleItem(...kinds: BondeePlacedItem["kind"][]): { item: BondeePlacedItem; room: AptRoom } | null {
+    const allowed = new Set(kinds);
     let best: { item: BondeePlacedItem; room: AptRoom; dist: number } | null = null;
     for (const item of this.state.items) {
-      if (item.kind !== "tv_stand") continue;
+      if (!allowed.has(item.kind)) continue;
       const room = this.rooms.find((r) => r.id === item.roomId);
       if (!room) continue;
       const p = itemWorldPos(item, room);
@@ -1014,7 +1127,27 @@ export class IsometricHomeScene {
         this.consoleTvMesh = obj;
         this.consoleTvBaseScale = obj.scale.x;
       }
+      if (obj.name === "console-screen" && obj instanceof THREE.Mesh && obj.userData.placedId === itemId) {
+        this.applyTvScreenGlow(obj as THREE.Mesh, this.consoleContent === "live");
+      }
     });
+  }
+
+  private applyTvScreenGlow(screen: THREE.Mesh, on: boolean) {
+    const mat = screen.material;
+    if (!(mat instanceof THREE.MeshStandardMaterial)) return;
+    mat.emissive.setHex(on ? 0x4488ff : 0x000000);
+    mat.emissiveIntensity = on ? 0.65 : 0;
+  }
+
+  setTvScreenActive(active: boolean) {
+    if (!this.furnitureRoot) return;
+    this.furnitureRoot.traverse((obj) => {
+      if (obj.name === "console-screen" && obj instanceof THREE.Mesh) {
+        this.applyTvScreenGlow(obj, active);
+      }
+    });
+    this.requestRender();
   }
 
   private updateConsoleTvScale(t: number) {
@@ -1153,16 +1286,11 @@ export class IsometricHomeScene {
         architectures: [],
         poses: spec.poses,
         label: item.studioLabel ?? item.kind,
-        actionLabel:
-          item.kind === "floor_lamp"
-            ? this.isLightOn(item.id)
-              ? "조명 끄기"
-              : "조명 켜기"
-            : item.kind === "ac"
-              ? this.isAcOn(item.id)
-                ? "에어컨 끄기"
-                : "에어컨 켜기"
-              : spec.label,
+        actionLabel: actionLabelForKind(item.kind, {
+          lightOn: this.isLightOn(item.id),
+          acOn: this.isAcOn(item.id),
+          open: this.isFurnitureOpen(item.id),
+        }),
         navigateHref: spec.href,
         composeAction: spec.composeAction,
         singleAction: spec.singleAction,
@@ -1243,6 +1371,8 @@ export class IsometricHomeScene {
     if (this.loadedFurnitureIds.size < this.state.items.length) {
       void this.appendMissingFurnitureForRooms(this.visibleRoomIdsNearAvatar());
     }
+
+    this.emitPositionIfChanged();
   }
 
   private checkInstrumentProximity() {
@@ -1444,6 +1574,7 @@ export class IsometricHomeScene {
     this.animPhase += dt;
     this.updateMovement(dt);
     this.updateDoors(dt);
+    if (this.updateFurniturePivots(dt)) this.needsRender = true;
     this.updateWallOcclusion(dt);
     this.updateMusicFx(dt);
     this.updateConsoleTransition(dt);
@@ -1497,6 +1628,7 @@ export class IsometricHomeScene {
     this.noteFx.dispose();
     this.lampManager.dispose();
     this.acManager.dispose();
+    this.remotePlayers.dispose();
     this.avatar.dispose();
     this.renderer.dispose();
     this.renderer.domElement.remove();

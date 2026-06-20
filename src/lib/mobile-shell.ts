@@ -15,12 +15,13 @@ export function isUsedDetailPath(pathname: string): boolean {
   return !USED_SECTION_PATHS.has(match[1]);
 }
 
-/** 하단 탭 숨김 — 채팅방·중고 상세·라이브 방 등 자체 하단 UI */
+/** 하단 탭 숨김 — 채팅방·중고 상세·라이브 방·APT 몰입 등 자체 하단 UI */
 export function shouldHideMobileNav(pathname: string): boolean {
   if (/^\/messages\/[^/]+$/.test(pathname)) return true;
   if (isUsedDetailPath(pathname)) return true;
   if (/^\/voice\/[^/]+$/.test(pathname) && pathname !== "/voice/new") return true;
   if (pathname === "/discover") return true;
+  if (pathname === "/apt" || pathname === "/") return true;
   return false;
 }
 

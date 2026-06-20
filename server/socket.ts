@@ -26,6 +26,7 @@ import { registerLiveSupportHandlers } from "./live-support";
 import { initMinigameStore, minigameMatchCancelAll } from "./minigames/store";
 import { registerMinigameHandlers } from "./minigames/register-handlers";
 import { registerAptWorldHandlers } from "./apt-world-store";
+import { registerAptHomeHandlers } from "./apt-home-store";
 import { loadWordChainDictionaryFromDisk } from "./word-chain/load-dictionary";
 
 const prisma = new PrismaClient();
@@ -503,6 +504,7 @@ io.on("connection", (socket: AuthedSocket) => {
   registerLiveSupportHandlers(io, socket, userId, prisma);
   registerMinigameHandlers(io, socket, userId, prisma);
   registerAptWorldHandlers(io, socket, userId);
+  registerAptHomeHandlers(io, socket, userId);
 
   socket.on("webrtc_signal", (data: { channelId: string; to: string; signal: unknown }) => {
     if (!data.to || !data.channelId) return;
