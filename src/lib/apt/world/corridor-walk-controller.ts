@@ -2,6 +2,7 @@
 
 import * as THREE from "three";
 import { ChibiAvatarMesh } from "@/lib/apt/bondee/chibi-avatar";
+import { ElevatorDoorAnimator } from "@/lib/apt/bondee/elevator-door";
 import type { ChibiAvatarConfig, ChibiPose } from "@/lib/apt/bondee/types";
 import { CORRIDOR_LEN } from "./corridor-meshes";
 import type { DoorState } from "./world-types";
@@ -9,6 +10,9 @@ import type { DoorState } from "./world-types";
 export type CorridorDoorHandle = {
   pivot: THREE.Group;
   led?: THREE.Mesh;
+  bell?: THREE.Mesh;
+  knocker?: THREE.Mesh;
+  unitIndex: number;
   state: DoorState;
   isHome: boolean;
 };
@@ -25,12 +29,18 @@ export class CorridorWalkController {
   private doors: CorridorDoorHandle[] = [];
   private doorAnim: Map<string, { target: number; state: DoorState }> = new Map();
   private knockTimer = 0;
+  private elevDoors = new ElevatorDoorAnimator();
 
   constructor(avatarConfig: ChibiAvatarConfig, pose: ChibiPose = "stand") {
     this.avatar = new ChibiAvatarMesh();
     this.avatar.rebuild(avatarConfig, pose);
     this.root.add(this.avatar.root);
     this.syncAvatar();
+  }
+
+  bindElevatorHall(hall: THREE.Object3D | null) {
+    this.elevDoors.bindHall(hall);
+    this.elevDoors.setTarget(0);
   }
 
   setDoors(doors: CorridorDoorHandle[]) {
@@ -44,7 +54,7 @@ export class CorridorWalkController {
   }
 
   setDoorState(index: number, state: DoorState) {
-    const d = this.doors[index];
+    const d = this.doors.find((door) => door.unitIndex === index);
     if (!d) return;
     d.state = state;
     this.doorAnim.set(String(d.pivot.uuid), {
@@ -74,10 +84,35 @@ export class CorridorWalkController {
 
   knockOrBell() {
     this.knockTimer = 0.6;
+    const home = this.getNearestHomeDoor();
+    if (home?.knocker) {
+      home.knocker.rotation.z = 0.25;
+    }
+    if (home?.bell && home.bell.material instanceof THREE.MeshStandardMaterial) {
+      home.bell.material.emissive = new THREE.Color(0xffd700);
+      home.bell.material.emissiveIntensity = 0.8;
+    }
   }
 
   tick(dt: number): boolean {
     let anim = false;
+    anim = this.elevDoors.tick(dt) || anim;
+
+    const home = this.getNearestHomeDoor();
+    if (home && home.state === "open") {
+      const dx = this.avatarX - (CORRIDOR_LEN / 2 - 1.1);
+      const dz = this.avatarZ - (home.pivot.parent?.position.z ?? 0);
+      if (Math.hypot(dx, dz) < 1.2 && home.state === "open") {
+        /* already open */
+      }
+    } else if (home && home.state === "closed") {
+      const dx = this.avatarX - (CORRIDOR_LEN / 2 - 1.1);
+      const dz = this.avatarZ - (home.pivot.parent?.position.z ?? 0);
+      if (Math.hypot(dx, dz) < 0.85) {
+        this.setDoorState(home.unitIndex, "open");
+      }
+    }
+
     const speed = 1.35;
     const len = Math.hypot(this.moveX, this.moveZ);
     if (len > 0.08) {
@@ -103,6 +138,18 @@ export class CorridorWalkController {
         d.led.material.color.setHex(
           animState.state === "open" ? 0x4ade80 : animState.state === "locked" ? 0xef4444 : 0x94a3b8
         );
+      }
+      const glow = d.pivot.getObjectByName("door-inner-glow");
+      if (glow instanceof THREE.Mesh && glow.material instanceof THREE.MeshBasicMaterial) {
+        const targetOp = animState.state === "open" ? 0.38 : 0;
+        glow.material.opacity = THREE.MathUtils.lerp(glow.material.opacity, targetOp, 0.12);
+        if (Math.abs(glow.material.opacity - targetOp) > 0.01) anim = true;
+      }
+      if (d.knocker) {
+        d.knocker.rotation.z = THREE.MathUtils.lerp(d.knocker.rotation.z, 0, 0.15);
+      }
+      if (d.bell?.material instanceof THREE.MeshStandardMaterial) {
+        d.bell.material.emissiveIntensity = THREE.MathUtils.lerp(d.bell.material.emissiveIntensity, 0, 0.12);
       }
     }
 

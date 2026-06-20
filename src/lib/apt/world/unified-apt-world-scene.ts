@@ -206,10 +206,10 @@ export class UnifiedAptWorldScene {
     this.cameraCtrl.followObject(this.corridorWalk!.avatar.root);
   }
 
-  private setMode(mode: AptWorldMode) {
+  private setMode(mode: AptWorldMode, opts?: { skipCamera?: boolean }) {
     this.mode = mode;
     this.callbacks.onModeChange?.(mode);
-    this.cameraCtrl.setMode(mode);
+    if (!opts?.skipCamera) this.cameraCtrl.setMode(mode);
     if (mode === "interior") {
       this.cameraCtrl.setEnabled(false);
       this.cameraCtrl.detach(this.renderer.domElement);
@@ -247,18 +247,32 @@ export class UnifiedAptWorldScene {
     }
     this.corridorSlot.add(this.corridorMesh);
     this.corridorSlot.position.copy(this.buildingSlot.position);
+
+    const elevHall = this.corridorMesh.getObjectByName("elevator-hall");
+
     this.corridorWalk = new CorridorWalkController(this.avatarConfig, "stand");
     this.corridorWalk.avatar.rebuild(this.avatarConfig, "stand");
+    this.corridorWalk.bindElevatorHall(this.corridorMesh.getObjectByName("elevator-hall") ?? null);
     this.corridorWalk.setDoors(
       this.corridorDoors.map((d) => ({
         pivot: d.pivot,
         led: d.led,
         state: d.state,
         isHome: d.isHome,
+        bell: d.bell,
+        knocker: d.knocker,
+        unitIndex: d.unitIndex,
       }))
     );
     this.corridorSlot.add(this.corridorWalk.root);
-    this.setMode("corridor");
+
+    const buildingPos = this.buildingSlot.position;
+    const exterior = new THREE.Vector3(buildingPos.x - 8, buildingPos.y + 12, buildingPos.z + 10);
+    const through = new THREE.Vector3(buildingPos.x - 2.5, buildingPos.y + 2.2, buildingPos.z + 1.5);
+    const interior = new THREE.Vector3(buildingPos.x - 0.8, buildingPos.y + 1.8, buildingPos.z + 2.8);
+    this.cameraCtrl.flyThroughWall(exterior, through, interior, 1.35);
+
+    this.setMode("corridor", { skipCamera: true });
     this.buildingSlot.visible = false;
   }
 
@@ -267,17 +281,24 @@ export class UnifiedAptWorldScene {
     this.interiorSlot.visible = true;
     this.interiorSlot.position.copy(this.corridorSlot.position);
     this.interiorSlot.position.x += 2.2;
-    const preset = {
-      position: new THREE.Vector3(this.interiorSlot.position.x + 4, 8, this.interiorSlot.position.z + 6),
-      target: this.interiorSlot.position.clone(),
-      fov: 38,
-    };
-    this.cameraCtrl.transitionTo(preset, 1.1);
+
+    const homeDoor = this.corridorDoors.find((d) => d.isHome);
+    const doorWorld = new THREE.Vector3();
+    if (homeDoor) {
+      homeDoor.pivot.getWorldPosition(doorWorld);
+    } else {
+      doorWorld.copy(this.corridorSlot.position).add(new THREE.Vector3(2.2, 1.4, 0));
+    }
+    const exterior = this.cameraCtrl.camera.position.clone();
+    const through = doorWorld.clone().add(new THREE.Vector3(-0.3, 0.2, 0.5));
+    const interior = this.interiorSlot.position.clone().add(new THREE.Vector3(0, 1.6, 0.8));
+    this.cameraCtrl.flyThroughWall(exterior, through, interior, 1.15);
+
     window.setTimeout(() => {
       this.transitionToInterior = 0;
       this.corridorSlot.visible = false;
       this.setMode("interior");
-    }, 1100);
+    }, 1200);
   }
 
   private onResize = () => {

@@ -42,6 +42,7 @@ import { RemoteChibiPlayersLayer, type RemoteHomePlayer } from "./remote-chibi-p
 import { playInstrumentNote } from "./instruments/audio-engine";
 import { cappedPixelRatio, stripShadows } from "./scene-perf";
 import type { AptSceneEmbed } from "@/lib/apt/world/apt-scene-embed";
+import { InteriorAmbientFx } from "./interior-ambient-fx";
 
 const MOVE_SPEED = 2.4;
 const INTERACT_DIST = 0.72;
@@ -176,6 +177,7 @@ export class IsometricHomeScene {
   private dayNight = new DayNightTicker();
   private lampManager: LampLightManager;
   private acManager = new AcEffectManager();
+  private ambientFx = new InteriorAmbientFx();
   private remotePlayers: RemoteChibiPlayersLayer;
   private lastEmitPos = { x: NaN, z: NaN, pose: "", activity: "" };
   private doorways: HomeDoorway[] = [];
@@ -332,6 +334,9 @@ export class IsometricHomeScene {
     this.updateMusicFx(dt);
     this.updateConsoleTransition(dt);
     if (this.acManager.hasUnits() && this.acManager.tick(this.animPhase, this.state.acOn)) {
+      this.needsRender = true;
+    }
+    if (this.ambientFx.tick(this.animPhase, this.state.lightsOn)) {
       this.needsRender = true;
     }
     const camMoving =
@@ -1072,6 +1077,7 @@ export class IsometricHomeScene {
 
       if (loadGen !== this.furnitureLoadGen || !this.floorGroup) return;
       await hydrateStudioGltfMeshes(this.floorGroup);
+      this.ambientFx.scan(this.floorGroup, this.state.lightsOn);
       this.requestRender();
     } finally {
       this.furnitureLoadBusy = false;
@@ -1120,9 +1126,38 @@ export class IsometricHomeScene {
   private updateCameraPosition() {
     const lookX = this.avatarX;
     const lookZ = this.avatarZ;
-    const cx = lookX + Math.cos(this.camYaw) * Math.cos(this.camPitch) * this.camDist;
-    const cy = Math.sin(this.camPitch) * this.camDist + 1.2;
-    const cz = lookZ + Math.sin(this.camYaw) * Math.cos(this.camPitch) * this.camDist;
+    let dist = this.camDist;
+    if (this.wallMeshes.length > 0 && this.consolePhase === "off") {
+      this.avatarWorldPos.set(lookX, 0.35, lookZ);
+      const cx = lookX + Math.cos(this.camYaw) * Math.cos(this.camPitch) * dist;
+      const cy = Math.sin(this.camPitch) * dist + 1.2;
+      const cz = lookZ + Math.sin(this.camYaw) * Math.cos(this.camPitch) * dist;
+      this.camWorldPos.set(cx, cy, cz);
+      this.toCam.subVectors(this.camWorldPos, this.avatarWorldPos);
+      const camLen = this.toCam.length();
+      if (camLen > 0.01) {
+        this.toCam.normalize();
+        for (const mesh of this.wallMeshes) {
+          if (mesh.userData.wallKind !== "exterior" && mesh.userData.wallType !== "EXTERIOR") continue;
+          mesh.getWorldPosition(this.wallWorldPos);
+          this.wallWorldPos.y = 0.5;
+          this.toWall.subVectors(this.wallWorldPos, this.avatarWorldPos);
+          const t = this.toWall.dot(this.toCam);
+          if (t > 0.2 && t < camLen - 0.3) {
+            const perp = this.wallWorldPos.distanceTo(
+              this.projPoint.copy(this.avatarWorldPos).addScaledVector(this.toCam, t)
+            );
+            if (perp < 0.65) {
+              dist = Math.min(dist, t - 0.5);
+            }
+          }
+        }
+      }
+      dist = Math.max(3.2, dist);
+    }
+    const cx = lookX + Math.cos(this.camYaw) * Math.cos(this.camPitch) * dist;
+    const cy = Math.sin(this.camPitch) * dist + 1.2;
+    const cz = lookZ + Math.sin(this.camYaw) * Math.cos(this.camPitch) * dist;
     this.isoCamPos.set(cx, cy, cz);
     this.isoLookAt.set(lookX, 0.35, lookZ);
     this.camera.position.copy(this.isoCamPos);
@@ -1684,6 +1719,7 @@ export class IsometricHomeScene {
     this.noteFx.dispose();
     this.lampManager.dispose();
     this.acManager.dispose();
+    this.ambientFx.dispose();
     this.remotePlayers.dispose();
     this.avatar.dispose();
     if (!this.embed) {

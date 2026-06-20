@@ -60,6 +60,30 @@ export class UnifiedCameraController {
     if (mode !== "corridor") this.follow = null;
   }
 
+  /** 외벽 관통 — 건물 밖에서 복도/내부로 카메라가 뚫고 들어감 */
+  flyThroughWall(
+    exterior: THREE.Vector3,
+    through: THREE.Vector3,
+    interior: THREE.Vector3,
+    duration = 1.4
+  ) {
+    this.follow = null;
+    this.transition = null;
+    this.flyPath = {
+      points: [exterior.clone(), through.clone(), interior.clone()],
+      t: 0,
+      dur: duration,
+      lookTarget: interior.clone(),
+    };
+  }
+
+  private flyPath: {
+    points: THREE.Vector3[];
+    t: number;
+    dur: number;
+    lookTarget: THREE.Vector3;
+  } | null = null;
+
   transitionTo(preset: CameraPreset, duration = 0.9) {
     this.transition = {
       from: {
@@ -152,6 +176,21 @@ export class UnifiedCameraController {
 
   tick(dt: number): boolean {
     let moved = false;
+    if (this.flyPath) {
+      this.flyPath.t += dt;
+      const u = Math.min(1, this.flyPath.t / this.flyPath.dur);
+      const e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+      const [a, b, c] = this.flyPath.points;
+      const ab = new THREE.Vector3().lerpVectors(a, b, Math.min(1, e * 1.4));
+      const bc = new THREE.Vector3().lerpVectors(b, c, Math.max(0, (e - 0.35) / 0.65));
+      this.camera.position.copy(e < 0.5 ? ab : bc);
+      this.target.lerp(this.flyPath.lookTarget, 0.06);
+      this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, 48, 0.04);
+      this.camera.updateProjectionMatrix();
+      this.camera.lookAt(this.target);
+      moved = true;
+      if (u >= 1) this.flyPath = null;
+    }
     if (this.transition) {
       this.transition.t += dt;
       const u = Math.min(1, this.transition.t / this.transition.dur);

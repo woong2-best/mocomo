@@ -8,6 +8,15 @@ export const SCENE_PIXEL_RATIO_CAP = 1.5;
 export const APT_VISIBLE_FLOOR_RADIUS = 2;
 export const APT_VISIBLE_FLOOR_COUNT = APT_VISIBLE_FLOOR_RADIUS * 2 + 1;
 
+/** 카메라 거리 기반 LOD (월드 단위) */
+export const LOD_DIST_FULL = 8;
+export const LOD_DIST_SHELL = 18;
+export const LOD_DIST_OPAQUE = 32;
+
+/** Instancing 상한 */
+export const INSTANCED_FURNITURE_MAX = 64;
+export const INSTANCED_WINDOW_MAX = 512;
+
 export function cappedPixelRatio() {
   return Math.min(window.devicePixelRatio || 1, SCENE_PIXEL_RATIO_CAP);
 }

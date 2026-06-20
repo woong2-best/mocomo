@@ -153,11 +153,14 @@ function buildSofa(g: THREE.Group) {
   addTo(g, roundedBox(0.88, 0.38, 0.14, 0.05), pinkDark, 0, 0.34, -0.18);
   for (const x of [-0.28, 0, 0.28]) {
     addTo(g, roundedBox(0.24, 0.1, 0.32, 0.04), cushion, x, 0.28, 0.02);
+    addTo(g, roundedBox(0.22, 0.04, 0.28, 0.03), bondeeMat(0xfff0f5), x, 0.33, 0.02);
   }
   for (const x of [-0.38, 0.38]) {
     addTo(g, roundedBox(0.12, 0.28, 0.42, 0.05), pinkDark, x, 0.26, 0);
+    addTo(g, roundedBox(0.08, 0.2, 0.36, 0.04), cushion, x, 0.28, 0.02);
   }
   addTo(g, roundedBox(0.14, 0.14, 0.14, 0.04), bondeeMat(0xffe8a0), 0.32, 0.32, 0.08);
+  addTo(g, roundedBox(0.1, 0.06, 0.12, 0.03), bondeeMat(0xffc8dc), -0.2, 0.34, 0.1);
   for (const [x, z] of [[-0.32, -0.16], [0.32, -0.16], [-0.32, 0.16], [0.32, 0.16]] as const) {
     addTo(g, roundedBox(0.06, 0.08, 0.06, 0.02), leg, x, 0.04, z);
   }
@@ -174,13 +177,18 @@ function buildBed(g: THREE.Group) {
   addTo(g, roundedBox(0.72, 0.12, 0.88, 0.05), mattress, 0, 0.2, 0.02);
   addTo(g, roundedBox(0.68, 0.06, 0.55, 0.04), blanket, 0, 0.28, 0.12);
   addTo(g, roundedBox(0.06, 0.04, 0.55, 0.02), bondeeMat(0xffe0ec), 0, 0.31, 0.12);
+  addTo(g, roundedBox(0.62, 0.03, 0.48, 0.02), bondeeMat(0xffd8e8, { transparent: true, opacity: 0.6 }), 0, 0.29, 0.14);
   for (const x of [-0.2, 0.2]) {
     addTo(g, roundedBox(0.22, 0.08, 0.16, 0.04), pillow, x, 0.28, -0.32);
+    addTo(g, roundedBox(0.18, 0.04, 0.12, 0.03), bondeeMat(0xfff8ff), x, 0.31, -0.32);
   }
   addTo(g, roundedBox(0.76, 0.1, 0.08, 0.03), frame, 0, 0.22, -0.44);
+  addTo(g, roundedBox(0.7, 0.04, 0.04, 0.02), bondeeMat(BONDEE_PALETTE.trim), 0, 0.28, -0.44);
   for (const [x, z] of [[-0.32, -0.38], [0.32, -0.38], [-0.32, 0.38], [0.32, 0.38]] as const) {
     addTo(g, roundedBox(0.07, 0.1, 0.07, 0.02), leg, x, 0.05, z);
   }
+  const bedside = addTo(g, roundedBox(0.08, 0.06, 0.06, 0.02), bondeeGlowMat(0xffe8c0, 0.2), 0.38, 0.22, -0.38);
+  bedside.name = "bedside-lamp";
 }
 
 function buildTvStand(g: THREE.Group) {
@@ -193,6 +201,7 @@ function buildTvStand(g: THREE.Group) {
     addTo(g, roundedBox(0.22, 0.06, 0.2, 0.02), bondeeMat(0xf0ece8), x, 0.28, 0.02);
   }
   addTo(g, roundedBox(0.68, 0.4, 0.05, 0.02), bondeeMat(0x1a1a22, { roughness: 0.15 }), 0, 0.58, 0.04);
+  addTo(g, roundedBox(0.72, 0.04, 0.08, 0.02), bondeeMat(0x2a2a32), 0, 0.72, 0.02);
   const screen = addTo(g, roundedBox(0.58, 0.32, 0.02, 0.01), bondeeGlowMat(0x88ccff, 0.5), 0, 0.57, 0.08);
   screen.name = "console-screen";
   screen.userData.isConsoleScreen = true;
@@ -204,11 +213,13 @@ function buildTvStand(g: THREE.Group) {
 
 function buildCoffeeTable(g: THREE.Group) {
   addTo(g, roundedBox(0.5, 0.05, 0.34, 0.025), bondeeMat(BONDEE_PALETTE.wood), 0, 0.24, 0);
+  addTo(g, roundedBox(0.46, 0.02, 0.3, 0.015), bondeeMat(BONDEE_PALETTE.woodGrain, { transparent: true, opacity: 0.4 }), 0, 0.265, 0);
   for (const [x, z] of [[-0.18, -0.12], [0.18, -0.12], [-0.18, 0.12], [0.18, 0.12]] as const) {
     addTo(g, roundedBox(0.05, 0.2, 0.05, 0.015), bondeeMat(BONDEE_PALETTE.woodDark), x, 0.1, z);
   }
   addTo(g, roundedBox(0.06, 0.07, 0.06, 0.02), bondeeMat(0xffffff), -0.08, 0.29, 0);
   addTo(g, roundedBox(0.1, 0.02, 0.07, 0.008), bondeeMat(0xffd8a8), 0.1, 0.275, 0.04);
+  addTo(g, roundedBox(0.04, 0.05, 0.04, 0.015), bondeeMat(0xffc8dc), 0.05, 0.29, -0.06);
 }
 
 function buildBookshelf(g: THREE.Group) {
@@ -233,25 +244,31 @@ function buildBookshelf(g: THREE.Group) {
 function buildFloorLamp(g: THREE.Group) {
   addTo(g, roundedBox(0.14, 0.04, 0.14, 0.02), bondeeMat(BONDEE_PALETTE.woodDark), 0, 0.02, 0);
   addTo(g, roundedBox(0.04, 0.82, 0.04, 0.015), bondeeMat(0x666677), 0, 0.44, 0);
-  addTo(g, roundedBox(0.22, 0.16, 0.22, 0.06), bondeeMat(0xfff0d8), 0, 0.88, 0);
-  addTo(g, roundedBox(0.16, 0.1, 0.16, 0.04), bondeeGlowMat(0xffe8c0, 0.25), 0, 0.84, 0);
+  addTo(g, roundedBox(0.06, 0.04, 0.06, 0.02), bondeeMat(0x888899), 0, 0.78, 0);
+  const shade = addTo(g, roundedBox(0.22, 0.16, 0.22, 0.06), bondeeMat(0xfff0d8), 0, 0.88, 0);
+  shade.name = "lamp-shade";
+  const glow = addTo(g, roundedBox(0.16, 0.1, 0.16, 0.04), bondeeGlowMat(0xffe8c0, 0.25), 0, 0.84, 0);
+  glow.name = "floor-lamp-glow";
 }
 
 function buildPlant(g: THREE.Group) {
   addTo(g, roundedBox(0.18, 0.16, 0.18, 0.04), bondeeMat(0xffc8b0), 0, 0.08, 0);
   addTo(g, roundedBox(0.14, 0.04, 0.14, 0.02), bondeeMat(0x8b6914), 0, 0.18, 0);
+  addTo(g, roundedBox(0.12, 0.03, 0.12, 0.02), bondeeMat(0x6b4f12), 0, 0.2, 0);
   for (let i = 0; i < 5; i++) {
     const a = (i / 5) * Math.PI * 2;
     const leaf = new THREE.Mesh(
       new THREE.SphereGeometry(0.1, 10, 10),
       bondeeMat(i % 2 === 0 ? 0x98d8a8 : 0x7ec898)
     );
+    leaf.name = "plant-leaves";
     leaf.position.set(Math.cos(a) * 0.1, 0.28 + (i % 2) * 0.06, Math.sin(a) * 0.1);
     leaf.scale.set(1, 1.3, 1);
     leaf.castShadow = false;
     g.add(leaf);
   }
   const top = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), bondeeMat(0x88cc99));
+  top.name = "plant-leaves";
   top.position.y = 0.42;
   top.scale.set(1, 1.2, 1);
   top.castShadow = false;

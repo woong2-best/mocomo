@@ -34,6 +34,12 @@ import {
 } from "@/lib/apt/day-night-environment";
 import { getDayPhaseLabel } from "@/lib/apt/day-night";
 import type { AptSceneEmbed } from "@/lib/apt/world/apt-scene-embed";
+import { ElevatorDoorAnimator, playElevatorDing } from "./elevator-door";
+import {
+  buildInstancedWindowLights,
+  collectWindowPositions,
+  tickWindowLights,
+} from "./building-window-lod";
 
 export { APT_DEFAULT_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
 
@@ -153,6 +159,9 @@ export class DollhouseBuildingScene {
   private sceneLighting!: SceneLightingRefs;
   private dayNight = new DayNightTicker();
   private lampManager: LampLightManager;
+  private elevDoors = new ElevatorDoorAnimator();
+  private windowLights: THREE.InstancedMesh | null = null;
+  private dingPlayed = false;
 
   constructor(mount: HTMLElement, initialFloor = APT_DEFAULT_FLOOR, embed?: AptSceneEmbed) {
     this.mount = mount;
@@ -228,6 +237,8 @@ export class DollhouseBuildingScene {
 
     let animating = false;
     animating = this.updateEntranceDoors(delta) || animating;
+    animating = this.elevDoors.tick(delta) || animating;
+    animating = this.tickWindowLightFx() || animating;
     this.updateCorridorLights();
 
     if (
@@ -257,6 +268,43 @@ export class DollhouseBuildingScene {
     if (this.disposed) return;
     this.needsRender = false;
     this.renderer.render(this.scene, camera ?? this.camera);
+  }
+
+  private tickWindowLightFx(): boolean {
+    if (!this.windowLights) return false;
+    const hour = this.dayNight.getHour();
+    const night = hour < 6 || hour >= 20;
+    return tickWindowLights(this.windowLights, this.animPhase, night);
+  }
+
+  private syncElevatorDoorsForPhase() {
+    if (!this.ridePhase) {
+      this.elevDoors.setTarget(1);
+      return;
+    }
+    switch (this.ridePhase) {
+      case "pre-walk":
+        this.elevDoors.setTarget(1);
+        break;
+      case "pre-enter":
+        this.elevDoors.setTarget(0);
+        break;
+      case "riding":
+        this.elevDoors.setTarget(1);
+        break;
+      case "post-exit":
+        this.elevDoors.setTarget(0);
+        if (!this.dingPlayed) {
+          this.dingPlayed = true;
+          const car = this.elevatorRoot?.getObjectByName("elevator-car");
+          if (car) {
+            const p = new THREE.Vector3();
+            car.getWorldPosition(p);
+            playElevatorDing(this.scene, p);
+          }
+        }
+        break;
+    }
   }
 
   private setCameraPose() {
@@ -407,6 +455,7 @@ export class DollhouseBuildingScene {
 
     this.ridePhaseTime += delta;
     this.avatarWalkPhase += delta;
+    this.syncElevatorDoorsForPhase();
     const sx = this.shaftX();
     const fromFloor = Math.round(ride.from);
     const toFloor = Math.round(ride.to);
@@ -547,6 +596,22 @@ export class DollhouseBuildingScene {
 
     this.elevatorRoot = buildElevatorShaft(APT_TOTAL_FLOORS, start, count);
     this.shellRoot.add(this.elevatorRoot);
+    const car = this.elevatorRoot.getObjectByName("elevator-car") ?? null;
+    this.elevDoors.bindCar(car);
+    this.syncElevatorDoorsForPhase();
+
+    if (this.windowLights) {
+      this.building.remove(this.windowLights);
+      this.windowLights.geometry.dispose();
+      (this.windowLights.material as THREE.Material).dispose();
+      this.windowLights = null;
+    }
+    const winPositions = collectWindowPositions(this.shellRoot);
+    const winInst = buildInstancedWindowLights(winPositions);
+    if (winInst) {
+      this.windowLights = winInst;
+      this.building.add(winInst);
+    }
 
     this.elevCarY = this.elevatorYForVirtualFloor(this.virtualFloor);
     this.scrollY = this.scrollForVirtualFloor(this.virtualFloor);
@@ -643,6 +708,7 @@ export class DollhouseBuildingScene {
     this.ridePhase = "pre-walk";
     this.ridePhaseTime = 0;
     this.corridorEnterFired = false;
+    this.dingPlayed = false;
     this.avatarWalkPhase = 0;
     this.ensureAvatar();
     this.moving = true;

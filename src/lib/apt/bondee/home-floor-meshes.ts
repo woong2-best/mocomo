@@ -422,6 +422,22 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
     }
     roomGroup.add(floorMesh);
 
+    const trimMat = bondeeMat(BONDEE_PALETTE.trim);
+    for (const side of ["n", "s", "e", "w"] as const) {
+      const isN = side === "n";
+      const isS = side === "s";
+      const trim = new THREE.Mesh(
+        roundedBox(isN || isS ? w - 0.06 : 0.04, 0.06, isN || isS ? 0.04 : d - 0.06, 0.01),
+        trimMat
+      );
+      trim.position.set(
+        cx + (side === "e" ? w / 2 - 0.02 : side === "w" ? -w / 2 + 0.02 : 0),
+        0.07,
+        cz + (isN ? -d / 2 + 0.02 : isS ? d / 2 - 0.02 : 0)
+      );
+      roomGroup.add(trim);
+    }
+
     if (highlightRoomId === room.id) {
       const hl = new THREE.Mesh(
         new THREE.RingGeometry(Math.min(w, d) * 0.28, Math.min(w, d) * 0.34, 16),

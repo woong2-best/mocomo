@@ -26,6 +26,8 @@ export type CorridorDoorSlot = {
   group: THREE.Group;
   pivot: THREE.Group;
   led?: THREE.Mesh;
+  bell?: THREE.Mesh;
+  knocker?: THREE.Mesh;
   state: "open" | "closed" | "locked";
   isHome: boolean;
 };
@@ -68,6 +70,8 @@ export function buildCorridorFloor(floorIndex: number, homeDoorIndex = 1, doorCo
   elevDoorR.name = "elevator-door-right";
   const panel = add(elevHall, box(0.22, 0.32, 0.05, 0.02), pastelMat(0xffffff), 0.55, 1.35, CORRIDOR_W / 2 - 0.06);
   panel.name = "elevator-floor-panel";
+  add(elevHall, box(0.08, 0.08, 0.04, 0.02), pastelMat(0x22c55e), 0.62, 1.05, CORRIDOR_W / 2 - 0.06);
+  add(elevHall, box(0.08, 0.08, 0.04, 0.02), pastelMat(0xef4444), 0.62, 0.92, CORRIDOR_W / 2 - 0.06);
   g.add(elevHall);
 
   // 소화기 · CCTV · 화분 · 안내판
@@ -94,6 +98,7 @@ function buildApartmentDoor(index: number, z: number, isHome: boolean): Corridor
   group.position.set(CORRIDOR_LEN / 2 - 1.1, 0, z);
 
   add(group, box(0.08, CORRIDOR_H, 0.55, 0.02), pastelMat(0xe8e4e8), 0, CORRIDOR_H / 2, 0);
+  add(group, box(0.46, 0.06, 0.08, 0.02), pastelMat(0xd4cfc8), 0, 1.78, 0.04);
 
   const pivot = new THREE.Group();
   pivot.name = "door-pivot";
@@ -101,6 +106,7 @@ function buildApartmentDoor(index: number, z: number, isHome: boolean): Corridor
 
   const door = add(pivot, box(0.42, 1.75, 0.06, 0.02), pastelMat(isHome ? 0xd4e8ff : 0xf0f0f0), 0.2, 0, 0);
   door.name = "door-leaf";
+  add(pivot, box(0.42, 0.06, 0.07, 0.02), pastelMat(0xc9a882), 0.2, -0.82, 0.02);
 
   const peep = new THREE.Mesh(
     new THREE.CircleGeometry(0.028, 10),
@@ -109,10 +115,24 @@ function buildApartmentDoor(index: number, z: number, isHome: boolean): Corridor
   peep.position.set(0.28, 0.15, 0.04);
   pivot.add(peep);
 
+  const innerGlow = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.28, 0.5),
+    new THREE.MeshBasicMaterial({ color: 0xfff4d8, transparent: true, opacity: isHome ? 0.35 : 0 })
+  );
+  innerGlow.name = "door-inner-glow";
+  innerGlow.position.set(0.35, 0, 0.02);
+  pivot.add(innerGlow);
+
   group.add(pivot);
 
   const mailbox = add(group, box(0.11, 0.09, 0.07, 0.02), pastelMat(0x3a5a8a), -0.28, 0.55, 0.06);
   mailbox.name = "mailbox";
+
+  const bell = add(group, box(0.05, 0.05, 0.03, 0.01), pastelMat(0xffd700), 0.28, 1.05, 0.06);
+  bell.name = "door-bell";
+
+  const knocker = add(group, box(0.06, 0.06, 0.04, 0.02), pastelMat(0xb8860b), -0.08, 1.05, 0.06);
+  knocker.name = "door-knocker";
 
   const plate = add(group, box(0.38, 0.12, 0.03, 0.01), pastelMat(isHome ? PASTEL.highlight : 0xffffff), 0, 1.55, 0.05);
   plate.name = "nameplate";
@@ -132,6 +152,8 @@ function buildApartmentDoor(index: number, z: number, isHome: boolean): Corridor
     group,
     pivot,
     led,
+    bell,
+    knocker,
     state: isHome ? "open" : "closed",
     isHome,
   };
