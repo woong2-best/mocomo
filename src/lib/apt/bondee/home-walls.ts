@@ -1,6 +1,6 @@
 import { PLAN_H, PLAN_W, type AptRoom } from "@/lib/apt/floor-plan-types";
 import { SCALE } from "@/lib/apt/building-from-plan";
-import { computeHomeDoorways, doorwayForRoomSide, type HomeDoorway } from "./home-doorways";
+import { computeHomeDoorways, doorwayForRoomSide, EXIT_ROOM_ID, type HomeDoorway } from "./home-doorways";
 
 /** 집 벽 종류 — 외벽(집 경계) / 내벽(방 구분) */
 export type HomeWallType = "EXTERIOR" | "INTERIOR";
@@ -82,35 +82,9 @@ export function neighborRoomAt(room: AptRoom, rooms: AptRoom[], side: HomeWallSi
   return rooms.find((o) => o.id !== room.id && sharesPlanEdge(room, o, side)) ?? null;
 }
 
-/** 복도와 벽·문 없이 완전히 트인 공간(거실·부엌) */
-function isOpenPlanRoom(room: AptRoom): boolean {
-  return room.id === "living" || room.id === "kitchen";
-}
-
-/**
- * 개방 구간 — 문·내벽 없이 통로로 연결.
- * 거실↔부엌 그리고 거실/부엌↔복도는 벽 없이 트여 하나의 큰 공간을 이룬다.
- * 방·화장실·엘리베이터는 복도와 문으로만 연결되므로 개방 구간이 아니다.
- */
-export function isOpenPassageEdge(room: AptRoom, rooms: AptRoom[], side: HomeWallSide): boolean {
-  const neighbor = neighborRoomAt(room, rooms, side);
-  if (!neighbor) return false;
-
-  if (isOpenPlanRoom(room) && isOpenPlanRoom(neighbor)) return true;
-
-  if (
-    (room.id === "hall-corridor" && isOpenPlanRoom(neighbor)) ||
-    (neighbor.id === "hall-corridor" && isOpenPlanRoom(room))
-  ) {
-    return true;
-  }
-
-  return false;
-}
-
 /** 방 변의 벽 종류 자동 분류 */
 export function classifyWallEdge(room: AptRoom, rooms: AptRoom[], side: HomeWallSide): HomeWallType {
-  if (isExteriorPlanEdge(room, side) || room.type === "balcony") return "EXTERIOR";
+  if (isExteriorPlanEdge(room, side)) return "EXTERIOR";
   if (hasRoomNeighbor(room, rooms, side)) return "INTERIOR";
   return "EXTERIOR";
 }
@@ -137,11 +111,12 @@ export function resolveWallBuild(
   rooms: AptRoom[],
   doorways: HomeDoorway[]
 ): { type: HomeWallType; kind: HomeWallBuildKind; doorway?: HomeDoorway } {
-  const exterior = isExteriorPlanEdge(room, side) || room.type === "balcony";
+  const exterior = isExteriorPlanEdge(room, side);
   const neighbor = hasRoomNeighbor(room, rooms, side);
 
-  if (isOpenPassageEdge(room, rooms, side)) {
-    return { type: "INTERIOR", kind: "skip" };
+  const exitDoor = doorwayForRoomSide(room.id, side, doorways);
+  if (exitDoor?.roomB === EXIT_ROOM_ID) {
+    return { type: "EXTERIOR", kind: "door", doorway: exitDoor };
   }
 
   if (!neighbor || exterior) {
@@ -189,7 +164,6 @@ export const EXTERIOR_WALK_INSET = 0.1;
 export const INTERIOR_WALK_INSET = 0.02;
 
 export function walkInsetForSide(room: AptRoom, rooms: AptRoom[], side: HomeWallSide): number {
-  if (isOpenPassageEdge(room, rooms, side)) return 0;
   const type = classifyWallEdge(room, rooms, side);
   return type === "EXTERIOR" ? EXTERIOR_WALK_INSET : INTERIOR_WALK_INSET;
 }

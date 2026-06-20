@@ -170,10 +170,6 @@ export function defaultItemsForRooms(rooms: AptRoom[]): BondeePlacedItem[] {
       add(r.id, "rug", 0, 0);
       add(r.id, "plant", -1, 0);
       add(r.id, "clock", 1, 0);
-    } else if (r.type === "balcony") {
-      add(r.id, "plant", 0, 0);
-      add(r.id, "plant", -1, 1);
-      add(r.id, "hoop", 1, -1);
     }
   }
   return items;
@@ -277,7 +273,7 @@ function buildInteriorDoor(
   g.userData.doorId = door.id;
 
   const doorH = wallHeight * 0.86;
-  const doorW = Math.min(door.span * 0.94, 1.0);
+  const doorW = Math.min(door.span * 0.9, 0.56);
   const frameT = 0.042;
 
   const frameMat = bondeeMat(BONDEE_PALETTE.trim, { transparent: true, opacity: 0.85 });
@@ -289,18 +285,15 @@ function buildInteriorDoor(
   };
 
   const pivot = new THREE.Group();
-  pivot.position.set(door.cx, 0, door.cz);
+  const hingeX = door.axis === "z" ? door.cx - doorW / 2 : door.cx;
+  const hingeZ = door.axis === "x" ? door.cz - doorW / 2 : door.cz;
+  pivot.position.set(hingeX, 0, hingeZ);
 
   const leaf = new THREE.Mesh(roundedBox(doorW, doorH, frameT, 0.008), bondeeMat(0xc9a882));
-  leaf.position.y = doorH / 2 + 0.05;
-  if (door.axis === "x") {
-    leaf.position.z = (door.swing * doorW) / 2;
-    pivot.rotation.y = door.swing > 0 ? 0 : Math.PI;
-  } else {
-    leaf.position.x = (door.swing * doorW) / 2;
-    pivot.rotation.y = door.swing > 0 ? Math.PI / 2 : -Math.PI / 2;
-  }
-  pivot.userData.baseRotY = pivot.rotation.y;
+  leaf.position.set(door.axis === "z" ? doorW / 2 : 0, doorH / 2 + 0.05, door.axis === "x" ? doorW / 2 : 0);
+  pivot.rotation.y = 0;
+  pivot.userData.baseRotY = 0;
+  pivot.userData.openSign = door.swing;
   leaf.userData.isHomeDoorLeaf = true;
   leaf.userData.doorId = door.id;
   pivot.add(leaf);

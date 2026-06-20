@@ -14,33 +14,40 @@ export function newRoomId() {
 }
 
 /**
- * 오픈형 Bondee 아파트 (v5)
+ * 복도 중심 Bondee 아파트 (v6)
  *
- * ┌─방2──┬─방1──┬화장실┬엘리베이터┐  ← 상단: 방들 (각자 벽 + 복도 문 1개)
- * ├──────┴──────┴──────┴──────────┤
- * │            복 도               │  ← 복도 (방 출입)
- * ├───────────────┬───────────────┤
- * │     거실      │     부엌      │  ← 하단: 거실+부엌 (벽 없는 하나의 오픈 공간)
- * └───────────────┴───────────────┘
- *
- * 거실·부엌·복도는 벽 없이 트여 하나의 큰 공간을 이루고,
- * 윗줄 방들은 복도로 통하는 문 1개씩만 둔다.
+ * ┌─거실─┬─방2─┬─방1─┬화장실┐  ← 상단
+ * ├현관─┴─────── 복 도 ──────┤  ← 복도 (방·부엌·엘리베이터는 문으로만 연결)
+ * │         부엌          │엘리│  ← 하단 (발코니 없음)
+ * └───────────────────────┴────┘
  */
 export function createDefaultFloorPlan(): FloorPlanState {
   const INTERIOR_W = 870;
-  const TOP_H = 240;
-  const HALL_H = 90;
+  const TOP_H = 210;
+  const HALL_H = 95;
+  const ENTRANCE_W = 95;
   const BOTTOM_Y = TOP_H + HALL_H;
   const BOTTOM_H = PLAN_H - BOTTOM_Y;
 
   return {
     rooms: [
       {
-        id: "bedroom-2",
-        type: "bedroom",
+        id: "living",
+        type: "living",
         x: 0,
         y: 0,
-        w: 250,
+        w: 270,
+        h: TOP_H,
+        label: "거실",
+        locked: false,
+        floor: "wood",
+      },
+      {
+        id: "bedroom-2",
+        type: "bedroom",
+        x: 270,
+        y: 0,
+        w: 200,
         h: TOP_H,
         label: "방 2",
         locked: false,
@@ -49,9 +56,9 @@ export function createDefaultFloorPlan(): FloorPlanState {
       {
         id: "bedroom-1",
         type: "bedroom",
-        x: 250,
+        x: 470,
         y: 0,
-        w: 250,
+        w: 200,
         h: TOP_H,
         label: "방 1",
         locked: false,
@@ -60,87 +67,84 @@ export function createDefaultFloorPlan(): FloorPlanState {
       {
         id: "bathroom",
         type: "bathroom",
-        x: 500,
+        x: 670,
         y: 0,
-        w: 190,
+        w: 200,
         h: TOP_H,
         label: "화장실",
         locked: true,
         floor: "bathroom",
       },
       {
-        id: "elevator",
-        type: "hall",
-        x: 690,
-        y: 0,
-        w: 180,
-        h: TOP_H,
-        label: "엘리베이터",
+        id: "entrance",
+        type: "entrance",
+        x: 0,
+        y: TOP_H,
+        w: ENTRANCE_W,
+        h: HALL_H,
+        label: "현관",
         locked: true,
         floor: "tile-light",
       },
       {
         id: "hall-corridor",
         type: "hall",
-        x: 0,
+        x: ENTRANCE_W,
         y: TOP_H,
-        w: INTERIOR_W,
+        w: INTERIOR_W - ENTRANCE_W,
         h: HALL_H,
         label: "복도",
         locked: true,
         floor: "beige",
       },
       {
-        id: "living",
-        type: "living",
-        x: 0,
-        y: BOTTOM_Y,
-        w: 480,
-        h: BOTTOM_H,
-        label: "거실",
-        locked: false,
-        floor: "wood",
-      },
-      {
         id: "kitchen",
         type: "kitchen",
-        x: 480,
+        x: 0,
         y: BOTTOM_Y,
-        w: INTERIOR_W - 480,
+        w: 580,
         h: BOTTOM_H,
         label: "부엌",
         locked: true,
         floor: "wood",
       },
       {
-        id: "balcony",
-        type: "balcony",
-        x: INTERIOR_W,
-        y: 0,
-        w: PLAN_W - INTERIOR_W,
-        h: PLAN_H,
-        label: "발코니",
+        id: "elevator",
+        type: "hall",
+        x: 580,
+        y: BOTTOM_Y,
+        w: INTERIOR_W - 580,
+        h: BOTTOM_H,
+        label: "엘리베이터",
         locked: true,
-        floor: "balcony",
+        floor: "tile-light",
       },
     ],
   };
 }
 
-/** 오픈형 v5 평면도 — 거실이 복도 아래(오픈 공간)에 있으면 최신 */
-export function isSketchFloorPlan(rooms: AptRoom[]): boolean {
+/** v6 — 거실이 복도 위, 엘리베이터가 하단, 발코니 없음 */
+export function isCorridorV6Plan(rooms: AptRoom[]): boolean {
   const living = rooms.find((r) => r.id === "living");
   const corridor = rooms.find((r) => r.id === "hall-corridor");
-  const kitchen = rooms.find((r) => r.id === "kitchen");
-  return Boolean(living && corridor && kitchen && living.y > corridor.y);
+  const elevator = rooms.find((r) => r.id === "elevator");
+  const entrance = rooms.find((r) => r.id === "entrance");
+  if (!living || !corridor || !elevator || !entrance) return false;
+  if (rooms.some((r) => r.type === "balcony")) return false;
+  return living.y < corridor.y && elevator.y > corridor.y;
+}
+
+/** @deprecated use isCorridorV6Plan */
+export function isSketchFloorPlan(rooms: AptRoom[]): boolean {
+  return isCorridorV6Plan(rooms);
 }
 
 export function isLegacyFloorPlan(rooms: AptRoom[]): boolean {
-  return !isSketchFloorPlan(rooms);
+  return !isCorridorV6Plan(rooms);
 }
 
 export function migrateFloorPlan(rooms: AptRoom[]): AptRoom[] {
-  if (!rooms.length || isLegacyFloorPlan(rooms)) {
+  if (!rooms.length || !isCorridorV6Plan(rooms)) {
     return createDefaultFloorPlan().rooms.map((r) => ({ ...r }));
   }
   return rooms;

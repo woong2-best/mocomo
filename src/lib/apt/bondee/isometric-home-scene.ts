@@ -192,12 +192,13 @@ export class IsometricHomeScene {
     this.avatar = new ChibiAvatarMesh();
 
     const living =
+      rooms.find((r) => r.id === "entrance") ??
       rooms.find((r) => r.id === "living") ??
       rooms.find((r) => r.type === "living") ??
       rooms[0];
     if (living) {
       const c = roomCenter(living);
-      this.avatarX = c.x - 0.3;
+      this.avatarX = c.x + (living.id === "entrance" ? 0.15 : -0.3);
       this.avatarZ = c.z + 0.2;
     }
 
@@ -672,7 +673,8 @@ export class IsometricHomeScene {
       if (!pivot) continue;
       const near = isNearDoor(this.avatarX, this.avatarZ, door);
       const base = (pivot.userData.baseRotY as number) ?? 0;
-      const openAngle = door.swing * (Math.PI / 2.15);
+      const openSign = (pivot.userData.openSign as number) ?? door.swing;
+      const openAngle = openSign * (Math.PI / 2.35);
       const target = near ? base + openAngle : base;
       const next = THREE.MathUtils.lerp(pivot.rotation.y, target, Math.min(1, 10 * dt));
       if (Math.abs(next - pivot.rotation.y) > 0.002) {

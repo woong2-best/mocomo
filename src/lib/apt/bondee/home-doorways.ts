@@ -18,10 +18,12 @@ export type HomeDoorway = {
   swing: 1 | -1;
 };
 
-const DOOR_MIN = 0.6;
-const DOOR_MAX = 0.98;
-export const DOOR_PORTAL_DEPTH = 0.5;
-const DOOR_OPEN_DIST = 0.6;
+const DOOR_MIN = 0.44;
+const DOOR_MAX = 0.58;
+export const DOOR_PORTAL_DEPTH = 0.34;
+const DOOR_OPEN_DIST = 0.48;
+
+export const EXIT_ROOM_ID = "__outside__";
 
 function planRect(room: AptRoom) {
   return { x1: room.x, y1: room.y, x2: room.x + room.w, y2: room.y + room.h };
@@ -52,10 +54,10 @@ function overlapDoor(a: AptRoom, b: AptRoom, side: DoorSide): Omit<HomeDoorway, 
     const overlap = overlapMaxZ - overlapMinZ;
     if (overlap < DOOR_MIN * 0.5) return null;
 
-    const span = Math.min(DOOR_MAX, Math.max(DOOR_MIN, overlap * 0.72));
+    const span = Math.min(DOOR_MAX, Math.max(DOOR_MIN, overlap * 0.55));
     const cx = side === "e" ? (ba.maxX + bb.minX) / 2 : (ba.minX + bb.maxX) / 2;
     const cz = (overlapMinZ + overlapMaxZ) / 2;
-    return { side, cx, cz, span, axis: "x", swing: side === "e" ? -1 : 1 };
+    return { side, cx, cz, span, axis: "x", swing: side === "e" ? 1 : -1 };
   }
 
   const overlapMinX = Math.max(ba.minX, bb.minX);
@@ -63,29 +65,59 @@ function overlapDoor(a: AptRoom, b: AptRoom, side: DoorSide): Omit<HomeDoorway, 
   const overlap = overlapMaxX - overlapMinX;
   if (overlap < DOOR_MIN * 0.5) return null;
 
-  const span = Math.min(DOOR_MAX, Math.max(DOOR_MIN, overlap * 0.72));
+  const span = Math.min(DOOR_MAX, Math.max(DOOR_MIN, overlap * 0.55));
   const cz = side === "s" ? (ba.maxZ + bb.minZ) / 2 : (ba.minZ + bb.maxZ) / 2;
   const cx = (overlapMinX + overlapMaxX) / 2;
-  return { side, cx, cz, span, axis: "z", swing: side === "s" ? -1 : 1 };
+  return { side, cx, cz, span, axis: "z", swing: side === "s" ? 1 : -1 };
 }
 
 const doorwayCache = new WeakMap<AptRoom[], HomeDoorway[]>();
 
-/**
- * 문 허용 규칙.
- * 거실·부엌은 복도와 벽·문 없이 완전히 트여 있으므로 문을 만들지 않는다.
- * 방·화장실·엘리베이터는 복도(hall-corridor) 접점 1곳에만 문을 둔다.
- * 발코니는 외벽으로 둘러싸여 출입 문을 두지 않는다.
- */
+/** 복도·현관 접점에만 문 — 옆방 직통·발코니 연결 금지 */
 function allowsDoorwayBetween(a: AptRoom, b: AptRoom): boolean {
-  if (a.id === "living" || b.id === "living") return false;
-  if (a.id === "kitchen" || b.id === "kitchen") return false;
+  if (a.type === "balcony" || b.type === "balcony") return false;
 
-  if (a.id === "hall-corridor" || b.id === "hall-corridor") {
-    return a.type !== "balcony" && b.type !== "balcony";
+  const corridorId = "hall-corridor";
+  const touchesCorridor = a.id === corridorId || b.id === corridorId;
+  const touchesEntrance = a.id === "entrance" || b.id === "entrance";
+
+  if (touchesCorridor) {
+    const other = a.id === corridorId ? b : a;
+    return (
+      other.type === "living" ||
+      other.type === "bedroom" ||
+      other.type === "bathroom" ||
+      other.type === "kitchen" ||
+      other.id === "elevator" ||
+      other.id === "entrance"
+    );
+  }
+
+  if (touchesEntrance) {
+    const other = a.id === "entrance" ? b : a;
+    return other.id === corridorId;
   }
 
   return false;
+}
+
+function appendExitDoor(rooms: AptRoom[], doorways: HomeDoorway[]) {
+  const entrance = rooms.find((r) => r.id === "entrance");
+  if (!entrance) return;
+
+  const c = roomCenter(entrance);
+  const { w } = roomSize(entrance);
+  doorways.push({
+    id: "exit|outside",
+    roomA: "entrance",
+    roomB: EXIT_ROOM_ID,
+    side: "w",
+    cx: c.x - w / 2,
+    cz: c.z,
+    span: 0.52,
+    axis: "x",
+    swing: 1,
+  });
 }
 
 export function computeHomeDoorways(rooms: AptRoom[]): HomeDoorway[] {
@@ -111,12 +143,18 @@ export function computeHomeDoorways(rooms: AptRoom[]): HomeDoorway[] {
     }
   }
 
+  appendExitDoor(rooms, doorways);
+
   doorwayCache.set(rooms, doorways);
   return doorways;
 }
 
+export function isExitDoor(door: HomeDoorway): boolean {
+  return door.roomB === EXIT_ROOM_ID;
+}
+
 export function isInDoorPortal(x: number, z: number, door: HomeDoorway): boolean {
-  const pad = 0.12;
+  const pad = 0.08;
   if (door.axis === "x") {
     return Math.abs(x - door.cx) <= DOOR_PORTAL_DEPTH / 2 + pad && Math.abs(z - door.cz) <= door.span / 2 + pad;
   }
@@ -129,8 +167,12 @@ export function isNearDoor(x: number, z: number, door: HomeDoorway): boolean {
 
 export function doorwayForRoomSide(roomId: string, side: DoorSide, doorways: HomeDoorway[]): HomeDoorway | null {
   return (
-    doorways.find((d) => (d.roomA === roomId && d.side === side) || (d.roomB === roomId && oppositeSide(d.side) === side)) ??
-    null
+    doorways.find(
+      (d) =>
+        (d.roomA === roomId && d.side === side) ||
+        (d.roomB === roomId && d.roomB !== EXIT_ROOM_ID && oppositeSide(d.side) === side) ||
+        (d.roomA === roomId && d.roomB === EXIT_ROOM_ID && d.side === side)
+    ) ?? null
   );
 }
 
