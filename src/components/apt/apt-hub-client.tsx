@@ -89,7 +89,8 @@ export function AptHubClient({
   const startExperience = useCallback(() => {
     if (!isLoggedIn || !initialProfile?.moveInCompleted) {
       setStartPhase("contract");
-      window.setTimeout(() => router.push("/auth/signup/apply"), 720);
+      const dest = isLoggedIn ? "/apt/move-in" : "/auth/signup/apply";
+      window.setTimeout(() => router.push(dest), 720);
       return;
     }
 
@@ -293,7 +294,7 @@ export function AptHubClient({
               {startPhase === "contract" ? (
                 <>
                   <KeyRound className="h-5 w-5" />
-                  부동산으로 이동 중
+                  {isLoggedIn ? "입주 안내로 이동 중" : "부동산으로 이동 중"}
                 </>
               ) : startPhase === "home" ? (
                 <>

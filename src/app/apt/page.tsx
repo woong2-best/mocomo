@@ -22,7 +22,7 @@ export default async function AptPage() {
       user ? getAptStudioInventory().catch(() => []) : Promise.resolve([]),
     ]);
 
-    if (user && profile && !profile.moveInCompleted) {
+    if (user && !profile?.moveInCompleted) {
       redirect("/apt/move-in");
     }
 
