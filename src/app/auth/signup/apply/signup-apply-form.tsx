@@ -25,6 +25,31 @@ import { EmailAddressField } from "@/components/auth/email-address-field";
 import { APT_DEFAULT_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
 import { findCountry } from "@/lib/apt/world/world-countries";
 
+const DISPLAY_NAME_COUNTRY_PREFIX: Record<string, string> = {
+  KR: "korea",
+  US: "usa",
+  JP: "japan",
+  CN: "china",
+  TW: "taiwan",
+  TH: "thailand",
+  VN: "vietnam",
+  PH: "philippines",
+  ID: "indonesia",
+  GB: "uk",
+  DE: "germany",
+  FR: "france",
+  CA: "canada",
+  AU: "australia",
+  OTHER: "global",
+};
+
+function displayNameForApt(countryCode: string, homeFloor: number) {
+  const prefix =
+    DISPLAY_NAME_COUNTRY_PREFIX[countryCode.toUpperCase()] ??
+    countryCode.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return `${prefix}${homeFloor}`;
+}
+
 export function SignupApplyForm({
   googleOAuth,
   discordOAuth,
@@ -47,6 +72,7 @@ export function SignupApplyForm({
   const showSocial = googleOAuth || discordOAuth;
   const needsHumanVerify = isSignupHumanVerifyRequired();
   const countryLabel = `${findCountry(countryCode)?.nameKo ?? countryCode} APT`;
+  const autoDisplayName = displayNameForApt(countryCode, homeFloor);
 
   const handleFloorChange = useCallback((next: number) => {
     setHomeFloor(next);
@@ -104,7 +130,7 @@ export function SignupApplyForm({
     }
     const password = form.get("password") as string;
     const username = ((form.get("username") as string) || "").trim().toLowerCase();
-    const displayName = ((form.get("name") as string) || "").trim();
+    const displayName = autoDisplayName;
 
     if (
       containsForbiddenAdminSequence(username) ||
@@ -243,9 +269,11 @@ export function SignupApplyForm({
             />
             <Input
               name="name"
-              placeholder="표시 이름 (선택)"
+              value={autoDisplayName}
+              readOnly
+              aria-readonly="true"
               autoComplete="name"
-              className="rounded-xl"
+              className="rounded-xl bg-slate-100 font-black text-slate-900"
             />
             <Input
               name="password"
