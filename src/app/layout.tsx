@@ -69,6 +69,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html
       lang={locale}
       data-client={initialPlatform}
+      data-visible-animations="off"
       suppressHydrationWarning
     >
       <body className={`${folkDisplay.variable} ${geistSans.variable} ${geistMono.variable} font-sans folk-canvas`}>

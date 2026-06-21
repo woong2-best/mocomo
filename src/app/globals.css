@@ -312,6 +312,42 @@ html[data-client="app"] body {
   }
 }
 
+/*
+  Temporary site-wide animation blackout.
+  The animation/scene code remains in place for later reuse; this only prevents
+  moving surfaces and looping visual effects from being visible in the product UI.
+*/
+html[data-visible-animations="off"] {
+  scroll-behavior: auto !important;
+}
+
+html[data-visible-animations="off"] *,
+html[data-visible-animations="off"] *::before,
+html[data-visible-animations="off"] *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
+html[data-visible-animations="off"] canvas,
+html[data-visible-animations="off"] [data-animation-surface],
+html[data-visible-animations="off"] video[autoplay],
+html[data-visible-animations="off"] .animate-spin,
+html[data-visible-animations="off"] .animate-pulse,
+html[data-visible-animations="off"] .animate-bounce,
+html[data-visible-animations="off"] .animate-ping,
+html[data-visible-animations="off"] [class*="motion-safe:animate"],
+html[data-visible-animations="off"] [class*="animate-folk-"] {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+html[data-visible-animations="off"] .folk-canvas::before,
+html[data-visible-animations="off"] .folk-brush-border-b::after {
+  display: none !important;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
