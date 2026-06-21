@@ -31,9 +31,9 @@ const LOBBY: CameraPreset = {
 };
 
 const TOWER: CameraPreset = {
-  position: new THREE.Vector3(6, 4.8, 9.5),
-  target: new THREE.Vector3(0, 2.2, 0.5),
-  fov: 48,
+  position: new THREE.Vector3(7.4, 7.2, 10.6),
+  target: new THREE.Vector3(0.1, 4.4, 0.2),
+  fov: 37,
 };
 
 /** Bondee/AC — 어깨 너머 3/4, 아바타 중심 */

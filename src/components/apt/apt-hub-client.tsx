@@ -494,21 +494,21 @@ export function AptHubClient({
           {(worldMode === "tower" || worldMode === "elevator") && (
             <button
               type="button"
-              onClick={() => worldRef.current?.showDistrict()}
+              onClick={() => worldRef.current?.showTower()}
               className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-white/80 hover:bg-white/10 transition-all"
             >
               <Building2 className="h-4 w-4" />
-              <span className="hidden sm:inline">단지 전경</span>
+              <span className="hidden sm:inline">전체 건물</span>
             </button>
           )}
           {inLobby && (
             <button
               type="button"
-              onClick={() => worldRef.current?.showDistrict()}
+              onClick={() => worldRef.current?.showTower()}
               className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-white/80 hover:bg-white/10 transition-all"
             >
               <Building2 className="h-4 w-4" />
-              <span className="hidden sm:inline">단지 전경</span>
+              <span className="hidden sm:inline">전체 건물</span>
             </button>
           )}
           {inCorridor && (

@@ -219,9 +219,8 @@ export class UnifiedAptWorldScene {
     this.cameraCtrl.attach(this.renderer.domElement);
     this.bindDistrictInput();
     window.addEventListener("resize", this.onResize);
-    this.building.setPaused(true);
-    this.cameraCtrl.playDistrictIntro();
-    this.setMode("district", { instant: true });
+    this.building.setPaused(false);
+    this.setMode("tower", { instant: true });
     this.loop();
     const { lighting } = this.dayNight.tick();
     applyDayNightToScene(this.scene, this.sceneLighting, lighting, this.renderer);
@@ -527,17 +526,17 @@ export class UnifiedAptWorldScene {
       }
     }
 
-    this.building.setPaused(true);
+    this.building.setPaused(false);
     this.corridorSlot.visible = false;
     this.lobbySlot.visible = false;
     this.interiorSlot.visible = false;
-    this.setMode("district");
+    this.setMode("tower");
   }
 
   /** 단지 전경에서 건물 단면(타워) 뷰로 카메라 줌 — 페이지 전환 없음 */
   enterBuildingFromDistrict() {
     this.building.setPaused(false);
-    this.districtSlot.visible = true;
+    this.districtSlot.visible = false;
     this.setMode("tower", { skipCamera: true });
     this.cameraCtrl.flyThroughWall(
       this.cameraCtrl.camera.position.clone(),
@@ -799,7 +798,7 @@ export class UnifiedAptWorldScene {
 
   private syncLayerVisibility() {
     const m = this.mode;
-    this.districtSlot.visible = m === "district" || m === "tower" || m === "elevator";
+    this.districtSlot.visible = m === "district";
     this.buildingSlot.visible = m === "tower" || m === "elevator";
     this.lobbySlot.visible = m === "lobby";
     this.corridorSlot.visible = m === "corridor";
