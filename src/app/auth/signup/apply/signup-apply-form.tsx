@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { signIn } from "next-auth/react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { registerUser, prepareSignupVerify } from "@/actions/auth";
@@ -74,6 +74,28 @@ export function SignupApplyForm({
   const countryLabel = `${findCountry(countryCode)?.nameKo ?? countryCode} APT`;
   const autoDisplayName = displayNameForApt(countryCode, homeFloor);
 
+  const prepareSignatureCanvas = useCallback(() => {
+    const canvas = signatureRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+    canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.lineWidth = 3.2;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "#020617";
+  }, []);
+
+  useEffect(() => {
+    prepareSignatureCanvas();
+    window.addEventListener("resize", prepareSignatureCanvas);
+    return () => window.removeEventListener("resize", prepareSignatureCanvas);
+  }, [prepareSignatureCanvas]);
+
   const handleFloorChange = useCallback((next: number) => {
     setHomeFloor(next);
   }, []);
@@ -84,9 +106,10 @@ export function SignupApplyForm({
     const rect = canvas.getBoundingClientRect();
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.lineWidth = 2.4;
+    ctx.lineWidth = 3.2;
     ctx.lineCap = "round";
-    ctx.strokeStyle = "#0f172a";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "#020617";
     ctx.lineTo(event.clientX - rect.left, event.clientY - rect.top);
     ctx.stroke();
     setSignatureSigned(true);
@@ -100,21 +123,25 @@ export function SignupApplyForm({
     if (!ctx) return;
     drawingRef.current = true;
     canvas.setPointerCapture(event.pointerId);
+    event.preventDefault();
     ctx.beginPath();
     ctx.moveTo(event.clientX - rect.left, event.clientY - rect.top);
   }, []);
 
   const endSignature = useCallback((event: React.PointerEvent<HTMLCanvasElement>) => {
     drawingRef.current = false;
-    event.currentTarget.releasePointerCapture(event.pointerId);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
   }, []);
 
   const clearSignature = useCallback(() => {
     const canvas = signatureRef.current;
     const ctx = canvas?.getContext("2d");
     if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    prepareSignatureCanvas();
     setSignatureSigned(false);
-  }, []);
+  }, [prepareSignatureCanvas]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -360,17 +387,28 @@ export function SignupApplyForm({
                   다시 쓰기
                 </button>
               </div>
-              <canvas
-                ref={signatureRef}
-                width={320}
-                height={96}
-                onPointerDown={beginSignature}
-                onPointerMove={drawSignature}
-                onPointerUp={endSignature}
-                onPointerCancel={endSignature}
-                className="h-24 w-full touch-none rounded-xl border-2 border-dashed border-slate-300 bg-[#fffaf0]"
-                aria-label="입주 계약서 서명"
-              />
+              <div className="relative overflow-hidden rounded-2xl border-4 border-slate-950 bg-[#fffaf0]">
+                <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-2 rounded-full border-2 border-slate-900 bg-white px-3 py-1 text-[10px] font-black text-slate-900 shadow-sm">
+                  <span className="inline-block h-2 w-2 rounded-full bg-black" />
+                  검은 잉크 펜
+                </div>
+                {!signatureSigned && (
+                  <div className="pointer-events-none absolute inset-x-4 bottom-4 z-10 text-[11px] font-bold text-slate-500">
+                    이 칸에 바로 손가락으로 서명하세요
+                  </div>
+                )}
+                <canvas
+                  ref={signatureRef}
+                  onPointerDown={beginSignature}
+                  onPointerMove={drawSignature}
+                  onPointerUp={endSignature}
+                  onPointerLeave={endSignature}
+                  onPointerCancel={endSignature}
+                  className="block h-36 w-full touch-none bg-transparent"
+                  aria-label="입주 계약서 서명"
+                />
+                <div className="pointer-events-none absolute bottom-8 left-6 right-6 border-b-2 border-dashed border-slate-300" />
+              </div>
               <p className="mt-1 text-[10px] text-slate-500">스마트폰 화면에 손가락으로 직접 서명하세요.</p>
             </div>
 
