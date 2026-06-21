@@ -5,6 +5,7 @@ import { getRoomsForFloor } from "@/lib/apt/floor-plan-store";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import { defaultItemsForRooms, migrateItems } from "./home-floor-meshes";
 import { DEFAULT_BONDEE_HOME, type BondeeHomeState } from "./types";
+import { normalizeHomeIdentity } from "@/lib/apt/home-identity";
 
 function parseBondee(raw: unknown, rooms: AptRoom[]): BondeeHomeState {
   if (raw && typeof raw === "object" && "avatar" in (raw as object)) {
@@ -14,6 +15,7 @@ function parseBondee(raw: unknown, rooms: AptRoom[]): BondeeHomeState {
       ...DEFAULT_BONDEE_HOME,
       ...o,
       items,
+      identity: normalizeHomeIdentity(o.identity),
       activeRoomId: o.activeRoomId ?? rooms.find((r) => r.id === "living")?.id ?? rooms.find((r) => r.type === "living")?.id ?? rooms[0]?.id,
     };
   }

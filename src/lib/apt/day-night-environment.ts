@@ -3,6 +3,9 @@
 import * as THREE from "three";
 import {
   getDayNightLighting,
+  getRealWorldHour,
+  getDayPhase,
+  isLampEffective,
   type DayNightLighting,
 } from "@/lib/apt/day-night";
 import type { BondeePlacedItem } from "@/lib/apt/bondee/types";
@@ -22,6 +25,7 @@ export type SceneLightingRefs = {
   ambient: THREE.AmbientLight;
   sun: THREE.DirectionalLight;
   fill: THREE.DirectionalLight;
+  windowSun: THREE.DirectionalLight;
 };
 
 export function createSceneLighting(scene: THREE.Scene): SceneLightingRefs {
@@ -40,7 +44,11 @@ export function createSceneLighting(scene: THREE.Scene): SceneLightingRefs {
   fill.position.set(-5, 6, -4);
   scene.add(fill);
 
-  return { hemi, ambient, sun, fill };
+  const windowSun = new THREE.DirectionalLight(0xfff0d8, 0.38);
+  windowSun.position.set(-6, 8, -5);
+  scene.add(windowSun);
+
+  return { hemi, ambient, sun, fill, windowSun };
 }
 
 export function applyDayNightToScene(
@@ -68,6 +76,10 @@ export function applyDayNightToScene(
 
   refs.fill.color.setHex(lighting.fillColor);
   refs.fill.intensity = lighting.fillIntensity;
+
+  refs.windowSun.color.setHex(lighting.sunColor);
+  refs.windowSun.intensity =
+    lighting.sunIntensity * 0.6 * (0.4 + lighting.windowGlow * 0.85) * (1 - lighting.darkness * 0.25);
 
   if (renderer) {
     renderer.toneMappingExposure = lighting.exposure;
@@ -147,16 +159,21 @@ export class LampLightManager {
   }
 }
 
-/** APT 조명 — 항상 밝은 낮(흰 하늘) 고정, 실시간 낮/밤 전환 없음 */
-const FIXED_DAY_HOUR = 14;
-const FIXED_DAY_LIGHTING = getDayNightLighting(FIXED_DAY_HOUR);
-
+/** APT 조명 — 실시간 낮/밤 (창문 햇빛·복도 조명·스탠드 연동) */
 export class DayNightTicker {
-  private readonly hour = FIXED_DAY_HOUR;
-  private readonly lighting = FIXED_DAY_LIGHTING;
+  private hour = getRealWorldHour();
+  private lighting = getDayNightLighting(this.hour);
+  private lastPhase = getDayPhase(this.hour);
 
-  tick(_now = new Date()): { hour: number; lighting: DayNightLighting; changed: boolean } {
-    return { hour: this.hour, lighting: this.lighting, changed: false };
+  tick(now = new Date()): { hour: number; lighting: DayNightLighting; changed: boolean } {
+    const hour = getRealWorldHour(now);
+    const lighting = getDayNightLighting(hour);
+    const phase = getDayPhase(hour);
+    const changed = phase !== this.lastPhase || Math.abs(hour - this.hour) > 0.05;
+    this.hour = hour;
+    this.lighting = lighting;
+    if (changed) this.lastPhase = phase;
+    return { hour, lighting, changed };
   }
 
   getHour() {
@@ -168,7 +185,7 @@ export class DayNightTicker {
   }
 
   lampsEffective() {
-    return false;
+    return isLampEffective(this.lighting.darkness);
   }
 }
 

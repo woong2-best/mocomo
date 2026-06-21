@@ -86,7 +86,8 @@ export function AptLiveTvPanel({ phase, blend, onPowerOff }: Props) {
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[#1a0a0a] to-[#111827] text-center px-6">
                       <Radio className="h-10 w-10 text-red-300/60 mb-3" />
                       <p className="text-sm font-bold text-white/80">현재 방송 중인 채널이 없습니다</p>
-                      <p className="text-xs text-white/50 mt-1">라이브가 시작되면 TV에 표시됩니다</p>
+                      <p className="text-xs text-white/50 mt-1">이웃 방송이 시작되면 TV에 표시됩니다</p>
+                      <p className="text-[10px] text-white/40 mt-2">TV 스탠드 가구 앞에서 상호작용</p>
                     </div>
                   )}
                   {phase !== "active" && (

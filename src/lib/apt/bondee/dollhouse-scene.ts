@@ -283,9 +283,11 @@ export class DollhouseBuildingScene {
       return;
     }
     switch (this.ridePhase) {
-      case "pre-walk":
-        this.elevDoors.setTarget(1);
+      case "pre-walk": {
+        const u = Math.min(1, this.ridePhaseTime / WALK_TO_ELEVATOR_SEC);
+        this.elevDoors.setTarget(u > 0.62 ? 0 : 1);
         break;
+      }
       case "pre-enter":
         this.elevDoors.setTarget(0);
         break;

@@ -240,40 +240,20 @@ export function buildRoomAmbience(
   const g = new THREE.Group();
   g.name = `room-ambience-${room.id}`;
 
-  const curtainMat = bondeeMat(theme.curtainColor, {
-    transparent: true,
-    opacity: 0.82,
-    roughness: 0.9,
-    side: THREE.DoubleSide,
-  });
-  const curtainL = new THREE.Mesh(new THREE.PlaneGeometry(0.28, 0.55), curtainMat);
-  curtainL.position.set(cx - w / 2 + 0.12, 1.05, cz - d / 2 + 0.08);
-  curtainL.name = "room-curtain";
-  g.add(curtainL);
-  const curtainR = curtainL.clone();
-  curtainR.position.x = cx - w / 2 + 0.42;
-  g.add(curtainR);
-
-  const rod = new THREE.Mesh(
-    roundedBox(0.62, 0.025, 0.025, 0.008),
-    bondeeMat(BONDEE_PALETTE.trim, { metalness: 0.15, roughness: 0.4 })
-  );
-  rod.position.set(cx - w / 2 + 0.27, 1.32, cz - d / 2 + 0.06);
-  g.add(rod);
-
-  const ceilLight = new THREE.Mesh(
-    new THREE.CircleGeometry(0.14, 16),
-    new THREE.MeshBasicMaterial({ color: theme.lightColor, transparent: true, opacity: 0.55 })
-  );
-  ceilLight.rotation.x = -Math.PI / 2;
-  ceilLight.position.set(cx, 2.48, cz);
-  ceilLight.name = "room-ceiling-light";
-  g.add(ceilLight);
-
-  const pl = new THREE.PointLight(theme.lightColor, theme.lightIntensity, 5.5);
-  pl.position.set(cx, 2.1, cz);
+  const pl = new THREE.PointLight(theme.lightColor, theme.lightIntensity * 1.15, 6.5);
+  pl.position.set(cx, 2.05, cz);
   pl.name = "room-point-light";
   g.add(pl);
+
+  const fill = new THREE.PointLight(0xfff8f0, theme.lightIntensity * 0.35, 4);
+  fill.position.set(cx + w * 0.15, 1.2, cz + d * 0.1);
+  g.add(fill);
+
+  if (room.type === "living" || room.id === "living") {
+    const warm = new THREE.PointLight(0xffe8d0, 0.22, 3.5);
+    warm.position.set(cx + w * 0.2, 0.8, cz);
+    g.add(warm);
+  }
 
   return g;
 }

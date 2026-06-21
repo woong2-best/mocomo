@@ -16,14 +16,14 @@ export function HomeAvatarControls({ disabled, onMove, onInteract, canInteract, 
     "flex h-11 w-11 items-center justify-center rounded-xl border-2 border-folk-cobalt/25 bg-white/95 text-folk-cobalt shadow-folk-sm active:scale-95 transition-transform disabled:opacity-40";
 
   return (
-    <div className="pointer-events-auto flex flex-col gap-2">
+    <div className="pointer-events-auto flex flex-col gap-2 touch-none">
       {canInteract && onInteract && (
         <button
           type="button"
           onClick={onInteract}
           className="rounded-xl border-2 border-folk-terracotta bg-folk-terracotta px-4 py-2 text-xs font-bold text-white shadow-folk animate-pulse"
         >
-          {interactLabel ?? "상호작용 (E)"}
+          {interactLabel ?? "상호작용"}
         </button>
       )}
 

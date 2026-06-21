@@ -27,6 +27,8 @@ import {
   getRoomTheme,
 } from "./bondee-textures";
 import { computeHomeDoorways, type HomeDoorway } from "./home-doorways";
+import { buildRoomTypeProps } from "./home-room-props";
+import { buildRoomStoryClutter } from "./home-story-props";
 import {
   classifyWallEdge,
   deriveHomeWalls,
@@ -319,8 +321,11 @@ function buildInteriorDoor(
   const hingeZ = door.axis === "x" ? door.cz - doorW / 2 : door.cz;
   pivot.position.set(hingeX, 0, hingeZ);
 
-  const leaf = new THREE.Mesh(roundedBox(doorW, doorH, frameT, 0.008), bondeeMat(0xc9a882));
+  const leaf = new THREE.Mesh(roundedBox(doorW, doorH, frameT + 0.01, 0.012), bondeeMat(0xc9a882));
   leaf.position.set(door.axis === "z" ? doorW / 2 : 0, doorH / 2 + 0.05, door.axis === "x" ? doorW / 2 : 0);
+  const handle = new THREE.Mesh(roundedBox(0.04, 0.12, 0.04, 0.01), bondeeMat(0xb8860b, { metalness: 0.35 }));
+  handle.position.set(door.axis === "z" ? doorW * 0.7 : frameT, 0, door.axis === "x" ? doorW * 0.7 : frameT);
+  leaf.add(handle);
   pivot.rotation.y = 0;
   pivot.userData.baseRotY = 0;
   pivot.userData.openSign = door.swing;
@@ -538,6 +543,8 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
 
     if (room.type !== "balcony" && !dollhouse) {
       roomGroup.add(buildRoomAmbience(room, w, d, cx, cz, theme));
+      roomGroup.add(buildRoomTypeProps(room, w, d, cx, cz, theme, wallHeight));
+      roomGroup.add(buildRoomStoryClutter(room, w, d, cx, cz));
     }
 
     floorRoot.add(roomGroup);

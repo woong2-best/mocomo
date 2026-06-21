@@ -80,6 +80,18 @@ export class CorridorWalkController {
     return Math.hypot(this.avatarX - (-CORRIDOR_LEN / 2 + 0.85), this.avatarZ) < 1.05;
   }
 
+  /** 방문 퍼널 — 복도 입장 시 현관 근처로 이동 */
+  reposition(x: number, z = 0) {
+    this.avatarX = x;
+    this.avatarZ = z;
+    this.syncAvatar();
+  }
+
+  distanceToHomeDoor(corridorLen = CORRIDOR_LEN): number {
+    const doorX = corridorLen / 2 - 1.1;
+    return Math.hypot(this.avatarX - doorX, this.avatarZ);
+  }
+
   canEnterHome(): boolean {
     const home = this.getNearestHomeDoor();
     if (!home) return false;
@@ -91,15 +103,19 @@ export class CorridorWalkController {
   }
 
   knockOrBell(kind: "knock" | "bell" = "knock") {
-    this.knockTimer = 0.75;
+    this.knockTimer = kind === "knock" ? 0.95 : 0.75;
     this.avatar.setAction(kind);
     const home = this.getNearestHomeDoor();
     if (kind === "knock" && home?.knocker) {
-      home.knocker.rotation.z = 0.25;
+      home.knocker.rotation.z = 0.45;
+      home.knocker.position.z += 0.02;
     }
-    if (kind === "bell" && home?.bell && home.bell.material instanceof THREE.MeshStandardMaterial) {
-      home.bell.material.emissive = new THREE.Color(0xffd700);
-      home.bell.material.emissiveIntensity = 0.8;
+    if (kind === "bell" && home?.bell) {
+      if (home.bell.material instanceof THREE.MeshStandardMaterial) {
+        home.bell.material.emissive = new THREE.Color(0xffd700);
+        home.bell.material.emissiveIntensity = 1.2;
+      }
+      home.bell.scale.setScalar(1.15);
     }
   }
 
@@ -137,15 +153,19 @@ export class CorridorWalkController {
       }
       const glow = d.pivot.getObjectByName("door-inner-glow");
       if (glow instanceof THREE.Mesh && glow.material instanceof THREE.MeshBasicMaterial) {
-        const targetOp = animState.state === "open" ? 0.38 : 0;
+        const targetOp = animState.state === "open" ? 0.48 : 0;
         glow.material.opacity = THREE.MathUtils.lerp(glow.material.opacity, targetOp, 0.12);
         if (Math.abs(glow.material.opacity - targetOp) > 0.01) anim = true;
       }
       if (d.knocker) {
-        d.knocker.rotation.z = THREE.MathUtils.lerp(d.knocker.rotation.z, 0, 0.15);
+        d.knocker.rotation.z = THREE.MathUtils.lerp(d.knocker.rotation.z, 0, 0.12);
+        d.knocker.position.z = THREE.MathUtils.lerp(d.knocker.position.z, 0.07, 0.12);
       }
-      if (d.bell?.material instanceof THREE.MeshStandardMaterial) {
-        d.bell.material.emissiveIntensity = THREE.MathUtils.lerp(d.bell.material.emissiveIntensity, 0, 0.12);
+      if (d.bell) {
+        d.bell.scale.setScalar(THREE.MathUtils.lerp(d.bell.scale.x, 1, 0.15));
+        if (d.bell.material instanceof THREE.MeshStandardMaterial) {
+          d.bell.material.emissiveIntensity = THREE.MathUtils.lerp(d.bell.material.emissiveIntensity, 0, 0.1);
+        }
       }
     }
 

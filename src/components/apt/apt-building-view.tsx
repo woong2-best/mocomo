@@ -7,12 +7,17 @@ import {
   ChevronUp,
   ExternalLink,
   Globe2,
+  Heart,
   Home,
+  Star,
   UserRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { AptProfileDto, CountryAptPreview, FloorOccupant } from "@/actions/apt";
-import { getCountryFloorOccupants, listCountryApartments } from "@/actions/apt";
+import type { AptProfileDto, CountryAptPreview } from "@/actions/apt";
+import { listCountryApartments } from "@/actions/apt";
+import { getCountryAptCommunityFeed } from "@/actions/apt-presence";
+import { toggleAptFavoriteHome, toggleAptHomeLike } from "@/actions/apt-daily";
+import type { AptCommunityFeed, AptPresenceOccupant } from "@/lib/apt/presence-types";
 import { AptSimulationHud } from "@/components/apt/apt-simulation-hud";
 import { AptEntranceDoorToggle } from "@/components/apt/apt-entrance-door-toggle";
 import {
@@ -52,6 +57,12 @@ export const AptBuildingView = memo(function AptBuildingView({
   unifiedWorldRef,
   skipSceneMount = false,
   worldMode = "tower",
+  onCommunityFeedChange,
+  onFeedLoadingChange,
+  visitRequestUserId,
+  onVisitRequestHandled,
+  feedRefreshKey = 0,
+  onRequireLogin,
 }: {
   initialProfile: AptProfileDto | null;
   bondeeRoom: BondeeRoomState;
@@ -63,6 +74,12 @@ export const AptBuildingView = memo(function AptBuildingView({
   unifiedWorldRef?: RefObject<UnifiedAptWorldScene | null>;
   skipSceneMount?: boolean;
   worldMode?: AptWorldMode;
+  onCommunityFeedChange?: (feed: AptCommunityFeed) => void;
+  onFeedLoadingChange?: (loading: boolean) => void;
+  visitRequestUserId?: string | null;
+  onVisitRequestHandled?: () => void;
+  feedRefreshKey?: number;
+  onRequireLogin?: (action: string) => void;
 }) {
   const homeCountry = initialProfile?.countryCode ?? "KR";
   const homeFloor = initialProfile?.homeFloor ?? APT_DEFAULT_FLOOR;
@@ -80,10 +97,15 @@ export const AptBuildingView = memo(function AptBuildingView({
   const [viewCountry, setViewCountry] = useState(homeCountry);
   const [countryOpen, setCountryOpen] = useState(false);
   const [countryApts, setCountryApts] = useState<CountryAptPreview[]>([]);
-  const [floorOccupants, setFloorOccupants] = useState<FloorOccupant[]>([]);
+  const [floorOccupants, setFloorOccupants] = useState<AptPresenceOccupant[]>([]);
+  const [communityFeed, setCommunityFeed] = useState<AptCommunityFeed | null>(null);
   const [browseTarget, setBrowseTarget] = useState<CountryAptPreview | null>(null);
   const [loadingCountry, setLoadingCountry] = useState(false);
   const [elevatorOpen, setElevatorOpen] = useState(false);
+  const [feedLoading, setFeedLoading] = useState(true);
+  const [socialPending, setSocialPending] = useState<string | null>(null);
+
+  const showTowerHud = worldMode === "tower" || worldMode === "elevator";
 
   const countryAptsRef = useRef(countryApts);
   useEffect(() => {
@@ -135,20 +157,70 @@ export const AptBuildingView = memo(function AptBuildingView({
   goToFloorRef.current = goToFloor;
 
   useEffect(() => {
+    onFeedLoadingChange?.(feedLoading);
+  }, [feedLoading, onFeedLoadingChange]);
+
+  useEffect(() => {
     void (async () => {
+      setFeedLoading(true);
       setLoadingCountry(true);
       try {
-        const [list, occupants] = await Promise.all([
+        const [list, feed] = await Promise.all([
           listCountryApartments(viewCountry),
-          getCountryFloorOccupants(viewCountry),
+          getCountryAptCommunityFeed(viewCountry),
         ]);
         setCountryApts(list);
-        setFloorOccupants(occupants);
+        setCommunityFeed(feed);
+        setFloorOccupants(feed.occupants);
         setBrowseTarget(null);
       } finally {
         setLoadingCountry(false);
+        setFeedLoading(false);
       }
     })();
+  }, [viewCountry]);
+
+  useEffect(() => {
+    if (communityFeed) onCommunityFeedChange?.(communityFeed);
+  }, [communityFeed, onCommunityFeedChange]);
+
+  useEffect(() => {
+    if (!visitRequestUserId || feedLoading) return;
+    const apt = countryApts.find((a) => a.userId === visitRequestUserId);
+    const occ = floorOccupants.find((o) => o.userId === visitRequestUserId);
+    if (apt) {
+      if (!occ?.doorOpen && occ) {
+        showToast(
+          `${apt.displayName}님 — 현관문이 닫혀 있습니다. APT Daily에서 다른 집을 구경해 보세요`
+        );
+      } else {
+        showToast(`${apt.displayName}님 집 — 이동 안내가 화면 중앙에 표시됩니다`);
+        setBrowseTarget(apt);
+      }
+    } else if (occ) {
+      showToast(`${occ.displayName}님 집은 현재 방문할 수 없습니다`);
+    } else {
+      showToast("입주민 정보를 불러오는 중입니다. 잠시 후 다시 시도해 주세요");
+    }
+    onVisitRequestHandled?.();
+  }, [visitRequestUserId, feedLoading, countryApts, floorOccupants, onVisitRequestHandled, showToast]);
+
+  useEffect(() => {
+    if (feedRefreshKey <= 0) return;
+    void getCountryAptCommunityFeed(viewCountry).then((feed) => {
+      setCommunityFeed(feed);
+      setFloorOccupants(feed.occupants);
+    });
+  }, [feedRefreshKey, viewCountry]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      void getCountryAptCommunityFeed(viewCountry).then((feed) => {
+        setCommunityFeed(feed);
+        setFloorOccupants(feed.occupants);
+      });
+    }, 30_000);
+    return () => window.clearInterval(id);
   }, [viewCountry]);
 
   useEffect(() => {
@@ -184,8 +256,8 @@ export const AptBuildingView = memo(function AptBuildingView({
 
   useEffect(() => {
     if (!skipSceneMount) return;
-    unifiedWorldRef?.current?.setFloorOccupants(floorOccupants);
-  }, [floorOccupants, skipSceneMount, unifiedWorldRef?.current]);
+    if (communityFeed) unifiedWorldRef?.current?.setCommunityFeed(communityFeed);
+  }, [communityFeed, skipSceneMount, unifiedWorldRef?.current]);
 
   useEffect(() => {
     const world = unifiedWorldRef?.current;
@@ -260,10 +332,10 @@ export const AptBuildingView = memo(function AptBuildingView({
         onRideEnd: () => setMoving(false),
         onResidentClick: (f: number, resident: import("@/lib/apt/bondee/dollhouse-scene").FloorResident) => {
           if (!resident.doorOpen) {
-            showToastRef.current(`${resident.displayName}님 — 현관문이 닫혀 있어 방문할 수 없습니다`);
+            showToastRef.current(`${resident.displayName}님 — 현관문이 닫혀 있습니다`);
             return;
           }
-          showToastRef.current(`${resident.displayName}님 집 — 노크 후 입장`);
+          showToastRef.current(`${resident.displayName}님 집 — 복도 현관문 앞에서 상호작용으로 입장`);
           const apt =
             countryAptsRef.current.find((a) => a.userId === resident.userId) ??
             countryAptsRef.current.find((a) => a.homeFloor === f);
@@ -308,6 +380,41 @@ export const AptBuildingView = memo(function AptBuildingView({
     plansRef.current = plans;
   }, [plans]);
 
+  const likedHostIds = communityFeed?.daily.likedHostIds ?? [];
+  const favoritedHostIds = communityFeed?.daily.favoritedHostIds ?? [];
+
+  const handleBrowseLike = async (userId: string) => {
+    if (!isLoggedIn) {
+      onRequireLogin?.("좋아요");
+      return;
+    }
+    setSocialPending(`like-${userId}`);
+    try {
+      await toggleAptHomeLike(userId);
+      const feed = await getCountryAptCommunityFeed(viewCountry);
+      setCommunityFeed(feed);
+      setFloorOccupants(feed.occupants);
+    } finally {
+      setSocialPending(null);
+    }
+  };
+
+  const handleBrowseFavorite = async (userId: string) => {
+    if (!isLoggedIn) {
+      onRequireLogin?.("즐겨찾기");
+      return;
+    }
+    setSocialPending(`fav-${userId}`);
+    try {
+      await toggleAptFavoriteHome(userId);
+      const feed = await getCountryAptCommunityFeed(viewCountry);
+      setCommunityFeed(feed);
+      setFloorOccupants(feed.occupants);
+    } finally {
+      setSocialPending(null);
+    }
+  };
+
   return (
     <div
       className={cn(
@@ -320,6 +427,8 @@ export const AptBuildingView = memo(function AptBuildingView({
 
       <AptSimulationHud snapshot={simSnap} />
 
+      {showTowerHud && (
+        <>
       {/* Floor indicator — elevator style */}
       <div className="pointer-events-none absolute left-1/2 top-14 z-10 -translate-x-1/2">
         <div
@@ -356,6 +465,8 @@ export const AptBuildingView = memo(function AptBuildingView({
           <AptEntranceDoorToggle doorOpen={doorOpen} onToggle={onDoorToggle} compact />
         </div>
       )}
+        </>
+      )}
 
       {browseTarget && !isOwnApt && (
         <div className="pointer-events-auto absolute top-[5.5rem] right-3 z-10 max-w-[220px] rounded-xl border border-pink-400/30 bg-black/60 p-3 shadow-xl backdrop-blur-md space-y-2">
@@ -364,8 +475,38 @@ export const AptBuildingView = memo(function AptBuildingView({
             {browseTarget.displayName} · {browseTarget.homeFloor}층
           </p>
           <p className="text-[10px] text-white/60 leading-snug">
-            현관문이 열린 집만 방문할 수 있습니다
+            복도 현관문 앞에서 상호작용으로 입장하세요
           </p>
+          <div className="flex flex-wrap gap-1">
+            <button
+              type="button"
+              disabled={socialPending === `like-${browseTarget.userId}`}
+              onClick={() => void handleBrowseLike(browseTarget.userId)}
+              className={cn(
+                "flex-1 rounded-lg border px-2 py-1 text-[10px] font-semibold",
+                likedHostIds.includes(browseTarget.userId)
+                  ? "border-pink-400/50 bg-pink-500/20 text-pink-100"
+                  : "border-white/20 text-white/80 hover:bg-white/10"
+              )}
+            >
+              <Heart className="mr-0.5 inline h-3 w-3" />
+              좋아요
+            </button>
+            <button
+              type="button"
+              disabled={socialPending === `fav-${browseTarget.userId}`}
+              onClick={() => void handleBrowseFavorite(browseTarget.userId)}
+              className={cn(
+                "flex-1 rounded-lg border px-2 py-1 text-[10px] font-semibold",
+                favoritedHostIds.includes(browseTarget.userId)
+                  ? "border-sky-400/50 bg-sky-500/20 text-sky-100"
+                  : "border-white/20 text-white/80 hover:bg-white/10"
+              )}
+            >
+              <Star className="mr-0.5 inline h-3 w-3" />
+              즐겨찾기
+            </button>
+          </div>
           <Button asChild size="sm" className="w-full h-8 rounded-lg text-xs gap-1">
             <Link href={`/u/${browseTarget.username}`}>
               프로필 보기
@@ -381,6 +522,8 @@ export const AptBuildingView = memo(function AptBuildingView({
         </div>
       )}
 
+      {showTowerHud && (
+      <>
       {/* Elevator call panel — only way to change floors */}
       <div className="pointer-events-auto absolute right-3 bottom-24 z-10 flex flex-col items-end gap-2">
         <button
@@ -529,6 +672,8 @@ export const AptBuildingView = memo(function AptBuildingView({
           현관문 열린 집만 방문 · 엘리베이터로 층 이동 · 현관 클릭으로 입장
         </p>
       </div>
+      </>
+      )}
     </div>
   );
 });

@@ -2,13 +2,13 @@
 
 import * as THREE from "three";
 import { BONDEE_PALETTE } from "./bondee-mesh-utils";
-import { PASTEL } from "./dollhouse-meshes";
+import { APT_ART } from "@/lib/apt/world/apt-world-art";
 
 export type AtlasSlot = "wall" | "floorWood" | "floorAlt" | "trim" | "tile" | "shell";
 
 const ATLAS_W = 512;
 const ATLAS_H = 512;
-const PASTEL_SHELL = 0xe8e4ec;
+const PASTEL_SHELL = APT_ART.wallCool;
 
 let atlasTexture: THREE.CanvasTexture | null = null;
 const materialCache = new Map<AtlasSlot, THREE.MeshStandardMaterial>();
@@ -38,10 +38,10 @@ function buildAtlasCanvas(): HTMLCanvasElement {
   canvas.width = ATLAS_W;
   canvas.height = ATLAS_H;
   const ctx = canvas.getContext("2d")!;
-  drawWall(ctx, 0, 0, 256, 256, 0xf4f0f2);
-  drawWood(ctx, 256, 0, 256, 256, PASTEL.floorWood);
-  drawWood(ctx, 0, 256, 256, 256, PASTEL.floorWoodAlt);
-  drawWall(ctx, 256, 256, 128, 128, PASTEL.shellTrim);
+  drawWall(ctx, 0, 0, 256, 256, APT_ART.wallBase);
+  drawWood(ctx, 256, 0, 256, 256, APT_ART.floorWood);
+  drawWood(ctx, 0, 256, 256, 256, APT_ART.floorWoodAlt);
+  drawWall(ctx, 256, 256, 128, 128, APT_ART.trim);
   ctx.fillStyle = hex(BONDEE_PALETTE.tile);
   ctx.fillRect(384, 256, 128, 128);
   ctx.strokeStyle = hex(BONDEE_PALETTE.tileLine);

@@ -22,7 +22,7 @@ export const BONDEE_PALETTE = {
   wallPeach: 0xffecd9,
   trim: 0xffc8dc,
   accent: 0xffb4c8,
-  shadow: 0xc8b8a8,
+  shadow: 0xd8c8b8,
 } as const;
 
 export function bondeeMat(
@@ -42,7 +42,7 @@ export function bondeeGlowMat(color: number, intensity = 0.35) {
   return m;
 }
 
-export function roundedBox(w: number, h: number, d: number, radius = 0.04, segments = 4) {
+export function roundedBox(w: number, h: number, d: number, radius = 0.055, segments = 4) {
   return new RoundedBoxGeometry(w, h, d, segments, radius);
 }
 

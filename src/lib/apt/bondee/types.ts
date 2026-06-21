@@ -118,6 +118,8 @@ export type BondeeHomeState = {
       boolean
     >
   >;
+  /** 집 정체성 — 태그·대표 공간·브랜딩 */
+  identity?: import("@/lib/apt/home-identity").AptHomeIdentity;
 };
 
 export const DEFAULT_CHIBI_AVATAR: ChibiAvatarConfig = {

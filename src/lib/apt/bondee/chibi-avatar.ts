@@ -41,26 +41,40 @@ export class ChibiAvatarMesh {
     this.applyPose(pose);
   }
 
+  setPose(pose: ChibiPose) {
+    if (this.currentPose === pose) return;
+    this.currentPose = pose;
+    this.applyPose(pose);
+  }
+
+  getPose() {
+    return this.currentPose;
+  }
+
   /** Walk cycle without full rebuild */
   animateWalk(phase: number, moving: boolean) {
     if (!moving) {
-      if (this.currentPose === "stand") return;
-      this.body.position.y = 0;
-      if (this.legL) this.legL.rotation.x = 0;
-      if (this.legR) this.legR.rotation.x = 0;
-      if (this.armL) this.armL.rotation.x = 0;
-      if (this.armR) this.armR.rotation.x = 0;
+      if (this.currentPose === "stand" || this.currentPose === "wave") {
+        this.body.position.y = Math.sin(phase * 2) * 0.004;
+      }
+      if (this.currentPose === "stand") {
+        if (this.legL) this.legL.rotation.x = THREE.MathUtils.lerp(this.legL.rotation.x, 0, 0.15);
+        if (this.legR) this.legR.rotation.x = THREE.MathUtils.lerp(this.legR.rotation.x, 0, 0.15);
+        if (this.armL) this.armL.rotation.x = THREE.MathUtils.lerp(this.armL.rotation.x, 0, 0.15);
+        if (this.armR) this.armR.rotation.x = THREE.MathUtils.lerp(this.armR.rotation.x, 0, 0.15);
+      }
       return;
     }
 
-    const bounce = Math.sin(phase * 10) * 0.018;
+    const bounce = Math.sin(phase * 10) * 0.022;
     this.body.position.y = bounce;
+    this.body.rotation.x = THREE.MathUtils.lerp(this.body.rotation.x, 0.04, 0.12);
 
-    const swing = Math.sin(phase * 10) * 0.45;
+    const swing = Math.sin(phase * 10) * 0.52;
     if (this.legL) this.legL.rotation.x = swing;
     if (this.legR) this.legR.rotation.x = -swing;
-    if (this.armL) this.armL.rotation.x = -swing * 0.6;
-    if (this.armR) this.armR.rotation.x = swing * 0.6;
+    if (this.armL) this.armL.rotation.x = -swing * 0.55;
+    if (this.armR) this.armR.rotation.x = swing * 0.55;
   }
 
   private clearParts() {
@@ -266,31 +280,45 @@ export class ChibiAvatarMesh {
   private applyPose(pose: ChibiPose) {
     this.body.rotation.set(0, 0, 0);
     this.body.position.set(0, 0, 0);
+    if (this.legL) this.legL.rotation.set(0, 0, 0);
+    if (this.legR) this.legR.rotation.set(0, 0, 0);
+    if (this.armL) {
+      this.armL.rotation.set(0, 0, 0.25);
+      this.armL.position.set(-0.24, 0.4, 0);
+    }
+    if (this.armR) {
+      this.armR.rotation.set(0, 0, -0.25);
+      this.armR.position.set(0.24, 0.4, 0);
+    }
 
     if (pose === "stand" || pose === "wave") {
       if (pose === "wave" && this.armR) {
         this.armR.rotation.set(-1.2, 0, -0.8);
       }
     } else if (pose === "sit") {
-      this.body.position.set(0, 0.08, 0.05);
-      this.body.rotation.x = -0.15;
-      if (this.armL) this.armL.rotation.set(0.5, 0, 0.6);
-      if (this.armR) this.armR.rotation.set(0.5, 0, -0.6);
-      if (this.legL) this.legL.rotation.x = 1.1;
-      if (this.legR) this.legR.rotation.x = 1.1;
+      this.body.position.set(0, 0.06, 0.06);
+      this.body.rotation.x = -0.22;
+      if (this.armL) this.armL.rotation.set(0.55, 0, 0.45);
+      if (this.armR) this.armR.rotation.set(0.55, 0, -0.45);
+      if (this.legL) this.legL.rotation.x = 1.25;
+      if (this.legR) this.legR.rotation.x = 1.25;
     } else if (pose === "lie") {
-      this.body.position.set(0, 0.22, 0.1);
-      this.body.rotation.set(-Math.PI / 2 + 0.2, 0, 0);
+      this.body.position.set(0, 0.2, 0.12);
+      this.body.rotation.set(-Math.PI / 2 + 0.15, 0, 0);
+      if (this.legL) this.legL.rotation.x = 0.15;
+      if (this.legR) this.legR.rotation.x = -0.15;
     } else if (pose === "lie_prone") {
-      this.body.position.set(0, 0.12, 0.08);
-      this.body.rotation.set(Math.PI / 2 - 0.15, 0, 0);
-      if (this.armL) this.armL.rotation.set(0.3, 0, 0.5);
-      if (this.armR) this.armR.rotation.set(0.3, 0, -0.5);
+      this.body.position.set(0, 0.1, 0.08);
+      this.body.rotation.set(Math.PI / 2 - 0.12, 0, 0);
+      if (this.armL) this.armL.rotation.set(0.35, 0, 0.45);
+      if (this.armR) this.armR.rotation.set(0.35, 0, -0.45);
     } else if (pose === "run") {
-      this.body.position.y = 0.05;
-      this.body.rotation.x = 0.15;
-      if (this.armL) this.armL.rotation.set(-0.8, 0, 0.3);
-      if (this.armR) this.armR.rotation.set(0.6, 0, -0.3);
+      this.body.position.y = 0.06;
+      this.body.rotation.x = 0.18;
+      if (this.armL) this.armL.rotation.set(-0.85, 0, 0.35);
+      if (this.armR) this.armR.rotation.set(0.65, 0, -0.35);
+      if (this.legL) this.legL.rotation.x = 0.55;
+      if (this.legR) this.legR.rotation.x = -0.45;
     }
   }
 

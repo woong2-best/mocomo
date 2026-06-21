@@ -22,7 +22,14 @@ import {
 import { findRoomAt, isWalkable } from "./home-walkability";
 import { wallSideFacesCamera, type HomeWallSide } from "./home-walls";
 import { computeHomeDoorways, isNearDoor, type HomeDoorway } from "./home-doorways";
-import type { BondeeHomeState, BondeePlacedItem, ChibiAvatarConfig, ChibiPose } from "./types";
+import type {
+  BondeeHomeState,
+  BondeePlacedItem,
+  ChibiAvatarConfig,
+  ChibiPose,
+} from "./types";
+import type { HomeIdentitySummary } from "@/lib/apt/home-identity";
+import { resolveHomeIdentity } from "@/lib/apt/home-identity";
 import type { StudioDecorTool } from "@/studio/lib/apt-types";
 import { hydrateStudioGltfMeshes } from "./studio-gltf-meshes";
 import { enableBondeeRenderer, BONDEE_PALETTE } from "./bondee-mesh-utils";
@@ -47,8 +54,10 @@ import { InteriorAmbientFx } from "./interior-ambient-fx";
 const MOVE_SPEED = 2.4;
 const INTERACT_DIST = 0.72;
 const CAM_LERP = 6;
-const ZOOM_MIN = 4.2;
-const ZOOM_MAX = 8.5;
+const CAM_YAW_DEFAULT = Math.PI * 0.31;
+const CAM_PITCH_DEFAULT = 0.46;
+const ZOOM_MIN = 5.2;
+const ZOOM_MAX = 9.5;
 const CONSOLE_TRANSITION_SPEED = 1.35;
 const CONSOLE_TV_SCALE = 1.22;
 const CONSOLE_SEAT_DIST = 0.52;
@@ -115,6 +124,7 @@ export type IsometricHomeCallbacks = {
   onPositionChange?: (pos: { x: number; z: number; pose: ChibiPose; activity: string }) => void;
   onTimeChange?: (hour: number, phaseLabel: string) => void;
   onFurnitureToast?: (message: string) => void;
+  onShowcaseEnter?: (summary: HomeIdentitySummary) => void;
 };
 
 export class IsometricHomeScene {
@@ -149,7 +159,7 @@ export class IsometricHomeScene {
   private selectedItemId: string | null = null;
   private callbacks: IsometricHomeCallbacks = {};
   private animPhase = 0;
-  private frustum = 6.6;
+  private frustum = 7.4;
   private walkMode = true;
   private avatarX = 0;
   private avatarZ = 0;
@@ -166,11 +176,11 @@ export class IsometricHomeScene {
   private interactPoseIdx = 0;
   private walking = false;
   private needsRender = true;
-  private camYaw = Math.PI / 4;
-  private camPitch = 0.55;
-  private camDist = 6.4;
-  private targetCamYaw = Math.PI / 4;
-  private targetCamDist = 6.4;
+  private camYaw = CAM_YAW_DEFAULT;
+  private camPitch = CAM_PITCH_DEFAULT;
+  private camDist = 7.0;
+  private targetCamYaw = CAM_YAW_DEFAULT;
+  private targetCamDist = 7.0;
   private dragging = false;
   private dragLast: { x: number; y: number } | null = null;
   private avatarShadow: THREE.Mesh;
@@ -229,6 +239,7 @@ export class IsometricHomeScene {
       const c = roomCenter(living);
       this.avatarX = c.x + (living.id === "entrance" ? 0.15 : -0.3);
       this.avatarZ = c.z + 0.2;
+      this.frameRoomCamera(living);
     }
 
     if (embed) {
@@ -507,12 +518,22 @@ export class IsometricHomeScene {
 
   private updateDayNight(force = false) {
     const { hour, lighting, changed } = this.dayNight.tick();
-    if (!force && !changed) return;
     applyDayNightToScene(this.scene, this.sceneLighting, lighting, this.renderer);
     this.lampManager.setDarkness(lighting.darkness);
+    this.ambientFx.setDarkness(lighting.darkness);
     this.syncLampLights();
-    this.callbacks.onTimeChange?.(hour, getDayPhaseLabel(hour));
-    this.requestRender();
+    if (force || changed) {
+      this.callbacks.onTimeChange?.(hour, getDayPhaseLabel(hour));
+    }
+    this.needsRender = true;
+  }
+
+  private frameRoomCamera(room: AptRoom) {
+    const { w, d } = roomSize(room);
+    const span = Math.max(w, d);
+    this.targetCamDist = THREE.MathUtils.clamp(span * 1.12 + 5.0, ZOOM_MIN, ZOOM_MAX);
+    const hash = room.id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+    this.targetCamYaw = CAM_YAW_DEFAULT + ((hash % 5) - 2) * 0.035;
   }
 
   private syncLampLights() {
@@ -561,7 +582,41 @@ export class IsometricHomeScene {
   setActiveRoom(roomId: string) {
     if (this.activeRoomId === roomId) return;
     this.activeRoomId = roomId;
+    const room = this.rooms.find((r) => r.id === roomId);
+    if (room) this.frameRoomCamera(room);
     this.refreshShellOnly();
+    this.callbacks.onActiveRoomChange?.(roomId);
+  }
+
+  /** 방문·쇼케이스 — 대표 공간·가구로 카메라·시선 이동 */
+  enterShowcaseTour(notify = true): HomeIdentitySummary {
+    const summary = resolveHomeIdentity(this.state, this.rooms);
+    const room = this.rooms.find((r) => r.id === summary.showcaseRoomId) ?? this.rooms[0];
+    if (room) {
+      this.activeRoomId = room.id;
+      this.frameRoomCamera(room);
+      const item = summary.showcaseItemId
+        ? this.state.items.find((i) => i.id === summary.showcaseItemId)
+        : null;
+      if (item) {
+        const p = itemWorldPos(item, room);
+        this.avatarX = p.x;
+        this.avatarZ = p.z + 0.35;
+        this.avatarRotY = Math.PI;
+        this.setSelectedItem(item.id);
+      } else {
+        const c = roomCenter(room);
+        this.avatarX = c.x;
+        this.avatarZ = c.z + 0.2;
+        this.setSelectedItem(null);
+      }
+      this.applyAvatar();
+      this.updateCameraPosition();
+      this.refreshShellOnly();
+    }
+    if (notify) this.callbacks.onShowcaseEnter?.(summary);
+    this.requestRender();
+    return summary;
   }
 
   setSelectedItem(id: string | null) {
@@ -1403,6 +1458,7 @@ export class IsometricHomeScene {
     const room = findRoomAt(this.avatarX, this.avatarZ, this.rooms);
     if (!room || room.id === this.activeRoomId) return;
     this.activeRoomId = room.id;
+    this.frameRoomCamera(room);
     this.callbacks.onActiveRoomChange?.(room.id);
     void this.appendMissingFurnitureForRooms(this.visibleRoomIdsNearAvatar());
   }
@@ -1583,7 +1639,8 @@ export class IsometricHomeScene {
   };
 
   private onPointerDown = (e: PointerEvent) => {
-    if (e.button === 1 || e.button === 2 || e.altKey || e.shiftKey) {
+    const allowManualCam = this.decorMode && (e.shiftKey || e.button === 1 || e.button === 2);
+    if (allowManualCam) {
       this.dragging = true;
       this.dragLast = { x: e.clientX, y: e.clientY };
       return;
@@ -1689,6 +1746,7 @@ export class IsometricHomeScene {
 
   private onWheel = (e: WheelEvent) => {
     if (this.consolePhase !== "off") return;
+    if (!this.decorMode || !e.shiftKey) return;
     e.preventDefault();
     this.targetCamDist = THREE.MathUtils.clamp(this.targetCamDist + e.deltaY * 0.004, ZOOM_MIN, ZOOM_MAX);
   };

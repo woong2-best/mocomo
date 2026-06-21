@@ -11,6 +11,7 @@ import {
   RotateCw,
   Sofa,
   Sparkles,
+  Tag,
   Trash2,
   Waves,
   ArrowDownToLine,
@@ -44,6 +45,8 @@ import { AptInteractPrompt } from "@/components/apt/apt-interact-prompt";
 import { AptLiveTvPanel } from "@/components/apt/apt-live-tv-panel";
 import { AptConsoleScreen } from "@/components/apt/apt-console-screen";
 import { AptSmartphonePanel } from "@/components/apt/apt-smartphone-panel";
+import { AptHomeIdentityPanel } from "@/components/apt/apt-home-identity-panel";
+import type { HomeIdentitySummary } from "@/lib/apt/home-identity";
 import { useAptHomeSocket } from "@/hooks/use-apt-home-socket";
 import { useSession } from "next-auth/react";
 import { useCompose } from "@/components/compose/compose-provider";
@@ -73,6 +76,8 @@ function AptBondeeRoomInner({
   unifiedWorldRef,
   skipSceneMount = false,
   worldMode = "interior",
+  isVisiting = false,
+  visitingIdentity = null,
 }: {
   initialState: BondeeHomeState;
   rooms: AptRoom[];
@@ -85,6 +90,8 @@ function AptBondeeRoomInner({
   unifiedWorldRef?: RefObject<UnifiedAptWorldScene | null>;
   skipSceneMount?: boolean;
   worldMode?: AptWorldMode;
+  isVisiting?: boolean;
+  visitingIdentity?: HomeIdentitySummary | null;
 }) {
   const { data: session } = useSession();
   const homeOwnerId = session?.user?.id ?? null;
@@ -97,7 +104,8 @@ function AptBondeeRoomInner({
   const [activeRoomId, setActiveRoomId] = useState(
     initialState.activeRoomId ?? rooms.find((r) => r.type === "living")?.id ?? rooms[0]?.id
   );
-  const [panel, setPanel] = useState<"avatar" | "decor" | null>("decor");
+  const [panel, setPanel] = useState<"avatar" | "decor" | "identity" | null>(null);
+  const [identityHint, setIdentityHint] = useState(false);
   const [decorCat, setDecorCat] = useState(0);
   const [placeTool, setPlaceTool] = useState<BondeeFurnitureKind | null>(null);
   const [studioTool, setStudioTool] = useState<AptStudioInventoryItem | null>(null);
@@ -140,6 +148,17 @@ function AptBondeeRoomInner({
   );
 
   const movementDisabled = panel === "decor" && (!!placeTool || !!studioTool || deleteMode);
+
+  useEffect(() => {
+    if (isVisiting && panel === "identity") setPanel(null);
+  }, [isVisiting, panel]);
+
+  useEffect(() => {
+    if (worldMode !== "interior" || isVisiting || !isLoggedIn) return;
+    if (typeof sessionStorage === "undefined") return;
+    if (sessionStorage.getItem("apt-identity-hint") === "1") return;
+    setIdentityHint(true);
+  }, [worldMode, isVisiting, isLoggedIn]);
 
   const roomTabs = useMemo(
     () => rooms.filter((r) => r.type !== "hall" && r.type !== "balcony"),
@@ -425,6 +444,16 @@ function AptBondeeRoomInner({
         </div>
       )}
 
+      {isVisiting && visitingIdentity && (
+        <div className="pointer-events-none absolute top-14 left-3 z-10 max-w-[14rem] rounded-xl border border-amber-400/30 bg-black/65 px-3 py-2 backdrop-blur-md shadow-lg">
+          <p className="text-[10px] font-bold text-amber-200">{visitingIdentity.archetypeLabel}</p>
+          <p className="text-[10px] text-white/75 mt-0.5">{visitingIdentity.tagline}</p>
+          {visitingIdentity.tags.length > 0 && (
+            <p className="text-[9px] text-white/45 mt-1">{visitingIdentity.tags.join(" ")}</p>
+          )}
+        </div>
+      )}
+
         <GramophonePanel
           open={gramophoneOpen}
           onClose={() => {
@@ -523,6 +552,39 @@ function AptBondeeRoomInner({
         </div>
 
       {/* Slide-up decor / avatar panel */}
+      {identityHint && isLoggedIn && !isVisiting && (
+        <div className="pointer-events-auto absolute bottom-[3.5rem] left-3 right-3 z-[25] mx-auto max-w-md rounded-xl border border-amber-400/35 bg-black/80 p-3 shadow-xl backdrop-blur-md">
+          <p className="text-[11px] font-bold text-amber-100">내 집 소개 설정</p>
+          <p className="text-[10px] text-white/65 mt-1 leading-snug">
+            하단 <span className="text-amber-200 font-semibold">정체성</span> 탭에서 집 분위기·태그·대표 공간을
+            정하면 이웃이 「그 사람 집」으로 기억합니다.
+          </p>
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setPanel("identity");
+                setIdentityHint(false);
+                sessionStorage.setItem("apt-identity-hint", "1");
+              }}
+              className="flex-1 rounded-lg bg-amber-500/90 py-1.5 text-[10px] font-bold text-white"
+            >
+              정체성 열기
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIdentityHint(false);
+                sessionStorage.setItem("apt-identity-hint", "1");
+              }}
+              className="rounded-lg border border-white/20 px-3 py-1.5 text-[10px] text-white/70"
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
+
       <div
         className={cn(
           "absolute inset-x-0 bottom-0 z-20 transition-transform duration-300 ease-out",
@@ -542,7 +604,7 @@ function AptBondeeRoomInner({
             )}
           >
             <Sparkles className="h-4 w-4 inline mr-1" />
-            아바타 꾸미기
+            아바타
           </button>
           <button
             type="button"
@@ -558,8 +620,23 @@ function AptBondeeRoomInner({
             )}
           >
             <LayoutGrid className="h-4 w-4 inline mr-1" />
-            집 꾸미기
+            꾸미기
           </button>
+          {isLoggedIn && !isVisiting && (
+            <button
+              type="button"
+              onClick={() => setPanel(panel === "identity" ? null : "identity")}
+              className={cn(
+                "flex-1 rounded-2xl border py-2.5 text-xs font-bold transition-all",
+                panel === "identity"
+                  ? "border-amber-400/60 bg-amber-500/20 text-amber-100"
+                  : "border-white/15 bg-white/5 text-white/70 hover:bg-white/10"
+              )}
+            >
+              <Tag className="h-4 w-4 inline mr-1" />
+              내 집 소개
+            </button>
+          )}
         </div>
 
         {panel === "avatar" && (
@@ -706,6 +783,17 @@ function AptBondeeRoomInner({
               </button>
             </div>
           </div>
+          </div>
+        )}
+
+        {panel === "identity" && isLoggedIn && !isVisiting && (
+          <div className="max-h-[min(42dvh,360px)] overflow-y-auto p-3">
+            <AptHomeIdentityPanel
+              state={state}
+              rooms={roomTabs}
+              onChange={(identity) => applyState({ ...stateRef.current, identity })}
+              onPreviewShowcase={() => sceneRef.current?.enterShowcaseTour(true)}
+            />
           </div>
         )}
         </div>

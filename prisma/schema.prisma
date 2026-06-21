@@ -185,6 +185,13 @@ model User {
   pushSubscriptions PushSubscription[]
   avatarPresets     AvatarPreset[]
   aptProfile        AptProfile?
+  aptPresence       AptPresence?
+  aptVisitsHosted   AptHomeVisit[] @relation("AptVisitHost")
+  aptVisitsMade     AptHomeVisit[] @relation("AptVisitVisitor")
+  aptHomeLikesGiven AptHomeLike[]  @relation("AptHomeLiker")
+  aptHomeLikesRecv  AptHomeLike[]  @relation("AptHomeLikeHost")
+  aptFavoriteHomes  AptFavoriteHome[] @relation("AptFavoriteOwner")
+  aptFavoritedBy    AptFavoriteHome[] @relation("AptFavoriteHost")
 
   creatorSeries            CreatorSeries[]          @relation("CreatorSeriesAuthor")
   creatorEpisodes          CreatorEpisode[]         @relation("CreatorEpisodeAuthor")
@@ -2124,6 +2131,66 @@ model AptProfile {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/** APT 집 방문 기록 — 방명록·랭킹·커뮤니티 통계 */
+model AptHomeVisit {
+  id        String   @id @default(cuid())
+  hostId    String
+  visitorId String
+  createdAt DateTime @default(now())
+
+  host    User @relation("AptVisitHost", fields: [hostId], references: [id], onDelete: Cascade)
+  visitor User @relation("AptVisitVisitor", fields: [visitorId], references: [id], onDelete: Cascade)
+
+  @@index([hostId, createdAt(sort: Desc)])
+  @@index([visitorId, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+}
+
+/** APT 실시간 접속 — 로비·광장·복도 아바타 표시 */
+model AptPresence {
+  userId         String   @id
+  countryCode    String   @default("KR")
+  mode           String   @default("district")
+  homeFloor      Int      @default(50)
+  visitingUserId String?
+  lastSeenAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([countryCode, lastSeenAt(sort: Desc)])
+  @@index([mode, countryCode, lastSeenAt(sort: Desc)])
+  @@index([visitingUserId, lastSeenAt(sort: Desc)])
+}
+
+/** APT 집 좋아요 — 오늘의 집·주간 베스트 룸 집계 */
+model AptHomeLike {
+  id        String   @id @default(cuid())
+  hostId    String
+  likerId   String
+  createdAt DateTime @default(now())
+
+  host  User @relation("AptHomeLikeHost", fields: [hostId], references: [id], onDelete: Cascade)
+  liker User @relation("AptHomeLiker", fields: [likerId], references: [id], onDelete: Cascade)
+
+  @@unique([hostId, likerId])
+  @@index([hostId, createdAt(sort: Desc)])
+  @@index([likerId, createdAt(sort: Desc)])
+}
+
+/** APT 즐겨찾는 집 / 이웃 */
+model AptFavoriteHome {
+  id        String   @id @default(cuid())
+  userId    String
+  hostId    String
+  createdAt DateTime @default(now())
+
+  user User @relation("AptFavoriteOwner", fields: [userId], references: [id], onDelete: Cascade)
+  host User @relation("AptFavoriteHost", fields: [hostId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, hostId])
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 // ============ MINIGAMES ============

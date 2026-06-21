@@ -73,13 +73,18 @@ export type DayNightLighting = {
   fillColor: number;
   /** 0 = 낮, 1 = 한밤 */
   darkness: number;
+  /** 0–1 Animal Crossing 따뜻함 */
+  warmth: number;
+  /** 0–1 창문·문틈 빛 강도 */
+  windowGlow: number;
   exposure: number;
 };
 
-const SKY_DAY = 0xfef6f8;
-const SKY_DAWN = 0xffb88a;
-const SKY_DUSK = 0xff8866;
-const SKY_NIGHT = 0x0a1628;
+const SKY_DAY = 0xfff8f0;
+const SKY_DAWN = 0xffc8a0;
+const SKY_EVENING = 0xff9868;
+const SKY_DUSK = 0xff7858;
+const SKY_NIGHT = 0x1a2844;
 
 /** 시간대별 하늘·조명 파라미터 (실시간 보간) */
 export function getDayNightLighting(hour: number): DayNightLighting {
@@ -87,16 +92,24 @@ export function getDayNightLighting(hour: number): DayNightLighting {
 
   let skyColor = SKY_DAY;
   let darkness = 0;
+  let warmth = 0.35;
+  let windowGlow = 0.08;
 
   if (h < 5) {
     darkness = 1;
     skyColor = SKY_NIGHT;
+    warmth = 0.15;
+    windowGlow = 0.92;
   } else if (h < 7) {
     const t = smoothstep(5, 7, h);
     darkness = 1 - t;
     skyColor = lerpColor(SKY_NIGHT, SKY_DAWN, t);
+    warmth = lerp(0.15, 0.55, t);
+    windowGlow = lerp(0.92, 0.25, t);
   } else if (h < 17) {
     darkness = 0;
+    warmth = h < 10 ? lerp(0.55, 0.42, smoothstep(7, 10, h)) : 0.38;
+    windowGlow = 0.06;
     if (h < 8) {
       skyColor = lerpColor(SKY_DAWN, SKY_DAY, smoothstep(7, 8, h));
     } else {
@@ -105,37 +118,45 @@ export function getDayNightLighting(hour: number): DayNightLighting {
   } else if (h < 20) {
     const t = smoothstep(17, 20, h);
     darkness = t;
-    skyColor = lerpColor(SKY_DAY, SKY_DUSK, t * 0.6);
+    warmth = lerp(0.38, 0.72, t);
+    windowGlow = lerp(0.08, 0.75, t);
+    skyColor = lerpColor(SKY_DAY, SKY_EVENING, Math.min(1, t * 1.2));
     if (h >= 19) {
       skyColor = lerpColor(skyColor, SKY_NIGHT, smoothstep(19, 20, h));
     }
   } else {
     darkness = 1;
     skyColor = SKY_NIGHT;
+    warmth = 0.12;
+    windowGlow = 0.95;
   }
 
-  const dayAmbient = 0.42;
-  const nightAmbient = 0.04;
-  const daySun = 0.72;
-  const nightSun = 0.02;
-  const dayHemi = 0.55;
-  const nightHemi = 0.08;
+  const dayAmbient = 0.48;
+  const nightAmbient = 0.06;
+  const daySun = 0.78;
+  const nightSun = 0.04;
+  const dayHemi = 0.58;
+  const nightHemi = 0.1;
+
+  const eveningSun = lerpColor(0xfff0d8, 0xff8844, smoothstep(0.2, 0.85, darkness) * warmth);
 
   return {
     skyColor,
-    fogNear: lerp(14, 10, darkness),
-    fogFar: lerp(28, 22, darkness),
+    fogNear: lerp(16, 11, darkness),
+    fogFar: lerp(30, 24, darkness),
     ambientIntensity: lerp(dayAmbient, nightAmbient, darkness),
-    ambientColor: lerpColor(0xffffff, 0x8899bb, darkness),
+    ambientColor: lerpColor(0xfff8f0, 0x8899bb, darkness * 0.85),
     hemiIntensity: lerp(dayHemi, nightHemi, darkness),
-    hemiSky: lerpColor(0xfff8f0, 0x334466, darkness),
-    hemiGround: lerpColor(0xe8d8f0, 0x1a2233, darkness),
+    hemiSky: lerpColor(0xfff8f0, 0x445577, darkness),
+    hemiGround: lerpColor(0xf5e6d3, 0x2a3344, darkness),
     sunIntensity: lerp(daySun, nightSun, darkness),
-    sunColor: lerpColor(0xfff5eb, 0x6688aa, darkness),
-    fillIntensity: lerp(0.28, 0.04, darkness),
-    fillColor: lerpColor(0xd8eeff, 0x223344, darkness),
+    sunColor: darkness > 0.2 ? eveningSun : lerpColor(0xfff5eb, 0xffcc88, warmth * 0.3),
+    fillIntensity: lerp(0.32, 0.06, darkness),
+    fillColor: lerpColor(0xffeed8, 0x334455, darkness),
     darkness,
-    exposure: lerp(1.05, 0.72, darkness),
+    warmth,
+    windowGlow,
+    exposure: lerp(1.08, 0.78, darkness),
   };
 }
 
