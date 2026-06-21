@@ -19,7 +19,7 @@ export class CorridorEnvironment {
     const spotCount = Math.max(5, Math.floor(len / 1.4));
     for (let i = 0; i < spotCount; i++) {
       const x = -len / 2 + 0.6 + (i / (spotCount - 1)) * (len - 1.2);
-      const spot = new THREE.SpotLight(APT_ART.lightWarm, 0.55, 5.5, Math.PI / 5, 0.35, 1.2);
+      const spot = new THREE.SpotLight(APT_ART.lightWarm, 0.82, 8, Math.PI / 4.5, 0.32, 1.1);
       spot.position.set(x, height - 0.08, 0);
       spot.target.position.set(x, 0, 0);
       this.root.add(spot);
@@ -28,7 +28,7 @@ export class CorridorEnvironment {
 
       const fixture = new THREE.Mesh(
         new THREE.CylinderGeometry(0.14, 0.18, 0.04, 12),
-        aptGlowMat(APT_ART.lightWarm, 0.15)
+        aptGlowMat(APT_ART.lightWarm, 0.28)
       );
       fixture.rotation.x = Math.PI / 2;
       fixture.position.set(x, height - 0.1, 0);
@@ -37,12 +37,12 @@ export class CorridorEnvironment {
       this.emissiveFixtures.push(fixture);
     }
 
-    const wash = new THREE.PointLight(APT_ART.lightCool, 0.22, 6, 1.5);
+    const wash = new THREE.PointLight(APT_ART.lightWarm, 0.38, 8, 1.4);
     wash.position.set(len / 2 - 0.8, height * 0.55, -width / 2 + 0.15);
     this.root.add(wash);
     this.washers.push(wash);
 
-    const elevWash = new THREE.PointLight(APT_ART.accentSoft, 0.18, 4, 1.4);
+    const elevWash = new THREE.PointLight(APT_ART.signWarm, 0.42, 5, 1.3);
     elevWash.position.set(-len / 2 + 0.9, height * 0.45, 0);
     this.root.add(elevWash);
     this.washers.push(elevWash);
@@ -52,7 +52,7 @@ export class CorridorEnvironment {
       new THREE.MeshBasicMaterial({
         color: APT_ART.lightCool,
         transparent: true,
-        opacity: 0.28,
+        opacity: 0.18,
         depthWrite: false,
       })
     );

@@ -35,8 +35,9 @@ function addMesh(
   return m;
 }
 
-const METAL = () => aptMetalMat(true);
-const METAL_DARK = () => aptMetalMat(false);
+const METAL = () => aptMat(APT_ART.trimWood, { metalness: 0.28, roughness: 0.38 });
+const METAL_DARK = () => aptWoodMat(true);
+const ELEV_DOOR = () => aptMat(APT_ART.elevatorDoor, { metalness: 0.1, roughness: 0.35 });
 
 /** 실제 엘리베이터 홀 — 프레임·호출 버튼·층수 표시·양개문 */
 export function buildDetailedElevatorHall(opts?: {
@@ -49,11 +50,11 @@ export function buildDetailedElevatorHall(opts?: {
   g.name = "elevator-hall";
 
   const frameMat = aptWallMat({ roughness: 0.78 });
-  const panelMat = aptMat(0x2a2a32, { roughness: 0.45, metalness: 0.15 });
-  const doorMat = METAL();
+  const panelMat = aptMat(APT_ART.trimDark, { roughness: 0.55, metalness: 0.08 });
+  const doorMat = ELEV_DOOR();
 
   addMesh(g, box(1.55, 2.65, 0.12), frameMat, 0, 1.32, corridorSide === "north" ? -0.06 : 0.06);
-  addMesh(g, box(1.45, 0.08, 0.14, 0.02), METAL_DARK(), 0, 2.58, corridorSide === "north" ? 0.02 : -0.02);
+  addMesh(g, box(1.45, 0.08, 0.14, 0.02), aptTrimMat(), 0, 2.58, corridorSide === "north" ? 0.02 : -0.02);
   addMesh(g, box(0.08, 2.5, 0.08), frameMat, -0.74, 1.3, 0);
   addMesh(g, box(0.08, 2.5, 0.08), frameMat, 0.74, 1.3, 0);
 
@@ -88,7 +89,7 @@ export function buildDetailedElevatorHall(opts?: {
   addMesh(callPanel, box(0.08, 0.08, 0.025, 0.01), aptMat(0xef4444), 0, -0.05, 0.025);
   g.add(callPanel);
 
-  const carHint = addMesh(g, box(1.2, 0.04, 1.2, 0.02), aptMat(APT_ART.floorTile), 0, 0.04, 0);
+  const carHint = addMesh(g, box(1.2, 0.04, 1.2, 0.02), aptMat(APT_ART.elevatorZone, { roughness: 0.5 }), 0, 0.04, 0);
   carHint.name = "elevator-car-floor";
   carHint.receiveShadow = true;
 
@@ -118,9 +119,9 @@ export function buildDetailedElevatorCarInterior(floor = 1): THREE.Group {
   addMesh(car, box(1.25, 0.06, 0.06, 0.015), rail, 0, 0.55, -0.62);
   addMesh(car, box(1.25, 0.06, 0.06, 0.015), rail, 0, 0.55, 0.62);
 
-  const doorL = addMesh(car, box(0.64, 1.88, 0.06, 0.02), METAL(), -0.33, 1.02, 0.64);
+  const doorL = addMesh(car, box(0.64, 1.88, 0.06, 0.02), ELEV_DOOR(), -0.33, 1.02, 0.64);
   doorL.name = "elevator-door-left";
-  const doorR = addMesh(car, box(0.64, 1.88, 0.06, 0.02), METAL(), 0.33, 1.02, 0.64);
+  const doorR = addMesh(car, box(0.64, 1.88, 0.06, 0.02), ELEV_DOOR(), 0.33, 1.02, 0.64);
   doorR.name = "elevator-door-right";
 
   const panel = new THREE.Group();

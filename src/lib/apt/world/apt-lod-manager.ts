@@ -101,7 +101,7 @@ export class AptWorldPerfManager {
       if (!mat || !("opacity" in mat)) continue;
 
       const base = (mesh.userData.baseOpacity as number) ?? mat.opacity;
-      const occlude = (mesh.userData.occludeOpacity as number) ?? 0.22;
+      const occlude = (mesh.userData.occludeOpacity as number) ?? 0.58;
       let target = base;
 
       if (camLen > 0.02) {

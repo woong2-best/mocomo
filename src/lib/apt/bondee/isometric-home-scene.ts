@@ -56,8 +56,8 @@ const INTERACT_DIST = 0.72;
 const CAM_LERP = 6;
 const CAM_YAW_DEFAULT = Math.PI * 0.31;
 const CAM_PITCH_DEFAULT = 0.46;
-const ZOOM_MIN = 5.2;
-const ZOOM_MAX = 9.5;
+const ZOOM_MIN = 4.6;
+const ZOOM_MAX = 8.5;
 const CONSOLE_TRANSITION_SPEED = 1.35;
 const CONSOLE_TV_SCALE = 1.22;
 const CONSOLE_SEAT_DIST = 0.52;
@@ -159,7 +159,7 @@ export class IsometricHomeScene {
   private selectedItemId: string | null = null;
   private callbacks: IsometricHomeCallbacks = {};
   private animPhase = 0;
-  private frustum = 7.4;
+  private frustum = 6.0;
   private walkMode = true;
   private avatarX = 0;
   private avatarZ = 0;
@@ -178,9 +178,9 @@ export class IsometricHomeScene {
   private needsRender = true;
   private camYaw = CAM_YAW_DEFAULT;
   private camPitch = CAM_PITCH_DEFAULT;
-  private camDist = 7.0;
+  private camDist = 6.0;
   private targetCamYaw = CAM_YAW_DEFAULT;
-  private targetCamDist = 7.0;
+  private targetCamDist = 6.0;
   private dragging = false;
   private dragLast: { x: number; y: number } | null = null;
   private avatarShadow: THREE.Mesh;
@@ -248,7 +248,7 @@ export class IsometricHomeScene {
       embed.attachRoot.add(this.homeRoot);
     } else {
       this.scene = new THREE.Scene();
-      this.scene.fog = new THREE.Fog(BONDEE_PALETTE.bg, 14, 28);
+      this.scene.fog = new THREE.Fog(BONDEE_PALETTE.bg, 80, 280);
     }
 
     const aspect = Math.max(mount.clientWidth, 320) / Math.max(mount.clientHeight, 400);
@@ -531,7 +531,7 @@ export class IsometricHomeScene {
   private frameRoomCamera(room: AptRoom) {
     const { w, d } = roomSize(room);
     const span = Math.max(w, d);
-    this.targetCamDist = THREE.MathUtils.clamp(span * 1.12 + 5.0, ZOOM_MIN, ZOOM_MAX);
+    this.targetCamDist = THREE.MathUtils.clamp(span * 1.02 + 4.2, ZOOM_MIN, ZOOM_MAX);
     const hash = room.id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
     this.targetCamYaw = CAM_YAW_DEFAULT + ((hash % 5) - 2) * 0.035;
   }

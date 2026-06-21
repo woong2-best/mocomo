@@ -10,7 +10,8 @@ import { loadActiveVrm } from "@/lib/virtual-avatar/vrm-storage";
 import { AptWorldVrmAnimator } from "./apt-world-vrm-animator";
 import type { WorldAvatarAction, WorldAvatarMode } from "./world-avatar-types";
 
-const VRM_SCALE = 0.72;
+const VRM_SCALE = 0.95;
+const AVATAR_SCALE = 1.28;
 const VRM_Y_OFFSET = -0.02;
 
 /** VRM 우선 + 고품질 치비 폴백 — 복도·로비·엘리베이터 공용 */
@@ -30,10 +31,11 @@ export class AptWorldAvatar {
 
   constructor() {
     this.root.name = "apt-world-avatar";
+    this.root.scale.setScalar(AVATAR_SCALE);
     this.root.add(this.vrmWrap);
     this.shadow = new THREE.Mesh(
-      new THREE.CircleGeometry(0.22, 16),
-      new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.18 })
+      new THREE.CircleGeometry(0.28, 16),
+      new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.22 })
     );
     this.shadow.rotation.x = -Math.PI / 2;
     this.shadow.position.y = 0.01;

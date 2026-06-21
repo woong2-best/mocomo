@@ -40,13 +40,29 @@ export function buildLobbyParkingLevel(): THREE.Group {
 
   add(g, aptBox(W, 0.12, D), floorMat, 0, 0.06, 0);
   add(g, aptBox(W, 0.035, D, 0.012), trimMat, 0, 0.018, 0);
+  add(
+    g,
+    aptBox(4.5, 0.014, 6, 0.004),
+    aptMat(APT_ART.lobbyFloor, { transparent: true, opacity: 0.85 }),
+    -1,
+    0.014,
+    0.5
+  );
+  add(
+    g,
+    aptBox(2.2, 0.016, 2.4, 0.004),
+    aptMat(APT_ART.elevatorZone, { roughness: 0.5 }),
+    0,
+    0.016,
+    3.2
+  );
 
   for (const zSign of [-1, 1] as const) {
     add(g, aptBox(W, H, 0.12), wallMat, 0, H / 2, zSign * (D / 2 - 0.04));
     add(g, aptBox(W, 0.07, 0.06, 0.012), trimMat, 0, 0.12, zSign * (D / 2 - 0.02));
     add(g, aptBox(W, 0.06, 0.05, 0.01), trimMat, 0, H - 0.08, zSign * (D / 2 - 0.03));
   }
-  add(g, aptBox(W, 0.07, D, 0.015), aptMat(APT_ART.wallCool, { roughness: 0.9 }), 0, H - 0.035, 0);
+  add(g, aptBox(W, 0.07, D, 0.015), aptMat(APT_ART.wallPeach, { roughness: 0.88 }), 0, H - 0.035, 0);
 
   const desk = add(g, aptBox(1.35, 0.92, 0.55, 0.04), aptMat(0xffffff), -3.5, 0.56, -1.15);
   desk.name = "lobby-desk";
@@ -103,14 +119,14 @@ export function buildLobbyParkingLevel(): THREE.Group {
   planter2.scale.setScalar(0.9);
   g.add(planter2);
 
-  add(g, aptBox(0.28, 0.01, 0.18, 0.004), aptMat(0x888899, { transparent: true, opacity: 0.45 }), 4.2, 0.025, -3.8);
-  add(g, aptBox(0.12, 0.06, 0.08, 0.015), aptMat(0x444455), -5.5, 0.05, -3.6, 0.25);
+  add(g, aptBox(0.28, 0.01, 0.18, 0.004), aptMat(APT_ART.trimWood, { transparent: true, opacity: 0.5 }), 4.2, 0.025, -3.8);
+  add(g, aptBox(0.12, 0.06, 0.08, 0.015), aptMat(APT_ART.trimDark), -5.5, 0.05, -3.6, 0.25);
 
-  add(g, aptBox(6, 0.05, 5, 0.02), aptMat(0x555560), 3.5, 0.08, 1.5);
+  add(g, aptBox(6, 0.05, 5, 0.02), aptMat(APT_ART.floorWoodAlt), 3.5, 0.08, 1.5);
   for (let i = 0; i < 3; i++) {
-    add(g, aptBox(1.6, 0.02, 3), aptMat(0x666677), 2 + i * 1.8, 0.1, 1.5);
-    add(g, aptBox(1.4, 0.5, 0.9, 0.05), aptMat(0x8899aa), 2 + i * 1.8, 0.35, 1.5);
-    add(g, aptBox(0.08, 0.12, 0.04, 0.008), aptGlowMat(0xffaa44, 0.25), 2 + i * 1.8, 0.62, 1.35);
+    add(g, aptBox(1.6, 0.02, 3), aptMat(APT_ART.trimWood), 2 + i * 1.8, 0.1, 1.5);
+    add(g, aptBox(1.4, 0.5, 0.9, 0.05), aptMat(APT_ART.wallPeach), 2 + i * 1.8, 0.35, 1.5);
+    add(g, aptBox(0.08, 0.12, 0.04, 0.008), aptGlowMat(APT_ART.lightWarm, 0.35), 2 + i * 1.8, 0.62, 1.35);
   }
 
   const stairs = new THREE.Group();

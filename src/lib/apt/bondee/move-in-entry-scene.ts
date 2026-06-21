@@ -104,7 +104,7 @@ export class MoveInEntryScene {
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(PASTEL.bg);
-    this.scene.fog = new THREE.Fog(PASTEL.bg, 14, 36);
+    this.scene.fog = new THREE.Fog(PASTEL.bg, 80, 260);
 
     const aspect = Math.max(mount.clientWidth, 320) / Math.max(mount.clientHeight, 400);
     const frustum = 6.2;

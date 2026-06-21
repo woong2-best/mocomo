@@ -60,8 +60,12 @@ export function buildMegatowerFacade(homeFloor: number, activity?: MegatowerActi
   const count = APT_TOTAL_FLOORS;
 
   const slabGeo = new THREE.BoxGeometry(MEGA_TOWER_W, MEGA_FLOOR_H * 0.88, MEGA_TOWER_D);
-  const slabMat = aptMat(APT_ART.wallCool, { roughness: 0.82 });
+  const slabMat = aptMat(APT_ART.wallBase, { roughness: 0.78 });
+  slabMat.vertexColors = true;
   const floorSlabs = new THREE.InstancedMesh(slabGeo, slabMat, count);
+  floorSlabs.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3);
+  const slabColor = new THREE.Color();
+  const slabPalette = [APT_ART.wallBase, APT_ART.wallPeach, APT_ART.wallAccent, APT_ART.wallMint];
   const winGeo = new THREE.BoxGeometry(MEGA_TOWER_W * 0.08, MEGA_FLOOR_H * 0.45, 0.04);
   const winMat = new THREE.MeshStandardMaterial({
     color: APT_ART.lightWarm,
@@ -77,12 +81,15 @@ export function buildMegatowerFacade(homeFloor: number, activity?: MegatowerActi
     const y = (f - 0.5) * MEGA_FLOOR_H;
     m.makeTranslation(0, y, 0);
     floorSlabs.setMatrixAt(f - 1, m);
+    slabColor.setHex(slabPalette[f % slabPalette.length]);
+    floorSlabs.setColorAt(f - 1, slabColor);
     m.makeTranslation(-MEGA_TOWER_W * 0.28, y, MEGA_TOWER_D / 2 + 0.05);
     windows.setMatrixAt((f - 1) * 2, m);
     m.makeTranslation(MEGA_TOWER_W * 0.28, y, MEGA_TOWER_D / 2 + 0.05);
     windows.setMatrixAt((f - 1) * 2 + 1, m);
   }
   floorSlabs.instanceMatrix.needsUpdate = true;
+  if (floorSlabs.instanceColor) floorSlabs.instanceColor.needsUpdate = true;
   windows.instanceMatrix.needsUpdate = true;
   root.add(floorSlabs);
   root.add(windows);
@@ -179,7 +186,7 @@ function sideTowerLod(facade: MegatowerFacade, scale: number): THREE.LOD {
   const totalH = facade.root.userData.totalHeight as number;
   const low = new THREE.Mesh(
     new THREE.BoxGeometry(MEGA_TOWER_W * scale, totalH, MEGA_TOWER_D * scale),
-    aptMat(APT_ART.wallCool, { transparent: true, opacity: 0.88 })
+    aptMat(APT_ART.wallAccent, { transparent: true, opacity: 0.88 })
   );
   low.position.y = totalH / 2;
   low.name = "side-tower-lod-low";
@@ -223,7 +230,7 @@ export function buildDistrictComplex(
   root.add(cLod);
   sideLods.push(cLod);
 
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(48, 36), aptMat(APT_ART.floorWoodAlt));
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(48, 36), aptMat(APT_ART.floorWood));
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = 0.01;
   root.add(ground);

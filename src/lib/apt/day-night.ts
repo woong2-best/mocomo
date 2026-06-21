@@ -142,8 +142,8 @@ export function getDayNightLighting(hour: number): DayNightLighting {
 
   return {
     skyColor,
-    fogNear: lerp(16, 11, darkness),
-    fogFar: lerp(30, 24, darkness),
+    fogNear: lerp(120, 80, darkness),
+    fogFar: lerp(420, 280, darkness),
     ambientIntensity: lerp(dayAmbient, nightAmbient, darkness),
     ambientColor: lerpColor(0xfff8f0, 0x8899bb, darkness * 0.85),
     hemiIntensity: lerp(dayHemi, nightHemi, darkness),

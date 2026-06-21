@@ -9,36 +9,42 @@ export type CameraPreset = {
   fov: number;
 };
 
+/** 광장·분수·아바타가 한 화면에 — 캐릭터 스케일 클로즈업 */
 const DISTRICT: CameraPreset = {
-  position: new THREE.Vector3(9, 36, 23),
-  target: new THREE.Vector3(0, 28, 5),
-  fov: 40,
+  position: new THREE.Vector3(5.5, 4.2, 15),
+  target: new THREE.Vector3(0, 1.6, 6),
+  fov: 50,
 };
 
-const DISTRICT_HERO_INTRO_FROM: CameraPreset = {
-  position: new THREE.Vector3(16, 48, 30),
-  target: new THREE.Vector3(0, 30, 4),
-  fov: 34,
+const DISTRICT_INTRO_FROM: CameraPreset = {
+  position: new THREE.Vector3(7.2, 5.2, 17.5),
+  target: new THREE.Vector3(0, 1.8, 6),
+  fov: 48,
 };
+
+const LOBBY_SLOT = new THREE.Vector3(-14, 0, 10);
 
 const LOBBY: CameraPreset = {
-  position: new THREE.Vector3(-1.5, 2.6, 8.2),
-  target: new THREE.Vector3(0, 1.35, -0.2),
-  fov: 52,
+  position: new THREE.Vector3(-13.5, 2.15, 14.8),
+  target: new THREE.Vector3(-14, 1.15, 11.8),
+  fov: 54,
 };
 
 const TOWER: CameraPreset = {
-  position: new THREE.Vector3(13, 15, 13),
-  target: new THREE.Vector3(0, 4.5, 0),
-  fov: 38,
+  position: new THREE.Vector3(6, 4.8, 9.5),
+  target: new THREE.Vector3(0, 2.2, 0.5),
+  fov: 48,
 };
 
-/** Bondee/AC 스타일 — 어깨 너머 3/4 시점, 수동 조작 최소 */
+/** Bondee/AC — 어깨 너머 3/4, 아바타 중심 */
 const CORRIDOR: CameraPreset = {
-  position: new THREE.Vector3(0.8, 2.15, 4.2),
-  target: new THREE.Vector3(0.1, 1.25, 0),
-  fov: 44,
+  position: new THREE.Vector3(0.35, 1.72, 2.25),
+  target: new THREE.Vector3(0.05, 1.12, 0),
+  fov: 50,
 };
+
+const FOLLOW_OFFSET_CORRIDOR = new THREE.Vector3(0.28, 1.28, 1.65);
+const FOLLOW_OFFSET_LOBBY = new THREE.Vector3(0.12, 1.22, 1.85);
 
 /** 드래그·줌·회전·프리셋 전환 + 시네마틱 자동 추적 */
 export class UnifiedCameraController {
@@ -51,41 +57,41 @@ export class UnifiedCameraController {
   private mode: AptWorldMode = "tower";
   private transition: { from: CameraPreset; to: CameraPreset; t: number; dur: number } | null = null;
   private follow: THREE.Object3D | null = null;
-  private followOffset = new THREE.Vector3(0.75, 1.65, 2.35);
-  private followLookY = 1.02;
+  private followOffset = FOLLOW_OFFSET_CORRIDOR.clone();
+  private followLookY = 1.18;
   private enabled = true;
   private cinematicOnly = false;
-  private heroIntro: { t: number; dur: number; from: CameraPreset; to: CameraPreset } | null = null;
+  private districtIntro: { t: number; dur: number; from: CameraPreset; to: CameraPreset } | null = null;
 
   constructor(aspect: number) {
-    this.camera = new THREE.PerspectiveCamera(DISTRICT.fov, aspect, 0.05, 200);
+    this.camera = new THREE.PerspectiveCamera(DISTRICT.fov, aspect, 0.05, 320);
     this.applyPreset(DISTRICT, true);
   }
 
   skipHeroIntro() {
-    this.heroIntro = null;
+    this.districtIntro = null;
     this.applyPreset(DISTRICT, true);
   }
 
   isHeroIntroPlaying() {
-    return this.heroIntro !== null;
+    return this.districtIntro !== null;
   }
 
   cancelMotion() {
-    this.heroIntro = null;
+    this.districtIntro = null;
     this.transition = null;
     this.flyPath = null;
   }
 
-  /** 접속 첫 5초 — Hero Scene 시네마틱 줌인 */
-  playHeroIntro(duration = 4.2) {
-    this.heroIntro = {
+  /** 접속 직후 — 광장·건물·아바타가 보이는 짧은 줌인 */
+  playDistrictIntro(duration = 2.4) {
+    this.districtIntro = {
       t: 0,
       dur: duration,
       from: {
-        position: DISTRICT_HERO_INTRO_FROM.position.clone(),
-        target: DISTRICT_HERO_INTRO_FROM.target.clone(),
-        fov: DISTRICT_HERO_INTRO_FROM.fov,
+        position: DISTRICT_INTRO_FROM.position.clone(),
+        target: DISTRICT_INTRO_FROM.target.clone(),
+        fov: DISTRICT_INTRO_FROM.fov,
       },
       to: {
         position: DISTRICT.position.clone(),
@@ -93,14 +99,19 @@ export class UnifiedCameraController {
         fov: DISTRICT.fov,
       },
     };
-    this.camera.position.copy(DISTRICT_HERO_INTRO_FROM.position);
-    this.target.copy(DISTRICT_HERO_INTRO_FROM.target);
-    this.camera.fov = DISTRICT_HERO_INTRO_FROM.fov;
+    this.camera.position.copy(DISTRICT_INTRO_FROM.position);
+    this.target.copy(DISTRICT_INTRO_FROM.target);
+    this.camera.fov = DISTRICT_INTRO_FROM.fov;
     this.camera.updateProjectionMatrix();
     this.camera.lookAt(this.target);
     this.follow = null;
     this.transition = null;
     this.flyPath = null;
+  }
+
+  /** @deprecated playDistrictIntro 사용 */
+  playHeroIntro(duration = 2.4) {
+    this.playDistrictIntro(duration);
   }
 
   setMode(mode: AptWorldMode, instant = false, skipTransition = false) {
@@ -117,9 +128,9 @@ export class UnifiedCameraController {
               ? CORRIDOR
               : null;
     if (preset && !skipTransition && !this.flyPath) {
-      this.transitionTo(preset, instant ? 0 : 1.05);
+      this.transitionTo(preset, instant ? 0 : 0.95);
     }
-    if (mode !== "corridor") this.follow = null;
+    if (mode !== "corridor" && mode !== "lobby") this.follow = null;
   }
 
   flyThroughWall(
@@ -128,7 +139,7 @@ export class UnifiedCameraController {
     interior: THREE.Vector3,
     duration = 1.4
   ) {
-    this.heroIntro = null;
+    this.districtIntro = null;
     this.follow = null;
     this.transition = null;
     this.flyPath = {
@@ -162,7 +173,8 @@ export class UnifiedCameraController {
   followObject(obj: THREE.Object3D, offset?: THREE.Vector3) {
     this.follow = obj;
     if (offset) this.followOffset.copy(offset);
-    else if (this.mode === "corridor") this.followOffset.set(0.75, 1.65, 2.35);
+    else if (this.mode === "lobby") this.followOffset.copy(FOLLOW_OFFSET_LOBBY);
+    else this.followOffset.copy(FOLLOW_OFFSET_CORRIDOR);
   }
 
   clearFollow() {
@@ -244,18 +256,18 @@ export class UnifiedCameraController {
 
   tick(dt: number): boolean {
     let moved = false;
-    if (this.heroIntro) {
-      this.heroIntro.t += dt;
-      const u = Math.min(1, this.heroIntro.t / this.heroIntro.dur);
+    if (this.districtIntro) {
+      this.districtIntro.t += dt;
+      const u = Math.min(1, this.districtIntro.t / this.districtIntro.dur);
       const e = 1 - Math.pow(1 - u, 3);
-      const { from, to } = this.heroIntro;
+      const { from, to } = this.districtIntro;
       this.camera.position.lerpVectors(from.position, to.position, e);
       this.target.lerpVectors(from.target, to.target, e);
       this.camera.fov = THREE.MathUtils.lerp(from.fov, to.fov, e);
       this.camera.updateProjectionMatrix();
       this.camera.lookAt(this.target);
       moved = true;
-      if (u >= 1) this.heroIntro = null;
+      if (u >= 1) this.districtIntro = null;
     }
     if (this.flyPath) {
       this.flyPath.t += dt;
@@ -265,8 +277,8 @@ export class UnifiedCameraController {
       const ab = new THREE.Vector3().lerpVectors(a, b, Math.min(1, e * 1.4));
       const bc = new THREE.Vector3().lerpVectors(b, c, Math.max(0, (e - 0.35) / 0.65));
       this.camera.position.copy(e < 0.5 ? ab : bc);
-      this.target.lerp(this.flyPath.lookTarget, 0.06);
-      this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, 44, 0.04);
+      this.target.lerp(this.flyPath.lookTarget, 0.08);
+      this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, 50, 0.05);
       this.camera.updateProjectionMatrix();
       this.camera.lookAt(this.target);
       moved = true;
@@ -288,11 +300,11 @@ export class UnifiedCameraController {
     if (this.follow) {
       const avatarPos = this.follow.getWorldPosition(new THREE.Vector3());
       const desired = avatarPos.clone().add(this.followOffset);
-      this.camera.position.lerp(desired, 0.065);
+      this.camera.position.lerp(desired, 0.11);
       const look = avatarPos.clone();
       look.y = this.followLookY;
-      look.x += 0.15;
-      this.target.lerp(look, 0.08);
+      look.x += 0.08;
+      this.target.lerp(look, 0.13);
       this.camera.lookAt(this.target);
       moved = true;
     }
@@ -301,5 +313,10 @@ export class UnifiedCameraController {
 
   getTarget() {
     return this.target;
+  }
+
+  /** 로비 월드 좌표 (카메라 프리셋·전환용) */
+  static lobbyWorldOffset() {
+    return LOBBY_SLOT;
   }
 }

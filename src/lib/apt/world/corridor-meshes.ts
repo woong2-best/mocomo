@@ -67,12 +67,31 @@ function buildCorridorArchitecture(g: THREE.Group, len: number, width: number, h
     const wall = add(g, aptBox(len, height, 0.11), wallMat, 0, height / 2, zSign * (width / 2 - 0.04));
     wall.userData.isOccluder = true;
     wall.userData.baseOpacity = 1;
-    wall.userData.occludeOpacity = 0.22;
+    wall.userData.occludeOpacity = 0.62;
     add(g, aptBox(len, 0.07, 0.06, 0.012), trimMat, 0, 0.12, zSign * (width / 2 - 0.02));
     add(g, aptBox(len, 0.06, 0.05, 0.01), trimMat, 0, height - 0.08, zSign * (width / 2 - 0.03));
   }
 
-  add(g, aptBox(len, 0.07, width, 0.015), aptMat(APT_ART.wallCool, { roughness: 0.9 }), 0, height - 0.035, 0);
+  add(g, aptBox(len, 0.07, width, 0.015), aptMat(APT_ART.wallPeach, { roughness: 0.88 }), 0, height - 0.035, 0);
+
+  add(
+    g,
+    aptBox(1.65, 0.018, width * 0.88, 0.006),
+    aptMat(APT_ART.elevatorZone, { roughness: 0.55 }),
+    -len / 2 + 0.9,
+    0.024,
+    0
+  );
+  const elevLabel = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.52, 0.14),
+    new THREE.MeshBasicMaterial({
+      map: makeCanvasLabel("ELEVATOR", { bg: APT_ART.signWarm, fg: "#ffffff", w: 160, h: 48 }),
+      transparent: true,
+    })
+  );
+  elevLabel.position.set(-len / 2 + 0.9, height * 0.68, width / 2 - 0.06);
+  elevLabel.name = "corridor-elev-label";
+  g.add(elevLabel);
 
   for (let i = 0; i < 5; i++) {
     const scuff = add(
@@ -134,12 +153,12 @@ function buildCorridorProps(g: THREE.Group, len: number, width: number, height: 
   }
   g.add(mailCluster);
 
-  add(g, aptBox(0.55, 0.02, 0.35, 0.008), aptMat(0x888899, { transparent: true, opacity: 0.4 }), 0.6, 0.025, width / 2 - 0.18);
+  add(g, aptBox(0.55, 0.02, 0.35, 0.008), aptMat(APT_ART.trimWood, { transparent: true, opacity: 0.55 }), 0.6, 0.025, width / 2 - 0.18);
 
   const elevSign = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.24, 0.12),
+    new THREE.PlaneGeometry(0.38, 0.14),
     new THREE.MeshBasicMaterial({
-      map: makeCanvasLabel(`${floorIndex}F`, { bg: APT_ART.signBlue, fg: "#ffffff" }),
+      map: makeCanvasLabel("ELEV", { bg: APT_ART.signWarm, fg: "#ffffff", w: 128, h: 48 }),
       transparent: true,
     })
   );

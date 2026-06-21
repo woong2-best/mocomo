@@ -164,7 +164,6 @@ export class UnifiedAptWorldScene {
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(PASTEL.bg);
-    this.scene.fog = new THREE.Fog(PASTEL.bg, 14, 95);
     this.sceneLighting = createSceneLighting(this.scene);
 
     const aspect = Math.max(mount.clientWidth, 320) / Math.max(mount.clientHeight, 400);
@@ -221,11 +220,7 @@ export class UnifiedAptWorldScene {
     this.bindDistrictInput();
     window.addEventListener("resize", this.onResize);
     this.building.setPaused(true);
-    if (typeof sessionStorage !== "undefined" && sessionStorage.getItem("apt-hero-intro-seen") === "1") {
-      this.cameraCtrl.skipHeroIntro();
-    } else {
-      this.cameraCtrl.playHeroIntro();
-    }
+    this.cameraCtrl.playDistrictIntro();
     this.setMode("district", { instant: true });
     this.loop();
     const { lighting } = this.dayNight.tick();
@@ -546,9 +541,9 @@ export class UnifiedAptWorldScene {
     this.setMode("tower", { skipCamera: true });
     this.cameraCtrl.flyThroughWall(
       this.cameraCtrl.camera.position.clone(),
-      new THREE.Vector3(8, 18, 12),
-      new THREE.Vector3(12, 14, 12),
-      1.6
+      new THREE.Vector3(4.2, 3.6, 10.5),
+      new THREE.Vector3(6, 4.8, 9.5),
+      1.35
     );
   }
 
@@ -556,9 +551,9 @@ export class UnifiedAptWorldScene {
   enterLobbyFromDistrict() {
     this.building.setPaused(true);
     const ext = this.cameraCtrl.camera.position.clone();
-    const through = new THREE.Vector3(-8, 4, 14);
-    const interior = new THREE.Vector3(-14, 2.5, 10);
-    this.cameraCtrl.flyThroughWall(ext, through, interior, 1.8);
+    const through = new THREE.Vector3(-8, 3.2, 13);
+    const interior = new THREE.Vector3(-13.5, 2.15, 14.8);
+    this.cameraCtrl.flyThroughWall(ext, through, interior, 1.5);
     this.enterLobby();
   }
 
@@ -763,7 +758,7 @@ export class UnifiedAptWorldScene {
 
     this.building.setPaused(true);
     this.setMode("lobby");
-    this.cameraCtrl.followObject(this.lobbyWalk.avatar.root, new THREE.Vector3(0.2, 1.55, 2.6));
+    this.cameraCtrl.followObject(this.lobbyWalk.avatar.root);
   }
 
   lobbyUseElevator() {
@@ -815,7 +810,7 @@ export class UnifiedAptWorldScene {
     } else if (m === "corridor" && this.corridorWalk) {
       this.cameraCtrl.followObject(this.corridorWalk.avatar.root);
     } else if (m === "lobby" && this.lobbyWalk) {
-      this.cameraCtrl.followObject(this.lobbyWalk.avatar.root, new THREE.Vector3(0.2, 1.55, 2.6));
+      this.cameraCtrl.followObject(this.lobbyWalk.avatar.root);
     } else if (m === "tower") {
       this.cameraCtrl.clearFollow();
     }

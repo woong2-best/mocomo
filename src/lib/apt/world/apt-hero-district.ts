@@ -26,7 +26,7 @@ export function buildHeroDistrictPlaza(): THREE.Group {
   const fountain = new THREE.Group();
   fountain.name = "hero-fountain";
   fountain.position.set(0, 0, 6);
-  const basin = add(fountain, new THREE.CylinderGeometry(1.1, 1.25, 0.18, 24), aptMat(0xe8ece8), 0, 0.12, 0);
+  const basin = add(fountain, new THREE.CylinderGeometry(1.1, 1.25, 0.18, 24), aptMat(APT_ART.trimWood), 0, 0.12, 0);
   basin.name = "hero-fountain-basin";
   const water = add(fountain, new THREE.CircleGeometry(0.95, 24), aptGlowMat(0xaaccff, 0.25), 0, 0.2, 0);
   water.rotation.x = -Math.PI / 2;

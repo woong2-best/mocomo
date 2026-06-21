@@ -178,7 +178,7 @@ export class DollhouseBuildingScene {
     } else {
       this.scene = new THREE.Scene();
       this.scene.background = new THREE.Color(PASTEL.bg);
-      this.scene.fog = new THREE.Fog(PASTEL.bg, 18, 42);
+      this.scene.fog = new THREE.Fog(PASTEL.bg, 90, 300);
     }
 
     const aspect = Math.max(mount.clientWidth, 320) / Math.max(mount.clientHeight, 400);

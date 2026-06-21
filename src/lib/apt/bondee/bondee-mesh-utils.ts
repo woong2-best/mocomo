@@ -75,7 +75,7 @@ export function enableBondeeRenderer(renderer: THREE.WebGLRenderer) {
 
 export function setupBondeeLights(scene: THREE.Scene, target: THREE.Object3D) {
   scene.background = new THREE.Color(BONDEE_PALETTE.bg);
-  scene.fog = new THREE.Fog(BONDEE_PALETTE.bg, 14, 28);
+  scene.fog = new THREE.Fog(BONDEE_PALETTE.bg, 80, 320);
 
   const hemi = new THREE.HemisphereLight(0xfff8f0, 0xe8d8f0, 0.55);
   scene.add(hemi);

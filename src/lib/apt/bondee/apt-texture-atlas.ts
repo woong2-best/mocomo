@@ -8,7 +8,7 @@ export type AtlasSlot = "wall" | "floorWood" | "floorAlt" | "trim" | "tile" | "s
 
 const ATLAS_W = 512;
 const ATLAS_H = 512;
-const PASTEL_SHELL = APT_ART.wallCool;
+const PASTEL_SHELL = APT_ART.wallPeach;
 
 let atlasTexture: THREE.CanvasTexture | null = null;
 const materialCache = new Map<AtlasSlot, THREE.MeshStandardMaterial>();
