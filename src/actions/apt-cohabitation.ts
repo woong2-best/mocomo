@@ -133,7 +133,7 @@ export async function canVisitAptHome(hostUserId: string, viewerUserId?: string 
   return !!hostProfile?.moveInCompletedAt && !!hostProfile.homePublic && !!viewerToHost && !!hostToViewer && !block;
 }
 
-export function mergeOwnedBondeeState(params: {
+export async function mergeOwnedBondeeState(params: {
   existing: BondeeHomeState;
   incoming: BondeeHomeState;
   userId: string;

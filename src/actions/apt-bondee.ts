@@ -53,7 +53,7 @@ export async function saveBondeeHome(state: BondeeHomeState) {
     sim.bondee && typeof sim.bondee === "object" && "items" in (sim.bondee as object)
       ? (sim.bondee as BondeeHomeState)
       : DEFAULT_BONDEE_HOME;
-  sim.bondee = mergeOwnedBondeeState({
+  sim.bondee = await mergeOwnedBondeeState({
     existing: existingBondee,
     incoming: state,
     userId: user.id,
