@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Building2, DoorOpen, Home, KeyRound, Menu, Sparkles, X } from "lucide-react";
+import { Building2, DoorOpen, Home, KeyRound, Menu, X } from "lucide-react";
 import Link from "next/link";
 import type { AptProfileDto } from "@/actions/apt";
 import { heartbeatAptPresence } from "@/actions/apt-presence";
@@ -85,29 +85,32 @@ export function AptHubClient({
   const homeCountry = initialProfile?.countryCode ?? "KR";
 
   // START: 기존 회원 → 로그인 화면 → 로그인하면 본인 집으로 바로 입장.
-  // 이미 로그인 + 입주 완료면 바로 내 집으로.
+  const moveInCompleted = isLoggedIn && !!initialProfile?.moveInCompleted;
+
+  // 메인 버튼:
+  // - 입주 완료 사용자 → 내 집으로 바로 입장
+  // - 로그인했지만 입주 미완료 → 입주 안내(/apt/move-in)
+  // - 그 외(비로그인 포함, 처음 들어온 사람) → 부동산(회원가입/입주 계약)
   const startExperience = useCallback(() => {
-    if (!isLoggedIn) {
-      setStartPhase("contract");
-      window.location.href = "/auth/signin?callbackUrl=" + encodeURIComponent("/apt?home=1");
+    if (moveInCompleted) {
+      setStarted(true);
+      setStartPhase("home");
+      window.setTimeout(() => worldRef.current?.goToMyHome(), 160);
       return;
     }
-
-    if (!initialProfile?.moveInCompleted) {
+    if (isLoggedIn) {
       setStartPhase("contract");
       window.location.href = "/apt/move-in";
       return;
     }
-
-    setStarted(true);
-    setStartPhase("home");
-    window.setTimeout(() => worldRef.current?.goToMyHome(), 160);
-  }, [initialProfile?.moveInCompleted, isLoggedIn]);
-
-  // 부동산으로: 아직 회원가입 안 한 사람 → 입주 계약(회원가입) + 애니메이션.
-  const goToRealEstate = useCallback(() => {
     setStartPhase("contract");
     window.location.href = "/auth/signup/apply";
+  }, [moveInCompleted, isLoggedIn]);
+
+  // 로그인 버튼: 로그인 창 → 로그인되면 본인 집(/apt?home=1)으로.
+  const goToLogin = useCallback(() => {
+    setStartPhase("contract");
+    window.location.href = "/auth/signin?callbackUrl=" + encodeURIComponent("/apt?home=1");
   }, []);
 
   // 로그인 직후(?home=1)로 들어온 입주 완료 사용자는 내 집으로 바로 입장.
@@ -317,37 +320,42 @@ export function AptHubClient({
               {startPhase === "contract" ? (
                 <>
                   <KeyRound className="h-5 w-5" />
-                  {isLoggedIn ? "입주 안내로 이동 중" : "로그인으로 이동 중"}
+                  이동 중…
                 </>
               ) : startPhase === "home" ? (
                 <>
                   <DoorOpen className="h-5 w-5" />
                   현관문 여는 중
                 </>
+              ) : moveInCompleted ? (
+                <>
+                  <Home className="h-5 w-5" />
+                  내 집으로 입장
+                </>
               ) : (
                 <>
-                  <Sparkles className="h-5 w-5" />
-                  {isLoggedIn && initialProfile?.moveInCompleted ? "START" : "START · 로그인"}
+                  <Building2 className="h-5 w-5" />
+                  부동산으로 · 입주 계약
                 </>
               )}
             </button>
 
-            {!(isLoggedIn && initialProfile?.moveInCompleted) && (
+            {!moveInCompleted && (
               <button
                 type="button"
-                onClick={goToRealEstate}
+                onClick={goToLogin}
                 disabled={startPhase !== "idle"}
-                className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border-4 border-slate-900 bg-white px-5 py-3.5 text-base font-black text-slate-900 shadow-[0_5px_0_rgba(15,23,42,0.15)] transition active:translate-y-1 active:shadow-none disabled:opacity-70"
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition active:translate-y-0.5 disabled:opacity-70"
               >
-                <Building2 className="h-5 w-5" />
-                부동산으로 (회원가입)
+                <KeyRound className="h-4 w-4" />
+                이미 계정이 있어요 · 로그인
               </button>
             )}
 
             <p className="mt-3 text-[11px] leading-relaxed text-slate-400">
-              {isLoggedIn && initialProfile?.moveInCompleted
+              {moveInCompleted
                 ? "내 집으로 바로 입장합니다."
-                : "처음이라면 「부동산으로」에서 계약하고 입주하세요. 이미 계정이 있으면 START로 로그인하면 내 집으로 바로 이동합니다."}
+                : "처음이라면 「부동산으로」에서 계약하고 입주하세요. 계정이 있으면 「로그인」하면 내 집으로 바로 이동합니다."}
             </p>
             <div className="mt-4 grid grid-cols-3 gap-2 text-[10px] font-bold text-slate-500">
               <span className="rounded-full bg-slate-100 px-2 py-1">999층</span>

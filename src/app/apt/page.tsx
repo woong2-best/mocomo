@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { getAptProfile } from "@/actions/apt";
 import { bondeeFromAptProfile } from "@/lib/apt/bondee/bondee-profile";
@@ -14,6 +13,8 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
+// 서버 리다이렉트 없이 항상 진입 화면을 렌더한다.
+// 로그인/입주 여부에 따른 이동은 모두 클라이언트 버튼에서 처리한다.
 export default async function AptPage() {
   let user = null;
   let profile = null;
@@ -23,7 +24,7 @@ export default async function AptPage() {
     user = await getCachedCurrentUser();
     if (user) {
       [profile, studioInventory] = await Promise.all([
-        getAptProfile(),
+        getAptProfile().catch(() => null),
         getAptStudioInventory().catch(() => []),
       ]);
     }
@@ -31,15 +32,17 @@ export default async function AptPage() {
     console.error("[AptPage]", e);
   }
 
-  // redirect()는 NEXT_REDIRECT 예외를 던지므로 반드시 try/catch 밖에서 호출.
-  if (user && !profile?.moveInCompleted) {
-    redirect("/apt/move-in");
+  let bondeeHome = DEFAULT_BONDEE_HOME;
+  let homeRooms = createDefaultFloorPlan().rooms;
+  try {
+    if (user && profile) {
+      const parsed = bondeeFromAptProfile(profile);
+      bondeeHome = parsed.home;
+      homeRooms = parsed.rooms;
+    }
+  } catch (e) {
+    console.error("[AptPage] bondee parse", e);
   }
-
-  const { home: bondeeHome, rooms: homeRooms } =
-    user && profile
-      ? bondeeFromAptProfile(profile)
-      : { home: DEFAULT_BONDEE_HOME, rooms: createDefaultFloorPlan().rooms };
 
   return (
     <AptHubClient
