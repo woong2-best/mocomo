@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { signIn } from "next-auth/react";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { registerUser, prepareSignupVerify } from "@/actions/auth";
@@ -17,13 +17,12 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { SignupStepIndicator } from "@/components/auth/signup-step-indicator";
-import { BRAND } from "@/lib/brand";
 import { COUNTRIES, LOCALE_COOKIE, COUNTRY_COOKIE, LOCALE_LABELS, LOCALES } from "@/lib/i18n/config";
 import type { Locale } from "@/lib/i18n/config";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
 import { isValidSignupEmail } from "@/lib/signup-email-domains";
 import { EmailAddressField } from "@/components/auth/email-address-field";
-import { APT_DEFAULT_FLOOR } from "@/lib/apt/constants";
+import { APT_DEFAULT_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
 import { findCountry } from "@/lib/apt/world/world-countries";
 
 export function SignupApplyForm({
@@ -41,6 +40,9 @@ export function SignupApplyForm({
   const [countryCode, setCountryCode] = useState("KR");
   const [homeFloor, setHomeFloor] = useState(APT_DEFAULT_FLOOR);
   const [floorTaken, setFloorTaken] = useState(false);
+  const signatureRef = useRef<HTMLCanvasElement>(null);
+  const drawingRef = useRef(false);
+  const [signatureSigned, setSignatureSigned] = useState(false);
 
   const showSocial = googleOAuth || discordOAuth;
   const needsHumanVerify = isSignupHumanVerifyRequired();
@@ -48,6 +50,44 @@ export function SignupApplyForm({
 
   const handleFloorChange = useCallback((next: number) => {
     setHomeFloor(next);
+  }, []);
+
+  const drawSignature = useCallback((event: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = signatureRef.current;
+    if (!canvas || !drawingRef.current) return;
+    const rect = canvas.getBoundingClientRect();
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.lineWidth = 2.4;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineTo(event.clientX - rect.left, event.clientY - rect.top);
+    ctx.stroke();
+    setSignatureSigned(true);
+  }, []);
+
+  const beginSignature = useCallback((event: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = signatureRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    drawingRef.current = true;
+    canvas.setPointerCapture(event.pointerId);
+    ctx.beginPath();
+    ctx.moveTo(event.clientX - rect.left, event.clientY - rect.top);
+  }, []);
+
+  const endSignature = useCallback((event: React.PointerEvent<HTMLCanvasElement>) => {
+    drawingRef.current = false;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+  }, []);
+
+  const clearSignature = useCallback(() => {
+    const canvas = signatureRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setSignatureSigned(false);
   }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -77,6 +117,12 @@ export function SignupApplyForm({
 
     if (floorTaken) {
       setError("선택한 층은 이미 입주 중입니다. 다른 층을 선택해 주세요.");
+      setLoading(false);
+      return;
+    }
+
+    if (!signatureSigned) {
+      setError("계약서 하단에 손가락으로 서명해 주세요.");
       setLoading(false);
       return;
     }
@@ -155,20 +201,35 @@ export function SignupApplyForm({
   }
 
   return (
-    <div className="flex-1 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md rounded-2xl shadow-lg border-border">
-        <CardHeader className="text-center space-y-2">
-          <div className="mx-auto h-16 w-16 rounded-2xl bg-white border border-border flex items-center justify-center overflow-hidden p-1">
-            <BrandLogo size={56} priority />
+    <div className="flex-1 bg-[#eef3f5] px-3 py-4 sm:px-4">
+      <div className="mx-auto max-w-md">
+        <div className="mb-3 rounded-[2rem] border-4 border-slate-900 bg-white px-4 py-3 shadow-[0_8px_0_rgba(15,23,42,0.12)]">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border-4 border-slate-900 bg-white p-1">
+                <BrandLogo size={40} priority />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Real Estate</p>
+                <h1 className="text-xl font-black text-slate-950">MOCOMO 입주 계약서</h1>
+              </div>
+            </div>
+            <SignupStepIndicator step={1} />
           </div>
-          <SignupStepIndicator step={1} />
-          <CardTitle className="text-2xl">{BRAND.name} 회원가입</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            가입 정보와 아파트 입주 층을 함께 선택합니다.
+          <p className="mt-3 text-xs leading-relaxed text-slate-600">
+            계약서를 작성하면 국가별 아파트의 빈 층을 배정받고, 이메일 인증 후 이사 연출이 시작됩니다.
           </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <form onSubmit={handleSubmit} className="space-y-3">
+        </div>
+
+        <Card className="overflow-hidden rounded-[1.75rem] border-4 border-slate-900 bg-[#fffdf5] shadow-2xl">
+          <CardHeader className="border-b-4 border-slate-900 bg-white/70 text-center">
+            <CardTitle className="text-lg font-black text-slate-950">임대차 계약 정보</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              이메일 인증, 재전송, 비밀번호 찾기는 기존 계정 시스템과 그대로 연결됩니다.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4 p-4">
+            <form onSubmit={handleSubmit} className="space-y-3">
             <EmailAddressField required />
             <Input
               name="username"
@@ -195,21 +256,28 @@ export function SignupApplyForm({
               autoComplete="new-password"
               className="rounded-xl"
             />
+
+            <div className="rounded-2xl border-2 border-slate-900 bg-white p-3">
+              <p className="mb-2 text-xs font-black text-slate-800">국가별 APT 선택</p>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {COUNTRIES.map((c) => (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => setCountryCode(c.code)}
+                    className={`shrink-0 rounded-full border-2 px-3 py-1.5 text-xs font-black transition ${
+                      countryCode === c.code
+                        ? "border-slate-950 bg-slate-950 text-white"
+                        : "border-slate-300 bg-white text-slate-600"
+                    }`}
+                  >
+                    {c.nameKo}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-2">
-              <label className="space-y-1">
-                <span className="text-xs text-muted-foreground">국가 · APT</span>
-                <select
-                  value={countryCode}
-                  onChange={(e) => setCountryCode(e.target.value)}
-                  className="w-full h-10 rounded-xl border border-input bg-background px-2 text-sm"
-                >
-                  {COUNTRIES.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.nameKo}
-                    </option>
-                  ))}
-                </select>
-              </label>
               <label className="space-y-1">
                 <span className="text-xs text-muted-foreground">언어</span>
                 <select
@@ -226,8 +294,23 @@ export function SignupApplyForm({
               </label>
             </div>
 
-            <div className="rounded-xl border border-folk-terracotta/30 bg-folk-terracotta/5 p-3">
-              <p className="text-xs font-bold text-folk-cobalt mb-2">아파트 입주 층 (빈 층만)</p>
+            <div className="rounded-2xl border-2 border-slate-900 bg-white p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-xs font-black text-slate-800">아파트 입주 층</p>
+                <p className="text-[10px] font-bold text-slate-500">국가별 1~{APT_TOTAL_FLOORS}층</p>
+              </div>
+              <div className="mb-3 grid grid-cols-3 gap-1.5">
+                {[1, 100, 300, 500, 700, APT_TOTAL_FLOORS].map((floor) => (
+                  <button
+                    key={floor}
+                    type="button"
+                    onClick={() => setHomeFloor(floor)}
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] font-black text-slate-700"
+                  >
+                    {floor}층
+                  </button>
+                ))}
+              </div>
               <AptFloorPicker
                 countryCode={countryCode}
                 countryLabel={countryLabel}
@@ -236,6 +319,31 @@ export function SignupApplyForm({
                 onTakenChange={setFloorTaken}
                 compact
               />
+            </div>
+
+            <div className="rounded-2xl border-2 border-slate-900 bg-white p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-xs font-black text-slate-800">입주자 서명</p>
+                <button
+                  type="button"
+                  onClick={clearSignature}
+                  className="text-[10px] font-bold text-slate-500 underline"
+                >
+                  다시 쓰기
+                </button>
+              </div>
+              <canvas
+                ref={signatureRef}
+                width={320}
+                height={96}
+                onPointerDown={beginSignature}
+                onPointerMove={drawSignature}
+                onPointerUp={endSignature}
+                onPointerCancel={endSignature}
+                className="h-24 w-full touch-none rounded-xl border-2 border-dashed border-slate-300 bg-[#fffaf0]"
+                aria-label="입주 계약서 서명"
+              />
+              <p className="mt-1 text-[10px] text-slate-500">스마트폰 화면에 손가락으로 직접 서명하세요.</p>
             </div>
 
             <input
@@ -272,12 +380,12 @@ export function SignupApplyForm({
               에 동의한 것으로 간주됩니다.
             </p>
 
-            <Button type="submit" className="w-full rounded-xl" disabled={loading || floorTaken}>
+            <Button type="submit" className="w-full rounded-2xl border-2 border-slate-950 bg-slate-950 py-6 text-base font-black" disabled={loading || floorTaken}>
               {loading
                 ? "확인 중..."
                 : needsHumanVerify
                   ? "다음 · 사람 확인"
-                  : "회원가입 · 인증 메일 받기"}
+                  : "계약서 제출 · 인증 메일 받기"}
             </Button>
           </form>
 
@@ -321,8 +429,9 @@ export function SignupApplyForm({
               로그인
             </Link>
           </p>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

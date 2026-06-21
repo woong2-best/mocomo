@@ -16,6 +16,7 @@ import {
 } from "@/lib/apt/presence-types";
 import type { AptNeighborLink } from "@/lib/apt/apt-daily-loop";
 import { buildAptDailyLoop, startOfWeek } from "@/lib/apt/apt-daily-loop";
+import { canVisitAptHome } from "@/actions/apt-cohabitation";
 
 export type {
   HomeActivityState,
@@ -71,6 +72,9 @@ export async function heartbeatAptPresence(payload: {
 export async function recordAptHomeVisit(hostUserId: string) {
   const user = await getCachedCurrentUser();
   if (!user || user.id === hostUserId) return { ok: false as const, newBadges: [] as string[] };
+  if (!(await canVisitAptHome(hostUserId, user.id))) {
+    return { ok: false as const, newBadges: [] as string[], error: "서로 팔로우한 공개 집만 방문할 수 있습니다." };
+  }
 
   const beforeMade = await db.aptHomeVisit.count({ where: { visitorId: user.id } });
   const beforeHost = await db.aptHomeVisit.count({ where: { hostId: user.id } });
@@ -110,7 +114,7 @@ export async function getCountryAptCommunityFeed(countryCode: string): Promise<A
 
   const hostIds = profiles.map((p) => p.userId);
 
-  const [presences, visitsToday, recentVisitsToMe, liveChannels] = await Promise.all([
+  const [presences, visitsToday, recentVisitsToMe, liveChannels, viewerFollows, hostFollowsViewer, blocks] = await Promise.all([
     db.aptPresence.findMany({
       where: { countryCode: cc, lastSeenAt: { gte: onlineSince } },
     }),
@@ -134,10 +138,38 @@ export async function getCountryAptCommunityFeed(countryCode: string): Promise<A
       where: { isLive: true, liveStatus: "LIVE" },
       select: { createdBy: true },
     }),
+    user && hostIds.length
+      ? db.follow.findMany({
+          where: { followerId: user.id, followingId: { in: hostIds } },
+          select: { followingId: true },
+        })
+      : Promise.resolve([]),
+    user && hostIds.length
+      ? db.follow.findMany({
+          where: { followerId: { in: hostIds }, followingId: user.id },
+          select: { followerId: true },
+        })
+      : Promise.resolve([]),
+    user && hostIds.length
+      ? db.userBlock.findMany({
+          where: {
+            OR: [
+              { blockerId: user.id, blockedId: { in: hostIds } },
+              { blockerId: { in: hostIds }, blockedId: user.id },
+            ],
+          },
+          select: { blockerId: true, blockedId: true },
+        })
+      : Promise.resolve([]),
   ]);
 
   const presenceByUser = new Map(presences.map((p) => [p.userId, p]));
   const streamingUserIds = new Set(liveChannels.map((c) => c.createdBy));
+  const viewerFollowSet = new Set(viewerFollows.map((f) => f.followingId));
+  const hostFollowViewerSet = new Set(hostFollowsViewer.map((f) => f.followerId));
+  const blockedUserSet = new Set(
+    blocks.map((b) => (b.blockerId === user?.id ? b.blockedId : b.blockerId))
+  );
 
   const guestCountByHost = new Map<string, number>();
   for (const p of presences) {
@@ -165,12 +197,20 @@ export async function getCountryAptCommunityFeed(countryCode: string): Promise<A
     const streaming = streamingUserIds.has(row.userId);
     const guestCount = guestCountByHost.get(row.userId) ?? 0;
 
+    const visitAllowed =
+      !!user &&
+      (row.userId === user.id ||
+        ((row.homePublic ?? true) &&
+          viewerFollowSet.has(row.userId) &&
+          hostFollowViewerSet.has(row.userId) &&
+          !blockedUserSet.has(row.userId)));
+
     return {
       userId: row.user.id,
       username: row.user.username,
       displayName: row.user.name ?? row.user.username,
       homeFloor: row.homeFloor,
-      doorOpen: row.homePublic ?? true,
+      doorOpen: visitAllowed,
       avatar: bondee.avatar ?? DEFAULT_CHIBI_AVATAR,
       activity: deriveHomeActivity(bondee, row.homePublic ?? true, streaming, guestCount),
       isOnline,

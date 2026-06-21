@@ -17,6 +17,7 @@ import {
   type ResidentAgent,
   type SimulationSnapshot,
 } from "@/lib/apt/simulation/types";
+import { resolveAptHomeOwnerId } from "@/actions/apt-cohabitation";
 
 export type AptProfileDto = {
   housingType: HousingType;
@@ -124,7 +125,8 @@ export async function getAptProfile(): Promise<AptProfileDto | null> {
   };
 
   try {
-    const row = await db.aptProfile.findUnique({ where: { userId: user.id } });
+    const ownerId = await resolveAptHomeOwnerId(user.id);
+    const row = await db.aptProfile.findUnique({ where: { userId: ownerId } });
     if (!row) return fallback;
     const dto = rowToDto(row, user);
     return {
@@ -148,8 +150,7 @@ export async function completeAptMoveIn(payload: MoveInPayload) {
   }
 
   const plans = defaultPlans();
-  const rooms = getRoomsForFloor(plans, floor || APT_DEFAULT_FLOOR);
-  const furniture = defaultFurnitureForPlan(rooms);
+  const furniture: FurnitureItem[] = [];
   const residents = defaultResidents({
     userId: user.id,
     displayName: user.name ?? user.username,
@@ -227,11 +228,12 @@ export async function saveAptSimulationState(payload: {
 }) {
   const user = await getCachedCurrentUser();
   if (!user) return;
+  const ownerId = await resolveAptHomeOwnerId(user.id);
 
   await db.aptProfile.upsert({
-    where: { userId: user.id },
+    where: { userId: ownerId },
     create: {
-      userId: user.id,
+      userId: ownerId,
       homeFloor: payload.homeFloor,
       furniture: payload.furniture,
       residents: payload.residents,

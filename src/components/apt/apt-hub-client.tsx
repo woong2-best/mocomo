@@ -2,8 +2,9 @@
 
 import dynamic from "next/dynamic";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Building2, Home, Menu, X } from "lucide-react";
+import { Building2, DoorOpen, Home, KeyRound, Menu, Sparkles, X } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { AptProfileDto } from "@/actions/apt";
 import { heartbeatAptPresence } from "@/actions/apt-presence";
 import { setHomePublic } from "@/actions/apt-world";
@@ -58,8 +59,11 @@ export function AptHubClient({
   studioInventory?: AptStudioInventoryItem[];
   currentUserId?: string | null;
 }) {
+  const router = useRouter();
   const mountRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<UnifiedAptWorldScene | null>(null);
+  const [started, setStarted] = useState(false);
+  const [startPhase, setStartPhase] = useState<"idle" | "contract" | "home">("idle");
   const [worldMode, setWorldMode] = useState<AptWorldMode>("tower");
   const [homeState, setHomeState] = useState(bondeeHome);
   const [homeRooms, setHomeRooms] = useState(initialHomeRooms);
@@ -81,6 +85,18 @@ export function AptHubClient({
   const [visitFunnel, setVisitFunnel] = useState<VisitFunnelState | null>(null);
   const homeFloor = initialProfile?.homeFloor ?? APT_DEFAULT_FLOOR;
   const homeCountry = initialProfile?.countryCode ?? "KR";
+
+  const startExperience = useCallback(() => {
+    if (!isLoggedIn || !initialProfile?.moveInCompleted) {
+      setStartPhase("contract");
+      window.setTimeout(() => router.push("/auth/signup/apply"), 720);
+      return;
+    }
+
+    setStarted(true);
+    setStartPhase("home");
+    window.setTimeout(() => worldRef.current?.goToMyHome(), 160);
+  }, [initialProfile?.moveInCompleted, isLoggedIn, router]);
 
   const showLoginToast = useCallback((action: string) => {
     setVisitToast(`로그인 후 ${action}할 수 있습니다`);
@@ -225,6 +241,80 @@ export function AptHubClient({
     <div className="relative h-full w-full overflow-hidden touch-manipulation overscroll-none">
       {/* 3D canvas — 최하단 */}
       <div ref={mountRef} className="absolute inset-0 z-0" />
+
+      {!started && (
+        <div className="absolute inset-0 z-[80] flex items-end justify-center bg-[#eef3f5] px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] sm:items-center">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute left-1/2 top-10 h-[62vh] w-[18rem] -translate-x-1/2 rounded-t-[3rem] border-[10px] border-slate-800/80 bg-gradient-to-b from-slate-200 to-slate-100 shadow-2xl">
+              <div className="absolute left-1/2 top-8 h-40 w-24 -translate-x-1/2 rounded-t-2xl border-4 border-slate-700 bg-slate-300">
+                <div className="absolute inset-x-3 top-4 h-28 rounded-t-xl bg-gradient-to-b from-white to-slate-200 shadow-inner" />
+                <div className="absolute bottom-3 left-1/2 h-8 w-1 -translate-x-1/2 bg-slate-700" />
+              </div>
+              {Array.from({ length: 7 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute h-5 w-8 rounded-md border-2 border-slate-700/60 bg-white/80"
+                  style={{
+                    left: i % 2 === 0 ? "2.25rem" : "12.25rem",
+                    top: `${5.25 + i * 3.6}rem`,
+                  }}
+                />
+              ))}
+              <div className="absolute bottom-0 left-1/2 h-20 w-28 -translate-x-1/2 rounded-t-3xl border-4 border-slate-700 bg-white shadow-inner" />
+            </div>
+            <div className="absolute left-8 top-20 rotate-[-8deg] rounded-2xl border-4 border-slate-800 bg-white/90 px-3 py-2 text-xs font-black text-slate-800 shadow-lg">
+              CCTV 00:00
+            </div>
+            <div className="absolute right-8 top-24 rounded-full border-4 border-slate-800 bg-white p-3 shadow-lg">
+              <Menu className="h-6 w-6 text-slate-800" />
+            </div>
+          </div>
+
+          <div className="relative w-full max-w-sm rounded-[2rem] border-4 border-slate-900 bg-white/95 p-5 text-center shadow-2xl backdrop-blur">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[1.4rem] border-4 border-slate-900 bg-slate-50">
+              <div className="h-10 w-8 rounded-b-2xl rounded-t-[1.1rem] border-[3px] border-slate-900 bg-white" />
+            </div>
+            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-500">MOCOMO MOVE-IN</p>
+            <h1 className="mt-2 text-2xl font-black text-slate-950">
+              {isLoggedIn && initialProfile?.moveInCompleted ? "내 집에서 시작" : "입주 계약 시작"}
+            </h1>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              {isLoggedIn && initialProfile?.moveInCompleted
+                ? `${initialProfile.regionLabel ?? "MOCOMO APT"} ${homeFloor}층 · CCTV 시점으로 바로 입장합니다.`
+                : "부동산에서 계약서를 쓰고, 국가별 아파트의 빈 층으로 이사합니다."}
+            </p>
+
+            <button
+              type="button"
+              onClick={startExperience}
+              disabled={startPhase !== "idle"}
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border-4 border-slate-950 bg-slate-950 px-5 py-4 text-lg font-black text-white shadow-[0_6px_0_rgba(15,23,42,0.25)] transition active:translate-y-1 active:shadow-none disabled:opacity-70"
+            >
+              {startPhase === "contract" ? (
+                <>
+                  <KeyRound className="h-5 w-5" />
+                  부동산으로 이동 중
+                </>
+              ) : startPhase === "home" ? (
+                <>
+                  <DoorOpen className="h-5 w-5" />
+                  현관문 여는 중
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-5 w-5" />
+                  START
+                </>
+              )}
+            </button>
+            <div className="mt-4 grid grid-cols-3 gap-2 text-[10px] font-bold text-slate-500">
+              <span className="rounded-full bg-slate-100 px-2 py-1">999층</span>
+              <span className="rounded-full bg-slate-100 px-2 py-1">국가별 APT</span>
+              <span className="rounded-full bg-slate-100 px-2 py-1">빈 집 입주</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 타워/집 UI 오버레이 — 클릭 통과 */}
       <div className="absolute inset-0 z-20 pointer-events-none">

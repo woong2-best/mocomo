@@ -4,6 +4,7 @@ import { Heart, Home, Sparkles, Star, Trophy, Users } from "lucide-react";
 import type { AptCommunityFeed } from "@/lib/apt/presence-types";
 import type { HomeIdentitySummary } from "@/lib/apt/home-identity";
 import { toggleAptFavoriteHome, toggleAptHomeLike } from "@/actions/apt-daily";
+import { requestAptCohabitation } from "@/actions/apt-cohabitation";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
@@ -85,6 +86,25 @@ export function AptDailyLoopPanel({
     setPending(`fav-${userId}`);
     try {
       await toggleAptFavoriteHome(userId);
+      onRefresh?.();
+    } finally {
+      setPending(null);
+    }
+  };
+
+  const handleCohabitation = async (userId: string) => {
+    if (!isLoggedIn) {
+      onRequireLogin?.("동거 신청");
+      return;
+    }
+    setPending(`cohab-${userId}`);
+    try {
+      const result = await requestAptCohabitation(userId);
+      if ("error" in result && result.error) {
+        window.alert(result.error);
+        return;
+      }
+      window.alert("동거 신청을 보냈습니다. 집주인이 알림창에서 수락할 수 있습니다.");
       onRefresh?.();
     } finally {
       setPending(null);
@@ -253,17 +273,28 @@ export function AptDailyLoopPanel({
             .filter((n, i, arr) => arr.findIndex((x) => x.userId === n.userId) === i)
             .slice(0, 5)
             .map((n) => (
-              <button
-                key={`${n.relation}-${n.userId}`}
-                type="button"
-                onClick={() => onVisitUser(n.userId)}
-                className="flex w-full items-center gap-2 rounded-lg px-1 py-0.5 text-left hover:bg-white/10"
-              >
-                <span className="flex-1 truncate">{n.displayName}</span>
-                <span className="text-[10px] text-white/45">
-                  {n.relation === "favorite" ? "★" : n.relation === "follow" ? "팔로우" : `${n.visitCount ?? 0}회`}
-                </span>
-              </button>
+              <div key={`${n.relation}-${n.userId}`} className="rounded-lg px-1 py-0.5 hover:bg-white/10">
+                <button
+                  type="button"
+                  onClick={() => onVisitUser(n.userId)}
+                  className="flex w-full items-center gap-2 text-left"
+                >
+                  <span className="flex-1 truncate">{n.displayName}</span>
+                  <span className="text-[10px] text-white/45">
+                    {n.relation === "favorite" ? "★" : n.relation === "follow" ? "팔로우" : `${n.visitCount ?? 0}회`}
+                  </span>
+                </button>
+                {n.doorOpen && (
+                  <button
+                    type="button"
+                    disabled={pending === `cohab-${n.userId}`}
+                    onClick={() => void handleCohabitation(n.userId)}
+                    className="mt-1 rounded-md border border-emerald-300/30 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-100 disabled:opacity-50"
+                  >
+                    {pending === `cohab-${n.userId}` ? "신청 중..." : "동거 신청"}
+                  </button>
+                )}
+              </div>
             ))}
         </section>
       )}

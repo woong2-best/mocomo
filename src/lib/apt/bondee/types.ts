@@ -71,6 +71,8 @@ export type BondeePlacedItem = {
   gx: number;
   gz: number;
   rot: 0 | 1 | 2 | 3;
+  /** APT 동거 집에서 이 아이템을 배치한 유저. 미설정 레거시 아이템은 집주인 소유로 본다. */
+  ownerId?: string;
   /** MoCoMo Studio GLB — set when placed from Studio inventory */
   studioAssetId?: string;
   glbUrl?: string;

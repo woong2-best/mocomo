@@ -192,6 +192,11 @@ model User {
   aptHomeLikesRecv  AptHomeLike[]  @relation("AptHomeLikeHost")
   aptFavoriteHomes  AptFavoriteHome[] @relation("AptFavoriteOwner")
   aptFavoritedBy    AptFavoriteHome[] @relation("AptFavoriteHost")
+  aptCohabHosted     AptCohabitant[] @relation("AptCohabHost")
+  aptCohabResidences AptCohabitant[] @relation("AptCohabResident")
+  aptCohabRequestsSent AptCohabitationRequest[] @relation("AptCohabRequestRequester")
+  aptCohabRequestsReceived AptCohabitationRequest[] @relation("AptCohabRequestHost")
+  aptMarketListings AptMarketListing[]
 
   creatorSeries            CreatorSeries[]          @relation("CreatorSeriesAuthor")
   creatorEpisodes          CreatorEpisode[]         @relation("CreatorEpisodeAuthor")
@@ -2191,6 +2196,64 @@ model AptFavoriteHome {
 
   @@unique([userId, hostId])
   @@index([userId, createdAt(sort: Desc)])
+}
+
+/** APT 동거 신청 — 집주인 알림창에서 수락/거절 */
+model AptCohabitationRequest {
+  id          String    @id @default(cuid())
+  requesterId String
+  hostId      String
+  roomId      String?
+  status      String    @default("PENDING")
+  message     String?   @db.Text
+  createdAt   DateTime  @default(now())
+  respondedAt DateTime?
+
+  requester User @relation("AptCohabRequestRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  host      User @relation("AptCohabRequestHost", fields: [hostId], references: [id], onDelete: Cascade)
+
+  @@index([hostId, status, createdAt(sort: Desc)])
+  @@index([requesterId, status, createdAt(sort: Desc)])
+}
+
+/** APT 동거자 — 기본 최대 2명 거주, 동거자는 집주인 빈 방에 연결 */
+model AptCohabitant {
+  id              String    @id @default(cuid())
+  hostId          String
+  residentId      String
+  roomId          String
+  status          String    @default("ACTIVE")
+  movedInAt       DateTime  @default(now())
+  moveOutRequestedById String?
+  moveOutRequestedAt DateTime?
+  endedAt         DateTime?
+
+  host     User @relation("AptCohabHost", fields: [hostId], references: [id], onDelete: Cascade)
+  resident User @relation("AptCohabResident", fields: [residentId], references: [id], onDelete: Cascade)
+
+  @@unique([residentId])
+  @@index([hostId, status])
+  @@index([residentId, status])
+}
+
+/** APT 장터 — 이사/동거 종료 시 기존 방 아이템 자동 판매 등록 */
+model AptMarketListing {
+  id        String   @id @default(cuid())
+  sellerId  String
+  itemId    String
+  itemKind  String
+  roomId    String?
+  itemData  Json
+  source    String   @default("MOVE_OUT")
+  status    String   @default("SELLING")
+  priceKrw  Int      @default(0)
+  createdAt DateTime @default(now())
+  soldAt    DateTime?
+
+  seller User @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@index([sellerId, status, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
 }
 
 // ============ MINIGAMES ============

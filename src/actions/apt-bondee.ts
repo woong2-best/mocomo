@@ -8,6 +8,7 @@ import { APT_DEFAULT_FLOOR } from "@/lib/apt/constants";
 import { createDefaultFloorPlan } from "@/lib/apt/floor-plan-logic";
 import { bondeeFromAptRow } from "@/lib/apt/bondee/bondee-profile";
 import { DEFAULT_BONDEE_HOME, type BondeeHomeState } from "@/lib/apt/bondee/types";
+import { mergeOwnedBondeeState, resolveAptHomeOwnerId } from "@/actions/apt-cohabitation";
 
 export async function getBondeeHome(homeFloor = APT_DEFAULT_FLOOR): Promise<{
   home: BondeeHomeState;
@@ -20,7 +21,8 @@ export async function getBondeeHome(homeFloor = APT_DEFAULT_FLOOR): Promise<{
     return { home: DEFAULT_BONDEE_HOME, rooms, homeFloor };
   }
 
-  const row = await db.aptProfile.findUnique({ where: { userId: user.id } });
+  const ownerId = await resolveAptHomeOwnerId(user.id);
+  const row = await db.aptProfile.findUnique({ where: { userId: ownerId } });
   const floor = row?.homeFloor ?? homeFloor;
   const { home, rooms: planRooms } = bondeeFromAptRow(row, floor);
   return {
@@ -40,18 +42,28 @@ export async function saveBondeeHome(state: BondeeHomeState) {
   const user = await getCachedCurrentUser();
   if (!user) return { error: "로그인이 필요합니다." };
 
-  const existing = await db.aptProfile.findUnique({ where: { userId: user.id } });
+  const ownerId = await resolveAptHomeOwnerId(user.id);
+  const existing = await db.aptProfile.findUnique({ where: { userId: ownerId } });
   const sim =
     existing?.simulationState && typeof existing.simulationState === "object"
       ? { ...(existing.simulationState as Record<string, unknown>) }
       : {};
 
-  sim.bondee = state;
+  const existingBondee =
+    sim.bondee && typeof sim.bondee === "object" && "items" in (sim.bondee as object)
+      ? (sim.bondee as BondeeHomeState)
+      : DEFAULT_BONDEE_HOME;
+  sim.bondee = mergeOwnedBondeeState({
+    existing: existingBondee,
+    incoming: state,
+    userId: user.id,
+    hostId: ownerId,
+  });
   const jsonSim = sim as Prisma.InputJsonValue;
 
   await db.aptProfile.upsert({
-    where: { userId: user.id },
-    create: { userId: user.id, simulationState: jsonSim, moveInCompletedAt: new Date() },
+    where: { userId: ownerId },
+    create: { userId: ownerId, simulationState: jsonSim, moveInCompletedAt: new Date() },
     update: { simulationState: jsonSim },
   });
 
