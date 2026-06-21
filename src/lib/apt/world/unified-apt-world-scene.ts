@@ -611,7 +611,7 @@ export class UnifiedAptWorldScene {
     this.building.setFloor(clamped);
   }
 
-  /** HUD 「내 집」— 복도까지 이동 (같은 층이어도 진입) */
+  /** HUD 「내 집」— 모바일에서는 복도를 거치지 않고 바로 내 집으로 입장 */
   goToMyHome() {
     this.clearVisit();
     if (this.mode === "interior" && !this.visitSystem.isVisiting()) return;
@@ -621,10 +621,13 @@ export class UnifiedAptWorldScene {
       this.interiorSlot.visible = false;
     }
 
-    this.callbacks.onVisitMessage?.(
-      `내 집 ${this.homeFloor}층 — 복도 현관문까지 이동 후 「입장」 상호작용`
-    );
-    this.goToFloor(this.homeFloor, { force: true });
+    this.callbacks.onVisitMessage?.(`내 집 ${this.homeFloor}층으로 들어갑니다`);
+    this.enterCorridor(this.homeFloor);
+    window.setTimeout(() => {
+      if (this.mode === "corridor" && !this.visitSystem.isVisiting()) {
+        this.beginInteriorTransition(false);
+      }
+    }, 120);
   }
 
   /** 이웃 집 방문 — 복도→현관→내부 동일 흐름 */
@@ -665,15 +668,16 @@ export class UnifiedAptWorldScene {
 
   tryEnterHome() {
     if (this.mode !== "corridor" || !this.corridorWalk) return false;
+    const corridorLen = (this.corridorMesh?.userData.scaledLen as number) ?? CORRIDOR_LEN;
 
     if (this.visitSystem.isVisiting()) {
       if (!this.visitSystem.canEnter()) return false;
-      if (!this.corridorWalk.canEnterHome()) return false;
+      if (!this.corridorWalk.canEnterHome(corridorLen)) return false;
       this.beginInteriorTransition(true);
       return true;
     }
 
-    if (!this.corridorWalk.canEnterHome()) return false;
+    if (!this.corridorWalk.canEnterHome(corridorLen)) return false;
     this.beginInteriorTransition(false);
     return true;
   }
@@ -838,7 +842,7 @@ export class UnifiedAptWorldScene {
     if (this.mode === "corridor" && this.corridorWalk && this.corridorMesh) {
       const len = (this.corridorMesh.userData.scaledLen as number) ?? CORRIDOR_LEN;
       const dist = this.corridorWalk.distanceToHomeDoor(len);
-      const canEnter = this.visitSystem.canEnter() && this.corridorWalk.canEnterHome();
+      const canEnter = this.visitSystem.canEnter() && this.corridorWalk.canEnterHome(len);
       const atDoor = dist < 1.05;
       if (canEnter) {
         return {
@@ -1167,9 +1171,10 @@ export class UnifiedAptWorldScene {
         }
         this.visitToastCooldown -= dt;
 
+        const len = (this.corridorMesh?.userData.scaledLen as number) ?? CORRIDOR_LEN;
         const canEnter = this.visitSystem.isVisiting()
-          ? this.visitSystem.canEnter() && this.corridorWalk.canEnterHome()
-          : this.corridorWalk.canEnterHome();
+          ? this.visitSystem.canEnter() && this.corridorWalk.canEnterHome(len)
+          : this.corridorWalk.canEnterHome(len);
         const home = this.corridorDoors.find((d) => d.isHome);
         this.callbacks.onNearHomeDoor?.(canEnter, home?.state ?? "closed");
         if (this.visitSystem.isVisiting()) {

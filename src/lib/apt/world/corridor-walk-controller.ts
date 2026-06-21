@@ -92,12 +92,12 @@ export class CorridorWalkController {
     return Math.hypot(this.avatarX - doorX, this.avatarZ);
   }
 
-  canEnterHome(): boolean {
+  canEnterHome(corridorLen = CORRIDOR_LEN): boolean {
     const home = this.getNearestHomeDoor();
     if (!home) return false;
     if (home.state === "locked") return false;
     if (home.state === "closed") return false;
-    const dx = this.avatarX - (CORRIDOR_LEN / 2 - 1.1);
+    const dx = this.avatarX - (corridorLen / 2 - 1.1);
     const dz = this.avatarZ - (home.pivot.parent?.position.z ?? 0);
     return Math.hypot(dx, dz) < 0.65;
   }

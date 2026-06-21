@@ -60,7 +60,7 @@ export function AptHubClient({
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<UnifiedAptWorldScene | null>(null);
-  const [worldMode, setWorldMode] = useState<AptWorldMode>("district");
+  const [worldMode, setWorldMode] = useState<AptWorldMode>("tower");
   const [homeState, setHomeState] = useState(bondeeHome);
   const [homeRooms, setHomeRooms] = useState(initialHomeRooms);
   const [doorOpen, setDoorOpen] = useState(initialProfile?.homePublic ?? true);
@@ -210,13 +210,13 @@ export function AptHubClient({
     worldMode === "district"
       ? "건물을 클릭하거나 「건물 접근」 · 화면 탭으로 단지 탐색"
       : worldMode === "tower" || worldMode === "elevator"
-        ? "층을 선택한 뒤 엘리베이터로 이동 · 현관문 열린 집 방문"
+        ? "위에서 내려다보는 아파트 · 층을 탭해 이동"
         : worldMode === "lobby"
           ? "조이스틱으로 이동 · 엘리베이터·계단 이용"
           : worldMode === "corridor"
             ? isVisiting
-              ? "복도 끝 현관문까지 이동 → 상호작용으로 입장"
-              : "현관문 앞에서 상호작용 · 엘리베이터는 EV 앞에서"
+              ? "현관문 앞에서 입장"
+              : "내 집은 바로 입장 · 엘리베이터는 EV"
             : isVisiting
               ? "가구 상호작용 · TV로 방송 시청"
               : "하단 「꾸미기」「내 집 소개」 · TV로 방송 시청";

@@ -25,26 +25,26 @@ const DISTRICT_INTRO_FROM: CameraPreset = {
 const LOBBY_SLOT = new THREE.Vector3(-14, 0, 10);
 
 const LOBBY: CameraPreset = {
-  position: new THREE.Vector3(-13.5, 2.15, 14.8),
-  target: new THREE.Vector3(-14, 1.15, 11.8),
-  fov: 54,
+  position: new THREE.Vector3(-14, 7.4, 15.2),
+  target: new THREE.Vector3(-14, 0.85, 11.5),
+  fov: 42,
 };
 
 const TOWER: CameraPreset = {
-  position: new THREE.Vector3(7.4, 7.2, 10.6),
-  target: new THREE.Vector3(0.1, 4.4, 0.2),
-  fov: 37,
+  position: new THREE.Vector3(0, 13.2, 7.2),
+  target: new THREE.Vector3(0, 4.15, 0),
+  fov: 34,
 };
 
-/** Bondee/AC — 어깨 너머 3/4, 아바타 중심 */
+/** 스마트폰 기준 — 위에서 내려다보는 고정 복도 시점 */
 const CORRIDOR: CameraPreset = {
-  position: new THREE.Vector3(0.35, 1.72, 2.25),
-  target: new THREE.Vector3(0.05, 1.12, 0),
-  fov: 50,
+  position: new THREE.Vector3(0, 6.2, 3.8),
+  target: new THREE.Vector3(0, 0.8, 0),
+  fov: 42,
 };
 
-const FOLLOW_OFFSET_CORRIDOR = new THREE.Vector3(0.28, 1.28, 1.65);
-const FOLLOW_OFFSET_LOBBY = new THREE.Vector3(0.12, 1.22, 1.85);
+const FOLLOW_OFFSET_CORRIDOR = new THREE.Vector3(0, 5.3, 3.35);
+const FOLLOW_OFFSET_LOBBY = new THREE.Vector3(0, 6.2, 4.4);
 
 /** 드래그·줌·회전·프리셋 전환 + 시네마틱 자동 추적 */
 export class UnifiedCameraController {
@@ -58,7 +58,6 @@ export class UnifiedCameraController {
   private transition: { from: CameraPreset; to: CameraPreset; t: number; dur: number } | null = null;
   private follow: THREE.Object3D | null = null;
   private followOffset = FOLLOW_OFFSET_CORRIDOR.clone();
-  private followLookY = 1.18;
   private enabled = true;
   private cinematicOnly = false;
   private districtIntro: { t: number; dur: number; from: CameraPreset; to: CameraPreset } | null = null;
@@ -116,7 +115,7 @@ export class UnifiedCameraController {
 
   setMode(mode: AptWorldMode, instant = false, skipTransition = false) {
     this.mode = mode;
-    this.cinematicOnly = mode === "corridor" || mode === "lobby";
+    this.cinematicOnly = mode === "tower" || mode === "elevator" || mode === "corridor" || mode === "lobby";
     const preset =
       mode === "district"
         ? DISTRICT
@@ -278,7 +277,7 @@ export class UnifiedCameraController {
       const bc = new THREE.Vector3().lerpVectors(b, c, Math.max(0, (e - 0.35) / 0.65));
       this.camera.position.copy(e < 0.5 ? ab : bc);
       this.target.lerp(this.flyPath.lookTarget, 0.08);
-      this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, 50, 0.05);
+      this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, 42, 0.05);
       this.camera.updateProjectionMatrix();
       this.camera.lookAt(this.target);
       moved = true;
@@ -302,8 +301,7 @@ export class UnifiedCameraController {
       const desired = avatarPos.clone().add(this.followOffset);
       this.camera.position.lerp(desired, 0.11);
       const look = avatarPos.clone();
-      look.y = this.followLookY;
-      look.x += 0.08;
+      look.y = 0.82;
       this.target.lerp(look, 0.13);
       this.camera.lookAt(this.target);
       moved = true;
