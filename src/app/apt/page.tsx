@@ -15,40 +15,40 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AptPage() {
+  let user = null;
+  let profile = null;
+  let studioInventory: Awaited<ReturnType<typeof getAptStudioInventory>> = [];
+
   try {
-    const user = await getCachedCurrentUser();
-    const [profile, studioInventory] = await Promise.all([
-      user ? getAptProfile() : Promise.resolve(null),
-      user ? getAptStudioInventory().catch(() => []) : Promise.resolve([]),
-    ]);
-
-    if (user && !profile?.moveInCompleted) {
-      redirect("/apt/move-in");
+    user = await getCachedCurrentUser();
+    if (user) {
+      [profile, studioInventory] = await Promise.all([
+        getAptProfile(),
+        getAptStudioInventory().catch(() => []),
+      ]);
     }
+  } catch (e) {
+    console.error("[AptPage]", e);
+  }
 
-    const { home: bondeeHome, rooms: homeRooms } = user
+  // redirect()는 NEXT_REDIRECT 예외를 던지므로 반드시 try/catch 밖에서 호출.
+  if (user && !profile?.moveInCompleted) {
+    redirect("/apt/move-in");
+  }
+
+  const { home: bondeeHome, rooms: homeRooms } =
+    user && profile
       ? bondeeFromAptProfile(profile)
       : { home: DEFAULT_BONDEE_HOME, rooms: createDefaultFloorPlan().rooms };
 
-    return (
-      <AptHubClient
-        initialProfile={profile}
-        bondeeHome={bondeeHome}
-        homeRooms={homeRooms}
-        isLoggedIn={!!user}
-        studioInventory={studioInventory}
-        currentUserId={user?.id ?? null}
-      />
-    );
-  } catch (e) {
-    console.error("[AptPage]", e);
-    return (
-      <AptHubClient
-        initialProfile={null}
-        bondeeHome={DEFAULT_BONDEE_HOME}
-        homeRooms={createDefaultFloorPlan().rooms}
-        isLoggedIn={false}
-      />
-    );
-  }
+  return (
+    <AptHubClient
+      initialProfile={profile}
+      bondeeHome={bondeeHome}
+      homeRooms={homeRooms}
+      isLoggedIn={!!user}
+      studioInventory={studioInventory}
+      currentUserId={user?.id ?? null}
+    />
+  );
 }
