@@ -139,6 +139,8 @@ export class UnifiedAptWorldScene {
   private focalPoint = new THREE.Vector3();
   private dayNight = new DayNightTicker();
   private loopErrorLogged = false;
+  private debugEnabled = false;
+  private debugFrameCount = 0;
   private sceneLighting!: SceneLightingRefs;
   private raycaster = new THREE.Raycaster();
   private pointer = new THREE.Vector2();
@@ -162,6 +164,10 @@ export class UnifiedAptWorldScene {
     this.avatarConfig = opts.homeState.avatar ?? DEFAULT_CHIBI_AVATAR;
     this.ownUserId = opts.userId ?? null;
     this.socialLayer = new AptSocialLayer(this.homeFloor, this.communityFeed, this.ownUserId);
+    this.debugEnabled =
+      typeof window !== "undefined" &&
+      (new URLSearchParams(window.location.search).get("aptDebug") === "1" ||
+        window.localStorage.getItem("aptDebug") === "1");
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(PASTEL.bg);
@@ -179,6 +185,7 @@ export class UnifiedAptWorldScene {
     this.renderer.setPixelRatio(cappedPixelRatio());
     this.renderer.setSize(mount.clientWidth, mount.clientHeight);
     mount.appendChild(this.renderer.domElement);
+    this.debugLog("renderer-created");
 
     this.scene.add(this.districtSlot);
     this.scene.add(this.buildingSlot);
@@ -195,6 +202,7 @@ export class UnifiedAptWorldScene {
     this.plazaAvatars.root.position.set(0, 0, 4.2);
     this.heroFx.scan(this.district.root);
     this.socialLayer.rescanLiveBadges(this.district.root);
+    this.debugLog("district-built");
 
     this.buildingSlot.position.set(0, 0, 0);
     this.lobbySlot.position.set(-14, 0, 10);
@@ -216,6 +224,7 @@ export class UnifiedAptWorldScene {
       ...embedBase,
       attachRoot: this.interiorSlot,
     });
+    this.debugLog("building-and-interior-built");
 
     this.cameraCtrl.attach(this.renderer.domElement);
     this.bindDistrictInput();
@@ -225,8 +234,121 @@ export class UnifiedAptWorldScene {
     this.loop();
     const { lighting } = this.dayNight.tick();
     applyDayNightToScene(this.scene, this.sceneLighting, lighting, this.renderer);
+    this.debugLog("constructor-complete", { lighting });
     void resolveAptWorldVrmUrl().then((url) => {
       this.vrmUrl = url;
+    });
+  }
+
+  private vec(v: THREE.Vector3) {
+    return {
+      x: Number(v.x.toFixed(3)),
+      y: Number(v.y.toFixed(3)),
+      z: Number(v.z.toFixed(3)),
+    };
+  }
+
+  private colorHex(c: unknown) {
+    return c instanceof THREE.Color ? `#${c.getHexString()}` : String(c ?? "none");
+  }
+
+  private countSceneObjects() {
+    let objects = 0;
+    let meshes = 0;
+    let visibleMeshes = 0;
+    let lights = 0;
+    let materials = 0;
+    this.scene.traverse((obj) => {
+      objects += 1;
+      if (obj instanceof THREE.Light) lights += 1;
+      if (obj instanceof THREE.Mesh) {
+        meshes += 1;
+        if (obj.visible) visibleMeshes += 1;
+        materials += Array.isArray(obj.material) ? obj.material.length : 1;
+      }
+    });
+    return { objects, meshes, visibleMeshes, lights, materials };
+  }
+
+  private rendererInfoSnapshot() {
+    return {
+      memory: { ...this.renderer.info.memory },
+      render: { ...this.renderer.info.render },
+      programs: this.renderer.info.programs?.length ?? 0,
+    };
+  }
+
+  private activeCameraDebug() {
+    const interiorDebug =
+      this.mode === "interior" && this.interior ? this.interior.getDebugSnapshot() : null;
+    const cam =
+      this.mode === "interior" && interiorDebug
+        ? this.interior.getActiveRenderCamera()
+        : this.cameraCtrl.camera;
+    const lookAt = interiorDebug?.lookAt ?? this.cameraCtrl.getTarget();
+    return {
+      kind:
+        this.mode === "interior"
+          ? interiorDebug?.activeCamera
+          : this.cameraCtrl.camera.type,
+      position: this.vec(cam.position),
+      rotation: {
+        x: Number(cam.rotation.x.toFixed(3)),
+        y: Number(cam.rotation.y.toFixed(3)),
+        z: Number(cam.rotation.z.toFixed(3)),
+      },
+      lookAt: this.vec(lookAt),
+      near: "near" in cam ? cam.near : undefined,
+      far: "far" in cam ? cam.far : undefined,
+      interior: interiorDebug
+        ? {
+            paused: interiorDebug.paused,
+            rooms: interiorDebug.rooms,
+            items: interiorDebug.items,
+            loadedFurniture: interiorDebug.loadedFurniture,
+            activeRoomId: interiorDebug.activeRoomId,
+            avatar: interiorDebug.avatar,
+            floorGroupChildren: interiorDebug.floorGroupChildren,
+            furnitureRootChildren: interiorDebug.furnitureRootChildren,
+            homeRootChildren: interiorDebug.homeRootChildren,
+            needsRender: interiorDebug.needsRender,
+          }
+        : null,
+    };
+  }
+
+  private debugLog(label: string, extra: Record<string, unknown> = {}) {
+    if (!this.debugEnabled) return;
+    const canvas = this.renderer.domElement;
+    const bg = this.scene.background;
+    console.log("[APT_DEBUG]", label, {
+      mode: this.mode,
+      paused: this.paused,
+      needsRender: this.needsRender,
+      transitionToInterior: this.transitionToInterior,
+      sceneChildren: this.scene.children.length,
+      sceneObjects: this.countSceneObjects(),
+      sceneBackground: this.colorHex(bg),
+      mount: {
+        clientWidth: this.mount.clientWidth,
+        clientHeight: this.mount.clientHeight,
+      },
+      canvas: {
+        width: canvas.width,
+        height: canvas.height,
+        clientWidth: canvas.clientWidth,
+        clientHeight: canvas.clientHeight,
+      },
+      camera: this.activeCameraDebug(),
+      rendererInfo: this.rendererInfoSnapshot(),
+      slots: {
+        district: { visible: this.districtSlot.visible, children: this.districtSlot.children.length },
+        building: { visible: this.buildingSlot.visible, children: this.buildingSlot.children.length },
+        lobby: { visible: this.lobbySlot.visible, children: this.lobbySlot.children.length },
+        corridor: { visible: this.corridorSlot.visible, children: this.corridorSlot.children.length },
+        interior: { visible: this.interiorSlot.visible, children: this.interiorSlot.children.length },
+      },
+      ...extra,
     });
   }
 
@@ -798,6 +920,7 @@ export class UnifiedAptWorldScene {
     this.syncLayerVisibility();
     this.syncResidentAvatars();
     this.needsRender = true;
+    this.debugLog("set-mode", { requestedMode: mode, opts });
     if (this.visitSystem.isVisiting()) this.emitVisitFunnelIfChanged();
   }
 
@@ -903,6 +1026,7 @@ export class UnifiedAptWorldScene {
   private enterCorridor(floor: number) {
     this.currentCorridorFloor = floor;
     this.building.setPaused(true);
+    this.debugLog("enter-corridor:start", { floor });
 
     if (this.corridorMesh) {
       this.corridorSlot.remove(this.corridorMesh);
@@ -987,6 +1111,17 @@ export class UnifiedAptWorldScene {
     this.lobbySlot.visible = false;
     this.syncElevatorDisplays(floor);
     this.emitVisitFunnelIfChanged();
+    this.debugLog("enter-corridor:built", {
+      floor,
+      rooms: rooms.length,
+      doors: this.corridorDoors.length,
+      hasCorridorMesh: !!this.corridorMesh,
+      hasCorridorWalk: !!this.corridorWalk,
+      corridorChildren: this.corridorSlot.children.length,
+      corridorLen: len,
+      corridorWidth: width,
+      corridorHeight: height,
+    });
   }
 
   private refreshCorridorGhosts() {
@@ -1002,6 +1137,7 @@ export class UnifiedAptWorldScene {
     this.callbacks.onVisitFunnelChange?.(null);
     this.transitionToInterior = 1;
     this.interiorSlot.visible = true;
+    this.debugLog("begin-interior-transition:start", { isVisit });
 
     const homeDoor = this.corridorDoors.find((d) => d.isHome);
     const doorWorld = new THREE.Vector3();
@@ -1019,6 +1155,14 @@ export class UnifiedAptWorldScene {
     const through = doorWorld.clone().add(new THREE.Vector3(-0.15, 0.15, 0.35));
     const interiorCam = interiorAnchor.clone().add(new THREE.Vector3(-0.4, 1.55, 1.1));
     this.cameraCtrl.flyThroughWall(exterior, through, interiorCam, 1.45);
+    this.debugLog("begin-interior-transition:camera", {
+      isVisit,
+      doorWorld: this.vec(doorWorld),
+      interiorAnchor: this.vec(interiorAnchor),
+      exterior: this.vec(exterior),
+      through: this.vec(through),
+      interiorCam: this.vec(interiorCam),
+    });
 
     if (isVisit) {
       const target = this.visitSystem.getTarget();
@@ -1039,6 +1183,7 @@ export class UnifiedAptWorldScene {
       this.interior.setPaused(false);
       this.setMode("interior");
       this.needsRender = true;
+      this.debugLog("begin-interior-transition:complete", { isVisit });
       if (isVisit) {
         const summary = this.interior.enterShowcaseTour(false);
         this.callbacks.onVisitMessage?.(
@@ -1129,6 +1274,7 @@ export class UnifiedAptWorldScene {
   };
 
   private stepFrame() {
+    this.debugFrameCount += 1;
     const dt = Math.min(0.05, this.clock.getDelta());
     this.animPhase += dt;
     const { lighting } = this.dayNight.tick();
@@ -1212,12 +1358,41 @@ export class UnifiedAptWorldScene {
       }
     }
 
-    if (anim || this.needsRender || this.transitionToInterior > 0 || this.mode !== "interior") {
+    const shouldRender = anim || this.needsRender || this.transitionToInterior > 0 || this.mode !== "interior";
+    if (
+      this.debugEnabled &&
+      (this.debugFrameCount <= 10 || this.debugFrameCount % 120 === 0)
+    ) {
+      this.debugLog("animation-loop", {
+        frame: this.debugFrameCount,
+        dt,
+        anim,
+        shouldRender,
+        lighting: {
+          darkness: lighting.darkness,
+          skyColor: `#${lighting.skyColor.toString(16).padStart(6, "0")}`,
+          exposure: lighting.exposure,
+          ambientIntensity: lighting.ambientIntensity,
+          sunIntensity: lighting.sunIntensity,
+        },
+      });
+    }
+
+    if (shouldRender) {
       this.needsRender = false;
       if (this.mode === "interior") {
         this.renderer.render(this.scene, this.interior.getActiveRenderCamera());
       } else {
         this.renderer.render(this.scene, this.cameraCtrl.camera);
+      }
+      if (
+        this.debugEnabled &&
+        (this.debugFrameCount <= 10 || this.debugFrameCount % 120 === 0)
+      ) {
+        this.debugLog("renderer-render-called", {
+          frame: this.debugFrameCount,
+          renderedWith: this.mode === "interior" ? "interior-camera" : "world-camera",
+        });
       }
     }
   }

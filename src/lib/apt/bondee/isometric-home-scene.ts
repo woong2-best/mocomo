@@ -317,6 +317,26 @@ export class IsometricHomeScene {
     return this.activeRenderCamera;
   }
 
+  getDebugSnapshot() {
+    const active = this.activeRenderCamera;
+    const lookAt = active === this.perspCamera ? this.blendedLookAt : this.isoLookAt;
+    return {
+      paused: this.paused,
+      rooms: this.rooms.length,
+      items: this.state.items.length,
+      loadedFurniture: this.loadedFurnitureIds.size,
+      activeRoomId: this.activeRoomId,
+      activeCamera: active === this.perspCamera ? "perspective" : "orthographic",
+      avatar: { x: this.avatarX, z: this.avatarZ },
+      cameraPosition: active.position.clone(),
+      lookAt: lookAt.clone(),
+      floorGroupChildren: this.floorGroup?.children.length ?? 0,
+      furnitureRootChildren: this.furnitureRoot?.children.length ?? 0,
+      homeRootChildren: this.homeRoot.children.length,
+      needsRender: this.needsRender,
+    };
+  }
+
   attachInput(canvas: HTMLCanvasElement) {
     canvas.addEventListener("pointerdown", this.onPointerDown);
     canvas.addEventListener("pointermove", this.onPointerMove);
