@@ -19,7 +19,7 @@ export const SECURITY_HEADERS: { key: string; value: string }[] = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
-      "connect-src 'self' https: wss:",
+      "connect-src 'self' https: wss: blob:",
       "frame-src 'self' https://challenges.cloudflare.com https://js.stripe.com",
       "media-src 'self' https: blob:",
       "object-src 'none'",
