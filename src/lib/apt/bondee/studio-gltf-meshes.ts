@@ -4,7 +4,6 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 const cache = new Map<string, Promise<THREE.Group>>();
-const loader = new GLTFLoader();
 
 function fitToGrid(group: THREE.Group, targetSize = 0.55) {
   const box = new THREE.Box3().setFromObject(group);
@@ -17,15 +16,37 @@ function fitToGrid(group: THREE.Group, targetSize = 0.55) {
   group.position.y += (size.y * s) / 2;
 }
 
+/** 텍스처 로딩이 실패해도 검게 보이지 않도록 머티리얼을 보정한다. */
+function sanitizeMaterials(root: THREE.Object3D) {
+  root.traverse((obj) => {
+    if (!(obj instanceof THREE.Mesh)) return;
+    const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+    for (const mat of mats) {
+      const std = mat as THREE.MeshStandardMaterial;
+      // 맵이 없는데 베이스 색이 거의 검정이면 보이도록 밝은 회색으로 대체.
+      if (!std.map && std.color && std.color.r < 0.04 && std.color.g < 0.04 && std.color.b < 0.04) {
+        std.color.setHex(0xb8b8c0);
+        std.needsUpdate = true;
+      }
+    }
+  });
+}
+
 export function loadStudioGltf(url: string): Promise<THREE.Group> {
   const cached = cache.get(url);
   if (cached) return cached.then((g) => g.clone(true));
 
   const promise = new Promise<THREE.Group>((resolve, reject) => {
+    const loader = new GLTFLoader();
+    // 상대 텍스처(예: 단순 uuid)가 사이트 루트(mocomo.net/uuid)로 잘못
+    // 풀려 404 나는 것을 막기 위해, GLB 위치 기준 경로를 리소스 경로로 지정.
+    const slash = url.lastIndexOf("/");
+    if (slash >= 0) loader.setResourcePath(url.slice(0, slash + 1));
     loader.load(
       url,
       (gltf) => {
         const root = gltf.scene;
+        sanitizeMaterials(root);
         fitToGrid(root);
         resolve(root);
       },
