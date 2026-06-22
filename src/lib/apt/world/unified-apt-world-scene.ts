@@ -138,6 +138,7 @@ export class UnifiedAptWorldScene {
   private stairTargetFloor = APT_DEFAULT_FLOOR;
   private focalPoint = new THREE.Vector3();
   private dayNight = new DayNightTicker();
+  private loopErrorLogged = false;
   private sceneLighting!: SceneLightingRefs;
   private raycaster = new THREE.Raycaster();
   private pointer = new THREE.Vector2();
@@ -1034,7 +1035,10 @@ export class UnifiedAptWorldScene {
       this.transitionToInterior = 0;
       this.corridorSlot.visible = false;
       this.districtSlot.visible = false;
+      // React가 paused를 풀기 전에도 내부 씬이 즉시 갱신·렌더되도록 강제 활성화.
+      this.interior.setPaused(false);
       this.setMode("interior");
+      this.needsRender = true;
       if (isVisit) {
         const summary = this.interior.enterShowcaseTour(false);
         this.callbacks.onVisitMessage?.(
@@ -1104,7 +1108,27 @@ export class UnifiedAptWorldScene {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.loop);
     if (this.paused) return;
+    try {
+      this.stepFrame();
+    } catch (err) {
+      if (!this.loopErrorLogged) {
+        this.loopErrorLogged = true;
+        console.error("[AptWorld] render loop error", err);
+      }
+      // 예외가 나도 최소한 현재 카메라로 렌더는 시도해 검은 화면을 피한다.
+      try {
+        const cam =
+          this.mode === "interior"
+            ? this.interior.getActiveRenderCamera()
+            : this.cameraCtrl.camera;
+        this.renderer.render(this.scene, cam);
+      } catch {
+        /* noop */
+      }
+    }
+  };
 
+  private stepFrame() {
     const dt = Math.min(0.05, this.clock.getDelta());
     this.animPhase += dt;
     const { lighting } = this.dayNight.tick();
@@ -1196,7 +1220,7 @@ export class UnifiedAptWorldScene {
         this.renderer.render(this.scene, this.cameraCtrl.camera);
       }
     }
-  };
+  }
 
   dispose() {
     this.disposed = true;
