@@ -429,10 +429,43 @@ html[data-visible-animations="off"] .folk-brush-border-b::after {
 }
 
 .apt-game-hud-bar {
-  border: 1px solid rgba(255, 255, 255, 0.65);
-  background: linear-gradient(135deg, rgba(255, 250, 243, 0.95), rgba(245, 235, 220, 0.88));
-  box-shadow: 0 8px 28px rgba(74, 52, 40, 0.12);
-  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: rgba(255, 250, 243, 0.88);
+  box-shadow: 0 6px 24px rgba(74, 52, 40, 0.1);
+  backdrop-filter: blur(14px);
+}
+
+.apt-game-level-pill {
+  background: linear-gradient(135deg, #fff9e8, #fde68a);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+}
+
+.apt-game-hero-dollhouse {
+  padding-top: calc(max(0.5rem, env(safe-area-inset-top)) + 6.5rem);
+  padding-bottom: calc(max(5rem, env(safe-area-inset-bottom)) + 0.5rem);
+}
+
+.apt-game-palette-card {
+  border: 1px solid rgba(232, 220, 200, 0.95);
+  background: linear-gradient(180deg, #ffffff, #faf6f0);
+  box-shadow: 0 4px 14px rgba(74, 52, 40, 0.08);
+}
+
+.apt-game-palette-card-active {
+  border-color: rgba(245, 158, 11, 0.65);
+  background: linear-gradient(180deg, #fffbeb, #fef3c7);
+}
+
+.apt-game-play-fab > span:first-child {
+  background: linear-gradient(145deg, #fbbf24, #f59e0b);
+  box-shadow: 0 10px 28px rgba(245, 158, 11, 0.5);
+}
+
+.apt-game-mission-banner {
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: rgba(255, 251, 245, 0.92);
+  box-shadow: 0 6px 20px rgba(74, 52, 40, 0.08);
+  backdrop-filter: blur(10px);
 }
 
 .apt-game-level-badge {

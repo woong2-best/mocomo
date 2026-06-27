@@ -61,14 +61,14 @@ function PaletteItem({
       {...attributes}
       className={cn(
         "flex shrink-0 touch-none flex-col items-center gap-1 active:scale-95",
-        gameMode ? "apt-game-palette-item w-[5.5rem] rounded-2xl p-2" : "rounded-xl border p-2",
+        gameMode ? "apt-game-palette-card w-[5.25rem] rounded-2xl p-2" : "rounded-xl border p-2",
         !gameMode &&
           (isPlacing
             ? "border-pink-400 bg-pink-50 ring-2 ring-pink-300"
             : owned
               ? "border-[#5c4033]/12 bg-white"
               : "border-amber-300/50 bg-amber-50/80"),
-        gameMode && isPlacing && "apt-game-palette-item-active ring-2 ring-amber-400",
+        gameMode && isPlacing && "apt-game-palette-card-active ring-2 ring-amber-400",
         isDragging && "invisible opacity-0"
       )}
       style={{ touchAction: "none" }}
@@ -81,7 +81,12 @@ function PaletteItem({
         draggable={false}
       />
       <span className="w-full truncate text-center text-[8px] font-bold text-[#5c4033]">{label}</span>
-      <span className={cn("text-[9px] font-black", owned ? "text-emerald-600" : "text-amber-700")}>
+      <span
+        className={cn(
+          "mt-0.5 rounded-full px-2 py-0.5 text-[9px] font-black",
+          owned ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"
+        )}
+      >
         {owned ? (price === 0 ? "무료" : "보유") : `${price.toLocaleString()}G`}
       </span>
     </div>
@@ -115,36 +120,26 @@ function DioramaFurniturePaletteInner({
 
   if (gameMode) {
     return (
-      <div className="pointer-events-auto absolute inset-x-0 bottom-[calc(max(4.85rem,env(safe-area-inset-bottom)))] z-[75] px-0">
-        <div className="apt-game-palette-sheet mx-auto max-w-md overflow-hidden rounded-t-[1.5rem]">
-          <div className="flex items-center justify-between border-b border-[#e8dcc8]/70 px-4 py-2">
-            <p className="text-[11px] font-black text-[#5c4033]">가구 배치</p>
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-[10px] font-bold text-[#8b7355]"
-            >
-              접기
-            </button>
-          </div>
-          <div className="flex gap-1.5 overflow-x-auto px-3 py-2">
+      <div className="pointer-events-auto absolute inset-x-0 bottom-[calc(max(4.75rem,env(safe-area-inset-bottom)))] z-[75]">
+        <div className="apt-game-palette-sheet mx-auto max-w-md overflow-hidden rounded-t-[1.75rem] shadow-2xl">
+          <div className="flex gap-1 overflow-x-auto border-b border-[#e8dcc8]/60 px-3 py-2.5">
             {GAME_FURNITURE_TABS.map((c) => (
               <button
                 key={c.id}
                 type="button"
                 onClick={() => setGameTab(c.id)}
                 className={cn(
-                  "shrink-0 rounded-full px-4 py-1.5 text-[10px] font-black transition",
+                  "shrink-0 rounded-full px-4 py-1.5 text-[11px] font-black transition",
                   gameTab === c.id
-                    ? "bg-[#5c4033] text-white shadow-md"
-                    : "bg-white/90 text-[#8b7355] border border-[#e8dcc8]"
+                    ? "bg-[#5c4033] text-white"
+                    : "bg-transparent text-[#8b7355]"
                 )}
               >
                 {c.label}
               </button>
             ))}
           </div>
-          <div className="flex gap-2 overflow-x-auto overscroll-x-contain px-3 pb-3 pt-1 [-webkit-overflow-scrolling:touch]">
+          <div className="flex gap-3 overflow-x-auto overscroll-x-contain px-3 py-3 pb-4 [-webkit-overflow-scrolling:touch]">
             {items.map((a) => (
               <PaletteItem
                 key={a.id}

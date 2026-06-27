@@ -13,14 +13,14 @@ import { AptGameRoomSwitcher } from "./apt-game-room-switcher";
 import { useAptGameRequired } from "./apt-game-context";
 
 function AptGameShellInner() {
-  const { toast, toastKind, rooms } = useAptGameRequired();
+  const { toast, toastKind, rooms, editMode, view } = useAptGameRequired();
 
   return (
     <>
-      <AptGameHud />
+      {!editMode && <AptGameHud />}
       <AptGameToast message={toast} kind={toastKind} />
-      <AptGameMissionBanner />
-      <AptGameRoomSwitcher rooms={rooms} />
+      {!editMode && <AptGameMissionBanner />}
+      {view === "room" && !editMode && <AptGameRoomSwitcher rooms={rooms} />}
       <AptGameSideActions />
       <AptGameNav />
       <AptGameMissionSheet />

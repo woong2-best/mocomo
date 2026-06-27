@@ -146,22 +146,22 @@ function AptGameMissionSheetInner() {
                     >
                       {action.label}
                     </button>
-                  ) : action.kind === "edit" ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMissionOpen(false);
-                        setActiveTab("furniture");
-                      }}
-                      className="rounded-full bg-[#5c4033] px-3 py-1 text-[9px] font-black text-white shadow-sm"
-                    >
-                      {action.label}
-                    </button>
-                  ) : (
-                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-[9px] font-black text-emerald-700">
-                      {action.label}
-                    </span>
-                  )}
+                ) : action.kind === "edit" ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMissionOpen(false);
+                      setActiveTab("furniture");
+                    }}
+                    className="rounded-full bg-[#5c4033] px-3 py-1 text-[9px] font-black text-white shadow-sm"
+                  >
+                    {action.label}
+                  </button>
+                ) : m.completed && m.claimed ? (
+                  <span className="rounded-full bg-emerald-500 px-3 py-1 text-[9px] font-black text-white">
+                    완료
+                  </span>
+                ) : null}
                 </div>
               </div>
             );

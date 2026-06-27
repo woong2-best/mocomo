@@ -118,9 +118,7 @@ function AptDioramaRoomInner({
   }, [game]);
 
   if (showOverview) {
-    return (
-      <AptMultiRoomOverview rooms={rooms} layoutOwnerUserId={layoutOwnerUserId} />
-    );
+    return <AptMultiRoomOverview rooms={rooms} />;
   }
 
   return (
@@ -129,7 +127,7 @@ function AptDioramaRoomInner({
         <AptVisitFriendBanner hostName={visitHostName} onLeave={onEndVisit} />
       )}
 
-      {game && game.view === "room" && (
+      {game && game.view === "room" && !editMode && (
         <AptGameZoomControls
           zoom={cameraZoom}
           onZoomIn={() => setCameraZoom((z) => Math.min(1.35, Math.round((z + 0.08) * 100) / 100))}

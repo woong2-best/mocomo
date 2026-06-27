@@ -42,7 +42,7 @@ import {
 import { DioramaEditToolbar } from "@/components/apt/diorama/diorama-edit-toolbar";
 import { DioramaFurniturePalette } from "@/components/apt/diorama/diorama-furniture-palette";
 import { DioramaRoomBackdrop } from "@/components/apt/diorama/diorama-room-backdrop";
-import { AptGameGridOverlay, AptGameEditControls } from "@/components/apt/game/apt-game-edit-controls";
+import { PlacementItemGrid, AptGameEditControls } from "@/components/apt/game/apt-game-edit-controls";
 import { useAptGame } from "@/components/apt/game/apt-game-context";
 import { PlacementBoundsOverlay } from "@/components/apt/diorama/placement-bounds-overlay";
 import { ENERGY_COST_PLACE } from "@/lib/apt/game/energy";
@@ -663,7 +663,9 @@ function DioramaStickerRoomInner({
               className="absolute inset-0"
             >
               {showPlacementZone && <PlacementBoundsOverlay />}
-              {editMode && gameMode && <AptGameGridOverlay />}
+              {editMode && gameMode && selected && isEditableInEditMode(selected.typeId) && (
+                <PlacementItemGrid x={selected.x} y={selected.y} />
+              )}
               {catalogPreview?.inside && catalogPreviewAsset && (
                 <div
                   className="pointer-events-none absolute origin-center"
@@ -698,6 +700,15 @@ function DioramaStickerRoomInner({
                   gameMode={gameMode}
                 />
               ))}
+              {editMode && selected && isEditableInEditMode(selected.typeId) && gameMode && (
+                <AptGameEditControls
+                  x={selected.x}
+                  y={selected.y}
+                  onRotate={handleRotate}
+                  onDelete={handleDelete}
+                  onConfirm={() => setSelectedId(null)}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -738,15 +749,6 @@ function DioramaStickerRoomInner({
           ) : null}
         </DragOverlay>
       </DndContext>
-
-      {editMode && selected && isEditableInEditMode(selected.typeId) && gameMode && (
-        <AptGameEditControls
-          paletteOpen={paletteOpen}
-          onRotate={handleRotate}
-          onDelete={handleDelete}
-          onConfirm={() => setSelectedId(null)}
-        />
-      )}
 
       {editMode && selected && isEditableInEditMode(selected.typeId) && !gameMode && (
         <DioramaEditToolbar
