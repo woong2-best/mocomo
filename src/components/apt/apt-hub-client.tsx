@@ -4,14 +4,15 @@ import dynamic from "next/dynamic";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Building2, DoorOpen, Home, KeyRound, Menu, X } from "lucide-react";
 import Link from "next/link";
-import type { AptProfileDto } from "@/actions/apt";
-import { heartbeatAptPresence } from "@/actions/apt-presence";
+import type { AptProfileDto, CountryAptPreview } from "@/actions/apt";
+import { recordAptHomeVisit } from "@/actions/apt-presence";
 import { setHomePublic } from "@/actions/apt-world";
 import type { BondeeHomeState } from "@/lib/apt/bondee/types";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import { AptSceneErrorBoundary } from "@/components/apt/apt-scene-error-boundary";
 import type { AptStudioInventoryItem } from "@/studio/lib/apt-types";
-import { UnifiedAptWorldScene } from "@/lib/apt/world/unified-apt-world-scene";
+import type { AptGameState } from "@/lib/apt/game/types";
+import type { UnifiedAptWorldScene } from "@/lib/apt/world/unified-apt-world-scene";
 import type { AptSocialSnapshot } from "@/lib/apt/world/apt-social-presence";
 import type { AptWorldMode } from "@/lib/apt/world/world-types";
 import { APT_DEFAULT_FLOOR } from "@/lib/apt/constants";
@@ -23,6 +24,9 @@ import { AptMyHomeButton } from "@/components/apt/apt-my-home-button";
 import type { VisitFunnelState } from "@/lib/apt/world/visit-funnel-types";
 import type { AptCommunityFeed } from "@/lib/apt/presence-types";
 import { formatIdentityBrief } from "@/lib/apt/home-identity";
+import { cn } from "@/lib/utils";
+import { useClientPlatform } from "@/components/providers/client-platform-provider";
+import { AptOverviewHero } from "@/components/apt/apt-overview-hero";
 
 const AptBuildingView = dynamic(
   () => import("@/components/apt/apt-building-view").then((m) => m.AptBuildingView),
@@ -50,6 +54,8 @@ export function AptHubClient({
   isLoggedIn,
   studioInventory = [],
   currentUserId = null,
+  initialGameState = null,
+  userLevel = 1,
 }: {
   initialProfile: AptProfileDto | null;
   bondeeHome: BondeeHomeState;
@@ -57,8 +63,9 @@ export function AptHubClient({
   isLoggedIn: boolean;
   studioInventory?: AptStudioInventoryItem[];
   currentUserId?: string | null;
+  initialGameState?: AptGameState | null;
+  userLevel?: number;
 }) {
-  const mountRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<UnifiedAptWorldScene | null>(null);
   const [started, setStarted] = useState(false);
   const [startPhase, setStartPhase] = useState<"idle" | "contract" | "home">("idle");
@@ -81,31 +88,53 @@ export function AptHubClient({
   const [feedLoading, setFeedLoading] = useState(true);
   const [dailyOpen, setDailyOpen] = useState(true);
   const [visitFunnel, setVisitFunnel] = useState<VisitFunnelState | null>(null);
+  const [interiorHudPeek, setInteriorHudPeek] = useState(false);
+  const [visitHost, setVisitHost] = useState<CountryAptPreview | null>(null);
+  const [browseClearTick, setBrowseClearTick] = useState(0);
   const homeFloor = initialProfile?.homeFloor ?? APT_DEFAULT_FLOOR;
-  const homeCountry = initialProfile?.countryCode ?? "KR";
+  const { isNativeApp } = useClientPlatform();
 
-  // START: 기존 회원 → 로그인 화면 → 로그인하면 본인 집으로 바로 입장.
-  const moveInCompleted = isLoggedIn && !!initialProfile?.moveInCompleted;
+  const endVisit = useCallback(() => {
+    setVisitHost(null);
+    setIsVisiting(false);
+    setVisitingUserId(null);
+    setBrowseClearTick((t) => t + 1);
+    setWorldMode("tower");
+  }, []);
+
+  const handleBrowseTargetChange = useCallback(
+    (target: CountryAptPreview | null) => {
+      setVisitHost(target);
+      if (target && currentUserId && target.userId !== currentUserId) {
+        setIsVisiting(true);
+        setVisitingUserId(target.userId);
+      } else if (!target) {
+        setIsVisiting(false);
+        setVisitingUserId(null);
+      }
+    },
+    [currentUserId]
+  );
+
+  const moveInCompleted = isLoggedIn;
 
   // 메인 버튼:
-  // - 입주 완료 사용자 → 내 집으로 바로 입장
-  // - 로그인했지만 입주 미완료 → 입주 안내(/apt/move-in)
-  // - 그 외(비로그인 포함, 처음 들어온 사람) → 부동산(회원가입/입주 계약)
+  // - 로그인 사용자 → 내 집으로 바로 입장
+  // - 비로그인 사용자 → 회원가입
+  const enterHome = useCallback(() => {
+    setStarted(true);
+    setStartPhase("home");
+    setWorldMode("interior");
+  }, []);
+
   const startExperience = useCallback(() => {
-    if (moveInCompleted) {
-      setStarted(true);
-      setStartPhase("home");
-      window.setTimeout(() => worldRef.current?.goToMyHome(), 160);
-      return;
-    }
-    if (isLoggedIn) {
-      setStartPhase("contract");
-      window.location.href = "/apt/move-in";
+    if (moveInCompleted || isNativeApp) {
+      enterHome();
       return;
     }
     setStartPhase("contract");
     window.location.href = "/auth/signup/apply";
-  }, [moveInCompleted, isLoggedIn]);
+  }, [moveInCompleted, isNativeApp, enterHome]);
 
   // 로그인 버튼: 로그인 창 → 로그인되면 본인 집(/apt?home=1)으로.
   const goToLogin = useCallback(() => {
@@ -113,17 +142,17 @@ export function AptHubClient({
     window.location.href = "/auth/signin?callbackUrl=" + encodeURIComponent("/apt?home=1");
   }, []);
 
-  // 로그인 직후(?home=1)로 들어온 입주 완료 사용자는 내 집으로 바로 입장.
+  // 로그인 직후(?home=1)로 들어온 사용자는 내 집으로 바로 입장.
   useEffect(() => {
-    if (!isLoggedIn || !initialProfile?.moveInCompleted) return;
+    if (!isLoggedIn) return;
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     if (params.get("home") !== "1") return;
     setStarted(true);
     setStartPhase("home");
-    window.setTimeout(() => worldRef.current?.goToMyHome(), 160);
+    setWorldMode("interior");
     window.history.replaceState(null, "", "/apt");
-  }, [isLoggedIn, initialProfile?.moveInCompleted]);
+  }, [isLoggedIn]);
 
   const showLoginToast = useCallback((action: string) => {
     setVisitToast(`로그인 후 ${action}할 수 있습니다`);
@@ -133,7 +162,6 @@ export function AptHubClient({
   const toggleDoor = useCallback(async () => {
     const next = !doorOpen;
     setDoorOpen(next);
-    worldRef.current?.setDoorOpen(next);
     await setHomePublic(next);
   }, [doorOpen]);
 
@@ -142,20 +170,22 @@ export function AptHubClient({
   }, [initialProfile?.homePublic]);
 
   useEffect(() => {
-    worldRef.current?.setDoorOpen(doorOpen);
-  }, [doorOpen]);
-
-  useEffect(() => {
-    worldRef.current?.updateHomeState(homeState);
-  }, [homeState]);
-
-  useEffect(() => {
-    worldRef.current?.updateHomeRooms(homeRooms);
-  }, [homeRooms]);
-
-  useEffect(() => {
     if (visitFunnel) setDailyOpen(false);
   }, [visitFunnel]);
+
+  const visitRecordedRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (worldMode !== "interior" || !visitHost?.userId || !currentUserId) return;
+    if (visitHost.userId === currentUserId) return;
+    if (visitRecordedRef.current === visitHost.userId) return;
+    visitRecordedRef.current = visitHost.userId;
+    void recordAptHomeVisit(visitHost.userId);
+  }, [worldMode, visitHost?.userId, currentUserId]);
+
+  useEffect(() => {
+    if (!visitHost) visitRecordedRef.current = null;
+  }, [visitHost]);
 
   useEffect(() => {
     const inCorr = worldMode === "corridor";
@@ -163,28 +193,15 @@ export function AptHubClient({
     const inInt = worldMode === "interior";
     if (!inCorr && !inLob && !inInt) {
       setAvatarMode(null);
+      setNearHomeDoor(false);
+      setNearElevator(false);
+      setNearLobbyStairs(false);
       return;
     }
-    const id = window.setInterval(() => {
-      const world = worldRef.current;
-      if (world) {
-        setIsVisiting(world.isVisiting());
-        setVisitingUserId(
-          world.isVisiting() ? (world.getVisitSystem().getTarget()?.userId ?? null) : null
-        );
-      }
-      const walk = inCorr ? worldRef.current?.getCorridorWalk() : worldRef.current?.getLobbyWalk();
-      if (inCorr || inLob) {
-        setAvatarMode(walk?.avatar.getMode() ?? null);
-      }
-      if (inCorr) {
-        setNearElevator(worldRef.current?.getCorridorWalk()?.getNearElevator() ?? false);
-      }
-      if (inLob) {
-        setNearLobbyStairs(worldRef.current?.getLobbyWalk()?.getNearStairs() ?? false);
-      }
-    }, 400);
-    return () => window.clearInterval(id);
+    setAvatarMode(inCorr || inLob ? "chibi" : null);
+    setNearHomeDoor(inCorr);
+    setNearElevator(inCorr);
+    setNearLobbyStairs(inLob);
   }, [worldMode]);
 
   const visitingIdentity = useMemo(() => {
@@ -192,58 +209,19 @@ export function AptHubClient({
     return communityFeed.occupants.find((o) => o.userId === visitingUserId)?.identity ?? null;
   }, [visitingUserId, communityFeed]);
 
-  useEffect(() => {
-    worldRef.current?.setPresenceContext({ countryCode: homeCountry });
-  }, [homeCountry]);
-
-  useEffect(() => {
-    const tick = () => {
-      const world = worldRef.current;
-      if (!world) return;
-      void heartbeatAptPresence(world.getPresencePayload());
-    };
-    tick();
-    const id = window.setInterval(tick, 25_000);
-    return () => window.clearInterval(id);
-  }, [worldMode, homeCountry]);
-
-  useEffect(() => {
-    const el = mountRef.current;
-    if (!el) return;
-
-    const world = new UnifiedAptWorldScene(el, {
-      homeFloor,
-      rooms: homeRooms,
-      homeState,
-      doorOpen,
-      userId: currentUserId,
-    });
-
-    world.setPresenceContext({ countryCode: homeCountry });
-
-    world.setCallbacks({
-      onModeChange: setWorldMode,
-      onNearHomeDoor: (canEnter) => setNearHomeDoor(canEnter),
-      onVisitMessage: (msg) => {
-        setVisitToast(msg);
-        window.setTimeout(() => setVisitToast(null), 2800);
-      },
-      onVisitFunnelChange: setVisitFunnel,
-      onSocialPresenceChange: setSocialPresence,
-    });
-
-    setSocialPresence(world.getSocialSnapshot());
-
-    worldRef.current = world;
-
-    return () => {
-      world.dispose();
-      worldRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const inInterior = worldMode === "interior";
+
+  useEffect(() => {
+    if (!inInterior) setInteriorHudPeek(false);
+  }, [inInterior]);
+
+  useEffect(() => {
+    if (!interiorHudPeek) return;
+    const t = window.setTimeout(() => setInteriorHudPeek(false), 4500);
+    return () => window.clearTimeout(t);
+  }, [interiorHudPeek]);
+
+  const showInteriorHud = !inInterior || interiorHudPeek;
   const inCorridor = worldMode === "corridor";
   const inLobby = worldMode === "lobby";
   const inDistrict = worldMode === "district";
@@ -266,10 +244,24 @@ export function AptHubClient({
 
   return (
     <div className="relative h-full w-full overflow-hidden touch-manipulation overscroll-none">
-      {/* 3D canvas — 최하단 */}
-      <div ref={mountRef} className="absolute inset-0 z-0" />
+      <Apt2DWorldBackdrop mode={worldMode} floor={homeFloor} regionLabel={initialProfile?.regionLabel} />
 
-      {!started && (
+      {!started && isNativeApp && (
+        <AptOverviewHero
+          isLoggedIn={isLoggedIn}
+          homeFloor={homeFloor}
+          regionLabel={initialProfile?.regionLabel}
+          startPhase={startPhase}
+          onEnter={startExperience}
+          onSignup={() => {
+            setStartPhase("contract");
+            window.location.href = "/auth/signup/apply";
+          }}
+          onLogin={goToLogin}
+        />
+      )}
+
+      {!started && !isNativeApp && (
         <div className="absolute inset-0 z-[80] flex items-end justify-center bg-[#eef3f5] px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] sm:items-center">
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
             <div className="absolute left-1/2 top-10 h-[62vh] w-[18rem] -translate-x-1/2 rounded-t-[3rem] border-[10px] border-slate-800/80 bg-gradient-to-b from-slate-200 to-slate-100 shadow-2xl">
@@ -301,14 +293,14 @@ export function AptHubClient({
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[1.4rem] border-4 border-slate-900 bg-slate-50">
               <div className="h-10 w-8 rounded-b-2xl rounded-t-[1.1rem] border-[3px] border-slate-900 bg-white" />
             </div>
-            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-500">MOCOMO MOVE-IN</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-500">MOCOMO</p>
             <h1 className="mt-2 text-2xl font-black text-slate-950">
-              {isLoggedIn && initialProfile?.moveInCompleted ? "내 집에서 시작" : "입주 계약 시작"}
+              {isLoggedIn ? "내 공간에서 시작" : "MoCoMo 시작"}
             </h1>
             <p className="mt-2 text-sm leading-relaxed text-slate-600">
-              {isLoggedIn && initialProfile?.moveInCompleted
-                ? `${initialProfile.regionLabel ?? "MOCOMO APT"} ${homeFloor}층 · CCTV 시점으로 바로 입장합니다.`
-                : "부동산에서 계약서를 쓰고, 국가별 아파트의 빈 층으로 이사합니다."}
+              {isLoggedIn
+                ? `${initialProfile?.regionLabel ?? "MOCOMO APT"} ${homeFloor}층 · 바로 시작합니다.`
+                : "가입하면 별도 이동 연출 없이 바로 내 공간을 시작합니다."}
             </p>
 
             <button
@@ -335,7 +327,7 @@ export function AptHubClient({
               ) : (
                 <>
                   <Building2 className="h-5 w-5" />
-                  부동산으로 · 입주 계약
+                  회원가입
                 </>
               )}
             </button>
@@ -354,13 +346,13 @@ export function AptHubClient({
 
             <p className="mt-3 text-[11px] leading-relaxed text-slate-400">
               {moveInCompleted
-                ? "내 집으로 바로 입장합니다."
-                : "처음이라면 「부동산으로」에서 계약하고 입주하세요. 계정이 있으면 「로그인」하면 내 집으로 바로 이동합니다."}
+                ? "내 공간으로 바로 들어갑니다."
+                : "처음이라면 회원가입 후 바로 시작하세요. 계정이 있으면 로그인하면 됩니다."}
             </p>
             <div className="mt-4 grid grid-cols-3 gap-2 text-[10px] font-bold text-slate-500">
               <span className="rounded-full bg-slate-100 px-2 py-1">999층</span>
               <span className="rounded-full bg-slate-100 px-2 py-1">국가별 APT</span>
-              <span className="rounded-full bg-slate-100 px-2 py-1">빈 집 입주</span>
+              <span className="rounded-full bg-slate-100 px-2 py-1">바로 시작</span>
             </div>
           </div>
         </div>
@@ -387,22 +379,33 @@ export function AptHubClient({
               visitRequestUserId={visitUserId}
               onVisitRequestHandled={() => setVisitUserId(null)}
               feedRefreshKey={feedRefreshKey}
+              onBrowseTargetChange={handleBrowseTargetChange}
+              clearBrowseTick={browseClearTick}
             />
-            <AptBondeeRoom
-              initialState={homeState}
-              rooms={homeRooms}
-              isLoggedIn={isLoggedIn}
-              studioInventory={studioInventory}
-              onHomeChange={setHomeState}
-              paused={!inInterior}
-              doorOpen={doorOpen}
-              onDoorToggle={() => void toggleDoor()}
-              unifiedWorldRef={worldRef}
-              skipSceneMount
-              worldMode={worldMode}
-              isVisiting={isVisiting}
-              visitingIdentity={visitingIdentity}
-            />
+            {inInterior && (
+              <AptBondeeRoom
+                initialState={homeState}
+                rooms={homeRooms}
+                isLoggedIn={isLoggedIn}
+                studioInventory={studioInventory}
+                onHomeChange={setHomeState}
+                paused={false}
+                doorOpen={doorOpen}
+                onDoorToggle={() => void toggleDoor()}
+                skipSceneMount={false}
+                worldMode={worldMode}
+                isVisiting={isVisiting}
+                visitingIdentity={visitingIdentity}
+                layoutOwnerUserId={visitHost?.userId ?? currentUserId}
+                onExitInterior={() => setWorldMode("corridor")}
+                furnitureHintState={{
+                  hasUnreadMail: (socialPresence?.mailboxUnread ?? 0) > 0,
+                  hasMissedCall: false,
+                }}
+                initialGame={initialGameState}
+                userLevel={userLevel}
+              />
+            )}
           </Suspense>
         </AptSceneErrorBoundary>
       </div>
@@ -440,11 +443,14 @@ export function AptHubClient({
           </div>
           <div className="absolute left-3 bottom-3 pointer-events-auto z-10 flex flex-col gap-2">
             <HomeAvatarControls
-              onMove={(x, z) => worldRef.current?.getCorridorWalk()?.setMoveInput(x, z)}
+              onMove={() => undefined}
               onInteract={() => {
-                if (nearHomeDoor) worldRef.current?.tryEnterHome();
-                else if (nearElevator) worldRef.current?.corridorUseElevator();
-                else worldRef.current?.knockOrBell();
+                if (nearHomeDoor) setWorldMode("interior");
+                else if (nearElevator) setWorldMode("tower");
+                else {
+                  setVisitToast("2D 복도 안내판을 확인했습니다");
+                  window.setTimeout(() => setVisitToast(null), 2200);
+                }
               }}
               canInteract
               interactLabel={
@@ -461,7 +467,10 @@ export function AptHubClient({
             />
             <button
               type="button"
-              onClick={() => worldRef.current?.interactCorridorProp()}
+              onClick={() => {
+                setVisitToast("2D 안내판: 오늘도 이웃과 가볍게 인사해 보세요");
+                window.setTimeout(() => setVisitToast(null), 2200);
+              }}
               className="rounded-xl border border-white/20 bg-black/50 px-3 py-1.5 text-[10px] font-bold text-white/80 backdrop-blur-md"
             >
               CCTV · 안내판 (F)
@@ -469,7 +478,7 @@ export function AptHubClient({
             {isVisiting && (
               <button
                 type="button"
-                onClick={() => worldRef.current?.exitVisit()}
+                onClick={endVisit}
                 className="rounded-xl border border-pink-400/40 bg-pink-500/20 px-3 py-2 text-xs font-bold text-pink-100 backdrop-blur-md"
               >
                 방문 종료
@@ -488,14 +497,14 @@ export function AptHubClient({
             </div>
           )}
           <HomeAvatarControls
-            onMove={(x, z) => worldRef.current?.getLobbyWalk()?.setMoveInput(x, z)}
-            onInteract={() => worldRef.current?.lobbyUseElevator()}
+            onMove={() => undefined}
+            onInteract={() => setWorldMode("tower")}
             canInteract
             interactLabel="엘리베이터"
           />
           <button
             type="button"
-            onClick={() => worldRef.current?.lobbyUseStairs()}
+            onClick={() => setWorldMode("corridor")}
             className="rounded-xl border border-white/20 bg-black/50 px-3 py-2 text-xs font-bold text-white/90 backdrop-blur-md"
           >
             계단 이용
@@ -513,8 +522,8 @@ export function AptHubClient({
         <div className="pointer-events-none absolute left-1/2 top-[5.25rem] z-[58] w-[min(100%,19rem)] -translate-x-1/2 px-3">
           <AptVisitFunnelPanel
             funnel={visitFunnel}
-            onEnter={() => worldRef.current?.tryEnterHome()}
-            onCancel={() => worldRef.current?.exitVisit()}
+            onEnter={() => setWorldMode("interior")}
+            onCancel={() => setVisitFunnel(null)}
           />
         </div>
       )}
@@ -569,16 +578,33 @@ export function AptHubClient({
       )}
       </div>
 
-      {/* 상단 네비 HUD — 항상 최상단 */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-50 flex items-start justify-between p-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:p-4">
+      {/* 상단 네비 HUD — 실내에서는 좌상단 탭 시에만 표시 */}
+      {inInterior && !interiorHudPeek && (
+        <button
+          type="button"
+          aria-label="메뉴 열기"
+          onClick={() => setInteriorHudPeek(true)}
+          className="pointer-events-auto absolute left-0 top-0 z-[55] h-12 w-12 opacity-0"
+        />
+      )}
+      {showInteriorHud && (
+      <div className={cn(
+        "pointer-events-none absolute inset-x-0 top-0 z-50 flex items-start justify-between sm:p-4",
+        inInterior ? "p-2 pt-[max(0.35rem,env(safe-area-inset-top))]" : "p-3 pt-[max(0.75rem,env(safe-area-inset-top))]"
+      )}>
         <div className="pointer-events-auto flex items-center gap-2">
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 bg-black/45 text-white backdrop-blur-md shadow-lg transition hover:bg-black/60"
+            className={cn(
+              "flex items-center justify-center rounded-xl border text-white backdrop-blur-md shadow-lg transition hover:bg-black/60",
+              inInterior
+                ? "h-8 w-8 border-black/10 bg-white/45 text-slate-700"
+                : "h-10 w-10 border-white/20 bg-black/45"
+            )}
             aria-label="메뉴"
           >
-            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {menuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
           </button>
           {menuOpen && (
             <div className="animate-in fade-in slide-in-from-left-2 rounded-xl border border-white/15 bg-black/70 px-3 py-2 text-xs text-white/90 backdrop-blur-md shadow-xl space-y-1 min-w-[10rem]">
@@ -595,14 +621,18 @@ export function AptHubClient({
           )}
         </div>
 
-        <div className="pointer-events-auto flex flex-wrap justify-end gap-1.5 rounded-2xl border border-white/15 bg-black/45 p-1 backdrop-blur-md shadow-lg max-w-[min(100%,20rem)]">
-          {isLoggedIn && !isVisiting && (
+        <div className={cn(
+          "pointer-events-auto flex flex-wrap justify-end gap-1.5 rounded-2xl border p-1 backdrop-blur-md shadow-lg max-w-[min(100%,20rem)]",
+          inInterior ? "border-black/8 bg-white/45" : "border-white/15 bg-black/45"
+        )}>
+          {isLoggedIn && !isVisiting && !inInterior && (
             <AptMyHomeButton
               compact
-              onClick={() => worldRef.current?.goToMyHome()}
+              onClick={() => setWorldMode("interior")}
               className="shrink-0"
             />
           )}
+          {!inInterior && (
           <button
             type="button"
             onClick={() => setDailyOpen((v) => !v)}
@@ -611,11 +641,12 @@ export function AptHubClient({
             <span className="hidden sm:inline">{dailyOpen ? "Daily 닫기" : "APT Daily"}</span>
             <span className="sm:hidden">Daily</span>
           </button>
+          )}
           {inDistrict && (
             <>
               <button
                 type="button"
-                onClick={() => worldRef.current?.enterBuildingFromDistrict()}
+                onClick={() => setWorldMode("tower")}
                 className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold bg-sky-500/90 text-white shadow-md transition-all hover:bg-sky-500"
               >
                 <Building2 className="h-4 w-4" />
@@ -623,7 +654,7 @@ export function AptHubClient({
               </button>
               <button
                 type="button"
-                onClick={() => worldRef.current?.enterLobbyFromDistrict()}
+                onClick={() => setWorldMode("lobby")}
                 className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-white/80 hover:bg-white/10 transition-all"
               >
                 <Home className="h-4 w-4" />
@@ -634,7 +665,7 @@ export function AptHubClient({
           {(worldMode === "tower" || worldMode === "elevator") && (
             <button
               type="button"
-              onClick={() => worldRef.current?.showTower()}
+              onClick={() => setWorldMode("tower")}
               className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-white/80 hover:bg-white/10 transition-all"
             >
               <Building2 className="h-4 w-4" />
@@ -644,7 +675,7 @@ export function AptHubClient({
           {inLobby && (
             <button
               type="button"
-              onClick={() => worldRef.current?.showTower()}
+              onClick={() => setWorldMode("tower")}
               className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-white/80 hover:bg-white/10 transition-all"
             >
               <Building2 className="h-4 w-4" />
@@ -654,7 +685,7 @@ export function AptHubClient({
           {inCorridor && (
             <button
               type="button"
-              onClick={() => worldRef.current?.corridorUseElevator()}
+              onClick={() => setWorldMode("tower")}
               className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-white/80 hover:bg-white/10 transition-all"
             >
               <Building2 className="h-4 w-4" />
@@ -662,19 +693,10 @@ export function AptHubClient({
               <span className="sm:hidden">EV</span>
             </button>
           )}
-          {inInterior && (
-            <button
-              type="button"
-              onClick={() => worldRef.current?.exitToCorridor()}
-              className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-white/80 hover:bg-white/10"
-            >
-              나가기
-            </button>
-          )}
           {inInterior && isVisiting && (
             <button
               type="button"
-              onClick={() => worldRef.current?.exitVisit()}
+              onClick={endVisit}
               className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-pink-200 hover:bg-pink-500/20"
             >
               방문 종료
@@ -682,13 +704,121 @@ export function AptHubClient({
           )}
         </div>
       </div>
+      )}
 
       {/* 모드 안내 */}
+      {!inInterior && (
       <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 z-50 max-w-[min(100%,24rem)] px-3 pb-[env(safe-area-inset-bottom)]">
         <p className="rounded-full border border-white/15 bg-black/50 px-4 py-1.5 text-center text-[10px] font-semibold text-white/70 backdrop-blur-md">
           {modeGuide}
         </p>
       </div>
+      )}
+    </div>
+  );
+}
+
+function Apt2DWorldBackdrop({
+  mode,
+  floor,
+  regionLabel,
+}: {
+  mode: AptWorldMode;
+  floor: number;
+  regionLabel?: string | null;
+}) {
+  const isLobby = mode === "lobby";
+  const isCorridor = mode === "corridor";
+  const isInterior = mode === "interior";
+
+  return (
+    <div className="absolute inset-0 z-0 overflow-hidden bg-[#e8dfd4]">
+      {!isInterior && (
+      <>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#fff7e8_0,#eaf7ff_42%,#f8edf5_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(120,100,80,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(120,100,80,0.035)_1px,transparent_1px)] bg-[size:36px_36px]" />
+      <div className="pointer-events-none absolute -left-16 top-12 h-28 w-52 rounded-full bg-white/50 blur-3xl" />
+      <div className="pointer-events-none absolute -right-10 top-24 h-36 w-44 rounded-full bg-sky-100/60 blur-3xl" />
+      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-emerald-200/75 via-emerald-100/30 to-transparent" />
+      </>
+      )}
+
+      {(mode === "tower" || mode === "elevator" || mode === "district") && (
+        <div className="absolute left-1/2 top-1/2 h-[74vh] w-[min(26rem,80vw)] -translate-x-1/2 -translate-y-1/2 rounded-t-[3rem] border border-black/10 bg-gradient-to-b from-white/95 via-amber-50/90 to-rose-50/80 shadow-[0_28px_72px_rgba(91,79,65,0.22)]">
+          <div className="absolute inset-x-6 top-0 h-6 rounded-b-2xl bg-gradient-to-b from-slate-200/80 to-transparent" />
+          <div className="absolute left-1/2 top-5 -translate-x-1/2 rounded-full border border-black/10 bg-white/90 px-4 py-1.5 text-xs font-bold text-slate-700 shadow-sm">
+            {regionLabel ?? "MOCOMO APT"} · {floor}F
+          </div>
+          {Array.from({ length: 12 }).map((_, i) => {
+            const unit = `${floor}${(i % 4) + 1}`;
+            const lit = i % 5 === 1 || i % 5 === 3;
+            return (
+              <div
+                key={i}
+                className={`absolute h-8 w-14 rounded-xl border border-black/10 shadow-[inset_0_-5px_10px_rgba(91,79,65,0.07)] ${lit ? "bg-amber-100/95" : "bg-white/88"}`}
+                style={{
+                  left: i % 3 === 0 ? "14%" : i % 3 === 1 ? "40%" : "66%",
+                  top: `${13 + Math.floor(i / 3) * 12.5}%`,
+                }}
+              >
+                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[8px] font-bold text-slate-500">
+                  {unit}
+                </span>
+                {lit && (
+                  <span className="absolute inset-x-[20%] top-[22%] h-[38%] rounded-sm bg-gradient-to-b from-sky-100/90 to-white/40" />
+                )}
+              </div>
+            );
+          })}
+          <div className="absolute bottom-0 left-1/2 h-28 w-36 -translate-x-1/2 rounded-t-3xl border border-black/10 bg-gradient-to-b from-white/95 to-amber-50/90 shadow-[inset_0_12px_20px_rgba(91,79,65,0.06)]">
+            <div className="absolute left-1/2 top-6 flex h-16 w-20 -translate-x-1/2 flex-col items-center justify-between rounded-xl border border-black/10 bg-slate-800/90 p-2">
+              <span className="text-[9px] font-bold text-emerald-300">▲</span>
+              <span className="text-sm font-black text-white">{floor}</span>
+              <span className="text-[9px] font-bold text-rose-300">▼</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isLobby && (
+        <div className="absolute left-1/2 top-1/2 grid w-[min(44rem,88vw)] -translate-x-1/2 -translate-y-1/2 grid-cols-3 gap-4 rounded-[2rem] border border-black/10 bg-white/85 p-5 shadow-[0_28px_72px_rgba(91,79,65,0.2)] backdrop-blur-md">
+          <div className="col-span-2 h-52 rounded-2xl border border-black/10 bg-gradient-to-br from-amber-50 to-rose-50 shadow-inner">
+            <div className="mx-auto mt-10 h-28 w-44 rounded-t-[2rem] border border-black/10 bg-white/85 shadow-[0_12px_24px_rgba(91,79,65,0.1)]">
+              <div className="mx-auto mt-6 h-16 w-24 rounded-lg bg-gradient-to-b from-sky-100 to-white" />
+            </div>
+          </div>
+          <div className="h-52 rounded-2xl border border-black/10 bg-sky-50 p-4">
+            <div className="h-full rounded-xl bg-gradient-to-b from-white to-sky-100 shadow-inner">
+              <div className="mx-auto mt-8 h-20 w-12 rounded-lg border border-black/10 bg-slate-700/90">
+                <span className="mt-6 block text-center text-[10px] font-bold text-emerald-300">▲</span>
+              </div>
+            </div>
+          </div>
+          <div className="col-span-3 rounded-2xl border border-black/10 bg-white/80 px-4 py-3 text-center text-sm font-semibold text-slate-700">
+            로비 · 엘리베이터에서 층을 고르고 이웃 집으로 이동
+          </div>
+        </div>
+      )}
+
+      {isCorridor && (
+        <div className="absolute left-1/2 top-1/2 w-[min(48rem,92vw)] -translate-x-1/2 -translate-y-1/2 rounded-[2rem] border border-black/10 bg-white/85 p-5 shadow-[0_28px_72px_rgba(91,79,65,0.2)] backdrop-blur-md">
+          <div className="grid grid-cols-4 gap-3">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="group h-32 rounded-2xl border border-black/10 bg-gradient-to-b from-rose-50 to-white p-2 shadow-sm">
+                <div className="relative h-full rounded-xl border border-black/10 bg-white/90">
+                  <p className="mt-3 text-center text-[10px] font-bold text-slate-400">
+                    {floor}
+                    {String(i + 1).padStart(2, "0")}호
+                  </p>
+                  <div className="mx-auto mt-3 h-10 w-10 rounded-full border-2 border-slate-800 bg-[#fffdf6] opacity-70 transition-opacity group-hover:opacity-100" />
+                  <div className="mx-auto mt-1 h-6 w-8 rounded-b-full border-2 border-t-0 border-slate-800 bg-[#fffdf6] opacity-70 transition-opacity group-hover:opacity-100" />
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-center text-sm font-semibold text-slate-700">복도 · 호실을 눌러 집을 둘러보는 공간</p>
+        </div>
+      )}
     </div>
   );
 }

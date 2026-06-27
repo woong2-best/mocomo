@@ -44,11 +44,11 @@ async function getBlob(key: string): Promise<Blob | null> {
 }
 
 export function getPhotoAvatarRenderMode(): PhotoAvatarRenderMode {
-  if (typeof window === "undefined") return "vrm";
+  if (typeof window === "undefined") return "flat2d";
   const raw = localStorage.getItem(PHOTO_AVATAR_MODE_KEY);
   if (raw === "photo") return "photo";
   if (raw === "flat2d") return "flat2d";
-  return "vrm";
+  return "flat2d";
 }
 
 export function setPhotoAvatarRenderMode(mode: PhotoAvatarRenderMode) {
@@ -87,7 +87,7 @@ export async function loadPhotoAvatarRig(): Promise<PhotoAvatarRig | null> {
 
 export async function clearPhotoAvatarRig() {
   localStorage.removeItem(RIG_KEY);
-  setPhotoAvatarRenderMode("vrm");
+  setPhotoAvatarRenderMode("flat2d");
   notifyPhotoAvatarChanged();
 }
 

@@ -24,15 +24,6 @@ const STUDIOS = [
     accent: "border-folk-cobalt/35 bg-folk-cobalt/5 hover:border-folk-cobalt/55",
     iconWrap: "bg-folk-cobalt/15 text-folk-cobalt",
   },
-  {
-    href: "/avatar/studio/3d",
-    icon: Sparkles,
-    tag: "3D",
-    title: "3D 아바타 스튜디오",
-    description: "VRM 체형·얼굴·헤어·의상·UV 페인트 — 라이브 VTuber 연동",
-    accent: "border-folk-gold/50 bg-folk-gold/10 hover:border-folk-gold/70",
-    iconWrap: "bg-folk-gold/25 text-folk-cobalt",
-  },
 ] as const;
 
 export function LiveStudioHub() {
@@ -48,14 +39,14 @@ export function LiveStudioHub() {
             스튜디오 선택
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            방송 설정 · 2D 아바타 · 3D VRM 중 하나를 골라 작업하세요
+            방송 설정과 2D 아바타 편집으로 작업하세요
           </p>
         </div>
       </header>
 
       <FolkBrushDivider className="opacity-50" />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
         {STUDIOS.map((studio) => {
           const Icon = studio.icon;
           return (

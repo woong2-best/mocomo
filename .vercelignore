@@ -1,0 +1,6 @@
+# Playwright 녹화 임시 파일 (배포 용량 초과 방지)
+public/diorama/page@*.webm
+public/diorama/edit-step-*.png
+public/diorama/edit-mode-demo.webm
+public/diorama/screenshot-*.png
+build-log.txt

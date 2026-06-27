@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1280" />
+  <title>MoCoMo 거실 다이오라마</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { width: 1280px; height: 800px; background: linear-gradient(180deg, #f0ebe3, #ebe4d8); font-family: system-ui, sans-serif; overflow: hidden; }
+    .chrome-top { height: 52px; display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: rgba(255,255,255,0.6); border-bottom: 1px solid rgba(0,0,0,0.08); }
+    .tab { padding: 6px 14px; border-radius: 999px; border: 2px solid #1e1e1e; background: #fff; font-size: 11px; font-weight: 700; }
+    .tab.dim { border-color: rgba(0,0,0,0.15); opacity: 0.55; background: rgba(255,255,255,0.75); }
+    .stage-wrap { position: absolute; inset: 52px 0 0; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .stage { position: relative; width: min(960px, 100%); aspect-ratio: 4/3; max-height: calc(100% - 48px); }
+    .backdrop { position: absolute; inset: 4%; display: flex; align-items: center; justify-content: center; }
+    .backdrop img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 12px 28px rgba(50,40,30,0.2)); }
+    .stickers { position: absolute; inset: 4%; }
+    .sticker { position: absolute; transform-origin: center center; }
+    .sticker img { width: 100%; height: auto; display: block; filter: drop-shadow(0 3px 5px rgba(40,30,20,0.18)); }
+    .footer { position: absolute; bottom: 12px; left: 12px; right: 12px; display: flex; justify-content: space-between; padding: 8px 12px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.92); font-size: 10px; font-weight: 700; }
+    .badge { background: #fce7f3; color: #be185d; padding: 2px 8px; border-radius: 999px; }
+  </style>
+</head>
+<body>
+  <div class="chrome-top">
+    <span class="tab">거실</span>
+    <span class="tab dim">방 2</span><span class="tab dim">방 1</span><span class="tab dim">화장실</span><span class="tab dim">현관</span><span class="tab dim">부엌</span>
+  </div>
+  <div class="stage-wrap">
+    <div class="stage">
+      <div class="backdrop"><img id="backdrop" alt="방" /></div>
+      <div class="stickers" id="stickers"></div>
+      <div class="footer"><span>거실 · 스티커 다이오라마</span><span class="badge" id="count"></span></div>
+    </div>
+  </div>
+  <script>
+    const BASE = '/diorama/stickers/living';
+    fetch('/diorama/living-preset.json').then(r => r.json()).then(data => {
+      document.getElementById('backdrop').src = `${BASE}/${data.backdropAssetId}.webp`;
+      const root = document.getElementById('stickers');
+      data.stickers.sort((a,b) => a.zIndex - b.zIndex).forEach(s => {
+        const w = (data.assets[s.assetId] || 80) * s.scale;
+        const el = document.createElement('div');
+        el.className = 'sticker';
+        el.style.cssText = `left:${s.x}%;top:${s.y}%;width:${w}px;z-index:${s.zIndex};transform:translate(-50%,-50%) rotate(${s.rotation}deg)`;
+        const img = document.createElement('img');
+        img.src = `${BASE}/${s.assetId}.webp`;
+        el.appendChild(img);
+        root.appendChild(el);
+      });
+      document.getElementById('count').textContent = data.stickers.length + '개 오브젝트';
+    });
+  </script>
+</body>
+</html>

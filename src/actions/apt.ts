@@ -189,7 +189,6 @@ export async function completeAptMoveIn(payload: MoveInPayload) {
     });
 
     revalidatePath("/apt");
-    revalidatePath("/apt/move-in");
     revalidatePath("/apt/house");
     return { ok: true as const, housingType };
   } catch (e) {

@@ -544,6 +544,7 @@ export async function registerUser(
         latitude: country.lat,
         longitude: country.lng,
         regionLabel: `${country.nameKo} APT`,
+        moveInCompletedAt: new Date(),
       },
       update: {
         countryCode: countryCode.toUpperCase(),
@@ -551,6 +552,7 @@ export async function registerUser(
         latitude: country.lat,
         longitude: country.lng,
         regionLabel: `${country.nameKo} APT`,
+        moveInCompletedAt: new Date(),
       },
     });
 

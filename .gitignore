@@ -40,3 +40,6 @@ next-env.d.ts
 
 # local uploads (dev fallback)
 /public/uploads/
+
+# large demo recordings (keep edit-mode-demo.webm only)
+/public/diorama/page@*.webm

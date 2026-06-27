@@ -21,7 +21,7 @@ export class AptSceneErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="folk-card flex min-h-[min(80dvh,760px)] flex-col items-center justify-center gap-3 p-8 text-center">
-          <p className="text-sm font-semibold text-folk-cobalt">3D 뷰를 불러오지 못했습니다</p>
+          <p className="text-sm font-semibold text-folk-cobalt">2D 뷰를 불러오지 못했습니다</p>
           <p className="text-xs text-muted-foreground max-w-sm">
             브라우저 WebGL 지원 여부를 확인하거나 페이지를 새로고침해 주세요.
           </p>

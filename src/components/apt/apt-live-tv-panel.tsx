@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Power, Radio } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ConsoleModePhase } from "@/lib/apt/bondee/isometric-home-scene";
+
+type ConsoleModePhase = "off" | "entering" | "active" | "exiting";
 
 const LiveViewerPlayer = dynamic(
   () => import("@/components/live/live-viewer-player").then((m) => m.LiveViewerPlayer),

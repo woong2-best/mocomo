@@ -5,6 +5,8 @@ import { getAptStudioInventory } from "@/studio/actions/library";
 import { DEFAULT_BONDEE_HOME } from "@/lib/apt/bondee/types";
 import { createDefaultFloorPlan } from "@/lib/apt/floor-plan-logic";
 import { AptHubClient } from "@/components/apt/apt-hub-client";
+import { getAptGameState } from "@/actions/apt-game";
+import type { AptGameState } from "@/lib/apt/game/types";
 
 export const metadata = {
   title: "APT | MoCoMo",
@@ -19,13 +21,15 @@ export default async function AptPage() {
   let user = null;
   let profile = null;
   let studioInventory: Awaited<ReturnType<typeof getAptStudioInventory>> = [];
+  let gameState: AptGameState | null = null;
 
   try {
     user = await getCachedCurrentUser();
     if (user) {
-      [profile, studioInventory] = await Promise.all([
+      [profile, studioInventory, gameState] = await Promise.all([
         getAptProfile().catch(() => null),
         getAptStudioInventory().catch(() => []),
+        getAptGameState().catch(() => null),
       ]);
     }
   } catch (e) {
@@ -52,6 +56,8 @@ export default async function AptPage() {
       isLoggedIn={!!user}
       studioInventory={studioInventory}
       currentUserId={user?.id ?? null}
+      initialGameState={gameState}
+      userLevel={user?.level ?? 1}
     />
   );
 }

@@ -18,14 +18,9 @@ import {
 } from "lucide-react";
 import { saveBondeeHome } from "@/actions/apt-bondee";
 import {
-  IsometricHomeScene,
-  type ConsoleContentMode,
-  type ConsoleModePhase,
-  type NearbyFurnitureInteract,
-} from "@/lib/apt/bondee/isometric-home-scene";
-import {
   BONDEE_FURNITURE_CATEGORIES,
   BONDEE_FURNITURE_LABELS,
+  type BondeePlacedItem,
   type BondeeFurnitureKind,
   type BondeeHomeState,
   type ChibiAvatarConfig,
@@ -51,9 +46,65 @@ import { useAptHomeSocket } from "@/hooks/use-apt-home-socket";
 import { useSession } from "next-auth/react";
 import { useCompose } from "@/components/compose/compose-provider";
 import { parseAptMailboxParams } from "@/lib/apt/mailbox-compose-route";
+import { AptIsometricRoom } from "@/components/apt/apt-isometric-room";
+import { AptGameProvider } from "@/components/apt/game/apt-game-context";
+import { AptGameShell } from "@/components/apt/game/apt-game-shell";
+import type { AptGameState } from "@/lib/apt/game/types";
+import type { StickerFunction } from "@/lib/diorama/sticker-types";
+import { getDioramaPreset } from "@/lib/diorama/living-room-preset";
 import type { RefObject } from "react";
 import type { UnifiedAptWorldScene } from "@/lib/apt/world/unified-apt-world-scene";
 import type { AptWorldMode } from "@/lib/apt/world/world-types";
+
+type ConsoleContentMode = "live" | "games" | null;
+type ConsoleModePhase = "off" | "entering" | "active" | "exiting";
+type NearbyFurnitureInteract = { itemId: string; actionLabel: string } | null;
+type HomeSceneCallbacks = {
+  onItemSelect: (itemId: string | null) => void;
+  onNearGramophoneChange: (near: boolean) => void;
+  onGramophoneInteract: () => void;
+  onNearInstrumentChange: (near: { itemId: string; kind: InstrumentKind } | null) => void;
+  onInstrumentInteract: (itemId: string, kind: InstrumentKind) => void;
+  onNavigateInteract: (href: string) => void;
+  onComposeInteract: () => void;
+  onActiveRoomChange: (roomId: string) => void;
+  onNearbyFurnitureChange: (near: NearbyFurnitureInteract) => void;
+  onPoseChange: (pose: ChibiPose) => void;
+  onLightToggle: (itemId: string, on: boolean) => void;
+  onAcToggle: (itemId: string, on: boolean) => void;
+  onFurnitureOpenToggle: (itemId: string, open: boolean) => void;
+  onSmartphoneInteract: () => void;
+  onFurnitureToast: (msg: string) => void;
+  onConsoleModeChange: (phase: ConsoleModePhase) => void;
+  onPositionChange: (pos: { x: number; z: number; pose: string; activity: string }) => void;
+};
+type HomeSceneController = {
+  updateItems: (items: BondeeHomeState["items"]) => void;
+  setState: (state: BondeeHomeState) => void;
+  updateAvatar: (avatar: ChibiAvatarConfig, pose?: ChibiPose) => void;
+  syncRemotePlayers: (peers: unknown[]) => void;
+  setGramophonePlaying: (playing: boolean) => void;
+  setInstrumentPlaying: (playing: boolean) => void;
+  playRemoteInstrumentNote: (kind: InstrumentKind, midi: number, pad?: number) => void;
+  setTvScreenActive: (active: boolean) => void;
+  getConsoleBlend: () => number;
+  getConsoleContent: () => ConsoleContentMode;
+  setPaused: (paused: boolean) => void;
+  setCallbacks: (callbacks: HomeSceneCallbacks) => void;
+  setDecorMode: (
+    active: boolean,
+    kind: BondeeFurnitureKind | null,
+    deleteMode: boolean,
+    studioTool: AptStudioInventoryItem | null
+  ) => void;
+  setActiveRoom: (roomId: string) => void;
+  setSelectedItem: (itemId: string | null) => void;
+  setMoveInput: (x: number, z: number) => void;
+  tryInteract: () => void;
+  exitConsoleMode: () => void;
+  enterShowcaseTour: (enabled: boolean) => void;
+  dispose: () => void;
+};
 
 const POSE_OPTIONS: { id: ChibiPose; label: string; icon: typeof Sofa; key: string }[] = [
   { id: "stand", label: "서기", icon: PersonStanding, key: "1" },
@@ -78,6 +129,11 @@ function AptBondeeRoomInner({
   worldMode = "interior",
   isVisiting = false,
   visitingIdentity = null,
+  layoutOwnerUserId = null,
+  onExitInterior,
+  furnitureHintState,
+  initialGame = null,
+  userLevel = 1,
 }: {
   initialState: BondeeHomeState;
   rooms: AptRoom[];
@@ -92,11 +148,17 @@ function AptBondeeRoomInner({
   worldMode?: AptWorldMode;
   isVisiting?: boolean;
   visitingIdentity?: HomeIdentitySummary | null;
+  /** 다이오라마 배치 데이터 소유자(방 주인) */
+  layoutOwnerUserId?: string | null;
+  onExitInterior?: () => void;
+  furnitureHintState?: { hasUnreadMail?: boolean; hasMissedCall?: boolean };
+  initialGame?: AptGameState | null;
+  userLevel?: number;
 }) {
   const { data: session } = useSession();
-  const homeOwnerId = session?.user?.id ?? null;
-  const mountRef = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<IsometricHomeScene | null>(null);
+  const homeOwnerId = layoutOwnerUserId ?? session?.user?.id ?? null;
+  const canEditLayout = isLoggedIn && !isVisiting && !!homeOwnerId;
+  const sceneRef = useRef<HomeSceneController | null>(null);
   const stateRef = useRef(initialState);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveSeq = useRef(0);
@@ -165,6 +227,20 @@ function AptBondeeRoomInner({
     [rooms]
   );
 
+  const activeRoom = useMemo(
+    () => rooms.find((r) => r.id === activeRoomId) ?? roomTabs[0],
+    [rooms, activeRoomId, roomTabs]
+  );
+  const isImmersiveDiorama = !!(activeRoom && getDioramaPreset(activeRoom.id, activeRoom.type));
+  const gameEnabled = isLoggedIn && !isVisiting && worldMode === "interior";
+
+  const visitReportedRef = useRef(false);
+  useEffect(() => {
+    if (!isVisiting) {
+      visitReportedRef.current = false;
+    }
+  }, [isVisiting]);
+
   const persist = useCallback(
     (next: BondeeHomeState) => {
       if (!isLoggedIn) return;
@@ -200,6 +276,29 @@ function AptBondeeRoomInner({
       persist(next);
     },
     [onHomeChange, persist]
+  );
+
+  const addItemToActiveRoom = useCallback(
+    (kind: BondeeFurnitureKind, studio?: AptStudioInventoryItem) => {
+      const room = rooms.find((r) => r.id === activeRoomId) ?? rooms[0];
+      if (!room) return;
+      const item: BondeePlacedItem = {
+        id: `${kind}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        kind,
+        roomId: room.id,
+        gx: Math.max(1, Math.round(room.w / 100)),
+        gz: Math.max(1, Math.round(room.h / 100)),
+        rot: 0,
+        studioAssetId: studio?.studioAssetId,
+        glbUrl: studio?.glbUrl,
+        studioLabel: studio?.name,
+      };
+      applyItems([...stateRef.current.items, item]);
+      setSelectedItemId(item.id);
+      setFurnitureToast(`${studio?.name ?? BONDEE_FURNITURE_LABELS[kind]} 배치됨`);
+      window.setTimeout(() => setFurnitureToast(null), 1800);
+    },
+    [activeRoomId, applyItems, rooms]
   );
 
   const openGramophone = useCallback(() => {
@@ -252,7 +351,7 @@ function AptBondeeRoomInner({
 
   useEffect(() => {
     const unsub = onRemoteNote((note) => {
-      sceneRef.current?.playRemoteInstrumentNote(note.kind, note.midi, note.padIndex);
+      sceneRef.current?.playRemoteInstrumentNote(note.kind as InstrumentKind, note.midi, note.padIndex);
     });
     return () => {
       unsub();
@@ -294,18 +393,11 @@ function AptBondeeRoomInner({
 
   useEffect(() => {
     if (skipSceneMount) {
-      sceneRef.current = unifiedWorldRef?.current?.getInterior() ?? null;
+      sceneRef.current = (unifiedWorldRef?.current?.getInterior() as HomeSceneController | null) ?? null;
       return;
     }
-    const el = mountRef.current;
-    if (!el) return;
-    const scene = new IsometricHomeScene(el, rooms, {
-      ...stateRef.current,
-      activeRoomId: activeRoomId ?? undefined,
-    });
-    sceneRef.current = scene;
+    sceneRef.current = null;
     return () => {
-      scene.dispose();
       sceneRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -366,7 +458,7 @@ function AptBondeeRoomInner({
 
   useEffect(() => {
     if (!skipSceneMount || !unifiedWorldRef?.current) return;
-    sceneRef.current = unifiedWorldRef.current.getInterior();
+    sceneRef.current = unifiedWorldRef.current.getInterior() as HomeSceneController;
   }, [skipSceneMount, unifiedWorldRef?.current]);
 
   useEffect(() => {
@@ -395,6 +487,7 @@ function AptBondeeRoomInner({
     setStudioTool(null);
     setDeleteMode(false);
     setPanel("decor");
+    addItemToActiveRoom(kind);
   };
 
   const onPlaceStudio = (item: AptStudioInventoryItem) => {
@@ -402,6 +495,7 @@ function AptBondeeRoomInner({
     setPlaceTool(null);
     setDeleteMode(false);
     setPanel("decor");
+    addItemToActiveRoom("plant", item);
   };
 
   const rotateSelected = () => {
@@ -429,14 +523,69 @@ function AptBondeeRoomInner({
   const showInteract =
     !movementDisabled && !instrumentOpen && !gramophoneOpen && !!interactLabel;
 
+  const handleFunctionalSticker = useCallback(
+    (fn: StickerFunction) => {
+      switch (fn) {
+        case "live-tv":
+          setConsoleContent("live");
+          setConsolePhase("active");
+          setConsoleBlend(1);
+          break;
+        case "mailbox":
+          mailboxComposeRef.current();
+          break;
+        case "phone":
+          setSmartphoneOpen(true);
+          break;
+        case "community":
+          router.push("/");
+          break;
+        case "avatar-edit":
+          setPanel("avatar");
+          break;
+        case "profile-edit":
+          setPanel("identity");
+          break;
+      }
+    },
+    [router]
+  );
+
   return (
+    <AptGameProvider
+      enabled={gameEnabled}
+      initialGame={initialGame}
+      userLevel={userLevel}
+      rooms={roomTabs}
+      initialRoomId={activeRoomId}
+      onRoomSelect={setActiveRoomId}
+    >
     <div
       className={cn(
         "relative h-full w-full",
         skipSceneMount && worldMode !== "interior" ? "pointer-events-none invisible" : ""
       )}
     >
-      {!skipSceneMount && <div ref={mountRef} className="absolute inset-0" />}
+      {!skipSceneMount && (
+        <AptIsometricRoom
+          rooms={rooms}
+          state={state}
+          activeRoomId={activeRoomId}
+          selectedItemId={selectedItemId}
+          onRoomSelect={setActiveRoomId}
+          onItemSelect={deleteMode ? (itemId) => {
+            applyItems(stateRef.current.items.filter((i) => i.id !== itemId));
+            setSelectedItemId(null);
+          } : setSelectedItemId}
+          onFunctionalAction={handleFunctionalSticker}
+          onExitCorridor={onExitInterior}
+          hintState={furnitureHintState}
+          layoutOwnerUserId={homeOwnerId}
+          canEditLayout={canEditLayout}
+          isVisiting={isVisiting}
+          immersive={isImmersiveDiorama}
+        />
+      )}
 
       {furnitureToast && (
         <div className="pointer-events-none absolute top-24 left-1/2 z-30 -translate-x-1/2 rounded-full border border-white/20 bg-black/70 px-4 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur-md">
@@ -496,9 +645,10 @@ function AptBondeeRoomInner({
         <AptSmartphonePanel open={smartphoneOpen} onClose={() => setSmartphoneOpen(false)} />
 
         <div className="pointer-events-none absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 z-10">
-          <AptInteractPrompt label={interactLabel ?? ""} visible={showInteract} />
+          <AptInteractPrompt label={interactLabel ?? ""} visible={!isImmersiveDiorama && showInteract} />
         </div>
 
+        {!isImmersiveDiorama && (
         <div className="pointer-events-none absolute left-3 top-14 rounded-2xl border border-white/15 bg-black/40 px-3 py-2 text-[10px] text-white/80 backdrop-blur-md shadow-lg space-y-0.5 max-w-[min(100%,14rem)]">
           {saving && <p className="font-semibold text-pink-200">저장 중…</p>}
           {peers.length > 0 && (
@@ -510,7 +660,9 @@ function AptBondeeRoomInner({
             </p>
           )}
         </div>
+        )}
 
+        {!isImmersiveDiorama && (
         <div className="absolute left-3 bottom-3 pointer-events-auto">
           <HomeAvatarControls
             disabled={movementDisabled}
@@ -528,7 +680,9 @@ function AptBondeeRoomInner({
             onInteract={() => sceneRef.current?.tryInteract()}
           />
         </div>
+        )}
 
+        {!isImmersiveDiorama && (
         <div className="absolute right-3 top-14 flex flex-col gap-1.5 z-10">
           {isLoggedIn && onDoorToggle && (
             <div className="w-[11rem] pointer-events-auto">
@@ -550,9 +704,10 @@ function AptBondeeRoomInner({
             </button>
           ))}
         </div>
+        )}
 
       {/* Slide-up decor / avatar panel */}
-      {identityHint && isLoggedIn && !isVisiting && (
+      {identityHint && isLoggedIn && !isVisiting && !isImmersiveDiorama && (
         <div className="pointer-events-auto absolute bottom-[3.5rem] left-3 right-3 z-[25] mx-auto max-w-md rounded-xl border border-amber-400/35 bg-black/80 p-3 shadow-xl backdrop-blur-md">
           <p className="text-[11px] font-bold text-amber-100">내 집 소개 설정</p>
           <p className="text-[10px] text-white/65 mt-1 leading-snug">
@@ -588,7 +743,11 @@ function AptBondeeRoomInner({
       <div
         className={cn(
           "absolute inset-x-0 bottom-0 z-20 transition-transform duration-300 ease-out",
-          panel ? "translate-y-0" : "translate-y-[calc(100%-3.25rem)]"
+          panel
+            ? "translate-y-0"
+            : isImmersiveDiorama
+              ? "translate-y-full"
+              : "translate-y-[calc(100%-3.25rem)]"
         )}
       >
         <div className="border-t border-white/10 bg-black/75 backdrop-blur-xl shadow-2xl rounded-t-2xl">
@@ -798,7 +957,9 @@ function AptBondeeRoomInner({
         )}
         </div>
       </div>
+      {gameEnabled && <AptGameShell />}
     </div>
+    </AptGameProvider>
   );
 }
 

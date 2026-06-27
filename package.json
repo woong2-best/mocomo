@@ -29,7 +29,9 @@
     "word-chain:import-opendict": "tsx scripts/import-opendict-xml.ts",
     "cap:sync": "npx cap sync android",
     "cap:open": "npx cap open android",
-    "android:build": "cd android && ./gradlew assembleRelease"
+    "android:build": "cd android && gradlew.bat assembleRelease",
+    "android:debug": "npx cap sync android && cd android && gradlew.bat assembleDebug",
+    "android:bundle": "npx cap sync android && cd android && gradlew.bat bundleRelease"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",
@@ -40,6 +42,7 @@
     "@capacitor/core": "^8.4.0",
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^8.0.2",
+    "@dnd-kit/core": "^6.3.1",
     "@hookform/resolvers": "^3.9.1",
     "@livekit/components-react": "^2.8.1",
     "@livekit/components-styles": "^1.1.4",
@@ -104,6 +107,7 @@
     "concurrently": "^9.1.0",
     "eslint": "^9.17.0",
     "eslint-config-next": "^15.1.0",
+    "playwright": "^1.61.0",
     "postcss": "^8.4.49",
     "prisma": "^6.1.0",
     "tailwindcss": "^3.4.17",

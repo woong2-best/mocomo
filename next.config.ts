@@ -27,6 +27,7 @@ function studioHostRewrites() {
 const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
+  devIndicators: false,
   transpilePackages: ["@mediapipe/tasks-vision", "@pixiv/three-vrm", "three"],
   async rewrites() {
     return {

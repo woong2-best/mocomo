@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>MoCoMo APT · 모바일</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #e8dfd4; font-family: system-ui, sans-serif; }
+    .phone { position: relative; width: 100%; height: 100%; max-height: 100dvh; overflow: hidden; background: #e8dfd4; }
+    .stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .room { position: relative; height: 88dvh; width: calc(88dvh * 4 / 3); flex-shrink: 0; }
+    .backdrop { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+    .backdrop img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 8px 20px rgba(50,40,30,0.14)); }
+    .stickers { position: absolute; inset: 0; }
+    .sticker { position: absolute; transform-origin: center center; border: 0; background: transparent; padding: 0; }
+    .sticker img { width: 100%; height: auto; display: block; filter: drop-shadow(0 3px 5px rgba(40,30,20,0.14)); }
+    .hint-live { position:absolute; inset:0; background:linear-gradient(#1e3a5f,#0f172a); border-radius:2px; overflow:hidden; }
+    .hint-live .live { position:absolute; top:8%; left:8%; background:#ef4444; color:#fff; font-size:0.42em; font-weight:900; padding:0.1em 0.35em; border-radius:2px; }
+    .hint-mail .flag { position:absolute; right:6%; top:0; width:38%; height:55%; background:#f87171; transform:rotate(18deg); transform-origin:bottom right; border-radius:2px; }
+    .hint-mail .env { position:absolute; right:-4%; top:-8%; font-size:0.55em; }
+    .hint-phone .dot { position:absolute; right:4%; top:4%; width:0.75em; height:0.75em; background:#ef4444; border-radius:50%; border:1px solid #fff; }
+    .hint-pc { position:absolute; inset:0; background:linear-gradient(#312e81,#0f172a); border-radius:2px; display:grid; grid-template-columns:repeat(3,1fr); gap:8%; padding:10%; font-size:0.55em; text-align:center; }
+    .tap-zone { position:absolute; left:0; top:0; width:48px; height:48px; opacity:0; z-index:60; }
+  </style>
+</head>
+<body>
+  <div class="phone">
+    <button class="tap-zone" aria-label="menu"></button>
+    <div class="stage">
+      <div class="room">
+        <div class="backdrop"><img id="backdrop" alt="" /></div>
+        <div class="stickers" id="stickers"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const HINTS = {
+      tv: { l:14,t:8,w:58,h:42, html:'<div class="hint-live"><span class="live">LIVE</span></div>' },
+      mailbox: { l:52,t:6,w:38,h:36, html:'<div class="hint-mail"><div class="flag"></div><span class="env">✉</span></div>' },
+      telephone: { l:58,t:4,w:28,h:28, html:'<div class="hint-phone"><span class="dot"></span></div>' },
+      computer: { l:10,t:6,w:52,h:38, html:'<div class="hint-pc"><span>💬</span><span>👥</span><span>🏠</span><span>❤</span><span>📷</span><span>✨</span></div>' },
+    };
+    fetch('/diorama/living-preset.json').then(r=>r.json()).then(data=>{
+      document.getElementById('backdrop').src = `/diorama/stickers/living/${data.backdropAssetId}.webp`;
+      const root = document.getElementById('stickers');
+      data.stickers.sort((a,b)=>a.zIndex-b.zIndex).forEach(s=>{
+        const w = (data.assets[s.assetId]||80)*s.scale;
+        const el = document.createElement('button');
+        el.className = 'sticker';
+        el.style.cssText = `left:${s.x}%;top:${s.y}%;width:${w}px;z-index:${s.zIndex};transform:translate(-50%,-50%) rotate(${s.rotation}deg)`;
+        const img = document.createElement('img');
+        img.src = `/diorama/stickers/living/${s.assetId}.webp`;
+        el.appendChild(img);
+        const h = HINTS[s.assetId];
+        if (h) {
+          const box = document.createElement('div');
+          box.style.cssText = `position:absolute;left:${h.l}%;top:${h.t}%;width:${h.w}%;height:${h.h}%;pointer-events:none`;
+          box.innerHTML = h.html;
+          el.appendChild(box);
+        }
+        root.appendChild(el);
+      });
+    });
+  </script>
+</body>
+</html>

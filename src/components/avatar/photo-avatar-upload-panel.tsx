@@ -16,9 +16,9 @@ export function PhotoAvatarUploadPanel({ onReady }: { onReady?: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [mode, setMode] = useState<"vrm" | "photo">(() => {
-    if (typeof window === "undefined") return "vrm";
-    return getPhotoAvatarRenderMode() === "photo" ? "photo" : "vrm";
+  const [mode, setMode] = useState<"flat2d" | "photo">(() => {
+    if (typeof window === "undefined") return "flat2d";
+    return getPhotoAvatarRenderMode() === "photo" ? "photo" : "flat2d";
   });
   const [hasRig, setHasRig] = useState(() =>
     typeof window !== "undefined" ? hasPhotoAvatarRig() : false
@@ -39,7 +39,7 @@ export function PhotoAvatarUploadPanel({ onReady }: { onReady?: () => void }) {
     }
   }
 
-  function switchMode(next: "vrm" | "photo") {
+  function switchMode(next: "flat2d" | "photo") {
     if (next === "photo" && !hasRig) {
       setError("먼저 얼굴 사진을 업로드해 주세요.");
       return;
@@ -52,7 +52,7 @@ export function PhotoAvatarUploadPanel({ onReady }: { onReady?: () => void }) {
   async function removePhotoAvatar() {
     await clearPhotoAvatarRig();
     setHasRig(false);
-    setMode("vrm");
+    setMode("flat2d");
     onReady?.();
   }
 
@@ -70,12 +70,12 @@ export function PhotoAvatarUploadPanel({ onReady }: { onReady?: () => void }) {
       <div className="flex gap-1">
         <button
           type="button"
-          onClick={() => switchMode("vrm")}
+          onClick={() => switchMode("flat2d")}
           className={`flex-1 rounded-lg py-1.5 text-[10px] font-medium border ${
-            mode === "vrm" ? "border-primary bg-primary/10 text-primary" : "border-border"
+            mode === "flat2d" ? "border-primary bg-primary/10 text-primary" : "border-border"
           }`}
         >
-          3D VRM
+          기본 2D
         </button>
         <button
           type="button"

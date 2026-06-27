@@ -185,6 +185,7 @@ model User {
   pushSubscriptions PushSubscription[]
   avatarPresets     AvatarPreset[]
   aptProfile        AptProfile?
+  aptDioramaLayouts AptDioramaLayout[]
   aptPresence       AptPresence?
   aptVisitsHosted   AptHomeVisit[] @relation("AptVisitHost")
   aptVisitsMade     AptHomeVisit[] @relation("AptVisitVisitor")
@@ -2136,6 +2137,20 @@ model AptProfile {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/** 스티커 다이오라마 방별 배치 — 기기 간 동기화 */
+model AptDioramaLayout {
+  id        String   @id @default(cuid())
+  userId    String
+  roomId    String
+  instances Json     @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roomId])
+  @@index([userId])
 }
 
 /** APT 집 방문 기록 — 방명록·랭킹·커뮤니티 통계 */

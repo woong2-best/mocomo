@@ -406,3 +406,43 @@ html[data-visible-animations="off"] .folk-brush-border-b::after {
   40% { transform: scale(1.18); color: rgb(253 224 71); }
   100% { transform: scale(1); }
 }
+
+@keyframes apt-drift {
+  0%,
+  100% {
+    transform: translateY(0) translateX(0);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(-8px) translateX(4px);
+    opacity: 0.8;
+  }
+}
+
+/* APT mobile game shell */
+.apt-game-pill {
+  border: 1px solid rgba(212, 196, 176, 0.9);
+  background: rgba(255, 250, 243, 0.92);
+  color: #5c4033;
+  box-shadow: 0 4px 14px rgba(92, 64, 51, 0.1);
+  backdrop-filter: blur(8px);
+}
+
+.apt-game-level {
+  background: linear-gradient(135deg, #fff7ed, #fde68a);
+}
+
+.apt-game-overview {
+  animation: apt-game-fade-in 0.35s ease-out;
+}
+
+@keyframes apt-game-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

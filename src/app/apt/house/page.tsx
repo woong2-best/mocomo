@@ -15,8 +15,7 @@ export default async function AptHousePage() {
   if (!user) redirect("/auth/signin?callbackUrl=/apt/house");
 
   const profile = await getAptProfile();
-  if (!profile?.moveInCompleted) redirect("/apt/move-in");
-  if (profile.housingType !== "house") redirect("/apt");
+  if (!profile || profile.housingType !== "house") redirect("/apt");
 
   return <AptHouseHubClient initialProfile={profile} />;
 }

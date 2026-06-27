@@ -63,6 +63,8 @@ export const AptBuildingView = memo(function AptBuildingView({
   onVisitRequestHandled,
   feedRefreshKey = 0,
   onRequireLogin,
+  onBrowseTargetChange,
+  clearBrowseTick = 0,
 }: {
   initialProfile: AptProfileDto | null;
   bondeeRoom: BondeeRoomState;
@@ -80,6 +82,8 @@ export const AptBuildingView = memo(function AptBuildingView({
   onVisitRequestHandled?: () => void;
   feedRefreshKey?: number;
   onRequireLogin?: (action: string) => void;
+  onBrowseTargetChange?: (target: CountryAptPreview | null) => void;
+  clearBrowseTick?: number;
 }) {
   const homeCountry = initialProfile?.countryCode ?? "KR";
   const homeFloor = initialProfile?.homeFloor ?? APT_DEFAULT_FLOOR;
@@ -114,6 +118,14 @@ export const AptBuildingView = memo(function AptBuildingView({
 
   const isOwnApt = viewCountry === homeCountry && !browseTarget;
   const viewCountryInfo = findCountry(viewCountry);
+
+  useEffect(() => {
+    onBrowseTargetChange?.(browseTarget);
+  }, [browseTarget, onBrowseTargetChange]);
+
+  useEffect(() => {
+    if (clearBrowseTick > 0) setBrowseTarget(null);
+  }, [clearBrowseTick]);
 
   const displayPlans = useMemo(() => {
     if (isOwnApt) return plans;

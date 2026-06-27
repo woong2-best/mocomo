@@ -188,7 +188,7 @@ export function AptHouseView({ profile }: { profile: AptProfileDto }) {
             저장
           </Button>
           <Button asChild variant="ghost" size="sm" className="rounded-xl">
-            <Link href="/apt/move-in">입주 설정</Link>
+            <Link href="/apt">APT로 돌아가기</Link>
           </Button>
         </div>
       )}

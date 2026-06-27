@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { signIn } from "next-auth/react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -175,7 +175,7 @@ export function SignupApplyForm({
     }
 
     if (!signatureSigned) {
-      setError("계약서 하단에 손가락으로 서명해 주세요.");
+      setError("하단에 손가락으로 확인 서명을 해 주세요.");
       setLoading(false);
       return;
     }
@@ -263,14 +263,14 @@ export function SignupApplyForm({
                 <BrandLogo size={40} priority />
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Real Estate</p>
-                <h1 className="text-xl font-black text-slate-950">MOCOMO 입주 계약서</h1>
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">SIGN UP</p>
+                <h1 className="text-xl font-black text-slate-950">MOCOMO 회원가입</h1>
               </div>
             </div>
             <SignupStepIndicator step={1} />
           </div>
           <p className="mt-3 text-xs leading-relaxed text-slate-600">
-            계약서를 작성하면 국가별 아파트의 빈 층을 배정받고, 이메일 인증 후 이사 연출이 시작됩니다.
+            가입 정보를 입력하면 이메일 인증 후 바로 MoCoMo를 시작합니다.
           </p>
         </div>
 
@@ -405,7 +405,7 @@ export function SignupApplyForm({
                   onPointerLeave={endSignature}
                   onPointerCancel={endSignature}
                   className="block h-36 w-full touch-none bg-transparent"
-                  aria-label="입주 계약서 서명"
+                  aria-label="회원가입 확인 서명"
                 />
                 <div className="pointer-events-none absolute bottom-8 left-6 right-6 border-b-2 border-dashed border-slate-300" />
               </div>
@@ -451,7 +451,7 @@ export function SignupApplyForm({
                 ? "확인 중..."
                 : needsHumanVerify
                   ? "다음 · 사람 확인"
-                  : "계약서 제출 · 인증 메일 받기"}
+                  : "가입 신청 · 인증 메일 받기"}
             </Button>
           </form>
 
@@ -462,7 +462,7 @@ export function SignupApplyForm({
                   <span className="w-full border-t border-border" />
                 </div>
                 <div className="relative flex justify-center text-xs text-muted-foreground bg-card px-2">
-                  또는 소셜로 가입 (층은 입주 단계에서 선택)
+                  또는 소셜로 가입
                 </div>
               </div>
               <div className="space-y-2">
@@ -470,7 +470,7 @@ export function SignupApplyForm({
                   <Button
                     type="button"
                     className="w-full rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white"
-                    onClick={() => signIn("discord", { callbackUrl: "/apt/move-in" })}
+                    onClick={() => signIn("discord", { callbackUrl: "/apt" })}
                   >
                     Discord로 가입
                   </Button>
@@ -480,7 +480,7 @@ export function SignupApplyForm({
                     type="button"
                     variant="outline"
                     className="w-full rounded-xl"
-                    onClick={() => signIn("google", { callbackUrl: "/apt/move-in" })}
+                    onClick={() => signIn("google", { callbackUrl: "/apt" })}
                   >
                     Google로 가입
                   </Button>
