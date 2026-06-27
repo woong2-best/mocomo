@@ -507,8 +507,14 @@ html[data-visible-animations="off"] .folk-brush-border-b::after {
   background: linear-gradient(135deg, #fff7ed, #fde68a);
 }
 
-.apt-game-overview {
-  animation: apt-game-fade-in 0.35s ease-out;
+.iso-canvas-root canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.iso-canvas-root {
+  background: radial-gradient(ellipse at 50% 30%, #faf3ea 0%, #e8dfd4 55%, #c9b89a 100%);
 }
 
 .apt-game-overview-pattern {

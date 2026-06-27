@@ -586,6 +586,7 @@ function AptBondeeRoomInner({
             applyItems(stateRef.current.items.filter((i) => i.id !== itemId));
             setSelectedItemId(null);
           } : setSelectedItemId}
+          onItemsChange={applyItems}
           onFunctionalAction={handleFunctionalSticker}
           onExitCorridor={onExitInterior}
           hintState={furnitureHintState}

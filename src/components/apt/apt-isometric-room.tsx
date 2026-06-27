@@ -9,7 +9,7 @@ import { getDioramaPreset } from "@/lib/diorama/living-room-preset";
 import { DioramaStickerRoom } from "@/components/apt/diorama/diorama-sticker-room";
 import { RoomPortalOverlay } from "@/components/apt/diorama/room-portal-overlay";
 import type { FurnitureHintState } from "@/components/apt/diorama/functional-furniture-hint";
-import { AptMultiRoomOverview } from "@/components/apt/game/apt-multi-room-overview";
+import { IsoGameScene } from "@/components/apt/isometric/iso-game-scene";
 import { AptGameRoomHeader } from "@/components/apt/game/apt-game-room-header";
 import { AptRoomTransition } from "@/components/apt/game/apt-room-transition";
 import { useAptGame } from "@/components/apt/game/apt-game-context";
@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 
 function AptDioramaRoomInner({
   rooms,
+  state,
   activeRoomId,
   layoutOwnerUserId,
   canEditLayout = true,
@@ -27,6 +28,7 @@ function AptDioramaRoomInner({
   onRoomSelect,
   onFunctionalAction,
   onExitCorridor,
+  onItemsChange,
   immersive = true,
   visitHostName,
   onEndVisit,
@@ -43,6 +45,7 @@ function AptDioramaRoomInner({
   onItemSelect: (itemId: string) => void;
   onFunctionalAction?: (fn: StickerFunction) => void;
   onExitCorridor?: () => void;
+  onItemsChange?: (items: BondeeHomeState["items"]) => void;
   immersive?: boolean;
   visitHostName?: string | null;
   onEndVisit?: () => void;
@@ -117,8 +120,55 @@ function AptDioramaRoomInner({
     setLocalPaletteOpen(false);
   }, [game]);
 
+  if (game && !isVisiting) {
+    const isoView = game.view === "overview" ? "apartment" : "room";
+    return (
+      <AptRoomTransition phase={roomPhase} className="absolute inset-0">
+        <IsoGameScene
+          rooms={rooms}
+          items={state.items}
+          activeRoomId={activeRoomId ?? game.activeRoomId}
+          view={isoView}
+          editMode={editMode}
+          paletteOpen={paletteOpen}
+          onPaletteOpenChange={setPaletteOpen}
+          cameraZoom={cameraZoom}
+          allowEdit={allowEdit}
+          onItemsChange={(items) => onItemsChange?.(items)}
+          onRoomSelect={onRoomSelect}
+        />
+
+        {game && editMode && activeRoom && (
+          <AptGameRoomHeader
+            roomLabel={activeRoom.label}
+            roomIndex={roomIndex}
+            onSave={exitEditMode}
+          />
+        )}
+
+        {game.view === "room" && !editMode && (
+          <>
+            <AptGameZoomControls
+              zoom={cameraZoom}
+              onZoomIn={() => setCameraZoom((z) => Math.min(1.35, Math.round((z + 0.08) * 100) / 100))}
+              onZoomOut={() => setCameraZoom((z) => Math.max(0.85, Math.round((z - 0.08) * 100) / 100))}
+              className="top-[calc(max(0.5rem,env(safe-area-inset-top))+8.5rem)]"
+            />
+            <button
+              type="button"
+              onClick={() => game.enterOverview()}
+              className="pointer-events-auto absolute left-3 top-[calc(max(0.5rem,env(safe-area-inset-top))+3.75rem)] z-[85] rounded-full border border-[#d4c4b0] bg-white/92 px-3 py-1.5 text-[10px] font-bold text-[#5c4033] shadow active:scale-95"
+            >
+              ← 집 전체
+            </button>
+          </>
+        )}
+      </AptRoomTransition>
+    );
+  }
+
   if (showOverview) {
-    return <AptMultiRoomOverview rooms={rooms} />;
+    return null;
   }
 
   return (
@@ -295,7 +345,8 @@ export function useDioramaFunctionalRouter(handlers: {
           handlers.onPhone?.();
           break;
         case "community":
-          handlers.onCommunity?.() ?? router.push("/");
+          if (handlers.onCommunity) handlers.onCommunity();
+          else router.push("/");
           break;
         case "avatar-edit":
           handlers.onAvatarEdit?.();
