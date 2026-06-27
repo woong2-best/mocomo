@@ -1,6 +1,6 @@
 ---
 description: APT 디오라마 — 결과물 기준, 완료 정의, 작업 보고 형식
-globs: src/components/apt/**,src/lib/apt/**,public/diorama/**
+globs: src/components/apt/**,src/lib/apt/**,public/diorama/**,public/apt/**,docs/APT*.md
 alwaysApply: false
 ---
 
@@ -9,42 +9,44 @@ alwaysApply: false
 ## 평가 기준
 
 - **기술 스택이 아니라 화면 결과물**로 판단한다.
-- 참고 이미지( isometric 다층 아파트, Bondee 수준 UI )와 **육안 비교 시 90% 미만이면 완료가 아니다.**
-- **"구현 완료"**, **"배포 완료"** 등 완료 선언 표현을 쓰지 않는다. 대신 **현재 유사도·부족한 점·다음 단계**를 적는다.
+- 참고 이미지와 **육안 비교 시 90% 미만이면 완료가 아니다.**
+- **"구현 완료"**, **"배포 완료"** 등 완료 선언 표현을 쓰지 않는다.
 
-## 최종 목표 (Procedural 금지)
+## 3 Gates (모두 통과해야 확장·엔진 연결)
 
-- **Procedural mesh는 최종 결과물이 아니다.** 개발 중 임시 검증용만 허용.
-- 최종: **GLB 기반 고품질 에셋**, 부드러운 카메라, 자연스러운 라이팅·그림자·공간감 — **Bondee 수준 디오라마**.
-- Placeholder, Debug 오버레이, SVG/WebP 스티커 겹치기, 데모 레이아웃 팩 사용 금지.
+| Gate | 문서 |
+|------|------|
+| **Asset Gate** | `docs/APT_ASSET_GATE.md` — GLB·UV·PBR·LOD·그림자·스타일 |
+| **Style Gate** | `docs/APT_STYLE_LOCK.md` — Corner Sample 오너 승인 |
+| **90% Gate** | mockup 나란히 비교 스크린샷 |
+
+## 작업 순서 (엄수)
+
+1. Style Lock 확정 (`APT_STYLE_LOCK.md`)
+2. Asset Strategy 확정 (`APT_ASSET_STRATEGY.md`) — Hybrid 추천
+3. **Corner Sample** (거실 코너 6종) — Blender/구매/외주
+4. 3 Gates 통과
+5. Phase 확장 · 엔진 연결
+
+**Style Lock 승인 전 금지:** Blender template · Shell placeholder · 추가 렌더 코드 · procedural 연결
 
 ## 작업 보고 시 필수 4항목
 
-APT 디오라마 관련 작업을 마칠 때마다 아래를 **반드시** 제출한다.
+1. 현재 화면 스크린샷
+2. 참고 이미지와 나란히 비교 이미지
+3. 부족한 점 체크리스트
+4. 다음 단계 계획
 
-1. **현재 화면 스크린샷** (실제 실행 화면)
-2. **참고 이미지와 나란히 비교 이미지**
-3. **아직 부족한 점 체크리스트** (스스로 작성, 숨기지 않음)
-4. **다음 단계 계획** (GLB·카메라·라이팅 등 구체적)
+## 금지 (최종 게임)
 
-스크린샷·비교 이미지 없이 "됐다"고 보고하지 않는다.
+Procedural furniture · SVG/PNG/WebP 가구 · Placeholder · 2D sticker placement
 
-## 아키텍처 방향
+## 문서
 
-- 렌더링: **Three.js + R3F**, 단일 isometric 3D 공간
-- 데이터: 그리드 배치 (`BondeePlacedItem` 등), 2D % 좌표 스티커 방식 폐기
-- 2D `diorama-sticker-room` 경로는 레거시 — 게임/APT 목표 화면에 연결하지 않음
+- `docs/APT_ART_BIBLE.md` — look & feel
+- `docs/APT_STYLE_LOCK.md` — **모델링 전 수치**
+- `docs/APT_ASSET_STRATEGY.md` — Hybrid 확보
+- `docs/APT_ASSET_GATE.md` — per-asset 검수
+- `public/apt/reference/apt-target-mockup.png`
 
-## 참고 이미지 키 포인트
-
-- 전체 아파트 cutaway overview (거실·주방·침실·욕실 한눈에)
-- 방 편집: 바닥 그리드, 가구 아래 배치 UI, 하단 가구 시트
-- HUD: Lv·골드·젬·미션 배너·5탭 nav — **씬과 분리된 프리미엄 모바일 UI**
-
-## Art Bible (필수)
-
-**모든 APT 디오라마 작업 전·후 `docs/APT_ART_BIBLE.md`를 따른다.**
-
-- ① 모델 · ② 조명 · ③ 재질 · ④ 카메라 · ⑤ 방 구조 · ⑥ 금지사항
-- 기준 이미지: `public/apt/reference/apt-target-mockup.png`
-- **에셋 없이 코드만 추가하지 않는다** — GLB Phase A부터
+**에셋 Asset Gate 통과 전 코드를 더 쌓지 않는다.**

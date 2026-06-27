@@ -2,7 +2,17 @@
 
 **목표 레퍼런스:** Bondee / Nintendo-style cozy isometric home decoration  
 **기준 이미지:** `public/apt/reference/apt-target-mockup.png` (4-panel: Overview · Home HUD · Edit Mode · Mission)  
-**상태:** Art Direction 확정 · **3D 에셋 미제작** · 코드만으로는 목표 퀄리티 불가
+**상태:** Art Direction 문서화 · **Style Lock 미승인** · **Corner Sample 0/6** · 코드만으로는 목표 퀄리티 불가
+
+**작업 순서 (변경됨):**
+
+1. [`APT_STYLE_LOCK.md`](./APT_STYLE_LOCK.md) — 아트 스타일 수치 확정  
+2. [`APT_ASSET_STRATEGY.md`](./APT_ASSET_STRATEGY.md) — Hybrid 확보 전략 · 오너 승인  
+3. **Corner Sample** (거실 코너 6종) — Style + Asset Gate  
+4. **90% Visual Gate** — mockup 나란히 비교  
+5. Phase 확장 · 엔진 연결
+
+> Blender template · Shell placeholder **Style Lock 승인 전 금지**
 
 > Three.js/R3F는 **렌더링 기반**일 뿐이다.  
 > 이 문서의 퀄리티는 **전문 제작 GLB + 일관된 아트 디렉션 + 조명/그림자 + 카메라 연출 + UI + 애니메이션**이 함께 갖춰져야 달성된다.
@@ -242,63 +252,41 @@ UI mockup은 별도 Figma/component spec — **3D 썸네일은 동일 GLB의 off
 
 ---
 
-## 에셋 제작 우선순위 (Production Order)
+## 에셋 제작 우선순위 (변경됨)
 
-에셋 없이 코드를 더 작성하지 않는다. 아래 순서로 **GLB 먼저**.
+**Phase A 12 GLB 일괄 제작 X.** Corner Sample 먼저.
 
-### Phase A — Block the look (1 apartment)
+### Phase 0 — Corner Sample (Style 검증)
 
-1. `apt/shell/room-module-living.glb` (walls, floor, cutaway)
-2. `apt/shell/room-module-bedroom.glb`
-3. `apt/shell/room-module-kitchen.glb`
-4. `apt/shell/room-module-bathroom.glb`
-5. `apt/furniture/sofa-beige-01.glb`
-6. `apt/furniture/coffee-table-wood-01.glb`
-7. `apt/furniture/bed-double-01.glb`
-8. `apt/furniture/rug-round-cream-01.glb`
+[`APT_STYLE_LOCK.md`](./APT_STYLE_LOCK.md) CS-01~06:
 
-→ **8개 + shell 4 = 12 GLB**로 Overview 한 장 **스크린샷 비교** (목표 90% gate)
+- Corner shell, sofa, rug, coffee table, plant, floor lamp
+- **Asset Gate** + **Style Gate** + **90% Gate** 통과 후 확장
 
-### Phase B — Fill apartment
+### Phase 1~3 — 확장
 
-- Kitchen suite, bathroom fixtures, bedroom sets, decor props
-- Target: **40~60 GLB** full apartment
-
-### Phase C — Shop catalog expansion
-
-- Variant colors, seasonal items — 동일 Art Bible §①③ 준수
+Style Gate 승인 후 [`APT_ASSET_STRATEGY.md`](./APT_ASSET_STRATEGY.md) Phase 1~4 inventory
 
 ---
 
-## 기술 연동 (에셋 준비 후)
+## 수용 기준 (3 Gates)
 
-| 레이어 | 역할 |
-|--------|------|
-| `public/apt/glb/` | Source assets |
-| `@react-three/drei` `useGLTF` | Loader + Draco optional |
-| `IsoCanvas` | Scene root (existing) |
-| Material override | Art Bible §③ clamp on load |
-| Lighting rig | Art Bible §② single source |
-| Camera rig | Art Bible §④ state machine |
+| Gate | 문서 | 기준 |
+|------|------|------|
+| **Asset Gate** | [`APT_ASSET_GATE.md`](./APT_ASSET_GATE.md) | GLB·UV·PBR·LOD·그림자·스타일 검수 |
+| **Style Gate** | [`APT_STYLE_LOCK.md`](./APT_STYLE_LOCK.md) | 오너: "이 스타일로 전체 확장 가능" |
+| **90% Gate** | mockup 비교 | 육안 유사도 ≥ 90% |
 
----
-
-## 수용 기준 (Acceptance)
-
-작업은 **기준 이미지와 나란히 비교 스크린샷**으로만 판단.
-
-- [ ] Overview: 4방 cutaway, 동일 조명 방향, 벽 두께·몰딩 가시
-- [ ] Room Zoom: 부드러운 camera lerp
-- [ ] Edit: green grid + floating controls 위치
-- [ ] **Procedural / 2D asset 0개**
-- [ ] 육안 유사도 **≥ 90%** — 미달 시 다음 Phase 진행 불가
+**세 Gate 모두 통과 전:** 엔진 연결 · Phase 확장 금지
 
 ---
 
 ## 관련 문서
 
 - `.cursor/rules/apt-diorama-quality.mdc` — Cursor 작업 규칙
-- `docs/APT_ART_BIBLE.md` — **본 문서 (Single Source of Truth for look)**
+- [`APT_STYLE_LOCK.md`](./APT_STYLE_LOCK.md) — **스타일 수치 (모델링 전 필수)**
+- [`APT_ASSET_STRATEGY.md`](./APT_ASSET_STRATEGY.md) — Hybrid 확보 전략
+- [`APT_ASSET_GATE.md`](./APT_ASSET_GATE.md) — 에셋 품질 검수
 
 ---
 
