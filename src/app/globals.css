@@ -694,3 +694,83 @@ html[data-visible-animations="off"] .folk-brush-border-b::after {
     transform: scale(0.96) translateY(8px);
   }
 }
+
+.apt-game-toast {
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+}
+
+.apt-game-toast-default {
+  background: linear-gradient(135deg, rgba(255, 250, 243, 0.98), rgba(250, 243, 234, 0.95));
+  color: #4a3428;
+}
+
+.apt-game-toast-gold {
+  background: linear-gradient(135deg, #fffbeb, #fde68a);
+  color: #92400e;
+}
+
+.apt-game-toast-energy {
+  background: linear-gradient(135deg, #fefce8, #fde047);
+  color: #713f12;
+}
+
+.apt-game-toast-mission {
+  background: linear-gradient(135deg, #f5f3ff, #ddd6fe);
+  color: #5b21b6;
+}
+
+.apt-game-room-switcher {
+  border: 1px solid rgba(232, 220, 200, 0.9);
+  background: rgba(255, 250, 243, 0.92);
+  box-shadow: 0 6px 20px rgba(74, 52, 40, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.apt-game-visit-banner {
+  border: 1px solid rgba(221, 214, 254, 0.9);
+  background: linear-gradient(135deg, rgba(255, 251, 255, 0.97), rgba(237, 233, 254, 0.9));
+  box-shadow: 0 10px 28px rgba(91, 33, 182, 0.12);
+}
+
+.apt-room-particle {
+  position: absolute;
+  border-radius: 9999px;
+  background: rgba(255, 248, 220, 0.55);
+  animation: apt-room-drift 6s ease-in-out infinite;
+}
+
+.apt-room-particle-1 {
+  left: 18%;
+  top: 22%;
+  width: 4px;
+  height: 4px;
+}
+
+.apt-room-particle-2 {
+  right: 22%;
+  top: 35%;
+  width: 3px;
+  height: 3px;
+  animation-delay: 1.5s;
+}
+
+.apt-room-particle-3 {
+  left: 55%;
+  top: 18%;
+  width: 5px;
+  height: 5px;
+  animation-delay: 3s;
+}
+
+@keyframes apt-room-drift {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 0.85;
+    transform: translateY(-10px);
+  }
+}

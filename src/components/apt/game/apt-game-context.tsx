@@ -4,10 +4,13 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+import type { AptGameToastKind } from "./apt-game-toast";
 import { useRouter } from "next/navigation";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import { createDefaultGameState } from "@/lib/apt/game/defaults";
@@ -49,6 +52,10 @@ type AptGameContextValue = {
   onVisitFriend: () => void;
   boostEnergy: () => Promise<void>;
   energyRegenLabel: string | null;
+  rooms: AptRoom[];
+  toast: string | null;
+  toastKind: AptGameToastKind;
+  showToast: (message: string, kind?: AptGameToastKind) => void;
   onExitHome?: () => void;
   primaryMission: AptGameState["missions"][0] | null;
   dailyDone: number;
@@ -90,6 +97,25 @@ export function AptGameProvider({
   const [shopOpen, setShopOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [activeRoomId, setActiveRoomIdState] = useState(initialRoomId);
+  const [toast, setToast] = useState<string | null>(null);
+  const [toastKind, setToastKind] = useState<AptGameToastKind>("default");
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = useCallback((message: string, kind: AptGameToastKind = "default") => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast(message);
+    setToastKind(kind);
+    toastTimer.current = setTimeout(() => setToast(null), 2600);
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ message: string; kind?: AptGameToastKind }>).detail;
+      if (detail?.message) showToast(detail.message, detail.kind ?? "mission");
+    };
+    window.addEventListener("apt-game-toast", handler);
+    return () => window.removeEventListener("apt-game-toast", handler);
+  }, [showToast]);
 
   const setActiveTab = useCallback(
     (tab: AptGameTab) => {
@@ -154,15 +180,19 @@ export function AptGameProvider({
     setActiveTabState("furniture");
     setEditMode(true);
     setPaletteOpen(true);
+    showToast("구매 완료! 가구 탭에서 배치하세요 ✦", "gold");
     return { ok: true };
-  }, []);
+  }, [showToast]);
 
   const claimMission = useCallback(async (id: string) => {
     const res = await claimAptMission(id);
     if ("error" in res && res.error) return { error: res.error };
     if ("game" in res && res.game) setGame(res.game);
+    if ("reward" in res && res.reward) {
+      showToast(`+${res.reward.gold}G · +${res.reward.gems}💎 · ⚡+5`, "mission");
+    }
     return { ok: true };
-  }, []);
+  }, [showToast]);
 
   const onStickerPlaced = useCallback(async (typeId: string, roomId: string) => {
     const next = await reportAptGameEvent({ type: "place_sticker", typeId, roomId });
@@ -180,8 +210,11 @@ export function AptGameProvider({
 
   const boostEnergy = useCallback(async () => {
     const res = await boostAptEnergy();
-    if ("game" in res && res.game) setGame(res.game);
-  }, []);
+    if ("game" in res && res.game) {
+      setGame(res.game);
+      showToast("⚡ 에너지 +10 충전!", "energy");
+    }
+  }, [showToast]);
 
   const regenLabel = energyRegenLabel(game.energyUpdatedAt);
 
@@ -223,6 +256,10 @@ export function AptGameProvider({
       onVisitFriend,
       boostEnergy,
       energyRegenLabel: regenLabel,
+      rooms,
+      toast,
+      toastKind,
+      showToast,
       onExitHome,
       primaryMission,
       dailyDone,
@@ -251,6 +288,10 @@ export function AptGameProvider({
       onVisitFriend,
       boostEnergy,
       regenLabel,
+      rooms,
+      toast,
+      toastKind,
+      showToast,
       onExitHome,
       primaryMission,
       dailyDone,

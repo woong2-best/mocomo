@@ -16,6 +16,11 @@ function DioramaRoomBackdropInner({
 
   return (
     <div className={cn("relative h-full w-full", className)}>
+      <div className="apt-room-ambient pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
+        <span className="apt-room-particle apt-room-particle-1" />
+        <span className="apt-room-particle apt-room-particle-2" />
+        <span className="apt-room-particle apt-room-particle-3" />
+      </div>
       <div
         className="pointer-events-none absolute inset-0 rounded-2xl"
         style={{ background: `radial-gradient(ellipse at 50% 20%, ${theme.ambient}, transparent 65%)` }}

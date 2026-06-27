@@ -69,12 +69,14 @@ export const KITCHEN_PRESET: DioramaPreset = {
   label: "부엌",
   backdropAssetId: "room-shell",
   defaultInstances: [
+    inst("kt-rug", "rug", 50, 68, 1),
     inst("kt-desk", "desk", 50, 55, 4),
     inst("kt-chair", "chair", 42, 68, 5),
     inst("kt-shelf", "shelf", 75, 40, 6),
     inst("kt-plant", "plant", 18, 45, 7),
     inst("kt-mug", "mug", 52, 48, 8),
     inst("kt-clock", "clock", 85, 35, 9),
+    inst("kt-snack", "snack-plate", 58, 52, 10),
   ],
 };
 
@@ -83,11 +85,13 @@ export const BATHROOM_PRESET: DioramaPreset = {
   label: "욕실",
   backdropAssetId: "room-shell",
   defaultInstances: [
+    inst("ba-rug", "rug", 48, 70, 1),
     inst("ba-mirror", "mirror", 72, 38, 5),
     inst("ba-plant", "plant", 20, 48, 6),
     inst("ba-basket", "basket", 45, 65, 7),
     inst("ba-candle", "candle", 58, 42, 8),
     inst("ba-slippers", "slippers", 35, 72, 9),
+    inst("ba-garland", "garland", 50, 32, 10),
   ],
 };
 

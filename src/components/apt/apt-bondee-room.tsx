@@ -131,6 +131,7 @@ function AptBondeeRoomInner({
   visitingIdentity = null,
   layoutOwnerUserId = null,
   onExitInterior,
+  onEndVisit,
   furnitureHintState,
   initialGame = null,
   userLevel = 1,
@@ -153,6 +154,7 @@ function AptBondeeRoomInner({
   /** 다이오라마 배치 데이터 소유자(방 주인) */
   layoutOwnerUserId?: string | null;
   onExitInterior?: () => void;
+  onEndVisit?: () => void;
   furnitureHintState?: { hasUnreadMail?: boolean; hasMissedCall?: boolean };
   initialGame?: AptGameState | null;
   userLevel?: number;
@@ -590,6 +592,12 @@ function AptBondeeRoomInner({
           layoutOwnerUserId={homeOwnerId}
           canEditLayout={canEditLayout}
           isVisiting={isVisiting}
+          visitHostName={
+            visitingIdentity?.archetypeLabel ??
+            visitingIdentity?.tagline ??
+            "이웃"
+          }
+          onEndVisit={isVisiting ? onEndVisit : undefined}
           immersive={isImmersiveDiorama}
         />
       )}

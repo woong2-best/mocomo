@@ -229,7 +229,17 @@ export function AptHubClient({
   useEffect(() => {
     if (!isVisiting || !isLoggedIn) return;
     void import("@/actions/apt-game").then(({ reportAptGameEvent }) =>
-      reportAptGameEvent({ type: "visit_friend" })
+      reportAptGameEvent({ type: "visit_friend" }).then((game) => {
+        if (!game || "error" in game) return;
+        const mission = game.missions.find((m) => m.id === "daily-visit-friend");
+        if (mission?.completed) {
+          window.dispatchEvent(
+            new CustomEvent("apt-game-toast", {
+              detail: { message: "친구 집 방문 미션 완료! 🎯", kind: "mission" },
+            })
+          );
+        }
+      })
     );
   }, [isVisiting, isLoggedIn]);
 
@@ -416,6 +426,7 @@ export function AptHubClient({
                 visitingIdentity={visitingIdentity}
                 layoutOwnerUserId={visitHost?.userId ?? currentUserId}
                 onExitInterior={() => setWorldMode("corridor")}
+                onEndVisit={endVisit}
                 furnitureHintState={{
                   hasUnreadMail: (socialPresence?.mailboxUnread ?? 0) > 0,
                   hasMissedCall: false,

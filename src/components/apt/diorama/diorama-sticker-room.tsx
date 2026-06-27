@@ -48,6 +48,8 @@ import { PlacementBoundsOverlay } from "@/components/apt/diorama/placement-bound
 import { ENERGY_COST_PLACE } from "@/lib/apt/game/energy";
 import { canUseSticker } from "@/lib/apt/game/shop";
 import { vibrateDeleteFeedback } from "@/lib/haptics";
+import { DioramaStickerVisual } from "@/components/apt/diorama/diorama-sticker-visual";
+import { getRoomCamera } from "@/lib/diorama/room-camera";
 import { cn } from "@/lib/utils";
 
 const LABEL_REVEAL_MS = 1600;
@@ -64,6 +66,7 @@ function DraggableSticker({
   onSelect,
   onTap,
   onSpatial,
+  gameMode = false,
 }: {
   sticker: StickerInstance;
   editMode: boolean;
@@ -73,6 +76,7 @@ function DraggableSticker({
   onSelect: (id: string) => void;
   onTap: (sticker: StickerInstance) => void;
   onSpatial?: (fn: "room-portal" | "exit-corridor") => void;
+  gameMode?: boolean;
 }) {
   const asset = getStickerAsset(sticker.typeId);
   const canEdit = editMode && isEditableInEditMode(sticker.typeId);
@@ -145,12 +149,12 @@ function DraggableSticker({
         </span>
       )}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <DioramaStickerVisual
+        typeId={sticker.typeId}
+        label={asset.label}
         src={asset.src}
-        alt={asset.label}
-        draggable={false}
-        className="pointer-events-none relative z-0 h-auto w-full select-none"
-        style={{ filter: "drop-shadow(0 4px 6px rgba(40,30,20,0.15))" }}
+        gameMode={gameMode}
+        selected={selected && editMode}
       />
       {!editMode && isFn && !isSpatial && (
         <FunctionalFurnitureHint
@@ -177,6 +181,7 @@ function DioramaStickerRoomInner({
   onSpatialAction,
   immersive = true,
   gameMode = false,
+  cameraZoom = 1,
 }: {
   roomId: string;
   roomType: string;
@@ -191,9 +196,12 @@ function DioramaStickerRoomInner({
   onSpatialAction?: (fn: "room-portal" | "exit-corridor") => void;
   immersive?: boolean;
   gameMode?: boolean;
+  cameraZoom?: number;
 }) {
   const router = useRouter();
   const game = useAptGame();
+  const roomCamera = useMemo(() => getRoomCamera(roomType), [roomType]);
+  const cameraScale = roomCamera.scale * cameraZoom;
   const [placeError, setPlaceError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [instances, setInstances] = useState<StickerInstance[]>([]);
@@ -620,14 +628,19 @@ function DioramaStickerRoomInner({
         <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
           <div
             className={cn(
-              "relative shrink-0",
+              "relative shrink-0 transition-transform duration-500 ease-out",
               immersive
                 ? gameMode
                   ? "h-[calc(100dvh-12rem)] w-[calc((100dvh-12rem)*4/3)] max-w-none"
                   : "h-[88dvh] w-[calc(88dvh*4/3)] max-w-none"
                 : "aspect-[4/3] w-full max-h-[min(72vh,calc(100%-3rem))] max-w-lg sm:max-w-2xl",
-              editMode && "ring-2 ring-pink-300/40 ring-offset-2 ring-offset-[#e8dfd4]"
+              editMode && gameMode && "ring-2 ring-amber-300/50 ring-offset-2 ring-offset-[#e8dfd4]",
+              editMode && !gameMode && "ring-2 ring-pink-300/40 ring-offset-2 ring-offset-[#e8dfd4]"
             )}
+            style={{
+              transform: `scale(${cameraScale}) translateY(${roomCamera.translateY}%)`,
+              transformOrigin: `${roomCamera.focusX}% 55%`,
+            }}
           >
             <div className="absolute inset-0 flex items-center justify-center">
               {gameMode ? (
@@ -682,6 +695,7 @@ function DioramaStickerRoomInner({
                   onSelect={setSelectedId}
                   onTap={handleTap}
                   onSpatial={onSpatialAction}
+                  gameMode={gameMode}
                 />
               ))}
             </div>

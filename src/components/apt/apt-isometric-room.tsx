@@ -13,6 +13,8 @@ import { AptMultiRoomOverview } from "@/components/apt/game/apt-multi-room-overv
 import { AptGameRoomHeader } from "@/components/apt/game/apt-game-room-header";
 import { AptRoomTransition } from "@/components/apt/game/apt-room-transition";
 import { useAptGame } from "@/components/apt/game/apt-game-context";
+import { AptVisitFriendBanner } from "@/components/apt/game/apt-visit-friend-banner";
+import { AptGameZoomControls } from "@/components/apt/game/apt-game-zoom-controls";
 import { cn } from "@/lib/utils";
 
 function AptDioramaRoomInner({
@@ -26,6 +28,8 @@ function AptDioramaRoomInner({
   onFunctionalAction,
   onExitCorridor,
   immersive = true,
+  visitHostName,
+  onEndVisit,
 }: {
   rooms: AptRoom[];
   state: BondeeHomeState;
@@ -40,12 +44,15 @@ function AptDioramaRoomInner({
   onFunctionalAction?: (fn: StickerFunction) => void;
   onExitCorridor?: () => void;
   immersive?: boolean;
+  visitHostName?: string | null;
+  onEndVisit?: () => void;
 }) {
   const game = useAptGame();
   const [portalOpen, setPortalOpen] = useState(false);
   const [localEditMode, setLocalEditMode] = useState(false);
   const [localPaletteOpen, setLocalPaletteOpen] = useState(false);
   const [roomPhase, setRoomPhase] = useState<"enter" | "idle" | "exit">("idle");
+  const [cameraZoom, setCameraZoom] = useState(1);
 
   const editMode = game?.editMode ?? localEditMode;
   const paletteOpen = game?.paletteOpen ?? localPaletteOpen;
@@ -118,6 +125,19 @@ function AptDioramaRoomInner({
 
   return (
     <AptRoomTransition phase={roomPhase} className="absolute inset-0">
+      {isVisiting && visitHostName && onEndVisit && (
+        <AptVisitFriendBanner hostName={visitHostName} onLeave={onEndVisit} />
+      )}
+
+      {game && game.view === "room" && (
+        <AptGameZoomControls
+          zoom={cameraZoom}
+          onZoomIn={() => setCameraZoom((z) => Math.min(1.35, Math.round((z + 0.08) * 100) / 100))}
+          onZoomOut={() => setCameraZoom((z) => Math.max(0.85, Math.round((z - 0.08) * 100) / 100))}
+          className="top-[calc(max(0.5rem,env(safe-area-inset-top))+8.5rem)]"
+        />
+      )}
+
       {activeRoom && (
         <DioramaStickerRoom
           roomId={activeRoom.id}
@@ -133,6 +153,7 @@ function AptDioramaRoomInner({
           onSpatialAction={handleSpatial}
           immersive={immersive}
           gameMode={!!game}
+          cameraZoom={cameraZoom}
         />
       )}
 
@@ -201,7 +222,7 @@ function AptDioramaRoomInner({
         </button>
       )}
 
-      {isVisiting && hasDiorama && (
+      {isVisiting && hasDiorama && !visitHostName && (
         <div className="pointer-events-none absolute inset-x-0 top-2 z-[65] flex justify-center">
           <span className="rounded-full border border-amber-300/50 bg-amber-50/95 px-3 py-1 text-[10px] font-bold text-amber-800 shadow-sm">
             이웃 집 구경 중 · 읽기 전용
