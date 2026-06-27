@@ -40,3 +40,11 @@ APT 디오라마 관련 작업을 마칠 때마다 아래를 **반드시** 제�
 - 전체 아파트 cutaway overview (거실·주방·침실·욕실 한눈에)
 - 방 편집: 바닥 그리드, 가구 아래 배치 UI, 하단 가구 시트
 - HUD: Lv·골드·젬·미션 배너·5탭 nav — **씬과 분리된 프리미엄 모바일 UI**
+
+## Art Bible (필수)
+
+**모든 APT 디오라마 작업 전·후 `docs/APT_ART_BIBLE.md`를 따른다.**
+
+- ① 모델 · ② 조명 · ③ 재질 · ④ 카메라 · ⑤ 방 구조 · ⑥ 금지사항
+- 기준 이미지: `public/apt/reference/apt-target-mockup.png`
+- **에셋 없이 코드만 추가하지 않는다** — GLB Phase A부터
