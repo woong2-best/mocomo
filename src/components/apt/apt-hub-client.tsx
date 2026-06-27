@@ -56,6 +56,8 @@ export function AptHubClient({
   currentUserId = null,
   initialGameState = null,
   userLevel = 1,
+  userAvatarUrl = null,
+  userName = null,
 }: {
   initialProfile: AptProfileDto | null;
   bondeeHome: BondeeHomeState;
@@ -65,6 +67,8 @@ export function AptHubClient({
   currentUserId?: string | null;
   initialGameState?: AptGameState | null;
   userLevel?: number;
+  userAvatarUrl?: string | null;
+  userName?: string | null;
 }) {
   const worldRef = useRef<UnifiedAptWorldScene | null>(null);
   const [started, setStarted] = useState(false);
@@ -418,6 +422,8 @@ export function AptHubClient({
                 }}
                 initialGame={initialGameState}
                 userLevel={userLevel}
+                userAvatarUrl={userAvatarUrl}
+                userName={userName}
               />
             )}
           </Suspense>

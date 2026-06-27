@@ -21,6 +21,8 @@ import {
 type AptGameContextValue = {
   game: AptGameState;
   userLevel: number;
+  userAvatarUrl: string | null;
+  userName: string | null;
   activeTab: AptGameTab;
   view: AptGameView;
   editMode: boolean;
@@ -55,6 +57,8 @@ export function AptGameProvider({
   children,
   initialGame,
   userLevel,
+  userAvatarUrl = null,
+  userName = null,
   rooms,
   initialRoomId,
   enabled,
@@ -64,6 +68,8 @@ export function AptGameProvider({
   children: ReactNode;
   initialGame: AptGameState | null;
   userLevel: number;
+  userAvatarUrl?: string | null;
+  userName?: string | null;
   rooms: AptRoom[];
   initialRoomId: string | null;
   enabled: boolean;
@@ -178,6 +184,8 @@ export function AptGameProvider({
     () => ({
       game,
       userLevel,
+      userAvatarUrl,
+      userName,
       activeTab,
       view,
       editMode,
@@ -208,6 +216,8 @@ export function AptGameProvider({
     [
       game,
       userLevel,
+      userAvatarUrl,
+      userName,
       activeTab,
       view,
       editMode,

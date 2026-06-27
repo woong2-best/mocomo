@@ -42,7 +42,7 @@ import {
 import { DioramaEditToolbar } from "@/components/apt/diorama/diorama-edit-toolbar";
 import { DioramaFurniturePalette } from "@/components/apt/diorama/diorama-furniture-palette";
 import { PlacementBoundsOverlay } from "@/components/apt/diorama/placement-bounds-overlay";
-import { AptGameGridOverlay } from "@/components/apt/game/apt-game-edit-controls";
+import { AptGameGridOverlay, AptGameEditControls } from "@/components/apt/game/apt-game-edit-controls";
 import { useAptGame } from "@/components/apt/game/apt-game-context";
 import { canUseSticker } from "@/lib/apt/game/shop";
 import { vibrateDeleteFeedback } from "@/lib/haptics";
@@ -703,7 +703,16 @@ function DioramaStickerRoomInner({
         </DragOverlay>
       </DndContext>
 
-      {editMode && selected && isEditableInEditMode(selected.typeId) && (
+      {editMode && selected && isEditableInEditMode(selected.typeId) && gameMode && (
+        <AptGameEditControls
+          paletteOpen={paletteOpen}
+          onRotate={handleRotate}
+          onDelete={handleDelete}
+          onConfirm={() => setSelectedId(null)}
+        />
+      )}
+
+      {editMode && selected && isEditableInEditMode(selected.typeId) && !gameMode && (
         <DioramaEditToolbar
           selectedTypeId={selected.typeId}
           canDelete={canDeleteInEditMode(selected.typeId)}

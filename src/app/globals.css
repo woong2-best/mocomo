@@ -554,3 +554,103 @@ html[data-visible-animations="off"] .folk-brush-border-b::after {
     transform: translateY(0);
   }
 }
+
+.apt-game-avatar-ring {
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 12px rgba(74, 52, 40, 0.15);
+}
+
+.apt-game-reward-pill {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+.apt-game-fab {
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(250, 243, 234, 0.95));
+  box-shadow: 0 6px 18px rgba(74, 52, 40, 0.12);
+}
+
+.apt-game-mission-fab {
+  border: 1px solid rgba(232, 220, 200, 0.95);
+  background: linear-gradient(180deg, #fffaf3, #faf6f0);
+  box-shadow: 0 8px 24px rgba(74, 52, 40, 0.14);
+}
+
+.apt-game-play-fab > span:first-child {
+  background: linear-gradient(145deg, #fbbf24, #f59e0b);
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.45);
+}
+
+.apt-game-energy-badge {
+  background: #fffaf3;
+  border: 1px solid #e8dcc8;
+  color: #5c4033;
+  box-shadow: 0 2px 8px rgba(74, 52, 40, 0.1);
+}
+
+.apt-game-dollhouse {
+  animation: apt-game-fade-in 0.4s ease-out;
+}
+
+.apt-game-room-hotspot {
+  animation: apt-game-room-pop 0.5s ease-out both;
+}
+
+.apt-game-room-header-pill {
+  background: rgba(255, 250, 243, 0.95);
+  border: 1px solid rgba(232, 220, 200, 0.9);
+  box-shadow: 0 6px 20px rgba(74, 52, 40, 0.1);
+  backdrop-filter: blur(8px);
+}
+
+.apt-game-save-btn {
+  background: linear-gradient(145deg, #6b4f3a, #4a3428);
+  box-shadow: 0 6px 16px rgba(74, 52, 40, 0.28);
+}
+
+.apt-game-palette-sheet {
+  border: 1px solid rgba(232, 220, 200, 0.95);
+  background: linear-gradient(180deg, rgba(255, 250, 243, 0.98), rgba(250, 246, 240, 0.96));
+  box-shadow: 0 -16px 48px rgba(74, 52, 40, 0.18);
+  backdrop-filter: blur(12px);
+}
+
+.apt-game-palette-item {
+  border: 1px solid rgba(232, 220, 200, 0.95);
+  background: linear-gradient(180deg, #ffffff, #faf6f0);
+  box-shadow: 0 4px 10px rgba(74, 52, 40, 0.06);
+}
+
+.apt-game-palette-item-active {
+  border-color: rgba(245, 158, 11, 0.6);
+  background: linear-gradient(180deg, #fffbeb, #fef3c7);
+}
+
+.apt-game-mission-progress {
+  background: linear-gradient(135deg, rgba(255, 251, 245, 0.95), rgba(254, 243, 199, 0.5));
+  border: 1px solid rgba(232, 220, 200, 0.9);
+}
+
+.apt-game-mission-card {
+  border: 1px solid rgba(232, 220, 200, 0.95);
+  background: linear-gradient(180deg, #ffffff, #faf6f0);
+  box-shadow: 0 4px 12px rgba(74, 52, 40, 0.05);
+}
+
+.apt-game-edit-btn {
+  box-shadow: 0 8px 24px rgba(74, 52, 40, 0.18);
+}
+
+.apt-game-edit-btn-cancel {
+  background: linear-gradient(145deg, #fecaca, #fca5a5);
+  border: 2px solid #f87171;
+  color: #b91c1c;
+}
+
+.apt-game-edit-btn-rotate,
+.apt-game-edit-btn-confirm {
+  background: linear-gradient(145deg, #ffffff, #f0fdf4);
+  border: 2px solid #4ade80;
+  color: #15803d;
+}

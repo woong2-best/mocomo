@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import type { BondeeHomeState } from "@/lib/apt/bondee/types";
@@ -10,6 +10,7 @@ import { DioramaStickerRoom } from "@/components/apt/diorama/diorama-sticker-roo
 import { RoomPortalOverlay } from "@/components/apt/diorama/room-portal-overlay";
 import type { FurnitureHintState } from "@/components/apt/diorama/functional-furniture-hint";
 import { AptMultiRoomOverview } from "@/components/apt/game/apt-multi-room-overview";
+import { AptGameRoomHeader } from "@/components/apt/game/apt-game-room-header";
 import { useAptGame } from "@/components/apt/game/apt-game-context";
 import { cn } from "@/lib/utils";
 
@@ -51,6 +52,11 @@ function AptDioramaRoomInner({
 
   const visibleRooms = rooms.filter((r) => r.type !== "hall" && r.type !== "balcony");
   const activeRoom = rooms.find((r) => r.id === activeRoomId) ?? visibleRooms[0];
+  const roomIndex = useMemo(() => {
+    const dioramaRooms = visibleRooms.filter((r) => getDioramaPreset(r.id, r.type));
+    const idx = dioramaRooms.findIndex((r) => r.id === activeRoom?.id);
+    return idx >= 0 ? idx + 1 : 1;
+  }, [visibleRooms, activeRoom?.id]);
   const hasDiorama = activeRoom && getDioramaPreset(activeRoom.id, activeRoom.type);
   const allowEdit = canEditLayout && !isVisiting;
 
@@ -120,18 +126,11 @@ function AptDioramaRoomInner({
       )}
 
       {game && editMode && activeRoom && (
-        <div className="pointer-events-auto absolute inset-x-0 top-[calc(max(0.5rem,env(safe-area-inset-top))+3rem)] z-[85] flex items-center justify-between px-3">
-          <span className="rounded-full bg-white/90 px-3 py-1 text-[10px] font-black text-[#5c4033] shadow">
-            {activeRoom.label} · 편집
-          </span>
-          <button
-            type="button"
-            onClick={exitEditMode}
-            className="rounded-full bg-[#5c4033] px-4 py-1.5 text-[10px] font-black text-white shadow active:scale-95"
-          >
-            저장
-          </button>
-        </div>
+        <AptGameRoomHeader
+          roomLabel={activeRoom.label}
+          roomIndex={roomIndex}
+          onSave={exitEditMode}
+        />
       )}
 
       {immersive && hasDiorama && allowEdit && !game && (
@@ -181,11 +180,11 @@ function AptDioramaRoomInner({
         </div>
       )}
 
-      {game && !editMode && activeRoom && (
+      {game && !editMode && activeRoom && game.view === "room" && (
         <button
           type="button"
           onClick={() => game.enterOverview()}
-          className="pointer-events-auto absolute left-3 top-[calc(max(0.5rem,env(safe-area-inset-top))+3rem)] z-[85] rounded-full border border-[#d4c4b0] bg-white/90 px-3 py-1.5 text-[10px] font-bold text-[#5c4033] shadow active:scale-95"
+          className="pointer-events-auto absolute left-3 top-[calc(max(0.5rem,env(safe-area-inset-top))+3.75rem)] z-[85] rounded-full border border-[#d4c4b0] bg-white/92 px-3 py-1.5 text-[10px] font-bold text-[#5c4033] shadow active:scale-95"
         >
           ← 집 전체
         </button>

@@ -58,6 +58,8 @@ export default async function AptPage() {
       currentUserId={user?.id ?? null}
       initialGameState={gameState}
       userLevel={user?.level ?? 1}
+      userAvatarUrl={user?.image ?? null}
+      userName={user?.name ?? null}
     />
   );
 }

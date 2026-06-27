@@ -134,6 +134,8 @@ function AptBondeeRoomInner({
   furnitureHintState,
   initialGame = null,
   userLevel = 1,
+  userAvatarUrl = null,
+  userName = null,
 }: {
   initialState: BondeeHomeState;
   rooms: AptRoom[];
@@ -154,6 +156,8 @@ function AptBondeeRoomInner({
   furnitureHintState?: { hasUnreadMail?: boolean; hasMissedCall?: boolean };
   initialGame?: AptGameState | null;
   userLevel?: number;
+  userAvatarUrl?: string | null;
+  userName?: string | null;
 }) {
   const { data: session } = useSession();
   const homeOwnerId = layoutOwnerUserId ?? session?.user?.id ?? null;
@@ -556,6 +560,8 @@ function AptBondeeRoomInner({
       enabled={gameEnabled}
       initialGame={initialGame}
       userLevel={userLevel}
+      userAvatarUrl={userAvatarUrl}
+      userName={userName}
       rooms={roomTabs}
       initialRoomId={activeRoomId}
       onRoomSelect={setActiveRoomId}
