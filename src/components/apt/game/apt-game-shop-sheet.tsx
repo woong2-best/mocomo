@@ -29,8 +29,8 @@ function AptGameShopSheetInner() {
   const items = shopItemsByCategory(cat);
 
   return (
-    <div className="pointer-events-auto absolute inset-0 z-[100] flex flex-col justify-end bg-black/40">
-      <div className="max-h-[72dvh] rounded-t-[1.5rem] bg-[#faf6f0] shadow-2xl">
+    <div className="pointer-events-auto absolute inset-0 z-[100] flex flex-col justify-end bg-black/45 backdrop-blur-[2px]">
+      <div className="apt-game-sheet max-h-[72dvh] rounded-t-[1.75rem]">
         <div className="flex items-center justify-between border-b border-[#e8dcc8] px-4 py-3">
           <div>
             <h2 className="text-base font-black text-[#5c4033]">가구 상점</h2>
@@ -78,11 +78,15 @@ function AptGameShopSheetInner() {
                     return;
                   }
                   const res = await purchaseSticker(a.id);
-                  setMsg(res.error ?? `${STICKER_CATALOG[a.id]?.label} 구매 완료!`);
+                  if (res.error) {
+                    setMsg(res.error);
+                    return;
+                  }
+                  setMsg(`${STICKER_CATALOG[a.id]?.label} 구매! 가구 탭에서 배치하세요 ✦`);
                 }}
                 className={cn(
-                  "flex flex-col items-center rounded-2xl border border-[#e8dcc8] bg-white p-2 active:scale-95",
-                  owned && "opacity-70"
+                  "apt-game-shop-card flex flex-col items-center rounded-2xl p-2.5",
+                  owned && "opacity-75"
                 )}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}

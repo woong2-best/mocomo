@@ -12,7 +12,7 @@ function AptGameMissionBannerInner() {
     <button
       type="button"
       onClick={() => setMissionOpen(true)}
-      className="apt-game-mission-banner pointer-events-auto absolute inset-x-3 top-[calc(max(0.5rem,env(safe-area-inset-top))+3.25rem)] z-[88] flex items-center gap-2 rounded-2xl border border-[#e8dcc8] bg-[#fffaf3]/95 px-3 py-2.5 text-left shadow-md backdrop-blur-sm active:scale-[0.99]"
+      className="apt-game-mission-banner pointer-events-auto absolute inset-x-3 top-[calc(max(0.5rem,env(safe-area-inset-top))+4.25rem)] z-[88] flex items-center gap-2 rounded-2xl px-3 py-2.5 text-left active:scale-[0.99]"
     >
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-lg">
         📋

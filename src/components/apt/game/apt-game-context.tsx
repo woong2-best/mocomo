@@ -140,6 +140,10 @@ export function AptGameProvider({
     const res = await purchaseAptSticker(typeId);
     if ("error" in res && res.error) return { error: res.error };
     if ("game" in res && res.game) setGame(res.game);
+    setShopOpen(false);
+    setActiveTabState("furniture");
+    setEditMode(true);
+    setPaletteOpen(true);
     return { ok: true };
   }, []);
 

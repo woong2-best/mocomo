@@ -20,8 +20,8 @@ function AptGameMoreSheetInner() {
   ];
 
   return (
-    <div className="pointer-events-auto absolute inset-0 z-[100] flex flex-col justify-end bg-black/40">
-      <div className="rounded-t-[1.5rem] bg-[#faf6f0] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl">
+    <div className="pointer-events-auto absolute inset-0 z-[100] flex flex-col justify-end bg-black/45 backdrop-blur-[2px]">
+      <div className="apt-game-sheet rounded-t-[1.75rem] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-base font-black text-[#5c4033]">더보기</h2>
           <button
@@ -39,7 +39,7 @@ function AptGameMoreSheetInner() {
             <Link
               key={l.href}
               href={l.href}
-              className="rounded-2xl border border-[#e8dcc8] bg-white px-4 py-3 text-center text-[12px] font-bold text-[#5c4033] active:scale-95"
+              className="rounded-2xl apt-game-shop-card px-4 py-3 text-center text-[12px] font-bold text-[#5c4033]"
             >
               {l.label}
             </Link>

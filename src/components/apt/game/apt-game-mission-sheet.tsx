@@ -17,8 +17,8 @@ function AptGameMissionSheetInner() {
   const dailyDone = dailyAll.filter((m) => m.completed).length;
 
   return (
-    <div className="pointer-events-auto absolute inset-0 z-[100] flex flex-col justify-end bg-black/40">
-      <div className="max-h-[78dvh] overflow-hidden rounded-t-[1.5rem] bg-[#faf6f0] shadow-2xl">
+    <div className="pointer-events-auto absolute inset-0 z-[100] flex flex-col justify-end bg-black/45 backdrop-blur-[2px]">
+      <div className="apt-game-sheet max-h-[78dvh] overflow-hidden rounded-t-[1.75rem]">
         <div className="flex items-center justify-between border-b border-[#e8dcc8] px-4 py-3">
           <div>
             <h2 className="text-base font-black text-[#5c4033]">미션</h2>
@@ -54,7 +54,7 @@ function AptGameMissionSheetInner() {
           {missions.map((m) => (
             <div
               key={m.id}
-              className="flex items-center gap-3 rounded-2xl border border-[#e8dcc8] bg-white p-3 shadow-sm"
+              className="flex items-center gap-3 rounded-2xl apt-game-shop-card p-3"
             >
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#efe6da] text-xl">
                 {m.completed ? "✅" : "🎯"}

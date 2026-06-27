@@ -428,12 +428,120 @@ html[data-visible-animations="off"] .folk-brush-border-b::after {
   backdrop-filter: blur(8px);
 }
 
+.apt-game-hud-bar {
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  background: linear-gradient(135deg, rgba(255, 250, 243, 0.95), rgba(245, 235, 220, 0.88));
+  box-shadow: 0 8px 28px rgba(74, 52, 40, 0.12);
+  backdrop-filter: blur(12px);
+}
+
+.apt-game-level-badge {
+  background: linear-gradient(145deg, #fff9e8, #fde68a);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 4px 10px rgba(180, 140, 60, 0.2);
+}
+
+.apt-game-currency {
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 2px 8px rgba(74, 52, 40, 0.08);
+  color: #4a3428;
+}
+
+.apt-game-currency-gold {
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+}
+
+.apt-game-currency-gem {
+  background: linear-gradient(135deg, #f5f3ff, #ede9fe);
+}
+
 .apt-game-level {
   background: linear-gradient(135deg, #fff7ed, #fde68a);
 }
 
 .apt-game-overview {
   animation: apt-game-fade-in 0.35s ease-out;
+}
+
+.apt-game-overview-pattern {
+  background-image: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.35), transparent 45%),
+    radial-gradient(circle at 80% 10%, rgba(253, 230, 138, 0.2), transparent 40%);
+}
+
+.apt-game-house-card {
+  filter: drop-shadow(0 24px 48px rgba(74, 52, 40, 0.18));
+}
+
+.apt-game-house-iso {
+  border-radius: 1.75rem;
+  border: 4px solid #c9b08a;
+  background: linear-gradient(180deg, #fffaf3 0%, #f3e8d8 100%);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.8), 0 16px 40px rgba(74, 52, 40, 0.15);
+  transform: rotateX(10deg) rotateZ(-1.5deg);
+  transform-style: preserve-3d;
+}
+
+.apt-game-room-tile {
+  animation: apt-game-room-pop 0.45s ease-out both;
+}
+
+.apt-game-nav {
+  filter: drop-shadow(0 -4px 20px rgba(74, 52, 40, 0.1));
+}
+
+.apt-game-nav-inner {
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  background: linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(250, 243, 234, 0.96));
+  box-shadow: 0 -10px 40px rgba(74, 52, 40, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.apt-game-nav-home {
+  background: linear-gradient(145deg, #6b4f3a, #4a3428);
+  box-shadow: 0 8px 20px rgba(74, 52, 40, 0.35);
+}
+
+.apt-game-room-bg {
+  background: radial-gradient(ellipse at 50% 30%, #faf3ea 0%, #e8dfd4 55%, #d9cbb8 100%);
+}
+
+.apt-game-room-vignette {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(74, 52, 40, 0.08) 100%);
+}
+
+.apt-game-sheet {
+  border: 1px solid rgba(232, 220, 200, 0.9);
+  background: linear-gradient(180deg, #fffaf3 0%, #faf6f0 100%);
+  box-shadow: 0 -20px 60px rgba(74, 52, 40, 0.2);
+}
+
+.apt-game-shop-card {
+  border: 1px solid rgba(232, 220, 200, 0.95);
+  background: linear-gradient(180deg, #ffffff, #faf6f0);
+  box-shadow: 0 4px 12px rgba(74, 52, 40, 0.06);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.apt-game-shop-card:active {
+  transform: scale(0.96);
+}
+
+.apt-game-mission-banner {
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  background: linear-gradient(135deg, rgba(255, 251, 245, 0.97), rgba(254, 243, 199, 0.85));
+  box-shadow: 0 8px 24px rgba(180, 130, 50, 0.12);
+}
+
+@keyframes apt-game-room-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 @keyframes apt-game-fade-in {

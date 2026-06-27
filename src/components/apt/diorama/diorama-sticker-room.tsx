@@ -570,8 +570,16 @@ function DioramaStickerRoomInner({
   const sorted = [...instances].sort((a, b) => a.zIndex - b.zIndex);
 
   return (
-    <div className="absolute inset-0 overflow-hidden bg-[#e8dfd4]">
-      {editMode && (
+    <div className="apt-game-room-bg absolute inset-0 overflow-hidden">
+      <div className="apt-game-room-vignette" />
+      {editMode && gameMode && (
+        <div className="pointer-events-none absolute inset-x-0 top-[4.5rem] z-[60] flex justify-center">
+          <span className="rounded-full border border-[#c9b08a]/60 bg-white/90 px-4 py-1 text-[10px] font-black text-[#5c4033] shadow-md">
+            ✦ 편집 모드 · 드래그로 배치
+          </span>
+        </div>
+      )}
+      {editMode && !gameMode && (
         <div className="pointer-events-none absolute inset-x-0 top-2 z-[60] flex justify-center">
           <span className="rounded-full border border-pink-300/60 bg-pink-50/90 px-3 py-1 text-[10px] font-bold text-pink-700 shadow-sm">
             꾸미기 모드
