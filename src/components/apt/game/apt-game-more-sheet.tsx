@@ -6,14 +6,15 @@ import { X } from "lucide-react";
 import { useAptGameRequired } from "./apt-game-context";
 
 function AptGameMoreSheetInner() {
-  const { moreOpen, setMoreOpen, setActiveTab } = useAptGameRequired();
+  const { moreOpen, setMoreOpen, setActiveTab, onExitHome } = useAptGameRequired();
   if (!moreOpen) return null;
 
   const links = [
     { href: "/feed", label: "커뮤니티" },
-    { href: "/messages", label: "메시지" },
+    { href: "/messages", label: "메시지 · 우편함" },
     { href: "/live", label: "라이브" },
     { href: "/games", label: "미니게임" },
+    { href: "/events", label: "이벤트" },
     { href: "/my-page", label: "내 프로필" },
     { href: "/settings", label: "설정" },
   ];
@@ -43,6 +44,18 @@ function AptGameMoreSheetInner() {
               {l.label}
             </Link>
           ))}
+          {onExitHome && (
+            <button
+              type="button"
+              onClick={() => {
+                setMoreOpen(false);
+                onExitHome();
+              }}
+              className="col-span-2 rounded-2xl border border-[#d4c4b0] bg-[#efe6da] px-4 py-3 text-center text-[12px] font-bold text-[#5c4033] active:scale-95"
+            >
+              복도 · 타워로 나가기
+            </button>
+          )}
         </div>
       </div>
     </div>

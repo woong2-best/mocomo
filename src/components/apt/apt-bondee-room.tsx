@@ -559,6 +559,7 @@ function AptBondeeRoomInner({
       rooms={roomTabs}
       initialRoomId={activeRoomId}
       onRoomSelect={setActiveRoomId}
+      onExitHome={onExitInterior}
     >
     <div
       className={cn(
@@ -745,7 +746,7 @@ function AptBondeeRoomInner({
           "absolute inset-x-0 bottom-0 z-20 transition-transform duration-300 ease-out",
           panel
             ? "translate-y-0"
-            : isImmersiveDiorama
+            : gameEnabled || isImmersiveDiorama
               ? "translate-y-full"
               : "translate-y-[calc(100%-3.25rem)]"
         )}

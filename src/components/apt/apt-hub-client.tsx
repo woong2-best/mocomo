@@ -154,6 +154,12 @@ export function AptHubClient({
     window.history.replaceState(null, "", "/apt");
   }, [isLoggedIn]);
 
+  // 네이티브 앱 + 로그인: 바로 집(게임 홈)으로
+  useEffect(() => {
+    if (!isNativeApp || !isLoggedIn || started) return;
+    enterHome();
+  }, [isNativeApp, isLoggedIn, started, enterHome]);
+
   const showLoginToast = useCallback((action: string) => {
     setVisitToast(`로그인 후 ${action}할 수 있습니다`);
     window.setTimeout(() => setVisitToast(null), 2800);
@@ -210,10 +216,18 @@ export function AptHubClient({
   }, [visitingUserId, communityFeed]);
 
   const inInterior = worldMode === "interior";
+  const inGameHome = inInterior && isLoggedIn && !isVisiting;
 
   useEffect(() => {
     if (!inInterior) setInteriorHudPeek(false);
   }, [inInterior]);
+
+  useEffect(() => {
+    if (!isVisiting || !isLoggedIn) return;
+    void import("@/actions/apt-game").then(({ reportAptGameEvent }) =>
+      reportAptGameEvent({ type: "visit_friend" })
+    );
+  }, [isVisiting, isLoggedIn]);
 
   useEffect(() => {
     if (!interiorHudPeek) return;
@@ -221,7 +235,7 @@ export function AptHubClient({
     return () => window.clearTimeout(t);
   }, [interiorHudPeek]);
 
-  const showInteriorHud = !inInterior || interiorHudPeek;
+  const showInteriorHud = !inGameHome && (!inInterior || interiorHudPeek);
   const inCorridor = worldMode === "corridor";
   const inLobby = worldMode === "lobby";
   const inDistrict = worldMode === "district";

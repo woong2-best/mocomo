@@ -43,6 +43,7 @@ type AptGameContextValue = {
   claimMission: (id: string) => Promise<{ ok?: boolean; error?: string }>;
   onStickerPlaced: (typeId: string, roomId: string) => void;
   onVisitFriend: () => void;
+  onExitHome?: () => void;
   primaryMission: AptGameState["missions"][0] | null;
   dailyDone: number;
   dailyTotal: number;
@@ -58,6 +59,7 @@ export function AptGameProvider({
   initialRoomId,
   enabled,
   onRoomSelect,
+  onExitHome,
 }: {
   children: ReactNode;
   initialGame: AptGameState | null;
@@ -66,6 +68,7 @@ export function AptGameProvider({
   initialRoomId: string | null;
   enabled: boolean;
   onRoomSelect: (roomId: string) => void;
+  onExitHome?: () => void;
 }) {
   const router = useRouter();
   const [game, setGame] = useState<AptGameState>(initialGame ?? createDefaultGameState());
@@ -193,6 +196,7 @@ export function AptGameProvider({
       claimMission,
       onStickerPlaced,
       onVisitFriend,
+      onExitHome,
       primaryMission,
       dailyDone,
       dailyTotal,
@@ -216,6 +220,7 @@ export function AptGameProvider({
       claimMission,
       onStickerPlaced,
       onVisitFriend,
+      onExitHome,
       primaryMission,
       dailyDone,
       dailyTotal,
