@@ -11,6 +11,7 @@ import { RoomPortalOverlay } from "@/components/apt/diorama/room-portal-overlay"
 import type { FurnitureHintState } from "@/components/apt/diorama/functional-furniture-hint";
 import { AptMultiRoomOverview } from "@/components/apt/game/apt-multi-room-overview";
 import { AptGameRoomHeader } from "@/components/apt/game/apt-game-room-header";
+import { AptRoomTransition } from "@/components/apt/game/apt-room-transition";
 import { useAptGame } from "@/components/apt/game/apt-game-context";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +45,7 @@ function AptDioramaRoomInner({
   const [portalOpen, setPortalOpen] = useState(false);
   const [localEditMode, setLocalEditMode] = useState(false);
   const [localPaletteOpen, setLocalPaletteOpen] = useState(false);
+  const [roomPhase, setRoomPhase] = useState<"enter" | "idle" | "exit">("idle");
 
   const editMode = game?.editMode ?? localEditMode;
   const paletteOpen = game?.paletteOpen ?? localPaletteOpen;
@@ -68,6 +70,13 @@ function AptDioramaRoomInner({
       game?.setPaletteOpen(false);
     }
   }, [allowEdit, game]);
+
+  useEffect(() => {
+    if (!game || game.view !== "room") return;
+    setRoomPhase("enter");
+    const t = window.setTimeout(() => setRoomPhase("idle"), 400);
+    return () => window.clearTimeout(t);
+  }, [activeRoomId, game?.view, game]);
 
   const handleSpatial = useCallback(
     (fn: "room-portal" | "exit-corridor") => {
@@ -102,11 +111,13 @@ function AptDioramaRoomInner({
   }, [game]);
 
   if (showOverview) {
-    return <AptMultiRoomOverview rooms={rooms} />;
+    return (
+      <AptMultiRoomOverview rooms={rooms} layoutOwnerUserId={layoutOwnerUserId} />
+    );
   }
 
   return (
-    <div className="absolute inset-0">
+    <AptRoomTransition phase={roomPhase} className="absolute inset-0">
       {activeRoom && (
         <DioramaStickerRoom
           roomId={activeRoom.id}
@@ -235,7 +246,7 @@ function AptDioramaRoomInner({
           이 방은 아직 다이오라마 제작 중
         </div>
       )}
-    </div>
+    </AptRoomTransition>
   );
 }
 

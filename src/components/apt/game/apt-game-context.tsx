@@ -16,7 +16,9 @@ import {
   claimAptMission,
   purchaseAptSticker,
   reportAptGameEvent,
+  boostAptEnergy,
 } from "@/actions/apt-game";
+import { energyRegenLabel } from "@/lib/apt/game/energy";
 
 type AptGameContextValue = {
   game: AptGameState;
@@ -43,8 +45,10 @@ type AptGameContextValue = {
   enterOverview: () => void;
   purchaseSticker: (typeId: string) => Promise<{ ok?: boolean; error?: string }>;
   claimMission: (id: string) => Promise<{ ok?: boolean; error?: string }>;
-  onStickerPlaced: (typeId: string, roomId: string) => void;
+  onStickerPlaced: (typeId: string, roomId: string) => Promise<{ error?: string }>;
   onVisitFriend: () => void;
+  boostEnergy: () => Promise<void>;
+  energyRegenLabel: string | null;
   onExitHome?: () => void;
   primaryMission: AptGameState["missions"][0] | null;
   dailyDone: number;
@@ -160,17 +164,26 @@ export function AptGameProvider({
     return { ok: true };
   }, []);
 
-  const onStickerPlaced = useCallback((typeId: string, roomId: string) => {
-    void reportAptGameEvent({ type: "place_sticker", typeId, roomId }).then((next) => {
-      if (next) setGame(next);
-    });
+  const onStickerPlaced = useCallback(async (typeId: string, roomId: string) => {
+    const next = await reportAptGameEvent({ type: "place_sticker", typeId, roomId });
+    if (!next) return {};
+    if ("error" in next) return { error: next.error };
+    setGame(next);
+    return {};
   }, []);
 
   const onVisitFriend = useCallback(() => {
     void reportAptGameEvent({ type: "visit_friend" }).then((next) => {
-      if (next) setGame(next);
+      if (next && !("error" in next)) setGame(next);
     });
   }, []);
+
+  const boostEnergy = useCallback(async () => {
+    const res = await boostAptEnergy();
+    if ("game" in res && res.game) setGame(res.game);
+  }, []);
+
+  const regenLabel = energyRegenLabel(game.energyUpdatedAt);
 
   const dailyMissions = game.missions.filter((m) => m.kind === "daily");
   const dailyDone = dailyMissions.filter((m) => m.completed).length;
@@ -208,6 +221,8 @@ export function AptGameProvider({
       claimMission,
       onStickerPlaced,
       onVisitFriend,
+      boostEnergy,
+      energyRegenLabel: regenLabel,
       onExitHome,
       primaryMission,
       dailyDone,
@@ -234,6 +249,8 @@ export function AptGameProvider({
       claimMission,
       onStickerPlaced,
       onVisitFriend,
+      boostEnergy,
+      regenLabel,
       onExitHome,
       primaryMission,
       dailyDone,

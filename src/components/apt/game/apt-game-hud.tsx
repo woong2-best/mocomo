@@ -7,6 +7,7 @@ import { useAptGameRequired } from "./apt-game-context";
 
 function AptGameHudInner() {
   const { game, userLevel, userAvatarUrl, userName, setShopOpen } = useAptGameRequired();
+  const energyPct = game.maxEnergy > 0 ? Math.round((game.energy / game.maxEnergy) * 100) : 0;
 
   return (
     <div className="apt-game-hud pointer-events-auto absolute inset-x-0 top-0 z-[90] px-3 pt-[max(0.5rem,env(safe-area-inset-top))]">
@@ -42,23 +43,24 @@ function AptGameHudInner() {
               <Plus className="h-3.5 w-3.5" strokeWidth={3} />
             </button>
           </div>
-          <div className="apt-game-currency apt-game-currency-gem flex items-center gap-1 rounded-xl py-0.5 pl-2 pr-0.5">
-            <span className="text-xs leading-none">💎</span>
-            <span className="min-w-[2rem] text-[11px] font-black tabular-nums">{game.gems}</span>
-            <button
-              type="button"
-              onClick={() => setShopOpen(true)}
-              className="flex h-6 w-6 items-center justify-center rounded-lg bg-violet-400/25 text-violet-900 active:scale-95"
-              aria-label="젬 상점"
-            >
-              <Plus className="h-3.5 w-3.5" strokeWidth={3} />
-            </button>
+          <div className="flex items-center gap-1">
+            <div className="apt-game-currency apt-game-currency-gem flex items-center gap-1 rounded-xl py-0.5 pl-2 pr-2">
+              <span className="text-xs leading-none">💎</span>
+              <span className="min-w-[1.5rem] text-[11px] font-black tabular-nums">{game.gems}</span>
+            </div>
+            <div className="apt-game-energy-pill flex min-w-[3.25rem] flex-col rounded-xl px-2 py-0.5">
+              <span className="text-[9px] font-black text-[#5c4033]">⚡ {game.energy}</span>
+              <span className="mt-0.5 block h-1 w-full overflow-hidden rounded-full bg-[#e8dcc8]">
+                <span
+                  className="block h-full rounded-full bg-gradient-to-r from-yellow-400 to-orange-500"
+                  style={{ width: `${energyPct}%` }}
+                />
+              </span>
+            </div>
           </div>
         </div>
       </div>
-      {userName && (
-        <p className="sr-only">{userName}의 집</p>
-      )}
+      {userName && <p className="sr-only">{userName}의 집</p>}
     </div>
   );
 }

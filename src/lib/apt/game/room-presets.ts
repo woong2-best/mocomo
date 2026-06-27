@@ -36,12 +36,15 @@ export const LIVING_ROOM_PRESET: DioramaPreset = {
   defaultInstances: [
     inst("lr-rug", "rug", 50, 72, 1),
     inst("lr-sofa", "sofa", 38, 58, 5),
+    inst("lr-coffee", "coffee-table", 52, 66, 3),
     inst("lr-tv", "tv", 72, 42, 4),
     inst("lr-plant", "plant", 18, 55, 6),
     inst("lr-lamp", "lamp", 82, 48, 7),
-    inst("lr-mailbox", "mailbox", 8, 38, 8),
-    inst("lr-computer", "computer", 55, 35, 9),
-    inst("lr-mascot", "mascot-sit", 48, 65, 10),
+    inst("lr-frame", "frame", 28, 38, 8),
+    inst("lr-cushion", "cushion", 44, 62, 9),
+    inst("lr-mailbox", "mailbox", 8, 38, 10),
+    inst("lr-computer", "computer", 55, 35, 11),
+    inst("lr-mascot", "mascot-sit", 48, 65, 12),
   ],
 };
 
@@ -54,8 +57,10 @@ export const BEDROOM_PRESET: DioramaPreset = {
     inst("br-bed", "bed", 45, 55, 5),
     inst("br-lamp", "lamp", 78, 45, 6),
     inst("br-frame", "frame", 22, 38, 7),
-    inst("br-cushion", "cushion", 58, 62, 8),
-    inst("br-plant", "plant", 15, 50, 9),
+    inst("br-books", "books", 68, 52, 8),
+    inst("br-cushion", "cushion", 58, 62, 9),
+    inst("br-plant", "plant", 15, 50, 10),
+    inst("br-polaroid", "polaroid", 32, 42, 11),
   ],
 };
 

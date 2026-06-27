@@ -41,9 +41,11 @@ import {
 } from "@/components/apt/diorama/functional-furniture-hint";
 import { DioramaEditToolbar } from "@/components/apt/diorama/diorama-edit-toolbar";
 import { DioramaFurniturePalette } from "@/components/apt/diorama/diorama-furniture-palette";
-import { PlacementBoundsOverlay } from "@/components/apt/diorama/placement-bounds-overlay";
+import { DioramaRoomBackdrop } from "@/components/apt/diorama/diorama-room-backdrop";
 import { AptGameGridOverlay, AptGameEditControls } from "@/components/apt/game/apt-game-edit-controls";
 import { useAptGame } from "@/components/apt/game/apt-game-context";
+import { PlacementBoundsOverlay } from "@/components/apt/diorama/placement-bounds-overlay";
+import { ENERGY_COST_PLACE } from "@/lib/apt/game/energy";
 import { canUseSticker } from "@/lib/apt/game/shop";
 import { vibrateDeleteFeedback } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
@@ -299,6 +301,11 @@ function DioramaStickerRoomInner({
         window.setTimeout(() => setPlaceError(null), 2000);
         return;
       }
+      if (game && game.game.energy < ENERGY_COST_PLACE) {
+        setPlaceError(`에너지가 부족해요 (⚡${ENERGY_COST_PLACE} 필요)`);
+        window.setTimeout(() => setPlaceError(null), 2200);
+        return;
+      }
       const id = newInstanceId(typeId);
       setInstances((prev) => {
         const { x: px, y: py } = resolvePlacementPosition(x, y, typeId, prev);
@@ -318,7 +325,18 @@ function DioramaStickerRoomInner({
       });
       setSelectedId(id);
       markDirty();
-      game?.onStickerPlaced(typeId, roomId);
+      void game?.onStickerPlaced(typeId, roomId).then((res) => {
+        if (res?.error) {
+          setPlaceError(res.error);
+          setInstances((prev) => {
+            const next = prev.filter((s) => s.id !== id);
+            persistInstances(next, true);
+            return next;
+          });
+          setSelectedId(null);
+          window.setTimeout(() => setPlaceError(null), 2200);
+        }
+      });
     },
     [markDirty, persistInstances, game, roomId]
   );
@@ -612,15 +630,19 @@ function DioramaStickerRoomInner({
             )}
           >
             <div className="absolute inset-0 flex items-center justify-center">
-              <Image
-                src={backdrop.src}
-                alt="방 배경"
-                width={900}
-                height={680}
-                priority
-                className="h-full w-full object-contain"
-                style={{ filter: "drop-shadow(0 10px 24px rgba(50,40,30,0.14))" }}
-              />
+              {gameMode ? (
+                <DioramaRoomBackdrop roomType={roomType} className="h-full w-full" />
+              ) : (
+                <Image
+                  src={backdrop.src}
+                  alt="방 배경"
+                  width={900}
+                  height={680}
+                  priority
+                  className="h-full w-full object-contain"
+                  style={{ filter: "drop-shadow(0 10px 24px rgba(50,40,30,0.14))" }}
+                />
+              )}
             </div>
             <div
               ref={mergeContainerRef}

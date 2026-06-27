@@ -1,4 +1,5 @@
 import type { AptGameState, AptMissionDef } from "./types";
+import { MAX_ENERGY, regenEnergy } from "./energy";
 
 function todayKey() {
   return new Date().toISOString().slice(0, 10);
@@ -86,13 +87,18 @@ export function createDefaultMissions(): AptMissionDef[] {
 }
 
 export function createDefaultGameState(): AptGameState {
+  const now = new Date().toISOString();
   return {
     gold: 5000,
     gems: 50,
+    energy: 45,
+    maxEnergy: MAX_ENERGY,
+    energyUpdatedAt: now,
     ownedStickers: [],
     missions: createDefaultMissions(),
     lastDailyReset: todayKey(),
     overviewSeen: false,
+    decoratedRooms: [],
   };
 }
 
@@ -102,6 +108,11 @@ export function mergeGameState(raw: unknown): AptGameState {
   const o = raw as Partial<AptGameState>;
   const today = todayKey();
   let missions = Array.isArray(o.missions) ? (o.missions as AptMissionDef[]) : base.missions;
+  const regen = regenEnergy(
+    typeof o.energy === "number" ? o.energy : base.energy,
+    typeof o.maxEnergy === "number" ? o.maxEnergy : base.maxEnergy,
+    typeof o.energyUpdatedAt === "string" ? o.energyUpdatedAt : base.energyUpdatedAt
+  );
 
   if (o.lastDailyReset !== today) {
     missions = missions.map((m) =>
@@ -127,9 +138,13 @@ export function mergeGameState(raw: unknown): AptGameState {
   return {
     gold: typeof o.gold === "number" ? o.gold : base.gold,
     gems: typeof o.gems === "number" ? o.gems : base.gems,
+    energy: regen.energy,
+    maxEnergy: typeof o.maxEnergy === "number" ? o.maxEnergy : base.maxEnergy,
+    energyUpdatedAt: regen.lastTick,
     ownedStickers: Array.isArray(o.ownedStickers) ? o.ownedStickers : base.ownedStickers,
     missions,
     lastDailyReset: today,
     overviewSeen: !!o.overviewSeen,
+    decoratedRooms: Array.isArray(o.decoratedRooms) ? (o.decoratedRooms as string[]) : base.decoratedRooms,
   };
 }

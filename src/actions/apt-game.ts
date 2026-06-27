@@ -5,12 +5,30 @@ import { getCachedCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { mergeGameState } from "@/lib/apt/game/defaults";
 import {
+  ENERGY_COST_PLACE,
+  ENERGY_REWARD_MISSION,
+  ENERGY_REWARD_AD,
+  canSpendEnergy,
+  regenEnergy,
+  spendEnergy,
+} from "@/lib/apt/game/energy";
+import {
   canUseSticker,
   getStickerGoldPrice,
   isStarterOwned,
 } from "@/lib/apt/game/shop";
 import type { AptGameState, AptMissionDef } from "@/lib/apt/game/types";
 import { resolveAptHomeOwnerId } from "@/actions/apt-cohabitation";
+
+export type AptGameActionResult =
+  | { ok: true; game: AptGameState }
+  | { error: string }
+  | { ok: true; game: AptGameState; alreadyOwned?: true; price?: number; reward?: { gold: number; gems: number } };
+
+function tickEnergy(game: AptGameState): AptGameState {
+  const r = regenEnergy(game.energy, game.maxEnergy, game.energyUpdatedAt);
+  return { ...game, energy: r.energy, energyUpdatedAt: r.lastTick };
+}
 
 async function loadRawGame(userId: string): Promise<AptGameState> {
   const ownerId = await resolveAptHomeOwnerId(userId);
@@ -19,7 +37,7 @@ async function loadRawGame(userId: string): Promise<AptGameState> {
     select: { simulationState: true },
   });
   const sim = row?.simulationState as Record<string, unknown> | null;
-  return mergeGameState(sim?.game);
+  return tickEnergy(mergeGameState(sim?.game));
 }
 
 async function saveRawGame(userId: string, game: AptGameState) {
@@ -57,7 +75,7 @@ export async function purchaseAptSticker(typeId: string) {
 
   const game = await loadRawGame(user.id);
   if (canUseSticker(typeId, game.ownedStickers)) {
-    return { ok: true as const, alreadyOwned: true as const };
+    return { ok: true as const, alreadyOwned: true as const, game };
   }
 
   const price = getStickerGoldPrice(typeId);
@@ -86,6 +104,8 @@ export async function claimAptMission(missionId: string) {
   mission.claimed = true;
   game.gold += mission.goldReward;
   game.gems += mission.gemReward;
+  game.energy = Math.min(game.maxEnergy, game.energy + ENERGY_REWARD_MISSION);
+  game.energyUpdatedAt = new Date().toISOString();
 
   await saveRawGame(user.id, game);
   return {
@@ -95,12 +115,23 @@ export async function claimAptMission(missionId: string) {
   };
 }
 
+export async function boostAptEnergy() {
+  const user = await getCachedCurrentUser();
+  if (!user) return { error: "로그인이 필요합니다." as const };
+
+  const game = await loadRawGame(user.id);
+  game.energy = Math.min(game.maxEnergy, game.energy + ENERGY_REWARD_AD);
+  game.energyUpdatedAt = new Date().toISOString();
+  await saveRawGame(user.id, game);
+  return { ok: true as const, game };
+}
+
 export async function reportAptGameEvent(
   event:
     | { type: "place_sticker"; typeId: string; roomId: string }
     | { type: "visit_friend" }
     | { type: "furniture_count"; count: number; roomIds: string[] }
-) {
+): Promise<AptGameState | { error: string } | null> {
   const user = await getCachedCurrentUser();
   if (!user) return null;
 
@@ -108,6 +139,16 @@ export async function reportAptGameEvent(
   let changed = false;
 
   if (event.type === "place_sticker") {
+    if (!canSpendEnergy(game.energy, ENERGY_COST_PLACE)) {
+      return { error: `에너지가 부족해요. (⚡${ENERGY_COST_PLACE} 필요)` };
+    }
+    game.energy = spendEnergy(game.energy, ENERGY_COST_PLACE);
+    game.energyUpdatedAt = new Date().toISOString();
+
+    if (!game.decoratedRooms.includes(event.roomId)) {
+      game.decoratedRooms = [...game.decoratedRooms, event.roomId];
+    }
+
     for (const m of game.missions) {
       if (m.completed) continue;
       if (m.placeSticker === event.typeId) {
@@ -121,6 +162,14 @@ export async function reportAptGameEvent(
         changed = true;
       }
     }
+
+    const multi = game.missions.find((m) => m.id === "story-multi-room");
+    if (multi && !multi.completed) {
+      multi.progress = Math.min(multi.target, game.decoratedRooms.length);
+      if (multi.progress >= multi.target) multi.completed = true;
+      changed = true;
+    }
+    changed = true;
   }
 
   if (event.type === "visit_friend") {

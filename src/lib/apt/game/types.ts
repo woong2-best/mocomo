@@ -22,10 +22,14 @@ export type AptMissionDef = {
 export type AptGameState = {
   gold: number;
   gems: number;
+  energy: number;
+  maxEnergy: number;
+  energyUpdatedAt: string;
   ownedStickers: string[];
   missions: AptMissionDef[];
   lastDailyReset: string;
   overviewSeen: boolean;
+  decoratedRooms: string[];
 };
 
 export type AptGameView = "overview" | "room";
