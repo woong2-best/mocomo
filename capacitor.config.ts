@@ -8,7 +8,8 @@ const appServerUrl =
 const config: CapacitorConfig = {
   appId: "net.mocomo.app",
   appName: "MoCoMo",
-  webDir: "public",
+  // Remote WebView shell — do not bundle full `public/` (~700MB) into the AAB.
+  webDir: "android-web",
   server: {
     url: appServerUrl,
     cleartext: false,

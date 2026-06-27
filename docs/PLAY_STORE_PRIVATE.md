@@ -102,6 +102,8 @@ npm run android:bundle
 
 산출물: `android/app/build/outputs/bundle/release/app-release.aab`
 
+> **500MB 제한:** 앱은 WebView로 `mocomo.net`을 띄우므로 `public/`(~700MB)을 AAB에 넣지 않습니다. Capacitor `webDir`는 최소 셸인 `android-web/`만 사용합니다.
+
 Play Console → **테스트 → 내부 테스트** → 새 버전 → AAB 업로드.
 
 ---
@@ -147,4 +149,4 @@ Play Console → 테스트 트랙 → **테스터** → 이메일 목록 추가
 - **웹 배포 중단** → 앱 빈 화면 / 로그인 실패
 - **versionCode 안 올림** → Play Console 업로드 거부
 - **서명 키 분실** → 같은 패키지로 업데이트 불가
-- **localhost URL로 cap sync** → 출시 빌드가 개발 서버를 가리킴
+- **public 폴더를 webDir로 cap sync** → AAB 500MB 초과 (Play 업로드 거부)
