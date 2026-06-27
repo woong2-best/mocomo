@@ -281,6 +281,18 @@ Style Gate 승인 후 [`APT_ASSET_STRATEGY.md`](./APT_ASSET_STRATEGY.md) Phase 1
 
 ---
 
+## 기술 연동 (3 Gates 통과 후만)
+
+| 레이어 | 역할 |
+|--------|------|
+| `public/apt/glb/` | Asset Gate 통과 GLB만 |
+| `useGLTF` | Loader |
+| `IsoCanvas` | Scene root |
+| Lighting rig | Art Bible §② |
+| Camera rig | Art Bible §④ |
+
+---
+
 ## 관련 문서
 
 - `.cursor/rules/apt-diorama-quality.mdc` — Cursor 작업 규칙
