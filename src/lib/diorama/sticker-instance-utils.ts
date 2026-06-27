@@ -3,10 +3,10 @@ import { getStickerAsset } from "./sticker-catalog";
 
 /** room-shell 내부 배치 허용 영역 (%) */
 export const STICKER_ROOM_BOUNDS = {
-  xMin: 28,
-  xMax: 72,
-  yMin: 20,
-  yMax: 78,
+  xMin: 30,
+  xMax: 70,
+  yMin: 32,
+  yMax: 76,
 } as const;
 
 const NON_DRAGGABLE_TYPES = new Set([

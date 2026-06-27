@@ -41,10 +41,10 @@ import {
 } from "@/components/apt/diorama/functional-furniture-hint";
 import { DioramaEditToolbar } from "@/components/apt/diorama/diorama-edit-toolbar";
 import { DioramaFurniturePalette } from "@/components/apt/diorama/diorama-furniture-palette";
-import { DioramaRoomBackdrop } from "@/components/apt/diorama/diorama-room-backdrop";
 import { PlacementItemGrid, AptGameEditControls } from "@/components/apt/game/apt-game-edit-controls";
 import { useAptGame } from "@/components/apt/game/apt-game-context";
 import { PlacementBoundsOverlay } from "@/components/apt/diorama/placement-bounds-overlay";
+import { shouldResetGameLayout } from "@/lib/diorama/sanitize-game-layout";
 import { ENERGY_COST_PLACE } from "@/lib/apt/game/energy";
 import { canUseSticker } from "@/lib/apt/game/shop";
 import { vibrateDeleteFeedback } from "@/lib/haptics";
@@ -131,8 +131,8 @@ function DraggableSticker({
         !editMode && isFn && "cursor-pointer",
         isDragging && "z-[9999]",
         !isDragging && "transition-transform duration-150",
-        selected && "ring-2 ring-pink-400/80 ring-offset-1 rounded-lg",
-        editMode && selected && "ring-pink-500"
+        selected && (gameMode ? "ring-2 ring-amber-400/90 ring-offset-2 ring-offset-transparent rounded-lg" : "ring-2 ring-pink-400/80 ring-offset-1 rounded-lg"),
+        editMode && selected && !gameMode && "ring-pink-500"
       )}
       style={{
         left: `${sticker.x}%`,
@@ -267,15 +267,21 @@ function DioramaStickerRoomInner({
       );
       if (cancelled) return;
       setServerCanEdit(canEdit);
-      const base =
+      let base =
         saved.length > 0 ? saved : getDefaultStickerInstances(roomId, roomType);
+      if (gameMode && shouldResetGameLayout(base)) {
+        base = getDefaultStickerInstances(roomId, roomType);
+        if (canEdit && saved.length > 0) {
+          void saveStickerInstances(layoutOwnerUserId ?? null, roomId, base, { canEdit: true });
+        }
+      }
       setInstances(sortInstancesByDepth(base.map((s) => enrichInstanceFromCatalog(s))));
       setLoaded(true);
     })();
     return () => {
       cancelled = true;
     };
-  }, [layoutOwnerUserId, roomId, roomType]);
+  }, [layoutOwnerUserId, roomId, roomType, gameMode]);
 
   useEffect(() => {
     if (!editMode) {
@@ -526,7 +532,7 @@ function DioramaStickerRoomInner({
   const catalogPreviewAsset = catalogPreview
     ? getStickerAsset(catalogPreview.typeId)
     : null;
-  const showPlacementZone = editMode && !!draggingCatalogType;
+  const showPlacementZone = editMode && !!draggingCatalogType && !gameMode;
 
   const handleRotate = useCallback(() => {
     if (!selectedId) return;
@@ -625,16 +631,21 @@ function DioramaStickerRoomInner({
           catalogPreviewRef.current = null;
         }}
       >
-        <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+        <div
+          className={cn(
+            "absolute inset-0 flex items-center justify-center overflow-hidden",
+            gameMode && "pt-[calc(max(0.5rem,env(safe-area-inset-top))+3.5rem)] pb-[calc(max(4.5rem,env(safe-area-inset-bottom))+0.5rem)]"
+          )}
+        >
           <div
             className={cn(
-              "relative shrink-0 transition-transform duration-500 ease-out",
+              "apt-game-room-canvas relative shrink-0 transition-transform duration-500 ease-out",
               immersive
                 ? gameMode
-                  ? "h-[calc(100dvh-12rem)] w-[calc((100dvh-12rem)*4/3)] max-w-none"
+                  ? "aspect-[4/3] h-[min(calc(100dvh-8rem),calc(100vw*0.72))] w-auto max-w-[96vw]"
                   : "h-[88dvh] w-[calc(88dvh*4/3)] max-w-none"
                 : "aspect-[4/3] w-full max-h-[min(72vh,calc(100%-3rem))] max-w-lg sm:max-w-2xl",
-              editMode && gameMode && "ring-2 ring-amber-300/50 ring-offset-2 ring-offset-[#e8dfd4]",
+              editMode && gameMode && "ring-2 ring-amber-300/40 ring-offset-4 ring-offset-transparent",
               editMode && !gameMode && "ring-2 ring-pink-300/40 ring-offset-2 ring-offset-[#e8dfd4]"
             )}
             style={{
@@ -643,19 +654,19 @@ function DioramaStickerRoomInner({
             }}
           >
             <div className="absolute inset-0 flex items-center justify-center">
-              {gameMode ? (
-                <DioramaRoomBackdrop roomType={roomType} className="h-full w-full" />
-              ) : (
-                <Image
-                  src={backdrop.src}
-                  alt="방 배경"
-                  width={900}
-                  height={680}
-                  priority
-                  className="h-full w-full object-contain"
-                  style={{ filter: "drop-shadow(0 10px 24px rgba(50,40,30,0.14))" }}
-                />
-              )}
+              <Image
+                src={backdrop.src}
+                alt="방 배경"
+                width={900}
+                height={680}
+                priority
+                className="h-full w-full object-contain"
+                style={{
+                  filter: gameMode
+                    ? "drop-shadow(0 18px 36px rgba(40,30,20,0.2))"
+                    : "drop-shadow(0 10px 24px rgba(50,40,30,0.14))",
+                }}
+              />
             </div>
             <div
               ref={mergeContainerRef}

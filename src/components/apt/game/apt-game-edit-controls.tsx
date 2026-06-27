@@ -3,7 +3,7 @@
 import { memo } from "react";
 import { Check, RotateCw, X } from "lucide-react";
 
-/** 선택된 가구 아래 초록 배치 그리드 (참고 이미지) */
+/** 선택된 가구 아래 배치 그리드 */
 function PlacementItemGridInner({ x, y }: { x: number; y: number }) {
   return (
     <div
@@ -11,19 +11,19 @@ function PlacementItemGridInner({ x, y }: { x: number; y: number }) {
       style={{
         left: `${x}%`,
         top: `${y}%`,
-        width: "26%",
-        height: "20%",
-        transform: "translate(-50%, -42%)",
+        width: "22%",
+        height: "16%",
+        transform: "translate(-50%, -45%)",
       }}
     >
       <div
-        className="h-full w-full rounded-lg border-2 border-emerald-400/70 bg-emerald-400/15"
+        className="h-full w-full rounded-md border border-emerald-400/50 bg-emerald-400/10"
         style={{
           backgroundImage: `
-            linear-gradient(to right, rgba(52,211,153,0.35) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(52,211,153,0.35) 1px, transparent 1px)
+            linear-gradient(to right, rgba(52,211,153,0.22) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(52,211,153,0.22) 1px, transparent 1px)
           `,
-          backgroundSize: "20% 25%",
+          backgroundSize: "25% 33%",
         }}
       />
     </div>
