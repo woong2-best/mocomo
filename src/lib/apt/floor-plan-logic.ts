@@ -14,20 +14,21 @@ export function newRoomId() {
 }
 
 /**
- * 복도 중심 Bondee 아파트 (v6)
+ * 빈 집 dollhouse 구조 (참조 평면도)
  *
- * ┌─거실─┬─방2─┬─방1─┬화장실┐  ← 상단
- * ├현관─┴─────── 복 도 ──────┤  ← 복도 (방·부엌·엘리베이터는 문으로만 연결)
- * │         부엌          │엘리│  ← 하단 (발코니 없음)
- * └───────────────────────┴────┘
+ * ┌──────거실──────┬욕실┬──── 방1 ────┐
+ * │   (좌측 전체)  │    │            │
+ * │                │복도│    방2      │
+ * │                │현관│            │
+ * └────────────────┴────┴────────────┘
  */
 export function createDefaultFloorPlan(): FloorPlanState {
-  const INTERIOR_W = 870;
-  const TOP_H = 210;
-  const HALL_H = 95;
-  const ENTRANCE_W = 95;
-  const BOTTOM_Y = TOP_H + HALL_H;
-  const BOTTOM_H = PLAN_H - BOTTOM_Y;
+  const LIVING_W = 400;
+  const HALL_W = 120;
+  const TOP_H = 185;
+  const HALL_H = 250;
+  const ENTRANCE_H = PLAN_H - TOP_H - HALL_H;
+  const RIGHT_W = PLAN_W - LIVING_W - HALL_W;
 
   return {
     rooms: [
@@ -36,91 +37,78 @@ export function createDefaultFloorPlan(): FloorPlanState {
         type: "living",
         x: 0,
         y: 0,
-        w: 270,
-        h: TOP_H,
+        w: LIVING_W,
+        h: PLAN_H,
         label: "거실",
-        locked: false,
-        floor: "wood",
-      },
-      {
-        id: "bedroom-2",
-        type: "bedroom",
-        x: 270,
-        y: 0,
-        w: 200,
-        h: TOP_H,
-        label: "방 2",
-        locked: false,
-        floor: "beige",
-      },
-      {
-        id: "bedroom-1",
-        type: "bedroom",
-        x: 470,
-        y: 0,
-        w: 200,
-        h: TOP_H,
-        label: "방 1",
         locked: false,
         floor: "beige",
       },
       {
         id: "bathroom",
         type: "bathroom",
-        x: 670,
+        x: LIVING_W,
         y: 0,
-        w: 200,
+        w: HALL_W,
         h: TOP_H,
         label: "화장실",
         locked: true,
         floor: "bathroom",
       },
       {
-        id: "entrance",
-        type: "entrance",
-        x: 0,
-        y: TOP_H,
-        w: ENTRANCE_W,
-        h: HALL_H,
-        label: "현관",
-        locked: true,
-        floor: "tile-light",
+        id: "bedroom-1",
+        type: "bedroom",
+        x: LIVING_W + HALL_W,
+        y: 0,
+        w: RIGHT_W,
+        h: TOP_H,
+        label: "방 1",
+        locked: false,
+        floor: "wood",
       },
       {
         id: "hall-corridor",
         type: "hall",
-        x: ENTRANCE_W,
+        x: LIVING_W,
         y: TOP_H,
-        w: INTERIOR_W - ENTRANCE_W,
+        w: HALL_W,
         h: HALL_H,
         label: "복도",
         locked: true,
         floor: "beige",
       },
       {
-        id: "kitchen",
-        type: "kitchen",
-        x: 0,
-        y: BOTTOM_Y,
-        w: 580,
-        h: BOTTOM_H,
-        label: "부엌",
-        locked: true,
-        floor: "wood",
-      },
-      {
-        id: "elevator",
-        type: "hall",
-        x: 580,
-        y: BOTTOM_Y,
-        w: INTERIOR_W - 580,
-        h: BOTTOM_H,
-        label: "엘리베이터",
+        id: "entrance",
+        type: "entrance",
+        x: LIVING_W,
+        y: TOP_H + HALL_H,
+        w: HALL_W,
+        h: ENTRANCE_H,
+        label: "현관",
         locked: true,
         floor: "tile-light",
       },
+      {
+        id: "bedroom-2",
+        type: "bedroom",
+        x: LIVING_W + HALL_W,
+        y: TOP_H,
+        w: RIGHT_W,
+        h: PLAN_H - TOP_H,
+        label: "방 2",
+        locked: false,
+        floor: "wood",
+      },
     ],
   };
+}
+
+/** dollhouse — 거실 좌측 전체, 복도·욕실 중앙, 침실 우측 */
+export function isDollhouseStructurePlan(rooms: AptRoom[]): boolean {
+  const living = rooms.find((r) => r.id === "living");
+  const bed2 = rooms.find((r) => r.id === "bedroom-2");
+  if (!living || !bed2) return false;
+  if (rooms.some((r) => r.id === "kitchen" || r.id === "elevator" || r.id === "bedroom-3")) return false;
+  return living.x === 0 && living.y === 0 && living.h >= PLAN_H - 2;
 }
 
 /** v6 — 거실이 복도 위, 엘리베이터가 하단, 발코니 없음 */
@@ -140,11 +128,11 @@ export function isSketchFloorPlan(rooms: AptRoom[]): boolean {
 }
 
 export function isLegacyFloorPlan(rooms: AptRoom[]): boolean {
-  return !isCorridorV6Plan(rooms);
+  return !isDollhouseStructurePlan(rooms);
 }
 
 export function migrateFloorPlan(rooms: AptRoom[]): AptRoom[] {
-  if (!rooms.length || !isCorridorV6Plan(rooms)) {
+  if (!rooms.length || !isDollhouseStructurePlan(rooms)) {
     return createDefaultFloorPlan().rooms.map((r) => ({ ...r }));
   }
   return rooms;
@@ -276,7 +264,7 @@ function subtractRect(space: Rect, cut: Rect): Rect[] {
 }
 
 export function findAddableSlot(rooms: AptRoom[]): Rect | null {
-  const interior: Rect = { x: 0, y: 0, w: 870, h: PLAN_H };
+  const interior: Rect = { x: 0, y: 0, w: PLAN_W, h: PLAN_H };
   let free: Rect[] = [interior];
   for (const room of rooms) {
     free = free.flatMap((s) => subtractRect(s, room));

@@ -103,6 +103,7 @@ const BY_ID: Record<string, DioramaPreset> = {
   living: LIVING_ROOM_PRESET,
   "bedroom-1": BEDROOM_PRESET,
   "bedroom-2": BEDROOM_PRESET,
+  "bedroom-3": BEDROOM_PRESET,
   kitchen: KITCHEN_PRESET,
   bathroom: BATHROOM_PRESET,
 };

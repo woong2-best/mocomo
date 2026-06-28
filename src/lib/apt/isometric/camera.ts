@@ -13,6 +13,13 @@ export const ISO_CAMERA_ROOM: IsoCameraPreset = {
   target: [0, 0.35, 0],
 };
 
+/** Premium dollhouse overview — tighter framing, reference isometric angle */
+export const DOLLHOUSE_CAMERA: IsoCameraPreset = {
+  position: [6.4, 7.6, 6.4],
+  frustum: 4.25,
+  target: [-0.2, 0.28, 0],
+};
+
 /** User pinch/zoom — smaller frustum = closer view */
 export function scaledFrustum(base: number, userZoom: number) {
   return base / userZoom;

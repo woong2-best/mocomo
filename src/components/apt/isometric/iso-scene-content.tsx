@@ -22,9 +22,14 @@ export function IsoSceneContent({
   onRoomClick,
   onItemSelect,
   onPlaceAtGrid,
+  shellOnly = false,
+  structureRooms = false,
 }: IsoSceneProps) {
   const preset = view === "apartment" ? ISO_CAMERA_APT : ISO_CAMERA_ROOM;
   const activeRoom = rooms.find((r) => r.id === activeRoomId) ?? null;
+  const shellRooms = structureRooms
+    ? rooms.filter((r) => r.type !== "balcony")
+    : rooms.filter((r) => r.type !== "hall" && r.type !== "balcony");
   const decorRooms = rooms.filter((r) => r.type !== "hall" && r.type !== "balcony");
 
   return (
@@ -34,12 +39,14 @@ export function IsoSceneContent({
       <IsoLighting />
 
       <IsoHomeMeshes
-        rooms={decorRooms}
+        rooms={shellRooms}
         items={items}
         view={view}
         activeRoomId={activeRoomId}
         selectedItemId={selectedItemId}
         highlightRoomId={view === "room" ? activeRoomId : null}
+        shellOnly={shellOnly}
+        structureRooms={structureRooms}
       />
 
       {editMode && activeRoom && allowEdit && <IsoPlacementGrid room={activeRoom} />}

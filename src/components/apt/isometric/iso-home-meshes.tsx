@@ -18,6 +18,8 @@ export function IsoHomeMeshes({
   activeRoomId,
   selectedItemId,
   highlightRoomId,
+  shellOnly = false,
+  structureRooms = false,
 }: {
   rooms: AptRoom[];
   items: BondeePlacedItem[];
@@ -25,32 +27,33 @@ export function IsoHomeMeshes({
   activeRoomId: string | null;
   selectedItemId: string | null;
   highlightRoomId: string | null;
+  shellOnly?: boolean;
+  structureRooms?: boolean;
 }) {
   const visibleRoomIds = useMemo(() => {
     if (view === "apartment") {
-      return new Set(
-        rooms
-          .filter((r) => r.type !== "hall" && r.type !== "balcony")
-          .map((r) => r.id)
-      );
+      const list = structureRooms
+        ? rooms.filter((r) => r.type !== "balcony")
+        : rooms.filter((r) => r.type !== "hall" && r.type !== "balcony");
+      return new Set(list.map((r) => r.id));
     }
     if (activeRoomId) return new Set([activeRoomId]);
     return null;
-  }, [view, rooms, activeRoomId]);
+  }, [view, rooms, activeRoomId, structureRooms]);
 
   const group = useMemo(() => {
     const scale = fitScaleToBox(10, 6.5);
     return buildHomeFloorGroup({
       rooms,
-      items,
+      items: shellOnly ? [] : items,
       scale,
       wallStyle: "dollhouse-open",
-      furnitureMode: "full",
+      furnitureMode: shellOnly ? "none" : "full",
       highlightRoomId,
       selectedItemId,
       visibleRoomIds,
     });
-  }, [rooms, items, highlightRoomId, selectedItemId, visibleRoomIds]);
+  }, [rooms, items, highlightRoomId, selectedItemId, visibleRoomIds, shellOnly]);
 
   useEffect(() => () => disposeHomeGroup(group), [group]);
 

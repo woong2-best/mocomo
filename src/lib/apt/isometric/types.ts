@@ -26,6 +26,10 @@ export type IsoSceneProps = {
   onPlaceAtGrid: (roomId: string, gx: number, gz: number) => void;
   onRotateSelected: () => void;
   onDeleteSelected: () => void;
+  /** Empty structure — floors/walls only, no furniture */
+  shellOnly?: boolean;
+  /** Include hall/entrance in 3D shell (overview dollhouse) */
+  structureRooms?: boolean;
 };
 
 export type IsoLayoutSnapshot = {

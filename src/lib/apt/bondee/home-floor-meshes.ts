@@ -39,6 +39,29 @@ import {
   type HomeWallSide,
 } from "./home-walls";
 
+const DOLLHOUSE_WALL = 0xf5f0ea;
+const DOLLHOUSE_CAP = 0x3d3d42;
+
+function buildDollhouseWallSegment(
+  wx: number,
+  h: number,
+  wz: number,
+  px: number,
+  pz: number,
+  parent: THREE.Group
+) {
+  const wall = new THREE.Mesh(new THREE.BoxGeometry(wx, h, wz), bondeeMat(DOLLHOUSE_WALL));
+  wall.position.set(px, h / 2 + 0.05, pz);
+  parent.add(wall);
+
+  const cap = new THREE.Mesh(
+    new THREE.BoxGeometry(wx + 0.03, 0.055, wz + 0.03),
+    bondeeMat(DOLLHOUSE_CAP, { roughness: 0.85 })
+  );
+  cap.position.set(px, h + 0.05 + 0.028, pz);
+  parent.add(cap);
+}
+
 const WALL_H = HOME_WALL_BASE_HEIGHT;
 const ITEM_GRID = 0.38;
 
@@ -149,17 +172,22 @@ export function defaultItemsForRooms(rooms: AptRoom[]): BondeePlacedItem[] {
       add(r.id, "plant", 0, 0);
     } else if (r.id === "bedroom-2") {
       add(r.id, "bed", 0, 0);
-      add(r.id, "tv_stand", 1, -1);
-      add(r.id, "floor_lamp", -1, 1);
+      add(r.id, "rug", 1, 1);
       add(r.id, "bookshelf", -2, -1, 2);
-      add(r.id, "smartphone", 1, 1);
-      add(r.id, "telephone", 0, 1);
+      add(r.id, "window", 2, -1, 0);
+      add(r.id, "plant", -1, 1);
     } else if (r.id === "bedroom-1") {
       add(r.id, "bed", 0, 0);
       add(r.id, "rug", 1, 1);
       add(r.id, "bookshelf", -2, -1, 2);
       add(r.id, "window", 2, -1, 0);
       add(r.id, "ac", 2, 1, 2);
+    } else if (r.id === "bedroom-3") {
+      add(r.id, "bed", 0, 0);
+      add(r.id, "rug", 1, 1);
+      add(r.id, "bookshelf", -2, -1, 2);
+      add(r.id, "window", 2, -1, 0);
+      add(r.id, "plant", -1, 1);
     } else if (r.type === "kitchen") {
       add(r.id, "refrigerator", -1, -1, 2);
       add(r.id, "shelf_small", 0, -1);
@@ -497,12 +525,7 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
       const isExterior = wallType === "EXTERIOR";
 
       if (dollhouse) {
-        const wallMesh = new THREE.Mesh(
-          new THREE.BoxGeometry(dims.wx, h, dims.wz),
-          bondeeMat(BONDEE_PALETTE.wallWhite)
-        );
-        wallMesh.position.set(dims.px, h / 2 + 0.05, dims.pz);
-        roomGroup.add(wallMesh);
+        buildDollhouseWallSegment(dims.wx, h, dims.wz, dims.px, dims.pz, roomGroup);
         continue;
       }
 
@@ -524,15 +547,8 @@ export function buildHomeShellGroup(opts: Omit<HomeFloorBuildOptions, "items" | 
     }
 
     if (dollhouse) {
-      const ceil = new THREE.Mesh(
-        new THREE.BoxGeometry(w - 0.02, 0.04, d - 0.02),
-        bondeeMat(0xffffff)
-      );
-      ceil.position.set(cx, wallHeight * 1.05 + 0.05, cz);
-      roomGroup.add(ceil);
-    }
-
-    if (room.type === "balcony") {
+      // open cutaway — no ceiling slab
+    } else if (room.type === "balcony") {
       const rail = new THREE.Mesh(
         new THREE.BoxGeometry(w - 0.04, 0.06, 0.03),
         bondeeMat(BONDEE_PALETTE.trim, { transparent: true, opacity: 0.7 })

@@ -179,7 +179,7 @@ export function bondeeThemedWallMat(theme: RoomTheme): THREE.MeshStandardMateria
 }
 
 const TYPE_THEMES: Record<string, Partial<RoomTheme>> = {
-  living: { wallPattern: "stripe", floorKind: "wood-light", curtainColor: 0xffd0e8, lightColor: 0xfff0e8 },
+  living: { wallPattern: "plain", floorKind: "beige", curtainColor: 0xffd0e8, lightColor: 0xfff0e8 },
   bedroom: { wallPattern: "dot", floorKind: "wood-dark", wallAccent: BONDEE_PALETTE.wallLavender, lightColor: 0xe8e0ff },
   kitchen: { wallPattern: "wainscot", floorKind: "tile", wallAccent: BONDEE_PALETTE.wallPeach, lightColor: 0xfff4e0 },
   bathroom: { wallPattern: "plain", floorKind: "tile", wallAccent: BONDEE_PALETTE.bathroom, lightColor: 0xd8eeff },
@@ -189,11 +189,14 @@ const TYPE_THEMES: Record<string, Partial<RoomTheme>> = {
 };
 
 const ID_THEMES: Record<string, Partial<RoomTheme>> = {
-  living: { wallAccent: BONDEE_PALETTE.wallPink, floorAccent: BONDEE_PALETTE.wood, lightIntensity: 0.42 },
+  living: { wallAccent: BONDEE_PALETTE.wallPink, floorAccent: 0xe8ddd0, lightIntensity: 0.42 },
   "bedroom-1": { wallAccent: 0xe8d8ff, floorAccent: BONDEE_PALETTE.woodDark, curtainColor: 0xd8c8ff },
-  "bedroom-2": { wallAccent: 0xffe0f0, floorAccent: BONDEE_PALETTE.wood, curtainColor: 0xffc8e0 },
+  "bedroom-2": { wallAccent: 0xe8d8ff, floorAccent: BONDEE_PALETTE.wood, floorKind: "wood-light", curtainColor: 0xd8c8ff },
+  "bedroom-3": { wallAccent: 0xe8d8ff, floorAccent: BONDEE_PALETTE.wood, curtainColor: 0xd8c8ff },
   kitchen: { wallAccent: 0xffecd0, floorKind: "tile" },
   "hall-corridor": { wallAccent: 0xf5f0ea, floorKind: "beige", floorAccent: 0xe8ddd0 },
+  entrance: { wallAccent: BONDEE_PALETTE.wallMint, floorKind: "beige", floorAccent: 0xe8ddd0 },
+  bathroom: { wallAccent: BONDEE_PALETTE.bathroom, floorKind: "tile", floorAccent: 0xb8ccd8 },
   elevator: { wallAccent: 0xe8e8ec, floorKind: "tile" },
 };
 
