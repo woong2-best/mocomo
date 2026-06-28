@@ -1,0 +1,102 @@
+{
+  "pixels": {
+    "width": 142,
+    "height": 112,
+    "crop": {
+      "left": 42,
+      "top": 352,
+      "width": 142,
+      "height": 112
+    }
+  },
+  "ratios": {
+    "widthToHeight": 1.2678571428571428,
+    "armWidthToTotal": 0.205,
+    "seatHeightToTotal": 0.2857142857142857,
+    "backHeightToTotal": 0.5,
+    "legHeightToTotal": 0.05,
+    "cushionCompressionSeat": 0.2,
+    "cushionCompressionBack": 0.28
+  },
+  "counts": {
+    "seatCushions": 2,
+    "backCushions": 3
+  },
+  "meters": {
+    "overallWidth": 1.848,
+    "overallHeight": 1.4575774647887325,
+    "overallDepth": 0.79464,
+    "seatHeight": 0.41645070422535213,
+    "backHeight": 0.7287887323943663,
+    "armWidth": 0.18942,
+    "armRadius": 0.10718400000000002,
+    "legHeight": 0.07287887323943663,
+    "legThickness": 0.059136,
+    "legOffsetX": 0.20328000000000002,
+    "legOffsetZ": 0.16632,
+    "cushionRadius": 0.06468000000000002,
+    "cushionGap": 0.022176,
+    "backThickness": 0.15708000000000003,
+    "seatCushionHeight": 0.2769397183098592,
+    "backCushionHeight": 0.4955763380281691,
+    "cornerRadius": 0.048048
+  },
+  "radius": {
+    "armRadiusM": 0.10718400000000002,
+    "cushionRadiusM": 0.06468000000000002,
+    "cornerRadiusM": 0.048048
+  },
+  "silhouetteTraits": [
+    "Low-profile wide silhouette (W/H ≈ 1.35)",
+    "Thick rounded armrests (~20% total width)",
+    "Three separated back cushions (reference)",
+    "Two seat cushions with visible gap",
+    "Short peg legs (~9% of height)",
+    "Large corner/bevel radius on all primary forms"
+  ],
+  "meta": {
+    "method": "reverse-engineering",
+    "source": "public/apt/reference/apt-target-mockup.png",
+    "crop": {
+      "left": 42,
+      "top": 352,
+      "width": 142,
+      "height": 112
+    },
+    "scaleAnchor": "1.848m overall width",
+    "camera": {
+      "type": "orthographic",
+      "elevationDeg": 35,
+      "azimuthDeg": 45
+    },
+    "notes": "Pixel ratios merged with reference fallbacks when segmentation is ambiguous"
+  },
+  "sofaShapeAnalysis": {
+    "overallWidthDepthHeightRatio": "1.848 : 0.795 : 1.458",
+    "seatHeight": 0.41645070422535213,
+    "backHeight": 0.7287887323943663,
+    "armWidth": 0.18942,
+    "armRadius": 0.10718400000000002,
+    "cushionCount": "2 seat + 3 back",
+    "cushionRadius": 0.06468000000000002,
+    "cushionCompression": {
+      "seat": 0.2,
+      "back": 0.28
+    },
+    "legHeight": 0.07287887323943663,
+    "legThickness": 0.059136,
+    "legOffset": {
+      "x": 0.20328000000000002,
+      "z": 0.16632
+    },
+    "cornerRadius": 0.048048,
+    "silhouetteTraits": [
+      "Low-profile wide silhouette (W/H ≈ 1.35)",
+      "Thick rounded armrests (~20% total width)",
+      "Three separated back cushions (reference)",
+      "Two seat cushions with visible gap",
+      "Short peg legs (~9% of height)",
+      "Large corner/bevel radius on all primary forms"
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "id": "fabric-ivory",
+  "category": "Fabric",
+  "label": "Warm Ivory Fabric",
+  "usage": ["lamp shade", "soft textiles"],
+  "color": "#F5EFE4",
+  "roughness": 0.9,
+  "metalness": 0
+}

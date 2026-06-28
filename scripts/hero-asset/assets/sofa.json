@@ -1,0 +1,21 @@
+{
+  "id": "sofa",
+  "name": "CS-02 Sofa",
+  "category": "furniture",
+  "reference": {
+    "image": "public/apt/reference/apt-target-mockup.png",
+    "crop": { "left": 38, "top": 262, "width": 88, "height": 52 }
+  },
+  "camera": { "elevationDeg": 35, "azimuthDeg": 45, "rotationY": 0.12 },
+  "measurableDimensions": [
+    { "key": "overallWidth", "label": "Width", "path": "meters.overallWidth", "tolerance": 0.03 },
+    { "key": "overallHeight", "label": "Height", "path": "meters.overallHeight", "tolerance": 0.03 },
+    { "key": "seatHeight", "label": "Seat Height", "path": "meters.seatHeight", "tolerance": 0.04 },
+    { "key": "backHeight", "label": "Back Height", "path": "meters.backHeight", "tolerance": 0.05 },
+    { "key": "armWidth", "label": "Arm Width", "path": "meters.armWidth", "tolerance": 0.025 },
+    { "key": "legHeight", "label": "Leg Height", "path": "meters.legHeight", "tolerance": 0.015 },
+    { "key": "cornerRadius", "label": "Corner Radius", "path": "meters.cornerRadius", "tolerance": 0.012 },
+    { "key": "cushionCount", "label": "Cushion Count", "path": "counts", "type": "count", "tolerance": 0 }
+  ],
+  "glbNaming": "sofa-v{version}.glb"
+}

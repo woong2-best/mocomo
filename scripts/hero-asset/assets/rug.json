@@ -1,0 +1,18 @@
+{
+  "id": "rug",
+  "name": "CS-03 Rug",
+  "category": "furniture",
+  "reference": {
+    "image": "public/apt/reference/apt-target-mockup.png",
+    "crop": { "left": 30, "top": 275, "width": 130, "height": 80 }
+  },
+  "camera": { "elevationDeg": 35, "azimuthDeg": 45, "rotationY": 0.12 },
+  "measurableDimensions": [
+    { "key": "overallWidth", "label": "Width", "path": "meters.overallWidth", "tolerance": 0.05 },
+    { "key": "overallDepth", "label": "Depth", "path": "meters.overallDepth", "tolerance": 0.05 },
+    { "key": "overallHeight", "label": "Thickness", "path": "meters.overallHeight", "tolerance": 0.004 },
+    { "key": "edgeBevelRadius", "label": "Edge Bevel", "path": "meters.edgeBevelRadius", "tolerance": 0.003 },
+    { "key": "cornerRadius", "label": "Corner Radius", "path": "meters.cornerRadius", "tolerance": 0.02 }
+  ],
+  "glbNaming": "rug-v{version}.glb"
+}

@@ -1,0 +1,26 @@
+<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1116" viewBox="0 0 1400 1116">
+    <rect width="100%" height="100%" fill="#EBE4D8"/>
+    <text x="700" y="16" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="800" fill="#4A4038">Hero Asset Blueprint — CS-06 Floor Lamp</text>
+    <g transform="translate(20,20)"><rect width="440" height="510" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+      <text x="220" y="20" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700">Front</text>
+      <g transform="translate(220,263)"><ellipse cx="0" cy="184.75129032258064" rx="33.92154838709678" ry="4.845935483870968" fill="#9A9088" stroke="#4A4038"/><rect x="-2.180670967741935" y="-181.7225806451613" width="4.36134193548387" height="301.65948387096773" fill="#8A8480" stroke="#4A4038"/><path d="M -43.613419354838705 119.93690322580645 L -29.075612903225803 52.09380645161289 L 29.075612903225803 52.09380645161289 L 43.613419354838705 119.93690322580645 Z" fill="#FAF0E0" stroke="#4A4038"/><text x="0" y="205.78" text-anchor="middle" font-size="9" fill="#666">H=1.550m</text></g></g><g transform="translate(480,20)"><rect width="440" height="510" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+      <text x="220" y="20" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700">Side</text>
+      <g transform="translate(220,263)"><ellipse cx="0" cy="184.75129032258064" rx="33.92154838709678" ry="4.845935483870968" fill="#9A9088" stroke="#4A4038"/><rect x="-2.180670967741935" y="-181.7225806451613" width="4.36134193548387" height="301.65948387096773" fill="#8A8480" stroke="#4A4038"/><path d="M -43.613419354838705 119.93690322580645 L -29.075612903225803 52.09380645161289 L 29.075612903225803 52.09380645161289 L 43.613419354838705 119.93690322580645 Z" fill="#FAF0E0" stroke="#4A4038"/><text x="0" y="205.78" text-anchor="middle" font-size="9" fill="#666">H=1.550m</text></g></g><g transform="translate(940,20)"><rect width="440" height="510" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+      <text x="220" y="20" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700">45° Iso</text>
+      <g transform="translate(220,263)"><polygon points="-29.252903225806453,62.97500000000001 29.252903225806453,62.97500000000001 61.43109677419355,30.79680645161291 2.925290322580647,30.79680645161291" fill="#FAF0E0" stroke="#4A4038"/>
+      <line x1="0" y1="62.97500000000001" x2="16.08909677419355" y2="-205.01409677419355" stroke="#8A8480" stroke-width="2"/></g></g><g transform="translate(20,550)"><rect width="440" height="510" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+      <text x="220" y="20" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700">Top</text>
+      <g transform="translate(220,263)"><circle cx="0" cy="0" r="165.64" fill="#FAF0E0" stroke="#4A4038"/>
+      <circle cx="0" cy="0" r="24.845999999999997" fill="#8A8480" stroke="#4A4038"/>
+      <circle cx="0" cy="0" r="128.8311111111111" fill="#9A9088" stroke="#4A4038" opacity="0.5"/></g></g><g transform="translate(480,550)"><rect width="440" height="510" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+      <text x="220" y="20" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700">Silhouette</text>
+      <g transform="translate(220,263)"><image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACoAAAA6CAYAAADGFcvAAAAACXBIWXMAAAPoAAAD6AG1e1JrAAABVUlEQVRoge3ZQQ7DIAwEwH3J/v+XrXqIlEaADaxTu4olLqHBE4N7SEDydQxkDmYHloSyApbVzigrQCmo6HkdRj30zsLnHeFdUCvBFWMNqJG9quwOREAjBrJDEfUvUgb6ifRQihrpvB6jzugK1LoH6piFzj4UfgGdRVKJ9QJWkVRhe42gHrgDqngIKKAWRgHlLnaEOa6lrigCzi9U0DNOueWMhl4XTwGlUcmUUAZ1PlRQK8kD9URra6Iqyp3tf6AMbqbyUG5isRuzmBUsFLEC6d3LCOAOtIdh5DvWiMZBJSgrvCTjHWc0JbI8FIO5B2qF1bmpK8p/h0L0bbW5tgp6TQJBseTQVlJcrq3skBva3YZGRSwIBp8hrXxD6Ci5Z/tgJZ6N2XPohVLYXC5o6/cz0FYs4WeQoySzx4eZoDDmLOzXvPdctqrjhcLxMk4C9YR1/2qeY/4Nb7EXmJsT8TEAAAAASUVORK5CYII=" x="-181.8" y="-174.04" width="363.6" height="348.08"/></g></g><g transform="translate(940,550)"><rect width="440" height="510" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+      <text x="220" y="20" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700">Cross Section</text>
+      <g transform="translate(220,263)">
+      <line x1="-67.84309677419355" y1="187.78" x2="67.84309677419355" y2="187.78" stroke="#999"/>
+      <rect x="-33.92154838709678" y="181.7225806451613" width="67.84309677419355" height="6.05741935483871" rx="2" fill="#9A9088" stroke="#4A4038"/>
+      <rect x="-2.180670967741935" y="-181.7225806451613" width="4.36134193548387" height="301.65948387096773" fill="#8A8480" stroke="#4A4038"/>
+      <ellipse cx="0" cy="86.01535483870967" rx="43.613419354838705" ry="30.5293935483871" fill="#FAF0E0" stroke="#4A4038"/>
+      <text x="0" y="-193.78" text-anchor="middle" font-size="8" fill="#666">slim pole · rounded shade · no emissive (Shape)</text></g></g>
+    <text x="700" y="1104" text-anchor="middle" font-size="10" fill="#666">Cross Section: base disk · pole · fabric shade · lighting deferred</text>
+  </svg>

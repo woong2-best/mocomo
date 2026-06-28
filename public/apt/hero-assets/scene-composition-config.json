@@ -1,0 +1,89 @@
+{
+  "pass1": {
+    "label": "Scene Harmony Review #1",
+    "furniture": {
+      "rug": { "pos": [0.05, 0.02, 0.2], "rotY": 0.05 },
+      "sofa": { "pos": [0, 0.02, -0.42], "rotY": 0.1 },
+      "coffee-table": { "pos": [0.08, 0.02, 0.52], "rotY": 0.1 },
+      "plant": { "pos": [-0.95, 0.02, 0.08], "rotY": 0.12 },
+      "floor-lamp": { "pos": [-1.05, 0.02, -0.62], "rotY": 0.08 },
+      "tv-stand": { "pos": [1.02, 0.02, -0.48], "rotY": -0.42 }
+    },
+    "cameras": {
+      "default": { "target": [0.05, 0.35, 0.15], "fr": 2.05, "elevationDeg": 35, "azimuthDeg": 45 },
+      "top": { "target": [0.05, 0, 0.05], "fr": 2.0 }
+    }
+  },
+  "pass2": {
+    "label": "Scene Composition Pass #1",
+    "furniture": {
+      "rug": { "pos": [-0.02, 0.02, -0.1], "rotY": 0.04 },
+      "sofa": { "pos": [0, 0.02, -0.44], "rotY": 0.1 },
+      "coffee-table": { "pos": [0.04, 0.02, 0.42], "rotY": 0.1 },
+      "plant": { "pos": [-1.32, 0.02, -0.58], "rotY": 0.18 },
+      "floor-lamp": { "pos": [-1.18, 0.02, -0.78], "rotY": 0.06 },
+      "tv-stand": { "pos": [1.02, 0.02, -0.48], "rotY": -0.42 }
+    },
+    "cameras": {
+      "default": {
+        "target": [0, 0.38, -0.1],
+        "fr": 1.58,
+        "elevationDeg": 35,
+        "azimuthDeg": 45,
+        "note": "Sofa-centered · ~82% frame fill"
+      },
+      "cameraA": {
+        "target": [0, 0.38, -0.1],
+        "fr": 1.58,
+        "elevationDeg": 35,
+        "azimuthDeg": 45
+      },
+      "cameraB": {
+        "target": [0.08, 0.36, 0.02],
+        "fr": 1.62,
+        "elevationDeg": 33,
+        "azimuthDeg": 42,
+        "note": "Sofa–table–TV sight-line emphasis"
+      },
+      "top": { "target": [0, 0, -0.05], "fr": 1.95 }
+    }
+  },
+  "pass3": {
+    "label": "Scene Composition Pass #2 (Final)",
+    "furniture": {
+      "rug": { "pos": [0.04, 0.02, -0.14], "rotY": 0.03 },
+      "sofa": { "pos": [0.04, 0.02, -0.48], "rotY": 0.11 },
+      "coffee-table": { "pos": [0.06, 0.02, 0.16], "rotY": 0.11 },
+      "plant": { "pos": [-1.44, 0.02, -0.72], "rotY": 0.42 },
+      "floor-lamp": { "pos": [-1.28, 0.02, -0.9], "rotY": 0.26 },
+      "tv-stand": { "pos": [0.9, 0.02, -0.36], "rotY": -0.54 }
+    },
+    "cameras": {
+      "default": {
+        "target": [0.05, 0.3, -0.08],
+        "fr": 1.44,
+        "elevationDeg": 32,
+        "azimuthDeg": 45,
+        "note": "Camera A — lower, closer, ~87% fill, sofa hero"
+      },
+      "cameraA": {
+        "target": [0.05, 0.3, -0.08],
+        "fr": 1.44,
+        "elevationDeg": 32,
+        "azimuthDeg": 45
+      },
+      "cameraB": {
+        "target": [0.1, 0.31, -0.02],
+        "fr": 1.46,
+        "elevationDeg": 31,
+        "azimuthDeg": 43,
+        "note": "TV viewing axis — sofa to screen"
+      },
+      "top": { "target": [0.04, 0, -0.14], "fr": 1.82 }
+    },
+    "locked": true,
+    "lockedAt": "2026-06-27"
+  },
+  "activePass": "pass3",
+  "compositionLocked": true
+}

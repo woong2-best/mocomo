@@ -1,0 +1,25 @@
+<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1116" viewBox="0 0 1400 1116">
+    <rect width="100%" height="100%" fill="#EBE4D8"/>
+    <text x="700" y="16" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="800" fill="#4A4038">Hero Asset Blueprint — CS-05 Floor Plant</text>
+    <g transform="translate(20,20)"><rect width="440" height="510" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+      <text x="220" y="20" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700">Front</text>
+      <g transform="translate(220,263)"><rect x="-63.711071428571415" y="-26.82571428571427" width="127.42214285714283" height="214.60571428571424" rx="15.290657142857139" fill="#B8846A" stroke="#4A4038"/><ellipse cx="0" cy="-105.29092857142854" rx="66.39364285714285" ry="95.90192857142856" fill="#7FA882" stroke="#4A4038"/><text x="0" y="205.77999999999997" text-anchor="middle" font-size="9" fill="#666">H=0.560m pot=0.320m</text></g></g><g transform="translate(480,20)"><rect width="440" height="510" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+      <text x="220" y="20" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700">Side</text>
+      <g transform="translate(220,263)"><rect x="-63.711071428571415" y="-26.82571428571427" width="127.42214285714283" height="214.60571428571424" rx="15.290657142857139" fill="#B8846A" stroke="#4A4038"/><ellipse cx="0" cy="-105.29092857142854" rx="66.39364285714285" ry="95.90192857142856" fill="#7FA882" stroke="#4A4038"/><text x="0" y="205.77999999999997" text-anchor="middle" font-size="9" fill="#666">H=0.560m pot=0.320m</text></g></g><g transform="translate(940,20)"><rect width="440" height="510" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+      <text x="220" y="20" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700">45° Iso</text>
+      <g transform="translate(220,263)"><polygon points="-53.97857142857143,62.975 53.97857142857143,62.975 108.40696428571428,8.546607142857141 0.4498214285714326,8.546607142857141" fill="#7FA882" stroke="#4A4038"/>
+      <polygon points="-53.97857142857143,62.975 -53.97857142857143,-188.925 0.4498214285714326,-243.35339285714286 0.4498214285714326,8.546607142857141" fill="#B8846A" stroke="#4A4038"/></g></g><g transform="translate(20,550)"><rect width="440" height="510" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+      <text x="220" y="20" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700">Top</text>
+      <g transform="translate(220,263)"><circle cx="0" cy="0" r="131.1316666666667" fill="#B8846A" stroke="#4A4038"/>
+      <ellipse cx="0" cy="0" rx="167.02033333333335" ry="145.7632" fill="#7FA882" stroke="#4A4038" opacity="0.9"/>
+      <text x="0" y="197.3876666666667" text-anchor="middle" font-size="9" fill="#666">7 leaves</text></g></g><g transform="translate(480,550)"><rect width="440" height="510" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+      <text x="220" y="20" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700">Silhouette</text>
+      <g transform="translate(220,263)"><image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAA8CAYAAAAkNenBAAAACXBIWXMAAAPoAAAD6AG1e1JrAAABNElEQVRoge2ZiwqDMAxF8yXn//9ywzGYjPpo2qRJ7QVBsJoeb5NUFPkKeB0dZ9f390sEoQCRiOICpDRGMoPI3z2SCYTd8pIM4oYrKcQCCSae4AiZYJilclHhSGggKkGm26oQEYYFkrRyMSsI2WAk0w6ABpBQMCgrVzggOoEMh6Mh4R8DgicMN3pGCpBNUziy6WzynwEz5InMAkKm5cUFQHoQFI6UnjsMRAqft1eOnT3XDWRTzVsunYcDkSy/FI6kSdaQkESpPK1aIA3CymmvPDFfsgwCoTeYV57cabQuW5W2KL9YchA3Fche3V1ZJVghrJusZ3fHEsYbhBG9pBS0ZSKMBunpFFbfNBqQVlfESneW1gKZ1RFTeSY8oxyxACFSCdZOhtGOlMZpY4mlFkg04bxVqdEb4F8UrG332OYAAAAASUVORK5CYII=" x="-181.8" y="-174.04" width="363.6" height="348.08"/></g></g><g transform="translate(940,550)"><rect width="440" height="510" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+      <text x="220" y="20" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700">Cross Section</text>
+      <g transform="translate(220,263)">
+      <line x1="-127.42214285714283" y1="187.77999999999997" x2="127.42214285714283" y2="187.77999999999997" stroke="#999"/>
+      <rect x="-63.711071428571415" y="-26.82571428571427" width="127.42214285714283" height="214.60571428571424" rx="4" fill="#B8846A" stroke="#4A4038"/>
+      <ellipse cx="0" cy="-87.85421428571425" rx="59.016571428571424" ry="78.46521428571427" fill="#7FA882" stroke="#4A4038"/>
+      <text x="0" y="-193.77999999999997" text-anchor="middle" font-size="8" fill="#666">pot 0.320m · 7 leaves · secondary volume</text></g></g>
+    <text x="700" y="1104" text-anchor="middle" font-size="10" fill="#666">Cross Section: pot height · leaf cluster · volume vs sofa</text>
+  </svg>

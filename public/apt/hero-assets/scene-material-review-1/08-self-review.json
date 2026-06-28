@@ -1,0 +1,58 @@
+{
+  "reviewId": "scene-material-1",
+  "date": "2026-06-27",
+  "stage": "material pass #1 — composition + lighting locked",
+  "libraryPath": "public/apt/materials/",
+  "materialCount": 11,
+  "categories": [
+    "Fabric",
+    "Wood",
+    "Painted Wall",
+    "Floor",
+    "Ceramic / Terracotta",
+    "Metal"
+  ],
+  "colorHarmony": {
+    "sofa": "fabric-beige",
+    "coffeeTable": "oak-medium",
+    "tvStand": "oak-dark",
+    "floor": "floor-oak",
+    "wall": "wall-ivory",
+    "rug": "rug-cream",
+    "plantPot": "terracotta",
+    "leaves": "leaf-muted",
+    "lampShade": "fabric-ivory",
+    "lampBase": "metal-soft"
+  },
+  "scores": {
+    "colorUnity": {
+      "rating": "good",
+      "note": "Warm neutral palette — beige, oak, ivory within Style Lock saturation"
+    },
+    "warmth": {
+      "rating": "good",
+      "note": "Material adds emotional warmth beyond lighting-only pass"
+    },
+    "materialHarmony": {
+      "rating": "good",
+      "note": "Wood tones gradated light→medium→dark; fabric/wall/floor share ivory-beige family"
+    },
+    "reusableAcrossRooms": {
+      "rating": "good",
+      "note": "Shared .mat library + slot-map; no per-asset materials"
+    },
+    "mocomoStyleLanguage": {
+      "rating": "partial-good",
+      "note": "Foundation established; more rooms will validate consistency"
+    }
+  },
+  "overall": "Material Language v1 establishes MoCoMo warm-neutral apartment style; ready for Owner review",
+  "forbiddenNotDone": [
+    "composition change",
+    "lighting change",
+    "asset shape change",
+    "texture maps",
+    "normal maps"
+  ],
+  "nextPass": "Owner Review → Camera Polish or Material Pass #2 if revisions"
+}

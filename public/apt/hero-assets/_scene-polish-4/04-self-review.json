@@ -1,0 +1,41 @@
+{
+  "reviewId": "scene-polish-4-final-identity",
+  "date": "2026-06-27",
+  "stage": "Scene Identity Polish — last pass",
+  "finalGateQuestion": "Reference를 옆에 두지 않아도, 처음 본 사람이 'Bondee 같은 게임이네'라고 말할 가능성이 높은가?",
+  "gateAnswer": "PARTIAL — Owner decision",
+  "approvalConditions": {
+    "marshmallowHero": {
+      "pass": true,
+      "note": "Full-width core blob; back/belly/crown overlap — arm modules removed; close-up still has soft back crease"
+    },
+    "toyProportionLanguage": {
+      "pass": true,
+      "note": "TOY_PROPORTION (leg 0.55, top 1.32) + stubby table, squat pot, short fat lamp, squat TV cabinet"
+    },
+    "sceneRhythm": {
+      "pass": true,
+      "note": "applyBondeeRhythm Y-scale: sofa 1.10 → table 0.84 → rug 1.0 → plant 0.78 → lamp 0.68 → TV 0.64"
+    },
+    "bondeeIdentityWithoutReference": {
+      "pass": false,
+      "note": "Identity closer — toy proportion + rhythm + negative shape; Bondee first-impression call still Owner judgment"
+    }
+  },
+  "allConditionsMet": false,
+  "changes": {
+    "bondeeProportion": "TOY_PROPORTION constants — stubby legs, thick tops, squat pots, short lamp",
+    "sceneRhythm": "applyBondeeRhythm scale tiers without composition move",
+    "negativeShape": "Puffy rug curls + rounded shell trim/window recess",
+    "stylizationUnity": "SCENE_LANGUAGE bevelPlush 0.125 + shared toy multipliers"
+  },
+  "forbiddenNotDone": [
+    "story layer",
+    "lighting",
+    "material",
+    "camera",
+    "composition",
+    "new hero assets"
+  ],
+  "overall": "Identity polish complete — awaiting Owner Final Gate on Bondee first-impression"
+}

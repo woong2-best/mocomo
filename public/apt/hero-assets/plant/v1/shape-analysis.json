@@ -1,0 +1,67 @@
+{
+  "pixels": {
+    "width": 45,
+    "height": 60,
+    "crop": {
+      "left": 12,
+      "top": 265,
+      "width": 50,
+      "height": 60
+    }
+  },
+  "ratios": {
+    "widthToHeight": 0.75
+  },
+  "counts": {
+    "leafCount": 7
+  },
+  "meters": {
+    "overallWidth": 0.24,
+    "overallDepth": 0.22,
+    "overallHeight": 0.56,
+    "potHeight": 0.32,
+    "potTopRadius": 0.095,
+    "potBottomRadius": 0.082,
+    "foliageHeight": 0.26,
+    "foliageSpread": 0.22,
+    "leafLength": 0.115,
+    "leafWidth": 0.072
+  },
+  "silhouetteTraits": [
+    "Floor plant — pot H 320mm, modest footprint",
+    "7 simple rounded leaves (5~9 range)",
+    "Warm soft silhouette — secondary to sofa",
+    "Terracotta pot + green foliage (graybox shape)",
+    "Atmosphere accent, not focal hero"
+  ],
+  "meta": {
+    "method": "reverse-engineering",
+    "source": "public/apt/reference/apt-target-mockup.png",
+    "crop": {
+      "left": 12,
+      "top": 265,
+      "width": 50,
+      "height": 60
+    },
+    "scaleAnchor": "pot 0.32m height (APT_STYLE_LOCK CS-05)",
+    "camera": {
+      "type": "orthographic",
+      "elevationDeg": 35,
+      "azimuthDeg": 45
+    },
+    "notes": "Floor plant at sofa corner; Style Lock dims authoritative"
+  },
+  "plantShapeAnalysis": {
+    "overallWidthDepthHeight": "0.240 : 0.220 : 0.560",
+    "potHeight": 0.32,
+    "foliageSpread": 0.22,
+    "leafCount": 7,
+    "silhouetteTraits": [
+      "Floor plant — pot H 320mm, modest footprint",
+      "7 simple rounded leaves (5~9 range)",
+      "Warm soft silhouette — secondary to sofa",
+      "Terracotta pot + green foliage (graybox shape)",
+      "Atmosphere accent, not focal hero"
+    ]
+  }
+}

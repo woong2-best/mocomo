@@ -1,0 +1,26 @@
+<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1116" viewBox="0 0 1400 1116">
+    <rect width="100%" height="100%" fill="#EBE4D8"/>
+    <text x="700" y="16" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="800" fill="#4A4038">Hero Asset Blueprint — CS-TV Stand + TV Graybox</text>
+    <g transform="translate(20,20)"><rect width="440" height="510" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+      <text x="220" y="20" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700">Front</text>
+      <g transform="translate(220,263)"><rect x="-165.64" y="9.083483870967754" width="331.28" height="94.04077419354837" rx="4.702038709677418" fill="#C9956A" stroke="#4A4038"/><rect x="-109.00180645161288" y="-110.60477419354838" width="218.00361290322576" height="119.68825806451612" rx="3" fill="#4A4848" stroke="#4A4038"/><text x="0" y="128.6047741935484" text-anchor="middle" font-size="9" fill="#666">cab 1.55m · TV graybox</text></g></g><g transform="translate(480,20)"><rect width="440" height="510" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+      <text x="220" y="20" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700">Side</text>
+      <g transform="translate(220,263)"><rect x="-72.5719806763285" y="15.42154589371981" width="145.143961352657" height="159.65835748792267" rx="7.982917874396133" fill="#C9956A" stroke="#4A4038"/>
+      <rect x="-50.800386473429946" y="-187.77999999999997" width="7.982917874396133" height="203.20154589371978" rx="2" fill="#4A4848" stroke="#4A4038"/>
+      <text x="0" y="205.77999999999997" text-anchor="middle" font-size="9" fill="#666">D=0.400m</text></g></g><g transform="translate(940,20)"><rect width="440" height="510" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+      <text x="220" y="20" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700">45° Iso</text>
+      <g transform="translate(220,263)"><polygon points="-111.1,37.09306451612903 111.1,37.09306451612903 142.63806451612902,5.554999999999996 -79.56193548387095,5.554999999999996" fill="#C9956A" stroke="#4A4038"/>
+      <polygon points="-66.66,-14.837225806451613 66.66,-14.837225806451613 65.0114193548387,-21.144838709677423 -46.08858064516129,-21.144838709677423" fill="#4A4848" stroke="#4A4038"/></g></g><g transform="translate(20,550)"><rect width="440" height="510" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+      <text x="220" y="20" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700">Top</text>
+      <g transform="translate(220,263)"><rect x="-165.64" y="-42.7458064516129" width="331.28" height="85.4916129032258" rx="4.702038709677418" fill="#C9956A" stroke="#4A4038"/>
+      <rect x="-109.00180645161288" y="-35.906477419354836" width="218.00361290322576" height="14.106116129032255" rx="2" fill="#4A4848" stroke="#4A4038"/></g></g><g transform="translate(480,550)"><rect width="440" height="510" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+      <text x="220" y="20" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700">Silhouette</text>
+      <g transform="translate(220,263)"><image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEsAAAA6CAYAAAD4MKSOAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAtElEQVR4nO3aQQ6CMAAAwb6k//+lXk1TTFaDiplJuHFh01IKjMHWnPO2HvszGWIFYkWmYSBWIFZkNQzECsQKxIo8wQdiBWJFNtKBWIFYgVgAAMBJbDcCsQIv4AKxArECn6QCsX58hbzsCjwfflX81Ci7fKy5hDrzgv4uFhtiBWK9GctUjKuhaAfWkSRaIFYkWODG/wIjLBDrid0zlmCBWIGbfSBWZCpG9o2BWJG3EYFY47ux7muM8pV7E/ASAAAAAElFTkSuQmCC" x="-181.8" y="-174.04" width="363.6" height="348.08"/></g></g><g transform="translate(940,550)"><rect width="440" height="510" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+      <text x="220" y="20" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700">Cross Section</text>
+      <g transform="translate(220,263)">
+      <line x1="-165.64" y1="110.60477419354838" x2="165.64" y2="110.60477419354838" stroke="#999"/>
+      <rect x="-165.64" y="9.083483870967754" width="331.28" height="94.04077419354837" rx="4.702038709677418" fill="#C9956A" stroke="#4A4038"/>
+      <rect x="-109.00180645161288" y="-110.60477419354838" width="218.00361290322576" height="119.68825806451612" fill="#4A4848" stroke="#4A4038"/>
+      <text x="0" y="-116.60477419354838" text-anchor="middle" font-size="8" fill="#666">low · long · focal axis · no screen glow</text></g></g>
+    <text x="700" y="1104" text-anchor="middle" font-size="10" fill="#666">Cross Section: cabinet proportion · TV graybox · focal height</text>
+  </svg>

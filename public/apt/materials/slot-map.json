@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "description": "Maps GLB shape material slot names → shared library .mat files",
+  "slots": {
+    "fabric_shape": "fabric-beige",
+    "wood_shape": "oak-light",
+    "rug_shape": "rug-cream",
+    "floor_plank": "floor-oak",
+    "wall_shape": "wall-ivory",
+    "baseboard": "oak-light",
+    "cutaway_cap": { "override": { "color": "#4A4038", "roughness": 0.88, "metalness": 0 } },
+    "window_recess": { "override": { "color": "#F0EBE4", "roughness": 0.85, "metalness": 0 } },
+    "cabinet_shape": "oak-dark",
+    "tv_bezel": "oak-dark",
+    "tv_graybox": { "override": { "color": "#3A3835", "roughness": 0.94, "metalness": 0.02 } },
+    "pot_shape": "terracotta",
+    "leaf_shape": "leaf-muted",
+    "base_shape": "metal-soft",
+    "pole_shape": "metal-soft",
+    "shade_shape": "fabric-ivory",
+    "fabric_accent_sage": { "override": { "color": "#9BB89A", "roughness": 0.9, "metalness": 0 } },
+    "fabric_accent_mustard": { "override": { "color": "#D4B86A", "roughness": 0.9, "metalness": 0 } }
+  },
+  "assetOverrides": {
+    "coffee-table": {
+      "wood_shape": "oak-medium"
+    },
+    "tv-stand": {
+      "cabinet_shape": "oak-dark"
+    },
+    "sofa": {
+      "wood_shape": "oak-light"
+    }
+  }
+}

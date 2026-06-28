@@ -1,0 +1,64 @@
+{
+  "reviewId": "scene-harmony-1",
+  "date": "2026-06-27",
+  "stage": "graybox — pre Lighting/Material",
+  "overallImpression": "Living corner reads as a coherent dollhouse layout; warm/stable direction present but not yet inviting at reference level.",
+  "scores": {
+    "spaceDensity": {
+      "rating": "good",
+      "note": "Furniture cluster balanced; forward floor margin available"
+    },
+    "furnitureScaleRatio": {
+      "rating": "partial",
+      "note": "Sofa/table/rug scale coherent; TV stand height OK; lamp tall but acceptable"
+    },
+    "furnitureSpacing": {
+      "rating": "partial",
+      "note": "Table–sofa distance reasonable; plant/lamp need Harmony tuning near left wall"
+    },
+    "rugPlacement": {
+      "rating": "good",
+      "note": "Anchors seating zone; could shift slightly toward sofa"
+    },
+    "plantPlacement": {
+      "rating": "needs-work",
+      "note": "Should be floor corner accent, not overlapping sofa read"
+    },
+    "lampPlacement": {
+      "rating": "partial",
+      "note": "Left corner correct zone; distance to window/wall TBD in shell context"
+    },
+    "tvStandPlacement": {
+      "rating": "good",
+      "note": "Right wall focal axis; faces seating"
+    },
+    "wallWindowProportion": {
+      "rating": "partial",
+      "note": "Shell window recess present; alignment vs reference needs Owner eye"
+    },
+    "cameraFraming": {
+      "rating": "partial",
+      "note": "35°/45° ortho matches lock; zoom may need +5% for 70% frame fill"
+    },
+    "sightlineFlow": {
+      "rating": "good",
+      "note": "Sofa → table → TV axis readable"
+    },
+    "emptySpaceBalance": {
+      "rating": "good",
+      "note": "Open floor in front preserves breathing room"
+    },
+    "atmosphere": {
+      "rating": "partial",
+      "note": "Graybox limits warmth; structure supports future Material/Lighting pass"
+    }
+  },
+  "firstImpression": "Structure is playable; not yet 'want to hang out here' — expected at graybox Harmony #1",
+  "deferredToHarmonyPass": [
+    "Plant floor placement (not on sofa arm)",
+    "Rug nudge toward back wall",
+    "Camera zoom to Style Lock ~70% frame fill",
+    "All revision-backlog shape tweaks after spatial approval"
+  ],
+  "heroAssetIteration": "frozen — backlog only until Harmony decisions"
+}

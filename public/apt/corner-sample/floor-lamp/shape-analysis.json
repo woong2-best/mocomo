@@ -1,0 +1,64 @@
+{
+  "pixels": {
+    "width": 42,
+    "height": 58,
+    "crop": {
+      "left": 20,
+      "top": 248,
+      "width": 42,
+      "height": 58
+    }
+  },
+  "ratios": {
+    "widthToHeight": 0.7241379310344828
+  },
+  "counts": {},
+  "meters": {
+    "overallHeight": 1.55,
+    "overallWidth": 0.36,
+    "overallDepth": 0.36,
+    "baseDiameter": 0.28,
+    "baseHeight": 0.025,
+    "poleRadius": 0.009,
+    "shadeHeight": 0.28,
+    "shadeTopRadius": 0.12,
+    "shadeBottomRadius": 0.18
+  },
+  "silhouetteTraits": [
+    "Slim pole + rounded fabric shade (reference glow)",
+    "Overall H 1550mm — balanced with sofa, not dominant",
+    "Disk base Ø280mm, low profile",
+    "Warm simple silhouette — atmosphere lighting object",
+    "No emissive/lighting in Shape stage"
+  ],
+  "meta": {
+    "method": "reverse-engineering",
+    "source": "public/apt/reference/apt-target-mockup.png",
+    "crop": {
+      "left": 20,
+      "top": 248,
+      "width": 42,
+      "height": 58
+    },
+    "scaleAnchor": "1.55m overall height (APT_STYLE_LOCK CS-06)",
+    "camera": {
+      "type": "orthographic",
+      "elevationDeg": 35,
+      "azimuthDeg": 45
+    },
+    "notes": "Style Lock dims authoritative; glow excluded from mesh (Lighting Pass)"
+  },
+  "lampShapeAnalysis": {
+    "overallHeight": 1.55,
+    "baseDiameter": 0.28,
+    "shadeBottomRadius": 0.18,
+    "poleRadius": 0.009,
+    "silhouetteTraits": [
+      "Slim pole + rounded fabric shade (reference glow)",
+      "Overall H 1550mm — balanced with sofa, not dominant",
+      "Disk base Ø280mm, low profile",
+      "Warm simple silhouette — atmosphere lighting object",
+      "No emissive/lighting in Shape stage"
+    ]
+  }
+}

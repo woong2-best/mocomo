@@ -1,0 +1,61 @@
+{
+  "dimensions": [
+    {
+      "key": "overallWidth",
+      "label": "Floor Width",
+      "target": 3.2,
+      "model": 3.2125,
+      "tolerance": 0.08,
+      "score": 100,
+      "pass": true
+    },
+    {
+      "key": "overallDepth",
+      "label": "Floor Depth",
+      "target": 2.8,
+      "model": 2.8,
+      "tolerance": 0.08,
+      "score": 100,
+      "pass": true
+    },
+    {
+      "key": "wallHeight",
+      "label": "Wall Height",
+      "target": 2.5,
+      "model": 2.5,
+      "tolerance": 0.06,
+      "score": 100,
+      "pass": true
+    },
+    {
+      "key": "wallThickness",
+      "label": "Wall Thickness",
+      "target": 0.15,
+      "model": 0.15,
+      "tolerance": 0.02,
+      "score": 100,
+      "pass": true
+    },
+    {
+      "key": "baseboardHeight",
+      "label": "Baseboard H",
+      "target": 0.09,
+      "model": 0.09,
+      "tolerance": 0.01,
+      "score": 100,
+      "pass": true
+    },
+    {
+      "key": "windowRecess",
+      "label": "Window Recess",
+      "target": 0.2,
+      "model": 0.2,
+      "tolerance": 0.02,
+      "score": 100,
+      "pass": true
+    }
+  ],
+  "average": 100,
+  "allPass": true,
+  "note": "Measurable dimensions only — no Volume/Depth proxy/Silhouette %"
+}

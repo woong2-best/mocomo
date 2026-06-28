@@ -1,0 +1,25 @@
+<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1116" viewBox="0 0 1400 1116">
+    <rect width="100%" height="100%" fill="#EBE4D8"/>
+    <text x="700" y="16" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="800" fill="#4A4038">Hero Asset Blueprint — CS-03 Rug</text>
+    <g transform="translate(20,20)"><rect width="440" height="510" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+      <text x="220" y="20" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700">Front</text>
+      <g transform="translate(220,263)"><rect x="-151.5" y="-6.0600000000000005" width="303" height="12.120000000000001" rx="4.04" fill="#E8DDD0" stroke="#4A4038"/>
+      <text x="0" y="24.060000000000002" text-anchor="middle" font-size="9" fill="#666">W=1.800m T=0.012m</text></g></g><g transform="translate(480,20)"><rect width="440" height="510" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+      <text x="220" y="20" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700">Side</text>
+      <g transform="translate(220,263)"><rect x="-151.5" y="-7.522758620689657" width="303" height="15.045517241379313" rx="5.015172413793104" fill="#E8DDD0" stroke="#4A4038"/>
+      <text x="0" y="25.522758620689658" text-anchor="middle" font-size="9" fill="#666">D=1.450m</text></g></g><g transform="translate(940,20)"><rect width="440" height="510" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+      <text x="220" y="20" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700">45° Iso</text>
+      <g transform="translate(220,263)"><polygon points="-111.1,14.813333333333334 111.1,14.813333333333334 209.54694444444445,-83.63361111111112 -12.65305555555554,-83.63361111111112" fill="#E8DDD0" stroke="#4A4038"/>
+      <polygon points="-111.1,14.813333333333334 -111.1,-14.813333333333334 -12.65305555555554,-113.26027777777779 -12.65305555555554,-83.63361111111112" fill="#DED4CA" stroke="#4A4038"/></g></g><g transform="translate(20,550)"><rect width="440" height="510" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+      <text x="220" y="20" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700">Top</text>
+      <g transform="translate(220,263)"><rect x="-165.64" y="-133.4322222222222" width="331.28" height="266.8644444444444" rx="25.766222222222222" fill="#E8DDD0" stroke="#4A4038"/>
+      <text x="0" y="151.4322222222222" text-anchor="middle" font-size="9" fill="#666">rounded rect</text></g></g><g transform="translate(480,550)"><rect width="440" height="510" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+      <text x="220" y="20" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700">Silhouette</text>
+      <g transform="translate(220,263)"><image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIIAAABQCAYAAADV9a3ZAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAy0lEQVR4nO3cQQrCMBAF0Jxk7n9LhayKYNJYIczkPXBZCP7faFqY1i4i4rX6uV5PMXcCV4TiVu92u0JRqyVQhIIEy/LPgtIUpgh0d4+G/hcc5FspPEM4jAdIAAAAAAAAAAAAAAAAAAAAcIQwj7KeGAwOMZD0wZfakoiP6TEm0x4mFoM3oriomIRbpgipFrtBDAIutSukWehG8aAILYtUi90kBgGnDp/fhJCBc9jyAAAAAACAf/DOgU4RAACAOScHAABgzsmBThEA2sHemFPY+nqIO14AAAAASUVORK5CYII=" x="-181.8" y="-174.04" width="363.6" height="348.08"/></g></g><g transform="translate(940,550)"><rect width="440" height="510" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+      <text x="220" y="20" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700">Cross Section</text>
+      <g transform="translate(220,263)">
+      <line x1="-165.64" y1="17.668266666666664" x2="165.64" y2="17.668266666666664" stroke="#999"/>
+      <rect x="-165.64" y="0" width="331.28" height="17.668266666666664" rx="4.417066666666666" fill="#E8DDD0" stroke="#4A4038"/>
+      <text x="0" y="-8" text-anchor="middle" font-size="8" fill="#666">elevation 0.012m · bevel R=0.006m</text></g></g>
+    <text x="700" y="1104" text-anchor="middle" font-size="10" fill="#666">Cross Section: pile elevation · edge bevel · corner radius</text>
+  </svg>

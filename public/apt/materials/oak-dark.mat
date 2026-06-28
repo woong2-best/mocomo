@@ -1,0 +1,9 @@
+{
+  "id": "oak-dark",
+  "category": "Wood",
+  "label": "Medium Oak",
+  "usage": ["TV stand", "cabinet wood — slightly darker than table"],
+  "color": "#A87850",
+  "roughness": 0.72,
+  "metalness": 0.02
+}

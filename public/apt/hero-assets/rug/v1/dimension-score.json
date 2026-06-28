@@ -1,0 +1,52 @@
+{
+  "dimensions": [
+    {
+      "key": "overallWidth",
+      "label": "Width",
+      "target": 1.8,
+      "model": 1.8,
+      "tolerance": 0.05,
+      "score": 100,
+      "pass": true
+    },
+    {
+      "key": "overallDepth",
+      "label": "Depth",
+      "target": 1.45,
+      "model": 1.45,
+      "tolerance": 0.05,
+      "score": 100,
+      "pass": true
+    },
+    {
+      "key": "overallHeight",
+      "label": "Thickness",
+      "target": 0.012,
+      "model": 0.012,
+      "tolerance": 0.004,
+      "score": 100,
+      "pass": true
+    },
+    {
+      "key": "edgeBevelRadius",
+      "label": "Edge Bevel",
+      "target": 0.006,
+      "model": 0.006,
+      "tolerance": 0.003,
+      "score": 100,
+      "pass": true
+    },
+    {
+      "key": "cornerRadius",
+      "label": "Corner Radius",
+      "target": 0.14,
+      "model": 0.14,
+      "tolerance": 0.02,
+      "score": 100,
+      "pass": true
+    }
+  ],
+  "average": 100,
+  "allPass": true,
+  "note": "Measurable dimensions only — no Volume/Depth proxy/Silhouette %"
+}

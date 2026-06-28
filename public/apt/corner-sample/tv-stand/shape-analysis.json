@@ -1,0 +1,67 @@
+{
+  "pixels": {
+    "width": 33,
+    "height": 58,
+    "crop": {
+      "left": 130,
+      "top": 270,
+      "width": 75,
+      "height": 58
+    }
+  },
+  "ratios": {
+    "widthToHeight": 0.5689655172413793
+  },
+  "counts": {
+    "hasTvGraybox": true
+  },
+  "meters": {
+    "cabinetWidth": 1.55,
+    "cabinetDepth": 0.4,
+    "cabinetHeight": 0.44,
+    "legHeight": 0.035,
+    "cornerRadius": 0.022,
+    "tvWidth": 1.02,
+    "tvHeight": 0.56,
+    "tvThickness": 0.022,
+    "overallWidth": 1.55,
+    "overallDepth": 0.4,
+    "overallHeight": 1.0350000000000001
+  },
+  "silhouetteTraits": [
+    "Low long cabinet — living room focal axis",
+    "Rounded corners, stable proportion, minimal detail",
+    "Thin TV graybox panel on top (no screen glow)",
+    "Not too tall — balances with sofa seating zone",
+    "Wood tone deferred to Material Pass"
+  ],
+  "meta": {
+    "method": "reverse-engineering",
+    "source": "public/apt/reference/apt-target-mockup.png",
+    "crop": {
+      "left": 130,
+      "top": 270,
+      "width": 75,
+      "height": 58
+    },
+    "scaleAnchor": "cabinet 1.55m width (reference living room focal axis)",
+    "camera": {
+      "type": "orthographic",
+      "elevationDeg": 35,
+      "azimuthDeg": 45
+    },
+    "notes": "Reference-derived dims; TV graybox included, emissive deferred"
+  },
+  "tvStandShapeAnalysis": {
+    "cabinet": "1.550 × 0.400 × 0.440 m",
+    "tvGraybox": "1.020 × 0.022 × 0.560 m",
+    "overallHeight": 1.0350000000000001,
+    "silhouetteTraits": [
+      "Low long cabinet — living room focal axis",
+      "Rounded corners, stable proportion, minimal detail",
+      "Thin TV graybox panel on top (no screen glow)",
+      "Not too tall — balances with sofa seating zone",
+      "Wood tone deferred to Material Pass"
+    ]
+  }
+}

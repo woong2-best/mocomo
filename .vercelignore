@@ -3,4 +3,13 @@ public/diorama/page@*.webm
 public/diorama/edit-step-*.png
 public/diorama/edit-mode-demo.webm
 public/diorama/screenshot-*.png
+public/apt/hero-assets/_story-pass*/
+public/apt/hero-assets/_scene-polish/
+public/apt/hero-assets/_scene-polish-2/
+public/apt/hero-assets/_scene-polish-3/
+public/apt/hero-assets/scene-*-review*/
+public/apt/hero-assets/_clay.png
+public/apt/hero-assets/_full-scene.png
+public/apt/hero-assets/_*-crop.png
+public/apt/hero-assets/_sofa-zone.png
 build-log.txt

@@ -1,0 +1,48 @@
+{
+  "reviewId": "scene-composition-2",
+  "date": "2026-06-27",
+  "stage": "composition pass #1 — no Lighting",
+  "changesApplied": [
+    "Plant tucked to left wall corner — reduced sofa interference",
+    "Rug shifted under sofa — seating zone anchor",
+    "Camera closer — sofa-centered target, fr 1.58 (~82% fill)",
+    "TV stand position unchanged — sofa–TV sight line verified in Camera B",
+    "Window negative space preserved on left wall"
+  ],
+  "scores": {
+    "firstImpression": {
+      "rating": "partial-improved",
+      "note": "Sofa reads as hero sooner; still graybox warmth gap"
+    },
+    "spatialStability": {
+      "rating": "good",
+      "note": "L-shell + cluster feels grounded"
+    },
+    "sightlineFlow": {
+      "rating": "good",
+      "note": "Sofa → table → TV axis clearer in Camera B"
+    },
+    "spatialRhythm": {
+      "rating": "partial",
+      "note": "Rug/sofa/table rhythm improved; lamp/plant frame corner"
+    },
+    "negativeSpace": {
+      "rating": "good",
+      "note": "Forward floor breathing room; window wall not crowded"
+    },
+    "spaceDensity": {
+      "rating": "good",
+      "note": "Tighter framing without clutter"
+    },
+    "warmthWithoutLighting": {
+      "rating": "partial",
+      "note": "Composition helps; color/material still flat"
+    },
+    "feelsLikeGame": {
+      "rating": "partial-improved",
+      "note": "Closer camera reads more like in-room dollhouse view"
+    }
+  },
+  "overall": "Layout understood → slightly more 'want to explore'; emotional target still needs Lighting/Material",
+  "nextPass": "Owner Review #2 → Lighting Pass"
+}

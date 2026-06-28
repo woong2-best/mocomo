@@ -1,0 +1,50 @@
+{
+  "reviewId": "scene-composition-final",
+  "date": "2026-06-27",
+  "stage": "composition pass #2 — no Lighting/Material",
+  "status": "pending-owner-approval",
+  "changesFromPass1": [
+    "Camera A: elevation 32°, fr 1.44 (~87% fill), lower target on sofa",
+    "Seating cluster tightened — rug under sofa, table closer",
+    "Foreground negative space for circulation path",
+    "Plant rotated toward wall corner",
+    "Plant + lamp paired as corner vignette",
+    "TV stand angle/distance for viewing axis"
+  ],
+  "scores": {
+    "firstImpression": {
+      "rating": "partial-improved",
+      "note": "Sofa-forward framing; still graybox not 'wow'"
+    },
+    "spatialStability": {
+      "rating": "good",
+      "note": "Cluster grounded in L-shell"
+    },
+    "sightlineFlow": {
+      "rating": "good",
+      "note": "Sofa → table → TV reads as one living gesture"
+    },
+    "spatialRhythm": {
+      "rating": "partial-improved",
+      "note": "Seating group unified; corner vignette paired"
+    },
+    "negativeSpace": {
+      "rating": "partial-improved",
+      "note": "Foreground void more intentional"
+    },
+    "spaceDensity": {
+      "rating": "good",
+      "note": "Tighter hero cluster, open approach path"
+    },
+    "warmthWithoutLighting": {
+      "rating": "partial",
+      "note": "Composition only — emotion needs Lighting/Material"
+    },
+    "feelsLikeGame": {
+      "rating": "partial-improved",
+      "note": "Closer dollhouse read; playable space clearer"
+    }
+  },
+  "approvalGate": "Owner approval → composition frozen → Lighting Pass",
+  "placementRationale": "Seating zone (sofa, rug, table) was tightened into a single cluster anchored on the rug so the living area reads as one group, not three separate objects. The cluster sits toward the back-left corner, leaving a deliberate foreground void for circulation—negative space as design, not leftover floor. Plant and floor lamp share the left wall corner as a quiet finishing vignette, angled toward the walls so they frame the room without competing with the sofa. TV stand angle and distance preserve a natural viewing axis from the sofa. Camera A was lowered and brought closer (32° elevation, ~87% frame fill) so the sofa becomes the emotional entry point—the first thing you see is where you would sit."
+}

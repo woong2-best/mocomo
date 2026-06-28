@@ -1,0 +1,61 @@
+{
+  "dimensions": [
+    {
+      "key": "overallWidth",
+      "label": "Shade Width",
+      "target": 0.36,
+      "model": 0.3688,
+      "tolerance": 0.03,
+      "score": 100,
+      "pass": true
+    },
+    {
+      "key": "overallHeight",
+      "label": "Height",
+      "target": 1.55,
+      "model": 1.5724,
+      "tolerance": 0.04,
+      "score": 100,
+      "pass": true
+    },
+    {
+      "key": "baseDiameter",
+      "label": "Base Diameter",
+      "target": 0.28,
+      "model": 0.28,
+      "tolerance": 0.02,
+      "score": 100,
+      "pass": true
+    },
+    {
+      "key": "baseHeight",
+      "label": "Base Height",
+      "target": 0.025,
+      "model": 0.025,
+      "tolerance": 0.008,
+      "score": 100,
+      "pass": true
+    },
+    {
+      "key": "poleRadius",
+      "label": "Pole Radius",
+      "target": 0.009,
+      "model": 0.009,
+      "tolerance": 0.004,
+      "score": 100,
+      "pass": true
+    },
+    {
+      "key": "shadeHeight",
+      "label": "Shade Height",
+      "target": 0.28,
+      "model": 0.28,
+      "tolerance": 0.02,
+      "score": 100,
+      "pass": true
+    }
+  ],
+  "average": 100,
+  "allPass": true,
+  "note": "Measurable dimensions only — no Volume/Depth proxy/Silhouette %"
+}

@@ -1,0 +1,41 @@
+{
+  "asset": "CS-02 Sofa v2",
+  "method": "computed-from-bbox-and-silhouette-ioU",
+  "targetMeters": {
+    "overallWidth": 1.848,
+    "overallHeight": 1.4575774647887325,
+    "overallDepth": 0.79464,
+    "seatHeight": 0.41645070422535213,
+    "backHeight": 0.7287887323943663,
+    "armWidth": 0.18942,
+    "armRadius": 0.10718400000000002,
+    "legHeight": 0.07287887323943663,
+    "legThickness": 0.059136,
+    "legOffsetX": 0.20328000000000002,
+    "legOffsetZ": 0.16632,
+    "cushionRadius": 0.06468000000000002,
+    "cushionGap": 0.022176,
+    "backThickness": 0.15708000000000003,
+    "seatCushionHeight": 0.2769397183098592,
+    "backCushionHeight": 0.4955763380281691,
+    "cornerRadius": 0.048048
+  },
+  "modelMeters": {
+    "w": 1.9923472098888477,
+    "h": 1.4700774725822496,
+    "d": 1.3745971289631376,
+    "vol": 4.026064061483245
+  },
+  "scores": {
+    "width": 92.18900379389352,
+    "height": 99.1424121121872,
+    "depth": 27.01636854888534,
+    "radius": 88.96192477182421,
+    "proportion": 77.71505400945522,
+    "silhouette": 78.90625,
+    "volume": 11.905261900222753,
+    "average": 67.97661073378119,
+    "pass": false
+  },
+  "approvalGate": "FAIL"
+}

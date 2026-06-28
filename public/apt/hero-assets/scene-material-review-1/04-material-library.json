@@ -1,0 +1,221 @@
+{
+  "reviewId": "scene-material-1-library",
+  "date": "2026-06-27",
+  "version": 1,
+  "direction": {
+    "saturation": "low",
+    "tone": "warm neutral",
+    "contrast": "soft"
+  },
+  "categories": [
+    "Fabric",
+    "Wood",
+    "Painted Wall",
+    "Floor",
+    "Ceramic / Terracotta",
+    "Metal"
+  ],
+  "rules": [
+    "No plastic feel",
+    "No excessive metallic",
+    "No high gloss",
+    "No heavy normal maps",
+    "No extreme roughness variation",
+    "No excessive color contrast"
+  ],
+  "materials": [
+    {
+      "file": "fabric-beige.mat",
+      "id": "fabric-beige",
+      "category": "Fabric",
+      "label": "Warm Beige Fabric",
+      "color": "#D4C4B0",
+      "roughness": 0.88,
+      "metalness": 0,
+      "usage": [
+        "sofa cushions",
+        "upholstery"
+      ]
+    },
+    {
+      "file": "fabric-ivory.mat",
+      "id": "fabric-ivory",
+      "category": "Fabric",
+      "label": "Warm Ivory Fabric",
+      "color": "#F5EFE4",
+      "roughness": 0.9,
+      "metalness": 0,
+      "usage": [
+        "lamp shade",
+        "soft textiles"
+      ]
+    },
+    {
+      "file": "rug-cream.mat",
+      "id": "rug-cream",
+      "category": "Fabric",
+      "label": "Cream Rug",
+      "color": "#EDE4D4",
+      "roughness": 0.92,
+      "metalness": 0,
+      "usage": [
+        "area rugs",
+        "soft floor textiles"
+      ]
+    },
+    {
+      "file": "oak-light.mat",
+      "id": "oak-light",
+      "category": "Wood",
+      "label": "Light Oak",
+      "color": "#D4A878",
+      "roughness": 0.68,
+      "metalness": 0.02,
+      "usage": [
+        "trim",
+        "sofa legs",
+        "light wood accents"
+      ]
+    },
+    {
+      "file": "oak-medium.mat",
+      "id": "oak-medium",
+      "category": "Wood",
+      "label": "Natural Oak",
+      "color": "#C9956A",
+      "roughness": 0.7,
+      "metalness": 0.02,
+      "usage": [
+        "coffee table",
+        "primary furniture wood"
+      ]
+    },
+    {
+      "file": "oak-dark.mat",
+      "id": "oak-dark",
+      "category": "Wood",
+      "label": "Medium Oak",
+      "color": "#A87850",
+      "roughness": 0.72,
+      "metalness": 0.02,
+      "usage": [
+        "TV stand",
+        "cabinet wood — slightly darker than table"
+      ]
+    },
+    {
+      "file": "wall-ivory.mat",
+      "id": "wall-ivory",
+      "category": "Painted Wall",
+      "label": "Warm Ivory",
+      "color": "#FAF6F0",
+      "roughness": 0.82,
+      "metalness": 0,
+      "usage": [
+        "interior walls",
+        "cutaway architecture"
+      ]
+    },
+    {
+      "file": "floor-oak.mat",
+      "id": "floor-oak",
+      "category": "Floor",
+      "label": "Light Oak Floor",
+      "color": "#E8C9A0",
+      "roughness": 0.72,
+      "metalness": 0,
+      "usage": [
+        "hardwood floor planks"
+      ]
+    },
+    {
+      "file": "terracotta.mat",
+      "id": "terracotta",
+      "category": "Ceramic / Terracotta",
+      "label": "Terracotta Pot",
+      "color": "#B8846A",
+      "roughness": 0.75,
+      "metalness": 0,
+      "usage": [
+        "plant pots",
+        "ceramic vessels"
+      ]
+    },
+    {
+      "file": "leaf-muted.mat",
+      "id": "leaf-muted",
+      "category": "Ceramic / Terracotta",
+      "label": "Muted Green Leaves",
+      "color": "#8BA888",
+      "roughness": 0.85,
+      "metalness": 0,
+      "usage": [
+        "plant foliage accent"
+      ]
+    },
+    {
+      "file": "metal-soft.mat",
+      "id": "metal-soft",
+      "category": "Metal",
+      "label": "Soft Brushed Metal",
+      "color": "#C8C0B8",
+      "roughness": 0.55,
+      "metalness": 0.35,
+      "usage": [
+        "lamp base",
+        "lamp pole",
+        "hardware"
+      ]
+    }
+  ],
+  "slotMap": {
+    "version": 1,
+    "description": "Maps GLB shape material slot names → shared library .mat files",
+    "slots": {
+      "fabric_shape": "fabric-beige",
+      "wood_shape": "oak-light",
+      "rug_shape": "rug-cream",
+      "floor_plank": "floor-oak",
+      "wall_shape": "wall-ivory",
+      "baseboard": "oak-light",
+      "cutaway_cap": {
+        "override": {
+          "color": "#4A4038",
+          "roughness": 0.88,
+          "metalness": 0
+        }
+      },
+      "window_recess": {
+        "override": {
+          "color": "#F0EBE4",
+          "roughness": 0.85,
+          "metalness": 0
+        }
+      },
+      "cabinet_shape": "oak-dark",
+      "tv_graybox": {
+        "override": {
+          "color": "#3A3835",
+          "roughness": 0.92,
+          "metalness": 0.04
+        }
+      },
+      "pot_shape": "terracotta",
+      "leaf_shape": "leaf-muted",
+      "base_shape": "metal-soft",
+      "pole_shape": "metal-soft",
+      "shade_shape": "fabric-ivory"
+    },
+    "assetOverrides": {
+      "coffee-table": {
+        "wood_shape": "oak-medium"
+      },
+      "tv-stand": {
+        "cabinet_shape": "oak-dark"
+      },
+      "sofa": {
+        "wood_shape": "oak-light"
+      }
+    }
+  }
+}

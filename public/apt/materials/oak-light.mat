@@ -1,0 +1,9 @@
+{
+  "id": "oak-light",
+  "category": "Wood",
+  "label": "Light Oak",
+  "usage": ["trim", "sofa legs", "light wood accents"],
+  "color": "#D4A878",
+  "roughness": 0.68,
+  "metalness": 0.02
+}

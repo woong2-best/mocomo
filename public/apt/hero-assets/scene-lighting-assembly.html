@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>Scene Lighting Assembly</title>
+  <style>
+    body { margin: 0; background: #ebe4d8; overflow: hidden; }
+    #c { display: block; width: 100vw; height: 100vh; }
+  </style>
+  <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.184.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.184.0/examples/jsm/"}}</script>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js';
+
+    const params = new URLSearchParams(location.search);
+    const mode = params.get('mode') || 'on';
+    const view = params.get('view') || 'cameraA';
+
+    const config = await (await fetch('/apt/hero-assets/scene-composition-config.json')).json();
+    const pass = config.pass3;
+    if (!pass?.locked) console.warn('pass3 not marked locked');
+
+    const cv = document.getElementById('c');
+    const r = new THREE.WebGLRenderer({ canvas: cv, antialias: true, preserveDrawingBuffer: true });
+    r.setPixelRatio(Math.min(devicePixelRatio, 2));
+    r.setClearColor(0xebe4d8, 1);
+    r.outputColorSpace = THREE.SRGBColorSpace;
+    r.shadowMap.enabled = true;
+    r.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    const sc = new THREE.Scene();
+    sc.background = new THREE.Color(0xebe4d8);
+
+    const lights = { hemi: null, key: null, fill: null, rim: null, window: null, ambient: null };
+
+    function addLights() {
+      lights.hemi = new THREE.HemisphereLight(0xfff4e6, 0xe8c9a0, 0.45);
+      sc.add(lights.hemi);
+
+      lights.key = new THREE.DirectionalLight(0xfff4e6, 1.15);
+      lights.key.position.set(6, 10, 4);
+      lights.key.castShadow = true;
+      lights.key.shadow.mapSize.set(2048, 2048);
+      lights.key.shadow.camera.near = 0.5;
+      lights.key.shadow.camera.far = 24;
+      lights.key.shadow.camera.left = -4;
+      lights.key.shadow.camera.right = 4;
+      lights.key.shadow.camera.top = 4;
+      lights.key.shadow.camera.bottom = -4;
+      lights.key.shadow.bias = -0.0008;
+      lights.key.shadow.radius = 2;
+      sc.add(lights.key);
+
+      lights.fill = new THREE.DirectionalLight(0xe8f0ff, 0.28);
+      lights.fill.position.set(-4, 6, -2);
+      sc.add(lights.fill);
+
+      lights.rim = new THREE.DirectionalLight(0xfff0d8, 0.18);
+      lights.rim.position.set(-2, 5, 6);
+      sc.add(lights.rim);
+
+      lights.window = new THREE.DirectionalLight(0xffe8c8, 0.42);
+      lights.window.position.set(-8, 4, -0.5);
+      sc.add(lights.window);
+
+      lights.ambient = new THREE.AmbientLight(0xfff6ee, 0.06);
+      sc.add(lights.ambient);
+    }
+
+    function applyLightingMode() {
+      if (mode === 'off') {
+        if (!lights.hemi) addLights();
+        lights.hemi.intensity = 0.72;
+        lights.hemi.color.set(0xf0ebe4);
+        lights.hemi.groundColor.set(0xe0d8cc);
+        lights.key.intensity = 0;
+        lights.fill.intensity = 0;
+        lights.rim.intensity = 0;
+        lights.window.intensity = 0;
+        lights.ambient.intensity = 0.35;
+        r.shadowMap.enabled = false;
+        r.toneMapping = THREE.NoToneMapping;
+        r.toneMappingExposure = 1;
+        return;
+      }
+
+      if (mode === 'shadow') {
+        if (!lights.hemi) addLights();
+        lights.hemi.intensity = 0;
+        lights.fill.intensity = 0;
+        lights.rim.intensity = 0;
+        lights.window.intensity = 0;
+        lights.ambient.intensity = 0.08;
+        lights.key.intensity = 1.35;
+        lights.key.position.set(6, 10, 4);
+        r.shadowMap.enabled = true;
+        r.toneMapping = THREE.NoToneMapping;
+        sc.background = new THREE.Color(0xf5f2ee);
+        sc.traverse((o) => {
+          if (o.isMesh) {
+            o.material = new THREE.MeshStandardMaterial({
+              color: 0xf2efe9,
+              roughness: 0.95,
+              metalness: 0,
+            });
+            o.castShadow = true;
+            o.receiveShadow = true;
+          }
+        });
+        return;
+      }
+
+      if (mode === 'window') {
+        if (!lights.hemi) addLights();
+        lights.hemi.intensity = 0.22;
+        lights.key.intensity = 0.12;
+        lights.fill.intensity = 0.08;
+        lights.rim.intensity = 0;
+        lights.window.intensity = 0.95;
+        lights.window.position.set(-9, 3.5, -0.2);
+        lights.ambient.intensity = 0.05;
+        r.shadowMap.enabled = true;
+        r.toneMapping = THREE.ACESFilmicToneMapping;
+        r.toneMappingExposure = 1.02;
+
+        const arrow = new THREE.ArrowHelper(
+          new THREE.Vector3(0.85, -0.15, 0.12).normalize(),
+          new THREE.Vector3(-1.45, 1.1, -0.15),
+          1.6,
+          0xffc878,
+          0.22,
+          0.14,
+        );
+        sc.add(arrow);
+        const winGlow = new THREE.Mesh(
+          new THREE.PlaneGeometry(1.1, 0.95),
+          new THREE.MeshBasicMaterial({ color: 0xffe4b0, transparent: true, opacity: 0.35 }),
+        );
+        winGlow.position.set(-1.42, 1.05, -0.15);
+        winGlow.rotation.y = Math.PI / 2;
+        sc.add(winGlow);
+        return;
+      }
+
+      // on / ao (ao uses lit scene + SSAO pass)
+      if (!lights.hemi) addLights();
+      lights.hemi.intensity = 0.45;
+      lights.key.intensity = 1.15;
+      lights.fill.intensity = 0.28;
+      lights.rim.intensity = 0.18;
+      lights.window.intensity = 0.42;
+      lights.ambient.intensity = 0.06;
+      r.shadowMap.enabled = true;
+      r.toneMapping = THREE.ACESFilmicToneMapping;
+      r.toneMappingExposure = 1.0;
+    }
+
+    const loader = new GLTFLoader();
+    const glb = {
+      rug: '/apt/glb/hero-assets/rug-v1.glb',
+      sofa: '/apt/glb/hero-assets/sofa-v6.glb',
+      'coffee-table': '/apt/glb/hero-assets/coffee-table-v1.glb',
+      plant: '/apt/glb/hero-assets/plant-v1.glb',
+      'floor-lamp': '/apt/glb/hero-assets/floor-lamp-v1.glb',
+      'tv-stand': '/apt/glb/hero-assets/tv-stand-v1.glb',
+    };
+
+    const shell = await loader.loadAsync('/apt/glb/hero-assets/corner-shell-v1.glb');
+    sc.add(shell.scene);
+
+    for (const [id, placement] of Object.entries(pass.furniture)) {
+      const gltf = await loader.loadAsync(glb[id]);
+      const m = gltf.scene;
+      m.position.set(...placement.pos);
+      m.rotation.y = Math.PI * placement.rotY;
+      m.traverse((o) => {
+        if (o.isMesh) {
+          o.castShadow = true;
+          o.receiveShadow = true;
+        }
+      });
+      sc.add(m);
+    }
+
+    applyLightingMode();
+
+    const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 100);
+    const camCfg = view === 'top' ? pass.cameras.top : (pass.cameras[view] || pass.cameras.cameraA);
+    const target = new THREE.Vector3(...camCfg.target);
+
+    if (view === 'top') {
+      cam.position.set(target.x, 8, target.z);
+      cam.lookAt(target);
+      const fr = camCfg.fr;
+      cam.left = -fr; cam.right = fr; cam.top = fr; cam.bottom = -fr;
+    } else {
+      const az = THREE.MathUtils.degToRad(camCfg.azimuthDeg ?? 45);
+      const el = THREE.MathUtils.degToRad(camCfg.elevationDeg ?? 32);
+      const d = 5.5;
+      cam.position.set(
+        target.x + d * Math.cos(el) * Math.sin(az),
+        target.y + d * Math.sin(el),
+        target.z + d * Math.cos(el) * Math.cos(az),
+      );
+      cam.lookAt(target);
+      const fr = camCfg.fr;
+      cam.left = -fr; cam.right = fr; cam.top = fr; cam.bottom = -fr;
+    }
+    cam.updateProjectionMatrix();
+
+    let composer = null;
+    let ssaoPass = null;
+
+    function resize() {
+      const w = cv.clientWidth;
+      const h = cv.clientHeight;
+      r.setSize(w, h, false);
+      if (composer) composer.setSize(w, h);
+      if (ssaoPass) ssaoPass.setSize(w, h);
+    }
+
+    function render() {
+      if (mode === 'ao' && composer) {
+        composer.render();
+      } else {
+        r.render(sc, cam);
+      }
+    }
+
+    if (mode === 'ao') {
+      composer = new EffectComposer(r);
+      composer.addPass(new RenderPass(sc, cam));
+      ssaoPass = new SSAOPass(sc, cam, cv.clientWidth, cv.clientHeight);
+      ssaoPass.kernelRadius = 12;
+      ssaoPass.minDistance = 0.001;
+      ssaoPass.maxDistance = 0.12;
+      composer.addPass(ssaoPass);
+    }
+
+    addEventListener('resize', resize);
+    resize();
+    render();
+
+    window.__READY__ = true;
+    window.__SCENE__ = { mode, view, compositionLocked: true };
+  </script>
+</body>
+</html>

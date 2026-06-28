@@ -1,0 +1,19 @@
+{
+  "id": "floor-lamp",
+  "name": "CS-06 Floor Lamp",
+  "category": "furniture",
+  "reference": {
+    "image": "public/apt/reference/apt-target-mockup.png",
+    "crop": { "left": 20, "top": 248, "width": 42, "height": 58 }
+  },
+  "camera": { "elevationDeg": 35, "azimuthDeg": 45, "rotationY": 0.1 },
+  "measurableDimensions": [
+    { "key": "overallWidth", "label": "Shade Width", "path": "meters.overallWidth", "tolerance": 0.03 },
+    { "key": "overallHeight", "label": "Height", "path": "meters.overallHeight", "tolerance": 0.04 },
+    { "key": "baseDiameter", "label": "Base Diameter", "path": "meters.baseDiameter", "tolerance": 0.02 },
+    { "key": "baseHeight", "label": "Base Height", "path": "meters.baseHeight", "tolerance": 0.008 },
+    { "key": "poleRadius", "label": "Pole Radius", "path": "meters.poleRadius", "tolerance": 0.004 },
+    { "key": "shadeHeight", "label": "Shade Height", "path": "meters.shadeHeight", "tolerance": 0.02 }
+  ],
+  "glbNaming": "floor-lamp-v{version}.glb"
+}

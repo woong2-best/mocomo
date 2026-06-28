@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #ebe4d8; }
+    canvas { display: block; width: 512px; height: 512px; }
+  </style>
+  <script type="importmap">
+  { "imports": {
+    "three": "https://unpkg.com/three@0.184.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.184.0/examples/jsm/"
+  }}</script>
+</head>
+<body>
+  <canvas id="cv" width="512" height="512"></canvas>
+  <script type="module">
+    import * as THREE from "three";
+    import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+
+    const params = new URLSearchParams(location.search);
+    const glb = params.get("glb") || "/apt/glb/corner-sample/cs-02-sofa-v2.glb";
+    const az = THREE.MathUtils.degToRad(45);
+    const el = THREE.MathUtils.degToRad(35);
+
+    const canvas = document.getElementById("cv");
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
+    renderer.setSize(512, 512, false);
+    renderer.setClearColor(0x000000, 0);
+
+    const scene = new THREE.Scene();
+    scene.add(new THREE.HemisphereLight("#fff", "#ccc", 0.65));
+    const key = new THREE.DirectionalLight("#fff", 0.95);
+    key.position.set(3, 5, 2);
+    scene.add(key);
+
+    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 100);
+    const loader = new GLTFLoader();
+    const gltf = await loader.loadAsync(glb);
+    const model = gltf.scene;
+    model.rotation.y = Math.PI * 0.12;
+    scene.add(model);
+
+    const box = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const dist = maxDim * 2.4;
+    camera.position.set(
+      center.x + dist * Math.cos(el) * Math.sin(az),
+      center.y + dist * Math.sin(el),
+      center.z + dist * Math.cos(el) * Math.cos(az),
+    );
+    camera.lookAt(center);
+    const fr = maxDim * 1.15;
+    camera.left = -fr; camera.right = fr; camera.top = fr; camera.bottom = -fr;
+    camera.updateProjectionMatrix();
+
+    renderer.render(scene, camera);
+    window.__SOFA_RENDER_READY__ = true;
+    window.__SOFA_BBOX__ = { w: size.x, h: size.y, d: size.z, vol: size.x * size.y * size.z };
+  </script>
+</body>
+</html>

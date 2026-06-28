@@ -1,0 +1,9 @@
+{
+  "id": "floor-oak",
+  "category": "Floor",
+  "label": "Light Oak Floor",
+  "usage": ["hardwood floor planks"],
+  "color": "#E8C9A0",
+  "roughness": 0.72,
+  "metalness": 0
+}

@@ -1,0 +1,21 @@
+{
+  "reviewId": "scene-harmony-1",
+  "status": "submitted",
+  "submittedAt": "2026-06-27",
+  "outputsDir": "public/apt/hero-assets/scene-harmony-review-1",
+  "note": "Graybox Harmony Review — Lighting/Material not required for Review #1",
+  "criteria": [
+    "Overall space proportion",
+    "Furniture spacing",
+    "Rug placement",
+    "Plant placement",
+    "Lamp placement",
+    "TV Stand placement",
+    "Wall height",
+    "Window position",
+    "Camera framing",
+    "Space density",
+    "Empty space balance",
+    "First impression"
+  ]
+}

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>MoCoMo Corner — Scene Polish</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: #1a1612; font-family: system-ui, sans-serif; }
+    body.compare { display: flex; flex-direction: row; }
+    #ref-panel, #scene-panel { flex: 1; position: relative; min-width: 0; height: 100vh; overflow: hidden; }
+    #ref-panel { background: #121010; border-right: 2px solid #3a3028; }
+    #ref-panel img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      object-position: 14% 74%;
+    }
+    #ref-panel img.sofa-zone {
+      object-position: 22% 86%;
+      transform: scale(5.2);
+      transform-origin: 22% 86%;
+    }
+    #ref-label, #scene-label {
+      position: absolute; top: 10px; left: 12px; z-index: 2;
+      padding: 4px 10px; border-radius: 6px;
+      background: rgba(0,0,0,0.55); color: #f5efe4;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+    }
+    #c { display: block; width: 100%; height: 100%; }
+    body:not(.compare) #ref-panel { display: none; }
+    body:not(.compare) #scene-panel { flex: 1; width: 100vw; }
+  </style>
+  <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.184.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.184.0/examples/jsm/"}}</script>
+</head>
+<body>
+  <div id="ref-panel">
+    <span id="ref-label">REFERENCE</span>
+    <img src="/apt/reference/apt-target-mockup.png" alt="Reference" />
+  </div>
+  <div id="scene-panel">
+    <span id="scene-label">CURRENT</span>
+    <canvas id="c"></canvas>
+  </div>
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { buildMaterialLibrary, applySlotMaterials, loadSlotMap } from '/apt/materials/mocomo-materials.mjs';
+    import {
+      applyPolishedLighting,
+      applyEnvironmentReflection,
+      warmMaterialPass,
+      applyBondeeColorHarmony,
+      applySoftVolume,
+      applySceneWarmth,
+      applyEyeFlowHierarchy,
+      applyBondeeRhythm,
+      applyEyeFlowScale,
+      applyStoryLife,
+      addContactShadows,
+      createPolishComposer,
+      setupPosterCamera,
+      POSTER_CAMERA,
+      SOFA_ZONE_CAMERA,
+    } from '/apt/materials/scene-polish.mjs';
+
+    const params = new URLSearchParams(location.search);
+    const zone = params.get('zone') || '';
+    const compare = params.get('compare') !== '0';
+    if (compare) document.body.classList.add('compare');
+    if (zone === 'sofa') {
+      document.getElementById('ref-panel').querySelector('img').classList.add('sofa-zone');
+      document.getElementById('ref-label').textContent = 'REFERENCE · SOFA';
+      document.getElementById('scene-label').textContent = 'CURRENT · SOFA';
+    }
+    const activeCamera = zone === 'sofa' ? SOFA_ZONE_CAMERA : POSTER_CAMERA;
+
+    const config = await (await fetch('/apt/hero-assets/scene-composition-config.json')).json();
+    const pass = config.pass3;
+
+    const cv = document.getElementById('c');
+    const panel = document.getElementById('scene-panel');
+    const r = new THREE.WebGLRenderer({ canvas: cv, antialias: true, preserveDrawingBuffer: true });
+    r.setPixelRatio(Math.min(devicePixelRatio, 2));
+    r.setClearColor(0xf0e8dc, 1);
+    r.outputColorSpace = THREE.SRGBColorSpace;
+
+    const sc = new THREE.Scene();
+    sc.background = new THREE.Color(0xf0e8dc);
+    applyPolishedLighting(THREE, sc, r);
+
+    const loader = new GLTFLoader();
+    const glb = {
+      rug: '/apt/glb/hero-assets/rug-v1.glb',
+      sofa: '/apt/glb/hero-assets/sofa-v6.glb',
+      'coffee-table': '/apt/glb/hero-assets/coffee-table-v1.glb',
+      plant: '/apt/glb/hero-assets/plant-v1.glb',
+      'floor-lamp': '/apt/glb/hero-assets/floor-lamp-v1.glb',
+      'tv-stand': '/apt/glb/hero-assets/tv-stand-v1.glb',
+    };
+
+    const shell = await loader.loadAsync('/apt/glb/hero-assets/corner-shell-v1.glb');
+    shell.scene.userData.assetId = 'corner-shell';
+    sc.add(shell.scene);
+
+    for (const [id, placement] of Object.entries(pass.furniture)) {
+      const gltf = await loader.loadAsync(glb[id]);
+      const m = gltf.scene;
+      m.userData.assetId = id;
+      m.position.set(...placement.pos);
+      m.rotation.y = Math.PI * placement.rotY;
+      if (zone === 'sofa' && id !== 'sofa') m.visible = false;
+      sc.add(m);
+    }
+
+    const slotMap = await loadSlotMap();
+    const library = await buildMaterialLibrary(THREE);
+    applySlotMaterials(shell.scene, library, slotMap, 'corner-shell');
+    for (const child of sc.children) {
+      if (child.userData?.assetId && child.userData.assetId !== 'corner-shell') {
+        applySlotMaterials(child, library, slotMap, child.userData.assetId);
+      }
+    }
+    warmMaterialPass(sc);
+    applyEnvironmentReflection(THREE, sc, r);
+    applyBondeeRhythm(sc);
+    applyEyeFlowHierarchy(sc);
+    applyBondeeColorHarmony(sc);
+    applySoftVolume(sc);
+    applySceneWarmth(sc);
+    applyStoryLife(THREE, sc, pass);
+    addContactShadows(THREE, sc, pass);
+
+    const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 100);
+    let polish = null;
+
+    function resize() {
+      const w = panel.clientWidth;
+      const h = panel.clientHeight;
+      r.setSize(w, h, false);
+      setupPosterCamera(THREE, cam, activeCamera, w / h);
+      if (polish) {
+        polish.composer.setSize(w, h);
+        polish.ssao.setSize(w, h);
+        polish.bloom.resolution.set(w, h);
+      }
+    }
+
+    function render() {
+      if (polish) polish.composer.render();
+      else r.render(sc, cam);
+    }
+
+    polish = createPolishComposer(r, sc, cam, panel.clientWidth, panel.clientHeight);
+    resize();
+    render();
+
+    addEventListener('resize', () => { resize(); render(); });
+
+    window.__READY__ = true;
+  </script>
+</body>
+</html>

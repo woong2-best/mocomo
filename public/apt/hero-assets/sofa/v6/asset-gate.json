@@ -1,0 +1,63 @@
+{
+  "assetId": "sofa",
+  "version": 6,
+  "checks": [
+    {
+      "id": "A1",
+      "label": "GLB exists, glTF 2.0",
+      "pass": true
+    },
+    {
+      "id": "A3",
+      "label": "Pivot floor contact",
+      "pass": true,
+      "manual": true
+    },
+    {
+      "id": "BP",
+      "label": "Blueprint 6-view incl. Cross Section",
+      "pass": true
+    },
+    {
+      "id": "OL",
+      "label": "Outline Overlay produced",
+      "pass": true
+    },
+    {
+      "id": "DF",
+      "label": "Diff Visualization produced",
+      "pass": true
+    },
+    {
+      "id": "DM",
+      "label": "Measurable dimensions scored",
+      "pass": true
+    },
+    {
+      "id": "F4",
+      "label": "Owner approval",
+      "pass": false,
+      "manual": true
+    },
+    {
+      "id": "BP-APPROVE",
+      "label": "Blueprint owner approval",
+      "pass": false,
+      "manual": true
+    },
+    {
+      "id": "OL-APPROVE",
+      "label": "Outline overlay owner approval",
+      "pass": false,
+      "manual": true
+    }
+  ],
+  "autoPass": true,
+  "readyForOwnerReview": true,
+  "blockers": [],
+  "ownerPending": [
+    "F4",
+    "BP-APPROVE",
+    "OL-APPROVE"
+  ]
+}

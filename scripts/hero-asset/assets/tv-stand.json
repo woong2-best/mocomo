@@ -1,0 +1,19 @@
+{
+  "id": "tv-stand",
+  "name": "CS-TV Stand + TV Graybox",
+  "category": "furniture",
+  "reference": {
+    "image": "public/apt/reference/apt-target-mockup.png",
+    "crop": { "left": 130, "top": 270, "width": 75, "height": 58 }
+  },
+  "camera": { "elevationDeg": 35, "azimuthDeg": 45, "rotationY": -0.35 },
+  "measurableDimensions": [
+    { "key": "overallWidth", "label": "Cabinet Width", "path": "meters.cabinetWidth", "tolerance": 0.04 },
+    { "key": "overallDepth", "label": "Cabinet Depth", "path": "meters.cabinetDepth", "tolerance": 0.03 },
+    { "key": "cabinetHeight", "label": "Cabinet Height", "path": "meters.cabinetHeight", "tolerance": 0.03 },
+    { "key": "tvWidth", "label": "TV Width", "path": "meters.tvWidth", "tolerance": 0.04 },
+    { "key": "tvHeight", "label": "TV Height", "path": "meters.tvHeight", "tolerance": 0.04 },
+    { "key": "overallHeight", "label": "Total Height", "path": "meters.overallHeight", "tolerance": 0.04 }
+  ],
+  "glbNaming": "tv-stand-v{version}.glb"
+}

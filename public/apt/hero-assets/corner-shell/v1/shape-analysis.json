@@ -1,0 +1,74 @@
+{
+  "pixels": {
+    "width": 175,
+    "height": 95,
+    "crop": {
+      "left": 25,
+      "top": 245,
+      "width": 175,
+      "height": 95
+    }
+  },
+  "ratios": {
+    "widthToDepth": 1.8421052631578947
+  },
+  "counts": {
+    "wallCount": 2,
+    "windowCount": 1
+  },
+  "meters": {
+    "floorWidth": 3.2,
+    "floorDepth": 2.8,
+    "floorThickness": 0.02,
+    "wallHeight": 2.5,
+    "wallThickness": 0.15,
+    "baseboardHeight": 0.09,
+    "baseboardProjection": 0.012,
+    "windowRecess": 0.2,
+    "windowWidth": 1.15,
+    "windowHeight": 1.05,
+    "windowSillY": 0.55,
+    "cutawayCapHeight": 0.04,
+    "overallWidth": 3.2,
+    "overallDepth": 2.8,
+    "overallHeight": 2.5
+  },
+  "silhouetteTraits": [
+    "L-corner shell — 2 walls + cutaway dollhouse view",
+    "Floor 3200×2800mm oak plank (graybox)",
+    "Wall H 2500mm, thickness 150mm",
+    "Left wall window recess 200mm",
+    "Baseboard H 90mm — atmosphere frame",
+    "Cutaway open edges + top cap silhouette"
+  ],
+  "meta": {
+    "method": "reverse-engineering",
+    "source": "public/apt/reference/apt-target-mockup.png",
+    "crop": {
+      "left": 25,
+      "top": 245,
+      "width": 175,
+      "height": 95
+    },
+    "scaleAnchor": "APT_STYLE_LOCK CS-01 floor 3.2×2.8m",
+    "camera": {
+      "type": "orthographic",
+      "elevationDeg": 35,
+      "azimuthDeg": 45
+    },
+    "notes": "Style Lock authoritative; shell sets space atmosphere frame"
+  },
+  "shellShapeAnalysis": {
+    "floor": "3.2 × 2.8 m",
+    "walls": "H 2.5m · T 0.15m · L-corner",
+    "window": "recess 0.2m on left wall",
+    "silhouetteTraits": [
+      "L-corner shell — 2 walls + cutaway dollhouse view",
+      "Floor 3200×2800mm oak plank (graybox)",
+      "Wall H 2500mm, thickness 150mm",
+      "Left wall window recess 200mm",
+      "Baseboard H 90mm — atmosphere frame",
+      "Cutaway open edges + top cap silhouette"
+    ]
+  }
+}

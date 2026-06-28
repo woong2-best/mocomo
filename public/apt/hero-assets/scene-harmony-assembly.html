@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>Scene Harmony Assembly</title>
+  <style>
+    body { margin: 0; background: #ebe4d8; overflow: hidden; }
+    #c { display: block; width: 100vw; height: 100vh; }
+  </style>
+  <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.184.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.184.0/examples/jsm/"}}</script>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+    const params = new URLSearchParams(location.search);
+    const view = params.get('view') || 'camera';
+
+    const cv = document.getElementById('c');
+    const r = new THREE.WebGLRenderer({ canvas: cv, antialias: true, preserveDrawingBuffer: true });
+    r.setPixelRatio(Math.min(devicePixelRatio, 2));
+    r.setClearColor(0xebe4d8, 1);
+    r.shadowMap.enabled = true;
+
+    const sc = new THREE.Scene();
+    sc.add(new THREE.HemisphereLight('#fff8ee', '#e8c9a0', 0.45));
+    const key = new THREE.DirectionalLight('#fff4e6', 1.15);
+    key.position.set(6, 10, 4);
+    key.castShadow = true;
+    sc.add(key);
+    const fill = new THREE.DirectionalLight('#e8f0ff', 0.28);
+    fill.position.set(-4, 6, -2);
+    sc.add(fill);
+
+    const loader = new GLTFLoader();
+    const floorY = 0.02;
+
+    const shell = await loader.loadAsync('/apt/glb/hero-assets/corner-shell-v1.glb');
+    sc.add(shell.scene);
+
+    const furniture = [
+      { url: '/apt/glb/hero-assets/rug-v1.glb', pos: [0.05, floorY, 0.2], rotY: 0.05 },
+      { url: '/apt/glb/hero-assets/sofa-v6.glb', pos: [0, floorY, -0.42], rotY: 0.1 },
+      { url: '/apt/glb/hero-assets/coffee-table-v1.glb', pos: [0.08, floorY, 0.52], rotY: 0.1 },
+      { url: '/apt/glb/hero-assets/plant-v1.glb', pos: [-0.95, floorY, 0.08], rotY: 0.12 },
+      { url: '/apt/glb/hero-assets/floor-lamp-v1.glb', pos: [-1.05, floorY, -0.62], rotY: 0.08 },
+      { url: '/apt/glb/hero-assets/tv-stand-v1.glb', pos: [1.02, floorY, -0.48], rotY: -0.42 },
+    ];
+
+    for (const a of furniture) {
+      const gltf = await loader.loadAsync(a.url);
+      const m = gltf.scene;
+      m.position.set(...a.pos);
+      m.rotation.y = Math.PI * a.rotY;
+      m.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+      sc.add(m);
+    }
+
+    const target = new THREE.Vector3(0.05, 0.35, 0.15);
+    const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 100);
+
+    if (view === 'top') {
+      cam.position.set(target.x, 8, target.z);
+      cam.lookAt(target);
+      const fr = 2.0;
+      cam.left = -fr; cam.right = fr; cam.top = fr; cam.bottom = -fr;
+    } else {
+      const az = THREE.MathUtils.degToRad(45);
+      const el = THREE.MathUtils.degToRad(35);
+      const d = 5.5;
+      cam.position.set(
+        target.x + d * Math.cos(el) * Math.sin(az),
+        target.y + d * Math.sin(el),
+        target.z + d * Math.cos(el) * Math.cos(az),
+      );
+      cam.lookAt(target);
+      const fr = 2.05;
+      cam.left = -fr; cam.right = fr; cam.top = fr; cam.bottom = -fr;
+    }
+    cam.updateProjectionMatrix();
+
+    function resize() {
+      r.setSize(cv.clientWidth, cv.clientHeight, false);
+    }
+    addEventListener('resize', resize);
+    resize();
+    r.render(sc, cam);
+    window.__READY__ = true;
+    window.__SCENE__ = { target, view };
+  </script>
+</body>
+</html>

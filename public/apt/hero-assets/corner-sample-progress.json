@@ -1,0 +1,17 @@
+{
+  "updatedAt": "2026-06-27",
+  "phase": "material",
+  "compositionLocked": true,
+  "compositionLockedAt": "2026-06-27",
+  "lightingLocked": true,
+  "lightingLockedAt": "2026-06-27",
+  "sceneComposition": "approved-locked",
+  "lightingPass1": "approved-locked",
+  "materialPass1": "submitted",
+  "materialLibrary": "public/apt/materials/",
+  "workflow": [
+    "Material Review #1 (Owner)",
+    "Camera Polish",
+    "Final Scene Review"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "reviewId": "scene-lighting-1",
+  "status": "submitted",
+  "submittedAt": "2026-06-27",
+  "outputsDir": "public/apt/hero-assets/scene-lighting-review-1",
+  "compositionLocked": true,
+  "note": "Lighting only — no Material, no composition change",
+  "criteria": [
+    "Spatial warmth",
+    "Depth / volume",
+    "Shadow quality",
+    "Spatial depth",
+    "Visual focus",
+    "Emotional tone"
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "plant",
+  "name": "CS-05 Floor Plant",
+  "category": "prop",
+  "reference": {
+    "image": "public/apt/reference/apt-target-mockup.png",
+    "crop": { "left": 12, "top": 265, "width": 50, "height": 60 }
+  },
+  "camera": { "elevationDeg": 35, "azimuthDeg": 45, "rotationY": 0.1 },
+  "measurableDimensions": [
+    { "key": "overallWidth", "label": "Width", "path": "meters.overallWidth", "tolerance": 0.04 },
+    { "key": "overallDepth", "label": "Depth", "path": "meters.overallDepth", "tolerance": 0.04 },
+    { "key": "overallHeight", "label": "Height", "path": "meters.overallHeight", "tolerance": 0.04 },
+    { "key": "potHeight", "label": "Pot Height", "path": "meters.potHeight", "tolerance": 0.02 },
+    { "key": "foliageSpread", "label": "Foliage Spread", "path": "meters.foliageSpread", "tolerance": 0.03 },
+    { "key": "leafCount", "label": "Leaf Count", "path": "counts.leafCount", "type": "number", "tolerance": 0 }
+  ],
+  "glbNaming": "plant-v{version}.glb"
+}

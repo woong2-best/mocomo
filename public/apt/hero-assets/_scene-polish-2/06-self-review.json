@@ -1,0 +1,68 @@
+{
+  "reviewId": "scene-polish-2",
+  "date": "2026-06-27",
+  "stage": "Scene Polish #2 — shape language + color harmony + hero hierarchy",
+  "evaluationQuestion": "Reference를 가리고 현재 화면만 봤을 때, Bondee가 만든 공간처럼 느껴지는가?",
+  "changes": {
+    "sofa": "Unified cloud silhouette — single back, arm bridges, minimal cushion seams, squishy puff",
+    "shapeLanguage": "SCENE_LANGUAGE bevel bump; lamp/plant/tv-stand softer rounded boxes, TV scaled down",
+    "colorHarmony": "Warm wood, muted green, ivory wall/rug, no pure black TV panel, lower contrast grade",
+    "heroHierarchy": "Sofa brightness up; TV stand scale 0.76 + muted screen; plant/lamp as support",
+    "toyScale": "Uniform bevelPlush 0.105 / bevelWood 0.024 across hero rebuilds"
+  },
+  "forbiddenNotDone": [
+    "new props",
+    "story layer",
+    "lighting rig",
+    "composition",
+    "camera (restored pass3)"
+  ],
+  "colorSamples": [
+    {
+      "label": "Sofa",
+      "ref": "#a08661",
+      "cur": "#cdc3b6"
+    },
+    {
+      "label": "Wood",
+      "ref": "#ccc0ac",
+      "cur": "#bbb5ad"
+    },
+    {
+      "label": "Green",
+      "ref": "#87603a",
+      "cur": "#beb9b1"
+    },
+    {
+      "label": "Wall",
+      "ref": "#99805f",
+      "cur": "#cac3bb"
+    },
+    {
+      "label": "Rug",
+      "ref": "#947856",
+      "cur": "#c2bcb4"
+    },
+    {
+      "label": "TV",
+      "ref": "#b2773b",
+      "cur": "#aea599"
+    }
+  ],
+  "scores": {
+    "sceneUnity": {
+      "rating": "partial-good",
+      "note": "Sofa reads as one blob; lamp/plant/TV share rounded-box family but still slightly separate from sofa plush language"
+    },
+    "heroHierarchy": {
+      "rating": "good",
+      "note": "0.5s read: sofa → table/rug cluster → plant → recessed TV; TV no longer competes with hero"
+    },
+    "bondeeSimilarity": {
+      "rating": "partial-good",
+      "note": "Lower saturation and warmer neutrals move off CG; not yet indistinguishable from reference without side-by-side"
+    }
+  },
+  "overall": "Polish #2 tightens one-artist shape language and Bondee color curve; scene reads more like a toy apartment than separate models",
+  "nextGate": "Owner answers Bondee-feel question; if yes → Final Polish"
+}

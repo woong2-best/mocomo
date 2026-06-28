@@ -1,0 +1,59 @@
+{
+  "pixels": {
+    "width": 90,
+    "height": 78,
+    "crop": {
+      "left": 30,
+      "top": 275,
+      "width": 130,
+      "height": 80
+    }
+  },
+  "ratios": {
+    "widthToDepth": 1.1538461538461537
+  },
+  "counts": {},
+  "meters": {
+    "overallWidth": 1.8,
+    "overallDepth": 1.45,
+    "overallHeight": 0.012,
+    "edgeBevelRadius": 0.006,
+    "cornerRadius": 0.14
+  },
+  "silhouetteTraits": [
+    "Large rounded-rect rug under sofa + coffee table",
+    "Soft cream pile texture (reference)",
+    "Low profile — 12mm elevation above floor",
+    "No hard fringe; soft edge bevel",
+    "Scene anchor — ties seating area together"
+  ],
+  "meta": {
+    "method": "reverse-engineering",
+    "source": "public/apt/reference/apt-target-mockup.png",
+    "crop": {
+      "left": 30,
+      "top": 275,
+      "width": 130,
+      "height": 80
+    },
+    "scaleAnchor": "1.8m width (APT_STYLE_LOCK CS-03)",
+    "camera": {
+      "type": "orthographic",
+      "elevationDeg": 35,
+      "azimuthDeg": 45
+    },
+    "notes": "Style Lock dims authoritative; crop includes furniture for scene context"
+  },
+  "rugShapeAnalysis": {
+    "overallWidthDepthThickness": "1.800 : 1.450 : 0.012",
+    "edgeBevelRadius": 0.006,
+    "cornerRadius": 0.14,
+    "silhouetteTraits": [
+      "Large rounded-rect rug under sofa + coffee table",
+      "Soft cream pile texture (reference)",
+      "Low profile — 12mm elevation above floor",
+      "No hard fringe; soft edge bevel",
+      "Scene anchor — ties seating area together"
+    ]
+  }
+}

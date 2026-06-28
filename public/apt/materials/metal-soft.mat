@@ -1,0 +1,9 @@
+{
+  "id": "metal-soft",
+  "category": "Metal",
+  "label": "Soft Brushed Metal",
+  "usage": ["lamp base", "lamp pole", "hardware"],
+  "color": "#C8C0B8",
+  "roughness": 0.55,
+  "metalness": 0.35
+}

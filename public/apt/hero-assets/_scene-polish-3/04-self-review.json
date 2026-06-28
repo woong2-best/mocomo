@@ -1,0 +1,39 @@
+{
+  "reviewId": "scene-polish-3-final-candidate",
+  "date": "2026-06-27",
+  "stage": "Scene Polish #3 — Final Polish Candidate",
+  "finalGateQuestion": "이 장면을 처음 본 사람이 'Bondee 같은 게임이네'라고 자연스럽게 말할 수 있는가?",
+  "gateAnswer": "partial-no",
+  "gateReason": "Marshmallow sofa + toy scale + soft wood volume + luminance warmth move closer; still reads as stylized 3D room before Bondee first-impression",
+  "priorities": {
+    "sofa": "Overlapping blob meshes — core/back/front/crown/arms, no seat module loop",
+    "toyScale": "Shorter legs, thicker tops, squatter pot, shorter lamp, bevel bump",
+    "softVolume": "Wood HSL compressed, high roughness, env depth — not contrast bands",
+    "sceneWarmth": "Emissive wrap + shadow lift grade + softer SSAO — lighting rig untouched"
+  },
+  "maintained": {
+    "heroHierarchy": "Sofa → Table → Rug → Plant → TV (unchanged from Polish #2 approval)",
+    "forbidden": [
+      "story layer",
+      "new assets",
+      "composition",
+      "camera",
+      "lighting rig redesign"
+    ]
+  },
+  "scores": {
+    "sceneUnity": {
+      "rating": "good",
+      "note": "Single marshmallow sofa + unified rounded language across furniture"
+    },
+    "heroHierarchy": {
+      "rating": "good",
+      "note": "Approved hierarchy preserved"
+    },
+    "bondeeFirstImpression": {
+      "rating": "partial",
+      "note": "Warmer and toy-like; needs Owner gate YES for Final Polish approval"
+    }
+  },
+  "overall": "Final Polish Candidate — toy warmth pass complete, awaiting Bondee first-impression gate"
+}

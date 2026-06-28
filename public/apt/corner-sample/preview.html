@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>APT Corner Sample CS-01~07</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #ebe4d8; }
+    #canvas { display: block; width: 100vw; height: 100vh; }
+    #status {
+      position: fixed; left: 12px; bottom: 12px;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(255,255,255,0.88); font: 600 11px/1.4 system-ui, sans-serif;
+      border: 1px solid rgba(0,0,0,0.08); color: #4a4038;
+    }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.184.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.184.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <div id="status">Loading…</div>
+  <script type="module">
+    import * as THREE from "three";
+    import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+    const GLB = "/apt/glb/corner-sample";
+    const statusEl = document.getElementById("status");
+    const canvas = document.getElementById("canvas");
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.08;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color("#EBE4D8");
+    scene.fog = new THREE.Fog("#EBE4D8", 18, 32);
+
+    // Style Lock § Corner Sample lighting
+    const hemi = new THREE.HemisphereLight("#FFF4E6", "#E8C9A0", 0.45);
+    scene.add(hemi);
+
+    const key = new THREE.DirectionalLight("#FFF4E6", 1.15);
+    key.position.set(6, 10, 4);
+    key.castShadow = true;
+    key.shadow.mapSize.set(2048, 2048);
+    key.shadow.camera.near = 0.5;
+    key.shadow.camera.far = 30;
+    key.shadow.camera.left = -6;
+    key.shadow.camera.right = 6;
+    key.shadow.camera.top = 6;
+    key.shadow.camera.bottom = -6;
+    key.shadow.bias = -0.0002;
+    scene.add(key);
+
+    const fill = new THREE.DirectionalLight("#E8F0FF", 0.28);
+    fill.position.set(-4, 5, -3);
+    scene.add(fill);
+
+    // Style Lock § Corner Sample camera (orthographic)
+    const aspect = window.innerWidth / window.innerHeight;
+    const frustum = 2.8;
+    const camera = new THREE.OrthographicCamera(
+      -frustum * aspect, frustum * aspect, frustum, -frustum, 0.1, 100,
+    );
+    const az = THREE.MathUtils.degToRad(45);
+    const el = THREE.MathUtils.degToRad(35);
+    const dist = 12;
+    camera.position.set(
+      dist * Math.cos(el) * Math.sin(az),
+      dist * Math.sin(el),
+      dist * Math.cos(el) * Math.cos(az),
+    );
+    camera.lookAt(1.4, 0.35, 1.2);
+    camera.zoom = 95 / 100;
+    camera.updateProjectionMatrix();
+
+    const controls = new OrbitControls(camera, canvas);
+    controls.target.set(1.4, 0.35, 1.2);
+    controls.enablePan = false;
+    controls.update();
+
+    const loader = new GLTFLoader();
+    const root = new THREE.Group();
+    scene.add(root);
+
+    function place(model, x, y, z, rotY = 0, s = 1) {
+      const g = model.clone(true);
+      g.position.set(x, y, z);
+      g.rotation.y = rotY;
+      g.scale.setScalar(s);
+      g.traverse((o) => {
+        if (o.isMesh) {
+          o.castShadow = true;
+          o.receiveShadow = true;
+        }
+      });
+      root.add(g);
+      return g;
+    }
+
+    async function loadGlb(name) {
+      const gltf = await loader.loadAsync(`${GLB}/${name}`);
+      return gltf.scene;
+    }
+
+    function fitY(obj) {
+      const box = new THREE.Box3().setFromObject(obj);
+      const minY = box.min.y;
+      obj.position.y -= minY;
+    }
+
+    try {
+      const [shell, sofa, rug, table, plant, lamp, stand] = await Promise.all([
+        loadGlb("cs-01-corner-shell.glb"),
+        loadGlb("cs-02-sofa.glb"),
+        loadGlb("cs-03-rug.glb"),
+        loadGlb("cs-04-coffee-table.glb"),
+        loadGlb("cs-05-plant.glb"),
+        loadGlb("cs-06-floor-lamp.glb"),
+        loadGlb("cs-07-tv-stand.glb"),
+      ]);
+
+      place(shell, 0, 0, 0);
+
+      const sofaG = place(sofa, 1.55, 0, 0.55, Math.PI);
+      fitY(sofaG);
+
+      const rugG = place(rug, 1.55, 0.012, 1.35, Math.PI * 0.5, 0.55);
+      fitY(rugG);
+
+      const tableG = place(table, 1.55, 0, 1.35, Math.PI * 0.25, 0.85);
+      fitY(tableG);
+
+      const plantG = place(plant, 0.35, 0, 2.1, Math.PI * 0.15, 0.9);
+      fitY(plantG);
+
+      const lampG = place(lamp, 2.55, 0, 0.45, -Math.PI * 0.2, 0.95);
+      fitY(lampG);
+
+      const standG = place(stand, 2.65, 0, 1.85, -Math.PI * 0.5, 0.82);
+      fitY(standG);
+
+      // Simple TV screen on stand (preview composition only)
+      const tvMat = new THREE.MeshStandardMaterial({ color: "#3D3228", roughness: 0.4, metalness: 0.1 });
+      const tv = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.42, 0.04), tvMat);
+      tv.position.set(2.65, 0.72, 1.85);
+      tv.castShadow = true;
+      root.add(tv);
+
+      statusEl.textContent = "Corner Sample ready";
+      window.__CORNER_SAMPLE_READY__ = true;
+    } catch (err) {
+      statusEl.textContent = "Load error: " + err.message;
+      console.error(err);
+    }
+
+    function resize() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      renderer.setSize(w, h, false);
+      const a = w / h;
+      camera.left = -frustum * a;
+      camera.right = frustum * a;
+      camera.top = frustum;
+      camera.bottom = -frustum;
+      camera.updateProjectionMatrix();
+    }
+    window.addEventListener("resize", resize);
+    resize();
+
+    function tick() {
+      requestAnimationFrame(tick);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    tick();
+  </script>
+</body>
+</html>

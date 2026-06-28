@@ -1,0 +1,73 @@
+{
+  "pixels": {
+    "width": 62,
+    "height": 48,
+    "crop": {
+      "left": 88,
+      "top": 292,
+      "width": 62,
+      "height": 48
+    }
+  },
+  "ratios": {
+    "widthToHeight": 1.2916666666666667,
+    "widthToDepth": 1.8,
+    "topThicknessToTotal": 0.35,
+    "legHeightToTotal": 0.94,
+    "legSizeToWidth": 0.044,
+    "topBevelToWidth": 0.013
+  },
+  "counts": {
+    "legCount": 4
+  },
+  "meters": {
+    "overallWidth": 0.9,
+    "overallDepth": 0.5,
+    "overallHeight": 0.415,
+    "topThickness": 0.035,
+    "topBevelRadius": 0.012,
+    "legHeight": 0.38,
+    "legSize": 0.04,
+    "legInset": 0.06,
+    "cornerRadius": 0.012
+  },
+  "silhouetteTraits": [
+    "Low rectangular top with rounded corners (900×500mm)",
+    "Four splayed rounded legs (~380mm)",
+    "Thick top slab (~35mm) with soft bevel",
+    "Warm wood tone — no tabletop props in Corner Sample",
+    "Scene harmony: sits on rug in front of sofa"
+  ],
+  "meta": {
+    "method": "reverse-engineering",
+    "source": "public/apt/reference/apt-target-mockup.png",
+    "crop": {
+      "left": 88,
+      "top": 292,
+      "width": 62,
+      "height": 48
+    },
+    "scaleAnchor": "0.9m top width (APT_STYLE_LOCK CS-04)",
+    "camera": {
+      "type": "orthographic",
+      "elevationDeg": 35,
+      "azimuthDeg": 45
+    },
+    "notes": "Wood silhouette from rug crop; Style Lock dims merged when segmentation ambiguous"
+  },
+  "tableShapeAnalysis": {
+    "overallWidthDepthHeight": "0.900 : 0.500 : 0.415",
+    "topThickness": 0.035,
+    "legHeight": 0.38,
+    "legSize": 0.04,
+    "legCount": 4,
+    "topBevelRadius": 0.012,
+    "silhouetteTraits": [
+      "Low rectangular top with rounded corners (900×500mm)",
+      "Four splayed rounded legs (~380mm)",
+      "Thick top slab (~35mm) with soft bevel",
+      "Warm wood tone — no tabletop props in Corner Sample",
+      "Scene harmony: sits on rug in front of sofa"
+    ]
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "dimensions": [
+    {
+      "key": "overallWidth",
+      "label": "Width",
+      "target": 1.848,
+      "model": 1.848,
+      "tolerance": 0.03,
+      "score": 100,
+      "pass": true
+    },
+    {
+      "key": "overallHeight",
+      "label": "Height",
+      "target": 1.071,
+      "model": 0.5825,
+      "tolerance": 0.03,
+      "score": 56,
+      "pass": false
+    },
+    {
+      "key": "seatHeight",
+      "label": "Seat Height",
+      "target": 0.315,
+      "model": 1.848,
+      "tolerance": 0.04,
+      "score": 0,
+      "pass": false
+    },
+    {
+      "key": "backHeight",
+      "label": "Back Height",
+      "target": 0.5355,
+      "model": 1.848,
+      "tolerance": 0.05,
+      "score": 0,
+      "pass": false
+    },
+    {
+      "key": "armWidth",
+      "label": "Arm Width",
+      "target": 0.2625,
+      "model": 1.848,
+      "tolerance": 0.025,
+      "score": 0,
+      "pass": false
+    },
+    {
+      "key": "legHeight",
+      "label": "Leg Height",
+      "target": 0.05355,
+      "model": 1.848,
+      "tolerance": 0.015,
+      "score": 0,
+      "pass": false
+    },
+    {
+      "key": "cornerRadius",
+      "label": "Corner Radius",
+      "target": 0.048048,
+      "model": 1.848,
+      "tolerance": 0.012,
+      "score": 0,
+      "pass": false
+    },
+    {
+      "key": "cushionCount",
+      "label": "Cushion Count",
+      "target": "2+3",
+      "model": "2+3",
+      "score": 100,
+      "pass": true
+    }
+  ],
+  "average": 32,
+  "allPass": false,
+  "note": "Measurable dimensions only — no Volume/Depth proxy/Silhouette %"
+}

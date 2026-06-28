@@ -1,0 +1,9 @@
+{
+  "id": "rug-cream",
+  "category": "Fabric",
+  "label": "Cream Rug",
+  "usage": ["area rugs", "soft floor textiles"],
+  "color": "#EDE4D4",
+  "roughness": 0.92,
+  "metalness": 0
+}

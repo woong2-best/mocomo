@@ -1,0 +1,10 @@
+<!DOCTYPE html><html><head><script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.184.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.184.0/examples/jsm/"}}</script></head><body style="margin:0;background:#ebe4d8"><canvas id="c" width="512" height="512"></canvas><script type="module">
+import * as THREE from 'three'; import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+const cv=document.getElementById('c'); const r=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true,preserveDrawingBuffer:true}); r.setSize(512,512,false); r.setClearColor(0x000000,0);
+const sc=new THREE.Scene(); sc.add(new THREE.HemisphereLight('#fff','#ccc',.65)); const k=new THREE.DirectionalLight('#fff',.95); k.position.set(3,5,2); sc.add(k);
+const az=THREE.MathUtils.degToRad(45), el=THREE.MathUtils.degToRad(35); const cam=new THREE.OrthographicCamera(-1,1,1,-1,.01,100);
+const gltf=await new GLTFLoader().loadAsync('/apt/glb/hero-assets/tv-stand-v1.glb'); const m=gltf.scene; m.rotation.y=Math.PI*-0.35; sc.add(m);
+const box=new THREE.Box3().setFromObject(m); const sz=box.getSize(new THREE.Vector3()); const c=box.getCenter(new THREE.Vector3()); const md=Math.max(sz.x,sz.y,sz.z); const d=md*2.4;
+cam.position.set(c.x+d*Math.cos(el)*Math.sin(az), c.y+d*Math.sin(el), c.z+d*Math.cos(el)*Math.cos(az)); cam.lookAt(c); const fr=md*1.15; cam.left=-fr; cam.right=fr; cam.top=fr; cam.bottom=-fr; cam.updateProjectionMatrix();
+r.render(sc,cam); window.__READY__=true;
+</script></body></html>

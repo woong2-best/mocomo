@@ -1,0 +1,9 @@
+{
+  "id": "wall-ivory",
+  "category": "Painted Wall",
+  "label": "Warm Ivory",
+  "usage": ["interior walls", "cutaway architecture"],
+  "color": "#FAF6F0",
+  "roughness": 0.82,
+  "metalness": 0
+}

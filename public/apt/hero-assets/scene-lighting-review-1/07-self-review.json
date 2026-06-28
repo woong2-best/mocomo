@@ -1,0 +1,72 @@
+{
+  "reviewId": "scene-lighting-1",
+  "date": "2026-06-27",
+  "stage": "lighting pass #1 — composition locked, no material",
+  "rig": {
+    "hemisphere": {
+      "sky": "#FFF4E6",
+      "ground": "#E8C9A0",
+      "intensity": 0.45
+    },
+    "key": {
+      "color": "#FFF4E6",
+      "intensity": 1.15,
+      "position": [
+        6,
+        10,
+        4
+      ],
+      "shadow": "PCF soft 2048"
+    },
+    "fill": {
+      "color": "#E8F0FF",
+      "intensity": 0.28
+    },
+    "rim": {
+      "color": "#FFF0D8",
+      "intensity": 0.18
+    },
+    "windowBounce": {
+      "color": "#FFE8C8",
+      "intensity": 0.42,
+      "from": "left wall"
+    },
+    "toneMapping": "ACESFilmic",
+    "exposure": 1
+  },
+  "scores": {
+    "warmth": {
+      "rating": "partial-improved",
+      "note": "Golden-hour key + window bounce; gray materials limit warmth"
+    },
+    "depth": {
+      "rating": "partial-improved",
+      "note": "Soft contrast + rim; SSAO subtle"
+    },
+    "shadowQuality": {
+      "rating": "good",
+      "note": "Contact shadows on floor/furniture base"
+    },
+    "spatialDepth": {
+      "rating": "partial-improved",
+      "note": "Wall-floor connection improved vs flat off"
+    },
+    "focus": {
+      "rating": "good",
+      "note": "Key from upper-right draws eye to seating cluster"
+    },
+    "emotionalTone": {
+      "rating": "partial",
+      "note": "Direction correct; Material Pass needed for 'want to stay'"
+    }
+  },
+  "overall": "Lighting adds life and depth to locked composition; emotional target needs Material next",
+  "forbiddenNotDone": [
+    "material",
+    "texture",
+    "color tuning",
+    "composition change",
+    "asset shape"
+  ],
+  "nextPass": "Owner Review → Material Pass"
+}

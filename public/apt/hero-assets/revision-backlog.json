@@ -1,0 +1,72 @@
+{
+  "updatedAt": "2026-06-27",
+  "note": "Deferred until Scene Harmony Pass. Do not iterate Temporary Approved assets now.",
+  "items": [
+    {
+      "assetId": "coffee-table",
+      "version": 1,
+      "status": "temporary-approved",
+      "deferredRevisions": [
+        "Softer top corner radius",
+        "Slightly thinner legs",
+        "More natural leg splay angle",
+        "Warmer, rounder overall silhouette"
+      ]
+    },
+    {
+      "assetId": "rug",
+      "version": 1,
+      "status": "temporary-approved",
+      "deferredRevisions": [
+        "Slightly softer corner radius",
+        "Thickness a bit more natural",
+        "Softer edge bevel",
+        "Fabric pile feel — Material Pass",
+        "Color tone — Lighting + Material Pass"
+      ],
+      "shapeNote": "Graybox only at Shape stage"
+    },
+    {
+      "assetId": "plant",
+      "version": 1,
+      "status": "temporary-approved",
+      "deferredRevisions": [
+        "More organic leaf shapes",
+        "Leaf thickness and volume more natural",
+        "Slightly wider pot opening",
+        "Pot base a bit more stable",
+        "Terracotta feel — Material Pass",
+        "Leaf color — Lighting + Material Pass"
+      ],
+      "shapeNote": "Graybox only at Shape stage"
+    },
+    {
+      "assetId": "floor-lamp",
+      "version": 1,
+      "status": "temporary-approved",
+      "deferredRevisions": [
+        "Softer, rounder shade",
+        "Slightly wider shade proportion",
+        "Fine-tune pole thickness",
+        "Thinner, more stable base",
+        "Fabric texture — Material Pass",
+        "Emissive glow — Lighting Pass"
+      ],
+      "shapeNote": "Graybox only at Shape stage"
+    },
+    {
+      "assetId": "tv-stand",
+      "version": 1,
+      "status": "temporary-approved",
+      "deferredRevisions": [
+        "Softer cabinet corner radius",
+        "Slightly lower cabinet height",
+        "Thinner TV panel thickness",
+        "More natural TV screen aspect ratio",
+        "Wood material — Material Pass",
+        "Screen expression — Lighting/Material Pass"
+      ],
+      "shapeNote": "Graybox only at Shape stage"
+    }
+  ]
+}

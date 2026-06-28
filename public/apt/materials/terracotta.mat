@@ -1,0 +1,9 @@
+{
+  "id": "terracotta",
+  "category": "Ceramic / Terracotta",
+  "label": "Terracotta Pot",
+  "usage": ["plant pots", "ceramic vessels"],
+  "color": "#B8846A",
+  "roughness": 0.75,
+  "metalness": 0
+}

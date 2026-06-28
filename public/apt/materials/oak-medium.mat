@@ -1,0 +1,9 @@
+{
+  "id": "oak-medium",
+  "category": "Wood",
+  "label": "Natural Oak",
+  "usage": ["coffee table", "primary furniture wood"],
+  "color": "#C9956A",
+  "roughness": 0.7,
+  "metalness": 0.02
+}

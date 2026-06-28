@@ -1,0 +1,102 @@
+{
+  "pixels": {
+    "width": 88,
+    "height": 51,
+    "crop": {
+      "left": 38,
+      "top": 262,
+      "width": 88,
+      "height": 52
+    }
+  },
+  "ratios": {
+    "widthToHeight": 1.7254901960784315,
+    "armWidthToTotal": 0.2840909090909091,
+    "seatHeightToTotal": 0.29411764705882354,
+    "backHeightToTotal": 0.5,
+    "legHeightToTotal": 0.05,
+    "cushionCompressionSeat": 0.2,
+    "cushionCompressionBack": 0.28
+  },
+  "counts": {
+    "seatCushions": 2,
+    "backCushions": 3
+  },
+  "meters": {
+    "overallWidth": 1.848,
+    "overallHeight": 1.071,
+    "overallDepth": 0.79464,
+    "seatHeight": 0.315,
+    "backHeight": 0.5355,
+    "armWidth": 0.2625,
+    "armRadius": 0.10718400000000002,
+    "legHeight": 0.05355,
+    "legThickness": 0.059136,
+    "legOffsetX": 0.20328000000000002,
+    "legOffsetZ": 0.16632,
+    "cushionRadius": 0.06468000000000002,
+    "cushionGap": 0.022176,
+    "backThickness": 0.15708000000000003,
+    "seatCushionHeight": 0.20349,
+    "backCushionHeight": 0.36414,
+    "cornerRadius": 0.048048
+  },
+  "radius": {
+    "armRadiusM": 0.10718400000000002,
+    "cushionRadiusM": 0.06468000000000002,
+    "cornerRadiusM": 0.048048
+  },
+  "silhouetteTraits": [
+    "Low-profile wide silhouette (W/H ≈ 1.35)",
+    "Thick rounded armrests (~20% total width)",
+    "Three separated back cushions (reference)",
+    "Two seat cushions with visible gap",
+    "Short peg legs (~9% of height)",
+    "Large corner/bevel radius on all primary forms"
+  ],
+  "meta": {
+    "method": "reverse-engineering",
+    "source": "public/apt/reference/apt-target-mockup.png",
+    "crop": {
+      "left": 38,
+      "top": 262,
+      "width": 88,
+      "height": 52
+    },
+    "scaleAnchor": "1.848m overall width",
+    "camera": {
+      "type": "orthographic",
+      "elevationDeg": 35,
+      "azimuthDeg": 45
+    },
+    "notes": "Pixel ratios merged with reference fallbacks when segmentation is ambiguous"
+  },
+  "sofaShapeAnalysis": {
+    "overallWidthDepthHeightRatio": "1.848 : 0.795 : 1.071",
+    "seatHeight": 0.315,
+    "backHeight": 0.5355,
+    "armWidth": 0.2625,
+    "armRadius": 0.10718400000000002,
+    "cushionCount": "2 seat + 3 back",
+    "cushionRadius": 0.06468000000000002,
+    "cushionCompression": {
+      "seat": 0.2,
+      "back": 0.28
+    },
+    "legHeight": 0.05355,
+    "legThickness": 0.059136,
+    "legOffset": {
+      "x": 0.20328000000000002,
+      "z": 0.16632
+    },
+    "cornerRadius": 0.048048,
+    "silhouetteTraits": [
+      "Low-profile wide silhouette (W/H ≈ 1.35)",
+      "Thick rounded armrests (~20% total width)",
+      "Three separated back cushions (reference)",
+      "Two seat cushions with visible gap",
+      "Short peg legs (~9% of height)",
+      "Large corner/bevel radius on all primary forms"
+    ]
+  }
+}

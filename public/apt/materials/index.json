@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "lockedAt": "2026-06-27",
+  "direction": {
+    "saturation": "low",
+    "tone": "warm neutral",
+    "contrast": "soft"
+  },
+  "categories": [
+    "Fabric",
+    "Wood",
+    "Painted Wall",
+    "Floor",
+    "Ceramic / Terracotta",
+    "Metal"
+  ],
+  "materials": [
+    { "file": "fabric-beige.mat", "id": "fabric-beige", "category": "Fabric" },
+    { "file": "fabric-ivory.mat", "id": "fabric-ivory", "category": "Fabric" },
+    { "file": "rug-cream.mat", "id": "rug-cream", "category": "Fabric" },
+    { "file": "oak-light.mat", "id": "oak-light", "category": "Wood" },
+    { "file": "oak-medium.mat", "id": "oak-medium", "category": "Wood" },
+    { "file": "oak-dark.mat", "id": "oak-dark", "category": "Wood" },
+    { "file": "wall-ivory.mat", "id": "wall-ivory", "category": "Painted Wall" },
+    { "file": "floor-oak.mat", "id": "floor-oak", "category": "Floor" },
+    { "file": "terracotta.mat", "id": "terracotta", "category": "Ceramic / Terracotta" },
+    { "file": "leaf-muted.mat", "id": "leaf-muted", "category": "Plant Accent", "note": "Fixed harmony color for foliage — not a 7th material category" },
+    { "file": "metal-soft.mat", "id": "metal-soft", "category": "Metal" }
+  ],
+  "rules": [
+    "No plastic feel",
+    "No excessive metallic",
+    "No high gloss",
+    "No heavy normal maps",
+    "No extreme roughness variation",
+    "No excessive color contrast"
+  ]
+}

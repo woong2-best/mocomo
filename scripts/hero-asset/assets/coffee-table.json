@@ -1,0 +1,21 @@
+{
+  "id": "coffee-table",
+  "name": "CS-04 Coffee Table",
+  "category": "furniture",
+  "reference": {
+    "image": "public/apt/reference/apt-target-mockup.png",
+    "crop": { "left": 88, "top": 292, "width": 62, "height": 48 }
+  },
+  "camera": { "elevationDeg": 35, "azimuthDeg": 45, "rotationY": 0.12 },
+  "measurableDimensions": [
+    { "key": "overallWidth", "label": "Width", "path": "meters.overallWidth", "tolerance": 0.03 },
+    { "key": "overallDepth", "label": "Depth", "path": "meters.overallDepth", "tolerance": 0.03 },
+    { "key": "overallHeight", "label": "Height", "path": "meters.overallHeight", "tolerance": 0.03 },
+    { "key": "topThickness", "label": "Top Thickness", "path": "meters.topThickness", "tolerance": 0.008 },
+    { "key": "legHeight", "label": "Leg Height", "path": "meters.legHeight", "tolerance": 0.02 },
+    { "key": "legSize", "label": "Leg Size", "path": "meters.legSize", "tolerance": 0.008 },
+    { "key": "topBevelRadius", "label": "Top Bevel", "path": "meters.topBevelRadius", "tolerance": 0.006 },
+    { "key": "legCount", "label": "Leg Count", "path": "counts.legCount", "type": "number", "tolerance": 0 }
+  ],
+  "glbNaming": "coffee-table-v{version}.glb"
+}

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1000" viewBox="0 0 1280 1000">
+  <rect width="100%" height="100%" fill="#EBE4D8"/>
+  <text x="640" y="18" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" font-weight="800" fill="#4A4038">CS-02 Sofa Shape Blueprint (Reverse Engineered)</text>
+  
+  <g transform="translate(24,24)">
+    <rect width="394" height="444" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+    <text x="197" y="22" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#4A4038">Front · 정면</text>
+    <g transform="translate(197,232)"><rect x="-150.45000000000002" y="-118.66478873239437" width="300.90000000000003" height="237.32957746478874" fill="none" stroke="#C9956A" stroke-width="1" stroke-dasharray="4 3"/><rect x="-119.60775000000001" y="-18.986366197183123" width="77.33130000000001" height="80.69205633802818" rx="10.531500000000003" fill="#D4C4B0" stroke="#4A4038"/><rect x="-38.66565" y="-18.986366197183123" width="77.33130000000001" height="80.69205633802818" rx="10.531500000000003" fill="#D4C4B0" stroke="#4A4038"/><rect x="42.27645000000001" y="-18.986366197183123" width="77.33130000000001" height="80.69205633802818" rx="10.531500000000003" fill="#D4C4B0" stroke="#4A4038"/><rect x="-119.60775000000001" y="61.70569014084506" width="117.80235" height="45.09261971830987" rx="10.531500000000003" fill="#D4C4B0" stroke="#4A4038"/><rect x="1.8053999999999917" y="61.70569014084506" width="117.80235" height="45.09261971830987" rx="10.531500000000003" fill="#D4C4B0" stroke="#4A4038"/><rect x="-150.45000000000002" y="-18.986366197183123" width="30.84225" height="125.78467605633804" rx="17.4522" fill="#D4C4B0" stroke="#4A4038"/><rect x="119.60775000000001" y="-18.986366197183123" width="30.84225" height="125.78467605633804" rx="17.4522" fill="#D4C4B0" stroke="#4A4038"/><circle cx="-108.32400000000001" cy="112.73154929577466" r="4.8144" fill="#C9956A"/><circle cx="108.32399999999998" cy="112.73154929577466" r="4.8144" fill="#C9956A"/><text x="0" y="138.66478873239436" text-anchor="middle" font-size="10" fill="#666">W=1.848m H=1.458m</text></g>
+  </g>
+
+  <g transform="translate(442,24)">
+    <rect width="394" height="444" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+    <text x="197" y="22" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#4A4038">Side · 측면</text>
+    <g transform="translate(197,232)"><rect x="-88.97314285714285" y="-163.2" width="177.9462857142857" height="326.4" fill="none" stroke="#C9956A" stroke-dasharray="4 3"/><rect x="-88.97314285714285" y="-26.111999999999995" width="35.17542857142857" height="110.976" rx="14.484" fill="#D4C4B0" stroke="#4A4038"/><rect x="-78.42051428571428" y="84.864" width="160.3585714285714" height="62.016" rx="14.484" fill="#D4C4B0" stroke="#4A4038"/><circle cx="-44.48657142857142" cy="155.04" r="6.621257142857142" fill="#C9956A"/><circle cx="44.48657142857141" cy="155.04" r="6.621257142857142" fill="#C9956A"/><text x="0" y="183.2" text-anchor="middle" font-size="10" fill="#666">D=0.795m</text></g>
+  </g>
+
+  <g transform="translate(860,24)">
+    <rect width="394" height="444" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+    <text x="197" y="22" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#4A4038">45° · Iso</text>
+    <g transform="translate(197,232)"><polygon points="-112.8375,59.332394366197185 112.8375,59.332394366197185 139.52356875,5.960256866197177 -86.15143125,5.960256866197177" fill="#D4C4B0" stroke="#4A4038"/><polygon points="-112.8375,59.332394366197185 -112.8375,-118.66478873239438 -86.15143125,-172.0369262323944 -86.15143125,5.960256866197177" fill="#CFC0AE" stroke="#4A4038"/><text x="0" y="118.99859154929578" text-anchor="middle" font-size="10" fill="#666">45° schematic</text></g>
+  </g>
+
+  <g transform="translate(24,492)">
+    <rect width="394" height="444" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+    <text x="197" y="22" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#4A4038">Top · 평면</text>
+    <g transform="translate(197,232)"><rect x="-150.45000000000002" y="-64.6935" width="300.90000000000003" height="129.387" rx="7.8234" fill="#D4C4B0" stroke="#4A4038"/><rect x="-150.45000000000002" y="-64.6935" width="30.84225" height="129.387" rx="17.4522" fill="#CFC0AE" stroke="#4A4038"/><rect x="119.60775000000001" y="-64.6935" width="30.84225" height="129.387" rx="17.4522" fill="#CFC0AE" stroke="#4A4038"/><text x="0" y="88.6935" text-anchor="middle" font-size="10" fill="#666">Top · arm=0.189m</text></g>
+  </g>
+
+  <g transform="translate(442,492)">
+    <rect width="394" height="444" fill="#FAF6F0" stroke="#4A4038" stroke-width="2" rx="8"/>
+    <text x="197" y="22" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#4A4038">Silhouette · 실루엣</text>
+    <g transform="translate(197,232)">
+    <image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAI4AAABwCAYAAADIZUhhAAAACXBIWXMAAAPoAAAD6AG1e1JrAAADnElEQVR4nO2dba7bOgwFtZKz/132IQUK5AX5kChRJKUZQD+K68Y0z5j2tYO2NSOS/sysnftiydz77mA8w5ypz7pPlsxZ/NzO8oErxegFCbTsROjtd3cgLSlIo6XTc6TvcxsEgzjKKU52EEfL79d6+94qgzhi4iCPwn7bs560rTpMHrlK8qnnrTqII3dR3vW8VedmcVpQiOXFuU0SWER0mMhRkOiQmSBFiQ6ey0sxomV4XtG9gB88B4Uk0M3z2c0UuYyVo33XZYZL0iVwHwKwAW7wD0dOv9UhzmFo4+MA5DkAGW7wCR7+YhGnZwIh2KHI8JDz9e+HFQ+xyPF5lH/1sB29SMD7Muji233LyLRhslyGPohj+Qy3IiEfWvheDXkuQ5MP9xDnUsSXxMCC52sFOBgVe4WA4NAFUxCG6ZqCVUblDDcc40roF40A2AcTB0wgDphAHMhNlodDnCmJ2fVtfMjDUMaWrzUizpm8zXhGkAziMOF8+ZhxdXGqoWL9QZxEzW/FYOLAMEwcMIE4QajgpenBz/tYj5vjqs26EVnzRZz1QbSkLB0MiHMecrqKIM4haIMg14vzfAl5dz+W+RITLcnVE8e7Vi36N/qqrOvFWSmCBkSMDh5xnCaOVZw2WUe0EEycztC+beMhzoPo0BHHcepYxOklOnTEGWR0mozIo8Ftq69rbo4fjNbmdSxKEDziGAJbGXQzEB064hgDa8EoQfBpJ06GgF7JUpcSBI84hsCy1KHCi4mTSJy2+H8D9NzPVeI8yFCXOvoVPVEQJyFadFIeK06GszsjSjAxEKcgSjpFUk0cps57ooNHnKIoQfhMnKIogQDmq8iWncD/iA4dcYqhBIEjTnKUIFzESYgShLdNkogG/NtHK8rVcnwjbWGbiQ5O1XIoV7AD0WGqYr+POZBO3tUTHbIq9vWGg/xVR3T4Stq3r5zWgOf9RAeupD1aQtXGvH5edOBK0JOt7GyOtUmvn3HKapXJ1KwT5dCJ0jyIbt5Nsghx1svjJWW21U4honGrg40+Jt0iyzNRjZwNIVoGdRxfO5mM4kTXNyLwtWQJILoORBkkOpAM67UXoz28kujQmBpFOXV6gDPRQSNGUT6drZ5nMdMCAAAAAAAAAABgIx5Pd389VJx9dbDrCXT0k3IlXS7S/Gt4ZPO/7XfkpEIgjYnT28hPf/7V+Nmgvm0zs9/ZupRkeR+H28SZDS9b46Pr0Zv6LD9btc//AOvk1sKHIrC3AAAAAElFTkSuQmCC" x="-159.3" y="-144" width="318.6" height="288" preserveAspectRatio="xMidYMid meet"/>
+    <text x="0" y="160" text-anchor="middle" font-size="10" fill="#666">Reference silhouette (extracted)</text></g>
+  </g>
+  <text x="640" y="988" text-anchor="middle" font-size="11" fill="#666">W×D×H: 1.848 × 0.795 × 1.458 m  ·  Arms: 0.189m · R=0.107m · Back cushions: 3  ·  Legs: H=0.073m · Ø=0.059m · offset X=0.203m</text>
+</svg>

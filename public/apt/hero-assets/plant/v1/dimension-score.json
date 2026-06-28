@@ -1,0 +1,60 @@
+{
+  "dimensions": [
+    {
+      "key": "overallWidth",
+      "label": "Width",
+      "target": 0.24,
+      "model": 0.2047,
+      "tolerance": 0.04,
+      "score": 100,
+      "pass": true
+    },
+    {
+      "key": "overallDepth",
+      "label": "Depth",
+      "target": 0.22,
+      "model": 0.2085,
+      "tolerance": 0.04,
+      "score": 100,
+      "pass": true
+    },
+    {
+      "key": "overallHeight",
+      "label": "Height",
+      "target": 0.56,
+      "model": 0.4843,
+      "tolerance": 0.04,
+      "score": 93.1,
+      "pass": false
+    },
+    {
+      "key": "potHeight",
+      "label": "Pot Height",
+      "target": 0.32,
+      "model": 0.32,
+      "tolerance": 0.02,
+      "score": 100,
+      "pass": true
+    },
+    {
+      "key": "foliageSpread",
+      "label": "Foliage Spread",
+      "target": 0.22,
+      "model": 0.22,
+      "tolerance": 0.03,
+      "score": 100,
+      "pass": true
+    },
+    {
+      "key": "leafCount",
+      "label": "Leaf Count",
+      "target": 7,
+      "model": 7,
+      "score": 100,
+      "pass": true
+    }
+  ],
+  "average": 98.9,
+  "allPass": false,
+  "note": "Measurable dimensions only — no Volume/Depth proxy/Silhouette %"
+}

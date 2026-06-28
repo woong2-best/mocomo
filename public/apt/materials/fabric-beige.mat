@@ -1,0 +1,9 @@
+{
+  "id": "fabric-beige",
+  "category": "Fabric",
+  "label": "Warm Beige Fabric",
+  "usage": ["sofa cushions", "upholstery"],
+  "color": "#D4C4B0",
+  "roughness": 0.88,
+  "metalness": 0
+}

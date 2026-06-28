@@ -1,0 +1,18 @@
+{
+  "reviewId": "scene-composition-final",
+  "status": "approved-locked",
+  "lockedAt": "2026-06-27",
+  "outputsDir": "public/apt/hero-assets/scene-composition-final-review",
+  "activePass": "pass3",
+  "note": "Composition Pass #2 — pending Owner approval to freeze composition",
+  "criteria": [
+    "First impression",
+    "Spatial stability",
+    "Sightline flow",
+    "Spatial rhythm",
+    "Negative space",
+    "Space density",
+    "Warmth without lighting",
+    "Feels like a game"
+  ]
+}

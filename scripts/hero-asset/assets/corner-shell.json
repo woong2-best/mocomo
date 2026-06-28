@@ -1,0 +1,19 @@
+{
+  "id": "corner-shell",
+  "name": "CS-01 Corner Shell",
+  "category": "architecture",
+  "reference": {
+    "image": "public/apt/reference/apt-target-mockup.png",
+    "crop": { "left": 25, "top": 245, "width": 175, "height": 95 }
+  },
+  "camera": { "elevationDeg": 35, "azimuthDeg": 45, "rotationY": 0 },
+  "measurableDimensions": [
+    { "key": "overallWidth", "label": "Floor Width", "path": "meters.floorWidth", "tolerance": 0.08 },
+    { "key": "overallDepth", "label": "Floor Depth", "path": "meters.floorDepth", "tolerance": 0.08 },
+    { "key": "wallHeight", "label": "Wall Height", "path": "meters.wallHeight", "tolerance": 0.06 },
+    { "key": "wallThickness", "label": "Wall Thickness", "path": "meters.wallThickness", "tolerance": 0.02 },
+    { "key": "baseboardHeight", "label": "Baseboard H", "path": "meters.baseboardHeight", "tolerance": 0.01 },
+    { "key": "windowRecess", "label": "Window Recess", "path": "meters.windowRecess", "tolerance": 0.02 }
+  ],
+  "glbNaming": "corner-shell-v{version}.glb"
+}
