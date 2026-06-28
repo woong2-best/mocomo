@@ -10,6 +10,8 @@ function AptGameMoreSheetInner() {
   if (!moreOpen) return null;
 
   const links = [
+    { href: "/apt/corner", label: "3D 씬 리뷰 (Polish #4)" },
+    { href: "/apt/scene-review", label: "씬 캡처 · Final Gate" },
     { href: "/feed", label: "커뮤니티" },
     { href: "/messages", label: "메시지 · 우편함" },
     { href: "/live", label: "라이브" },
