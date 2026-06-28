@@ -1,28 +1,16 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { memo, useCallback, useMemo, useState } from "react";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import { getDioramaPreset } from "@/lib/diorama/living-room-preset";
+import { DollhouseCanvas } from "@/components/apt/isometric/dollhouse-canvas";
 import { useAptGameRequired } from "./apt-game-context";
 import { cn } from "@/lib/utils";
-
-const DollhouseCanvas = dynamic(
-  () => import("@/components/apt/isometric/dollhouse-canvas").then((m) => m.DollhouseCanvas),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#f2ebe3]">
-        <div className="mb-3 h-8 w-8 animate-pulse rounded-full bg-[#d8cec0]/60" />
-        <p className="text-xs font-semibold text-[#5c4033]/60">빈 집 구조 준비 중…</p>
-      </div>
-    ),
-  }
-);
 
 function AptEmptyHouse3DInner({ rooms }: { rooms: AptRoom[] }) {
   const { enterRoom } = useAptGameRequired();
   const [hoverRoomId, setHoverRoomId] = useState<string | null>(null);
+  const [canvasError, setCanvasError] = useState<string | null>(null);
 
   const clickableRoomIds = useMemo(() => {
     const ids = new Set<string>();
@@ -44,30 +32,37 @@ function AptEmptyHouse3DInner({ rooms }: { rooms: AptRoom[] }) {
   );
 
   return (
-    <>
-      <DollhouseCanvas
-        rooms={rooms}
-        highlightRoomId={hoverRoomId}
-        clickableRoomIds={clickableRoomIds}
-        cameraZoom={1}
-        onRoomClick={handleRoomClick}
-        onRoomHover={setHoverRoomId}
-      />
+    <div className="absolute inset-0 h-full w-full">
+      {canvasError ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#f2ebe3] px-6 text-center">
+          <p className="text-xs font-bold text-[#5c4033]">3D 집 구조를 불러오지 못했습니다</p>
+          <p className="text-[10px] text-[#5c4033]/70">{canvasError}</p>
+        </div>
+      ) : (
+        <DollhouseCanvas
+          rooms={rooms}
+          highlightRoomId={hoverRoomId}
+          clickableRoomIds={clickableRoomIds}
+          cameraZoom={1}
+          onRoomClick={handleRoomClick}
+          onRoomHover={setHoverRoomId}
+          onCanvasError={setCanvasError}
+        />
+      )}
 
-      {hoverRoom && (
+      {hoverRoom && !canvasError && (
         <div className="pointer-events-none absolute left-1/2 top-[calc(max(0.5rem,env(safe-area-inset-top))+7rem)] z-[60] -translate-x-1/2">
           <span
             className={cn(
               "rounded-full border border-[#5c4033]/12 bg-white/90 px-4 py-1.5",
-              "text-[11px] font-bold text-[#5c4033] shadow-md backdrop-blur-md",
-              "animate-in fade-in zoom-in-95 duration-150"
+              "text-[11px] font-bold text-[#5c4033] shadow-md backdrop-blur-md"
             )}
           >
             {hoverRoom.label} · 탭해서 입장
           </span>
         </div>
       )}
-    </>
+    </div>
   );
 }
 

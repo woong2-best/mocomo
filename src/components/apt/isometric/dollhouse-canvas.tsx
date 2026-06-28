@@ -19,6 +19,7 @@ function DollhouseCanvasInner({
   cameraZoom,
   onRoomClick,
   onRoomHover,
+  onCanvasError,
 }: {
   rooms: AptRoom[];
   highlightRoomId: string | null;
@@ -26,12 +27,14 @@ function DollhouseCanvasInner({
   cameraZoom: number;
   onRoomClick: (roomId: string) => void;
   onRoomHover: (roomId: string | null) => void;
+  onCanvasError?: (message: string) => void;
 }) {
   const glConfig = useMemo(
     () => ({
       antialias: true,
       alpha: false,
       powerPreference: "high-performance" as WebGLPowerPreference,
+      failIfMajorPerformanceCaveat: false,
     }),
     []
   );
@@ -39,21 +42,30 @@ function DollhouseCanvasInner({
   const bg = hexBg(DH.bg);
 
   return (
-    <div className="dollhouse-canvas-root absolute inset-0 touch-none">
+    <div className="dollhouse-canvas-root touch-none">
       <Canvas
         shadows
         dpr={[1, cappedPixelRatio()]}
         gl={glConfig}
+        frameloop="always"
+        resize={{ scroll: false, debounce: { scroll: 0, resize: 0 } }}
         onCreated={({ gl }) => {
-          gl.outputColorSpace = THREE.SRGBColorSpace;
-          gl.toneMapping = THREE.ACESFilmicToneMapping;
-          gl.toneMappingExposure = 0.98;
-          gl.shadowMap.enabled = true;
-          gl.shadowMap.type = THREE.PCFSoftShadowMap;
+          try {
+            gl.outputColorSpace = THREE.SRGBColorSpace;
+            gl.toneMapping = THREE.ACESFilmicToneMapping;
+            gl.toneMappingExposure = 0.98;
+            gl.shadowMap.enabled = true;
+            gl.shadowMap.type = THREE.PCFSoftShadowMap;
+          } catch (e) {
+            onCanvasError?.(e instanceof Error ? e.message : "WebGL init failed");
+          }
+        }}
+        onError={(e) => {
+          onCanvasError?.(e instanceof Error ? e.message : "Canvas error");
         }}
       >
         <color attach="background" args={[bg]} />
-        <fog attach="fog" args={[bg, 32, 58]} />
+        <fog attach="fog" args={[bg, 36, 64]} />
         <Suspense fallback={null}>
           <DollhouseSceneContent
             rooms={rooms}

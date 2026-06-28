@@ -446,7 +446,24 @@ html[data-visible-animations="off"] .folk-brush-border-b::after {
 }
 
 .apt-game-overview {
-  background: #2a1f14;
+  background: #f2ebe3;
+}
+
+.dollhouse-canvas-root {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  background: radial-gradient(ellipse at 50% 38%, #faf6f0 0%, #f2ebe3 52%, #e0d4c8 100%);
+}
+
+.dollhouse-canvas-root canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  touch-action: none;
 }
 
 .apt-game-room-canvas {
