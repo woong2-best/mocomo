@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import { SECURITY_HEADERS } from "./src/lib/security-headers";
+import { APT_SCENE_VIEWER_HEADERS, SECURITY_HEADERS } from "./src/lib/security-headers";
 
 const STUDIO_REWRITE_HOSTS = [
   process.env.NEXT_PUBLIC_STUDIO_HOST?.trim(),
@@ -55,11 +55,22 @@ const nextConfig: NextConfig = {
     ];
   },
   async headers() {
+    const aptScenePaths = [
+      "/apt/hero-assets/scene-material-assembly.html",
+      "/apt/materials/:path*",
+      "/apt/glb/:path*",
+      "/apt/hero-assets/scene-composition-config.json",
+      "/apt/reference/:path*",
+    ];
     return [
       {
         source: "/(.*)",
         headers: SECURITY_HEADERS,
       },
+      ...aptScenePaths.map((source) => ({
+        source,
+        headers: APT_SCENE_VIEWER_HEADERS,
+      })),
     ];
   },
   images: {

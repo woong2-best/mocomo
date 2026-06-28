@@ -17,7 +17,7 @@ export default function AptSceneReviewPage() {
           <strong>/apt</strong> 게임 화면과 다릅니다. 아래 버튼으로 3D 씬을 여세요.
         </p>
         <Link
-          href="/apt/corner"
+          href="/apt/hero-assets/scene-material-assembly.html?compare=0"
           className="mt-4 flex w-full items-center justify-center rounded-xl bg-stone-900 px-4 py-3.5 text-sm font-bold text-white active:scale-[0.98]"
         >
           3D 씬 전체화면 열기
