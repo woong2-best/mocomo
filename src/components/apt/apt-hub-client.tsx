@@ -27,6 +27,7 @@ import { formatIdentityBrief } from "@/lib/apt/home-identity";
 import { cn } from "@/lib/utils";
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { AptOverviewHero } from "@/components/apt/apt-overview-hero";
+import { AptBuildStamp } from "@/components/apt/game/apt-build-stamp";
 
 const AptBuildingView = dynamic(
   () => import("@/components/apt/apt-building-view").then((m) => m.AptBuildingView),
@@ -745,6 +746,8 @@ export function AptHubClient({
         </p>
       </div>
       )}
+
+      <AptBuildStamp visible={inInterior} />
     </div>
   );
 }

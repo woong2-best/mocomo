@@ -28,6 +28,12 @@ const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
   devIndicators: false,
+  env: {
+    NEXT_PUBLIC_APT_BUILD_ID:
+      process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ??
+      process.env.VERCEL_GIT_COMMIT_REF ??
+      "local",
+  },
   transpilePackages: ["@mediapipe/tasks-vision", "@pixiv/three-vrm", "three"],
   async rewrites() {
     return {
