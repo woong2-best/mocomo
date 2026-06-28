@@ -30,7 +30,7 @@ function IsoCanvasInner(props: IsoSceneProps) {
         }}
       >
         <color attach="background" args={["#e8dfd4"]} />
-        <fog attach="fog" args={["#e8dfd4", 14, 28]} />
+        <fog attach="fog" args={["#e8dfd4", 28, 52]} />
         <Suspense fallback={null}>
           <IsoSceneContent {...props} />
         </Suspense>

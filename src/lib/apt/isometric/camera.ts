@@ -3,16 +3,17 @@ import type { IsoCameraPreset } from "./types";
 /** Reference-style isometric orthographic camera (30° elevation, ~45° azimuth) */
 export const ISO_CAMERA_APT: IsoCameraPreset = {
   position: [7.2, 8.4, 7.2],
-  zoom: 68,
+  frustum: 5.4,
   target: [0, 0.4, 0],
 };
 
 export const ISO_CAMERA_ROOM: IsoCameraPreset = {
   position: [5.5, 6.8, 5.5],
-  zoom: 92,
+  frustum: 2.65,
   target: [0, 0.35, 0],
 };
 
-export function scaledZoom(base: number, userZoom: number) {
-  return base * userZoom;
+/** User pinch/zoom — smaller frustum = closer view */
+export function scaledFrustum(base: number, userZoom: number) {
+  return base / userZoom;
 }

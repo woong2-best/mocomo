@@ -4,7 +4,7 @@ import { OrthographicCamera } from "@react-three/drei";
 import type { BondeePlacedItem } from "@/lib/apt/bondee/types";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import type { IsoSceneProps } from "@/lib/apt/isometric/types";
-import { ISO_CAMERA_APT, ISO_CAMERA_ROOM, scaledZoom } from "@/lib/apt/isometric/camera";
+import { ISO_CAMERA_APT, ISO_CAMERA_ROOM } from "@/lib/apt/isometric/camera";
 import { IsoCameraRig, IsoLighting } from "./iso-camera-rig";
 import { IsoHomeMeshes, IsoPlacementGrid } from "./iso-home-meshes";
 import { IsoSceneInteraction } from "./iso-scene-interaction";
@@ -29,13 +29,7 @@ export function IsoSceneContent({
 
   return (
     <>
-      <OrthographicCamera
-        makeDefault
-        position={preset.position}
-        zoom={scaledZoom(preset.zoom, cameraZoom)}
-        near={0.1}
-        far={100}
-      />
+      <OrthographicCamera makeDefault position={preset.position} near={0.1} far={100} />
       <IsoCameraRig view={view} cameraZoom={cameraZoom} activeRoom={activeRoom} />
       <IsoLighting />
 

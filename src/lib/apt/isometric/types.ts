@@ -6,7 +6,8 @@ export type IsoViewMode = "apartment" | "room";
 
 export type IsoCameraPreset = {
   position: [number, number, number];
-  zoom: number;
+  /** Orthographic half-height in world units (see isometric-home-scene frustum) */
+  frustum: number;
   target: [number, number, number];
 };
 
