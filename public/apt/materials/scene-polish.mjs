@@ -30,10 +30,10 @@ export const SOFA_ZONE_CAMERA = {
 };
 
 export function applyPolishedLighting(THREE, scene, renderer) {
-  const hemi = new THREE.HemisphereLight(0xfff8f0, 0xe8c4a0, 0.5);
+  const hemi = new THREE.HemisphereLight(0xfff4ea, 0xc8a880, 0.32);
   scene.add(hemi);
 
-  const key = new THREE.DirectionalLight(0xfff4e6, 1.02);
+  const key = new THREE.DirectionalLight(0xfff0dc, 0.58);
   key.position.set(5.5, 9.5, 3.8);
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
@@ -48,36 +48,28 @@ export function applyPolishedLighting(THREE, scene, renderer) {
   key.shadow.radius = 3.5;
   scene.add(key);
 
-  const fill = new THREE.DirectionalLight(0xe8f0ff, 0.22);
+  const fill = new THREE.DirectionalLight(0xe8eef8, 0.12);
   fill.position.set(-3.5, 5.5, -1.5);
   scene.add(fill);
 
-  const rim = new THREE.DirectionalLight(0xfff0d8, 0.2);
+  const rim = new THREE.DirectionalLight(0xfff0d8, 0.1);
   rim.position.set(-1.8, 4.5, 5.5);
   scene.add(rim);
 
-  const window = new THREE.DirectionalLight(0xffe8c8, 0.34);
+  const window = new THREE.DirectionalLight(0xffdcb0, 0.22);
   window.position.set(-7.5, 3.8, -0.3);
   scene.add(window);
 
-  const bounce = new THREE.DirectionalLight(0xffdcc0, 0.18);
-  bounce.position.set(0.5, -1.5, 1.2);
-  scene.add(bounce);
-
-  const softHi = new THREE.DirectionalLight(0xfffaf0, 0.22);
-  softHi.position.set(0.8, 5.8, 0.4);
-  scene.add(softHi);
-
-  const heroPool = new THREE.PointLight(0xfff4e8, 0.42, 5.5);
+  const heroPool = new THREE.PointLight(0xfff0e0, 0.12, 4.5);
   heroPool.position.set(0.06, 1.1, -0.12);
   scene.add(heroPool);
 
-  scene.add(new THREE.AmbientLight(0xfff6ee, 0.07));
+  scene.add(new THREE.AmbientLight(0xfff6ee, 0.04));
 
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.03;
+  renderer.toneMappingExposure = 0.86;
 }
 
 export function applyEnvironmentReflection(THREE, scene, renderer) {
@@ -90,7 +82,7 @@ export function applyEnvironmentReflection(THREE, scene, renderer) {
     const mats = Array.isArray(o.material) ? o.material : [o.material];
     for (const m of mats) {
       if (m.isMeshStandardMaterial) {
-        m.envMapIntensity = m.name === 'floor_plank' ? 0.14 : 0.1;
+        m.envMapIntensity = m.name === 'floor_plank' ? 0.08 : 0.05;
       }
     }
   });
@@ -118,14 +110,14 @@ export function applyEyeFlowHierarchy(scene) {
       const slot = m.name;
 
       if (heroAssets.has(assetId) || slot === 'fabric_shape' || slot.startsWith('fabric_accent')) {
-        m.color.offsetHSL(0.012, 0.04, 0.045);
-        m.envMapIntensity = 0.11;
+        m.color.offsetHSL(0.01, 0.02, 0.008);
+        m.envMapIntensity = 0.06;
         continue;
       }
 
       if (supportAssets.has(assetId)) {
-        m.color.offsetHSL(0, -0.06, -0.02);
-        m.envMapIntensity = 0.05;
+        m.color.offsetHSL(0, -0.04, -0.04);
+        m.envMapIntensity = 0.04;
         if (slot === 'tv_graybox') {
           m.color.set('#7A7268');
           m.roughness = 0.62;
@@ -138,7 +130,7 @@ export function applyEyeFlowHierarchy(scene) {
       }
 
       if (bgAssets.has(assetId) || ['floor_plank', 'wall_shape', 'baseboard', 'window_recess', 'cutaway_cap'].includes(slot)) {
-        m.color.offsetHSL(0, -0.08, -0.03);
+        m.color.offsetHSL(0, -0.04, -0.06);
         m.envMapIntensity = 0.03;
         if (slot === 'pole_shape' || slot === 'base_shape') {
           m.metalness = 0.12;
@@ -201,12 +193,12 @@ export function addContactShadows(THREE, scene, pass) {
   group.name = 'contact-shadows';
 
   const defs = [
-    { pos: pass.furniture.sofa.pos, sx: 1.08, sz: 0.55, opacity: 0.32 },
-    { pos: pass.furniture['coffee-table'].pos, sx: 0.36, sz: 0.2, opacity: 0.16 },
-    { pos: pass.furniture.rug.pos, sx: 0.9, sz: 0.56, opacity: 0.1 },
-    { pos: pass.furniture.plant.pos, sx: 0.16, sz: 0.16, opacity: 0.12 },
-    { pos: pass.furniture['floor-lamp'].pos, sx: 0.12, sz: 0.12, opacity: 0.1 },
-    { pos: pass.furniture['tv-stand'].pos, sx: 0.36, sz: 0.14, opacity: 0.12 },
+    { pos: pass.furniture.sofa.pos, sx: 1.08, sz: 0.55, opacity: 0.42 },
+    { pos: pass.furniture['coffee-table'].pos, sx: 0.36, sz: 0.2, opacity: 0.22 },
+    { pos: pass.furniture.rug.pos, sx: 0.9, sz: 0.56, opacity: 0.14 },
+    { pos: pass.furniture.plant.pos, sx: 0.16, sz: 0.16, opacity: 0.16 },
+    { pos: pass.furniture['floor-lamp'].pos, sx: 0.12, sz: 0.12, opacity: 0.14 },
+    { pos: pass.furniture['tv-stand'].pos, sx: 0.36, sz: 0.14, opacity: 0.18 },
   ];
 
   const mat = new THREE.MeshBasicMaterial({
@@ -231,11 +223,11 @@ export function addContactShadows(THREE, scene, pass) {
 const ColorGradeShader = {
   uniforms: {
     tDiffuse: { value: null },
-    warmth: { value: 0.066 },
-    saturation: { value: 0.96 },
-    contrast: { value: 0.94 },
-    lift: { value: 0.012 },
-    shadowLift: { value: 0.945 },
+    warmth: { value: 0.052 },
+    saturation: { value: 1.04 },
+    contrast: { value: 1.08 },
+    lift: { value: 0.0 },
+    shadowLift: { value: 1.08 },
   },
   vertexShader: /* glsl */`
     varying vec2 vUv;
@@ -309,29 +301,29 @@ export function applySoftVolume(scene) {
       const slot = m.name;
 
       if (slot.includes('wood') || slot === 'cabinet_shape' || slot === 'wood_shape' || slot === 'tv_bezel') {
-        m.color.setHSL(0.082, 0.1, 0.67);
-        m.roughness = 0.88;
+        m.color.setHSL(0.078, 0.14, 0.58);
+        m.roughness = 0.86;
         m.metalness = 0;
-        m.envMapIntensity = 0.17;
+        m.envMapIntensity = 0.07;
         continue;
       }
       if (slot === 'floor_plank') {
-        m.color.setHSL(0.088, 0.14, 0.78);
-        m.roughness = 0.84;
+        m.color.setHSL(0.082, 0.22, 0.56);
+        m.roughness = 0.78;
         m.metalness = 0.02;
-        m.envMapIntensity = 0.14;
+        m.envMapIntensity = 0.08;
         continue;
       }
       if (slot.startsWith('fabric') || slot === 'shade_shape' || slot === 'rug_shape') {
-        m.roughness = Math.max(m.roughness, 0.92);
-        m.envMapIntensity = Math.max(m.envMapIntensity ?? 0.08, 0.1);
+        m.roughness = Math.max(m.roughness, 0.9);
+        m.envMapIntensity = Math.min(m.envMapIntensity ?? 0.06, 0.06);
       }
     }
   });
 }
 
 export function applySceneWarmth(scene) {
-  const wrap = new THREE.Color('#fff4ea');
+  const wrap = new THREE.Color('#ffe8d0');
   scene.traverse((o) => {
     if (!o.isMesh || !o.material) return;
     if (o.parent?.name?.startsWith('story-')) return;
@@ -340,16 +332,10 @@ export function applySceneWarmth(scene) {
     for (const m of mats) {
       if (!m.isMeshStandardMaterial) continue;
       const slot = m.name;
-      const lift =
-        slot.startsWith('fabric') || slot === 'wall_shape' || slot === 'rug_shape' || slot === 'shade_shape'
-          ? 0.012
-          : slot.includes('wood') || slot === 'cabinet_shape' || slot === 'floor_plank'
-            ? 0.008
-            : 0.006;
+      if (!slot.startsWith('fabric') && slot !== 'shade_shape' && slot !== 'rug_shape') continue;
       if (!m.emissive) m.emissive = new THREE.Color();
       m.emissive.copy(wrap);
-      m.emissiveIntensity = lift;
-      m.envMapIntensity = (m.envMapIntensity ?? 0.08) * 1.08;
+      m.emissiveIntensity = 0.004;
     }
   });
 }
@@ -372,31 +358,31 @@ export function applyBondeeColorHarmony(scene) {
       const slot = m.name;
 
       if (assetId === 'sofa' || slot.startsWith('fabric')) {
-        m.color.setHSL(0.09, 0.08, 0.78);
+        m.color.setHSL(0.09, 0.1, 0.68);
         m.roughness = Math.max(m.roughness, 0.9);
         continue;
       }
       if (slot.includes('wood') || slot === 'cabinet_shape' || slot === 'tv_bezel') {
-        m.color.setHSL(0.082, 0.1, 0.67);
-        m.roughness = Math.max(m.roughness, 0.88);
+        m.color.setHSL(0.078, 0.14, 0.56);
+        m.roughness = Math.max(m.roughness, 0.86);
         continue;
       }
       if (slot === 'leaf_shape') {
-        m.color.setHSL(0.28, 0.14, 0.52);
+        m.color.setHSL(0.28, 0.16, 0.46);
         continue;
       }
       if (slot === 'tv_graybox') {
-        m.color.setHSL(0.07, 0.06, 0.42);
+        m.color.setHSL(0.07, 0.06, 0.32);
         continue;
       }
       if (slot === 'wall_shape') {
-        m.color.setHSL(0.09, 0.04, 0.94);
+        m.color.setHSL(0.09, 0.05, 0.86);
       }
       if (slot === 'floor_plank') {
-        m.color.setHSL(0.09, 0.18, 0.76);
+        m.color.setHSL(0.082, 0.2, 0.54);
       }
       if (slot === 'rug_shape') {
-        m.color.setHSL(0.09, 0.06, 0.88);
+        m.color.setHSL(0.09, 0.08, 0.78);
       }
     }
   });
@@ -407,13 +393,13 @@ export function createPolishComposer(renderer, scene, camera, width, height) {
   composer.addPass(new RenderPass(scene, camera));
 
   const ssao = new SSAOPass(scene, camera, width, height);
-  ssao.kernelRadius = 7;
+  ssao.kernelRadius = 8;
   ssao.minDistance = 0.001;
-  ssao.maxDistance = 0.055;
+  ssao.maxDistance = 0.072;
   ssao.output = SSAOPass.OUTPUT.Default;
   composer.addPass(ssao);
 
-  const bloom = new UnrealBloomPass(new THREE.Vector2(width, height), 0.056, 0.36, 0.95);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(width, height), 0.022, 0.42, 0.88);
   composer.addPass(bloom);
 
   const grade = new ShaderPass(ColorGradeShader);
@@ -587,7 +573,7 @@ function applyStoryWindow(THREE, shell) {
     new THREE.MeshBasicMaterial({
       color: 0xffe8c8,
       transparent: true,
-      opacity: 0.28,
+      opacity: 0.14,
       depthWrite: false,
     }),
   );

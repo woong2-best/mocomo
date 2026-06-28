@@ -80,11 +80,11 @@
     const panel = document.getElementById('scene-panel');
     const r = new THREE.WebGLRenderer({ canvas: cv, antialias: true, preserveDrawingBuffer: true });
     r.setPixelRatio(Math.min(devicePixelRatio, 2));
-    r.setClearColor(0xf0e8dc, 1);
+    r.setClearColor(0xe8dfd2, 1);
     r.outputColorSpace = THREE.SRGBColorSpace;
 
     const sc = new THREE.Scene();
-    sc.background = new THREE.Color(0xf0e8dc);
+    sc.background = new THREE.Color(0xe8dfd2);
     applyPolishedLighting(THREE, sc, r);
 
     const loader = new GLTFLoader();
