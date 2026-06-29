@@ -66,11 +66,17 @@ function titleForPath(pathname: string): string | null {
   if (pathname === "/premium") return "프리미엄";
   if (pathname === "/search") return "검색";
   if (pathname === "/rankings") return "랭킹";
-  if (pathname.startsWith("/live")) return "라이브";
+  if (pathname === "/events") return "이벤트";
+  if (pathname === "/events/new") return "이벤트 만들기";
+  if (pathname === "/communities") return "커뮤니티";
+  if (pathname === "/communities/new") return "커뮤니티 만들기";
+  if (pathname === "/sketch-quiz") return "스케치퀴즈";
+  if (pathname.startsWith("/play/")) return "미니게임";
+  if (pathname === "/voice") return "음성 채널";
+  if (pathname === "/star") return "STAR";
+  if (pathname === "/messages/groups/new") return "단체방 만들기";
   if (pathname.startsWith("/support")) return "후원";
   if (pathname.startsWith("/avatar")) return "아바타";
-  if (pathname.startsWith("/cosplay")) return "코스프레";
-  if (pathname.startsWith("/market")) return "마켓";
   return null;
 }
 

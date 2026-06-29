@@ -16,6 +16,7 @@ import {
 } from "@/actions/admin-flea";
 import { AdminEconomyNav } from "@/components/admin/admin-economy-nav";
 import { Button } from "@/components/ui/button";
+import { InlineConfirm } from "@/components/ui/inline-confirm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -87,6 +88,7 @@ export function AdminFleaPanel({ events: initialEvents, catalogItems }: Props) {
   const [busy, setBusy] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [npcOpen, setNpcOpen] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   const [createForm, setCreateForm] = useState({
     title: "",
@@ -152,7 +154,7 @@ export function AdminFleaPanel({ events: initialEvents, catalogItems }: Props) {
     });
     setBusy(null);
     if ("error" in res) {
-      alert(res.error);
+      setActionError(res.error ?? "오류가 발생했습니다.");
       return;
     }
     setCreateOpen(false);
@@ -182,7 +184,8 @@ export function AdminFleaPanel({ events: initialEvents, catalogItems }: Props) {
   }
 
   async function onForceEnd() {
-    if (!focusId || !confirm("이벤트를 강제 종료할까요?")) return;
+    if (!focusId) return;
+    setActionError("");
     setBusy("forceEnd");
     await adminForceEndFleaEvent(focusId);
     setBusy(null);
@@ -191,12 +194,13 @@ export function AdminFleaPanel({ events: initialEvents, catalogItems }: Props) {
   }
 
   async function onDeleteEvent() {
-    if (!focusId || !confirm("이벤트를 삭제할까요?")) return;
+    if (!focusId) return;
+    setActionError("");
     setBusy("delete");
     const res = await adminDeleteFleaEvent(focusId);
     setBusy(null);
     if ("error" in res) {
-      alert(res.error);
+      setActionError(res.error ?? "오류가 발생했습니다.");
       return;
     }
     setFocusId(null);
@@ -216,7 +220,7 @@ export function AdminFleaPanel({ events: initialEvents, catalogItems }: Props) {
     });
     setBusy(null);
     if ("error" in res) {
-      alert(res.error);
+      setActionError(res.error ?? "오류가 발생했습니다.");
       return;
     }
     setNpcOpen(false);
@@ -227,6 +231,12 @@ export function AdminFleaPanel({ events: initialEvents, catalogItems }: Props) {
   return (
     <div className="space-y-4">
       <AdminEconomyNav />
+
+      {actionError ? (
+        <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          {actionError}
+        </p>
+      ) : null}
 
       <div className="flex flex-wrap justify-between gap-2">
         <p className="text-xs text-muted-foreground self-center">
@@ -384,23 +394,34 @@ export function AdminFleaPanel({ events: initialEvents, catalogItems }: Props) {
                     >
                       <Play className="h-3 w-3" />
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={busy === "forceEnd"}
-                      onClick={() => void onForceEnd()}
-                      title="강제 종료"
-                    >
-                      <Square className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      disabled={busy === "delete"}
-                      onClick={() => void onDeleteEvent()}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
+                    <InlineConfirm
+                      message="이벤트를 강제 종료할까요?"
+                      confirmLabel="종료"
+                      pending={busy === "forceEnd"}
+                      onConfirm={() => void onForceEnd()}
+                      renderTrigger={(request) => (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={busy === "forceEnd"}
+                          onClick={request}
+                          title="강제 종료"
+                        >
+                          <Square className="h-3 w-3" />
+                        </Button>
+                      )}
+                    />
+                    <InlineConfirm
+                      message="이벤트를 삭제할까요?"
+                      confirmLabel="삭제"
+                      pending={busy === "delete"}
+                      onConfirm={() => void onDeleteEvent()}
+                      renderTrigger={(request) => (
+                        <Button size="sm" variant="destructive" disabled={busy === "delete"} onClick={request}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
+                    />
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
@@ -602,19 +623,21 @@ export function AdminFleaPanel({ events: initialEvents, catalogItems }: Props) {
                             });
                           }}
                         />
-                        <button
-                          type="button"
-                          className="text-rose-500"
-                          onClick={() => {
-                            if (!confirm("삭제할까요?")) return;
+                        <InlineConfirm
+                          message="삭제할까요?"
+                          confirmLabel="삭제"
+                          onConfirm={() => {
                             void adminDeleteFleaNpcOffer(npc.id).then(() => {
                               void loadDetail(focusId!);
                               router.refresh();
                             });
                           }}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
+                          renderTrigger={(request) => (
+                            <button type="button" className="text-rose-500" onClick={request}>
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          )}
+                        />
                       </div>
                     ))
                   ) : (

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronLeft, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EventCreateForm } from "@/components/events/event-create-form";
+import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { isPaymentsConfigured } from "@/lib/payments";
@@ -21,7 +22,8 @@ export default async function NewEventPage({
   const paidSuccess = paid === "1" && !!eventId;
 
   return (
-    <div className="max-w-2xl mx-auto p-4 space-y-6">
+    <AppPageChrome spacing="sm">
+      <NativePageTitle>
       <div>
         <Link href="/events">
           <Button variant="ghost" size="sm" className="gap-1 -ml-2 mb-2">
@@ -38,11 +40,12 @@ export default async function NewEventPage({
           {EVENT_REGISTRATION_FEE_KRW.toLocaleString()}원을 결제하면 목록에 공개됩니다.
         </p>
       </div>
+      </NativePageTitle>
 
       <EventCreateForm
         paymentsEnabled={isPaymentsConfigured()}
         paidEventId={paidSuccess ? eventId : null}
       />
-    </div>
+    </AppPageChrome>
   );
 }

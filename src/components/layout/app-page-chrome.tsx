@@ -7,8 +7,20 @@ const MAX_WIDTH = {
   lg: "max-w-lg",
   "2xl": "max-w-2xl",
   "3xl": "max-w-3xl",
+  "4xl": "max-w-4xl",
   "5xl": "max-w-5xl",
 } as const;
+
+export function NativePageTitle({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const { isNativeApp } = useClientPlatform();
+  return <div className={cn(isNativeApp && "sr-only", className)}>{children}</div>;
+}
 
 export function AppPageChrome({
   children,

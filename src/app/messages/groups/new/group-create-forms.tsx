@@ -7,9 +7,12 @@ import { createCosplayerGroupRoom, createSocialGroupRoom } from "@/actions/group
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronLeft, Copy, Shield, Users } from "lucide-react";
+import { useClientPlatform } from "@/components/providers/client-platform-provider";
+import { cn } from "@/lib/utils";
 
 export function GroupCreateForms({ isCosplayer }: { isCosplayer: boolean }) {
   const router = useRouter();
+  const { isNativeApp } = useClientPlatform();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [created, setCreated] = useState<{
@@ -76,7 +79,7 @@ export function GroupCreateForms({ isCosplayer }: { isCosplayer: boolean }) {
         : `/messages/join?room=${created.roomId}`;
 
     return (
-      <div className="flex-1 overflow-y-auto p-4 max-w-lg mx-auto w-full space-y-4">
+      <div className={cn("flex-1 overflow-y-auto p-4 max-w-lg mx-auto w-full space-y-4", isNativeApp && "pb-native-fab")}>
         <h1 className="text-xl font-bold text-center">단체방이 만들어졌어요</h1>
         {created.joinCode ? (
           <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-center space-y-2">
@@ -135,12 +138,16 @@ export function GroupCreateForms({ isCosplayer }: { isCosplayer: boolean }) {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 max-w-lg mx-auto w-full space-y-6">
+    <div className={cn("flex-1 overflow-y-auto p-4 max-w-lg mx-auto w-full space-y-6", isNativeApp && "pb-native-fab")}>
       <header className="flex items-center gap-2">
         <Link href="/messages/new" className="p-2 rounded-full hover:bg-muted/80">
           <ChevronLeft className="h-5 w-5" />
         </Link>
-        <h1 className="font-bold text-lg">단체대화방 만들기</h1>
+        {!isNativeApp ? (
+          <h1 className="font-bold text-lg">단체대화방 만들기</h1>
+        ) : (
+          <h1 className="sr-only">단체대화방 만들기</h1>
+        )}
       </header>
 
       {isCosplayer ? (

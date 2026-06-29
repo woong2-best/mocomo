@@ -12,6 +12,7 @@ import {
 import { AdminEconomyNav } from "@/components/admin/admin-economy-nav";
 import { GoldShopOfferPreview } from "@/components/admin/gold-shop-offer-preview";
 import { Button } from "@/components/ui/button";
+import { InlineConfirm } from "@/components/ui/inline-confirm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -88,6 +89,7 @@ export function AdminGoldShopPanel({ offers: initialOffers, catalogItems }: Prop
   const [busy, setBusy] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState<"dates" | "price" | null>(null);
+  const [actionError, setActionError] = useState("");
   const [bulkDates, setBulkDates] = useState({ startsAt: "", endsAt: "" });
   const [bulkPercent, setBulkPercent] = useState("-10");
 
@@ -168,10 +170,6 @@ export function AdminGoldShopPanel({ offers: initialOffers, catalogItems }: Prop
     const ids = [...selectedIds];
     if (!ids.length) return;
     setBusy(`bulk:${type}`);
-  if (type === "delete" && !confirm(`${ids.length}개 상품을 삭제할까요?`)) {
-      setBusy(null);
-      return;
-    }
     await adminBulkGoldShopAction(ids, { type, ...extra } as Parameters<
       typeof adminBulkGoldShopAction
     >[1]);
@@ -197,7 +195,7 @@ export function AdminGoldShopPanel({ offers: initialOffers, catalogItems }: Prop
     });
     setBusy(null);
     if ("error" in res) {
-      alert(res.error);
+      setActionError(res.error ?? "오류가 발생했습니다.");
       return;
     }
     setCreateOpen(false);
@@ -231,6 +229,12 @@ export function AdminGoldShopPanel({ offers: initialOffers, catalogItems }: Prop
     <div className="space-y-4">
       <AdminEconomyNav />
 
+      {actionError ? (
+        <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          {actionError}
+        </p>
+      ) : null}
+
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap gap-2">
           {selectedIds.size > 0 && (
@@ -256,15 +260,18 @@ export function AdminGoldShopPanel({ offers: initialOffers, catalogItems }: Prop
               <Button size="sm" variant="outline" disabled={!!busy} onClick={() => setBulkOpen("price")}>
                 가격(%)
               </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                disabled={!!busy}
-                onClick={() => runBulk("delete")}
-              >
-                <Trash2 className="h-3 w-3 mr-1" />
-                삭제
-              </Button>
+              <InlineConfirm
+                message={`${selectedIds.size}개 상품을 삭제할까요?`}
+                confirmLabel="삭제"
+                pending={busy === "bulk:delete"}
+                onConfirm={() => void runBulk("delete")}
+                renderTrigger={(request) => (
+                  <Button size="sm" variant="destructive" disabled={!!busy} onClick={request}>
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    삭제
+                  </Button>
+                )}
+              />
             </>
           )}
         </div>

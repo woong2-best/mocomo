@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Mic, Users } from "lucide-react";
 import { getCachedVoiceChannels } from "@/lib/cached-data";
+import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export const revalidate = 30;
 
@@ -17,12 +18,14 @@ export default async function VoicePage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-4 space-y-6">
+    <AppPageChrome maxWidth="3xl">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Mic className="h-6 w-6 text-neon-purple" />
-          음성 채널
-        </h1>
+        <NativePageTitle>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Mic className="h-6 w-6 text-neon-purple" />
+            음성 채널
+          </h1>
+        </NativePageTitle>
         <Link href="/voice/new">
           <Button size="sm">방 만들기</Button>
         </Link>
@@ -54,6 +57,6 @@ export default async function VoicePage() {
           ))
         )}
       </div>
-    </div>
+    </AppPageChrome>
   );
 }

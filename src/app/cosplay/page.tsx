@@ -5,6 +5,7 @@ import {
 } from "@/actions/cosplay-board";
 import { parseCosplayBoardMode } from "@/lib/cosplay-board-data";
 import { CosplayBoard } from "@/components/cosplay/cosplay-board";
+import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { RouteLoading } from "@/components/ui/route-loading";
 
 export const revalidate = 30;
@@ -41,10 +42,10 @@ export default function CosplayPage({
   searchParams: Promise<{ mode?: string; page?: string }>;
 }) {
   return (
-    <div className="max-w-4xl mx-auto p-4 pb-8">
+    <AppPageChrome maxWidth="4xl" spacing="sm">
       <Suspense fallback={<RouteLoading />}>
         <CosplayBoardContent searchParams={searchParams} />
       </Suspense>
-    </div>
+    </AppPageChrome>
   );
 }

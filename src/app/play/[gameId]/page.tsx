@@ -1,4 +1,5 @@
 import { PlayHubClient } from "@/components/minigames/play-hub-client";
+import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { getMinigameById } from "@/lib/minigames/registry";
 import { notFound } from "next/navigation";
 
@@ -14,8 +15,8 @@ export default async function PlayGamePage({ params }: Props) {
   const { gameId } = await params;
   if (!getMinigameById(gameId)) notFound();
   return (
-    <div className="max-w-3xl mx-auto p-4 py-8">
+    <AppPageChrome maxWidth="3xl" spacing="sm">
       <PlayHubClient gameId={gameId} />
-    </div>
+    </AppPageChrome>
   );
 }

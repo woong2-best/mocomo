@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { NativePageTitle } from "@/components/layout/app-page-chrome";
 import { GamePlayModeTabs } from "@/components/games/game-play-mode-tabs";
 import {
   saveGameCreateOptions,
@@ -86,7 +87,9 @@ export function SketchQuizHubClient() {
         <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-folk-terracotta/15 border-2 border-folk-cobalt/20">
           <PencilLine className="h-7 w-7 text-folk-terracotta" />
         </div>
-        <h1 className="text-2xl font-display font-bold">스케치퀴즈</h1>
+        <NativePageTitle>
+          <h1 className="text-2xl font-display font-bold">스케치퀴즈</h1>
+        </NativePageTitle>
         <p className="text-muted-foreground text-sm leading-relaxed">
           친구·팔로워와 비밀번호 방으로 하거나, 랜덤 매칭으로 모르는 유저와 즐길 수 있습니다.
         </p>

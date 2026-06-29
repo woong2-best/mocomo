@@ -1,4 +1,5 @@
 import { SketchQuizHubClient } from "@/components/sketch-quiz/sketch-quiz-hub-client";
+import { AppPageChrome } from "@/components/layout/app-page-chrome";
 
 export const metadata = {
   title: "스케치퀴즈 | MoCoMo",
@@ -7,8 +8,8 @@ export const metadata = {
 
 export default function SketchQuizPage() {
   return (
-    <div className="max-w-3xl mx-auto p-4 py-8">
+    <AppPageChrome maxWidth="3xl" spacing="sm">
       <SketchQuizHubClient />
-    </div>
+    </AppPageChrome>
   );
 }

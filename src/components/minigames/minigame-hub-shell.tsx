@@ -8,6 +8,7 @@ import { KeyRound, Loader2, LogIn, PlusCircle, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { NativePageTitle } from "@/components/layout/app-page-chrome";
 import { GamePlayModeTabs } from "@/components/games/game-play-mode-tabs";
 import {
   saveGameCreateOptions,
@@ -110,7 +111,9 @@ export function MinigameHubShell({
         <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-folk-terracotta/15 border-2 border-folk-cobalt/20">
           <Icon className="h-7 w-7 text-folk-terracotta" />
         </div>
-        <h1 className="text-2xl font-display font-bold">{title}</h1>
+        <NativePageTitle>
+          <h1 className="text-2xl font-display font-bold">{title}</h1>
+        </NativePageTitle>
         <p className="text-muted-foreground text-sm leading-relaxed max-w-lg mx-auto">{description}</p>
       </div>
 

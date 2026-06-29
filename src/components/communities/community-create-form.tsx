@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft, Loader2 } from "lucide-react";
 
-export function CommunityCreateForm() {
+export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -56,7 +56,7 @@ export function CommunityCreateForm() {
   }
 
   return (
-    <div className="max-w-lg mx-auto p-4 pb-8">
+    <div className={embedded ? undefined : "max-w-lg mx-auto p-4 pb-8"}>
       <Link
         href="/communities"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"

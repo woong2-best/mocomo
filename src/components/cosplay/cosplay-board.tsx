@@ -14,6 +14,7 @@ import {
 } from "@/lib/cosplay-board-data";
 import { Button } from "@/components/ui/button";
 import { DbSetupBanner } from "@/components/ui/db-setup-banner";
+import { NativePageTitle } from "@/components/layout/app-page-chrome";
 
 const MODES: { id: CosplayBoardMode; label: string }[] = [
   { id: "rental", label: "코스프레 대여" },
@@ -116,15 +117,15 @@ export function CosplayBoard({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold flex items-center gap-2 text-folk-cobalt">
-            <Camera className="h-5 w-5 text-pink-500" />
-            코스프레 마켓
-          </h1>
-          <p className="text-xs text-muted-foreground mt-1">
-            대여·구매 게시판
-          </p>
-        </div>
+        <NativePageTitle>
+          <div>
+            <h1 className="text-xl font-bold flex items-center gap-2 text-folk-cobalt">
+              <Camera className="h-5 w-5 text-pink-500" />
+              코스프레 마켓
+            </h1>
+            <p className="text-xs text-muted-foreground mt-1">대여·구매 게시판</p>
+          </div>
+        </NativePageTitle>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" className="rounded-lg gap-1.5 text-xs" asChild>
             <Link href="/cosplay/profiles">

@@ -1,17 +1,20 @@
 import { Suspense } from "react";
 import { Trophy } from "lucide-react";
 import { RankingsContentAsync } from "@/components/rankings/rankings-content-async";
+import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 import { CardRowsSkeleton } from "@/components/ui/content-skeletons";
 
 export const revalidate = 120;
 
 export default function RankingsPage() {
   return (
-    <div className="max-w-3xl mx-auto p-4 space-y-6">
-      <h1 className="text-2xl font-bold flex items-center gap-2">
-        <Trophy className="h-6 w-6 text-yellow-400" />
-        랭킹
-      </h1>
+    <AppPageChrome maxWidth="3xl">
+      <NativePageTitle>
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <Trophy className="h-6 w-6 text-yellow-400" />
+          랭킹
+        </h1>
+      </NativePageTitle>
 
       <Suspense
         fallback={
@@ -23,6 +26,6 @@ export default function RankingsPage() {
       >
         <RankingsContentAsync />
       </Suspense>
-    </div>
+    </AppPageChrome>
   );
 }
