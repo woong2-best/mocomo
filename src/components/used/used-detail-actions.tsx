@@ -27,6 +27,7 @@ export function UsedDetailActions({
   const router = useRouter();
   const [favorited, setFavorited] = useState(initialFavorited);
   const [busy, setBusy] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   async function toggleFav() {
     if (!isLoggedIn) {
@@ -45,7 +46,11 @@ export function UsedDetailActions({
   }
 
   async function remove() {
-    if (!confirm("글을 삭제할까요?")) return;
+    setConfirmDelete(true);
+  }
+
+  async function confirmRemove() {
+    setBusy(true);
     await deleteUsedListing(listingId);
     router.push("/used/my");
   }
@@ -86,9 +91,29 @@ export function UsedDetailActions({
             </button>
           )}
         </div>
-        <button type="button" onClick={remove} className="w-full text-xs text-destructive py-2">
-          글 삭제
-        </button>
+        {confirmDelete ? (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 space-y-2">
+            <p className="text-xs text-destructive">글을 삭제할까요? 되돌릴 수 없습니다.</p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                disabled={busy}
+                onClick={() => void confirmRemove()}
+              >
+                삭제
+              </Button>
+              <Button type="button" size="sm" variant="outline" onClick={() => setConfirmDelete(false)}>
+                취소
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <button type="button" onClick={remove} className="w-full text-xs text-destructive py-2">
+            글 삭제
+          </button>
+        )}
       </div>
     );
   }

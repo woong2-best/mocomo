@@ -52,15 +52,22 @@ export function GamesHubClient({
         </button>
       )}
       <div className="space-y-3">
-        <FolkSectionTitle icon="sun" className="flex items-center gap-2">
-          <Gamepad2 className="h-6 w-6 text-folk-terracotta" />
-          미니게임
-        </FolkSectionTitle>
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          앱 안에서 다른 유저와 실시간으로 플레이합니다. 랜덤 매칭 · 친구 초대 · 방 코드 ·
-          관전 · 랭킹 · 리플레이를 게임별로 순차 지원합니다.
-        </p>
-        <div className="flex flex-wrap gap-2 text-xs">
+        {!embedded && (
+          <FolkSectionTitle
+            icon="sun"
+            className={cn("flex items-center gap-2", isNativeApp && "sr-only")}
+          >
+            <Gamepad2 className="h-6 w-6 text-folk-terracotta" />
+            미니게임
+          </FolkSectionTitle>
+        )}
+        {!embedded && (
+          <>
+            <p className={cn("text-sm text-muted-foreground leading-relaxed", isNativeApp && "sr-only")}>
+              앱 안에서 다른 유저와 실시간으로 플레이합니다. 랜덤 매칭 · 친구 초대 · 방 코드 ·
+              관전 · 랭킹 · 리플레이를 게임별로 순차 지원합니다.
+            </p>
+            <div className="flex flex-wrap gap-2 text-xs">
           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 text-emerald-700 px-2.5 py-1 font-medium">
             <Radio className="h-3 w-3" />
             플레이 가능 {liveCount}
@@ -102,8 +109,10 @@ export function GamesHubClient({
             className="inline-flex items-center gap-1 rounded-full bg-folk-gold/20 text-folk-cobalt px-2.5 py-1 hover:bg-folk-gold/30 transition-colors"
           >
             업적
-          </Link>
-        </div>
+            </Link>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-1.5">

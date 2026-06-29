@@ -38,6 +38,8 @@ export function PlayRoomClient({
   const username =
     session?.user?.name || session?.user?.username || session?.user?.email || "플레이어";
   const [joinPassword, setJoinPassword] = useState("");
+  const [confirmClose, setConfirmClose] = useState(false);
+  const [closeError, setCloseError] = useState("");
   const route = getMinigameRoute(gameId);
   const goToHub = () => router.push(route);
 
@@ -80,9 +82,13 @@ export function PlayRoomClient({
   }
 
   async function handleCloseRoom() {
-    if (!window.confirm("방을 닫으면 모든 플레이어가 퇴장합니다. 계속할까요?")) return;
+    setCloseError("");
     const ok = await closeRoom();
     if (ok) goToHub();
+    else {
+      setConfirmClose(false);
+      setCloseError("방을 닫지 못했습니다.");
+    }
   }
 
   if (!session?.user) {
@@ -173,17 +179,38 @@ export function PlayRoomClient({
       )}
 
       {state?.status === "lobby" && !isSpectator && (
-        <MinigameLobbyPanel
-          state={state}
-          joined={joined}
-          error={error}
-          userId={userId}
-          isHost={isHost}
-          onReady={(r) => void setReady(r)}
-          onStart={() => void startGame()}
-          onLeave={handleLeave}
-          onCloseRoom={isHost ? handleCloseRoom : undefined}
-        />
+        <>
+          {confirmClose && (
+            <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 space-y-2">
+              <p className="text-sm">방을 닫으면 모든 플레이어가 퇴장합니다. 계속할까요?</p>
+              {closeError && <p className="text-xs text-destructive">{closeError}</p>}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => void handleCloseRoom()}
+                >
+                  방 닫기
+                </Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => setConfirmClose(false)}>
+                  취소
+                </Button>
+              </div>
+            </div>
+          )}
+          <MinigameLobbyPanel
+            state={state}
+            joined={joined}
+            error={error}
+            userId={userId}
+            isHost={isHost}
+            onReady={(r) => void setReady(r)}
+            onStart={() => void startGame()}
+            onLeave={handleLeave}
+            onCloseRoom={isHost ? () => setConfirmClose(true) : undefined}
+          />
+        </>
       )}
 
       {(state?.status === "playing" || state?.status === "finished") && (

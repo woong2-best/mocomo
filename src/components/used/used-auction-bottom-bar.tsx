@@ -57,6 +57,7 @@ export function UsedAuctionBottomBar({
     null
   );
   const [barError, setBarError] = useState("");
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   async function toggleFav() {
     if (!isLoggedIn) {
@@ -109,8 +110,12 @@ export function UsedAuctionBottomBar({
   }
 
   async function cancelAuction() {
-    if (!confirm("입찰 없는 경매만 취소할 수 있습니다. 취소할까요?")) return;
+    setConfirmCancel(true);
+  }
+
+  async function confirmCancelAuction() {
     setLoading(true);
+    setConfirmCancel(false);
     const res = await cancelUsedAuction(listingId);
     setLoading(false);
     if ("error" in res && res.error) setBarError(res.error);
@@ -122,7 +127,25 @@ export function UsedAuctionBottomBar({
       <div className="used-action-bar border-t bg-background z-20 space-y-2">
         {barError && <p className="px-3 pt-2 text-xs text-destructive text-center">{barError}</p>}
         <div className="p-3 pb-safe space-y-2">
-        {auctionLive && (
+        {confirmCancel ? (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 space-y-2">
+            <p className="text-xs text-destructive">입찰 없는 경매만 취소할 수 있습니다. 취소할까요?</p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                disabled={loading}
+                onClick={() => void confirmCancelAuction()}
+              >
+                취소하기
+              </Button>
+              <Button type="button" size="sm" variant="outline" onClick={() => setConfirmCancel(false)}>
+                닫기
+              </Button>
+            </div>
+          </div>
+        ) : auctionLive ? (
           <Button
             type="button"
             variant="outline"
@@ -133,7 +156,7 @@ export function UsedAuctionBottomBar({
           >
             경매 취소 (입찰 없을 때)
           </Button>
-        )}
+        ) : null}
         <Button
           type="button"
           variant="secondary"

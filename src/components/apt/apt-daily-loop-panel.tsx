@@ -46,6 +46,9 @@ export function AptDailyLoopPanel({
   className?: string;
 }) {
   const [pending, setPending] = useState<string | null>(null);
+  const [cohabFeedback, setCohabFeedback] = useState<{ kind: "error" | "success"; message: string } | null>(
+    null
+  );
 
   if (error && !feed) {
     return (
@@ -126,13 +129,17 @@ export function AptDailyLoopPanel({
       return;
     }
     setPending(`cohab-${userId}`);
+    setCohabFeedback(null);
     try {
       const result = await requestAptCohabitation(userId);
       if ("error" in result && result.error) {
-        window.alert(result.error);
+        setCohabFeedback({ kind: "error", message: result.error });
         return;
       }
-      window.alert("동거 신청을 보냈습니다. 집주인이 알림창에서 수락할 수 있습니다.");
+      setCohabFeedback({
+        kind: "success",
+        message: "동거 신청을 보냈습니다. 집주인이 알림창에서 수락할 수 있습니다.",
+      });
       onRefresh?.();
     } finally {
       setPending(null);
@@ -151,6 +158,20 @@ export function AptDailyLoopPanel({
         <span className="font-bold text-white">APT Daily</span>
         <span className="ml-auto text-[10px] text-white/45">{daily.dateKey}</span>
       </div>
+
+      {cohabFeedback ? (
+        <p
+          className={cn(
+            "rounded-lg px-2 py-1.5 text-[10px] font-medium",
+            cohabFeedback.kind === "error"
+              ? "border border-red-400/40 bg-red-500/15 text-red-100"
+              : "border border-emerald-400/40 bg-emerald-500/15 text-emerald-100"
+          )}
+          role="alert"
+        >
+          {cohabFeedback.message}
+        </p>
+      ) : null}
 
       {daily.todayHome && (
         <section className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-2.5 space-y-1.5">

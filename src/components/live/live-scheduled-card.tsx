@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Calendar, Radio } from "lucide-react";
 import { startScheduledLiveStream } from "@/actions/live-stream";
@@ -26,12 +26,14 @@ export function LiveScheduledCard({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState("");
 
   function goLive() {
+    setError("");
     startTransition(async () => {
       const res = await startScheduledLiveStream(id);
       if ("error" in res && res.error) {
-        alert(res.error);
+        setError(res.error);
         return;
       }
       if (res.joinPassword) {
@@ -52,6 +54,11 @@ export function LiveScheduledCard({
         <LiveModeBadge broadcastMode={broadcastMode} compact />
         <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted">{liveCategoryLabel(category)}</span>
       </div>
+      {error ? (
+        <p className="text-xs text-destructive mt-2" role="alert">
+          {error}
+        </p>
+      ) : null}
       {isOwner ? (
         <Button size="sm" className="w-full rounded-xl gap-1 mt-2" onClick={goLive} disabled={pending}>
           <Radio className="h-3.5 w-3.5" />

@@ -1,4 +1,5 @@
 import { PlayRoomClient } from "@/components/minigames/play-room-client";
+import { GameRoomPageShell } from "@/components/minigames/game-room-page-shell";
 import { getMinigameById } from "@/lib/minigames/registry";
 import { isValidRoomCode } from "@/lib/sketch-quiz-words";
 import { notFound } from "next/navigation";
@@ -18,8 +19,8 @@ export default async function PlayRoomPage({ params, searchParams }: Props) {
     spectate === "1" ? "spectate" : create === "1" ? "create" : join === "1" ? "join" : "join";
 
   return (
-    <div className="max-w-5xl mx-auto p-4 py-6">
+    <GameRoomPageShell>
       <PlayRoomClient gameId={gameId} roomId={code} mode={mode} />
-    </div>
+    </GameRoomPageShell>
   );
 }

@@ -57,6 +57,7 @@ export function AptHouseView({ profile }: { profile: AptProfileDto }) {
   const [pieceCount, setPieceCount] = useState(initialBuild.pieces.length);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [visitError, setVisitError] = useState("");
 
   const onBuildChange = useCallback((state: HouseBuildState) => {
     latestBuild.current = state;
@@ -85,10 +86,11 @@ export function AptHouseView({ profile }: { profile: AptProfileDto }) {
 
   const handleVisit = async (home: PublicHomeDto) => {
     setVisitLoading(true);
+    setVisitError("");
     try {
       const fresh = await getPublicHome(home.userId);
       if (!fresh) {
-        window.alert("현관문이 닫혀 있어 이 집을 구경할 수 없습니다.");
+        setVisitError("현관문이 닫혀 있어 이 집을 구경할 수 없습니다.");
         return;
       }
       setVisiting(fresh);
@@ -138,6 +140,11 @@ export function AptHouseView({ profile }: { profile: AptProfileDto }) {
         />
 
         <div className="border-t lg:border-t-0 lg:border-l border-[hsl(var(--folk-cobalt)/0.12)] p-3 space-y-3 bg-[hsl(var(--folk-cream)/0.25)]">
+          {visitError ? (
+            <p className="text-xs text-destructive rounded-lg border border-destructive/30 bg-destructive/5 px-2 py-1.5" role="alert">
+              {visitError}
+            </p>
+          ) : null}
           <AptWorldVisitorsPanel
             lat={lat}
             lng={lng}

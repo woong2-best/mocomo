@@ -3,12 +3,16 @@
 import Link from "next/link";
 import { Tags } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useClientPlatform } from "@/components/providers/client-platform-provider";
+import { cn } from "@/lib/utils";
 
 /** 서버 컴포넌트 — 탭 링크 prefetch로 전환 가속 */
 export function UsedSectionHeader() {
+  const { isNativeApp } = useClientPlatform();
+
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-      <div className="min-w-0">
+      <div className={cn("min-w-0", isNativeApp && "sr-only")}>
         <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
           <Tags className="h-6 w-6 sm:h-7 sm:w-7 text-muted-foreground shrink-0" />
           <span className="truncate">중고거래</span>

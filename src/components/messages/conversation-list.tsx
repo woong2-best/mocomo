@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { MessageCircle, PenSquare } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -5,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import type { SupportTierLevel } from "@prisma/client";
 import { getConversationMeta, formatChatListTime } from "@/lib/chat-display";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
+import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { cn } from "@/lib/utils";
 
 type Room = {
@@ -39,6 +42,8 @@ export function ConversationList({
   activeRoomId?: string;
   className?: string;
 }) {
+  const { isNativeApp } = useClientPlatform();
+
   return (
     <aside
       className={cn(
@@ -47,17 +52,22 @@ export function ConversationList({
       )}
     >
       <div className="px-4 py-3 border-b border-border/60 flex items-center justify-between gap-2 shrink-0">
-        <h1 className="font-bold text-lg tracking-tight">메시지</h1>
-        <Button asChild size="icon" variant="ghost" className="rounded-full h-9 w-9 shrink-0">
+        {!isNativeApp && <h1 className="font-bold text-lg tracking-tight">메시지</h1>}
+        <Button
+          asChild
+          size="icon"
+          variant="ghost"
+          className={cn("rounded-full h-9 w-9 shrink-0", isNativeApp && "ml-auto")}
+        >
           <Link href="/messages/new" aria-label="새 메시지">
             <PenSquare className="h-5 w-5" />
           </Link>
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto min-h-0">
+      <div className={cn("flex-1 overflow-y-auto min-h-0", isNativeApp && "pb-native-fab")}>
         {rooms.length === 0 ? (
-          <div className="p-8 text-center space-y-4">
+          <div className={cn("p-8 text-center space-y-4", isNativeApp && "pb-native-fab")}>
             <div className="mx-auto h-14 w-14 rounded-full bg-muted flex items-center justify-center">
               <MessageCircle className="h-7 w-7 text-muted-foreground" />
             </div>

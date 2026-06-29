@@ -9,7 +9,7 @@ export function DiscoverMatchesChrome({ children }: { children: React.ReactNode 
   const { isNativeApp } = useClientPlatform();
 
   return (
-    <div className={cn("min-h-[calc(100dvh-var(--header-h))]", isNativeApp ? "pb-native-nav lg:pb-4" : "pb-nav lg:pb-4")}>
+    <div className={cn("min-h-[calc(100dvh-var(--header-h))]", isNativeApp ? "pb-native-fab lg:pb-4" : "pb-nav lg:pb-4")}>
       {!isNativeApp && (
         <header className="sticky top-0 z-20 border-b bg-background/90 backdrop-blur-md">
           <div className="max-w-lg mx-auto flex items-center gap-3 px-4 py-3">

@@ -19,12 +19,14 @@ import {
 import type { DiscoverySettings } from "@/lib/discovery/types";
 import { cn } from "@/lib/utils";
 import { getCurrentCoords, geolocationErrorMessage } from "@/lib/client-geolocation";
+import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { MapPin, Shield, Sparkles } from "lucide-react";
 
 const GENDERS = Object.keys(DISCOVERY_GENDER_LABELS) as DiscoveryGender[];
 
 export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings }) {
   const router = useRouter();
+  const { isNativeApp } = useClientPlatform();
   const [enabled, setEnabled] = useState(initial.enabled);
   const [gender, setGender] = useState(initial.gender);
   const [showGender, setShowGender] = useState(initial.showGender);
@@ -125,7 +127,13 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
   }
 
   return (
-    <form onSubmit={(e) => void handleSave(e)} className="max-w-lg mx-auto p-4 pb-24 space-y-4">
+    <form
+      onSubmit={(e) => void handleSave(e)}
+      className={cn(
+        "max-w-lg mx-auto p-4 space-y-4",
+        isNativeApp ? "pb-native-fab" : "pb-24 lg:pb-6"
+      )}
+    >
       <Link href="/discover" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
         ← 매칭
       </Link>

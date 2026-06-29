@@ -28,6 +28,7 @@ export function UsedAuctionBidSheet({
   const [amount, setAmount] = useState(String(minBid));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [confirmBuyNow, setConfirmBuyNow] = useState(false);
 
   async function submitBid(bidAmount: number) {
     setBusy(true);
@@ -52,9 +53,9 @@ export function UsedAuctionBidSheet({
 
   async function buyNow() {
     if (!buyNowPrice) return;
-    if (!confirm(`${formatUsedPrice(buyNowPrice)}에 즉시구매하시겠습니까?`)) return;
     setBusy(true);
     setError("");
+    setConfirmBuyNow(false);
     const res = await buyNowUsedAuction(listingId);
     setBusy(false);
     if ("error" in res && res.error) {
@@ -144,16 +145,44 @@ export function UsedAuctionBidSheet({
             </Button>
 
             {buyNowPrice != null && buyNowPrice > 0 && (
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full h-12 rounded-xl font-semibold gap-2 border-amber-500/50"
-                disabled={busy}
-                onClick={() => void buyNow()}
-              >
-                <Zap className="h-5 w-5 text-amber-500" />
-                즉시구매 {formatUsedPrice(buyNowPrice)}
-              </Button>
+              confirmBuyNow ? (
+                <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-3 space-y-2">
+                  <p className="text-sm font-medium">
+                    {formatUsedPrice(buyNowPrice)}에 즉시구매하시겠습니까?
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      className="flex-1 h-10 rounded-xl font-semibold gap-2 bg-amber-600 hover:bg-amber-700"
+                      disabled={busy}
+                      onClick={() => void buyNow()}
+                    >
+                      <Zap className="h-4 w-4" />
+                      즉시구매
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-10 rounded-xl"
+                      disabled={busy}
+                      onClick={() => setConfirmBuyNow(false)}
+                    >
+                      취소
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full h-12 rounded-xl font-semibold gap-2 border-amber-500/50"
+                  disabled={busy}
+                  onClick={() => setConfirmBuyNow(true)}
+                >
+                  <Zap className="h-5 w-5 text-amber-500" />
+                  즉시구매 {formatUsedPrice(buyNowPrice)}
+                </Button>
+              )
             )}
 
             <button

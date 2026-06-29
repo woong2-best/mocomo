@@ -67,16 +67,21 @@ export function SketchQuizRoomClient({ roomId, mode }: SketchQuizRoomClientProps
   }
 
   async function handleCloseRoom() {
-    if (!window.confirm("방을 닫으면 모든 플레이어가 퇴장합니다. 계속할까요?")) return;
+    setActionError("");
     const res = await closeRoom();
     if (res.ok) goToHub();
-    else if (res.error) alert(res.error);
+    else {
+      setConfirmClose(false);
+      setActionError(res.error ?? "방을 닫지 못했습니다.");
+    }
   }
 
   const [guess, setGuess] = useState("");
   const [starting, setStarting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [joinPassword, setJoinPassword] = useState("");
+  const [confirmClose, setConfirmClose] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   const inviteUrl =
     typeof window !== "undefined"
@@ -85,8 +90,9 @@ export function SketchQuizRoomClient({ roomId, mode }: SketchQuizRoomClientProps
 
   async function handleStart() {
     setStarting(true);
+    setActionError("");
     const res = await startGame();
-    if (!res.ok) alert(res.error ?? "시작 실패");
+    if (!res.ok) setActionError(res.error ?? "시작 실패");
     setStarting(false);
   }
 
@@ -205,16 +211,40 @@ export function SketchQuizRoomClient({ roomId, mode }: SketchQuizRoomClientProps
             나가기
           </Button>
           {isHost && inLobby && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="rounded-xl gap-1.5 text-destructive border-destructive/40 hover:bg-destructive/10"
-              onClick={handleCloseRoom}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              방 닫기
-            </Button>
+            confirmClose ? (
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2">
+                <p className="text-xs text-destructive">방을 닫으면 모든 플레이어가 퇴장합니다.</p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  className="rounded-lg h-8"
+                  onClick={() => void handleCloseRoom()}
+                >
+                  방 닫기
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="rounded-lg h-8"
+                  onClick={() => setConfirmClose(false)}
+                >
+                  취소
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-xl gap-1.5 text-destructive border-destructive/40 hover:bg-destructive/10"
+                onClick={() => setConfirmClose(true)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                방 닫기
+              </Button>
+            )
           )}
           {isHost && inLobby && (
             <Button
@@ -234,6 +264,12 @@ export function SketchQuizRoomClient({ roomId, mode }: SketchQuizRoomClientProps
           )}
         </div>
       </div>
+
+      {actionError ? (
+        <p className="text-sm text-destructive rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2" role="alert">
+          {actionError}
+        </p>
+      ) : null}
 
       <div className="grid lg:grid-cols-[1fr_17rem] gap-4">
         <div className="space-y-4 min-w-0">
