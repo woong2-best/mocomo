@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { mainNavItems } from "@/lib/nav-items";
 import { buildAptMailboxUrl } from "@/lib/apt/mailbox-compose-route";
+import { APT_GAME_PATH } from "@/lib/site-routes";
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
@@ -61,11 +62,11 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
           <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 space-y-1">
             {items.map(({ href, icon: Icon, labelKey }) => {
               const active =
-                href.startsWith("/apt")
-                  ? pathname.startsWith("/apt")
+                href.includes("decor=mailbox") || href.startsWith("/apt")
+                  ? pathname === APT_GAME_PATH || pathname.startsWith("/apt")
                   : isNavItemActive(pathname, href, navHrefs);
 
-              if (href.startsWith("/apt")) {
+              if (href.includes("decor=mailbox") || href.startsWith("/apt")) {
                 return (
                   <Link
                     key={href}

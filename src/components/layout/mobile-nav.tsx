@@ -33,7 +33,7 @@ const guestTabs: { href: string; icon: typeof Home; labelKey: MessageKey }[] = [
 const userTabs: { href: string; icon: typeof Home; labelKey: MessageKey }[] = [
   { href: DEFAULT_LANDING_PATH, icon: Home, labelKey: "nav.home" },
   { href: "/used", icon: Tags, labelKey: "nav.used" },
-  { href: "/apt?decor=mailbox", icon: Mailbox, labelKey: "nav.compose" },
+  { href: buildAptMailboxUrl(), icon: Mailbox, labelKey: "nav.compose" },
 ];
 
 export function MobileNav() {
@@ -54,14 +54,14 @@ export function MobileNav() {
             const active =
               href.startsWith("/auth")
                 ? pathname.startsWith("/auth")
-                : href.startsWith("/apt")
-                  ? pathname.startsWith("/apt") || pathname === APT_GAME_PATH
+                : href.includes("decor=mailbox") || href.startsWith("/apt")
+                  ? pathname === APT_GAME_PATH || pathname.startsWith("/apt")
                   : pathname === href || pathname.startsWith(`${href}/`);
 
             return (
               <Link
                 key={href}
-                href={href.startsWith("/apt") ? buildAptMailboxUrl() : href}
+                href={href.includes("decor=mailbox") || href.startsWith("/apt") ? buildAptMailboxUrl() : href}
                 className={cn(
                   "flex flex-col items-center justify-center gap-0.5 flex-1 h-full min-w-0 px-0.5 text-[10px]",
                   active ? "text-primary font-semibold" : "text-muted-foreground"

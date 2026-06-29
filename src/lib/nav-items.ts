@@ -18,6 +18,8 @@ import {
 import type { MessageKey } from "@/lib/i18n/messages";
 import { SupportTrophyIcon } from "@/components/icons/support-trophy-icon";
 
+import { APT_GAME_PATH } from "@/lib/site-routes";
+
 export type NavIcon = LucideIcon | typeof SupportTrophyIcon;
 
 export type NavItem = { href: string; icon: NavIcon; labelKey: MessageKey };
@@ -38,5 +40,5 @@ export const mainNavItems: NavItem[] = [
   { href: "/support", icon: SupportTrophyIcon, labelKey: "nav.support" },
   { href: "/wallet", icon: Banknote, labelKey: "nav.wallet" },
   { href: "/premium", icon: Crown, labelKey: "nav.premium" },
-  { href: "/apt?decor=mailbox", icon: PenSquare, labelKey: "nav.compose" },
+  { href: `${APT_GAME_PATH}?decor=mailbox`, icon: PenSquare, labelKey: "nav.compose" },
 ];

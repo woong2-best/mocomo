@@ -1,3 +1,5 @@
+import { APT_GAME_PATH } from "@/lib/site-routes";
+
 export type AptMailboxComposeParams = {
   communityId?: string;
   initialContent?: string;
@@ -11,7 +13,7 @@ export function buildAptMailboxUrl(params?: AptMailboxComposeParams): string {
   if (params?.communityId) q.set("community", params.communityId);
   if (params?.initialContent) q.set("text", params.initialContent);
   if (params?.initialTitle) q.set("title", params.initialTitle);
-  return `/apt?${q.toString()}`;
+  return `${APT_GAME_PATH}?${q.toString()}`;
 }
 
 export function parseAptMailboxParams(searchParams: URLSearchParams): AptMailboxComposeParams & { decorMailbox: boolean } {

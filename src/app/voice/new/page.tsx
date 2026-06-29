@@ -127,11 +127,13 @@ export default function NewVoicePage() {
     try {
       const form = new FormData(e.currentTarget);
       const scheduledRaw = (form.get("scheduledAt") as string)?.trim();
+      const maxUsersRaw = parseInt(form.get("maxUsers") as string, 10);
+      const defaultMax = broadcastMode === "VOICE" ? 500 : 200;
       const result = await createLiveStream({
         name: (form.get("name") as string) || name,
-        maxUsers: parseInt(form.get("maxUsers") as string, 10) || 200,
-        allowScreen: true,
-        allowCamera: true,
+        maxUsers: Number.isFinite(maxUsersRaw) && maxUsersRaw > 0 ? maxUsersRaw : defaultMax,
+        allowScreen: broadcastMode !== "VOICE",
+        allowCamera: broadcastMode !== "VOICE",
         category,
         tags: (form.get("tags") as string) || "",
         thumbnailUrl: (form.get("thumbnailUrl") as string) || undefined,
@@ -139,6 +141,8 @@ export default function NewVoicePage() {
         scheduledAt: scheduledRaw || undefined,
         donationGoalKrw: parseInt(form.get("donationGoalKrw") as string, 10) || undefined,
         broadcastMode,
+        liveVisibility,
+        minViewerTier: liveVisibility === "PRIVATE" ? minViewerTier : undefined,
       });
 
       if (result.error) {

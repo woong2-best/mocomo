@@ -250,10 +250,6 @@ export async function startScheduledLiveStream(channelId: string) {
     },
   });
   await upsertLiveMember(channelId, user.id, "HOST");
-  await db.voiceChannel.update({
-    where: { id: channelId },
-    data: { broadcastMode: "BROWSER" },
-  });
   revalidatePath("/live");
   return { joinPassword, channelId };
 }
@@ -350,6 +346,7 @@ export async function startBrowserLiveBroadcast(
       name: true,
       isLive: true,
       livePublisherTabId: true,
+      broadcastMode: true,
     },
   });
   if (!channel || channel.createdBy !== user.id) {
@@ -363,6 +360,10 @@ export async function startBrowserLiveBroadcast(
   if (channel.isLive && owner && owner !== tabId) {
     const { publisherLockError } = await import("@/lib/live-publisher-lock");
     return { error: publisherLockError() };
+  }
+
+  if (channel.broadcastMode === "VOICE") {
+    return { error: "보이스 라이브는 영상 송출 API를 사용할 수 없습니다." };
   }
 
   const wasLive = channel.isLive;

@@ -60,6 +60,29 @@ export function LiveViewerShell({
 }) {
   const mobilePortrait = useLiveMobilePortrait();
 
+  if (mobilePortrait) {
+    return (
+      <LiveMobilePortraitViewer
+        channelId={channelId}
+        channelName={channelName}
+        hostUserId={hostUserId}
+        hostUsername={hostUsername}
+        hostDisplayName={hostDisplayName}
+        hostImage={hostImage}
+        hostTier={hostTier}
+        hostTotalSupport={hostTotalSupport}
+        viewerCount={viewerCount}
+        onViewerCount={onViewerCount}
+        category={category}
+        paymentsEnabled={paymentsEnabled}
+        hostFollowing={hostFollowing}
+        broadcastMode={broadcastMode}
+        isLiveOnAir={isLiveOnAir}
+        recentTips={recentTips}
+      />
+    );
+  }
+
   if (isVoiceBroadcastMode(broadcastMode)) {
     return (
       <div className="live-studio-twitch space-y-3">
@@ -107,29 +130,6 @@ export function LiveViewerShell({
           </div>
         </div>
       </div>
-    );
-  }
-
-  if (mobilePortrait) {
-    return (
-      <LiveMobilePortraitViewer
-        channelId={channelId}
-        channelName={channelName}
-        hostUserId={hostUserId}
-        hostUsername={hostUsername}
-        hostDisplayName={hostDisplayName}
-        hostImage={hostImage}
-        hostTier={hostTier}
-        hostTotalSupport={hostTotalSupport}
-        viewerCount={viewerCount}
-        onViewerCount={onViewerCount}
-        category={category}
-        paymentsEnabled={paymentsEnabled}
-        hostFollowing={hostFollowing}
-        broadcastMode={broadcastMode}
-        isLiveOnAir={isLiveOnAir}
-        recentTips={recentTips}
-      />
     );
   }
 

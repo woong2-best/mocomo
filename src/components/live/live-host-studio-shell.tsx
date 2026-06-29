@@ -20,6 +20,7 @@ import {
 import type { LiveBroadcastMode, LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 import { isVoiceBroadcastMode } from "@/lib/live-voice-broadcast";
 import { VoiceLiveHostStudio } from "@/components/voice-live/voice-live-studio";
+import { LiveMobilePortraitVoiceHost } from "@/components/live/mobile/live-mobile-portrait-voice-host";
 import { LiveDonationAlertOverlay, type LiveTipAlert } from "@/components/live/live-donation-alert-overlay";
 import { LiveVideoDonationOverlay } from "@/components/live/live-video-donation-panel";
 
@@ -67,6 +68,20 @@ export function LiveHostStudioShell({
     collab.coHost?.name ?? collab.coHost?.username ?? undefined;
 
   if (isVoiceBroadcastMode(broadcastMode)) {
+    if (mobilePortrait) {
+      return (
+        <LiveMobilePortraitVoiceHost
+          channelId={channelId}
+          channelName={channelName}
+          hostImage={hostImage}
+          hostDisplayName={hostDisplayName}
+          viewerCount={viewerCount}
+          onViewerCount={onViewerCount}
+          onEndStream={onEndStream}
+          recentTips={recentTips}
+        />
+      );
+    }
     return (
       <div className="flex flex-col w-full">
         <header className="flex flex-wrap items-center gap-2 sm:gap-3 py-2 border-b border-border/60 shrink-0">

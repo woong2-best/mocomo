@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Check, ChevronDown, Eye, Send, X } from "lucide-react";
+import { Check, ChevronDown, Eye, Mic2, Send, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LiveViewerPlayer } from "@/components/live/live-viewer-player";
 import { LiveRoomFollowButton } from "@/components/live/live-room-follow-button";
@@ -11,6 +11,8 @@ import { LiveMobileOverlayChat } from "@/components/live/mobile/live-mobile-over
 import { LiveOverlayLayer } from "@/components/live/overlays/live-overlay-layer";
 import { useLiveChat } from "@/components/live/live-chat-provider";
 import type { LiveBroadcastMode, LiveStreamCategory, SupportTierLevel } from "@prisma/client";
+import { isVoiceBroadcastMode } from "@/lib/live-voice-broadcast";
+import { VoiceLiveListener } from "@/components/voice-live/voice-live-studio";
 import { LiveDonationAlertOverlay, type LiveTipAlert } from "@/components/live/live-donation-alert-overlay";
 
 export type LiveMobilePortraitViewerProps = {
@@ -53,6 +55,85 @@ export function LiveMobilePortraitViewer({
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const { chatOverlayEnabled } = useLiveChat();
+
+  if (isVoiceBroadcastMode(broadcastMode)) {
+    return (
+      <div className="live-mobile-portrait-root fixed inset-0 z-[110] bg-gradient-to-b from-violet-950 via-black to-black text-white">
+        <div className="absolute inset-0 flex items-center justify-center px-4 pt-20 pb-40">
+          <VoiceLiveListener
+            channelId={channelId}
+            hostUserId={hostUserId}
+            hostImage={hostImage}
+            hostDisplayName={hostDisplayName ?? hostUsername}
+            channelName={channelName}
+          />
+        </div>
+
+        <LiveDonationAlertOverlay tips={recentTips} />
+        <div className="absolute inset-0 z-[10] bg-gradient-to-b from-black/40 via-transparent to-black/60 pointer-events-none" />
+
+        <header className="absolute top-0 left-0 right-0 z-20 flex items-center gap-2 px-3 pt-safe pb-2 pointer-events-auto">
+          {hostUsername ? (
+            <Link
+              href={`/u/${hostUsername}`}
+              className="flex items-center gap-2 min-w-0 flex-1 rounded-full bg-black/35 backdrop-blur-md pr-3 py-1 pl-1"
+            >
+              <Avatar className="h-9 w-9 border border-white/30">
+                <AvatarImage src={hostImage ?? undefined} />
+                <AvatarFallback className="text-xs bg-violet-600 text-white">
+                  {hostUsername[0]?.toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <p className="text-sm font-bold truncate">@{hostUsername}</p>
+                <p className="text-[10px] text-white/75 truncate">{hostDisplayName ?? hostUsername}</p>
+              </div>
+            </Link>
+          ) : (
+            <div className="flex-1" />
+          )}
+          <span className="shrink-0 px-2.5 py-1 rounded-md text-[11px] font-bold bg-violet-600 flex items-center gap-1">
+            <Mic2 className="h-3 w-3" />
+            보이스
+          </span>
+          <span className="shrink-0 flex items-center gap-1 rounded-full bg-black/40 backdrop-blur-md px-2.5 py-1 text-xs tabular-nums">
+            <Eye className="h-3.5 w-3.5" />
+            {viewerCount}
+          </span>
+          <button
+            type="button"
+            onClick={() => router.push("/live")}
+            className="h-9 w-9 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center"
+            aria-label="나가기"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </header>
+
+        {hostUsername && (
+          <div className="absolute top-[calc(env(safe-area-inset-top)+3.25rem)] left-3 z-20 pointer-events-auto">
+            <LiveRoomFollowButton
+              hostUserId={hostUserId}
+              hostUsername={hostUsername}
+              initialFollowing={!!hostFollowing}
+            />
+          </div>
+        )}
+
+        <div className="absolute left-0 right-0 bottom-0 z-20 flex flex-col justify-end max-h-[45vh] pointer-events-none">
+          <LiveMobileOverlayChat
+            channelId={channelId}
+            onViewerCount={onViewerCount}
+            hostUserId={hostUserId}
+            hostUsername={hostUsername}
+            hostDisplayName={hostDisplayName}
+            paymentsEnabled={paymentsEnabled}
+            showMessages={chatOverlayEnabled}
+          />
+        </div>
+      </div>
+    );
+  }
 
   function share() {
     const url =
