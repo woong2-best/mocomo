@@ -9,6 +9,56 @@
 
 ---
 
+## Hero Asset Pipeline (프로젝트 표준)
+
+모든 Hero Asset은 아래 순서를 **반드시** 따른다.
+
+```
+Reference
+  → Reverse Engineering
+  → Shape Analysis
+  → Blueprint (6-view + Cross Section)
+  → GLB 제작 (새 버전 vN — 기존 수정 금지)
+  → Outline Overlay
+  → Diff Visualization
+  → Owner Approval
+  → Asset Gate
+  → Style Gate
+  → 90% Gate
+```
+
+**실행:** `node scripts/hero-asset/run-pipeline.mjs {assetId} {version}`  
+**산출물 경로:** `public/apt/hero-assets/{assetId}/v{N}/`  
+**GLB 경로:** `public/apt/glb/hero-assets/{assetId}-v{N}.glb`
+
+### Blueprint 필수 뷰 (6)
+
+Front · Side · Top · 45° Isometric · Silhouette · **Cross Section** (쿠션 두께·팔걸이·등받이 기울기·내부 비율)
+
+**Blueprint 오너 승인 전 GLB 제작 금지.** (`--blueprint-only` 모드로 Blueprint만 생성)
+
+### Outline Overlay 필수 순서
+
+1. Reference Outline 추출  
+2. GLB Outline 추출 (동일 카메라)  
+3. Outline Overlay  
+4. Diff Visualization (빨강=reference only · 파랑=model only · 회색=일치)
+
+### 정량 Shape 평가 (측정 가능 항목만)
+
+Width · Height · Seat Height · Back Height · Arm Width · Leg Height · Corner Radius · Cushion Count
+
+**사용 금지 (억지 %):** Volume · Depth proxy · Shape Feeling · Silhouette IoU %
+
+### Hero Asset 승인 (다음 에셋 착수 조건)
+
+- [ ] Blueprint 승인  
+- [ ] Outline Overlay 승인  
+- [ ] Asset Gate 통과  
+- [ ] Owner 승인  
+
+---
+
 ## Gate 관계
 
 ```
@@ -85,11 +135,19 @@ Corner Sample GLB 제작
 | ID | 에셋 | A | B | C | D | E | F | 통과 |
 |----|------|---|---|---|---|---|---|------|
 | CS-01 | Corner shell | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ |
-| CS-02 | Sofa | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ |
-| CS-03 | Rug | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ |
-| CS-04 | Coffee table | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ |
+| CS-02 | Sofa | ☑ temp | — | — | — | — | — | ☐ final |
+| CS-03 | Rug | ☑ temp | — | — | — | — | — | ☐ final |
+| CS-04 | Coffee table | ☑ temp | — | — | — | — | — | ☐ final |
+| CS-05 | Plant | ☑ temp | — | — | — | — | — | ☐ final |
+| CS-06 | Floor lamp | ☑ temp | — | — | — | — | — | ☐ final |
+| CS-01 | Corner shell | ⏳ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ |
+| CS-TV | TV stand + TV | ☑ temp | — | — | — | — | — | ☐ final |
 | CS-05 | Plant | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ |
 | CS-06 | Floor lamp | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ |
+
+**Scene First:** 개별 Hero Asset 85~90% → Corner Shell → **Scene Harmony Review #1 (graybox)** → Lighting/Material
+
+**Scene Harmony Review #1:** Corner Shell 완료 직후 — 6종 Temporary Approved + shell 배치 제출
 
 **Corner Sample Asset Gate:** ☐ 통과 · Date: _______
 

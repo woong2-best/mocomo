@@ -4,11 +4,20 @@ import { memo, useCallback, useMemo, useState } from "react";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import { getDioramaPreset } from "@/lib/diorama/living-room-preset";
 import { DollhouseCanvas } from "@/components/apt/isometric/dollhouse-canvas";
-import { useAptGameRequired } from "./apt-game-context";
+import { useAptGame } from "./apt-game-context";
 import { cn } from "@/lib/utils";
 
-function AptEmptyHouse3DInner({ rooms }: { rooms: AptRoom[] }) {
-  const { enterRoom } = useAptGameRequired();
+function AptEmptyHouse3DInner({
+  rooms,
+  onRoomClick: onRoomClickProp,
+}: {
+  rooms: AptRoom[];
+  onRoomClick?: (roomId: string) => void;
+}) {
+  const game = useAptGame();
+  const enterRoom = game?.enterRoom;
+  const dollhouseZoom = game?.firstEntry.dollhouseCameraZoom ?? 1;
+  const introActive = game?.firstEntry.active ?? false;
   const [hoverRoomId, setHoverRoomId] = useState<string | null>(null);
   const [canvasError, setCanvasError] = useState<string | null>(null);
 
@@ -25,10 +34,15 @@ function AptEmptyHouse3DInner({ rooms }: { rooms: AptRoom[] }) {
 
   const handleRoomClick = useCallback(
     (roomId: string) => {
+      if (introActive) return;
       if (!clickableRoomIds.has(roomId)) return;
-      enterRoom(roomId);
+      if (onRoomClickProp) {
+        onRoomClickProp(roomId);
+        return;
+      }
+      enterRoom?.(roomId);
     },
-    [clickableRoomIds, enterRoom]
+    [clickableRoomIds, enterRoom, introActive, onRoomClickProp]
   );
 
   return (
@@ -43,7 +57,7 @@ function AptEmptyHouse3DInner({ rooms }: { rooms: AptRoom[] }) {
           rooms={rooms}
           highlightRoomId={hoverRoomId}
           clickableRoomIds={clickableRoomIds}
-          cameraZoom={1}
+          cameraZoom={dollhouseZoom}
           onRoomClick={handleRoomClick}
           onRoomHover={setHoverRoomId}
           onCanvasError={setCanvasError}

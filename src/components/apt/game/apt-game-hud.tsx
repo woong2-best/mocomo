@@ -7,13 +7,15 @@ import { useAptGameRequired } from "./apt-game-context";
 import { cn } from "@/lib/utils";
 
 function AptGameHudInner() {
-  const { game, userLevel, userAvatarUrl, userName, setShopOpen, editMode } = useAptGameRequired();
+  const { game, userLevel, userAvatarUrl, userName, setShopOpen, setGemShopOpen, editMode, firstEntry } =
+    useAptGameRequired();
 
   return (
     <div
       className={cn(
         "apt-game-hud pointer-events-auto absolute inset-x-0 top-0 z-[90] px-3 pt-[max(0.5rem,env(safe-area-inset-top))]",
-        editMode && "opacity-90"
+        editMode && "opacity-90",
+        firstEntry.phase === "ui-fade" && "apt-first-entry-ui-in"
       )}
     >
       <div className="apt-game-hud-bar flex items-center gap-2 rounded-[1.35rem] px-2.5 py-2">
@@ -51,7 +53,7 @@ function AptGameHudInner() {
             <span className="min-w-[1.25rem] text-[11px] font-black tabular-nums">{game.gems}</span>
             <button
               type="button"
-              onClick={() => setShopOpen(true)}
+              onClick={() => setGemShopOpen(true)}
               className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-500/20 text-violet-900 active:scale-95"
               aria-label="젬 상점"
             >

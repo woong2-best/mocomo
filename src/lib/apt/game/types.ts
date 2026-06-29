@@ -25,6 +25,7 @@ export type AptGameState = {
   energy: number;
   maxEnergy: number;
   energyUpdatedAt: string;
+  /** @deprecated AptInventoryItem — economy.inventory 사용 */
   ownedStickers: string[];
   missions: AptMissionDef[];
   lastDailyReset: string;

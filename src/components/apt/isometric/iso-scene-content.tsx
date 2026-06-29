@@ -5,9 +5,13 @@ import type { BondeePlacedItem } from "@/lib/apt/bondee/types";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import type { IsoSceneProps } from "@/lib/apt/isometric/types";
 import { ISO_CAMERA_APT, ISO_CAMERA_ROOM } from "@/lib/apt/isometric/camera";
-import { IsoCameraRig, IsoLighting } from "./iso-camera-rig";
+import { IsoCameraRig } from "./iso-camera-rig";
 import { IsoHomeMeshes, IsoPlacementGrid } from "./iso-home-meshes";
 import { IsoSceneInteraction } from "./iso-scene-interaction";
+import {
+  BondeeContactShadowPlane,
+  BondeeSceneLighting,
+} from "@/components/apt/style/bondee-scene-lighting";
 
 export function IsoSceneContent({
   rooms,
@@ -36,7 +40,7 @@ export function IsoSceneContent({
     <>
       <OrthographicCamera makeDefault position={preset.position} near={0.1} far={100} />
       <IsoCameraRig view={view} cameraZoom={cameraZoom} activeRoom={activeRoom} />
-      <IsoLighting />
+      <BondeeSceneLighting />
 
       <IsoHomeMeshes
         rooms={shellRooms}
@@ -62,10 +66,7 @@ export function IsoSceneContent({
         onItemSelect={onItemSelect}
       />
 
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
-        <planeGeometry args={[20, 14]} />
-        <shadowMaterial transparent opacity={0.12} />
-      </mesh>
+      <BondeeContactShadowPlane width={20} depth={14} />
     </>
   );
 }

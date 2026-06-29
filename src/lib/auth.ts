@@ -9,6 +9,7 @@ import {
   credentialsUserHasJwtFields,
   hydrateTokenFromCredentialsUser,
 } from "@/lib/auth-credentials";
+import { recordUserDeviceFromRequest } from "@/lib/apt/economy/fraud/fraud-restrictions";
 
 const useSecureCookies = process.env.NODE_ENV === "production";
 
@@ -38,6 +39,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         where: { id: user.id },
         select: { isBanned: true },
       });
+      if (!dbUser?.isBanned) {
+        void recordUserDeviceFromRequest(user.id);
+      }
       return !dbUser?.isBanned;
     },
     async jwt({ token, user, trigger }) {

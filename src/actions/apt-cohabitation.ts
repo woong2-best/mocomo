@@ -9,6 +9,8 @@ import { getRoomsForFloor } from "@/lib/apt/floor-plan-store";
 import { createDefaultFloorPlan } from "@/lib/apt/floor-plan-logic";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import { DEFAULT_BONDEE_HOME, type BondeeHomeState, type BondeePlacedItem } from "@/lib/apt/bondee/types";
+import { bondeeKindToStickerId } from "@/lib/apt/isometric/catalog-map";
+import { suggestMarketPriceGold } from "@/lib/apt/economy/market-service";
 import {
   defaultResidents,
   type ResidentAgent,
@@ -51,16 +53,21 @@ function sellingListingRows(params: {
   items: BondeePlacedItem[];
   source: "COHAB_MOVE_IN" | "COHAB_MOVE_OUT";
 }) {
-  return params.items.map((item) => ({
-    sellerId: params.sellerId,
-    itemId: item.id,
-    itemKind: item.kind,
-    roomId: item.roomId,
-    itemData: item as unknown as Prisma.InputJsonValue,
-    source: params.source,
-    status: "SELLING",
-    priceKrw: 0,
-  }));
+  return params.items.map((item) => {
+    const stickerTypeId = bondeeKindToStickerId(item.kind);
+    return {
+      sellerId: params.sellerId,
+      itemId: item.id,
+      itemKind: item.kind,
+      stickerTypeId,
+      roomId: item.roomId,
+      itemData: item as unknown as Prisma.InputJsonValue,
+      source: params.source,
+      status: "SELLING",
+      priceGold: suggestMarketPriceGold(stickerTypeId),
+      priceKrw: 0,
+    };
+  });
 }
 
 function saleSummary(count: number) {

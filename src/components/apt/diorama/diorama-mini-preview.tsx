@@ -25,10 +25,10 @@ function DioramaMiniPreviewInner({
 
   useEffect(() => {
     if (!preset) return;
-    void loadStickerInstances(layoutOwnerUserId ?? null, roomId).then((saved) => {
+    void loadStickerInstances(roomId).then((saved) => {
       if (saved.instances?.length) setStickers(saved.instances.slice(0, 10));
     });
-  }, [roomId, layoutOwnerUserId, preset]);
+  }, [roomId, preset]);
 
   if (!preset) return null;
 

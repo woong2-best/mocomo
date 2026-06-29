@@ -1,5 +1,6 @@
 import { STICKER_CATALOG } from "@/lib/diorama/sticker-catalog";
 import type { StickerCategory } from "@/lib/diorama/sticker-types";
+import { canPlaceFromStorageList } from "@/lib/apt/economy/storage-utils";
 
 /** 가구별 골드 가격 (무료 기본 가구 포함) */
 const BASE_PRICES: Record<string, number> = {
@@ -74,6 +75,14 @@ export function isStarterOwned(typeId: string): boolean {
 export function canUseSticker(typeId: string, ownedStickers: string[]): boolean {
   if (isStarterOwned(typeId)) return true;
   return ownedStickers.includes(typeId);
+}
+
+/** 창고 기준 배치 가능 여부 */
+export function canUseStickerFromStorage(
+  typeId: string,
+  storage: { itemId: string; quantity: number }[]
+): boolean {
+  return canPlaceFromStorageList(storage, typeId);
 }
 
 export const SHOP_CATEGORY_LABELS: Record<StickerCategory, string> = {

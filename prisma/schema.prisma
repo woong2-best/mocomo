@@ -198,6 +198,39 @@ model User {
   aptCohabRequestsSent AptCohabitationRequest[] @relation("AptCohabRequestRequester")
   aptCohabRequestsReceived AptCohabitationRequest[] @relation("AptCohabRequestHost")
   aptMarketListings AptMarketListing[]
+  aptWallet           AptWallet?
+  aptInventoryItems   AptInventoryItem[]
+  aptStorageItems     AptStorageItem[]
+  aptWalletTransactions AptWalletTransaction[]
+  aptIapPurchases     AptIapPurchase[]
+  aptMarketBought     AptMarketListing[] @relation("AptMarketBuyer")
+  aptEconomyOperations AptEconomyOperation[]
+  aptEconomyLogs      AptEconomyLog[]
+  aptEconomyConfigChanges AptEconomyConfigChangeLog[] @relation("AptEconomyConfigChanges")
+  aptEconomyConfigPublished AptEconomyConfig[] @relation("AptEconomyConfigPublisher")
+  aptGoldShopOfferChanges AptGoldShopOfferChangeLog[] @relation("AptGoldShopOfferChanges")
+  aptFleaEventChanges     AptFleaEventChangeLog[]     @relation("AptFleaEventChanges")
+  aptFraudProfile         AptFraudProfile?
+  aptFraudEvents          AptFraudEvent[]
+  aptFraudActions         AptFraudAction[]            @relation("AptFraudActionUser")
+  aptFraudActionsTaken    AptFraudAction[]            @relation("AptFraudActionAdmin")
+  aptFraudScoreHistory    AptFraudScoreHistory[]
+  aptUserDevices          AptUserDevice[]
+  aptFraudRuleChanges     AptFraudRuleChangeLog[] @relation("AptFraudRuleChanges")
+  aptFraudRulePublished   AptFraudRuleMeta[]      @relation("AptFraudRulePublisher")
+  aptCsMemosWritten       AptCsMemo[]             @relation("AptCsMemoAdmin")
+  aptCsMemos              AptCsMemo[]             @relation("AptCsMemoUser")
+  aptMarketAdminLogs      AptMarketAdminLog[]     @relation("AptMarketAdminLogs")
+  aptMarketAdminUpdated   AptMarketAdminMeta[]    @relation("AptMarketAdminUpdater")
+  aptNotifications        AptNotification[]
+  aptEconomyFeatureFlagUpdates AptEconomyFeatureFlag[] @relation("AptEconomyFeatureFlagUpdater")
+  aptEconomyFeatureFlagLogs    AptEconomyFeatureFlagLog[] @relation("AptEconomyFeatureFlagLogs")
+  aptEconomySnapshotsCreated   AptEconomySnapshot[]       @relation("AptEconomySnapshotCreator")
+  aptEconomyRestores           AptEconomyRestoreLog[]     @relation("AptEconomyRestoreAdmin")
+  aptEconomyCanariesCreated    AptEconomyCanary[]         @relation("AptEconomyCanaryCreator")
+  aptEconomyCanaryLogs         AptEconomyCanaryLog[]      @relation("AptEconomyCanaryAdmin")
+  aptEconomyHealthRulesUpdated AptEconomyHealthRule[]   @relation("AptEconomyHealthRuleUpdater")
+  aptEconomyHealthAlertsResolved AptEconomyHealthAlert[] @relation("AptEconomyHealthAlertResolver")
 
   creatorSeries            CreatorSeries[]          @relation("CreatorSeriesAuthor")
   creatorEpisodes          CreatorEpisode[]         @relation("CreatorEpisodeAuthor")
@@ -2251,24 +2284,804 @@ model AptCohabitant {
   @@index([residentId, status])
 }
 
-/** APT 장터 — 이사/동거 종료 시 기존 방 아이템 자동 판매 등록 */
-model AptMarketListing {
-  id        String   @id @default(cuid())
-  sellerId  String
-  itemId    String
-  itemKind  String
-  roomId    String?
-  itemData  Json
-  source    String   @default("MOVE_OUT")
-  status    String   @default("SELLING")
-  priceKrw  Int      @default(0)
-  createdAt DateTime @default(now())
-  soldAt    DateTime?
+/** APT 게임 경제 — 골드·젬 (크리에이터 Wallet과 분리) */
+model AptWallet {
+  userId        String   @id
+  gold          Int      @default(0)
+  gems          Int      @default(0)
+  legacyMigrated Boolean @default(false)
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
 
-  seller User @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+/** APT 인벤토리 — 보유 아이템 (가구·벽지·장식 등 공통) */
+model AptInventoryItem {
+  id         String   @id @default(cuid())
+  userId     String
+  itemId     String
+  quantity   Int      @default(1)
+  acquiredAt DateTime @default(now())
+  /** shop | market | flea | gift | event | starter */
+  source     String   @default("shop")
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, itemId])
+  @@index([userId])
+}
+
+/** APT 창고 — 배치 가능 수량 (Inventory − 집 배치) */
+model AptStorageItem {
+  userId    String
+  itemId    String
+  quantity  Int      @default(0)
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, itemId])
+  @@index([userId])
+}
+
+/** IAP·젬 상점 상품 — Google Play productId 1:1 */
+model AptShopProduct {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  productId   String   @unique
+  type        String
+  amount      Int
+  bonusAmount Int      @default(0)
+  priceTier   Int      @default(1)
+  title       String
+  description String?
+  enabled     Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+/** 공식 골드 상점 — 추천·한정·할인 */
+model AptGoldShopOffer {
+  id                String    @id @default(cuid())
+  itemId            String    @unique
+  goldPrice         Int
+  originalGoldPrice Int?
+  featured          Boolean   @default(false)
+  isNew             Boolean   @default(false)
+  limitedStock      Int?
+  soldCount         Int       @default(0)
+  startsAt          DateTime?
+  endsAt            DateTime?
+  enabled           Boolean   @default(true)
+  sortOrder         Int       @default(0)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([enabled, featured, sortOrder])
+  changeLogs AptGoldShopOfferChangeLog[]
+}
+
+/** Gold Shop 상품 변경 이력 */
+model AptGoldShopOfferChangeLog {
+  id        String   @id @default(cuid())
+  offerId   String
+  itemId    String
+  adminId   String
+  field     String
+  before    String
+  after     String
+  createdAt DateTime @default(now())
+  offer     AptGoldShopOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  admin     User     @relation("AptGoldShopOfferChanges", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([offerId, createdAt(sort: Desc)])
+  @@index([itemId, createdAt(sort: Desc)])
+}
+
+/** 벼룩시장 이벤트 — 일반 장터 위 레이어 */
+model AptFleaEvent {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String?
+  notice      String?
+  bannerUrl   String?
+  startsAt    DateTime
+  endsAt      DateTime
+  feeRate     Float    @default(0.05)
+  active      Boolean  @default(true)
+  published   Boolean  @default(false)
+  visitCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  listings   AptMarketListing[]
+  npcOffers  AptFleaNpcOffer[]
+  changeLogs AptFleaEventChangeLog[]
+
+  @@index([active, published, startsAt, endsAt])
+}
+
+/** 벼룩시장 NPC 상품 — 운영자가 이벤트마다 판매/매입 설정 */
+model AptFleaNpcOffer {
+  id              String   @id @default(cuid())
+  eventId         String
+  kind            String
+  stickerTypeId   String
+  goldPrice       Int
+  discountPercent Int?
+  stock           Int?
+  soldCount       Int      @default(0)
+  boughtCount     Int      @default(0)
+  enabled         Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  event AptFleaEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, enabled, sortOrder])
+}
+
+/** 벼룩시장 이벤트 변경 이력 */
+model AptFleaEventChangeLog {
+  id        String   @id @default(cuid())
+  eventId   String
+  adminId   String
+  field     String
+  before    String
+  after     String
+  createdAt DateTime @default(now())
+  event     AptFleaEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  admin     User     @relation("AptFleaEventChanges", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, createdAt(sort: Desc)])
+}
+
+/** APT 경제 설정 — 버전·긴급 모드 포함 */
+model AptEconomyConfig {
+  id                    String    @id @default("default")
+  version               Int       @default(1)
+  publishedAt           DateTime?
+  publishedById         String?
+
+  goldPerGem            Int       @default(100)
+  bonusRate             Float     @default(0)
+  dailyGemExchangeLimit Int       @default(10000)
+  dailyGoldLimit        Int       @default(50000)
+  marketFee             Float     @default(0.05)
+  npcBuyRate            Float     @default(0.65)
+  npcSellRate           Float     @default(0.70)
+  starterGold           Int       @default(500)
+
+  liveGoldPerCheer      Int       @default(2)
+  dailyLiveGoldLimit    Int       @default(5000)
+  liveWatchGoldPerMin   Int       @default(15)
+  dailyWatchGoldLimit   Int       @default(3000)
+
+  dailyMissionReward    Int       @default(80)
+  weeklyMissionReward   Int       @default(400)
+
+  featuredRefreshHour   Int       @default(0)
+  newItemDays           Int       @default(7)
+  discountDefaultRate   Float     @default(0.20)
+
+  recommendPriceWindow  Int       @default(20)
+  maxListingDays        Int       @default(30)
+  priceHistoryDays      Int       @default(90)
+
+  defaultFleaFee        Float     @default(0.05)
+  defaultFleaDiscount   Float     @default(0.30)
+  fleaEventCooldownHrs  Int       @default(168)
+
+  pendingExpireDays     Int       @default(30)
+  maxOfflineOps         Int       @default(100)
+
+  emergencyMode         Boolean   @default(false)
+
+  fraudRestrictScore    Int       @default(70)
+  fraudMarketBlockScore Int       @default(90)
+  fraudLiveBlockScore   Int       @default(95)
+
+  updatedAt             DateTime  @updatedAt
+  publishedBy           User?     @relation("AptEconomyConfigPublisher", fields: [publishedById], references: [id], onDelete: SetNull)
+}
+
+/** Economy Config 변경 감사 */
+model AptEconomyConfigChangeLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  field      String
+  before     String
+  after      String
+  reason     String?
+  ip         String?
+  version    Int?
+  createdAt  DateTime @default(now())
+  admin      User     @relation("AptEconomyConfigChanges", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([field, createdAt(sort: Desc)])
+  @@index([version, createdAt(sort: Desc)])
+}
+
+/** 경제 기능 Kill Switch — 기능별 ON/OFF (Emergency보다 세분화) */
+model AptEconomyFeatureFlag {
+  id                  String   @id @default("default")
+  shopEnabled         Boolean  @default(true)
+  marketEnabled       Boolean  @default(true)
+  liveEnabled         Boolean  @default(true)
+  missionEnabled      Boolean  @default(true)
+  notificationEnabled Boolean  @default(true)
+  fleaEnabled         Boolean  @default(true)
+  iapEnabled          Boolean  @default(true)
+  updatedAt           DateTime @updatedAt
+  updatedById         String?
+  updatedBy           User?    @relation("AptEconomyFeatureFlagUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+}
+
+/** Feature Flag 변경 감사 */
+model AptEconomyFeatureFlagLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  feature   String
+  before    String
+  after     String
+  reason    String?
+  ip        String?
+  createdAt DateTime @default(now())
+  admin     User     @relation("AptEconomyFeatureFlagLogs", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([feature, createdAt(sort: Desc)])
+}
+
+/** 경제 전체 스냅샷 — 운영 복구용 */
+model AptEconomySnapshot {
+  id          String   @id @default(cuid())
+  label       String
+  type        String
+  stats       Json
+  payload     Json
+  checksum    String
+  createdAt   DateTime @default(now())
+  createdById String?
+  createdBy   User?    @relation("AptEconomySnapshotCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  restores    AptEconomyRestoreLog[]
+
+  @@index([type, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+}
+
+/** Canary 점진 배포 — 경제 변경 실험 */
+model AptEconomyCanary {
+  id                 String    @id @default(cuid())
+  targetType         String
+  targetId           String    @default("default")
+  stage              String    @default("DRAFT")
+  percent            Int       @default(0)
+  operatorUserIds    Json      @default("[]")
+  testerUserIds      Json      @default("[]")
+  draftPayload       Json
+  reason             String?
+  publishedVersion   Int?
+  rollbackSnapshotId String?
+  correlationId      String?
+  autoRollback       Boolean   @default(true)
+  createdById        String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  startedAt          DateTime?
+  completedAt        DateTime?
+
+  createdBy     User?                        @relation("AptEconomyCanaryCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  logs          AptEconomyCanaryLog[]
+  healthMetrics AptEconomyCanaryHealthMetric[]
+
+  @@index([targetType, targetId, completedAt])
+  @@index([stage, updatedAt(sort: Desc)])
+}
+
+/** Canary 단계 변경 감사 */
+model AptEconomyCanaryLog {
+  id            String   @id @default(cuid())
+  canaryId      String
+  adminId       String?
+  action        String
+  fromStage     String?
+  toStage       String?
+  fromPercent   Int?
+  toPercent     Int?
+  correlationId String
+  reason        String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  canary AptEconomyCanary @relation(fields: [canaryId], references: [id], onDelete: Cascade)
+  admin  User?            @relation("AptEconomyCanaryAdmin", fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([canaryId, createdAt(sort: Desc)])
+  @@index([correlationId])
+  @@index([createdAt(sort: Desc)])
+}
+
+/** Canary Health Monitor 연계 메트릭 */
+model AptEconomyCanaryHealthMetric {
+  id                 String   @id @default(cuid())
+  canaryId           String
+  windowStart        DateTime
+  windowEnd          DateTime
+  walletErrors       Int      @default(0)
+  marketErrors       Int      @default(0)
+  marketOps          Int      @default(0)
+  notificationErrors Int      @default(0)
+  fraudBaseline      Int      @default(0)
+  fraudCurrent       Int      @default(0)
+  goldSupplyBaseline Int      @default(0)
+  goldSupplyCurrent  Int      @default(0)
+  rollbackCount      Int      @default(0)
+  createdAt          DateTime @default(now())
+
+  canary AptEconomyCanary @relation(fields: [canaryId], references: [id], onDelete: Cascade)
+
+  @@index([canaryId, windowEnd(sort: Desc)])
+}
+
+/** Health Monitor — Alert Rule */
+model AptEconomyHealthRule {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  domain      String
+  label       String
+  metric      String
+  operator    String   @default("gt")
+  threshold   Float
+  severity    String   @default("WARN")
+  autoAction  String   @default("NONE")
+  enabled     Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+  updatedBy   User?    @relation("AptEconomyHealthRuleUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+  alerts      AptEconomyHealthAlert[]
+
+  @@index([domain, enabled])
+}
+
+/** Health Monitor — Alert 이력 */
+model AptEconomyHealthAlert {
+  id            String    @id @default(cuid())
+  ruleId        String
+  ruleCode      String
+  domain        String
+  severity      String
+  status        String    @default("OPEN")
+  message       String
+  metricValue   Float?
+  threshold     Float?
+  correlationId String
+  autoAction    String?
+  autoActionOk  Boolean?
+  resolvedAt    DateTime?
+  resolvedById  String?
+  createdAt     DateTime  @default(now())
+
+  rule       AptEconomyHealthRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  resolvedBy User?                @relation("AptEconomyHealthAlertResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([domain, createdAt(sort: Desc)])
+  @@index([correlationId])
+  @@index([ruleCode, createdAt(sort: Desc)])
+}
+
+/** Health Monitor — 시간대별 스냅샷 (Heatmap) */
+model AptEconomyHealthSnapshot {
+  id        String   @id @default(cuid())
+  hour      DateTime
+  domain    String
+  score     Int
+  metrics   Json
+  createdAt DateTime @default(now())
+
+  @@unique([hour, domain])
+  @@index([hour(sort: Desc)])
+}
+
+/** Restore 감사 로그 */
+model AptEconomyRestoreLog {
+  id            String   @id @default(cuid())
+  snapshotId    String
+  adminId       String
+  correlationId String
+  scopes        Json
+  dryRun        Boolean  @default(false)
+  reason        String
+  stats         Json
+  createdAt     DateTime @default(now())
+  snapshot      AptEconomySnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  admin         User     @relation("AptEconomyRestoreAdmin", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([snapshotId, createdAt(sort: Desc)])
+  @@index([correlationId])
+  @@index([createdAt(sort: Desc)])
+}
+
+/** 부정행위 위험 프로필 */
+model AptFraudProfile {
+  userId           String    @id
+  riskScore        Int       @default(0)
+  lastCalculatedAt DateTime?
+  status           String    @default("NORMAL")
+  reasonSummary    String?
+  whitelistedUntil DateTime?
+  frozenAt         DateTime?
+  restrictions     Json?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([riskScore(sort: Desc)])
+  @@index([status, riskScore(sort: Desc)])
+}
+
+/** 부정행위 탐지 규칙 — weight·threshold 운영 조정 */
+model AptFraudRule {
+  id          String   @id
+  label       String
+  weight      Int      @default(30)
+  enabled     Boolean  @default(true)
+  threshold   Json?
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+/** Fraud Rule 버전 메타 */
+model AptFraudRuleMeta {
+  id            String    @id @default("default")
+  version       Int       @default(1)
+  publishedAt   DateTime?
+  publishedById String?
+  publishedBy   User?     @relation("AptFraudRulePublisher", fields: [publishedById], references: [id], onDelete: SetNull)
+}
+
+/** Fraud Rule 변경 감사 */
+model AptFraudRuleChangeLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  ruleId    String?
+  field     String
+  before    String
+  after     String
+  reason    String?
+  ip        String?
+  version   Int?
+  createdAt DateTime @default(now())
+  admin     User     @relation("AptFraudRuleChanges", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([ruleId, createdAt(sort: Desc)])
+  @@index([version, createdAt(sort: Desc)])
+}
+
+/** 규칙 발동 이벤트 */
+model AptFraudEvent {
+  id         String   @id @default(cuid())
+  userId     String
+  rule       String
+  scoreDelta Int
+  evidence   Json
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([rule, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+}
+
+/** 운영 조치 — Freeze / Ignore / Whitelist */
+model AptFraudAction {
+  id        String    @id @default(cuid())
+  userId    String
+  action    String
+  reason    String?
+  adminId   String?
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation("AptFraudActionUser", fields: [userId], references: [id], onDelete: Cascade)
+  admin     User?     @relation("AptFraudActionAdmin", fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+/** Risk Score 타임라인 */
+model AptFraudScoreHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  score     Int
+  status    String
+  triggers  Json
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+/** 기기·IP 힌트 — 멀티계정 탐지용 */
+model AptUserDevice {
+  id          String   @id @default(cuid())
+  userId      String
+  fingerprint String
+  ip          String?
+  userAgent   String?
+  lastSeenAt  DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fingerprint])
+  @@index([fingerprint])
+  @@index([ip])
+}
+
+/** APT 지갑 트랜잭션 — 구매·미션·장터·환전 등 감사 로그 */
+model AptWalletTransaction {
+  id            String   @id @default(cuid())
+  userId        String
+  type          String
+  currency      String
+  amount        Int
+  balanceAfter  Int
+  referenceId   String?
+  referenceType String?
+  memo          String?
+  correlationId String?
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([referenceType, referenceId])
+  @@index([userId, type, createdAt(sort: Desc)])
+  @@index([correlationId])
+}
+
+/** 멱등성 — 오프라인 동기화·중복 요청 방지 */
+model AptEconomyOperation {
+  id        String   @id
+  userId    String
+  kind      String
+  itemId    String?
+  amount    Int      @default(1)
+  metadata  Json?
+  correlationId String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([kind, createdAt(sort: Desc)])
+  @@index([correlationId])
+}
+
+/** CS 운영 메모 */
+model AptCsMemo {
+  id        String   @id @default(cuid())
+  userId    String
+  adminId   String
+  memo      String
+  createdAt DateTime @default(now())
+  user      User     @relation("AptCsMemoUser", fields: [userId], references: [id], onDelete: Cascade)
+  admin     User     @relation("AptCsMemoAdmin", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+/** Economy Replay 캐시 — CS·Fraud 공용 */
+model AptEconomyReplayCache {
+  userId      String   @id
+  generatedAt DateTime @default(now())
+  json        Json
+}
+
+/** 운영·문의 대응용 경제 감사 로그 */
+model AptEconomyLog {
+  id            String   @id @default(cuid())
+  userId        String
+  action        String
+  deltaGold     Int      @default(0)
+  deltaGems     Int      @default(0)
+  goldBefore    Int?
+  goldAfter     Int?
+  gemsBefore    Int?
+  gemsAfter     Int?
+  reason        String?
+  referenceId   String?
+  referenceType String?
+  correlationId String?
+  ip            String?
+  device        String?
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+  @@index([referenceType, referenceId])
+  @@index([correlationId])
+}
+
+/** 장터 가격 히스토리 */
+model AptMarketPriceHistory {
+  id            String   @id @default(cuid())
+  stickerTypeId String
+  soldPrice     Int
+  listingId     String?
+  soldAt        DateTime @default(now())
+
+  @@index([stickerTypeId, soldAt(sort: Desc)])
+}
+
+/** 일별 경제 집계 — 대시보드·밸런스 분석 */
+model AptEconomyDailyStat {
+  date            DateTime @id @db.Date
+  goldSupply      Int      @default(0)
+  gemSupply       Int      @default(0)
+  goldCreated     Int      @default(0)
+  goldDestroyed   Int      @default(0)
+  marketVolume    Int      @default(0)
+  marketSales     Int      @default(0)
+  iapGemsGranted  Int      @default(0)
+  newUsers        Int      @default(0)
+  activeUsers     Int      @default(0)
+  activeListings  Int      @default(0)
+  walletTxCount   Int      @default(0)
+  createdAt       DateTime @default(now())
+}
+
+/** IAP 결제 기록 — 중복 지급·환불 대응 (Immutable) */
+model AptIapPurchase {
+  id            String    @id @default(cuid())
+  userId        String
+  shopProductId String
+  platform      String    @default("android")
+  provider      String
+  orderId       String    @unique
+  purchaseToken String    @unique
+  productId     String
+  purchaseState Int?
+  ackState      String    @default("PENDING")
+  consumeState  String?
+  priceMicros   Int?
+  currency      String?
+  regionCode    String?
+  payload       Json?
+  status        String    @default("PENDING")
+  gemsGranted   Int       @default(0)
+  goldGranted   Int       @default(0)
+  verifiedAt    DateTime?
+  fulfilledAt   DateTime?
+  refundedAt    DateTime?
+  voidedAt      DateTime?
+  correlationId String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  retryJobs     AptIapRetryJob[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([productId])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([correlationId])
+}
+
+/** IAP Ack/Verify 재시도 큐 */
+model AptIapRetryJob {
+  id          String   @id @default(cuid())
+  purchaseId  String
+  step        String
+  attempts    Int      @default(0)
+  maxAttempts Int      @default(5)
+  lastError   String?
+  nextRunAt   DateTime
+  status      String   @default("PENDING")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  purchase    AptIapPurchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  @@index([status, nextRunAt])
+  @@index([purchaseId])
+}
+
+/** APT 장터 — P2P 판매·벼룩시장 이벤트 */
+model AptMarketListing {
+  id            String    @id @default(cuid())
+  sellerId      String
+  buyerId       String?
+  itemId        String
+  itemKind      String
+  stickerTypeId String?
+  roomId        String?
+  itemData      Json
+  source        String    @default("MOVE_OUT")
+  status        String    @default("SELLING")
+  priceGold     Int       @default(0)
+  priceKrw      Int       @default(0)
+  fleaEventId   String?
+  hiddenByAdmin Boolean   @default(false)
+  suspiciousFlag Boolean  @default(false)
+  viewCount     Int       @default(0)
+  expiresAt     DateTime?
+  createdAt     DateTime  @default(now())
+  soldAt        DateTime?
+
+  seller    User          @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  buyer     User?         @relation("AptMarketBuyer", fields: [buyerId], references: [id], onDelete: SetNull)
+  fleaEvent AptFleaEvent? @relation(fields: [fleaEventId], references: [id], onDelete: SetNull)
 
   @@index([sellerId, status, createdAt(sort: Desc)])
   @@index([status, createdAt(sort: Desc)])
+  @@index([fleaEventId, status])
+  @@index([stickerTypeId, status])
+  @@index([hiddenByAdmin, status])
+}
+
+/** 장터 운영 긴급 모드 — Economy Emergency와 별도 */
+model AptMarketAdminMeta {
+  id                 String   @id @default("default")
+  readOnly           Boolean  @default(false)
+  blockCreateListing Boolean  @default(false)
+  blockPurchase      Boolean  @default(false)
+  blockNewListing    Boolean  @default(false)
+  updatedAt          DateTime @updatedAt
+  updatedById        String?
+  updatedBy          User?    @relation("AptMarketAdminUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+}
+
+/** 장터 운영 감사 로그 */
+model AptMarketAdminLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  listingId String?
+  action    String
+  before    String?
+  after     String?
+  reason    String?
+  createdAt DateTime @default(now())
+  admin     User     @relation("AptMarketAdminLogs", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([listingId, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+}
+
+/** NPC 개입 규칙 — 가격 안정화·자동 매입/판매 */
+model AptMarketNpcIntervention {
+  id            String   @id @default(cuid())
+  stickerTypeId String
+  mode          String
+  targetPrice   Int?
+  maxQuantity   Int      @default(10)
+  usedCount     Int      @default(0)
+  enabled       Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([stickerTypeId, enabled])
+  @@index([mode, enabled])
+}
+
+/** APT 경제 알림 — Market·Shop·Flea·Live·Fraud·운영 공지 */
+model AptNotification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  body      String
+  payload   Json?
+  isRead    Boolean  @default(false)
+  correlationId String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([type, createdAt(sort: Desc)])
+  @@index([correlationId])
 }
 
 // ============ MINIGAMES ============

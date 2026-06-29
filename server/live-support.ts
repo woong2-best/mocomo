@@ -145,6 +145,10 @@ export function registerLiveSupportHandlers(
           },
         });
 
+        void import("@/lib/apt/economy/live-gold-service")
+          .then(({ grantLiveCheerGold }) => grantLiveCheerGold(userId, amount, row.id))
+          .catch(() => undefined);
+
         const event: LiveSupportEventPayload = {
           id: row.id,
           channelId,

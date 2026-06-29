@@ -2,9 +2,13 @@
 
 import { memo, Suspense, useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
-import * as THREE from "three";
 import { cappedPixelRatio } from "@/lib/apt/bondee/scene-perf";
 import type { IsoSceneProps } from "@/lib/apt/isometric/types";
+import {
+  applyBondeeRenderer,
+  bondeeBackgroundHex,
+  bondeeFogArgs,
+} from "@/lib/apt/style/bondee-renderer-config";
 import { IsoSceneContent } from "./iso-scene-content";
 
 function IsoCanvasInner(props: IsoSceneProps) {
@@ -17,20 +21,20 @@ function IsoCanvasInner(props: IsoSceneProps) {
     []
   );
 
+  const [fogColor, fogNear, fogFar] = bondeeFogArgs();
+
   return (
-    <div className="iso-canvas-root absolute inset-0 touch-none">
+    <div className="iso-canvas-root apt-bondee-world absolute inset-0 touch-none">
       <Canvas
         shadows
         dpr={[1, cappedPixelRatio()]}
         gl={glConfig}
         onCreated={({ gl }) => {
-          gl.outputColorSpace = THREE.SRGBColorSpace;
-          gl.toneMapping = THREE.ACESFilmicToneMapping;
-          gl.toneMappingExposure = 1.05;
+          applyBondeeRenderer(gl);
         }}
       >
-        <color attach="background" args={["#e8dfd4"]} />
-        <fog attach="fog" args={["#e8dfd4", 28, 52]} />
+        <color attach="background" args={[bondeeBackgroundHex()]} />
+        <fog attach="fog" args={[fogColor, fogNear, fogFar]} />
         <Suspense fallback={null}>
           <IsoSceneContent {...props} />
         </Suspense>

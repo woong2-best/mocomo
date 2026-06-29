@@ -46,11 +46,13 @@ import { useAptGame } from "@/components/apt/game/apt-game-context";
 import { PlacementBoundsOverlay } from "@/components/apt/diorama/placement-bounds-overlay";
 import { shouldResetGameLayout } from "@/lib/diorama/sanitize-game-layout";
 import { ENERGY_COST_PLACE } from "@/lib/apt/game/energy";
-import { canUseSticker } from "@/lib/apt/game/shop";
 import { vibrateDeleteFeedback } from "@/lib/haptics";
 import { DioramaStickerVisual } from "@/components/apt/diorama/diorama-sticker-visual";
+import { DioramaLivingAmbient } from "@/components/apt/diorama/diorama-living-ambient";
+import { ambientClassForSticker } from "@/lib/diorama/sticker-ambient";
 import { getRoomCamera } from "@/lib/diorama/room-camera";
 import { cn } from "@/lib/utils";
+import { BONDEE_CSS_LUT } from "@/lib/apt/style/bondee-color-bible";
 
 const LABEL_REVEAL_MS = 1600;
 const SAVE_DEBOUNCE_MS = 800;
@@ -67,6 +69,7 @@ function DraggableSticker({
   onTap,
   onSpatial,
   gameMode = false,
+  roomType,
 }: {
   sticker: StickerInstance;
   editMode: boolean;
@@ -77,6 +80,7 @@ function DraggableSticker({
   onTap: (sticker: StickerInstance) => void;
   onSpatial?: (fn: "room-portal" | "exit-corridor") => void;
   gameMode?: boolean;
+  roomType: string;
 }) {
   const asset = getStickerAsset(sticker.typeId);
   const canEdit = editMode && isEditableInEditMode(sticker.typeId);
@@ -116,6 +120,9 @@ function DraggableSticker({
     onTap(sticker);
   };
 
+  const ambientClass =
+    !editMode && gameMode ? ambientClassForSticker(sticker.typeId, roomType) : undefined;
+
   return (
     <div
       ref={setNodeRef}
@@ -148,14 +155,15 @@ function DraggableSticker({
           {asset.functionLabel}
         </span>
       )}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <DioramaStickerVisual
-        typeId={sticker.typeId}
-        label={asset.label}
-        src={asset.src}
-        gameMode={gameMode}
-        selected={selected && editMode}
-      />
+      <div className={cn("relative", ambientClass)}>
+        <DioramaStickerVisual
+          typeId={sticker.typeId}
+          label={asset.label}
+          src={asset.src}
+          gameMode={gameMode}
+          selected={selected && editMode}
+        />
+      </div>
       {!editMode && isFn && !isSpatial && (
         <FunctionalFurnitureHint
           assetId={sticker.typeId}
@@ -201,12 +209,17 @@ function DioramaStickerRoomInner({
   const router = useRouter();
   const game = useAptGame();
   const roomCamera = useMemo(() => getRoomCamera(roomType), [roomType]);
+  const [enterBlend, setEnterBlend] = useState(0);
   const cameraScale = roomCamera.scale * cameraZoom;
+  const enterScale = roomCamera.enterScale ?? 1;
+  const effectiveScale =
+    roomType === "living" && gameMode && enterBlend < 1
+      ? cameraScale * (enterScale + (1 - enterScale) * enterBlend)
+      : cameraScale;
   const [placeError, setPlaceError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [instances, setInstances] = useState<StickerInstance[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [serverCanEdit, setServerCanEdit] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [revealedId, setRevealedId] = useState<string | null>(null);
   const [draggingCatalogType, setDraggingCatalogType] = useState<string | null>(null);
@@ -223,7 +236,7 @@ function DioramaStickerRoomInner({
 
   const preset = useMemo(() => getDioramaPreset(roomId, roomType), [roomId, roomType]);
   const backdrop = preset ? getStickerAsset(preset.backdropAssetId) : null;
-  const allowEdit = canEditLayout && serverCanEdit;
+  const allowEdit = canEditLayout;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -241,15 +254,16 @@ function DioramaStickerRoomInner({
       dirtyRef.current = true;
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       const run = () => {
-        void saveStickerInstances(layoutOwnerUserId ?? null, roomId, next, {
+        void saveStickerInstances(roomId, next, {
           canEdit: allowEdit,
+          readOnly: !allowEdit,
         });
         dirtyRef.current = false;
       };
       if (immediate) run();
       else saveTimerRef.current = setTimeout(run, SAVE_DEBOUNCE_MS);
     },
-    [layoutOwnerUserId, roomId, allowEdit]
+    [roomId, allowEdit]
   );
 
   const { setNodeRef: setDropRef } = useDroppable({ id: ROOM_CANVAS_ID });
@@ -261,18 +275,16 @@ function DioramaStickerRoomInner({
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { instances: saved, canEdit } = await loadStickerInstances(
-        layoutOwnerUserId ?? null,
-        roomId
-      );
+      const { instances: saved } = await loadStickerInstances(roomId, {
+        readOnly: !canEditLayout,
+      });
       if (cancelled) return;
-      setServerCanEdit(canEdit);
       let base =
         saved.length > 0 ? saved : getDefaultStickerInstances(roomId, roomType);
       if (gameMode && shouldResetGameLayout(base)) {
         base = getDefaultStickerInstances(roomId, roomType);
-        if (canEdit && saved.length > 0) {
-          void saveStickerInstances(layoutOwnerUserId ?? null, roomId, base, { canEdit: true });
+        if (canEditLayout && saved.length > 0) {
+          void saveStickerInstances(roomId, base, { canEdit: true });
         }
       }
       setInstances(sortInstancesByDepth(base.map((s) => enrichInstanceFromCatalog(s))));
@@ -281,7 +293,23 @@ function DioramaStickerRoomInner({
     return () => {
       cancelled = true;
     };
-  }, [layoutOwnerUserId, roomId, roomType, gameMode]);
+  }, [roomId, roomType, gameMode, canEditLayout]);
+
+  useEffect(() => {
+    if (roomType !== "living" || !gameMode || !loaded) return;
+    setEnterBlend(0);
+    const duration = roomCamera.enterDurationMs ?? 900;
+    const start = performance.now();
+    let frame = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - (1 - t) ** 3;
+      setEnterBlend(eased);
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [roomType, gameMode, loaded, roomCamera.enterDurationMs]);
 
   useEffect(() => {
     if (!editMode) {
@@ -308,9 +336,9 @@ function DioramaStickerRoomInner({
 
   const addInstanceAtPercent = useCallback(
     (typeId: string, x: number, y: number, immediateSave = true) => {
-      const owned = canUseSticker(typeId, game?.game.ownedStickers ?? []);
+      const owned = game?.canPlaceItem(typeId) ?? true;
       if (game && !owned) {
-        setPlaceError("상점에서 먼저 구매하세요");
+        setPlaceError("창고에 배치 가능한 가구가 없어요. 상점에서 구매하세요");
         game.setShopOpen(true);
         window.setTimeout(() => setPlaceError(null), 2000);
         return;
@@ -579,7 +607,8 @@ function DioramaStickerRoomInner({
     setInstances(next);
     persistInstances(next, true);
     vibrateDeleteFeedback(500);
-  }, [selectedId, instances, persistInstances]);
+    if (target && game) void game.onStickerRemoved(target.typeId);
+  }, [selectedId, instances, persistInstances, game]);
 
   if (!preset || !backdrop) {
     return (
@@ -602,7 +631,7 @@ function DioramaStickerRoomInner({
   const sorted = [...instances].sort((a, b) => a.zIndex - b.zIndex);
 
   return (
-    <div className="apt-game-room-bg absolute inset-0 overflow-hidden">
+    <div className="apt-game-room-bg apt-bondee-world absolute inset-0 overflow-hidden">
       <div className="apt-game-room-vignette" />
       {editMode && gameMode && (
         <div className="pointer-events-none absolute inset-x-0 top-[4.5rem] z-[60] flex justify-center">
@@ -649,10 +678,11 @@ function DioramaStickerRoomInner({
               editMode && !gameMode && "ring-2 ring-pink-300/40 ring-offset-2 ring-offset-[#e8dfd4]"
             )}
             style={{
-              transform: `scale(${cameraScale}) translateY(${roomCamera.translateY}%)`,
+              transform: `scale(${effectiveScale}) translateY(${roomCamera.translateY}%)`,
               transformOrigin: `${roomCamera.focusX}% 55%`,
             }}
           >
+            <DioramaLivingAmbient roomType={roomType} />
             <div className="absolute inset-0 flex items-center justify-center">
               <Image
                 src={backdrop.src}
@@ -663,8 +693,8 @@ function DioramaStickerRoomInner({
                 className="h-full w-full object-contain"
                 style={{
                   filter: gameMode
-                    ? "drop-shadow(0 18px 36px rgba(40,30,20,0.2))"
-                    : "drop-shadow(0 10px 24px rgba(50,40,30,0.14))",
+                    ? `${BONDEE_CSS_LUT.filter} drop-shadow(0 18px 36px rgba(61,50,40,0.18))`
+                    : "drop-shadow(0 10px 24px rgba(61,50,40,0.12))",
                 }}
               />
             </div>
@@ -709,6 +739,7 @@ function DioramaStickerRoomInner({
                   onTap={handleTap}
                   onSpatial={onSpatialAction}
                   gameMode={gameMode}
+                  roomType={roomType}
                 />
               ))}
               {editMode && selected && isEditableInEditMode(selected.typeId) && gameMode && (

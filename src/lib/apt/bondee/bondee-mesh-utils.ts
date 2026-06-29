@@ -2,39 +2,37 @@
 
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+import { BONDEE_COLORS, hexToThree } from "@/lib/apt/style/bondee-color-bible";
+import { bondeeMaterialParams } from "@/lib/apt/style/bondee-material-bible";
+import { BONDEE_LIGHTING } from "@/lib/apt/style/bondee-lighting-bible";
 
-/** Bondee / Animal Crossing inspired pastel palette */
+/** @deprecated use BONDEE_COLORS — 하위 호환 */
 export const BONDEE_PALETTE = {
-  bg: 0xfef6f8,
-  wood: 0xf5e6d3,
-  woodDark: 0xe8d4bc,
-  woodGrain: 0xdfc9a8,
-  tile: 0xf8f8f8,
-  tileLine: 0xe8e8e8,
-  carpet: 0xffe0ec,
-  carpetAlt: 0xe8e0ff,
-  bathroom: 0xd8eeff,
-  balcony: 0xe8f4e8,
-  wallWhite: 0xffffff,
-  wallPink: 0xffe8f0,
-  wallMint: 0xd4f0e8,
-  wallLavender: 0xe8e0ff,
-  wallPeach: 0xffecd9,
-  trim: 0xffc8dc,
-  accent: 0xffb4c8,
-  shadow: 0xd8c8b8,
+  bg: hexToThree(BONDEE_COLORS.fogCream),
+  wood: hexToThree(BONDEE_COLORS.warmBeige),
+  woodDark: hexToThree(BONDEE_COLORS.lightOak),
+  woodGrain: hexToThree(BONDEE_COLORS.lightOak),
+  tile: hexToThree("#EDF2F7"),
+  tileLine: hexToThree("#D8E4EC"),
+  carpet: hexToThree(BONDEE_COLORS.softPink),
+  carpetAlt: hexToThree(BONDEE_COLORS.mutedBlue),
+  bathroom: hexToThree("#D8EEFF"),
+  balcony: hexToThree("#E8F4E8"),
+  wallWhite: hexToThree(BONDEE_COLORS.cream),
+  wallPink: hexToThree(BONDEE_COLORS.softPink),
+  wallMint: hexToThree(BONDEE_COLORS.pastelGreen),
+  wallLavender: hexToThree("#E8E0F0"),
+  wallPeach: hexToThree(BONDEE_COLORS.floorBounce),
+  trim: hexToThree(BONDEE_COLORS.rimOrange),
+  accent: hexToThree(BONDEE_COLORS.warmWood),
+  shadow: hexToThree(BONDEE_COLORS.shadowSoft),
 } as const;
 
 export function bondeeMat(
   color: number | string,
   opts?: Partial<THREE.MeshStandardMaterialParameters>
 ) {
-  return new THREE.MeshStandardMaterial({
-    color,
-    roughness: 0.78,
-    metalness: 0.01,
-    ...opts,
-  });
+  return new THREE.MeshStandardMaterial(bondeeMaterialParams(color, "plastic", opts));
 }
 
 export function bondeeGlowMat(color: number, intensity = 0.35) {
@@ -67,32 +65,35 @@ export function addTo(
 }
 
 export function enableBondeeRenderer(renderer: THREE.WebGLRenderer) {
-  renderer.shadowMap.enabled = false;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = BONDEE_LIGHTING.renderer.toneMappingExposure;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 }
 
 export function setupBondeeLights(scene: THREE.Scene, target: THREE.Object3D) {
-  scene.background = new THREE.Color(BONDEE_PALETTE.bg);
-  scene.fog = new THREE.Fog(BONDEE_PALETTE.bg, 80, 320);
+  const L = BONDEE_LIGHTING;
+  scene.background = new THREE.Color(hexToThree(BONDEE_COLORS.fogCream));
+  scene.fog = new THREE.Fog(hexToThree(BONDEE_COLORS.fogCream), L.fog.near, L.fog.far);
 
-  const hemi = new THREE.HemisphereLight(0xfff8f0, 0xe8d8f0, 0.55);
-  scene.add(hemi);
+  scene.add(new THREE.AmbientLight(L.ambient.color, L.ambient.intensity));
+  scene.add(new THREE.HemisphereLight(L.hemisphere.sky, L.hemisphere.ground, L.hemisphere.intensity));
 
-  const ambient = new THREE.AmbientLight(0xffffff, 0.42);
-  scene.add(ambient);
-
-  const sun = new THREE.DirectionalLight(0xfff5eb, 0.72);
-  sun.position.set(6, 12, 8);
+  const sun = new THREE.DirectionalLight(L.sun.color, L.sun.intensity);
+  sun.position.set(...L.sun.position);
   sun.castShadow = false;
   scene.add(sun);
 
-  const fill = new THREE.DirectionalLight(0xd8eeff, 0.28);
-  fill.position.set(-5, 6, -4);
+  const fill = new THREE.DirectionalLight(L.fill.color, L.fill.intensity);
+  fill.position.set(...L.fill.position);
   scene.add(fill);
 
-  const warm = new THREE.PointLight(0xffd8c8, 0.35, 6);
+  const rim = new THREE.DirectionalLight(L.rim.color, L.rim.intensity);
+  rim.position.set(...L.rim.position);
+  scene.add(rim);
+
+  const warm = new THREE.PointLight(hexToThree(BONDEE_COLORS.floorBounce), 0.12, 6);
   warm.position.set(0, 1.2, 0);
   target.add(warm);
 

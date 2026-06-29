@@ -23,12 +23,20 @@ export default async function AdminPage() {
         관리자 패널
       </h1>
 
-      <Button variant="secondary" asChild className="w-full sm:w-auto">
-        <Link href="/admin/finance" className="flex items-center gap-2">
-          <Landmark className="h-4 w-4" />
-          매출 · 정산 · 출금 처리
-        </Link>
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="secondary" asChild className="w-full sm:w-auto">
+          <Link href="/admin/finance" className="flex items-center gap-2">
+            <Landmark className="h-4 w-4" />
+            매출 · 정산 · 출금 처리
+          </Link>
+        </Button>
+        <Button variant="secondary" asChild className="w-full sm:w-auto">
+          <Link href="/admin/economy" className="flex items-center gap-2">
+            <Coins className="h-4 w-4" />
+            APT 경제 · 장터
+          </Link>
+        </Button>
+      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[

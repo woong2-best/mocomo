@@ -1,5 +1,8 @@
 import type { StickerInstance } from "@/lib/diorama/sticker-types";
 import { enrichInstanceFromCatalog } from "@/lib/diorama/sticker-instance-utils";
+import {
+  LIVING_CORNER_PRESET,
+} from "@/lib/diorama/living-corner-preset";
 
 export type DioramaPreset = {
   id: string;
@@ -29,21 +32,8 @@ function inst(
   });
 }
 
-export const LIVING_ROOM_PRESET: DioramaPreset = {
-  id: "living",
-  label: "거실",
-  backdropAssetId: "room-shell",
-  defaultInstances: [
-    inst("lr-rug", "rug", 50, 70, 1),
-    inst("lr-sofa", "sofa", 40, 58, 5),
-    inst("lr-coffee", "coffee-table", 52, 64, 3),
-    inst("lr-tv", "tv", 68, 42, 4),
-    inst("lr-plant", "plant", 22, 52, 6),
-    inst("lr-lamp", "lamp", 78, 44, 7),
-    inst("lr-frame", "frame", 32, 38, 8),
-    inst("lr-cushion", "cushion", 44, 60, 9),
-  ],
-};
+/** @deprecated A-3 — use LIVING_CORNER_PRESET */
+export const LIVING_ROOM_PRESET: DioramaPreset = LIVING_CORNER_PRESET;
 
 export const BEDROOM_PRESET: DioramaPreset = {
   id: "bedroom",

@@ -45,25 +45,5 @@ export function IsoCameraRig({
   return null;
 }
 
-export function IsoLighting() {
-  return (
-    <>
-      <ambientLight intensity={0.55} color="#fff8f0" />
-      <hemisphereLight args={["#fff4e6", "#c9b89a", 0.45]} />
-      <directionalLight
-        castShadow
-        position={[6, 10, 4]}
-        intensity={1.15}
-        color="#fffaf5"
-        shadow-mapSize={[1024, 1024]}
-        shadow-camera-near={0.5}
-        shadow-camera-far={24}
-        shadow-camera-left={-8}
-        shadow-camera-right={8}
-        shadow-camera-top={8}
-        shadow-camera-bottom={-8}
-      />
-      <directionalLight position={[-4, 6, -3]} intensity={0.25} color="#d4e8ff" />
-    </>
-  );
-}
+/** @deprecated use BondeeSceneLighting */
+export { BondeeSceneLighting as IsoLighting } from "@/components/apt/style/bondee-scene-lighting";

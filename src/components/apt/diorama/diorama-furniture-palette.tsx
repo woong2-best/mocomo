@@ -13,7 +13,6 @@ import {
 } from "@/lib/diorama/sticker-edit-utils";
 import { STICKER_CATALOG } from "@/lib/diorama/sticker-catalog";
 import {
-  canUseSticker,
   getStickerGoldPrice,
 } from "@/lib/apt/game/shop";
 import { useAptGame } from "@/components/apt/game/apt-game-context";
@@ -109,7 +108,7 @@ function DioramaFurniturePaletteInner({
   const [gameTab, setGameTab] = useState<GameFurnitureTabId>("sofa");
   const [category, setCategory] = useState<(typeof PALETTE_CATEGORIES)[number]["id"]>("furniture");
   const game = useAptGame();
-  const ownedStickers = game?.game.ownedStickers ?? [];
+  const canPlace = game?.canPlaceItem ?? (() => true);
 
   if (!open) return null;
 
@@ -148,7 +147,7 @@ function DioramaFurniturePaletteInner({
                 src={a.src}
                 isPlacing={selectedTypeId === a.id}
                 onTapPlace={onTapPlace}
-                owned={canUseSticker(a.id, ownedStickers)}
+                owned={canPlace(a.id)}
                 price={getStickerGoldPrice(a.id)}
                 gameMode
               />
@@ -191,7 +190,7 @@ function DioramaFurniturePaletteInner({
             src={a.src}
             isPlacing={selectedTypeId === a.id}
             onTapPlace={onTapPlace}
-            owned={canUseSticker(a.id, ownedStickers)}
+            owned={canPlace(a.id)}
             price={getStickerGoldPrice(a.id)}
             gameMode={false}
           />

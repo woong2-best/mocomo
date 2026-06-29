@@ -83,10 +83,11 @@ function AptDioramaRoomInner({
 
   useEffect(() => {
     if (!game || game.view !== "room") return;
+    const fromIntro = game.firstEntry.phase === "enter-room" || game.firstEntry.phase === "ui-fade";
     setRoomPhase("enter");
-    const t = window.setTimeout(() => setRoomPhase("idle"), 400);
+    const t = window.setTimeout(() => setRoomPhase("idle"), fromIntro ? 520 : 400);
     return () => window.clearTimeout(t);
-  }, [activeRoomId, game?.view, game]);
+  }, [activeRoomId, game?.view, game?.firstEntry.phase, game]);
 
   const handleSpatial = useCallback(
     (fn: "room-portal" | "exit-corridor") => {

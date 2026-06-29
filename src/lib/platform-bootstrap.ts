@@ -152,5 +152,18 @@ export async function ensurePlatformBootstrap(prisma: PrismaClient) {
   await ensureAnimeWikiCatalog(prisma);
   await ensureCosplayBoardSeed(prisma);
 
+  try {
+    const { seedShopProducts } = await import("@/lib/apt/economy/shop-product-service");
+    const { ensureEconomyConfig } = await import("@/lib/apt/economy/config-service");
+    const { seedGoldShopOffers } = await import("@/lib/apt/economy/gold-shop-service");
+    const { seedFleaEvent } = await import("@/lib/apt/economy/flea-service");
+    await seedShopProducts();
+    await ensureEconomyConfig();
+    await seedGoldShopOffers();
+    await seedFleaEvent();
+  } catch {
+    /* APT economy tables may not exist yet */
+  }
+
   globalBootstrap.mocomoBootstrapped = true;
 }

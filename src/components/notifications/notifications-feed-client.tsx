@@ -12,16 +12,21 @@ import {
   notificationIcon,
   type NotificationRow,
 } from "@/lib/notification-display";
-import { markAllNotificationsReadAction, markNotificationRead } from "@/actions/notifications";
+import { markAllNotificationsReadAction, markNotificationRead, deleteAllEconomyNotificationsAction } from "@/actions/notifications";
 import { dispatchNotificationsRead } from "@/lib/notification-read-sync";
 
 const FILTERS: { id: string; label: string; category: string | null }[] = [
   { id: "all", label: "전체", category: null },
   { id: "social", label: "소셜", category: "social" },
-  { id: "messages", label: "메시지", category: "messages" },
+  { id: "economy", label: "경제", category: "economy" },
+  { id: "market", label: "장터", category: "market" },
+  { id: "shop", label: "상점", category: "shop" },
+  { id: "flea", label: "벼룩", category: "flea" },
   { id: "live", label: "라이브", category: "live" },
+  { id: "fraud", label: "보안", category: "fraud" },
+  { id: "system", label: "공지", category: "system" },
+  { id: "messages", label: "메시지", category: "messages" },
   { id: "commerce", label: "후원·선물", category: "commerce" },
-  { id: "market", label: "중고", category: "market" },
   { id: "community", label: "커뮤니티", category: "community" },
 ];
 
@@ -59,7 +64,6 @@ export function NotificationsFeedClient({
   }, []);
 
   useEffect(() => {
-    if (filter === "all") return;
     const cat = FILTERS.find((f) => f.id === filter)?.category ?? null;
     void refresh(cat);
   }, [filter, refresh]);
@@ -72,20 +76,22 @@ export function NotificationsFeedClient({
     return () => clearInterval(t);
   }, [filter, refresh]);
 
-  async function onItemClick(id: string, read: boolean) {
+  async function onItemClick(id: string, read: boolean, source?: "social" | "apt") {
     if (!read) {
       setItems((prev) =>
         prev.map((n) => (n.id === id ? { ...n, read: true } : n))
       );
       setUnread((u) => Math.max(0, u - 1));
-      await markNotificationRead(id);
+      await markNotificationRead(id, source ?? "social");
     }
   }
 
   const filtered =
     filter === "all"
       ? items
-      : items.filter((n) => notificationCategoryForType(n.type) === filter);
+      : filter === "economy"
+        ? items.filter((n) => n.source === "apt")
+        : items.filter((n) => notificationCategoryForType(n.type) === filter);
 
   return (
     <div className="space-y-4">
@@ -107,6 +113,19 @@ export function NotificationsFeedClient({
             </button>
           ))}
         </div>
+        {filter === "economy" && items.some((n) => n.source === "apt") && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              void deleteAllEconomyNotificationsAction().then(() => {
+                setItems((prev) => prev.filter((n) => n.source !== "apt"));
+              });
+            }}
+          >
+            경제 알림 삭제
+          </Button>
+        )}
         {unread > 0 && (
           <form action={markAllNotificationsReadAction}>
             <Button
@@ -189,11 +208,11 @@ export function NotificationsFeedClient({
             );
 
             return (
-              <li key={n.id}>
+              <li key={`${n.source ?? "social"}-${n.id}`}>
                 {n.link ? (
                   <Link
                     href={href}
-                    onClick={() => void onItemClick(n.id, n.read)}
+                    onClick={() => void onItemClick(n.id, n.read, n.source ?? "social")}
                     className="block"
                   >
                     {inner}
@@ -202,7 +221,7 @@ export function NotificationsFeedClient({
                   <button
                     type="button"
                     className="w-full text-left"
-                    onClick={() => void onItemClick(n.id, n.read)}
+                    onClick={() => void onItemClick(n.id, n.read, n.source ?? "social")}
                   >
                     {inner}
                   </button>

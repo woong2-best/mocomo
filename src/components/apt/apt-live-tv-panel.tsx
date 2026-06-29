@@ -34,6 +34,22 @@ export function AptLiveTvPanel({ phase, blend, onPowerOff }: Props) {
   const [selected, setSelected] = useState<LiveChannel | null>(null);
 
   useEffect(() => {
+    if (!visible || !selected) return;
+    const channelId = selected.id;
+    const started = Date.now();
+    const timer = window.setInterval(() => {
+      const minutes = Math.floor((Date.now() - started) / 60_000);
+      if (minutes < 1) return;
+      void fetch("/api/apt/live-watch-reward", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channelId, minutes: 1 }),
+      }).catch(() => undefined);
+    }, 60_000);
+    return () => window.clearInterval(timer);
+  }, [visible, selected?.id]);
+
+  useEffect(() => {
     if (!visible) return;
     void fetch("/api/apt/live-channels")
       .then((r) => r.json())

@@ -11,7 +11,6 @@ import { DioramaFurniturePalette } from "@/components/apt/diorama/diorama-furnit
 import { IsoEditOverlay } from "@/components/apt/isometric/iso-edit-overlay";
 import { useAptGameRequired } from "@/components/apt/game/apt-game-context";
 import { ENERGY_COST_PLACE } from "@/lib/apt/game/energy";
-import { canUseSticker } from "@/lib/apt/game/shop";
 
 const IsoCanvas = dynamic(
   () => import("./iso-canvas").then((m) => m.IsoCanvas),
@@ -83,7 +82,7 @@ function IsoGameSceneInner({
   const handlePlaceAtGrid = useCallback(
     (roomId: string, gx: number, gz: number) => {
       if (!placingStickerId || !placingKind) return;
-      if (!canUseSticker(placingStickerId, game.game.ownedStickers)) {
+      if (!game.canPlaceItem(placingStickerId)) {
         game.setShopOpen(true);
         return;
       }

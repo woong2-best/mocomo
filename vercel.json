@@ -13,6 +13,14 @@
     {
       "path": "/api/cron/abandoned-live",
       "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/cron/iap-retry",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/iap-voided",
+      "schedule": "0 * * * *"
     }
   ],
   "functions": {
@@ -26,6 +34,12 @@
       "maxDuration": 120
     },
     "src/app/api/cron/abandoned-live/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/iap-retry/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/iap-voided/route.ts": {
       "maxDuration": 60
     },
     "src/app/api/studio/upload/route.ts": {

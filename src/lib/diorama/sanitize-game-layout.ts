@@ -1,12 +1,14 @@
 import type { StickerInstance } from "./sticker-types";
 import { STICKER_ROOM_BOUNDS } from "./sticker-instance-utils";
 import { isLegacyPackedDefaultLayout } from "./living-room-preset";
+import { isLivingRoomStyleLockLayout } from "./living-room-style-lock";
 
 /** 게임 모드에서 깨진·과밀 레이아웃을 프리셋으로 되돌릴지 판단 */
 export function shouldResetGameLayout(instances: StickerInstance[]): boolean {
   if (instances.length === 0) return false;
+  if (isLivingRoomStyleLockLayout(instances)) return false;
   if (isLegacyPackedDefaultLayout(instances)) return true;
-  if (instances.length > 16) return true;
+  if (instances.length > 24) return true;
 
   const outOfBounds = instances.filter(
     (s) =>

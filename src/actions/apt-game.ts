@@ -12,13 +12,10 @@ import {
   regenEnergy,
   spendEnergy,
 } from "@/lib/apt/game/energy";
-import {
-  canUseSticker,
-  getStickerGoldPrice,
-  isStarterOwned,
-} from "@/lib/apt/game/shop";
 import type { AptGameState, AptMissionDef } from "@/lib/apt/game/types";
 import { resolveAptHomeOwnerId } from "@/actions/apt-cohabitation";
+import { grantAptWalletRewards, mirrorEconomyToGameState } from "@/actions/apt-economy";
+import { loadEconomySnapshot } from "@/lib/apt/economy/service";
 
 export type AptGameActionResult =
   | { ok: true; game: AptGameState }
@@ -37,7 +34,21 @@ async function loadRawGame(userId: string): Promise<AptGameState> {
     select: { simulationState: true },
   });
   const sim = row?.simulationState as Record<string, unknown> | null;
-  return tickEnergy(mergeGameState(sim?.game));
+  let game = tickEnergy(mergeGameState(sim?.game));
+  try {
+    const economy = await loadEconomySnapshot(ownerId);
+    game = {
+      ...game,
+      gold: economy.wallet.gold,
+      gems: economy.wallet.gems,
+      ownedStickers: economy.inventory
+        .filter((i) => i.quantity > 0)
+        .map((i) => i.itemId),
+    };
+  } catch {
+    /* economy tables may not exist yet in dev */
+  }
+  return game;
 }
 
 async function saveRawGame(userId: string, game: AptGameState) {
@@ -68,27 +79,30 @@ export async function getAptGameState(): Promise<AptGameState | null> {
 }
 
 export async function purchaseAptSticker(typeId: string) {
+  const { purchaseAptShopItem } = await import("@/actions/apt-economy");
+  const res = await purchaseAptShopItem(typeId);
+  if ("error" in res && res.error) return { error: res.error };
+  if ("alreadyOwned" in res && res.alreadyOwned) {
+    const user = await getCachedCurrentUser();
+    if (!user) return { error: "로그인이 필요합니다." as const };
+    const game = await loadRawGame(user.id);
+    return { ok: true as const, alreadyOwned: true as const, game };
+  }
+  if (!("economy" in res)) return { error: "구매 처리에 실패했습니다." as const };
+
   const user = await getCachedCurrentUser();
   if (!user) return { error: "로그인이 필요합니다." as const };
 
-  if (isStarterOwned(typeId)) return { ok: true as const, alreadyOwned: true as const };
-
+  await mirrorEconomyToGameState(user.id);
   const game = await loadRawGame(user.id);
-  if (canUseSticker(typeId, game.ownedStickers)) {
-    return { ok: true as const, alreadyOwned: true as const, game };
-  }
-
-  const price = getStickerGoldPrice(typeId);
-  if (game.gold < price) {
-    return { error: `골드가 부족합니다. (${price.toLocaleString()}G 필요)` as const };
-  }
-
-  game.gold -= price;
-  game.ownedStickers = [...game.ownedStickers, typeId];
   game.missions = bumpMission(game.missions, "story-buy-item", 1);
-
   await saveRawGame(user.id, game);
-  return { ok: true as const, game, price };
+
+  return {
+    ok: true as const,
+    game,
+    price: "price" in res ? res.price : 0,
+  };
 }
 
 export async function claimAptMission(missionId: string) {
@@ -102,8 +116,14 @@ export async function claimAptMission(missionId: string) {
   if (mission.claimed) return { error: "이미 보상을 받았습니다." as const };
 
   mission.claimed = true;
-  game.gold += mission.goldReward;
-  game.gems += mission.gemReward;
+  await grantAptWalletRewards({
+    gold: mission.goldReward,
+    gems: mission.gemReward,
+  });
+  await mirrorEconomyToGameState(user.id);
+  const synced = await loadRawGame(user.id);
+  game.gold = synced.gold;
+  game.gems = synced.gems;
   game.energy = Math.min(game.maxEnergy, game.energy + ENERGY_REWARD_MISSION);
   game.energyUpdatedAt = new Date().toISOString();
 

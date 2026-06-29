@@ -15,11 +15,16 @@ const TABS: { id: AptGameTab; label: string; icon: typeof Home }[] = [
 ];
 
 function AptGameNavInner() {
-  const { activeTab, setActiveTab, editMode } = useAptGameRequired();
+  const { activeTab, setActiveTab, editMode, firstEntry } = useAptGameRequired();
   if (editMode) return null;
 
   return (
-    <nav className="apt-game-nav pointer-events-auto absolute inset-x-0 bottom-0 z-[90] px-2 pb-[max(0.35rem,env(safe-area-inset-bottom))]">
+    <nav
+      className={cn(
+        "apt-game-nav pointer-events-auto absolute inset-x-0 bottom-0 z-[90] px-2 pb-[max(0.35rem,env(safe-area-inset-bottom))]",
+        firstEntry.phase === "ui-fade" && "apt-first-entry-ui-in"
+      )}
+    >
       <div className="apt-game-nav-inner mx-auto flex max-w-md items-end justify-around rounded-[1.5rem] px-1 py-1.5">
         {TABS.map(({ id, label, icon: Icon }) => {
           const active = activeTab === id;

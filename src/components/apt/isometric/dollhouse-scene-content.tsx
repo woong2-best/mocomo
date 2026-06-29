@@ -6,6 +6,10 @@ import { useMemo } from "react";
 import * as THREE from "three";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import { DOLLHOUSE_CAMERA, scaledFrustum } from "@/lib/apt/isometric/camera";
+import {
+  BondeeContactShadowPlane,
+  BondeeSceneLighting,
+} from "@/components/apt/style/bondee-scene-lighting";
 import { IsoDollhouseMeshes } from "./iso-dollhouse-meshes";
 import { IsoDollhouseInteraction } from "./iso-dollhouse-interaction";
 
@@ -30,31 +34,6 @@ function DollhouseCameraRig({ cameraZoom }: { cameraZoom: number }) {
   return null;
 }
 
-function DollhouseLighting() {
-  return (
-    <>
-      <ambientLight intensity={0.58} color="#fffaf5" />
-      <hemisphereLight args={["#fff8f0", "#d4c8b8", 0.42]} />
-      <directionalLight
-        castShadow
-        position={[-4.5, 11, 2.5]}
-        intensity={0.92}
-        color="#fff5eb"
-        shadow-mapSize={[2048, 2048]}
-        shadow-bias={-0.0002}
-        shadow-camera-near={0.5}
-        shadow-camera-far={22}
-        shadow-camera-left={-7}
-        shadow-camera-right={7}
-        shadow-camera-top={7}
-        shadow-camera-bottom={-7}
-      />
-      <directionalLight position={[5, 4, -5]} intensity={0.16} color="#c8d4e8" />
-      <directionalLight position={[0, 8, 6]} intensity={0.12} color="#ffe8d0" />
-    </>
-  );
-}
-
 export function DollhouseSceneContent({
   rooms,
   highlightRoomId,
@@ -74,7 +53,7 @@ export function DollhouseSceneContent({
     <>
       <OrthographicCamera makeDefault position={DOLLHOUSE_CAMERA.position} near={0.1} far={100} />
       <DollhouseCameraRig cameraZoom={cameraZoom} />
-      <DollhouseLighting />
+      <BondeeSceneLighting />
 
       <IsoDollhouseMeshes rooms={rooms} highlightRoomId={highlightRoomId} />
 
@@ -84,10 +63,7 @@ export function DollhouseSceneContent({
         clickableRoomIds={clickableRoomIds}
       />
 
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.005, 0]} receiveShadow>
-        <planeGeometry args={[14, 10]} />
-        <shadowMaterial transparent opacity={0.14} />
-      </mesh>
+      <BondeeContactShadowPlane />
     </>
   );
 }

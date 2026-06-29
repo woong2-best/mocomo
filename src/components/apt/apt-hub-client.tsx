@@ -12,6 +12,7 @@ import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import { AptSceneErrorBoundary } from "@/components/apt/apt-scene-error-boundary";
 import type { AptStudioInventoryItem } from "@/studio/lib/apt-types";
 import type { AptGameState } from "@/lib/apt/game/types";
+import type { EconomySnapshot } from "@/lib/apt/economy/types";
 import type { UnifiedAptWorldScene } from "@/lib/apt/world/unified-apt-world-scene";
 import type { AptSocialSnapshot } from "@/lib/apt/world/apt-social-presence";
 import type { AptWorldMode } from "@/lib/apt/world/world-types";
@@ -28,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { AptOverviewHero } from "@/components/apt/apt-overview-hero";
 import { AptBuildStamp } from "@/components/apt/game/apt-build-stamp";
+import { hydrateLocalHome, saveLocalFloorPlan } from "@/lib/apt/local-home-store";
 
 const AptBuildingView = dynamic(
   () => import("@/components/apt/apt-building-view").then((m) => m.AptBuildingView),
@@ -56,6 +58,7 @@ export function AptHubClient({
   studioInventory = [],
   currentUserId = null,
   initialGameState = null,
+  initialEconomy = null,
   userLevel = 1,
   userAvatarUrl = null,
   userName = null,
@@ -67,6 +70,7 @@ export function AptHubClient({
   studioInventory?: AptStudioInventoryItem[];
   currentUserId?: string | null;
   initialGameState?: AptGameState | null;
+  initialEconomy?: EconomySnapshot | null;
   userLevel?: number;
   userAvatarUrl?: string | null;
   userName?: string | null;
@@ -98,6 +102,25 @@ export function AptHubClient({
   const [browseClearTick, setBrowseClearTick] = useState(0);
   const homeFloor = initialProfile?.homeFloor ?? APT_DEFAULT_FLOOR;
   const { isNativeApp } = useClientPlatform();
+  const localHomeSeeded = useRef(false);
+
+  useEffect(() => {
+    if (localHomeSeeded.current) return;
+    void hydrateLocalHome({
+      serverRooms: initialHomeRooms,
+      serverBondee: bondeeHome,
+      serverGame: initialGameState,
+    }).then((bundle) => {
+      setHomeRooms(bundle.rooms.map((r) => ({ ...r })));
+      setHomeState({ ...bundle.bondee, items: [...bundle.bondee.items] });
+      localHomeSeeded.current = true;
+    });
+  }, [initialHomeRooms, bondeeHome, initialGameState]);
+
+  useEffect(() => {
+    if (!localHomeSeeded.current) return;
+    void saveLocalFloorPlan(homeRooms);
+  }, [homeRooms]);
 
   const endVisit = useCallback(() => {
     setVisitHost(null);
@@ -433,6 +456,7 @@ export function AptHubClient({
                   hasMissedCall: false,
                 }}
                 initialGame={initialGameState}
+                initialEconomy={initialEconomy}
                 userLevel={userLevel}
                 userAvatarUrl={userAvatarUrl}
                 userName={userName}

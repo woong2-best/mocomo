@@ -572,7 +572,87 @@ html[data-visible-animations="off"] .folk-brush-border-b::after {
 }
 
 .apt-game-room-bg {
-  background: radial-gradient(ellipse at 50% 28%, #faf3ea 0%, #e8dfd4 48%, #c9b89a 100%);
+  background: radial-gradient(ellipse at 50% 28%, #faf6f0 0%, #f5ebe0 48%, #e8ddd0 100%);
+}
+
+.apt-bondee-world {
+  filter: contrast(0.95) saturate(0.92) brightness(1.02) sepia(0.04);
+}
+
+.apt-bondee-sticker {
+  /* per-type material filter applied inline in DioramaStickerVisual */
+}
+
+/* ── RC Sprint 1 — Living Room ambient ── */
+.apt-living-ambient {
+  mix-blend-mode: soft-light;
+}
+
+.apt-living-window-sun {
+  position: absolute;
+  left: 8%;
+  top: 4%;
+  width: 42%;
+  height: 38%;
+  background: radial-gradient(ellipse at 35% 30%, rgba(255, 244, 230, 0.55) 0%, transparent 68%);
+  animation: apt-living-sun-drift 12s ease-in-out infinite alternate;
+}
+
+.apt-living-floor-bounce {
+  position: absolute;
+  left: 10%;
+  bottom: 8%;
+  width: 80%;
+  height: 28%;
+  background: radial-gradient(ellipse at 50% 100%, rgba(255, 232, 210, 0.35) 0%, transparent 70%);
+  animation: apt-living-floor-pulse 8s ease-in-out infinite alternate;
+}
+
+@keyframes apt-living-sun-drift {
+  from { opacity: 0.75; transform: translate(0, 0) scale(1); }
+  to { opacity: 0.95; transform: translate(2%, 1%) scale(1.04); }
+}
+
+@keyframes apt-living-floor-pulse {
+  from { opacity: 0.6; }
+  to { opacity: 0.85; }
+}
+
+@keyframes apt-living-plant-sway {
+  0%, 100% { transform: rotate(-1deg); }
+  50% { transform: rotate(1.2deg); }
+}
+
+@keyframes apt-living-lamp-glow {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 4px rgba(255, 220, 160, 0.2)); }
+  50% { opacity: 0.96; filter: drop-shadow(0 0 10px rgba(255, 220, 160, 0.42)); }
+}
+
+@keyframes apt-living-tv-glow {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 3px rgba(160, 196, 212, 0.15)); }
+  50% { opacity: 0.97; filter: drop-shadow(0 0 8px rgba(160, 196, 212, 0.32)); }
+}
+
+@keyframes apt-living-window-shimmer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.94; }
+}
+
+.apt-living-plant-sway {
+  animation: apt-living-plant-sway 4.5s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+
+.apt-living-lamp-glow {
+  animation: apt-living-lamp-glow 3.2s ease-in-out infinite;
+}
+
+.apt-living-tv-glow {
+  animation: apt-living-tv-glow 2.8s ease-in-out infinite;
+}
+
+.apt-living-window-shimmer {
+  animation: apt-living-window-shimmer 6s ease-in-out infinite;
 }
 
 .apt-game-room-vignette {
@@ -580,8 +660,9 @@ html[data-visible-animations="off"] .folk-brush-border-b::after {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse at center, transparent 35%, rgba(42, 31, 20, 0.12) 100%),
-    linear-gradient(to bottom, rgba(250, 243, 234, 0.35) 0%, transparent 18%, transparent 82%, rgba(42, 31, 20, 0.15) 100%);
+    radial-gradient(ellipse at 50% 32%, rgba(255, 244, 231, 0.35) 0%, transparent 55%),
+    radial-gradient(ellipse at center, transparent 38%, rgba(61, 50, 40, 0.1) 100%),
+    linear-gradient(to bottom, rgba(250, 246, 240, 0.28) 0%, transparent 20%, transparent 80%, rgba(61, 50, 40, 0.12) 100%);
 }
 
 .apt-game-sheet {
@@ -769,6 +850,54 @@ html[data-visible-animations="off"] .folk-brush-border-b::after {
   }
 }
 
+.apt-first-entry-layer {
+  touch-action: manipulation;
+}
+
+.apt-first-entry-loading {
+  animation: apt-first-entry-fade-in 0.45s ease-out;
+}
+
+.apt-first-entry-pulse {
+  animation: apt-first-entry-pulse 1.4s ease-in-out infinite;
+}
+
+.apt-first-entry-ui-in {
+  animation: apt-first-entry-ui-in 0.55s ease-out forwards;
+}
+
+@keyframes apt-first-entry-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes apt-first-entry-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.92;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+
+@keyframes apt-first-entry-ui-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .apt-game-toast {
   border: 1px solid rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(10px);
@@ -810,7 +939,7 @@ html[data-visible-animations="off"] .folk-brush-border-b::after {
 .apt-room-particle {
   position: absolute;
   border-radius: 9999px;
-  background: rgba(255, 248, 220, 0.55);
+  background: rgba(255, 244, 231, 0.5);
   animation: apt-room-drift 6s ease-in-out infinite;
 }
 

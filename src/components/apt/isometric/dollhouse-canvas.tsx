@@ -2,15 +2,14 @@
 
 import { memo, Suspense, useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
-import * as THREE from "three";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
-import { DH } from "@/lib/apt/bondee/dollhouse-shell";
 import { cappedPixelRatio } from "@/lib/apt/bondee/scene-perf";
+import {
+  applyBondeeRenderer,
+  bondeeBackgroundHex,
+  bondeeFogArgs,
+} from "@/lib/apt/style/bondee-renderer-config";
 import { DollhouseSceneContent } from "./dollhouse-scene-content";
-
-function hexBg(c: number) {
-  return `#${c.toString(16).padStart(6, "0")}`;
-}
 
 function DollhouseCanvasInner({
   rooms,
@@ -39,10 +38,10 @@ function DollhouseCanvasInner({
     []
   );
 
-  const bg = hexBg(DH.bg);
+  const [fogColor, fogNear, fogFar] = bondeeFogArgs();
 
   return (
-    <div className="dollhouse-canvas-root touch-none">
+    <div className="dollhouse-canvas-root apt-bondee-world touch-none">
       <Canvas
         shadows
         dpr={[1, cappedPixelRatio()]}
@@ -51,11 +50,7 @@ function DollhouseCanvasInner({
         resize={{ scroll: false, debounce: { scroll: 0, resize: 0 } }}
         onCreated={({ gl }) => {
           try {
-            gl.outputColorSpace = THREE.SRGBColorSpace;
-            gl.toneMapping = THREE.ACESFilmicToneMapping;
-            gl.toneMappingExposure = 0.98;
-            gl.shadowMap.enabled = true;
-            gl.shadowMap.type = THREE.PCFSoftShadowMap;
+            applyBondeeRenderer(gl);
           } catch (e) {
             onCanvasError?.(e instanceof Error ? e.message : "WebGL init failed");
           }
@@ -64,8 +59,8 @@ function DollhouseCanvasInner({
           onCanvasError?.(e instanceof Error ? e.message : "Canvas error");
         }}
       >
-        <color attach="background" args={[bg]} />
-        <fog attach="fog" args={[bg, 36, 64]} />
+        <color attach="background" args={[bondeeBackgroundHex()]} />
+        <fog attach="fog" args={[fogColor, fogNear, fogFar]} />
         <Suspense fallback={null}>
           <DollhouseSceneContent
             rooms={rooms}

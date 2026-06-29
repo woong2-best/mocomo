@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { RoomShellSvg } from "@/components/apt/diorama/diorama-sprites";
-import { getRoomTheme } from "@/lib/diorama/room-themes";
+import { getRoomTheme, BONDEE_ROOM_VIGNETTE } from "@/lib/diorama/room-themes";
 import { cn } from "@/lib/utils";
 
 function DioramaRoomBackdropInner({
@@ -15,7 +15,7 @@ function DioramaRoomBackdropInner({
   const theme = getRoomTheme(roomType);
 
   return (
-    <div className={cn("relative h-full w-full", className)}>
+    <div className={cn("relative h-full w-full apt-bondee-world", className)}>
       <div className="apt-room-ambient pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
         <span className="apt-room-particle apt-room-particle-1" />
         <span className="apt-room-particle apt-room-particle-2" />
@@ -23,7 +23,7 @@ function DioramaRoomBackdropInner({
       </div>
       <div
         className="pointer-events-none absolute inset-0 rounded-2xl"
-        style={{ background: `radial-gradient(ellipse at 50% 20%, ${theme.ambient}, transparent 65%)` }}
+        style={{ background: BONDEE_ROOM_VIGNETTE }}
       />
       <svg
         viewBox="0 0 900 680"

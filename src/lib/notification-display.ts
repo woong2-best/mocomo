@@ -16,10 +16,15 @@ import {
   Phone,
   Film,
   Star,
+  Store,
+  Coins,
+  ShieldAlert,
+  Megaphone,
 } from "lucide-react";
 
 export type NotificationRow = {
   id: string;
+  source?: "social" | "apt";
   type: string;
   title: string;
   body: string | null;
@@ -39,6 +44,27 @@ export function notificationIcon(type: string): {
 } {
   if (type.startsWith("used_auction")) {
     return { Icon: Gavel, className: "text-amber-500" };
+  }
+  if (type.startsWith("MARKET_") || type === "FLEA_ITEM_SOLD") {
+    return { Icon: Store, className: "text-emerald-600" };
+  }
+  if (type.startsWith("SHOP_")) {
+    return { Icon: ShoppingBag, className: "text-violet-600" };
+  }
+  if (type.startsWith("FLEA_")) {
+    return { Icon: Store, className: "text-fuchsia-600" };
+  }
+  if (type.startsWith("LIVE_")) {
+    return { Icon: Radio, className: "text-rose-500" };
+  }
+  if (type.startsWith("FRAUD_")) {
+    return { Icon: ShieldAlert, className: "text-orange-600" };
+  }
+  if (type === "ADMIN_NOTICE" || type === "SYSTEM") {
+    return { Icon: Megaphone, className: "text-blue-600" };
+  }
+  if (type === "MISSION_REWARD") {
+    return { Icon: Coins, className: "text-amber-600" };
   }
   switch (type) {
     case "like":
@@ -80,6 +106,24 @@ export function notificationIcon(type: string): {
 }
 
 export function notificationCategoryForType(type: string): string {
+  if (
+    type.startsWith("MARKET_") ||
+    type.startsWith("SHOP_") ||
+    type.startsWith("FLEA_") ||
+    type.startsWith("LIVE_") ||
+    type.startsWith("MISSION_") ||
+    type.startsWith("FRAUD_") ||
+    type === "ADMIN_NOTICE" ||
+    type === "SYSTEM"
+  ) {
+    if (type.startsWith("MARKET_") || type === "FLEA_ITEM_SOLD") return "market";
+    if (type.startsWith("SHOP_")) return "shop";
+    if (type.startsWith("FLEA_")) return "flea";
+    if (type.startsWith("LIVE_")) return "live";
+    if (type.startsWith("MISSION_")) return "mission";
+    if (type.startsWith("FRAUD_")) return "fraud";
+    return "system";
+  }
   if (["like", "comment", "comment_reply", "mention", "repost", "follow", "vote"].includes(type)) {
     return "social";
   }

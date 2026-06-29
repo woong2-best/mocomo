@@ -16,7 +16,8 @@ import {
   Waves,
   ArrowDownToLine,
 } from "lucide-react";
-import { saveBondeeHome } from "@/actions/apt-bondee";
+import { saveLocalBondeeHome } from "@/lib/apt/local-home-store";
+import { gateConnectAction } from "@/lib/apt/connect-layer";
 import {
   BONDEE_FURNITURE_CATEGORIES,
   BONDEE_FURNITURE_LABELS,
@@ -50,6 +51,7 @@ import { AptIsometricRoom } from "@/components/apt/apt-isometric-room";
 import { AptGameProvider } from "@/components/apt/game/apt-game-context";
 import { AptGameShell } from "@/components/apt/game/apt-game-shell";
 import type { AptGameState } from "@/lib/apt/game/types";
+import type { EconomySnapshot } from "@/lib/apt/economy/types";
 import type { StickerFunction } from "@/lib/diorama/sticker-types";
 import { getDioramaPreset } from "@/lib/diorama/living-room-preset";
 import type { RefObject } from "react";
@@ -134,6 +136,7 @@ function AptBondeeRoomInner({
   onEndVisit,
   furnitureHintState,
   initialGame = null,
+  initialEconomy = null,
   userLevel = 1,
   userAvatarUrl = null,
   userName = null,
@@ -157,13 +160,14 @@ function AptBondeeRoomInner({
   onEndVisit?: () => void;
   furnitureHintState?: { hasUnreadMail?: boolean; hasMissedCall?: boolean };
   initialGame?: AptGameState | null;
+  initialEconomy?: EconomySnapshot | null;
   userLevel?: number;
   userAvatarUrl?: string | null;
   userName?: string | null;
 }) {
   const { data: session } = useSession();
   const homeOwnerId = layoutOwnerUserId ?? session?.user?.id ?? null;
-  const canEditLayout = isLoggedIn && !isVisiting && !!homeOwnerId;
+  const canEditLayout = !isVisiting;
   const sceneRef = useRef<HomeSceneController | null>(null);
   const stateRef = useRef(initialState);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -249,16 +253,16 @@ function AptBondeeRoomInner({
 
   const persist = useCallback(
     (next: BondeeHomeState) => {
-      if (!isLoggedIn) return;
+      if (isVisiting) return;
       if (saveTimer.current) clearTimeout(saveTimer.current);
       const seq = ++saveSeq.current;
       saveTimer.current = setTimeout(async () => {
         setSaving(true);
-        await saveBondeeHome(next);
+        await saveLocalBondeeHome(next);
         if (seq === saveSeq.current) setSaving(false);
       }, 900);
     },
-    [isLoggedIn]
+    [isVisiting]
   );
 
   const applyItems = useCallback(
@@ -531,6 +535,12 @@ function AptBondeeRoomInner({
 
   const handleFunctionalSticker = useCallback(
     (fn: StickerFunction) => {
+      const gate = gateConnectAction(fn, { isLoggedIn });
+      if (!gate.ok) {
+        setFurnitureToast(gate.message);
+        window.setTimeout(() => setFurnitureToast(null), 2200);
+        return;
+      }
       switch (fn) {
         case "live-tv":
           setConsoleContent("live");
@@ -554,13 +564,14 @@ function AptBondeeRoomInner({
           break;
       }
     },
-    [router]
+    [router, isLoggedIn]
   );
 
   return (
     <AptGameProvider
       enabled={gameEnabled}
       initialGame={initialGame}
+      initialEconomy={initialEconomy}
       userLevel={userLevel}
       userAvatarUrl={userAvatarUrl}
       userName={userName}

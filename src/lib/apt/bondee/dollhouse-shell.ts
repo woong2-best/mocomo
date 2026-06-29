@@ -15,9 +15,9 @@ import {
 } from "./home-walls";
 import { computeHomeDoorways, type HomeDoorway } from "./home-doorways";
 
-/** Reference-matched dollhouse palette */
+/** Reference-matched dollhouse palette — Bondee Color Bible */
 export const DH = {
-  bg: 0xf2ebe3,
+  bg: 0xfff7ef,
   wall: 0xf5f0ea,
   wallInner: 0xeee8e0,
   cap: 0x3a3a40,
