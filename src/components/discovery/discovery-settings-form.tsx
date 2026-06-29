@@ -11,14 +11,16 @@ import { Input } from "@/components/ui/input";
 import {
   DISCOVERY_GENDER_LABELS,
   DISCOVERY_LOOKING_LABELS,
+  DISCOVERY_LOOKING_UI_OPTIONS,
   DISCOVERY_MIN_AGE,
+  normalizeLookingFor,
 } from "@/lib/discovery/constants";
 import type { DiscoverySettings } from "@/lib/discovery/types";
 import { cn } from "@/lib/utils";
+import { getCurrentCoords, geolocationErrorMessage } from "@/lib/client-geolocation";
 import { MapPin, Shield, Sparkles } from "lucide-react";
 
 const GENDERS = Object.keys(DISCOVERY_GENDER_LABELS) as DiscoveryGender[];
-const LOOKING = Object.keys(DISCOVERY_LOOKING_LABELS) as DiscoveryLookingFor[];
 
 export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings }) {
   const router = useRouter();
@@ -30,7 +32,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
   const [maxDistanceKm, setMaxDistanceKm] = useState(initial.maxDistanceKm);
   const [minAge, setMinAge] = useState(initial.minAge);
   const [maxAge, setMaxAge] = useState(initial.maxAge);
-  const [lookingFor, setLookingFor] = useState(initial.lookingFor);
+  const [lookingFor, setLookingFor] = useState<DiscoveryLookingFor>(normalizeLookingFor(initial.lookingFor));
   const [preferred, setPreferred] = useState<DiscoveryGender[]>(initial.preferredGenders);
   const [pitch, setPitch] = useState(initial.pitch ?? "");
   const [msg, setMsg] = useState("");
@@ -64,23 +66,31 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
   }
 
   async function useMyLocation() {
-    if (!navigator.geolocation) {
-      setMsg("브라우저에서 위치를 지원하지 않습니다.");
-      return;
-    }
     setGeoLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLat(pos.coords.latitude);
-        setLng(pos.coords.longitude);
-        setMsg("현재 위치를 사용합니다.");
-        setGeoLoading(false);
-      },
-      () => {
-        setMsg("위치 권한이 필요합니다.");
-        setGeoLoading(false);
+    setMsg("");
+    try {
+      const coords = await getCurrentCoords();
+      setLat(coords.lat);
+      setLng(coords.lng);
+      try {
+        const res = await fetch(
+          `/api/used/reverse-geocode?lat=${encodeURIComponent(String(coords.lat))}&lng=${encodeURIComponent(String(coords.lng))}`
+        );
+        const data = (await res.json()) as { label?: string; error?: string };
+        if (res.ok && data.label) {
+          setCity(data.label);
+          setMsg("현재 위치를 설정했습니다.");
+        } else {
+          setMsg("위치 좌표를 저장했습니다.");
+        }
+      } catch {
+        setMsg("위치 좌표를 저장했습니다.");
       }
-    );
+    } catch (err) {
+      setMsg(geolocationErrorMessage(err));
+    } finally {
+      setGeoLoading(false);
+    }
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -205,7 +215,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap gap-2">
-            {LOOKING.map((l) => (
+            {DISCOVERY_LOOKING_UI_OPTIONS.map((l) => (
               <button
                 key={l}
                 type="button"
@@ -283,8 +293,15 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
             <Button type="button" variant="outline" size="sm" className="rounded-lg" disabled={geoLoading} onClick={() => void geocodeCity()}>
               도시 검색
             </Button>
-            <Button type="button" variant="outline" size="sm" className="rounded-lg" disabled={geoLoading} onClick={useMyLocation}>
-              현재 위치
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-lg"
+              disabled={geoLoading}
+              onClick={() => void useMyLocation()}
+            >
+              {geoLoading ? "위치 확인 중…" : "현재 위치"}
             </Button>
           </div>
           {lat != null && lng != null && (

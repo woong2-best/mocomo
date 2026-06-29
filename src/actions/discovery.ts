@@ -131,7 +131,7 @@ export async function updateDiscoverySettings(data: {
       maxDistanceKm,
       minAge,
       maxAge,
-      lookingFor: data.lookingFor ?? "BOTH",
+      lookingFor: data.lookingFor ?? "FRIENDS",
       preferredGenders: data.preferredGenders ?? [],
       pitch: data.pitch?.trim().slice(0, 280) || null,
       lastActiveAt: new Date(),

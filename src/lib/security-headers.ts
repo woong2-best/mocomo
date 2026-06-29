@@ -35,7 +35,7 @@ export const SECURITY_HEADERS: { key: string; value: string }[] = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   {
     key: "Permissions-Policy",
-    value: "camera=(self), microphone=(self), geolocation=(), payment=(self)",
+    value: "camera=(self), microphone=(self), geolocation=(self), payment=(self)",
   },
   {
     key: "Content-Security-Policy",
