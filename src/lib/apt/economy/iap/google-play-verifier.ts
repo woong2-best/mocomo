@@ -11,7 +11,15 @@ export type GooglePlayVerifyResult =
   | { ok: false; error: string };
 
 function devVerifyEnabled(): boolean {
-  return process.env.APT_IAP_DEV_VERIFY === "true";
+  if (process.env.APT_IAP_DEV_VERIFY !== "true") return false;
+  if (
+    process.env.NODE_ENV === "production" ||
+    process.env.VERCEL_ENV === "production"
+  ) {
+    console.error("[IAP] APT_IAP_DEV_VERIFY is disabled in production");
+    return false;
+  }
+  return true;
 }
 
 export function readGooglePlayPackageName(): string {

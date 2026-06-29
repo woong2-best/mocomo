@@ -48,6 +48,16 @@ export async function assertIapEnabled(): Promise<void> {
   await assertFeature("iap");
 }
 
+/** 오프라인 창고 동기화 — 긴급/킬스위치 시 차단 */
+export async function assertOfflineSyncEnabled(): Promise<void> {
+  if (await isEconomyEmergencyMode()) {
+    throw new Error(EMERGENCY_MSG);
+  }
+  if (!(await isEconomyFeatureEnabled("shop"))) {
+    throw new Error(FEATURE_DISABLED_MESSAGES.shop);
+  }
+}
+
 /** 알림 차단 시 false — throw 대신 no-op용 */
 export async function isEconomyNotificationDeliveryEnabled(): Promise<boolean> {
   if (await isEconomyEmergencyMode()) return false;

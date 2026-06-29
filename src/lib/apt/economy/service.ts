@@ -368,6 +368,13 @@ export async function syncPendingStorageOps(
   userId: string,
   ops: StoragePendingOp[]
 ): Promise<{ ok: true; applied: number } | { error: string }> {
+  const { assertOfflineSyncEnabled } = await import("./economy-emergency");
+  try {
+    await assertOfflineSyncEnabled();
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "동기화가 일시 중단되었습니다." };
+  }
+
   const config = await import("./config-service").then((m) => m.getEconomyConfigFull());
   const capped = ops.slice(0, config.maxOfflineOps);
 

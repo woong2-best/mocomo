@@ -106,9 +106,17 @@ export function AptHubClient({
   const homeFloor = initialProfile?.homeFloor ?? APT_DEFAULT_FLOOR;
   const { isNativeApp } = useClientPlatform();
   const localHomeSeeded = useRef(false);
+  const prevUserIdRef = useRef(currentUserId);
 
   useEffect(() => {
     if (currentUserId) setLocalHomeUserId(currentUserId);
+  }, [currentUserId]);
+
+  useEffect(() => {
+    if (prevUserIdRef.current !== currentUserId) {
+      localHomeSeeded.current = false;
+      prevUserIdRef.current = currentUserId;
+    }
   }, [currentUserId]);
 
   useEffect(() => {

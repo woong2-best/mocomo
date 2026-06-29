@@ -212,14 +212,16 @@ export function AptGameProvider({
         const hasLegacy = Object.values(legacy).some((n) => n > 0);
         if (ops.length > 0 || hasLegacy) {
           const res = await syncAptEconomyCache(ops, legacy);
-          if (res && "economy" in res && res.economy) {
+          if (res && "error" in res && res.error) {
+            showToast(res.error, "default");
+          } else if (res && "economy" in res && res.economy) {
             const synced = await applySyncedEconomySnapshot(res.economy);
             setEconomy(synced);
           }
         }
       }
     })();
-  }, [initialEconomy]);
+  }, [initialEconomy, showToast]);
 
   const canPlaceItem = useCallback(
     (typeId: string) => canPlaceFromStorage(economy, typeId),

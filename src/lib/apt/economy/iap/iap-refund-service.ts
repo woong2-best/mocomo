@@ -6,6 +6,9 @@ import { notifyIapRefund, notifyIapRefundAdmin } from "../notification/economy-n
 import { mutateWalletInTx } from "../wallet-service";
 import { checkIapFraudOnRefund } from "./iap-fraud-guard";
 
+/** 환불 시 젬 부족분을 골드로 추가 회수 (1젬 = 100골드) */
+const GEM_SHORTFALL_GOLD_RATE = 100;
+
 export async function handleIapVoidOrRefund(input: {
   orderId?: string;
   purchaseToken?: string;
@@ -26,33 +29,42 @@ export async function handleIapVoidOrRefund(input: {
 
   const corrId = purchase.correlationId ?? newCorrelationId();
   const now = new Date();
+  let gemsClawed = 0;
+  let goldClawed = 0;
+  let goldRecoveredForGems = 0;
+  let gemShortfall = 0;
 
   await db.$transaction(async (tx) => {
-    let gemsClawed = 0;
-    let goldClawed = 0;
     const wallet = await tx.aptWallet.findUnique({ where: { userId: purchase.userId } });
     if (wallet) {
       gemsClawed = Math.min(wallet.gems, purchase.gemsGranted);
-      goldClawed = Math.min(wallet.gold, purchase.goldGranted);
       if (gemsClawed > 0) {
         await mutateWalletInTx(tx, {
           userId: purchase.userId,
           currency: "gems",
           amount: -gemsClawed,
           type: "refund",
-          referenceId: purchase.orderId,
+          referenceId: `${purchase.orderId}:gems`,
           referenceType: "AptIapPurchase",
           correlationId: corrId,
           memo: `IAP 환불 회수 ${purchase.productId}`,
         });
       }
+
+      const afterGems = await tx.aptWallet.findUnique({ where: { userId: purchase.userId } });
+      const goldBal = afterGems?.gold ?? 0;
+      gemShortfall = Math.max(0, purchase.gemsGranted - gemsClawed);
+      goldRecoveredForGems = Math.min(goldBal, gemShortfall * GEM_SHORTFALL_GOLD_RATE);
+      const goldFromGrant = Math.min(goldBal - goldRecoveredForGems, purchase.goldGranted);
+      goldClawed = goldRecoveredForGems + goldFromGrant;
+
       if (goldClawed > 0) {
         await mutateWalletInTx(tx, {
           userId: purchase.userId,
           currency: "gold",
           amount: -goldClawed,
           type: "refund",
-          referenceId: purchase.orderId,
+          referenceId: `${purchase.orderId}:gold`,
           referenceType: "AptIapPurchase",
           correlationId: corrId,
           memo: `IAP 환불 회수 ${purchase.productId}`,
@@ -82,15 +94,9 @@ export async function handleIapVoidOrRefund(input: {
     });
   });
 
-  const shortfall = Math.max(
+  const remainingGemShortfall = Math.max(
     0,
-    purchase.gemsGranted -
-      ((
-        await db.aptWallet.findUnique({
-          where: { userId: purchase.userId },
-          select: { gems: true },
-        })
-      )?.gems ?? 0)
+    gemShortfall - Math.floor(goldRecoveredForGems / GEM_SHORTFALL_GOLD_RATE)
   );
 
   notifyIapRefund({
@@ -107,8 +113,8 @@ export async function handleIapVoidOrRefund(input: {
   });
 
   void recordHealthDomainEvent("iap", "refund", 1);
-  if (shortfall > 0) {
-    await checkIapFraudOnRefund(purchase.userId, purchase.id, shortfall);
+  if (remainingGemShortfall > 0) {
+    await checkIapFraudOnRefund(purchase.userId, purchase.id, remainingGemShortfall);
   }
 
   return { ok: true, purchaseId: purchase.id };
