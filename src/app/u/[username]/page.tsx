@@ -23,6 +23,13 @@ export default function UserProfilePage({
         <Suspense fallback={<ProfileTimelineSkeleton />}>
           <ProfilePageTimeline params={params} searchParams={searchParams} />
         </Suspense>
+        <div className="lg:hidden border-t border-border/40 p-4">
+          <Suspense
+            fallback={<div className="h-32 rounded-xl bg-muted/40 animate-pulse" />}
+          >
+            <ProfilePageMinigame params={params} />
+          </Suspense>
+        </div>
         <Suspense
           fallback={
             <aside className="hidden lg:block border-l border-border/40 p-4">

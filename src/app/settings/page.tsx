@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { LocaleSettingsForm } from "@/components/settings/locale-settings-form";
 import { SignOutButton } from "@/components/settings/sign-out-button";
+import { SettingsPageChrome } from "@/components/settings/settings-page-chrome";
 import { getServerTranslator } from "@/lib/i18n/server";
 
 export default async function SettingsPage() {
@@ -34,7 +35,7 @@ export default async function SettingsPage() {
   ]);
 
   return (
-    <div className="max-w-lg mx-auto p-4 pb-nav lg:pb-4 space-y-6 min-w-0">
+    <SettingsPageChrome>
       <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
 
       <Card>
@@ -187,6 +188,6 @@ export default async function SettingsPage() {
           </Link>
         </CardContent>
       </Card>
-    </div>
+    </SettingsPageChrome>
   );
 }

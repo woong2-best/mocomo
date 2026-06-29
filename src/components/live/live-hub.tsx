@@ -87,7 +87,7 @@ export function LiveHub({
 
   return (
     <div className="live-page-shell">
-      <div className="max-w-6xl mx-auto space-y-8 pb-8">
+      <div className="max-w-6xl mx-auto space-y-8 pb-8 native-live-pad">
         <header className="live-hero flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-3 min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl font-black flex items-center gap-2 tracking-tight">

@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { Building2, Gamepad2, Radio, Trophy, Users, X } from "lucide-react";
 import { FolkSectionTitle } from "@/components/brand/folk-decor";
 import { cn } from "@/lib/utils";
+import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { APT_GAME_PATH } from "@/lib/site-routes";
 import {
   CATEGORY_LABELS,
@@ -26,6 +27,7 @@ export function GamesHubClient({
   onClose?: () => void;
   onGameNavigate?: (href: string) => void;
 }) {
+  const { isNativeApp } = useClientPlatform();
   const [category, setCategory] = useState<MinigameCategory | "all">("all");
   const liveCount = countByStatus("live") + countByStatus("beta");
   const soonCount = countByStatus("coming_soon");
@@ -38,7 +40,7 @@ export function GamesHubClient({
   }, [category]);
 
   return (
-    <div className={cn("space-y-6", embedded ? "px-2 py-4" : "max-w-4xl mx-auto px-4 py-8 pb-16")}>
+    <div className={cn("space-y-6", embedded ? "px-2 py-4" : cn("max-w-4xl mx-auto px-4 py-8", isNativeApp ? "pb-native-fab" : "pb-16"))}>
       {embedded && onClose && (
         <button
           type="button"
@@ -203,7 +205,7 @@ export function GamesHubClient({
       </div>
 
         <p className="text-xs text-center text-muted-foreground">
-          17종 미니게임 · 친구 방 / 랜덤 매칭 / 관전 · `/play/게임ID`
+          친구 초대 · 방 코드 · 관전 · 랭킹 지원
         </p>
     </div>
   );

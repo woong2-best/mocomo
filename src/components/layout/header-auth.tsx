@@ -13,7 +13,7 @@ export function HeaderAuth({ compact = false }: { compact?: boolean }) {
   if (session?.user) {
     return (
       <>
-        {!compact && <NotificationBellLink />}
+        <NotificationBellLink />
         {!compact && (
           <Button asChild variant="outline" size="sm" className="gap-1 rounded-xl hidden sm:inline-flex">
             <Link href="/support">

@@ -5,14 +5,14 @@ import { Mailbox } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { buildAptMailboxUrl } from "@/lib/apt/mailbox-compose-route";
-import { shouldHideNativeAppNav } from "@/lib/native-app-shell";
+import { shouldHideNativeComposeFab } from "@/lib/native-app-shell";
 
 export function NativeAppComposeFab() {
   const { data: session } = useSession();
   const pathname = usePathname();
 
   if (!session?.user) return null;
-  if (shouldHideNativeAppNav(pathname)) return null;
+  if (shouldHideNativeComposeFab(pathname)) return null;
 
   return (
     <Link

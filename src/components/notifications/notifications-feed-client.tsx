@@ -72,8 +72,9 @@ export function NotificationsFeedClient({
 
   useEffect(() => {
     const cat = FILTERS.find((f) => f.id === filter)?.category ?? null;
+    if (filter === "all" && initialNotifications.length > 0) return;
     void refresh(cat);
-  }, [filter, refresh]);
+  }, [filter, refresh, initialNotifications.length]);
 
   useEffect(() => {
     const t = setInterval(() => {

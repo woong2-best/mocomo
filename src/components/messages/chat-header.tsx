@@ -8,6 +8,8 @@ import { DmCallButtons } from "@/components/call/dm-call-buttons";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { PresenceAvatar } from "@/components/user/presence-avatar";
 import { useChatSocket } from "@/components/messages/chat-socket-context";
+import { useClientPlatform } from "@/components/providers/client-platform-provider";
+import { cn } from "@/lib/utils";
 
 export function ChatHeader({
   displayName,
@@ -28,6 +30,7 @@ export function ChatHeader({
   otherUserId?: string;
   showBackOnMobile?: boolean;
 }) {
+  const { isNativeApp } = useClientPlatform();
   const profileHref = profileUsername ? `/u/${profileUsername}` : undefined;
   const { isUserOnline, socketReady, realtimeOff } = useChatSocket();
   const otherOnline = otherUserId ? isUserOnline(otherUserId) : false;
@@ -41,7 +44,7 @@ export function ChatHeader({
       : "프로필 보기";
 
   return (
-    <header className="flex items-center gap-3 px-3 sm:px-4 py-2.5 border-b border-border/60 bg-background/95 backdrop-blur-md shrink-0 z-10">
+    <header className={cn("flex items-center gap-3 px-3 sm:px-4 py-2.5 border-b border-border/60 bg-background/95 backdrop-blur-md shrink-0 z-10", isNativeApp && "pt-safe")}>
       {showBackOnMobile && (
         <Link
           href="/messages"

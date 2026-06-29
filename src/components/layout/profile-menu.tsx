@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, Settings, Gem, LogOut, ChevronDown } from "lucide-react";
+import { User, Settings, Gem, LogOut, ChevronDown, MessageCircle } from "lucide-react";
 
 export function ProfileMenu() {
   const { data: session } = useSession();
@@ -44,6 +44,12 @@ export function ProfileMenu() {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" side="bottom" collisionPadding={12} className="z-[250]">
+        <DropdownMenuItem asChild>
+          <Link href="/messages">
+            <MessageCircle className="h-4 w-4 shrink-0" />
+            쪽지
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href={`/u/${username}`}>
             <User className="h-4 w-4 shrink-0" />

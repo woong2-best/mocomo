@@ -27,6 +27,7 @@ function AptGemShopSheetInner() {
   } = useAptGameRequired();
   const { isNativeApp } = useClientPlatform();
   const [catalog, setCatalog] = useState<AptGemShopCatalog | null>(null);
+  const [catalogLoading, setCatalogLoading] = useState(false);
   const [billingReady, setBillingReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [exchangeGems, setExchangeGems] = useState(10);
@@ -34,7 +35,10 @@ function AptGemShopSheetInner() {
 
   useEffect(() => {
     if (!gemShopOpen) return;
-    void getAptGemShopCatalog().then(setCatalog);
+    setCatalogLoading(true);
+    void getAptGemShopCatalog()
+      .then(setCatalog)
+      .finally(() => setCatalogLoading(false));
     void createPurchaseServiceForClient(isNativeApp).then(async (svc) => {
       setBillingReady(await svc.isAvailable());
     });
@@ -185,6 +189,13 @@ function AptGemShopSheetInner() {
           </p>
         )}
 
+        {catalogLoading ? (
+          <div className="grid grid-cols-2 gap-2 px-4 py-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="apt-game-shop-card h-28 animate-pulse rounded-2xl bg-[#e8dcc8]/80" />
+            ))}
+          </div>
+        ) : (
         <div className="grid grid-cols-2 gap-2 overflow-y-auto px-4 py-3">
           {gemProducts.map((p) => (
             <button
@@ -208,6 +219,7 @@ function AptGemShopSheetInner() {
             </button>
           ))}
         </div>
+        )}
 
         <div className="border-t border-[#e8dcc8]/80 px-4 py-4">
           <p className="text-xs font-black text-[#5c4033]">젬 → 골드 환전</p>

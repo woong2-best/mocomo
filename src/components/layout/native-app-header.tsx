@@ -15,6 +15,8 @@ const ROOT_PATHS = new Set([
   "/games",
   "/notifications",
   "/messages",
+  "/used",
+  "/discover",
 ]);
 
 function titleForPath(pathname: string): string | null {
@@ -24,11 +26,16 @@ function titleForPath(pathname: string): string | null {
   if (pathname.startsWith("/auth/")) return "계정";
   if (pathname === EXPLORE_PATH) return "탐색";
   if (pathname === DEFAULT_LANDING_PATH || pathname === "/feed") return "홈";
-  if (pathname === "/games" || pathname.startsWith("/games/")) return "GAME";
+  if (pathname === "/games") return "GAME";
+  if (pathname.startsWith("/games/")) return "GAME";
   if (pathname === "/notifications") return "알림";
   if (pathname === "/messages") return "쪽지";
+  if (pathname === "/used") return "중고거래";
+  if (pathname === "/used/new") return "글쓰기";
+  if (pathname === "/used/my") return "내 글";
   if (pathname === "/discover") return "매칭";
   if (pathname === "/discover/matches") return "매칭 목록";
+  if (pathname === "/discover/settings") return "매칭 설정";
   if (pathname.startsWith("/discover/")) return "매칭";
   return null;
 }
@@ -36,7 +43,7 @@ function titleForPath(pathname: string): string | null {
 export function NativeAppHeader() {
   const pathname = usePathname();
   const router = useRouter();
-  const isRoot = ROOT_PATHS.has(pathname) || pathname.startsWith("/messages/");
+  const isRoot = ROOT_PATHS.has(pathname);
   const title = titleForPath(pathname);
   const showBack = !isRoot && !!title;
 
@@ -65,7 +72,7 @@ export function NativeAppHeader() {
         )}
       </div>
 
-      <div className="flex w-10 shrink-0 items-center justify-end gap-1">
+      <div className="flex shrink-0 items-center justify-end gap-0.5 min-w-[5.5rem]">
         {!showBack && (
           <Link
             href="/search"

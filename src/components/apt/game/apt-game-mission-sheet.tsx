@@ -9,10 +9,10 @@ import { useAptGameRequired } from "./apt-game-context";
 function missionAction(m: AptMissionDef): { label: string; kind: "claim" | "shop" | "edit" | "friends" | null } {
   if (m.completed && !m.claimed) return { label: "받기", kind: "claim" };
   if (m.claimed || (m.completed && m.claimed)) return { label: "완료", kind: null };
-  if (m.visitFriend) return { label: "Go", kind: "friends" };
-  if (m.id === "story-buy-item") return { label: "Buy", kind: "shop" };
-  if (m.placeSticker || m.upgradeFurniture) return { label: "Go", kind: "edit" };
-  return { label: "Go", kind: "edit" };
+  if (m.visitFriend) return { label: "친구 방문", kind: "friends" };
+  if (m.id === "story-buy-item") return { label: "상점", kind: "shop" };
+  if (m.placeSticker || m.upgradeFurniture) return { label: "꾸미기", kind: "edit" };
+  return { label: "이동", kind: "edit" };
 }
 
 function AptGameMissionSheetInner() {
