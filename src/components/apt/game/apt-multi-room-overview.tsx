@@ -10,7 +10,7 @@ function AptMultiRoomOverviewInner({ rooms }: { rooms: AptRoom[] }) {
 
   return (
     <div
-      className="apt-game-overview apt-bondee-world pointer-events-auto absolute inset-0 z-[50] overflow-hidden bg-[#f5ebe0]"
+      className="apt-game-overview pointer-events-auto absolute inset-0 z-[50] overflow-hidden bg-[#f5ebe0]"
       style={{
         opacity: firstEntry.overviewRevealOpacity,
         transform: `scale(${0.96 + firstEntry.overviewRevealOpacity * 0.04})`,

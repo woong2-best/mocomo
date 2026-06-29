@@ -1,11 +1,14 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { DioramaStickerRoom } from "@/components/apt/diorama/diorama-sticker-room";
 import { cn } from "@/lib/utils";
 
 /** 모바일 편집 UX 녹화·검증용 공개 데모 (로그인 불필요) */
-export default function DioramaEditDemoPage() {
+function DioramaEditDemoInner() {
+  const searchParams = useSearchParams();
+  const gameMode = searchParams.get("game") === "1";
   const [editMode, setEditMode] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
 
@@ -19,17 +22,23 @@ export default function DioramaEditDemoPage() {
     setPaletteOpen(false);
   }, []);
 
+  const roomProps = useMemo(
+    () => ({
+      roomId: "living",
+      roomType: "living",
+      roomLabel: "거실",
+      editMode,
+      paletteOpen,
+      onPaletteOpenChange: setPaletteOpen,
+      immersive: true as const,
+      gameMode,
+    }),
+    [editMode, gameMode, paletteOpen]
+  );
+
   return (
     <div className="relative h-[100dvh] w-full overflow-hidden bg-[#e8dfd4]">
-      <DioramaStickerRoom
-        roomId="living"
-        roomType="living"
-        roomLabel="거실"
-        editMode={editMode}
-        paletteOpen={paletteOpen}
-        onPaletteOpenChange={setPaletteOpen}
-        immersive
-      />
+      <DioramaStickerRoom {...roomProps} />
 
       <div
         className={cn(
@@ -76,5 +85,13 @@ export default function DioramaEditDemoPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function DioramaEditDemoPage() {
+  return (
+    <Suspense fallback={<div className="h-[100dvh] bg-[#e8dfd4]" />}>
+      <DioramaEditDemoInner />
+    </Suspense>
   );
 }

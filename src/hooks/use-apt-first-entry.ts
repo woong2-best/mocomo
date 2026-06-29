@@ -111,6 +111,12 @@ export function useAptFirstEntry({
   }, []);
 
   useEffect(() => {
+    if (playIntro || !livingRoomId || roomEnteredRef.current) return;
+    roomEnteredRef.current = true;
+    enterRoom(livingRoomId);
+  }, [playIntro, livingRoomId, enterRoom]);
+
+  useEffect(() => {
     if (!playIntro || startedRef.current) return;
     startedRef.current = true;
 

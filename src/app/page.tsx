@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
+import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 
-/** mocomo.net 기본 랜딩 — APT */
 export default function RootPage() {
-  redirect("/apt");
+  redirect(DEFAULT_LANDING_PATH);
 }

@@ -1,10 +1,10 @@
-import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { APT_GAME_PATH } from "@/lib/site-routes";
 
 export function isAptPath(pathname: string): boolean {
-  return pathname === DEFAULT_LANDING_PATH || pathname.startsWith("/apt/");
+  return pathname === APT_GAME_PATH || pathname.startsWith("/apt/");
 }
 
-/** 메인 APT 허브 — 전체화면 몰입 모드 (move-in·house 제외) */
+/** 집 게임 — 전체화면 몰입 모드 */
 export function isAptImmersivePath(pathname: string): boolean {
-  return pathname === DEFAULT_LANDING_PATH || pathname === "/apt";
+  return pathname === APT_GAME_PATH;
 }

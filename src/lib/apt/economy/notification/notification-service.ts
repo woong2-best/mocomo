@@ -1,4 +1,3 @@
-import { after } from "next/server";
 import { db } from "@/lib/db";
 import { isEconomyNotificationDeliveryEnabled } from "../economy-emergency";
 import type {
@@ -54,13 +53,8 @@ export function scheduleAptNotification(input: AptNotificationInput): void {
     deliver();
     return;
   }
-  try {
-    after(async () => {
-      await sendAptNotification(input);
-    });
-  } catch {
-    deliver();
-  }
+  if (typeof window !== "undefined") return;
+  queueMicrotask(deliver);
 }
 
 export async function sendAptNotificationsMany(inputs: AptNotificationInput[]): Promise<void> {

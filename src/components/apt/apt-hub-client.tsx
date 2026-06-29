@@ -30,6 +30,7 @@ import { useClientPlatform } from "@/components/providers/client-platform-provid
 import { AptOverviewHero } from "@/components/apt/apt-overview-hero";
 import { AptBuildStamp } from "@/components/apt/game/apt-build-stamp";
 import { hydrateLocalHome, saveLocalFloorPlan } from "@/lib/apt/local-home-store";
+import { APT_GAME_PATH } from "@/lib/site-routes";
 
 const AptBuildingView = dynamic(
   () => import("@/components/apt/apt-building-view").then((m) => m.AptBuildingView),
@@ -164,10 +165,11 @@ export function AptHubClient({
     window.location.href = "/auth/signup/apply";
   }, [moveInCompleted, isNativeApp, enterHome]);
 
-  // 로그인 버튼: 로그인 창 → 로그인되면 본인 집(/apt?home=1)으로.
+  // 로그인 버튼: 로그인 창 → 로그인되면 내 집 게임으로.
   const goToLogin = useCallback(() => {
     setStartPhase("contract");
-    window.location.href = "/auth/signin?callbackUrl=" + encodeURIComponent("/apt?home=1");
+    window.location.href =
+      "/auth/signin?callbackUrl=" + encodeURIComponent(`${APT_GAME_PATH}?home=1`);
   }, []);
 
   // 로그인 직후(?home=1)로 들어온 사용자는 내 집으로 바로 입장.
@@ -179,7 +181,7 @@ export function AptHubClient({
     setStarted(true);
     setStartPhase("home");
     setWorldMode("interior");
-    window.history.replaceState(null, "", "/apt");
+    window.history.replaceState(null, "", APT_GAME_PATH);
   }, [isLoggedIn]);
 
   // 네이티브 앱 + 로그인: 바로 집(게임 홈)으로

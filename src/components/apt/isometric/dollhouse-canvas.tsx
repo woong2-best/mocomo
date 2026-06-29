@@ -41,7 +41,7 @@ function DollhouseCanvasInner({
   const [fogColor, fogNear, fogFar] = bondeeFogArgs();
 
   return (
-    <div className="dollhouse-canvas-root apt-bondee-world touch-none">
+    <div className="dollhouse-canvas-root touch-none isolate">
       <Canvas
         shadows
         dpr={[1, cappedPixelRatio()]}

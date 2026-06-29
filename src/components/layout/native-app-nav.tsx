@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Bell, Home, Search, User } from "lucide-react";
+import { Bell, Building2, Home, Search, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { MessageKey } from "@/lib/i18n/messages";
-import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { APT_GAME_PATH, DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 
 type TabDef = {
   href: string;
@@ -21,13 +21,13 @@ const guestTabs: TabDef[] = [
     href: DEFAULT_LANDING_PATH,
     icon: Home,
     labelKey: "nav.home",
-    match: (p) => p === DEFAULT_LANDING_PATH || p.startsWith("/apt/"),
+    match: (p) => p === DEFAULT_LANDING_PATH || p.startsWith(`${DEFAULT_LANDING_PATH}/`),
   },
   {
-    href: "/explore",
+    href: "/discover",
     icon: Search,
-    labelKey: "nav.explore",
-    match: (p) => p === "/explore" || p.startsWith("/explore/"),
+    labelKey: "nav.discover",
+    match: (p) => p === "/discover" || p.startsWith("/discover/"),
   },
   {
     href: "/auth/signin",
@@ -43,13 +43,13 @@ function userTabs(username: string): TabDef[] {
       href: DEFAULT_LANDING_PATH,
       icon: Home,
       labelKey: "nav.home",
-      match: (p) => p === DEFAULT_LANDING_PATH || p.startsWith("/apt/"),
+      match: (p) => p === DEFAULT_LANDING_PATH || p.startsWith(`${DEFAULT_LANDING_PATH}/`),
     },
     {
-      href: "/explore",
-      icon: Search,
-      labelKey: "nav.explore",
-      match: (p) => p === "/explore" || p.startsWith("/explore/"),
+      href: APT_GAME_PATH,
+      icon: Building2,
+      labelKey: "nav.apt",
+      match: (p) => p === APT_GAME_PATH,
     },
     {
       href: "/notifications",

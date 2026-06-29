@@ -1,5 +1,7 @@
 /** Play Store / app.mocomo.net 전용 셸 — 하단 탭·FAB·간소 헤더 */
 
+import { APT_GAME_PATH } from "@/lib/site-routes";
+
 export const NATIVE_APP_NAV_REM = "3.25rem";
 
 export function shouldHideNativeAppNav(pathname: string): boolean {
@@ -7,7 +9,7 @@ export function shouldHideNativeAppNav(pathname: string): boolean {
   if (/^\/voice\/[^/]+$/.test(pathname) && pathname !== "/voice/new") return true;
   if (pathname.startsWith("/auth")) return true;
   if (pathname.startsWith("/legal")) return true;
-  if (pathname === "/apt" || pathname === "/") return true;
+  if (pathname === APT_GAME_PATH) return true;
   return false;
 }
 

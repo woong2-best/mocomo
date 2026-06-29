@@ -11,7 +11,7 @@ import {
   exchangeAptGemsForGold,
   getAptGemShopCatalog,
 } from "@/actions/apt-iap";
-import { calcGoldFromGems } from "@/lib/apt/economy/gem-exchange-service";
+import { calcGoldFromGems } from "@/lib/apt/economy/economy-config-types";
 import type { AptGemShopCatalog } from "@/actions/apt-iap";
 import { hydrateLocalEconomy } from "@/lib/apt/local-home-store";
 

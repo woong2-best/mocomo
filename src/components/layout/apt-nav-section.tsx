@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isAptPath } from "@/lib/apt-route";
-import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { APT_GAME_PATH } from "@/lib/site-routes";
 import { useLocale } from "@/components/providers/locale-provider";
 
 /** 사이드바 APT — 전용 페이지는 /apt */
@@ -20,7 +20,7 @@ export function AptNavSection({
 
   return (
     <Link
-      href={DEFAULT_LANDING_PATH}
+      href={APT_GAME_PATH}
       onClick={onNavigate}
       className={cn("sidebar-block", sectionActive && "sidebar-block-active")}
     >

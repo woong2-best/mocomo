@@ -5,6 +5,7 @@ import { Mailbox } from "lucide-react";
 import { FolkBrushDivider } from "@/components/brand/folk-decor";
 import { FolkThemeCelestial } from "@/components/brand/folk-theme-celestial";
 import { AptMailboxLink } from "@/components/compose/apt-mailbox-link";
+import { APT_GAME_PATH } from "@/lib/site-routes";
 
 export function HomeLoggedBanner() {
   return (
@@ -26,7 +27,7 @@ export function HomeLoggedBanner() {
           <Mailbox className="h-4 w-4" />
           우편함 만들기
         </AptMailboxLink>
-        <Link href="/apt" className="text-sm text-muted-foreground hover:text-folk-cobalt underline-offset-2 hover:underline">
+        <Link href={APT_GAME_PATH} className="text-sm text-muted-foreground hover:text-folk-cobalt underline-offset-2 hover:underline">
           내 집 꾸미기
         </Link>
       </div>

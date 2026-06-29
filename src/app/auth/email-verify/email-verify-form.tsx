@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { sendEmailAuthCode, verifyAuthCodeOnly, completeAuthWithCode } from "@/actions/auth";
+import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
 import { EmailAddressField } from "@/components/auth/email-address-field";
 import { Button } from "@/components/ui/button";
@@ -153,7 +154,7 @@ export function EmailVerifyFormInner() {
         redirect: false,
       });
       if (!signInResult?.error) {
-        router.replace("/apt");
+        router.replace(DEFAULT_LANDING_PATH);
         return;
       }
       setSignupPassword(stored);

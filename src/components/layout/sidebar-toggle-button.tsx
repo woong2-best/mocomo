@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 
 export function SidebarToggleButton() {
   const pathname = usePathname();
-  const isHome = pathname === DEFAULT_LANDING_PATH || pathname.startsWith("/apt/");
+  const isHome = pathname === DEFAULT_LANDING_PATH || pathname.startsWith(`${DEFAULT_LANDING_PATH}/`);
   const { open: sidebarOpen, toggle: toggleSidebar } = useSidebarToggle();
 
   return (

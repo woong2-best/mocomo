@@ -19,6 +19,7 @@ import { BrandLogo } from "@/components/brand/brand-logo";
 import { SignupStepIndicator } from "@/components/auth/signup-step-indicator";
 import { COUNTRIES, LOCALE_COOKIE, COUNTRY_COOKIE, LOCALE_LABELS, LOCALES } from "@/lib/i18n/config";
 import type { Locale } from "@/lib/i18n/config";
+import { DEFAULT_LANDING_PATH, APT_GAME_PATH } from "@/lib/site-routes";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
 import { isValidSignupEmail } from "@/lib/signup-email-domains";
 import { EmailAddressField } from "@/components/auth/email-address-field";
@@ -470,7 +471,7 @@ export function SignupApplyForm({
                   <Button
                     type="button"
                     className="w-full rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white"
-                    onClick={() => signIn("discord", { callbackUrl: "/apt" })}
+                    onClick={() => signIn("discord", { callbackUrl: APT_GAME_PATH })}
                   >
                     Discord로 가입
                   </Button>
@@ -480,7 +481,7 @@ export function SignupApplyForm({
                     type="button"
                     variant="outline"
                     className="w-full rounded-xl"
-                    onClick={() => signIn("google", { callbackUrl: "/apt" })}
+                    onClick={() => signIn("google", { callbackUrl: APT_GAME_PATH })}
                   >
                     Google로 가입
                   </Button>

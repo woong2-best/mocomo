@@ -20,11 +20,11 @@ import type { MessageKey } from "@/lib/i18n/messages";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
 import { MobileDrawerNav } from "@/components/layout/mobile-drawer-nav";
 import { buildAptMailboxUrl } from "@/lib/apt/mailbox-compose-route";
-import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { DEFAULT_LANDING_PATH, APT_GAME_PATH } from "@/lib/site-routes";
 
 const guestTabs: { href: string; icon: typeof Home; labelKey: MessageKey }[] = [
   { href: DEFAULT_LANDING_PATH, icon: Home, labelKey: "nav.home" },
-  { href: "/explore", icon: Compass, labelKey: "nav.explore" },
+  { href: "/discover", icon: Compass, labelKey: "nav.discover" },
   { href: "/live", icon: Radio, labelKey: "nav.live" },
   { href: "/auth/signin", icon: LogIn, labelKey: "nav.signin" },
   { href: "/auth/signup", icon: User, labelKey: "nav.signup" },
@@ -52,13 +52,11 @@ export function MobileNav() {
         <div className="flex justify-around items-center h-14 max-w-lg mx-auto">
           {tabs.map(({ href, icon: Icon, labelKey }) => {
             const active =
-              href === DEFAULT_LANDING_PATH
-                ? pathname === DEFAULT_LANDING_PATH || pathname.startsWith("/apt/")
-                : href.startsWith("/auth")
-                  ? pathname.startsWith("/auth")
-                  : href.startsWith("/apt")
-                    ? pathname.startsWith("/apt")
-                    : pathname === href || pathname.startsWith(`${href}/`);
+              href.startsWith("/auth")
+                ? pathname.startsWith("/auth")
+                : href.startsWith("/apt")
+                  ? pathname.startsWith("/apt") || pathname === APT_GAME_PATH
+                  : pathname === href || pathname.startsWith(`${href}/`);
 
             return (
               <Link

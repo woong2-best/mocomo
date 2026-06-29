@@ -15,6 +15,7 @@ import {
 import type { AptGameToastKind } from "./apt-game-toast";
 import { useRouter } from "next/navigation";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
+import { getDioramaPreset } from "@/lib/diorama/living-room-preset";
 import { createDefaultGameState } from "@/lib/apt/game/defaults";
 import type { AptGameState, AptGameTab, AptGameView } from "@/lib/apt/game/types";
 import type { EconomySnapshot, LocalEconomyCache } from "@/lib/apt/economy/types";
@@ -91,6 +92,16 @@ type AptGameContextValue = {
 
 const AptGameContext = createContext<AptGameContextValue | null>(null);
 
+function resolveDefaultLivingRoomId(rooms: AptRoom[]): string | null {
+  const living = rooms.find((r) => r.id === "living" || r.type === "living");
+  if (living && getDioramaPreset(living.id, living.type)) return living.id;
+  for (const room of rooms) {
+    if (room.type === "hall" || room.type === "entrance" || room.type === "balcony") continue;
+    if (getDioramaPreset(room.id, room.type)) return room.id;
+  }
+  return rooms[0]?.id ?? null;
+}
+
 export function AptGameProvider({
   children,
   initialGame,
@@ -124,18 +135,32 @@ export function AptGameProvider({
       : createEmptyLocalEconomyCache()
   );
   const economySynced = useRef(false);
+  const defaultLivingRoomId = useMemo(() => resolveDefaultLivingRoomId(rooms), [rooms]);
   const [activeTab, setActiveTabState] = useState<AptGameTab>("home");
-  const [view, setView] = useState<AptGameView>("overview");
+  const [view, setView] = useState<AptGameView>("room");
   const [editMode, setEditMode] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [missionOpen, setMissionOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
   const [gemShopOpen, setGemShopOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
-  const [activeRoomId, setActiveRoomIdState] = useState(initialRoomId);
+  const [activeRoomId, setActiveRoomIdState] = useState(
+    () => initialRoomId ?? defaultLivingRoomId
+  );
   const [toast, setToast] = useState<string | null>(null);
   const [toastKind, setToastKind] = useState<AptGameToastKind>("default");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bootedRef = useRef(false);
+
+  useEffect(() => {
+    if (!enabled || bootedRef.current) return;
+    bootedRef.current = true;
+    const roomId = activeRoomId ?? defaultLivingRoomId;
+    if (!roomId) return;
+    setActiveRoomIdState(roomId);
+    onRoomSelect(roomId);
+    setView("room");
+  }, [enabled, activeRoomId, defaultLivingRoomId, onRoomSelect]);
 
   const showToast = useCallback((message: string, kind: AptGameToastKind = "default") => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -184,7 +209,14 @@ export function AptGameProvider({
       setActiveTabState(tab);
       setMoreOpen(false);
       if (tab === "home") {
-        setView("overview");
+        const roomId = activeRoomId ?? defaultLivingRoomId;
+        if (roomId) {
+          setActiveRoomIdState(roomId);
+          onRoomSelect(roomId);
+          setView("room");
+        } else {
+          setView("overview");
+        }
         setEditMode(false);
         setPaletteOpen(false);
         setShopOpen(false);
@@ -207,7 +239,7 @@ export function AptGameProvider({
         setMoreOpen(true);
       }
     },
-    [activeRoomId, onRoomSelect, rooms, router]
+    [activeRoomId, defaultLivingRoomId, onRoomSelect, rooms, router]
   );
 
   const enterRoom = useCallback(

@@ -3,6 +3,8 @@
  *  lg 미만: 상단 로고+메뉴 버튼 + 하단 탭 (스마트폰·태블릿)
  */
 
+import { APT_GAME_PATH } from "@/lib/site-routes";
+
 export const HEADER_REM = "3.5rem";
 export const MOBILE_NAV_REM = "3.5rem";
 
@@ -21,7 +23,7 @@ export function shouldHideMobileNav(pathname: string): boolean {
   if (isUsedDetailPath(pathname)) return true;
   if (/^\/voice\/[^/]+$/.test(pathname) && pathname !== "/voice/new") return true;
   if (pathname === "/discover") return true;
-  if (pathname === "/apt" || pathname === "/") return true;
+  if (pathname === APT_GAME_PATH) return true;
   return false;
 }
 

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { APT_GAME_PATH } from "@/lib/site-routes";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { getAptProfile } from "@/actions/apt";
 import { AptHouseHubClient } from "@/components/apt/apt-house-hub-client";
@@ -15,7 +16,7 @@ export default async function AptHousePage() {
   if (!user) redirect("/auth/signin?callbackUrl=/apt/house");
 
   const profile = await getAptProfile();
-  if (!profile || profile.housingType !== "house") redirect("/apt");
+  if (!profile || profile.housingType !== "house") redirect(APT_GAME_PATH);
 
   return <AptHouseHubClient initialProfile={profile} />;
 }

@@ -5,6 +5,8 @@ export const metadata = {
   description: "MoCoMo APT",
 };
 
+import { APT_GAME_PATH } from "@/lib/site-routes";
+
 export default async function AptMoveInPage() {
-  redirect("/apt");
+  redirect(APT_GAME_PATH);
 }

@@ -7,6 +7,7 @@ import {
   requestAptCohabitationMoveOutForm,
 } from "@/actions/apt-cohabitation";
 import { getCachedCurrentUser } from "@/lib/auth";
+import { APT_GAME_PATH } from "@/lib/site-routes";
 import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
@@ -148,7 +149,7 @@ export default async function AptCohabitationPage() {
       </section>
 
       <Button asChild variant="outline" className="w-full rounded-2xl">
-        <Link href="/apt">APT로 돌아가기</Link>
+        <Link href={APT_GAME_PATH}>APT로 돌아가기</Link>
       </Button>
     </div>
   );

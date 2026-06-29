@@ -125,14 +125,14 @@ function AptDioramaRoomInner({
 
   if (showOverview) {
     return (
-      <AptRoomTransition phase={roomPhase} className="absolute inset-0">
+      <AptRoomTransition phase={roomPhase} className="absolute inset-0 z-[1]">
         <AptMultiRoomOverview rooms={rooms} />
       </AptRoomTransition>
     );
   }
 
   return (
-    <AptRoomTransition phase={roomPhase} className="absolute inset-0">
+    <AptRoomTransition phase={roomPhase} className="absolute inset-0 z-[1]">
       {isVisiting && visitHostName && onEndVisit && (
         <AptVisitFriendBanner hostName={visitHostName} onLeave={onEndVisit} />
       )}
