@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { getFraudAdminPageData } from "@/actions/admin-fraud";
 import { AdminFraudPanel } from "@/components/admin/admin-fraud-panel";
-import { ChevronLeft, ShieldAlert } from "lucide-react";
+import { AdminPageChrome } from "@/components/admin/admin-page-chrome";
+import { ShieldAlert } from "lucide-react";
 
 export default async function AdminFraudPage() {
   let data: Awaited<ReturnType<typeof getFraudAdminPageData>> | null = null;
@@ -20,16 +20,18 @@ export default async function AdminFraudPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-4 space-y-4 pb-24">
-      <Link href="/admin/economy" className="inline-flex items-center gap-1 text-sm text-muted-foreground">
-        <ChevronLeft className="h-4 w-4" />
-        Economy Dashboard
-      </Link>
-      <h1 className="text-2xl font-bold flex items-center gap-2">
-        <ShieldAlert className="h-6 w-6" />
-        Fraud Detection
-      </h1>
+    <AdminPageChrome
+      maxWidth="5xl"
+      backHref="/admin/economy"
+      backLabel="Economy Dashboard"
+      title={
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <ShieldAlert className="h-6 w-6" />
+          Fraud Detection
+        </h1>
+      }
+    >
       <AdminFraudPanel stats={data.stats} profiles={data.profiles} />
-    </div>
+    </AdminPageChrome>
   );
 }

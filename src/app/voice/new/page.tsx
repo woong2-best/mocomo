@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Radio, ChevronLeft, KeyRound, Copy, Check, Calendar, Video, Mic2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AppPageChrome } from "@/components/layout/app-page-chrome";
+import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 
 const PRESETS = [
   "🎙 애니덕질 라이브",
@@ -294,12 +294,14 @@ export default function NewVoicePage() {
       </Link>
 
       <div className="live-hero !p-5">
-        <h1 className="text-xl font-bold flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-folk-terracotta text-white">
-            <Radio className="h-5 w-5" />
-          </span>
-          라이브 방송 만들기
-        </h1>
+        <NativePageTitle>
+          <h1 className="text-xl font-bold flex items-center gap-2">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-folk-terracotta text-white">
+              <Radio className="h-5 w-5" />
+            </span>
+            라이브 방송 만들기
+          </h1>
+        </NativePageTitle>
       </div>
 
       {hostEligible === false && (

@@ -10,6 +10,7 @@ import { getRequestLocale } from "@/lib/i18n/server";
 import { auth, isSiteOperator } from "@/lib/auth";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { ContentModerationBar } from "@/components/moderation/content-moderation-bar";
+import { AppPageChrome } from "@/components/layout/app-page-chrome";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
       : 0;
 
   return (
-    <div className="max-w-2xl mx-auto p-4 space-y-6">
+    <AppPageChrome maxWidth="2xl">
       <PostViewTracker postId={post.id} />
       <ContentModerationBar
         targetType="POST"
@@ -71,6 +72,6 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
       <Suspense fallback={<PostCommentsSkeleton />}>
         <PostCommentsSection postId={post.id} />
       </Suspense>
-    </div>
+    </AppPageChrome>
   );
 }

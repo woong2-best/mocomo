@@ -7,9 +7,12 @@ import { joinGroupRoomByCode, joinGroupRoomById } from "@/actions/group-chat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronLeft, KeyRound } from "lucide-react";
+import { useClientPlatform } from "@/components/providers/client-platform-provider";
+import { cn } from "@/lib/utils";
 
 function JoinGroupInner() {
   const router = useRouter();
+  const { isNativeApp } = useClientPlatform();
   const searchParams = useSearchParams();
   const presetRoom = searchParams.get("room") ?? "";
   const [code, setCode] = useState("");
@@ -44,10 +47,14 @@ function JoinGroupInner() {
         <Link href="/messages" className="p-2 rounded-full hover:bg-muted/80">
           <ChevronLeft className="h-5 w-5" />
         </Link>
-        <h1 className="font-bold text-lg">단체방 입장</h1>
+        {!isNativeApp ? (
+          <h1 className="font-bold text-lg">단체방 입장</h1>
+        ) : (
+          <h1 className="sr-only">단체방 입장</h1>
+        )}
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 max-w-lg mx-auto w-full space-y-6">
+      <div className={cn("flex-1 overflow-y-auto p-4 max-w-lg mx-auto w-full space-y-6", isNativeApp && "pb-native-fab")}>
         {presetRoom ? (
           <section className="rounded-2xl border p-4 space-y-3">
             <p className="text-sm font-medium">초대 링크로 입장</p>

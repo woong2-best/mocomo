@@ -8,6 +8,7 @@ import { Gem, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { userAvatarFallbackInitial, userDisplayName } from "@/lib/user-public-select";
+import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 
 export default async function CosplayProfilePage({
   params,
@@ -37,14 +38,16 @@ export default async function CosplayProfilePage({
   const displayName = userDisplayName(user);
 
   return (
-    <div className="max-w-4xl mx-auto p-4 lg:p-6 space-y-6">
+    <AppPageChrome maxWidth="4xl">
       <div className="flex flex-col sm:flex-row items-start gap-4">
         <Avatar className="h-20 w-20 ring-4 ring-primary/30">
           <AvatarImage src={user.image ?? undefined} />
           <AvatarFallback>{userAvatarFallbackInitial(user)}</AvatarFallback>
         </Avatar>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold">{displayName}</h1>
+          <NativePageTitle>
+            <h1 className="text-2xl font-bold">{displayName}</h1>
+          </NativePageTitle>
           <p className="text-muted-foreground">@{username}</p>
           {cp.bio && <p className="text-sm mt-3">{cp.bio}</p>}
           <p className="text-sm text-neon-cyan mt-2">{cp.followerCount} 팔로워 · 후원 {cp.totalTips.toLocaleString()}원</p>
@@ -111,6 +114,6 @@ export default async function CosplayProfilePage({
           </div>
         </section>
       )}
-    </div>
+    </AppPageChrome>
   );
 }

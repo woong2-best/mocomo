@@ -4,6 +4,7 @@ import { ArrowLeft, PenSquare } from "lucide-react";
 import { getCachedSession } from "@/lib/auth";
 import { parseCosplayBoardMode } from "@/lib/cosplay-board-data";
 import { CosplayBoardPostForm } from "@/components/cosplay/cosplay-board-post-form";
+import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 import { Button } from "@/components/ui/button";
 
 export default async function CosplayBoardNewPage({
@@ -20,7 +21,7 @@ export default async function CosplayBoardNewPage({
   const mode = parseCosplayBoardMode(modeParam);
 
   return (
-    <div className="max-w-2xl mx-auto p-4 space-y-4 pb-10">
+    <AppPageChrome maxWidth="2xl" spacing="sm">
       <div className="flex items-center justify-between gap-3">
         <Button variant="ghost" size="sm" className="gap-1.5 -ml-2" asChild>
           <Link href={mode === "purchase" ? "/cosplay?mode=purchase" : "/cosplay"}>
@@ -28,14 +29,16 @@ export default async function CosplayBoardNewPage({
             목록
           </Link>
         </Button>
-        <h1 className="text-lg font-bold flex items-center gap-2">
-          <PenSquare className="h-4 w-4 text-pink-500" />
-          글쓰기
-        </h1>
+        <NativePageTitle>
+          <h1 className="text-lg font-bold flex items-center gap-2">
+            <PenSquare className="h-4 w-4 text-pink-500" />
+            글쓰기
+          </h1>
+        </NativePageTitle>
         <div className="w-16" />
       </div>
 
       <CosplayBoardPostForm defaultMode={mode} />
-    </div>
+    </AppPageChrome>
   );
 }

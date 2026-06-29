@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { getEconomyDashboard } from "@/actions/admin-apt-economy";
 import { AdminEconomyDashboard } from "@/components/admin/admin-economy-dashboard";
-import { ChevronLeft, Coins } from "lucide-react";
+import { AdminPageChrome } from "@/components/admin/admin-page-chrome";
+import { Coins } from "lucide-react";
 
 export default async function AdminEconomyPage() {
   let data: Awaited<ReturnType<typeof getEconomyDashboard>> | null = null;
@@ -20,16 +20,16 @@ export default async function AdminEconomyPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-4 pb-24">
-      <Link href="/admin" className="inline-flex items-center gap-1 text-sm text-muted-foreground">
-        <ChevronLeft className="h-4 w-4" />
-        관리자 패널
-      </Link>
-      <h1 className="text-2xl font-bold flex items-center gap-2">
-        <Coins className="h-6 w-6" />
-        Economy Dashboard
-      </h1>
+    <AdminPageChrome
+      maxWidth="4xl"
+      title={
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <Coins className="h-6 w-6" />
+          Economy Dashboard
+        </h1>
+      }
+    >
       <AdminEconomyDashboard data={data} />
-    </div>
+    </AdminPageChrome>
   );
 }

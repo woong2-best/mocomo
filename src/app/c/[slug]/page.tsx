@@ -6,6 +6,7 @@ import { communityCategoryLabel } from "@/lib/community-labels";
 import { CommunityJoinButton } from "@/components/communities/community-join-button";
 import { CommunitySubnav } from "@/components/communities/community-subnav";
 import { CommunityComposeButton } from "@/components/compose/community-compose-button";
+import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 import { ChevronLeft, Users, MessageSquare } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +26,7 @@ export default async function CommunityPage({
   const isOwner = viewer?.isOwner ?? false;
 
   return (
-    <div className="max-w-2xl mx-auto p-4 pb-nav lg:pb-8 space-y-6">
+    <AppPageChrome maxWidth="2xl">
       <Link
         href="/communities"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
@@ -37,8 +38,10 @@ export default async function CommunityPage({
       <div className="rounded-2xl border border-border/50 bg-card/50 p-6 space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-2 min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
+            <NativePageTitle>
               <h1 className="text-2xl font-bold">{community.name}</h1>
+            </NativePageTitle>
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs px-2.5 py-1 rounded-full bg-primary/15 text-primary font-medium">
                 {categoryLabel}
               </span>
@@ -115,6 +118,6 @@ export default async function CommunityPage({
           community.posts.map((post) => <PostCard key={post.id} post={post} />)
         )}
       </section>
-    </div>
+    </AppPageChrome>
   );
 }

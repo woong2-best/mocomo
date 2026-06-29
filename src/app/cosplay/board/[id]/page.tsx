@@ -7,6 +7,7 @@ import { CosplayBoardComments } from "@/components/cosplay/cosplay-board-comment
 import { CosplayBoardContactBar } from "@/components/cosplay/cosplay-board-contact-bar";
 import { Button } from "@/components/ui/button";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
+import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { userDisplayName } from "@/lib/user-public-select";
 import { notFound } from "next/navigation";
 
@@ -24,7 +25,7 @@ export default async function CosplayBoardPostPage({
   const isAuthor = session?.user?.id === post.author.id;
 
   return (
-    <div className="max-w-3xl mx-auto p-4 space-y-4 pb-10">
+    <AppPageChrome maxWidth="3xl" spacing="sm">
       <Button variant="ghost" size="sm" className="gap-1.5 -ml-2" asChild>
         <Link href={cosplayBoardListHref(post.mode)}>
           <ArrowLeft className="h-4 w-4" />
@@ -97,6 +98,6 @@ export default async function CosplayBoardPostPage({
           isSignedIn={!!session?.user}
         />
       </article>
-    </div>
+    </AppPageChrome>
   );
 }

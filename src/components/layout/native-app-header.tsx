@@ -75,6 +75,17 @@ function titleForPath(pathname: string): string | null {
   if (pathname === "/voice") return "음성 채널";
   if (pathname === "/star") return "STAR";
   if (pathname === "/messages/groups/new") return "단체방 만들기";
+  if (pathname === "/messages/join") return "단체방 입장";
+  if (pathname.match(/^\/c\/[^/]+\/members$/)) return "멤버";
+  if (pathname.match(/^\/c\/[^/]+\/settings$/)) return "커뮤니티 설정";
+  if (pathname.startsWith("/c/")) return "커뮤니티";
+  if (pathname === "/events/map") return "행사 지도";
+  if (pathname === "/anime/delete-requests") return "삭제 요청";
+  if (pathname.match(/^\/anime\/[^/]+\/history$/)) return "수정 기록";
+  if (pathname === "/anime") return "애니 위키";
+  if (pathname.startsWith("/anime/")) return "애니 위키";
+  if (pathname === "/cosplay/profiles") return "코스어 프로필";
+  if (pathname === "/cosplay/board/new") return "글쓰기";
   if (pathname.startsWith("/support")) return "후원";
   if (pathname.startsWith("/avatar")) return "아바타";
   return null;

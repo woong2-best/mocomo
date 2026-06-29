@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Camera, UserPlus } from "lucide-react";
 import { userAvatarFallbackInitial, userDisplayName } from "@/lib/user-public-select";
+import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 
 export const revalidate = 120;
 
@@ -46,17 +47,17 @@ export default async function CosplayProfilesPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-6">
+    <AppPageChrome maxWidth="4xl">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Camera className="h-6 w-6 text-pink-500" />
-            코스어 프로필
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            등록된 코스플레이어를 둘러보세요.
-          </p>
-        </div>
+        <NativePageTitle>
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <Camera className="h-6 w-6 text-pink-500" />
+              코스어 프로필
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">등록된 코스플레이어를 둘러보세요.</p>
+          </div>
+        </NativePageTitle>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" className="rounded-xl" asChild>
             <Link href="/cosplay">마켓 게시판</Link>
@@ -124,6 +125,6 @@ export default async function CosplayProfilesPage() {
           ))
         )}
       </div>
-    </div>
+    </AppPageChrome>
   );
 }

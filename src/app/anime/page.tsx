@@ -7,6 +7,7 @@ import { AnimeAddButton } from "@/components/anime/anime-add-button";
 import { AnimeWikiGuide } from "@/components/anime/anime-wiki-guide";
 import { AnimeHubSearch } from "@/components/anime/anime-hub-search";
 import { AnimeHubWidgets } from "@/components/anime/anime-hub-widgets";
+import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 import {
   getCachedAnimeGenreCounts,
   getCachedPopularAnime,
@@ -43,12 +44,14 @@ export default async function AnimeHubPage() {
   const countMap = Object.fromEntries(counts.map((c) => [c.genre, c._count.id]));
 
   return (
-    <div className="p-4 lg:p-6 max-w-6xl mx-auto space-y-6">
+    <AppPageChrome maxWidth="6xl">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Tv className="h-7 w-7 text-neon-cyan" />
-          애니 위키
-        </h1>
+        <NativePageTitle>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Tv className="h-7 w-7 text-neon-cyan" />
+            애니 위키
+          </h1>
+        </NativePageTitle>
         <AnimeAddButton />
       </div>
 
@@ -90,6 +93,6 @@ export default async function AnimeHubPage() {
           <AnimeHubWidgets popular={popular} recent={recent} />
         </aside>
       </div>
-    </div>
+    </AppPageChrome>
   );
 }

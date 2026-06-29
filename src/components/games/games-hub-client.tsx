@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Building2, Gamepad2, Radio, Trophy, Users, X } from "lucide-react";
 import { FolkSectionTitle } from "@/components/brand/folk-decor";
+import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { cn } from "@/lib/utils";
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { APT_GAME_PATH } from "@/lib/site-routes";
@@ -39,8 +40,8 @@ export function GamesHubClient({
     return getMinigamesByCategory(category);
   }, [category]);
 
-  return (
-    <div className={cn("space-y-6", embedded ? "px-2 py-4" : cn("max-w-4xl mx-auto px-4 py-8", isNativeApp ? "pb-native-fab" : "pb-16"))}>
+  const body = (
+    <>
       {embedded && onClose && (
         <button
           type="button"
@@ -216,7 +217,17 @@ export function GamesHubClient({
         <p className="text-xs text-center text-muted-foreground">
           친구 초대 · 방 코드 · 관전 · 랭킹 지원
         </p>
-    </div>
+    </>
+  );
+
+  if (embedded) {
+    return <div className="space-y-6 px-2 py-4">{body}</div>;
+  }
+
+  return (
+    <AppPageChrome maxWidth="4xl" spacing="sm" className="py-4">
+      {body}
+    </AppPageChrome>
   );
 }
 

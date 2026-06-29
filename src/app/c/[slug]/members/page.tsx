@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getCommunityBySlug, getCommunityMembers } from "@/actions/community-hub";
 import { CommunitySubnav } from "@/components/communities/community-subnav";
+import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChevronLeft, Crown } from "lucide-react";
 
@@ -18,7 +19,7 @@ export default async function CommunityMembersPage({
   const { members } = await getCommunityMembers(community.id, 100);
 
   return (
-    <div className="max-w-2xl mx-auto p-4 pb-nav lg:pb-8 space-y-6">
+    <AppPageChrome maxWidth="2xl">
       <Link
         href={`/c/${slug}`}
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
@@ -27,7 +28,9 @@ export default async function CommunityMembersPage({
         {community.name}
       </Link>
 
-      <h1 className="text-xl font-bold">멤버 ({community.memberCount}명)</h1>
+      <NativePageTitle>
+        <h1 className="text-xl font-bold">멤버 ({community.memberCount}명)</h1>
+      </NativePageTitle>
       <CommunitySubnav slug={slug} />
 
       <ul className="divide-y rounded-xl border border-border overflow-hidden">
@@ -58,6 +61,6 @@ export default async function CommunityMembersPage({
           ))
         )}
       </ul>
-    </div>
+    </AppPageChrome>
   );
 }

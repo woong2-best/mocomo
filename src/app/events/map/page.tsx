@@ -5,6 +5,7 @@ import { MapPin, ChevronLeft, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SubcultureEventsMapLazy } from "@/components/events/subculture-events-map-lazy";
+import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 import {
   eventCountryFlag,
   getSubcultureMapDefaultView,
@@ -32,7 +33,7 @@ export default async function EventsMapPage() {
   const summary = subcultureCountrySummary(countryCode, locale);
 
   return (
-    <div className="p-4 lg:p-6 max-w-4xl mx-auto space-y-6">
+    <AppPageChrome maxWidth="4xl">
       <div>
         <Link href="/events">
           <Button variant="ghost" size="sm" className="gap-1 -ml-2 mb-2">
@@ -40,13 +41,15 @@ export default async function EventsMapPage() {
             이벤트
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <MapPin className="h-7 w-7 text-violet-500" />
-          서브컬처·애니 행사 지도
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {summary} · 매일 cron 갱신
-        </p>
+        <NativePageTitle>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <MapPin className="h-7 w-7 text-violet-500" />
+            서브컬처·애니 행사 지도
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {summary} · 매일 cron 갱신
+          </p>
+        </NativePageTitle>
         <p className="text-xs text-muted-foreground mt-1">
           {eventCountryFlag(eventCountry)} {SUBCULTURE_EVENT_COUNTRY_LABELS[eventCountry]} 기준 · 설정에서 국가 변경 가능
         </p>
@@ -121,6 +124,6 @@ export default async function EventsMapPage() {
           })
         )}
       </div>
-    </div>
+    </AppPageChrome>
   );
 }
