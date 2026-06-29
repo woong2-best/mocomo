@@ -20,6 +20,7 @@ export function DiscoveryMatchList() {
   const [rows, setRows] = useState<DiscoveryMatchRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [opening, setOpening] = useState<string | null>(null);
+  const [chatError, setChatError] = useState("");
 
   useEffect(() => {
     void getDiscoveryMatches().then((r) => {
@@ -31,8 +32,13 @@ export function DiscoveryMatchList() {
 
   async function openChat(userId: string) {
     setOpening(userId);
+    setChatError("");
     const res = await openDiscoveryChat(userId);
     setOpening(null);
+    if (res && "error" in res && res.error) {
+      setChatError(res.error);
+      return;
+    }
     if (res && "roomId" in res && res.roomId) {
       router.push(`/messages/${res.roomId}`);
     }
@@ -57,6 +63,9 @@ export function DiscoveryMatchList() {
 
   return (
     <ul className="space-y-3 p-4 max-w-lg mx-auto pb-24">
+      {chatError && (
+        <p className="text-sm text-destructive text-center">{chatError}</p>
+      )}
       {rows.map((m) => (
         <li key={m.matchId}>
           <Card className={cn("rounded-2xl overflow-hidden", m.unseen && "ring-2 ring-violet-500/50")}>

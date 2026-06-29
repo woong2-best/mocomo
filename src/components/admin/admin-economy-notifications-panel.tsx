@@ -60,7 +60,7 @@ export function AdminEconomyNotificationsPanel() {
           <Input placeholder="제목" value={title} onChange={(e) => setTitle(e.target.value)} />
           <Input placeholder="본문" value={body} onChange={(e) => setBody(e.target.value)} />
           <Input
-            placeholder="Deep link (선택) · /apt/house?shop=market"
+            placeholder="Deep link (선택) · /play/house?shop=market"
             value={href}
             onChange={(e) => setHref(e.target.value)}
           />

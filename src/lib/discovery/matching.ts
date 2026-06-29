@@ -1,6 +1,6 @@
-import type { DiscoveryGender, DiscoveryLookingFor, DiscoveryProfile } from "@prisma/client";
+import type { DiscoveryLookingFor, DiscoveryProfile } from "@prisma/client";
 import { usedAgeFromBirthDate } from "@/lib/used-youth-protection";
-import { DISCOVERY_MIN_AGE } from "./constants";
+import { DISCOVERY_MIN_AGE, normalizeLookingFor } from "./constants";
 import type { DiscoveryCard } from "./types";
 
 type CandidateUser = {
@@ -63,17 +63,17 @@ function passesLookingFor(
   theirs: DiscoveryLookingFor,
   isCosplayer: boolean
 ): boolean {
-  const wantsCosplay = mine === "COSPLAY" || mine === "BOTH";
-  const wantsFriends = mine === "FRIENDS" || mine === "BOTH";
-  const offersCosplay = theirs === "COSPLAY" || theirs === "BOTH";
-  const offersFriends = theirs === "FRIENDS" || theirs === "BOTH";
+  const myIntent = normalizeLookingFor(mine);
+  const theirIntent = normalizeLookingFor(theirs);
 
-  if (mine === "COSPLAY" && !isCosplayer && !offersCosplay) return false;
-  if (theirs === "COSPLAY" && !isCosplayer) return false;
+  if (theirIntent === "COSPLAY" && !isCosplayer) return false;
 
-  if (wantsCosplay && offersCosplay && isCosplayer) return true;
-  if (wantsFriends && offersFriends) return true;
-  return mine === "BOTH" && theirs === "BOTH";
+  if (myIntent === "COSPLAY") {
+    if (!isCosplayer && theirIntent !== "COSPLAY") return false;
+    return isCosplayer || theirIntent === "COSPLAY";
+  }
+
+  return theirIntent === "FRIENDS";
 }
 
 export function scoreCandidate(
@@ -93,8 +93,10 @@ export function scoreCandidate(
   score += tagOverlap * 8;
 
   const isCosplayer = !!candidate.cosplayerProfile?.photos.length;
-  if (me.lookingFor !== "FRIENDS" && isCosplayer) score += 15;
-  if (me.lookingFor === "FRIENDS" && candidate.discoveryProfile.lookingFor === "FRIENDS") score += 10;
+  const myIntent = normalizeLookingFor(me.lookingFor);
+  const theirIntent = normalizeLookingFor(candidate.discoveryProfile.lookingFor);
+  if (myIntent !== "FRIENDS" && isCosplayer) score += 15;
+  if (myIntent === "FRIENDS" && theirIntent === "FRIENDS") score += 10;
 
   const daysSinceActive =
     (Date.now() - candidate.discoveryProfile.lastActiveAt.getTime()) / 86400000;
@@ -171,7 +173,7 @@ export function filterAndRankCandidates(
       cosplayPhoto: photo?.url ?? null,
       cosplayCharacter: photo?.character ?? c.cosplayerProfile?.animes[0]?.character ?? null,
       matchScore: scoreCandidate(me, c, myAnimeIds, myTags),
-      lookingFor: dp.lookingFor,
+      lookingFor: normalizeLookingFor(dp.lookingFor),
     });
   }
 

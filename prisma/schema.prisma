@@ -3190,7 +3190,7 @@ model DiscoveryProfile {
   maxDistanceKm    Int                 @default(50)
   minAge           Int                 @default(18)
   maxAge           Int                 @default(45)
-  lookingFor       DiscoveryLookingFor @default(BOTH)
+  lookingFor       DiscoveryLookingFor @default(FRIENDS)
   preferredGenders DiscoveryGender[]
   pitch            String?             @db.Text
   showAge          Boolean             @default(false)

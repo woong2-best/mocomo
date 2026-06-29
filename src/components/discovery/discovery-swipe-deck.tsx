@@ -17,6 +17,7 @@ export function DiscoverySwipeDeck() {
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [matchFlash, setMatchFlash] = useState(false);
+  const [actError, setActError] = useState("");
   const [lastAction, setLastAction] = useState<{ card: DiscoveryCard; action: "PASS" | "LIKE" | "CHEER" } | null>(
     null
   );
@@ -43,17 +44,20 @@ export function DiscoverySwipeDeck() {
   const next = cards[1];
 
   const x = useMotionValue(0);
+  const y = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-18, 18]);
   const likeOpacity = useTransform(x, [20, 120], [0, 1]);
   const passOpacity = useTransform(x, [-120, -20], [1, 0]);
-  const cheerOpacity = useTransform(x, [-40, 40], [0, 0]);
+  const cheerOpacity = useTransform(y, [-120, -40], [1, 0]);
 
   async function act(action: "PASS" | "LIKE" | "CHEER") {
     if (!current || busy) return;
     setBusy(true);
+    setActError("");
     setLastAction({ card: current, action });
     const res = await discoverySwipe(current.userId, action);
     if ("error" in res) {
+      setActError(res.error);
       setBusy(false);
       return;
     }
@@ -63,6 +67,7 @@ export function DiscoverySwipeDeck() {
     }
     setCards((prev) => prev.slice(1));
     x.set(0);
+    y.set(0);
     setBusy(false);
     if (cards.length <= 3) void load();
   }
@@ -151,7 +156,7 @@ export function DiscoverySwipeDeck() {
 
         <motion.div
           className="relative z-10 w-full touch-none cursor-grab active:cursor-grabbing"
-          style={{ x, rotate }}
+          style={{ x, y, rotate }}
           drag
           dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
           dragElastic={0.9}
@@ -184,6 +189,10 @@ export function DiscoverySwipeDeck() {
       <p className="text-center text-[11px] text-muted-foreground mt-2 mb-4">
         ← 넘기기 · → 좋아요 · ↑ ㅊㅊ(팔로우) · 버튼으로도 가능
       </p>
+
+      {actError && (
+        <p className="text-center text-sm text-destructive mb-2">{actError}</p>
+      )}
 
       <div className="flex items-center justify-center gap-4">
         <button

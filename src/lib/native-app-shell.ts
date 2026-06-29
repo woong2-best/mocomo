@@ -9,6 +9,7 @@ export function shouldHideNativeAppNav(pathname: string): boolean {
   if (/^\/voice\/[^/]+$/.test(pathname) && pathname !== "/voice/new") return true;
   if (pathname.startsWith("/auth")) return true;
   if (pathname.startsWith("/legal")) return true;
+  if (pathname === "/discover") return true;
   if (pathname === APT_GAME_PATH) return true;
   return false;
 }

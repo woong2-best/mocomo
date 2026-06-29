@@ -22,3 +22,4 @@ export function normalizeLookingFor(value: DiscoveryLookingFor): DiscoveryLookin
 }
 
 export const DISCOVERY_MIN_AGE = 18;
+export const DISCOVERY_MAX_DISTANCE_KM = 300;

@@ -8,9 +8,8 @@ import { usedAgeFromBirthDate } from "@/lib/used-youth-protection";
 import {
   filterAndRankCandidates,
   orderedPair,
-  ageFromBirth,
 } from "@/lib/discovery/matching";
-import { DISCOVERY_MIN_AGE } from "@/lib/discovery/constants";
+import { DISCOVERY_MIN_AGE, DISCOVERY_MAX_DISTANCE_KM, normalizeLookingFor } from "@/lib/discovery/constants";
 import type { DiscoveryCard, DiscoveryMatchRow, DiscoverySettings } from "@/lib/discovery/types";
 import {
   notifyDiscoveryCheer,
@@ -48,7 +47,7 @@ const candidateSelect = {
 async function ensureDiscoveryProfile(userId: string) {
   return db.discoveryProfile.upsert({
     where: { userId },
-    create: { userId, enabled: false },
+    create: { userId, enabled: false, lookingFor: "FRIENDS" },
     update: { lastActiveAt: new Date() },
   });
 }
@@ -115,7 +114,9 @@ export async function updateDiscoverySettings(data: {
 
   const minAge = Math.max(DISCOVERY_MIN_AGE, Math.min(99, data.minAge ?? 18));
   const maxAge = Math.max(minAge, Math.min(99, data.maxAge ?? 45));
-  const maxDistanceKm = Math.max(5, Math.min(500, data.maxDistanceKm ?? 50));
+  const maxDistanceKm = Math.max(5, Math.min(DISCOVERY_MAX_DISTANCE_KM, data.maxDistanceKm ?? 50));
+  const lookingFor =
+    data.lookingFor !== undefined ? normalizeLookingFor(data.lookingFor) : undefined;
 
   await db.discoveryProfile.upsert({
     where: { userId: user.id },
@@ -131,7 +132,7 @@ export async function updateDiscoverySettings(data: {
       maxDistanceKm,
       minAge,
       maxAge,
-      lookingFor: data.lookingFor ?? "FRIENDS",
+      lookingFor: lookingFor ?? "FRIENDS",
       preferredGenders: data.preferredGenders ?? [],
       pitch: data.pitch?.trim().slice(0, 280) || null,
       lastActiveAt: new Date(),
@@ -147,7 +148,7 @@ export async function updateDiscoverySettings(data: {
       maxDistanceKm,
       minAge,
       maxAge,
-      ...(data.lookingFor !== undefined ? { lookingFor: data.lookingFor } : {}),
+      ...(lookingFor !== undefined ? { lookingFor } : {}),
       ...(data.preferredGenders !== undefined ? { preferredGenders: data.preferredGenders } : {}),
       ...(data.pitch !== undefined ? { pitch: data.pitch.trim().slice(0, 280) || null } : {}),
       lastActiveAt: new Date(),

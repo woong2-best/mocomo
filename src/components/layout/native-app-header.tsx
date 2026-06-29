@@ -27,6 +27,9 @@ function titleForPath(pathname: string): string | null {
   if (pathname === "/games" || pathname.startsWith("/games/")) return "GAME";
   if (pathname === "/notifications") return "알림";
   if (pathname === "/messages") return "쪽지";
+  if (pathname === "/discover") return "매칭";
+  if (pathname === "/discover/matches") return "매칭 목록";
+  if (pathname.startsWith("/discover/")) return "매칭";
   return null;
 }
 

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Bell, Gamepad2, Home, Radio, Search, User } from "lucide-react";
+import { Bell, Gamepad2, Home, Radio, Sparkles, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { MessageKey } from "@/lib/i18n/messages";
@@ -26,7 +26,7 @@ const guestTabs: TabDef[] = [
   },
   {
     href: "/discover",
-    icon: Search,
+    icon: Sparkles,
     labelKey: "nav.discover",
     match: (p) => p === "/discover" || p.startsWith("/discover/"),
   },

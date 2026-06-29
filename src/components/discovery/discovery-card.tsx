@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { MapPin, Sparkles, Camera, Heart } from "lucide-react";
 import type { DiscoveryCard } from "@/lib/discovery/types";
-import { DISCOVERY_GENDER_LABELS, DISCOVERY_LOOKING_LABELS } from "@/lib/discovery/constants";
+import { DISCOVERY_GENDER_LABELS, DISCOVERY_LOOKING_LABELS, normalizeLookingFor } from "@/lib/discovery/constants";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -41,7 +41,7 @@ export function DiscoveryCardView({ card, className, style }: Props) {
           </span>
         )}
         <span className="inline-flex items-center gap-1 rounded-full bg-black/45 backdrop-blur px-2.5 py-1 text-[11px] text-white/90">
-          {DISCOVERY_LOOKING_LABELS[card.lookingFor]}
+          {DISCOVERY_LOOKING_LABELS[normalizeLookingFor(card.lookingFor)]}
         </span>
         {card.matchScore >= 40 && (
           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600/70 backdrop-blur px-2.5 py-1 text-[11px] font-bold text-white">

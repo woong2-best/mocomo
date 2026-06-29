@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
 import { getRegionMapCenter, isShippingOnlyRegion } from "@/lib/used-region-coords";
 import type { MeetCoords } from "@/lib/used-market";
+import { getCurrentCoords, geolocationErrorMessage } from "@/lib/client-geolocation";
 import { cn } from "@/lib/utils";
 import { Loader2, MapPin, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -262,22 +263,18 @@ export function UsedMeetMap({
     }
   }
 
-  function useMyLocation() {
-    if (!navigator.geolocation) {
-      setResolveError("이 기기에서는 위치를 사용할 수 없습니다.");
-      return;
+  async function fetchCurrentLocation() {
+    setResolveError("");
+    try {
+      const coords = await getCurrentCoords();
+      const next = { lat: coords.lat, lng: coords.lng };
+      onCoordsChange?.(next);
+      setDisplayCoords(next);
+      const L = leafletRef.current;
+      if (L) placeMarker(next.lat, next.lng, L, true);
+    } catch (err) {
+      setResolveError(geolocationErrorMessage(err));
     }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const next = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        onCoordsChange?.(next);
-        setDisplayCoords(next);
-        const L = leafletRef.current;
-        if (L) placeMarker(next.lat, next.lng, L, true);
-      },
-      () => setResolveError("위치 권한을 허용해 주세요."),
-      { enableHighAccuracy: true, timeout: 12000 }
-    );
   }
 
   if (shipping) {
@@ -315,7 +312,7 @@ export function UsedMeetMap({
             variant="outline"
             size="sm"
             className="rounded-xl gap-1 shrink-0"
-            onClick={useMyLocation}
+            onClick={() => void fetchCurrentLocation()}
           >
             <Navigation className="h-3.5 w-3.5" />
             내 위치

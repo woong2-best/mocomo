@@ -13,6 +13,7 @@ import {
   DISCOVERY_LOOKING_LABELS,
   DISCOVERY_LOOKING_UI_OPTIONS,
   DISCOVERY_MIN_AGE,
+  DISCOVERY_MAX_DISTANCE_KM,
   normalizeLookingFor,
 } from "@/lib/discovery/constants";
 import type { DiscoverySettings } from "@/lib/discovery/types";
@@ -29,7 +30,9 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
   const [showGender, setShowGender] = useState(initial.showGender);
   const [showAge, setShowAge] = useState(initial.showAge);
   const [city, setCity] = useState(initial.city ?? "");
-  const [maxDistanceKm, setMaxDistanceKm] = useState(initial.maxDistanceKm);
+  const [maxDistanceKm, setMaxDistanceKm] = useState(
+    Math.min(initial.maxDistanceKm, DISCOVERY_MAX_DISTANCE_KM)
+  );
   const [minAge, setMinAge] = useState(initial.minAge);
   const [maxAge, setMaxAge] = useState(initial.maxAge);
   const [lookingFor, setLookingFor] = useState<DiscoveryLookingFor>(normalizeLookingFor(initial.lookingFor));
@@ -312,7 +315,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
             <input
               type="range"
               min={5}
-              max={300}
+              max={DISCOVERY_MAX_DISTANCE_KM}
               step={5}
               value={maxDistanceKm}
               onChange={(e) => setMaxDistanceKm(Number(e.target.value))}
