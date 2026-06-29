@@ -15,6 +15,7 @@ import { MarketDbBannerAsync } from "@/components/market/market-db-banner-async"
 import { SupportRankingPodium } from "@/components/support/support-ranking-podium";
 import { SupportTrophyIcon } from "@/components/icons/support-trophy-icon";
 import { SupportPageChrome, SupportPageTitle } from "@/components/support/support-page-chrome";
+import { TabPanelSkeleton } from "@/components/ui/content-skeletons";
 import { Send, Inbox, Sparkles, Archive, Gift, Gem } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -104,19 +105,19 @@ export default async function SupportPage({
       </nav>
 
       {tab === "emoticons" && (
-        <Suspense fallback={<p className="text-sm text-muted-foreground py-8">불러오는 중…</p>}>
+        <Suspense fallback={<TabPanelSkeleton />}>
           <SupportEmoticonsPanel priceFilter={priceFilter} />
         </Suspense>
       )}
 
       {tab === "storage" && (
-        <Suspense fallback={<p className="text-sm text-muted-foreground py-8">불러오는 중…</p>}>
+        <Suspense fallback={<TabPanelSkeleton />}>
           <SupportStoragePanel />
         </Suspense>
       )}
 
       {tab === "gifts" && (
-        <Suspense fallback={<p className="text-sm text-muted-foreground py-8">불러오는 중…</p>}>
+        <Suspense fallback={<TabPanelSkeleton />}>
           <SupportGiftsPanel />
         </Suspense>
       )}

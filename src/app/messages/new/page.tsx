@@ -6,6 +6,8 @@ import Link from "next/link";
 import { getOrCreateDM } from "@/actions/chat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useClientPlatform } from "@/components/providers/client-platform-provider";
+import { cn } from "@/lib/utils";
 import { ChevronLeft, Search, Users, Radio } from "lucide-react";
 
 export default function NewMessagePage() {
@@ -18,6 +20,7 @@ export default function NewMessagePage() {
 
 function NewMessagePageInner() {
   const router = useRouter();
+  const { isNativeApp } = useClientPlatform();
   const searchParams = useSearchParams();
   const shareText = searchParams.get("share")?.trim() ?? "";
   const shareLabel = searchParams.get("label")?.trim() ?? "라이브";
@@ -64,10 +67,11 @@ function NewMessagePageInner() {
         <Link href="/messages" className="p-2 rounded-full hover:bg-muted/80">
           <ChevronLeft className="h-5 w-5" />
         </Link>
-        <h1 className="font-bold text-lg">새 메시지</h1>
+        {!isNativeApp && <h1 className="font-bold text-lg">새 메시지</h1>}
+        {isNativeApp && <h1 className="sr-only">새 메시지</h1>}
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 max-w-lg mx-auto w-full space-y-6">
+      <div className={cn("flex-1 overflow-y-auto p-4 max-w-lg mx-auto w-full space-y-6", isNativeApp && "pb-native-fab")}>
         {shareText ? (
           <section className="rounded-2xl border border-violet-500/25 bg-violet-500/5 p-4 space-y-2">
             <div className="flex items-center gap-2 text-sm font-semibold text-violet-700">

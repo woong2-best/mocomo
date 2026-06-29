@@ -10,10 +10,18 @@ import { Button } from "@/components/ui/button";
 import type { DiscoveryCard } from "@/lib/discovery/types";
 import { discoverySwipe, getDiscoveryDeck, openDiscoveryChat } from "@/actions/discovery";
 import { vibrateLightTap, vibrateSuccess } from "@/lib/haptics";
+import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { cn } from "@/lib/utils";
 
 export function DiscoverySwipeDeck() {
   const router = useRouter();
+  const { isNativeApp } = useClientPlatform();
+  const deckPb = cn(
+    "relative max-w-md mx-auto px-3",
+    isNativeApp
+      ? "pb-[max(7rem,calc(5rem+env(safe-area-inset-bottom)))]"
+      : "pb-[max(2rem,env(safe-area-inset-bottom))]"
+  );
   const [cards, setCards] = useState<DiscoveryCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [enabled, setEnabled] = useState(true);
@@ -179,7 +187,7 @@ export function DiscoverySwipeDeck() {
   }
 
   return (
-    <div className="relative max-w-md mx-auto px-3 pb-[max(2rem,env(safe-area-inset-bottom))]">
+    <div className={deckPb}>
       <AnimatePresence>
         {matchFlash && (
           <motion.div
@@ -195,7 +203,7 @@ export function DiscoverySwipeDeck() {
             >
               <Sparkles className="h-16 w-16 mx-auto text-yellow-300 animate-pulse" />
               <p className="text-3xl font-black text-white">매칭!</p>
-              <p className="text-white/80 text-sm">서로 관심 있어요 · 메시지를내보세요</p>
+              <p className="text-white/80 text-sm">서로 관심 있어요 · 메시지를 보내세요</p>
               <div className="flex flex-col gap-2 pt-2">
                 <Button
                   className="rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 font-bold"

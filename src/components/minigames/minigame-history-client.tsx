@@ -26,13 +26,19 @@ export function MinigameHistoryClient() {
   const [gameId, setGameId] = useState<string>("");
   const [rows, setRows] = useState<MatchRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     setLoading(true);
+    setLoadError("");
     const q = gameId ? `?gameId=${gameId}` : "";
     void fetch(`/api/minigames/matches${q}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("fetch failed");
+        return r.json();
+      })
       .then((d) => setRows(d.matches ?? []))
+      .catch(() => setLoadError("전적을 불러오지 못했습니다."))
       .finally(() => setLoading(false));
   }, [gameId]);
 
@@ -66,6 +72,8 @@ export function MinigameHistoryClient() {
                 <div key={i} className="h-10 rounded-lg bg-muted" />
               ))}
             </div>
+          ) : loadError ? (
+            <p className="p-6 text-sm text-destructive text-center">{loadError}</p>
           ) : rows.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground text-center">전적 없음 (로그인 + Z4 SQL)</p>
           ) : (

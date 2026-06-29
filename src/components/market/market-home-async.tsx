@@ -4,6 +4,7 @@ import { Sparkles, Package, Archive, Store } from "lucide-react";
 import { getEmoticonPacks, getPhysicalProducts } from "@/actions/goods-shop";
 import { getCachedMarketProducts } from "@/lib/cached-data";
 import { EMOTICON_PRICES } from "@/lib/goods-shop";
+import { MarketPageTitle } from "@/components/market/market-page-chrome";
 
 export async function MarketHomeAsync() {
   const [{ packs }, goods, digital] = await Promise.all([
@@ -19,6 +20,12 @@ export async function MarketHomeAsync() {
 
   return (
     <div className="space-y-6">
+      <MarketPageTitle>
+      <div>
+        <h1 className="text-2xl font-bold">마켓</h1>
+        <p className="text-sm text-muted-foreground mt-1">이모티콘 · 굿즈 · 디지털 콘텐츠</p>
+      </div>
+      </MarketPageTitle>
       <div className="grid gap-3 sm:grid-cols-2">
         <Link href="/market/emoticons">
           <Card className="rounded-2xl hover:border-primary/40 transition-shadow h-full">

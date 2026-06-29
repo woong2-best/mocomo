@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCosplayerApplyContext } from "@/actions/cosplayer";
 import { CosplayerApplyForm } from "@/components/cosplay/cosplayer-apply-form";
+import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronLeft } from "lucide-react";
@@ -16,7 +17,7 @@ export default async function CosplayerApplyPage() {
 
   if (ctx.alreadyRegistered && ctx.profile) {
     return (
-      <div className="max-w-lg mx-auto p-4 space-y-4">
+      <AppPageChrome spacing="sm">
         <Link href="/cosplay">
           <Button variant="ghost" size="sm" className="gap-1">
             <ChevronLeft className="h-4 w-4" />
@@ -36,12 +37,12 @@ export default async function CosplayerApplyPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </AppPageChrome>
     );
   }
 
   return (
-    <div className="max-w-lg mx-auto p-4 space-y-4">
+    <AppPageChrome spacing="sm">
       <Link href="/cosplay">
         <Button variant="ghost" size="sm" className="gap-1">
           <ChevronLeft className="h-4 w-4" />
@@ -49,6 +50,6 @@ export default async function CosplayerApplyPage() {
         </Button>
       </Link>
       <CosplayerApplyForm animes={ctx.animes} username={ctx.username} />
-    </div>
+    </AppPageChrome>
   );
 }

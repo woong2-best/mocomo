@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useTransition } from "react";
 import { resolveReport, banUser, adminForceDeleteByReport } from "@/actions/admin";
 import { Button } from "@/components/ui/button";
+import { InlineConfirm } from "@/components/ui/inline-confirm";
 import { ReportStatus, type ReportTargetType } from "@prisma/client";
 import { ExternalLink, Trash2 } from "lucide-react";
 
@@ -42,7 +43,6 @@ export function AdminReportActions({
   }
 
   function forceDelete() {
-    if (!confirm("신고된 콘텐츠를 강제 삭제하고 신고를 해결 처리할까요?")) return;
     startTransition(() => {
       void adminForceDeleteByReport(reportId, targetType, targetId);
     });
@@ -59,10 +59,18 @@ export function AdminReportActions({
         </Button>
       )}
       {canDelete && (
-        <Button size="sm" variant="destructive" disabled={pending} onClick={forceDelete} className="gap-1">
-          <Trash2 className="h-3.5 w-3.5" />
-          강제 삭제
-        </Button>
+        <InlineConfirm
+          message="신고된 콘텐츠를 강제 삭제하고 신고를 해결 처리할까요?"
+          confirmLabel="강제 삭제"
+          pending={pending}
+          onConfirm={forceDelete}
+          renderTrigger={(open) => (
+            <Button size="sm" variant="destructive" disabled={pending} onClick={open} className="gap-1">
+              <Trash2 className="h-3.5 w-3.5" />
+              강제 삭제
+            </Button>
+          )}
+        />
       )}
       <Button size="sm" variant="outline" disabled={pending} onClick={() => resolve("RESOLVED")}>
         해결

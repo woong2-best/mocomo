@@ -13,6 +13,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { LiveVoiceViewerBackLink } from "@/components/live/mobile/live-voice-viewer-back-link";
+import { LiveRoomPageShell } from "@/components/live/live-room-page-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -100,13 +101,7 @@ export default async function VoiceRoomPage({
   const paymentsEnabled = isPaymentsConfigured();
 
   return (
-    <div
-      className={
-        isHost
-          ? "live-page-shell max-w-[1600px] mx-auto px-2 sm:px-4 pb-4"
-          : "live-page-shell max-w-[1600px] mx-auto space-y-3 pb-24 lg:pb-4 px-2 sm:px-4"
-      }
-    >
+    <LiveRoomPageShell isHost={isHost}>
       {!isHost && (
         <LiveVoiceViewerBackLink />
       )}
@@ -133,6 +128,6 @@ export default async function VoiceRoomPage({
         hostFollowing={hostFollowing}
         isLiveOnAir={onAir}
       />
-    </div>
+    </LiveRoomPageShell>
   );
 }

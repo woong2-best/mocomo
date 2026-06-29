@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { restoreAnimeRevision } from "@/actions/anime";
 import { Button } from "@/components/ui/button";
+import { InlineConfirm } from "@/components/ui/inline-confirm";
 
 export function AnimeHistoryClient({
   slug,
@@ -22,7 +23,6 @@ export function AnimeHistoryClient({
   const [error, setError] = useState("");
 
   async function restore(id: string) {
-    if (!confirm("이 버전으로 문서를 복구할까요?")) return;
     setBusy(id);
     setError("");
     const res = await restoreAnimeRevision(id);
@@ -57,16 +57,24 @@ export function AnimeHistoryClient({
               {new Date(r.createdAt).toLocaleString("ko-KR")}
             </p>
           </div>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="rounded-lg"
-            disabled={busy === r.id}
-            onClick={() => void restore(r.id)}
-          >
-            {busy === r.id ? "복구 중…" : "이 버전으로 복구"}
-          </Button>
+          <InlineConfirm
+            message="이 버전으로 문서를 복구할까요?"
+            confirmLabel="복구"
+            pending={busy === r.id}
+            onConfirm={() => restore(r.id)}
+            renderTrigger={(open) => (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="rounded-lg"
+                disabled={busy === r.id}
+                onClick={open}
+              >
+                {busy === r.id ? "복구 중…" : "이 버전으로 복구"}
+              </Button>
+            )}
+          />
         </div>
       ))}
       {error && <p className="text-sm text-destructive">{error}</p>}

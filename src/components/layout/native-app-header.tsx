@@ -17,6 +17,8 @@ const ROOT_PATHS = new Set([
   "/messages",
   "/used",
   "/discover",
+  "/live",
+  "/market",
 ]);
 
 function titleForPath(pathname: string): string | null {
@@ -42,6 +44,14 @@ function titleForPath(pathname: string): string | null {
   }
   if (pathname === "/voice/new") return "방송 만들기";
   if (pathname.startsWith("/live/clips")) return "클립 업로드";
+  if (pathname === "/live") return "라이브";
+  if (pathname.startsWith("/live/")) return "라이브";
+  if (pathname === "/market") return "마켓";
+  if (pathname.startsWith("/market/")) return "마켓";
+  if (pathname === "/cosplay/apply") return "코스어 등록";
+  if (pathname.startsWith("/cosplay")) return "코스프레";
+  if (pathname === "/messages/new") return "새 메시지";
+  if (pathname === "/apt/house") return "주택";
   if (pathname === "/apt/cohabitation") return "동거 관리";
   if (pathname === "/notifications") return "알림";
   if (pathname === "/messages") return "쪽지";

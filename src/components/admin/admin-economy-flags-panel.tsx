@@ -9,6 +9,7 @@ import {
 } from "@/actions/admin-economy-flags";
 import { AdminEconomyNav } from "@/components/admin/admin-economy-nav";
 import { Button } from "@/components/ui/button";
+import { InlineConfirm } from "@/components/ui/inline-confirm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { FeatureFlagLogDto } from "@/lib/apt/economy/admin-feature-flag-service";
 import {
@@ -51,7 +52,6 @@ export function AdminEconomyFlagsPanel({ flags: initial, changeLogs }: Props) {
   }
 
   async function killAll() {
-    if (!confirm("모든 경제 기능을 즉시 OFF 합니다. 계속할까요?")) return;
     setBusy("kill");
     const updated = await adminKillAllEconomyFeatures("운영자 긴급 전체 차단");
     setFlags(updated);
@@ -88,15 +88,18 @@ export function AdminEconomyFlagsPanel({ flags: initial, changeLogs }: Props) {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant="destructive"
-              disabled={busy !== null}
-              onClick={() => void killAll()}
-            >
-              {busy === "kill" ? <Loader2 className="h-4 w-4 animate-spin" /> : <PowerOff className="h-4 w-4 mr-1" />}
-              전체 OFF
-            </Button>
+            <InlineConfirm
+              message="모든 경제 기능을 즉시 OFF 합니다. 계속할까요?"
+              confirmLabel="전체 OFF"
+              pending={busy === "kill"}
+              onConfirm={killAll}
+              renderTrigger={(open) => (
+                <Button size="sm" variant="destructive" disabled={busy !== null} onClick={open}>
+                  {busy === "kill" ? <Loader2 className="h-4 w-4 animate-spin" /> : <PowerOff className="h-4 w-4 mr-1" />}
+                  전체 OFF
+                </Button>
+              )}
+            />
             <Button size="sm" variant="secondary" disabled={busy !== null} onClick={() => void restoreAll()}>
               {busy === "restore" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4 mr-1" />}
               전체 ON

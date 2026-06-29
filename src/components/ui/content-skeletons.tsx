@@ -79,3 +79,13 @@ export function MarketGridSkeleton() {
     </div>
   );
 }
+
+export function TabPanelSkeleton() {
+  return (
+    <div className="space-y-3 animate-pulse py-2">
+      <div className="h-28 rounded-2xl bg-muted" />
+      <div className="h-28 rounded-2xl bg-muted" />
+      <div className="h-20 rounded-2xl bg-muted" />
+    </div>
+  );
+}

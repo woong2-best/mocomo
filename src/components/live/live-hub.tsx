@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
 import { COMMUNITY_FEED_PATH } from "@/lib/site-routes";
+import { LivePageChrome, LivePageTitle } from "@/components/live/live-page-chrome";
 
 const FEATURES = [
   { icon: Video, label: "웹캠 · 화면공유" },
@@ -86,8 +87,8 @@ export function LiveHub({
   const followedHostMap = Object.fromEntries(followedHosts.map((h) => [h.id, h]));
 
   return (
-    <div className="live-page-shell">
-      <div className="max-w-6xl mx-auto space-y-8 pb-8 native-live-pad">
+    <LivePageChrome>
+        <LivePageTitle>
         <header className="live-hero flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-3 min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl font-black flex items-center gap-2 tracking-tight">
@@ -115,6 +116,7 @@ export function LiveHub({
             <LivePageActions variant="header" />
           </div>
         </header>
+        </LivePageTitle>
 
         <form action="/search" method="get" className="flex gap-2 max-w-xl">
           <div className="relative flex-1">
@@ -195,7 +197,6 @@ export function LiveHub({
             <Link href={COMMUNITY_FEED_PATH}>홈 피드로 이동</Link>
           </Button>
         </section>
-      </div>
-    </div>
+    </LivePageChrome>
   );
 }

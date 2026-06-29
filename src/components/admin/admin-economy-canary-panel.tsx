@@ -73,7 +73,6 @@ export function AdminEconomyCanaryPanel({ cards, history, recentSnapshots }: Pro
       setError("Rollback 사유를 입력하세요.");
       return;
     }
-    if (!confirm("Canary를 Rollback 합니다. 계속할까요?")) return;
     setBusy(`rollback-${canaryId}`);
     setError(null);
     const result = await adminRollbackCanary(canaryId, reason, restoreSnapshot);

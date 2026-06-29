@@ -19,11 +19,16 @@ export function MinigameAchievementsClient() {
   const { isNativeApp } = useClientPlatform();
   const [items, setItems] = useState<Ach[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     void fetch("/api/minigames/achievements")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("fetch failed");
+        return r.json();
+      })
       .then((d) => setItems(d.achievements ?? []))
+      .catch(() => setLoadError("업적을 불러오지 못했습니다."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -36,7 +41,9 @@ export function MinigameAchievementsClient() {
         </Link>
       </div>
       <div className="grid sm:grid-cols-2 gap-3">
-        {loading
+        {loadError ? (
+          <p className="col-span-full text-sm text-destructive text-center py-6">{loadError}</p>
+        ) : loading
           ? [1, 2, 3, 4].map((i) => (
               <div key={i} className="h-24 rounded-2xl bg-muted animate-pulse" />
             ))

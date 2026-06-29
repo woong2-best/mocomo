@@ -10,6 +10,7 @@ import {
 } from "@/actions/admin-economy-backup";
 import { AdminEconomyNav } from "@/components/admin/admin-economy-nav";
 import { Button } from "@/components/ui/button";
+import { InlineConfirm } from "@/components/ui/inline-confirm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -114,7 +115,6 @@ export function AdminEconomyBackupPanel({ snapshots: initial, restoreLogs }: Pro
       setError("복구 사유를 입력하세요.");
       return;
     }
-    if (!confirm("선택한 범위로 실제 복구를 실행합니다. 계속할까요?")) return;
     setBusy("restore");
     setError(null);
     const result = await adminPartialRestore(selectedId, scopes, reason);
@@ -364,24 +364,32 @@ export function AdminEconomyBackupPanel({ snapshots: initial, restoreLogs }: Pro
                     )}
                     Dry Run
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    disabled={
-                      busy !== null ||
-                      scopes.length === 0 ||
-                      !reason.trim() ||
-                      diff?.corrupted === true
-                    }
-                    onClick={() => void executeRestore()}
-                  >
-                    {busy === "restore" ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <ShieldCheck className="h-4 w-4 mr-1" />
+                  <InlineConfirm
+                    message="선택한 범위로 실제 복구를 실행합니다. 계속할까요?"
+                    confirmLabel="Restore"
+                    pending={busy === "restore"}
+                    onConfirm={executeRestore}
+                    renderTrigger={(open) => (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={
+                          busy !== null ||
+                          scopes.length === 0 ||
+                          !reason.trim() ||
+                          diff?.corrupted === true
+                        }
+                        onClick={open}
+                      >
+                        {busy === "restore" ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <ShieldCheck className="h-4 w-4 mr-1" />
+                        )}
+                        Restore
+                      </Button>
                     )}
-                    Restore
-                  </Button>
+                  />
                   {!diff && (
                     <Button
                       size="sm"

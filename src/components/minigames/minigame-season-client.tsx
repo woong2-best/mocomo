@@ -21,11 +21,16 @@ export function MinigameSeasonClient() {
   const { isNativeApp } = useClientPlatform();
   const [season, setSeason] = useState<Season | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     void fetch("/api/minigames/season")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("fetch failed");
+        return r.json();
+      })
       .then((d) => setSeason(d.season))
+      .catch(() => setLoadError("시즌 정보를 불러오지 못했습니다."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -44,6 +49,8 @@ export function MinigameSeasonClient() {
 
       {loading ? (
         <div className="h-32 rounded-2xl bg-muted animate-pulse" />
+      ) : loadError ? (
+        <p className="text-sm text-destructive text-center py-6">{loadError}</p>
       ) : season ? (
         <Card className="border-2 border-folk-gold/30 bg-folk-gold/5">
           <CardContent className="p-4 space-y-1">

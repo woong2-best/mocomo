@@ -34,15 +34,21 @@ export function MinigameRankingClient({
   const [entries, setEntries] = useState<Entry[]>([]);
   const [seasonName, setSeasonName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     setLoading(true);
+    setLoadError("");
     void fetch(`/api/minigames/ranking?gameId=${gameId}&period=${period}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("fetch failed");
+        return r.json();
+      })
       .then((d) => {
         setEntries(d.entries ?? []);
         setSeasonName(d.season?.name ?? null);
       })
+      .catch(() => setLoadError("랭킹을 불러오지 못했습니다."))
       .finally(() => setLoading(false));
   }, [gameId, period]);
 
@@ -73,7 +79,9 @@ export function MinigameRankingClient({
 
       <Card className="border-2 border-folk-cobalt/20">
         <CardContent className="p-0 divide-y">
-          {loading ? (
+          {loadError ? (
+            <p className="p-6 text-sm text-destructive text-center">{loadError}</p>
+          ) : loading ? (
             <div className="p-4 space-y-2 animate-pulse">
               {[1, 2, 3, 4, 5].map((i) => (
                 <div key={i} className="h-10 rounded-lg bg-muted" />
