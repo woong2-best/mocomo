@@ -3,6 +3,8 @@ public/diorama/page@*.webm
 public/diorama/edit-step-*.png
 public/diorama/edit-mode-demo.webm
 public/diorama/screenshot-*.png
+public/diorama/stickers/living/_rc1-backup/
+public/diorama/stickers/living/_rc1-out/
 public/apt/hero-assets/_story-pass*/
 public/apt/hero-assets/_scene-polish/
 public/apt/hero-assets/_scene-polish-2/
@@ -13,3 +15,14 @@ public/apt/hero-assets/_full-scene.png
 public/apt/hero-assets/_*-crop.png
 public/apt/hero-assets/_sofa-zone.png
 build-log.txt
+
+# 로컬 빌드 산출물 · Android (Git 미추적 대용량)
+/.next/
+/android/
+*.apk
+*.aab
+.idea/
+android/.idea/
+tmp-apt.html
+_t-*.png
+_table-crop-test.png
