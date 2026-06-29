@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
+import { clearLocalHomeData } from "@/lib/apt/local-home-store";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -64,7 +65,12 @@ export function ProfileMenu() {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="text-destructive focus:text-destructive"
-            onSelect={() => signOut({ callbackUrl: "/" })}
+            onSelect={() => {
+              const userId = session.user.id;
+              void clearLocalHomeData(userId).finally(() => {
+                signOut({ callbackUrl: "/" });
+              });
+            }}
           >
             <LogOut className="h-4 w-4 shrink-0" />
             로그아웃

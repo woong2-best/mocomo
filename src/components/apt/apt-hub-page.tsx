@@ -21,14 +21,24 @@ export async function AptHubPage() {
   let studioInventory: Awaited<ReturnType<typeof getAptStudioInventory>> = [];
   let gameState: AptGameState | null = null;
   let economySnapshot: EconomySnapshot | null = null;
+  let gameLoadError = false;
 
   try {
     user = await getCachedCurrentUser();
     if (user) {
-      [profile, studioInventory, gameState, economySnapshot] = await Promise.all([
+      const gameResult = await getAptGameState().then(
+        (state) => ({ state, error: false as const }),
+        (e) => {
+          console.error("[AptHubPage] game state", e);
+          return { state: null, error: true as const };
+        }
+      );
+      gameLoadError = gameResult.error;
+      gameState = gameResult.state;
+
+      [profile, studioInventory, economySnapshot] = await Promise.all([
         getAptProfile().catch(() => null),
         getAptStudioInventory().catch(() => []),
-        getAptGameState().catch(() => null),
         getAptEconomySnapshot().catch(() => null),
       ]);
     }
@@ -58,6 +68,7 @@ export async function AptHubPage() {
       currentUserId={user?.id ?? null}
       initialGameState={gameState}
       initialEconomy={economySnapshot}
+      gameLoadError={gameLoadError}
       userLevel={user?.level ?? 1}
       userAvatarUrl={user?.image ?? null}
       userName={user?.name ?? null}

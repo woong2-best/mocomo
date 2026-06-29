@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { AptOverviewHero } from "@/components/apt/apt-overview-hero";
 import { AptBuildStamp } from "@/components/apt/game/apt-build-stamp";
-import { hydrateLocalHome, saveLocalFloorPlan } from "@/lib/apt/local-home-store";
+import { hydrateLocalHome, saveLocalFloorPlan, setLocalHomeUserId } from "@/lib/apt/local-home-store";
 import { APT_GAME_PATH } from "@/lib/site-routes";
 
 const AptBuildingView = dynamic(
@@ -60,6 +60,7 @@ export function AptHubClient({
   currentUserId = null,
   initialGameState = null,
   initialEconomy = null,
+  gameLoadError = false,
   userLevel = 1,
   userAvatarUrl = null,
   userName = null,
@@ -72,6 +73,7 @@ export function AptHubClient({
   currentUserId?: string | null;
   initialGameState?: AptGameState | null;
   initialEconomy?: EconomySnapshot | null;
+  gameLoadError?: boolean;
   userLevel?: number;
   userAvatarUrl?: string | null;
   userName?: string | null;
@@ -104,6 +106,10 @@ export function AptHubClient({
   const homeFloor = initialProfile?.homeFloor ?? APT_DEFAULT_FLOOR;
   const { isNativeApp } = useClientPlatform();
   const localHomeSeeded = useRef(false);
+
+  useEffect(() => {
+    if (currentUserId) setLocalHomeUserId(currentUserId);
+  }, [currentUserId]);
 
   useEffect(() => {
     if (localHomeSeeded.current) return;
@@ -458,6 +464,7 @@ export function AptHubClient({
                   hasMissedCall: false,
                 }}
                 initialGame={initialGameState}
+                gameLoadError={gameLoadError}
                 initialEconomy={initialEconomy}
                 userLevel={userLevel}
                 userAvatarUrl={userAvatarUrl}

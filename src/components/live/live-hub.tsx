@@ -78,6 +78,7 @@ export function LiveHub({
     scheduledAt: Date;
     category: LiveStreamCategory;
     thumbnailUrl: string | null;
+    broadcastMode?: string | null;
   }[];
   currentUserId?: string;
   channelFeed: ReactNode;
@@ -146,6 +147,7 @@ export function LiveHub({
                   name={s.name}
                   scheduledAt={s.scheduledAt}
                   category={s.category}
+                  broadcastMode={s.broadcastMode}
                   isOwner={currentUserId === s.createdBy}
                 />
               ))}

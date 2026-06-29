@@ -4,7 +4,6 @@ import { NotificationsFeedClient } from "@/components/notifications/notification
 import {
   getUnifiedUnreadCount,
   listUnifiedNotifications,
-  markAllUnifiedNotificationsRead,
 } from "@/lib/apt/economy/notification/unified-notifications";
 
 export async function NotificationsListAsync() {
@@ -12,16 +11,12 @@ export async function NotificationsListAsync() {
   if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/notifications");
 
   const unreadCount = await getUnifiedUnreadCount(session.user.id);
-  if (unreadCount > 0) {
-    await markAllUnifiedNotificationsRead(session.user.id);
-  }
-
   const rows = await listUnifiedNotifications(session.user.id, { limit: 80 });
 
   return (
     <NotificationsFeedClient
-      initialNotifications={rows.map((n) => ({ ...n, read: true }))}
-      initialUnread={0}
+      initialNotifications={rows}
+      initialUnread={unreadCount}
     />
   );
 }

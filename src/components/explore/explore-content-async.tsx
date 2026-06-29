@@ -5,6 +5,7 @@ import { TrendingUp, Users, Radio, Sparkles } from "lucide-react";
 import { getCachedLiveChannels } from "@/lib/cached-data";
 import { Button } from "@/components/ui/button";
 import { getCachedExploreData } from "@/lib/cached-data";
+import { LiveModeBadge } from "@/components/live/live-mode-badge";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import type { SupportTierLevel } from "@prisma/client";
 import { userDisplayName } from "@/lib/user-public-select";
@@ -84,9 +85,11 @@ export async function ExploreContentAsync() {
               <Link
                 key={ch.id}
                 href={`/voice/${ch.id}`}
-                className="text-sm px-3 py-2 rounded-xl border border-folk-terracotta/30 bg-folk-terracotta/5 hover:bg-folk-terracotta/10"
+                className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-xl border border-folk-terracotta/30 bg-folk-terracotta/5 hover:bg-folk-terracotta/10"
               >
-                🔴 {ch.name} · {ch.viewerCount}명
+                <LiveModeBadge broadcastMode={ch.broadcastMode} compact />
+                <span className="line-clamp-1">{ch.name}</span>
+                <span className="text-muted-foreground shrink-0">· {ch.viewerCount}명</span>
               </Link>
             ))}
           </div>

@@ -42,6 +42,7 @@ import {
 import { energyRegenLabel } from "@/lib/apt/game/energy";
 import { useAptFirstEntry, type FirstEntryState } from "@/hooks/use-apt-first-entry";
 import { AptFirstEntryLayer } from "@/components/apt/first-impression/apt-first-entry-layer";
+import { Button } from "@/components/ui/button";
 
 export type AptShopMode = "official" | "market" | "flea";
 
@@ -110,6 +111,7 @@ export function AptGameProvider({
   children,
   initialGame,
   initialEconomy = null,
+  gameLoadError = false,
   userLevel,
   userAvatarUrl = null,
   userName = null,
@@ -122,6 +124,7 @@ export function AptGameProvider({
   children: ReactNode;
   initialGame: AptGameState | null;
   initialEconomy?: EconomySnapshot | null;
+  gameLoadError?: boolean;
   userLevel: number;
   userAvatarUrl?: string | null;
   userName?: string | null;
@@ -132,7 +135,13 @@ export function AptGameProvider({
   onExitHome?: () => void;
 }) {
   const router = useRouter();
-  const [game, setGame] = useState<AptGameState>(initialGame ?? createDefaultGameState());
+  const [game, setGame] = useState<AptGameState>(() => {
+    if (gameLoadError) {
+      return { ...createDefaultGameState(), gold: 0, gems: 0 };
+    }
+    return initialGame ?? createDefaultGameState();
+  });
+  const [loadError, setLoadError] = useState(gameLoadError);
   const [economy, setEconomy] = useState<LocalEconomyCache>(
     initialEconomy
       ? { ...initialEconomy, pendingStorageConsume: {}, pendingOps: [] }
@@ -500,6 +509,23 @@ export function AptGameProvider({
 
   return (
     <AptGameContext.Provider value={value}>
+      {loadError && (
+        <div className="absolute inset-x-0 top-0 z-[80] flex items-center justify-center gap-3 border-b border-destructive/30 bg-destructive/10 px-4 py-3 text-sm">
+          <p className="text-destructive font-medium">게임 데이터를 불러오지 못했습니다.</p>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="rounded-lg"
+            onClick={() => {
+              setLoadError(false);
+              router.refresh();
+            }}
+          >
+            다시 시도
+          </Button>
+        </div>
+      )}
       <AptFirstEntryLayer
         visible={firstEntry.overlayVisible}
         label={firstEntry.overlayLabel}

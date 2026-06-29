@@ -3,7 +3,6 @@
 import { createDefaultFloorPlan } from "@/lib/apt/floor-plan-logic";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import { DEFAULT_BONDEE_HOME, type BondeeHomeState } from "@/lib/apt/bondee/types";
-import { createDefaultGameState } from "@/lib/apt/game/defaults";
 import type { AptGameState } from "@/lib/apt/game/types";
 import type { StickerInstance } from "@/lib/diorama/sticker-types";
 import type { EconomySnapshot, LocalEconomyCache } from "@/lib/apt/economy/types";
@@ -13,7 +12,7 @@ import {
   applyLocalStorageReturn,
 } from "@/lib/apt/economy/storage-utils";
 
-/** 집 데이터는 기기 로컬 전용 — 다른 유저·서버와 공유하지 않음 */
+/** @deprecated userId 스코프 키 사용 — 하위 호환용 */
 export const LOCAL_HOME_OWNER = "local-home";
 
 const DB_NAME = "mocomo-local-home";
@@ -21,6 +20,19 @@ const DB_VERSION = 1;
 const STORE = "kv";
 
 const LS_PREFIX = "mocomo:local-home:";
+
+const LEGACY_KEYS = ["meta", "floorPlan", "bondee", "game", "economy"] as const;
+
+let activeUserId: string | null = null;
+
+/** 로그인 유저별 로컬 집·경제 캐시 분리 */
+export function setLocalHomeUserId(userId: string | null) {
+  activeUserId = userId;
+}
+
+function scopedStorageKey(key: string): string {
+  return activeUserId ? `u:${activeUserId}:${key}` : key;
+}
 
 type LocalHomeMeta = {
   initialized: boolean;
@@ -81,6 +93,35 @@ async function idbSet(key: string, value: unknown): Promise<void> {
   });
 }
 
+async function idbDelete(key: string): Promise<void> {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+function lsDelete(key: string): void {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.removeItem(`${LS_PREFIX}${key}`);
+  } catch {
+    /* ignore */
+  }
+}
+
+async function readRawStorage<T>(storageKey: string): Promise<T | null> {
+  try {
+    const fromIdb = await idbGet<T>(storageKey);
+    if (fromIdb != null) return fromIdb;
+  } catch {
+    /* fallback */
+  }
+  return lsGet<T>(storageKey);
+}
+
 function lsGet<T>(key: string): T | null {
   if (typeof localStorage === "undefined") return null;
   try {
@@ -102,22 +143,86 @@ function lsSet(key: string, value: unknown): void {
 }
 
 async function storageGet<T>(key: string): Promise<T | null> {
-  try {
-    const fromIdb = await idbGet<T>(key);
-    if (fromIdb != null) return fromIdb;
-  } catch {
-    /* fallback */
+  const sk = scopedStorageKey(key);
+  const scoped = await readRawStorage<T>(sk);
+  if (scoped != null) return scoped;
+
+  if (!activeUserId) return null;
+
+  const legacy = await readRawStorage<T>(key);
+  if (legacy != null) {
+    await storageSet(key, legacy);
+    return legacy;
   }
-  return lsGet<T>(key);
+  return null;
 }
 
 async function storageSet(key: string, value: unknown): Promise<void> {
-  lsSet(key, value);
+  const sk = scopedStorageKey(key);
+  lsSet(sk, value);
   try {
-    await idbSet(key, value);
+    await idbSet(sk, value);
   } catch {
     /* localStorage already written */
   }
+}
+
+/** 로그아웃·계정 전환 시 해당 유저 로컬 집/경제 캐시 삭제 */
+export async function clearLocalHomeData(userId?: string): Promise<void> {
+  const uid = userId ?? activeUserId;
+  if (!uid) return;
+
+  const deleteKey = async (storageKey: string) => {
+    lsDelete(storageKey);
+    try {
+      await idbDelete(storageKey);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  for (const k of LEGACY_KEYS) {
+    await deleteKey(`u:${uid}:${k}`);
+    await deleteKey(k);
+  }
+
+  const userPrefix = `u:${uid}:`;
+  if (typeof localStorage !== "undefined") {
+    const toRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const full = localStorage.key(i);
+      if (!full?.startsWith(LS_PREFIX)) continue;
+      const rel = full.slice(LS_PREFIX.length);
+      if (rel.startsWith(userPrefix) || rel.startsWith("diorama:")) {
+        toRemove.push(full);
+      }
+    }
+    for (const k of toRemove) localStorage.removeItem(k);
+  }
+
+  try {
+    const db = await openDb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE, "readwrite");
+      const store = tx.objectStore(STORE);
+      const req = store.openCursor();
+      req.onsuccess = () => {
+        const cursor = req.result;
+        if (!cursor) return;
+        const k = String(cursor.key);
+        if (k.startsWith(userPrefix) || k.startsWith("diorama:")) {
+          cursor.delete();
+        }
+        cursor.continue();
+      };
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch {
+    /* idb unavailable */
+  }
+
+  if (activeUserId === uid) activeUserId = null;
 }
 
 export async function loadLocalHomeMeta(): Promise<LocalHomeMeta> {
@@ -165,7 +270,6 @@ export async function hydrateLocalHome(seed?: {
     storageSet("bondee", bondee),
     game ? storageSet("game", game) : Promise.resolve(),
   ]);
-  lsSet("meta", meta);
 
   return { rooms, bondee, game, meta };
 }
@@ -206,7 +310,7 @@ export async function clearLocalDioramaLayout(roomId: string): Promise<void> {
 }
 
 export async function saveLocalEconomyCacheToIdb(cache: LocalEconomyCache): Promise<void> {
-  await idbSet("economy", cache);
+  await storageSet("economy", cache);
 }
 
 export async function loadLocalEconomyCache(): Promise<LocalEconomyCache | null> {

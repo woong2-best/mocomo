@@ -137,6 +137,7 @@ function AptBondeeRoomInner({
   furnitureHintState,
   initialGame = null,
   initialEconomy = null,
+  gameLoadError = false,
   userLevel = 1,
   userAvatarUrl = null,
   userName = null,
@@ -161,6 +162,7 @@ function AptBondeeRoomInner({
   furnitureHintState?: { hasUnreadMail?: boolean; hasMissedCall?: boolean };
   initialGame?: AptGameState | null;
   initialEconomy?: EconomySnapshot | null;
+  gameLoadError?: boolean;
   userLevel?: number;
   userAvatarUrl?: string | null;
   userName?: string | null;
@@ -571,6 +573,7 @@ function AptBondeeRoomInner({
     <AptGameProvider
       enabled={gameEnabled}
       initialGame={initialGame}
+      gameLoadError={gameLoadError}
       initialEconomy={initialEconomy}
       userLevel={userLevel}
       userAvatarUrl={userAvatarUrl}

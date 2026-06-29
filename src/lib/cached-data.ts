@@ -210,6 +210,7 @@ export const getCachedLiveChannels = unstable_cache(
           name: true,
           createdBy: true,
           createdAt: true,
+          broadcastMode: true,
         },
         orderBy: { createdAt: "desc" },
         take: 24,

@@ -5,20 +5,23 @@ import { useRouter } from "next/navigation";
 import { Calendar, Radio } from "lucide-react";
 import { startScheduledLiveStream } from "@/actions/live-stream";
 import { Button } from "@/components/ui/button";
+import { LiveModeBadge } from "@/components/live/live-mode-badge";
 import { liveCategoryLabel } from "@/lib/live-categories";
-import type { LiveStreamCategory } from "@prisma/client";
+import type { LiveBroadcastMode, LiveStreamCategory } from "@prisma/client";
 
 export function LiveScheduledCard({
   id,
   name,
   scheduledAt,
   category,
+  broadcastMode,
   isOwner,
 }: {
   id: string;
   name: string;
   scheduledAt: Date;
   category: LiveStreamCategory;
+  broadcastMode?: LiveBroadcastMode | string | null;
   isOwner: boolean;
 }) {
   const router = useRouter();
@@ -45,7 +48,10 @@ export function LiveScheduledCard({
         <Calendar className="h-3.5 w-3.5" />
         {new Date(scheduledAt).toLocaleString("ko-KR")}
       </p>
-      <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted">{liveCategoryLabel(category)}</span>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <LiveModeBadge broadcastMode={broadcastMode} compact />
+        <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted">{liveCategoryLabel(category)}</span>
+      </div>
       {isOwner ? (
         <Button size="sm" className="w-full rounded-xl gap-1 mt-2" onClick={goLive} disabled={pending}>
           <Radio className="h-3.5 w-3.5" />

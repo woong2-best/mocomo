@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { handleIapVoidOrRefund } from "@/lib/apt/economy/iap/iap-refund-service";
 import { listVoidedGooglePurchases } from "@/lib/apt/economy/iap/google-play-verifier";
+import { verifyGooglePubSubPush } from "@/lib/google-pubsub-auth";
 
 export const runtime = "nodejs";
 
@@ -36,6 +37,10 @@ function decodePubSubData(data: string): RtdnMessage | null {
  * Pub/Sub push subscription endpoint
  */
 export async function POST(req: Request) {
+  if (!(await verifyGooglePubSubPush(req))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   let envelope: { message?: { data?: string } };
   try {
     envelope = (await req.json()) as { message?: { data?: string } };

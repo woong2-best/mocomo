@@ -220,6 +220,7 @@ export async function getLiveHubStaticData(userId?: string | null) {
             scheduledAt: true,
             category: true,
             thumbnailUrl: true,
+            broadcastMode: true,
           },
         }),
       ["live-hub-scheduled"],
