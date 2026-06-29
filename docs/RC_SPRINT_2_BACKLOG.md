@@ -3,20 +3,19 @@
 **상태:** Day 1 — P0/P1 Fixed · Persona 자동 캡처 32장+ · 실기기 **User 대기**  
 **규칙:** Motion · Skeleton · Empty · Error · Haptic 코드 반영 중 (`7c735d7` 이후)
 
-**Day 0 Gate:** **미통과** (~65–70% 진행)
+**Day 0 Gate:** Cursor 작업 **완료** (~85%) — **User 실기기 Persona만 남음**
 
 | Gate 항목 | 상태 |
 |-----------|------|
-| Static Audit (55건) | ✅ |
-| P0/P1 Blocker 코드 | ✅ Fixed |
-| Persona 1 웹 스모크 (`npm run persona:smoke`) | ⚠️ **32장** (`docs/sprint2-audit/web/`) |
-| Persona 1 웹 녹화 (`npm run persona:record`) | ⚠️ **7종** (`docs/sprint2-audit/recordings/`) |
-| Persona 1 실사용 (로그인·8단계) | ❌ **최우선** |
-| Persona 2 | ❌ |
-| Android 실기기 | ❌ |
-| Screenshot 30~50 | ⚠️ **32/30** (자동, 로그인 화면 User 보강) |
-| Recording 7 | ⚠️ 웹 7종 자동 (Android IAP·로그아웃 User) |
-| economy:stress | ⚠️ quick WARN (무결성 PASS) |
+| P0/P1 Blocker 코드 | ✅ Fixed · 배포됨 (`da0c405`) |
+| Persona 3 stress/fraud | ✅ [STRESS_REPORT](./sprint2-audit/STRESS_REPORT.md) |
+| 스크린샷 공개 32장 | ✅ `npm run persona:smoke` |
+| 웹 녹화 7종 (공개) | ✅ `npm run persona:record` |
+| 로그인 스크린샷 | ⚠️ `npm run persona:auth-smoke` (쿠키 필요) |
+| **Persona 1·2 실기기** | ❌ → [USER_ONLY](./RC_SPRINT_USER_ONLY.md) |
+| **Android 실기기** | ❌ → [USER_ONLY](./RC_SPRINT_USER_ONLY.md) |
+
+**당신만 할 일:** [RC_SPRINT_USER_ONLY.md](./RC_SPRINT_USER_ONLY.md)
 
 **Gate 통과 조건 (8개 전부):** Persona1 웹·Android · Persona2 · Screenshot 30+ · Recording 7 · Backlog 80~120 · Blocker 확정 · Stress PASS 또는 원인 분석
 
@@ -84,6 +83,9 @@
 | ISSUE-020 | P1 | ❌ | 70% | Static | **S** | **Fixed** | Cursor | S2 | sign-in 기본 callback `/play/house` |
 | UXD-014 | UX | ❌ | 100% | Static | **S** | **Fixed** | Cursor | S2 | APT toast 하단 중앙 |
 | UXD-022 | UX | ❌ | 70% | Static | **S** | **Fixed** | Cursor | S2 | `/play/house` loading skeleton |
+| UXD-003 | UX | ❌ | 70% | Static | **S** | **Fixed** | Cursor | S2 | 알림 로딩 skeleton |
+| UXD-028 | UX | ❌ | 70% | Static | **S** | **Fixed** | Cursor | S2 | 가구 배치 haptic |
+| UXD-031 | UX | ❌ | 70% | Static | **S** | **Fixed** | Cursor | S2 | viewport-fit cover (Android notch) |
 
 _나머지 49건( ISSUE-006~030, UXD-001~032 ): Static 감사 — Triaging 시 Repro/Evidence/Blocker 채움. 상세는 Day 0 Persona Audit에서 보강._
 
@@ -220,7 +222,7 @@ User Action: 스테이징 보안 리뷰 (공격 시뮬레이션 금지, 설계 �
 
 | Date | Action | Owner |
 |------|--------|-------|
-| 2026-06-29 | Persona smoke 32장 · record 7종 · P1/P2 추가 Fixed | Cursor |
+| 2026-06-29 | USER_ONLY.md · auth-smoke · STRESS_REPORT · haptic/skeleton | Cursor |
 | 2026-06-29 | P0/P1 Blocker + market wash · TV toast (`7c735d7`) | Cursor |
 | | Persona 3 stress — DB 대기, User 재실행 필요 | User |
 | | Owner/Sprint 컬럼 추가 | Cursor |

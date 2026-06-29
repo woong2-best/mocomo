@@ -46,7 +46,7 @@ import { useAptGame } from "@/components/apt/game/apt-game-context";
 import { PlacementBoundsOverlay } from "@/components/apt/diorama/placement-bounds-overlay";
 import { shouldResetGameLayout } from "@/lib/diorama/sanitize-game-layout";
 import { ENERGY_COST_PLACE } from "@/lib/apt/game/energy";
-import { vibrateDeleteFeedback } from "@/lib/haptics";
+import { vibrateDeleteFeedback, vibrateLightTap } from "@/lib/haptics";
 import { DioramaStickerVisual } from "@/components/apt/diorama/diorama-sticker-visual";
 import { DioramaLivingAmbient } from "@/components/apt/diorama/diorama-living-ambient";
 import { ambientClassForSticker } from "@/lib/diorama/sticker-ambient";
@@ -377,6 +377,8 @@ function DioramaStickerRoomInner({
           });
           setSelectedId(null);
           window.setTimeout(() => setPlaceError(null), 2200);
+        } else if (!res?.error) {
+          vibrateLightTap();
         }
       });
     },

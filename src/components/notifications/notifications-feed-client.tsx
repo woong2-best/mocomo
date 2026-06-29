@@ -168,7 +168,17 @@ export function NotificationsFeedClient({
           </Button>
         </div>
       ) : loading && items.length === 0 ? (
-        <p className="text-center text-sm text-muted-foreground py-12">불러오는 중…</p>
+        <div className="space-y-2 py-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex gap-3 rounded-2xl border border-border/60 bg-card p-3 animate-pulse">
+              <div className="h-10 w-10 shrink-0 rounded-full bg-muted" />
+              <div className="flex-1 space-y-2 py-1">
+                <div className="h-3 w-3/4 rounded bg-muted" />
+                <div className="h-2 w-1/2 rounded bg-muted/80" />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
           {filter === "all"
