@@ -6,6 +6,8 @@ import { getAllMinigames } from "@/lib/minigames/registry";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
+import { useClientPlatform } from "@/components/providers/client-platform-provider";
+import { cn } from "@/lib/utils";
 
 type MatchRow = {
   id: string;
@@ -19,21 +21,25 @@ type MatchRow = {
 };
 
 export function MinigameHistoryClient() {
+  const { isNativeApp } = useClientPlatform();
   const games = getAllMinigames().filter((g) => g.id !== "sketch-quiz");
   const [gameId, setGameId] = useState<string>("");
   const [rows, setRows] = useState<MatchRow[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
     const q = gameId ? `?gameId=${gameId}` : "";
     void fetch(`/api/minigames/matches${q}`)
       .then((r) => r.json())
-      .then((d) => setRows(d.matches ?? []));
+      .then((d) => setRows(d.matches ?? []))
+      .finally(() => setLoading(false));
   }, [gameId]);
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-display font-bold">내 전적</h1>
+        <h1 className={cn("text-2xl font-display font-bold", isNativeApp && "sr-only")}>내 전적</h1>
         <Link href="/games" className="text-xs text-muted-foreground hover:underline">
           ← 허브
         </Link>
@@ -54,10 +60,16 @@ export function MinigameHistoryClient() {
 
       <Card className="border-2 border-folk-cobalt/20">
         <CardContent className="p-0 divide-y">
-          {rows.length === 0 && (
+          {loading ? (
+            <div className="p-4 space-y-2 animate-pulse">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-10 rounded-lg bg-muted" />
+              ))}
+            </div>
+          ) : rows.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground text-center">전적 없음 (로그인 + Z4 SQL)</p>
-          )}
-          {rows.map((m) => {
+          ) : (
+            rows.map((m) => {
             const game = games.find((g) => g.id === m.gameId);
             const replay = game?.supportsReplay !== false;
             return (
@@ -75,7 +87,8 @@ export function MinigameHistoryClient() {
                 )}
               </div>
             );
-          })}
+          })
+          )}
         </CardContent>
       </Card>
     </div>

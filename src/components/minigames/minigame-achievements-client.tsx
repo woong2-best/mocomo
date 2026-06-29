@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
+import { useClientPlatform } from "@/components/providers/client-platform-provider";
+import { cn } from "@/lib/utils";
 
 type Ach = {
   id: string;
@@ -14,24 +16,31 @@ type Ach = {
 };
 
 export function MinigameAchievementsClient() {
+  const { isNativeApp } = useClientPlatform();
   const [items, setItems] = useState<Ach[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     void fetch("/api/minigames/achievements")
       .then((r) => r.json())
-      .then((d) => setItems(d.achievements ?? []));
+      .then((d) => setItems(d.achievements ?? []))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-display font-bold">업적</h1>
+        <h1 className={cn("text-2xl font-display font-bold", isNativeApp && "sr-only")}>업적</h1>
         <Link href="/games" className="text-xs text-muted-foreground hover:underline">
           ← 허브
         </Link>
       </div>
       <div className="grid sm:grid-cols-2 gap-3">
-        {items.map((a) => (
+        {loading
+          ? [1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-24 rounded-2xl bg-muted animate-pulse" />
+            ))
+          : items.map((a) => (
           <Card key={a.id} className={a.unlocked ? "border-folk-gold/40 bg-folk-gold/5" : "opacity-70"}>
             <CardContent className="p-4 flex gap-3 items-start">
               <span className="text-2xl">{a.icon}</span>

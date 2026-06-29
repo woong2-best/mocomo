@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCachedSession } from "@/lib/auth";
 import { getStreamerProfile } from "@/actions/streamer";
 import { StreamerSettingsForm } from "@/components/live/streamer-settings-form";
+import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { isLiveFeatureEnabled } from "@/lib/live-feature";
 
 export default async function StreamerSettingsPage() {
@@ -13,7 +14,7 @@ export default async function StreamerSettingsPage() {
   const profile = await getStreamerProfile().catch(() => null);
 
   return (
-    <div className="max-w-lg mx-auto p-4 space-y-4 pb-24">
+    <AppPageChrome spacing="sm">
       <h1 className="text-xl font-bold">스트리머 프로필</h1>
       <p className="text-sm text-muted-foreground">
         공지·방송 일정·소개 문구를 설정합니다. 파트너 배지는 운영진이 부여합니다.
@@ -31,6 +32,6 @@ export default async function StreamerSettingsPage() {
           scheduleNote: profile?.scheduleNote ?? "",
         }}
       />
-    </div>
+    </AppPageChrome>
   );
 }

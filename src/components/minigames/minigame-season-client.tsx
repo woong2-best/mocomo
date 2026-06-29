@@ -6,6 +6,8 @@ import { MinigameRankingClient } from "@/components/minigames/minigame-ranking-c
 import { Card, CardContent } from "@/components/ui/card";
 import { Car, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useClientPlatform } from "@/components/providers/client-platform-provider";
+import { cn } from "@/lib/utils";
 
 type Season = {
   id: string;
@@ -16,12 +18,15 @@ type Season = {
 };
 
 export function MinigameSeasonClient() {
+  const { isNativeApp } = useClientPlatform();
   const [season, setSeason] = useState<Season | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     void fetch("/api/minigames/season")
       .then((r) => r.json())
-      .then((d) => setSeason(d.season));
+      .then((d) => setSeason(d.season))
+      .finally(() => setLoading(false));
   }, []);
 
   const daysLeft = season
@@ -31,13 +36,15 @@ export function MinigameSeasonClient() {
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-display font-bold">시즌</h1>
+        <h1 className={cn("text-2xl font-display font-bold", isNativeApp && "sr-only")}>시즌</h1>
         <Link href="/games" className="text-xs text-muted-foreground hover:underline">
           ← 허브
         </Link>
       </div>
 
-      {season ? (
+      {loading ? (
+        <div className="h-32 rounded-2xl bg-muted animate-pulse" />
+      ) : season ? (
         <Card className="border-2 border-folk-gold/30 bg-folk-gold/5">
           <CardContent className="p-4 space-y-1">
             <p className="font-bold text-lg">{season.name}</p>

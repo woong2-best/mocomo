@@ -9,6 +9,7 @@ import { uploadImageBlob, uploadVideoBlob } from "@/lib/client-upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AppPageChrome } from "@/components/layout/app-page-chrome";
 
 export default function NewClipPage() {
   const router = useRouter();
@@ -63,7 +64,7 @@ export default function NewClipPage() {
   }
 
   return (
-    <div className="max-w-lg mx-auto p-4 space-y-4 pb-24">
+    <AppPageChrome spacing="sm">
       <Link href="/live">
         <Button variant="ghost" size="sm" className="gap-1">
           <ChevronLeft className="h-4 w-4" />
@@ -106,6 +107,6 @@ export default function NewClipPage() {
           </form>
         </CardContent>
       </Card>
-    </div>
+    </AppPageChrome>
   );
 }

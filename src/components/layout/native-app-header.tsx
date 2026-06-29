@@ -22,12 +22,27 @@ const ROOT_PATHS = new Set([
 function titleForPath(pathname: string): string | null {
   if (pathname.startsWith("/u/")) return "프로필";
   if (pathname.startsWith("/post/")) return "게시물";
-  if (pathname.startsWith("/settings")) return "설정";
+  if (pathname.startsWith("/settings")) {
+    if (pathname === "/settings/profile") return "프로필 수정";
+    if (pathname === "/settings/creator") return "크리에이터 수익";
+    if (pathname === "/settings/streamer") return "스트리머";
+    return "설정";
+  }
   if (pathname.startsWith("/auth/")) return "계정";
   if (pathname === EXPLORE_PATH) return "탐색";
   if (pathname === DEFAULT_LANDING_PATH || pathname === "/feed") return "홈";
   if (pathname === "/games") return "GAME";
-  if (pathname.startsWith("/games/")) return "GAME";
+  if (pathname.startsWith("/games/")) {
+    if (pathname === "/games/ranking") return "게임 랭킹";
+    if (pathname === "/games/history") return "내 전적";
+    if (pathname === "/games/achievements") return "업적";
+    if (pathname === "/games/season") return "시즌";
+    if (pathname === "/games/live") return "관전";
+    return "GAME";
+  }
+  if (pathname === "/voice/new") return "방송 만들기";
+  if (pathname.startsWith("/live/clips")) return "클립 업로드";
+  if (pathname === "/apt/cohabitation") return "동거 관리";
   if (pathname === "/notifications") return "알림";
   if (pathname === "/messages") return "쪽지";
   if (pathname === "/used") return "중고거래";

@@ -32,7 +32,7 @@ export function UsedMySkeleton() {
 
 export function UsedDetailSkeleton() {
   return (
-    <div className="max-w-lg mx-auto space-y-4 animate-pulse pb-24">
+    <div className="max-w-lg mx-auto space-y-4 animate-pulse pb-nav lg:pb-6">
       <div className="aspect-[4/5] rounded-2xl bg-muted" />
       <div className="h-6 w-2/3 rounded-lg bg-muted" />
       <div className="h-8 w-1/3 rounded-lg bg-muted" />

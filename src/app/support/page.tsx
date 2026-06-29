@@ -14,6 +14,7 @@ import { SupportGiftsPanel } from "@/components/support/support-gifts-panel";
 import { MarketDbBannerAsync } from "@/components/market/market-db-banner-async";
 import { SupportRankingPodium } from "@/components/support/support-ranking-podium";
 import { SupportTrophyIcon } from "@/components/icons/support-trophy-icon";
+import { SupportPageChrome, SupportPageTitle } from "@/components/support/support-page-chrome";
 import { Send, Inbox, Sparkles, Archive, Gift, Gem } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -62,7 +63,8 @@ export default async function SupportPage({
   ] as const;
 
   return (
-    <div className="p-4 lg:p-6 max-w-3xl mx-auto space-y-6">
+    <SupportPageChrome>
+      <SupportPageTitle>
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-folk-cobalt/15 bg-folk-cream text-folk-cobalt">
@@ -74,6 +76,7 @@ export default async function SupportPage({
           크리에이터 후원 · 광석 등급 · 후원용 이모티콘 구매·선물
         </p>
       </div>
+      </SupportPageTitle>
 
       <SupportRankingPodium entries={rankingEntries} />
 
@@ -230,6 +233,6 @@ export default async function SupportPage({
           receivedTier={dashboard.platform.receivedTier}
         />
       )}
-    </div>
+    </SupportPageChrome>
   );
 }

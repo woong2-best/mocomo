@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCachedSession } from "@/lib/auth";
 import { CreatorMonetizationSettings } from "@/components/monetization/creator-monetization-settings";
+import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { Button } from "@/components/ui/button";
 
 export default async function CreatorSettingsPage() {
@@ -9,7 +10,7 @@ export default async function CreatorSettingsPage() {
   if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/settings/creator");
 
   return (
-    <div className="max-w-lg mx-auto p-4 space-y-4 pb-24 lg:pb-6">
+    <AppPageChrome spacing="sm">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-bold">크리에이터 수익</h1>
         <Link href="/settings">
@@ -23,6 +24,6 @@ export default async function CreatorSettingsPage() {
         Stripe로 처리됩니다.
       </p>
       <CreatorMonetizationSettings />
-    </div>
+    </AppPageChrome>
   );
 }

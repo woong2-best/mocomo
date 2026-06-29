@@ -8,6 +8,8 @@ import { getMinigameRoute } from "@/lib/minigames/game-meta";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Eye, Loader2 } from "lucide-react";
+import { useClientPlatform } from "@/components/providers/client-platform-provider";
+import { cn } from "@/lib/utils";
 
 type LiveRoom = {
   gameId: string;
@@ -18,6 +20,7 @@ type LiveRoom = {
 };
 
 export function MinigameLiveClient() {
+  const { isNativeApp } = useClientPlatform();
   const { socket, socketReady } = useAppSocket();
   const games = getAllMinigames().filter((g) => g.supportsSpectate !== false);
   const [gameId, setGameId] = useState("");
@@ -43,7 +46,7 @@ export function MinigameLiveClient() {
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-display font-bold">진행 중 대국</h1>
+        <h1 className={cn("text-2xl font-display font-bold", isNativeApp && "sr-only")}>진행 중 대국</h1>
         <Link href="/games" className="text-xs text-muted-foreground hover:underline">
           ← 허브
         </Link>

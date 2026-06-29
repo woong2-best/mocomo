@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Radio, ChevronLeft, KeyRound, Copy, Check, Calendar, Video, Mic2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AppPageChrome } from "@/components/layout/app-page-chrome";
 
 const PRESETS = [
   "🎙 애니덕질 라이브",
@@ -226,7 +227,8 @@ export default function NewVoicePage() {
 
   if (created?.scheduled) {
     return (
-      <div className="max-w-lg mx-auto p-4 space-y-6 pb-24">
+      <AppPageChrome spacing="sm">
+      <div className="space-y-6">
         <div className="rounded-2xl border border-sky-500/30 bg-sky-500/10 p-6 text-center space-y-4">
           <Calendar className="h-10 w-10 mx-auto text-sky-600" />
           <h2 className="text-xl font-bold">방송 예약 완료</h2>
@@ -238,12 +240,14 @@ export default function NewVoicePage() {
           </Button>
         </div>
       </div>
+      </AppPageChrome>
     );
   }
 
   if (created?.password) {
     return (
-      <div className="max-w-lg mx-auto p-4 space-y-6 pb-24">
+      <AppPageChrome spacing="sm">
+      <div className="space-y-6">
         <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-6 text-center space-y-4">
           <KeyRound className="h-10 w-10 mx-auto text-green-600" />
           <h2 className="text-xl font-bold">방송 준비 완료</h2>
@@ -275,11 +279,13 @@ export default function NewVoicePage() {
           </button>
         </div>
       </div>
+      </AppPageChrome>
     );
   }
 
   return (
-    <div className="max-w-lg mx-auto p-4 space-y-4 pb-24 lg:pb-4">
+    <AppPageChrome spacing="sm">
+    <div className="space-y-4">
       <Link href="/live">
         <Button variant="ghost" size="sm" className="gap-1">
           <ChevronLeft className="h-4 w-4" />
@@ -527,5 +533,6 @@ export default function NewVoicePage() {
       </Card>
       )}
     </div>
+    </AppPageChrome>
   );
 }
