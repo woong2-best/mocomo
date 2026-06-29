@@ -21,7 +21,9 @@ export async function onLivekitObsJoined(roomName: string, identity: string) {
 
   const isBrowserHost =
     channel.broadcastMode === "BROWSER" && identity === channel.createdBy;
-  if (!isObs && !isBrowserHost) return;
+  const isVoiceHost =
+    channel.broadcastMode === "VOICE" && identity === channel.createdBy;
+  if (!isObs && !isBrowserHost && !isVoiceHost) return;
   if (channel.broadcastMode === "BROWSER" && isObs) return;
 
   const wasLive = channel.isLive;
@@ -48,7 +50,9 @@ export async function onLivekitObsLeft(roomName: string, identity: string) {
 
   const isBrowserHost =
     channel.broadcastMode === "BROWSER" && identity === channel.createdBy;
-  if (!isObs && !isBrowserHost) return;
+  const isVoiceHost =
+    channel.broadcastMode === "VOICE" && identity === channel.createdBy;
+  if (!isObs && !isBrowserHost && !isVoiceHost) return;
   if (channel.broadcastMode === "BROWSER" && isObs) return;
 
   try {

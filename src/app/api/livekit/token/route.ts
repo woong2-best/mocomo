@@ -87,15 +87,20 @@ export async function GET(req: NextRequest) {
       where: { id: room },
       select: { broadcastMode: true },
     });
+    const isVoiceLive = channelRow?.broadcastMode === "VOICE";
     const hostObsMode = live.isHost && channelRow?.broadcastMode === "OBS";
     const member = await db.voiceMember.findUnique({
       where: { channelId_userId: { channelId: room, userId: session.user.id } },
       select: { role: true },
     });
-    const canPublish = (live.isHost && !hostObsMode) || member?.role === "CO_HOST";
+    const canPublish =
+      !isVoiceLive &&
+      ((live.isHost && !hostObsMode) || member?.role === "CO_HOST");
+    const voiceHostPublish = isVoiceLive && live.isHost;
 
     const token = await createLivekitToken(room, session.user.id, displayName, {
-      publish: canPublish,
+      publish: canPublish || voiceHostPublish,
+      audioOnly: isVoiceLive,
     });
     if (!token) {
       return NextResponse.json({ error: "LiveKit 토큰 생성 실패" }, { status: 503 });
@@ -111,6 +116,7 @@ export async function GET(req: NextRequest) {
       serverUrl,
       role: live.isHost ? "host" : "viewer",
       hostUserId: live.hostUserId,
+      audioOnly: isVoiceLive,
     });
   } catch (e) {
     console.error("[api/livekit/token]", e);

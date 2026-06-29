@@ -40,6 +40,7 @@ export function resolveChannelIngestEngine(channel: {
   rtmpUrl?: string | null;
   broadcastMode?: string | null;
 }): LiveIngestEngine {
+  if (channel.broadcastMode === "VOICE") return "livekit";
   if (isCloudflareIngestChannel(channel)) return "cloudflare";
   const url = channel.rtmpUrl?.trim() ?? "";
   if (url.includes("live.cloudflare.com")) return "cloudflare";

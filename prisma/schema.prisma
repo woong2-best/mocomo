@@ -33,6 +33,7 @@ enum LiveStreamStatus {
 enum LiveBroadcastMode {
   BROWSER
   OBS
+  VOICE
 }
 
 enum LiveVisibility {

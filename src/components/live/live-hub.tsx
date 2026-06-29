@@ -14,6 +14,7 @@ import {
   TrendingUp,
   BadgeCheck,
   Calendar,
+  Mic2,
 } from "lucide-react";
 import { LivePageActions } from "@/components/live/live-page-actions";
 import { LiveCategoryFilter } from "@/components/live/live-category-filter";
@@ -26,6 +27,7 @@ import { COMMUNITY_FEED_PATH } from "@/lib/site-routes";
 
 const FEATURES = [
   { icon: Video, label: "웹캠 · 화면공유" },
+  { icon: Mic2, label: "보이스 라이브" },
   { icon: MessageSquare, label: "실시간 채팅" },
   { icon: Shield, label: "슬로우·금칙어" },
   { icon: Eye, label: "후원·시청자" },

@@ -149,9 +149,12 @@ export async function createLiveStream(data: {
     const baseData = {
       name: title.slice(0, 120),
       communityId: data.communityId,
-      maxUsers: Math.min(Math.max(data.maxUsers ?? 200, 2), 500),
-      allowScreen: data.allowScreen ?? true,
-      allowCamera: data.allowCamera ?? true,
+      maxUsers: Math.min(
+        Math.max(data.maxUsers ?? (data.broadcastMode === "VOICE" ? 500 : 200), 2),
+        data.broadcastMode === "VOICE" ? 2000 : 500
+      ),
+      allowScreen: data.broadcastMode === "VOICE" ? false : (data.allowScreen ?? true),
+      allowCamera: data.broadcastMode === "VOICE" ? false : (data.allowCamera ?? true),
       createdBy: user.id,
       joinPasswordHash,
       isLive: false,
@@ -201,8 +204,10 @@ export async function createLiveStream(data: {
     }
 
     try {
-      const { provisionObsIngress } = await import("@/lib/obs-ingress-service");
-      await provisionObsIngress(channel.id, user.id);
+      if (data.broadcastMode !== "VOICE") {
+        const { provisionObsIngress } = await import("@/lib/obs-ingress-service");
+        await provisionObsIngress(channel.id, user.id);
+      }
     } catch (keyErr) {
       console.warn("[createLiveStream] live ingress", keyErr);
     }
@@ -320,10 +325,6 @@ export async function enterLiveAsHost(channelId: string) {
 
   void autoEndAbandonedLiveChannels();
   await upsertLiveMember(channelId, user.id, "HOST");
-  await db.voiceChannel.update({
-    where: { id: channelId },
-    data: { broadcastMode: "BROWSER" },
-  });
   return { success: true as const, role: "HOST" as const };
 }
 
@@ -372,6 +373,54 @@ export async function startBrowserLiveBroadcast(
       liveStatus: "LIVE",
       broadcastMode: "BROWSER",
       livePublisherTabId: tabId,
+    },
+  });
+
+  if (!wasLive) {
+    const { notifyFollowersOnLive } = await import("@/lib/live-notify");
+    void notifyFollowersOnLive(user.id, channelId, channel.name).catch(() => {});
+  }
+
+  revalidatePath("/live");
+  revalidatePath(`/voice/${channelId}`);
+  revalidateTag(liveRoomCacheTag(channelId));
+  revalidateLiveHubCache();
+  return { success: true as const };
+}
+
+/** 보이스 라이브 방송 시작 — LiveKit 마이크 송출 */
+export async function startVoiceLiveBroadcast(channelId: string) {
+  const user = await requireAuth();
+  const hostCheck = await assertLiveHostEligible(user.id);
+  if (!hostCheck.ok) return { error: hostCheck.error };
+
+  const channel = await db.voiceChannel.findUnique({
+    where: { id: channelId },
+    select: {
+      createdBy: true,
+      liveStatus: true,
+      name: true,
+      isLive: true,
+      broadcastMode: true,
+    },
+  });
+  if (!channel || channel.createdBy !== user.id) {
+    return { error: "호스트만 방송을 시작할 수 있습니다." };
+  }
+  if (channel.broadcastMode !== "VOICE") {
+    return { error: "보이스 라이브 방송이 아닙니다." };
+  }
+  if (channel.liveStatus === "ENDED") {
+    return { error: "종료된 방송입니다. 새 방송을 만들어 주세요." };
+  }
+
+  const wasLive = channel.isLive;
+  await db.voiceChannel.update({
+    where: { id: channelId },
+    data: {
+      isLive: true,
+      liveStatus: "LIVE",
+      broadcastMode: "VOICE",
     },
   });
 

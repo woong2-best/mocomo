@@ -17,7 +17,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
+import type { LiveBroadcastMode, LiveStreamCategory, SupportTierLevel } from "@prisma/client";
+import { isVoiceBroadcastMode } from "@/lib/live-voice-broadcast";
+import { VoiceLiveHostStudio } from "@/components/voice-live/voice-live-studio";
 import { LiveDonationAlertOverlay, type LiveTipAlert } from "@/components/live/live-donation-alert-overlay";
 import { LiveVideoDonationOverlay } from "@/components/live/live-video-donation-panel";
 
@@ -33,6 +35,9 @@ export function LiveHostStudioShell({
   chatBannedWords,
   collabPassword,
   recentTips = [],
+  broadcastMode,
+  hostImage,
+  hostDisplayName,
 }: {
   channelId: string;
   channelName: string;
@@ -53,11 +58,51 @@ export function LiveHostStudioShell({
   paymentsEnabled?: boolean;
   collabPassword?: string | null;
   recentTips?: LiveTipAlert[];
+  broadcastMode?: LiveBroadcastMode;
+  hostImage?: string | null;
 }) {
   const mobilePortrait = useLiveMobilePortrait();
   const collab = useLiveCollabState(channelId);
   const coHostLabel =
     collab.coHost?.name ?? collab.coHost?.username ?? undefined;
+
+  if (isVoiceBroadcastMode(broadcastMode)) {
+    return (
+      <div className="flex flex-col w-full">
+        <header className="flex flex-wrap items-center gap-2 sm:gap-3 py-2 border-b border-border/60 shrink-0">
+          <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-violet-600/15 text-violet-700 dark:text-violet-300 flex items-center gap-1">
+            <Radio className="h-3 w-3" />
+            보이스 스튜디오
+          </span>
+          <h1 className="text-base sm:text-lg font-bold truncate flex-1 min-w-0">{channelName}</h1>
+          <span className="text-sm text-muted-foreground flex items-center gap-1 tabular-nums">
+            <Eye className="h-4 w-4" />
+            {viewerCount}
+          </span>
+          <Button variant="destructive" size="sm" className="rounded-xl gap-1" onClick={onEndStream}>
+            방송 종료
+          </Button>
+        </header>
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-4 lg:gap-6 mt-3 items-start">
+          <VoiceLiveHostStudio
+            channelId={channelId}
+            channelName={channelName}
+            hostImage={hostImage}
+            hostDisplayName={hostDisplayName}
+          />
+          <div className="min-h-[360px] lg:sticky lg:top-[3.25rem] border border-border/60 rounded-xl overflow-hidden bg-card/30">
+            <LiveChat
+              channelId={channelId}
+              viewerCount={viewerCount}
+              onViewerCount={onViewerCount}
+              isHost
+              canModerate
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (mobilePortrait) {
     return (

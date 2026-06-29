@@ -7,6 +7,8 @@ import { LivekitLivePlayer } from "@/components/live/livekit-live-player";
 import { LiveCloudflarePlayer } from "@/components/live/live-cloudflare-player";
 import { LiveCloudflareWhepPlayer } from "@/components/live/live-cloudflare-whep-player";
 import { LiveSplitBroadcastPlayer } from "@/components/live/live-split-broadcast-player";
+import { VoiceLiveListener } from "@/components/voice-live/voice-live-studio";
+import { isVoiceBroadcastMode } from "@/lib/live-voice-broadcast";
 import { useLiveCollabState } from "@/hooks/use-live-collab-state";
 import { Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,8 +38,10 @@ export function LiveBroadcastPlayer({
   /** 서버에서 LIVE 상태를 알면 WHEP를 즉시 시작 */
   isLiveOnAir?: boolean;
 }) {
-  const optimisticWhep = broadcastMode === "BROWSER" || !!isLiveOnAir;
+  const optimisticWhep =
+    broadcastMode === "BROWSER" || (!!isLiveOnAir && !isVoiceBroadcastMode(broadcastMode));
   const [engine, setEngine] = useState<PlaybackEngine | null>(() => {
+    if (isVoiceBroadcastMode(broadcastMode)) return "livekit";
     if (optimisticWhep) return "cloudflare";
     if (
       preferredEngine === "cloudflare" ||
@@ -137,6 +141,15 @@ export function LiveBroadcastPlayer({
       <div className="aspect-video rounded-xl bg-black flex items-center justify-center text-white/70 gap-2">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
+    );
+  }
+
+  if (isVoiceBroadcastMode(broadcastMode)) {
+    return (
+      <VoiceLiveListener
+        channelId={channelId}
+        hostUserId={resolvedHostId ?? hostUserId}
+      />
     );
   }
 

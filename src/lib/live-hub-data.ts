@@ -18,6 +18,7 @@ export type LiveHubChannel = {
   category: LiveStreamCategory;
   tags: string[];
   thumbnailUrl: string | null;
+  broadcastMode?: string | null;
 };
 
 export type LiveHubHost = {
@@ -79,6 +80,7 @@ async function fetchLiveHubChannels(category?: LiveStreamCategory) {
       category: true,
       tags: true,
       thumbnailUrl: true,
+      broadcastMode: true,
     },
     orderBy: { createdAt: "desc" },
     take: 36,
@@ -147,6 +149,7 @@ async function fetchFollowedLive(userId: string) {
       category: true,
       tags: true,
       thumbnailUrl: true,
+      broadcastMode: true,
     },
     take: 12,
   });

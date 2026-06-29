@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { memo } from "react";
-import { Eye, Radio, Sparkles, User } from "lucide-react";
+import { Eye, Radio, Sparkles, User, Mic2 } from "lucide-react";
+import { isVoiceBroadcastMode } from "@/lib/live-voice-broadcast";
 import { LivePageActions } from "@/components/live/live-page-actions";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { liveCategoryLabel } from "@/lib/live-categories";
@@ -28,8 +29,14 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
           <span className="live-badge">
             <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-            Live
+            {isVoiceBroadcastMode(ch.broadcastMode) ? "Voice" : "Live"}
           </span>
+          {isVoiceBroadcastMode(ch.broadcastMode) && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-600/80 text-white font-medium flex items-center gap-0.5">
+              <Mic2 className="h-3 w-3" />
+              보이스
+            </span>
+          )}
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-black/50 text-white font-medium">
             {liveCategoryLabel(ch.category)}
           </span>

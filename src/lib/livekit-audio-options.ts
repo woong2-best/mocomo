@@ -59,3 +59,10 @@ export const LIVE_BROADCAST_ROOM_OPTIONS: RoomOptions = {
   ...VIDEO_CALL_ROOM_OPTIONS,
   disconnectOnPageLeave: false,
 };
+
+/** 보이스 라이브 — 마이크만 송출·다수 시청 (LiveKit SFU) */
+export const VOICE_LIVE_ROOM_OPTIONS: RoomOptions = {
+  ...VOICE_CALL_ROOM_OPTIONS,
+  disconnectOnPageLeave: false,
+  adaptiveStream: true,
+};
