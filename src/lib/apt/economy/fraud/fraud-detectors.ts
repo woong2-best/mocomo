@@ -1,8 +1,43 @@
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import type { FraudRuleCode, FraudRuleHit } from "./fraud-types";
 import type { FraudRuleConfig } from "./fraud-rule-thresholds";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** 장터 자전거래 가속 차단 — 24h 내 동일 쌍 양방향 합 3건 이상 시 거절 */
+export async function assertNoWashTradeAtPurchase(
+  tx: Prisma.TransactionClient,
+  buyerId: string,
+  sellerId: string
+): Promise<void> {
+  const since = new Date(Date.now() - DAY_MS);
+  const [soldToSeller, boughtFromSeller] = await Promise.all([
+    tx.aptMarketListing.count({
+      where: {
+        sellerId: buyerId,
+        buyerId: sellerId,
+        status: "SOLD",
+        soldAt: { gte: since },
+      },
+    }),
+    tx.aptMarketListing.count({
+      where: {
+        sellerId: sellerId,
+        buyerId: buyerId,
+        status: "SOLD",
+        soldAt: { gte: since },
+      },
+    }),
+  ]);
+  if (
+    soldToSeller > 0 &&
+    boughtFromSeller > 0 &&
+    soldToSeller + boughtFromSeller >= 3
+  ) {
+    throw new Error("동일 상대와의 반복 거래는 제한됩니다.");
+  }
+}
 
 export async function detectSelfMarket(
   userId: string,

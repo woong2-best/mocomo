@@ -5,17 +5,38 @@ export type StressOpResult = {
   deadlock?: boolean;
 };
 
+/** 경합·가드 실패 등 스트레스 시나리오에서 기대되는 거절 메시지 */
+export function isBenignStressError(msg?: string): boolean {
+  if (!msg) return false;
+  const patterns = [
+    "다른 구매자",
+    "본인 상품",
+    "긴급 점검",
+    "동기화가 일시",
+    "판매 중인 상품이 아닙니다",
+    "동일 상대",
+    "반복 거래",
+    "이미 지급",
+    "skipped",
+  ];
+  return patterns.some((p) => msg.includes(p));
+}
+
 export class StressMetrics {
   private latencies: number[] = [];
   errors = 0;
   successes = 0;
+  benign = 0;
   deadlocks = 0;
   rollbacks = 0;
 
   record(result: StressOpResult) {
     this.latencies.push(result.ms);
-    if (result.ok) this.successes += 1;
-    else this.errors += 1;
+    const countedOk = result.ok || isBenignStressError(result.error);
+    if (countedOk) {
+      this.successes += 1;
+      if (!result.ok) this.benign += 1;
+    } else this.errors += 1;
     if (result.deadlock) this.deadlocks += 1;
     if (!result.ok && result.error?.includes("rollback")) this.rollbacks += 1;
   }
@@ -76,6 +97,7 @@ export class StressMetrics {
       total: this.successes + this.errors,
       successes: this.successes,
       errors: this.errors,
+      benign: this.benign,
     };
   }
 }

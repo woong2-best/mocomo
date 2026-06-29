@@ -13,6 +13,8 @@ import { newCorrelationId } from "./audit/correlation-id";
 import { assertMarketEnabled } from "./economy-emergency";
 import { assertMarketAdminAllows } from "./market-admin-guards";
 import { assertFraudAllowed } from "./fraud/fraud-restrictions";
+import { assertNoWashTradeAtPurchase } from "./fraud/fraud-detectors";
+import { recalculateUserFraudRisk } from "./fraud/fraud-engine";
 import type { BondeeFurnitureKind } from "@/lib/apt/bondee/types";
 import type { InventoryItemSource } from "./types";
 
@@ -288,6 +290,7 @@ export async function buyMarketListing(
       if (row.hiddenByAdmin) throw new Error("판매 중인 상품이 아닙니다.");
       if (row.sellerId === ownerId) throw new Error("본인 상품은 구매할 수 없습니다.");
       if (row.priceGold < 1) throw new Error("가격이 설정되지 않았습니다.");
+      await assertNoWashTradeAtPurchase(tx, ownerId, row.sellerId);
 
       if (row.fleaEvent) {
         const now = new Date();
@@ -394,6 +397,8 @@ export async function buyMarketListing(
     void import("./canary/canary-health").then((m) =>
       m.recordCanaryHealthEvent("CONFIG", { marketOp: true })
     );
+    void recalculateUserFraudRisk(ownerId);
+    if (sold?.sellerId) void recalculateUserFraudRisk(sold.sellerId);
 
     return { ok: true, stickerTypeId };
   } catch (e) {

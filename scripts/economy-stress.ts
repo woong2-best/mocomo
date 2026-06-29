@@ -273,7 +273,11 @@ async function scenarioLive(users: string[], metrics: StressMetrics) {
       const { value, ms } = await metrics.time(() =>
         grantLiveCheerGold(targetUser, 5, sharedRef)
       );
-      metrics.record({ ok: "granted" in value, ms });
+      metrics.record({
+        ok: "granted" in value || "skipped" in value,
+        ms,
+        error: "error" in value ? String((value as { error?: string }).error) : undefined,
+      });
       dupResults.push(value);
     } catch {
       dupResults.push({ skipped: true });

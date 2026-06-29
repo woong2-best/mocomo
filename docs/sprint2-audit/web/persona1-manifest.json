@@ -1,0 +1,36 @@
+{
+  "base": "https://mocomo.net",
+  "capturedAt": "2026-06-29T16:35:42.298Z",
+  "shots": [
+    {
+      "route": "/explore",
+      "file": "01-explore.png",
+      "ok": true
+    },
+    {
+      "route": "/play/house",
+      "file": "02-play-house.png",
+      "ok": true
+    },
+    {
+      "route": "/live",
+      "file": "03-live.png",
+      "ok": true
+    },
+    {
+      "route": "/live?mode=voice",
+      "file": "04-live-voice.png",
+      "ok": true
+    },
+    {
+      "route": "/notifications",
+      "file": "05-notifications.png",
+      "ok": true
+    },
+    {
+      "route": "/auth/signin",
+      "file": "06-auth-signin.png",
+      "ok": true
+    }
+  ]
+}

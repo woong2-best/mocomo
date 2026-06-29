@@ -106,6 +106,6 @@ export function printMetricsReport(
   console.log(`\n── ${label} ──`);
   console.log(`  TPS: ${m.tps} | P95: ${m.p95}ms | P99: ${m.p99}ms | Avg: ${m.avgMs}ms`);
   console.log(
-    `  Ops: ${m.total} (ok ${m.successes} / err ${m.errors}) | Error: ${m.errorPct}% | Deadlock: ${m.deadlocks}`
+    `  Ops: ${m.total} (ok ${m.successes} / err ${m.errors}${m.benign ? ` / benign ${m.benign}` : ""}) | Error: ${m.errorPct}% | Deadlock: ${m.deadlocks}`
   );
 }

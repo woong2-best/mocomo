@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Power, Radio } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -34,20 +34,43 @@ export function AptLiveTvPanel({ phase, blend, onPowerOff }: Props) {
   const screenOpacity = phase === "active" ? 1 : Math.min(1, Math.max(0, blend));
   const [channels, setChannels] = useState<LiveChannel[]>([]);
   const [selected, setSelected] = useState<LiveChannel | null>(null);
+  const watchRewardGrantedRef = useRef(false);
 
   useEffect(() => {
     if (!visible || !selected) return;
     const channelId = selected.id;
     const started = Date.now();
-    const timer = window.setInterval(() => {
-      const minutes = Math.floor((Date.now() - started) / 60_000);
-      if (minutes < 1) return;
+    watchRewardGrantedRef.current = false;
+
+    const requestReward = () => {
+      if (watchRewardGrantedRef.current) return;
+      const elapsedMin = Math.floor((Date.now() - started) / 60_000);
+      if (elapsedMin < 1) return;
+      watchRewardGrantedRef.current = true;
       void fetch("/api/apt/live-watch-reward", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ channelId, minutes: 1 }),
-      }).catch(() => undefined);
-    }, 60_000);
+      })
+        .then(async (r) => {
+          if (!r.ok) return;
+          const data = (await r.json()) as { granted?: number };
+          if (data.granted && data.granted > 0) {
+            window.dispatchEvent(
+              new CustomEvent("apt-game-toast", {
+                detail: {
+                  message: `TV 시청 보상 +${data.granted.toLocaleString()}G`,
+                  kind: "gold",
+                },
+              })
+            );
+          }
+        })
+        .catch(() => undefined);
+    };
+
+    const timer = window.setInterval(requestReward, 15_000);
+    requestReward();
     return () => window.clearInterval(timer);
   }, [visible, selected?.id]);
 

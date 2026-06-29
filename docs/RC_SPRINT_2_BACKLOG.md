@@ -1,23 +1,25 @@
 # RC Sprint 2 — Backlog
 
-**상태:** Day 1 — P0/P1 Blocker 코드 수정 완료 · 실기기 Persona **User 대기**  
-**규칙:** 감사 완료 전까지 **코드 수정 금지** (Motion · Skeleton · Empty · Error · Haptic · Animation · Camera)
+**상태:** Day 1 — P0/P1 Blocker 코드 수정 완료 · Persona 스모크 스크립트 추가 · 실기기 **User 대기**  
+**규칙:** Motion · Skeleton · Empty · Error · Haptic 등 UXD는 코드 일부 반영 (`6f00790` 이후)
 
 **감사 가이드:** [RC_SPRINT_2_AUDIT.md](./RC_SPRINT_2_AUDIT.md)  
 **기준:** [RC_SPRINT_2_QA_STANDARDS.md](./RC_SPRINT_2_QA_STANDARDS.md)
 
-**Day 0 Gate:** **미통과** (~45–50% 진행) — 실기기 Persona · 스크린샷/영상 · Stress 완료 후 Day 1 착수
+**Day 0 Gate:** **미통과** (~55–60% 진행) — 실기기 Persona · 녹화 · Stress PASS 튜닝 후 Day 1 착수
 
 | Gate 항목 | 상태 |
 |-----------|------|
 | Static Audit (55건) | ✅ |
 | Backlog 구조 (Owner/Sprint/Blocker) | ✅ |
-| 코드 수정 금지 | ✅ |
-| Persona 1 실사용 (웹+Android) | ❌ **최우선** |
+| P0/P1 Blocker 코드 | ✅ **Fixed** (001–005, 006–007 부분, 008–009, 012, 018) |
+| Persona 1 웹 스모크 (`npm run persona:smoke`) | ⚠️ 6장 자동 캡처 (`docs/sprint2-audit/web/`) |
+| Persona 1 실사용 (웹+Android 로그인) | ❌ **최우선** |
 | Persona 2 | ❌ |
 | Android 실기기 (Safe Area·Resume 등) | ❌ **Priority 2** |
-| Screenshot 30~50 / Recording 7 | ❌ |
-| economy:stress | ⚠️ WARN (무결성 PASS, P95/에러율 튜닝) | **Priority 3** |
+| Screenshot 30~50 / Recording 7 | ⚠️ 6/30 (자동) |
+| economy:stress | ⚠️ quick WARN (무결성·Fraud PASS, P95 튜닝) |
+| economy:fraud-scan | ✅ `npm run economy:fraud-scan` (200명 배치) |
 
 **Gate 통과 조건 (8개 전부):** Persona1 웹·Android · Persona2 · Screenshot 30+ · Recording 7 · Backlog 80~120 · Blocker 확정 · Stress PASS 또는 원인 분석
 
@@ -38,8 +40,8 @@
 
 | Status | Count |
 |--------|------:|
-| Open | 55 |
-| Fixed | 0 |
+| Open | ~44 |
+| Fixed | ~11 |
 | Won't Fix | 0 |
 | Deferred | 0 |
 
@@ -70,6 +72,11 @@
 | ISSUE-003 | P0 | ✅ | 70% | Static+Log | **M** | **Fixed** | Cursor | S2 | 5000G 폴백 → Error/Retry |
 | ISSUE-004 | P0 | ✅ | 100% | Static+Log | **XL** | **Fixed** | Cursor | S2 | **최상위** RTDN 무인증 |
 | ISSUE-005 | P1 | ✅ | 70% | Static | **M** | **Fixed** | Cursor | S2 | offline sync 킬스위치 우회 |
+| ISSUE-006 | P1 | ✅ | 70% | Static | **M** | **Fixed** | Cursor | S2 | 장터 wash — 거래 시 24h 역구매 차단 |
+| ISSUE-007 | P1 | ✅ | 70% | Static | **S** | **Fixed** | Cursor | S2 | market 구매 후 fraud risk 재계산 |
+| ISSUE-008 | P1 | ✅ | 100% | Static | **M** | **Fixed** | Cursor | S2 | IAP 환불 gem 부족 시 gold clawback |
+| ISSUE-009 | P1 | ✅ | 100% | Static | **S** | **Fixed** | Cursor | S2 | prod IAP dev verify 차단 |
+| ISSUE-012 | P1 | ✅ | 70% | Static | **S** | **Fixed** | Cursor | S2 | signup→`/play/house` 딥링크 |
 | ISSUE-018 | P1 | ✅ | 100% | Static | **M** | **Fixed** | Cursor | S2 | logout 로컬 미정리 |
 
 _나머지 49건( ISSUE-006~030, UXD-001~032 ): Static 감사 — Triaging 시 Repro/Evidence/Blocker 채움. 상세는 Day 0 Persona Audit에서 보강._
