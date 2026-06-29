@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import { getDioramaPreset } from "@/lib/diorama/living-room-preset";
 import { createDefaultGameState, applyDailyResetIfNeeded } from "@/lib/apt/game/defaults";
+import { motion } from "@/lib/apt/motion/motion-tokens";
 import type { AptGameState, AptGameTab, AptGameView } from "@/lib/apt/game/types";
 import type { EconomySnapshot, LocalEconomyCache } from "@/lib/apt/economy/types";
 import { createEmptyLocalEconomyCache } from "@/lib/apt/economy/types";
@@ -38,6 +39,7 @@ import {
   purchaseAptSticker,
   reportAptGameEvent,
   boostAptEnergy,
+  getAptGameState,
 } from "@/actions/apt-game";
 import { energyRegenLabel } from "@/lib/apt/game/energy";
 import { useAptFirstEntry, type FirstEntryState } from "@/hooks/use-apt-first-entry";
@@ -197,11 +199,21 @@ export function AptGameProvider({
     if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast(message);
     setToastKind(kind);
-    toastTimer.current = setTimeout(() => setToast(null), 2600);
+    toastTimer.current = setTimeout(() => setToast(null), motion.toast);
   }, []);
 
   useEffect(() => {
-    const tick = () => setGame((g) => applyDailyResetIfNeeded(g));
+    const tick = () => {
+      setGame((g) => {
+        const next = applyDailyResetIfNeeded(g);
+        if (next.lastDailyReset !== g.lastDailyReset) {
+          void getAptGameState().then((server) => {
+            if (server) setGame(server);
+          });
+        }
+        return next;
+      });
+    };
     tick();
     const id = window.setInterval(tick, 60_000);
     return () => window.clearInterval(id);
@@ -361,6 +373,7 @@ export function AptGameProvider({
         if ("error" in storageRes && storageRes.error) {
           const { cache: rolled } = await localReturnStorage(typeId, true);
           setEconomy(rolled);
+          showToast(storageRes.error, "default");
           return { error: storageRes.error };
         }
         if ("economy" in storageRes && storageRes.economy) {
@@ -370,7 +383,10 @@ export function AptGameProvider({
       }
 
       const next = await reportAptGameEvent({ type: "place_sticker", typeId, roomId });
-      if (!next) return {};
+      if (!next) {
+        showToast("배치 저장에 실패했습니다.", "default");
+        return { error: "배치 저장에 실패했습니다." };
+      }
       if ("error" in next) {
         const { cache: rolled, opId: rollbackOpId } = await localReturnStorage(
           typeId,
@@ -378,12 +394,13 @@ export function AptGameProvider({
         );
         setEconomy(rolled);
         if (online) await returnAptStorageItem(typeId, 1, rollbackOpId);
+        showToast(next.error, "default");
         return { error: next.error };
       }
       setGame(next);
       return {};
     },
-    []
+    [showToast]
   );
 
   const onStickerRemoved = useCallback(async (typeId: string) => {
@@ -407,6 +424,10 @@ export function AptGameProvider({
 
   const boostEnergy = useCallback(async () => {
     const res = await boostAptEnergy();
+    if ("error" in res && res.error) {
+      showToast(res.error, "default");
+      return;
+    }
     if ("game" in res && res.game) {
       setGame(res.game);
       showToast("⚡ 에너지 +10 충전!", "energy");

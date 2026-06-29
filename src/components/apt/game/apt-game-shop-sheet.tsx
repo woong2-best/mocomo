@@ -338,6 +338,11 @@ function AptGameShopSheetInner() {
               ))}
             </div>
             <div className="grid grid-cols-3 gap-2 overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:grid-cols-4">
+              {!catalogLoading && !catalogError && filtered.length === 0 && (
+                <p className="col-span-full py-8 text-center text-[11px] font-bold text-[#8b7355]">
+                  이 카테고리에 판매 중인 상품이 없어요
+                </p>
+              )}
               {!catalogLoading && !catalogError && filtered.map((o) => (
                 <OfferCard
                   key={o.itemId}

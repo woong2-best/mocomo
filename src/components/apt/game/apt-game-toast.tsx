@@ -15,10 +15,10 @@ function AptGameToastInner({
   if (!message) return null;
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-[calc(max(0.5rem,env(safe-area-inset-top))+5.5rem)] z-[110] flex justify-center px-4">
+    <div className="pointer-events-none absolute inset-x-0 bottom-[calc(max(4.75rem,env(safe-area-inset-bottom))+0.5rem)] z-[110] flex justify-center px-4">
       <div
         className={cn(
-          "apt-game-toast animate-in fade-in slide-in-from-top-2 max-w-sm rounded-2xl px-4 py-2.5 text-center text-[11px] font-black shadow-lg",
+          "apt-game-toast animate-in fade-in slide-in-from-bottom-2 max-w-sm rounded-2xl px-4 py-2.5 text-center text-[11px] font-black shadow-lg",
           kind === "gold" && "apt-game-toast-gold",
           kind === "energy" && "apt-game-toast-energy",
           kind === "mission" && "apt-game-toast-mission",

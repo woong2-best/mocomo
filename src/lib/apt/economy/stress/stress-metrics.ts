@@ -85,6 +85,11 @@ export class StressMetrics {
     return Math.round((this.errors / total) * 1000) / 10;
   }
 
+  /** Gate용 — benign 제외 실패율 */
+  effectiveErrorRate(): number {
+    return this.errorRate();
+  }
+
   snapshot(durationMs: number) {
     return {
       tps: this.tps(durationMs),

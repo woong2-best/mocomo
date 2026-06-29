@@ -13,7 +13,9 @@ export const dynamic = "force-dynamic";
 
 export default async function AptHousePage() {
   const user = await getCachedCurrentUser();
-  if (!user) redirect("/auth/signin?callbackUrl=/apt/house");
+  if (!user) {
+    redirect(`/auth/signin?callbackUrl=${encodeURIComponent(APT_GAME_PATH)}`);
+  }
 
   const profile = await getAptProfile();
   if (!profile || profile.housingType !== "house") redirect(APT_GAME_PATH);

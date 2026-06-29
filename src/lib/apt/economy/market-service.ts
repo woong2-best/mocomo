@@ -201,6 +201,7 @@ export async function createMarketListingFromStorage(input: {
 
       return row.id;
     });
+    void recalculateUserFraudRisk(ownerId);
     return { ok: true, listingId };
   } catch (e) {
     void import("./canary/canary-health").then((m) =>

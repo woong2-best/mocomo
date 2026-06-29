@@ -35,7 +35,12 @@ async function loadRawGame(userId: string): Promise<AptGameState> {
     select: { simulationState: true },
   });
   const sim = row?.simulationState as Record<string, unknown> | null;
-  let game = tickEnergy(mergeGameState(sim?.game));
+  const rawGame = sim?.game;
+  const priorReset =
+    rawGame && typeof rawGame === "object"
+      ? (rawGame as Partial<AptGameState>).lastDailyReset
+      : undefined;
+  let game = tickEnergy(mergeGameState(rawGame));
   try {
     const economy = await loadEconomySnapshot(ownerId);
     game = {
@@ -48,6 +53,9 @@ async function loadRawGame(userId: string): Promise<AptGameState> {
     };
   } catch {
     /* economy tables may not exist yet in dev */
+  }
+  if (priorReset && priorReset !== game.lastDailyReset) {
+    await saveRawGame(userId, game);
   }
   return game;
 }

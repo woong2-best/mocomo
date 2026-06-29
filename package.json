@@ -35,6 +35,7 @@
     "economy:stress:5000": "tsx scripts/economy-stress.ts --users=5000",
     "economy:fraud-scan": "tsx scripts/economy-fraud-scan.ts",
     "persona:smoke": "node scripts/persona1-smoke.mjs",
+    "persona:record": "node scripts/persona-record.mjs",
     "economy:backup": "tsx scripts/economy-backup-daily.ts",
     "economy:health": "tsx scripts/economy-health-scan.ts",
     "diorama:export-living": "tsx scripts/export-living-preset.ts",

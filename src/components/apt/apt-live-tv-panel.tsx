@@ -53,7 +53,18 @@ export function AptLiveTvPanel({ phase, blend, onPowerOff }: Props) {
         body: JSON.stringify({ channelId, minutes: 1 }),
       })
         .then(async (r) => {
-          if (!r.ok) return;
+          if (!r.ok) {
+            const body = (await r.json().catch(() => ({}))) as { error?: string };
+            window.dispatchEvent(
+              new CustomEvent("apt-game-toast", {
+                detail: {
+                  message: body.error ?? "시청 보상을 받지 못했어요",
+                  kind: "default",
+                },
+              })
+            );
+            return;
+          }
           const data = (await r.json()) as { granted?: number };
           if (data.granted && data.granted > 0) {
             window.dispatchEvent(
@@ -66,7 +77,13 @@ export function AptLiveTvPanel({ phase, blend, onPowerOff }: Props) {
             );
           }
         })
-        .catch(() => undefined);
+        .catch(() => {
+          window.dispatchEvent(
+            new CustomEvent("apt-game-toast", {
+              detail: { message: "시청 보상 연결에 실패했어요", kind: "default" },
+            })
+          );
+        });
     };
 
     const timer = window.setInterval(requestReward, 15_000);
@@ -100,7 +117,7 @@ export function AptLiveTvPanel({ phase, blend, onPowerOff }: Props) {
             style={{ opacity: Math.min(1, blend * 1.2) }}
           />
 
-          <div className="absolute inset-0 flex items-center justify-center px-4 py-16 pointer-events-none">
+          <div className="absolute inset-0 flex items-center justify-center px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] pointer-events-none">
             <motion.div
               className="relative w-full max-w-3xl pointer-events-auto"
               initial={{ scale: 0.82, y: 24 }}

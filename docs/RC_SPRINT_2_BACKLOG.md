@@ -1,25 +1,22 @@
 # RC Sprint 2 — Backlog
 
-**상태:** Day 1 — P0/P1 Blocker 코드 수정 완료 · Persona 스모크 스크립트 추가 · 실기기 **User 대기**  
-**규칙:** Motion · Skeleton · Empty · Error · Haptic 등 UXD는 코드 일부 반영 (`6f00790` 이후)
+**상태:** Day 1 — P0/P1 Fixed · Persona 자동 캡처 32장+ · 실기기 **User 대기**  
+**규칙:** Motion · Skeleton · Empty · Error · Haptic 코드 반영 중 (`7c735d7` 이후)
 
-**감사 가이드:** [RC_SPRINT_2_AUDIT.md](./RC_SPRINT_2_AUDIT.md)  
-**기준:** [RC_SPRINT_2_QA_STANDARDS.md](./RC_SPRINT_2_QA_STANDARDS.md)
-
-**Day 0 Gate:** **미통과** (~55–60% 진행) — 실기기 Persona · 녹화 · Stress PASS 튜닝 후 Day 1 착수
+**Day 0 Gate:** **미통과** (~65–70% 진행)
 
 | Gate 항목 | 상태 |
 |-----------|------|
 | Static Audit (55건) | ✅ |
-| Backlog 구조 (Owner/Sprint/Blocker) | ✅ |
-| P0/P1 Blocker 코드 | ✅ **Fixed** (001–005, 006–007 부분, 008–009, 012, 018) |
-| Persona 1 웹 스모크 (`npm run persona:smoke`) | ⚠️ 6장 자동 캡처 (`docs/sprint2-audit/web/`) |
-| Persona 1 실사용 (웹+Android 로그인) | ❌ **최우선** |
+| P0/P1 Blocker 코드 | ✅ Fixed |
+| Persona 1 웹 스모크 (`npm run persona:smoke`) | ⚠️ **32장** (`docs/sprint2-audit/web/`) |
+| Persona 1 웹 녹화 (`npm run persona:record`) | ⚠️ **7종** (`docs/sprint2-audit/recordings/`) |
+| Persona 1 실사용 (로그인·8단계) | ❌ **최우선** |
 | Persona 2 | ❌ |
-| Android 실기기 (Safe Area·Resume 등) | ❌ **Priority 2** |
-| Screenshot 30~50 / Recording 7 | ⚠️ 6/30 (자동) |
-| economy:stress | ⚠️ quick WARN (무결성·Fraud PASS, P95 튜닝) |
-| economy:fraud-scan | ✅ `npm run economy:fraud-scan` (200명 배치) |
+| Android 실기기 | ❌ |
+| Screenshot 30~50 | ⚠️ **32/30** (자동, 로그인 화면 User 보강) |
+| Recording 7 | ⚠️ 웹 7종 자동 (Android IAP·로그아웃 User) |
+| economy:stress | ⚠️ quick WARN (무결성 PASS) |
 
 **Gate 통과 조건 (8개 전부):** Persona1 웹·Android · Persona2 · Screenshot 30+ · Recording 7 · Backlog 80~120 · Blocker 확정 · Stress PASS 또는 원인 분석
 
@@ -40,8 +37,8 @@
 
 | Status | Count |
 |--------|------:|
-| Open | ~44 |
-| Fixed | ~11 |
+| Open | ~34 |
+| Fixed | ~21 |
 | Won't Fix | 0 |
 | Deferred | 0 |
 
@@ -78,6 +75,15 @@
 | ISSUE-009 | P1 | ✅ | 100% | Static | **S** | **Fixed** | Cursor | S2 | prod IAP dev verify 차단 |
 | ISSUE-012 | P1 | ✅ | 70% | Static | **S** | **Fixed** | Cursor | S2 | signup→`/play/house` 딥링크 |
 | ISSUE-018 | P1 | ✅ | 100% | Static | **M** | **Fixed** | Cursor | S2 | logout 로컬 미정리 |
+| ISSUE-010 | P1 | ✅ | 70% | Static | **M** | **Fixed** | Cursor | S2 | 오프라인 배치 실패 토스트 |
+| ISSUE-011 | P1 | ❌ | 70% | Static | **S** | **Fixed** | Cursor | S2 | storage consume/return revalidate |
+| ISSUE-013 | P2 | ❌ | 70% | Static | **S** | **Fixed** | Cursor | S2 | 상점 empty 카테고리 문구 |
+| ISSUE-016 | P2 | ❌ | 70% | Static | **S** | **Fixed** | Cursor | S2 | Live TV 보상 실패 피드백 |
+| ISSUE-017 | P1 | ❌ | 70% | Static | **M** | **Fixed** | Cursor | S2 | 일일 미션 reset 서버 persist |
+| ISSUE-019 | P1 | ❌ | 100% | Static | **S** | **Fixed** | Cursor | S2 | revalidateAptHub `/apt/house` |
+| ISSUE-020 | P1 | ❌ | 70% | Static | **S** | **Fixed** | Cursor | S2 | sign-in 기본 callback `/play/house` |
+| UXD-014 | UX | ❌ | 100% | Static | **S** | **Fixed** | Cursor | S2 | APT toast 하단 중앙 |
+| UXD-022 | UX | ❌ | 70% | Static | **S** | **Fixed** | Cursor | S2 | `/play/house` loading skeleton |
 
 _나머지 49건( ISSUE-006~030, UXD-001~032 ): Static 감사 — Triaging 시 Repro/Evidence/Blocker 채움. 상세는 Day 0 Persona Audit에서 보강._
 
@@ -214,6 +220,7 @@ User Action: 스테이징 보안 리뷰 (공격 시뮬레이션 금지, 설계 �
 
 | Date | Action | Owner |
 |------|--------|-------|
-| 2026-06-29 | P0/P1 Blocker 코드 수정 + stress WARN (무결성 PASS) | Cursor |
+| 2026-06-29 | Persona smoke 32장 · record 7종 · P1/P2 추가 Fixed | Cursor |
+| 2026-06-29 | P0/P1 Blocker + market wash · TV toast (`7c735d7`) | Cursor |
 | | Persona 3 stress — DB 대기, User 재실행 필요 | User |
 | | Owner/Sprint 컬럼 추가 | Cursor |

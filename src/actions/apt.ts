@@ -191,7 +191,6 @@ export async function completeAptMoveIn(payload: MoveInPayload) {
     });
 
     revalidateAptHub();
-    revalidatePath("/apt/house");
     return { ok: true as const, housingType };
   } catch (e) {
     console.error("[completeAptMoveIn]", e);
@@ -290,7 +289,7 @@ export async function saveAptHouseBuild(state: HouseBuildState) {
       },
       update: { houseBuild: state },
     });
-    revalidatePath("/apt/house");
+    revalidateAptHub();
     return { ok: true as const };
   } catch (e) {
     console.error("[saveAptHouseBuild]", e);

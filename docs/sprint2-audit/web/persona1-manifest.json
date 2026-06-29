@@ -1,36 +1,198 @@
 {
   "base": "https://mocomo.net",
-  "capturedAt": "2026-06-29T16:35:42.298Z",
+  "capturedAt": "2026-06-29T17:42:45.409Z",
   "shots": [
     {
       "route": "/explore",
       "file": "01-explore.png",
-      "ok": true
+      "ok": true,
+      "viewport": "mobile"
     },
     {
       "route": "/play/house",
       "file": "02-play-house.png",
-      "ok": true
+      "ok": true,
+      "viewport": "mobile"
     },
     {
       "route": "/live",
       "file": "03-live.png",
-      "ok": true
+      "ok": true,
+      "viewport": "mobile"
     },
     {
       "route": "/live?mode=voice",
       "file": "04-live-voice.png",
-      "ok": true
+      "ok": true,
+      "viewport": "mobile"
     },
     {
       "route": "/notifications",
       "file": "05-notifications.png",
-      "ok": true
+      "ok": true,
+      "viewport": "mobile"
     },
     {
       "route": "/auth/signin",
       "file": "06-auth-signin.png",
-      "ok": true
+      "ok": true,
+      "viewport": "mobile"
+    },
+    {
+      "route": "/auth/signup",
+      "file": "07-auth-signup.png",
+      "ok": true,
+      "viewport": "mobile"
+    },
+    {
+      "route": "/feed",
+      "file": "08-feed.png",
+      "ok": true,
+      "viewport": "mobile"
+    },
+    {
+      "route": "/discover",
+      "file": "09-discover.png",
+      "ok": true,
+      "viewport": "mobile"
+    },
+    {
+      "route": "/wallet",
+      "file": "10-wallet.png",
+      "ok": true,
+      "viewport": "mobile"
+    },
+    {
+      "route": "/messages",
+      "file": "11-messages.png",
+      "ok": true,
+      "viewport": "mobile"
+    },
+    {
+      "route": "/games",
+      "file": "12-games.png",
+      "ok": true,
+      "viewport": "mobile"
+    },
+    {
+      "route": "/voice/new",
+      "file": "13-voice-new.png",
+      "ok": true,
+      "viewport": "mobile"
+    },
+    {
+      "route": "/voice/new?mode=voice",
+      "file": "14-voice-new-voice.png",
+      "ok": true,
+      "viewport": "mobile"
+    },
+    {
+      "route": "/compose",
+      "file": "15-compose.png",
+      "ok": true,
+      "viewport": "mobile"
+    },
+    {
+      "route": "/support",
+      "file": "16-support.png",
+      "ok": true,
+      "viewport": "mobile"
+    },
+    {
+      "route": "/legal/terms",
+      "file": "17-legal-terms.png",
+      "ok": true,
+      "viewport": "mobile"
+    },
+    {
+      "route": "/",
+      "file": "18-home.png",
+      "ok": true,
+      "viewport": "mobile"
+    },
+    {
+      "route": "/anime",
+      "file": "19-anime.png",
+      "ok": true,
+      "viewport": "mobile"
+    },
+    {
+      "route": "/used",
+      "file": "20-used.png",
+      "ok": true,
+      "viewport": "mobile"
+    },
+    {
+      "route": "/events",
+      "file": "21-events.png",
+      "ok": true,
+      "viewport": "mobile"
+    },
+    {
+      "route": "/sketch-quiz",
+      "file": "22-sketch-quiz.png",
+      "ok": true,
+      "viewport": "mobile"
+    },
+    {
+      "route": "/play/house?shop=official",
+      "file": "23-play-house-shop.png",
+      "ok": true,
+      "viewport": "mobile"
+    },
+    {
+      "route": "/play/house?shop=market",
+      "file": "24-play-house-market.png",
+      "ok": true,
+      "viewport": "mobile"
+    },
+    {
+      "route": "/explore",
+      "file": "25-tablet-explore.png",
+      "ok": true,
+      "viewport": "tablet"
+    },
+    {
+      "route": "/play/house",
+      "file": "26-tablet-play-house.png",
+      "ok": true,
+      "viewport": "tablet"
+    },
+    {
+      "route": "/live",
+      "file": "27-tablet-live.png",
+      "ok": true,
+      "viewport": "tablet"
+    },
+    {
+      "route": "/explore",
+      "file": "28-desktop-explore.png",
+      "ok": true,
+      "viewport": "desktop"
+    },
+    {
+      "route": "/play/house",
+      "file": "29-desktop-play-house.png",
+      "ok": true,
+      "viewport": "desktop"
+    },
+    {
+      "route": "/live",
+      "file": "30-desktop-live.png",
+      "ok": true,
+      "viewport": "desktop"
+    },
+    {
+      "route": "/feed",
+      "file": "31-desktop-feed.png",
+      "ok": true,
+      "viewport": "desktop"
+    },
+    {
+      "route": "/games",
+      "file": "32-desktop-games.png",
+      "ok": true,
+      "viewport": "desktop"
     }
   ]
 }

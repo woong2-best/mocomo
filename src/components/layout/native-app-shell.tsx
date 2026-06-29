@@ -27,7 +27,7 @@ function NativeAppShellInner({ children }: { children: React.ReactNode }) {
 
   if (isAuthRoute || isLegalRoute) {
     return (
-      <main className={`min-h-dvh bg-background ${mainPb}`}>
+      <main className={`min-h-dvh bg-background pt-safe ${mainPb}`}>
         <div className="mx-auto w-full max-w-lg">{children}</div>
       </main>
     );

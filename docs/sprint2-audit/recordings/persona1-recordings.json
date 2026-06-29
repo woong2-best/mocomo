@@ -1,0 +1,48 @@
+{
+  "base": "https://mocomo.net",
+  "capturedAt": "2026-06-29T17:42:53.286Z",
+  "recordings": [
+    {
+      "scene": "01-first-launch",
+      "path": "/explore",
+      "file": "web-01-first-launch.webm",
+      "ok": true
+    },
+    {
+      "scene": "02-play-house-entry",
+      "path": "/play/house",
+      "file": "web-02-play-house-entry.webm",
+      "ok": true
+    },
+    {
+      "scene": "03-live-hub",
+      "path": "/live",
+      "file": "web-03-live-hub.webm",
+      "ok": true
+    },
+    {
+      "scene": "04-live-voice",
+      "path": "/live?mode=voice",
+      "file": "web-04-live-voice.webm",
+      "ok": true
+    },
+    {
+      "scene": "05-shop-deep-link",
+      "path": "/play/house?shop=official",
+      "file": "web-05-shop-deep-link.webm",
+      "ok": true
+    },
+    {
+      "scene": "06-auth-signin",
+      "path": "/auth/signin",
+      "file": "web-06-auth-signin.webm",
+      "ok": true
+    },
+    {
+      "scene": "07-notifications",
+      "path": "/notifications",
+      "file": "web-07-notifications.webm",
+      "ok": true
+    }
+  ]
+}

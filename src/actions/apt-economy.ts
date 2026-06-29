@@ -131,6 +131,7 @@ export async function consumeAptStorageItem(
   const res = await consumeStorageItem(user.id, itemId, amount, opId);
   if ("error" in res) return res;
   const economy = await loadEconomySnapshot(user.id);
+  revalidateAptHub();
   return { ok: true, economy };
 }
 
@@ -146,6 +147,7 @@ export async function returnAptStorageItem(
   const res = await returnStorageItem(user.id, itemId, amount, opId);
   if ("error" in res) return res;
   const economy = await loadEconomySnapshot(user.id);
+  revalidateAptHub();
   return { ok: true, economy };
 }
 
