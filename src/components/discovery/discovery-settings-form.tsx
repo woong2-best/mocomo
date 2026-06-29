@@ -65,7 +65,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
     }
   }
 
-  async function useMyLocation() {
+  async function fetchCurrentLocation() {
     setGeoLoading(true);
     setMsg("");
     try {
@@ -299,7 +299,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
               size="sm"
               className="rounded-lg"
               disabled={geoLoading}
-              onClick={() => void useMyLocation()}
+              onClick={() => void fetchCurrentLocation()}
             >
               {geoLoading ? "위치 확인 중…" : "현재 위치"}
             </Button>
