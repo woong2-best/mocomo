@@ -8,9 +8,13 @@ export const revalidate = 60;
 
 export default function ExplorePage() {
   return (
-    <div className="p-4 lg:p-6 max-w-2xl mx-auto space-y-8">
-      <FolkSectionTitle icon="sun">탐색</FolkSectionTitle>
-      <HeaderSearch />
+    <div className="px-3 py-3 sm:p-4 lg:p-6 max-w-2xl mx-auto space-y-5 sm:space-y-8">
+      <FolkSectionTitle icon="sun" className="max-sm:sr-only">
+        탐색
+      </FolkSectionTitle>
+      <div className="max-sm:hidden">
+        <HeaderSearch />
+      </div>
 
       <Suspense
         fallback={

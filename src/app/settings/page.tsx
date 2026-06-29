@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { LocaleSettingsForm } from "@/components/settings/locale-settings-form";
+import { SignOutButton } from "@/components/settings/sign-out-button";
 import { getServerTranslator } from "@/lib/i18n/server";
 
 export default async function SettingsPage() {
@@ -52,11 +53,12 @@ export default async function SettingsPage() {
         <CardHeader>
           <CardTitle>계정</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm">
+        <CardContent className="space-y-3 text-sm">
           <p>닉네임: {user?.username}</p>
           <p>이메일: {user?.email}</p>
           <p>레벨: Lv.{user?.level} (XP {user?.xp})</p>
           <p>프리미엄: {user?.premiumTier}</p>
+          <SignOutButton className="w-full rounded-xl mt-2" />
         </CardContent>
       </Card>
 

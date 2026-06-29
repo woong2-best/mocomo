@@ -4,18 +4,27 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft, Search } from "lucide-react";
 import { BRAND } from "@/lib/brand";
-import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { DEFAULT_LANDING_PATH, EXPLORE_PATH } from "@/lib/site-routes";
 import { HeaderAuth } from "@/components/layout/header-auth";
 import { cn } from "@/lib/utils";
 
-const ROOT_PATHS = new Set(["/", DEFAULT_LANDING_PATH, "/explore", "/notifications", "/messages"]);
+const ROOT_PATHS = new Set([
+  "/",
+  DEFAULT_LANDING_PATH,
+  EXPLORE_PATH,
+  "/games",
+  "/notifications",
+  "/messages",
+]);
 
 function titleForPath(pathname: string): string | null {
   if (pathname.startsWith("/u/")) return "프로필";
   if (pathname.startsWith("/post/")) return "게시물";
   if (pathname.startsWith("/settings")) return "설정";
   if (pathname.startsWith("/auth/")) return "계정";
-  if (pathname === "/explore") return "탐색";
+  if (pathname === EXPLORE_PATH) return "탐색";
+  if (pathname === DEFAULT_LANDING_PATH || pathname === "/feed") return "홈";
+  if (pathname === "/games" || pathname.startsWith("/games/")) return "GAME";
   if (pathname === "/notifications") return "알림";
   if (pathname === "/messages") return "쪽지";
   return null;

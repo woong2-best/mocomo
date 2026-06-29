@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Bell, Building2, Home, Radio, Search, User } from "lucide-react";
+import { Bell, Gamepad2, Home, Radio, Search, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { MessageKey } from "@/lib/i18n/messages";
-import { APT_GAME_PATH, DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { isLiveFeatureEnabled } from "@/lib/live-feature";
 
 type TabDef = {
@@ -47,10 +47,10 @@ function userTabs(username: string): TabDef[] {
       match: (p) => p === DEFAULT_LANDING_PATH || p.startsWith(`${DEFAULT_LANDING_PATH}/`),
     },
     {
-      href: APT_GAME_PATH,
-      icon: Building2,
-      labelKey: "nav.apt",
-      match: (p) => p === APT_GAME_PATH,
+      href: "/games",
+      icon: Gamepad2,
+      labelKey: "nav.games",
+      match: (p) => p === "/games" || p.startsWith("/games/"),
     },
   ];
   if (isLiveFeatureEnabled()) {

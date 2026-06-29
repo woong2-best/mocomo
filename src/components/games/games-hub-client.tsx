@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Gamepad2, Radio, Trophy, Users, X } from "lucide-react";
+import { Building2, Gamepad2, Radio, Trophy, Users, X } from "lucide-react";
 import { FolkSectionTitle } from "@/components/brand/folk-decor";
 import { cn } from "@/lib/utils";
+import { APT_GAME_PATH } from "@/lib/site-routes";
 import {
   CATEGORY_LABELS,
   CATEGORY_ORDER,
@@ -116,6 +117,20 @@ export function GamesHubClient({
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <Link
+          href={APT_GAME_PATH}
+          className="group col-span-2 flex flex-row items-center gap-4 rounded-2xl border-2 border-folk-terracotta/35 bg-gradient-to-br from-folk-gold/25 to-folk-cream/80 p-4 hover:border-folk-terracotta/60 transition-colors"
+        >
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border-2 border-folk-cobalt/15 bg-white group-hover:border-folk-terracotta/40">
+            <Building2 className="h-7 w-7 text-folk-cobalt" />
+          </span>
+          <div className="min-w-0 text-left">
+            <p className="text-sm font-black text-folk-cobalt">APT · 내 집</p>
+            <p className="text-[11px] text-muted-foreground leading-snug">
+              다이오라마 꾸미기 · 상점 · 라이브 TV · 이웃 방문
+            </p>
+          </div>
+        </Link>
         {games.map((game) => {
           const Icon = game.icon;
           const playable = game.status === "live" || game.status === "beta";
