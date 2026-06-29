@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { ShieldAlert, Trash2 } from "lucide-react";
@@ -27,14 +27,15 @@ export function ContentModerationBar({
   const router = useRouter();
   const pathname = usePathname();
   const [pending, startTransition] = useTransition();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   function forceDelete() {
-    const label =
-      targetType === "USED_LISTING"
-        ? "이 중고 글을 강제 삭제할까요? 되돌릴 수 없습니다."
-        : "이 게시물을 강제 삭제할까요? 되돌릴 수 없습니다.";
-    if (!confirm(label)) return;
+    setActionError("");
+    setConfirmDelete(true);
+  }
 
+  function executeForceDelete() {
     startTransition(async () => {
       const res =
         targetType === "POST"
@@ -44,7 +45,8 @@ export function ContentModerationBar({
             : { error: "지원하지 않는 유형입니다." };
 
       if (res.error) {
-        alert(res.error);
+        setActionError(res.error);
+        setConfirmDelete(false);
         return;
       }
       if (targetType === "POST") router.push("/");
@@ -54,7 +56,8 @@ export function ContentModerationBar({
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 py-2 border-b border-border/60">
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 py-2 border-b border-border/60">
       <div className="flex items-center gap-2">
         {isLoggedIn ? (
           <ReportButton
@@ -78,18 +81,54 @@ export function ContentModerationBar({
         )}
       </div>
       {isStaff && (targetType === "POST" || targetType === "USED_LISTING") && (
-        <Button
-          type="button"
-          variant="destructive"
-          size="sm"
-          className="gap-1.5"
-          disabled={pending}
-          onClick={forceDelete}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-          {pending ? "삭제 중…" : "강제 삭제"}
-        </Button>
+        confirmDelete ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-2 py-1.5">
+            <p className="text-xs text-destructive">
+              {targetType === "USED_LISTING"
+                ? "이 중고 글을 강제 삭제할까요?"
+                : "이 게시물을 강제 삭제할까요?"}
+            </p>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              className="h-7 text-xs"
+              disabled={pending}
+              onClick={executeForceDelete}
+            >
+              {pending ? "삭제 중…" : "삭제"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              disabled={pending}
+              onClick={() => setConfirmDelete(false)}
+            >
+              취소
+            </Button>
+          </div>
+        ) : (
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            className="gap-1.5"
+            disabled={pending}
+            onClick={forceDelete}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            강제 삭제
+          </Button>
+        )
       )}
+      </div>
+      {actionError ? (
+        <p className="text-xs text-destructive" role="alert">
+          {actionError}
+        </p>
+      ) : null}
     </div>
   );
 }

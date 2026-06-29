@@ -23,17 +23,19 @@ export function AnimeWikiField({
   const [value, setValue] = useState(defaultValue);
   const [preview, setPreview] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const ref = useRef<HTMLTextAreaElement>(null);
 
   async function insertImage(file: File) {
     setUploading(true);
+    setUploadError("");
     try {
       const prepared = await prepareGalleryImageForUpload(file);
       const url = await uploadImageBlob(prepared, prepared.name || "wiki.webp");
       const insert = `\n![${file.name.replace(/\.[^.]+$/, "")}](${url})\n`;
       setValue((v) => v + insert);
     } catch {
-      alert("이미지 업로드에 실패했습니다.");
+      setUploadError("이미지 업로드에 실패했습니다.");
     } finally {
       setUploading(false);
     }
@@ -75,6 +77,11 @@ export function AnimeWikiField({
           </Button>
         </div>
       </div>
+      {uploadError ? (
+        <p className="text-xs text-destructive" role="alert">
+          {uploadError}
+        </p>
+      ) : null}
       <p className="text-[10px] text-muted-foreground leading-snug">{WIKI_EDITOR_HELP}</p>
       <div className={preview ? "grid gap-3 lg:grid-cols-2" : ""}>
         <textarea

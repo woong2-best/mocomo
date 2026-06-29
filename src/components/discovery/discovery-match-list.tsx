@@ -13,10 +13,13 @@ import {
 import type { DiscoveryMatchRow } from "@/lib/discovery/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { cn } from "@/lib/utils";
 
 export function DiscoveryMatchList() {
   const router = useRouter();
+  const { isNativeApp } = useClientPlatform();
+  const listPb = cn("max-w-lg mx-auto", isNativeApp ? "pb-native-fab" : "pb-nav lg:pb-6");
   const [rows, setRows] = useState<DiscoveryMatchRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [opening, setOpening] = useState<string | null>(null);
@@ -81,7 +84,7 @@ export function DiscoveryMatchList() {
 
   if (loading) {
     return (
-      <ul className="space-y-3 p-4 max-w-lg mx-auto pb-24">
+      <ul className={cn("space-y-3 p-4", listPb)}>
         {[1, 2, 3].map((i) => (
           <li key={i} className="h-28 rounded-2xl bg-muted/50 animate-pulse" />
         ))}
@@ -103,7 +106,7 @@ export function DiscoveryMatchList() {
   }
 
   return (
-    <ul className="space-y-3 p-4 max-w-lg mx-auto pb-24">
+    <ul className={cn("space-y-3 p-4", listPb)}>
       {chatError && (
         <p className="text-sm text-destructive text-center">{chatError}</p>
       )}

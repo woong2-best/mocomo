@@ -7,6 +7,8 @@ import { TIER_LABELS } from "@/lib/minigames/mmr";
 import type { MinigameTier } from "@/lib/minigames/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useClientPlatform } from "@/components/providers/client-platform-provider";
+import { cn } from "@/lib/utils";
 
 type Entry = {
   rank: number;
@@ -25,26 +27,30 @@ export function MinigameRankingClient({
   defaultPeriod?: "all" | "season";
   compact?: boolean;
 }) {
+  const { isNativeApp } = useClientPlatform();
   const games = getAllMinigames().filter((g) => g.id !== "sketch-quiz");
   const [gameId, setGameId] = useState(games[0]?.id ?? "omok");
   const [period, setPeriod] = useState<"all" | "season">(defaultPeriod);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [seasonName, setSeasonName] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
     void fetch(`/api/minigames/ranking?gameId=${gameId}&period=${period}`)
       .then((r) => r.json())
       .then((d) => {
         setEntries(d.entries ?? []);
         setSeasonName(d.season?.name ?? null);
-      });
+      })
+      .finally(() => setLoading(false));
   }, [gameId, period]);
 
   return (
     <div className={`space-y-6 ${compact ? "" : "max-w-2xl mx-auto"}`}>
       {!compact && (
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-display font-bold">미니게임 랭킹</h1>
+          <h1 className={cn("text-2xl font-display font-bold", isNativeApp && "sr-only")}>미니게임 랭킹</h1>
           <Link href="/games" className="text-xs text-muted-foreground hover:underline">
             ← 허브
           </Link>
@@ -67,8 +73,16 @@ export function MinigameRankingClient({
 
       <Card className="border-2 border-folk-cobalt/20">
         <CardContent className="p-0 divide-y">
-          {entries.length === 0 && <p className="p-6 text-sm text-muted-foreground text-center">랭킹 데이터 없음 (Z4 SQL + 대국 필요)</p>}
-          {entries.map((e) => (
+          {loading ? (
+            <div className="p-4 space-y-2 animate-pulse">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="h-10 rounded-lg bg-muted" />
+              ))}
+            </div>
+          ) : entries.length === 0 ? (
+            <p className="p-6 text-sm text-muted-foreground text-center">랭킹 데이터 없음 (Z4 SQL + 대국 필요)</p>
+          ) : (
+            entries.map((e) => (
             <div key={e.userId} className="flex items-center gap-3 px-4 py-3 text-sm">
               <span className="w-8 font-bold text-folk-terracotta">#{e.rank}</span>
               <span className="flex-1 font-medium">{e.username}</span>
@@ -76,7 +90,8 @@ export function MinigameRankingClient({
               <span className="font-mono text-xs">{e.mmr} MMR</span>
               <span className="text-xs text-muted-foreground">{e.wins}W {e.losses}L</span>
             </div>
-          ))}
+            ))
+          )}
         </CardContent>
       </Card>
     </div>

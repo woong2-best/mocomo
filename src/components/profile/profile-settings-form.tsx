@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProfileImageField } from "@/components/profile/profile-image-field";
 import Link from "next/link";
+import { AppPageChrome } from "@/components/layout/app-page-chrome";
 
 type Initial = {
   name: string;
@@ -98,7 +99,7 @@ export function ProfileSettingsForm({ initial }: { initial: Initial }) {
   const displayName = initial.name || initial.username;
 
   return (
-    <div className="p-4 max-w-lg mx-auto space-y-4 pb-24">
+    <AppPageChrome spacing="sm">
       <Link href="/settings" className="text-sm text-primary hover:underline">
         ← 설정
       </Link>
@@ -245,6 +246,6 @@ export function ProfileSettingsForm({ initial }: { initial: Initial }) {
           </form>
         </CardContent>
       </Card>
-    </div>
+    </AppPageChrome>
   );
 }

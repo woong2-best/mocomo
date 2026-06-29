@@ -3,6 +3,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getMyWallet } from "@/actions/wallet";
 import { WalletDashboard } from "@/components/wallet/wallet-dashboard";
+import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { Wallet } from "lucide-react";
 
 export default async function WalletPage() {
@@ -12,7 +13,7 @@ export default async function WalletPage() {
   const data = await getMyWallet();
 
   return (
-    <div className="max-w-3xl mx-auto p-4 pb-24 space-y-4">
+    <AppPageChrome maxWidth="3xl" spacing="sm">
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Wallet className="h-7 w-7 text-muted-foreground" />
@@ -32,6 +33,6 @@ export default async function WalletPage() {
           이모티콘 보관함
         </Link>
       </p>
-    </div>
+    </AppPageChrome>
   );
 }

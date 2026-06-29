@@ -6,6 +6,7 @@ import { Crown, Check } from "lucide-react";
 import { PayButton } from "@/components/payments/pay-button";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { AppPageChrome } from "@/components/layout/app-page-chrome";
 
 const benefits = [
   "광고 제거",
@@ -23,7 +24,7 @@ export default async function PremiumPage() {
   const mocoHint = formatMocoDisplay(usdCentsToMocoDisplay(PREMIUM_USD_CENTS));
 
   return (
-    <div className="max-w-lg mx-auto p-4 space-y-6 pb-24 lg:pb-6">
+    <AppPageChrome>
       <div className="text-center">
         <Crown className="h-12 w-12 text-yellow-400 mx-auto mb-2" />
         <h1 className="text-2xl font-bold">MoCoMo Premium</h1>
@@ -68,6 +69,6 @@ export default async function PremiumPage() {
           <Button className="w-full rounded-xl">로그인 후 구독</Button>
         </Link>
       )}
-    </div>
+    </AppPageChrome>
   );
 }

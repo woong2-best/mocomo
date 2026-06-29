@@ -19,6 +19,7 @@ import {
 import type { DiscoverySettings } from "@/lib/discovery/types";
 import { cn } from "@/lib/utils";
 import { getCurrentCoords, geolocationErrorMessage } from "@/lib/client-geolocation";
+import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { MapPin, Shield, Sparkles } from "lucide-react";
 
@@ -127,19 +128,14 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
   }
 
   return (
-    <form
-      onSubmit={(e) => void handleSave(e)}
-      className={cn(
-        "max-w-lg mx-auto p-4 space-y-4",
-        isNativeApp ? "pb-native-fab" : "pb-24 lg:pb-6"
-      )}
-    >
+    <AppPageChrome spacing="sm">
+    <form onSubmit={(e) => void handleSave(e)} className="space-y-4">
       <Link href="/discover" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
         ← 매칭
       </Link>
 
       <div className="space-y-1">
-        <h1 className="text-2xl font-display font-bold flex items-center gap-2">
+        <h1 className={cn("text-2xl font-display font-bold flex items-center gap-2", isNativeApp && "sr-only")}>
           <Sparkles className="h-6 w-6 text-violet-500" />
           매칭 설정
         </h1>
@@ -353,5 +349,6 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
         {loading ? "저장 중…" : "저장"}
       </Button>
     </form>
+    </AppPageChrome>
   );
 }

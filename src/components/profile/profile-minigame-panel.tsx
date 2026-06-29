@@ -36,20 +36,42 @@ type ParkingShowcase = {
 export function ProfileMinigamePanel({ username }: { username: string }) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [showcase, setShowcase] = useState<ParkingShowcase | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    void fetch(`/api/minigames/stats?username=${encodeURIComponent(username)}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.ratings) setStats(d);
+    let cancelled = false;
+    setLoading(true);
+    void Promise.all([
+      fetch(`/api/minigames/stats?username=${encodeURIComponent(username)}`).then((r) => r.json()),
+      fetch(`/api/minigames/parking-rush/showcase?username=${encodeURIComponent(username)}`).then((r) =>
+        r.json()
+      ),
+    ])
+      .then(([statsData, showcaseData]) => {
+        if (cancelled) return;
+        if (statsData.ratings) setStats(statsData);
+        setShowcase(showcaseData.showcase ?? null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
+    return () => {
+      cancelled = true;
+    };
   }, [username]);
 
-  useEffect(() => {
-    void fetch(`/api/minigames/parking-rush/showcase?username=${encodeURIComponent(username)}`)
-      .then((r) => r.json())
-      .then((d) => setShowcase(d.showcase ?? null));
-  }, [username]);
+  if (loading) {
+    return (
+      <Card className="border border-folk-cobalt/15 animate-pulse">
+        <CardContent className="p-4 space-y-3">
+          <div className="h-4 w-24 rounded bg-muted" />
+          <div className="h-20 rounded-xl bg-muted" />
+          <div className="h-3 w-full rounded bg-muted" />
+          <div className="h-3 w-2/3 rounded bg-muted" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (!stats || stats.ratings.length === 0) return null;
 

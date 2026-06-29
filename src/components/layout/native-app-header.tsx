@@ -37,6 +37,15 @@ function titleForPath(pathname: string): string | null {
   if (pathname === "/discover/matches") return "매칭 목록";
   if (pathname === "/discover/settings") return "매칭 설정";
   if (pathname.startsWith("/discover/")) return "매칭";
+  if (pathname === "/wallet") return "정산 · 출금";
+  if (pathname === "/premium") return "프리미엄";
+  if (pathname === "/search") return "검색";
+  if (pathname === "/rankings") return "랭킹";
+  if (pathname.startsWith("/live")) return "라이브";
+  if (pathname.startsWith("/support")) return "후원";
+  if (pathname.startsWith("/avatar")) return "아바타";
+  if (pathname.startsWith("/cosplay")) return "코스프레";
+  if (pathname.startsWith("/market")) return "마켓";
   return null;
 }
 
