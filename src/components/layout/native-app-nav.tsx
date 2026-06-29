@@ -3,12 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Bell, Gamepad2, Home, Radio, Sparkles, User } from "lucide-react";
+import { Gamepad2, Home, Sparkles, Tags, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
-import { isLiveFeatureEnabled } from "@/lib/live-feature";
 
 type TabDef = {
   href: string;
@@ -38,7 +37,7 @@ const guestTabs: TabDef[] = [
   },
 ];
 
-function userTabs(username: string): TabDef[] {
+function userTabs(username: string | null): TabDef[] {
   const tabs: TabDef[] = [
     {
       href: DEFAULT_LANDING_PATH,
@@ -47,34 +46,32 @@ function userTabs(username: string): TabDef[] {
       match: (p) => p === DEFAULT_LANDING_PATH || p.startsWith(`${DEFAULT_LANDING_PATH}/`),
     },
     {
+      href: "/discover",
+      icon: Sparkles,
+      labelKey: "nav.discover",
+      match: (p) => p === "/discover" || p.startsWith("/discover/"),
+    },
+    {
+      href: "/used",
+      icon: Tags,
+      labelKey: "nav.used",
+      match: (p) => p === "/used" || p.startsWith("/used/"),
+    },
+    {
       href: "/games",
       icon: Gamepad2,
       labelKey: "nav.games",
       match: (p) => p === "/games" || p.startsWith("/games/"),
     },
   ];
-  if (isLiveFeatureEnabled()) {
+  if (username) {
     tabs.push({
-      href: "/live",
-      icon: Radio,
-      labelKey: "nav.live",
-      match: (p) => p === "/live" || p.startsWith("/live/") || p.startsWith("/voice/"),
-    });
-  }
-  tabs.push(
-    {
-      href: "/notifications",
-      icon: Bell,
-      labelKey: "nav.notifications",
-      match: (p) => p.startsWith("/notifications"),
-    },
-    {
       href: `/u/${username}`,
       icon: User,
       labelKey: "nav.myPage",
       match: (p) => p === `/u/${username}` || p.startsWith(`/u/${username}/`),
-    }
-  );
+    });
+  }
   return tabs;
 }
 
@@ -82,8 +79,8 @@ export function NativeAppNav() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const { t } = useLocale();
-  const username = session?.user?.username || session?.user?.id;
-  const tabs = username ? userTabs(username) : guestTabs;
+  const username = session?.user?.username ?? null;
+  const tabs = session?.user ? userTabs(username) : guestTabs;
 
   return (
     <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-border/80 bg-background/95 backdrop-blur-md pb-safe">

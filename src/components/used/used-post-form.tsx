@@ -139,7 +139,11 @@ export function UsedPostForm({
       setError(res.error);
       return;
     }
-    if ("listingId" in res && res.listingId) router.push(`/used/${res.listingId}`);
+    if ("listingId" in res && res.listingId) {
+      router.push(`/used/${res.listingId}`);
+      return;
+    }
+    setError("등록에 실패했습니다. 다시 시도해 주세요.");
   }
 
   return (

@@ -2,22 +2,27 @@
 
 import { memo } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { X } from "lucide-react";
+import { buildAptMailboxUrl } from "@/lib/apt/mailbox-compose-route";
 import { useAptGameRequired } from "./apt-game-context";
 
 function AptGameMoreSheetInner() {
   const { moreOpen, setMoreOpen, setActiveTab, onExitHome } = useAptGameRequired();
+  const { data: session } = useSession();
+  const username = session?.user?.username;
+
   if (!moreOpen) return null;
 
   const links = [
-    { href: "/apt/corner", label: "3D 씬 리뷰 (Polish #4)" },
-    { href: "/apt/scene-review", label: "씬 캡처 · Final Gate" },
     { href: "/feed", label: "커뮤니티" },
-    { href: "/messages", label: "메시지 · 우편함" },
+    { href: "/messages", label: "메시지" },
+    { href: buildAptMailboxUrl(), label: "우편함" },
     { href: "/live", label: "라이브" },
     { href: "/games", label: "미니게임" },
+    { href: "/discover", label: "매칭" },
     { href: "/events", label: "이벤트" },
-    { href: "/my-page", label: "내 프로필" },
+    ...(username ? [{ href: `/u/${username}`, label: "내 프로필" }] : []),
     { href: "/settings", label: "설정" },
   ];
 

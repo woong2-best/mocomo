@@ -18,22 +18,30 @@ export function DiscoverySwipeDeck() {
   const [busy, setBusy] = useState(false);
   const [matchFlash, setMatchFlash] = useState(false);
   const [actError, setActError] = useState("");
+  const [loadError, setLoadError] = useState("");
   const [lastAction, setLastAction] = useState<{ card: DiscoveryCard; action: "PASS" | "LIKE" | "CHEER" } | null>(
     null
   );
 
   const load = useCallback(async () => {
     setLoading(true);
-    const res = await getDiscoveryDeck();
-    if ("enabled" in res && !res.enabled) {
-      setEnabled(false);
-      setReason(res.reason);
+    setLoadError("");
+    try {
+      const res = await getDiscoveryDeck();
+      if ("enabled" in res && !res.enabled) {
+        setEnabled(false);
+        setReason(res.reason);
+        setCards([]);
+      } else if ("cards" in res) {
+        setEnabled(true);
+        setCards(res.cards);
+      }
+    } catch {
+      setLoadError("추천을 불러오지 못했습니다.");
       setCards([]);
-    } else if ("cards" in res) {
-      setEnabled(true);
-      setCards(res.cards);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -79,6 +87,17 @@ export function DiscoverySwipeDeck() {
     }
     if (info.offset.x > 100) void act("LIKE");
     else if (info.offset.x < -100) void act("PASS");
+  }
+
+  if (loadError) {
+    return (
+      <div className="max-w-md mx-auto text-center space-y-4 py-20 px-4">
+        <p className="text-sm text-destructive">{loadError}</p>
+        <Button variant="outline" className="rounded-xl" onClick={() => void load()}>
+          <RotateCcw className="h-4 w-4 mr-1" /> 다시 시도
+        </Button>
+      </div>
+    );
   }
 
   if (loading) {

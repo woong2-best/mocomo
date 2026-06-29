@@ -21,12 +21,18 @@ export function DiscoveryMatchList() {
   const [loading, setLoading] = useState(true);
   const [opening, setOpening] = useState<string | null>(null);
   const [chatError, setChatError] = useState("");
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
-    void getDiscoveryMatches().then((r) => {
-      setRows(r);
-      setLoading(false);
-    });
+    void getDiscoveryMatches()
+      .then((r) => {
+        setRows(r);
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoadError("매칭 목록을 불러오지 못했습니다.");
+        setLoading(false);
+      });
     void markDiscoveryMatchesSeen();
   }, []);
 
@@ -42,6 +48,28 @@ export function DiscoveryMatchList() {
     if (res && "roomId" in res && res.roomId) {
       router.push(`/messages/${res.roomId}`);
     }
+  }
+
+  if (loadError) {
+    return (
+      <div className="text-center py-16 space-y-4 px-4">
+        <p className="text-sm text-destructive">{loadError}</p>
+        <Button
+          variant="outline"
+          className="rounded-xl"
+          onClick={() => {
+            setLoading(true);
+            setLoadError("");
+            void getDiscoveryMatches()
+              .then((r) => setRows(r))
+              .catch(() => setLoadError("매칭 목록을 불러오지 못했습니다."))
+              .finally(() => setLoading(false));
+          }}
+        >
+          다시 시도
+        </Button>
+      </div>
+    );
   }
 
   if (loading) {

@@ -3,6 +3,7 @@
 import { memo } from "react";
 import Link from "next/link";
 import { ClipboardList, Gift, Mail, Play, Shield } from "lucide-react";
+import { buildAptMailboxUrl } from "@/lib/apt/mailbox-compose-route";
 import { cn } from "@/lib/utils";
 import { useAptGameRequired } from "./apt-game-context";
 
@@ -24,7 +25,7 @@ function AptGameSideActionsInner() {
             <Gift className="h-5 w-5 text-[#5c4033]" strokeWidth={2.2} />
           </Link>
           <Link
-            href="/messages"
+            href={buildAptMailboxUrl()}
             className="apt-game-fab flex h-11 w-11 items-center justify-center rounded-2xl active:scale-95"
             aria-label="우편함"
           >
