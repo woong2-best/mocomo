@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateAptHub } from "@/lib/apt/revalidate-hub";
 import { Prisma } from "@prisma/client";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -40,7 +41,7 @@ export const getBondeeRoom = async () => {
 
 export async function saveBondeeHome(state: BondeeHomeState) {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: "로그?�이 ?�요?�니??" };
 
   const ownerId = await resolveAptHomeOwnerId(user.id);
   const existing = await db.aptProfile.findUnique({ where: { userId: ownerId } });
@@ -67,7 +68,7 @@ export async function saveBondeeHome(state: BondeeHomeState) {
     update: { simulationState: jsonSim },
   });
 
-  revalidatePath("/apt");
+  revalidateAptHub();
   return { ok: true as const };
 }
 

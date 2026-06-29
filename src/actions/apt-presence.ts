@@ -3,6 +3,7 @@
 import { getCachedCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { revalidateAptHub } from "@/lib/apt/revalidate-hub";
 import { getRoomsForFloor } from "@/lib/apt/floor-plan-store";
 import { createDefaultFloorPlan } from "@/lib/apt/floor-plan-logic";
 import { resolveHomeIdentity } from "@/lib/apt/home-identity";
@@ -36,7 +37,7 @@ function startOfToday() {
   return d;
 }
 
-/** APT 페이지 heartbeat — 실시간 접속·위치 반영 */
+/** APT ??? heartbeat ? ??? ????? ?? */
 export async function heartbeatAptPresence(payload: {
   countryCode: string;
   mode: string;
@@ -68,12 +69,12 @@ export async function heartbeatAptPresence(payload: {
   return { ok: true as const };
 }
 
-/** 이웃 집 입장 시 방문 기록 */
+/** ?? ? ?? ? ?? ?? */
 export async function recordAptHomeVisit(hostUserId: string) {
   const user = await getCachedCurrentUser();
   if (!user || user.id === hostUserId) return { ok: false as const, newBadges: [] as string[] };
   if (!(await canVisitAptHome(hostUserId, user.id))) {
-    return { ok: false as const, newBadges: [] as string[], error: "서로 팔로우한 공개 집만 방문할 수 있습니다." };
+    return { ok: false as const, newBadges: [] as string[], error: "?? ???? ?? ?? ??? ? ????." };
   }
 
   const beforeMade = await db.aptHomeVisit.count({ where: { visitorId: user.id } });
@@ -89,11 +90,11 @@ export async function recordAptHomeVisit(hostUserId: string) {
   const afterBadges = computeVisitBadges(afterMade, beforeHost);
   const newBadges = afterBadges.filter((b) => !beforeBadges.has(b.id)).map((b) => b.label);
 
-  revalidatePath("/apt");
+  revalidateAptHub();
   return { ok: true as const, newBadges };
 }
 
-/** 국가별 실제 APT 커뮤니티 피드 — NPC·해시 연출 없음 */
+/** ??? ?? APT ???? ?? ? NPC??? ?? ?? */
 export async function getCountryAptCommunityFeed(countryCode: string): Promise<AptCommunityFeed> {
   const user = await getCachedCurrentUser();
   const cc = countryCode.toUpperCase();
@@ -432,7 +433,7 @@ export async function getCountryAptCommunityFeed(countryCode: string): Promise<A
       if (!occ && !prof) return null;
       return mapNeighbor(
         v.hostId,
-        occ?.displayName ?? "입주민",
+        occ?.displayName ?? "???",
         occ?.username ?? "",
         occ?.homeFloor ?? prof?.homeFloor ?? 50,
         "frequent",

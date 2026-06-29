@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateAptHub } from "@/lib/apt/revalidate-hub";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import type { AptVisitBadge } from "@/lib/apt/apt-daily-loop";
@@ -12,11 +13,11 @@ function startOfToday() {
   return d;
 }
 
-/** 집 좋아요 토글 — 오늘의 집·주간 베스트 집계 */
+/** �?좋아???��? ???�늘??집·주�?베스??집계 */
 export async function toggleAptHomeLike(hostUserId: string) {
   const user = await getCachedCurrentUser();
-  if (!user) return { ok: false as const, error: "로그인이 필요합니다." };
-  if (user.id === hostUserId) return { ok: false as const, error: "본인 집에는 좋아요할 수 없습니다." };
+  if (!user) return { ok: false as const, error: "로그?�이 ?�요?�니??" };
+  if (user.id === hostUserId) return { ok: false as const, error: "본인 집에??좋아?�할 ???�습?�다." };
 
   const existing = await db.aptHomeLike.findUnique({
     where: { hostId_likerId: { hostId: hostUserId, likerId: user.id } },
@@ -24,20 +25,20 @@ export async function toggleAptHomeLike(hostUserId: string) {
 
   if (existing) {
     await db.aptHomeLike.delete({ where: { id: existing.id } });
-    revalidatePath("/apt");
+    revalidateAptHub();
     return { ok: true as const, liked: false };
   }
 
   await db.aptHomeLike.create({ data: { hostId: hostUserId, likerId: user.id } });
-  revalidatePath("/apt");
+  revalidateAptHub();
   return { ok: true as const, liked: true };
 }
 
-/** 즐겨찾는 집 / 이웃 추가·제거 */
+/** 즐겨찾는 �?/ ?�웃 추�?·?�거 */
 export async function toggleAptFavoriteHome(hostUserId: string) {
   const user = await getCachedCurrentUser();
-  if (!user) return { ok: false as const, error: "로그인이 필요합니다." };
-  if (user.id === hostUserId) return { ok: false as const, error: "본인 집은 즐겨찾기할 수 없습니다." };
+  if (!user) return { ok: false as const, error: "로그?�이 ?�요?�니??" };
+  if (user.id === hostUserId) return { ok: false as const, error: "본인 집�? 즐겨찾기?????�습?�다." };
 
   const existing = await db.aptFavoriteHome.findUnique({
     where: { userId_hostId: { userId: user.id, hostId: hostUserId } },
@@ -45,16 +46,16 @@ export async function toggleAptFavoriteHome(hostUserId: string) {
 
   if (existing) {
     await db.aptFavoriteHome.delete({ where: { id: existing.id } });
-    revalidatePath("/apt");
+    revalidateAptHub();
     return { ok: true as const, favorited: false };
   }
 
   await db.aptFavoriteHome.create({ data: { userId: user.id, hostId: hostUserId } });
-  revalidatePath("/apt");
+  revalidateAptHub();
   return { ok: true as const, favorited: true };
 }
 
-/** 내 방문 통계·배지 */
+/** ??방문 ?�계·배�? */
 export async function getMyAptVisitStats(): Promise<{
   visitsMade: number;
   homesVisited: number;
@@ -81,7 +82,7 @@ export async function getMyAptVisitStats(): Promise<{
   };
 }
 
-/** 방문 후 새로 얻은 배지 */
+/** 방문 ???�로 ?��? 배�? */
 export async function checkNewVisitBadges(beforeVisitsMade: number, beforeHostVisits: number) {
   const stats = await getMyAptVisitStats();
   if (!stats) return { newBadges: [] as AptVisitBadge[] };

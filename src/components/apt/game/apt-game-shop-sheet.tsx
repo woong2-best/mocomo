@@ -145,14 +145,16 @@ function AptGameShopSheetInner() {
     game,
     economy,
     shopOpen,
+    shopMode,
     setShopOpen,
+    setShopMode,
     purchaseSticker,
     refreshEconomyFromServer,
     setGame,
     showToast,
   } = useAptGameRequired();
 
-  const [mode, setMode] = useState<ShopMode>("official");
+  const [mode, setMode] = useState<ShopMode>(shopMode);
   const [cat, setCat] = useState<StickerCategory | "all">("all");
   const [catalog, setCatalog] = useState<GoldShopOfferDto[]>([]);
   const [market, setMarket] = useState<MarketListingDto[]>([]);
@@ -182,6 +184,10 @@ function AptGameShopSheetInner() {
       setFleaEvent(data.fleaEvent);
     }
   }, [mode, query]);
+
+  useEffect(() => {
+    if (shopOpen) setMode(shopMode);
+  }, [shopOpen, shopMode]);
 
   useEffect(() => {
     if (!shopOpen) return;

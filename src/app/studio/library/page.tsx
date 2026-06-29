@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth";
+import { APT_GAME_PATH } from "@/lib/site-routes";
 import { getMyStudioLibrary } from "@/studio/actions/library";
 import { AssetCard } from "@/studio/components/asset-card";
 
@@ -24,7 +25,7 @@ export default async function StudioLibraryPage() {
             마켓에서 획득
           </Link>
           {" · "}
-          <Link href="/apt" className="text-pink-600 hover:underline">
+          <Link href={APT_GAME_PATH} className="text-pink-600 hover:underline">
             APT에서 배치
           </Link>
         </p>

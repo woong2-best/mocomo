@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateAptHub } from "@/lib/apt/revalidate-hub";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { ensureEconomyConfig, getEconomyConfig } from "@/lib/apt/economy/config-service";
 import { exchangeGemsForGold } from "@/lib/apt/economy/gem-exchange-service";
@@ -40,7 +41,7 @@ export async function restoreAptIapPurchases(
   }>
 ): Promise<{ ok: true; restored: number } | { error: string }> {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: "로그?�이 ?�요?�니??" };
 
   let restored = 0;
   for (const p of purchases) {
@@ -51,13 +52,13 @@ export async function restoreAptIapPurchases(
 
   if (restored > 0) {
     await mirrorEconomyToGameState(user.id);
-    revalidatePath("/apt");
+    revalidateAptHub();
   }
 
   return { ok: true, restored };
 }
 
-/** @deprecated 클라이언트는 /api/iap/google/verify 사용 */
+/** @deprecated ?�라?�언?�는 /api/iap/google/verify ?�용 */
 export async function fulfillAptIapPurchase(input: {
   provider: "google_play" | "app_store";
   productId: string;
@@ -74,7 +75,7 @@ export async function fulfillAptIapPurchase(input: {
   | { error: string }
 > {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: "로그?�이 ?�요?�니??" };
 
   await seedShopProducts();
   const res = await fulfillIapPurchase(user.id, input);
@@ -82,7 +83,7 @@ export async function fulfillAptIapPurchase(input: {
 
   await mirrorEconomyToGameState(user.id);
   const economy = await loadEconomySnapshot(user.id);
-  revalidatePath("/apt");
+  revalidateAptHub();
 
   if ("alreadyFulfilled" in res && res.alreadyFulfilled) {
     return {
@@ -94,7 +95,7 @@ export async function fulfillAptIapPurchase(input: {
     };
   }
 
-  if (!("gemsGranted" in res)) return { error: "결제 처리에 실패했습니다." };
+  if (!("gemsGranted" in res)) return { error: "결제 처리???�패?�습?�다." };
 
   return {
     ok: true,
@@ -106,13 +107,13 @@ export async function fulfillAptIapPurchase(input: {
 
 export async function exchangeAptGemsForGold(gems: number) {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그인이 필요합니다." as const };
+  if (!user) return { error: "로그?�이 ?�요?�니??" as const };
 
   const res = await exchangeGemsForGold(user.id, gems);
   if ("error" in res) return res;
 
   await mirrorEconomyToGameState(user.id);
-  revalidatePath("/apt");
+  revalidateAptHub();
   return res;
 }
 

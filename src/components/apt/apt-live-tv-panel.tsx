@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Power, Radio } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isVoiceBroadcastMode } from "@/lib/live-voice-broadcast";
 
 type ConsoleModePhase = "off" | "entering" | "active" | "exiting";
 
@@ -19,6 +20,7 @@ type LiveChannel = {
   hostUserId: string;
   hostUsername: string | null;
   viewerCount: number;
+  broadcastMode?: string | null;
 };
 
 type Props = {
@@ -97,7 +99,25 @@ export function AptLiveTvPanel({ phase, blend, onPowerOff }: Props) {
                   }}
                 >
                   {phase === "active" && selected && (
-                    <LiveViewerPlayer channelId={selected.id} hostUserId={selected.hostUserId} showOverlays={false} />
+                    isVoiceBroadcastMode(selected.broadcastMode) ? (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-violet-950 to-black px-6">
+                        <LiveViewerPlayer
+                          channelId={selected.id}
+                          hostUserId={selected.hostUserId}
+                          broadcastMode="VOICE"
+                          isLiveOnAir
+                          showOverlays={false}
+                        />
+                      </div>
+                    ) : (
+                      <LiveViewerPlayer
+                        channelId={selected.id}
+                        hostUserId={selected.hostUserId}
+                        broadcastMode={selected.broadcastMode as "BROWSER" | "OBS" | undefined}
+                        isLiveOnAir
+                        showOverlays={false}
+                      />
+                    )
                   )}
                   {phase === "active" && !selected && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[#1a0a0a] to-[#111827] text-center px-6">

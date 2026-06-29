@@ -43,6 +43,8 @@ import { energyRegenLabel } from "@/lib/apt/game/energy";
 import { useAptFirstEntry, type FirstEntryState } from "@/hooks/use-apt-first-entry";
 import { AptFirstEntryLayer } from "@/components/apt/first-impression/apt-first-entry-layer";
 
+export type AptShopMode = "official" | "market" | "flea";
+
 type AptGameContextValue = {
   game: AptGameState;
   economy: LocalEconomyCache;
@@ -56,6 +58,7 @@ type AptGameContextValue = {
   paletteOpen: boolean;
   missionOpen: boolean;
   shopOpen: boolean;
+  shopMode: AptShopMode;
   gemShopOpen: boolean;
   moreOpen: boolean;
   activeRoomId: string | null;
@@ -65,6 +68,7 @@ type AptGameContextValue = {
   setPaletteOpen: (v: boolean) => void;
   setMissionOpen: (v: boolean) => void;
   setShopOpen: (v: boolean) => void;
+  setShopMode: (mode: AptShopMode) => void;
   setGemShopOpen: (v: boolean) => void;
   setMoreOpen: (v: boolean) => void;
   setActiveRoomId: (id: string) => void;
@@ -142,6 +146,7 @@ export function AptGameProvider({
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [missionOpen, setMissionOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
+  const [shopMode, setShopMode] = useState<AptShopMode>("official");
   const [gemShopOpen, setGemShopOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [activeRoomId, setActiveRoomIdState] = useState(
@@ -161,6 +166,23 @@ export function AptGameProvider({
     onRoomSelect(roomId);
     setView("room");
   }, [enabled, activeRoomId, defaultLivingRoomId, onRoomSelect]);
+
+  useEffect(() => {
+    if (!enabled || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const shop = params.get("shop");
+    if (shop !== "market" && shop !== "flea" && shop !== "official") return;
+    setShopMode(shop);
+    setShopOpen(true);
+    setActiveTabState("shop");
+    params.delete("shop");
+    const qs = params.toString();
+    window.history.replaceState(
+      null,
+      "",
+      qs ? `${window.location.pathname}?${qs}` : window.location.pathname
+    );
+  }, [enabled]);
 
   const showToast = useCallback((message: string, kind: AptGameToastKind = "default") => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -397,6 +419,7 @@ export function AptGameProvider({
       paletteOpen,
       missionOpen,
       shopOpen,
+      shopMode,
       gemShopOpen,
       moreOpen,
       activeRoomId,
@@ -406,6 +429,7 @@ export function AptGameProvider({
       setPaletteOpen,
       setMissionOpen,
       setShopOpen,
+      setShopMode,
       setGemShopOpen,
       setMoreOpen,
       setActiveRoomId,
@@ -443,6 +467,7 @@ export function AptGameProvider({
       paletteOpen,
       missionOpen,
       shopOpen,
+      shopMode,
       gemShopOpen,
       moreOpen,
       activeRoomId,

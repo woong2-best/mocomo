@@ -16,7 +16,8 @@ type ChannelSlice = {
 /** Cloudflare — 브라우저 WHIP은 WHEP, OBS/RTMP는 HLS lifecycle */
 export async function buildCloudflarePlaybackFields(channel: ChannelSlice) {
   const cfUid = liveInputUidFromIngressId(channel.rtmpIngressId);
-  const browser = channel.broadcastMode !== "OBS";
+  const browser =
+    channel.broadcastMode !== "OBS" && channel.broadcastMode !== "VOICE";
   const hostLive = !!channel.isLive && channel.liveStatus !== "ENDED";
 
   if (browser && hostLive && cfUid) {

@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateAptHub } from "@/lib/apt/revalidate-hub";
+import { APT_GAME_PATH } from "@/lib/site-routes";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { APT_DEFAULT_FLOOR } from "@/lib/apt/constants";
@@ -188,7 +190,7 @@ export async function completeAptMoveIn(payload: MoveInPayload) {
       },
     });
 
-    revalidatePath("/apt");
+    revalidateAptHub();
     revalidatePath("/apt/house");
     return { ok: true as const, housingType };
   } catch (e) {
@@ -269,7 +271,7 @@ export async function placeAptTv() {
     homeFloor: floor,
   });
 
-  revalidatePath("/apt");
+  revalidateAptHub();
   return { ok: true as const, furniture };
 }
 

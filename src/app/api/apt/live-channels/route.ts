@@ -18,6 +18,7 @@ export async function GET() {
         hostUsername: hostMap.get(c.createdBy)?.username ?? null,
         viewerCount: c.viewerCount,
         thumbnailUrl: c.thumbnailUrl,
+        broadcastMode: c.broadcastMode ?? "BROWSER",
       }));
     return NextResponse.json({ channels: live, featured: live[0] ?? null });
   } catch (e) {

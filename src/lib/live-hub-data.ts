@@ -1,5 +1,6 @@
 import { revalidateTag, unstable_cache } from "next/cache";
-import type { LiveStreamCategory } from "@prisma/client";
+import type { LiveStreamCategory, LiveBroadcastMode } from "@prisma/client";
+import type { LiveHubMode } from "@/lib/live-hub-mode";
 import { db } from "@/lib/db";
 import { liveViewerCutoff } from "@/lib/live-presence";
 import { getAuthUserId } from "@/lib/auth";
@@ -64,13 +65,20 @@ async function fetchHostsByIds(hostIds: string[]) {
   })) satisfies LiveHubHost[];
 }
 
-async function fetchLiveHubChannels(category?: LiveStreamCategory) {
+async function fetchLiveHubChannels(category?: LiveStreamCategory, mode: LiveHubMode = "all") {
   const cutoff = liveViewerCutoff();
+  const modeFilter =
+    mode === "voice"
+      ? { broadcastMode: "VOICE" as LiveBroadcastMode }
+      : mode === "video"
+        ? { broadcastMode: { in: ["BROWSER", "OBS"] as LiveBroadcastMode[] } }
+        : {};
   const rawChannels = await db.voiceChannel.findMany({
     where: {
       isLive: true,
       liveStatus: "LIVE",
       ...(category ? { category } : {}),
+      ...modeFilter,
     },
     select: {
       id: true,
@@ -168,10 +176,10 @@ async function fetchFollowedLive(userId: string) {
     .sort((a, b) => b.viewerCount - a.viewerCount) as LiveHubChannel[];
 }
 
-/** 카테고리별 실시간 방송 목록만 (탭 전환 시 이 부분만 다시 불러옴) */
-export async function getLiveHubChannelFeed(category?: LiveStreamCategory) {
-  const cacheKey = category ?? "all";
-  const channels = await unstable_cache(() => fetchLiveHubChannels(category), ["live-hub-ch", cacheKey], {
+/** 카테고리·모드별 실시간 방송 목록만 (탭 전환 시 이 부분만 다시 불러옴) */
+export async function getLiveHubChannelFeed(category?: LiveStreamCategory, mode: LiveHubMode = "all") {
+  const cacheKey = `${category ?? "all"}:${mode}`;
+  const channels = await unstable_cache(() => fetchLiveHubChannels(category, mode), ["live-hub-ch", cacheKey], {
     revalidate: 25,
     tags: [LIVE_HUB_CACHE_TAG],
   })();

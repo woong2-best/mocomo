@@ -54,12 +54,14 @@ export type AptNotificationPayload = {
   [key: string]: unknown;
 };
 
+import { APT_GAME_PATH } from "@/lib/site-routes";
+
 export const APT_DEEP_LINKS = {
-  market: "/apt/house?shop=market",
-  flea: "/apt/house?shop=flea",
-  shop: "/apt/house?shop=official",
-  inventory: "/apt/house",
-  live: "/apt/house",
+  market: `${APT_GAME_PATH}?shop=market`,
+  flea: `${APT_GAME_PATH}?shop=flea`,
+  shop: `${APT_GAME_PATH}?shop=official`,
+  inventory: APT_GAME_PATH,
+  live: APT_GAME_PATH,
   notifications: "/notifications",
 } as const;
 

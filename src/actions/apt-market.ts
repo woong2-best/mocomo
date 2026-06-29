@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateAptHub } from "@/lib/apt/revalidate-hub";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { resolveAptHomeOwnerId } from "@/actions/apt-cohabitation";
 import { mirrorEconomyToGameState } from "@/actions/apt-economy";
@@ -76,13 +77,13 @@ export async function createAptMarketListing(input: {
   flea?: boolean;
 }): Promise<{ ok: true; economy: EconomySnapshot } | { error: string }> {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: "로그?�이 ?�요?�니??" };
 
   const ownerId = await resolveAptHomeOwnerId(user.id);
   let fleaEventId: string | null = null;
   if (input.flea) {
     const flea = await getActiveFleaEvent();
-    if (!flea) return { error: "진행 중인 벼룩시장이 없습니다." };
+    if (!flea) return { error: "진행 중인 벼룩?�장???�습?�다." };
     fleaEventId = flea.id;
   }
 
@@ -96,7 +97,7 @@ export async function createAptMarketListing(input: {
 
   await mirrorEconomyToGameState(user.id);
   const economy = await loadEconomySnapshot(user.id);
-  revalidatePath("/apt");
+  revalidateAptHub();
   return { ok: true, economy };
 }
 
@@ -104,7 +105,7 @@ export async function buyAptMarketListing(
   listingId: string
 ): Promise<{ ok: true; economy: EconomySnapshot; stickerTypeId: string } | { error: string }> {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: "로그?�이 ?�요?�니??" };
 
   const ownerId = await resolveAptHomeOwnerId(user.id);
   const res = await buyMarketListing(ownerId, listingId);
@@ -112,7 +113,7 @@ export async function buyAptMarketListing(
 
   await mirrorEconomyToGameState(user.id);
   const economy = await loadEconomySnapshot(user.id);
-  revalidatePath("/apt");
+  revalidateAptHub();
   return { ok: true, economy, stickerTypeId: res.stickerTypeId };
 }
 
@@ -120,7 +121,7 @@ export async function buyAptFleaNpcOffer(
   offerId: string
 ): Promise<{ ok: true; economy: EconomySnapshot } | { error: string }> {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: "로그?�이 ?�요?�니??" };
 
   const ownerId = await resolveAptHomeOwnerId(user.id);
   const res = await buyFromFleaNpc(ownerId, offerId);
@@ -128,7 +129,7 @@ export async function buyAptFleaNpcOffer(
 
   await mirrorEconomyToGameState(user.id);
   const economy = await loadEconomySnapshot(user.id);
-  revalidatePath("/apt");
+  revalidateAptHub();
   return { ok: true, economy };
 }
 
@@ -136,7 +137,7 @@ export async function sellAptToFleaNpc(
   offerId: string
 ): Promise<{ ok: true; economy: EconomySnapshot } | { error: string }> {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: "로그?�이 ?�요?�니??" };
 
   const ownerId = await resolveAptHomeOwnerId(user.id);
   const res = await sellToFleaNpc(ownerId, offerId);
@@ -144,7 +145,7 @@ export async function sellAptToFleaNpc(
 
   await mirrorEconomyToGameState(user.id);
   const economy = await loadEconomySnapshot(user.id);
-  revalidatePath("/apt");
+  revalidateAptHub();
   return { ok: true, economy };
 }
 
@@ -152,7 +153,7 @@ export async function cancelAptMarketListing(
   listingId: string
 ): Promise<{ ok: true; economy: EconomySnapshot } | { error: string }> {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: "로그?�이 ?�요?�니??" };
 
   const ownerId = await resolveAptHomeOwnerId(user.id);
   const res = await cancelMarketListing(ownerId, listingId);
@@ -160,7 +161,7 @@ export async function cancelAptMarketListing(
 
   await mirrorEconomyToGameState(user.id);
   const economy = await loadEconomySnapshot(user.id);
-  revalidatePath("/apt");
+  revalidateAptHub();
   return { ok: true, economy };
 }
 

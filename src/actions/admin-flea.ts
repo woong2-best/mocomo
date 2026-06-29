@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateAptHub } from "@/lib/apt/revalidate-hub";
 import { requireAdmin } from "@/lib/auth";
 import {
   createFleaEvent,
@@ -23,7 +24,7 @@ const FLEA_PATH = "/admin/economy/flea";
 function revalidate() {
   revalidatePath(FLEA_PATH);
   revalidatePath("/admin/economy");
-  revalidatePath("/apt");
+  revalidateAptHub();
 }
 
 export async function getFleaAdminPageData() {
@@ -88,7 +89,7 @@ export async function adminForceEndFleaEvent(eventId: string) {
 export async function adminDeleteFleaEvent(eventId: string) {
   const admin = await requireAdmin();
   const ok = await deleteFleaEvent(eventId, admin.id);
-  if (!ok) return { error: "진행 중인 판매가 있거나 이벤트를 찾을 수 없습니다." };
+  if (!ok) return { error: "진행 중인 ?�매가 ?�거???�벤?��? 찾을 ???�습?�다." };
   revalidate();
   return { ok: true as const };
 }

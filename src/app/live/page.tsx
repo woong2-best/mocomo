@@ -13,7 +13,7 @@ export const revalidate = 25;
 export default async function LivePage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string }>;
+  searchParams: Promise<{ category?: string; mode?: string }>;
 }) {
   if (!isLiveFeatureEnabled()) {
     return <LiveFeatureDisabledNotice />;

@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { revalidateAptHub } from "@/lib/apt/revalidate-hub";
 import { requireAdmin } from "@/lib/auth";
 import {
   getAdminEconomyConfig,
@@ -21,7 +22,7 @@ async function clientIp(): Promise<string | null> {
 function revalidate() {
   revalidatePath(CONFIG_PATH);
   revalidatePath("/admin/economy");
-  revalidatePath("/apt");
+  revalidateAptHub();
 }
 
 export async function getEconomyConfigAdminPageData() {
@@ -38,7 +39,7 @@ export async function adminPublishEconomyConfig(
   reason: string
 ) {
   const admin = await requireAdmin();
-  if (!reason.trim()) return { error: "변경 사유를 입력하세요." };
+  if (!reason.trim()) return { error: "변�??�유�??�력?�세??" };
   const ip = await clientIp();
   const res = await publishEconomyConfig(admin.id, draft, reason.trim(), ip);
   if ("ok" in res) revalidate();
@@ -51,7 +52,7 @@ export async function adminSetEmergencyMode(enabled: boolean, reason: string) {
   const config = await setEmergencyMode(
     admin.id,
     enabled,
-    reason.trim() || (enabled ? "긴급 점검 시작" : "긴급 점검 해제"),
+    reason.trim() || (enabled ? "긴급 ?��? ?�작" : "긴급 ?��? ?�제"),
     ip
   );
   revalidate();

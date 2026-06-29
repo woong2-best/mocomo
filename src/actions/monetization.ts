@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateAptHub } from "@/lib/apt/revalidate-hub";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { ProductType, PaymentIntentType, Prisma } from "@prisma/client";
@@ -29,15 +30,15 @@ async function validatePaymentInput(
 ): Promise<{ error: string } | null> {
   if (input.type === "TIP") {
     const receiverId = input.metadata.receiverId as string;
-    if (!receiverId || receiverId === userId) return { error: "유효하지 않은 후원 대상입니다." };
+    if (!receiverId || receiverId === userId) return { error: "?�효?��? ?��? ?�원 ?�?�입?�다." };
     const tipKind = input.metadata.tipKind as string | undefined;
     const channelId = input.metadata.channelId as string | undefined;
     if (tipKind === "video" && !channelId?.trim()) {
-      return { error: "영상 후원은 라이브 방송 중에만 가능합니다." };
+      return { error: "?�상 ?�원?� ?�이�?방송 중에�?가?�합?�다." };
     }
     if (tipKind === "video") {
       const videoUrl = normalizeYoutubeUrl(String(input.metadata.videoUrl ?? ""));
-      if (!videoUrl) return { error: "YouTube URL을 입력해 주세요." };
+      if (!videoUrl) return { error: "YouTube URL???�력??주세??" };
       const durationSec = Math.max(
         1,
         parseInt(String(input.metadata.durationSec ?? 0), 10) || 0
@@ -61,50 +62,50 @@ async function validatePaymentInput(
       const expected = calcVideoDonationAmount(durationSec, settings);
       if (input.amount < expected) {
         return {
-          error: `영상 후원 최소 금액은 ${expected.toLocaleString()}원입니다.`,
+          error: `?�상 ?�원 최소 금액?� ${expected.toLocaleString()}?�입?�다.`,
         };
       }
     } else {
       const min = 100;
       if (input.amount < min) {
-        return { error: "최소 후원 금액은 100원입니다." };
+        return { error: "최소 ?�원 금액?� 100?�입?�다." };
       }
     }
-    if (input.amount > 10_000_000) return { error: "1회 후원 한도는 1,000만원입니다." };
+    if (input.amount > 10_000_000) return { error: "1???�원 ?�도??1,000만원?�니??" };
   }
 
   if (input.type === "PRODUCT") {
     const productId = input.metadata.productId as string;
     const product = await db.digitalProduct.findUnique({ where: { id: productId } });
-    if (!product) return { error: "상품을 찾을 수 없습니다." };
-    if (product.price !== input.amount) return { error: "상품 가격이 일치하지 않습니다." };
+    if (!product) return { error: "?�품??찾을 ???�습?�다." };
+    if (product.price !== input.amount) return { error: "?�품 가격이 ?�치?��? ?�습?�다." };
   }
 
   if (input.type === "PREMIUM") {
     if (input.amount !== PREMIUM_USD_CENTS) {
-      return { error: "프리미엄 가격이 올바르지 않습니다." };
+      return { error: "?�리미엄 가격이 ?�바르�? ?�습?�다." };
     }
   }
 
   if (input.type === "CREATOR_SUBSCRIPTION") {
     const creatorId = input.metadata.creatorId as string;
     if (!creatorId || creatorId === userId) {
-      return { error: "유효하지 않은 구독 대상입니다." };
+      return { error: "?�효?��? ?��? 구독 ?�?�입?�다." };
     }
     const creator = await db.user.findUnique({
       where: { id: creatorId },
       select: { creatorSubscriptionPriceKrw: true },
     });
-    if (!creator) return { error: "크리에이터를 찾을 수 없습니다." };
+    if (!creator) return { error: "?�리?�이?��? 찾을 ???�습?�다." };
     if (creator.creatorSubscriptionPriceKrw !== input.amount) {
-      return { error: "구독 가격이 일치하지 않습니다." };
+      return { error: "구독 가격이 ?�치?��? ?�습?�다." };
     }
     const existing = await db.subscription.findUnique({
       where: { subscriberId_creatorId: { subscriberId: userId, creatorId } },
       select: { status: true, currentPeriodEnd: true, subscribedSince: true },
     });
     if (existing && isSubscriptionActive(existing)) {
-      return { error: "이미 구독 중입니다." };
+      return { error: "?��? 구독 중입?�다." };
     }
   }
 
@@ -115,49 +116,49 @@ async function validatePaymentInput(
     if (!pack && packSlug) {
       pack = await db.emoticonPack.findUnique({ where: { slug: packSlug } });
     }
-    if (!pack) return { error: "이모티콘을 찾을 수 없습니다. DB 연동(섹션 J)을 확인해 주세요." };
-    if (pack.price !== input.amount) return { error: "이모티콘 가격이 일치하지 않습니다." };
+    if (!pack) return { error: "?�모?�콘??찾을 ???�습?�다. DB ?�동(?�션 J)???�인??주세??" };
+    if (pack.price !== input.amount) return { error: "?�모?�콘 가격이 ?�치?��? ?�습?�다." };
   }
 
   if (input.type === "LISTING_FEE") {
-    if (input.amount !== LISTING_FEE_KRW) return { error: "등록비는 5,000원입니다." };
+    if (input.amount !== LISTING_FEE_KRW) return { error: "?�록비는 5,000?�입?�다." };
     const requestId = input.metadata.requestId as string;
     const req = await db.goodsListingRequest.findUnique({ where: { id: requestId } });
-    if (!req || req.sellerId !== userId) return { error: "굿즈 등록 요청을 찾을 수 없습니다." };
-    if (req.listingFeePaid) return { error: "이미 등록비가 결제되었습니다." };
+    if (!req || req.sellerId !== userId) return { error: "굿즈 ?�록 ?�청??찾을 ???�습?�다." };
+    if (req.listingFeePaid) return { error: "?��? ?�록비�? 결제?�었?�니??" };
   }
 
   if (input.type === "PHYSICAL_GOODS") {
     const orderId = input.metadata.orderId as string;
     const order = await db.physicalOrder.findUnique({ where: { id: orderId } });
-    if (!order || order.buyerId !== userId) return { error: "주문을 찾을 수 없습니다." };
-    if (order.total !== input.amount) return { error: "주문 금액이 일치하지 않습니다." };
-    if (order.status !== "PENDING_PAYMENT") return { error: "이미 결제된 주문입니다." };
+    if (!order || order.buyerId !== userId) return { error: "주문??찾을 ???�습?�다." };
+    if (order.total !== input.amount) return { error: "주문 금액???�치?��? ?�습?�다." };
+    if (order.status !== "PENDING_PAYMENT") return { error: "?��? 결제??주문?�니??" };
   }
 
   if (input.type === "EVENT_REGISTRATION") {
     if (input.amount !== EVENT_REGISTRATION_FEE_KRW) {
-      return { error: "이벤트 등록비는 30,000원입니다." };
+      return { error: "?�벤???�록비는 30,000?�입?�다." };
     }
     const eventId = input.metadata.eventId as string;
     const event = await db.event.findUnique({ where: { id: eventId } });
     if (!event || event.createdById !== userId) {
-      return { error: "이벤트 등록 정보를 찾을 수 없습니다." };
+      return { error: "?�벤???�록 ?�보�?찾을 ???�습?�다." };
     }
-    if (event.registrationFeePaid) return { error: "이미 등록비가 결제되었습니다." };
+    if (event.registrationFeePaid) return { error: "?��? ?�록비�? 결제?�었?�니??" };
   }
 
   if (input.type === "CREATOR_EPISODE") {
     const episodeId = input.metadata.episodeId as string;
     const episode = await db.creatorEpisode.findUnique({ where: { id: episodeId } });
-    if (!episode) return { error: "작품 회차를 찾을 수 없습니다." };
-    if (episode.price !== input.amount) return { error: "가격이 일치하지 않습니다." };
-    if (episode.price <= 0) return { error: "무료 회차는 구매가 필요 없습니다." };
-    if (episode.authorId === userId) return { error: "본인 작품은 구매할 수 없습니다." };
+    if (!episode) return { error: "?�품 ?�차�?찾을 ???�습?�다." };
+    if (episode.price !== input.amount) return { error: "가격이 ?�치?��? ?�습?�다." };
+    if (episode.price <= 0) return { error: "무료 ?�차??구매가 ?�요 ?�습?�다." };
+    if (episode.authorId === userId) return { error: "본인 ?�품?� 구매?????�습?�다." };
     const owned = await db.creatorEpisodePurchase.findUnique({
       where: { buyerId_episodeId: { buyerId: userId, episodeId } },
     });
-    if (owned) return { error: "이미 구매한 회차입니다." };
+    if (owned) return { error: "?��? 구매???�차?�니??" };
   }
 
   if (input.type === "POST_MEDIA") {
@@ -174,12 +175,12 @@ async function validatePaymentInput(
         },
       },
     });
-    if (!media) return { error: "미디어를 찾을 수 없습니다." };
-    if (media.post.authorId === userId) return { error: "본인 콘텐츠는 구매할 수 없습니다." };
+    if (!media) return { error: "미디?��? 찾을 ???�습?�다." };
+    if (media.post.authorId === userId) return { error: "본인 콘텐츠는 구매?????�습?�다." };
     const owned = await db.postMediaPurchase.findUnique({
       where: { buyerId_mediaId: { buyerId: userId, mediaId } },
     });
-    if (owned) return { error: "이미 구매한 미디어입니다." };
+    if (owned) return { error: "?��? 구매??미디?�입?�다." };
     const sub = await db.subscription.findUnique({
       where: {
         subscriberId_creatorId: { subscriberId: userId, creatorId: media.post.authorId },
@@ -195,27 +196,27 @@ async function validatePaymentInput(
       purchased: false,
       subscription: sub,
     });
-    if (!locked || priceKrw <= 0) return { error: "구매가 필요 없는 콘텐츠입니다." };
-    if (input.amount !== priceKrw) return { error: "가격이 일치하지 않습니다." };
+    if (!locked || priceKrw <= 0) return { error: "구매가 ?�요 ?�는 콘텐츠입?�다." };
+    if (input.amount !== priceKrw) return { error: "가격이 ?�치?��? ?�습?�다." };
   }
 
   if (input.type === "STUDIO_ASSET") {
     const assetId = input.metadata.studioAssetId as string;
     const asset = await db.studioAsset.findUnique({ where: { id: assetId } });
-    if (!asset || asset.status !== "PUBLISHED") return { error: "Studio 자산을 찾을 수 없습니다." };
-    if (asset.creatorId === userId) return { error: "본인 작품은 구매할 수 없습니다." };
-    if (asset.isFree || asset.priceKrw <= 0) return { error: "무료 자산입니다." };
-    if (asset.priceKrw !== input.amount) return { error: "가격이 일치하지 않습니다." };
+    if (!asset || asset.status !== "PUBLISHED") return { error: "Studio ?�산??찾을 ???�습?�다." };
+    if (asset.creatorId === userId) return { error: "본인 ?�품?� 구매?????�습?�다." };
+    if (asset.isFree || asset.priceKrw <= 0) return { error: "무료 ?�산?�니??" };
+    if (asset.priceKrw !== input.amount) return { error: "가격이 ?�치?��? ?�습?�다." };
     const owned = await db.studioUserInventory.findUnique({
       where: { userId_studioAssetId: { userId, studioAssetId: assetId } },
     });
-    if (owned) return { error: "이미 보유 중입니다." };
+    if (owned) return { error: "?��? 보유 중입?�다." };
   }
 
   return null;
 }
 
-/** Stripe Checkout 세션 생성 후 결제 페이지 URL 반환 */
+/** Stripe Checkout ?�션 ?�성 ??결제 ?�이지 URL 반환 */
 export async function createStripeCheckout(input: {
   type: PaymentIntentType;
   amount: number;
@@ -225,7 +226,7 @@ export async function createStripeCheckout(input: {
   if (!isStripeConfigured()) {
     return {
       error:
-        "결제가 설정되지 않았습니다. STRIPE_SECRET_KEY와 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY를 설정하세요.",
+        "결제가 ?�정?��? ?�았?�니?? STRIPE_SECRET_KEY?� NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY�??�정?�세??",
     };
   }
 
@@ -269,12 +270,12 @@ export async function createStripeCheckout(input: {
     customer_email: user.email ?? undefined,
   });
 
-  if (!session.url) return { error: "결제 페이지를 만들 수 없습니다." };
+  if (!session.url) return { error: "결제 ?�이지�?만들 ???�습?�다." };
 
   return { checkoutUrl: session.url, orderId: intent.id };
 }
 
-/** @deprecated createStripeCheckout 사용 */
+/** @deprecated createStripeCheckout ?�용 */
 export async function createPaymentIntent(input: {
   type: PaymentIntentType;
   amount: number;
@@ -290,7 +291,7 @@ export async function createPaymentIntent(input: {
 
 export async function confirmStripeCheckout(sessionId: string) {
   if (!isPaymentsConfigured()) {
-    return { error: "결제가 설정되지 않았습니다." };
+    return { error: "결제가 ?�정?��? ?�았?�니??" };
   }
 
   const user = await requireAuth();
@@ -299,7 +300,7 @@ export async function confirmStripeCheckout(sessionId: string) {
 
   const intent = await db.paymentIntent.findUnique({ where: { id: verified.orderId } });
   if (!intent || intent.userId !== user.id) {
-    return { error: "결제 정보를 찾을 수 없습니다." };
+    return { error: "결제 ?�보�?찾을 ???�습?�다." };
   }
 
   const result = await fulfillPaymentIntent(
@@ -357,7 +358,7 @@ export async function confirmStripeCheckout(sessionId: string) {
     redirectPath = meta.studioAssetId ? `/studio/library?purchased=${meta.studioAssetId}` : "/studio/library";
     revalidatePath("/studio/library");
     revalidatePath("/studio/market");
-    revalidatePath("/apt");
+    revalidateAptHub();
   }
 
   return {
@@ -368,22 +369,22 @@ export async function confirmStripeCheckout(sessionId: string) {
   };
 }
 
-/** @deprecated confirmStripeCheckout 사용 */
+/** @deprecated confirmStripeCheckout ?�용 */
 export async function confirmPaymentIntent(
   _paymentKey: string,
   _orderId: string,
   _amount: number
 ) {
-  return { error: "Stripe Checkout으로 결제해 주세요. session_id가 필요합니다." };
+  return { error: "Stripe Checkout?�로 결제??주세?? session_id가 ?�요?�니??" };
 }
 
 export async function sendTip(_receiverId: string, _amount: number, _message?: string) {
-  return { error: "결제 창을 통해 후원해 주세요." };
+  return { error: "결제 창을 ?�해 ?�원??주세??" };
 }
 
 export async function subscribeToCreator(creatorId: string, amount: number) {
   if (!isPaymentsConfigured()) {
-    return { error: "결제가 설정되지 않았습니다." };
+    return { error: "결제가 ?�정?��? ?�았?�니??" };
   }
   const user = await requireAuth();
   const periodEnd = new Date();
@@ -403,7 +404,7 @@ export async function subscribeToCreator(creatorId: string, amount: number) {
 }
 
 export async function upgradePremium() {
-  return { error: "결제 창을 통해 프리미엄을 구독해 주세요." };
+  return { error: "결제 창을 ?�해 ?�리미엄??구독??주세??" };
 }
 
 export async function createDigitalProduct(data: {
@@ -416,7 +417,7 @@ export async function createDigitalProduct(data: {
 }) {
   const user = await requireAuth();
   if (!data.previewUrl || !data.fileUrl) {
-    return { error: "미리보기·다운로드 URL이 필요합니다." };
+    return { error: "미리보기·?�운로드 URL???�요?�니??" };
   }
   const product = await db.digitalProduct.create({
     data: { sellerId: user.id, ...data },
@@ -426,7 +427,7 @@ export async function createDigitalProduct(data: {
 }
 
 export async function purchaseProduct(_productId: string) {
-  return { error: "결제 창을 통해 구매해 주세요." };
+  return { error: "결제 창을 ?�해 구매??주세??" };
 }
 
 export async function getTipRanking(limit = 10) {

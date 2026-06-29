@@ -111,6 +111,15 @@ export default function NewVoicePage() {
   }, []);
 
   useEffect(() => {
+    const mode = new URLSearchParams(window.location.search).get("mode");
+    if (mode === "voice") {
+      setBroadcastMode("VOICE");
+      setName(VOICE_PRESETS[0]);
+      setCategory("MUSIC");
+    }
+  }, []);
+
+  useEffect(() => {
     if (created) return;
     const started =
       typeof window !== "undefined"

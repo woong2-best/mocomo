@@ -55,7 +55,9 @@ export function LiveBroadcastPlayer({
   const [hlsUrl, setHlsUrl] = useState<string | null>(null);
   const [useWhep, setUseWhep] = useState(optimisticWhep);
   const [resolvedHostId, setResolvedHostId] = useState<string | undefined>(hostUserId);
+  const [resolvedMode, setResolvedMode] = useState<LiveBroadcastMode | null | undefined>(broadcastMode);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const effectiveMode = resolvedMode ?? broadcastMode;
   const collab = useLiveCollabState(channelId, !!channelId);
 
   const load = useCallback(async () => {
@@ -102,6 +104,9 @@ export function LiveBroadcastPlayer({
       if (typeof body.hostUserId === "string") {
         setResolvedHostId(body.hostUserId);
       }
+      if (typeof body.broadcastMode === "string") {
+        setResolvedMode(body.broadcastMode as LiveBroadcastMode);
+      }
     } catch {
       setLoadError("재생 정보를 가져오지 못했습니다");
       if (
@@ -144,7 +149,7 @@ export function LiveBroadcastPlayer({
     );
   }
 
-  if (isVoiceBroadcastMode(broadcastMode)) {
+  if (isVoiceBroadcastMode(effectiveMode)) {
     return (
       <VoiceLiveListener
         channelId={channelId}

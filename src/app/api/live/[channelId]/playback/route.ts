@@ -84,6 +84,7 @@ export async function GET(
         ingestEngine: "cloudflare",
         engine: "cloudflare",
         hostUserId: channel.createdBy,
+        broadcastMode: channel.broadcastMode,
         flvUrl: null,
         ...cf,
       });
@@ -98,6 +99,7 @@ export async function GET(
         hlsUrl: null,
         livekitRoom: channelId,
         hostUserId: channel.createdBy,
+        broadcastMode: channel.broadcastMode,
         srsOnAir: probe.onAir,
         srsPlayable: probe.playable,
         waiting: !probe.playable,

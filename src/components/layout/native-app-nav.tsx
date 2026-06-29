@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Bell, Building2, Home, Search, User } from "lucide-react";
+import { Bell, Building2, Home, Radio, Search, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { APT_GAME_PATH, DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { isLiveFeatureEnabled } from "@/lib/live-feature";
 
 type TabDef = {
   href: string;
@@ -38,7 +39,7 @@ const guestTabs: TabDef[] = [
 ];
 
 function userTabs(username: string): TabDef[] {
-  return [
+  const tabs: TabDef[] = [
     {
       href: DEFAULT_LANDING_PATH,
       icon: Home,
@@ -51,6 +52,16 @@ function userTabs(username: string): TabDef[] {
       labelKey: "nav.apt",
       match: (p) => p === APT_GAME_PATH,
     },
+  ];
+  if (isLiveFeatureEnabled()) {
+    tabs.push({
+      href: "/live",
+      icon: Radio,
+      labelKey: "nav.live",
+      match: (p) => p === "/live" || p.startsWith("/live/") || p.startsWith("/voice/"),
+    });
+  }
+  tabs.push(
     {
       href: "/notifications",
       icon: Bell,
@@ -62,8 +73,9 @@ function userTabs(username: string): TabDef[] {
       icon: User,
       labelKey: "nav.myPage",
       match: (p) => p === `/u/${username}` || p.startsWith(`/u/${username}/`),
-    },
-  ];
+    }
+  );
+  return tabs;
 }
 
 export function NativeAppNav() {

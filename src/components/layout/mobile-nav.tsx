@@ -32,6 +32,7 @@ const guestTabs: { href: string; icon: typeof Home; labelKey: MessageKey }[] = [
 
 const userTabs: { href: string; icon: typeof Home; labelKey: MessageKey }[] = [
   { href: DEFAULT_LANDING_PATH, icon: Home, labelKey: "nav.home" },
+  { href: "/live", icon: Radio, labelKey: "nav.live" },
   { href: "/used", icon: Tags, labelKey: "nav.used" },
   { href: buildAptMailboxUrl(), icon: Mailbox, labelKey: "nav.compose" },
 ];

@@ -1,10 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateAptHub } from "@/lib/apt/revalidate-hub";
 import { Prisma } from "@prisma/client";
 import { getCachedCurrentUser, requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { createNotification } from "@/lib/notifications";
+import { APT_GAME_PATH } from "@/lib/site-routes";
 import { getRoomsForFloor } from "@/lib/apt/floor-plan-store";
 import { createDefaultFloorPlan } from "@/lib/apt/floor-plan-logic";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
@@ -71,8 +73,8 @@ function sellingListingRows(params: {
 }
 
 function saleSummary(count: number) {
-  if (count <= 0) return "판매 등록할 기존 아이템이 없었습니다.";
-  return `기존 아이템 ${count}개가 APT 장터에 자동 판매 등록되었습니다.`;
+  if (count <= 0) return "??? ??????? ?????? ????????";
+  return `?? ?????${count}??? APT ???????? ??? ???????????`;
 }
 
 function findEmptyBedroom(params: {
@@ -188,10 +190,10 @@ async function getHostMoveInContext(hostId: string) {
     }),
   ]);
   if (!hostProfile?.moveInCompletedAt || hostProfile.housingType !== "apartment") {
-    return { error: "입주 완료된 아파트 집주인에게만 신청할 수 있습니다." } as const;
+    return { error: "??? ????????????????? ?????????????." } as const;
   }
   if (activeCohabs.length >= 1) {
-    return { error: "기본 동거 가능 인원은 집주인 포함 2명까지입니다." } as const;
+    return { error: "?? ??? ???????? ??????? 2????????" } as const;
   }
 
   const rooms = getProfileRooms(hostProfile);
@@ -204,7 +206,7 @@ async function getHostMoveInContext(hostId: string) {
   });
 
   if (!emptyBedroom) {
-    return { error: "동거자를 받으려면 아이템이 하나도 없는 빈 방이 필요합니다." } as const;
+    return { error: "??????? ????? ?????? ???????? ???? ????????" } as const;
   }
 
   return { hostProfile, activeCohabs, emptyBedroom, home, rooms } as const;
@@ -212,7 +214,7 @@ async function getHostMoveInContext(hostId: string) {
 
 export async function requestAptCohabitation(hostId: string, message?: string) {
   const user = await requireAuth();
-  if (user.id === hostId) return { error: "본인 집에는 동거 신청할 수 없습니다." };
+  if (user.id === hostId) return { error: "?? ??????? ?????????????." };
 
   const [alreadyLiving, reciprocalFollow, block] = await Promise.all([
     db.aptCohabitant.findFirst({
@@ -244,11 +246,11 @@ export async function requestAptCohabitation(hostId: string, message?: string) {
     }),
   ]);
 
-  if (alreadyLiving) return { error: "이미 동거 중인 집이 있습니다." };
+  if (alreadyLiving) return { error: "???? ??? ?? ?? ??????." };
   if (!reciprocalFollow[0] || !reciprocalFollow[1]) {
-    return { error: "동거 신청은 서로 팔로우한 유저끼리만 가능합니다." };
+    return { error: "??? ????? ??? ?????? ????????????????." };
   }
-  if (block) return { error: "차단 관계에서는 동거 신청을 보낼 수 없습니다." };
+  if (block) return { error: "?? ?????? ??? ??????? ????????." };
 
   const context = await getHostMoveInContext(hostId);
   if ("error" in context) return context;
@@ -272,8 +274,8 @@ export async function requestAptCohabitation(hostId: string, message?: string) {
     userId: hostId,
     actorId: user.id,
     type: "apt_cohab_request",
-    title: "동거 신청",
-    body: `${user.name ?? user.username}님이 ${context.emptyBedroom.label} 동거를 신청했습니다.`,
+    title: "??? ???",
+    body: `${user.name ?? user.username}??? ${context.emptyBedroom.label} ??????????????.`,
     link: "/apt/cohabitation",
   });
 
@@ -284,7 +286,7 @@ export async function requestAptCohabitation(hostId: string, message?: string) {
 export async function acceptAptCohabitationRequest(input: FormData | string) {
   const user = await requireAuth();
   const requestId = typeof input === "string" ? input : String(input.get("requestId") ?? "");
-  if (!requestId) return { error: "신청 정보를 찾을 수 없습니다." };
+  if (!requestId) return { error: "??? ??????? ????????." };
 
   const request = await db.aptCohabitationRequest.findUnique({
     where: { id: requestId },
@@ -294,7 +296,7 @@ export async function acceptAptCohabitationRequest(input: FormData | string) {
     },
   });
   if (!request || request.hostId !== user.id || request.status !== PENDING) {
-    return { error: "수락할 수 없는 신청입니다." };
+    return { error: "?????????? ????????" };
   }
 
   const context = await getHostMoveInContext(user.id);
@@ -388,12 +390,12 @@ export async function acceptAptCohabitationRequest(input: FormData | string) {
     userId: request.requesterId,
     actorId: user.id,
     type: "apt_cohab_accept",
-    title: "동거 신청 수락",
-    body: `${user.name ?? user.username}님이 동거 신청을 수락했습니다. ${saleSummary(requesterSaleItems.length)}`,
-    link: "/apt",
+    title: "??? ??? ???",
+    body: `${user.name ?? user.username}??? ??? ??????????????. ${saleSummary(requesterSaleItems.length)}`,
+    link: APT_GAME_PATH,
   });
 
-  revalidatePath("/apt");
+  revalidateAptHub();
   revalidatePath("/apt/cohabitation");
   return { ok: true as const };
 }
@@ -410,7 +412,7 @@ export async function rejectAptCohabitationRequest(input: FormData | string) {
     include: { requester: { select: { id: true, username: true, name: true } } },
   });
   if (!request || request.hostId !== user.id || request.status !== PENDING) {
-    return { error: "거절할 수 없는 신청입니다." };
+    return { error: "????????? ????????" };
   }
 
   await db.aptCohabitationRequest.update({
@@ -422,8 +424,8 @@ export async function rejectAptCohabitationRequest(input: FormData | string) {
     userId: request.requesterId,
     actorId: user.id,
     type: "apt_cohab_reject",
-    title: "동거 신청 거절",
-    body: `${user.name ?? user.username}님이 동거 신청을 거절했습니다.`,
+    title: "??? ??? ??",
+    body: `${user.name ?? user.username}??? ??? ?????????????.`,
     link: "/apt/cohabitation",
   });
 
@@ -439,8 +441,8 @@ export async function requestAptCohabitationMoveOut(input: FormData | string) {
   const user = await requireAuth();
   const cohabitantId = typeof input === "string" ? input : String(input.get("cohabitantId") ?? "");
   const row = await db.aptCohabitant.findUnique({ where: { id: cohabitantId } });
-  if (!row || row.status !== ACTIVE || row.endedAt) return { error: "동거 정보를 찾을 수 없습니다." };
-  if (row.hostId !== user.id && row.residentId !== user.id) return { error: "권한이 없습니다." };
+  if (!row || row.status !== ACTIVE || row.endedAt) return { error: "??? ??????? ????????." };
+  if (row.hostId !== user.id && row.residentId !== user.id) return { error: "??????????." };
 
   const counterpartId = row.hostId === user.id ? row.residentId : row.hostId;
   if (row.moveOutRequestedById && row.moveOutRequestedById !== user.id) {
@@ -503,11 +505,11 @@ export async function requestAptCohabitationMoveOut(input: FormData | string) {
       userId: counterpartId,
       actorId: user.id,
       type: "apt_cohab_moveout_done",
-      title: "동거 종료",
-      body: `양쪽 동의가 완료되어 동거가 종료되었습니다. ${saleSummary(movingItems.length)}`,
+      title: "??? ??",
+      body: `??? ???? ?????? ???? ?????????? ${saleSummary(movingItems.length)}`,
       link: "/apt/cohabitation",
     });
-    revalidatePath("/apt");
+    revalidateAptHub();
     revalidatePath("/apt/cohabitation");
     return { ok: true as const, ended: true };
   }
@@ -520,8 +522,8 @@ export async function requestAptCohabitationMoveOut(input: FormData | string) {
     userId: counterpartId,
     actorId: user.id,
     type: "apt_cohab_moveout_request",
-    title: "동거 종료 동의 요청",
-    body: "동거 종료 요청이 도착했습니다. 동의하면 동거자가 새 집으로 이사합니다.",
+    title: "??? ?? ??? ???",
+    body: "??? ?? ??????????????. ?????? ??????? ??????????????",
     link: "/apt/cohabitation",
   });
 

@@ -12,6 +12,7 @@ import type { HouseBuildState } from "@/lib/apt/house/build-types";
 import { formatCoords } from "@/lib/apt/world/geo-math";
 import { loadActiveVrm } from "@/lib/virtual-avatar/vrm-storage";
 import { Button } from "@/components/ui/button";
+import { APT_GAME_PATH } from "@/lib/site-routes";
 import { AptWorldVisitorsPanel } from "@/components/apt/apt-world-visitors-panel";
 import { AptEntranceDoorToggle } from "@/components/apt/apt-entrance-door-toggle";
 
@@ -188,7 +189,7 @@ export function AptHouseView({ profile }: { profile: AptProfileDto }) {
             저장
           </Button>
           <Button asChild variant="ghost" size="sm" className="rounded-xl">
-            <Link href="/apt">APT로 돌아가기</Link>
+            <Link href={APT_GAME_PATH}>APT로 돌아가기</Link>
           </Button>
         </div>
       )}

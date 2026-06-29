@@ -1,4 +1,5 @@
 import { revalidatePath } from "next/cache";
+import { revalidateAptHub } from "@/lib/apt/revalidate-hub";
 import { db } from "@/lib/db";
 import { LISTING_FEE_KRW } from "@/lib/goods-shop";
 import { EVENT_REGISTRATION_FEE_KRW } from "@/lib/event-registration";
@@ -40,13 +41,13 @@ async function fulfillTip(
     where: { id: receiverId },
     select: { username: true },
   });
-  if (!receiver) return { error: "사용자를 찾을 수 없습니다." };
+  if (!receiver) return { error: "???? ?? ? ????." };
 
   const sender = await db.user.findUnique({
     where: { id: senderId },
     select: { username: true },
   });
-  if (!sender) return { error: "사용자를 찾을 수 없습니다." };
+  if (!sender) return { error: "???? ?? ? ????." };
 
   const platformFee = calcPlatformFee(amount, PLATFORM_FEE_RATE);
   const sellerAmount = amount - platformFee;
@@ -90,13 +91,13 @@ async function fulfillTip(
     referenceType: "tip",
     referenceId: `${senderId}-${receiverId}-${Date.now()}`,
     paymentIntentId,
-    memo: `후원 수수료 @${receiver.username}`,
+    memo: `?? ??? @${receiver.username}`,
   });
   await creditSellerEarning(receiverId, sellerAmount, {
     referenceType: "tip",
     referenceId: paymentIntentId ?? "tip",
     paymentIntentId,
-    memo: `후원 @${sender.username}`,
+    memo: `?? @${sender.username}`,
   });
 
   const existing = await db.creatorSupport.findUnique({
@@ -155,7 +156,7 @@ async function fulfillTip(
 }
 
 /**
- * 결제 승인 후 공통 처리 (Stripe Checkout 성공·웹훅 공통, 멱등)
+ * ?? ?? ? ?? ?? (Stripe Checkout ????? ??, ??)
  */
 export async function fulfillPaymentIntent(
   orderId: string,
@@ -163,12 +164,12 @@ export async function fulfillPaymentIntent(
   amount: number
 ): Promise<{ ok: true; type: string; alreadyPaid?: boolean } | { ok: false; error: string }> {
   const intent = await db.paymentIntent.findUnique({ where: { id: orderId } });
-  if (!intent) return { ok: false, error: "결제 정보를 찾을 수 없습니다." };
+  if (!intent) return { ok: false, error: "?? ??? ?? ? ????." };
   if (intent.status === "PAID") {
     return { ok: true, type: intent.type, alreadyPaid: true };
   }
   if (intent.amount !== amount) {
-    return { ok: false, error: "결제 금액이 일치하지 않습니다." };
+    return { ok: false, error: "?? ??? ???? ????." };
   }
 
   const meta = intent.metadata as Record<string, string>;
@@ -193,7 +194,7 @@ export async function fulfillPaymentIntent(
   if (intent.type === "PRODUCT") {
     const productId = meta.productId;
     const product = await db.digitalProduct.findUnique({ where: { id: productId } });
-    if (!product) return { ok: false, error: "상품을 찾을 수 없습니다." };
+    if (!product) return { ok: false, error: "??? ?? ? ????." };
     const { platformFee, sellerAmount } = splitPlatformFee(amount);
     await db.order.create({
       data: {
@@ -231,7 +232,7 @@ export async function fulfillPaymentIntent(
       referenceType: "premium",
       referenceId: userId,
       paymentIntentId: intent.id,
-      memo: "프리미엄 구독",
+      memo: "???? ??",
     });
     revalidatePath("/premium");
     revalidatePath("/settings");
@@ -249,7 +250,7 @@ export async function fulfillPaymentIntent(
       referenceType: "emoticon",
       referenceId: packId,
       paymentIntentId: intent.id,
-      memo: "이모티콘 구매 (플랫폼 보관)",
+      memo: "???? ?? (??? ??)",
     });
     revalidatePath("/support");
   }
@@ -261,7 +262,7 @@ export async function fulfillPaymentIntent(
       referenceType: "listing_fee",
       referenceId: meta.requestId,
       paymentIntentId: intent.id,
-      memo: "굿즈 등록비",
+      memo: "?? ???",
     });
     revalidatePath("/support");
   }
@@ -273,7 +274,7 @@ export async function fulfillPaymentIntent(
       referenceType: "event_registration",
       referenceId: meta.eventId,
       paymentIntentId: intent.id,
-      memo: "이벤트 등록비",
+      memo: "??? ???",
     });
     revalidatePath("/events");
   }
@@ -292,7 +293,7 @@ export async function fulfillPaymentIntent(
         referenceType: "physical_order",
         referenceId: order.id,
         paymentIntentId: intent.id,
-        memo: "굿즈 판매 정산",
+        memo: "?? ?? ??",
       });
     }
     revalidatePath("/support");
@@ -311,7 +312,7 @@ export async function fulfillPaymentIntent(
         referenceType: "creator_episode",
         referenceId: r.referenceId,
         paymentIntentId: intent.id,
-        memo: "크리에이터 작품 판매",
+        memo: "????? ?? ??",
       });
     }
     revalidatePath("/works");
@@ -331,13 +332,13 @@ export async function fulfillPaymentIntent(
         referenceType: "creator_subscription",
         referenceId: r.referenceId,
         paymentIntentId: intent.id,
-        memo: "크리에이터 구독",
+        memo: "????? ??",
       });
       await creditSellerEarning(r.creatorId, r.sellerAmount, {
         referenceType: "creator_subscription",
         referenceId: r.referenceId,
         paymentIntentId: intent.id,
-        memo: "크리에이터 구독 정산",
+        memo: "????? ?? ??",
       });
     }
     if (r.username) revalidatePath(`/u/${r.username}`);
@@ -356,7 +357,7 @@ export async function fulfillPaymentIntent(
         referenceType: "post_media",
         referenceId: r.referenceId,
         paymentIntentId: intent.id,
-        memo: "프로필 유료 미디어",
+        memo: "??? ?? ???",
       });
     }
     if (meta.username) revalidatePath(`/u/${meta.username}`);
@@ -374,12 +375,12 @@ export async function fulfillPaymentIntent(
         referenceType: "studio_asset",
         referenceId: assetId,
         paymentIntentId: intent.id,
-        memo: "MoCoMo Studio 자산",
+        memo: "MoCoMo Studio ??",
       });
     }
     revalidatePath("/studio/market");
     revalidatePath("/studio/library");
-    revalidatePath("/apt");
+    revalidateAptHub();
   }
 
   await db.paymentIntent.update({

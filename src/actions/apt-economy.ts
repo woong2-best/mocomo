@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateAptHub } from "@/lib/apt/revalidate-hub";
 import { getCachedCurrentUser } from "@/lib/auth";
 import {
   loadEconomySnapshot,
@@ -39,7 +40,7 @@ export async function getAptEconomySnapshot(): Promise<EconomySnapshot | null> {
   return loadEconomySnapshot(user.id);
 }
 
-/** 로그인 시 서버 스냅샷 + 오프라인 pending 창고 동기화 */
+/** 로그?????�버 ?�냅??+ ?�프?�인 pending 창고 ?�기??*/
 export async function syncAptEconomyCache(
   pendingOps: StoragePendingOp[] = [],
   legacyPending: Record<string, number> = {}
@@ -54,7 +55,7 @@ export async function syncAptEconomyCache(
   }
 
   const economy = await loadEconomySnapshot(user.id);
-  revalidatePath("/apt");
+  revalidateAptHub();
   return { ok: true, economy };
 }
 
@@ -69,7 +70,7 @@ export async function purchaseAptShopItem(itemId: string): Promise<
   | { error: string }
 > {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: "로그?�이 ?�요?�니??" };
 
   const economy = await loadEconomySnapshot(user.id);
   const owned = economy.inventory.find((i) => i.itemId === itemId && i.quantity > 0);
@@ -78,17 +79,17 @@ export async function purchaseAptShopItem(itemId: string): Promise<
   }
 
   const priceInfo = await resolveGoldShopPrice(itemId);
-  if (!priceInfo) return { error: "판매하지 않는 상품입니다." };
+  if (!priceInfo) return { error: "?�매?��? ?�는 ?�품?�니??" };
   if (
     priceInfo.limitedStock != null &&
     priceInfo.soldCount >= priceInfo.limitedStock
   ) {
-    return { error: "한정 수량이 모두 판매되었습니다." };
+    return { error: "?�정 ?�량??모두 ?�매?�었?�니??" };
   }
 
   const price = priceInfo.goldPrice;
   if (economy.wallet.gold < price) {
-    return { error: `골드가 부족합니다. (${price.toLocaleString()}G 필요)` };
+    return { error: `골드가 부족합?�다. (${price.toLocaleString()}G ?�요)` };
   }
 
   const ownerId = await resolveAptHomeOwnerId(user.id);
@@ -96,7 +97,7 @@ export async function purchaseAptShopItem(itemId: string): Promise<
     await assertShopEnabled();
     await assertFraudAllowed(ownerId, "shop");
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "구매할 수 없습니다." };
+    return { error: e instanceof Error ? e.message : "구매?????�습?�다." };
   }
   try {
     await purchaseShopItemAtomic(
@@ -109,12 +110,12 @@ export async function purchaseAptShopItem(itemId: string): Promise<
     );
   } catch (e) {
     return {
-      error: e instanceof Error ? e.message : "구매에 실패했습니다.",
+      error: e instanceof Error ? e.message : "구매???�패?�습?�다.",
     };
   }
 
   const next = await loadEconomySnapshot(user.id);
-  revalidatePath("/apt");
+  revalidateAptHub();
   return { ok: true, economy: next, price };
 }
 
@@ -124,7 +125,7 @@ export async function consumeAptStorageItem(
   opId?: string
 ): Promise<AptEconomyActionResult | { ok: true; skipped: true }> {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: "로그?�이 ?�요?�니??" };
   if (!shouldConsumeStorage(itemId)) return { ok: true, skipped: true };
 
   const res = await consumeStorageItem(user.id, itemId, amount, opId);
@@ -139,7 +140,7 @@ export async function returnAptStorageItem(
   opId?: string
 ): Promise<AptEconomyActionResult | { ok: true; skipped: true }> {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: "로그?�이 ?�요?�니??" };
   if (!shouldConsumeStorage(itemId)) return { ok: true, skipped: true };
 
   const res = await returnStorageItem(user.id, itemId, amount, opId);
@@ -148,7 +149,7 @@ export async function returnAptStorageItem(
   return { ok: true, economy };
 }
 
-/** 미션·에너지 등 — wallet만 game state와 함께 노출 */
+/** 미션·?�너지 ????wallet�?game state?� ?�께 ?�출 */
 export async function syncGameWalletFromEconomy(
   game: AptGameState
 ): Promise<AptGameState> {
@@ -171,11 +172,11 @@ export async function grantAptWalletRewards(delta: {
   const ownerId = await resolveAptHomeOwnerId(user.id);
   await adjustWallet(ownerId, delta, { type: "mission", memo: "미션 보상" });
   const economy = await loadEconomySnapshot(user.id);
-  revalidatePath("/apt");
+  revalidateAptHub();
   return { ok: true, economy };
 }
 
-/** @deprecated game.simulationState — wallet 읽기 전용 동기화 */
+/** @deprecated game.simulationState ??wallet ?�기 ?�용 ?�기??*/
 export async function mirrorEconomyToGameState(userId: string): Promise<void> {
   const ownerId = await resolveAptHomeOwnerId(userId);
   const economy = await loadEconomySnapshot(ownerId);
