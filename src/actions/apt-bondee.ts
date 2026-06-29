@@ -41,7 +41,7 @@ export const getBondeeRoom = async () => {
 
 export async function saveBondeeHome(state: BondeeHomeState) {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그?�이 ?�요?�니??" };
+  if (!user) return { error: "로그인이 필요합니다." };
 
   const ownerId = await resolveAptHomeOwnerId(user.id);
   const existing = await db.aptProfile.findUnique({ where: { userId: ownerId } });

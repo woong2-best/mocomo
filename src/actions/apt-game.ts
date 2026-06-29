@@ -85,14 +85,14 @@ export async function purchaseAptSticker(typeId: string) {
   if ("error" in res && res.error) return { error: res.error };
   if ("alreadyOwned" in res && res.alreadyOwned) {
     const user = await getCachedCurrentUser();
-    if (!user) return { error: "로그?�이 ?�요?�니??" as const };
+    if (!user) return { error: "로그인이 필요합니다." as const };
     const game = await loadRawGame(user.id);
     return { ok: true as const, alreadyOwned: true as const, game };
   }
-  if (!("economy" in res)) return { error: "구매 처리???�패?�습?�다." as const };
+  if (!("economy" in res)) return { error: "구매 처리에 실패했습니다." as const };
 
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그?�이 ?�요?�니??" as const };
+  if (!user) return { error: "로그인이 필요합니다." as const };
 
   await mirrorEconomyToGameState(user.id);
   const game = await loadRawGame(user.id);
@@ -108,13 +108,13 @@ export async function purchaseAptSticker(typeId: string) {
 
 export async function claimAptMission(missionId: string) {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그?�이 ?�요?�니??" as const };
+  if (!user) return { error: "로그인이 필요합니다." as const };
 
   const game = await loadRawGame(user.id);
   const mission = game.missions.find((m) => m.id === missionId);
-  if (!mission) return { error: "미션??찾을 ???�습?�다." as const };
-  if (!mission.completed) return { error: "?�직 미션???�료?��? ?�았?�니??" as const };
-  if (mission.claimed) return { error: "?��? 보상??받았?�니??" as const };
+  if (!mission) return { error: "미션을 찾을 수 없습니다." as const };
+  if (!mission.completed) return { error: "아직 미션을 완료하지 않았습니다." as const };
+  if (mission.claimed) return { error: "이미 보상을 받았습니다." as const };
 
   mission.claimed = true;
   await grantAptWalletRewards({
@@ -138,7 +138,7 @@ export async function claimAptMission(missionId: string) {
 
 export async function boostAptEnergy() {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그?�이 ?�요?�니??" as const };
+  if (!user) return { error: "로그인이 필요합니다." as const };
 
   const game = await loadRawGame(user.id);
   game.energy = Math.min(game.maxEnergy, game.energy + ENERGY_REWARD_AD);
@@ -161,7 +161,7 @@ export async function reportAptGameEvent(
 
   if (event.type === "place_sticker") {
     if (!canSpendEnergy(game.energy, ENERGY_COST_PLACE)) {
-      return { error: `?�너지가 부족해?? (??{ENERGY_COST_PLACE} ?�요)` };
+      return { error: `에너지가 부족해요. (⚡${ENERGY_COST_PLACE} 필요)` };
     }
     game.energy = spendEnergy(game.energy, ENERGY_COST_PLACE);
     game.energyUpdatedAt = new Date().toISOString();

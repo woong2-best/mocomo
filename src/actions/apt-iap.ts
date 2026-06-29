@@ -41,7 +41,7 @@ export async function restoreAptIapPurchases(
   }>
 ): Promise<{ ok: true; restored: number } | { error: string }> {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그?�이 ?�요?�니??" };
+  if (!user) return { error: "로그인이 필요합니다." };
 
   let restored = 0;
   for (const p of purchases) {
@@ -58,7 +58,7 @@ export async function restoreAptIapPurchases(
   return { ok: true, restored };
 }
 
-/** @deprecated ?�라?�언?�는 /api/iap/google/verify ?�용 */
+/** @deprecated 클라이언트는 /api/iap/google/verify 사용 */
 export async function fulfillAptIapPurchase(input: {
   provider: "google_play" | "app_store";
   productId: string;
@@ -75,7 +75,7 @@ export async function fulfillAptIapPurchase(input: {
   | { error: string }
 > {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그?�이 ?�요?�니??" };
+  if (!user) return { error: "로그인이 필요합니다." };
 
   await seedShopProducts();
   const res = await fulfillIapPurchase(user.id, input);
@@ -95,7 +95,7 @@ export async function fulfillAptIapPurchase(input: {
     };
   }
 
-  if (!("gemsGranted" in res)) return { error: "결제 처리???�패?�습?�다." };
+  if (!("gemsGranted" in res)) return { error: "결제 처리에 실패했습니다." };
 
   return {
     ok: true,
@@ -107,7 +107,7 @@ export async function fulfillAptIapPurchase(input: {
 
 export async function exchangeAptGemsForGold(gems: number) {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그?�이 ?�요?�니??" as const };
+  if (!user) return { error: "로그인이 필요합니다." as const };
 
   const res = await exchangeGemsForGold(user.id, gems);
   if ("error" in res) return res;

@@ -53,7 +53,7 @@ export async function adminToggleEconomyFeature(
   return flags;
 }
 
-/** 긴급 ??경제 기능 ?�체 OFF (Emergency Mode?� 별도) */
+/** 긴급 — 경제 기능 전체 OFF (Emergency Mode와 별도) */
 export async function adminKillAllEconomyFeatures(reason?: string) {
   const admin = await requireAdmin();
   const ip = await clientIp();
@@ -68,7 +68,7 @@ export async function adminKillAllEconomyFeatures(reason?: string) {
       fleaEnabled: false,
       iapEnabled: false,
     },
-    reason?.trim() || "긴급 ?�체 차단",
+    reason?.trim() || "긴급 전체 차단",
     ip
   );
   revalidate();
@@ -89,7 +89,7 @@ export async function adminRestoreAllEconomyFeatures(reason?: string) {
       fleaEnabled: true,
       iapEnabled: true,
     },
-    reason?.trim() || "?�체 기능 복구",
+    reason?.trim() || "전체 기능 복구",
     ip
   );
   revalidate();

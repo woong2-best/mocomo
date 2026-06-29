@@ -39,7 +39,7 @@ export async function adminPublishEconomyConfig(
   reason: string
 ) {
   const admin = await requireAdmin();
-  if (!reason.trim()) return { error: "변�??�유�??�력?�세??" };
+  if (!reason.trim()) return { error: "변경 사유를 입력하세요." };
   const ip = await clientIp();
   const res = await publishEconomyConfig(admin.id, draft, reason.trim(), ip);
   if ("ok" in res) revalidate();
@@ -52,7 +52,7 @@ export async function adminSetEmergencyMode(enabled: boolean, reason: string) {
   const config = await setEmergencyMode(
     admin.id,
     enabled,
-    reason.trim() || (enabled ? "긴급 ?��? ?�작" : "긴급 ?��? ?�제"),
+    reason.trim() || (enabled ? "긴급 점검 시작" : "긴급 점검 해제"),
     ip
   );
   revalidate();

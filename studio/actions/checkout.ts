@@ -8,10 +8,10 @@ import { isPaymentsConfigured } from "@/lib/payments";
 import { createStripeCheckout } from "@/actions/monetization";
 import { STUDIO_PLATFORM_FEE_PERCENT } from "@/studio/lib/constants";
 
-/** Stripe 결제 ?�료 ???�출 (payment-fulfillment) */
+/** Stripe 결제 완료 후 호출 (payment-fulfillment) */
 export async function fulfillStudioAssetPurchase(userId: string, assetId: string, amountKrw: number) {
   const asset = await db.studioAsset.findUnique({ where: { id: assetId } });
-  if (!asset || asset.status !== "PUBLISHED") return { error: "?�산??찾을 ???�습?�다." };
+  if (!asset || asset.status !== "PUBLISHED") return { error: "자산을 찾을 수 없습니다." };
 
   const existing = await db.studioAssetPurchase.findUnique({
     where: { buyerId_assetId: { buyerId: userId, assetId } },
@@ -67,18 +67,18 @@ export async function fulfillStudioAssetPurchase(userId: string, assetId: string
 export async function createStudioAssetCheckout(assetId: string) {
   const user = await requireAuth();
   if (!isPaymentsConfigured()) {
-    return { error: "Stripe 결제가 ?�정?��? ?�았?�니?? ?�스??구매??즉시 구매�??�용?�세??" };
+    return { error: "Stripe 결제가 설정되지 않았습니다. 테스트 구매는 즉시 구매를 사용하세요." };
   }
 
   const asset = await db.studioAsset.findUnique({ where: { id: assetId } });
-  if (!asset || asset.status !== "PUBLISHED") return { error: "구매?????�습?�다." };
-  if (asset.creatorId === user.id) return { error: "본인 ?�품?�니??" };
-  if (asset.isFree || asset.priceKrw <= 0) return { error: "무료 ?�산?�니??" };
+  if (!asset || asset.status !== "PUBLISHED") return { error: "구매할 수 없습니다." };
+  if (asset.creatorId === user.id) return { error: "본인 작품입니다." };
+  if (asset.isFree || asset.priceKrw <= 0) return { error: "무료 자산입니다." };
 
   const owned = await db.studioUserInventory.findUnique({
     where: { userId_studioAssetId: { userId: user.id, studioAssetId: assetId } },
   });
-  if (owned) return { error: "?��? 보유 중입?�다." };
+  if (owned) return { error: "이미 보유 중입니다." };
 
   return createStripeCheckout({
     type: "STUDIO_ASSET",
