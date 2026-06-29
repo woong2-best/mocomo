@@ -47,6 +47,7 @@ import { useAptHomeSocket } from "@/hooks/use-apt-home-socket";
 import { useSession } from "next-auth/react";
 import { useCompose } from "@/components/compose/compose-provider";
 import { parseAptMailboxParams } from "@/lib/apt/mailbox-compose-route";
+import { APT_GAME_PATH } from "@/lib/site-routes";
 import { AptIsometricRoom } from "@/components/apt/apt-isometric-room";
 import { AptGameProvider } from "@/components/apt/game/apt-game-context";
 import { AptGameShell } from "@/components/apt/game/apt-game-shell";
@@ -336,6 +337,12 @@ function AptBondeeRoomInner({
     const decorIdx = BONDEE_FURNITURE_CATEGORIES.findIndex((c) => c.kinds.includes("mailbox"));
     if (decorIdx >= 0) setDecorCat(decorIdx);
   }, [mailboxParams.decorMailbox, isLoggedIn, rooms]);
+
+  useEffect(() => {
+    if (!mailboxParams.decorMailbox || !isLoggedIn || !hasMailbox) return;
+    mailboxComposeRef.current();
+    router.replace(APT_GAME_PATH, { scroll: false });
+  }, [mailboxParams.decorMailbox, isLoggedIn, hasMailbox, router]);
 
   const handleMailboxCompose = useCallback(() => {
     const pending = pendingComposeRef.current;

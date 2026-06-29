@@ -33,8 +33,15 @@ export function DiscoveryMatchList() {
         setLoadError("매칭 목록을 불러오지 못했습니다.");
         setLoading(false);
       });
-    void markDiscoveryMatchesSeen();
   }, []);
+
+  useEffect(() => {
+    if (loading || rows.length === 0) return;
+    const timer = window.setTimeout(() => {
+      void markDiscoveryMatchesSeen();
+    }, 2500);
+    return () => window.clearTimeout(timer);
+  }, [loading, rows.length]);
 
   async function openChat(userId: string) {
     setOpening(userId);
@@ -73,7 +80,13 @@ export function DiscoveryMatchList() {
   }
 
   if (loading) {
-    return <p className="text-center text-sm text-muted-foreground py-16">불러오는 중…</p>;
+    return (
+      <ul className="space-y-3 p-4 max-w-lg mx-auto pb-24">
+        {[1, 2, 3].map((i) => (
+          <li key={i} className="h-28 rounded-2xl bg-muted/50 animate-pulse" />
+        ))}
+      </ul>
+    );
   }
 
   if (rows.length === 0) {

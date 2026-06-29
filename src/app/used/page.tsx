@@ -6,6 +6,7 @@ import { DbSetupBanner } from "@/components/ui/db-setup-banner";
 import { UsedListingCard } from "@/components/used/used-listing-card";
 import { UsedSearchHeader } from "@/components/used/used-search-header";
 import { UsedFeedSkeleton } from "@/components/used/used-loading-skeletons";
+import { UsedWriteFab } from "@/components/used/used-write-fab";
 import { Button } from "@/components/ui/button";
 
 async function UsedFeed({
@@ -87,17 +88,7 @@ export default async function UsedHomePage({
       <Suspense fallback={<UsedFeedSkeleton />}>
         <UsedFeed searchParams={searchParams} />
       </Suspense>
-      <Button
-        asChild
-        variant="secondary"
-        size="icon"
-        className="fixed bottom-[calc(var(--mobile-nav-h)+env(safe-area-inset-bottom,0px)+0.75rem)] right-4 md:bottom-6 z-50 h-14 w-14 rounded-full shadow-lg text-2xl font-light"
-        aria-label="글쓰기"
-      >
-        <Link href="/used/new" prefetch>
-          +
-        </Link>
-      </Button>
+      <UsedWriteFab />
     </div>
   );
 }

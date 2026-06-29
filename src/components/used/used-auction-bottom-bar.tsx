@@ -56,6 +56,7 @@ export function UsedAuctionBottomBar({
   const [sellerRooms, setSellerRooms] = useState<{ roomId: string; buyer: { username: string } }[] | null>(
     null
   );
+  const [barError, setBarError] = useState("");
 
   async function toggleFav() {
     if (!isLoggedIn) {
@@ -67,6 +68,7 @@ export function UsedAuctionBottomBar({
   }
 
   async function openChat() {
+    setBarError("");
     setLoading(true);
     const res = await startUsedTradeChat(listingId);
     setLoading(false);
@@ -75,13 +77,14 @@ export function UsedAuctionBottomBar({
         router.push(`/used/verify?callbackUrl=/used/${listingId}`);
         return;
       }
-      alert(res.error);
+      setBarError(res.error);
       return;
     }
     if ("roomId" in res && res.roomId) router.push(`/messages/${res.roomId}`);
   }
 
   async function openSellerChats() {
+    setBarError("");
     if (sellerRooms) {
       if (sellerRooms.length === 1) {
         router.push(`/messages/${sellerRooms[0].roomId}`);
@@ -93,13 +96,13 @@ export function UsedAuctionBottomBar({
     const res = await getUsedListingChatRooms(listingId);
     setLoading(false);
     if ("error" in res && res.error) {
-      alert(res.error);
+      setBarError(res.error);
       return;
     }
     const rooms = res.rooms ?? [];
     setSellerRooms(rooms);
     if (rooms.length === 0) {
-      alert("아직 문의 채팅이 없습니다.");
+      setBarError("아직 문의 채팅이 없습니다.");
       return;
     }
     if (rooms.length === 1) router.push(`/messages/${rooms[0].roomId}`);
@@ -110,13 +113,15 @@ export function UsedAuctionBottomBar({
     setLoading(true);
     const res = await cancelUsedAuction(listingId);
     setLoading(false);
-    if ("error" in res && res.error) alert(res.error);
+    if ("error" in res && res.error) setBarError(res.error);
     else router.refresh();
   }
 
   if (isSeller) {
     return (
-      <div className="used-action-bar border-t bg-background p-3 pb-safe z-20 space-y-2">
+      <div className="used-action-bar border-t bg-background z-20 space-y-2">
+        {barError && <p className="px-3 pt-2 text-xs text-destructive text-center">{barError}</p>}
+        <div className="p-3 pb-safe space-y-2">
         {auctionLive && (
           <Button
             type="button"
@@ -155,6 +160,7 @@ export function UsedAuctionBottomBar({
             ))}
           </ul>
         )}
+        </div>
       </div>
     );
   }
@@ -225,7 +231,9 @@ export function UsedAuctionBottomBar({
   }
 
   return (
-    <div className="used-action-bar flex gap-2 border-t bg-background p-3 pb-safe z-20">
+    <div className="used-action-bar border-t bg-background z-20">
+      {barError && <p className="px-3 pt-2 text-xs text-destructive text-center">{barError}</p>}
+      <div className="flex gap-2 p-3 pb-safe">
       <button
         type="button"
         onClick={() => void toggleFav()}
@@ -251,6 +259,7 @@ export function UsedAuctionBottomBar({
           </Link>
         </Button>
       )}
+      </div>
     </div>
   );
 }

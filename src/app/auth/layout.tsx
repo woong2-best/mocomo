@@ -6,7 +6,7 @@ import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col bg-muted/20">
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-background/95">
+      <header className="auth-layout-marketing-header flex items-center justify-between px-4 py-3 border-b border-border bg-background/95">
         <Link href={DEFAULT_LANDING_PATH} className="font-black text-lg">
           {BRAND.name}
         </Link>
@@ -23,7 +23,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
       </header>
       <div className="flex-1">{children}</div>
-      <footer className="px-4 py-4 border-t border-border bg-background/80">
+      <footer className="auth-layout-footer px-4 py-4 border-t border-border bg-background/80">
         <LegalFooterLinks />
       </footer>
     </div>

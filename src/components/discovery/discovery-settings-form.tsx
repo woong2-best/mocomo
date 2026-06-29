@@ -165,10 +165,16 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
             <input
               type="checkbox"
               checked={enabled}
+              disabled={!initial.hasBirthDate}
               onChange={(e) => setEnabled(e.target.checked)}
-              className="h-5 w-5 rounded accent-violet-600"
+              className="h-5 w-5 rounded accent-violet-600 disabled:opacity-40"
             />
           </label>
+          {!initial.hasBirthDate && (
+            <p className="text-xs text-muted-foreground mt-2">
+              생년월일 등록 후 참여할 수 있어요.
+            </p>
+          )}
         </CardContent>
       </Card>
 

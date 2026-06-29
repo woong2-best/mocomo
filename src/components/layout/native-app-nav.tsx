@@ -7,6 +7,7 @@ import { Gamepad2, Home, Sparkles, Tags, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { MessageKey } from "@/lib/i18n/messages";
+import { DiscoveryMatchBadge } from "@/components/discovery/discovery-match-badge";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 
 type TabDef = {
@@ -93,11 +94,12 @@ export function NativeAppNav() {
               href={href}
               prefetch={href === "/messages" ? false : undefined}
               className={cn(
-                "flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[10px]",
+                "relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[10px]",
                 active ? "text-foreground font-semibold" : "text-muted-foreground"
               )}
             >
               <Icon className={cn("h-[22px] w-[22px] shrink-0", active && "text-primary")} strokeWidth={active ? 2.5 : 2} />
+              {href === "/discover" && <DiscoveryMatchBadge />}
               <span className="truncate max-w-full">{t(labelKey)}</span>
             </Link>
           );

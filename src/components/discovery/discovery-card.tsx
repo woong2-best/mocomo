@@ -11,9 +11,10 @@ type Props = {
   card: DiscoveryCard;
   className?: string;
   style?: React.CSSProperties;
+  draggable?: boolean;
 };
 
-export function DiscoveryCardView({ card, className, style }: Props) {
+export function DiscoveryCardView({ card, className, style, draggable = true }: Props) {
   const displayName = card.name || card.username;
   const hero = card.cosplayPhoto || card.image;
 
@@ -58,9 +59,13 @@ export function DiscoveryCardView({ card, className, style }: Props) {
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <Link href={`/u/${card.username}`} className="font-display font-bold text-2xl truncate hover:underline">
-              {displayName}
-            </Link>
+            {draggable ? (
+              <Link href={`/u/${card.username}`} className="font-display font-bold text-2xl truncate hover:underline block">
+                {displayName}
+              </Link>
+            ) : (
+              <span className="font-display font-bold text-2xl truncate block">{displayName}</span>
+            )}
             <p className="text-sm text-white/70">@{card.username}</p>
           </div>
         </div>

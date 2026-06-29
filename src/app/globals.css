@@ -154,6 +154,10 @@ html[data-client="app"] .folk-canvas::before {
 html[data-client="app"] body {
   background: hsl(var(--background));
 }
+html[data-client="app"] .auth-layout-marketing-header,
+html[data-client="app"] .auth-layout-footer {
+  display: none;
+}
 
 .folk-brush-border-b {
   position: relative;

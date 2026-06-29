@@ -1,16 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion, useMotionValue, useTransform, PanInfo, AnimatePresence } from "framer-motion";
-import { Heart, Sparkles, X, RotateCcw, Settings, Users } from "lucide-react";
+import { Heart, Sparkles, X, RotateCcw, Settings, Users, UserRound } from "lucide-react";
 import Link from "next/link";
 import { DiscoveryCardView } from "@/components/discovery/discovery-card";
 import { Button } from "@/components/ui/button";
 import type { DiscoveryCard } from "@/lib/discovery/types";
-import { discoverySwipe, getDiscoveryDeck } from "@/actions/discovery";
+import { discoverySwipe, getDiscoveryDeck, openDiscoveryChat } from "@/actions/discovery";
+import { vibrateLightTap, vibrateSuccess } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 
 export function DiscoverySwipeDeck() {
+  const router = useRouter();
   const [cards, setCards] = useState<DiscoveryCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [enabled, setEnabled] = useState(true);
@@ -19,6 +22,8 @@ export function DiscoverySwipeDeck() {
   const [matchFlash, setMatchFlash] = useState(false);
   const [actError, setActError] = useState("");
   const [loadError, setLoadError] = useState("");
+  const [matchedUserId, setMatchedUserId] = useState<string | null>(null);
+  const [openingMatchChat, setOpeningMatchChat] = useState(false);
   const [lastAction, setLastAction] = useState<{ card: DiscoveryCard; action: "PASS" | "LIKE" | "CHEER" } | null>(
     null
   );
@@ -60,6 +65,10 @@ export function DiscoverySwipeDeck() {
 
   async function act(action: "PASS" | "LIKE" | "CHEER") {
     if (!current || busy) return;
+    if (action === "PASS") vibrateLightTap();
+    else if (action === "LIKE") vibrateLightTap(18);
+    else vibrateSuccess();
+
     setBusy(true);
     setActError("");
     setLastAction({ card: current, action });
@@ -70,14 +79,36 @@ export function DiscoverySwipeDeck() {
       return;
     }
     if (res.matched) {
+      setMatchedUserId(current.userId);
+      vibrateSuccess(40);
       setMatchFlash(true);
-      setTimeout(() => setMatchFlash(false), 1800);
     }
     setCards((prev) => prev.slice(1));
     x.set(0);
     y.set(0);
     setBusy(false);
     if (cards.length <= 3) void load();
+  }
+
+  async function openMatchChat() {
+    if (!matchedUserId) return;
+    setOpeningMatchChat(true);
+    const res = await openDiscoveryChat(matchedUserId);
+    setOpeningMatchChat(false);
+    setMatchFlash(false);
+    setMatchedUserId(null);
+    if (res && "error" in res && res.error) {
+      setActError(res.error);
+      return;
+    }
+    if (res && "roomId" in res && res.roomId) {
+      router.push(`/messages/${res.roomId}`);
+    }
+  }
+
+  function dismissMatchFlash() {
+    setMatchFlash(false);
+    setMatchedUserId(null);
   }
 
   function onDragEnd(_: unknown, info: PanInfo) {
@@ -148,19 +179,40 @@ export function DiscoverySwipeDeck() {
   }
 
   return (
-    <div className="relative max-w-md mx-auto px-3 pb-8">
+    <div className="relative max-w-md mx-auto px-3 pb-[max(2rem,env(safe-area-inset-bottom))]">
       <AnimatePresence>
         {matchFlash && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm pointer-events-none"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+            onClick={dismissMatchFlash}
           >
-            <div className="text-center space-y-3 px-6">
+            <div
+              className="text-center space-y-4 px-6 pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
               <Sparkles className="h-16 w-16 mx-auto text-yellow-300 animate-pulse" />
               <p className="text-3xl font-black text-white">매칭!</p>
-              <p className="text-white/80 text-sm">서로 관심 있어요 · 메시지를 보내보세요</p>
+              <p className="text-white/80 text-sm">서로 관심 있어요 · 메시지를내보세요</p>
+              <div className="flex flex-col gap-2 pt-2">
+                <Button
+                  className="rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 font-bold"
+                  disabled={openingMatchChat}
+                  onClick={() => void openMatchChat()}
+                >
+                  {openingMatchChat ? "연결 중…" : "메시지 보내기"}
+                </Button>
+                <Button asChild variant="secondary" className="rounded-xl">
+                  <Link href="/discover/matches" onClick={dismissMatchFlash}>
+                    매칭 목록
+                  </Link>
+                </Button>
+                <Button variant="ghost" className="rounded-xl text-white/70" onClick={dismissMatchFlash}>
+                  계속 보기
+                </Button>
+              </div>
             </div>
           </motion.div>
         )}
@@ -182,7 +234,7 @@ export function DiscoverySwipeDeck() {
           onDragEnd={onDragEnd}
           whileTap={{ scale: 1.01 }}
         >
-          <DiscoveryCardView card={current} />
+          <DiscoveryCardView card={current} draggable={false} />
 
           <motion.span
             style={{ opacity: likeOpacity }}
@@ -260,7 +312,14 @@ export function DiscoverySwipeDeck() {
         </p>
       )}
 
-      <div className="flex justify-center gap-2 mt-6">
+      <div className="flex justify-center gap-2 mt-4">
+        {current && (
+          <Button asChild variant="ghost" size="sm" className="rounded-lg text-xs">
+            <Link href={`/u/${current.username}`}>
+              <UserRound className="h-3.5 w-3.5 mr-1" /> 프로필
+            </Link>
+          </Button>
+        )}
         <Button asChild variant="ghost" size="sm" className="rounded-lg text-xs">
           <Link href="/discover/matches">
             <Users className="h-3.5 w-3.5 mr-1" /> 매칭 목록
