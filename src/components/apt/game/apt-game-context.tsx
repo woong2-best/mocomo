@@ -16,7 +16,7 @@ import type { AptGameToastKind } from "./apt-game-toast";
 import { useRouter } from "next/navigation";
 import type { AptRoom } from "@/lib/apt/floor-plan-types";
 import { getDioramaPreset } from "@/lib/diorama/living-room-preset";
-import { createDefaultGameState } from "@/lib/apt/game/defaults";
+import { createDefaultGameState, applyDailyResetIfNeeded } from "@/lib/apt/game/defaults";
 import type { AptGameState, AptGameTab, AptGameView } from "@/lib/apt/game/types";
 import type { EconomySnapshot, LocalEconomyCache } from "@/lib/apt/economy/types";
 import { createEmptyLocalEconomyCache } from "@/lib/apt/economy/types";
@@ -198,6 +198,13 @@ export function AptGameProvider({
     setToast(message);
     setToastKind(kind);
     toastTimer.current = setTimeout(() => setToast(null), 2600);
+  }, []);
+
+  useEffect(() => {
+    const tick = () => setGame((g) => applyDailyResetIfNeeded(g));
+    tick();
+    const id = window.setInterval(tick, 60_000);
+    return () => window.clearInterval(id);
   }, []);
 
   useEffect(() => {

@@ -29,6 +29,7 @@ function HomeIdentityBrief({ identity }: { identity?: HomeIdentitySummary }) {
 export function AptDailyLoopPanel({
   feed,
   loading = false,
+  error = false,
   isLoggedIn,
   onVisitUser,
   onRefresh,
@@ -37,6 +38,7 @@ export function AptDailyLoopPanel({
 }: {
   feed: AptCommunityFeed | null;
   loading?: boolean;
+  error?: boolean;
   isLoggedIn: boolean;
   onVisitUser: (userId: string) => void;
   onRefresh?: () => void;
@@ -44,6 +46,32 @@ export function AptDailyLoopPanel({
   className?: string;
 }) {
   const [pending, setPending] = useState<string | null>(null);
+
+  if (error && !feed) {
+    return (
+      <div
+        className={cn(
+          "pointer-events-auto flex w-[min(100%,17rem)] flex-col gap-2 rounded-2xl border border-white/15 bg-black/60 p-3 text-xs text-white/90 shadow-xl backdrop-blur-md",
+          className
+        )}
+      >
+        <div className="flex items-center gap-2 border-b border-white/10 pb-2">
+          <Sparkles className="h-4 w-4 text-amber-300" />
+          <span className="font-bold text-white">APT Daily</span>
+        </div>
+        <p className="text-[10px] text-white/60 py-3 text-center">이웃 소식을 불러오지 못했습니다.</p>
+        {onRefresh && (
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="rounded-lg bg-white/10 py-1.5 text-[10px] font-bold text-white hover:bg-white/15"
+          >
+            다시 시도
+          </button>
+        )}
+      </div>
+    );
+  }
 
   if (loading || !feed) {
     return (

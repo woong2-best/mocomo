@@ -148,3 +148,9 @@ export function mergeGameState(raw: unknown): AptGameState {
     decoratedRooms: Array.isArray(o.decoratedRooms) ? (o.decoratedRooms as string[]) : base.decoratedRooms,
   };
 }
+
+/** 클라이언트 장시간 세션 — 자정 경과 시 일일 미션 리셋 */
+export function applyDailyResetIfNeeded(state: AptGameState): AptGameState {
+  if (state.lastDailyReset === todayKey()) return state;
+  return mergeGameState(state);
+}

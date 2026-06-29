@@ -98,6 +98,7 @@ export function AptHubClient({
   const [visitUserId, setVisitUserId] = useState<string | null>(null);
   const [feedRefreshKey, setFeedRefreshKey] = useState(0);
   const [feedLoading, setFeedLoading] = useState(true);
+  const [feedError, setFeedError] = useState(false);
   const [dailyOpen, setDailyOpen] = useState(true);
   const [visitFunnel, setVisitFunnel] = useState<VisitFunnelState | null>(null);
   const [interiorHudPeek, setInteriorHudPeek] = useState(false);
@@ -443,6 +444,7 @@ export function AptHubClient({
               worldMode={worldMode}
               onCommunityFeedChange={setCommunityFeed}
               onFeedLoadingChange={setFeedLoading}
+              onFeedErrorChange={setFeedError}
               onRequireLogin={showLoginToast}
               visitRequestUserId={visitUserId}
               onVisitRequestHandled={() => setVisitUserId(null)}
@@ -607,6 +609,7 @@ export function AptHubClient({
           <AptDailyLoopPanel
             feed={communityFeed}
             loading={feedLoading}
+            error={feedError}
             isLoggedIn={isLoggedIn}
             onVisitUser={setVisitUserId}
             onRefresh={() => setFeedRefreshKey((k) => k + 1)}

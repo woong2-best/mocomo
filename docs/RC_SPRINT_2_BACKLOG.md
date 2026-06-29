@@ -1,6 +1,6 @@
 # RC Sprint 2 — Backlog
 
-**상태:** Day 0 Audit — **Static + 자동화 부분 완료** · 실기기 Audit **User 대기**  
+**상태:** Day 1 — P0/P1 Blocker 코드 수정 완료 · 실기기 Persona **User 대기**  
 **규칙:** 감사 완료 전까지 **코드 수정 금지** (Motion · Skeleton · Empty · Error · Haptic · Animation · Camera)
 
 **감사 가이드:** [RC_SPRINT_2_AUDIT.md](./RC_SPRINT_2_AUDIT.md)  
@@ -17,7 +17,7 @@
 | Persona 2 | ❌ |
 | Android 실기기 (Safe Area·Resume 등) | ❌ **Priority 2** |
 | Screenshot 30~50 / Recording 7 | ❌ |
-| economy:stress | ⚠️ 미완료 — **Priority 3 (마지막)** |
+| economy:stress | ⚠️ WARN (무결성 PASS, P95/에러율 튜닝) | **Priority 3** |
 
 **Gate 통과 조건 (8개 전부):** Persona1 웹·Android · Persona2 · Screenshot 30+ · Recording 7 · Backlog 80~120 · Blocker 확정 · Stress PASS 또는 원인 분석
 
@@ -65,12 +65,12 @@
 
 | ID | Sev | Blocker | Repro | Evidence | Fix | Status | Owner | Sprint | Summary |
 |----|-----|---------|-------|----------|-----|--------|-------|--------|---------|
-| ISSUE-001 | P0 | ✅ | 100% | Static | **L** | Open | Cursor | S2 | local-home 계정 전환 데이터 잔존 |
-| ISSUE-002 | P0 | ✅ | 100% | Static | **S** | Open | Cursor | S2 | 알림 탭=전체 읽음 |
-| ISSUE-003 | P0 | ✅ | 70% | Static+Log | **M** | Open | Cursor | S2 | 5000G 폴백 → Error/Retry |
-| ISSUE-004 | P0 | ✅ | 100% | Static+Log | **XL** | Open | Cursor | S2 | **최상위** RTDN 무인증 |
-| ISSUE-005 | P1 | ✅ | 70% | Static | **M** | Open | Cursor | S2 | offline sync 킬스위치 우회 |
-| ISSUE-018 | P1 | ✅ | 100% | Static | **M** | Open | Cursor | S2 | logout 로컬 미정리 |
+| ISSUE-001 | P0 | ✅ | 100% | Static | **L** | **Fixed** | Cursor | S2 | local-home 계정 전환 데이터 잔존 |
+| ISSUE-002 | P0 | ✅ | 100% | Static | **S** | **Fixed** | Cursor | S2 | 알림 탭=전체 읽음 |
+| ISSUE-003 | P0 | ✅ | 70% | Static+Log | **M** | **Fixed** | Cursor | S2 | 5000G 폴백 → Error/Retry |
+| ISSUE-004 | P0 | ✅ | 100% | Static+Log | **XL** | **Fixed** | Cursor | S2 | **최상위** RTDN 무인증 |
+| ISSUE-005 | P1 | ✅ | 70% | Static | **M** | **Fixed** | Cursor | S2 | offline sync 킬스위치 우회 |
+| ISSUE-018 | P1 | ✅ | 100% | Static | **M** | **Fixed** | Cursor | S2 | logout 로컬 미정리 |
 
 _나머지 49건( ISSUE-006~030, UXD-001~032 ): Static 감사 — Triaging 시 Repro/Evidence/Blocker 채움. 상세는 Day 0 Persona Audit에서 보강._
 
@@ -207,6 +207,6 @@ User Action: 스테이징 보안 리뷰 (공격 시뮬레이션 금지, 설계 �
 
 | Date | Action | Owner |
 |------|--------|-------|
-| 2026-06-29 | Day 0 Static Audit — 55 ISSUE/UXD Backlog 적재 | Cursor |
+| 2026-06-29 | P0/P1 Blocker 코드 수정 + stress WARN (무결성 PASS) | Cursor |
 | | Persona 3 stress — DB 대기, User 재실행 필요 | User |
 | | Owner/Sprint 컬럼 추가 | Cursor |

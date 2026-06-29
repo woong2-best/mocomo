@@ -59,6 +59,7 @@ export const AptBuildingView = memo(function AptBuildingView({
   worldMode = "tower",
   onCommunityFeedChange,
   onFeedLoadingChange,
+  onFeedErrorChange,
   visitRequestUserId,
   onVisitRequestHandled,
   feedRefreshKey = 0,
@@ -78,6 +79,7 @@ export const AptBuildingView = memo(function AptBuildingView({
   worldMode?: AptWorldMode;
   onCommunityFeedChange?: (feed: AptCommunityFeed) => void;
   onFeedLoadingChange?: (loading: boolean) => void;
+  onFeedErrorChange?: (error: boolean) => void;
   visitRequestUserId?: string | null;
   onVisitRequestHandled?: () => void;
   feedRefreshKey?: number;
@@ -175,6 +177,7 @@ export const AptBuildingView = memo(function AptBuildingView({
   useEffect(() => {
     void (async () => {
       setFeedLoading(true);
+      onFeedErrorChange?.(false);
       setLoadingCountry(true);
       try {
         const [list, feed] = await Promise.all([
@@ -185,12 +188,14 @@ export const AptBuildingView = memo(function AptBuildingView({
         setCommunityFeed(feed);
         setFloorOccupants(feed.occupants);
         setBrowseTarget(null);
+      } catch {
+        onFeedErrorChange?.(true);
       } finally {
         setLoadingCountry(false);
         setFeedLoading(false);
       }
     })();
-  }, [viewCountry]);
+  }, [viewCountry, onFeedErrorChange]);
 
   useEffect(() => {
     if (communityFeed) onCommunityFeedChange?.(communityFeed);
@@ -219,11 +224,14 @@ export const AptBuildingView = memo(function AptBuildingView({
 
   useEffect(() => {
     if (feedRefreshKey <= 0) return;
-    void getCountryAptCommunityFeed(viewCountry).then((feed) => {
-      setCommunityFeed(feed);
-      setFloorOccupants(feed.occupants);
-    });
-  }, [feedRefreshKey, viewCountry]);
+    void getCountryAptCommunityFeed(viewCountry)
+      .then((feed) => {
+        onFeedErrorChange?.(false);
+        setCommunityFeed(feed);
+        setFloorOccupants(feed.occupants);
+      })
+      .catch(() => onFeedErrorChange?.(true));
+  }, [feedRefreshKey, viewCountry, onFeedErrorChange]);
 
   useEffect(() => {
     const id = window.setInterval(() => {

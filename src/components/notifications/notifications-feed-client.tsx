@@ -41,19 +41,26 @@ export function NotificationsFeedClient({
   const [items, setItems] = useState(initialNotifications);
   const [unread, setUnread] = useState(initialUnread);
   const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
 
   const refresh = useCallback(async (category: string | null) => {
     setLoading(true);
+    setFetchError(false);
     try {
       const q = category ? `?category=${category}` : "";
       const res = await fetch(`/api/notifications${q}`, { credentials: "include" });
-      if (!res.ok) return;
+      if (!res.ok) {
+        setFetchError(true);
+        return;
+      }
       const data = (await res.json()) as {
         notifications?: NotificationRow[];
         unread?: number;
       };
       if (Array.isArray(data.notifications)) setItems(data.notifications);
       if (typeof data.unread === "number") setUnread(data.unread);
+    } catch {
+      setFetchError(true);
     } finally {
       setLoading(false);
     }
@@ -144,7 +151,23 @@ export function NotificationsFeedClient({
         )}
       </div>
 
-      {loading && items.length === 0 ? (
+      {fetchError ? (
+        <div className="rounded-2xl border border-dashed p-12 text-center space-y-3">
+          <p className="text-sm text-muted-foreground">알림을 불러오지 못했습니다.</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-xl"
+            onClick={() => {
+              const cat = FILTERS.find((f) => f.id === filter)?.category ?? null;
+              void refresh(cat);
+            }}
+          >
+            다시 시도
+          </Button>
+        </div>
+      ) : loading && items.length === 0 ? (
         <p className="text-center text-sm text-muted-foreground py-12">불러오는 중…</p>
       ) : filtered.length === 0 ? (
         <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">

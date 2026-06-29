@@ -66,7 +66,10 @@ const USER_COUNT = QUICK
     ? Number(usersArg.split("=")[1])
     : Number(process.env.STRESS_USERS ?? "100");
 /** PgBouncer transaction mode often allows 1 connection — raise with direct DATABASE_URL */
-const CONCURRENCY = Number(process.env.STRESS_CONCURRENCY ?? "3");
+const CONCURRENCY = Number(
+  process.env.STRESS_CONCURRENCY ??
+    (process.env.DIRECT_URL && process.env.STRESS_USE_POOLER !== "1" ? "15" : "3")
+);
 
 const TAG = `stress-${Date.now()}`;
 const ITEM = "chair";
@@ -81,21 +84,30 @@ function assert(name: string, pass: boolean, detail?: string) {
 
 async function createUserPool(count: number): Promise<string[]> {
   const ids: string[] = [];
-  for (let n = 0; n < count; n++) {
-    const id = `${TAG}-u${n}`.slice(0, 28);
-    const username = `s${TAG.slice(-10)}u${n}`.slice(0, 20);
-    await db.user.create({
-      data: {
+  const BATCH = 20;
+  for (let start = 0; start < count; start += BATCH) {
+    const users = Array.from({ length: Math.min(BATCH, count - start) }, (_, i) => {
+      const n = start + i;
+      const id = `${TAG}-u${n}`.slice(0, 28);
+      const username = `s${TAG.slice(-10)}u${n}`.slice(0, 20);
+      return {
         id,
         email: `${id}@stress.local`,
         username,
         name: `Stress ${n}`,
-      },
+      };
     });
-    await db.aptWallet.create({
-      data: { userId: id, gold: 0, gems: 0, legacyMigrated: true },
+    await db.user.createMany({ data: users, skipDuplicates: true });
+    await db.aptWallet.createMany({
+      data: users.map((u) => ({
+        userId: u.id,
+        gold: 0,
+        gems: 0,
+        legacyMigrated: true,
+      })),
+      skipDuplicates: true,
     });
-    ids.push(id);
+    ids.push(...users.map((u) => u.id));
   }
   return ids;
 }
@@ -481,6 +493,18 @@ async function scenarioAdmin(users: string[], metrics: StressMetrics) {
   });
   assert("Economy Emergency — 등록 차단", "error" in shopBlocked);
 
+  const offlineUser = users[2] ?? users[1] ?? buyer;
+  await addInventoryAndStorage(offlineUser, ITEM, 2, "shop");
+  const offlineBlocked = await syncPendingStorageOps(offlineUser, [
+    {
+      opId: `${TAG}-emergency-offline`,
+      itemId: ITEM,
+      amount: 1,
+      kind: "consume",
+    },
+  ]);
+  assert("Emergency — Offline sync 차단", "error" in offlineBlocked);
+
   await setMarketAdminFlags(users[0]!, prevMarket);
   await db.aptEconomyConfig.update({
     where: { id: "default" },
@@ -512,9 +536,15 @@ async function scenarioCs(users: string[], metrics: StressMetrics): Promise<numb
 
 // ─── Scenario 8: IAP (dev verify) ───
 async function scenarioIap(users: string[], metrics: StressMetrics): Promise<void> {
-  if (process.env.APT_IAP_DEV_VERIFY !== "true") {
-    console.log("\n▶ Scenario 8 — IAP (skipped, set APT_IAP_DEV_VERIFY=true)");
+  const canRunIap =
+    process.env.APT_IAP_DEV_VERIFY === "true" ||
+    (process.env.NODE_ENV !== "production" && process.env.VERCEL_ENV !== "production");
+  if (!canRunIap) {
+    console.log("\n▶ Scenario 8 — IAP (skipped, production)");
     return;
+  }
+  if (process.env.APT_IAP_DEV_VERIFY !== "true") {
+    process.env.APT_IAP_DEV_VERIFY = "true";
   }
   console.log("\n▶ Scenario 8 — IAP");
   const { fulfillIapPurchase } = await import("../src/lib/apt/economy/iap/iap-fulfillment-pipeline");

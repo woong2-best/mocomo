@@ -157,6 +157,8 @@ function AptGameShopSheetInner() {
   const [mode, setMode] = useState<ShopMode>(shopMode);
   const [cat, setCat] = useState<StickerCategory | "all">("all");
   const [catalog, setCatalog] = useState<GoldShopOfferDto[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogError, setCatalogError] = useState(false);
   const [market, setMarket] = useState<MarketListingDto[]>([]);
   const [myListings, setMyListings] = useState<MarketListingDto[]>([]);
   const [fleaEvent, setFleaEvent] = useState<FleaEventDto | null>(null);
@@ -191,7 +193,15 @@ function AptGameShopSheetInner() {
 
   useEffect(() => {
     if (!shopOpen) return;
-    void getAptGoldShopCatalog().then(setCatalog);
+    setCatalogLoading(true);
+    setCatalogError(false);
+    void getAptGoldShopCatalog()
+      .then((items) => setCatalog(items))
+      .catch(() => {
+        setCatalog([]);
+        setCatalogError(true);
+      })
+      .finally(() => setCatalogLoading(false));
     void refreshMarket();
   }, [shopOpen, refreshMarket]);
 
@@ -261,7 +271,36 @@ function AptGameShopSheetInner() {
 
         {mode === "official" && (
           <>
-            {featured.length > 0 && (
+            {catalogLoading && (
+              <div className="grid grid-cols-3 gap-2 px-4 py-4 sm:grid-cols-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="apt-game-shop-card h-24 animate-pulse rounded-2xl bg-[#e8dcc8]/80"
+                  />
+                ))}
+              </div>
+            )}
+            {catalogError && !catalogLoading && (
+              <div className="px-4 py-6 text-center">
+                <p className="text-[11px] font-medium text-[#8b4513]">상점 목록을 불러오지 못했습니다.</p>
+                <button
+                  type="button"
+                  className="mt-2 text-[10px] font-bold text-[#5c4033] underline"
+                  onClick={() => {
+                    setCatalogLoading(true);
+                    setCatalogError(false);
+                    void getAptGoldShopCatalog()
+                      .then(setCatalog)
+                      .catch(() => setCatalogError(true))
+                      .finally(() => setCatalogLoading(false));
+                  }}
+                >
+                  다시 시도
+                </button>
+              </div>
+            )}
+            {!catalogLoading && !catalogError && featured.length > 0 && (
               <div className="px-4 pt-2">
                 <p className="mb-1 text-[10px] font-black text-[#5c4033]">✦ 추천</p>
                 <div className="flex gap-2 overflow-x-auto pb-2">
@@ -299,7 +338,7 @@ function AptGameShopSheetInner() {
               ))}
             </div>
             <div className="grid grid-cols-3 gap-2 overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:grid-cols-4">
-              {filtered.map((o) => (
+              {!catalogLoading && !catalogError && filtered.map((o) => (
                 <OfferCard
                   key={o.itemId}
                   offer={o}
