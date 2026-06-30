@@ -23,7 +23,7 @@ function FeedFallback() {
 
 export default function FeedPage() {
   return (
-    <AppPageChrome maxWidth="6xl" spacing="sm" className="!px-4 lg:!px-6">
+    <AppPageChrome maxWidth="6xl" spacing="sm" className="!px-4 lg:!px-6" animate={false}>
       <HomeShell />
       <Suspense
         fallback={

@@ -5,12 +5,16 @@ import { SessionProvider } from "@/components/providers/session-provider";
 import { AppSocketProvider } from "@/components/providers/app-socket-provider";
 import { CallProviderGate } from "@/components/call/call-provider-gate";
 import { ComposeProvider } from "@/components/compose/compose-provider";
-import { PushRegistration } from "@/components/push/push-registration";
 import { SidebarToggleProvider } from "@/components/providers/sidebar-toggle-provider";
 
 const PlatformBootstrapClient = dynamic(
   () =>
     import("@/components/platform-bootstrap-client").then((m) => m.PlatformBootstrapClient),
+  { ssr: false }
+);
+
+const PushRegistration = dynamic(
+  () => import("@/components/push/push-registration").then((m) => m.PushRegistration),
   { ssr: false }
 );
 

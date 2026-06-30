@@ -102,18 +102,21 @@ export function FeedInfinite({
     }
   }, [cursor, loading, done]);
 
+  const loadMoreRef = useRef(loadMore);
+  loadMoreRef.current = loadMore;
+
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
     const io = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting) loadMore();
+        if (entries[0]?.isIntersecting) void loadMoreRef.current();
       },
-      { rootMargin: "200px" }
+      { rootMargin: "280px" }
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [loadMore]);
+  }, []);
 
   return (
     <>

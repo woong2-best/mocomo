@@ -1,13 +1,24 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
-import { FeedInfinite } from "@/components/feed/feed-infinite";
 import { FolkBrushDivider } from "@/components/brand/folk-decor";
 import { PageSection } from "@/components/layout/page-section";
 import { useLocale } from "@/components/providers/locale-provider";
 import { AptMailboxLink } from "@/components/compose/apt-mailbox-link";
+import type { FeedLayoutItem } from "@/components/feed/feed-dual-column-layout";
 
-type FeedItem = Parameters<typeof FeedInfinite>[0]["initialItems"][number];
+const FeedInfinite = dynamic(
+  () => import("@/components/feed/feed-infinite").then((m) => m.FeedInfinite),
+  {
+    loading: () => (
+      <div className="space-y-3 animate-pulse">
+        <div className="h-28 rounded-2xl bg-muted" />
+        <div className="h-28 rounded-2xl bg-muted" />
+      </div>
+    ),
+  }
+);
 
 export function HomeFeedClient({
   feedItems,
@@ -17,7 +28,7 @@ export function HomeFeedClient({
   starredIds = [],
   repostedIds = [],
 }: {
-  feedItems: FeedItem[];
+  feedItems: FeedLayoutItem[];
   nextCursor: string | null;
   hasDbPosts: boolean;
   likedIds?: string[];

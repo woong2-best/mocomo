@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { AnimatePresence } from "framer-motion";
 import { Building2, Gamepad2, X } from "lucide-react";
 import { FolkSectionTitle } from "@/components/brand/folk-decor";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
@@ -89,7 +88,6 @@ export function GamesHubClient({
       </PageSection>
 
       <PageSection title="플레이" icon={Gamepad2}>
-      <AnimatePresence mode="popLayout">
       <div key={category} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         <MotionInViewIndexed index={0}>
         <MotionPress>
@@ -186,7 +184,6 @@ export function GamesHubClient({
           );
         })}
       </div>
-      </AnimatePresence>
       </PageSection>
 
         <p className="text-xs text-center text-muted-foreground pt-2">
@@ -200,7 +197,7 @@ export function GamesHubClient({
   }
 
   return (
-    <AppPageChrome maxWidth="4xl" spacing="sm" className="py-4">
+    <AppPageChrome maxWidth="4xl" spacing="sm" className="py-4" animate={false}>
       {body}
     </AppPageChrome>
   );

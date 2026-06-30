@@ -73,6 +73,24 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: SECURITY_HEADERS,
       },
+      {
+        source: "/diorama/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        source: "/apt/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
       ...aptScenePaths.map((source) => ({
         source,
         headers: APT_SCENE_VIEWER_HEADERS,
@@ -90,8 +108,8 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: { bodySizeLimit: "50mb" },
     staleTimes: {
-      dynamic: 30,
-      static: 180,
+      dynamic: 60,
+      static: 300,
     },
     optimizePackageImports: [
       "lucide-react",

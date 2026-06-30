@@ -6,7 +6,7 @@ import { AppProviders } from "@/components/providers/app-providers";
 import { LocaleProvider } from "@/components/providers/locale-provider";
 import { ShellRouter } from "@/components/layout/shell-router";
 import { getRequestI18n } from "@/lib/i18n/server";
-import { resolveClientPlatform, CLIENT_PLATFORM_COOKIE } from "@/lib/client-platform";
+import { resolveClientPlatform, CLIENT_PLATFORM_COOKIE, isNativeAppPlatform } from "@/lib/client-platform";
 import { isStudioHostname, resolveRequestHostname } from "@/studio/lib/host";
 import { RightPanelAsync } from "@/components/layout/right-panel-async";
 import { RightPanelSkeleton } from "@/components/layout/right-panel-content";
@@ -65,6 +65,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const isStudioHost = isStudioHostname(
     resolveRequestHostname(headerStore.get("x-forwarded-host") ?? headerStore.get("host"))
   );
+  const showRightPanel = !isStudioHost && !isNativeAppPlatform(initialPlatform);
 
   return (
     <html
@@ -82,9 +83,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   initialPlatform={initialPlatform}
                   isStudioHost={isStudioHost}
                   rightPanel={
-                    <Suspense fallback={<RightPanelSkeleton />}>
-                      <RightPanelAsync />
-                    </Suspense>
+                    showRightPanel ? (
+                      <Suspense fallback={<RightPanelSkeleton />}>
+                        <RightPanelAsync />
+                      </Suspense>
+                    ) : undefined
                   }
                 >
                   {children}

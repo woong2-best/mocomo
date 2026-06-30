@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { Gamepad2, Radio, Sparkles, Tags } from "lucide-react";
 import { cn } from "@/lib/utils";

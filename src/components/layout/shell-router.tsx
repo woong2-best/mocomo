@@ -1,11 +1,20 @@
 "use client";
 
-import { AppShell } from "@/components/layout/app-shell";
-import { NativeAppShell } from "@/components/layout/native-app-shell";
+import dynamic from "next/dynamic";
 import { ClientPlatformProvider, useClientPlatform } from "@/components/providers/client-platform-provider";
 import type { ClientPlatform } from "@/lib/client-platform";
 import { isStudioHostname } from "@/studio/lib/host";
 import { usePathname } from "next/navigation";
+
+const AppShell = dynamic(
+  () => import("@/components/layout/app-shell").then((m) => m.AppShell),
+  { loading: () => null }
+);
+
+const NativeAppShell = dynamic(
+  () => import("@/components/layout/native-app-shell").then((m) => m.NativeAppShell),
+  { loading: () => null }
+);
 
 function ShellSwitch({
   children,
