@@ -50,17 +50,23 @@ npm run dev          # 웹 :3000 + Socket :3001
 ## Android 앱
 
 ```bash
-npm run cap:sync
-npm run android:bundle   # Play Store AAB
+npm run cap:sync          # Android
+npm run cap:sync:ios      # iOS (Mac + Xcode)
+npm run android:bundle    # Play Store AAB
 ```
 
 Remote WebView → `https://mocomo.net` (`capacitor.config.ts`)
 
-→ [Android QA](./docs/ANDROID_QA.md) · [Play Store](./docs/PLAY_STORE_PRIVATE.md)
+→ [Android QA](./docs/ANDROID_QA.md) · [Play Store](./docs/PLAY_STORE_PRIVATE.md) · [푸시 설정](./docs/PUSH_SETUP.md)
 
 ## iOS
 
-→ [iOS 설정 가이드](./docs/IOS_APP_SETUP.md) (`npx cap add ios`)
+```bash
+npm run cap:sync:ios
+npm run cap:open:ios   # Mac + Xcode 필요
+```
+
+→ [iOS 설정 가이드](./docs/IOS_APP_SETUP.md) · `ios/` 프로젝트 포함
 
 ## QA · 배포 후 검증
 
