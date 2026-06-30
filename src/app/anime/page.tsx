@@ -61,12 +61,12 @@ export default async function AnimeHubPage() {
         <div className="space-y-6 min-w-0">
           <section>
             <h2 className="text-sm font-semibold text-muted-foreground mb-3">장르로 찾기</h2>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2 moco-stagger">
               {ANIME_GENRES.map((g) => {
                 const count = countMap[g.id] ?? 0;
                 return (
                   <Link key={g.id} href={`/anime/list/${genreToParam(g.id)}`}>
-                    <Card className="h-full rounded-2xl hover:border-primary/40 transition-colors">
+                    <Card interactive className="h-full rounded-2xl hover:border-primary/40 transition-colors">
                       <CardContent className="p-5">
                         <div className="flex items-start gap-3">
                           <span className="text-3xl" aria-hidden>

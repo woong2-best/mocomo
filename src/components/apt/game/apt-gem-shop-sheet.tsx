@@ -14,6 +14,8 @@ import {
 import { calcGoldFromGems } from "@/lib/apt/economy/economy-config-types";
 import type { AptGemShopCatalog } from "@/actions/apt-iap";
 import { hydrateLocalEconomy } from "@/lib/apt/local-home-store";
+import { MotionPress, MotionSheet } from "@/components/motion/motion-primitives";
+import { AnimatePresence, motion } from "framer-motion";
 
 function AptGemShopSheetInner() {
   const {
@@ -193,8 +195,11 @@ function AptGemShopSheetInner() {
   const gemProducts = catalog?.products.filter((p) => p.type === "gems") ?? [];
 
   return (
-    <div className="pointer-events-auto absolute inset-0 z-[200] flex flex-col justify-end bg-black/40">
-      <div className="apt-game-shop-sheet mx-auto max-h-[85vh] w-full max-w-md overflow-hidden rounded-t-[1.75rem] bg-[#faf6f0] shadow-2xl animate-moco-slide-up">
+    <MotionSheet
+      open={gemShopOpen}
+      onClose={() => setGemShopOpen(false)}
+      panelClassName="apt-game-shop-sheet mx-auto max-h-[85vh] w-full max-w-md overflow-hidden rounded-t-[1.75rem] bg-[#faf6f0] shadow-2xl"
+    >
         <div className="flex items-center justify-between border-b border-[#e8dcc8]/80 px-4 py-3">
           <div>
             <p className="text-sm font-black text-[#5c4033]">젬 상점</p>
@@ -240,18 +245,18 @@ function AptGemShopSheetInner() {
         ) : gemProducts.length === 0 ? (
           <p className="px-4 py-6 text-center text-[11px] text-[#8b7355]">판매 중인 젬 상품이 없습니다.</p>
         ) : (
-        <div className="grid grid-cols-2 gap-2 overflow-y-auto px-4 py-3">
+        <div className="grid grid-cols-2 gap-2 overflow-y-auto px-4 py-3 moco-stagger">
           {gemProducts.map((p) => {
             const isPurchasing = purchasingId === p.productId;
             const storePrice = storePrices[p.productId];
             return (
+            <MotionPress key={p.id} hoverLift={false}>
             <button
-              key={p.id}
               type="button"
               disabled={loading || !billingReady}
               onClick={() => void handlePurchase(p.productId)}
               className={cn(
-                "apt-game-shop-card relative flex flex-col items-center rounded-2xl p-3 text-center",
+                "apt-game-shop-card relative flex w-full flex-col items-center rounded-2xl p-3 text-center",
                 !billingReady && "opacity-50",
                 isPurchasing && "ring-2 ring-amber-400/80"
               )}
@@ -270,6 +275,7 @@ function AptGemShopSheetInner() {
                 {storePrice ?? p.description}
               </span>
             </button>
+            </MotionPress>
             );
           })}
         </div>
@@ -303,13 +309,19 @@ function AptGemShopSheetInner() {
           </div>
         </div>
 
+        <AnimatePresence>
         {msg && (
-          <div className="mx-4 mb-[max(0.5rem,env(safe-area-inset-bottom))] rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-center text-[11px] font-semibold text-rose-700">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            className="mx-4 mb-[max(0.5rem,env(safe-area-inset-bottom))] rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-center text-[11px] font-semibold text-rose-700"
+          >
             {msg}
-          </div>
+          </motion.div>
         )}
-      </div>
-    </div>
+        </AnimatePresence>
+    </MotionSheet>
   );
 }
 

@@ -343,6 +343,26 @@ html[data-client="app"] .native-live-pad {
     @apply shadow-folk -translate-y-0.5 border-folk-terracotta/50;
   }
 
+  .used-listing-card article {
+    @apply transition-all duration-300;
+  }
+  .used-listing-card:hover article {
+    @apply -translate-y-0.5 shadow-folk border-folk-terracotta/40;
+  }
+
+  .discover-action-btn {
+    @apply transition-shadow duration-200;
+  }
+  .discover-action-pass:hover {
+    box-shadow: 0 0 24px hsl(var(--destructive) / 0.35);
+  }
+  .discover-action-like:hover {
+    box-shadow: 0 0 24px hsl(142 76% 45% / 0.35);
+  }
+  .discover-action-cheer:hover {
+    box-shadow: 0 0 24px hsl(38 92% 50% / 0.4);
+  }
+
   .folk-tag {
     @apply inline-flex items-center text-[10px] font-bold font-display px-2 py-0.5 rounded-md border-2 border-folk-cobalt/25 bg-folk-gold/20 text-folk-cobalt;
   }

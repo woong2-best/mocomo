@@ -61,17 +61,17 @@ export function UsedListingCard({ listing }: { listing: Listing }) {
   const restricted = isUsedRestrictedKind(listing.restrictedKind);
 
   return (
-    <Link href={`/used/${listing.id}`} prefetch className="block group">
+    <Link href={`/used/${listing.id}`} prefetch className="block group used-listing-card">
       <article
-        className={`rounded-xl overflow-hidden bg-card border border-border/50 ${isDone ? "opacity-70" : ""}`}
+        className={`folk-card-interactive rounded-xl overflow-hidden bg-card border border-border/50 ${isDone ? "opacity-70" : ""}`}
       >
-        <div className="relative aspect-square bg-muted/40">
+        <div className="relative aspect-square bg-muted/40 overflow-hidden">
           {thumb ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={thumb}
               alt=""
-              className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-200"
+              className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">

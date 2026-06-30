@@ -2,9 +2,15 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { AnimatePresence } from "framer-motion";
 import { Building2, Gamepad2, Radio, Trophy, Users, X } from "lucide-react";
 import { FolkSectionTitle } from "@/components/brand/folk-decor";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
+import {
+  MotionChip,
+  MotionInView,
+  MotionPress,
+} from "@/components/motion/motion-primitives";
 import { cn } from "@/lib/utils";
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { APT_GAME_PATH } from "@/lib/site-routes";
@@ -117,21 +123,30 @@ export function GamesHubClient({
       </div>
 
       <div className="flex flex-wrap gap-1.5">
-        <CategoryChip active={category === "all"} onClick={() => setCategory("all")} label="전체" />
+        <MotionChip
+          active={category === "all"}
+          onClick={() => setCategory("all")}
+          label="전체"
+          layoutId="games-hub-chip"
+        />
         {CATEGORY_ORDER.map((c) => (
-          <CategoryChip
+          <MotionChip
             key={c}
             active={category === c}
             onClick={() => setCategory(c)}
             label={CATEGORY_LABELS[c]}
+            layoutId="games-hub-chip"
           />
         ))}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+      <AnimatePresence mode="popLayout">
+      <div key={category} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <MotionInView>
+        <MotionPress>
         <Link
           href={APT_GAME_PATH}
-          className="group col-span-2 flex flex-row items-center gap-4 rounded-2xl border-2 border-folk-terracotta/35 bg-gradient-to-br from-folk-gold/25 to-folk-cream/80 p-4 hover:border-folk-terracotta/60 transition-colors"
+          className="group col-span-2 flex flex-row items-center gap-4 rounded-2xl border-2 border-folk-terracotta/35 bg-gradient-to-br from-folk-gold/25 to-folk-cream/80 p-4 hover:border-folk-terracotta/60 transition-colors folk-card-interactive"
         >
           <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border-2 border-folk-cobalt/15 bg-white group-hover:border-folk-terracotta/40">
             <Building2 className="h-7 w-7 text-folk-cobalt" />
@@ -143,7 +158,9 @@ export function GamesHubClient({
             </p>
           </div>
         </Link>
-        {games.map((game) => {
+        </MotionPress>
+        </MotionInView>
+        {games.map((game, i) => {
           const Icon = game.icon;
           const playable = game.status === "live" || game.status === "beta";
           const inner = (
@@ -181,38 +198,46 @@ export function GamesHubClient({
           if (playable && game.href) {
             if (embedded && onGameNavigate) {
               return (
+                <MotionInView key={game.id} delay={Math.min(i * 0.04, 0.4)}>
+                <MotionPress>
                 <button
-                  key={game.id}
                   type="button"
                   onClick={() => onGameNavigate(game.href!)}
-                  className="group flex flex-col items-center gap-2 rounded-2xl border-2 border-folk-cobalt/20 bg-folk-cream/60 p-4 hover:border-folk-terracotta/50 hover:bg-folk-gold/10 transition-colors text-left w-full"
+                  className="group flex flex-col items-center gap-2 rounded-2xl border-2 border-folk-cobalt/20 bg-folk-cream/60 p-4 hover:border-folk-terracotta/50 hover:bg-folk-gold/10 transition-colors text-left w-full folk-card-interactive"
                 >
                   {inner}
                 </button>
+                </MotionPress>
+                </MotionInView>
               );
             }
             return (
+              <MotionInView key={game.id} delay={Math.min(i * 0.04, 0.4)}>
+              <MotionPress>
               <Link
-                key={game.id}
                 href={game.href}
-                className="group flex flex-col items-center gap-2 rounded-2xl border-2 border-folk-cobalt/20 bg-folk-cream/60 p-4 hover:border-folk-terracotta/50 hover:bg-folk-gold/10 transition-colors"
+                className="group flex flex-col items-center gap-2 rounded-2xl border-2 border-folk-cobalt/20 bg-folk-cream/60 p-4 hover:border-folk-terracotta/50 hover:bg-folk-gold/10 transition-colors folk-card-interactive"
               >
                 {inner}
               </Link>
+              </MotionPress>
+              </MotionInView>
             );
           }
 
           return (
+            <MotionInView key={game.id} delay={Math.min(i * 0.04, 0.4)}>
             <div
-              key={game.id}
               className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-border/60 bg-muted/20 p-4 opacity-80 cursor-not-allowed"
               title="준비 중입니다"
             >
               {inner}
             </div>
+            </MotionInView>
           );
         })}
       </div>
+      </AnimatePresence>
 
         <p className="text-xs text-center text-muted-foreground">
           친구 초대 · 방 코드 · 관전 · 랭킹 지원
@@ -228,30 +253,5 @@ export function GamesHubClient({
     <AppPageChrome maxWidth="4xl" spacing="sm" className="py-4">
       {body}
     </AppPageChrome>
-  );
-}
-
-function CategoryChip({
-  active,
-  onClick,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-full px-3 py-1 text-xs font-semibold transition-colors",
-        active
-          ? "bg-folk-terracotta text-white"
-          : "bg-muted/60 text-muted-foreground hover:bg-muted"
-      )}
-    >
-      {label}
-    </button>
   );
 }

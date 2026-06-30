@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import type { DiscoveryCard } from "@/lib/discovery/types";
 import { discoverySwipe, getDiscoveryDeck, openDiscoveryChat } from "@/actions/discovery";
 import { vibrateLightTap, vibrateSuccess } from "@/lib/haptics";
+import { MotionBurst } from "@/components/motion/motion-primitives";
+import { pressTap } from "@/lib/motion-presets";
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { cn } from "@/lib/utils";
 
@@ -191,17 +193,22 @@ export function DiscoverySwipeDeck() {
       <AnimatePresence>
         {matchFlash && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
             onClick={dismissMatchFlash}
           >
-            <div
+            <MotionBurst
               className="text-center space-y-4 px-6 pointer-events-auto"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
             >
-              <Sparkles className="h-16 w-16 mx-auto text-yellow-300 animate-pulse" />
+              <motion.div
+                animate={{ rotate: [0, -8, 8, 0], scale: [1, 1.15, 1] }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+              >
+                <Sparkles className="h-16 w-16 mx-auto text-yellow-300" />
+              </motion.div>
               <p className="text-3xl font-black text-white">매칭!</p>
               <p className="text-white/80 text-sm">서로 관심 있어요 · 메시지를 보내세요</p>
               <div className="flex flex-col gap-2 pt-2">
@@ -221,7 +228,7 @@ export function DiscoverySwipeDeck() {
                   계속 보기
                 </Button>
               </div>
-            </div>
+            </MotionBurst>
           </motion.div>
         )}
       </AnimatePresence>
@@ -274,42 +281,48 @@ export function DiscoverySwipeDeck() {
       )}
 
       <div className="flex items-center justify-center gap-4">
-        <button
+        <motion.button
           type="button"
           disabled={busy}
           onClick={() => void act("PASS")}
+          whileTap={pressTap}
+          whileHover={{ scale: 1.06 }}
           className={cn(
             "h-14 w-14 rounded-full border-2 border-red-400/60 bg-black/40 flex items-center justify-center",
-            "hover:bg-red-500/20 active:scale-95 transition-transform shadow-lg"
+            "hover:bg-red-500/20 shadow-lg discover-action-btn discover-action-pass"
           )}
           aria-label="넘기기"
         >
           <X className="h-7 w-7 text-red-400" />
-        </button>
-        <button
+        </motion.button>
+        <motion.button
           type="button"
           disabled={busy}
           onClick={() => void act("CHEER")}
+          whileTap={pressTap}
+          whileHover={{ scale: 1.08 }}
           className={cn(
             "h-12 w-12 rounded-full border-2 border-amber-400/70 bg-gradient-to-br from-amber-500/30 to-orange-600/30",
-            "flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-lg font-bold text-sm text-amber-100"
+            "flex items-center justify-center shadow-lg font-bold text-sm text-amber-100 discover-action-btn discover-action-cheer"
           )}
           aria-label="응원"
         >
           ㅊㅊ
-        </button>
-        <button
+        </motion.button>
+        <motion.button
           type="button"
           disabled={busy}
           onClick={() => void act("LIKE")}
+          whileTap={pressTap}
+          whileHover={{ scale: 1.06 }}
           className={cn(
             "h-14 w-14 rounded-full border-2 border-emerald-400/60 bg-black/40 flex items-center justify-center",
-            "hover:bg-emerald-500/20 active:scale-95 transition-transform shadow-lg"
+            "hover:bg-emerald-500/20 shadow-lg discover-action-btn discover-action-like"
           )}
           aria-label="좋아요"
         >
           <Heart className="h-7 w-7 text-emerald-400 fill-emerald-400/30" />
-        </button>
+        </motion.button>
       </div>
 
       {lastAction && (

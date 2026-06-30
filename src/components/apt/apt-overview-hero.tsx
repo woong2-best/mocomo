@@ -1,8 +1,11 @@
 "use client";
 
 import Image from "next/image";
+import { motion } from "framer-motion";
 import { Bath, BedDouble, DoorOpen, KeyRound, Sofa } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { fadeUp } from "@/lib/motion-presets";
 
 type Props = {
   isLoggedIn: boolean;
@@ -32,6 +35,7 @@ export function AptOverviewHero({
   className,
 }: Props) {
   const busy = startPhase !== "idle";
+  const reduced = usePrefersReducedMotion();
 
   return (
     <div
@@ -41,7 +45,12 @@ export function AptOverviewHero({
         className
       )}
     >
-      <div className="relative min-h-0 flex-1 px-3 pt-2">
+      <motion.div
+        className="relative min-h-0 flex-1 px-3 pt-2"
+        variants={fadeUp}
+        initial={reduced ? false : "hidden"}
+        animate="show"
+      >
         <div className="relative mx-auto h-full w-full max-w-lg">
           <Image
             src="/diorama/apt-overview.png"
@@ -52,9 +61,15 @@ export function AptOverviewHero({
             className="object-contain object-center drop-shadow-[0_24px_48px_rgba(60,45,30,0.12)]"
           />
         </div>
-      </div>
+      </motion.div>
 
-      <div className="shrink-0 px-4 pb-1">
+      <motion.div
+        className="shrink-0 px-4 pb-1"
+        variants={fadeUp}
+        initial={reduced ? false : "hidden"}
+        animate="show"
+        transition={{ delay: reduced ? 0 : 0.12 }}
+      >
         <div className="mx-auto w-full max-w-lg rounded-[1.75rem] border border-[#E8DCC8] bg-[#F7F0E4]/95 px-4 py-4 shadow-[0_12px_40px_rgba(80,60,40,0.08)] backdrop-blur-sm">
           <p className="text-center text-sm font-black text-[#5C4A3A]">일반적인 구조 예시</p>
 
@@ -117,7 +132,7 @@ export function AptOverviewHero({
             </p>
           )}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

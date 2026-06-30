@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { Mic, Radio, Users } from "lucide-react";
+import { Mic, Radio } from "lucide-react";
 import { getCachedVoiceChannels } from "@/lib/cached-data";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
-import { MotionPress } from "@/components/motion/motion-primitives";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { VoiceChannelList } from "@/components/voice/voice-channel-list";
 
 export const revalidate = 30;
 
@@ -60,24 +60,7 @@ export default async function VoicePage() {
             </CardContent>
           </Card>
         ) : (
-          channels.map((ch) => (
-            <MotionPress key={ch.id}>
-            <Link href={`/voice/${ch.id}`}>
-              <Card interactive className="hover:border-primary/40">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                    {ch.name}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Users className="h-4 w-4" />
-                  {ch._count.members} / {ch.maxUsers}
-                </CardContent>
-              </Card>
-            </Link>
-            </MotionPress>
-          ))
+          <VoiceChannelList channels={channels} />
         )}
       </div>
     </AppPageChrome>

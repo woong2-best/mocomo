@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { Package } from "lucide-react";
 import { getUsedListings, isUsedDbReady } from "@/actions/used-market";
 import { DbSetupBanner } from "@/components/ui/db-setup-banner";
-import { UsedListingCard } from "@/components/used/used-listing-card";
+import { UsedListingGrid } from "@/components/used/used-listing-grid";
 import { UsedSearchHeader } from "@/components/used/used-search-header";
 import { UsedFeedSkeleton } from "@/components/used/used-loading-skeletons";
 import { UsedWriteFab } from "@/components/used/used-write-fab";
@@ -60,13 +60,7 @@ async function UsedFeed({
     );
   }
 
-  return (
-    <div className="grid grid-cols-2 gap-3 pb-8">
-      {listings.map((l) => (
-        <UsedListingCard key={l.id} listing={l} />
-      ))}
-    </div>
-  );
+  return <UsedListingGrid listings={listings} />;
 }
 
 export default async function UsedHomePage({
