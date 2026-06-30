@@ -1,10 +1,10 @@
 "use client";
 
 import { Component, type ReactNode } from "react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
 import { LiveBrowserStudio } from "@/components/live/live-browser-studio";
+import { AppErrorState } from "@/components/ui/app-error-state";
 
 type Props = {
   children: ReactNode;
@@ -77,31 +77,17 @@ export class LiveStudioErrorBoundary extends Component<Props, State> {
     }
 
     return (
-      <div className="max-w-lg mx-auto p-6 space-y-4">
-        <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-6 text-center space-y-3">
-          <AlertTriangle className="h-10 w-10 mx-auto text-destructive" />
-          <h2 className="text-lg font-bold">스튜디오를 열지 못했습니다</h2>
-          <p className="text-sm text-muted-foreground">{this.state.message}</p>
-          <div className="flex flex-wrap gap-2 justify-center pt-2">
-            <Button
-              type="button"
-              variant="secondary"
-              className="rounded-xl"
-              onClick={() => this.setState({ hasError: false, message: "" })}
-            >
-              다시 시도
-            </Button>
-            {this.props.channelId && (
-              <Button type="button" className="rounded-xl" asChild>
-                <Link href={`/voice/${this.props.channelId}`}>페이지 새로고침</Link>
-              </Button>
-            )}
-            <Button type="button" variant="outline" className="rounded-xl" asChild>
-              <Link href="/live">라이브 홈</Link>
-            </Button>
-          </div>
-        </div>
-      </div>
+      <AppErrorState
+        title="스튜디오를 열지 못했습니다"
+        description={this.state.message}
+        icon={AlertTriangle}
+        variant="destructive"
+        onRetry={() => this.setState({ hasError: false, message: "" })}
+        primaryHref={this.props.channelId ? `/voice/${this.props.channelId}` : "/live"}
+        primaryLabel={this.props.channelId ? "페이지 새로고침" : "라이브 홈"}
+        secondaryHref={this.props.channelId ? "/live" : undefined}
+        secondaryLabel={this.props.channelId ? "라이브 홈" : undefined}
+      />
     );
   }
 }

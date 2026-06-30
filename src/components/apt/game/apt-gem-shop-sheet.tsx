@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { X, RefreshCw } from "lucide-react";
+import { X, RefreshCw, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAptGameRequired } from "./apt-game-context";
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
@@ -29,7 +29,9 @@ function AptGemShopSheetInner() {
   const [catalog, setCatalog] = useState<AptGemShopCatalog | null>(null);
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [billingReady, setBillingReady] = useState(false);
+  const [storePrices, setStorePrices] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [purchasingId, setPurchasingId] = useState<string | null>(null);
   const [exchangeGems, setExchangeGems] = useState(10);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -44,6 +46,23 @@ function AptGemShopSheetInner() {
     });
   }, [gemShopOpen, isNativeApp]);
 
+  useEffect(() => {
+    if (!gemShopOpen || !catalog || !billingReady) {
+      if (!billingReady) setStorePrices({});
+      return;
+    }
+    const ids = catalog.products.filter((p) => p.type === "gems").map((p) => p.productId);
+    if (ids.length === 0) return;
+    void createPurchaseServiceForClient(isNativeApp).then(async (svc) => {
+      try {
+        const products = await svc.getProducts(ids);
+        setStorePrices(Object.fromEntries(products.map((p) => [p.productId, p.price])));
+      } catch {
+        setStorePrices({});
+      }
+    });
+  }, [gemShopOpen, catalog, billingReady, isNativeApp]);
+
   const exchangePreview = useMemo(() => {
     if (!catalog) return 0;
     return calcGoldFromGems(exchangeGems, catalog.config);
@@ -52,6 +71,7 @@ function AptGemShopSheetInner() {
   const handlePurchase = useCallback(
     async (productId: string) => {
       setLoading(true);
+      setPurchasingId(productId);
       setMsg(null);
       try {
         const svc = await createPurchaseServiceForClient(isNativeApp);
@@ -95,6 +115,7 @@ function AptGemShopSheetInner() {
         setMsg(e instanceof Error ? e.message : "결제에 실패했습니다.");
       } finally {
         setLoading(false);
+        setPurchasingId(null);
       }
     },
     [isNativeApp, refreshEconomyFromServer, setGame, setGemShopOpen, showToast]
@@ -199,19 +220,28 @@ function AptGemShopSheetInner() {
               <div key={i} className="apt-game-shop-card h-28 animate-pulse rounded-2xl bg-[#e8dcc8]/80" />
             ))}
           </div>
+        ) : gemProducts.length === 0 ? (
+          <p className="px-4 py-6 text-center text-[11px] text-[#8b7355]">판매 중인 젬 상품이 없습니다.</p>
         ) : (
         <div className="grid grid-cols-2 gap-2 overflow-y-auto px-4 py-3">
-          {gemProducts.map((p) => (
+          {gemProducts.map((p) => {
+            const isPurchasing = purchasingId === p.productId;
+            const storePrice = storePrices[p.productId];
+            return (
             <button
               key={p.id}
               type="button"
               disabled={loading || !billingReady}
               onClick={() => void handlePurchase(p.productId)}
               className={cn(
-                "apt-game-shop-card flex flex-col items-center rounded-2xl p-3 text-center",
-                !billingReady && "opacity-50"
+                "apt-game-shop-card relative flex flex-col items-center rounded-2xl p-3 text-center",
+                !billingReady && "opacity-50",
+                isPurchasing && "ring-2 ring-amber-400/80"
               )}
             >
+              {isPurchasing && (
+                <Loader2 className="absolute right-2 top-2 h-3.5 w-3.5 animate-spin text-amber-600" />
+              )}
               <span className="text-2xl">💎</span>
               <span className="mt-1 text-xs font-black text-[#5c4033]">{p.title}</span>
               {p.bonusAmount > 0 && (
@@ -219,9 +249,12 @@ function AptGemShopSheetInner() {
                   +{p.bonusAmount} 보너스
                 </span>
               )}
-              <span className="mt-1 text-[10px] text-[#8b7355]">{p.description}</span>
+              <span className="mt-1 text-[10px] font-bold text-[#5c4033]">
+                {storePrice ?? p.description}
+              </span>
             </button>
-          ))}
+            );
+          })}
         </div>
         )}
 
@@ -254,9 +287,9 @@ function AptGemShopSheetInner() {
         </div>
 
         {msg && (
-          <p className="px-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-center text-[11px] font-semibold text-rose-600">
+          <div className="mx-4 mb-[max(0.5rem,env(safe-area-inset-bottom))] rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-center text-[11px] font-semibold text-rose-700">
             {msg}
-          </p>
+          </div>
         )}
       </div>
     </div>

@@ -1,10 +1,12 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import type { LucideIcon } from "lucide-react";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
+import { PageErrorState } from "@/components/ui/app-error-state";
 
 export function LiveRoomErrorState({
   title,
   description,
+  icon,
+  variant = "default",
   primaryHref = "/live",
   primaryLabel = "라이브 홈",
   secondaryHref,
@@ -12,6 +14,8 @@ export function LiveRoomErrorState({
 }: {
   title: string;
   description?: React.ReactNode;
+  icon?: LucideIcon;
+  variant?: "default" | "destructive" | "muted";
   primaryHref?: string;
   primaryLabel?: string;
   secondaryHref?: string;
@@ -19,22 +23,16 @@ export function LiveRoomErrorState({
 }) {
   return (
     <AppPageChrome maxWidth="lg" spacing="sm">
-      <div className="flex flex-col items-center gap-4 py-16 text-center">
-        <p className="text-lg font-semibold">{title}</p>
-        {description && (
-          <div className="max-w-sm text-sm text-muted-foreground">{description}</div>
-        )}
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <Button asChild className="rounded-xl">
-            <Link href={primaryHref}>{primaryLabel}</Link>
-          </Button>
-          {secondaryHref && secondaryLabel && (
-            <Button asChild variant="outline" className="rounded-xl">
-              <Link href={secondaryHref}>{secondaryLabel}</Link>
-            </Button>
-          )}
-        </div>
-      </div>
+      <PageErrorState
+        title={title}
+        description={description}
+        icon={icon}
+        variant={variant}
+        primaryHref={primaryHref}
+        primaryLabel={primaryLabel}
+        secondaryHref={secondaryHref}
+        secondaryLabel={secondaryLabel}
+      />
     </AppPageChrome>
   );
 }
