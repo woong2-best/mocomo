@@ -9,6 +9,15 @@
 
 **환경:** Android 실기기 1대 + 웹(Chrome) 1대 + 스테이징 DB
 
+**자동화 (배포 후):**
+
+```bash
+npm run health:prod    # /api/health, summary
+npm run smoke:api      # feed API, 주요 페이지
+npm run economy:stress # Persona 3 경제 (일부)
+npm run persona:smoke  # 웹 스크린샷 32장
+```
+
 ---
 
 ## Persona 1 — 신규 유저 (Day 0)

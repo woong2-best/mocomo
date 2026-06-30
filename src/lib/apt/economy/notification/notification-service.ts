@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { isEconomyNotificationDeliveryEnabled } from "../economy-emergency";
+import { APT_DEEP_LINKS } from "./apt-notification-types";
 import type {
   AptNotificationPayload,
   AptNotificationType,
@@ -20,7 +21,15 @@ function retentionSince(): Date {
   return new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
 }
 
-/** In-app 채널 — Push/Email은 추후 동일 인터페이스로 확장 */
+function aptPushUrl(payload?: AptNotificationPayload): string {
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://mocomo.net").replace(/\/$/, "");
+  if (payload?.href && typeof payload.href === "string") {
+    return payload.href.startsWith("http") ? payload.href : `${appUrl}${payload.href}`;
+  }
+  return `${appUrl}${APT_DEEP_LINKS.notifications}`;
+}
+
+/** In-app 채널 */
 async function deliverInApp(input: AptNotificationInput): Promise<void> {
   await db.aptNotification.create({
     data: {
@@ -34,9 +43,20 @@ async function deliverInApp(input: AptNotificationInput): Promise<void> {
   });
 }
 
-/** @deprecated Push stub — Firebase/APNs 연동 시 구현 */
-async function deliverPush(_input: AptNotificationInput): Promise<void> {
-  /* Phase 11 */
+async function deliverPush(input: AptNotificationInput): Promise<void> {
+  try {
+    const { deliverMobilePush } = await import("@/lib/mobile-push");
+    await deliverMobilePush({
+      userId: input.userId,
+      title: input.title,
+      body: input.body,
+      url: aptPushUrl(input.payload),
+      tag: `apt-${input.type}`,
+      type: "apt_notification",
+    });
+  } catch {
+    /* push optional */
+  }
 }
 
 export async function sendAptNotification(input: AptNotificationInput): Promise<void> {

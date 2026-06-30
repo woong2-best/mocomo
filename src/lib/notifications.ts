@@ -26,6 +26,18 @@ export async function createNotification(data: NotificationInput): Promise<void>
         link: data.link,
       },
     });
+    void import("@/lib/mobile-push")
+      .then(({ deliverMobilePush }) =>
+        deliverMobilePush({
+          userId: data.userId,
+          title: data.title,
+          body: data.body || data.title,
+          url: data.link,
+          tag: `sns-${data.type}`,
+          type: "sns_notification",
+        })
+      )
+      .catch(() => undefined);
   } catch {
     /* 테이블 미적용 등 */
   }

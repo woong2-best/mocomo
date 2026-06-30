@@ -18,6 +18,12 @@ const PushRegistration = dynamic(
   { ssr: false }
 );
 
+const NativePushRegistration = dynamic(
+  () =>
+    import("@/components/push/native-push-registration").then((m) => m.NativePushRegistration),
+  { ssr: false }
+);
+
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
@@ -25,6 +31,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       <ComposeProvider>
         <SidebarToggleProvider>
         <PushRegistration />
+        <NativePushRegistration />
         <CallProviderGate>
           <PlatformBootstrapClient />
           {children}

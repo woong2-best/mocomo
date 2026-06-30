@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { NativeAppHeader } from "@/components/layout/native-app-header";
 import { NativeAppNav } from "@/components/layout/native-app-nav";
 import { NativeAppComposeFab } from "@/components/layout/native-app-compose-fab";
+import { OfflineBanner } from "@/components/layout/offline-banner";
 import {
   isFastHubPath,
   nativeAppMainPadding,
@@ -70,6 +71,7 @@ function NativeAppShellInner({ children }: { children: React.ReactNode }) {
   return (
     <>
       {!hideHeader && <NativeAppHeader />}
+      <OfflineBanner className="sticky top-0 z-50" />
       <main className={`min-h-[calc(100dvh-3.25rem)] bg-background ${mainPb} ${hideHeader ? "pt-safe" : ""}`}>
         <div className="mx-auto w-full max-w-lg min-h-full border-x border-border/40 bg-background">
           {pageMotion}

@@ -184,6 +184,7 @@ model User {
   platformDevSupporter Boolean @default(false)
 
   pushSubscriptions PushSubscription[]
+  mobilePushTokens  MobilePushToken[]
   avatarPresets     AvatarPreset[]
   aptProfile        AptProfile?
   aptDioramaLayouts AptDioramaLayout[]
@@ -1989,6 +1990,21 @@ model PushSubscription {
 
   @@unique([userId, endpoint])
   @@index([userId])
+}
+
+/** FCM/APNs 네이티브 디바이스 토큰 */
+model MobilePushToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String
+  platform  String   // android | ios
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, token])
+  @@index([userId])
+  @@index([token])
 }
 
 model Notification {
