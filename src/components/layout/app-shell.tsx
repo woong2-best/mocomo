@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 import { usePathname } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
@@ -10,6 +11,8 @@ import { FolkArtStage } from "@/components/brand/folk-decor";
 import { mainScrollPaddingClass, shouldHideMobileNav } from "@/lib/mobile-shell";
 import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
 import { isAptImmersivePath } from "@/lib/apt-route";
+import { pageVariants } from "@/lib/motion-presets";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
 function AppShellInner({
   children,
@@ -27,6 +30,24 @@ function AppShellInner({
   const hideMobileNav = shouldHideMobileNav(pathname);
   const mainPb = mainScrollPaddingClass(pathname);
   const showRightPanel = shouldShowRightPanel(pathname);
+  const reduced = usePrefersReducedMotion();
+
+  const pageMotion = reduced ? (
+    <>{children}</>
+  ) : (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={pathname}
+        variants={pageVariants}
+        initial="hidden"
+        animate="show"
+        exit="exit"
+        className="min-h-full"
+      >
+        {children}
+      </motion.div>
+    </AnimatePresence>
+  );
 
   if (isAuthRoute || isLegalRoute) {
     return (
@@ -57,10 +78,10 @@ function AppShellInner({
           }
         >
           {isMessagesRoute ? (
-            children
+            pageMotion
           ) : (
             <FolkArtStage dense className="min-h-full">
-              {children}
+              {pageMotion}
             </FolkArtStage>
           )}
         </main>

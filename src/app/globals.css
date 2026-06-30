@@ -126,6 +126,44 @@
       height: calc(100dvh - var(--header-h));
     }
   }
+
+  /* MoCoMo UI motion — stagger children without per-page JS */
+  .moco-stagger > * {
+    @apply animate-moco-fade-up;
+  }
+  .moco-stagger > *:nth-child(1) { animation-delay: 0ms; }
+  .moco-stagger > *:nth-child(2) { animation-delay: 55ms; }
+  .moco-stagger > *:nth-child(3) { animation-delay: 110ms; }
+  .moco-stagger > *:nth-child(4) { animation-delay: 165ms; }
+  .moco-stagger > *:nth-child(5) { animation-delay: 220ms; }
+  .moco-stagger > *:nth-child(6) { animation-delay: 275ms; }
+  .moco-stagger > *:nth-child(7) { animation-delay: 330ms; }
+  .moco-stagger > *:nth-child(8) { animation-delay: 385ms; }
+  .moco-stagger > *:nth-child(n + 9) { animation-delay: 440ms; }
+
+  .moco-enter {
+    @apply animate-moco-fade-up;
+  }
+  .moco-pop {
+    @apply animate-moco-pop;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .moco-stagger > *,
+  .moco-enter,
+  .moco-pop,
+  .animate-moco-fade-up,
+  .animate-moco-fade-in,
+  .animate-moco-scale-in,
+  .animate-moco-slide-up,
+  .animate-moco-pop,
+  .animate-moco-float,
+  .animate-moco-pulse-soft,
+  .animate-moco-shimmer {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 /* Painterly canvas texture */
@@ -202,7 +240,10 @@ html[data-client="app"] .native-live-pad {
 }
 
 .folk-card {
-  @apply rounded-xl border-2 border-[hsl(var(--folk-cobalt)/0.35)] bg-card shadow-[3px_4px_0_hsl(var(--folk-cobalt)/0.12)];
+  @apply rounded-xl border-2 border-[hsl(var(--folk-cobalt)/0.35)] bg-card shadow-[3px_4px_0_hsl(var(--folk-cobalt)/0.12)] transition-all duration-300 ease-out;
+}
+.folk-card-interactive {
+  @apply hover:-translate-y-1 hover:shadow-folk hover:border-[hsl(var(--folk-terracotta)/0.45)] active:translate-y-0 active:scale-[0.99] active:shadow-folk-sm;
 }
 
 .folk-chunky-text {

@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import { ArrowLeft, Search } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import { DEFAULT_LANDING_PATH, EXPLORE_PATH } from "@/lib/site-routes";
 import { HeaderAuth } from "@/components/layout/header-auth";
 import { cn } from "@/lib/utils";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { pressTap } from "@/lib/motion-presets";
 
 const ROOT_PATHS = new Set([
   "/",
@@ -117,28 +120,43 @@ function titleForPath(pathname: string): string | null {
 export function NativeAppHeader() {
   const pathname = usePathname();
   const router = useRouter();
+  const reduced = usePrefersReducedMotion();
   const isRoot = ROOT_PATHS.has(pathname);
   const title = titleForPath(pathname);
   const showBack = !isRoot && !!title;
 
   return (
-    <header className="sticky top-0 z-[150] flex min-h-[3.25rem] items-center gap-2 border-b border-border/70 bg-background/95 backdrop-blur-md px-3 pt-safe pb-2">
+    <motion.header
+      className="sticky top-0 z-[150] flex min-h-[3.25rem] items-center gap-2 border-b border-border/70 bg-background/95 backdrop-blur-md px-3 pt-safe pb-2"
+      initial={reduced ? false : { y: -12, opacity: 0 }}
+      animate={reduced ? undefined : { y: 0, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 380, damping: 32 }}
+    >
       <div className="flex w-10 shrink-0 items-center justify-start">
         {showBack ? (
-          <button
+          <motion.button
             type="button"
             onClick={() => router.back()}
             className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted/60"
             aria-label="뒤로"
+            whileTap={reduced ? undefined : pressTap}
           >
             <ArrowLeft className="h-5 w-5" />
-          </button>
+          </motion.button>
         ) : null}
       </div>
 
       <div className="min-w-0 flex-1 text-center">
         {title ? (
-          <h1 className="truncate text-base font-bold">{title}</h1>
+          <motion.h1
+            key={title}
+            className="truncate text-base font-bold"
+            initial={reduced ? false : { opacity: 0, y: 6 }}
+            animate={reduced ? undefined : { opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            {title}
+          </motion.h1>
         ) : (
           <Link href={DEFAULT_LANDING_PATH} className="inline-flex items-center gap-2">
             <span className="font-display text-lg font-bold text-folk-cobalt">{BRAND.name}</span>
@@ -161,6 +179,6 @@ export function NativeAppHeader() {
         )}
         <HeaderAuth compact />
       </div>
-    </header>
+    </motion.header>
   );
 }

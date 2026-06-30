@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Mic, Radio, Users } from "lucide-react";
 import { getCachedVoiceChannels } from "@/lib/cached-data";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
+import { MotionPress } from "@/components/motion/motion-primitives";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -60,8 +61,9 @@ export default async function VoicePage() {
           </Card>
         ) : (
           channels.map((ch) => (
-            <Link key={ch.id} href={`/voice/${ch.id}`}>
-              <Card className="hover:border-primary/40">
+            <MotionPress key={ch.id}>
+            <Link href={`/voice/${ch.id}`}>
+              <Card interactive className="hover:border-primary/40">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
@@ -74,6 +76,7 @@ export default async function VoicePage() {
                 </CardContent>
               </Card>
             </Link>
+            </MotionPress>
           ))
         )}
       </div>

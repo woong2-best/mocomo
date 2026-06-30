@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
+import { motion } from "framer-motion";
 import {
   Home,
   Compass,
@@ -21,6 +22,8 @@ import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
 import { MobileDrawerNav } from "@/components/layout/mobile-drawer-nav";
 import { buildAptMailboxUrl } from "@/lib/apt/mailbox-compose-route";
 import { DEFAULT_LANDING_PATH, APT_GAME_PATH } from "@/lib/site-routes";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { navIconTap, springSnappy } from "@/lib/motion-presets";
 
 const guestTabs: { href: string; icon: typeof Home; labelKey: MessageKey }[] = [
   { href: DEFAULT_LANDING_PATH, icon: Home, labelKey: "nav.home" },
@@ -46,10 +49,16 @@ export function MobileNav() {
   const tabs = isLiveFeatureEnabled()
     ? rawTabs
     : rawTabs.filter((tab) => !isLiveNavHref(tab.href));
+  const reduced = usePrefersReducedMotion();
 
   return (
     <>
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t-2 border-folk-cobalt/25 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 shadow-[0_-3px_0_hsl(var(--folk-terracotta)/0.15)] pb-safe">
+      <motion.nav
+        className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t-2 border-folk-cobalt/25 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 shadow-[0_-3px_0_hsl(var(--folk-terracotta)/0.15)] pb-safe"
+        initial={reduced ? false : { y: 40, opacity: 0 }}
+        animate={reduced ? undefined : { y: 0, opacity: 1 }}
+        transition={springSnappy}
+      >
         <div className="flex justify-around items-center h-14 max-w-lg mx-auto">
           {tabs.map(({ href, icon: Icon, labelKey }) => {
             const active =
@@ -64,12 +73,26 @@ export function MobileNav() {
                 key={href}
                 href={href.includes("decor=mailbox") || href.startsWith("/apt") ? buildAptMailboxUrl() : href}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-0.5 flex-1 h-full min-w-0 px-0.5 text-[10px]",
+                  "relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full min-w-0 px-0.5 text-[10px]",
                   active ? "text-primary font-semibold" : "text-muted-foreground"
                 )}
               >
-                <Icon className={cn("h-5 w-5 shrink-0", active && "text-primary")} />
-                <span className="truncate max-w-full">{t(labelKey)}</span>
+                {active && !reduced && (
+                  <motion.span
+                    layoutId="mobile-nav-pill"
+                    className="absolute inset-x-1 inset-y-2 rounded-xl bg-primary/10"
+                    transition={springSnappy}
+                  />
+                )}
+                <motion.span
+                  className="relative z-[1] flex flex-col items-center gap-0.5"
+                  whileTap={reduced ? undefined : navIconTap}
+                  animate={reduced ? undefined : active ? { scale: 1.06, y: -1 } : { scale: 1, y: 0 }}
+                  transition={springSnappy}
+                >
+                  <Icon className={cn("h-5 w-5 shrink-0", active && "text-primary")} />
+                  <span className="truncate max-w-full">{t(labelKey)}</span>
+                </motion.span>
               </Link>
             );
           })}
@@ -87,7 +110,7 @@ export function MobileNav() {
             </button>
           ) : null}
         </div>
-      </nav>
+      </motion.nav>
       <MobileDrawerNav open={moreOpen} onOpenChange={setMoreOpen} />
     </>
   );

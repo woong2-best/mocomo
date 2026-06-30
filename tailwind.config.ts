@@ -32,11 +32,52 @@ const config: Config = {
       },
       animation: {
         "folk-float": "folk-float 4s ease-in-out infinite",
+        "moco-fade-up": "moco-fade-up 0.45s ease-out backwards",
+        "moco-fade-in": "moco-fade-in 0.35s ease-out backwards",
+        "moco-scale-in": "moco-scale-in 0.4s cubic-bezier(0.22,1,0.36,1) backwards",
+        "moco-shimmer": "moco-shimmer 1.8s ease-in-out infinite",
+        "moco-slide-up": "moco-slide-up 0.4s cubic-bezier(0.22,1,0.36,1) backwards",
+        "moco-pop": "moco-pop 0.5s cubic-bezier(0.34,1.56,0.64,1) backwards",
+        "moco-float": "moco-float 3s ease-in-out infinite",
+        "moco-pulse-soft": "moco-pulse-soft 2.5s ease-in-out infinite",
       },
       keyframes: {
         "folk-float": {
           "0%, 100%": { transform: "translateY(0) rotate(0deg)" },
           "50%": { transform: "translateY(-4px) rotate(1deg)" },
+        },
+        "moco-fade-up": {
+          from: { opacity: "0", transform: "translateY(16px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "moco-fade-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        "moco-scale-in": {
+          from: { opacity: "0", transform: "scale(0.94)" },
+          to: { opacity: "1", transform: "scale(1)" },
+        },
+        "moco-shimmer": {
+          "0%, 100%": { opacity: "0.55" },
+          "50%": { opacity: "1" },
+        },
+        "moco-slide-up": {
+          from: { opacity: "0", transform: "translateY(100%)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "moco-pop": {
+          "0%": { opacity: "0", transform: "scale(0.85)" },
+          "70%": { transform: "scale(1.04)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        "moco-float": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-6px)" },
+        },
+        "moco-pulse-soft": {
+          "0%, 100%": { transform: "scale(1)", opacity: "1" },
+          "50%": { transform: "scale(1.05)", opacity: "0.92" },
         },
       },
       boxShadow: {

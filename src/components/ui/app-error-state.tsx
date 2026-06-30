@@ -3,8 +3,11 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { AlertCircle } from "lucide-react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { scaleIn } from "@/lib/motion-presets";
 import { cn } from "@/lib/utils";
 
 type PageErrorStateProps = {
@@ -37,6 +40,7 @@ export function PageErrorState({
   secondaryLabel,
   className,
 }: PageErrorStateProps) {
+  const reduced = usePrefersReducedMotion();
   const iconClass =
     variant === "destructive"
       ? "text-destructive"
@@ -52,7 +56,12 @@ export function PageErrorState({
         : "border-border/60 bg-card";
 
   return (
-    <div className={cn("flex flex-col items-center gap-4 py-12 text-center sm:py-16", className)}>
+    <motion.div
+      className={cn("flex flex-col items-center gap-4 py-12 text-center sm:py-16", className)}
+      variants={scaleIn}
+      initial={reduced ? false : "hidden"}
+      animate={reduced ? undefined : "show"}
+    >
       <div className={cn("rounded-2xl border p-6 w-full max-w-md space-y-4", cardClass)}>
         <Icon className={cn("h-10 w-10 mx-auto", iconClass)} />
         <div className="space-y-2">
@@ -86,7 +95,7 @@ export function PageErrorState({
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

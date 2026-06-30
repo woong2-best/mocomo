@@ -1,6 +1,7 @@
 "use client";
 
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
+import { MotionPage } from "@/components/motion/motion-primitives";
 import { cn } from "@/lib/utils";
 
 const MAX_WIDTH = {
@@ -28,25 +29,38 @@ export function AppPageChrome({
   className,
   maxWidth = "lg",
   spacing = "md",
+  animate = true,
 }: {
   children: React.ReactNode;
   className?: string;
   maxWidth?: keyof typeof MAX_WIDTH;
   spacing?: "sm" | "md";
+  /** 페이지 진입·스태거 애니메이션 (기본 켜짐) */
+  animate?: boolean;
 }) {
   const { isNativeApp } = useClientPlatform();
+
+  const inner = (
+    <div
+      className={cn(
+        spacing === "sm" ? "space-y-4" : "space-y-6",
+        animate && "moco-stagger"
+      )}
+    >
+      {children}
+    </div>
+  );
 
   return (
     <div
       className={cn(
         MAX_WIDTH[maxWidth],
         "mx-auto p-4 min-w-0",
-        spacing === "sm" ? "space-y-4" : "space-y-6",
         !isNativeApp && "pb-nav lg:pb-6",
         className
       )}
     >
-      {children}
+      {animate ? <MotionPage>{inner}</MotionPage> : inner}
     </div>
   );
 }

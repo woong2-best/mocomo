@@ -15,20 +15,24 @@ export function RouteLoading({
   const resolvedMax = maxWidth ?? (narrow ? "2xl" : "5xl");
   const inner = (
     <div
-      className={`animate-pulse space-y-4 ${chrome ? "" : narrow ? "max-w-2xl mx-auto p-4 lg:p-6" : "max-w-5xl mx-auto p-4 lg:p-6"}`}
+      className={`space-y-4 ${chrome ? "" : narrow ? "max-w-2xl mx-auto p-4 lg:p-6" : "max-w-5xl mx-auto p-4 lg:p-6"}`}
     >
-      <div className="h-8 w-40 rounded-lg bg-muted" />
-      <div className="space-y-3">
-        <div className="h-28 rounded-2xl bg-muted" />
-        <div className="h-28 rounded-2xl bg-muted" />
-        <div className="h-28 rounded-2xl bg-muted" />
+      <div className="h-8 w-40 rounded-lg bg-muted animate-moco-shimmer" />
+      <div className="space-y-3 moco-stagger">
+        <div className="h-28 rounded-2xl bg-muted animate-moco-shimmer" />
+        <div className="h-28 rounded-2xl bg-muted animate-moco-shimmer" />
+        <div className="h-28 rounded-2xl bg-muted animate-moco-shimmer" />
       </div>
     </div>
   );
 
   if (chrome) {
-    return <AppPageChrome maxWidth={resolvedMax}>{inner}</AppPageChrome>;
+    return (
+      <AppPageChrome maxWidth={resolvedMax} animate={false}>
+        {inner}
+      </AppPageChrome>
+    );
   }
 
-  return inner;
+  return <div className="moco-enter">{inner}</div>;
 }

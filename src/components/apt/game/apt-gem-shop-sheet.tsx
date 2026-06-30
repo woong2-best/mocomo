@@ -194,7 +194,7 @@ function AptGemShopSheetInner() {
 
   return (
     <div className="pointer-events-auto absolute inset-0 z-[200] flex flex-col justify-end bg-black/40">
-      <div className="apt-game-shop-sheet mx-auto max-h-[85vh] w-full max-w-md overflow-hidden rounded-t-[1.75rem] bg-[#faf6f0] shadow-2xl">
+      <div className="apt-game-shop-sheet mx-auto max-h-[85vh] w-full max-w-md overflow-hidden rounded-t-[1.75rem] bg-[#faf6f0] shadow-2xl animate-moco-slide-up">
         <div className="flex items-center justify-between border-b border-[#e8dcc8]/80 px-4 py-3">
           <div>
             <p className="text-sm font-black text-[#5c4033]">젬 상점</p>
