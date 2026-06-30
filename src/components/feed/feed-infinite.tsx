@@ -68,7 +68,10 @@ export function FeedInfinite({
     setRepostedIds(new Set(initialRepostedIds));
     postOffsetRef.current = initialItems.filter((i) => i.type === "post").length;
     setLoadError("");
-  }, [feedSeed, initialItems, initialCursor, initialLikedIds, initialStarredIds, initialRepostedIds]);
+    loadingRef.current = false;
+    // feedSeed만 의존 — 배열 참조 변경으로 스크롤 리셋 방지
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feedSeed]);
 
   const loadMore = useCallback(async () => {
     if (!cursor || loadingRef.current || done) return;

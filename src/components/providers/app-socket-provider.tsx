@@ -35,7 +35,14 @@ const AppSocketContext = createContext<AppSocketContextValue>({
   connectionFailed: false,
 });
 
-const DEFERRED_SOCKET_MS = 2800;
+/** 허브 화면: cold-start wake는 백그라운드, 소켓 연결은 즉시 (통화 수신 보장) */
+async function prepareSocketServer(socketUrl: string, immediate: boolean): Promise<void> {
+  if (immediate) {
+    await wakeSocketServer(socketUrl);
+    return;
+  }
+  void wakeSocketServer(socketUrl);
+}
 
 /** 로그인 사용자 — 앱 어디서든 접속 중 표시·실시간 채팅용 단일 소켓 */
 export function AppSocketProvider({ children }: { children: ReactNode }) {
@@ -46,22 +53,10 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
   const [socketReady, setSocketReady] = useState(false);
   const [realtimeOff, setRealtimeOff] = useState(() => !resolveSocketUrl());
   const [connectionFailed, setConnectionFailed] = useState(false);
-  const [connectAllowed, setConnectAllowed] = useState(() =>
-    needsImmediateRealtime(pathname)
-  );
-
-  useEffect(() => {
-    if (needsImmediateRealtime(pathname)) {
-      setConnectAllowed(true);
-      return;
-    }
-    const id = window.setTimeout(() => setConnectAllowed(true), DEFERRED_SOCKET_MS);
-    return () => window.clearTimeout(id);
-  }, [pathname]);
 
   useEffect(() => {
     const socketUrl = resolveSocketUrl();
-    if (!connectAllowed || !socketUrl || status !== "authenticated" || !userId) {
+    if (!socketUrl || status !== "authenticated" || !userId) {
       setRealtimeOff(true);
       setConnectionFailed(false);
       setSocketReady(false);
@@ -79,8 +74,11 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
 
     import("socket.io-client").then(async ({ io }) => {
       if (disposed) return;
-      await wakeSocketServer(socketUrl);
+
+      const immediate = needsImmediateRealtime(pathname);
+      await prepareSocketServer(socketUrl, immediate);
       if (disposed) return;
+
       const { fetchSocketAuthToken } = await import("@/lib/socket-client");
       const token = await fetchSocketAuthToken();
       if (disposed || !token) {
@@ -153,7 +151,7 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
       setSocket(null);
       activeSocket?.disconnect();
     };
-  }, [userId, status, connectAllowed]);
+  }, [userId, status, pathname]);
 
   const value = useMemo(
     () => ({ socket, socketReady, realtimeOff, connectionFailed }),

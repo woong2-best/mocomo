@@ -19,6 +19,7 @@ const REALTIME_PREFIXES = [
   "/voice",
   "/live",
   "/apt",
+  "/call",
 ] as const;
 
 /** 소켓·실시간이 필요한 경로 — 나머지는 연결 지연 */
