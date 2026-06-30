@@ -16,6 +16,7 @@ type PageErrorStateProps = {
   retryLabel?: string;
   primaryHref?: string;
   primaryLabel?: string;
+  primaryOnClick?: () => void;
   secondaryHref?: string;
   secondaryLabel?: string;
   maxWidth?: "lg" | "2xl" | "3xl";
@@ -31,9 +32,9 @@ export function PageErrorState({
   retryLabel = "다시 시도",
   primaryHref,
   primaryLabel,
+  primaryOnClick,
   secondaryHref,
   secondaryLabel,
-  maxWidth = "lg",
   className,
 }: PageErrorStateProps) {
   const iconClass =
@@ -66,12 +67,19 @@ export function PageErrorState({
               {retryLabel}
             </Button>
           )}
-          {primaryHref && primaryLabel && (
-            <Button asChild className="rounded-xl">
-              <Link href={primaryHref}>{primaryLabel}</Link>
+          {primaryOnClick && primaryLabel ? (
+            <Button type="button" className="rounded-xl" onClick={primaryOnClick}>
+              {primaryLabel}
             </Button>
+          ) : (
+            primaryHref &&
+            primaryLabel && (
+              <Button asChild className="rounded-xl">
+                <Link href={primaryHref}>{primaryLabel}</Link>
+              </Button>
+            )
           )}
-          {secondaryHref && secondaryLabel && (
+          {secondaryHref && secondaryLabel && secondaryHref !== primaryHref && (
             <Button asChild variant="outline" className="rounded-xl">
               <Link href={secondaryHref}>{secondaryLabel}</Link>
             </Button>

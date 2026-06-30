@@ -2,19 +2,23 @@ import { getMarketAdminPageDataAction } from "@/actions/admin-market";
 import { AdminMarketPanel } from "@/components/admin/admin-market-panel";
 import { AdminPageChrome } from "@/components/admin/admin-page-chrome";
 import { AdminAccessDenied } from "@/components/admin/admin-access-denied";
+import { AdminLoadError } from "@/components/admin/admin-load-error";
+import { isAdminForbiddenError } from "@/lib/admin-access";
 import { Store } from "lucide-react";
 
 export default async function AdminMarketPage() {
   let data: Awaited<ReturnType<typeof getMarketAdminPageDataAction>> | null = null;
+  let forbidden = false;
+  let loadFailed = false;
   try {
     data = await getMarketAdminPageDataAction();
-  } catch {
-    data = null;
+  } catch (e) {
+    if (isAdminForbiddenError(e)) forbidden = true;
+    else loadFailed = true;
   }
 
-  if (!data) {
-    return <AdminAccessDenied />;
-  }
+  if (forbidden) return <AdminAccessDenied />;
+  if (loadFailed || !data) return <AdminLoadError />;
 
   return (
     <AdminPageChrome

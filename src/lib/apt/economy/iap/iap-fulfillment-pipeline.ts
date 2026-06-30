@@ -270,6 +270,13 @@ export async function retryIapStep(purchaseId: string, step: IapRetryStep): Prom
   if (!purchase) return false;
 
   if (step === "ack") {
+    if (purchase.provider !== "google_play") {
+      await db.aptIapPurchase.update({
+        where: { id: purchaseId },
+        data: { status: "ACKED", ackState: "ACKED" },
+      });
+      return true;
+    }
     const ack = await acknowledgeGooglePlayPurchase({
       productId: purchase.productId,
       purchaseToken: purchase.purchaseToken,

@@ -83,7 +83,10 @@ export class LiveStudioErrorBoundary extends Component<Props, State> {
         icon={AlertTriangle}
         variant="destructive"
         onRetry={() => this.setState({ hasError: false, message: "" })}
-        primaryHref={this.props.channelId ? `/voice/${this.props.channelId}` : "/live"}
+        primaryOnClick={
+          this.props.channelId ? () => window.location.reload() : undefined
+        }
+        primaryHref={this.props.channelId ? undefined : "/live"}
         primaryLabel={this.props.channelId ? "페이지 새로고침" : "라이브 홈"}
         secondaryHref={this.props.channelId ? "/live" : undefined}
         secondaryLabel={this.props.channelId ? "라이브 홈" : undefined}

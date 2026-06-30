@@ -81,6 +81,10 @@ async function verifyWithAppleApi(input: AppStoreVerifyInput): Promise<AppStoreV
         (item.transaction_id === input.purchaseToken ||
           item.original_transaction_id === input.purchaseToken)
     );
+    if (!match && items.length > 0) {
+      return { ok: false, error: "영수증에서 해당 구매를 찾을 수 없습니다." };
+    }
+
     const orderId =
       match?.transaction_id ??
       input.orderId ??

@@ -32,7 +32,8 @@ export default function VoiceRoomError({
       icon={Monitor}
       variant="destructive"
       onRetry={() => reset()}
-      primaryHref={channelId ? `/voice/${channelId}` : "/live"}
+      primaryOnClick={channelId ? () => window.location.reload() : undefined}
+      primaryHref={channelId ? undefined : "/live"}
       primaryLabel={channelId ? "페이지 새로고침" : "라이브 홈"}
       secondaryHref={channelId ? "/live" : undefined}
       secondaryLabel={channelId ? "라이브 홈" : undefined}

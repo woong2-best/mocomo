@@ -23,6 +23,9 @@ export async function verifyIapOnServer(input: {
   orderId?: string;
   receipt?: string;
 }): Promise<IapVerifyApiResponse> {
+  if (input.provider === "web") {
+    return { error: "웹에서는 인앱 결제를 검증할 수 없습니다." };
+  }
   const path =
     input.provider === "app_store"
       ? "/api/iap/apple/verify"

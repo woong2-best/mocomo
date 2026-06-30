@@ -36,7 +36,15 @@ function AptGemShopSheetInner() {
   const [msg, setMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!gemShopOpen) return;
+    if (!gemShopOpen) {
+      setMsg(null);
+      setPurchasingId(null);
+      setLoading(false);
+      setCatalog(null);
+      setStorePrices({});
+      setBillingReady(false);
+      return;
+    }
     setCatalogLoading(true);
     void getAptGemShopCatalog()
       .then(setCatalog)
@@ -45,6 +53,15 @@ function AptGemShopSheetInner() {
       setBillingReady(await svc.isAvailable());
     });
   }, [gemShopOpen, isNativeApp]);
+
+  useEffect(() => {
+    const max = economy.wallet.gems;
+    if (max <= 0) {
+      setExchangeGems(1);
+      return;
+    }
+    if (exchangeGems > max) setExchangeGems(max);
+  }, [economy.wallet.gems, exchangeGems]);
 
   useEffect(() => {
     if (!gemShopOpen || !catalog || !billingReady) {
@@ -277,7 +294,7 @@ function AptGemShopSheetInner() {
             <span className="text-[11px] text-[#8b7355]">→ {exchangePreview.toLocaleString()}G</span>
             <button
               type="button"
-              disabled={loading || exchangeGems > economy.wallet.gems}
+              disabled={loading || !billingReady || economy.wallet.gems < 1}
               onClick={() => void handleExchange()}
               className="ml-auto rounded-xl bg-amber-500 px-3 py-1.5 text-[11px] font-black text-white active:scale-95 disabled:opacity-50"
             >

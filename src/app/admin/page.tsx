@@ -2,6 +2,8 @@ import { getAdminStats, getPendingReports } from "@/actions/admin";
 import { AdminReportActions } from "@/components/admin/admin-report-actions";
 import { AdminPageChrome } from "@/components/admin/admin-page-chrome";
 import { AdminAccessDenied } from "@/components/admin/admin-access-denied";
+import { AdminLoadError } from "@/components/admin/admin-load-error";
+import { isAdminForbiddenError } from "@/lib/admin-access";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Shield, Users, FileText, AlertTriangle, Coins, Landmark } from "lucide-react";
@@ -11,16 +13,25 @@ export default async function AdminPage() {
   let stats = { users: 0, posts: 0, pendingReports: 0, totalTips: 0 };
   let reports: Awaited<ReturnType<typeof getPendingReports>> = [];
   let authorized = true;
+  let loadFailed = false;
 
   try {
     stats = await getAdminStats();
     reports = await getPendingReports();
-  } catch {
-    authorized = false;
+  } catch (e) {
+    if (isAdminForbiddenError(e)) {
+      authorized = false;
+    } else {
+      loadFailed = true;
+    }
   }
 
   if (!authorized) {
     return <AdminAccessDenied />;
+  }
+
+  if (loadFailed) {
+    return <AdminLoadError />;
   }
 
   return (

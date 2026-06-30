@@ -2,19 +2,23 @@ import { getEconomyDashboard } from "@/actions/admin-apt-economy";
 import { AdminEconomyDashboard } from "@/components/admin/admin-economy-dashboard";
 import { AdminPageChrome } from "@/components/admin/admin-page-chrome";
 import { AdminAccessDenied } from "@/components/admin/admin-access-denied";
+import { AdminLoadError } from "@/components/admin/admin-load-error";
+import { isAdminForbiddenError } from "@/lib/admin-access";
 import { Coins } from "lucide-react";
 
 export default async function AdminEconomyPage() {
   let data: Awaited<ReturnType<typeof getEconomyDashboard>> | null = null;
+  let forbidden = false;
+  let loadFailed = false;
   try {
     data = await getEconomyDashboard();
-  } catch {
-    data = null;
+  } catch (e) {
+    if (isAdminForbiddenError(e)) forbidden = true;
+    else loadFailed = true;
   }
 
-  if (!data) {
-    return <AdminAccessDenied />;
-  }
+  if (forbidden) return <AdminAccessDenied />;
+  if (loadFailed || !data) return <AdminLoadError />;
 
   return (
     <AdminPageChrome
