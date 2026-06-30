@@ -45,7 +45,6 @@ export default async function VoicePage() {
         title="활성 음성방"
         icon={Mic}
         description="실시간 음성 방송 · LiveKit WebRTC"
-        action={channels.length > 0 ? { href: "/live", label: "라이브 홈" } : undefined}
       >
         {channels.length === 0 ? (
           <Card>

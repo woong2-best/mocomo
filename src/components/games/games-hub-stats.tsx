@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { History, Radio, Trophy, Users } from "lucide-react";
 import { PageSection } from "@/components/layout/page-section";

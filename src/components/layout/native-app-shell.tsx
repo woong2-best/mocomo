@@ -1,18 +1,27 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { NativeAppHeader } from "@/components/layout/native-app-header";
 import { NativeAppNav } from "@/components/layout/native-app-nav";
 import { NativeAppComposeFab } from "@/components/layout/native-app-compose-fab";
-import { nativeAppMainPadding, shouldHideNativeAppNav, shouldHideNativeAppHeader } from "@/lib/native-app-shell";
+import {
+  isNativeTabRoot,
+  nativeAppMainPadding,
+  shouldHideNativeAppNav,
+  shouldHideNativeAppHeader,
+} from "@/lib/native-app-shell";
 import { isAptImmersivePath } from "@/lib/apt-route";
 import { nativeRouteVariants } from "@/lib/motion-presets";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
 function NativeAppShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
+  const prevPathRef = useRef(pathname);
+  const skipTabMotion =
+    isNativeTabRoot(prevPathRef.current) && isNativeTabRoot(pathname);
+  prevPathRef.current = pathname;
   const reduced = usePrefersReducedMotion();
   const isAuthRoute = pathname.startsWith("/auth");
   const isLegalRoute = pathname.startsWith("/legal");
@@ -22,7 +31,7 @@ function NativeAppShellInner({ children }: { children: React.ReactNode }) {
   const isVoiceRoom = pathname.startsWith("/voice/") && pathname !== "/voice/new";
   const isAptImmersive = isAptImmersivePath(pathname ?? "");
 
-  const pageMotion = reduced ? (
+  const pageMotion = reduced || skipTabMotion ? (
     <>{children}</>
   ) : (
     <motion.div

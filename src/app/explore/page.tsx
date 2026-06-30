@@ -10,7 +10,7 @@ export const revalidate = 60;
 
 export default function ExplorePage() {
   return (
-    <AppPageChrome maxWidth="2xl" className="!px-3 sm:!px-4" spacing="sm" animate={false}>
+    <AppPageChrome maxWidth="2xl" className="!px-3 sm:!px-4" spacing="sm">
       <NativePageTitle>
         <FolkSectionTitle icon="sun">탐색</FolkSectionTitle>
       </NativePageTitle>

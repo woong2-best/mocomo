@@ -21,6 +21,7 @@ const ROOT_PATHS = new Set([
   "/used",
   "/discover",
   "/live",
+  "/voice",
   "/market",
 ]);
 

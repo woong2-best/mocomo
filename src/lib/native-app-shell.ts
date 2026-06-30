@@ -1,7 +1,15 @@
 /** Play Store / app.mocomo.net 전용 셸 — 하단 탭·FAB·간소 헤더 */
 
 import { isUsedDetailPath } from "@/lib/mobile-shell";
-import { APT_GAME_PATH } from "@/lib/site-routes";
+import { APT_GAME_PATH, DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+
+/** 하단 탭 루트 — 탭 간 전환 시 라우트 진입 애니 생략 */
+export function isNativeTabRoot(pathname: string): boolean {
+  if (!pathname) return false;
+  if (pathname === "/" || pathname === DEFAULT_LANDING_PATH || pathname === "/feed") return true;
+  if (pathname === "/discover" || pathname === "/used" || pathname === "/games") return true;
+  return /^\/u\/[^/]+$/.test(pathname);
+}
 
 export const NATIVE_APP_NAV_REM = "3.25rem";
 

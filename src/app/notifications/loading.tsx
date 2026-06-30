@@ -1,5 +1,5 @@
 import { RouteLoading } from "@/components/ui/route-loading";
 
 export default function NotificationsLoading() {
-  return <RouteLoading narrow />;
+  return <RouteLoading chrome maxWidth="2xl" />;
 }

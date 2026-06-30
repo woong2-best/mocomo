@@ -197,7 +197,7 @@ export function GamesHubClient({
   }
 
   return (
-    <AppPageChrome maxWidth="4xl" spacing="sm" className="py-4" animate={false}>
+    <AppPageChrome maxWidth="4xl" spacing="sm" className="py-4">
       {body}
     </AppPageChrome>
   );

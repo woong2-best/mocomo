@@ -29,13 +29,13 @@ export function AppPageChrome({
   className,
   maxWidth = "lg",
   spacing = "md",
-  animate = true,
+  animate = false,
 }: {
   children: React.ReactNode;
   className?: string;
   maxWidth?: keyof typeof MAX_WIDTH;
   spacing?: "sm" | "md";
-  /** 페이지 진입·스태거 애니메이션 (기본 켜짐) */
+  /** 웹 MotionPage 진입 애니 (셸 전환과 중복 방지 — 기본 꺼짐) */
   animate?: boolean;
 }) {
   const { isNativeApp } = useClientPlatform();

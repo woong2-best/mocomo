@@ -8,7 +8,7 @@ export const revalidate = 120;
 
 export default function RankingsPage() {
   return (
-    <AppPageChrome maxWidth="3xl">
+    <AppPageChrome maxWidth="3xl" spacing="sm">
       <NativePageTitle>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Trophy className="h-6 w-6 text-yellow-400" />
