@@ -10,10 +10,9 @@ import {
 } from "@/lib/live-channel-active";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { LiveVoiceViewerBackLink } from "@/components/live/mobile/live-voice-viewer-back-link";
 import { LiveRoomPageShell } from "@/components/live/live-room-page-shell";
+import { LiveRoomErrorState } from "@/components/live/live-room-error-state";
 
 export const dynamic = "force-dynamic";
 
@@ -33,12 +32,14 @@ export default async function VoiceRoomPage({
 
   if (!liveFlags) {
     return (
-      <div className="live-page-shell max-w-lg mx-auto p-6 space-y-4 text-center">
-        <p className="text-lg font-semibold">방송을 찾을 수 없습니다</p>
-        <Button asChild className="rounded-xl">
-          <Link href="/live">라이브 홈</Link>
-        </Button>
-      </div>
+      <LiveRoomErrorState
+        title="방송을 찾을 수 없습니다"
+        description="삭제되었거나 주소가 잘못되었을 수 있어요."
+        primaryHref="/live"
+        primaryLabel="라이브 홈"
+        secondaryHref="/voice"
+        secondaryLabel="음성 목록"
+      />
     );
   }
 
@@ -56,23 +57,25 @@ export default async function VoiceRoomPage({
 
   if (liveStatus === "ENDED") {
     return (
-      <div className="live-page-shell max-w-3xl mx-auto p-6 space-y-6 text-center">
-        <p className="text-lg font-semibold">방송이 종료되었습니다</p>
-        <Button asChild className="rounded-xl">
-          <Link href="/live">라이브 홈</Link>
-        </Button>
-      </div>
+      <LiveRoomErrorState
+        title="방송이 종료되었습니다"
+        description="다른 라이브 방송을 둘러보세요."
+        primaryHref="/live"
+        primaryLabel="라이브 홈"
+      />
     );
   }
 
   if (!hostCanEnter && !viewerCanEnter) {
     return (
-      <div className="live-page-shell max-w-3xl mx-auto p-6 space-y-6 text-center">
-        <p className="text-lg font-semibold">방송에 입장할 수 없습니다</p>
-        <Button asChild className="rounded-xl">
-          <Link href="/live">라이브 홈</Link>
-        </Button>
-      </div>
+      <LiveRoomErrorState
+        title="방송에 입장할 수 없습니다"
+        description="비공개 방송이거나 아직 시작 전일 수 있어요."
+        primaryHref="/live"
+        primaryLabel="라이브 홈"
+        secondaryHref="/voice/new"
+        secondaryLabel="내 방송 만들기"
+      />
     );
   }
 
@@ -84,16 +87,20 @@ export default async function VoiceRoomPage({
   }
   if (!meta) {
     return (
-      <div className="live-page-shell max-w-lg mx-auto p-6 space-y-4 text-center">
-        <p className="text-lg font-semibold">스튜디오를 불러오지 못했습니다</p>
-        <p className="text-sm text-muted-foreground">
-          Supabase SQL Editor에서 <code className="text-xs bg-muted px-1 rounded">supabase-fix-all.sql</code> 실행 후
-          다시 시도해 주세요.
-        </p>
-        <Button asChild variant="outline" className="rounded-xl">
-          <Link href="/voice/new">방송 다시 만들기</Link>
-        </Button>
-      </div>
+      <LiveRoomErrorState
+        title="스튜디오를 불러오지 못했습니다"
+        description={
+          <>
+            잠시 후 다시 시도해 주세요. 문제가 계속되면{" "}
+            <code className="rounded bg-muted px-1 text-xs">supabase-fix-all.sql</code> 마이그레이션을
+            확인해 주세요.
+          </>
+        }
+        primaryHref="/voice/new"
+        primaryLabel="방송 다시 만들기"
+        secondaryHref="/live"
+        secondaryLabel="라이브 홈"
+      />
     );
   }
 

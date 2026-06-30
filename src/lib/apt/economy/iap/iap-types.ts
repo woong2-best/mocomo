@@ -35,6 +35,8 @@ export type IapFulfillInput = {
   purchaseToken: string;
   orderId?: string;
   packageName?: string;
+  /** iOS App Store receipt (base64) */
+  receipt?: string;
 };
 
 export type IapFulfillResult =

@@ -74,7 +74,7 @@ function titleForPath(pathname: string): string | null {
   if (pathname === "/communities/new") return "커뮤니티 만들기";
   if (pathname === "/sketch-quiz") return "스케치퀴즈";
   if (pathname.startsWith("/play/")) return "미니게임";
-  if (pathname === "/voice") return "음성 채널";
+  if (pathname === "/voice") return "음성 · 라이브";
   if (pathname === "/star") return "STAR";
   if (pathname === "/messages/groups/new") return "단체방 만들기";
   if (pathname === "/messages/join") return "단체방 입장";

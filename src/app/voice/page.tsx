@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Mic, Users } from "lucide-react";
+import { Mic, Radio, Users } from "lucide-react";
 import { getCachedVoiceChannels } from "@/lib/cached-data";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,24 +19,44 @@ export default async function VoicePage() {
 
   return (
     <AppPageChrome maxWidth="3xl">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <NativePageTitle>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Mic className="h-6 w-6 text-neon-purple" />
-            음성 채널
+            음성 · 라이브
           </h1>
         </NativePageTitle>
-        <Link href="/voice/new">
-          <Button size="sm">방 만들기</Button>
-        </Link>
+        <div className="flex shrink-0 items-center gap-2">
+          <Link href="/live">
+            <Button size="sm" variant="outline">
+              <Radio className="mr-1 h-4 w-4" />
+              라이브 홈
+            </Button>
+          </Link>
+          <Link href="/voice/new">
+            <Button size="sm">방 만들기</Button>
+          </Link>
+        </div>
       </div>
 
-      <p className="text-sm text-muted-foreground">Discord 스타일 음성방 · WebRTC/Livekit 연동 준비됨</p>
+      <p className="text-sm text-muted-foreground">
+        실시간 음성 방송 · LiveKit WebRTC · 시청은 라이브 홈에서도 할 수 있어요
+      </p>
 
       <div className="grid gap-4">
         {channels.length === 0 ? (
           <Card>
-            <CardContent className="p-8 text-center text-muted-foreground">활성 음성방이 없습니다.</CardContent>
+            <CardContent className="flex flex-col items-center gap-3 p-8 text-center text-muted-foreground">
+              <p>활성 음성방이 없습니다.</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button asChild size="sm">
+                  <Link href="/voice/new">첫 방송 만들기</Link>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/live">라이브 시청하기</Link>
+                </Button>
+              </div>
+            </CardContent>
           </Card>
         ) : (
           channels.map((ch) => (

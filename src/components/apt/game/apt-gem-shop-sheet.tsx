@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { useAptGameRequired } from "./apt-game-context";
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { createPurchaseServiceForClient } from "@/lib/apt/purchase/purchase-service";
-import { verifyGoogleIapOnServer } from "@/lib/apt/iap/client-verify";
+import { verifyIapOnServer } from "@/lib/apt/iap/client-verify";
 import {
   exchangeAptGemsForGold,
   getAptGemShopCatalog,
@@ -57,14 +57,16 @@ function AptGemShopSheetInner() {
         const svc = await createPurchaseServiceForClient(isNativeApp);
         const available = await svc.isAvailable();
         if (!available) {
-          setMsg("인앱 결제는 Android 앱에서만 이용할 수 있습니다.");
+          setMsg("인앱 결제는 모바일 앱에서만 이용할 수 있습니다.");
           return;
         }
         const result = await svc.purchase(productId);
-        const res = await verifyGoogleIapOnServer({
+        const res = await verifyIapOnServer({
+          provider: result.provider,
           productId: result.productId,
           purchaseToken: result.purchaseToken,
           orderId: result.orderId,
+          receipt: result.receipt,
         });
         if (!("ok" in res) || !res.ok) {
           setMsg("error" in res ? res.error : "결제 검증 실패");
@@ -106,10 +108,12 @@ function AptGemShopSheetInner() {
       const purchases = await svc.restorePurchases();
       let restored = 0;
       for (const p of purchases) {
-        const res = await verifyGoogleIapOnServer({
+        const res = await verifyIapOnServer({
+          provider: p.provider,
           productId: p.productId,
           purchaseToken: p.purchaseToken,
           orderId: p.orderId,
+          receipt: p.receipt,
         });
         if ("ok" in res && res.ok && !res.alreadyFulfilled) restored += 1;
       }
@@ -185,7 +189,7 @@ function AptGemShopSheetInner() {
 
         {!billingReady && (
           <p className="px-4 py-2 text-[11px] text-amber-800/90">
-            인앱 결제는 Google Play 앱에서 이용할 수 있습니다. 웹에서는 젬→골드 환전만 가능해요.
+            인앱 결제는 iOS·Android 앱에서 이용할 수 있습니다. 웹에서는 젬→골드 환전만 가능해요.
           </p>
         )}
 

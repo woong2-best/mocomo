@@ -1,4 +1,5 @@
 import type { EconomySnapshot } from "@/lib/apt/economy/types";
+import type { PurchaseProviderId } from "@/lib/apt/purchase/types";
 
 export type IapVerifyApiResponse =
   | {
@@ -14,13 +15,19 @@ export type IapVerifyApiResponse =
   | { error: string };
 
 /** Client → Server verify (Wallet 지급은 서버만) */
-export async function verifyGoogleIapOnServer(input: {
+export async function verifyIapOnServer(input: {
+  provider: PurchaseProviderId;
   purchaseToken: string;
   productId: string;
   packageName?: string;
   orderId?: string;
+  receipt?: string;
 }): Promise<IapVerifyApiResponse> {
-  const res = await fetch("/api/iap/google/verify", {
+  const path =
+    input.provider === "app_store"
+      ? "/api/iap/apple/verify"
+      : "/api/iap/google/verify";
+  const res = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
@@ -31,4 +38,14 @@ export async function verifyGoogleIapOnServer(input: {
     return { error: data.error ?? "결제 검증에 실패했습니다." };
   }
   return data;
+}
+
+/** @deprecated use verifyIapOnServer */
+export async function verifyGoogleIapOnServer(input: {
+  purchaseToken: string;
+  productId: string;
+  packageName?: string;
+  orderId?: string;
+}): Promise<IapVerifyApiResponse> {
+  return verifyIapOnServer({ ...input, provider: "google_play" });
 }

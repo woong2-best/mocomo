@@ -1,6 +1,7 @@
 import { getEconomyCanaryAdminPageData } from "@/actions/admin-economy-canary";
 import { AdminEconomyCanaryPanel } from "@/components/admin/admin-economy-canary-panel";
 import { AdminPageChrome } from "@/components/admin/admin-page-chrome";
+import { AdminAccessDenied } from "@/components/admin/admin-access-denied";
 import { FlaskConical } from "lucide-react";
 
 export default async function AdminEconomyCanaryPage() {
@@ -12,11 +13,7 @@ export default async function AdminEconomyCanaryPage() {
   }
 
   if (!data) {
-    return (
-      <div className="max-w-5xl mx-auto p-4">
-        <p className="text-muted-foreground">관리자 권한이 필요합니다.</p>
-      </div>
-    );
+    return <AdminAccessDenied />;
   }
 
   return (

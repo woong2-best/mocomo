@@ -10,13 +10,14 @@ import { findShopProductByProductId } from "../shop-product-service";
 import { loadEconomySnapshot } from "../service";
 import { mutateWalletInTx } from "../wallet-service";
 import type { AptShopProductDto } from "../wallet-types";
+import { verifyAppStorePurchase } from "./app-store-verifier";
 import {
   acknowledgeGooglePlayPurchase,
   verifyGooglePlayPurchase,
 } from "./google-play-verifier";
 import { checkIapFraudBeforeFulfill } from "./iap-fraud-guard";
 import { enqueueIapRetry } from "./iap-retry-service";
-import type { IapFulfillInput, IapFulfillResult, IapRetryStep } from "./iap-types";
+import type { GooglePurchaseDetails, IapFulfillInput, IapFulfillResult, IapRetryStep } from "./iap-types";
 
 function grantAmounts(product: AptShopProductDto): { gems: number; gold: number } {
   if (product.type === "gems") {
@@ -73,15 +74,19 @@ export async function fulfillIapPurchase(
     return { error: "등록되지 않은 상품입니다." };
   }
 
-  if (input.provider !== "google_play") {
-    return { error: "App Store 결제 검증은 준비 중입니다." };
-  }
-
-  const verified = await verifyGooglePlayPurchase({
-    productId: input.productId,
-    purchaseToken: input.purchaseToken,
-    packageName: input.packageName,
-  });
+  const isGoogle = input.provider === "google_play";
+  const verified = isGoogle
+    ? await verifyGooglePlayPurchase({
+        productId: input.productId,
+        purchaseToken: input.purchaseToken,
+        packageName: input.packageName,
+      })
+    : await verifyAppStorePurchase({
+        productId: input.productId,
+        purchaseToken: input.purchaseToken,
+        orderId: input.orderId,
+        receipt: input.receipt,
+      });
   if (!verified.ok) {
     void recordHealthDomainEvent("iap", "verifyFail", 1);
     return { error: verified.error };
@@ -99,20 +104,28 @@ export async function fulfillIapPurchase(
   }
 
   const corrId = newCorrelationId();
+  const googleDetails = isGoogle
+    ? (verified.details as GooglePurchaseDetails)
+    : null;
+  const ackState = isGoogle
+    ? googleDetails!.acknowledgementState === 1
+      ? "ACKED"
+      : "PENDING"
+    : "ACKED";
   const purchase = await db.aptIapPurchase.create({
     data: {
       userId: ownerId,
       shopProductId: product.slug,
-      platform: "android",
+      platform: isGoogle ? "android" : "ios",
       provider: input.provider,
       orderId,
       purchaseToken: input.purchaseToken,
       productId: input.productId,
       purchaseState: verified.details.purchaseState,
-      ackState: verified.details.acknowledgementState === 1 ? "ACKED" : "PENDING",
-      priceMicros: verified.details.priceMicros ?? null,
-      currency: verified.details.currency ?? null,
-      regionCode: verified.details.regionCode ?? null,
+      ackState,
+      priceMicros: googleDetails?.priceMicros ?? null,
+      currency: googleDetails?.currency ?? null,
+      regionCode: googleDetails?.regionCode ?? null,
       payload: verified.details.raw as Prisma.InputJsonValue,
       status: "VERIFIED",
       verifiedAt: new Date(),
@@ -205,7 +218,7 @@ async function continueFulfillment(
     }
   }
 
-  if (purchase.ackState !== "ACKED") {
+  if (purchase.provider === "google_play" && purchase.ackState !== "ACKED") {
     const ack = await acknowledgeGooglePlayPurchase({
       productId: purchase.productId,
       purchaseToken: purchase.purchaseToken,
@@ -225,10 +238,10 @@ async function continueFulfillment(
         data: { status: "ACKED", ackState: "ACKED" },
       });
     }
-  } else {
+  } else if (purchase.status !== "ACKED") {
     await db.aptIapPurchase.update({
       where: { id: purchase.id },
-      data: { status: "ACKED" },
+      data: { status: "ACKED", ackState: "ACKED" },
     });
   }
 
@@ -271,7 +284,7 @@ export async function retryIapStep(purchaseId: string, step: IapRetryStep): Prom
 
   if (step === "fulfill") {
     const res = await continueFulfillment(purchaseId, {
-      provider: "google_play",
+      provider: purchase.provider as "google_play" | "app_store",
       productId: purchase.productId,
       purchaseToken: purchase.purchaseToken,
     });

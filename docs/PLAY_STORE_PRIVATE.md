@@ -141,6 +141,20 @@ Play Console → 테스트 트랙 → **테스터** → 이메일 목록 추가
 - [ ] versionCode 증가
 - [ ] Play Console 스토어 등록정보 (아이콘 512, 스크린샷, 개인정보 처리방침 URL)
 - [ ] 내부 테스트 설치 확인 후 비공개 테스트로 확대
+- [ ] Play Console **인앱 상품** 등록 (젬 팩 productId ↔ `shop-product-service` slug 일치)
+- [ ] Vercel env: `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`, `GOOGLE_PLAY_PACKAGE_NAME=net.mocomo.app`
+- [ ] iOS 출시 시: `APPLE_IAP_SHARED_SECRET` (또는 `APPLE_IAP_TRUST_TRANSACTION_ID=true` 임시)
+
+---
+
+## 9. 인앱 결제 (젬 상점)
+
+| 플랫폼 | 클라이언트 | 서버 검증 |
+|--------|------------|-----------|
+| Android | `@capgo/native-purchases` | `POST /api/iap/google/verify` |
+| iOS | 동일 플러그인 (StoreKit) | `POST /api/iap/apple/verify` |
+
+로컬 개발만: `APT_IAP_DEV_VERIFY=true` + `purchaseToken` prefix `dev:`
 
 ---
 
