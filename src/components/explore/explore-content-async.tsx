@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { getCachedExploreData } from "@/lib/cached-data";
 import { LiveModeBadge } from "@/components/live/live-mode-badge";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
+import { PageSection } from "@/components/layout/page-section";
 import type { SupportTierLevel } from "@prisma/client";
 import { userDisplayName } from "@/lib/user-public-select";
 import { isLiveFeatureEnabled } from "@/lib/live-feature";
@@ -47,7 +48,7 @@ export async function ExploreContentAsync() {
   }
 
   return (
-    <>
+    <div className="space-y-6">
       {!dbOk && (
         <p className="text-sm text-amber-700 bg-amber-500/10 rounded-xl p-3">
           DB 연결 후 탐색 목록이 표시됩니다.{" "}
@@ -75,11 +76,11 @@ export async function ExploreContentAsync() {
       </Card>
 
       {isLiveFeatureEnabled() && liveChannels.length > 0 && (
-        <section>
-          <h2 className="font-semibold flex items-center gap-2 mb-3">
-            <Radio className="h-5 w-5 text-folk-terracotta" />
-            지금 라이브
-          </h2>
+        <PageSection
+          title="지금 라이브"
+          icon={Radio}
+          action={{ href: "/live", label: "전체 보기" }}
+        >
           <div className="flex flex-wrap gap-2 moco-stagger">
             {liveChannels.map((ch) => (
               <Link
@@ -93,17 +94,10 @@ export async function ExploreContentAsync() {
               </Link>
             ))}
           </div>
-          <Button asChild variant="ghost" className="mt-2 px-0">
-            <Link href="/live">라이브 전체 보기</Link>
-          </Button>
-        </section>
+        </PageSection>
       )}
 
-      <section>
-        <h2 className="font-semibold flex items-center gap-2 mb-3">
-          <TrendingUp className="h-5 w-5" />
-          인기 게시물
-        </h2>
+      <PageSection title="인기 게시물" icon={TrendingUp}>
         {trendingPosts.length === 0 ? (
           <p className="text-sm text-muted-foreground">게시물 없음 — 가입 후 첫 글을 작성해 보세요</p>
         ) : (
@@ -122,19 +116,18 @@ export async function ExploreContentAsync() {
                       <span className="text-muted-foreground">@{p.author.username}</span>
                     </div>
                     <p className="mt-1 font-medium line-clamp-1">{p.title || p.content}</p>
+                    <p className="mt-1 text-[10px] text-muted-foreground">
+                      ♥ {p._count.likes} · 💬 {p._count.comments}
+                    </p>
                   </CardContent>
                 </Card>
               </Link>
             ))}
           </div>
         )}
-      </section>
+      </PageSection>
 
-      <section>
-        <h2 className="font-semibold flex items-center gap-2 mb-3">
-          <Users className="h-5 w-5" />
-          새로운 유저
-        </h2>
+      <PageSection title="새로운 유저" icon={Users}>
         {suggestedUsers.length === 0 ? (
           <Button asChild variant="outline" className="rounded-xl">
             <Link href="/auth/signup">첫 번째 유저 되기</Link>
@@ -148,21 +141,21 @@ export async function ExploreContentAsync() {
                     <AvatarImage src={u.image ?? undefined} />
                     <AvatarFallback>{u.username[0]}</AvatarFallback>
                   </Avatar>
-                  <div>
+                  <div className="min-w-0">
                     <DisplayNameWithSupportTier
                       name={u.name || u.username}
                       tier={u.supportTierSent ?? "PEBBLE"}
                       nameClassName="font-medium"
                       compact
                     />
-                    <p className="text-sm text-muted-foreground">@{u.username}</p>
+                    <p className="text-sm text-muted-foreground truncate">@{u.username}</p>
                   </div>
                 </div>
               </Link>
             ))}
           </div>
         )}
-      </section>
-    </>
+      </PageSection>
+    </div>
   );
 }

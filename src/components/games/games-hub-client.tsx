@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { Building2, Gamepad2, Radio, Trophy, Users, X } from "lucide-react";
+import { Building2, Gamepad2, X } from "lucide-react";
 import { FolkSectionTitle } from "@/components/brand/folk-decor";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
+import { PageSection } from "@/components/layout/page-section";
+import { GamesHubStats } from "@/components/games/games-hub-stats";
 import {
   MotionChip,
   MotionInViewIndexed,
@@ -20,7 +22,6 @@ import {
   type MinigameCategory,
 } from "@/lib/minigames/types";
 import {
-  countByStatus,
   getAllMinigames,
   getMinigamesByCategory,
 } from "@/lib/minigames/registry";
@@ -36,8 +37,6 @@ export function GamesHubClient({
 }) {
   const { isNativeApp } = useClientPlatform();
   const [category, setCategory] = useState<MinigameCategory | "all">("all");
-  const liveCount = countByStatus("live") + countByStatus("beta");
-  const soonCount = countByStatus("coming_soon");
 
   const games = useMemo(() => {
     if (category === "all") {
@@ -47,7 +46,7 @@ export function GamesHubClient({
   }, [category]);
 
   const body = (
-    <>
+    <div className="space-y-6">
       {embedded && onClose && (
         <button
           type="button"
@@ -58,70 +57,18 @@ export function GamesHubClient({
           게임 닫기
         </button>
       )}
-      <div className="space-y-3">
-        {!embedded && (
-          <FolkSectionTitle
-            icon="sun"
-            className={cn("flex items-center gap-2", isNativeApp && "sr-only")}
-          >
-            <Gamepad2 className="h-6 w-6 text-folk-terracotta" />
-            미니게임
-          </FolkSectionTitle>
-        )}
-        {!embedded && (
-          <>
-            <p className={cn("text-sm text-muted-foreground leading-relaxed", isNativeApp && "sr-only")}>
-              앱 안에서 다른 유저와 실시간으로 플레이합니다. 랜덤 매칭 · 친구 초대 · 방 코드 ·
-              관전 · 랭킹 · 리플레이를 게임별로 순차 지원합니다.
-            </p>
-            <div className="flex flex-wrap gap-2 text-xs">
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 text-emerald-700 px-2.5 py-1 font-medium">
-            <Radio className="h-3 w-3" />
-            플레이 가능 {liveCount}
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
-            준비 중 {soonCount}
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-folk-gold/20 text-folk-cobalt px-2.5 py-1">
-            <Users className="h-3 w-3" />
-            2~5명 매칭 · 친구 방
-          </span>
-          <Link
-            href="/games/ranking"
-            className="inline-flex items-center gap-1 rounded-full bg-folk-gold/20 text-folk-cobalt px-2.5 py-1 hover:bg-folk-gold/30 transition-colors"
-          >
-            <Trophy className="h-3 w-3" />
-            랭킹
-          </Link>
-          <Link
-            href="/games/history"
-            className="inline-flex items-center gap-1 rounded-full bg-folk-gold/20 text-folk-cobalt px-2.5 py-1 hover:bg-folk-gold/30 transition-colors"
-          >
-            전적
-          </Link>
-          <Link
-            href="/games/live"
-            className="inline-flex items-center gap-1 rounded-full bg-folk-gold/20 text-folk-cobalt px-2.5 py-1 hover:bg-folk-gold/30 transition-colors"
-          >
-            관전
-          </Link>
-          <Link
-            href="/games/season"
-            className="inline-flex items-center gap-1 rounded-full bg-folk-gold/20 text-folk-cobalt px-2.5 py-1 hover:bg-folk-gold/30 transition-colors"
-          >
-            시즌
-          </Link>
-          <Link
-            href="/games/achievements"
-            className="inline-flex items-center gap-1 rounded-full bg-folk-gold/20 text-folk-cobalt px-2.5 py-1 hover:bg-folk-gold/30 transition-colors"
-          >
-            업적
-            </Link>
-            </div>
-          </>
-        )}
-      </div>
+      {!embedded && (
+        <FolkSectionTitle
+          icon="sun"
+          className={cn(isNativeApp && "sr-only")}
+        >
+          미니게임
+        </FolkSectionTitle>
+      )}
 
+      {!embedded && <GamesHubStats />}
+
+      <PageSection title="카테고리">
       <div className="flex flex-wrap gap-1.5">
         <MotionChip
           active={category === "all"}
@@ -139,7 +86,9 @@ export function GamesHubClient({
           />
         ))}
       </div>
+      </PageSection>
 
+      <PageSection title="플레이" icon={Gamepad2}>
       <AnimatePresence mode="popLayout">
       <div key={category} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         <MotionInViewIndexed index={0}>
@@ -238,11 +187,12 @@ export function GamesHubClient({
         })}
       </div>
       </AnimatePresence>
+      </PageSection>
 
-        <p className="text-xs text-center text-muted-foreground">
+        <p className="text-xs text-center text-muted-foreground pt-2">
           친구 초대 · 방 코드 · 관전 · 랭킹 지원
         </p>
-    </>
+    </div>
   );
 
   if (embedded) {

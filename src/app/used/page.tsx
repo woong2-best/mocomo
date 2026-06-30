@@ -8,6 +8,7 @@ import { UsedSearchHeader } from "@/components/used/used-search-header";
 import { UsedFeedSkeleton } from "@/components/used/used-loading-skeletons";
 import { UsedWriteFab } from "@/components/used/used-write-fab";
 import { Button } from "@/components/ui/button";
+import { PageSection } from "@/components/layout/page-section";
 
 async function UsedFeed({
   searchParams,
@@ -60,7 +61,11 @@ async function UsedFeed({
     );
   }
 
-  return <UsedListingGrid listings={listings} />;
+  return (
+    <PageSection title="상품 목록" description={`${listings.length}개`}>
+      <UsedListingGrid listings={listings} />
+    </PageSection>
+  );
 }
 
 export default async function UsedHomePage({
@@ -77,7 +82,7 @@ export default async function UsedHomePage({
   }>;
 }) {
   return (
-    <div>
+    <div className="space-y-4">
       <UsedSearchHeader />
       <Suspense fallback={<UsedFeedSkeleton />}>
         <UsedFeed searchParams={searchParams} />

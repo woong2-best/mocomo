@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Mic, Radio } from "lucide-react";
 import { getCachedVoiceChannels } from "@/lib/cached-data";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
+import { PageSection } from "@/components/layout/page-section";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { VoiceChannelList } from "@/components/voice/voice-channel-list";
@@ -19,7 +20,7 @@ export default async function VoicePage() {
   }
 
   return (
-    <AppPageChrome maxWidth="3xl">
+    <AppPageChrome maxWidth="3xl" spacing="sm">
       <div className="flex items-center justify-between gap-2">
         <NativePageTitle>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -40,11 +41,12 @@ export default async function VoicePage() {
         </div>
       </div>
 
-      <p className="text-sm text-muted-foreground">
-        실시간 음성 방송 · LiveKit WebRTC · 시청은 라이브 홈에서도 할 수 있어요
-      </p>
-
-      <div className="grid gap-4">
+      <PageSection
+        title="활성 음성방"
+        icon={Mic}
+        description="실시간 음성 방송 · LiveKit WebRTC"
+        action={channels.length > 0 ? { href: "/live", label: "라이브 홈" } : undefined}
+      >
         {channels.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center gap-3 p-8 text-center text-muted-foreground">
@@ -62,7 +64,7 @@ export default async function VoicePage() {
         ) : (
           <VoiceChannelList channels={channels} />
         )}
-      </div>
+      </PageSection>
     </AppPageChrome>
   );
 }

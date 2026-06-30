@@ -2,6 +2,8 @@
 
 import { useSession } from "next-auth/react";
 import { FeedInfinite } from "@/components/feed/feed-infinite";
+import { FolkBrushDivider } from "@/components/brand/folk-decor";
+import { PageSection } from "@/components/layout/page-section";
 import { useLocale } from "@/components/providers/locale-provider";
 import { AptMailboxLink } from "@/components/compose/apt-mailbox-link";
 
@@ -41,15 +43,17 @@ export function HomeFeedClient({
   }
 
   return (
-    <section>
-      <h2 className="text-sm font-semibold text-muted-foreground mb-3">{t("feed.title")}</h2>
-      <FeedInfinite
-        initialItems={visibleItems}
-        initialCursor={nextCursor}
-        initialLikedIds={likedIds}
-        initialStarredIds={starredIds}
-        initialRepostedIds={repostedIds}
-      />
-    </section>
+    <>
+      <FolkBrushDivider className="mb-5 opacity-40" />
+      <PageSection title={t("feed.title")} description="팔로우 · 추천 · 최신">
+        <FeedInfinite
+          initialItems={visibleItems}
+          initialCursor={nextCursor}
+          initialLikedIds={likedIds}
+          initialStarredIds={starredIds}
+          initialRepostedIds={repostedIds}
+        />
+      </PageSection>
+    </>
   );
 }
