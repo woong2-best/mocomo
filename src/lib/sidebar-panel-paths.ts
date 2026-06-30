@@ -11,6 +11,12 @@ export function shouldShowRightPanel(pathname: string): boolean {
   if (pathname.startsWith("/auth")) return false;
   if (pathname.startsWith("/legal")) return false;
   if (pathname.startsWith("/live")) return false;
+  if (pathname.startsWith("/games")) return false;
+  if (pathname.startsWith("/discover")) return false;
+  if (pathname.startsWith("/rankings")) return false;
+  if (pathname.startsWith("/notifications")) return false;
+  if (pathname.startsWith("/search")) return false;
+  if (pathname === "/voice") return false;
   if (isAvatarStudioPath(pathname)) return false;
   if (isWebtoonDrawStudioPath(pathname)) return false;
   if (pathname.startsWith("/messages")) return false;

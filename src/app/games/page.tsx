@@ -1,4 +1,12 @@
-import { GamesHubClient } from "@/components/games/games-hub-client";
+import dynamic from "next/dynamic";
+import { RouteLoading } from "@/components/ui/route-loading";
+
+const GamesHubClient = dynamic(
+  () => import("@/components/games/games-hub-client").then((m) => m.GamesHubClient),
+  {
+    loading: () => <RouteLoading chrome maxWidth="4xl" variant="grid" />,
+  }
+);
 
 export const metadata = {
   title: "GAME | MoCoMo",

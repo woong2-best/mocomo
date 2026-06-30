@@ -7,7 +7,7 @@ import { NativeAppHeader } from "@/components/layout/native-app-header";
 import { NativeAppNav } from "@/components/layout/native-app-nav";
 import { NativeAppComposeFab } from "@/components/layout/native-app-compose-fab";
 import {
-  isNativeTabRoot,
+  isFastHubPath,
   nativeAppMainPadding,
   shouldHideNativeAppNav,
   shouldHideNativeAppHeader,
@@ -21,8 +21,8 @@ function NativeAppShellInner({ children }: { children: React.ReactNode }) {
   const prevPathRef = useRef(pathname);
   const skipTabMotion =
     prevPathRef.current !== pathname &&
-    isNativeTabRoot(prevPathRef.current) &&
-    isNativeTabRoot(pathname);
+    isFastHubPath(prevPathRef.current) &&
+    isFastHubPath(pathname);
   prevPathRef.current = pathname;
   const reduced = usePrefersReducedMotion();
   const isAuthRoute = pathname.startsWith("/auth");

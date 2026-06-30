@@ -1,10 +1,14 @@
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { mixFeedWithAds } from "@/lib/feed-mixer";
 import { FALLBACK_FEED_ADS, type FeedAdData } from "@/lib/default-ads";
 import { getCachedFeedAds, getCachedFeedPosts } from "@/lib/cached-data";
 import { getCachedSession } from "@/lib/auth";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
-import { HomeFeedClient } from "@/components/home/home-feed-client";
+
+const HomeFeedClient = dynamic(
+  () => import("@/components/home/home-feed-client").then((m) => m.HomeFeedClient)
+);
 
 function serializeCreatedAt<T extends { createdAt: Date | string }>(rows: T[]): T[] {
   return rows.map((row) => ({

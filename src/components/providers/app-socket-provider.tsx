@@ -8,8 +8,10 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { usePathname } from "next/navigation";
 import type { Socket } from "socket.io-client";
 import { useSession } from "next-auth/react";
+import { needsImmediateRealtime } from "@/lib/hub-fast-path";
 import { resolveSocketUrl } from "@/lib/socket-url";
 import {
   SOCKET_CONNECT_TIMEOUT_MS,
@@ -33,18 +35,33 @@ const AppSocketContext = createContext<AppSocketContextValue>({
   connectionFailed: false,
 });
 
+const DEFERRED_SOCKET_MS = 2800;
+
 /** 로그인 사용자 — 앱 어디서든 접속 중 표시·실시간 채팅용 단일 소켓 */
 export function AppSocketProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
+  const pathname = usePathname() ?? "";
   const userId = session?.user?.id;
   const [socket, setSocket] = useState<Socket | null>(null);
   const [socketReady, setSocketReady] = useState(false);
   const [realtimeOff, setRealtimeOff] = useState(() => !resolveSocketUrl());
   const [connectionFailed, setConnectionFailed] = useState(false);
+  const [connectAllowed, setConnectAllowed] = useState(() =>
+    needsImmediateRealtime(pathname)
+  );
+
+  useEffect(() => {
+    if (needsImmediateRealtime(pathname)) {
+      setConnectAllowed(true);
+      return;
+    }
+    const id = window.setTimeout(() => setConnectAllowed(true), DEFERRED_SOCKET_MS);
+    return () => window.clearTimeout(id);
+  }, [pathname]);
 
   useEffect(() => {
     const socketUrl = resolveSocketUrl();
-    if (!socketUrl || status !== "authenticated" || !userId) {
+    if (!connectAllowed || !socketUrl || status !== "authenticated" || !userId) {
       setRealtimeOff(true);
       setConnectionFailed(false);
       setSocketReady(false);
@@ -136,7 +153,7 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
       setSocket(null);
       activeSocket?.disconnect();
     };
-  }, [userId, status]);
+  }, [userId, status, connectAllowed]);
 
   const value = useMemo(
     () => ({ socket, socketReady, realtimeOff, connectionFailed }),
