@@ -21,7 +21,7 @@ function AppShellInner({
   children: React.ReactNode;
   rightPanel?: React.ReactNode;
 }) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const isAuthRoute = pathname.startsWith("/auth");
   const isLegalRoute = pathname.startsWith("/legal");
   const isMessagesRoute = pathname.startsWith("/messages");

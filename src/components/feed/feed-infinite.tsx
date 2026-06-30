@@ -84,7 +84,15 @@ export function FeedInfinite({
       setLikedIds((prev) => mergeIds(prev, json.likedIds));
       setStarredIds((prev) => mergeIds(prev, json.starredIds));
       setRepostedIds((prev) => mergeIds(prev, json.repostedIds));
-      setItems((prev) => [...prev, ...added]);
+      setItems((prev) => {
+        const seen = new Set(
+          prev.filter((i) => i.type === "post").map((i) => i.data.id)
+        );
+        const fresh = added.filter(
+          (i) => i.type !== "post" || !seen.has(i.data.id)
+        );
+        return [...prev, ...fresh];
+      });
       setCursor(json.nextCursor);
       if (!json.nextCursor) setDone(true);
     } catch {

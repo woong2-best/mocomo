@@ -111,7 +111,10 @@ function AptGemShopSheetInner() {
           setMsg("error" in res ? res.error : "결제 검증 실패");
           return;
         }
-        if (!res.economy) return;
+        if (!res.economy) {
+          setMsg("결제는 완료됐지만 지갑 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+          return;
+        }
 
         const merged = await hydrateLocalEconomy(res.economy);
         await refreshEconomyFromServer();
@@ -167,6 +170,10 @@ function AptGemShopSheetInner() {
   }, [isNativeApp, refreshEconomyFromServer, showToast]);
 
   const handleExchange = useCallback(async () => {
+    if (economy.wallet.gems < 1 || exchangeGems < 1) {
+      setMsg("환전할 젬이 없습니다.");
+      return;
+    }
     setLoading(true);
     setMsg(null);
     try {
@@ -175,7 +182,7 @@ function AptGemShopSheetInner() {
         setMsg(res.error);
         return;
       }
-      if ("economy" in res) {
+      if ("economy" in res && res.economy) {
         await hydrateLocalEconomy(res.economy);
         await refreshEconomyFromServer();
         setGame((g) => ({
@@ -184,13 +191,15 @@ function AptGemShopSheetInner() {
           gems: res.economy.wallet.gems,
         }));
         showToast(`환전 완료 +${res.goldReceived}G`, "gold");
+      } else {
+        setMsg("환전 결과를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.");
       }
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "환전에 실패했습니다.");
     } finally {
       setLoading(false);
     }
-  }, [exchangeGems, refreshEconomyFromServer, setGame, showToast]);
-
-  if (!gemShopOpen) return null;
+  }, [economy.wallet.gems, exchangeGems, refreshEconomyFromServer, setGame, showToast]);
 
   const gemProducts = catalog?.products.filter((p) => p.type === "gems") ?? [];
 
@@ -250,7 +259,7 @@ function AptGemShopSheetInner() {
             const isPurchasing = purchasingId === p.productId;
             const storePrice = storePrices[p.productId];
             return (
-            <MotionPress key={p.id} hoverLift={false}>
+            <MotionPress key={p.id} hoverLift={false} className="w-full">
             <button
               type="button"
               disabled={loading || !billingReady}
@@ -294,13 +303,21 @@ function AptGemShopSheetInner() {
               min={1}
               max={economy.wallet.gems}
               value={exchangeGems}
-              onChange={(e) => setExchangeGems(Math.max(1, Number(e.target.value) || 1))}
+              onChange={(e) => {
+                const raw = Number(e.target.value);
+                const max = Math.max(0, economy.wallet.gems);
+                if (!Number.isFinite(raw) || raw < 1) {
+                  setExchangeGems(max > 0 ? 1 : 0);
+                  return;
+                }
+                setExchangeGems(Math.min(Math.max(1, raw), max || 1));
+              }}
               className="w-20 rounded-xl border border-[#e8dcc8] bg-white px-2 py-1.5 text-sm font-bold"
             />
             <span className="text-[11px] text-[#8b7355]">→ {exchangePreview.toLocaleString()}G</span>
             <button
               type="button"
-              disabled={loading || !billingReady || economy.wallet.gems < 1}
+              disabled={loading || economy.wallet.gems < 1 || exchangeGems < 1}
               onClick={() => void handleExchange()}
               className="ml-auto rounded-xl bg-amber-500 px-3 py-1.5 text-[11px] font-black text-white active:scale-95 disabled:opacity-50"
             >

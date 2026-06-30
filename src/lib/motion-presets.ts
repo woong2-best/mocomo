@@ -1,5 +1,7 @@
 import type { Transition, Variants } from "framer-motion";
 
+/** 스크롤 reveal — 상단 N개는 즉시 표시 (invisible stuck 방지) */
+export const MOTION_REVEAL_EAGER = 4;
 /** 스크롤 reveal — 이 개수 초과는 옵저버 생략 (성능) */
 export const MOTION_REVEAL_MAX = 10;
 

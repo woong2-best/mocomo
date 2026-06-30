@@ -38,4 +38,11 @@ function FeedPostCardInteractiveInner({
   );
 }
 
-export const FeedPostCardInteractive = memo(FeedPostCardInteractiveInner);
+export const FeedPostCardInteractive = memo(
+  FeedPostCardInteractiveInner,
+  (prev, next) =>
+    prev.post.id === next.post.id &&
+    prev.initialLiked === next.initialLiked &&
+    prev.initialStarred === next.initialStarred &&
+    prev.initialReposted === next.initialReposted
+);

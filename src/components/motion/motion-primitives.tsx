@@ -6,6 +6,7 @@ import {
   fadeUp,
   inViewItem,
   matchBurst,
+  MOTION_REVEAL_EAGER,
   MOTION_REVEAL_MAX,
   pageVariants,
   pressTap,
@@ -205,10 +206,33 @@ export function MotionInViewIndexed({
   delayStep?: number;
   maxDelay?: number;
 }) {
+  const reduced = usePrefersReducedMotion();
   const skip = index >= MOTION_REVEAL_MAX;
+  const eager = index < MOTION_REVEAL_EAGER;
   const delay = Math.min(index * delayStep, maxDelay);
+
+  if (reduced || skip) {
+    return (
+      <div className={cn(className, skip && "moco-content-auto")}>{children}</div>
+    );
+  }
+
+  if (eager) {
+    return (
+      <motion.div
+        className={className}
+        variants={fadeUp}
+        initial="hidden"
+        animate="show"
+        transition={{ delay }}
+      >
+        {children}
+      </motion.div>
+    );
+  }
+
   return (
-    <MotionInView className={className} delay={delay} skip={skip}>
+    <MotionInView className={className} delay={delay} skip={false}>
       {children}
     </MotionInView>
   );
@@ -268,7 +292,12 @@ export function MotionSheet({
   return (
     <AnimatePresence>
       {open && (
-        <div className={cn("pointer-events-auto absolute inset-0 z-[200] flex flex-col justify-end", className)}>
+        <div
+          className={cn("pointer-events-auto absolute inset-0 z-[200] flex flex-col justify-end", className)}
+          role="dialog"
+          aria-modal="true"
+          aria-hidden={!open}
+        >
           <motion.div
             className="absolute inset-0 bg-black/40"
             variants={sheetBackdrop}

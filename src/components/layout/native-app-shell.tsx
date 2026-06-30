@@ -12,7 +12,7 @@ import { nativeRouteVariants } from "@/lib/motion-presets";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
 function NativeAppShellInner({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const reduced = usePrefersReducedMotion();
   const isAuthRoute = pathname.startsWith("/auth");
   const isLegalRoute = pathname.startsWith("/legal");
