@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { FeedAdCard } from "@/components/feed/feed-ad-card";
 import { FeedPostCardInteractive } from "@/components/feed/feed-post-card-interactive";
 import type { GridPost } from "@/components/feed/feed-post-card";
-import { MotionInView } from "@/components/motion/motion-primitives";
+import { MotionInViewIndexed } from "@/components/motion/motion-primitives";
 import { postHasVisualMedia } from "@/lib/format-feed";
 
 type Ad = {
@@ -50,11 +50,10 @@ export function FeedDualColumnLayout({
   const { textItems, visualItems } = partitionFeedItems(items);
 
   function renderItem(item: FeedLayoutItem, keySuffix: string, index: number) {
-    const delay = Math.min(index * 0.045, 0.4);
     const wrap = (node: ReactNode, key: string) => (
-      <MotionInView key={key} delay={delay} className="mb-4">
+      <MotionInViewIndexed key={key} index={index} className="mb-4">
         {node}
-      </MotionInView>
+      </MotionInViewIndexed>
     );
 
     if (item.type === "ad") {

@@ -8,7 +8,7 @@ import { FolkSectionTitle } from "@/components/brand/folk-decor";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import {
   MotionChip,
-  MotionInView,
+  MotionInViewIndexed,
   MotionPress,
 } from "@/components/motion/motion-primitives";
 import { cn } from "@/lib/utils";
@@ -142,7 +142,7 @@ export function GamesHubClient({
 
       <AnimatePresence mode="popLayout">
       <div key={category} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-        <MotionInView>
+        <MotionInViewIndexed index={0}>
         <MotionPress>
         <Link
           href={APT_GAME_PATH}
@@ -159,7 +159,7 @@ export function GamesHubClient({
           </div>
         </Link>
         </MotionPress>
-        </MotionInView>
+        </MotionInViewIndexed>
         {games.map((game, i) => {
           const Icon = game.icon;
           const playable = game.status === "live" || game.status === "beta";
@@ -198,7 +198,7 @@ export function GamesHubClient({
           if (playable && game.href) {
             if (embedded && onGameNavigate) {
               return (
-                <MotionInView key={game.id} delay={Math.min(i * 0.04, 0.4)}>
+                <MotionInViewIndexed key={game.id} index={i + 1}>
                 <MotionPress>
                 <button
                   type="button"
@@ -208,11 +208,11 @@ export function GamesHubClient({
                   {inner}
                 </button>
                 </MotionPress>
-                </MotionInView>
+                </MotionInViewIndexed>
               );
             }
             return (
-              <MotionInView key={game.id} delay={Math.min(i * 0.04, 0.4)}>
+              <MotionInViewIndexed key={game.id} index={i + 1}>
               <MotionPress>
               <Link
                 href={game.href}
@@ -221,19 +221,19 @@ export function GamesHubClient({
                 {inner}
               </Link>
               </MotionPress>
-              </MotionInView>
+              </MotionInViewIndexed>
             );
           }
 
           return (
-            <MotionInView key={game.id} delay={Math.min(i * 0.04, 0.4)}>
+            <MotionInViewIndexed key={game.id} index={i + 1}>
             <div
               className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-border/60 bg-muted/20 p-4 opacity-80 cursor-not-allowed"
               title="준비 중입니다"
             >
               {inner}
             </div>
-            </MotionInView>
+            </MotionInViewIndexed>
           );
         })}
       </div>

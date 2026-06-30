@@ -1,5 +1,8 @@
 import type { Transition, Variants } from "framer-motion";
 
+/** 스크롤 reveal — 이 개수 초과는 옵저버 생략 (성능) */
+export const MOTION_REVEAL_MAX = 10;
+
 export const springSnappy: Transition = {
   type: "spring",
   stiffness: 420,
@@ -14,16 +17,16 @@ export const springSoft: Transition = {
 };
 
 export const pageVariants: Variants = {
-  hidden: { opacity: 0, y: 14 },
+  hidden: { opacity: 0, y: 10 },
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
   },
   exit: {
     opacity: 0,
-    y: -8,
-    transition: { duration: 0.18, ease: "easeIn" },
+    y: -6,
+    transition: { duration: 0.12, ease: "easeIn" },
   },
 };
 
@@ -62,16 +65,16 @@ export const cardHover = { y: -4, transition: springSoft };
 
 /** 네이티브 셸 — 라우트 전환 (가벼운 페이드 + 슬라이드) */
 export const nativeRouteVariants: Variants = {
-  hidden: { opacity: 0, y: 10 },
+  hidden: { opacity: 0, y: 8 },
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] },
   },
   exit: {
     opacity: 0,
-    y: -6,
-    transition: { duration: 0.14, ease: "easeIn" },
+    y: -4,
+    transition: { duration: 0.1, ease: "easeIn" },
   },
 };
 

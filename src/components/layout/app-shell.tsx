@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { usePathname } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
@@ -35,18 +35,15 @@ function AppShellInner({
   const pageMotion = reduced ? (
     <>{children}</>
   ) : (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={pathname}
-        variants={pageVariants}
-        initial="hidden"
-        animate="show"
-        exit="exit"
-        className="min-h-full"
-      >
-        {children}
-      </motion.div>
-    </AnimatePresence>
+    <motion.div
+      key={pathname}
+      variants={pageVariants}
+      initial="hidden"
+      animate="show"
+      className="min-h-full"
+    >
+      {children}
+    </motion.div>
   );
 
   if (isAuthRoute || isLegalRoute) {

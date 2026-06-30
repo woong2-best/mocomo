@@ -6,6 +6,7 @@ import {
   fadeUp,
   inViewItem,
   matchBurst,
+  MOTION_REVEAL_MAX,
   pageVariants,
   pressTap,
   scaleIn,
@@ -162,14 +163,19 @@ export function MotionInView({
   children,
   className,
   delay = 0,
+  skip = false,
 }: {
   children: React.ReactNode;
   className?: string;
   delay?: number;
+  /** true면 옵저버 없이 즉시 렌더 (긴 목록 성능) */
+  skip?: boolean;
 }) {
   const reduced = usePrefersReducedMotion();
-  if (reduced) {
-    return <div className={className}>{children}</div>;
+  if (reduced || skip) {
+    return (
+      <div className={cn(className, skip && "moco-content-auto")}>{children}</div>
+    );
   }
   return (
     <motion.div
@@ -177,11 +183,34 @@ export function MotionInView({
       variants={inViewItem}
       initial="hidden"
       whileInView="show"
-      viewport={{ once: true, amount: 0.12, margin: "0px 0px -40px 0px" }}
+      viewport={{ once: true, amount: 0.08, margin: "0px 0px -24px 0px" }}
       transition={{ delay }}
     >
       {children}
     </motion.div>
+  );
+}
+
+/** index 기준 reveal 상한 적용 */
+export function MotionInViewIndexed({
+  index,
+  children,
+  className,
+  delayStep = 0.04,
+  maxDelay = 0.35,
+}: {
+  index: number;
+  children: React.ReactNode;
+  className?: string;
+  delayStep?: number;
+  maxDelay?: number;
+}) {
+  const skip = index >= MOTION_REVEAL_MAX;
+  const delay = Math.min(index * delayStep, maxDelay);
+  return (
+    <MotionInView className={className} delay={delay} skip={skip}>
+      {children}
+    </MotionInView>
   );
 }
 

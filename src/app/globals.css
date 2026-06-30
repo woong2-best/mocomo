@@ -151,6 +151,10 @@
   .moco-enter {
     @apply animate-moco-fade-up;
   }
+  .moco-content-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 280px;
+  }
   .moco-pop {
     @apply animate-moco-pop;
   }
@@ -160,6 +164,7 @@
   .moco-stagger > *,
   .moco-enter,
   .moco-pop,
+  .moco-content-auto,
   .animate-moco-fade-up,
   .animate-moco-fade-in,
   .animate-moco-scale-in,

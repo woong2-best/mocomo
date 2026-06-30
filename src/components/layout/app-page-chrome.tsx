@@ -40,18 +40,18 @@ export function AppPageChrome({
 }) {
   const { isNativeApp } = useClientPlatform();
 
+  const usePageMotion = animate && !isNativeApp;
+
   const inner = (
     <div
       className={cn(
         spacing === "sm" ? "space-y-4" : "space-y-6",
-        animate && "moco-stagger"
+        animate && !usePageMotion && "moco-stagger"
       )}
     >
       {children}
     </div>
   );
-
-  const usePageMotion = animate && !isNativeApp;
 
   return (
     <div

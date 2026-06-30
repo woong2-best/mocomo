@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Users } from "lucide-react";
-import { MotionInView, MotionPress } from "@/components/motion/motion-primitives";
+import { MotionInViewIndexed, MotionPress } from "@/components/motion/motion-primitives";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type VoiceChannel = {
@@ -16,7 +16,7 @@ export function VoiceChannelList({ channels }: { channels: VoiceChannel[] }) {
   return (
     <div className="grid gap-4">
       {channels.map((ch, i) => (
-        <MotionInView key={ch.id} delay={Math.min(i * 0.06, 0.35)}>
+        <MotionInViewIndexed key={ch.id} index={i}>
           <MotionPress>
             <Link href={`/voice/${ch.id}`}>
               <Card interactive className="hover:border-primary/40">
@@ -33,7 +33,7 @@ export function VoiceChannelList({ channels }: { channels: VoiceChannel[] }) {
               </Card>
             </Link>
           </MotionPress>
-        </MotionInView>
+        </MotionInViewIndexed>
       ))}
     </div>
   );

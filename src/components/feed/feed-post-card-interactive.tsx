@@ -1,12 +1,12 @@
 "use client";
 
+import { memo } from "react";
 import { FeedPhotoPostCard } from "@/components/feed/feed-photo-post-card";
 import { FeedTextPostCard } from "@/components/feed/feed-text-post-card";
-import { MotionPress } from "@/components/motion/motion-primitives";
 import { postHasVisualMedia } from "@/lib/format-feed";
 import type { GridPost } from "@/components/feed/feed-post-card";
 
-export function FeedPostCardInteractive({
+function FeedPostCardInteractiveInner({
   post,
   initialLiked = false,
   initialStarred = false,
@@ -19,25 +19,23 @@ export function FeedPostCardInteractive({
 }) {
   if (postHasVisualMedia(post)) {
     return (
-      <MotionPress hoverLift={false}>
-        <FeedPhotoPostCard
-          post={post}
-          initialLiked={initialLiked}
-          initialStarred={initialStarred}
-          initialReposted={initialReposted}
-        />
-      </MotionPress>
-    );
-  }
-
-  return (
-    <MotionPress>
-      <FeedTextPostCard
+      <FeedPhotoPostCard
         post={post}
         initialLiked={initialLiked}
         initialStarred={initialStarred}
         initialReposted={initialReposted}
       />
-    </MotionPress>
+    );
+  }
+
+  return (
+    <FeedTextPostCard
+      post={post}
+      initialLiked={initialLiked}
+      initialStarred={initialStarred}
+      initialReposted={initialReposted}
+    />
   );
 }
+
+export const FeedPostCardInteractive = memo(FeedPostCardInteractiveInner);
