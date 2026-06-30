@@ -17,7 +17,7 @@ export default async function WebtoonSeriesPage({ params }: { params: Promise<{ 
   const isAuthor = session?.user?.id === series.authorId;
 
   return (
-    <div className="space-y-4 max-w-4xl mx-auto">
+    <div className="space-y-4">
       <Link href="/webtoon">
         <Button variant="ghost" size="sm" className="gap-1 -ml-2">
           <ChevronLeft className="h-4 w-4" />

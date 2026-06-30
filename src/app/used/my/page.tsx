@@ -5,13 +5,14 @@ import { getCachedCurrentUser } from "@/lib/auth";
 import { UsedMyContent } from "@/components/used/used-my-content";
 import { UsedMySkeleton } from "@/components/used/used-loading-skeletons";
 import { ChevronLeft } from "lucide-react";
+import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 
 export default async function UsedMyPage() {
   const user = await getCachedCurrentUser();
   if (!user?.id) redirect("/auth/signin?callbackUrl=/used/my");
 
   return (
-    <div className="py-4 space-y-4 max-w-lg mx-auto">
+    <AppPageChrome maxWidth="lg" spacing="sm">
       <Link
         href="/used"
         prefetch
@@ -20,10 +21,12 @@ export default async function UsedMyPage() {
         <ChevronLeft className="h-4 w-4" />
         중고거래 홈
       </Link>
-      <h1 className="text-xl font-bold">내 중고거래</h1>
+      <NativePageTitle>
+        <h1 className="text-xl font-bold">내 중고거래</h1>
+      </NativePageTitle>
       <Suspense fallback={<UsedMySkeleton />}>
         <UsedMyContent userId={user.id} />
       </Suspense>
-    </div>
+    </AppPageChrome>
   );
 }

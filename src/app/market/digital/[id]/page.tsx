@@ -8,6 +8,7 @@ import { ChevronLeft, ShoppingBag, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PurchaseProductButton } from "@/components/market/purchase-product-button";
+import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 
 const typeLabels: Record<string, string> = {
   ART: "그림",
@@ -34,7 +35,7 @@ export default async function MarketProductPage({ params }: { params: Promise<{ 
   }
 
   return (
-    <div className="max-w-lg mx-auto space-y-4">
+    <AppPageChrome maxWidth="lg" spacing="sm">
       <Link href="/market">
         <Button variant="ghost" size="sm" className="gap-1">
           <ChevronLeft className="h-4 w-4" />
@@ -55,7 +56,9 @@ export default async function MarketProductPage({ params }: { params: Promise<{ 
           <p className="text-xs text-muted-foreground">
             {typeLabels[product.type]} · @{product.seller.username}
           </p>
-          <h1 className="text-xl font-bold">{product.title}</h1>
+          <NativePageTitle>
+            <h1 className="text-xl font-bold">{product.title}</h1>
+          </NativePageTitle>
           {product.description && (
             <p className="text-sm text-muted-foreground whitespace-pre-wrap">{product.description}</p>
           )}
@@ -77,6 +80,6 @@ export default async function MarketProductPage({ params }: { params: Promise<{ 
           )}
         </CardContent>
       </Card>
-    </div>
+    </AppPageChrome>
   );
 }

@@ -8,7 +8,7 @@ export function NotificationsPageChrome({ children }: { children: React.ReactNod
   const { isNativeApp } = useClientPlatform();
 
   return (
-    <div className={cn("p-4 lg:p-6 max-w-2xl mx-auto space-y-4", isNativeApp && "pb-native-fab")}>
+    <div className={cn("p-4 lg:p-6 max-w-2xl mx-auto space-y-4", !isNativeApp && "pb-nav lg:pb-6")}>
       <FolkSectionTitle icon="moon" className={cn(isNativeApp && "sr-only")}>
         알림
       </FolkSectionTitle>

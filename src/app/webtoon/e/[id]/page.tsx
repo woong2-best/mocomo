@@ -30,7 +30,7 @@ export default async function WebtoonEpisodePage({
   const paymentsEnabled = isPaymentsConfigured();
 
   return (
-    <div className="space-y-4 max-w-5xl mx-auto select-none">
+    <div className="space-y-4 select-none">
       <Link href="/webtoon">
         <Button variant="ghost" size="sm" className="gap-1 -ml-2">
           <ChevronLeft className="h-4 w-4" />

@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { ProfileHeaderAsync } from "@/components/profile/profile-header-async";
 import { ProfileTimelineAsync } from "@/components/profile/profile-timeline-async";
 import { ProfileSupportAsync } from "@/components/profile/profile-support-async";
@@ -15,7 +16,7 @@ export default function UserProfilePage({
   searchParams: Promise<{ tab?: string; sort?: string; kind?: string }>;
 }) {
   return (
-    <div className="max-w-5xl mx-auto min-h-screen border-x border-border/40">
+    <AppPageChrome maxWidth="5xl" className="!p-0 min-h-screen border-x border-border/40">
       <Suspense fallback={<ProfileHeaderSkeleton />}>
         <ProfilePageHeader params={params} searchParams={searchParams} />
       </Suspense>
@@ -46,7 +47,7 @@ export default function UserProfilePage({
       <Suspense fallback={<ProfileSupportSkeleton />}>
         <ProfilePageSupport params={params} />
       </Suspense>
-    </div>
+    </AppPageChrome>
   );
 }
 

@@ -2,6 +2,7 @@
 import { ChevronLeft, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getCachedPopularAnime } from "@/lib/cached-data";
+import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 
 export const revalidate = 120;
 
@@ -14,17 +15,19 @@ export default async function AnimePopularPage() {
   }
 
   return (
-    <div className="p-4 lg:p-6 max-w-3xl mx-auto space-y-6">
+    <AppPageChrome maxWidth="3xl">
       <Link href="/anime">
         <Button variant="ghost" size="sm" className="gap-1">
           <ChevronLeft className="h-4 w-4" />
           애니 위키
         </Button>
       </Link>
-      <h1 className="text-2xl font-bold flex items-center gap-2">
-        <Flame className="h-7 w-7 text-orange-500" />
-        인기 글
-      </h1>
+      <NativePageTitle>
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <Flame className="h-7 w-7 text-orange-500" />
+          인기 글
+        </h1>
+      </NativePageTitle>
       <p className="text-sm text-muted-foreground">조회수(클릭) 기준 실시간 인기 순위입니다.</p>
       <ol className="space-y-2">
         {animes.length === 0 ? (
@@ -41,6 +44,6 @@ export default async function AnimePopularPage() {
           ))
         )}
       </ol>
-    </div>
+    </AppPageChrome>
   );
 }

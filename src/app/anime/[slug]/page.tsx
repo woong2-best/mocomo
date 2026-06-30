@@ -9,6 +9,7 @@ import { getCachedSession, isSiteOperator } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
 import { getGenreInfo, genreToParam } from "@/lib/anime-genres";
 import { Pencil, Shield } from "lucide-react";
+import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 
 export const revalidate = 120;
 
@@ -121,7 +122,7 @@ export default async function AnimeDetailPage({
     : false;
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <AppPageChrome maxWidth="5xl" className="!px-0 !pt-0" spacing="sm">
       <AnimeViewTracker slug={slug} />
       <div
         className="relative h-48 md:h-64 bg-gradient-to-br from-neon-purple/40 to-neon-cyan/20"
@@ -139,7 +140,9 @@ export default async function AnimeDetailPage({
           >
             {genreInfo.emoji} {genreInfo.label}
           </Link>
-          <h1 className="text-2xl md:text-3xl font-bold">{anime.title}</h1>
+          <NativePageTitle>
+            <h1 className="text-2xl md:text-3xl font-bold">{anime.title}</h1>
+          </NativePageTitle>
           {anime.titleEn && <p className="text-muted-foreground text-sm">{anime.titleEn}</p>}
           {anime.isProtected && (
             <p className="inline-flex items-center gap-1 text-xs mt-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-200">
@@ -215,6 +218,6 @@ export default async function AnimeDetailPage({
           updatedAt: anime.updatedAt.toISOString(),
         }}
       />
-    </div>
+    </AppPageChrome>
   );
 }

@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 export function DiscoveryMatchList() {
   const router = useRouter();
   const { isNativeApp } = useClientPlatform();
-  const listPb = cn("max-w-lg mx-auto", isNativeApp ? "pb-native-fab" : "pb-nav lg:pb-6");
+  const listPb = cn("max-w-lg mx-auto", !isNativeApp && "pb-nav lg:pb-6");
   const [rows, setRows] = useState<DiscoveryMatchRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [opening, setOpening] = useState<string | null>(null);

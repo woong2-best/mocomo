@@ -6,6 +6,7 @@ import { PayButton } from "@/components/payments/pay-button";
 import { EmoticonPreview } from "@/components/market/emoticon-preview";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Gem, ImageIcon } from "lucide-react";
+import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 
 export default async function SupportEmoticonDetailPage({
   params,
@@ -25,7 +26,7 @@ export default async function SupportEmoticonDetailPage({
   const paymentsEnabled = isPaymentsConfigured() && !!purchasePackId && dbReady;
 
   return (
-    <div className="p-4 lg:p-6 max-w-lg mx-auto space-y-6">
+    <AppPageChrome maxWidth="lg">
       <Link href="/support?tab=emoticons">
         <Button variant="ghost" size="sm" className="gap-1 -ml-2">
           <ChevronLeft className="h-4 w-4" />
@@ -51,7 +52,9 @@ export default async function SupportEmoticonDetailPage({
         <div className="p-5 space-y-4 border-t border-border/60">
           <div className="flex items-center gap-2">
             <Gem className="h-5 w-5 text-pink-500" />
-            <h2 className="text-xl font-bold">{pack.name}</h2>
+            <NativePageTitle>
+              <h1 className="text-xl font-bold">{pack.name}</h1>
+            </NativePageTitle>
           </div>
           <p className="text-2xl font-black text-primary">{pack.price.toLocaleString()}원</p>
 
@@ -83,6 +86,6 @@ export default async function SupportEmoticonDetailPage({
           )}
         </div>
       </div>
-    </div>
+    </AppPageChrome>
   );
 }

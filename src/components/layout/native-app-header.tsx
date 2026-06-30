@@ -22,6 +22,8 @@ const ROOT_PATHS = new Set([
 ]);
 
 function titleForPath(pathname: string): string | null {
+  if (pathname.match(/^\/u\/[^/]+\/followers$/)) return "팔로워";
+  if (pathname.match(/^\/u\/[^/]+\/following$/)) return "팔로잉";
   if (pathname.startsWith("/u/")) return "프로필";
   if (pathname.startsWith("/post/")) return "게시물";
   if (pathname.startsWith("/settings")) {
@@ -83,9 +85,29 @@ function titleForPath(pathname: string): string | null {
   if (pathname === "/anime/delete-requests") return "삭제 요청";
   if (pathname.match(/^\/anime\/[^/]+\/history$/)) return "수정 기록";
   if (pathname === "/anime") return "애니 위키";
+  if (pathname === "/anime/popular") return "인기 글";
+  if (pathname === "/anime/recent") return "최근 변경";
+  if (pathname === "/anime/newest") return "최신 글";
+  if (pathname.startsWith("/anime/list/")) return "장르 목록";
+  if (pathname.match(/^\/anime\/[^/]+\/edit$/)) return "문서 편집";
+  if (pathname === "/anime/new") return "문서 작성";
   if (pathname.startsWith("/anime/")) return "애니 위키";
   if (pathname === "/cosplay/profiles") return "코스어 프로필";
   if (pathname === "/cosplay/board/new") return "글쓰기";
+  if (pathname === "/used/adult-verify") return "성인 인증";
+  if (pathname === "/used/verify") return "휴대폰 인증";
+  if (pathname.startsWith("/market/sell")) return "판매 등록";
+  if (pathname.startsWith("/market/digital/")) return "디지털 굿즈";
+  if (pathname.startsWith("/market/goods/")) return "실물 굿즈";
+  if (pathname.startsWith("/market/emoticons/")) return "이모티콘";
+  if (pathname.startsWith("/works")) return "크리에이터 작품";
+  if (pathname.startsWith("/webtoon")) return "일러스트";
+  if (pathname.startsWith("/payments/")) return "결제";
+  if (pathname.startsWith("/legal")) return "약관";
+  if (pathname === "/bookmarks") return "STAR";
+  if (pathname === "/my-page") return "마이페이지";
+  if (pathname === "/compose") return "글쓰기";
+  if (pathname.startsWith("/support/emoticons")) return "이모티콘";
   if (pathname.startsWith("/support")) return "후원";
   if (pathname.startsWith("/avatar")) return "아바타";
   return null;

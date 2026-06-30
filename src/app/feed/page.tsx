@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { HomeShell } from "@/components/home/home-shell";
 import { HomeHighlightsAsync } from "@/components/home/home-highlights-async";
 import { HomeFeedAsync } from "@/components/home/home-feed-async";
+import { AppPageChrome } from "@/components/layout/app-page-chrome";
 
 export const metadata = {
   title: "MoCoMo",
@@ -22,7 +23,7 @@ function FeedFallback() {
 
 export default function FeedPage() {
   return (
-    <div className="p-4 lg:p-6 max-w-5xl lg:max-w-6xl mx-auto">
+    <AppPageChrome maxWidth="6xl" spacing="sm" className="!px-4 lg:!px-6">
       <HomeShell />
       <Suspense
         fallback={
@@ -40,6 +41,6 @@ export default function FeedPage() {
       <Suspense fallback={<FeedFallback />}>
         <HomeFeedAsync />
       </Suspense>
-    </div>
+    </AppPageChrome>
   );
 }

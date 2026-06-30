@@ -5,6 +5,7 @@ import { getMySellerProducts } from "@/actions/goods-shop";
 import { GoodsListingForm } from "@/components/market/goods-listing-form";
 import { SetProductPriceForm } from "@/components/market/set-product-price-form";
 import Link from "next/link";
+import { AppPageChrome } from "@/components/layout/app-page-chrome";
 
 export default async function MarketSellPage() {
   const session = await auth();
@@ -14,7 +15,7 @@ export default async function MarketSellPage() {
   const paymentsEnabled = isPaymentsConfigured();
 
   return (
-    <div className="space-y-8 max-w-lg mx-auto">
+    <AppPageChrome maxWidth="lg" spacing="sm">
       <section className="space-y-3">
         <h2 className="font-bold text-lg">굿즈 판매 문의</h2>
         <p className="text-sm text-muted-foreground leading-relaxed">
@@ -65,6 +66,6 @@ export default async function MarketSellPage() {
           </ul>
         </section>
       )}
-    </div>
+    </AppPageChrome>
   );
 }

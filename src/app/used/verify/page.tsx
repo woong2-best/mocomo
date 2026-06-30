@@ -4,6 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { UsedPhoneVerifyForm } from "@/components/used/used-phone-verify-form";
 import { isUsedMarketEligible } from "@/lib/used-phone-auth";
+import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 
 export default async function UsedVerifyPage({
   searchParams,
@@ -20,25 +21,28 @@ export default async function UsedVerifyPage({
 
   if (user.countryCode !== "KR") {
     return (
-      <div className="py-8 max-w-lg mx-auto text-center space-y-4">
+      <AppPageChrome maxWidth="lg" spacing="sm" className="py-8 text-center">
         <p className="text-muted-foreground">중고거래는 대한민국 회원만 이용할 수 있습니다.</p>
         <Link href="/used" className="text-primary underline text-sm">
           중고거래 홈으로
         </Link>
-      </div>
+      </AppPageChrome>
     );
   }
 
   return (
-    <div className="py-4 max-w-lg mx-auto">
+    <AppPageChrome maxWidth="lg" spacing="sm">
       <Link
         href="/used"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground font-medium mb-4"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground font-medium"
       >
         <ChevronLeft className="h-4 w-4" />
         중고거래 홈
       </Link>
+      <NativePageTitle>
+        <h1 className="text-xl font-bold">휴대폰 인증</h1>
+      </NativePageTitle>
       <UsedPhoneVerifyForm callbackUrl={next} />
-    </div>
+    </AppPageChrome>
   );
 }

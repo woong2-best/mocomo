@@ -8,6 +8,7 @@ import { AnimeProtectionToggle } from "@/components/anime/anime-protection-toggl
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, History } from "lucide-react";
 import { UserRole } from "@prisma/client";
+import { AppPageChrome } from "@/components/layout/app-page-chrome";
 
 export default async function AnimeEditPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -32,7 +33,7 @@ export default async function AnimeEditPage({ params }: { params: Promise<{ slug
     (session.user.username ? isSiteOperator(session.user as { username: string; role: string; email?: string | null }) : false);
 
   return (
-    <div className="p-4 lg:p-6 space-y-6 max-w-3xl mx-auto">
+    <AppPageChrome maxWidth="3xl" spacing="sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Link href={`/anime/${slug}`}>
           <Button variant="ghost" size="sm" className="gap-1">
@@ -61,6 +62,6 @@ export default async function AnimeEditPage({ params }: { params: Promise<{ slug
         <h2 className="text-sm font-semibold">삭제 요청</h2>
         <AnimeDeleteRequestForm slug={slug} title={anime.title} />
       </section>
-    </div>
+    </AppPageChrome>
   );
 }

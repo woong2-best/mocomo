@@ -26,7 +26,7 @@ export default async function WorksEpisodePage({
   const paymentsEnabled = isPaymentsConfigured();
 
   return (
-    <div className="space-y-4 max-w-2xl mx-auto">
+    <div className="space-y-4">
       <Link href={`/works/series/${episode.series.id}`}>
         <Button variant="ghost" size="sm" className="gap-1 -ml-2">
           <ChevronLeft className="h-4 w-4" />

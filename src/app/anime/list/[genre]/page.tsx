@@ -7,6 +7,7 @@ import { animeSlugFromTitle, isValidAnimeSlug } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Plus } from "lucide-react";
+import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 
 export default async function AnimeGenreListPage({
   params,
@@ -49,7 +50,7 @@ export default async function AnimeGenreListPage({
   }
 
   return (
-    <div className="p-4 lg:p-6 max-w-5xl mx-auto space-y-6">
+    <AppPageChrome maxWidth="5xl">
       <div className="flex flex-wrap items-center gap-3">
         <Link href="/anime">
           <Button variant="ghost" size="sm" className="gap-1">
@@ -61,12 +62,14 @@ export default async function AnimeGenreListPage({
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <span className="text-3xl" aria-hidden>
-              {info.emoji}
-            </span>
-            {info.label}
-          </h1>
+          <NativePageTitle>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <span className="text-3xl" aria-hidden>
+                {info.emoji}
+              </span>
+              {info.label}
+            </h1>
+          </NativePageTitle>
           <p className="text-sm text-muted-foreground mt-1">제목순 정렬 (A → Z) · {animes.length}개</p>
         </div>
         <Link href={session?.user ? `/anime/new?genre=${genreParam}` : `/auth/signin?callbackUrl=${encodeURIComponent(`/anime/new?genre=${genreParam}`)}`}>
@@ -120,6 +123,6 @@ export default async function AnimeGenreListPage({
           })
         )}
       </div>
-    </div>
+    </AppPageChrome>
   );
 }

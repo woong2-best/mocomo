@@ -1,17 +1,19 @@
 import { Suspense } from "react";
 import { ExploreContentAsync } from "@/components/explore/explore-content-async";
-import { HeaderSearch } from "@/components/search/header-search";
 import { FolkSectionTitle } from "@/components/brand/folk-decor";
+import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
+import { HeaderSearch } from "@/components/search/header-search";
 import { CardRowsSkeleton } from "@/components/ui/content-skeletons";
 
 export const revalidate = 60;
 
 export default function ExplorePage() {
   return (
-    <div className="px-3 py-3 sm:p-4 lg:p-6 max-w-2xl mx-auto space-y-5 sm:space-y-8">
-      <FolkSectionTitle icon="sun" className="max-sm:sr-only">
-        탐색
-      </FolkSectionTitle>
+    <AppPageChrome maxWidth="2xl" className="!px-3 sm:!px-4">
+      <NativePageTitle>
+        <FolkSectionTitle icon="sun">탐색</FolkSectionTitle>
+      </NativePageTitle>
+
       <div className="max-sm:hidden">
         <HeaderSearch />
       </div>
@@ -26,6 +28,6 @@ export default function ExplorePage() {
       >
         <ExploreContentAsync />
       </Suspense>
-    </div>
+    </AppPageChrome>
   );
 }

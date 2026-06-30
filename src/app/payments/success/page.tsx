@@ -2,6 +2,7 @@ import Link from "next/link";
 import { confirmStripeCheckout } from "@/actions/monetization";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle } from "lucide-react";
+import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 
 export default async function PaymentSuccessPage({
   searchParams,
@@ -84,13 +85,15 @@ function Result({
   primaryLabel?: string;
 }) {
   return (
-    <div className="max-w-md mx-auto p-8 text-center space-y-4">
+    <AppPageChrome maxWidth="lg" spacing="sm" className="!p-8 text-center">
       {ok ? (
         <CheckCircle className="h-14 w-14 text-green-500 mx-auto" />
       ) : (
         <XCircle className="h-14 w-14 text-destructive mx-auto" />
       )}
-      <h1 className="text-xl font-bold">{title}</h1>
+      <NativePageTitle>
+        <h1 className="text-xl font-bold">{title}</h1>
+      </NativePageTitle>
       <p className="text-muted-foreground text-sm">{message}</p>
       {subMessage && <p className="text-sm text-primary font-medium">{subMessage}</p>}
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
@@ -105,6 +108,6 @@ function Result({
           </Link>
         )}
       </div>
-    </div>
+    </AppPageChrome>
   );
 }

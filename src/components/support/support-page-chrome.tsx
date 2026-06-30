@@ -10,7 +10,7 @@ export function SupportPageChrome({ children }: { children: React.ReactNode }) {
     <div
       className={cn(
         "p-4 lg:p-6 max-w-3xl mx-auto space-y-6 min-w-0",
-        isNativeApp ? "pb-native-fab" : "pb-nav lg:pb-6"
+        !isNativeApp && "pb-nav lg:pb-6"
       )}
     >
       {children}

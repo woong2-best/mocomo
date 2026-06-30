@@ -42,7 +42,7 @@ export function AppPageChrome({
         MAX_WIDTH[maxWidth],
         "mx-auto p-4 min-w-0",
         spacing === "sm" ? "space-y-4" : "space-y-6",
-        isNativeApp ? "pb-native-fab" : "pb-nav lg:pb-6",
+        !isNativeApp && "pb-nav lg:pb-6",
         className
       )}
     >

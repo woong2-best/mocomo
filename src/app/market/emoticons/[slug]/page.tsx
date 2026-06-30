@@ -6,6 +6,7 @@ import { PayButton } from "@/components/payments/pay-button";
 import { EmoticonPreview } from "@/components/market/emoticon-preview";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ImageIcon } from "lucide-react";
+import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 
 export default async function EmoticonDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -21,7 +22,7 @@ export default async function EmoticonDetailPage({ params }: { params: Promise<{
   const paymentsEnabled = isPaymentsConfigured() && !!purchasePackId && dbReady;
 
   return (
-    <div className="max-w-lg mx-auto space-y-6">
+    <AppPageChrome maxWidth="lg">
       <Link href="/market/emoticons">
         <Button variant="ghost" size="sm" className="gap-1 -ml-2">
           <ChevronLeft className="h-4 w-4" />
@@ -41,7 +42,9 @@ export default async function EmoticonDetailPage({ params }: { params: Promise<{
         </div>
         <div className="p-5 space-y-4 border-t border-border/60">
           <div>
-            <h2 className="text-xl font-bold">{pack.name}</h2>
+            <NativePageTitle>
+              <h1 className="text-xl font-bold">{pack.name}</h1>
+            </NativePageTitle>
             <p className="text-2xl font-black text-primary mt-1">{pack.price.toLocaleString()}원</p>
           </div>
 
@@ -73,6 +76,6 @@ export default async function EmoticonDetailPage({ params }: { params: Promise<{
           )}
         </div>
       </div>
-    </div>
+    </AppPageChrome>
   );
 }

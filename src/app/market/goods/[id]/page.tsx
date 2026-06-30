@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getPhysicalProduct } from "@/actions/goods-shop";
 import { isPaymentsConfigured } from "@/lib/payments";
 import { PhysicalPurchaseForm } from "@/components/market/physical-purchase-form";
+import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 
@@ -17,7 +18,7 @@ export default async function GoodsDetailPage({ params }: { params: Promise<{ id
   const paymentsEnabled = isPaymentsConfigured();
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <AppPageChrome maxWidth="2xl">
       <Link href="/market/goods">
         <Button variant="ghost" size="sm" className="gap-1 -ml-2">
           <ChevronLeft className="h-4 w-4" />
@@ -40,7 +41,9 @@ export default async function GoodsDetailPage({ params }: { params: Promise<{ id
         </div>
         <div className="space-y-4">
           <div>
-            <h2 className="text-xl font-bold">{product.title}</h2>
+            <NativePageTitle>
+              <h1 className="text-xl font-bold">{product.title}</h1>
+            </NativePageTitle>
             <Link href={`/u/${product.seller.username}`} className="text-sm text-primary hover:underline">
               @{product.seller.username}
             </Link>
@@ -63,6 +66,6 @@ export default async function GoodsDetailPage({ params }: { params: Promise<{ id
         shippingFee={product.shippingFee}
         paymentsEnabled={paymentsEnabled}
       />
-    </div>
+    </AppPageChrome>
   );
 }

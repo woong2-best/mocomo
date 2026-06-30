@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProfileFollowButton } from "@/components/profile/profile-follow-button";
+import { UserListStickyHeader } from "@/components/profile/user-list-header";
+import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { getAuthUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
@@ -69,16 +70,8 @@ export async function UserListPage({
     : new Set<string>();
 
   return (
-    <div className="max-w-2xl mx-auto min-h-screen border-x border-border/40">
-      <div className="sticky top-14 z-20 flex items-center gap-4 px-4 py-3 bg-background/90 backdrop-blur border-b border-border/60">
-        <Link href={`/u/${username}`} className="p-2 -ml-2 rounded-full hover:bg-muted/80">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div>
-          <h1 className="font-bold">{title}</h1>
-          <p className="text-sm text-muted-foreground">@{username}</p>
-        </div>
-      </div>
+    <AppPageChrome maxWidth="2xl" className="!p-0">
+      <UserListStickyHeader username={username} title={title} />
 
       {users.length === 0 ? (
         <p className="text-center text-muted-foreground py-16 text-sm">
@@ -120,6 +113,6 @@ export async function UserListPage({
           ))}
         </ul>
       )}
-    </div>
+    </AppPageChrome>
   );
 }
