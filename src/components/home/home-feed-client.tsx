@@ -1,7 +1,6 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useSession } from "next-auth/react";
 import { FolkBrushDivider } from "@/components/brand/folk-decor";
 import { PageSection } from "@/components/layout/page-section";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -24,6 +23,8 @@ export function HomeFeedClient({
   feedItems,
   nextCursor,
   hasDbPosts,
+  isLoggedIn,
+  isPremium = false,
   likedIds = [],
   starredIds = [],
   repostedIds = [],
@@ -31,14 +32,13 @@ export function HomeFeedClient({
   feedItems: FeedLayoutItem[];
   nextCursor: string | null;
   hasDbPosts: boolean;
+  isLoggedIn: boolean;
+  isPremium?: boolean;
   likedIds?: string[];
   starredIds?: string[];
   repostedIds?: string[];
 }) {
-  const { data: session } = useSession();
   const { t } = useLocale();
-  const isLoggedIn = !!session?.user;
-  const isPremium = session?.user?.premiumTier === "PREMIUM";
   const visibleItems = isPremium ? feedItems.filter((item) => item.type !== "ad") : feedItems;
 
   if (!hasDbPosts) {

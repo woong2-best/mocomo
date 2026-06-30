@@ -20,7 +20,9 @@ function NativeAppShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
   const prevPathRef = useRef(pathname);
   const skipTabMotion =
-    isNativeTabRoot(prevPathRef.current) && isNativeTabRoot(pathname);
+    prevPathRef.current !== pathname &&
+    isNativeTabRoot(prevPathRef.current) &&
+    isNativeTabRoot(pathname);
   prevPathRef.current = pathname;
   const reduced = usePrefersReducedMotion();
   const isAuthRoute = pathname.startsWith("/auth");
@@ -31,8 +33,12 @@ function NativeAppShellInner({ children }: { children: React.ReactNode }) {
   const isVoiceRoom = pathname.startsWith("/voice/") && pathname !== "/voice/new";
   const isAptImmersive = isAptImmersivePath(pathname ?? "");
 
-  const pageMotion = reduced || skipTabMotion ? (
+  const pageMotion = reduced ? (
     <>{children}</>
+  ) : skipTabMotion ? (
+    <div key={pathname} className="min-h-full">
+      {children}
+    </div>
   ) : (
     <motion.div
       key={pathname}

@@ -59,10 +59,11 @@ function AptGemShopSheetInner() {
   useEffect(() => {
     const max = economy.wallet.gems;
     if (max <= 0) {
-      setExchangeGems(1);
+      setExchangeGems(0);
       return;
     }
-    if (exchangeGems > max) setExchangeGems(max);
+    if (exchangeGems < 1) setExchangeGems(1);
+    else if (exchangeGems > max) setExchangeGems(max);
   }, [economy.wallet.gems, exchangeGems]);
 
   useEffect(() => {

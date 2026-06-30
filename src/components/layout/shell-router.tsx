@@ -8,12 +8,12 @@ import { usePathname } from "next/navigation";
 
 const AppShell = dynamic(
   () => import("@/components/layout/app-shell").then((m) => m.AppShell),
-  { loading: () => null }
+  { loading: () => <div className="min-h-dvh bg-background" aria-hidden /> }
 );
 
 const NativeAppShell = dynamic(
   () => import("@/components/layout/native-app-shell").then((m) => m.NativeAppShell),
-  { loading: () => null }
+  { loading: () => <div className="min-h-dvh bg-background" aria-hidden /> }
 );
 
 function ShellSwitch({

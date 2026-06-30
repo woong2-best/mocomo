@@ -30,6 +30,11 @@ export async function HomeFeedAsync() {
     });
     const nextCursor = posts.length === 12 ? posts[posts.length - 1]?.id ?? null : null;
     const hasDbPosts = mixed.some((item) => item.type === "post");
+    const isLoggedIn = !!session?.user;
+    const isPremium = session?.user?.premiumTier === "PREMIUM";
+    const visibleMixed = isPremium
+      ? mixed.filter((item) => item.type !== "ad")
+      : mixed;
     const postIds = mixed.filter((i) => i.type === "post").map((i) => i.data.id);
     let engagement = { likedIds: [] as string[], starredIds: [] as string[], repostedIds: [] as string[] };
     if (session?.user?.id && postIds.length > 0) {
@@ -42,10 +47,12 @@ export async function HomeFeedAsync() {
 
     return (
       <HomeFeedClient
+        isLoggedIn={isLoggedIn}
+        isPremium={isPremium}
         likedIds={engagement.likedIds}
         starredIds={engagement.starredIds}
         repostedIds={engagement.repostedIds}
-        feedItems={mixed.map((item) =>
+        feedItems={visibleMixed.map((item) =>
           item.type === "post"
             ? ({
                 type: "post" as const,

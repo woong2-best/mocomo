@@ -183,8 +183,9 @@ export function MotionInView({
       className={className}
       variants={inViewItem}
       initial="hidden"
+      animate="show"
       whileInView="show"
-      viewport={{ once: true, amount: 0.08, margin: "0px 0px -24px 0px" }}
+      viewport={{ once: true, amount: 0.05, margin: "0px 0px -32px 0px" }}
       transition={{ delay }}
     >
       {children}

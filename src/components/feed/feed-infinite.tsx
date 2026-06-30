@@ -50,9 +50,14 @@ export function FeedInfinite({
   const [done, setDone] = useState(!initialCursor);
   const [loadError, setLoadError] = useState("");
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const loadingRef = useRef(false);
   const postOffsetRef = useRef(
     initialItems.filter((i) => i.type === "post").length
   );
+
+  const feedSeed = `${initialCursor ?? ""}:${initialItems.length}:${
+    initialItems.find((i) => i.type === "post")?.data.id ?? ""
+  }`;
 
   useEffect(() => {
     setItems(initialItems);
@@ -62,10 +67,12 @@ export function FeedInfinite({
     setStarredIds(new Set(initialStarredIds));
     setRepostedIds(new Set(initialRepostedIds));
     postOffsetRef.current = initialItems.filter((i) => i.type === "post").length;
-  }, [initialItems, initialCursor, initialLikedIds, initialStarredIds, initialRepostedIds]);
+    setLoadError("");
+  }, [feedSeed, initialItems, initialCursor, initialLikedIds, initialStarredIds, initialRepostedIds]);
 
   const loadMore = useCallback(async () => {
-    if (!cursor || loading || done) return;
+    if (!cursor || loadingRef.current || done) return;
+    loadingRef.current = true;
     setLoading(true);
     setLoadError("");
     try {
@@ -73,12 +80,29 @@ export function FeedInfinite({
       const res = await fetch(`/api/feed?cursor=${cursor}&limit=12&postOffset=${postOffset}`, {
         credentials: "include",
       });
-      const json = await res.json();
+      let json: {
+        items?: FeedItem[];
+        nextCursor?: string | null;
+        likedIds?: string[];
+        starredIds?: string[];
+        repostedIds?: string[];
+        error?: string;
+      };
+      try {
+        json = await res.json();
+      } catch {
+        setLoadError("응답을 해석하지 못했습니다.");
+        return;
+      }
       if (!res.ok) {
         setLoadError(json.error ?? "피드를 더 불러오지 못했습니다.");
         return;
       }
-      const added = json.items as FeedItem[];
+      if (!Array.isArray(json.items)) {
+        setLoadError("피드 형식이 올바르지 않습니다.");
+        return;
+      }
+      const added = json.items;
       const addedPosts = added.filter((i) => i.type === "post").length;
       postOffsetRef.current += addedPosts;
       setLikedIds((prev) => mergeIds(prev, json.likedIds));
@@ -93,21 +117,22 @@ export function FeedInfinite({
         );
         return [...prev, ...fresh];
       });
-      setCursor(json.nextCursor);
+      setCursor(json.nextCursor ?? null);
       if (!json.nextCursor) setDone(true);
     } catch {
       setLoadError("네트워크 오류가 발생했습니다.");
     } finally {
+      loadingRef.current = false;
       setLoading(false);
     }
-  }, [cursor, loading, done]);
+  }, [cursor, done]);
 
   const loadMoreRef = useRef(loadMore);
   loadMoreRef.current = loadMore;
 
   useEffect(() => {
     const el = sentinelRef.current;
-    if (!el) return;
+    if (!el || done) return;
     const io = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) void loadMoreRef.current();
@@ -116,7 +141,7 @@ export function FeedInfinite({
     );
     io.observe(el);
     return () => io.disconnect();
-  }, []);
+  }, [done]);
 
   return (
     <>
