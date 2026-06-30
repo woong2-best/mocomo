@@ -59,3 +59,26 @@ export const navIconHover = { scale: 1.08, y: -2 };
 
 export const pressTap = { scale: 0.96 };
 export const cardHover = { y: -4, transition: springSoft };
+
+/** 네이티브 셸 — 라우트 전환 (가벼운 페이드) */
+export const nativeRouteVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { duration: 0.18, ease: "easeOut" } },
+  exit: { opacity: 0, transition: { duration: 0.12, ease: "easeIn" } },
+};
+
+/** 스크롤 시 등장 */
+export const inViewItem: Variants = {
+  hidden: { opacity: 0, y: 28, scale: 0.97 },
+  show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
+export const popVariants: Variants = {
+  idle: { scale: 1 },
+  pop: { scale: [1, 1.35, 1], transition: { duration: 0.35 } },
+};

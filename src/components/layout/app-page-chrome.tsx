@@ -51,6 +51,8 @@ export function AppPageChrome({
     </div>
   );
 
+  const usePageMotion = animate && !isNativeApp;
+
   return (
     <div
       className={cn(
@@ -60,7 +62,7 @@ export function AppPageChrome({
         className
       )}
     >
-      {animate ? <MotionPage>{inner}</MotionPage> : inner}
+      {usePageMotion ? <MotionPage>{inner}</MotionPage> : inner}
     </div>
   );
 }

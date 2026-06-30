@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { memo } from "react";
+import { motion } from "framer-motion";
 import { Eye, Radio, Sparkles, User, Mic2 } from "lucide-react";
 import { isVoiceBroadcastMode } from "@/lib/live-voice-broadcast";
 import { LivePageActions } from "@/components/live/live-page-actions";
@@ -7,18 +10,21 @@ import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-
 import { liveCategoryLabel } from "@/lib/live-categories";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
 import type { SupportTierLevel } from "@prisma/client";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { cardHover, pressTap } from "@/lib/motion-presets";
 
 export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHubHost }) {
+  const reduced = usePrefersReducedMotion();
   const thumb = ch.thumbnailUrl ?? host?.image;
-  return (
-    <Link href={`/voice/${ch.id}`} prefetch={false} className="live-card group">
+  const card = (
+    <Link href={`/voice/${ch.id}`} prefetch={false} className="live-card group block">
       <div className="live-card-thumb">
         {thumb ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={thumb}
             alt=""
-            className="absolute inset-0 w-full h-full object-cover opacity-50 dark:opacity-40 group-hover:opacity-65 transition-opacity"
+            className="absolute inset-0 w-full h-full object-cover opacity-50 dark:opacity-40 group-hover:opacity-65 transition-all duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -61,6 +67,18 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
         </div>
       </div>
     </Link>
+  );
+
+  if (reduced) return card;
+
+  return (
+    <motion.div
+      whileHover={cardHover}
+      whileTap={pressTap}
+      transition={{ type: "spring", stiffness: 400, damping: 26 }}
+    >
+      {card}
+    </motion.div>
   );
 }
 

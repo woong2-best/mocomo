@@ -57,7 +57,7 @@ export async function ExploreContentAsync() {
         </p>
       )}
 
-      <Card className="rounded-2xl border-violet-500/25 bg-gradient-to-br from-violet-950/15 to-fuchsia-950/10 overflow-hidden">
+      <Card className="folk-card-interactive rounded-2xl border-violet-500/25 bg-gradient-to-br from-violet-950/15 to-fuchsia-950/10 overflow-hidden">
         <CardContent className="p-4 flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="font-display font-bold flex items-center gap-1.5 text-violet-900 dark:text-violet-100">
@@ -80,12 +80,12 @@ export async function ExploreContentAsync() {
             <Radio className="h-5 w-5 text-folk-terracotta" />
             지금 라이브
           </h2>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 moco-stagger">
             {liveChannels.map((ch) => (
               <Link
                 key={ch.id}
                 href={`/voice/${ch.id}`}
-                className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-xl border border-folk-terracotta/30 bg-folk-terracotta/5 hover:bg-folk-terracotta/10"
+                className="folk-card-interactive inline-flex items-center gap-2 text-sm px-3 py-2 rounded-xl border border-folk-terracotta/30 bg-folk-terracotta/5 hover:bg-folk-terracotta/10"
               >
                 <LiveModeBadge broadcastMode={ch.broadcastMode} compact />
                 <span className="line-clamp-1">{ch.name}</span>
@@ -107,10 +107,10 @@ export async function ExploreContentAsync() {
         {trendingPosts.length === 0 ? (
           <p className="text-sm text-muted-foreground">게시물 없음 — 가입 후 첫 글을 작성해 보세요</p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2 moco-stagger">
             {trendingPosts.map((p) => (
               <Link key={p.id} href={`/post/${p.id}`}>
-                <Card className="hover:bg-muted/30 rounded-xl">
+                <Card className="folk-card-interactive hover:bg-muted/30 rounded-xl">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-2 text-sm">
                       <DisplayNameWithSupportTier
@@ -140,10 +140,10 @@ export async function ExploreContentAsync() {
             <Link href="/auth/signup">첫 번째 유저 되기</Link>
           </Button>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2 moco-stagger">
             {suggestedUsers.map((u) => (
               <Link key={u.username} href={`/u/${u.username}`}>
-                <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/30 border border-border/50">
+                <div className="folk-card-interactive flex items-center gap-3 p-3 rounded-xl hover:bg-muted/30 border border-border/50">
                   <Avatar>
                     <AvatarImage src={u.image ?? undefined} />
                     <AvatarFallback>{u.username[0]}</AvatarFallback>

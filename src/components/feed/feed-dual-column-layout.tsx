@@ -1,8 +1,10 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { FeedAdCard } from "@/components/feed/feed-ad-card";
 import { FeedPostCardInteractive } from "@/components/feed/feed-post-card-interactive";
 import type { GridPost } from "@/components/feed/feed-post-card";
+import { MotionInView } from "@/components/motion/motion-primitives";
 import { postHasVisualMedia } from "@/lib/format-feed";
 
 type Ad = {
@@ -47,22 +49,28 @@ export function FeedDualColumnLayout({
 }) {
   const { textItems, visualItems } = partitionFeedItems(items);
 
-  function renderItem(item: FeedLayoutItem, keySuffix: string) {
+  function renderItem(item: FeedLayoutItem, keySuffix: string, index: number) {
+    const delay = Math.min(index * 0.045, 0.4);
+    const wrap = (node: ReactNode, key: string) => (
+      <MotionInView key={key} delay={delay} className="mb-4">
+        {node}
+      </MotionInView>
+    );
+
     if (item.type === "ad") {
-      return (
-        <div key={`ad-${item.data.id}-${keySuffix}`} className="mb-4">
-          <FeedAdCard ad={item.data} />
-        </div>
+      return wrap(
+        <FeedAdCard ad={item.data} />,
+        `ad-${item.data.id}-${keySuffix}`
       );
     }
-    return (
+    return wrap(
       <FeedPostCardInteractive
-        key={`${item.data.id}-${keySuffix}`}
         post={item.data}
         initialLiked={likedIds.has(item.data.id)}
         initialStarred={starredIds.has(item.data.id)}
         initialReposted={repostedIds.has(item.data.id)}
-      />
+      />,
+      `${item.data.id}-${keySuffix}`
     );
   }
 
@@ -70,7 +78,7 @@ export function FeedDualColumnLayout({
     <>
       {/* 모바일·태블릿: 단일 열, 시간순 */}
       <div className="mx-auto flex w-full max-w-[470px] flex-col lg:hidden">
-        {items.map((item, i) => renderItem(item, `m-${i}`))}
+        {items.map((item, i) => renderItem(item, `m-${i}`, i))}
       </div>
 
       {/* 데스크톱(lg+): 왼쪽 글만 · 오른쪽 사진·영상·광고 */}
@@ -81,7 +89,7 @@ export function FeedDualColumnLayout({
               글만 있는 게시물이 없습니다.
             </p>
           ) : (
-            textItems.map((item, i) => renderItem(item, `t-${i}`))
+            textItems.map((item, i) => renderItem(item, `t-${i}`, i))
           )}
         </div>
         <div className="flex min-w-0 flex-col">
@@ -90,7 +98,7 @@ export function FeedDualColumnLayout({
               사진·영상 게시물이 없습니다.
             </p>
           ) : (
-            visualItems.map((item, i) => renderItem(item, `v-${i}`))
+            visualItems.map((item, i) => renderItem(item, `v-${i}`, i))
           )}
         </div>
       </div>

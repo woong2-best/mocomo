@@ -139,7 +139,14 @@
   .moco-stagger > *:nth-child(6) { animation-delay: 275ms; }
   .moco-stagger > *:nth-child(7) { animation-delay: 330ms; }
   .moco-stagger > *:nth-child(8) { animation-delay: 385ms; }
-  .moco-stagger > *:nth-child(n + 9) { animation-delay: 440ms; }
+  .moco-stagger > *:nth-child(9) { animation-delay: 440ms; }
+  .moco-stagger > *:nth-child(10) { animation-delay: 495ms; }
+  .moco-stagger > *:nth-child(11) { animation-delay: 550ms; }
+  .moco-stagger > *:nth-child(12) { animation-delay: 605ms; }
+  .moco-stagger > *:nth-child(13) { animation-delay: 660ms; }
+  .moco-stagger > *:nth-child(14) { animation-delay: 715ms; }
+  .moco-stagger > *:nth-child(15) { animation-delay: 770ms; }
+  .moco-stagger > *:nth-child(n + 16) { animation-delay: 825ms; }
 
   .moco-enter {
     @apply animate-moco-fade-up;
@@ -295,11 +302,11 @@ html[data-client="app"] .native-live-pad {
   }
 
   .live-card {
-    @apply block rounded-xl overflow-hidden folk-card hover:border-[hsl(var(--folk-terracotta))] transition-all duration-200;
+    @apply block rounded-xl overflow-hidden folk-card hover:border-[hsl(var(--folk-terracotta))] transition-all duration-300;
   }
 
   .live-card-thumb {
-    @apply relative aspect-video;
+    @apply relative aspect-video overflow-hidden;
     background-color: hsl(var(--folk-cobalt) / 0.15);
   }
 

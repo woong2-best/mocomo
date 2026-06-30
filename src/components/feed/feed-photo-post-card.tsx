@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { formatCompactNumberKo, formatFeedRelativeTime } from "@/lib/format-feed";
 import type { GridPost } from "@/components/feed/feed-post-card";
 import { PostPollCard } from "@/components/post/post-poll-card";
+import { MotionPop } from "@/components/motion/motion-primitives";
 import { engageStar, postEngage } from "@/lib/post-engage-client";
 
 const CAPTION_PREVIEW_LEN = 80;
@@ -131,7 +132,7 @@ export function FeedPhotoPostCard({
       </header>
 
       <Link href={`/post/${post.id}`} className="block px-3">
-        <div className="relative rounded-lg overflow-hidden bg-black/90 aspect-square">
+        <div className="relative rounded-lg overflow-hidden bg-black/90 aspect-square group/media">
           {media.length > 1 && (
             <span className="absolute top-2 right-2 z-10 rounded-md bg-black/60 px-2 py-0.5 text-[11px] text-white">
               1/{media.length}
@@ -140,7 +141,7 @@ export function FeedPhotoPostCard({
           {media[0]?.type === "VIDEO" ? (
             <video
               src={media[0].url}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover/media:scale-[1.04]"
               muted
               playsInline
               preload="metadata"
@@ -150,7 +151,7 @@ export function FeedPhotoPostCard({
             <img
               src={media[0]?.url}
               alt=""
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover/media:scale-[1.04]"
               loading="lazy"
             />
           )}
@@ -179,7 +180,9 @@ export function FeedPhotoPostCard({
               )}
               aria-label="좋아요"
             >
-              <Heart className={cn("h-6 w-6", liked && "fill-current")} strokeWidth={1.5} />
+              <MotionPop trigger={liked}>
+                <Heart className={cn("h-6 w-6", liked && "fill-current")} strokeWidth={1.5} />
+              </MotionPop>
               {likeCount > 0 && (
                 <span className="text-sm font-medium tabular-nums">
                   {formatCompactNumberKo(likeCount)}
@@ -228,10 +231,12 @@ export function FeedPhotoPostCard({
             className="min-h-9 hover:opacity-70"
             aria-label={starred ? "STAR에서 제거" : "STAR에 저장"}
           >
-            <Bookmark
-              className={cn("h-6 w-6", starred && "fill-current text-foreground")}
-              strokeWidth={1.5}
-            />
+            <MotionPop trigger={starred}>
+              <Bookmark
+                className={cn("h-6 w-6", starred && "fill-current text-foreground")}
+                strokeWidth={1.5}
+              />
+            </MotionPop>
           </button>
         </div>
       </div>

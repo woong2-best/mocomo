@@ -17,6 +17,7 @@ import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-
 import { userDisplayName } from "@/lib/user-public-select";
 import type { GridPost } from "@/components/feed/feed-post-card";
 import { PostPollCard } from "@/components/post/post-poll-card";
+import { MotionPop } from "@/components/motion/motion-primitives";
 import { engageStar, postEngage } from "@/lib/post-engage-client";
 
 const typeLabels: Record<string, string> = {
@@ -179,7 +180,9 @@ export function FeedTextPostCard({
                 liked ? "text-folk-terracotta" : "hover:text-folk-terracotta"
               )}
             >
-              <Heart className={cn("h-3.5 w-3.5 pointer-events-none", liked && "fill-current")} />
+              <MotionPop trigger={liked}>
+                <Heart className={cn("h-3.5 w-3.5 pointer-events-none", liked && "fill-current")} />
+              </MotionPop>
               <span className="pointer-events-none">{formatNumber(likeCount)}</span>
             </button>
             <Link
@@ -220,12 +223,14 @@ export function FeedTextPostCard({
               starred ? "text-folk-gold" : "text-folk-gold/60 hover:text-folk-gold"
             )}
           >
-            <Star
-              className={cn(
-                "h-4 w-4 pointer-events-none",
-                starred && "fill-folk-gold text-folk-gold"
-              )}
-            />
+            <MotionPop trigger={starred}>
+              <Star
+                className={cn(
+                  "h-4 w-4 pointer-events-none",
+                  starred && "fill-folk-gold text-folk-gold"
+                )}
+              />
+            </MotionPop>
           </button>
         </div>
         {actionError && (

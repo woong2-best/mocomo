@@ -8,7 +8,7 @@ import { NativeAppNav } from "@/components/layout/native-app-nav";
 import { NativeAppComposeFab } from "@/components/layout/native-app-compose-fab";
 import { nativeAppMainPadding, shouldHideNativeAppNav, shouldHideNativeAppHeader } from "@/lib/native-app-shell";
 import { isAptImmersivePath } from "@/lib/apt-route";
-import { pageVariants } from "@/lib/motion-presets";
+import { pageVariants, nativeRouteVariants } from "@/lib/motion-presets";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
 function NativeAppShellInner({ children }: { children: React.ReactNode }) {
@@ -29,7 +29,7 @@ function NativeAppShellInner({ children }: { children: React.ReactNode }) {
       <motion.div
         key={pathname}
         className="min-h-full"
-        variants={pageVariants}
+        variants={nativeRouteVariants}
         initial="hidden"
         animate="show"
         exit="exit"

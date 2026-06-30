@@ -2,6 +2,7 @@
 
 import { FeedPhotoPostCard } from "@/components/feed/feed-photo-post-card";
 import { FeedTextPostCard } from "@/components/feed/feed-text-post-card";
+import { MotionPress } from "@/components/motion/motion-primitives";
 import { postHasVisualMedia } from "@/lib/format-feed";
 import type { GridPost } from "@/components/feed/feed-post-card";
 
@@ -18,21 +19,25 @@ export function FeedPostCardInteractive({
 }) {
   if (postHasVisualMedia(post)) {
     return (
-      <FeedPhotoPostCard
+      <MotionPress hoverLift={false}>
+        <FeedPhotoPostCard
+          post={post}
+          initialLiked={initialLiked}
+          initialStarred={initialStarred}
+          initialReposted={initialReposted}
+        />
+      </MotionPress>
+    );
+  }
+
+  return (
+    <MotionPress>
+      <FeedTextPostCard
         post={post}
         initialLiked={initialLiked}
         initialStarred={initialStarred}
         initialReposted={initialReposted}
       />
-    );
-  }
-
-  return (
-    <FeedTextPostCard
-      post={post}
-      initialLiked={initialLiked}
-      initialStarred={initialStarred}
-      initialReposted={initialReposted}
-    />
+    </MotionPress>
   );
 }
