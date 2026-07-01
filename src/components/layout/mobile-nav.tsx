@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import {
   Home,
   Compass,
-  Mailbox,
+  PenSquare,
   Radio,
   User,
   LogIn,
@@ -20,8 +20,7 @@ import { useLocale } from "@/components/providers/locale-provider";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
 import { MobileDrawerNav } from "@/components/layout/mobile-drawer-nav";
-import { buildAptMailboxUrl } from "@/lib/apt/mailbox-compose-route";
-import { DEFAULT_LANDING_PATH, APT_GAME_PATH } from "@/lib/site-routes";
+import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { navIconTap, springSnappy } from "@/lib/motion-presets";
 
@@ -37,7 +36,7 @@ const userTabs: { href: string; icon: typeof Home; labelKey: MessageKey }[] = [
   { href: DEFAULT_LANDING_PATH, icon: Home, labelKey: "nav.home" },
   { href: "/live", icon: Radio, labelKey: "nav.live" },
   { href: "/used", icon: Tags, labelKey: "nav.used" },
-  { href: buildAptMailboxUrl(), icon: Mailbox, labelKey: "nav.compose" },
+  { href: "/compose", icon: PenSquare, labelKey: "nav.compose" },
 ];
 
 export function MobileNav() {
@@ -64,14 +63,14 @@ export function MobileNav() {
             const active =
               href.startsWith("/auth")
                 ? pathname.startsWith("/auth")
-                : href.includes("decor=mailbox") || href.startsWith("/apt")
-                  ? pathname === APT_GAME_PATH || pathname.startsWith("/apt")
+                : href === "/compose"
+                  ? pathname === "/compose"
                   : pathname === href || pathname.startsWith(`${href}/`);
 
             return (
               <Link
                 key={href}
-                href={href.includes("decor=mailbox") || href.startsWith("/apt") ? buildAptMailboxUrl() : href}
+                href={href}
                 className={cn(
                   "relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full min-w-0 px-0.5 text-[10px]",
                   active ? "text-primary font-semibold" : "text-muted-foreground"

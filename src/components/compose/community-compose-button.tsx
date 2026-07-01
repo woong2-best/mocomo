@@ -1,7 +1,7 @@
 "use client";
 
 import { PenSquare } from "lucide-react";
-import { AptMailboxLink } from "@/components/compose/apt-mailbox-link";
+import { ComposeOpenButton } from "@/components/compose/compose-open-button";
 import { cn } from "@/lib/utils";
 
 export function CommunityComposeButton({
@@ -16,7 +16,7 @@ export function CommunityComposeButton({
   children?: React.ReactNode;
 }) {
   return (
-    <AptMailboxLink
+    <ComposeOpenButton
       communityId={communityId}
       className={cn(
         variant === "primary"
@@ -26,7 +26,7 @@ export function CommunityComposeButton({
       )}
     >
       {variant === "primary" && <PenSquare className="h-4 w-4" />}
-      {children ?? (variant === "primary" ? "우편함" : "첫 글 올리기")}
-    </AptMailboxLink>
+      {children ?? (variant === "primary" ? "글쓰기" : "첫 글 올리기")}
+    </ComposeOpenButton>
   );
 }

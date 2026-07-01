@@ -219,6 +219,7 @@ export function ComposeForm({
       />
       <textarea
         name="content"
+        defaultValue={initialContent}
         placeholder="내용을 입력하세요..."
         required
         className="w-full min-h-[160px] rounded-xl border border-border bg-background/50 p-3 text-sm resize-y"

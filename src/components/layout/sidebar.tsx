@@ -11,7 +11,7 @@ import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
 import { useLocale } from "@/components/providers/locale-provider";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
 import { isNavItemActive } from "@/lib/nav-active";
-import { AptNavSection } from "@/components/layout/apt-nav-section";
+import { GamesNavSection } from "@/components/layout/games-nav-section";
 import { useSidebarToggle } from "@/components/providers/sidebar-toggle-provider";
 
 export function Sidebar() {
@@ -69,7 +69,7 @@ export function Sidebar() {
       </nav>
 
       <div className="shrink-0 space-y-2 border-t-2 border-folk-cobalt/20 pt-3 bg-[hsl(var(--folk-cream)/0.6)] dark:bg-background">
-        <AptNavSection pathname={pathname} />
+        <GamesNavSection pathname={pathname} />
         {!shouldShowRightPanel(pathname) && (
           <AptMailboxLink className="block w-full shrink-0 bg-folk-terracotta text-white flex items-center justify-center gap-2 py-3 text-sm font-display font-bold rounded-xl hover:bg-folk-terracotta-dark transition-colors border-2 border-folk-cobalt/25 shadow-folk">
             <Mailbox className="h-4 w-4" />

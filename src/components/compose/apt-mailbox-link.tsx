@@ -11,7 +11,7 @@ type AptMailboxLinkProps = Omit<ComponentProps<typeof Link>, "href"> & {
   initialTitle?: string;
 };
 
-/** 일반 글쓰기 → APT 우편함 배치 화면으로 이동 */
+/** APT 우편함(인게임) 배치 화면으로 이동 */
 export function AptMailboxLink({
   communityId,
   initialContent,

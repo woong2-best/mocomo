@@ -11,8 +11,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { mainNavItems } from "@/lib/nav-items";
-import { buildAptMailboxUrl } from "@/lib/apt/mailbox-compose-route";
-import { APT_GAME_PATH } from "@/lib/site-routes";
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
@@ -21,7 +19,7 @@ import { FolkBrushDivider, FolkFloralAccent } from "@/components/brand/folk-deco
 import { FolkThemeCelestial } from "@/components/brand/folk-theme-celestial";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { BRAND } from "@/lib/brand";
-import { AptNavSection } from "@/components/layout/apt-nav-section";
+import { GamesNavSection } from "@/components/layout/games-nav-section";
 
 type MobileDrawerNavProps = {
   open: boolean;
@@ -61,24 +59,7 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
         <div className="flex min-h-0 flex-1 flex-col">
           <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 space-y-1">
             {items.map(({ href, icon: Icon, labelKey }) => {
-              const active =
-                href.includes("decor=mailbox") || href.startsWith("/apt")
-                  ? pathname === APT_GAME_PATH || pathname.startsWith("/apt")
-                  : isNavItemActive(pathname, href, navHrefs);
-
-              if (href.includes("decor=mailbox") || href.startsWith("/apt")) {
-                return (
-                  <Link
-                    key={href}
-                    href={buildAptMailboxUrl()}
-                    onClick={() => onOpenChange(false)}
-                    className={cn("sidebar-block w-full text-left", active && "sidebar-block-active")}
-                  >
-                    <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
-                    <span className="truncate">{t(labelKey)}</span>
-                  </Link>
-                );
-              }
+              const active = isNavItemActive(pathname, href, navHrefs);
 
               return (
                 <Link
@@ -97,7 +78,7 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
             })}
           </nav>
           <div className="shrink-0 space-y-1 border-t-2 border-folk-cobalt/20 bg-folk-gold/10 p-3 pb-nav">
-            <AptNavSection pathname={pathname} onNavigate={() => onOpenChange(false)} />
+            <GamesNavSection pathname={pathname} onNavigate={() => onOpenChange(false)} />
           </div>
         </div>
       </DialogContent>

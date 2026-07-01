@@ -1,11 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { motion } from "framer-motion";
-import { Mailbox } from "lucide-react";
+import { PenSquare } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
-import { buildAptMailboxUrl } from "@/lib/apt/mailbox-compose-route";
+import { useCompose } from "@/components/compose/compose-provider";
 import { shouldHideNativeComposeFab } from "@/lib/native-app-shell";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { scaleIn, springSnappy } from "@/lib/motion-presets";
@@ -13,6 +12,7 @@ import { scaleIn, springSnappy } from "@/lib/motion-presets";
 export function NativeAppComposeFab() {
   const { data: session } = useSession();
   const pathname = usePathname();
+  const { openCompose } = useCompose();
   const reduced = usePrefersReducedMotion();
 
   if (!session?.user) return null;
@@ -29,20 +29,17 @@ export function NativeAppComposeFab() {
         animate={reduced ? undefined : { y: [0, -4, 0] }}
         transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
       >
-        <Link
-          href={buildAptMailboxUrl()}
+        <motion.button
+          type="button"
+          onClick={() => openCompose()}
           className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:opacity-95"
-          aria-label="우편함"
+          aria-label="글쓰기"
+          whileTap={reduced ? undefined : { scale: 0.9 }}
+          whileHover={reduced ? undefined : { scale: 1.06 }}
+          transition={springSnappy}
         >
-          <motion.span
-            className="flex items-center justify-center"
-            whileTap={reduced ? undefined : { scale: 0.9 }}
-            whileHover={reduced ? undefined : { scale: 1.06 }}
-            transition={springSnappy}
-          >
-            <Mailbox className="h-6 w-6" />
-          </motion.span>
-        </Link>
+          <PenSquare className="h-6 w-6" />
+        </motion.button>
       </motion.div>
     </motion.div>
   );

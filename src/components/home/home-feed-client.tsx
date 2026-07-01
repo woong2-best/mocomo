@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { FolkBrushDivider } from "@/components/brand/folk-decor";
 import { PageSection } from "@/components/layout/page-section";
 import { useLocale } from "@/components/providers/locale-provider";
-import { AptMailboxLink } from "@/components/compose/apt-mailbox-link";
+import { ComposeOpenButton } from "@/components/compose/compose-open-button";
 import type { FeedLayoutItem } from "@/components/feed/feed-dual-column-layout";
 
 const FeedInfinite = dynamic(
@@ -45,10 +45,10 @@ export function HomeFeedClient({
     if (!isLoggedIn) return null;
     return (
       <div className="text-center py-12 rounded-2xl border border-dashed">
-        <p className="text-muted-foreground mb-4">APT 우편함에서 첫 게시글을 올려 보세요</p>
-        <AptMailboxLink className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-          우편함 만들기
-        </AptMailboxLink>
+        <p className="text-muted-foreground mb-4">오늘의 캔버스에 첫 글을 올려 보세요</p>
+        <ComposeOpenButton className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+          글쓰기
+        </ComposeOpenButton>
       </div>
     );
   }

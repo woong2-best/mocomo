@@ -15,7 +15,6 @@ import dynamic from "next/dynamic";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { CheckCircle2, X, Loader2 } from "lucide-react";
 import { composeSheetRegionClass } from "@/lib/compose-sheet-layout";
-import { buildAptMailboxUrl } from "@/lib/apt/mailbox-compose-route";
 import { cn } from "@/lib/utils";
 
 const ComposeForm = dynamic(
@@ -92,16 +91,6 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
         const callback = pathname || "/";
         router.push(
           `/auth/signin?callbackUrl=${encodeURIComponent(callback)}`
-        );
-        return;
-      }
-      if (!opts?.viaMailbox) {
-        router.push(
-          buildAptMailboxUrl({
-            communityId: opts?.communityId,
-            initialContent: opts?.initialContent,
-            initialTitle: opts?.initialTitle,
-          })
         );
         return;
       }
