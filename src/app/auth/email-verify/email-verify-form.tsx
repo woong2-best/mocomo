@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { sendEmailAuthCode, verifyAuthCodeOnly, completeAuthWithCode } from "@/actions/auth";
-import { APT_GAME_PATH } from "@/lib/site-routes";
+import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
 import { EmailAddressField } from "@/components/auth/email-address-field";
 import { Button } from "@/components/ui/button";
@@ -91,7 +91,7 @@ export function EmailVerifyFormInner() {
     }
     if (signupCodeAlreadySent) {
       try {
-        router.prefetch("/");
+        router.prefetch(DEFAULT_LANDING_PATH);
       } catch {
         /* ignore */
       }
@@ -154,7 +154,7 @@ export function EmailVerifyFormInner() {
         redirect: false,
       });
       if (!signInResult?.error) {
-        router.replace(APT_GAME_PATH);
+        router.replace(DEFAULT_LANDING_PATH);
         return;
       }
       setSignupPassword(stored);
@@ -273,8 +273,8 @@ export function EmailVerifyFormInner() {
             </p>
           )}
           <Button asChild className="w-full rounded-xl">
-            <Link href={`/auth/signin?email=${encodeURIComponent(email)}&callbackUrl=${encodeURIComponent(APT_GAME_PATH)}`}>
-              로그인하고 내 집으로
+            <Link href={`/auth/signin?email=${encodeURIComponent(email)}&callbackUrl=${encodeURIComponent(DEFAULT_LANDING_PATH)}`}>
+              로그인하고 홈으로
             </Link>
           </Button>
           {!signupPassword && (

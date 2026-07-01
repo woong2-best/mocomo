@@ -46,6 +46,9 @@ export function SignupVerifyForm() {
       return;
     }
     setEmail(draft.email);
+    router.prefetch(
+      `/auth/email-verify?email=${encodeURIComponent(draft.email)}&mode=signup`
+    );
     const cached = loadSignupChallenge();
     if (cached) {
       setChallenge(cached);
@@ -101,12 +104,10 @@ export function SignupVerifyForm() {
         if (result.message) {
           sessionStorage.setItem("mocomo_signup_notice", result.message);
         }
-        router.prefetch(
-          `/auth/email-verify?email=${encodeURIComponent(draft.email)}&mode=signup`
-        );
         router.replace(
           `/auth/email-verify?email=${encodeURIComponent(draft.email)}&mode=signup`
         );
+        return;
       }
     } catch {
       setError("서버 연결 오류입니다. 잠시 후 다시 시도해 주세요.");
@@ -151,8 +152,8 @@ export function SignupVerifyForm() {
           <SignupStepIndicator step={2} />
           <CardTitle className="text-2xl">사람인지 확인</CardTitle>
           <p className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{email}</span> 로 인증 메일을 보냅니다.
-            아래 퀴즈를 푼 뒤 계속해 주세요. (외부 CAPTCHA 없음 · 무료)
+            <span className="font-medium text-foreground">{email}</span>로 인증 메일을 보냅니다.
+            아래 퀴즈를 푼 뒤 계속해 주세요.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">

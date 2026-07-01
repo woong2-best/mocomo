@@ -46,7 +46,10 @@ import { verifyTurnstileToken } from "@/lib/turnstile";
 import { isSignupHumanVerifyRequired } from "@/lib/turnstile-signup";
 import { APT_DEFAULT_FLOOR, APT_LOBBY_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
 import { findCountry } from "@/lib/apt/world/world-countries";
-import { pickAvailableSignupFloor } from "@/actions/apt";
+import {
+  pickAvailableSignupFloor,
+  tryResolvePrecheckedSignupFloor,
+} from "@/actions/apt";
 
 const signupApplicationSchema = z.object({
   email: z.string().email(),
@@ -438,14 +441,20 @@ export async function registerUser(
     };
   }
 
-  const [userByEmailInitial, passwordHash, ip] = await Promise.all([
+  const floorPromise =
+    availabilityPrechecked && homeFloor != null
+      ? tryResolvePrecheckedSignupFloor(countryCode, homeFloor)
+      : pickAvailableSignupFloor(countryCode, homeFloor ?? APT_DEFAULT_FLOOR);
+
+  const [userByEmailInitial, passwordHash, ip, floorPick] = await Promise.all([
     resolveUserByEmail(email),
     bcrypt.hash(password, SIGNUP_BCRYPT_ROUNDS),
     getRequestIp(),
+    floorPromise,
   ]);
 
-  const emailRate = await checkEmailSendRateLimit(email, ip);
-  if (!emailRate.ok) return { error: emailRate.error };
+  if (!floorPick.ok) return { error: floorPick.error };
+  const aptFloor = floorPick.floor;
 
   let userByEmail = userByEmailInitial;
 
@@ -453,14 +462,14 @@ export async function registerUser(
     return { error: signupBlockMessage(userByEmail) };
   }
 
-  if (!availabilityPrechecked) {
-    const availability = await checkSignupAvailability(email, username, name);
-    if (!availability.ok) return { error: availability.error };
-  }
-
-  const floorPick = await pickAvailableSignupFloor(countryCode, homeFloor ?? APT_DEFAULT_FLOOR);
-  if (!floorPick.ok) return { error: floorPick.error };
-  const aptFloor = floorPick.floor;
+  const [emailRate, availability] = await Promise.all([
+    checkEmailSendRateLimit(email, ip),
+    availabilityPrechecked
+      ? Promise.resolve({ ok: true as const })
+      : checkSignupAvailability(email, username, name),
+  ]);
+  if (!emailRate.ok) return { error: emailRate.error };
+  if (!availability.ok) return { error: availability.error };
 
   if (userByEmail && !isEmailVerified(userByEmail)) {
     const collapsedId = await collapseUnverifiedEmailRows(email);
@@ -526,37 +535,41 @@ export async function registerUser(
     const code = generateEmailCode();
     await saveSignupAuthCode(email, code);
 
-    const sent = await sendAuthCodeEmail(email, code, "signup");
+    const country = findCountry(countryCode) ?? findCountry("KR")!;
+    const [sent] = await Promise.all([
+      sendAuthCodeEmail(email, code, "signup"),
+      db.aptProfile.upsert({
+        where: { userId },
+        create: {
+          userId,
+          housingType: "apartment",
+          countryCode: countryCode.toUpperCase(),
+          homeFloor: aptFloor,
+          latitude: country.lat,
+          longitude: country.lng,
+          regionLabel: `${country.nameKo} APT`,
+          moveInCompletedAt: new Date(),
+        },
+        update: {
+          countryCode: countryCode.toUpperCase(),
+          homeFloor: aptFloor,
+          latitude: country.lat,
+          longitude: country.lng,
+          regionLabel: `${country.nameKo} APT`,
+          moveInCompletedAt: new Date(),
+        },
+      }),
+    ]);
 
     if (!sent.ok) {
       if (!isResume) {
-        await db.user.delete({ where: { id: userId } }).catch(() => undefined);
+        await Promise.all([
+          db.user.delete({ where: { id: userId } }).catch(() => undefined),
+          db.aptProfile.delete({ where: { userId } }).catch(() => undefined),
+        ]);
       }
       return { error: sent.error ?? "인증 메일 발송 실패" };
     }
-
-    const country = findCountry(countryCode) ?? findCountry("KR")!;
-    await db.aptProfile.upsert({
-      where: { userId },
-      create: {
-        userId,
-        housingType: "apartment",
-        countryCode: countryCode.toUpperCase(),
-        homeFloor: aptFloor,
-        latitude: country.lat,
-        longitude: country.lng,
-        regionLabel: `${country.nameKo} APT`,
-        moveInCompletedAt: new Date(),
-      },
-      update: {
-        countryCode: countryCode.toUpperCase(),
-        homeFloor: aptFloor,
-        latitude: country.lat,
-        longitude: country.lng,
-        regionLabel: `${country.nameKo} APT`,
-        moveInCompletedAt: new Date(),
-      },
-    });
 
     return {
       success: true,

@@ -365,26 +365,51 @@ export async function checkFloorAvailableForSignup(countryCode: string, floor: n
   return { ok: true as const, floor: clamped };
 }
 
+async function loadOccupiedSignupFloors(countryCode: string): Promise<Set<number>> {
+  const rows = await db.aptProfile.findMany({
+    where: {
+      moveInCompletedAt: { not: null },
+      housingType: "apartment",
+      countryCode: countryCode.toUpperCase(),
+    },
+    select: { homeFloor: true },
+  });
+  return new Set(rows.map((row) => row.homeFloor));
+}
+
+function pickNearestFreeFloor(start: number, taken: Set<number>): number | null {
+  if (!taken.has(start)) return start;
+  for (let delta = 1; delta <= 250; delta++) {
+    for (const f of [start + delta, start - delta]) {
+      if (f >= 1 && f <= APT_TOTAL_FLOORS && !taken.has(f)) {
+        return f;
+      }
+    }
+  }
+  return null;
+}
+
+/** 1단계에서 이미 배정된 층이면 단일 조회로 확인, 충돌 시에만 재배정 */
+export async function tryResolvePrecheckedSignupFloor(countryCode: string, floor: number) {
+  const start = clampFloor(floor);
+  if (!(await isFloorOccupied(countryCode, start))) {
+    return { ok: true as const, floor: start };
+  }
+  return pickAvailableSignupFloor(countryCode, start);
+}
+
 /** 회원가입 시 UI 없이 자동 배정할 입주 층 */
 export async function pickAvailableSignupFloor(
   countryCode: string,
   preferred = APT_DEFAULT_FLOOR
 ) {
   const start = clampFloor(preferred);
-  if (!(await isFloorOccupied(countryCode, start))) {
-    return { ok: true as const, floor: start };
+  const taken = await loadOccupiedSignupFloors(countryCode);
+  const floor = pickNearestFreeFloor(start, taken);
+  if (floor == null) {
+    return { ok: false as const, error: "지금은 입주 가능한 층이 없습니다. 잠시 후 다시 시도해 주세요." };
   }
-  for (let delta = 1; delta <= 250; delta++) {
-    const candidates = [start + delta, start - delta].filter(
-      (f) => f >= 1 && f <= APT_TOTAL_FLOORS
-    );
-    for (const f of candidates) {
-      if (!(await isFloorOccupied(countryCode, f))) {
-        return { ok: true as const, floor: f };
-      }
-    }
-  }
-  return { ok: false as const, error: "지금은 입주 가능한 층이 없습니다. 잠시 후 다시 시도해 주세요." };
+  return { ok: true as const, floor };
 }
 
 export async function listCountryApartments(countryCode: string): Promise<CountryAptPreview[]> {
