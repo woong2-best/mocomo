@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { PostMediaComposer, type PostMediaItem } from "@/components/media/post-media-composer";
 import { ComposePollEditor } from "@/components/compose/compose-poll-editor";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { CreatePostPollInput } from "@/lib/post-poll";
 import { validatePostPollInput } from "@/lib/post-poll";
 import { buildPostCreditLabel } from "@/lib/media-watermark";
@@ -126,9 +127,21 @@ export function ComposeForm({
   }
 
   if (variant === "inline") {
+    const user = session?.user;
+    const avatarLabel =
+      user?.name?.trim()?.[0] ?? user?.username?.trim()?.[0] ?? "?";
+
     return (
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div className="space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-2">
+        <div className="flex gap-3 items-start">
+          <Avatar className="h-10 w-10 shrink-0 ring-1 ring-border/40">
+            <AvatarImage src={user?.image ?? undefined} alt="" />
+            <AvatarFallback className="text-sm font-semibold bg-folk-cobalt/10 text-folk-cobalt">
+              {avatarLabel.toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+
+          <div className="flex-1 min-w-0 space-y-3">
             <textarea
               name="content"
               value={content}
@@ -186,11 +199,11 @@ export function ComposeForm({
             )}
 
             {showOptions && (
-              <div className="space-y-2 pt-1 border-t border-border/40">
+              <div className="space-y-2 rounded-xl border border-border/50 bg-muted/20 p-3">
                 <input
                   name="tags"
                   placeholder="태그 (쉼표로 구분)"
-                  className="w-full rounded-lg border border-border/60 bg-background/50 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-border/60 bg-background/80 px-3 py-2 text-sm"
                 />
                 <label className="flex items-center gap-2 text-xs text-muted-foreground">
                   <input type="checkbox" name="isNsfw" />
@@ -198,8 +211,9 @@ export function ComposeForm({
                 </label>
               </div>
             )}
+          </div>
         </div>
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && <p className="text-sm text-destructive pl-[52px]">{error}</p>}
       </form>
     );
   }

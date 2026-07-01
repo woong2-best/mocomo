@@ -13,9 +13,7 @@ export default async function SearchPage({
   const query = q?.trim() || "";
 
   return (
-    <SearchPageChrome>
-      <HeaderSearch />
-
+    <SearchPageChrome searchBar={<HeaderSearch variant="page" />}>
       {query ? (
         <>
           <p className="text-sm text-muted-foreground">

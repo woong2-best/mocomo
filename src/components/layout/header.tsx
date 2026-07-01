@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Search } from "lucide-react";
 import { FolkThemeCelestial } from "@/components/brand/folk-theme-celestial";
 import { HeaderSearch } from "@/components/search/header-search";
 import { BRAND } from "@/lib/brand";
@@ -10,6 +11,7 @@ import { HeaderAuth } from "@/components/layout/header-auth";
 import { MobileDrawerNav, MobileMenuButton } from "@/components/layout/mobile-drawer-nav";
 import { SidebarToggleButton } from "@/components/layout/sidebar-toggle-button";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { cn } from "@/lib/utils";
 
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -28,11 +30,22 @@ export function Header() {
         </div>
         <SidebarToggleButton />
 
-        <div className="app-header-interactive flex flex-1 justify-center max-w-2xl mx-auto min-w-0">
-          <HeaderSearch />
+        <div className="app-header-interactive hidden lg:flex flex-1 justify-center max-w-2xl mx-auto min-w-0">
+          <HeaderSearch variant="header" />
         </div>
 
-        <div className="app-header-interactive flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <div className="flex-1 min-w-0 lg:hidden" aria-hidden />
+
+        <div className="app-header-interactive flex items-center gap-0.5 sm:gap-1.5 shrink-0">
+          <Link
+            href="/search"
+            className={cn(
+              "lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted/60 text-foreground"
+            )}
+            aria-label="검색"
+          >
+            <Search className="h-5 w-5" />
+          </Link>
           <ThemeToggle />
           <HeaderAuth />
         </div>

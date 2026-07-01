@@ -2,50 +2,28 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useSession } from "next-auth/react";
-import { FolkBrushDivider } from "@/components/brand/folk-decor";
-import { FolkThemeCelestial } from "@/components/brand/folk-theme-celestial";
 import { ComposeForm } from "@/components/compose/compose-form";
 
 export function HomeLoggedBanner() {
   const router = useRouter();
-  const { data: session } = useSession();
   const [formKey, setFormKey] = useState(0);
   const [postedMsg, setPostedMsg] = useState(false);
 
-  const displayName = session?.user?.name?.trim() || session?.user?.username?.trim() || null;
-
   return (
-    <div className="folk-hero-banner !p-4 sm:!p-5 !mb-5">
-      <div className="flex items-start justify-between gap-3 relative z-10">
-        <div>
-          <p className="font-display font-bold text-lg text-folk-cobalt folk-chunky-text">
-            오늘의 캔버스
-          </p>
-          <p className="text-sm text-folk-forest/80 mt-0.5">
-            {displayName
-              ? `${displayName}의 이야기를 올려 보세요`
-              : "새 이야기를 그려 보세요"}
-          </p>
-        </div>
-        <FolkThemeCelestial size={44} className="opacity-80 shrink-0" />
-      </div>
-      <FolkBrushDivider className="my-3 opacity-50" />
-      <div className="relative z-10">
-        <ComposeForm
-          key={formKey}
-          variant="inline"
-          onPosted={() => {
-            setFormKey((k) => k + 1);
-            setPostedMsg(true);
-            router.refresh();
-            window.setTimeout(() => setPostedMsg(false), 2800);
-          }}
-        />
-        {postedMsg && (
-          <p className="text-sm text-emerald-600 font-medium mt-2">게시되었습니다</p>
-        )}
-      </div>
+    <div className="border-b border-border/60 bg-background px-4 py-3 sm:px-5 sm:py-4">
+      <ComposeForm
+        key={formKey}
+        variant="inline"
+        onPosted={() => {
+          setFormKey((k) => k + 1);
+          setPostedMsg(true);
+          router.refresh();
+          window.setTimeout(() => setPostedMsg(false), 2800);
+        }}
+      />
+      {postedMsg && (
+        <p className="text-sm text-emerald-600 font-medium mt-2 pl-[52px]">게시되었습니다</p>
+      )}
     </div>
   );
 }

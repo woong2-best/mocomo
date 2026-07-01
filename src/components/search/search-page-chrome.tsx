@@ -3,18 +3,29 @@
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { cn } from "@/lib/utils";
 
-export function SearchPageChrome({ children }: { children: React.ReactNode }) {
+export function SearchPageChrome({
+  children,
+  searchBar,
+}: {
+  children: React.ReactNode;
+  searchBar?: React.ReactNode;
+}) {
   const { isNativeApp } = useClientPlatform();
 
   return (
-    <div
-      className={cn(
-        "p-4 lg:p-6 max-w-3xl mx-auto space-y-6 min-w-0",
-        !isNativeApp && "pb-nav lg:pb-6"
-      )}
-    >
-      <h1 className={cn("text-xl font-bold", isNativeApp && "sr-only")}>검색</h1>
-      {children}
+    <div className={cn("max-w-2xl mx-auto min-w-0", !isNativeApp && "pb-nav lg:pb-6")}>
+      <div
+        className={cn(
+          "sticky z-40 bg-background/95 backdrop-blur-md border-b border-border/60 px-4 py-3",
+          isNativeApp
+            ? "top-[calc(3.25rem+env(safe-area-inset-top))]"
+            : "top-14"
+        )}
+      >
+        <h1 className={cn("text-xl font-bold mb-3", isNativeApp && "sr-only")}>검색</h1>
+        {searchBar}
+      </div>
+      <div className="p-4 space-y-6 min-w-0">{children}</div>
     </div>
   );
 }
