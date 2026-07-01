@@ -91,6 +91,9 @@ export function getAuthProviders(): NonNullable<NextAuthConfig["providers"]> {
         clientId: process.env.AUTH_TWITTER_ID,
         clientSecret: process.env.AUTH_TWITTER_SECRET,
         allowDangerousEmailAccountLinking: true,
+        authorization: {
+          params: { scope: "users.read" },
+        },
       })
     );
   }
