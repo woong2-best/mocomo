@@ -45,6 +45,8 @@ type PostMediaComposerProps = {
   quickUpload?: boolean;
   /** false면 중고거래 등 — 얼굴 필터 없이 원본 카메라만 */
   enableFaceFilter?: boolean;
+  /** 게시물용 — @username · site 크레딧 라벨 자동 합성 */
+  watermarkCreditLabel?: string;
   disabled?: boolean;
   className?: string;
   onUploadingChange?: (busy: boolean) => void;
@@ -64,6 +66,7 @@ export function PostMediaComposer({
   toolbarFooterStart,
   quickUpload = false,
   enableFaceFilter = true,
+  watermarkCreditLabel,
   disabled = false,
   className,
   onUploadingChange,
@@ -127,7 +130,9 @@ export function PostMediaComposer({
 
         try {
           const prepared = await prepareGalleryImageForUpload(files[i]);
-          const url = await uploadImageBlob(prepared, prepared.name || "photo.jpg");
+          const url = await uploadImageBlob(prepared, prepared.name || "photo.jpg", {
+            watermarkLabel: watermarkCreditLabel,
+          });
           next = [...next, { url, type: "IMAGE" as const }];
           onChange(next);
         } catch (e) {
@@ -468,6 +473,7 @@ export function PostMediaComposer({
           maxWidth={1920}
           maxHeight={1920}
           uploadFilename={cropFilename}
+          watermarkCreditLabel={watermarkCreditLabel}
           onComplete={onCropComplete}
         />
       )}
@@ -487,6 +493,7 @@ export function PostMediaComposer({
           if (!o) setVideoBlob(null);
         }}
         videoBlob={videoBlob}
+        watermarkCreditLabel={watermarkCreditLabel}
         onComplete={onVideoComplete}
         onUploadingChange={(busy) => {
           setUploading(busy);

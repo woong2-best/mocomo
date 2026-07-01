@@ -53,6 +53,8 @@ type ImageCropDialogProps = {
   maxHeight: number;
   uploadFilename: string;
   onComplete: (publicUrl: string) => void;
+  /** 게시물용 크레딧 라벨 */
+  watermarkCreditLabel?: string;
   /** true면 비율 고정(프로필 등) */
   lockAspect?: boolean;
   aspectPresets?: CropAspectPreset[];
@@ -80,6 +82,7 @@ export function ImageCropDialog({
   maxHeight,
   uploadFilename,
   onComplete,
+  watermarkCreditLabel,
   lockAspect = false,
   aspectPresets = DEFAULT_ASPECT_PRESETS,
 }: ImageCropDialogProps) {
@@ -158,7 +161,9 @@ export function ImageCropDialog({
         mimeType: "image/jpeg",
         quality: 0.9,
       });
-      const url = await uploadImageBlob(blob, uploadFilename);
+      const url = await uploadImageBlob(blob, uploadFilename, {
+        watermarkLabel: watermarkCreditLabel,
+      });
       onComplete(url);
       onOpenChange(false);
     } catch (e) {

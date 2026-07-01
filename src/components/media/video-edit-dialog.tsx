@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, Scissors } from "lucide-react";
-import { trimVideoBlob } from "@/lib/video-trim";
+import { trimVideoBlob, watermarkVideoBlob } from "@/lib/video-trim";
 import { guessVideoMime } from "@/lib/gallery-video-upload";
 import { uploadVideoBlob } from "@/lib/client-upload";
 import { getUploadMaxBytes, uploadSizeExceededMessage } from "@/lib/upload-limits";
@@ -22,6 +22,7 @@ type VideoEditDialogProps = {
   videoBlob: Blob | null;
   uploadFilename?: string;
   maxDurationSec?: number;
+  watermarkCreditLabel?: string;
   onComplete: (publicUrl: string) => void;
   onUploadingChange?: (busy: boolean) => void;
 };
@@ -32,6 +33,7 @@ export function VideoEditDialog({
   videoBlob,
   uploadFilename = "post-video.mp4",
   maxDurationSec = 120,
+  watermarkCreditLabel,
   onComplete,
   onUploadingChange,
 }: VideoEditDialogProps) {
@@ -157,10 +159,18 @@ export function VideoEditDialog({
 
       if (!skipTrim && !fullOk) {
         try {
-          toUpload = await trimVideoBlob(videoBlob, startSec, endSec, setProgress);
+          toUpload = await trimVideoBlob(
+            videoBlob,
+            startSec,
+            endSec,
+            setProgress,
+            watermarkCreditLabel
+          );
         } catch (trimErr) {
           if (duration > 0 && duration <= maxDurationSec && startSec < 0.5) {
-            toUpload = videoBlob;
+            toUpload = watermarkCreditLabel
+              ? await watermarkVideoBlob(videoBlob, watermarkCreditLabel, setProgress)
+              : videoBlob;
             setWarn("구간 자르기를 건너뛰고 원본 영상을 업로드합니다.");
           } else {
             throw trimErr instanceof Error
@@ -168,6 +178,8 @@ export function VideoEditDialog({
               : new Error("영상 자르기에 실패했습니다.");
           }
         }
+      } else if (watermarkCreditLabel) {
+        toUpload = await watermarkVideoBlob(videoBlob, watermarkCreditLabel, setProgress);
       }
 
       await uploadBlob(toUpload, uploadFilename);

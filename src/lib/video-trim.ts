@@ -1,3 +1,5 @@
+import { drawCreditWatermark } from "@/lib/media-watermark-canvas";
+
 function pickRecorderMime(): string {
   const candidates = [
     "video/webm;codecs=vp9",
@@ -49,7 +51,8 @@ export async function trimVideoBlob(
   blob: Blob,
   startSec: number,
   endSec: number,
-  onProgress?: (ratio: number) => void
+  onProgress?: (ratio: number) => void,
+  watermarkLabel?: string
 ): Promise<Blob> {
   const url = URL.createObjectURL(blob);
   const video = document.createElement("video");
@@ -126,6 +129,9 @@ export async function trimVideoBlob(
         if (video.currentTime >= end || video.ended) {
           try {
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            if (watermarkLabel) {
+              drawCreditWatermark(ctx, canvas.width, canvas.height, watermarkLabel);
+            }
           } catch {
             /* ignore last frame draw error */
           }
@@ -136,6 +142,9 @@ export async function trimVideoBlob(
         }
         try {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          if (watermarkLabel) {
+            drawCreditWatermark(ctx, canvas.width, canvas.height, watermarkLabel);
+          }
         } catch {
           video.pause();
           recorder.stop();
@@ -155,4 +164,28 @@ export async function trimVideoBlob(
     };
     video.addEventListener("seeked", onSeeked);
   });
+}
+
+/** 전체 영상에 크레딧 라벨을 굽기 (재인코딩) */
+export async function watermarkVideoBlob(
+  blob: Blob,
+  label: string,
+  onProgress?: (ratio: number) => void
+): Promise<Blob> {
+  const url = URL.createObjectURL(blob);
+  const video = document.createElement("video");
+  video.src = url;
+  video.muted = true;
+  video.playsInline = true;
+  video.setAttribute("playsinline", "true");
+
+  try {
+    await waitForVideoReady(video);
+    const duration = video.duration;
+    URL.revokeObjectURL(url);
+    return trimVideoBlob(blob, 0, duration, onProgress, label);
+  } catch (e) {
+    URL.revokeObjectURL(url);
+    throw e;
+  }
 }

@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 import { PostMediaComposer, type PostMediaItem } from "@/components/media/post-media-composer";
 import { ComposePollEditor } from "@/components/compose/compose-poll-editor";
 import { Button } from "@/components/ui/button";
 import type { CreatePostPollInput } from "@/lib/post-poll";
 import { validatePostPollInput } from "@/lib/post-poll";
+import { buildPostCreditLabel } from "@/lib/media-watermark";
 import { cn } from "@/lib/utils";
 
 function friendlyPostError(err: unknown, apiError?: string): string {
@@ -34,6 +36,11 @@ export function ComposeForm({
   onPosted?: () => void;
   onNeedSignIn?: () => void;
 }) {
+  const { data: session } = useSession();
+  const watermarkCreditLabel = useMemo(
+    () => (session?.user?.username ? buildPostCreditLabel(session.user.username) : undefined),
+    [session?.user?.username]
+  );
   const [loading, setLoading] = useState(false);
   const [mediaUploading, setMediaUploading] = useState(false);
   const [error, setError] = useState("");
@@ -141,6 +148,7 @@ export function ComposeForm({
               maxVideos={1}
               layout="toolbar"
               allowVideoCapture={false}
+              watermarkCreditLabel={watermarkCreditLabel}
               onUploadingChange={setMediaUploading}
               toolbarFooterStart={
                 <>
@@ -201,11 +209,18 @@ export function ComposeForm({
       {variant === "sheet" && (
         <p className="text-sm text-muted-foreground -mt-1">
           사진·영상을 고른 뒤, 앱 안에서 자르기·구간 편집할 수 있습니다.
+          {watermarkCreditLabel ? (
+            <span className="block mt-1 text-xs">
+              업로드 시 <span className="font-medium">{watermarkCreditLabel}</span> 크레딧이 자동으로
+              붙습니다.
+            </span>
+          ) : null}
         </p>
       )}
       <PostMediaComposer
         items={media}
         onChange={setMedia}
+        watermarkCreditLabel={watermarkCreditLabel}
         maxImages={4}
         maxVideos={1}
         allowVideoCapture={false}
