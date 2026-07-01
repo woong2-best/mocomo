@@ -21,12 +21,14 @@ function safeCallbackUrl(raw: string): string {
 export function SignInForm({
   googleOAuth,
   discordOAuth,
+  twitterOAuth,
   callbackUrl: callbackUrlProp,
   initialEmail = "",
   errorParam,
 }: {
   googleOAuth: boolean;
   discordOAuth: boolean;
+  twitterOAuth: boolean;
   callbackUrl: string;
   initialEmail?: string;
   errorParam?: string | null;
@@ -84,7 +86,7 @@ export function SignInForm({
     router.replace(callbackUrl);
   }
 
-  const showSocial = googleOAuth || discordOAuth;
+  const showSocial = googleOAuth || discordOAuth || twitterOAuth;
 
   return (
     <FolkArtStage className="folk-auth-canvas flex-1">
@@ -154,6 +156,15 @@ export function SignInForm({
                     Discord로 로그인
                   </Button>
                 )}
+                {twitterOAuth && (
+                  <Button
+                    type="button"
+                    className="w-full rounded-xl bg-black hover:bg-neutral-800 text-white"
+                    onClick={() => signIn("twitter", { callbackUrl })}
+                  >
+                    X로 로그인
+                  </Button>
+                )}
                 {googleOAuth && (
                   <Button
                     type="button"
@@ -168,7 +179,7 @@ export function SignInForm({
             </>
           ) : (
             <p className="text-xs text-center text-muted-foreground">
-              Google·Discord 로그인은 Vercel에 OAuth 키 추가 후 사용할 수 있습니다.
+              Google·X·Discord 로그인은 Vercel에 OAuth 키 추가 후 사용할 수 있습니다.
             </p>
           )}
 

@@ -27,9 +27,11 @@ import { EmailAddressField } from "@/components/auth/email-address-field";
 export function SignupApplyForm({
   googleOAuth,
   discordOAuth,
+  twitterOAuth,
 }: {
   googleOAuth: boolean;
   discordOAuth: boolean;
+  twitterOAuth: boolean;
 }) {
   const router = useRouter();
   const [error, setError] = useState("");
@@ -38,7 +40,7 @@ export function SignupApplyForm({
   const [locale, setLocale] = useState<Locale>("ko");
   const [countryCode, setCountryCode] = useState("KR");
 
-  const showSocial = googleOAuth || discordOAuth;
+  const showSocial = googleOAuth || discordOAuth || twitterOAuth;
   const needsHumanVerify = isSignupHumanVerifyRequired();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -268,6 +270,15 @@ export function SignupApplyForm({
                     onClick={() => signIn("discord", { callbackUrl: DEFAULT_LANDING_PATH })}
                   >
                     Discord로 가입
+                  </Button>
+                )}
+                {twitterOAuth && (
+                  <Button
+                    type="button"
+                    className="w-full rounded-xl bg-black hover:bg-neutral-800 text-white"
+                    onClick={() => signIn("twitter", { callbackUrl: DEFAULT_LANDING_PATH })}
+                  >
+                    X로 가입
                   </Button>
                 )}
                 {googleOAuth && (

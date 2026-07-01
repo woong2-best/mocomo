@@ -29,6 +29,7 @@ export function getAuthConfigStatus() {
     googleIdLength: googleId?.length ?? 0,
     googleSecretLength: googleSecret?.length ?? 0,
     discordOAuth: !!(process.env.AUTH_DISCORD_ID && process.env.AUTH_DISCORD_SECRET),
+    twitterOAuth: !!(process.env.AUTH_TWITTER_ID && process.env.AUTH_TWITTER_SECRET),
     databaseUrlConfigured: !!process.env.DATABASE_URL,
     vercelEnv: process.env.VERCEL_ENV ?? null,
   };

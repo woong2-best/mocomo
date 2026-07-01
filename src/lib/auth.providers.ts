@@ -1,6 +1,7 @@
 import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 import Discord from "next-auth/providers/discord";
+import Twitter from "next-auth/providers/twitter";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
@@ -80,6 +81,16 @@ export function getAuthProviders(): NonNullable<NextAuthConfig["providers"]> {
         authorization: {
           params: { scope: "identify email" },
         },
+      })
+    );
+  }
+
+  if (process.env.AUTH_TWITTER_ID && process.env.AUTH_TWITTER_SECRET) {
+    providers.push(
+      Twitter({
+        clientId: process.env.AUTH_TWITTER_ID,
+        clientSecret: process.env.AUTH_TWITTER_SECRET,
+        allowDangerousEmailAccountLinking: true,
       })
     );
   }
