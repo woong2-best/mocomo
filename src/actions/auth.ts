@@ -44,9 +44,9 @@ import { getRequestIp } from "@/lib/request-ip";
 import { createHumanChallenge, verifyHumanChallengeAnswer } from "@/lib/human-challenge";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { isSignupHumanVerifyRequired } from "@/lib/turnstile-signup";
-import { APT_LOBBY_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
+import { APT_DEFAULT_FLOOR, APT_LOBBY_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
 import { findCountry } from "@/lib/apt/world/world-countries";
-import { checkFloorAvailableForSignup } from "@/actions/apt";
+import { pickAvailableSignupFloor } from "@/actions/apt";
 
 const signupApplicationSchema = z.object({
   email: z.string().email(),
@@ -60,7 +60,7 @@ const signupApplicationSchema = z.object({
   name: z.string().optional(),
   locale: z.enum(["ko", "en", "ja", "zh"]).default("ko"),
   countryCode: z.string().min(2).max(8).default("KR"),
-  homeFloor: z.coerce.number().int().min(APT_LOBBY_FLOOR).max(APT_TOTAL_FLOORS),
+  homeFloor: z.coerce.number().int().min(APT_LOBBY_FLOOR).max(APT_TOTAL_FLOORS).optional(),
   website: z.string().optional(),
 });
 
@@ -76,7 +76,7 @@ const registerSchema = z.object({
   name: z.string().optional(),
   locale: z.enum(["ko", "en", "ja", "zh"]).default("ko"),
   countryCode: z.string().min(2).max(8).default("KR"),
-  homeFloor: z.coerce.number().int().min(APT_LOBBY_FLOOR).max(APT_TOTAL_FLOORS),
+  homeFloor: z.coerce.number().int().min(APT_LOBBY_FLOOR).max(APT_TOTAL_FLOORS).optional(),
   turnstileToken: z.string().optional(),
   /** 클라이언트 Turnstile 위젯 로드 실패 시 true */
   turnstileUnavailable: z.boolean().optional(),
@@ -350,15 +350,16 @@ export async function validateSignupApplication(data: z.infer<typeof signupAppli
   const parsed = signupApplicationSchema.safeParse(data);
   if (!parsed.success) return { error: "입력값이 올바르지 않습니다." };
 
-  const { email: rawEmail, username, name, website, countryCode, homeFloor } = parsed.data;
+  const { email: rawEmail, username, name, website, countryCode, homeFloor: preferredFloor } = parsed.data;
   const email = rawEmail.trim().toLowerCase();
 
   if (website?.trim()) {
     return { error: "요청을 처리할 수 없습니다." };
   }
 
-  const floorCheck = await checkFloorAvailableForSignup(countryCode, homeFloor);
-  if (!floorCheck.ok) return { error: floorCheck.error };
+  const floorPick = await pickAvailableSignupFloor(countryCode, preferredFloor ?? APT_DEFAULT_FLOOR);
+  if (!floorPick.ok) return { error: floorPick.error };
+  const homeFloor = floorPick.floor;
 
   if (RESERVED_USERNAMES.has(username)) {
     return { error: "사용할 수 없는 닉네임입니다. 다른 닉네임을 입력해 주세요." };
@@ -380,6 +381,7 @@ export async function validateSignupApplication(data: z.infer<typeof signupAppli
   return {
     ok: true as const,
     email,
+    homeFloor,
     message: availability.message,
     resumed: availability.canResume,
   };
@@ -456,8 +458,9 @@ export async function registerUser(
     if (!availability.ok) return { error: availability.error };
   }
 
-  const floorCheck = await checkFloorAvailableForSignup(countryCode, homeFloor);
-  if (!floorCheck.ok) return { error: floorCheck.error };
+  const floorPick = await pickAvailableSignupFloor(countryCode, homeFloor ?? APT_DEFAULT_FLOOR);
+  if (!floorPick.ok) return { error: floorPick.error };
+  const aptFloor = floorPick.floor;
 
   if (userByEmail && !isEmailVerified(userByEmail)) {
     const collapsedId = await collapseUnverifiedEmailRows(email);
@@ -533,7 +536,6 @@ export async function registerUser(
     }
 
     const country = findCountry(countryCode) ?? findCountry("KR")!;
-    const aptFloor = floorCheck.floor;
     await db.aptProfile.upsert({
       where: { userId },
       create: {

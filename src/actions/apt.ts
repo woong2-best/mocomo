@@ -5,7 +5,7 @@ import { revalidateAptHub } from "@/lib/apt/revalidate-hub";
 import { APT_GAME_PATH } from "@/lib/site-routes";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { APT_DEFAULT_FLOOR } from "@/lib/apt/constants";
+import { APT_DEFAULT_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
 import { clampFloor, emptyFloorPlans, getRoomsForFloor } from "@/lib/apt/floor-plan-store";
 import type { HouseBuildState } from "@/lib/apt/house/build-types";
 import { emptyHouseBuild, seedFromCoords } from "@/lib/apt/house/build-types";
@@ -363,6 +363,28 @@ export async function checkFloorAvailableForSignup(countryCode: string, floor: n
     return { ok: false as const, error: `${clamped}층은 이미 입주 중입니다. 다른 층을 선택해 주세요.` };
   }
   return { ok: true as const, floor: clamped };
+}
+
+/** 회원가입 시 UI 없이 자동 배정할 입주 층 */
+export async function pickAvailableSignupFloor(
+  countryCode: string,
+  preferred = APT_DEFAULT_FLOOR
+) {
+  const start = clampFloor(preferred);
+  if (!(await isFloorOccupied(countryCode, start))) {
+    return { ok: true as const, floor: start };
+  }
+  for (let delta = 1; delta <= 250; delta++) {
+    const candidates = [start + delta, start - delta].filter(
+      (f) => f >= 1 && f <= APT_TOTAL_FLOORS
+    );
+    for (const f of candidates) {
+      if (!(await isFloorOccupied(countryCode, f))) {
+        return { ok: true as const, floor: f };
+      }
+    }
+  }
+  return { ok: false as const, error: "지금은 입주 가능한 층이 없습니다. 잠시 후 다시 시도해 주세요." };
 }
 
 export async function listCountryApartments(countryCode: string): Promise<CountryAptPreview[]> {
