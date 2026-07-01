@@ -4,8 +4,12 @@ import { toggleFollow } from "@/actions/social";
 import { requireAuthMinimal } from "@/lib/auth";
 import { db } from "@/lib/db";
 
-export async function followUserAction(userId: string, username: string) {
-  return toggleFollow(userId, username);
+export async function followUserAction(
+  userId: string,
+  username: string,
+  opts?: { listOwnerUsername?: string }
+) {
+  return toggleFollow(userId, username, opts);
 }
 
 export async function getFollowStatusAction(targetUserId: string) {

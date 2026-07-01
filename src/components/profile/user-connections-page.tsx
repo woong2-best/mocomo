@@ -62,6 +62,7 @@ export async function UserConnectionsPage({
               user={user}
               viewerId={data.viewerId}
               profileUserId={data.profile.id}
+              profileUsername={data.profile.username}
               tabKind={tabKind(activeTab)}
             />
           ))}

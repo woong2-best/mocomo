@@ -1,20 +1,45 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getCachedCurrentUser, requireAuthMinimal } from "@/lib/auth";
 import { postMediaPreview } from "@/lib/post-media-select";
 import { notifyFollow, notifyPostLike } from "@/lib/notifications";
 
-export async function toggleFollow(userId: string, _targetUsername?: string) {
+async function revalidateFollowPaths(targetUsername?: string, listOwnerUsername?: string) {
+  const paths = new Set<string>();
+  if (targetUsername?.trim()) {
+    const u = targetUsername.trim();
+    paths.add(`/u/${u}`);
+    paths.add(`/u/${u}/connections`);
+  }
+  if (listOwnerUsername?.trim()) {
+    paths.add(`/u/${listOwnerUsername.trim()}/connections`);
+  }
+  for (const path of paths) {
+    revalidatePath(path);
+  }
+}
+
+export async function toggleFollow(
+  userId: string,
+  targetUsername?: string,
+  opts?: { listOwnerUsername?: string }
+) {
   const user = await requireAuthMinimal();
   if (user.id === userId) return { error: "자기 자신은 팔로우할 수 없습니다." };
+
+  const resolvedUsername =
+    targetUsername?.trim() ||
+    (await db.user.findUnique({ where: { id: userId }, select: { username: true } }))?.username;
 
   const deleted = await db.follow.deleteMany({
     where: { followerId: user.id, followingId: userId },
   });
 
   if (deleted.count > 0) {
-    return { following: false };
+    await revalidateFollowPaths(resolvedUsername, opts?.listOwnerUsername);
+    return { following: false as const };
   }
 
   try {
@@ -24,14 +49,16 @@ export async function toggleFollow(userId: string, _targetUsername?: string) {
   } catch (e) {
     const code = e && typeof e === "object" && "code" in e ? (e as { code: string }).code : "";
     if (code === "P2002") {
-      return { following: true };
+      await revalidateFollowPaths(resolvedUsername, opts?.listOwnerUsername);
+      return { following: true as const };
     }
     throw e;
   }
 
   void notifyFollow(userId, user.id);
+  await revalidateFollowPaths(resolvedUsername, opts?.listOwnerUsername);
 
-  return { following: true };
+  return { following: true as const };
 }
 
 export async function toggleLike(postId: string) {

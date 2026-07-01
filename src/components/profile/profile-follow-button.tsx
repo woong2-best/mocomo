@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { UserPlus, UserCheck, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { followUserAction, getFollowStatusAction } from "@/actions/user-profile";
@@ -12,8 +12,9 @@ export function ProfileFollowButton({
   initialFollowing,
   onFollowingChange,
   followLabel = "팔로우",
-  followingLabel = "팔로우 됨",
+  followingLabel = "팔로잉",
   syncFollowingOnMount = false,
+  listOwnerUsername,
   className,
   size = "default",
 }: {
@@ -26,15 +27,21 @@ export function ProfileFollowButton({
   followingLabel?: string;
   /** SSR 캐시와 다를 수 있을 때 마운트 시 DB 재확인 */
   syncFollowingOnMount?: boolean;
+  /** 팔로워 목록 페이지 주인 — 팔로우 후 목록 캐시 갱신 */
+  listOwnerUsername?: string;
   className?: string;
   size?: "default" | "sm";
 }) {
   const [following, setFollowing] = useState(initialFollowing);
   const [busy, setBusy] = useState(false);
+  const userIdRef = useRef(userId);
 
   useEffect(() => {
-    setFollowing(initialFollowing);
-  }, [initialFollowing, userId]);
+    if (userIdRef.current !== userId) {
+      userIdRef.current = userId;
+      setFollowing(initialFollowing);
+    }
+  }, [userId, initialFollowing]);
 
   useEffect(() => {
     if (!syncFollowingOnMount) return;
@@ -57,13 +64,23 @@ export function ProfileFollowButton({
     onFollowingChange?.(next);
     setBusy(true);
     try {
-      const result = await followUserAction(userId, username);
+      const result = await followUserAction(userId, username, {
+        listOwnerUsername,
+      });
       if (result?.error) {
         setFollowing(!next);
         onFollowingChange?.(!next);
-      } else if (typeof result?.following === "boolean") {
+        return;
+      }
+      if (typeof result?.following === "boolean") {
         setFollowing(result.following);
         onFollowingChange?.(result.following);
+        return;
+      }
+      const status = await getFollowStatusAction(userId);
+      if (typeof status.following === "boolean") {
+        setFollowing(status.following);
+        onFollowingChange?.(status.following);
       }
     } catch {
       setFollowing(!next);
@@ -86,7 +103,11 @@ export function ProfileFollowButton({
         className
       )}
       disabled={busy}
-      onClick={() => void toggle()}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        void toggle();
+      }}
       aria-pressed={following}
     >
       {busy ? (

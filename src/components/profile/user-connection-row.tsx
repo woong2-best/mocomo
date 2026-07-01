@@ -12,11 +12,13 @@ export function UserConnectionRow({
   user,
   viewerId,
   profileUserId,
+  profileUsername,
   tabKind,
 }: {
   user: ConnectionUser;
   viewerId: string | null;
   profileUserId: string;
+  profileUsername: string;
   tabKind: "followers" | "following" | "subscribers" | "subscriptions";
 }) {
   const displayName = userDisplayName(user);
@@ -70,6 +72,7 @@ export function UserConnectionRow({
             initialFollowing={user.viewerFollows}
             followLabel={followLabel}
             followingLabel={followingLabel}
+            listOwnerUsername={profileUsername}
             size="sm"
             className="shrink-0"
           />
