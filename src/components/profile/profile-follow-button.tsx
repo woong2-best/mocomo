@@ -14,6 +14,8 @@ export function ProfileFollowButton({
   followLabel = "팔로우",
   followingLabel = "팔로우 됨",
   syncFollowingOnMount = false,
+  className,
+  size = "default",
 }: {
   userId: string;
   username: string;
@@ -24,6 +26,8 @@ export function ProfileFollowButton({
   followingLabel?: string;
   /** SSR 캐시와 다를 수 있을 때 마운트 시 DB 재확인 */
   syncFollowingOnMount?: boolean;
+  className?: string;
+  size?: "default" | "sm";
 }) {
   const [following, setFollowing] = useState(initialFollowing);
   const [busy, setBusy] = useState(false);
@@ -72,11 +76,14 @@ export function ProfileFollowButton({
   return (
     <Button
       type="button"
-      variant={following ? "secondary" : "default"}
+      variant={following ? "outline" : "default"}
+      size={size}
       className={cn(
-        "rounded-full font-bold px-5 gap-1 min-w-[7.5rem]",
-        following && "bg-muted text-foreground border border-border",
-        busy && "opacity-90"
+        "rounded-full font-bold gap-1 shrink-0",
+        size === "sm" ? "h-8 px-3 text-xs min-w-[5.5rem]" : "px-5 min-w-[7.5rem]",
+        following && "bg-transparent text-foreground border-border",
+        busy && "opacity-90",
+        className
       )}
       disabled={busy}
       onClick={() => void toggle()}

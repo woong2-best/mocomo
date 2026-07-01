@@ -199,11 +199,11 @@ export function ProfileHeader({
         )}
 
         <div className="flex gap-4 mt-3 text-sm">
-          <Link href={`/u/${user.username}/following`} className="hover:underline">
+          <Link href={`/u/${user.username}/connections?tab=following`} className="hover:underline">
             <span className="font-bold text-foreground">{user._count.following}</span>{" "}
             <span className="text-muted-foreground">팔로잉</span>
           </Link>
-          <Link href={`/u/${user.username}/followers`} className="hover:underline">
+          <Link href={`/u/${user.username}/connections?tab=followers`} className="hover:underline">
             <span className="font-bold text-foreground">{user._count.followers}</span>{" "}
             <span className="text-muted-foreground">팔로워</span>
           </Link>

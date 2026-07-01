@@ -26,6 +26,7 @@ const ROOT_PATHS = new Set([
 ]);
 
 function titleForPath(pathname: string): string | null {
+  if (pathname.match(/^\/u\/[^/]+\/connections$/)) return "팔로워 · 팔로잉";
   if (pathname.match(/^\/u\/[^/]+\/followers$/)) return "팔로워";
   if (pathname.match(/^\/u\/[^/]+\/following$/)) return "팔로잉";
   if (pathname.startsWith("/u/")) return "프로필";

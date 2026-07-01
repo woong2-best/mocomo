@@ -1,5 +1,4 @@
-import { notFound } from "next/navigation";
-import { UserListPage } from "@/components/profile/user-list";
+import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
 
 export default async function FollowingPage({
@@ -10,5 +9,5 @@ export default async function FollowingPage({
   const { username } = await params;
   const exists = await db.user.findUnique({ where: { username }, select: { id: true } });
   if (!exists) notFound();
-  return <UserListPage username={username} type="following" />;
+  redirect(`/u/${username}/connections?tab=following`);
 }
