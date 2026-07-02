@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { Button } from "@/components/ui/button";
-import { AnimeFollowButton } from "@/components/anime/anime-follow-button";
 import { AnimeViewTracker } from "@/components/anime/anime-view-tracker";
 import { AnimeDetailTabs, type AnimeDetailTabsProps } from "@/components/anime/anime-detail-tabs";
 import { getCachedSession, isSiteOperator } from "@/lib/auth";
@@ -115,12 +114,6 @@ export default async function AnimeDetailPage({
   const posts: AnimeDetailTabsProps["posts"] =
     activeTab === "community" ? (tabExtras as AnimeDetailTabsProps["posts"]) : [];
 
-  const following = session?.user?.id
-    ? !!(await db.animeFollow.findUnique({
-        where: { userId_animeId: { userId: session.user.id, animeId: anime.id } },
-      }))
-    : false;
-
   return (
     <AppPageChrome maxWidth="5xl" className="!px-0 !pt-0" spacing="sm">
       <AnimeViewTracker slug={slug} />
@@ -151,13 +144,6 @@ export default async function AnimeDetailPage({
             </p>
           )}
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            {session?.user ? (
-              <AnimeFollowButton animeId={anime.id} initialFollowing={following} />
-            ) : (
-              <Link href="/auth/signin">
-                <Button size="sm">팔로우</Button>
-              </Link>
-            )}
             {canEdit ? (
               <Link href={`/anime/${slug}/edit`}>
                 <Button size="sm" variant="outline" className="gap-1">
