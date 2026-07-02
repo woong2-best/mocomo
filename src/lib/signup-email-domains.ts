@@ -1,26 +1,7 @@
-/** 회원가입 시 선택 가능한 이메일 도메인 */
-export const SIGNUP_EMAIL_DOMAINS = [
-  { value: "naver.com", label: "네이버" },
-  { value: "gmail.com", label: "Gmail" },
-  { value: "outlook.com", label: "Outlook" },
-  { value: "hotmail.com", label: "Hotmail" },
-  { value: "live.com", label: "Live" },
-  { value: "yahoo.com", label: "Yahoo" },
-  { value: "yahoo.co.kr", label: "Yahoo Korea" },
-  { value: "icloud.com", label: "iCloud" },
-  { value: "me.com", label: "iCloud (me.com)" },
-  { value: "proton.me", label: "Proton" },
-  { value: "protonmail.com", label: "ProtonMail" },
-  { value: "aol.com", label: "AOL" },
-] as const;
+/** 이메일 인증·비밀번호 찾기용 도메인 (Gmail만 빠른 선택) */
+export const SIGNUP_EMAIL_DOMAINS = [{ value: "gmail.com", label: "Gmail" }] as const;
 
-/** 회원가입·비밀번호 찾기에서 한 번에 고를 수 있는 대표 도메인 */
-export const SIGNUP_EMAIL_QUICK_PICKS = [
-  "naver.com",
-  "gmail.com",
-  "outlook.com",
-  "icloud.com",
-] as const;
+export const SIGNUP_EMAIL_QUICK_PICKS = ["gmail.com"] as const;
 
 export function getSignupDomainLabel(value: string): string {
   const found = SIGNUP_EMAIL_DOMAINS.find((d) => d.value === value);
@@ -61,7 +42,7 @@ export function parseSignupEmail(email: string): {
   const normalized = email.trim().toLowerCase();
   const at = normalized.indexOf("@");
   if (at <= 0) {
-    return { localPart: "", domain: SIGNUP_EMAIL_DOMAINS[0].value, customDomain: "" };
+    return { localPart: "", domain: "gmail.com", customDomain: "" };
   }
   const localPart = normalized.slice(0, at);
   const host = normalized.slice(at + 1);

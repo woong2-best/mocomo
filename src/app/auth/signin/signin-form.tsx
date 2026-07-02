@@ -1,17 +1,17 @@
 ﻿"use client";
 
-import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FolkArtFrame, FolkArtStage, FolkBrushDivider, FolkSunFace } from "@/components/brand/folk-decor";
 import { BrandLogo } from "@/components/brand/brand-logo";
+import { SocialAuthButtons } from "@/components/auth/social-auth-buttons";
 import { BRAND } from "@/lib/brand";
 import { loginErrorMessage } from "@/lib/auth-login-errors";
 import { useLocale } from "@/components/providers/locale-provider";
+import { signIn } from "next-auth/react";
 
 function safeCallbackUrl(raw: string): string {
   const path = raw.trim();
@@ -91,30 +91,46 @@ export function SignInForm({
   const showSocial = googleOAuth || discordOAuth || twitterOAuth;
 
   return (
-    <FolkArtStage className="folk-auth-canvas flex-1">
-      <FolkArtFrame className="w-full max-w-md mx-auto">
-        <Card className="border-0 shadow-none bg-transparent">
-        <CardHeader className="text-center pb-2">
-          <div className="mx-auto relative mb-3">
-            <FolkSunFace size={56} className="absolute -top-3 -left-6 opacity-70" />
-            <div className="h-16 w-16 rounded-2xl bg-folk-cream border-2 border-folk-cobalt/30 flex items-center justify-center overflow-hidden p-1 mx-auto shadow-folk-sm">
-              <BrandLogo size={56} priority />
-            </div>
+    <div className="flex-1 flex items-center justify-center p-4">
+      <Card className="w-full max-w-sm rounded-2xl shadow-lg border-border">
+        <CardHeader className="text-center space-y-3 pb-2">
+          <div className="mx-auto h-14 w-14 rounded-2xl bg-white border border-border flex items-center justify-center overflow-hidden p-1">
+            <BrandLogo size={48} priority />
           </div>
-          <CardTitle className="text-2xl font-display text-folk-cobalt folk-chunky-text">
-            {t("auth.signInTitle", { brand: BRAND.name })}
-          </CardTitle>
-          <p className="text-sm text-folk-forest mt-1 font-medium">{t("brand.tagline")}</p>
-          {callbackUrl !== "/" && (
-            <p className="text-xs text-muted-foreground mt-2">{t("auth.callbackRedirect")}</p>
-          )}
+          <div className="space-y-1">
+            <CardTitle className="text-xl font-semibold">
+              {t("auth.signInTitle", { brand: BRAND.name })}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">{t("brand.tagline")}</p>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-2">
           {(error || bannedNotice || callbackErrorMessage) && (
             <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-3 py-2">
               {error || bannedNotice || callbackErrorMessage}
             </p>
           )}
+
+          {showSocial ? (
+            <SocialAuthButtons
+              mode="signin"
+              callbackUrl={callbackUrl}
+              googleOAuth={googleOAuth}
+              discordOAuth={discordOAuth}
+              twitterOAuth={twitterOAuth}
+            />
+          ) : (
+            <p className="text-xs text-center text-muted-foreground">{t("auth.oauthNotConfigured")}</p>
+          )}
+
+          <div className="relative py-1">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs text-muted-foreground bg-card px-2">
+              {t("auth.emailSignIn")}
+            </div>
+          </div>
 
           <form onSubmit={handleCredentials} className="space-y-3">
             <Input
@@ -140,59 +156,17 @@ export function SignInForm({
             </Button>
           </form>
 
-          {showSocial ? (
-            <>
-              <FolkBrushDivider className="opacity-50" />
-              <p className="text-center text-xs text-folk-cobalt/70 font-display font-semibold -mt-1">
-                {t("auth.socialSignIn")}
-              </p>
-              <div className="space-y-2">
-                {discordOAuth && (
-                  <Button
-                    type="button"
-                    className="w-full rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white"
-                    onClick={() => signIn("discord", { callbackUrl })}
-                  >
-                    {t("auth.signInDiscord")}
-                  </Button>
-                )}
-                {twitterOAuth && (
-                  <Button
-                    type="button"
-                    className="w-full rounded-xl bg-black hover:bg-neutral-800 text-white"
-                    onClick={() => signIn("twitter", { callbackUrl })}
-                  >
-                    {t("auth.signInTwitter")}
-                  </Button>
-                )}
-                {googleOAuth && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => signIn("google", { callbackUrl })}
-                    className="w-full rounded-xl"
-                  >
-                    {t("auth.signInGoogle")}
-                  </Button>
-                )}
-              </div>
-            </>
-          ) : (
-            <p className="text-xs text-center text-muted-foreground">{t("auth.oauthNotConfigured")}</p>
-          )}
-
           <p className="text-center text-sm text-muted-foreground">
-            <Link href="/auth/email-verify" className="text-folk-cobalt hover:underline">
+            <Link href="/auth/email-verify" className="text-primary hover:underline">
               {t("auth.emailVerifyForgot")}
             </Link>
             {" · "}
-            <Link href="/auth/signup" className="text-folk-cobalt hover:underline">
+            <Link href="/auth/signup" className="text-primary hover:underline font-medium">
               {t("nav.signup")}
             </Link>
           </p>
         </CardContent>
       </Card>
-      </FolkArtFrame>
-    </FolkArtStage>
+    </div>
   );
 }

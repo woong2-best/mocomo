@@ -81,6 +81,46 @@ export type MessageKey =
   | "games.footer"
   | "games.playerCount"
   | "games.playerRange"
+  | "nav.mailbox"
+  | "common.search"
+  | "explore.quickNavAria"
+  | "explore.matchSub"
+  | "explore.liveSub"
+  | "explore.gamesSub"
+  | "explore.usedSub"
+  | "explore.matchTitle"
+  | "explore.matchDesc"
+  | "explore.start"
+  | "explore.liveNow"
+  | "explore.viewAll"
+  | "explore.viewers"
+  | "explore.trendingPosts"
+  | "explore.trendingEmpty"
+  | "explore.newUsers"
+  | "explore.beFirstUser"
+  | "explore.dbError"
+  | "live.heroDesc"
+  | "live.feature.webcam"
+  | "live.feature.voice"
+  | "live.feature.chat"
+  | "live.feature.moderation"
+  | "live.feature.support"
+  | "live.searchPlaceholder"
+  | "live.modeAll"
+  | "live.modeVideo"
+  | "live.modeVoice"
+  | "live.scheduled"
+  | "live.followedLive"
+  | "live.recommendedStreamers"
+  | "live.followFeed"
+  | "live.followFeedDesc"
+  | "live.goHomeFeed"
+  | "live.onAir"
+  | "live.totalViewers"
+  | "live.liveBroadcasts"
+  | "live.emptyCategory"
+  | "live.followers"
+  | "live.voiceBadge"
   | "auth.signupTitle"
   | "auth.signupDesc"
   | "auth.email"
@@ -145,6 +185,7 @@ export type MessageKey =
   | "auth.signIn"
   | "auth.signingIn"
   | "auth.socialSignIn"
+  | "auth.emailSignIn"
   | "auth.signInDiscord"
   | "auth.signInTwitter"
   | "auth.signInGoogle"
@@ -153,6 +194,7 @@ export type MessageKey =
   | "auth.oauthNotConfigured"
   | "auth.signupPageTitle"
   | "auth.signupPageDesc"
+  | "auth.signupOAuthDesc"
   | "auth.signupStep1"
   | "auth.signupStep2"
   | "auth.signupStep3"
@@ -169,6 +211,67 @@ export type MessageKey =
   | "auth.signUpGoogle"
   | "auth.invalidEmail"
   | "auth.serverError"
+  | "auth.signupCheckFailed"
+  | "auth.humanCheckTitle"
+  | "auth.humanCheckDesc"
+  | "auth.humanQuizBadge"
+  | "auth.humanQuizRefresh"
+  | "auth.sendingVerifyEmail"
+  | "auth.editSignupInfo"
+  | "auth.challengeBootFailed"
+  | "auth.challengePreparing"
+  | "auth.pickAnswer"
+  | "auth.challengeLoading"
+  | "auth.backToSignup"
+  | "auth.reload"
+  | "auth.emailCodeTitle"
+  | "auth.emailCodeDescSignup"
+  | "auth.emailCodeDescGeneric"
+  | "auth.signupVerifyTab"
+  | "auth.passwordResetTab"
+  | "auth.resendCode"
+  | "auth.sendCode"
+  | "auth.sending"
+  | "auth.codePlaceholder"
+  | "auth.verifyGoHome"
+  | "auth.verifyChecking"
+  | "auth.verifyCodeToPassword"
+  | "auth.checkSpam"
+  | "auth.backToSigninLink"
+  | "auth.emailVerifyDone"
+  | "auth.verifyDoneLoginDesc"
+  | "auth.signupPasswordHint"
+  | "auth.hidePassword"
+  | "auth.showPassword"
+  | "auth.loginAndHome"
+  | "auth.forgetPasswordInfo"
+  | "auth.setNewPasswordAction"
+  | "auth.passwordResetDone"
+  | "auth.loginAction"
+  | "auth.newPasswordTitle"
+  | "auth.newPasswordDesc"
+  | "auth.newPasswordPlaceholder"
+  | "auth.confirmPasswordPlaceholder"
+  | "auth.saving"
+  | "auth.changePassword"
+  | "auth.reenterCode"
+  | "auth.signingInProgress"
+  | "auth.verifyLoginProgress"
+  | "auth.turnstileLoading"
+  | "auth.turnstileRequired"
+  | "auth.codeSent"
+  | "auth.checkEmailCode"
+  | "auth.noticeDialogTitle"
+  | "auth.confirmAction"
+  | "auth.unregisteredEmail"
+  | "auth.passwordMinLength"
+  | "auth.passwordMismatch"
+  | "auth.verifyDoneLoginHint"
+  | "auth.setNewPasswordPrompt"
+  | "auth.rateLimitHint"
+  | "auth.emailDeliveryHelp"
+  | "auth.emailDeliveryHelpMicrosoft"
+  | "auth.emailDeliveryHelpApple"
   | "legal.terms"
   | "legal.creatorTerms"
   | "legal.payment"
@@ -258,6 +361,46 @@ const ko: Record<MessageKey, string> = {
   "games.footer": "친구 초대 · 방 코드 · 관전 · 랭킹 지원",
   "games.playerCount": "{count}인",
   "games.playerRange": "{min}~{max}인",
+  "nav.mailbox": "우편함",
+  "common.search": "검색",
+  "explore.quickNavAria": "빠른 이동",
+  "explore.matchSub": "취향·거리",
+  "explore.liveSub": "실시간 시청",
+  "explore.gamesSub": "미니게임",
+  "explore.usedSub": "전국 거래",
+  "explore.matchTitle": "친구 · 코스어 매칭",
+  "explore.matchDesc": "원할 때만 참여 · 취향·거리·나이 필터 · ㅊㅊ & 매칭",
+  "explore.start": "시작",
+  "explore.liveNow": "지금 라이브",
+  "explore.viewAll": "전체 보기",
+  "explore.viewers": "{count}명",
+  "explore.trendingPosts": "인기 게시물",
+  "explore.trendingEmpty": "게시물 없음 — 가입 후 첫 글을 작성해 보세요",
+  "explore.newUsers": "새로운 유저",
+  "explore.beFirstUser": "첫 번째 유저 되기",
+  "explore.dbError": "DB 연결 후 탐색 목록이 표시됩니다.",
+  "live.heroDesc": "브라우저에서 바로 방송(유튜브·치지직 방식) · 실시간 시청 · 후원·채팅. 스트리머마다 독립 방입니다.",
+  "live.feature.webcam": "웹캠 · 화면공유",
+  "live.feature.voice": "보이스 라이브",
+  "live.feature.chat": "실시간 채팅",
+  "live.feature.moderation": "슬로우·금칙어",
+  "live.feature.support": "후원·시청자",
+  "live.searchPlaceholder": "스트리머·태그·게시물 검색",
+  "live.modeAll": "전체",
+  "live.modeVideo": "영상",
+  "live.modeVoice": "보이스",
+  "live.scheduled": "예약 방송",
+  "live.followedLive": "팔로우 중 라이브",
+  "live.recommendedStreamers": "추천 스트리머",
+  "live.followFeed": "팔로우 피드",
+  "live.followFeedDesc": "팔로우한 크리에이터의 게시물은 홈 피드에서 확인할 수 있습니다.",
+  "live.goHomeFeed": "홈 피드로 이동",
+  "live.onAir": "지금 방송",
+  "live.totalViewers": "총 시청자",
+  "live.liveBroadcasts": "실시간 방송",
+  "live.emptyCategory": "이 카테고리에 진행 중인 라이브가 없습니다.",
+  "live.followers": "{count} 팔로워",
+  "live.voiceBadge": "보이스",
   "auth.signupTitle": "회원가입",
   "auth.signupDesc": "서브컬처·코스프레 커뮤니티",
   "auth.email": "이메일",
@@ -322,6 +465,7 @@ const ko: Record<MessageKey, string> = {
   "auth.signIn": "로그인",
   "auth.signingIn": "로그인 중...",
   "auth.socialSignIn": "소셜 로그인",
+  "auth.emailSignIn": "이메일로 로그인",
   "auth.signInDiscord": "Discord로 로그인",
   "auth.signInTwitter": "X로 로그인",
   "auth.signInGoogle": "Google로 로그인",
@@ -330,6 +474,7 @@ const ko: Record<MessageKey, string> = {
   "auth.oauthNotConfigured": "Google·X·Discord 로그인은 Vercel에 OAuth 키 추가 후 사용할 수 있습니다.",
   "auth.signupPageTitle": "{brand} 회원가입",
   "auth.signupPageDesc": "가입 정보를 입력한 뒤 이메일 인증으로 계정을 완성합니다.",
+  "auth.signupOAuthDesc": "Discord, Google, X 중 하나로 시작하세요.",
   "auth.signupStep1": "가입 정보",
   "auth.signupStep2": "사람 확인",
   "auth.signupStep3": "이메일 인증",
@@ -346,6 +491,67 @@ const ko: Record<MessageKey, string> = {
   "auth.signUpGoogle": "Google로 가입",
   "auth.invalidEmail": "올바른 이메일을 입력해 주세요. (아이디 @ 도메인)",
   "auth.serverError": "서버 연결 오류입니다. 잠시 후 다시 시도해 주세요.",
+  "auth.signupCheckFailed": "가입 정보를 확인할 수 없습니다.",
+  "auth.humanCheckTitle": "사람인지 확인",
+  "auth.humanCheckDesc": "{email}로 인증 메일을 보냅니다. 아래 퀴즈를 푼 뒤 계속해 주세요.",
+  "auth.humanQuizBadge": "사람인지 확인 · 무료 퀴즈",
+  "auth.humanQuizRefresh": "다른 문제로 바꾸기",
+  "auth.sendingVerifyEmail": "인증 메일 발송 중...",
+  "auth.editSignupInfo": "가입 정보 수정",
+  "auth.challengeBootFailed": "확인 문제를 불러오지 못했습니다. 새로고침해 주세요.",
+  "auth.challengePreparing": "확인 문제 준비 중...",
+  "auth.pickAnswer": "정답을 골라 주세요.",
+  "auth.challengeLoading": "확인 문제를 불러오는 중입니다.",
+  "auth.backToSignup": "가입 정보로 돌아가기",
+  "auth.reload": "새로고침",
+  "auth.emailCodeTitle": "이메일 인증 코드 입력",
+  "auth.emailCodeDescSignup": "메일함(스팸함 포함)의 6자리 코드를 입력하세요.",
+  "auth.emailCodeDescGeneric": "6자리 코드로 이메일을 확인하고, 필요하면 비밀번호를 설정합니다.",
+  "auth.signupVerifyTab": "가입 인증",
+  "auth.passwordResetTab": "비밀번호 찾기",
+  "auth.resendCode": "인증 코드 다시 받기",
+  "auth.sendCode": "인증 코드 보내기",
+  "auth.sending": "전송 중...",
+  "auth.codePlaceholder": "6자리 인증 코드",
+  "auth.verifyGoHome": "코드 확인 · 홈으로 이동",
+  "auth.verifyChecking": "확인 중...",
+  "auth.verifyCodeToPassword": "코드 확인 → 비밀번호 설정",
+  "auth.checkSpam": "스팸함도 확인해 주세요.",
+  "auth.backToSigninLink": "로그인으로",
+  "auth.emailVerifyDone": "이메일 인증 완료",
+  "auth.verifyDoneLoginDesc": "인증이 완료되었습니다. 아래 비밀번호로 로그인하세요.",
+  "auth.signupPasswordHint": "가입 시 설정한 비밀번호",
+  "auth.hidePassword": "숨기기",
+  "auth.showPassword": "보기",
+  "auth.loginAndHome": "로그인하고 홈으로",
+  "auth.forgetPasswordInfo": "가입할 때 입력한 비밀번호로 로그인하세요. 잊으셨다면 아래에서 새로 설정할 수 있습니다.",
+  "auth.setNewPasswordAction": "새 비밀번호 설정하기",
+  "auth.passwordResetDone": "새 비밀번호가 설정되었습니다.",
+  "auth.loginAction": "로그인하기",
+  "auth.newPasswordTitle": "새 비밀번호 설정",
+  "auth.newPasswordDesc": "인증 코드 확인 완료. 새 비밀번호를 입력하세요.",
+  "auth.newPasswordPlaceholder": "새 비밀번호 (8자 이상)",
+  "auth.confirmPasswordPlaceholder": "새 비밀번호 확인",
+  "auth.saving": "저장 중...",
+  "auth.changePassword": "비밀번호 변경",
+  "auth.reenterCode": "코드 다시 입력",
+  "auth.signingInProgress": "로그인 중...",
+  "auth.verifyLoginProgress": "인증 · 로그인 중...",
+  "auth.turnstileLoading": "보안 확인 준비 중...",
+  "auth.turnstileRequired": "아래 보안 확인을 완료해 주세요. 위젯이 보이지 않으면 「제한 모드로 계속」을 눌러 주세요.",
+  "auth.codeSent": "인증 코드를 보냈습니다.",
+  "auth.checkEmailCode": "이메일로 6자리 인증 코드를 확인해 주세요.",
+  "auth.noticeDialogTitle": "안내",
+  "auth.confirmAction": "확인",
+  "auth.unregisteredEmail": "등록되지 않은 이메일입니다.",
+  "auth.passwordMinLength": "비밀번호는 8자 이상이어야 합니다.",
+  "auth.passwordMismatch": "비밀번호 확인이 일치하지 않습니다.",
+  "auth.verifyDoneLoginHint": "인증은 완료되었습니다. 아래에서 로그인해 주세요.",
+  "auth.setNewPasswordPrompt": "새 비밀번호를 설정하려면 인증 코드를 다시 받으세요.",
+  "auth.rateLimitHint": "이메일·IP당 요청 횟수가 제한됩니다. 스팸 방지를 위해 보안 확인이 필요할 수 있습니다.",
+  "auth.emailDeliveryHelp": "메일이 안 보이면 스팸·정크함을 확인하고, 1분 후 「인증 코드 다시 받기」를 눌러 보세요.",
+  "auth.emailDeliveryHelpMicrosoft": "Outlook/Hotmail은 처음 받는 발신자를 정크(Junk)함으로 보내는 경우가 많습니다. 받은편지함·정크·스팸을 모두 확인해 주세요.",
+  "auth.emailDeliveryHelpApple": "iCloud 메일은 스팸함·휴지통·「정크」 필터를 확인해 주세요. Hide My Email을 쓰는 경우 relay 주소로 옵니다.",
   "legal.terms": "이용약관",
   "legal.creatorTerms": "크리에이터 약관",
   "legal.payment": "결제·환불",
@@ -436,6 +642,46 @@ const en: Record<MessageKey, string> = {
   "games.footer": "Invite friends · room codes · spectate · rankings",
   "games.playerCount": "{count} players",
   "games.playerRange": "{min}–{max} players",
+  "nav.mailbox": "Mailbox",
+  "common.search": "Search",
+  "explore.quickNavAria": "Quick links",
+  "explore.matchSub": "Taste · distance",
+  "explore.liveSub": "Watch live",
+  "explore.gamesSub": "Mini-games",
+  "explore.usedSub": "Marketplace",
+  "explore.matchTitle": "Friends · cosplayer matching",
+  "explore.matchDesc": "Opt in anytime · taste, distance & age filters · likes & matches",
+  "explore.start": "Start",
+  "explore.liveNow": "Live now",
+  "explore.viewAll": "View all",
+  "explore.viewers": "{count} viewers",
+  "explore.trendingPosts": "Trending posts",
+  "explore.trendingEmpty": "No posts yet — sign up and write the first one",
+  "explore.newUsers": "New users",
+  "explore.beFirstUser": "Be the first user",
+  "explore.dbError": "Explore list appears after the database connects.",
+  "live.heroDesc": "Broadcast in your browser · watch live · tips & chat. Each streamer has their own channel.",
+  "live.feature.webcam": "Webcam · screen share",
+  "live.feature.voice": "Voice live",
+  "live.feature.chat": "Live chat",
+  "live.feature.moderation": "Slow mode · word filter",
+  "live.feature.support": "Tips · viewers",
+  "live.searchPlaceholder": "Search streamers, tags, posts",
+  "live.modeAll": "All",
+  "live.modeVideo": "Video",
+  "live.modeVoice": "Voice",
+  "live.scheduled": "Scheduled",
+  "live.followedLive": "Following live",
+  "live.recommendedStreamers": "Recommended streamers",
+  "live.followFeed": "Follow feed",
+  "live.followFeedDesc": "Posts from creators you follow appear on the home feed.",
+  "live.goHomeFeed": "Go to home feed",
+  "live.onAir": "On air now",
+  "live.totalViewers": "Total viewers",
+  "live.liveBroadcasts": "Live broadcasts",
+  "live.emptyCategory": "No live streams in this category.",
+  "live.followers": "{count} followers",
+  "live.voiceBadge": "Voice",
   "auth.signupTitle": "Sign up",
   "auth.signupDesc": "Subculture & cosplay community",
   "auth.email": "Email",
@@ -500,6 +746,7 @@ const en: Record<MessageKey, string> = {
   "auth.signIn": "Sign in",
   "auth.signingIn": "Signing in...",
   "auth.socialSignIn": "Social sign-in",
+  "auth.emailSignIn": "Sign in with email",
   "auth.signInDiscord": "Sign in with Discord",
   "auth.signInTwitter": "Sign in with X",
   "auth.signInGoogle": "Sign in with Google",
@@ -508,6 +755,7 @@ const en: Record<MessageKey, string> = {
   "auth.oauthNotConfigured": "Google, X, and Discord sign-in need OAuth keys on Vercel.",
   "auth.signupPageTitle": "Sign up for {brand}",
   "auth.signupPageDesc": "Enter your details, then verify your email to finish.",
+  "auth.signupOAuthDesc": "Get started with Discord, Google, or X.",
   "auth.signupStep1": "Details",
   "auth.signupStep2": "Human check",
   "auth.signupStep3": "Email verify",
@@ -524,6 +772,67 @@ const en: Record<MessageKey, string> = {
   "auth.signUpGoogle": "Sign up with Google",
   "auth.invalidEmail": "Enter a valid email (user @ domain).",
   "auth.serverError": "Server error. Please try again shortly.",
+  "auth.signupCheckFailed": "We couldn't verify your signup details.",
+  "auth.humanCheckTitle": "Human check",
+  "auth.humanCheckDesc": "We'll send a verification email to {email}. Solve the quiz below to continue.",
+  "auth.humanQuizBadge": "Human check · free quiz",
+  "auth.humanQuizRefresh": "Try another question",
+  "auth.sendingVerifyEmail": "Sending verification email...",
+  "auth.editSignupInfo": "Edit signup details",
+  "auth.challengeBootFailed": "Couldn't load the challenge. Please refresh.",
+  "auth.challengePreparing": "Preparing challenge...",
+  "auth.pickAnswer": "Please pick an answer.",
+  "auth.challengeLoading": "Loading challenge...",
+  "auth.backToSignup": "Back to signup",
+  "auth.reload": "Reload",
+  "auth.emailCodeTitle": "Enter email verification code",
+  "auth.emailCodeDescSignup": "Enter the 6-digit code from your inbox (check spam too).",
+  "auth.emailCodeDescGeneric": "Verify your email with a 6-digit code, or reset your password.",
+  "auth.signupVerifyTab": "Signup verify",
+  "auth.passwordResetTab": "Forgot password",
+  "auth.resendCode": "Resend verification code",
+  "auth.sendCode": "Send verification code",
+  "auth.sending": "Sending...",
+  "auth.codePlaceholder": "6-digit code",
+  "auth.verifyGoHome": "Verify code · go to home",
+  "auth.verifyChecking": "Checking...",
+  "auth.verifyCodeToPassword": "Verify code → set password",
+  "auth.checkSpam": "Check your spam folder too.",
+  "auth.backToSigninLink": "Back to sign in",
+  "auth.emailVerifyDone": "Email verified",
+  "auth.verifyDoneLoginDesc": "Verification complete. Sign in with your password below.",
+  "auth.signupPasswordHint": "Password you set during signup",
+  "auth.hidePassword": "Hide",
+  "auth.showPassword": "Show",
+  "auth.loginAndHome": "Sign in and go home",
+  "auth.forgetPasswordInfo": "Sign in with the password you chose. If you forgot it, set a new one below.",
+  "auth.setNewPasswordAction": "Set a new password",
+  "auth.passwordResetDone": "Your new password has been set.",
+  "auth.loginAction": "Sign in",
+  "auth.newPasswordTitle": "Set new password",
+  "auth.newPasswordDesc": "Code verified. Enter your new password.",
+  "auth.newPasswordPlaceholder": "New password (8+ characters)",
+  "auth.confirmPasswordPlaceholder": "Confirm new password",
+  "auth.saving": "Saving...",
+  "auth.changePassword": "Change password",
+  "auth.reenterCode": "Re-enter code",
+  "auth.signingInProgress": "Signing in...",
+  "auth.verifyLoginProgress": "Verifying · signing in...",
+  "auth.turnstileLoading": "Preparing security check...",
+  "auth.turnstileRequired": "Complete the security check below. If the widget doesn't appear, use continue in restricted mode.",
+  "auth.codeSent": "Verification code sent.",
+  "auth.checkEmailCode": "Check your email for the 6-digit verification code.",
+  "auth.noticeDialogTitle": "Notice",
+  "auth.confirmAction": "OK",
+  "auth.unregisteredEmail": "This email is not registered.",
+  "auth.passwordMinLength": "Password must be at least 8 characters.",
+  "auth.passwordMismatch": "Passwords do not match.",
+  "auth.verifyDoneLoginHint": "Verification complete. Please sign in below.",
+  "auth.setNewPasswordPrompt": "Request a new code to set a new password.",
+  "auth.rateLimitHint": "Requests are limited per email and IP. A security check may be required.",
+  "auth.emailDeliveryHelp": "Can't find the email? Check spam/junk, then tap Resend after 1 minute.",
+  "auth.emailDeliveryHelpMicrosoft": "Outlook/Hotmail often puts new senders in Junk. Check Inbox, Junk, and Spam folders.",
+  "auth.emailDeliveryHelpApple": "Check iCloud Mail spam, trash, and junk filters. Hide My Email delivers to your relay address.",
   "legal.terms": "Terms",
   "legal.creatorTerms": "Creator terms",
   "legal.payment": "Payment & refunds",
@@ -614,6 +923,46 @@ const ja: Record<MessageKey, string> = {
   "games.footer": "フレンド招待 · ルームコード · 観戦 · ランキング",
   "games.playerCount": "{count}人",
   "games.playerRange": "{min}~{max}人",
+  "nav.mailbox": "メールボックス",
+  "common.search": "検索",
+  "explore.quickNavAria": "クイックリンク",
+  "explore.matchSub": "好み・距離",
+  "explore.liveSub": "ライブ視聴",
+  "explore.gamesSub": "ミニゲーム",
+  "explore.usedSub": "フリマ",
+  "explore.matchTitle": "フレンド · コスプレマッチ",
+  "explore.matchDesc": "任意参加 · 好み·距離·年齢フィルター · いいね & マッチ",
+  "explore.start": "開始",
+  "explore.liveNow": "ライブ中",
+  "explore.viewAll": "すべて見る",
+  "explore.viewers": "{count}人",
+  "explore.trendingPosts": "人気投稿",
+  "explore.trendingEmpty": "投稿なし — 登録して最初の投稿をどうぞ",
+  "explore.newUsers": "新しいユーザー",
+  "explore.beFirstUser": "最初のユーザーになる",
+  "explore.dbError": "DB接続後に探索リストが表示されます。",
+  "live.heroDesc": "ブラウザで配信 · ライブ視聴 · 投げ銭·チャット。ストリーマーごとに独立チャンネル。",
+  "live.feature.webcam": "ウェブカム · 画面共有",
+  "live.feature.voice": "ボイスライブ",
+  "live.feature.chat": "ライブチャット",
+  "live.feature.moderation": "スロー · NGワード",
+  "live.feature.support": "投げ銭 · 視聴者",
+  "live.searchPlaceholder": "配信者·タグ·投稿を検索",
+  "live.modeAll": "すべて",
+  "live.modeVideo": "動画",
+  "live.modeVoice": "ボイス",
+  "live.scheduled": "予約配信",
+  "live.followedLive": "フォロー中ライブ",
+  "live.recommendedStreamers": "おすすめ配信者",
+  "live.followFeed": "フォローフィード",
+  "live.followFeedDesc": "フォロー中のクリエイターの投稿はホームフィードで確認できます。",
+  "live.goHomeFeed": "ホームフィードへ",
+  "live.onAir": "配信中",
+  "live.totalViewers": "総視聴者",
+  "live.liveBroadcasts": "ライブ配信",
+  "live.emptyCategory": "このカテゴリに配信中のライブはありません。",
+  "live.followers": "{count} フォロワー",
+  "live.voiceBadge": "ボイス",
   "auth.signupTitle": "会員登録",
   "auth.signupDesc": "サブカル・コスプレコミュニティ",
   "auth.email": "メール",
@@ -678,6 +1027,7 @@ const ja: Record<MessageKey, string> = {
   "auth.signIn": "ログイン",
   "auth.signingIn": "ログイン中...",
   "auth.socialSignIn": "ソーシャルログイン",
+  "auth.emailSignIn": "メールでログイン",
   "auth.signInDiscord": "Discordでログイン",
   "auth.signInTwitter": "Xでログイン",
   "auth.signInGoogle": "Googleでログイン",
@@ -686,6 +1036,7 @@ const ja: Record<MessageKey, string> = {
   "auth.oauthNotConfigured": "Google・X・DiscordログインはOAuth設定が必要です。",
   "auth.signupPageTitle": "{brand} 会員登録",
   "auth.signupPageDesc": "情報を入力し、メール認証で登録を完了します。",
+  "auth.signupOAuthDesc": "Discord、Google、X のいずれかで始めましょう。",
   "auth.signupStep1": "登録情報",
   "auth.signupStep2": "本人確認",
   "auth.signupStep3": "メール認証",
@@ -702,6 +1053,67 @@ const ja: Record<MessageKey, string> = {
   "auth.signUpGoogle": "Googleで登録",
   "auth.invalidEmail": "有効なメールを入力してください。",
   "auth.serverError": "サーバーエラーです。しばらくして再試行してください。",
+  "auth.signupCheckFailed": "登録情報を確認できませんでした。",
+  "auth.humanCheckTitle": "本人確認",
+  "auth.humanCheckDesc": "{email} に認証メールを送ります。下のクイズを解いて続けてください。",
+  "auth.humanQuizBadge": "本人確認 · 無料クイズ",
+  "auth.humanQuizRefresh": "別の問題にする",
+  "auth.sendingVerifyEmail": "認証メール送信中...",
+  "auth.editSignupInfo": "登録情報を修正",
+  "auth.challengeBootFailed": "問題を読み込めませんでした。更新してください。",
+  "auth.challengePreparing": "問題を準備中...",
+  "auth.pickAnswer": "正解を選んでください。",
+  "auth.challengeLoading": "問題を読み込み中...",
+  "auth.backToSignup": "登録情報に戻る",
+  "auth.reload": "更新",
+  "auth.emailCodeTitle": "メール認証コード入力",
+  "auth.emailCodeDescSignup": "受信トレイ（迷惑メール含む）の6桁コードを入力してください。",
+  "auth.emailCodeDescGeneric": "6桁コードでメールを確認するか、パスワードを再設定します。",
+  "auth.signupVerifyTab": "登録認証",
+  "auth.passwordResetTab": "パスワード再設定",
+  "auth.resendCode": "認証コードを再送信",
+  "auth.sendCode": "認証コードを送信",
+  "auth.sending": "送信中...",
+  "auth.codePlaceholder": "6桁の認証コード",
+  "auth.verifyGoHome": "コード確認 · ホームへ",
+  "auth.verifyChecking": "確認中...",
+  "auth.verifyCodeToPassword": "コード確認 → パスワード設定",
+  "auth.checkSpam": "迷惑メールもご確認ください。",
+  "auth.backToSigninLink": "ログインへ",
+  "auth.emailVerifyDone": "メール認証完了",
+  "auth.verifyDoneLoginDesc": "認証が完了しました。下のパスワードでログインしてください。",
+  "auth.signupPasswordHint": "登録時に設定したパスワード",
+  "auth.hidePassword": "隠す",
+  "auth.showPassword": "表示",
+  "auth.loginAndHome": "ログインしてホームへ",
+  "auth.forgetPasswordInfo": "登録時のパスワードでログインしてください。忘れた場合は下で再設定できます。",
+  "auth.setNewPasswordAction": "新しいパスワードを設定",
+  "auth.passwordResetDone": "新しいパスワードが設定されました。",
+  "auth.loginAction": "ログイン",
+  "auth.newPasswordTitle": "新しいパスワード設定",
+  "auth.newPasswordDesc": "コード確認完了。新しいパスワードを入力してください。",
+  "auth.newPasswordPlaceholder": "新しいパスワード（8文字以上）",
+  "auth.confirmPasswordPlaceholder": "新しいパスワード確認",
+  "auth.saving": "保存中...",
+  "auth.changePassword": "パスワード変更",
+  "auth.reenterCode": "コードを再入力",
+  "auth.signingInProgress": "ログイン中...",
+  "auth.verifyLoginProgress": "認証 · ログイン中...",
+  "auth.turnstileLoading": "セキュリティ確認を準備中...",
+  "auth.turnstileRequired": "下のセキュリティ確認を完了してください。",
+  "auth.codeSent": "認証コードを送信しました。",
+  "auth.checkEmailCode": "メールの6桁認証コードをご確認ください。",
+  "auth.noticeDialogTitle": "お知らせ",
+  "auth.confirmAction": "確認",
+  "auth.unregisteredEmail": "登録されていないメールです。",
+  "auth.passwordMinLength": "パスワードは8文字以上必要です。",
+  "auth.passwordMismatch": "パスワード確認が一致しません。",
+  "auth.verifyDoneLoginHint": "認証は完了しました。下からログインしてください。",
+  "auth.setNewPasswordPrompt": "新しいパスワードを設定するには認証コードを再取得してください。",
+  "auth.rateLimitHint": "メール・IPごとにリクエスト回数が制限されます。",
+  "auth.emailDeliveryHelp": "届かない場合は迷惑メールを確認し、1分後に再送信してください。",
+  "auth.emailDeliveryHelpMicrosoft": "Outlook/Hotmailは新しい送信者を迷惑メールに入れることがあります。受信トレイ・迷惑メールを確認してください。",
+  "auth.emailDeliveryHelpApple": "iCloudメールの迷惑メール・ゴミ箱を確認してください。Hide My Email利用時はリレーアドレスを確認してください。",
   "legal.terms": "利用規約",
   "legal.creatorTerms": "クリエイター規約",
   "legal.payment": "決済・返金",
@@ -792,6 +1204,46 @@ const zh: Record<MessageKey, string> = {
   "games.footer": "邀请好友 · 房间码 · 观战 · 排行榜",
   "games.playerCount": "{count} 人",
   "games.playerRange": "{min}–{max} 人",
+  "nav.mailbox": "邮箱",
+  "common.search": "搜索",
+  "explore.quickNavAria": "快捷入口",
+  "explore.matchSub": "喜好·距离",
+  "explore.liveSub": "观看直播",
+  "explore.gamesSub": "小游戏",
+  "explore.usedSub": "二手市场",
+  "explore.matchTitle": "好友 · Cosplay 匹配",
+  "explore.matchDesc": "随时参与 · 喜好·距离·年龄筛选 · 点赞与匹配",
+  "explore.start": "开始",
+  "explore.liveNow": "正在直播",
+  "explore.viewAll": "查看全部",
+  "explore.viewers": "{count} 人观看",
+  "explore.trendingPosts": "热门帖子",
+  "explore.trendingEmpty": "暂无帖子 — 注册后发布第一条吧",
+  "explore.newUsers": "新用户",
+  "explore.beFirstUser": "成为第一个用户",
+  "explore.dbError": "数据库连接后将显示探索列表。",
+  "live.heroDesc": "浏览器开播 · 实时观看 · 打赏与聊天。每位主播有独立频道。",
+  "live.feature.webcam": "摄像头 · 屏幕共享",
+  "live.feature.voice": "语音直播",
+  "live.feature.chat": "实时聊天",
+  "live.feature.moderation": "慢速 · 敏感词",
+  "live.feature.support": "打赏 · 观众",
+  "live.searchPlaceholder": "搜索主播、标签、帖子",
+  "live.modeAll": "全部",
+  "live.modeVideo": "视频",
+  "live.modeVoice": "语音",
+  "live.scheduled": "预约直播",
+  "live.followedLive": "关注的直播",
+  "live.recommendedStreamers": "推荐主播",
+  "live.followFeed": "关注动态",
+  "live.followFeedDesc": "你关注的创作者帖子会出现在首页动态。",
+  "live.goHomeFeed": "前往首页动态",
+  "live.onAir": "正在播出",
+  "live.totalViewers": "总观众",
+  "live.liveBroadcasts": "实时直播",
+  "live.emptyCategory": "该分类暂无进行中的直播。",
+  "live.followers": "{count} 粉丝",
+  "live.voiceBadge": "语音",
   "auth.signupTitle": "注册",
   "auth.signupDesc": "亚文化与 Cosplay 社区",
   "auth.email": "邮箱",
@@ -856,6 +1308,7 @@ const zh: Record<MessageKey, string> = {
   "auth.signIn": "登录",
   "auth.signingIn": "登录中...",
   "auth.socialSignIn": "社交登录",
+  "auth.emailSignIn": "邮箱登录",
   "auth.signInDiscord": "用 Discord 登录",
   "auth.signInTwitter": "用 X 登录",
   "auth.signInGoogle": "用 Google 登录",
@@ -864,6 +1317,7 @@ const zh: Record<MessageKey, string> = {
   "auth.oauthNotConfigured": "Google、X、Discord 登录需要配置 OAuth。",
   "auth.signupPageTitle": "注册 {brand}",
   "auth.signupPageDesc": "填写信息后通过邮箱验证完成注册。",
+  "auth.signupOAuthDesc": "使用 Discord、Google 或 X 开始。",
   "auth.signupStep1": "注册信息",
   "auth.signupStep2": "人机验证",
   "auth.signupStep3": "邮箱验证",
@@ -880,6 +1334,67 @@ const zh: Record<MessageKey, string> = {
   "auth.signUpGoogle": "用 Google 注册",
   "auth.invalidEmail": "请输入有效的邮箱地址。",
   "auth.serverError": "服务器错误，请稍后再试。",
+  "auth.signupCheckFailed": "无法验证您的注册信息。",
+  "auth.humanCheckTitle": "人机验证",
+  "auth.humanCheckDesc": "我们将向 {email} 发送验证邮件。请完成下方测验后继续。",
+  "auth.humanQuizBadge": "人机验证 · 免费测验",
+  "auth.humanQuizRefresh": "换一题",
+  "auth.sendingVerifyEmail": "正在发送验证邮件...",
+  "auth.editSignupInfo": "修改注册信息",
+  "auth.challengeBootFailed": "无法加载题目，请刷新页面。",
+  "auth.challengePreparing": "正在准备题目...",
+  "auth.pickAnswer": "请选择正确答案。",
+  "auth.challengeLoading": "正在加载题目...",
+  "auth.backToSignup": "返回注册信息",
+  "auth.reload": "刷新",
+  "auth.emailCodeTitle": "输入邮箱验证码",
+  "auth.emailCodeDescSignup": "请输入收件箱（含垃圾邮件）中的 6 位验证码。",
+  "auth.emailCodeDescGeneric": "用 6 位验证码确认邮箱，或重置密码。",
+  "auth.signupVerifyTab": "注册验证",
+  "auth.passwordResetTab": "找回密码",
+  "auth.resendCode": "重新发送验证码",
+  "auth.sendCode": "发送验证码",
+  "auth.sending": "发送中...",
+  "auth.codePlaceholder": "6 位验证码",
+  "auth.verifyGoHome": "验证 · 前往首页",
+  "auth.verifyChecking": "验证中...",
+  "auth.verifyCodeToPassword": "验证 → 设置密码",
+  "auth.checkSpam": "也请检查垃圾邮件文件夹。",
+  "auth.backToSigninLink": "返回登录",
+  "auth.emailVerifyDone": "邮箱验证完成",
+  "auth.verifyDoneLoginDesc": "验证完成，请使用下方密码登录。",
+  "auth.signupPasswordHint": "注册时设置的密码",
+  "auth.hidePassword": "隐藏",
+  "auth.showPassword": "显示",
+  "auth.loginAndHome": "登录并前往首页",
+  "auth.forgetPasswordInfo": "请使用注册时的密码登录。如忘记可在下方重新设置。",
+  "auth.setNewPasswordAction": "设置新密码",
+  "auth.passwordResetDone": "新密码已设置。",
+  "auth.loginAction": "登录",
+  "auth.newPasswordTitle": "设置新密码",
+  "auth.newPasswordDesc": "验证码已确认，请输入新密码。",
+  "auth.newPasswordPlaceholder": "新密码（至少 8 位）",
+  "auth.confirmPasswordPlaceholder": "确认新密码",
+  "auth.saving": "保存中...",
+  "auth.changePassword": "更改密码",
+  "auth.reenterCode": "重新输入验证码",
+  "auth.signingInProgress": "登录中...",
+  "auth.verifyLoginProgress": "验证 · 登录中...",
+  "auth.turnstileLoading": "正在准备安全验证...",
+  "auth.turnstileRequired": "请完成下方安全验证。",
+  "auth.codeSent": "验证码已发送。",
+  "auth.checkEmailCode": "请查收邮件中的 6 位验证码。",
+  "auth.noticeDialogTitle": "提示",
+  "auth.confirmAction": "确定",
+  "auth.unregisteredEmail": "该邮箱未注册。",
+  "auth.passwordMinLength": "密码至少需要 8 个字符。",
+  "auth.passwordMismatch": "两次输入的密码不一致。",
+  "auth.verifyDoneLoginHint": "验证已完成，请在下方登录。",
+  "auth.setNewPasswordPrompt": "如需设置新密码，请重新获取验证码。",
+  "auth.rateLimitHint": "每个邮箱和 IP 的请求次数有限制。",
+  "auth.emailDeliveryHelp": "没收到邮件？请检查垃圾邮件文件夹，1 分钟后点「重新发送验证码」。",
+  "auth.emailDeliveryHelpMicrosoft": "Outlook/Hotmail 常将新发件人归入垃圾邮件。请检查收件箱和垃圾邮件文件夹。",
+  "auth.emailDeliveryHelpApple": "请检查 iCloud 邮件的垃圾邮件和废纸篓。使用 Hide My Email 时请查看中继地址。",
   "legal.terms": "服务条款",
   "legal.creatorTerms": "创作者条款",
   "legal.payment": "支付与退款",

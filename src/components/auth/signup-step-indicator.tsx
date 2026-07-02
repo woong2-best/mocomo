@@ -1,12 +1,20 @@
 "use client";
 
 import { useLocale } from "@/components/providers/locale-provider";
-import type { MessageKey } from "@/lib/i18n/messages";
+import type { Locale } from "@/lib/i18n/config";
+import { createTranslator, type MessageKey } from "@/lib/i18n/messages";
 
 const STEP_KEYS: MessageKey[] = ["auth.signupStep1", "auth.signupStep2", "auth.signupStep3"];
 
-export function SignupStepIndicator({ step }: { step: 1 | 2 | 3 }) {
-  const { t } = useLocale();
+export function SignupStepIndicator({
+  step,
+  locale: localeOverride,
+}: {
+  step: 1 | 2 | 3;
+  locale?: Locale;
+}) {
+  const { t: ctxT } = useLocale();
+  const t = localeOverride ? createTranslator(localeOverride) : ctxT;
 
   return (
     <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">

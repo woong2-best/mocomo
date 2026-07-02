@@ -37,6 +37,7 @@ import {
 } from "@/lib/forbidden-admin-sequence";
 import {
   checkEmailSendRateLimit,
+  recordEmailSendRateLimit,
   checkLoginRateLimit,
   recordLoginAttempt,
 } from "@/lib/auth-rate-limit";
@@ -197,6 +198,8 @@ export async function sendEmailAuthCode(
     return { error: sent.error ?? "인증 코드 발송 실패" };
   }
 
+  await recordEmailSendRateLimit(normalized, ip);
+
   return {
     success: true,
     message:
@@ -335,8 +338,8 @@ export async function checkSignupAvailability(email: string, username: string, n
   };
 }
 
-export async function issueSignupHumanChallenge() {
-  return createHumanChallenge();
+export async function issueSignupHumanChallenge(locale?: string) {
+  return createHumanChallenge(locale);
 }
 
 /** 가입 1단계: 검증 + 퀴즈를 한 번에 (왕복 1회 절약) */
@@ -345,7 +348,7 @@ export async function prepareSignupVerify(data: z.infer<typeof signupApplication
   if (!("ok" in validated) || !validated.ok) return validated;
   return {
     ...validated,
-    challenge: createHumanChallenge(),
+    challenge: createHumanChallenge(data.locale),
   };
 }
 
@@ -418,7 +421,11 @@ export async function registerUser(
   }
 
   if (isSignupHumanVerifyRequired()) {
-    const humanCheck = verifyHumanChallengeAnswer(humanChallengeToken, humanChallengeAnswer);
+    const humanCheck = verifyHumanChallengeAnswer(
+      humanChallengeToken,
+      humanChallengeAnswer,
+      locale
+    );
     if (!humanCheck.ok) return { error: humanCheck.error };
   } else {
     const botCheck = await verifyTurnstileToken(turnstileToken, {
@@ -570,6 +577,8 @@ export async function registerUser(
       }
       return { error: sent.error ?? "인증 메일 발송 실패" };
     }
+
+    await recordEmailSendRateLimit(email, ip);
 
     return {
       success: true,

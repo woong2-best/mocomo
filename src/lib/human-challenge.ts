@@ -8,6 +8,14 @@ import {
   type SequenceChallenge,
   type TriviaChallenge,
 } from "@/lib/human-challenge-bank";
+import type { Locale } from "@/lib/i18n/config";
+import { DEFAULT_GUEST_LOCALE, normalizeLocale } from "@/lib/i18n/config";
+import {
+  getDefaultChallengeHint,
+  getMathChallengeHint,
+  getVerifyChallengeErrors,
+  localizePickChallenge,
+} from "@/lib/human-challenge-i18n";
 
 export type { HumanChallengeChoice, HumanChallengeQuestion } from "@/lib/human-challenge-types";
 
@@ -84,6 +92,7 @@ function finalizeQuestion(
   prompt: string,
   answerId: string,
   choices: HumanChallengeChoice[],
+  locale: Locale,
   hint?: string
 ): HumanChallengeQuestion {
   const unique = new Map<string, HumanChallengeChoice>();
@@ -110,19 +119,26 @@ function finalizeQuestion(
   return {
     token,
     prompt,
-    hint: hint ?? "정답을 골라 주세요.",
+    hint: hint ?? getDefaultChallengeHint(locale),
     choices: list,
   };
 }
 
-function pickChoicesFromSet(set: PickChallenge): HumanChallengeQuestion {
-  const wrongShuffled = shuffle(set.wrong);
+function pickChoicesFromSet(set: PickChallenge, locale: Locale): HumanChallengeQuestion {
+  const localized = localizePickChallenge(set, locale);
+  const wrongShuffled = shuffle(localized.wrong);
   const wrongPick = wrongShuffled.slice(0, CHOICE_COUNT - 1);
-  const merged = shuffle([set.correct, ...wrongPick]);
-  return finalizeQuestion(set.prompt, set.correct.id, merged, set.hint);
+  const merged = shuffle([localized.correct, ...wrongPick]);
+  return finalizeQuestion(
+    localized.prompt,
+    localized.correct.id,
+    merged,
+    locale,
+    localized.hint
+  );
 }
 
-function mathAddQuiz(): HumanChallengeQuestion {
+function mathAddQuiz(locale: Locale): HumanChallengeQuestion {
   const a = randomInt(2, 15);
   const b = randomInt(2, 15);
   const answer = String(a + b);
@@ -131,11 +147,12 @@ function mathAddQuiz(): HumanChallengeQuestion {
     `${a} + ${b} = ?`,
     answer,
     [{ id: answer, label: answer }, ...wrong.map((n) => ({ id: n, label: n }))],
-    "덧셈 정답을 고르세요."
+    locale,
+    getMathChallengeHint(locale, "add")
   );
 }
 
-function mathSubQuiz(): HumanChallengeQuestion {
+function mathSubQuiz(locale: Locale): HumanChallengeQuestion {
   const a = randomInt(8, 20);
   const b = randomInt(2, a - 1);
   const answer = String(a - b);
@@ -144,11 +161,12 @@ function mathSubQuiz(): HumanChallengeQuestion {
     `${a} − ${b} = ?`,
     answer,
     [{ id: answer, label: answer }, ...wrong.map((n) => ({ id: n, label: n }))],
-    "뺄셈 정답을 고르세요."
+    locale,
+    getMathChallengeHint(locale, "sub")
   );
 }
 
-function mathMulQuiz(): HumanChallengeQuestion {
+function mathMulQuiz(locale: Locale): HumanChallengeQuestion {
   const a = randomInt(2, 9);
   const b = randomInt(2, 9);
   const answer = String(a * b);
@@ -157,57 +175,61 @@ function mathMulQuiz(): HumanChallengeQuestion {
     `${a} × ${b} = ?`,
     answer,
     [{ id: answer, label: answer }, ...wrong.map((n) => ({ id: n, label: n }))],
-    "곱셈 정답을 고르세요."
+    locale,
+    getMathChallengeHint(locale, "mul")
   );
 }
 
-function oddOneQuiz(): HumanChallengeQuestion {
-  return pickChoicesFromSet(pickRandom(ODD_ONE_BANK));
+function oddOneQuiz(locale: Locale): HumanChallengeQuestion {
+  return pickChoicesFromSet(pickRandom(ODD_ONE_BANK), locale);
 }
 
-function sequenceQuiz(): HumanChallengeQuestion {
-  return pickChoicesFromSet(pickRandom(SEQUENCE_BANK));
+function sequenceQuiz(locale: Locale): HumanChallengeQuestion {
+  return pickChoicesFromSet(pickRandom(SEQUENCE_BANK), locale);
 }
 
-function triviaQuiz(): HumanChallengeQuestion {
-  return pickChoicesFromSet(pickRandom(TRIVIA_BANK));
+function triviaQuiz(locale: Locale): HumanChallengeQuestion {
+  return pickChoicesFromSet(pickRandom(TRIVIA_BANK), locale);
 }
 
 const QUIZ_BUILDERS = [
-  mathAddQuiz,
-  mathSubQuiz,
-  mathMulQuiz,
-  oddOneQuiz,
-  oddOneQuiz,
-  oddOneQuiz,
-  sequenceQuiz,
-  sequenceQuiz,
-  triviaQuiz,
-  triviaQuiz,
+  (locale: Locale) => mathAddQuiz(locale),
+  (locale: Locale) => mathSubQuiz(locale),
+  (locale: Locale) => mathMulQuiz(locale),
+  (locale: Locale) => oddOneQuiz(locale),
+  (locale: Locale) => oddOneQuiz(locale),
+  (locale: Locale) => oddOneQuiz(locale),
+  (locale: Locale) => sequenceQuiz(locale),
+  (locale: Locale) => sequenceQuiz(locale),
+  (locale: Locale) => triviaQuiz(locale),
+  (locale: Locale) => triviaQuiz(locale),
 ] as const;
 
-export function createHumanChallenge(): HumanChallengeQuestion {
+export function createHumanChallenge(localeInput?: Locale | string | null): HumanChallengeQuestion {
+  const locale = normalizeLocale(localeInput, DEFAULT_GUEST_LOCALE);
   const builder = QUIZ_BUILDERS[randomInt(0, QUIZ_BUILDERS.length)]!;
-  return builder();
+  return builder(locale);
 }
 
 export function verifyHumanChallengeAnswer(
   token: string | undefined | null,
-  answer: string | undefined | null
+  answer: string | undefined | null,
+  localeInput?: Locale | string | null
 ): { ok: true } | { ok: false; error: string } {
+  const errors = getVerifyChallengeErrors(normalizeLocale(localeInput, DEFAULT_GUEST_LOCALE));
   const trimmedAnswer = answer?.trim();
   if (!token?.trim() || !trimmedAnswer) {
-    return { ok: false, error: "확인 퀴즈를 풀어 주세요." };
+    return { ok: false, error: errors.missing };
   }
   const payload = parseToken(token.trim());
   if (!payload) {
-    return { ok: false, error: "확인 퀴즈가 만료되었습니다. 새로고침 후 다시 시도해 주세요." };
+    return { ok: false, error: errors.expired };
   }
   if (payload.exp < Date.now()) {
-    return { ok: false, error: "확인 퀴즈 시간이 지났습니다. 새로고침 후 다시 시도해 주세요." };
+    return { ok: false, error: errors.timeout };
   }
   if (payload.answer !== trimmedAnswer) {
-    return { ok: false, error: "정답이 아닙니다. 다시 골라 주세요." };
+    return { ok: false, error: errors.wrong };
   }
   return { ok: true };
 }

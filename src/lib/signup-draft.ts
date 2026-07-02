@@ -1,4 +1,5 @@
 import type { Locale } from "@/lib/i18n/config";
+import { DEFAULT_GUEST_LOCALE, normalizeLocale } from "@/lib/i18n/config";
 import type { HumanChallengeQuestion } from "@/lib/human-challenge-types";
 
 export const SIGNUP_DRAFT_SESSION_KEY = "mocomo_signup_draft";
@@ -29,6 +30,7 @@ export function loadSignupDraft(): SignupDraft | null {
     if (typeof parsed.homeFloor !== "number") {
       parsed.homeFloor = 500;
     }
+    parsed.locale = normalizeLocale(parsed.locale, DEFAULT_GUEST_LOCALE);
     return parsed;
   } catch {
     return null;
@@ -41,19 +43,32 @@ export function clearSignupDraft(): void {
   sessionStorage.removeItem(SIGNUP_CHALLENGE_SESSION_KEY);
 }
 
-export function saveSignupChallenge(challenge: HumanChallengeQuestion): void {
+export function saveSignupChallenge(challenge: HumanChallengeQuestion, locale: Locale): void {
   if (typeof sessionStorage === "undefined") return;
-  sessionStorage.setItem(SIGNUP_CHALLENGE_SESSION_KEY, JSON.stringify(challenge));
+  sessionStorage.setItem(
+    SIGNUP_CHALLENGE_SESSION_KEY,
+    JSON.stringify({ challenge, locale } satisfies StoredSignupChallenge)
+  );
 }
 
-export function loadSignupChallenge(): HumanChallengeQuestion | null {
+export type StoredSignupChallenge = {
+  challenge: HumanChallengeQuestion;
+  locale: Locale;
+};
+
+export function loadSignupChallenge(): StoredSignupChallenge | null {
   if (typeof sessionStorage === "undefined") return null;
   const raw = sessionStorage.getItem(SIGNUP_CHALLENGE_SESSION_KEY);
   if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw) as HumanChallengeQuestion;
-    if (!parsed?.token || !parsed?.choices?.length) return null;
-    return parsed;
+    const parsed = JSON.parse(raw) as StoredSignupChallenge | HumanChallengeQuestion;
+    if ("challenge" in parsed && parsed.challenge?.token) {
+      return parsed;
+    }
+    if ("token" in parsed && parsed.token) {
+      return null;
+    }
+    return null;
   } catch {
     return null;
   }

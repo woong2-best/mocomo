@@ -3,6 +3,9 @@
 import { useState } from "react";
 import type { HumanChallengeQuestion } from "@/lib/human-challenge-types";
 import { Button } from "@/components/ui/button";
+import { useLocale } from "@/components/providers/locale-provider";
+import type { Locale } from "@/lib/i18n/config";
+import { createTranslator } from "@/lib/i18n/messages";
 
 type SignupHumanChallengeProps = {
   challenge: HumanChallengeQuestion;
@@ -10,6 +13,7 @@ type SignupHumanChallengeProps = {
   onRefresh: () => void;
   onSelect: (choiceId: string) => void;
   selectedId: string;
+  locale?: Locale;
 };
 
 export function SignupHumanChallenge({
@@ -18,13 +22,16 @@ export function SignupHumanChallenge({
   onRefresh,
   onSelect,
   selectedId,
+  locale: localeOverride,
 }: SignupHumanChallengeProps) {
+  const { t: ctxT } = useLocale();
+  const t = localeOverride ? createTranslator(localeOverride) : ctxT;
   const [shake, setShake] = useState(false);
 
   return (
     <div className="space-y-3">
       <div className="rounded-xl bg-gradient-to-br from-primary/10 via-emerald-500/10 to-sky-500/10 border border-border p-4 text-center">
-        <p className="text-xs font-medium text-muted-foreground mb-1">사람인지 확인 · 무료 퀴즈</p>
+        <p className="text-xs font-medium text-muted-foreground mb-1">{t("auth.humanQuizBadge")}</p>
         <p className="text-lg font-bold">{challenge.prompt}</p>
         {challenge.hint ? (
           <p className="text-xs text-muted-foreground mt-1">{challenge.hint}</p>
@@ -58,7 +65,7 @@ export function SignupHumanChallenge({
         disabled={loading}
         onClick={onRefresh}
       >
-        다른 문제로 바꾸기
+        {t("auth.humanQuizRefresh")}
       </Button>
     </div>
   );

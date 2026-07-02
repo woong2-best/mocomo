@@ -39,6 +39,7 @@ export function phoneCodeMatchesToken(storedToken: string, phoneE164: string, co
 }
 
 export const SIGNUP_PASSWORD_SESSION_KEY = "mocomo_signup_password";
+export const SIGNUP_LOCALE_SESSION_KEY = "mocomo_signup_locale";
 
 export function generateEmailCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000));

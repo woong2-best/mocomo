@@ -123,8 +123,13 @@ Cloudflare/Vercel 설정이 맞아도 **인터넷 전체가 Cloudflare를 안 �
 | Type | Name | 용도 |
 |------|------|------|
 | TXT | `resend._domainkey` | Resend DKIM |
-| TXT | `send` | SPF |
+| TXT | `send` | SPF (`v=spf1 include:amazonses.com ~all` — Resend 대시보드 값 사용) |
 | MX | `send` | `feedback-smtp.ap-northeast-1.amazonses.com` (10) |
+| TXT | `_dmarc` | `v=DMARC1; p=none; rua=mailto:support@mocomo.net` (**Outlook/iCloud 필수**) |
+
+- **발신 주소**: Vercel `EMAIL_FROM` = `MoCoMo <noreply@send.mocomo.net>` (루트 `@mocomo.net` 이면 Gmail만 되고 Outlook/iCloud는 정크·차단되는 경우 많음)
+- Resend 대시보드 → Domains → `mocomo.net` **Verified** 확인
+- 배포 후 `https://mocomo.net/api/health/email` → `productionReady: true`
 
 ---
 

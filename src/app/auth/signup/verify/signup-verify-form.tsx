@@ -1,41 +1,52 @@
 ﻿"use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { issueSignupHumanChallenge, registerUser } from "@/actions/auth";
 import { SignupHumanChallenge } from "@/components/auth/signup-human-challenge";
 import { SignupStepIndicator } from "@/components/auth/signup-step-indicator";
+import { useLocale } from "@/components/providers/locale-provider";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
+import { DEFAULT_GUEST_LOCALE, type Locale } from "@/lib/i18n/config";
+import { createTranslator } from "@/lib/i18n/messages";
 import {
   clearSignupDraft,
   loadSignupDraft,
-  loadSignupChallenge,
   saveSignupChallenge,
 } from "@/lib/signup-draft";
+import { saveSignupLocaleStorage, syncSignupLocaleClient } from "@/lib/signup-locale-sync";
 import type { HumanChallengeQuestion } from "@/lib/human-challenge-types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandLogo } from "@/components/brand/brand-logo";
-import { BRAND } from "@/lib/brand";
 
 export function SignupVerifyForm() {
   const router = useRouter();
+  const { setLocale: syncProviderLocale } = useLocale();
   const [email, setEmail] = useState("");
+  const [signupLocale, setSignupLocale] = useState<Locale | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [challenge, setChallenge] = useState<HumanChallengeQuestion | null>(null);
   const [selectedId, setSelectedId] = useState("");
   const [bootError, setBootError] = useState("");
 
-  const loadChallenge = useCallback(async () => {
+  const t = useMemo(
+    () => createTranslator(signupLocale ?? DEFAULT_GUEST_LOCALE),
+    [signupLocale]
+  );
+
+  const loadChallenge = useCallback(async (draftLocale: Locale) => {
+    const translate = createTranslator(draftLocale);
     try {
-      const next = await issueSignupHumanChallenge();
+      const next = await issueSignupHumanChallenge(draftLocale);
       setChallenge(next);
       setSelectedId("");
       setError("");
+      saveSignupChallenge(next, draftLocale);
     } catch {
-      setBootError("확인 문제를 불러오지 못했습니다. 새로고침해 주세요.");
+      setBootError(translate("auth.challengeBootFailed"));
     }
   }, []);
 
@@ -46,16 +57,14 @@ export function SignupVerifyForm() {
       return;
     }
     setEmail(draft.email);
+    setSignupLocale(draft.locale);
+    syncSignupLocaleClient(draft.locale, draft.countryCode);
+    void syncProviderLocale(draft.locale, draft.countryCode);
     router.prefetch(
       `/auth/email-verify?email=${encodeURIComponent(draft.email)}&mode=signup`
     );
-    const cached = loadSignupChallenge();
-    if (cached) {
-      setChallenge(cached);
-      return;
-    }
-    void loadChallenge();
-  }, [router, loadChallenge]);
+    void loadChallenge(draft.locale);
+  }, [router, loadChallenge, syncProviderLocale]);
 
   async function handleContinue() {
     const draft = loadSignupDraft();
@@ -64,11 +73,11 @@ export function SignupVerifyForm() {
       return;
     }
     if (!challenge) {
-      setError("확인 문제를 불러오는 중입니다.");
+      setError(t("auth.challengeLoading"));
       return;
     }
     if (!selectedId) {
-      setError("정답을 골라 주세요.");
+      setError(t("auth.pickAnswer"));
       return;
     }
 
@@ -92,8 +101,13 @@ export function SignupVerifyForm() {
 
       if (result.error) {
         setError(result.error);
-        if (result.error.includes("정답") || result.error.includes("만료")) {
-          await loadChallenge();
+        const retry =
+          result.error.includes("정답") ||
+          result.error.includes("만료") ||
+          result.error.toLowerCase().includes("correct") ||
+          result.error.toLowerCase().includes("expired");
+        if (retry) {
+          await loadChallenge(draft.locale);
         }
         return;
       }
@@ -101,16 +115,14 @@ export function SignupVerifyForm() {
       if (result.needsVerification) {
         clearSignupDraft();
         sessionStorage.setItem(SIGNUP_PASSWORD_SESSION_KEY, draft.password);
-        if (result.message) {
-          sessionStorage.setItem("mocomo_signup_notice", result.message);
-        }
+        saveSignupLocaleStorage(draft.locale);
         router.replace(
-          `/auth/email-verify?email=${encodeURIComponent(draft.email)}&mode=signup`
+          `/auth/email-verify?email=${encodeURIComponent(draft.email)}&mode=signup&locale=${draft.locale}`
         );
         return;
       }
     } catch {
-      setError("서버 연결 오류입니다. 잠시 후 다시 시도해 주세요.");
+      setError(t("auth.serverError"));
     } finally {
       setLoading(false);
     }
@@ -123,10 +135,10 @@ export function SignupVerifyForm() {
           <CardContent className="pt-6 space-y-3 text-center text-sm">
             <p className="text-destructive">{bootError}</p>
             <Button type="button" className="rounded-xl" onClick={() => window.location.reload()}>
-              새로고침
+              {t("auth.reload")}
             </Button>
             <Button asChild variant="outline" className="w-full rounded-xl">
-              <Link href="/auth/signup/apply">가입 정보로 돌아가기</Link>
+              <Link href="/auth/signup/apply">{t("auth.backToSignup")}</Link>
             </Button>
           </CardContent>
         </Card>
@@ -137,7 +149,7 @@ export function SignupVerifyForm() {
   if (!challenge) {
     return (
       <div className="flex-1 flex items-center justify-center p-4 text-sm text-muted-foreground">
-        확인 문제 준비 중...
+        {t("auth.challengePreparing")}
       </div>
     );
   }
@@ -149,12 +161,9 @@ export function SignupVerifyForm() {
           <div className="mx-auto h-16 w-16 rounded-2xl bg-white border border-border flex items-center justify-center overflow-hidden p-1">
             <BrandLogo size={56} priority />
           </div>
-          <SignupStepIndicator step={2} />
-          <CardTitle className="text-2xl">사람인지 확인</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{email}</span>로 인증 메일을 보냅니다.
-            아래 퀴즈를 푼 뒤 계속해 주세요.
-          </p>
+          <SignupStepIndicator step={2} locale={signupLocale ?? undefined} />
+          <CardTitle className="text-2xl">{t("auth.humanCheckTitle")}</CardTitle>
+          <p className="text-sm text-muted-foreground">{t("auth.humanCheckDesc", { email })}</p>
         </CardHeader>
         <CardContent className="space-y-4">
           <SignupHumanChallenge
@@ -162,7 +171,8 @@ export function SignupVerifyForm() {
             loading={loading}
             selectedId={selectedId}
             onSelect={setSelectedId}
-            onRefresh={() => void loadChallenge()}
+            onRefresh={() => signupLocale && void loadChallenge(signupLocale)}
+            locale={signupLocale ?? undefined}
           />
 
           {error && (
@@ -175,12 +185,12 @@ export function SignupVerifyForm() {
             disabled={loading || !selectedId}
             onClick={() => void handleContinue()}
           >
-            {loading ? "인증 메일 발송 중..." : "정답 확인 · 인증 메일 받기"}
+            {loading ? t("auth.sendingVerifyEmail") : t("auth.submitSignupEmail")}
           </Button>
 
           <p className="text-center text-sm text-muted-foreground">
             <Link href="/auth/signup/apply" className="text-folk-cobalt hover:underline">
-              가입 정보 수정
+              {t("auth.editSignupInfo")}
             </Link>
           </p>
         </CardContent>
