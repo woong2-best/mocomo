@@ -4,6 +4,10 @@ export type Locale = (typeof LOCALES)[number];
 export const LOCALE_COOKIE = "mocomo_locale";
 export const COUNTRY_COOKIE = "mocomo_country";
 
+/** 비로그인 방문자 기본값 */
+export const DEFAULT_GUEST_LOCALE: Locale = "en";
+export const DEFAULT_GUEST_COUNTRY = "US";
+
 export const LOCALE_LABELS: Record<Locale, string> = {
   ko: "한국어",
   en: "English",
@@ -41,7 +45,13 @@ export function isLocale(value: string): value is Locale {
   return (LOCALES as readonly string[]).includes(value);
 }
 
-export function normalizeLocale(value?: string | null): Locale {
+export function normalizeLocale(value?: string | null, fallback: Locale = "ko"): Locale {
   if (value && isLocale(value)) return value;
-  return "ko";
+  return fallback;
+}
+
+export function countryDisplayName(code: string, locale: Locale): string {
+  const c = COUNTRIES.find((row) => row.code === code);
+  if (!c) return code;
+  return locale === "ko" ? c.nameKo : c.nameEn;
 }

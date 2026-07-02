@@ -45,9 +45,9 @@ export function HomeFeedClient({
     if (!isLoggedIn) return null;
     return (
       <div className="text-center py-12 rounded-2xl border border-dashed">
-        <p className="text-muted-foreground mb-4">오늘의 캔버스에 첫 글을 올려 보세요</p>
+        <p className="text-muted-foreground mb-4">{t("feed.emptyPrompt")}</p>
         <ComposeOpenButton className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-          글쓰기
+          {t("feed.compose")}
         </ComposeOpenButton>
       </div>
     );
@@ -56,7 +56,7 @@ export function HomeFeedClient({
   return (
     <>
       <FolkBrushDivider className="mb-5 opacity-40" />
-      <PageSection title={t("feed.title")} description="팔로우 · 추천 · 최신">
+      <PageSection title={t("feed.title")} description={t("feed.tabs")}>
         <FeedInfinite
           initialItems={visibleItems}
           initialCursor={nextCursor}

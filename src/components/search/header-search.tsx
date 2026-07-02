@@ -6,12 +6,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { Loader2, Search, X } from "lucide-react";
 import type { FastSearchResult } from "@/lib/search-fast";
 import { SearchPreviewPanel } from "@/components/search/search-preview-panel";
+import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 
 type PanelRect = { top: number; left: number; width: number };
 
 export function HeaderSearch({ variant = "header" }: { variant?: "header" | "page" }) {
   const router = useRouter();
+  const { t } = useLocale();
   const pathname = usePathname();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
@@ -185,7 +187,7 @@ export function HeaderSearch({ variant = "header" }: { variant?: "header" | "pag
             if (e.target.value.trim().length >= 1) setOpen(true);
           }}
           onFocus={() => trimmed.length >= 1 && setOpen(true)}
-          placeholder="사람, 애니, 게시물 검색"
+          placeholder={t("search.placeholder")}
           autoComplete="off"
           enterKeyHint="search"
           className={cn(

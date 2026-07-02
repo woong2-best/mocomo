@@ -11,6 +11,7 @@ import { FolkArtFrame, FolkArtStage, FolkBrushDivider, FolkSunFace } from "@/com
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { BRAND } from "@/lib/brand";
 import { loginErrorMessage } from "@/lib/auth-login-errors";
+import { useLocale } from "@/components/providers/locale-provider";
 
 function safeCallbackUrl(raw: string): string {
   const path = raw.trim();
@@ -34,6 +35,7 @@ export function SignInForm({
   errorParam?: string | null;
 }) {
   const router = useRouter();
+  const { t } = useLocale();
   const callbackUrl = safeCallbackUrl(callbackUrlProp);
 
   const [email, setEmail] = useState(initialEmail);
@@ -100,13 +102,11 @@ export function SignInForm({
             </div>
           </div>
           <CardTitle className="text-2xl font-display text-folk-cobalt folk-chunky-text">
-            {BRAND.name} 로그인
+            {t("auth.signInTitle", { brand: BRAND.name })}
           </CardTitle>
-          <p className="text-sm text-folk-forest mt-1 font-medium">{BRAND.tagline}</p>
+          <p className="text-sm text-folk-forest mt-1 font-medium">{t("brand.tagline")}</p>
           {callbackUrl !== "/" && (
-            <p className="text-xs text-muted-foreground mt-2">
-              로그인 후 글쓰기 등 이전 화면으로 이동합니다.
-            </p>
+            <p className="text-xs text-muted-foreground mt-2">{t("auth.callbackRedirect")}</p>
           )}
         </CardHeader>
         <CardContent className="space-y-4">
@@ -119,7 +119,7 @@ export function SignInForm({
           <form onSubmit={handleCredentials} className="space-y-3">
             <Input
               type="email"
-              placeholder="이메일"
+              placeholder={t("auth.email")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -128,7 +128,7 @@ export function SignInForm({
             />
             <Input
               type="password"
-              placeholder="비밀번호"
+              placeholder={t("auth.password")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -136,7 +136,7 @@ export function SignInForm({
               className="rounded-xl"
             />
             <Button type="submit" className="w-full rounded-xl" disabled={loading}>
-              {loading ? "로그인 중..." : "로그인"}
+              {loading ? t("auth.signingIn") : t("auth.signIn")}
             </Button>
           </form>
 
@@ -144,7 +144,7 @@ export function SignInForm({
             <>
               <FolkBrushDivider className="opacity-50" />
               <p className="text-center text-xs text-folk-cobalt/70 font-display font-semibold -mt-1">
-                소셜 로그인
+                {t("auth.socialSignIn")}
               </p>
               <div className="space-y-2">
                 {discordOAuth && (
@@ -153,7 +153,7 @@ export function SignInForm({
                     className="w-full rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white"
                     onClick={() => signIn("discord", { callbackUrl })}
                   >
-                    Discord로 로그인
+                    {t("auth.signInDiscord")}
                   </Button>
                 )}
                 {twitterOAuth && (
@@ -162,7 +162,7 @@ export function SignInForm({
                     className="w-full rounded-xl bg-black hover:bg-neutral-800 text-white"
                     onClick={() => signIn("twitter", { callbackUrl })}
                   >
-                    X로 로그인
+                    {t("auth.signInTwitter")}
                   </Button>
                 )}
                 {googleOAuth && (
@@ -172,24 +172,22 @@ export function SignInForm({
                     onClick={() => signIn("google", { callbackUrl })}
                     className="w-full rounded-xl"
                   >
-                    Google로 로그인
+                    {t("auth.signInGoogle")}
                   </Button>
                 )}
               </div>
             </>
           ) : (
-            <p className="text-xs text-center text-muted-foreground">
-              Google·X·Discord 로그인은 Vercel에 OAuth 키 추가 후 사용할 수 있습니다.
-            </p>
+            <p className="text-xs text-center text-muted-foreground">{t("auth.oauthNotConfigured")}</p>
           )}
 
           <p className="text-center text-sm text-muted-foreground">
             <Link href="/auth/email-verify" className="text-folk-cobalt hover:underline">
-              이메일 인증 · 비밀번호 찾기
+              {t("auth.emailVerifyForgot")}
             </Link>
             {" · "}
             <Link href="/auth/signup" className="text-folk-cobalt hover:underline">
-              회원가입
+              {t("nav.signup")}
             </Link>
           </p>
         </CardContent>

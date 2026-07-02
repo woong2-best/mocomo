@@ -1,16 +1,22 @@
-import Link from "next/link";
+"use client";
 
-const links = [
-  { href: "/legal/terms", label: "이용약관" },
-  { href: "/legal/creator-terms", label: "크리에이터 약관" },
-  { href: "/legal/payment", label: "결제·환불" },
-  { href: "/legal/copyright", label: "저작권" },
-  { href: "/legal/privacy", label: "개인정보처리방침" },
-  { href: "/legal/account-deletion", label: "계정 삭제" },
-  { href: "/legal/policy", label: "운영정책" },
-] as const;
+import Link from "next/link";
+import { useLocale } from "@/components/providers/locale-provider";
+import type { MessageKey } from "@/lib/i18n/messages";
+
+const links: { href: string; labelKey: MessageKey }[] = [
+  { href: "/legal/terms", labelKey: "legal.terms" },
+  { href: "/legal/creator-terms", labelKey: "legal.creatorTerms" },
+  { href: "/legal/payment", labelKey: "legal.payment" },
+  { href: "/legal/copyright", labelKey: "legal.copyright" },
+  { href: "/legal/privacy", labelKey: "legal.privacy" },
+  { href: "/legal/account-deletion", labelKey: "legal.accountDeletion" },
+  { href: "/legal/policy", labelKey: "legal.policy" },
+];
 
 export function LegalFooterLinks({ className = "" }: { className?: string }) {
+  const { t } = useLocale();
+
   return (
     <nav
       className={`flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground ${className}`}
@@ -19,7 +25,7 @@ export function LegalFooterLinks({ className = "" }: { className?: string }) {
         <span key={link.href} className="flex items-center gap-3">
           {i > 0 && <span className="text-border">·</span>}
           <Link href={link.href} className="hover:text-primary hover:underline">
-            {link.label}
+            {t(link.labelKey)}
           </Link>
         </span>
       ))}

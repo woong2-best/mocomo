@@ -11,6 +11,8 @@ import {
 import { useRouter } from "next/navigation";
 import {
   COUNTRY_COOKIE,
+  DEFAULT_GUEST_COUNTRY,
+  DEFAULT_GUEST_LOCALE,
   LOCALE_COOKIE,
   normalizeLocale,
   type Locale,
@@ -22,7 +24,7 @@ type LocaleContextValue = {
   locale: Locale;
   countryCode: string;
   setLocale: (locale: Locale, countryCode?: string) => Promise<void>;
-  t: (key: MessageKey) => string;
+  t: (key: MessageKey, vars?: Record<string, string>) => string;
 };
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
@@ -75,10 +77,10 @@ export function LocaleProvider({
 export function useLocale() {
   const ctx = useContext(LocaleContext);
   if (!ctx) {
-    const locale = normalizeLocale("ko");
+    const locale = DEFAULT_GUEST_LOCALE;
     return {
       locale,
-      countryCode: "KR",
+      countryCode: DEFAULT_GUEST_COUNTRY,
       setLocale: async () => {},
       t: createTranslator(locale),
     };

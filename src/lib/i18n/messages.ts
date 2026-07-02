@@ -54,7 +54,72 @@ export type MessageKey =
   | "settings.save"
   | "settings.saved"
   | "common.loading"
-  | "feed.title";
+  | "feed.title"
+  | "feed.tabs"
+  | "feed.emptyPrompt"
+  | "feed.compose"
+  | "feed.posted"
+  | "search.placeholder"
+  | "compose.placeholder"
+  | "compose.post"
+  | "compose.posting"
+  | "compose.uploading"
+  | "compose.optionsOpen"
+  | "compose.optionsClose"
+  | "compose.tagsNsfw"
+  | "brand.tagline"
+  | "brand.description"
+  | "home.welcome"
+  | "home.guestDescription"
+  | "home.signUpFree"
+  | "home.featureFeed"
+  | "home.featureAnime"
+  | "home.featureCosplay"
+  | "home.featureSupport"
+  | "home.featureLive"
+  | "home.featureCommunities"
+  | "home.highlightsTitle"
+  | "home.highlightsMeta"
+  | "home.likesTop"
+  | "home.viewsTop"
+  | "home.likes"
+  | "home.views"
+  | "home.highlightsEmpty"
+  | "auth.signInTitle"
+  | "auth.signIn"
+  | "auth.signingIn"
+  | "auth.socialSignIn"
+  | "auth.signInDiscord"
+  | "auth.signInTwitter"
+  | "auth.signInGoogle"
+  | "auth.emailVerifyForgot"
+  | "auth.callbackRedirect"
+  | "auth.oauthNotConfigured"
+  | "auth.signupPageTitle"
+  | "auth.signupPageDesc"
+  | "auth.signupStep1"
+  | "auth.signupStep2"
+  | "auth.signupStep3"
+  | "auth.termsAgreement"
+  | "auth.termsOfService"
+  | "auth.privacyPolicy"
+  | "auth.operatingPolicy"
+  | "auth.nextHumanVerify"
+  | "auth.submitSignupEmail"
+  | "auth.checking"
+  | "auth.orSocialSignup"
+  | "auth.signUpDiscord"
+  | "auth.signUpTwitter"
+  | "auth.signUpGoogle"
+  | "auth.invalidEmail"
+  | "auth.serverError"
+  | "legal.terms"
+  | "legal.creatorTerms"
+  | "legal.payment"
+  | "legal.copyright"
+  | "legal.privacy"
+  | "legal.accountDeletion"
+  | "legal.policy";
 
 const ko: Record<MessageKey, string> = {
   "nav.home": "홈",
@@ -111,6 +176,71 @@ const ko: Record<MessageKey, string> = {
   "settings.saved": "저장되었습니다",
   "common.loading": "불러오는 중…",
   "feed.title": "커뮤니티 피드",
+  "feed.tabs": "팔로우 · 추천 · 최신",
+  "feed.emptyPrompt": "오늘의 캔버스에 첫 글을 올려 보세요",
+  "feed.compose": "글쓰기",
+  "feed.posted": "게시되었습니다",
+  "search.placeholder": "사람, 애니, 게시물 검색",
+  "compose.placeholder": "무슨 일이 일어나고 있나요?",
+  "compose.post": "게시하기",
+  "compose.posting": "게시 중…",
+  "compose.uploading": "업로드 중…",
+  "compose.optionsOpen": "태그·NSFW",
+  "compose.optionsClose": "옵션 닫기",
+  "compose.tagsNsfw": "NSFW",
+  "brand.tagline": "손으로 그린 서브컬처 이야기",
+  "brand.description": "서브컬처 · 애니덕질 · 코스프레 · 굿즈 · 커뮤니티",
+  "home.welcome": "{brand}에 오신 것을 환영합니다",
+  "home.guestDescription": "{description}. 붓끝으로 그린 듯한 서브컬처 이야기 — 가입 후 글·DM·통화를 즐겨 보세요.",
+  "home.signUpFree": "무료 회원가입",
+  "home.featureFeed": "SNS 피드",
+  "home.featureAnime": "애니덕질",
+  "home.featureCosplay": "코스프레",
+  "home.featureSupport": "후원",
+  "home.featureLive": "라이브",
+  "home.featureCommunities": "커뮤니티",
+  "home.highlightsTitle": "이번 주 하이라이트",
+  "home.highlightsMeta": "최근 7일 · 각 2개",
+  "home.likesTop": "좋아요 TOP",
+  "home.viewsTop": "조회수 TOP",
+  "home.likes": "좋아요",
+  "home.views": "조회",
+  "home.highlightsEmpty": "{title} — 이번 주 데이터가 아직 없어요",
+  "auth.signInTitle": "{brand} 로그인",
+  "auth.signIn": "로그인",
+  "auth.signingIn": "로그인 중...",
+  "auth.socialSignIn": "소셜 로그인",
+  "auth.signInDiscord": "Discord로 로그인",
+  "auth.signInTwitter": "X로 로그인",
+  "auth.signInGoogle": "Google로 로그인",
+  "auth.emailVerifyForgot": "이메일 인증 · 비밀번호 찾기",
+  "auth.callbackRedirect": "로그인 후 글쓰기 등 이전 화면으로 이동합니다.",
+  "auth.oauthNotConfigured": "Google·X·Discord 로그인은 Vercel에 OAuth 키 추가 후 사용할 수 있습니다.",
+  "auth.signupPageTitle": "{brand} 회원가입",
+  "auth.signupPageDesc": "가입 정보를 입력한 뒤 이메일 인증으로 계정을 완성합니다.",
+  "auth.signupStep1": "가입 정보",
+  "auth.signupStep2": "사람 확인",
+  "auth.signupStep3": "이메일 인증",
+  "auth.termsAgreement": "회원가입 시 이용약관, 개인정보처리방침, 운영정책에 동의한 것으로 간주됩니다.",
+  "auth.termsOfService": "이용약관",
+  "auth.privacyPolicy": "개인정보처리방침",
+  "auth.operatingPolicy": "운영정책",
+  "auth.nextHumanVerify": "다음 · 사람 확인",
+  "auth.submitSignupEmail": "가입 신청 · 인증 메일 받기",
+  "auth.checking": "확인 중...",
+  "auth.orSocialSignup": "또는 소셜로 가입",
+  "auth.signUpDiscord": "Discord로 가입",
+  "auth.signUpTwitter": "X로 가입",
+  "auth.signUpGoogle": "Google로 가입",
+  "auth.invalidEmail": "올바른 이메일을 입력해 주세요. (아이디 @ 도메인)",
+  "auth.serverError": "서버 연결 오류입니다. 잠시 후 다시 시도해 주세요.",
+  "legal.terms": "이용약관",
+  "legal.creatorTerms": "크리에이터 약관",
+  "legal.payment": "결제·환불",
+  "legal.copyright": "저작권",
+  "legal.privacy": "개인정보처리방침",
+  "legal.accountDeletion": "계정 삭제",
+  "legal.policy": "운영정책",
 };
 
 const en: Record<MessageKey, string> = {
@@ -168,6 +298,71 @@ const en: Record<MessageKey, string> = {
   "settings.saved": "Saved",
   "common.loading": "Loading…",
   "feed.title": "Community feed",
+  "feed.tabs": "Following · For you · Latest",
+  "feed.emptyPrompt": "Be the first to post on today's canvas",
+  "feed.compose": "Compose",
+  "feed.posted": "Posted",
+  "search.placeholder": "Search people, anime, posts",
+  "compose.placeholder": "What's happening?",
+  "compose.post": "Post",
+  "compose.posting": "Posting…",
+  "compose.uploading": "Uploading…",
+  "compose.optionsOpen": "Tags · NSFW",
+  "compose.optionsClose": "Close options",
+  "compose.tagsNsfw": "NSFW",
+  "brand.tagline": "Hand-drawn subculture stories",
+  "brand.description": "Subculture · anime · cosplay · goods · community",
+  "home.welcome": "Welcome to {brand}",
+  "home.guestDescription": "{description} Hand-drawn stories — sign up to post, DM, and call.",
+  "home.signUpFree": "Sign up free",
+  "home.featureFeed": "Social feed",
+  "home.featureAnime": "Anime",
+  "home.featureCosplay": "Cosplay",
+  "home.featureSupport": "Support",
+  "home.featureLive": "Live",
+  "home.featureCommunities": "Communities",
+  "home.highlightsTitle": "This week's highlights",
+  "home.highlightsMeta": "Last 7 days · top 2 each",
+  "home.likesTop": "Top likes",
+  "home.viewsTop": "Top views",
+  "home.likes": "likes",
+  "home.views": "views",
+  "home.highlightsEmpty": "{title} — no data this week yet",
+  "auth.signInTitle": "Sign in to {brand}",
+  "auth.signIn": "Sign in",
+  "auth.signingIn": "Signing in...",
+  "auth.socialSignIn": "Social sign-in",
+  "auth.signInDiscord": "Sign in with Discord",
+  "auth.signInTwitter": "Sign in with X",
+  "auth.signInGoogle": "Sign in with Google",
+  "auth.emailVerifyForgot": "Email verify · Forgot password",
+  "auth.callbackRedirect": "After sign-in you'll return to your previous screen.",
+  "auth.oauthNotConfigured": "Google, X, and Discord sign-in need OAuth keys on Vercel.",
+  "auth.signupPageTitle": "Sign up for {brand}",
+  "auth.signupPageDesc": "Enter your details, then verify your email to finish.",
+  "auth.signupStep1": "Details",
+  "auth.signupStep2": "Human check",
+  "auth.signupStep3": "Email verify",
+  "auth.termsAgreement": "By signing up you agree to the Terms, Privacy Policy, and Community Policy.",
+  "auth.termsOfService": "Terms of Service",
+  "auth.privacyPolicy": "Privacy Policy",
+  "auth.operatingPolicy": "Community Policy",
+  "auth.nextHumanVerify": "Next · Human verification",
+  "auth.submitSignupEmail": "Sign up · Send verification email",
+  "auth.checking": "Checking...",
+  "auth.orSocialSignup": "Or sign up with",
+  "auth.signUpDiscord": "Sign up with Discord",
+  "auth.signUpTwitter": "Sign up with X",
+  "auth.signUpGoogle": "Sign up with Google",
+  "auth.invalidEmail": "Enter a valid email (user @ domain).",
+  "auth.serverError": "Server error. Please try again shortly.",
+  "legal.terms": "Terms",
+  "legal.creatorTerms": "Creator terms",
+  "legal.payment": "Payment & refunds",
+  "legal.copyright": "Copyright",
+  "legal.privacy": "Privacy",
+  "legal.accountDeletion": "Delete account",
+  "legal.policy": "Community policy",
 };
 
 const ja: Record<MessageKey, string> = {
@@ -225,6 +420,71 @@ const ja: Record<MessageKey, string> = {
   "settings.saved": "保存しました",
   "common.loading": "読み込み中…",
   "feed.title": "コミュニティフィード",
+  "feed.tabs": "フォロー · おすすめ · 最新",
+  "feed.emptyPrompt": "今日のキャンバスに最初の投稿を",
+  "feed.compose": "投稿",
+  "feed.posted": "投稿しました",
+  "search.placeholder": "人・アニメ・投稿を検索",
+  "compose.placeholder": "いまどうしてる？",
+  "compose.post": "投稿",
+  "compose.posting": "投稿中…",
+  "compose.uploading": "アップロード中…",
+  "compose.optionsOpen": "タグ · NSFW",
+  "compose.optionsClose": "オプションを閉じる",
+  "compose.tagsNsfw": "NSFW",
+  "brand.tagline": "手描きサブカルストーリー",
+  "brand.description": "サブカル · アニメ · コスプレ · グッズ · コミュニティ",
+  "home.welcome": "{brand}へようこそ",
+  "home.guestDescription": "{description} 手描きの物語 — 登録して投稿・DM・通話を楽しもう。",
+  "home.signUpFree": "無料登録",
+  "home.featureFeed": "SNSフィード",
+  "home.featureAnime": "アニメ",
+  "home.featureCosplay": "コスプレ",
+  "home.featureSupport": "支援",
+  "home.featureLive": "ライブ",
+  "home.featureCommunities": "コミュニティ",
+  "home.highlightsTitle": "今週のハイライト",
+  "home.highlightsMeta": "過去7日 · 各2件",
+  "home.likesTop": "いいね TOP",
+  "home.viewsTop": "閲覧 TOP",
+  "home.likes": "いいね",
+  "home.views": "閲覧",
+  "home.highlightsEmpty": "{title} — 今週のデータはまだありません",
+  "auth.signInTitle": "{brand}にログイン",
+  "auth.signIn": "ログイン",
+  "auth.signingIn": "ログイン中...",
+  "auth.socialSignIn": "ソーシャルログイン",
+  "auth.signInDiscord": "Discordでログイン",
+  "auth.signInTwitter": "Xでログイン",
+  "auth.signInGoogle": "Googleでログイン",
+  "auth.emailVerifyForgot": "メール認証 · パスワード再設定",
+  "auth.callbackRedirect": "ログイン後、前の画面に戻ります。",
+  "auth.oauthNotConfigured": "Google・X・DiscordログインはOAuth設定が必要です。",
+  "auth.signupPageTitle": "{brand} 会員登録",
+  "auth.signupPageDesc": "情報を入力し、メール認証で登録を完了します。",
+  "auth.signupStep1": "登録情報",
+  "auth.signupStep2": "本人確認",
+  "auth.signupStep3": "メール認証",
+  "auth.termsAgreement": "登録により利用規約・プライバシー・運営ポリシーに同意したものとみなします。",
+  "auth.termsOfService": "利用規約",
+  "auth.privacyPolicy": "プライバシー",
+  "auth.operatingPolicy": "運営ポリシー",
+  "auth.nextHumanVerify": "次へ · 本人確認",
+  "auth.submitSignupEmail": "登録 · 認証メールを送信",
+  "auth.checking": "確認中...",
+  "auth.orSocialSignup": "またはソーシャルで登録",
+  "auth.signUpDiscord": "Discordで登録",
+  "auth.signUpTwitter": "Xで登録",
+  "auth.signUpGoogle": "Googleで登録",
+  "auth.invalidEmail": "有効なメールを入力してください。",
+  "auth.serverError": "サーバーエラーです。しばらくして再試行してください。",
+  "legal.terms": "利用規約",
+  "legal.creatorTerms": "クリエイター規約",
+  "legal.payment": "決済・返金",
+  "legal.copyright": "著作権",
+  "legal.privacy": "プライバシー",
+  "legal.accountDeletion": "アカウント削除",
+  "legal.policy": "運営ポリシー",
 };
 
 const zh: Record<MessageKey, string> = {
@@ -282,14 +542,93 @@ const zh: Record<MessageKey, string> = {
   "settings.saved": "已保存",
   "common.loading": "加载中…",
   "feed.title": "社区动态",
+  "feed.tabs": "关注 · 推荐 · 最新",
+  "feed.emptyPrompt": "成为今天画布上的第一个发帖者",
+  "feed.compose": "发帖",
+  "feed.posted": "已发布",
+  "search.placeholder": "搜索用户、动漫、帖子",
+  "compose.placeholder": "发生了什么？",
+  "compose.post": "发布",
+  "compose.posting": "发布中…",
+  "compose.uploading": "上传中…",
+  "compose.optionsOpen": "标签 · NSFW",
+  "compose.optionsClose": "关闭选项",
+  "compose.tagsNsfw": "NSFW",
+  "brand.tagline": "手绘亚文化故事",
+  "brand.description": "亚文化 · 动漫 · Cosplay · 周边 · 社区",
+  "home.welcome": "欢迎来到 {brand}",
+  "home.guestDescription": "{description} 手绘故事 — 注册后即可发帖、私信和通话。",
+  "home.signUpFree": "免费注册",
+  "home.featureFeed": "社交动态",
+  "home.featureAnime": "动漫",
+  "home.featureCosplay": "Cosplay",
+  "home.featureSupport": "赞助",
+  "home.featureLive": "直播",
+  "home.featureCommunities": "社区",
+  "home.highlightsTitle": "本周亮点",
+  "home.highlightsMeta": "近7天 · 各2条",
+  "home.likesTop": "点赞 TOP",
+  "home.viewsTop": "浏览 TOP",
+  "home.likes": "点赞",
+  "home.views": "浏览",
+  "home.highlightsEmpty": "{title} — 本周暂无数据",
+  "auth.signInTitle": "登录 {brand}",
+  "auth.signIn": "登录",
+  "auth.signingIn": "登录中...",
+  "auth.socialSignIn": "社交登录",
+  "auth.signInDiscord": "用 Discord 登录",
+  "auth.signInTwitter": "用 X 登录",
+  "auth.signInGoogle": "用 Google 登录",
+  "auth.emailVerifyForgot": "邮箱验证 · 找回密码",
+  "auth.callbackRedirect": "登录后将返回之前的页面。",
+  "auth.oauthNotConfigured": "Google、X、Discord 登录需要配置 OAuth。",
+  "auth.signupPageTitle": "注册 {brand}",
+  "auth.signupPageDesc": "填写信息后通过邮箱验证完成注册。",
+  "auth.signupStep1": "注册信息",
+  "auth.signupStep2": "人机验证",
+  "auth.signupStep3": "邮箱验证",
+  "auth.termsAgreement": "注册即表示同意服务条款、隐私政策和社区政策。",
+  "auth.termsOfService": "服务条款",
+  "auth.privacyPolicy": "隐私政策",
+  "auth.operatingPolicy": "社区政策",
+  "auth.nextHumanVerify": "下一步 · 人机验证",
+  "auth.submitSignupEmail": "注册 · 发送验证邮件",
+  "auth.checking": "检查中...",
+  "auth.orSocialSignup": "或使用社交账号注册",
+  "auth.signUpDiscord": "用 Discord 注册",
+  "auth.signUpTwitter": "用 X 注册",
+  "auth.signUpGoogle": "用 Google 注册",
+  "auth.invalidEmail": "请输入有效的邮箱地址。",
+  "auth.serverError": "服务器错误，请稍后再试。",
+  "legal.terms": "服务条款",
+  "legal.creatorTerms": "创作者条款",
+  "legal.payment": "支付与退款",
+  "legal.copyright": "版权",
+  "legal.privacy": "隐私",
+  "legal.accountDeletion": "删除账号",
+  "legal.policy": "社区政策",
 };
 
 const TABLES: Record<Locale, Record<MessageKey, string>> = { ko, en, ja, zh };
 
-export function translate(locale: Locale, key: MessageKey): string {
-  return TABLES[locale][key] ?? TABLES.ko[key] ?? key;
+function applyVars(text: string, vars?: Record<string, string>): string {
+  if (!vars) return text;
+  let out = text;
+  for (const [key, value] of Object.entries(vars)) {
+    out = out.replaceAll(`{${key}}`, value);
+  }
+  return out;
+}
+
+export function translate(
+  locale: Locale,
+  key: MessageKey,
+  vars?: Record<string, string>
+): string {
+  const text = TABLES[locale][key] ?? TABLES.en[key] ?? TABLES.ko[key] ?? key;
+  return applyVars(text, vars);
 }
 
 export function createTranslator(locale: Locale) {
-  return (key: MessageKey) => translate(locale, key);
+  return (key: MessageKey, vars?: Record<string, string>) => translate(locale, key, vars);
 }

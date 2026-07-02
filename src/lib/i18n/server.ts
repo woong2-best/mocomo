@@ -3,7 +3,10 @@ import { cookies } from "next/headers";
 import { getCachedSession } from "@/lib/auth";
 import {
   COUNTRY_COOKIE,
+  DEFAULT_GUEST_COUNTRY,
+  DEFAULT_GUEST_LOCALE,
   LOCALE_COOKIE,
+  isLocale,
   normalizeLocale,
   type Locale,
 } from "@/lib/i18n/config";
@@ -23,17 +26,20 @@ function hasSessionCookie(cookieStore: Awaited<ReturnType<typeof cookies>>) {
 /** 요청당 auth 1회 · 비로그인은 쿠키만 (레이아웃 TTFB 개선) */
 export const getRequestI18n = cache(async (): Promise<{ locale: Locale; countryCode: string }> => {
   const cookieStore = await cookies();
-  const fromCookieLocale = normalizeLocale(cookieStore.get(LOCALE_COOKIE)?.value);
-  const fromCookieCountry = cookieStore.get(COUNTRY_COOKIE)?.value?.toUpperCase() || "KR";
+  const rawLocale = cookieStore.get(LOCALE_COOKIE)?.value;
+  const rawCountry = cookieStore.get(COUNTRY_COOKIE)?.value?.toUpperCase();
 
   if (!hasSessionCookie(cookieStore)) {
-    return { locale: fromCookieLocale, countryCode: fromCookieCountry };
+    return {
+      locale: rawLocale && isLocale(rawLocale) ? rawLocale : DEFAULT_GUEST_LOCALE,
+      countryCode: rawCountry || DEFAULT_GUEST_COUNTRY,
+    };
   }
 
   const session = await getCachedSession();
   return {
-    locale: normalizeLocale(session?.user?.locale ?? fromCookieLocale),
-    countryCode: session?.user?.countryCode ?? fromCookieCountry,
+    locale: normalizeLocale(session?.user?.locale ?? rawLocale, "ko"),
+    countryCode: session?.user?.countryCode ?? rawCountry ?? DEFAULT_GUEST_COUNTRY,
   };
 });
 

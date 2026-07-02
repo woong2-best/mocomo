@@ -1,8 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { Eye, Heart, MessageCircle } from "lucide-react";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { userDisplayName } from "@/lib/user-public-select";
 import { formatNumber } from "@/lib/utils";
+import { useLocale } from "@/components/providers/locale-provider";
 import type { WeeklyHighlightPost } from "@/lib/weekly-highlights";
 
 function HighlightCard({
@@ -70,16 +73,22 @@ function HighlightColumn({
   icon: Icon,
   posts,
   kind,
+  likesLabel,
+  viewsLabel,
+  emptyLabel,
 }: {
   title: string;
   icon: typeof Heart;
   posts: WeeklyHighlightPost[];
   kind: "likes" | "views";
+  likesLabel: string;
+  viewsLabel: string;
+  emptyLabel: string;
 }) {
   if (posts.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border/60 p-4 text-center text-sm text-muted-foreground">
-        {title} — 이번 주 데이터가 아직 없어요
+        {emptyLabel}
       </div>
     );
   }
@@ -97,7 +106,7 @@ function HighlightColumn({
             post={post}
             stat={kind === "likes" ? post.weeklyLikes : post.viewCount}
             statIcon={kind === "likes" ? Heart : Eye}
-            statLabel={kind === "likes" ? "좋아요" : "조회"}
+            statLabel={kind === "likes" ? likesLabel : viewsLabel}
           />
         ))}
       </div>
@@ -112,17 +121,38 @@ export function WeeklyHighlightsSection({
   topLiked: WeeklyHighlightPost[];
   topViewed: WeeklyHighlightPost[];
 }) {
+  const { t } = useLocale();
+
   if (topLiked.length === 0 && topViewed.length === 0) return null;
+
+  const likesTitle = t("home.likesTop");
+  const viewsTitle = t("home.viewsTop");
 
   return (
     <section className="mb-8">
       <div className="flex items-center justify-between gap-2 mb-3">
-        <h2 className="text-sm font-semibold text-muted-foreground">이번 주 하이라이트</h2>
-        <span className="text-[11px] text-muted-foreground">최근 7일 · 각 2개</span>
+        <h2 className="text-sm font-semibold text-muted-foreground">{t("home.highlightsTitle")}</h2>
+        <span className="text-[11px] text-muted-foreground">{t("home.highlightsMeta")}</span>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <HighlightColumn title="좋아요 TOP" icon={Heart} posts={topLiked} kind="likes" />
-        <HighlightColumn title="조회수 TOP" icon={Eye} posts={topViewed} kind="views" />
+        <HighlightColumn
+          title={likesTitle}
+          icon={Heart}
+          posts={topLiked}
+          kind="likes"
+          likesLabel={t("home.likes")}
+          viewsLabel={t("home.views")}
+          emptyLabel={t("home.highlightsEmpty", { title: likesTitle })}
+        />
+        <HighlightColumn
+          title={viewsTitle}
+          icon={Eye}
+          posts={topViewed}
+          kind="views"
+          likesLabel={t("home.likes")}
+          viewsLabel={t("home.views")}
+          emptyLabel={t("home.highlightsEmpty", { title: viewsTitle })}
+        />
       </div>
     </section>
   );

@@ -17,8 +17,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { SignupStepIndicator } from "@/components/auth/signup-step-indicator";
 import { BRAND } from "@/lib/brand";
-import { COUNTRIES, LOCALE_COOKIE, COUNTRY_COOKIE, LOCALE_LABELS, LOCALES } from "@/lib/i18n/config";
+import { COUNTRIES, LOCALE_COOKIE, COUNTRY_COOKIE, LOCALE_LABELS, LOCALES, countryDisplayName } from "@/lib/i18n/config";
 import type { Locale } from "@/lib/i18n/config";
+import { useLocale } from "@/components/providers/locale-provider";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
 import { isValidSignupEmail } from "@/lib/signup-email-domains";
@@ -34,11 +35,12 @@ export function SignupApplyForm({
   twitterOAuth: boolean;
 }) {
   const router = useRouter();
+  const { locale: initialLocale, countryCode: initialCountry, t } = useLocale();
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
-  const [locale, setLocale] = useState<Locale>("ko");
-  const [countryCode, setCountryCode] = useState("KR");
+  const [locale, setLocale] = useState<Locale>(initialLocale);
+  const [countryCode, setCountryCode] = useState(initialCountry);
 
   const showSocial = googleOAuth || discordOAuth || twitterOAuth;
   const needsHumanVerify = isSignupHumanVerifyRequired();
@@ -51,7 +53,7 @@ export function SignupApplyForm({
     const form = new FormData(e.currentTarget);
     const email = (form.get("email") as string).trim().toLowerCase();
     if (!isValidSignupEmail(email)) {
-      setError("올바른 이메일을 입력해 주세요. (아이디 @ 도메인)");
+      setError(t("auth.invalidEmail"));
       setLoading(false);
       return;
     }
@@ -132,7 +134,7 @@ export function SignupApplyForm({
         router.push(`/auth/email-verify?email=${encodeURIComponent(email)}&mode=signup`);
       }
     } catch {
-      setError("서버 연결 오류입니다. 잠시 후 다시 시도해 주세요.");
+      setError(t("auth.serverError"));
     } finally {
       setLoading(false);
     }
@@ -146,17 +148,15 @@ export function SignupApplyForm({
             <BrandLogo size={56} priority />
           </div>
           <SignupStepIndicator step={1} />
-          <CardTitle className="text-2xl">{BRAND.name} 회원가입</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            가입 정보를 입력한 뒤 이메일 인증으로 계정을 완성합니다.
-          </p>
+          <CardTitle className="text-2xl">{t("auth.signupPageTitle", { brand: BRAND.name })}</CardTitle>
+          <p className="text-sm text-muted-foreground">{t("auth.signupPageDesc")}</p>
         </CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-3">
             <EmailAddressField required />
             <Input
               name="username"
-              placeholder="닉네임 (영문·숫자·_)"
+              placeholder={t("auth.username")}
               required
               minLength={3}
               maxLength={20}
@@ -166,14 +166,14 @@ export function SignupApplyForm({
             />
             <Input
               name="name"
-              placeholder="표시 이름 (선택)"
+              placeholder={t("auth.displayName")}
               autoComplete="name"
               className="rounded-xl"
             />
             <Input
               name="password"
               type="password"
-              placeholder="비밀번호 (8자 이상)"
+              placeholder={t("auth.password")}
               required
               minLength={8}
               autoComplete="new-password"
@@ -181,7 +181,7 @@ export function SignupApplyForm({
             />
             <div className="grid grid-cols-2 gap-2">
               <label className="space-y-1">
-                <span className="text-xs text-muted-foreground">국가</span>
+                <span className="text-xs text-muted-foreground">{t("auth.country")}</span>
                 <select
                   value={countryCode}
                   onChange={(e) => setCountryCode(e.target.value)}
@@ -189,13 +189,13 @@ export function SignupApplyForm({
                 >
                   {COUNTRIES.map((c) => (
                     <option key={c.code} value={c.code}>
-                      {c.nameKo}
+                      {countryDisplayName(c.code, locale)}
                     </option>
                   ))}
                 </select>
               </label>
               <label className="space-y-1">
-                <span className="text-xs text-muted-foreground">언어</span>
+                <span className="text-xs text-muted-foreground">{t("auth.language")}</span>
                 <select
                   value={locale}
                   onChange={(e) => setLocale(e.target.value as Locale)}
@@ -228,27 +228,33 @@ export function SignupApplyForm({
             )}
 
             <p className="text-xs text-muted-foreground leading-relaxed">
-              회원가입 시{" "}
-              <Link href="/legal/terms" className="text-primary hover:underline" target="_blank">
-                이용약관
-              </Link>
-              ,{" "}
-              <Link href="/legal/privacy" className="text-primary hover:underline" target="_blank">
-                개인정보처리방침
-              </Link>
-              ,{" "}
-              <Link href="/legal/policy" className="text-primary hover:underline" target="_blank">
-                운영정책
-              </Link>
-              에 동의한 것으로 간주됩니다.
+              {locale === "ko" ? (
+                <>
+                  회원가입 시{" "}
+                  <Link href="/legal/terms" className="text-primary hover:underline" target="_blank">
+                    {t("legal.terms")}
+                  </Link>
+                  ,{" "}
+                  <Link href="/legal/privacy" className="text-primary hover:underline" target="_blank">
+                    {t("legal.privacy")}
+                  </Link>
+                  ,{" "}
+                  <Link href="/legal/policy" className="text-primary hover:underline" target="_blank">
+                    {t("legal.policy")}
+                  </Link>
+                  에 동의한 것으로 간주됩니다.
+                </>
+              ) : (
+                t("auth.termsAgreement")
+              )}
             </p>
 
             <Button type="submit" className="w-full rounded-xl" disabled={loading}>
               {loading
-                ? "확인 중..."
+                ? t("auth.checking")
                 : needsHumanVerify
-                  ? "다음 · 사람 확인"
-                  : "가입 신청 · 인증 메일 받기"}
+                  ? t("auth.nextHumanVerify")
+                  : t("auth.submitSignupEmail")}
             </Button>
           </form>
 
@@ -259,7 +265,7 @@ export function SignupApplyForm({
                   <span className="w-full border-t border-border" />
                 </div>
                 <div className="relative flex justify-center text-xs text-muted-foreground bg-card px-2">
-                  또는 소셜로 가입
+                  {t("auth.orSocialSignup")}
                 </div>
               </div>
               <div className="space-y-2">
@@ -269,7 +275,7 @@ export function SignupApplyForm({
                     className="w-full rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white"
                     onClick={() => signIn("discord", { callbackUrl: DEFAULT_LANDING_PATH })}
                   >
-                    Discord로 가입
+                    {t("auth.signUpDiscord")}
                   </Button>
                 )}
                 {twitterOAuth && (
@@ -278,7 +284,7 @@ export function SignupApplyForm({
                     className="w-full rounded-xl bg-black hover:bg-neutral-800 text-white"
                     onClick={() => signIn("twitter", { callbackUrl: DEFAULT_LANDING_PATH })}
                   >
-                    X로 가입
+                    {t("auth.signUpTwitter")}
                   </Button>
                 )}
                 {googleOAuth && (
@@ -288,7 +294,7 @@ export function SignupApplyForm({
                     className="w-full rounded-xl"
                     onClick={() => signIn("google", { callbackUrl: DEFAULT_LANDING_PATH })}
                   >
-                    Google로 가입
+                    {t("auth.signUpGoogle")}
                   </Button>
                 )}
               </div>
@@ -296,9 +302,9 @@ export function SignupApplyForm({
           ) : null}
 
           <p className="text-center text-sm text-muted-foreground">
-            이미 계정이 있나요?{" "}
+            {t("auth.hasAccount")}{" "}
             <Link href="/auth/signin" className="text-folk-cobalt hover:underline font-medium">
-              로그인
+              {t("auth.signinLink")}
             </Link>
           </p>
         </CardContent>

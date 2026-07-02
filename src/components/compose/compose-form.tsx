@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { CreatePostPollInput } from "@/lib/post-poll";
 import { validatePostPollInput } from "@/lib/post-poll";
 import { buildPostCreditLabel } from "@/lib/media-watermark";
+import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 
 function friendlyPostError(err: unknown, apiError?: string): string {
@@ -38,6 +39,7 @@ export function ComposeForm({
   onNeedSignIn?: () => void;
 }) {
   const { data: session } = useSession();
+  const { t } = useLocale();
   const watermarkCreditLabel = useMemo(
     () => (session?.user?.username ? buildPostCreditLabel(session.user.username) : undefined),
     [session?.user?.username]
@@ -146,7 +148,7 @@ export function ComposeForm({
               name="content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="무슨 일이 일어나고 있나요?"
+              placeholder={t("compose.placeholder")}
               rows={3}
               className={cn(
                 "w-full resize-none bg-transparent text-[15px] leading-relaxed",
@@ -178,7 +180,7 @@ export function ComposeForm({
                     className="text-[11px] text-muted-foreground hover:text-foreground px-2 py-1 rounded-lg hover:bg-muted/60 shrink-0"
                     onClick={() => setShowOptions((v) => !v)}
                   >
-                    {showOptions ? "옵션 닫기" : "태그·NSFW"}
+                    {showOptions ? t("compose.optionsClose") : t("compose.optionsOpen")}
                   </button>
                 </>
               }
@@ -189,7 +191,7 @@ export function ComposeForm({
                   className="rounded-full px-5 font-semibold shrink-0"
                   disabled={submitBusy || !canSubmit}
                 >
-                  {mediaUploading ? "업로드 중…" : loading ? "게시 중…" : "게시하기"}
+                  {mediaUploading ? t("compose.uploading") : loading ? t("compose.posting") : t("compose.post")}
                 </Button>
               }
             />
@@ -207,7 +209,7 @@ export function ComposeForm({
                 />
                 <label className="flex items-center gap-2 text-xs text-muted-foreground">
                   <input type="checkbox" name="isNsfw" />
-                  NSFW
+                  {t("compose.tagsNsfw")}
                 </label>
               </div>
             )}
@@ -264,7 +266,7 @@ export function ComposeForm({
         NSFW
       </label>
       <Button type="submit" className="w-full rounded-xl" disabled={submitBusy}>
-        {mediaUploading ? "업로드 중..." : loading ? "게시 중..." : "게시하기"}
+        {mediaUploading ? t("compose.uploading") : loading ? t("compose.posting") : t("compose.post")}
       </Button>
       {error && <p className="text-sm text-destructive">{error}</p>}
     </form>

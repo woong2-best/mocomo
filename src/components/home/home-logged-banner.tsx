@@ -3,9 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ComposeForm } from "@/components/compose/compose-form";
+import { useLocale } from "@/components/providers/locale-provider";
 
 export function HomeLoggedBanner() {
   const router = useRouter();
+  const { t } = useLocale();
   const [formKey, setFormKey] = useState(0);
   const [postedMsg, setPostedMsg] = useState(false);
 
@@ -22,7 +24,7 @@ export function HomeLoggedBanner() {
         }}
       />
       {postedMsg && (
-        <p className="text-sm text-emerald-600 font-medium mt-2 pl-[52px]">게시되었습니다</p>
+        <p className="text-sm text-emerald-600 font-medium mt-2 pl-[52px]">{t("feed.posted")}</p>
       )}
     </div>
   );
