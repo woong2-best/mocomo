@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import {
   Camera,
   Film,
@@ -99,6 +99,15 @@ export function PostMediaComposer({
     return { watermarkLabel: watermarkCreditLabel, watermarkOptions };
   }
 
+  const showWatermarkControls = !!(watermarkCreditLabel && items.length > 0);
+
+  const stagedGalleryRef = useRef<{
+    files: File[];
+    previewUrls: string[];
+    baseItems: PostMediaItem[];
+  } | null>(null);
+  const [stagedGalleryTick, setStagedGalleryTick] = useState(0);
+
   function removeAt(index: number) {
     onChange(items.filter((_, i) => i !== index));
   }
@@ -114,34 +123,36 @@ export function PostMediaComposer({
     setCropOpen(true);
   }
 
-  async function uploadFilesDirect(files: File[]) {
-    const baseItems = items;
-    const previewUrls: string[] = [];
-    const optimistic: PostMediaItem[] = files.map((f) => {
-      const preview = URL.createObjectURL(f);
-      previewUrls.push(preview);
-      return { url: preview, type: "IMAGE" as const };
-    });
-
-    onChange([...baseItems, ...optimistic]);
+  async function performGalleryUpload(
+    files: File[],
+    baseItems: PostMediaItem[],
+    previewUrls: string[]
+  ) {
     setUploading(true);
     onUploadingChange?.(true);
     setError("");
 
-    let next = [...baseItems];
+    let next = [
+      ...baseItems,
+      ...previewUrls.map((url) => ({ url, type: "IMAGE" as const })),
+    ];
     const errors: string[] = [];
 
     try {
       for (let i = 0; i < files.length; i++) {
         const imgCount = next.filter((m) => m.type === "IMAGE").length;
-        if (imgCount >= maxImages) break;
+        if (imgCount > maxImages) break;
 
         try {
           const prepared = await prepareGalleryImageForUpload(files[i]);
           const url = await uploadImageBlob(prepared, prepared.name || "photo.jpg", buildUploadOpts());
-          next = [...next, { url, type: "IMAGE" as const }];
+          next = next.map((item, idx) =>
+            item.url === previewUrls[i] ? { url, type: "IMAGE" as const } : item
+          );
           onChange(next);
         } catch (e) {
+          next = next.filter((item) => item.url !== previewUrls[i]);
+          onChange(next);
           errors.push(
             e instanceof Error ? e.message : `사진 ${i + 1} 업로드 실패`
           );
@@ -151,7 +162,6 @@ export function PostMediaComposer({
       }
 
       if (errors.length > 0) {
-        onChange(next);
         setError(
           errors.length === files.length
             ? errors[0] ?? "사진 업로드에 실패했습니다."
@@ -167,6 +177,43 @@ export function PostMediaComposer({
       onUploadingChange?.(false);
     }
   }
+
+  async function uploadFilesDirect(files: File[]) {
+    const baseItems = items;
+    const previewUrls: string[] = [];
+    files.forEach((f) => {
+      previewUrls.push(URL.createObjectURL(f));
+    });
+
+    onChange([
+      ...baseItems,
+      ...previewUrls.map((url) => ({ url, type: "IMAGE" as const })),
+    ]);
+
+    await performGalleryUpload(files, baseItems, previewUrls);
+  }
+
+  function stageGalleryFiles(files: File[]) {
+    const baseItems = items;
+    const previewUrls = files.map((f) => URL.createObjectURL(f));
+    onChange([
+      ...baseItems,
+      ...previewUrls.map((url) => ({ url, type: "IMAGE" as const })),
+    ]);
+    stagedGalleryRef.current = { files, previewUrls, baseItems };
+    setStagedGalleryTick((t) => t + 1);
+  }
+
+  useEffect(() => {
+    if (!stagedGalleryRef.current) return;
+    const timer = window.setTimeout(() => {
+      const staged = stagedGalleryRef.current;
+      if (!staged) return;
+      stagedGalleryRef.current = null;
+      void performGalleryUpload(staged.files, staged.baseItems, staged.previewUrls);
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [stagedGalleryTick, watermarkOptions]);
 
   function onCameraCapture(blob: Blob, mimeType: string) {
     if (!mimeType.startsWith("image/")) return;
@@ -200,7 +247,12 @@ export function PostMediaComposer({
       setError("이미지 파일을 선택해 주세요. (jpg, png, webp, heic 등)");
       return;
     }
-    await uploadFilesDirect(list.slice(0, remaining));
+    const batch = list.slice(0, remaining);
+    if (watermarkCreditLabel && !quickUpload) {
+      stageGalleryFiles(batch);
+      return;
+    }
+    await uploadFilesDirect(batch);
   }
 
   async function onCropComplete(url: string) {
@@ -367,28 +419,32 @@ export function PostMediaComposer({
         </div>
       )}
 
+      {showWatermarkControls ? (
+        <div className={cn("space-y-1", layout === "toolbar" ? "pt-1" : "")}>
+          <WatermarkToggleButtons
+            value={watermarkOptions}
+            onChange={setWatermarkOptions}
+            disabled={disabled || uploading}
+          />
+          <p
+            className={cn(
+              "text-muted-foreground",
+              layout === "toolbar" ? "text-[10px]" : "text-xs"
+            )}
+          >
+            업로드 전에 워터마크를 선택하세요. ({watermarkCreditLabel})
+          </p>
+        </div>
+      ) : null}
+
       {layout === "toolbar" ? (
-        <>
-          {watermarkCreditLabel ? (
-            <div className="pt-2 space-y-1">
-              <WatermarkToggleButtons
-                value={watermarkOptions}
-                onChange={setWatermarkOptions}
-                disabled={disabled || uploading}
-              />
-              <p className="text-[10px] text-muted-foreground">
-                업로드 전에 워터마크를 선택하세요. ({watermarkCreditLabel})
-              </p>
-            </div>
-          ) : null}
-          <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40">
-            <div className="flex items-center gap-0.5 flex-wrap min-w-0">
-              {toolbarIcons}
-              {toolbarFooterStart}
-            </div>
-            {toolbarFooter}
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40">
+          <div className="flex items-center gap-0.5 flex-wrap min-w-0">
+            {toolbarIcons}
+            {toolbarFooterStart}
           </div>
-        </>
+          {toolbarFooter}
+        </div>
       ) : (
       <div className="flex flex-wrap gap-2">
         {canAddImage && (
@@ -457,19 +513,6 @@ export function PostMediaComposer({
       </div>
       )}
 
-      {layout === "default" && watermarkCreditLabel ? (
-        <div className="space-y-1">
-          <WatermarkToggleButtons
-            value={watermarkOptions}
-            onChange={setWatermarkOptions}
-            disabled={disabled || uploading}
-          />
-          <p className="text-xs text-muted-foreground">
-            업로드 전에 워터마크를 선택하세요. ({watermarkCreditLabel})
-          </p>
-        </div>
-      ) : null}
-
       {layout === "default" && (
       <p className="text-xs text-muted-foreground">
         {allowVideo
@@ -507,6 +550,9 @@ export function PostMediaComposer({
           maxHeight={1920}
           uploadFilename={cropFilename}
           uploadOptions={buildUploadOpts()}
+          watermarkCreditLabel={watermarkCreditLabel}
+          watermarkOptions={watermarkOptions}
+          onWatermarkOptionsChange={setWatermarkOptions}
           onComplete={onCropComplete}
         />
       )}
@@ -527,6 +573,9 @@ export function PostMediaComposer({
         }}
         videoBlob={videoBlob}
         uploadOptions={buildUploadOpts()}
+        watermarkCreditLabel={watermarkCreditLabel}
+        watermarkOptions={watermarkOptions}
+        onWatermarkOptionsChange={setWatermarkOptions}
         onComplete={onVideoComplete}
         onUploadingChange={(busy) => {
           setUploading(busy);

@@ -16,6 +16,8 @@ import {
   normalizeRotation,
 } from "@/lib/crop-image";
 import { uploadImageBlob, type UploadMediaOptions } from "@/lib/client-upload";
+import { WatermarkToggleButtons } from "@/components/media/watermark-toggle-buttons";
+import type { WatermarkOptions } from "@/lib/media-watermark";
 import {
   FlipHorizontal2,
   FlipVertical2,
@@ -55,6 +57,9 @@ type ImageCropDialogProps = {
   onComplete: (publicUrl: string) => void;
   /** 게시물용 워터마크 옵션 */
   uploadOptions?: UploadMediaOptions;
+  watermarkCreditLabel?: string;
+  watermarkOptions?: WatermarkOptions;
+  onWatermarkOptionsChange?: (next: WatermarkOptions) => void;
   /** true면 비율 고정(프로필 등) */
   lockAspect?: boolean;
   aspectPresets?: CropAspectPreset[];
@@ -83,6 +88,9 @@ export function ImageCropDialog({
   uploadFilename,
   onComplete,
   uploadOptions,
+  watermarkCreditLabel,
+  watermarkOptions,
+  onWatermarkOptionsChange,
   lockAspect = false,
   aspectPresets = DEFAULT_ASPECT_PRESETS,
 }: ImageCropDialogProps) {
@@ -205,6 +213,18 @@ export function ImageCropDialog({
         </div>
 
         <div className="shrink-0 border-t border-border bg-background pb-safe">
+          {watermarkCreditLabel && watermarkOptions && onWatermarkOptionsChange ? (
+            <div className="px-4 pt-3 space-y-1">
+              <WatermarkToggleButtons
+                value={watermarkOptions}
+                onChange={onWatermarkOptionsChange}
+                disabled={busy}
+              />
+              <p className="text-[10px] text-muted-foreground">
+                업로드 전에 워터마크를 선택하세요. ({watermarkCreditLabel})
+              </p>
+            </div>
+          ) : null}
           <div className="flex gap-2 px-4 pt-4 pb-3">
             <Button
               type="button"

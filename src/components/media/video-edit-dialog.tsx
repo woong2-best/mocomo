@@ -13,7 +13,8 @@ import { Loader2, Scissors } from "lucide-react";
 import { trimVideoBlob, watermarkVideoBlob } from "@/lib/video-trim";
 import { guessVideoMime } from "@/lib/gallery-video-upload";
 import { uploadVideoBlob, type UploadMediaOptions } from "@/lib/client-upload";
-import { hasActiveWatermark } from "@/lib/media-watermark";
+import { hasActiveWatermark, type WatermarkOptions } from "@/lib/media-watermark";
+import { WatermarkToggleButtons } from "@/components/media/watermark-toggle-buttons";
 import { getUploadMaxBytes, uploadSizeExceededMessage } from "@/lib/upload-limits";
 import { useSession } from "next-auth/react";
 
@@ -24,6 +25,9 @@ type VideoEditDialogProps = {
   uploadFilename?: string;
   maxDurationSec?: number;
   uploadOptions?: UploadMediaOptions;
+  watermarkCreditLabel?: string;
+  watermarkOptions?: WatermarkOptions;
+  onWatermarkOptionsChange?: (next: WatermarkOptions) => void;
   onComplete: (publicUrl: string) => void;
   onUploadingChange?: (busy: boolean) => void;
 };
@@ -35,6 +39,9 @@ export function VideoEditDialog({
   uploadFilename = "post-video.mp4",
   maxDurationSec = 120,
   uploadOptions,
+  watermarkCreditLabel,
+  watermarkOptions,
+  onWatermarkOptionsChange,
   onComplete,
   onUploadingChange,
 }: VideoEditDialogProps) {
@@ -286,6 +293,19 @@ export function VideoEditDialog({
 
           {warn && <p className="text-sm text-amber-600 dark:text-amber-400">{warn}</p>}
           {error && <p className="text-sm text-destructive">{error}</p>}
+
+          {watermarkCreditLabel && watermarkOptions && onWatermarkOptionsChange ? (
+            <div className="space-y-1">
+              <WatermarkToggleButtons
+                value={watermarkOptions}
+                onChange={onWatermarkOptionsChange}
+                disabled={busy}
+              />
+              <p className="text-[10px] text-muted-foreground">
+                업로드 전에 워터마크를 선택하세요. ({watermarkCreditLabel})
+              </p>
+            </div>
+          ) : null}
 
           <div className="flex flex-col sm:flex-row gap-2 justify-end">
             <Button
