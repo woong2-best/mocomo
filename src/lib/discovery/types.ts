@@ -1,4 +1,4 @@
-import type { DiscoveryGender, DiscoveryLookingFor } from "@prisma/client";
+import type { DiscoveryGender, DiscoveryLookingFor, DiscoveryMatchingMode } from "@prisma/client";
 
 export type DiscoveryCard = {
   userId: string;
@@ -21,6 +21,7 @@ export type DiscoveryCard = {
   cosplayCharacter: string | null;
   matchScore: number;
   lookingFor: DiscoveryLookingFor;
+  randomPick?: boolean;
 };
 
 export type DiscoverySettings = {
@@ -35,6 +36,7 @@ export type DiscoverySettings = {
   minAge: number;
   maxAge: number;
   lookingFor: DiscoveryLookingFor;
+  matchingMode: DiscoveryMatchingMode;
   preferredGenders: DiscoveryGender[];
   pitch: string | null;
   hasBirthDate: boolean;

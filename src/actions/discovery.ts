@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { DiscoveryGender, DiscoveryLookingFor, DiscoverySwipeAction } from "@prisma/client";
+import type { DiscoveryGender, DiscoveryLookingFor, DiscoveryMatchingMode, DiscoverySwipeAction } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireAuthMinimal } from "@/lib/auth";
 import { usedAgeFromBirthDate } from "@/lib/used-youth-protection";
@@ -68,6 +68,7 @@ function toSettings(
     minAge: dp.minAge,
     maxAge: dp.maxAge,
     lookingFor: dp.lookingFor,
+    matchingMode: dp.matchingMode,
     preferredGenders: dp.preferredGenders,
     pitch: dp.pitch,
     hasBirthDate,
@@ -95,6 +96,7 @@ export async function updateDiscoverySettings(data: {
   minAge?: number;
   maxAge?: number;
   lookingFor?: DiscoveryLookingFor;
+  matchingMode?: DiscoveryMatchingMode;
   preferredGenders?: DiscoveryGender[];
   pitch?: string;
 }) {
@@ -133,6 +135,7 @@ export async function updateDiscoverySettings(data: {
       minAge,
       maxAge,
       lookingFor: lookingFor ?? "FRIENDS",
+      matchingMode: data.matchingMode ?? "RECOMMENDED",
       preferredGenders: data.preferredGenders ?? [],
       pitch: data.pitch?.trim().slice(0, 280) || null,
       lastActiveAt: new Date(),
@@ -149,6 +152,7 @@ export async function updateDiscoverySettings(data: {
       minAge,
       maxAge,
       ...(lookingFor !== undefined ? { lookingFor } : {}),
+      ...(data.matchingMode !== undefined ? { matchingMode: data.matchingMode } : {}),
       ...(data.preferredGenders !== undefined ? { preferredGenders: data.preferredGenders } : {}),
       ...(data.pitch !== undefined ? { pitch: data.pitch.trim().slice(0, 280) || null } : {}),
       lastActiveAt: new Date(),
@@ -160,8 +164,26 @@ export async function updateDiscoverySettings(data: {
   return { success: true };
 }
 
+export async function setDiscoveryMatchingMode(
+  matchingMode: DiscoveryMatchingMode
+): Promise<{ success: true } | { error: string }> {
+  const user = await requireAuthMinimal();
+  const me = await db.discoveryProfile.findUnique({ where: { userId: user.id } });
+  if (!me?.enabled) return { error: "매칭 참여를 먼저 켜 주세요." };
+
+  await db.discoveryProfile.update({
+    where: { userId: user.id },
+    data: { matchingMode, lastActiveAt: new Date() },
+  });
+
+  revalidatePath("/discover");
+  revalidatePath("/discover/settings");
+  return { success: true };
+}
+
 export async function getDiscoveryDeck(): Promise<
-  { cards: DiscoveryCard[]; enabled: true } | { enabled: false; reason: string }
+  | { cards: DiscoveryCard[]; enabled: true; matchingMode: DiscoveryMatchingMode }
+  | { enabled: false; reason: string }
 > {
   const user = await requireAuthMinimal();
   const me = await db.discoveryProfile.findUnique({
@@ -194,6 +216,9 @@ export async function getDiscoveryDeck(): Promise<
     exclude.add(b.blockedId);
   }
 
+  const isRandom = me.matchingMode === "RANDOM";
+  const poolSize = isRandom ? 200 : 120;
+
   const raw = await db.user.findMany({
     where: {
       id: { notIn: [...exclude] },
@@ -201,8 +226,8 @@ export async function getDiscoveryDeck(): Promise<
       discoveryProfile: { is: { enabled: true } },
     },
     select: candidateSelect,
-    take: 120,
-    orderBy: { discoveryProfile: { lastActiveAt: "desc" } },
+    take: poolSize,
+    ...(isRandom ? {} : { orderBy: { discoveryProfile: { lastActiveAt: "desc" } } }),
   });
 
   const myAnimeIds = new Set(myAnime.map((a) => a.animeId));
@@ -210,14 +235,14 @@ export async function getDiscoveryDeck(): Promise<
   const candidates = raw.filter((u): u is typeof u & { discoveryProfile: NonNullable<(typeof u)["discoveryProfile"]> } =>
     !!u.discoveryProfile?.enabled
   );
-  const cards = filterAndRankCandidates(me, candidates, myAnimeIds, myTags);
+  const cards = filterAndRankCandidates(me, candidates, myAnimeIds, myTags, me.matchingMode);
 
   await db.discoveryProfile.update({
     where: { userId: user.id },
     data: { lastActiveAt: new Date() },
   });
 
-  return { enabled: true, cards };
+  return { enabled: true, cards, matchingMode: me.matchingMode };
 }
 
 async function autoFollow(fromId: string, toId: string) {

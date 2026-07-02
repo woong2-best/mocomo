@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, useMotionValue, useTransform, PanInfo, AnimatePresence } from "framer-motion";
-import { Heart, Sparkles, X, RotateCcw, Settings, Users, UserRound } from "lucide-react";
+import { Heart, Sparkles, X, RotateCcw, Settings, Users, UserRound, Shuffle } from "lucide-react";
 import Link from "next/link";
 import { DiscoveryCardView } from "@/components/discovery/discovery-card";
 import { Button } from "@/components/ui/button";
 import type { DiscoveryCard } from "@/lib/discovery/types";
-import { discoverySwipe, getDiscoveryDeck, openDiscoveryChat } from "@/actions/discovery";
+import type { DiscoveryMatchingMode } from "@prisma/client";
+import { discoverySwipe, getDiscoveryDeck, openDiscoveryChat, setDiscoveryMatchingMode } from "@/actions/discovery";
+import { DISCOVERY_MATCHING_LABELS, DISCOVERY_MATCHING_UI_OPTIONS } from "@/lib/discovery/constants";
 import { vibrateLightTap, vibrateSuccess } from "@/lib/haptics";
 import { MotionBurst } from "@/components/motion/motion-primitives";
 import { pressTap } from "@/lib/motion-presets";
@@ -34,6 +36,8 @@ export function DiscoverySwipeDeck() {
   const [loadError, setLoadError] = useState("");
   const [matchedUserId, setMatchedUserId] = useState<string | null>(null);
   const [openingMatchChat, setOpeningMatchChat] = useState(false);
+  const [matchingMode, setMatchingMode] = useState<DiscoveryMatchingMode>("RECOMMENDED");
+  const [modeBusy, setModeBusy] = useState(false);
   const [lastAction, setLastAction] = useState<{ card: DiscoveryCard; action: "PASS" | "LIKE" | "CHEER" } | null>(
     null
   );
@@ -50,6 +54,7 @@ export function DiscoverySwipeDeck() {
       } else if ("cards" in res) {
         setEnabled(true);
         setCards(res.cards);
+        setMatchingMode(res.matchingMode);
       }
     } catch {
       setLoadError("추천을 불러오지 못했습니다.");
@@ -62,6 +67,20 @@ export function DiscoverySwipeDeck() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function switchMatchingMode(mode: DiscoveryMatchingMode) {
+    if (mode === matchingMode || modeBusy || busy) return;
+    setModeBusy(true);
+    const res = await setDiscoveryMatchingMode(mode);
+    if ("error" in res) {
+      setActError(res.error);
+      setModeBusy(false);
+      return;
+    }
+    setMatchingMode(mode);
+    await load();
+    setModeBusy(false);
+  }
 
   const current = cards[0];
   const next = cards[1];
@@ -145,7 +164,9 @@ export function DiscoverySwipeDeck() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70dvh] gap-3">
         <div className="h-10 w-10 rounded-full border-2 border-violet-400 border-t-transparent animate-spin" />
-        <p className="text-sm text-muted-foreground">취향 맞는 사람 찾는 중…</p>
+        <p className="text-sm text-muted-foreground">
+          {matchingMode === "RANDOM" ? "랜덤으로 사람 찾는 중…" : "취향 맞는 사람 찾는 중…"}
+        </p>
       </div>
     );
   }
@@ -174,8 +195,14 @@ export function DiscoverySwipeDeck() {
     return (
       <div className="max-w-md mx-auto text-center space-y-4 py-20 px-4">
         <Users className="h-12 w-12 mx-auto text-muted-foreground" />
-        <p className="font-semibold">오늘 추천을 모두 확인했어요</p>
-        <p className="text-sm text-muted-foreground">내일 새로운 추천이 올라옵니다. 필터를 넓히면 더 많이 볼 수 있어요.</p>
+        <p className="font-semibold">
+          {matchingMode === "RANDOM" ? "오늘 랜덤 추천을 모두 확인했어요" : "오늘 추천을 모두 확인했어요"}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {matchingMode === "RANDOM"
+            ? "새로고침하면 다른 사람이 나올 수 있어요."
+            : "내일 새로운 추천이 올라옵니다. 필터를 넓히면 더 많이 볼 수 있어요."}
+        </p>
         <div className="flex flex-wrap justify-center gap-2">
           <Button variant="outline" className="rounded-xl" onClick={() => void load()}>
             <RotateCcw className="h-4 w-4 mr-1" /> 새로고침
@@ -190,6 +217,28 @@ export function DiscoverySwipeDeck() {
 
   return (
     <div className={deckPb}>
+      <div className="flex justify-center px-1 mb-3">
+        <div className="inline-flex rounded-xl border border-violet-500/20 bg-muted/30 p-1 gap-1">
+          {DISCOVERY_MATCHING_UI_OPTIONS.map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              disabled={modeBusy || busy}
+              onClick={() => void switchMatchingMode(mode)}
+              className={cn(
+                "rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors inline-flex items-center gap-1",
+                matchingMode === mode
+                  ? "bg-violet-600 text-white shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {mode === "RANDOM" ? <Shuffle className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5" />}
+              {DISCOVERY_MATCHING_LABELS[mode]}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <AnimatePresence>
         {matchFlash && (
           <motion.div
@@ -273,7 +322,9 @@ export function DiscoverySwipeDeck() {
       </div>
 
       <p className="text-center text-[11px] text-muted-foreground mt-2 mb-4">
-        ← 넘기기 · → 좋아요 · ↑ ㅊㅊ(팔로우) · 버튼으로도 가능
+        {matchingMode === "RANDOM"
+          ? "완전 랜덤 · 필터 없음 · ← 넘기기 · → 좋아요 · ↑ ㅊㅊ"
+          : "← 넘기기 · → 좋아요 · ↑ ㅊㅊ(팔로우) · 버튼으로도 가능"}
       </p>
 
       {actError && (
@@ -329,7 +380,7 @@ export function DiscoverySwipeDeck() {
         <p className="text-center text-[10px] text-muted-foreground mt-3">
           {lastAction.action === "CHEER" && "ㅊㅊ · 팔로우 완료"}
           {lastAction.action === "LIKE" && "관심 보냄"}
-          {lastAction.action === "PASS" && "다음 추천"}
+          {lastAction.action === "PASS" && (matchingMode === "RANDOM" ? "다음 사람" : "다음 추천")}
         </p>
       )}
 

@@ -44,7 +44,7 @@ export function DiscoveryCardView({ card, className, style, draggable = true }: 
         <span className="inline-flex items-center gap-1 rounded-full bg-black/45 backdrop-blur px-2.5 py-1 text-[11px] text-white/90">
           {DISCOVERY_LOOKING_LABELS[normalizeLookingFor(card.lookingFor)]}
         </span>
-        {card.matchScore >= 40 && (
+        {card.matchScore >= 40 && !card.randomPick && (
           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600/70 backdrop-blur px-2.5 py-1 text-[11px] font-bold text-white">
             <Sparkles className="h-3 w-3" /> 취향 저격
           </span>

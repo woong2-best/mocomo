@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { DiscoveryGender, DiscoveryLookingFor } from "@prisma/client";
+import type { DiscoveryGender, DiscoveryLookingFor, DiscoveryMatchingMode } from "@prisma/client";
 import { updateDiscoverySettings } from "@/actions/discovery";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,9 @@ import {
   DISCOVERY_LOOKING_UI_OPTIONS,
   DISCOVERY_MIN_AGE,
   DISCOVERY_MAX_DISTANCE_KM,
+  DISCOVERY_MATCHING_UI_OPTIONS,
+  DISCOVERY_MATCHING_LABELS,
+  DISCOVERY_MATCHING_DESCRIPTIONS,
   normalizeLookingFor,
 } from "@/lib/discovery/constants";
 import type { DiscoverySettings } from "@/lib/discovery/types";
@@ -39,6 +42,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
   const [minAge, setMinAge] = useState(initial.minAge);
   const [maxAge, setMaxAge] = useState(initial.maxAge);
   const [lookingFor, setLookingFor] = useState<DiscoveryLookingFor>(normalizeLookingFor(initial.lookingFor));
+  const [matchingMode, setMatchingMode] = useState<DiscoveryMatchingMode>(initial.matchingMode);
   const [preferred, setPreferred] = useState<DiscoveryGender[]>(initial.preferredGenders);
   const [pitch, setPitch] = useState(initial.pitch ?? "");
   const [msg, setMsg] = useState("");
@@ -115,6 +119,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
       minAge,
       maxAge,
       lookingFor,
+      matchingMode,
       preferredGenders: preferred,
       pitch,
     });
@@ -224,9 +229,42 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
 
       <Card className="rounded-2xl">
         <CardHeader className="pb-2">
+          <CardTitle className="text-base">추천 방식</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            {DISCOVERY_MATCHING_UI_OPTIONS.map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setMatchingMode(mode)}
+                className={cn(
+                  "rounded-xl px-3 py-2 text-xs font-medium border transition-colors text-left",
+                  matchingMode === mode
+                    ? "bg-violet-600 text-white border-violet-500"
+                    : "bg-muted/40 border-transparent"
+                )}
+              >
+                {DISCOVERY_MATCHING_LABELS[mode]}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {DISCOVERY_MATCHING_DESCRIPTIONS[matchingMode]}
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-2xl">
+        <CardHeader className="pb-2">
           <CardTitle className="text-base">찾는 상대</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          {matchingMode === "RANDOM" ? (
+            <p className="text-xs text-amber-600/90 bg-amber-500/10 rounded-xl px-3 py-2">
+              완전 랜덤 모드에서는 성별·나이·거리·취향 필터를 적용하지 않습니다. (만 18세 미만·차단·이미 본 사람은 제외)
+            </p>
+          ) : null}
           <div className="flex flex-wrap gap-2">
             {DISCOVERY_LOOKING_UI_OPTIONS.map((l) => (
               <button

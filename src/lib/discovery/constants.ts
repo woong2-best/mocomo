@@ -23,3 +23,21 @@ export function normalizeLookingFor(value: DiscoveryLookingFor): DiscoveryLookin
 
 export const DISCOVERY_MIN_AGE = 18;
 export const DISCOVERY_MAX_DISTANCE_KM = 300;
+
+export const DISCOVERY_MATCHING_UI_OPTIONS = ["RECOMMENDED", "RANDOM"] as const;
+
+export const DISCOVERY_MATCHING_LABELS: Record<
+  (typeof DISCOVERY_MATCHING_UI_OPTIONS)[number],
+  string
+> = {
+  RECOMMENDED: "취향 추천",
+  RANDOM: "완전 랜덤",
+};
+
+export const DISCOVERY_MATCHING_DESCRIPTIONS: Record<
+  (typeof DISCOVERY_MATCHING_UI_OPTIONS)[number],
+  string
+> = {
+  RECOMMENDED: "애니·태그·거리·활동 기반으로 맞춤 추천",
+  RANDOM: "필터 없이 참여 중인 사람을 무작위로",
+};

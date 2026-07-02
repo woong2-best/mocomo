@@ -1,4 +1,4 @@
-import type { DiscoveryLookingFor, DiscoveryProfile } from "@prisma/client";
+import type { DiscoveryLookingFor, DiscoveryMatchingMode, DiscoveryProfile } from "@prisma/client";
 import { usedAgeFromBirthDate } from "@/lib/used-youth-protection";
 import { DISCOVERY_MIN_AGE, normalizeLookingFor } from "./constants";
 import type { DiscoveryCard } from "./types";
@@ -117,12 +117,86 @@ export function scoreCandidate(
   return score;
 }
 
+function shuffleInPlace<T>(items: T[]): void {
+  for (let i = items.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [items[i], items[j]] = [items[j], items[i]];
+  }
+}
+
+function passesMinAgeSafety(birthDate: Date | null): boolean {
+  if (!birthDate) return true;
+  const age = usedAgeFromBirthDate(birthDate);
+  return age >= DISCOVERY_MIN_AGE;
+}
+
+function toDiscoveryCard(
+  c: CandidateUser,
+  extras: { matchScore: number; distanceKm: number | null; randomPick?: boolean }
+): DiscoveryCard {
+  const dp = c.discoveryProfile;
+  const age = ageFromBirth(c.birthDate);
+  const photo = c.cosplayerProfile?.photos[0];
+  const animeTitles = [...(c.cosplayerProfile?.animes.map((a) => a.anime.title) ?? [])].slice(0, 4);
+  const isCosplayer = (c.cosplayerProfile?.photos.length ?? 0) > 0;
+
+  return {
+    userId: c.id,
+    username: c.username,
+    name: c.name,
+    image: c.image,
+    bio: c.profile?.bio ?? c.cosplayerProfile?.bio ?? null,
+    pitch: dp.pitch,
+    city: dp.city ?? locationText(c.profile?.snsLinks),
+    age: dp.showAge ? age : null,
+    gender: dp.showGender ? dp.gender : null,
+    showGender: dp.showGender,
+    showAge: dp.showAge,
+    distanceKm: extras.distanceKm,
+    favoriteTags: c.profile?.favoriteTags.slice(0, 6) ?? [],
+    mainCharacter: c.profile?.mainCharacter ?? null,
+    animeTitles,
+    isCosplayer,
+    cosplayPhoto: photo?.url ?? null,
+    cosplayCharacter: photo?.character ?? c.cosplayerProfile?.animes[0]?.character ?? null,
+    matchScore: extras.matchScore,
+    lookingFor: normalizeLookingFor(dp.lookingFor),
+    randomPick: extras.randomPick,
+  };
+}
+
+export function filterRandomCandidates(candidates: CandidateUser[]): DiscoveryCard[] {
+  const cards: DiscoveryCard[] = [];
+
+  for (const c of candidates) {
+    if (c.isBanned || !c.discoveryProfile.enabled) continue;
+    if (!passesMinAgeSafety(c.birthDate)) continue;
+
+    let distanceKm: number | null = null;
+    cards.push(
+      toDiscoveryCard(c, {
+        matchScore: 0,
+        distanceKm,
+        randomPick: true,
+      })
+    );
+  }
+
+  shuffleInPlace(cards);
+  return cards.slice(0, 24);
+}
+
 export function filterAndRankCandidates(
   me: DiscoveryProfile & { user: Pick<CandidateUser, "profile" | "animeFollows"> },
   candidates: CandidateUser[],
   myAnimeIds: Set<string>,
-  myTags: string[]
+  myTags: string[],
+  mode: DiscoveryMatchingMode = "RECOMMENDED"
 ): DiscoveryCard[] {
+  if (mode === "RANDOM") {
+    return filterRandomCandidates(candidates);
+  }
+
   const cards: DiscoveryCard[] = [];
 
   for (const c of candidates) {
@@ -147,34 +221,12 @@ export function filterAndRankCandidates(
       if (distanceKm > me.maxDistanceKm) continue;
     }
 
-    const dp = c.discoveryProfile;
-    const photo = c.cosplayerProfile?.photos[0];
-    const animeTitles = [
-      ...(c.cosplayerProfile?.animes.map((a) => a.anime.title) ?? []),
-    ].slice(0, 4);
-
-    cards.push({
-      userId: c.id,
-      username: c.username,
-      name: c.name,
-      image: c.image,
-      bio: c.profile?.bio ?? c.cosplayerProfile?.bio ?? null,
-      pitch: dp.pitch,
-      city: dp.city ?? locationText(c.profile?.snsLinks),
-      age: dp.showAge ? age : null,
-      gender: dp.showGender ? dp.gender : null,
-      showGender: dp.showGender,
-      showAge: dp.showAge,
-      distanceKm: distanceKm != null ? Math.round(distanceKm) : null,
-      favoriteTags: c.profile?.favoriteTags.slice(0, 6) ?? [],
-      mainCharacter: c.profile?.mainCharacter ?? null,
-      animeTitles,
-      isCosplayer,
-      cosplayPhoto: photo?.url ?? null,
-      cosplayCharacter: photo?.character ?? c.cosplayerProfile?.animes[0]?.character ?? null,
-      matchScore: scoreCandidate(me, c, myAnimeIds, myTags),
-      lookingFor: normalizeLookingFor(dp.lookingFor),
-    });
+    cards.push(
+      toDiscoveryCard(c, {
+        matchScore: scoreCandidate(me, c, myAnimeIds, myTags),
+        distanceKm: distanceKm != null ? Math.round(distanceKm) : null,
+      })
+    );
   }
 
   cards.sort((a, b) => b.matchScore - a.matchScore);

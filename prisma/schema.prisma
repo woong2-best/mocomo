@@ -3194,6 +3194,11 @@ enum DiscoverySwipeAction {
   CHEER
 }
 
+enum DiscoveryMatchingMode {
+  RECOMMENDED
+  RANDOM
+}
+
 model DiscoveryProfile {
   id               String              @id @default(cuid())
   userId           String              @unique
@@ -3207,6 +3212,7 @@ model DiscoveryProfile {
   minAge           Int                 @default(18)
   maxAge           Int                 @default(45)
   lookingFor       DiscoveryLookingFor @default(FRIENDS)
+  matchingMode     DiscoveryMatchingMode @default(RECOMMENDED)
   preferredGenders DiscoveryGender[]
   pitch            String?             @db.Text
   showAge          Boolean             @default(false)
