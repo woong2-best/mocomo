@@ -93,6 +93,7 @@ export function ProfilePostCard({
                   subscriptionPriceKrw={subscriptionPriceKrw}
                   paymentsEnabled={paymentsEnabled}
                   subscribed={subscribed}
+                  postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
                 />
               )}
               <div className="flex gap-6 mt-3 text-muted-foreground text-xs">

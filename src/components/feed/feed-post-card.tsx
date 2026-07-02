@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Heart, MessageCircle, Star } from "lucide-react";
 import { PostShareMenu } from "@/components/post/post-share-menu";
 import { formatNumber } from "@/lib/utils";
+import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
 import type { SupportTierLevel } from "@prisma/client";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { userDisplayName } from "@/lib/user-public-select";
@@ -19,6 +20,7 @@ export type GridPost = {
   createdAt: Date | string;
   isNsfw: boolean;
   isPinned?: boolean;
+  instantPurchasePriceKrw?: number;
   author: {
     id: string;
     username: string;
@@ -87,18 +89,14 @@ export function FeedPostCard({ post }: { post: GridPost }) {
 
         <Link href={`/post/${post.id}`} className="block flex-1">
           {cover ? (
-            cover.type === "VIDEO" ? (
-              <video
-                src={cover.url}
-                className="w-full aspect-[4/5] object-cover bg-black"
-                muted
-                playsInline
-                preload="metadata"
-              />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={cover.url} alt="" className="w-full aspect-[4/5] object-cover" />
-            )
+            <ProtectedPaidMedia
+              type={cover.type}
+              src={cover.url}
+              className="w-full aspect-[4/5] object-cover bg-black"
+              mediaPriceKrw={cover.priceKrw}
+              postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
+              locked={cover.locked}
+            />
           ) : (
             <div className="px-3 pb-3">
               {post.title && <h3 className="font-semibold text-sm mb-1">{post.title}</h3>}

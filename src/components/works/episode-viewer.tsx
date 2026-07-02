@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import type { CreatorWorkKind } from "@prisma/client";
 import { incrementEpisodeView } from "@/actions/webtoon-studio-cloud";
 import { PurchaseEpisodeButton } from "@/components/works/purchase-episode-button";
+import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
+import { isSalePricedMedia } from "@/lib/paid-media-protection";
 
 type EpisodeViewerProps = {
   kind: CreatorWorkKind;
@@ -39,7 +41,15 @@ export function EpisodeViewer({
   return (
     <div className="space-y-4">
       {kind === "VIDEO" && videoUrl && (
-        <video src={videoUrl} controls playsInline className="w-full rounded-xl bg-black max-h-[70vh]" />
+        <ProtectedPaidMedia
+          type="VIDEO"
+          src={videoUrl}
+          className="w-full rounded-xl bg-black max-h-[70vh]"
+          mediaPriceKrw={price}
+          playsInline
+          preload="auto"
+          controls
+        />
       )}
       {kind === "VIDEO" && previewVideoBlocked && (
         <div className="rounded-xl border border-dashed border-amber-500/40 bg-amber-500/10 p-8 text-center space-y-3">
@@ -53,10 +63,21 @@ export function EpisodeViewer({
         </div>
       )}
       {(kind === "WEBTOON" || kind === "PHOTO") &&
-        visibleUrls.map((url, i) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img key={`${url}-${i}`} src={url} alt={`${title} ${i + 1}`} className="w-full rounded-lg" />
-        ))}
+        visibleUrls.map((url, i) =>
+          isSalePricedMedia(price) ? (
+            <ProtectedPaidMedia
+              key={`${url}-${i}`}
+              type="IMAGE"
+              src={url}
+              alt={`${title} ${i + 1}`}
+              className="w-full rounded-lg"
+              mediaPriceKrw={price}
+            />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img key={`${url}-${i}`} src={url} alt={`${title} ${i + 1}`} className="w-full rounded-lg" />
+          )
+        )}
       {locked && (
         <div className="rounded-xl border border-dashed border-folk-cobalt/30 bg-muted/30 p-6 text-center space-y-3">
           <p className="text-sm text-muted-foreground">

@@ -8,10 +8,11 @@ const postDetailSelect = {
   content: true,
   createdAt: true,
   isPinned: true,
+  instantPurchasePriceKrw: true,
   viewCount: true,
   author: { select: userPublicSelect },
   media: {
-    select: { id: true, url: true, type: true },
+    select: { id: true, url: true, type: true, priceKrw: true },
     orderBy: { order: "asc" as const },
   },
   tags: { select: { tag: { select: { id: true, name: true } } } },

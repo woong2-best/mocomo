@@ -2,7 +2,7 @@
 export const postMediaPreview = {
   take: 1,
   orderBy: { order: "asc" as const },
-  select: { url: true, type: true },
+  select: { url: true, type: true, priceKrw: true },
 };
 
 /** 프로필·상세 — 여러 장 표시 */

@@ -19,6 +19,7 @@ import type { GridPost } from "@/components/feed/feed-post-card";
 import { PostPollCard } from "@/components/post/post-poll-card";
 import { MotionPop } from "@/components/motion/motion-primitives";
 import { engageStar, postEngage } from "@/lib/post-engage-client";
+import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
 
 const CAPTION_PREVIEW_LEN = 80;
 
@@ -138,23 +139,16 @@ export function FeedPhotoPostCard({
               1/{media.length}
             </span>
           )}
-          {media[0]?.type === "VIDEO" ? (
-            <video
+          {media[0] ? (
+            <ProtectedPaidMedia
+              type={media[0].type}
               src={media[0].url}
               className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover/media:scale-[1.04]"
-              muted
-              playsInline
-              preload="metadata"
+              mediaPriceKrw={media[0].priceKrw}
+              postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
+              locked={media[0].locked}
             />
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={media[0]?.url}
-              alt=""
-              className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover/media:scale-[1.04]"
-              loading="lazy"
-            />
-          )}
+          ) : null}
         </div>
       </Link>
 

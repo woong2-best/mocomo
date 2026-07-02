@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PurchasePostMediaButton } from "@/components/profile/purchase-post-media-button";
+import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
 import {
   SubscribeCreatorButton,
   SubscribeCreatorHint,
@@ -29,6 +30,7 @@ export function PaidPostMediaGrid({
   paymentsEnabled,
   subscribed = false,
   linkToPost = true,
+  postInstantPurchasePriceKrw,
   className,
 }: {
   media: ProfilePostMediaItem[];
@@ -39,6 +41,7 @@ export function PaidPostMediaGrid({
   paymentsEnabled: boolean;
   subscribed?: boolean;
   linkToPost?: boolean;
+  postInstantPurchasePriceKrw?: number;
   className?: string;
 }) {
   if (media.length === 0) return null;
@@ -61,6 +64,7 @@ export function PaidPostMediaGrid({
           subscriptionPriceKrw={subscriptionPriceKrw}
           paymentsEnabled={paymentsEnabled}
           subscribed={subscribed}
+          postInstantPurchasePriceKrw={postInstantPurchasePriceKrw}
         />
       ))}
     </div>
@@ -83,6 +87,7 @@ function PaidPostMediaTile({
   subscriptionPriceKrw,
   paymentsEnabled,
   subscribed,
+  postInstantPurchasePriceKrw,
 }: {
   media: ProfilePostMediaItem;
   postId: string;
@@ -91,6 +96,7 @@ function PaidPostMediaTile({
   subscriptionPriceKrw?: number;
   paymentsEnabled: boolean;
   subscribed?: boolean;
+  postInstantPurchasePriceKrw?: number;
 }) {
   const locked = !!media.locked && !!media.id;
   const lockReason = media.lockReason ?? "none";
@@ -98,22 +104,14 @@ function PaidPostMediaTile({
 
   return (
     <div className="relative aspect-square bg-muted/30 overflow-hidden">
-      {media.type === "VIDEO" ? (
-        <video
-          src={media.url}
-          className={cn("w-full h-full object-cover", locked && "blur-xl scale-105")}
-          muted
-          playsInline
-          preload="metadata"
-        />
-      ) : (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={media.url}
-          alt=""
-          className={cn("w-full h-full object-cover", locked && "blur-xl scale-105")}
-        />
-      )}
+      <ProtectedPaidMedia
+        type={media.type}
+        src={media.url}
+        className={cn("w-full h-full object-cover", locked && "blur-xl scale-105")}
+        mediaPriceKrw={media.priceKrw}
+        postInstantPurchasePriceKrw={postInstantPurchasePriceKrw ?? media.instantPurchasePriceKrw}
+        locked={locked}
+      />
 
       {locked && (
         <div
