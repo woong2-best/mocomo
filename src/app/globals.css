@@ -178,22 +178,11 @@
   }
 }
 
-/* Painterly canvas texture */
+/* Canvas — decorative texture removed */
 .folk-canvas {
   position: relative;
   isolation: isolate;
 }
-.folk-canvas::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.045;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 180px 180px;
-}
-/* 앱 셸만 텍스처 위로 — body 직계 포털(글쓰기·모달)은 z-[60+] 유지 */
 .folk-canvas > .folk-app-shell {
   position: relative;
   z-index: 1;
@@ -201,9 +190,6 @@
 }
 
 /* Play Store / app.mocomo.net — 트위터식 앱 셸 */
-html[data-client="app"] .folk-canvas::before {
-  opacity: 0.02;
-}
 html[data-client="app"] body {
   background: hsl(var(--background));
 }
@@ -215,37 +201,7 @@ html[data-client="app"] .native-live-pad {
   padding-bottom: calc(7.25rem + env(safe-area-inset-bottom, 0px));
 }
 
-.folk-brush-border-b {
-  position: relative;
-  isolation: isolate;
-}
-.folk-brush-border-b::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 5px;
-  z-index: 0;
-  pointer-events: none;
-  background: repeating-linear-gradient(
-    90deg,
-    hsl(var(--folk-cobalt)) 0px,
-    hsl(var(--folk-cobalt)) 8px,
-    transparent 8px,
-    transparent 12px,
-    hsl(var(--folk-terracotta)) 12px,
-    hsl(var(--folk-terracotta)) 18px,
-    transparent 18px,
-    transparent 22px
-  );
-  opacity: 0.85;
-  mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,4 Q25,0 50,4 T100,4 T150,4 T200,4' fill='none' stroke='white' stroke-width='8'/%3E%3C/svg%3E");
-  mask-size: 200px 8px;
-  mask-repeat: repeat-x;
-}
-
-/* 헤더·툴바 — folk 장식 위에 클릭 가능 */
+/* 헤더·툴바 */
 .app-header-interactive {
   position: relative;
   z-index: 1;
@@ -328,17 +284,7 @@ html[data-client="app"] .native-live-pad {
   }
 
   .folk-hero-banner {
-    @apply relative overflow-hidden rounded-2xl border-[3px] border-folk-cobalt/40 p-6 sm:p-8 mb-6 shadow-folk;
-    background-color: hsl(var(--folk-gold) / 0.14);
-  }
-  .folk-hero-banner::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    opacity: 0.06;
-    background-image: radial-gradient(circle at 20% 30%, #C4522A 0%, transparent 45%),
-      radial-gradient(circle at 80% 70%, #1B3A8C 0%, transparent 40%);
-    pointer-events: none;
+    @apply relative overflow-hidden rounded-2xl border border-border bg-muted/30 p-6 sm:p-8 mb-6;
   }
 
   .folk-post-card {
@@ -374,20 +320,11 @@ html[data-client="app"] .native-live-pad {
 
   .folk-auth-canvas {
     @apply min-h-screen flex items-center justify-center p-4 pt-safe pb-safe relative overflow-hidden;
-    background-color: hsl(var(--folk-cream));
+    background-color: hsl(var(--background));
   }
 
   .folk-nav-tile {
     @apply flex flex-col items-center gap-1.5 rounded-xl border-2 border-folk-cobalt/25 bg-folk-cream/80 py-3 px-2 text-xs font-semibold text-folk-cobalt shadow-folk-sm hover:border-folk-terracotta hover:-translate-y-0.5 transition-all;
-  }
-
-  .folk-art-frame::after {
-    content: "";
-    position: absolute;
-    inset: 4px;
-    border: 2px dashed hsl(var(--folk-terracotta) / 0.25);
-    border-radius: 0.75rem;
-    pointer-events: none;
   }
 
   .folk-panel-aside {
@@ -424,11 +361,6 @@ html[data-visible-animations="off"] [class*="animate-folk-"] {
   opacity: 0 !important;
   visibility: hidden !important;
   pointer-events: none !important;
-}
-
-html[data-visible-animations="off"] .folk-canvas::before,
-html[data-visible-animations="off"] .folk-brush-border-b::after {
-  display: none !important;
 }
 
 ::-webkit-scrollbar {

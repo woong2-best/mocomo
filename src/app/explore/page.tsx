@@ -5,14 +5,17 @@ import { FolkSectionTitle } from "@/components/brand/folk-decor";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 import { HeaderSearch } from "@/components/search/header-search";
 import { CardRowsSkeleton } from "@/components/ui/content-skeletons";
+import { getServerTranslator } from "@/lib/i18n/server";
 
 export const revalidate = 60;
 
-export default function ExplorePage() {
+export default async function ExplorePage() {
+  const { t } = await getServerTranslator();
+
   return (
     <AppPageChrome maxWidth="2xl" className="!px-3 sm:!px-4" spacing="sm">
       <NativePageTitle>
-        <FolkSectionTitle icon="sun">탐색</FolkSectionTitle>
+        <FolkSectionTitle>{t("nav.explore")}</FolkSectionTitle>
       </NativePageTitle>
 
       <ExploreQuickNav />

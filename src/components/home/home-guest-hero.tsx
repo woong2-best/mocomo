@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Radio, Users, Gem, Camera, Tv, PenSquare } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
-import { FolkBrushDivider, FolkSectionTitle } from "@/components/brand/folk-decor";
+import { FolkSectionTitle } from "@/components/brand/folk-decor";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { MessageKey } from "@/lib/i18n/messages";
 
@@ -23,13 +23,13 @@ export function HomeGuestHero() {
 
   return (
     <div className="folk-hero-banner">
-      <FolkSectionTitle icon="sun" className="relative z-10 mb-3">
+      <FolkSectionTitle className="mb-3">
         {t("home.welcome", { brand: BRAND.name })}
       </FolkSectionTitle>
-      <p className="text-folk-forest/90 mt-3 max-w-lg relative z-10 font-medium leading-relaxed">
+      <p className="text-muted-foreground mt-3 max-w-lg font-medium leading-relaxed">
         {t("home.guestDescription", { description: t("brand.description") })}
       </p>
-      <div className="flex flex-wrap gap-3 mt-6 relative z-10">
+      <div className="flex flex-wrap gap-3 mt-6">
         <Button asChild size="lg" className="rounded-xl shadow-folk">
           <Link href="/auth/signup">{t("home.signUpFree")}</Link>
         </Button>
@@ -37,8 +37,7 @@ export function HomeGuestHero() {
           <Link href="/auth/signin">{t("nav.signin")}</Link>
         </Button>
       </div>
-      <FolkBrushDivider className="my-6 relative z-10 opacity-70" />
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 relative z-10">
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-6">
         {features
           .filter(({ href }) => isLiveFeatureEnabled() || !isLiveNavHref(href))
           .map(({ icon: Icon, labelKey, href }) => (

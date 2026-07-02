@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Mailbox } from "lucide-react";
 import { AptMailboxLink } from "@/components/compose/apt-mailbox-link";
-import { FolkFloralAccent } from "@/components/brand/folk-decor";
 import { cn } from "@/lib/utils";
 import { mainNavItems } from "@/lib/nav-items";
 import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
@@ -43,8 +42,6 @@ export function Sidebar() {
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
-      <FolkFloralAccent className="absolute -right-2 top-24 w-24 h-16 pointer-events-none" />
-
       <nav className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain pr-0.5">
         {navItems.map(({ href, icon: Icon, labelKey }) => (
           <Link
