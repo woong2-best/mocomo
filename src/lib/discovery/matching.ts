@@ -172,11 +172,10 @@ export function filterRandomCandidates(candidates: CandidateUser[]): DiscoveryCa
     if (c.isBanned || !c.discoveryProfile.enabled) continue;
     if (!passesMinAgeSafety(c.birthDate)) continue;
 
-    let distanceKm: number | null = null;
     cards.push(
       toDiscoveryCard(c, {
         matchScore: 0,
-        distanceKm,
+        distanceKm: null,
         randomPick: true,
       })
     );
