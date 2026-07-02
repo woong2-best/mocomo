@@ -17,8 +17,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { SignupStepIndicator } from "@/components/auth/signup-step-indicator";
 import { BRAND } from "@/lib/brand";
-import { COUNTRIES, LOCALE_COOKIE, COUNTRY_COOKIE, LOCALE_LABELS, LOCALES, countryDisplayName } from "@/lib/i18n/config";
+import { LOCALE_COOKIE, COUNTRY_COOKIE, LOCALE_LABELS, LOCALES } from "@/lib/i18n/config";
 import type { Locale } from "@/lib/i18n/config";
+import { CountrySelect } from "@/components/i18n/country-select";
 import { useLocale } from "@/components/providers/locale-provider";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
@@ -182,17 +183,12 @@ export function SignupApplyForm({
             <div className="grid grid-cols-2 gap-2">
               <label className="space-y-1">
                 <span className="text-xs text-muted-foreground">{t("auth.country")}</span>
-                <select
+                <CountrySelect
                   value={countryCode}
-                  onChange={(e) => setCountryCode(e.target.value)}
+                  onChange={setCountryCode}
+                  locale={locale}
                   className="w-full h-10 rounded-xl border border-input bg-background px-2 text-sm"
-                >
-                  {COUNTRIES.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {countryDisplayName(c.code, locale)}
-                    </option>
-                  ))}
-                </select>
+                />
               </label>
               <label className="space-y-1">
                 <span className="text-xs text-muted-foreground">{t("auth.language")}</span>

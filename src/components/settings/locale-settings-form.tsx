@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
-import { COUNTRIES, LOCALE_LABELS, LOCALES } from "@/lib/i18n/config";
+import { LOCALE_LABELS, LOCALES } from "@/lib/i18n/config";
+import type { Locale } from "@/lib/i18n/config";
+import { CountrySelect } from "@/components/i18n/country-select";
 import { Button } from "@/components/ui/button";
 
 export function LocaleSettingsForm({
@@ -12,7 +14,7 @@ export function LocaleSettingsForm({
   initialLocale: string;
   initialCountryCode: string;
 }) {
-  const { setLocale, t } = useLocale();
+  const { setLocale, t, locale: uiLocale } = useLocale();
   const [locale, setLocaleValue] = useState(initialLocale);
   const [countryCode, setCountryCode] = useState(initialCountryCode);
   const [saved, setSaved] = useState(false);
@@ -32,17 +34,12 @@ export function LocaleSettingsForm({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <label className="space-y-1.5">
           <span className="text-sm font-medium">{t("settings.country")}</span>
-          <select
+          <CountrySelect
             value={countryCode}
-            onChange={(e) => setCountryCode(e.target.value)}
+            onChange={setCountryCode}
+            locale={uiLocale}
             className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm"
-          >
-            {COUNTRIES.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.nameKo} ({c.code})
-              </option>
-            ))}
-          </select>
+          />
         </label>
         <label className="space-y-1.5">
           <span className="text-sm font-medium">{t("settings.language")}</span>
