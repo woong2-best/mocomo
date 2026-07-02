@@ -61,6 +61,26 @@ export type MessageKey =
   | "anime.popularSearches"
   | "anime.addLogin"
   | "anime.addNew"
+  | "games.title"
+  | "games.hubTitle"
+  | "games.hubDesc"
+  | "games.playable"
+  | "games.comingSoon"
+  | "games.friendRoom"
+  | "games.ranking"
+  | "games.history"
+  | "games.spectate"
+  | "games.categories"
+  | "games.all"
+  | "games.play"
+  | "games.close"
+  | "games.aptTitle"
+  | "games.aptDesc"
+  | "games.statusSoon"
+  | "games.statusComingTitle"
+  | "games.footer"
+  | "games.playerCount"
+  | "games.playerRange"
   | "auth.signupTitle"
   | "auth.signupDesc"
   | "auth.email"
@@ -218,6 +238,26 @@ const ko: Record<MessageKey, string> = {
   "anime.popularSearches": "인기 검색어",
   "anime.addLogin": "로그인하고 글 추가",
   "anime.addNew": "새 글 추가",
+  "games.title": "미니게임",
+  "games.hubTitle": "게임 허브",
+  "games.hubDesc": "실시간 매칭 · 친구 방 · 랭킹 · 관전",
+  "games.playable": "플레이 가능 {count}",
+  "games.comingSoon": "준비 중 {count}",
+  "games.friendRoom": "2~5인 · 친구 방",
+  "games.ranking": "랭킹",
+  "games.history": "전적",
+  "games.spectate": "관전",
+  "games.categories": "카테고리",
+  "games.all": "전체",
+  "games.play": "플레이",
+  "games.close": "게임 닫기",
+  "games.aptTitle": "APT · 내 집",
+  "games.aptDesc": "다이오라마 꾸미기 · 상점 · 라이브 TV · 이웃 방문",
+  "games.statusSoon": "준비",
+  "games.statusComingTitle": "준비 중입니다",
+  "games.footer": "친구 초대 · 방 코드 · 관전 · 랭킹 지원",
+  "games.playerCount": "{count}인",
+  "games.playerRange": "{min}~{max}인",
   "auth.signupTitle": "회원가입",
   "auth.signupDesc": "서브컬처·코스프레 커뮤니티",
   "auth.email": "이메일",
@@ -376,6 +416,26 @@ const en: Record<MessageKey, string> = {
   "anime.popularSearches": "Trending searches",
   "anime.addLogin": "Sign in to add article",
   "anime.addNew": "New article",
+  "games.title": "Mini-games",
+  "games.hubTitle": "Game hub",
+  "games.hubDesc": "Live matchmaking · friend rooms · rankings · spectate",
+  "games.playable": "Playable {count}",
+  "games.comingSoon": "Coming soon {count}",
+  "games.friendRoom": "2–5 players · friend room",
+  "games.ranking": "Ranking",
+  "games.history": "History",
+  "games.spectate": "Spectate",
+  "games.categories": "Categories",
+  "games.all": "All",
+  "games.play": "Play",
+  "games.close": "Close games",
+  "games.aptTitle": "APT · My home",
+  "games.aptDesc": "Decorate diorama · shop · live TV · visit neighbors",
+  "games.statusSoon": "Soon",
+  "games.statusComingTitle": "Coming soon",
+  "games.footer": "Invite friends · room codes · spectate · rankings",
+  "games.playerCount": "{count} players",
+  "games.playerRange": "{min}–{max} players",
   "auth.signupTitle": "Sign up",
   "auth.signupDesc": "Subculture & cosplay community",
   "auth.email": "Email",
@@ -534,6 +594,26 @@ const ja: Record<MessageKey, string> = {
   "anime.popularSearches": "人気検索語",
   "anime.addLogin": "ログインして記事追加",
   "anime.addNew": "新規記事",
+  "games.title": "ミニゲーム",
+  "games.hubTitle": "ゲームハブ",
+  "games.hubDesc": "リアルタイムマッチ · フレンドルーム · ランキング · 観戦",
+  "games.playable": "プレイ可能 {count}",
+  "games.comingSoon": "準備中 {count}",
+  "games.friendRoom": "2~5人 · フレンドルーム",
+  "games.ranking": "ランキング",
+  "games.history": "戦績",
+  "games.spectate": "観戦",
+  "games.categories": "カテゴリ",
+  "games.all": "すべて",
+  "games.play": "プレイ",
+  "games.close": "ゲームを閉じる",
+  "games.aptTitle": "APT · マイホーム",
+  "games.aptDesc": "ジオラマ飾り · ショップ · ライブTV · 近所訪問",
+  "games.statusSoon": "準備",
+  "games.statusComingTitle": "準備中です",
+  "games.footer": "フレンド招待 · ルームコード · 観戦 · ランキング",
+  "games.playerCount": "{count}人",
+  "games.playerRange": "{min}~{max}人",
   "auth.signupTitle": "会員登録",
   "auth.signupDesc": "サブカル・コスプレコミュニティ",
   "auth.email": "メール",
@@ -692,6 +772,26 @@ const zh: Record<MessageKey, string> = {
   "anime.popularSearches": "热门搜索",
   "anime.addLogin": "登录后添加条目",
   "anime.addNew": "新建条目",
+  "games.title": "小游戏",
+  "games.hubTitle": "游戏中心",
+  "games.hubDesc": "实时匹配 · 好友房 · 排行榜 · 观战",
+  "games.playable": "可玩 {count}",
+  "games.comingSoon": "筹备中 {count}",
+  "games.friendRoom": "2–5 人 · 好友房",
+  "games.ranking": "排行榜",
+  "games.history": "战绩",
+  "games.spectate": "观战",
+  "games.categories": "分类",
+  "games.all": "全部",
+  "games.play": "开始",
+  "games.close": "关闭游戏",
+  "games.aptTitle": "APT · 我的家",
+  "games.aptDesc": "布置场景 · 商店 · 直播电视 · 拜访邻居",
+  "games.statusSoon": "筹备",
+  "games.statusComingTitle": "筹备中",
+  "games.footer": "邀请好友 · 房间码 · 观战 · 排行榜",
+  "games.playerCount": "{count} 人",
+  "games.playerRange": "{min}–{max} 人",
   "auth.signupTitle": "注册",
   "auth.signupDesc": "亚文化与 Cosplay 社区",
   "auth.email": "邮箱",
