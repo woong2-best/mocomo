@@ -1,4 +1,6 @@
-﻿import Link from "next/link";
+﻿"use client";
+
+import Link from "next/link";
 import type { SupportTierLevel } from "@prisma/client";
 import { FALLBACK_SIDEBAR_ADS } from "@/lib/default-ads";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +8,8 @@ import { Tv, Megaphone } from "lucide-react";
 import { sanitizeAdLink, isExternalUrl } from "@/lib/safe-link";
 import { RightPanelComposeButton } from "@/components/layout/right-panel-compose";
 import { SidebarEventMapCard } from "@/components/events/sidebar-event-map-card";
+import { useLocale } from "@/components/providers/locale-provider";
+import { localizeSidebarAdTitle } from "@/lib/sidebar-ad-i18n";
 import type { MapEventPin } from "@/lib/subculture-events";
 
 export type SidebarPanelData = {
@@ -37,10 +41,15 @@ export function RightPanelSkeleton() {
 }
 
 export function RightPanelContent({ animes, sidebarAds, eventPins }: SidebarPanelData) {
+  const { t } = useLocale();
   const ads =
     sidebarAds.length > 0
       ? sidebarAds
-      : FALLBACK_SIDEBAR_ADS.map((a) => ({ ...a, ctaLabel: a.ctaLabel ?? null }));
+      : FALLBACK_SIDEBAR_ADS.map((a) => ({
+          ...a,
+          title: t("sidebar.fallbackEventAd"),
+          ctaLabel: a.ctaLabel ?? null,
+        }));
 
   return (
     <aside className="hidden lg:block w-64 xl:w-72 shrink-0 p-4 space-y-3 sticky top-[var(--header-h)] z-[1] h-[calc(100dvh-var(--header-h))] overflow-y-auto folk-panel-aside">
@@ -49,7 +58,7 @@ export function RightPanelContent({ animes, sidebarAds, eventPins }: SidebarPane
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2 font-display font-bold text-folk-terracotta">
             <Megaphone className="h-4 w-4" />
-            Sponsored
+            {t("sidebar.sponsored")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -65,7 +74,7 @@ export function RightPanelContent({ animes, sidebarAds, eventPins }: SidebarPane
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={ad.imageUrl} alt={ad.title} className="w-full aspect-[4/3] object-cover" />
-                <p className="text-xs p-2 font-medium">{ad.title}</p>
+                <p className="text-xs p-2 font-medium">{localizeSidebarAdTitle(ad, t)}</p>
               </Link>
             );
           })}
@@ -76,13 +85,13 @@ export function RightPanelContent({ animes, sidebarAds, eventPins }: SidebarPane
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2 font-display font-bold text-folk-cobalt">
             <Tv className="h-4 w-4 text-folk-cobalt" />
-            인기 애니
+            {t("sidebar.popularAnime")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           {animes.length === 0 ? (
             <Link href="/anime" className="text-xs text-primary hover:underline">
-              애니 허브 가기 →
+              {t("sidebar.animeHubLink")}
             </Link>
           ) : (
             animes.map((a, i) => (

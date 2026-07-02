@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { format } from "date-fns";
-import { ko } from "date-fns/locale";
+import { enUS, ja, ko, zhCN } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPin } from "lucide-react";
 import { SubcultureEventsMapLazy } from "@/components/events/subculture-events-map-lazy";
 import { useLocale } from "@/components/providers/locale-provider";
+import type { Locale } from "@/lib/i18n/config";
 import {
   eventCountryFlag,
   getSubcultureMapDefaultView,
@@ -16,8 +17,21 @@ import {
 } from "@/lib/subculture-event-countries";
 import type { MapEventPin } from "@/lib/subculture-events";
 
+function eventDateLabel(date: Date, locale: Locale): string {
+  switch (locale) {
+    case "ko":
+      return format(date, "M월 d일", { locale: ko });
+    case "ja":
+      return format(date, "M月d日", { locale: ja });
+    case "zh":
+      return format(date, "M月d日", { locale: zhCN });
+    default:
+      return format(date, "MMM d", { locale: enUS });
+  }
+}
+
 export function SidebarEventMapCard({ pins }: { pins: MapEventPin[] }) {
-  const { countryCode, locale } = useLocale();
+  const { countryCode, locale, t } = useLocale();
   const localPins = useMemo(
     () => resolveSubculturePinsForUser(pins, countryCode).slice(0, 12),
     [pins, countryCode]
@@ -31,7 +45,7 @@ export function SidebarEventMapCard({ pins }: { pins: MapEventPin[] }) {
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-2 font-semibold text-violet-600">
           <MapPin className="h-4 w-4" />
-          서브컬처·애니 행사 지도
+          {t("sidebar.eventsMapTitle")}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -52,14 +66,14 @@ export function SidebarEventMapCard({ pins }: { pins: MapEventPin[] }) {
                 {p.title}
               </span>
               <span className="text-muted-foreground">
-                {format(new Date(p.startsAt), "M월 d일", { locale: ko })}
+                {eventDateLabel(new Date(p.startsAt), locale)}
                 {p.venueName ? ` · ${p.venueName}` : ""}
               </span>
             </li>
           ))}
         </ul>
         <Link href="/events/map" className="text-xs text-primary hover:underline font-medium">
-          지도 크게 보기 →
+          {t("sidebar.eventsMapExpand")}
         </Link>
       </CardContent>
     </Card>

@@ -1,4 +1,4 @@
-import { COUNTRIES, countryFlag, type Locale } from "@/lib/i18n/config";
+import { COUNTRIES, countryDisplayName, countryFlag, type Locale } from "@/lib/i18n/config";
 
 /** 서브컬처 행사 국가 코드 (ISO 3166-1 alpha-2 소문자) */
 export type SubcultureEventCountry =
@@ -71,6 +71,35 @@ export const SUBCULTURE_EVENT_COUNTRY_LABELS: Record<SubcultureEventCountry, str
   au: "호주",
   other: "글로벌",
 };
+
+const EVENT_COUNTRY_ISO: Record<SubcultureEventCountry, string> = {
+  kr: "KR",
+  us: "US",
+  jp: "JP",
+  cn: "CN",
+  tw: "TW",
+  th: "TH",
+  vn: "VN",
+  ph: "PH",
+  id: "ID",
+  gb: "GB",
+  de: "DE",
+  fr: "FR",
+  ca: "CA",
+  au: "AU",
+  other: "OTHER",
+};
+
+export function eventCountryDisplayLabel(country: SubcultureEventCountry, locale: Locale): string {
+  if (country === "other") {
+    if (locale === "ko") return "글로벌";
+    if (locale === "ja") return "グローバル";
+    if (locale === "zh") return "全球";
+    return "Global";
+  }
+  const nameLocale = locale === "ko" ? "ko" : "en";
+  return countryDisplayName(EVENT_COUNTRY_ISO[country], nameLocale);
+}
 
 /** 지도 기본 뷰 — 해당 국가 행사가 없을 때 */
 export const SUBCULTURE_MAP_DEFAULTS: Record<
@@ -173,10 +202,11 @@ export function resolveSubculturePinsForUser<T extends { country: SubcultureEven
 
 export function subcultureCountrySummary(userCountryCode: string, locale: Locale = "ko"): string {
   const target = userCountryToEventCountry(userCountryCode);
-  const label = SUBCULTURE_EVENT_COUNTRY_LABELS[target];
+  const label = eventCountryDisplayLabel(target, locale);
   const flag = eventCountryFlag(target);
   if (locale === "en") return `${flag} ${label} subculture events — official auto-sync`;
   if (locale === "ja") return `${flag} ${label}のサブカルイベント — 公式自動収集`;
+  if (locale === "zh") return `${flag} ${label}亚文化·动漫活动 — 官网自动同步`;
   return `${flag} ${label} 서브컬처·애니 행사 — 공식 사이트 자동 수집`;
 }
 

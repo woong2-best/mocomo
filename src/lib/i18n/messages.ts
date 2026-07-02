@@ -30,6 +30,13 @@ export type MessageKey =
   | "nav.signin"
   | "nav.compose"
   | "nav.more"
+  | "nav.tier"
+  | "sidebar.sponsored"
+  | "sidebar.popularAnime"
+  | "sidebar.animeHubLink"
+  | "sidebar.eventsMapTitle"
+  | "sidebar.eventsMapExpand"
+  | "sidebar.fallbackEventAd"
   | "auth.signupTitle"
   | "auth.signupDesc"
   | "auth.email"
@@ -156,6 +163,13 @@ const ko: Record<MessageKey, string> = {
   "nav.signin": "로그인",
   "nav.compose": "글쓰기",
   "nav.more": "더보기",
+  "nav.tier": "등급",
+  "sidebar.sponsored": "스폰서",
+  "sidebar.popularAnime": "인기 애니",
+  "sidebar.animeHubLink": "애니 허브 가기 →",
+  "sidebar.eventsMapTitle": "서브컬처·애니 행사 지도",
+  "sidebar.eventsMapExpand": "지도 크게 보기 →",
+  "sidebar.fallbackEventAd": "진행 중인 이벤트",
   "auth.signupTitle": "회원가입",
   "auth.signupDesc": "서브컬처·코스프레 커뮤니티",
   "auth.email": "이메일",
@@ -283,6 +297,13 @@ const en: Record<MessageKey, string> = {
   "nav.signin": "Sign in",
   "nav.compose": "Compose",
   "nav.more": "More",
+  "nav.tier": "Tier",
+  "sidebar.sponsored": "Sponsored",
+  "sidebar.popularAnime": "Popular anime",
+  "sidebar.animeHubLink": "Browse anime hub →",
+  "sidebar.eventsMapTitle": "Subculture & anime event map",
+  "sidebar.eventsMapExpand": "View full map →",
+  "sidebar.fallbackEventAd": "Ongoing events",
   "auth.signupTitle": "Sign up",
   "auth.signupDesc": "Subculture & cosplay community",
   "auth.email": "Email",
@@ -410,6 +431,13 @@ const ja: Record<MessageKey, string> = {
   "nav.signin": "ログイン",
   "nav.compose": "投稿",
   "nav.more": "もっと見る",
+  "nav.tier": "ランク",
+  "sidebar.sponsored": "スポンサー",
+  "sidebar.popularAnime": "人気アニメ",
+  "sidebar.animeHubLink": "アニメハブへ →",
+  "sidebar.eventsMapTitle": "サブカル・アニメイベント地図",
+  "sidebar.eventsMapExpand": "地図を大きく見る →",
+  "sidebar.fallbackEventAd": "開催中のイベント",
   "auth.signupTitle": "会員登録",
   "auth.signupDesc": "サブカル・コスプレコミュニティ",
   "auth.email": "メール",
@@ -537,6 +565,13 @@ const zh: Record<MessageKey, string> = {
   "nav.signin": "登录",
   "nav.compose": "发帖",
   "nav.more": "更多",
+  "nav.tier": "等级",
+  "sidebar.sponsored": "赞助",
+  "sidebar.popularAnime": "热门动漫",
+  "sidebar.animeHubLink": "前往动漫中心 →",
+  "sidebar.eventsMapTitle": "亚文化·动漫活动地图",
+  "sidebar.eventsMapExpand": "查看大地图 →",
+  "sidebar.fallbackEventAd": "进行中的活动",
   "auth.signupTitle": "注册",
   "auth.signupDesc": "亚文化与 Cosplay 社区",
   "auth.email": "邮箱",

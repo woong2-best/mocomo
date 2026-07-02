@@ -37,9 +37,10 @@ export const getRequestI18n = cache(async (): Promise<{ locale: Locale; countryC
   }
 
   const session = await getCachedSession();
+  const cookieLocale = rawLocale && isLocale(rawLocale) ? rawLocale : null;
   return {
-    locale: normalizeLocale(session?.user?.locale ?? rawLocale, "ko"),
-    countryCode: session?.user?.countryCode ?? rawCountry ?? DEFAULT_GUEST_COUNTRY,
+    locale: normalizeLocale(cookieLocale ?? session?.user?.locale, DEFAULT_GUEST_LOCALE),
+    countryCode: rawCountry ?? session?.user?.countryCode ?? DEFAULT_GUEST_COUNTRY,
   };
 });
 

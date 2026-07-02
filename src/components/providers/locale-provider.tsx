@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   useTransition,
@@ -19,6 +20,7 @@ import {
 } from "@/lib/i18n/config";
 import { createTranslator, type MessageKey } from "@/lib/i18n/messages";
 import { updateUserLocale } from "@/actions/locale";
+import { isLocale } from "@/lib/i18n/config";
 
 type LocaleContextValue = {
   locale: Locale;
@@ -35,6 +37,12 @@ function setClientCookies(locale: Locale, countryCode: string) {
   document.cookie = `${COUNTRY_COOKIE}=${countryCode};path=/;max-age=${maxAge};SameSite=Lax`;
 }
 
+function readClientCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 export function LocaleProvider({
   children,
   initialLocale,
@@ -48,6 +56,20 @@ export function LocaleProvider({
   const [locale, setLocaleState] = useState<Locale>(normalizeLocale(initialLocale));
   const [countryCode, setCountryCode] = useState(initialCountryCode.toUpperCase());
   const [, startTransition] = useTransition();
+
+  // 서버(세션 DB)와 쿠키가 어긋날 때 — 사용자가 고른 쿠키 locale 우선
+  useEffect(() => {
+    const cookieLocale = readClientCookie(LOCALE_COOKIE);
+    const cookieCountry = readClientCookie(COUNTRY_COOKIE);
+    if (cookieLocale && isLocale(cookieLocale) && cookieLocale !== locale) {
+      setLocaleState(cookieLocale);
+    }
+    if (cookieCountry) {
+      const next = cookieCountry.toUpperCase();
+      if (next !== countryCode) setCountryCode(next);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount sync only
+  }, []);
 
   const setLocale = useCallback(
     async (next: Locale, nextCountry?: string) => {

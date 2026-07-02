@@ -52,9 +52,9 @@ export function HomePageClient({
         </section>
       ) : isLoggedIn ? (
         <div className="text-center py-12 rounded-2xl border border-dashed">
-          <p className="text-muted-foreground mb-4">오늘의 캔버스에 첫 글을 올려 보세요</p>
+          <p className="text-muted-foreground mb-4">{t("feed.emptyPrompt")}</p>
           <ComposeOpenButton className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-            글쓰기
+            {t("nav.compose")}
           </ComposeOpenButton>
         </div>
       ) : null}
