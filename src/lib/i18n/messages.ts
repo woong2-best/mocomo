@@ -195,6 +195,10 @@ export type MessageKey =
   | "auth.signupPageTitle"
   | "auth.signupPageDesc"
   | "auth.signupOAuthDesc"
+  | "auth.signupGmailTitle"
+  | "auth.signupGmailDesc"
+  | "auth.backToSignupMethods"
+  | "auth.invalidGmail"
   | "auth.signupStep1"
   | "auth.signupStep2"
   | "auth.signupStep3"
@@ -478,6 +482,10 @@ const ko: Record<MessageKey, string> = {
   "auth.signupPageTitle": "{brand} 회원가입",
   "auth.signupPageDesc": "가입 정보를 입력한 뒤 이메일 인증으로 계정을 완성합니다.",
   "auth.signupOAuthDesc": "Discord, Gmail, X 중 하나로 시작하세요.",
+  "auth.signupGmailTitle": "{brand} Gmail 가입",
+  "auth.signupGmailDesc": "Gmail 주소와 가입 정보를 입력해 주세요.",
+  "auth.backToSignupMethods": "다른 가입 방법으로",
+  "auth.invalidGmail": "Gmail 주소(@gmail.com)를 입력해 주세요.",
   "auth.signupStep1": "가입 정보",
   "auth.signupStep2": "사람 확인",
   "auth.signupStep3": "이메일 인증",
@@ -762,6 +770,10 @@ const en: Record<MessageKey, string> = {
   "auth.signupPageTitle": "Sign up for {brand}",
   "auth.signupPageDesc": "Enter your details, then verify your email to finish.",
   "auth.signupOAuthDesc": "Get started with Discord, Gmail, or X.",
+  "auth.signupGmailTitle": "Sign up with Gmail",
+  "auth.signupGmailDesc": "Enter your Gmail address and account details.",
+  "auth.backToSignupMethods": "Other sign-up options",
+  "auth.invalidGmail": "Please use a Gmail address (@gmail.com).",
   "auth.signupStep1": "Details",
   "auth.signupStep2": "Human check",
   "auth.signupStep3": "Email verify",
@@ -1046,6 +1058,10 @@ const ja: Record<MessageKey, string> = {
   "auth.signupPageTitle": "{brand} 会員登録",
   "auth.signupPageDesc": "情報を入力し、メール認証で登録を完了します。",
   "auth.signupOAuthDesc": "Discord、Gmail、X のいずれかで始めましょう。",
+  "auth.signupGmailTitle": "Gmailで{brand}に登録",
+  "auth.signupGmailDesc": "Gmailアドレスと登録情報を入力してください。",
+  "auth.backToSignupMethods": "他の登録方法へ",
+  "auth.invalidGmail": "Gmailアドレス（@gmail.com）を入力してください。",
   "auth.signupStep1": "登録情報",
   "auth.signupStep2": "本人確認",
   "auth.signupStep3": "メール認証",
@@ -1330,6 +1346,10 @@ const zh: Record<MessageKey, string> = {
   "auth.signupPageTitle": "注册 {brand}",
   "auth.signupPageDesc": "填写信息后通过邮箱验证完成注册。",
   "auth.signupOAuthDesc": "使用 Discord、Gmail 或 X 开始。",
+  "auth.signupGmailTitle": "用 Gmail 注册 {brand}",
+  "auth.signupGmailDesc": "请输入 Gmail 地址和注册信息。",
+  "auth.backToSignupMethods": "其他注册方式",
+  "auth.invalidGmail": "请输入 Gmail 地址（@gmail.com）。",
   "auth.signupStep1": "注册信息",
   "auth.signupStep2": "人机验证",
   "auth.signupStep3": "邮箱验证",

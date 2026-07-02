@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { SocialAuthButtons } from "@/components/auth/social-auth-buttons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandLogo } from "@/components/brand/brand-logo";
@@ -16,6 +17,7 @@ export function SignupApplyForm({
   discordOAuth: boolean;
   twitterOAuth: boolean;
 }) {
+  const router = useRouter();
   const { t, locale } = useLocale();
 
   return (
@@ -38,6 +40,7 @@ export function SignupApplyForm({
             googleOAuth={googleOAuth}
             discordOAuth={discordOAuth}
             twitterOAuth={twitterOAuth}
+            onGmailSignup={() => router.push("/auth/signup/gmail")}
           />
 
           <p className="text-[11px] text-center text-muted-foreground leading-relaxed px-1">

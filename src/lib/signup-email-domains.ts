@@ -63,3 +63,15 @@ export function isValidSignupEmail(email: string): boolean {
   const domain = email.slice(at + 1);
   return buildSignupEmail(local, domain) !== null;
 }
+
+const GMAIL_DOMAINS = new Set(["gmail.com", "googlemail.com"]);
+
+export function isGmailAddress(email: string): boolean {
+  const at = email.lastIndexOf("@");
+  if (at < 0) return false;
+  return GMAIL_DOMAINS.has(email.slice(at + 1).trim().toLowerCase());
+}
+
+export function isValidGmailSignupEmail(email: string): boolean {
+  return isValidSignupEmail(email) && isGmailAddress(email);
+}

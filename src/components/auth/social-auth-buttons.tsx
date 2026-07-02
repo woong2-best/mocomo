@@ -1,7 +1,6 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -14,6 +13,7 @@ type SocialAuthButtonsProps = {
   googleOAuth: boolean;
   discordOAuth: boolean;
   twitterOAuth: boolean;
+  onGmailSignup?: () => void;
   className?: string;
 };
 
@@ -44,25 +44,35 @@ function XIcon({ className }: { className?: string }) {
   );
 }
 
-const PROVIDERS = [
+type ProviderId = "discord" | "google" | "twitter";
+
+type ProviderConfig = {
+  id: ProviderId;
+  signupKey: "auth.signUpDiscord" | "auth.signUpGmail" | "auth.signUpTwitter";
+  signinKey: "auth.signInDiscord" | "auth.signInGmail" | "auth.signInTwitter";
+  className: string;
+  icon: (props: { className?: string }) => ReactNode;
+};
+
+const PROVIDERS: ProviderConfig[] = [
   {
-    id: "discord" as const,
-    signupKey: "auth.signUpDiscord" as const,
-    signinKey: "auth.signInDiscord" as const,
+    id: "discord",
+    signupKey: "auth.signUpDiscord",
+    signinKey: "auth.signInDiscord",
     className: "bg-[#5865F2] hover:bg-[#4752C4] text-white border-transparent",
     icon: DiscordIcon,
   },
   {
-    id: "google" as const,
-    signupKey: "auth.signUpGmail" as const,
-    signinKey: "auth.signInGmail" as const,
+    id: "google",
+    signupKey: "auth.signUpGmail",
+    signinKey: "auth.signInGmail",
     className: "bg-white hover:bg-neutral-50 text-foreground border border-border shadow-sm",
     icon: GoogleIcon,
   },
   {
-    id: "twitter" as const,
-    signupKey: "auth.signUpTwitter" as const,
-    signinKey: "auth.signInTwitter" as const,
+    id: "twitter",
+    signupKey: "auth.signUpTwitter",
+    signinKey: "auth.signInTwitter",
     className: "bg-neutral-900 hover:bg-neutral-800 text-white border-transparent",
     icon: XIcon,
   },
@@ -74,24 +84,24 @@ export function SocialAuthButtons({
   googleOAuth,
   discordOAuth,
   twitterOAuth,
+  onGmailSignup,
   className,
 }: SocialAuthButtonsProps) {
   const { t } = useLocale();
   const isSignup = mode === "signup";
-  const [notice, setNotice] = useState("");
 
-  const enabled: Record<(typeof PROVIDERS)[number]["id"], boolean> = {
+  const oauthEnabled: Record<ProviderId, boolean> = {
     discord: discordOAuth,
     google: googleOAuth,
     twitter: twitterOAuth,
   };
 
-  function handleClick(id: (typeof PROVIDERS)[number]["id"]) {
-    setNotice("");
-    if (!enabled[id]) {
-      setNotice(t("auth.oauthProviderUnavailable"));
+  function handleClick(id: ProviderId) {
+    if (id === "google" && isSignup) {
+      onGmailSignup?.();
       return;
     }
+    if (!oauthEnabled[id]) return;
     void signIn(id, { callbackUrl });
   }
 
@@ -100,15 +110,19 @@ export function SocialAuthButtons({
       {PROVIDERS.map((provider) => {
         const Icon = provider.icon;
         const label = t(isSignup ? provider.signupKey : provider.signinKey);
-        const ready = enabled[provider.id];
+        const isGmailSignup = provider.id === "google" && isSignup;
+        const disabled =
+          !isGmailSignup && !oauthEnabled[provider.id];
+
         return (
           <Button
             key={provider.id}
             type="button"
+            disabled={disabled}
             className={cn(
               "w-full h-11 rounded-xl font-medium gap-3",
               provider.className,
-              !ready && "opacity-80"
+              disabled && "opacity-50 cursor-not-allowed"
             )}
             onClick={() => handleClick(provider.id)}
           >
@@ -117,11 +131,6 @@ export function SocialAuthButtons({
           </Button>
         );
       })}
-      {notice ? (
-        <p className="text-xs text-amber-800 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2">
-          {notice}
-        </p>
-      ) : null}
     </div>
   );
 }
