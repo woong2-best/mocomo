@@ -19,8 +19,13 @@ export async function GET() {
     discordOAuth: status.discordOAuth,
     twitterOAuth: status.twitterOAuth,
     googleOAuth: status.googleOAuth,
+    googleIdPresent: status.googleIdPresent,
+    googleSecretPresent: status.googleSecretPresent,
     discordCallback: status.authUrl
       ? `${status.authUrl}/api/auth/callback/discord`
+      : null,
+    googleCallback: status.authUrl
+      ? `${status.authUrl}/api/auth/callback/google`
       : null,
     twitterCallback: status.authUrl
       ? `${status.authUrl}/api/auth/callback/twitter`

@@ -209,6 +209,9 @@ export type MessageKey =
   | "auth.signUpDiscord"
   | "auth.signUpTwitter"
   | "auth.signUpGoogle"
+  | "auth.signUpGmail"
+  | "auth.signInGmail"
+  | "auth.oauthProviderUnavailable"
   | "auth.invalidEmail"
   | "auth.serverError"
   | "auth.signupCheckFailed"
@@ -474,7 +477,7 @@ const ko: Record<MessageKey, string> = {
   "auth.oauthNotConfigured": "Google·X·Discord 로그인은 Vercel에 OAuth 키 추가 후 사용할 수 있습니다.",
   "auth.signupPageTitle": "{brand} 회원가입",
   "auth.signupPageDesc": "가입 정보를 입력한 뒤 이메일 인증으로 계정을 완성합니다.",
-  "auth.signupOAuthDesc": "Discord, Google, X 중 하나로 시작하세요.",
+  "auth.signupOAuthDesc": "Discord, Gmail, X 중 하나로 시작하세요.",
   "auth.signupStep1": "가입 정보",
   "auth.signupStep2": "사람 확인",
   "auth.signupStep3": "이메일 인증",
@@ -489,6 +492,9 @@ const ko: Record<MessageKey, string> = {
   "auth.signUpDiscord": "Discord로 가입",
   "auth.signUpTwitter": "X로 가입",
   "auth.signUpGoogle": "Google로 가입",
+  "auth.signUpGmail": "Gmail로 가입",
+  "auth.signInGmail": "Gmail로 로그인",
+  "auth.oauthProviderUnavailable": "이 로그인 방식은 곧 지원됩니다. Discord 또는 X를 이용해 주세요.",
   "auth.invalidEmail": "올바른 이메일을 입력해 주세요. (아이디 @ 도메인)",
   "auth.serverError": "서버 연결 오류입니다. 잠시 후 다시 시도해 주세요.",
   "auth.signupCheckFailed": "가입 정보를 확인할 수 없습니다.",
@@ -755,7 +761,7 @@ const en: Record<MessageKey, string> = {
   "auth.oauthNotConfigured": "Google, X, and Discord sign-in need OAuth keys on Vercel.",
   "auth.signupPageTitle": "Sign up for {brand}",
   "auth.signupPageDesc": "Enter your details, then verify your email to finish.",
-  "auth.signupOAuthDesc": "Get started with Discord, Google, or X.",
+  "auth.signupOAuthDesc": "Get started with Discord, Gmail, or X.",
   "auth.signupStep1": "Details",
   "auth.signupStep2": "Human check",
   "auth.signupStep3": "Email verify",
@@ -770,6 +776,9 @@ const en: Record<MessageKey, string> = {
   "auth.signUpDiscord": "Sign up with Discord",
   "auth.signUpTwitter": "Sign up with X",
   "auth.signUpGoogle": "Sign up with Google",
+  "auth.signUpGmail": "Sign up with Gmail",
+  "auth.signInGmail": "Sign in with Gmail",
+  "auth.oauthProviderUnavailable": "This sign-in method is not ready yet. Please use Discord or X for now.",
   "auth.invalidEmail": "Enter a valid email (user @ domain).",
   "auth.serverError": "Server error. Please try again shortly.",
   "auth.signupCheckFailed": "We couldn't verify your signup details.",
@@ -1036,7 +1045,7 @@ const ja: Record<MessageKey, string> = {
   "auth.oauthNotConfigured": "Google・X・DiscordログインはOAuth設定が必要です。",
   "auth.signupPageTitle": "{brand} 会員登録",
   "auth.signupPageDesc": "情報を入力し、メール認証で登録を完了します。",
-  "auth.signupOAuthDesc": "Discord、Google、X のいずれかで始めましょう。",
+  "auth.signupOAuthDesc": "Discord、Gmail、X のいずれかで始めましょう。",
   "auth.signupStep1": "登録情報",
   "auth.signupStep2": "本人確認",
   "auth.signupStep3": "メール認証",
@@ -1051,6 +1060,9 @@ const ja: Record<MessageKey, string> = {
   "auth.signUpDiscord": "Discordで登録",
   "auth.signUpTwitter": "Xで登録",
   "auth.signUpGoogle": "Googleで登録",
+  "auth.signUpGmail": "Gmailで登録",
+  "auth.signInGmail": "Gmailでログイン",
+  "auth.oauthProviderUnavailable": "このログイン方法は準備中です。DiscordまたはXをご利用ください。",
   "auth.invalidEmail": "有効なメールを入力してください。",
   "auth.serverError": "サーバーエラーです。しばらくして再試行してください。",
   "auth.signupCheckFailed": "登録情報を確認できませんでした。",
@@ -1317,7 +1329,7 @@ const zh: Record<MessageKey, string> = {
   "auth.oauthNotConfigured": "Google、X、Discord 登录需要配置 OAuth。",
   "auth.signupPageTitle": "注册 {brand}",
   "auth.signupPageDesc": "填写信息后通过邮箱验证完成注册。",
-  "auth.signupOAuthDesc": "使用 Discord、Google 或 X 开始。",
+  "auth.signupOAuthDesc": "使用 Discord、Gmail 或 X 开始。",
   "auth.signupStep1": "注册信息",
   "auth.signupStep2": "人机验证",
   "auth.signupStep3": "邮箱验证",
@@ -1332,6 +1344,9 @@ const zh: Record<MessageKey, string> = {
   "auth.signUpDiscord": "用 Discord 注册",
   "auth.signUpTwitter": "用 X 注册",
   "auth.signUpGoogle": "用 Google 注册",
+  "auth.signUpGmail": "用 Gmail 注册",
+  "auth.signInGmail": "用 Gmail 登录",
+  "auth.oauthProviderUnavailable": "该登录方式尚未就绪，请暂时使用 Discord 或 X。",
   "auth.invalidEmail": "请输入有效的邮箱地址。",
   "auth.serverError": "服务器错误，请稍后再试。",
   "auth.signupCheckFailed": "无法验证您的注册信息。",

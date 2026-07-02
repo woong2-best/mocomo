@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -43,6 +44,30 @@ function XIcon({ className }: { className?: string }) {
   );
 }
 
+const PROVIDERS = [
+  {
+    id: "discord" as const,
+    signupKey: "auth.signUpDiscord" as const,
+    signinKey: "auth.signInDiscord" as const,
+    className: "bg-[#5865F2] hover:bg-[#4752C4] text-white border-transparent",
+    icon: DiscordIcon,
+  },
+  {
+    id: "google" as const,
+    signupKey: "auth.signUpGmail" as const,
+    signinKey: "auth.signInGmail" as const,
+    className: "bg-white hover:bg-neutral-50 text-foreground border border-border shadow-sm",
+    icon: GoogleIcon,
+  },
+  {
+    id: "twitter" as const,
+    signupKey: "auth.signUpTwitter" as const,
+    signinKey: "auth.signInTwitter" as const,
+    className: "bg-neutral-900 hover:bg-neutral-800 text-white border-transparent",
+    icon: XIcon,
+  },
+];
+
 export function SocialAuthButtons({
   mode,
   callbackUrl = DEFAULT_LANDING_PATH,
@@ -53,54 +78,50 @@ export function SocialAuthButtons({
 }: SocialAuthButtonsProps) {
   const { t } = useLocale();
   const isSignup = mode === "signup";
+  const [notice, setNotice] = useState("");
 
-  const items = [
-    discordOAuth && {
-      id: "discord" as const,
-      label: isSignup ? t("auth.signUpDiscord") : t("auth.signInDiscord"),
-      className: "bg-[#5865F2] hover:bg-[#4752C4] text-white border-transparent",
-      icon: <DiscordIcon className="h-5 w-5" />,
-    },
-    googleOAuth && {
-      id: "google" as const,
-      label: isSignup ? t("auth.signUpGoogle") : t("auth.signInGoogle"),
-      className: "bg-background hover:bg-muted text-foreground border border-border",
-      icon: <GoogleIcon className="h-5 w-5" />,
-    },
-    twitterOAuth && {
-      id: "twitter" as const,
-      label: isSignup ? t("auth.signUpTwitter") : t("auth.signInTwitter"),
-      className: "bg-neutral-900 hover:bg-neutral-800 text-white border-transparent",
-      icon: <XIcon className="h-5 w-5" />,
-    },
-  ].filter(Boolean) as Array<{
-    id: "discord" | "google" | "twitter";
-    label: string;
-    className: string;
-    icon: ReactNode;
-  }>;
+  const enabled: Record<(typeof PROVIDERS)[number]["id"], boolean> = {
+    discord: discordOAuth,
+    google: googleOAuth,
+    twitter: twitterOAuth,
+  };
 
-  if (items.length === 0) {
-    return (
-      <p className="text-sm text-center text-muted-foreground rounded-xl border border-dashed border-border px-3 py-4">
-        {t("auth.oauthNotConfigured")}
-      </p>
-    );
+  function handleClick(id: (typeof PROVIDERS)[number]["id"]) {
+    setNotice("");
+    if (!enabled[id]) {
+      setNotice(t("auth.oauthProviderUnavailable"));
+      return;
+    }
+    void signIn(id, { callbackUrl });
   }
 
   return (
     <div className={cn("space-y-2.5", className)}>
-      {items.map((item) => (
-        <Button
-          key={item.id}
-          type="button"
-          className={cn("w-full h-11 rounded-xl font-medium gap-3", item.className)}
-          onClick={() => signIn(item.id, { callbackUrl })}
-        >
-          {item.icon}
-          <span>{item.label}</span>
-        </Button>
-      ))}
+      {PROVIDERS.map((provider) => {
+        const Icon = provider.icon;
+        const label = t(isSignup ? provider.signupKey : provider.signinKey);
+        const ready = enabled[provider.id];
+        return (
+          <Button
+            key={provider.id}
+            type="button"
+            className={cn(
+              "w-full h-11 rounded-xl font-medium gap-3",
+              provider.className,
+              !ready && "opacity-80"
+            )}
+            onClick={() => handleClick(provider.id)}
+          >
+            <Icon className="h-5 w-5" />
+            <span>{label}</span>
+          </Button>
+        );
+      })}
+      {notice ? (
+        <p className="text-xs text-amber-800 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2">
+          {notice}
+        </p>
+      ) : null}
     </div>
   );
 }

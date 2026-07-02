@@ -70,6 +70,14 @@ export function getAuthProviders(): NonNullable<NextAuthConfig["providers"]> {
         allowDangerousEmailAccountLinking: true,
       })
     );
+  } else if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    providers.push(
+      Google({
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        allowDangerousEmailAccountLinking: true,
+      })
+    );
   }
 
   if (process.env.AUTH_DISCORD_ID && process.env.AUTH_DISCORD_SECRET) {

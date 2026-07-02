@@ -15,8 +15,10 @@ export function getAuthUrl(): string | undefined {
 export function getAuthConfigStatus() {
   const secret = getAuthSecret();
   const secretLength = secret?.length ?? 0;
-  const googleId = process.env.AUTH_GOOGLE_ID?.trim();
-  const googleSecret = process.env.AUTH_GOOGLE_SECRET?.trim();
+  const googleId =
+    process.env.AUTH_GOOGLE_ID?.trim() || process.env.GOOGLE_CLIENT_ID?.trim();
+  const googleSecret =
+    process.env.AUTH_GOOGLE_SECRET?.trim() || process.env.GOOGLE_CLIENT_SECRET?.trim();
 
   return {
     secretConfigured: secretLength > 0,
