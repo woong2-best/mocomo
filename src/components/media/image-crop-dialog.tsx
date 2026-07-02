@@ -17,7 +17,7 @@ import {
 } from "@/lib/crop-image";
 import { uploadImageBlob, type UploadMediaOptions } from "@/lib/client-upload";
 import { WatermarkToggleButtons } from "@/components/media/watermark-toggle-buttons";
-import type { WatermarkOptions } from "@/lib/media-watermark";
+import { hasActiveWatermark, type WatermarkOptions } from "@/lib/media-watermark";
 import {
   FlipHorizontal2,
   FlipVertical2,
@@ -169,7 +169,11 @@ export function ImageCropDialog({
         mimeType: "image/jpeg",
         quality: 0.9,
       });
-      const url = await uploadImageBlob(blob, uploadFilename, uploadOptions);
+      const opts =
+        watermarkCreditLabel && watermarkOptions && hasActiveWatermark(watermarkOptions)
+          ? { watermarkLabel: watermarkCreditLabel, watermarkOptions }
+          : uploadOptions;
+      const url = await uploadImageBlob(blob, uploadFilename, opts);
       onComplete(url);
       onOpenChange(false);
     } catch (e) {

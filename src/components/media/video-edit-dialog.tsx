@@ -124,12 +124,19 @@ export function VideoEditDialog({
     v.addEventListener("timeupdate", onTime);
   }, [startSec, endSec, duration]);
 
-  async function uploadBlob(blob: Blob, filename: string) {
+  async function uploadBlob(blob: Blob, filename: string, opts?: UploadMediaOptions) {
     const ext = guessVideoMime(filename, blob.type).includes("webm") ? "webm" : "mp4";
     const name = filename.replace(/\.\w+$/, `.${ext}`);
-    const url = await uploadVideoBlob(blob, name, uploadOptions);
+    const url = await uploadVideoBlob(blob, name, opts);
     onComplete(url);
     onOpenChange(false);
+  }
+
+  function resolveUploadOptions(): UploadMediaOptions | undefined {
+    if (watermarkCreditLabel && watermarkOptions && hasActiveWatermark(watermarkOptions)) {
+      return { watermarkLabel: watermarkCreditLabel, watermarkOptions };
+    }
+    return uploadOptions;
   }
 
   async function applyUpload(skipTrim: boolean) {
@@ -163,21 +170,25 @@ export function VideoEditDialog({
         startSec < 0.05 &&
         endSec >= duration - 0.05;
 
-      const label = uploadOptions?.watermarkLabel;
-      const wOpts = uploadOptions?.watermarkOptions;
+      const resolved = resolveUploadOptions();
+      const label = resolved?.watermarkLabel;
+      const wOpts = resolved?.watermarkOptions;
       const videoWatermark =
         label && wOpts && hasActiveWatermark(wOpts) ? { label, options: wOpts } : undefined;
 
       let toUpload = videoBlob;
+      let watermarkBurned = false;
 
       if (!skipTrim && !fullOk) {
         try {
           toUpload = await trimVideoBlob(videoBlob, startSec, endSec, setProgress, videoWatermark);
+          watermarkBurned = !!videoWatermark;
         } catch (trimErr) {
           if (duration > 0 && duration <= maxDurationSec && startSec < 0.5) {
             toUpload = videoWatermark
               ? await watermarkVideoBlob(videoBlob, label!, wOpts!, setProgress)
               : videoBlob;
+            watermarkBurned = !!videoWatermark;
             setWarn("구간 자르기를 건너뛰고 원본 영상을 업로드합니다.");
           } else {
             throw trimErr instanceof Error
@@ -187,9 +198,10 @@ export function VideoEditDialog({
         }
       } else if (videoWatermark) {
         toUpload = await watermarkVideoBlob(videoBlob, label!, wOpts!, setProgress);
+        watermarkBurned = true;
       }
 
-      await uploadBlob(toUpload, uploadFilename);
+      await uploadBlob(toUpload, uploadFilename, watermarkBurned ? undefined : resolved);
     } catch (e) {
       setError(e instanceof Error ? e.message : "영상 처리에 실패했습니다.");
     } finally {

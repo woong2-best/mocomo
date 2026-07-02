@@ -21,7 +21,7 @@ import {
   prepareGalleryImageForUpload,
 } from "@/lib/gallery-image-upload";
 import { normalizeGalleryVideoFile } from "@/lib/gallery-video-upload";
-import { EMPTY_WATERMARK_OPTIONS, hasActiveWatermark } from "@/lib/media-watermark";
+import { EMPTY_WATERMARK_OPTIONS, hasActiveWatermark, type WatermarkOptions } from "@/lib/media-watermark";
 import { WatermarkToggleButtons } from "@/components/media/watermark-toggle-buttons";
 import { cn } from "@/lib/utils";
 
@@ -93,20 +93,47 @@ export function PostMediaComposer({
   const [videoEditOpen, setVideoEditOpen] = useState(false);
   const [pendingImageFiles, setPendingImageFiles] = useState<File[]>([]);
   const [watermarkOptions, setWatermarkOptions] = useState(EMPTY_WATERMARK_OPTIONS);
+  const watermarkOptionsRef = useRef(watermarkOptions);
+  watermarkOptionsRef.current = watermarkOptions;
 
-  function buildUploadOpts(): UploadMediaOptions | undefined {
-    if (!watermarkCreditLabel || !hasActiveWatermark(watermarkOptions)) return undefined;
-    return { watermarkLabel: watermarkCreditLabel, watermarkOptions };
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+
+  function resolveUploadOpts(
+    options: WatermarkOptions = watermarkOptionsRef.current
+  ): UploadMediaOptions | undefined {
+    if (!watermarkCreditLabel || !hasActiveWatermark(options)) return undefined;
+    return { watermarkLabel: watermarkCreditLabel, watermarkOptions: options };
   }
 
   const showWatermarkControls = !!(watermarkCreditLabel && items.length > 0);
 
-  const stagedGalleryRef = useRef<{
+  const pendingGalleryRef = useRef<{
     files: File[];
     previewUrls: string[];
-    baseItems: PostMediaItem[];
+    baseCount: number;
   } | null>(null);
-  const [stagedGalleryTick, setStagedGalleryTick] = useState(0);
+  const galleryUploadTimerRef = useRef<number | null>(null);
+  const galleryUploadGenRef = useRef(0);
+
+  function handleWatermarkOptionsChange(next: WatermarkOptions) {
+    setWatermarkOptions(next);
+    watermarkOptionsRef.current = next;
+    if (pendingGalleryRef.current) {
+      galleryUploadGenRef.current += 1;
+      schedulePendingGalleryUpload(350);
+    }
+  }
+
+  function schedulePendingGalleryUpload(delayMs: number) {
+    if (galleryUploadTimerRef.current) {
+      window.clearTimeout(galleryUploadTimerRef.current);
+    }
+    galleryUploadTimerRef.current = window.setTimeout(() => {
+      galleryUploadTimerRef.current = null;
+      void flushPendingGalleryUpload();
+    }, delayMs);
+  }
 
   function removeAt(index: number) {
     onChange(items.filter((_, i) => i !== index));
@@ -121,6 +148,56 @@ export function PostMediaComposer({
     setCropFilename(filename);
     setCropSrc(src);
     setCropOpen(true);
+  }
+
+  async function flushPendingGalleryUpload() {
+    const pending = pendingGalleryRef.current;
+    if (!pending) return;
+
+    const gen = ++galleryUploadGenRef.current;
+    const uploadOpts = resolveUploadOpts();
+    setUploading(true);
+    onUploadingChange?.(true);
+    setError("");
+
+    const errors: string[] = [];
+
+    try {
+      for (let i = 0; i < pending.files.length; i++) {
+        if (gen !== galleryUploadGenRef.current) return;
+        try {
+          const prepared = await prepareGalleryImageForUpload(pending.files[i]);
+          const url = await uploadImageBlob(
+            prepared,
+            prepared.name || "photo.jpg",
+            uploadOpts
+          );
+          const next = [...itemsRef.current];
+          const itemIndex = pending.baseCount + i;
+          if (next[itemIndex]?.type === "IMAGE") {
+            next[itemIndex] = { url, type: "IMAGE" };
+            onChange(next);
+          }
+        } catch (e) {
+          errors.push(
+            e instanceof Error ? e.message : `사진 ${i + 1} 업로드 실패`
+          );
+        }
+      }
+
+      if (errors.length > 0) {
+        setError(
+          errors.length === pending.files.length
+            ? errors[0] ?? "사진 업로드에 실패했습니다."
+            : `일부 사진만 올렸습니다. ${errors[0]}`
+        );
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "사진 업로드에 실패했습니다.");
+    } finally {
+      setUploading(false);
+      onUploadingChange?.(false);
+    }
   }
 
   async function performGalleryUpload(
@@ -145,7 +222,7 @@ export function PostMediaComposer({
 
         try {
           const prepared = await prepareGalleryImageForUpload(files[i]);
-          const url = await uploadImageBlob(prepared, prepared.name || "photo.jpg", buildUploadOpts());
+          const url = await uploadImageBlob(prepared, prepared.name || "photo.jpg", resolveUploadOpts());
           next = next.map((item, idx) =>
             item.url === previewUrls[i] ? { url, type: "IMAGE" as const } : item
           );
@@ -194,26 +271,24 @@ export function PostMediaComposer({
   }
 
   function stageGalleryFiles(files: File[]) {
-    const baseItems = items;
+    const baseCount = items.length;
     const previewUrls = files.map((f) => URL.createObjectURL(f));
     onChange([
-      ...baseItems,
+      ...items,
       ...previewUrls.map((url) => ({ url, type: "IMAGE" as const })),
     ]);
-    stagedGalleryRef.current = { files, previewUrls, baseItems };
-    setStagedGalleryTick((t) => t + 1);
+    pendingGalleryRef.current = { files, previewUrls, baseCount };
+    schedulePendingGalleryUpload(3000);
   }
 
   useEffect(() => {
-    if (!stagedGalleryRef.current) return;
-    const timer = window.setTimeout(() => {
-      const staged = stagedGalleryRef.current;
-      if (!staged) return;
-      stagedGalleryRef.current = null;
-      void performGalleryUpload(staged.files, staged.baseItems, staged.previewUrls);
-    }, 500);
-    return () => window.clearTimeout(timer);
-  }, [stagedGalleryTick, watermarkOptions]);
+    return () => {
+      if (galleryUploadTimerRef.current) {
+        window.clearTimeout(galleryUploadTimerRef.current);
+      }
+      pendingGalleryRef.current?.previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
 
   function onCameraCapture(blob: Blob, mimeType: string) {
     if (!mimeType.startsWith("image/")) return;
@@ -423,7 +498,7 @@ export function PostMediaComposer({
         <div className={cn("space-y-1", layout === "toolbar" ? "pt-1" : "")}>
           <WatermarkToggleButtons
             value={watermarkOptions}
-            onChange={setWatermarkOptions}
+            onChange={handleWatermarkOptionsChange}
             disabled={disabled || uploading}
           />
           <p
@@ -432,7 +507,7 @@ export function PostMediaComposer({
               layout === "toolbar" ? "text-[10px]" : "text-xs"
             )}
           >
-            업로드 전에 워터마크를 선택하세요. ({watermarkCreditLabel})
+            업로드 전에 워터마크를 선택하세요. 선택하면 자동 반영됩니다. ({watermarkCreditLabel})
           </p>
         </div>
       ) : null}
@@ -549,10 +624,10 @@ export function PostMediaComposer({
           maxWidth={1920}
           maxHeight={1920}
           uploadFilename={cropFilename}
-          uploadOptions={buildUploadOpts()}
+          uploadOptions={resolveUploadOpts()}
           watermarkCreditLabel={watermarkCreditLabel}
           watermarkOptions={watermarkOptions}
-          onWatermarkOptionsChange={setWatermarkOptions}
+          onWatermarkOptionsChange={handleWatermarkOptionsChange}
           onComplete={onCropComplete}
         />
       )}
@@ -572,10 +647,10 @@ export function PostMediaComposer({
           if (!o) setVideoBlob(null);
         }}
         videoBlob={videoBlob}
-        uploadOptions={buildUploadOpts()}
+        uploadOptions={resolveUploadOpts()}
         watermarkCreditLabel={watermarkCreditLabel}
         watermarkOptions={watermarkOptions}
-        onWatermarkOptionsChange={setWatermarkOptions}
+        onWatermarkOptionsChange={handleWatermarkOptionsChange}
         onComplete={onVideoComplete}
         onUploadingChange={(busy) => {
           setUploading(busy);
