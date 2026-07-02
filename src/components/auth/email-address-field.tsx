@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 import {
   SIGNUP_EMAIL_CUSTOM_DOMAIN,
@@ -50,6 +51,7 @@ export function EmailAddressField({
   disabled = false,
   id,
 }: EmailAddressFieldProps) {
+  const { t } = useLocale();
   const { localPart, setLocalPart, domain, setDomain, customDomain, setCustomDomain } =
     useEmailParts(defaultValue, controlledValue);
 
@@ -125,20 +127,20 @@ export function EmailAddressField({
 
   return (
     <div className="space-y-2">
-      <span className="text-xs text-muted-foreground">이메일</span>
+      <span className="text-xs text-muted-foreground">{t("auth.email")}</span>
 
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
         <Input
           id={id ? `${id}-local` : undefined}
           type="text"
           inputMode="email"
-          placeholder="아이디"
+          placeholder={t("auth.emailLocalPart")}
           value={localPart}
           onChange={(e) => handleLocalChange(e.target.value)}
           autoComplete="username"
           disabled={disabled}
           required={required}
-          aria-label="이메일 아이디"
+          aria-label={t("auth.emailLocalAria")}
           className="rounded-xl min-w-0"
         />
         <span
@@ -152,13 +154,13 @@ export function EmailAddressField({
             id={id ? `${id}-domain` : undefined}
             type="text"
             inputMode="url"
-            placeholder="도메인"
+            placeholder={t("auth.emailDomain")}
             value={activeDomain}
             onChange={(e) => handleDomainInput(e.target.value)}
             list={listId}
             disabled={disabled}
             required={required}
-            aria-label="이메일 도메인"
+            aria-label={t("auth.emailDomainAria")}
             className="rounded-xl min-w-0"
           />
           <datalist id={listId}>
@@ -202,7 +204,7 @@ export function EmailAddressField({
               : "border-border bg-muted/40 text-muted-foreground hover:border-primary/40 hover:text-foreground"
           )}
         >
-          직접 입력
+          {t("auth.emailCustom")}
         </button>
       </div>
 

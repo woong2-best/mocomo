@@ -33,6 +33,11 @@ export type MessageKey =
   | "auth.signupTitle"
   | "auth.signupDesc"
   | "auth.email"
+  | "auth.emailLocalPart"
+  | "auth.emailDomain"
+  | "auth.emailCustom"
+  | "auth.emailLocalAria"
+  | "auth.emailDomainAria"
   | "auth.username"
   | "auth.displayName"
   | "auth.password"
@@ -154,6 +159,11 @@ const ko: Record<MessageKey, string> = {
   "auth.signupTitle": "회원가입",
   "auth.signupDesc": "서브컬처·코스프레 커뮤니티",
   "auth.email": "이메일",
+  "auth.emailLocalPart": "아이디",
+  "auth.emailDomain": "도메인",
+  "auth.emailCustom": "직접 입력",
+  "auth.emailLocalAria": "이메일 아이디",
+  "auth.emailDomainAria": "이메일 도메인",
   "auth.username": "닉네임 (영문·숫자·_)",
   "auth.displayName": "표시 이름 (선택)",
   "auth.password": "비밀번호 (8자 이상)",
@@ -276,6 +286,11 @@ const en: Record<MessageKey, string> = {
   "auth.signupTitle": "Sign up",
   "auth.signupDesc": "Subculture & cosplay community",
   "auth.email": "Email",
+  "auth.emailLocalPart": "yourname",
+  "auth.emailDomain": "domain.com",
+  "auth.emailCustom": "Custom",
+  "auth.emailLocalAria": "Email username",
+  "auth.emailDomainAria": "Email domain",
   "auth.username": "Username (letters, numbers, _)",
   "auth.displayName": "Display name (optional)",
   "auth.password": "Password (8+ characters)",
@@ -398,6 +413,11 @@ const ja: Record<MessageKey, string> = {
   "auth.signupTitle": "会員登録",
   "auth.signupDesc": "サブカル・コスプレコミュニティ",
   "auth.email": "メール",
+  "auth.emailLocalPart": "ユーザー名",
+  "auth.emailDomain": "ドメイン",
+  "auth.emailCustom": "直接入力",
+  "auth.emailLocalAria": "メールのユーザー名",
+  "auth.emailDomainAria": "メールドメイン",
   "auth.username": "ユーザー名 (英数字・_)",
   "auth.displayName": "表示名 (任意)",
   "auth.password": "パスワード (8文字以上)",
@@ -520,6 +540,11 @@ const zh: Record<MessageKey, string> = {
   "auth.signupTitle": "注册",
   "auth.signupDesc": "亚文化与 Cosplay 社区",
   "auth.email": "邮箱",
+  "auth.emailLocalPart": "用户名",
+  "auth.emailDomain": "域名",
+  "auth.emailCustom": "自定义",
+  "auth.emailLocalAria": "邮箱用户名",
+  "auth.emailDomainAria": "邮箱域名",
   "auth.username": "用户名 (字母、数字、_)",
   "auth.displayName": "显示名 (可选)",
   "auth.password": "密码 (至少8位)",
