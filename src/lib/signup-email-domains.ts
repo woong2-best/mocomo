@@ -2,10 +2,6 @@
 export const SIGNUP_EMAIL_DOMAINS = [
   { value: "naver.com", label: "네이버" },
   { value: "gmail.com", label: "Gmail" },
-  { value: "daum.net", label: "다음" },
-  { value: "hanmail.net", label: "한메일" },
-  { value: "kakao.com", label: "카카오" },
-  { value: "nate.com", label: "네이트" },
   { value: "outlook.com", label: "Outlook" },
   { value: "hotmail.com", label: "Hotmail" },
   { value: "live.com", label: "Live" },
@@ -22,10 +18,6 @@ export const SIGNUP_EMAIL_DOMAINS = [
 export const SIGNUP_EMAIL_QUICK_PICKS = [
   "naver.com",
   "gmail.com",
-  "daum.net",
-  "hanmail.net",
-  "kakao.com",
-  "nate.com",
   "outlook.com",
   "icloud.com",
 ] as const;
