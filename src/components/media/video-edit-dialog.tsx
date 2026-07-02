@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Scissors } from "lucide-react";
 import { trimVideoBlob, watermarkVideoBlob } from "@/lib/video-trim";
 import { guessVideoMime } from "@/lib/gallery-video-upload";
-import { uploadVideoBlob } from "@/lib/client-upload";
+import { uploadVideoBlob, type UploadMediaOptions } from "@/lib/client-upload";
+import { hasActiveWatermark } from "@/lib/media-watermark";
 import { getUploadMaxBytes, uploadSizeExceededMessage } from "@/lib/upload-limits";
 import { useSession } from "next-auth/react";
 
@@ -22,7 +23,7 @@ type VideoEditDialogProps = {
   videoBlob: Blob | null;
   uploadFilename?: string;
   maxDurationSec?: number;
-  watermarkCreditLabel?: string;
+  uploadOptions?: UploadMediaOptions;
   onComplete: (publicUrl: string) => void;
   onUploadingChange?: (busy: boolean) => void;
 };
@@ -33,7 +34,7 @@ export function VideoEditDialog({
   videoBlob,
   uploadFilename = "post-video.mp4",
   maxDurationSec = 120,
-  watermarkCreditLabel,
+  uploadOptions,
   onComplete,
   onUploadingChange,
 }: VideoEditDialogProps) {
@@ -119,7 +120,7 @@ export function VideoEditDialog({
   async function uploadBlob(blob: Blob, filename: string) {
     const ext = guessVideoMime(filename, blob.type).includes("webm") ? "webm" : "mp4";
     const name = filename.replace(/\.\w+$/, `.${ext}`);
-    const url = await uploadVideoBlob(blob, name);
+    const url = await uploadVideoBlob(blob, name, uploadOptions);
     onComplete(url);
     onOpenChange(false);
   }
@@ -155,21 +156,20 @@ export function VideoEditDialog({
         startSec < 0.05 &&
         endSec >= duration - 0.05;
 
+      const label = uploadOptions?.watermarkLabel;
+      const wOpts = uploadOptions?.watermarkOptions;
+      const videoWatermark =
+        label && wOpts && hasActiveWatermark(wOpts) ? { label, options: wOpts } : undefined;
+
       let toUpload = videoBlob;
 
       if (!skipTrim && !fullOk) {
         try {
-          toUpload = await trimVideoBlob(
-            videoBlob,
-            startSec,
-            endSec,
-            setProgress,
-            watermarkCreditLabel
-          );
+          toUpload = await trimVideoBlob(videoBlob, startSec, endSec, setProgress, videoWatermark);
         } catch (trimErr) {
           if (duration > 0 && duration <= maxDurationSec && startSec < 0.5) {
-            toUpload = watermarkCreditLabel
-              ? await watermarkVideoBlob(videoBlob, watermarkCreditLabel, setProgress)
+            toUpload = videoWatermark
+              ? await watermarkVideoBlob(videoBlob, label!, wOpts!, setProgress)
               : videoBlob;
             setWarn("구간 자르기를 건너뛰고 원본 영상을 업로드합니다.");
           } else {
@@ -178,8 +178,8 @@ export function VideoEditDialog({
               : new Error("영상 자르기에 실패했습니다.");
           }
         }
-      } else if (watermarkCreditLabel) {
-        toUpload = await watermarkVideoBlob(videoBlob, watermarkCreditLabel, setProgress);
+      } else if (videoWatermark) {
+        toUpload = await watermarkVideoBlob(videoBlob, label!, wOpts!, setProgress);
       }
 
       await uploadBlob(toUpload, uploadFilename);

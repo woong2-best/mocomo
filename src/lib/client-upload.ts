@@ -1,12 +1,14 @@
 import { guessImageMime } from "@/lib/gallery-image-upload";
 import { guessVideoMime } from "@/lib/gallery-video-upload";
 import { applyImageWatermarkBlob } from "@/lib/media-watermark-canvas";
+import { hasActiveWatermark, type WatermarkOptions } from "@/lib/media-watermark";
 import { watermarkVideoBlob } from "@/lib/video-trim";
 import { DIRECT_UPLOAD_THRESHOLD } from "@/lib/upload-limits";
 
 export type UploadMediaOptions = {
-  /** 게시물용 — @username · site 크레딧 라벨 자동 합성 */
+  /** 게시물용 — @username · site 크레딧 라벨 */
   watermarkLabel?: string;
+  watermarkOptions?: WatermarkOptions;
 };
 
 /** 상대에게 전달 가능한 절대 URL로 변환 */
@@ -64,6 +66,10 @@ async function localUpload(
   if (opts?.watermarkLabel) {
     form.set("watermark", "1");
     form.set("creditLabel", opts.watermarkLabel);
+    if (opts.watermarkOptions) {
+      form.set("watermarkDiagonal", opts.watermarkOptions.diagonal ? "1" : "0");
+      form.set("watermarkCorner", opts.watermarkOptions.corner ? "1" : "0");
+    }
   }
   const localRes = await fetch("/api/upload/local", {
     method: "POST",
@@ -81,16 +87,18 @@ async function prepareUploadFile(
   category: "image" | "video" | "audio",
   opts?: UploadMediaOptions
 ): Promise<File> {
-  if (!opts?.watermarkLabel) return file;
+  const label = opts?.watermarkLabel;
+  const options = opts?.watermarkOptions;
+  if (!label || !hasActiveWatermark(options)) return file;
   if (category === "image") {
-    const blob = await applyImageWatermarkBlob(file, opts.watermarkLabel);
+    const blob = await applyImageWatermarkBlob(file, label, options!);
     const mime = blob.type || file.type || "image/jpeg";
     return new File([blob], file.name.replace(/\.\w+$/, "") + (mime.includes("png") ? ".png" : ".jpg"), {
       type: mime,
     });
   }
   if (category === "video") {
-    const blob = await watermarkVideoBlob(file, opts.watermarkLabel);
+    const blob = await watermarkVideoBlob(file, label, options!, undefined);
     const ext = blob.type.includes("webm") ? "webm" : "mp4";
     return new File([blob], file.name.replace(/\.\w+$/, `.${ext}`), { type: blob.type });
   }

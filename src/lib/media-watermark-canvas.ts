@@ -1,6 +1,4 @@
-import { buildPostCreditLabel } from "@/lib/media-watermark";
-
-export { buildPostCreditLabel };
+import type { WatermarkOptions } from "@/lib/media-watermark";
 
 function roundRect(
   ctx: CanvasRenderingContext2D,
@@ -20,8 +18,7 @@ function roundRect(
   ctx.closePath();
 }
 
-/** 캔버스 위에 대각선 패턴 + 우하단 크레딧 라벨 */
-export function drawCreditWatermark(
+export function drawDiagonalWatermark(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
@@ -30,7 +27,6 @@ export function drawCreditWatermark(
   const short = Math.min(width, height);
   const fontSize = Math.max(14, Math.round(short * 0.032));
   const tileSize = Math.max(11, Math.round(fontSize * 0.72));
-  const pad = Math.round(fontSize * 0.55);
 
   ctx.save();
   ctx.translate(width / 2, height / 2);
@@ -49,6 +45,17 @@ export function drawCreditWatermark(
     }
   }
   ctx.restore();
+}
+
+export function drawCornerWatermark(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  label: string
+): void {
+  const short = Math.min(width, height);
+  const fontSize = Math.max(14, Math.round(short * 0.032));
+  const pad = Math.round(fontSize * 0.55);
 
   ctx.save();
   ctx.font = `700 ${fontSize}px system-ui, -apple-system, sans-serif`;
@@ -66,6 +73,18 @@ export function drawCreditWatermark(
   ctx.restore();
 }
 
+/** 캔버스 위에 선택한 워터마크 합성 */
+export function drawCreditWatermark(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  label: string,
+  options: WatermarkOptions
+): void {
+  if (options.diagonal) drawDiagonalWatermark(ctx, width, height, label);
+  if (options.corner) drawCornerWatermark(ctx, width, height, label);
+}
+
 function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
@@ -77,8 +96,13 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number)
 }
 
 /** 브라우저에서 이미지에 크레딧 라벨 합성 */
-export async function applyImageWatermarkBlob(blob: Blob, label: string): Promise<Blob> {
+export async function applyImageWatermarkBlob(
+  blob: Blob,
+  label: string,
+  options: WatermarkOptions
+): Promise<Blob> {
   if (blob.type === "image/gif") return blob;
+  if (!options.diagonal && !options.corner) return blob;
 
   const bitmap = await createImageBitmap(blob);
   const canvas = document.createElement("canvas");
@@ -91,7 +115,7 @@ export async function applyImageWatermarkBlob(blob: Blob, label: string): Promis
   }
 
   ctx.drawImage(bitmap, 0, 0);
-  drawCreditWatermark(ctx, canvas.width, canvas.height, label);
+  drawCreditWatermark(ctx, canvas.width, canvas.height, label, options);
   bitmap.close();
 
   const mime =

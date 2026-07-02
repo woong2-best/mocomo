@@ -15,12 +15,14 @@ import { ImageCropDialog } from "@/components/media/image-crop-dialog";
 import { CameraCaptureDialog } from "@/components/media/camera-capture-dialog";
 import { VideoEditDialog } from "@/components/media/video-edit-dialog";
 import { readFileAsObjectUrl } from "@/lib/crop-image";
-import { uploadImageBlob } from "@/lib/client-upload";
+import { uploadImageBlob, type UploadMediaOptions } from "@/lib/client-upload";
 import {
   isGalleryImageFile,
   prepareGalleryImageForUpload,
 } from "@/lib/gallery-image-upload";
 import { normalizeGalleryVideoFile } from "@/lib/gallery-video-upload";
+import { EMPTY_WATERMARK_OPTIONS, hasActiveWatermark } from "@/lib/media-watermark";
+import { WatermarkToggleButtons } from "@/components/media/watermark-toggle-buttons";
 import { cn } from "@/lib/utils";
 
 export type PostMediaItem = {
@@ -90,6 +92,12 @@ export function PostMediaComposer({
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
   const [videoEditOpen, setVideoEditOpen] = useState(false);
   const [pendingImageFiles, setPendingImageFiles] = useState<File[]>([]);
+  const [watermarkOptions, setWatermarkOptions] = useState(EMPTY_WATERMARK_OPTIONS);
+
+  function buildUploadOpts(): UploadMediaOptions | undefined {
+    if (!watermarkCreditLabel || !hasActiveWatermark(watermarkOptions)) return undefined;
+    return { watermarkLabel: watermarkCreditLabel, watermarkOptions };
+  }
 
   function removeAt(index: number) {
     onChange(items.filter((_, i) => i !== index));
@@ -130,9 +138,7 @@ export function PostMediaComposer({
 
         try {
           const prepared = await prepareGalleryImageForUpload(files[i]);
-          const url = await uploadImageBlob(prepared, prepared.name || "photo.jpg", {
-            watermarkLabel: watermarkCreditLabel,
-          });
+          const url = await uploadImageBlob(prepared, prepared.name || "photo.jpg", buildUploadOpts());
           next = [...next, { url, type: "IMAGE" as const }];
           onChange(next);
         } catch (e) {
@@ -362,13 +368,27 @@ export function PostMediaComposer({
       )}
 
       {layout === "toolbar" ? (
-        <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40">
-          <div className="flex items-center gap-0.5 flex-wrap min-w-0">
-            {toolbarIcons}
-            {toolbarFooterStart}
+        <>
+          {watermarkCreditLabel ? (
+            <div className="pt-2 space-y-1">
+              <WatermarkToggleButtons
+                value={watermarkOptions}
+                onChange={setWatermarkOptions}
+                disabled={disabled || uploading}
+              />
+              <p className="text-[10px] text-muted-foreground">
+                업로드 전에 워터마크를 선택하세요. ({watermarkCreditLabel})
+              </p>
+            </div>
+          ) : null}
+          <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40">
+            <div className="flex items-center gap-0.5 flex-wrap min-w-0">
+              {toolbarIcons}
+              {toolbarFooterStart}
+            </div>
+            {toolbarFooter}
           </div>
-          {toolbarFooter}
-        </div>
+        </>
       ) : (
       <div className="flex flex-wrap gap-2">
         {canAddImage && (
@@ -437,6 +457,19 @@ export function PostMediaComposer({
       </div>
       )}
 
+      {layout === "default" && watermarkCreditLabel ? (
+        <div className="space-y-1">
+          <WatermarkToggleButtons
+            value={watermarkOptions}
+            onChange={setWatermarkOptions}
+            disabled={disabled || uploading}
+          />
+          <p className="text-xs text-muted-foreground">
+            업로드 전에 워터마크를 선택하세요. ({watermarkCreditLabel})
+          </p>
+        </div>
+      ) : null}
+
       {layout === "default" && (
       <p className="text-xs text-muted-foreground">
         {allowVideo
@@ -473,7 +506,7 @@ export function PostMediaComposer({
           maxWidth={1920}
           maxHeight={1920}
           uploadFilename={cropFilename}
-          watermarkCreditLabel={watermarkCreditLabel}
+          uploadOptions={buildUploadOpts()}
           onComplete={onCropComplete}
         />
       )}
@@ -493,7 +526,7 @@ export function PostMediaComposer({
           if (!o) setVideoBlob(null);
         }}
         videoBlob={videoBlob}
-        watermarkCreditLabel={watermarkCreditLabel}
+        uploadOptions={buildUploadOpts()}
         onComplete={onVideoComplete}
         onUploadingChange={(busy) => {
           setUploading(busy);

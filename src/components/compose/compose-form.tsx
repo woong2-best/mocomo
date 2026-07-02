@@ -225,8 +225,8 @@ export function ComposeForm({
           사진·영상을 고른 뒤, 앱 안에서 자르기·구간 편집할 수 있습니다.
           {watermarkCreditLabel ? (
             <span className="block mt-1 text-xs">
-              업로드 시 <span className="font-medium">{watermarkCreditLabel}</span> 크레딧이 자동으로
-              붙습니다.
+              사진·영상 업로드 전에 사선·하단 워터마크를 선택할 수 있습니다. (
+              <span className="font-medium">{watermarkCreditLabel}</span>)
             </span>
           ) : null}
         </p>

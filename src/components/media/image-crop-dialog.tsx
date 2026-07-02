@@ -15,7 +15,7 @@ import {
   getCroppedImageBlob,
   normalizeRotation,
 } from "@/lib/crop-image";
-import { uploadImageBlob } from "@/lib/client-upload";
+import { uploadImageBlob, type UploadMediaOptions } from "@/lib/client-upload";
 import {
   FlipHorizontal2,
   FlipVertical2,
@@ -53,8 +53,8 @@ type ImageCropDialogProps = {
   maxHeight: number;
   uploadFilename: string;
   onComplete: (publicUrl: string) => void;
-  /** 게시물용 크레딧 라벨 */
-  watermarkCreditLabel?: string;
+  /** 게시물용 워터마크 옵션 */
+  uploadOptions?: UploadMediaOptions;
   /** true면 비율 고정(프로필 등) */
   lockAspect?: boolean;
   aspectPresets?: CropAspectPreset[];
@@ -82,7 +82,7 @@ export function ImageCropDialog({
   maxHeight,
   uploadFilename,
   onComplete,
-  watermarkCreditLabel,
+  uploadOptions,
   lockAspect = false,
   aspectPresets = DEFAULT_ASPECT_PRESETS,
 }: ImageCropDialogProps) {
@@ -161,9 +161,7 @@ export function ImageCropDialog({
         mimeType: "image/jpeg",
         quality: 0.9,
       });
-      const url = await uploadImageBlob(blob, uploadFilename, {
-        watermarkLabel: watermarkCreditLabel,
-      });
+      const url = await uploadImageBlob(blob, uploadFilename, uploadOptions);
       onComplete(url);
       onOpenChange(false);
     } catch (e) {

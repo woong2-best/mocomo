@@ -1,4 +1,10 @@
 import { drawCreditWatermark } from "@/lib/media-watermark-canvas";
+import { hasActiveWatermark, type WatermarkOptions } from "@/lib/media-watermark";
+
+export type VideoWatermark = {
+  label: string;
+  options: WatermarkOptions;
+};
 
 function pickRecorderMime(): string {
   const candidates = [
@@ -52,7 +58,7 @@ export async function trimVideoBlob(
   startSec: number,
   endSec: number,
   onProgress?: (ratio: number) => void,
-  watermarkLabel?: string
+  watermark?: VideoWatermark
 ): Promise<Blob> {
   const url = URL.createObjectURL(blob);
   const video = document.createElement("video");
@@ -129,8 +135,14 @@ export async function trimVideoBlob(
         if (video.currentTime >= end || video.ended) {
           try {
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            if (watermarkLabel) {
-              drawCreditWatermark(ctx, canvas.width, canvas.height, watermarkLabel);
+            if (watermark && hasActiveWatermark(watermark.options)) {
+              drawCreditWatermark(
+                ctx,
+                canvas.width,
+                canvas.height,
+                watermark.label,
+                watermark.options
+              );
             }
           } catch {
             /* ignore last frame draw error */
@@ -142,8 +154,14 @@ export async function trimVideoBlob(
         }
         try {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          if (watermarkLabel) {
-            drawCreditWatermark(ctx, canvas.width, canvas.height, watermarkLabel);
+          if (watermark && hasActiveWatermark(watermark.options)) {
+            drawCreditWatermark(
+              ctx,
+              canvas.width,
+              canvas.height,
+              watermark.label,
+              watermark.options
+            );
           }
         } catch {
           video.pause();
@@ -170,6 +188,7 @@ export async function trimVideoBlob(
 export async function watermarkVideoBlob(
   blob: Blob,
   label: string,
+  options: WatermarkOptions,
   onProgress?: (ratio: number) => void
 ): Promise<Blob> {
   const url = URL.createObjectURL(blob);
@@ -183,7 +202,7 @@ export async function watermarkVideoBlob(
     await waitForVideoReady(video);
     const duration = video.duration;
     URL.revokeObjectURL(url);
-    return trimVideoBlob(blob, 0, duration, onProgress, label);
+    return trimVideoBlob(blob, 0, duration, onProgress, { label, options });
   } catch (e) {
     URL.revokeObjectURL(url);
     throw e;
