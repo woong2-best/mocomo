@@ -37,6 +37,30 @@ export type MessageKey =
   | "sidebar.eventsMapTitle"
   | "sidebar.eventsMapExpand"
   | "sidebar.fallbackEventAd"
+  | "anime.wikiTitle"
+  | "anime.browseByGenre"
+  | "anime.postCount"
+  | "anime.trendingTitle"
+  | "anime.recentTitle"
+  | "anime.trendingEmpty"
+  | "anime.recentEmpty"
+  | "anime.seeMore"
+  | "anime.randomArticle"
+  | "anime.newArticles"
+  | "anime.deleteRequests"
+  | "anime.noticeAccount"
+  | "anime.collabNotice"
+  | "anime.loggedInAs"
+  | "anime.wikiGuideTitle"
+  | "anime.statusLive"
+  | "anime.statusPartial"
+  | "anime.statusPlanned"
+  | "anime.exampleLabel"
+  | "anime.searchPlaceholder"
+  | "anime.searchNoResults"
+  | "anime.popularSearches"
+  | "anime.addLogin"
+  | "anime.addNew"
   | "auth.signupTitle"
   | "auth.signupDesc"
   | "auth.email"
@@ -170,6 +194,30 @@ const ko: Record<MessageKey, string> = {
   "sidebar.eventsMapTitle": "서브컬처·애니 행사 지도",
   "sidebar.eventsMapExpand": "지도 크게 보기 →",
   "sidebar.fallbackEventAd": "진행 중인 이벤트",
+  "anime.wikiTitle": "애니 위키",
+  "anime.browseByGenre": "장르로 찾기",
+  "anime.postCount": "{count}개 글",
+  "anime.trendingTitle": "실시간 인기 글",
+  "anime.recentTitle": "최근 수정 글",
+  "anime.trendingEmpty": "아직 조회 기록이 없어요.",
+  "anime.recentEmpty": "수정된 글이 없어요.",
+  "anime.seeMore": "더보기",
+  "anime.randomArticle": "랜덤 글",
+  "anime.newArticles": "신규 글",
+  "anime.deleteRequests": "삭제 요청",
+  "anime.noticeAccount": "공지 · 계정",
+  "anime.collabNotice": "애니 글은 로그인한 회원이 나무위키처럼 함께 편집합니다. 악의적 편집·스팸은 신고·운영진 조치 대상입니다.",
+  "anime.loggedInAs": "@{username} 님으로 로그인됨",
+  "anime.wikiGuideTitle": "애니 위키 안내",
+  "anime.statusLive": "이용 가능",
+  "anime.statusPartial": "일부 지원",
+  "anime.statusPlanned": "준비 중",
+  "anime.exampleLabel": "예시:",
+  "anime.searchPlaceholder": "애니 위키 검색 (제목·내용)",
+  "anime.searchNoResults": "검색 결과 없음 · Enter로 전체 검색",
+  "anime.popularSearches": "인기 검색어",
+  "anime.addLogin": "로그인하고 글 추가",
+  "anime.addNew": "새 글 추가",
   "auth.signupTitle": "회원가입",
   "auth.signupDesc": "서브컬처·코스프레 커뮤니티",
   "auth.email": "이메일",
@@ -304,6 +352,30 @@ const en: Record<MessageKey, string> = {
   "sidebar.eventsMapTitle": "Subculture & anime event map",
   "sidebar.eventsMapExpand": "View full map →",
   "sidebar.fallbackEventAd": "Ongoing events",
+  "anime.wikiTitle": "Anime Wiki",
+  "anime.browseByGenre": "Browse by genre",
+  "anime.postCount": "{count} articles",
+  "anime.trendingTitle": "Trending articles",
+  "anime.recentTitle": "Recently edited",
+  "anime.trendingEmpty": "No views yet.",
+  "anime.recentEmpty": "No edits yet.",
+  "anime.seeMore": "See more",
+  "anime.randomArticle": "Random article",
+  "anime.newArticles": "New articles",
+  "anime.deleteRequests": "Deletion requests",
+  "anime.noticeAccount": "Notice · Account",
+  "anime.collabNotice": "Logged-in members edit anime articles together wiki-style. Abuse and spam may be reported or moderated.",
+  "anime.loggedInAs": "Signed in as @{username}",
+  "anime.wikiGuideTitle": "Anime Wiki guide",
+  "anime.statusLive": "Available",
+  "anime.statusPartial": "Partial",
+  "anime.statusPlanned": "Planned",
+  "anime.exampleLabel": "Example:",
+  "anime.searchPlaceholder": "Search Anime Wiki (title · content)",
+  "anime.searchNoResults": "No results · press Enter for full search",
+  "anime.popularSearches": "Trending searches",
+  "anime.addLogin": "Sign in to add article",
+  "anime.addNew": "New article",
   "auth.signupTitle": "Sign up",
   "auth.signupDesc": "Subculture & cosplay community",
   "auth.email": "Email",
@@ -438,6 +510,30 @@ const ja: Record<MessageKey, string> = {
   "sidebar.eventsMapTitle": "サブカル・アニメイベント地図",
   "sidebar.eventsMapExpand": "地図を大きく見る →",
   "sidebar.fallbackEventAd": "開催中のイベント",
+  "anime.wikiTitle": "アニメWiki",
+  "anime.browseByGenre": "ジャンルから探す",
+  "anime.postCount": "{count}件",
+  "anime.trendingTitle": "人気記事",
+  "anime.recentTitle": "最近の編集",
+  "anime.trendingEmpty": "まだ閲覧データがありません。",
+  "anime.recentEmpty": "編集された記事がありません。",
+  "anime.seeMore": "もっと見る",
+  "anime.randomArticle": "ランダム記事",
+  "anime.newArticles": "新規記事",
+  "anime.deleteRequests": "削除リクエスト",
+  "anime.noticeAccount": "お知らせ · アカウント",
+  "anime.collabNotice": "ログイン会員がアニメ記事をウィキのように共同編集します。悪意のある編集・スパムは通報・運営対応の対象です。",
+  "anime.loggedInAs": "@{username} でログイン中",
+  "anime.wikiGuideTitle": "アニメWikiガイド",
+  "anime.statusLive": "利用可能",
+  "anime.statusPartial": "一部対応",
+  "anime.statusPlanned": "準備中",
+  "anime.exampleLabel": "例:",
+  "anime.searchPlaceholder": "アニメWiki検索（タイトル・本文）",
+  "anime.searchNoResults": "結果なし · Enterで全体検索",
+  "anime.popularSearches": "人気検索語",
+  "anime.addLogin": "ログインして記事追加",
+  "anime.addNew": "新規記事",
   "auth.signupTitle": "会員登録",
   "auth.signupDesc": "サブカル・コスプレコミュニティ",
   "auth.email": "メール",
@@ -572,6 +668,30 @@ const zh: Record<MessageKey, string> = {
   "sidebar.eventsMapTitle": "亚文化·动漫活动地图",
   "sidebar.eventsMapExpand": "查看大地图 →",
   "sidebar.fallbackEventAd": "进行中的活动",
+  "anime.wikiTitle": "动漫百科",
+  "anime.browseByGenre": "按类型浏览",
+  "anime.postCount": "{count} 篇",
+  "anime.trendingTitle": "热门条目",
+  "anime.recentTitle": "最近编辑",
+  "anime.trendingEmpty": "暂无浏览记录。",
+  "anime.recentEmpty": "暂无编辑记录。",
+  "anime.seeMore": "查看更多",
+  "anime.randomArticle": "随机条目",
+  "anime.newArticles": "新条目",
+  "anime.deleteRequests": "删除申请",
+  "anime.noticeAccount": "公告 · 账户",
+  "anime.collabNotice": "登录会员可像维基一样共同编辑动漫条目。恶意编辑与垃圾内容可被举报或处理。",
+  "anime.loggedInAs": "已登录 @{username}",
+  "anime.wikiGuideTitle": "动漫百科指南",
+  "anime.statusLive": "可用",
+  "anime.statusPartial": "部分支持",
+  "anime.statusPlanned": "筹备中",
+  "anime.exampleLabel": "示例：",
+  "anime.searchPlaceholder": "搜索动漫百科（标题·正文）",
+  "anime.searchNoResults": "无结果 · 按 Enter 全站搜索",
+  "anime.popularSearches": "热门搜索",
+  "anime.addLogin": "登录后添加条目",
+  "anime.addNew": "新建条目",
   "auth.signupTitle": "注册",
   "auth.signupDesc": "亚文化与 Cosplay 社区",
   "auth.email": "邮箱",

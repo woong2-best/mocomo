@@ -5,10 +5,13 @@ import Link from "next/link";
 import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+import { useLocale } from "@/components/providers/locale-provider";
+
 type Result = { slug: string; title: string; titleEn: string | null };
 
 export function AnimeHubSearch() {
   const router = useRouter();
+  const { t } = useLocale();
   const [q, setQ] = useState("");
   const [results, setResults] = useState<Result[]>([]);
   const [popular, setPopular] = useState<{ query: string; count: number }[]>([]);
@@ -55,7 +58,7 @@ export function AnimeHubSearch() {
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           type="search"
-          placeholder="애니 위키 검색 (제목·내용)"
+          placeholder={t("anime.searchPlaceholder")}
           className="w-full h-11 pl-10 pr-4 rounded-xl bg-background border border-border text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-folk-cobalt/40"
           autoComplete="off"
         />
@@ -74,11 +77,11 @@ export function AnimeHubSearch() {
             </Link>
           ))}
           {results.length === 0 && q.trim().length >= 1 && (
-            <p className="px-3 py-2 text-xs text-muted-foreground">검색 결과 없음 · Enter로 전체 검색</p>
+            <p className="px-3 py-2 text-xs text-muted-foreground">{t("anime.searchNoResults")}</p>
           )}
           {popular.length > 0 && (
             <div className="px-3 py-2 bg-muted/30">
-              <p className="text-[10px] font-semibold text-muted-foreground mb-1">인기 검색어</p>
+              <p className="text-[10px] font-semibold text-muted-foreground mb-1">{t("anime.popularSearches")}</p>
               <div className="flex flex-wrap gap-1">
                 {popular.map((p) => (
                   <button

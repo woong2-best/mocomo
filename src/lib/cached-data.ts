@@ -111,7 +111,7 @@ export const getCachedRecentAnime = unstable_cache(
     db.anime.findMany({
       take: 10,
       orderBy: { updatedAt: "desc" },
-      select: { slug: true, title: true, updatedAt: true },
+      select: { slug: true, title: true, titleEn: true, updatedAt: true },
     }),
   ["anime-recent"],
   { revalidate: 60 }

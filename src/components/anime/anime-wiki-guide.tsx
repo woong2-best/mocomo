@@ -1,8 +1,18 @@
-﻿import Link from "next/link";
-import { ANIME_WIKI_SECTIONS, type WikiFeatureItem } from "@/lib/anime-wiki-features";
-import { cn } from "@/lib/utils";
+﻿"use client";
 
-function StatusDot({ status }: { status: WikiFeatureItem["status"] }) {
+import Link from "next/link";
+import { getLocalizedAnimeWikiSections } from "@/lib/anime-wiki-features-i18n";
+import type { WikiFeatureItem } from "@/lib/anime-wiki-features";
+import { cn } from "@/lib/utils";
+import { useLocale } from "@/components/providers/locale-provider";
+
+function StatusDot({
+  status,
+  title,
+}: {
+  status: WikiFeatureItem["status"];
+  title: string;
+}) {
   return (
     <span
       className={cn(
@@ -11,15 +21,15 @@ function StatusDot({ status }: { status: WikiFeatureItem["status"] }) {
         status === "partial" && "bg-amber-500",
         status === "planned" && "bg-muted-foreground/40"
       )}
-      title={status === "live" ? "이용 가능" : status === "partial" ? "일부 지원" : "준비 중"}
+      title={title}
     />
   );
 }
 
-function FeatureLine({ item }: { item: WikiFeatureItem }) {
+function FeatureLine({ item, statusTitle }: { item: WikiFeatureItem; statusTitle: string }) {
   const inner = (
     <>
-      <StatusDot status={item.status} />
+      <StatusDot status={item.status} title={statusTitle} />
       <span>{item.label}</span>
     </>
   );
@@ -42,25 +52,34 @@ function FeatureLine({ item }: { item: WikiFeatureItem }) {
 }
 
 export function AnimeWikiGuide() {
+  const { t, locale } = useLocale();
+  const sections = getLocalizedAnimeWikiSections(locale);
+
+  const statusTitle = (status: WikiFeatureItem["status"]) => {
+    if (status === "live") return t("anime.statusLive");
+    if (status === "partial") return t("anime.statusPartial");
+    return t("anime.statusPlanned");
+  };
+
   return (
     <article className="rounded-2xl border border-border bg-card/50 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-border bg-muted/30">
-        <h2 className="text-lg font-bold">애니 위키 안내</h2>
+        <h2 className="text-lg font-bold">{t("anime.wikiGuideTitle")}</h2>
         <p className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
           <span className="inline-flex items-center gap-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> 이용 가능
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> {t("anime.statusLive")}
           </span>
           <span className="inline-flex items-center gap-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> 일부 지원
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> {t("anime.statusPartial")}
           </span>
           <span className="inline-flex items-center gap-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" /> 준비 중
+            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" /> {t("anime.statusPlanned")}
           </span>
         </p>
       </div>
 
       <div className="p-5 space-y-8 text-[15px] leading-relaxed">
-        {ANIME_WIKI_SECTIONS.map((section, idx) => (
+        {sections.map((section, idx) => (
           <section key={section.id}>
             {idx > 0 && <hr className="border-border/60 mb-8" />}
             <h3 className="text-base font-bold mb-3">{section.title}</h3>
@@ -68,15 +87,21 @@ export function AnimeWikiGuide() {
             {section.items.length > 0 && (
               <ul className="space-y-1.5 list-none pl-0">
                 {section.items.map((item) => (
-                  <FeatureLine key={item.label} item={item} />
+                  <FeatureLine
+                    key={item.label}
+                    item={item}
+                    statusTitle={statusTitle(item.status)}
+                  />
                 ))}
               </ul>
             )}
 
             {section.example && (
               <p className="mt-3 text-sm text-muted-foreground">
-                예시:
-                <code className="ml-2 px-2 py-0.5 rounded bg-muted font-mono text-foreground">{section.example}</code>
+                {t("anime.exampleLabel")}
+                <code className="ml-2 px-2 py-0.5 rounded bg-muted font-mono text-foreground">
+                  {section.example}
+                </code>
               </p>
             )}
 
