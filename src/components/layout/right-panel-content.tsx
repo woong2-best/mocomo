@@ -10,10 +10,11 @@ import { RightPanelComposeButton } from "@/components/layout/right-panel-compose
 import { SidebarEventMapCard } from "@/components/events/sidebar-event-map-card";
 import { useLocale } from "@/components/providers/locale-provider";
 import { localizeSidebarAdTitle } from "@/lib/sidebar-ad-i18n";
+import { PopularAnimeSidebarList } from "@/components/layout/popular-anime-sidebar-list";
 import type { MapEventPin } from "@/lib/subculture-events";
 
 export type SidebarPanelData = {
-  animes: { id: string; slug: string; title: string; viewCount: number }[];
+  animes: { id: string; slug: string; title: string; titleEn: string | null; viewCount: number }[];
   tips: {
     rank: number;
     total: number;
@@ -89,24 +90,7 @@ export function RightPanelContent({ animes, sidebarAds, eventPins }: SidebarPane
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {animes.length === 0 ? (
-            <Link href="/anime" className="text-xs text-primary hover:underline">
-              {t("sidebar.animeHubLink")}
-            </Link>
-          ) : (
-            animes.map((a, i) => (
-              <Link
-                key={a.id}
-                href={`/anime/${a.slug}`}
-                className="flex items-baseline gap-2 text-sm hover:text-folk-cobalt min-w-0 group"
-              >
-                <span className="shrink-0 w-5 text-right font-semibold tabular-nums text-folk-cobalt group-hover:underline">
-                  {i + 1}
-                </span>
-                <span className="truncate">{a.title}</span>
-              </Link>
-            ))
-          )}
+          <PopularAnimeSidebarList animes={animes} />
         </CardContent>
       </Card>
 

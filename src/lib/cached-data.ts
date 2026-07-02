@@ -100,7 +100,7 @@ export const getCachedPopularAnime = unstable_cache(
     db.anime.findMany({
       take: 10,
       orderBy: [{ viewCount: "desc" }, { updatedAt: "desc" }],
-      select: { id: true, slug: true, title: true, viewCount: true },
+      select: { id: true, slug: true, title: true, titleEn: true, viewCount: true },
     }),
   ["sidebar-anime-by-views"],
   { revalidate: 120 }
