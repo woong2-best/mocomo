@@ -9,9 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { SocialAuthButtons } from "@/components/auth/social-auth-buttons";
 import { GmailLocalPartField } from "@/components/auth/gmail-local-part-field";
+import { NaverLocalPartField } from "@/components/auth/naver-local-part-field";
 import { BRAND } from "@/lib/brand";
 import { loginErrorMessage } from "@/lib/auth-login-errors";
-import { buildGmailEmail, parseGmailLocalPart } from "@/lib/signup-email-domains";
+import { buildGmailEmail, buildNaverEmail, parseGmailLocalPart, parseNaverLocalPart } from "@/lib/signup-email-domains";
 import { useLocale } from "@/components/providers/locale-provider";
 import { signIn, getSession } from "next-auth/react";
 
@@ -41,6 +42,10 @@ export function SignInForm({
   const callbackUrl = safeCallbackUrl(callbackUrlProp);
 
   const [localPart, setLocalPart] = useState(() => parseGmailLocalPart(initialEmail));
+  const [naverLocalPart, setNaverLocalPart] = useState(() => parseNaverLocalPart(initialEmail));
+  const [emailProvider, setEmailProvider] = useState<"gmail" | "naver">(() =>
+    initialEmail.includes("@naver.com") ? "naver" : "gmail"
+  );
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -66,9 +71,10 @@ export function SignInForm({
     setLoading(true);
     setError("");
 
-    const normalizedEmail = buildGmailEmail(localPart);
+    const normalizedEmail =
+      emailProvider === "naver" ? buildNaverEmail(naverLocalPart) : buildGmailEmail(localPart);
     if (!normalizedEmail) {
-      setError(t("auth.invalidGmail"));
+      setError(emailProvider === "naver" ? t("auth.invalidNaver") : t("auth.invalidGmail"));
       setLoading(false);
       return;
     }
@@ -141,11 +147,39 @@ export function SignInForm({
           </div>
 
           <form onSubmit={handleCredentials} className="space-y-3">
-            <GmailLocalPartField
-              value={localPart}
-              onChange={setLocalPart}
-              disabled={loading}
-            />
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={emailProvider === "gmail" ? "default" : "outline"}
+                size="sm"
+                className="flex-1 rounded-xl"
+                onClick={() => setEmailProvider("gmail")}
+              >
+                Gmail
+              </Button>
+              <Button
+                type="button"
+                variant={emailProvider === "naver" ? "default" : "outline"}
+                size="sm"
+                className="flex-1 rounded-xl"
+                onClick={() => setEmailProvider("naver")}
+              >
+                Naver
+              </Button>
+            </div>
+            {emailProvider === "gmail" ? (
+              <GmailLocalPartField
+                value={localPart}
+                onChange={setLocalPart}
+                disabled={loading}
+              />
+            ) : (
+              <NaverLocalPartField
+                value={naverLocalPart}
+                onChange={setNaverLocalPart}
+                disabled={loading}
+              />
+            )}
             <Input
               type="password"
               placeholder={t("auth.password")}

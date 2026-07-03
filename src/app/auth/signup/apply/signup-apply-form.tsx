@@ -41,6 +41,7 @@ export function SignupApplyForm({
             discordOAuth={discordOAuth}
             twitterOAuth={twitterOAuth}
             onGmailSignup={() => router.push("/auth/signup/gmail")}
+            onNaverSignup={() => router.push("/auth/signup/naver")}
           />
 
           <p className="text-[11px] text-center text-muted-foreground leading-relaxed px-1">

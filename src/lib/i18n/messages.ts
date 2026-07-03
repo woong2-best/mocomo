@@ -242,9 +242,13 @@ export type MessageKey =
   | "auth.signupOAuthDesc"
   | "auth.signupGmailTitle"
   | "auth.signupGmailDesc"
+  | "auth.signupNaverTitle"
+  | "auth.signupNaverDesc"
   | "auth.backToSignupMethods"
   | "auth.invalidGmail"
+  | "auth.invalidNaver"
   | "auth.gmailLocalHint"
+  | "auth.naverLocalHint"
   | "auth.signupStep1"
   | "auth.signupStep2"
   | "auth.signupStep3"
@@ -261,6 +265,8 @@ export type MessageKey =
   | "auth.signUpGoogle"
   | "auth.signUpGmail"
   | "auth.signInGmail"
+  | "auth.signUpNaver"
+  | "auth.signInNaver"
   | "auth.oauthProviderUnavailable"
   | "auth.invalidEmail"
   | "auth.serverError"
@@ -572,12 +578,16 @@ const ko: Record<MessageKey, string> = {
   "auth.oauthNotConfigured": "Google·X·Discord 로그인은 Vercel에 OAuth 키 추가 후 사용할 수 있습니다.",
   "auth.signupPageTitle": "{brand} 회원가입",
   "auth.signupPageDesc": "가입 정보를 입력한 뒤 이메일 인증으로 계정을 완성합니다.",
-  "auth.signupOAuthDesc": "Discord, Gmail, X 중 하나로 시작하세요.",
+  "auth.signupOAuthDesc": "Discord, Gmail, 네이버, X 중 하나로 시작하세요.",
   "auth.signupGmailTitle": "{brand} Gmail 가입",
   "auth.signupGmailDesc": "Gmail 주소와 가입 정보를 입력해 주세요.",
+  "auth.signupNaverTitle": "{brand} 네이버 가입",
+  "auth.signupNaverDesc": "네이버 메일 주소와 가입 정보를 입력해 주세요.",
   "auth.backToSignupMethods": "다른 가입 방법으로",
   "auth.invalidGmail": "Gmail 주소(@gmail.com)를 입력해 주세요.",
+  "auth.invalidNaver": "네이버 메일(@naver.com)을 입력해 주세요.",
   "auth.gmailLocalHint": "@ 앞부분만 입력하면 됩니다.",
+  "auth.naverLocalHint": "@naver.com 은 자동으로 붙습니다.",
   "auth.signupStep1": "가입 정보",
   "auth.signupStep2": "사람 확인",
   "auth.signupStep3": "이메일 인증",
@@ -594,6 +604,8 @@ const ko: Record<MessageKey, string> = {
   "auth.signUpGoogle": "Google로 가입",
   "auth.signUpGmail": "Gmail로 가입",
   "auth.signInGmail": "Gmail로 로그인",
+  "auth.signUpNaver": "네이버로 가입",
+  "auth.signInNaver": "네이버로 로그인",
   "auth.oauthProviderUnavailable": "이 로그인 방식은 곧 지원됩니다. Discord 또는 X를 이용해 주세요.",
   "auth.invalidEmail": "올바른 이메일을 입력해 주세요. (아이디 @ 도메인)",
   "auth.serverError": "서버 연결 오류입니다. 잠시 후 다시 시도해 주세요.",
@@ -906,12 +918,16 @@ const en: Record<MessageKey, string> = {
   "auth.oauthNotConfigured": "Google, X, and Discord sign-in need OAuth keys on Vercel.",
   "auth.signupPageTitle": "Sign up for {brand}",
   "auth.signupPageDesc": "Enter your details, then verify your email to finish.",
-  "auth.signupOAuthDesc": "Get started with Discord, Gmail, or X.",
+  "auth.signupOAuthDesc": "Get started with Discord, Gmail, Naver, or X.",
   "auth.signupGmailTitle": "Sign up with Gmail",
   "auth.signupGmailDesc": "Enter your Gmail address and account details.",
+  "auth.signupNaverTitle": "Sign up with Naver",
+  "auth.signupNaverDesc": "Enter your Naver Mail address and account details.",
   "auth.backToSignupMethods": "Other sign-up options",
   "auth.invalidGmail": "Please use a Gmail address (@gmail.com).",
+  "auth.invalidNaver": "Please use a Naver Mail address (@naver.com).",
   "auth.gmailLocalHint": "Enter only the part before @.",
+  "auth.naverLocalHint": "@naver.com is added automatically.",
   "auth.signupStep1": "Details",
   "auth.signupStep2": "Human check",
   "auth.signupStep3": "Email verify",
@@ -928,6 +944,8 @@ const en: Record<MessageKey, string> = {
   "auth.signUpGoogle": "Sign up with Google",
   "auth.signUpGmail": "Sign up with Gmail",
   "auth.signInGmail": "Sign in with Gmail",
+  "auth.signUpNaver": "Sign up with Naver",
+  "auth.signInNaver": "Sign in with Naver",
   "auth.oauthProviderUnavailable": "This sign-in method is not ready yet. Please use Discord or X for now.",
   "auth.invalidEmail": "Enter a valid email (user @ domain).",
   "auth.serverError": "Server error. Please try again shortly.",
@@ -1240,12 +1258,16 @@ const ja: Record<MessageKey, string> = {
   "auth.oauthNotConfigured": "Google・X・DiscordログインはOAuth設定が必要です。",
   "auth.signupPageTitle": "{brand} 会員登録",
   "auth.signupPageDesc": "情報を入力し、メール認証で登録を完了します。",
-  "auth.signupOAuthDesc": "Discord、Gmail、X のいずれかで始めましょう。",
+  "auth.signupOAuthDesc": "Discord、Gmail、Naver、X のいずれかで始めましょう。",
   "auth.signupGmailTitle": "Gmailで{brand}に登録",
   "auth.signupGmailDesc": "Gmailアドレスと登録情報を入力してください。",
+  "auth.signupNaverTitle": "Naverで{brand}に登録",
+  "auth.signupNaverDesc": "Naverメールアドレスと登録情報を入力してください。",
   "auth.backToSignupMethods": "他の登録方法へ",
   "auth.invalidGmail": "Gmailアドレス（@gmail.com）を入力してください。",
+  "auth.invalidNaver": "Naverメール（@naver.com）を入力してください。",
   "auth.gmailLocalHint": "@ の前だけ入力してください。",
+  "auth.naverLocalHint": "@naver.com は自動で付きます。",
   "auth.signupStep1": "登録情報",
   "auth.signupStep2": "本人確認",
   "auth.signupStep3": "メール認証",
@@ -1262,6 +1284,8 @@ const ja: Record<MessageKey, string> = {
   "auth.signUpGoogle": "Googleで登録",
   "auth.signUpGmail": "Gmailで登録",
   "auth.signInGmail": "Gmailでログイン",
+  "auth.signUpNaver": "Naverで登録",
+  "auth.signInNaver": "Naverでログイン",
   "auth.oauthProviderUnavailable": "このログイン方法は準備中です。DiscordまたはXをご利用ください。",
   "auth.invalidEmail": "有効なメールを入力してください。",
   "auth.serverError": "サーバーエラーです。しばらくして再試行してください。",
@@ -1574,12 +1598,16 @@ const zh: Record<MessageKey, string> = {
   "auth.oauthNotConfigured": "Google、X、Discord 登录需要配置 OAuth。",
   "auth.signupPageTitle": "注册 {brand}",
   "auth.signupPageDesc": "填写信息后通过邮箱验证完成注册。",
-  "auth.signupOAuthDesc": "使用 Discord、Gmail 或 X 开始。",
+  "auth.signupOAuthDesc": "使用 Discord、Gmail、Naver 或 X 开始。",
   "auth.signupGmailTitle": "用 Gmail 注册 {brand}",
   "auth.signupGmailDesc": "请输入 Gmail 地址和注册信息。",
+  "auth.signupNaverTitle": "用 Naver 注册 {brand}",
+  "auth.signupNaverDesc": "请输入 Naver 邮箱地址和注册信息。",
   "auth.backToSignupMethods": "其他注册方式",
   "auth.invalidGmail": "请输入 Gmail 地址（@gmail.com）。",
+  "auth.invalidNaver": "请输入 Naver 邮箱（@naver.com）。",
   "auth.gmailLocalHint": "只需输入 @ 前面的部分。",
+  "auth.naverLocalHint": "会自动添加 @naver.com。",
   "auth.signupStep1": "注册信息",
   "auth.signupStep2": "人机验证",
   "auth.signupStep3": "邮箱验证",
@@ -1596,6 +1624,8 @@ const zh: Record<MessageKey, string> = {
   "auth.signUpGoogle": "用 Google 注册",
   "auth.signUpGmail": "用 Gmail 注册",
   "auth.signInGmail": "用 Gmail 登录",
+  "auth.signUpNaver": "用 Naver 注册",
+  "auth.signInNaver": "用 Naver 登录",
   "auth.oauthProviderUnavailable": "该登录方式尚未就绪，请暂时使用 Discord 或 X。",
   "auth.invalidEmail": "请输入有效的邮箱地址。",
   "auth.serverError": "服务器错误，请稍后再试。",
