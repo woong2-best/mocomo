@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCachedSession } from "@/lib/auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
-import { getCachedFeedAds } from "@/lib/cached-data";
-import { mixFeedWithAds } from "@/lib/feed-mixer";
 import { getCachedFeedPostsPage } from "@/lib/feed-query";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
 
@@ -12,21 +10,12 @@ export async function GET(req: NextRequest) {
     if (limited) return limited;
 
     const session = await getCachedSession();
-    const isPremium = session?.user?.premiumTier === "PREMIUM";
     const cursor = req.nextUrl.searchParams.get("cursor");
     const limit = Math.min(parseInt(req.nextUrl.searchParams.get("limit") || "12", 10), 30);
-    const postOffset = Math.max(
-      0,
-      parseInt(req.nextUrl.searchParams.get("postOffset") || "0", 10) || 0
-    );
 
     const posts = await getCachedFeedPostsPage(cursor, limit);
 
-    const feedAds = isPremium ? [] : await getCachedFeedAds();
-
-    const items = isPremium
-      ? posts.map((data) => ({ type: "post" as const, data }))
-      : mixFeedWithAds(posts, feedAds, { postsPerBlock: 6, minPostsBeforeFirstAd: 4, postOffset });
+    const items = posts.map((data) => ({ type: "post" as const, data }));
 
     const nextCursor = posts.length === limit ? posts[posts.length - 1]?.id : null;
     const engagement =
@@ -39,11 +28,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(
       {
-        items: items.map((item) =>
-          item.type === "post"
-            ? { type: "post", data: { ...item.data, createdAt: item.data.createdAt.toISOString() } }
-            : { type: "ad", data: item.data }
-        ),
+        items: items.map((item) => ({
+          type: "post" as const,
+          data: { ...item.data, createdAt: item.data.createdAt.toISOString() },
+        })),
         nextCursor,
         likedIds: engagement.likedIds,
         starredIds: engagement.starredIds,

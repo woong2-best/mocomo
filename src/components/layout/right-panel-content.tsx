@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { SupportTierLevel } from "@prisma/client";
+import { FALLBACK_SIDEBAR_ADS } from "@/lib/default-ads";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tv, Megaphone } from "lucide-react";
 import { sanitizeAdLink, isExternalUrl } from "@/lib/safe-link";
@@ -32,20 +33,26 @@ export function RightPanelSkeleton() {
   return (
     <aside className="hidden lg:block w-64 xl:w-72 shrink-0 h-full shell-col-pad folk-panel-aside space-y-3 overflow-y-auto overscroll-contain animate-pulse">
       <div className="h-12 rounded-2xl bg-folk-terracotta/30" />
+      <div className="h-48 rounded-2xl bg-muted" />
       <div className="h-36 rounded-2xl bg-muted" />
-      <div className="h-52 rounded-2xl bg-muted" />
     </aside>
   );
 }
 
 export function RightPanelContent({ animes, sidebarAds, eventPins }: SidebarPanelData) {
   const { t } = useLocale();
-  const ads = sidebarAds;
+  const ads =
+    sidebarAds.length > 0
+      ? sidebarAds
+      : FALLBACK_SIDEBAR_ADS.map((a) => ({
+          ...a,
+          title: t("sidebar.fallbackEventAd"),
+          ctaLabel: a.ctaLabel ?? null,
+        }));
 
   return (
     <aside className="hidden lg:block w-64 xl:w-72 shrink-0 h-full shell-col-pad folk-panel-aside space-y-3 overflow-y-auto overscroll-contain">
       <RightPanelComposeButton />
-      {ads.length > 0 && (
       <Card className="overflow-hidden border-folk-gold/40 bg-folk-gold/5">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2 font-display font-bold text-folk-terracotta">
@@ -72,7 +79,6 @@ export function RightPanelContent({ animes, sidebarAds, eventPins }: SidebarPane
           })}
         </CardContent>
       </Card>
-      )}
 
       <Card>
         <CardHeader className="pb-2">

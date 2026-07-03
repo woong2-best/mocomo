@@ -1,8 +1,6 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { mixFeedWithAds } from "@/lib/feed-mixer";
-import type { FeedAdData } from "@/lib/default-ads";
-import { getCachedFeedAds, getCachedFeedPosts } from "@/lib/cached-data";
+import { getCachedFeedPosts } from "@/lib/cached-data";
 import { getCachedSession } from "@/lib/auth";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { getRequestFeedDisplayMode } from "@/lib/feed-display-mode-server";
@@ -21,26 +19,18 @@ function serializeCreatedAt<T extends { createdAt: Date | string }>(rows: T[]): 
 
 export async function HomeFeedAsync() {
   try {
-    const [posts, feedAds, session, displayMode] = await Promise.all([
+    const [posts, session, displayMode] = await Promise.all([
       getCachedFeedPosts(),
-      getCachedFeedAds(),
       getCachedSession(),
       getRequestFeedDisplayMode(),
     ]);
-    const ads: FeedAdData[] = feedAds;
     const serialized = serializeCreatedAt(posts);
-    const mixed = mixFeedWithAds(serialized, ads, {
-      postsPerBlock: 6,
-      minPostsBeforeFirstAd: 4,
-      postOffset: 0,
-    });
+    const mixed = serialized.map((data) => ({ type: "post" as const, data }));
     const nextCursor = posts.length === 12 ? posts[posts.length - 1]?.id ?? null : null;
     const hasDbPosts = mixed.some((item) => item.type === "post");
     const isLoggedIn = !!session?.user;
     const isPremium = session?.user?.premiumTier === "PREMIUM";
-    const visibleMixed = isPremium
-      ? mixed.filter((item) => item.type !== "ad")
-      : mixed;
+    const visibleMixed = mixed;
     const postIds = mixed.filter((i) => i.type === "post").map((i) => i.data.id);
     let engagement = { likedIds: [] as string[], starredIds: [] as string[], repostedIds: [] as string[] };
     if (session?.user?.id && postIds.length > 0) {

@@ -1,29 +1,38 @@
 import type { PrismaClient } from "@prisma/client";
 
-/** 시드·폴백·데모용 AdSlot 비활성화 (실제 광고는 관리자가 새로 등록) */
+/** 피드·여백 레일 데모 광고만 비활성화 (오른쪽 Sponsored 패널은 유지) */
 export async function deactivateDemoAdSlots(prisma: PrismaClient) {
   await prisma.adSlot.updateMany({
     where: {
       active: true,
       OR: [
-        { imageUrl: { startsWith: "/ads/" } },
-        { sponsorName: { in: ["MoCoMo", "MoCoMo Live", "MoCoMo Events"] } },
-        { title: { contains: "AGF", mode: "insensitive" } },
-        {
-          title: {
-            in: [
-              "진행 중인 이벤트",
-              "MoCoMo Premium — 광고 없이 애니덕질",
-              "MoCoMo Premium — 광고 없이",
-              "MoCoMo Premium",
-              "라이브 방송 시작하기",
-              "후원 이모티콘",
-              "라이브 방송",
-            ],
-          },
-        },
+        { isFeedAd: true },
+        { position: "feed" },
+        { position: { in: ["margin_left", "margin_right"] } },
       ],
     },
     data: { active: false },
+  });
+}
+
+/** 오른쪽 패널 기본 광고 — 없으면 1건 시드 */
+export async function ensureSidebarAdSlot(prisma: PrismaClient) {
+  const count = await prisma.adSlot.count({
+    where: { active: true, position: "right" },
+  });
+  if (count > 0) return;
+
+  await prisma.adSlot.create({
+    data: {
+      position: "right",
+      title: "진행 중인 이벤트",
+      imageUrl: "/ads/events.svg",
+      linkUrl: "/events/map",
+      sponsorName: "MoCoMo Events",
+      ctaLabel: "참가하기",
+      adCategory: "이벤트",
+      isFeedAd: false,
+      active: true,
+    },
   });
 }

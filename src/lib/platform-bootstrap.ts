@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { ensureEmoticonCatalog } from "@/lib/goods-shop";
 import { ensureAnimeWikiCatalog } from "@/lib/anime-wiki-seeds";
 import { ensureCosplayBoardSeed } from "@/lib/cosplay-board-seed";
-import { deactivateDemoAdSlots } from "@/lib/deactivate-demo-ads";
+import { deactivateDemoAdSlots, ensureSidebarAdSlot } from "@/lib/deactivate-demo-ads";
 const PLATFORM_EMAIL = "platform@mocomo.app";
 const PLATFORM_USERNAME = "mocomo_official";
 
@@ -13,6 +13,7 @@ const globalBootstrap = globalThis as unknown as { mocomoBootstrapped?: boolean 
 export async function ensurePlatformBootstrap(prisma: PrismaClient) {
   if (globalBootstrap.mocomoBootstrapped) return;
   await deactivateDemoAdSlots(prisma);
+  await ensureSidebarAdSlot(prisma);
   if ((await prisma.event.count()) === 0) {
     await prisma.event.create({
       data: {
