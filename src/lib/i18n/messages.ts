@@ -149,6 +149,43 @@ export type MessageKey =
   | "settings.language"
   | "settings.save"
   | "settings.saved"
+  | "settings.account"
+  | "settings.nickname"
+  | "settings.email"
+  | "settings.level"
+  | "settings.premium"
+  | "settings.profile"
+  | "settings.noBio"
+  | "settings.editProfile"
+  | "settings.creatorRevenue"
+  | "settings.supportTier"
+  | "settings.discoverTitle"
+  | "settings.discoverDesc"
+  | "settings.discoverStart"
+  | "settings.discoverSettings"
+  | "settings.cosplayTitle"
+  | "settings.cosplayRegistered"
+  | "settings.cosplayProfile"
+  | "settings.cosplayApplyDesc"
+  | "settings.cosplayApply"
+  | "settings.otakuTitle"
+  | "settings.favoriteChars"
+  | "settings.none"
+  | "settings.security"
+  | "settings.twoFactor"
+  | "settings.twoFactorOn"
+  | "settings.twoFactorOff"
+  | "settings.nsfw"
+  | "settings.nsfwOn"
+  | "settings.nsfwOff"
+  | "settings.legalTitle"
+  | "settings.legalTerms"
+  | "settings.legalCreator"
+  | "settings.legalPayment"
+  | "settings.legalCopyright"
+  | "settings.legalPrivacy"
+  | "settings.legalDeletion"
+  | "settings.legalPolicy"
   | "common.loading"
   | "feed.title"
   | "feed.tabs"
@@ -199,6 +236,7 @@ export type MessageKey =
   | "auth.signupGmailDesc"
   | "auth.backToSignupMethods"
   | "auth.invalidGmail"
+  | "auth.gmailLocalHint"
   | "auth.signupStep1"
   | "auth.signupStep2"
   | "auth.signupStep3"
@@ -436,6 +474,43 @@ const ko: Record<MessageKey, string> = {
   "settings.language": "언어",
   "settings.save": "저장",
   "settings.saved": "저장되었습니다",
+  "settings.account": "계정",
+  "settings.nickname": "닉네임",
+  "settings.email": "이메일",
+  "settings.level": "레벨: Lv.{level} (XP {xp})",
+  "settings.premium": "프리미엄",
+  "settings.profile": "프로필",
+  "settings.noBio": "소개 없음",
+  "settings.editProfile": "프로필 수정",
+  "settings.creatorRevenue": "크리에이터 수익",
+  "settings.supportTier": "후원 등급",
+  "settings.discoverTitle": "친구 · 코스어 매칭",
+  "settings.discoverDesc": "원할 때만 참여 · 거리·나이·취향 필터 · ㅊㅊ·좋아요·매칭",
+  "settings.discoverStart": "매칭 시작",
+  "settings.discoverSettings": "매칭 설정",
+  "settings.cosplayTitle": "코스프레",
+  "settings.cosplayRegistered": "코스프레 프로필이 등록되어 있습니다.",
+  "settings.cosplayProfile": "코스프레 프로필",
+  "settings.cosplayApplyDesc": "사진 1장 · 소개 300자 · 애니 연동",
+  "settings.cosplayApply": "코스프레 등록",
+  "settings.otakuTitle": "애니덕질 프로필",
+  "settings.favoriteChars": "좋아하는 캐릭터: {chars}",
+  "settings.none": "없음",
+  "settings.security": "보안",
+  "settings.twoFactor": "2차 인증",
+  "settings.twoFactorOn": "활성",
+  "settings.twoFactorOff": "비활성",
+  "settings.nsfw": "NSFW 표시",
+  "settings.nsfwOn": "켜짐",
+  "settings.nsfwOff": "꺼짐",
+  "settings.legalTitle": "약관 및 정책",
+  "settings.legalTerms": "이용약관",
+  "settings.legalCreator": "크리에이터 약관",
+  "settings.legalPayment": "결제 및 환불 정책",
+  "settings.legalCopyright": "저작권 정책",
+  "settings.legalPrivacy": "개인정보처리방침",
+  "settings.legalDeletion": "계정 및 데이터 삭제",
+  "settings.legalPolicy": "운영원칙 및 이용정책",
   "common.loading": "불러오는 중…",
   "feed.title": "커뮤니티 피드",
   "feed.tabs": "팔로우 · 추천 · 최신",
@@ -486,6 +561,7 @@ const ko: Record<MessageKey, string> = {
   "auth.signupGmailDesc": "Gmail 주소와 가입 정보를 입력해 주세요.",
   "auth.backToSignupMethods": "다른 가입 방법으로",
   "auth.invalidGmail": "Gmail 주소(@gmail.com)를 입력해 주세요.",
+  "auth.gmailLocalHint": "@ 앞부분만 입력하면 됩니다.",
   "auth.signupStep1": "가입 정보",
   "auth.signupStep2": "사람 확인",
   "auth.signupStep3": "이메일 인증",
@@ -724,6 +800,43 @@ const en: Record<MessageKey, string> = {
   "settings.language": "Language",
   "settings.save": "Save",
   "settings.saved": "Saved",
+  "settings.account": "Account",
+  "settings.nickname": "Username",
+  "settings.email": "Email",
+  "settings.level": "Level: Lv.{level} (XP {xp})",
+  "settings.premium": "Premium",
+  "settings.profile": "Profile",
+  "settings.noBio": "No bio yet",
+  "settings.editProfile": "Edit profile",
+  "settings.creatorRevenue": "Creator earnings",
+  "settings.supportTier": "Support tier",
+  "settings.discoverTitle": "Friends & cosplayer matching",
+  "settings.discoverDesc": "Opt in anytime · distance, age & taste filters · likes & matches",
+  "settings.discoverStart": "Start matching",
+  "settings.discoverSettings": "Matching settings",
+  "settings.cosplayTitle": "Cosplay",
+  "settings.cosplayRegistered": "Your cosplay profile is registered.",
+  "settings.cosplayProfile": "Cosplay profile",
+  "settings.cosplayApplyDesc": "1 photo · 300-char bio · anime link",
+  "settings.cosplayApply": "Register as cosplayer",
+  "settings.otakuTitle": "Anime fan profile",
+  "settings.favoriteChars": "Favorite characters: {chars}",
+  "settings.none": "None",
+  "settings.security": "Security",
+  "settings.twoFactor": "Two-factor auth",
+  "settings.twoFactorOn": "On",
+  "settings.twoFactorOff": "Off",
+  "settings.nsfw": "NSFW content",
+  "settings.nsfwOn": "On",
+  "settings.nsfwOff": "Off",
+  "settings.legalTitle": "Terms & policies",
+  "settings.legalTerms": "Terms of service",
+  "settings.legalCreator": "Creator terms",
+  "settings.legalPayment": "Payment & refunds",
+  "settings.legalCopyright": "Copyright policy",
+  "settings.legalPrivacy": "Privacy policy",
+  "settings.legalDeletion": "Account & data deletion",
+  "settings.legalPolicy": "Community policy",
   "common.loading": "Loading…",
   "feed.title": "Community feed",
   "feed.tabs": "Following · For you · Latest",
@@ -774,6 +887,7 @@ const en: Record<MessageKey, string> = {
   "auth.signupGmailDesc": "Enter your Gmail address and account details.",
   "auth.backToSignupMethods": "Other sign-up options",
   "auth.invalidGmail": "Please use a Gmail address (@gmail.com).",
+  "auth.gmailLocalHint": "Enter only the part before @.",
   "auth.signupStep1": "Details",
   "auth.signupStep2": "Human check",
   "auth.signupStep3": "Email verify",
@@ -1012,6 +1126,43 @@ const ja: Record<MessageKey, string> = {
   "settings.language": "言語",
   "settings.save": "保存",
   "settings.saved": "保存しました",
+  "settings.account": "アカウント",
+  "settings.nickname": "ユーザー名",
+  "settings.email": "メール",
+  "settings.level": "レベル: Lv.{level} (XP {xp})",
+  "settings.premium": "プレミアム",
+  "settings.profile": "プロフィール",
+  "settings.noBio": "自己紹介なし",
+  "settings.editProfile": "プロフィール編集",
+  "settings.creatorRevenue": "クリエイター収益",
+  "settings.supportTier": "支援ティア",
+  "settings.discoverTitle": "友達 · コスプレマッチ",
+  "settings.discoverDesc": "任意参加 · 距離·年齢·好みフィルター",
+  "settings.discoverStart": "マッチング開始",
+  "settings.discoverSettings": "マッチング設定",
+  "settings.cosplayTitle": "コスプレ",
+  "settings.cosplayRegistered": "コスプレプロフィールが登録されています。",
+  "settings.cosplayProfile": "コスプレプロフィール",
+  "settings.cosplayApplyDesc": "写真1枚 · 300字 · アニメ連携",
+  "settings.cosplayApply": "コスプレ登録",
+  "settings.otakuTitle": "オタクプロフィール",
+  "settings.favoriteChars": "好きなキャラ: {chars}",
+  "settings.none": "なし",
+  "settings.security": "セキュリティ",
+  "settings.twoFactor": "二段階認証",
+  "settings.twoFactorOn": "有効",
+  "settings.twoFactorOff": "無効",
+  "settings.nsfw": "NSFW表示",
+  "settings.nsfwOn": "オン",
+  "settings.nsfwOff": "オフ",
+  "settings.legalTitle": "規約とポリシー",
+  "settings.legalTerms": "利用規約",
+  "settings.legalCreator": "クリエイター規約",
+  "settings.legalPayment": "決済・返金",
+  "settings.legalCopyright": "著作権",
+  "settings.legalPrivacy": "プライバシー",
+  "settings.legalDeletion": "アカウント削除",
+  "settings.legalPolicy": "コミュニティポリシー",
   "common.loading": "読み込み中…",
   "feed.title": "コミュニティフィード",
   "feed.tabs": "フォロー · おすすめ · 最新",
@@ -1062,6 +1213,7 @@ const ja: Record<MessageKey, string> = {
   "auth.signupGmailDesc": "Gmailアドレスと登録情報を入力してください。",
   "auth.backToSignupMethods": "他の登録方法へ",
   "auth.invalidGmail": "Gmailアドレス（@gmail.com）を入力してください。",
+  "auth.gmailLocalHint": "@ の前だけ入力してください。",
   "auth.signupStep1": "登録情報",
   "auth.signupStep2": "本人確認",
   "auth.signupStep3": "メール認証",
@@ -1300,6 +1452,43 @@ const zh: Record<MessageKey, string> = {
   "settings.language": "语言",
   "settings.save": "保存",
   "settings.saved": "已保存",
+  "settings.account": "账户",
+  "settings.nickname": "用户名",
+  "settings.email": "邮箱",
+  "settings.level": "等级: Lv.{level} (XP {xp})",
+  "settings.premium": "会员",
+  "settings.profile": "个人资料",
+  "settings.noBio": "暂无简介",
+  "settings.editProfile": "编辑资料",
+  "settings.creatorRevenue": "创作者收益",
+  "settings.supportTier": "支持等级",
+  "settings.discoverTitle": "好友 ·  cosplay 匹配",
+  "settings.discoverDesc": "随时参与 · 距离/年龄/喜好筛选",
+  "settings.discoverStart": "开始匹配",
+  "settings.discoverSettings": "匹配设置",
+  "settings.cosplayTitle": "Cosplay",
+  "settings.cosplayRegistered": "已注册 cosplay 资料。",
+  "settings.cosplayProfile": "Cosplay 资料",
+  "settings.cosplayApplyDesc": "1 张照片 · 300 字简介 · 动漫关联",
+  "settings.cosplayApply": "注册 cosplayer",
+  "settings.otakuTitle": "动漫粉丝资料",
+  "settings.favoriteChars": "喜欢的角色: {chars}",
+  "settings.none": "无",
+  "settings.security": "安全",
+  "settings.twoFactor": "两步验证",
+  "settings.twoFactorOn": "已开启",
+  "settings.twoFactorOff": "已关闭",
+  "settings.nsfw": "NSFW 内容",
+  "settings.nsfwOn": "开启",
+  "settings.nsfwOff": "关闭",
+  "settings.legalTitle": "条款与政策",
+  "settings.legalTerms": "服务条款",
+  "settings.legalCreator": "创作者条款",
+  "settings.legalPayment": "支付与退款",
+  "settings.legalCopyright": "版权政策",
+  "settings.legalPrivacy": "隐私政策",
+  "settings.legalDeletion": "账户与数据删除",
+  "settings.legalPolicy": "社区政策",
   "common.loading": "加载中…",
   "feed.title": "社区动态",
   "feed.tabs": "关注 · 推荐 · 最新",
@@ -1350,6 +1539,7 @@ const zh: Record<MessageKey, string> = {
   "auth.signupGmailDesc": "请输入 Gmail 地址和注册信息。",
   "auth.backToSignupMethods": "其他注册方式",
   "auth.invalidGmail": "请输入 Gmail 地址（@gmail.com）。",
+  "auth.gmailLocalHint": "只需输入 @ 前面的部分。",
   "auth.signupStep1": "注册信息",
   "auth.signupStep2": "人机验证",
   "auth.signupStep3": "邮箱验证",

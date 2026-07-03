@@ -11,8 +11,10 @@ import { PageSection } from "@/components/layout/page-section";
 import type { SupportTierLevel } from "@prisma/client";
 import { userDisplayName } from "@/lib/user-public-select";
 import { isLiveFeatureEnabled } from "@/lib/live-feature";
+import { getServerTranslator } from "@/lib/i18n/server";
 
 export async function ExploreContentAsync() {
+  const { t } = await getServerTranslator();
   type PostRow = {
     id: string;
     title: string | null;
@@ -51,9 +53,9 @@ export async function ExploreContentAsync() {
     <div className="space-y-6">
       {!dbOk && (
         <p className="text-sm text-amber-700 bg-amber-500/10 rounded-xl p-3">
-          DB 연결 후 탐색 목록이 표시됩니다.{" "}
+          {t("explore.dbError")}{" "}
           <Link href="/auth/signup" className="text-primary underline">
-            회원가입
+            {t("auth.signupTitle")}
           </Link>
         </p>
       )}
@@ -63,23 +65,21 @@ export async function ExploreContentAsync() {
           <div className="min-w-0">
             <p className="font-display font-bold flex items-center gap-1.5 text-violet-900 dark:text-violet-100">
               <Sparkles className="h-4 w-4 text-violet-500" />
-              친구 · 코스어 매칭
+              {t("explore.matchTitle")}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              원할 때만 참여 · 취향·거리·나이 필터 · ㅊㅊ &amp; 매칭
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">{t("explore.matchDesc")}</p>
           </div>
           <Button asChild size="sm" className="rounded-xl shrink-0 bg-gradient-to-r from-violet-600 to-fuchsia-600">
-            <Link href="/discover">시작</Link>
+            <Link href="/discover">{t("explore.start")}</Link>
           </Button>
         </CardContent>
       </Card>
 
       {isLiveFeatureEnabled() && liveChannels.length > 0 && (
         <PageSection
-          title="지금 라이브"
+          title={t("explore.liveNow")}
           icon={Radio}
-          action={{ href: "/live", label: "전체 보기" }}
+          action={{ href: "/live", label: t("explore.viewAll") }}
         >
           <div className="flex flex-wrap gap-2 moco-stagger">
             {liveChannels.map((ch) => (
@@ -90,16 +90,18 @@ export async function ExploreContentAsync() {
               >
                 <LiveModeBadge broadcastMode={ch.broadcastMode} compact />
                 <span className="line-clamp-1">{ch.name}</span>
-                <span className="text-muted-foreground shrink-0">· {ch.viewerCount}명</span>
+                <span className="text-muted-foreground shrink-0">
+                  · {t("explore.viewers", { count: String(ch.viewerCount) })}
+                </span>
               </Link>
             ))}
           </div>
         </PageSection>
       )}
 
-      <PageSection title="인기 게시물" icon={TrendingUp}>
+      <PageSection title={t("explore.trendingPosts")} icon={TrendingUp}>
         {trendingPosts.length === 0 ? (
-          <p className="text-sm text-muted-foreground">게시물 없음 — 가입 후 첫 글을 작성해 보세요</p>
+          <p className="text-sm text-muted-foreground">{t("explore.trendingEmpty")}</p>
         ) : (
           <div className="space-y-2 moco-stagger">
             {trendingPosts.map((p) => (
@@ -127,10 +129,10 @@ export async function ExploreContentAsync() {
         )}
       </PageSection>
 
-      <PageSection title="새로운 유저" icon={Users}>
+      <PageSection title={t("explore.newUsers")} icon={Users}>
         {suggestedUsers.length === 0 ? (
           <Button asChild variant="outline" className="rounded-xl">
-            <Link href="/auth/signup">첫 번째 유저 되기</Link>
+            <Link href="/auth/signup">{t("explore.beFirstUser")}</Link>
           </Button>
         ) : (
           <div className="space-y-2 moco-stagger">

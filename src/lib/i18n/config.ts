@@ -4,6 +4,8 @@ export type Locale = (typeof LOCALES)[number];
 export const LOCALE_COOKIE = "mocomo_locale";
 export const COUNTRY_COOKIE = "mocomo_country";
 
+/** 로그인 사용자 DB 기본 locale (Prisma default) */
+export const DEFAULT_USER_LOCALE: Locale = "ko";
 /** 비로그인 방문자 기본값 */
 export const DEFAULT_GUEST_LOCALE: Locale = "en";
 export const DEFAULT_GUEST_COUNTRY = "US";

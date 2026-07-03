@@ -3,20 +3,24 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { Mic2, Video } from "lucide-react";
-import { LIVE_CATEGORIES } from "@/lib/live-categories";
 import { cn } from "@/lib/utils";
 import type { LiveHubMode } from "@/lib/live-hub-mode";
+import { useLocale } from "@/components/providers/locale-provider";
+import { getLocalizedLiveCategories } from "@/lib/live-categories-i18n";
+import type { MessageKey } from "@/lib/i18n/messages";
 
-const MODE_TABS: { value: LiveHubMode; label: string; icon?: typeof Video }[] = [
-  { value: "all", label: "전체" },
-  { value: "video", label: "영상", icon: Video },
-  { value: "voice", label: "보이스", icon: Mic2 },
+const MODE_TABS: { value: LiveHubMode; labelKey: MessageKey; icon?: typeof Video }[] = [
+  { value: "all", labelKey: "live.modeAll" },
+  { value: "video", labelKey: "live.modeVideo", icon: Video },
+  { value: "voice", labelKey: "live.modeVoice", icon: Mic2 },
 ];
 
 export function LiveCategoryFilter() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
+  const { locale, t } = useLocale();
+  const categories = getLocalizedLiveCategories(locale);
   const current = searchParams.get("category") ?? "ALL";
   const currentMode = (searchParams.get("mode") ?? "all") as LiveHubMode;
 
@@ -46,7 +50,7 @@ export function LiveCategoryFilter() {
   return (
     <div className="space-y-2">
       <div className="flex gap-2 p-1 rounded-xl bg-muted/40 border w-fit max-w-full">
-        {MODE_TABS.map(({ value, label, icon: Icon }) => {
+        {MODE_TABS.map(({ value, labelKey, icon: Icon }) => {
           const active = currentMode === value;
           return (
             <button
@@ -59,7 +63,7 @@ export function LiveCategoryFilter() {
               )}
             >
               {Icon ? <Icon className="h-3.5 w-3.5" /> : null}
-              {label}
+              {t(labelKey)}
             </button>
           );
         })}
@@ -70,7 +74,7 @@ export function LiveCategoryFilter() {
           pending && "opacity-70"
         )}
       >
-        {LIVE_CATEGORIES.map(({ value, label }) => {
+        {categories.map(({ value, label }) => {
           const active = current === value || (value === "ALL" && !searchParams.get("category"));
           return (
             <button

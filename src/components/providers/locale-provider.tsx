@@ -10,17 +10,16 @@ import {
   useTransition,
 } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
-  COUNTRY_COOKIE,
   DEFAULT_GUEST_COUNTRY,
   DEFAULT_GUEST_LOCALE,
-  LOCALE_COOKIE,
   normalizeLocale,
   type Locale,
 } from "@/lib/i18n/config";
 import { createTranslator, type MessageKey } from "@/lib/i18n/messages";
 import { updateUserLocale } from "@/actions/locale";
-import { isLocale } from "@/lib/i18n/config";
+import { setClientLocaleCookies } from "@/lib/i18n/client-cookies";
 
 type LocaleContextValue = {
   locale: Locale;
@@ -30,18 +29,6 @@ type LocaleContextValue = {
 };
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
-
-function setClientCookies(locale: Locale, countryCode: string) {
-  const maxAge = 60 * 60 * 24 * 365;
-  document.cookie = `${LOCALE_COOKIE}=${locale};path=/;max-age=${maxAge};SameSite=Lax`;
-  document.cookie = `${COUNTRY_COOKIE}=${countryCode};path=/;max-age=${maxAge};SameSite=Lax`;
-}
-
-function readClientCookie(name: string): string | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
-  return match ? decodeURIComponent(match[1]) : null;
-}
 
 export function LocaleProvider({
   children,
@@ -53,34 +40,31 @@ export function LocaleProvider({
   initialCountryCode: string;
 }) {
   const router = useRouter();
+  const { update: updateSession } = useSession();
   const [locale, setLocaleState] = useState<Locale>(normalizeLocale(initialLocale));
   const [countryCode, setCountryCode] = useState(initialCountryCode.toUpperCase());
   const [, startTransition] = useTransition();
 
-  // 서버(세션 DB)와 쿠키가 어긋날 때 — 사용자가 고른 쿠키 locale 우선
+  // 서버(세션 DB) 기준으로 클라이언트 state·쿠키 동기화 — 게스트 en 쿠키가 로그인 locale을 덮지 않음
   useEffect(() => {
-    const cookieLocale = readClientCookie(LOCALE_COOKIE);
-    const cookieCountry = readClientCookie(COUNTRY_COOKIE);
-    if (cookieLocale && isLocale(cookieLocale) && cookieLocale !== locale) {
-      setLocaleState(cookieLocale);
-    }
-    if (cookieCountry) {
-      const next = cookieCountry.toUpperCase();
-      if (next !== countryCode) setCountryCode(next);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount sync only
-  }, []);
+    const nextLocale = normalizeLocale(initialLocale);
+    const nextCountry = initialCountryCode.toUpperCase();
+    setLocaleState(nextLocale);
+    setCountryCode(nextCountry);
+    setClientLocaleCookies(nextLocale, nextCountry);
+  }, [initialLocale, initialCountryCode]);
 
   const setLocale = useCallback(
     async (next: Locale, nextCountry?: string) => {
       const country = (nextCountry ?? countryCode).toUpperCase();
       setLocaleState(next);
       setCountryCode(country);
-      setClientCookies(next, country);
+      setClientLocaleCookies(next, country);
       await updateUserLocale({ locale: next, countryCode: country });
+      await updateSession();
       startTransition(() => router.refresh());
     },
-    [countryCode, router]
+    [countryCode, router, updateSession]
   );
 
   const value = useMemo(

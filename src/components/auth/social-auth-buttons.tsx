@@ -105,9 +105,14 @@ export function SocialAuthButtons({
     void signIn(id, { callbackUrl });
   }
 
+  const providers =
+    mode === "signin"
+      ? PROVIDERS.filter((provider) => provider.id !== "google")
+      : PROVIDERS;
+
   return (
     <div className={cn("space-y-2.5", className)}>
-      {PROVIDERS.map((provider) => {
+      {providers.map((provider) => {
         const Icon = provider.icon;
         const label = t(isSignup ? provider.signupKey : provider.signinKey);
         const isGmailSignup = provider.id === "google" && isSignup;

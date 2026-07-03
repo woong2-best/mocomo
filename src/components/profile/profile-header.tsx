@@ -77,14 +77,14 @@ export function ProfileHeader({
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 min-w-0">
-            {user.countryCode && <CountryFlag code={user.countryCode} className="text-lg" />}
+          <div className="flex items-center gap-1 min-w-0 flex-wrap">
             <DisplayNameWithSupportTier
               name={displayName}
               tier={user.supportTierSent}
               nameClassName="font-bold"
               compact
             />
+            {user.countryCode ? <CountryFlag code={user.countryCode} size={16} className="ml-0.5" /> : null}
             <CreatorFollowerBadge badge={creatorBadge} size="sm" showLabel={false} />
           </div>
           <p className="text-xs text-muted-foreground">{user._count.posts}개 게시물</p>
@@ -119,15 +119,13 @@ export function ProfileHeader({
 
         <div className="mt-3">
           <div className="flex items-center gap-1 flex-wrap">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {user.countryCode && (
-                <CountryFlag code={user.countryCode} className="text-xl" title={user.countryCode} />
-              )}
+            <div className="flex items-center gap-1 flex-wrap">
               <DisplayNameWithSupportTier
                 name={displayName}
                 tier={user.supportTierSent}
                 nameClassName="text-xl font-bold"
               />
+              {user.countryCode ? <CountryFlag code={user.countryCode} size={20} className="ml-0.5" /> : null}
               <CreatorFollowerBadge badge={creatorBadge} size="md" />
             </div>
             {user.userBadges.length > 0 && (

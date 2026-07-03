@@ -70,7 +70,7 @@ export function Sidebar() {
         {!shouldShowRightPanel(pathname) && (
           <AptMailboxLink className="block w-full shrink-0 bg-folk-terracotta text-white flex items-center justify-center gap-2 py-3 text-sm font-display font-bold rounded-xl hover:bg-folk-terracotta-dark transition-colors border-2 border-folk-cobalt/25 shadow-folk">
             <Mailbox className="h-4 w-4" />
-            우편함
+            {t("nav.mailbox")}
           </AptMailboxLink>
         )}
       </div>

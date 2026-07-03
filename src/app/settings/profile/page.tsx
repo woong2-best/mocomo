@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ProfileSettingsForm } from "@/components/profile/profile-settings-form";
 import { splitStoredBirthDate } from "@/lib/birth-date";
+import type { CosplayGalleryPhoto } from "@/components/profile/cosplay-gallery-settings";
 
 export default async function ProfileSettingsPage() {
   const session = await auth();
@@ -10,12 +11,27 @@ export default async function ProfileSettingsPage() {
 
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    include: { profile: true },
+    include: {
+      profile: true,
+      cosplayerProfile: {
+        include: {
+          photos: { orderBy: { createdAt: "desc" } },
+        },
+      },
+    },
   });
   if (!user) redirect("/auth/signin");
 
   const sns = (user.profile?.snsLinks ?? {}) as { location?: string; website?: string };
   const birth = splitStoredBirthDate(user.birthDate);
+
+  const cosplayPhotos: CosplayGalleryPhoto[] =
+    user.cosplayerProfile?.photos.map((p) => ({
+      id: p.id,
+      url: p.url,
+      character: p.character,
+      series: p.series,
+    })) ?? [];
 
   return (
     <ProfileSettingsForm
@@ -35,6 +51,11 @@ export default async function ProfileSettingsPage() {
         birthDay: birth.day,
         showBirthdayOnProfile: user.profile?.showBirthdayOnProfile ?? false,
       }}
+      cosplayerProfile={
+        user.cosplayerProfile
+          ? { username: user.username, photos: cosplayPhotos }
+          : null
+      }
     />
   );
 }

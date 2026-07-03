@@ -75,3 +75,21 @@ export function isGmailAddress(email: string): boolean {
 export function isValidGmailSignupEmail(email: string): boolean {
   return isValidSignupEmail(email) && isGmailAddress(email);
 }
+
+export const GMAIL_DOMAIN = "gmail.com";
+
+/** 로컬 파트만 입력했을 때 Gmail 주소 조합 */
+export function buildGmailEmail(localPart: string): string | null {
+  return buildSignupEmail(localPart, GMAIL_DOMAIN);
+}
+
+/** 전체 주소 또는 로컬 파트에서 @ 앞부분만 추출 (Gmail 로그인 입력용) */
+export function parseGmailLocalPart(emailOrLocal: string): string {
+  const normalized = emailOrLocal.trim().toLowerCase();
+  if (!normalized) return "";
+  const at = normalized.indexOf("@");
+  if (at < 0) return normalized;
+  const host = normalized.slice(at + 1);
+  if (GMAIL_DOMAINS.has(host)) return normalized.slice(0, at);
+  return normalized.slice(0, at);
+}

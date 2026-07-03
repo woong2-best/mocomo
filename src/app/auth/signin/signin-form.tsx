@@ -8,8 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { SocialAuthButtons } from "@/components/auth/social-auth-buttons";
+import { GmailLocalPartField } from "@/components/auth/gmail-local-part-field";
 import { BRAND } from "@/lib/brand";
 import { loginErrorMessage } from "@/lib/auth-login-errors";
+import { buildGmailEmail, parseGmailLocalPart } from "@/lib/signup-email-domains";
 import { useLocale } from "@/components/providers/locale-provider";
 import { signIn } from "next-auth/react";
 
@@ -38,7 +40,7 @@ export function SignInForm({
   const { t } = useLocale();
   const callbackUrl = safeCallbackUrl(callbackUrlProp);
 
-  const [email, setEmail] = useState(initialEmail);
+  const [localPart, setLocalPart] = useState(() => parseGmailLocalPart(initialEmail));
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -64,7 +66,12 @@ export function SignInForm({
     setLoading(true);
     setError("");
 
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = buildGmailEmail(localPart);
+    if (!normalizedEmail) {
+      setError(t("auth.invalidGmail"));
+      setLoading(false);
+      return;
+    }
     router.prefetch(callbackUrl);
 
     const result = await signIn("credentials", {
@@ -88,7 +95,7 @@ export function SignInForm({
     router.replace(callbackUrl);
   }
 
-  const showSocial = googleOAuth || discordOAuth || twitterOAuth;
+  const showSocial = discordOAuth || twitterOAuth;
 
   return (
     <div className="flex-1 flex items-center justify-center p-4">
@@ -133,14 +140,10 @@ export function SignInForm({
           </div>
 
           <form onSubmit={handleCredentials} className="space-y-3">
-            <Input
-              type="email"
-              placeholder={t("auth.email")}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-              className="rounded-xl"
+            <GmailLocalPartField
+              value={localPart}
+              onChange={setLocalPart}
+              disabled={loading}
             />
             <Input
               type="password"

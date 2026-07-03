@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { LiveStreamCardMemo } from "@/components/live/live-channel-grid";
@@ -25,16 +27,20 @@ import { Button } from "@/components/ui/button";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
 import { COMMUNITY_FEED_PATH } from "@/lib/site-routes";
 import { LivePageChrome, LivePageTitle } from "@/components/live/live-page-chrome";
+import { useLocale } from "@/components/providers/locale-provider";
+import type { MessageKey } from "@/lib/i18n/messages";
 
-const FEATURES = [
-  { icon: Video, label: "웹캠 · 화면공유" },
-  { icon: Mic2, label: "보이스 라이브" },
-  { icon: MessageSquare, label: "실시간 채팅" },
-  { icon: Shield, label: "슬로우·금칙어" },
-  { icon: Eye, label: "후원·시청자" },
+const FEATURE_KEYS: { icon: typeof Video; key: MessageKey }[] = [
+  { icon: Video, key: "live.feature.webcam" },
+  { icon: Mic2, key: "live.feature.voice" },
+  { icon: MessageSquare, key: "live.feature.chat" },
+  { icon: Shield, key: "live.feature.moderation" },
+  { icon: Eye, key: "live.feature.support" },
 ];
 
 function StreamerChip({ host }: { host: LiveHubHost }) {
+  const { t } = useLocale();
+
   return (
     <Link
       href={`/u/${host.username}`}
@@ -55,7 +61,9 @@ function StreamerChip({ host }: { host: LiveHubHost }) {
           @{host.username}
           {host.isPartner && <BadgeCheck className="h-3.5 w-3.5 text-sky-500" />}
         </p>
-        <p className="text-[11px] text-muted-foreground">{host.followerCount.toLocaleString()} 팔로워</p>
+        <p className="text-[11px] text-muted-foreground">
+          {t("live.followers", { count: host.followerCount.toLocaleString() })}
+        </p>
       </div>
     </Link>
   );
@@ -84,30 +92,29 @@ export function LiveHub({
   currentUserId?: string;
   channelFeed: ReactNode;
 }) {
+  const { t } = useLocale();
   const followedHostMap = Object.fromEntries(followedHosts.map((h) => [h.id, h]));
 
   return (
     <LivePageChrome>
-        <LivePageTitle>
+      <LivePageTitle>
         <header className="live-hero flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-3 min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl font-black flex items-center gap-2 tracking-tight">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-folk-terracotta text-white shadow-md">
                 <Radio className="h-5 w-5" />
               </span>
-              라이브
+              {t("nav.live")}
             </h1>
-            <p className="text-sm text-muted-foreground max-w-lg">
-              브라우저에서 바로 방송(유튜브·치지직 방식) · 실시간 시청 · 후원·채팅. 스트리머마다 독립 방입니다.
-            </p>
+            <p className="text-sm text-muted-foreground max-w-lg">{t("live.heroDesc")}</p>
             <div className="flex flex-wrap gap-2">
-              {FEATURES.map(({ icon: Icon, label }) => (
+              {FEATURE_KEYS.map(({ icon: Icon, key }) => (
                 <span
-                  key={label}
+                  key={key}
                   className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-background/80 dark:bg-white/5 border border-border/60 text-muted-foreground"
                 >
                   <Icon className="h-3.5 w-3.5 text-primary" />
-                  {label}
+                  {t(key)}
                 </span>
               ))}
             </div>
@@ -116,87 +123,87 @@ export function LiveHub({
             <LivePageActions variant="header" />
           </div>
         </header>
-        </LivePageTitle>
+      </LivePageTitle>
 
-        <form action="/search" method="get" className="flex gap-2 max-w-xl">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              name="q"
-              placeholder="스트리머·태그·게시물 검색"
-              className="pl-9 rounded-xl"
-              minLength={2}
-            />
-          </div>
-          <Button type="submit" variant="secondary" className="rounded-xl shrink-0">
-            검색
-          </Button>
-        </form>
+      <form action="/search" method="get" className="flex gap-2 max-w-xl">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            name="q"
+            placeholder={t("live.searchPlaceholder")}
+            className="pl-9 rounded-xl"
+            minLength={2}
+          />
+        </div>
+        <Button type="submit" variant="secondary" className="rounded-xl shrink-0">
+          {t("common.search")}
+        </Button>
+      </form>
 
-        <LiveCategoryFilter />
+      <LiveCategoryFilter />
 
-        {scheduledStreams.length > 0 && (
-          <section>
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              예약 방송
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {scheduledStreams.map((s) => (
-                <LiveScheduledCard
-                  key={s.id}
-                  id={s.id}
-                  name={s.name}
-                  scheduledAt={s.scheduledAt}
-                  category={s.category}
-                  broadcastMode={s.broadcastMode}
-                  isOwner={currentUserId === s.createdBy}
-                />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {followedLive.length > 0 && (
-          <section>
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
-              <Heart className="h-4 w-4 text-folk-terracotta" />
-              팔로우 중 라이브 · {followedLive.length}
-            </h2>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {followedLive.map((ch) => (
-                <LiveStreamCardMemo key={ch.id} ch={ch} host={followedHostMap[ch.createdBy]} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {channelFeed}
-
+      {scheduledStreams.length > 0 && (
         <section>
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            추천 스트리머
+            <Calendar className="h-4 w-4" />
+            {t("live.scheduled")}
           </h2>
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-            {recommendedStreamers.map((h) => (
-              <StreamerChip key={h.id} host={h} />
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {scheduledStreams.map((s) => (
+              <LiveScheduledCard
+                key={s.id}
+                id={s.id}
+                name={s.name}
+                scheduledAt={s.scheduledAt}
+                category={s.category}
+                broadcastMode={s.broadcastMode}
+                isOwner={currentUserId === s.createdBy}
+              />
             ))}
           </div>
         </section>
+      )}
 
-        <section className="rounded-2xl border border-border bg-card/50 p-6 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h3 className="font-bold flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
-              팔로우 피드
-            </h3>
-            <p className="text-sm text-muted-foreground mt-1">팔로우한 크리에이터의 게시물은 홈 피드에서 확인할 수 있습니다.</p>
+      {followedLive.length > 0 && (
+        <section>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+            <Heart className="h-4 w-4 text-folk-terracotta" />
+            {t("live.followedLive")} · {followedLive.length}
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {followedLive.map((ch) => (
+              <LiveStreamCardMemo key={ch.id} ch={ch} host={followedHostMap[ch.createdBy]} />
+            ))}
           </div>
-          <Button asChild variant="outline" className="rounded-xl">
-            <Link href={COMMUNITY_FEED_PATH}>홈 피드로 이동</Link>
-          </Button>
         </section>
+      )}
+
+      {channelFeed}
+
+      <section>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+          <TrendingUp className="h-4 w-4" />
+          {t("live.recommendedStreamers")}
+        </h2>
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+          {recommendedStreamers.map((h) => (
+            <StreamerChip key={h.id} host={h} />
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-border bg-card/50 p-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h3 className="font-bold flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" />
+            {t("live.followFeed")}
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1">{t("live.followFeedDesc")}</p>
+        </div>
+        <Button asChild variant="outline" className="rounded-xl">
+          <Link href={COMMUNITY_FEED_PATH}>{t("live.goHomeFeed")}</Link>
+        </Button>
+      </section>
     </LivePageChrome>
   );
 }

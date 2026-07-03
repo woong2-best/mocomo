@@ -8,6 +8,7 @@ import { LocaleSettingsForm } from "@/components/settings/locale-settings-form";
 import { SignOutButton } from "@/components/settings/sign-out-button";
 import { SettingsPageChrome } from "@/components/settings/settings-page-chrome";
 import { getServerTranslator } from "@/lib/i18n/server";
+import { CountryFlag } from "@/components/user/country-flag";
 
 export default async function SettingsPage() {
   const session = await auth();
@@ -52,37 +53,51 @@ export default async function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>계정</CardTitle>
+          <CardTitle>{t("settings.account")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
-          <p>닉네임: {user?.username}</p>
-          <p>이메일: {user?.email}</p>
-          <p>레벨: Lv.{user?.level} (XP {user?.xp})</p>
-          <p>프리미엄: {user?.premiumTier}</p>
+          <p className="flex items-center gap-1 flex-wrap">
+            <span>
+              {t("settings.nickname")}: {user?.username}
+            </span>
+            {user?.countryCode ? <CountryFlag code={user.countryCode} size={16} className="ml-0.5" /> : null}
+          </p>
+          <p>
+            {t("settings.email")}: {user?.email}
+          </p>
+          <p>
+            {t("settings.level", {
+              level: String(user?.level ?? 1),
+              xp: String(user?.xp ?? 0),
+            })}
+          </p>
+          <p>
+            {t("settings.premium")}: {user?.premiumTier}
+          </p>
           <SignOutButton className="w-full rounded-xl mt-2" />
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>프로필</CardTitle>
+          <CardTitle>{t("settings.profile")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">{user?.profile?.bio || "소개 없음"}</p>
+          <p className="text-sm text-muted-foreground mb-4">{user?.profile?.bio || t("settings.noBio")}</p>
           <div className="flex flex-wrap gap-2">
             <Link href="/settings/profile">
               <Button variant="outline" size="sm">
-                프로필 수정
+                {t("settings.editProfile")}
               </Button>
             </Link>
             <Link href="/settings/creator">
               <Button variant="outline" size="sm">
-                크리에이터 수익
+                {t("settings.creatorRevenue")}
               </Button>
             </Link>
             <Link href="/support">
               <Button variant="ghost" size="sm">
-                후원 등급
+                {t("settings.supportTier")}
               </Button>
             </Link>
           </div>
@@ -91,21 +106,19 @@ export default async function SettingsPage() {
 
       <Card className="border-violet-500/20 bg-gradient-to-br from-violet-950/10 to-fuchsia-950/5">
         <CardHeader>
-          <CardTitle>친구 · 코스어 매칭</CardTitle>
+          <CardTitle>{t("settings.discoverTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            원할 때만 참여 · 거리·나이·취향 필터 · ㅊㅊ·좋아요·매칭
-          </p>
+          <p className="text-sm text-muted-foreground">{t("settings.discoverDesc")}</p>
           <div className="flex flex-wrap gap-2">
             <Link href="/discover">
               <Button size="sm" className="rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600">
-                매칭 시작
+                {t("settings.discoverStart")}
               </Button>
             </Link>
             <Link href="/discover/settings">
               <Button variant="outline" size="sm">
-                매칭 설정
+                {t("settings.discoverSettings")}
               </Button>
             </Link>
           </div>
@@ -114,24 +127,24 @@ export default async function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>코스프레</CardTitle>
+          <CardTitle>{t("settings.cosplayTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {user?.cosplayerProfile ? (
             <>
-              <p className="text-sm text-muted-foreground">코스프레 프로필이 등록되어 있습니다.</p>
+              <p className="text-sm text-muted-foreground">{t("settings.cosplayRegistered")}</p>
               <Link href={`/cosplay/${user.username}`}>
                 <Button variant="outline" size="sm">
-                  코스프레 프로필
+                  {t("settings.cosplayProfile")}
                 </Button>
               </Link>
             </>
           ) : (
             <>
-              <p className="text-sm text-muted-foreground">사진 1장 · 소개 300자 · 애니 연동</p>
+              <p className="text-sm text-muted-foreground">{t("settings.cosplayApplyDesc")}</p>
               <Link href="/cosplay/apply">
                 <Button size="sm" className="rounded-xl">
-                  코스프레 등록
+                  {t("settings.cosplayApply")}
                 </Button>
               </Link>
             </>
@@ -141,50 +154,57 @@ export default async function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>애니덕질 프로필</CardTitle>
+          <CardTitle>{t("settings.otakuTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            좋아하는 캐릭터: {user?.otakuProfile?.favoriteChars?.join(", ") || "없음"}
+            {t("settings.favoriteChars", {
+              chars: user?.otakuProfile?.favoriteChars?.join(", ") || t("settings.none"),
+            })}
           </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>보안</CardTitle>
+          <CardTitle>{t("settings.security")}</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p>2차 인증: {user?.twoFactorEnabled ? "활성" : "비활성"}</p>
-          <p>NSFW 표시: {user?.showNsfw ? "켜짐" : "꺼짐"}</p>
+          <p>
+            {t("settings.twoFactor")}:{" "}
+            {user?.twoFactorEnabled ? t("settings.twoFactorOn") : t("settings.twoFactorOff")}
+          </p>
+          <p>
+            {t("settings.nsfw")}: {user?.showNsfw ? t("settings.nsfwOn") : t("settings.nsfwOff")}
+          </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>약관 및 정책</CardTitle>
+          <CardTitle>{t("settings.legalTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <Link href="/legal/terms" className="block text-primary hover:underline">
-            이용약관
+            {t("settings.legalTerms")}
           </Link>
           <Link href="/legal/creator-terms" className="block text-primary hover:underline">
-            크리에이터 약관
+            {t("settings.legalCreator")}
           </Link>
           <Link href="/legal/payment" className="block text-primary hover:underline">
-            결제 및 환불 정책
+            {t("settings.legalPayment")}
           </Link>
           <Link href="/legal/copyright" className="block text-primary hover:underline">
-            저작권 정책
+            {t("settings.legalCopyright")}
           </Link>
           <Link href="/legal/privacy" className="block text-primary hover:underline">
-            개인정보처리방침
+            {t("settings.legalPrivacy")}
           </Link>
           <Link href="/legal/account-deletion" className="block text-primary hover:underline">
-            계정 및 데이터 삭제
+            {t("settings.legalDeletion")}
           </Link>
           <Link href="/legal/policy" className="block text-primary hover:underline">
-            운영원칙 및 이용정책
+            {t("settings.legalPolicy")}
           </Link>
         </CardContent>
       </Card>

@@ -10,6 +10,8 @@ import { HeaderAuth } from "@/components/layout/header-auth";
 import { cn } from "@/lib/utils";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { pressTap } from "@/lib/motion-presets";
+import { useLocale } from "@/components/providers/locale-provider";
+import type { MessageKey } from "@/lib/i18n/messages";
 
 const ROOT_PATHS = new Set([
   "/",
@@ -25,22 +27,22 @@ const ROOT_PATHS = new Set([
   "/market",
 ]);
 
-function titleForPath(pathname: string): string | null {
+function titleForPath(pathname: string, t: (key: MessageKey, vars?: Record<string, string>) => string): string | null {
   if (pathname.match(/^\/u\/[^/]+\/connections$/)) return "팔로워 · 팔로잉";
   if (pathname.match(/^\/u\/[^/]+\/followers$/)) return "팔로워";
   if (pathname.match(/^\/u\/[^/]+\/following$/)) return "팔로잉";
   if (pathname.startsWith("/u/")) return "프로필";
   if (pathname.startsWith("/post/")) return "게시물";
   if (pathname.startsWith("/settings")) {
-    if (pathname === "/settings/profile") return "프로필 수정";
-    if (pathname === "/settings/creator") return "크리에이터 수익";
+    if (pathname === "/settings/profile") return t("settings.editProfile");
+    if (pathname === "/settings/creator") return t("settings.creatorRevenue");
     if (pathname === "/settings/streamer") return "스트리머";
-    return "설정";
+    return t("settings.title");
   }
   if (pathname.startsWith("/auth/")) return "계정";
-  if (pathname === EXPLORE_PATH) return "탐색";
-  if (pathname === DEFAULT_LANDING_PATH || pathname === "/feed") return "홈";
-  if (pathname === "/games") return "GAME";
+  if (pathname === EXPLORE_PATH) return t("nav.explore");
+  if (pathname === DEFAULT_LANDING_PATH || pathname === "/feed") return t("nav.home");
+  if (pathname === "/games") return t("nav.games");
   if (pathname.startsWith("/games/")) {
     if (pathname === "/games/ranking") return "게임 랭킹";
     if (pathname === "/games/history") return "내 전적";
@@ -51,21 +53,21 @@ function titleForPath(pathname: string): string | null {
   }
   if (pathname === "/voice/new") return "방송 만들기";
   if (pathname.startsWith("/live/clips")) return "클립 업로드";
-  if (pathname === "/live") return "라이브";
-  if (pathname.startsWith("/live/")) return "라이브";
-  if (pathname === "/market") return "마켓";
-  if (pathname.startsWith("/market/")) return "마켓";
+  if (pathname === "/live") return t("nav.live");
+  if (pathname.startsWith("/live/")) return t("nav.live");
+  if (pathname === "/market") return t("nav.market");
+  if (pathname.startsWith("/market/")) return t("nav.market");
   if (pathname === "/cosplay/apply") return "코스어 등록";
   if (pathname.startsWith("/cosplay")) return "코스프레";
   if (pathname === "/messages/new") return "새 메시지";
   if (pathname === "/apt/house") return "주택";
   if (pathname === "/apt/cohabitation") return "동거 관리";
-  if (pathname === "/notifications") return "알림";
-  if (pathname === "/messages") return "쪽지";
-  if (pathname === "/used") return "중고거래";
+  if (pathname === "/notifications") return t("nav.notifications");
+  if (pathname === "/messages") return t("nav.messages");
+  if (pathname === "/used") return t("nav.used");
   if (pathname === "/used/new") return "글쓰기";
   if (pathname === "/used/my") return "내 글";
-  if (pathname === "/discover") return "매칭";
+  if (pathname === "/discover") return t("nav.discover");
   if (pathname === "/discover/matches") return "매칭 목록";
   if (pathname === "/discover/settings") return "매칭 설정";
   if (pathname.startsWith("/discover/")) return "매칭";
@@ -90,7 +92,7 @@ function titleForPath(pathname: string): string | null {
   if (pathname === "/events/map") return "행사 지도";
   if (pathname === "/anime/delete-requests") return "삭제 요청";
   if (pathname.match(/^\/anime\/[^/]+\/history$/)) return "수정 기록";
-  if (pathname === "/anime") return "애니 위키";
+  if (pathname === "/anime") return t("nav.anime");
   if (pathname === "/anime/popular") return "인기 글";
   if (pathname === "/anime/recent") return "최근 변경";
   if (pathname === "/anime/newest") return "최신 글";
@@ -111,7 +113,7 @@ function titleForPath(pathname: string): string | null {
   if (pathname.startsWith("/payments/")) return "결제";
   if (pathname.startsWith("/legal")) return "약관";
   if (pathname === "/bookmarks") return "STAR";
-  if (pathname === "/my-page") return "마이페이지";
+  if (pathname === "/my-page") return t("nav.myPage");
   if (pathname === "/compose") return "글쓰기";
   if (pathname.startsWith("/support/emoticons")) return "이모티콘";
   if (pathname.startsWith("/support")) return "후원";
@@ -122,9 +124,10 @@ function titleForPath(pathname: string): string | null {
 export function NativeAppHeader() {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useLocale();
   const reduced = usePrefersReducedMotion();
   const isRoot = ROOT_PATHS.has(pathname);
-  const title = titleForPath(pathname);
+  const title = titleForPath(pathname, t);
   const showBack = !isRoot && !!title;
 
   return (

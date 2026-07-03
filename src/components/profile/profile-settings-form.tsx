@@ -11,6 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProfileImageField } from "@/components/profile/profile-image-field";
+import {
+  CosplayGallerySettings,
+  type CosplayGalleryPhoto,
+} from "@/components/profile/cosplay-gallery-settings";
 import Link from "next/link";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
 
@@ -31,7 +35,13 @@ type Initial = {
   showBirthdayOnProfile: boolean;
 };
 
-export function ProfileSettingsForm({ initial }: { initial: Initial }) {
+export function ProfileSettingsForm({
+  initial,
+  cosplayerProfile,
+}: {
+  initial: Initial;
+  cosplayerProfile: { username: string; photos: CosplayGalleryPhoto[] } | null;
+}) {
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
   const [image, setImage] = useState(initial.image);
@@ -246,6 +256,27 @@ export function ProfileSettingsForm({ initial }: { initial: Initial }) {
           </form>
         </CardContent>
       </Card>
+
+      {cosplayerProfile ? (
+        <CosplayGallerySettings
+          username={cosplayerProfile.username}
+          initialPhotos={cosplayerProfile.photos}
+        />
+      ) : (
+        <Card className="rounded-2xl">
+          <CardHeader>
+            <CardTitle>코스프레 갤러리</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              코스어로 등록하면 코스프레 사진을 올리고 갤러리를 관리할 수 있습니다.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline" className="rounded-xl">
+              <Link href="/cosplay/apply">코스어 등록하기</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </AppPageChrome>
   );
 }

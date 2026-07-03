@@ -7,14 +7,16 @@ import { Eye, Radio, Sparkles, User, Mic2 } from "lucide-react";
 import { isVoiceBroadcastMode } from "@/lib/live-voice-broadcast";
 import { LivePageActions } from "@/components/live/live-page-actions";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
-import { liveCategoryLabel } from "@/lib/live-categories";
+import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
 import type { SupportTierLevel } from "@prisma/client";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { cardHover, pressTap } from "@/lib/motion-presets";
+import { useLocale } from "@/components/providers/locale-provider";
 
 export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHubHost }) {
   const reduced = usePrefersReducedMotion();
+  const { locale, t } = useLocale();
   const thumb = ch.thumbnailUrl ?? host?.image;
   const card = (
     <Link href={`/voice/${ch.id}`} prefetch={false} className="live-card group block">
@@ -40,11 +42,11 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
           {isVoiceBroadcastMode(ch.broadcastMode) && (
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-600/80 text-white font-medium flex items-center gap-0.5">
               <Mic2 className="h-3 w-3" />
-              보이스
+              {t("live.voiceBadge")}
             </span>
           )}
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-black/50 text-white font-medium">
-            {liveCategoryLabel(ch.category)}
+            {localizedLiveCategoryLabel(ch.category, locale)}
           </span>
         </div>
         <div className="absolute top-3 right-3 live-viewer-pill">
@@ -92,6 +94,7 @@ export function LiveChannelGrid({
   channels: LiveHubChannel[];
   hosts: LiveHubHost[];
 }) {
+  const { t } = useLocale();
   const hostMap = Object.fromEntries(hosts.map((h) => [h.id, h]));
   const totalViewers = channels.reduce((s, c) => s + c.viewerCount, 0);
 
@@ -100,11 +103,11 @@ export function LiveChannelGrid({
       {channels.length > 0 && (
         <div className="flex flex-wrap gap-4 text-sm">
           <div className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
-            <p className="text-xs text-muted-foreground">지금 방송</p>
+            <p className="text-xs text-muted-foreground">{t("live.onAir")}</p>
             <p className="text-xl font-bold tabular-nums">{channels.length}</p>
           </div>
           <div className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
-            <p className="text-xs text-muted-foreground">총 시청자</p>
+            <p className="text-xs text-muted-foreground">{t("live.totalViewers")}</p>
             <p className="text-xl font-bold tabular-nums text-folk-terracotta dark:text-folk-terracotta">{totalViewers}</p>
           </div>
         </div>
@@ -113,12 +116,12 @@ export function LiveChannelGrid({
       <section>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-folk-terracotta animate-pulse" />
-          실시간 방송 · {channels.length}
+          {t("live.liveBroadcasts")} · {channels.length}
         </h2>
         {channels.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-card/50 py-16 text-center space-y-4">
             <Sparkles className="h-12 w-12 mx-auto text-muted-foreground/60" />
-            <p className="text-muted-foreground font-medium">이 카테고리에 진행 중인 라이브가 없습니다.</p>
+            <p className="text-muted-foreground font-medium">{t("live.emptyCategory")}</p>
             <LivePageActions variant="empty" />
           </div>
         ) : (

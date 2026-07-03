@@ -27,9 +27,15 @@ export default async function CosplayerApplyPage() {
         <Card className="rounded-2xl">
           <CardContent className="p-6 space-y-4 text-center">
             <p className="font-semibold">이미 코스어로 등록되어 있습니다.</p>
+            <p className="text-sm text-muted-foreground">
+              코스프레 사진 추가·삭제는 프로필 수정에서 할 수 있습니다.
+            </p>
             <div className="flex flex-wrap gap-2 justify-center">
+              <Link href="/settings/profile">
+                <Button>프로필 수정 · 갤러리 관리</Button>
+              </Link>
               <Link href={`/cosplay/${ctx.username}`}>
-                <Button>내 코스어 페이지</Button>
+                <Button variant="outline">내 코스어 페이지</Button>
               </Link>
               <Link href="/cosplay">
                 <Button variant="outline">코스어 목록</Button>

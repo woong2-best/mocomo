@@ -5,6 +5,7 @@ import {
   COUNTRY_COOKIE,
   DEFAULT_GUEST_COUNTRY,
   DEFAULT_GUEST_LOCALE,
+  DEFAULT_USER_LOCALE,
   LOCALE_COOKIE,
   isLocale,
   normalizeLocale,
@@ -28,19 +29,20 @@ export const getRequestI18n = cache(async (): Promise<{ locale: Locale; countryC
   const cookieStore = await cookies();
   const rawLocale = cookieStore.get(LOCALE_COOKIE)?.value;
   const rawCountry = cookieStore.get(COUNTRY_COOKIE)?.value?.toUpperCase();
+  const cookieLocale = rawLocale && isLocale(rawLocale) ? rawLocale : null;
 
   if (!hasSessionCookie(cookieStore)) {
     return {
-      locale: rawLocale && isLocale(rawLocale) ? rawLocale : DEFAULT_GUEST_LOCALE,
+      locale: cookieLocale ?? DEFAULT_GUEST_LOCALE,
       countryCode: rawCountry || DEFAULT_GUEST_COUNTRY,
     };
   }
 
   const session = await getCachedSession();
-  const cookieLocale = rawLocale && isLocale(rawLocale) ? rawLocale : null;
+  // 로그인: DB/세션 locale 우선 (가입 전 en 쿠키가 ko 설정을 덮어쓰지 않음)
   return {
-    locale: normalizeLocale(cookieLocale ?? session?.user?.locale, DEFAULT_GUEST_LOCALE),
-    countryCode: rawCountry ?? session?.user?.countryCode ?? DEFAULT_GUEST_COUNTRY,
+    locale: normalizeLocale(session?.user?.locale ?? cookieLocale, DEFAULT_USER_LOCALE),
+    countryCode: session?.user?.countryCode ?? rawCountry ?? DEFAULT_GUEST_COUNTRY,
   };
 });
 
