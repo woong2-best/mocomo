@@ -77,11 +77,11 @@ function AppShellInner({
   return (
     <>
       <Header />
-      <div className="flex min-h-app items-start">
+      <div className="flex h-app overflow-hidden">
         <Sidebar />
         <main
           className={cn(
-            "flex-1 min-w-0 bg-background",
+            "flex-1 min-w-0 min-h-0 bg-background",
             showRightPanel && "shell-col-divider-r",
             isMessagesRoute
               ? `overflow-hidden ${mainPb}`

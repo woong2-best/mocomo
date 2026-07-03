@@ -30,50 +30,50 @@ export function Sidebar() {
   return (
     <div
       className={cn(
-        "hidden lg:block shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out",
+        "hidden lg:block h-full shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out",
         open ? "w-[17rem] xl:w-[18rem]" : "w-0 pointer-events-none"
       )}
       aria-hidden={!open}
     >
       <aside
         className={cn(
-          "flex w-[17rem] xl:w-[18rem] flex-col shrink-0 sticky top-[var(--header-h)] z-[1] h-app shell-col-pad shell-col-divider-r gap-3 overflow-hidden bg-background",
+          "flex h-full w-[17rem] xl:w-[18rem] flex-col shrink-0 shell-col-pad shell-col-divider-r folk-panel-aside space-y-3 overflow-y-auto overscroll-contain",
           "transition-transform duration-300 ease-in-out",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
-      <nav className="sidebar-nav-scroll flex flex-col gap-2 pr-1">
-        {navItems.map(({ href, icon: Icon, labelKey }) => (
-          <Link
-            key={href}
-            href={href}
-            prefetch={href === "/live" || href === "/messages" ? false : undefined}
-            className={cn("sidebar-block", isActive(href) && "sidebar-block-active")}
-          >
-            <span
-              className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-lg shrink-0 border-2",
-                isActive(href)
-                  ? "bg-folk-terracotta text-white border-folk-cobalt/40 shadow-folk-sm"
-                  : "bg-folk-cream border-folk-cobalt/15 text-folk-cobalt"
-              )}
+        <nav className="flex flex-col gap-2 pr-1">
+          {navItems.map(({ href, icon: Icon, labelKey }) => (
+            <Link
+              key={href}
+              href={href}
+              prefetch={href === "/live" || href === "/messages" ? false : undefined}
+              className={cn("sidebar-block", isActive(href) && "sidebar-block-active")}
             >
-              <Icon className="h-4 w-4" />
-            </span>
-            <span className="truncate">{t(labelKey)}</span>
-          </Link>
-        ))}
-      </nav>
+              <span
+                className={cn(
+                  "flex h-9 w-9 items-center justify-center rounded-lg shrink-0 border-2",
+                  isActive(href)
+                    ? "bg-folk-terracotta text-white border-folk-cobalt/40 shadow-folk-sm"
+                    : "bg-folk-cream border-folk-cobalt/15 text-folk-cobalt"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+              </span>
+              <span className="truncate">{t(labelKey)}</span>
+            </Link>
+          ))}
+        </nav>
 
-      <div className="shrink-0 space-y-2 border-t border-border pt-3">
-        <GamesNavSection pathname={pathname} />
-        {!shouldShowRightPanel(pathname) && (
-          <AptMailboxLink className="block w-full shrink-0 bg-folk-terracotta text-white flex items-center justify-center gap-2 py-3 text-sm font-display font-bold rounded-xl hover:bg-folk-terracotta-dark transition-colors border-2 border-folk-cobalt/25 shadow-folk">
-            <Mailbox className="h-4 w-4" />
-            {t("nav.mailbox")}
-          </AptMailboxLink>
-        )}
-      </div>
+        <div className="shrink-0 space-y-2 border-t border-border pt-3">
+          <GamesNavSection pathname={pathname} />
+          {!shouldShowRightPanel(pathname) && (
+            <AptMailboxLink className="block w-full shrink-0 bg-folk-terracotta text-white flex items-center justify-center gap-2 py-3 text-sm font-display font-bold rounded-xl hover:bg-folk-terracotta-dark transition-colors border-2 border-folk-cobalt/25 shadow-folk">
+              <Mailbox className="h-4 w-4" />
+              {t("nav.mailbox")}
+            </AptMailboxLink>
+          )}
+        </div>
       </aside>
     </div>
   );
