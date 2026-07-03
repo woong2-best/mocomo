@@ -12,6 +12,7 @@ import { mainScrollPaddingClass, shouldHideMobileNav } from "@/lib/mobile-shell"
 import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
 import { isAptImmersivePath } from "@/lib/apt-route";
 import { isFastHubPath } from "@/lib/hub-fast-path";
+import { cn } from "@/lib/utils";
 import { pageVariants } from "@/lib/motion-presets";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
@@ -76,14 +77,16 @@ function AppShellInner({
   return (
     <>
       <Header />
-      <div className="flex min-h-app">
+      <div className="flex min-h-app items-start">
         <Sidebar />
         <main
-          className={
+          className={cn(
+            "flex-1 min-w-0 bg-background",
+            showRightPanel && "shell-col-divider-r",
             isMessagesRoute
-              ? `flex-1 min-w-0 overflow-hidden bg-background ${mainPb}`
-              : `flex-1 min-w-0 overflow-y-auto overflow-x-hidden bg-background ${mainPb}`
-          }
+              ? `overflow-hidden ${mainPb}`
+              : `overflow-y-auto overflow-x-hidden ${mainPb}`
+          )}
         >
           {isMessagesRoute ? (
             pageMotion
@@ -97,7 +100,7 @@ function AppShellInner({
       </div>
       {!hideMobileNav && <MobileNav />}
       {!isMessagesRoute && (
-        <footer className="hidden lg:block border-t-2 border-folk-cobalt/20 py-3 px-4 bg-[hsl(var(--folk-gold)/0.08)]">
+        <footer className="hidden lg:block border-t border-border py-3 px-4 lg:px-6 bg-muted/20">
           <LegalFooterLinks />
         </footer>
       )}

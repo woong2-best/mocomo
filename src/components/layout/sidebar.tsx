@@ -37,12 +37,12 @@ export function Sidebar() {
     >
       <aside
         className={cn(
-          "flex w-[17rem] xl:w-[18rem] flex-col shrink-0 sticky top-[var(--header-h)] h-app bg-[hsl(var(--folk-cream)/0.6)] dark:bg-background border-r-2 border-folk-cobalt/20 p-4 gap-3 overflow-hidden relative z-[1]",
+          "flex w-[17rem] xl:w-[18rem] flex-col shrink-0 sticky top-[var(--header-h)] h-app shell-col-pad shell-col-divider-r gap-3 overflow-hidden bg-background relative z-[1]",
           "transition-transform duration-300 ease-in-out",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
-      <nav className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain pr-0.5">
+      <nav className="sidebar-nav-scroll flex flex-col gap-2 pr-1">
         {navItems.map(({ href, icon: Icon, labelKey }) => (
           <Link
             key={href}
@@ -65,7 +65,7 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="shrink-0 space-y-2 border-t-2 border-folk-cobalt/20 pt-3 bg-[hsl(var(--folk-cream)/0.6)] dark:bg-background">
+      <div className="shrink-0 space-y-2 border-t border-border pt-3">
         <GamesNavSection pathname={pathname} />
         {!shouldShowRightPanel(pathname) && (
           <AptMailboxLink className="block w-full shrink-0 bg-folk-terracotta text-white flex items-center justify-center gap-2 py-3 text-sm font-display font-bold rounded-xl hover:bg-folk-terracotta-dark transition-colors border-2 border-folk-cobalt/25 shadow-folk">

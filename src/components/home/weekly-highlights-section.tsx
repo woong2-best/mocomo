@@ -134,7 +134,7 @@ export function WeeklyHighlightsSection({
         <h2 className="text-sm font-semibold text-muted-foreground">{t("home.highlightsTitle")}</h2>
         <span className="text-[11px] text-muted-foreground">{t("home.highlightsMeta")}</span>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 items-start">
         <HighlightColumn
           title={likesTitle}
           icon={Heart}

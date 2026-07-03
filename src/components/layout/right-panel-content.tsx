@@ -31,7 +31,7 @@ export type SidebarPanelData = {
 
 export function RightPanelSkeleton() {
   return (
-    <aside className="hidden lg:block w-64 xl:w-72 shrink-0 p-4 space-y-3 sticky top-[var(--header-h)] z-[1] h-[calc(100dvh-var(--header-h))] overflow-hidden folk-panel-aside animate-pulse">
+    <aside className="hidden lg:block w-64 xl:w-72 shrink-0 shell-col-pad folk-panel-aside space-y-3 sticky top-[var(--header-h)] z-[1] h-[calc(100dvh-var(--header-h))] overflow-hidden animate-pulse">
       <div className="h-12 rounded-2xl bg-folk-terracotta/30" />
       <div className="h-48 rounded-2xl bg-muted" />
       <div className="h-36 rounded-2xl bg-muted" />
@@ -53,7 +53,7 @@ export function RightPanelContent({ animes, sidebarAds, eventPins }: SidebarPane
         }));
 
   return (
-    <aside className="hidden lg:block w-64 xl:w-72 shrink-0 p-4 space-y-3 sticky top-[var(--header-h)] z-[1] h-[calc(100dvh-var(--header-h))] overflow-y-auto folk-panel-aside">
+    <aside className="hidden lg:block w-64 xl:w-72 shrink-0 shell-col-pad folk-panel-aside space-y-3 sticky top-[var(--header-h)] z-[1] h-[calc(100dvh-var(--header-h))] overflow-y-auto">
       <RightPanelComposeButton />
       <Card className="overflow-hidden border-folk-gold/40 bg-folk-gold/5">
         <CardHeader className="pb-2">
