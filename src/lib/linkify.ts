@@ -3,19 +3,28 @@ import { BLOCKED_HOSTS } from "@/lib/safe-link";
 export type LinkifyPart =
   | { type: "text"; value: string }
   | { type: "link"; href: string; label: string }
-  | { type: "hashtag"; label: string; tag: string };
+  | { type: "hashtag"; label: string; tag: string }
+  | { type: "mention"; label: string; username: string };
 
 const URL_RE = /(?:https?:\/\/|www\.)[^\s<>"{}|\\^`[\]]+/gi;
 /** Letters, numbers, underscore — CJK 등 비ASCII 포함 (Twitter 스타일) */
 const HASHTAG_RE = /#[\w\u0080-\uFFFF]+/gu;
+/** Usernames are ascii letters, numbers, underscore (3-20 chars) */
+const MENTION_RE = /(?<![A-Za-z0-9_])@[A-Za-z0-9_]{3,20}(?![A-Za-z0-9_])/g;
 
 type TextToken =
   | { start: number; end: number; type: "link"; href: string; label: string; trailing: string }
-  | { start: number; end: number; type: "hashtag"; label: string; tag: string };
+  | { start: number; end: number; type: "hashtag"; label: string; tag: string }
+  | { start: number; end: number; type: "mention"; label: string; username: string };
 
 export function hashtagSearchHref(label: string): string {
   const q = label.startsWith("#") ? label : `#${label}`;
   return `/search?q=${encodeURIComponent(q)}`;
+}
+
+export function mentionProfileHref(label: string): string {
+  const username = label.startsWith("@") ? label.slice(1) : label;
+  return `/u/${encodeURIComponent(username)}`;
 }
 
 export function isHashtagSearchQuery(q: string): boolean {
@@ -82,6 +91,14 @@ function collectTextTokens(text: string): TextToken[] {
     tokens.push({ start, end: start + label.length, type: "hashtag", label, tag });
   }
 
+  for (const match of text.matchAll(MENTION_RE)) {
+    const start = match.index ?? 0;
+    const label = match[0];
+    const username = label.slice(1);
+    if (!username) continue;
+    tokens.push({ start, end: start + label.length, type: "mention", label, username });
+  }
+
   tokens.sort((a, b) => a.start - b.start || a.end - b.end);
 
   const merged: TextToken[] = [];
@@ -111,8 +128,11 @@ export function parseLinkifyParts(text: string): LinkifyPart[] {
       parts.push({ type: "link", href: token.href, label: token.label });
       if (token.trailing) parts.push({ type: "text", value: token.trailing });
       last = token.end + token.trailing.length;
-    } else {
+    } else if (token.type === "hashtag") {
       parts.push({ type: "hashtag", label: token.label, tag: token.tag });
+      last = token.end;
+    } else {
+      parts.push({ type: "mention", label: token.label, username: token.username });
       last = token.end;
     }
   }

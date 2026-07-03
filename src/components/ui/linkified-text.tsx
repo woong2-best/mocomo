@@ -3,7 +3,15 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { hashtagSearchHref, isExternalHref, parseLinkifyParts } from "@/lib/linkify";
+import {
+  hashtagSearchHref,
+  isExternalHref,
+  mentionProfileHref,
+  parseLinkifyParts,
+} from "@/lib/linkify";
+
+const mentionLikeClass =
+  "text-blue-500 hover:underline dark:text-yellow-400 dark:hover:text-yellow-300";
 
 export function LinkifiedText({
   text,
@@ -30,7 +38,25 @@ export function LinkifiedText({
             <Link
               key={i}
               href={hashtagSearchHref(part.label)}
-              className="text-blue-500 hover:underline dark:text-yellow-400 dark:hover:text-yellow-300"
+              className={mentionLikeClass}
+              onClick={
+                stopPropagation
+                  ? (e) => {
+                      e.stopPropagation();
+                    }
+                  : undefined
+              }
+            >
+              {part.label}
+            </Link>
+          );
+        }
+        if (part.type === "mention") {
+          return (
+            <Link
+              key={i}
+              href={mentionProfileHref(part.label)}
+              className={mentionLikeClass}
               onClick={
                 stopPropagation
                   ? (e) => {
