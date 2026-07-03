@@ -38,7 +38,7 @@ export function ProfilePostCard({
   return (
     <article
       className={cn(
-        "relative px-4 py-3 border-b border-border/60 hover:bg-muted/30 transition-colors",
+        "relative px-4 py-3 border-b border-border/60 hover:bg-muted/30 transition-colors min-w-0 max-w-full overflow-hidden",
         pinnedHighlight && "bg-muted/15 border-l-4 border-l-primary/70"
       )}
     >

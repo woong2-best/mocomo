@@ -35,7 +35,7 @@ export function ProfileFeedControls({
   if (tab !== "posts" && tab !== "media") return null;
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-4 py-2.5 bg-background/95">
+    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5">
       {tab === "media" ? (
         <div className="inline-flex rounded-full border border-border/70 bg-muted/40 p-0.5">
           <Link

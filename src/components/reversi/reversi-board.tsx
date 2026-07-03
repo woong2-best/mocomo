@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useLayoutEffect, useRef } from "react";
 import {
   boardToCell,
   computeGoBoardLayout,
   drawBoardStone,
+  measureCanvasCssSize,
 } from "@/lib/minigames/go-board-art";
 import { REVERSI_SIZE } from "@/lib/minigames/reversi-logic";
 import { cn } from "@/lib/utils";
@@ -12,6 +13,7 @@ import { cn } from "@/lib/utils";
 const REVERSI_CELL = 36;
 const REVERSI_PLAY = REVERSI_CELL * (REVERSI_SIZE - 1);
 const REVERSI_CANVAS = REVERSI_PLAY + 72;
+const BOARD_MAX_CSS = REVERSI_CANVAS + 16;
 
 type Props = {
   board: number[][];
@@ -100,8 +102,7 @@ export function ReversiBoard({
     if (!canvas || !wrap) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const rect = wrap.getBoundingClientRect();
-    const cssW = Math.min(rect.width, REVERSI_CANVAS);
+    const cssW = measureCanvasCssSize(wrap, BOARD_MAX_CSS);
     const cssH = cssW;
     canvas.style.width = `${cssW}px`;
     canvas.style.height = `${cssH}px`;
@@ -139,11 +140,18 @@ export function ReversiBoard({
     }
   }, [board, disabled, lastMove, placing, valid, validMoves]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     draw();
-    const ro = new ResizeObserver(draw);
-    if (wrapRef.current) ro.observe(wrapRef.current);
-    return () => ro.disconnect();
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const ro = new ResizeObserver(() => draw());
+    ro.observe(wrap);
+    const onWinResize = () => draw();
+    window.addEventListener("resize", onWinResize);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", onWinResize);
+    };
   }, [draw]);
 
   function pointerPos(e: React.PointerEvent) {
@@ -167,12 +175,15 @@ export function ReversiBoard({
   return (
     <div
       ref={wrapRef}
-      className={cn("mx-auto w-full touch-none select-none", !disabled && !placing && "cursor-pointer")}
-      style={{ maxWidth: REVERSI_CANVAS + 16 }}
+      className={cn(
+        "mx-auto w-full aspect-square touch-none select-none",
+        !disabled && !placing && "cursor-pointer"
+      )}
+      style={{ maxWidth: BOARD_MAX_CSS }}
     >
       <canvas
         ref={canvasRef}
-        className="w-full rounded-2xl shadow-2xl ring-1 ring-black/20"
+        className="block w-full h-full rounded-2xl shadow-2xl ring-1 ring-black/20"
         onPointerDown={onPointerDown}
       />
     </div>

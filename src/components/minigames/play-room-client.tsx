@@ -12,6 +12,7 @@ import {
   MinigameLobbyPanel,
 } from "@/components/minigames/minigame-lobby-panel";
 import { MinigameChatPanel } from "@/components/minigames/minigame-chat-panel";
+import { WordGuessSidebar } from "@/components/minigames/word-guess-sidebar";
 import { MinigameClockBar } from "@/components/minigames/minigame-clock-bar";
 import { GameActiveView } from "@/components/minigames/game-views";
 import { GameRoomGate } from "@/components/minigames/game-room-gate";
@@ -74,6 +75,7 @@ export function PlayRoomClient({
   const isTowerInstant =
     gameId === "tower-rush" && !!towerMode && isTowerInstantPlayMode(towerMode);
   const isInstantPlay = isParkingInstant || isTowerInstant;
+  const isWordGuess = gameId === "word-guess";
   const showSpectator = !isInstantPlay;
 
   function handleLeave() {
@@ -216,7 +218,7 @@ export function PlayRoomClient({
       {(state?.status === "playing" || state?.status === "finished") && (
         <div className={isInstantPlay ? "space-y-3" : "grid lg:grid-cols-[minmax(0,1fr)_280px] gap-4"}>
           <div className="min-w-0 space-y-3">
-            {state.status === "playing" && <MinigameClockBar state={state} userId={userId} />}
+            {state.status === "playing" && !isWordGuess && <MinigameClockBar state={state} userId={userId} />}
             {state.game ? (
               <GameActiveView
                 gameId={gameId}
@@ -232,12 +234,23 @@ export function PlayRoomClient({
             )}
           </div>
           {!isInstantPlay && (
-            <MinigameChatPanel
-              gameId={gameId}
-              messages={chatMessages}
-              onSend={(t) => sendChat(t)}
-              disabled={isSpectator && !state.spectatorChatEnabled}
-            />
+            isWordGuess && state.game ? (
+              <WordGuessSidebar
+                scores={(state.game.scores as Record<string, number>) ?? {}}
+                players={state.players}
+                userId={userId}
+                messages={chatMessages}
+                onSendChat={(t) => sendChat(t)}
+                chatDisabled={isSpectator && !state.spectatorChatEnabled}
+              />
+            ) : (
+              <MinigameChatPanel
+                gameId={gameId}
+                messages={chatMessages}
+                onSend={(t) => sendChat(t)}
+                disabled={isSpectator && !state.spectatorChatEnabled}
+              />
+            )
           )}
         </div>
       )}

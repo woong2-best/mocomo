@@ -3,7 +3,6 @@ import { Suspense } from "react";
 import { Fredoka, Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { AppProviders } from "@/components/providers/app-providers";
-import { LocaleProvider } from "@/components/providers/locale-provider";
 import { ShellRouter } from "@/components/layout/shell-router";
 import { getRequestI18n } from "@/lib/i18n/server";
 import { resolveClientPlatform, CLIENT_PLATFORM_COOKIE, isNativeAppPlatform } from "@/lib/client-platform";
@@ -77,23 +76,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className={`${folkDisplay.variable} ${geistSans.variable} ${geistMono.variable} font-sans folk-canvas`}>
         <div className="folk-app-shell">
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-            <LocaleProvider initialLocale={locale} initialCountryCode={countryCode}>
-              <AppProviders>
-                <ShellRouter
-                  initialPlatform={initialPlatform}
-                  isStudioHost={isStudioHost}
-                  rightPanel={
-                    showRightPanel ? (
-                      <Suspense fallback={<RightPanelSkeleton />}>
-                        <RightPanelAsync />
-                      </Suspense>
-                    ) : undefined
-                  }
-                >
-                  {children}
-                </ShellRouter>
-              </AppProviders>
-            </LocaleProvider>
+            <AppProviders initialLocale={locale} initialCountryCode={countryCode}>
+              <ShellRouter
+                initialPlatform={initialPlatform}
+                isStudioHost={isStudioHost}
+                rightPanel={
+                  showRightPanel ? (
+                    <Suspense fallback={<RightPanelSkeleton />}>
+                      <RightPanelAsync />
+                    </Suspense>
+                  ) : undefined
+                }
+              >
+                {children}
+              </ShellRouter>
+            </AppProviders>
           </ThemeProvider>
         </div>
       </body>

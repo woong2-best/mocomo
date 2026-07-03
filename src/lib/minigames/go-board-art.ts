@@ -8,6 +8,19 @@ export const OMOK_CELL = 28;
 export const OMOK_PLAY_SIZE = OMOK_CELL * (OMOK_BOARD_SIZE - 1);
 export const OMOK_CANVAS_SIZE = OMOK_PLAY_SIZE + GO_BOARD_FRAME * 2;
 
+/** 캔버스 보드 — 그리드 레이아웃에서 너비 0으로 측정될 때 fallback */
+export function measureCanvasCssSize(wrap: HTMLElement, maxCss: number): number {
+  const rect = wrap.getBoundingClientRect();
+  const fromRect = rect.width;
+  const fromClient = wrap.clientWidth;
+  const fromParent = wrap.parentElement?.getBoundingClientRect().width ?? 0;
+  const cssW = Math.min(
+    Math.max(fromRect, fromClient, fromParent > 0 ? fromParent : 0, maxCss),
+    maxCss
+  );
+  return cssW > 0 ? cssW : maxCss;
+}
+
 export type GoBoardLayout = {
   ox: number;
   oy: number;

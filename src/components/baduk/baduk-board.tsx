@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import {
   boardToCell,
   computeGoBoardLayout,
   drawBoardStone,
   drawGoBoardSurface,
+  measureCanvasCssSize,
 } from "@/lib/minigames/go-board-art";
 import { badukPlaySize, type Stone } from "@/lib/minigames/baduk-logic";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,7 @@ export function BadukBoard({
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
   const playSize = badukPlaySize(boardSize);
   const maxW = playSize + 72;
+  const boardMaxCss = maxW + 24;
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -41,8 +43,7 @@ export function BadukBoard({
     if (!canvas || !wrap) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const rect = wrap.getBoundingClientRect();
-    const cssW = Math.min(rect.width, maxW);
+    const cssW = measureCanvasCssSize(wrap, boardMaxCss);
     const cssH = cssW;
     canvas.style.width = `${cssW}px`;
     canvas.style.height = `${cssH}px`;
@@ -68,13 +69,20 @@ export function BadukBoard({
     if (!disabled && !placing && hover && board[hover.y]?.[hover.x] === 0) {
       drawBoardStone(ctx, layout, hover.x, hover.y, myStoneBlack, { preview: true });
     }
-  }, [board, boardSize, disabled, hover, lastMove, maxW, myStoneBlack, placing, playSize]);
+  }, [board, boardSize, boardMaxCss, disabled, hover, lastMove, myStoneBlack, placing, playSize]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     draw();
-    const ro = new ResizeObserver(draw);
-    if (wrapRef.current) ro.observe(wrapRef.current);
-    return () => ro.disconnect();
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const ro = new ResizeObserver(() => draw());
+    ro.observe(wrap);
+    const onWinResize = () => draw();
+    window.addEventListener("resize", onWinResize);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", onWinResize);
+    };
   }, [draw]);
 
   function pointerPos(e: React.PointerEvent) {
@@ -89,12 +97,15 @@ export function BadukBoard({
   return (
     <div
       ref={wrapRef}
-      className={cn("mx-auto w-full touch-none select-none", !disabled && !placing && "cursor-pointer")}
-      style={{ maxWidth: maxW + 24 }}
+      className={cn(
+        "mx-auto w-full aspect-square touch-none select-none",
+        !disabled && !placing && "cursor-pointer"
+      )}
+      style={{ maxWidth: boardMaxCss }}
     >
       <canvas
         ref={canvasRef}
-        className="w-full rounded-2xl shadow-2xl ring-1 ring-black/20"
+        className="block w-full h-full rounded-2xl shadow-2xl ring-1 ring-black/20"
         onPointerMove={(e) => {
           if (disabled || placing) {
             setHover(null);

@@ -89,7 +89,7 @@ export const chosungQuizPlugin: MinigamePlugin = {
         maxRounds: ROUNDS,
         scores: { ...state.scores },
         chosung: state.current?.chosung ?? "",
-        hint: state.current?.hint ?? null,
+        hint: state.current?.hints[0] ?? null,
         turnUserId: state.turnUserId,
         timeLeft: state.turnEndsAt ? Math.max(0, Math.ceil((state.turnEndsAt - Date.now()) / 1000)) : 0,
       },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   JANGGI_CANVAS_SIZE,
   computeJanggiLayout,
@@ -8,6 +8,7 @@ import {
   drawJanggiScene,
   janggiCoordFromPointer,
 } from "@/lib/minigames/janggi-board-art";
+import { measureCanvasCssSize } from "@/lib/minigames/go-board-art";
 import {
   type JanggiBoard,
   type JanggiCoord,
@@ -17,6 +18,8 @@ import {
   isRedPiece,
 } from "@/lib/minigames/janggi-logic";
 import { cn } from "@/lib/utils";
+
+const BOARD_MAX_CSS = JANGGI_CANVAS_SIZE + 24;
 
 type Props = {
   board: JanggiBoard;
@@ -108,8 +111,7 @@ export function JanggiBoard({
     if (!canvas || !wrap) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const rect = wrap.getBoundingClientRect();
-    const cssW = Math.min(rect.width, JANGGI_CANVAS_SIZE + 24);
+    const cssW = measureCanvasCssSize(wrap, BOARD_MAX_CSS);
     const cssH = cssW * (10 / 9);
     canvas.style.width = `${cssW}px`;
     canvas.style.height = `${cssH}px`;
@@ -136,11 +138,18 @@ export function JanggiBoard({
     });
   }, [checkKing, displayBoard, displayLast, displayLegalMoves, displaySelected, flip, legalMoves, selected]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     draw();
-    const ro = new ResizeObserver(draw);
-    if (wrapRef.current) ro.observe(wrapRef.current);
-    return () => ro.disconnect();
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const ro = new ResizeObserver(() => draw());
+    ro.observe(wrap);
+    const onWinResize = () => draw();
+    window.addEventListener("resize", onWinResize);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", onWinResize);
+    };
   }, [draw]);
 
   function pickPiece(x: number, y: number): JanggiPiece | null {
@@ -185,11 +194,14 @@ export function JanggiBoard({
   }
 
   return (
-    <div ref={wrapRef} className={cn("w-full max-w-[440px] mx-auto", placing && "opacity-80")}>
+    <div
+      ref={wrapRef}
+      className={cn("w-full max-w-[440px] mx-auto aspect-[9/10]", placing && "opacity-80")}
+    >
       <canvas
         ref={canvasRef}
         className={cn(
-          "rounded-lg border-2 border-amber-900/30 shadow-md touch-none w-full",
+          "block w-full h-full rounded-lg border-2 border-amber-900/30 shadow-md touch-none",
           disabled ? "cursor-not-allowed" : "cursor-pointer"
         )}
         onClick={(e) => handlePointer(e.clientX, e.clientY)}

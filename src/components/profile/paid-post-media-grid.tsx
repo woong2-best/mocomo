@@ -49,7 +49,7 @@ export function PaidPostMediaGrid({
   const grid = (
     <div
       className={cn(
-        "mt-3 grid gap-1 rounded-2xl overflow-hidden border border-border/50",
+        "mt-3 grid gap-1 rounded-2xl overflow-hidden border border-border/50 max-w-full",
         media.length > 1 ? "grid-cols-2" : "grid-cols-1",
         className
       )}

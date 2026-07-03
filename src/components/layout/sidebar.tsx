@@ -31,15 +31,14 @@ export function Sidebar() {
     <div
       className={cn(
         "hidden lg:block h-full shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out",
-        open ? "w-[17rem] xl:w-[18rem]" : "w-0 pointer-events-none"
+        open ? "w-[17rem] xl:w-[18rem]" : "w-0"
       )}
       aria-hidden={!open}
     >
       <aside
         className={cn(
           "flex h-full w-[17rem] xl:w-[18rem] flex-col shrink-0 shell-col-pad shell-col-divider-r folk-panel-aside space-y-3 overflow-y-auto overscroll-contain",
-          "transition-transform duration-300 ease-in-out",
-          open ? "translate-x-0" : "-translate-x-full"
+          !open && "pointer-events-none invisible"
         )}
       >
         <nav className="flex flex-col gap-2 pr-1">

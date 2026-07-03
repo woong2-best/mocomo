@@ -34,14 +34,17 @@ function AppShellInner({
   const showRightPanel = shouldShowRightPanel(pathname);
   const reduced = usePrefersReducedMotion();
   const prevPathRef = useRef(pathname);
+  const isProfileRoute = pathname.startsWith("/u/");
   const skipHubMotion =
     prevPathRef.current !== pathname &&
     isFastHubPath(prevPathRef.current) &&
     isFastHubPath(pathname);
   prevPathRef.current = pathname;
 
-  const pageMotion = reduced ? (
-    <>{children}</>
+  const pageMotion = reduced || isProfileRoute ? (
+    <div key={pathname} className="min-h-full">
+      {children}
+    </div>
   ) : skipHubMotion ? (
     <div key={pathname} className="min-h-full">
       {children}
@@ -85,7 +88,9 @@ function AppShellInner({
             showRightPanel && "shell-col-divider-r",
             isMessagesRoute
               ? `overflow-hidden ${mainPb}`
-              : `overflow-y-auto overflow-x-hidden ${mainPb}`
+              : isProfileRoute
+                ? `overflow-y-auto ${mainPb}`
+                : `overflow-y-auto overflow-x-hidden ${mainPb}`
           )}
         >
           {isMessagesRoute ? (

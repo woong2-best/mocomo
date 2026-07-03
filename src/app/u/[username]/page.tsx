@@ -20,10 +20,12 @@ export default function UserProfilePage({
       <Suspense fallback={<ProfileHeaderSkeleton />}>
         <ProfilePageHeader params={params} searchParams={searchParams} />
       </Suspense>
-      <div className="lg:grid lg:grid-cols-[1fr_300px]">
-        <Suspense fallback={<ProfileTimelineSkeleton />}>
-          <ProfilePageTimeline params={params} searchParams={searchParams} />
-        </Suspense>
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_280px] min-w-0">
+        <div className="min-w-0">
+          <Suspense fallback={<ProfileTimelineSkeleton />}>
+            <ProfilePageTimeline params={params} searchParams={searchParams} />
+          </Suspense>
+        </div>
         <div className="lg:hidden border-t border-border/40 p-4">
           <Suspense
             fallback={<div className="h-32 rounded-xl bg-muted/40 animate-pulse" />}
@@ -38,7 +40,7 @@ export default function UserProfilePage({
             </aside>
           }
         >
-          <aside className="hidden lg:block border-l border-border/40 p-4 space-y-4">
+          <aside className="hidden lg:block border-l border-border/40 p-4 space-y-4 min-w-0">
             <ProfilePageWebtoons params={params} />
             <ProfilePageMinigame params={params} />
           </aside>

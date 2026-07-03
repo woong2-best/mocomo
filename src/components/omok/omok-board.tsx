@@ -8,6 +8,7 @@ import {
   drawBoardStone,
   drawGoBoardSurface,
   drawWinLine,
+  measureCanvasCssSize,
   OMOK_CANVAS_SIZE,
 } from "@/lib/minigames/go-board-art";
 import { cn } from "@/lib/utils";
@@ -23,18 +24,6 @@ type Props = {
   placing?: boolean;
   onCellClick?: (x: number, y: number) => void;
 };
-
-function measureBoardCssSize(wrap: HTMLDivElement): number {
-  const rect = wrap.getBoundingClientRect();
-  const fromRect = rect.width;
-  const fromClient = wrap.clientWidth;
-  const fromParent = wrap.parentElement?.getBoundingClientRect().width ?? 0;
-  const cssW = Math.min(
-    Math.max(fromRect, fromClient, fromParent > 0 ? fromParent : 0, BOARD_MAX_CSS),
-    BOARD_MAX_CSS
-  );
-  return cssW > 0 ? cssW : BOARD_MAX_CSS;
-}
 
 export function OmokBoard({
   board,
@@ -55,7 +44,7 @@ export function OmokBoard({
     if (!canvas || !wrap) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const cssW = measureBoardCssSize(wrap);
+    const cssW = measureCanvasCssSize(wrap, BOARD_MAX_CSS);
     const cssH = cssW;
     canvas.style.width = `${cssW}px`;
     canvas.style.height = `${cssH}px`;

@@ -1,6 +1,8 @@
 /** 초성퀴즈 · 단어맞추기 단어 풀 */
 
-export type WordQuizEntry = { word: string; hint?: string; chosung: string };
+import { WORD_GUESS_MAX_HINTS } from "@/lib/minigames/word-guess-logic";
+
+export type WordQuizEntry = { word: string; category: string; hints: string[]; chosung: string };
 
 function toChosung(word: string): string {
   const CHO = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
@@ -14,41 +16,59 @@ function toChosung(word: string): string {
   return out;
 }
 
-const RAW: { word: string; hint?: string }[] = [
-  { word: "사과", hint: "과일" },
-  { word: "바나나", hint: "노란 과일" },
-  { word: "컴퓨터", hint: "전자기기" },
-  { word: "스마트폰", hint: "통신" },
-  { word: "애니메이션", hint: "일본" },
-  { word: "만화", hint: "그림" },
-  { word: "게임", hint: "오락" },
-  { word: "음악", hint: "멜로디" },
-  { word: "영화", hint: "극장" },
-  { word: "여행", hint: "휴가" },
-  { word: "커피", hint: "음료" },
-  { word: "피자", hint: "음식" },
-  { word: "치킨", hint: "음식" },
-  { word: "축구", hint: "스포츠" },
-  { word: "야구", hint: "스포츠" },
-  { word: "수영", hint: "물" },
-  { word: "강아지", hint: "반려" },
-  { word: "고양이", hint: "반려" },
-  { word: "자동차", hint: "탈것" },
-  { word: "비행기", hint: "하늘" },
-  { word: "우주", hint: "별" },
-  { word: "행복", hint: "감정" },
-  { word: "사랑", hint: "감정" },
-  { word: "친구", hint: "사람" },
-  { word: "학교", hint: "교육" },
-  { word: "도서관", hint: "책" },
-  { word: "병원", hint: "건강" },
-  { word: "공원", hint: "산책" },
-  { word: "바다", hint: "자연" },
-  { word: "산", hint: "자연" },
+const RAW: { word: string; category: string; hint?: string }[] = [
+  { word: "사과", category: "음식", hint: "과일" },
+  { word: "바나나", category: "음식", hint: "노란 과일" },
+  { word: "컴퓨터", category: "사물", hint: "전자기기" },
+  { word: "스마트폰", category: "사물", hint: "통신" },
+  { word: "애니메이션", category: "문화", hint: "일본" },
+  { word: "만화", category: "문화", hint: "그림" },
+  { word: "게임", category: "문화", hint: "오락" },
+  { word: "음악", category: "문화", hint: "멜로디" },
+  { word: "영화", category: "문화", hint: "극장" },
+  { word: "여행", category: "생활", hint: "휴가" },
+  { word: "커피", category: "음식", hint: "음료" },
+  { word: "피자", category: "음식", hint: "음식" },
+  { word: "치킨", category: "음식", hint: "음식" },
+  { word: "축구", category: "스포츠", hint: "스포츠" },
+  { word: "야구", category: "스포츠", hint: "스포츠" },
+  { word: "수영", category: "스포츠", hint: "물" },
+  { word: "강아지", category: "동물", hint: "반려" },
+  { word: "고양이", category: "동물", hint: "반려" },
+  { word: "자동차", category: "사물", hint: "탈것" },
+  { word: "비행기", category: "사물", hint: "하늘" },
+  { word: "우주", category: "자연", hint: "별" },
+  { word: "행복", category: "감정", hint: "감정" },
+  { word: "사랑", category: "감정", hint: "감정" },
+  { word: "친구", category: "사람", hint: "사람" },
+  { word: "학교", category: "장소", hint: "교육" },
+  { word: "도서관", category: "장소", hint: "책" },
+  { word: "병원", category: "장소", hint: "건강" },
+  { word: "공원", category: "장소", hint: "산책" },
+  { word: "바다", category: "자연", hint: "자연" },
+  { word: "산", category: "자연", hint: "자연" },
 ];
 
+function buildHints(word: string, category: string, topic?: string): string[] {
+  const hints: string[] = [];
+  if (topic) hints.push(topic);
+  hints.push(`카테고리: ${category}`);
+  hints.push(`총 ${word.length}글자입니다`);
+  if (word.length >= 1) hints.push(`첫 글자는 「${word[0]}」`);
+  if (word.length >= 2) hints.push(`두 번째 글자는 「${word[1]}」`);
+  hints.push(`초성: ${toChosung(word)}`);
+  if (word.length >= 3) hints.push(`세 번째 글자는 「${word[2]}」`);
+  if (word.length >= 2) hints.push(`마지막 글자는 「${word[word.length - 1]}」`);
+  if (word.length >= 4) hints.push(`네 번째 글자는 「${word[3]}」`);
+  const mid = Math.floor(word.length / 2);
+  if (word.length >= 5) hints.push(`가운데 글자는 「${word[mid]}」`);
+  return hints.slice(0, WORD_GUESS_MAX_HINTS);
+}
+
 export const WORD_QUIZ_POOL: WordQuizEntry[] = RAW.map((e) => ({
-  ...e,
+  word: e.word,
+  category: e.category,
+  hints: buildHints(e.word, e.category, e.hint),
   chosung: toChosung(e.word),
 }));
 

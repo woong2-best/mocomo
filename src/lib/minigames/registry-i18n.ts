@@ -35,8 +35,8 @@ const GAME_TEXT: Record<string, Record<Locale, GameText>> = {
     zh: { name: "首字母猜词", description: "根据首字母猜词 · 5 轮" },
   },
   "word-guess": {
-    ko: { name: "단어 맞추기", description: "힌트·피드백 단어 퀴즈" },
-    en: { name: "Word Guess", description: "Hint & feedback word quiz" },
+    ko: { name: "단어 맞추기", description: "힌트 자동 공개 · 실시간 정답 경쟁 · 8라운드" },
+    en: { name: "Word Guess", description: "Auto hints · real-time race · 8 rounds" },
     ja: { name: "単語当て", description: "ヒント付き単語クイズ" },
     zh: { name: "猜词", description: "提示与反馈猜词" },
   },

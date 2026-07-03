@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Timer } from "lucide-react";
 import {
   ALKKAGI_CANVAS_SIZE,
@@ -17,8 +17,11 @@ import {
   drawRubberBand,
   stoneScreenPos,
 } from "@/lib/minigames/alkkagi-board-art";
+import { measureCanvasCssSize } from "@/lib/minigames/go-board-art";
 import type { MinigamePlayerPublic } from "@/lib/minigames/shared-types";
 import { cn } from "@/lib/utils";
+
+const BOARD_MAX_CSS = ALKKAGI_CANVAS_SIZE + 40;
 
 type LastShot = {
   stoneId: string;
@@ -121,8 +124,7 @@ export function AlkkagiBoard({
     if (!canvas || !wrap) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const rect = wrap.getBoundingClientRect();
-    const cssW = Math.min(rect.width, 600);
+    const cssW = measureCanvasCssSize(wrap, BOARD_MAX_CSS);
     const cssH = cssW;
     canvas.style.width = `${cssW}px`;
     canvas.style.height = `${cssH}px`;
@@ -178,11 +180,18 @@ export function AlkkagiBoard({
     }
   }, [displayFrame, drag, height, isBlackStone, myTurn, selectedId, width]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     draw();
-    const ro = new ResizeObserver(draw);
-    if (wrapRef.current) ro.observe(wrapRef.current);
-    return () => ro.disconnect();
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const ro = new ResizeObserver(() => draw());
+    ro.observe(wrap);
+    const onWinResize = () => draw();
+    window.addEventListener("resize", onWinResize);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", onWinResize);
+    };
   }, [draw]);
 
   const runAnimation = useCallback(
@@ -257,7 +266,9 @@ export function AlkkagiBoard({
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const { x, y } = screenToBoard(e.clientX - rect.left, e.clientY - rect.top, rect.width, rect.height);
+    const cssW = parseFloat(canvas.style.width) || rect.width || BOARD_MAX_CSS;
+    const cssH = cssW;
+    const { x, y } = screenToBoard(e.clientX - rect.left, e.clientY - rect.top, cssW, cssH);
     const stone = hitStone(x, y);
     if (!stone || stone.ownerId !== userId) return;
     setShowHint(false);
@@ -378,14 +389,14 @@ export function AlkkagiBoard({
       <div
         ref={wrapRef}
         className={cn(
-          "mx-auto w-full touch-none select-none",
+          "mx-auto w-full aspect-square touch-none select-none",
           myTurn ? "cursor-crosshair" : "cursor-default"
         )}
-        style={{ maxWidth: ALKKAGI_CANVAS_SIZE + 40 }}
+        style={{ maxWidth: BOARD_MAX_CSS }}
       >
         <canvas
           ref={canvasRef}
-          className="w-full rounded-2xl shadow-2xl ring-1 ring-black/20"
+          className="block w-full h-full rounded-2xl shadow-2xl ring-1 ring-black/20"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}

@@ -26,7 +26,10 @@ import type { JanggiBoard, JanggiMove } from "@/lib/minigames/janggi-logic";
 import { RPS_LABELS } from "@/lib/minigames/rps-logic";
 import type { MinigamePublicState, RpsChoice } from "@/lib/minigames/shared-types";
 import type { AlkkagiStone } from "@/lib/minigames/alkkagi-physics";
-import { cn } from "@/lib/utils";
+import { MemoryCardsPanel } from "@/components/minigames/memory-cards-panel";
+import { WordGuessPanel } from "@/components/minigames/word-guess-panel";
+import type { MemoryCard } from "@/lib/minigames/memory-cards";
+import type { WordGuessPublicGame } from "@/lib/minigames/word-guess-logic";
 
 type Props = {
   gameId: string;
@@ -244,12 +247,36 @@ export function GameActiveView({ gameId, state, userId, isSpectator, onMove, err
         />
       );
     case "chosung-quiz":
-    case "word-guess":
     case "number-guess":
       return <QuizInputView g={g} userId={userId} isSpectator={isSpectator} onMove={onMove} gameId={gameId} />;
+    case "word-guess":
+      return (
+        <WordGuessPanel
+          game={g as unknown as WordGuessPublicGame}
+          userId={userId}
+          isSpectator={isSpectator}
+          finished={state.status === "finished"}
+          onMove={onMove}
+        />
+      );
     case "memory-cards":
     case "picture-match":
-      return <MemoryView g={g} userId={userId} isSpectator={isSpectator} onMove={onMove} />;
+      return (
+        <MemoryCardsPanel
+          cards={(g.cards as MemoryCard[]) ?? []}
+          currentPlayer={(g.currentPlayer as string) ?? (g.turnUserId as string) ?? ""}
+          firstSelectedCard={(g.firstSelectedCard as string | null) ?? null}
+          secondSelectedCard={(g.secondSelectedCard as string | null) ?? null}
+          scores={(g.scores as Record<string, number>) ?? {}}
+          remainingPairs={(g.remainingPairs as number) ?? 0}
+          resolving={(g.resolving as boolean) ?? false}
+          players={state.players}
+          userId={userId}
+          isSpectator={isSpectator}
+          finished={state.status === "finished"}
+          onMove={onMove}
+        />
+      );
     case "slide-puzzle":
       return <SlideView g={g} userId={userId} isSpectator={isSpectator} onMove={onMove} />;
     case "spot-diff":
@@ -425,7 +452,6 @@ function QuizInputView({ g, userId, isSpectator, onMove, gameId }: { g: Record<s
       <CardContent className="p-6 space-y-3 text-center">
         {gameId === "chosung-quiz" && <p className="text-3xl font-bold tracking-widest">{g.chosung as string}</p>}
         {gameId === "number-guess" && <p className="text-sm">{g.min as number} ~ {g.max as number} · {g.remaining as number}회 남음</p>}
-        {gameId === "word-guess" && <p className="text-xs text-muted-foreground">한글 단어 추측</p>}
         {(g.guesses as unknown[])?.length > 0 && (
           <div className="text-xs space-y-1 max-h-32 overflow-y-auto">
             {(g.guesses as { word?: string; value?: number; hint?: string; feedback?: string }[]).slice(-6).map((x, i) => (
@@ -439,33 +465,6 @@ function QuizInputView({ g, userId, isSpectator, onMove, gameId }: { g: Record<s
             <Button type="submit">확인</Button>
           </form>
         )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function MemoryView({ g, userId, isSpectator, onMove }: { g: Record<string, unknown>; userId?: string; isSpectator: boolean; onMove: Props["onMove"] }) {
-  const deckSize = g.deckSize as number;
-  const revealed = new Set(g.revealed as number[]);
-  const matched = new Set(g.matched as number[]);
-  const myTurn = g.turnUserId === userId && !isSpectator;
-  return (
-    <Card className="border-2 border-folk-cobalt/20">
-      <CardContent className="p-4 grid grid-cols-4 sm:grid-cols-8 gap-2">
-        {Array.from({ length: deckSize }, (_, i) => (
-          <button
-            key={i}
-            type="button"
-            disabled={!myTurn || matched.has(i)}
-            onClick={() => onMove(i)}
-            className={cn(
-              "aspect-square rounded-lg border-2 text-xs font-bold",
-              matched.has(i) ? "opacity-30" : revealed.has(i) ? "bg-folk-gold/30" : "bg-folk-cobalt/10"
-            )}
-          >
-            {matched.has(i) || revealed.has(i) ? `#${i}` : "?"}
-          </button>
-        ))}
       </CardContent>
     </Card>
   );

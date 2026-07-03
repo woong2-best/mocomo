@@ -2,10 +2,12 @@
 
 import dynamic from "next/dynamic";
 import { SessionProvider } from "@/components/providers/session-provider";
+import { LocaleProvider } from "@/components/providers/locale-provider";
 import { AppSocketProvider } from "@/components/providers/app-socket-provider";
 import { CallProviderGate } from "@/components/call/call-provider-gate";
 import { ComposeProvider } from "@/components/compose/compose-provider";
 import { SidebarToggleProvider } from "@/components/providers/sidebar-toggle-provider";
+import type { Locale } from "@/lib/i18n/config";
 
 const PlatformBootstrapClient = dynamic(
   () =>
@@ -24,21 +26,31 @@ const NativePushRegistration = dynamic(
   { ssr: false }
 );
 
-export function AppProviders({ children }: { children: React.ReactNode }) {
+export function AppProviders({
+  children,
+  initialLocale,
+  initialCountryCode,
+}: {
+  children: React.ReactNode;
+  initialLocale: Locale;
+  initialCountryCode: string;
+}) {
   return (
     <SessionProvider>
-      <AppSocketProvider>
-      <ComposeProvider>
-        <SidebarToggleProvider>
-        <PushRegistration />
-        <NativePushRegistration />
-        <CallProviderGate>
-          <PlatformBootstrapClient />
-          {children}
-        </CallProviderGate>
-        </SidebarToggleProvider>
-      </ComposeProvider>
-      </AppSocketProvider>
+      <LocaleProvider initialLocale={initialLocale} initialCountryCode={initialCountryCode}>
+        <AppSocketProvider>
+          <ComposeProvider>
+            <SidebarToggleProvider>
+              <PushRegistration />
+              <NativePushRegistration />
+              <CallProviderGate>
+                <PlatformBootstrapClient />
+                {children}
+              </CallProviderGate>
+            </SidebarToggleProvider>
+          </ComposeProvider>
+        </AppSocketProvider>
+      </LocaleProvider>
     </SessionProvider>
   );
 }

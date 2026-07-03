@@ -84,7 +84,7 @@ const REGISTRY: MinigameCatalogItem[] = [
   live("word-guess", {
     name: "단어 맞추기",
     category: "word",
-    description: "힌트·피드백 단어 퀴즈",
+    description: "힌트 자동 공개 · 실시간 정답 경쟁 · 8라운드",
     minPlayers: 2,
     maxPlayers: 6,
     supportsRanked: false,

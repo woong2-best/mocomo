@@ -72,7 +72,7 @@ export function ProfileHeader({
 
   return (
     <div className="border-b border-border/60">
-      <div className="sticky top-14 z-20 flex items-center gap-4 px-4 py-2 bg-background/90 backdrop-blur-md border-b border-border/40">
+      <div className="sticky top-[var(--header-h)] z-30 flex items-center gap-4 px-4 py-2 bg-background/95 backdrop-blur-md border-b border-border/40 supports-[backdrop-filter]:bg-background/80">
         <Link href={DEFAULT_LANDING_PATH} className="p-2 -ml-2 rounded-full hover:bg-muted/80">
           <ArrowLeft className="h-5 w-5" />
         </Link>

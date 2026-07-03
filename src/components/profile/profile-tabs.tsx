@@ -49,49 +49,51 @@ export function ProfileTabs({
 
   return (
     <>
-      <nav className="flex items-stretch border-b border-border/60 sticky top-[calc(3.5rem+3.25rem)] z-10 bg-background/95 backdrop-blur-md">
-        <div className="flex flex-1 min-w-0">
-          {tabs.filter((t) => showLikesTab || t.id !== "likes").map((t) => {
-            const href = tabHref(t.id);
-            const isActive = pathname === base && active === t.id;
-            return (
-              <Link
-                key={t.id}
-                href={href}
-                className={cn(
-                  "flex-1 py-4 text-center text-sm font-medium hover:bg-muted/40 transition-colors relative min-w-0",
-                  isActive && "font-bold"
-                )}
-              >
-                {t.label}
-                {isActive && (
-                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-14 h-1 rounded-full bg-primary" />
-                )}
-              </Link>
-            );
-          })}
-        </div>
-        {isSelf && (
-          <div className="flex items-center px-3 border-l border-border/60 shrink-0">
-            <Button
-              type="button"
-              size="sm"
-              variant={createOpen ? "secondary" : "default"}
-              className="rounded-full gap-1.5 h-9 px-4"
-              onClick={() => setCreateOpen((v) => !v)}
-            >
-              <Plus className="h-4 w-4" />
-              Create
-            </Button>
+      <div className="sticky top-[calc(var(--header-h)+3.25rem)] z-20 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 border-b border-border/60">
+        <nav className="flex items-stretch">
+          <div className="flex flex-1 min-w-0">
+            {tabs.filter((t) => showLikesTab || t.id !== "likes").map((t) => {
+              const href = tabHref(t.id);
+              const isActive = pathname === base && active === t.id;
+              return (
+                <Link
+                  key={t.id}
+                  href={href}
+                  className={cn(
+                    "flex-1 py-4 text-center text-sm font-medium hover:bg-muted/40 transition-colors relative min-w-0",
+                    isActive && "font-bold"
+                  )}
+                >
+                  {t.label}
+                  {isActive && (
+                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-14 h-1 rounded-full bg-primary" />
+                  )}
+                </Link>
+              );
+            })}
           </div>
-        )}
-      </nav>
+          {isSelf && (
+            <div className="flex items-center px-3 border-l border-border/60 shrink-0">
+              <Button
+                type="button"
+                size="sm"
+                variant={createOpen ? "secondary" : "default"}
+                className="rounded-full gap-1.5 h-9 px-4"
+                onClick={() => setCreateOpen((v) => !v)}
+              >
+                <Plus className="h-4 w-4" />
+                Create
+              </Button>
+            </div>
+          )}
+        </nav>
+
+        <ProfileFeedControls username={username} tab={active} />
+      </div>
 
       {isSelf && (
         <ProfileCreatePanel open={createOpen} onOpenChange={setCreateOpen} />
       )}
-
-      <ProfileFeedControls username={username} tab={active} />
     </>
   );
 }
