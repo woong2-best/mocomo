@@ -16,7 +16,7 @@ export function LocaleSettingsForm({
   initialCountryCode: string;
 }) {
   const { setLocale, t, locale: uiLocale } = useLocale();
-  const { update: updateSession } = useSession();
+  const sessionState = useSession();
   const [locale, setLocaleValue] = useState(initialLocale);
   const [countryCode, setCountryCode] = useState(initialCountryCode);
   const [saved, setSaved] = useState(false);
@@ -26,7 +26,7 @@ export function LocaleSettingsForm({
     setLoading(true);
     setSaved(false);
     await setLocale(locale as (typeof LOCALES)[number], countryCode);
-    if (updateSession) await updateSession();
+    await sessionState?.update?.();
     setLoading(false);
     setSaved(true);
   }
