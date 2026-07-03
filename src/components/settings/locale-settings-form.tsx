@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { useLocale } from "@/components/providers/locale-provider";
 import { LOCALE_LABELS, LOCALES } from "@/lib/i18n/config";
 import type { Locale } from "@/lib/i18n/config";
@@ -15,6 +16,7 @@ export function LocaleSettingsForm({
   initialCountryCode: string;
 }) {
   const { setLocale, t, locale: uiLocale } = useLocale();
+  const { update: updateSession } = useSession();
   const [locale, setLocaleValue] = useState(initialLocale);
   const [countryCode, setCountryCode] = useState(initialCountryCode);
   const [saved, setSaved] = useState(false);
@@ -24,6 +26,7 @@ export function LocaleSettingsForm({
     setLoading(true);
     setSaved(false);
     await setLocale(locale as (typeof LOCALES)[number], countryCode);
+    if (updateSession) await updateSession();
     setLoading(false);
     setSaved(true);
   }

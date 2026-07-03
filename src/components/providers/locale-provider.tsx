@@ -10,7 +10,6 @@ import {
   useTransition,
 } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import {
   DEFAULT_GUEST_COUNTRY,
   DEFAULT_GUEST_LOCALE,
@@ -40,7 +39,6 @@ export function LocaleProvider({
   initialCountryCode: string;
 }) {
   const router = useRouter();
-  const { update: updateSession } = useSession();
   const [locale, setLocaleState] = useState<Locale>(normalizeLocale(initialLocale));
   const [countryCode, setCountryCode] = useState(initialCountryCode.toUpperCase());
   const [, startTransition] = useTransition();
@@ -61,10 +59,9 @@ export function LocaleProvider({
       setCountryCode(country);
       setClientLocaleCookies(next, country);
       await updateUserLocale({ locale: next, countryCode: country });
-      await updateSession();
       startTransition(() => router.refresh());
     },
-    [countryCode, router, updateSession]
+    [countryCode, router]
   );
 
   const value = useMemo(
