@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { filterChannelsWithPresentHost } from "@/lib/live-abandon";
+import { isHashtagSearchQuery } from "@/lib/linkify";
 import { getPopularWikiSearchQueries, logWikiSearchQuery } from "@/lib/wiki-search";
 import type { SupportTierLevel } from "@prisma/client";
 
@@ -39,11 +40,11 @@ function buildSuggestions(
   const lower = q.toLowerCase();
 
   suggestions.push({
-    id: `query:${lower}`,
+    id: isHashtagSearchQuery(q) ? `tag:${lower}` : `query:${lower}`,
     label: q,
-    sublabel: "검색",
+    sublabel: isHashtagSearchQuery(q) ? "해시태그" : "검색",
     href: `/search?q=${encodeURIComponent(q)}`,
-    kind: "query",
+    kind: isHashtagSearchQuery(q) ? "tag" : "query",
   });
 
   for (const p of popular) {
@@ -140,7 +141,14 @@ export async function runFastSearch(query: string): Promise<FastSearchResult> {
           ],
         };
 
-  const postWhere = { title: { contains: q, mode: "insensitive" as const } };
+  const postWhere = isHashtagSearchQuery(q)
+    ? { content: { contains: q, mode: "insensitive" as const } }
+    : {
+        OR: [
+          { title: { contains: q, mode: "insensitive" as const } },
+          { content: { contains: q, mode: "insensitive" as const } },
+        ],
+      };
 
   const [users, animes, posts, liveStreamsRaw, popular] = await Promise.all([
     db.user.findMany({

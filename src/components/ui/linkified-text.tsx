@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { isExternalHref, parseLinkifyParts } from "@/lib/linkify";
+import { hashtagSearchHref, isExternalHref, parseLinkifyParts } from "@/lib/linkify";
 
 export function LinkifiedText({
   text,
@@ -20,10 +21,29 @@ export function LinkifiedText({
 
   return (
     <Tag className={cn(className)}>
-      {parts.map((part, i) =>
-        part.type === "text" ? (
-          <span key={i}>{part.value}</span>
-        ) : (
+      {parts.map((part, i) => {
+        if (part.type === "text") {
+          return <span key={i}>{part.value}</span>;
+        }
+        if (part.type === "hashtag") {
+          return (
+            <Link
+              key={i}
+              href={hashtagSearchHref(part.label)}
+              className="text-blue-500 hover:underline dark:text-yellow-400 dark:hover:text-yellow-300"
+              onClick={
+                stopPropagation
+                  ? (e) => {
+                      e.stopPropagation();
+                    }
+                  : undefined
+              }
+            >
+              {part.label}
+            </Link>
+          );
+        }
+        return (
           <a
             key={i}
             href={part.href}
@@ -41,8 +61,8 @@ export function LinkifiedText({
           >
             {part.label}
           </a>
-        )
-      )}
+        );
+      })}
     </Tag>
   );
 }
