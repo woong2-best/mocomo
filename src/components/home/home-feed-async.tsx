@@ -5,6 +5,7 @@ import { FALLBACK_FEED_ADS, type FeedAdData } from "@/lib/default-ads";
 import { getCachedFeedAds, getCachedFeedPosts } from "@/lib/cached-data";
 import { getCachedSession } from "@/lib/auth";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
+import { getRequestFeedDisplayMode } from "@/lib/feed-display-mode-server";
 
 const HomeFeedClient = dynamic(
   () => import("@/components/home/home-feed-client").then((m) => m.HomeFeedClient)
@@ -20,10 +21,11 @@ function serializeCreatedAt<T extends { createdAt: Date | string }>(rows: T[]): 
 
 export async function HomeFeedAsync() {
   try {
-    const [posts, feedAds, session] = await Promise.all([
+    const [posts, feedAds, session, displayMode] = await Promise.all([
       getCachedFeedPosts(),
       getCachedFeedAds(),
       getCachedSession(),
+      getRequestFeedDisplayMode(),
     ]);
     const ads: FeedAdData[] = feedAds.length > 0 ? feedAds : [...FALLBACK_FEED_ADS];
     const serialized = serializeCreatedAt(posts);
@@ -72,6 +74,7 @@ export async function HomeFeedAsync() {
         )}
         nextCursor={nextCursor}
         hasDbPosts={hasDbPosts}
+        displayMode={displayMode}
       />
     );
   } catch {

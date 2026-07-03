@@ -6,6 +6,7 @@ import { PageSection } from "@/components/layout/page-section";
 import { useLocale } from "@/components/providers/locale-provider";
 import { ComposeOpenButton } from "@/components/compose/compose-open-button";
 import type { FeedLayoutItem } from "@/components/feed/feed-dual-column-layout";
+import type { FeedDisplayMode } from "@/lib/feed-display-mode";
 
 const FeedInfinite = dynamic(
   () => import("@/components/feed/feed-infinite").then((m) => m.FeedInfinite),
@@ -28,6 +29,7 @@ export function HomeFeedClient({
   likedIds = [],
   starredIds = [],
   repostedIds = [],
+  displayMode = "TIMELINE",
 }: {
   feedItems: FeedLayoutItem[];
   nextCursor: string | null;
@@ -37,6 +39,7 @@ export function HomeFeedClient({
   likedIds?: string[];
   starredIds?: string[];
   repostedIds?: string[];
+  displayMode?: FeedDisplayMode;
 }) {
   const { t } = useLocale();
   const visibleItems = isPremium ? feedItems.filter((item) => item.type !== "ad") : feedItems;
@@ -63,6 +66,7 @@ export function HomeFeedClient({
           initialLikedIds={likedIds}
           initialStarredIds={starredIds}
           initialRepostedIds={repostedIds}
+          displayMode={displayMode}
         />
       </PageSection>
     </>

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { LocaleSettingsForm } from "@/components/settings/locale-settings-form";
+import { FeedDisplaySettingsForm } from "@/components/settings/feed-display-settings-form";
 import { SignOutButton } from "@/components/settings/sign-out-button";
 import { SettingsPageChrome } from "@/components/settings/settings-page-chrome";
 import { getServerTranslator } from "@/lib/i18n/server";
@@ -25,6 +26,7 @@ export default async function SettingsPage() {
         premiumTier: true,
         locale: true,
         countryCode: true,
+        feedDisplayMode: true,
         twoFactorEnabled: true,
         showNsfw: true,
         profile: true,
@@ -48,6 +50,15 @@ export default async function SettingsPage() {
             initialLocale={user?.locale ?? "ko"}
             initialCountryCode={user?.countryCode ?? "KR"}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("settings.feedDisplayTitle")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <FeedDisplaySettingsForm initialMode={user?.feedDisplayMode ?? "TIMELINE"} />
         </CardContent>
       </Card>
 

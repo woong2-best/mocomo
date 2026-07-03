@@ -62,6 +62,11 @@ enum PremiumTier {
   PREMIUM
 }
 
+enum FeedDisplayMode {
+  TIMELINE
+  COMPACT
+}
+
 enum ContentVisibility {
   PUBLIC
   SUBSCRIBERS
@@ -96,6 +101,7 @@ model User {
   supportTierReceived  SupportTierLevel @default(PEBBLE)
   locale        String    @default("ko")
   countryCode   String    @default("KR")
+  feedDisplayMode FeedDisplayMode @default(TIMELINE)
   phone         String?   @unique
   phoneVerified DateTime?
   /** 중고거래 청소년 보호 — 만 19세 이상 성인 인증 */

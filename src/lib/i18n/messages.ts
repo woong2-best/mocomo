@@ -149,6 +149,12 @@ export type MessageKey =
   | "settings.language"
   | "settings.save"
   | "settings.saved"
+  | "settings.feedDisplayTitle"
+  | "settings.feedDisplayDesc"
+  | "settings.feedDisplayTimeline"
+  | "settings.feedDisplayTimelineDesc"
+  | "settings.feedDisplayCompact"
+  | "settings.feedDisplayCompactDesc"
   | "settings.account"
   | "settings.nickname"
   | "settings.email"
@@ -188,6 +194,8 @@ export type MessageKey =
   | "settings.legalPolicy"
   | "common.loading"
   | "feed.title"
+  | "feed.displayMode.compactHasMedia"
+  | "feed.displayMode.openPost"
   | "feed.tabs"
   | "feed.emptyPrompt"
   | "feed.compose"
@@ -474,6 +482,12 @@ const ko: Record<MessageKey, string> = {
   "settings.language": "언어",
   "settings.save": "저장",
   "settings.saved": "저장되었습니다",
+  "settings.feedDisplayTitle": "피드 보기 방식",
+  "settings.feedDisplayDesc": "피드에서 글과 사진을 어떻게 보여줄지 선택합니다.",
+  "settings.feedDisplayTimeline": "타임라인",
+  "settings.feedDisplayTimelineDesc": "트위터처럼 글·사진을 바로 펼쳐서 봅니다.",
+  "settings.feedDisplayCompact": "목록형",
+  "settings.feedDisplayCompactDesc": "디시처럼 제목만 보이고, 눌러야 본문과 사진이 열립니다.",
   "settings.account": "계정",
   "settings.nickname": "닉네임",
   "settings.email": "이메일",
@@ -513,6 +527,8 @@ const ko: Record<MessageKey, string> = {
   "settings.legalPolicy": "운영원칙 및 이용정책",
   "common.loading": "불러오는 중…",
   "feed.title": "커뮤니티 피드",
+  "feed.displayMode.compactHasMedia": "첨부 이미지 있음",
+  "feed.displayMode.openPost": "게시글 보기",
   "feed.tabs": "팔로우 · 추천 · 최신",
   "feed.emptyPrompt": "오늘의 캔버스에 첫 글을 올려 보세요",
   "feed.compose": "글쓰기",
@@ -800,6 +816,12 @@ const en: Record<MessageKey, string> = {
   "settings.language": "Language",
   "settings.save": "Save",
   "settings.saved": "Saved",
+  "settings.feedDisplayTitle": "Feed layout",
+  "settings.feedDisplayDesc": "Choose how posts and images appear in your feed.",
+  "settings.feedDisplayTimeline": "Timeline",
+  "settings.feedDisplayTimelineDesc": "Twitter-style — text and images shown inline.",
+  "settings.feedDisplayCompact": "Compact list",
+  "settings.feedDisplayCompactDesc": "Forum-style — preview only; tap to expand body and images.",
   "settings.account": "Account",
   "settings.nickname": "Username",
   "settings.email": "Email",
@@ -839,6 +861,8 @@ const en: Record<MessageKey, string> = {
   "settings.legalPolicy": "Community policy",
   "common.loading": "Loading…",
   "feed.title": "Community feed",
+  "feed.displayMode.compactHasMedia": "Has image",
+  "feed.displayMode.openPost": "View post",
   "feed.tabs": "Following · For you · Latest",
   "feed.emptyPrompt": "Be the first to post on today's canvas",
   "feed.compose": "Compose",
@@ -1126,6 +1150,12 @@ const ja: Record<MessageKey, string> = {
   "settings.language": "言語",
   "settings.save": "保存",
   "settings.saved": "保存しました",
+  "settings.feedDisplayTitle": "フィード表示",
+  "settings.feedDisplayDesc": "フィードでの投稿・画像の見え方を選びます。",
+  "settings.feedDisplayTimeline": "タイムライン",
+  "settings.feedDisplayTimelineDesc": "Twitter風 — 本文と画像をそのまま表示。",
+  "settings.feedDisplayCompact": "リスト",
+  "settings.feedDisplayCompactDesc": "掲示板風 — 一覧のみ、タップで本文・画像を展開。",
   "settings.account": "アカウント",
   "settings.nickname": "ユーザー名",
   "settings.email": "メール",
@@ -1165,6 +1195,8 @@ const ja: Record<MessageKey, string> = {
   "settings.legalPolicy": "コミュニティポリシー",
   "common.loading": "読み込み中…",
   "feed.title": "コミュニティフィード",
+  "feed.displayMode.compactHasMedia": "画像あり",
+  "feed.displayMode.openPost": "投稿を見る",
   "feed.tabs": "フォロー · おすすめ · 最新",
   "feed.emptyPrompt": "今日のキャンバスに最初の投稿を",
   "feed.compose": "投稿",
@@ -1452,6 +1484,12 @@ const zh: Record<MessageKey, string> = {
   "settings.language": "语言",
   "settings.save": "保存",
   "settings.saved": "已保存",
+  "settings.feedDisplayTitle": "动态布局",
+  "settings.feedDisplayDesc": "选择动态中文字与图片的展示方式。",
+  "settings.feedDisplayTimeline": "时间线",
+  "settings.feedDisplayTimelineDesc": "推特风格 — 正文与图片直接展示。",
+  "settings.feedDisplayCompact": "列表",
+  "settings.feedDisplayCompactDesc": "论坛风格 — 仅预览，点击展开正文与图片。",
   "settings.account": "账户",
   "settings.nickname": "用户名",
   "settings.email": "邮箱",
@@ -1491,6 +1529,8 @@ const zh: Record<MessageKey, string> = {
   "settings.legalPolicy": "社区政策",
   "common.loading": "加载中…",
   "feed.title": "社区动态",
+  "feed.displayMode.compactHasMedia": "含图片",
+  "feed.displayMode.openPost": "查看帖子",
   "feed.tabs": "关注 · 推荐 · 最新",
   "feed.emptyPrompt": "成为今天画布上的第一个发帖者",
   "feed.compose": "发帖",

@@ -1,25 +1,27 @@
 "use client";
 
 import { memo } from "react";
-import { FeedPhotoPostCard } from "@/components/feed/feed-photo-post-card";
-import { FeedTextPostCard } from "@/components/feed/feed-text-post-card";
-import { postHasVisualMedia } from "@/lib/format-feed";
+import { FeedCompactPostCard } from "@/components/feed/feed-compact-post-card";
+import { FeedTimelinePostCard } from "@/components/feed/feed-timeline-post-card";
+import type { FeedDisplayMode } from "@/lib/feed-display-mode";
 import type { GridPost } from "@/components/feed/feed-post-card";
 
 function FeedPostCardInteractiveInner({
   post,
+  displayMode = "TIMELINE",
   initialLiked = false,
   initialStarred = false,
   initialReposted = false,
 }: {
   post: GridPost & { createdAt: string | Date };
+  displayMode?: FeedDisplayMode;
   initialLiked?: boolean;
   initialStarred?: boolean;
   initialReposted?: boolean;
 }) {
-  if (postHasVisualMedia(post)) {
+  if (displayMode === "COMPACT") {
     return (
-      <FeedPhotoPostCard
+      <FeedCompactPostCard
         post={post}
         initialLiked={initialLiked}
         initialStarred={initialStarred}
@@ -29,7 +31,7 @@ function FeedPostCardInteractiveInner({
   }
 
   return (
-    <FeedTextPostCard
+    <FeedTimelinePostCard
       post={post}
       initialLiked={initialLiked}
       initialStarred={initialStarred}
@@ -42,6 +44,7 @@ export const FeedPostCardInteractive = memo(
   FeedPostCardInteractiveInner,
   (prev, next) =>
     prev.post.id === next.post.id &&
+    prev.displayMode === next.displayMode &&
     prev.initialLiked === next.initialLiked &&
     prev.initialStarred === next.initialStarred &&
     prev.initialReposted === next.initialReposted
