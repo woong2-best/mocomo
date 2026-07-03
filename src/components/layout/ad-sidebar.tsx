@@ -12,19 +12,7 @@ export async function AdSidebar({ position }: { position: "left" | "right" }) {
     ads = [];
   }
 
-  if (ads.length === 0) {
-    return (
-      <aside className="hidden xl:block w-48 shrink-0 p-4">
-        <Card className="border-dashed border-border/40 bg-transparent">
-          <CardContent className="p-4 text-center text-xs text-muted-foreground">
-            광고 영역
-            <br />
-            <span className="text-neon-cyan">프리미엄은 광고 없음</span>
-          </CardContent>
-        </Card>
-      </aside>
-    );
-  }
+  if (ads.length === 0) return null;
 
   return (
     <aside className="hidden xl:block w-48 shrink-0 p-4 space-y-3">

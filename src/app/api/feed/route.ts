@@ -3,7 +3,6 @@ import { getCachedSession } from "@/lib/auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { getCachedFeedAds } from "@/lib/cached-data";
 import { mixFeedWithAds } from "@/lib/feed-mixer";
-import { FALLBACK_FEED_ADS } from "@/lib/default-ads";
 import { getCachedFeedPostsPage } from "@/lib/feed-query";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
 
@@ -23,11 +22,7 @@ export async function GET(req: NextRequest) {
 
     const posts = await getCachedFeedPostsPage(cursor, limit);
 
-    let feedAds = isPremium ? [] : await getCachedFeedAds();
-
-    if (feedAds.length === 0 && !isPremium) {
-      feedAds = [...FALLBACK_FEED_ADS] as typeof feedAds;
-    }
+    const feedAds = isPremium ? [] : await getCachedFeedAds();
 
     const items = isPremium
       ? posts.map((data) => ({ type: "post" as const, data }))

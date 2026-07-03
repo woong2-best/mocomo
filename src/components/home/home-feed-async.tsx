@@ -1,7 +1,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { mixFeedWithAds } from "@/lib/feed-mixer";
-import { FALLBACK_FEED_ADS, type FeedAdData } from "@/lib/default-ads";
+import type { FeedAdData } from "@/lib/default-ads";
 import { getCachedFeedAds, getCachedFeedPosts } from "@/lib/cached-data";
 import { getCachedSession } from "@/lib/auth";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
@@ -27,7 +27,7 @@ export async function HomeFeedAsync() {
       getCachedSession(),
       getRequestFeedDisplayMode(),
     ]);
-    const ads: FeedAdData[] = feedAds.length > 0 ? feedAds : [...FALLBACK_FEED_ADS];
+    const ads: FeedAdData[] = feedAds;
     const serialized = serializeCreatedAt(posts);
     const mixed = mixFeedWithAds(serialized, ads, {
       postsPerBlock: 6,

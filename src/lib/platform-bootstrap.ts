@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { ensureEmoticonCatalog } from "@/lib/goods-shop";
 import { ensureAnimeWikiCatalog } from "@/lib/anime-wiki-seeds";
 import { ensureCosplayBoardSeed } from "@/lib/cosplay-board-seed";
+import { deactivateDemoAdSlots } from "@/lib/deactivate-demo-ads";
 const PLATFORM_EMAIL = "platform@mocomo.app";
 const PLATFORM_USERNAME = "mocomo_official";
 
@@ -11,80 +12,7 @@ const globalBootstrap = globalThis as unknown as { mocomoBootstrapped?: boolean 
 
 export async function ensurePlatformBootstrap(prisma: PrismaClient) {
   if (globalBootstrap.mocomoBootstrapped) return;
-  const adCount = await prisma.adSlot.count();
-  if (adCount === 0) {
-    await prisma.adSlot.createMany({
-      data: [
-        {
-          position: "feed",
-          title: "MoCoMo Premium — 광고 없이 애니덕질",
-          imageUrl: "/ads/premium.svg",
-          linkUrl: "/premium",
-          sponsorName: "MoCoMo",
-          ctaLabel: "프리미엄 보기",
-          adCategory: "프리미엄",
-          isFeedAd: true,
-          active: true,
-        },
-        {
-          position: "feed",
-          title: "라이브 방송 시작하기",
-          imageUrl: "/ads/live.svg",
-          linkUrl: "/live",
-          sponsorName: "MoCoMo Live",
-          ctaLabel: "라이브 보기",
-          adCategory: "라이브",
-          isFeedAd: true,
-          active: true,
-        },
-        {
-          position: "right",
-          title: "진행 중인 이벤트",
-          imageUrl: "/ads/events.svg",
-          linkUrl: "/events",
-          sponsorName: "MoCoMo Events",
-          ctaLabel: "참가하기",
-          adCategory: "이벤트",
-          isFeedAd: false,
-          active: true,
-        },
-        {
-          position: "margin_left",
-          title: "MoCoMo Premium — 광고 없이",
-          imageUrl: "/ads/premium.svg",
-          linkUrl: "/premium",
-          sponsorName: "MoCoMo",
-          ctaLabel: "프리미엄",
-          adCategory: "프리미엄",
-          isFeedAd: false,
-          active: true,
-        },
-        {
-          position: "margin_right",
-          title: "후원 이모티콘",
-          imageUrl: "/ads/events.svg",
-          linkUrl: "/support?tab=emoticons",
-          sponsorName: "MoCoMo",
-          ctaLabel: "후원",
-          adCategory: "후원",
-          isFeedAd: false,
-          active: true,
-        },
-        {
-          position: "margin_right",
-          title: "라이브 방송",
-          imageUrl: "/ads/live.svg",
-          linkUrl: "/live",
-          sponsorName: "MoCoMo Live",
-          ctaLabel: "라이브",
-          adCategory: "라이브",
-          isFeedAd: false,
-          active: true,
-        },
-      ],
-    });
-  }
-
+  await deactivateDemoAdSlots(prisma);
   if ((await prisma.event.count()) === 0) {
     await prisma.event.create({
       data: {
