@@ -37,7 +37,7 @@ export function Sidebar() {
     >
       <aside
         className={cn(
-          "flex w-[17rem] xl:w-[18rem] flex-col shrink-0 sticky top-[var(--header-h)] h-app shell-col-pad shell-col-divider-r gap-3 overflow-hidden bg-background relative z-[1]",
+          "flex w-[17rem] xl:w-[18rem] flex-col shrink-0 sticky top-[var(--header-h)] z-[1] h-app shell-col-pad shell-col-divider-r gap-3 overflow-hidden bg-background",
           "transition-transform duration-300 ease-in-out",
           open ? "translate-x-0" : "-translate-x-full"
         )}

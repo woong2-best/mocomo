@@ -57,7 +57,7 @@ export function AppPageChrome({
     <div
       className={cn(
         MAX_WIDTH[maxWidth],
-        "mx-auto p-4 min-w-0",
+        "mx-auto px-4 lg:px-6 pt-4 lg:pt-6 min-w-0",
         !isNativeApp && "pb-nav lg:pb-6",
         className
       )}
