@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useRef } from "react";
 import { OMOK_BOARD_SIZE } from "@/lib/minigames/omok-logic";
 import {
   boardToCell,
@@ -12,6 +12,8 @@ import {
 } from "@/lib/minigames/go-board-art";
 import { cn } from "@/lib/utils";
 
+const BOARD_MAX_CSS = OMOK_CANVAS_SIZE + 24;
+
 type Props = {
   board: number[][];
   lastMove?: { x: number; y: number } | null;
@@ -21,6 +23,18 @@ type Props = {
   placing?: boolean;
   onCellClick?: (x: number, y: number) => void;
 };
+
+function measureBoardCssSize(wrap: HTMLDivElement): number {
+  const rect = wrap.getBoundingClientRect();
+  const fromRect = rect.width;
+  const fromClient = wrap.clientWidth;
+  const fromParent = wrap.parentElement?.getBoundingClientRect().width ?? 0;
+  const cssW = Math.min(
+    Math.max(fromRect, fromClient, fromParent > 0 ? fromParent : 0, BOARD_MAX_CSS),
+    BOARD_MAX_CSS
+  );
+  return cssW > 0 ? cssW : BOARD_MAX_CSS;
+}
 
 export function OmokBoard({
   board,
@@ -33,7 +47,7 @@ export function OmokBoard({
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
+  const hoverRef = useRef<{ x: number; y: number } | null>(null);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -41,8 +55,7 @@ export function OmokBoard({
     if (!canvas || !wrap) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const rect = wrap.getBoundingClientRect();
-    const cssW = Math.min(rect.width, OMOK_CANVAS_SIZE + 24);
+    const cssW = measureBoardCssSize(wrap);
     const cssH = cssW;
     canvas.style.width = `${cssW}px`;
     canvas.style.height = `${cssH}px`;
@@ -62,6 +75,7 @@ export function OmokBoard({
     const layout = computeGoBoardLayout(cssW, cssH);
     drawGoBoardSurface(ctx, layout);
 
+    const hover = hoverRef.current;
     const winSet = new Set(winLine?.map((p) => `${p.x},${p.y}`) ?? []);
 
     for (let y = 0; y < OMOK_BOARD_SIZE; y++) {
@@ -90,33 +104,43 @@ export function OmokBoard({
       ctx.fillRect(0, 0, cssW, cssH);
       ctx.restore();
     }
-  }, [board, disabled, hover, lastMove, myStoneBlack, placing, winLine]);
+  }, [board, disabled, lastMove, myStoneBlack, placing, winLine]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     draw();
-    const ro = new ResizeObserver(draw);
-    if (wrapRef.current) ro.observe(wrapRef.current);
-    return () => ro.disconnect();
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const ro = new ResizeObserver(() => draw());
+    ro.observe(wrap);
+    const onWinResize = () => draw();
+    window.addEventListener("resize", onWinResize);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", onWinResize);
+    };
   }, [draw]);
 
   function pointerPos(e: React.PointerEvent) {
     const canvas = canvasRef.current;
     if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
-    const layout = computeGoBoardLayout(rect.width, rect.height);
+    const cssW = parseFloat(canvas.style.width) || rect.width || BOARD_MAX_CSS;
+    const layout = computeGoBoardLayout(cssW, cssW);
     return boardToCell(layout, e.clientX - rect.left, e.clientY - rect.top);
   }
 
   function onPointerMove(e: React.PointerEvent) {
     if (disabled || placing) {
-      setHover(null);
+      hoverRef.current = null;
       return;
     }
-    setHover(pointerPos(e));
+    hoverRef.current = pointerPos(e);
+    draw();
   }
 
   function onPointerLeave() {
-    setHover(null);
+    hoverRef.current = null;
+    draw();
   }
 
   function onPointerDown(e: React.PointerEvent) {
@@ -129,12 +153,15 @@ export function OmokBoard({
   return (
     <div
       ref={wrapRef}
-      className={cn("mx-auto w-full touch-none select-none", !disabled && !placing && "cursor-pointer")}
-      style={{ maxWidth: OMOK_CANVAS_SIZE + 24 }}
+      className={cn(
+        "mx-auto w-full aspect-square touch-none select-none",
+        !disabled && !placing && "cursor-pointer"
+      )}
+      style={{ maxWidth: BOARD_MAX_CSS }}
     >
       <canvas
         ref={canvasRef}
-        className="w-full rounded-2xl shadow-2xl ring-1 ring-black/20"
+        className="block w-full h-full rounded-2xl shadow-2xl ring-1 ring-black/20"
         onPointerMove={onPointerMove}
         onPointerLeave={onPointerLeave}
         onPointerDown={onPointerDown}

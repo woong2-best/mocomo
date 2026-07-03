@@ -15,6 +15,7 @@ import { ParkingRushGamePanel, type ParkingRushPlayerStats } from "@/components/
 import { TowerRushGamePanel, type TowerRushPlayerStats } from "@/components/tower-rush/tower-rush-game-panel";
 import type { PianoChartNote, PianoRushMode } from "@/lib/minigames/piano-rush-logic";
 import type { ParkingRushMode } from "@/lib/minigames/parking-rush-logic";
+import { boardToNumbers, createEmptyOmokBoard, OMOK_BOARD_SIZE } from "@/lib/minigames/omok-logic";
 import type { TowerRushMode } from "@/lib/minigames/tower-rush-logic";
 import { AlkkagiBoard } from "@/components/minigames/alkkagi-board";
 import { WordChainPanel } from "@/components/minigames/word-chain-panel";
@@ -37,6 +38,13 @@ type Props = {
   onClearError: () => void;
 };
 
+function normalizeOmokBoard(raw: unknown): number[][] {
+  if (!Array.isArray(raw) || raw.length !== OMOK_BOARD_SIZE) {
+    return boardToNumbers(createEmptyOmokBoard());
+  }
+  return raw as number[][];
+}
+
 export function GameActiveView({ gameId, state, userId, isSpectator, onMove, error }: Props) {
   const g = (state as { game?: Record<string, unknown> | null }).game;
   if (!g) return null;
@@ -45,7 +53,7 @@ export function GameActiveView({ gameId, state, userId, isSpectator, onMove, err
     case "omok":
       return (
         <OmokGamePanel
-          board={g.board as number[][]}
+          board={normalizeOmokBoard(g.board)}
           turn={(g.turn as "black" | "white") ?? "black"}
           turnUserId={g.turnUserId as string | null}
           blackUserId={g.blackUserId as string}

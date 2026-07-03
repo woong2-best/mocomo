@@ -214,8 +214,8 @@ export function PlayRoomClient({
       )}
 
       {(state?.status === "playing" || state?.status === "finished") && (
-        <div className={isInstantPlay ? "space-y-3" : "grid lg:grid-cols-[1fr_280px] gap-4"}>
-          <div className="space-y-3">
+        <div className={isInstantPlay ? "space-y-3" : "grid lg:grid-cols-[minmax(0,1fr)_280px] gap-4"}>
+          <div className="min-w-0 space-y-3">
             {state.status === "playing" && <MinigameClockBar state={state} userId={userId} />}
             {state.game ? (
               <GameActiveView
