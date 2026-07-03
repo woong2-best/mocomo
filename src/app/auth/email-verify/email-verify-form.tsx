@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { sendEmailAuthCode, verifyAuthCodeOnly, completeAuthWithCode } from "@/actions/auth";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
@@ -183,6 +183,8 @@ export function EmailVerifyFormInner() {
       });
       if (!signInResult?.error) {
         clearSignupLocaleStorage();
+        await getSession();
+        router.refresh();
         router.replace(DEFAULT_LANDING_PATH);
         return;
       }

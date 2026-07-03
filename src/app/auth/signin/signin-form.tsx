@@ -13,7 +13,7 @@ import { BRAND } from "@/lib/brand";
 import { loginErrorMessage } from "@/lib/auth-login-errors";
 import { buildGmailEmail, parseGmailLocalPart } from "@/lib/signup-email-domains";
 import { useLocale } from "@/components/providers/locale-provider";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 
 function safeCallbackUrl(raw: string): string {
   const path = raw.trim();
@@ -91,6 +91,7 @@ export function SignInForm({
       return;
     }
 
+    await getSession();
     router.refresh();
     router.replace(callbackUrl);
   }
