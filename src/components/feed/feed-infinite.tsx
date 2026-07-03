@@ -42,7 +42,7 @@ export function FeedInfinite({
   initialLikedIds?: string[];
   initialStarredIds?: string[];
   initialRepostedIds?: string[];
-import type { FeedDisplayMode } from "@/lib/feed-display-mode";
+  displayMode?: FeedDisplayMode;
 }) {
   const [items, setItems] = useState(initialItems);
   const [likedIds, setLikedIds] = useState(() => new Set(initialLikedIds));
