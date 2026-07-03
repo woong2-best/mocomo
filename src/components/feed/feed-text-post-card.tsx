@@ -17,7 +17,7 @@ import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-
 import { userDisplayName } from "@/lib/user-public-select";
 import type { GridPost } from "@/components/feed/feed-post-card";
 import { PostPollCard } from "@/components/post/post-poll-card";
-import { MotionPop } from "@/components/motion/motion-primitives";
+import { LinkifiedText } from "@/components/ui/linkified-text";
 import { engageStar, postEngage } from "@/lib/post-engage-client";
 
 const typeLabels: Record<string, string> = {
@@ -149,7 +149,12 @@ export function FeedTextPostCard({
           {post.title && (
             <h3 className="font-display font-bold text-sm mb-1 text-folk-cobalt">{post.title}</h3>
           )}
-          <p className="text-sm text-foreground/85 line-clamp-6 whitespace-pre-wrap">{post.content}</p>
+          <LinkifiedText
+            text={post.content}
+            as="p"
+            stopPropagation
+            className="text-sm text-foreground/85 line-clamp-6 whitespace-pre-wrap"
+          />
         </Link>
 
         {post.poll && (

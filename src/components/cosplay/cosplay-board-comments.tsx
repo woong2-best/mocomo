@@ -7,7 +7,7 @@ import { ko } from "date-fns/locale";
 import { createCosplayBoardComment } from "@/actions/cosplay-board";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
+import { LinkifiedText } from "@/components/ui/linkified-text";
 import { userAvatarFallbackInitial, userDisplayName } from "@/lib/user-public-select";
 import type { SupportTierLevel } from "@prisma/client";
 
@@ -88,7 +88,7 @@ export function CosplayBoardComments({
                     {formatDistanceToNow(c.createdAt, { addSuffix: true, locale: ko })}
                   </span>
                 </div>
-                <p className="text-sm mt-1 whitespace-pre-wrap break-words">{c.content}</p>
+                <LinkifiedText text={c.content} as="p" className="text-sm mt-1 whitespace-pre-wrap break-words" />
               </div>
             </li>
           ))

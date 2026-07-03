@@ -2,7 +2,7 @@
 
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 
-const BLOCKED_HOSTS = ["example.com", "example.org", "example.net", "placehold.co"];
+export const BLOCKED_HOSTS = ["example.com", "example.org", "example.net", "placehold.co"];
 
 export function sanitizeAdLink(url: string): string {
   try {

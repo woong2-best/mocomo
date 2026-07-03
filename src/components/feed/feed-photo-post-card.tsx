@@ -19,7 +19,7 @@ import type { GridPost } from "@/components/feed/feed-post-card";
 import { PostPollCard } from "@/components/post/post-poll-card";
 import { MotionPop } from "@/components/motion/motion-primitives";
 import { engageStar, postEngage } from "@/lib/post-engage-client";
-import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
+import { LinkifiedText } from "@/components/ui/linkified-text";
 
 const CAPTION_PREVIEW_LEN = 80;
 
@@ -241,7 +241,12 @@ export function FeedPhotoPostCard({
             <Link href={`/u/${username}`} className="font-semibold mr-1.5 hover:opacity-80">
               {username}
             </Link>
-            <span>{captionPreview}</span>
+            <LinkifiedText
+              text={captionPreview}
+              as="span"
+              stopPropagation
+              className="whitespace-pre-wrap break-words"
+            />
             {captionLong && !captionExpanded && (
               <button
                 type="button"

@@ -17,7 +17,7 @@ import { MotionPop } from "@/components/motion/motion-primitives";
 import { engageStar, postEngage } from "@/lib/post-engage-client";
 import { PaidPostMediaGrid } from "@/components/profile/paid-post-media-grid";
 import type { ProfilePostMediaItem } from "@/components/profile/paid-post-media-grid";
-import { postHasVisualMedia } from "@/lib/format-feed";
+import { LinkifiedText } from "@/components/ui/linkified-text";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { Locale } from "@/lib/i18n/config";
 import { userDisplayName } from "@/lib/user-public-select";
@@ -155,7 +155,11 @@ export function FeedCompactPostCard({
           <div className="pt-3 space-y-2">
             {post.title && <p className="font-semibold text-sm">{post.title}</p>}
             {post.content && (
-              <p className="text-sm whitespace-pre-wrap break-words text-foreground/90">{post.content}</p>
+              <LinkifiedText
+                text={post.content}
+                as="p"
+                className="text-sm whitespace-pre-wrap break-words text-foreground/90"
+              />
             )}
             {hasMedia && post.media && (
               <PaidPostMediaGrid

@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Heart, MessageCircle, Pin, Repeat2 } from "lucide-react";
 import { formatNumber, cn } from "@/lib/utils";
 import type { GridPost } from "@/components/feed/feed-post-card";
-import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
+import { LinkifiedText } from "@/components/ui/linkified-text";
 import { userDisplayName } from "@/lib/user-public-select";
 import { PaidPostMediaGrid } from "@/components/profile/paid-post-media-grid";
 import type { ProfilePostMediaItem } from "@/components/profile/paid-post-media-grid";
@@ -82,7 +82,12 @@ export function ProfilePostCard({
               </div>
               <Link href={`/post/${post.id}`} className="block mt-1">
                 {post.title && <p className="font-semibold text-[15px]">{post.title}</p>}
-                <p className="text-[15px] whitespace-pre-wrap break-words line-clamp-6">{post.content}</p>
+                <LinkifiedText
+                  text={post.content}
+                  as="p"
+                  stopPropagation
+                  className="text-[15px] whitespace-pre-wrap break-words line-clamp-6"
+                />
               </Link>
               {post.media && post.media.length > 0 && (
                 <PaidPostMediaGrid
