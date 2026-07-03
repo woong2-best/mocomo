@@ -8,6 +8,7 @@ import { createCosplayBoardComment } from "@/actions/cosplay-board";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { LinkifiedText } from "@/components/ui/linkified-text";
+import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { userAvatarFallbackInitial, userDisplayName } from "@/lib/user-public-select";
 import type { SupportTierLevel } from "@prisma/client";
 

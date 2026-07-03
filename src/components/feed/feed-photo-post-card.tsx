@@ -20,6 +20,7 @@ import { PostPollCard } from "@/components/post/post-poll-card";
 import { MotionPop } from "@/components/motion/motion-primitives";
 import { engageStar, postEngage } from "@/lib/post-engage-client";
 import { LinkifiedText } from "@/components/ui/linkified-text";
+import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
 
 const CAPTION_PREVIEW_LEN = 80;
 

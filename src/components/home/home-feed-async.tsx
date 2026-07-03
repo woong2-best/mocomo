@@ -48,20 +48,16 @@ export async function HomeFeedAsync() {
         likedIds={engagement.likedIds}
         starredIds={engagement.starredIds}
         repostedIds={engagement.repostedIds}
-        feedItems={visibleMixed.map((item) =>
-          item.type === "post"
-            ? ({
-                type: "post" as const,
-                data: {
-                  ...item.data,
-                  createdAt:
-                    item.data.createdAt instanceof Date
-                      ? item.data.createdAt.toISOString()
-                      : String(item.data.createdAt),
-                },
-              })
-            : ({ type: "ad" as const, data: item.data })
-        )}
+        feedItems={visibleMixed.map((item) => ({
+          type: "post" as const,
+          data: {
+            ...item.data,
+            createdAt:
+              item.data.createdAt instanceof Date
+                ? item.data.createdAt.toISOString()
+                : String(item.data.createdAt),
+          },
+        }))}
         nextCursor={nextCursor}
         hasDbPosts={hasDbPosts}
         displayMode={displayMode}

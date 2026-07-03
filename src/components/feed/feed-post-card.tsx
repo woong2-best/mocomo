@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Heart, MessageCircle, Star } from "lucide-react";
 import { LinkifiedText } from "@/components/ui/linkified-text";
+import { PostShareMenu } from "@/components/post/post-share-menu";
 import { formatNumber } from "@/lib/utils";
 import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
 import type { SupportTierLevel } from "@prisma/client";

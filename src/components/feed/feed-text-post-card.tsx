@@ -18,6 +18,7 @@ import { userDisplayName } from "@/lib/user-public-select";
 import type { GridPost } from "@/components/feed/feed-post-card";
 import { PostPollCard } from "@/components/post/post-poll-card";
 import { LinkifiedText } from "@/components/ui/linkified-text";
+import { MotionPop } from "@/components/motion/motion-primitives";
 import { engageStar, postEngage } from "@/lib/post-engage-client";
 
 const typeLabels: Record<string, string> = {

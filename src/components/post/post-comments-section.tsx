@@ -3,6 +3,7 @@ import { getPostComments } from "@/lib/post-queries";
 import { getServerTranslator } from "@/lib/i18n/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { LinkifiedText } from "@/components/ui/linkified-text";
+import { CommentForm } from "@/components/post/comment-form";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import type { SupportTierLevel } from "@prisma/client";
 

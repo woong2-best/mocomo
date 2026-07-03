@@ -8,6 +8,7 @@ import { CosplayBoardContactBar } from "@/components/cosplay/cosplay-board-conta
 import { Button } from "@/components/ui/button";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { LinkifiedText } from "@/components/ui/linkified-text";
+import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { userDisplayName } from "@/lib/user-public-select";
 import { notFound } from "next/navigation";
 

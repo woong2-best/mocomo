@@ -18,6 +18,7 @@ import { engageStar, postEngage } from "@/lib/post-engage-client";
 import { PaidPostMediaGrid } from "@/components/profile/paid-post-media-grid";
 import type { ProfilePostMediaItem } from "@/components/profile/paid-post-media-grid";
 import { LinkifiedText } from "@/components/ui/linkified-text";
+import { postHasVisualMedia } from "@/lib/format-feed";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { Locale } from "@/lib/i18n/config";
 import { userDisplayName } from "@/lib/user-public-select";

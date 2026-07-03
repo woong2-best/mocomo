@@ -6,6 +6,7 @@ import { Heart, MessageCircle, Pin, Repeat2 } from "lucide-react";
 import { formatNumber, cn } from "@/lib/utils";
 import type { GridPost } from "@/components/feed/feed-post-card";
 import { LinkifiedText } from "@/components/ui/linkified-text";
+import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { userDisplayName } from "@/lib/user-public-select";
 import { PaidPostMediaGrid } from "@/components/profile/paid-post-media-grid";
 import type { ProfilePostMediaItem } from "@/components/profile/paid-post-media-grid";

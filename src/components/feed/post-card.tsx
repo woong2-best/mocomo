@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Heart, MessageCircle, ArrowBigUp } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
 import { LinkifiedText } from "@/components/ui/linkified-text";
+import { PostShareMenu } from "@/components/post/post-share-menu";
 
 type PostCardProps = {
   post: {
