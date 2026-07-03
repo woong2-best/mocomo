@@ -7,7 +7,7 @@ import { CosplayBoardComments } from "@/components/cosplay/cosplay-board-comment
 import { CosplayBoardContactBar } from "@/components/cosplay/cosplay-board-contact-bar";
 import { Button } from "@/components/ui/button";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
-import { AppPageChrome } from "@/components/layout/app-page-chrome";
+import { LinkifiedText } from "@/components/ui/linkified-text";
 import { userDisplayName } from "@/lib/user-public-select";
 import { notFound } from "next/navigation";
 
@@ -80,7 +80,7 @@ export default async function CosplayBoardPostPage({
         )}
 
         <div className="px-4 py-6 min-h-[10rem]">
-          <p className="text-sm leading-relaxed whitespace-pre-wrap">{post.content}</p>
+          <LinkifiedText text={post.content} as="p" className="text-sm leading-relaxed whitespace-pre-wrap" />
         </div>
 
         {!isAuthor && (
