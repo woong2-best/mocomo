@@ -17,7 +17,6 @@ import {
   type SubcultureEventCountry,
 } from "@/lib/subculture-event-countries";
 import { mapLinkForEvent, type MapEventPin } from "@/lib/subculture-event-pins";
-import { SUBCULTURE_EVENT_CATEGORY_LABELS } from "@/lib/subculture-event-seeds";
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 
@@ -147,11 +146,6 @@ export function EventsMapView({
                     <p className="font-semibold flex items-center gap-2 flex-wrap">
                       <span>{eventCountryFlag(p.country)}</span>
                       {p.title}
-                    </p>
-                    <p className="text-xs text-violet-600 mt-0.5">
-                      {SUBCULTURE_EVENT_COUNTRY_LABELS[p.country]} ·{" "}
-                      {SUBCULTURE_EVENT_CATEGORY_LABELS[p.category] ?? p.category}
-                      {(p.source === "official" || p.source === "auto") && " · 공식 자동 수집"}
                     </p>
                     {p.description && (
                       <p className="text-xs text-muted-foreground mt-1">{p.description}</p>
