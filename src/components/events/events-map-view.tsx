@@ -16,7 +16,7 @@ import {
   subcultureCountrySummary,
   type SubcultureEventCountry,
 } from "@/lib/subculture-event-countries";
-import { mapLinkForEvent, type MapEventPin } from "@/lib/subculture-events";
+import { mapLinkForEvent, type MapEventPin } from "@/lib/subculture-event-pins";
 import { SUBCULTURE_EVENT_CATEGORY_LABELS } from "@/lib/subculture-event-seeds";
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";

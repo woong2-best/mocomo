@@ -13,6 +13,10 @@ import {
 } from "@/lib/subculture-event-countries";
 import { fetchAllSubcultureEvents } from "@/lib/subculture-event-fetch";
 import type { FetchedSubcultureEvent } from "@/lib/subculture-event-fetch/types";
+import { type MapEventPin } from "@/lib/subculture-event-pins";
+
+export type { MapEventPin } from "@/lib/subculture-event-pins";
+export { mapLinkForEvent } from "@/lib/subculture-event-pins";
 
 /** DB 메타 행 — 지도에 노출되지 않음 */
 export const SUBCULTURE_SYNC_META_KEY = "__sync_meta__";
@@ -21,42 +25,12 @@ export const SUBCULTURE_MAP_PINS_CACHE_TAG = "subculture-event-pins";
 
 const SYNC_INTERVAL_MS = 60 * 60 * 1000; // 1시간
 
-export type MapEventPin = {
-  id: string;
-  title: string;
-  country: SubcultureEventCountry;
-  category: string;
-  categoryLabel: string;
-  venueName: string | null;
-  description: string | null;
-  lat: number;
-  lng: number;
-  startsAt: string;
-  endsAt: string | null;
-  sourceUrl: string | null;
-  source: string;
-};
-
 function inferEventCountry(
   lat: number,
   lng: number,
   externalKey?: string | null
 ): SubcultureEventCountry {
   return inferEventCountryFromCoords(lat, lng, externalKey);
-}
-
-export function mapLinkForEvent(pin: MapEventPin): { label: string; url: string } {
-  if (isKoreaEventCountry(pin.country)) {
-    return {
-      label: "카카오맵",
-      url: `https://map.kakao.com/link/map/${pin.lat},${pin.lng}`,
-    };
-  }
-  const q = encodeURIComponent(`${pin.venueName ?? pin.title} ${pin.lat},${pin.lng}`);
-  return {
-    label: "Google 지도",
-    url: `https://www.google.com/maps/search/?api=1&query=${q}`,
-  };
 }
 
 function mapRowsToPins(
