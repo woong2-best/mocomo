@@ -1,17 +1,20 @@
 ﻿import Link from "next/link";
 import { ChevronLeft, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getCachedPopularAnime } from "@/lib/cached-data";
+import { CultureWikiHubList } from "@/components/anime/culture-wiki-hub-list";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
+import { getCachedCultureWikiPopularAll } from "@/lib/culture-wiki-hub-data";
+import { getServerTranslator } from "@/lib/i18n/server";
 
 export const revalidate = 120;
 
 export default async function AnimePopularPage() {
-  let animes: Awaited<ReturnType<typeof getCachedPopularAnime>> = [];
+  const { t } = await getServerTranslator();
+  let items: Awaited<ReturnType<typeof getCachedCultureWikiPopularAll>> = [];
   try {
-    animes = await getCachedPopularAnime();
+    items = await getCachedCultureWikiPopularAll();
   } catch {
-    animes = [];
+    items = [];
   }
 
   return (
@@ -19,31 +22,20 @@ export default async function AnimePopularPage() {
       <Link href="/anime">
         <Button variant="ghost" size="sm" className="gap-1">
           <ChevronLeft className="h-4 w-4" />
-          애니 위키
+          {t("nav.anime")}
         </Button>
       </Link>
       <NativePageTitle>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Flame className="h-7 w-7 text-orange-500" />
-          인기 글
+          {t("anime.trendingTitle")}
         </h1>
       </NativePageTitle>
-      <p className="text-sm text-muted-foreground">조회수(클릭) 기준 실시간 인기 순위입니다.</p>
-      <ol className="space-y-2">
-        {animes.length === 0 ? (
-          <li className="text-muted-foreground text-sm">아직 데이터가 없습니다.</li>
-        ) : (
-          animes.map((a, i) => (
-            <li key={a.slug}>
-              <Link href={`/anime/${a.slug}`} className="flex items-baseline gap-3 text-sm hover:text-folk-cobalt">
-                <span className="w-8 text-right font-bold text-folk-cobalt tabular-nums">{i + 1}</span>
-                <span className="font-medium flex-1">{a.title}</span>
-                <span className="text-xs text-muted-foreground tabular-nums">{a.viewCount.toLocaleString()}회</span>
-              </Link>
-            </li>
-          ))
-        )}
-      </ol>
+      {items.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{t("anime.trendingEmpty")}</p>
+      ) : (
+        <CultureWikiHubList items={items} numbered className="space-y-2" />
+      )}
     </AppPageChrome>
   );
 }

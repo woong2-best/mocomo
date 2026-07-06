@@ -1,30 +1,20 @@
 ﻿import Link from "next/link";
 import { ChevronLeft, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { db } from "@/lib/db";
+import { CultureWikiHubList } from "@/components/anime/culture-wiki-hub-list";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
+import { getCachedCultureWikiRecentAll } from "@/lib/culture-wiki-hub-data";
+import { getServerTranslator } from "@/lib/i18n/server";
 
 export const revalidate = 60;
 
-function formatWhen(d: Date) {
-  return new Intl.DateTimeFormat("ko-KR", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(d);
-}
-
 export default async function AnimeRecentPage() {
-  let animes: { slug: string; title: string; updatedAt: Date }[] = [];
+  const { t } = await getServerTranslator();
+  let items: Awaited<ReturnType<typeof getCachedCultureWikiRecentAll>> = [];
   try {
-    animes = await db.anime.findMany({
-      take: 50,
-      orderBy: { updatedAt: "desc" },
-      select: { slug: true, title: true, updatedAt: true },
-    });
+    items = await getCachedCultureWikiRecentAll();
   } catch {
-    animes = [];
+    items = [];
   }
 
   return (
@@ -32,32 +22,26 @@ export default async function AnimeRecentPage() {
       <Link href="/anime">
         <Button variant="ghost" size="sm" className="gap-1">
           <ChevronLeft className="h-4 w-4" />
-          애니 위키
+          {t("nav.anime")}
         </Button>
       </Link>
       <NativePageTitle>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Clock className="h-7 w-7 text-folk-cobalt" />
-          최근 변경
+          {t("anime.recentTitle")}
         </h1>
       </NativePageTitle>
-      <ul className="divide-y divide-border rounded-2xl border border-border overflow-hidden">
-        {animes.length === 0 ? (
-          <li className="p-4 text-sm text-muted-foreground">변경된 글이 없습니다.</li>
-        ) : (
-          animes.map((a) => (
-            <li key={a.slug}>
-              <Link
-                href={`/anime/${a.slug}`}
-                className="flex items-center justify-between gap-4 px-4 py-3 text-sm hover:bg-muted/40"
-              >
-                <span className="font-medium truncate">{a.title}</span>
-                <span className="text-xs text-muted-foreground shrink-0">{formatWhen(a.updatedAt)}</span>
-              </Link>
-            </li>
-          ))
-        )}
-      </ul>
+      {items.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{t("anime.recentEmpty")}</p>
+      ) : (
+        <div className="divide-y divide-border rounded-2xl border border-border overflow-hidden">
+          {items.map((item) => (
+            <div key={item.key} className="px-4 py-3 hover:bg-muted/40">
+              <CultureWikiHubList items={[item]} showUpdatedAt />
+            </div>
+          ))}
+        </div>
+      )}
     </AppPageChrome>
   );
 }

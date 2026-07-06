@@ -65,7 +65,7 @@ function buildSuggestions(
     suggestions.push({
       id: `anime:${a.slug}`,
       label: a.title,
-      sublabel: "애니 위키",
+      sublabel: "culture-wiki",
       href: `/anime/${a.slug}`,
       kind: "anime",
     });

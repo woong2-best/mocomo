@@ -3,6 +3,7 @@ import { ChevronLeft, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getCachedNewestAnime } from "@/lib/cached-data";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
+import { getServerTranslator } from "@/lib/i18n/server";
 
 export const revalidate = 120;
 
@@ -14,6 +15,7 @@ function formatWhen(d: Date) {
 }
 
 export default async function AnimeNewestPage() {
+  const { t } = await getServerTranslator();
   let animes: Awaited<ReturnType<typeof getCachedNewestAnime>> = [];
   try {
     animes = await getCachedNewestAnime();
@@ -26,7 +28,7 @@ export default async function AnimeNewestPage() {
       <Link href="/anime">
         <Button variant="ghost" size="sm" className="gap-1">
           <ChevronLeft className="h-4 w-4" />
-          애니 위키
+          {t("nav.anime")}
         </Button>
       </Link>
       <NativePageTitle>

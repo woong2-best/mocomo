@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { userDisplayName } from "@/lib/user-public-select";
 import type { FastSearchResult, SearchSuggestion } from "@/lib/search-fast";
+import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 
 function SuggestionIcon({ kind }: { kind: SearchSuggestion["kind"] }) {
@@ -51,11 +52,17 @@ export function SearchPreviewPanel({
   className?: string;
   style?: React.CSSProperties;
 }) {
+  const { t } = useLocale();
   const suggestions = results?.suggestions ?? [];
   const users = results?.users ?? [];
   const extraAnimes = (results?.animes ?? []).filter(
     (a) => !suggestions.some((s) => s.id === `anime:${a.slug}`)
   );
+
+  function sublabelFor(s: SearchSuggestion) {
+    if (s.sublabel === "culture-wiki") return t("anime.wikiTitle");
+    return s.sublabel;
+  }
 
   return (
     <div
@@ -92,7 +99,7 @@ export function SearchPreviewPanel({
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[15px] font-medium">{s.label}</span>
                 {s.sublabel && (
-                  <span className="block text-xs text-muted-foreground mt-0.5">{s.sublabel}</span>
+                  <span className="block text-xs text-muted-foreground mt-0.5">{sublabelFor(s)}</span>
                 )}
               </span>
             </Link>
@@ -151,7 +158,7 @@ export function SearchPreviewPanel({
           <div className="border-t border-border/60" />
           <section>
             <p className="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              애니 위키
+              {t("anime.wikiTitle")}
             </p>
             {extraAnimes.slice(0, 4).map((a) => (
               <Link

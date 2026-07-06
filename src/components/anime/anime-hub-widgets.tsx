@@ -5,21 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Flame, Clock, Shuffle, Sparkles, Megaphone } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { LocalizedAnimeTitleList } from "@/components/anime/localized-anime-title-list";
+import { CultureWikiHubList } from "@/components/anime/culture-wiki-hub-list";
+import type { CultureWikiHubItem } from "@/lib/culture-wiki-hub-data";
 import { useLocale } from "@/components/providers/locale-provider";
-
-type AnimeRow = {
-  slug: string;
-  title: string;
-  titleEn: string | null;
-};
 
 export function AnimeHubWidgets({
   popular,
   recent,
 }: {
-  popular: AnimeRow[];
-  recent: AnimeRow[];
+  popular: CultureWikiHubItem[];
+  recent: CultureWikiHubItem[];
 }) {
   const { t } = useLocale();
   const { data: session } = useSession();
@@ -37,7 +32,7 @@ export function AnimeHubWidgets({
           {popular.length === 0 ? (
             <p className="text-xs text-muted-foreground">{t("anime.trendingEmpty")}</p>
           ) : (
-            <LocalizedAnimeTitleList items={popular} numbered className="space-y-1.5" />
+            <CultureWikiHubList items={popular} numbered className="space-y-1.5" />
           )}
           <Link href="/anime/popular" className="text-xs text-primary hover:underline inline-block pt-1">
             {t("anime.seeMore")}
@@ -56,7 +51,7 @@ export function AnimeHubWidgets({
           {recent.length === 0 ? (
             <p className="text-xs text-muted-foreground">{t("anime.recentEmpty")}</p>
           ) : (
-            <LocalizedAnimeTitleList items={recent} className="space-y-1.5" />
+            <CultureWikiHubList items={recent} className="space-y-1.5" />
           )}
           <Link href="/anime/recent" className="text-xs text-primary hover:underline inline-block pt-1">
             {t("anime.seeMore")}

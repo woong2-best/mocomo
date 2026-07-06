@@ -99,7 +99,7 @@ function titleForPath(pathname: string, t: (key: MessageKey, vars?: Record<strin
   if (pathname.startsWith("/anime/list/")) return "장르 목록";
   if (pathname.match(/^\/anime\/[^/]+\/edit$/)) return "문서 편집";
   if (pathname === "/anime/new") return "문서 작성";
-  if (pathname.startsWith("/anime/")) return "애니 위키";
+  if (pathname.startsWith("/anime/")) return t("nav.anime");
   if (pathname === "/cosplay/profiles") return "코스어 프로필";
   if (pathname === "/cosplay/board/new") return "글쓰기";
   if (pathname === "/used/adult-verify") return "성인 인증";

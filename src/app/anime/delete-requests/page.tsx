@@ -3,9 +3,11 @@ import { auth, isSiteOperator } from "@/lib/auth";
 import { getAnimeDeleteRequests } from "@/actions/anime";
 import { AnimeDeleteRequestsAdmin } from "@/components/anime/anime-delete-requests-admin";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
+import { getServerTranslator } from "@/lib/i18n/server";
 import { UserRole } from "@prisma/client";
 
 export default async function AnimeDeleteRequestsPage() {
+  const { t } = await getServerTranslator();
   const session = await auth();
   const isAdmin =
     !!session?.user &&
@@ -51,7 +53,7 @@ export default async function AnimeDeleteRequestsPage() {
       )}
 
       <Link href="/anime" className="text-sm text-primary hover:underline inline-block">
-        ← 애니 위키로
+        ← {t("nav.anime")}
       </Link>
     </AppPageChrome>
   );
