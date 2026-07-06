@@ -13,6 +13,7 @@ import {
   studioInternalPath,
 } from "@/studio/lib/host";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { ADD_ACCOUNT_COOKIE } from "@/lib/account-switch/constants";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -170,12 +171,17 @@ export default edgeAuth((req) => {
     return res;
   }
   if (isAuthPage && isLoggedIn && !isBanned) {
-    const callback = req.nextUrl.searchParams.get("callbackUrl");
-    const dest =
-      callback?.startsWith("/") && !callback.startsWith("//") ? callback : DEFAULT_LANDING_PATH;
-    const res = NextResponse.redirect(new URL(dest, req.url));
-    stampAppClientIfNeeded(req, res);
-    return res;
+    const addingAccount =
+      req.nextUrl.searchParams.get("addAccount") === "1" ||
+      req.cookies.get(ADD_ACCOUNT_COOKIE)?.value === "1";
+    if (!addingAccount) {
+      const callback = req.nextUrl.searchParams.get("callbackUrl");
+      const dest =
+        callback?.startsWith("/") && !callback.startsWith("//") ? callback : DEFAULT_LANDING_PATH;
+      const res = NextResponse.redirect(new URL(dest, req.url));
+      stampAppClientIfNeeded(req, res);
+      return res;
+    }
   }
   const sessionUser = req.auth?.user;
   const isOperator =

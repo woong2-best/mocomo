@@ -15,6 +15,7 @@ import { loginErrorMessage } from "@/lib/auth-login-errors";
 import { buildGmailEmail, buildNaverEmail, parseGmailLocalPart, parseNaverLocalPart } from "@/lib/signup-email-domains";
 import { useLocale } from "@/components/providers/locale-provider";
 import { signIn, getSession } from "next-auth/react";
+import { finishAddAccountFlow } from "@/lib/account-switch/add-account-flow";
 
 function safeCallbackUrl(raw: string): string {
   const path = raw.trim();
@@ -98,6 +99,7 @@ export function SignInForm({
     }
 
     await getSession();
+    await finishAddAccountFlow();
     router.refresh();
     router.replace(callbackUrl);
   }

@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { signIn, getSession } from "next-auth/react";
 import { sendEmailAuthCode, verifyAuthCodeOnly, completeAuthWithCode } from "@/actions/auth";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { finishAddAccountFlow } from "@/lib/account-switch/add-account-flow";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
 import { type Locale } from "@/lib/i18n/config";
 import { createTranslator } from "@/lib/i18n/messages";
@@ -184,6 +185,7 @@ export function EmailVerifyFormInner() {
       if (!signInResult?.error) {
         clearSignupLocaleStorage();
         await getSession();
+        await finishAddAccountFlow();
         router.refresh();
         router.replace(DEFAULT_LANDING_PATH);
         return;

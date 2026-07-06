@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Check, Loader2 } from "lucide-react";
@@ -16,6 +15,7 @@ import {
   switchToAccount,
   type SavedAccount,
 } from "@/lib/account-switch/client";
+import { setAddAccountFlowCookie } from "@/lib/account-switch/add-account-flow";
 import { cn } from "@/lib/utils";
 
 export function AccountSwitcherDialog({
@@ -25,7 +25,6 @@ export function AccountSwitcherDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const router = useRouter();
   const { data: session } = useSession();
   const { t } = useLocale();
   const [accounts, setAccounts] = useState<SavedAccount[]>([]);
@@ -63,17 +62,22 @@ export function AccountSwitcherDialog({
     window.location.href = DEFAULT_LANDING_PATH;
   }
 
+  function navigateToAuth(path: string) {
+    setAddAccountFlowCookie();
+    onOpenChange(false);
+    window.location.href = path;
+  }
+
   async function handleAddExisting() {
     setError("");
     await exportCurrentAccount();
-    onOpenChange(false);
-    router.push("/auth/signin?addAccount=1");
+    navigateToAuth("/auth/signin?addAccount=1");
   }
 
   function handleCreateNew() {
-    void exportCurrentAccount();
-    onOpenChange(false);
-    router.push("/auth/signup?addAccount=1");
+    void exportCurrentAccount().finally(() => {
+      navigateToAuth("/auth/signup/apply?addAccount=1");
+    });
   }
 
   function handleRemove(account: SavedAccount, e: React.MouseEvent) {

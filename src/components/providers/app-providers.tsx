@@ -15,6 +15,11 @@ const PlatformBootstrapClient = dynamic(
   { ssr: false }
 );
 
+const AddAccountFlowHandler = dynamic(
+  () => import("@/components/auth/add-account-flow-handler").then((m) => m.AddAccountFlowHandler),
+  { ssr: false }
+);
+
 const PushRegistration = dynamic(
   () => import("@/components/push/push-registration").then((m) => m.PushRegistration),
   { ssr: false }
@@ -45,6 +50,7 @@ export function AppProviders({
               <NativePushRegistration />
               <CallProviderGate>
                 <PlatformBootstrapClient />
+                <AddAccountFlowHandler />
                 {children}
               </CallProviderGate>
             </SidebarToggleProvider>
