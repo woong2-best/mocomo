@@ -29,6 +29,11 @@ export function phoneCodeIdentifier(phoneE164: string): string {
   return `phone-code:${phoneE164}`;
 }
 
+/** 계정당 진행 중인 OTP 번호 (인증 완료 전 번호 변경 방지) */
+export function phonePendingIdentifier(userId: string): string {
+  return `phone-pending:${userId}`;
+}
+
 export function scopedPhoneCodeToken(phoneE164: string, code: string): string {
   return `${phoneE164}:${code.trim()}`;
 }
