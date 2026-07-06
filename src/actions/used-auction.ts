@@ -13,9 +13,10 @@ import { sendUsedAuctionNotification } from "@/lib/used-auction-notify";
 import { MAX_USED_LISTING_PRICE, MAX_USED_LISTING_PRICE_LABEL } from "@/lib/used-market";
 import {
   isUsedMarketEligible,
-  USED_KR_ONLY_MSG,
   USED_PHONE_REQUIRED_MSG,
+  usedMarketUnsupportedCountryMsg,
 } from "@/lib/used-phone-auth";
+import { isUsedMarketPhoneCountry } from "@/lib/used-phone-countries";
 import { assertUsedAdultForRestricted } from "@/lib/used-youth-protection";
 
 function assertUsedMarketAccess(user: {
@@ -23,7 +24,7 @@ function assertUsedMarketAccess(user: {
   phoneVerified: Date | null;
   adultVerifiedAt?: Date | null;
 }) {
-  if (user.countryCode !== "KR") return USED_KR_ONLY_MSG;
+  if (!isUsedMarketPhoneCountry(user.countryCode)) return usedMarketUnsupportedCountryMsg("ko");
   if (!isUsedMarketEligible(user)) return USED_PHONE_REQUIRED_MSG;
   return null;
 }

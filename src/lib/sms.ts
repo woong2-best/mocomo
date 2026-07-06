@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { formatKrPhoneDisplay } from "@/lib/phone";
+import { formatPhoneDisplay } from "@/lib/phone-international";
 
 function solapiAuthorization(): string | null {
   const apiKey = process.env.SOLAPI_API_KEY?.trim();
@@ -16,21 +16,23 @@ export type SendSmsResult =
   | { ok: true; dev?: boolean }
   | { ok: false; error: string };
 
-/** Solapi SMS (미설정 시 개발 환경에서만 콘솔 로그) */
-export async function sendAuthSms(phoneE164: string, code: string): Promise<SendSmsResult> {
-  const display = formatKrPhoneDisplay(phoneE164);
-  const message = `[MoCoMo] 중고거래 인증번호: ${code} (3분 내 입력)`;
+function isKrPhone(phoneE164: string) {
+  return phoneE164.startsWith("+82");
+}
+
+async function sendKrSmsViaSolapi(phoneE164: string, text: string): Promise<SendSmsResult> {
   const from = process.env.SOLAPI_SENDER_PHONE?.trim();
   const auth = solapiAuthorization();
 
   if (!auth || !from) {
     if (process.env.NODE_ENV === "development" || process.env.SMS_DEV_LOG === "true") {
-      console.info(`[SMS dev] ${display} → ${code}`);
+      console.info(`[SMS dev KR] ${formatPhoneDisplay(phoneE164)} → ${text}`);
       return { ok: true, dev: true };
     }
     return {
       ok: false,
-      error: "SMS 발송 설정이 없습니다. SOLAPI_API_KEY, SOLAPI_API_SECRET, SOLAPI_SENDER_PHONE을 설정해 주세요.",
+      error:
+        "SMS 발송 설정이 없습니다. SOLAPI_API_KEY, SOLAPI_API_SECRET, SOLAPI_SENDER_PHONE을 설정해 주세요.",
     };
   }
 
@@ -43,11 +45,7 @@ export async function sendAuthSms(phoneE164: string, code: string): Promise<Send
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        message: {
-          to,
-          from,
-          text: message,
-        },
+        message: { to, from, text },
       }),
     });
     if (!res.ok) {
@@ -58,4 +56,57 @@ export async function sendAuthSms(phoneE164: string, code: string): Promise<Send
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "SMS 발송 오류" };
   }
+}
+
+async function sendIntlSmsViaTwilio(phoneE164: string, text: string): Promise<SendSmsResult> {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim();
+  const authToken = process.env.TWILIO_AUTH_TOKEN?.trim();
+  const from = process.env.TWILIO_FROM_NUMBER?.trim();
+
+  if (!accountSid || !authToken || !from) {
+    if (process.env.NODE_ENV === "development" || process.env.SMS_DEV_LOG === "true") {
+      console.info(`[SMS dev intl] ${formatPhoneDisplay(phoneE164)} → ${text}`);
+      return { ok: true, dev: true };
+    }
+    return {
+      ok: false,
+      error:
+        "해외 SMS 설정이 없습니다. TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER을 설정해 주세요.",
+    };
+  }
+
+  try {
+    const body = new URLSearchParams({
+      To: phoneE164,
+      From: from,
+      Body: text,
+    });
+    const res = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body,
+      }
+    );
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      return { ok: false, error: errBody || `SMS 발송 실패 (${res.status})` };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "SMS 발송 오류" };
+  }
+}
+
+/** Solapi(한국) · Twilio(해외) — 미설정 시 개발 환경에서만 콘솔 로그 */
+export async function sendAuthSms(phoneE164: string, code: string): Promise<SendSmsResult> {
+  const text = `[MoCoMo] 중고거래 인증번호: ${code} (3분 내 입력)`;
+  if (isKrPhone(phoneE164)) {
+    return sendKrSmsViaSolapi(phoneE164, text);
+  }
+  return sendIntlSmsViaTwilio(phoneE164, text);
 }

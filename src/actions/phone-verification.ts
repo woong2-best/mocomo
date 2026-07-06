@@ -10,7 +10,12 @@ import {
   scopedPhoneCodeToken,
   phoneCodeMatchesToken,
 } from "@/lib/auth-tokens";
-import { isValidKrMobileInput, normalizeKrPhone, formatKrPhoneDisplay } from "@/lib/phone";
+import {
+  formatPhoneDisplay,
+  isValidMobilePhoneInput,
+  normalizeMobilePhone,
+  phonePlaceholderForCountry,
+} from "@/lib/phone-international";
 import {
   assertPhoneExclusiveToAccount,
   PHONE_ALREADY_ON_ACCOUNT_MSG,
@@ -19,6 +24,8 @@ import {
 } from "@/lib/phone-ownership";
 import { sendAuthSms } from "@/lib/sms";
 import { checkPhoneSmsRateLimit } from "@/lib/auth-rate-limit";
+import { isUsedMarketPhoneCountry } from "@/lib/used-phone-countries";
+import { usedMarketUnsupportedCountryMsg } from "@/lib/used-phone-auth";
 
 const OTP_TTL_MS = 3 * 60 * 1000;
 
@@ -77,7 +84,7 @@ export async function getPhoneVerificationStatus() {
     countryCode: user.countryCode,
     phone: user.phone,
     phoneVerified: !!user.phoneVerified,
-    displayPhone: user.phone ? formatKrPhoneDisplay(user.phone) : null,
+    displayPhone: user.phone ? formatPhoneDisplay(user.phone) : null,
   };
 }
 
@@ -92,32 +99,34 @@ export async function clearUsedMarketPhonePending() {
 
 export async function sendUsedMarketPhoneOtp(rawPhone: string) {
   const user = await requirePhoneVerificationUser();
-  if (user.countryCode !== "KR") {
-    return { error: "중고거래는 대한민국 회원만 이용할 수 있습니다." };
+  if (!isUsedMarketPhoneCountry(user.countryCode)) {
+    return { error: usedMarketUnsupportedCountryMsg("ko") };
   }
-  if (!isValidKrMobileInput(rawPhone)) {
-    return { error: "올바른 휴대폰 번호를 입력해 주세요. (예: 010-1234-5678)" };
+  if (!isValidMobilePhoneInput(rawPhone, user.countryCode)) {
+    return {
+      error: `올바른 휴대폰 번호를 입력해 주세요. (예: ${phonePlaceholderForCountry(user.countryCode)})`,
+    };
   }
 
-  const phone = normalizeKrPhone(rawPhone);
+  const phone = normalizeMobilePhone(rawPhone, user.countryCode);
   if (!phone) return { error: "휴대폰 번호 형식이 올바르지 않습니다." };
 
   if (user.phoneVerified) {
     if (user.phone === phone) {
       return {
-        message: `이미 인증된 번호입니다. (${formatKrPhoneDisplay(phone)})`,
-        phoneDisplay: formatKrPhoneDisplay(phone),
+        message: `이미 인증된 번호입니다. (${formatPhoneDisplay(phone)})`,
+        phoneDisplay: formatPhoneDisplay(phone),
         alreadyVerified: true,
       };
     }
     return {
-      error: `${PHONE_ALREADY_ON_ACCOUNT_MSG} (${formatKrPhoneDisplay(user.phone!)})`,
+      error: `${PHONE_ALREADY_ON_ACCOUNT_MSG} (${formatPhoneDisplay(user.phone!)})`,
     };
   }
 
   const pending = await readPendingPhone(user.id);
   if (pending && pending !== phone) {
-    return { error: `${PHONE_PENDING_OTHER_MSG} (${formatKrPhoneDisplay(pending)})` };
+    return { error: `${PHONE_PENDING_OTHER_MSG} (${formatPhoneDisplay(pending)})` };
   }
 
   const exclusive = await assertPhoneExclusiveToAccount(phone, user.id);
@@ -148,24 +157,24 @@ export async function sendUsedMarketPhoneOtp(rawPhone: string) {
       ? `개발 모드: 인증번호 ${code} (실서비스는 문자로 전송됩니다)`
       : "인증번호를 문자로 보냈습니다.",
     devCode: sent.dev ? code : undefined,
-    phoneDisplay: formatKrPhoneDisplay(phone),
+    phoneDisplay: formatPhoneDisplay(phone),
     sendsRemaining: rate.remaining,
   };
 }
 
 export async function verifyUsedMarketPhoneOtp(rawPhone: string, code: string) {
   const user = await requirePhoneVerificationUser();
-  if (user.countryCode !== "KR") {
-    return { error: "중고거래는 대한민국 회원만 이용할 수 있습니다." };
+  if (!isUsedMarketPhoneCountry(user.countryCode)) {
+    return { error: usedMarketUnsupportedCountryMsg("ko") };
   }
 
-  const phone = normalizeKrPhone(rawPhone);
+  const phone = normalizeMobilePhone(rawPhone, user.countryCode);
   if (!phone) return { error: "휴대폰 번호 형식이 올바르지 않습니다." };
   if (!/^\d{6}$/.test(code.trim())) return { error: "6자리 인증번호를 입력해 주세요." };
 
   if (user.phoneVerified) {
     if (user.phone === phone) {
-      return { success: true, displayPhone: formatKrPhoneDisplay(phone) };
+      return { success: true, displayPhone: formatPhoneDisplay(phone) };
     }
     return { error: PHONE_ALREADY_ON_ACCOUNT_MSG };
   }
@@ -241,6 +250,6 @@ export async function verifyUsedMarketPhoneOtp(rawPhone: string, code: string) {
 
   return {
     success: true,
-    displayPhone: formatKrPhoneDisplay(phone),
+    displayPhone: formatPhoneDisplay(phone),
   };
 }

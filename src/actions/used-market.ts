@@ -30,9 +30,10 @@ import {
 import { isKakaoLocalConfigured, kakaoGeocodeMeetPlace } from "@/lib/kakao-local";
 import {
   isUsedMarketEligible,
-  USED_KR_ONLY_MSG,
   USED_PHONE_REQUIRED_MSG,
+  usedMarketUnsupportedCountryMsg,
 } from "@/lib/used-phone-auth";
+import { isUsedMarketPhoneCountry } from "@/lib/used-phone-countries";
 import {
   assertUsedAdultForRestricted,
   isUsedRestrictedKind,
@@ -43,7 +44,7 @@ function assertUsedMarketAccess(user: {
   countryCode: string;
   phoneVerified: Date | null;
 }) {
-  if (user.countryCode !== "KR") return USED_KR_ONLY_MSG;
+  if (!isUsedMarketPhoneCountry(user.countryCode)) return usedMarketUnsupportedCountryMsg("ko");
   if (!isUsedMarketEligible(user)) return USED_PHONE_REQUIRED_MSG;
   return null;
 }

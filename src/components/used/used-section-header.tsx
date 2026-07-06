@@ -18,7 +18,7 @@ export function UsedSectionHeader() {
           <span className="truncate">중고거래</span>
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-          대한민국 전역 · 휴대폰·성인 인증(주류·담배·성인용품)
+          KR · US · JP · CN · GB · EU · 휴대폰·성인 인증
         </p>
       </div>
       <nav className="flex flex-wrap items-center gap-2 shrink-0">
