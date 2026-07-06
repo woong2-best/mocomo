@@ -152,6 +152,14 @@ export type MessageKey =
   | "translate.sourceLanguage"
   | "translate.loading"
   | "translate.failed"
+  | "accountSwitch.title"
+  | "accountSwitch.menuAria"
+  | "accountSwitch.empty"
+  | "accountSwitch.current"
+  | "accountSwitch.remove"
+  | "accountSwitch.createNew"
+  | "accountSwitch.addExisting"
+  | "accountSwitch.switchFailed"
   | "settings.title"
   | "settings.localeTitle"
   | "settings.localeDesc"
@@ -501,6 +509,14 @@ const ko: Record<MessageKey, string> = {
   "translate.sourceLanguage": "원문 언어 {language}",
   "translate.loading": "번역 중…",
   "translate.failed": "번역할 수 없습니다",
+  "accountSwitch.title": "계정",
+  "accountSwitch.menuAria": "계정 메뉴",
+  "accountSwitch.empty": "저장된 계정이 없습니다",
+  "accountSwitch.current": "현재 계정",
+  "accountSwitch.remove": "삭제",
+  "accountSwitch.createNew": "새 계정 만들기",
+  "accountSwitch.addExisting": "기존 계정 추가하기",
+  "accountSwitch.switchFailed": "계정을 전환할 수 없습니다. 다시 로그인해 주세요.",
   "settings.title": "설정",
   "settings.localeTitle": "국가 · 언어",
   "settings.localeDesc": "프로필 국기와 앱 표시 언어를 변경합니다",
@@ -851,6 +867,14 @@ const en: Record<MessageKey, string> = {
   "translate.sourceLanguage": "Translated from {language}",
   "translate.loading": "Translating…",
   "translate.failed": "Could not translate",
+  "accountSwitch.title": "Accounts",
+  "accountSwitch.menuAria": "Account menu",
+  "accountSwitch.empty": "No saved accounts",
+  "accountSwitch.current": "Current account",
+  "accountSwitch.remove": "Remove",
+  "accountSwitch.createNew": "Create new account",
+  "accountSwitch.addExisting": "Add existing account",
+  "accountSwitch.switchFailed": "Could not switch accounts. Please sign in again.",
   "settings.title": "Settings",
   "settings.localeTitle": "Country & language",
   "settings.localeDesc": "Profile flag and app display language",
@@ -1201,6 +1225,14 @@ const ja: Record<MessageKey, string> = {
   "translate.sourceLanguage": "原文の言語: {language}",
   "translate.loading": "翻訳中…",
   "translate.failed": "翻訳できませんでした",
+  "accountSwitch.title": "アカウント",
+  "accountSwitch.menuAria": "アカウントメニュー",
+  "accountSwitch.empty": "保存されたアカウントがありません",
+  "accountSwitch.current": "現在のアカウント",
+  "accountSwitch.remove": "削除",
+  "accountSwitch.createNew": "新規アカウント作成",
+  "accountSwitch.addExisting": "既存アカウントを追加",
+  "accountSwitch.switchFailed": "アカウントを切り替えられません。再度ログインしてください。",
   "settings.title": "設定",
   "settings.localeTitle": "国・言語",
   "settings.localeDesc": "プロフィールの国旗と表示言語",
@@ -1551,6 +1583,14 @@ const zh: Record<MessageKey, string> = {
   "translate.sourceLanguage": "原文语言：{language}",
   "translate.loading": "翻译中…",
   "translate.failed": "无法翻译",
+  "accountSwitch.title": "账户",
+  "accountSwitch.menuAria": "账户菜单",
+  "accountSwitch.empty": "没有已保存的账户",
+  "accountSwitch.current": "当前账户",
+  "accountSwitch.remove": "移除",
+  "accountSwitch.createNew": "创建新账户",
+  "accountSwitch.addExisting": "添加已有账户",
+  "accountSwitch.switchFailed": "无法切换账户，请重新登录。",
   "settings.title": "设置",
   "settings.localeTitle": "国家与语言",
   "settings.localeDesc": "个人资料国旗与应用显示语言",
