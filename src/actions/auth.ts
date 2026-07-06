@@ -51,6 +51,7 @@ import {
   pickAvailableSignupFloor,
   tryResolvePrecheckedSignupFloor,
 } from "@/actions/apt";
+import { RESERVED_USERNAMES } from "@/lib/username-policy";
 
 const signupApplicationSchema = z.object({
   email: z.string().email(),
@@ -92,18 +93,6 @@ const registerSchema = z.object({
   /** 봇 허니팟 — 값이 있으면 거부 */
   website: z.string().optional(),
 });
-
-const RESERVED_USERNAMES = new Set([
-  "mocomo",
-  "mocomo_official",
-  "admin",
-  "administrator",
-  "support",
-  "official",
-  "system",
-  "root",
-  "help",
-]);
 
 const PLATFORM_USERNAME = "mocomo_official";
 /** 회원가입 해시 — 12보다 빠르고 충분히 안전 */

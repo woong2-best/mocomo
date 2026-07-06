@@ -149,9 +149,9 @@ export function VoiceLiveHostStudio({
 
       <div className="flex flex-col items-center py-10 px-6 gap-6">
         <div className="relative">
-          <span className="absolute inset-0 rounded-full bg-violet-500/20 animate-ping" />
-          <span className="absolute -inset-3 rounded-full bg-violet-500/10 animate-pulse" />
-          <div className="relative h-28 w-28 rounded-full overflow-hidden ring-4 ring-violet-500/40 bg-muted flex items-center justify-center">
+          <span className="absolute inset-0 rounded-xl bg-violet-500/20 animate-ping" />
+          <span className="absolute -inset-3 rounded-xl bg-violet-500/10 animate-pulse" />
+          <div className="relative h-28 w-28 rounded-xl overflow-hidden ring-4 ring-violet-500/40 bg-muted flex items-center justify-center">
             {hostImage ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={hostImage} alt="" className="h-full w-full object-cover" />
@@ -234,7 +234,7 @@ function VoiceLiveListenerRoom({
       <div className="flex flex-col items-center py-10 px-6 gap-5 min-h-[280px] justify-center">
         <div className="relative">
           <HostMicLevel hostUserId={hostUserId} />
-          <div className="relative h-32 w-32 rounded-full overflow-hidden ring-4 ring-violet-500/30 bg-muted flex items-center justify-center">
+          <div className="relative h-32 w-32 rounded-xl overflow-hidden ring-4 ring-violet-500/30 bg-muted flex items-center justify-center">
             {hostImage ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={hostImage} alt="" className="h-full w-full object-cover" />

@@ -8,6 +8,16 @@ import { validateUsernameAndName } from "@/lib/forbidden-admin-sequence";
 import { xpForLevel } from "@/lib/utils";
 import { parseBirthDateInput } from "@/lib/used-youth-protection";
 import type { Prisma } from "@prisma/client";
+import { findUserByUsernameInsensitive } from "@/lib/signup-user-resolve";
+import {
+  RESERVED_USERNAMES,
+  USERNAME_CHANGE_LIMIT,
+  USERNAME_CHANGE_WINDOW_DAYS,
+  isValidUsername,
+  normalizeUsername,
+  usernameChangeResetAt,
+  usernameChangeWindowStart,
+} from "@/lib/username-policy";
 
 export async function updateProfile(data: {
   bio?: string;
@@ -18,6 +28,7 @@ export async function updateProfile(data: {
   nicknameEffect?: string;
   showNsfw?: boolean;
   showBirthdayOnProfile?: boolean;
+  username?: string;
   name?: string;
   image?: string;
   /** 모두 비우면 생일 삭제 */
@@ -27,34 +38,80 @@ export async function updateProfile(data: {
   clearBirthDate?: boolean;
 }) {
   const user = await requireAuth();
-  const { name, image, showNsfw, birthYear, birthMonth, birthDay, clearBirthDate, showBirthdayOnProfile, ...profileData } = data;
+  const {
+    username,
+    name,
+    image,
+    showNsfw,
+    birthYear,
+    birthMonth,
+    birthDay,
+    clearBirthDate,
+    showBirthdayOnProfile,
+    ...profileData
+  } = data;
+  const currentUsername = user.username;
+  const nextUsername = username !== undefined ? normalizeUsername(username) : undefined;
+  const usernameChanged =
+    nextUsername !== undefined && nextUsername !== normalizeUsername(currentUsername);
 
   if (name !== undefined) {
-    const check = validateUsernameAndName(user.username, name);
+    const check = validateUsernameAndName(nextUsername ?? currentUsername, name);
     if (!check.ok) return { error: check.error };
   }
+
+  let recentUsernameChanges: { createdAt: Date }[] = [];
+  if (usernameChanged) {
+    if (!isValidUsername(nextUsername)) {
+      return { error: "아이디는 영문·숫자·_ 3~20자입니다." };
+    }
+
+    if (RESERVED_USERNAMES.has(nextUsername)) {
+      return { error: "사용할 수 없는 아이디입니다." };
+    }
+
+    const usernameCheck = validateUsernameAndName(nextUsername, name);
+    if (!usernameCheck.ok) return { error: usernameCheck.error };
+
+    const taken = await findUserByUsernameInsensitive(nextUsername);
+    if (taken && taken.id !== user.id) {
+      return { error: `@${nextUsername} 아이디는 이미 사용 중입니다.` };
+    }
+
+    recentUsernameChanges = await db.usernameChangeLog.findMany({
+      where: {
+        userId: user.id,
+        createdAt: { gte: usernameChangeWindowStart() },
+      },
+      orderBy: { createdAt: "asc" },
+      select: { createdAt: true },
+    });
+
+    if (recentUsernameChanges.length >= USERNAME_CHANGE_LIMIT) {
+      const resetAt = usernameChangeResetAt(recentUsernameChanges);
+      const resetText = resetAt
+        ? ` 다음 가능 시간: ${resetAt.toLocaleString("ko-KR")}`
+        : "";
+      return {
+        error: `아이디는 ${USERNAME_CHANGE_WINDOW_DAYS}일에 ${USERNAME_CHANGE_LIMIT}번만 변경할 수 있습니다.${resetText}`,
+      };
+    }
+  }
+
   const profilePayload: Prisma.ProfileUpdateInput = { ...profileData };
   if (showBirthdayOnProfile !== undefined) {
     profilePayload.showBirthdayOnProfile = showBirthdayOnProfile;
   }
 
-  await db.profile.upsert({
-    where: { userId: user.id },
-    create: {
-      userId: user.id,
-      ...profileData,
-      ...(showBirthdayOnProfile !== undefined ? { showBirthdayOnProfile } : {}),
-    },
-    update: profilePayload,
-  });
-
   const userUpdate: {
     showNsfw?: boolean;
+    username?: string;
     name?: string | null;
     image?: string | null;
     birthDate?: Date | null;
   } = {};
   if (showNsfw !== undefined) userUpdate.showNsfw = showNsfw;
+  if (usernameChanged) userUpdate.username = nextUsername;
   if (name !== undefined) userUpdate.name = name || null;
   if (image !== undefined) userUpdate.image = image || null;
 
@@ -70,15 +127,48 @@ export async function updateProfile(data: {
     userUpdate.birthDate = birth;
   }
 
-  if (Object.keys(userUpdate).length > 0) {
-    await db.user.update({ where: { id: user.id }, data: userUpdate });
-    if (userUpdate.name !== undefined || userUpdate.image !== undefined) {
-      revalidateTag(FEED_POSTS_CACHE_TAG);
-      revalidatePath(`/cosplay/${user.username}`);
+  await db.$transaction(async (tx) => {
+    await tx.profile.upsert({
+      where: { userId: user.id },
+      create: {
+        userId: user.id,
+        ...profileData,
+        ...(showBirthdayOnProfile !== undefined ? { showBirthdayOnProfile } : {}),
+      },
+      update: profilePayload,
+    });
+
+    if (Object.keys(userUpdate).length > 0) {
+      await tx.user.update({ where: { id: user.id }, data: userUpdate });
     }
+
+    if (usernameChanged) {
+      await tx.usernameChangeLog.create({
+        data: {
+          userId: user.id,
+          oldUsername: currentUsername,
+          newUsername: nextUsername,
+        },
+      });
+    }
+  });
+
+  if (
+    userUpdate.name !== undefined ||
+    userUpdate.image !== undefined ||
+    usernameChanged
+  ) {
+    revalidateTag(FEED_POSTS_CACHE_TAG);
+    revalidatePath(`/cosplay/${currentUsername}`);
+    if (usernameChanged) revalidatePath(`/cosplay/${nextUsername}`);
   }
-  revalidatePath(`/u/${user.username}`);
-  revalidateTag(profileUserCacheTag(user.username));
+
+  revalidatePath(`/u/${currentUsername}`);
+  revalidateTag(profileUserCacheTag(currentUsername));
+  if (usernameChanged) {
+    revalidatePath(`/u/${nextUsername}`);
+    revalidateTag(profileUserCacheTag(nextUsername));
+  }
   revalidatePath("/settings/profile");
   return { success: true };
 }

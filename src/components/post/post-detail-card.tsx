@@ -9,7 +9,7 @@ import type { Locale } from "@/lib/i18n/config";
 import type { getPostDetail } from "@/lib/post-queries";
 import { PostPollCard } from "@/components/post/post-poll-card";
 import { PostOwnerMenu } from "@/components/post/post-owner-menu";
-import { LinkifiedText } from "@/components/ui/linkified-text";
+import { TranslatableText } from "@/components/ui/translatable-text";
 import { PostDetailMediaList } from "@/components/post/post-detail-media-list";
 
 const dateLocales = { ko, en: enUS, ja, zh: zhCN } as const;
@@ -64,7 +64,7 @@ export function PostDetailCard({
           )}
         </div>
         {post.title && <h1 className="text-xl font-bold">{post.title}</h1>}
-        <LinkifiedText text={post.content} as="p" className="whitespace-pre-wrap" />
+        <TranslatableText text={post.content} as="p" className="whitespace-pre-wrap" />
         {post.poll && (
           <PostPollCard postId={post.id} poll={post.poll} />
         )}

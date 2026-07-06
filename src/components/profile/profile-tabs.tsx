@@ -49,7 +49,7 @@ export function ProfileTabs({
 
   return (
     <>
-      <div className="sticky top-[calc(var(--header-h)+3.25rem)] z-20 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 border-b border-border/60">
+      <div className="sticky top-[var(--profile-compact-h)] z-20 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 border-b border-border/60">
         <nav className="flex items-stretch">
           <div className="flex flex-1 min-w-0">
             {tabs.filter((t) => showLikesTab || t.id !== "likes").map((t) => {

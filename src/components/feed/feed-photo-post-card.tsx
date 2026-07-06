@@ -19,7 +19,7 @@ import type { GridPost } from "@/components/feed/feed-post-card";
 import { PostPollCard } from "@/components/post/post-poll-card";
 import { MotionPop } from "@/components/motion/motion-primitives";
 import { engageStar, postEngage } from "@/lib/post-engage-client";
-import { LinkifiedText } from "@/components/ui/linkified-text";
+import { TranslatableText } from "@/components/ui/translatable-text";
 import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
 
 const CAPTION_PREVIEW_LEN = 80;
@@ -242,7 +242,7 @@ export function FeedPhotoPostCard({
             <Link href={`/u/${username}`} className="font-semibold mr-1.5 hover:opacity-80">
               {username}
             </Link>
-            <LinkifiedText
+            <TranslatableText
               text={captionPreview}
               as="span"
               stopPropagation

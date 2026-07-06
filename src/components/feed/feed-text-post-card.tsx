@@ -17,7 +17,7 @@ import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-
 import { userDisplayName } from "@/lib/user-public-select";
 import type { GridPost } from "@/components/feed/feed-post-card";
 import { PostPollCard } from "@/components/post/post-poll-card";
-import { LinkifiedText } from "@/components/ui/linkified-text";
+import { TranslatableText } from "@/components/ui/translatable-text";
 import { MotionPop } from "@/components/motion/motion-primitives";
 import { engageStar, postEngage } from "@/lib/post-engage-client";
 
@@ -150,7 +150,7 @@ export function FeedTextPostCard({
           {post.title && (
             <h3 className="font-display font-bold text-sm mb-1 text-folk-cobalt">{post.title}</h3>
           )}
-          <LinkifiedText
+          <TranslatableText
             text={post.content}
             as="p"
             stopPropagation

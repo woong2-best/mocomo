@@ -4,6 +4,11 @@ import { db } from "@/lib/db";
 import { ProfileSettingsForm } from "@/components/profile/profile-settings-form";
 import { splitStoredBirthDate } from "@/lib/birth-date";
 import type { CosplayGalleryPhoto } from "@/components/profile/cosplay-gallery-settings";
+import {
+  usernameChangeResetAt,
+  usernameChangeWindowStart,
+  usernameChangesRemaining,
+} from "@/lib/username-policy";
 
 export default async function ProfileSettingsPage() {
   const session = await auth();
@@ -24,6 +29,15 @@ export default async function ProfileSettingsPage() {
 
   const sns = (user.profile?.snsLinks ?? {}) as { location?: string; website?: string };
   const birth = splitStoredBirthDate(user.birthDate);
+  const recentUsernameChanges = await db.usernameChangeLog.findMany({
+    where: {
+      userId: user.id,
+      createdAt: { gte: usernameChangeWindowStart() },
+    },
+    orderBy: { createdAt: "asc" },
+    select: { createdAt: true },
+  });
+  const resetAt = usernameChangeResetAt(recentUsernameChanges);
 
   const cosplayPhotos: CosplayGalleryPhoto[] =
     user.cosplayerProfile?.photos.map((p) => ({
@@ -50,6 +64,8 @@ export default async function ProfileSettingsPage() {
         birthMonth: birth.month,
         birthDay: birth.day,
         showBirthdayOnProfile: user.profile?.showBirthdayOnProfile ?? false,
+        usernameChangesRemaining: usernameChangesRemaining(recentUsernameChanges.length),
+        usernameChangeResetAt: resetAt?.toISOString() ?? null,
       }}
       cosplayerProfile={
         user.cosplayerProfile

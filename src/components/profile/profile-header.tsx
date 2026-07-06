@@ -71,8 +71,8 @@ export function ProfileHeader({
   const isBlocked = blockedByViewer || blockedViewer;
 
   return (
-    <div className="border-b border-border/60">
-      <div className="sticky top-[var(--header-h)] z-30 flex items-center gap-4 px-4 py-2 bg-background/95 backdrop-blur-md border-b border-border/40 supports-[backdrop-filter]:bg-background/80">
+    <>
+      <div className="sticky top-0 z-30 flex items-center gap-4 px-4 py-2 bg-background/95 backdrop-blur-md border-b border-border/40 supports-[backdrop-filter]:bg-background/80">
         <Link href={DEFAULT_LANDING_PATH} className="p-2 -ml-2 rounded-full hover:bg-muted/80">
           <ArrowLeft className="h-5 w-5" />
         </Link>
@@ -100,6 +100,7 @@ export function ProfileHeader({
         )}
       </div>
 
+      <div className="border-b border-border/60">
       <div
         className="h-36 sm:h-44 bg-gradient-to-r from-violet-500/30 via-fuchsia-500/20 to-cyan-500/30"
         style={
@@ -304,6 +305,7 @@ export function ProfileHeader({
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

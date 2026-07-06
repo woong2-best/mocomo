@@ -119,6 +119,7 @@ model User {
 
   accounts      Account[]
   sessions      Session[]
+  usernameChangeLogs UsernameChangeLog[]
   profile       Profile?
   cosplayerProfile CosplayerProfile?
   streamerProfile  StreamerProfile?
@@ -316,6 +317,18 @@ model VerificationToken {
   token      String   @unique
   expires    DateTime
   @@unique([identifier, token])
+}
+
+model UsernameChangeLog {
+  id          String   @id @default(cuid())
+  userId      String
+  oldUsername String
+  newUsername String
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 model Profile {

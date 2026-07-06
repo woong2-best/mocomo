@@ -1,3 +1,6 @@
+import { avatarShapeClass } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
+
 /** 본문 로딩 — loading.tsx 이후에도 구역별로 스트리밍 */
 
 export function GridCardsSkeleton({ count = 4 }: { count?: number }) {
@@ -14,7 +17,7 @@ export function ProfileHeaderSkeleton() {
   return (
     <div className="animate-pulse border-b border-border/60 p-4 space-y-4">
       <div className="flex gap-4">
-        <div className="h-20 w-20 rounded-full bg-muted shrink-0" />
+        <div className={cn("h-20 w-20 bg-muted shrink-0", avatarShapeClass)} />
         <div className="flex-1 space-y-2 pt-2">
           <div className="h-5 w-32 rounded bg-muted" />
           <div className="h-4 w-48 rounded bg-muted" />
@@ -41,7 +44,7 @@ export function ProfileTimelineSkeleton() {
 export function ChatHeaderSkeleton() {
   return (
     <div className="h-14 border-b border-border/60 bg-muted/20 animate-pulse flex items-center gap-3 px-4">
-      <div className="h-9 w-9 rounded-full bg-muted" />
+      <div className={cn("h-9 w-9 bg-muted", avatarShapeClass)} />
       <div className="h-4 w-28 rounded bg-muted" />
     </div>
   );

@@ -20,7 +20,7 @@ import { MotionPop } from "@/components/motion/motion-primitives";
 import { engageStar, postEngage } from "@/lib/post-engage-client";
 import { PaidPostMediaGrid } from "@/components/profile/paid-post-media-grid";
 import type { ProfilePostMediaItem } from "@/components/profile/paid-post-media-grid";
-import { LinkifiedText } from "@/components/ui/linkified-text";
+import { TranslatableText } from "@/components/ui/translatable-text";
 import { postHasVisualMedia } from "@/lib/format-feed";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { Locale } from "@/lib/i18n/config";
@@ -138,7 +138,7 @@ export function FeedTimelinePostCard({
               <Link href={`/post/${post.id}`} className="block mt-2">
                 {post.title && <p className="font-semibold text-[15px] mb-1">{post.title}</p>}
                 {post.content && (
-                  <LinkifiedText
+                  <TranslatableText
                     text={post.content}
                     as="p"
                     stopPropagation

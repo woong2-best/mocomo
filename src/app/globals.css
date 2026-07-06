@@ -6,6 +6,7 @@
 @layer base {
   :root {
     --header-h: calc(3.5rem + env(safe-area-inset-top, 0px));
+    --profile-compact-h: 3.25rem;
     --mobile-nav-h: 3.5rem;
 
     --folk-cobalt: 224 68% 33%;

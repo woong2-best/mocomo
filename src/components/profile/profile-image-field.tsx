@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ImageCropDialog } from "@/components/media/image-crop-dialog";
 import { readFileAsObjectUrl } from "@/lib/crop-image";
+import { avatarShapeClass } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
 const ACCEPT = "image/jpeg,image/png,image/webp,image/gif";
@@ -110,7 +111,8 @@ export function ProfileImageField({ kind, name, value, onChange, previewClassNam
         <div className="flex items-center gap-4">
           <div
             className={cn(
-              "h-20 w-20 rounded-full overflow-hidden ring-2 ring-border bg-muted flex items-center justify-center shrink-0",
+              "h-20 w-20 overflow-hidden ring-2 ring-border bg-muted flex items-center justify-center shrink-0",
+              avatarShapeClass,
               previewClassName
             )}
           >

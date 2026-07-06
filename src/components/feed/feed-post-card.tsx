@@ -4,7 +4,7 @@ import { ko } from "date-fns/locale";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Heart, MessageCircle, Star } from "lucide-react";
-import { LinkifiedText } from "@/components/ui/linkified-text";
+import { TranslatableText } from "@/components/ui/translatable-text";
 import { PostShareMenu } from "@/components/post/post-share-menu";
 import { formatNumber } from "@/lib/utils";
 import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
@@ -102,7 +102,7 @@ export function FeedPostCard({ post }: { post: GridPost }) {
             <div className="px-3 pb-3">
               {post.title && <h3 className="font-semibold text-sm mb-1">{post.title}</h3>}
               <p className="text-sm text-foreground/85 line-clamp-6">
-                <LinkifiedText text={post.content} as="span" stopPropagation />
+                <TranslatableText text={post.content} as="span" stopPropagation />
               </p>
             </div>
           )}

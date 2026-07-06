@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { getPostComments } from "@/lib/post-queries";
 import { getServerTranslator } from "@/lib/i18n/server";
 import { Card, CardContent } from "@/components/ui/card";
-import { LinkifiedText } from "@/components/ui/linkified-text";
+import { TranslatableText } from "@/components/ui/translatable-text";
 import { CommentForm } from "@/components/post/comment-form";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import type { SupportTierLevel } from "@prisma/client";
@@ -50,7 +50,7 @@ export async function PostCommentsSection({ postId }: { postId: string }) {
                 nameClassName="font-medium text-sm"
                 compact
               />
-              <LinkifiedText text={c.content} as="p" className="text-sm mt-1 whitespace-pre-wrap" />
+              <TranslatableText text={c.content} as="p" className="text-sm mt-1 whitespace-pre-wrap" />
               {c.replies.map((r) => (
                 <div key={r.id} className="ml-6 mt-2 pl-4 border-l border-border">
                   <DisplayNameWithSupportTier
@@ -59,7 +59,7 @@ export async function PostCommentsSection({ postId }: { postId: string }) {
                     nameClassName="text-sm font-medium"
                     compact
                   />
-                  <LinkifiedText text={r.content} as="p" className="text-sm whitespace-pre-wrap" />
+                  <TranslatableText text={r.content} as="p" className="text-sm whitespace-pre-wrap" />
                 </div>
               ))}
             </CardContent>

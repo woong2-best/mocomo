@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Heart, MessageCircle, ArrowBigUp } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
-import { LinkifiedText } from "@/components/ui/linkified-text";
+import { TranslatableText } from "@/components/ui/translatable-text";
 import { PostShareMenu } from "@/components/post/post-share-menu";
 
 type PostCardProps = {
@@ -60,7 +60,7 @@ export function PostCard({ post }: PostCardProps) {
             </div>
             <Link href={`/post/${post.id}`} className="block mt-2">
               {post.title && <h3 className="font-semibold mb-1">{post.title}</h3>}
-              <LinkifiedText
+              <TranslatableText
                 text={post.content}
                 as="p"
                 stopPropagation

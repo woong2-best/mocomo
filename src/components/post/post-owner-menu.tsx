@@ -1,15 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { MoreHorizontal, Pin, PinOff } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { MoreHorizontal, Pin, PinOff, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { deleteOwnPost } from "@/actions/post-delete";
 import { pinPostToProfile, unpinPostFromProfile } from "@/actions/post-pin";
+import { useLocale } from "@/components/providers/locale-provider";
+import { COMMUNITY_FEED_PATH } from "@/lib/site-routes";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -30,9 +34,11 @@ export function PostOwnerMenu({
   className,
 }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
+  const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const [pinned, setPinned] = useState(isPinned);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<"pin" | "delete" | null>(null);
   const [error, setError] = useState("");
 
   if (showOnlyForOwner && !isOwner) return null;
@@ -42,7 +48,7 @@ export function PostOwnerMenu({
 
   async function togglePin() {
     if (busy) return;
-    setBusy(true);
+    setBusy("pin");
     setError("");
     try {
       const res = pinned ? await unpinPostFromProfile(postId) : await pinPostToProfile(postId);
@@ -54,7 +60,30 @@ export function PostOwnerMenu({
       setOpen(false);
       router.refresh();
     } finally {
-      setBusy(false);
+      setBusy(null);
+    }
+  }
+
+  async function handleDelete() {
+    if (busy) return;
+    if (!window.confirm(t("post.menu.deleteConfirm"))) return;
+
+    setBusy("delete");
+    setError("");
+    try {
+      const res = await deleteOwnPost(postId);
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      setOpen(false);
+      if (pathname?.startsWith("/post/")) {
+        router.push(COMMUNITY_FEED_PATH);
+      } else {
+        router.refresh();
+      }
+    } finally {
+      setBusy(null);
     }
   }
 
@@ -64,7 +93,7 @@ export function PostOwnerMenu({
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            aria-label="게시물 메뉴"
+            aria-label={t("post.menu.ariaLabel")}
             className={cn(
               "inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors",
               btnSize
@@ -77,29 +106,51 @@ export function PostOwnerMenu({
             <MoreHorizontal className={iconSize} />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-52" onClick={(e) => e.stopPropagation()}>
-          <DropdownMenuItem
-            disabled={busy}
-            onSelect={(e) => {
-              e.preventDefault();
-              void togglePin();
-            }}
-          >
-            {pinned ? (
-              <>
-                <PinOff className="h-4 w-4 mr-2" />
-                프로필 고정 해제
-              </>
-            ) : (
-              <>
-                <Pin className="h-4 w-4 mr-2" />
-                프로필에 고정
-              </>
-            )}
-          </DropdownMenuItem>
+        <DropdownMenuContent align="end" className="w-56" onClick={(e) => e.stopPropagation()}>
+          {isOwner && (
+            <>
+              <DropdownMenuItem
+                disabled={busy !== null}
+                className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                onSelect={(e) => {
+                  e.preventDefault();
+                  void handleDelete();
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+                {t("post.menu.delete")}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
+          {isOwner && (
+            <DropdownMenuItem
+              disabled={busy !== null}
+              onSelect={(e) => {
+                e.preventDefault();
+                void togglePin();
+              }}
+            >
+              {pinned ? (
+                <>
+                  <PinOff className="h-4 w-4" />
+                  {t("post.menu.unpinFromProfile")}
+                </>
+              ) : (
+                <>
+                  <Pin className="h-4 w-4" />
+                  {t("post.menu.pinToProfile")}
+                </>
+              )}
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
-      {error && <p className="absolute top-full right-0 mt-1 text-[10px] text-destructive whitespace-nowrap">{error}</p>}
+      {error && (
+        <p className="absolute top-full right-0 mt-1 text-[10px] text-destructive whitespace-nowrap">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

@@ -12,6 +12,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProfileImageField } from "@/components/profile/profile-image-field";
 import {
+  USERNAME_CHANGE_LIMIT,
+  USERNAME_CHANGE_WINDOW_DAYS,
+  isValidUsername,
+  normalizeUsername,
+} from "@/lib/username-policy";
+import {
   CosplayGallerySettings,
   type CosplayGalleryPhoto,
 } from "@/components/profile/cosplay-gallery-settings";
@@ -29,6 +35,8 @@ type Initial = {
   website: string;
   showNsfw: boolean;
   username: string;
+  usernameChangesRemaining: number;
+  usernameChangeResetAt: string | null;
   birthYear: string;
   birthMonth: string;
   birthDay: string;
@@ -53,6 +61,14 @@ export function ProfileSettingsForm({
     setMsg("");
     const form = new FormData(e.currentTarget);
     const displayName = ((form.get("name") as string) || "").trim();
+    const usernameRaw = ((form.get("username") as string) || initial.username).trim();
+    const username = normalizeUsername(usernameRaw);
+    const usernameChanged = username !== normalizeUsername(initial.username);
+    if (usernameChanged && !isValidUsername(username)) {
+      setMsg("아이디는 영문·숫자·_ 3~20자입니다.");
+      setLoading(false);
+      return;
+    }
     if (displayName && containsForbiddenAdminSequence(displayName)) {
       setMsg(FORBIDDEN_ADMIN_SEQUENCE_MESSAGE);
       setLoading(false);
@@ -76,6 +92,7 @@ export function ProfileSettingsForm({
     }
 
     const result = await updateProfile({
+      username: usernameChanged ? username : undefined,
       name: displayName || undefined,
       image: image || undefined,
       bio: (form.get("bio") as string) || undefined,
@@ -107,6 +124,10 @@ export function ProfileSettingsForm({
   }
 
   const displayName = initial.name || initial.username;
+  const usernameLocked = initial.usernameChangesRemaining <= 0;
+  const resetText = initial.usernameChangeResetAt
+    ? new Date(initial.usernameChangeResetAt).toLocaleString("ko-KR")
+    : null;
 
   return (
     <AppPageChrome spacing="sm">
@@ -156,6 +177,29 @@ export function ProfileSettingsForm({
             <div>
               <label className="text-sm font-medium">표시 이름</label>
               <Input name="name" defaultValue={initial.name} className="mt-1 rounded-xl" />
+              <p className="mt-1 text-xs text-muted-foreground">
+                닉네임은 언제든지 변경할 수 있습니다.
+              </p>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">아이디</label>
+              <div className="mt-1 flex rounded-xl border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                <span className="flex items-center pl-3 text-sm text-muted-foreground">@</span>
+                <Input
+                  name="username"
+                  defaultValue={initial.username}
+                  disabled={usernameLocked}
+                  pattern="[A-Za-z0-9_]{3,20}"
+                  className="border-0 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                아이디는 영문·숫자·_ 3~20자이며, {USERNAME_CHANGE_WINDOW_DAYS}일에{" "}
+                {USERNAME_CHANGE_LIMIT}번만 변경할 수 있습니다. 남은 변경{" "}
+                {initial.usernameChangesRemaining}회
+                {usernameLocked && resetText ? ` · 다음 가능 시간: ${resetText}` : ""}
+              </p>
             </div>
             <div>
               <label className="text-sm font-medium">소개</label>

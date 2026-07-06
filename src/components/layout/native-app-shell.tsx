@@ -20,6 +20,7 @@ import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 function NativeAppShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
   const prevPathRef = useRef(pathname);
+  const isProfileRoute = pathname.startsWith("/u/");
   const skipTabMotion =
     prevPathRef.current !== pathname &&
     isFastHubPath(prevPathRef.current) &&
@@ -34,9 +35,12 @@ function NativeAppShellInner({ children }: { children: React.ReactNode }) {
   const isVoiceRoom = pathname.startsWith("/voice/") && pathname !== "/voice/new";
   const isAptImmersive = isAptImmersivePath(pathname ?? "");
 
-  const pageMotion = reduced ? (
-    <>{children}</>
-  ) : skipTabMotion ? (
+  const pageMotion =
+    reduced || isProfileRoute ? (
+      <div key={pathname} className="min-h-full">
+        {children}
+      </div>
+    ) : skipTabMotion ? (
     <div key={pathname} className="min-h-full">
       {children}
     </div>
@@ -72,7 +76,11 @@ function NativeAppShellInner({ children }: { children: React.ReactNode }) {
     <>
       {!hideHeader && <NativeAppHeader />}
       <OfflineBanner className="sticky top-0 z-50" />
-      <main className={`min-h-[calc(100dvh-3.25rem)] bg-background ${mainPb} ${hideHeader ? "pt-safe" : ""}`}>
+      <main
+        className={`bg-background overflow-y-auto overscroll-y-contain ${
+          hideHeader ? "h-dvh pt-safe" : "h-[calc(100dvh-3.25rem-env(safe-area-inset-top,0px))]"
+        } ${mainPb}`}
+      >
         <div className="mx-auto w-full max-w-lg min-h-full border-x border-border/40 bg-background">
           {pageMotion}
         </div>

@@ -19,7 +19,7 @@ function AptGameHudInner() {
       )}
     >
       <div className="apt-game-hud-bar flex items-center gap-2 rounded-[1.35rem] px-2.5 py-2">
-        <div className="apt-game-avatar-ring relative h-11 w-11 shrink-0 overflow-hidden rounded-full">
+        <div className="apt-game-avatar-ring relative h-11 w-11 shrink-0 overflow-hidden rounded-xl">
           {userAvatarUrl ? (
             <Image src={userAvatarUrl} alt="" fill className="object-cover" sizes="44px" />
           ) : (
