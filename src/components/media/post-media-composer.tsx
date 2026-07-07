@@ -86,6 +86,7 @@ export function PostMediaComposer({
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [cropOpen, setCropOpen] = useState(false);
   const [cropFilename, setCropFilename] = useState("post-image.jpg");
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
   const [cameraOpen, setCameraOpen] = useState(false);
 
@@ -331,6 +332,16 @@ export function PostMediaComposer({
   }
 
   async function onCropComplete(url: string) {
+    if (editingIndex !== null) {
+      const next = itemsRef.current.map((item, i) =>
+        i === editingIndex ? { url, type: "IMAGE" as const } : item
+      );
+      onChange(next);
+      setEditingIndex(null);
+      setCropSrc(null);
+      setPendingImageFiles([]);
+      return;
+    }
     const nextImages = imageCount + 1;
     if (nextImages > maxImages) {
       setError(`사진은 최대 ${maxImages}장까지 추가할 수 있습니다.`);
@@ -373,12 +384,18 @@ export function PostMediaComposer({
 
   async function reEditImage(url: string, index: number) {
     setUploading(true);
+    setError("");
     try {
       const res = await fetch(url);
+      if (!res.ok) throw new Error("fetch failed");
       const blob = await res.blob();
-      const removeFirst = () => onChange(items.filter((_, i) => i !== index));
-      removeFirst();
-      await openImageCrop(blob, "post-image-edit.jpg");
+      const src = await readFileAsObjectUrl(
+        new File([blob], "post-image-edit.jpg", { type: blob.type || "image/jpeg" })
+      );
+      setEditingIndex(index);
+      setCropFilename("post-image-edit.jpg");
+      setCropSrc(src);
+      setCropOpen(true);
     } catch {
       setError("이미지를 다시 불러올 수 없습니다.");
     } finally {
@@ -615,7 +632,10 @@ export function PostMediaComposer({
           open={cropOpen}
           onOpenChange={(o) => {
             setCropOpen(o);
-            if (!o) setCropSrc(null);
+            if (!o) {
+              setCropSrc(null);
+              setEditingIndex(null);
+            }
           }}
           imageSrc={cropSrc}
           title="사진 편집"
