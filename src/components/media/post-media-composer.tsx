@@ -11,7 +11,7 @@ import {
   Video,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ImageCropDialog } from "@/components/media/image-crop-dialog";
+import { ImageEditorDialog } from "@/components/media/editor/image-editor-dialog";
 import { CameraCaptureDialog } from "@/components/media/camera-capture-dialog";
 import { VideoEditDialog } from "@/components/media/video-edit-dialog";
 import { readFileAsObjectUrl } from "@/lib/crop-image";
@@ -611,16 +611,15 @@ export function PostMediaComposer({
       />
 
       {cropSrc && (
-        <ImageCropDialog
+        <ImageEditorDialog
           open={cropOpen}
           onOpenChange={(o) => {
             setCropOpen(o);
             if (!o) setCropSrc(null);
           }}
           imageSrc={cropSrc}
-          aspect={4 / 5}
           title="사진 편집"
-          description="드래그·확대·90° 회전·뒤집기·자유 각도·비율 변경 후 적용하세요."
+          description="레이어를 추가하고 배치한 뒤 적용하세요. Ctrl+Z 실행 취소."
           maxWidth={1920}
           maxHeight={1920}
           uploadFilename={cropFilename}
