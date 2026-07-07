@@ -5,7 +5,7 @@ export async function exportStageToBlob(
   stage: Konva.Stage,
   crop: CropRect,
   opts: {
-    mimeType: "image/jpeg" | "image/png";
+    mimeType: "image/jpeg" | "image/png" | "image/webp";
     quality?: number;
     maxWidth: number;
     maxHeight: number;
@@ -39,7 +39,7 @@ export async function exportStageToBlob(
 
 function canvasToBlob(
   canvas: HTMLCanvasElement,
-  mimeType: "image/jpeg" | "image/png",
+  mimeType: "image/jpeg" | "image/png" | "image/webp",
   quality: number
 ): Promise<Blob> {
   return new Promise((resolve, reject) => {

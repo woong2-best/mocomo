@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { ImagePlus, Link2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ImageCropDialog } from "@/components/media/image-crop-dialog";
+import { ImageEditorDialog } from "@/components/media/editor/image-editor-dialog";
 import { readFileAsObjectUrl } from "@/lib/crop-image";
 import { avatarShapeClass } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -158,7 +158,7 @@ export function ProfileImageField({ kind, name, value, onChange, previewClassNam
       )}
 
       {cropSrc && (
-        <ImageCropDialog
+        <ImageEditorDialog
           open={cropOpen}
           onOpenChange={(o) => {
             setCropOpen(o);

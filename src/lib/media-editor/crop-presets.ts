@@ -13,7 +13,8 @@ export const EDITOR_CROP_PRESETS: CropAspectPreset[] = [
   { id: "ig-story", label: "IG Story", aspect: 9 / 16 },
   { id: "x-header", label: "X Header", aspect: 3 / 1 },
   { id: "yt-thumb", label: "YouTube", aspect: 16 / 9 },
-  { id: "tiktok", label: "TikTok", aspect: 9 / 16 },
+  { id: "discord", label: "Discord", aspect: 16 / 9 },
+  { id: "fb-cover", label: "Facebook", aspect: 205 / 78 },
 ];
 
 export function fitCropRect(

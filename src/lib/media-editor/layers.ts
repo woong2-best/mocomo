@@ -1,20 +1,10 @@
-import type { CropRect, EditorLayer, EditorProject, ImageLayerData, LayerTransform } from "@/lib/media-editor/types";
+import type { EditorLayer, EditorProject, ImageLayerData, LayerTransform } from "@/lib/media-editor/types";
+import { createLayer, cloneProject, defaultTransform, newLayerId, newProjectId } from "@/lib/media-editor/layer-factories";
+import { DEFAULT_TEXT_STYLE } from "@/lib/media-editor/constants";
+import type { BrushStroke, ShapeKind } from "@/lib/media-editor/types";
+import type { StickerItem } from "@/lib/media-editor/stickers";
 
-export function newLayerId(): string {
-  return `layer-${crypto.randomUUID()}`;
-}
-
-export function cloneProject(project: EditorProject): EditorProject {
-  return JSON.parse(JSON.stringify(project)) as EditorProject;
-}
-
-const defaultTransform = (): LayerTransform => ({
-  x: 0,
-  y: 0,
-  scaleX: 1,
-  scaleY: 1,
-  rotation: 0,
-});
+export { cloneProject, newLayerId, newProjectId, defaultTransform };
 
 export function createImageLayer(
   src: string,
@@ -22,56 +12,82 @@ export function createImageLayer(
   naturalHeight: number,
   opts?: { name?: string; type?: "background" | "image" }
 ): EditorLayer {
-  return {
-    id: newLayerId(),
-    name: opts?.name ?? "이미지",
-    type: opts?.type ?? "image",
-    visible: true,
-    locked: false,
-    opacity: 1,
-    blendMode: "source-over",
-    transform: defaultTransform(),
-    data: {
-      src,
-      naturalWidth,
-      naturalHeight,
-      flipX: false,
-      flipY: false,
+  const type = opts?.type ?? "image";
+  return createLayer(type, {
+    src,
+    naturalWidth,
+    naturalHeight,
+    flipX: false,
+    flipY: false,
+    effects: {},
+  }, { name: opts?.name ?? (type === "background" ? "배경" : "이미지") });
+}
+
+export function createTextLayer(text = "텍스트", x = 40, y = 40): EditorLayer {
+  return createLayer("text", { text, ...DEFAULT_TEXT_STYLE, width: 280 }, { name: "텍스트", x, y });
+}
+
+export function createEmojiLayer(emoji: string, x = 80, y = 80, fontSize = 72): EditorLayer {
+  return createLayer("emoji", { emoji, fontSize }, { name: emoji, x, y });
+}
+
+export function createStickerLayer(item: StickerItem, x = 60, y = 60): EditorLayer {
+  if (item.kind === "emoji") return createEmojiLayer(item.src, x, y, 80);
+  const w = item.width ?? 120;
+  const h = item.height ?? 120;
+  return createLayer("sticker", { src: item.src, naturalWidth: w, naturalHeight: h }, { name: item.label, x, y });
+}
+
+export function createShapeLayer(kind: ShapeKind, x = 100, y = 100): EditorLayer {
+  return createLayer(
+    "shape",
+    {
+      kind,
+      width: kind === "line" || kind === "arrow" ? 160 : 120,
+      height: kind === "line" || kind === "arrow" ? 8 : 120,
+      fill: kind === "line" || kind === "arrow" ? "transparent" : "rgba(59,130,246,0.35)",
+      stroke: "#3b82f6",
+      strokeWidth: kind === "line" || kind === "arrow" ? 6 : 3,
+      cornerRadius: 12,
     },
-  };
+    { name: "도형", x, y }
+  );
+}
+
+export function createBrushLayer(): EditorLayer {
+  return createLayer("brush", { strokes: [] }, { name: "브러시" });
+}
+
+export function createBlurLayer(w: number, h: number, x: number, y: number): EditorLayer {
+  return createLayer("blur", { width: w, height: h, blurRadius: 12 }, { name: "블러", x, y });
+}
+
+export function createOverlayLayer(w: number, h: number, x: number, y: number, color = "rgba(0,0,0,0.25)"): EditorLayer {
+  return createLayer("overlay", { width: w, height: h, color }, { name: "오버레이", x, y });
 }
 
 export function fitLayerToCanvas(layer: EditorLayer, canvasW: number, canvasH: number): EditorLayer {
-  const { naturalWidth, naturalHeight } = layer.data;
-  const scale = Math.min(canvasW / naturalWidth, canvasH / naturalHeight);
-  const w = naturalWidth * scale;
-  const h = naturalHeight * scale;
+  if (layer.type !== "image" && layer.type !== "sticker" && layer.type !== "background") return layer;
+  const nw = layer.data.naturalWidth;
+  const nh = layer.data.naturalHeight;
+  const scale = Math.min(canvasW / nw, canvasH / nh);
+  const w = nw * scale;
+  const h = nh * scale;
   return {
     ...layer,
-    transform: {
-      ...layer.transform,
-      x: (canvasW - w) / 2,
-      y: (canvasH - h) / 2,
-      scaleX: scale,
-      scaleY: scale,
-    },
+    transform: { ...layer.transform, x: (canvasW - w) / 2, y: (canvasH - h) / 2, scaleX: scale, scaleY: scale },
   };
 }
 
-export function fitLayerCoverCanvas(layer: EditorLayer, canvasW: number, canvasH: number): EditorLayer {
-  const { naturalWidth, naturalHeight } = layer.data;
-  const scale = Math.max(canvasW / naturalWidth, canvasH / naturalHeight);
-  const w = naturalWidth * scale;
-  const h = naturalHeight * scale;
+export function fitLayerCoverCanvas(layer: EditorLayer & { type: "background" | "image" }, canvasW: number, canvasH: number) {
+  const nw = layer.data.naturalWidth;
+  const nh = layer.data.naturalHeight;
+  const scale = Math.max(canvasW / nw, canvasH / nh);
+  const w = nw * scale;
+  const h = nh * scale;
   return {
     ...layer,
-    transform: {
-      ...layer.transform,
-      x: (canvasW - w) / 2,
-      y: (canvasH - h) / 2,
-      scaleX: scale,
-      scaleY: scale,
-    },
+    transform: { ...layer.transform, x: (canvasW - w) / 2, y: (canvasH - h) / 2, scaleX: scale, scaleY: scale },
   };
 }
 
@@ -84,7 +100,7 @@ export function updateLayer(
     ...project,
     layers: project.layers.map((l) => {
       if (l.id !== layerId) return l;
-      return typeof patch === "function" ? patch(l) : { ...l, ...patch };
+      return typeof patch === "function" ? patch(l) : ({ ...l, ...patch } as EditorLayer);
     }),
   };
 }
@@ -94,17 +110,12 @@ export function setActiveLayer(project: EditorProject, layerId: string | null): 
 }
 
 export function addLayer(project: EditorProject, layer: EditorLayer): EditorProject {
-  return {
-    ...project,
-    layers: [...project.layers, layer],
-    activeLayerId: layer.id,
-  };
+  return { ...project, layers: [...project.layers, layer], activeLayerId: layer.id };
 }
 
 export function removeLayer(project: EditorProject, layerId: string): EditorProject {
   const layers = project.layers.filter((l) => l.id !== layerId);
-  const activeLayerId =
-    project.activeLayerId === layerId ? (layers.at(-1)?.id ?? null) : project.activeLayerId;
+  const activeLayerId = project.activeLayerId === layerId ? (layers.at(-1)?.id ?? null) : project.activeLayerId;
   return { ...project, layers, activeLayerId };
 }
 
@@ -120,6 +131,18 @@ export function duplicateLayer(project: EditorProject, layerId: string): EditorP
   return addLayer(project, copy);
 }
 
+export function groupLayers(project: EditorProject, layerIds: string[]): EditorProject {
+  const groupId = `group-${crypto.randomUUID()}`;
+  return {
+    ...project,
+    layers: project.layers.map((l) => (layerIds.includes(l.id) ? { ...l, groupId } : l)),
+  };
+}
+
+export function renameLayer(project: EditorProject, layerId: string, name: string): EditorProject {
+  return updateLayer(project, layerId, { name });
+}
+
 export function moveLayer(project: EditorProject, layerId: string, direction: "up" | "down"): EditorProject {
   const idx = project.layers.findIndex((l) => l.id === layerId);
   if (idx < 0) return project;
@@ -130,16 +153,15 @@ export function moveLayer(project: EditorProject, layerId: string, direction: "u
   return { ...project, layers: next };
 }
 
-export function reorderLayers(project: EditorProject, fromIndex: number, toIndex: number): EditorProject {
-  const next = [...project.layers];
-  const [item] = next.splice(fromIndex, 1);
-  if (!item) return project;
-  next.splice(toIndex, 0, item);
-  return { ...project, layers: next };
+export function setCrop(project: EditorProject, crop: import("@/lib/media-editor/types").CropRect): EditorProject {
+  return { ...project, crop };
 }
 
-export function setCrop(project: EditorProject, crop: CropRect): EditorProject {
-  return { ...project, crop };
+export function appendBrushStroke(project: EditorProject, layerId: string, stroke: BrushStroke): EditorProject {
+  return updateLayer(project, layerId, (layer) => {
+    if (layer.type !== "brush") return layer;
+    return { ...layer, data: { strokes: [...layer.data.strokes, stroke] } };
+  });
 }
 
 export function loadImageSize(src: string): Promise<{ width: number; height: number }> {
@@ -154,7 +176,7 @@ export function loadImageSize(src: string): Promise<{ width: number; height: num
 
 export async function createProjectFromImageSrc(
   src: string,
-  opts: { maxWidth: number; maxHeight: number; defaultAspect?: number }
+  opts: { maxWidth: number; maxHeight: number; defaultAspect?: number; title?: string }
 ): Promise<EditorProject> {
   const { width: nw, height: nh } = await loadImageSize(src);
   const aspect = opts.defaultAspect ?? 4 / 5;
@@ -164,24 +186,19 @@ export async function createProjectFromImageSrc(
     canvasH = opts.maxHeight;
     canvasW = Math.round(canvasH * aspect);
   }
-  const bg = fitLayerCoverCanvas(
-    createImageLayer(src, nw, nh, { name: "배경", type: "background" }),
-    canvasW,
-    canvasH
-  );
-  const crop = {
-    x: 0,
-    y: 0,
-    width: canvasW,
-    height: canvasH,
-  };
+  const now = new Date().toISOString();
+  const bgLayer = createImageLayer(src, nw, nh, { name: "배경", type: "background" });
+  const bg = fitLayerCoverCanvas(bgLayer as EditorLayer & { type: "background" | "image" }, canvasW, canvasH);
   return {
-    version: 1,
+    version: 2,
+    meta: { id: newProjectId(), title: opts.title ?? "편집", createdAt: now, updatedAt: now },
     width: canvasW,
     height: canvasH,
     layers: [bg],
     activeLayerId: bg.id,
-    crop,
+    crop: { x: 0, y: 0, width: canvasW, height: canvasH },
+    showGuides: true,
+    snapEnabled: true,
   };
 }
 
@@ -196,13 +213,4 @@ export async function createLayerFromFile(file: File): Promise<EditorLayer> {
   return createImageLayer(src, width, height, { name: file.name.replace(/\.[^.]+$/, "") || "이미지" });
 }
 
-export function layerDisplaySize(layer: EditorLayer): { width: number; height: number } {
-  const flipX = layer.data.flipX ? -1 : 1;
-  const flipY = layer.data.flipY ? -1 : 1;
-  return {
-    width: layer.data.naturalWidth * Math.abs(layer.transform.scaleX) * (flipX < 0 ? -1 : 1),
-    height: layer.data.naturalHeight * Math.abs(layer.transform.scaleY) * (flipY < 0 ? -1 : 1),
-  };
-}
-
-export type { ImageLayerData };
+export type { ImageLayerData, LayerTransform };

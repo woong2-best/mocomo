@@ -1,7 +1,7 @@
 import { cloneProject } from "@/lib/media-editor/layers";
 import type { EditorProject } from "@/lib/media-editor/types";
 
-export const MAX_EDITOR_HISTORY = 50;
+export const MAX_EDITOR_HISTORY = 100;
 
 export type EditorHistory = {
   past: EditorProject[];
