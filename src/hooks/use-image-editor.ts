@@ -41,6 +41,7 @@ import { fitCropRect } from "@/lib/media-editor/crop-presets";
 import { saveEditorProject } from "@/lib/media-editor/project-storage";
 import type {
   BrushStroke,
+  CropRect,
   EditorLayer,
   EditorProject,
   EditorToolId,
@@ -347,25 +348,36 @@ export function useImageEditor(initialProject: EditorProject | null) {
     [project, commit]
   );
 
+  // 배경은 항상 캔버스 전체를 덮고, 크롭 프레임만 그 위에서 이동/리사이즈한다.
+  // 따라서 비율 변경은 크롭 사각형만 바꾸면 되고 흰 여백이 생기지 않는다.
   const applyCropAspect = useCallback(
     (aspect: number | undefined) => {
       if (!project) return;
       const crop = fitCropRect(project.width, project.height, aspect);
-      let next = setCrop(project, crop);
-      const bg = project.layers.find((l) => l.type === "background");
-      if (bg && bg.type === "background") {
-        const t = coverBackgroundTransform(bg, crop.width, crop.height, { rotation: bg.transform.rotation });
-        t.x = crop.x + crop.width / 2;
-        t.y = crop.y + crop.height / 2;
-        next = updateLayer(next, bg.id, (l) => ({ ...l, transform: t }));
-      }
-      commit(next);
+      commit(setCrop(project, crop));
     },
     [project, commit]
   );
 
+  /** 크롭 프레임을 직접 지정(수동 드래그/리사이즈). 캔버스 경계로 클램프. */
+  const setCropRect = useCallback(
+    (crop: CropRect, opts?: { debounced?: boolean }) => {
+      if (!project) return;
+      const W = project.width;
+      const H = project.height;
+      const width = Math.max(24, Math.min(crop.width, W));
+      const height = Math.max(24, Math.min(crop.height, H));
+      const x = Math.max(0, Math.min(crop.x, W - width));
+      const y = Math.max(0, Math.min(crop.y, H - height));
+      const next = setCrop(project, { x, y, width, height });
+      if (opts?.debounced) commitDebounced(next);
+      else commit(next);
+    },
+    [project, commit, commitDebounced]
+  );
+
   /**
-   * 초기 업로드 상태로 완전 리셋: 추가 레이어 전부 제거, 배경 커버·회전 0·크롭 재설정.
+   * 초기 업로드 상태로 완전 리셋: 추가 레이어 전부 제거, 배경 캔버스 커버·회전 0·크롭 재설정.
    */
   const resetBackgroundTransform = useCallback(
     (aspect: number | undefined) => {
@@ -379,9 +391,7 @@ export function useImageEditor(initialProject: EditorProject | null) {
         crop,
       };
       if (bg && bg.type === "background") {
-        const t = coverBackgroundTransform(bg, crop.width, crop.height, { rotation: 0 });
-        t.x = crop.x + crop.width / 2;
-        t.y = crop.y + crop.height / 2;
+        const t = coverBackgroundTransform(bg, project.width, project.height, { rotation: 0 });
         next = updateLayer(next, bg.id, (l) =>
           l.type === "background"
             ? { ...l, data: { ...l.data, flipX: false, flipY: false }, transform: t }
@@ -480,6 +490,7 @@ export function useImageEditor(initialProject: EditorProject | null) {
     setImageEffects,
     alignActive,
     applyCropAspect,
+    setCropRect,
     resetBackgroundTransform,
     toggleSnap,
     toggleGuides,

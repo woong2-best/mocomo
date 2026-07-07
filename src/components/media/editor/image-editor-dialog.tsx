@@ -215,8 +215,8 @@ export function ImageEditorDialog({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, editor]);
 
-  // 줌·회전 슬라이더는 항상 배경(사진)을 대상으로 하고, 크롭 프레임을 덮는
-  // 최소 배율 아래로는 내려가지 않도록 클램프한다(흰 여백 방지).
+  // 배경(사진)은 항상 캔버스 전체를 덮는다. 줌/회전은 캔버스 중심을 피벗으로 하고,
+  // 캔버스를 덮는 최소 배율 아래로는 내려가지 않게 클램프한다(흰 여백 방지).
   const bg = bgLayer && bgLayer.type === "background" ? bgLayer : null;
   const MAX_ZOOM = 4; // 커버 기준 100% → 최대 400%
 
@@ -225,8 +225,8 @@ export function ImageEditorDialog({
     return minCoverScale(
       bg.data.naturalWidth,
       bg.data.naturalHeight,
-      project.crop.width,
-      project.crop.height,
+      project.width,
+      project.height,
       rot
     );
   }
@@ -234,20 +234,19 @@ export function ImageEditorDialog({
   const bgRotation = bg?.transform.rotation ?? 0;
   const bgScaleAvg = bg ? (bg.transform.scaleX + bg.transform.scaleY) / 2 : 1;
   const coverScale = coverAt(bgRotation);
-  // 표시용 줌: 커버(프레임에 꽉 참) = 1.0(100%)
+  // 표시용 줌: 커버(캔버스에 꽉 참) = 1.0(100%)
   const displayZoom = coverScale > 0 ? bgScaleAvg / coverScale : 1;
   const rotation = bgRotation;
 
-  function cropCenter() {
-    const c = project?.crop ?? { x: 0, y: 0, width: 0, height: 0 };
-    return { x: c.x + c.width / 2, y: c.y + c.height / 2 };
+  function canvasCenter() {
+    return { x: (project?.width ?? 0) / 2, y: (project?.height ?? 0) / 2 };
   }
 
   function setDisplayZoom(dz: number) {
     if (!bg || !project) return;
     const clamped = Math.min(MAX_ZOOM, Math.max(1, dz));
     const scale = coverAt(bg.transform.rotation) * clamped;
-    const c = cropCenter();
+    const c = canvasCenter();
     editor.transformLayer(bg.id, { scaleX: scale, scaleY: scale, x: c.x, y: c.y }, false);
     editor.flushTransform();
   }
@@ -257,7 +256,7 @@ export function ImageEditorDialog({
     const cover = coverAt(deg);
     const cur = (bg.transform.scaleX + bg.transform.scaleY) / 2;
     const scale = Math.max(cur, cover);
-    const c = cropCenter();
+    const c = canvasCenter();
     editor.transformLayer(bg.id, { rotation: deg, scaleX: scale, scaleY: scale, x: c.x, y: c.y }, false);
     editor.flushTransform();
   }
@@ -383,6 +382,9 @@ export function ImageEditorDialog({
                 brushMode={brushMode}
                 brushSettings={editor.brushSettings}
                 activeBrushLayerId={editor.activeBrushLayerId}
+                cropAspect={cropAspect}
+                onCropChange={(crop, opts) => editor.setCropRect(crop, opts)}
+                onCropCommit={() => editor.flushTransform()}
                 onSelectLayer={(id) => {
                   editor.selectLayer(id);
                   setLocalTool("select");
@@ -534,6 +536,88 @@ export function ImageEditorDialog({
                 그리기
               </Button>
             </div>
+
+            {project && project.layers.length > 1 && (
+              <div className="rounded-xl border border-border bg-muted/30 p-2 space-y-1">
+                <p className="text-[10px] font-medium text-muted-foreground px-1">레이어 (위가 앞)</p>
+                <div className="max-h-28 overflow-y-auto space-y-1">
+                  {[...project.layers]
+                    .map((l, i) => ({ l, i }))
+                    .reverse()
+                    .map(({ l }) => {
+                      const isBg = l.type === "background";
+                      const isActive = l.id === project.activeLayerId;
+                      const label =
+                        l.type === "text"
+                          ? `T ${(l.data as { text: string }).text?.slice(0, 8) || "텍스트"}`
+                          : l.type === "emoji"
+                            ? (l.data as { emoji: string }).emoji
+                            : l.type === "shape"
+                              ? "도형"
+                              : l.type === "brush"
+                                ? "그림"
+                                : l.type === "image"
+                                  ? "사진"
+                                  : "배경";
+                      return (
+                        <div
+                          key={l.id}
+                          className={cn(
+                            "flex items-center gap-1 rounded-lg px-2 py-1 text-xs cursor-pointer",
+                            isActive ? "bg-primary/15 ring-1 ring-primary/40" : "hover:bg-muted"
+                          )}
+                          onClick={() => {
+                            editor.selectLayer(l.id);
+                            setLocalTool("select");
+                          }}
+                        >
+                          <span className="flex-1 truncate">{label}</span>
+                          {!isBg && (
+                            <>
+                              <button
+                                type="button"
+                                className="px-1 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                                title="앞으로"
+                                disabled={busy}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  editor.moveLayerOrder(l.id, "up");
+                                }}
+                              >
+                                ▲
+                              </button>
+                              <button
+                                type="button"
+                                className="px-1 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                                title="뒤로"
+                                disabled={busy}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  editor.moveLayerOrder(l.id, "down");
+                                }}
+                              >
+                                ▼
+                              </button>
+                              <button
+                                type="button"
+                                className="px-1 text-destructive/80 hover:text-destructive disabled:opacity-30"
+                                title="삭제"
+                                disabled={busy}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  editor.deleteLayer(l.id);
+                                }}
+                              >
+                                ✕
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
 
             {showEmojiPick && (
               <div className="flex flex-wrap gap-1">
