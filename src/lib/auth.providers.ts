@@ -5,6 +5,7 @@ import Twitter from "next-auth/providers/twitter";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
+import { canRecoverAccount, isAccountPastRecovery } from "@/lib/account-deletion";
 import { checkLoginRateLimit, recordLoginAttempt } from "@/lib/auth-rate-limit";
 import { getRequestIp } from "@/lib/request-ip";
 import {
@@ -13,6 +14,8 @@ import {
 } from "@/lib/auth-credentials";
 import {
   LoginBannedError,
+  LoginAccountDeletedError,
+  LoginAccountPendingRecoveryError,
   LoginEmailNotVerifiedError,
   LoginInvalidCredentialsError,
   LoginOAuthOnlyError,
@@ -48,6 +51,10 @@ const credentialsProvider = Credentials({
 
     if (!user) return fail();
     if (user.isBanned) throw new LoginBannedError();
+    if (user.deletedAt) {
+      if (isAccountPastRecovery(user)) throw new LoginAccountDeletedError();
+      if (!canRecoverAccount(user)) throw new LoginAccountPendingRecoveryError();
+    }
     if (!user.passwordHash) throw new LoginOAuthOnlyError();
 
     const valid = await bcrypt.compare(password, user.passwordHash);

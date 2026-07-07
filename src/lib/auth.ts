@@ -10,6 +10,8 @@ import {
   hydrateTokenFromCredentialsUser,
 } from "@/lib/auth-credentials";
 import { recordUserDeviceFromRequest } from "@/lib/apt/economy/fraud/fraud-restrictions";
+import { recoverDeletedAccount } from "@/lib/account-deletion-server";
+import { canRecoverAccount, isAccountPastRecovery } from "@/lib/account-deletion";
 
 const useSecureCookies = process.env.NODE_ENV === "production";
 
@@ -32,17 +34,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     ...authConfig.callbacks,
     async signIn({ user }) {
       if (!user?.id) return true;
-      if (typeof user.isBanned === "boolean") {
-        return !user.isBanned;
-      }
       const dbUser = await db.user.findUnique({
         where: { id: user.id },
-        select: { isBanned: true },
+        select: { isBanned: true, deletedAt: true, scheduledPurgeAt: true },
       });
-      if (!dbUser?.isBanned) {
-        void recordUserDeviceFromRequest(user.id);
+      if (!dbUser) return false;
+      if (dbUser.isBanned) return false;
+
+      if (dbUser.deletedAt) {
+        if (isAccountPastRecovery(dbUser)) return false;
+        if (canRecoverAccount(dbUser)) {
+          await recoverDeletedAccount(user.id);
+        } else {
+          return false;
+        }
       }
-      return !dbUser?.isBanned;
+
+      void recordUserDeviceFromRequest(user.id);
+      return true;
     },
     async jwt({ token, user, trigger }) {
       if (user?.id && credentialsUserHasJwtFields(user)) {
@@ -78,6 +87,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             locale: true,
             countryCode: true,
             isBanned: true,
+            deletedAt: true,
           },
         });
         if (dbUser) {
@@ -88,6 +98,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.locale = dbUser.locale;
           token.countryCode = dbUser.countryCode;
           token.isBanned = dbUser.isBanned;
+          token.isDeleted = !!dbUser.deletedAt;
         }
       }
       return token;
@@ -120,6 +131,7 @@ export async function requireAuth() {
   const user = await getCachedCurrentUser();
   if (!user) throw new Error("UNAUTHORIZED");
   if (user.isBanned) throw new Error("BANNED");
+  if (user.deletedAt) throw new Error("ACCOUNT_DELETED");
   return user;
 }
 
@@ -131,10 +143,11 @@ export async function requireAuthForAction() {
 
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { id: true, username: true, isBanned: true },
+    select: { id: true, username: true, isBanned: true, deletedAt: true },
   });
   if (!user) throw new Error("USER_NOT_FOUND");
   if (user.isBanned) throw new Error("BANNED");
+  if (user.deletedAt) throw new Error("ACCOUNT_DELETED");
   return user;
 }
 
@@ -149,6 +162,7 @@ export const getCachedAuthUserMinimal = cache(async () => {
       username: true,
       image: true,
       isBanned: true,
+      deletedAt: true,
       role: true,
       supportTierSent: true,
     },
@@ -159,6 +173,7 @@ export async function requireAuthMinimal() {
   const user = await getCachedAuthUserMinimal();
   if (!user) throw new Error("UNAUTHORIZED");
   if (user.isBanned) throw new Error("BANNED");
+  if (user.deletedAt) throw new Error("ACCOUNT_DELETED");
   return user;
 }
 

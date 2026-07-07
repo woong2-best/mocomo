@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { LocaleSettingsForm } from "@/components/settings/locale-settings-form";
 import { FeedDisplaySettingsForm } from "@/components/settings/feed-display-settings-form";
 import { SignOutButton } from "@/components/settings/sign-out-button";
+import { AccountDeletionForm } from "@/components/settings/account-deletion-form";
 import { SettingsPageChrome } from "@/components/settings/settings-page-chrome";
 import { getServerTranslator } from "@/lib/i18n/server";
 import { CountryFlag } from "@/components/user/country-flag";
@@ -21,6 +22,7 @@ export default async function SettingsPage() {
       select: {
         username: true,
         email: true,
+        passwordHash: true,
         level: true,
         xp: true,
         premiumTier: true,
@@ -86,6 +88,7 @@ export default async function SettingsPage() {
             {t("settings.premium")}: {user?.premiumTier}
           </p>
           <SignOutButton className="w-full rounded-xl mt-2" />
+          <AccountDeletionForm username={user?.username ?? ""} hasPassword={Boolean(user?.passwordHash)} />
         </CardContent>
       </Card>
 

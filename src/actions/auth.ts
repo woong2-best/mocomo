@@ -42,6 +42,7 @@ import {
   recordLoginAttempt,
 } from "@/lib/auth-rate-limit";
 import { getRequestIp } from "@/lib/request-ip";
+import { canRecoverAccount } from "@/lib/account-deletion";
 import { createHumanChallenge, verifyHumanChallengeAnswer } from "@/lib/human-challenge";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { isSignupHumanVerifyRequired } from "@/lib/turnstile-signup";
@@ -289,6 +290,12 @@ export async function checkUsernameAvailable(username: string) {
   }
   const existing = await findUserByUsernameInsensitive(normalized);
   if (!existing) return { available: true };
+  if (existing.deletedAt && existing.scheduledPurgeAt && canRecoverAccount(existing)) {
+    return {
+      available: false,
+      error: "탈퇴한 계정의 닉네임입니다. 복구 기간이 끝날 때까지 사용할 수 없습니다.",
+    };
+  }
   if (!isEmailVerified(existing)) return { available: true, note: "미인증 계정 닉네임 — 가입 시 자동 해제됩니다." };
   return { available: false, error: "이미 사용 중인 닉네임입니다." };
 }
@@ -312,12 +319,21 @@ export async function checkSignupAvailability(email: string, username: string, n
   }
 
   const taken = await findUserByUsernameInsensitive(normalizedUsername);
-  if (taken && taken.id !== user?.id && isEmailVerified(taken)) {
-    return {
-      ok: false,
-      error: `닉네임 "${normalizedUsername}"은(는) 이미 사용 중입니다.`,
-      reason: "username_taken" as const,
-    };
+  if (taken && taken.id !== user?.id) {
+    if (taken.deletedAt && taken.scheduledPurgeAt && canRecoverAccount(taken)) {
+      return {
+        ok: false,
+        error: `닉네임 "${normalizedUsername}"은(는) 탈퇴한 계정에서 사용 중입니다.`,
+        reason: "username_deleted" as const,
+      };
+    }
+    if (isEmailVerified(taken)) {
+      return {
+        ok: false,
+        error: `닉네임 "${normalizedUsername}"은(는) 이미 사용 중입니다.`,
+        reason: "username_taken" as const,
+      };
+    }
   }
 
   return {
@@ -479,6 +495,8 @@ export async function registerUser(
           emailVerified: true,
           passwordHash: true,
           role: true,
+          deletedAt: true,
+          scheduledPurgeAt: true,
         },
       });
     }

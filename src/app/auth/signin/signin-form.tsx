@@ -54,7 +54,9 @@ export function SignInForm({
   const bannedNotice =
     errorParam === "banned"
       ? "이 계정은 이용이 제한되어 있습니다. 문의가 필요하면 운영자에게 연락해 주세요."
-      : "";
+      : errorParam === "account_deleted"
+        ? "탈퇴한 계정입니다. 복구 기간이 지났거나 영구 삭제되었습니다."
+        : "";
 
   const callbackErrorMessage =
     errorParam === "Configuration"

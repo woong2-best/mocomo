@@ -24,6 +24,7 @@ declare module "next-auth" {
       locale?: string;
       countryCode?: string;
       isBanned?: boolean;
+      isDeleted?: boolean;
     };
   }
 }
@@ -38,5 +39,6 @@ declare module "next-auth/jwt" {
     locale?: string;
     countryCode?: string;
     isBanned?: boolean;
+    isDeleted?: boolean;
   }
 }

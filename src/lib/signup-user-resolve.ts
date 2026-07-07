@@ -1,5 +1,6 @@
 import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
+import { canRecoverAccount } from "@/lib/account-deletion";
 
 export type ResolvedUser = {
   id: string;
@@ -8,6 +9,8 @@ export type ResolvedUser = {
   emailVerified: Date | null;
   passwordHash: string | null;
   role: string;
+  deletedAt: Date | null;
+  scheduledPurgeAt: Date | null;
 };
 
 const userEmailSelect = {
@@ -17,6 +20,8 @@ const userEmailSelect = {
   emailVerified: true,
   passwordHash: true,
   role: true,
+  deletedAt: true,
+  scheduledPurgeAt: true,
 } as const;
 
 /** Prisma insensitive 실패 시에도 DB에서 이메일 계정 찾기 */
@@ -92,6 +97,7 @@ export async function releaseUsernameFromStaleAccount(
   signupEmail: string,
   platformUsername: string
 ) {
+  if (owner.deletedAt) return false;
   if (owner.email?.trim().toLowerCase() === signupEmail) return true;
   if (isEmailVerified(owner)) return false;
   if (owner.role === "ADMIN" || owner.role === "MODERATOR") return false;
@@ -115,6 +121,8 @@ export async function findUserByUsernameInsensitive(username: string) {
       emailVerified: true,
       passwordHash: true,
       role: true,
+      deletedAt: true,
+      scheduledPurgeAt: true,
     },
   });
 }
@@ -179,6 +187,9 @@ export async function updateUserByResolvedEmail(
   });
 }
 export function signupBlockMessage(user: ResolvedUser) {
+  if (user.deletedAt && user.scheduledPurgeAt && canRecoverAccount(user)) {
+    return "이 이메일은 탈퇴한 계정입니다. 복구 기간 내에는 새로 가입할 수 없습니다. 로그인하여 계정을 복구해 주세요.";
+  }
   if (!user.passwordHash) {
     return "이 이메일은 이미 등록되어 있습니다. Google 또는 Discord로 로그인하거나, 비밀번호 찾기를 이용해 주세요.";
   }

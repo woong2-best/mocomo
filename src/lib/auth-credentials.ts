@@ -9,6 +9,8 @@ export const CREDENTIALS_JWT_USER_SELECT = {
   image: true,
   passwordHash: true,
   isBanned: true,
+  deletedAt: true,
+  scheduledPurgeAt: true,
   emailVerified: true,
   username: true,
   role: true,
@@ -26,6 +28,8 @@ export type CredentialsJwtUser = Pick<
   | "image"
   | "passwordHash"
   | "isBanned"
+  | "deletedAt"
+  | "scheduledPurgeAt"
   | "emailVerified"
   | "username"
   | "role"
