@@ -11,11 +11,17 @@ import { cn } from "@/lib/utils";
 
 type PanelRect = { top: number; left: number; width: number };
 
-export function HeaderSearch({ variant = "header" }: { variant?: "header" | "page" }) {
+export function HeaderSearch({
+  variant = "header",
+  defaultQuery = "",
+}: {
+  variant?: "header" | "page";
+  defaultQuery?: string;
+}) {
   const router = useRouter();
   const { t } = useLocale();
   const pathname = usePathname();
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(defaultQuery);
   const [open, setOpen] = useState(false);
   const [results, setResults] = useState<FastSearchResult | null>(null);
   const [panelRect, setPanelRect] = useState<PanelRect | null>(null);
@@ -59,6 +65,10 @@ export function HeaderSearch({ variant = "header" }: { variant?: "header" | "pag
       }
     });
   }, []);
+
+  useEffect(() => {
+    setQ(defaultQuery);
+  }, [defaultQuery]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);

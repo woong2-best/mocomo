@@ -6,9 +6,11 @@ import { cn } from "@/lib/utils";
 export function SearchPageChrome({
   children,
   searchBar,
+  hideTitle = false,
 }: {
   children: React.ReactNode;
   searchBar?: React.ReactNode;
+  hideTitle?: boolean;
 }) {
   const { isNativeApp } = useClientPlatform();
 
@@ -22,10 +24,12 @@ export function SearchPageChrome({
             : "top-14"
         )}
       >
-        <h1 className={cn("text-xl font-bold mb-3", isNativeApp && "sr-only")}>검색</h1>
+        {!hideTitle && (
+          <h1 className={cn("text-xl font-bold mb-3", isNativeApp && "sr-only")}>검색</h1>
+        )}
         {searchBar}
       </div>
-      <div className="p-4 space-y-6 min-w-0">{children}</div>
+      <div className={cn("min-w-0", hideTitle ? "px-0 py-0" : "p-4 space-y-6")}>{children}</div>
     </div>
   );
 }

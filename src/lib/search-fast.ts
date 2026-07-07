@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { filterChannelsWithPresentHost } from "@/lib/live-abandon";
 import { isHashtagSearchQuery } from "@/lib/linkify";
+import { parseHashtagFromQuery } from "@/lib/hashtag-search";
 import { getPopularWikiSearchQueries, logWikiSearchQuery } from "@/lib/wiki-search";
 import type { SupportTierLevel } from "@prisma/client";
 
@@ -141,8 +142,14 @@ export async function runFastSearch(query: string): Promise<FastSearchResult> {
           ],
         };
 
-  const postWhere = isHashtagSearchQuery(q)
-    ? { content: { contains: q, mode: "insensitive" as const } }
+  const hashtagTag = parseHashtagFromQuery(q);
+  const postWhere = hashtagTag
+    ? {
+        OR: [
+          { content: { contains: `#${hashtagTag}`, mode: "insensitive" as const } },
+          { title: { contains: `#${hashtagTag}`, mode: "insensitive" as const } },
+        ],
+      }
     : {
         OR: [
           { title: { contains: q, mode: "insensitive" as const } },
@@ -170,11 +177,13 @@ export async function runFastSearch(query: string): Promise<FastSearchResult> {
           select: { slug: true, title: true },
         })
       : Promise.resolve([]),
-    q.length >= 2
+    q.length >= 1
       ? db.post.findMany({
           where: postWhere,
-          take: 5,
-          orderBy: { createdAt: "desc" },
+          take: hashtagTag ? 8 : 5,
+          orderBy: hashtagTag
+            ? [{ likes: { _count: "desc" } }, { createdAt: "desc" }]
+            : { createdAt: "desc" },
           select: { id: true, content: true, title: true },
         })
       : Promise.resolve([]),

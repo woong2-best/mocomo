@@ -53,12 +53,12 @@ function mapFeedPost<T extends { poll: Parameters<typeof mapPostPollRow>[0] | nu
 
 export { mapFeedPost };
 
-const feedPostListSelectNoReposts = {
+export const feedPostListSelectNoReposts = {
   ...feedPostListSelect,
   _count: { select: { likes: true, comments: true, votes: true } },
 } as const;
 
-const feedPostListSelectNoPoll = {
+export const feedPostListSelectNoPoll = {
   id: true,
   title: true,
   content: true,
