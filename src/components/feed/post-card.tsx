@@ -9,6 +9,7 @@ import { Heart, MessageCircle, ArrowBigUp } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
 import { TranslatableText } from "@/components/ui/translatable-text";
 import { PostShareMenu } from "@/components/post/post-share-menu";
+import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
 
 type PostCardProps = {
   post: {
@@ -71,12 +72,11 @@ export function PostCard({ post }: PostCardProps) {
               <div className="mt-3 grid gap-2 grid-cols-2">
                 {post.media.slice(0, 4).map((m) =>
                   m.type === "VIDEO" ? (
-                    <video
+                    <ProtectedPaidMedia
                       key={m.url}
+                      type="VIDEO"
                       src={m.url}
-                      controls
-                      playsInline
-                      className="rounded-lg object-cover max-h-48 w-full bg-black"
+                      className="rounded-lg object-cover max-h-48 w-full h-48 bg-black"
                     />
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element

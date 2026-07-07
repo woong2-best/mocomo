@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { shouldProtectPaidMediaView } from "@/lib/paid-media-protection";
 import { PaidMediaProtectionShell } from "@/components/media/paid-media-protection-shell";
+import { FeedVideoPlayer } from "@/components/media/feed-video-player";
 
 type Props = {
   type: string;
@@ -41,19 +42,27 @@ export function ProtectedPaidMedia({
 
   const isVideo = type === "VIDEO";
 
-  const media = isVideo ? (
-    <video
-      src={src}
-      className={cn(className, protect && !controls && "pointer-events-none")}
-      muted={muted}
-      playsInline={playsInline}
-      preload={preload}
-      controls={controls}
-      disablePictureInPicture
-      controlsList="nodownload noremoteplayback"
-      onContextMenu={(e) => e.preventDefault()}
-    />
-  ) : (
+  if (isVideo) {
+    const player = (
+      <FeedVideoPlayer
+        src={src}
+        className={className}
+        muted={muted}
+        playsInline={playsInline}
+        preload={preload}
+        controls={controls}
+        protect={protect}
+      />
+    );
+    if (!protect) return player;
+    return (
+      <PaidMediaProtectionShell className={cn("overflow-hidden", className)}>
+        {player}
+      </PaidMediaProtectionShell>
+    );
+  }
+
+  const media = (
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
