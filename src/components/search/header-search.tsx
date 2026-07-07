@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Search, X } from "lucide-react";
 import type { FastSearchResult } from "@/lib/search-fast";
 import { SearchPreviewPanel } from "@/components/search/search-preview-panel";
@@ -21,7 +21,10 @@ export function HeaderSearch({
   const router = useRouter();
   const { t } = useLocale();
   const pathname = usePathname();
-  const [q, setQ] = useState(defaultQuery);
+  const searchParams = useSearchParams();
+  const isOnSearchPage = pathname === "/search";
+  const urlQuery = isOnSearchPage ? (searchParams.get("q") ?? "") : "";
+  const [q, setQ] = useState(isOnSearchPage ? urlQuery : defaultQuery);
   const [open, setOpen] = useState(false);
   const [results, setResults] = useState<FastSearchResult | null>(null);
   const [panelRect, setPanelRect] = useState<PanelRect | null>(null);
@@ -31,7 +34,7 @@ export function HeaderSearch({
   const wrapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const useFloatingPanel = variant === "header";
+  const useFloatingPanel = variant === "header" && !isOnSearchPage;
 
   const fetchPreview = useCallback((term: string) => {
     const trimmed = term.trim();
@@ -67,16 +70,23 @@ export function HeaderSearch({
   }, []);
 
   useEffect(() => {
+    if (isOnSearchPage) {
+      setQ(urlQuery);
+      setOpen(false);
+      setResults(null);
+      return;
+    }
     setQ(defaultQuery);
-  }, [defaultQuery]);
+  }, [defaultQuery, isOnSearchPage, urlQuery]);
 
   useEffect(() => {
+    if (isOnSearchPage) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => fetchPreview(q), 280);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [q, fetchPreview]);
+  }, [q, fetchPreview, isOnSearchPage]);
 
   useEffect(() => {
     setOpen(false);
@@ -133,6 +143,10 @@ export function HeaderSearch({
     setQ("");
     setResults(null);
     setOpen(false);
+    if (isOnSearchPage) {
+      router.push("/search");
+      return;
+    }
     inputRef.current?.focus();
   }
 

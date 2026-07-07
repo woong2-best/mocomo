@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { SearchResultsAsync } from "@/components/search/search-results-async";
 import { HashtagSearchResults } from "@/components/search/hashtag-search-results";
-import { HeaderSearch } from "@/components/search/header-search";
 import { SearchPageChrome } from "@/components/search/search-page-chrome";
 import { CardRowsSkeleton } from "@/components/ui/content-skeletons";
 import { parseHashtagFromQuery } from "@/lib/hashtag-search";
@@ -22,10 +21,7 @@ export default async function SearchPage({
   const sort = parseSort(sortParam);
 
   return (
-    <SearchPageChrome
-      searchBar={<HeaderSearch variant="page" defaultQuery={query} />}
-      hideTitle={!!hashtagTag}
-    >
+    <SearchPageChrome compact={!!hashtagTag}>
       {query ? (
         hashtagTag ? (
           <Suspense fallback={<CardRowsSkeleton rows={6} />}>

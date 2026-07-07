@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Search } from "lucide-react";
 import { HeaderSearch } from "@/components/search/header-search";
 import { BRAND } from "@/lib/brand";
@@ -12,8 +13,20 @@ import { SidebarToggleButton } from "@/components/layout/sidebar-toggle-button";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { cn } from "@/lib/utils";
 
+function HeaderSearchSlot({ className }: { className?: string }) {
+  return (
+    <div className={className}>
+      <Suspense fallback={<div className="h-10 w-full max-w-2xl rounded-full bg-muted/60" aria-hidden />}>
+        <HeaderSearch variant="header" />
+      </Suspense>
+    </div>
+  );
+}
+
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname() ?? "";
+  const isSearchPage = pathname === "/search";
 
   return (
     <>
@@ -28,22 +41,26 @@ export function Header() {
         </div>
         <SidebarToggleButton />
 
-        <div className="app-header-interactive hidden lg:flex flex-1 justify-center max-w-2xl mx-auto min-w-0">
-          <HeaderSearch variant="header" />
-        </div>
+        <HeaderSearchSlot className="app-header-interactive hidden lg:flex flex-1 justify-center max-w-2xl mx-auto min-w-0" />
 
-        <div className="flex-1 min-w-0 lg:hidden" aria-hidden />
+        {isSearchPage ? (
+          <HeaderSearchSlot className="app-header-interactive flex-1 min-w-0 px-1 lg:hidden" />
+        ) : (
+          <div className="flex-1 min-w-0 lg:hidden" aria-hidden />
+        )}
 
         <div className="app-header-interactive flex items-center gap-0.5 sm:gap-1.5 shrink-0">
-          <Link
-            href="/search"
-            className={cn(
-              "lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted/60 text-foreground"
-            )}
-            aria-label="검색"
-          >
-            <Search className="h-5 w-5" />
-          </Link>
+          {!isSearchPage && (
+            <Link
+              href="/search"
+              className={cn(
+                "lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted/60 text-foreground"
+              )}
+              aria-label="검색"
+            >
+              <Search className="h-5 w-5" />
+            </Link>
+          )}
           <ThemeToggle />
           <HeaderAuth />
         </div>

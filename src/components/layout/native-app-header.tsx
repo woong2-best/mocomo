@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { Suspense } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowLeft, Search } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import { DEFAULT_LANDING_PATH, EXPLORE_PATH } from "@/lib/site-routes";
 import { HeaderAuth } from "@/components/layout/header-auth";
+import { HeaderSearch } from "@/components/search/header-search";
 import { cn } from "@/lib/utils";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { pressTap } from "@/lib/motion-presets";
@@ -126,9 +128,41 @@ export function NativeAppHeader() {
   const router = useRouter();
   const { t } = useLocale();
   const reduced = usePrefersReducedMotion();
+  const isSearchPage = pathname === "/search";
   const isRoot = ROOT_PATHS.has(pathname);
   const title = titleForPath(pathname, t);
-  const showBack = !isRoot && !!title;
+  const showBack = !isRoot && !!title && !isSearchPage;
+
+  if (isSearchPage) {
+    return (
+      <motion.header
+        className="sticky top-0 z-[150] flex min-h-[3.25rem] items-center gap-2 border-b border-border/70 bg-background/95 backdrop-blur-md px-3 pt-safe pb-2"
+        initial={reduced ? false : { y: -12, opacity: 0 }}
+        animate={reduced ? undefined : { y: 0, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 380, damping: 32 }}
+      >
+        <div className="flex w-10 shrink-0 items-center justify-start">
+          <motion.button
+            type="button"
+            onClick={() => router.back()}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted/60"
+            aria-label="뒤로"
+            whileTap={reduced ? undefined : pressTap}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </motion.button>
+        </div>
+        <div className="min-w-0 flex-1">
+          <Suspense fallback={<div className="h-10 w-full rounded-full bg-muted/60" aria-hidden />}>
+            <HeaderSearch variant="header" />
+          </Suspense>
+        </div>
+        <div className="flex shrink-0 items-center justify-end min-w-[2.75rem]">
+          <HeaderAuth compact />
+        </div>
+      </motion.header>
+    );
+  }
 
   return (
     <motion.header

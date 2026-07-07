@@ -3,7 +3,6 @@ import { HashtagSearchTabs } from "@/components/search/hashtag-search-tabs";
 import {
   getCachedHashtagPostCount,
   getCachedHashtagPosts,
-  hashtagDisplayLabel,
   type HashtagSort,
 } from "@/lib/hashtag-search";
 import { getServerTranslator } from "@/lib/i18n/server";
@@ -39,10 +38,9 @@ export async function HashtagSearchResults({
 
   return (
     <div className="space-y-0 -mx-4">
-      <div className="px-4 pb-3 border-b border-border/60">
-        <h2 className="text-2xl font-bold tracking-tight">{hashtagDisplayLabel(tag)}</h2>
-        <p className="text-sm text-muted-foreground mt-1">{formatPostCount(total, locale)}</p>
-      </div>
+      <p className="px-4 py-2 text-sm text-muted-foreground border-b border-border/60">
+        {formatPostCount(total, locale)}
+      </p>
 
       <HashtagSearchTabs tag={tag} sort={sort} />
 
