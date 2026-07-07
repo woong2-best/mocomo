@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type Konva from "konva";
 import {
   FlipHorizontal2,
@@ -99,8 +99,7 @@ export function ImageEditorDialog({
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [fitZoom, setFitZoom] = useState(1);
-  const [canvasOffset, setCanvasOffset] = useState({ x: 0, y: 0 });
+  const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
   const [cropAspect, setCropAspect] = useState<number | undefined>(aspect);
   const [localTool, setLocalTool] = useState<LocalTool>("select");
   const [showEmojiPick, setShowEmojiPick] = useState(false);
@@ -116,23 +115,25 @@ export function ImageEditorDialog({
   const targetLayer = activeLayer && activeLayer.type !== "background" ? activeLayer : bgLayer;
   const brushMode = localTool === "brush";
 
-  const recomputeFit = useCallback(() => {
-    const el = photoRef.current;
-    if (!project || !el) return;
-    const cw = el.clientWidth;
-    const ch = el.clientHeight;
-    if (cw <= 0 || ch <= 0) return;
-    const pad = 8;
-    const zoom = Math.max(
-      0.01,
-      Math.min((cw - pad) / project.width, (ch - pad) / project.height, 1)
-    );
-    setFitZoom(zoom);
-    setCanvasOffset({
-      x: (cw - project.width * zoom) / 2,
-      y: (ch - project.height * zoom) / 2,
-    });
-  }, [project]);
+  const pad = 8;
+  const fitZoom =
+    project && containerSize.w > 0 && containerSize.h > 0
+      ? Math.max(
+          0.01,
+          Math.min(
+            (containerSize.w - pad) / project.width,
+            (containerSize.h - pad) / project.height,
+            1
+          )
+        )
+      : 0;
+  const canvasOffset = project
+    ? {
+        x: (containerSize.w - project.width * fitZoom) / 2,
+        y: (containerSize.h - project.height * fitZoom) / 2,
+      }
+    : { x: 0, y: 0 };
+  const canvasReady = Boolean(project) && containerSize.w > 0 && containerSize.h > 0 && fitZoom > 0;
 
   useEffect(() => {
     if (!open) return;
@@ -168,16 +169,18 @@ export function ImageEditorDialog({
     if (!open) return;
     const el = photoRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(() => recomputeFit());
+    const measure = () => {
+      setContainerSize({ w: el.clientWidth, h: el.clientHeight });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
     ro.observe(el);
-    const raf = requestAnimationFrame(() => recomputeFit());
-    window.addEventListener("resize", recomputeFit);
+    const raf = requestAnimationFrame(measure);
     return () => {
       ro.disconnect();
       cancelAnimationFrame(raf);
-      window.removeEventListener("resize", recomputeFit);
     };
-  }, [recomputeFit, open]);
+  }, [open]);
 
   useEffect(() => {
     if (!pendingTextEdit.current || activeLayer?.type !== "text") return;
@@ -291,13 +294,15 @@ export function ImageEditorDialog({
           ref={photoRef}
           className="relative w-full h-[min(44vh,320px)] sm:h-[min(48vh,360px)] bg-neutral-900 shrink-0 touch-none flex items-center justify-center overflow-hidden"
         >
-          {loading || !project ? (
+          {loading || !project || !canvasReady ? (
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           ) : (
             <>
               <EditorCanvas
                 project={project}
                 stageRef={stageRef}
+                stageWidth={containerSize.w}
+                stageHeight={containerSize.h}
                 viewportZoom={fitZoom}
                 viewportOffset={canvasOffset}
                 brushMode={brushMode}

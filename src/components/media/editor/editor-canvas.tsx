@@ -10,6 +10,8 @@ import { EditorLayerNode } from "@/components/media/editor/editor-layer-node";
 type EditorCanvasProps = {
   project: EditorProject;
   stageRef: React.RefObject<Konva.Stage | null>;
+  stageWidth: number;
+  stageHeight: number;
   viewportZoom: number;
   viewportOffset: { x: number; y: number };
   brushMode: boolean;
@@ -31,6 +33,8 @@ type EditorCanvasProps = {
 export function EditorCanvas({
   project,
   stageRef,
+  stageWidth,
+  stageHeight,
   viewportZoom,
   viewportOffset,
   brushMode,
@@ -49,8 +53,6 @@ export function EditorCanvas({
   const brushLayerId = useRef<string | null>(activeBrushLayerId);
 
   const activeLayer = project.layers.find((l) => l.id === project.activeLayerId) ?? null;
-  const stageWidth = project.width * viewportZoom;
-  const stageHeight = project.height * viewportZoom;
 
   useEffect(() => {
     brushLayerId.current = activeBrushLayerId;
