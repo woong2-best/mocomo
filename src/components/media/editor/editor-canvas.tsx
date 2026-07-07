@@ -64,6 +64,7 @@ export function EditorCanvas({
   const drawing = useRef(false);
   const currentPoints = useRef<number[]>([]);
   const brushLayerId = useRef<string | null>(activeBrushLayerId);
+  const previewLineRef = useRef<Konva.Line>(null);
 
   const activeLayer = project.layers.find((l) => l.id === project.activeLayerId) ?? null;
   // 크롭 프레임 조절 모드: 배경/선택 없음 + 그리기 아님
@@ -133,6 +134,49 @@ export function EditorCanvas({
     return { crop, dimPaths };
   }, [project]);
 
+  function brushLineProps(stroke: Pick<BrushStroke, "color" | "size" | "opacity" | "tool">) {
+    return {
+      stroke: stroke.tool === "eraser" ? "#ffffff" : stroke.color,
+      strokeWidth: stroke.size,
+      opacity: stroke.tool === "highlighter" ? 0.35 : stroke.opacity,
+      lineCap: "round" as const,
+      lineJoin: "round" as const,
+      tension: stroke.tool === "pen" ? 0 : 0.3,
+      globalCompositeOperation: (stroke.tool === "eraser" ? "destination-out" : "source-over") as GlobalCompositeOperation,
+      shadowColor: stroke.tool === "neon" ? stroke.color : undefined,
+      shadowBlur: stroke.tool === "neon" ? 12 : 0,
+    };
+  }
+
+  function syncPreviewLine(points: number[]) {
+    const line = previewLineRef.current;
+    if (!line) return;
+    if (points.length < 2) {
+      line.visible(false);
+      line.getLayer()?.batchDraw();
+      return;
+    }
+    const style = brushLineProps(brushSettings);
+    line.points(points);
+    line.stroke(style.stroke);
+    line.strokeWidth(style.strokeWidth);
+    line.opacity(style.opacity);
+    line.tension(style.tension);
+    line.globalCompositeOperation(style.globalCompositeOperation);
+    line.shadowColor(style.shadowColor ?? "");
+    line.shadowBlur(style.shadowBlur ?? 0);
+    line.visible(true);
+    line.getLayer()?.batchDraw();
+  }
+
+  function clearPreviewLine() {
+    const line = previewLineRef.current;
+    if (!line) return;
+    line.visible(false);
+    line.points([]);
+    line.getLayer()?.batchDraw();
+  }
+
   function pointerToCanvas(stage: Konva.Stage) {
     const pos = stage.getPointerPosition();
     if (!pos) return null;
@@ -153,6 +197,14 @@ export function EditorCanvas({
       drawing.current = true;
       if (!brushLayerId.current) brushLayerId.current = onCreateBrushLayer();
       currentPoints.current = [p.x, p.y];
+      syncPreviewLine(currentPoints.current);
+      const endOnWindow = () => {
+        handlePointerUp();
+        window.removeEventListener("mouseup", endOnWindow);
+        window.removeEventListener("touchend", endOnWindow);
+      };
+      window.addEventListener("mouseup", endOnWindow);
+      window.addEventListener("touchend", endOnWindow);
       return;
     }
     if (e.target === e.target.getStage()) onSelectLayer(null);
@@ -164,15 +216,18 @@ export function EditorCanvas({
     if (!stage) return;
     const p = pointerToCanvas(stage);
     if (!p || !brushLayerId.current) return;
-    currentPoints.current = [...currentPoints.current, p.x, p.y];
+    currentPoints.current.push(p.x, p.y);
+    syncPreviewLine(currentPoints.current);
   }
 
   function handlePointerUp() {
     if (!brushMode || !drawing.current || !brushLayerId.current) return;
     drawing.current = false;
-    if (currentPoints.current.length >= 2) {
+    const points = currentPoints.current;
+    clearPreviewLine();
+    if (points.length >= 2) {
       onBrushStroke(brushLayerId.current, {
-        points: [...currentPoints.current],
+        points: [...points],
         ...brushSettings,
       });
     }
@@ -218,6 +273,28 @@ export function EditorCanvas({
               onGuidesChange={setGuides}
             />
           ))}
+        </Group>
+
+        {/* 그리기 미리보기: React 상태 없이 Konva ref로 즉시 갱신 */}
+        <Group
+          x={viewportOffset.x}
+          y={viewportOffset.y}
+          scaleX={viewportZoom}
+          scaleY={viewportZoom}
+          clipX={crop.x}
+          clipY={crop.y}
+          clipWidth={crop.width}
+          clipHeight={crop.height}
+          listening={false}
+        >
+          <Line
+            ref={previewLineRef}
+            visible={false}
+            perfectDrawEnabled={false}
+            listening={false}
+            lineCap="round"
+            lineJoin="round"
+          />
         </Group>
 
         {/* UI 장식: 어두운 영역 · 가이드 (비상호작용) */}
