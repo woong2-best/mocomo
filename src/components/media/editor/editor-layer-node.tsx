@@ -13,6 +13,7 @@ type Props = {
   layer: EditorLayer;
   project: EditorProject;
   onSelect: () => void;
+  onEditText?: (layerId: string) => void;
   onTransformEnd: (attrs: TransformAttrs) => void;
   onGuidesChange?: (guides: GuideLine[]) => void;
 };
@@ -121,7 +122,7 @@ function ImageNode({
 }
 
 export function EditorLayerNode(props: Props) {
-  const { layer, onSelect, onTransformEnd, project, onGuidesChange } = props;
+  const { layer, onSelect, onEditText, onTransformEnd, project, onGuidesChange } = props;
   const { transform } = layer;
 
   if (layer.type === "background" || layer.type === "image") {
@@ -172,6 +173,8 @@ export function EditorLayerNode(props: Props) {
         draggable={!layer.locked}
         onClick={onSelect}
         onTap={onSelect}
+        onDblClick={() => onEditText?.(layer.id)}
+        onDblTap={() => onEditText?.(layer.id)}
         {...drag}
         onDragEnd={(e) => {
           drag.onDragEnd(e);

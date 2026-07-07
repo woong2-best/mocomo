@@ -16,6 +16,7 @@ type EditorCanvasProps = {
   brushSettings: Pick<BrushStroke, "color" | "size" | "opacity" | "tool">;
   activeBrushLayerId: string | null;
   onSelectLayer: (id: string | null) => void;
+  onEditText?: (layerId: string) => void;
   onTransformEnd: (layerId: string, attrs: {
     x: number;
     y: number;
@@ -36,6 +37,7 @@ export function EditorCanvas({
   brushSettings,
   activeBrushLayerId,
   onSelectLayer,
+  onEditText,
   onTransformEnd,
   onBrushStroke,
   onCreateBrushLayer,
@@ -131,8 +133,36 @@ export function EditorCanvas({
         currentPoints.current = [];
       }}
       onTouchStart={(e) => {
-        if (brushMode) return;
+        if (brushMode) {
+          const stage = e.target.getStage();
+          if (!stage) return;
+          const p = pointerToCanvas(stage);
+          if (!p) return;
+          drawing.current = true;
+          if (!brushLayerId.current) brushLayerId.current = onCreateBrushLayer();
+          currentPoints.current = [p.x, p.y];
+          return;
+        }
         if (e.target === e.target.getStage()) onSelectLayer(null);
+      }}
+      onTouchMove={(e) => {
+        if (!brushMode || !drawing.current) return;
+        const stage = e.target.getStage();
+        if (!stage) return;
+        const p = pointerToCanvas(stage);
+        if (!p || !brushLayerId.current) return;
+        currentPoints.current = [...currentPoints.current, p.x, p.y];
+      }}
+      onTouchEnd={() => {
+        if (!brushMode || !drawing.current || !brushLayerId.current) return;
+        drawing.current = false;
+        if (currentPoints.current.length >= 2) {
+          onBrushStroke(brushLayerId.current, {
+            points: [...currentPoints.current],
+            ...brushSettings,
+          });
+        }
+        currentPoints.current = [];
       }}
       className="bg-neutral-900 touch-none"
     >
@@ -144,6 +174,7 @@ export function EditorCanvas({
             layer={layer}
             project={project}
             onSelect={() => !layer.locked && !brushMode && onSelectLayer(layer.id)}
+            onEditText={onEditText}
             onTransformEnd={(attrs) => onTransformEnd(layer.id, attrs)}
             onGuidesChange={setGuides}
           />

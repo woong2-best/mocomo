@@ -153,6 +153,27 @@ export function moveLayer(project: EditorProject, layerId: string, direction: "u
   return { ...project, layers: next };
 }
 
+export function bringLayerToFront(project: EditorProject, layerId: string): EditorProject {
+  const idx = project.layers.findIndex((l) => l.id === layerId);
+  if (idx < 0 || idx === project.layers.length - 1) return project;
+  const layer = project.layers[idx]!;
+  if (layer.type === "background") return project;
+  const next = project.layers.filter((l) => l.id !== layerId);
+  next.push(layer);
+  return { ...project, layers: next };
+}
+
+export function sendLayerToBack(project: EditorProject, layerId: string): EditorProject {
+  const idx = project.layers.findIndex((l) => l.id === layerId);
+  if (idx <= 0) return project;
+  const layer = project.layers[idx]!;
+  if (layer.type === "background") return project;
+  const next = project.layers.filter((l) => l.id !== layerId);
+  const insertAt = next[0]?.type === "background" ? 1 : 0;
+  next.splice(insertAt, 0, layer);
+  return { ...project, layers: next };
+}
+
 export function setCrop(project: EditorProject, crop: import("@/lib/media-editor/types").CropRect): EditorProject {
   return { ...project, crop };
 }

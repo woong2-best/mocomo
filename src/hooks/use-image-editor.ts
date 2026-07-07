@@ -17,6 +17,8 @@ import {
   fitLayerToCanvas,
   groupLayers,
   moveLayer,
+  bringLayerToFront,
+  sendLayerToBack,
   removeLayer,
   renameLayer,
   setActiveLayer,
@@ -180,6 +182,22 @@ export function useImageEditor(initialProject: EditorProject | null) {
     (layerId: string, direction: "up" | "down") => {
       if (!project) return;
       commit(moveLayer(project, layerId, direction));
+    },
+    [project, commit]
+  );
+
+  const bringToFront = useCallback(
+    (layerId: string) => {
+      if (!project) return;
+      commit(bringLayerToFront(project, layerId));
+    },
+    [project, commit]
+  );
+
+  const sendToBack = useCallback(
+    (layerId: string) => {
+      if (!project) return;
+      commit(sendLayerToBack(project, layerId));
     },
     [project, commit]
   );
@@ -403,6 +421,8 @@ export function useImageEditor(initialProject: EditorProject | null) {
     deleteLayer,
     dupLayer,
     moveLayerOrder,
+    bringToFront,
+    sendToBack,
     setOpacity,
     flipLayer,
     rotateLayer,
