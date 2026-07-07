@@ -47,7 +47,7 @@ export function VideoEditDialog({
 }: VideoEditDialogProps) {
   const { data: session } = useSession();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const previewUrlRef = useRef<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [duration, setDuration] = useState(0);
   const [startSec, setStartSec] = useState(0);
   const [endSec, setEndSec] = useState(0);
@@ -57,56 +57,41 @@ export function VideoEditDialog({
   const [warn, setWarn] = useState("");
 
   useEffect(() => {
+    setDuration(0);
+    setStartSec(0);
+    setEndSec(0);
+    setError("");
+    setWarn("");
+
     if (!open || !videoBlob) {
-      if (previewUrlRef.current) {
-        URL.revokeObjectURL(previewUrlRef.current);
-        previewUrlRef.current = null;
-      }
-      setDuration(0);
-      setStartSec(0);
-      setEndSec(0);
-      setError("");
-      setWarn("");
+      setPreviewUrl(null);
       return;
     }
 
     const url = URL.createObjectURL(videoBlob);
-    previewUrlRef.current = url;
-    setError("");
-    setWarn("");
-    setStartSec(0);
-    setDuration(0);
-    setEndSec(0);
+    setPreviewUrl(url);
 
     return () => {
-      if (previewUrlRef.current) {
-        URL.revokeObjectURL(previewUrlRef.current);
-        previewUrlRef.current = null;
-      }
+      URL.revokeObjectURL(url);
     };
   }, [open, videoBlob]);
 
-  useEffect(() => {
+  function handleLoadedMetadata() {
     const v = videoRef.current;
-    const url = previewUrlRef.current;
-    if (!v || !url || !open) return;
+    if (!v) return;
+    const d = v.duration;
+    if (Number.isFinite(d) && d > 0) {
+      setDuration(d);
+      setEndSec(Math.min(d, maxDurationSec));
+      setError("");
+    } else {
+      setError("영상 길이를 읽을 수 없습니다. 「원본 그대로 업로드」를 시도해 주세요.");
+    }
+  }
 
-    const onMeta = () => {
-      const d = v.duration;
-      if (Number.isFinite(d) && d > 0) {
-        setDuration(d);
-        setEndSec(Math.min(d, maxDurationSec));
-      } else {
-        setError("영상 길이를 읽을 수 없습니다. 「원본 그대로 업로드」를 시도해 주세요.");
-      }
-    };
-
-    v.addEventListener("loadedmetadata", onMeta);
-    v.src = url;
-    v.load();
-
-    return () => v.removeEventListener("loadedmetadata", onMeta);
-  }, [open, videoBlob, maxDurationSec]);
+  function handleVideoError() {
+    setError("이 영상은 브라우저에서 미리보기가 안 됩니다. 「원본 그대로 업로드」를 이용해 주세요.");
+  }
 
   const clipLen = Math.max(0, endSec - startSec);
 
@@ -227,10 +212,15 @@ export function VideoEditDialog({
         <div className="bg-black">
           <video
             ref={videoRef}
+            key={previewUrl ?? "empty"}
+            src={previewUrl ?? undefined}
             className="w-full max-h-[40vh] object-contain"
             playsInline
             controls
             muted
+            preload="metadata"
+            onLoadedMetadata={handleLoadedMetadata}
+            onError={handleVideoError}
           />
         </div>
 
