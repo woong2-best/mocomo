@@ -149,13 +149,18 @@ export function ImageEditorDialog({
     setShowEmojiPick(false);
     setEditingTextId(null);
     pendingTextEdit.current = false;
-    setCropAspect(lockAspect ? aspect : aspect);
-    void createProjectFromImageSrc(imageSrc, { maxWidth, maxHeight, defaultAspect: aspect })
+    // 비율 고정이 아니면 업로드 사진 비율에 캔버스를 맞추고 전체를 크롭(자유)으로 시작 → 검은 여백 없음
+    const initialAspect = lockAspect ? aspect : undefined;
+    setCropAspect(initialAspect);
+    void createProjectFromImageSrc(imageSrc, {
+      maxWidth,
+      maxHeight,
+      defaultAspect: aspect,
+      fitToImage: !lockAspect,
+    })
       .then((p) => {
         if (cancelled) return;
-        let next = p;
-        if (lockAspect) next = { ...p, crop: fitCropRect(p.width, p.height, aspect) };
-        else next = { ...p, crop: fitCropRect(p.width, p.height, cropAspect) };
+        const next = { ...p, crop: fitCropRect(p.width, p.height, initialAspect) };
         resetHistory(next);
       })
       .catch(() => {
@@ -270,6 +275,8 @@ export function ImageEditorDialog({
     editor.flipLayer(bg.id, axis);
   }
 
+  const initialAspect = lockAspect ? aspect : undefined;
+
   function handleReset() {
     if (!bg || !project) return;
     const hasEdits = project.layers.length > 1;
@@ -277,11 +284,11 @@ export function ImageEditorDialog({
       const ok = window.confirm("추가한 레이어와 크롭·회전·확대를 모두 초기 상태로 되돌릴까요?");
       if (!ok) return;
     }
-    setCropAspect(aspect);
+    setCropAspect(initialAspect);
     setLocalTool("select");
     setShowEmojiPick(false);
     setEditingTextId(null);
-    editor.resetBackgroundTransform(aspect);
+    editor.resetBackgroundTransform(initialAspect);
   }
 
   function onAspectPick(a?: number) {
@@ -292,7 +299,7 @@ export function ImageEditorDialog({
   function hasUnsavedEdits(): boolean {
     if (!project) return false;
     if (project.layers.length > 1) return true;
-    if (cropAspect !== aspect) return true;
+    if (cropAspect !== initialAspect) return true;
     if (bg) {
       if (Math.abs(bg.transform.rotation) > 0.01) return true;
       if (bg.data.flipX || bg.data.flipY) return true;

@@ -226,16 +226,32 @@ export function appendBrushStroke(project: EditorProject, layerId: string, strok
 
 export async function createProjectFromImageSrc(
   src: string,
-  opts: { maxWidth: number; maxHeight: number; defaultAspect?: number; title?: string }
+  opts: {
+    maxWidth: number;
+    maxHeight: number;
+    defaultAspect?: number;
+    title?: string;
+    /** true면 캔버스를 업로드 이미지의 실제 비율에 맞춰 생성(검은 여백 없음) */
+    fitToImage?: boolean;
+  }
 ): Promise<EditorProject> {
   const normalizedSrc = await normalizeEditorImageSrc(src);
   const { width: nw, height: nh } = await readImageDimensions(normalizedSrc);
-  const aspect = opts.defaultAspect ?? 4 / 5;
-  let canvasW = Math.min(nw, opts.maxWidth);
-  let canvasH = Math.round(canvasW / aspect);
-  if (canvasH > opts.maxHeight) {
-    canvasH = opts.maxHeight;
-    canvasW = Math.round(canvasH * aspect);
+  let canvasW: number;
+  let canvasH: number;
+  if (opts.fitToImage) {
+    // 이미지 자체 비율로 캔버스를 만들고 최대 크기 안으로 축소한다.
+    const scale = Math.min(1, opts.maxWidth / nw, opts.maxHeight / nh);
+    canvasW = Math.max(1, Math.round(nw * scale));
+    canvasH = Math.max(1, Math.round(nh * scale));
+  } else {
+    const aspect = opts.defaultAspect ?? 4 / 5;
+    canvasW = Math.min(nw, opts.maxWidth);
+    canvasH = Math.round(canvasW / aspect);
+    if (canvasH > opts.maxHeight) {
+      canvasH = opts.maxHeight;
+      canvasW = Math.round(canvasH * aspect);
+    }
   }
   const now = new Date().toISOString();
   const bgLayer = createImageLayer(normalizedSrc, nw, nh, { name: "배경", type: "background" });
