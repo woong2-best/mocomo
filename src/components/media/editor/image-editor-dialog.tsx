@@ -114,23 +114,30 @@ export function ImageEditorDialog({
   const activeLayer = project?.layers.find((l) => l.id === project.activeLayerId) ?? null;
   const bgLayer = project?.layers.find((l) => l.type === "background") ?? null;
   const brushMode = localTool === "brush";
+  const cropEditing =
+    !brushMode && localTool === "select" && (!activeLayer || activeLayer.type === "background");
 
   const pad = 8;
+  const viewBox = project
+    ? cropEditing
+      ? { x: 0, y: 0, width: project.width, height: project.height }
+      : project.crop
+    : { x: 0, y: 0, width: 0, height: 0 };
   const fitZoom =
-    project && containerSize.w > 0 && containerSize.h > 0
+    project && containerSize.w > 0 && containerSize.h > 0 && viewBox.width > 0 && viewBox.height > 0
       ? Math.max(
           0.01,
           Math.min(
-            (containerSize.w - pad) / project.width,
-            (containerSize.h - pad) / project.height,
+            (containerSize.w - pad) / viewBox.width,
+            (containerSize.h - pad) / viewBox.height,
             1
           )
         )
       : 0;
   const canvasOffset = project
     ? {
-        x: (containerSize.w - project.width * fitZoom) / 2,
-        y: (containerSize.h - project.height * fitZoom) / 2,
+        x: (containerSize.w - viewBox.width * fitZoom) / 2 - viewBox.x * fitZoom,
+        y: (containerSize.h - viewBox.height * fitZoom) / 2 - viewBox.y * fitZoom,
       }
     : { x: 0, y: 0 };
   const canvasReady = Boolean(project) && containerSize.w > 0 && containerSize.h > 0 && fitZoom > 0;
@@ -390,6 +397,7 @@ export function ImageEditorDialog({
                 brushSettings={editor.brushSettings}
                 activeBrushLayerId={editor.activeBrushLayerId}
                 cropAspect={cropAspect}
+                cropEditing={cropEditing}
                 onCropChange={(crop, opts) => editor.setCropRect(crop, opts)}
                 onCropCommit={() => editor.flushTransform()}
                 onSelectLayer={(id) => {
@@ -535,9 +543,15 @@ export function ImageEditorDialog({
                 className="rounded-full h-8 px-3 text-xs"
                 disabled={busy}
                 onClick={() => {
-                  setLocalTool((t) => (t === "brush" ? "select" : "brush"));
                   setShowEmojiPick(false);
-                  if (localTool !== "brush") editor.ensureBrushLayer();
+                  setLocalTool((t) => {
+                    const next = t === "brush" ? "select" : "brush";
+                    if (next === "brush") {
+                      editor.selectLayer(null);
+                      editor.ensureBrushLayer();
+                    }
+                    return next;
+                  });
                 }}
               >
                 그리기

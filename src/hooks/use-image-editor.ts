@@ -5,6 +5,7 @@ import {
   addLayer,
   appendBrushStroke,
   cloneProject,
+  cropSpawnPoint,
   coverBackgroundTransform,
   createBlurLayer,
   createBrushLayer,
@@ -254,7 +255,16 @@ export function useImageEditor(initialProject: EditorProject | null) {
       for (const file of Array.from(files)) {
         if (!file.type.startsWith("image/")) continue;
         const layer = await createLayerFromFile(file);
-        next = addLayer(next, fitLayerToCanvas(layer, project.width, project.height));
+        const fitted = fitLayerToCanvas(layer, project.crop.width, project.crop.height);
+        const placed = {
+          ...fitted,
+          transform: {
+            ...fitted.transform,
+            x: fitted.transform.x + project.crop.x,
+            y: fitted.transform.y + project.crop.y,
+          },
+        };
+        next = addLayer(next, placed);
       }
       commit(next);
     },
@@ -263,13 +273,15 @@ export function useImageEditor(initialProject: EditorProject | null) {
 
   const addTextLayer = useCallback(() => {
     if (!project) return;
-    commit(addLayer(project, createTextLayer()));
+    const { x, y } = cropSpawnPoint(project.crop, 280, 48);
+    commit(addLayer(project, createTextLayer("텍스트", x, y)));
   }, [project, commit]);
 
   const addEmojiLayer = useCallback(
     (emoji: string) => {
       if (!project) return;
-      commit(addLayer(project, createEmojiLayer(emoji)));
+      const { x, y } = cropSpawnPoint(project.crop, 72, 72);
+      commit(addLayer(project, createEmojiLayer(emoji, x, y)));
     },
     [project, commit]
   );
@@ -285,7 +297,8 @@ export function useImageEditor(initialProject: EditorProject | null) {
   const addShape = useCallback(
     (kind: ShapeKind) => {
       if (!project) return;
-      commit(addLayer(project, createShapeLayer(kind)));
+      const { x, y } = cropSpawnPoint(project.crop, 120, 120);
+      commit(addLayer(project, createShapeLayer(kind, x, y)));
     },
     [project, commit]
   );

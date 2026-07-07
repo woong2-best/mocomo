@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Konva from "konva";
 import { Arrow, Circle, Group, Image as KonvaImage, Line, Rect, RegularPolygon, Star, Text } from "react-konva";
 import type KonvaType from "konva";
-import type { EditorLayer, EditorProject, GuideLine } from "@/lib/media-editor/types";
+import type { CropRect, EditorLayer, EditorProject, GuideLine } from "@/lib/media-editor/types";
 import { snapPosition } from "@/lib/media-editor/alignment";
 import { loadHtmlImage } from "@/lib/media-editor/load-image";
 
@@ -13,11 +13,29 @@ type TransformAttrs = { x: number; y: number; scaleX: number; scaleY: number; ro
 type Props = {
   layer: EditorLayer;
   project: EditorProject;
+  interactive: boolean;
   onSelect: () => void;
   onEditText?: (layerId: string) => void;
   onTransformEnd: (attrs: TransformAttrs) => void;
   onGuidesChange?: (guides: GuideLine[]) => void;
 };
+
+function cropDragBound(crop: CropRect) {
+  return (pos: { x: number; y: number }) => ({
+    x: Math.max(crop.x, Math.min(pos.x, crop.x + crop.width)),
+    y: Math.max(crop.y, Math.min(pos.y, crop.y + crop.height)),
+  });
+}
+
+function layerPointerProps(layer: EditorLayer, crop: CropRect, interactive: boolean) {
+  const isBackground = layer.type === "background";
+  const canDrag = interactive && !isBackground && !layer.locked && layer.type !== "brush";
+  return {
+    draggable: canDrag,
+    listening: canDrag,
+    dragBoundFunc: canDrag ? cropDragBound(crop) : undefined,
+  };
+}
 
 function useHtmlImage(src: string) {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
@@ -81,12 +99,14 @@ function ImageNode({
   flipY,
   effects,
   centered,
+  interactive,
   onSelect,
   onTransformEnd,
   onGuidesChange,
-}: Props & { src: string; width: number; height: number; flipX?: boolean; flipY?: boolean; centered?: boolean; effects?: import("@/lib/media-editor/types").ImageEffects }) {
+}: Props & { src: string; width: number; height: number; flipX?: boolean; flipY?: boolean; centered?: boolean; interactive: boolean; effects?: import("@/lib/media-editor/types").ImageEffects }) {
   const { image, failed } = useHtmlImage(src);
   if (!layer.visible) return null;
+  const pointer = layerPointerProps(layer, project.crop, interactive);
   if (!image) {
     if (failed) {
       return (
@@ -118,9 +138,9 @@ function ImageNode({
       rotation={layer.transform.rotation}
       opacity={layer.opacity}
       globalCompositeOperation={layer.blendMode}
-      draggable={!layer.locked}
-      onClick={onSelect}
-      onTap={onSelect}
+      {...pointer}
+      onClick={pointer.listening ? onSelect : undefined}
+      onTap={pointer.listening ? onSelect : undefined}
       {...drag}
       onDragEnd={(e) => {
         drag.onDragEnd(e);
@@ -148,8 +168,9 @@ function ImageNode({
 }
 
 export function EditorLayerNode(props: Props) {
-  const { layer, onSelect, onEditText, onTransformEnd, project, onGuidesChange } = props;
+  const { layer, onSelect, onEditText, onTransformEnd, project, onGuidesChange, interactive } = props;
   const { transform } = layer;
+  const pointer = layerPointerProps(layer, project.crop, interactive);
 
   if (layer.type === "background" || layer.type === "image") {
     return (
@@ -197,11 +218,11 @@ export function EditorLayerNode(props: Props) {
         shadowBlur={data.shadowBlur}
         shadowOffsetX={data.shadowOffsetX}
         shadowOffsetY={data.shadowOffsetY}
-        draggable={!layer.locked}
-        onClick={onSelect}
-        onTap={onSelect}
-        onDblClick={() => onEditText?.(layer.id)}
-        onDblTap={() => onEditText?.(layer.id)}
+        {...pointer}
+        onClick={pointer.listening ? onSelect : undefined}
+        onTap={pointer.listening ? onSelect : undefined}
+        onDblClick={pointer.listening ? () => onEditText?.(layer.id) : undefined}
+        onDblTap={pointer.listening ? () => onEditText?.(layer.id) : undefined}
         {...drag}
         onDragEnd={(e) => {
           drag.onDragEnd(e);
@@ -226,9 +247,9 @@ export function EditorLayerNode(props: Props) {
         opacity={layer.opacity}
         text={data.emoji}
         fontSize={data.fontSize}
-        draggable={!layer.locked}
-        onClick={onSelect}
-        onTap={onSelect}
+        {...pointer}
+        onClick={pointer.listening ? onSelect : undefined}
+        onTap={pointer.listening ? onSelect : undefined}
         {...drag}
         onDragEnd={(e) => {
           drag.onDragEnd(e);
@@ -249,9 +270,9 @@ export function EditorLayerNode(props: Props) {
       scaleX: transform.scaleX,
       scaleY: transform.scaleY,
       opacity: layer.opacity,
-      draggable: !layer.locked,
-      onClick: onSelect,
-      onTap: onSelect,
+      ...pointer,
+      onClick: pointer.listening ? onSelect : undefined,
+      onTap: pointer.listening ? onSelect : undefined,
       ...dragHandlers(layer, project, onGuidesChange),
       onTransformEnd: (e: KonvaType.KonvaEventObject<Event>) => finishTransform(layer, e.target, onTransformEnd),
     };
@@ -298,9 +319,9 @@ export function EditorLayerNode(props: Props) {
         height={layer.data.height}
         fill="rgba(255,255,255,0.01)"
         opacity={layer.opacity}
-        draggable={!layer.locked}
-        onClick={onSelect}
-        onTap={onSelect}
+        {...pointer}
+        onClick={pointer.listening ? onSelect : undefined}
+        onTap={pointer.listening ? onSelect : undefined}
         ref={(node) => {
           if (!node) return;
           node.cache();
@@ -321,9 +342,9 @@ export function EditorLayerNode(props: Props) {
         height={layer.data.height}
         fill={layer.data.color}
         opacity={layer.opacity}
-        draggable={!layer.locked}
-        onClick={onSelect}
-        onTap={onSelect}
+        {...pointer}
+        onClick={pointer.listening ? onSelect : undefined}
+        onTap={pointer.listening ? onSelect : undefined}
       />
     );
   }

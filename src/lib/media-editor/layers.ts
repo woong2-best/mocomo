@@ -1,4 +1,4 @@
-import type { EditorLayer, EditorProject, ImageLayerData, LayerTransform } from "@/lib/media-editor/types";
+import type { CropRect, EditorLayer, EditorProject, ImageLayerData, LayerTransform } from "@/lib/media-editor/types";
 import { createLayer, cloneProject, defaultTransform, newLayerId, newProjectId } from "@/lib/media-editor/layer-factories";
 import { DEFAULT_TEXT_STYLE } from "@/lib/media-editor/constants";
 import type { BrushStroke, ShapeKind } from "@/lib/media-editor/types";
@@ -77,6 +77,21 @@ export function fitLayerToCanvas(layer: EditorLayer, canvasW: number, canvasH: n
   return {
     ...layer,
     transform: { ...layer.transform, x: (canvasW - w) / 2, y: (canvasH - h) / 2, scaleX: scale, scaleY: scale },
+  };
+}
+
+export function clampToCrop(crop: CropRect, x: number, y: number): { x: number; y: number } {
+  return {
+    x: Math.max(crop.x, Math.min(x, crop.x + crop.width)),
+    y: Math.max(crop.y, Math.min(y, crop.y + crop.height)),
+  };
+}
+
+/** 새 레이어를 크롭 프레임 안 중앙에 배치 */
+export function cropSpawnPoint(crop: CropRect, w = 0, h = 0): { x: number; y: number } {
+  return {
+    x: crop.x + Math.max(8, (crop.width - w) / 2),
+    y: crop.y + Math.max(8, (crop.height - h) / 2),
   };
 }
 
@@ -257,6 +272,7 @@ export async function createProjectFromImageSrc(
   const bgLayer = createImageLayer(normalizedSrc, nw, nh, { name: "배경", type: "background" });
   const bg = {
     ...bgLayer,
+    locked: true,
     transform: coverBackgroundTransform(bgLayer as EditorLayer & { type: "background" | "image" }, canvasW, canvasH),
   } as EditorLayer;
   return {

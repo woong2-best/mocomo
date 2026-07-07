@@ -6,6 +6,7 @@ import type Konva from "konva";
 import type { BrushStroke, CropRect, EditorProject } from "@/lib/media-editor/types";
 import type { GuideLine } from "@/lib/media-editor/types";
 import { EditorLayerNode } from "@/components/media/editor/editor-layer-node";
+import { clampToCrop } from "@/lib/media-editor/layers";
 
 type EditorCanvasProps = {
   project: EditorProject;
@@ -19,6 +20,7 @@ type EditorCanvasProps = {
   brushSettings: Pick<BrushStroke, "color" | "size" | "opacity" | "tool">;
   activeBrushLayerId: string | null;
   cropAspect?: number;
+  cropEditing?: boolean;
   onSelectLayer: (id: string | null) => void;
   onEditText?: (layerId: string) => void;
   onTransformEnd: (layerId: string, attrs: {
@@ -46,6 +48,7 @@ export function EditorCanvas({
   brushSettings,
   activeBrushLayerId,
   cropAspect,
+  cropEditing = false,
   onSelectLayer,
   onEditText,
   onTransformEnd,
@@ -63,8 +66,9 @@ export function EditorCanvas({
   const brushLayerId = useRef<string | null>(activeBrushLayerId);
 
   const activeLayer = project.layers.find((l) => l.id === project.activeLayerId) ?? null;
-  // 오버레이 레이어가 선택되지 않았을 때(배경/없음)만 크롭 프레임을 편집한다.
-  const cropMode = !brushMode && (!activeLayer || activeLayer.type === "background");
+  // 크롭 프레임 조절 모드: 배경/선택 없음 + 그리기 아님
+  const cropMode = cropEditing && !brushMode && (!activeLayer || activeLayer.type === "background");
+  const { crop } = project;
 
   useEffect(() => {
     brushLayerId.current = activeBrushLayerId;
@@ -132,14 +136,16 @@ export function EditorCanvas({
   function pointerToCanvas(stage: Konva.Stage) {
     const pos = stage.getPointerPosition();
     if (!pos) return null;
-    return {
+    const raw = {
       x: (pos.x - viewportOffset.x) / viewportZoom,
       y: (pos.y - viewportOffset.y) / viewportZoom,
     };
+    return clampToCrop(crop, raw.x, raw.y);
   }
 
   function handlePointerDown(e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) {
     if (brushMode) {
+      e.cancelBubble = true;
       const stage = e.target.getStage();
       if (!stage) return;
       const p = pointerToCanvas(stage);
@@ -194,17 +200,18 @@ export function EditorCanvas({
           y={viewportOffset.y}
           scaleX={viewportZoom}
           scaleY={viewportZoom}
-          clipX={0}
-          clipY={0}
-          clipWidth={project.width}
-          clipHeight={project.height}
+          clipX={crop.x}
+          clipY={crop.y}
+          clipWidth={crop.width}
+          clipHeight={crop.height}
         >
-          <Rect x={0} y={0} width={project.width} height={project.height} fill="transparent" listening={false} />
+          <Rect x={crop.x} y={crop.y} width={crop.width} height={crop.height} fill="transparent" listening={false} />
           {project.layers.map((layer) => (
             <EditorLayerNode
               key={layer.id}
               layer={layer}
               project={project}
+              interactive={!brushMode}
               onSelect={() => !layer.locked && !brushMode && onSelectLayer(layer.id)}
               onEditText={onEditText}
               onTransformEnd={(attrs) => onTransformEnd(layer.id, attrs)}
@@ -221,7 +228,8 @@ export function EditorCanvas({
           scaleY={viewportZoom}
           listening={false}
         >
-          {cropOverlay.dimPaths.map((d, i) => (
+          {cropEditing &&
+            cropOverlay.dimPaths.map((d, i) => (
             <Rect key={`dim-${i}`} x={d.x} y={d.y} width={d.width} height={d.height} fill="rgba(0,0,0,0.45)" listening={false} />
           ))}
           {project.showGuides &&
