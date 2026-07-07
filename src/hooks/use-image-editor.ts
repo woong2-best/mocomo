@@ -74,7 +74,8 @@ export function useImageEditor(initialProject: EditorProject | null) {
     });
     if (commitTimer.current) clearTimeout(commitTimer.current);
     commitTimer.current = setTimeout(() => {
-      setHistory((h) => (h ? pushHistory(h, next) : null));
+      commitTimer.current = null;
+      setHistory((h) => (h ? pushHistory(h, h.present) : null));
     }, delayMs);
   }, []);
 
@@ -134,12 +135,14 @@ export function useImageEditor(initialProject: EditorProject | null) {
   );
 
   const flushTransform = useCallback(() => {
-    if (commitTimer.current) {
-      clearTimeout(commitTimer.current);
-      commitTimer.current = null;
-    }
-    if (project) commit(project);
-  }, [project, commit]);
+    if (!commitTimer.current) return;
+    clearTimeout(commitTimer.current);
+    commitTimer.current = null;
+    setHistory((h) => {
+      if (!h) return h;
+      return pushHistory(h, h.present);
+    });
+  }, []);
 
   const toggleVisible = useCallback(
     (layerId: string) => {

@@ -63,7 +63,14 @@ export function EditorCanvas({
   useEffect(() => {
     const tr = transformerRef.current;
     const stage = stageRef.current;
-    if (!tr || !stage || !activeLayer || activeLayer.locked || activeLayer.type === "brush") {
+    if (
+      !tr ||
+      !stage ||
+      !activeLayer ||
+      activeLayer.locked ||
+      activeLayer.type === "brush" ||
+      activeLayer.type === "background"
+    ) {
       tr?.nodes([]);
       tr?.getLayer()?.batchDraw();
       return;
@@ -144,17 +151,20 @@ export function EditorCanvas({
       className="absolute inset-0 touch-none"
     >
       <Layer>
+        {/* 내보내기 대상: 배경 + 오버레이 (UI 장식 없음) */}
         <Group
           ref={contentGroupRef}
           x={viewportOffset.x}
           y={viewportOffset.y}
           scaleX={viewportZoom}
           scaleY={viewportZoom}
+          clipX={0}
+          clipY={0}
+          clipWidth={project.width}
+          clipHeight={project.height}
         >
-          <Rect x={0} y={0} width={project.width} height={project.height} fill="transparent" listening={false} />
-          {project.layers
-            .filter((layer) => layer.type !== "background")
-            .map((layer) => (
+          <Rect x={0} y={0} width={project.width} height={project.height} fill="#ffffff" listening={false} />
+          {project.layers.map((layer) => (
             <EditorLayerNode
               key={layer.id}
               layer={layer}
@@ -165,6 +175,16 @@ export function EditorCanvas({
               onGuidesChange={setGuides}
             />
           ))}
+        </Group>
+
+        {/* UI 장식: 크롭 오버레이 · 가이드 · 트랜스포머 (contentGroup 밖 → 내보내기 제외) */}
+        <Group
+          x={viewportOffset.x}
+          y={viewportOffset.y}
+          scaleX={viewportZoom}
+          scaleY={viewportZoom}
+          listening={false}
+        >
           {cropOverlay.dimPaths.map((d, i) => (
             <Rect key={`dim-${i}`} x={d.x} y={d.y} width={d.width} height={d.height} fill="rgba(0,0,0,0.45)" listening={false} />
           ))}
@@ -186,13 +206,14 @@ export function EditorCanvas({
                 <Line key={`g-${i}`} points={[0, g.position, project.width, g.position]} stroke="#22d3ee" strokeWidth={1 / viewportZoom} listening={false} />
               )
             )}
-          <Transformer
-            ref={transformerRef}
-            rotateEnabled
-            enabledAnchors={["top-left", "top-right", "bottom-left", "bottom-right", "middle-left", "middle-right", "top-center", "bottom-center"]}
-            boundBoxFunc={(oldBox, newBox) => (newBox.width < 16 || newBox.height < 16 ? oldBox : newBox)}
-          />
         </Group>
+
+        <Transformer
+          ref={transformerRef}
+          rotateEnabled
+          enabledAnchors={["top-left", "top-right", "bottom-left", "bottom-right", "middle-left", "middle-right", "top-center", "bottom-center"]}
+          boundBoxFunc={(oldBox, newBox) => (newBox.width < 16 || newBox.height < 16 ? oldBox : newBox)}
+        />
       </Layer>
     </Stage>
   );

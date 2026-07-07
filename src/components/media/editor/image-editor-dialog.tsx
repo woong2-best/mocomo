@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { EditorCanvas } from "@/components/media/editor/editor-canvas";
-import { EditorBackgroundView } from "@/components/media/editor/editor-background-view";
 import { EditorSelectionToolbar } from "@/components/media/editor/editor-selection-toolbar";
 import { EditorInlineText } from "@/components/media/editor/editor-inline-text";
 import { useImageEditor } from "@/hooks/use-image-editor";
@@ -270,6 +269,8 @@ export function ImageEditorDialog({
         quality: 0.9,
         maxWidth,
         maxHeight,
+        viewportOffset: canvasOffset,
+        viewportZoom: fitZoom,
       });
       const opts =
         watermarkCreditLabel && watermarkOptions && hasActiveWatermark(watermarkOptions)
@@ -311,13 +312,6 @@ export function ImageEditorDialog({
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           ) : (
             <>
-              {bgLayer?.type === "background" && (
-                <EditorBackgroundView
-                  layer={bgLayer}
-                  fitZoom={fitZoom}
-                  offset={canvasOffset}
-                />
-              )}
               <EditorCanvas
                 project={project}
                 stageRef={stageRef}
@@ -372,7 +366,7 @@ export function ImageEditorDialog({
           )}
         </div>
 
-        <div className="shrink-0 border-t border-border bg-background pb-safe">
+        <div className="relative z-10 shrink-0 border-t border-border bg-background pb-safe">
           {watermarkCreditLabel && watermarkOptions && onWatermarkOptionsChange ? (
             <div className="px-4 pt-3 space-y-1">
               <WatermarkToggleButtons value={watermarkOptions} onChange={onWatermarkOptionsChange} disabled={busy} />
