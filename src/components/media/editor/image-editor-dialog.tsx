@@ -117,15 +117,20 @@ export function ImageEditorDialog({
   const brushMode = localTool === "brush";
 
   const recomputeFit = useCallback(() => {
-    if (!project || !photoRef.current) return;
+    const el = photoRef.current;
+    if (!project || !el) return;
+    const cw = el.clientWidth;
+    const ch = el.clientHeight;
+    if (cw <= 0 || ch <= 0) return;
     const pad = 8;
-    const zw = (photoRef.current.clientWidth - pad) / project.width;
-    const zh = (photoRef.current.clientHeight - pad) / project.height;
-    const zoom = Math.min(zw, zh, 1);
+    const zoom = Math.max(
+      0.01,
+      Math.min((cw - pad) / project.width, (ch - pad) / project.height, 1)
+    );
     setFitZoom(zoom);
     setCanvasOffset({
-      x: (photoRef.current.clientWidth - project.width * zoom) / 2,
-      y: (photoRef.current.clientHeight - project.height * zoom) / 2,
+      x: (cw - project.width * zoom) / 2,
+      y: (ch - project.height * zoom) / 2,
     });
   }, [project]);
 
@@ -160,9 +165,18 @@ export function ImageEditorDialog({
   }, [open, imageSrc]);
 
   useEffect(() => {
-    recomputeFit();
+    if (!open) return;
+    const el = photoRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => recomputeFit());
+    ro.observe(el);
+    const raf = requestAnimationFrame(() => recomputeFit());
     window.addEventListener("resize", recomputeFit);
-    return () => window.removeEventListener("resize", recomputeFit);
+    return () => {
+      ro.disconnect();
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", recomputeFit);
+    };
   }, [recomputeFit, open]);
 
   useEffect(() => {
