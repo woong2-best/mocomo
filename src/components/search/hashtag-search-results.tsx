@@ -1,18 +1,10 @@
-import { FeedTimelinePostCard } from "@/components/feed/feed-timeline-post-card";
-import { HashtagSearchTabs } from "@/components/search/hashtag-search-tabs";
+import { HashtagSearchFeed } from "@/components/search/hashtag-search-feed";
 import {
   getCachedHashtagPostCount,
   getCachedHashtagPosts,
   type HashtagSort,
 } from "@/lib/hashtag-search";
 import { getServerTranslator } from "@/lib/i18n/server";
-
-function formatPostCount(n: number, locale: string) {
-  if (locale === "en") return `${n.toLocaleString()} post${n === 1 ? "" : "s"}`;
-  if (locale === "ja") return `${n.toLocaleString()}件の投稿`;
-  if (locale === "zh") return `${n.toLocaleString()} 条帖子`;
-  return `게시물 ${n.toLocaleString()}개`;
-}
 
 export async function HashtagSearchResults({
   tag,
@@ -22,8 +14,9 @@ export async function HashtagSearchResults({
   sort: HashtagSort;
 }) {
   const { locale } = await getServerTranslator();
-  const [posts, total] = await Promise.all([
-    getCachedHashtagPosts(tag, sort),
+  const [postsTop, postsLatest, total] = await Promise.all([
+    getCachedHashtagPosts(tag, "top"),
+    getCachedHashtagPosts(tag, "latest"),
     getCachedHashtagPostCount(tag),
   ]);
 
@@ -37,24 +30,13 @@ export async function HashtagSearchResults({
           : "이 해시태그가 포함된 게시물이 없습니다.";
 
   return (
-    <div className="space-y-0 -mx-4">
-      <p className="px-4 py-2 text-sm text-muted-foreground border-b border-border/60">
-        {formatPostCount(total, locale)}
-      </p>
-
-      <HashtagSearchTabs tag={tag} sort={sort} />
-
-      <div className="divide-y divide-border/70">
-        {posts.length === 0 ? (
-          <p className="px-4 py-10 text-sm text-muted-foreground text-center">{emptyMsg}</p>
-        ) : (
-          posts.map((post) => (
-            <div key={post.id} className="px-2 py-1">
-              <FeedTimelinePostCard post={post} />
-            </div>
-          ))
-        )}
-      </div>
-    </div>
+    <HashtagSearchFeed
+      tag={tag}
+      initialSort={sort}
+      postsTop={postsTop}
+      postsLatest={postsLatest}
+      total={total}
+      emptyMsg={emptyMsg}
+    />
   );
 }
