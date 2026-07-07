@@ -80,10 +80,11 @@ function ImageNode({
   flipX,
   flipY,
   effects,
+  centered,
   onSelect,
   onTransformEnd,
   onGuidesChange,
-}: Props & { src: string; width: number; height: number; flipX?: boolean; flipY?: boolean; effects?: import("@/lib/media-editor/types").ImageEffects }) {
+}: Props & { src: string; width: number; height: number; flipX?: boolean; flipY?: boolean; centered?: boolean; effects?: import("@/lib/media-editor/types").ImageEffects }) {
   const { image, failed } = useHtmlImage(src);
   if (!layer.visible) return null;
   if (!image) {
@@ -102,6 +103,7 @@ function ImageNode({
     return null;
   }
   const drag = dragHandlers(layer, project, onGuidesChange);
+  const offset = centered ? { offsetX: width / 2, offsetY: height / 2 } : {};
   return (
     <KonvaImage
       id={layer.id}
@@ -110,6 +112,7 @@ function ImageNode({
       y={layer.transform.y}
       width={width}
       height={height}
+      {...offset}
       scaleX={layer.transform.scaleX * (flipX ? -1 : 1)}
       scaleY={layer.transform.scaleY * (flipY ? -1 : 1)}
       rotation={layer.transform.rotation}
@@ -157,6 +160,7 @@ export function EditorLayerNode(props: Props) {
         height={layer.data.naturalHeight}
         flipX={layer.data.flipX}
         flipY={layer.data.flipY}
+        centered={layer.type === "background"}
         effects={layer.data.effects}
       />
     );

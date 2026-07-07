@@ -163,7 +163,7 @@ export function EditorCanvas({
           clipWidth={project.width}
           clipHeight={project.height}
         >
-          <Rect x={0} y={0} width={project.width} height={project.height} fill="#ffffff" listening={false} />
+          <Rect x={0} y={0} width={project.width} height={project.height} fill="transparent" listening={false} />
           {project.layers.map((layer) => (
             <EditorLayerNode
               key={layer.id}

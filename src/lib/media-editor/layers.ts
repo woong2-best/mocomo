@@ -92,6 +92,44 @@ export function fitLayerCoverCanvas(layer: EditorLayer & { type: "background" | 
   };
 }
 
+/**
+ * 지정한 회전 각도에서 이미지(nw×nh)가 박스(boxW×boxH)를 완전히 덮는 최소 배율.
+ * 회전 시 빈 모서리가 생기지 않도록 회전된 경계 상자 기준으로 계산한다.
+ */
+export function minCoverScale(
+  nw: number,
+  nh: number,
+  boxW: number,
+  boxH: number,
+  rotationDeg = 0
+): number {
+  if (nw <= 0 || nh <= 0) return 1;
+  const rad = (Math.abs(rotationDeg) * Math.PI) / 180;
+  const cos = Math.abs(Math.cos(rad));
+  const sin = Math.abs(Math.sin(rad));
+  const needW = (boxW * cos + boxH * sin) / nw;
+  const needH = (boxW * sin + boxH * cos) / nh;
+  return Math.max(needW, needH);
+}
+
+/**
+ * 배경 이미지를 중심 피벗으로 박스 중앙에 배치하고, 최소 커버 배율 이상으로 맞춘다.
+ * offsetX/offsetY 를 이미지 중심으로 두는 렌더링과 짝을 이룬다(회전/줌이 항상 중앙 기준).
+ */
+export function coverBackgroundTransform(
+  layer: EditorLayer & { type: "background" | "image" },
+  boxW: number,
+  boxH: number,
+  opts?: { scale?: number; rotation?: number }
+): LayerTransform {
+  const nw = layer.data.naturalWidth;
+  const nh = layer.data.naturalHeight;
+  const rotation = opts?.rotation ?? layer.transform.rotation ?? 0;
+  const cover = minCoverScale(nw, nh, boxW, boxH, rotation);
+  const scale = Math.max(opts?.scale ?? cover, cover);
+  return { x: boxW / 2, y: boxH / 2, scaleX: scale, scaleY: scale, rotation };
+}
+
 export function updateLayer(
   project: EditorProject,
   layerId: string,
@@ -201,7 +239,10 @@ export async function createProjectFromImageSrc(
   }
   const now = new Date().toISOString();
   const bgLayer = createImageLayer(normalizedSrc, nw, nh, { name: "배경", type: "background" });
-  const bg = fitLayerCoverCanvas(bgLayer as EditorLayer & { type: "background" | "image" }, canvasW, canvasH);
+  const bg = {
+    ...bgLayer,
+    transform: coverBackgroundTransform(bgLayer as EditorLayer & { type: "background" | "image" }, canvasW, canvasH),
+  } as EditorLayer;
   return {
     version: 2,
     meta: { id: newProjectId(), title: opts.title ?? "편집", createdAt: now, updatedAt: now },

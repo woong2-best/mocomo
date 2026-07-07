@@ -25,7 +25,7 @@ import { EditorCanvas } from "@/components/media/editor/editor-canvas";
 import { EditorSelectionToolbar } from "@/components/media/editor/editor-selection-toolbar";
 import { EditorInlineText } from "@/components/media/editor/editor-inline-text";
 import { useImageEditor } from "@/hooks/use-image-editor";
-import { createProjectFromImageSrc } from "@/lib/media-editor/layers";
+import { createProjectFromImageSrc, minCoverScale } from "@/lib/media-editor/layers";
 import { fitCropRect } from "@/lib/media-editor/crop-presets";
 import { exportStageToBlob } from "@/lib/media-editor/export";
 import { uploadImageBlob, type UploadMediaOptions } from "@/lib/client-upload";
@@ -113,7 +113,6 @@ export function ImageEditorDialog({
   const presets = lockAspect ? aspectPresets.filter((p) => p.aspect === aspect) : aspectPresets;
   const activeLayer = project?.layers.find((l) => l.id === project.activeLayerId) ?? null;
   const bgLayer = project?.layers.find((l) => l.type === "background") ?? null;
-  const targetLayer = activeLayer && activeLayer.type !== "background" ? activeLayer : bgLayer;
   const brushMode = localTool === "brush";
 
   const pad = 8;
@@ -216,45 +215,100 @@ export function ImageEditorDialog({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, editor]);
 
-  const rotation = targetLayer?.transform.rotation ?? 0;
-  const zoomScale = targetLayer
-    ? Math.round(((targetLayer.transform.scaleX + targetLayer.transform.scaleY) / 2) * 100) / 100
-    : 1;
+  // 줌·회전 슬라이더는 항상 배경(사진)을 대상으로 하고, 크롭 프레임을 덮는
+  // 최소 배율 아래로는 내려가지 않도록 클램프한다(흰 여백 방지).
+  const bg = bgLayer && bgLayer.type === "background" ? bgLayer : null;
+  const MAX_ZOOM = 4; // 커버 기준 100% → 최대 400%
 
-  function setRotation(deg: number) {
-    if (!targetLayer || !project) return;
-    editor.transformLayer(targetLayer.id, { rotation: deg }, false);
+  function coverAt(rot: number): number {
+    if (!bg || !project) return 1;
+    return minCoverScale(
+      bg.data.naturalWidth,
+      bg.data.naturalHeight,
+      project.crop.width,
+      project.crop.height,
+      rot
+    );
+  }
+
+  const bgRotation = bg?.transform.rotation ?? 0;
+  const bgScaleAvg = bg ? (bg.transform.scaleX + bg.transform.scaleY) / 2 : 1;
+  const coverScale = coverAt(bgRotation);
+  // 표시용 줌: 커버(프레임에 꽉 참) = 1.0(100%)
+  const displayZoom = coverScale > 0 ? bgScaleAvg / coverScale : 1;
+  const rotation = bgRotation;
+
+  function cropCenter() {
+    const c = project?.crop ?? { x: 0, y: 0, width: 0, height: 0 };
+    return { x: c.x + c.width / 2, y: c.y + c.height / 2 };
+  }
+
+  function setDisplayZoom(dz: number) {
+    if (!bg || !project) return;
+    const clamped = Math.min(MAX_ZOOM, Math.max(1, dz));
+    const scale = coverAt(bg.transform.rotation) * clamped;
+    const c = cropCenter();
+    editor.transformLayer(bg.id, { scaleX: scale, scaleY: scale, x: c.x, y: c.y }, false);
     editor.flushTransform();
   }
 
-  function setZoomScale(z: number) {
-    if (!targetLayer || !project) return;
-    editor.transformLayer(targetLayer.id, { scaleX: z, scaleY: z }, false);
+  function setRotation(deg: number) {
+    if (!bg || !project) return;
+    const cover = coverAt(deg);
+    const cur = (bg.transform.scaleX + bg.transform.scaleY) / 2;
+    const scale = Math.max(cur, cover);
+    const c = cropCenter();
+    editor.transformLayer(bg.id, { rotation: deg, scaleX: scale, scaleY: scale, x: c.x, y: c.y }, false);
     editor.flushTransform();
   }
 
   function rotateBy(deg: number) {
-    setRotation(rotation + deg);
+    setRotation(bgRotation + deg);
   }
 
   function toggleFlip(axis: "x" | "y") {
-    if (!targetLayer || (targetLayer.type !== "background" && targetLayer.type !== "image")) return;
-    editor.flipLayer(targetLayer.id, axis);
+    if (!bg) return;
+    editor.flipLayer(bg.id, axis);
   }
 
   function handleReset() {
-    if (!bgLayer || !project) return;
-    editor.transformLayer(bgLayer.id, { rotation: 0, scaleX: 1, scaleY: 1, x: 0, y: 0 }, false);
-    editor.flushTransform();
-    if (!lockAspect) {
-      setCropAspect(aspect);
-      editor.applyCropAspect(aspect);
+    if (!bg || !project) return;
+    const hasEdits = project.layers.length > 1;
+    if (hasEdits && typeof window !== "undefined") {
+      const ok = window.confirm("추가한 레이어와 크롭·회전·확대를 모두 초기 상태로 되돌릴까요?");
+      if (!ok) return;
     }
+    setCropAspect(aspect);
+    setLocalTool("select");
+    setShowEmojiPick(false);
+    setEditingTextId(null);
+    editor.resetBackgroundTransform(aspect);
   }
 
   function onAspectPick(a?: number) {
     setCropAspect(a);
     editor.applyCropAspect(a);
+  }
+
+  function hasUnsavedEdits(): boolean {
+    if (!project) return false;
+    if (project.layers.length > 1) return true;
+    if (cropAspect !== aspect) return true;
+    if (bg) {
+      if (Math.abs(bg.transform.rotation) > 0.01) return true;
+      if (bg.data.flipX || bg.data.flipY) return true;
+      if (displayZoom > 1.01) return true;
+    }
+    return false;
+  }
+
+  function requestClose() {
+    if (busy) return;
+    if (hasUnsavedEdits() && typeof window !== "undefined") {
+      const ok = window.confirm("저장하지 않고 나가시겠습니까? 편집 내용이 사라집니다.");
+      if (!ok) return;
+    }
+    onOpenChange(false);
   }
 
   async function apply() {
@@ -297,7 +351,13 @@ export function ImageEditorDialog({
       : undefined;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (next) onOpenChange(true);
+        else requestClose();
+      }}
+    >
       <DialogContent layer="stack" className="max-w-2xl p-0 gap-0 overflow-hidden max-h-[96vh] flex flex-col">
         <DialogHeader className="px-5 pt-5 pb-2 shrink-0">
           <DialogTitle>{title}</DialogTitle>
@@ -377,7 +437,7 @@ export function ImageEditorDialog({
           ) : null}
 
           <div className="flex gap-2 px-4 pt-4 pb-3">
-            <Button type="button" variant="outline" className="rounded-xl flex-1 h-11" onClick={() => onOpenChange(false)} disabled={busy}>
+            <Button type="button" variant="outline" className="rounded-xl flex-1 h-11" onClick={requestClose} disabled={busy}>
               취소
             </Button>
             <Button type="button" className="rounded-xl flex-1 h-11" onClick={apply} disabled={busy || loading || !project}>
@@ -483,7 +543,13 @@ export function ImageEditorDialog({
                     type="button"
                     className="text-xl p-1.5 rounded-lg hover:bg-muted"
                     onClick={() => {
-                      editor.addEmojiLayer(e);
+                      if (activeLayer?.type === "text") {
+                        editor.patchLayer(activeLayer.id, (l) =>
+                          l.type === "text" ? { ...l, data: { ...l.data, text: l.data.text + e } } : l
+                        );
+                      } else {
+                        editor.addEmojiLayer(e);
+                      }
                       setShowEmojiPick(false);
                     }}
                   >
@@ -707,9 +773,9 @@ export function ImageEditorDialog({
                 type="button"
                 variant="outline"
                 size="icon"
-                className={cn("rounded-xl h-10 w-10", targetLayer?.type === "background" || targetLayer?.type === "image" ? "" : "opacity-40")}
+                className="rounded-xl h-10 w-10"
                 title="좌우 뒤집기"
-                disabled={busy || !targetLayer || (targetLayer.type !== "background" && targetLayer.type !== "image")}
+                disabled={busy || !bg}
                 onClick={() => toggleFlip("x")}
               >
                 <FlipHorizontal2 className="h-4 w-4" />
@@ -720,15 +786,15 @@ export function ImageEditorDialog({
                 size="icon"
                 className="rounded-xl h-10 w-10"
                 title="상하 뒤집기"
-                disabled={busy || !targetLayer || (targetLayer.type !== "background" && targetLayer.type !== "image")}
+                disabled={busy || !bg}
                 onClick={() => toggleFlip("y")}
               >
                 <FlipVertical2 className="h-4 w-4" />
               </Button>
-              <Button type="button" variant="outline" size="icon" className="rounded-xl h-10 w-10" title="축소" disabled={busy || zoomScale <= 0.2} onClick={() => setZoomScale(Math.max(0.2, zoomScale - 0.15))}>
+              <Button type="button" variant="outline" size="icon" className="rounded-xl h-10 w-10" title="축소" disabled={busy || !bg || displayZoom <= 1.001} onClick={() => setDisplayZoom(displayZoom - 0.15)}>
                 <ZoomOut className="h-4 w-4" />
               </Button>
-              <Button type="button" variant="outline" size="icon" className="rounded-xl h-10 w-10" title="확대" disabled={busy || zoomScale >= 6} onClick={() => setZoomScale(Math.min(6, zoomScale + 0.15))}>
+              <Button type="button" variant="outline" size="icon" className="rounded-xl h-10 w-10" title="확대" disabled={busy || !bg || displayZoom >= MAX_ZOOM - 0.001} onClick={() => setDisplayZoom(displayZoom + 0.15)}>
                 <ZoomIn className="h-4 w-4" />
               </Button>
               <Button type="button" variant="ghost" size="sm" className="rounded-xl text-xs h-10 px-3" disabled={busy} onClick={handleReset}>
@@ -743,17 +809,17 @@ export function ImageEditorDialog({
                     <ZoomIn className="h-3.5 w-3.5" />
                     확대 · 축소
                   </span>
-                  <span>{Math.round(zoomScale * 100)}%</span>
+                  <span>{Math.round(displayZoom * 100)}%</span>
                 </div>
                 <input
                   type="range"
-                  min={0.2}
-                  max={6}
+                  min={1}
+                  max={MAX_ZOOM}
                   step={0.01}
-                  value={zoomScale}
-                  onChange={(e) => setZoomScale(Number(e.target.value))}
+                  value={displayZoom}
+                  onChange={(e) => setDisplayZoom(Number(e.target.value))}
                   className="w-full accent-primary h-8"
-                  disabled={busy || !targetLayer}
+                  disabled={busy || !bg}
                 />
               </div>
               <div className="space-y-1.5">
@@ -772,7 +838,7 @@ export function ImageEditorDialog({
                   value={rotation}
                   onChange={(e) => setRotation(Number(e.target.value))}
                   className="w-full accent-primary h-8"
-                  disabled={busy || !targetLayer}
+                  disabled={busy || !bg}
                 />
               </div>
             </div>

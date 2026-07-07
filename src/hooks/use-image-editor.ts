@@ -5,6 +5,7 @@ import {
   addLayer,
   appendBrushStroke,
   cloneProject,
+  coverBackgroundTransform,
   createBlurLayer,
   createBrushLayer,
   createEmojiLayer,
@@ -349,7 +350,45 @@ export function useImageEditor(initialProject: EditorProject | null) {
   const applyCropAspect = useCallback(
     (aspect: number | undefined) => {
       if (!project) return;
-      commit(setCrop(project, fitCropRect(project.width, project.height, aspect)));
+      const crop = fitCropRect(project.width, project.height, aspect);
+      let next = setCrop(project, crop);
+      const bg = project.layers.find((l) => l.type === "background");
+      if (bg && bg.type === "background") {
+        const t = coverBackgroundTransform(bg, crop.width, crop.height, { rotation: bg.transform.rotation });
+        t.x = crop.x + crop.width / 2;
+        t.y = crop.y + crop.height / 2;
+        next = updateLayer(next, bg.id, (l) => ({ ...l, transform: t }));
+      }
+      commit(next);
+    },
+    [project, commit]
+  );
+
+  /**
+   * 초기 업로드 상태로 완전 리셋: 추가 레이어 전부 제거, 배경 커버·회전 0·크롭 재설정.
+   */
+  const resetBackgroundTransform = useCallback(
+    (aspect: number | undefined) => {
+      if (!project) return;
+      const bg = project.layers.find((l) => l.type === "background");
+      const crop = fitCropRect(project.width, project.height, aspect);
+      let next: EditorProject = {
+        ...project,
+        layers: bg ? [bg] : project.layers,
+        activeLayerId: bg?.id ?? null,
+        crop,
+      };
+      if (bg && bg.type === "background") {
+        const t = coverBackgroundTransform(bg, crop.width, crop.height, { rotation: 0 });
+        t.x = crop.x + crop.width / 2;
+        t.y = crop.y + crop.height / 2;
+        next = updateLayer(next, bg.id, (l) =>
+          l.type === "background"
+            ? { ...l, data: { ...l.data, flipX: false, flipY: false }, transform: t }
+            : l
+        );
+      }
+      commit(next);
     },
     [project, commit]
   );
@@ -441,6 +480,7 @@ export function useImageEditor(initialProject: EditorProject | null) {
     setImageEffects,
     alignActive,
     applyCropAspect,
+    resetBackgroundTransform,
     toggleSnap,
     toggleGuides,
     groupSelected,
