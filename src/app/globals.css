@@ -386,6 +386,20 @@ html[data-visible-animations="off"] [class*="animate-folk-"] {
   pointer-events: none !important;
 }
 
+/*
+ * 기능용(인터랙티브) canvas 는 애니메이션 끄기 설정에서도 보여야 한다.
+ * react-konva 는 .konvajs-content 래퍼 안에 canvas 를 그리고,
+ * 사진 편집기 등 실제 콘텐츠 캔버스는 [data-functional-canvas] 로 표시한다.
+ */
+html[data-visible-animations="off"] .konvajs-content,
+html[data-visible-animations="off"] .konvajs-content canvas,
+html[data-visible-animations="off"] [data-functional-canvas],
+html[data-visible-animations="off"] [data-functional-canvas] canvas {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
