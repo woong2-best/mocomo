@@ -94,6 +94,7 @@ export function ImageEditorDialog({
   aspectPresets = DEFAULT_ASPECT_PRESETS,
 }: ImageEditorDialogProps) {
   const stageRef = useRef<Konva.Stage>(null);
+  const contentGroupRef = useRef<Konva.Group>(null);
   const photoRef = useRef<HTMLDivElement>(null);
   const fileInputId = useId();
   const [loading, setLoading] = useState(false);
@@ -137,6 +138,11 @@ export function ImageEditorDialog({
 
   useEffect(() => {
     if (!open) return;
+    if (!imageSrc?.trim()) {
+      setError("편집할 이미지가 없습니다.");
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError("");
@@ -246,13 +252,13 @@ export function ImageEditorDialog({
   }
 
   async function apply() {
-    const stage = stageRef.current;
-    if (!stage || !project) return;
+    const contentNode = contentGroupRef.current;
+    if (!contentNode || !project) return;
     setBusy(true);
     setError("");
     try {
       editor.flushTransform();
-      const blob = await exportStageToBlob(stage, project.crop, {
+      const blob = await exportStageToBlob(contentNode, project.crop, {
         mimeType: "image/jpeg",
         quality: 0.9,
         maxWidth,
@@ -301,6 +307,7 @@ export function ImageEditorDialog({
               <EditorCanvas
                 project={project}
                 stageRef={stageRef}
+                contentGroupRef={contentGroupRef}
                 stageWidth={containerSize.w}
                 stageHeight={containerSize.h}
                 viewportZoom={fitZoom}

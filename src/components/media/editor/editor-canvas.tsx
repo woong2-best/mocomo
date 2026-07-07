@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Layer, Line, Rect, Stage, Transformer } from "react-konva";
+import { Group, Layer, Line, Rect, Stage, Transformer } from "react-konva";
 import type Konva from "konva";
 import type { BrushStroke, EditorProject } from "@/lib/media-editor/types";
 import type { GuideLine } from "@/lib/media-editor/types";
@@ -10,6 +10,7 @@ import { EditorLayerNode } from "@/components/media/editor/editor-layer-node";
 type EditorCanvasProps = {
   project: EditorProject;
   stageRef: React.RefObject<Konva.Stage | null>;
+  contentGroupRef: React.RefObject<Konva.Group | null>;
   stageWidth: number;
   stageHeight: number;
   viewportZoom: number;
@@ -33,6 +34,7 @@ type EditorCanvasProps = {
 export function EditorCanvas({
   project,
   stageRef,
+  contentGroupRef,
   stageWidth,
   stageHeight,
   viewportZoom,
@@ -93,121 +95,102 @@ export function EditorCanvas({
     };
   }
 
+  function handlePointerDown(e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) {
+    if (brushMode) {
+      const stage = e.target.getStage();
+      if (!stage) return;
+      const p = pointerToCanvas(stage);
+      if (!p) return;
+      drawing.current = true;
+      if (!brushLayerId.current) brushLayerId.current = onCreateBrushLayer();
+      currentPoints.current = [p.x, p.y];
+      return;
+    }
+    if (e.target === e.target.getStage()) onSelectLayer(null);
+  }
+
+  function handlePointerMove(e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) {
+    if (!brushMode || !drawing.current) return;
+    const stage = e.target.getStage();
+    if (!stage) return;
+    const p = pointerToCanvas(stage);
+    if (!p || !brushLayerId.current) return;
+    currentPoints.current = [...currentPoints.current, p.x, p.y];
+  }
+
+  function handlePointerUp() {
+    if (!brushMode || !drawing.current || !brushLayerId.current) return;
+    drawing.current = false;
+    if (currentPoints.current.length >= 2) {
+      onBrushStroke(brushLayerId.current, {
+        points: [...currentPoints.current],
+        ...brushSettings,
+      });
+    }
+    currentPoints.current = [];
+  }
+
   return (
     <Stage
       ref={stageRef}
       width={stageWidth}
       height={stageHeight}
-      scaleX={viewportZoom}
-      scaleY={viewportZoom}
-      x={viewportOffset.x}
-      y={viewportOffset.y}
-      onMouseDown={(e) => {
-        if (brushMode) {
-          const stage = e.target.getStage();
-          if (!stage) return;
-          const p = pointerToCanvas(stage);
-          if (!p) return;
-          drawing.current = true;
-          if (!brushLayerId.current) brushLayerId.current = onCreateBrushLayer();
-          currentPoints.current = [p.x, p.y];
-          return;
-        }
-        if (e.target === e.target.getStage()) onSelectLayer(null);
-      }}
-      onMousemove={(e: Konva.KonvaEventObject<MouseEvent>) => {
-        if (!brushMode || !drawing.current) return;
-        const stage = e.target.getStage();
-        if (!stage) return;
-        const p = pointerToCanvas(stage);
-        if (!p || !brushLayerId.current) return;
-        currentPoints.current = [...currentPoints.current, p.x, p.y];
-      }}
-      onMouseup={() => {
-        if (!brushMode || !drawing.current || !brushLayerId.current) return;
-        drawing.current = false;
-        if (currentPoints.current.length >= 2) {
-          onBrushStroke(brushLayerId.current, {
-            points: [...currentPoints.current],
-            ...brushSettings,
-          });
-        }
-        currentPoints.current = [];
-      }}
-      onTouchStart={(e) => {
-        if (brushMode) {
-          const stage = e.target.getStage();
-          if (!stage) return;
-          const p = pointerToCanvas(stage);
-          if (!p) return;
-          drawing.current = true;
-          if (!brushLayerId.current) brushLayerId.current = onCreateBrushLayer();
-          currentPoints.current = [p.x, p.y];
-          return;
-        }
-        if (e.target === e.target.getStage()) onSelectLayer(null);
-      }}
-      onTouchMove={(e) => {
-        if (!brushMode || !drawing.current) return;
-        const stage = e.target.getStage();
-        if (!stage) return;
-        const p = pointerToCanvas(stage);
-        if (!p || !brushLayerId.current) return;
-        currentPoints.current = [...currentPoints.current, p.x, p.y];
-      }}
-      onTouchEnd={() => {
-        if (!brushMode || !drawing.current || !brushLayerId.current) return;
-        drawing.current = false;
-        if (currentPoints.current.length >= 2) {
-          onBrushStroke(brushLayerId.current, {
-            points: [...currentPoints.current],
-            ...brushSettings,
-          });
-        }
-        currentPoints.current = [];
-      }}
+      onMouseDown={handlePointerDown}
+      onMousemove={handlePointerMove}
+      onMouseup={handlePointerUp}
+      onTouchStart={handlePointerDown}
+      onTouchMove={handlePointerMove}
+      onTouchEnd={handlePointerUp}
       className="bg-neutral-900 touch-none"
     >
       <Layer>
-        <Rect x={0} y={0} width={project.width} height={project.height} fill="#ffffff" listening={false} />
-        {project.layers.map((layer) => (
-          <EditorLayerNode
-            key={layer.id}
-            layer={layer}
-            project={project}
-            onSelect={() => !layer.locked && !brushMode && onSelectLayer(layer.id)}
-            onEditText={onEditText}
-            onTransformEnd={(attrs) => onTransformEnd(layer.id, attrs)}
-            onGuidesChange={setGuides}
+        <Group
+          ref={contentGroupRef}
+          x={viewportOffset.x}
+          y={viewportOffset.y}
+          scaleX={viewportZoom}
+          scaleY={viewportZoom}
+        >
+          <Rect x={0} y={0} width={project.width} height={project.height} fill="#ffffff" listening={false} />
+          {project.layers.map((layer) => (
+            <EditorLayerNode
+              key={layer.id}
+              layer={layer}
+              project={project}
+              onSelect={() => !layer.locked && !brushMode && onSelectLayer(layer.id)}
+              onEditText={onEditText}
+              onTransformEnd={(attrs) => onTransformEnd(layer.id, attrs)}
+              onGuidesChange={setGuides}
+            />
+          ))}
+          {cropOverlay.dimPaths.map((d, i) => (
+            <Rect key={`dim-${i}`} x={d.x} y={d.y} width={d.width} height={d.height} fill="rgba(0,0,0,0.45)" listening={false} />
+          ))}
+          <Rect
+            x={cropOverlay.crop.x}
+            y={cropOverlay.crop.y}
+            width={cropOverlay.crop.width}
+            height={cropOverlay.crop.height}
+            stroke="#3b82f6"
+            strokeWidth={2 / viewportZoom}
+            dash={[8 / viewportZoom, 6 / viewportZoom]}
+            listening={false}
           />
-        ))}
-        {cropOverlay.dimPaths.map((d, i) => (
-          <Rect key={`dim-${i}`} x={d.x} y={d.y} width={d.width} height={d.height} fill="rgba(0,0,0,0.45)" listening={false} />
-        ))}
-        <Rect
-          x={cropOverlay.crop.x}
-          y={cropOverlay.crop.y}
-          width={cropOverlay.crop.width}
-          height={cropOverlay.crop.height}
-          stroke="#3b82f6"
-          strokeWidth={2 / viewportZoom}
-          dash={[8 / viewportZoom, 6 / viewportZoom]}
-          listening={false}
-        />
-        {project.showGuides &&
-          guides.map((g, i) =>
-            g.orientation === "v" ? (
-              <Line key={`g-${i}`} points={[g.position, 0, g.position, project.height]} stroke="#22d3ee" strokeWidth={1 / viewportZoom} listening={false} />
-            ) : (
-              <Line key={`g-${i}`} points={[0, g.position, project.width, g.position]} stroke="#22d3ee" strokeWidth={1 / viewportZoom} listening={false} />
-            )
-          )}
-        <Transformer
-          ref={transformerRef}
-          rotateEnabled
-          enabledAnchors={["top-left", "top-right", "bottom-left", "bottom-right", "middle-left", "middle-right", "top-center", "bottom-center"]}
-          boundBoxFunc={(oldBox, newBox) => (newBox.width < 16 || newBox.height < 16 ? oldBox : newBox)}
-        />
+          {project.showGuides &&
+            guides.map((g, i) =>
+              g.orientation === "v" ? (
+                <Line key={`g-${i}`} points={[g.position, 0, g.position, project.height]} stroke="#22d3ee" strokeWidth={1 / viewportZoom} listening={false} />
+              ) : (
+                <Line key={`g-${i}`} points={[0, g.position, project.width, g.position]} stroke="#22d3ee" strokeWidth={1 / viewportZoom} listening={false} />
+              )
+            )}
+          <Transformer
+            ref={transformerRef}
+            rotateEnabled
+            enabledAnchors={["top-left", "top-right", "bottom-left", "bottom-right", "middle-left", "middle-right", "top-center", "bottom-center"]}
+            boundBoxFunc={(oldBox, newBox) => (newBox.width < 16 || newBox.height < 16 ? oldBox : newBox)}
+          />
+        </Group>
       </Layer>
     </Stage>
   );

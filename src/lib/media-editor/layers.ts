@@ -3,6 +3,7 @@ import { createLayer, cloneProject, defaultTransform, newLayerId, newProjectId }
 import { DEFAULT_TEXT_STYLE } from "@/lib/media-editor/constants";
 import type { BrushStroke, ShapeKind } from "@/lib/media-editor/types";
 import type { StickerItem } from "@/lib/media-editor/stickers";
+import { normalizeEditorImageSrc, readImageDimensions } from "@/lib/media-editor/load-image";
 
 export { cloneProject, newLayerId, newProjectId, defaultTransform };
 
@@ -185,21 +186,12 @@ export function appendBrushStroke(project: EditorProject, layerId: string, strok
   });
 }
 
-export function loadImageSize(src: string): Promise<{ width: number; height: number }> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
-    img.onerror = reject;
-    img.crossOrigin = "anonymous";
-    img.src = src;
-  });
-}
-
 export async function createProjectFromImageSrc(
   src: string,
   opts: { maxWidth: number; maxHeight: number; defaultAspect?: number; title?: string }
 ): Promise<EditorProject> {
-  const { width: nw, height: nh } = await loadImageSize(src);
+  const normalizedSrc = await normalizeEditorImageSrc(src);
+  const { width: nw, height: nh } = await readImageDimensions(normalizedSrc);
   const aspect = opts.defaultAspect ?? 4 / 5;
   let canvasW = Math.min(nw, opts.maxWidth);
   let canvasH = Math.round(canvasW / aspect);
@@ -208,7 +200,7 @@ export async function createProjectFromImageSrc(
     canvasW = Math.round(canvasH * aspect);
   }
   const now = new Date().toISOString();
-  const bgLayer = createImageLayer(src, nw, nh, { name: "배경", type: "background" });
+  const bgLayer = createImageLayer(normalizedSrc, nw, nh, { name: "배경", type: "background" });
   const bg = fitLayerCoverCanvas(bgLayer as EditorLayer & { type: "background" | "image" }, canvasW, canvasH);
   return {
     version: 2,
@@ -230,7 +222,7 @@ export async function createLayerFromFile(file: File): Promise<EditorLayer> {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
-  const { width, height } = await loadImageSize(src);
+  const { width, height } = await readImageDimensions(src);
   return createImageLayer(src, width, height, { name: file.name.replace(/\.[^.]+$/, "") || "이미지" });
 }
 

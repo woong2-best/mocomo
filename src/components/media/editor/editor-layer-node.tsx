@@ -6,6 +6,7 @@ import { Arrow, Circle, Group, Image as KonvaImage, Line, Rect, RegularPolygon, 
 import type KonvaType from "konva";
 import type { EditorLayer, EditorProject, GuideLine } from "@/lib/media-editor/types";
 import { snapPosition } from "@/lib/media-editor/alignment";
+import { loadHtmlImage } from "@/lib/media-editor/load-image";
 
 type TransformAttrs = { x: number; y: number; scaleX: number; scaleY: number; rotation: number };
 
@@ -20,16 +21,23 @@ type Props = {
 
 function useHtmlImage(src: string) {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
+  const [failed, setFailed] = useState(false);
   useEffect(() => {
-    const img = new window.Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => setImage(img);
-    img.src = src;
+    let cancelled = false;
+    setImage(null);
+    setFailed(false);
+    void loadHtmlImage(src)
+      .then((img) => {
+        if (!cancelled) setImage(img);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
     return () => {
-      img.onload = null;
+      cancelled = true;
     };
   }, [src]);
-  return image;
+  return { image, failed };
 }
 
 function finishTransform(layer: EditorLayer, node: KonvaType.Node, onTransformEnd: (a: TransformAttrs) => void) {
@@ -76,8 +84,23 @@ function ImageNode({
   onTransformEnd,
   onGuidesChange,
 }: Props & { src: string; width: number; height: number; flipX?: boolean; flipY?: boolean; effects?: import("@/lib/media-editor/types").ImageEffects }) {
-  const image = useHtmlImage(src);
-  if (!layer.visible || !image) return null;
+  const { image, failed } = useHtmlImage(src);
+  if (!layer.visible) return null;
+  if (!image) {
+    if (failed) {
+      return (
+        <Rect
+          x={layer.transform.x}
+          y={layer.transform.y}
+          width={width * layer.transform.scaleX}
+          height={height * layer.transform.scaleY}
+          fill="#333"
+          listening={false}
+        />
+      );
+    }
+    return null;
+  }
   const drag = dragHandlers(layer, project, onGuidesChange);
   return (
     <KonvaImage

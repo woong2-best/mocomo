@@ -2,7 +2,7 @@ import type Konva from "konva";
 import type { CropRect, EditorProject } from "@/lib/media-editor/types";
 
 export async function exportStageToBlob(
-  stage: Konva.Stage,
+  contentNode: Konva.Node,
   crop: CropRect,
   opts: {
     mimeType: "image/jpeg" | "image/png" | "image/webp";
@@ -12,7 +12,7 @@ export async function exportStageToBlob(
   }
 ): Promise<Blob> {
   const pixelRatio = 1;
-  const canvas = stage.toCanvas({
+  const canvas = contentNode.toCanvas({
     x: crop.x,
     y: crop.y,
     width: crop.width,
