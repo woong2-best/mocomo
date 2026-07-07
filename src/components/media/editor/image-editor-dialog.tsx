@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { EditorCanvas } from "@/components/media/editor/editor-canvas";
+import { EditorBackgroundView } from "@/components/media/editor/editor-background-view";
 import { EditorSelectionToolbar } from "@/components/media/editor/editor-selection-toolbar";
 import { EditorInlineText } from "@/components/media/editor/editor-inline-text";
 import { useImageEditor } from "@/hooks/use-image-editor";
@@ -176,17 +177,23 @@ export function ImageEditorDialog({
     const el = photoRef.current;
     if (!el) return;
     const measure = () => {
-      setContainerSize({ w: el.clientWidth, h: el.clientHeight });
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      if (w > 0 && h > 0) setContainerSize({ w, h });
     };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
-    const raf = requestAnimationFrame(measure);
+    const t1 = requestAnimationFrame(measure);
+    const t2 = window.setTimeout(measure, 50);
+    const t3 = window.setTimeout(measure, 200);
     return () => {
       ro.disconnect();
-      cancelAnimationFrame(raf);
+      cancelAnimationFrame(t1);
+      window.clearTimeout(t2);
+      window.clearTimeout(t3);
     };
-  }, [open]);
+  }, [open, project]);
 
   useEffect(() => {
     if (!pendingTextEdit.current || activeLayer?.type !== "text") return;
@@ -258,7 +265,7 @@ export function ImageEditorDialog({
     setError("");
     try {
       editor.flushTransform();
-      const blob = await exportStageToBlob(contentNode, project.crop, {
+      const blob = await exportStageToBlob(project, contentNode, project.crop, {
         mimeType: "image/jpeg",
         quality: 0.9,
         maxWidth,
@@ -304,6 +311,13 @@ export function ImageEditorDialog({
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           ) : (
             <>
+              {bgLayer?.type === "background" && (
+                <EditorBackgroundView
+                  layer={bgLayer}
+                  fitZoom={fitZoom}
+                  offset={canvasOffset}
+                />
+              )}
               <EditorCanvas
                 project={project}
                 stageRef={stageRef}

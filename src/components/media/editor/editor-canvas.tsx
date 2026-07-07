@@ -141,7 +141,7 @@ export function EditorCanvas({
       onTouchStart={handlePointerDown}
       onTouchMove={handlePointerMove}
       onTouchEnd={handlePointerUp}
-      className="bg-neutral-900 touch-none"
+      className="absolute inset-0 touch-none"
     >
       <Layer>
         <Group
@@ -151,8 +151,10 @@ export function EditorCanvas({
           scaleX={viewportZoom}
           scaleY={viewportZoom}
         >
-          <Rect x={0} y={0} width={project.width} height={project.height} fill="#ffffff" listening={false} />
-          {project.layers.map((layer) => (
+          <Rect x={0} y={0} width={project.width} height={project.height} fill="transparent" listening={false} />
+          {project.layers
+            .filter((layer) => layer.type !== "background")
+            .map((layer) => (
             <EditorLayerNode
               key={layer.id}
               layer={layer}
