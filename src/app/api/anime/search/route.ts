@@ -18,31 +18,26 @@ export async function GET(req: NextRequest) {
 
   if (q.length >= 2) void logWikiSearchQuery(q);
 
-  const where =
-    q.length <= 20 && !/\s/.test(q)
-      ? {
-          OR: [
-            { title: { startsWith: q, mode: "insensitive" as const } },
-            { titleEn: { startsWith: q, mode: "insensitive" as const } },
-            { synopsis: { contains: q, mode: "insensitive" as const } },
-            { worldInfo: { contains: q, mode: "insensitive" as const } },
-          ],
-        }
-      : {
-          OR: [
-            { title: { contains: q, mode: "insensitive" as const } },
-            { titleEn: { contains: q, mode: "insensitive" as const } },
-            { synopsis: { contains: q, mode: "insensitive" as const } },
-            { worldInfo: { contains: q, mode: "insensitive" as const } },
-          ],
-        };
+  // 공백/대소문자 무시 매칭: "귀멸의칼날" ↔ "귀멸의 칼날"
+  const compact = q.replace(/\s+/g, "").toLowerCase().replace(/[\\%_]/g, "");
+  const likeCompact = `%${compact}%`;
 
-  const results = await db.anime.findMany({
-    where,
-    take: 10,
-    orderBy: [{ viewCount: "desc" }, { updatedAt: "desc" }],
-    select: { slug: true, title: true, titleEn: true },
-  });
+  const results = compact.length >= 1
+    ? await db.$queryRaw<{ slug: string; title: string; titleEn: string | null }[]>`
+        SELECT slug, title, "titleEn"
+        FROM "Anime"
+        WHERE replace(lower(title), ' ', '') LIKE ${likeCompact}
+           OR replace(lower(coalesce("titleEn", '')), ' ', '') LIKE ${likeCompact}
+           OR lower(coalesce(synopsis, '')) LIKE ${`%${q.toLowerCase().replace(/[\\%_]/g, "")}%`}
+           OR lower(coalesce("worldInfo", '')) LIKE ${`%${q.toLowerCase().replace(/[\\%_]/g, "")}%`}
+           OR EXISTS (
+                SELECT 1 FROM unnest(tags) AS t
+                WHERE replace(lower(t), ' ', '') LIKE ${likeCompact}
+              )
+        ORDER BY "viewCount" DESC, "updatedAt" DESC
+        LIMIT 10
+      `
+    : [];
 
   const popular = await getPopularWikiSearchQueries(6);
   return NextResponse.json({ results, popular });

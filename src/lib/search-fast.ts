@@ -26,9 +26,17 @@ export type FastSearchUser = {
 export type FastSearchResult = {
   suggestions: SearchSuggestion[];
   users: FastSearchUser[];
-  animes: { slug: string; title: string }[];
+  animes: { slug: string; title: string; titleEn: string | null; coverUrl: string | null }[];
   posts: { id: string; content: string; title: string | null }[];
   liveStreams: { id: string; name: string; category: string }[];
+};
+
+type AnimeSearchRow = {
+  id: string;
+  slug: string;
+  title: string;
+  titleEn: string | null;
+  coverUrl: string | null;
 };
 
 function buildSuggestions(
@@ -143,6 +151,10 @@ export async function runFastSearch(query: string): Promise<FastSearchResult> {
         };
 
   const hashtagTag = parseHashtagFromQuery(q);
+  // 공백/대소문자 무시 매칭용 압축 키: "귀멸의 칼날" ↔ "귀멸의칼날" 모두 매칭
+  const compact = q.replace(/\s+/g, "").toLowerCase().replace(/[\\%_]/g, "");
+  const likeCompact = `%${compact}%`;
+
   const postWhere = hashtagTag
     ? {
         OR: [
@@ -157,34 +169,38 @@ export async function runFastSearch(query: string): Promise<FastSearchResult> {
         ],
       };
 
-  const [users, animes, posts, liveStreamsRaw, popular] = await Promise.all([
+  const animeSearch: Promise<AnimeSearchRow[]> =
+    q.length >= 2 && compact.length >= 1
+      ? db.$queryRaw<AnimeSearchRow[]>`
+          SELECT id, slug, title, "titleEn", "coverUrl"
+          FROM "Anime"
+          WHERE replace(lower(title), ' ', '') LIKE ${likeCompact}
+             OR replace(lower(coalesce("titleEn", '')), ' ', '') LIKE ${likeCompact}
+             OR EXISTS (
+                  SELECT 1 FROM unnest(tags) AS t
+                  WHERE replace(lower(t), ' ', '') LIKE ${likeCompact}
+                )
+          ORDER BY "viewCount" DESC, "updatedAt" DESC
+          LIMIT 8
+        `
+      : Promise.resolve([]);
+
+  const [users, animeRows, textPosts, liveStreamsRaw, popular] = await Promise.all([
     db.user.findMany({
       where: userWhere,
       take: 6,
       select: { id: true, username: true, name: true, image: true, supportTierSent: true },
       orderBy: [{ username: "asc" }],
     }),
-    q.length >= 2
-      ? db.anime.findMany({
-          where: {
-            OR: [
-              { title: { contains: q, mode: "insensitive" } },
-              { titleEn: { contains: q, mode: "insensitive" } },
-            ],
-          },
-          take: 8,
-          orderBy: [{ viewCount: "desc" }, { updatedAt: "desc" }],
-          select: { slug: true, title: true },
-        })
-      : Promise.resolve([]),
+    animeSearch,
     q.length >= 1
       ? db.post.findMany({
           where: postWhere,
-          take: hashtagTag ? 8 : 5,
+          take: 8,
           orderBy: hashtagTag
             ? [{ likes: { _count: "desc" } }, { createdAt: "desc" }]
             : { createdAt: "desc" },
-          select: { id: true, content: true, title: true },
+          select: { id: true, content: true, title: true, createdAt: true },
         })
       : Promise.resolve([]),
     q.length >= 2
@@ -201,6 +217,32 @@ export async function runFastSearch(query: string): Promise<FastSearchResult> {
       : Promise.resolve([]),
     getPopularWikiSearchQueries(12),
   ]);
+
+  // 매칭된 애니에 등록된 글(코스어/애니 커뮤니티 등록 등)도 함께 노출
+  const animeIds = animeRows.map((a) => a.id);
+  const animePosts =
+    !hashtagTag && animeIds.length > 0
+      ? await db.post.findMany({
+          where: { animeId: { in: animeIds } },
+          take: 8,
+          orderBy: { createdAt: "desc" },
+          select: { id: true, content: true, title: true, createdAt: true },
+        })
+      : [];
+
+  const seen = new Set<string>();
+  const posts = [...textPosts, ...animePosts]
+    .filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)))
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(0, 8)
+    .map(({ id, content, title }) => ({ id, content, title }));
+
+  const animes = animeRows.map(({ slug, title, titleEn, coverUrl }) => ({
+    slug,
+    title,
+    titleEn,
+    coverUrl,
+  }));
 
   const liveRows = await filterChannelsWithPresentHost(liveStreamsRaw);
   const liveStreams = liveRows.map(({ id, name, category }) => ({ id, name, category }));
