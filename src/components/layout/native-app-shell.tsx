@@ -35,19 +35,23 @@ function NativeAppShellInner({ children }: { children: React.ReactNode }) {
   const isVoiceRoom = pathname.startsWith("/voice/") && pathname !== "/voice/new";
   const isAptImmersive = isAptImmersivePath(pathname ?? "");
 
+  // 채팅방은 확정 높이가 필요하다(입력창 하단 고정 + 목록만 스크롤).
+  const isMessagesRoom = /^\/messages\/[^/]+$/.test(pathname);
+  const motionClass = isMessagesRoom ? "h-full min-h-0" : "min-h-full";
+
   const pageMotion =
     reduced || isProfileRoute ? (
-      <div key={pathname} className="min-h-full">
+      <div key={pathname} className={motionClass}>
         {children}
       </div>
     ) : skipTabMotion ? (
-    <div key={pathname} className="min-h-full">
+    <div key={pathname} className={motionClass}>
       {children}
     </div>
   ) : (
     <motion.div
       key={pathname}
-      className="min-h-full"
+      className={motionClass}
       variants={nativeRouteVariants}
       initial="hidden"
       animate="show"
@@ -77,11 +81,17 @@ function NativeAppShellInner({ children }: { children: React.ReactNode }) {
       {!hideHeader && <NativeAppHeader />}
       <OfflineBanner className="sticky top-0 z-50" />
       <main
-        className={`bg-background overflow-y-auto overscroll-y-contain ${
+        className={`bg-background overscroll-y-contain ${
+          isMessagesRoom ? "overflow-hidden" : "overflow-y-auto"
+        } ${
           hideHeader ? "h-dvh pt-safe" : "h-[calc(100dvh-3.25rem-env(safe-area-inset-top,0px))]"
         } ${mainPb}`}
       >
-        <div className="mx-auto w-full max-w-lg min-h-full border-x border-border/40 bg-background">
+        <div
+          className={`mx-auto w-full max-w-lg border-x border-border/40 bg-background ${
+            isMessagesRoom ? "h-full min-h-0" : "min-h-full"
+          }`}
+        >
           {pageMotion}
         </div>
       </main>

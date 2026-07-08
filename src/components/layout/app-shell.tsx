@@ -41,12 +41,16 @@ function AppShellInner({
     isFastHubPath(pathname);
   prevPathRef.current = pathname;
 
+  // 메시지 라우트는 확정 높이가 필요하다(입력창을 하단에 고정하고 목록만 스크롤).
+  // min-h-full 은 height:auto 라 h-full 체인을 무너뜨려 입력창이 잘려 사라진다.
+  const motionClass = isMessagesRoute ? "h-full min-h-0" : "min-h-full";
+
   const pageMotion = reduced || isProfileRoute ? (
-    <div key={pathname} className="min-h-full">
+    <div key={pathname} className={motionClass}>
       {children}
     </div>
   ) : skipHubMotion ? (
-    <div key={pathname} className="min-h-full">
+    <div key={pathname} className={motionClass}>
       {children}
     </div>
   ) : (
@@ -55,7 +59,7 @@ function AppShellInner({
       variants={pageVariants}
       initial="hidden"
       animate="show"
-      className="min-h-full"
+      className={motionClass}
     >
       {children}
     </motion.div>
