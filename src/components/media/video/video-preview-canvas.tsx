@@ -38,6 +38,7 @@ export function VideoPreviewCanvas({
   const videoRef = externalVideoRef ?? internalVideoRef;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>(0);
+  const vfcRef = useRef<number>(0);
 
   const redraw = useCallback(() => {
     const video = videoRef.current;
@@ -93,6 +94,9 @@ export function VideoPreviewCanvas({
     const video = videoRef.current;
     if (!video) return;
 
+    // requestVideoFrameCallback: 디코딩된 실제 프레임마다 그림 (검은 화면 방지)
+    const hasVfc = typeof video.requestVideoFrameCallback === "function";
+
     if (playing) {
       const start = edit.startSec;
       const end = edit.endSec;
@@ -103,23 +107,45 @@ export function VideoPreviewCanvas({
       video.volume = edit.volume;
       void video.play().catch(() => undefined);
 
-      const tick = () => {
-        if (video.currentTime >= end) {
-          video.pause();
-          video.currentTime = start;
-          onTogglePlay?.();
-          return;
-        }
+      const stop = () => {
+        video.pause();
+        video.currentTime = start;
         redraw();
-        rafRef.current = requestAnimationFrame(tick);
+        onTogglePlay?.();
       };
-      rafRef.current = requestAnimationFrame(tick);
+
+      if (hasVfc) {
+        const onFrame = () => {
+          if (video.paused) return;
+          if (video.currentTime >= end) {
+            stop();
+            return;
+          }
+          redraw();
+          vfcRef.current = video.requestVideoFrameCallback(onFrame);
+        };
+        vfcRef.current = video.requestVideoFrameCallback(onFrame);
+      } else {
+        const tick = () => {
+          if (video.paused) return;
+          if (video.currentTime >= end) {
+            stop();
+            return;
+          }
+          redraw();
+          rafRef.current = requestAnimationFrame(tick);
+        };
+        rafRef.current = requestAnimationFrame(tick);
+      }
     } else {
       video.pause();
     }
 
     return () => {
       cancelAnimationFrame(rafRef.current);
+      if (hasVfc && video.cancelVideoFrameCallback) {
+        video.cancelVideoFrameCallback(vfcRef.current);
+      }
     };
   }, [playing, edit.startSec, edit.endSec, edit.muted, edit.volume, redraw, onTogglePlay]);
 
@@ -139,14 +165,17 @@ export function VideoPreviewCanvas({
 
   return (
     <div className={cn("relative flex items-center justify-center w-full h-full bg-neutral-900", className)}>
+      {/* display:none 이면 재생 중 프레임 디코딩이 멈춰 검은 화면이 됨.
+          렌더 트리에는 남기되(1px·투명) 화면에는 안 보이게 처리 */}
       <video
         ref={videoRef}
         src={src ?? undefined}
-        className="hidden"
+        className="absolute h-px w-px opacity-0 pointer-events-none -z-10"
         playsInline
-        preload="metadata"
+        preload="auto"
         crossOrigin="anonymous"
         onError={onError}
+        aria-hidden
       />
       <canvas
         ref={canvasRef}
