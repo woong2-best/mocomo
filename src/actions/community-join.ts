@@ -9,7 +9,12 @@ import { loadMemberPermissions } from "@/lib/community-server/member-permissions
 import { MAX_OWNERS } from "@/lib/community-server/rbac-defaults";
 import type { JoinCommunityResult } from "@/lib/community-server/types";
 import type { CommunityJoinMode } from "@prisma/client";
-import { notifyCommunityJoin } from "@/lib/notifications";
+import {
+  notifyCommunityJoin,
+  notifyJoinApproved,
+  notifyJoinRejected,
+  notifyJoinRequestPending,
+} from "@/lib/notifications";
 
 async function addMemberToCommunity(
   communityId: string,
@@ -114,6 +119,16 @@ export async function joinCommunityServer(
         create: { communityId, userId: user.id, status: "PENDING" },
         update: { status: "PENDING", reviewedAt: null },
       });
+      const mods = await db.communityMember.findMany({
+        where: { communityId },
+        select: { userId: true },
+      });
+      void notifyJoinRequestPending(
+        communityId,
+        community.slug,
+        user.id,
+        [community.creatorId, ...mods.map((m) => m.userId)]
+      );
       return {
         success: true,
         pending: true,
@@ -276,6 +291,7 @@ export async function reviewCommunityJoinRequest(
         where: { id: requestId },
         data: { status: "REJECTED", reviewedAt: new Date() },
       });
+      void notifyJoinRejected(request.community.slug, request.userId);
       revalidatePath(`/c/${request.community.slug}`);
       return { success: true as const };
     }
@@ -304,6 +320,8 @@ export async function reviewCommunityJoinRequest(
       where: { id: requestId },
       data: { status: "APPROVED", reviewedAt: new Date() },
     });
+
+    void notifyJoinApproved(request.community.slug, request.userId);
 
     revalidatePath(`/c/${request.community.slug}`);
     return { success: true as const };

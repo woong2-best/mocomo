@@ -34,6 +34,8 @@ export function ChatRoomShell({
   header,
   groupMeta,
   readOnly = false,
+  communityId,
+  canDeleteMessages = false,
 }: {
   roomId: string;
   userId: string;
@@ -51,6 +53,8 @@ export function ChatRoomShell({
   };
   groupMeta: GroupMeta | null;
   readOnly?: boolean;
+  communityId?: string;
+  canDeleteMessages?: boolean;
 }) {
   return (
     <ChatSocketProvider roomId={roomId}>
@@ -86,6 +90,8 @@ export function ChatRoomShell({
             userSupportTier={userSupportTier}
             initialMessages={initialMessages}
             readOnly={readOnly}
+            communityId={communityId}
+            canDeleteMessages={canDeleteMessages}
           />
         </Suspense>
       </div>

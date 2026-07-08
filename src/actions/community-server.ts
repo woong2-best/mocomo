@@ -138,6 +138,7 @@ export async function updateCommunityChannel(
     topic?: string;
     slowModeSec?: number;
     isLocked?: boolean;
+    vipOnly?: boolean;
     maxUsers?: number | null;
   }
 ) {
@@ -162,6 +163,7 @@ export async function updateCommunityChannel(
       topic?: string | null;
       slowModeSec?: number;
       isLocked?: boolean;
+      vipOnly?: boolean;
       maxUsers?: number | null;
     } = {};
 
@@ -187,6 +189,9 @@ export async function updateCommunityChannel(
     if (data.isLocked !== undefined) {
       if (!canLock) return { error: "채널 잠금 권한이 없습니다." };
       patch.isLocked = data.isLocked;
+    }
+    if (data.vipOnly !== undefined && canRename) {
+      patch.vipOnly = data.vipOnly;
     }
     if (data.maxUsers !== undefined && canRename) {
       patch.maxUsers = data.maxUsers;
@@ -260,6 +265,56 @@ export async function reorderCommunityChannels(communityId: string, orderedIds: 
   }
 }
 
+export async function createChannelCategory(communityId: string, name: string) {
+  try {
+    const user = await requireAuth();
+    const ctx = await getCommunityPerms(communityId, user.id);
+    if (!ctx) return { error: "커뮤니티를 찾을 수 없습니다." };
+    if (!hasPermission(ctx.perms, "editCategory") && !hasPermission(ctx.perms, "manageChannels")) {
+      return { error: "권한이 없습니다." };
+    }
+    const trimmed = name.trim();
+    if (!trimmed) return { error: "카테고리 이름을 입력해 주세요." };
+    const maxPos = await db.communityChannelCategory.aggregate({
+      where: { communityId },
+      _max: { position: true },
+    });
+    const cat = await db.communityChannelCategory.create({
+      data: { communityId, name: trimmed, position: (maxPos._max.position ?? 0) + 1 },
+      select: { id: true, name: true },
+    });
+    revalidatePath(`/c/${ctx.community.slug}`);
+    return { category: cat };
+  } catch (e) {
+    return { error: prismaErrorMessage(e) };
+  }
+}
+
+export async function deleteChannelCategory(categoryId: string) {
+  try {
+    const user = await requireAuth();
+    const cat = await db.communityChannelCategory.findUnique({
+      where: { id: categoryId },
+      include: { community: { select: { id: true, slug: true } } },
+    });
+    if (!cat) return { error: "카테고리를 찾을 수 없습니다." };
+    const ctx = await getCommunityPerms(cat.communityId, user.id);
+    if (!ctx) return { error: "권한이 없습니다." };
+    if (!hasPermission(ctx.perms, "editCategory") && !hasPermission(ctx.perms, "manageChannels")) {
+      return { error: "권한이 없습니다." };
+    }
+    await db.communityChannel.updateMany({
+      where: { categoryId },
+      data: { categoryId: null },
+    });
+    await db.communityChannelCategory.delete({ where: { id: categoryId } });
+    revalidatePath(`/c/${cat.community.slug}`);
+    return { success: true as const };
+  } catch (e) {
+    return { error: prismaErrorMessage(e) };
+  }
+}
+
 export async function getCommunityChannelsForManage(communityId: string) {
   try {
     const user = await requireAuth();
@@ -280,12 +335,27 @@ export async function getCommunityChannelsForManage(communityId: string) {
         isDefault: true,
         slowModeSec: true,
         isLocked: true,
+        vipOnly: true,
         maxUsers: true,
+        categoryId: true,
       },
     });
     return { channels };
   } catch {
     return { channels: [] };
+  }
+}
+
+export async function getChannelCategories(communityId: string) {
+  try {
+    const cats = await db.communityChannelCategory.findMany({
+      where: { communityId },
+      orderBy: { position: "asc" },
+      select: { id: true, name: true, position: true },
+    });
+    return { categories: cats };
+  } catch {
+    return { categories: [] };
   }
 }
 

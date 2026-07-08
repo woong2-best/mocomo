@@ -94,6 +94,9 @@ export function notificationIcon(type: string): {
     case "vote":
       return { Icon: ThumbsUp, className: "text-emerald-500" };
     case "community_join":
+    case "community_join_request":
+    case "community_join_approved":
+    case "community_join_rejected":
       return { Icon: Users, className: "text-cyan-500" };
     case "call":
       return { Icon: Phone, className: "text-teal-500" };

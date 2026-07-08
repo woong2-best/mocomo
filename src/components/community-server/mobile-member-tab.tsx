@@ -55,19 +55,17 @@ export function MobileMemberTabBar({
 
   return (
     <>
-      <nav className="lg:hidden shrink-0 flex border-t border-border/60 bg-background">
-        <button
-          type="button"
-          onClick={() => onOpenChange(!open)}
-          className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-xs text-muted-foreground hover:text-foreground relative"
-        >
-          <Users className="h-5 w-5" />
-          <span>멤버</span>
-          {welcomePending && (
-            <span className="absolute top-2 right-[calc(50%-1.25rem)] h-2 w-2 rounded-full bg-red-500" />
-          )}
-        </button>
-      </nav>
+      <button
+        type="button"
+        onClick={() => onOpenChange(!open)}
+        className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-xs text-muted-foreground hover:text-foreground relative"
+      >
+        <Users className="h-5 w-5" />
+        <span>멤버</span>
+        {welcomePending && (
+          <span className="absolute top-2 right-[calc(50%-1.25rem)] h-2 w-2 rounded-full bg-red-500" />
+        )}
+      </button>
       <MobileMemberDrawer communityId={communityId} open={open} onOpenChange={onOpenChange} />
     </>
   );

@@ -55,6 +55,21 @@ export default async function CommunityChannelPage({
     );
   }
 
+  if (
+    channel.vipOnly &&
+    !ctx.isOwner &&
+    !hasPermission(ctx.permissions, "vipChannels") &&
+    !hasPermission(ctx.permissions, "vipBadge") &&
+    !hasPermission(ctx.permissions, "manageChannels")
+  ) {
+    return (
+      <div className="flex items-center justify-center h-full p-8 text-center text-muted-foreground text-sm space-y-2">
+        <p className="text-2xl">⭐</p>
+        <p>VIP 전용 채널입니다.</p>
+      </div>
+    );
+  }
+
   switch (channel.type) {
     case "POSTS":
       return (
@@ -114,7 +129,7 @@ export default async function CommunityChannelPage({
 
     case "FILE":
       if (!ctx.isMember && !ctx.isOwner) notFound();
-      return <FileChannelView />;
+      return <FileChannelView communityId={ctx.communityId} />;
 
     case "MEMBERS":
       return <MembersChannelView communityId={ctx.communityId} />;

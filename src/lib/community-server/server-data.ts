@@ -74,6 +74,7 @@ export const getCommunityServerContext = cache(
       maxUsers: ch.maxUsers,
       slowModeSec: ch.slowModeSec,
       isLocked: ch.isLocked,
+      vipOnly: ch.vipOnly,
       unreadCount: 0,
     }));
 

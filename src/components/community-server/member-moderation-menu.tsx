@@ -15,6 +15,9 @@ import {
 } from "@/actions/community-moderation";
 import type { CommunityMemberView } from "@/lib/community-server/types";
 import { useQueryClient } from "@tanstack/react-query";
+import { MemberRoleAssignSubmenu } from "@/components/community-server/member-role-assign";
+import { useCommunityMembership } from "@/components/community-server/community-membership-context";
+import { hasPermission } from "@/lib/community-server/permissions";
 
 export function MemberModerationMenu({
   member,
@@ -36,6 +39,14 @@ export function MemberModerationMenu({
     setLoading(false);
   }
 
+  const { permissions } = useCommunityMembership();
+  const canAssign =
+    hasPermission(permissions, "assignAdmin") ||
+    hasPermission(permissions, "assignModerator") ||
+    hasPermission(permissions, "assignVip") ||
+    hasPermission(permissions, "assignOwner") ||
+    hasPermission(permissions, "manageRoles");
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild disabled={loading}>
@@ -48,6 +59,9 @@ export function MemberModerationMenu({
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
+        {canAssign && !member.isOwner && (
+          <MemberRoleAssignSubmenu member={member} communityId={communityId} />
+        )}
         <DropdownMenuItem onClick={() => void run(() => kickCommunityMember(member.id))}>
           추방
         </DropdownMenuItem>

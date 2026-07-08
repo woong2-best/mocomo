@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import type { CommunityChannelType } from "@prisma/client";
-import { Loader2, Pencil, Trash2, Lock, Unlock } from "lucide-react";
 import {
   getCommunityChannelsForManage,
   updateCommunityChannel,
   deleteCommunityChannel,
   createCommunityChannel,
+  reorderCommunityChannels,
 } from "@/actions/community-server";
+import { Loader2, Pencil, Trash2, Lock, Unlock, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,7 +29,9 @@ type ChannelRow = {
   isDefault: boolean;
   slowModeSec: number;
   isLocked: boolean;
+  vipOnly: boolean;
   maxUsers: number | null;
+  categoryId: string | null;
 };
 
 const CREATE_TYPES: { value: CommunityChannelType; label: string }[] = [
@@ -67,6 +70,21 @@ export function CommunityChannelsPanel({
     void load();
   }, [communityId]);
 
+  async function moveChannel(id: string, dir: -1 | 1) {
+    const idx = channels.findIndex((c) => c.id === id);
+    const next = idx + dir;
+    if (idx < 0 || next < 0 || next >= channels.length) return;
+    const ordered = [...channels];
+    const [item] = ordered.splice(idx, 1);
+    ordered.splice(next, 0, item);
+    setChannels(ordered);
+    const res = await reorderCommunityChannels(
+      communityId,
+      ordered.map((c) => c.id)
+    );
+    if ("error" in res && res.error) setError(res.error);
+  }
+
   async function saveEdit() {
     if (!edit) return;
     setSaving(true);
@@ -76,6 +94,7 @@ export function CommunityChannelsPanel({
       topic: edit.topic ?? "",
       slowModeSec: edit.slowModeSec,
       isLocked: edit.isLocked,
+      vipOnly: edit.vipOnly,
       maxUsers: edit.maxUsers,
     });
     if ("error" in res && res.error) setError(res.error);
@@ -148,6 +167,12 @@ export function CommunityChannelsPanel({
                 </p>
               </div>
               <div className="flex gap-1 shrink-0">
+                <Button type="button" size="icon" variant="ghost" onClick={() => void moveChannel(ch.id, -1)}>
+                  <ChevronUp className="h-4 w-4" />
+                </Button>
+                <Button type="button" size="icon" variant="ghost" onClick={() => void moveChannel(ch.id, 1)}>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
                 <Button type="button" size="icon" variant="ghost" onClick={() => setEdit({ ...ch })}>
                   <Pencil className="h-4 w-4" />
                 </Button>
@@ -197,6 +222,14 @@ export function CommunityChannelsPanel({
                   }
                   className="mt-1"
                 />
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={edit.vipOnly}
+                  onChange={(e) => setEdit({ ...edit, vipOnly: e.target.checked })}
+                />
+                VIP 전용 채널
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <input

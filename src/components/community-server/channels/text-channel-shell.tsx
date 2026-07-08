@@ -5,8 +5,12 @@ import { useCommunityMembership } from "@/components/community-server/community-
 import type { ChatMessageView } from "@/lib/chat-message-normalize";
 import type { SupportTierLevel } from "@prisma/client";
 
+import { hasPermission } from "@/lib/community-server/permissions";
+import { deleteCommunityChatMessage } from "@/actions/community-content";
+
 export function TextChannelShell({
   serverReadOnly,
+  communityId,
   roomId,
   userId,
   username,
@@ -16,6 +20,7 @@ export function TextChannelShell({
   header,
 }: {
   serverReadOnly: boolean;
+  communityId: string;
   roomId: string;
   userId: string;
   username: string;
@@ -28,12 +33,15 @@ export function TextChannelShell({
     roomType: string;
   };
 }) {
-  const { isMember, isOwner } = useCommunityMembership();
+  const { isMember, isOwner, permissions } = useCommunityMembership();
   const readOnly = serverReadOnly && !isMember && !isOwner;
+  const canDeleteMessages =
+    hasPermission(permissions, "deleteMessages") || hasPermission(permissions, "moderateChat");
 
   return (
     <ChatRoomShell
       roomId={roomId}
+      communityId={communityId}
       userId={userId}
       username={username}
       userImage={userImage}
@@ -42,6 +50,7 @@ export function TextChannelShell({
       header={header}
       groupMeta={null}
       readOnly={readOnly}
+      canDeleteMessages={canDeleteMessages}
     />
   );
 }

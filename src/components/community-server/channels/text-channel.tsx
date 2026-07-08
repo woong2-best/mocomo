@@ -9,7 +9,7 @@ export async function TextChannelView({
   roomId,
   channelId,
   channelName,
-  communityId: _communityId,
+  communityId,
   readOnly = false,
 }: {
   roomId: string;
@@ -61,6 +61,7 @@ export async function TextChannelView({
       </header>
       <div className="flex-1 min-h-0 flex flex-col">
         <TextChannelShell
+          communityId={communityId}
           serverReadOnly={readOnly}
           roomId={roomId}
           userId={session.user.id}

@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CornerUpLeft } from "lucide-react";
+import { CornerUpLeft, Trash2 } from "lucide-react";
 import type { SupportTierLevel } from "@prisma/client";
 import { sendMessage } from "@/actions/chat";
+import { deleteCommunityChatMessage } from "@/actions/community-content";
 import { useChatSocket } from "@/components/messages/chat-socket-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChatMediaComposer } from "@/components/chat/chat-media-composer";
@@ -38,6 +39,8 @@ export function ChatRoomClient({
   userSupportTier = "PEBBLE",
   initialMessages = [],
   readOnly = false,
+  communityId,
+  canDeleteMessages = false,
 }: {
   roomId: string;
   userId: string;
@@ -46,6 +49,8 @@ export function ChatRoomClient({
   userSupportTier?: SupportTierLevel;
   initialMessages?: Message[];
   readOnly?: boolean;
+  communityId?: string;
+  canDeleteMessages?: boolean;
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
@@ -337,6 +342,15 @@ export function ChatRoomClient({
     router.replace(`/messages/${roomId}`, { scroll: false });
   }, [roomId, router, searchParams, socket, socketReady]);
 
+  function removeMessage(messageId: string) {
+    if (!communityId || !canDeleteMessages || isPendingMessageId(messageId)) return;
+    if (!confirm("이 메시지를 삭제할까요?")) return;
+    void deleteCommunityChatMessage(messageId, communityId).then((res) => {
+      if ("error" in res && res.error) setError(res.error);
+      else setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    });
+  }
+
   return (
     <div className="flex flex-col flex-1 min-h-0 bg-muted/20">
       <div
@@ -485,14 +499,26 @@ export function ChatRoomClient({
                   )}
                   </div>
                   {!pending && (
-                    <button
-                      type="button"
-                      onClick={() => startReply(m)}
-                      className="h-7 w-7 shrink-0 self-end mb-5 rounded-md bg-muted/70 hover:bg-muted border border-border/40 flex items-center justify-center text-muted-foreground opacity-80 hover:opacity-100 transition-opacity"
-                      aria-label="답장"
-                    >
-                      <CornerUpLeft className="h-3.5 w-3.5" />
-                    </button>
+                    <div className="flex flex-col gap-1 self-end mb-5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => startReply(m)}
+                        className="h-7 w-7 rounded-md bg-muted/70 hover:bg-muted border border-border/40 flex items-center justify-center text-muted-foreground opacity-80 hover:opacity-100 transition-opacity"
+                        aria-label="답장"
+                      >
+                        <CornerUpLeft className="h-3.5 w-3.5" />
+                      </button>
+                      {canDeleteMessages && communityId && (
+                        <button
+                          type="button"
+                          onClick={() => removeMessage(m.id)}
+                          className="h-7 w-7 rounded-md bg-muted/70 hover:bg-destructive/20 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-destructive opacity-80 hover:opacity-100 transition-opacity"
+                          aria-label="삭제"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

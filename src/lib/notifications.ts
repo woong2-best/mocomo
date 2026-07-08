@@ -303,6 +303,46 @@ export async function notifyCommunityJoin(
   });
 }
 
+export async function notifyJoinRequestPending(
+  communityId: string,
+  slug: string,
+  requesterId: string,
+  moderatorIds: string[]
+) {
+  const actor = await getActor(requesterId);
+  const items = moderatorIds
+    .filter((id) => id !== requesterId)
+    .map((userId) => ({
+      userId,
+      actorId: requesterId,
+      type: "community_join_request",
+      title: "가입 요청",
+      body: `${actorLabel(actor)}님이 가입을 요청했습니다.`,
+      link: `/c/${slug}/settings`,
+    }));
+  if (items.length) await createNotificationsMany(items);
+}
+
+export async function notifyJoinApproved(slug: string, userId: string) {
+  scheduleNotification({
+    userId,
+    type: "community_join_approved",
+    title: "가입 승인",
+    body: "커뮤니티 가입이 승인되었습니다. 이제 모든 기능을 이용할 수 있습니다.",
+    link: `/c/${slug}`,
+  });
+}
+
+export async function notifyJoinRejected(slug: string, userId: string) {
+  scheduleNotification({
+    userId,
+    type: "community_join_rejected",
+    title: "가입 거절",
+    body: "커뮤니티 가입 요청이 거절되었습니다.",
+    link: `/c/${slug}`,
+  });
+}
+
 export async function notifyClipLike(
   clipId: string,
   authorId: string,

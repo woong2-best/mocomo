@@ -10,6 +10,7 @@ import { CommunityMembershipProvider } from "@/components/community-server/commu
 import { CommunityJoinBanner } from "@/components/community-server/community-join-banner";
 import { MemberWelcomeDialog } from "@/components/community-server/member-welcome-dialog";
 import { MobileMemberTabBar } from "@/components/community-server/mobile-member-tab";
+import { MobileChannelDrawer } from "@/components/community-server/mobile-channel-drawer";
 import type { CommunityServerContext, CommunityMemberView } from "@/lib/community-server/types";
 import { hasPermission } from "@/lib/community-server/permissions";
 
@@ -25,6 +26,7 @@ export function CommunityServerLayoutClient({
   children: React.ReactNode;
 }) {
   const [memberOpen, setMemberOpen] = useState(false);
+  const [channelOpen, setChannelOpen] = useState(false);
 
   return (
     <CommunityMembershipProvider initial={initialContext}>
@@ -53,11 +55,19 @@ export function CommunityServerLayoutClient({
             </Suspense>
             <main className="flex-1 min-h-0 overflow-hidden flex flex-col">{children}</main>
             <VoiceStatusBar />
-            <MobileMemberTabBar
-              communityId={initialContext.communityId}
-              open={memberOpen}
-              onOpenChange={setMemberOpen}
-            />
+            <div className="lg:hidden shrink-0 flex border-t border-border/60 bg-background">
+              <MobileChannelDrawer
+                slug={slug}
+                channels={initialContext.channels}
+                open={channelOpen}
+                onOpenChange={setChannelOpen}
+              />
+              <MobileMemberTabBar
+                communityId={initialContext.communityId}
+                open={memberOpen}
+                onOpenChange={setMemberOpen}
+              />
+            </div>
           </div>
           <MemberSidebar communityId={initialContext.communityId} initialMembers={initialMembers} />
         </div>

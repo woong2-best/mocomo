@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getCommunityRoles, updateRolePermissions } from "@/actions/community-roles";
+import { getCommunityRoles, updateRolePermissions, createCommunityRole } from "@/actions/community-roles";
 import { PERMISSION_LABELS, ALL_PERMISSION_KEYS } from "@/lib/community-server/permissions";
 import type { CommunityPermissionKey } from "@/lib/community-server/types";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 
 type RoleRow = Awaited<ReturnType<typeof getCommunityRoles>>[number];
@@ -20,6 +21,10 @@ export function CommunityRolesPanel({
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [saving, setSaving] = useState<string | null>(null);
+
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newRoleName, setNewRoleName] = useState("");
+  const [newRoleType, setNewRoleType] = useState<"ADMIN" | "MODERATOR" | "VIP" | "MEMBER">("MEMBER");
 
   useEffect(() => {
     getCommunityRoles(communityId)
@@ -87,7 +92,50 @@ export function CommunityRolesPanel({
           </li>
         ))}
       </ul>
-      <Button variant="outline" size="sm" disabled>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setCreateOpen(true)}
+      >
+        역할 추가
+      </Button>
+      {createOpen && (
+        <div className="rounded-lg border p-3 space-y-2">
+          <Input value={newRoleName} onChange={(e) => setNewRoleName(e.target.value)} placeholder="역할 이름" />
+          <select
+            className="w-full rounded-md border px-3 py-2 text-sm"
+            value={newRoleType}
+            onChange={(e) => setNewRoleType(e.target.value as typeof newRoleType)}
+          >
+            <option value="ADMIN">Admin</option>
+            <option value="MODERATOR">Moderator</option>
+            <option value="VIP">VIP</option>
+            <option value="MEMBER">Member</option>
+          </select>
+          <Button
+            type="button"
+            size="sm"
+            disabled={!newRoleName.trim()}
+            onClick={() =>
+              void createCommunityRole({
+                communityId,
+                name: newRoleName,
+                type: newRoleType,
+              }).then((res) => {
+                if ("error" in res && res.error) alert(res.error);
+                else {
+                  setCreateOpen(false);
+                  setNewRoleName("");
+                  void getCommunityRoles(communityId).then(setRoles);
+                }
+              })
+            }
+          >
+            생성
+          </Button>
+        </div>
+      )}
+      <Button variant="outline" size="sm" disabled className="hidden">
         역할 추가 (준비 중)
       </Button>
     </section>

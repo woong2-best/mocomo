@@ -195,6 +195,21 @@ ALTER TABLE "Community" ADD COLUMN IF NOT EXISTS "isPublic" BOOLEAN NOT NULL DEF
 ALTER TABLE "CommunityMember" ADD COLUMN IF NOT EXISTS "welcomedAt" TIMESTAMP(3);
 ALTER TABLE "CommunityMember" ADD COLUMN IF NOT EXISTS "voiceActivity" "CommunityVoiceActivity";
 ALTER TABLE "CommunityChannel" ADD COLUMN IF NOT EXISTS "isLocked" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "CommunityChannel" ADD COLUMN IF NOT EXISTS "vipOnly" BOOLEAN NOT NULL DEFAULT false;
+
+CREATE TABLE IF NOT EXISTS "CommunityAuditLog" (
+  "id" TEXT NOT NULL,
+  "communityId" TEXT NOT NULL,
+  "actorId" TEXT NOT NULL,
+  "action" TEXT NOT NULL,
+  "targetType" TEXT,
+  "targetId" TEXT,
+  "detail" VARCHAR(500),
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "CommunityAuditLog_pkey" PRIMARY KEY ("id")
+);
+CREATE INDEX IF NOT EXISTS "CommunityAuditLog_communityId_createdAt_idx"
+  ON "CommunityAuditLog"("communityId", "createdAt" DESC);
 
 CREATE TABLE IF NOT EXISTS "CommunityInvite" (
   "id" TEXT NOT NULL,

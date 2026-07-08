@@ -5,6 +5,10 @@ import { CommunityJoinModeSettings } from "@/components/community-server/channel
 import { CommunityJoinRequestsPanel } from "@/components/community-server/channels/settings-join-requests";
 import { CommunityChannelsPanel } from "@/components/community-server/channels/settings-channels-panel";
 import { CommunityBansPanel } from "@/components/community-server/channels/settings-bans-panel";
+import { CommunityBrandingSettings } from "@/components/community-server/channels/settings-branding";
+import { CommunityReportsPanel } from "@/components/community-server/channels/settings-reports-panel";
+import { CommunityStatsAuditPanel } from "@/components/community-server/channels/settings-stats-panel";
+import { CommunityCategoriesPanel } from "@/components/community-server/channels/settings-categories-panel";
 import { hasPermission } from "@/lib/community-server/permissions";
 import type { CommunityPermissions } from "@/lib/community-server/types";
 import { db } from "@/lib/db";
@@ -37,6 +41,9 @@ export async function SettingsChannelView({
       description: true,
       category: true,
       isNsfw: true,
+      iconUrl: true,
+      bannerUrl: true,
+      isPublic: true,
       joinMode: true,
     },
   });
@@ -50,6 +57,15 @@ export async function SettingsChannelView({
     hasPermission(permissions, "manageChannels") || hasPermission(permissions, "createChannel");
   const canRoles = hasPermission(permissions, "manageRoles");
   const canBans = hasPermission(permissions, "banMembers");
+  const canReports = hasPermission(permissions, "handleReports");
+  const canStats = hasPermission(permissions, "viewStats") || hasPermission(permissions, "viewAuditLog");
+  const canBranding =
+    isOwner ||
+    hasPermission(permissions, "editIcon") ||
+    hasPermission(permissions, "editBanner") ||
+    hasPermission(permissions, "setVisibility") ||
+    hasPermission(permissions, "deleteServer");
+  const canCategories = hasPermission(permissions, "editCategory") || canChannels;
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -69,6 +85,17 @@ export async function SettingsChannelView({
             }}
           />
         )}
+        {canBranding && (
+          <CommunityBrandingSettings
+            communityId={communityId}
+            slug={communitySlug}
+            initial={{
+              iconUrl: community.iconUrl,
+              bannerUrl: community.bannerUrl,
+              isPublic: community.isPublic,
+            }}
+          />
+        )}
         {canJoinMode && (
           <CommunityJoinModeSettings
             communityId={communityId}
@@ -78,10 +105,13 @@ export async function SettingsChannelView({
         {canJoinRequests && community.joinMode === "APPROVE" && (
           <CommunityJoinRequestsPanel communityId={communityId} />
         )}
+        {canCategories && <CommunityCategoriesPanel communityId={communityId} />}
         {canChannels && (
           <CommunityChannelsPanel communityId={communityId} communitySlug={communitySlug} />
         )}
         {canBans && <CommunityBansPanel communityId={communityId} />}
+        {canReports && <CommunityReportsPanel communityId={communityId} />}
+        {canStats && <CommunityStatsAuditPanel communityId={communityId} />}
         {canRoles && (
           <CommunityRolesPanel communityId={communityId} communitySlug={communitySlug} />
         )}

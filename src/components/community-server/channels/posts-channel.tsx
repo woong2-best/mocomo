@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { PostCard } from "@/components/feed/post-card";
+import { CommunityPostCard } from "@/components/community-server/community-post-card";
 import { MessageSquare } from "lucide-react";
 import { postMediaPreview } from "@/lib/post-media-select";
 import { userPublicSelect } from "@/lib/user-public-select";
@@ -36,7 +36,9 @@ export async function PostsChannelView({
             <PostsChannelEmptyCta communityId={communityId} />
           </div>
         ) : (
-          posts.map((post) => <PostCard key={post.id} post={post} />)
+          posts.map((post) => (
+            <CommunityPostCard key={post.id} post={post} communityId={communityId} />
+          ))
         )}
       </div>
     </div>

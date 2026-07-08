@@ -273,13 +273,31 @@ export async function updateCommunity(
     description?: string;
     category?: string;
     isNsfw?: boolean;
+    iconUrl?: string;
+    bannerUrl?: string;
+    isPublic?: boolean;
   }
 ) {
   try {
     const user = await requireAuth();
     const community = await db.community.findUnique({ where: { id: communityId } });
     if (!community) return { error: "커뮤니티를 찾을 수 없습니다." };
-    if (community.creatorId !== user.id) return { error: "개설자만 수정할 수 있습니다." };
+
+    const { loadMemberPermissions } = await import("@/lib/community-server/member-permissions");
+    const { hasPermission } = await import("@/lib/community-server/permissions");
+    const isOwner = community.creatorId === user.id;
+    const perms = await loadMemberPermissions(communityId, user.id, isOwner);
+    if (!isOwner && !hasPermission(perms, "editServerInfo") && !hasPermission(perms, "manageServer")) {
+      return { error: "수정 권한이 없습니다." };
+    }
+    if (data.isPublic !== undefined && !isOwner && !hasPermission(perms, "setVisibility")) {
+      return { error: "공개 설정 변경 권한이 없습니다." };
+    }
+    if ((data.iconUrl !== undefined || data.bannerUrl !== undefined) && !isOwner) {
+      if (!hasPermission(perms, "editIcon") && !hasPermission(perms, "editBanner")) {
+        return { error: "이미지 변경 권한이 없습니다." };
+      }
+    }
 
     const name = data.name?.trim();
     if (name !== undefined && (name.length < 2 || name.length > 80)) {
@@ -303,12 +321,40 @@ export async function updateCommunity(
           : {}),
         ...(category ? { category } : {}),
         ...(data.isNsfw !== undefined ? { isNsfw: data.isNsfw } : {}),
+        ...(data.iconUrl !== undefined ? { iconUrl: data.iconUrl || null } : {}),
+        ...(data.bannerUrl !== undefined ? { bannerUrl: data.bannerUrl || null } : {}),
+        ...(data.isPublic !== undefined ? { isPublic: data.isPublic } : {}),
       },
     });
 
     revalidatePath(`/c/${community.slug}`);
     revalidatePath("/communities");
     return { success: true as const };
+  } catch (e) {
+    return { error: prismaErrorMessage(e) };
+  }
+}
+
+export async function deleteCommunity(communityId: string) {
+  try {
+    const user = await requireAuth();
+    const community = await db.community.findUnique({
+      where: { id: communityId },
+      select: { id: true, slug: true, creatorId: true },
+    });
+    if (!community) return { error: "커뮤니티를 찾을 수 없습니다." };
+
+    const { loadMemberPermissions } = await import("@/lib/community-server/member-permissions");
+    const { hasPermission } = await import("@/lib/community-server/permissions");
+    const isOwner = community.creatorId === user.id;
+    const perms = await loadMemberPermissions(communityId, user.id, isOwner);
+    if (!isOwner && !hasPermission(perms, "deleteServer")) {
+      return { error: "삭제 권한이 없습니다." };
+    }
+
+    await db.community.delete({ where: { id: communityId } });
+    revalidatePath("/communities");
+    return { success: true as const, slug: community.slug };
   } catch (e) {
     return { error: prismaErrorMessage(e) };
   }

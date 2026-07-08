@@ -418,6 +418,7 @@ model Community {
   invites     CommunityInvite[]
   joinRequests CommunityJoinRequest[]
   bans        CommunityBan[]
+  auditLogs   CommunityAuditLog[]
 }
 
 enum CommunityJoinMode {
@@ -490,6 +491,7 @@ model CommunityChannel {
   maxUsers       Int?
   slowModeSec    Int                  @default(0)
   isLocked       Boolean              @default(false)
+  vipOnly        Boolean              @default(false)
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
 
@@ -605,6 +607,19 @@ model CommunityBan {
   createdAt   DateTime  @default(now())
   community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
   @@unique([communityId, userId])
+}
+
+model CommunityAuditLog {
+  id          String   @id @default(cuid())
+  communityId String
+  actorId     String
+  action      String
+  targetType  String?
+  targetId    String?
+  detail      String?  @db.VarChar(500)
+  createdAt   DateTime @default(now())
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  @@index([communityId, createdAt(sort: Desc)])
 }
 
 enum PostType {

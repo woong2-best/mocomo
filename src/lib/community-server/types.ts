@@ -74,6 +74,7 @@ export type CommunityChannelView = {
   maxUsers: number | null;
   slowModeSec: number;
   isLocked: boolean;
+  vipOnly: boolean;
   unreadCount?: number;
 };
 
