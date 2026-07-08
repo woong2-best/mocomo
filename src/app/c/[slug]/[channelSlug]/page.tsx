@@ -9,6 +9,7 @@ import { SettingsChannelView } from "@/components/community-server/channels/sett
 import { EventsChannelView } from "@/components/community-server/channels/events-channel";
 import { GalleryChannelView } from "@/components/community-server/channels/gallery-channel";
 import { FileChannelView } from "@/components/community-server/channels/file-channel";
+import { hasPermission } from "@/lib/community-server/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,16 @@ export default async function CommunityChannelPage({
   ]);
   if (!ctx || !channel) notFound();
 
-  if (channel.type === "SETTINGS" && !ctx.isOwner) notFound();
+  if (
+    channel.type === "SETTINGS" &&
+    !ctx.isOwner &&
+    !hasPermission(ctx.permissions, "manageServer") &&
+    !hasPermission(ctx.permissions, "manageChannels") &&
+    !hasPermission(ctx.permissions, "manageJoinRequests") &&
+    !hasPermission(ctx.permissions, "manageRoles")
+  ) {
+    notFound();
+  }
 
   const guestReadable =
     channel.type === "POSTS" ||
@@ -115,6 +125,7 @@ export default async function CommunityChannelPage({
           communityId={ctx.communityId}
           communitySlug={slug}
           isOwner={ctx.isOwner}
+          permissions={ctx.permissions}
         />
       );
 

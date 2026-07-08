@@ -1,11 +1,9 @@
 import type { CommunityRoleType } from "@prisma/client";
 import type { CommunityPermissionKey, CommunityPermissions } from "./types";
-import { RBAC_PERMISSION_KEYS, rbacDefaultsForRole } from "./rbac-defaults";
+import { RBAC_PERMISSION_KEYS, RBAC_LABELS, rbacDefaultsForRole } from "./rbac-defaults";
 
 export const ALL_PERMISSION_KEYS = RBAC_PERMISSION_KEYS;
-export const PERMISSION_LABELS = Object.fromEntries(
-  RBAC_PERMISSION_KEYS.map((k) => [k, k])
-) as Record<CommunityPermissionKey, string>;
+export const PERMISSION_LABELS = RBAC_LABELS;
 
 const GUEST_PERMS: CommunityPermissions = Object.fromEntries(
   RBAC_PERMISSION_KEYS.map((k) => [k, false])

@@ -9,6 +9,8 @@ import { chatMessageInclude, serializeChatMessage } from "@/lib/chat-message-ser
 import { sanitizeChatAttachments } from "@/lib/chat-attachments";
 import { notifyChatMessage } from "@/lib/notifications";
 import { relayChatMessageToSocket } from "@/lib/chat-socket-relay";
+import { loadMemberPermissions } from "@/lib/community-server/member-permissions";
+import { hasPermission } from "@/lib/community-server/permissions";
 
 export async function createChatRoom(data: {
   name?: string;
@@ -128,9 +130,35 @@ export async function sendMessage(data: {
 
   const room = await db.chatRoom.findUnique({
     where: { id: data.roomId },
-    select: { type: true },
+    select: { type: true, communityId: true },
   });
   if (!room) throw new Error("ROOM_NOT_FOUND");
+
+  const communityChannel = await db.communityChannel.findFirst({
+    where: { chatRoomId: data.roomId },
+    select: { slowModeSec: true, isLocked: true, communityId: true },
+  });
+  if (communityChannel) {
+    if (communityChannel.isLocked) {
+      const perms = await loadMemberPermissions(communityChannel.communityId, user.id, false);
+      if (!hasPermission(perms, "moderateChat") && !hasPermission(perms, "manageChannels")) {
+        throw new Error("CHANNEL_LOCKED");
+      }
+    }
+    if (communityChannel.slowModeSec > 0) {
+      const last = await db.message.findFirst({
+        where: { roomId: data.roomId, senderId: user.id },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true },
+      });
+      if (last) {
+        const elapsed = (Date.now() - last.createdAt.getTime()) / 1000;
+        if (elapsed < communityChannel.slowModeSec) {
+          throw new Error(`SLOW_MODE:${Math.ceil(communityChannel.slowModeSec - elapsed)}`);
+        }
+      }
+    }
+  }
 
   if (data.replyToId) {
     const parent = await db.message.findFirst({

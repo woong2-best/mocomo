@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { ChannelSidebar } from "@/components/community-server/channel-sidebar";
 import { MemberSidebar } from "@/components/community-server/member-sidebar";
 import { VoiceStatusBar } from "@/components/community-server/voice-status-bar";
@@ -9,6 +9,7 @@ import { CommunityPresenceSync } from "@/components/community-server/presence-sy
 import { CommunityMembershipProvider } from "@/components/community-server/community-membership-context";
 import { CommunityJoinBanner } from "@/components/community-server/community-join-banner";
 import { MemberWelcomeDialog } from "@/components/community-server/member-welcome-dialog";
+import { MobileMemberTabBar } from "@/components/community-server/mobile-member-tab";
 import type { CommunityServerContext, CommunityMemberView } from "@/lib/community-server/types";
 import { hasPermission } from "@/lib/community-server/permissions";
 
@@ -23,6 +24,8 @@ export function CommunityServerLayoutClient({
   initialMembers?: CommunityMemberView[];
   children: React.ReactNode;
 }) {
+  const [memberOpen, setMemberOpen] = useState(false);
+
   return (
     <CommunityMembershipProvider initial={initialContext}>
       <CommunityVoiceProvider>
@@ -31,10 +34,18 @@ export function CommunityServerLayoutClient({
         <div className="flex h-full min-h-0 w-full overflow-hidden bg-background">
           <ChannelSidebar
             slug={slug}
+            communityId={initialContext.communityId}
             communityName={initialContext.name}
             channels={initialContext.channels}
             isOwner={initialContext.isOwner}
             canManageChannels={hasPermission(initialContext.permissions, "manageChannels")}
+            canAccessSettings={
+              initialContext.isOwner ||
+              hasPermission(initialContext.permissions, "manageServer") ||
+              hasPermission(initialContext.permissions, "manageChannels") ||
+              hasPermission(initialContext.permissions, "manageJoinRequests") ||
+              hasPermission(initialContext.permissions, "manageRoles")
+            }
           />
           <div className="flex flex-col flex-1 min-w-0 min-h-0">
             <Suspense fallback={null}>
@@ -42,6 +53,11 @@ export function CommunityServerLayoutClient({
             </Suspense>
             <main className="flex-1 min-h-0 overflow-hidden flex flex-col">{children}</main>
             <VoiceStatusBar />
+            <MobileMemberTabBar
+              communityId={initialContext.communityId}
+              open={memberOpen}
+              onOpenChange={setMemberOpen}
+            />
           </div>
           <MemberSidebar communityId={initialContext.communityId} initialMembers={initialMembers} />
         </div>

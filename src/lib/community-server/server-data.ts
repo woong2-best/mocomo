@@ -72,6 +72,8 @@ export const getCommunityServerContext = cache(
       chatRoomId: ch.chatRoomId,
       voiceChannelId: ch.voiceChannelId,
       maxUsers: ch.maxUsers,
+      slowModeSec: ch.slowModeSec,
+      isLocked: ch.isLocked,
       unreadCount: 0,
     }));
 

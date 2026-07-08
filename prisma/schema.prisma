@@ -489,6 +489,7 @@ model CommunityChannel {
   voiceChannelId String?              @unique
   maxUsers       Int?
   slowModeSec    Int                  @default(0)
+  isLocked       Boolean              @default(false)
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
 

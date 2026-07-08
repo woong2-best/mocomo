@@ -194,6 +194,7 @@ ALTER TABLE "Community" ADD COLUMN IF NOT EXISTS "joinMode" "CommunityJoinMode" 
 ALTER TABLE "Community" ADD COLUMN IF NOT EXISTS "isPublic" BOOLEAN NOT NULL DEFAULT true;
 ALTER TABLE "CommunityMember" ADD COLUMN IF NOT EXISTS "welcomedAt" TIMESTAMP(3);
 ALTER TABLE "CommunityMember" ADD COLUMN IF NOT EXISTS "voiceActivity" "CommunityVoiceActivity";
+ALTER TABLE "CommunityChannel" ADD COLUMN IF NOT EXISTS "isLocked" BOOLEAN NOT NULL DEFAULT false;
 
 CREATE TABLE IF NOT EXISTS "CommunityInvite" (
   "id" TEXT NOT NULL,

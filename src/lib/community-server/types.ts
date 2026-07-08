@@ -72,6 +72,8 @@ export type CommunityChannelView = {
   chatRoomId: string | null;
   voiceChannelId: string | null;
   maxUsers: number | null;
+  slowModeSec: number;
+  isLocked: boolean;
   unreadCount?: number;
 };
 

@@ -267,9 +267,13 @@ export function ChatRoomClient({
       removePending(pendingId);
       const msg = e instanceof Error ? e.message : "";
       setError(
-        msg === "ATTACHMENT_INVALID"
-          ? "첨부 파일을 저장하지 못했습니다. 다시 보내 주세요."
-          : "메시지 전송에 실패했습니다."
+        msg.startsWith("SLOW_MODE:")
+          ? `슬로우 모드: ${msg.split(":")[1]}초 후에 다시 보낼 수 있습니다.`
+          : msg === "CHANNEL_LOCKED"
+            ? "채널이 잠겨 있어 메시지를 보낼 수 없습니다."
+            : msg === "ATTACHMENT_INVALID"
+              ? "첨부 파일을 저장하지 못했습니다. 다시 보내 주세요."
+              : "메시지 전송에 실패했습니다."
       );
     }
   }

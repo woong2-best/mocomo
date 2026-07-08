@@ -213,3 +213,101 @@ export async function assertCanAssignOwner(communityId: string, memberId: string
   }
   return { ok: true as const };
 }
+
+export async function getCommunityJoinRequests(communityId: string) {
+  try {
+    const user = await requireAuth();
+    const perms = await loadMemberPermissions(communityId, user.id, false);
+    if (!perms.manageJoinRequests && !perms.approveMembers) {
+      return { requests: [], error: "권한이 없습니다." };
+    }
+
+    const rows = await db.communityJoinRequest.findMany({
+      where: { communityId, status: "PENDING" },
+      orderBy: { createdAt: "asc" },
+      take: 50,
+    });
+    const users = await db.user.findMany({
+      where: { id: { in: rows.map((r) => r.userId) } },
+      select: { id: true, username: true, name: true, image: true },
+    });
+    const byId = new Map(users.map((u) => [u.id, u]));
+
+    return {
+      requests: rows.map((r) => {
+        const u = byId.get(r.userId);
+        return {
+          id: r.id,
+          userId: r.userId,
+          username: u?.username ?? "unknown",
+          name: u?.name ?? null,
+          image: u?.image ?? null,
+          message: r.message,
+          createdAt: r.createdAt.toISOString(),
+        };
+      }),
+    };
+  } catch (e) {
+    return { requests: [], error: prismaErrorMessage(e) };
+  }
+}
+
+export async function reviewCommunityJoinRequest(
+  requestId: string,
+  action: "approve" | "reject"
+) {
+  try {
+    const user = await requireAuth();
+    const request = await db.communityJoinRequest.findUnique({
+      where: { id: requestId },
+      include: { community: { select: { id: true, slug: true, creatorId: true, memberCount: true } } },
+    });
+    if (!request || request.status !== "PENDING") {
+      return { error: "요청을 찾을 수 없습니다." };
+    }
+
+    const perms = await loadMemberPermissions(request.communityId, user.id, false);
+    if (!perms.manageJoinRequests && !perms.approveMembers) {
+      return { error: "권한이 없습니다." };
+    }
+
+    if (action === "reject") {
+      await db.communityJoinRequest.update({
+        where: { id: requestId },
+        data: { status: "REJECTED", reviewedAt: new Date() },
+      });
+      revalidatePath(`/c/${request.community.slug}`);
+      return { success: true as const };
+    }
+
+    const existing = await db.communityMember.findUnique({
+      where: {
+        communityId_userId: { communityId: request.communityId, userId: request.userId },
+      },
+    });
+    if (!existing) {
+      await addMemberToCommunity(
+        request.communityId,
+        request.userId,
+        request.community.slug,
+        request.community.creatorId
+      );
+      void notifyCommunityJoin(
+        request.communityId,
+        request.community.slug,
+        request.community.creatorId,
+        request.userId
+      );
+    }
+
+    await db.communityJoinRequest.update({
+      where: { id: requestId },
+      data: { status: "APPROVED", reviewedAt: new Date() },
+    });
+
+    revalidatePath(`/c/${request.community.slug}`);
+    return { success: true as const };
+  } catch (e) {
+    return { error: prismaErrorMessage(e) };
+  }
+}

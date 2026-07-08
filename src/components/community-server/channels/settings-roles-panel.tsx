@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getCommunityRoles } from "@/actions/community-roles";
+import { getCommunityRoles, updateRolePermissions } from "@/actions/community-roles";
 import { PERMISSION_LABELS, ALL_PERMISSION_KEYS } from "@/lib/community-server/permissions";
 import type { CommunityPermissionKey } from "@/lib/community-server/types";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ type RoleRow = Awaited<ReturnType<typeof getCommunityRoles>>[number];
 
 export function CommunityRolesPanel({
   communityId,
-  communitySlug,
+  communitySlug: _communitySlug,
 }: {
   communityId: string;
   communitySlug: string;
@@ -19,12 +19,26 @@ export function CommunityRolesPanel({
   const [roles, setRoles] = useState<RoleRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [saving, setSaving] = useState<string | null>(null);
 
   useEffect(() => {
     getCommunityRoles(communityId)
       .then(setRoles)
       .finally(() => setLoading(false));
   }, [communityId]);
+
+  async function togglePerm(roleId: string, key: CommunityPermissionKey, next: boolean) {
+    setSaving(roleId);
+    const res = await updateRolePermissions(roleId, { [key]: next });
+    if (!("error" in res) || !res.error) {
+      setRoles((prev) =>
+        prev.map((r) =>
+          r.id === roleId ? { ...r, permissions: { ...r.permissions, [key]: next } } : r
+        )
+      );
+    }
+    setSaving(null);
+  }
 
   if (loading) {
     return (
@@ -39,7 +53,7 @@ export function CommunityRolesPanel({
     <section className="space-y-4">
       <h2 className="text-lg font-semibold">역할 & 권한</h2>
       <p className="text-sm text-muted-foreground">
-        Owner · Admin · Moderator · VIP · Member 역할별 권한을 관리합니다.
+        역할별 권한을 DB에 저장합니다. Owner 역할은 수정할 수 없습니다.
       </p>
       <ul className="space-y-2">
         {roles.map((role) => (
@@ -61,18 +75,13 @@ export function CommunityRolesPanel({
                     <input
                       type="checkbox"
                       checked={role.permissions[key]}
-                      disabled={role.type === "OWNER"}
-                      readOnly
+                      disabled={role.type === "OWNER" || saving === role.id}
+                      onChange={(e) => void togglePerm(role.id, key, e.target.checked)}
                       className="rounded"
                     />
                     {PERMISSION_LABELS[key]}
                   </label>
                 ))}
-                {role.type !== "OWNER" && (
-                  <p className="sm:col-span-2 text-xs text-muted-foreground">
-                    권한 수정은 곧 지원됩니다. 현재는 역할 타입별 기본 권한이 적용됩니다.
-                  </p>
-                )}
               </div>
             )}
           </li>
