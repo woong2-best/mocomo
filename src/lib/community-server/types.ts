@@ -114,6 +114,8 @@ export type VoiceConnectionState = {
   channelId: string | null;
   channelName: string | null;
   channelType: "VOICE" | "VIDEO" | null;
+  /** 커뮤니티 채널 slug — 음성 페이지에서 글로벌 상태바 숨김용 */
+  channelPageSlug: string | null;
   connected: boolean;
   muted: boolean;
   deafened: boolean;

@@ -15,6 +15,7 @@ const defaultVoice: VoiceConnectionState = {
   channelId: null,
   channelName: null,
   channelType: null,
+  channelPageSlug: null,
   connected: false,
   muted: false,
   deafened: false,

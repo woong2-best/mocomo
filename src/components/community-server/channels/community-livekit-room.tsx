@@ -89,7 +89,10 @@ function VideoGrid() {
     { onlySubscribed: false }
   );
   return (
-    <GridLayout tracks={tracks} className="min-h-[240px] rounded-xl overflow-hidden border border-border">
+    <GridLayout
+      tracks={tracks}
+      className="min-h-[280px] w-full [&_.lk-participant-tile]:rounded-none"
+    >
       <ParticipantTile />
     </GridLayout>
   );
@@ -130,33 +133,58 @@ function ParticipantList({
     }
   }
 
+  if (participants.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
+        참가자를 기다리는 중…
+      </div>
+    );
+  }
+
+  const cols =
+    participants.length === 1
+      ? "grid-cols-1"
+      : participants.length === 2
+        ? "grid-cols-1 sm:grid-cols-2"
+        : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
+
   return (
-    <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+    <ul className={cn("grid w-full divide-y divide-border/25", cols)}>
       {participants.map((p) => {
         const micOff = !p.isMicrophoneEnabled;
         const camOn = p.isCameraEnabled;
         const isSelf = p.identity === localParticipant.identity;
         const showMod = !isSelf && communityId && (canMuteMembers || canForceMove);
+
         return (
           <li
             key={p.identity}
             className={cn(
-              "flex items-center gap-2 rounded-lg border border-border/60 bg-card/60 px-3 py-2",
-              p.isSpeaking && "ring-2 ring-emerald-400/60"
+              "flex items-center gap-3 px-4 py-3.5 transition-colors",
+              p.isSpeaking
+                ? "bg-emerald-500/[0.07] shadow-[inset_0_0_0_1px_rgba(52,211,153,0.3)]"
+                : "hover:bg-muted/25"
             )}
           >
-            <Avatar className="h-8 w-8">
-              <AvatarFallback>{(p.name || p.identity || "?")[0]?.toUpperCase()}</AvatarFallback>
+            <Avatar
+              className={cn(
+                "h-10 w-10 shrink-0 ring-2 ring-offset-2 ring-offset-transparent",
+                p.isSpeaking ? "ring-emerald-400/70" : "ring-border/30"
+              )}
+            >
+              <AvatarFallback className="text-sm font-medium">
+                {(p.name || p.identity || "?")[0]?.toUpperCase()}
+              </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium truncate">
                 {p.name || p.identity}
-                {isSelf && <span className="text-muted-foreground text-xs ml-1">(나)</span>}
+                {isSelf && <span className="text-muted-foreground font-normal text-xs ml-1">(나)</span>}
               </p>
-              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                {micOff ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                {micOff ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3 text-emerald-600" />}
                 {camOn ? <Video className="h-3 w-3" /> : <VideoOff className="h-3 w-3" />}
-                {p.isSpeaking ? "말하는 중" : "대기"}
+                <span>{p.isSpeaking ? "말하는 중" : "대기"}</span>
               </p>
             </div>
             {showMod && (
@@ -166,7 +194,7 @@ function ParticipantList({
                     type="button"
                     size="icon"
                     variant="ghost"
-                    className="h-7 w-7"
+                    className="h-8 w-8 rounded-lg opacity-60 hover:opacity-100"
                     disabled={acting === p.identity}
                     title="서버 음소거"
                     onClick={() => void modAction(p.identity, "mute")}
@@ -179,7 +207,7 @@ function ParticipantList({
                     type="button"
                     size="icon"
                     variant="ghost"
-                    className="h-7 w-7 text-destructive"
+                    className="h-8 w-8 rounded-lg text-destructive opacity-60 hover:opacity-100"
                     disabled={acting === p.identity}
                     title="강제 퇴장"
                     onClick={() => void modAction(p.identity, "disconnect")}
@@ -198,7 +226,7 @@ function ParticipantList({
 
 export function CommunityLivekitRoom({
   channelId,
-  channelName,
+  channelName: _channelName,
   communityId,
   muted = false,
   deafened = false,
@@ -254,11 +282,11 @@ export function CommunityLivekitRoom({
 
   if (error) {
     return (
-      <div className="rounded-xl border border-destructive/50 p-6 text-center space-y-3">
+      <div className="rounded-2xl border border-destructive/40 bg-destructive/5 p-8 text-center space-y-3">
         <p className="text-sm text-destructive">{error}</p>
         <button
           type="button"
-          className="text-xs underline text-muted-foreground"
+          className="text-xs underline text-muted-foreground hover:text-foreground"
           onClick={() => {
             setError(null);
             setCreds(null);
@@ -275,19 +303,15 @@ export function CommunityLivekitRoom({
 
   if (!creds) {
     return (
-      <div className="flex items-center justify-center py-10 text-muted-foreground text-sm">
+      <div className="flex flex-1 items-center justify-center py-16 text-muted-foreground text-sm">
         <Loader2 className="h-4 w-4 animate-spin mr-2" />
-        LiveKit 연결 중...
+        연결 준비 중…
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">
-        {channelName} ·{" "}
-        {screenShareOn ? "화면 공유" : cameraOn ? "영상+음성" : "음성"}
-      </p>
+    <div className="flex flex-1 flex-col min-h-0 w-full rounded-2xl border border-border/35 bg-background/55 backdrop-blur-sm shadow-sm overflow-hidden">
       <LiveKitRoom
         token={creds.token}
         serverUrl={creds.serverUrl}
@@ -297,20 +321,22 @@ export function CommunityLivekitRoom({
         options={VOICE_CALL_STABLE_OPTIONS}
         onConnected={onConnected}
         onDisconnected={onDisconnected}
-        className="space-y-3"
+        className="flex flex-1 flex-col min-h-0"
       >
         <MediaSync muted={muted} cameraOn={cameraOn} screenShareOn={screenShareOn} />
         <RoomAudioRenderer volume={deafened ? 0 : 1} />
-        {cameraOn || screenShareOn ? (
-          <VideoGrid />
-        ) : (
-          <ParticipantList
-            communityId={communityId}
-            channelId={channelId}
-            canMuteMembers={canMuteMembers}
-            canForceMove={canForceMove}
-          />
-        )}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {cameraOn || screenShareOn ? (
+            <VideoGrid />
+          ) : (
+            <ParticipantList
+              communityId={communityId}
+              channelId={channelId}
+              canMuteMembers={canMuteMembers}
+              canForceMove={canForceMove}
+            />
+          )}
+        </div>
       </LiveKitRoom>
     </div>
   );
