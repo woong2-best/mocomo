@@ -83,7 +83,12 @@ export async function getChatRooms(forUserId?: string) {
     userId = user.id;
   }
   const rooms = await db.chatRoom.findMany({
-    where: { members: { some: { userId } } },
+    where: {
+      members: { some: { userId } },
+      // 커뮤니티 서버 채널 — /messages 인박스와 분리 (/c/... 에서만 이용)
+      communityId: null,
+      communityChannel: { is: null },
+    },
     take: 25,
     include: {
       members: {

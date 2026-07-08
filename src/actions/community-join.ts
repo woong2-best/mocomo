@@ -39,19 +39,6 @@ async function addMemberToCommunity(
         data: { memberId: member.id, roleId: defaultRole.id },
       });
     }
-
-    const textChannels = await tx.communityChannel.findMany({
-      where: { communityId, chatRoomId: { not: null } },
-      select: { chatRoomId: true },
-    });
-    for (const ch of textChannels) {
-      if (!ch.chatRoomId) continue;
-      await tx.chatMember.upsert({
-        where: { roomId_userId: { roomId: ch.chatRoomId, userId } },
-        create: { roomId: ch.chatRoomId, userId, role: "member" },
-        update: {},
-      });
-    }
   });
 
   revalidatePath(`/c/${communitySlug}`);
