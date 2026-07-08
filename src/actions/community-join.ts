@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
-import { requireAuth } from "@/lib/auth";
+import { requireAuthForAction } from "@/lib/auth";
 import { prismaErrorMessage } from "@/lib/prisma-user-error";
 import { loadMemberPermissions } from "@/lib/community-server/member-permissions";
 import { MAX_OWNERS } from "@/lib/community-server/rbac-defaults";
@@ -63,7 +63,7 @@ export async function joinCommunityServer(
   inviteCode?: string
 ): Promise<JoinCommunityResult> {
   try {
-    const user = await requireAuth();
+    const user = await requireAuthForAction();
     const community = await db.community.findUnique({
       where: { id: communityId },
       select: { id: true, slug: true, creatorId: true, joinMode: true, memberCount: true },
@@ -160,7 +160,7 @@ export async function joinCommunityServer(
 
 export async function markCommunityWelcomeSeen(communityId: string) {
   try {
-    const user = await requireAuth();
+    const user = await requireAuthForAction();
     await db.communityMember.updateMany({
       where: { communityId, userId: user.id, welcomedAt: null },
       data: { welcomedAt: new Date() },
@@ -173,7 +173,7 @@ export async function markCommunityWelcomeSeen(communityId: string) {
 
 export async function updateCommunityJoinMode(communityId: string, joinMode: CommunityJoinMode) {
   try {
-    const user = await requireAuth();
+    const user = await requireAuthForAction();
     const community = await db.community.findUnique({
       where: { id: communityId },
       select: { creatorId: true, slug: true },
@@ -197,7 +197,7 @@ export async function updateCommunityJoinMode(communityId: string, joinMode: Com
 
 export async function createCommunityInvite(communityId: string) {
   try {
-    const user = await requireAuth();
+    const user = await requireAuthForAction();
     const perms = await loadMemberPermissions(communityId, user.id, false);
     if (!perms.inviteMembers) return { error: "초대 권한이 없습니다." };
 
@@ -231,7 +231,7 @@ export async function assertCanAssignOwner(communityId: string, memberId: string
 
 export async function getCommunityJoinRequests(communityId: string) {
   try {
-    const user = await requireAuth();
+    const user = await requireAuthForAction();
     const perms = await loadMemberPermissions(communityId, user.id, false);
     if (!perms.manageJoinRequests && !perms.approveMembers) {
       return { requests: [], error: "권한이 없습니다." };
@@ -272,7 +272,7 @@ export async function reviewCommunityJoinRequest(
   action: "approve" | "reject"
 ) {
   try {
-    const user = await requireAuth();
+    const user = await requireAuthForAction();
     const request = await db.communityJoinRequest.findUnique({
       where: { id: requestId },
       include: { community: { select: { id: true, slug: true, creatorId: true, memberCount: true } } },

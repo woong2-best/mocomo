@@ -63,10 +63,6 @@ export function CommunityMembershipProvider({
     async (inviteCode?: string) => {
       setState((s) => ({ ...s, joinLoading: true, joinError: null, joinMessage: null }));
       try {
-        if (!initial.isLoggedIn) {
-          router.push(`/auth/signin?callbackUrl=/c/${initial.slug}`);
-          return;
-        }
         const result = await joinCommunityServer(initial.communityId, inviteCode);
         if ("error" in result && result.error) {
           setState((s) => ({ ...s, joinError: result.error }));
@@ -88,12 +84,19 @@ export function CommunityMembershipProvider({
           void queryClient.invalidateQueries({
             queryKey: ["community-members", initial.communityId],
           });
+          router.refresh();
         }
+      } catch (e) {
+        setState((s) => ({
+          ...s,
+          joinError:
+            e instanceof Error ? e.message : "참여 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+        }));
       } finally {
         setState((s) => ({ ...s, joinLoading: false }));
       }
     },
-    [initial.communityId, initial.isLoggedIn, initial.slug, queryClient, router]
+    [initial.communityId, queryClient, router]
   );
 
   const dismissWelcome = useCallback(async () => {

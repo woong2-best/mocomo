@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2, Users } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useCommunityMembership } from "@/components/community-server/community-membership-context";
@@ -16,10 +17,21 @@ export function CommunityJoinBanner({ className }: { className?: string }) {
     join,
     joinMode,
   } = useCommunityMembership();
+  const { status: sessionStatus } = useSession();
   const searchParams = useSearchParams();
   const inviteCode = searchParams.get("invite") ?? undefined;
 
   if (isMember || isOwner) return null;
+
+  function handleJoinClick() {
+    if (sessionStatus === "unauthenticated") {
+      const returnTo = `${window.location.pathname}${window.location.search}`;
+      window.location.assign(`/auth/signin?callbackUrl=${encodeURIComponent(returnTo)}`);
+      return;
+    }
+    if (sessionStatus === "loading") return;
+    void join(inviteCode);
+  }
 
   return (
     <div
@@ -49,11 +61,17 @@ export function CommunityJoinBanner({ className }: { className?: string }) {
         type="button"
         size="sm"
         className="shrink-0 rounded-xl"
-        disabled={joinLoading || (joinMode === "INVITE_ONLY" && !inviteCode)}
-        onClick={() => void join(inviteCode)}
+        disabled={
+          joinLoading ||
+          sessionStatus === "loading" ||
+          (joinMode === "INVITE_ONLY" && !inviteCode)
+        }
+        onClick={handleJoinClick}
       >
         {joinLoading ? (
           <Loader2 className="h-4 w-4 animate-spin" />
+        ) : sessionStatus === "loading" ? (
+          "확인 중…"
         ) : joinMode === "APPROVE" ? (
           "가입 요청하기"
         ) : joinMode === "INVITE_ONLY" ? (

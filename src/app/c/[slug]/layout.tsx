@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { getCommunityServerContext } from "@/lib/community-server/server-data";
 import { CommunityServerLayoutClient } from "@/components/community-server/server-layout-client";
 
+export const dynamic = "force-dynamic";
+
 export default async function CommunityLayout({
   children,
   params,

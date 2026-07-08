@@ -137,7 +137,11 @@ export function MemberListContent({
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="p-2 space-y-4">
           {grouped.length === 0 ? (
-            <p className="px-2 text-xs text-muted-foreground">멤버 목록을 불러오는 중…</p>
+            <p className="px-2 text-xs text-muted-foreground">
+              {count > 0 && members.length === 0
+                ? "멤버 목록을 불러오는 중…"
+                : "표시할 멤버가 없습니다."}
+            </p>
           ) : (
             grouped.map((group) => (
               <div key={group.roleType}>
