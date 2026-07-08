@@ -89,7 +89,7 @@ export async function getCommunityServerContext(slug: string): Promise<Community
     include: { category: { select: { id: true, name: true } } },
   });
 
-  let unreadByChannel = new Map<string, number>();
+  const unreadByChannel = new Map<string, number>();
   if (user) {
     const reads = await db.communityChannelRead.findMany({
       where: {

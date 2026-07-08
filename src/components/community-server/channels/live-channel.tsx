@@ -1,13 +1,8 @@
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { Radio, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
-
-const LiveChannelStudio = dynamic(
-  () => import("@/components/community-server/channels/live-channel-studio").then((m) => m.LiveChannelStudio),
-  { ssr: false }
-);
+import { LiveChannelStudio } from "@/components/community-server/channels/live-channel-studio";
 
 export async function LiveChannelView({
   voiceChannelId,
