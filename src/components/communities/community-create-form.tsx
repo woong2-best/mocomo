@@ -38,7 +38,7 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
         return;
       }
       if ("community" in result && result.community?.slug) {
-        router.push(`/c/${result.community.slug}`);
+        router.replace(`/c/${result.community.slug}`);
         router.refresh();
         return;
       }

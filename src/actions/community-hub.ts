@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth, getCachedCurrentUser } from "@/lib/auth";
-import { generateCommunitySlug } from "@/lib/community-slug";
+import { generateCommunitySlug, normalizeCommunitySlugParam } from "@/lib/community-slug";
 import { prismaErrorMessage } from "@/lib/prisma-user-error";
 import { notifyCommunityJoin } from "@/lib/notifications";
 import type { CommunityCategory } from "@prisma/client";
@@ -114,23 +114,23 @@ export async function createCommunity(data: {
 }
 
 export async function getCommunityBySlug(slug: string) {
+  const normalizedSlug = normalizeCommunitySlugParam(slug);
+  if (!normalizedSlug) return null;
+
   try {
     const user = await getCachedCurrentUser();
+
     const community = await db.community.findUnique({
-      where: { slug },
-      include: {
-        posts: {
-          take: 30,
-          orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
-          include: {
-            author: {
-              select: userPublicSelect,
-            },
-            community: { select: { name: true, slug: true } },
-            media: postMediaPreview,
-            _count: { select: { likes: true, comments: true, votes: true } },
-          },
-        },
+      where: { slug: normalizedSlug },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        description: true,
+        category: true,
+        isNsfw: true,
+        memberCount: true,
+        creatorId: true,
         children: {
           take: 24,
           select: { id: true, name: true, slug: true, memberCount: true },
@@ -139,16 +139,54 @@ export async function getCommunityBySlug(slug: string) {
     });
     if (!community) return null;
 
+    let posts: Array<{
+      id: string;
+      title: string | null;
+      content: string;
+      createdAt: Date;
+      isNsfw: boolean;
+      author: {
+        id: string;
+        username: string;
+        name: string | null;
+        image: string | null;
+        level: number;
+        supportTierSent: import("@prisma/client").SupportTierLevel;
+      };
+      community: { name: string; slug: string } | null;
+      media: { url: string; type: string; priceKrw: number | null }[];
+      _count: { likes: number; comments: number; votes: number };
+    }> = [];
+    try {
+      posts = await db.post.findMany({
+        where: { communityId: community.id },
+        take: 30,
+        orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
+        include: {
+          author: { select: userPublicSelect },
+          community: { select: { name: true, slug: true } },
+          media: postMediaPreview,
+          _count: { select: { likes: true, comments: true, votes: true } },
+        },
+      });
+    } catch (postsErr) {
+      console.error("[getCommunityBySlug] posts load failed", postsErr);
+    }
+
     let membership: { role: string } | null = null;
     if (user) {
-      membership = await db.communityMember.findUnique({
-        where: { communityId_userId: { communityId: community.id, userId: user.id } },
-        select: { role: true },
-      });
+      try {
+        membership = await db.communityMember.findUnique({
+          where: { communityId_userId: { communityId: community.id, userId: user.id } },
+          select: { role: true },
+        });
+      } catch (memberErr) {
+        console.error("[getCommunityBySlug] membership load failed", memberErr);
+      }
     }
 
     return {
-      community,
+      community: { ...community, posts },
       viewer: user
         ? {
             userId: user.id,

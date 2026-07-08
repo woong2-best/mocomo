@@ -1,8 +1,6 @@
-/** 커뮤니티 URL slug — 한글 이름 지원 */
+/** 커뮤니티 URL slug — URL 안전 문자만 사용 */
 export function generateCommunitySlug(name: string): string {
   const trimmed = name.trim();
-  if (!trimmed) return `community-${Date.now().toString(36)}`;
-
   const normalized = trimmed
     .toLowerCase()
     .replace(/[\s\u00A0_]+/g, "-")
@@ -10,10 +8,14 @@ export function generateCommunitySlug(name: string): string {
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
 
-  const base =
-    normalized.length > 0
-      ? normalized.slice(0, 48)
-      : trimmed.replace(/\s+/g, "").slice(0, 24);
+  const base = (normalized.length > 0 ? normalized : "community").slice(0, 48);
+  return `${base}-${Date.now().toString(36)}`;
+}
 
-  return `${base || "community"}-${Date.now().toString(36)}`;
+export function normalizeCommunitySlugParam(slug: string): string {
+  try {
+    return decodeURIComponent(slug).trim();
+  } catch {
+    return slug.trim();
+  }
 }
