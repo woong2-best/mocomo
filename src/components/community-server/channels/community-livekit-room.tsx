@@ -14,19 +14,37 @@ import { cn } from "@/lib/utils";
 
 export type CommunityLivekitCreds = { token: string; serverUrl: string };
 
+const TOKEN_TIMEOUT_MS = 8_000;
+
 export async function fetchCommunityVoiceToken(
   channelId: string,
-  kind: "VOICE" | "VIDEO" = "VOICE"
+  kind: "VOICE" | "VIDEO" = "VOICE",
+  signal?: AbortSignal
 ): Promise<CommunityLivekitCreds> {
-  const res = await fetch(
-    `/api/livekit/community-token?channelId=${encodeURIComponent(channelId)}&kind=${kind}`,
-    { credentials: "include", cache: "no-store" }
-  );
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok || !body.token || !body.serverUrl) {
-    throw new Error((body as { error?: string }).error ?? "토큰 발급 실패");
+  const ctrl = new AbortController();
+  const timer = window.setTimeout(() => ctrl.abort(), TOKEN_TIMEOUT_MS);
+  if (signal) {
+    signal.addEventListener("abort", () => ctrl.abort(), { once: true });
   }
-  return { token: body.token as string, serverUrl: body.serverUrl as string };
+
+  try {
+    const res = await fetch(
+      `/api/livekit/community-token?channelId=${encodeURIComponent(channelId)}&kind=${kind}`,
+      { credentials: "include", cache: "no-store", signal: ctrl.signal }
+    );
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body.token || !body.serverUrl) {
+      throw new Error((body as { error?: string }).error ?? `토큰 발급 실패 (${res.status})`);
+    }
+    return { token: body.token as string, serverUrl: body.serverUrl as string };
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      throw new Error("음성 서버 응답이 너무 늦습니다. 다시 시도해 주세요.");
+    }
+    throw e;
+  } finally {
+    window.clearTimeout(timer);
+  }
 }
 
 function ParticipantList() {
@@ -77,6 +95,7 @@ export function CommunityLivekitRoom({
   prefetched,
   onConnected,
   onDisconnected,
+  onError,
 }: {
   channelId: string;
   channelName: string;
@@ -86,6 +105,7 @@ export function CommunityLivekitRoom({
   prefetched?: CommunityLivekitCreds | null;
   onConnected?: () => void;
   onDisconnected?: () => void;
+  onError?: (msg: string) => void;
 }) {
   const [creds, setCreds] = useState<CommunityLivekitCreds | null>(prefetched ?? null);
   const [error, setError] = useState<string | null>(null);
@@ -105,17 +125,34 @@ export function CommunityLivekitRoom({
       })
       .catch((e: unknown) => {
         if (cancelled) return;
-        setError(e instanceof Error ? e.message : "LiveKit 연결 실패");
+        const msg = e instanceof Error ? e.message : "LiveKit 연결 실패";
+        setError(msg);
+        onError?.(msg);
       });
     return () => {
       cancelled = true;
     };
-  }, [channelId, kind, prefetched?.token, prefetched?.serverUrl]);
+  }, [channelId, kind, prefetched?.token, prefetched?.serverUrl, onError]);
 
   if (error) {
     return (
-      <div className="rounded-xl border border-destructive/50 p-6 text-center text-sm text-destructive">
-        {error}
+      <div className="rounded-xl border border-destructive/50 p-6 text-center space-y-3">
+        <p className="text-sm text-destructive">{error}</p>
+        <button
+          type="button"
+          className="text-xs underline text-muted-foreground"
+          onClick={() => {
+            setError(null);
+            setCreds(null);
+            fetchCommunityVoiceToken(channelId, kind)
+              .then(setCreds)
+              .catch((e: unknown) =>
+                setError(e instanceof Error ? e.message : "연결 실패")
+              );
+          }}
+        >
+          다시 시도
+        </button>
       </div>
     );
   }
@@ -124,7 +161,7 @@ export function CommunityLivekitRoom({
     return (
       <div className="flex items-center justify-center py-10 text-muted-foreground text-sm">
         <Loader2 className="h-4 w-4 animate-spin mr-2" />
-        연결 준비 중...
+        LiveKit 토큰 발급 중...
       </div>
     );
   }

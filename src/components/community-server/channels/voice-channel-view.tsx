@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Loader2, Mic, MicOff, Headphones, Monitor, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCommunityVoice } from "@/components/community-server/community-voice-context";
@@ -25,17 +25,20 @@ export function VoiceChannelView({
   const { voice, connect, disconnect, setMuted, setDeafened } = useCommunityVoice();
   const isInChannel = voice.channelId === channelId;
   const [prefetched, setPrefetched] = useState<CommunityLivekitCreds | null>(null);
-  const [joining, setJoining] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
   const [liveConnected, setLiveConnected] = useState(false);
-  const prefetchStarted = useRef(false);
 
-  // 채널 화면 들어오자마자 토큰 미리 발급 → 참가 클릭 즉시 연결
+  // 백그라운드 prefetch — 실패해도 입장을 막지 않음
   useEffect(() => {
-    if (prefetchStarted.current) return;
-    prefetchStarted.current = true;
+    let cancelled = false;
     void fetchCommunityVoiceToken(channelId, channelType)
-      .then(setPrefetched)
+      .then((c) => {
+        if (!cancelled) setPrefetched(c);
+      })
       .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
   }, [channelId, channelType]);
 
   useEffect(() => {
@@ -44,29 +47,22 @@ export function VoiceChannelView({
     };
   }, [channelId, disconnect, voice.channelId]);
 
-  const handleJoin = useCallback(async () => {
-    setJoining(true);
-    try {
-      let creds = prefetched;
-      if (!creds) {
-        creds = await fetchCommunityVoiceToken(channelId, channelType);
-        setPrefetched(creds);
-      }
-      connect({
-        channelId,
-        channelName,
-        channelType,
-        muted: false,
-        deafened: false,
-      });
-    } catch {
-      setJoining(false);
-    }
-  }, [prefetched, channelId, channelType, channelName, connect]);
+  /** 토큰을 기다리지 않고 즉시 입장 UI로 전환 — 토큰은 룸이 가져옴 */
+  const handleJoin = useCallback(() => {
+    setJoinError(null);
+    setLiveConnected(false);
+    connect({
+      channelId,
+      channelName,
+      channelType,
+      muted: false,
+      deafened: false,
+    });
+  }, [channelId, channelName, channelType, connect]);
 
   const handleLeave = useCallback(() => {
-    setJoining(false);
     setLiveConnected(false);
+    setJoinError(null);
     disconnect();
   }, [disconnect]);
 
@@ -81,18 +77,14 @@ export function VoiceChannelView({
             {prefetched && !isInChannel && (
               <span className="text-emerald-600">· 준비됨</span>
             )}
+            {isInChannel && liveConnected && (
+              <span className="text-emerald-600">· 연결됨</span>
+            )}
           </p>
         </div>
         {!isInChannel ? (
-          <Button size="sm" onClick={handleJoin} disabled={joining}>
-            {joining ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                연결 중
-              </>
-            ) : (
-              "참가하기"
-            )}
+          <Button size="sm" onClick={handleJoin}>
+            참가하기
           </Button>
         ) : (
           <Button size="sm" variant="destructive" onClick={handleLeave}>
@@ -109,9 +101,8 @@ export function VoiceChannelView({
                 ? "음성 채널에 참가하려면 버튼을 누르세요."
                 : "영상 채널에 참가하려면 버튼을 누르세요."}
             </p>
-            <Button onClick={handleJoin} disabled={joining}>
-              {joining ? "연결 중..." : "참가하기"}
-            </Button>
+            {joinError && <p className="text-sm text-destructive">{joinError}</p>}
+            <Button onClick={handleJoin}>참가하기</Button>
           </div>
         ) : (
           <CommunityLivekitRoom
@@ -121,11 +112,12 @@ export function VoiceChannelView({
             muted={voice.muted}
             deafened={voice.deafened}
             prefetched={prefetched}
-            onConnected={() => {
-              setJoining(false);
-              setLiveConnected(true);
-            }}
+            onConnected={() => setLiveConnected(true)}
             onDisconnected={handleLeave}
+            onError={(msg) => {
+              setJoinError(msg);
+              disconnect();
+            }}
           />
         )}
       </div>
@@ -135,7 +127,7 @@ export function VoiceChannelView({
           {!liveConnected && (
             <span className="text-xs text-muted-foreground flex items-center mr-2">
               <Loader2 className="h-3 w-3 animate-spin mr-1" />
-              연결 중
+              LiveKit 연결 중
             </span>
           )}
           <Button
