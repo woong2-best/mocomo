@@ -40,6 +40,7 @@ export function ChatRoomClient({
   initialMessages = [],
   readOnly = false,
   communityId,
+  vipEmoji = false,
   canDeleteMessages = false,
 }: {
   roomId: string;
@@ -50,6 +51,7 @@ export function ChatRoomClient({
   initialMessages?: Message[];
   readOnly?: boolean;
   communityId?: string;
+  vipEmoji?: boolean;
   canDeleteMessages?: boolean;
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
@@ -543,12 +545,15 @@ export function ChatRoomClient({
             onSendText={send}
             onSendAttachments={sendAttachments}
             inputRef={composerInputRef}
+            vipEmoji={vipEmoji}
           />
         </div>
       )}
       {readOnly && (
         <div className="shrink-0 border-t border-border/60 bg-muted/30 px-4 py-3 text-center text-xs text-muted-foreground">
-          읽기 전용 모드입니다. 상단에서 커뮤니티에 참여하면 채팅을 보낼 수 있습니다.
+          {userId === "guest"
+            ? "게스트 읽기 전용입니다. 로그인 후 커뮤니티에 참여하면 채팅을 보낼 수 있습니다."
+            : "읽기 전용 모드입니다. 상단에서 커뮤니티에 참여하면 채팅을 보낼 수 있습니다."}
         </div>
       )}
     </div>

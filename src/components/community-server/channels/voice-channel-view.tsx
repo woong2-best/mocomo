@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useCommunityVoice } from "@/components/community-server/community-voice-context";
 import { useCommunityMembership } from "@/components/community-server/community-membership-context";
+import { hasPermission } from "@/lib/community-server/permissions";
 import {
   CommunityLivekitRoom,
   type CommunityLivekitCreds,
@@ -35,13 +36,17 @@ export function VoiceChannelView({
   readOnly?: boolean;
 }) {
   const { voice, connect, disconnect, setMuted, setDeafened } = useCommunityVoice();
-  const { isMember, isOwner } = useCommunityMembership();
+  const { isMember, isOwner, permissions } = useCommunityMembership();
   const readOnly = serverReadOnly && !isMember && !isOwner;
+  const canShareScreen = hasPermission(permissions, "shareScreen");
+  const canMuteMembers = hasPermission(permissions, "muteMembers");
+  const canForceMove = hasPermission(permissions, "forceMoveVoice");
   const isInChannel = voice.channelId === channelId;
   const [prefetched, setPrefetched] = useState<CommunityLivekitCreds | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [liveConnected, setLiveConnected] = useState(false);
   const [cameraOn, setCameraOn] = useState(false);
+  const [screenShareOn, setScreenShareOn] = useState(false);
 
   // 페이지 로드 시 토큰 prefetch 금지 — 세션 504와 경쟁하면서 더 느려짐
   // 참가 시에만 community-livekit-room이 토큰을 요청
@@ -57,6 +62,7 @@ export function VoiceChannelView({
     setJoinError(null);
     setLiveConnected(false);
     setCameraOn(false);
+    setScreenShareOn(false);
     setPrefetched(null);
     connect({
       channelId,
@@ -89,6 +95,7 @@ export function VoiceChannelView({
     setLiveConnected(false);
     setJoinError(null);
     setCameraOn(false);
+    setScreenShareOn(false);
     setPrefetched(null);
     disconnect();
   }, [disconnect]);
@@ -134,9 +141,13 @@ export function VoiceChannelView({
           <CommunityLivekitRoom
             channelId={channelId}
             channelName={channelName}
+            communityId={communityId}
             muted={voice.muted}
             deafened={voice.deafened}
             cameraOn={cameraOn}
+            screenShareOn={screenShareOn}
+            canMuteMembers={canMuteMembers}
+            canForceMove={canForceMove}
             prefetched={prefetched}
             onConnected={() => setLiveConnected(true)}
             onDisconnected={handleLeave}
@@ -187,7 +198,22 @@ export function VoiceChannelView({
           >
             {cameraOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
           </Button>
-          <Button type="button" size="icon" variant="outline" title="화면 공유 (준비 중)" disabled>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            className={cn(screenShareOn && "bg-primary/20")}
+            onClick={() => setScreenShareOn((v) => !v)}
+            disabled={!canShareScreen}
+            aria-label={screenShareOn ? "화면 공유 끄기" : "화면 공유"}
+            title={
+              !canShareScreen
+                ? "화면 공유 권한이 없습니다"
+                : screenShareOn
+                  ? "화면 공유 끄기"
+                  : "화면 공유"
+            }
+          >
             <Monitor className="h-4 w-4" />
           </Button>
         </div>

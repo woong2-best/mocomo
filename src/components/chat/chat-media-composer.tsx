@@ -8,6 +8,7 @@ import { toAbsoluteUploadUrl, uploadAudioBlob, uploadImageBlob } from "@/lib/cli
 import { fileToUploadableJpeg, isGalleryImageFile } from "@/lib/gallery-image-upload";
 import type { ChatAttachmentInput } from "@/lib/chat-attachments";
 import { cn } from "@/lib/utils";
+import { CHAT_EMOJIS, VIP_CHAT_EMOJIS } from "@/lib/community-vip-emoji";
 
 const MAX_VOICE_SEC = 120;
 const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif";
@@ -27,6 +28,7 @@ type ChatMediaComposerProps = {
   onSendAttachments: (attachments: ChatAttachmentInput[], caption?: string) => Promise<void>;
   disabled?: boolean;
   inputRef?: React.RefObject<HTMLTextAreaElement | null>;
+  vipEmoji?: boolean;
 };
 
 export function ChatMediaComposer({
@@ -36,6 +38,7 @@ export function ChatMediaComposer({
   onSendAttachments,
   disabled,
   inputRef,
+  vipEmoji = false,
 }: ChatMediaComposerProps) {
   const galleryInputId = useId();
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -201,10 +204,6 @@ export function ChatMediaComposer({
 
   return (
     <div className="shrink-0 bg-background px-2 py-2 sm:px-3 pb-safe">
-      {error && (
-        <p className="text-[11px] text-destructive text-center px-2 mb-1">{error}</p>
-      )}
-
       {recording && (
         <div className="flex items-center justify-center gap-3 mb-2 py-2 rounded-xl bg-folk-terracotta/10 border border-folk-terracotta/20">
           <span className="h-2 w-2 rounded-full bg-folk-terracotta animate-pulse" />
@@ -231,6 +230,39 @@ export function ChatMediaComposer({
           </Button>
         </div>
       )}
+
+      {error && (
+        <p className="text-[11px] text-destructive text-center px-2 mb-1">{error}</p>
+      )}
+
+      <div className="flex flex-wrap gap-0.5 justify-center mb-1.5 max-w-3xl mx-auto">
+        {CHAT_EMOJIS.map((emoji) => (
+          <button
+            key={emoji}
+            type="button"
+            className="h-8 w-8 rounded-lg hover:bg-muted/80 text-lg leading-none disabled:opacity-40"
+            disabled={disabled || uploading || recording}
+            onClick={() => onChange(value + emoji)}
+            aria-label={`이모지 ${emoji}`}
+          >
+            {emoji}
+          </button>
+        ))}
+        {vipEmoji &&
+          VIP_CHAT_EMOJIS.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              className="h-8 w-8 rounded-lg hover:bg-amber-500/15 text-lg leading-none ring-1 ring-amber-400/30 disabled:opacity-40"
+              disabled={disabled || uploading || recording}
+              onClick={() => onChange(value + emoji)}
+              aria-label={`VIP 이모지 ${emoji}`}
+              title="VIP 이모지"
+            >
+              {emoji}
+            </button>
+          ))}
+      </div>
 
       <div className="flex items-end gap-1.5 max-w-3xl mx-auto">
         <div className="flex items-center gap-0.5 shrink-0 pb-0.5">

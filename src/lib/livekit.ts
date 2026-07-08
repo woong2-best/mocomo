@@ -4,7 +4,7 @@ export async function createLivekitToken(
   roomName: string,
   participantIdentity: string,
   participantName: string,
-  options?: { audioOnly?: boolean; publish?: boolean }
+  options?: { audioOnly?: boolean; publish?: boolean; screenShare?: boolean }
 ): Promise<string | null> {
   const apiKey = process.env.LIVEKIT_API_KEY;
   const apiSecret = process.env.LIVEKIT_API_SECRET;
@@ -25,11 +25,12 @@ export async function createLivekitToken(
       canPublish,
       canSubscribe: true,
       canPublishData: canPublish,
-      canPublishSources:
-        !canPublish
-          ? []
-          : options?.audioOnly
-            ? [TrackSource.MICROPHONE]
+      canPublishSources: !canPublish
+        ? []
+        : options?.audioOnly
+          ? [TrackSource.MICROPHONE]
+          : options?.screenShare === false
+            ? [TrackSource.MICROPHONE, TrackSource.CAMERA]
             : undefined,
     });
 

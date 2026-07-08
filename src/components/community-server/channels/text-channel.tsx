@@ -10,22 +10,30 @@ export async function TextChannelView({
   channelId,
   channelName,
   communityId,
+  communitySlug,
+  isPublic = true,
   readOnly = false,
 }: {
   roomId: string;
   channelId: string;
   channelName: string;
   communityId: string;
+  communitySlug: string;
+  isPublic?: boolean;
   readOnly?: boolean;
 }) {
   const session = await getCachedSession();
-  if (!session?.user?.id) redirect(`/auth/signin`);
+  const isGuest = !session?.user?.id;
 
-  if (!readOnly) {
+  if (isGuest && !isPublic) {
+    redirect(`/auth/signin?callbackUrl=/c/${communitySlug}`);
+  }
+
+  if (!isGuest && !readOnly) {
     void db.chatMember
       .upsert({
-        where: { roomId_userId: { roomId, userId: session.user.id } },
-        create: { roomId, userId: session.user.id, role: "member" },
+        where: { roomId_userId: { roomId, userId: session!.user!.id } },
+        create: { roomId, userId: session!.user!.id, role: "member" },
         update: {},
       })
       .catch(() => undefined);
@@ -36,7 +44,7 @@ export async function TextChannelView({
       where: { id: roomId },
       select: { type: true, name: true },
     }),
-    getCachedAuthUserMinimal(),
+    isGuest ? Promise.resolve(null) : getCachedAuthUserMinimal(),
     db.message.findMany({
       where: { roomId },
       take: 40,
@@ -49,24 +57,32 @@ export async function TextChannelView({
   const ordered = [...messages].reverse();
   const initialMessages = ordered.map(serializeChatMessage);
   const lastMsg = ordered[ordered.length - 1];
-  if (lastMsg && !readOnly) void markCommunityChannelRead(channelId, lastMsg.id);
+  if (lastMsg && !readOnly && !isGuest) void markCommunityChannelRead(channelId, lastMsg.id);
+
+  const guestMode = isGuest;
+  const effectiveReadOnly = readOnly || guestMode;
 
   return (
     <div className="flex flex-col h-full min-h-0">
       <header className="shrink-0 px-4 py-3 border-b border-border/50">
         <h1 className="font-semibold"># {channelName}</h1>
-        {readOnly && (
-          <p className="text-xs text-muted-foreground mt-0.5">읽기 전용 · 참여 후 채팅 가능</p>
+        {effectiveReadOnly && (
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {guestMode
+              ? "게스트 읽기 전용 · 로그인 후 참여하면 채팅 가능"
+              : "읽기 전용 · 참여 후 채팅 가능"}
+          </p>
         )}
       </header>
       <div className="flex-1 min-h-0 flex flex-col">
         <TextChannelShell
           communityId={communityId}
-          serverReadOnly={readOnly}
+          serverReadOnly={effectiveReadOnly}
+          guestMode={guestMode}
           roomId={roomId}
-          userId={session.user.id}
-          username={session.user.username || "user"}
-          userImage={me?.image ?? session.user.image ?? null}
+          userId={session?.user?.id ?? "guest"}
+          username={session?.user?.username || "게스트"}
+          userImage={me?.image ?? session?.user?.image ?? null}
           userSupportTier={me?.supportTierSent ?? "PEBBLE"}
           initialMessages={initialMessages}
           header={{

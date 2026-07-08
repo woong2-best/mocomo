@@ -252,3 +252,12 @@ CREATE TABLE IF NOT EXISTS "CommunityBan" (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "CommunityBan_communityId_userId_key"
   ON "CommunityBan"("communityId", "userId");
+
+-- Event.communityId (커뮤니티 전용 이벤트)
+ALTER TABLE "Event" ADD COLUMN IF NOT EXISTS "communityId" TEXT;
+CREATE INDEX IF NOT EXISTS "Event_communityId_status_idx" ON "Event"("communityId", "status");
+DO $$ BEGIN
+  ALTER TABLE "Event" ADD CONSTRAINT "Event_communityId_fkey"
+    FOREIGN KEY ("communityId") REFERENCES "Community"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;

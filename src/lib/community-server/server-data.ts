@@ -29,6 +29,7 @@ export const getCommunityServerContext = cache(
         memberCount: true,
         creatorId: true,
         joinMode: true,
+        isPublic: true,
       },
     });
     if (!community) return null;
@@ -85,6 +86,7 @@ export const getCommunityServerContext = cache(
       iconUrl: community.iconUrl,
       memberCount: community.memberCount,
       joinMode: community.joinMode,
+      isPublic: community.isPublic,
       isMember,
       isOwner,
       isLoggedIn: !!user,

@@ -34,6 +34,8 @@ export function ChatRoomShell({
   header,
   groupMeta,
   readOnly = false,
+  guestMode = false,
+  vipEmoji = false,
   communityId,
   canDeleteMessages = false,
 }: {
@@ -53,11 +55,12 @@ export function ChatRoomShell({
   };
   groupMeta: GroupMeta | null;
   readOnly?: boolean;
+  guestMode?: boolean;
+  vipEmoji?: boolean;
   communityId?: string;
   canDeleteMessages?: boolean;
 }) {
-  return (
-    <ChatSocketProvider roomId={roomId}>
+  const inner = (
       <div className="flex flex-col flex-1 min-h-0">
         <ChatHeader
           displayName={header.displayName}
@@ -91,10 +94,14 @@ export function ChatRoomShell({
             initialMessages={initialMessages}
             readOnly={readOnly}
             communityId={communityId}
+            vipEmoji={vipEmoji}
             canDeleteMessages={canDeleteMessages}
           />
         </Suspense>
       </div>
-    </ChatSocketProvider>
   );
+
+  if (guestMode) return inner;
+
+  return <ChatSocketProvider roomId={roomId}>{inner}</ChatSocketProvider>;
 }

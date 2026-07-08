@@ -100,6 +100,7 @@ export type CommunityServerContext = {
   iconUrl: string | null;
   memberCount: number;
   joinMode: CommunityJoinMode;
+  isPublic: boolean;
   isMember: boolean;
   isOwner: boolean;
   isLoggedIn: boolean;

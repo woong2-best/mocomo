@@ -10,6 +10,7 @@ import { deleteCommunityChatMessage } from "@/actions/community-content";
 
 export function TextChannelShell({
   serverReadOnly,
+  guestMode = false,
   communityId,
   roomId,
   userId,
@@ -20,6 +21,7 @@ export function TextChannelShell({
   header,
 }: {
   serverReadOnly: boolean;
+  guestMode?: boolean;
   communityId: string;
   roomId: string;
   userId: string;
@@ -37,6 +39,7 @@ export function TextChannelShell({
   const readOnly = serverReadOnly && !isMember && !isOwner;
   const canDeleteMessages =
     hasPermission(permissions, "deleteMessages") || hasPermission(permissions, "moderateChat");
+  const vipEmoji = hasPermission(permissions, "vipEmoji");
 
   return (
     <ChatRoomShell
@@ -50,6 +53,8 @@ export function TextChannelShell({
       header={header}
       groupMeta={null}
       readOnly={readOnly}
+      guestMode={guestMode}
+      vipEmoji={vipEmoji}
       canDeleteMessages={canDeleteMessages}
     />
   );

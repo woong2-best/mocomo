@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { createLivekitToken, getLivekitUrl, isLivekitConfigured } from "@/lib/livekit";
 import { db } from "@/lib/db";
+import { loadMemberPermissions } from "@/lib/community-server/member-permissions";
+import { hasPermission } from "@/lib/community-server/permissions";
 
 export const runtime = "nodejs";
 export const maxDuration = 15;
@@ -79,6 +81,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "커뮤니티 멤버만 참가할 수 있습니다." }, { status: 403 });
     }
 
+    const communityId = voice.communityId;
+    let canScreenShare = true;
+    if (communityId) {
+      const community = await db.community.findUnique({
+        where: { id: communityId },
+        select: { creatorId: true },
+      });
+      const isOwner = community?.creatorId === userId;
+      const perms = await loadMemberPermissions(communityId, userId, isOwner);
+      canScreenShare = hasPermission(perms, "shareScreen");
+    }
+
     const displayName =
       (jwt?.username as string | undefined) ||
       (jwt?.name as string | undefined) ||
@@ -87,6 +101,7 @@ export async function GET(req: NextRequest) {
     const token = await createLivekitToken(channelId, userId, displayName, {
       publish: true,
       audioOnly: false,
+      screenShare: canScreenShare,
     });
     if (!token) {
       return NextResponse.json({ error: "LiveKit 토큰 생성 실패" }, { status: 503 });

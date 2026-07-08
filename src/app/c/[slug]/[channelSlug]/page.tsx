@@ -86,6 +86,8 @@ export default async function CommunityChannelPage({
           channelId={channel.id}
           channelName={channel.name}
           communityId={ctx.communityId}
+          communitySlug={slug}
+          isPublic={ctx.isPublic}
           readOnly={!ctx.isMember && !ctx.isOwner}
         />
       );
@@ -122,7 +124,7 @@ export default async function CommunityChannelPage({
       );
 
     case "EVENT":
-      return <EventsChannelView communityId={ctx.communityId} />;
+      return <EventsChannelView communityId={ctx.communityId} communitySlug={slug} />;
 
     case "GALLERY":
       return <GalleryChannelView communityId={ctx.communityId} />;

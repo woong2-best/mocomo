@@ -310,3 +310,63 @@ export async function getCommunityFiles(communityId: string) {
     return { files: [] };
   }
 }
+
+export async function createCommunityEvent(
+  communityId: string,
+  data: {
+    title: string;
+    description: string;
+    startsAt: string;
+    endsAt: string;
+    type?: string;
+    linkUrl?: string;
+  }
+) {
+  try {
+    const user = await requireAuth();
+    const ctx = await modPerms(communityId, user.id);
+    if (!ctx) return { error: "커뮤니티를 찾을 수 없습니다." };
+    if (!hasPermission(ctx.perms, "manageEvents") && !hasPermission(ctx.perms, "manageServer")) {
+      return { error: "이벤트 생성 권한이 없습니다." };
+    }
+
+    const title = data.title?.trim();
+    const description = data.description?.trim();
+    if (!title || title.length < 2) return { error: "제목을 입력해 주세요." };
+    if (!description || description.length < 5) return { error: "설명을 5자 이상 입력해 주세요." };
+
+    const startsAt = new Date(data.startsAt);
+    const endsAt = new Date(data.endsAt);
+    if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime())) {
+      return { error: "날짜가 올바르지 않습니다." };
+    }
+    if (endsAt <= startsAt) return { error: "종료일은 시작일 이후여야 합니다." };
+
+    const event = await db.event.create({
+      data: {
+        title,
+        description,
+        type: data.type?.trim() || "community",
+        startsAt,
+        endsAt,
+        linkUrl: data.linkUrl?.trim() || null,
+        communityId,
+        createdById: user.id,
+        status: "PUBLISHED",
+        registrationFeePaid: true,
+      },
+    });
+
+    void logCommunityAudit({
+      communityId,
+      actorId: user.id,
+      action: "CREATE_EVENT",
+      targetType: "event",
+      targetId: event.id,
+    });
+    revalidatePath(`/c/${ctx.community.slug}`);
+    return { success: true as const, eventId: event.id };
+  } catch (e) {
+    return { error: prismaErrorMessage(e) };
+  }
+}

@@ -419,6 +419,7 @@ model Community {
   joinRequests CommunityJoinRequest[]
   bans        CommunityBan[]
   auditLogs   CommunityAuditLog[]
+  events      Event[]
 }
 
 enum CommunityJoinMode {
@@ -2091,13 +2092,16 @@ model Event {
   links               Json?
   videoUrl            String?
   createdById         String?
+  communityId         String?
   status              EventPublishStatus @default(PUBLISHED)
   registrationFeePaid Boolean            @default(true)
   createdAt           DateTime           @default(now())
   createdBy           User?              @relation("EventCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  community           Community?           @relation(fields: [communityId], references: [id], onDelete: Cascade)
   participants        EventParticipant[]
 
   @@index([createdById, status])
+  @@index([communityId, status])
   @@index([endsAt])
 }
 

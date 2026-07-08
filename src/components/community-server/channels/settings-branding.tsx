@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { deleteCommunity } from "@/actions/community-hub";
 import { updateCommunity } from "@/actions/community-hub";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
+import { ProfileImageField } from "@/components/profile/profile-image-field";
 
 export function CommunityBrandingSettings({
   communityId,
@@ -63,17 +63,25 @@ export function CommunityBrandingSettings({
   return (
     <section className="space-y-4 rounded-xl border border-border p-4">
       <h2 className="font-semibold">브랜딩 & 공개 설정</h2>
-      <label className="block text-sm">
-        대표 이미지 URL
-        <Input value={iconUrl} onChange={(e) => setIconUrl(e.target.value)} className="mt-1" placeholder="https://..." />
-      </label>
-      <label className="block text-sm">
-        배너 URL
-        <Input value={bannerUrl} onChange={(e) => setBannerUrl(e.target.value)} className="mt-1" placeholder="https://..." />
-      </label>
+
+      <ProfileImageField
+        kind="avatar"
+        name="iconUrl"
+        value={iconUrl}
+        onChange={setIconUrl}
+        previewClassName="rounded-xl"
+      />
+
+      <ProfileImageField
+        kind="banner"
+        name="bannerUrl"
+        value={bannerUrl}
+        onChange={setBannerUrl}
+      />
+
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} />
-        공개 커뮤니티 (검색·목록에 표시)
+        공개 커뮤니티 (검색·목록에 표시, 비회원 읽기 전용 허용)
       </label>
       <div className="flex flex-wrap gap-2">
         <Button type="button" size="sm" disabled={loading} onClick={() => void save()}>
