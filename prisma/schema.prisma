@@ -403,6 +403,8 @@ model Community {
   children    Community[] @relation("SubCommunity")
   creatorId   String
   memberCount Int      @default(0)
+  joinMode    CommunityJoinMode @default(OPEN)
+  isPublic    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -413,6 +415,21 @@ model Community {
   channels    CommunityChannel[]
   roles       CommunityRole[]
   voiceChannels VoiceChannel[]
+  invites     CommunityInvite[]
+  joinRequests CommunityJoinRequest[]
+  bans        CommunityBan[]
+}
+
+enum CommunityJoinMode {
+  OPEN
+  APPROVE
+  INVITE_ONLY
+}
+
+enum CommunityJoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum CommunityChannelType {
@@ -530,18 +547,63 @@ model CommunityChannelRead {
 }
 
 model CommunityMember {
-  id          String                   @id @default(cuid())
-  communityId String
-  userId      String
-  role        String                   @default("member")
-  nickname    String?
-  presence    CommunityPresenceStatus  @default(OFFLINE)
-  lastSeenAt  DateTime?
-  joinedAt    DateTime                 @default(now())
-  community   Community                @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  memberRoles CommunityMemberRole[]
+  id            String                   @id @default(cuid())
+  communityId   String
+  userId        String
+  role          String                   @default("member")
+  nickname      String?
+  presence      CommunityPresenceStatus  @default(OFFLINE)
+  voiceActivity CommunityVoiceActivity?
+  lastSeenAt    DateTime?
+  welcomedAt    DateTime?
+  joinedAt      DateTime                 @default(now())
+  community     Community                @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  memberRoles   CommunityMemberRole[]
   @@unique([communityId, userId])
   @@index([communityId, presence])
+}
+
+enum CommunityVoiceActivity {
+  VOICE
+  VIDEO
+}
+
+model CommunityInvite {
+  id          String    @id @default(cuid())
+  communityId String
+  code        String    @unique
+  createdById String
+  maxUses     Int?
+  useCount    Int       @default(0)
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  @@index([communityId])
+}
+
+model CommunityJoinRequest {
+  id          String                     @id @default(cuid())
+  communityId String
+  userId      String
+  status      CommunityJoinRequestStatus @default(PENDING)
+  message     String?                    @db.VarChar(500)
+  createdAt   DateTime                   @default(now())
+  reviewedAt  DateTime?
+  community   Community                  @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  @@unique([communityId, userId])
+  @@index([communityId, status])
+}
+
+model CommunityBan {
+  id          String    @id @default(cuid())
+  communityId String
+  userId      String
+  reason      String?   @db.VarChar(500)
+  bannedById  String
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  @@unique([communityId, userId])
 }
 
 enum PostType {

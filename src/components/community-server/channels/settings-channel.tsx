@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { CommunitySettingsForm } from "@/components/communities/community-settings-form";
 import { CommunityRolesPanel } from "@/components/community-server/channels/settings-roles-panel";
+import { CommunityJoinModeSettings } from "@/components/community-server/channels/settings-join-mode";
 import { db } from "@/lib/db";
 
 export async function SettingsChannelView({
@@ -22,6 +23,7 @@ export async function SettingsChannelView({
       description: true,
       category: true,
       isNsfw: true,
+      joinMode: true,
     },
   });
   if (!community) notFound();
@@ -41,6 +43,10 @@ export async function SettingsChannelView({
             category: community.category,
             isNsfw: community.isNsfw,
           }}
+        />
+        <CommunityJoinModeSettings
+          communityId={communityId}
+          initialJoinMode={community.joinMode}
         />
         <CommunityRolesPanel communityId={communityId} communitySlug={communitySlug} />
       </div>

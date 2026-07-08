@@ -33,6 +33,7 @@ export function ChatRoomShell({
   initialMessages,
   header,
   groupMeta,
+  readOnly = false,
 }: {
   roomId: string;
   userId: string;
@@ -49,6 +50,7 @@ export function ChatRoomShell({
     otherUserId?: string;
   };
   groupMeta: GroupMeta | null;
+  readOnly?: boolean;
 }) {
   return (
     <ChatSocketProvider roomId={roomId}>
@@ -83,6 +85,7 @@ export function ChatRoomShell({
             userImage={userImage}
             userSupportTier={userSupportTier}
             initialMessages={initialMessages}
+            readOnly={readOnly}
           />
         </Suspense>
       </div>

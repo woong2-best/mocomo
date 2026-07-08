@@ -9,7 +9,6 @@ import { SettingsChannelView } from "@/components/community-server/channels/sett
 import { EventsChannelView } from "@/components/community-server/channels/events-channel";
 import { GalleryChannelView } from "@/components/community-server/channels/gallery-channel";
 import { FileChannelView } from "@/components/community-server/channels/file-channel";
-import { hasPermission } from "@/lib/community-server/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +19,6 @@ export default async function CommunityChannelPage({
 }) {
   const { slug, channelSlug } = await params;
 
-  // layout과 동일 request cache 공유 — 추가 DB 왕복 없음
   const [ctx, channel] = await Promise.all([
     getCommunityServerContext(slug),
     getCommunityChannelCached(slug, channelSlug),
@@ -29,11 +27,17 @@ export default async function CommunityChannelPage({
 
   if (channel.type === "SETTINGS" && !ctx.isOwner) notFound();
 
-  const needsMembership =
-    channel.type !== "POSTS" &&
-    channel.type !== "MEMBERS" &&
-    channel.type !== "GALLERY";
-  if (needsMembership && !ctx.isMember && !ctx.isOwner) {
+  const guestReadable =
+    channel.type === "POSTS" ||
+    channel.type === "TEXT" ||
+    channel.type === "ANNOUNCEMENT" ||
+    channel.type === "QA" ||
+    channel.type === "VOICE" ||
+    channel.type === "VIDEO" ||
+    channel.type === "GALLERY" ||
+    channel.type === "MEMBERS";
+
+  if (!guestReadable && !ctx.isMember && !ctx.isOwner) {
     return (
       <div className="flex items-center justify-center h-full p-8 text-center text-muted-foreground text-sm">
         이 채널을 보려면 커뮤니티에 가입해 주세요.
@@ -44,56 +48,45 @@ export default async function CommunityChannelPage({
   switch (channel.type) {
     case "POSTS":
       return (
-        <PostsChannelView
-          communitySlug={slug}
-          communityId={ctx.communityId}
-          isMember={ctx.isMember}
-          isOwner={ctx.isOwner}
-        />
+        <PostsChannelView communitySlug={slug} communityId={ctx.communityId} />
       );
 
     case "TEXT":
     case "ANNOUNCEMENT":
     case "QA":
       if (!channel.chatRoomId) notFound();
-      if (!hasPermission(ctx.permissions, "sendMessages") && !ctx.isOwner) {
-        return (
-          <div className="p-8 text-center text-sm text-muted-foreground">
-            채팅 권한이 없습니다.
-          </div>
-        );
-      }
       return (
         <TextChannelView
           roomId={channel.chatRoomId}
           channelId={channel.id}
           channelName={channel.name}
           communityId={ctx.communityId}
-          isMember={ctx.isMember || ctx.isOwner}
+          readOnly={!ctx.isMember && !ctx.isOwner}
         />
       );
 
     case "VOICE":
     case "VIDEO":
-      // VIDEO는 사이드바에서 숨기고, 북마크로 오면 동일 통합 룸으로 처리
       if (!channel.voiceChannelId) notFound();
-      if (
-        !hasPermission(ctx.permissions, "connectVoice") &&
-        !hasPermission(ctx.permissions, "useVideo") &&
-        !ctx.isOwner
-      ) {
-        notFound();
-      }
       return (
         <VoiceChannelView
           channelId={channel.voiceChannelId}
           channelName={channel.type === "VIDEO" ? "음성/영상" : channel.name}
           maxUsers={channel.maxUsers}
+          communityId={ctx.communityId}
+          readOnly={!ctx.isMember && !ctx.isOwner}
         />
       );
 
     case "LIVE":
       if (!channel.voiceChannelId) notFound();
+      if (!ctx.isMember && !ctx.isOwner) {
+        return (
+          <div className="flex items-center justify-center h-full p-8 text-center text-muted-foreground text-sm">
+            라이브 채널은 멤버만 이용할 수 있습니다.
+          </div>
+        );
+      }
       return (
         <LiveChannelView
           voiceChannelId={channel.voiceChannelId}
@@ -110,6 +103,7 @@ export default async function CommunityChannelPage({
       return <GalleryChannelView communityId={ctx.communityId} />;
 
     case "FILE":
+      if (!ctx.isMember && !ctx.isOwner) notFound();
       return <FileChannelView />;
 
     case "MEMBERS":

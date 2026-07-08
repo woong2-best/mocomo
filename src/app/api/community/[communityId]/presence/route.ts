@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { db } from "@/lib/db";
 import type { NextRequest } from "next/server";
-import type { CommunityPresenceStatus } from "@prisma/client";
+import type { CommunityPresenceStatus, CommunityVoiceActivity } from "@prisma/client";
 
 export const runtime = "nodejs";
 export const maxDuration = 8;
@@ -30,14 +30,29 @@ export async function POST(
     if (!userId) return new NextResponse(null, { status: 204 });
 
     const body = await req.json().catch(() => ({}));
-    const presence = body.presence as CommunityPresenceStatus;
-    if (!["ONLINE", "IDLE", "DND", "OFFLINE"].includes(presence)) {
+    const presence = body.presence as CommunityPresenceStatus | undefined;
+    const voiceActivity = body.voiceActivity as CommunityVoiceActivity | null | undefined;
+
+    const data: {
+      presence?: CommunityPresenceStatus;
+      voiceActivity?: CommunityVoiceActivity | null;
+      lastSeenAt: Date;
+    } = { lastSeenAt: new Date() };
+
+    if (presence && ["ONLINE", "IDLE", "DND", "OFFLINE"].includes(presence)) {
+      data.presence = presence;
+    }
+    if (voiceActivity === null || voiceActivity === "VOICE" || voiceActivity === "VIDEO") {
+      data.voiceActivity = voiceActivity;
+    }
+
+    if (!data.presence && data.voiceActivity === undefined) {
       return new NextResponse(null, { status: 204 });
     }
 
     await db.communityMember.updateMany({
       where: { communityId, userId },
-      data: { presence, lastSeenAt: new Date() },
+      data,
     });
     return NextResponse.json({ success: true });
   } catch {

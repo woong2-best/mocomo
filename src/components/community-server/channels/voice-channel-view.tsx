@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCommunityVoice } from "@/components/community-server/community-voice-context";
+import { useCommunityMembership } from "@/components/community-server/community-membership-context";
 import {
   CommunityLivekitRoom,
   type CommunityLivekitCreds,
@@ -23,13 +24,19 @@ export function VoiceChannelView({
   channelId,
   channelName,
   maxUsers,
+  communityId,
+  readOnly: serverReadOnly = false,
 }: {
   channelId: string;
   channelName: string;
   channelType?: "VOICE" | "VIDEO";
   maxUsers?: number | null;
+  communityId?: string;
+  readOnly?: boolean;
 }) {
   const { voice, connect, disconnect, setMuted, setDeafened } = useCommunityVoice();
+  const { isMember, isOwner } = useCommunityMembership();
+  const readOnly = serverReadOnly && !isMember && !isOwner;
   const isInChannel = voice.channelId === channelId;
   const [prefetched, setPrefetched] = useState<CommunityLivekitCreds | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
@@ -46,6 +53,7 @@ export function VoiceChannelView({
   }, [channelId, disconnect, voice.channelId]);
 
   const handleJoin = useCallback(() => {
+    if (readOnly) return;
     setJoinError(null);
     setLiveConnected(false);
     setCameraOn(false);
@@ -57,7 +65,25 @@ export function VoiceChannelView({
       muted: false,
       deafened: false,
     });
-  }, [channelId, channelName, connect]);
+  }, [channelId, channelName, connect, readOnly]);
+
+  const setVoiceActivity = useCallback(
+    (activity: "VOICE" | "VIDEO" | null) => {
+      if (!communityId) return;
+      void fetch(`/api/community/${communityId}/presence`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ voiceActivity: activity }),
+      }).catch(() => undefined);
+    },
+    [communityId]
+  );
+
+  useEffect(() => {
+    if (!isInChannel || !liveConnected) return;
+    setVoiceActivity(cameraOn ? "VIDEO" : "VOICE");
+    return () => setVoiceActivity(null);
+  }, [isInChannel, liveConnected, cameraOn, setVoiceActivity]);
 
   const handleLeave = useCallback(() => {
     setLiveConnected(false);
@@ -81,8 +107,8 @@ export function VoiceChannelView({
           </p>
         </div>
         {!isInChannel ? (
-          <Button size="sm" onClick={handleJoin}>
-            참가하기
+          <Button size="sm" onClick={handleJoin} disabled={readOnly}>
+            {readOnly ? "참여 후 이용" : "참가하기"}
           </Button>
         ) : (
           <Button size="sm" variant="destructive" onClick={handleLeave}>
@@ -95,10 +121,14 @@ export function VoiceChannelView({
         {!isInChannel ? (
           <div className="rounded-xl border border-dashed border-border py-16 text-center space-y-4">
             <p className="text-muted-foreground text-sm">
-              참가 후 아래에서 카메라·마이크를 켜고 끌 수 있습니다.
+              {readOnly
+                ? "커뮤니티에 참여하면 음성·영상 채널을 이용할 수 있습니다."
+                : "참가 후 아래에서 카메라·마이크를 켜고 끌 수 있습니다."}
             </p>
             {joinError && <p className="text-sm text-destructive">{joinError}</p>}
-            <Button onClick={handleJoin}>참가하기</Button>
+            <Button onClick={handleJoin} disabled={readOnly}>
+              {readOnly ? "참여 후 이용" : "참가하기"}
+            </Button>
           </div>
         ) : (
           <CommunityLivekitRoom

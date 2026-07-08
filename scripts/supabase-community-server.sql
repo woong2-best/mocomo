@@ -173,3 +173,66 @@ DO $$ BEGIN
     FOREIGN KEY ("channelId") REFERENCES "CommunityChannel"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+-- Join system & RBAC extensions (2026-07)
+DO $$ BEGIN
+  CREATE TYPE "CommunityJoinMode" AS ENUM ('OPEN', 'APPROVE', 'INVITE_ONLY');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "CommunityJoinRequestStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "CommunityVoiceActivity" AS ENUM ('VOICE', 'VIDEO');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+ALTER TABLE "Community" ADD COLUMN IF NOT EXISTS "joinMode" "CommunityJoinMode" NOT NULL DEFAULT 'OPEN';
+ALTER TABLE "Community" ADD COLUMN IF NOT EXISTS "isPublic" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "CommunityMember" ADD COLUMN IF NOT EXISTS "welcomedAt" TIMESTAMP(3);
+ALTER TABLE "CommunityMember" ADD COLUMN IF NOT EXISTS "voiceActivity" "CommunityVoiceActivity";
+
+CREATE TABLE IF NOT EXISTS "CommunityInvite" (
+  "id" TEXT NOT NULL,
+  "communityId" TEXT NOT NULL,
+  "code" TEXT NOT NULL,
+  "createdById" TEXT NOT NULL,
+  "maxUses" INTEGER,
+  "useCount" INTEGER NOT NULL DEFAULT 0,
+  "expiresAt" TIMESTAMP(3),
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "CommunityInvite_pkey" PRIMARY KEY ("id")
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "CommunityInvite_code_key" ON "CommunityInvite"("code");
+CREATE INDEX IF NOT EXISTS "CommunityInvite_communityId_idx" ON "CommunityInvite"("communityId");
+
+CREATE TABLE IF NOT EXISTS "CommunityJoinRequest" (
+  "id" TEXT NOT NULL,
+  "communityId" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "status" "CommunityJoinRequestStatus" NOT NULL DEFAULT 'PENDING',
+  "message" VARCHAR(500),
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "reviewedAt" TIMESTAMP(3),
+  CONSTRAINT "CommunityJoinRequest_pkey" PRIMARY KEY ("id")
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "CommunityJoinRequest_communityId_userId_key"
+  ON "CommunityJoinRequest"("communityId", "userId");
+CREATE INDEX IF NOT EXISTS "CommunityJoinRequest_communityId_status_idx"
+  ON "CommunityJoinRequest"("communityId", "status");
+
+CREATE TABLE IF NOT EXISTS "CommunityBan" (
+  "id" TEXT NOT NULL,
+  "communityId" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "reason" VARCHAR(500),
+  "bannedById" TEXT NOT NULL,
+  "expiresAt" TIMESTAMP(3),
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "CommunityBan_pkey" PRIMARY KEY ("id")
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "CommunityBan_communityId_userId_key"
+  ON "CommunityBan"("communityId", "userId");

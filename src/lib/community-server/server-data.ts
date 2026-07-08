@@ -3,43 +3,14 @@ import { db } from "@/lib/db";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { normalizeCommunitySlugParam } from "@/lib/community-slug";
 import { ensureCommunityServerProvisioned } from "@/lib/community-server/provision";
-import {
-  mergePermissions,
-  parsePermissions,
-  defaultPermissionsForRole,
-} from "@/lib/community-server/permissions";
+import { guestPermissions } from "@/lib/community-server/permissions";
+import { loadMemberPermissions } from "@/lib/community-server/member-permissions";
+import { getPrimaryRoleType } from "@/lib/community-server/member-role-utils";
 import type {
   CommunityChannelView,
   CommunityMemberView,
-  CommunityPermissions,
   CommunityServerContext,
 } from "@/lib/community-server/types";
-
-async function loadMemberPermissions(
-  communityId: string,
-  userId: string,
-  isOwner: boolean
-): Promise<CommunityPermissions> {
-  if (isOwner) return defaultPermissionsForRole("OWNER");
-
-  const member = await db.communityMember.findUnique({
-    where: { communityId_userId: { communityId, userId } },
-    include: {
-      memberRoles: {
-        include: { role: { select: { permissions: true, type: true } } },
-      },
-    },
-  });
-  if (!member) return defaultPermissionsForRole("MEMBER");
-
-  const fromRoles = member.memberRoles.map((mr) => parsePermissions(mr.role.permissions));
-  if (fromRoles.length === 0) {
-    return member.role === "owner"
-      ? defaultPermissionsForRole("OWNER")
-      : defaultPermissionsForRole("MEMBER");
-  }
-  return mergePermissions(fromRoles);
-}
 
 /** 요청 단위 캐시 — layout + page가 같은 요청에서 중복 조회하지 않음 */
 export const getCommunityServerContext = cache(
@@ -57,6 +28,7 @@ export const getCommunityServerContext = cache(
         iconUrl: true,
         memberCount: true,
         creatorId: true,
+        joinMode: true,
       },
     });
     if (!community) return null;
@@ -65,19 +37,21 @@ export const getCommunityServerContext = cache(
 
     let isMember = false;
     let isOwner = false;
+    let showWelcome = false;
     if (user) {
       const member = await db.communityMember.findUnique({
         where: { communityId_userId: { communityId: community.id, userId: user.id } },
-        select: { role: true },
+        select: { role: true, welcomedAt: true },
       });
       isMember = !!member;
       isOwner = community.creatorId === user.id || member?.role === "owner";
+      showWelcome = !!member && !member.welcomedAt;
     }
 
     const [permissions, channelsRaw] = await Promise.all([
       user
         ? loadMemberPermissions(community.id, user.id, isOwner)
-        : Promise.resolve(defaultPermissionsForRole("MEMBER")),
+        : Promise.resolve(guestPermissions()),
       db.communityChannel.findMany({
         where: { communityId: community.id },
         orderBy: [{ category: { position: "asc" } }, { position: "asc" }],
@@ -85,7 +59,6 @@ export const getCommunityServerContext = cache(
       }),
     ]);
 
-    // 미읽음 카운트는 채널 전환 임계 경로에서 제외 (사이드바는 0으로 시작하고 클라에서 보강 가능)
     const channels: CommunityChannelView[] = channelsRaw.map((ch) => ({
       id: ch.id,
       type: ch.type,
@@ -108,10 +81,13 @@ export const getCommunityServerContext = cache(
       name: community.name,
       iconUrl: community.iconUrl,
       memberCount: community.memberCount,
+      joinMode: community.joinMode,
       isMember,
       isOwner,
+      isLoggedIn: !!user,
       permissions,
       channels,
+      showWelcome,
     };
   }
 );
@@ -136,11 +112,11 @@ export const getCommunityMembersForSidebar = cache(
 
     const rows = await db.communityMember.findMany({
       where: { communityId },
-      orderBy: [{ presence: "asc" }, { joinedAt: "asc" }],
+      orderBy: [{ joinedAt: "asc" }],
       take,
       include: {
         memberRoles: {
-          include: { role: { select: { id: true, name: true, type: true, color: true } } },
+          include: { role: { select: { id: true, name: true, type: true, color: true, position: true } } },
         },
       },
     });
@@ -153,6 +129,10 @@ export const getCommunityMembersForSidebar = cache(
 
     return rows.map((r) => {
       const u = byId.get(r.userId);
+      const roles = r.memberRoles
+        .map((mr) => mr.role)
+        .sort((a, b) => a.position - b.position);
+      const isOwner = r.role === "owner" || community.creatorId === r.userId;
       return {
         id: r.id,
         userId: r.userId,
@@ -161,8 +141,10 @@ export const getCommunityMembersForSidebar = cache(
         image: u?.image ?? null,
         nickname: r.nickname,
         presence: r.presence,
-        roles: r.memberRoles.map((mr) => mr.role),
-        isOwner: r.role === "owner" || community.creatorId === r.userId,
+        voiceActivity: r.voiceActivity,
+        roles,
+        primaryRoleType: getPrimaryRoleType(roles, isOwner),
+        isOwner,
         joinedAt: r.joinedAt.toISOString(),
       };
     });

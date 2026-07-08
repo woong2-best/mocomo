@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { defaultPermissionsForRole, hasPermission, parsePermissions } from "@/lib/community-server/permissions";
 import type { CommunityPermissionKey } from "@/lib/community-server/types";
+import { assertCanAssignOwner } from "@/actions/community-join";
 import { prismaErrorMessage } from "@/lib/prisma-user-error";
 import type { CommunityRoleType } from "@prisma/client";
 
@@ -93,6 +94,11 @@ export async function assignMemberRole(memberId: string, roleId: string) {
     const role = await db.communityRole.findUnique({ where: { id: roleId } });
     if (!role || role.communityId !== member.communityId) {
       return { error: "역할을 찾을 수 없습니다." };
+    }
+
+    if (role.type === "OWNER") {
+      const check = await assertCanAssignOwner(member.communityId, memberId);
+      if ("error" in check) return check;
     }
 
     await db.communityMemberRole.upsert({

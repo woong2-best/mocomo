@@ -37,6 +37,7 @@ export function ChatRoomClient({
   userImage = null,
   userSupportTier = "PEBBLE",
   initialMessages = [],
+  readOnly = false,
 }: {
   roomId: string;
   userId: string;
@@ -44,6 +45,7 @@ export function ChatRoomClient({
   userImage?: string | null;
   userSupportTier?: SupportTierLevel;
   initialMessages?: Message[];
+  readOnly?: boolean;
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
@@ -496,22 +498,29 @@ export function ChatRoomClient({
       </div>
 
       {error && <p className="text-xs text-destructive px-4 pb-1 text-center">{error}</p>}
-      <div className="shrink-0 border-t border-border/60 bg-background">
-        {replyTarget && (
-          <ChatReplyComposerBar
-            target={replyTarget}
-            selfUserId={userId}
-            onCancel={clearReply}
+      {!readOnly && (
+        <div className="shrink-0 border-t border-border/60 bg-background">
+          {replyTarget && (
+            <ChatReplyComposerBar
+              target={replyTarget}
+              selfUserId={userId}
+              onCancel={clearReply}
+            />
+          )}
+          <ChatMediaComposer
+            value={input}
+            onChange={setInput}
+            onSendText={send}
+            onSendAttachments={sendAttachments}
+            inputRef={composerInputRef}
           />
-        )}
-        <ChatMediaComposer
-          value={input}
-          onChange={setInput}
-          onSendText={send}
-          onSendAttachments={sendAttachments}
-          inputRef={composerInputRef}
-        />
-      </div>
+        </div>
+      )}
+      {readOnly && (
+        <div className="shrink-0 border-t border-border/60 bg-muted/30 px-4 py-3 text-center text-xs text-muted-foreground">
+          읽기 전용 모드입니다. 상단에서 커뮤니티에 참여하면 채팅을 보낼 수 있습니다.
+        </div>
+      )}
     </div>
   );
 }
