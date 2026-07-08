@@ -1,18 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCachedSession } from "@/lib/auth";
+import { getToken } from "next-auth/jwt";
 import { createLivekitToken, getLivekitUrl, isLivekitConfigured } from "@/lib/livekit";
 import { db } from "@/lib/db";
 
 export const runtime = "nodejs";
+export const maxDuration = 15;
+
+function authCookieName() {
+  return process.env.NODE_ENV === "production"
+    ? "__Secure-authjs.session-token"
+    : "authjs.session-token";
+}
 
 /**
- * 커뮤니티 음성/영상 통합 토큰.
- * 최소한의 DB 조회만 — cold start에서도 빠르게 응답.
+ * JWT만 읽어 토큰 발급 — auth() full session / DB 하이드레이트 경로를 우회.
  */
 export async function GET(req: NextRequest) {
   try {
-    const session = await getCachedSession();
-    const userId = session?.user?.id;
+    const jwt = await getToken({
+      req,
+      secret: process.env.AUTH_SECRET,
+      secureCookie: process.env.NODE_ENV === "production",
+      cookieName: authCookieName(),
+    });
+    const userId = (jwt?.id as string | undefined) ?? (jwt?.sub as string | undefined);
     if (!userId) {
       return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
     }
@@ -35,25 +46,32 @@ export async function GET(req: NextRequest) {
     }
 
     let allowed = voice.createdBy === userId;
-    if (!allowed) {
-      let communityId = voice.communityId;
-      if (!communityId) {
-        try {
-          const linked = await db.communityChannel.findFirst({
-            where: { voiceChannelId: channelId },
-            select: { communityId: true },
-          });
-          communityId = linked?.communityId ?? null;
-        } catch {
-          communityId = null;
-        }
-      }
-      if (communityId) {
-        const member = await db.communityMember.findUnique({
-          where: { communityId_userId: { communityId, userId } },
-          select: { id: true },
+    if (!allowed && voice.communityId) {
+      const member = await db.communityMember.findUnique({
+        where: {
+          communityId_userId: { communityId: voice.communityId, userId },
+        },
+        select: { id: true },
+      });
+      allowed = !!member;
+    } else if (!allowed) {
+      // communityId 비어 있으면 채널 링크만 한 번 확인
+      try {
+        const linked = await db.communityChannel.findFirst({
+          where: { voiceChannelId: channelId },
+          select: { communityId: true },
         });
-        allowed = !!member;
+        if (linked) {
+          const member = await db.communityMember.findUnique({
+            where: {
+              communityId_userId: { communityId: linked.communityId, userId },
+            },
+            select: { id: true },
+          });
+          allowed = !!member;
+        }
+      } catch {
+        /* CommunityChannel 테이블 미준비면 생성자만 허용 */
       }
     }
 
@@ -61,7 +79,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "커뮤니티 멤버만 참가할 수 있습니다." }, { status: 403 });
     }
 
-    const displayName = session.user.username || session.user.name || userId;
+    const displayName =
+      (jwt?.username as string | undefined) ||
+      (jwt?.name as string | undefined) ||
+      userId;
+
     const token = await createLivekitToken(channelId, userId, displayName, {
       publish: true,
       audioOnly: false,

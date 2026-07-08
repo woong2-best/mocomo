@@ -41,12 +41,15 @@ export async function fetchCommunityVoiceToken(
     );
     const body = await res.json().catch(() => ({}));
     if (!res.ok || !body.token || !body.serverUrl) {
+      if (res.status === 504 || res.status === 502) {
+        throw new Error("서버가 잠시 바쁩니다. 몇 초 후 다시 참가해 주세요.");
+      }
       throw new Error((body as { error?: string }).error ?? `토큰 발급 실패 (${res.status})`);
     }
     return { token: body.token as string, serverUrl: body.serverUrl as string };
   } catch (e) {
     if (e instanceof DOMException && e.name === "AbortError") {
-      throw new Error("음성 서버 응답이 너무 늦습니다. 다시 시도해 주세요.");
+      throw new Error("연결 시간이 초과됐습니다. 다시 참가해 주세요.");
     }
     throw e;
   } finally {

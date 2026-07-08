@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { useCommunityVoice } from "@/components/community-server/community-voice-context";
 import {
   CommunityLivekitRoom,
-  fetchCommunityVoiceToken,
   type CommunityLivekitCreds,
 } from "@/components/community-server/channels/community-livekit-room";
 import { cn } from "@/lib/utils";
@@ -27,7 +26,6 @@ export function VoiceChannelView({
 }: {
   channelId: string;
   channelName: string;
-  /** @deprecated 영상은 하단 카메라 토글로 처리 */
   channelType?: "VOICE" | "VIDEO";
   maxUsers?: number | null;
 }) {
@@ -38,17 +36,8 @@ export function VoiceChannelView({
   const [liveConnected, setLiveConnected] = useState(false);
   const [cameraOn, setCameraOn] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    void fetchCommunityVoiceToken(channelId)
-      .then((c) => {
-        if (!cancelled) setPrefetched(c);
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [channelId]);
+  // 페이지 로드 시 토큰 prefetch 금지 — 세션 504와 경쟁하면서 더 느려짐
+  // 참가 시에만 community-livekit-room이 토큰을 요청
 
   useEffect(() => {
     return () => {
@@ -60,6 +49,7 @@ export function VoiceChannelView({
     setJoinError(null);
     setLiveConnected(false);
     setCameraOn(false);
+    setPrefetched(null);
     connect({
       channelId,
       channelName,
@@ -73,6 +63,7 @@ export function VoiceChannelView({
     setLiveConnected(false);
     setJoinError(null);
     setCameraOn(false);
+    setPrefetched(null);
     disconnect();
   }, [disconnect]);
 
@@ -84,9 +75,6 @@ export function VoiceChannelView({
           <p className="text-xs text-muted-foreground flex items-center gap-1">
             <Users className="h-3 w-3" />
             최대 {maxUsers ?? 25}명 · 음성/영상
-            {prefetched && !isInChannel && (
-              <span className="text-emerald-600">· 준비됨</span>
-            )}
             {isInChannel && liveConnected && (
               <span className="text-emerald-600">· 연결됨</span>
             )}
@@ -169,13 +157,7 @@ export function VoiceChannelView({
           >
             {cameraOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
           </Button>
-          <Button
-            type="button"
-            size="icon"
-            variant="outline"
-            title="화면 공유 (준비 중)"
-            disabled
-          >
+          <Button type="button" size="icon" variant="outline" title="화면 공유 (준비 중)" disabled>
             <Monitor className="h-4 w-4" />
           </Button>
         </div>

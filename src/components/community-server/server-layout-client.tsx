@@ -11,15 +11,14 @@ import { hasPermission } from "@/lib/community-server/permissions";
 export function CommunityServerLayoutClient({
   slug,
   initialContext,
-  initialMembers,
+  initialMembers = [],
   children,
 }: {
   slug: string;
   initialContext: CommunityServerContext;
-  initialMembers: CommunityMemberView[];
+  initialMembers?: CommunityMemberView[];
   children: React.ReactNode;
 }) {
-  // 서버 RSC initialData만 사용 — 채널 전환마다 /api refetch 하지 않음
   const server = initialContext;
 
   return (
@@ -37,6 +36,7 @@ export function CommunityServerLayoutClient({
           <main className="flex-1 min-h-0 overflow-hidden flex flex-col">{children}</main>
           <VoiceStatusBar />
         </div>
+        {/* 멤버 API는 지연/실패해도 빈 목록 — 음성 입장과 경쟁하지 않음 */}
         <MemberSidebar communityId={server.communityId} initialMembers={initialMembers} />
       </div>
     </CommunityVoiceProvider>
