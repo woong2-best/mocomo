@@ -1,30 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
-import dynamic from "next/dynamic";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Mic, MicOff, Headphones, Monitor, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCommunityVoice } from "@/components/community-server/community-voice-context";
+import {
+  CommunityLivekitRoom,
+  fetchCommunityVoiceToken,
+  type CommunityLivekitCreds,
+} from "@/components/community-server/channels/community-livekit-room";
 import { cn } from "@/lib/utils";
-
-const LivekitVoiceRoom = dynamic(
-  () => import("@/components/voice/livekit-voice-room").then((m) => m.LivekitVoiceRoom),
-  { ssr: false, loading: () => <ChannelLoading label="음성 채널 연결 중..." /> }
-);
-
-const LivekitVideoRoom = dynamic(
-  () => import("@/components/community-server/channels/livekit-video-room").then((m) => m.LivekitVideoRoom),
-  { ssr: false, loading: () => <ChannelLoading label="영상 채널 연결 중..." /> }
-);
-
-function ChannelLoading({ label }: { label: string }) {
-  return (
-    <div className="flex items-center justify-center py-16 text-muted-foreground">
-      <Loader2 className="h-6 w-6 animate-spin mr-2" />
-      {label}
-    </div>
-  );
-}
 
 export function VoiceChannelView({
   channelId,
@@ -38,7 +23,20 @@ export function VoiceChannelView({
   maxUsers?: number | null;
 }) {
   const { voice, connect, disconnect, setMuted, setDeafened } = useCommunityVoice();
-  const isConnected = voice.connected && voice.channelId === channelId;
+  const isInChannel = voice.channelId === channelId;
+  const [prefetched, setPrefetched] = useState<CommunityLivekitCreds | null>(null);
+  const [joining, setJoining] = useState(false);
+  const [liveConnected, setLiveConnected] = useState(false);
+  const prefetchStarted = useRef(false);
+
+  // 채널 화면 들어오자마자 토큰 미리 발급 → 참가 클릭 즉시 연결
+  useEffect(() => {
+    if (prefetchStarted.current) return;
+    prefetchStarted.current = true;
+    void fetchCommunityVoiceToken(channelId, channelType)
+      .then(setPrefetched)
+      .catch(() => undefined);
+  }, [channelId, channelType]);
 
   useEffect(() => {
     return () => {
@@ -46,15 +44,31 @@ export function VoiceChannelView({
     };
   }, [channelId, disconnect, voice.channelId]);
 
-  const handleJoin = () => {
-    connect({
-      channelId,
-      channelName,
-      channelType,
-      muted: false,
-      deafened: false,
-    });
-  };
+  const handleJoin = useCallback(async () => {
+    setJoining(true);
+    try {
+      let creds = prefetched;
+      if (!creds) {
+        creds = await fetchCommunityVoiceToken(channelId, channelType);
+        setPrefetched(creds);
+      }
+      connect({
+        channelId,
+        channelName,
+        channelType,
+        muted: false,
+        deafened: false,
+      });
+    } catch {
+      setJoining(false);
+    }
+  }, [prefetched, channelId, channelType, channelName, connect]);
+
+  const handleLeave = useCallback(() => {
+    setJoining(false);
+    setLiveConnected(false);
+    disconnect();
+  }, [disconnect]);
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -64,36 +78,66 @@ export function VoiceChannelView({
           <p className="text-xs text-muted-foreground flex items-center gap-1">
             <Users className="h-3 w-3" />
             최대 {maxUsers ?? 25}명 · LiveKit
+            {prefetched && !isInChannel && (
+              <span className="text-emerald-600">· 준비됨</span>
+            )}
           </p>
         </div>
-        {!isConnected ? (
-          <Button size="sm" onClick={handleJoin}>
-            참가하기
+        {!isInChannel ? (
+          <Button size="sm" onClick={handleJoin} disabled={joining}>
+            {joining ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                연결 중
+              </>
+            ) : (
+              "참가하기"
+            )}
           </Button>
         ) : (
-          <Button size="sm" variant="destructive" onClick={disconnect}>
+          <Button size="sm" variant="destructive" onClick={handleLeave}>
             나가기
           </Button>
         )}
       </header>
 
       <div className="flex-1 min-h-0 overflow-y-auto p-4">
-        {!isConnected ? (
+        {!isInChannel ? (
           <div className="rounded-xl border border-dashed border-border py-16 text-center space-y-4">
             <p className="text-muted-foreground text-sm">
-              {channelType === "VOICE" ? "음성 채널에 참가하려면 버튼을 누르세요." : "영상 채널에 참가하려면 버튼을 누르세요."}
+              {channelType === "VOICE"
+                ? "음성 채널에 참가하려면 버튼을 누르세요."
+                : "영상 채널에 참가하려면 버튼을 누르세요."}
             </p>
-            <Button onClick={handleJoin}>참가하기</Button>
+            <Button onClick={handleJoin} disabled={joining}>
+              {joining ? "연결 중..." : "참가하기"}
+            </Button>
           </div>
-        ) : channelType === "VOICE" ? (
-          <LivekitVoiceRoom channelId={channelId} channelName={channelName} />
         ) : (
-          <LivekitVideoRoom channelId={channelId} channelName={channelName} />
+          <CommunityLivekitRoom
+            channelId={channelId}
+            channelName={channelName}
+            kind={channelType}
+            muted={voice.muted}
+            deafened={voice.deafened}
+            prefetched={prefetched}
+            onConnected={() => {
+              setJoining(false);
+              setLiveConnected(true);
+            }}
+            onDisconnected={handleLeave}
+          />
         )}
       </div>
 
-      {isConnected && (
+      {isInChannel && (
         <div className="shrink-0 flex items-center justify-center gap-2 p-3 border-t border-border/50 bg-muted/30">
+          {!liveConnected && (
+            <span className="text-xs text-muted-foreground flex items-center mr-2">
+              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+              연결 중
+            </span>
+          )}
           <Button
             type="button"
             size="icon"
