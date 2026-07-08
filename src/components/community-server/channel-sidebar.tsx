@@ -39,9 +39,20 @@ const CHANNEL_ICONS: Record<CommunityChannelType, typeof Hash> = {
 };
 
 function groupChannels(channels: CommunityChannelView[]) {
+  // 영상 전용 채널은 사이드바에서 숨김 — 음성 채널에서 카메라 토글
+  const visible = channels
+    .filter((ch) => ch.type !== "VIDEO")
+    .map((ch) =>
+      ch.type === "VOICE"
+        ? { ...ch, name: ch.name === "음성 채널" ? "음성/영상" : ch.name }
+        : ch
+    );
   const groups = new Map<string, CommunityChannelView[]>();
-  for (const ch of channels) {
-    const key = ch.categoryName ?? "채널";
+  for (const ch of visible) {
+    const key =
+      ch.type === "VOICE"
+        ? "음성·영상"
+        : ch.categoryName ?? "채널";
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(ch);
   }

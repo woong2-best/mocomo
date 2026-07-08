@@ -4,21 +4,28 @@ import { useEffect, useState } from "react";
 import {
   LiveKitRoom,
   RoomAudioRenderer,
+  GridLayout,
+  ParticipantTile,
   useParticipants,
   useLocalParticipant,
+  useTracks,
 } from "@livekit/components-react";
-import { Loader2, Mic, MicOff } from "lucide-react";
-import { VOICE_CALL_CAPTURE, VOICE_CALL_STABLE_OPTIONS } from "@/lib/livekit-audio-options";
+import { Track } from "livekit-client";
+import { Loader2, Mic, MicOff, Video, VideoOff } from "lucide-react";
+import {
+  VOICE_CALL_CAPTURE,
+  VOICE_CALL_STABLE_OPTIONS,
+  VIDEO_CALL_CAPTURE,
+} from "@/lib/livekit-audio-options";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
 export type CommunityLivekitCreds = { token: string; serverUrl: string };
 
-const TOKEN_TIMEOUT_MS = 8_000;
+const TOKEN_TIMEOUT_MS = 15_000;
 
 export async function fetchCommunityVoiceToken(
   channelId: string,
-  kind: "VOICE" | "VIDEO" = "VOICE",
   signal?: AbortSignal
 ): Promise<CommunityLivekitCreds> {
   const ctrl = new AbortController();
@@ -29,7 +36,7 @@ export async function fetchCommunityVoiceToken(
 
   try {
     const res = await fetch(
-      `/api/livekit/community-token?channelId=${encodeURIComponent(channelId)}&kind=${kind}`,
+      `/api/livekit/community-token?channelId=${encodeURIComponent(channelId)}`,
       { credentials: "include", cache: "no-store", signal: ctrl.signal }
     );
     const body = await res.json().catch(() => ({}));
@@ -47,12 +54,39 @@ export async function fetchCommunityVoiceToken(
   }
 }
 
+function MediaSync({ muted, cameraOn }: { muted: boolean; cameraOn: boolean }) {
+  const { localParticipant } = useLocalParticipant();
+  useEffect(() => {
+    void localParticipant.setMicrophoneEnabled(!muted).catch(() => undefined);
+  }, [localParticipant, muted]);
+  useEffect(() => {
+    void localParticipant.setCameraEnabled(cameraOn).catch(() => undefined);
+  }, [localParticipant, cameraOn]);
+  return null;
+}
+
+function VideoGrid() {
+  const tracks = useTracks(
+    [
+      { source: Track.Source.Camera, withPlaceholder: true },
+      { source: Track.Source.ScreenShare, withPlaceholder: false },
+    ],
+    { onlySubscribed: false }
+  );
+  return (
+    <GridLayout tracks={tracks} className="min-h-[240px] rounded-xl overflow-hidden border border-border">
+      <ParticipantTile />
+    </GridLayout>
+  );
+}
+
 function ParticipantList() {
   const participants = useParticipants();
   return (
     <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">
       {participants.map((p) => {
         const micOff = !p.isMicrophoneEnabled;
+        const camOn = p.isCameraEnabled;
         return (
           <li
             key={p.identity}
@@ -68,7 +102,8 @@ function ParticipantList() {
               <p className="text-sm font-medium truncate">{p.name || p.identity}</p>
               <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                 {micOff ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
-                {p.isSpeaking ? "말하는 중" : micOff ? "음소거" : "대기"}
+                {camOn ? <Video className="h-3 w-3" /> : <VideoOff className="h-3 w-3" />}
+                {p.isSpeaking ? "말하는 중" : "대기"}
               </p>
             </div>
           </li>
@@ -78,20 +113,12 @@ function ParticipantList() {
   );
 }
 
-function MuteSync({ muted }: { muted: boolean }) {
-  const { localParticipant } = useLocalParticipant();
-  useEffect(() => {
-    void localParticipant.setMicrophoneEnabled(!muted).catch(() => undefined);
-  }, [localParticipant, muted]);
-  return null;
-}
-
 export function CommunityLivekitRoom({
   channelId,
   channelName,
-  kind = "VOICE",
   muted = false,
   deafened = false,
+  cameraOn = false,
   prefetched,
   onConnected,
   onDisconnected,
@@ -99,9 +126,9 @@ export function CommunityLivekitRoom({
 }: {
   channelId: string;
   channelName: string;
-  kind?: "VOICE" | "VIDEO";
   muted?: boolean;
   deafened?: boolean;
+  cameraOn?: boolean;
   prefetched?: CommunityLivekitCreds | null;
   onConnected?: () => void;
   onDisconnected?: () => void;
@@ -119,7 +146,7 @@ export function CommunityLivekitRoom({
 
     let cancelled = false;
     setError(null);
-    fetchCommunityVoiceToken(channelId, kind)
+    fetchCommunityVoiceToken(channelId)
       .then((c) => {
         if (!cancelled) setCreds(c);
       })
@@ -132,7 +159,7 @@ export function CommunityLivekitRoom({
     return () => {
       cancelled = true;
     };
-  }, [channelId, kind, prefetched?.token, prefetched?.serverUrl, onError]);
+  }, [channelId, prefetched?.token, prefetched?.serverUrl, onError]);
 
   if (error) {
     return (
@@ -144,11 +171,9 @@ export function CommunityLivekitRoom({
           onClick={() => {
             setError(null);
             setCreds(null);
-            fetchCommunityVoiceToken(channelId, kind)
+            fetchCommunityVoiceToken(channelId)
               .then(setCreds)
-              .catch((e: unknown) =>
-                setError(e instanceof Error ? e.message : "연결 실패")
-              );
+              .catch((e: unknown) => setError(e instanceof Error ? e.message : "연결 실패"));
           }}
         >
           다시 시도
@@ -161,28 +186,30 @@ export function CommunityLivekitRoom({
     return (
       <div className="flex items-center justify-center py-10 text-muted-foreground text-sm">
         <Loader2 className="h-4 w-4 animate-spin mr-2" />
-        LiveKit 토큰 발급 중...
+        LiveKit 연결 중...
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">{channelName} · 연결됨</p>
+      <p className="text-xs text-muted-foreground">
+        {channelName} · {cameraOn ? "영상+음성" : "음성"}
+      </p>
       <LiveKitRoom
         token={creds.token}
         serverUrl={creds.serverUrl}
         connect
         audio={VOICE_CALL_CAPTURE}
-        video={kind === "VIDEO"}
+        video={cameraOn ? VIDEO_CALL_CAPTURE : false}
         options={VOICE_CALL_STABLE_OPTIONS}
         onConnected={onConnected}
         onDisconnected={onDisconnected}
         className="space-y-3"
       >
-        <MuteSync muted={muted} />
+        <MediaSync muted={muted} cameraOn={cameraOn} />
         <RoomAudioRenderer volume={deafened ? 0 : 1} />
-        <ParticipantList />
+        {cameraOn ? <VideoGrid /> : <ParticipantList />}
       </LiveKitRoom>
     </div>
   );

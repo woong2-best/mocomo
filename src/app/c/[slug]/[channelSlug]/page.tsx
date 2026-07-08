@@ -74,25 +74,20 @@ export default async function CommunityChannelPage({
       );
 
     case "VOICE":
-      if (!channel.voiceChannelId) notFound();
-      if (!hasPermission(ctx.permissions, "connectVoice") && !ctx.isOwner) notFound();
-      return (
-        <VoiceChannelView
-          channelId={channel.voiceChannelId}
-          channelName={channel.name}
-          channelType="VOICE"
-          maxUsers={channel.maxUsers}
-        />
-      );
-
     case "VIDEO":
+      // VIDEO는 사이드바에서 숨기고, 북마크로 오면 동일 통합 룸으로 처리
       if (!channel.voiceChannelId) notFound();
-      if (!hasPermission(ctx.permissions, "useVideo") && !ctx.isOwner) notFound();
+      if (
+        !hasPermission(ctx.permissions, "connectVoice") &&
+        !hasPermission(ctx.permissions, "useVideo") &&
+        !ctx.isOwner
+      ) {
+        notFound();
+      }
       return (
         <VoiceChannelView
           channelId={channel.voiceChannelId}
-          channelName={channel.name}
-          channelType="VIDEO"
+          channelName={channel.type === "VIDEO" ? "음성/영상" : channel.name}
           maxUsers={channel.maxUsers}
         />
       );

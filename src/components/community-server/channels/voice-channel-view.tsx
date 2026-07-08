@@ -1,7 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Mic, MicOff, Headphones, Monitor, Users } from "lucide-react";
+import {
+  Loader2,
+  Mic,
+  MicOff,
+  Headphones,
+  Video,
+  VideoOff,
+  Monitor,
+  Users,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCommunityVoice } from "@/components/community-server/community-voice-context";
 import {
@@ -14,12 +23,12 @@ import { cn } from "@/lib/utils";
 export function VoiceChannelView({
   channelId,
   channelName,
-  channelType,
   maxUsers,
 }: {
   channelId: string;
   channelName: string;
-  channelType: "VOICE" | "VIDEO";
+  /** @deprecated 영상은 하단 카메라 토글로 처리 */
+  channelType?: "VOICE" | "VIDEO";
   maxUsers?: number | null;
 }) {
   const { voice, connect, disconnect, setMuted, setDeafened } = useCommunityVoice();
@@ -27,11 +36,11 @@ export function VoiceChannelView({
   const [prefetched, setPrefetched] = useState<CommunityLivekitCreds | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [liveConnected, setLiveConnected] = useState(false);
+  const [cameraOn, setCameraOn] = useState(false);
 
-  // 백그라운드 prefetch — 실패해도 입장을 막지 않음
   useEffect(() => {
     let cancelled = false;
-    void fetchCommunityVoiceToken(channelId, channelType)
+    void fetchCommunityVoiceToken(channelId)
       .then((c) => {
         if (!cancelled) setPrefetched(c);
       })
@@ -39,7 +48,7 @@ export function VoiceChannelView({
     return () => {
       cancelled = true;
     };
-  }, [channelId, channelType]);
+  }, [channelId]);
 
   useEffect(() => {
     return () => {
@@ -47,22 +56,23 @@ export function VoiceChannelView({
     };
   }, [channelId, disconnect, voice.channelId]);
 
-  /** 토큰을 기다리지 않고 즉시 입장 UI로 전환 — 토큰은 룸이 가져옴 */
   const handleJoin = useCallback(() => {
     setJoinError(null);
     setLiveConnected(false);
+    setCameraOn(false);
     connect({
       channelId,
       channelName,
-      channelType,
+      channelType: "VOICE",
       muted: false,
       deafened: false,
     });
-  }, [channelId, channelName, channelType, connect]);
+  }, [channelId, channelName, connect]);
 
   const handleLeave = useCallback(() => {
     setLiveConnected(false);
     setJoinError(null);
+    setCameraOn(false);
     disconnect();
   }, [disconnect]);
 
@@ -73,7 +83,7 @@ export function VoiceChannelView({
           <h1 className="font-semibold">{channelName}</h1>
           <p className="text-xs text-muted-foreground flex items-center gap-1">
             <Users className="h-3 w-3" />
-            최대 {maxUsers ?? 25}명 · LiveKit
+            최대 {maxUsers ?? 25}명 · 음성/영상
             {prefetched && !isInChannel && (
               <span className="text-emerald-600">· 준비됨</span>
             )}
@@ -97,9 +107,7 @@ export function VoiceChannelView({
         {!isInChannel ? (
           <div className="rounded-xl border border-dashed border-border py-16 text-center space-y-4">
             <p className="text-muted-foreground text-sm">
-              {channelType === "VOICE"
-                ? "음성 채널에 참가하려면 버튼을 누르세요."
-                : "영상 채널에 참가하려면 버튼을 누르세요."}
+              참가 후 아래에서 카메라·마이크를 켜고 끌 수 있습니다.
             </p>
             {joinError && <p className="text-sm text-destructive">{joinError}</p>}
             <Button onClick={handleJoin}>참가하기</Button>
@@ -108,9 +116,9 @@ export function VoiceChannelView({
           <CommunityLivekitRoom
             channelId={channelId}
             channelName={channelName}
-            kind={channelType}
             muted={voice.muted}
             deafened={voice.deafened}
+            cameraOn={cameraOn}
             prefetched={prefetched}
             onConnected={() => setLiveConnected(true)}
             onDisconnected={handleLeave}
@@ -127,7 +135,7 @@ export function VoiceChannelView({
           {!liveConnected && (
             <span className="text-xs text-muted-foreground flex items-center mr-2">
               <Loader2 className="h-3 w-3 animate-spin mr-1" />
-              LiveKit 연결 중
+              연결 중
             </span>
           )}
           <Button
@@ -136,6 +144,7 @@ export function VoiceChannelView({
             variant="outline"
             className={cn(voice.muted && "bg-destructive/20")}
             onClick={() => setMuted(!voice.muted)}
+            aria-label={voice.muted ? "마이크 켜기" : "마이크 끄기"}
           >
             {voice.muted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
           </Button>
@@ -145,14 +154,30 @@ export function VoiceChannelView({
             variant="outline"
             className={cn(voice.deafened && "bg-destructive/20")}
             onClick={() => setDeafened(!voice.deafened)}
+            aria-label={voice.deafened ? "스피커 켜기" : "스피커 끄기"}
           >
             <Headphones className="h-4 w-4" />
           </Button>
-          {channelType === "VIDEO" && (
-            <Button type="button" size="icon" variant="outline" title="화면 공유">
-              <Monitor className="h-4 w-4" />
-            </Button>
-          )}
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            className={cn(cameraOn && "bg-primary/20")}
+            onClick={() => setCameraOn((v) => !v)}
+            aria-label={cameraOn ? "카메라 끄기" : "카메라 켜기"}
+            title={cameraOn ? "카메라 끄기" : "카메라 켜기"}
+          >
+            {cameraOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            title="화면 공유 (준비 중)"
+            disabled
+          >
+            <Monitor className="h-4 w-4" />
+          </Button>
         </div>
       )}
     </div>
