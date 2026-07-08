@@ -10,6 +10,7 @@ import type { CommunityCategory } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import { postMediaPreview } from "@/lib/post-media-select";
 import { userPublicSelect } from "@/lib/user-public-select";
+import { provisionCommunityServer } from "@/lib/community-server/provision";
 
 const COMMUNITY_CATEGORIES = [
   "ANIME",
@@ -86,8 +87,10 @@ export async function createCommunity(data: {
               communityId: row.id,
               userId: user.id,
               role: "owner",
+              presence: "ONLINE",
             },
           });
+          await provisionCommunityServer(tx, row.id, user.id, name);
           return row;
         });
 
@@ -216,15 +219,37 @@ export async function joinCommunity(communityId: string) {
     });
     if (existing) return { success: true as const };
 
-    await db.$transaction([
-      db.communityMember.create({
-        data: { communityId, userId: user.id, role: "member" },
-      }),
-      db.community.update({
+    await db.$transaction(async (tx) => {
+      const member = await tx.communityMember.create({
+        data: { communityId, userId: user.id, role: "member", presence: "ONLINE" },
+      });
+      await tx.community.update({
         where: { id: communityId },
         data: { memberCount: { increment: 1 } },
-      }),
-    ]);
+      });
+      const defaultRole = await tx.communityRole.findFirst({
+        where: { communityId, isDefault: true },
+        select: { id: true },
+      });
+      if (defaultRole) {
+        await tx.communityMemberRole.create({
+          data: { memberId: member.id, roleId: defaultRole.id },
+        });
+      }
+
+      const textChannels = await tx.communityChannel.findMany({
+        where: { communityId, chatRoomId: { not: null } },
+        select: { chatRoomId: true },
+      });
+      for (const ch of textChannels) {
+        if (!ch.chatRoomId) continue;
+        await tx.chatMember.upsert({
+          where: { roomId_userId: { roomId: ch.chatRoomId, userId: user.id } },
+          create: { roomId: ch.chatRoomId, userId: user.id, role: "member" },
+          update: {},
+        });
+      }
+    });
 
     void notifyCommunityJoin(
       communityId,

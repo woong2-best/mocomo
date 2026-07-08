@@ -20,6 +20,7 @@ export function shouldShowRightPanel(pathname: string): boolean {
   if (isAvatarStudioPath(pathname)) return false;
   if (isWebtoonDrawStudioPath(pathname)) return false;
   if (pathname.startsWith("/messages")) return false;
+  if (/^\/c\/[^/]+/.test(pathname)) return false;
   if (pathname.startsWith("/used")) return false;
   if (pathname.startsWith("/apt")) return false;
   if (pathname.startsWith("/u/")) return false;

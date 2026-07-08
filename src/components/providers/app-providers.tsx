@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { SessionProvider } from "@/components/providers/session-provider";
 import { LocaleProvider } from "@/components/providers/locale-provider";
 import { AppSocketProvider } from "@/components/providers/app-socket-provider";
+import { QueryProvider } from "@/components/providers/query-provider";
 import { CallProviderGate } from "@/components/call/call-provider-gate";
 import { ComposeProvider } from "@/components/compose/compose-provider";
 import { SidebarToggleProvider } from "@/components/providers/sidebar-toggle-provider";
@@ -44,6 +45,7 @@ export function AppProviders({
     <SessionProvider>
       <LocaleProvider initialLocale={initialLocale} initialCountryCode={initialCountryCode}>
         <AppSocketProvider>
+          <QueryProvider>
           <ComposeProvider>
             <SidebarToggleProvider>
               <PushRegistration />
@@ -55,6 +57,7 @@ export function AppProviders({
               </CallProviderGate>
             </SidebarToggleProvider>
           </ComposeProvider>
+          </QueryProvider>
         </AppSocketProvider>
       </LocaleProvider>
     </SessionProvider>

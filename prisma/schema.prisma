@@ -409,16 +409,139 @@ model Community {
   posts       Post[]
   members     CommunityMember[]
   chatRooms   ChatRoom[]
+  channelCategories CommunityChannelCategory[]
+  channels    CommunityChannel[]
+  roles       CommunityRole[]
+  voiceChannels VoiceChannel[]
+}
+
+enum CommunityChannelType {
+  POSTS
+  TEXT
+  VOICE
+  VIDEO
+  LIVE
+  ANNOUNCEMENT
+  EVENT
+  QA
+  GALLERY
+  FILE
+  MEMBERS
+  SETTINGS
+}
+
+enum CommunityPresenceStatus {
+  ONLINE
+  IDLE
+  DND
+  OFFLINE
+}
+
+enum CommunityRoleType {
+  OWNER
+  ADMIN
+  MODERATOR
+  VIP
+  MEMBER
+}
+
+model CommunityChannelCategory {
+  id          String   @id @default(cuid())
+  communityId String
+  name        String
+  position    Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  community Community          @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  channels  CommunityChannel[]
+
+  @@index([communityId, position])
+}
+
+model CommunityChannel {
+  id             String               @id @default(cuid())
+  communityId    String
+  categoryId     String?
+  type           CommunityChannelType
+  name           String
+  slug           String
+  topic          String?              @db.VarChar(500)
+  position       Int                  @default(0)
+  isDefault      Boolean              @default(false)
+  chatRoomId     String?              @unique
+  voiceChannelId String?              @unique
+  maxUsers       Int?
+  slowModeSec    Int                  @default(0)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  community    Community                 @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  category     CommunityChannelCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  chatRoom     ChatRoom?                 @relation(fields: [chatRoomId], references: [id], onDelete: SetNull)
+  voiceChannel VoiceChannel?             @relation(fields: [voiceChannelId], references: [id], onDelete: SetNull)
+  reads        CommunityChannelRead[]
+
+  @@unique([communityId, slug])
+  @@index([communityId, position])
+  @@index([communityId, type])
+}
+
+model CommunityRole {
+  id          String            @id @default(cuid())
+  communityId String
+  name        String
+  type        CommunityRoleType @default(MEMBER)
+  color       String?           @db.VarChar(7)
+  position    Int               @default(0)
+  permissions Json              @default("{}")
+  isDefault   Boolean           @default(false)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  community Community             @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  members   CommunityMemberRole[]
+
+  @@unique([communityId, name])
+  @@index([communityId, position])
+}
+
+model CommunityMemberRole {
+  id       String @id @default(cuid())
+  memberId String
+  roleId   String
+
+  member CommunityMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  role   CommunityRole   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, roleId])
+}
+
+model CommunityChannelRead {
+  id            String   @id @default(cuid())
+  channelId     String
+  userId        String
+  lastReadAt    DateTime @default(now())
+  lastMessageId String?
+
+  channel CommunityChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, userId])
+  @@index([userId])
 }
 
 model CommunityMember {
-  id          String   @id @default(cuid())
+  id          String                   @id @default(cuid())
   communityId String
   userId      String
-  role        String   @default("member")
-  joinedAt    DateTime @default(now())
-  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  role        String                   @default("member")
+  nickname    String?
+  presence    CommunityPresenceStatus  @default(OFFLINE)
+  lastSeenAt  DateTime?
+  joinedAt    DateTime                 @default(now())
+  community   Community                @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  memberRoles CommunityMemberRole[]
   @@unique([communityId, userId])
+  @@index([communityId, presence])
 }
 
 enum PostType {
@@ -738,6 +861,7 @@ model ChatRoom {
   voiceCalls VoiceCall[]
   voiceChannel VoiceChannel? @relation(fields: [voiceChannelId], references: [id], onDelete: SetNull)
   polls     ChatPoll[]
+  communityChannel CommunityChannel?
 }
 
 model ChatPoll {
@@ -908,7 +1032,9 @@ model VoiceChannel {
   liveCollabSplitEnabled Boolean @default(false)
   liveCollabUserId       String?
 
+  community      Community?       @relation(fields: [communityId], references: [id], onDelete: SetNull)
   linkedChatRoom ChatRoom?
+  communityChannel CommunityChannel?
   members        VoiceMember[]
   chatMessages   LiveChatMessage[]
   clips          StreamClip[]
