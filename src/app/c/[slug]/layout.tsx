@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
-import { getCommunityServerContext } from "@/actions/community-server";
-import { getCommunityMembersForSidebar } from "@/actions/community-server";
+import { getCommunityServerContext } from "@/lib/community-server/server-data";
 import { CommunityServerLayoutClient } from "@/components/community-server/server-layout-client";
 
 export default async function CommunityLayout({
@@ -14,10 +13,9 @@ export default async function CommunityLayout({
   const ctx = await getCommunityServerContext(slug);
   if (!ctx) notFound();
 
-  const members = await getCommunityMembersForSidebar(ctx.communityId);
-
+  // 멤버 목록은 사이드바에서 클라이언트 fetch — layout을 막지 않음
   return (
-    <CommunityServerLayoutClient slug={slug} initialContext={ctx} initialMembers={members}>
+    <CommunityServerLayoutClient slug={slug} initialContext={ctx} initialMembers={[]}>
       {children}
     </CommunityServerLayoutClient>
   );

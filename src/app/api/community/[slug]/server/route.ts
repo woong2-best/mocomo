@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCommunityServerContext } from "@/actions/community-server";
+import { getCommunityServerContext } from "@/lib/community-server/server-data";
 
 export async function GET(
   _req: Request,

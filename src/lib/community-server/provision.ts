@@ -118,18 +118,29 @@ export async function provisionCommunityServer(
   }
 }
 
+const provisionedCache = new Set<string>();
+
 export async function ensureCommunityServerProvisioned(communityId: string) {
+  if (provisionedCache.has(communityId)) return true;
+
+  const existing = await db.communityChannel.findFirst({
+    where: { communityId },
+    select: { id: true },
+  });
+  if (existing) {
+    provisionedCache.add(communityId);
+    return true;
+  }
+
   const community = await db.community.findUnique({
     where: { id: communityId },
     select: { id: true, name: true, creatorId: true },
   });
   if (!community) return false;
 
-  const count = await db.communityChannel.count({ where: { communityId } });
-  if (count > 0) return true;
-
   await db.$transaction((tx) =>
     provisionCommunityServer(tx, community.id, community.creatorId, community.name)
   );
+  provisionedCache.add(communityId);
   return true;
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Crown } from "lucide-react";
-import { getCommunityMembersForSidebar } from "@/actions/community-server";
+import { getCommunityMembersForSidebar } from "@/lib/community-server/server-data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export async function MembersChannelView({ communityId }: { communityId: string }) {

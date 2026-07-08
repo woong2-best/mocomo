@@ -13,6 +13,7 @@ export function isFastHubPath(pathname: string): boolean {
 
 const REALTIME_PREFIXES = [
   "/messages",
+  "/c/",
   "/games",
   "/play/",
   "/sketch-quiz",

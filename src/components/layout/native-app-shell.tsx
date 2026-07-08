@@ -21,10 +21,12 @@ function NativeAppShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
   const prevPathRef = useRef(pathname);
   const isProfileRoute = pathname.startsWith("/u/");
+  const isCommunityServerRoute = /^\/c\/[^/]+/.test(pathname);
   const skipTabMotion =
     prevPathRef.current !== pathname &&
     isFastHubPath(prevPathRef.current) &&
     isFastHubPath(pathname);
+  const prevPath = prevPathRef.current;
   prevPathRef.current = pathname;
   const reduced = usePrefersReducedMotion();
   const isAuthRoute = pathname.startsWith("/auth");
@@ -35,30 +37,32 @@ function NativeAppShellInner({ children }: { children: React.ReactNode }) {
   const isVoiceRoom = pathname.startsWith("/voice/") && pathname !== "/voice/new";
   const isAptImmersive = isAptImmersivePath(pathname ?? "");
 
-  // 채팅방은 확정 높이가 필요하다(입력창 하단 고정 + 목록만 스크롤).
+  // 채팅방·커뮤니티 서버는 확정 높이가 필요하다(입력창 하단 고정 + 목록만 스크롤).
   const isMessagesRoom = /^\/messages\/[^/]+$/.test(pathname);
-  const motionClass = isMessagesRoom ? "h-full min-h-0" : "min-h-full";
+  const sameCommunityNav =
+    isCommunityServerRoute &&
+    /^\/c\/[^/]+/.test(prevPath) &&
+    prevPath.split("/")[2] === pathname.split("/")[2];
+  const motionKey = sameCommunityNav ? `/c/${pathname.split("/")[2]}` : pathname;
+  const motionClass =
+    isMessagesRoom || isCommunityServerRoute ? "h-full min-h-0" : "min-h-full";
 
   const pageMotion =
-    reduced || isProfileRoute ? (
-      <div key={pathname} className={motionClass}>
+    reduced || isProfileRoute || sameCommunityNav || skipTabMotion ? (
+      <div key={motionKey} className={motionClass}>
         {children}
       </div>
-    ) : skipTabMotion ? (
-    <div key={pathname} className={motionClass}>
-      {children}
-    </div>
-  ) : (
-    <motion.div
-      key={pathname}
-      className={motionClass}
-      variants={nativeRouteVariants}
-      initial="hidden"
-      animate="show"
-    >
-      {children}
-    </motion.div>
-  );
+    ) : (
+      <motion.div
+        key={motionKey}
+        className={motionClass}
+        variants={nativeRouteVariants}
+        initial="hidden"
+        animate="show"
+      >
+        {children}
+      </motion.div>
+    );
 
   if (isVoiceRoom) {
     return <main className="min-h-dvh bg-background">{pageMotion}</main>;

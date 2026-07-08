@@ -12,6 +12,8 @@ export function useCommunityMembers(communityId: string, initial?: CommunityMemb
     },
     initialData: initial,
     enabled: !!communityId,
-    refetchInterval: 60_000,
+    staleTime: 60_000,
+    refetchInterval: 120_000,
+    refetchOnMount: initial && initial.length > 0 ? false : true,
   });
 }

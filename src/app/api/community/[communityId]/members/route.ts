@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCommunityMembersForSidebar } from "@/actions/community-server";
+import { getCommunityMembersForSidebar } from "@/lib/community-server/server-data";
 
 export async function GET(
   _req: Request,

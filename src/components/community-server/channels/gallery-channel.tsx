@@ -1,14 +1,24 @@
-import { getCommunityBySlug } from "@/actions/community-hub";
+import { db } from "@/lib/db";
 import { PostCard } from "@/components/feed/post-card";
 import { Images } from "lucide-react";
+import { postMediaPreview } from "@/lib/post-media-select";
+import { userPublicSelect } from "@/lib/user-public-select";
 
-export async function GalleryChannelView({ communitySlug }: { communitySlug: string }) {
-  const data = await getCommunityBySlug(communitySlug);
-  if (!data) return null;
-
-  const imagePosts = data.community.posts.filter((p) =>
-    p.media.some((m) => m.type === "IMAGE" || m.type === "image")
-  );
+export async function GalleryChannelView({ communityId }: { communityId: string }) {
+  const posts = await db.post.findMany({
+    where: {
+      communityId,
+      media: { some: { type: "IMAGE" } },
+    },
+    take: 20,
+    orderBy: { createdAt: "desc" },
+    include: {
+      author: { select: userPublicSelect },
+      community: { select: { name: true, slug: true } },
+      media: postMediaPreview,
+      _count: { select: { likes: true, comments: true, votes: true } },
+    },
+  });
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -19,11 +29,11 @@ export async function GalleryChannelView({ communitySlug }: { communitySlug: str
         </h1>
       </header>
       <div className="flex-1 min-h-0 overflow-y-auto p-4">
-        {imagePosts.length === 0 ? (
+        {posts.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground py-12">이미지 게시글이 없습니다.</p>
         ) : (
           <div className="grid sm:grid-cols-2 gap-4">
-            {imagePosts.map((post) => (
+            {posts.map((post) => (
               <PostCard key={post.id} post={post} />
             ))}
           </div>

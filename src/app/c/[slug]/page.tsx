@@ -1,5 +1,5 @@
 import { redirect, notFound } from "next/navigation";
-import { getCommunityServerContext } from "@/actions/community-server";
+import { getCommunityServerContext } from "@/lib/community-server/server-data";
 import { getDefaultChannelSlug } from "@/lib/community-server/path";
 
 export default async function CommunityRootPage({

@@ -40,32 +40,37 @@ function AppShellInner({
     prevPathRef.current !== pathname &&
     isFastHubPath(prevPathRef.current) &&
     isFastHubPath(pathname);
+  const prevPath = prevPathRef.current;
   prevPathRef.current = pathname;
+
+  // 같은 커뮤니티 서버 안에서 채널만 바꿀 때는 셸 애니/전체 remount 키를 고정해 사이드바 유지
+  const sameCommunityNav =
+    isCommunityServerRoute &&
+    /^\/c\/[^/]+/.test(prevPath) &&
+    prevPath.split("/")[2] === pathname.split("/")[2];
+  const motionKey = sameCommunityNav ? `/c/${pathname.split("/")[2]}` : pathname;
 
   // 메시지 라우트는 확정 높이가 필요하다(입력창을 하단에 고정하고 목록만 스크롤).
   // min-h-full 은 height:auto 라 h-full 체인을 무너뜨려 입력창이 잘려 사라진다.
   const motionClass =
     isMessagesRoute || isCommunityServerRoute ? "h-full min-h-0" : "min-h-full";
 
-  const pageMotion = reduced || isProfileRoute ? (
-    <div key={pathname} className={motionClass}>
-      {children}
-    </div>
-  ) : skipHubMotion ? (
-    <div key={pathname} className={motionClass}>
-      {children}
-    </div>
-  ) : (
-    <motion.div
-      key={pathname}
-      variants={pageVariants}
-      initial="hidden"
-      animate="show"
-      className={motionClass}
-    >
-      {children}
-    </motion.div>
-  );
+  const pageMotion =
+    reduced || isProfileRoute || sameCommunityNav || skipHubMotion ? (
+      <div key={motionKey} className={motionClass}>
+        {children}
+      </div>
+    ) : (
+      <motion.div
+        key={motionKey}
+        variants={pageVariants}
+        initial="hidden"
+        animate="show"
+        className={motionClass}
+      >
+        {children}
+      </motion.div>
+    );
 
   if (isAuthRoute || isLegalRoute) {
     return (

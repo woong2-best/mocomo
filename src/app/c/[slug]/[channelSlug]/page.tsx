@@ -1,8 +1,5 @@
 import { notFound } from "next/navigation";
-import {
-  getCommunityServerContext,
-  getCommunityChannel,
-} from "@/actions/community-server";
+import { getCommunityServerContext, getCommunityChannelCached } from "@/lib/community-server/server-data";
 import { PostsChannelView } from "@/components/community-server/channels/posts-channel";
 import { TextChannelView } from "@/components/community-server/channels/text-channel";
 import { VoiceChannelView } from "@/components/community-server/channels/voice-channel-view";
@@ -22,11 +19,13 @@ export default async function CommunityChannelPage({
   params: Promise<{ slug: string; channelSlug: string }>;
 }) {
   const { slug, channelSlug } = await params;
-  const ctx = await getCommunityServerContext(slug);
-  if (!ctx) notFound();
 
-  const channel = await getCommunityChannel(slug, channelSlug);
-  if (!channel) notFound();
+  // layout과 동일 request cache 공유 — 추가 DB 왕복 없음
+  const [ctx, channel] = await Promise.all([
+    getCommunityServerContext(slug),
+    getCommunityChannelCached(slug, channelSlug),
+  ]);
+  if (!ctx || !channel) notFound();
 
   if (channel.type === "SETTINGS" && !ctx.isOwner) notFound();
 
@@ -70,6 +69,7 @@ export default async function CommunityChannelPage({
           channelId={channel.id}
           channelName={channel.name}
           communityId={ctx.communityId}
+          isMember={ctx.isMember || ctx.isOwner}
         />
       );
 
@@ -112,7 +112,7 @@ export default async function CommunityChannelPage({
       return <EventsChannelView communityId={ctx.communityId} />;
 
     case "GALLERY":
-      return <GalleryChannelView communitySlug={slug} />;
+      return <GalleryChannelView communityId={ctx.communityId} />;
 
     case "FILE":
       return <FileChannelView />;

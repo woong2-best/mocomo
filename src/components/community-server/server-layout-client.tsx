@@ -5,10 +5,8 @@ import { MemberSidebar } from "@/components/community-server/member-sidebar";
 import { VoiceStatusBar } from "@/components/community-server/voice-status-bar";
 import { CommunityVoiceProvider } from "@/components/community-server/community-voice-context";
 import { CommunityPresenceSync } from "@/components/community-server/presence-sync";
-import { useCommunityServer } from "@/hooks/use-community-server";
 import type { CommunityServerContext, CommunityMemberView } from "@/lib/community-server/types";
 import { hasPermission } from "@/lib/community-server/permissions";
-import { Loader2 } from "lucide-react";
 
 export function CommunityServerLayoutClient({
   slug,
@@ -21,17 +19,8 @@ export function CommunityServerLayoutClient({
   initialMembers: CommunityMemberView[];
   children: React.ReactNode;
 }) {
-  const { data: ctx, isLoading } = useCommunityServer(slug, initialContext);
-  const server = ctx ?? initialContext;
-
-  if (isLoading && !ctx) {
-    return (
-      <div className="flex items-center justify-center h-full min-h-[50vh] text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin mr-2" />
-        커뮤니티 로딩 중...
-      </div>
-    );
-  }
+  // 서버 RSC initialData만 사용 — 채널 전환마다 /api refetch 하지 않음
+  const server = initialContext;
 
   return (
     <CommunityVoiceProvider>
