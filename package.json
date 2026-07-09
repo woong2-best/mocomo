@@ -20,6 +20,8 @@
     "operator:assign": "tsx scripts/set-operator.ts",
     "operator:revoke": "tsx scripts/revoke-unauthorized-admins.ts",
     "oauth:discord": "tsx scripts/discord-oauth-setup.ts",
+    "oauth:migrate-google": "tsx scripts/migrate-google-oauth-encryption.ts",
+    "oauth:migrate": "tsx scripts/migrate-google-oauth-encryption.ts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate && node scripts/copy-mediapipe-assets.cjs && node scripts/copy-avatar-assets.cjs",
     "mediapipe:assets": "node scripts/copy-mediapipe-assets.cjs",

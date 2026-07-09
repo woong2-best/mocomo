@@ -1,0 +1,36 @@
+---
+description: Apple-level security principles — encryption, audit, API guards, safe logging
+alwaysApply: true
+---
+
+# Security Architecture (Apple-level principles)
+
+## Core rules
+
+1. **Minimum data collection** — Store only what the feature needs. OAuth PII encrypted at rest; Google users: no plaintext email/image on `User`.
+2. **Keys never in DB** — `OAUTH_ENCRYPTION_KEY`, `AUTH_SECRET`, API keys only in env/KMS. Support rotation via `OAUTH_ENCRYPTION_KEY_PREVIOUS` + `*_ID`.
+3. **OAuth vault** — Google/Discord/Twitter PII via `oauth-vault.ts` (AES-256-GCM + HMAC index). Never `allowDangerousEmailAccountLinking`.
+4. **Admin audit** — Any admin PII view/export must call `requireAdmin({ action, targetId })` which writes `SiteAdminAuditLog`.
+5. **Safe logging** — Use `safe-log.ts` (`redactEmail`, `sanitizeRecord`). Never log tokens, passwords, or full OAuth payloads.
+6. **API mutations** — Middleware enforces Origin on POST/PUT/PATCH/DELETE `/api/*` (webhooks exempt). Add `rateLimitPublicApi` on write routes.
+7. **Uploads** — Validate MIME allowlist + `validateBufferMime()` magic bytes on direct upload paths.
+8. **Production gates** — Turnstile fail-closed; sensitive `/api/health/*` requires `CRON_SECRET`; check `getProductionSecurityStatus()`.
+
+## Modules
+
+| Concern | Module |
+|---------|--------|
+| AES-256-GCM + HMAC | `src/lib/encryption.ts` |
+| Google OAuth vault | `src/lib/google-oauth-vault.ts` |
+| Admin audit | `src/lib/site-admin-audit.ts` |
+| API guards | `src/lib/api-security.ts` |
+| Log redaction | `src/lib/safe-log.ts` |
+| File magic bytes | `src/lib/file-magic.ts` |
+
+## New features checklist
+
+- [ ] Auth required for private data
+- [ ] Rate limit on public/write APIs
+- [ ] No PII in logs
+- [ ] Admin actions audited if sensitive
+- [ ] Secrets in env only (not git)

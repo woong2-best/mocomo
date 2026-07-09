@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimitPublicApi } from "@/lib/api-security";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireApiUser } from "@/lib/api-post-auth";
 
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const limited = await rateLimitPublicApi(req, "post-star", 60);
+  if (limited) return limited;
+
   const { id: postId } = await params;
   if (!postId || postId.length > 64) {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });

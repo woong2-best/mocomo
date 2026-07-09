@@ -25,6 +25,7 @@ declare module "next-auth" {
       countryCode?: string;
       isBanned?: boolean;
       isDeleted?: boolean;
+      isOperator?: boolean;
     };
   }
 }
@@ -40,5 +41,6 @@ declare module "next-auth/jwt" {
     countryCode?: string;
     isBanned?: boolean;
     isDeleted?: boolean;
+    isOperator?: boolean;
   }
 }

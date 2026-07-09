@@ -197,6 +197,7 @@ model User {
   adImpressions AdImpression[]
   modLogs       ModLog[]  @relation("ModActor")
   modLogsTarget ModLog[]  @relation("ModTarget")
+  siteAdminAuditLogs SiteAdminAuditLog[] @relation("SiteAdminAuditActor")
   creatorSupportsGiven CreatorSupport[] @relation("Supporter")
   creatorSupportsReceived CreatorSupport[] @relation("Creator")
   animeFollows  AnimeFollow[]
@@ -315,8 +316,20 @@ model Account {
   scope             String?
   id_token          String? @db.Text
   session_state     String?
+  /** Google OAuth — HMAC-SHA-256(sub) 로그인 조회용 (평문 sub 미저장) */
+  googleSubHash       String?
+  /** Google OAuth — HMAC-SHA-256(email) 계정 연동 조회용 */
+  googleEmailHash     String?
+  /** AES-256-GCM 암호문 (sub·email·name·image·tokens JSON) */
+  encryptedGoogleData String? @db.Text
+  encryptionIv        String?
+  encryptionAuthTag   String?
+  /** 암호화 키 버전 — 키 로테이션 시 복호화용 */
+  encryptionKeyId     String?
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@unique([provider, providerAccountId])
+  @@index([googleSubHash])
+  @@index([googleEmailHash])
 }
 
 model Session {
@@ -2294,6 +2307,24 @@ model ModLog {
   createdAt DateTime @default(now())
   actor  User @relation("ModActor", fields: [actorId], references: [id])
   target User @relation("ModTarget", fields: [targetId], references: [id])
+}
+
+/** 관리자·운영자 민감 접근 감사 (개인정보 조회·보내기 등) */
+model SiteAdminAuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  action     String
+  targetType String?
+  targetId   String?
+  ip         String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  actor User @relation("SiteAdminAuditActor", fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@index([targetId])
 }
 
 model PushSubscription {

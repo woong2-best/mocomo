@@ -41,3 +41,36 @@ export function isAuthConfigured(): boolean {
   const status = getAuthConfigStatus();
   return status.secretConfigured && status.secretLengthOk && status.databaseUrlConfigured;
 }
+
+export type ProductionSecurityStatus = {
+  ok: boolean;
+  issues: string[];
+};
+
+/** 프로덕션 배포 전 보안 환경 변수 점검 (Zero Trust / Secret 분리) */
+export function getProductionSecurityStatus(): ProductionSecurityStatus {
+  const issues: string[] = [];
+  const isProd =
+    process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
+  if (!isProd) return { ok: true, issues };
+
+  const auth = getAuthConfigStatus();
+  if (!auth.secretLengthOk) issues.push("AUTH_SECRET too short (min 32)");
+  if (!process.env.CRON_SECRET?.trim()) {
+    issues.push("CRON_SECRET missing (health/cron endpoints)");
+  }
+  if (auth.googleOAuth && !process.env.OAUTH_ENCRYPTION_KEY?.trim()) {
+    issues.push("OAUTH_ENCRYPTION_KEY missing while Google OAuth enabled");
+  }
+  if (
+    !process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ||
+    !process.env.TURNSTILE_SECRET_KEY?.trim()
+  ) {
+    issues.push("Turnstile keys missing (signup bot protection)");
+  }
+  if (!process.env.UPSTASH_REDIS_REST_URL?.trim()) {
+    issues.push("UPSTASH_REDIS_REST_URL missing (API rate limits degraded)");
+  }
+
+  return { ok: issues.length === 0, issues };
+}

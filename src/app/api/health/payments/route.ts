@@ -1,8 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { isPaymentsConfigured } from "@/lib/payments";
+import { guardSensitiveHealthEndpoint } from "@/lib/api-security";
 
 /** Stripe 후원·결제 설정 여부 */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const denied = guardSensitiveHealthEndpoint(req);
+  if (denied) return denied;
+
   const configured = isPaymentsConfigured();
   return NextResponse.json({
     configured,

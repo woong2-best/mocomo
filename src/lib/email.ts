@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import { getAppBaseUrl } from "@/lib/auth-tokens";
 import { getMailboxProviderFromEmail } from "@/lib/mailbox-provider";
+import { redactEmail } from "@/lib/safe-log";
 
 /** Resend DNS(SPF/DKIM)가 붙는 발신 서브도메인 — 루트 @mocomo.net 과 정렬 불일치 시 Outlook/iCloud 차단 */
 export const MOCOMO_SEND_SUBDOMAIN = "send.mocomo.net";
@@ -118,7 +119,7 @@ export async function sendEmail({
       ],
     });
     console.info("[email] sent", {
-      to,
+      to: redactEmail(to),
       mailbox: recipientProvider,
       from: from.replace(/<[^>]+>/, "<…>"),
       id: data?.id,

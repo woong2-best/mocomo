@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 import { getOperatorEmail, getOperatorUsername } from "@/lib/operator-config";
+import { safeLogInfo } from "@/lib/safe-log";
 
 export { getOperatorUsername, getOperatorEmail, isOperatorIdentity } from "@/lib/operator-config";
 
@@ -12,14 +13,7 @@ export type OperatorBootstrapResult = {
 };
 
 function auditLog(event: string, payload: Record<string, unknown>) {
-  console.info(
-    JSON.stringify({
-      ts: new Date().toISOString(),
-      scope: "operator",
-      event,
-      ...payload,
-    })
-  );
+  safeLogInfo("operator", { event, ...payload });
 }
 
 /** 잘못 부여된 ADMIN/MODERATOR 회수 (승격 없음) — 배포·보안 점검용 */
@@ -62,7 +56,6 @@ export async function bootstrapOperatorRole(prisma: PrismaClient): Promise<Opera
       username,
       reason: "operator_email_mismatch",
       demoted,
-      expectedEmail: requiredEmail,
     });
     return { ok: false, username, demoted, promoted: false, reason: "operator_email_mismatch" };
   }

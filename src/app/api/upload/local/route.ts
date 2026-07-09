@@ -18,6 +18,7 @@ import {
   getUploadMaxBytes,
   uploadSizeExceededMessage,
 } from "@/lib/upload-limits";
+import { validateBufferMime } from "@/lib/file-magic";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -112,6 +113,13 @@ export async function POST(req: NextRequest) {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
+
+  if (!validateBufferMime(buffer, mime, allowed)) {
+    return NextResponse.json(
+      { error: "파일 형식이 올바르지 않습니다." },
+      { status: 400 }
+    );
+  }
 
   if (isSupabaseStorageConfigured()) {
     const uploaded = await uploadBufferToSupabase(

@@ -1,8 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { guardSensitiveHealthEndpoint } from "@/lib/api-security";
 
 /** STAR·리트윗·댓글에 필요한 DB 테이블 존재 여부 (운영 점검용) */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const denied = guardSensitiveHealthEndpoint(req);
+  if (denied) return denied;
+
   const result = {
     bookmark: { ok: false, hint: "STAR 저장 (원래부터 있음)" },
     repost: { ok: false, hint: "리트윗 — Repost 테이블 + SQL 필요" },

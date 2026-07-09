@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { rateLimitPublicApi } from "@/lib/api-security";
 import { db } from "@/lib/db";
 import { createPostForUser, type CreatePostInput } from "@/lib/create-post-core";
 import type { MediaType } from "@prisma/client";
 
 export async function POST(req: NextRequest) {
+  const limited = await rateLimitPublicApi(req, "posts-create", 20);
+  if (limited) return limited;
+
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) {

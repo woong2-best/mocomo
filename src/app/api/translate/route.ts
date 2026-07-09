@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { rateLimitPublicApi } from "@/lib/api-security";
 import { translatePostContent } from "@/lib/content-translate";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { detectTextLanguage } from "@/lib/text-language";
@@ -8,7 +9,10 @@ const bodySchema = z.object({
   text: z.string().min(1).max(2000),
 });
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const limited = await rateLimitPublicApi(req, "translate", 30);
+  if (limited) return limited;
+
   try {
     const parsed = bodySchema.safeParse(await req.json());
     if (!parsed.success) {

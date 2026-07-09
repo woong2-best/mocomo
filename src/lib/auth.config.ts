@@ -27,6 +27,7 @@ export const authConfig = {
         session.user.countryCode = token.countryCode as string;
         session.user.isBanned = Boolean(token.isBanned);
         session.user.isDeleted = Boolean(token.isDeleted);
+        session.user.isOperator = Boolean(token.isOperator);
       }
       return session;
     },

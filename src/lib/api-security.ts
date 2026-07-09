@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 import { checkRateLimit, apiLimiter } from "@/lib/ratelimit";
 import { db } from "@/lib/db";
 import { randomBytes } from "crypto";
+import { verifyApiOrigin } from "@/lib/api-origin";
+
+export { verifyApiOrigin, shouldGuardMutatingApiOrigin, MUTATING_API_ORIGIN_EXEMPT_PREFIXES } from "@/lib/api-origin";
 
 export function getClientIpFromRequest(req: NextRequest): string {
   const forwarded = req.headers.get("x-forwarded-for");
@@ -83,4 +86,25 @@ export function verifyInternalSecret(req: NextRequest): boolean {
 
 export function isProduction(): boolean {
   return process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
+}
+
+/** 프로덕션 상세 health·진단 API — CRON_SECRET 없으면 403 */
+export function guardSensitiveHealthEndpoint(req: NextRequest): NextResponse | null {
+  if (!isProduction()) return null;
+  if (verifyInternalSecret(req)) return null;
+  return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+}
+
+/** 인증된 변경 API — Origin 검증 + 선택적 rate limit */
+export async function guardMutatingApi(
+  req: NextRequest,
+  options?: { rateBucket?: string; maxPerMinute?: number }
+): Promise<NextResponse | null> {
+  if (!verifyApiOrigin(req)) {
+    return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
+  }
+  if (options?.rateBucket) {
+    return rateLimitPublicApi(req, options.rateBucket, options.maxPerMinute ?? 60);
+  }
+  return null;
 }

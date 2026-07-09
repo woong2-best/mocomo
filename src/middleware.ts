@@ -1,5 +1,8 @@
 import { edgeAuth } from "@/lib/auth.edge";
-import { isOperatorIdentity } from "@/lib/operator-config";
+import {
+  shouldGuardMutatingApiOrigin,
+  verifyApiOrigin,
+} from "@/lib/api-origin";
 import {
   CLIENT_PLATFORM_COOKIE,
   CLIENT_PLATFORM_MAX_AGE,
@@ -114,6 +117,12 @@ export default edgeAuth((req) => {
   );
   const { pathname } = req.nextUrl;
 
+  if (shouldGuardMutatingApiOrigin(pathname, req.method)) {
+    if (!verifyApiOrigin(req)) {
+      return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
+    }
+  }
+
   if (isStudioHostname(host)) {
     if (
       !pathname.startsWith("/studio") &&
@@ -184,14 +193,7 @@ export default edgeAuth((req) => {
       return res;
     }
   }
-  const sessionUser = req.auth?.user;
-  const isOperator =
-    !!sessionUser?.username &&
-    !!sessionUser?.role &&
-    isOperatorIdentity({
-      username: sessionUser.username,
-      role: sessionUser.role,
-    });
+  const isOperator = Boolean(req.auth?.user?.isOperator);
   if (isAdmin && !isOperator) {
     const res = NextResponse.redirect(new URL(DEFAULT_LANDING_PATH, req.url));
     stampAppClientIfNeeded(req, res);

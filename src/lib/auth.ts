@@ -12,6 +12,9 @@ import {
 import { recordUserDeviceFromRequest } from "@/lib/apt/economy/fraud/fraud-restrictions";
 import { recoverDeletedAccount } from "@/lib/account-deletion-server";
 import { canRecoverAccount, isAccountPastRecovery } from "@/lib/account-deletion";
+import { hydrateUserOAuthProfile } from "@/lib/oauth-vault";
+import type { SiteAdminAuditAction } from "@/lib/site-admin-audit";
+import { logSiteAdminAudit } from "@/lib/site-admin-audit";
 
 const useSecureCookies = process.env.NODE_ENV === "production";
 
@@ -99,6 +102,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.countryCode = dbUser.countryCode;
           token.isBanned = dbUser.isBanned;
           token.isDeleted = !!dbUser.deletedAt;
+          token.isOperator = isOperatorIdentity({
+            username: dbUser.username,
+            role: effectiveRole(dbUser),
+            email: dbUser.email,
+          });
         }
       }
       return token;
@@ -117,10 +125,12 @@ export async function getAuthUserId(): Promise<string | null> {
 export const getCachedCurrentUser = cache(async () => {
   const session = await getCachedSession();
   if (!session?.user?.id) return null;
-  return db.user.findUnique({
+  const user = await db.user.findUnique({
     where: { id: session.user.id },
     include: { profile: true, cosplayerProfile: true },
   });
+  if (!user) return null;
+  return hydrateUserOAuthProfile(user);
 });
 
 export async function getCurrentUser() {
@@ -177,10 +187,24 @@ export async function requireAuthMinimal() {
   return user;
 }
 
-export async function requireAdmin() {
+export async function requireAdmin(audit?: {
+  action: SiteAdminAuditAction;
+  targetType?: string;
+  targetId?: string;
+  metadata?: Record<string, unknown>;
+}) {
   const user = await requireAuth();
   if (!isOperatorIdentity({ username: user.username, role: user.role, email: user.email })) {
     throw new Error("FORBIDDEN");
+  }
+  if (audit) {
+    void logSiteAdminAudit({
+      actorId: user.id,
+      action: audit.action,
+      targetType: audit.targetType,
+      targetId: audit.targetId,
+      metadata: audit.metadata,
+    });
   }
   return user;
 }

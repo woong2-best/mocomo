@@ -33,6 +33,8 @@ export const SECURITY_HEADERS: { key: string; value: string }[] = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+  { key: "Cross-Origin-Resource-Policy", value: "same-site" },
   {
     key: "Permissions-Policy",
     value: "camera=(self), microphone=(self), geolocation=(self), payment=(self)",
@@ -41,7 +43,7 @@ export const SECURITY_HEADERS: { key: string; value: string }[] = [
     key: "Content-Security-Policy",
     value: [
       ...CSP_BASE,
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://challenges.cloudflare.com https://js.stripe.com",
+      "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://challenges.cloudflare.com https://js.stripe.com",
       "frame-src 'self' https://challenges.cloudflare.com https://js.stripe.com",
       "frame-ancestors 'none'",
     ].join("; "),

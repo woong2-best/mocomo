@@ -23,14 +23,14 @@ export async function verifyTurnstileToken(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!isTurnstileConfigured()) {
     if (process.env.NODE_ENV === "production") {
-      console.warn("[turnstile] Production without TURNSTILE keys — email rate limits only");
+      return { ok: false, error: "보안 확인이 설정되지 않았습니다. 잠시 후 다시 시도해 주세요." };
     }
     return { ok: true };
   }
 
   const trimmed = token?.trim();
   if (!trimmed) {
-    if (options?.widgetUnavailable) {
+    if (options?.widgetUnavailable && process.env.NODE_ENV !== "production") {
       return { ok: true };
     }
     return { ok: false, error: "아래 보안 확인(로봇이 아님)을 완료해 주세요." };

@@ -27,7 +27,10 @@ function revalidate() {
 }
 
 export async function adminSearchEconomyCs(query: string) {
-  await requireAdmin();
+  await requireAdmin({
+    action: "SEARCH_USER_CS",
+    metadata: { queryLength: query.trim().length },
+  });
   return searchEconomyCs(query);
 }
 
@@ -35,7 +38,11 @@ export async function adminGetCsUserDetail(
   userId: string,
   filters?: EconomyEventCategory[]
 ) {
-  await requireAdmin();
+  await requireAdmin({
+    action: "VIEW_USER_PII",
+    targetType: "user",
+    targetId: userId,
+  });
   return getCsUserDetail(userId, { categories: filters?.length ? filters : undefined });
 }
 
@@ -98,7 +105,12 @@ export async function adminExportCsTimeline(
   format: "csv" | "json",
   filters?: EconomyEventCategory[]
 ) {
-  await requireAdmin();
+  await requireAdmin({
+    action: "EXPORT_USER_DATA",
+    targetType: "user",
+    targetId: userId,
+    metadata: { format },
+  });
   const detail = await getCsUserDetail(userId, { categories: filters?.length ? filters : undefined });
   if (!detail) return { error: "사용자를 찾을 수 없습니다." };
   if (format === "json") {

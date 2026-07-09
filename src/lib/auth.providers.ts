@@ -66,6 +66,7 @@ const credentialsProvider = Credentials({
   },
 });
 
+/** OAuth 프로바이더 공통 — allowDangerousEmailAccountLinking 미사용 (검증된 이메일만 어댑터에서 연동) */
 export function getAuthProviders(): NonNullable<NextAuthConfig["providers"]> {
   const providers: NonNullable<NextAuthConfig["providers"]> = [credentialsProvider];
 
@@ -74,7 +75,6 @@ export function getAuthProviders(): NonNullable<NextAuthConfig["providers"]> {
       Google({
         clientId: process.env.AUTH_GOOGLE_ID,
         clientSecret: process.env.AUTH_GOOGLE_SECRET,
-        allowDangerousEmailAccountLinking: true,
       })
     );
   } else if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
@@ -82,7 +82,6 @@ export function getAuthProviders(): NonNullable<NextAuthConfig["providers"]> {
       Google({
         clientId: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        allowDangerousEmailAccountLinking: true,
       })
     );
   }
@@ -92,7 +91,6 @@ export function getAuthProviders(): NonNullable<NextAuthConfig["providers"]> {
       Discord({
         clientId: process.env.AUTH_DISCORD_ID,
         clientSecret: process.env.AUTH_DISCORD_SECRET,
-        allowDangerousEmailAccountLinking: true,
         authorization: {
           params: { scope: "identify email" },
         },
@@ -105,8 +103,6 @@ export function getAuthProviders(): NonNullable<NextAuthConfig["providers"]> {
       Twitter({
         clientId: process.env.AUTH_TWITTER_ID,
         clientSecret: process.env.AUTH_TWITTER_SECRET,
-        allowDangerousEmailAccountLinking: true,
-        // scope만 덮어쓰면 기본 authorization URL이 사라져 Configuration 오류가 납니다.
         authorization: {
           url: "https://x.com/i/oauth2/authorize",
           params: { scope: "users.read" },

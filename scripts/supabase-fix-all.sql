@@ -1553,3 +1553,41 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+-- =============================================================================
+-- AA) Google OAuth 개인정보 암호화 (Account)
+-- =============================================================================
+
+ALTER TABLE "Account" ADD COLUMN IF NOT EXISTS "googleSubHash" TEXT;
+ALTER TABLE "Account" ADD COLUMN IF NOT EXISTS "googleEmailHash" TEXT;
+ALTER TABLE "Account" ADD COLUMN IF NOT EXISTS "encryptedGoogleData" TEXT;
+ALTER TABLE "Account" ADD COLUMN IF NOT EXISTS "encryptionIv" TEXT;
+ALTER TABLE "Account" ADD COLUMN IF NOT EXISTS "encryptionAuthTag" TEXT;
+
+CREATE INDEX IF NOT EXISTS "Account_googleSubHash_idx" ON "Account"("googleSubHash");
+CREATE INDEX IF NOT EXISTS "Account_googleEmailHash_idx" ON "Account"("googleEmailHash");
+ALTER TABLE "Account" ADD COLUMN IF NOT EXISTS "encryptionKeyId" TEXT;
+
+-- AB) 관리자 감사 로그 (개인정보·민감 조회)
+CREATE TABLE IF NOT EXISTS "SiteAdminAuditLog" (
+  "id" TEXT NOT NULL,
+  "actorId" TEXT NOT NULL,
+  "action" TEXT NOT NULL,
+  "targetType" TEXT,
+  "targetId" TEXT,
+  "ip" TEXT,
+  "metadata" JSONB,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "SiteAdminAuditLog_pkey" PRIMARY KEY ("id")
+);
+CREATE INDEX IF NOT EXISTS "SiteAdminAuditLog_actorId_createdAt_idx" ON "SiteAdminAuditLog"("actorId", "createdAt");
+CREATE INDEX IF NOT EXISTS "SiteAdminAuditLog_action_createdAt_idx" ON "SiteAdminAuditLog"("action", "createdAt");
+CREATE INDEX IF NOT EXISTS "SiteAdminAuditLog_targetId_idx" ON "SiteAdminAuditLog"("targetId");
+DO $$ BEGIN
+  ALTER TABLE "SiteAdminAuditLog" ADD CONSTRAINT "SiteAdminAuditLog_actorId_fkey"
+    FOREIGN KEY ("actorId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- 배치 마이그레이션: npm run oauth:migrate-google
+-- 로그인 시 lazy 마이그레이션도 지원 (auth adapter)
+

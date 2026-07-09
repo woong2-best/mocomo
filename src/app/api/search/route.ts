@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { unstable_cache } from "next/cache";
 import { getAuthUserId } from "@/lib/auth";
+import { rateLimitPublicApi } from "@/lib/api-security";
 import { enrichSearchUsersWithFollowStatus, runFastSearch } from "@/lib/search-fast";
 
 function normalizeSearchKey(q: string) {
@@ -12,6 +13,9 @@ const cachedSearch = (key: string, q: string) =>
 
 /** 빠른 통합 검색 (JSON) — 동일 검색어 30초 캐시 */
 export async function GET(req: NextRequest) {
+  const limited = await rateLimitPublicApi(req, "search", 60);
+  if (limited) return limited;
+
   const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
   if (q.length < 1) {
     return NextResponse.json({ error: "검색어를 입력해 주세요." }, { status: 400 });
