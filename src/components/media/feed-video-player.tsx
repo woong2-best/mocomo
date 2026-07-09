@@ -33,11 +33,14 @@ export function FeedVideoPlayer({
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const scrubbingRef = useRef(false);
   const [started, setStarted] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(muted);
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [scrubProgress, setScrubProgress] = useState(0);
+  const [isScrubbing, setIsScrubbing] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [speedOpen, setSpeedOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -79,7 +82,9 @@ export function FeedVideoPlayer({
       setStarted(true);
     };
     const onPause = () => setPlaying(false);
-    const onTime = () => setCurrent(v.currentTime);
+    const onTime = () => {
+      if (!scrubbingRef.current) setCurrent(v.currentTime);
+    };
     const onMeta = () => setDuration(v.duration);
     const onEnded = () => {
       setPlaying(false);
@@ -132,13 +137,46 @@ export function FeedVideoPlayer({
     }
   };
 
+  const endScrub = useCallback(() => {
+    scrubbingRef.current = false;
+    setIsScrubbing(false);
+    const v = videoRef.current;
+    if (v) setCurrent(v.currentTime);
+  }, []);
+
+  const beginScrub = useCallback(() => {
+    scrubbingRef.current = true;
+    setIsScrubbing(true);
+    const v = videoRef.current;
+    if (v && Number.isFinite(v.duration) && v.duration > 0) {
+      setScrubProgress((v.currentTime / v.duration) * 100);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isScrubbing) return;
+    const onUp = () => endScrub();
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    return () => {
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+    };
+  }, [isScrubbing, endScrub]);
+
   const seek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = videoRef.current;
     if (!v || !duration) return;
-    v.currentTime = (Number(e.target.value) / 100) * duration;
+    const pct = Number(e.target.value);
+    setScrubProgress(pct);
+    v.currentTime = (pct / 100) * duration;
+    if (!scrubbingRef.current) setCurrent(v.currentTime);
   };
 
   const progress = duration ? (current / duration) * 100 : 0;
+  const displayProgress = isScrubbing ? scrubProgress : progress;
+  const displayCurrent =
+    isScrubbing && duration ? (scrubProgress / 100) * duration : current;
 
   return (
     <div
@@ -196,14 +234,28 @@ export function FeedVideoPlayer({
             type="range"
             min={0}
             max={100}
-            step={0.1}
-            value={progress}
+            step={0.05}
+            value={displayProgress}
             onChange={seek}
+            onInput={seek}
+            onPointerDown={(e) => {
+              stop(e);
+              beginScrub();
+            }}
+            onPointerUp={(e) => {
+              stop(e);
+              endScrub();
+            }}
+            onPointerCancel={endScrub}
+            onKeyDown={(e) => {
+              if (e.key === " " || e.key === "Enter") beginScrub();
+            }}
+            onKeyUp={endScrub}
             onClick={stop}
             aria-label="탐색"
             className="h-1 w-full cursor-pointer appearance-none rounded-full bg-white/30 accent-white [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
             style={{
-              background: `linear-gradient(to right, #ffffff ${progress}%, rgba(255,255,255,0.3) ${progress}%)`,
+              background: `linear-gradient(to right, #ffffff ${displayProgress}%, rgba(255,255,255,0.3) ${displayProgress}%)`,
             }}
           />
 
@@ -217,7 +269,7 @@ export function FeedVideoPlayer({
             </button>
 
             <span className="text-[11px] tabular-nums text-white/90">
-              {formatTime(current)} / {formatTime(duration)}
+              {formatTime(displayCurrent)} / {formatTime(duration)}
             </span>
 
             <div className="ml-auto flex items-center gap-2">
