@@ -614,6 +614,15 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   const activeVideo =
     callState.phase === "active" && isVideoCall(callState.call);
 
+  const selfPeer = useMemo<CallParticipant>(
+    () => ({
+      id: userId ?? "",
+      username: session?.user?.username ?? session?.user?.name ?? "나",
+      image: session?.user?.image ?? null,
+    }),
+    [userId, session?.user?.username, session?.user?.name, session?.user?.image]
+  );
+
   return (
     <CallActionsContext.Provider value={value}>
       <CallBusyContext.Provider value={busy}>
@@ -639,11 +648,19 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
               if (callState.phase === "active") hangup(callState.call.id);
             }}
             livekitSlot={
-              connectLivekit ? (
+              connectLivekit && isCallPhase(callState) ? (
                 <LivekitCallRoom
                   roomName={callState.call.livekitRoom}
-                  video={activeVideo}
+                  video={activeVideo || isVideoCall(callState.call)}
                   prefetched={prefetchedLivekit}
+                  peer={callState.peer}
+                  selfPeer={selfPeer}
+                  phase={callState.phase === "active" ? "active" : "outgoing"}
+                  onHangup={() => {
+                    if (callState.phase === "active" || callState.phase === "outgoing") {
+                      hangup(callState.call.id);
+                    }
+                  }}
                 />
               ) : undefined
             }

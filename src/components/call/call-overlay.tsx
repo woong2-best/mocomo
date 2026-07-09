@@ -1,236 +1,108 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import type { ActiveCallState } from "@/lib/call-types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
-  Mic,
-  MicOff,
+  Loader2,
   Phone,
   PhoneIncoming,
   PhoneOff,
-  PhoneOutgoing,
-  Loader2,
-  CheckCircle2,
-  AlertCircle,
   Video,
+  MicOff,
   VideoOff,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MicCheckResult } from "@/lib/microphone";
 import type { CameraCheckResult } from "@/lib/camera";
 import { useCallWakeLock } from "@/hooks/use-call-wake-lock";
 
-function formatDuration(seconds: number) {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
+function phaseSubtitle(isVideo: boolean, phase: ActiveCallState["phase"]) {
+  if (phase === "preparing") return isVideo ? "영상 통화 연결 준비 중…" : "음성 통화 연결 준비 중…";
+  if (phase === "incoming") return isVideo ? "영상 통화" : "음성 통화";
+  if (phase === "outgoing") return isVideo ? "영상 통화 연결 대기 중…" : "연결 중…";
+  return isVideo ? "영상·음성 통화" : "음성 통화";
 }
 
-function phaseMeta(isVideo: boolean) {
-  return {
-    preparing: {
-      badge: "연결 중",
-      badgeClass: "bg-primary/15 text-primary",
-      subtitle: isVideo ? "영상 통화 연결 준비 중…" : "음성 통화 연결 준비 중…",
-      icon: isVideo ? Video : PhoneOutgoing,
-    },
-    incoming: {
-      badge: "수신 중",
-      badgeClass: "bg-green-500/15 text-green-700 dark:text-green-400",
-      subtitle: isVideo ? "영상 통화 요청이 왔습니다" : "음성 통화 요청이 왔습니다",
-      icon: isVideo ? Video : PhoneIncoming,
-    },
-    outgoing: {
-      badge: "발신 중",
-      badgeClass: "bg-primary/15 text-primary",
-      subtitle: isVideo ? "영상 통화 연결 대기 중…" : "상대방이 받을 때까지 기다리는 중…",
-      icon: isVideo ? Video : PhoneOutgoing,
-    },
-    active: {
-      badge: "통화 중",
-      badgeClass: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-      subtitle: isVideo ? "영상·음성으로 대화 중입니다" : "마이크가 연결되어 대화 중입니다",
-      icon: isVideo ? Video : Phone,
-    },
-  } as const;
-}
-
-function DeviceCheckRow({
-  label,
-  granted,
-  denied,
-  checking,
-  deviceLabel,
-  message,
-  grantedIcon: GrantedIcon,
-  defaultIcon: DefaultIcon,
-  deniedIcon: DeniedIcon,
-  onCheck,
-  checkLabel,
-}: {
-  label: string;
-  granted: boolean;
-  denied: boolean;
-  checking: boolean;
-  deviceLabel?: string;
-  message?: string;
-  grantedIcon: React.ComponentType<{ className?: string }>;
-  defaultIcon: React.ComponentType<{ className?: string }>;
-  deniedIcon: React.ComponentType<{ className?: string }>;
-  onCheck?: () => void;
-  checkLabel: string;
-}) {
-  const Icon = granted ? GrantedIcon : denied ? DeniedIcon : DefaultIcon;
-
-  return (
-    <div className="flex items-start gap-3">
-      <div
-        className={cn(
-          "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
-          granted ? "bg-emerald-500/20 text-emerald-600" : "bg-muted text-muted-foreground"
-        )}
-      >
-        <Icon className="h-4 w-4" />
-      </div>
-      <div className="min-w-0 flex-1 space-y-0.5">
-        <p className="text-xs font-semibold">{label}</p>
-        {checking ? (
-          <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            확인 중…
-          </p>
-        ) : granted ? (
-          <p className="text-[11px] text-emerald-700 dark:text-emerald-400 truncate">
-            ✓ {deviceLabel ?? "준비됨"}
-          </p>
-        ) : (
-          <p className="text-[11px] text-muted-foreground leading-snug">{message}</p>
-        )}
-      </div>
-      {!granted && onCheck && (
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          className="h-8 rounded-lg text-xs shrink-0"
-          disabled={checking}
-          onClick={onCheck}
-        >
-          {checkLabel}
-        </Button>
-      )}
-    </div>
-  );
-}
-
-function MediaCheckPanel({
+function PermissionBanner({
   mic,
   camera,
-  micChecking,
-  cameraChecking,
+  video,
   onMicCheck,
   onCameraCheck,
-  video,
+  micChecking,
+  cameraChecking,
 }: {
   mic: MicCheckResult | null;
   camera: CameraCheckResult | null;
-  micChecking: boolean;
-  cameraChecking: boolean;
+  video: boolean;
   onMicCheck: () => void;
   onCameraCheck?: () => void;
-  video: boolean;
+  micChecking: boolean;
+  cameraChecking: boolean;
 }) {
-  const micGranted = !!mic?.ok;
-  const camGranted = !video || !!camera?.ok;
-  const allGranted = micGranted && camGranted;
+  const micDenied = mic && !mic.ok;
+  const camDenied = video && camera && !camera.ok;
+  if (!micDenied && !camDenied) return null;
 
   return (
-    <div
-      className={cn(
-        "rounded-2xl border px-4 py-3 text-left transition-colors space-y-3",
-        allGranted
-          ? "border-emerald-500/30 bg-emerald-500/10"
-          : "border-border bg-muted/40"
+    <div className="mx-auto max-w-sm rounded-2xl bg-white/10 px-4 py-3 text-center text-xs text-white/80">
+      {!mic?.ok && (
+        <button
+          type="button"
+          disabled={micChecking}
+          onClick={onMicCheck}
+          className="flex w-full items-center justify-center gap-2 py-1"
+        >
+          {micChecking ? <Loader2 className="h-4 w-4 animate-spin" /> : <MicOff className="h-4 w-4" />}
+          마이크 권한이 필요합니다
+        </button>
       )}
-    >
-      <p className="text-sm font-semibold">기기 연결 확인</p>
-      <DeviceCheckRow
-        label="마이크"
-        granted={micGranted}
-        denied={mic?.status === "denied"}
-        checking={micChecking}
-        deviceLabel={mic?.deviceLabel}
-        message={mic?.message ?? "마이크·헤드셋 연결과 브라우저 권한을 확인해 주세요."}
-        grantedIcon={CheckCircle2}
-        defaultIcon={Mic}
-        deniedIcon={MicOff}
-        onCheck={onMicCheck}
-        checkLabel="허용"
-      />
-      {video && (
-        <DeviceCheckRow
-          label="카메라"
-          granted={camGranted}
-          denied={camera?.status === "denied"}
-          checking={cameraChecking}
-          deviceLabel={camera?.deviceLabel}
-          message={camera?.message ?? "카메라 권한을 허용해 주세요."}
-          grantedIcon={CheckCircle2}
-          defaultIcon={Video}
-          deniedIcon={VideoOff}
-          onCheck={onCameraCheck}
-          checkLabel="허용"
-        />
+      {camDenied && onCameraCheck && (
+        <button
+          type="button"
+          disabled={cameraChecking}
+          onClick={onCameraCheck}
+          className="flex w-full items-center justify-center gap-2 py-1"
+        >
+          {cameraChecking ? <Loader2 className="h-4 w-4 animate-spin" /> : <VideoOff className="h-4 w-4" />}
+          카메라 권한이 필요합니다
+        </button>
       )}
     </div>
   );
 }
 
-function CallActionButton({
-  label,
-  sublabel,
+function RingButton({
   variant,
+  label,
   icon: Icon,
   onClick,
   disabled,
-  className,
 }: {
+  variant: "accept" | "decline";
   label: string;
-  sublabel?: string;
-  variant: "accept" | "decline" | "cancel";
   icon: React.ComponentType<{ className?: string }>;
   onClick: () => void;
   disabled?: boolean;
-  className?: string;
 }) {
-  const styles = {
-    accept: "bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/25",
-    decline: "bg-folk-terracotta hover:bg-red-700 text-white shadow-lg shadow-folk-terracotta/25",
-    cancel: "bg-folk-terracotta hover:bg-red-700 text-white shadow-lg shadow-folk-terracotta/25",
-  };
-
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={cn(
-        "flex flex-col items-center gap-2 disabled:opacity-50 disabled:pointer-events-none",
-        className
-      )}
+      className="flex flex-col items-center gap-2 disabled:opacity-40"
+      aria-label={label}
     >
       <span
         className={cn(
-          "flex h-[4.25rem] w-[4.25rem] items-center justify-center rounded-full transition-transform active:scale-95",
-          styles[variant]
+          "flex h-16 w-16 items-center justify-center rounded-full transition-transform active:scale-95",
+          variant === "accept" ? "bg-emerald-500 text-white" : "bg-red-500 text-white"
         )}
       >
         <Icon className="h-7 w-7" />
       </span>
-      <span className="text-sm font-semibold text-foreground">{label}</span>
-      {sublabel && <span className="text-[11px] text-muted-foreground -mt-1">{sublabel}</span>}
+      <span className="text-sm text-white/80">{label}</span>
     </button>
   );
 }
@@ -268,155 +140,115 @@ export function CallOverlay({
     callState.phase === "preparing"
       ? callState.callType === "VIDEO"
       : callState.call.callType === "VIDEO";
-  useCallWakeLock(callState.phase === "active" && isVideo);
-  const meta = phaseMeta(isVideo)[callState.phase];
-  const PhaseIcon = meta.icon;
-  const [seconds, setSeconds] = useState(0);
+
+  useCallWakeLock(
+    (callState.phase === "active" || callState.phase === "outgoing") && isVideo
+  );
+
   const micReady = !!mic?.ok;
   const camReady = !isVideo || !!camera?.ok;
   const mediaReady = micReady && camReady;
 
-  useEffect(() => {
-    if (callState.phase !== "active") {
-      setSeconds(0);
-      return;
-    }
-    const start = Date.now();
-    const id = setInterval(() => setSeconds(Math.floor((Date.now() - start) / 1000)), 1000);
-    return () => clearInterval(id);
-  }, [
-    callState.phase,
-    callState.phase === "active" ? callState.call.id : "",
-  ]);
+  const isLivekitPhase =
+    callState.phase === "active" || callState.phase === "outgoing";
+
+  if (isLivekitPhase && livekitSlot) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-black">
+        <div className="h-full w-full">{livekitSlot}</div>
+        {error && (
+          <p className="absolute inset-x-4 top-safe mt-14 z-30 rounded-xl bg-red-500/20 px-3 py-2 text-center text-xs text-red-200">
+            {error}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  const peer =
+    callState.phase === "preparing" ? callState.peer : callState.peer;
+  const subtitle = phaseSubtitle(isVideo, callState.phase);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-3 sm:p-6">
-      <div
-        className="absolute inset-0 bg-background/75 backdrop-blur-md dark:bg-gradient-to-b dark:from-primary/25 dark:via-background/95 dark:to-background"
-        aria-hidden
-      />
-
-      <div
-        className={cn(
-          "relative w-full overflow-hidden rounded-[2rem] border border-border/80 bg-background/95 shadow-2xl shadow-primary/10",
-          isVideo && callState.phase === "active" ? "max-w-lg" : "max-w-md"
-        )}
-      >
-        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-primary/20 to-transparent pointer-events-none" />
-
-        <div className="relative px-6 pt-6 pb-6 space-y-5">
-          <div className="flex items-center justify-between">
-            <span className={cn("text-xs font-bold px-3 py-1 rounded-full", meta.badgeClass)}>
-              {meta.badge}
-            </span>
-            {callState.phase === "active" && (
-              <span className="text-sm font-mono tabular-nums text-muted-foreground">
-                {formatDuration(seconds)}
-              </span>
-            )}
+    <div className="fixed inset-0 z-[100] flex flex-col bg-black text-white">
+      <div className="flex flex-1 flex-col items-center justify-center px-6 pb-32 pt-safe">
+        {callState.phase === "preparing" ? (
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-10 w-10 animate-spin text-white/70" />
+            <p className="text-sm text-white/60">{subtitle}</p>
           </div>
-
-          {!(isVideo && callState.phase === "active") && (
-            <div className="flex flex-col items-center text-center gap-4 pt-2">
-              <div className="relative">
-                <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping scale-110 opacity-40" />
-                <span className="absolute -inset-2 rounded-full border-2 border-primary/30 animate-pulse" />
-                <Avatar className="relative h-24 w-24 ring-4 ring-background shadow-xl">
-                  <AvatarImage src={callState.peer.image ?? undefined} />
-                  <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
-                    {callState.peer.username[0]?.toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
-
-              <div className="space-y-1">
-                <p className="text-2xl font-bold tracking-tight">{callState.peer.username}</p>
-                <p className="text-sm text-muted-foreground flex items-center justify-center gap-1.5">
-                  <PhaseIcon className="h-4 w-4 shrink-0 opacity-70" />
-                  {meta.subtitle}
-                </p>
-              </div>
+        ) : (
+          <>
+            <div className="relative mb-8">
+              {(callState.phase === "incoming" || callState.phase === "outgoing") && (
+                <>
+                  <span className="absolute inset-0 scale-125 rounded-full bg-white/5 animate-ping" />
+                  <span className="absolute -inset-4 rounded-full border border-white/10" />
+                </>
+              )}
+              <Avatar className="relative h-28 w-28 ring-2 ring-white/15">
+                <AvatarImage src={peer.image ?? undefined} />
+                <AvatarFallback className="bg-white/10 text-3xl text-white">
+                  {peer.username[0]?.toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
             </div>
-          )}
 
-          {isVideo && callState.phase === "active" && (
-            <div className="space-y-2 pt-1">
-              <p className="text-center text-sm font-semibold">{callState.peer.username}</p>
-              <p className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1">
-                <Video className="h-3.5 w-3.5" />
-                {meta.subtitle}
-              </p>
-            </div>
-          )}
-
-          {callState.phase === "preparing" ? (
-            <div className="rounded-2xl border border-border bg-muted/40 px-4 py-6 flex flex-col items-center gap-2">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">통화 연결 준비 중…</p>
-            </div>
-          ) : callState.phase !== "active" ? (
-            <MediaCheckPanel
-              mic={mic}
-              camera={camera}
-              micChecking={micChecking}
-              cameraChecking={cameraChecking}
-              onMicCheck={onMicCheck}
-              onCameraCheck={onCameraCheck}
-              video={isVideo}
-            />
-          ) : null}
-
-          {callState.phase === "active" && livekitSlot}
-
-          {error && (
-            <p className="text-xs text-destructive text-center flex items-center justify-center gap-1.5 bg-destructive/10 rounded-xl py-2 px-3">
-              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-              {error}
+            <p className="text-2xl font-semibold tracking-tight">{peer.username}</p>
+            <p className="mt-2 flex items-center gap-2 text-sm text-white/55">
+              {isVideo ? <Video className="h-4 w-4" /> : <Phone className="h-4 w-4" />}
+              {subtitle}
             </p>
-          )}
 
-          <div className="flex justify-center gap-8 sm:gap-12 pt-1">
             {callState.phase === "incoming" && (
-              <>
-                <CallActionButton
-                  label="받기"
-                  sublabel={mediaReady ? "통화 시작" : "기기 확인 후"}
-                  variant="accept"
-                  icon={isVideo ? Video : PhoneIncoming}
-                  disabled={!mediaReady || micChecking || cameraChecking}
-                  onClick={onAccept}
+              <div className="mt-8 w-full max-w-sm">
+                <PermissionBanner
+                  mic={mic}
+                  camera={camera}
+                  video={isVideo}
+                  onMicCheck={onMicCheck}
+                  onCameraCheck={onCameraCheck}
+                  micChecking={micChecking}
+                  cameraChecking={cameraChecking}
                 />
-                <CallActionButton
-                  label="거절"
-                  sublabel="부재중 처리"
-                  variant="decline"
-                  icon={PhoneOff}
-                  onClick={onDecline}
-                />
-              </>
+              </div>
             )}
+          </>
+        )}
 
-            {(callState.phase === "outgoing" || callState.phase === "preparing") && (
-              <CallActionButton
-                label="취소"
-                sublabel={callState.phase === "preparing" ? "연결 취소" : "발신 취소"}
-                variant="cancel"
-                icon={PhoneOff}
-                onClick={onCancel}
-              />
-            )}
+        {error && (
+          <p className="mt-6 flex max-w-sm items-center justify-center gap-2 text-center text-xs text-red-300">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {error}
+          </p>
+        )}
+      </div>
 
-            {callState.phase === "active" && (
-              <CallActionButton
-                label="끊기"
-                sublabel="통화 종료"
-                variant="decline"
-                icon={PhoneOff}
-                onClick={onHangup}
-              />
-            )}
+      <div className="absolute inset-x-0 bottom-0 z-10 px-8 pb-safe pt-4">
+        {callState.phase === "incoming" && (
+          <div className="mx-auto flex max-w-xs items-center justify-between">
+            <RingButton variant="decline" label="거절" icon={PhoneOff} onClick={onDecline} />
+            <RingButton
+              variant="accept"
+              label="받기"
+              icon={isVideo ? Video : PhoneIncoming}
+              disabled={!mediaReady || micChecking || cameraChecking}
+              onClick={onAccept}
+            />
           </div>
-        </div>
+        )}
+
+        {(callState.phase === "outgoing" || callState.phase === "preparing") && (
+          <div className="flex justify-center">
+            <RingButton variant="decline" label="취소" icon={PhoneOff} onClick={onCancel} />
+          </div>
+        )}
+
+        {callState.phase === "active" && !livekitSlot && (
+          <div className="flex justify-center">
+            <RingButton variant="decline" label="끊기" icon={PhoneOff} onClick={onHangup} />
+          </div>
+        )}
       </div>
     </div>
   );
