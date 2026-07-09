@@ -11,23 +11,14 @@ import {
 } from "@/lib/used-auction";
 import { sendUsedAuctionNotification } from "@/lib/used-auction-notify";
 import { MAX_USED_LISTING_PRICE, MAX_USED_LISTING_PRICE_LABEL } from "@/lib/used-market";
-import {
-  isUsedMarketEligible,
-  USED_PHONE_REQUIRED_MSG,
-  usedMarketUnsupportedCountryMsg,
-} from "@/lib/used-phone-auth";
-import { isUsedMarketPhoneCountry } from "@/lib/used-phone-countries";
+import { assertUsedMarketAccess } from "@/lib/used-market-access";
 import { assertUsedAdultForRestricted } from "@/lib/used-youth-protection";
-
-function assertUsedMarketAccess(user: {
-  countryCode: string;
-  phoneVerified: Date | null;
-  adultVerifiedAt?: Date | null;
-}) {
-  if (!isUsedMarketPhoneCountry(user.countryCode)) return usedMarketUnsupportedCountryMsg("ko");
-  if (!isUsedMarketEligible(user)) return USED_PHONE_REQUIRED_MSG;
-  return null;
-}
+import {
+  beginAuctionPaymentWindow,
+  getUsedAuctionConfig,
+  runAuctionLifecycleBatch,
+  setupWinnerTradeChat,
+} from "@/lib/used-auction-lifecycle";
 
 /** 만료된 경매 마감 처리 (조회 시 호출) */
 export async function finalizeExpiredAuctionIfNeeded(listingId: string) {
@@ -50,20 +41,20 @@ export async function finalizeExpiredAuctionIfNeeded(listingId: string) {
     const won = winnerId && reserveMet(finalBid, listing.reservePrice);
 
     if (won && winnerId) {
-      await db.usedListing.update({
-        where: { id: listingId },
-        data: {
-          auctionState: "ENDED",
-          status: "RESERVED",
-        },
-      });
-      await notifyAuctionWinner(listingId, winnerId).catch(() => {});
+      const config = await getUsedAuctionConfig();
+      await beginAuctionPaymentWindow(listingId, winnerId, config);
+      await setupWinnerTradeChat(listingId, winnerId, [
+        "🎉 경매 낙찰 안내",
+        "",
+        `결제는 ${config.paymentDeadlineHours}시간 이내에 완료해 주세요.`,
+        "기한 내 미결제 시 중고거래 이용이 제한됩니다.",
+      ]).catch(() => {});
       const amount = finalBid ?? listing.price;
       await sendUsedAuctionNotification({
         userId: winnerId,
         type: "won",
-        title: "경매 낙찰",
-        body: `${listing.title} · ${amount.toLocaleString()}원`,
+        title: "경매 낙찰 — 결제 필요",
+        body: `${listing.title} · ${amount.toLocaleString()}원 · ${config.paymentDeadlineHours}시간 이내 결제`,
         link: `/used/${listingId}`,
       });
       await sendUsedAuctionNotification({
@@ -97,7 +88,7 @@ export async function finalizeExpiredAuctionIfNeeded(listingId: string) {
   }
 }
 
-/** 크론·배치 — 만료된 경매 일괄 마감 */
+/** 크론·배치 — 만료된 경매 일괄 마감 + 결제·협상 타임아웃 */
 export async function finalizeAllExpiredAuctions(take = 50) {
   try {
     const rows = await db.usedListing.findMany({
@@ -113,73 +104,11 @@ export async function finalizeAllExpiredAuctions(take = 50) {
     for (const row of rows) {
       await finalizeExpiredAuctionIfNeeded(row.id);
     }
-    return { processed: rows.length };
+    const lifecycle = await runAuctionLifecycleBatch(take);
+    return { processed: rows.length, ...lifecycle };
   } catch {
-    return { processed: 0 };
+    return { processed: 0, paymentTimeouts: 0, negotiationTimeouts: 0, reminders: 0 };
   }
-}
-
-async function getOrCreateDmRoomBetween(userA: string, userB: string) {
-  const existing = await db.chatRoom.findFirst({
-    where: {
-      type: "DM",
-      AND: [
-        { members: { some: { userId: userA } } },
-        { members: { some: { userId: userB } } },
-      ],
-    },
-    select: { id: true },
-  });
-  if (existing) return existing.id;
-
-  const room = await db.chatRoom.create({
-    data: {
-      type: "DM",
-      isPublic: false,
-      members: {
-        create: [
-          { userId: userA, role: "owner" },
-          { userId: userB, role: "member" },
-        ],
-      },
-    },
-    select: { id: true },
-  });
-  return room.id;
-}
-
-async function notifyAuctionWinner(listingId: string, winnerId: string) {
-  const listing = await db.usedListing.findUnique({
-    where: { id: listingId },
-    select: {
-      id: true,
-      title: true,
-      price: true,
-      currentBidAmount: true,
-      sellerId: true,
-    },
-  });
-  if (!listing) return;
-
-  const roomId = await getOrCreateDmRoomBetween(listing.sellerId, winnerId);
-
-  try {
-    await db.usedListingChat.upsert({
-      where: { listingId_buyerId: { listingId, buyerId: winnerId } },
-      create: { listingId, roomId, buyerId: winnerId },
-      update: { roomId },
-    });
-  } catch {
-    /* optional table */
-  }
-
-  const amount = listing.currentBidAmount ?? listing.price;
-  const priceText = amount === 0 ? "나눔" : `${amount.toLocaleString()}원`;
-  const intro = `🎉 경매 낙찰 안내\n\n상품: ${listing.title}\n낙찰가: ${priceText}\n\n거래 일정을 채팅으로 조율해 주세요.\n링크: /used/${listing.id}`;
-  await db.message.create({
-    data: { roomId, senderId: listing.sellerId, content: intro },
-  });
-  await db.chatRoom.update({ where: { id: roomId }, data: { updatedAt: new Date() } });
 }
 
 export async function placeUsedAuctionBid(listingId: string, amount: number) {
@@ -335,13 +264,18 @@ export async function buyNowUsedAuction(listingId: string) {
           currentBidderId: user.id,
           bidCount: { increment: 1 },
           auctionState: "ENDED",
-          status: "RESERVED",
           auctionEndsAt: new Date(),
         },
       });
     });
 
-    await notifyAuctionWinner(listingId, user.id).catch(() => {});
+    const config = await getUsedAuctionConfig();
+    await beginAuctionPaymentWindow(listingId, user.id, config);
+    await setupWinnerTradeChat(listingId, user.id, [
+      "⚡ 즉시구매 완료",
+      "",
+      `결제는 ${config.paymentDeadlineHours}시간 이내에 완료해 주세요.`,
+    ]).catch(() => {});
     const listingTitle = listing.title;
     await sendUsedAuctionNotification({
       userId: listing.sellerId,

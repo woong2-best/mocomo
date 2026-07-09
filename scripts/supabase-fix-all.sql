@@ -879,6 +879,85 @@ CREATE INDEX IF NOT EXISTS "UsedListing_workTitle_idx" ON "UsedListing"("workTit
 CREATE INDEX IF NOT EXISTS "UsedListing_productType_idx" ON "UsedListing"("productType");
 
 -- ============================================================
+-- N. 경매 낙찰 결제·차순위 협상·중고거래 제재
+-- ============================================================
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "usedMarketBannedAt" TIMESTAMP(3);
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "usedMarketBanReason" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "usedMarketBanListingId" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "auctionWinCount" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "auctionPaymentDefaultCount" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "auctionLastPaymentDefaultAt" TIMESTAMP(3);
+
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "paymentDueAt" TIMESTAMP(3);
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "paymentCompletedAt" TIMESTAMP(3);
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "winningBidderId" TEXT;
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "negotiationDueAt" TIMESTAMP(3);
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "negotiationBuyerId" TEXT;
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "agreedPrice" INTEGER;
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "forfeitedWinnerCount" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "paymentReminder1hSent" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "paymentReminder10mSent" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "paymentTimeoutProcessed" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "negotiationTimeoutProcessed" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "activeNegotiationRoomId" TEXT;
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "depositEnabled" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "depositRate" DOUBLE PRECISION;
+
+CREATE INDEX IF NOT EXISTS "UsedListing_paymentDueAt_idx" ON "UsedListing"("paymentDueAt");
+CREATE INDEX IF NOT EXISTS "UsedListing_negotiationDueAt_idx" ON "UsedListing"("negotiationDueAt");
+CREATE INDEX IF NOT EXISTS "UsedListing_winningBidderId_idx" ON "UsedListing"("winningBidderId");
+
+DO $$ BEGIN
+  ALTER TABLE "UsedListing" ADD CONSTRAINT "UsedListing_winningBidderId_fkey"
+    FOREIGN KEY ("winningBidderId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE "UsedListing" ADD CONSTRAINT "UsedListing_negotiationBuyerId_fkey"
+    FOREIGN KEY ("negotiationBuyerId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+ALTER TABLE "UsedAuctionBid" ADD COLUMN IF NOT EXISTS "bidStatus" TEXT NOT NULL DEFAULT 'ACTIVE';
+CREATE INDEX IF NOT EXISTS "UsedAuctionBid_listingId_amount_idx" ON "UsedAuctionBid"("listingId", "amount" DESC);
+CREATE INDEX IF NOT EXISTS "UsedAuctionBid_listingId_bidderId_idx" ON "UsedAuctionBid"("listingId", "bidderId");
+
+CREATE TABLE IF NOT EXISTS "UsedPriceOffer" (
+  "id" TEXT NOT NULL,
+  "listingId" TEXT NOT NULL,
+  "roomId" TEXT NOT NULL,
+  "proposerId" TEXT NOT NULL,
+  "amount" INTEGER NOT NULL,
+  "status" TEXT NOT NULL DEFAULT 'PENDING',
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "UsedPriceOffer_pkey" PRIMARY KEY ("id")
+);
+CREATE INDEX IF NOT EXISTS "UsedPriceOffer_listingId_createdAt_idx" ON "UsedPriceOffer"("listingId", "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "UsedPriceOffer_roomId_createdAt_idx" ON "UsedPriceOffer"("roomId", "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "UsedPriceOffer_listingId_status_idx" ON "UsedPriceOffer"("listingId", "status");
+DO $$ BEGIN
+  ALTER TABLE "UsedPriceOffer" ADD CONSTRAINT "UsedPriceOffer_listingId_fkey"
+    FOREIGN KEY ("listingId") REFERENCES "UsedListing"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE "UsedPriceOffer" ADD CONSTRAINT "UsedPriceOffer_proposerId_fkey"
+    FOREIGN KEY ("proposerId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS "UsedAuctionConfig" (
+  "id" TEXT NOT NULL DEFAULT 'default',
+  "depositEnabled" BOOLEAN NOT NULL DEFAULT false,
+  "depositRate" DOUBLE PRECISION NOT NULL DEFAULT 0.05,
+  "paymentDeadlineHours" INTEGER NOT NULL DEFAULT 5,
+  "negotiationDeadlineHours" INTEGER NOT NULL DEFAULT 24,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "UsedAuctionConfig_pkey" PRIMARY KEY ("id")
+);
+INSERT INTO "UsedAuctionConfig" ("id") VALUES ('default') ON CONFLICT ("id") DO NOTHING;
+
+-- ============================================================
 -- L. Supabase Storage (중고거래·게시글 사진 — Vercel 영구 저장)
 -- 대시보드 → Settings → API → service_role 키 → Vercel SUPABASE_SERVICE_ROLE_KEY
 -- ============================================================

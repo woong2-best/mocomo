@@ -2,7 +2,19 @@ import { createNotification } from "@/lib/notifications";
 
 export async function sendUsedAuctionNotification(data: {
   userId: string;
-  type: "bid" | "outbid" | "won" | "ended" | "buy_now";
+  type:
+    | "bid"
+    | "outbid"
+    | "won"
+    | "ended"
+    | "buy_now"
+    | "payment_reminder"
+    | "payment_failed"
+    | "transfer"
+    | "price_offer"
+    | "price_accept"
+    | "price_reject"
+    | "deal_done";
   title: string;
   body?: string;
   link: string;

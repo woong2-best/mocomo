@@ -38,6 +38,13 @@ export type AuctionListingSlice = {
   antiSnipeMinutes: number;
   auctionExtensionCount?: number;
   status: string;
+  paymentDueAt?: Date | string | null;
+  paymentCompletedAt?: Date | string | null;
+  winningBidderId?: string | null;
+  negotiationDueAt?: Date | string | null;
+  negotiationBuyerId?: string | null;
+  agreedPrice?: number | null;
+  forfeitedWinnerCount?: number;
 };
 
 export function isAuctionListing(l: { saleType?: string | null }): boolean {
@@ -91,7 +98,22 @@ export function auctionStateLabel(state: UsedAuctionState | null | undefined): s
   if (state === "LIVE") return "경매 진행중";
   if (state === "ENDED") return "경매 종료";
   if (state === "CANCELLED") return "경매 취소";
+  if (state === "PAYMENT_PENDING") return "낙찰 · 결제 대기";
+  if (state === "PAYMENT_COMPLETED") return "결제 완료";
+  if (state === "PAYMENT_TIMEOUT") return "결제 기한 초과";
+  if (state === "TRANSFERRED_TO_NEXT_BIDDER") return "차순위 승계";
+  if (state === "PRICE_NEGOTIATION") return "가격 협상 중";
+  if (state === "NEGOTIATION_COMPLETED") return "협상 완료";
+  if (state === "NEGOTIATION_FAILED") return "협상 실패";
   return "";
+}
+
+export function isPaymentPending(l: AuctionListingSlice): boolean {
+  return l.auctionState === "PAYMENT_PENDING";
+}
+
+export function isPriceNegotiation(l: AuctionListingSlice): boolean {
+  return l.auctionState === "PRICE_NEGOTIATION";
 }
 
 export function computeAuctionEndsAt(hours: number): Date {

@@ -28,6 +28,7 @@ export function UsedAuctionBottomBar({
   chatCount,
   initialBuyerRoomId,
   auctionLive,
+  auctionState,
   minBid,
   buyNowPrice,
   isWinningBidder,
@@ -42,6 +43,7 @@ export function UsedAuctionBottomBar({
   chatCount: number;
   initialBuyerRoomId?: string | null;
   auctionLive: boolean;
+  auctionState?: string | null;
   minBid: number;
   buyNowPrice?: number | null;
   isWinningBidder?: boolean;
@@ -184,6 +186,20 @@ export function UsedAuctionBottomBar({
           </ul>
         )}
         </div>
+      </div>
+    );
+  }
+
+  if (auctionState === "PAYMENT_PENDING" && isWinningBidder && initialBuyerRoomId) {
+    return (
+      <div className="used-action-bar flex gap-2 border-t bg-background p-3 pb-safe z-20">
+        <div className="flex-1 flex flex-col justify-center">
+          <p className="text-sm font-bold text-orange-600 dark:text-orange-400">낙찰 · 결제 필요</p>
+          <p className="text-xs text-muted-foreground">기한 내 결제 완료를 신고해 주세요</p>
+        </div>
+        <Button asChild variant="secondary" size="lg" className="h-12 rounded-xl font-semibold">
+          <Link href={`/messages/${initialBuyerRoomId}`}>채팅 · 결제</Link>
+        </Button>
       </div>
     );
   }

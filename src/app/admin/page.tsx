@@ -6,7 +6,7 @@ import { AdminLoadError } from "@/components/admin/admin-load-error";
 import { isAdminForbiddenError } from "@/lib/admin-access";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { Shield, Users, FileText, AlertTriangle, Coins, Landmark } from "lucide-react";
+import { Shield, Users, FileText, AlertTriangle, Coins, Landmark, Gavel } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default async function AdminPage() {
@@ -45,6 +45,12 @@ export default async function AdminPage() {
       }
     >
       <div className="flex flex-wrap gap-2">
+        <Button variant="secondary" asChild className="w-full sm:w-auto">
+          <Link href="/admin/used-market" className="flex items-center gap-2">
+            <Gavel className="h-4 w-4" />
+            중고거래 · 경매
+          </Link>
+        </Button>
         <Button variant="secondary" asChild className="w-full sm:w-auto">
           <Link href="/admin/finance" className="flex items-center gap-2">
             <Landmark className="h-4 w-4" />

@@ -17,6 +17,11 @@ import {
 } from "@/lib/korea-regions";
 import { finalizeExpiredAuctionIfNeeded } from "@/actions/used-auction";
 import {
+  processNegotiationTimeout,
+  processPaymentReminders,
+  processPaymentTimeout,
+} from "@/lib/used-auction-lifecycle";
+import {
   computeAuctionEndsAt,
   DEFAULT_BID_INCREMENT,
   isAuctionLive,
@@ -28,26 +33,12 @@ import {
   normalizeWorkTitle,
 } from "@/lib/used-catalog";
 import { isKakaoLocalConfigured, kakaoGeocodeMeetPlace } from "@/lib/kakao-local";
-import {
-  isUsedMarketEligible,
-  USED_PHONE_REQUIRED_MSG,
-  usedMarketUnsupportedCountryMsg,
-} from "@/lib/used-phone-auth";
-import { isUsedMarketPhoneCountry } from "@/lib/used-phone-countries";
+import { assertUsedMarketAccess } from "@/lib/used-market-access";
 import {
   assertUsedAdultForRestricted,
   isUsedRestrictedKind,
   USED_ADULT_SELLER_MSG,
 } from "@/lib/used-youth-protection";
-
-function assertUsedMarketAccess(user: {
-  countryCode: string;
-  phoneVerified: Date | null;
-}) {
-  if (!isUsedMarketPhoneCountry(user.countryCode)) return usedMarketUnsupportedCountryMsg("ko");
-  if (!isUsedMarketEligible(user)) return USED_PHONE_REQUIRED_MSG;
-  return null;
-}
 
 export async function isUsedDbReady() {
   try {
@@ -201,10 +192,27 @@ export async function getUsedListing(id: string, viewerId?: string) {
       isAuction &&
       listing.auctionEndsAt &&
       listing.auctionEndsAt.getTime() <= Date.now() &&
-      listing.auctionState !== "ENDED" &&
-      listing.auctionState !== "CANCELLED";
+      (listing.auctionState === "LIVE" || listing.auctionState === null);
     if (auctionExpired) {
       void finalizeExpiredAuctionIfNeeded(id);
+    }
+    if (
+      listing.auctionState === "PAYMENT_PENDING" &&
+      listing.paymentDueAt &&
+      listing.paymentDueAt.getTime() <= Date.now() &&
+      !listing.paymentTimeoutProcessed
+    ) {
+      void processPaymentTimeout(id);
+    } else if (listing.auctionState === "PAYMENT_PENDING" && listing.paymentDueAt) {
+      void processPaymentReminders(id);
+    }
+    if (
+      listing.auctionState === "PRICE_NEGOTIATION" &&
+      listing.negotiationDueAt &&
+      listing.negotiationDueAt.getTime() <= Date.now() &&
+      !listing.negotiationTimeoutProcessed
+    ) {
+      void processNegotiationTimeout(id);
     }
 
     void db.usedListing
@@ -262,17 +270,6 @@ export async function getUsedListing(id: string, viewerId?: string) {
 
     const [viewerResult, auctionBids] = await Promise.all([viewerPromise, bidsPromise]);
 
-    if (viewerResult) {
-      const [viewer, fav, tradeChat, myBid] = viewerResult;
-      viewerAdultVerified = !!viewer?.adultVerifiedAt;
-      favorited = !!fav;
-      buyerChatRoomId = tradeChat?.roomId ?? null;
-      if (isAuction) {
-        isWinningBidder = listing.currentBidderId === viewerId;
-        myHighestBid = myBid?.amount ?? null;
-      }
-    }
-
     const favoriteCount = listing._count.favorites;
     const chatCount =
       (listing._count as { favorites: number; tradeChats?: number }).tradeChats ?? 0;
@@ -294,6 +291,41 @@ export async function getUsedListing(id: string, viewerId?: string) {
         status: listing.status,
       });
 
+    let priceOffers: {
+      id: string;
+      amount: number;
+      status: string;
+      proposerId: string;
+      proposer: { id: string; username: string; name: string | null };
+    }[] = [];
+    if (listing.auctionState === "PRICE_NEGOTIATION") {
+      try {
+        priceOffers = await db.usedPriceOffer.findMany({
+          where: { listingId: id },
+          orderBy: { createdAt: "desc" },
+          take: 20,
+          include: {
+            proposer: { select: { id: true, username: true, name: true } },
+          },
+        });
+      } catch {
+        priceOffers = [];
+      }
+    }
+
+    if (viewerResult) {
+      const [viewer, fav, tradeChat, myBid] = viewerResult;
+      viewerAdultVerified = !!viewer?.adultVerifiedAt;
+      favorited = !!fav;
+      buyerChatRoomId = tradeChat?.roomId ?? null;
+      if (isAuction) {
+        isWinningBidder =
+          listing.winningBidderId === viewerId ||
+          (auctionLive && listing.currentBidderId === viewerId);
+        myHighestBid = myBid?.amount ?? null;
+      }
+    }
+
     return {
       listing,
       favorited,
@@ -305,6 +337,7 @@ export async function getUsedListing(id: string, viewerId?: string) {
       isWinningBidder,
       viewerAdultVerified,
       auctionBids,
+      priceOffers,
     };
   } catch {
     return null;
@@ -454,6 +487,8 @@ export async function createUsedListing(data: {
 
 export async function updateUsedListingStatus(listingId: string, status: UsedListingStatus) {
   const user = await requireAuth();
+  const accessErr = assertUsedMarketAccess(user);
+  if (accessErr) return { error: accessErr };
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
   if (!listing || listing.sellerId !== user.id) return { error: "권한이 없습니다." };
 
@@ -466,6 +501,8 @@ export async function updateUsedListingStatus(listingId: string, status: UsedLis
 
 export async function deleteUsedListing(listingId: string) {
   const user = await requireAuth();
+  const accessErr = assertUsedMarketAccess(user);
+  if (accessErr) return { error: accessErr };
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
   if (!listing || listing.sellerId !== user.id) return { error: "권한이 없습니다." };
 

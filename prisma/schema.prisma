@@ -107,6 +107,13 @@ model User {
   /** 중고거래 청소년 보호 — 만 19세 이상 성인 인증 */
   adultVerifiedAt DateTime?
   birthDate       DateTime? @db.Date
+  /** 경매 낙찰 미결제 등으로 중고거래 영구 제한 */
+  usedMarketBannedAt         DateTime?
+  usedMarketBanReason        String?
+  usedMarketBanListingId     String?
+  auctionWinCount            Int       @default(0)
+  auctionPaymentDefaultCount Int       @default(0)
+  auctionLastPaymentDefaultAt DateTime?
   /** 계정당 1개 — OBS 방송 키 (방송 세션마다 바뀌지 않음) */
   obsRtmpStreamKey String? @unique
   /** 크리에이터 월 구독료 (원) — Stripe Subscription 연동 전에도 UI·검증용 */
@@ -176,6 +183,9 @@ model User {
   usedListingChats UsedListingChat[] @relation("UsedListingChatBuyer")
   usedAuctionBids  UsedAuctionBid[]
   usedAuctionWins  UsedListing[]     @relation("UsedAuctionWinner")
+  usedAuctionWinningBids UsedListing[] @relation("UsedAuctionWinningBidder")
+  usedAuctionNegotiations UsedListing[] @relation("UsedAuctionNegotiationBuyer")
+  usedPriceOffers  UsedPriceOffer[]
   cosplayBoardPosts CosplayBoardPost[]
   cosplayBoardComments CosplayBoardComment[]
   userBadges    UserBadge[]
@@ -1753,6 +1763,28 @@ enum UsedAuctionState {
   LIVE
   ENDED
   CANCELLED
+  PAYMENT_PENDING
+  PAYMENT_COMPLETED
+  PAYMENT_TIMEOUT
+  TRANSFERRED_TO_NEXT_BIDDER
+  PRICE_NEGOTIATION
+  NEGOTIATION_COMPLETED
+  NEGOTIATION_FAILED
+}
+
+enum UsedAuctionBidStatus {
+  ACTIVE
+  WINNER
+  FORFEITED
+  SUPERSEDED
+}
+
+enum UsedPriceOfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+  SUPERSEDED
 }
 
 enum UsedListingCategory {
@@ -1808,13 +1840,34 @@ model UsedListing {
   antiSnipeMinutes Int                 @default(5)
   /** 마감 연장 사용 횟수 (최대 5회) */
   auctionExtensionCount Int            @default(0)
+  /** 낙찰 후 결제 마감 시각 */
+  paymentDueAt              DateTime?
+  paymentCompletedAt        DateTime?
+  /** 현재 유효 낙찰자 (미결제 시 차순위로 변경) */
+  winningBidderId           String?
+  /** 차순위 협상 마감 시각 */
+  negotiationDueAt          DateTime?
+  negotiationBuyerId        String?
+  agreedPrice               Int?
+  forfeitedWinnerCount      Int                 @default(0)
+  paymentReminder1hSent     Boolean             @default(false)
+  paymentReminder10mSent    Boolean             @default(false)
+  paymentTimeoutProcessed   Boolean             @default(false)
+  negotiationTimeoutProcessed Boolean           @default(false)
+  activeNegotiationRoomId   String?
+  /** 향후 입찰 보증금 (현재 비활성) */
+  depositEnabled            Boolean             @default(false)
+  depositRate               Float?
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
   seller      User                @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   currentBidder User?             @relation("UsedAuctionWinner", fields: [currentBidderId], references: [id], onDelete: SetNull)
+  winningBidder User?             @relation("UsedAuctionWinningBidder", fields: [winningBidderId], references: [id], onDelete: SetNull)
+  negotiationBuyer User?          @relation("UsedAuctionNegotiationBuyer", fields: [negotiationBuyerId], references: [id], onDelete: SetNull)
   favorites   UsedFavorite[]
   tradeChats  UsedListingChat[]
   auctionBids UsedAuctionBid[]
+  priceOffers UsedPriceOffer[]
 
   @@index([status, createdAt])
   @@index([sellerId])
@@ -1825,19 +1878,52 @@ model UsedListing {
   @@index([saleType, auctionEndsAt])
   @@index([auctionState])
   @@index([restrictedKind])
+  @@index([paymentDueAt])
+  @@index([negotiationDueAt])
+  @@index([winningBidderId])
 }
 
 model UsedAuctionBid {
-  id        String      @id @default(cuid())
+  id        String               @id @default(cuid())
   listingId String
   bidderId  String
   amount    Int
-  createdAt DateTime    @default(now())
-  listing   UsedListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  bidder    User        @relation(fields: [bidderId], references: [id], onDelete: Cascade)
+  bidStatus UsedAuctionBidStatus @default(ACTIVE)
+  createdAt DateTime             @default(now())
+  listing   UsedListing          @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  bidder    User                 @relation(fields: [bidderId], references: [id], onDelete: Cascade)
 
   @@index([listingId, createdAt(sort: Desc)])
+  @@index([listingId, amount(sort: Desc)])
   @@index([bidderId, createdAt(sort: Desc)])
+  @@index([listingId, bidderId])
+}
+
+/** 경매 차순위 가격 협상 제안 */
+model UsedPriceOffer {
+  id         String              @id @default(cuid())
+  listingId  String
+  roomId     String
+  proposerId String
+  amount     Int
+  status     UsedPriceOfferStatus @default(PENDING)
+  createdAt  DateTime            @default(now())
+  listing    UsedListing         @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  proposer   User                @relation(fields: [proposerId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, createdAt(sort: Desc)])
+  @@index([roomId, createdAt(sort: Desc)])
+  @@index([listingId, status])
+}
+
+/** 중고 경매 전역 설정 (입찰 보증금 등) */
+model UsedAuctionConfig {
+  id                       String   @id @default("default")
+  depositEnabled           Boolean  @default(false)
+  depositRate              Float    @default(0.05)
+  paymentDeadlineHours     Int      @default(5)
+  negotiationDeadlineHours Int      @default(24)
+  updatedAt                DateTime @updatedAt
 }
 
 model UsedFavorite {

@@ -13,6 +13,8 @@ import { UsedDetailBottomBar } from "@/components/used/used-detail-bottom-bar";
 import { UsedAuctionBottomBar } from "@/components/used/used-auction-bottom-bar";
 
 import { UsedAuctionPanel } from "@/components/used/used-auction-panel";
+import { UsedAuctionPaymentPanel } from "@/components/used/used-auction-payment-panel";
+import { UsedPriceNegotiationPanel } from "@/components/used/used-price-negotiation-panel";
 
 import { UsedAuctionBidHistory } from "@/components/used/used-auction-bid-history";
 
@@ -86,6 +88,8 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
     viewerAdultVerified,
 
     auctionBids,
+
+    priceOffers,
 
   } = data;
 
@@ -244,6 +248,43 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
             />
 
+            {listing.auctionState === "PAYMENT_PENDING" && listing.paymentDueAt && (
+              <UsedAuctionPaymentPanel
+                listingId={listing.id}
+                paymentDueAt={listing.paymentDueAt}
+                amount={displayPrice}
+                isWinner={!!isWinningBidder}
+                paymentCompleted={!!listing.paymentCompletedAt}
+              />
+            )}
+
+            {listing.auctionState === "PRICE_NEGOTIATION" &&
+              listing.activeNegotiationRoomId &&
+              session?.user?.id && (
+                <UsedPriceNegotiationPanel
+                  listingId={listing.id}
+                  roomId={listing.activeNegotiationRoomId}
+                  viewerId={session.user.id}
+                  sellerId={listing.sellerId}
+                  negotiationBuyerId={listing.negotiationBuyerId}
+                  negotiationDueAt={listing.negotiationDueAt}
+                  auctionState={listing.auctionState}
+                  currentTopBid={listing.currentBidAmount ?? listing.price}
+                  secondBidAmount={
+                    listing.negotiationBuyerId
+                      ? auctionBids.find((b) => b.bidderId === listing.negotiationBuyerId)?.amount
+                      : null
+                  }
+                  offers={priceOffers.map((o) => ({
+                    id: o.id,
+                    amount: o.amount,
+                    status: o.status,
+                    proposerId: o.proposerId,
+                    proposer: o.proposer,
+                  }))}
+                />
+              )}
+
             <div>
 
               <h2 className="text-sm font-semibold mb-2">입찰 내역</h2>
@@ -352,6 +393,8 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
           initialBuyerRoomId={buyerChatRoomId}
 
           auctionLive={auctionLive}
+
+          auctionState={listing.auctionState}
 
           minBid={minNextBidAmount(listing)}
 

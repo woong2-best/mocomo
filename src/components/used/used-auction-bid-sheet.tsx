@@ -40,6 +40,10 @@ export function UsedAuctionBidSheet({
         router.push(`/used/verify?callbackUrl=/used/${listingId}`);
         return;
       }
+      if (res.error.includes("중고거래 이용이 제한")) {
+        setError(res.error);
+        return;
+      }
       if ("needsAdultVerify" in res && res.needsAdultVerify) {
         router.push(usedAdultVerifyUrl(listingId, restrictedKind));
         return;
@@ -61,6 +65,10 @@ export function UsedAuctionBidSheet({
     if ("error" in res && res.error) {
       if (res.error.includes("휴대폰")) {
         router.push(`/used/verify?callbackUrl=/used/${listingId}`);
+        return;
+      }
+      if (res.error.includes("중고거래 이용이 제한")) {
+        setError(res.error);
         return;
       }
       if ("needsAdultVerify" in res && res.needsAdultVerify) {
@@ -134,6 +142,11 @@ export function UsedAuctionBidSheet({
             />
 
             {error && <p className="text-sm text-destructive">{error}</p>}
+
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              입찰은 법적·계약적 책임이 따르는 약속입니다. 낙찰 후 결제를 완료하지 않을 경우
+              중고거래 서비스 이용이 제한될 수 있습니다.
+            </p>
 
             <Button
               type="button"

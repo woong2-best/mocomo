@@ -1,16 +1,19 @@
-import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { formatUsedPrice } from "@/lib/used-market";
 import {
   antiSnipeExtensionsRemaining,
+  auctionStateLabel,
   displayAuctionPrice,
   isAuctionListing,
   isAuctionLive,
+  isPaymentPending,
+  isPriceNegotiation,
+  maskBidderName,
   MAX_ANTI_SNIPE_EXTENSIONS,
   minNextBidAmount,
   type AuctionListingSlice,
 } from "@/lib/used-auction";
 import { UsedAuctionCountdown } from "@/components/used/used-auction-countdown";
-import type { SupportTierLevel } from "@prisma/client";
+import { UsedAuctionPaymentCountdown } from "@/components/used/used-auction-payment-countdown";
 import { Gavel, Shield, Zap } from "lucide-react";
 
 type Listing = AuctionListingSlice & {
@@ -38,6 +41,8 @@ export function UsedAuctionPanel({
   if (!isAuctionListing(listing)) return null;
 
   const live = isAuctionLive(listing);
+  const paymentPending = isPaymentPending(listing);
+  const negotiating = isPriceNegotiation(listing);
   const current = displayAuctionPrice(listing);
   const minBid = minNextBidAmount(listing);
   const hasReserve = listing.reservePrice != null && listing.reservePrice > 0;
@@ -49,12 +54,18 @@ export function UsedAuctionPanel({
         <span className="inline-flex items-center gap-1.5 text-sm font-bold text-orange-600 dark:text-orange-400">
           <Gavel className="h-4 w-4" />
           경매
-          {live ? " 진행중" : listing.auctionState === "ENDED" ? " 종료" : ""}
+          {live ? " 진행중" : auctionStateLabel(listing.auctionState) || ""}
         </span>
         {endsAt && live && (
           <div className="text-right">
             <p className="text-[10px] text-muted-foreground">남은 시간</p>
             <UsedAuctionCountdown endsAt={endsAt} className="text-sm" />
+          </div>
+        )}
+        {paymentPending && listing.paymentDueAt && (
+          <div className="text-right">
+            <p className="text-[10px] text-muted-foreground">남은 결제 시간</p>
+            <UsedAuctionPaymentCountdown dueAt={listing.paymentDueAt} className="text-sm" />
           </div>
         )}
       </div>
@@ -98,13 +109,24 @@ export function UsedAuctionPanel({
       {listing.currentBidder && listing.bidCount > 0 && (
         <div className="pt-2 border-t border-border/60">
           <p className="text-xs text-muted-foreground mb-1">최고 입찰자</p>
-          <DisplayNameWithSupportTier
-            name={listing.currentBidder.name || listing.currentBidder.username}
-            tier={(listing.currentBidder.supportTierSent ?? "PEBBLE") as SupportTierLevel}
-            nameClassName="text-sm font-semibold"
-            compact
-          />
+          <p className="text-sm font-semibold">
+            {maskBidderName(listing.currentBidder.username)}
+          </p>
         </div>
+      )}
+
+      {(live || paymentPending) && (
+        <p className="text-[11px] text-muted-foreground border-t border-border/60 pt-2">
+          입찰은 법적·계약적 책임이 따르는 약속입니다. 낙찰 후 결제를 완료하지 않을 경우 중고거래
+          서비스 이용이 제한될 수 있습니다.
+        </p>
+      )}
+
+      {negotiating && listing.negotiationDueAt && (
+        <p className="text-xs text-primary font-medium">
+          차순위 입찰자와 가격 협상 중 ·{" "}
+          <UsedAuctionPaymentCountdown dueAt={listing.negotiationDueAt} />
+        </p>
       )}
 
       {viewerId && myHighestBid != null && (
