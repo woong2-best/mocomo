@@ -23,6 +23,11 @@ function formatTime(sec: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+function readVideoDuration(video: HTMLVideoElement): number {
+  const d = video.duration;
+  return Number.isFinite(d) && d > 0 ? d : 0;
+}
+
 export function FeedVideoPlayer({
   src,
   className,
@@ -39,20 +44,24 @@ export function FeedVideoPlayer({
   const [isMuted, setIsMuted] = useState(muted);
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [scrubProgress, setScrubProgress] = useState(0);
-  const [isScrubbing, setIsScrubbing] = useState(false);
+  /** 드래그 중에만 사용 — null이면 재생 위치 기준 */
+  const [scrubPct, setScrubPct] = useState<number | null>(null);
   const [speed, setSpeed] = useState(1);
   const [speedOpen, setSpeedOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // h-full 이 있으면 부모가 크기를 정한다(피드 타일) → 비디오를 채운다.
-  // 없으면 비디오 본래 비율로 흐른다(상세/에피소드 뷰어).
   const fillMode = /\bh-full\b/.test(className ?? "");
 
-  const stop = (e: { preventDefault: () => void; stopPropagation: () => void }) => {
-    e.preventDefault();
+  const stopBubble = (e: { stopPropagation: () => void }) => {
     e.stopPropagation();
   };
+
+  const syncDuration = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const d = readVideoDuration(v);
+    if (d > 0) setDuration(d);
+  }, []);
 
   const togglePlay = useCallback(() => {
     const v = videoRef.current;
@@ -68,7 +77,6 @@ export function FeedVideoPlayer({
     const v = videoRef.current;
     if (!v) return;
     setStarted(true);
-    // 사용자가 명시적으로 눌렀으니 소리와 함께 재생
     v.muted = false;
     setIsMuted(false);
     void v.play();
@@ -77,6 +85,7 @@ export function FeedVideoPlayer({
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
+
     const onPlay = () => {
       setPlaying(true);
       setStarted(true);
@@ -85,27 +94,33 @@ export function FeedVideoPlayer({
     const onTime = () => {
       if (!scrubbingRef.current) setCurrent(v.currentTime);
     };
-    const onMeta = () => setDuration(v.duration);
+    const onMeta = () => syncDuration();
     const onEnded = () => {
       setPlaying(false);
-      setStarted(false);
+      setScrubPct(null);
+      scrubbingRef.current = false;
     };
     const onVolume = () => setIsMuted(v.muted);
+
     v.addEventListener("play", onPlay);
     v.addEventListener("pause", onPause);
     v.addEventListener("timeupdate", onTime);
     v.addEventListener("loadedmetadata", onMeta);
+    v.addEventListener("durationchange", onMeta);
     v.addEventListener("ended", onEnded);
     v.addEventListener("volumechange", onVolume);
+    syncDuration();
+
     return () => {
       v.removeEventListener("play", onPlay);
       v.removeEventListener("pause", onPause);
       v.removeEventListener("timeupdate", onTime);
       v.removeEventListener("loadedmetadata", onMeta);
+      v.removeEventListener("durationchange", onMeta);
       v.removeEventListener("ended", onEnded);
       v.removeEventListener("volumechange", onVolume);
     };
-  }, []);
+  }, [syncDuration, src]);
 
   useEffect(() => {
     const onFsChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
@@ -138,45 +153,57 @@ export function FeedVideoPlayer({
   };
 
   const endScrub = useCallback(() => {
+    if (!scrubbingRef.current) return;
     scrubbingRef.current = false;
-    setIsScrubbing(false);
+    setScrubPct(null);
     const v = videoRef.current;
     if (v) setCurrent(v.currentTime);
   }, []);
 
-  const beginScrub = useCallback(() => {
-    scrubbingRef.current = true;
-    setIsScrubbing(true);
+  const applyScrub = useCallback((pct: number) => {
     const v = videoRef.current;
-    if (v && Number.isFinite(v.duration) && v.duration > 0) {
-      setScrubProgress((v.currentTime / v.duration) * 100);
-    }
-  }, []);
+    if (!v) return;
+    const d = readVideoDuration(v) || duration;
+    if (d <= 0) return;
 
-  useEffect(() => {
-    if (!isScrubbing) return;
-    const onUp = () => endScrub();
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onUp);
-    return () => {
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onUp);
-    };
-  }, [isScrubbing, endScrub]);
-
-  const seek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = videoRef.current;
-    if (!v || !duration) return;
-    const pct = Number(e.target.value);
-    setScrubProgress(pct);
-    v.currentTime = (pct / 100) * duration;
+    const clamped = Math.min(100, Math.max(0, pct));
+    setScrubPct(clamped);
+    v.currentTime = (clamped / 100) * d;
     if (!scrubbingRef.current) setCurrent(v.currentTime);
+  }, [duration]);
+
+  const onScrubPointerDown = (e: React.PointerEvent<HTMLInputElement>) => {
+    stopBubble(e);
+    scrubbingRef.current = true;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    applyScrub(
+      Number(e.currentTarget.value) ||
+        (duration > 0 ? (current / duration) * 100 : 0)
+    );
   };
 
-  const progress = duration ? (current / duration) * 100 : 0;
-  const displayProgress = isScrubbing ? scrubProgress : progress;
+  const onScrubPointerUp = (e: React.PointerEvent<HTMLInputElement>) => {
+    stopBubble(e);
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    endScrub();
+  };
+
+  const liveDuration = (() => {
+    const v = videoRef.current;
+    if (v) {
+      const d = readVideoDuration(v);
+      if (d > 0) return d;
+    }
+    return duration;
+  })();
+  const progress = liveDuration > 0 ? (current / liveDuration) * 100 : 0;
+  const displayProgress = scrubPct ?? progress;
   const displayCurrent =
-    isScrubbing && duration ? (scrubProgress / 100) * duration : current;
+    scrubPct !== null && liveDuration > 0
+      ? (scrubPct / 100) * liveDuration
+      : current;
 
   return (
     <div
@@ -195,19 +222,18 @@ export function FeedVideoPlayer({
         controlsList="nodownload noremoteplayback noplaybackrate"
         onContextMenu={(e) => e.preventDefault()}
         onClick={(e) => {
-          stop(e);
+          stopBubble(e);
           if (!started) startPlayback();
           else togglePlay();
         }}
       />
 
-      {/* 중앙 재생 버튼: 아직 재생 전이거나 일시정지 상태에서 노출 */}
       {!playing && (
         <button
           type="button"
           aria-label="재생"
           onClick={(e) => {
-            stop(e);
+            stopBubble(e);
             if (!started) startPlayback();
             else togglePlay();
           }}
@@ -219,7 +245,6 @@ export function FeedVideoPlayer({
         </button>
       )}
 
-      {/* 하단 컨트롤 바: 재생 시작 후 노출 */}
       {started && (
         <div
           className={cn(
@@ -228,7 +253,7 @@ export function FeedVideoPlayer({
             "opacity-0 group-hover/video:opacity-100 focus-within:opacity-100 transition-opacity",
             !playing && "opacity-100"
           )}
-          onClick={stop}
+          onClick={stopBubble}
         >
           <input
             type="range"
@@ -236,22 +261,12 @@ export function FeedVideoPlayer({
             max={100}
             step={0.05}
             value={displayProgress}
-            onChange={seek}
-            onInput={seek}
-            onPointerDown={(e) => {
-              stop(e);
-              beginScrub();
-            }}
-            onPointerUp={(e) => {
-              stop(e);
-              endScrub();
-            }}
-            onPointerCancel={endScrub}
-            onKeyDown={(e) => {
-              if (e.key === " " || e.key === "Enter") beginScrub();
-            }}
-            onKeyUp={endScrub}
-            onClick={stop}
+            onChange={(e) => applyScrub(Number(e.target.value))}
+            onInput={(e) => applyScrub(Number(e.currentTarget.value))}
+            onPointerDown={onScrubPointerDown}
+            onPointerUp={onScrubPointerUp}
+            onPointerCancel={onScrubPointerUp}
+            onLostPointerCapture={endScrub}
             aria-label="탐색"
             className="h-1 w-full cursor-pointer appearance-none rounded-full bg-white/30 accent-white [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
             style={{
@@ -260,25 +275,45 @@ export function FeedVideoPlayer({
           />
 
           <div className="mt-1.5 flex items-center gap-3 text-white">
-            <button type="button" aria-label={playing ? "일시정지" : "재생"} onClick={(e) => { stop(e); togglePlay(); }}>
-              {playing ? <Pause className="h-5 w-5" fill="currentColor" /> : <Play className="h-5 w-5" fill="currentColor" />}
+            <button
+              type="button"
+              aria-label={playing ? "일시정지" : "재생"}
+              onClick={(e) => {
+                stopBubble(e);
+                togglePlay();
+              }}
+            >
+              {playing ? (
+                <Pause className="h-5 w-5" fill="currentColor" />
+              ) : (
+                <Play className="h-5 w-5" fill="currentColor" />
+              )}
             </button>
 
-            <button type="button" aria-label={isMuted ? "음소거 해제" : "음소거"} onClick={(e) => { stop(e); toggleMute(); }}>
+            <button
+              type="button"
+              aria-label={isMuted ? "음소거 해제" : "음소거"}
+              onClick={(e) => {
+                stopBubble(e);
+                toggleMute();
+              }}
+            >
               {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
             </button>
 
             <span className="text-[11px] tabular-nums text-white/90">
-              {formatTime(displayCurrent)} / {formatTime(duration)}
+              {formatTime(displayCurrent)} / {formatTime(liveDuration)}
             </span>
 
             <div className="ml-auto flex items-center gap-2">
-              {/* 재생 속도 */}
               <div className="relative">
                 <button
                   type="button"
                   aria-label="재생 속도"
-                  onClick={(e) => { stop(e); setSpeedOpen((o) => !o); }}
+                  onClick={(e) => {
+                    stopBubble(e);
+                    setSpeedOpen((o) => !o);
+                  }}
                   className="rounded-md bg-white/15 px-2 py-0.5 text-[11px] font-semibold tabular-nums hover:bg-white/25"
                 >
                   {speed}x
@@ -286,14 +321,17 @@ export function FeedVideoPlayer({
                 {speedOpen && (
                   <div
                     className="absolute bottom-full right-0 mb-2 w-24 overflow-hidden rounded-lg bg-black/90 py-1 text-xs shadow-lg ring-1 ring-white/10"
-                    onClick={stop}
+                    onClick={stopBubble}
                   >
                     <p className="px-3 py-1 text-[10px] text-white/50">재생 속도</p>
                     {SPEED_OPTIONS.map((rate) => (
                       <button
                         key={rate}
                         type="button"
-                        onClick={(e) => { stop(e); applySpeed(rate); }}
+                        onClick={(e) => {
+                          stopBubble(e);
+                          applySpeed(rate);
+                        }}
                         className={cn(
                           "block w-full px-3 py-1.5 text-left hover:bg-white/10",
                           rate === speed ? "font-bold text-white" : "text-white/80"
@@ -307,8 +345,19 @@ export function FeedVideoPlayer({
               </div>
 
               {!protect && (
-                <button type="button" aria-label="전체화면" onClick={(e) => { stop(e); toggleFullscreen(); }}>
-                  {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
+                <button
+                  type="button"
+                  aria-label="전체화면"
+                  onClick={(e) => {
+                    stopBubble(e);
+                    toggleFullscreen();
+                  }}
+                >
+                  {isFullscreen ? (
+                    <Minimize className="h-5 w-5" />
+                  ) : (
+                    <Maximize className="h-5 w-5" />
+                  )}
                 </button>
               )}
             </div>
