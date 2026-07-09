@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { LOCALES } from "@/lib/i18n/config";
 import { translatePostContent } from "@/lib/content-translate";
+import { getRequestLocale } from "@/lib/i18n/server";
 import { detectTextLanguage } from "@/lib/text-language";
 
 const bodySchema = z.object({
   text: z.string().min(1).max(2000),
-  targetLocale: z.enum(LOCALES),
 });
 
 export async function POST(req: Request) {
@@ -16,7 +15,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "Invalid input" }, { status: 400 });
     }
 
-    const { text, targetLocale } = parsed.data;
+    const { text } = parsed.data;
+    /** Always translate to the viewer's UI language (ko / en / ja / zh). */
+    const targetLocale = await getRequestLocale();
     const sourceLang = detectTextLanguage(text);
 
     if (!sourceLang || sourceLang === targetLocale) {

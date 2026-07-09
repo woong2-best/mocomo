@@ -1,3 +1,13 @@
+/**
+ * Site display languages — fixed set of four (not tied to country choice).
+ * - ko: Korean UI + Korean translation target
+ * - en: American English UI + translation target
+ * - ja: Japanese UI + translation target
+ * - zh: Simplified Chinese UI + translation target
+ *
+ * Country (profile flag) is independent: any worldwide ISO code via COUNTRY_REGIONS.
+ * User-generated posts stay in the author's language; UI strings use t() / messages.ts.
+ */
 export const LOCALES = ["ko", "en", "ja", "zh"] as const;
 export type Locale = (typeof LOCALES)[number];
 
@@ -6,13 +16,14 @@ export const COUNTRY_COOKIE = "mocomo_country";
 
 /** 로그인 사용자 DB 기본 locale (Prisma default) */
 export const DEFAULT_USER_LOCALE: Locale = "ko";
-/** 비로그인 방문자 기본값 */
+/** 비로그인 방문자 기본값 (미국 영어) */
 export const DEFAULT_GUEST_LOCALE: Locale = "en";
 export const DEFAULT_GUEST_COUNTRY = "US";
 
+/** Language picker labels (한국 · 미국 · 일본 · 중국) */
 export const LOCALE_LABELS: Record<Locale, string> = {
   ko: "한국어",
-  en: "English",
+  en: "English (US)",
   ja: "日本語",
   zh: "中文",
 };

@@ -10,8 +10,22 @@ export type CountryRegion = {
   id: string;
   labelKo: string;
   labelEn: string;
+  labelJa: string;
+  labelZh: string;
   countries: CountryEntry[];
 };
+
+const INTL_REGION = new Map<string, Intl.DisplayNames>();
+
+function intlRegionName(code: string, locale: "ja" | "zh"): string | undefined {
+  const tag = locale === "zh" ? "zh-Hans" : locale;
+  let display = INTL_REGION.get(tag);
+  if (!display) {
+    display = new Intl.DisplayNames([tag], { type: "region" });
+    INTL_REGION.set(tag, display);
+  }
+  return display.of(code.toUpperCase()) ?? undefined;
+}
 
 const asia: CountryEntry[] = [
   { code: "AF", nameKo: "아프가니스탄", nameEn: "Afghanistan" },
@@ -233,23 +247,62 @@ const legacy: CountryEntry[] = [
 ];
 
 export const COUNTRY_REGIONS: CountryRegion[] = [
-  { id: "asia", labelKo: "아시아", labelEn: "Asia", countries: asia },
-  { id: "europe", labelKo: "유럽", labelEn: "Europe", countries: europe },
-  { id: "africa", labelKo: "아프리카", labelEn: "Africa", countries: africa },
+  {
+    id: "asia",
+    labelKo: "아시아",
+    labelEn: "Asia",
+    labelJa: "アジア",
+    labelZh: "亚洲",
+    countries: asia,
+  },
+  {
+    id: "europe",
+    labelKo: "유럽",
+    labelEn: "Europe",
+    labelJa: "ヨーロッパ",
+    labelZh: "欧洲",
+    countries: europe,
+  },
+  {
+    id: "africa",
+    labelKo: "아프리카",
+    labelEn: "Africa",
+    labelJa: "アフリカ",
+    labelZh: "非洲",
+    countries: africa,
+  },
   {
     id: "north-america",
     labelKo: "북아메리카",
     labelEn: "North America",
+    labelJa: "北アメリカ",
+    labelZh: "北美洲",
     countries: northAmerica,
   },
   {
     id: "south-america",
     labelKo: "남아메리카",
     labelEn: "South America",
+    labelJa: "南アメリカ",
+    labelZh: "南美洲",
     countries: southAmerica,
   },
-  { id: "oceania", labelKo: "오세아니아", labelEn: "Oceania", countries: oceania },
-  { id: "other", labelKo: "기타", labelEn: "Other", countries: legacy },
+  {
+    id: "oceania",
+    labelKo: "오세아니아",
+    labelEn: "Oceania",
+    labelJa: "オセアニア",
+    labelZh: "大洋洲",
+    countries: oceania,
+  },
+  {
+    id: "other",
+    labelKo: "기타",
+    labelEn: "Other",
+    labelJa: "その他",
+    labelZh: "其他",
+    countries: legacy,
+  },
 ];
 
 export const COUNTRIES: CountryEntry[] = COUNTRY_REGIONS.flatMap((r) => r.countries);
@@ -257,9 +310,13 @@ export const COUNTRIES: CountryEntry[] = COUNTRY_REGIONS.flatMap((r) => r.countr
 const COUNTRY_BY_CODE = new Map(COUNTRIES.map((c) => [c.code, c]));
 
 export function countryDisplayName(code: string, locale: CountryLocale): string {
-  const c = COUNTRY_BY_CODE.get(code.toUpperCase());
+  const upper = code.toUpperCase();
+  const c = COUNTRY_BY_CODE.get(upper);
   if (!c) return code;
-  return locale === "ko" ? c.nameKo : c.nameEn;
+  if (locale === "ko") return c.nameKo;
+  if (locale === "en") return c.nameEn;
+  if (upper === "OTHER") return locale === "ja" ? "その他" : "其他";
+  return intlRegionName(upper, locale) ?? c.nameEn;
 }
 
 export function isKnownCountryCode(code: string): boolean {
@@ -267,5 +324,8 @@ export function isKnownCountryCode(code: string): boolean {
 }
 
 export function regionLabel(region: CountryRegion, locale: CountryLocale): string {
-  return locale === "ko" ? region.labelKo : region.labelEn;
+  if (locale === "ko") return region.labelKo;
+  if (locale === "ja") return region.labelJa;
+  if (locale === "zh") return region.labelZh;
+  return region.labelEn;
 }

@@ -5,7 +5,7 @@ const MAX_CHARS = 2000;
 
 const TARGET_LANGUAGE: Record<Locale, string> = {
   ko: "Korean",
-  en: "English",
+  en: "American English",
   ja: "Japanese",
   zh: "Simplified Chinese",
 };

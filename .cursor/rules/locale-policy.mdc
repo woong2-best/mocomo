@@ -1,0 +1,51 @@
+---
+description: Four site languages (ko/en/ja/zh), worldwide countries, UI vs UGC translation policy
+globs: src/lib/i18n/**,src/components/**/locale*,src/app/api/translate/**
+alwaysApply: false
+---
+
+# Locale & Country Policy (MoCoMo)
+
+## Languages (fixed four)
+
+Site **display language** is limited to:
+
+| Code | Region | UI + translation target |
+|------|--------|---------------------------|
+| `ko` | Korea | Korean |
+| `en` | United States | American English |
+| `ja` | Japan | Japanese |
+| `zh` | China | Simplified Chinese |
+
+Defined in `src/lib/i18n/config.ts` (`LOCALES`). Do not add locales without product approval.
+
+## Countries (worldwide)
+
+- **Country** is independent of language: any ISO code in `COUNTRY_REGIONS` (`src/lib/i18n/countries.ts`).
+- Used for profile flag / region display, not for UI strings.
+- Country names follow UI locale: ko/en from static list; ja/zh via `Intl.DisplayNames`.
+
+## What gets localized
+
+| Content | Localized? |
+|---------|------------|
+| App chrome (nav, buttons, settings, errors) | Yes — `t()` / `messages.ts` |
+| Server-rendered UI | Yes — `getServerTranslator()` |
+| Other users' posts, comments, DMs | **No** — original language |
+| Post "View translation" | Yes — target = viewer's `getRequestLocale()` |
+
+## Translation API
+
+- `POST /api/translate` uses **`getRequestLocale()`** as target (not client-supplied locale).
+- `translatePostContent` maps locale → natural language in `content-translate.ts`.
+
+## Adding UI strings
+
+1. Add key to `MessageKey` and all four tables in `messages.ts` (ko, en, ja, zh).
+2. Use `t("key")` in components — never hardcode Korean/English for feature UI.
+3. User-generated text stays as-is; optional `TranslatableText` for reader translation.
+
+## Settings UX
+
+- Language select: `LOCALES` only (4 options).
+- Country select: `CountrySelect` with full worldwide list.

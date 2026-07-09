@@ -46,7 +46,7 @@ export function TranslatableText({
       const res = await fetch("/api/translate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, targetLocale: locale }),
+        body: JSON.stringify({ text }),
       });
       const data = (await res.json()) as {
         ok?: boolean;
