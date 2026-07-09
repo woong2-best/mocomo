@@ -7,7 +7,6 @@ import { requireAuth } from "@/lib/auth";
 import {
   characterMatchesAnime,
   resolveAnimeCharacterName,
-  parseAnimeCharacters,
 } from "@/lib/anime-characters";
 import { z } from "zod";
 
@@ -22,8 +21,6 @@ function isPersistablePhotoUrl(url: string) {
 const applySchema = z.object({
   bio: z.string().min(1).max(BIO_MAX),
   photoUrl: z.string().min(1).refine(isPersistablePhotoUrl, { message: "사진을 업로드해 주세요." }),
-  animeId: z.string().min(1),
-  characterName: z.string().min(1).max(80),
 });
 
 export async function getCosplayerApplyContext() {
@@ -33,21 +30,9 @@ export async function getCosplayerApplyContext() {
     include: { photos: true, animeLinks: { include: { anime: { select: { title: true, slug: true } } } } },
   });
 
-  const animes = await db.anime.findMany({
-    take: 200,
-    select: { id: true, title: true, slug: true, characters: true },
-    orderBy: { title: "asc" },
-  });
-
   return {
     alreadyRegistered: !!existing,
     profile: existing,
-    animes: animes.map((a) => ({
-      id: a.id,
-      title: a.title,
-      slug: a.slug,
-      characters: parseAnimeCharacters(a.characters),
-    })),
     username: user.username,
   };
 }
@@ -57,55 +42,29 @@ export async function applyAsCosplayer(data: z.infer<typeof applySchema>) {
   const parsed = applySchema.safeParse(data);
   if (!parsed.success) return { error: "입력값을 확인해주세요." };
 
-  const { bio, photoUrl, animeId, characterName } = parsed.data;
+  const { bio, photoUrl } = parsed.data;
 
   const existing = await db.cosplayerProfile.findUnique({ where: { userId: user.id } });
   if (existing) return { error: "이미 코스어로 등록되어 있습니다." };
 
-  const anime = await db.anime.findUnique({ where: { id: animeId } });
-  if (!anime) return { error: "애니를 찾을 수 없습니다." };
-
-  const matched = characterMatchesAnime(characterName, anime.characters);
-  const officialName = resolveAnimeCharacterName(characterName, anime.characters) ?? characterName.trim();
-
-  const profile = await db.cosplayerProfile.create({
+  await db.cosplayerProfile.create({
     data: {
       userId: user.id,
       bio: bio.trim(),
       photos: {
         create: {
           url: photoUrl,
-          character: officialName,
-          series: anime.title,
         },
       },
     },
   });
 
-  let linked = false;
-  if (matched) {
-    await db.cosplayerAnime.create({
-      data: {
-        profileId: profile.id,
-        animeId: anime.id,
-        character: officialName,
-      },
-    });
-    linked = true;
-  }
-
   revalidatePath("/cosplay");
   revalidatePath(`/cosplay/${user.username}`);
   revalidatePath(`/u/${user.username}`);
   revalidateTag(profileUserCacheTag(user.username));
-  revalidatePath(`/anime/${anime.slug}`);
 
-  return {
-    success: true,
-    linked,
-    anime: { title: anime.title, slug: anime.slug },
-    character: officialName,
-  };
+  return { success: true as const };
 }
 
 export async function updateCosplayerProfile(data: {

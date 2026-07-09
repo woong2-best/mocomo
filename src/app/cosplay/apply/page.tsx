@@ -55,7 +55,7 @@ export default async function CosplayerApplyPage() {
           코스어 목록
         </Button>
       </Link>
-      <CosplayerApplyForm animes={ctx.animes} username={ctx.username} />
+      <CosplayerApplyForm username={ctx.username} />
     </AppPageChrome>
   );
 }
