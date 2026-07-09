@@ -97,6 +97,8 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     callId: string;
     action?: "accept" | "decline";
   } | null>(null);
+  /** 로컬에서 끊은 통화 — sync 폴링이 다시 띄우지 않도록 */
+  const locallyDismissedCallIdsRef = useRef<Set<string>>(new Set());
 
   callStateRef.current = callState;
 
@@ -152,6 +154,17 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     setPrefetchedLivekit(null);
   }, []);
 
+  const dismissCallUi = useCallback(
+    (callId?: string) => {
+      if (callId) {
+        locallyDismissedCallIdsRef.current.add(callId);
+        lastTerminalRef.current = callId;
+      }
+      resetCall();
+    },
+    [resetCall]
+  );
+
   const applySync = useCallback(
     (data: SyncResponse) => {
       const current = callStateRef.current;
@@ -162,22 +175,26 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
             lastTerminalRef.current = data.callId;
             setError("상대방이 통화를 거절했습니다.");
           }
-          resetCall();
+          dismissCallUi();
         }
+        locallyDismissedCallIdsRef.current.delete(data.callId);
         return;
       }
 
       if (data.event === "ended") {
         if (isCallPhase(current) && current.call.id === data.callId) {
           lastTerminalRef.current = data.callId;
-          resetCall();
+          dismissCallUi();
         }
+        locallyDismissedCallIdsRef.current.delete(data.callId);
         return;
       }
 
       if (!data.event) return;
 
       if (data.event === "incoming" || data.event === "outgoing" || data.event === "active") {
+        if (locallyDismissedCallIdsRef.current.has(data.call.id)) return;
+
         if (current.phase === "active" && current.call.id === data.call.id && data.event === "active") {
           return;
         }
@@ -192,18 +209,20 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
         setError("");
       }
     },
-    [resetCall]
+    [dismissCallUi]
   );
 
   const hangup = useCallback(
-    async (callId: string) => {
+    (callId: string) => {
       const current = callStateRef.current;
       const peerId = isCallPhase(current) ? current.peer.id : undefined;
-      await endCall(callId);
+      dismissCallUi(callId);
       if (peerId) emit("call_end", { callId, peerId });
-      resetCall();
+      void endCall(callId)
+        .then(() => locallyDismissedCallIdsRef.current.delete(callId))
+        .catch(() => undefined);
     },
-    [emit, resetCall]
+    [dismissCallUi, emit]
   );
 
   useEffect(() => {
@@ -550,19 +569,29 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     setCallState({ phase: "active", call: callState.call, peer: callState.peer });
   }, [callState, camera, emit, mic, resetCall]);
 
-  const declineIncoming = useCallback(async () => {
-    if (callState.phase !== "incoming") return;
-    await declineCall(callState.call.id);
-    emit("call_decline", { callId: callState.call.id, peerId: callState.peer.id });
-    resetCall();
-  }, [callState, emit, resetCall]);
+  const declineIncoming = useCallback(() => {
+    const current = callStateRef.current;
+    if (current.phase !== "incoming") return;
+    const callId = current.call.id;
+    const peerId = current.peer.id;
+    dismissCallUi(callId);
+    emit("call_decline", { callId, peerId });
+    void declineCall(callId)
+      .then(() => locallyDismissedCallIdsRef.current.delete(callId))
+      .catch(() => undefined);
+  }, [dismissCallUi, emit]);
 
-  const cancelOutgoing = useCallback(async () => {
-    if (callState.phase !== "outgoing") return;
-    await declineCall(callState.call.id);
-    emit("call_decline", { callId: callState.call.id, peerId: callState.peer.id });
-    resetCall();
-  }, [callState, emit, resetCall]);
+  const cancelOutgoing = useCallback(() => {
+    const current = callStateRef.current;
+    if (current.phase !== "outgoing") return;
+    const callId = current.call.id;
+    const peerId = current.peer.id;
+    dismissCallUi(callId);
+    emit("call_decline", { callId, peerId });
+    void declineCall(callId)
+      .then(() => locallyDismissedCallIdsRef.current.delete(callId))
+      .catch(() => undefined);
+  }, [dismissCallUi, emit]);
 
   useEffect(() => {
     const pending = pendingDeepLinkRef.current;
@@ -602,7 +631,9 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
             onAccept={acceptIncoming}
             onDecline={declineIncoming}
             onCancel={
-              callState.phase === "preparing" ? resetCall : cancelOutgoing
+              callState.phase === "preparing"
+                ? () => dismissCallUi()
+                : cancelOutgoing
             }
             onHangup={() => {
               if (callState.phase === "active") hangup(callState.call.id);

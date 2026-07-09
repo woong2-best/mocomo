@@ -175,41 +175,54 @@ export async function acceptCall(callId: string) {
 
 export async function declineCall(callId: string) {
   const user = await requireAuthMinimal();
-  const call = await getCallWithUsers(callId);
-  if (!call) return { error: "통화를 찾을 수 없습니다." };
-  if (call.calleeId !== user.id && call.callerId !== user.id) return { error: "권한이 없습니다." };
 
-  const status = call.calleeId === user.id ? CallStatus.DECLINED : CallStatus.CANCELLED;
-  const updated = await db.voiceCall.update({
-    where: { id: callId },
-    data: { status, endedAt: new Date() },
-    include: {
-      caller: { select: { id: true, username: true, image: true } },
-      callee: { select: { id: true, username: true, image: true } },
-    },
+  const asCallee = await db.voiceCall.updateMany({
+    where: { id: callId, calleeId: user.id, status: CallStatus.RINGING },
+    data: { status: CallStatus.DECLINED, endedAt: new Date() },
   });
+  if (asCallee.count > 0) return { ok: true as const };
 
-  return { call: serializeCall(updated) };
+  const asCaller = await db.voiceCall.updateMany({
+    where: { id: callId, callerId: user.id, status: CallStatus.RINGING },
+    data: { status: CallStatus.CANCELLED, endedAt: new Date() },
+  });
+  if (asCaller.count > 0) return { ok: true as const };
+
+  const allowed = await db.voiceCall.findFirst({
+    where: { id: callId, OR: [{ callerId: user.id }, { calleeId: user.id }] },
+    select: { id: true },
+  });
+  if (!allowed) return { error: "통화를 찾을 수 없습니다." };
+  return { ok: true as const };
 }
 
 export async function endCall(callId: string) {
   const user = await requireAuthMinimal();
-  const call = await getCallWithUsers(callId);
-  if (!call) return { error: "통화를 찾을 수 없습니다." };
-  if (call.callerId !== user.id && call.calleeId !== user.id) return { error: "권한이 없습니다." };
-  if (!ACTIVE_STATUSES.includes(call.status)) return { call: serializeCall(call) };
 
-  const updated = await db.voiceCall.update({
-    where: { id: callId },
-    data: { status: CallStatus.ENDED, endedAt: new Date() },
-    include: {
-      caller: { select: { id: true, username: true, image: true } },
-      callee: { select: { id: true, username: true, image: true } },
+  const ended = await db.voiceCall.updateMany({
+    where: {
+      id: callId,
+      status: { in: ACTIVE_STATUSES },
+      OR: [{ callerId: user.id }, { calleeId: user.id }],
     },
+    data: { status: CallStatus.ENDED, endedAt: new Date() },
   });
 
-  if (call.chatRoomId) revalidatePath(`/messages/${call.chatRoomId}`);
-  return { call: serializeCall(updated) };
+  if (ended.count === 0) {
+    const allowed = await db.voiceCall.findFirst({
+      where: { id: callId, OR: [{ callerId: user.id }, { calleeId: user.id }] },
+      select: { id: true },
+    });
+    if (!allowed) return { error: "통화를 찾을 수 없습니다." };
+    return { ok: true as const };
+  }
+
+  const chat = await db.voiceCall.findUnique({
+    where: { id: callId },
+    select: { chatRoomId: true },
+  });
+  if (chat?.chatRoomId) revalidatePath(`/messages/${chat.chatRoomId}`);
+  return { ok: true as const };
 }
 
 export async function getCall(callId: string) {
