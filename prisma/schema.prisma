@@ -575,6 +575,7 @@ model CommunityMember {
   memberRoles   CommunityMemberRole[]
   @@unique([communityId, userId])
   @@index([communityId, presence])
+  @@index([communityId, joinedAt])
 }
 
 enum CommunityVoiceActivity {

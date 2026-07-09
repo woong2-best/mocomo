@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { redirect, notFound } from "next/navigation";
 import { getCachedSession, getCachedAuthUserMinimal } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -30,13 +31,16 @@ export async function TextChannelView({
   }
 
   if (!isGuest && !readOnly) {
-    void db.chatMember
-      .upsert({
-        where: { roomId_userId: { roomId, userId: session!.user!.id } },
-        create: { roomId, userId: session!.user!.id, role: "member" },
-        update: {},
-      })
-      .catch(() => undefined);
+    const uid = session!.user!.id;
+    after(() => {
+      void db.chatMember
+        .upsert({
+          where: { roomId_userId: { roomId, userId: uid } },
+          create: { roomId, userId: uid, role: "member" },
+          update: {},
+        })
+        .catch(() => undefined);
+    });
   }
 
   const [room, me, messages] = await Promise.all([

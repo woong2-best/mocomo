@@ -9,6 +9,7 @@ import { CommunityBrandingSettings } from "@/components/community-server/channel
 import { CommunityReportsPanel } from "@/components/community-server/channels/settings-reports-panel";
 import { CommunityStatsAuditPanel } from "@/components/community-server/channels/settings-stats-panel";
 import { CommunityCategoriesPanel } from "@/components/community-server/channels/settings-categories-panel";
+import { SettingsLazySection } from "@/components/community-server/channels/settings-lazy-section";
 import { hasPermission } from "@/lib/community-server/permissions";
 import type { CommunityPermissions } from "@/lib/community-server/types";
 import { db } from "@/lib/db";
@@ -97,23 +98,47 @@ export async function SettingsChannelView({
           />
         )}
         {canJoinMode && (
-          <CommunityJoinModeSettings
-            communityId={communityId}
-            initialJoinMode={community.joinMode}
-          />
+          <SettingsLazySection title="가입 방식" defaultOpen>
+            <CommunityJoinModeSettings
+              communityId={communityId}
+              initialJoinMode={community.joinMode}
+            />
+          </SettingsLazySection>
         )}
         {canJoinRequests && community.joinMode === "APPROVE" && (
-          <CommunityJoinRequestsPanel communityId={communityId} />
+          <SettingsLazySection title="가입 요청">
+            <CommunityJoinRequestsPanel communityId={communityId} />
+          </SettingsLazySection>
         )}
-        {canCategories && <CommunityCategoriesPanel communityId={communityId} />}
+        {canCategories && (
+          <SettingsLazySection title="카테고리">
+            <CommunityCategoriesPanel communityId={communityId} />
+          </SettingsLazySection>
+        )}
         {canChannels && (
-          <CommunityChannelsPanel communityId={communityId} communitySlug={communitySlug} />
+          <SettingsLazySection title="채널 관리">
+            <CommunityChannelsPanel communityId={communityId} communitySlug={communitySlug} />
+          </SettingsLazySection>
         )}
-        {canBans && <CommunityBansPanel communityId={communityId} />}
-        {canReports && <CommunityReportsPanel communityId={communityId} />}
-        {canStats && <CommunityStatsAuditPanel communityId={communityId} />}
+        {canBans && (
+          <SettingsLazySection title="차단 목록">
+            <CommunityBansPanel communityId={communityId} />
+          </SettingsLazySection>
+        )}
+        {canReports && (
+          <SettingsLazySection title="신고">
+            <CommunityReportsPanel communityId={communityId} />
+          </SettingsLazySection>
+        )}
+        {canStats && (
+          <SettingsLazySection title="통계 · 활동 로그">
+            <CommunityStatsAuditPanel communityId={communityId} />
+          </SettingsLazySection>
+        )}
         {canRoles && (
-          <CommunityRolesPanel communityId={communityId} communitySlug={communitySlug} />
+          <SettingsLazySection title="역할">
+            <CommunityRolesPanel communityId={communityId} communitySlug={communitySlug} />
+          </SettingsLazySection>
         )}
       </div>
     </div>

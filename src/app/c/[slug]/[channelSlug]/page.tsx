@@ -125,7 +125,17 @@ export default async function CommunityChannelPage({
       );
 
     case "EVENT":
-      return <EventsChannelView communityId={ctx.communityId} communitySlug={slug} />;
+      return (
+        <EventsChannelView
+          communityId={ctx.communityId}
+          communitySlug={slug}
+          canManage={
+            ctx.isOwner ||
+            hasPermission(ctx.permissions, "manageEvents") ||
+            hasPermission(ctx.permissions, "manageServer")
+          }
+        />
+      );
 
     case "GALLERY":
       return <GalleryChannelView communityId={ctx.communityId} />;

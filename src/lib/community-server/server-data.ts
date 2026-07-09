@@ -3,13 +3,14 @@ import { db } from "@/lib/db";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { normalizeCommunitySlugParam } from "@/lib/community-slug";
 import { ensureCommunityServerProvisioned } from "@/lib/community-server/provision";
-import { guestPermissions } from "@/lib/community-server/permissions";
-import { loadMemberPermissions } from "@/lib/community-server/member-permissions";
+import { guestPermissions, parsePermissions, defaultPermissionsForRole } from "@/lib/community-server/permissions";
+import { permissionsFromMember } from "@/lib/community-server/member-permissions";
 import { getPrimaryRoleType } from "@/lib/community-server/member-role-utils";
 import type {
   CommunityChannelView,
   CommunityMemberView,
   CommunityServerContext,
+  CommunityPermissions,
 } from "@/lib/community-server/types";
 
 /** 요청 단위 캐시 — layout + page가 같은 요청에서 중복 조회하지 않음 */
@@ -18,20 +19,22 @@ export const getCommunityServerContext = cache(
     const normalizedSlug = normalizeCommunitySlugParam(slug);
     if (!normalizedSlug) return null;
 
-    const user = await getCachedCurrentUser();
-    const community = await db.community.findUnique({
-      where: { slug: normalizedSlug },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        iconUrl: true,
-        memberCount: true,
-        creatorId: true,
-        joinMode: true,
-        isPublic: true,
-      },
-    });
+    const [user, community] = await Promise.all([
+      getCachedCurrentUser(),
+      db.community.findUnique({
+        where: { slug: normalizedSlug },
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          iconUrl: true,
+          memberCount: true,
+          creatorId: true,
+          joinMode: true,
+          isPublic: true,
+        },
+      }),
+    ]);
     if (!community) return null;
 
     await ensureCommunityServerProvisioned(community.id);
@@ -39,26 +42,60 @@ export const getCommunityServerContext = cache(
     let isMember = false;
     let isOwner = false;
     let showWelcome = false;
-    if (user) {
-      const member = await db.communityMember.findUnique({
-        where: { communityId_userId: { communityId: community.id, userId: user.id } },
-        select: { role: true, welcomedAt: true },
-      });
-      isMember = !!member;
-      isOwner = community.creatorId === user.id || member?.role === "owner";
-      showWelcome = !!member && !member.welcomedAt;
-    }
+    let permissions: CommunityPermissions = guestPermissions();
 
-    const [permissions, channelsRaw] = await Promise.all([
-      user
-        ? loadMemberPermissions(community.id, user.id, isOwner)
-        : Promise.resolve(guestPermissions()),
+    const memberPromise = user
+      ? db.communityMember.findUnique({
+          where: { communityId_userId: { communityId: community.id, userId: user.id } },
+          include: {
+            memberRoles: {
+              include: { role: { select: { permissions: true, type: true } } },
+            },
+          },
+        })
+      : Promise.resolve(null);
+
+    const [member, channelsRaw] = await Promise.all([
+      memberPromise,
       db.communityChannel.findMany({
         where: { communityId: community.id },
         orderBy: [{ category: { position: "asc" } }, { position: "asc" }],
         include: { category: { select: { id: true, name: true } } },
       }),
     ]);
+
+    if (user && member) {
+      isMember = true;
+      isOwner = community.creatorId === user.id || member.role === "owner";
+      showWelcome = !member.welcomedAt;
+      const fallback =
+        member.memberRoles.length === 0
+          ? await db.communityRole.findFirst({
+              where: isOwner
+                ? { communityId: community.id, type: "OWNER" }
+                : { communityId: community.id, isDefault: true },
+              select: { permissions: true },
+            })
+          : null;
+      permissions = permissionsFromMember(
+        member,
+        isOwner,
+        community.id,
+        fallback ? parsePermissions(fallback.permissions) : undefined
+      );
+    } else if (user && community.creatorId === user.id) {
+      isOwner = true;
+      isMember = true;
+      const ownerRole = await db.communityRole.findFirst({
+        where: { communityId: community.id, type: "OWNER" },
+        select: { permissions: true },
+      });
+      permissions = ownerRole
+        ? parsePermissions(ownerRole.permissions)
+        : defaultPermissionsForRole("OWNER");
+    } else if (user) {
+      permissions = guestPermissions();
+    }
 
     const channels: CommunityChannelView[] = channelsRaw.map((ch) => ({
       id: ch.id,

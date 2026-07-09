@@ -42,6 +42,7 @@ export function ChatRoomClient({
   communityId,
   vipEmoji = false,
   canDeleteMessages = false,
+  skipInitialSync = false,
 }: {
   roomId: string;
   userId: string;
@@ -53,6 +54,8 @@ export function ChatRoomClient({
   communityId?: string;
   vipEmoji?: boolean;
   canDeleteMessages?: boolean;
+  /** SSR 메시지가 있으면 소켓 연결 전 전체 sync 생략 */
+  skipInitialSync?: boolean;
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
@@ -134,6 +137,17 @@ export function ChatRoomClient({
     }
 
     async function quickSync() {
+      if (skipInitialSync && initialMessages.length > 0) {
+        const after = lastSyncedAtRef.current;
+        if (!after) return;
+        const res = await fetch(`/api/messages/${roomId}/sync?after=${encodeURIComponent(after)}`, {
+          credentials: "include",
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as { messages?: unknown[] };
+        applyBatch(Array.isArray(data.messages) ? data.messages : []);
+        return;
+      }
       const after = lastSyncedAtRef.current;
       const qs = after ? `?after=${encodeURIComponent(after)}` : "";
       const res = await fetch(`/api/messages/${roomId}/sync${qs}`, {
@@ -190,7 +204,7 @@ export function ChatRoomClient({
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onVisible);
     };
-  }, [roomId, realtimeOff, socketReady, mergeIncoming]);
+  }, [roomId, realtimeOff, socketReady, mergeIncoming, skipInitialSync, initialMessages.length]);
 
   function onScroll() {
     const el = scrollRef.current;

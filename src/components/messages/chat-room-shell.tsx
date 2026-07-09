@@ -95,8 +95,9 @@ export function ChatRoomShell({
             readOnly={readOnly}
             communityId={communityId}
             vipEmoji={vipEmoji}
-            canDeleteMessages={canDeleteMessages}
-          />
+      canDeleteMessages={canDeleteMessages}
+      skipInitialSync={initialMessages.length > 0}
+    />
         </Suspense>
       </div>
   );

@@ -855,6 +855,8 @@ CREATE TABLE IF NOT EXISTS "CommunityMember" (
 CREATE UNIQUE INDEX IF NOT EXISTS "CommunityMember_communityId_userId_key"
   ON "CommunityMember"("communityId", "userId");
 CREATE INDEX IF NOT EXISTS "CommunityMember_userId_idx" ON "CommunityMember"("userId");
+CREATE INDEX IF NOT EXISTS "CommunityMember_communityId_joinedAt_idx"
+  ON "CommunityMember"("communityId", "joinedAt");
 
 DO $$ BEGIN
   ALTER TABLE "Community"

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { db } from "@/lib/db";
 import {
   defaultPermissionsForRole,
@@ -7,32 +8,66 @@ import {
 } from "@/lib/community-server/permissions";
 import type { CommunityPermissions } from "@/lib/community-server/types";
 
-export async function loadMemberPermissions(
+type MemberRoleRow = {
+  role: string;
+  memberRoles: { role: { permissions: unknown; type: string } }[];
+};
+
+export function permissionsFromMember(
+  member: MemberRoleRow | null | undefined,
+  isOwner: boolean,
   communityId: string,
-  userId: string,
-  isOwner: boolean
-): Promise<CommunityPermissions> {
-  const member = await db.communityMember.findUnique({
-    where: { communityId_userId: { communityId, userId } },
-    include: {
-      memberRoles: {
-        include: { role: { select: { permissions: true, type: true } } },
-      },
-    },
-  });
+  fallbackRolePermissions?: CommunityPermissions
+): CommunityPermissions {
   if (!member) return guestPermissions();
 
   const fromRoles = member.memberRoles.map((mr) => parsePermissions(mr.role.permissions));
   if (fromRoles.length > 0) return mergePermissions(fromRoles);
 
-  // 역할 미할당 멤버 — DB 기본 역할 또는 레거시 owner 플래그
+  if (fallbackRolePermissions) return fallbackRolePermissions;
+
   const roleType = isOwner || member.role === "owner" ? "OWNER" : "MEMBER";
+  return defaultPermissionsForRole(roleType);
+}
+
+async function loadDefaultRolePermissions(
+  communityId: string,
+  isOwner: boolean
+): Promise<CommunityPermissions | undefined> {
   const dbRole = await db.communityRole.findFirst({
-    where: isOwner || member.role === "owner"
+    where: isOwner
       ? { communityId, type: "OWNER" }
       : { communityId, isDefault: true },
     select: { permissions: true },
   });
-  if (dbRole) return parsePermissions(dbRole.permissions);
-  return defaultPermissionsForRole(roleType);
+  return dbRole ? parsePermissions(dbRole.permissions) : undefined;
 }
+
+/** 요청당 1회 — 설정·모더레이션 액션에서 중복 권한 조회 방지 */
+export const loadMemberPermissions = cache(
+  async (
+    communityId: string,
+    userId: string,
+    isOwner: boolean
+  ): Promise<CommunityPermissions> => {
+    const member = await db.communityMember.findUnique({
+      where: { communityId_userId: { communityId, userId } },
+      include: {
+        memberRoles: {
+          include: { role: { select: { permissions: true, type: true } } },
+        },
+      },
+    });
+    if (!member) return guestPermissions();
+
+    const fallback = member.memberRoles.length
+      ? undefined
+      : await loadDefaultRolePermissions(communityId, isOwner || member.role === "owner");
+    return permissionsFromMember(
+      member,
+      isOwner || member.role === "owner",
+      communityId,
+      fallback
+    );
+  }
+);
