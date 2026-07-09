@@ -4,7 +4,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Search, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { cn } from "@/lib/utils";
 import { USED_CATEGORIES } from "@/lib/used-market";
 import { UsedRegionFilter } from "@/components/used/used-region-filter";
@@ -12,7 +11,6 @@ import { UsedWorkProductFilters } from "@/components/used/used-work-product-filt
 
 export function UsedSearchHeader() {
   const router = useRouter();
-  const { isNativeApp } = useClientPlatform();
   const searchParams = useSearchParams();
   const [q, setQ] = useState(searchParams.get("q") ?? "");
   const [isPending, startTransition] = useTransition();
@@ -38,8 +36,7 @@ export function UsedSearchHeader() {
   return (
     <div
       className={cn(
-        "space-y-3 sticky z-30 bg-background/95 backdrop-blur pb-2 -mx-4 px-4 pt-1 border-b border-border transition-opacity",
-        isNativeApp ? "top-[calc(3.25rem+env(safe-area-inset-top))]" : "top-14",
+        "space-y-3 pb-2 -mx-4 px-4 pt-1 border-b border-border transition-opacity",
         isPending && "opacity-60"
       )}
     >
