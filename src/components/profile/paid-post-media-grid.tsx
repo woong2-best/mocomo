@@ -46,7 +46,7 @@ export function PaidPostMediaGrid({
 }) {
   if (media.length === 0) return null;
 
-  const grid = (
+  return (
     <div
       className={cn(
         "mt-3 grid gap-1 rounded-2xl overflow-hidden border border-border/50 max-w-full",
@@ -54,28 +54,36 @@ export function PaidPostMediaGrid({
         className
       )}
     >
-      {media.slice(0, 4).map((m) => (
-        <PaidPostMediaTile
-          key={m.id}
-          media={m}
-          postId={postId}
-          authorUsername={authorUsername}
-          authorId={authorId}
-          subscriptionPriceKrw={subscriptionPriceKrw}
-          paymentsEnabled={paymentsEnabled}
-          subscribed={subscribed}
-          postInstantPurchasePriceKrw={postInstantPurchasePriceKrw}
-        />
-      ))}
+      {media.slice(0, 4).map((m) => {
+        const key = m.id ?? m.url;
+        const tile = (
+          <PaidPostMediaTile
+            media={m}
+            postId={postId}
+            authorUsername={authorUsername}
+            authorId={authorId}
+            subscriptionPriceKrw={subscriptionPriceKrw}
+            paymentsEnabled={paymentsEnabled}
+            subscribed={subscribed}
+            postInstantPurchasePriceKrw={postInstantPurchasePriceKrw}
+          />
+        );
+
+        if (linkToPost && m.type !== "VIDEO") {
+          return (
+            <Link key={key} href={`/post/${postId}`} className="contents">
+              {tile}
+            </Link>
+          );
+        }
+
+        return (
+          <div key={key} className="contents">
+            {tile}
+          </div>
+        );
+      })}
     </div>
-  );
-
-  if (!linkToPost) return grid;
-
-  return (
-    <Link href={`/post/${postId}`} className="block">
-      {grid}
-    </Link>
   );
 }
 

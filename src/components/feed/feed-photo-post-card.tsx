@@ -133,25 +133,45 @@ export function FeedPhotoPostCard({
         />
       </header>
 
-      <Link href={`/post/${post.id}`} className="block px-3">
-        <div className="relative rounded-lg overflow-hidden bg-black/90 aspect-square group/media">
-          {media.length > 1 && (
-            <span className="absolute top-2 right-2 z-10 rounded-md bg-black/60 px-2 py-0.5 text-[11px] text-white">
-              1/{media.length}
-            </span>
-          )}
-          {media[0] ? (
+      {media[0]?.type === "VIDEO" ? (
+        <div className="px-3">
+          <div className="relative rounded-lg overflow-hidden bg-black/90 aspect-square group/media">
+            {media.length > 1 && (
+              <span className="absolute top-2 right-2 z-10 rounded-md bg-black/60 px-2 py-0.5 text-[11px] text-white">
+                1/{media.length}
+              </span>
+            )}
             <ProtectedPaidMedia
               type={media[0].type}
               src={media[0].url}
-              className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover/media:scale-[1.04]"
+              className="w-full h-full object-cover"
               mediaPriceKrw={media[0].priceKrw}
               postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
               locked={media[0].locked}
             />
-          ) : null}
+          </div>
         </div>
-      </Link>
+      ) : (
+        <Link href={`/post/${post.id}`} className="block px-3">
+          <div className="relative rounded-lg overflow-hidden bg-black/90 aspect-square group/media">
+            {media.length > 1 && (
+              <span className="absolute top-2 right-2 z-10 rounded-md bg-black/60 px-2 py-0.5 text-[11px] text-white">
+                1/{media.length}
+              </span>
+            )}
+            {media[0] ? (
+              <ProtectedPaidMedia
+                type={media[0].type}
+                src={media[0].url}
+                className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover/media:scale-[1.04]"
+                mediaPriceKrw={media[0].priceKrw}
+                postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
+                locked={media[0].locked}
+              />
+            ) : null}
+          </div>
+        </Link>
+      )}
 
       {post.anime && (
         <Link

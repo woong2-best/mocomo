@@ -88,8 +88,8 @@ export function FeedPostCard({ post }: { post: GridPost }) {
           </span>
         </div>
 
-        <Link href={`/post/${post.id}`} className="block flex-1">
-          {cover ? (
+        {cover ? (
+          cover.type === "VIDEO" ? (
             <ProtectedPaidMedia
               type={cover.type}
               src={cover.url}
@@ -99,14 +99,27 @@ export function FeedPostCard({ post }: { post: GridPost }) {
               locked={cover.locked}
             />
           ) : (
+            <Link href={`/post/${post.id}`} className="block flex-1">
+              <ProtectedPaidMedia
+                type={cover.type}
+                src={cover.url}
+                className="w-full aspect-[4/5] object-cover bg-black"
+                mediaPriceKrw={cover.priceKrw}
+                postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
+                locked={cover.locked}
+              />
+            </Link>
+          )
+        ) : (
+          <Link href={`/post/${post.id}`} className="block flex-1">
             <div className="px-3 pb-3">
               {post.title && <h3 className="font-semibold text-sm mb-1">{post.title}</h3>}
               <p className="text-sm text-foreground/85 line-clamp-6">
                 <TranslatableText text={post.content} as="span" stopPropagation />
               </p>
             </div>
-          )}
-        </Link>
+          </Link>
+        )}
 
         {post.anime && (
           <Link href={`/anime/${post.anime.slug}`} className="px-3 text-xs text-neon-cyan hover:underline">
