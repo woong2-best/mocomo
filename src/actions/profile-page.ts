@@ -2,13 +2,15 @@
 
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
-import { Prisma } from "@prisma/client";
+import { Prisma, type MediaType } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getAuthUserId } from "@/lib/auth";
 import { profileUserCacheTag } from "@/lib/cache-tags";
 import {
   attachPostContentAccess,
   getSubscriptionsForViewer,
+  isMediaContentLocked,
+  type ContentLockReason,
 } from "@/lib/content-access";
 import {
   isSubscriptionActive,
@@ -30,6 +32,21 @@ import { getUserRelationship, isProfileBlocked } from "@/lib/user-relationship";
 import type { UserPublicFields } from "@/lib/user-public-select";
 
 const PAGE_SIZE = 15;
+const MEDIA_GRID_PAGE_SIZE = 30;
+
+export type ProfileGridMediaItem = {
+  id: string;
+  url: string;
+  type: string;
+  duration: number | null;
+  priceKrw: number;
+  postId: string;
+  isNsfw: boolean;
+  hideNsfw: boolean;
+  locked: boolean;
+  lockReason: ContentLockReason;
+  instantPurchasePriceKrw: number;
+};
 
 const profileUserSelect = {
   id: true,
@@ -111,10 +128,20 @@ async function enrichPostsWithMediaAccess(
   );
 }
 
-function mediaTypeFilter(kind: ProfileMediaKind | null) {
-  if (kind === "photo") return { type: "IMAGE" as const };
-  if (kind === "video") return { type: "VIDEO" as const };
-  return undefined;
+function mediaTypesForKind(kind: ProfileMediaKind): MediaType | MediaType[] {
+  if (kind === "photo") return "IMAGE";
+  if (kind === "video") return "VIDEO";
+  return ["IMAGE", "VIDEO"];
+}
+
+function postMediaSomeFilter(kind: ProfileMediaKind): Prisma.PostMediaWhereInput {
+  const types = mediaTypesForKind(kind);
+  if (Array.isArray(types)) return { type: { in: types } };
+  return { type: types };
+}
+
+function postMediaWhereFilter(kind: ProfileMediaKind): Prisma.PostMediaWhereInput {
+  return postMediaSomeFilter(kind);
 }
 
 export const getProfileHeader = cache(async function getProfileHeader(username: string) {
@@ -186,7 +213,7 @@ export async function getProfileTimeline(
   tab: ProfileTab,
   author: UserPublicFields,
   cursor?: string,
-  options?: { sort?: ProfileSort; mediaKind?: ProfileMediaKind | null }
+  options?: { sort?: ProfileSort; mediaKind?: ProfileMediaKind }
 ) {
   const viewerId = await getAuthUserId();
   if (viewerId && viewerId !== userId) {
@@ -197,8 +224,8 @@ export async function getProfileTimeline(
   }
 
   const sort = options?.sort ?? "new";
-  const mediaKind = options?.mediaKind ?? null;
-  const typeFilter = mediaTypeFilter(mediaKind);
+  const mediaKind = options?.mediaKind ?? "all";
+  const mediaSome = postMediaSomeFilter(mediaKind);
 
   if (tab === "posts") {
     const posts = await db.post.findMany({
@@ -242,19 +269,22 @@ export async function getProfileTimeline(
     const posts = await db.post.findMany({
       where: {
         authorId: userId,
-        media: typeFilter ? { some: typeFilter } : { some: {} },
+        media: { some: mediaSome },
       },
       take: PAGE_SIZE,
       ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
       orderBy: profilePostsOrderBy(sort),
       include: profilePostIncludeLight,
     });
-    const filtered = typeFilter
-      ? posts.map((p) => ({
-          ...p,
-          media: p.media.filter((m) => m.type === typeFilter.type),
-        }))
-      : posts;
+    const filtered =
+      mediaKind === "all"
+        ? posts
+        : posts.map((p) => ({
+            ...p,
+            media: p.media.filter((m) =>
+              mediaKind === "photo" ? m.type === "IMAGE" : m.type === "VIDEO"
+            ),
+          }));
     const enriched = await enrichPostsWithMediaAccess(filtered, viewerId, author);
     return {
       items: enriched.map((p) => ({ type: "post" as const, post: p })),
@@ -359,4 +389,99 @@ export async function getProfileAuthorByUsername(username: string) {
     },
   });
   return user;
+}
+
+export async function getProfileMediaGrid(
+  userId: string,
+  author: UserPublicFields,
+  cursor?: string,
+  options?: { sort?: ProfileSort; mediaKind?: ProfileMediaKind }
+) {
+  const viewerId = await getAuthUserId();
+  if (viewerId && viewerId !== userId) {
+    const relationship = await getUserRelationship(viewerId, userId);
+    if (isProfileBlocked(relationship)) {
+      return { items: [], nextCursor: null };
+    }
+  }
+
+  const sort = options?.sort ?? "new";
+  const mediaKind = options?.mediaKind ?? "all";
+  const typeWhere = postMediaWhereFilter(mediaKind);
+
+  const rows = await db.postMedia.findMany({
+    where: {
+      ...typeWhere,
+      post: { authorId: userId },
+    },
+    take: MEDIA_GRID_PAGE_SIZE,
+    ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+    orderBy:
+      sort === "popular"
+        ? [
+            { post: { hotScore: "desc" } },
+            { post: { createdAt: "desc" } },
+            { order: "asc" },
+          ]
+        : [{ post: { createdAt: "desc" } }, { order: "asc" }],
+    select: {
+      id: true,
+      url: true,
+      type: true,
+      duration: true,
+      priceKrw: true,
+      post: {
+        select: {
+          id: true,
+          isNsfw: true,
+          instantPurchasePriceKrw: true,
+          visibility: true,
+          authorId: true,
+        },
+      },
+    },
+  });
+
+  const mediaIds = rows.map((r) => r.id);
+  const [purchasedIds, subscriptions, viewer] = await Promise.all([
+    getPurchasedPostMediaIds(viewerId, mediaIds),
+    getSubscriptionsForViewer(viewerId, [author.id]),
+    viewerId
+      ? db.user.findUnique({ where: { id: viewerId }, select: { showNsfw: true } })
+      : Promise.resolve(null),
+  ]);
+  const subscription = subscriptions.get(author.id);
+  const viewerShowNsfw = viewer?.showNsfw ?? false;
+  const isSelf = viewerId === userId;
+
+  const items: ProfileGridMediaItem[] = rows.map((row) => {
+    const access = isMediaContentLocked({
+      viewerId,
+      authorId: row.post.authorId,
+      visibility: row.post.visibility,
+      instantPurchasePriceKrw: row.post.instantPurchasePriceKrw ?? 0,
+      mediaPriceKrw: row.priceKrw,
+      purchased: purchasedIds.has(row.id),
+      subscription,
+    });
+
+    return {
+      id: row.id,
+      url: row.url,
+      type: row.type,
+      duration: row.duration,
+      priceKrw: row.priceKrw,
+      postId: row.post.id,
+      isNsfw: row.post.isNsfw,
+      hideNsfw: row.post.isNsfw && !isSelf && !viewerShowNsfw,
+      locked: access.locked,
+      lockReason: access.lockReason,
+      instantPurchasePriceKrw: row.post.instantPurchasePriceKrw ?? 0,
+    };
+  });
+
+  return {
+    items,
+    nextCursor: rows.length === MEDIA_GRID_PAGE_SIZE ? rows[rows.length - 1]?.id : null,
+  };
 }

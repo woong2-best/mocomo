@@ -28,7 +28,7 @@ export type ProfileTab = "posts" | "replies" | "media" | "likes" | "wiki";
 
 export type ProfileSort = "new" | "popular";
 
-export type ProfileMediaKind = "photo" | "video";
+export type ProfileMediaKind = "all" | "photo" | "video";
 
 export function parseProfileTab(tab?: string | null): ProfileTab {
   if (tab === "replies" || tab === "media" || tab === "likes" || tab === "wiki") return tab;
@@ -39,9 +39,9 @@ export function parseProfileSort(sort?: string | null): ProfileSort {
   return sort === "popular" ? "popular" : "new";
 }
 
-export function parseProfileMediaKind(kind?: string | null): ProfileMediaKind | null {
+export function parseProfileMediaKind(kind?: string | null): ProfileMediaKind {
   if (kind === "photo" || kind === "video") return kind;
-  return null;
+  return "all";
 }
 
 export function profilePostsOrderBy(sort: ProfileSort) {

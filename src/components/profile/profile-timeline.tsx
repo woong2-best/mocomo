@@ -19,7 +19,7 @@ export type TimelineItem =
 function timelineQuery(tab: ProfileTab, sort: ProfileSort, mediaKind: ProfileMediaKind | null) {
   const params = new URLSearchParams({ tab });
   if (sort === "popular") params.set("sort", "popular");
-  if (tab === "media" && mediaKind) params.set("kind", mediaKind);
+  if (tab === "media" && mediaKind && mediaKind !== "all") params.set("kind", mediaKind);
   return params.toString();
 }
 

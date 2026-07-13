@@ -31,7 +31,7 @@ export async function GET(
 
   const { items, nextCursor } = await getProfileTimeline(author.id, tab, author, cursor, {
     sort,
-    mediaKind: tab === "media" ? mediaKind ?? "photo" : null,
+    mediaKind: tab === "media" ? mediaKind : undefined,
   });
 
   const serialized = items.map((item) => {

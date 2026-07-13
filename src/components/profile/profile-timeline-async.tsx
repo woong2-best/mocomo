@@ -1,5 +1,6 @@
 import {
   getProfileHeader,
+  getProfileMediaGrid,
   getProfileTimeline,
   getViewerCreatorSubscription,
 } from "@/actions/profile-page";
@@ -10,11 +11,12 @@ import { PlatformSupportCard } from "@/components/support/platform-support-card"
 import { ProfileWikiContributions } from "@/components/profile/profile-wiki-contributions";
 import { parseProfileMediaKind, parseProfileSort, parseProfileTab } from "@/lib/profile-queries";
 import { ProfileTimeline, type TimelineItem } from "@/components/profile/profile-timeline";
+import { ProfileMediaGrid } from "@/components/profile/profile-media-grid";
 
 const emptyMessages: Record<string, string> = {
   posts: "아직 게시물이 없습니다.",
   replies: "아직 남긴 답글이 없습니다.",
-  media: "미디어가 포함된 게시물이 없습니다.",
+  media: "아직 올린 사진·영상이 없습니다.",
   likes: "좋아요한 게시물이 없습니다.",
   wiki: "위키 기여가 없습니다.",
 };
@@ -50,9 +52,6 @@ export async function ProfileTimelineAsync({
     : `@${header.user.username} 님이 회원님을 차단했습니다.`;
 
   if (effectiveTab === "wiki") {
-    const viewerSub = header.isSelf
-      ? { subscribed: false as const }
-      : await getViewerCreatorSubscription(header.user.id);
     return (
       <>
         {header.isSelf && platformSupport && (
@@ -68,16 +67,43 @@ export async function ProfileTimelineAsync({
     );
   }
 
+  if (effectiveTab === "media") {
+    const mediaGrid = profileBlocked
+      ? { items: [], nextCursor: null }
+      : await getProfileMediaGrid(header.user.id, header.author, undefined, {
+          sort,
+          mediaKind,
+        });
+
+    return (
+      <>
+        {header.isSelf && platformSupport && (
+          <PlatformSupportCard
+            sentTotal={platformSupport.sent.total}
+            sentTier={platformSupport.sent.tier}
+            receivedTotal={platformSupport.received.total}
+            receivedTier={platformSupport.received.tier}
+          />
+        )}
+        <ProfileMediaGrid
+          username={username}
+          sort={sort}
+          mediaKind={mediaKind}
+          initialItems={mediaGrid.items}
+          initialCursor={mediaGrid.nextCursor}
+          emptyMessage={profileBlocked ? blockedEmptyMessage : emptyMessages.media}
+        />
+      </>
+    );
+  }
+
   const [viewerSub, timeline] = await Promise.all([
     header.isSelf
       ? Promise.resolve({ subscribed: false as const })
       : getViewerCreatorSubscription(header.user.id),
     profileBlocked
       ? Promise.resolve({ items: [], nextCursor: null })
-      : getProfileTimeline(header.user.id, effectiveTab, header.author, undefined, {
-          sort,
-          mediaKind: effectiveTab === "media" ? mediaKind ?? "photo" : null,
-        }),
+      : getProfileTimeline(header.user.id, effectiveTab, header.author, undefined, { sort }),
   ]);
   const subscribed = "subscribed" in viewerSub ? viewerSub.subscribed : false;
 
@@ -118,7 +144,7 @@ export async function ProfileTimelineAsync({
         username={username}
         tab={effectiveTab}
         sort={sort}
-        mediaKind={effectiveTab === "media" ? mediaKind ?? "photo" : null}
+        mediaKind={null}
         initialItems={initialItems}
         initialCursor={nextCursor}
         emptyMessage={profileBlocked ? blockedEmptyMessage : emptyMessages[effectiveTab]}

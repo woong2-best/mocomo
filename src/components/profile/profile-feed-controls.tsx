@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Film, ImageIcon } from "lucide-react";
+import { Film, ImageIcon, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ProfileTab } from "@/lib/profile-queries";
 
@@ -30,25 +30,27 @@ export function ProfileFeedControls({
   const searchParams = useSearchParams();
   const base = `/u/${username}`;
   const sort = searchParams.get("sort") === "popular" ? "popular" : "new";
-  const kind = searchParams.get("kind") === "video" ? "video" : "photo";
+  const kindParam = searchParams.get("kind");
+  const kind =
+    kindParam === "video" ? "video" : kindParam === "photo" ? "photo" : "all";
 
   if (tab !== "posts" && tab !== "media") return null;
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5">
+    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 border-b border-border/40">
       {tab === "media" ? (
         <div className="inline-flex rounded-full border border-border/70 bg-muted/40 p-0.5">
           <Link
-            href={buildHref(base, searchParams, { tab: "media", kind: "video" })}
+            href={buildHref(base, searchParams, { tab: "media", kind: null })}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-              kind === "video"
+              kind === "all"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <Film className={cn("h-3.5 w-3.5", kind === "video" ? "text-violet-600" : "")} />
-            비디오
+            <LayoutGrid className="h-3.5 w-3.5" />
+            전체
           </Link>
           <Link
             href={buildHref(base, searchParams, { tab: "media", kind: "photo" })}
@@ -59,8 +61,20 @@ export function ProfileFeedControls({
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <ImageIcon className={cn("h-3.5 w-3.5", kind === "photo" ? "text-violet-600" : "")} />
+            <ImageIcon className="h-3.5 w-3.5" />
             사진
+          </Link>
+          <Link
+            href={buildHref(base, searchParams, { tab: "media", kind: "video" })}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+              kind === "video"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Film className="h-3.5 w-3.5" />
+            비디오
           </Link>
         </div>
       ) : (
