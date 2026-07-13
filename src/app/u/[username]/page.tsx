@@ -2,10 +2,8 @@ import { Suspense } from "react";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { ProfileHeaderAsync } from "@/components/profile/profile-header-async";
 import { ProfileTimelineAsync } from "@/components/profile/profile-timeline-async";
-import { ProfileSupportAsync } from "@/components/profile/profile-support-async";
 import { ProfileWebtoonsAsync } from "@/components/profile/profile-webtoons-async";
 import { ProfileMinigameAsync } from "@/components/profile/profile-minigame-async";
-import { ProfileSupportSkeleton } from "@/components/profile/profile-support-skeleton";
 import { ProfileHeaderSkeleton, ProfileTimelineSkeleton } from "@/components/ui/content-skeletons";
 
 export default function UserProfilePage({
@@ -46,9 +44,6 @@ export default function UserProfilePage({
           </aside>
         </Suspense>
       </div>
-      <Suspense fallback={<ProfileSupportSkeleton />}>
-        <ProfilePageSupport params={params} />
-      </Suspense>
     </AppPageChrome>
   );
 }
@@ -82,11 +77,6 @@ async function ProfilePageTimeline({
       kindParam={kind}
     />
   );
-}
-
-async function ProfilePageSupport({ params }: { params: Promise<{ username: string }> }) {
-  const { username } = await params;
-  return <ProfileSupportAsync username={username} />;
 }
 
 async function ProfilePageWebtoons({ params }: { params: Promise<{ username: string }> }) {
