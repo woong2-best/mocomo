@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PurchasePostMediaButton } from "@/components/profile/purchase-post-media-button";
 import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
+import { LockedMediaPaywallOverlay } from "@/components/media/locked-media-paywall-overlay";
 import {
   SubscribeCreatorButton,
   SubscribeCreatorHint,
@@ -123,23 +123,16 @@ function PaidPostMediaTile({
 
       {locked && (
         <div
-          className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/25"
-          onClick={(e) => e.preventDefault()}
+          className="absolute inset-0"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
         >
-          <div
-            className="flex flex-col items-center gap-2 px-2"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/55 text-white ring-2 ring-white/30">
-              <Lock className="h-5 w-5" />
-            </div>
-
-            {lockReason === "subscription" && authorId && subscriptionPriceKrw ? (
-              <>
-                <p className="text-xs text-white text-center font-medium">구독자 전용</p>
+          {lockReason === "subscription" && authorId && subscriptionPriceKrw ? (
+            <LockedMediaPaywallOverlay label="구독하기">
+              <div className="flex flex-col items-center gap-2">
+                <p className="text-[13px] font-semibold text-white">구독하기</p>
                 <SubscribeCreatorButton
                   creatorId={authorId}
                   username={authorUsername}
@@ -149,20 +142,23 @@ function PaidPostMediaTile({
                   compact
                 />
                 <SubscribeCreatorHint priceKrw={subscriptionPriceKrw} />
-              </>
-            ) : lockReason === "purchase" && purchasePrice > 0 ? (
+              </div>
+            </LockedMediaPaywallOverlay>
+          ) : lockReason === "purchase" && purchasePrice > 0 ? (
+            <LockedMediaPaywallOverlay>
               <PurchasePostMediaButton
                 mediaId={media.id}
                 priceKrw={purchasePrice}
                 paymentsEnabled={paymentsEnabled}
                 username={authorUsername}
                 postId={postId}
-                label={purchasePrice >= 10_000 ? "즉시 구매" : "유료 미디어"}
+                label="결제하기"
+                variant="label"
               />
-            ) : (
-              <p className="text-xs text-white/90 text-center">열람 권한이 없습니다.</p>
-            )}
-          </div>
+            </LockedMediaPaywallOverlay>
+          ) : (
+            <LockedMediaPaywallOverlay label="열람 권한이 없습니다." />
+          )}
         </div>
       )}
 

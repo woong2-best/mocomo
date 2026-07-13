@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { EyeOff, Loader2, Lock, Play } from "lucide-react";
+import { EyeOff, Loader2, Play } from "lucide-react";
 import type { ProfileGridMediaItem } from "@/actions/profile-page";
 import type { ProfileMediaKind, ProfileSort } from "@/lib/profile-queries";
 import { Button } from "@/components/ui/button";
+import { LockedMediaPaywallOverlay } from "@/components/media/locked-media-paywall-overlay";
+import { PurchasePostMediaButton } from "@/components/profile/purchase-post-media-button";
 
 function formatDuration(sec: number | null): string | null {
   if (!sec || sec <= 0 || !Number.isFinite(sec)) return null;
@@ -14,39 +16,90 @@ function formatDuration(sec: number | null): string | null {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-function MediaTile({ item }: { item: ProfileGridMediaItem }) {
+function MediaTile({
+  item,
+  username,
+  paymentsEnabled,
+}: {
+  item: ProfileGridMediaItem;
+  username: string;
+  paymentsEnabled: boolean;
+}) {
   const duration = item.type === "VIDEO" ? formatDuration(item.duration) : null;
   const isVideo = item.type === "VIDEO";
+  const purchasePrice = item.instantPurchasePriceKrw || item.priceKrw || 0;
+  const isPurchaseLocked = item.locked && item.lockReason === "purchase" && purchasePrice > 0;
+  const isSubLocked = item.locked && item.lockReason === "subscription";
+
+  const blurredThumb = (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={item.url}
+      alt=""
+      className="h-full w-full scale-110 object-cover blur-xl"
+      loading="lazy"
+      draggable={false}
+    />
+  );
+
+  if (item.hideNsfw) {
+    return (
+      <Link
+        href={`/post/${item.postId}`}
+        className="group relative block aspect-square overflow-hidden bg-neutral-900"
+      >
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-neutral-800/95 px-2 text-center">
+          <EyeOff className="h-6 w-6 text-white/70" />
+          <p className="text-[11px] font-medium leading-tight text-white/80">민감한 콘텐츠</p>
+        </div>
+      </Link>
+    );
+  }
+
+  if (isPurchaseLocked) {
+    return (
+      <div className="group relative block aspect-square overflow-hidden bg-neutral-900">
+        {blurredThumb}
+        <LockedMediaPaywallOverlay>
+          <div
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
+            <PurchasePostMediaButton
+              mediaId={item.id}
+              priceKrw={purchasePrice}
+              paymentsEnabled={paymentsEnabled}
+              username={username}
+              postId={item.postId}
+              label="결제하기"
+              variant="label"
+            />
+          </div>
+        </LockedMediaPaywallOverlay>
+      </div>
+    );
+  }
+
+  if (isSubLocked || item.locked) {
+    return (
+      <Link
+        href={`/post/${item.postId}`}
+        className="group relative block aspect-square overflow-hidden bg-neutral-900"
+      >
+        {blurredThumb}
+        <LockedMediaPaywallOverlay label={isSubLocked ? "구독하기" : "결제하기"} />
+      </Link>
+    );
+  }
 
   return (
     <Link
       href={`/post/${item.postId}`}
       className="group relative block aspect-square overflow-hidden bg-neutral-900"
     >
-      {item.hideNsfw ? (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-neutral-800/95 px-2 text-center">
-          <EyeOff className="h-6 w-6 text-white/70" />
-          <p className="text-[11px] font-medium leading-tight text-white/80">
-            민감한 콘텐츠
-          </p>
-        </div>
-      ) : item.locked ? (
-        <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={item.url}
-            alt=""
-            className="h-full w-full scale-110 object-cover blur-xl"
-            loading="lazy"
-            draggable={false}
-          />
-          <div className="absolute inset-0 flex items-center justify-center bg-black/35">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white ring-1 ring-white/25">
-              <Lock className="h-4 w-4" />
-            </span>
-          </div>
-        </>
-      ) : isVideo ? (
+      {isVideo ? (
         <>
           <video
             src={item.url}
@@ -81,6 +134,7 @@ export function ProfileMediaGrid({
   initialItems,
   initialCursor,
   emptyMessage,
+  paymentsEnabled = false,
 }: {
   username: string;
   sort: ProfileSort;
@@ -88,6 +142,7 @@ export function ProfileMediaGrid({
   initialItems: ProfileGridMediaItem[];
   initialCursor: string | null;
   emptyMessage: string;
+  paymentsEnabled?: boolean;
 }) {
   const [items, setItems] = useState(initialItems);
   const [cursor, setCursor] = useState(initialCursor);
@@ -149,7 +204,12 @@ export function ProfileMediaGrid({
     <>
       <div className="grid grid-cols-3 gap-px bg-border/50">
         {items.map((item) => (
-          <MediaTile key={item.id} item={item} />
+          <MediaTile
+            key={item.id}
+            item={item}
+            username={username}
+            paymentsEnabled={paymentsEnabled}
+          />
         ))}
       </div>
       <div ref={sentinel} className="flex flex-col items-center gap-2 py-6">

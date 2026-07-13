@@ -6,8 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Heart, MessageCircle, Star } from "lucide-react";
 import { TranslatableText } from "@/components/ui/translatable-text";
 import { PostShareMenu } from "@/components/post/post-share-menu";
-import { formatNumber } from "@/lib/utils";
+import { formatNumber, cn } from "@/lib/utils";
 import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
+import { LockedMediaPaywallOverlay } from "@/components/media/locked-media-paywall-overlay";
 import type { SupportTierLevel } from "@prisma/client";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { userDisplayName } from "@/lib/user-public-select";
@@ -90,24 +91,34 @@ export function FeedPostCard({ post }: { post: GridPost }) {
 
         {cover ? (
           cover.type === "VIDEO" ? (
-            <ProtectedPaidMedia
-              type={cover.type}
-              src={cover.url}
-              className="w-full aspect-[4/5] object-cover bg-black"
-              mediaPriceKrw={cover.priceKrw}
-              postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
-              locked={cover.locked}
-            />
-          ) : (
-            <Link href={`/post/${post.id}`} className="block flex-1">
+            <div className="relative">
               <ProtectedPaidMedia
                 type={cover.type}
                 src={cover.url}
-                className="w-full aspect-[4/5] object-cover bg-black"
+                className={cn(
+                  "w-full aspect-[4/5] object-cover bg-black",
+                  cover.locked && "blur-xl scale-105"
+                )}
                 mediaPriceKrw={cover.priceKrw}
                 postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
                 locked={cover.locked}
               />
+              {cover.locked && <LockedMediaPaywallOverlay label="결제하기" />}
+            </div>
+          ) : (
+            <Link href={`/post/${post.id}`} className="relative block flex-1">
+              <ProtectedPaidMedia
+                type={cover.type}
+                src={cover.url}
+                className={cn(
+                  "w-full aspect-[4/5] object-cover bg-black",
+                  cover.locked && "blur-xl scale-105"
+                )}
+                mediaPriceKrw={cover.priceKrw}
+                postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
+                locked={cover.locked}
+              />
+              {cover.locked && <LockedMediaPaywallOverlay label="결제하기" />}
             </Link>
           )
         ) : (

@@ -68,6 +68,7 @@ export async function ProfileTimelineAsync({
         initialItems={mediaGrid.items}
         initialCursor={mediaGrid.nextCursor}
         emptyMessage={profileBlocked ? blockedEmptyMessage : emptyMessages.media}
+        paymentsEnabled={paymentsEnabled}
       />
     );
   }

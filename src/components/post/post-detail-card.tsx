@@ -10,7 +10,7 @@ import type { getPostDetail } from "@/lib/post-queries";
 import { PostPollCard } from "@/components/post/post-poll-card";
 import { PostOwnerMenu } from "@/components/post/post-owner-menu";
 import { TranslatableText } from "@/components/ui/translatable-text";
-import { PostDetailMediaList } from "@/components/post/post-detail-media-list";
+import { PaidPostMediaGrid } from "@/components/profile/paid-post-media-grid";
 
 const dateLocales = { ko, en: enUS, ja, zh: zhCN } as const;
 
@@ -18,10 +18,16 @@ export function PostDetailCard({
   post,
   locale,
   isOwner = false,
+  paymentsEnabled = false,
+  subscriptionPriceKrw,
+  subscribed = false,
 }: {
   post: NonNullable<Awaited<ReturnType<typeof getPostDetail>>>;
   locale: Locale;
   isOwner?: boolean;
+  paymentsEnabled?: boolean;
+  subscriptionPriceKrw?: number;
+  subscribed?: boolean;
 }) {
   const dateLocale = dateLocales[locale] ?? ko;
 
@@ -65,12 +71,25 @@ export function PostDetailCard({
         </div>
         {post.title && <h1 className="text-xl font-bold">{post.title}</h1>}
         <TranslatableText text={post.content} as="p" className="whitespace-pre-wrap" />
-        {post.poll && (
-          <PostPollCard postId={post.id} poll={post.poll} />
-        )}
-        <PostDetailMediaList
-          media={post.media}
-          instantPurchasePriceKrw={post.instantPurchasePriceKrw}
+        {post.poll && <PostPollCard postId={post.id} poll={post.poll} />}
+        <PaidPostMediaGrid
+          media={(post.media ?? []).map((m) => ({
+            id: m.id,
+            url: m.url,
+            type: m.type,
+            priceKrw: m.priceKrw ?? undefined,
+            locked: m.locked,
+            lockReason: m.lockReason,
+            instantPurchasePriceKrw: m.instantPurchasePriceKrw,
+          }))}
+          postId={post.id}
+          authorUsername={post.author.username}
+          authorId={post.author.id}
+          subscriptionPriceKrw={subscriptionPriceKrw}
+          paymentsEnabled={paymentsEnabled}
+          subscribed={subscribed}
+          linkToPost={false}
+          postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
         />
         <div className="flex gap-2 flex-wrap">
           {post.tags.map(({ tag }) => (

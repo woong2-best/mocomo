@@ -21,6 +21,7 @@ import { MotionPop } from "@/components/motion/motion-primitives";
 import { engageStar, postEngage } from "@/lib/post-engage-client";
 import { TranslatableText } from "@/components/ui/translatable-text";
 import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
+import { LockedMediaPaywallOverlay } from "@/components/media/locked-media-paywall-overlay";
 
 const CAPTION_PREVIEW_LEN = 80;
 
@@ -144,11 +145,17 @@ export function FeedPhotoPostCard({
             <ProtectedPaidMedia
               type={media[0].type}
               src={media[0].url}
-              className="w-full h-full object-cover"
+              className={cn(
+                "w-full h-full object-cover",
+                media[0].locked && "blur-xl scale-105"
+              )}
               mediaPriceKrw={media[0].priceKrw}
               postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
               locked={media[0].locked}
             />
+            {media[0].locked && (
+              <LockedMediaPaywallOverlay label="결제하기" />
+            )}
           </div>
         </div>
       ) : (
@@ -160,14 +167,20 @@ export function FeedPhotoPostCard({
               </span>
             )}
             {media[0] ? (
-              <ProtectedPaidMedia
-                type={media[0].type}
-                src={media[0].url}
-                className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover/media:scale-[1.04]"
-                mediaPriceKrw={media[0].priceKrw}
-                postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
-                locked={media[0].locked}
-              />
+              <>
+                <ProtectedPaidMedia
+                  type={media[0].type}
+                  src={media[0].url}
+                  className={cn(
+                    "w-full h-full object-cover transition-transform duration-500 ease-out group-hover/media:scale-[1.04]",
+                    media[0].locked && "blur-xl scale-105"
+                  )}
+                  mediaPriceKrw={media[0].priceKrw}
+                  postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
+                  locked={media[0].locked}
+                />
+                {media[0].locked && <LockedMediaPaywallOverlay label="결제하기" />}
+              </>
             ) : null}
           </div>
         </Link>

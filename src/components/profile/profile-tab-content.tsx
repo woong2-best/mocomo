@@ -207,6 +207,7 @@ export function ProfileTabContent({
         initialItems={payload.items}
         initialCursor={payload.nextCursor}
         emptyMessage={emptyMessage}
+        paymentsEnabled={meta.paymentsEnabled}
       />
     );
   }

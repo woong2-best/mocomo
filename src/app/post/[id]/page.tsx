@@ -11,6 +11,8 @@ import { auth, isSiteOperator } from "@/lib/auth";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { ContentModerationBar } from "@/components/moderation/content-moderation-bar";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
+import { isPaymentsConfigured } from "@/lib/payments";
+import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -21,10 +23,25 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
 
   if (!post) notFound();
 
-  const engagement =
+  const [engagement, creator, viewerSub] = await Promise.all([
     session?.user?.id
-      ? await getPostEngagementForUser(session.user.id, [post.id])
-      : { likedIds: [], starredIds: [], repostedIds: [] };
+      ? getPostEngagementForUser(session.user.id, [post.id])
+      : Promise.resolve({ likedIds: [] as string[], starredIds: [] as string[], repostedIds: [] as string[] }),
+    db.user.findUnique({
+      where: { id: post.author.id },
+      select: { creatorSubscriptionPriceKrw: true },
+    }),
+    session?.user?.id && session.user.id !== post.author.id
+      ? db.subscription.findFirst({
+          where: {
+            subscriberId: session.user.id,
+            creatorId: post.author.id,
+            status: "active",
+          },
+          select: { id: true },
+        })
+      : Promise.resolve(null),
+  ]);
 
   const isStaff =
     !!session?.user?.username &&
@@ -55,6 +72,9 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
         post={post}
         locale={locale}
         isOwner={session?.user?.id === post.author.id}
+        paymentsEnabled={isPaymentsConfigured()}
+        subscriptionPriceKrw={creator?.creatorSubscriptionPriceKrw ?? undefined}
+        subscribed={!!viewerSub}
       />
       <PostDetailActions
         postId={post.id}
