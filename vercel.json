@@ -4,7 +4,7 @@
   "crons": [
     {
       "path": "/api/cron/used-auctions",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 16 * * *"
     },
     {
       "path": "/api/cron/subculture-events",
