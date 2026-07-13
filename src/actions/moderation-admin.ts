@@ -12,9 +12,9 @@ import {
 } from "@/actions/admin";
 import { canApplySanction, canCreateRole, canCreateStaff, hasMinStaffRole } from "@/lib/staff-roles";
 import {
-  logModerationAudit,
   type ModerationSanctionType,
-} from "@/lib/moderation-audit";
+} from "@/lib/moderation-sanctions";
+import { logModerationAudit } from "@/lib/moderation-audit";
 import { resetRiskScore } from "@/lib/risk-score";
 import { riskTierFromScore, riskTierLabel } from "@/lib/risk-score-rules";
 import { createNotification } from "@/lib/notifications";

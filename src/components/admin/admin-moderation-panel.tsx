@@ -12,7 +12,7 @@ import { accountStatusLabel } from "@/lib/account-status";
 import {
   MODERATION_SANCTION_LABELS,
   type ModerationSanctionType,
-} from "@/lib/moderation-audit";
+} from "@/lib/moderation-sanctions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { AccountStatus } from "@prisma/client";
