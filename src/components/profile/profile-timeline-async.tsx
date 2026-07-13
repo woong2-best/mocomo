@@ -5,9 +5,7 @@ import {
   getViewerCreatorSubscription,
 } from "@/actions/profile-page";
 import { creatorSubscriptionPriceForUser } from "@/lib/creator-subscription";
-import { getViewerPlatformSupport } from "@/actions/support";
 import { isPaymentsConfigured } from "@/lib/payments";
-import { PlatformSupportCard } from "@/components/support/platform-support-card";
 import { ProfileWikiContributions } from "@/components/profile/profile-wiki-contributions";
 import { parseProfileMediaKind, parseProfileSort, parseProfileTab } from "@/lib/profile-queries";
 import { ProfileTimeline, type TimelineItem } from "@/components/profile/profile-timeline";
@@ -21,7 +19,7 @@ const emptyMessages: Record<string, string> = {
   wiki: "위키 기여가 없습니다.",
 };
 
-/** 타임라인 우선 로드 — 후원 블록보다 먼저 표시 */
+/** 타임라인 우선 로드 */
 export async function ProfileTimelineAsync({
   username,
   tabParam,
@@ -41,7 +39,6 @@ export async function ProfileTimelineAsync({
   const sort = parseProfileSort(sortParam);
   const mediaKind = parseProfileMediaKind(kindParam);
 
-  const platformSupport = header.isSelf ? await getViewerPlatformSupport() : null;
   const paymentsEnabled = isPaymentsConfigured();
   const subscriptionPriceKrw = creatorSubscriptionPriceForUser(header.user.creatorSubscriptionPriceKrw);
   const profileBlocked =
@@ -52,19 +49,7 @@ export async function ProfileTimelineAsync({
     : `@${header.user.username} 님이 회원님을 차단했습니다.`;
 
   if (effectiveTab === "wiki") {
-    return (
-      <>
-        {header.isSelf && platformSupport && (
-          <PlatformSupportCard
-            sentTotal={platformSupport.sent.total}
-            sentTier={platformSupport.sent.tier}
-            receivedTotal={platformSupport.received.total}
-            receivedTier={platformSupport.received.tier}
-          />
-        )}
-        <ProfileWikiContributions userId={header.user.id} />
-      </>
-    );
+    return <ProfileWikiContributions userId={header.user.id} />;
   }
 
   if (effectiveTab === "media") {
@@ -76,24 +61,14 @@ export async function ProfileTimelineAsync({
         });
 
     return (
-      <>
-        {header.isSelf && platformSupport && (
-          <PlatformSupportCard
-            sentTotal={platformSupport.sent.total}
-            sentTier={platformSupport.sent.tier}
-            receivedTotal={platformSupport.received.total}
-            receivedTier={platformSupport.received.tier}
-          />
-        )}
-        <ProfileMediaGrid
-          username={username}
-          sort={sort}
-          mediaKind={mediaKind}
-          initialItems={mediaGrid.items}
-          initialCursor={mediaGrid.nextCursor}
-          emptyMessage={profileBlocked ? blockedEmptyMessage : emptyMessages.media}
-        />
-      </>
+      <ProfileMediaGrid
+        username={username}
+        sort={sort}
+        mediaKind={mediaKind}
+        initialItems={mediaGrid.items}
+        initialCursor={mediaGrid.nextCursor}
+        emptyMessage={profileBlocked ? blockedEmptyMessage : emptyMessages.media}
+      />
     );
   }
 
@@ -130,30 +105,19 @@ export async function ProfileTimelineAsync({
   });
 
   return (
-    <>
-      {header.isSelf && platformSupport && (
-        <PlatformSupportCard
-          sentTotal={platformSupport.sent.total}
-          sentTier={platformSupport.sent.tier}
-          receivedTotal={platformSupport.received.total}
-          receivedTier={platformSupport.received.tier}
-        />
-      )}
-
-      <ProfileTimeline
-        username={username}
-        tab={effectiveTab}
-        sort={sort}
-        mediaKind={null}
-        initialItems={initialItems}
-        initialCursor={nextCursor}
-        emptyMessage={profileBlocked ? blockedEmptyMessage : emptyMessages[effectiveTab]}
-        isSelf={header.isSelf}
-        paymentsEnabled={paymentsEnabled}
-        authorId={header.user.id}
-        subscriptionPriceKrw={subscriptionPriceKrw}
-        subscribed={subscribed}
-      />
-    </>
+    <ProfileTimeline
+      username={username}
+      tab={effectiveTab}
+      sort={sort}
+      mediaKind={null}
+      initialItems={initialItems}
+      initialCursor={nextCursor}
+      emptyMessage={profileBlocked ? blockedEmptyMessage : emptyMessages[effectiveTab]}
+      isSelf={header.isSelf}
+      paymentsEnabled={paymentsEnabled}
+      authorId={header.user.id}
+      subscriptionPriceKrw={subscriptionPriceKrw}
+      subscribed={subscribed}
+    />
   );
 }
