@@ -25,6 +25,10 @@
     {
       "path": "/api/cron/purge-deleted-accounts",
       "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/cron/risk-decay",
+      "schedule": "0 19 * * *"
     }
   ],
   "functions": {
@@ -48,6 +52,9 @@
     },
     "src/app/api/cron/purge-deleted-accounts/route.ts": {
       "maxDuration": 120
+    },
+    "src/app/api/cron/risk-decay/route.ts": {
+      "maxDuration": 60
     },
     "src/app/api/studio/upload/route.ts": {
       "maxDuration": 60

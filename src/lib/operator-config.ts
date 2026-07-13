@@ -1,7 +1,9 @@
 /**
- * 운영자 식별 (12-factor: Vercel 환경 변수).
+ * 운영자·스태프 식별 (12-factor: Vercel 환경 변수).
  * Edge(middleware)·서버 공통 — DB import 없음.
  */
+
+import { resolveEffectiveStaffRole, staffRoleRank } from "@/lib/staff-roles";
 
 const DEFAULT_OPERATOR_USERNAME = "mocomocompany";
 
@@ -19,6 +21,8 @@ export function getOperatorEmail(): string | null {
 export function isOperatorIdentity(
   user: { username: string; role: string; email?: string | null }
 ): boolean {
+  const role = resolveEffectiveStaffRole(user);
+  if (staffRoleRank(role) >= staffRoleRank("ADMIN")) return true;
   if (user.role !== "ADMIN") return false;
   if (user.username.trim().toLowerCase() !== getOperatorUsername()) return false;
   const requiredEmail = getOperatorEmail();
@@ -29,11 +33,17 @@ export function isOperatorIdentity(
   return true;
 }
 
-/** JWT/미들웨어용 — DB에 ADMIN 이어도 운영자가 아니면 일반 USER 로 취급 */
+export function isStaffIdentity(user: { role: string; username: string; email?: string | null }): boolean {
+  const role = resolveEffectiveStaffRole(user);
+  return staffRoleRank(role) >= staffRoleRank("MODERATOR");
+}
+
+/** JWT/미들웨어용 */
 export function effectiveRole(
   user: { username: string; role: string; email?: string | null }
 ): string {
+  const resolved = resolveEffectiveStaffRole(user);
+  if (staffRoleRank(resolved) >= staffRoleRank("MODERATOR")) return resolved;
   if (user.role === "ADMIN" && !isOperatorIdentity(user)) return "USER";
-  if (user.role === "MODERATOR") return "USER";
   return user.role;
 }

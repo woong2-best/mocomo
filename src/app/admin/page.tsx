@@ -46,6 +46,12 @@ export default async function AdminPage() {
     >
       <div className="flex flex-wrap gap-2">
         <Button variant="secondary" asChild className="w-full sm:w-auto">
+          <Link href="/admin/moderation" className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            위험도 · 검토 대기열
+          </Link>
+        </Button>
+        <Button variant="secondary" asChild className="w-full sm:w-auto">
           <Link href="/admin/suspensions" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
             계정 제재 · 이의 제기

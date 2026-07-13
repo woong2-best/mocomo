@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { authConfig } from "@/lib/auth.config";
 import { getAuthProviders } from "@/lib/auth.providers";
 import { createPrismaAuthAdapter } from "@/lib/auth.adapter";
-import { effectiveRole, isOperatorIdentity } from "@/lib/operator-config";
+import { effectiveRole, isOperatorIdentity, isStaffIdentity } from "@/lib/operator-config";
 import {
   credentialsUserHasJwtFields,
   hydrateTokenFromCredentialsUser,
@@ -112,6 +112,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.isSuspendedReadOnly = isSuspendedReadOnly(dbUser);
           token.isDeleted = !!dbUser.deletedAt;
           token.isOperator = isOperatorIdentity({
+            username: dbUser.username,
+            role: effectiveRole(dbUser),
+            email: dbUser.email,
+          });
+          token.isStaff = isStaffIdentity({
             username: dbUser.username,
             role: effectiveRole(dbUser),
             email: dbUser.email,

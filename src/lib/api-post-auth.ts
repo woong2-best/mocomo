@@ -4,6 +4,7 @@ import {
   ACCOUNT_SUSPENDED_WRITE_MESSAGE,
   assertAccountCanWrite,
   isServiceBanned,
+  type AccountWriteKind,
 } from "@/lib/account-status";
 import { NextResponse } from "next/server";
 
@@ -15,7 +16,7 @@ const userSelect = {
   deletedAt: true,
 } as const;
 
-export async function requireApiUser(options?: { writeKind?: "default" | "report" | "notification" }) {
+export async function requireApiUser(options?: { writeKind?: AccountWriteKind }) {
   const session = await auth();
   if (!session?.user?.id) {
     return { error: NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 }) };

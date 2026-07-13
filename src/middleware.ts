@@ -194,7 +194,15 @@ export default edgeAuth((req) => {
     }
   }
   const isOperator = Boolean(req.auth?.user?.isOperator);
-  if (isAdmin && !isOperator) {
+  const isStaff = Boolean(req.auth?.user?.isStaff);
+  const isModerationAdmin = pathname.startsWith("/admin/moderation");
+
+  if (isAdmin && isModerationAdmin && !isStaff && !isOperator) {
+    const res = NextResponse.redirect(new URL(DEFAULT_LANDING_PATH, req.url));
+    stampAppClientIfNeeded(req, res);
+    return res;
+  }
+  if (isAdmin && !isModerationAdmin && !isOperator) {
     const res = NextResponse.redirect(new URL(DEFAULT_LANDING_PATH, req.url));
     stampAppClientIfNeeded(req, res);
     return res;

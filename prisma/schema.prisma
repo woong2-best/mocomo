@@ -12,8 +12,27 @@ datasource db {
 
 enum UserRole {
   USER
+  VERIFIED
   MODERATOR
+  SENIOR_MODERATOR
   ADMIN
+  SUPER_ADMIN
+  OWNER
+}
+
+enum ModerationCaseStatus {
+  OPEN
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
+enum RiskScoreSource {
+  SYSTEM
+  REPORT
+  AI
+  ADMIN
+  AUTO
 }
 
 enum LiveStreamCategory {
@@ -116,6 +135,13 @@ model User {
   suspendedAt   DateTime?
   suspendedById String?
   suspensionExpiresAt DateTime?
+  riskScore           Int       @default(0)
+  riskScoreUpdatedAt  DateTime?
+  lastRiskDecayAt     DateTime?
+  moderationReviewRequired Boolean @default(false)
+  moderationUrgentReview   Boolean @default(false)
+  sanctionPendingApproval  Boolean @default(false)
+  priorSanctionCount       Int     @default(0)
   level         Int       @default(1)
   xp            Int       @default(0)
   totalSupportSent     Int              @default(0)
@@ -233,6 +259,12 @@ model User {
   appealsAdministered AccountAppeal[] @relation("AppealAdmin")
   banEvasionAsNew     BanEvasionSuspect[] @relation("BanEvasionNew")
   banEvasionAsLinked  BanEvasionSuspect[] @relation("BanEvasionLinked")
+  riskScoreEvents     RiskScoreEvent[]
+  moderationCases     ModerationCase[] @relation("ModerationCaseSubject")
+  moderationAiResults ModerationAiAnalysis[]
+  staffCreations      StaffCreationLog[] @relation("StaffCreated")
+  staffCreatedBy      StaffCreationLog[] @relation("StaffCreator")
+  moderationAuditLogs ModerationAuditLog[] @relation("ModerationAuditAdmin")
 
   pushSubscriptions PushSubscription[]
   mobilePushTokens  MobilePushToken[]
@@ -2315,10 +2347,12 @@ model Report {
   reason     String
   details    String?  @db.Text
   status     ReportStatus @default(PENDING)
+  moderationCaseId String?
   createdAt  DateTime @default(now())
   reporter   User @relation("Reporter", fields: [reporterId], references: [id])
   reportedUserId String?
   reportedUser User? @relation("ReportedUser", fields: [reportedUserId], references: [id])
+  moderationCase ModerationCase? @relation(fields: [moderationCaseId], references: [id], onDelete: SetNull)
   postId     String?
   post       Post? @relation(fields: [postId], references: [id])
   commentId  String?
@@ -2426,6 +2460,98 @@ model BanEvasionSuspect {
   @@index([userId, createdAt])
   @@index([linkedUserId])
   @@index([reviewed, createdAt])
+}
+
+model RiskScoreEvent {
+  id         String          @id @default(cuid())
+  userId     String
+  delta      Int
+  reason     String
+  source     RiskScoreSource @default(SYSTEM)
+  scoreAfter Int
+  metadata   Json?
+  createdAt  DateTime        @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model ModerationCase {
+  id                  String               @id @default(cuid())
+  reportedUserId      String
+  status              ModerationCaseStatus @default(OPEN)
+  reportCount         Int                  @default(1)
+  riskScoreSnapshot   Int                  @default(0)
+  aiConfidence        Float?
+  recommendedAction   String?
+  recommendedReason   String?              @db.Text
+  assignedAdminId     String?
+  resolvedAt          DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  reportedUser User     @relation("ModerationCaseSubject", fields: [reportedUserId], references: [id], onDelete: Cascade)
+  reports      Report[]
+
+  @@index([reportedUserId, status])
+  @@index([status, riskScoreSnapshot])
+}
+
+model ModerationAiAnalysis {
+  id                String   @id @default(cuid())
+  userId            String
+  contentType       String
+  contentId         String?
+  riskDelta         Int      @default(0)
+  confidence        Float?
+  recommendedAction String?
+  recommendedReason String?  @db.Text
+  rawResult         Json?
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([contentType, contentId])
+}
+
+model StaffCreationLog {
+  id            String   @id @default(cuid())
+  createdUserId String
+  creatorId     String
+  role          UserRole
+  displayName   String?
+  email         String?
+  reason        String   @db.Text
+  creatorIp     String?
+  createdAt     DateTime @default(now())
+
+  createdUser User @relation("StaffCreated", fields: [createdUserId], references: [id], onDelete: Cascade)
+  creator     User @relation("StaffCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([createdUserId])
+  @@index([creatorId, createdAt])
+}
+
+model ModerationAuditLog {
+  id           String   @id @default(cuid())
+  adminId      String
+  action       String
+  targetUserId String?
+  beforeState  Json?
+  afterState   Json?
+  reason       String?  @db.Text
+  ip           String?
+  userAgent    String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  admin User @relation("ModerationAuditAdmin", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId, createdAt])
+  @@index([targetUserId, createdAt])
+  @@index([action, createdAt])
 }
 
 /** 관리자·운영자 민감 접근 감사 (개인정보 조회·보내기 등) */

@@ -28,6 +28,7 @@ declare module "next-auth" {
       isSuspendedReadOnly?: boolean;
       isDeleted?: boolean;
       isOperator?: boolean;
+      isStaff?: boolean;
     };
   }
 }
@@ -46,5 +47,6 @@ declare module "next-auth/jwt" {
     isSuspendedReadOnly?: boolean;
     isDeleted?: boolean;
     isOperator?: boolean;
+    isStaff?: boolean;
   }
 }

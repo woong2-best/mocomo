@@ -9,7 +9,14 @@ export const ACCOUNT_SUSPENDED_WRITE_MESSAGE =
 export const ACCOUNT_SUSPENDED_SIGNUP_MESSAGE =
   "정지된 계정과 연결된 정보로는 새로운 계정을 생성할 수 없습니다.";
 
-export type AccountWriteKind = "default" | "report" | "notification" | "appeal";
+export type AccountWriteKind =
+  | "default"
+  | "report"
+  | "notification"
+  | "appeal"
+  | "comment"
+  | "dm"
+  | "live";
 
 export function isServiceBanned(user: {
   isBanned?: boolean | null;
@@ -34,6 +41,10 @@ export function isSuspendedReadOnly(user: {
   return isReadOnlySuspended(user.accountStatus);
 }
 
+export function isLimitedAccount(status?: AccountStatus | null): boolean {
+  return status === "LIMITED";
+}
+
 export function assertAccountCanWrite(
   user: {
     isBanned?: boolean | null;
@@ -44,6 +55,11 @@ export function assertAccountCanWrite(
   if (isServiceBanned(user)) throw new Error("BANNED");
   if (kind === "report" || kind === "notification" || kind === "appeal") return;
   if (isReadOnlySuspended(user.accountStatus)) throw new Error("ACCOUNT_SUSPENDED");
+  if (isLimitedAccount(user.accountStatus)) {
+    if (kind === "comment" || kind === "dm" || kind === "live") {
+      throw new Error("ACCOUNT_LIMITED");
+    }
+  }
 }
 
 export function accountStatusLabel(status: AccountStatus): string {

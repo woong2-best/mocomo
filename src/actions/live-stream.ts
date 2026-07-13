@@ -580,7 +580,7 @@ export async function heartbeatLivePresence(channelId: string) {
 }
 
 export async function sendLiveChatMessage(channelId: string, content: string) {
-  const user = await requireAuth();
+  const user = await requireAuth({ writeKind: "live" });
 
   const access = await resolveLiveChannelAccess(channelId, user.id);
   if (!access.allowed) return { error: "방송에 참여한 뒤 채팅할 수 있습니다." };
@@ -598,7 +598,18 @@ export async function sendLiveChatMessage(channelId: string, content: string) {
   await upsertLiveMember(channelId, user.id, access.isHost ? "HOST" : "VIEWER");
 
   const ai = await moderateLiveChatFast(text);
-  if (!ai.ok) return { error: ai.error };
+  if (!ai.ok) {
+    if (ai.categories) {
+      const { recordAiModerationResult } = await import("@/actions/moderation-admin");
+      void recordAiModerationResult({
+        userId: user.id,
+        contentType: "LIVE_CHAT",
+        contentId: channelId,
+        categories: ai.categories,
+      });
+    }
+    return { error: ai.error };
+  }
 
   if (channel.slowModeSeconds > 0 && !access.isHost) {
     const last = await db.liveChatMessage.findFirst({

@@ -17,7 +17,7 @@ export async function POST(
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
 
-  const authResult = await requireApiUser();
+  const authResult = await requireApiUser({ writeKind: "comment" });
   if ("error" in authResult) return authResult.error;
   const { user } = authResult;
 

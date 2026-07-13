@@ -117,7 +117,7 @@ export async function sendMessage(data: {
   mentions?: string[];
   attachments?: { url: string; type: "IMAGE" | "VIDEO" | "AUDIO" | "GIF" | "STICKER" | "FILE"; name?: string }[];
 }) {
-  const user = await requireAuthMinimal();
+  const user = await requireAuth({ writeKind: "dm" });
   const member = await db.chatMember.findUnique({
     where: { roomId_userId: { roomId: data.roomId, userId: user.id } },
     select: { userId: true },

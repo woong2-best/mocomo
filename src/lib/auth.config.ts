@@ -30,6 +30,7 @@ export const authConfig = {
         session.user.isSuspendedReadOnly = Boolean(token.isSuspendedReadOnly);
         session.user.isDeleted = Boolean(token.isDeleted);
         session.user.isOperator = Boolean(token.isOperator);
+        session.user.isStaff = Boolean(token.isStaff);
       }
       return session;
     },
