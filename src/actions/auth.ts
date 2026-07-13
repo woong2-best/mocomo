@@ -3,6 +3,8 @@
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
+import { ACCOUNT_SUSPENDED_SIGNUP_MESSAGE } from "@/lib/account-status";
+import { findRestrictedIdentityUser } from "@/lib/ban-evasion";
 import {
   getAppBaseUrl,
   resetTokenIdentifier,
@@ -307,6 +309,15 @@ export async function checkSignupAvailability(email: string, username: string, n
   const nameCheck = validateUsernameAndName(normalizedUsername, name);
   if (!nameCheck.ok) {
     return { ok: false, error: nameCheck.error, reason: "forbidden_sequence" as const };
+  }
+
+  const restricted = await findRestrictedIdentityUser({ email: normalizedEmail });
+  if (restricted) {
+    return {
+      ok: false,
+      error: ACCOUNT_SUSPENDED_SIGNUP_MESSAGE,
+      reason: "suspended_identity" as const,
+    };
   }
 
   const user = await resolveUserByEmail(normalizedEmail);

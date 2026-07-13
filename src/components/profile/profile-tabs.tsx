@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ProfileTab } from "@/lib/profile-queries";
+import { useSuspendedAccount } from "@/hooks/use-suspended-account";
 import { ProfileCreatePanel } from "@/components/profile/profile-create-panel";
 import { ProfileFeedControls } from "@/components/profile/profile-feed-controls";
 import { useProfileTab } from "@/components/profile/profile-tab-context";
@@ -26,6 +27,7 @@ export function ProfileTabs({
 }) {
   const { tab: active, navigate } = useProfileTab();
   const [createOpen, setCreateOpen] = useState(false);
+  const { suspended, blockAction } = useSuspendedAccount();
 
   return (
     <>
@@ -59,7 +61,11 @@ export function ProfileTabs({
                 size="sm"
                 variant={createOpen ? "secondary" : "default"}
                 className="h-9 gap-1.5 rounded-full px-4"
-                onClick={() => setCreateOpen((v) => !v)}
+                disabled={suspended}
+                onClick={() => {
+                  if (blockAction("post")) return;
+                  setCreateOpen((v) => !v);
+                }}
               >
                 <Plus className="h-4 w-4" />
                 Create

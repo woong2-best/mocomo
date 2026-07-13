@@ -7,7 +7,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ProfileActionMenu } from "@/components/profile/profile-action-menu";
 import { SupportTierLevel } from "@prisma/client";
+import type { AccountStatus } from "@prisma/client";
 import type { ReactNode } from "react";
+import { isReadOnlySuspended } from "@/lib/account-status";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { CreatorFollowerBadge } from "@/components/user/creator-follower-badge";
 import { creatorBadgeFromFollowerCount } from "@/lib/creator-follower-badge";
@@ -33,6 +35,7 @@ export function ProfileHeader({
     name: string | null;
     image: string | null;
     level: number;
+    accountStatus?: AccountStatus;
     supportTierSent: SupportTierLevel;
     countryCode?: string;
     birthDate?: Date | null;
@@ -69,6 +72,7 @@ export function ProfileHeader({
     !!user.birthDate &&
     (isSelf || !!user.profile?.showBirthdayOnProfile);
   const isBlocked = blockedByViewer || blockedViewer;
+  const isSuspendedProfile = isReadOnlySuspended(user.accountStatus);
 
   return (
     <>
@@ -127,6 +131,11 @@ export function ProfileHeader({
                 nameClassName="text-xl font-bold"
               />
               {user.countryCode ? <CountryFlag code={user.countryCode} size={20} className="ml-0.5" /> : null}
+              {isSuspendedProfile ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-red-600 px-2.5 py-0.5 text-xs font-semibold text-white">
+                  🚫 계정 정지됨
+                </span>
+              ) : null}
               <CreatorFollowerBadge badge={creatorBadge} size="md" />
             </div>
             {user.userBadges.length > 0 && (
@@ -157,6 +166,12 @@ export function ProfileHeader({
 
         {user.profile?.bio && (
           <p className="mt-3 text-[15px] whitespace-pre-wrap">{user.profile.bio}</p>
+        )}
+
+        {isSuspendedProfile && (
+          <p className="mt-3 text-sm font-medium text-red-600">
+            이 계정은 운영원칙 위반으로 인해 읽기 전용 상태입니다.
+          </p>
         )}
 
         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-sm text-muted-foreground">

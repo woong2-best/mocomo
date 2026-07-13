@@ -1,4 +1,5 @@
 import type { User } from "@prisma/client";
+import { isServiceBanned, isSuspendedReadOnly } from "@/lib/account-status";
 import { effectiveRole } from "@/lib/operator-config";
 
 /** credentials authorize → jwt 에 넘기는 필드 (DB 재조회 생략) */
@@ -9,6 +10,7 @@ export const CREDENTIALS_JWT_USER_SELECT = {
   image: true,
   passwordHash: true,
   isBanned: true,
+  accountStatus: true,
   deletedAt: true,
   scheduledPurgeAt: true,
   emailVerified: true,
@@ -28,6 +30,7 @@ export type CredentialsJwtUser = Pick<
   | "image"
   | "passwordHash"
   | "isBanned"
+  | "accountStatus"
   | "deletedAt"
   | "scheduledPurgeAt"
   | "emailVerified"
@@ -45,7 +48,9 @@ export function toCredentialsAuthUser(user: CredentialsJwtUser) {
     email: user.email,
     name: user.name,
     image: user.image,
-    isBanned: user.isBanned,
+    isBanned: isServiceBanned(user),
+    accountStatus: user.accountStatus,
+    isSuspendedReadOnly: isSuspendedReadOnly(user),
     username: user.username,
     role: effectiveRole(user),
     premiumTier: user.premiumTier,
@@ -67,6 +72,8 @@ export function hydrateTokenFromCredentialsUser(
     locale?: string;
     countryCode?: string;
     isBanned?: boolean;
+    accountStatus?: string;
+    isSuspendedReadOnly?: boolean;
   }
 ) {
   token.id = user.id;
@@ -77,6 +84,8 @@ export function hydrateTokenFromCredentialsUser(
   token.locale = user.locale;
   token.countryCode = user.countryCode;
   token.isBanned = user.isBanned;
+  token.accountStatus = user.accountStatus;
+  token.isSuspendedReadOnly = user.isSuspendedReadOnly;
 }
 
 export function credentialsUserHasJwtFields(

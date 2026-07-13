@@ -15,6 +15,12 @@ import { canRecoverAccount, isAccountPastRecovery } from "@/lib/account-deletion
 import { hydrateUserOAuthProfile } from "@/lib/oauth-vault";
 import type { SiteAdminAuditAction } from "@/lib/site-admin-audit";
 import { logSiteAdminAudit } from "@/lib/site-admin-audit";
+import {
+  assertAccountCanWrite,
+  isServiceBanned,
+  isSuspendedReadOnly,
+  type AccountWriteKind,
+} from "@/lib/account-status";
 
 const useSecureCookies = process.env.NODE_ENV === "production";
 
@@ -39,10 +45,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (!user?.id) return true;
       const dbUser = await db.user.findUnique({
         where: { id: user.id },
-        select: { isBanned: true, deletedAt: true, scheduledPurgeAt: true },
+        select: { isBanned: true, accountStatus: true, deletedAt: true, scheduledPurgeAt: true },
       });
       if (!dbUser) return false;
-      if (dbUser.isBanned) return false;
+      if (isServiceBanned(dbUser)) return false;
 
       if (dbUser.deletedAt) {
         if (isAccountPastRecovery(dbUser)) return false;
@@ -90,6 +96,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             locale: true,
             countryCode: true,
             isBanned: true,
+            accountStatus: true,
             deletedAt: true,
           },
         });
@@ -100,7 +107,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.level = dbUser.level;
           token.locale = dbUser.locale;
           token.countryCode = dbUser.countryCode;
-          token.isBanned = dbUser.isBanned;
+          token.isBanned = isServiceBanned(dbUser);
+          token.accountStatus = dbUser.accountStatus;
+          token.isSuspendedReadOnly = isSuspendedReadOnly(dbUser);
           token.isDeleted = !!dbUser.deletedAt;
           token.isOperator = isOperatorIdentity({
             username: dbUser.username,
@@ -137,27 +146,35 @@ export async function getCurrentUser() {
   return getCachedCurrentUser();
 }
 
-export async function requireAuth() {
+export async function requireAuth(options?: { writeKind?: AccountWriteKind }) {
   const user = await getCachedCurrentUser();
   if (!user) throw new Error("UNAUTHORIZED");
-  if (user.isBanned) throw new Error("BANNED");
+  if (isServiceBanned(user)) throw new Error("BANNED");
   if (user.deletedAt) throw new Error("ACCOUNT_DELETED");
+  assertAccountCanWrite(user, options?.writeKind ?? "default");
   return user;
 }
 
 /** Server Action — React cache() 없이 매 POST마다 세션·DB 재조회 */
-export async function requireAuthForAction() {
+export async function requireAuthForAction(options?: { writeKind?: AccountWriteKind }) {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) throw new Error("UNAUTHORIZED");
 
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { id: true, username: true, isBanned: true, deletedAt: true },
+    select: {
+      id: true,
+      username: true,
+      isBanned: true,
+      accountStatus: true,
+      deletedAt: true,
+    },
   });
   if (!user) throw new Error("USER_NOT_FOUND");
-  if (user.isBanned) throw new Error("BANNED");
+  if (isServiceBanned(user)) throw new Error("BANNED");
   if (user.deletedAt) throw new Error("ACCOUNT_DELETED");
+  assertAccountCanWrite(user, options?.writeKind ?? "default");
   return user;
 }
 
@@ -172,6 +189,7 @@ export const getCachedAuthUserMinimal = cache(async () => {
       username: true,
       image: true,
       isBanned: true,
+      accountStatus: true,
       deletedAt: true,
       role: true,
       supportTierSent: true,
@@ -179,11 +197,12 @@ export const getCachedAuthUserMinimal = cache(async () => {
   });
 });
 
-export async function requireAuthMinimal() {
+export async function requireAuthMinimal(options?: { writeKind?: AccountWriteKind }) {
   const user = await getCachedAuthUserMinimal();
   if (!user) throw new Error("UNAUTHORIZED");
-  if (user.isBanned) throw new Error("BANNED");
+  if (isServiceBanned(user)) throw new Error("BANNED");
   if (user.deletedAt) throw new Error("ACCOUNT_DELETED");
+  assertAccountCanWrite(user, options?.writeKind ?? "default");
   return user;
 }
 

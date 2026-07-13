@@ -5,6 +5,7 @@ import Twitter from "next-auth/providers/twitter";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
+import { isServiceBanned } from "@/lib/account-status";
 import { canRecoverAccount, isAccountPastRecovery } from "@/lib/account-deletion";
 import { checkLoginRateLimit, recordLoginAttempt } from "@/lib/auth-rate-limit";
 import { getRequestIp } from "@/lib/request-ip";
@@ -50,7 +51,7 @@ const credentialsProvider = Credentials({
     };
 
     if (!user) return fail();
-    if (user.isBanned) throw new LoginBannedError();
+    if (isServiceBanned(user)) throw new LoginBannedError();
     if (user.deletedAt) {
       if (isAccountPastRecovery(user)) throw new LoginAccountDeletedError();
       if (!canRecoverAccount(user)) throw new LoginAccountPendingRecoveryError();

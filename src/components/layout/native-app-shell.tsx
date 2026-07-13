@@ -7,6 +7,7 @@ import { NativeAppHeader } from "@/components/layout/native-app-header";
 import { NativeAppNav } from "@/components/layout/native-app-nav";
 import { NativeAppComposeFab } from "@/components/layout/native-app-compose-fab";
 import { OfflineBanner } from "@/components/layout/offline-banner";
+import { SuspendedAccountBanner } from "@/components/account/suspended-account-banner";
 import {
   isFastHubPath,
   nativeAppMainPadding,
@@ -83,6 +84,7 @@ function NativeAppShellInner({ children }: { children: React.ReactNode }) {
   return (
     <>
       {!hideHeader && <NativeAppHeader />}
+      <SuspendedAccountBanner />
       <OfflineBanner className="sticky top-0 z-50" />
       <main
         className={`bg-background overscroll-y-contain ${

@@ -148,7 +148,7 @@ export default edgeAuth((req) => {
   }
 
   const isLoggedIn = !!req.auth?.user?.id;
-  const isBanned = Boolean(req.auth?.user?.isBanned);
+  const isFullBanned = Boolean(req.auth?.user?.isBanned);
   const isDeleted = Boolean(req.auth?.user?.isDeleted);
   const isProtected = protectedRoutes.some((r) => pathname.startsWith(r));
   const isStudioProtected = studioProtectedPrefixes.some((r) => pathname.startsWith(r));
@@ -165,9 +165,9 @@ export default edgeAuth((req) => {
     return res;
   }
 
-  if (isLoggedIn && (isBanned || isDeleted)) {
+  if (isLoggedIn && (isFullBanned || isDeleted)) {
     const signOut = new URL("/auth/signin", req.url);
-    signOut.searchParams.set("error", isBanned ? "banned" : "account_deleted");
+    signOut.searchParams.set("error", isFullBanned ? "banned" : "account_deleted");
     const res = NextResponse.redirect(signOut);
     stampAppClientIfNeeded(req, res);
     return res;
@@ -180,7 +180,7 @@ export default edgeAuth((req) => {
     stampAppClientIfNeeded(req, res);
     return res;
   }
-  if (isAuthPage && isLoggedIn && !isBanned && !isDeleted) {
+  if (isAuthPage && isLoggedIn && !isFullBanned && !isDeleted) {
     const addingAccount =
       req.nextUrl.searchParams.get("addAccount") === "1" ||
       req.cookies.get(ADD_ACCOUNT_COOKIE)?.value === "1";

@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
+import { SuspendedAccountBanner } from "@/components/account/suspended-account-banner";
 import { FolkArtStage } from "@/components/brand/folk-decor";
 import { mainScrollPaddingClass, shouldHideMobileNav } from "@/lib/mobile-shell";
 import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
@@ -91,6 +92,7 @@ function AppShellInner({
   return (
     <>
       <Header />
+      <SuspendedAccountBanner />
       <div className="flex h-app overflow-hidden">
         <Sidebar />
         <main

@@ -67,6 +67,24 @@ enum FeedDisplayMode {
   COMPACT
 }
 
+enum AccountStatus {
+  ACTIVE
+  LIMITED
+  READ_ONLY
+  TEMP_SUSPENDED
+  PERMANENT_SUSPENDED
+  BANNED
+}
+
+enum AppealStatus {
+  RECEIVED
+  UNDER_REVIEW
+  INFO_REQUESTED
+  APPROVED
+  REJECTED
+  CLOSED
+}
+
 enum ContentVisibility {
   PUBLIC
   SUBSCRIBERS
@@ -93,6 +111,11 @@ model User {
   isBanned      Boolean   @default(false)
   banReason     String?
   bannedUntil   DateTime?
+  accountStatus AccountStatus @default(ACTIVE)
+  suspensionReason String?  @db.Text
+  suspendedAt   DateTime?
+  suspendedById String?
+  suspensionExpiresAt DateTime?
   level         Int       @default(1)
   xp            Int       @default(0)
   totalSupportSent     Int              @default(0)
@@ -204,7 +227,12 @@ model User {
   animesCreated Anime[] @relation("AnimeCreator")
   animeRevisions AnimeRevision[] @relation("AnimeRevisionEditor")
   animeDeleteRequests AnimeDeleteRequest[]
-  platformDevSupporter Boolean @default(false)
+  suspensionsIssued   AccountSuspensionLog[] @relation("SuspensionActor")
+  suspensionLogs      AccountSuspensionLog[] @relation("SuspensionTarget")
+  accountAppeals      AccountAppeal[]
+  appealsAdministered AccountAppeal[] @relation("AppealAdmin")
+  banEvasionAsNew     BanEvasionSuspect[] @relation("BanEvasionNew")
+  banEvasionAsLinked  BanEvasionSuspect[] @relation("BanEvasionLinked")
 
   pushSubscriptions PushSubscription[]
   mobilePushTokens  MobilePushToken[]
@@ -2307,6 +2335,97 @@ model ModLog {
   createdAt DateTime @default(now())
   actor  User @relation("ModActor", fields: [actorId], references: [id])
   target User @relation("ModTarget", fields: [targetId], references: [id])
+}
+
+model AccountSuspensionLog {
+  id              String        @id @default(cuid())
+  userId          String
+  actorId         String?
+  previousStatus  AccountStatus
+  newStatus       AccountStatus
+  reason          String?       @db.Text
+  isPermanent     Boolean       @default(false)
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+
+  user  User  @relation("SuspensionTarget", fields: [userId], references: [id], onDelete: Cascade)
+  actor User? @relation("SuspensionActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+}
+
+model AccountAppeal {
+  id                       String        @id @default(cuid())
+  userId                   String
+  accountStatusAtSubmit    AccountStatus
+  suspensionReasonSnapshot String?       @db.Text
+  title                    String
+  content                  String        @db.Text
+  contactEmail             String
+  allowFollowUpEmail       Boolean       @default(true)
+  status                   AppealStatus  @default(RECEIVED)
+  adminNotes               String?       @db.Text
+  adminId                  String?
+  decisionNote             String?       @db.Text
+  decidedAt                DateTime?
+  infoRequestedAt          DateTime?
+  infoDueAt                DateTime?
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
+
+  user        User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  admin       User?                     @relation("AppealAdmin", fields: [adminId], references: [id], onDelete: SetNull)
+  attachments AccountAppealAttachment[]
+  responses   AccountAppealResponse[]
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+model AccountAppealAttachment {
+  id        String   @id @default(cuid())
+  appealId  String
+  url       String
+  filename  String
+  mimeType  String
+  sizeBytes Int
+  createdAt DateTime @default(now())
+
+  appeal AccountAppeal @relation(fields: [appealId], references: [id], onDelete: Cascade)
+
+  @@index([appealId])
+}
+
+model AccountAppealResponse {
+  id        String   @id @default(cuid())
+  appealId  String
+  authorId  String?
+  content   String   @db.Text
+  isAdmin   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  appeal AccountAppeal @relation(fields: [appealId], references: [id], onDelete: Cascade)
+
+  @@index([appealId, createdAt])
+}
+
+model BanEvasionSuspect {
+  id           String   @id @default(cuid())
+  userId       String
+  linkedUserId String
+  matchType    String
+  metadata     Json?
+  reviewed     Boolean  @default(false)
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime @default(now())
+
+  user       User @relation("BanEvasionNew", fields: [userId], references: [id], onDelete: Cascade)
+  linkedUser User @relation("BanEvasionLinked", fields: [linkedUserId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([linkedUserId])
+  @@index([reviewed, createdAt])
 }
 
 /** 관리자·운영자 민감 접근 감사 (개인정보 조회·보내기 등) */

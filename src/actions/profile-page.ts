@@ -61,6 +61,9 @@ const profileUserSelect = {
   countryCode: true,
   birthDate: true,
   creatorSubscriptionPriceKrw: true,
+  accountStatus: true,
+  suspensionReason: true,
+  suspendedAt: true,
   profile: {
     select: {
       bio: true,

@@ -23,7 +23,7 @@ export async function submitContentReport(data: {
   postId?: string;
   commentId?: string;
 }) {
-  const user = await requireAuth();
+  const user = await requireAuth({ writeKind: "report" });
   const reasonLabel = REPORT_REASONS.find((r) => r.id === data.reason)?.label ?? data.reason;
   const details = data.details?.trim();
 

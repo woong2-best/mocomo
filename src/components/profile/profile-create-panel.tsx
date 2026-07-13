@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PostMediaComposer, type PostMediaItem } from "@/components/media/post-media-composer";
 import { ContentVisibilitySelect } from "@/components/monetization/content-visibility-select";
 import { createProfileMediaPost } from "@/actions/profile-create-media";
+import { useSuspendedAccount } from "@/hooks/use-suspended-account";
 import { cn } from "@/lib/utils";
 import type { ContentVisibility } from "@prisma/client";
 
@@ -22,6 +23,7 @@ export function ProfileCreatePanel({
   onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
+  const { suspended, blockAction } = useSuspendedAccount();
   const [kind, setKind] = useState<MediaKind>("photo");
   const [content, setContent] = useState("");
   const [visibility, setVisibility] = useState<ContentVisibility>("PUBLIC");
@@ -56,6 +58,7 @@ export function ProfileCreatePanel({
   }
 
   function submit() {
+    if (blockAction("post")) return;
     setError("");
     const item = media[0];
     if (!item) {

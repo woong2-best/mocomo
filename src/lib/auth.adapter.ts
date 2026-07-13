@@ -6,6 +6,8 @@ import {
   FORBIDDEN_ADMIN_SEQUENCE_MESSAGE,
   validateUsernameAndName,
 } from "@/lib/forbidden-admin-sequence";
+import { ACCOUNT_SUSPENDED_SIGNUP_MESSAGE } from "@/lib/account-status";
+import { findRestrictedIdentityUser } from "@/lib/ban-evasion";
 import { isOAuthEncryptionConfigured } from "@/lib/encryption";
 import {
   findOAuthAccountBySub,
@@ -67,6 +69,11 @@ export function createPrismaAuthAdapter(): Adapter {
   return {
     ...base,
     createUser: async (data) => {
+      const restricted = await findRestrictedIdentityUser({ email: data.email });
+      if (restricted) {
+        throw new Error(ACCOUNT_SUSPENDED_SIGNUP_MESSAGE);
+      }
+
       const seed = data.email ?? data.name ?? "user";
       const username = await generateUniqueUsername(seed);
       const displayName = data.name?.trim() || username;

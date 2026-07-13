@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useTransition } from "react";
-import { resolveReport, banUser, adminForceDeleteByReport } from "@/actions/admin";
+import { resolveReport, suspendUserPermanently, adminForceDeleteByReport } from "@/actions/admin";
 import { Button } from "@/components/ui/button";
 import { InlineConfirm } from "@/components/ui/inline-confirm";
 import { ReportStatus, type ReportTargetType } from "@prisma/client";
@@ -85,11 +85,11 @@ export function AdminReportActions({
           disabled={pending}
           onClick={() =>
             startTransition(() => {
-              void banUser(reportedUserId, "관리자 조치 (신고)");
+              void suspendUserPermanently(reportedUserId, "관리자 조치 (신고) — 운영원칙 위반");
             })
           }
         >
-          유저 정지
+          유저 영구 정지
         </Button>
       )}
     </div>
