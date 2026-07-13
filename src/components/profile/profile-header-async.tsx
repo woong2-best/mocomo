@@ -10,10 +10,11 @@ import { creatorSubscriptionPriceForUser } from "@/lib/creator-subscription";
 import { getViewerSupportForCreator } from "@/actions/support";
 import { ProfileHeader } from "@/components/profile/profile-header";
 import { ProfileHeaderActionBar } from "@/components/profile/profile-header-action-bar";
-import { parseProfileTab } from "@/lib/profile-queries";
 import { ProfileTabs } from "@/components/profile/profile-tabs";
+import { ProfilePinnedPostGate } from "@/components/profile/profile-pinned-post-gate";
 import { ProfilePostCard } from "@/components/profile/profile-post-card";
 import { getAuthUserId } from "@/lib/auth";
+import type { UserPublicFields } from "@/lib/user-public-select";
 
 function ActionBarSkeleton() {
   return <div className="flex gap-2 flex-wrap h-10" aria-hidden />;
@@ -59,29 +60,20 @@ async function ProfileHeaderActionBarAsync({
 
 async function ProfilePinnedPostAsync({
   userId,
-  username,
-  tabParam,
+  author,
   isSelf,
   paymentsEnabled,
   subscriptionPriceKrw,
 }: {
   userId: string;
-  username: string;
-  tabParam?: string;
+  author: UserPublicFields;
   isSelf: boolean;
   paymentsEnabled: boolean;
   subscriptionPriceKrw: number;
 }) {
-  const tab = parseProfileTab(tabParam);
-  const effectiveTab = tab === "likes" && !isSelf ? "posts" : tab;
-  if (effectiveTab !== "posts") return null;
-
-  const header = await getProfileHeader(username);
-  if (!header) return null;
-
   const viewerId = await getAuthUserId();
   const [pinned, viewerSub] = await Promise.all([
-    getProfilePinnedPost(userId, viewerId, header.author),
+    getProfilePinnedPost(userId, viewerId, author),
     isSelf
       ? Promise.resolve({ subscribed: false as const })
       : getViewerCreatorSubscription(userId),
@@ -102,18 +94,10 @@ async function ProfilePinnedPostAsync({
   );
 }
 
-export async function ProfileHeaderAsync({
-  username,
-  tabParam,
-}: {
-  username: string;
-  tabParam?: string;
-}) {
+export async function ProfileHeaderAsync({ username }: { username: string }) {
   const header = await getProfileHeader(username);
   if (!header) notFound();
 
-  const tab = parseProfileTab(tabParam);
-  const effectiveTab = tab === "likes" && !header.isSelf ? "posts" : tab;
   const paymentsEnabled = isPaymentsConfigured();
   const subscriptionPriceKrw = creatorSubscriptionPriceForUser(header.user.creatorSubscriptionPriceKrw);
   const displayName = header.user.name || header.user.username;
@@ -143,25 +127,24 @@ export async function ProfileHeaderAsync({
           )
         }
       />
-      <Suspense fallback={effectiveTab === "posts" ? <PinnedPostSkeleton /> : null}>
-        <ProfilePinnedPostAsync
-          userId={header.user.id}
-          username={username}
-          tabParam={tabParam}
-          isSelf={header.isSelf}
-          paymentsEnabled={paymentsEnabled}
-          subscriptionPriceKrw={subscriptionPriceKrw}
-        />
-      </Suspense>
-      <ProfileTabs username={username} showLikesTab={header.isSelf} isSelf={header.isSelf} />
+      <ProfilePinnedPostGate>
+        <Suspense fallback={<PinnedPostSkeleton />}>
+          <ProfilePinnedPostAsync
+            userId={header.user.id}
+            author={header.author}
+            isSelf={header.isSelf}
+            paymentsEnabled={paymentsEnabled}
+            subscriptionPriceKrw={subscriptionPriceKrw}
+          />
+        </Suspense>
+      </ProfilePinnedPostGate>
+      <ProfileTabs showLikesTab={header.isSelf} isSelf={header.isSelf} />
     </>
   );
 }
 
-export async function getProfileHeaderMeta(username: string, tabParam?: string) {
+export async function getProfileHeaderMeta(username: string) {
   const header = await getProfileHeader(username);
   if (!header) return null;
-  const tab = parseProfileTab(tabParam);
-  const effectiveTab = tab === "likes" && !header.isSelf ? "posts" : tab;
-  return { header, effectiveTab };
+  return { header };
 }
