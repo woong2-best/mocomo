@@ -57,7 +57,8 @@ export default async function MarketSellerPage({
           <p className="text-xs text-muted-foreground">{connectStatus.message}</p>
           {profile.user.stripeConnectOnboardedAt && (
             <p className="text-xs text-emerald-600">
-              Connect ??? ?? · {profile.user.stripeConnectOnboardedAt.toISOString().slice(0, 10)}
+              Connect ??? ?? ·{" "}
+              {profile.user.stripeConnectOnboardedAt.toISOString().slice(0, 10)}
             </p>
           )}
         </section>
@@ -66,7 +67,9 @@ export default async function MarketSellerPage({
       <section className="mb-8">
         <h2 className="text-sm font-semibold mb-3">??? ?? · ?? ??</h2>
         <MarketplaceSellerApplyForm
-          initialName={profile?.displayName ?? session.user.name ?? session.user.username ?? ""}
+          initialName={
+            profile?.displayName ?? session.user.name ?? session.user.username ?? ""
+          }
           connectReady={connectStatus.ready}
         />
       </section>
@@ -91,12 +94,15 @@ export default async function MarketSellerPage({
                   <div className="h-12 w-12 rounded-lg bg-muted" />
                 )}
                 <div className="min-w-0 flex-1">
-                  <Link href={`/market/i/${l.id}`} className="font-medium text-sm hover:underline truncate block">
+                  <Link
+                    href={`/market/i/${l.id}`}
+                    className="font-medium text-sm hover:underline truncate block"
+                  >
                     {l.title}
                   </Link>
                   <p className="text-xs text-muted-foreground">
-                    {listingTypeLabel(l.type)} · {l.status} · {l.priceAmount.toLocaleString()}? · ??{" "}
-                    {l.stock}
+                    {listingTypeLabel(l.type)} · {l.status} · {l.priceAmount.toLocaleString()}? ·
+                    ?? {l.stock}
                   </p>
                 </div>
               </li>
