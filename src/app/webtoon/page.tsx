@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { listIllustrationMarketFeed } from "@/actions/webtoon";
 import { IllustrationMarketGrid } from "@/components/webtoon/illustration-market-grid";
 import { IllustrationSortBar } from "@/components/webtoon/illustration-sort-bar";
