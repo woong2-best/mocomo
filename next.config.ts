@@ -41,23 +41,11 @@ const nextConfig: NextConfig = {
     };
   },
   async redirects() {
+    // Legacy emoticon-shop URLs only. Do NOT redirect /market itself —
+    // MARKET is the Stripe Connect marketplace (was wrongly sent to /support).
     return [
-      { source: "/market", destination: "/support?tab=emoticons", permanent: true },
-      { source: "/market/emoticons", destination: "/support?tab=emoticons", permanent: true },
-      {
-        source: "/market/emoticons/:slug",
-        destination: "/support/emoticons/:slug",
-        permanent: true,
-      },
       { source: "/market/storage", destination: "/support?tab=storage", permanent: true },
       { source: "/market/received", destination: "/support?tab=gifts", permanent: true },
-      { source: "/market/goods", destination: "/support?tab=emoticons", permanent: true },
-      { source: "/market/goods/:path*", destination: "/support?tab=emoticons", permanent: true },
-      { source: "/market/sell", destination: "/support?tab=emoticons", permanent: true },
-      { source: "/market/orders", destination: "/support", permanent: true },
-      { source: "/market/orders/:path*", destination: "/support", permanent: true },
-      { source: "/market/digital/:path*", destination: "/support?tab=emoticons", permanent: true },
-      { source: "/market/:id", destination: "/support?tab=emoticons", permanent: true },
     ];
   },
   async headers() {
