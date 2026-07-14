@@ -12,6 +12,7 @@ import {
   MARKETPLACE_CATEGORIES,
   listingTypeLabel,
 } from "@/lib/marketplace/constants";
+import { validateShipToCountries } from "@/lib/marketplace/shipping-config";
 import {
   createSellerConnectOnboarding,
   refreshSellerConnectLink,
@@ -161,6 +162,8 @@ export type CreateMarketplaceListingInput = {
   shippingMethods?: string[];
   shippingFeeType?: MarketplaceShippingFeeType;
   shippingFeeFixed?: number;
+  /** Physical/custom/preorder: required subset of KR/US/JP/CN */
+  shipToCountries?: string[];
   shipsWorldwide?: boolean;
   publish?: boolean;
 };
@@ -179,6 +182,14 @@ export async function createMarketplaceListing(input: CreateMarketplaceListingIn
   }
   if (input.type === "CUSTOM_ORDER" && (!input.productionDays || input.productionDays < 1)) {
     return { error: "주문제작 상품은 제작기간(일)이 필요합니다." };
+  }
+
+  const needsPhysicalShip = input.type !== "DIGITAL";
+  let shipToCountries: string[] = [];
+  if (needsPhysicalShip) {
+    const validated = validateShipToCountries(input.shipToCountries);
+    if (!validated.ok) return { error: validated.error };
+    shipToCountries = validated.countries;
   }
 
   const mediaUrls = (input.mediaUrls ?? []).filter(Boolean).slice(0, 12);
@@ -205,10 +216,11 @@ export async function createMarketplaceListing(input: CreateMarketplaceListingIn
       shippingMethods:
         input.type === "DIGITAL"
           ? ["DIGITAL_NONE"]
-          : (input.shippingMethods ?? ["POST"]).slice(0, 8),
+          : (input.shippingMethods ?? ["INTL_EMS"]).slice(0, 12),
       shippingFeeType: input.type === "DIGITAL" ? "FREE" : input.shippingFeeType ?? "FIXED",
       shippingFeeFixed: input.type === "DIGITAL" ? 0 : Math.max(0, input.shippingFeeFixed ?? 0),
-      shipsWorldwide: input.shipsWorldwide ?? true,
+      shipToCountries,
+      shipsWorldwide: false,
       publishedAt: publish ? new Date() : null,
       media: mediaUrls.length
         ? {

@@ -1,9 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { createMarketplaceCheckout } from "@/actions/marketplace-checkout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  listingShipsToCountry,
+  MARKETPLACE_SHIP_COUNTRIES,
+  UNSUPPORTED_SHIP_COUNTRY_MESSAGE,
+} from "@/lib/marketplace/shipping-config";
 
 export function MarketplaceBuyPanel({
   listingId,
@@ -11,18 +16,24 @@ export function MarketplaceBuyPanel({
   priceAmount,
   stock,
   paymentsEnabled,
+  shipToCountries = [],
+  shipsWorldwide = false,
 }: {
   listingId: string;
   listingType: string;
   priceAmount: number;
   stock: number;
   paymentsEnabled: boolean;
+  shipToCountries?: string[];
+  shipsWorldwide?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [shipName, setShipName] = useState("");
-  const [shipCountry, setShipCountry] = useState("KR");
+  const [shipCountry, setShipCountry] = useState(
+    () => shipToCountries[0]?.toUpperCase() ?? "KR"
+  );
   const [shipPostal, setShipPostal] = useState("");
   const [shipAddress1, setShipAddress1] = useState("");
   const [shipAddress2, setShipAddress2] = useState("");
@@ -30,10 +41,21 @@ export function MarketplaceBuyPanel({
 
   const needsShip = listingType !== "DIGITAL";
 
+  const shipsHere = useMemo(
+    () =>
+      !needsShip ||
+      listingShipsToCountry(shipToCountries, shipsWorldwide, shipCountry),
+    [needsShip, shipToCountries, shipsWorldwide, shipCountry]
+  );
+
   function buy() {
     setError("");
     if (!paymentsEnabled) {
       setError("결제가 설정되지 않았습니다.");
+      return;
+    }
+    if (needsShip && !shipsHere) {
+      setError(UNSUPPORTED_SHIP_COUNTRY_MESSAGE);
       return;
     }
     startTransition(async () => {
@@ -78,17 +100,29 @@ export function MarketplaceBuyPanel({
           <p className="text-xs font-semibold text-muted-foreground">배송지</p>
           <Input value={shipName} onChange={(e) => setShipName(e.target.value)} placeholder="이름" />
           <div className="grid grid-cols-2 gap-2">
-            <Input
+            <select
+              className="rounded-xl border border-border bg-background px-3 py-2 text-sm"
               value={shipCountry}
-              onChange={(e) => setShipCountry(e.target.value)}
-              placeholder="국가 코드 (예: KR)"
-            />
+              onChange={(e) => {
+                setShipCountry(e.target.value);
+                setError("");
+              }}
+            >
+              {MARKETPLACE_SHIP_COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.labelKo} ({c.code})
+                </option>
+              ))}
+            </select>
             <Input
               value={shipPostal}
               onChange={(e) => setShipPostal(e.target.value)}
               placeholder="우편번호"
             />
           </div>
+          {!shipsHere && (
+            <p className="text-sm text-destructive">{UNSUPPORTED_SHIP_COUNTRY_MESSAGE}</p>
+          )}
           <Input
             value={shipAddress1}
             onChange={(e) => setShipAddress1(e.target.value)}
@@ -108,7 +142,12 @@ export function MarketplaceBuyPanel({
       )}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
-      <Button type="button" className="w-full" disabled={pending || stock <= 0} onClick={buy}>
+      <Button
+        type="button"
+        className="w-full"
+        disabled={pending || stock <= 0 || (needsShip && !shipsHere)}
+        onClick={buy}
+      >
         {pending ? "결제 준비 중…" : "결제하기"}
       </Button>
       <p className="text-[10px] text-muted-foreground text-center">

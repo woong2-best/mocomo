@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMarketplaceListing } from "@/actions/marketplace";
 import { listingTypeLabel, computeMarketplaceFees } from "@/lib/marketplace/constants";
+import { shipCountryLabel } from "@/lib/marketplace/shipping-config";
 import { MarketplaceBuyPanel } from "@/components/market/marketplace-buy-panel";
 import { Button } from "@/components/ui/button";
 import { isPaymentsConfigured } from "@/lib/payments";
@@ -83,12 +84,22 @@ export default async function MarketplaceListingPage({
             <p>재고 {listing.stock}</p>
             {listing.productionDays ? <p>제작기간 {listing.productionDays}일</p> : null}
             {listing.type !== "DIGITAL" && (
-              <p>
-                배송비{" "}
-                {listing.shippingFeeType === "FREE"
-                  ? "무료"
-                  : `${listing.shippingFeeFixed.toLocaleString()}원`}
-              </p>
+              <>
+                <p>
+                  배송비{" "}
+                  {listing.shippingFeeType === "FREE"
+                    ? "무료"
+                    : `${listing.shippingFeeFixed.toLocaleString()}원`}
+                </p>
+                <p>
+                  배송 가능{" "}
+                  {listing.shipToCountries.length > 0
+                    ? listing.shipToCountries.map((c) => shipCountryLabel(c)).join(" · ")
+                    : listing.shipsWorldwide
+                      ? "지원 국가 전체"
+                      : "미설정"}
+                </p>
+              </>
             )}
             <p className="text-xs">
               플랫폼 수수료 10% — 판매자 예상 수령 {fees.sellerEarnAmount.toLocaleString()}원
@@ -116,6 +127,8 @@ export default async function MarketplaceListingPage({
               priceAmount={listing.priceAmount}
               stock={listing.stock}
               paymentsEnabled={isPaymentsConfigured()}
+              shipToCountries={listing.shipToCountries}
+              shipsWorldwide={listing.shipsWorldwide}
             />
           )}
 

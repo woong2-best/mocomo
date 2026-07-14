@@ -6,6 +6,14 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { getAppOrigin, getStripe, isStripeConfigured } from "@/lib/stripe";
 import { computeMarketplaceFees } from "@/lib/marketplace/constants";
+import {
+  getCarrierById,
+  listingShipsToCountry,
+  normalizeShipCountry,
+  UNSUPPORTED_ADDRESS_COUNTRY_MESSAGE,
+  UNSUPPORTED_SHIP_COUNTRY_MESSAGE,
+} from "@/lib/marketplace/shipping-config";
+import { getTrackingProvider } from "@/lib/marketplace/tracking";
 import { createNotification } from "@/lib/notifications";
 
 export async function createMarketplaceCheckout(input: {
@@ -58,6 +66,15 @@ export async function createMarketplaceCheckout(input: {
     if (!input.shipName?.trim() || !input.shipCountry?.trim() || !input.shipAddress1?.trim()) {
       return { error: "배송지(이름·국가·주소)를 입력해 주세요." };
     }
+    const dest = normalizeShipCountry(input.shipCountry);
+    if (!dest) {
+      return { error: UNSUPPORTED_ADDRESS_COUNTRY_MESSAGE };
+    }
+    if (
+      !listingShipsToCountry(listing.shipToCountries, listing.shipsWorldwide, dest)
+    ) {
+      return { error: UNSUPPORTED_SHIP_COUNTRY_MESSAGE };
+    }
   }
 
   const subtotal = listing.priceAmount * quantity;
@@ -80,7 +97,9 @@ export async function createMarketplaceCheckout(input: {
       sellerEarnAmount: fees.sellerEarnAmount,
       currency: listing.currency || "krw",
       shipName: input.shipName?.trim() || null,
-      shipCountry: input.shipCountry?.trim() || null,
+      shipCountry: needsShipping
+        ? normalizeShipCountry(input.shipCountry)
+        : null,
       shipPostal: input.shipPostal?.trim() || null,
       shipAddress1: input.shipAddress1?.trim() || null,
       shipAddress2: input.shipAddress2?.trim() || null,
@@ -224,7 +243,9 @@ export async function getMarketplaceOrderDetail(orderId: string) {
 
 export async function sellerUpdateShipment(input: {
   orderId: string;
-  carrier: string;
+  /** Config carrier id preferred (e.g. KR_CJ) */
+  carrierCode?: string;
+  carrier?: string;
   trackingNumber: string;
   status?: "PREPARING" | "SHIPPED" | "IN_CUSTOMS" | "IN_TRANSIT" | "DELIVERED";
 }) {
@@ -237,28 +258,55 @@ export async function sellerUpdateShipment(input: {
 
   const status = input.status ?? "SHIPPED";
   const trackingNumber = input.trackingNumber.trim();
-  if (!trackingNumber) return { error: "송장번호를 입력해 주세요." };
+  if (!trackingNumber && status !== "PREPARING") {
+    return { error: "송장번호를 입력해 주세요." };
+  }
+
+  const carrierMeta = input.carrierCode ? getCarrierById(input.carrierCode) : undefined;
+  const carrierLabel = carrierMeta?.label ?? input.carrier?.trim() ?? null;
+  const carrierCode = carrierMeta?.id ?? input.carrierCode?.trim() ?? null;
+
+  let externalTrackingId: string | undefined;
+  if (trackingNumber && carrierCode) {
+    const provider = getTrackingProvider();
+    const registered = await provider.registerTracking({
+      carrierId: carrierCode,
+      trackingNumber,
+      trackingSlug: carrierMeta?.trackingSlug,
+    });
+    if ("error" in registered) {
+      /* still allow manual save */
+    } else {
+      externalTrackingId = registered.externalId;
+    }
+  }
 
   await db.marketplaceShipment.upsert({
     where: { orderId: order.id },
     create: {
       orderId: order.id,
-      carrier: input.carrier.trim() || null,
-      trackingNumber,
+      carrier: carrierLabel,
+      carrierCode,
+      trackingNumber: trackingNumber || null,
+      externalTrackingId: externalTrackingId ?? null,
       status,
-      shippedAt: status === "SHIPPED" || status === "IN_TRANSIT" ? new Date() : null,
+      shippedAt: status === "SHIPPED" || status === "IN_TRANSIT" || status === "IN_CUSTOMS" ? new Date() : null,
       deliveredAt: status === "DELIVERED" ? new Date() : null,
     },
     update: {
-      carrier: input.carrier.trim() || null,
-      trackingNumber,
+      carrier: carrierLabel,
+      carrierCode,
+      trackingNumber: trackingNumber || null,
+      externalTrackingId: externalTrackingId ?? undefined,
       status,
-      shippedAt: status === "SHIPPED" || status === "IN_TRANSIT" ? new Date() : undefined,
+      shippedAt:
+        status === "SHIPPED" || status === "IN_TRANSIT" || status === "IN_CUSTOMS" ? new Date() : undefined,
       deliveredAt: status === "DELIVERED" ? new Date() : undefined,
     },
   });
 
   const patch: { status?: typeof order.status; autoConfirmAt?: Date } = {};
+  if (status === "PREPARING") patch.status = "PREPARING";
   if (status === "SHIPPED" || status === "IN_TRANSIT" || status === "IN_CUSTOMS") {
     patch.status = "SHIPPED";
   }
@@ -274,14 +322,89 @@ export async function sellerUpdateShipment(input: {
   await createNotification({
     userId: order.buyerId,
     type: "SYSTEM",
-    title: status === "DELIVERED" ? "배송이 완료되었습니다" : "상품이 발송되었습니다",
-    body: `${input.carrier} ${trackingNumber}`,
+    title:
+      status === "DELIVERED"
+        ? "배송이 완료되었습니다"
+        : status === "PREPARING"
+          ? "상품을 준비 중입니다"
+          : "상품이 발송되었습니다",
+    body: carrierLabel ? `${carrierLabel} ${trackingNumber}` : trackingNumber,
     link: `/market/orders/${order.id}`,
     actorId: user.id,
   });
 
   revalidatePath(`/market/orders/${order.id}`);
   revalidatePath("/market/orders");
+  return { success: true };
+}
+
+/** 판매자: 결제완료 → 준비중 → 발송 → 배송완료 */
+export async function sellerSetOrderStatus(
+  orderId: string,
+  status: "PREPARING" | "SHIPPED" | "DELIVERED"
+) {
+  const user = await requireAuth();
+  const order = await db.marketplaceOrder.findUnique({
+    where: { id: orderId },
+    include: { shipment: true },
+  });
+  if (!order || order.sellerId !== user.id) return { error: "권한이 없습니다." };
+
+  const allowedFrom: Record<string, string[]> = {
+    PREPARING: ["PAID", "PREPARING"],
+    SHIPPED: ["PAID", "PREPARING", "SHIPPED"],
+    DELIVERED: ["SHIPPED", "DELIVERED", "PREPARING"],
+  };
+  if (!allowedFrom[status]?.includes(order.status)) {
+    return { error: "현재 상태에서는 변경할 수 없습니다." };
+  }
+
+  const data: {
+    status: typeof status;
+    autoConfirmAt?: Date;
+  } = { status };
+
+  if (status === "DELIVERED") {
+    data.autoConfirmAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  }
+
+  await db.marketplaceOrder.update({ where: { id: orderId }, data });
+
+  const shipStatus =
+    status === "PREPARING"
+      ? "PREPARING"
+      : status === "SHIPPED"
+        ? "SHIPPED"
+        : "DELIVERED";
+
+  await db.marketplaceShipment.upsert({
+    where: { orderId },
+    create: {
+      orderId,
+      status: shipStatus,
+      shippedAt: status === "SHIPPED" || status === "DELIVERED" ? new Date() : null,
+      deliveredAt: status === "DELIVERED" ? new Date() : null,
+      carrier: order.shipment?.carrier,
+      carrierCode: order.shipment?.carrierCode,
+      trackingNumber: order.shipment?.trackingNumber,
+    },
+    update: {
+      status: shipStatus,
+      shippedAt: status === "SHIPPED" || status === "DELIVERED" ? new Date() : undefined,
+      deliveredAt: status === "DELIVERED" ? new Date() : undefined,
+    },
+  });
+
+  await createNotification({
+    userId: order.buyerId,
+    type: "SYSTEM",
+    title: "주문 상태가 변경되었습니다",
+    body: status,
+    link: `/market/orders/${orderId}`,
+    actorId: user.id,
+  });
+
+  revalidatePath(`/market/orders/${orderId}`);
   return { success: true };
 }
 

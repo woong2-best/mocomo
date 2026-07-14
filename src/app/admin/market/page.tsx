@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AdminPageChrome } from "@/components/admin/admin-page-chrome";
 import { AdminAccessDenied } from "@/components/admin/admin-access-denied";
+import { AdminMarketplaceOrderStatus } from "@/components/market/admin-marketplace-order-status";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { resolveMarketplaceDispute } from "@/actions/marketplace-admin";
@@ -119,11 +120,17 @@ export default async function AdminMarketPage() {
         <ul className="divide-y divide-border/60 rounded-2xl border border-border/60">
           {orders.map((o) => (
             <li key={o.id} className="p-3 text-sm flex justify-between gap-3">
-              <div>
-                <p className="font-medium">{o.items[0]?.titleSnapshot ?? o.id}</p>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium">
+                  <Link href={`/market/orders/${o.id}`} className="hover:underline">
+                    {o.items[0]?.titleSnapshot ?? o.id}
+                  </Link>
+                </p>
                 <p className="text-xs text-muted-foreground">
                   @{o.buyer.username} → @{o.seller.username} · {o.status}
+                  {o.shipCountry ? ` · ${o.shipCountry}` : ""}
                 </p>
+                <AdminMarketplaceOrderStatus orderId={o.id} currentStatus={o.status} />
               </div>
               <p className="text-xs shrink-0">
                 {(o.subtotalAmount + o.shippingAmount).toLocaleString()}원

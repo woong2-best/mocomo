@@ -4202,7 +4202,9 @@ model MarketplaceListing {
   digitalFileUrl     String?
   digitalDownloadLimit Int?
   digitalExpiresDays Int?
-  shipsWorldwide     Boolean                    @default(true)
+  shipsWorldwide     Boolean                    @default(false)
+  /** Supported buyer destinations — subset of MARKETPLACE_SHIP_COUNTRY_CODES */
+  shipToCountries    String[]
   shippingMethods    String[]
   shippingFeeType    MarketplaceShippingFeeType @default(FIXED)
   shippingFeeFixed   Int                        @default(0)
@@ -4313,8 +4315,13 @@ model MarketplaceOrderItem {
 model MarketplaceShipment {
   id             String                   @id @default(cuid())
   orderId        String                   @unique
+  /** Display label (e.g. CJ대한통운) */
   carrier        String?
+  /** Config carrier id (e.g. KR_CJ) — maps to trackingSlug for future APIs */
+  carrierCode    String?
   trackingNumber String?
+  /** External provider tracking id (AfterShip etc.) */
+  externalTrackingId String?
   status         MarketplaceShipmentStatus @default(PREPARING)
   shippedAt      DateTime?
   deliveredAt    DateTime?
@@ -4324,6 +4331,7 @@ model MarketplaceShipment {
   order MarketplaceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([trackingNumber])
+  @@index([carrierCode])
 }
 
 model MarketplaceRefund {

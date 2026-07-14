@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { MarketplaceOrderStatus } from "@prisma/client";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { createNotification } from "@/lib/notifications";
@@ -61,5 +62,76 @@ export async function resolveMarketplaceDispute(
 
   revalidatePath("/admin/market");
   revalidatePath(`/market/orders/${dispute.orderId}`);
+  return { success: true };
+}
+
+/** 관리자: 주문 배송 상태 강제 변경 */
+export async function adminSetMarketplaceOrderStatus(
+  orderId: string,
+  status: Extract<
+    MarketplaceOrderStatus,
+    "PAID" | "PREPARING" | "SHIPPED" | "DELIVERED" | "CONFIRMED"
+  >
+) {
+  await requireAdmin({
+    action: "MARKETPLACE_ADMIN_VIEW",
+    targetType: "marketplace_order",
+    targetId: orderId,
+  });
+
+  const order = await db.marketplaceOrder.findUnique({ where: { id: orderId } });
+  if (!order) return { error: "주문을 찾을 수 없습니다." };
+
+  await db.marketplaceOrder.update({
+    where: { id: orderId },
+    data: {
+      status,
+      confirmedAt: status === "CONFIRMED" ? new Date() : order.confirmedAt,
+      autoConfirmAt:
+        status === "DELIVERED"
+          ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+          : order.autoConfirmAt,
+    },
+  });
+
+  const shipStatus =
+    status === "PREPARING"
+      ? "PREPARING"
+      : status === "SHIPPED"
+        ? "IN_TRANSIT"
+        : status === "DELIVERED" || status === "CONFIRMED"
+          ? "DELIVERED"
+          : "PREPARING";
+
+  if (status !== "PAID") {
+    await db.marketplaceShipment.upsert({
+      where: { orderId },
+      create: { orderId, status: shipStatus },
+      update: {
+        status: shipStatus,
+        ...(status === "DELIVERED" || status === "CONFIRMED"
+          ? { deliveredAt: new Date() }
+          : {}),
+      },
+    });
+  }
+
+  await createNotification({
+    userId: order.buyerId,
+    type: "SYSTEM",
+    title: "관리자가 주문 상태를 변경했습니다",
+    body: status,
+    link: `/market/orders/${orderId}`,
+  });
+  await createNotification({
+    userId: order.sellerId,
+    type: "SYSTEM",
+    title: "관리자가 주문 상태를 변경했습니다",
+    body: status,
+    link: `/market/orders/${orderId}`,
+  });
+
+  revalidatePath("/admin/market");
+  revalidatePath(`/market/orders/${orderId}`);
   return { success: true };
 }

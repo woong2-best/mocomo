@@ -7,11 +7,17 @@ import type { MarketplaceListingType, MarketplaceShippingFeeType } from "@prisma
 import {
   MARKETPLACE_CATEGORIES,
   MARKETPLACE_LISTING_TYPES,
-  MARKETPLACE_SHIPPING_METHODS,
 } from "@/lib/marketplace/constants";
+import {
+  listAllMarketplaceCarriers,
+  MARKETPLACE_SHIP_COUNTRIES,
+  type MarketplaceShipCountryCode,
+} from "@/lib/marketplace/shipping-config";
 import { createMarketplaceListing } from "@/actions/marketplace";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
+const PREFERRED_CARRIER_CHOICES = listAllMarketplaceCarriers();
 
 export function MarketplaceListingForm() {
   const router = useRouter();
@@ -28,7 +34,10 @@ export function MarketplaceListingForm() {
   const [mediaUrls, setMediaUrls] = useState("");
   const [productionDays, setProductionDays] = useState("14");
   const [digitalFileUrl, setDigitalFileUrl] = useState("");
-  const [shippingMethods, setShippingMethods] = useState<string[]>(["POST"]);
+  const [shipToCountries, setShipToCountries] = useState<MarketplaceShipCountryCode[]>([
+    "KR",
+  ]);
+  const [shippingMethods, setShippingMethods] = useState<string[]>(["KR_POST", "INTL_EMS"]);
   const [shippingFeeType, setShippingFeeType] = useState<MarketplaceShippingFeeType>("FIXED");
   const [shippingFeeFixed, setShippingFeeFixed] = useState("3000");
   const [optionName, setOptionName] = useState("");
@@ -52,14 +61,24 @@ export function MarketplaceListingForm() {
     setOptionValues("");
   }
 
-  function toggleShip(id: string) {
+  function toggleShipTo(code: MarketplaceShipCountryCode) {
+    setShipToCountries((prev) =>
+      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]
+    );
+  }
+
+  function toggleCarrier(id: string) {
     setShippingMethods((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id].slice(0, 8)
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id].slice(0, 12)
     );
   }
 
   function submit(publish: boolean) {
     setError("");
+    if (type !== "DIGITAL" && shipToCountries.length === 0) {
+      setError("배송 가능 국가를 1개 이상 선택해 주세요.");
+      return;
+    }
     startTransition(async () => {
       const res = await createMarketplaceListing({
         title,
@@ -74,11 +93,13 @@ export function MarketplaceListingForm() {
           .split("\n")
           .map((u) => u.trim())
           .filter(Boolean),
-        productionDays: type === "CUSTOM_ORDER" || type === "PREORDER" ? Number(productionDays) : undefined,
+        productionDays:
+          type === "CUSTOM_ORDER" || type === "PREORDER" ? Number(productionDays) : undefined,
         digitalFileUrl: type === "DIGITAL" ? digitalFileUrl.trim() || undefined : undefined,
         shippingMethods: type === "DIGITAL" ? ["DIGITAL_NONE"] : shippingMethods,
         shippingFeeType: type === "DIGITAL" ? "FREE" : shippingFeeType,
         shippingFeeFixed: Number(shippingFeeFixed) || 0,
+        shipToCountries: type === "DIGITAL" ? [] : shipToCountries,
         options: options.length ? options : undefined,
         publish,
       });
@@ -179,6 +200,9 @@ export function MarketplaceListingForm() {
             onChange={(e) => setDigitalFileUrl(e.target.value)}
             placeholder="결제 후 제공될 파일 URL"
           />
+          <p className="text-xs text-muted-foreground">
+            디지털 상품은 배송 국가 제한 없이 판매할 수 있습니다.
+          </p>
         </section>
       )}
 
@@ -192,9 +216,6 @@ export function MarketplaceListingForm() {
           rows={3}
           className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
         />
-        <p className="text-xs text-muted-foreground">
-          업로드 API 연동 전 단계로 URL을 직접 넣을 수 있습니다. 스토리지 업로드는 다음 단계에서 연결합니다.
-        </p>
       </section>
 
       <section className="space-y-2">
@@ -228,24 +249,57 @@ export function MarketplaceListingForm() {
       </section>
 
       {type !== "DIGITAL" && (
-        <section className="space-y-3">
-          <h2 className="text-sm font-semibold">배송</h2>
-          <div className="flex flex-wrap gap-2">
-            {MARKETPLACE_SHIPPING_METHODS.filter((m) => m.id !== "DIGITAL_NONE").map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => toggleShip(m.id)}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium border ${
-                  shippingMethods.includes(m.id)
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "border-border text-muted-foreground"
-                }`}
-              >
-                {m.label}
-              </button>
-            ))}
+        <section className="space-y-4">
+          <div className="space-y-2">
+            <h2 className="text-sm font-semibold">배송 가능 국가</h2>
+            <p className="text-xs text-muted-foreground">
+              현재 KR / US / JP / CN 만 지원합니다. 복수 선택 가능합니다.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {MARKETPLACE_SHIP_COUNTRIES.map((c) => {
+                const checked = shipToCountries.includes(c.code);
+                return (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => toggleShipTo(c.code)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium border ${
+                      checked
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "border-border text-muted-foreground"
+                    }`}
+                  >
+                    {checked ? "☑ " : "☐ "}
+                    {c.labelKo}
+                  </button>
+                );
+              })}
+            </div>
           </div>
+
+          <div className="space-y-2">
+            <h2 className="text-sm font-semibold">주로 이용하는 배송사</h2>
+            <p className="text-xs text-muted-foreground">
+              발송 시 선택합니다. 국제 배송(EMS/DHL 등) 포함. MoCoMo는 배송을 대행하지 않습니다.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {PREFERRED_CARRIER_CHOICES.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => toggleCarrier(m.id)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium border ${
+                    shippingMethods.includes(m.id)
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border text-muted-foreground"
+                  }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="grid gap-3 sm:grid-cols-2">
             <select
               className="rounded-xl border border-border bg-background px-3 py-2 text-sm"

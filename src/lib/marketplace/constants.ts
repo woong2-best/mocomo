@@ -26,6 +26,7 @@ export const MARKETPLACE_CATEGORIES = [
   "기타",
 ] as const;
 
+/** @deprecated Prefer shipping-config carriers (KR_POST, US_USPS, INTL_EMS, etc). Kept for legacy reads. */
 export const MARKETPLACE_SHIPPING_METHODS = [
   { id: "EMS", label: "EMS" },
   { id: "FEDEX", label: "FedEx" },
@@ -36,6 +37,12 @@ export const MARKETPLACE_SHIPPING_METHODS = [
   { id: "FREE", label: "무료배송" },
   { id: "DIGITAL_NONE", label: "배송 없음(디지털)" },
 ] as const;
+
+export {
+  MARKETPLACE_SHIP_COUNTRIES,
+  MARKETPLACE_DOMESTIC_CARRIERS,
+  MARKETPLACE_INTERNATIONAL_CARRIERS,
+} from "./shipping-config";
 
 export const AUTO_CONFIRM_DAYS_AFTER_DELIVERY = 7;
 

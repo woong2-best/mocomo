@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   cancelMarketplaceOrder,
@@ -8,20 +8,28 @@ import {
   openMarketplaceDispute,
   requestMarketplaceRefund,
   sellerRespondMarketplaceRefund,
+  sellerSetOrderStatus,
   sellerUpdateShipment,
   submitMarketplaceReview,
 } from "@/actions/marketplace-checkout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getCarriersForShipment } from "@/lib/marketplace/shipping-config";
 
 type OrderDetail = NonNullable<
   Awaited<ReturnType<typeof import("@/actions/marketplace-checkout").getMarketplaceOrderDetail>>
 >;
 
 export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
+  const carriers = useMemo(
+    () => getCarriersForShipment({ destCountry: order.shipCountry }),
+    [order.shipCountry]
+  );
   const [pending, startTransition] = useTransition();
-  const [carrier, setCarrier] = useState("EMS");
-  const [tracking, setTracking] = useState("");
+  const [carrierCode, setCarrierCode] = useState(
+    () => order.shipment?.carrierCode ?? carriers[0]?.id ?? "INTL_EMS"
+  );
+  const [tracking, setTracking] = useState(order.shipment?.trackingNumber ?? "");
   const [reason, setReason] = useState("");
   const [rating, setRating] = useState(5);
   const [reviewBody, setReviewBody] = useState("");
@@ -41,10 +49,59 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
     <div className="space-y-4">
       {msg && <p className="text-sm text-muted-foreground">{msg}</p>}
 
-      {order.isSeller && ["PAID", "PREPARING", "SHIPPED"].includes(order.status) && (
+      {order.isSeller && ["PAID", "PREPARING", "SHIPPED", "DELIVERED"].includes(order.status) && (
         <section className="rounded-xl border border-border/60 p-3 space-y-2">
           <p className="text-sm font-semibold">배송 처리</p>
-          <Input value={carrier} onChange={(e) => setCarrier(e.target.value)} placeholder="배송사" />
+          <p className="text-[11px] text-muted-foreground">
+            MoCoMo는 배송을 대행하지 않습니다. 배송사·송장만 기록합니다.
+          </p>
+
+          <div className="flex flex-wrap gap-2">
+            {order.status === "PAID" && (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={pending}
+                onClick={() => run(() => sellerSetOrderStatus(order.id, "PREPARING"))}
+              >
+                상품 준비 중
+              </Button>
+            )}
+            {(order.status === "SHIPPED" || order.status === "PREPARING") && (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={pending}
+                onClick={() =>
+                  run(() =>
+                    sellerUpdateShipment({
+                      orderId: order.id,
+                      carrierCode,
+                      trackingNumber: tracking,
+                      status: "IN_TRANSIT",
+                    })
+                  )
+                }
+              >
+                배송 중
+              </Button>
+            )}
+          </div>
+
+          <select
+            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+            value={carrierCode}
+            onChange={(e) => setCarrierCode(e.target.value)}
+          >
+            {carriers.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+                {c.country ? ` (${c.country})` : " (국제)"}
+              </option>
+            ))}
+          </select>
           <Input
             value={tracking}
             onChange={(e) => setTracking(e.target.value)}
@@ -54,19 +111,19 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
             <Button
               type="button"
               size="sm"
-              disabled={pending}
+              disabled={pending || !tracking.trim()}
               onClick={() =>
                 run(() =>
                   sellerUpdateShipment({
                     orderId: order.id,
-                    carrier,
+                    carrierCode,
                     trackingNumber: tracking,
                     status: "SHIPPED",
                   })
                 )
               }
             >
-              발송
+              발송 완료
             </Button>
             <Button
               type="button"
@@ -77,14 +134,14 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
                 run(() =>
                   sellerUpdateShipment({
                     orderId: order.id,
-                    carrier,
-                    trackingNumber: tracking,
+                    carrierCode,
+                    trackingNumber: tracking || order.shipment?.trackingNumber || "N/A",
                     status: "DELIVERED",
                   })
                 )
               }
             >
-              배송완료
+              배송 완료
             </Button>
           </div>
         </section>
