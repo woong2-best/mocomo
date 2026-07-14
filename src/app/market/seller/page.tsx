@@ -41,7 +41,7 @@ export default async function MarketSellerPage({
         <div className="space-y-1 mb-4">
           <h1 className="text-2xl font-bold">???</h1>
           <p className="text-sm text-muted-foreground">
-            ??? ??? · Stripe Connect ?? · ? ??
+            ??? ???  /  Stripe Connect ??  /  ? ??
           </p>
         </div>
       </MarketPageTitle>
@@ -50,14 +50,14 @@ export default async function MarketSellerPage({
         <section className="rounded-2xl border border-border/60 p-4 space-y-2 mb-6">
           <p className="font-semibold">{profile.displayName}</p>
           <p className="text-xs text-muted-foreground">
-            ?? {profile.status} · ?? {profile.salesCount} · ??{" "}
+            ?? {profile.status}  /  ?? {profile.salesCount}  /  ??{" "}
             {profile.ratingAvg > 0 ? profile.ratingAvg.toFixed(1) : "-"}
           </p>
           {profile.bio && <p className="text-sm whitespace-pre-wrap">{profile.bio}</p>}
           <p className="text-xs text-muted-foreground">{connectStatus.message}</p>
           {profile.user.stripeConnectOnboardedAt && (
             <p className="text-xs text-emerald-600">
-              Connect ??? ?? ·{" "}
+              Connect ??? ??  / {" "}
               {profile.user.stripeConnectOnboardedAt.toISOString().slice(0, 10)}
             </p>
           )}
@@ -65,7 +65,7 @@ export default async function MarketSellerPage({
       )}
 
       <section className="mb-8">
-        <h2 className="text-sm font-semibold mb-3">??? ?? · ?? ??</h2>
+        <h2 className="text-sm font-semibold mb-3">??? ??  /  ?? ??</h2>
         <MarketplaceSellerApplyForm
           initialName={
             profile?.displayName ?? session.user.name ?? session.user.username ?? ""
@@ -101,7 +101,7 @@ export default async function MarketSellerPage({
                     {l.title}
                   </Link>
                   <p className="text-xs text-muted-foreground">
-                    {listingTypeLabel(l.type)} · {l.status} · {l.priceAmount.toLocaleString()}? ·
+                    {listingTypeLabel(l.type)}  /  {l.status}  /  {l.priceAmount.toLocaleString()}?  / 
                     ?? {l.stock}
                   </p>
                 </div>
