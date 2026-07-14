@@ -9,7 +9,9 @@ export type SiteAdminAuditAction =
   | "MODERATION_ACTION"
   | "PAYOUT_PROCESS"
   | "ECONOMY_MUTATION"
-  | "OPERATOR_BOOTSTRAP";
+  | "OPERATOR_BOOTSTRAP"
+  | "MARKETPLACE_ADMIN_VIEW"
+  | "MARKETPLACE_DISPUTE_RESOLVE";
 
 export async function logSiteAdminAudit(input: {
   actorId: string;

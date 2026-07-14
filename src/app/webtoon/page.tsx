@@ -21,9 +21,13 @@ export default async function WebtoonHomePage({
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold">일러스트 마켓</h1>
+          <h1 className="text-xl font-bold">일러스트 작품</h1>
           <p className="text-xs text-muted-foreground mt-1">
-            작가가 그린 그림을 작품 단위로 구매·열람합니다. (픽시브 스타일)
+            픽시브형 열람·구매. 실물·주문제작·디지털 마켓은{" "}
+            <a href="/market" className="text-primary hover:underline">
+              MARKET
+            </a>
+            을 이용하세요.
           </p>
         </div>
         <Suspense fallback={<div className="h-9 w-40 rounded-lg bg-muted/50 animate-pulse" />}>

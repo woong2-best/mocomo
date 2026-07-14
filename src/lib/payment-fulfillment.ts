@@ -383,6 +383,21 @@ export async function fulfillPaymentIntent(
     revalidateAptHub();
   }
 
+  if (intent.type === "MARKETPLACE") {
+    const marketplaceOrderId = String(meta.marketplaceOrderId ?? "");
+    const { fulfillMarketplaceOrder } = await import("@/lib/marketplace/fulfillment");
+    const r = await fulfillMarketplaceOrder({
+      marketplaceOrderId,
+      paymentIntentDbId: intent.id,
+      paymentRef,
+      amount,
+    });
+    if ("error" in r && r.error) return { ok: false, error: r.error };
+    revalidatePath("/market");
+    revalidatePath("/market/orders");
+    revalidatePath(`/market/orders/${marketplaceOrderId}`);
+  }
+
   await db.paymentIntent.update({
     where: { id: orderId },
     data: { status: "PAID", paymentKey: paymentRef, paidAt: new Date() },

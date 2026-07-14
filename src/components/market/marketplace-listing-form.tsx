@@ -1,0 +1,287 @@
+"use client";
+
+import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import type { MarketplaceListingType, MarketplaceShippingFeeType } from "@prisma/client";
+import {
+  MARKETPLACE_CATEGORIES,
+  MARKETPLACE_LISTING_TYPES,
+  MARKETPLACE_SHIPPING_METHODS,
+} from "@/lib/marketplace/constants";
+import { createMarketplaceListing } from "@/actions/marketplace";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+export function MarketplaceListingForm() {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState("");
+  const [type, setType] = useState<MarketplaceListingType>("PHYSICAL");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState<string>(MARKETPLACE_CATEGORIES[0]);
+  const [tags, setTags] = useState("");
+  const [priceAmount, setPriceAmount] = useState("10000");
+  const [stock, setStock] = useState("1");
+  const [coverUrl, setCoverUrl] = useState("");
+  const [mediaUrls, setMediaUrls] = useState("");
+  const [productionDays, setProductionDays] = useState("14");
+  const [digitalFileUrl, setDigitalFileUrl] = useState("");
+  const [shippingMethods, setShippingMethods] = useState<string[]>(["POST"]);
+  const [shippingFeeType, setShippingFeeType] = useState<MarketplaceShippingFeeType>("FIXED");
+  const [shippingFeeFixed, setShippingFeeFixed] = useState("3000");
+  const [optionName, setOptionName] = useState("");
+  const [optionValues, setOptionValues] = useState("");
+  const [options, setOptions] = useState<{ name: string; values: string[] }[]>([]);
+
+  const typeMeta = useMemo(
+    () => MARKETPLACE_LISTING_TYPES.find((t) => t.id === type),
+    [type]
+  );
+
+  function addOption() {
+    const name = optionName.trim();
+    const values = optionValues
+      .split(/[,/\n]/)
+      .map((v) => v.trim())
+      .filter(Boolean);
+    if (!name || values.length === 0) return;
+    setOptions((prev) => [...prev, { name, values }].slice(0, 8));
+    setOptionName("");
+    setOptionValues("");
+  }
+
+  function toggleShip(id: string) {
+    setShippingMethods((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id].slice(0, 8)
+    );
+  }
+
+  function submit(publish: boolean) {
+    setError("");
+    startTransition(async () => {
+      const res = await createMarketplaceListing({
+        title,
+        description,
+        type,
+        category,
+        tags: tags.split(/[,\s]+/).map((t) => t.trim()).filter(Boolean),
+        priceAmount: Number(priceAmount),
+        stock: Number(stock),
+        coverUrl: coverUrl.trim() || undefined,
+        mediaUrls: mediaUrls
+          .split("\n")
+          .map((u) => u.trim())
+          .filter(Boolean),
+        productionDays: type === "CUSTOM_ORDER" || type === "PREORDER" ? Number(productionDays) : undefined,
+        digitalFileUrl: type === "DIGITAL" ? digitalFileUrl.trim() || undefined : undefined,
+        shippingMethods: type === "DIGITAL" ? ["DIGITAL_NONE"] : shippingMethods,
+        shippingFeeType: type === "DIGITAL" ? "FREE" : shippingFeeType,
+        shippingFeeFixed: Number(shippingFeeFixed) || 0,
+        options: options.length ? options : undefined,
+        publish,
+      });
+      if ("error" in res && res.error) {
+        setError(res.error);
+        return;
+      }
+      if ("listingId" in res) {
+        router.push(`/market/i/${res.listingId}`);
+        router.refresh();
+      }
+    });
+  }
+
+  return (
+    <div className="space-y-6">
+      <section className="space-y-2">
+        <h2 className="text-sm font-semibold">판매 종류</h2>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {MARKETPLACE_LISTING_TYPES.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setType(t.id)}
+              className={`rounded-xl border p-3 text-left transition-colors ${
+                type === t.id ? "border-primary bg-primary/5" : "border-border/60 hover:bg-muted/40"
+              }`}
+            >
+              <p className="font-semibold text-sm">{t.label}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{t.description}</p>
+            </button>
+          ))}
+        </div>
+        {typeMeta && (
+          <p className="text-xs text-muted-foreground">{typeMeta.description}</p>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목" maxLength={120} />
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="설명"
+          rows={6}
+          className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <select
+            className="rounded-xl border border-border bg-background px-3 py-2 text-sm"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          >
+            {MARKETPLACE_CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="태그 (쉼표 구분)" />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Input
+            type="number"
+            min={0}
+            value={priceAmount}
+            onChange={(e) => setPriceAmount(e.target.value)}
+            placeholder="가격 (원)"
+          />
+          <Input
+            type="number"
+            min={0}
+            value={stock}
+            onChange={(e) => setStock(e.target.value)}
+            placeholder="재고"
+            disabled={type === "DIGITAL"}
+          />
+        </div>
+      </section>
+
+      {(type === "CUSTOM_ORDER" || type === "PREORDER") && (
+        <section className="space-y-2">
+          <label className="text-sm font-semibold">제작기간 (일)</label>
+          <Input
+            type="number"
+            min={1}
+            value={productionDays}
+            onChange={(e) => setProductionDays(e.target.value)}
+          />
+        </section>
+      )}
+
+      {type === "DIGITAL" && (
+        <section className="space-y-2">
+          <label className="text-sm font-semibold">디지털 파일 URL</label>
+          <Input
+            value={digitalFileUrl}
+            onChange={(e) => setDigitalFileUrl(e.target.value)}
+            placeholder="결제 후 제공될 파일 URL"
+          />
+        </section>
+      )}
+
+      <section className="space-y-2">
+        <label className="text-sm font-semibold">커버·미디어 URL</label>
+        <Input value={coverUrl} onChange={(e) => setCoverUrl(e.target.value)} placeholder="커버 이미지 URL" />
+        <textarea
+          value={mediaUrls}
+          onChange={(e) => setMediaUrls(e.target.value)}
+          placeholder={"추가 사진/영상 URL (줄바꿈)"}
+          rows={3}
+          className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+        />
+        <p className="text-xs text-muted-foreground">
+          업로드 API 연동 전 단계로 URL을 직접 넣을 수 있습니다. 스토리지 업로드는 다음 단계에서 연결합니다.
+        </p>
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-sm font-semibold">옵션</h2>
+        <div className="flex flex-wrap gap-2">
+          <Input
+            value={optionName}
+            onChange={(e) => setOptionName(e.target.value)}
+            placeholder="옵션명 (예: 색상)"
+            className="max-w-[140px]"
+          />
+          <Input
+            value={optionValues}
+            onChange={(e) => setOptionValues(e.target.value)}
+            placeholder="값 (예: 빨강, 파랑)"
+            className="min-w-[180px] flex-1"
+          />
+          <Button type="button" variant="secondary" onClick={addOption}>
+            추가
+          </Button>
+        </div>
+        {options.length > 0 && (
+          <ul className="text-sm space-y-1">
+            {options.map((o) => (
+              <li key={o.name} className="text-muted-foreground">
+                <span className="font-medium text-foreground">{o.name}</span>: {o.values.join(", ")}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {type !== "DIGITAL" && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold">배송</h2>
+          <div className="flex flex-wrap gap-2">
+            {MARKETPLACE_SHIPPING_METHODS.filter((m) => m.id !== "DIGITAL_NONE").map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => toggleShip(m.id)}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium border ${
+                  shippingMethods.includes(m.id)
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "border-border text-muted-foreground"
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <select
+              className="rounded-xl border border-border bg-background px-3 py-2 text-sm"
+              value={shippingFeeType}
+              onChange={(e) => setShippingFeeType(e.target.value as MarketplaceShippingFeeType)}
+            >
+              <option value="FREE">무료배송</option>
+              <option value="FIXED">고정 배송비</option>
+              <option value="BY_COUNTRY">국가별 (추후)</option>
+              <option value="FREE_OVER_AMOUNT">금액별 무료 (추후)</option>
+            </select>
+            <Input
+              type="number"
+              min={0}
+              value={shippingFeeFixed}
+              onChange={(e) => setShippingFeeFixed(e.target.value)}
+              placeholder="배송비 (원)"
+              disabled={shippingFeeType === "FREE"}
+            />
+          </div>
+        </section>
+      )}
+
+      {error && <p className="text-sm text-destructive">{error}</p>}
+
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" disabled={pending} onClick={() => submit(true)}>
+          {pending ? "등록 중…" : "판매 등록"}
+        </Button>
+        <Button type="button" variant="secondary" disabled={pending} onClick={() => submit(false)}>
+          임시저장
+        </Button>
+        <Button type="button" variant="ghost" asChild>
+          <Link href="/market">취소</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}

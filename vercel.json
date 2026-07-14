@@ -29,6 +29,10 @@
     {
       "path": "/api/cron/risk-decay",
       "schedule": "0 19 * * *"
+    },
+    {
+      "path": "/api/cron/market-auto-confirm",
+      "schedule": "0 20 * * *"
     }
   ],
   "functions": {
@@ -54,6 +58,9 @@
       "maxDuration": 120
     },
     "src/app/api/cron/risk-decay/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/market-auto-confirm/route.ts": {
       "maxDuration": 60
     },
     "src/app/api/studio/upload/route.ts": {

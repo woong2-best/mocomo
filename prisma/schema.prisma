@@ -227,6 +227,13 @@ model User {
   physicalProducts PhysicalProduct[]
   physicalOrdersBought PhysicalOrder[] @relation("PhysicalOrderBuyer")
   physicalOrdersSold PhysicalOrder[] @relation("PhysicalOrderSeller")
+  marketplaceSeller      MarketplaceSellerProfile?
+  marketplaceListings    MarketplaceListing[] @relation("MarketplaceSeller")
+  marketplaceOrdersBought MarketplaceOrder[] @relation("MarketplaceBuyer")
+  marketplaceOrdersSold   MarketplaceOrder[] @relation("MarketplaceOrderSeller")
+  marketplaceFavorites    MarketplaceFavorite[]
+  marketplaceReviews      MarketplaceReview[] @relation("MarketplaceReviewAuthor")
+  marketplaceDisputesOpened MarketplaceDispute[] @relation("MarketplaceDisputeOpener")
   usedListings     UsedListing[]
   usedFavorites    UsedFavorite[]
   usedListingChats UsedListingChat[] @relation("UsedListingChatBuyer")
@@ -1583,6 +1590,7 @@ enum PaymentIntentType {
   POST_MEDIA
   CREATOR_SUBSCRIPTION
   STUDIO_ASSET
+  MARKETPLACE
 }
 
 enum EventPublishStatus {
@@ -4072,4 +4080,320 @@ model StudioSettlementEvent {
 
   @@index([studioAssetId, createdAt])
   @@index([userId])
+}
+
+// ============ MARKETPLACE (Etsy/Mercari-style global market) ============
+
+enum MarketplaceSellerStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+  REJECTED
+}
+
+enum MarketplaceListingType {
+  PHYSICAL
+  CUSTOM_ORDER
+  DIGITAL
+  PREORDER
+}
+
+enum MarketplaceListingStatus {
+  DRAFT
+  ACTIVE
+  SOLD_OUT
+  PAUSED
+  REMOVED
+}
+
+enum MarketplaceShippingFeeType {
+  FREE
+  FIXED
+  BY_COUNTRY
+  BY_WEIGHT
+  FREE_OVER_AMOUNT
+}
+
+enum MarketplaceOrderStatus {
+  AWAITING_PAYMENT
+  PAID
+  PREPARING
+  SHIPPED
+  DELIVERED
+  CONFIRMED
+  CANCELLED
+  REFUND_REQUESTED
+  REFUNDED
+  DISPUTED
+}
+
+enum MarketplaceShipmentStatus {
+  PREPARING
+  SHIPPED
+  IN_CUSTOMS
+  IN_TRANSIT
+  DELIVERED
+}
+
+enum MarketplaceRefundStatus {
+  REQUESTED
+  SELLER_REVIEW
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+enum MarketplaceDisputeStatus {
+  OPEN
+  EVIDENCE
+  REVIEWING
+  RESOLVED_BUYER
+  RESOLVED_SELLER
+  CLOSED
+}
+
+model MarketplaceSellerProfile {
+  id              String                   @id @default(cuid())
+  userId          String                   @unique
+  displayName     String
+  bio             String?                  @db.Text
+  snsLinks        Json?
+  status          MarketplaceSellerStatus  @default(PENDING)
+  ratingAvg       Float                    @default(0)
+  ratingCount     Int                      @default(0)
+  salesCount      Int                      @default(0)
+  followerCount   Int                      @default(0)
+  responseRate    Float?
+  avgShipDays     Float?
+  returnCountry   String?
+  returnPostal    String?
+  returnAddress1  String?
+  returnAddress2  String?
+  returnPhone     String?
+  applyReason     String?                  @db.Text
+  reviewedAt      DateTime?
+  reviewedById    String?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  user     User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listings MarketplaceListing[]
+  orders   MarketplaceOrder[]   @relation("MarketplaceSellerOrders")
+
+  @@index([status, createdAt])
+}
+
+model MarketplaceListing {
+  id                 String                     @id @default(cuid())
+  sellerId           String
+  sellerProfileId    String?
+  title              String
+  description        String                     @db.Text
+  type               MarketplaceListingType
+  category           String
+  tags               String[]
+  priceAmount        Int
+  currency           String                     @default("krw")
+  stock              Int                        @default(1)
+  options            Json?
+  status             MarketplaceListingStatus   @default(DRAFT)
+  coverUrl           String?
+  productionDays     Int?
+  digitalFileUrl     String?
+  digitalDownloadLimit Int?
+  digitalExpiresDays Int?
+  shipsWorldwide     Boolean                    @default(true)
+  shippingMethods    String[]
+  shippingFeeType    MarketplaceShippingFeeType @default(FIXED)
+  shippingFeeFixed   Int                        @default(0)
+  freeShippingOver   Int?
+  viewCount          Int                        @default(0)
+  favoriteCount      Int                        @default(0)
+  salesCount         Int                        @default(0)
+  publishedAt        DateTime?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+
+  seller        User                      @relation("MarketplaceSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  sellerProfile MarketplaceSellerProfile? @relation(fields: [sellerProfileId], references: [id], onDelete: SetNull)
+  media         MarketplaceListingMedia[]
+  favorites     MarketplaceFavorite[]
+  orderItems    MarketplaceOrderItem[]
+  reviews       MarketplaceReview[]
+
+  @@index([status, type, createdAt])
+  @@index([sellerId, status])
+  @@index([category, status])
+  @@index([priceAmount])
+}
+
+model MarketplaceListingMedia {
+  id         String   @id @default(cuid())
+  listingId  String
+  url        String
+  type       String   @default("IMAGE")
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  listing MarketplaceListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, sortOrder])
+}
+
+model MarketplaceFavorite {
+  id        String   @id @default(cuid())
+  userId    String
+  listingId String
+  createdAt DateTime @default(now())
+
+  user    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing MarketplaceListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+  @@index([listingId])
+}
+
+model MarketplaceOrder {
+  id                 String                 @id @default(cuid())
+  buyerId            String
+  sellerId           String
+  sellerProfileId    String?
+  status             MarketplaceOrderStatus @default(AWAITING_PAYMENT)
+  subtotalAmount     Int
+  shippingAmount     Int                    @default(0)
+  platformFeeAmount  Int                    @default(0)
+  sellerEarnAmount   Int                    @default(0)
+  currency           String                 @default("krw")
+  stripePaymentIntentId String?
+  stripeCheckoutSessionId String?
+  autoConfirmAt      DateTime?
+  confirmedAt        DateTime?
+  cancelledAt        DateTime?
+  shipName           String?
+  shipCountry        String?
+  shipPostal         String?
+  shipAddress1       String?
+  shipAddress2       String?
+  shipPhone          String?
+  buyerNote          String?                @db.Text
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  buyer         User                     @relation("MarketplaceBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  seller        User                     @relation("MarketplaceOrderSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  sellerProfile MarketplaceSellerProfile? @relation("MarketplaceSellerOrders", fields: [sellerProfileId], references: [id], onDelete: SetNull)
+  items         MarketplaceOrderItem[]
+  shipment      MarketplaceShipment?
+  refunds       MarketplaceRefund[]
+  disputes      MarketplaceDispute[]
+  review        MarketplaceReview?
+
+  @@index([buyerId, createdAt])
+  @@index([sellerId, status, createdAt])
+  @@index([status, autoConfirmAt])
+}
+
+model MarketplaceOrderItem {
+  id              String   @id @default(cuid())
+  orderId         String
+  listingId       String
+  titleSnapshot   String
+  optionSnapshot  Json?
+  unitPrice       Int
+  quantity        Int      @default(1)
+  listingType     MarketplaceListingType
+
+  order   MarketplaceOrder   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  listing MarketplaceListing @relation(fields: [listingId], references: [id], onDelete: Restrict)
+
+  @@index([listingId])
+  @@index([orderId])
+}
+
+model MarketplaceShipment {
+  id             String                   @id @default(cuid())
+  orderId        String                   @unique
+  carrier        String?
+  trackingNumber String?
+  status         MarketplaceShipmentStatus @default(PREPARING)
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  order MarketplaceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([trackingNumber])
+}
+
+model MarketplaceRefund {
+  id          String                  @id @default(cuid())
+  orderId     String
+  requesterId String
+  reason      String                  @db.Text
+  status      MarketplaceRefundStatus @default(REQUESTED)
+  amount      Int
+  stripeRefundId String?
+  decidedAt   DateTime?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  order MarketplaceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, status])
+}
+
+model MarketplaceDispute {
+  id          String                   @id @default(cuid())
+  orderId     String
+  openerId    String
+  reason      String
+  evidence    Json?
+  status      MarketplaceDisputeStatus @default(OPEN)
+  resolution  String?                  @db.Text
+  resolvedAt  DateTime?
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+
+  order  MarketplaceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  opener User             @relation("MarketplaceDisputeOpener", fields: [openerId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, status])
+  @@index([status, createdAt])
+}
+
+model MarketplaceReview {
+  id        String   @id @default(cuid())
+  orderId   String   @unique
+  listingId String
+  authorId  String
+  rating    Int
+  body      String?  @db.Text
+  mediaUrls String[]
+  createdAt DateTime @default(now())
+
+  order   MarketplaceOrder   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  listing MarketplaceListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  author  User               @relation("MarketplaceReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, createdAt])
+  @@index([authorId])
+}
+
+model MarketplaceDigitalDownload {
+  id              String    @id @default(cuid())
+  orderId         String
+  orderItemId     String    @unique
+  listingId       String
+  buyerId         String
+  fileUrl         String
+  downloadToken   String    @unique @default(cuid())
+  downloadCount   Int       @default(0)
+  maxDownloads    Int       @default(5)
+  expiresAt       DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([buyerId, createdAt])
+  @@index([orderId])
+  @@index([downloadToken])
 }

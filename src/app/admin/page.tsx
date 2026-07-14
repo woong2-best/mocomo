@@ -46,6 +46,12 @@ export default async function AdminPage() {
     >
       <div className="flex flex-wrap gap-2">
         <Button variant="secondary" asChild className="w-full sm:w-auto">
+          <Link href="/admin/market" className="flex items-center gap-2">
+            <Gavel className="h-4 w-4" />
+            MARKET 정산 · 분쟁
+          </Link>
+        </Button>
+        <Button variant="secondary" asChild className="w-full sm:w-auto">
           <Link href="/admin/moderation" className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" />
             위험도 · 검토 대기열

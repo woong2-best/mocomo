@@ -1,16 +1,19 @@
 import { Suspense } from "react";
-import { MarketHomeAsync } from "@/components/market/market-home-async";
-import { MarketPageChrome } from "@/components/market/market-page-chrome";
+import { MarketplaceHomeAsync } from "@/components/market/marketplace-home-async";
 import { MarketGridSkeleton } from "@/components/ui/content-skeletons";
 
-export const revalidate = 120;
+export const dynamic = "force-dynamic";
 
-export default function MarketHomePage() {
+export default async function MarketHomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ type?: string; q?: string }>;
+}) {
+  const { type, q } = await searchParams;
+
   return (
-    <MarketPageChrome>
-      <Suspense fallback={<MarketGridSkeleton />}>
-        <MarketHomeAsync />
-      </Suspense>
-    </MarketPageChrome>
+    <Suspense fallback={<MarketGridSkeleton />}>
+      <MarketplaceHomeAsync type={type} q={q} />
+    </Suspense>
   );
 }

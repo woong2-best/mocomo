@@ -5,13 +5,13 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const tabs = [
-  { href: "/market", label: "홈", match: (p: string) => p === "/market" },
-  { href: "/market/emoticons", label: "이모티콘", match: (p: string) => p.startsWith("/market/emoticons") },
-  { href: "/market/goods", label: "굿즈", match: (p: string) => p.startsWith("/market/goods") },
-  { href: "/market/storage", label: "마이 스토리지", match: (p: string) => p === "/market/storage" },
-  { href: "/market/received", label: "받은 선물", match: (p: string) => p === "/market/received" },
-  { href: "/market/sell", label: "굿즈 판매", match: (p: string) => p.startsWith("/market/sell") },
+  { href: "/market", label: "MARKET", match: (p: string) => p === "/market" },
   { href: "/market/orders", label: "주문", match: (p: string) => p.startsWith("/market/orders") },
+  { href: "/market/seller", label: "판매자", match: (p: string) => p.startsWith("/market/seller") },
+  { href: "/market/sell-item", label: "판매 등록", match: (p: string) => p.startsWith("/market/sell-item") },
+  { href: "/market/emoticons", label: "이모티콘", match: (p: string) => p.startsWith("/market/emoticons") },
+  { href: "/webtoon", label: "일러스트", match: (p: string) => p.startsWith("/webtoon") },
+  { href: "/used", label: "중고", match: (p: string) => p.startsWith("/used") },
 ];
 
 export function MarketNav() {
