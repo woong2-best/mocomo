@@ -15,6 +15,7 @@ import {
   fulfillListingFee,
   fulfillPhysicalGoodsPayment,
 } from "@/actions/goods-shop";
+import { fulfillFlowerPurchase } from "@/lib/flower/service";
 import { fulfillCreatorEpisodePurchase } from "@/actions/creator-works";
 import { fulfillPostMediaPurchase } from "@/actions/post-media-purchase";
 import { fulfillCreatorSubscriptionPurchase } from "@/actions/creator-subscription-purchase";
@@ -252,6 +253,22 @@ export async function fulfillPaymentIntent(
       paymentIntentId: intent.id,
       memo: "???? ?? (??? ??)",
     });
+    revalidatePath("/support");
+  }
+
+  if (intent.type === "FLOWER") {
+    const flowerTypeId = String(meta.flowerTypeId ?? "");
+    const quantity = Math.max(1, Math.min(20, Number(meta.quantity) || 1));
+    const r = await fulfillFlowerPurchase({
+      buyerId: userId,
+      flowerTypeId,
+      quantity,
+      paymentIntentId: intent.id,
+      amountPaid: amount,
+    });
+    if ("error" in r && r.error) return { ok: false, error: r.error };
+    // Platform already received Stripe funds; inventory issued. Redeem fee captured later.
+    revalidatePath("/flowers");
     revalidatePath("/support");
   }
 

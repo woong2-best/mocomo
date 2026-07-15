@@ -32,6 +32,7 @@ export default async function PaymentSuccessPage({
     PRODUCT: "상품 구매",
     PREMIUM: "프리미엄 구독",
     EMOTICON: "이모티콘 구매",
+    FLOWER: "Flower Gift 구매",
     LISTING_FEE: "굿즈 등록비",
     PHYSICAL_GOODS: "굿즈 주문",
     EVENT_REGISTRATION: "이벤트 등록",

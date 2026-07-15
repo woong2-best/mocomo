@@ -234,6 +234,12 @@ model User {
   marketplaceFavorites    MarketplaceFavorite[]
   marketplaceReviews      MarketplaceReview[] @relation("MarketplaceReviewAuthor")
   marketplaceDisputesOpened MarketplaceDispute[] @relation("MarketplaceDisputeOpener")
+  flowerAssetsOwned   FlowerAsset[]     @relation("FlowerAssetOwner")
+  flowerPurchases     FlowerPurchase[]  @relation("FlowerPurchaseBuyer")
+  flowerTransfersSent FlowerTransfer[]  @relation("FlowerTransferFrom")
+  flowerTransfersRecv FlowerTransfer[]  @relation("FlowerTransferTo")
+  flowerLedgerEntries FlowerLedgerEntry[]
+  flowerRedeems       FlowerRedeemRequest[]
   usedListings     UsedListing[]
   usedFavorites    UsedFavorite[]
   usedListingChats UsedListingChat[] @relation("UsedListingChatBuyer")
@@ -1591,6 +1597,7 @@ enum PaymentIntentType {
   CREATOR_SUBSCRIPTION
   STUDIO_ASSET
   MARKETPLACE
+  FLOWER
 }
 
 enum EventPublishStatus {
@@ -4538,4 +4545,207 @@ model MarketplaceReport {
   @@index([listingId, status])
   @@index([status, createdAt])
   @@index([reporterId, createdAt])
+}
+
+// ============ FLOWER GIFT (cash-value digital gift assets) ============
+
+enum FlowerAssetStatus {
+  HELD
+  LOCKED
+  REDEEMED
+  REVOKED
+}
+
+enum FlowerLedgerAction {
+  PURCHASE
+  MINT
+  GIFT_OUT
+  GIFT_IN
+  REDEEM_LOCK
+  REDEEM_PAID
+  REDEEM_REJECTED
+  REFUND
+  ADMIN_REVOKE
+  ADMIN_RESTORE
+}
+
+enum FlowerRedeemStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
+  CANCELLED
+}
+
+enum FlowerGiftContext {
+  LIVE
+  POST
+  COMMENT
+  MESSAGE
+  PROFILE
+  DIRECT
+  OTHER
+}
+
+/** Catalog — add new flowers without code changes */
+model FlowerType {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  nameKo         String
+  nameEn         String
+  emoji          String
+  priceKrw       Int
+  defaultMessage String   @db.Text
+  imageUrl       String?
+  animationKey   String?
+  sortOrder      Int      @default(0)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  assets     FlowerAsset[]
+  purchases  FlowerPurchase[]
+
+  @@index([active, sortOrder])
+}
+
+/** One Stripe purchase may mint one or more asset units */
+model FlowerPurchase {
+  id              String   @id @default(cuid())
+  buyerId         String
+  flowerTypeId    String
+  quantity        Int      @default(1)
+  unitPriceKrw    Int
+  totalAmountKrw  Int
+  paymentIntentId String?  @unique
+  idempotencyKey  String   @unique
+  createdAt       DateTime @default(now())
+
+  buyer      User        @relation("FlowerPurchaseBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  flowerType FlowerType  @relation(fields: [flowerTypeId], references: [id], onDelete: Restrict)
+  assets     FlowerAsset[]
+
+  @@index([buyerId, createdAt])
+}
+
+/**
+ * Individual digital gift asset — ownership moves on gift/re-gift.
+ * Balance = count/sum of HELD assets owned (ledger is the audit truth).
+ */
+model FlowerAsset {
+  id              String            @id @default(cuid())
+  flowerTypeId    String
+  ownerId         String
+  faceValueKrw    Int
+  status          FlowerAssetStatus @default(HELD)
+  purchaseId      String?
+  /** First mint purchase chain root for provenance */
+  chainRootId     String?
+  lastTransferId  String?
+  lockedAt        DateTime?
+  redeemedAt      DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  flowerType FlowerType          @relation(fields: [flowerTypeId], references: [id], onDelete: Restrict)
+  owner      User                @relation("FlowerAssetOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  purchase   FlowerPurchase?     @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+  transfers  FlowerTransfer[]
+  redeems    FlowerRedeemRequest[]
+  ledger     FlowerLedgerEntry[]
+
+  @@index([ownerId, status])
+  @@index([flowerTypeId, status])
+  @@index([chainRootId])
+  @@index([status, createdAt])
+}
+
+/** Gift / re-gift edge — linked list via previousTransferId */
+model FlowerTransfer {
+  id                 String            @id @default(cuid())
+  assetId            String
+  fromUserId         String
+  toUserId           String
+  message            String?           @db.Text
+  usedDefaultMessage Boolean           @default(false)
+  context            FlowerGiftContext @default(DIRECT)
+  contextId          String?
+  previousTransferId String?
+  idempotencyKey     String            @unique
+  createdAt          DateTime          @default(now())
+
+  asset    FlowerAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  fromUser User        @relation("FlowerTransferFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User        @relation("FlowerTransferTo", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@index([assetId, createdAt])
+  @@index([fromUserId, createdAt])
+  @@index([toUserId, createdAt])
+  @@index([context, contextId])
+}
+
+/** Append-only flower asset ledger (server-only writes) */
+model FlowerLedgerEntry {
+  id             String             @id @default(cuid())
+  userId         String
+  assetId        String?
+  action         FlowerLedgerAction
+  amountKrw      Int
+  balanceAfterKrw Int?
+  idempotencyKey String             @unique
+  referenceType  String?
+  referenceId    String?
+  metadata       Json?
+  createdAt      DateTime           @default(now())
+
+  user  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  asset FlowerAsset? @relation(fields: [assetId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([assetId, createdAt])
+  @@index([action, createdAt])
+}
+
+model FlowerRedeemRequest {
+  id              String             @id @default(cuid())
+  assetId         String
+  userId          String
+  faceValueKrw    Int
+  feeBps          Int                @default(1500)
+  feeAmountKrw    Int
+  netAmountKrw    Int
+  status          FlowerRedeemStatus @default(PENDING)
+  riskScore       Int                @default(0)
+  riskFlags       String[]
+  stripeTransferId String?
+  idempotencyKey  String             @unique
+  adminNote       String?            @db.Text
+  decidedById     String?
+  decidedAt       DateTime?
+  paidAt          DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  asset FlowerAsset @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, createdAt])
+  @@index([status, createdAt])
+  @@index([assetId])
+}
+
+model FlowerAuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  action    String
+  targetType String?
+  targetId  String?
+  detail    String?  @db.Text
+  metadata  Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([action, createdAt])
+  @@index([targetId, createdAt])
+  @@index([actorId, createdAt])
 }

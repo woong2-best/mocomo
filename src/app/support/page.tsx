@@ -28,6 +28,7 @@ const VALID_TABS = [
   "emoticons",
   "storage",
   "gifts",
+  "flowers",
 ] as const;
 
 type SupportTab = (typeof VALID_TABS)[number];
@@ -60,6 +61,7 @@ export default async function SupportPage({
     { id: "emoticons", label: "이모티콘", icon: Sparkles },
     { id: "storage", label: "보관함", icon: Archive },
     { id: "gifts", label: "받은 선물", icon: Gift },
+    { id: "flowers", label: "Flower Gift", icon: Sparkles },
     { id: "tiers", label: "등급 안내", icon: Gem },
   ] as const;
 
@@ -120,6 +122,22 @@ export default async function SupportPage({
         <Suspense fallback={<TabPanelSkeleton />}>
           <SupportGiftsPanel />
         </Suspense>
+      )}
+
+      {tab === "flowers" && (
+        <div className="rounded-2xl border border-border/60 p-6 space-y-3">
+          <p className="text-lg font-bold">Flower Gift</p>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            현금 가치가 있는 디지털 후원 꽃입니다. 구매 · 선물 · 재선물 · 환전(수수료 15%)이
+            가능하며, 모든 이동은 원장으로 추적됩니다.
+          </p>
+          <Link
+            href="/flowers"
+            className="inline-flex rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+          >
+            Flower Wallet 열기
+          </Link>
+        </div>
       )}
 
       {tab === "sent" && dashboard && (

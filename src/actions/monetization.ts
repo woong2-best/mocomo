@@ -120,6 +120,16 @@ async function validatePaymentInput(
     if (pack.price !== input.amount) return { error: "이모티콘 가격이 일치하지 않습니다." };
   }
 
+  if (input.type === "FLOWER") {
+    const flowerTypeId = input.metadata.flowerTypeId as string;
+    const quantity = Math.max(1, Math.min(20, Number(input.metadata.quantity) || 1));
+    const flower = await db.flowerType.findUnique({ where: { id: flowerTypeId } });
+    if (!flower || !flower.active) return { error: "Flower Gift를 찾을 수 없습니다." };
+    if (flower.priceKrw * quantity !== input.amount) {
+      return { error: "Flower Gift 가격이 일치하지 않습니다." };
+    }
+  }
+
   if (input.type === "LISTING_FEE") {
     if (input.amount !== LISTING_FEE_KRW) return { error: "등록비는 5,000원입니다." };
     const requestId = input.metadata.requestId as string;
@@ -351,6 +361,11 @@ export async function confirmStripeCheckout(sessionId: string) {
   if (result.type === "CREATOR_SUBSCRIPTION") {
     const meta = intent.metadata as Record<string, string | undefined>;
     redirectPath = meta.username ? `/u/${meta.username}?subscribed=1` : "/";
+  }
+
+  if (result.type === "FLOWER") {
+    redirectPath = "/flowers?tab=wallet";
+    revalidatePath("/flowers");
   }
 
   if (result.type === "STUDIO_ASSET") {
