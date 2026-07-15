@@ -169,8 +169,8 @@ export async function giftFlowerAsset(input: {
         assetId: asset.id,
         fromUserId: input.fromUserId,
         toUserId: toUser.id,
-        message: msg.slice(0, 2000),
-        usedDefaultMessage: Boolean(input.useDefaultMessage) || !input.message?.trim(),
+        message: msg.slice(0, 800),
+        usedDefaultMessage: Boolean(input.useDefaultMessage),
         context: input.context ?? "DIRECT",
         contextId: input.contextId ?? null,
         previousTransferId: asset.lastTransferId,
@@ -216,9 +216,9 @@ export async function giftFlowerAsset(input: {
   await createNotification({
     userId: toUser.id,
     type: "SYSTEM",
-    title: `${asset.flowerType.emoji} Flower Gift를 받았어요`,
+    title: `${asset.flowerType.emoji} 꽃과 편지가 도착했어요`,
     body: msg.slice(0, 120),
-    link: "/flowers",
+    link: "/flowers?tab=received",
     actorId: input.fromUserId,
   });
 

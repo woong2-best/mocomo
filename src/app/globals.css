@@ -414,6 +414,16 @@ html[data-visible-animations="off"] [data-functional-canvas] canvas {
   color: hsl(var(--foreground));
 }
 
+@keyframes flower-sway {
+  0%,
+  100% {
+    transform: rotate(-3deg) translateY(0);
+  }
+  50% {
+    transform: rotate(3deg) translateY(-4px);
+  }
+}
+
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   20% { transform: translateX(-4px); }

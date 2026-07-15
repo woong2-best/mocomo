@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { getMyFlowerWallet, listFlowerCatalog } from "@/actions/flower";
 import {
   FlowerCatalogBuy,
+  FlowerLetterCard,
   FlowerRedeemButton,
   FlowerSendForm,
 } from "@/components/flower/flower-widgets";
@@ -138,44 +139,52 @@ export default async function FlowersPage({
       )}
 
       {tab === "sent" && (
-        <ul className="space-y-2 text-sm">
+        <div className="grid gap-4 sm:grid-cols-2">
           {wallet.sent.length === 0 ? (
-            <p className="text-muted-foreground">보낸 기록이 없습니다.</p>
+            <p className="text-sm text-muted-foreground">보낸 기록이 없습니다.</p>
           ) : (
             wallet.sent.map((t) => (
-              <li key={t.id} className="rounded-xl border border-border/60 p-3">
-                <p className="font-medium">
-                  {t.asset.flowerType.emoji} → @{t.toUser.username}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t.createdAt.toISOString().slice(0, 16)} · {t.message}
-                </p>
-              </li>
+              <FlowerLetterCard
+                key={t.id}
+                emoji={t.asset.flowerType.emoji}
+                nameKo={t.asset.flowerType.nameKo}
+                faceValueKrw={t.asset.faceValueKrw}
+                letter={t.message ?? ""}
+                toLabel={`@${t.toUser.username}`}
+                fromLabel="나"
+                dateLabel={t.createdAt.toISOString().slice(0, 16).replace("T", " ")}
+              />
             ))
           )}
-        </ul>
+        </div>
       )}
 
       {tab === "received" && (
-        <ul className="space-y-2 text-sm">
+        <div className="space-y-4">
           {wallet.received.length === 0 ? (
-            <p className="text-muted-foreground">받은 기록이 없습니다.</p>
+            <p className="text-sm text-muted-foreground">받은 기록이 없습니다.</p>
           ) : (
-            wallet.received.map((t) => (
-              <li key={t.id} className="rounded-xl border border-border/60 p-3">
-                <p className="font-medium">
-                  {t.asset.flowerType.emoji} ← @{t.fromUser.username}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t.createdAt.toISOString().slice(0, 16)} · {t.message}
-                </p>
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  재선물·환전은 보관함에서 가능합니다.
-                </p>
-              </li>
-            ))
+            <>
+              <p className="text-xs text-muted-foreground">
+                꽃과 편지가 함께 도착했습니다. 재선물·환전은 보관함에서 할 수 있어요.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {wallet.received.map((t) => (
+                  <FlowerLetterCard
+                    key={t.id}
+                    emoji={t.asset.flowerType.emoji}
+                    nameKo={t.asset.flowerType.nameKo}
+                    faceValueKrw={t.asset.faceValueKrw}
+                    letter={t.message ?? ""}
+                    fromLabel={`@${t.fromUser.username}`}
+                    toLabel="나"
+                    dateLabel={t.createdAt.toISOString().slice(0, 16).replace("T", " ")}
+                  />
+                ))}
+              </div>
+            </>
           )}
-        </ul>
+        </div>
       )}
 
       {tab === "ledger" && (
