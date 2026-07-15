@@ -4,9 +4,14 @@ import {
   computeMarketplaceFees,
 } from "@/lib/marketplace/constants";
 import { createNotification } from "@/lib/notifications";
-import { creditSellerEarning, recordPlatformFee } from "@/lib/settlement";
+import { recordPlatformFee } from "@/lib/settlement";
+import { logMarketplaceAudit, MarketplaceAuditActions } from "@/lib/marketplace/audit";
+import {
+  confirmAndMaybeSettle,
+  releaseDueMarketplaceSettlementsBatch,
+} from "@/lib/marketplace/escrow";
 
-/** 결제 완료 후 주문 활성화 — 재고 원자성 포함 */
+/** 결제 완료 후 주문 활성화 — 재고 원자성. 판매자 정산은 구매확정(에스크로) 후. */
 export async function fulfillMarketplaceOrder(params: {
   marketplaceOrderId: string;
   paymentIntentDbId: string;
@@ -22,8 +27,14 @@ export async function fulfillMarketplaceOrder(params: {
     },
   });
   if (!order) return { error: "주문을 찾을 수 없습니다." };
+  if (order.status !== "AWAITING_PAYMENT" && order.status !== "ADMIN_REVIEW") {
+    if (["PAID", "PREPARING", "SHIPPED", "DELIVERED", "CONFIRMED", "SETTLED"].includes(order.status)) {
+      return { ok: true as const, alreadyPaid: true };
+    }
+  }
   if (order.status !== "AWAITING_PAYMENT") {
-    return { ok: true as const, alreadyPaid: true };
+    // ADMIN_REVIEW before pay shouldn't happen; still bind payment
+    if (order.stripePaymentIntentId) return { ok: true as const, alreadyPaid: true };
   }
 
   const expected = order.subtotalAmount + order.shippingAmount;
@@ -31,7 +42,6 @@ export async function fulfillMarketplaceOrder(params: {
     return { error: "결제 금액이 주문과 일치하지 않습니다." };
   }
 
-  // 재고 원자성: stock >= qty 조건으로만 차감
   for (const item of order.items) {
     if (item.listingType === "DIGITAL") continue;
     const updated = await db.marketplaceListing.updateMany({
@@ -57,24 +67,27 @@ export async function fulfillMarketplaceOrder(params: {
   }
 
   for (const item of order.items) {
-    if (item.listingType === "DIGITAL") {
-      await db.marketplaceListing.update({
-        where: { id: item.listingId },
-        data: { salesCount: { increment: item.quantity } },
-      });
-    }
+    if (item.listingType !== "DIGITAL") continue;
+    await db.marketplaceListing.update({
+      where: { id: item.listingId },
+      data: { salesCount: { increment: item.quantity } },
+    });
   }
 
-  const paid = await db.marketplaceOrder.update({
+  const holdForReview = order.adminReviewRequired;
+
+  await db.marketplaceOrder.update({
     where: { id: order.id },
     data: {
-      status: "PAID",
+      status: holdForReview ? "ADMIN_REVIEW" : "PAID",
+      settlementStatus: holdForReview ? "BLOCKED" : "PENDING",
+      escrowHeld: true,
       stripePaymentIntentId: params.paymentRef,
       stripeCheckoutSessionId: params.paymentRef,
+      settlementHeldReason: holdForReview ? "위험 거래 — 관리자 검토" : null,
     },
   });
 
-  // 디지털 다운로드 entitlement
   for (const item of order.items) {
     if (item.listingType !== "DIGITAL") continue;
     const listing = await db.marketplaceListing.findUnique({
@@ -103,25 +116,27 @@ export async function fulfillMarketplaceOrder(params: {
     });
   }
 
-  // 실물/주문제작 → 준비중 + 배송 레코드
   const needsShip = order.items.some((i) => i.listingType !== "DIGITAL");
-  if (needsShip) {
-    await db.marketplaceOrder.update({
-      where: { id: order.id },
-      data: { status: "PREPARING" },
-    });
-    await db.marketplaceShipment.upsert({
-      where: { orderId: order.id },
-      create: { orderId: order.id, status: "PREPARING" },
-      update: {},
-    });
-  } else {
-    // 디지털만 — 즉시 배송완료→구매확정 가능
-    const confirmAt = new Date(Date.now() + AUTO_CONFIRM_DAYS_AFTER_DELIVERY * 24 * 60 * 60 * 1000);
-    await db.marketplaceOrder.update({
-      where: { id: order.id },
-      data: { status: "DELIVERED", autoConfirmAt: confirmAt },
-    });
+  if (!holdForReview) {
+    if (needsShip) {
+      await db.marketplaceOrder.update({
+        where: { id: order.id },
+        data: { status: "PREPARING" },
+      });
+      await db.marketplaceShipment.upsert({
+        where: { orderId: order.id },
+        create: { orderId: order.id, status: "PREPARING" },
+        update: {},
+      });
+    } else {
+      const confirmAt = new Date(
+        Date.now() + AUTO_CONFIRM_DAYS_AFTER_DELIVERY * 24 * 60 * 60 * 1000
+      );
+      await db.marketplaceOrder.update({
+        where: { id: order.id },
+        data: { status: "DELIVERED", autoConfirmAt: confirmAt },
+      });
+    }
   }
 
   await recordPlatformFee(order.platformFeeAmount, {
@@ -131,31 +146,28 @@ export async function fulfillMarketplaceOrder(params: {
     memo: `MARKET 수수료 #${order.id.slice(0, 8)}`,
   });
 
-  // Connect destination charge면 Stripe가 판매자에게 직접 지급 — 지갑 적립은 Connect 미연동 시만
-  const seller = await db.user.findUnique({
-    where: { id: order.sellerId },
-    select: { stripeConnectAccountId: true, stripeConnectOnboardedAt: true },
-  });
-  const connectReady = Boolean(seller?.stripeConnectAccountId && seller.stripeConnectOnboardedAt);
-  if (!connectReady) {
-    await creditSellerEarning(order.sellerId, order.sellerEarnAmount, {
-      referenceType: "marketplace",
-      referenceId: order.id,
-      paymentIntentId: params.paymentIntentDbId,
-      memo: `MARKET 판매 #${order.id.slice(0, 8)}`,
-    });
-  }
+  // Escrow: do NOT credit seller / Transfer until purchase confirm
 
   await db.marketplaceSellerProfile.updateMany({
     where: { userId: order.sellerId },
     data: { salesCount: { increment: 1 } },
   });
 
+  await logMarketplaceAudit({
+    orderId: order.id,
+    actorId: order.buyerId,
+    action: MarketplaceAuditActions.PAYMENT,
+    detail: holdForReview ? "paid_admin_review" : "paid_escrow_held",
+    metadata: { amount: params.amount, paymentRef: params.paymentRef },
+  });
+
   await createNotification({
     userId: order.sellerId,
     type: "SYSTEM",
-    title: "새 MARKET 주문이 들어왔습니다",
-    body: `${order.buyer.username}님이 결제했습니다.`,
+    title: holdForReview
+      ? "주문이 관리자 검토 중입니다"
+      : "새 MARKET 주문이 들어왔습니다",
+    body: `${order.buyer.username}님이 결제했습니다. 정산은 구매 확정 후 진행됩니다.`,
     link: `/market/orders/${order.id}`,
     actorId: order.buyerId,
   });
@@ -163,11 +175,13 @@ export async function fulfillMarketplaceOrder(params: {
     userId: order.buyerId,
     type: "SYSTEM",
     title: "결제가 완료되었습니다",
-    body: "주문 내역에서 배송·다운로드를 확인하세요.",
+    body: holdForReview
+      ? "안전 검토 후 주문 처리가 이어집니다."
+      : "주문 내역에서 배송·다운로드를 확인하세요. 구매 확정 전까지 결제금이 보호됩니다.",
     link: `/market/orders/${order.id}`,
   });
 
-  return { ok: true as const, orderId: paid.id };
+  return { ok: true as const, orderId: order.id };
 }
 
 export async function autoConfirmMarketplaceOrdersBatch() {
@@ -176,16 +190,17 @@ export async function autoConfirmMarketplaceOrdersBatch() {
       status: "DELIVERED",
       autoConfirmAt: { lte: new Date() },
     },
-    take: 100,
+    take: 50,
     select: { id: true, buyerId: true, sellerId: true },
   });
 
   let confirmed = 0;
   for (const row of due) {
-    await db.marketplaceOrder.update({
-      where: { id: row.id },
-      data: { status: "CONFIRMED", confirmedAt: new Date() },
-    });
+    const res = await confirmAndMaybeSettle(row.id, { auto: true });
+    if ("error" in res && res.error && !("deferred" in res && res.deferred)) {
+      // still mark confirmed via confirmAndMaybeSettle path — deferred is ok
+      continue;
+    }
     await createNotification({
       userId: row.buyerId,
       type: "SYSTEM",
@@ -193,16 +208,11 @@ export async function autoConfirmMarketplaceOrdersBatch() {
       body: "배송 완료 후 7일이 지나 자동 확정되었습니다.",
       link: `/market/orders/${row.id}`,
     });
-    await createNotification({
-      userId: row.sellerId,
-      type: "SYSTEM",
-      title: "구매 확정",
-      body: "주문이 구매 확정되었습니다.",
-      link: `/market/orders/${row.id}`,
-    });
     confirmed += 1;
   }
-  return { confirmed };
+
+  const settlements = await releaseDueMarketplaceSettlementsBatch();
+  return { confirmed, ...settlements };
 }
 
-export { computeMarketplaceFees };
+export { computeMarketplaceFees, releaseDueMarketplaceSettlementsBatch };

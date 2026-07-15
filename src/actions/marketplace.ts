@@ -91,6 +91,12 @@ export async function requireMarketplaceSeller() {
     });
   } else if (profile.status === "SUSPENDED" || profile.status === "REJECTED") {
     throw new Error("SELLER_BLOCKED");
+  } else if (
+    profile.sanctionLevel === "PERMANENT_BAN" ||
+    profile.sanctionLevel === "SALES_SUSPENDED" ||
+    !profile.canList
+  ) {
+    throw new Error("SELLER_BLOCKED");
   } else if (profile.status === "PENDING") {
     profile = await db.marketplaceSellerProfile.update({
       where: { id: profile.id },
@@ -169,7 +175,13 @@ export type CreateMarketplaceListingInput = {
 };
 
 export async function createMarketplaceListing(input: CreateMarketplaceListingInput) {
-  const { user, profile } = await requireMarketplaceSeller();
+  let user;
+  let profile;
+  try {
+    ({ user, profile } = await requireMarketplaceSeller());
+  } catch {
+    return { error: "판매가 제한되었거나 판매자 등록이 필요합니다." };
+  }
 
   const title = input.title.trim().slice(0, 120);
   const description = input.description.trim().slice(0, 10_000);

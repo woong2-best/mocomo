@@ -15,6 +15,17 @@ import {
 } from "@/lib/marketplace/shipping-config";
 import { getTrackingProvider } from "@/lib/marketplace/tracking";
 import { createNotification } from "@/lib/notifications";
+import {
+  assessMarketplaceCheckoutRisk,
+  applyOrderRiskFlags,
+} from "@/lib/marketplace/risk";
+import { logMarketplaceAudit, MarketplaceAuditActions } from "@/lib/marketplace/audit";
+import {
+  confirmAndMaybeSettle,
+  holdSettlementForDispute,
+} from "@/lib/marketplace/escrow";
+import type { MarketplaceDisputeReason } from "@prisma/client";
+
 
 export async function createMarketplaceCheckout(input: {
   listingId: string;
@@ -57,8 +68,22 @@ export async function createMarketplaceCheckout(input: {
   if (listing.sellerId === buyer.id) {
     return { error: "본인 상품은 구매할 수 없습니다." };
   }
+  if (listing.sellerProfile?.status === "SUSPENDED" || listing.sellerProfile?.status === "REJECTED") {
+    return { error: "현재 구매할 수 없는 판매자입니다." };
+  }
   if (listing.type !== "DIGITAL" && listing.stock < quantity) {
     return { error: "재고가 부족합니다." };
+  }
+
+  const sellerProfileCheck = await db.marketplaceSellerProfile.findUnique({
+    where: { userId: listing.sellerId },
+    select: { sanctionLevel: true, settlementBlocked: true },
+  });
+  if (
+    sellerProfileCheck?.sanctionLevel === "PERMANENT_BAN" ||
+    sellerProfileCheck?.sanctionLevel === "SALES_SUSPENDED"
+  ) {
+    return { error: "판매가 제한된 판매자입니다." };
   }
 
   const needsShipping = listing.type !== "DIGITAL";
@@ -131,16 +156,22 @@ export async function createMarketplaceCheckout(input: {
     },
   });
 
+  // Escrow: charge on platform — Transfer to seller only after purchase confirm
+  const risk = await assessMarketplaceCheckoutRisk({
+    buyerId: buyer.id,
+    sellerId: listing.sellerId,
+    listingId: listing.id,
+    priceAmount: listing.priceAmount,
+    quantity,
+  });
+  await applyOrderRiskFlags(order.id, risk, buyer.id);
+
   const stripe = getStripe();
   const origin = getAppOrigin();
   const currency = (listing.currency || "krw").toLowerCase();
-  const connectReady = Boolean(
-    listing.seller.stripeConnectAccountId && listing.seller.stripeConnectOnboardedAt
-  );
 
   const sessionParams: Parameters<typeof stripe.checkout.sessions.create>[0] = {
     mode: "payment",
-    // Stripe가 국가별로 Apple Pay / Google Pay / Link 등 자동 노출
     line_items: [
       {
         price_data: {
@@ -172,23 +203,18 @@ export async function createMarketplaceCheckout(input: {
       userId: buyer.id,
       marketplaceOrderId: order.id,
     },
+    payment_intent_data: {
+      metadata: {
+        marketplaceOrderId: order.id,
+        mocomoPaymentIntentId: paymentIntent.id,
+        escrow: "platform_hold",
+      },
+      transfer_group: order.id,
+    },
     success_url: `${origin}/payments/success?session_id={CHECKOUT_SESSION_ID}&market_order=${order.id}`,
     cancel_url: `${origin}/payments/fail?market_order=${order.id}`,
     customer_email: buyer.email ?? undefined,
   };
-
-  if (connectReady && listing.seller.stripeConnectAccountId) {
-    sessionParams.payment_intent_data = {
-      application_fee_amount: fees.platformFeeAmount,
-      transfer_data: {
-        destination: listing.seller.stripeConnectAccountId,
-      },
-      metadata: {
-        marketplaceOrderId: order.id,
-        mocomoPaymentIntentId: paymentIntent.id,
-      },
-    };
-  }
 
   const session = await stripe.checkout.sessions.create(sessionParams);
   if (!session.url) return { error: "결제 페이지를 만들 수 없습니다." };
@@ -248,12 +274,18 @@ export async function sellerUpdateShipment(input: {
   carrier?: string;
   trackingNumber: string;
   status?: "PREPARING" | "SHIPPED" | "IN_CUSTOMS" | "IN_TRANSIT" | "DELIVERED";
+  /** Optional proof photos (parcel / label / packing) */
+  proofUrls?: string[];
+  packingNote?: string;
 }) {
   const user = await requireAuth();
   const order = await db.marketplaceOrder.findUnique({ where: { id: input.orderId } });
   if (!order || order.sellerId !== user.id) return { error: "권한이 없습니다." };
-  if (["CANCELLED", "REFUNDED", "CONFIRMED"].includes(order.status)) {
+  if (["CANCELLED", "REFUNDED", "CONFIRMED", "SETTLED"].includes(order.status)) {
     return { error: "이 주문은 배송 상태를 변경할 수 없습니다." };
+  }
+  if (order.status === "ADMIN_REVIEW" || order.status === "DISPUTED") {
+    return { error: "관리자 검토·분쟁 중에는 배송 상태를 변경할 수 없습니다." };
   }
 
   const status = input.status ?? "SHIPPED";
@@ -266,6 +298,10 @@ export async function sellerUpdateShipment(input: {
   const carrierLabel = carrierMeta?.label ?? input.carrier?.trim() ?? null;
   const carrierCode = carrierMeta?.id ?? input.carrierCode?.trim() ?? null;
 
+  if ((status === "SHIPPED" || status === "IN_TRANSIT") && !carrierCode && !carrierLabel) {
+    return { error: "배송사를 선택해 주세요." };
+  }
+
   let externalTrackingId: string | undefined;
   if (trackingNumber && carrierCode) {
     const provider = getTrackingProvider();
@@ -274,12 +310,12 @@ export async function sellerUpdateShipment(input: {
       trackingNumber,
       trackingSlug: carrierMeta?.trackingSlug,
     });
-    if ("error" in registered) {
-      /* still allow manual save */
-    } else {
+    if (!("error" in registered)) {
       externalTrackingId = registered.externalId;
     }
   }
+
+  const proofUrls = (input.proofUrls ?? []).map((u) => u.trim()).filter(Boolean).slice(0, 8);
 
   await db.marketplaceShipment.upsert({
     where: { orderId: order.id },
@@ -289,6 +325,8 @@ export async function sellerUpdateShipment(input: {
       carrierCode,
       trackingNumber: trackingNumber || null,
       externalTrackingId: externalTrackingId ?? null,
+      proofUrls,
+      packingNote: input.packingNote?.trim() || null,
       status,
       shippedAt: status === "SHIPPED" || status === "IN_TRANSIT" || status === "IN_CUSTOMS" ? new Date() : null,
       deliveredAt: status === "DELIVERED" ? new Date() : null,
@@ -298,6 +336,8 @@ export async function sellerUpdateShipment(input: {
       carrierCode,
       trackingNumber: trackingNumber || null,
       externalTrackingId: externalTrackingId ?? undefined,
+      ...(proofUrls.length ? { proofUrls } : {}),
+      packingNote: input.packingNote?.trim() || undefined,
       status,
       shippedAt:
         status === "SHIPPED" || status === "IN_TRANSIT" || status === "IN_CUSTOMS" ? new Date() : undefined,
@@ -318,6 +358,14 @@ export async function sellerUpdateShipment(input: {
   if (patch.status) {
     await db.marketplaceOrder.update({ where: { id: order.id }, data: patch });
   }
+
+  await logMarketplaceAudit({
+    orderId: order.id,
+    actorId: user.id,
+    action: MarketplaceAuditActions.SHIPMENT_STATUS,
+    detail: `${status} ${carrierLabel ?? ""} ${trackingNumber}`,
+    metadata: { carrierCode, proofCount: proofUrls.length },
+  });
 
   await createNotification({
     userId: order.buyerId,
@@ -412,17 +460,20 @@ export async function confirmMarketplaceOrder(orderId: string) {
   const user = await requireAuth();
   const order = await db.marketplaceOrder.findUnique({ where: { id: orderId } });
   if (!order || order.buyerId !== user.id) return { error: "권한이 없습니다." };
+  if (order.status === "DISPUTED" || order.status === "ADMIN_REVIEW") {
+    return { error: "분쟁·검토 중에는 구매 확정할 수 없습니다." };
+  }
   if (order.status !== "DELIVERED" && order.status !== "SHIPPED") {
     return { error: "확정할 수 있는 상태가 아닙니다." };
   }
-  await db.marketplaceOrder.update({
-    where: { id: orderId },
-    data: { status: "CONFIRMED", confirmedAt: new Date() },
-  });
+
+  await confirmAndMaybeSettle(orderId, { actorId: user.id });
+
   await createNotification({
     userId: order.sellerId,
     type: "SYSTEM",
     title: "구매가 확정되었습니다",
+    body: "에스크로 정책에 따라 정산이 진행됩니다.",
     link: `/market/orders/${orderId}`,
     actorId: user.id,
   });
@@ -534,7 +585,12 @@ export async function sellerRespondMarketplaceRefund(
   });
   await db.marketplaceOrder.update({
     where: { id: refund.orderId },
-    data: { status: "REFUNDED" },
+    data: { status: "REFUNDED", settlementStatus: "REVERSED", escrowHeld: false },
+  });
+
+  await db.marketplaceSellerProfile.updateMany({
+    where: { userId: refund.order.sellerId },
+    data: { refundedOrderCount: { increment: 1 } },
   });
 
   // 재고 복원
@@ -561,39 +617,117 @@ export async function sellerRespondMarketplaceRefund(
   return { success: true };
 }
 
-export async function openMarketplaceDispute(orderId: string, reason: string) {
+export async function openMarketplaceDispute(
+  orderId: string,
+  reason: string,
+  reasonCode?: MarketplaceDisputeReason,
+  evidenceUrls?: string[]
+) {
   const user = await requireAuth();
   const order = await db.marketplaceOrder.findUnique({ where: { id: orderId } });
   if (!order || (order.buyerId !== user.id && order.sellerId !== user.id)) {
     return { error: "권한이 없습니다." };
   }
+  if (["SETTLED", "REFUNDED", "CANCELLED", "AWAITING_PAYMENT"].includes(order.status)) {
+    return { error: "이 주문에는 분쟁을 제기할 수 없습니다." };
+  }
   const text = reason.trim();
   if (!text) return { error: "분쟁 사유를 입력해 주세요." };
+
+  const code = reasonCode ?? "OTHER";
+  const evidence = {
+    urls: (evidenceUrls ?? []).slice(0, 8),
+    note: text,
+    submittedAt: new Date().toISOString(),
+  };
+
+  const isBuyer = order.buyerId === user.id;
 
   await db.marketplaceDispute.create({
     data: {
       orderId,
       openerId: user.id,
       reason: text,
+      reasonCode: code,
       status: "OPEN",
+      buyerEvidence: isBuyer ? evidence : undefined,
+      sellerEvidence: !isBuyer ? evidence : undefined,
+      evidence,
     },
   });
   await db.marketplaceOrder.update({
     where: { id: orderId },
     data: { status: "DISPUTED" },
   });
+  await holdSettlementForDispute(orderId, user.id);
 
-  const otherId = order.buyerId === user.id ? order.sellerId : order.buyerId;
+  await db.marketplaceSellerProfile.updateMany({
+    where: { userId: order.sellerId },
+    data: { disputedOrderCount: { increment: 1 } },
+  });
+
+  await logMarketplaceAudit({
+    orderId,
+    actorId: user.id,
+    action: MarketplaceAuditActions.DISPUTE_OPEN,
+    detail: `${code}: ${text.slice(0, 200)}`,
+  });
+
+  const otherId = isBuyer ? order.sellerId : order.buyerId;
   await createNotification({
     userId: otherId,
     type: "SYSTEM",
-    title: "분쟁이 접수되었습니다",
+    title: "분쟁이 접수되었습니다 — 정산이 보류됩니다",
     body: text.slice(0, 120),
     link: `/market/orders/${orderId}`,
     actorId: user.id,
   });
 
   revalidatePath(`/market/orders/${orderId}`);
+  revalidatePath("/admin/market");
+  return { success: true };
+}
+
+export async function submitMarketplaceDisputeEvidence(
+  disputeId: string,
+  evidenceUrls: string[],
+  note?: string
+) {
+  const user = await requireAuth();
+  const dispute = await db.marketplaceDispute.findUnique({
+    where: { id: disputeId },
+    include: { order: true },
+  });
+  if (!dispute) return { error: "분쟁을 찾을 수 없습니다." };
+  const order = dispute.order;
+  if (order.buyerId !== user.id && order.sellerId !== user.id) {
+    return { error: "권한이 없습니다." };
+  }
+
+  const payload = {
+    urls: evidenceUrls.map((u) => u.trim()).filter(Boolean).slice(0, 8),
+    note: note?.trim() || null,
+    submittedAt: new Date().toISOString(),
+  };
+
+  const isBuyer = order.buyerId === user.id;
+  await db.marketplaceDispute.update({
+    where: { id: disputeId },
+    data: {
+      status: "EVIDENCE",
+      ...(isBuyer ? { buyerEvidence: payload } : { sellerEvidence: payload }),
+    },
+  });
+
+  await logMarketplaceAudit({
+    orderId: order.id,
+    actorId: user.id,
+    action: MarketplaceAuditActions.DISPUTE_EVIDENCE,
+    detail: isBuyer ? "buyer" : "seller",
+    metadata: payload,
+  });
+
+  revalidatePath(`/market/orders/${order.id}`);
   revalidatePath("/admin/market");
   return { success: true };
 }

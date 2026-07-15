@@ -2338,6 +2338,8 @@ enum ReportTargetType {
   LIVE_CHANNEL
   LIVE_CHAT
   STREAM_CLIP
+  MARKETPLACE_LISTING
+  MARKETPLACE_SELLER
 }
 
 enum ReportStatus {
@@ -4121,10 +4123,57 @@ enum MarketplaceOrderStatus {
   SHIPPED
   DELIVERED
   CONFIRMED
+  SETTLED
   CANCELLED
   REFUND_REQUESTED
   REFUNDED
   DISPUTED
+  ADMIN_REVIEW
+}
+
+enum MarketplaceSettlementStatus {
+  PENDING
+  HELD
+  READY
+  SETTLED
+  BLOCKED
+  REVERSED
+}
+
+enum MarketplaceTrustTier {
+  NEW
+  STANDARD
+  TRUSTED
+  PREMIUM
+}
+
+enum MarketplaceSanctionLevel {
+  NONE
+  WARNING
+  LISTING_RESTRICTED
+  SALES_SUSPENDED
+  SETTLEMENT_HELD
+  PERMANENT_BAN
+}
+
+enum MarketplaceDisputeReason {
+  NOT_RECEIVED
+  COUNTERFEIT
+  NOT_AS_DESCRIBED
+  DAMAGED
+  MISSING_PARTS
+  SELLER_NO_RESPONSE
+  OTHER
+}
+
+enum MarketplaceReportReason {
+  FRAUD
+  COUNTERFEIT
+  COPYRIGHT
+  ILLEGAL
+  SPAM
+  ADULT
+  OTHER
 }
 
 enum MarketplaceShipmentStatus {
@@ -4165,6 +4214,17 @@ model MarketplaceSellerProfile {
   followerCount   Int                      @default(0)
   responseRate    Float?
   avgShipDays     Float?
+  /** Trust & protection */
+  trustScore      Float                    @default(50)
+  trustTier       MarketplaceTrustTier     @default(NEW)
+  sanctionLevel   MarketplaceSanctionLevel @default(NONE)
+  reportCount     Int                      @default(0)
+  confirmedOrderCount Int                  @default(0)
+  refundedOrderCount  Int                  @default(0)
+  disputedOrderCount  Int                  @default(0)
+  lateShipCount       Int                  @default(0)
+  canList             Boolean              @default(true)
+  settlementBlocked   Boolean              @default(false)
   returnCountry   String?
   returnPostal    String?
   returnAddress1  String?
@@ -4179,8 +4239,12 @@ model MarketplaceSellerProfile {
   user     User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   listings MarketplaceListing[]
   orders   MarketplaceOrder[]   @relation("MarketplaceSellerOrders")
+  sanctions MarketplaceSanction[]
+  reports   MarketplaceReport[] @relation("MarketplaceReportSeller")
 
   @@index([status, createdAt])
+  @@index([trustTier, trustScore])
+  @@index([sanctionLevel])
 }
 
 model MarketplaceListing {
@@ -4261,6 +4325,7 @@ model MarketplaceOrder {
   sellerId           String
   sellerProfileId    String?
   status             MarketplaceOrderStatus @default(AWAITING_PAYMENT)
+  settlementStatus   MarketplaceSettlementStatus @default(PENDING)
   subtotalAmount     Int
   shippingAmount     Int                    @default(0)
   platformFeeAmount  Int                    @default(0)
@@ -4268,9 +4333,17 @@ model MarketplaceOrder {
   currency           String                 @default("krw")
   stripePaymentIntentId String?
   stripeCheckoutSessionId String?
+  /** Stripe Transfer id after escrow release */
+  stripeTransferId   String?
+  escrowHeld         Boolean                @default(true)
+  settledAt          DateTime?
+  settlementHeldReason String?
   autoConfirmAt      DateTime?
   confirmedAt        DateTime?
   cancelledAt        DateTime?
+  riskScore          Int                    @default(0)
+  riskFlags          String[]
+  adminReviewRequired Boolean               @default(false)
   shipName           String?
   shipCountry        String?
   shipPostal         String?
@@ -4289,10 +4362,13 @@ model MarketplaceOrder {
   refunds       MarketplaceRefund[]
   disputes      MarketplaceDispute[]
   review        MarketplaceReview?
+  auditLogs     MarketplaceAuditLog[]
 
   @@index([buyerId, createdAt])
   @@index([sellerId, status, createdAt])
   @@index([status, autoConfirmAt])
+  @@index([settlementStatus, confirmedAt])
+  @@index([adminReviewRequired, createdAt])
 }
 
 model MarketplaceOrderItem {
@@ -4322,6 +4398,9 @@ model MarketplaceShipment {
   trackingNumber String?
   /** External provider tracking id (AfterShip etc.) */
   externalTrackingId String?
+  /** Optional shipping proof URLs (parcel / label / packing photos) */
+  proofUrls      String[]
+  packingNote    String?                  @db.Text
   status         MarketplaceShipmentStatus @default(PREPARING)
   shippedAt      DateTime?
   deliveredAt    DateTime?
@@ -4356,7 +4435,10 @@ model MarketplaceDispute {
   orderId     String
   openerId    String
   reason      String
+  reasonCode  MarketplaceDisputeReason @default(OTHER)
   evidence    Json?
+  buyerEvidence Json?
+  sellerEvidence Json?
   status      MarketplaceDisputeStatus @default(OPEN)
   resolution  String?                  @db.Text
   resolvedAt  DateTime?
@@ -4404,4 +4486,56 @@ model MarketplaceDigitalDownload {
   @@index([buyerId, createdAt])
   @@index([orderId])
   @@index([downloadToken])
+}
+
+/** Immutable marketplace audit trail (append-only) */
+model MarketplaceAuditLog {
+  id        String   @id @default(cuid())
+  orderId   String?
+  actorId   String?
+  action    String
+  detail    String?  @db.Text
+  metadata  Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  order MarketplaceOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([orderId, createdAt])
+  @@index([action, createdAt])
+  @@index([actorId, createdAt])
+}
+
+model MarketplaceSanction {
+  id        String                   @id @default(cuid())
+  sellerProfileId String
+  level     MarketplaceSanctionLevel
+  reason    String                   @db.Text
+  actorId   String?
+  active    Boolean                  @default(true)
+  createdAt DateTime                 @default(now())
+
+  sellerProfile MarketplaceSellerProfile @relation(fields: [sellerProfileId], references: [id], onDelete: Cascade)
+
+  @@index([sellerProfileId, createdAt])
+  @@index([active, level])
+}
+
+model MarketplaceReport {
+  id              String                  @id @default(cuid())
+  reporterId      String
+  reason          MarketplaceReportReason
+  details         String?                 @db.Text
+  listingId       String?
+  sellerProfileId String?
+  sellerUserId    String?
+  status          ReportStatus            @default(PENDING)
+  createdAt       DateTime                @default(now())
+
+  sellerProfile MarketplaceSellerProfile? @relation("MarketplaceReportSeller", fields: [sellerProfileId], references: [id], onDelete: SetNull)
+
+  @@index([sellerProfileId, status])
+  @@index([listingId, status])
+  @@index([status, createdAt])
+  @@index([reporterId, createdAt])
 }

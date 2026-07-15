@@ -11,7 +11,8 @@ export type SiteAdminAuditAction =
   | "ECONOMY_MUTATION"
   | "OPERATOR_BOOTSTRAP"
   | "MARKETPLACE_ADMIN_VIEW"
-  | "MARKETPLACE_DISPUTE_RESOLVE";
+  | "MARKETPLACE_DISPUTE_RESOLVE"
+  | "MARKETPLACE_SANCTION";
 
 export async function logSiteAdminAudit(input: {
   actorId: string;

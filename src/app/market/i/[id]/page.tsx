@@ -4,6 +4,7 @@ import { getMarketplaceListing } from "@/actions/marketplace";
 import { listingTypeLabel, computeMarketplaceFees } from "@/lib/marketplace/constants";
 import { shipCountryLabel } from "@/lib/marketplace/shipping-config";
 import { MarketplaceBuyPanel } from "@/components/market/marketplace-buy-panel";
+import { MarketplaceReportButton } from "@/components/market/marketplace-report-button";
 import { Button } from "@/components/ui/button";
 import { isPaymentsConfigured } from "@/lib/payments";
 import { auth } from "@/lib/auth";
@@ -135,6 +136,8 @@ export default async function MarketplaceListingPage({
           <Button type="button" variant="secondary" asChild>
             <Link href={`/messages?user=${listing.seller.username}`}>판매자 문의</Link>
           </Button>
+
+          {!isOwner && <MarketplaceReportButton listingId={listing.id} />}
 
           <div>
             <h2 className="text-sm font-semibold mb-2">설명</h2>

@@ -2,9 +2,13 @@ import Link from "next/link";
 import { AdminPageChrome } from "@/components/admin/admin-page-chrome";
 import { AdminAccessDenied } from "@/components/admin/admin-access-denied";
 import { AdminMarketplaceOrderStatus } from "@/components/market/admin-marketplace-order-status";
+import {
+  AdminDisputeCard,
+  AdminReviewOrderCard,
+} from "@/components/market/admin-dispute-center";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { resolveMarketplaceDispute } from "@/actions/marketplace-admin";
+import { getAdminMarketplaceDisputeCenter } from "@/actions/marketplace-admin";
 
 export const dynamic = "force-dynamic";
 
@@ -15,33 +19,29 @@ export default async function AdminMarketPage() {
     return <AdminAccessDenied />;
   }
 
-  const [orders, disputes, feeSum] = await Promise.all([
+  const [center, orders, feeSum] = await Promise.all([
+    getAdminMarketplaceDisputeCenter(),
     db.marketplaceOrder.findMany({
       orderBy: { createdAt: "desc" },
-      take: 30,
+      take: 25,
       include: {
         buyer: { select: { username: true } },
         seller: { select: { username: true } },
         items: { take: 1 },
       },
     }),
-    db.marketplaceDispute.findMany({
-      where: { status: { in: ["OPEN", "EVIDENCE", "REVIEWING"] } },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-      include: {
-        opener: { select: { username: true } },
-        order: { select: { id: true, buyerId: true, sellerId: true } },
-      },
-    }),
     db.marketplaceOrder.aggregate({
-      where: { status: { in: ["PAID", "PREPARING", "SHIPPED", "DELIVERED", "CONFIRMED"] } },
+      where: {
+        status: {
+          in: ["PAID", "PREPARING", "SHIPPED", "DELIVERED", "CONFIRMED", "SETTLED"],
+        },
+      },
       _sum: { platformFeeAmount: true, sellerEarnAmount: true, subtotalAmount: true },
     }),
   ]);
 
   return (
-    <AdminPageChrome maxWidth="4xl" title="MARKET 정산 · 분쟁">
+    <AdminPageChrome maxWidth="4xl" title="MARKET 분쟁 · 보호 센터">
       <div className="mb-4">
         <Link href="/admin" className="text-sm text-muted-foreground hover:text-foreground">
           ← 관리자 홈
@@ -62,7 +62,7 @@ export default async function AdminMarketPage() {
           </p>
         </div>
         <div className="rounded-2xl border border-border/60 p-4">
-          <p className="text-xs text-muted-foreground">판매자 지급액</p>
+          <p className="text-xs text-muted-foreground">판매자 정산 예정/완료</p>
           <p className="text-xl font-bold">
             {(feeSum._sum.sellerEarnAmount ?? 0).toLocaleString()}원
           </p>
@@ -71,48 +71,50 @@ export default async function AdminMarketPage() {
 
       <section className="mb-8 space-y-3">
         <h2 className="font-semibold">열린 분쟁</h2>
-        {disputes.length === 0 ? (
+        {center.disputes.length === 0 ? (
           <p className="text-sm text-muted-foreground">열린 분쟁이 없습니다.</p>
         ) : (
-          disputes.map((d) => (
-            <form
-              key={d.id}
-              action={async (fd) => {
-                "use server";
-                const decision = String(fd.get("decision") ?? "");
-                const note = String(fd.get("note") ?? "");
-                await resolveMarketplaceDispute(d.id, decision as "buyer" | "seller", note);
-              }}
-              className="rounded-xl border border-border/60 p-3 space-y-2 text-sm"
-            >
-              <p className="font-medium">
-                @{d.opener.username} · {d.reason}
-              </p>
-              <p className="text-xs text-muted-foreground">주문 {d.orderId}</p>
-              <input
-                name="note"
-                placeholder="처리 메모"
-                className="w-full rounded-lg border border-border px-3 py-2 text-sm"
-              />
-              <div className="flex gap-2">
-                <button
-                  name="decision"
-                  value="buyer"
-                  className="rounded-lg bg-primary px-3 py-1.5 text-xs text-primary-foreground"
-                >
-                  구매자 승
-                </button>
-                <button
-                  name="decision"
-                  value="seller"
-                  className="rounded-lg border border-border px-3 py-1.5 text-xs"
-                >
-                  판매자 승
-                </button>
-              </div>
-            </form>
-          ))
+          center.disputes.map((d) => <AdminDisputeCard key={d.id} dispute={d} />)
         )}
+      </section>
+
+      <section className="mb-8 space-y-3">
+        <h2 className="font-semibold">위험 · 정산 보류 주문</h2>
+        {center.reviewOrders.length === 0 ? (
+          <p className="text-sm text-muted-foreground">검토 대기 주문이 없습니다.</p>
+        ) : (
+          center.reviewOrders.map((o) => <AdminReviewOrderCard key={o.id} order={o} />)
+        )}
+      </section>
+
+      <section className="mb-8 space-y-2">
+        <h2 className="font-semibold">대기 신고</h2>
+        {center.reports.length === 0 ? (
+          <p className="text-sm text-muted-foreground">대기 중인 신고가 없습니다.</p>
+        ) : (
+          <ul className="divide-y divide-border/60 rounded-2xl border border-border/60 text-sm">
+            {center.reports.map((r) => (
+              <li key={r.id} className="p-3">
+                <p className="font-medium">
+                  {r.reason} · listing {r.listingId ?? "-"}
+                </p>
+                <p className="text-xs text-muted-foreground">{r.details}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mb-8 space-y-2">
+        <h2 className="font-semibold">감사 로그 (최근)</h2>
+        <ul className="text-xs space-y-1 max-h-64 overflow-auto rounded-xl border border-border/60 p-3">
+          {center.recentAudit.map((a) => (
+            <li key={a.id} className="text-muted-foreground">
+              <span className="text-foreground font-medium">{a.action}</span> ·{" "}
+              {a.createdAt.toISOString().slice(0, 19)} · {a.detail ?? ""}
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="space-y-2">
@@ -127,7 +129,8 @@ export default async function AdminMarketPage() {
                   </Link>
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  @{o.buyer.username} → @{o.seller.username} · {o.status}
+                  @{o.buyer.username} → @{o.seller.username} · {o.status} ·{" "}
+                  {o.settlementStatus}
                   {o.shipCountry ? ` · ${o.shipCountry}` : ""}
                 </p>
                 <AdminMarketplaceOrderStatus orderId={o.id} currentStatus={o.status} />

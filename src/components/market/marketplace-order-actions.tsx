@@ -10,11 +10,14 @@ import {
   sellerRespondMarketplaceRefund,
   sellerSetOrderStatus,
   sellerUpdateShipment,
+  submitMarketplaceDisputeEvidence,
   submitMarketplaceReview,
 } from "@/actions/marketplace-checkout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getCarriersForShipment } from "@/lib/marketplace/shipping-config";
+import { MARKETPLACE_DISPUTE_REASONS } from "@/lib/marketplace/protection-config";
+import type { MarketplaceDisputeReason } from "@prisma/client";
 
 type OrderDetail = NonNullable<
   Awaited<ReturnType<typeof import("@/actions/marketplace-checkout").getMarketplaceOrderDetail>>
@@ -30,7 +33,10 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
     () => order.shipment?.carrierCode ?? carriers[0]?.id ?? "INTL_EMS"
   );
   const [tracking, setTracking] = useState(order.shipment?.trackingNumber ?? "");
+  const [proofUrls, setProofUrls] = useState("");
   const [reason, setReason] = useState("");
+  const [disputeCode, setDisputeCode] = useState<MarketplaceDisputeReason>("NOT_RECEIVED");
+  const [evidenceUrls, setEvidenceUrls] = useState("");
   const [rating, setRating] = useState(5);
   const [reviewBody, setReviewBody] = useState("");
   const [msg, setMsg] = useState("");
@@ -105,7 +111,12 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
           <Input
             value={tracking}
             onChange={(e) => setTracking(e.target.value)}
-            placeholder="송장번호"
+            placeholder="송장번호 (필수)"
+          />
+          <Input
+            value={proofUrls}
+            onChange={(e) => setProofUrls(e.target.value)}
+            placeholder="발송·운송장·포장 사진 URL (쉼표 구분, 선택)"
           />
           <div className="flex flex-wrap gap-2">
             <Button
@@ -119,6 +130,7 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
                     carrierCode,
                     trackingNumber: tracking,
                     status: "SHIPPED",
+                    proofUrls: proofUrls.split(/[,\s]+/).map((u) => u.trim()).filter(Boolean),
                   })
                 )
               }
@@ -137,6 +149,7 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
                     carrierCode,
                     trackingNumber: tracking || order.shipment?.trackingNumber || "N/A",
                     status: "DELIVERED",
+                    proofUrls: proofUrls.split(/[,\s]+/).map((u) => u.trim()).filter(Boolean),
                   })
                 )
               }
@@ -146,6 +159,44 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
           </div>
         </section>
       )}
+
+      {order.isSeller &&
+        order.disputes.some((d) => ["OPEN", "EVIDENCE"].includes(d.status)) && (
+          <section className="rounded-xl border border-amber-500/40 p-3 space-y-2">
+            <p className="text-sm font-semibold">분쟁 증빙 제출 (판매자 보호)</p>
+            <Input
+              value={evidenceUrls}
+              onChange={(e) => setEvidenceUrls(e.target.value)}
+              placeholder="운송장·발송사진·채팅 캡처 URL (쉼표)"
+            />
+            <Input
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="설명"
+            />
+            {order.disputes
+              .filter((d) => ["OPEN", "EVIDENCE"].includes(d.status))
+              .map((d) => (
+                <Button
+                  key={d.id}
+                  type="button"
+                  size="sm"
+                  disabled={pending}
+                  onClick={() =>
+                    run(() =>
+                      submitMarketplaceDisputeEvidence(
+                        d.id,
+                        evidenceUrls.split(/[,\s]+/).map((u) => u.trim()).filter(Boolean),
+                        reason
+                      )
+                    )
+                  }
+                >
+                  증빙 제출
+                </Button>
+              ))}
+          </section>
+        )}
 
       {order.isSeller &&
         order.refunds.some((r) => r.status === "REQUESTED") && (
@@ -181,6 +232,10 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
       {order.isBuyer && (
         <section className="rounded-xl border border-border/60 p-3 space-y-2">
           <p className="text-sm font-semibold">구매자 액션</p>
+          <p className="text-[11px] text-muted-foreground">
+            결제금은 구매 확정(또는 자동 확정) 전까지 에스크로로 보호됩니다. 정산 상태:{" "}
+            {order.settlementStatus}
+          </p>
           <div className="flex flex-wrap gap-2">
             {(order.status === "DELIVERED" || order.status === "SHIPPED") && (
               <Button
@@ -204,10 +259,26 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
               </Button>
             )}
           </div>
+          <select
+            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+            value={disputeCode}
+            onChange={(e) => setDisputeCode(e.target.value as MarketplaceDisputeReason)}
+          >
+            {MARKETPLACE_DISPUTE_REASONS.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.label}
+              </option>
+            ))}
+          </select>
           <Input
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="환불/분쟁 사유"
+            placeholder="환불/분쟁 상세 사유"
+          />
+          <Input
+            value={evidenceUrls}
+            onChange={(e) => setEvidenceUrls(e.target.value)}
+            placeholder="증빙 사진 URL (쉼표, 선택)"
           />
           <div className="flex flex-wrap gap-2">
             <Button
@@ -224,16 +295,27 @@ export function MarketplaceOrderActions({ order }: { order: OrderDetail }) {
               size="sm"
               variant="destructive"
               disabled={pending || !reason.trim()}
-              onClick={() => run(() => openMarketplaceDispute(order.id, reason))}
+              onClick={() =>
+                run(() =>
+                  openMarketplaceDispute(
+                    order.id,
+                    reason,
+                    disputeCode,
+                    evidenceUrls.split(/[,\s]+/).map((u) => u.trim()).filter(Boolean)
+                  )
+                )
+              }
             >
-              분쟁 신고
+              분쟁 신고 (정산 즉시 보류)
             </Button>
           </div>
         </section>
       )}
 
       {order.isBuyer &&
-        (order.status === "CONFIRMED" || order.status === "DELIVERED") &&
+        (order.status === "CONFIRMED" ||
+          order.status === "SETTLED" ||
+          order.status === "DELIVERED") &&
         !order.review && (
           <section className="rounded-xl border border-border/60 p-3 space-y-2">
             <p className="text-sm font-semibold">리뷰</p>
