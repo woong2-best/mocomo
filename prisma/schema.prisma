@@ -394,6 +394,13 @@ model User {
   studioPayoutRequests    StudioPayoutRequest[]
   studioBankAccount       StudioBankAccount?
   studioUserInventory     StudioUserInventory[]
+
+  adminWebAuthnCredentials AdminWebAuthnCredential[]
+  adminTotpCredential      AdminTotpCredential?
+  adminRecoveryCodes       AdminRecoveryCode[]
+  adminTrustedDevices      AdminTrustedDevice[]
+  adminLoginAttempts       AdminLoginAttempt[]
+  adminAuthLockout         AdminAuthLockout?
 }
 
 model Account {
@@ -2607,6 +2614,110 @@ model SiteAdminAuditLog {
   @@index([actorId, createdAt])
   @@index([action, createdAt])
   @@index([targetId])
+}
+
+/** 관리자 WebAuthn/Passkey 자격증명 */
+model AdminWebAuthnCredential {
+  id           String    @id @default(cuid())
+  userId       String
+  credentialId String    @unique
+  publicKey    Bytes
+  counter      BigInt    @default(0)
+  deviceType   String?
+  backedUp     Boolean   @default(false)
+  transports   String?
+  name         String    @default("Passkey")
+  lastUsedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/** 관리자 TOTP (Google/Microsoft Authenticator 등 RFC 6238) */
+model AdminTotpCredential {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  encryptedSecret   String
+  encryptionIv      String
+  encryptionAuthTag String
+  encryptionKeyId   String?
+  enabled           Boolean   @default(false)
+  verifiedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/** 관리자 Recovery Code (해시 저장, 1회용) */
+model AdminRecoveryCode {
+  id        String    @id @default(cuid())
+  userId    String
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, codeHash])
+  @@index([userId])
+}
+
+/** 관리자 Trusted Device (30일, SUPER_ADMIN/OWNER 제외) */
+model AdminTrustedDevice {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  label      String?
+  userAgent  String?
+  ip         String?
+  expiresAt  DateTime
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+/** 관리자 로그인 시도 기록 */
+model AdminLoginAttempt {
+  id            String   @id @default(cuid())
+  userId        String?
+  username      String?
+  email         String?
+  ip            String?
+  country       String?
+  userAgent     String?
+  browser       String?
+  os            String?
+  device        String?
+  usedPasskey   Boolean  @default(false)
+  usedTotp      Boolean  @default(false)
+  usedRecovery  Boolean  @default(false)
+  success       Boolean
+  failureReason String?
+  createdAt     DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@index([success, createdAt])
+}
+
+/** 관리자 로그인 실패 잠금 (5회 / 15분) */
+model AdminAuthLockout {
+  id           String    @id @default(cuid())
+  userId       String    @unique
+  failCount    Int       @default(0)
+  lockedUntil  DateTime?
+  unlockedById String?
+  updatedAt    DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 /** 관리자 CMS 시스템 설정 (키-값) */

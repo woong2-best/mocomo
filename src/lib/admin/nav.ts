@@ -20,6 +20,8 @@ import {
   KeyRound,
   ScrollText,
   Sparkles,
+  Lock,
+  History,
 } from "lucide-react";
 import type { AdminPermission } from "@/lib/admin/permissions";
 
@@ -45,6 +47,8 @@ export const ADMIN_PRIMARY_NAV: AdminNavItem[] = [
   { href: "/admin/statistics", label: "통계", icon: BarChart3, permission: "statistics" },
   { href: "/admin/roles", label: "관리자 계정", icon: KeyRound, permission: "admins" },
   { href: "/admin/audit", label: "감사 로그", icon: ScrollText, permission: "audit" },
+  { href: "/admin/security/logins", label: "로그인 기록", icon: History, permission: "audit" },
+  { href: "/admin/settings/security", label: "보안 설정", icon: Lock, permission: "settings" },
   { href: "/admin/settings", label: "시스템 설정", icon: Settings, permission: "settings" },
 ];
 

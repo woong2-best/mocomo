@@ -31,22 +31,28 @@ const credentialsProvider = Credentials({
   },
   async authorize(credentials) {
     if (!credentials?.email || !credentials?.password) return null;
-    const email = String(credentials.email).trim().toLowerCase();
+    const loginId = String(credentials.email).trim();
     const password = String(credentials.password);
+    const loginKey = loginId.toLowerCase();
 
     const ip = await getRequestIp();
     const [rate, user] = await Promise.all([
-      checkLoginRateLimit(email, ip),
-      db.user.findUnique({
-        where: { email },
-        select: CREDENTIALS_JWT_USER_SELECT,
-      }),
+      checkLoginRateLimit(loginKey, ip),
+      loginId.includes("@")
+        ? db.user.findUnique({
+            where: { email: loginKey },
+            select: CREDENTIALS_JWT_USER_SELECT,
+          })
+        : db.user.findFirst({
+            where: { username: { equals: loginId, mode: "insensitive" } },
+            select: CREDENTIALS_JWT_USER_SELECT,
+          }),
     ]);
 
     if (!rate.ok) throw new LoginRateLimitedError();
 
     const fail = () => {
-      void recordLoginAttempt(email, ip);
+      void recordLoginAttempt(loginKey, ip);
       throw new LoginInvalidCredentialsError();
     };
 

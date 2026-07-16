@@ -10,6 +10,12 @@ import {
 import { resolveEffectiveStaffRole } from "@/lib/staff-roles";
 import { isOperatorIdentity, isSiteOperatorAccount } from "@/lib/operator-config";
 import { logSiteAdminAudit } from "@/lib/site-admin-audit";
+import {
+  hasValidAdminMfa,
+  hasValidAdminStepUp,
+  touchAdminMfaActivity,
+} from "@/lib/admin/mfa-service";
+import { getAdminEnrollmentStatus } from "@/lib/admin/security/enrollment";
 
 export class AdminAccessError extends Error {
   status: 401 | 403;
@@ -91,6 +97,18 @@ export async function getAdminActor(): Promise<AdminActor> {
 
   const effectiveRole = operator ? "OWNER" : role;
 
+  const enrollment = await getAdminEnrollmentStatus(dbUser.id);
+  if (!enrollment.complete) {
+    throw new AdminAccessError(401, "ADMIN_ENROLLMENT_REQUIRED");
+  }
+
+  const mfaOk = await hasValidAdminMfa(dbUser.id);
+  if (!mfaOk) {
+    throw new AdminAccessError(401, "ADMIN_MFA_REQUIRED");
+  }
+
+  void touchAdminMfaActivity(dbUser.id);
+
   return {
     id: dbUser.id,
     username: dbUser.username,
@@ -100,6 +118,24 @@ export async function getAdminActor(): Promise<AdminActor> {
     role: effectiveRole,
     permissions: permissionsForRole(effectiveRole),
   };
+}
+
+/** 중요 작업 — Passkey+TOTP step-up 재인증 필요 */
+export async function requireAdminStepUp(
+  permission: AdminPermission,
+  audit?: {
+    action: string;
+    targetType?: string;
+    targetId?: string;
+    metadata?: Record<string, unknown>;
+  }
+): Promise<AdminActor> {
+  const actor = await requireAdminPermission(permission, audit);
+  const ok = await hasValidAdminStepUp(actor.id);
+  if (!ok) {
+    throw new AdminAccessError(401, "ADMIN_STEPUP_REQUIRED");
+  }
+  return actor;
 }
 
 export async function requireAdminPermission(

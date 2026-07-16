@@ -7,15 +7,18 @@ import { logSiteAdminAudit } from "@/lib/site-admin-audit";
 
 /**
  * Admin CMS 레이아웃
- * - 인증: NextAuth (Supabase Postgres + 기존 세션). Supabase Auth 미사용.
- * - 비로그인 → /admin/login
- * - 권한 없음 → /admin/login?error=forbidden
+ * - 비밀번호 + Passkey + TOTP MFA 필수
+ * - 미등록 → /admin/enroll
  */
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const headerStore = await headers();
   const pathname = headerStore.get("x-pathname") ?? "/admin";
 
-  if (pathname === "/admin/forbidden" || pathname === "/admin/login") {
+  if (
+    pathname === "/admin/forbidden" ||
+    pathname === "/admin/login" ||
+    pathname.startsWith("/admin/enroll")
+  ) {
     return <>{children}</>;
   }
 
@@ -24,9 +27,23 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     actor = await getAdminActor();
   } catch (e) {
     if (e instanceof AdminAccessError && e.status === 401) {
-      redirect(`/admin/login?callbackUrl=${encodeURIComponent(pathname)}`);
+      if (e.message === "ADMIN_ENROLLMENT_REQUIRED") {
+        redirect("/admin/enroll");
+      }
+      // 메인 사이트 세션만으로는 불가 — 관리자 로그인(3단계)부터
+      const q =
+        pathname && pathname !== "/admin"
+          ? `?callbackUrl=${encodeURIComponent(pathname)}`
+          : "";
+      redirect(`/admin/login${q}`);
     }
-    redirect(`/admin/login?error=forbidden&callbackUrl=${encodeURIComponent(pathname)}`);
+    redirect(
+      `/admin/login?error=forbidden${
+        pathname && pathname !== "/admin"
+          ? `&callbackUrl=${encodeURIComponent(pathname)}`
+          : ""
+      }`
+    );
   }
 
   const needed = pathPermission(pathname);

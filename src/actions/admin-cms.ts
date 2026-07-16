@@ -2,7 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import type { UserRole } from "@prisma/client";
-import { requireAdminPermission, AdminAccessError } from "@/lib/admin/access";
+import {
+  requireAdminPermission,
+  requireAdminStepUp,
+  AdminAccessError,
+} from "@/lib/admin/access";
 import { getAdminDashboardData } from "@/lib/admin/services/dashboard";
 import {
   adminAddUserMemo,
@@ -30,7 +34,12 @@ import {
 } from "@/lib/admin/services/settings";
 
 function errMsg(e: unknown) {
-  if (e instanceof AdminAccessError) return e.message === "UNAUTHORIZED" ? "로그인이 필요합니다." : "권한이 없습니다.";
+  if (e instanceof AdminAccessError) {
+    if (e.message === "ADMIN_STEPUP_REQUIRED") {
+      return "ADMIN_STEPUP_REQUIRED";
+    }
+    return e.message === "UNAUTHORIZED" ? "로그인이 필요합니다." : "권한이 없습니다.";
+  }
   return e instanceof Error ? e.message : "오류가 발생했습니다.";
 }
 
@@ -106,7 +115,7 @@ export async function adminUserRestoreAction(userId: string, reason?: string) {
 
 export async function adminUserSoftDeleteAction(userId: string, reason: string) {
   try {
-    const actor = await requireAdminPermission("users.write");
+    const actor = await requireAdminStepUp("users.write");
     const res = await adminSoftDeleteUser(actor, userId, reason);
     if ("error" in res && res.error) return { error: res.error };
     revalidatePath("/admin/users");
@@ -174,7 +183,7 @@ export async function adminLoadStaff() {
 
 export async function adminPromoteStaffAction(usernameOrId: string, role: UserRole) {
   try {
-    const actor = await requireAdminPermission("admins");
+    const actor = await requireAdminStepUp("admins");
     const res = await promoteUserToStaff(actor, usernameOrId, role);
     if ("error" in res && res.error) return { error: res.error };
     revalidatePath("/admin/roles");
@@ -186,7 +195,7 @@ export async function adminPromoteStaffAction(usernameOrId: string, role: UserRo
 
 export async function adminSetStaffRoleAction(userId: string, role: UserRole) {
   try {
-    const actor = await requireAdminPermission("admins");
+    const actor = await requireAdminStepUp("admins");
     const res = await setStaffRole(actor, userId, role);
     if ("error" in res && res.error) return { error: res.error };
     revalidatePath("/admin/roles");
@@ -221,7 +230,7 @@ export async function adminResetStaffPasswordAction(userId: string) {
 
 export async function adminDemoteStaffAction(userId: string) {
   try {
-    const actor = await requireAdminPermission("admins");
+    const actor = await requireAdminStepUp("admins");
     const res = await demoteStaff(actor, userId);
     if ("error" in res && res.error) return { error: res.error };
     revalidatePath("/admin/roles");
@@ -242,7 +251,7 @@ export async function adminLoadSettings() {
 
 export async function adminSaveSettingsAction(patch: Partial<SiteSettingsShape>) {
   try {
-    const actor = await requireAdminPermission("settings");
+    const actor = await requireAdminStepUp("settings");
     const data = await updateSiteSettings(actor, patch);
     revalidatePath("/admin/settings");
     return { success: true as const, data };

@@ -105,6 +105,7 @@ export function pathPermission(pathname: string): AdminPermission | null {
   if (pathname.startsWith("/admin/ads")) return "ads";
   if (pathname.startsWith("/admin/statistics")) return "statistics";
   if (pathname.startsWith("/admin/settings")) return "settings";
+  if (pathname.startsWith("/admin/security")) return "audit";
   if (pathname.startsWith("/admin/roles") || pathname.startsWith("/admin/admins")) return "admins";
   if (pathname.startsWith("/admin/audit")) return "audit";
   if (

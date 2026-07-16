@@ -18,6 +18,13 @@ import {
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { ADD_ACCOUNT_COOKIE } from "@/lib/account-switch/constants";
 import { getOperatorUsername } from "@/lib/operator-config";
+import {
+  ADMIN_MFA_COOKIE,
+  createAdminMfaCookieValue,
+  verifyAdminMfaCookieValue,
+  adminSecurityCookieOptions,
+  ADMIN_MFA_IDLE_TTL_SEC,
+} from "@/lib/admin/security/session-cookie";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -108,7 +115,7 @@ function stampAppClientIfNeeded(req: NextRequest, res: NextResponse) {
   }
 }
 
-export default edgeAuth((req) => {
+export default edgeAuth(async (req) => {
   const clientRedirect = applyAppClientRedirect(req);
   if (clientRedirect) return clientRedirect;
 
@@ -151,10 +158,17 @@ export default edgeAuth((req) => {
   const isLoggedIn = !!req.auth?.user?.id;
   const isFullBanned = Boolean(req.auth?.user?.isBanned);
   const isDeleted = Boolean(req.auth?.user?.isDeleted);
-  const isProtected = protectedRoutes.some((r) => pathname.startsWith(r));
+  const isAdmin = pathname.startsWith("/admin");
+  const isAdminLoginPage = pathname === "/admin/login";
+  const isAdminEnrollPage = pathname.startsWith("/admin/enroll");
+  const isAdminForbiddenPage = pathname === "/admin/forbidden";
+  // /admin/login·enroll 은 별도 게이트 — 일반 /auth/signin 으로 보내지 않음
+  const isProtected =
+    protectedRoutes.some((r) => pathname.startsWith(r)) &&
+    !isAdminLoginPage &&
+    !isAdminEnrollPage;
   const isStudioProtected = studioProtectedPrefixes.some((r) => pathname.startsWith(r));
   const isAuthPage = authRoutes.some((r) => pathname.startsWith(r));
-  const isAdmin = pathname.startsWith("/admin");
 
   if (isStudioProtected && !isLoggedIn) {
     const callback = isStudioHostname(host)
@@ -175,6 +189,14 @@ export default edgeAuth((req) => {
   }
 
   if (isProtected && !isLoggedIn) {
+    // 관리자 영역은 /admin/login 으로
+    if (isAdmin) {
+      const signIn = new URL("/admin/login", req.url);
+      signIn.searchParams.set("callbackUrl", pathname);
+      const res = NextResponse.redirect(signIn);
+      stampAppClientIfNeeded(req, res);
+      return res;
+    }
     const signIn = new URL("/auth/signin", req.url);
     signIn.searchParams.set("callbackUrl", pathname);
     const res = NextResponse.redirect(signIn);
@@ -200,15 +222,41 @@ export default edgeAuth((req) => {
     .trim()
     .toLowerCase();
   const isSiteOwnerByUsername = authUsername === getOperatorUsername();
-  const isAdminForbiddenPage = pathname === "/admin/forbidden";
-  const isAdminLoginPage = pathname === "/admin/login";
+  const isAdminStaff =
+    isLoggedIn && (isStaff || isOperator || isSiteOwnerByUsername);
 
-  if (isAdmin && isAdminLoginPage) {
-    // 관리자 로그인 페이지는 권한 검사 없이 통과
-    if (isLoggedIn && (isStaff || isOperator || isSiteOwnerByUsername)) {
-      const res = NextResponse.redirect(new URL("/admin", req.url));
-      stampAppClientIfNeeded(req, res);
-      return res;
+  // /admin/login · enroll · forbidden — 메인 사이트 로그인 여부와 무관하게 통과
+  // (로그인 페이지에서 관리자 계정으로 다시 인증)
+  if (isAdmin && (isAdminLoginPage || isAdminEnrollPage || isAdminForbiddenPage)) {
+    if (isAdminLoginPage) {
+      const userId = String(req.auth?.user?.id ?? "");
+      const mfaOk =
+        isAdminStaff &&
+        userId &&
+        (await verifyAdminMfaCookieValue(
+          req.cookies.get(ADMIN_MFA_COOKIE)?.value,
+          userId,
+          "ok"
+        ));
+      // 관리자 MFA(비밀번호+Passkey+TOTP) 완료된 경우만 대시보드로
+      if (mfaOk) {
+        const res = NextResponse.redirect(new URL("/admin", req.url));
+        stampAppClientIfNeeded(req, res);
+        return res;
+      }
+    }
+    if (isAdminEnrollPage) {
+      if (!isLoggedIn) {
+        const signIn = new URL("/admin/login", req.url);
+        const res = NextResponse.redirect(signIn);
+        stampAppClientIfNeeded(req, res);
+        return res;
+      }
+      if (!isAdminStaff) {
+        const res = NextResponse.redirect(new URL("/admin/login?error=forbidden", req.url));
+        stampAppClientIfNeeded(req, res);
+        return res;
+      }
     }
     const res = NextResponse.next();
     res.headers.set("x-pathname", pathname);
@@ -216,23 +264,38 @@ export default edgeAuth((req) => {
     return res;
   }
 
-  if (isAdmin && !isLoggedIn) {
-    const signIn = new URL("/admin/login", req.url);
-    signIn.searchParams.set("callbackUrl", pathname);
-    const res = NextResponse.redirect(signIn);
-    stampAppClientIfNeeded(req, res);
-    return res;
-  }
+  // 그 외 /admin/* — 반드시 관리자 MFA 완료 세션 필요
+  if (isAdmin) {
+    if (!isLoggedIn || !isAdminStaff) {
+      const signIn = new URL("/admin/login", req.url);
+      if (pathname !== "/admin") {
+        signIn.searchParams.set("callbackUrl", pathname);
+      }
+      const res = NextResponse.redirect(signIn);
+      stampAppClientIfNeeded(req, res);
+      return res;
+    }
 
-  if (
-    isAdmin &&
-    isLoggedIn &&
-    !isAdminForbiddenPage &&
-    !isStaff &&
-    !isOperator &&
-    !isSiteOwnerByUsername
-  ) {
-    const res = NextResponse.redirect(new URL("/admin/login?error=forbidden", req.url));
+    const userId = String(req.auth?.user?.id ?? "");
+    const mfaCookie = req.cookies.get(ADMIN_MFA_COOKIE)?.value;
+    const mfaOk = await verifyAdminMfaCookieValue(mfaCookie, userId, "ok");
+    if (!mfaOk) {
+      // 메인 사이트 로그인만으로는 불가 — 관리자 로그인부터 다시
+      const signIn = new URL("/admin/login", req.url);
+      if (pathname !== "/admin") {
+        signIn.searchParams.set("callbackUrl", pathname);
+      }
+      const res = NextResponse.redirect(signIn);
+      stampAppClientIfNeeded(req, res);
+      return res;
+    }
+
+    const refreshed = await createAdminMfaCookieValue(userId, "ok", ADMIN_MFA_IDLE_TTL_SEC);
+    const res = NextResponse.next();
+    res.headers.set("x-pathname", pathname);
+    res.cookies.set(ADMIN_MFA_COOKIE, refreshed, {
+      ...adminSecurityCookieOptions(12 * 60 * 60),
+    });
     stampAppClientIfNeeded(req, res);
     return res;
   }
