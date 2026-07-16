@@ -5,7 +5,7 @@ import { PayButton } from "@/components/payments/pay-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { redeemFlowerGift, sendFlowerGift } from "@/actions/flower";
-import { FLOWER_CONTEXT_LABELS } from "@/lib/flower/config";
+import { FLOWER_CONTEXT_LABELS, FLOWER_REDEEM_FEE_BPS, FLOWER_REDEEM_NET_RATIO } from "@/lib/flower/config";
 import type { FlowerGiftContext } from "@prisma/client";
 
 type FlowerType = {
@@ -348,7 +348,7 @@ export function FlowerRedeemButton({
 }) {
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState("");
-  const net = Math.floor(faceValueKrw * 0.85);
+  const net = Math.floor(faceValueKrw * FLOWER_REDEEM_NET_RATIO);
 
   return (
     <div className="space-y-1">
@@ -371,7 +371,7 @@ export function FlowerRedeemButton({
               setMsg(
                 res.heldForReview
                   ? "위험 검토로 환전이 대기 중입니다."
-                  : `환전 요청 완료 · 예상 수령 ${net.toLocaleString()}원 (수수료 15%)`
+                  : `환전 요청 완료 · 예상 수령 ${net.toLocaleString()}원 (수수료 ${FLOWER_REDEEM_FEE_BPS / 100}%)`
               );
             if (!res.error) setTimeout(() => window.location.reload(), 800);
           })

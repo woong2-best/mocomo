@@ -20,6 +20,7 @@ import { Send, Inbox, Sparkles, Archive, Gift, Gem } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { SupportTierLevel } from "@prisma/client";
+import { FLOWER_REDEEM_FEE_BPS } from "@/lib/flower/config";
 
 const VALID_TABS = [
   "sent",
@@ -128,7 +129,7 @@ export default async function SupportPage({
         <div className="rounded-2xl border border-border/60 p-6 space-y-3">
           <p className="text-lg font-bold">Flower Gift</p>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            현금 가치가 있는 디지털 후원 꽃입니다. 구매 · 선물 · 재선물 · 환전(수수료 15%)이
+            현금 가치가 있는 디지털 후원 꽃입니다. 구매 · 선물 · 재선물 · 환전(수수료 {FLOWER_REDEEM_FEE_BPS / 100}%)이
             가능하며, 모든 이동은 원장으로 추적됩니다.
           </p>
           <Link

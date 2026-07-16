@@ -8,6 +8,7 @@ import {
   FlowerRedeemButton,
   FlowerSendForm,
 } from "@/components/flower/flower-widgets";
+import { FLOWER_REDEEM_FEE_BPS, FLOWER_REDEEM_NET_RATIO } from "@/lib/flower/config";
 import { SupportPageChrome, SupportPageTitle } from "@/components/support/support-page-chrome";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +42,7 @@ export default async function FlowersPage({
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Flower Gift</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            현금 가치 있는 디지털 후원 꽃 · 선물 · 재선물 · 환전 (수수료 15%)
+            현금 가치 있는 디지털 후원 꽃 · 선물 · 재선물 · 환전 (수수료 {FLOWER_REDEEM_FEE_BPS / 100}%)
           </p>
         </div>
       </SupportPageTitle>
@@ -56,9 +57,11 @@ export default async function FlowersPage({
           <p className="text-lg font-bold">{wallet.redeemableKrw.toLocaleString()}원</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">환전 시 예상 수령 (약 85%)</p>
+          <p className="text-xs text-muted-foreground">
+            환전 시 예상 수령 (약 {(FLOWER_REDEEM_NET_RATIO * 100).toFixed(0)}%)
+          </p>
           <p className="text-lg font-bold">
-            {Math.floor(wallet.redeemableKrw * 0.85).toLocaleString()}원
+            {Math.floor(wallet.redeemableKrw * FLOWER_REDEEM_NET_RATIO).toLocaleString()}원
           </p>
         </div>
       </div>

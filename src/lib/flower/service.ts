@@ -1,6 +1,6 @@
 import type { FlowerGiftContext, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { flowerRedeemFee } from "@/lib/flower/config";
+import { FLOWER_CATALOG_PRESET, FLOWER_REDEEM_FEE_BPS, flowerRedeemFee } from "@/lib/flower/config";
 import {
   appendFlowerLedger,
   flowerHeldBalanceKrw,
@@ -356,7 +356,7 @@ export async function payFlowerRedeem(
   await recordPlatformFee(redeem.feeAmountKrw, {
     referenceType: "flower_redeem_fee",
     referenceId: redeem.id,
-    memo: `Flower Gift 수수료 15%`,
+    memo: `Flower Gift 수수료 ${FLOWER_REDEEM_FEE_BPS / 100}%`,
   });
 
   await db.$transaction(async (tx) => {
@@ -511,62 +511,22 @@ export async function getFlowerWalletSnapshot(userId: string) {
 }
 
 export async function ensureFlowerCatalogSeeded() {
-  const count = await db.flowerType.count();
-  if (count > 0) return;
-  // Migration SQL seeds; this is a fallback for db push without SQL
-  const seed: Prisma.FlowerTypeCreateManyInput[] = [
-    {
-      slug: "rose",
-      nameKo: "로즈",
-      nameEn: "Rose",
-      emoji: "🌹",
-      priceKrw: 5000,
-      defaultMessage: "항상 응원합니다.",
-      animationKey: "bloom-soft",
-      sortOrder: 10,
-    },
-    {
-      slug: "cherry-blossom",
-      nameKo: "벚꽃",
-      nameEn: "Cherry Blossom",
-      emoji: "🌸",
-      priceKrw: 10000,
-      defaultMessage: "당신의 작품이 많은 사람들에게 봄처럼 다가가길 바랍니다.",
-      animationKey: "petals",
-      sortOrder: 20,
-    },
-    {
-      slug: "sunflower",
-      nameKo: "해바라기",
-      nameEn: "Sunflower",
-      emoji: "🌻",
-      priceKrw: 30000,
-      defaultMessage: "당신은 많은 사람들에게 빛이 되는 창작자입니다.",
-      animationKey: "sun-glow",
-      sortOrder: 30,
-    },
-    {
-      slug: "camellia",
-      nameKo: "동백",
-      nameEn: "Camellia",
-      emoji: "🌺",
-      priceKrw: 50000,
-      defaultMessage: "당신의 열정과 노력을 진심으로 응원합니다.",
-      animationKey: "deep-bloom",
-      sortOrder: 40,
-    },
-    {
-      slug: "lily",
-      nameKo: "백합",
-      nameEn: "Lily",
-      emoji: "🌼",
-      priceKrw: 100000,
-      defaultMessage: "최고의 존경과 감사의 마음을 담아 보냅니다.",
-      animationKey: "prestige",
-      sortOrder: 50,
-    },
-  ];
-  await db.flowerType.createMany({ data: seed, skipDuplicates: true });
+  const seed: Prisma.FlowerTypeCreateManyInput[] = FLOWER_CATALOG_PRESET.map((item) => ({ ...item }));
+  for (const item of seed) {
+    await db.flowerType.upsert({
+      where: { slug: item.slug },
+      create: item,
+      update: {
+        nameKo: item.nameKo,
+        nameEn: item.nameEn,
+        emoji: item.emoji,
+        priceKrw: item.priceKrw,
+        defaultMessage: item.defaultMessage,
+        animationKey: item.animationKey,
+        sortOrder: item.sortOrder,
+      },
+    });
+  }
 }
 
 export { newIdempotencyKey };
