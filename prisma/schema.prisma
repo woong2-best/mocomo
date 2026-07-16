@@ -194,6 +194,12 @@ model User {
   couponAssignments CouponAssignment[] @relation("CouponAssignee")
   couponAssignmentsGiven CouponAssignment[] @relation("CouponAssigner")
   couponUsages      CouponUsage[] @relation("CouponUsageUser")
+  promotionsCreated Promotion[] @relation("PromotionCreator")
+  promotionAssignments PromotionAssignment[] @relation("PromotionAssignee")
+  promotionAssignmentsGiven PromotionAssignment[] @relation("PromotionAssigner")
+  promotionUsages PromotionUsage[] @relation("PromotionUsageUser")
+  settlements Settlement[] @relation("SettlementUser")
+  settlementsDecided Settlement[] @relation("SettlementDecider")
   profile       Profile?
   cosplayerProfile CosplayerProfile?
   streamerProfile  StreamerProfile?
@@ -2753,6 +2759,219 @@ model CouponHistory {
   coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
 
   @@index([couponId, createdAt])
+}
+
+// ============ PROMOTION (auto-applied, no code) ============
+
+enum PromotionTrigger {
+  MANUAL
+  ON_SIGNUP
+  ON_FIRST_LIVE
+  ON_FIRST_SALE
+  ON_EVENT
+  SCHEDULED_DATE
+  CRON_RULE
+}
+
+enum PromotionAssignmentStatus {
+  ACTIVE
+  EXHAUSTED
+  EXPIRED
+  REVOKED
+}
+
+/** 코드 없이 계정에 귀속되어 정산 시 자동 적용되는 혜택 */
+model Promotion {
+  id                String            @id @default(cuid())
+  name              String
+  slug              String            @unique
+  description       String?           @db.Text
+  benefitType       CouponBenefitType
+  waiveUpToKrw      Int?
+  percentOff        Int?
+  fixedDiscountKrw  Int?
+  /** 낮을수록 우선 적용 (1 = 최우선) */
+  priority          Int               @default(100)
+  trigger           PromotionTrigger  @default(MANUAL)
+  /** 조건부 지급 규칙 JSON 배열 [{type,value}] */
+  rules             Json?
+  /** SCHEDULED_DATE / CRON 예약 */
+  scheduledAt       DateTime?
+  startsAt          DateTime          @default(now())
+  endsAt            DateTime?
+  active            Boolean           @default(true)
+  maxUsesPerUser    Int?
+  maxTotalUses      Int?
+  adminMemo         String?           @db.Text
+  createdById       String
+  assignedCount     Int               @default(0)
+  usedCount         Int               @default(0)
+  usedBenefitKrw    Int               @default(0)
+  /** 만료 알림 발송 플래그 (7/3/1일) */
+  expiryNotified7d  Boolean           @default(false)
+  expiryNotified3d  Boolean           @default(false)
+  expiryNotified1d  Boolean           @default(false)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  createdBy   User                   @relation("PromotionCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  assignments PromotionAssignment[]
+  usages      PromotionUsage[]
+  history     PromotionHistory[]
+
+  @@index([active, priority])
+  @@index([trigger, active])
+  @@index([endsAt])
+  @@index([createdAt])
+}
+
+model PromotionAssignment {
+  id                  String                     @id @default(cuid())
+  promotionId         String
+  userId              String
+  assignedById        String?
+  status              PromotionAssignmentStatus  @default(ACTIVE)
+  remainingBenefitKrw Int?
+  usedBenefitKrw      Int                        @default(0)
+  useCount            Int                        @default(0)
+  assignedAt          DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+
+  promotion  Promotion         @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  user       User              @relation("PromotionAssignee", fields: [userId], references: [id], onDelete: Cascade)
+  assignedBy User?             @relation("PromotionAssigner", fields: [assignedById], references: [id], onDelete: SetNull)
+  usages     PromotionUsage[]
+
+  @@unique([promotionId, userId])
+  @@index([userId, status])
+  @@index([promotionId, status])
+}
+
+model PromotionUsage {
+  id                String   @id @default(cuid())
+  promotionId       String
+  assignmentId      String
+  userId            String
+  referenceType     String
+  referenceId       String?
+  grossAmountKrw    Int
+  benefitAppliedKrw Int
+  feeBeforeKrw      Int
+  feeAfterKrw       Int
+  note              String?
+  createdAt         DateTime @default(now())
+
+  promotion  Promotion           @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  assignment PromotionAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  user       User                @relation("PromotionUsageUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([promotionId, createdAt])
+  @@index([userId, createdAt])
+  @@index([referenceType, referenceId])
+}
+
+model PromotionHistory {
+  id          String   @id @default(cuid())
+  promotionId String
+  actorId     String?
+  action      String
+  detail      String?  @db.Text
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+
+  @@index([promotionId, createdAt])
+}
+
+// ============ SETTLEMENT LEDGER (확장형 정산) ============
+
+enum SettlementStatus {
+  PENDING
+  REVIEW
+  APPROVED
+  REJECTED
+  PROCESSING
+  PAID
+  FAILED
+  CANCELLED
+}
+
+enum SettlementItemType {
+  TIP
+  EMOTICON
+  DIGITAL_PRODUCT
+  GOODS
+  AD
+  LIVE
+  PLATFORM_FEE
+  PROMOTION_DISCOUNT
+  COUPON_DISCOUNT
+  PAYOUT
+  OTHER
+}
+
+model Settlement {
+  id               String           @id @default(cuid())
+  userId           String
+  status           SettlementStatus @default(PENDING)
+  periodStart      DateTime?
+  periodEnd        DateTime?
+  grossAmountKrw   Int              @default(0)
+  feeAmountKrw     Int              @default(0)
+  discountAmountKrw Int             @default(0)
+  netAmountKrw     Int              @default(0)
+  currency         String           @default("krw")
+  title            String?
+  note             String?          @db.Text
+  decidedById      String?
+  decidedAt        DateTime?
+  paidAt           DateTime?
+  payoutRequestId  String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  user      User                @relation("SettlementUser", fields: [userId], references: [id], onDelete: Cascade)
+  decidedBy User?               @relation("SettlementDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+  items     SettlementItem[]
+  history   SettlementHistory[]
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@index([createdAt])
+}
+
+model SettlementItem {
+  id            String             @id @default(cuid())
+  settlementId  String
+  type          SettlementItemType
+  label         String
+  amountKrw     Int
+  referenceType String?
+  referenceId   String?
+  metadata      Json?
+  createdAt     DateTime           @default(now())
+
+  settlement Settlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+
+  @@index([settlementId])
+  @@index([type])
+}
+
+model SettlementHistory {
+  id           String            @id @default(cuid())
+  settlementId String
+  actorId      String?
+  action       String
+  fromStatus   SettlementStatus?
+  toStatus     SettlementStatus?
+  detail       String?           @db.Text
+  metadata     Json?
+  createdAt    DateTime          @default(now())
+
+  settlement Settlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+
+  @@index([settlementId, createdAt])
 }
 
 model PushSubscription {

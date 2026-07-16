@@ -782,6 +782,22 @@ export async function endLiveStream(channelId: string) {
     revalidatePath("/voice/new");
     revalidatePath(`/voice/${channelId}`);
     revalidateLiveHubCache();
+    try {
+      const priorLives = await db.voiceChannel.count({
+        where: {
+          createdBy: user.id,
+          id: { not: channelId },
+          OR: [{ endedAt: { not: null } }, { isLive: false }],
+        },
+      });
+      // 첫 라이브 종료로 간주 (이전에 끝난 방송이 거의 없을 때)
+      if (priorLives <= 1) {
+        const { runPromotionTrigger } = await import("@/lib/admin/services/promotions");
+        await runPromotionTrigger("ON_FIRST_LIVE", user.id);
+      }
+    } catch {
+      /* ignore */
+    }
   });
 
   return { success: true as const };

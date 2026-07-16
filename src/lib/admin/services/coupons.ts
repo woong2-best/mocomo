@@ -402,6 +402,49 @@ export async function exportCouponsCsv(query: CouponListQuery) {
   return [header, ...rows].join("\n");
 }
 
+/** 사용자가 코드 입력으로 쿠폰 수령 */
+export async function redeemCouponCode(userId: string, rawCode: string) {
+  const code = rawCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (code.length < 4) return { error: "유효하지 않은 코드입니다." };
+
+  const coupon = await db.coupon.findUnique({ where: { code } });
+  if (!coupon || !coupon.active) return { error: "쿠폰을 찾을 수 없습니다." };
+  if (coupon.endsAt && coupon.endsAt.getTime() < Date.now()) {
+    return { error: "만료된 쿠폰입니다." };
+  }
+  if (coupon.maxTotalUses != null && coupon.usedCount >= coupon.maxTotalUses) {
+    return { error: "지급 한도가 소진된 쿠폰입니다." };
+  }
+
+  try {
+    const assignment = await db.couponAssignment.create({
+      data: {
+        couponId: coupon.id,
+        userId,
+        remainingBenefitKrw:
+          coupon.benefitType === "FEE_WAIVER" ? coupon.waiveUpToKrw ?? 0 : null,
+        status: "ACTIVE",
+      },
+    });
+    await db.coupon.update({
+      where: { id: coupon.id },
+      data: { assignedCount: { increment: 1 } },
+    });
+    await appendHistory(coupon.id, userId, "REDEEM", `user=${userId}`);
+    const { createNotification } = await import("@/lib/notifications");
+    await createNotification({
+      userId,
+      type: "COUPON",
+      title: `쿠폰 등록: ${coupon.name}`,
+      body: formatCouponBenefit(coupon),
+      link: "/coupons",
+    });
+    return { success: true as const, assignment };
+  } catch {
+    return { error: "이미 등록한 쿠폰입니다." };
+  }
+}
+
 export async function getMyCoupons(userId: string) {
   const assignments = await db.couponAssignment.findMany({
     where: { userId },
@@ -456,8 +499,8 @@ export async function pickActiveFeeCouponForUser(userId: string): Promise<FeeCou
 }
 
 /**
- * 정산 수수료에 쿠폰 적용 후 DB에 사용 내역·잔여 혜택 반영.
- * referenceType 예: tip_settlement, payout, marketplace_settlement
+ * @deprecated Prefer applyBenefitsToSettlement — Coupon+Promotion 스택 적용
+ * 하위 호환용 래퍼
  */
 export async function applyCouponToSettlement(input: {
   userId: string;
@@ -466,59 +509,14 @@ export async function applyCouponToSettlement(input: {
   referenceId?: string;
   note?: string;
 }) {
-  const coupon = await pickActiveFeeCouponForUser(input.userId);
-  const split = computeFeeWithCoupon(input.grossAmountKrw, coupon);
-
-  if (!coupon || split.benefitAppliedKrw <= 0) {
-    return { ...split, usageId: null as string | null };
-  }
-
-  const usage = await db.$transaction(async (tx) => {
-    const u = await tx.couponUsage.create({
-      data: {
-        couponId: coupon.couponId,
-        assignmentId: coupon.assignmentId,
-        userId: input.userId,
-        referenceType: input.referenceType,
-        referenceId: input.referenceId ?? null,
-        grossAmountKrw: input.grossAmountKrw,
-        benefitAppliedKrw: split.benefitAppliedKrw,
-        feeBeforeKrw: split.feeBefore,
-        feeAfterKrw: split.platformFee,
-        note: input.note ?? null,
-      },
-    });
-
-    const nextRemaining =
-      coupon.benefitType === "FEE_WAIVER"
-        ? Math.max(0, (coupon.remainingBenefitKrw ?? 0) - split.waivedGrossKrw)
-        : coupon.remainingBenefitKrw;
-
-    const nextUseCount = coupon.useCount + 1;
-    const exhausted =
-      (coupon.benefitType === "FEE_WAIVER" && (nextRemaining ?? 0) <= 0) ||
-      (coupon.maxUsesPerUser != null && nextUseCount >= coupon.maxUsesPerUser);
-
-    await tx.couponAssignment.update({
-      where: { id: coupon.assignmentId },
-      data: {
-        remainingBenefitKrw: nextRemaining,
-        usedBenefitKrw: { increment: split.benefitAppliedKrw },
-        useCount: { increment: 1 },
-        status: exhausted ? "EXHAUSTED" : "ACTIVE",
-      },
-    });
-
-    await tx.coupon.update({
-      where: { id: coupon.couponId },
-      data: {
-        usedCount: { increment: 1 },
-        usedBenefitKrw: { increment: split.benefitAppliedKrw },
-      },
-    });
-
-    return u;
-  });
-
-  return { ...split, usageId: usage.id };
+  const { applyBenefitsToSettlement } = await import("@/lib/admin/services/promotions");
+  const preview = await applyBenefitsToSettlement(input);
+  return {
+    platformFee: preview.feeAfterKrw,
+    sellerAmount: preview.sellerAmountKrw,
+    feeBefore: preview.feeBeforeKrw,
+    benefitAppliedKrw: preview.discountAmountKrw,
+    waivedGrossKrw: 0,
+    usageId: null as string | null,
+  };
 }

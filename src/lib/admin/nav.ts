@@ -19,6 +19,7 @@ import {
   Shield,
   KeyRound,
   ScrollText,
+  Sparkles,
 } from "lucide-react";
 import type { AdminPermission } from "@/lib/admin/permissions";
 
@@ -34,7 +35,8 @@ export const ADMIN_PRIMARY_NAV: AdminNavItem[] = [
   { href: "/admin/users", label: "회원 관리", icon: Users, permission: "users" },
   { href: "/admin/creators", label: "크리에이터 관리", icon: Drama, permission: "creators" },
   { href: "/admin/settlements", label: "정산 관리", icon: CreditCard, permission: "settlements" },
-  { href: "/admin/coupons", label: "쿠폰 / 프로모션", icon: TicketPercent, permission: "coupons" },
+  { href: "/admin/coupons", label: "쿠폰", icon: TicketPercent, permission: "coupons" },
+  { href: "/admin/promotions", label: "프로모션", icon: Sparkles, permission: "coupons" },
   { href: "/admin/products", label: "상품 관리", icon: ShoppingBag, permission: "products" },
   { href: "/admin/communities", label: "커뮤니티 관리", icon: MessagesSquare, permission: "communities" },
   { href: "/admin/live", label: "라이브 관리", icon: Radio, permission: "live" },

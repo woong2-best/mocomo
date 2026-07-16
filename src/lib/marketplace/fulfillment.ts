@@ -181,6 +181,24 @@ export async function fulfillMarketplaceOrder(params: {
     link: `/market/orders/${order.id}`,
   });
 
+  try {
+    const priorSales = await db.marketplaceOrder.count({
+      where: {
+        sellerId: order.sellerId,
+        id: { not: order.id },
+        status: {
+          in: ["PAID", "PREPARING", "SHIPPED", "DELIVERED", "CONFIRMED", "SETTLED", "ADMIN_REVIEW"],
+        },
+      },
+    });
+    if (priorSales === 0) {
+      const { runPromotionTrigger } = await import("@/lib/admin/services/promotions");
+      await runPromotionTrigger("ON_FIRST_SALE", order.sellerId);
+    }
+  } catch {
+    /* ignore */
+  }
+
   return { ok: true as const, orderId: order.id };
 }
 

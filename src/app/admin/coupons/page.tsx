@@ -24,9 +24,13 @@ export default async function AdminCouponsPage({
   return (
     <div className="mx-auto max-w-6xl space-y-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">쿠폰 / 프로모션</h1>
+        <h1 className="text-2xl font-bold tracking-tight">쿠폰</h1>
         <p className="text-sm text-muted-foreground">
-          수수료 면제·할인 쿠폰 관리 · 실DB CRUD
+          코드 입력형 혜택 ·{" "}
+          <a href="/admin/promotions" className="underline">
+            프로모션(자동 적용)
+          </a>{" "}
+          과 병행 · 실DB CRUD
         </p>
       </div>
       <Suspense fallback={<p className="text-sm text-muted-foreground">로딩…</p>}>
