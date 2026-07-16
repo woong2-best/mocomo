@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
     const data = await cachedSearch(key, q);
     const viewerId = await getAuthUserId();
     const users = await enrichSearchUsersWithFollowStatus(viewerId, data.users);
+    // 미리보기(/api/search)는 집계하지 않음 — /search 페이지 진입 시 recordSearchEvent
 
     return NextResponse.json(
       { ok: true, query: q, ...data, users },

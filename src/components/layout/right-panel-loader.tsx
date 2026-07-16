@@ -29,13 +29,20 @@ export function RightPanelLoader() {
         const body = await res.json();
         if (cancelled || !body.ok) return;
         setData({
-          animes: body.animes ?? [],
+          trendingQueries: body.trendingQueries ?? [],
           tips: body.tips ?? [],
           sidebarAds: body.sidebarAds ?? [],
           eventPins: body.eventPins ?? [],
         });
       } catch {
-        if (!cancelled) setData({ animes: [], tips: [], sidebarAds: [], eventPins: [] });
+        if (!cancelled) {
+          setData({
+            trendingQueries: [],
+            tips: [],
+            sidebarAds: [],
+            eventPins: [],
+          });
+        }
       }
     })();
 

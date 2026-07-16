@@ -37,6 +37,10 @@
     {
       "path": "/api/cron/promotions",
       "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/cron/search-trends",
+      "schedule": "*/10 * * * *"
     }
   ],
   "functions": {
@@ -69,6 +73,9 @@
     },
     "src/app/api/cron/promotions/route.ts": {
       "maxDuration": 120
+    },
+    "src/app/api/cron/search-trends/route.ts": {
+      "maxDuration": 60
     },
     "src/app/api/studio/upload/route.ts": {
       "maxDuration": 60

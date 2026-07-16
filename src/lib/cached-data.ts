@@ -160,15 +160,24 @@ export const getCachedExploreData = unstable_cache(
   { revalidate: 60 }
 );
 
+export const getCachedTrendingSearchQueries = unstable_cache(
+  async () => {
+    const { getTrendingFromSnapshot } = await import("@/lib/search/trends");
+    return getTrendingFromSnapshot("query", "7d", 10);
+  },
+  ["sidebar-search-ranking-v1"],
+  { revalidate: 120 }
+);
+
 /** 우측 패널 — 서버에서 직접 로드 (클라이언트 fetch waterfall 제거) */
 export async function getCachedSidebarPanelData() {
-  const [animes, tips, sidebarAds, eventPins] = await Promise.all([
-    getCachedPopularAnime(),
+  const [trendingQueries, tips, sidebarAds, eventPins] = await Promise.all([
+    getCachedTrendingSearchQueries(),
     getCachedSidebarTips(),
     getCachedSidebarAds(),
     getSubcultureMapPins(36),
   ]);
-  return { animes, tips, sidebarAds, eventPins };
+  return { trendingQueries, tips, sidebarAds, eventPins };
 }
 
 export const getCachedRankingsData = unstable_cache(

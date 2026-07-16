@@ -22,6 +22,7 @@ import {
   Sparkles,
   Lock,
   History,
+  Search,
 } from "lucide-react";
 import type { AdminPermission } from "@/lib/admin/permissions";
 
@@ -45,6 +46,7 @@ export const ADMIN_PRIMARY_NAV: AdminNavItem[] = [
   { href: "/admin/reports", label: "신고 관리", icon: ShieldAlert, permission: "reports" },
   { href: "/admin/ads", label: "광고 관리", icon: Megaphone, permission: "ads" },
   { href: "/admin/statistics", label: "통계", icon: BarChart3, permission: "statistics" },
+  { href: "/admin/search", label: "검색 통계", icon: Search, permission: "statistics" },
   { href: "/admin/roles", label: "관리자 계정", icon: KeyRound, permission: "admins" },
   { href: "/admin/audit", label: "감사 로그", icon: ScrollText, permission: "audit" },
   { href: "/admin/security/logins", label: "로그인 기록", icon: History, permission: "audit" },

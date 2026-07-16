@@ -41,14 +41,19 @@ export function RightPanelHydrated({
         const body = await res.json();
         if (cancelled || !body.ok) return;
         setData({
-          animes: body.animes ?? [],
+          trendingQueries: body.trendingQueries ?? [],
           tips: body.tips ?? [],
           sidebarAds: body.sidebarAds ?? [],
           eventPins: body.eventPins ?? [],
         });
       } catch {
         if (!cancelled) {
-          setData({ animes: [], tips: [], sidebarAds: [], eventPins: [] });
+          setData({
+            trendingQueries: [],
+            tips: [],
+            sidebarAds: [],
+            eventPins: [],
+          });
         }
       } finally {
         if (!cancelled) setLoading(false);

@@ -401,6 +401,8 @@ model User {
   adminTrustedDevices      AdminTrustedDevice[]
   adminLoginAttempts       AdminLoginAttempt[]
   adminAuthLockout         AdminAuthLockout?
+
+  searchLogs SearchLog[] @relation("SearchLogUser")
 }
 
 model Account {
@@ -2223,6 +2225,116 @@ model WikiSearchQuery {
   count     Int      @default(1)
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
+}
+
+/** 정규화된 검색어 단위 집계 (Keyword) */
+model SearchQuery {
+  id              String    @id @default(cuid())
+  normalizedQuery String    @unique
+  displayQuery    String
+  topicId         String?
+  searchCount     Int       @default(0)
+  clickCount      Int       @default(0)
+  zeroResultCount Int       @default(0)
+  lastSearchedAt  DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  topic    SearchTopic?         @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  variants SearchQueryVariant[]
+  logs     SearchLog[]
+
+  @@index([topicId])
+  @@index([searchCount(sort: Desc)])
+  @@index([lastSearchedAt(sort: Desc)])
+}
+
+/** 사용자가 실제로 입력한 원본 검색어 변형 */
+model SearchQueryVariant {
+  id            String   @id @default(cuid())
+  queryId       String
+  originalQuery String   @unique
+  count         Int      @default(1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  query SearchQuery @relation(fields: [queryId], references: [id], onDelete: Cascade)
+
+  @@index([queryId])
+  @@index([count(sort: Desc)])
+}
+
+/** 검색 주제 (여러 Keyword를 묶음) */
+model SearchTopic {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  searchCount Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  keywords SearchTopicKeyword[]
+  queries  SearchQuery[]
+  logs     SearchLog[]
+
+  @@index([searchCount(sort: Desc)])
+}
+
+model SearchTopicKeyword {
+  id        String   @id @default(cuid())
+  topicId   String
+  keyword   String
+  createdAt DateTime @default(now())
+
+  topic SearchTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([topicId, keyword])
+  @@unique([keyword])
+  @@index([topicId])
+}
+
+/** 개별 검색 이벤트 로그 */
+model SearchLog {
+  id               String   @id @default(cuid())
+  originalQuery    String
+  normalizedQuery  String
+  queryId          String?
+  topicId          String?
+  userId           String?
+  ipHash           String?
+  country          String?
+  locale           String?
+  resultCount      Int      @default(0)
+  clickedType      String?
+  clickedId        String?
+  createdAt        DateTime @default(now())
+
+  query SearchQuery? @relation(fields: [queryId], references: [id], onDelete: SetNull)
+  topic SearchTopic? @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  user  User?        @relation("SearchLogUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([normalizedQuery, createdAt(sort: Desc)])
+  @@index([queryId, createdAt(sort: Desc)])
+  @@index([topicId, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([resultCount, createdAt(sort: Desc)])
+}
+
+/** 주기 집계 스냅샷 (인기 검색어 / Topic TOP) */
+model SearchTrendSnapshot {
+  id         String   @id @default(cuid())
+  period     String
+  kind       String
+  rank       Int
+  refId      String
+  label      String
+  count      Int
+  computedAt DateTime @default(now())
+
+  @@unique([period, kind, rank])
+  @@index([period, kind, count(sort: Desc)])
+  @@index([computedAt])
 }
 
 model AnimeFollow {

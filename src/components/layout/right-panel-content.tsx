@@ -3,16 +3,21 @@
 import type { SupportTierLevel } from "@prisma/client";
 import { FALLBACK_SIDEBAR_ADS } from "@/lib/default-ads";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tv, Megaphone } from "lucide-react";
+import { Search, Megaphone } from "lucide-react";
 import { SponsorEventSpot } from "@/components/events/sponsor-event-spot";
 import { RightPanelComposeButton } from "@/components/layout/right-panel-compose";
-import { PopularAnimeSidebarList } from "@/components/layout/popular-anime-sidebar-list";
+import {
+  SearchRankingSidebarList,
+  type SidebarTrendingQuery,
+} from "@/components/layout/search-ranking-sidebar-list";
 import { SidebarEventMapCard } from "@/components/events/sidebar-event-map-card";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { MapEventPin } from "@/lib/subculture-events";
 
 export type SidebarPanelData = {
-  animes: { id: string; slug: string; title: string; titleEn: string | null; viewCount: number }[];
+  /** @deprecated 검색어 순위로 대체 — 하위 호환 */
+  animes?: { id: string; slug: string; title: string; titleEn: string | null; viewCount: number }[];
+  trendingQueries: SidebarTrendingQuery[];
   tips: {
     rank: number;
     total: number;
@@ -37,7 +42,11 @@ export function RightPanelSkeleton() {
   );
 }
 
-export function RightPanelContent({ animes, sidebarAds, eventPins }: SidebarPanelData) {
+export function RightPanelContent({
+  trendingQueries,
+  sidebarAds,
+  eventPins,
+}: SidebarPanelData) {
   const { t } = useLocale();
   const ads =
     sidebarAds.length > 0
@@ -66,12 +75,12 @@ export function RightPanelContent({ animes, sidebarAds, eventPins }: SidebarPane
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2 font-display font-bold text-folk-cobalt">
-            <Tv className="h-4 w-4 text-folk-cobalt" />
-            {t("sidebar.popularAnime")}
+            <Search className="h-4 w-4 text-folk-cobalt" />
+            {t("sidebar.searchRanking")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <PopularAnimeSidebarList animes={animes} />
+          <SearchRankingSidebarList items={trendingQueries ?? []} />
         </CardContent>
       </Card>
 

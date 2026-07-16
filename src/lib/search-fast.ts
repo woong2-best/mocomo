@@ -2,7 +2,8 @@ import { db } from "@/lib/db";
 import { filterChannelsWithPresentHost } from "@/lib/live-abandon";
 import { isHashtagSearchQuery } from "@/lib/linkify";
 import { parseHashtagFromQuery } from "@/lib/hashtag-search";
-import { getPopularWikiSearchQueries, logWikiSearchQuery } from "@/lib/wiki-search";
+import { getPopularWikiSearchQueries } from "@/lib/wiki-search";
+import { suggestSearchQueries } from "@/lib/search/suggest";
 import type { SupportTierLevel } from "@prisma/client";
 
 export type SearchSuggestion = {
@@ -131,10 +132,6 @@ export async function runFastSearch(query: string): Promise<FastSearchResult> {
     return { suggestions: [], users: [], animes: [], posts: [], liveStreams: [] };
   }
 
-  if (q.length >= 2) {
-    void logWikiSearchQuery(q);
-  }
-
   const userWhere =
     q.length <= 20 && !/\s/.test(q)
       ? {
@@ -246,7 +243,19 @@ export async function runFastSearch(query: string): Promise<FastSearchResult> {
 
   const liveRows = await filterChannelsWithPresentHost(liveStreamsRaw);
   const liveStreams = liveRows.map(({ id, name, category }) => ({ id, name, category }));
-  const suggestions = buildSuggestions(q, animes, liveStreams, popular);
+  const autoSuggest = await suggestSearchQueries(q, 8).catch(() => []);
+  const legacySuggestions = buildSuggestions(q, animes, liveStreams, popular);
+  const autoAsSuggestions: SearchSuggestion[] = autoSuggest.map((s) => ({
+    id: `trend:${s.normalized}`,
+    label: s.query,
+    sublabel: "인기 검색어",
+    href: `/search?q=${encodeURIComponent(s.query)}`,
+    kind: "trend" as const,
+  }));
+  const seenIds = new Set<string>();
+  const suggestions = [...autoAsSuggestions, ...legacySuggestions]
+    .filter((s) => (seenIds.has(s.id) ? false : (seenIds.add(s.id), true)))
+    .slice(0, 12);
 
   return { suggestions, users, animes, posts, liveStreams };
 }

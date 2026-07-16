@@ -9,20 +9,35 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const countryParam = searchParams.get("country");
     const countryCode = countryParam?.toUpperCase() || (await getRequestCountryCode());
-    const { animes, tips, sidebarAds, eventPins } = await getCachedSidebarPanelData();
+    const { trendingQueries, tips, sidebarAds, eventPins } =
+      await getCachedSidebarPanelData();
     const filteredPins = resolveSubculturePinsForUser(eventPins, countryCode).slice(0, 12);
     return NextResponse.json(
-      { ok: true, animes, tips, sidebarAds, eventPins: filteredPins },
+      {
+        ok: true,
+        trendingQueries,
+        animes: [],
+        tips,
+        sidebarAds,
+        eventPins: filteredPins,
+      },
       {
         headers: {
-          "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200",
+          "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
         },
       }
     );
   } catch (e) {
     console.error("[api/sidebar]", e);
     return NextResponse.json(
-      { ok: true, animes: [], tips: [], sidebarAds: [], eventPins: [] },
+      {
+        ok: true,
+        trendingQueries: [],
+        animes: [],
+        tips: [],
+        sidebarAds: [],
+        eventPins: [],
+      },
       { status: 200, headers: { "Cache-Control": "public, s-maxage=30" } }
     );
   }

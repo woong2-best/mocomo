@@ -7,6 +7,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { userDisplayName } from "@/lib/user-public-select";
 import { isLiveFeatureEnabled } from "@/lib/live-feature";
+import { recordSearchEvent } from "@/lib/search/record";
+import { getRelatedSearchQueries } from "@/lib/search/suggest";
 
 export async function SearchResultsAsync({ query }: { query: string }) {
   if (!query) return null;
@@ -26,6 +28,14 @@ export async function SearchResultsAsync({ query }: { query: string }) {
   )();
   const users = await enrichSearchUsersWithFollowStatus(viewerId, cached.users);
   const { animes, posts, liveStreams } = cached;
+  const resultCount =
+    users.length + animes.length + posts.length + liveStreams.length;
+  void recordSearchEvent({
+    rawQuery: q,
+    resultCount,
+    userId: viewerId,
+  }).catch(() => undefined);
+  const related = await getRelatedSearchQueries(q, 8).catch(() => []);
 
   return (
     <>
@@ -111,6 +121,22 @@ export async function SearchResultsAsync({ query }: { query: string }) {
       </section>
       {animes.length === 0 && users.length === 0 && posts.length === 0 && (
         <p className="text-sm text-muted-foreground">검색 결과가 없습니다.</p>
+      )}
+      {related.length > 0 && (
+        <section className="pt-2">
+          <h2 className="text-sm font-semibold text-muted-foreground mb-2">연관 검색어</h2>
+          <div className="flex flex-wrap gap-2">
+            {related.map((r) => (
+              <Link
+                key={r.normalized}
+                href={`/search?q=${encodeURIComponent(r.query)}`}
+                className="rounded-full border px-3 py-1 text-xs hover:border-primary/40 hover:bg-muted/50"
+              >
+                {r.query}
+              </Link>
+            ))}
+          </div>
+        </section>
       )}
     </>
   );

@@ -1,7 +1,7 @@
 import {
-  getCachedPopularAnime,
   getCachedSidebarAds,
   getCachedSidebarTips,
+  getCachedTrendingSearchQueries,
 } from "@/lib/cached-data";
 import { RightPanelContent } from "@/components/layout/right-panel-content";
 import { getSubcultureMapPins } from "@/lib/subculture-events";
@@ -14,8 +14,8 @@ export { RightPanelSkeleton } from "@/components/layout/right-panel-content";
 export async function RightPanel() {
   try {
     const countryCode = await getRequestCountryCode();
-    const [animes, tips, sidebarAds, allPins] = await Promise.all([
-      getCachedPopularAnime(),
+    const [trendingQueries, tips, sidebarAds, allPins] = await Promise.all([
+      getCachedTrendingSearchQueries(),
       getCachedSidebarTips(),
       getCachedSidebarAds(),
       getSubcultureMapPins(36),
@@ -23,7 +23,7 @@ export async function RightPanel() {
     const eventPins = resolveSubculturePinsForUser(allPins, countryCode).slice(0, 12);
     return (
       <RightPanelContent
-        animes={animes}
+        trendingQueries={trendingQueries}
         tips={tips}
         sidebarAds={sidebarAds}
         eventPins={eventPins}
@@ -31,7 +31,12 @@ export async function RightPanel() {
     );
   } catch {
     return (
-      <RightPanelContent animes={[]} tips={[]} sidebarAds={[]} eventPins={[]} />
+      <RightPanelContent
+        trendingQueries={[]}
+        tips={[]}
+        sidebarAds={[]}
+        eventPins={[]}
+      />
     );
   }
 }

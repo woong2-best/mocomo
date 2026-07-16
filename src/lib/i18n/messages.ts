@@ -33,6 +33,8 @@ export type MessageKey =
   | "nav.tier"
   | "sidebar.sponsored"
   | "sidebar.popularAnime"
+  | "sidebar.searchRanking"
+  | "sidebar.searchRankingEmpty"
   | "sidebar.animeHubLink"
   | "sidebar.eventsMapTitle"
   | "sidebar.eventsMapExpand"
@@ -396,6 +398,8 @@ const ko: Record<MessageKey, string> = {
   "nav.tier": "등급",
   "sidebar.sponsored": "스폰서",
   "sidebar.popularAnime": "인기 애니",
+  "sidebar.searchRanking": "검색어 순위",
+  "sidebar.searchRankingEmpty": "아직 집계된 검색어가 없습니다.",
   "sidebar.animeHubLink": "컬쳐 위키 가기 →",
   "sidebar.eventsMapTitle": "서브컬처·애니 행사 지도",
   "sidebar.eventsMapExpand": "지도 크게 보기 →",
@@ -761,6 +765,8 @@ const en: Record<MessageKey, string> = {
   "nav.tier": "Tier",
   "sidebar.sponsored": "Sponsored",
   "sidebar.popularAnime": "Popular anime",
+  "sidebar.searchRanking": "Search ranking",
+  "sidebar.searchRankingEmpty": "No search rankings yet.",
   "sidebar.animeHubLink": "Open Culture Wiki →",
   "sidebar.eventsMapTitle": "Subculture & anime event map",
   "sidebar.eventsMapExpand": "View full map →",
@@ -1126,6 +1132,8 @@ const ja: Record<MessageKey, string> = {
   "nav.tier": "ランク",
   "sidebar.sponsored": "スポンサー",
   "sidebar.popularAnime": "人気アニメ",
+  "sidebar.searchRanking": "検索ワード順位",
+  "sidebar.searchRankingEmpty": "まだ集計がありません。",
   "sidebar.animeHubLink": "カルチャーWikiへ →",
   "sidebar.eventsMapTitle": "サブカル・アニメイベント地図",
   "sidebar.eventsMapExpand": "地図を大きく見る →",
@@ -1491,6 +1499,8 @@ const zh: Record<MessageKey, string> = {
   "nav.tier": "等级",
   "sidebar.sponsored": "赞助",
   "sidebar.popularAnime": "热门动漫",
+  "sidebar.searchRanking": "搜索词排名",
+  "sidebar.searchRankingEmpty": "暂无搜索排名。",
   "sidebar.animeHubLink": "前往文化百科 →",
   "sidebar.eventsMapTitle": "亚文化·动漫活动地图",
   "sidebar.eventsMapExpand": "查看大地图 →",
