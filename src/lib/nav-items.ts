@@ -3,7 +3,7 @@ import {
   User,
   MessageCircle,
   Star,
-  Banknote,
+  Wallet,
   Tv,
   PenSquare,
   Radio,
@@ -38,7 +38,7 @@ export const mainNavItems: NavItem[] = [
   { href: "/used", icon: Tags, labelKey: "nav.used" },
   { href: "/events", icon: Calendar, labelKey: "nav.events" },
   { href: "/support", icon: SupportTrophyIcon, labelKey: "nav.support" },
-  { href: "/wallet", icon: Banknote, labelKey: "nav.wallet" },
+  { href: "/wallet", icon: Wallet, labelKey: "nav.wallet" },
   { href: "/premium", icon: Crown, labelKey: "nav.premium" },
   { href: "/compose", icon: PenSquare, labelKey: "nav.compose" },
 ];

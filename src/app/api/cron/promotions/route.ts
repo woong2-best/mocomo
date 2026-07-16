@@ -1,23 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isProduction, verifyInternalSecret } from "@/lib/api-security";
-import {
-  notifyPromotionExpiries,
-  runScheduledPromotionAssignments,
-} from "@/lib/admin/services/promotions";
+import { runPlatformSchedulerTick } from "@/lib/platform/scheduler";
+import { processPendingDeliveries } from "@/lib/platform/notification-center";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
-/** Vercel Cron — 프로모션 만료 알림 + 예약 지급 */
+/** Vercel Cron — Platform Scheduler (Promotion · 만료 · 예약 · 알림 큐) */
 export async function GET(req: NextRequest) {
   if (isProduction() && !verifyInternalSecret(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const [expiry, scheduled] = await Promise.all([
-    notifyPromotionExpiries(),
-    runScheduledPromotionAssignments(),
+  const [scheduler, deliveries] = await Promise.all([
+    runPlatformSchedulerTick(),
+    processPendingDeliveries(100),
   ]);
 
-  return NextResponse.json({ ok: true, expiry, scheduled });
+  return NextResponse.json({ ok: true, scheduler, deliveries });
 }

@@ -60,6 +60,7 @@ export function AdminSettlementsPanel({
     sellerAmountKrw: number;
     feeAfterKrw: number;
     appliedPromotion: { name: string } | null;
+    appliedPromotions?: { name: string }[];
     appliedCoupon: unknown;
     steps: { label: string; saved: number }[];
   } | null>(null);
@@ -81,6 +82,7 @@ export function AdminSettlementsPanel({
             appliedPromotion: res.data.appliedPromotion
               ? { name: res.data.appliedPromotion.name }
               : null,
+            appliedPromotions: res.data.appliedPromotions?.map((p) => ({ name: p.name })),
             appliedCoupon: res.data.appliedCoupon,
             steps: res.data.steps,
           });
@@ -113,7 +115,11 @@ export function AdminSettlementsPanel({
             </p>
             <p>
               적용될 Promotion{" "}
-              <strong>{preview.appliedPromotion?.name ?? "없음"}</strong>
+              <strong>
+                {preview.appliedPromotions?.length
+                  ? preview.appliedPromotions.map((p) => p.name).join(" + ")
+                  : preview.appliedPromotion?.name ?? "없음"}
+              </strong>
               {preview.appliedCoupon ? " · Coupon 병행" : ""}
             </p>
             <p>

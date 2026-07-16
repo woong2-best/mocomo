@@ -200,6 +200,7 @@ model User {
   promotionUsages PromotionUsage[] @relation("PromotionUsageUser")
   settlements Settlement[] @relation("SettlementUser")
   settlementsDecided Settlement[] @relation("SettlementDecider")
+  platformWallet PlatformWallet?
   profile       Profile?
   cosplayerProfile CosplayerProfile?
   streamerProfile  StreamerProfile?
@@ -2792,6 +2793,12 @@ model Promotion {
   fixedDiscountKrw  Int?
   /** 낮을수록 우선 적용 (1 = 최우선) */
   priority          Int               @default(100)
+  /** 다른 Promotion과 스택(동시 적용) 가능 여부 */
+  stackable         Boolean           @default(false)
+  /** 동일 Promotion 중복 적용 허용 (보통 false) */
+  allowDuplicate    Boolean           @default(false)
+  /** 한 정산에 Promotion 스택 최대 개수 (전역 상한과 min) */
+  maxStackPerSettlement Int           @default(1)
   trigger           PromotionTrigger  @default(MANUAL)
   /** 조건부 지급 규칙 JSON 배열 [{type,value}] */
   rules             Json?
@@ -2972,6 +2979,130 @@ model SettlementHistory {
   settlement Settlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
 
   @@index([settlementId, createdAt])
+}
+
+/**
+ * 불변 정산 원장 — 금액 변화는 append-only.
+ * 수정·삭제 금지 (애플리케이션 레벨).
+ */
+model SettlementLedgerEntry {
+  id            String   @id @default(cuid())
+  settlementId  String?
+  userId        String
+  /** TIP | PROMOTION | COUPON | PLATFORM_FEE | PAYOUT | ADJUSTMENT | OTHER */
+  entryType     String
+  label         String
+  /** 부호 있는 금액 (원). 수익 +, 차감 - */
+  amountKrw     Int
+  balanceAfterKrw Int?
+  referenceType String?
+  referenceId   String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  @@index([settlementId, createdAt])
+  @@index([userId, createdAt])
+  @@index([entryType, createdAt])
+}
+
+/** 플랫폼 Wallet (MOCO 포인트 · 크레딧) — 현금 정산과 분리 */
+model PlatformWallet {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  mocoPoints      Int      @default(0)
+  siteCreditKrw   Int      @default(0)
+  promoCreditKrw  Int      @default(0)
+  refundCreditKrw Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user    User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ledgers PlatformWalletLedger[]
+}
+
+model PlatformWalletLedger {
+  id            String   @id @default(cuid())
+  walletId      String
+  /** MOCO_POINTS | SITE_CREDIT | PROMO_CREDIT | REFUND_CREDIT */
+  bucket        String
+  delta         Int
+  balanceAfter  Int
+  reason        String
+  referenceType String?
+  referenceId   String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  wallet PlatformWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId, createdAt])
+  @@index([bucket, createdAt])
+}
+
+/** 재배포 없이 ON/OFF — Feature Flag */
+model FeatureFlag {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  enabled     Boolean  @default(true)
+  description String?
+  metadata    Json?
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([enabled])
+}
+
+/** 일반화 Scheduler 작업 정의 */
+model ScheduledJob {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  /** promotions.expiry | promotions.assign | settlements.stats | mail.digest | custom */
+  jobType     String
+  cronExpr    String?
+  payload     Json?
+  enabled     Boolean   @default(true)
+  lastRunAt   DateTime?
+  lastStatus  String?
+  lastError   String?   @db.Text
+  nextRunAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  runs ScheduledJobRun[]
+
+  @@index([enabled, nextRunAt])
+  @@index([jobType])
+}
+
+model ScheduledJobRun {
+  id        String   @id @default(cuid())
+  jobId     String
+  status    String
+  detail    String?  @db.Text
+  startedAt DateTime @default(now())
+  finishedAt DateTime?
+
+  job ScheduledJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId, startedAt])
+}
+
+/** 멀티채널 알림 발송 기록 (IN_APP / EMAIL / PUSH / WEBHOOK) */
+model NotificationDelivery {
+  id             String   @id @default(cuid())
+  notificationId String?
+  userId         String?
+  channel        String
+  status         String   @default("PENDING")
+  payload        Json?
+  error          String?  @db.Text
+  createdAt      DateTime @default(now())
+  sentAt         DateTime?
+
+  @@index([channel, status, createdAt])
+  @@index([userId, createdAt])
+  @@index([notificationId])
 }
 
 model PushSubscription {

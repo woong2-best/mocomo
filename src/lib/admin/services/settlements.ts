@@ -4,6 +4,9 @@ import { logSiteAdminAudit } from "@/lib/site-admin-audit";
 import type { AdminActor } from "@/lib/admin/access";
 import { previewUserSettlementBenefits } from "@/lib/admin/services/promotions";
 import { createNotification } from "@/lib/notifications";
+import { writeBenefitPreviewLedger } from "@/lib/platform/settlement-ledger";
+import { emitPlatformEvent } from "@/lib/platform/event-bus";
+import "@/lib/platform/register-handlers";
 
 async function appendHistory(
   settlementId: string,
@@ -100,6 +103,20 @@ export async function createSettlementDraft(input: {
     "PENDING",
     "draft created"
   );
+
+  await writeBenefitPreviewLedger({
+    settlementId: settlement.id,
+    userId: input.userId,
+    grossAmountKrw: preview.grossAmountKrw,
+    feeBeforeKrw: preview.feeBeforeKrw,
+    feeAfterKrw: preview.feeAfterKrw,
+    discountAmountKrw: preview.discountAmountKrw,
+    sellerAmountKrw: preview.sellerAmountKrw,
+    promotionNames: preview.appliedPromotions.map((p) => p.name),
+    couponApplied: !!preview.appliedCoupon,
+    referenceType: "settlement_draft",
+    referenceId: settlement.id,
+  });
 
   return { settlement, preview };
 }
@@ -207,10 +224,22 @@ export async function transitionSettlement(
       type: "SETTLEMENT",
       title: titles[toStatus]!,
       body: note || `정산 #${settlementId.slice(0, 8)} · ₩${s.netAmountKrw.toLocaleString()}`,
-      link: "/wallet",
+      link: "/support?tab=settlement",
       actorId: actor.id,
     });
   }
+
+  await emitPlatformEvent(
+    toStatus === "APPROVED"
+      ? "SettlementApproved"
+      : toStatus === "PAID"
+        ? "SettlementPaid"
+        : toStatus === "REJECTED"
+          ? "SettlementRejected"
+          : "SettlementStatusChanged",
+    { settlementId, toStatus, userId: s.userId, netAmountKrw: s.netAmountKrw },
+    actor.id
+  );
 
   return { success: true as const, settlement: updated };
 }

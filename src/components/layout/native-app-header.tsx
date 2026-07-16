@@ -73,7 +73,9 @@ function titleForPath(pathname: string, t: (key: MessageKey, vars?: Record<strin
   if (pathname === "/discover/matches") return "매칭 목록";
   if (pathname === "/discover/settings") return "매칭 설정";
   if (pathname.startsWith("/discover/")) return "매칭";
-  if (pathname === "/wallet") return "정산 · 출금";
+  if (pathname === "/wallet") return "Wallet";
+  if (pathname.startsWith("/support/emoticons")) return "이모티콘";
+  if (pathname.startsWith("/support")) return "후원 정산 출금";
   if (pathname === "/premium") return "프리미엄";
   if (pathname === "/search") return "검색";
   if (pathname === "/rankings") return "랭킹";
@@ -121,7 +123,6 @@ function titleForPath(pathname: string, t: (key: MessageKey, vars?: Record<strin
   if (pathname === "/my-page") return t("nav.myPage");
   if (pathname === "/compose") return "글쓰기";
   if (pathname.startsWith("/support/emoticons")) return "이모티콘";
-  if (pathname.startsWith("/support")) return "후원";
   if (pathname.startsWith("/avatar")) return "아바타";
   return null;
 }

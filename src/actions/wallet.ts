@@ -30,6 +30,7 @@ export async function saveBankAccount(data: {
       update: { bankName, accountNumber, holderName },
     });
     revalidatePath("/wallet");
+    revalidatePath("/support");
     return { success: true };
   } catch {
     return { error: "계좌 저장에 실패했습니다. DB 섹션 L을 실행해 주세요." };
@@ -83,6 +84,7 @@ export async function requestPayout(amount: number) {
     });
 
     revalidatePath("/wallet");
+    revalidatePath("/support");
     revalidatePath("/admin/finance");
     return { success: true };
   } catch {

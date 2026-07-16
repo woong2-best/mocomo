@@ -42,21 +42,28 @@ async function history(
 }
 
 export async function buildRuleContext(userId: string): Promise<RuleEvalContext> {
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    select: {
-      role: true,
-      premiumTier: true,
-      premiumUntil: true,
-      supportTierReceived: true,
-      _count: { select: { followers: true } },
-      digitalProducts: { select: { id: true }, take: 1 },
-      marketplaceListings: { select: { id: true }, take: 1 },
-      marketplaceOrdersSold: { select: { id: true }, take: 1 },
-      creatorEpisodes: { select: { id: true }, take: 1 },
-      streamerProfile: { select: { id: true } },
-    },
-  });
+  const [user, liveCount] = await Promise.all([
+    db.user.findUnique({
+      where: { id: userId },
+      select: {
+        role: true,
+        premiumTier: true,
+        premiumUntil: true,
+        supportTierReceived: true,
+        countryCode: true,
+        locale: true,
+        createdAt: true,
+        totalSupportReceived: true,
+        _count: { select: { followers: true } },
+        digitalProducts: { select: { id: true }, take: 1 },
+        marketplaceListings: { select: { id: true }, take: 1 },
+        marketplaceOrdersSold: { select: { id: true, subtotalAmount: true }, take: 50 },
+        creatorEpisodes: { select: { id: true }, take: 1 },
+        streamerProfile: { select: { id: true } },
+      },
+    }),
+    db.voiceChannel.count({ where: { createdBy: userId } }),
+  ]);
   if (!user) {
     return {
       followerCount: 0,
@@ -64,13 +71,26 @@ export async function buildRuleContext(userId: string): Promise<RuleEvalContext>
       hasListing: false,
       hasSale: false,
       isPremium: false,
+      isPartner: false,
+      adminApproved: false,
       supportTierReceived: "PEBBLE",
       role: "USER",
+      countryCode: null,
+      locale: null,
+      signupDays: 0,
+      totalSalesKrw: 0,
+      totalTipsReceivedKrw: 0,
+      liveCount: 0,
     };
   }
   const isPremium =
     user.premiumTier === "PREMIUM" ||
     (user.premiumUntil != null && user.premiumUntil.getTime() > Date.now());
+  const signupDays = Math.floor((Date.now() - user.createdAt.getTime()) / 86400000);
+  const totalSalesKrw = user.marketplaceOrdersSold.reduce(
+    (s, o) => s + (o.subtotalAmount ?? 0),
+    0
+  );
   return {
     followerCount: user._count.followers,
     isCreator:
@@ -80,8 +100,16 @@ export async function buildRuleContext(userId: string): Promise<RuleEvalContext>
     hasListing: user.marketplaceListings.length > 0 || user.digitalProducts.length > 0,
     hasSale: user.marketplaceOrdersSold.length > 0,
     isPremium,
+    isPartner: false,
+    adminApproved: !!user.streamerProfile,
     supportTierReceived: user.supportTierReceived,
     role: user.role,
+    countryCode: user.countryCode ?? null,
+    locale: user.locale ?? null,
+    signupDays,
+    totalSalesKrw,
+    totalTipsReceivedKrw: user.totalSupportReceived ?? 0,
+    liveCount,
   };
 }
 
@@ -94,6 +122,9 @@ export type CreatePromotionInput = {
   percentOff?: number;
   fixedDiscountKrw?: number;
   priority?: number;
+  stackable?: boolean;
+  allowDuplicate?: boolean;
+  maxStackPerSettlement?: number;
   trigger?: PromotionTrigger;
   rules?: PromotionRule[];
   scheduledAt?: string | null;
@@ -126,6 +157,9 @@ export async function createPromotion(actor: AdminActor, input: CreatePromotionI
       percentOff: input.benefitType === "FEE_PERCENT_OFF" ? input.percentOff : null,
       fixedDiscountKrw: input.benefitType === "FIXED_AMOUNT" ? input.fixedDiscountKrw : null,
       priority: input.priority ?? 100,
+      stackable: input.stackable ?? false,
+      allowDuplicate: input.allowDuplicate ?? false,
+      maxStackPerSettlement: Math.max(1, input.maxStackPerSettlement ?? 1),
       trigger: input.trigger ?? "MANUAL",
       rules: (input.rules ?? []) as unknown as Prisma.InputJsonValue,
       scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : null,
@@ -157,6 +191,9 @@ export async function updatePromotion(
     name: string;
     active: boolean;
     priority: number;
+    stackable: boolean;
+    allowDuplicate: boolean;
+    maxStackPerSettlement: number;
     endsAt: string | null;
     adminMemo: string | null;
     rules: PromotionRule[];
@@ -169,6 +206,9 @@ export async function updatePromotion(
       name: patch.name?.trim() || undefined,
       active: patch.active,
       priority: patch.priority,
+      stackable: patch.stackable,
+      allowDuplicate: patch.allowDuplicate,
+      maxStackPerSettlement: patch.maxStackPerSettlement,
       endsAt: patch.endsAt === undefined ? undefined : patch.endsAt ? new Date(patch.endsAt) : null,
       adminMemo: patch.adminMemo === undefined ? undefined : patch.adminMemo,
       description: patch.description === undefined ? undefined : patch.description,
@@ -333,9 +373,9 @@ export async function assignPromotion(
   return { success: true as const, created, skipped };
 }
 
-export async function pickActivePromotionForUser(
+export async function pickActivePromotionsForUser(
   userId: string
-): Promise<FeePromotionSnapshot | null> {
+): Promise<FeePromotionSnapshot[]> {
   const now = new Date();
   const rows = await db.promotionAssignment.findMany({
     where: {
@@ -351,34 +391,46 @@ export async function pickActivePromotionForUser(
     orderBy: [{ promotion: { priority: "asc" } }, { assignedAt: "asc" }],
   });
 
+  const out: FeePromotionSnapshot[] = [];
   for (const a of rows) {
     const p = a.promotion;
     if (p.maxTotalUses != null && p.usedCount >= p.maxTotalUses) continue;
     if (p.maxUsesPerUser != null && a.useCount >= p.maxUsesPerUser) continue;
     if (p.benefitType === "FEE_WAIVER" && (a.remainingBenefitKrw ?? 0) <= 0) continue;
-    return {
+    out.push({
       kind: "promotion",
       assignmentId: a.id,
       promotionId: p.id,
       name: p.name,
       priority: p.priority,
+      stackable: p.stackable,
+      allowDuplicate: p.allowDuplicate,
+      maxStackPerSettlement: p.maxStackPerSettlement,
       benefitType: p.benefitType,
       remainingBenefitKrw: a.remainingBenefitKrw,
       percentOff: p.percentOff,
       fixedDiscountKrw: p.fixedDiscountKrw,
       maxUsesPerUser: p.maxUsesPerUser,
       useCount: a.useCount,
-    };
+    });
   }
-  return null;
+  return out;
+}
+
+/** @deprecated use pickActivePromotionsForUser */
+export async function pickActivePromotionForUser(
+  userId: string
+): Promise<FeePromotionSnapshot | null> {
+  const list = await pickActivePromotionsForUser(userId);
+  return list[0] ?? null;
 }
 
 export async function previewUserSettlementBenefits(userId: string, grossAmountKrw: number) {
-  const [promotion, coupon] = await Promise.all([
-    pickActivePromotionForUser(userId),
+  const [promotions, coupon] = await Promise.all([
+    pickActivePromotionsForUser(userId),
     pickActiveFeeCouponForUser(userId),
   ]);
-  return previewFeeWithBenefits({ grossAmountKrw, promotion, coupon });
+  return previewFeeWithBenefits({ grossAmountKrw, promotions, coupon });
 }
 
 /** 쿠폰+프로모션 적용 후 사용 기록 (정산 훅) */
@@ -392,54 +444,52 @@ export async function applyBenefitsToSettlement(input: {
   const preview = await previewUserSettlementBenefits(input.userId, input.grossAmountKrw);
 
   await db.$transaction(async (tx) => {
-    if (preview.appliedPromotion && preview.steps.some((s) => s.label.startsWith("Promotion"))) {
-      const promoStep = preview.steps.find((s) => s.label.startsWith("Promotion"));
+    for (const snap of preview.appliedPromotions) {
+      const promoStep = preview.steps.find((s) => s.label === `Promotion: ${snap.name}`);
       const saved = promoStep?.saved ?? 0;
-      if (saved > 0) {
-        const snap = preview.appliedPromotion;
-        await tx.promotionUsage.create({
-          data: {
-            promotionId: snap.promotionId,
-            assignmentId: snap.assignmentId,
-            userId: input.userId,
-            referenceType: input.referenceType,
-            referenceId: input.referenceId ?? null,
-            grossAmountKrw: input.grossAmountKrw,
-            benefitAppliedKrw: saved,
-            feeBeforeKrw: promoStep!.feeBefore,
-            feeAfterKrw: promoStep!.feeAfter,
-            note: input.note ?? null,
-          },
-        });
-        const waivedGross =
-          snap.benefitType === "FEE_WAIVER"
-            ? Math.min(input.grossAmountKrw, snap.remainingBenefitKrw ?? 0)
-            : 0;
-        const nextRemaining =
-          snap.benefitType === "FEE_WAIVER"
-            ? Math.max(0, (snap.remainingBenefitKrw ?? 0) - waivedGross)
-            : snap.remainingBenefitKrw;
-        const nextUse = snap.useCount + 1;
-        const exhausted =
-          (snap.benefitType === "FEE_WAIVER" && (nextRemaining ?? 0) <= 0) ||
-          (snap.maxUsesPerUser != null && nextUse >= snap.maxUsesPerUser);
-        await tx.promotionAssignment.update({
-          where: { id: snap.assignmentId },
-          data: {
-            remainingBenefitKrw: nextRemaining,
-            usedBenefitKrw: { increment: saved },
-            useCount: { increment: 1 },
-            status: exhausted ? "EXHAUSTED" : "ACTIVE",
-          },
-        });
-        await tx.promotion.update({
-          where: { id: snap.promotionId },
-          data: {
-            usedCount: { increment: 1 },
-            usedBenefitKrw: { increment: saved },
-          },
-        });
-      }
+      if (saved <= 0) continue;
+      await tx.promotionUsage.create({
+        data: {
+          promotionId: snap.promotionId,
+          assignmentId: snap.assignmentId,
+          userId: input.userId,
+          referenceType: input.referenceType,
+          referenceId: input.referenceId ?? null,
+          grossAmountKrw: input.grossAmountKrw,
+          benefitAppliedKrw: saved,
+          feeBeforeKrw: promoStep!.feeBefore,
+          feeAfterKrw: promoStep!.feeAfter,
+          note: input.note ?? null,
+        },
+      });
+      const waivedGross =
+        snap.benefitType === "FEE_WAIVER"
+          ? Math.min(input.grossAmountKrw, snap.remainingBenefitKrw ?? 0)
+          : 0;
+      const nextRemaining =
+        snap.benefitType === "FEE_WAIVER"
+          ? Math.max(0, (snap.remainingBenefitKrw ?? 0) - waivedGross)
+          : snap.remainingBenefitKrw;
+      const nextUse = snap.useCount + 1;
+      const exhausted =
+        (snap.benefitType === "FEE_WAIVER" && (nextRemaining ?? 0) <= 0) ||
+        (snap.maxUsesPerUser != null && nextUse >= snap.maxUsesPerUser);
+      await tx.promotionAssignment.update({
+        where: { id: snap.assignmentId },
+        data: {
+          remainingBenefitKrw: nextRemaining,
+          usedBenefitKrw: { increment: saved },
+          useCount: { increment: 1 },
+          status: exhausted ? "EXHAUSTED" : "ACTIVE",
+        },
+      });
+      await tx.promotion.update({
+        where: { id: snap.promotionId },
+        data: {
+          usedCount: { increment: 1 },
+          usedBenefitKrw: { increment: saved },
+        },
+      });
     }
 
     if (preview.appliedCoupon) {
@@ -690,24 +740,13 @@ export async function notifyPromotionExpiries() {
       }));
       if (userNotifs.length) await createNotificationsMany(userNotifs);
 
-      const admins = await db.user.findMany({
-        where: {
-          role: { in: ["ADMIN", "SUPER_ADMIN", "OWNER", "MARKETING"] },
-          adminDisabledAt: null,
-          deletedAt: null,
-        },
-        select: { id: true },
-        take: 50,
+      const { notifyAdmins } = await import("@/lib/platform/notification-center");
+      await notifyAdmins({
+        title: `[Admin] 프로모션 만료 ${t.days}일 전`,
+        body: `${p.name} (${p.assignments.length}명 보유)`,
+        link: `/admin/promotions/${p.id}`,
+        type: "ADMIN_PROMOTION",
       });
-      await createNotificationsMany(
-        admins.map((a) => ({
-          userId: a.id,
-          type: "SYSTEM",
-          title: `[Admin] 프로모션 만료 ${t.days}일 전`,
-          body: `${p.name} (${p.assignments.length}명 보유)`,
-          link: `/admin/promotions/${p.id}`,
-        }))
-      );
 
       await db.promotion.update({ where: { id: p.id }, data: { [t.flag]: true } });
       await history(p.id, null, "EXPIRY_NOTIFY", `${t.days}d`);

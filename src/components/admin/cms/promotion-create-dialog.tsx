@@ -53,6 +53,9 @@ export function PromotionCreateDialog({
         percentOff: Number(fd.get("percentOff") || 0) || undefined,
         fixedDiscountKrw: Number(fd.get("fixedDiscountKrw") || 0) || undefined,
         priority: Number(fd.get("priority") || 100),
+        stackable: fd.get("stackable") === "on",
+        allowDuplicate: fd.get("allowDuplicate") === "on",
+        maxStackPerSettlement: Number(fd.get("maxStackPerSettlement") || 1),
         trigger,
         rules,
         scheduledAt: String(fd.get("scheduledAt") || "") || null,
@@ -108,6 +111,23 @@ export function PromotionCreateDialog({
               <Input id="priority" name="priority" type="number" defaultValue={100} />
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label htmlFor="maxStackPerSettlement">최대 스택 개수</Label>
+              <Input
+                id="maxStackPerSettlement"
+                name="maxStackPerSettlement"
+                type="number"
+                defaultValue={1}
+              />
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="stackable" /> Stack 가능
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="allowDuplicate" /> 중복 적용 허용
+          </label>
           {benefitType === "FEE_WAIVER" ? (
             <div>
               <Label htmlFor="waiveUpToKrw">면제 한도(원)</Label>

@@ -16,15 +16,18 @@ import { SupportRankingPodium } from "@/components/support/support-ranking-podiu
 import { SupportTrophyIcon } from "@/components/icons/support-trophy-icon";
 import { SupportPageChrome, SupportPageTitle } from "@/components/support/support-page-chrome";
 import { TabPanelSkeleton } from "@/components/ui/content-skeletons";
-import { Send, Inbox, Sparkles, Archive, Gift, Gem } from "lucide-react";
+import { Send, Inbox, Sparkles, Archive, Gift, Gem, Banknote } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { SupportTierLevel } from "@prisma/client";
 import { FLOWER_REDEEM_FEE_BPS } from "@/lib/flower/config";
+import { getMyWallet } from "@/actions/wallet";
+import { WalletDashboard } from "@/components/wallet/wallet-dashboard";
 
 const VALID_TABS = [
   "sent",
   "received",
+  "settlement",
   "tiers",
   "emoticons",
   "storage",
@@ -48,9 +51,10 @@ export default async function SupportPage({
     : "sent";
   const priceFilter = params.price;
 
-  const [dashboard, rankingEntries] = await Promise.all([
+  const [dashboard, rankingEntries, walletData] = await Promise.all([
     getSupportDashboard(),
     getSupportRankingWithAvatars(20),
+    getMyWallet(),
   ]);
   if (!dashboard) {
     redirect("/auth/signin");
@@ -59,6 +63,7 @@ export default async function SupportPage({
   const tabs = [
     { id: "sent", label: "후원한 크리에이터", icon: Send },
     { id: "received", label: "받은 후원", icon: Inbox },
+    { id: "settlement", label: "정산 · 출금", icon: Banknote },
     { id: "emoticons", label: "이모티콘", icon: Sparkles },
     { id: "storage", label: "보관함", icon: Archive },
     { id: "gifts", label: "받은 선물", icon: Gift },
@@ -74,10 +79,10 @@ export default async function SupportPage({
           <span className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-folk-cobalt/15 bg-folk-cream text-folk-cobalt">
             <SupportTrophyIcon className="h-5 w-5" />
           </span>
-          후원
+          후원 정산 출금
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          크리에이터 후원 · 광석 등급 · 후원용 이모티콘 구매·선물
+          크리에이터 후원 · 정산·출금 · 광석 등급 · 이모티콘
         </p>
       </div>
       </SupportPageTitle>
@@ -117,6 +122,25 @@ export default async function SupportPage({
         <Suspense fallback={<TabPanelSkeleton />}>
           <SupportStoragePanel />
         </Suspense>
+      )}
+
+      {tab === "settlement" && (
+        <div className="space-y-4">
+          <WalletDashboard data={walletData} />
+          <p className="text-xs text-muted-foreground text-center">
+            <Link href="/support?tab=gifts" className="underline">
+              받은 이모티콘 선물
+            </Link>
+            {" · "}
+            <Link href="/support?tab=storage" className="underline">
+              이모티콘 보관함
+            </Link>
+            {" · "}
+            <Link href="/wallet" className="underline">
+              Wallet (포인트)
+            </Link>
+          </p>
+        </div>
       )}
 
       {tab === "gifts" && (
