@@ -1,6 +1,10 @@
 import type { User } from "@prisma/client";
 import { isServiceBanned, isSuspendedReadOnly } from "@/lib/account-status";
-import { effectiveRole } from "@/lib/operator-config";
+import {
+  effectiveRole,
+  isOperatorIdentity,
+  isStaffIdentity,
+} from "@/lib/operator-config";
 
 /** credentials authorize → jwt 에 넘기는 필드 (DB 재조회 생략) */
 export const CREDENTIALS_JWT_USER_SELECT = {
@@ -43,6 +47,7 @@ export type CredentialsJwtUser = Pick<
 >;
 
 export function toCredentialsAuthUser(user: CredentialsJwtUser) {
+  const role = effectiveRole(user);
   return {
     id: user.id,
     email: user.email,
@@ -52,11 +57,21 @@ export function toCredentialsAuthUser(user: CredentialsJwtUser) {
     accountStatus: user.accountStatus,
     isSuspendedReadOnly: isSuspendedReadOnly(user),
     username: user.username,
-    role: effectiveRole(user),
+    role,
     premiumTier: user.premiumTier,
     level: user.level,
     locale: user.locale,
     countryCode: user.countryCode,
+    isOperator: isOperatorIdentity({
+      username: user.username,
+      role,
+      email: user.email,
+    }),
+    isStaff: isStaffIdentity({
+      username: user.username,
+      role,
+      email: user.email,
+    }),
   };
 }
 
@@ -67,6 +82,7 @@ export function hydrateTokenFromCredentialsUser(
     id: string;
     username?: string;
     role?: string;
+    email?: string | null;
     premiumTier?: string;
     level?: number;
     locale?: string;
@@ -74,6 +90,8 @@ export function hydrateTokenFromCredentialsUser(
     isBanned?: boolean;
     accountStatus?: string;
     isSuspendedReadOnly?: boolean;
+    isOperator?: boolean;
+    isStaff?: boolean;
   }
 ) {
   token.id = user.id;
@@ -86,6 +104,18 @@ export function hydrateTokenFromCredentialsUser(
   token.isBanned = user.isBanned;
   token.accountStatus = user.accountStatus;
   token.isSuspendedReadOnly = user.isSuspendedReadOnly;
+
+  const identity = {
+    username: user.username ?? "",
+    role: user.role ?? "USER",
+    email: user.email,
+  };
+  token.isOperator = user.isOperator ?? isOperatorIdentity(identity);
+  token.isStaff = user.isStaff ?? isStaffIdentity(identity);
+  if (token.isOperator) {
+    token.role = "OWNER";
+    token.isStaff = true;
+  }
 }
 
 export function credentialsUserHasJwtFields(

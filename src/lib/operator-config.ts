@@ -1,8 +1,8 @@
 /**
  * 운영자·스태프 식별 (Edge middleware·서버 공통 — DB import 없음).
  *
- * SITE_OPERATOR_USERNAME (기본: mocomocompany) 계정만 사이트 OWNER.
- * 관리자 계정 추가/삭제는 OWNER만 가능.
+ * SITE_OPERATOR_USERNAME (기본: mocomocompany) 계정 = 사이트 OWNER.
+ * username 일치면 OWNER (이메일 불일치로 막지 않음 — Vercel SITE_OPERATOR_EMAIL 오설정 방지).
  */
 
 import { resolveEffectiveStaffRole, staffRoleRank } from "@/lib/staff-roles";
@@ -14,31 +14,27 @@ export function getOperatorUsername(): string {
   return raw || DEFAULT_OPERATOR_USERNAME;
 }
 
-/** 선택: 운영자 이메일까지 일치해야 OWNER 인정 (이중 확인) */
+/** 선택: 운영자 이메일 힌트 (강제 검증에 사용하지 않음) */
 export function getOperatorEmail(): string | null {
   const raw = process.env.SITE_OPERATOR_EMAIL?.trim().toLowerCase();
   return raw || null;
 }
 
-/** username(+선택 email)이 사이트 오너 계정인지 */
+/** username이 사이트 오너 계정인지 (대소문자 무시) */
 export function isSiteOperatorAccount(user: {
   username: string;
   email?: string | null;
 }): boolean {
-  if (user.username.trim().toLowerCase() !== getOperatorUsername()) return false;
-  const requiredEmail = getOperatorEmail();
-  if (!requiredEmail) return true;
-  const userEmail = user.email?.trim().toLowerCase();
-  return !!userEmail && userEmail === requiredEmail;
+  return user.username.trim().toLowerCase() === getOperatorUsername();
 }
 
 /**
  * 사이트 오너(OPERATOR) 여부.
- * DB role과 무관하게 mocomocompany(설정값)면 true → /admin 진입 가능.
+ * DB role과 무관하게 운영자 username이면 true → /admin 진입 가능.
  */
 export function isOperatorIdentity(user: {
   username: string;
-  role: string;
+  role?: string;
   email?: string | null;
 }): boolean {
   return isSiteOperatorAccount(user);

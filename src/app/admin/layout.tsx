@@ -8,14 +8,14 @@ import { logSiteAdminAudit } from "@/lib/site-admin-audit";
 /**
  * Admin CMS 레이아웃
  * - 인증: NextAuth (Supabase Postgres + 기존 세션). Supabase Auth 미사용.
- * - 비로그인 → /auth/signin
- * - 권한 없음 → /admin/forbidden
+ * - 비로그인 → /admin/login
+ * - 권한 없음 → /admin/login?error=forbidden
  */
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const headerStore = await headers();
   const pathname = headerStore.get("x-pathname") ?? "/admin";
 
-  if (pathname === "/admin/forbidden") {
+  if (pathname === "/admin/forbidden" || pathname === "/admin/login") {
     return <>{children}</>;
   }
 
@@ -24,9 +24,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     actor = await getAdminActor();
   } catch (e) {
     if (e instanceof AdminAccessError && e.status === 401) {
-      redirect(`/auth/signin?callbackUrl=${encodeURIComponent(pathname)}`);
+      redirect(`/admin/login?callbackUrl=${encodeURIComponent(pathname)}`);
     }
-    redirect("/admin/forbidden");
+    redirect(`/admin/login?error=forbidden&callbackUrl=${encodeURIComponent(pathname)}`);
   }
 
   const needed = pathPermission(pathname);

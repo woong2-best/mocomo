@@ -17,6 +17,7 @@ import {
 } from "@/studio/lib/host";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { ADD_ACCOUNT_COOKIE } from "@/lib/account-switch/constants";
+import { getOperatorUsername } from "@/lib/operator-config";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -195,18 +196,43 @@ export default edgeAuth((req) => {
   }
   const isOperator = Boolean(req.auth?.user?.isOperator);
   const isStaff = Boolean(req.auth?.user?.isStaff);
+  const authUsername = String(req.auth?.user?.username ?? "")
+    .trim()
+    .toLowerCase();
+  const isSiteOwnerByUsername = authUsername === getOperatorUsername();
   const isAdminForbiddenPage = pathname === "/admin/forbidden";
+  const isAdminLoginPage = pathname === "/admin/login";
+
+  if (isAdmin && isAdminLoginPage) {
+    // 관리자 로그인 페이지는 권한 검사 없이 통과
+    if (isLoggedIn && (isStaff || isOperator || isSiteOwnerByUsername)) {
+      const res = NextResponse.redirect(new URL("/admin", req.url));
+      stampAppClientIfNeeded(req, res);
+      return res;
+    }
+    const res = NextResponse.next();
+    res.headers.set("x-pathname", pathname);
+    stampAppClientIfNeeded(req, res);
+    return res;
+  }
 
   if (isAdmin && !isLoggedIn) {
-    const signIn = new URL("/auth/signin", req.url);
+    const signIn = new URL("/admin/login", req.url);
     signIn.searchParams.set("callbackUrl", pathname);
     const res = NextResponse.redirect(signIn);
     stampAppClientIfNeeded(req, res);
     return res;
   }
 
-  if (isAdmin && isLoggedIn && !isAdminForbiddenPage && !isStaff && !isOperator) {
-    const res = NextResponse.redirect(new URL("/admin/forbidden", req.url));
+  if (
+    isAdmin &&
+    isLoggedIn &&
+    !isAdminForbiddenPage &&
+    !isStaff &&
+    !isOperator &&
+    !isSiteOwnerByUsername
+  ) {
+    const res = NextResponse.redirect(new URL("/admin/login?error=forbidden", req.url));
     stampAppClientIfNeeded(req, res);
     return res;
   }

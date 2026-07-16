@@ -19,7 +19,7 @@ export default function AdminForbiddenPage() {
             <Link href="/">홈으로</Link>
           </Button>
           <Button asChild>
-            <Link href="/auth/signin">다시 로그인</Link>
+            <Link href="/admin/login">관리자 로그인</Link>
           </Button>
         </div>
       </div>

@@ -69,13 +69,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             id: string;
             username?: string;
             role?: string;
+            email?: string | null;
             premiumTier?: string;
             level?: number;
             locale?: string;
             countryCode?: string;
             isBanned?: boolean;
+            accountStatus?: string;
+            isSuspendedReadOnly?: boolean;
+            isOperator?: boolean;
+            isStaff?: boolean;
           }
         );
+        // credentials early-path에서도 isOperator/isStaff 세팅됨 — 오너면 DB role 보정
+        if (token.isOperator && token.id) {
+          void db.user
+            .update({
+              where: { id: String(token.id) },
+              data: { role: "OWNER", adminDisabledAt: null, lastLoginAt: new Date() },
+            })
+            .catch(() => undefined);
+        }
         return token;
       }
 
@@ -129,21 +143,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             role: effectiveRole(dbUser),
             email: dbUser.email,
           });
-          // 비활성 관리자는 스태프 클레임 제거 (사이트 오너는 예외)
           if (dbUser.adminDisabledAt && !token.isOperator) {
             token.isStaff = false;
             token.isOperator = false;
           }
-          // 오너 계정 DB role 보정
-          if (token.isOperator && dbUser.role !== "OWNER") {
-            void db.user
-              .update({
-                where: { id: userId },
-                data: { role: "OWNER", adminDisabledAt: null },
-              })
-              .catch(() => undefined);
+          if (token.isOperator) {
             token.role = "OWNER";
+            token.isStaff = true;
+            if (dbUser.role !== "OWNER" || dbUser.adminDisabledAt) {
+              void db.user
+                .update({
+                  where: { id: userId },
+                  data: { role: "OWNER", adminDisabledAt: null },
+                })
+                .catch(() => undefined);
+            }
           }
+        }
+      } else if (token.username && !token.isOperator && !token.isStaff) {
+        // 기존 세션: username만으로 오너 플래그 복구 (재로그인 없이)
+        const uname = String(token.username);
+        if (isOperatorIdentity({ username: uname, role: String(token.role ?? "USER") })) {
+          token.isOperator = true;
+          token.isStaff = true;
+          token.role = "OWNER";
         }
       }
       return token;
