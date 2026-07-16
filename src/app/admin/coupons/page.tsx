@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Suspense } from "react";
 import { adminListCouponsAction } from "@/actions/admin-coupons";
 import { getAdminActor } from "@/lib/admin/access";
@@ -27,9 +28,9 @@ export default async function AdminCouponsPage({
         <h1 className="text-2xl font-bold tracking-tight">쿠폰</h1>
         <p className="text-sm text-muted-foreground">
           코드 입력형 혜택 ·{" "}
-          <a href="/admin/promotions" className="underline">
+          <Link href="/admin/promotions" className="underline">
             프로모션(자동 적용)
-          </a>{" "}
+          </Link>{" "}
           과 병행 · 실DB CRUD
         </p>
       </div>
