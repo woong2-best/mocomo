@@ -40,7 +40,7 @@
     },
     {
       "path": "/api/cron/search-trends",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 21 * * *"
     }
   ],
   "functions": {
