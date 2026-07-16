@@ -23,7 +23,7 @@ export const FALLBACK_SIDEBAR_ADS = [
     id: "fallback-events",
     title: "진행 중인 이벤트",
     imageUrl: "/ads/events.svg",
-    linkUrl: "/events/map",
+    linkUrl: "/events",
     ctaLabel: "참가하기",
   },
 ] as const;

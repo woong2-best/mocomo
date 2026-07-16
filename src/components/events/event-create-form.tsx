@@ -13,6 +13,7 @@ import { fileToUploadableJpeg, isGalleryImageFile } from "@/lib/gallery-image-up
 import { PayButton } from "@/components/payments/pay-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ImageCropDialog } from "@/components/media/image-crop-dialog";
 import { ImagePlus, Loader2, Plus, Trash2 } from "lucide-react";
 
 function defaultEndDate() {
@@ -41,10 +42,34 @@ export function EventCreateForm({
   const [linkUrl, setLinkUrl] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [links, setLinks] = useState<EventLinkInput[]>([{ label: "", url: "" }]);
+  const [mainImageUrl, setMainImageUrl] = useState("");
   const [images, setImages] = useState<string[]>([]);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [cropOpen, setCropOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [eventId, setEventId] = useState<string | null>(paidEventId ?? null);
   const [error, setError] = useState("");
+
+  async function onMainImagePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !isGalleryImageFile(file, true)) {
+      setError("이미지 파일을 선택해 주세요.");
+      return;
+    }
+    setError("");
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(URL.createObjectURL(file));
+    setCropOpen(true);
+  }
+
+  function closeCropDialog(open: boolean) {
+    setCropOpen(open);
+    if (!open && cropSrc) {
+      URL.revokeObjectURL(cropSrc);
+      setCropSrc(null);
+    }
+  }
 
   async function onImages(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -75,6 +100,10 @@ export function EventCreateForm({
   async function submitDraft(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    if (!mainImageUrl.trim()) {
+      setError("메인 이미지(1:1)를 등록해 주세요.");
+      return;
+    }
     const extraLinks = links.filter((l) => l.url.trim());
     const res = await createEventDraft({
       title,
@@ -83,6 +112,7 @@ export function EventCreateForm({
       startsAt,
       endsAt,
       prize: prize || undefined,
+      imageUrl: mainImageUrl,
       images,
       linkUrl: linkUrl || undefined,
       links: extraLinks,
@@ -276,7 +306,45 @@ export function EventCreateForm({
       />
 
       <div>
-        <label className="text-sm font-medium">이미지 (최대 8장)</label>
+        <label className="text-sm font-medium">메인 이미지 (1:1, 필수)</label>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          스폰서 영역에 표시되는 대표 이미지입니다.
+        </p>
+        <div className="flex flex-wrap gap-2 mt-2">
+          {mainImageUrl ? (
+            <div className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={mainImageUrl}
+                alt=""
+                className="h-28 w-28 rounded-lg object-cover border aspect-square"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute -top-2 -right-2 h-7 w-7 rounded-full bg-background border shadow-sm"
+                onClick={() => setMainImageUrl("")}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ) : (
+            <label className="h-28 w-28 rounded-lg border border-dashed flex items-center justify-center cursor-pointer hover:bg-muted/50 aspect-square">
+              <ImagePlus className="h-6 w-6 text-muted-foreground" />
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={onMainImagePick}
+              />
+            </label>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <label className="text-sm font-medium">추가 이미지 (선택, 최대 8장)</label>
         <div className="flex flex-wrap gap-2 mt-2">
           {images.map((url) => (
             // eslint-disable-next-line @next/next/no-img-element
@@ -301,6 +369,25 @@ export function EventCreateForm({
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
+
+      {cropSrc && (
+        <ImageCropDialog
+          open={cropOpen}
+          onOpenChange={closeCropDialog}
+          imageSrc={cropSrc}
+          aspect={1}
+          lockAspect
+          title="메인 이미지"
+          description="1:1 비율로 잘라 주세요. 스폰서 영역에 표시됩니다."
+          maxWidth={1200}
+          maxHeight={1200}
+          uploadFilename="event-main.jpg"
+          onComplete={(url) => {
+            setMainImageUrl(url);
+            closeCropDialog(false);
+          }}
+        />
+      )}
 
       <Button type="submit" className="w-full rounded-2xl" disabled={uploading}>
         다음: 등록비 결제 ({EVENT_REGISTRATION_FEE_KRW.toLocaleString()}원)

@@ -43,7 +43,8 @@ export async function createEventDraft(data: {
   if (endsAt <= startsAt) return { error: "종료일은 시작일 이후여야 합니다." };
 
   const images = (data.images ?? []).filter(Boolean).slice(0, 8);
-  const cover = data.imageUrl?.trim() || images[0] || null;
+  const cover = data.imageUrl?.trim() || null;
+  if (!cover) return { error: "메인 이미지(1:1)를 등록해 주세요." };
   const links = (data.links ?? [])
     .map((l) => ({ label: l.label?.trim() || "링크", url: l.url?.trim() }))
     .filter((l) => l.url.length > 0)

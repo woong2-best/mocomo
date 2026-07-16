@@ -17,6 +17,11 @@ export async function deactivateDemoAdSlots(prisma: PrismaClient) {
 
 /** 오른쪽 패널 기본 광고 — 없으면 1건 시드 */
 export async function ensureSidebarAdSlot(prisma: PrismaClient) {
+  await prisma.adSlot.updateMany({
+    where: { position: "right", linkUrl: "/events/map" },
+    data: { linkUrl: "/events" },
+  });
+
   const count = await prisma.adSlot.count({
     where: { active: true, position: "right" },
   });
@@ -27,7 +32,7 @@ export async function ensureSidebarAdSlot(prisma: PrismaClient) {
       position: "right",
       title: "진행 중인 이벤트",
       imageUrl: "/ads/events.svg",
-      linkUrl: "/events/map",
+      linkUrl: "/events",
       sponsorName: "MoCoMo Events",
       ctaLabel: "참가하기",
       adCategory: "이벤트",
