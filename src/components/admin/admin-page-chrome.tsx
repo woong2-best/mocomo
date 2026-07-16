@@ -1,14 +1,16 @@
 "use client";
 
-import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
-import { AppPageChrome } from "@/components/layout/app-page-chrome";
+import { cn } from "@/lib/utils";
 
+/**
+ * 기존 기능 페이지용 콘텐츠 래퍼.
+ * AdminShell이 이미 프레임을 제공하므로 AppPageChrome은 사용하지 않습니다.
+ */
 export function AdminPageChrome({
   children,
   maxWidth = "5xl",
-  backHref = "/admin",
-  backLabel = "관리자 패널",
+  backHref,
+  backLabel,
   title,
 }: {
   children: React.ReactNode;
@@ -17,17 +19,26 @@ export function AdminPageChrome({
   backLabel?: string;
   title?: React.ReactNode;
 }) {
+  void backHref;
+  void backLabel;
+
+  const maxClass =
+    maxWidth === "lg"
+      ? "max-w-lg"
+      : maxWidth === "2xl"
+        ? "max-w-2xl"
+        : maxWidth === "3xl"
+          ? "max-w-3xl"
+          : maxWidth === "4xl"
+            ? "max-w-4xl"
+            : maxWidth === "6xl"
+              ? "max-w-6xl"
+              : "max-w-5xl";
+
   return (
-    <AppPageChrome maxWidth={maxWidth} spacing="sm">
-      <Link
-        href={backHref}
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeft className="h-4 w-4" />
-        {backLabel}
-      </Link>
+    <div className={cn("mx-auto w-full space-y-4", maxClass)}>
       {title}
       {children}
-    </AppPageChrome>
+    </div>
   );
 }

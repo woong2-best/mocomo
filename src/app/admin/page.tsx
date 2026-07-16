@@ -1,145 +1,83 @@
-import { getAdminStats, getPendingReports } from "@/actions/admin";
-import { AdminReportActions } from "@/components/admin/admin-report-actions";
-import { AdminPageChrome } from "@/components/admin/admin-page-chrome";
-import { AdminAccessDenied } from "@/components/admin/admin-access-denied";
-import { AdminLoadError } from "@/components/admin/admin-load-error";
-import { isAdminForbiddenError } from "@/lib/admin-access";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import Link from "next/link";
-import { Shield, Users, FileText, AlertTriangle, Coins, Landmark, Gavel } from "lucide-react";
+import {
+  AlertTriangle,
+  CreditCard,
+  Drama,
+  TrendingUp,
+  UserPlus,
+  Users,
+} from "lucide-react";
+import { ChartPlaceholder } from "@/components/admin/shell/chart-placeholder";
+import { DashboardCard, StatCard } from "@/components/admin/shell/stat-card";
 import { Button } from "@/components/ui/button";
 
-export default async function AdminPage() {
-  let stats = { users: 0, posts: 0, pendingReports: 0, totalTips: 0 };
-  let reports: Awaited<ReturnType<typeof getPendingReports>> = [];
-  let authorized = true;
-  let loadFailed = false;
+/** 대시보드 더미 데이터 — 실연동은 이후 단계 */
+const DUMMY_STATS = [
+  { label: "총 회원수", value: "152,342", hint: "누적 가입", icon: Users },
+  { label: "오늘 가입자", value: "132", hint: "UTC+9 기준", icon: UserPlus },
+  { label: "총 크리에이터", value: "4,218", hint: "활성 크리에이터", icon: Drama },
+  { label: "오늘 매출", value: "₩12,840,000", hint: "더미", icon: TrendingUp },
+  { label: "이번달 정산 예정", value: "₩86,200,000", hint: "더미", icon: CreditCard },
+  { label: "신고 대기", value: "8건", hint: "처리 대기", icon: AlertTriangle },
+] as const;
 
-  try {
-    stats = await getAdminStats();
-    reports = await getPendingReports();
-  } catch (e) {
-    if (isAdminForbiddenError(e)) {
-      authorized = false;
-    } else {
-      loadFailed = true;
-    }
-  }
-
-  if (!authorized) {
-    return <AdminAccessDenied />;
-  }
-
-  if (loadFailed) {
-    return <AdminLoadError />;
-  }
-
+export default function AdminDashboardPage() {
   return (
-    <AdminPageChrome
-      maxWidth="4xl"
-      title={
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Shield className="h-6 w-6" />
-          관리자 패널
-        </h1>
-      }
-    >
-      <div className="flex flex-wrap gap-2">
-        <Button variant="secondary" asChild className="w-full sm:w-auto">
-          <Link href="/admin/market" className="flex items-center gap-2">
-            <Gavel className="h-4 w-4" />
-            MARKET 정산 · 분쟁
-          </Link>
-        </Button>
-        <Button variant="secondary" asChild className="w-full sm:w-auto">
-          <Link href="/admin/moderation" className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4" />
-            위험도 · 검토 대기열
-          </Link>
-        </Button>
-        <Button variant="secondary" asChild className="w-full sm:w-auto">
-          <Link href="/admin/suspensions" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            계정 제재 · 이의 제기
-          </Link>
-        </Button>
-        <Button variant="secondary" asChild className="w-full sm:w-auto">
-          <Link href="/admin/used-market" className="flex items-center gap-2">
-            <Gavel className="h-4 w-4" />
-            중고거래 · 경매
-          </Link>
-        </Button>
-        <Button variant="secondary" asChild className="w-full sm:w-auto">
-          <Link href="/admin/finance" className="flex items-center gap-2">
-            <Landmark className="h-4 w-4" />
-            매출 · 정산 · 출금 처리
-          </Link>
-        </Button>
-        <Button variant="secondary" asChild className="w-full sm:w-auto">
-          <Link href="/admin/economy" className="flex items-center gap-2">
-            <Coins className="h-4 w-4" />
-            APT 경제 · 장터
-          </Link>
+    <div className="mx-auto max-w-6xl space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">대시보드</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            MoCoMo 운영 현황 요약입니다. 아래 수치는 현재 더미 데이터입니다.
+          </p>
+        </div>
+        <Button type="button" variant="secondary" size="sm" disabled>
+          새로고침 (준비 중)
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { icon: Users, label: "유저", value: stats.users },
-          { icon: FileText, label: "게시물", value: stats.posts },
-          { icon: AlertTriangle, label: "대기 신고", value: stats.pendingReports },
-          { icon: Coins, label: "총 후원", value: stats.totalTips },
-        ].map(({ icon: Icon, label, value }) => (
-          <Card key={label}>
-            <CardContent className="p-4">
-              <Icon className="h-5 w-5 text-primary mb-2" />
-              <p className="text-2xl font-bold">{value.toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground">{label}</p>
-            </CardContent>
-          </Card>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {DUMMY_STATS.map((stat) => (
+          <StatCard
+            key={stat.label}
+            label={stat.label}
+            value={stat.value}
+            hint={stat.hint}
+            icon={stat.icon}
+          />
         ))}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>신고 대기열</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {reports.length === 0 ? (
-            <p className="text-muted-foreground text-sm">대기 중인 신고가 없습니다.</p>
-          ) : (
-            reports.map((r) => (
-              <div key={r.id} className="border border-border rounded-lg p-3 text-sm space-y-1">
-                <p className="font-medium">
-                  {r.targetType} · {r.reason}
-                  {r.reportedUser && (
-                    <span className="text-muted-foreground font-normal">
-                      {" "}
-                      · @{r.reportedUser.username}
-                    </span>
-                  )}
-                </p>
-                <p className="text-muted-foreground">신고자: @{r.reporter.username}</p>
-                {r.details && (
-                  <p className="text-muted-foreground text-xs whitespace-pre-wrap">{r.details}</p>
-                )}
-                {r.post && (
-                  <p className="text-xs line-clamp-2 text-foreground/80">
-                    {r.post.title || r.post.content}
-                  </p>
-                )}
-                <AdminReportActions
-                  reportId={r.id}
-                  targetType={r.targetType}
-                  targetId={r.targetId}
-                  reportedUserId={r.reportedUserId}
-                  reportedUsername={r.reportedUser?.username}
-                />
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
-    </AdminPageChrome>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ChartPlaceholder
+          title="최근 7일 가입자"
+          bars={[98, 112, 86, 140, 125, 132, 118]}
+        />
+        <ChartPlaceholder
+          title="최근 7일 매출"
+          bars={[55, 62, 48, 78, 70, 88, 74]}
+        />
+      </div>
+
+      <DashboardCard
+        title="빠른 작업"
+        description="버튼만 배치 · 실제 동작은 이후 단계에서 연결합니다."
+      >
+        <div className="flex flex-wrap gap-2">
+          {[
+            "쿠폰 생성",
+            "회원 삭제",
+            "정산 승인",
+            "신고 처리",
+            "상품 삭제",
+            "라이브 종료",
+            "통계 조회",
+          ].map((label) => (
+            <Button key={label} type="button" variant="outline" size="sm" disabled>
+              {label}
+            </Button>
+          ))}
+        </div>
+      </DashboardCard>
+    </div>
   );
 }
