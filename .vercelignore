@@ -19,10 +19,15 @@ build-log.txt
 # 로컬 빌드 산출물 · Android (Git 미추적 대용량)
 /.next/
 /android/
+**/node_modules/
 *.apk
 *.aab
+MoCoMo-*.apk
+MoCoMo-*.aab
 .idea/
 android/.idea/
 tmp-apt.html
 _t-*.png
 _table-crop-test.png
+vercel-fail-logs.txt
+public/apt/_diag/
