@@ -190,6 +190,10 @@ model User {
   usernameChangeLogs UsernameChangeLog[]
   adminMemosAbout AdminUserMemo[] @relation("AdminMemoSubject")
   adminMemosWritten AdminUserMemo[] @relation("AdminMemoAuthor")
+  couponsCreated    Coupon[] @relation("CouponCreator")
+  couponAssignments CouponAssignment[] @relation("CouponAssignee")
+  couponAssignmentsGiven CouponAssignment[] @relation("CouponAssigner")
+  couponUsages      CouponUsage[] @relation("CouponUsageUser")
   profile       Profile?
   cosplayerProfile CosplayerProfile?
   streamerProfile  StreamerProfile?
@@ -2624,6 +2628,131 @@ model AdminUserMemo {
 
   @@index([userId, createdAt])
   @@index([authorId])
+}
+
+// ============ COUPON / PROMOTION ============
+
+enum CouponBenefitType {
+  FEE_WAIVER
+  FEE_PERCENT_OFF
+  FIXED_AMOUNT
+}
+
+enum CouponAudience {
+  ALL_USERS
+  SPECIFIC_USERS
+  SPECIFIC_CREATORS
+  SPECIFIC_TIER
+}
+
+enum CouponAssignmentStatus {
+  ACTIVE
+  EXHAUSTED
+  EXPIRED
+  REVOKED
+}
+
+/** 프로모션 쿠폰 정의 — 정산 수수료 면제/할인 등 */
+model Coupon {
+  id                 String            @id @default(cuid())
+  name               String
+  code               String            @unique
+  benefitType        CouponBenefitType
+  /** FEE_WAIVER: 수수료 면제 대상 매출 한도(원) */
+  waiveUpToKrw       Int?
+  /** FEE_PERCENT_OFF: 수수료 할인율 (1–100) */
+  percentOff         Int?
+  /** FIXED_AMOUNT: 수수료에서 차감할 고정 금액 */
+  fixedDiscountKrw   Int?
+  audience           CouponAudience    @default(SPECIFIC_USERS)
+  /** SPECIFIC_TIER 시 SupportTierLevel 또는 PREMIUM 등 */
+  targetTier         String?
+  /** 유저당 사용 횟수 (null = 무제한) */
+  maxUsesPerUser     Int?
+  /** 전체 사용 횟수 한도 (null = 무제한) */
+  maxTotalUses       Int?
+  startsAt           DateTime          @default(now())
+  endsAt             DateTime?
+  active             Boolean           @default(true)
+  adminMemo          String?           @db.Text
+  createdById        String
+  assignedCount      Int               @default(0)
+  usedCount          Int               @default(0)
+  /** 적용된 혜택 금액 합(원) */
+  usedBenefitKrw     Int               @default(0)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  createdBy   User               @relation("CouponCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  assignments CouponAssignment[]
+  usages      CouponUsage[]
+  history     CouponHistory[]
+
+  @@index([active, endsAt])
+  @@index([createdAt])
+  @@index([createdById])
+  @@index([name])
+}
+
+model CouponAssignment {
+  id                   String                 @id @default(cuid())
+  couponId             String
+  userId               String
+  assignedById         String?
+  status               CouponAssignmentStatus @default(ACTIVE)
+  /** FEE_WAIVER 남은 면제 매출 한도 */
+  remainingBenefitKrw  Int?
+  usedBenefitKrw       Int                    @default(0)
+  useCount             Int                    @default(0)
+  assignedAt           DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  coupon     Coupon        @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user       User          @relation("CouponAssignee", fields: [userId], references: [id], onDelete: Cascade)
+  assignedBy User?         @relation("CouponAssigner", fields: [assignedById], references: [id], onDelete: SetNull)
+  usages     CouponUsage[]
+
+  @@unique([couponId, userId])
+  @@index([userId, status])
+  @@index([couponId, status])
+}
+
+model CouponUsage {
+  id               String   @id @default(cuid())
+  couponId         String
+  assignmentId     String
+  userId           String
+  referenceType    String
+  referenceId      String?
+  grossAmountKrw   Int
+  benefitAppliedKrw Int
+  feeBeforeKrw     Int
+  feeAfterKrw      Int
+  note             String?
+  createdAt        DateTime @default(now())
+
+  coupon     Coupon           @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  assignment CouponAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  user       User             @relation("CouponUsageUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([couponId, createdAt])
+  @@index([userId, createdAt])
+  @@index([assignmentId, createdAt])
+  @@index([referenceType, referenceId])
+}
+
+model CouponHistory {
+  id        String   @id @default(cuid())
+  couponId  String
+  actorId   String?
+  action    String
+  detail    String?  @db.Text
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+
+  @@index([couponId, createdAt])
 }
 
 model PushSubscription {

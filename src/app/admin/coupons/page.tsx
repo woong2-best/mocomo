@@ -1,11 +1,44 @@
-import { AdminPlaceholderPage } from "@/components/admin/shell/admin-placeholder-page";
+import { Suspense } from "react";
+import { adminListCouponsAction } from "@/actions/admin-coupons";
+import { getAdminActor } from "@/lib/admin/access";
+import { AdminCouponsTable } from "@/components/admin/cms/admin-coupons-table";
 
-export default function AdminCouponsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function AdminCouponsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; status?: string; sort?: string; page?: string }>;
+}) {
+  const sp = await searchParams;
+  const query = {
+    q: sp.q,
+    status: (sp.status as "all" | "ACTIVE" | "INACTIVE" | "EXPIRED" | "EXHAUSTED") || "all",
+    sort: (sp.sort as "newest" | "oldest" | "expires" | "usage") || "newest",
+    page: Number(sp.page) || 1,
+  };
+
+  const [actor, res] = await Promise.all([getAdminActor(), adminListCouponsAction(query)]);
+  if (!res.ok) return <p className="text-sm text-destructive">{res.error}</p>;
+
   return (
-    <AdminPlaceholderPage
-      title="쿠폰 / 프로모션"
-      description="쿠폰 생성 · 프로모션 캠페인 관리 화면입니다. 현재는 버튼만 배치합니다."
-      actions={[{ label: "쿠폰 생성" }, { label: "프로모션 등록" }]}
-    />
+    <div className="mx-auto max-w-6xl space-y-4">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">쿠폰 / 프로모션</h1>
+        <p className="text-sm text-muted-foreground">
+          수수료 면제·할인 쿠폰 관리 · 실DB CRUD
+        </p>
+      </div>
+      <Suspense fallback={<p className="text-sm text-muted-foreground">로딩…</p>}>
+        <AdminCouponsTable
+          items={res.data.items}
+          total={res.data.total}
+          page={res.data.page}
+          totalPages={res.data.totalPages}
+          query={query}
+          canWrite={actor.permissions.includes("coupons.write")}
+        />
+      </Suspense>
+    </div>
   );
 }

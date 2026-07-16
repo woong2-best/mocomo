@@ -50,8 +50,16 @@ async function fulfillTip(
   });
   if (!sender) return { error: "???? ?? ? ????." };
 
-  const platformFee = calcPlatformFee(amount, PLATFORM_FEE_RATE);
-  const sellerAmount = amount - platformFee;
+  const { applyCouponToSettlement } = await import("@/lib/admin/services/coupons");
+  const feeResult = await applyCouponToSettlement({
+    userId: receiverId,
+    grossAmountKrw: amount,
+    referenceType: "tip_settlement",
+    referenceId: paymentIntentId ?? undefined,
+    note: `tip from ${sender.username}`,
+  });
+  const platformFee = feeResult.platformFee;
+  const sellerAmount = feeResult.sellerAmount;
 
   const tip = await db.tip.create({
     data: {

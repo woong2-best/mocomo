@@ -8,6 +8,9 @@ export type AdminPermission =
   | "creators"
   | "settlements"
   | "coupons"
+  | "coupons.write"
+  | "coupons.assign"
+  | "coupons.delete"
   | "products"
   | "communities"
   | "live"
@@ -26,6 +29,9 @@ export const ALL_ADMIN_PERMISSIONS: AdminPermission[] = [
   "creators",
   "settlements",
   "coupons",
+  "coupons.write",
+  "coupons.assign",
+  "coupons.delete",
   "products",
   "communities",
   "live",
@@ -65,8 +71,8 @@ const ROLE_PERMISSIONS: Record<string, AdminPermission[]> = {
   ],
   MODERATOR: ["dashboard", "reports", "communities", "live"],
   SETTLEMENT_MANAGER: ["dashboard", "settlements", "statistics", "audit"],
-  CUSTOMER_SUPPORT: ["dashboard", "users", "reports", "audit"],
-  MARKETING: ["dashboard", "coupons", "ads", "statistics"],
+  CUSTOMER_SUPPORT: ["dashboard", "users", "reports", "audit", "coupons"],
+  MARKETING: ["dashboard", "coupons", "coupons.write", "coupons.assign", "ads", "statistics"],
 };
 
 export function isAdminCmsRole(role: string): boolean {

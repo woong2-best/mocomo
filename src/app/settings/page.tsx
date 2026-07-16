@@ -109,6 +109,11 @@ export default async function SettingsPage() {
                 {t("settings.creatorRevenue")}
               </Button>
             </Link>
+            <Link href="/coupons">
+              <Button variant="outline" size="sm">
+                내 쿠폰
+              </Button>
+            </Link>
             <Link href="/support">
               <Button variant="ghost" size="sm">
                 {t("settings.supportTier")}
