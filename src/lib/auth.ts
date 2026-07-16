@@ -13,7 +13,6 @@ import { recordUserDeviceFromRequest } from "@/lib/apt/economy/fraud/fraud-restr
 import { recoverDeletedAccount } from "@/lib/account-deletion-server";
 import { canRecoverAccount, isAccountPastRecovery } from "@/lib/account-deletion";
 import { hydrateUserOAuthProfile } from "@/lib/oauth-vault";
-import type { SiteAdminAuditAction } from "@/lib/site-admin-audit";
 import { logSiteAdminAudit } from "@/lib/site-admin-audit";
 import {
   assertAccountCanWrite,
@@ -85,6 +84,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       if (user?.id || trigger === "update") {
         const userId = (user?.id ?? token.id) as string;
+        if (user?.id) {
+          void db.user
+            .update({
+              where: { id: userId },
+              data: { lastLoginAt: new Date() },
+            })
+            .catch(() => undefined);
+        }
         const dbUser = await db.user.findUnique({
           where: { id: userId },
           select: {
@@ -98,6 +105,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             isBanned: true,
             accountStatus: true,
             deletedAt: true,
+            adminDisabledAt: true,
           },
         });
         if (dbUser) {
@@ -121,6 +129,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             role: effectiveRole(dbUser),
             email: dbUser.email,
           });
+          // 비활성 관리자는 스태프 클레임 제거
+          if (dbUser.adminDisabledAt) {
+            token.isStaff = false;
+            token.isOperator = false;
+          }
         }
       }
       return token;
@@ -212,7 +225,7 @@ export async function requireAuthMinimal(options?: { writeKind?: AccountWriteKin
 }
 
 export async function requireAdmin(audit?: {
-  action: SiteAdminAuditAction;
+  action: string;
   targetType?: string;
   targetId?: string;
   metadata?: Record<string, unknown>;

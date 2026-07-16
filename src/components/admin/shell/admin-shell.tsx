@@ -5,15 +5,20 @@ import { usePathname } from "next/navigation";
 import { AdminSidebar } from "@/components/admin/shell/admin-sidebar";
 import { AdminHeader } from "@/components/admin/shell/admin-header";
 import { getAdminPageTitle } from "@/lib/admin/nav";
+import type { AdminPermission } from "@/lib/admin/permissions";
 
 export function AdminShell({
   children,
   adminName,
   adminImage,
+  adminRole,
+  permissions,
 }: {
   children: React.ReactNode;
   adminName: string;
   adminImage?: string | null;
+  adminRole: string;
+  permissions: AdminPermission[];
 }) {
   const pathname = usePathname() ?? "/admin";
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -21,11 +26,15 @@ export function AdminShell({
 
   return (
     <div className="flex min-h-dvh bg-zinc-50 text-foreground dark:bg-zinc-950">
-      <AdminSidebar open={mobileOpen} onClose={() => setMobileOpen(false)} />
+      <AdminSidebar
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        permissions={permissions}
+      />
       <div className="flex min-w-0 flex-1 flex-col">
         <AdminHeader
           title={title}
-          adminName={adminName}
+          adminName={`${adminName} · ${adminRole}`}
           adminImage={adminImage}
           onMenuClick={() => setMobileOpen(true)}
         />

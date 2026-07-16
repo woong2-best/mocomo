@@ -195,15 +195,18 @@ export default edgeAuth((req) => {
   }
   const isOperator = Boolean(req.auth?.user?.isOperator);
   const isStaff = Boolean(req.auth?.user?.isStaff);
-  const isModerationAdmin = pathname.startsWith("/admin/moderation");
+  const isAdminForbiddenPage = pathname === "/admin/forbidden";
 
-  if (isAdmin && isModerationAdmin && !isStaff && !isOperator) {
-    const res = NextResponse.redirect(new URL(DEFAULT_LANDING_PATH, req.url));
+  if (isAdmin && !isLoggedIn) {
+    const signIn = new URL("/auth/signin", req.url);
+    signIn.searchParams.set("callbackUrl", pathname);
+    const res = NextResponse.redirect(signIn);
     stampAppClientIfNeeded(req, res);
     return res;
   }
-  if (isAdmin && !isModerationAdmin && !isOperator) {
-    const res = NextResponse.redirect(new URL(DEFAULT_LANDING_PATH, req.url));
+
+  if (isAdmin && isLoggedIn && !isAdminForbiddenPage && !isStaff && !isOperator) {
+    const res = NextResponse.redirect(new URL("/admin/forbidden", req.url));
     stampAppClientIfNeeded(req, res);
     return res;
   }

@@ -1,11 +1,49 @@
-import { AdminPlaceholderPage } from "@/components/admin/shell/admin-placeholder-page";
+import { Suspense } from "react";
+import { adminLoadUsers } from "@/actions/admin-cms";
+import { AdminUsersTable } from "@/components/admin/cms/admin-users-table";
 
-export default function AdminUsersPage() {
+export const dynamic = "force-dynamic";
+
+export default async function AdminUsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    q?: string;
+    page?: string;
+    sort?: string;
+    order?: string;
+    status?: string;
+  }>;
+}) {
+  const sp = await searchParams;
+  const query = {
+    q: sp.q,
+    page: Number(sp.page) || 1,
+    sort: (sp.sort as "createdAt" | "lastLoginAt" | "username") || "createdAt",
+    order: (sp.order as "asc" | "desc") || "desc",
+    status: (sp.status as "all" | "active" | "suspended" | "deleted" | "premium") || "all",
+  };
+
+  const res = await adminLoadUsers(query);
+  if (!res.ok) {
+    return <p className="text-sm text-destructive">{res.error}</p>;
+  }
+
   return (
-    <AdminPlaceholderPage
-      title="회원 관리"
-      description="회원 목록 · 검색 · 상태 변경 화면입니다. 현재는 라우팅만 제공합니다."
-      actions={[{ label: "회원 삭제" }, { label: "회원 검색" }, { label: "상태 변경" }]}
-    />
+    <div className="mx-auto max-w-6xl space-y-4">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">회원 관리</h1>
+        <p className="text-sm text-muted-foreground">검색 · 정렬 · 페이지네이션 · CSV</p>
+      </div>
+      <Suspense fallback={<p className="text-sm text-muted-foreground">로딩…</p>}>
+        <AdminUsersTable
+          items={res.data.items}
+          total={res.data.total}
+          page={res.data.page}
+          totalPages={res.data.totalPages}
+          query={query}
+        />
+      </Suspense>
+    </div>
   );
 }

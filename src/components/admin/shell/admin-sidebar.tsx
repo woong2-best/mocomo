@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Shield, X } from "lucide-react";
-import { ADMIN_LEGACY_NAV, ADMIN_PRIMARY_NAV } from "@/lib/admin/nav";
+import {
+  ADMIN_LEGACY_NAV,
+  ADMIN_PRIMARY_NAV,
+  filterNavByPermissions,
+  type AdminNavItem,
+} from "@/lib/admin/nav";
+import type { AdminPermission } from "@/lib/admin/permissions";
 import { cn } from "@/lib/utils";
 
 function NavLink({
@@ -11,12 +17,7 @@ function NavLink({
   label,
   icon: Icon,
   onNavigate,
-}: {
-  href: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  onNavigate?: () => void;
-}) {
+}: AdminNavItem & { onNavigate?: () => void }) {
   const pathname = usePathname();
   const active =
     href === "/admin" ? pathname === "/admin" : pathname === href || pathname.startsWith(`${href}/`);
@@ -41,10 +42,15 @@ function NavLink({
 export function AdminSidebar({
   open,
   onClose,
+  permissions,
 }: {
   open?: boolean;
   onClose?: () => void;
+  permissions: AdminPermission[];
 }) {
+  const primary = filterNavByPermissions(ADMIN_PRIMARY_NAV, permissions);
+  const legacy = filterNavByPermissions(ADMIN_LEGACY_NAV, permissions);
+
   return (
     <>
       {open ? (
@@ -86,23 +92,25 @@ export function AdminSidebar({
             <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
               Menu
             </p>
-            {ADMIN_PRIMARY_NAV.map((item) => (
+            {primary.map((item) => (
               <NavLink key={item.href} {...item} onNavigate={onClose} />
             ))}
           </div>
 
-          <div className="space-y-1">
-            <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-              운영 도구
-            </p>
-            {ADMIN_LEGACY_NAV.map((item) => (
-              <NavLink key={item.href} {...item} onNavigate={onClose} />
-            ))}
-          </div>
+          {legacy.length > 0 ? (
+            <div className="space-y-1">
+              <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+                운영 도구
+              </p>
+              {legacy.map((item) => (
+                <NavLink key={item.href} {...item} onNavigate={onClose} />
+              ))}
+            </div>
+          ) : null}
         </nav>
 
         <div className="border-t border-white/10 p-3 text-[11px] text-zinc-500">
-          Admin console · skeleton
+          Admin CMS · live DB
         </div>
       </aside>
     </>

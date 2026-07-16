@@ -13,7 +13,10 @@ datasource db {
 enum UserRole {
   USER
   VERIFIED
+  MARKETING
+  CUSTOMER_SUPPORT
   MODERATOR
+  SETTLEMENT_MANAGER
   SENIOR_MODERATOR
   ADMIN
   SUPER_ADMIN
@@ -175,12 +178,18 @@ model User {
   /** 영구 삭제 예정 시각 — 탈퇴 다음날부터 50일 */
   scheduledPurgeAt    DateTime?
   deletionReason      String?
+  /** 최근 로그인 (세션/로그인 콜백에서 갱신) */
+  lastLoginAt         DateTime?
+  /** 관리자 계정 활성 여부 (스태프 역할일 때) */
+  adminDisabledAt     DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   accounts      Account[]
   sessions      Session[]
   usernameChangeLogs UsernameChangeLog[]
+  adminMemosAbout AdminUserMemo[] @relation("AdminMemoSubject")
+  adminMemosWritten AdminUserMemo[] @relation("AdminMemoAuthor")
   profile       Profile?
   cosplayerProfile CosplayerProfile?
   streamerProfile  StreamerProfile?
@@ -2587,6 +2596,34 @@ model SiteAdminAuditLog {
   @@index([actorId, createdAt])
   @@index([action, createdAt])
   @@index([targetId])
+}
+
+/** 관리자 CMS 시스템 설정 (키-값) */
+model SiteSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([updatedAt])
+}
+
+/** 회원에 대한 관리자 내부 메모 */
+model AdminUserMemo {
+  id        String   @id @default(cuid())
+  userId    String
+  authorId  String
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User @relation("AdminMemoSubject", fields: [userId], references: [id], onDelete: Cascade)
+  author User @relation("AdminMemoAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([authorId])
 }
 
 model PushSubscription {

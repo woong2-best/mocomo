@@ -12,11 +12,27 @@ export type SiteAdminAuditAction =
   | "OPERATOR_BOOTSTRAP"
   | "MARKETPLACE_ADMIN_VIEW"
   | "MARKETPLACE_DISPUTE_RESOLVE"
-  | "MARKETPLACE_SANCTION";
+  | "MARKETPLACE_SANCTION"
+  | "ADMIN_LOGIN"
+  | "ADMIN_LOGOUT"
+  | "USER_SUSPEND"
+  | "USER_RESTORE"
+  | "USER_SOFT_DELETE"
+  | "USER_PREMIUM_GRANT"
+  | "USER_USERNAME_CHANGE"
+  | "USER_MEMO"
+  | "ADMIN_ROLE_CHANGE"
+  | "ADMIN_CREATE"
+  | "ADMIN_DISABLE"
+  | "ADMIN_ENABLE"
+  | "ADMIN_PASSWORD_RESET"
+  | "SETTINGS_UPDATE"
+  | "DASHBOARD_VIEW"
+  | "AUDIT_VIEW";
 
 export async function logSiteAdminAudit(input: {
   actorId: string;
-  action: SiteAdminAuditAction;
+  action: string;
   targetType?: string;
   targetId?: string;
   metadata?: Record<string, unknown>;

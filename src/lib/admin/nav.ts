@@ -17,40 +17,42 @@ import {
   Flower2,
   Landmark,
   Shield,
+  KeyRound,
+  ScrollText,
 } from "lucide-react";
+import type { AdminPermission } from "@/lib/admin/permissions";
 
 export type AdminNavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
-  /** 아직 기능 미구현 — UI만 */
-  stub?: boolean;
+  permission: AdminPermission;
 };
 
-/** 1차 메뉴 — 확장 시 여기에 항목만 추가 */
 export const ADMIN_PRIMARY_NAV: AdminNavItem[] = [
-  { href: "/admin", label: "대시보드", icon: LayoutDashboard },
-  { href: "/admin/users", label: "회원 관리", icon: Users, stub: true },
-  { href: "/admin/creators", label: "크리에이터 관리", icon: Drama, stub: true },
-  { href: "/admin/settlements", label: "정산 관리", icon: CreditCard, stub: true },
-  { href: "/admin/coupons", label: "쿠폰 / 프로모션", icon: TicketPercent, stub: true },
-  { href: "/admin/products", label: "상품 관리", icon: ShoppingBag, stub: true },
-  { href: "/admin/communities", label: "커뮤니티 관리", icon: MessagesSquare, stub: true },
-  { href: "/admin/live", label: "라이브 관리", icon: Radio, stub: true },
-  { href: "/admin/reports", label: "신고 관리", icon: ShieldAlert, stub: true },
-  { href: "/admin/ads", label: "광고 관리", icon: Megaphone, stub: true },
-  { href: "/admin/statistics", label: "통계", icon: BarChart3, stub: true },
-  { href: "/admin/settings", label: "시스템 설정", icon: Settings, stub: true },
+  { href: "/admin", label: "대시보드", icon: LayoutDashboard, permission: "dashboard" },
+  { href: "/admin/users", label: "회원 관리", icon: Users, permission: "users" },
+  { href: "/admin/creators", label: "크리에이터 관리", icon: Drama, permission: "creators" },
+  { href: "/admin/settlements", label: "정산 관리", icon: CreditCard, permission: "settlements" },
+  { href: "/admin/coupons", label: "쿠폰 / 프로모션", icon: TicketPercent, permission: "coupons" },
+  { href: "/admin/products", label: "상품 관리", icon: ShoppingBag, permission: "products" },
+  { href: "/admin/communities", label: "커뮤니티 관리", icon: MessagesSquare, permission: "communities" },
+  { href: "/admin/live", label: "라이브 관리", icon: Radio, permission: "live" },
+  { href: "/admin/reports", label: "신고 관리", icon: ShieldAlert, permission: "reports" },
+  { href: "/admin/ads", label: "광고 관리", icon: Megaphone, permission: "ads" },
+  { href: "/admin/statistics", label: "통계", icon: BarChart3, permission: "statistics" },
+  { href: "/admin/roles", label: "관리자 계정", icon: KeyRound, permission: "admins" },
+  { href: "/admin/audit", label: "감사 로그", icon: ScrollText, permission: "audit" },
+  { href: "/admin/settings", label: "시스템 설정", icon: Settings, permission: "settings" },
 ];
 
-/** 기존 운영 도구 (이미 동작하는 화면) — 사이드바 하단 */
 export const ADMIN_LEGACY_NAV: AdminNavItem[] = [
-  { href: "/admin/market", label: "MARKET 분쟁", icon: Gavel },
-  { href: "/admin/finance", label: "매출 · 출금", icon: Landmark },
-  { href: "/admin/economy", label: "APT 경제", icon: Coins },
-  { href: "/admin/flowers", label: "Flower Gift", icon: Flower2 },
-  { href: "/admin/moderation", label: "위험도 대기열", icon: ShieldAlert },
-  { href: "/admin/suspensions", label: "계정 제재", icon: Shield },
+  { href: "/admin/market", label: "MARKET 분쟁", icon: Gavel, permission: "legacy.ops" },
+  { href: "/admin/finance", label: "매출 · 출금", icon: Landmark, permission: "legacy.ops" },
+  { href: "/admin/economy", label: "APT 경제", icon: Coins, permission: "legacy.ops" },
+  { href: "/admin/flowers", label: "Flower Gift", icon: Flower2, permission: "legacy.ops" },
+  { href: "/admin/moderation", label: "위험도 대기열", icon: ShieldAlert, permission: "reports" },
+  { href: "/admin/suspensions", label: "계정 제재", icon: Shield, permission: "reports" },
 ];
 
 export function getAdminPageTitle(pathname: string): string {
@@ -61,4 +63,12 @@ export function getAdminPageTitle(pathname: string): string {
     .filter((item) => item.href !== "/admin" && pathname.startsWith(item.href))
     .sort((a, b) => b.href.length - a.href.length)[0];
   return prefix?.label ?? "관리자";
+}
+
+export function filterNavByPermissions(
+  items: AdminNavItem[],
+  permissions: AdminPermission[]
+): AdminNavItem[] {
+  const set = new Set(permissions);
+  return items.filter((item) => set.has(item.permission));
 }

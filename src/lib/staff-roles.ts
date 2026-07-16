@@ -1,14 +1,26 @@
 import type { UserRole } from "@prisma/client";
 import { getOperatorUsername } from "@/lib/operator-config";
+import {
+  ADMIN_ROLE_LABELS,
+  ALL_ADMIN_PERMISSIONS,
+  hasAdminPermission,
+  isAdminCmsRole,
+  pathPermission,
+  permissionsForRole,
+  type AdminPermission,
+} from "@/lib/admin/permissions";
 
 export const STAFF_ROLE_RANK: Record<UserRole, number> = {
   USER: 0,
   VERIFIED: 1,
-  MODERATOR: 2,
-  SENIOR_MODERATOR: 3,
-  ADMIN: 4,
-  SUPER_ADMIN: 5,
-  OWNER: 6,
+  MARKETING: 2,
+  CUSTOMER_SUPPORT: 2,
+  MODERATOR: 3,
+  SETTLEMENT_MANAGER: 3,
+  SENIOR_MODERATOR: 4,
+  ADMIN: 5,
+  SUPER_ADMIN: 6,
+  OWNER: 7,
 };
 
 export function staffRoleRank(role: UserRole | string): number {
@@ -30,7 +42,9 @@ export function canCreateStaff(actorRole: string): boolean {
 export function canCreateRole(actorRole: string, targetRole: UserRole): boolean {
   if (targetRole === "OWNER") return false;
   if (targetRole === "SUPER_ADMIN") return actorRole === "OWNER";
-  return canCreateStaff(actorRole);
+  if (targetRole === "USER" || targetRole === "VERIFIED") return canCreateStaff(actorRole) || actorRole === "ADMIN";
+  if (!isAdminCmsRole(targetRole)) return false;
+  return canCreateStaff(actorRole) || actorRole === "ADMIN";
 }
 
 export function canApplySanction(actorRole: string, sanction: string): boolean {
@@ -51,18 +65,33 @@ export function resolveEffectiveStaffRole(user: {
   role: string;
   email?: string | null;
 }): UserRole {
-  if (user.username.trim().toLowerCase() === getOperatorUsername() && user.role === "ADMIN") {
+  if (
+    user.username.trim().toLowerCase() === getOperatorUsername() &&
+    (user.role === "ADMIN" || user.role === "OWNER" || user.role === "SUPER_ADMIN")
+  ) {
     return "OWNER";
   }
   return user.role as UserRole;
 }
 
 export const STAFF_ROLE_LABELS: Record<UserRole, string> = {
-  USER: "일반",
-  VERIFIED: "인증",
-  MODERATOR: "모더레이터",
-  SENIOR_MODERATOR: "시니어 모더레이터",
-  ADMIN: "관리자",
-  SUPER_ADMIN: "최고 관리자",
-  OWNER: "소유자",
+  USER: ADMIN_ROLE_LABELS.USER,
+  VERIFIED: ADMIN_ROLE_LABELS.VERIFIED,
+  MARKETING: ADMIN_ROLE_LABELS.MARKETING,
+  CUSTOMER_SUPPORT: ADMIN_ROLE_LABELS.CUSTOMER_SUPPORT,
+  MODERATOR: ADMIN_ROLE_LABELS.MODERATOR,
+  SETTLEMENT_MANAGER: ADMIN_ROLE_LABELS.SETTLEMENT_MANAGER,
+  SENIOR_MODERATOR: ADMIN_ROLE_LABELS.SENIOR_MODERATOR,
+  ADMIN: ADMIN_ROLE_LABELS.ADMIN,
+  SUPER_ADMIN: ADMIN_ROLE_LABELS.SUPER_ADMIN,
+  OWNER: ADMIN_ROLE_LABELS.OWNER,
+};
+
+export {
+  hasAdminPermission,
+  isAdminCmsRole,
+  pathPermission,
+  permissionsForRole,
+  ALL_ADMIN_PERMISSIONS,
+  type AdminPermission,
 };

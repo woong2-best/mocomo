@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   AlertTriangle,
   CreditCard,
@@ -5,79 +6,166 @@ import {
   TrendingUp,
   UserPlus,
   Users,
+  Crown,
 } from "lucide-react";
+import { adminLoadDashboard } from "@/actions/admin-cms";
 import { ChartPlaceholder } from "@/components/admin/shell/chart-placeholder";
 import { DashboardCard, StatCard } from "@/components/admin/shell/stat-card";
-import { Button } from "@/components/ui/button";
 
-/** 대시보드 더미 데이터 — 실연동은 이후 단계 */
-const DUMMY_STATS = [
-  { label: "총 회원수", value: "152,342", hint: "누적 가입", icon: Users },
-  { label: "오늘 가입자", value: "132", hint: "UTC+9 기준", icon: UserPlus },
-  { label: "총 크리에이터", value: "4,218", hint: "활성 크리에이터", icon: Drama },
-  { label: "오늘 매출", value: "₩12,840,000", hint: "더미", icon: TrendingUp },
-  { label: "이번달 정산 예정", value: "₩86,200,000", hint: "더미", icon: CreditCard },
-  { label: "신고 대기", value: "8건", hint: "처리 대기", icon: AlertTriangle },
-] as const;
+export const dynamic = "force-dynamic";
 
-export default function AdminDashboardPage() {
+export default async function AdminDashboardPage() {
+  const res = await adminLoadDashboard();
+  if (!res.ok) {
+    return (
+      <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive">
+        {res.error}
+      </div>
+    );
+  }
+
+  const { stats, recentUsers, recentPayments, recentReports, recentPayouts, recentAudit, recentLogins, signupSeries, revenueSeries } =
+    res.data;
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">대시보드</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            MoCoMo 운영 현황 요약입니다. 아래 수치는 현재 더미 데이터입니다.
-          </p>
-        </div>
-        <Button type="button" variant="secondary" size="sm" disabled>
-          새로고침 (준비 중)
-        </Button>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">대시보드</h1>
+        <p className="mt-1 text-sm text-muted-foreground">실시간 DB 집계</p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {DUMMY_STATS.map((stat) => (
-          <StatCard
-            key={stat.label}
-            label={stat.label}
-            value={stat.value}
-            hint={stat.hint}
-            icon={stat.icon}
-          />
-        ))}
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="총 회원수" value={stats.totalUsers.toLocaleString()} icon={Users} />
+        <StatCard label="오늘 가입자" value={stats.todaySignups.toLocaleString()} icon={UserPlus} />
+        <StatCard label="프리미엄 회원" value={stats.premiumUsers.toLocaleString()} icon={Crown} />
+        <StatCard label="크리에이터 수" value={stats.creators.toLocaleString()} icon={Drama} />
+        <StatCard
+          label="오늘 매출"
+          value={`₩${stats.todayRevenue.toLocaleString()}`}
+          hint={`${stats.todayPaymentCount}건`}
+          icon={TrendingUp}
+        />
+        <StatCard
+          label="이번달 매출"
+          value={`₩${stats.monthRevenue.toLocaleString()}`}
+          hint={`${stats.monthPaymentCount}건`}
+          icon={TrendingUp}
+        />
+        <StatCard label="정산 대기" value={`${stats.pendingPayouts}건`} icon={CreditCard} />
+        <StatCard label="신고 대기" value={`${stats.pendingReports}건`} icon={AlertTriangle} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <ChartPlaceholder
           title="최근 7일 가입자"
-          bars={[98, 112, 86, 140, 125, 132, 118]}
+          bars={signupSeries.map((s) => s.count)}
         />
         <ChartPlaceholder
           title="최근 7일 매출"
-          bars={[55, 62, 48, 78, 70, 88, 74]}
+          bars={revenueSeries.map((s) => Math.max(1, Math.round(s.amount / 1000)))}
         />
       </div>
 
-      <DashboardCard
-        title="빠른 작업"
-        description="버튼만 배치 · 실제 동작은 이후 단계에서 연결합니다."
-      >
-        <div className="flex flex-wrap gap-2">
-          {[
-            "쿠폰 생성",
-            "회원 삭제",
-            "정산 승인",
-            "신고 처리",
-            "상품 삭제",
-            "라이브 종료",
-            "통계 조회",
-          ].map((label) => (
-            <Button key={label} type="button" variant="outline" size="sm" disabled>
-              {label}
-            </Button>
-          ))}
-        </div>
-      </DashboardCard>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <DashboardCard title="최근 가입 회원">
+          <ul className="space-y-2 text-sm">
+            {recentUsers.map((u) => (
+              <li key={u.id} className="flex justify-between gap-2 border-b border-border/40 pb-2">
+                <Link href={`/admin/users/${u.id}`} className="font-medium text-primary hover:underline">
+                  @{u.username}
+                </Link>
+                <span className="text-xs text-muted-foreground">
+                  {u.createdAt.toISOString().slice(0, 16).replace("T", " ")}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </DashboardCard>
+
+        <DashboardCard title="최근 결제">
+          <ul className="space-y-2 text-sm">
+            {recentPayments.length === 0 ? (
+              <li className="text-muted-foreground">결제 없음</li>
+            ) : (
+              recentPayments.map((p) => (
+                <li key={p.id} className="flex justify-between gap-2 border-b border-border/40 pb-2">
+                  <span>
+                    @{p.user.username} · {p.type}
+                  </span>
+                  <span className="tabular-nums">₩{p.amount.toLocaleString()}</span>
+                </li>
+              ))
+            )}
+          </ul>
+        </DashboardCard>
+
+        <DashboardCard title="최근 신고">
+          <ul className="space-y-2 text-sm">
+            {recentReports.length === 0 ? (
+              <li className="text-muted-foreground">대기 신고 없음</li>
+            ) : (
+              recentReports.map((r) => (
+                <li key={r.id} className="border-b border-border/40 pb-2">
+                  <p className="font-medium">
+                    {r.targetType} · {r.reason}
+                  </p>
+                  <p className="text-xs text-muted-foreground">@{r.reporter.username}</p>
+                </li>
+              ))
+            )}
+          </ul>
+        </DashboardCard>
+
+        <DashboardCard title="최근 정산">
+          <ul className="space-y-2 text-sm">
+            {recentPayouts.length === 0 ? (
+              <li className="text-muted-foreground">정산 요청 없음</li>
+            ) : (
+              recentPayouts.map((p) => (
+                <li key={p.id} className="flex justify-between gap-2 border-b border-border/40 pb-2">
+                  <span>
+                    @{p.user.username} · {p.status}
+                  </span>
+                  <span className="tabular-nums">₩{p.amount.toLocaleString()}</span>
+                </li>
+              ))
+            )}
+          </ul>
+        </DashboardCard>
+
+        <DashboardCard title="최근 관리자 활동">
+          <ul className="space-y-2 text-sm">
+            {recentAudit.map((a) => (
+              <li key={a.id} className="border-b border-border/40 pb-2 text-xs">
+                <span className="font-medium">@{a.actor.username}</span> {a.action}
+                <span className="text-muted-foreground">
+                  {" "}
+                  · {a.createdAt.toISOString().slice(0, 19).replace("T", " ")}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </DashboardCard>
+
+        <DashboardCard title="최근 로그인">
+          <ul className="space-y-2 text-sm">
+            {recentLogins.length === 0 ? (
+              <li className="text-muted-foreground">기록 없음 (로그인 후 집계)</li>
+            ) : (
+              recentLogins.map((u) => (
+                <li key={u.id} className="flex justify-between gap-2 border-b border-border/40 pb-2">
+                  <Link href={`/admin/users/${u.id}`} className="font-medium text-primary hover:underline">
+                    @{u.username}
+                  </Link>
+                  <span className="text-xs text-muted-foreground">
+                    {u.lastLoginAt?.toISOString().slice(0, 16).replace("T", " ")}
+                  </span>
+                </li>
+              ))
+            )}
+          </ul>
+        </DashboardCard>
+      </div>
     </div>
   );
 }

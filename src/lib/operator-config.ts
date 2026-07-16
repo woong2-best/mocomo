@@ -35,7 +35,13 @@ export function isOperatorIdentity(
 
 export function isStaffIdentity(user: { role: string; username: string; email?: string | null }): boolean {
   const role = resolveEffectiveStaffRole(user);
-  return staffRoleRank(role) >= staffRoleRank("MODERATOR");
+  if (staffRoleRank(role) >= staffRoleRank("MODERATOR")) return true;
+  // CMS 전용 역할 (랭크가 MODERATOR 미만이어도 스태프)
+  return (
+    role === "MARKETING" ||
+    role === "CUSTOMER_SUPPORT" ||
+    role === "SETTLEMENT_MANAGER"
+  );
 }
 
 /** JWT/미들웨어용 */
@@ -43,7 +49,7 @@ export function effectiveRole(
   user: { username: string; role: string; email?: string | null }
 ): string {
   const resolved = resolveEffectiveStaffRole(user);
-  if (staffRoleRank(resolved) >= staffRoleRank("MODERATOR")) return resolved;
+  if (isStaffIdentity({ ...user, role: resolved })) return resolved;
   if (user.role === "ADMIN" && !isOperatorIdentity(user)) return "USER";
   return user.role;
 }

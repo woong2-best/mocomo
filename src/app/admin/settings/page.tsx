@@ -1,11 +1,19 @@
-import { AdminPlaceholderPage } from "@/components/admin/shell/admin-placeholder-page";
+import { adminLoadSettings } from "@/actions/admin-cms";
+import { AdminSettingsForm } from "@/components/admin/cms/admin-settings-form";
 
-export default function AdminSettingsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function AdminSettingsPage() {
+  const res = await adminLoadSettings();
+  if (!res.ok) return <p className="text-sm text-destructive">{res.error}</p>;
+
   return (
-    <AdminPlaceholderPage
-      title="시스템 설정"
-      description="플랫폼 전역 설정 · 운영 플래그 화면 골격입니다."
-      actions={[{ label: "설정 저장" }, { label: "캐시 초기화" }]}
-    />
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">시스템 설정</h1>
+        <p className="text-sm text-muted-foreground">DB에 저장되며 새로고침 후에도 유지됩니다.</p>
+      </div>
+      <AdminSettingsForm initial={res.data} />
+    </div>
   );
 }
