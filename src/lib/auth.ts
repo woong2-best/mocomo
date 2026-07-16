@@ -129,10 +129,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             role: effectiveRole(dbUser),
             email: dbUser.email,
           });
-          // 비활성 관리자는 스태프 클레임 제거
-          if (dbUser.adminDisabledAt) {
+          // 비활성 관리자는 스태프 클레임 제거 (사이트 오너는 예외)
+          if (dbUser.adminDisabledAt && !token.isOperator) {
             token.isStaff = false;
             token.isOperator = false;
+          }
+          // 오너 계정 DB role 보정
+          if (token.isOperator && dbUser.role !== "OWNER") {
+            void db.user
+              .update({
+                where: { id: userId },
+                data: { role: "OWNER", adminDisabledAt: null },
+              })
+              .catch(() => undefined);
+            token.role = "OWNER";
           }
         }
       }

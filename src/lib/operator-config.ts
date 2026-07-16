@@ -1,6 +1,8 @@
 /**
- * 운영자·스태프 식별 (12-factor: Vercel 환경 변수).
- * Edge(middleware)·서버 공통 — DB import 없음.
+ * 운영자·스태프 식별 (Edge middleware·서버 공통 — DB import 없음).
+ *
+ * SITE_OPERATOR_USERNAME (기본: mocomocompany) 계정만 사이트 OWNER.
+ * 관리자 계정 추가/삭제는 OWNER만 가능.
  */
 
 import { resolveEffectiveStaffRole, staffRoleRank } from "@/lib/staff-roles";
@@ -12,31 +14,44 @@ export function getOperatorUsername(): string {
   return raw || DEFAULT_OPERATOR_USERNAME;
 }
 
-/** 선택: 운영자 이메일까지 일치해야 ADMIN 인정 (이중 확인) */
+/** 선택: 운영자 이메일까지 일치해야 OWNER 인정 (이중 확인) */
 export function getOperatorEmail(): string | null {
   const raw = process.env.SITE_OPERATOR_EMAIL?.trim().toLowerCase();
   return raw || null;
 }
 
-export function isOperatorIdentity(
-  user: { username: string; role: string; email?: string | null }
-): boolean {
-  const role = resolveEffectiveStaffRole(user);
-  if (staffRoleRank(role) >= staffRoleRank("ADMIN")) return true;
-  if (user.role !== "ADMIN") return false;
+/** username(+선택 email)이 사이트 오너 계정인지 */
+export function isSiteOperatorAccount(user: {
+  username: string;
+  email?: string | null;
+}): boolean {
   if (user.username.trim().toLowerCase() !== getOperatorUsername()) return false;
   const requiredEmail = getOperatorEmail();
-  if (requiredEmail) {
-    const userEmail = user.email?.trim().toLowerCase();
-    if (!userEmail || userEmail !== requiredEmail) return false;
-  }
-  return true;
+  if (!requiredEmail) return true;
+  const userEmail = user.email?.trim().toLowerCase();
+  return !!userEmail && userEmail === requiredEmail;
 }
 
-export function isStaffIdentity(user: { role: string; username: string; email?: string | null }): boolean {
+/**
+ * 사이트 오너(OPERATOR) 여부.
+ * DB role과 무관하게 mocomocompany(설정값)면 true → /admin 진입 가능.
+ */
+export function isOperatorIdentity(user: {
+  username: string;
+  role: string;
+  email?: string | null;
+}): boolean {
+  return isSiteOperatorAccount(user);
+}
+
+export function isStaffIdentity(user: {
+  role: string;
+  username: string;
+  email?: string | null;
+}): boolean {
+  if (isSiteOperatorAccount(user)) return true;
   const role = resolveEffectiveStaffRole(user);
   if (staffRoleRank(role) >= staffRoleRank("MODERATOR")) return true;
-  // CMS 전용 역할 (랭크가 MODERATOR 미만이어도 스태프)
   return (
     role === "MARKETING" ||
     role === "CUSTOMER_SUPPORT" ||
@@ -45,11 +60,13 @@ export function isStaffIdentity(user: { role: string; username: string; email?: 
 }
 
 /** JWT/미들웨어용 */
-export function effectiveRole(
-  user: { username: string; role: string; email?: string | null }
-): string {
+export function effectiveRole(user: {
+  username: string;
+  role: string;
+  email?: string | null;
+}): string {
+  if (isSiteOperatorAccount(user)) return "OWNER";
   const resolved = resolveEffectiveStaffRole(user);
   if (isStaffIdentity({ ...user, role: resolved })) return resolved;
-  if (user.role === "ADMIN" && !isOperatorIdentity(user)) return "USER";
   return user.role;
 }

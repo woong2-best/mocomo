@@ -58,8 +58,8 @@ export const ADMIN_CMS_ROLES: UserRole[] = [
 
 const ROLE_PERMISSIONS: Record<string, AdminPermission[]> = {
   OWNER: ALL_ADMIN_PERMISSIONS,
-  SUPER_ADMIN: ALL_ADMIN_PERMISSIONS,
-  ADMIN: ALL_ADMIN_PERMISSIONS,
+  SUPER_ADMIN: ALL_ADMIN_PERMISSIONS.filter((p) => p !== "admins"),
+  ADMIN: ALL_ADMIN_PERMISSIONS.filter((p) => p !== "admins"),
   SENIOR_MODERATOR: [
     "dashboard",
     "users",

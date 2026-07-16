@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { logSiteAdminAudit } from "@/lib/site-admin-audit";
 import type { AdminActor } from "@/lib/admin/access";
+import { isSiteOperatorAccount } from "@/lib/operator-config";
+import { isAdminCmsRole } from "@/lib/admin/permissions";
 
 const PAGE_SIZE = 20;
 
@@ -408,11 +410,17 @@ export async function setStaffRole(
   userId: string,
   role: UserRole
 ) {
-  if (role === "OWNER" && actor.role !== "OWNER") {
+  if (actor.role !== "OWNER") {
+    return { error: "OWNER만 관리자 권한을 변경할 수 있습니다." };
+  }
+  if (role === "OWNER") {
     return { error: "OWNER 역할은 부여할 수 없습니다." };
   }
   const target = await db.user.findUnique({ where: { id: userId } });
   if (!target) return { error: "사용자를 찾을 수 없습니다." };
+  if (isSiteOperatorAccount(target)) {
+    return { error: "사이트 오너 계정 권한은 변경할 수 없습니다." };
+  }
 
   await db.user.update({ where: { id: userId }, data: { role } });
   await logSiteAdminAudit({
@@ -426,7 +434,15 @@ export async function setStaffRole(
 }
 
 export async function setStaffDisabled(actor: AdminActor, userId: string, disabled: boolean) {
+  if (actor.role !== "OWNER") {
+    return { error: "OWNER만 관리자를 활성화/비활성화할 수 있습니다." };
+  }
   if (userId === actor.id) return { error: "본인 계정은 비활성화할 수 없습니다." };
+  const target = await db.user.findUnique({ where: { id: userId } });
+  if (!target) return { error: "사용자를 찾을 수 없습니다." };
+  if (isSiteOperatorAccount(target)) {
+    return { error: "사이트 오너 계정은 비활성화할 수 없습니다." };
+  }
   await db.user.update({
     where: { id: userId },
     data: { adminDisabledAt: disabled ? new Date() : null },
@@ -441,6 +457,9 @@ export async function setStaffDisabled(actor: AdminActor, userId: string, disabl
 }
 
 export async function resetStaffPassword(actor: AdminActor, userId: string) {
+  if (actor.role !== "OWNER") {
+    return { error: "OWNER만 관리자 비밀번호를 초기화할 수 있습니다." };
+  }
   const temp = `Mc${Math.random().toString(36).slice(2, 10)}!A1`;
   const passwordHash = await bcrypt.hash(temp, 12);
   await db.user.update({ where: { id: userId }, data: { passwordHash } });
@@ -458,11 +477,22 @@ export async function promoteUserToStaff(
   usernameOrId: string,
   role: UserRole
 ) {
+  if (actor.role !== "OWNER") {
+    return { error: "OWNER만 관리자 계정을 추가할 수 있습니다." };
+  }
   const user =
     (await db.user.findUnique({ where: { id: usernameOrId } })) ??
-    (await db.user.findUnique({ where: { username: usernameOrId.replace(/^@/, "") } }));
+    (await db.user.findFirst({
+      where: { username: { equals: usernameOrId.replace(/^@/, ""), mode: "insensitive" } },
+    }));
   if (!user) return { error: "사용자를 찾을 수 없습니다." };
   if (role === "OWNER") return { error: "OWNER는 생성할 수 없습니다." };
+  if (isSiteOperatorAccount(user)) {
+    return { error: "사이트 오너 계정은 이미 최고 권한입니다." };
+  }
+  if (!isAdminCmsRole(role)) {
+    return { error: "유효하지 않은 관리자 역할입니다." };
+  }
 
   await db.user.update({
     where: { id: user.id },
@@ -479,14 +509,27 @@ export async function promoteUserToStaff(
 }
 
 export async function demoteStaff(actor: AdminActor, userId: string) {
+  if (actor.role !== "OWNER") {
+    return { error: "OWNER만 관리자 권한을 삭제할 수 있습니다." };
+  }
   if (userId === actor.id) return { error: "본인 권한은 제거할 수 없습니다." };
-  await db.user.update({ where: { id: userId }, data: { role: "USER", adminDisabledAt: null } });
+  const target = await db.user.findUnique({ where: { id: userId } });
+  if (!target) return { error: "사용자를 찾을 수 없습니다." };
+  if (isSiteOperatorAccount(target) || target.role === "OWNER") {
+    return { error: "사이트 오너 계정은 삭제할 수 없습니다." };
+  }
+
+  // 관리자 역할 제거 → 일반 유저 (더 이상 /admin 진입 불가)
+  await db.user.update({
+    where: { id: userId },
+    data: { role: "USER", adminDisabledAt: null },
+  });
   await logSiteAdminAudit({
     actorId: actor.id,
-    action: "ADMIN_ROLE_CHANGE",
+    action: "ADMIN_DELETE",
     targetType: "user",
     targetId: userId,
-    metadata: { to: "USER" },
+    metadata: { from: target.role, to: "USER" },
   });
   return { success: true as const };
 }

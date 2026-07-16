@@ -1,7 +1,6 @@
 import { auth, requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
-  ALL_ADMIN_PERMISSIONS,
   hasAdminPermission,
   isAdminCmsRole,
   pathPermission,
@@ -9,7 +8,7 @@ import {
   type AdminPermission,
 } from "@/lib/admin/permissions";
 import { resolveEffectiveStaffRole } from "@/lib/staff-roles";
-import { isOperatorIdentity } from "@/lib/operator-config";
+import { isOperatorIdentity, isSiteOperatorAccount } from "@/lib/operator-config";
 import { logSiteAdminAudit } from "@/lib/site-admin-audit";
 
 export class AdminAccessError extends Error {
@@ -30,6 +29,23 @@ export type AdminActor = {
   role: string;
   permissions: AdminPermission[];
 };
+
+/** 사이트 오너 계정 DB role을 OWNER로 맞추고 비활성 플래그 해제 */
+async function ensureSiteOwnerRecord(user: {
+  id: string;
+  username: string;
+  email: string | null;
+  role: string;
+  adminDisabledAt: Date | null;
+}) {
+  if (!isSiteOperatorAccount(user)) return;
+  if (user.role !== "OWNER" || user.adminDisabledAt) {
+    await db.user.update({
+      where: { id: user.id },
+      data: { role: "OWNER", adminDisabledAt: null },
+    });
+  }
+}
 
 export async function getAdminActor(): Promise<AdminActor> {
   const session = await auth();
@@ -55,18 +71,17 @@ export async function getAdminActor(): Promise<AdminActor> {
   if (!dbUser || dbUser.deletedAt || dbUser.isBanned) {
     throw new AdminAccessError(403, "FORBIDDEN");
   }
-  if (dbUser.adminDisabledAt) {
+
+  const operator = isSiteOperatorAccount(dbUser);
+  if (operator) {
+    await ensureSiteOwnerRecord(dbUser);
+  } else if (dbUser.adminDisabledAt) {
     throw new AdminAccessError(403, "ADMIN_DISABLED");
   }
 
   const role = resolveEffectiveStaffRole({
     username: dbUser.username,
-    role: dbUser.role,
-    email: dbUser.email,
-  });
-  const operator = isOperatorIdentity({
-    username: dbUser.username,
-    role: dbUser.role,
+    role: operator ? "OWNER" : dbUser.role,
     email: dbUser.email,
   });
 
@@ -74,14 +89,16 @@ export async function getAdminActor(): Promise<AdminActor> {
     throw new AdminAccessError(403, "FORBIDDEN");
   }
 
+  const effectiveRole = operator ? "OWNER" : role;
+
   return {
     id: dbUser.id,
     username: dbUser.username,
     email: dbUser.email,
     name: dbUser.name,
     image: dbUser.image,
-    role: operator ? "OWNER" : role,
-    permissions: operator ? ALL_ADMIN_PERMISSIONS : permissionsForRole(role),
+    role: effectiveRole,
+    permissions: permissionsForRole(effectiveRole),
   };
 }
 
@@ -115,7 +132,7 @@ export async function requireAdminPathAccess(pathname: string) {
   return requireAdminPermission(permission);
 }
 
-/** 기존 requireAdmin 호환 — 운영자급 (ADMIN+) */
+/** 사이트 오너(OPERATOR) 전용 */
 export async function requireOperatorAdmin(audit?: {
   action: string;
   targetType?: string;

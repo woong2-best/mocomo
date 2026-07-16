@@ -35,16 +35,21 @@ export function isOwnerRole(role: string): boolean {
   return role === "OWNER";
 }
 
+/** 관리자 계정 생성·삭제·권한변경 — OWNER만 */
+export function canManageAdminAccounts(actorRole: string): boolean {
+  return actorRole === "OWNER";
+}
+
 export function canCreateStaff(actorRole: string): boolean {
-  return actorRole === "OWNER" || actorRole === "SUPER_ADMIN";
+  return canManageAdminAccounts(actorRole);
 }
 
 export function canCreateRole(actorRole: string, targetRole: UserRole): boolean {
+  if (!canManageAdminAccounts(actorRole)) return false;
   if (targetRole === "OWNER") return false;
-  if (targetRole === "SUPER_ADMIN") return actorRole === "OWNER";
-  if (targetRole === "USER" || targetRole === "VERIFIED") return canCreateStaff(actorRole) || actorRole === "ADMIN";
+  if (targetRole === "USER" || targetRole === "VERIFIED") return true;
   if (!isAdminCmsRole(targetRole)) return false;
-  return canCreateStaff(actorRole) || actorRole === "ADMIN";
+  return true;
 }
 
 export function canApplySanction(actorRole: string, sanction: string): boolean {
@@ -59,16 +64,13 @@ export function canApplySanction(actorRole: string, sanction: string): boolean {
   return false;
 }
 
-/** 레거시 운영자 계정 → OWNER 로 승격 */
+/** 사이트 오너 유저명 → 항상 OWNER (DB role 무관) */
 export function resolveEffectiveStaffRole(user: {
   username: string;
   role: string;
   email?: string | null;
 }): UserRole {
-  if (
-    user.username.trim().toLowerCase() === getOperatorUsername() &&
-    (user.role === "ADMIN" || user.role === "OWNER" || user.role === "SUPER_ADMIN")
-  ) {
+  if (user.username.trim().toLowerCase() === getOperatorUsername()) {
     return "OWNER";
   }
   return user.role as UserRole;

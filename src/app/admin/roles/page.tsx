@@ -1,10 +1,11 @@
 import { adminLoadStaff } from "@/actions/admin-cms";
+import { getAdminActor } from "@/lib/admin/access";
 import { AdminRolesPanel } from "@/components/admin/cms/admin-roles-panel";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminRolesPage() {
-  const res = await adminLoadStaff();
+  const [actor, res] = await Promise.all([getAdminActor(), adminLoadStaff()]);
   if (!res.ok) return <p className="text-sm text-destructive">{res.error}</p>;
 
   return (
@@ -12,10 +13,10 @@ export default async function AdminRolesPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">관리자 계정</h1>
         <p className="text-sm text-muted-foreground">
-          생성 · 권한 변경 · 활성화/비활성화 · 비밀번호 초기화 · 삭제
+          OWNER만 추가 · 권한 변경 · 활성화/비활성화 · 비밀번호 초기화 · 삭제(USER로 강등)
         </p>
       </div>
-      <AdminRolesPanel staff={res.data} />
+      <AdminRolesPanel staff={res.data} isOwner={actor.role === "OWNER"} />
     </div>
   );
 }

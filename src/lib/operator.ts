@@ -60,11 +60,11 @@ export async function bootstrapOperatorRole(prisma: PrismaClient): Promise<Opera
     return { ok: false, username, demoted, promoted: false, reason: "operator_email_mismatch" };
   }
 
-  const promoted = operator.role !== "ADMIN";
-  if (promoted) {
+  const promoted = operator.role !== "OWNER";
+  if (promoted || operator.role !== "OWNER") {
     await prisma.user.update({
       where: { id: operator.id },
-      data: { role: "ADMIN" },
+      data: { role: "OWNER", adminDisabledAt: null },
     });
   }
 
