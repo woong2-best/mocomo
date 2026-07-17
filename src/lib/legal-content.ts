@@ -1,3 +1,7 @@
+import { SELLER_TERMS } from "@/lib/marketplace/seller-legal";
+
+export { SELLER_TERMS };
+
 export const LEGAL_CONTACT_EMAIL = "mocomo.company@gmail.com";
 
 export type LegalBlock =
@@ -594,6 +598,7 @@ export const LEGAL_PAGES = [
   { href: "/legal/policy", label: "운영원칙 및 이용정책", doc: COMMUNITY_POLICY },
   { href: "/legal/terms", label: "이용약관", doc: TERMS_OF_SERVICE },
   { href: "/legal/creator-terms", label: "크리에이터 약관", doc: CREATOR_TERMS },
+  { href: "/legal/seller-terms", label: "판매자 이용약관", doc: SELLER_TERMS },
   { href: "/legal/payment", label: "결제 및 환불 정책", doc: PAYMENT_REFUND_POLICY },
   { href: "/legal/copyright", label: "저작권 정책", doc: COPYRIGHT_POLICY },
   { href: "/legal/privacy", label: "개인정보처리방침", doc: PRIVACY_POLICY },

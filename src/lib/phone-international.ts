@@ -49,6 +49,8 @@ export function phonePlaceholderForCountry(countryCode: string): string {
       return "090-1234-5678";
     case "CN":
       return "138 0013 8000";
+    case "HK":
+      return "5123 4567";
     case "GB":
       return "07123 456789";
     default:

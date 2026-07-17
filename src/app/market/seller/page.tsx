@@ -33,42 +33,52 @@ export default async function MarketSellerPage({
     listMyMarketplaceListings().catch(() => []),
   ]);
 
-  const connectStatus = stripeConnectStatus(profile?.user.stripeConnectAccountId);
+  if (!profile) {
+    redirect("/market/seller/register");
+  }
+
+  if (!profile.onboardingCompletedAt && profile.onboardingStep !== "COMPLETE") {
+    redirect("/market/seller/register");
+  }
+
+  const connectStatus = stripeConnectStatus(profile.user.stripeConnectAccountId);
 
   return (
     <>
       <MarketPageTitle>
         <div className="space-y-1 mb-4">
-          <h1 className="text-2xl font-bold">???</h1>
+          <h1 className="text-2xl font-bold">판매자센터</h1>
           <p className="text-sm text-muted-foreground">
-            ??? ???  /  Stripe Connect ??  /  ? ??
+            판매자 프로필 · Stripe Connect 정산 · 내 상품
           </p>
         </div>
       </MarketPageTitle>
 
-      {profile && (
-        <section className="rounded-2xl border border-border/60 p-4 space-y-2 mb-6">
-          <p className="font-semibold">{profile.displayName}</p>
-          <p className="text-xs text-muted-foreground">
-            ?? {profile.status}  /  ?? {profile.salesCount}  /  ??{" "}
-            {profile.ratingAvg > 0 ? profile.ratingAvg.toFixed(1) : "-"}
+      <section className="rounded-2xl border border-border/60 p-4 space-y-2 mb-6">
+        <p className="font-semibold">{profile.displayName}</p>
+        <p className="text-xs text-muted-foreground">
+          상태 {profile.status}
+          {profile.sellerType
+            ? ` · ${profile.sellerType === "BUSINESS" ? "사업자" : "개인"}`
+            : ""}
+          {" · "}판매 {profile.salesCount}
+          {" · "}평점 {profile.ratingAvg > 0 ? profile.ratingAvg.toFixed(1) : "-"}
+        </p>
+        {profile.bio && <p className="text-sm whitespace-pre-wrap">{profile.bio}</p>}
+        <p className="text-xs text-muted-foreground">{connectStatus.message}</p>
+        {profile.user.stripeConnectOnboardedAt && (
+          <p className="text-xs text-emerald-600">
+            Connect 연결 완료 ·{" "}
+            {profile.user.stripeConnectOnboardedAt.toISOString().slice(0, 10)}
           </p>
-          {profile.bio && <p className="text-sm whitespace-pre-wrap">{profile.bio}</p>}
-          <p className="text-xs text-muted-foreground">{connectStatus.message}</p>
-          {profile.user.stripeConnectOnboardedAt && (
-            <p className="text-xs text-emerald-600">
-              Connect ??? ??  / {" "}
-              {profile.user.stripeConnectOnboardedAt.toISOString().slice(0, 10)}
-            </p>
-          )}
-        </section>
-      )}
+        )}
+      </section>
 
       <section className="mb-8">
-        <h2 className="text-sm font-semibold mb-3">??? ??  /  ?? ??</h2>
+        <h2 className="text-sm font-semibold mb-3">프로필 수정 · 정산 연결</h2>
         <MarketplaceSellerApplyForm
           initialName={
-            profile?.displayName ?? session.user.name ?? session.user.username ?? ""
+            profile.displayName ?? session.user.name ?? session.user.username ?? ""
           }
           connectReady={connectStatus.ready}
         />
@@ -76,13 +86,13 @@ export default async function MarketSellerPage({
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">? ??</h2>
+          <h2 className="text-sm font-semibold">내 상품</h2>
           <Link href="/market/sell-item" className="text-sm text-primary hover:underline">
-            + ? ??
+            + 상품 등록
           </Link>
         </div>
         {listings.length === 0 ? (
-          <p className="text-sm text-muted-foreground">??? ??? ????.</p>
+          <p className="text-sm text-muted-foreground">등록된 상품이 없습니다.</p>
         ) : (
           <ul className="divide-y divide-border/60 rounded-2xl border border-border/60">
             {listings.map((l) => (
@@ -101,8 +111,8 @@ export default async function MarketSellerPage({
                     {l.title}
                   </Link>
                   <p className="text-xs text-muted-foreground">
-                    {listingTypeLabel(l.type)}  /  {l.status}  /  {l.priceAmount.toLocaleString()}?  / 
-                    ?? {l.stock}
+                    {listingTypeLabel(l.type)} · {l.status} · {l.priceAmount.toLocaleString()}원 ·
+                    재고 {l.stock}
                   </p>
                 </div>
               </li>

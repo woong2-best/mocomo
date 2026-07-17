@@ -4839,6 +4839,33 @@ enum MarketplaceSellerStatus {
   REJECTED
 }
 
+/** 판매자 유형 — 개인 / 사업자 */
+enum MarketplaceSellerType {
+  INDIVIDUAL
+  BUSINESS
+}
+
+/** 판매자 KYC(본인·사업자 인증) — 1차는 준비 구조, 2차에서 실인증 연동 */
+enum MarketplaceSellerKycStatus {
+  NOT_STARTED
+  PENDING
+  VERIFIED
+  FAILED
+  DEFERRED
+}
+
+/** 판매자 온보딩 진행 단계 (WING급 Seller Center 확장 대비) */
+enum MarketplaceSellerOnboardingStep {
+  ACCOUNT
+  AGREEMENTS
+  EMAIL
+  PHONE
+  SELLER_INFO
+  KYC
+  SETTLEMENT
+  COMPLETE
+}
+
 enum MarketplaceListingType {
   PHYSICAL
   CUSTOM_ORDER
@@ -4954,6 +4981,22 @@ model MarketplaceSellerProfile {
   bio             String?                  @db.Text
   snsLinks        Json?
   status          MarketplaceSellerStatus  @default(PENDING)
+  /** Seller onboarding (MoCoMo MARKET / WING-style) */
+  sellerType      MarketplaceSellerType?
+  sellingMarket   String                   @default("KR")
+  businessName    String?
+  businessRegNo   String?
+  onboardingStep  MarketplaceSellerOnboardingStep @default(ACCOUNT)
+  onboardingCompletedAt DateTime?
+  agreedAgeAt       DateTime?
+  agreedTermsAt     DateTime?
+  agreedPrivacyAt   DateTime?
+  agreedMarketingAt DateTime?
+  agreedPromoAt     DateTime?
+  kycStatus         MarketplaceSellerKycStatus @default(NOT_STARTED)
+  kycSubmittedAt    DateTime?
+  kycNotes          String?                @db.Text
+  phoneCountryCode  String?
   ratingAvg       Float                    @default(0)
   ratingCount     Int                      @default(0)
   salesCount      Int                      @default(0)
@@ -4991,6 +5034,8 @@ model MarketplaceSellerProfile {
   @@index([status, createdAt])
   @@index([trustTier, trustScore])
   @@index([sanctionLevel])
+  @@index([onboardingStep, status])
+  @@index([sellerType, status])
 }
 
 model MarketplaceListing {

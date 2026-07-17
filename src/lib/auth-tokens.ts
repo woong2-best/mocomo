@@ -34,6 +34,11 @@ export function phonePendingIdentifier(userId: string): string {
   return `phone-pending:${userId}`;
 }
 
+/** 판매자 가입 폼(비로그인) 휴대폰 인증 완료 증명 */
+export function sellerPhoneProofIdentifier(phoneE164: string): string {
+  return `seller-phone-proof:${phoneE164}`;
+}
+
 export function scopedPhoneCodeToken(phoneE164: string, code: string): string {
   return `${phoneE164}:${code.trim()}`;
 }
