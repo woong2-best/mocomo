@@ -15,6 +15,9 @@ export type SellerPrepState = {
   connectMessage: string;
   listingsCount: number;
   welcome?: boolean;
+  status: string;
+  canList: boolean;
+  phoneRequired: boolean;
 };
 
 export function SellerCenterHome({
@@ -33,7 +36,26 @@ export function SellerCenterHome({
     <div className="space-y-5 max-w-4xl">
       {prep.welcome && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          판매자 가입이 완료되었습니다. 아래 단계를 마치면 바로 판매를 시작할 수 있어요.
+          판매자 가입 신청이 접수되었습니다. KYC·정산 검토 후 관리자 승인이 완료되면 상품을 등록할 수
+          있습니다.
+        </div>
+      )}
+
+      {prep.status === "PENDING" && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p className="font-semibold">관리자 승인 대기 중</p>
+          <p className="mt-1 text-amber-800/90">
+            {prep.phoneRequired
+              ? "한국 판매자: 이메일·SMS·KYC·정산 검토 중입니다."
+              : "해외 판매자: 이메일·KYC·정산 검토 중입니다. (SMS 불필요)"}{" "}
+            승인(APPROVED) 전까지 상품 등록·판매가 제한됩니다.
+          </p>
+        </div>
+      )}
+
+      {prep.status === "REJECTED" && (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          판매자 신청이 거절되었습니다. 판매자 가입을 다시 진행하거나 고객지원으로 문의해 주세요.
         </div>
       )}
 
@@ -85,9 +107,15 @@ export function SellerCenterHome({
               description="첫 상품을 등록하면 판매를 시작할 수 있어요. 상품 사진·가격·배송 정보를 정확히 입력해 주세요."
               actions={
                 <div className="flex flex-col gap-2 w-full sm:w-auto">
-                  <Button asChild className="min-w-[9.5rem]">
-                    <Link href="/market/sell-item">상품등록 하기</Link>
-                  </Button>
+                  {prep.canList && prep.status === "APPROVED" ? (
+                    <Button asChild className="min-w-[9.5rem]">
+                      <Link href="/market/sell-item">상품등록 하기</Link>
+                    </Button>
+                  ) : (
+                    <Button type="button" className="min-w-[9.5rem]" disabled>
+                      승인 후 상품등록
+                    </Button>
+                  )}
                   <Button asChild variant="outline" className="min-w-[9.5rem] border-primary/40 text-primary">
                     <Link href="/market">MARKET에서 둘러보기</Link>
                   </Button>

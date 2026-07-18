@@ -8,7 +8,11 @@ import {
 } from "@/components/market/admin-dispute-center";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getAdminMarketplaceDisputeCenter } from "@/actions/marketplace-admin";
+import {
+  getAdminMarketplaceDisputeCenter,
+  listPendingMarketplaceSellers,
+} from "@/actions/marketplace-admin";
+import { AdminSellerApprovalList } from "@/components/market/admin-seller-approval";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +23,7 @@ export default async function AdminMarketPage() {
     return <AdminAccessDenied />;
   }
 
-  const [center, orders, feeSum] = await Promise.all([
+  const [center, orders, feeSum, pendingSellers] = await Promise.all([
     getAdminMarketplaceDisputeCenter(),
     db.marketplaceOrder.findMany({
       orderBy: { createdAt: "desc" },
@@ -38,6 +42,7 @@ export default async function AdminMarketPage() {
       },
       _sum: { platformFeeAmount: true, sellerEarnAmount: true, subtotalAmount: true },
     }),
+    listPendingMarketplaceSellers().catch(() => []),
   ]);
 
   return (
@@ -47,6 +52,11 @@ export default async function AdminMarketPage() {
           ← 관리자 홈
         </Link>
       </div>
+
+      <section className="mb-8 space-y-3">
+        <h2 className="font-semibold">판매자 승인 대기 (KYC·정산 검토)</h2>
+        <AdminSellerApprovalList sellers={pendingSellers} />
+      </section>
 
       <div className="grid gap-3 sm:grid-cols-3 mb-8">
         <div className="rounded-2xl border border-border/60 p-4">

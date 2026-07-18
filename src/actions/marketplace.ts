@@ -74,34 +74,30 @@ export async function applyMarketplaceSeller(input: {
   return { success: true as const, profileId: profile.id };
 }
 
-/** 초기에는 OWNER가 아닌 승인 대기 중에도 판매 등록 가능 — 운영 중 APPROVED 정책으로 강화 가능 */
+/**
+ * 판매 등록·주문 처리용 — 관리자 APPROVED + canList 만 허용.
+ * PENDING은 자동 승인하지 않음.
+ */
 export async function requireMarketplaceSeller() {
   const user = await requireAuth();
-  let profile = await db.marketplaceSellerProfile.findUnique({
+  const profile = await db.marketplaceSellerProfile.findUnique({
     where: { userId: user.id },
   });
   if (!profile) {
-    profile = await db.marketplaceSellerProfile.create({
-      data: {
-        userId: user.id,
-        displayName: user.username,
-        status: "APPROVED",
-        bio: null,
-      },
-    });
-  } else if (profile.status === "SUSPENDED" || profile.status === "REJECTED") {
+    throw new Error("SELLER_REQUIRED");
+  }
+  if (profile.status === "SUSPENDED" || profile.status === "REJECTED") {
     throw new Error("SELLER_BLOCKED");
-  } else if (
+  }
+  if (
     profile.sanctionLevel === "PERMANENT_BAN" ||
     profile.sanctionLevel === "SALES_SUSPENDED" ||
     !profile.canList
   ) {
     throw new Error("SELLER_BLOCKED");
-  } else if (profile.status === "PENDING") {
-    profile = await db.marketplaceSellerProfile.update({
-      where: { id: profile.id },
-      data: { status: "APPROVED" },
-    });
+  }
+  if (profile.status !== "APPROVED") {
+    throw new Error("SELLER_PENDING_APPROVAL");
   }
   return { user, profile };
 }
@@ -179,7 +175,14 @@ export async function createMarketplaceListing(input: CreateMarketplaceListingIn
   let profile;
   try {
     ({ user, profile } = await requireMarketplaceSeller());
-  } catch {
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "";
+    if (msg === "SELLER_PENDING_APPROVAL") {
+      return { error: "관리자 승인 대기 중입니다. 승인 후 상품을 등록할 수 있습니다." };
+    }
+    if (msg === "SELLER_REQUIRED") {
+      return { error: "판매자 가입이 필요합니다." };
+    }
     return { error: "판매가 제한되었거나 판매자 등록이 필요합니다." };
   }
 

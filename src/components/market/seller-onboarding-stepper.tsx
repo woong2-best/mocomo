@@ -2,22 +2,24 @@
 
 import { cn } from "@/lib/utils";
 import {
-  SELLER_ONBOARDING_STEPS,
   SELLER_ONBOARDING_STEP_LABELS,
+  visibleSellerOnboardingSteps,
   type SellerOnboardingStepId,
 } from "@/lib/marketplace/seller-onboarding";
 
-const VISIBLE = SELLER_ONBOARDING_STEPS.filter((s) => s !== "COMPLETE");
-
-export function SellerOnboardingStepper({ step }: { step: SellerOnboardingStepId }) {
-  const currentIdx = Math.max(
-    0,
-    VISIBLE.indexOf(step === "COMPLETE" ? "SETTLEMENT" : step)
-  );
+export function SellerOnboardingStepper({
+  step,
+  countryCode,
+}: {
+  step: SellerOnboardingStepId;
+  countryCode?: string | null;
+}) {
+  const visible = visibleSellerOnboardingSteps(countryCode);
+  const currentIdx = Math.max(0, visible.indexOf(step === "COMPLETE" ? "SETTLEMENT" : step));
 
   return (
     <ol className="flex flex-wrap items-center gap-x-1 gap-y-2 text-[11px] sm:text-xs mb-6">
-      {VISIBLE.map((id, i) => {
+      {visible.map((id, i) => {
         const done = i < currentIdx;
         const active = i === currentIdx;
         return (

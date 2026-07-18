@@ -9,6 +9,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { stripeConnectStatus } from "@/lib/stripe-connect";
 import { formatSellerCode } from "@/lib/marketplace/seller-code";
+import { sellerRequiresPhoneVerification } from "@/lib/marketplace/seller-region-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +68,9 @@ export default async function MarketSellerPage({
           connectMessage: connectStatus.message,
           listingsCount: listings.length,
           welcome: params.welcome === "1",
+          status: profile.status,
+          canList: profile.canList && profile.status === "APPROVED",
+          phoneRequired: sellerRequiresPhoneVerification(profile.sellingMarket),
         }}
         profileFormName={displayName}
       />

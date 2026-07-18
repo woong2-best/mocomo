@@ -461,5 +461,126 @@ export async function getAdminMarketplaceDisputeCenter() {
   return { disputes, reviewOrders, reports, recentAudit };
 }
 
+export async function listPendingMarketplaceSellers() {
+  await requireAdmin({ action: "MARKETPLACE_SELLER_REVIEW_LIST" });
+  return db.marketplaceSellerProfile.findMany({
+    where: {
+      onboardingCompletedAt: { not: null },
+      status: "PENDING",
+    },
+    orderBy: { onboardingCompletedAt: "desc" },
+    take: 50,
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          countryCode: true,
+          phone: true,
+          phoneVerified: true,
+          stripeConnectAccountId: true,
+          stripeConnectOnboardedAt: true,
+        },
+      },
+    },
+  });
+}
+
+/** KYC·정산 검토 후 판매자 승인 → 상품 등록 가능 */
+export async function approveMarketplaceSeller(profileId: string) {
+  const admin = await requireAdmin({
+    action: "MARKETPLACE_SELLER_APPROVE",
+    targetType: "marketplace_seller",
+    targetId: profileId,
+  });
+
+  const profile = await db.marketplaceSellerProfile.findUnique({ where: { id: profileId } });
+  if (!profile) return { error: "판매자를 찾을 수 없습니다." };
+  if (!profile.onboardingCompletedAt) {
+    return { error: "온보딩이 완료되지 않은 판매자입니다." };
+  }
+  if (profile.kycStatus === "NOT_STARTED" || profile.kycStatus === "DEFERRED") {
+    return { error: "KYC가 제출되지 않았습니다." };
+  }
+
+  const now = new Date();
+  await db.marketplaceSellerProfile.update({
+    where: { id: profileId },
+    data: {
+      status: "APPROVED",
+      canList: true,
+      kycStatus: profile.kycStatus === "PENDING" ? "VERIFIED" : profile.kycStatus,
+      reviewedAt: now,
+      reviewedById: admin.id,
+    },
+  });
+
+  await createNotification({
+    userId: profile.userId,
+    type: "system",
+    title: "판매자 승인 완료",
+    body: "MoCoMo MARKET 판매자가 승인되었습니다. 이제 상품을 등록할 수 있습니다.",
+    link: "/market/seller",
+  }).catch(() => null);
+
+  await logMarketplaceAudit({
+    actorId: admin.id,
+    action: MarketplaceAuditActions.ADMIN_ACTION,
+    detail: `seller_approved profile=${profileId}`,
+    metadata: { profileId },
+  });
+
+  revalidatePath("/admin/market");
+  revalidatePath("/market/seller");
+  return { success: true as const };
+}
+
+export async function rejectMarketplaceSeller(profileId: string, reason: string) {
+  const admin = await requireAdmin({
+    action: "MARKETPLACE_SELLER_REJECT",
+    targetType: "marketplace_seller",
+    targetId: profileId,
+  });
+
+  const note = reason.trim().slice(0, 500);
+  if (!note) return { error: "거절 사유를 입력해 주세요." };
+
+  const profile = await db.marketplaceSellerProfile.findUnique({ where: { id: profileId } });
+  if (!profile) return { error: "판매자를 찾을 수 없습니다." };
+
+  const now = new Date();
+  await db.marketplaceSellerProfile.update({
+    where: { id: profileId },
+    data: {
+      status: "REJECTED",
+      canList: false,
+      kycStatus: "FAILED",
+      kycNotes: note,
+      reviewedAt: now,
+      reviewedById: admin.id,
+    },
+  });
+
+  await createNotification({
+    userId: profile.userId,
+    type: "system",
+    title: "판매자 승인 거절",
+    body: `판매자 신청이 거절되었습니다. 사유: ${note}`,
+    link: "/market/seller/register",
+  }).catch(() => null);
+
+  await logMarketplaceAudit({
+    actorId: admin.id,
+    action: MarketplaceAuditActions.ADMIN_ACTION,
+    detail: `seller_rejected profile=${profileId}`,
+    metadata: { profileId, reason: note },
+  });
+
+  revalidatePath("/admin/market");
+  revalidatePath("/market/seller");
+  return { success: true as const };
+}
+
 /** unused export keep type available for forms */
 export type AdminDisputeReason = MarketplaceDisputeReason;

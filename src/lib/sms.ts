@@ -1,5 +1,13 @@
 import crypto from "crypto";
 import { formatPhoneDisplay } from "@/lib/phone-international";
+import {
+  isSolapiConfigured,
+  isTwilioConfigured,
+  type SmsProvider,
+} from "@/lib/sms/sms-provider";
+
+export type { SmsProvider, SmsProviderId } from "@/lib/sms/sms-provider";
+export { isSolapiConfigured, isTwilioConfigured } from "@/lib/sms/sms-provider";
 
 function solapiAuthorization(): string | null {
   const apiKey = process.env.SOLAPI_API_KEY?.trim();
@@ -102,11 +110,49 @@ async function sendIntlSmsViaTwilio(phoneE164: string, text: string): Promise<Se
   }
 }
 
+function createSolapiProvider(): SmsProvider {
+  return {
+    id: "solapi-kr",
+    canSend: (phone) => isKrPhone(phone) && (isSolapiConfigured() || isDevSmsFallback()),
+    send: (phone, text) => sendKrSmsViaSolapi(phone, text),
+  };
+}
+
+function createTwilioProvider(): SmsProvider {
+  return {
+    id: "twilio-intl",
+    canSend: (phone) => !isKrPhone(phone) && (isTwilioConfigured() || isDevSmsFallback()),
+    send: (phone, text) => sendIntlSmsViaTwilio(phone, text),
+  };
+}
+
+function isDevSmsFallback() {
+  return process.env.NODE_ENV === "development" || process.env.SMS_DEV_LOG === "true";
+}
+
+/** Provider 목록 — 해외 Twilio 미설정이어도 한국 Solapi는 독립 동작 */
+export function getSmsProviders(): SmsProvider[] {
+  return [createSolapiProvider(), createTwilioProvider()];
+}
+
+export function resolveSmsProvider(phoneE164: string): SmsProvider | null {
+  return getSmsProviders().find((p) => p.canSend(phoneE164)) ?? null;
+}
+
 /** Solapi(한국) · Twilio(해외) — 미설정 시 개발 환경에서만 콘솔 로그 */
 export async function sendAuthSms(phoneE164: string, code: string): Promise<SendSmsResult> {
-  const text = `[MoCoMo] 중고거래 인증번호: ${code} (3분 내 입력)`;
-  if (isKrPhone(phoneE164)) {
-    return sendKrSmsViaSolapi(phoneE164, text);
+  const text = `[MoCoMo] 인증번호: ${code} (3분 내 입력)`;
+  const provider = resolveSmsProvider(phoneE164);
+  if (!provider) {
+    if (isKrPhone(phoneE164)) {
+      return sendKrSmsViaSolapi(phoneE164, text);
+    }
+    // 해외: Twilio 없어도 가입 플로우는 SMS를 호출하지 않음. 직접 호출 시에만 soft-fail.
+    return {
+      ok: false,
+      error:
+        "해외 SMS Provider가 설정되지 않았습니다. 해외 판매자는 휴대폰 인증 없이 가입할 수 있습니다.",
+    };
   }
-  return sendIntlSmsViaTwilio(phoneE164, text);
+  return provider.send(phoneE164, text);
 }

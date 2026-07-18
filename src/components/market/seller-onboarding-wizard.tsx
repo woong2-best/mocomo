@@ -18,9 +18,9 @@ import {
   resumeSellerConnectFromOnboarding,
   saveSellerAgreements,
   saveSellerInfo,
-  skipSellerSettlementForNow,
+  declareSellerSettlementForReview,
   startSellerSettlementOnboarding,
-  submitSellerKycPrep,
+  submitSellerKyc,
   verifySellerEmailCode,
 } from "@/actions/marketplace-seller-onboarding";
 import {
@@ -33,7 +33,12 @@ import {
   SELLER_PHONE_COUNTRIES,
   sellerPhoneDialLabel,
 } from "@/lib/marketplace/seller-phone-countries";
-import { SELLER_MARKETS, type SellerOnboardingStepId } from "@/lib/marketplace/seller-onboarding";
+import {
+  SELLER_KYC_ID_TYPES,
+  SELLER_MARKETS,
+  type SellerOnboardingStepId,
+} from "@/lib/marketplace/seller-onboarding";
+import { sellerRequiresPhoneVerification } from "@/lib/marketplace/seller-region-policy";
 import { phonePlaceholderForCountry } from "@/lib/phone-international";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
 import { cn } from "@/lib/utils";
@@ -57,15 +62,28 @@ export function SellerOnboardingWizard({
   const [consentKind, setConsentKind] = useState<"terms" | "marketing" | "privacy" | null>(null);
 
   // Account form
-  const [sellingMarket, setSellingMarket] = useState("KR");
+  const [sellingMarket, setSellingMarket] = useState(() => {
+    if (initialState.signedIn) {
+      return (
+        ("sellingMarket" in initialState && initialState.sellingMarket) ||
+        initialState.countryCode ||
+        "KR"
+      );
+    }
+    return "KR";
+  });
+  const phoneRequired = sellerRequiresPhoneVerification(sellingMarket);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [name, setName] = useState(initialState.signedIn ? initialState.name ?? "" : "");
   const [email, setEmail] = useState(initialState.signedIn ? initialState.email ?? "" : "");
-  const [phoneCountryCode, setPhoneCountryCode] = useState(
-    initialState.signedIn ? initialState.phoneCountryCode ?? "KR" : "KR"
+  const [phoneCountryCode, setPhoneCountryCode] = useState("KR");
+  const [kycLegalName, setKycLegalName] = useState("");
+  const [kycIdType, setKycIdType] = useState<(typeof SELLER_KYC_ID_TYPES)[number]["code"]>(
+    "NATIONAL_ID"
   );
+  const [kycIdNumber, setKycIdNumber] = useState("");
 
   // Agreements
   const [agreeAll, setAgreeAll] = useState(false);
@@ -140,8 +158,8 @@ export function SellerOnboardingWizard({
   async function handleRegister() {
     setError("");
     setMessage("");
-    if (!phoneVerifiedOnForm || !phoneProof) {
-      setError("휴대폰 인증을 완료해 주세요.");
+    if (phoneRequired && (!phoneVerifiedOnForm || !phoneProof)) {
+      setError("한국 판매자는 휴대폰(SMS) 인증이 필수입니다.");
       return;
     }
     startTransition(async () => {
@@ -152,9 +170,9 @@ export function SellerOnboardingWizard({
         name,
         email,
         sellingMarket,
-        phoneCountryCode,
-        phone,
-        phoneProof,
+        phoneCountryCode: phoneRequired ? "KR" : sellingMarket,
+        phone: phoneRequired ? phone : undefined,
+        phoneProof: phoneRequired ? phoneProof : undefined,
         locale: "ko",
         turnstileUnavailable: true,
       });
@@ -341,15 +359,19 @@ export function SellerOnboardingWizard({
     });
   }
 
-  async function handleKyc(mode: "defer" | "start") {
+  async function handleKycSubmit() {
     setError("");
     startTransition(async () => {
-      try {
-        const res = await submitSellerKycPrep(mode);
-        if (res.success) setStep("SETTLEMENT");
-      } catch {
-        setError("본인 인증 단계를 저장하지 못했습니다. 다시 시도해 주세요.");
+      const res = await submitSellerKyc({
+        legalName: kycLegalName,
+        idType: kycIdType,
+        idNumber: kycIdNumber,
+      });
+      if ("error" in res && res.error) {
+        setError(res.error);
+        return;
       }
+      if (res.success) setStep("SETTLEMENT");
     });
   }
 
@@ -365,10 +387,10 @@ export function SellerOnboardingWizard({
     });
   }
 
-  async function handleSkipSettlement() {
+  async function handleDeclareSettlement() {
     setError("");
     startTransition(async () => {
-      const res = await skipSellerSettlementForNow();
+      const res = await declareSellerSettlementForReview("온보딩 정산 계좌 등록 검토 요청");
       if ("error" in res && res.error) {
         setError(res.error);
         return;
@@ -399,14 +421,25 @@ export function SellerOnboardingWizard({
     if (step === "EMAIL") return "이메일 인증";
     if (step === "PHONE") return "휴대폰 인증";
     if (step === "SELLER_INFO") return "판매자 정보";
-    if (step === "KYC") return "본인 인증 준비";
+    if (step === "KYC") return "본인 확인 (KYC)";
     if (step === "SETTLEMENT") return "정산 계좌 등록";
     return "가입 완료";
   }, [step]);
 
-  // Logged-in users skip ACCOUNT
-  const effectiveStep =
+  const countryForSteps =
+    ("sellingMarket" in state && state.sellingMarket) ||
+    state.countryCode ||
+    sellingMarket;
+
+  // Logged-in users skip ACCOUNT; overseas skip PHONE
+  let effectiveStep: SellerOnboardingStepId =
     state.signedIn && step === "ACCOUNT" ? "AGREEMENTS" : step;
+  if (
+    effectiveStep === "PHONE" &&
+    !sellerRequiresPhoneVerification(countryForSteps)
+  ) {
+    effectiveStep = "SELLER_INFO";
+  }
 
   return (
     <div className="mx-auto w-full max-w-lg">
@@ -414,10 +447,11 @@ export function SellerOnboardingWizard({
         {title}
       </h1>
       <p className="text-center text-sm text-muted-foreground mb-6">
-        MoCoMo MARKET 판매자 온보딩 · 동일 계정으로 구매·판매
+        MoCoMo MARKET 판매자 온보딩 ·{" "}
+        {phoneRequired ? "한국: 이메일+SMS+KYC" : "해외: 이메일+KYC (SMS 생략)"}
       </p>
 
-      <SellerOnboardingStepper step={effectiveStep} />
+      <SellerOnboardingStepper step={effectiveStep} countryCode={countryForSteps} />
 
       <div className="rounded-xl border border-[#d8dee6] bg-white p-5 sm:p-6 shadow-sm space-y-4">
         {error && <p className="text-sm text-destructive">{error}</p>}
@@ -426,7 +460,16 @@ export function SellerOnboardingWizard({
         {effectiveStep === "ACCOUNT" && !state.signedIn && (
           <AccountStep
             sellingMarket={sellingMarket}
-            setSellingMarket={setSellingMarket}
+            setSellingMarket={(v) => {
+              setSellingMarket(v);
+              if (sellerRequiresPhoneVerification(v)) {
+                setPhoneCountryCode("KR");
+              } else {
+                setPhoneVerifiedOnForm(false);
+                setPhoneProof("");
+                setPhoneSent(false);
+              }
+            }}
             username={username}
             setUsername={setUsername}
             password={password}
@@ -437,6 +480,7 @@ export function SellerOnboardingWizard({
             setName={setName}
             email={email}
             setEmail={setEmail}
+            phoneRequired={phoneRequired}
             phoneCountryCode={phoneCountryCode}
             setPhoneCountryCode={(v) => {
               setPhoneCountryCode(v);
@@ -612,31 +656,51 @@ export function SellerOnboardingWizard({
         )}
 
         {effectiveStep === "KYC" && (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <p className="text-sm text-muted-foreground leading-relaxed">
-              본인·사업자 확인(KYC)은 안전한 거래를 위해 필요합니다. 1차에서는 준비 단계만 저장하며,
-              실명·사업자 서류 검증은 2차 Seller Center에서 연동됩니다.
+              {phoneRequired
+                ? "한국 판매자: 본인 확인(KYC) 정보를 제출해 주세요. 관리자 검토 후 승인됩니다."
+                : "해외 판매자: 정부 발급 신분증 정보를 제출해 주세요. SMS 없이 KYC로 본인 확인합니다."}
             </p>
-            <ul className="text-sm space-y-1.5 text-muted-foreground list-disc pl-5">
-              <li>개인: 성인(만 19세 이상) 확인 · 향후 본인인증</li>
-              <li>사업자: 사업자등록 정보 확인 · 향후 서류 검증</li>
-            </ul>
-            <div className="flex flex-col gap-2">
-              <Button type="button" disabled={pending} onClick={() => handleKyc("start")}>
-                KYC 신청 접수 (준비)
-              </Button>
-              <Button type="button" variant="secondary" disabled={pending} onClick={() => handleKyc("defer")}>
-                나중에 하기
-              </Button>
-            </div>
+            <Input
+              value={kycLegalName}
+              onChange={(e) => setKycLegalName(e.target.value)}
+              placeholder="법적 성명 (신분증과 동일)"
+            />
+            <select
+              value={kycIdType}
+              onChange={(e) =>
+                setKycIdType(e.target.value as (typeof SELLER_KYC_ID_TYPES)[number]["code"])
+              }
+              className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              {SELLER_KYC_ID_TYPES.map((t) => (
+                <option key={t.code} value={t.code}>
+                  {t.labelKo}
+                </option>
+              ))}
+            </select>
+            <Input
+              value={kycIdNumber}
+              onChange={(e) => setKycIdNumber(e.target.value)}
+              placeholder="신분증 번호 (저장 시 끝자리만 보관)"
+            />
+            <Button
+              type="button"
+              className="w-full"
+              disabled={pending || !kycLegalName.trim() || kycIdNumber.trim().length < 4}
+              onClick={handleKycSubmit}
+            >
+              KYC 제출하고 정산으로
+            </Button>
           </div>
         )}
 
         {effectiveStep === "SETTLEMENT" && (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground leading-relaxed">
-              판매 대금 정산을 위해 Stripe Connect 계좌를 연결합니다. 지금 연결하지 않아도 판매자
-              센터 이용은 가능하지만, 정산은 Connect 완료 후 가능합니다.
+              정산 계좌 등록은 필수입니다. Stripe Connect로 연결하거나, 설정이 없는 경우 관리자
+              검토 요청으로 제출할 수 있습니다. 가입 후 관리자 승인 전까지 상품 등록은 불가합니다.
             </p>
             <Button type="button" className="w-full" disabled={pending} onClick={handleConnect}>
               정산 계좌 연결 (Stripe Connect)
@@ -646,13 +710,13 @@ export function SellerOnboardingWizard({
               variant="secondary"
               className="w-full"
               disabled={pending}
-              onClick={handleSkipSettlement}
+              onClick={handleDeclareSettlement}
             >
-              나중에 연결하고 판매자센터로
+              정산 계좌 등록 완료 · 관리자 검토 요청
             </Button>
             {state.connectReady && (
               <Button type="button" className="w-full" disabled={pending} onClick={handleComplete}>
-                가입 완료
+                가입 신청 완료
               </Button>
             )}
           </div>
@@ -704,6 +768,7 @@ function AccountStep(props: {
   setName: (v: string) => void;
   email: string;
   setEmail: (v: string) => void;
+  phoneRequired: boolean;
   phoneCountryCode: string;
   setPhoneCountryCode: (v: string) => void;
   phone: string;
@@ -720,7 +785,7 @@ function AccountStep(props: {
   return (
     <div className="space-y-3">
       <div>
-        <label className="block text-sm font-medium mb-1.5">판매시장 선택</label>
+        <label className="block text-sm font-medium mb-1.5">판매 국가</label>
         <select
           value={props.sellingMarket}
           onChange={(e) => props.setSellingMarket(e.target.value)}
@@ -728,10 +793,15 @@ function AccountStep(props: {
         >
           {SELLER_MARKETS.map((m) => (
             <option key={m.code} value={m.code}>
-              {m.labelKo}
+              {m.labelKo} ({m.code})
             </option>
           ))}
         </select>
+        <p className="text-xs text-muted-foreground mt-1">
+          {props.phoneRequired
+            ? "한국: 이메일 + 휴대폰(SMS) + KYC + 정산 필수"
+            : "해외: 이메일 + KYC + 정산 필수 (SMS 생략 · Twilio 불필요)"}
+        </p>
       </div>
       <Input
         value={props.username}
@@ -767,68 +837,67 @@ function AccountStep(props: {
         autoComplete="email"
       />
 
-      <div>
-        <label className="block text-sm font-medium mb-1.5">휴대폰번호</label>
-        <div className="flex gap-2">
-          <select
-            value={props.phoneCountryCode}
-            onChange={(e) => props.setPhoneCountryCode(e.target.value)}
-            className="h-10 rounded-md border border-input bg-background px-2 text-sm shrink-0 max-w-[9.5rem]"
-            disabled={props.phoneVerified}
-          >
-            {SELLER_PHONE_COUNTRIES.map((c) => (
-              <option key={c.code} value={c.code}>
-                {sellerPhoneDialLabel(c.code)}
-              </option>
-            ))}
-          </select>
-          <Input
-            value={props.phone}
-            onChange={(e) => props.setPhone(e.target.value)}
-            placeholder={phonePlaceholderForCountry(props.phoneCountryCode)}
-            className="flex-1"
-            disabled={props.phoneVerified}
-          />
-          <Button
-            type="button"
-            variant="secondary"
-            className="shrink-0"
-            disabled={props.pending || !props.phone.trim() || props.phoneVerified}
-            onClick={props.onSendPhone}
-          >
-            {props.phoneVerified ? "인증 완료" : "인증 요청"}
-          </Button>
-        </div>
-        {props.phoneSent && !props.phoneVerified && (
-          <div className="flex gap-2 mt-2">
+      {props.phoneRequired && (
+        <div>
+          <label className="block text-sm font-medium mb-1.5">휴대폰번호 (필수)</label>
+          <div className="flex gap-2">
+            <select
+              value={props.phoneCountryCode}
+              onChange={(e) => props.setPhoneCountryCode(e.target.value)}
+              className="h-10 rounded-md border border-input bg-background px-2 text-sm shrink-0 max-w-[9.5rem]"
+              disabled={props.phoneVerified}
+            >
+              {SELLER_PHONE_COUNTRIES.filter((c) => c.code === "KR").map((c) => (
+                <option key={c.code} value={c.code}>
+                  {sellerPhoneDialLabel(c.code)}
+                </option>
+              ))}
+            </select>
             <Input
-              value={props.phoneCode}
-              onChange={(e) => props.setPhoneCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              placeholder="인증번호 6자리"
-              inputMode="numeric"
+              value={props.phone}
+              onChange={(e) => props.setPhone(e.target.value)}
+              placeholder={phonePlaceholderForCountry("KR")}
               className="flex-1"
+              disabled={props.phoneVerified}
             />
             <Button
               type="button"
-              disabled={props.pending || props.phoneCode.length !== 6}
-              onClick={props.onVerifyPhone}
+              variant="secondary"
+              className="shrink-0"
+              disabled={props.pending || !props.phone.trim() || props.phoneVerified}
+              onClick={props.onSendPhone}
             >
-              확인
+              {props.phoneVerified ? "인증 완료" : "인증 요청"}
             </Button>
           </div>
-        )}
-        {props.phoneVerified && (
-          <p className="text-xs text-emerald-700 mt-1.5">휴대폰 인증이 완료되었습니다.</p>
-        )}
-        <p className="text-xs text-muted-foreground mt-1">
-          지원: 중국 · 홍콩 · 한국 · 일본 · 미국 / 번호당 계정 1개
-        </p>
-      </div>
+          {props.phoneSent && !props.phoneVerified && (
+            <div className="flex gap-2 mt-2">
+              <Input
+                value={props.phoneCode}
+                onChange={(e) => props.setPhoneCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="인증번호 6자리"
+                inputMode="numeric"
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                disabled={props.pending || props.phoneCode.length !== 6}
+                onClick={props.onVerifyPhone}
+              >
+                확인
+              </Button>
+            </div>
+          )}
+          {props.phoneVerified && (
+            <p className="text-xs text-emerald-700 mt-1.5">휴대폰 인증이 완료되었습니다.</p>
+          )}
+        </div>
+      )}
 
       <Button
         type="button"
         className="w-full h-11 mt-2"
-        disabled={props.pending || !props.phoneVerified}
+        disabled={props.pending || (props.phoneRequired && !props.phoneVerified)}
         onClick={props.onSubmit}
       >
         가입하고 이메일 인증

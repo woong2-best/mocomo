@@ -4996,6 +4996,14 @@ model MarketplaceSellerProfile {
   kycStatus         MarketplaceSellerKycStatus @default(NOT_STARTED)
   kycSubmittedAt    DateTime?
   kycNotes          String?                @db.Text
+  /** KYC 신분증 유형 — NATIONAL_ID / PASSPORT / DRIVERS_LICENSE / RESIDENT_CARD */
+  kycIdType         String?
+  /** 법적 성명 (KYC 제출) */
+  kycLegalName      String?
+  /** 신분증 번호 끝자리 등 힌트 (전체 번호 저장 금지) */
+  kycIdHint         String?
+  /** Stripe 미설정·보류 시 정산 계좌 등록 의사 표시 */
+  settlementDeclaredAt DateTime?
   phoneCountryCode  String?
   ratingAvg       Float                    @default(0)
   ratingCount     Int                      @default(0)

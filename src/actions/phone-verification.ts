@@ -30,6 +30,7 @@ import { isUsedMarketPhoneCountry } from "@/lib/used-phone-countries";
 import { usedMarketUnsupportedCountryMsg } from "@/lib/used-phone-auth";
 import { isSellerPhoneCountry } from "@/lib/marketplace/seller-phone-countries";
 import { getRequestIp } from "@/lib/request-ip";
+import { sellerRequiresPhoneVerification } from "@/lib/marketplace/seller-region-policy";
 
 const OTP_TTL_MS = 3 * 60 * 1000;
 const SELLER_PHONE_PROOF_TTL_MS = 15 * 60 * 1000;
@@ -298,9 +299,25 @@ export async function verifyUsedMarketPhoneOtp(rawPhone: string, code: string) {
   return verifyPhoneOtp(rawPhone, code, { kind: "used-market" });
 }
 
-/** MoCoMo MARKET 판매자 온보딩용 휴대폰 OTP (로그인 후) */
+/** MoCoMo MARKET 판매자 온보딩용 휴대폰 OTP (로그인 후) — 한국만 필수 */
 export async function sendSellerPhoneOtp(rawPhone: string, phoneCountryCode: string) {
-  return sendPhoneOtp(rawPhone, { kind: "seller", phoneCountryCode });
+  const session = await auth();
+  if (session?.user?.id) {
+    const u = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        countryCode: true,
+        marketplaceSeller: { select: { sellingMarket: true } },
+      },
+    });
+    const country = u?.marketplaceSeller?.sellingMarket || u?.countryCode || phoneCountryCode;
+    if (!sellerRequiresPhoneVerification(country)) {
+      return {
+        error: "해외 판매자는 휴대폰 인증이 필요하지 않습니다. 다음 단계로 진행해 주세요.",
+      };
+    }
+  }
+  return sendPhoneOtp(rawPhone, { kind: "seller", phoneCountryCode: "KR" });
 }
 
 export async function verifySellerPhoneOtp(
@@ -321,6 +338,13 @@ export async function sendSellerSignupPhoneOtp(rawPhone: string, phoneCountryCod
   }
 
   const region = phoneCountryCode.toUpperCase();
+  // 글로벌 정책: 가입 폼 SMS는 한국(KR)만. 해외는 Twilio 없이 KYC로 진행.
+  if (region !== "KR") {
+    return {
+      error:
+        "해외 판매자는 휴대폰(SMS) 인증이 필요하지 않습니다. 판매 국가를 한국이 아닌 값으로 선택해 주세요.",
+    };
+  }
   if (!isSellerPhoneCountry(region)) {
     return { error: "판매자 휴대폰 인증은 중국·홍콩·한국·일본·미국 번호만 지원합니다." };
   }
