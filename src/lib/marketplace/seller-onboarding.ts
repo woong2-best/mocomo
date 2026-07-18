@@ -1,7 +1,7 @@
 import type { MarketplaceSellerOnboardingStep } from "@prisma/client";
 import { sellerRequiresPhoneVerification } from "@/lib/marketplace/seller-region-policy";
 
-/** 온보딩 단계 순서 — 2차 Seller Center 확장 시 동일 enum 재사용 */
+/** DB onboardingStep enum — 내부 진행 상태 */
 export const SELLER_ONBOARDING_STEPS = [
   "ACCOUNT",
   "AGREEMENTS",
@@ -15,6 +15,18 @@ export const SELLER_ONBOARDING_STEPS = [
 
 export type SellerOnboardingStepId = (typeof SELLER_ONBOARDING_STEPS)[number];
 
+/** UI 스테퍼용 (해외는 PHONE 제외, Stripe/신분증/계좌 분리 표시) */
+export type SellerOnboardingUiStep =
+  | "ACCOUNT"
+  | "AGREEMENTS"
+  | "EMAIL"
+  | "PHONE"
+  | "SELLER_INFO"
+  | "STRIPE"
+  | "KYC"
+  | "BANK"
+  | "COMPLETE";
+
 export const SELLER_ONBOARDING_STEP_LABELS: Record<SellerOnboardingStepId, string> = {
   ACCOUNT: "계정",
   AGREEMENTS: "약관",
@@ -23,6 +35,18 @@ export const SELLER_ONBOARDING_STEP_LABELS: Record<SellerOnboardingStepId, strin
   SELLER_INFO: "판매자 정보",
   KYC: "본인 인증",
   SETTLEMENT: "정산",
+  COMPLETE: "완료",
+};
+
+export const SELLER_ONBOARDING_UI_LABELS: Record<SellerOnboardingUiStep, string> = {
+  ACCOUNT: "계정",
+  AGREEMENTS: "약관",
+  EMAIL: "이메일",
+  PHONE: "휴대폰",
+  SELLER_INFO: "판매자 정보",
+  STRIPE: "Stripe",
+  KYC: "신분증",
+  BANK: "계좌",
   COMPLETE: "완료",
 };
 
@@ -38,7 +62,33 @@ export function nextSellerOnboardingStep(
   return SELLER_ONBOARDING_STEPS[Math.min(idx + 1, SELLER_ONBOARDING_STEPS.length - 1)];
 }
 
-/** 국가별 표시 단계 — 해외는 PHONE 숨김 */
+/** 한국: …휴대폰…KYC…정산 / 해외: …Stripe→신분증→계좌 (SMS 없음) */
+export function visibleSellerOnboardingUiSteps(
+  countryCode: string | null | undefined
+): SellerOnboardingUiStep[] {
+  if (sellerRequiresPhoneVerification(countryCode)) {
+    return ["ACCOUNT", "AGREEMENTS", "EMAIL", "PHONE", "SELLER_INFO", "KYC", "BANK"];
+  }
+  return ["ACCOUNT", "AGREEMENTS", "EMAIL", "SELLER_INFO", "STRIPE", "KYC", "BANK"];
+}
+
+/** DB step + settlementPhase → 스테퍼/화면용 UI step */
+export function toSellerOnboardingUiStep(
+  step: SellerOnboardingStepId,
+  settlementPhase: "stripe" | "bank" | "done" | null | undefined,
+  countryCode: string | null | undefined
+): SellerOnboardingUiStep {
+  if (step === "SETTLEMENT") {
+    if (!sellerRequiresPhoneVerification(countryCode) && settlementPhase === "stripe") {
+      return "STRIPE";
+    }
+    return "BANK";
+  }
+  if (step === "COMPLETE") return "COMPLETE";
+  return step as SellerOnboardingUiStep;
+}
+
+/** @deprecated — use visibleSellerOnboardingUiSteps */
 export function visibleSellerOnboardingSteps(
   countryCode: string | null | undefined
 ): SellerOnboardingStepId[] {
@@ -48,7 +98,6 @@ export function visibleSellerOnboardingSteps(
   );
 }
 
-/** 판매 국가/시장 — 글로벌 Marketplace */
 export const SELLER_MARKETS = [
   { code: "KR", labelKo: "한국", labelEn: "Korea" },
   { code: "US", labelKo: "미국", labelEn: "United States" },

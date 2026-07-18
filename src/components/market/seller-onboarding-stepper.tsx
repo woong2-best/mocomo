@@ -2,20 +2,20 @@
 
 import { cn } from "@/lib/utils";
 import {
-  SELLER_ONBOARDING_STEP_LABELS,
-  visibleSellerOnboardingSteps,
-  type SellerOnboardingStepId,
+  SELLER_ONBOARDING_UI_LABELS,
+  visibleSellerOnboardingUiSteps,
+  type SellerOnboardingUiStep,
 } from "@/lib/marketplace/seller-onboarding";
 
 export function SellerOnboardingStepper({
-  step,
+  uiStep,
   countryCode,
 }: {
-  step: SellerOnboardingStepId;
+  uiStep: SellerOnboardingUiStep;
   countryCode?: string | null;
 }) {
-  const visible = visibleSellerOnboardingSteps(countryCode);
-  const currentIdx = Math.max(0, visible.indexOf(step === "COMPLETE" ? "SETTLEMENT" : step));
+  const visible = visibleSellerOnboardingUiSteps(countryCode);
+  const currentIdx = Math.max(0, visible.indexOf(uiStep === "COMPLETE" ? "BANK" : uiStep));
 
   return (
     <ol className="flex flex-wrap items-center gap-x-1 gap-y-2 text-[11px] sm:text-xs mb-6">
@@ -43,7 +43,7 @@ export function SellerOnboardingStepper({
               >
                 {done ? "✓" : i + 1}
               </span>
-              {SELLER_ONBOARDING_STEP_LABELS[id]}
+              {SELLER_ONBOARDING_UI_LABELS[id]}
             </span>
           </li>
         );

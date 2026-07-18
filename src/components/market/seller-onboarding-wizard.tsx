@@ -22,6 +22,7 @@ import {
   startSellerSettlementOnboarding,
   submitSellerKyc,
   verifySellerEmailCode,
+  type SellerSettlementPhase,
 } from "@/actions/marketplace-seller-onboarding";
 import {
   sendSellerPhoneOtp,
@@ -36,6 +37,7 @@ import {
 import {
   SELLER_KYC_ID_TYPES,
   SELLER_MARKETS,
+  toSellerOnboardingUiStep,
   type SellerOnboardingStepId,
 } from "@/lib/marketplace/seller-onboarding";
 import { sellerRequiresPhoneVerification } from "@/lib/marketplace/seller-region-policy";
@@ -56,6 +58,11 @@ export function SellerOnboardingWizard({
   const router = useRouter();
   const [state, setState] = useState(initialState);
   const [step, setStep] = useState<SellerOnboardingStepId>(initialState.step);
+  const [settlementPhase, setSettlementPhase] = useState<SellerSettlementPhase>(
+    initialState.signedIn && "settlementPhase" in initialState
+      ? initialState.settlementPhase
+      : null
+  );
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -152,6 +159,9 @@ export function SellerOnboardingWizard({
       const next = await getSellerOnboardingState();
       setState(next);
       setStep(next.step);
+      if (next.signedIn && "settlementPhase" in next) {
+        setSettlementPhase(next.settlementPhase);
+      }
     });
   }
 
@@ -214,8 +224,8 @@ export function SellerOnboardingWizard({
       setPhoneSent(true);
       setPhoneVerifiedOnForm(false);
       setPhoneProof("");
-      setMessage(res.message ?? "인증번호를 보냈습니다.");
-      if (res.devCode) setPhoneCode(res.devCode);
+      setMessage(("message" in res && res.message) || "인증번호를 보냈습니다.");
+      if ("devCode" in res && res.devCode) setPhoneCode(res.devCode);
     });
   }
 
@@ -291,6 +301,9 @@ export function SellerOnboardingWizard({
       const next = await getSellerOnboardingState();
       setState(next);
       setStep(next.step);
+      if (next.signedIn && "settlementPhase" in next) {
+        setSettlementPhase(next.settlementPhase);
+      }
     });
   }
 
@@ -309,32 +322,32 @@ export function SellerOnboardingWizard({
   async function handleSendPhone() {
     setError("");
     startTransition(async () => {
-      const res = await sendSellerPhoneOtp(phone, phoneCountryCode);
+      const res = await sendSellerPhoneOtp(phone, "KR");
       if (res.error) {
         setError(res.error);
         return;
       }
       if ("alreadyVerified" in res && res.alreadyVerified) {
-        await advanceSellerPhoneStep(phoneCountryCode);
+        await advanceSellerPhoneStep("KR");
         setStep("SELLER_INFO");
         refreshState();
         return;
       }
       setPhoneSent(true);
-      setMessage(res.message ?? "인증번호를 보냈습니다.");
-      if (res.devCode) setPhoneCode(res.devCode);
+      setMessage(("message" in res && res.message) || "인증번호를 보냈습니다.");
+      if ("devCode" in res && res.devCode) setPhoneCode(res.devCode);
     });
   }
 
   async function handleVerifyPhone() {
     setError("");
     startTransition(async () => {
-      const res = await verifySellerPhoneOtp(phone, phoneCode, phoneCountryCode);
+      const res = await verifySellerPhoneOtp(phone, phoneCode, "KR");
       if (res.error) {
         setError(res.error);
         return;
       }
-      await advanceSellerPhoneStep(phoneCountryCode);
+      await advanceSellerPhoneStep("KR");
       setMessage("휴대폰 인증이 완료되었습니다.");
       setStep("SELLER_INFO");
       refreshState();
@@ -355,7 +368,11 @@ export function SellerOnboardingWizard({
         setError(res.error);
         return;
       }
-      setStep("KYC");
+      if ("nextStep" in res && res.nextStep) {
+        setStep(res.nextStep as SellerOnboardingStepId);
+        if (res.nextStep === "SETTLEMENT") setSettlementPhase("stripe");
+      }
+      refreshState();
     });
   }
 
@@ -371,19 +388,34 @@ export function SellerOnboardingWizard({
         setError(res.error);
         return;
       }
-      if (res.success) setStep("SETTLEMENT");
+      if (res.success) {
+        setStep("SETTLEMENT");
+        setSettlementPhase("bank");
+        refreshState();
+      }
     });
   }
 
   async function handleConnect() {
     setError("");
+    setMessage("");
     startTransition(async () => {
       const res = await startSellerSettlementOnboarding();
       if ("error" in res && res.error) {
         setError(res.error);
         return;
       }
-      if ("url" in res && res.url) window.location.href = res.url;
+      if ("url" in res && res.url) {
+        window.location.href = res.url;
+        return;
+      }
+      if ("message" in res && res.message) setMessage(res.message);
+      if ("nextStep" in res && res.nextStep) {
+        setStep(res.nextStep as SellerOnboardingStepId);
+      } else {
+        setStep("KYC");
+      }
+      refreshState();
     });
   }
 
@@ -415,17 +447,6 @@ export function SellerOnboardingWizard({
     });
   }
 
-  const title = useMemo(() => {
-    if (step === "ACCOUNT") return "MoCoMo MARKET과 함께 비즈니스를 시작하세요!";
-    if (step === "AGREEMENTS") return "약관 동의";
-    if (step === "EMAIL") return "이메일 인증";
-    if (step === "PHONE") return "휴대폰 인증";
-    if (step === "SELLER_INFO") return "판매자 정보";
-    if (step === "KYC") return "본인 확인 (KYC)";
-    if (step === "SETTLEMENT") return "정산 계좌 등록";
-    return "가입 완료";
-  }, [step]);
-
   const countryForSteps =
     ("sellingMarket" in state && state.sellingMarket) ||
     state.countryCode ||
@@ -441,6 +462,25 @@ export function SellerOnboardingWizard({
     effectiveStep = "SELLER_INFO";
   }
 
+  const uiStep = toSellerOnboardingUiStep(
+    effectiveStep,
+    settlementPhase,
+    countryForSteps
+  );
+
+  const title = useMemo(() => {
+    if (effectiveStep === "ACCOUNT") return "MoCoMo MARKET과 함께 비즈니스를 시작하세요!";
+    if (effectiveStep === "AGREEMENTS") return "약관 동의";
+    if (effectiveStep === "EMAIL") return "이메일 인증";
+    if (effectiveStep === "PHONE") return "휴대폰 인증";
+    if (effectiveStep === "SELLER_INFO") return "판매자 정보";
+    if (effectiveStep === "KYC") return "신분증 제출";
+    if (effectiveStep === "SETTLEMENT") {
+      return uiStep === "STRIPE" ? "Stripe Connect 시작" : "은행 계좌 등록";
+    }
+    return "가입 완료";
+  }, [effectiveStep, uiStep]);
+
   return (
     <div className="mx-auto w-full max-w-lg">
       <h1 className="text-center text-xl sm:text-2xl font-bold text-[#1a1a1a] mb-2 tracking-tight">
@@ -448,10 +488,12 @@ export function SellerOnboardingWizard({
       </h1>
       <p className="text-center text-sm text-muted-foreground mb-6">
         MoCoMo MARKET 판매자 온보딩 ·{" "}
-        {phoneRequired ? "한국: 이메일+SMS+KYC" : "해외: 이메일+KYC (SMS 생략)"}
+        {phoneRequired
+          ? "한국: 이메일+SMS+KYC+정산"
+          : "해외: 이메일 → Stripe → 신분증 → 계좌 (SMS 없음)"}
       </p>
 
-      <SellerOnboardingStepper step={effectiveStep} countryCode={countryForSteps} />
+      <SellerOnboardingStepper uiStep={uiStep} countryCode={countryForSteps} />
 
       <div className="rounded-xl border border-[#d8dee6] bg-white p-5 sm:p-6 shadow-sm space-y-4">
         {error && <p className="text-sm text-destructive">{error}</p>}
@@ -552,23 +594,22 @@ export function SellerOnboardingWizard({
 
         {effectiveStep === "PHONE" && (
           <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              한국 판매자만 휴대폰(SMS) 인증이 필요합니다.
+            </p>
             <label className="block text-sm font-medium">휴대폰번호</label>
             <div className="flex gap-2">
               <select
-                value={phoneCountryCode}
-                onChange={(e) => setPhoneCountryCode(e.target.value)}
+                value="KR"
+                disabled
                 className="h-10 rounded-md border border-input bg-background px-2 text-sm shrink-0"
               >
-                {SELLER_PHONE_COUNTRIES.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {sellerPhoneDialLabel(c.code)}
-                  </option>
-                ))}
+                <option value="KR">{sellerPhoneDialLabel("KR")}</option>
               </select>
               <Input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder={phonePlaceholderForCountry(phoneCountryCode)}
+                placeholder={phonePlaceholderForCountry("KR")}
                 className="flex-1"
               />
               <Button type="button" variant="secondary" disabled={pending || !phone} onClick={handleSendPhone}>
@@ -594,7 +635,7 @@ export function SellerOnboardingWizard({
               </>
             )}
             <p className="text-xs text-muted-foreground">
-              지원 국가: 중국 · 홍콩 · 한국 · 일본 · 미국 / 계정당 번호 1개
+              한국(+82)만 지원 · 계정당 번호 1개
             </p>
           </div>
         )}
@@ -660,7 +701,7 @@ export function SellerOnboardingWizard({
             <p className="text-sm text-muted-foreground leading-relaxed">
               {phoneRequired
                 ? "한국 판매자: 본인 확인(KYC) 정보를 제출해 주세요. 관리자 검토 후 승인됩니다."
-                : "해외 판매자: 정부 발급 신분증 정보를 제출해 주세요. SMS 없이 KYC로 본인 확인합니다."}
+                : "해외 판매자: Stripe Connect 시작 후 정부 발급 신분증 정보를 제출해 주세요."}
             </p>
             <Input
               value={kycLegalName}
@@ -691,30 +732,52 @@ export function SellerOnboardingWizard({
               disabled={pending || !kycLegalName.trim() || kycIdNumber.trim().length < 4}
               onClick={handleKycSubmit}
             >
-              KYC 제출하고 정산으로
+              신분증 제출하고 계좌 등록으로
             </Button>
           </div>
         )}
 
-        {effectiveStep === "SETTLEMENT" && (
+        {effectiveStep === "SETTLEMENT" && uiStep === "STRIPE" && (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground leading-relaxed">
-              정산 계좌 등록은 필수입니다. Stripe Connect로 연결하거나, 설정이 없는 경우 관리자
-              검토 요청으로 제출할 수 있습니다. 가입 후 관리자 승인 전까지 상품 등록은 불가합니다.
+              해외 판매자는 SMS 대신 Stripe Connect로 본인·정산을 진행합니다. Stripe가 아직
+              연결되지 않아도 &quot;시작&quot;으로 기록한 뒤 신분증 제출로 이어집니다.
             </p>
+            <ol className="text-xs text-muted-foreground space-y-1 list-decimal pl-4">
+              <li>Stripe Connect 시작</li>
+              <li>신분증 제출</li>
+              <li>은행 계좌 등록</li>
+              <li>Stripe/관리자 승인</li>
+            </ol>
             <Button type="button" className="w-full" disabled={pending} onClick={handleConnect}>
-              정산 계좌 연결 (Stripe Connect)
+              Stripe Connect 시작
             </Button>
+          </div>
+        )}
+
+        {effectiveStep === "SETTLEMENT" && uiStep !== "STRIPE" && (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {phoneRequired
+                ? "정산 계좌 등록은 필수입니다. Stripe Connect로 연결하거나 관리자 검토 요청으로 제출할 수 있습니다."
+                : "은행 계좌를 등록해 주세요. Stripe 승인·관리자 승인 전까지 상품 등록은 불가합니다."}
+            </p>
+            {phoneRequired && (
+              <Button type="button" className="w-full" disabled={pending} onClick={handleConnect}>
+                정산 계좌 연결 (Stripe Connect)
+              </Button>
+            )}
             <Button
               type="button"
-              variant="secondary"
+              variant={phoneRequired ? "secondary" : "default"}
               className="w-full"
               disabled={pending}
               onClick={handleDeclareSettlement}
             >
-              정산 계좌 등록 완료 · 관리자 검토 요청
+              은행 계좌 등록 완료 · 검토 요청
             </Button>
-            {state.connectReady && (
+            {(state.connectReady ||
+              (state.signedIn && "settlementDeclared" in state && state.settlementDeclared)) && (
               <Button type="button" className="w-full" disabled={pending} onClick={handleComplete}>
                 가입 신청 완료
               </Button>
@@ -800,7 +863,7 @@ function AccountStep(props: {
         <p className="text-xs text-muted-foreground mt-1">
           {props.phoneRequired
             ? "한국: 이메일 + 휴대폰(SMS) + KYC + 정산 필수"
-            : "해외: 이메일 + KYC + 정산 필수 (SMS 생략 · Twilio 불필요)"}
+            : "해외: 이메일 → Stripe Connect → 신분증 → 은행계좌 (SMS 없음)"}
         </p>
       </div>
       <Input

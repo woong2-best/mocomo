@@ -5002,7 +5002,9 @@ model MarketplaceSellerProfile {
   kycLegalName      String?
   /** 신분증 번호 끝자리 등 힌트 (전체 번호 저장 금지) */
   kycIdHint         String?
-  /** Stripe 미설정·보류 시 정산 계좌 등록 의사 표시 */
+  /** Stripe Connect 온보딩 시작(해외: SMS 대신 Connect 선행) */
+  stripeConnectStartedAt DateTime?
+  /** 은행 계좌 등록/검토 요청 완료 */
   settlementDeclaredAt DateTime?
   phoneCountryCode  String?
   ratingAvg       Float                    @default(0)

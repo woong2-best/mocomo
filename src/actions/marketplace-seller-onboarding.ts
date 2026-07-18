@@ -78,15 +78,19 @@ function resolveNextAfterAgreements(input: {
   countryCode: string;
   hasSellerType: boolean;
   kycStarted: boolean;
+  stripeStarted: boolean;
 }): MarketplaceSellerOnboardingStep {
   if (!input.emailVerified) return "EMAIL";
-  if (sellerRequiresPhoneVerification(input.countryCode) && !input.phoneVerified) {
-    return "PHONE";
-  }
+  const isKr = sellerRequiresPhoneVerification(input.countryCode);
+  if (isKr && !input.phoneVerified) return "PHONE";
   if (!input.hasSellerType) return "SELLER_INFO";
+  // 해외: Stripe Connect 시작 → 신분증 → 계좌
+  if (!isKr && !input.stripeStarted) return "SETTLEMENT";
   if (!input.kycStarted) return "KYC";
   return "SETTLEMENT";
 }
+
+export type SellerSettlementPhase = "stripe" | "bank" | "done" | null;
 
 export async function getSellerOnboardingState() {
   const session = await auth();
@@ -132,19 +136,24 @@ export async function getSellerOnboardingState() {
   }
 
   const profile = user.marketplaceSeller;
-  const country = normalizeSellerCountry(
-    profile?.sellingMarket || profile?.phoneCountryCode || user.countryCode
-  );
+  // 판매 국가는 sellingMarket만 기준 (phoneCountryCode로 해외→SMS 강제 금지)
+  const country = normalizeSellerCountry(profile?.sellingMarket || user.countryCode);
   const phoneRequired = sellerRequiresPhoneVerification(country);
+  const isKr = isKrSellerCountry(country);
   const kycStarted =
     !!profile && profile.kycStatus !== "NOT_STARTED" && profile.kycStatus !== "DEFERRED";
-  const settlementReady = !!(
-    user.stripeConnectOnboardedAt ||
+  const stripeStarted = !!(
+    profile?.stripeConnectStartedAt ||
     user.stripeConnectAccountId ||
-    profile?.settlementDeclaredAt
+    user.stripeConnectOnboardedAt
+  );
+  const bankReady = !!(
+    profile?.settlementDeclaredAt ||
+    user.stripeConnectOnboardedAt
   );
 
   let step: SellerOnboardingStepId = "AGREEMENTS";
+  let settlementPhase: SellerSettlementPhase = null;
 
   if (profile?.onboardingCompletedAt) {
     step = "COMPLETE";
@@ -154,19 +163,36 @@ export async function getSellerOnboardingState() {
     step = "AGREEMENTS";
   } else if (phoneRequired && !user.phoneVerified) {
     step = "PHONE";
-  } else if (!profile.sellerType) {
+  } else if (!profile?.sellerType) {
     step = "SELLER_INFO";
+  } else if (!isKr) {
+    // 해외: 이메일 → Stripe 시작 → 신분증 → 은행계좌 → (Stripe/관리자 승인)
+    if (!stripeStarted) {
+      step = "SETTLEMENT";
+      settlementPhase = "stripe";
+    } else if (!kycStarted) {
+      step = "KYC";
+    } else if (!bankReady) {
+      step = "SETTLEMENT";
+      settlementPhase = "bank";
+    } else {
+      step = "SETTLEMENT";
+      settlementPhase = "done";
+    }
   } else if (!kycStarted) {
     step = "KYC";
-  } else if (!settlementReady) {
+  } else if (!bankReady && !user.stripeConnectAccountId) {
     step = "SETTLEMENT";
+    settlementPhase = "bank";
   } else {
     step = "SETTLEMENT";
+    settlementPhase = bankReady || user.stripeConnectAccountId ? "done" : "bank";
   }
 
   return {
     signedIn: true as const,
     step,
+    settlementPhase,
     email: user.email,
     username: user.username,
     name: user.name,
@@ -175,12 +201,13 @@ export async function getSellerOnboardingState() {
     phoneRequired,
     phone: user.phone,
     countryCode: country,
-    phoneCountryCode: profile?.phoneCountryCode ?? (phoneRequired ? "KR" : country),
+    phoneCountryCode: "KR",
     sellingMarket: profile?.sellingMarket ?? country,
     connectReady: !!(user.stripeConnectOnboardedAt || user.stripeConnectAccountId),
+    stripeStarted,
     settlementDeclared: !!profile?.settlementDeclaredAt,
     stripeConfigured: isStripeConnectConfigured(),
-    isKr: isKrSellerCountry(country),
+    isKr,
     profile: profile
       ? {
           id: profile.id,
@@ -360,6 +387,7 @@ export async function saveSellerAgreements(input: z.infer<typeof agreementsSchem
     countryCode: country,
     hasSellerType: !!profile.sellerType,
     kycStarted: profile.kycStatus !== "NOT_STARTED" && profile.kycStatus !== "DEFERRED",
+    stripeStarted: !!(profile.stripeConnectStartedAt || profile.settlementDeclaredAt),
   });
 
   await db.marketplaceSellerProfile.update({
@@ -414,6 +442,10 @@ export async function verifySellerEmailCode(email: string, code: string) {
             !!user.marketplaceSeller &&
             user.marketplaceSeller.kycStatus !== "NOT_STARTED" &&
             user.marketplaceSeller.kycStatus !== "DEFERRED",
+          stripeStarted: !!(
+            user.marketplaceSeller?.stripeConnectStartedAt ||
+            user.marketplaceSeller?.settlementDeclaredAt
+          ),
         });
     await db.marketplaceSellerProfile.updateMany({
       where: { userId: user.id },
@@ -484,6 +516,19 @@ export async function saveSellerInfo(input: z.infer<typeof sellerInfoSchema>) {
 
   const user = await requireAuth();
   const displayName = data.displayName.trim().slice(0, 80);
+  const dbUser = await db.user.findUnique({
+    where: { id: user.id },
+    select: {
+      countryCode: true,
+      marketplaceSeller: { select: { sellingMarket: true } },
+    },
+  });
+  const country = normalizeSellerCountry(
+    dbUser?.marketplaceSeller?.sellingMarket || dbUser?.countryCode
+  );
+  const nextStep: MarketplaceSellerOnboardingStep = sellerRequiresPhoneVerification(country)
+    ? "KYC"
+    : "SETTLEMENT";
 
   await db.marketplaceSellerProfile.upsert({
     where: { userId: user.id },
@@ -496,7 +541,8 @@ export async function saveSellerInfo(input: z.infer<typeof sellerInfoSchema>) {
       businessRegNo: data.sellerType === "BUSINESS" ? data.businessRegNo!.trim() : null,
       status: "PENDING",
       canList: false,
-      onboardingStep: "KYC",
+      sellingMarket: country,
+      onboardingStep: nextStep,
     },
     update: {
       displayName,
@@ -504,15 +550,15 @@ export async function saveSellerInfo(input: z.infer<typeof sellerInfoSchema>) {
       sellerType: data.sellerType as MarketplaceSellerType,
       businessName: data.sellerType === "BUSINESS" ? data.businessName!.trim() : null,
       businessRegNo: data.sellerType === "BUSINESS" ? data.businessRegNo!.trim() : null,
-      onboardingStep: "KYC",
+      onboardingStep: nextStep,
     },
   });
 
   revalidatePath("/market/seller/register");
-  return { success: true as const, nextStep: "KYC" as const };
+  return { success: true as const, nextStep };
 }
 
-/** KYC 필수 제출 — 연기(DEFERRED) 불가. 관리자 검토용 PENDING */
+/** KYC 필수 제출 — 해외는 Stripe 시작 후에만. 다음=은행계좌 */
 export async function submitSellerKyc(input: z.infer<typeof kycSchema>) {
   const limited = await limitSellerAction("kyc");
   if (!limited.ok) return { error: limited.error };
@@ -521,12 +567,23 @@ export async function submitSellerKyc(input: z.infer<typeof kycSchema>) {
   if (!parsed.success) return { error: "본인 확인 정보를 입력해 주세요." };
 
   const user = await requireAuth();
+  const profile = await db.marketplaceSellerProfile.findUnique({ where: { userId: user.id } });
+  if (!profile) return { error: "판매자 프로필이 없습니다." };
+
+  const country = normalizeSellerCountry(profile.sellingMarket);
+  if (
+    !sellerRequiresPhoneVerification(country) &&
+    !profile.stripeConnectStartedAt
+  ) {
+    return { error: "해외 판매자는 먼저 Stripe Connect를 시작해 주세요." };
+  }
+
   const now = new Date();
   const id = parsed.data.idNumber.replace(/\s+/g, "");
   const hint = id.length <= 4 ? id : id.slice(-4);
 
-  await db.marketplaceSellerProfile.updateMany({
-    where: { userId: user.id },
+  await db.marketplaceSellerProfile.update({
+    where: { id: profile.id },
     data: {
       kycStatus: "PENDING",
       kycSubmittedAt: now,
@@ -539,7 +596,7 @@ export async function submitSellerKyc(input: z.infer<typeof kycSchema>) {
   });
 
   revalidatePath("/market/seller/register");
-  return { success: true as const, nextStep: "SETTLEMENT" as const };
+  return { success: true as const, nextStep: "SETTLEMENT" as const, settlementPhase: "bank" as const };
 }
 
 /** @deprecated — defer 제거. submitSellerKyc 사용 */
@@ -550,31 +607,54 @@ export async function submitSellerKycPrep(mode: "defer" | "start") {
   return { error: "법적 성명·신분증 유형·번호를 입력해 제출해 주세요." };
 }
 
-export async function startSellerSettlementOnboarding() {
+/**
+ * Stripe Connect 시작 (해외 필수).
+ * Stripe 미설정이어도 startedAt 기록 후 신분증 단계로 진행.
+ */
+export async function startSellerStripeConnectPrep() {
   const user = await requireAuth();
+  const profile = await db.marketplaceSellerProfile.findUnique({ where: { userId: user.id } });
+  if (!profile) return { error: "판매자 프로필을 먼저 생성해 주세요." };
+
+  const now = new Date();
+  await db.marketplaceSellerProfile.update({
+    where: { id: profile.id },
+    data: {
+      stripeConnectStartedAt: profile.stripeConnectStartedAt ?? now,
+      onboardingStep: "KYC",
+    },
+  });
+
+  if (!isStripeConnectConfigured()) {
+    revalidatePath("/market/seller/register");
+    return {
+      success: true as const,
+      stub: true as const,
+      nextStep: "KYC" as const,
+      message:
+        "Stripe Connect는 곧 연동됩니다. 시작으로 기록하고 신분증 제출로 진행합니다.",
+    };
+  }
+
   const dbUser = await db.user.findUnique({
     where: { id: user.id },
     select: { id: true, email: true, stripeConnectAccountId: true },
   });
   if (!dbUser) return { error: "사용자를 찾을 수 없습니다." };
 
-  const profile = await db.marketplaceSellerProfile.findUnique({ where: { userId: user.id } });
-  if (!profile) return { error: "판매자 프로필을 먼저 생성해 주세요." };
-
-  if (!isStripeConnectConfigured()) {
-    return {
-      error:
-        "Stripe Connect가 아직 설정되지 않았습니다. 아래 ‘정산 계좌 등록 완료(검토 요청)’로 진행해 주세요.",
-      stripeUnavailable: true as const,
-    };
-  }
-
   const result = await createSellerConnectOnboarding({
     id: dbUser.id,
     email: dbUser.email,
     stripeConnectAccountId: dbUser.stripeConnectAccountId,
   });
-  if ("error" in result) return result;
+  if ("error" in result) {
+    return {
+      success: true as const,
+      stub: true as const,
+      nextStep: "KYC" as const,
+      message: result.error,
+    };
+  }
 
   if (result.accountId !== dbUser.stripeConnectAccountId) {
     await db.user.update({
@@ -589,31 +669,43 @@ export async function startSellerSettlementOnboarding() {
     const origin = getAppOrigin();
     const link = await stripe.accountLinks.create({
       account: result.accountId,
-      refresh_url: `${origin}/market/seller/register?connect=refresh`,
-      return_url: `${origin}/market/seller/register?connect=return`,
+      refresh_url: `${origin}/market/seller/register?connect=refresh&phase=stripe`,
+      return_url: `${origin}/market/seller/register?connect=return&phase=stripe`,
       type: "account_onboarding",
     });
-    await db.marketplaceSellerProfile.update({
-      where: { id: profile.id },
-      data: { onboardingStep: "SETTLEMENT" },
-    });
-    return { url: link.url };
+    return { url: link.url, nextStep: "KYC" as const };
   }
 
-  return { url: result.url };
+  revalidatePath("/market/seller/register");
+  return { success: true as const, nextStep: "KYC" as const };
 }
 
-/** Stripe 미설정·보류 시에도 정산 등록 의사를 기록하고 온보딩 완료 가능 */
+export async function startSellerSettlementOnboarding() {
+  return startSellerStripeConnectPrep();
+}
+
+/** 은행 계좌 등록 — 온보딩 마지막 (Stripe 승인·관리자 승인 대기) */
 export async function declareSellerSettlementForReview(note?: string) {
   const user = await requireAuth();
+  const profile = await db.marketplaceSellerProfile.findUnique({ where: { userId: user.id } });
+  if (!profile) return { error: "판매자 프로필이 없습니다." };
+
+  const country = normalizeSellerCountry(profile.sellingMarket);
+  if (!sellerRequiresPhoneVerification(country) && !profile.stripeConnectStartedAt) {
+    return { error: "먼저 Stripe Connect를 시작해 주세요." };
+  }
+  if (profile.kycStatus === "NOT_STARTED" || profile.kycStatus === "DEFERRED") {
+    return { error: "신분증(KYC) 제출 후 은행 계좌를 등록해 주세요." };
+  }
+
   const now = new Date();
-  await db.marketplaceSellerProfile.updateMany({
-    where: { userId: user.id },
+  await db.marketplaceSellerProfile.update({
+    where: { id: profile.id },
     data: {
       settlementDeclaredAt: now,
       onboardingStep: "SETTLEMENT",
       ...(note?.trim()
-        ? { kycNotes: `정산 검토 요청: ${note.trim().slice(0, 500)}` }
+        ? { kycNotes: `은행계좌 등록/검토: ${note.trim().slice(0, 500)}` }
         : {}),
     },
   });
@@ -622,18 +714,26 @@ export async function declareSellerSettlementForReview(note?: string) {
 
 export async function markSellerConnectReturn() {
   const user = await requireAuth();
+  const profile = await db.marketplaceSellerProfile.findUnique({ where: { userId: user.id } });
   await db.user.update({
     where: { id: user.id },
     data: { stripeConnectOnboardedAt: new Date() },
   });
+  const kycDone =
+    profile &&
+    profile.kycStatus !== "NOT_STARTED" &&
+    profile.kycStatus !== "DEFERRED";
   await db.marketplaceSellerProfile.updateMany({
     where: { userId: user.id },
     data: {
-      onboardingStep: "SETTLEMENT",
-      settlementDeclaredAt: new Date(),
+      stripeConnectStartedAt: new Date(),
+      onboardingStep: kycDone ? "SETTLEMENT" : "KYC",
+      ...(kycDone ? { settlementDeclaredAt: new Date() } : {}),
     },
   });
-  return completeSellerOnboarding();
+  if (kycDone) return completeSellerOnboarding();
+  revalidatePath("/market/seller/register");
+  return { success: true as const, nextStep: "KYC" as const };
 }
 
 export async function completeSellerOnboarding() {
@@ -660,21 +760,23 @@ export async function completeSellerOnboarding() {
   if (sellerRequiresPhoneVerification(country) && !dbUser.phoneVerified) {
     return { error: "한국 판매자는 휴대폰(SMS) 인증이 필수입니다." };
   }
+  if (!sellerRequiresPhoneVerification(country) && !dbUser.marketplaceSeller.stripeConnectStartedAt) {
+    return { error: "해외 판매자는 Stripe Connect 시작이 필요합니다." };
+  }
   if (!dbUser.marketplaceSeller.sellerType) {
     return { error: "판매자 정보(개인/사업자)를 입력해 주세요." };
   }
   const kyc = dbUser.marketplaceSeller.kycStatus;
   if (kyc === "NOT_STARTED" || kyc === "DEFERRED" || kyc === "FAILED") {
-    return { error: "본인 확인(KYC)을 제출해 주세요." };
+    return { error: "신분증(KYC)을 제출해 주세요." };
   }
 
   const settlementReady = !!(
     dbUser.stripeConnectOnboardedAt ||
-    dbUser.stripeConnectAccountId ||
     dbUser.marketplaceSeller.settlementDeclaredAt
   );
   if (!settlementReady) {
-    return { error: "정산 계좌 등록(또는 검토 요청)이 필요합니다." };
+    return { error: "은행 계좌 등록이 필요합니다." };
   }
 
   const now = new Date();
