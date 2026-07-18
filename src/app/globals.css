@@ -302,6 +302,17 @@ html[data-client="app"] .native-live-pad {
     @apply -translate-y-0.5 shadow-folk border-folk-terracotta/40;
   }
 
+  /* MARKET — dense commerce product cards (figure-mall density, folk chrome) */
+  .market-product-card {
+    @apply transition-transform duration-300 ease-out;
+  }
+  .market-product-card:hover {
+    @apply -translate-y-0.5;
+  }
+  .market-product-card:hover .aspect-square {
+    @apply ring-folk-terracotta/35 shadow-[3px_4px_0_hsl(var(--folk-cobalt)/0.1)];
+  }
+
   .discover-action-btn {
     @apply transition-shadow duration-200;
   }

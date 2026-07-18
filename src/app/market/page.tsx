@@ -7,13 +7,13 @@ export const dynamic = "force-dynamic";
 export default async function MarketHomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string; q?: string }>;
+  searchParams: Promise<{ type?: string; q?: string; category?: string }>;
 }) {
-  const { type, q } = await searchParams;
+  const { type, q, category } = await searchParams;
 
   return (
     <Suspense fallback={<MarketGridSkeleton />}>
-      <MarketplaceHomeAsync type={type} q={q} />
+      <MarketplaceHomeAsync type={type} q={q} category={category} />
     </Suspense>
   );
 }

@@ -75,10 +75,19 @@ export function CardRowsSkeleton({ rows = 5 }: { rows?: number }) {
 
 export function MarketGridSkeleton() {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 animate-pulse">
-      {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="h-24 rounded-2xl bg-muted" />
-      ))}
+    <div className="space-y-5 animate-pulse">
+      <div className="h-12 rounded-xl bg-muted" />
+      <div className="h-[280px] rounded-2xl bg-muted" />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        {Array.from({ length: 12 }, (_, i) => (
+          <div key={i} className="space-y-2">
+            <div className="aspect-square rounded-xl bg-muted" />
+            <div className="h-3 w-4/5 rounded bg-muted" />
+            <div className="h-3 w-1/2 rounded bg-muted" />
+            <div className="h-7 w-2/3 rounded-md bg-muted" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
