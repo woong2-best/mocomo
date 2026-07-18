@@ -1,0 +1,185 @@
+"use client";
+
+import Link from "next/link";
+import { Check, Info } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { MarketplaceSellerApplyForm } from "@/components/market/marketplace-seller-apply-form";
+
+export type SellerPrepState = {
+  sellerInfoDone: boolean;
+  firstProductDone: boolean;
+  displayName: string;
+  sellerTypeLabel: string;
+  connectReady: boolean;
+  connectMessage: string;
+  listingsCount: number;
+  welcome?: boolean;
+};
+
+export function SellerCenterHome({
+  prep,
+  profileFormName,
+}: {
+  prep: SellerPrepState;
+  profileFormName: string;
+}) {
+  const doneCount = (prep.sellerInfoDone ? 1 : 0) + (prep.firstProductDone ? 1 : 0);
+  const total = 2;
+  const progressPct = (doneCount / total) * 100;
+  const showPrep = doneCount < total || prep.welcome;
+
+  return (
+    <div className="space-y-5 max-w-4xl">
+      {prep.welcome && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          판매자 가입이 완료되었습니다. 아래 단계를 마치면 바로 판매를 시작할 수 있어요.
+        </div>
+      )}
+
+      {showPrep && (
+        <section className="rounded-2xl border border-[#d8e0ef] bg-white p-5 sm:p-7 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-start gap-4 mb-6">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary text-xl font-black">
+              M
+            </div>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+                MoCoMo MARKET과 함께 빠르게 판매를 시작하세요!
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1.5">
+                가이드에 따라 단계를 완료하면 바로 판매할 수 있어요.
+              </p>
+            </div>
+            <div className="sm:w-44 shrink-0">
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span className="font-medium">판매 준비하기</span>
+                <span className="text-muted-foreground">
+                  {doneCount}/{total}
+                </span>
+              </div>
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <PrepCard
+              done={prep.sellerInfoDone}
+              title="판매자 정보 입력하기"
+              description="사업자·본인 인증 신청 후 검토가 완료되면 판매가 더 안정적으로 진행됩니다."
+              actions={
+                <Button asChild className="min-w-[9.5rem]">
+                  <Link href="#profile">판매자 정보 입력</Link>
+                </Button>
+              }
+            />
+
+            <PrepCard
+              done={prep.firstProductDone}
+              title="첫 상품등록하기"
+              description="첫 상품을 등록하면 판매를 시작할 수 있어요. 상품 사진·가격·배송 정보를 정확히 입력해 주세요."
+              actions={
+                <div className="flex flex-col gap-2 w-full sm:w-auto">
+                  <Button asChild className="min-w-[9.5rem]">
+                    <Link href="/market/sell-item">상품등록 하기</Link>
+                  </Button>
+                  <Button asChild variant="outline" className="min-w-[9.5rem] border-primary/40 text-primary">
+                    <Link href="/market">MARKET에서 둘러보기</Link>
+                  </Button>
+                </div>
+              }
+            />
+          </div>
+        </section>
+      )}
+
+      <section className="rounded-2xl border border-border/60 bg-white p-5 sm:p-6 shadow-sm">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <h2 className="text-base font-bold">판매자가이드 및 혜택</h2>
+          <span className="text-xs text-muted-foreground">1/1</span>
+        </div>
+        <div className="grid sm:grid-cols-[140px_1fr] gap-4 items-center">
+          <div className="h-28 rounded-xl bg-gradient-to-br from-primary/15 via-amber-50 to-sky-50 border border-border/40" />
+          <div>
+            <p className="font-semibold">성장하는 셀러를 위한 판매 가이드</p>
+            <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+              상품 등록, 주문 처리, Stripe Connect 정산까지 MoCoMo MARKET 판매자센터에서 한 번에
+              관리할 수 있습니다. 약관과 정책을 확인한 뒤 첫 상품을 올려 보세요.
+            </p>
+            <Link
+              href="/legal/seller-terms"
+              className="inline-block mt-3 text-sm text-primary font-medium hover:underline"
+            >
+              판매자 이용약관 보기
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="profile"
+        className="rounded-2xl border border-border/60 bg-white p-5 sm:p-6 shadow-sm scroll-mt-20"
+      >
+        <h2 className="text-base font-bold mb-1">판매자 정보 · 정산</h2>
+        <p className="text-xs text-muted-foreground mb-4">
+          {prep.sellerTypeLabel} · {prep.connectMessage}
+          {prep.listingsCount > 0 ? ` · 등록 상품 ${prep.listingsCount}개` : ""}
+        </p>
+        <MarketplaceSellerApplyForm
+          initialName={profileFormName}
+          connectReady={prep.connectReady}
+        />
+      </section>
+
+      <section id="settlement" className="scroll-mt-20" />
+    </div>
+  );
+}
+
+function PrepCard({
+  done,
+  title,
+  description,
+  actions,
+}: {
+  done: boolean;
+  title: string;
+  description: string;
+  actions: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex flex-col sm:flex-row sm:items-center gap-4 rounded-xl border px-4 py-4 sm:px-5",
+        done ? "border-emerald-200 bg-emerald-50/40" : "border-[#c9d7f5] bg-[#f7f9ff]"
+      )}
+    >
+      <div
+        className={cn(
+          "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2",
+          done
+            ? "border-emerald-500 bg-emerald-500 text-white"
+            : "border-muted-foreground/30 text-muted-foreground/40"
+        )}
+      >
+        <Check className="h-5 w-5" strokeWidth={2.5} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-bold text-[15px] sm:text-base">{title}</p>
+        <p className="text-sm text-muted-foreground mt-1 leading-relaxed flex items-start gap-1">
+          <span>{description}</span>
+          <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 opacity-50" />
+        </p>
+      </div>
+      {!done && <div className="sm:ml-auto shrink-0">{actions}</div>}
+      {done && (
+        <span className="sm:ml-auto text-sm font-medium text-emerald-700 shrink-0">완료</span>
+      )}
+    </div>
+  );
+}

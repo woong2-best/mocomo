@@ -512,7 +512,7 @@ export async function completeSellerOnboarding() {
 
   revalidatePath("/market/seller");
   revalidatePath("/market/seller/register");
-  return { success: true as const, redirectTo: "/market/seller" };
+  return { success: true as const, redirectTo: "/market/seller?welcome=1" };
 }
 
 export async function resumeSellerConnectFromOnboarding() {

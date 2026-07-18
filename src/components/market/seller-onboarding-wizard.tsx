@@ -114,7 +114,7 @@ export function SellerOnboardingWizard({
 
   useEffect(() => {
     if (initialState.signedIn && initialState.step === "COMPLETE") {
-      router.replace("/market/seller");
+      router.replace("/market/seller?welcome=1");
     }
   }, [initialState, router]);
 
@@ -661,7 +661,11 @@ export function SellerOnboardingWizard({
         {effectiveStep === "COMPLETE" && (
           <div className="space-y-3 text-center">
             <p className="text-sm">판매자 온보딩이 완료되었습니다.</p>
-            <Button type="button" className="w-full" onClick={() => router.replace("/market/seller")}>
+            <Button
+              type="button"
+              className="w-full"
+              onClick={() => router.replace("/market/seller?welcome=1")}
+            >
               판매자센터로 이동
             </Button>
           </div>
