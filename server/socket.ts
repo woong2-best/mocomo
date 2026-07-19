@@ -600,6 +600,7 @@ io.on("connection", (socket: AuthedSocket) => {
       contextId?: string;
       from?: { id: string; username: string; image?: string | null };
       toUserId?: string;
+      minigameRoomId?: string | null;
     }) => {
       if (!data.sessionId || !data.activityId || !data.toUserId || !data.from) return;
       if (data.from.id !== userId) return;
@@ -615,6 +616,7 @@ io.on("connection", (socket: AuthedSocket) => {
       players?: unknown;
       hostId?: string;
       gameState?: unknown;
+      minigameRoomId?: string | null;
       toUserId?: string;
       fromUserId?: string;
     }) => {

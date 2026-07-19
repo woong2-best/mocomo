@@ -28,7 +28,7 @@ export function ActivityPickerSheet() {
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border/60">
           <div>
-            <p className="text-sm font-bold text-foreground">Play Together</p>
+            <p className="text-base font-bold text-foreground">Play Together</p>
             <p className="text-[11px] text-muted-foreground">대화를 유지한 채 함께 즐겨요</p>
           </div>
           <button

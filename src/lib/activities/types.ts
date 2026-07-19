@@ -51,6 +51,8 @@ export type ActivityInvitePayload = {
   contextId: string;
   from: ActivityPlayer;
   toUserId: string;
+  /** 기존 /games 미니게임 방 코드 */
+  minigameRoomId?: string | null;
 };
 
 export type ActivitySession = {
@@ -62,6 +64,10 @@ export type ActivitySession = {
   players: ActivityPlayer[];
   hostId: string;
   result: ActivityEndResult;
-  /** 게임별 동기화 상태 (JSON-safe) */
+  /** 게임별 동기화 상태 (JSON-safe) — 틱택토 등 */
   gameState: Record<string, unknown> | null;
+  /** 기존 미니게임 방 코드 */
+  minigameRoomId?: string | null;
+  /** host=create, guest=join */
+  minigameRole?: "create" | "join" | null;
 };

@@ -13,6 +13,7 @@ import { useSession } from "next-auth/react";
 import { useAppSocket } from "@/components/providers/app-socket-provider";
 import { getActivityById } from "@/lib/activities/registry";
 import { applyTttMove, createTttState, tttResultForPlayer, type TttGameState } from "@/lib/activities/tic-tac-toe";
+import { generateRoomCode } from "@/lib/sketch-quiz-words";
 import type {
   ActivityContextType,
   ActivityEndResult,
@@ -105,21 +106,25 @@ export function ActivityProvider({
       players: ActivityPlayer[];
       hostId: string;
       gameState?: Record<string, unknown> | null;
+      minigameRoomId?: string | null;
     }) => {
-      if (!session || payload.sessionId !== session.sessionId) {
-        // host side may have session; guest accepts separately
-      }
       setIncoming(null);
-      setSession({
-        sessionId: payload.sessionId,
-        activityId: payload.activityId,
-        contextType,
-        contextId,
-        phase: "active",
-        players: payload.players,
-        hostId: payload.hostId,
-        result: null,
-        gameState: payload.gameState ?? null,
+      setSession((prev) => {
+        const isHost = payload.hostId === meId;
+        return {
+          sessionId: payload.sessionId,
+          activityId: payload.activityId,
+          contextType,
+          contextId,
+          phase: "active",
+          players: payload.players,
+          hostId: payload.hostId,
+          result: null,
+          gameState: payload.gameState ?? prev?.gameState ?? null,
+          minigameRoomId:
+            payload.minigameRoomId ?? prev?.minigameRoomId ?? null,
+          minigameRole: isHost ? "create" : "join",
+        };
       });
     };
 
@@ -176,6 +181,7 @@ export function ActivityProvider({
       if (!def.playable) return;
 
       const sessionId = newSessionId();
+      const minigameRoomId = def.minigameId ? generateRoomCode() : null;
       const peer: ActivityPlayer = peerHint ?? {
         id: peerUserId,
         username: "friend",
@@ -185,11 +191,12 @@ export function ActivityProvider({
       const invite: ActivityInvitePayload = {
         sessionId,
         activityId,
-        title: def.titleEn,
+        title: def.title,
         contextType,
         contextId,
         from: me,
         toUserId: peerUserId,
+        minigameRoomId,
       };
 
       setPickerOpen(false);
@@ -203,6 +210,8 @@ export function ActivityProvider({
         hostId: meId,
         result: null,
         gameState: null,
+        minigameRoomId,
+        minigameRole: "create",
       });
 
       socket?.emit("activity_invite", invite);
@@ -219,6 +228,7 @@ export function ActivityProvider({
     if (incoming.activityId === "tic-tac-toe") {
       gameState = createTttState(host.id, meId) as unknown as Record<string, unknown>;
     }
+    const minigameRoomId = incoming.minigameRoomId ?? null;
 
     const accepted = {
       sessionId: incoming.sessionId,
@@ -226,6 +236,7 @@ export function ActivityProvider({
       players,
       hostId: host.id,
       gameState,
+      minigameRoomId,
       toUserId: host.id,
       fromUserId: meId,
     };
@@ -242,6 +253,8 @@ export function ActivityProvider({
       hostId: host.id,
       result: null,
       gameState,
+      minigameRoomId,
+      minigameRole: "join",
     });
     void def;
   }, [incoming, meId, me, contextType, contextId, socket]);
