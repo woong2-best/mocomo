@@ -33,7 +33,7 @@ export const getCachedFeedPosts = unstable_cache(
         orderBy: { createdAt: "desc" },
         select: {
           ...feedPostListSelect,
-          _count: { select: { likes: true, comments: true, votes: true } },
+          _count: { select: { likes: true, comments: true, votes: true, media: true } },
         },
       });
       return posts.map((p) =>
@@ -45,7 +45,7 @@ export const getCachedFeedPosts = unstable_cache(
       );
     }
   },
-  ["home-feed-posts-v3"],
+  ["home-feed-posts-v4-media-grid"],
   { revalidate: 60, tags: [FEED_POSTS_CACHE_TAG] }
 );
 

@@ -59,7 +59,7 @@ const IMAGE_ACCEPT = "image/*,.heic,.heif,image/heic,image/heif";
 export function PostMediaComposer({
   items,
   onChange,
-  maxImages = 4,
+  maxImages = 100,
   maxVideos = 1,
   allowVideo = true,
   allowVideoCapture = false,

@@ -159,7 +159,7 @@ export function ComposeForm({
             <PostMediaComposer
               items={media}
               onChange={setMedia}
-              maxImages={4}
+              maxImages={100}
               maxVideos={1}
               layout="toolbar"
               allowVideoCapture={false}
@@ -237,7 +237,7 @@ export function ComposeForm({
         items={media}
         onChange={setMedia}
         watermarkCreditLabel={watermarkCreditLabel}
-        maxImages={4}
+        maxImages={100}
         maxVideos={1}
         allowVideoCapture={false}
         onUploadingChange={setMediaUploading}

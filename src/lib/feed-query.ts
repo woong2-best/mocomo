@@ -20,7 +20,7 @@ export const feedPostListSelect = {
   anime: { select: { title: true, slug: true } },
   media: postMediaPreview,
   poll: { select: postPollSelect },
-  _count: { select: { likes: true, comments: true, votes: true, reposts: true } },
+  _count: { select: { likes: true, comments: true, votes: true, reposts: true, media: true } },
 } as const;
 
 export type FeedPostRow = {
@@ -33,8 +33,8 @@ export type FeedPostRow = {
   isPinned: boolean;
   author: { id: string; username: string; image: string | null; supportTierSent: string };
   anime: { title: string; slug: string } | null;
-  media: { url: string; type: string }[];
-  _count: { likes: number; comments: number; votes: number; reposts: number };
+  media: { id?: string; url: string; type: string; priceKrw?: number | null }[];
+  _count: { likes: number; comments: number; votes: number; reposts: number; media?: number };
 };
 
 export function trimFeedPostContent<T extends { content: string }>(post: T): T {
@@ -55,7 +55,7 @@ export { mapFeedPost };
 
 export const feedPostListSelectNoReposts = {
   ...feedPostListSelect,
-  _count: { select: { likes: true, comments: true, votes: true } },
+  _count: { select: { likes: true, comments: true, votes: true, media: true } },
 } as const;
 
 export const feedPostListSelectNoPoll = {
@@ -70,7 +70,7 @@ export const feedPostListSelectNoPoll = {
   author: { select: userPublicSelect },
   anime: { select: { title: true, slug: true } },
   media: postMediaPreview,
-  _count: { select: { likes: true, comments: true, votes: true, reposts: true } },
+  _count: { select: { likes: true, comments: true, votes: true, reposts: true, media: true } },
 } as const;
 
 export async function fetchFeedPostsPage(cursor: string | null, limit: number) {
@@ -107,7 +107,7 @@ export function getCachedFeedPostsPage(cursor: string | null, limit: number) {
   const cacheKey = cursor ?? "__head__";
   return unstable_cache(
     () => fetchFeedPostsPage(cursor, limit),
-    ["feed-page-v1", cacheKey, String(limit)],
+    ["feed-page-v2-media-grid", cacheKey, String(limit)],
     { revalidate: 45, tags: [FEED_POSTS_CACHE_TAG] }
   )();
 }

@@ -169,7 +169,7 @@ export async function getCommunityBySlug(slug: string) {
           author: { select: userPublicSelect },
           community: { select: { name: true, slug: true } },
           media: postMediaPreview,
-          _count: { select: { likes: true, comments: true, votes: true } },
+          _count: { select: { likes: true, comments: true, votes: true, media: true } },
         },
       });
     } catch (postsErr) {

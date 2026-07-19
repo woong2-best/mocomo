@@ -169,7 +169,8 @@ export function FeedCompactPostCard({
                 authorUsername={post.author.username}
                 authorId={post.author.id}
                 paymentsEnabled={false}
-                linkToPost
+                mediaTotal={post._count?.media ?? post.media.length}
+                postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
               />
             )}
             {post.poll && <PostPollCard postId={post.id} poll={post.poll} compact />}

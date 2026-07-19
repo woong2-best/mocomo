@@ -90,6 +90,7 @@ export function PostDetailCard({
           subscribed={subscribed}
           linkToPost={false}
           postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
+          mediaTotal={(post.media ?? []).length}
         />
         <div className="flex gap-2 flex-wrap">
           {post.tags.map(({ tag }) => (

@@ -117,7 +117,7 @@ export async function getFeed(cursor?: string, limit = 20) {
       author: { select: { id: true, username: true, image: true, level: true, supportTierSent: true } },
       community: { select: { name: true, slug: true } },
       media: postMediaPreview,
-      _count: { select: { likes: true, comments: true, votes: true } },
+      _count: { select: { likes: true, comments: true, votes: true, media: true } },
     },
   });
 

@@ -100,6 +100,7 @@ export function ProfilePostCard({
                   paymentsEnabled={paymentsEnabled}
                   subscribed={subscribed}
                   postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
+                  mediaTotal={post._count?.media ?? post.media.length}
                 />
               )}
               <div className="flex gap-6 mt-3 text-muted-foreground text-xs">

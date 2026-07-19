@@ -9,7 +9,8 @@ import { Heart, MessageCircle, ArrowBigUp } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
 import { TranslatableText } from "@/components/ui/translatable-text";
 import { PostShareMenu } from "@/components/post/post-share-menu";
-import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
+import { PaidPostMediaGrid } from "@/components/profile/paid-post-media-grid";
+import type { ProfilePostMediaItem } from "@/components/profile/paid-post-media-grid";
 
 type PostCardProps = {
   post: {
@@ -20,8 +21,8 @@ type PostCardProps = {
     isNsfw: boolean;
     author: { id: string; username: string; image: string | null; level: number };
     community?: { name: string; slug: string } | null;
-    media?: { url: string; type: string }[];
-    _count?: { likes: number; comments: number; votes: number };
+    media?: { id?: string; url: string; type: string; priceKrw?: number | null }[];
+    _count?: { likes: number; comments: number; votes: number; media?: number };
   };
 };
 
@@ -69,26 +70,14 @@ export function PostCard({ post }: PostCardProps) {
               />
             </Link>
             {post.media && post.media.length > 0 && (
-              <div className="mt-3 grid gap-2 grid-cols-2">
-                {post.media.slice(0, 4).map((m) =>
-                  m.type === "VIDEO" ? (
-                    <ProtectedPaidMedia
-                      key={m.url}
-                      type="VIDEO"
-                      src={m.url}
-                      className="rounded-lg object-cover max-h-48 w-full h-48 bg-black"
-                    />
-                  ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      key={m.url}
-                      src={m.url}
-                      alt=""
-                      className="rounded-lg object-cover max-h-48 w-full"
-                    />
-                  )
-                )}
-              </div>
+              <PaidPostMediaGrid
+                media={post.media as ProfilePostMediaItem[]}
+                postId={post.id}
+                authorUsername={post.author.username}
+                authorId={post.author.id}
+                paymentsEnabled={false}
+                mediaTotal={post._count?.media ?? post.media.length}
+              />
             )}
           </div>
         </div>
