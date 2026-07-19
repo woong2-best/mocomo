@@ -2,7 +2,7 @@
 
 export type MinigameCategory = "board" | "word" | "puzzle" | "casual";
 
-export type MinigameStatus = "live" | "beta" | "coming_soon";
+export type MinigameStatus = "live" | "beta" | "coming_soon" | "hidden";
 
 export type MatchMode = "random" | "friend" | "code" | "public" | "private";
 

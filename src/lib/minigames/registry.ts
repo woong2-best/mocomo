@@ -174,6 +174,8 @@ const REGISTRY: MinigameCatalogItem[] = [
     maxPlayers: 50,
     supportsRanked: true,
     supportsReplay: false,
+    /** 허브·네비에서 비노출 (라우트/로직은 유지) */
+    status: "hidden",
   }),
   live("parking-rush", {
     name: "주차 러쉬",
@@ -222,7 +224,7 @@ const REGISTRY: MinigameCatalogItem[] = [
 ];
 
 export function getAllMinigames(): MinigameCatalogItem[] {
-  return [...REGISTRY];
+  return REGISTRY.filter((g) => g.status !== "hidden");
 }
 
 export function getMinigameById(id: string): MinigameCatalogItem | undefined {
@@ -234,7 +236,7 @@ export function getLiveMinigames(): MinigameCatalogItem[] {
 }
 
 export function getMinigamesByCategory(category: MinigameCategory): MinigameCatalogItem[] {
-  return REGISTRY.filter((g) => g.category === category).sort((a, b) =>
+  return REGISTRY.filter((g) => g.category === category && g.status !== "hidden").sort((a, b) =>
     a.name.localeCompare(b.name, "ko")
   );
 }
