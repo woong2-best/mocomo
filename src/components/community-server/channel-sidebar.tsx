@@ -18,6 +18,7 @@ import {
   MessageSquare,
   ChevronDown,
   Plus,
+  Gamepad2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CommunityChannelType } from "@prisma/client";
@@ -33,6 +34,7 @@ const CHANNEL_ICONS: Record<CommunityChannelType, typeof Hash> = {
   LIVE: Radio,
   ANNOUNCEMENT: Megaphone,
   EVENT: Calendar,
+  ACTIVITY: Gamepad2,
   QA: HelpCircle,
   GALLERY: Images,
   FILE: FileText,

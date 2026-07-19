@@ -7,6 +7,7 @@ import { LiveChannelView } from "@/components/community-server/channels/live-cha
 import { MembersChannelView } from "@/components/community-server/channels/members-channel";
 import { SettingsChannelView } from "@/components/community-server/channels/settings-channel";
 import { EventsChannelView } from "@/components/community-server/channels/events-channel";
+import { ActivitiesChannelView } from "@/components/community-server/channels/activities-channel";
 import { GalleryChannelView } from "@/components/community-server/channels/gallery-channel";
 import { FileChannelView } from "@/components/community-server/channels/file-channel";
 import { hasPermission } from "@/lib/community-server/permissions";
@@ -45,6 +46,7 @@ export default async function CommunityChannelPage({
     channel.type === "VOICE" ||
     channel.type === "VIDEO" ||
     channel.type === "GALLERY" ||
+    channel.type === "ACTIVITY" ||
     channel.type === "MEMBERS";
 
   if (!guestReadable && !ctx.isMember && !ctx.isOwner) {
@@ -134,6 +136,14 @@ export default async function CommunityChannelPage({
             hasPermission(ctx.permissions, "manageEvents") ||
             hasPermission(ctx.permissions, "manageServer")
           }
+        />
+      );
+
+    case "ACTIVITY":
+      return (
+        <ActivitiesChannelView
+          communityId={ctx.communityId}
+          communitySlug={slug}
         />
       );
 

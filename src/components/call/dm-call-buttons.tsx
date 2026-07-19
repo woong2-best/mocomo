@@ -5,6 +5,7 @@ import { useCall, useCallBusy } from "@/components/call/call-provider";
 import type { CallParticipant, CallType } from "@/lib/call-types";
 import { Button } from "@/components/ui/button";
 import { Phone, Video } from "lucide-react";
+import { DmActivityButton } from "@/components/activities/dm-activity-button";
 
 function CallActionButton({
   callType,
@@ -86,6 +87,7 @@ export function DmCallButtons({
         busy={busy}
         onError={setError}
       />
+      <DmActivityButton />
       {error && (
         <span className="absolute -bottom-6 right-0 text-[10px] text-destructive max-w-[10rem] truncate">
           {error}

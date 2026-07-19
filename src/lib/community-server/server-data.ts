@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { normalizeCommunitySlugParam } from "@/lib/community-slug";
 import { ensureCommunityServerProvisioned } from "@/lib/community-server/provision";
+import { ensureCommunityActivitiesChannel } from "@/lib/community-server/ensure-activities-channel";
 import { guestPermissions, parsePermissions, defaultPermissionsForRole } from "@/lib/community-server/permissions";
 import { permissionsFromMember } from "@/lib/community-server/member-permissions";
 import { getPrimaryRoleType } from "@/lib/community-server/member-role-utils";
@@ -38,6 +39,7 @@ export const getCommunityServerContext = cache(
     if (!community) return null;
 
     await ensureCommunityServerProvisioned(community.id);
+    await ensureCommunityActivitiesChannel(community.id).catch(() => null);
 
     let isMember = false;
     let isOwner = false;

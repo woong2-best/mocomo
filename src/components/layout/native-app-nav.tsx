@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
-import { Gamepad2, Home, Sparkles, Tags, User } from "lucide-react";
+import { Home, Sparkles, Tags, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { MessageKey } from "@/lib/i18n/messages";
@@ -60,12 +60,6 @@ function userTabs(username: string | null): TabDef[] {
       icon: Tags,
       labelKey: "nav.used",
       match: (p) => p === "/used" || p.startsWith("/used/"),
-    },
-    {
-      href: "/games",
-      icon: Gamepad2,
-      labelKey: "nav.games",
-      match: (p) => p === "/games" || p.startsWith("/games/"),
     },
   ];
   if (username) {

@@ -12,6 +12,7 @@ import { ChatMediaComposer } from "@/components/chat/chat-media-composer";
 import { ChatMessageAttachments } from "@/components/chat/chat-message-attachments";
 import { ChatMessageReplyQuote } from "@/components/chat/chat-message-reply-quote";
 import { ChatReplyComposerBar } from "@/components/chat/chat-reply-composer-bar";
+import { ActivityPanel } from "@/components/activities/activity-panel";
 import { PresenceAvatar } from "@/components/user/presence-avatar";
 import {
   formatBubbleTime,
@@ -544,6 +545,7 @@ export function ChatRoomClient({
       </div>
 
       {error && <p className="text-xs text-destructive px-4 pb-1 text-center">{error}</p>}
+      <ActivityPanel />
       {!readOnly && (
         <div className="shrink-0 border-t border-border/60 bg-background">
           {replyTarget && (

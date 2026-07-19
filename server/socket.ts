@@ -589,6 +589,81 @@ io.on("connection", (socket: AuthedSocket) => {
     io.to(`user:${data.peerId}`).emit("call_ended", { callId: data.callId });
   });
 
+  /** DM/Community Activity — invite / sync (채팅 화면을 벗어나지 않음) */
+  socket.on(
+    "activity_invite",
+    (data: {
+      sessionId?: string;
+      activityId?: string;
+      title?: string;
+      contextType?: string;
+      contextId?: string;
+      from?: { id: string; username: string; image?: string | null };
+      toUserId?: string;
+    }) => {
+      if (!data.sessionId || !data.activityId || !data.toUserId || !data.from) return;
+      if (data.from.id !== userId) return;
+      io.to(`user:${data.toUserId}`).emit("activity_incoming", data);
+    }
+  );
+
+  socket.on(
+    "activity_accept",
+    (data: {
+      sessionId?: string;
+      activityId?: string;
+      players?: unknown;
+      hostId?: string;
+      gameState?: unknown;
+      toUserId?: string;
+      fromUserId?: string;
+    }) => {
+      if (!data.sessionId || !data.toUserId || data.fromUserId !== userId) return;
+      io.to(`user:${data.toUserId}`).emit("activity_accepted", data);
+      io.to(`user:${userId}`).emit("activity_accepted", data);
+    }
+  );
+
+  socket.on(
+    "activity_decline",
+    (data: { sessionId?: string; toUserId?: string; fromUserId?: string }) => {
+      if (!data.sessionId || !data.toUserId || data.fromUserId !== userId) return;
+      io.to(`user:${data.toUserId}`).emit("activity_declined", { sessionId: data.sessionId });
+    }
+  );
+
+  socket.on(
+    "activity_state",
+    (data: {
+      sessionId?: string;
+      toUserId?: string;
+      gameState?: unknown;
+      phase?: string;
+      result?: string | null;
+    }) => {
+      if (!data.sessionId || !data.toUserId) return;
+      io.to(`user:${data.toUserId}`).emit("activity_state", data);
+    }
+  );
+
+  socket.on(
+    "activity_end",
+    (data: {
+      sessionId?: string;
+      toUserId?: string;
+      fromUserId?: string;
+      result?: string | null;
+    }) => {
+      if (!data.sessionId || data.fromUserId !== userId) return;
+      if (data.toUserId) {
+        io.to(`user:${data.toUserId}`).emit("activity_ended", {
+          sessionId: data.sessionId,
+          result: data.result ?? "left",
+        });
+      }
+    }
+  );
+
   socket.on(
     "sketch_quiz_create",
     async (

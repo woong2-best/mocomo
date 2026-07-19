@@ -567,6 +567,7 @@ enum CommunityChannelType {
   LIVE
   ANNOUNCEMENT
   EVENT
+  ACTIVITY
   QA
   GALLERY
   FILE
