@@ -15,6 +15,11 @@ import { validatePostPollInput } from "@/lib/post-poll";
 import { buildPostCreditLabel } from "@/lib/media-watermark";
 import { useLocale } from "@/components/providers/locale-provider";
 import { usePublishedToastOptional } from "@/components/providers/published-toast-provider";
+import {
+  pushErrorToast,
+  pushPublishedToast,
+  pushPublishingToast,
+} from "@/lib/published-toast-store";
 import { userDisplayName } from "@/lib/user-public-select";
 import { cn } from "@/lib/utils";
 
@@ -105,16 +110,31 @@ export function ComposeForm({
 
     setLoading(true);
     setError("");
-    const toastUser = session?.user
+    const authorAvatar = session?.user
       ? {
-          userImage: session.user.image,
-          userName: userDisplayName({
+          image: session.user.image,
+          name: userDisplayName({
             username: session.user.username ?? "",
             name: session.user.name,
           }),
         }
-      : {};
-    publishedToast?.showPublishingToast({
+      : null;
+    const collabAvatars = collaborators.map((c) => ({
+      image: c.image,
+      name: userDisplayName(c),
+    }));
+    const avatars = [
+      ...(authorAvatar ? [authorAvatar] : []),
+      ...collabAvatars,
+    ].slice(0, 3);
+    const toastUser = {
+      userImage: authorAvatar?.image,
+      userName: authorAvatar?.name,
+      avatars: avatars.length > 0 ? avatars : undefined,
+    };
+
+    // context + module store 둘 다 — remount 되어도 toast 유지
+    (publishedToast?.showPublishingToast ?? pushPublishingToast)({
       ...toastUser,
       message: t("compose.posting"),
     });
@@ -134,7 +154,7 @@ export function ComposeForm({
       if (!res.ok) {
         const msg = result.error ?? t("toast.publishFailed");
         setError(msg);
-        publishedToast?.showErrorToast({
+        (publishedToast?.showErrorToast ?? pushErrorToast)({
           message: t("toast.publishFailed"),
           detail: t("toast.retry"),
         });
@@ -145,7 +165,7 @@ export function ComposeForm({
       }
 
       if (result.postId) {
-        publishedToast?.showPublishedToast({
+        (publishedToast?.showPublishedToast ?? pushPublishedToast)({
           postId: result.postId,
           ...toastUser,
           message: t("toast.published"),
@@ -154,14 +174,14 @@ export function ComposeForm({
         return;
       }
       setError(result.error ?? t("toast.publishFailed"));
-      publishedToast?.showErrorToast({
+      (publishedToast?.showErrorToast ?? pushErrorToast)({
         message: t("toast.publishFailed"),
         detail: t("toast.retry"),
       });
     } catch (err) {
       console.error("[ComposeForm] createPost", err);
       setError(friendlyPostError(err));
-      publishedToast?.showErrorToast({
+      (publishedToast?.showErrorToast ?? pushErrorToast)({
         message: t("toast.publishFailed"),
         detail: t("toast.retry"),
       });

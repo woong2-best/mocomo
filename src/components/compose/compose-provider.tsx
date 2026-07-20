@@ -116,13 +116,16 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
 
   const handlePosted = useCallback((_postId: string) => {
     setOpen(false);
+    // toast가 sheet 위에 보이도록 먼저 닫고, 잠시 뒤 피드 갱신
     window.setTimeout(() => {
       try {
+        const main = document.getElementById("mocomo-main-scroll");
+        main?.scrollTo({ top: 0, behavior: "smooth" });
         router.refresh();
       } catch (e) {
         console.error("[compose] refresh", e);
       }
-    }, 280);
+    }, 320);
   }, [router]);
 
   const value = useMemo(

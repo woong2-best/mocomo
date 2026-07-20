@@ -5,6 +5,7 @@ import { FolkBrushDivider } from "@/components/brand/folk-decor";
 import { PageSection } from "@/components/layout/page-section";
 import { useLocale } from "@/components/providers/locale-provider";
 import { ComposeOpenButton } from "@/components/compose/compose-open-button";
+import { FeedScrollTopOnMount } from "@/components/post/post-flash-highlight";
 import type { FeedLayoutItem } from "@/components/feed/feed-dual-column-layout";
 import type { FeedDisplayMode } from "@/lib/feed-display-mode";
 
@@ -58,6 +59,7 @@ export function HomeFeedClient({
 
   return (
     <>
+      <FeedScrollTopOnMount />
       <FolkBrushDivider className="mb-5 opacity-40" />
       <PageSection title={t("feed.title")} description={t("feed.tabs")}>
         <FeedInfinite

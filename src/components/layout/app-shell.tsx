@@ -96,6 +96,7 @@ function AppShellInner({
       <div className="flex h-app overflow-hidden">
         <Sidebar />
         <main
+          id="mocomo-main-scroll"
           className={cn(
             "flex-1 min-w-0 min-h-0 bg-background",
             showRightPanel && "shell-col-divider-r",

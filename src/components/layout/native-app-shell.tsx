@@ -87,6 +87,7 @@ function NativeAppShellInner({ children }: { children: React.ReactNode }) {
       <SuspendedAccountBanner />
       <OfflineBanner className="sticky top-0 z-50" />
       <main
+        id="mocomo-main-scroll"
         className={`bg-background overscroll-y-contain ${
           isMessagesRoom ? "overflow-hidden" : "overflow-y-auto"
         } ${

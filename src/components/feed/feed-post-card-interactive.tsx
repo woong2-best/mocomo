@@ -3,6 +3,7 @@
 import { memo } from "react";
 import { FeedCompactPostCard } from "@/components/feed/feed-compact-post-card";
 import { FeedTimelinePostCard } from "@/components/feed/feed-timeline-post-card";
+import { PostFlashHighlight } from "@/components/post/post-flash-highlight";
 import type { FeedDisplayMode } from "@/lib/feed-display-mode";
 import type { GridPost } from "@/components/feed/feed-post-card";
 
@@ -19,25 +20,24 @@ function FeedPostCardInteractiveInner({
   initialStarred?: boolean;
   initialReposted?: boolean;
 }) {
-  if (displayMode === "COMPACT") {
-    return (
+  const card =
+    displayMode === "COMPACT" ? (
       <FeedCompactPostCard
         post={post}
         initialLiked={initialLiked}
         initialStarred={initialStarred}
         initialReposted={initialReposted}
       />
+    ) : (
+      <FeedTimelinePostCard
+        post={post}
+        initialLiked={initialLiked}
+        initialStarred={initialStarred}
+        initialReposted={initialReposted}
+      />
     );
-  }
 
-  return (
-    <FeedTimelinePostCard
-      post={post}
-      initialLiked={initialLiked}
-      initialStarred={initialStarred}
-      initialReposted={initialReposted}
-    />
-  );
+  return <PostFlashHighlight postId={post.id}>{card}</PostFlashHighlight>;
 }
 
 export const FeedPostCardInteractive = memo(

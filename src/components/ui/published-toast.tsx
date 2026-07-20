@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
-  Check,
   Copy,
   Eye,
   Link2,
@@ -24,13 +23,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { deleteOwnPost } from "@/actions/post-delete";
 import { postUrl } from "@/lib/post-share";
-import { COMMUNITY_FEED_PATH } from "@/lib/site-routes";
+import { COMMUNITY_FEED_PATH, DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { cn } from "@/lib/utils";
 import {
+  FLASH_POST_STORAGE_KEY,
+  SCROLL_FEED_TOP_KEY,
   type PublishedToastInput,
   type PublishedToastKind,
+  type ToastAvatar,
 } from "@/lib/published-toast-types";
-import { FLASH_POST_STORAGE_KEY } from "@/lib/published-toast-types";
 import { useLocale } from "@/components/providers/locale-provider";
 
 type ToastView = PublishedToastInput & {
@@ -46,6 +47,15 @@ type Props = {
   onShowInfo: (input: { message: string; durationMs?: number }) => void;
 };
 
+function scrollMainToTop() {
+  const main = document.getElementById("mocomo-main-scroll");
+  if (main) {
+    main.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
 export function PublishedToastPill({
   toast,
   onDismiss,
@@ -54,6 +64,7 @@ export function PublishedToastPill({
   onShowInfo,
 }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
   const { t } = useLocale();
   const [menuOpen, setMenuOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -78,18 +89,51 @@ export function PublishedToastPill({
   const isPublishing = toast.kind === "publishing";
   const isPublished = toast.kind === "published";
 
-  function goToPost() {
-    if (!toast.postId && !toast.href) return;
+  const avatars: ToastAvatar[] =
+    toast.avatars && toast.avatars.length > 0
+      ? toast.avatars.slice(0, 3)
+      : toast.userImage || toast.userName
+        ? [{ image: toast.userImage, name: toast.userName }]
+        : [];
+
+  function goToPublishedContent() {
+    if (isPublishing) return;
     onDismiss();
-    const href = toast.href ?? `/post/${toast.postId}`;
+
     if (toast.postId) {
       try {
         sessionStorage.setItem(FLASH_POST_STORAGE_KEY, toast.postId);
+        sessionStorage.setItem(SCROLL_FEED_TOP_KEY, "1");
       } catch {
         /* ignore */
       }
     }
-    router.push(href);
+
+    // 상세 href가 명시된 메뉴용 — 본문 클릭은 피드 맨 위
+    const onFeed =
+      pathname === "/" ||
+      pathname === DEFAULT_LANDING_PATH ||
+      pathname === COMMUNITY_FEED_PATH ||
+      pathname?.startsWith("/feed");
+
+    if (onFeed) {
+      scrollMainToTop();
+      router.refresh();
+      return;
+    }
+
+    router.push(DEFAULT_LANDING_PATH);
+  }
+
+  function viewPostDetail() {
+    if (!toast.postId) return;
+    onDismiss();
+    try {
+      sessionStorage.setItem(FLASH_POST_STORAGE_KEY, toast.postId);
+    } catch {
+      /* ignore */
+    }
+    router.push(`/post/${toast.postId}`);
   }
 
   async function copyLink() {
@@ -115,7 +159,7 @@ export function PublishedToastPill({
         onShowInfo({ message: t("toast.linkCopied") });
       }
     } catch {
-      /* user cancelled share */
+      /* cancelled */
     }
     setMenuOpen(false);
     setSheetOpen(false);
@@ -143,16 +187,14 @@ export function PublishedToastPill({
     }
     onShowInfo({ message: t("toast.deleted") });
     router.refresh();
-    if (typeof window !== "undefined" && window.location.pathname.startsWith("/post/")) {
+    if (pathname?.startsWith("/post/")) {
       router.push(COMMUNITY_FEED_PATH);
     }
   }
 
   const shellClass = cn(
-    "relative flex h-14 max-w-[min(100vw-1.5rem,360px)] items-center gap-2.5 rounded-full pl-3.5 pr-2 shadow-lg",
-    isError
-      ? "bg-red-600 text-white"
-      : "bg-folk-cobalt text-white"
+    "relative flex h-[52px] max-w-[min(100vw-1.5rem,380px)] items-center gap-2.5 rounded-full pl-3.5 pr-2 shadow-[0_8px_28px_rgba(27,58,140,0.35)]",
+    isError ? "bg-red-600 text-white" : "bg-[#1D9BF0] text-white sm:bg-folk-cobalt"
   );
 
   return (
@@ -169,15 +211,12 @@ export function PublishedToastPill({
       >
         <button
           type="button"
-          className="flex min-w-0 flex-1 items-center gap-2.5 rounded-full text-left outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-          onClick={() => {
-            if (isPublishing) return;
-            if (toast.href || toast.postId) goToPost();
-          }}
+          className="flex min-w-0 flex-1 items-center gap-2.5 rounded-full text-left outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          onClick={goToPublishedContent}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              if (!isPublishing && (toast.href || toast.postId)) goToPost();
+              goToPublishedContent();
             }
           }}
           disabled={isPublishing}
@@ -191,34 +230,40 @@ export function PublishedToastPill({
             {isPublishing ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
             ) : isError ? (
-              <X className="h-4 w-4" aria-hidden />
-            ) : isPublished ? (
-              <Upload className="h-4 w-4" aria-hidden />
+              <X className="h-4 w-4" strokeWidth={2.5} aria-hidden />
             ) : (
-              <Check className="h-4 w-4" aria-hidden />
+              <Upload className="h-4 w-4" strokeWidth={2.5} aria-hidden />
             )}
           </span>
 
-          {(toast.userImage || toast.userName) && (
-            <span className="relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full ring-2 ring-white/25">
-              {toast.userImage ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={toast.userImage}
-                  alt=""
-                  className="h-full w-full object-cover"
-                  draggable={false}
-                />
-              ) : (
-                <span className="flex h-full w-full items-center justify-center bg-white/20 text-sm font-bold text-white">
-                  {(toast.userName ?? "?").slice(0, 1).toUpperCase()}
+          {avatars.length > 0 && (
+            <span className="flex shrink-0 items-center pl-1">
+              {avatars.map((a, i) => (
+                <span
+                  key={`${a.name ?? "a"}-${i}`}
+                  className="relative -ml-2 first:ml-0 h-9 w-9 overflow-hidden rounded-full ring-2 ring-[#1D9BF0] sm:ring-folk-cobalt"
+                  style={{ zIndex: avatars.length - i }}
+                >
+                  {a.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={a.image}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      draggable={false}
+                    />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center bg-white/25 text-xs font-bold">
+                      {(a.name ?? "?").slice(0, 1).toUpperCase()}
+                    </span>
+                  )}
                 </span>
-              )}
+              ))}
             </span>
           )}
 
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-[15px] font-bold leading-tight">
+          <span className="min-w-0 flex-1 pr-1">
+            <span className="block truncate text-[15px] font-bold leading-tight tracking-tight">
               {toast.message}
             </span>
             {toast.detail ? (
@@ -254,17 +299,21 @@ export function PublishedToastPill({
                   <MoreHorizontal className="h-5 w-5" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="z-[250] w-48">
-                <DropdownMenuItem onClick={goToPost}>
+              <DropdownMenuContent align="end" className="z-[330] w-48">
+                <DropdownMenuItem onClick={goToPublishedContent}>
                   <Eye className="h-4 w-4" />
                   {t("toast.viewPost")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={viewPostDetail}>
+                  <Link2 className="h-4 w-4" />
+                  {t("feed.displayMode.openPost")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={editPost}>
                   <Pencil className="h-4 w-4" />
                   {t("toast.edit")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => void copyLink()}>
-                  <Link2 className="h-4 w-4" />
+                  <Copy className="h-4 w-4" />
                   {t("toast.copyLink")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => void sharePost()}>
@@ -289,7 +338,7 @@ export function PublishedToastPill({
       </div>
 
       {sheetOpen && (
-        <div className="fixed inset-0 z-[250] flex flex-col justify-end">
+        <div className="fixed inset-0 z-[330] flex flex-col justify-end">
           <button
             type="button"
             className="absolute inset-0 bg-black/45"
@@ -297,18 +346,11 @@ export function PublishedToastPill({
             onClick={() => setSheetOpen(false)}
           />
           <div className="relative space-y-1 rounded-t-2xl border-t border-border bg-card p-3 pb-safe animate-in slide-in-from-bottom">
-            <ActionRow icon={Eye} label={t("toast.viewPost")} onClick={goToPost} />
+            <ActionRow icon={Eye} label={t("toast.viewPost")} onClick={goToPublishedContent} />
+            <ActionRow icon={Link2} label={t("feed.displayMode.openPost")} onClick={viewPostDetail} />
             <ActionRow icon={Pencil} label={t("toast.edit")} onClick={editPost} />
-            <ActionRow
-              icon={Copy}
-              label={t("toast.copyLink")}
-              onClick={() => void copyLink()}
-            />
-            <ActionRow
-              icon={Share2}
-              label={t("toast.share")}
-              onClick={() => void sharePost()}
-            />
+            <ActionRow icon={Copy} label={t("toast.copyLink")} onClick={() => void copyLink()} />
+            <ActionRow icon={Share2} label={t("toast.share")} onClick={() => void sharePost()} />
             <ActionRow
               icon={Trash2}
               label={t("toast.delete")}
@@ -330,7 +372,7 @@ export function PublishedToastPill({
       )}
 
       {confirmDelete && (
-        <div className="fixed inset-0 z-[260] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[340] flex items-center justify-center p-4">
           <button
             type="button"
             className="absolute inset-0 bg-black/50"
