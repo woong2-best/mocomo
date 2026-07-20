@@ -1,10 +1,10 @@
 import type { Prisma } from "@prisma/client";
 import { userPublicSelect } from "@/lib/user-public-select";
 
-/** Prisma include: ACCEPTED collaborators with minimal public profile (client-safe). */
-export const postCollaboratorsInclude = {
-  where: { status: "ACCEPTED" as const },
-  orderBy: { acceptedAt: "asc" as const },
+/** Post header credit: show invited (PENDING) + accepted collaborators. */
+export const postCollaboratorsHeaderInclude = {
+  where: { status: { in: ["PENDING", "ACCEPTED"] as const } },
+  orderBy: [{ status: "asc" as const }, { acceptedAt: "asc" as const }, { invitedAt: "asc" as const }],
   select: {
     id: true,
     userId: true,
@@ -14,7 +14,10 @@ export const postCollaboratorsInclude = {
   },
 } satisfies Prisma.Post$collaboratorsArgs;
 
-/** Profile / media queries: own posts OR ACCEPTED collaborations. */
+/** @deprecated alias — prefer postCollaboratorsHeaderInclude for UI */
+export const postCollaboratorsInclude = postCollaboratorsHeaderInclude;
+
+/** Profile / media queries: own posts OR ACCEPTED collaborations only. */
 export function profilePostsOwnedOrCollabWhere(
   userId: string
 ): Prisma.PostWhereInput {

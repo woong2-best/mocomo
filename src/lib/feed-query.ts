@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { userPublicSelect } from "@/lib/user-public-select";
 import { postMediaPreview } from "@/lib/post-media-select";
 import { postPollSelect, mapPostPollRow } from "@/lib/post-poll";
+import { postCollaboratorsHeaderInclude } from "@/lib/post-collaborator-select";
 
 const FEED_POST_MAX_CONTENT = 520;
 
@@ -17,16 +18,7 @@ export const feedPostListSelect = {
   isPinned: true,
   instantPurchasePriceKrw: true,
   author: { select: userPublicSelect },
-  collaborators: {
-    where: { status: "ACCEPTED" as const },
-    orderBy: { acceptedAt: "asc" as const },
-    select: {
-      id: true,
-      userId: true,
-      status: true,
-      user: { select: userPublicSelect },
-    },
-  },
+  collaborators: postCollaboratorsHeaderInclude,
   anime: { select: { title: true, slug: true } },
   media: postMediaPreview,
   poll: { select: postPollSelect },
@@ -78,16 +70,7 @@ export const feedPostListSelectNoPoll = {
   isPinned: true,
   instantPurchasePriceKrw: true,
   author: { select: userPublicSelect },
-  collaborators: {
-    where: { status: "ACCEPTED" as const },
-    orderBy: { acceptedAt: "asc" as const },
-    select: {
-      id: true,
-      userId: true,
-      status: true,
-      user: { select: userPublicSelect },
-    },
-  },
+  collaborators: postCollaboratorsHeaderInclude,
   anime: { select: { title: true, slug: true } },
   media: postMediaPreview,
   _count: { select: { likes: true, comments: true, votes: true, reposts: true, media: true } },
@@ -127,7 +110,7 @@ export function getCachedFeedPostsPage(cursor: string | null, limit: number) {
   const cacheKey = cursor ?? "__head__";
   return unstable_cache(
     () => fetchFeedPostsPage(cursor, limit),
-    ["feed-page-v2-media-grid", cacheKey, String(limit)],
+    ["feed-page-v3-collab", cacheKey, String(limit)],
     { revalidate: 45, tags: [FEED_POSTS_CACHE_TAG] }
   )();
 }

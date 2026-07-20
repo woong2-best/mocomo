@@ -48,20 +48,19 @@ export function PostDetailCard({
         )}
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">
-            <PostCollaboratorsHeader
-              author={post.author}
-              collaborators={collaborators}
-              size="md"
-              trailing={
-                <span className="text-xs text-muted-foreground ml-1">
-                  ·{" "}
-                  {formatDistanceToNow(post.createdAt, {
-                    addSuffix: true,
-                    locale: dateLocale,
-                  })}
-                </span>
-              }
-            />
+        <PostCollaboratorsHeader
+          author={post.author}
+          collaborators={collaborators}
+          size="md"
+          trailing={
+            <span>
+              {formatDistanceToNow(post.createdAt, {
+                addSuffix: true,
+                locale: dateLocale,
+              })}
+            </span>
+          }
+        />
           </div>
           <div className="flex items-center gap-1 shrink-0">
             {isOwner && <PostCollabManageDialog postId={post.id} />}

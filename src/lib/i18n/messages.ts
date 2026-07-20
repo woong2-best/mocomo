@@ -260,6 +260,9 @@ export type MessageKey =
   | "collab.manage"
   | "collab.remove"
   | "collab.actionFailed"
+  | "collab.headerAuthorWith"
+  | "collab.headerOther"
+  | "collab.headerOthersMore"
   | "brand.tagline"
   | "brand.description"
   | "home.welcome"
@@ -652,6 +655,9 @@ const ko: Record<MessageKey, string> = {
   "collab.manage": "공동작업자 관리",
   "collab.remove": "제거",
   "collab.actionFailed": "처리에 실패했습니다.",
+  "collab.headerAuthorWith": "{name}님과",
+  "collab.headerOther": "{name}님",
+  "collab.headerOthersMore": "{name}님 외 {count}명",
   "brand.tagline": "손으로 그린 서브컬처 이야기",
   "brand.description": "서브컬처 · 애니덕질 · 코스프레 · 굿즈 · 커뮤니티",
   "home.welcome": "{brand}에 오신 것을 환영합니다",
@@ -1045,6 +1051,9 @@ const en: Record<MessageKey, string> = {
   "collab.manage": "Manage collaborators",
   "collab.remove": "Remove",
   "collab.actionFailed": "Something went wrong.",
+  "collab.headerAuthorWith": "{name} and",
+  "collab.headerOther": "{name}",
+  "collab.headerOthersMore": "{name} and {count} others",
   "brand.tagline": "Hand-drawn subculture stories",
   "brand.description": "Subculture · anime · cosplay · goods · community",
   "home.welcome": "Welcome to {brand}",
@@ -1438,6 +1447,9 @@ const ja: Record<MessageKey, string> = {
   "collab.manage": "共同投稿者を管理",
   "collab.remove": "削除",
   "collab.actionFailed": "処理に失敗しました。",
+  "collab.headerAuthorWith": "{name}さんと",
+  "collab.headerOther": "{name}さん",
+  "collab.headerOthersMore": "{name}さん他{count}人",
   "brand.tagline": "手描きサブカルストーリー",
   "brand.description": "サブカル · アニメ · コスプレ · グッズ · コミュニティ",
   "home.welcome": "{brand}へようこそ",
@@ -1831,6 +1843,9 @@ const zh: Record<MessageKey, string> = {
   "collab.manage": "管理协作人",
   "collab.remove": "移除",
   "collab.actionFailed": "操作失败。",
+  "collab.headerAuthorWith": "{name} 和",
+  "collab.headerOther": "{name}",
+  "collab.headerOthersMore": "{name} 等{count}人",
   "brand.tagline": "手绘亚文化故事",
   "brand.description": "亚文化 · 动漫 · Cosplay · 周边 · 社区",
   "home.welcome": "欢迎来到 {brand}",

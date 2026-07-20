@@ -113,14 +113,11 @@ export function FeedTimelinePostCard({
                 author={post.author}
                 collaborators={post.collaborators}
                 trailing={
-                  <>
-                    <span className="text-muted-foreground">·</span>
-                    <Link href={`/post/${post.id}`} className="text-muted-foreground shrink-0 hover:underline text-sm">
-                      <time dateTime={createdAt.toISOString()}>
-                        {formatDistanceToNow(createdAt, { addSuffix: true, locale: dateLocales[locale] })}
-                      </time>
-                    </Link>
-                  </>
+                  <Link href={`/post/${post.id}`} className="hover:underline">
+                    <time dateTime={createdAt.toISOString()}>
+                      {formatDistanceToNow(createdAt, { addSuffix: true, locale: dateLocales[locale] })}
+                    </time>
+                  </Link>
                 }
               />
               <Link href={`/post/${post.id}`} className="block">

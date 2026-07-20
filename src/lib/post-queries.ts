@@ -7,7 +7,8 @@ import {
   isMediaContentLocked,
   type ContentLockReason,
 } from "@/lib/content-access";
-import type { ContentVisibility } from "@prisma/client";
+import { postCollaboratorsHeaderInclude } from "@/lib/post-collaborator-select";
+import type { ContentVisibility, Prisma } from "@prisma/client";
 
 type PostDetailMedia = {
   id: string;
@@ -31,16 +32,7 @@ const postDetailSelect = {
   instantPurchasePriceKrw: true,
   viewCount: true,
   author: { select: userPublicSelect },
-  collaborators: {
-    where: { status: "ACCEPTED" as const },
-    orderBy: { acceptedAt: "asc" as const },
-    select: {
-      id: true,
-      userId: true,
-      status: true,
-      user: { select: userPublicSelect },
-    },
-  },
+  collaborators: postCollaboratorsHeaderInclude,
   media: {
     select: { id: true, url: true, type: true, priceKrw: true },
     orderBy: { order: "asc" as const },
@@ -48,7 +40,7 @@ const postDetailSelect = {
   tags: { select: { tag: { select: { id: true, name: true } } } },
   poll: { select: postPollSelect },
   _count: { select: { likes: true, votes: true, comments: true, reposts: true } },
-} as const;
+} satisfies Prisma.PostSelect;
 
 const postDetailSelectNoReposts = {
   ...postDetailSelect,
