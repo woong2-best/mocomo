@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type KeyboardEvent, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { LayoutTemplate } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -22,18 +22,20 @@ export function LinkPreviewCard({
   text: string;
   className?: string;
   stopPropagation?: boolean;
-  /** Called once when a preview card is ready (or null when unavailable). */
+  /** Called when preview availability changes. Stable via ref — safe for parents. */
   onReady?: (ready: boolean) => void;
 }) {
   const url = extractFirstHttpUrl(text);
   const [preview, setPreview] = useState<LinkPreviewData | null>(null);
   const [failed, setFailed] = useState(false);
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
 
   useEffect(() => {
     if (!url) {
       setPreview(null);
       setFailed(false);
-      onReady?.(false);
+      onReadyRef.current?.(false);
       return;
     }
 
@@ -41,7 +43,7 @@ export function LinkPreviewCard({
     const ctrl = new AbortController();
     setPreview(null);
     setFailed(false);
-    onReady?.(false);
+    onReadyRef.current?.(false);
 
     void (async () => {
       try {
@@ -52,15 +54,15 @@ export function LinkPreviewCard({
         if (cancelled) return;
         if (!res.ok || !data.ok || !data.preview) {
           setFailed(true);
-          onReady?.(false);
+          onReadyRef.current?.(false);
           return;
         }
         setPreview(data.preview);
-        onReady?.(true);
+        onReadyRef.current?.(true);
       } catch {
         if (!cancelled) {
           setFailed(true);
-          onReady?.(false);
+          onReadyRef.current?.(false);
         }
       }
     })();
@@ -69,7 +71,7 @@ export function LinkPreviewCard({
       cancelled = true;
       ctrl.abort();
     };
-  }, [url, onReady]);
+  }, [url]);
 
   if (!url || failed || !preview) return null;
 

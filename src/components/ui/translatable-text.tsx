@@ -44,12 +44,8 @@ export function TranslatableText({
   const [failed, setFailed] = useState(false);
   const [previewReady, setPreviewReady] = useState(false);
 
-  const onPreviewReady = useCallback((ready: boolean) => {
-    setPreviewReady(ready);
-  }, []);
-
+  // Hide raw URL only after card is ready — use CSS `hidden`, never remount the card.
   const hideUrlOnlyBody = hasPreviewUrl && urlOnly && previewReady;
-
   const displayText = showTranslated && translated ? translated : text;
 
   const fetchTranslation = useCallback(async () => {
@@ -84,90 +80,85 @@ export function TranslatableText({
     }
   }, [text, locale, translated]);
 
+  const body = (
+    <div
+      // Keep this node mounted so LinkPreviewCard sibling position never changes.
+      className={cn(hideUrlOnlyBody && "hidden")}
+      aria-hidden={hideUrlOnlyBody || undefined}
+    >
+      <LinkifiedText
+        text={showTranslate ? displayText : text}
+        as={as}
+        className={cn(className, showTranslate && showTranslated && "text-foreground")}
+        stopPropagation={stopPropagation}
+      />
+    </div>
+  );
+
   const preview = hasPreviewUrl ? (
     <LinkPreviewCard
+      key="link-preview"
       text={text}
       stopPropagation={stopPropagation}
-      onReady={onPreviewReady}
+      onReady={setPreviewReady}
     />
   ) : null;
 
-  if (!showTranslate) {
-    if (hideUrlOnlyBody) {
-      return <div className="min-w-0">{preview}</div>;
-    }
-    if (!preview) {
-      return (
-        <LinkifiedText
-          text={text}
-          as={as}
-          className={className}
-          stopPropagation={stopPropagation}
-        />
-      );
-    }
+  if (!hasPreviewUrl && !showTranslate) {
     return (
-      <div className="min-w-0">
-        <LinkifiedText
-          text={text}
-          as={as}
-          className={className}
-          stopPropagation={stopPropagation}
-        />
-        {preview}
-      </div>
+      <LinkifiedText
+        text={text}
+        as={as}
+        className={className}
+        stopPropagation={stopPropagation}
+      />
     );
   }
 
   return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-1.5 text-sm">
-        <Languages className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
-        {showTranslated && sourceLang ? (
-          <>
-            <span className="text-muted-foreground">
-              {t("translate.sourceLanguage", {
-                language: sourceLanguageLabel(sourceLang, locale),
-              })}
-            </span>
-            <span className="text-muted-foreground">·</span>
+    <div className="min-w-0">
+      {showTranslate && (
+        <div className="flex items-center gap-1.5 text-sm mb-1">
+          <Languages className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
+          {showTranslated && sourceLang ? (
+            <>
+              <span className="text-muted-foreground">
+                {t("translate.sourceLanguage", {
+                  language: sourceLanguageLabel(sourceLang, locale),
+                })}
+              </span>
+              <span className="text-muted-foreground">·</span>
+              <button
+                type="button"
+                className="text-primary hover:underline disabled:opacity-50"
+                disabled={loading}
+                onClick={(e) => {
+                  if (stopPropagation) e.stopPropagation();
+                  setShowTranslated(false);
+                }}
+              >
+                {t("translate.viewOriginal")}
+              </button>
+            </>
+          ) : (
             <button
               type="button"
               className="text-primary hover:underline disabled:opacity-50"
               disabled={loading}
               onClick={(e) => {
                 if (stopPropagation) e.stopPropagation();
-                setShowTranslated(false);
+                void fetchTranslation();
               }}
             >
-              {t("translate.viewOriginal")}
+              {loading ? t("translate.loading") : t("translate.viewTranslation")}
             </button>
-          </>
-        ) : (
-          <button
-            type="button"
-            className="text-primary hover:underline disabled:opacity-50"
-            disabled={loading}
-            onClick={(e) => {
-              if (stopPropagation) e.stopPropagation();
-              void fetchTranslation();
-            }}
-          >
-            {loading ? t("translate.loading") : t("translate.viewTranslation")}
-          </button>
-        )}
-        {failed && (
-          <span className="text-xs text-destructive">{t("translate.failed")}</span>
-        )}
-      </div>
-      {!hideUrlOnlyBody && (
-        <LinkifiedText
-          text={displayText}
-          as={as}
-          className={cn(className, showTranslated && "text-foreground")}
-          stopPropagation={stopPropagation}
-        />
+          )}
+          {failed && (
+            <span className="text-xs text-destructive">{t("translate.failed")}</span>
+          )}
+        </div>
       )}
+      {body}
       {preview}
     </div>
   );
