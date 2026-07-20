@@ -4,42 +4,16 @@ import { getSiteSettings } from "@/lib/admin/services/settings";
 import { isAdminCmsRole } from "@/lib/admin/permissions";
 import { userPublicSelect } from "@/lib/user-public-select";
 import {
-  notifyPostCollabAccepted,
-  notifyPostCollabInvite,
-} from "@/lib/notifications";
+  postCollaboratorsInclude,
+  profilePostsOwnedOrCollabWhere,
+} from "@/lib/post-collaborator-select";
 
-export const ACTIVE_COLLAB_STATUSES: PostCollaboratorStatus[] = [
+export { postCollaboratorsInclude, profilePostsOwnedOrCollabWhere };
+
+const ACTIVE_COLLAB_STATUSES: PostCollaboratorStatus[] = [
   "PENDING",
   "ACCEPTED",
 ];
-
-/** Prisma include: ACCEPTED collaborators with minimal public profile */
-export const postCollaboratorsInclude = {
-  where: { status: "ACCEPTED" as const },
-  orderBy: { acceptedAt: "asc" as const },
-  select: {
-    id: true,
-    userId: true,
-    status: true,
-    acceptedAt: true,
-    user: { select: userPublicSelect },
-  },
-} satisfies Prisma.Post$collaboratorsArgs;
-
-export function profilePostsOwnedOrCollabWhere(
-  userId: string
-): Prisma.PostWhereInput {
-  return {
-    OR: [
-      { authorId: userId },
-      {
-        collaborators: {
-          some: { userId, status: "ACCEPTED" },
-        },
-      },
-    ],
-  };
-}
 
 export async function getCollaboratorSettings() {
   const settings = await getSiteSettings();
@@ -189,7 +163,9 @@ export async function inviteCollaborators(
   );
 
   for (const userId of uniqueIds) {
-    void notifyPostCollabInvite(postId, inviterId, userId, post.title);
+    void import("@/lib/notifications").then(({ notifyPostCollabInvite }) =>
+      notifyPostCollabInvite(postId, inviterId, userId, post.title)
+    );
   }
 
   return { invited: uniqueIds.length };
@@ -227,11 +203,13 @@ export async function acceptCollaboratorInvite(
     data: { status: "ACCEPTED", acceptedAt: new Date(), leftAt: null },
   });
 
-  void notifyPostCollabAccepted(
-    postId,
-    row.post.authorId,
-    userId,
-    row.post.title
+  void import("@/lib/notifications").then(({ notifyPostCollabAccepted }) =>
+    notifyPostCollabAccepted(
+      postId,
+      row.post.authorId,
+      userId,
+      row.post.title
+    )
   );
 }
 

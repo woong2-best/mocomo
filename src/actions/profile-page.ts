@@ -28,7 +28,7 @@ import {
   type ProfileMediaKind,
   type ProfileSort,
 } from "@/lib/profile-queries";
-import { profilePostsOwnedOrCollabWhere } from "@/lib/post-collaborators";
+import { profilePostsOwnedOrCollabWhere } from "@/lib/post-collaborator-select";
 import { getUserRelationship, isProfileBlocked } from "@/lib/user-relationship";
 import type { UserPublicFields } from "@/lib/user-public-select";
 

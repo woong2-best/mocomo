@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { postMediaProfileTimeline } from "@/lib/post-media-select";
 import { userPublicSelect, type UserPublicFields } from "@/lib/user-public-select";
-import { postCollaboratorsInclude } from "@/lib/post-collaborators";
+import { postCollaboratorsInclude } from "@/lib/post-collaborator-select";
 
 /** 프로필 타임라인 — 실제 author + ACCEPTED collaborators 포함 */
 export const profilePostIncludeLight = {
