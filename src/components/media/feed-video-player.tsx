@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Play, Pause, Volume2, VolumeX, Maximize, Minimize } from "lucide-react";
+import { Play, Pause, Volume1, Volume2, VolumeX, Maximize, Minimize } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
+const DEFAULT_VOLUME = 1;
 
 type Props = {
   src: string;
@@ -54,13 +55,19 @@ export function FeedVideoPlayer({
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const volumeTrackRef = useRef<HTMLDivElement>(null);
   const scrubbingRef = useRef(false);
+  const volumeDraggingRef = useRef(false);
   const resumeAfterScrubRef = useRef(false);
   const pendingSeekPctRef = useRef<number | null>(null);
+  const volumeBeforeMuteRef = useRef(DEFAULT_VOLUME);
   const [isScrubbing, setIsScrubbing] = useState(false);
+  const [isVolumeDragging, setIsVolumeDragging] = useState(false);
+  const [volumeOpen, setVolumeOpen] = useState(false);
   const [started, setStarted] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(muted);
+  const [volume, setVolume] = useState(DEFAULT_VOLUME);
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
   const [scrubPct, setScrubPct] = useState<number | null>(null);
@@ -93,14 +100,34 @@ export function FeedVideoPlayer({
     else v.pause();
   }, []);
 
+  const applyVolume = useCallback((next: number) => {
+    const v = videoRef.current;
+    const clamped = Math.min(1, Math.max(0, next));
+    setVolume(clamped);
+    if (clamped > 0) volumeBeforeMuteRef.current = clamped;
+    if (!v) return;
+    v.volume = clamped;
+    if (clamped <= 0) {
+      v.muted = true;
+      setIsMuted(true);
+    } else {
+      v.muted = false;
+      setIsMuted(false);
+    }
+  }, []);
+
   const startPlayback = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
     setStarted(true);
+    v.volume = volume > 0 ? volume : volumeBeforeMuteRef.current;
+    if (v.volume <= 0) v.volume = DEFAULT_VOLUME;
+    setVolume(v.volume);
+    volumeBeforeMuteRef.current = v.volume;
     v.muted = false;
     setIsMuted(false);
     void v.play();
-  }, []);
+  }, [volume]);
 
   useEffect(() => {
     const v = videoRef.current;
@@ -120,7 +147,10 @@ export function FeedVideoPlayer({
       setScrubPct(null);
       scrubbingRef.current = false;
     };
-    const onVolume = () => setIsMuted(v.muted);
+    const onVolume = () => {
+      setIsMuted(v.muted);
+      if (!volumeDraggingRef.current) setVolume(v.volume);
+    };
 
     v.addEventListener("play", onPlay);
     v.addEventListener("pause", onPause);
@@ -164,8 +194,75 @@ export function FeedVideoPlayer({
   const toggleMute = () => {
     const v = videoRef.current;
     if (!v) return;
-    v.muted = !v.muted;
-    setIsMuted(v.muted);
+    if (v.muted || v.volume <= 0) {
+      const restore = volumeBeforeMuteRef.current > 0 ? volumeBeforeMuteRef.current : DEFAULT_VOLUME;
+      v.volume = restore;
+      v.muted = false;
+      setVolume(restore);
+      setIsMuted(false);
+    } else {
+      volumeBeforeMuteRef.current = v.volume > 0 ? v.volume : volumeBeforeMuteRef.current;
+      v.muted = true;
+      setIsMuted(true);
+    }
+  };
+
+  const volumePctFromPointer = useCallback((clientY: number) => {
+    const track = volumeTrackRef.current;
+    if (!track) return 0;
+    const rect = track.getBoundingClientRect();
+    if (rect.height <= 0) return 0;
+    // top = 100%, bottom = 0%
+    return Math.min(100, Math.max(0, ((rect.bottom - clientY) / rect.height) * 100));
+  }, []);
+
+  const endVolumeDrag = useCallback(() => {
+    if (!volumeDraggingRef.current) return;
+    volumeDraggingRef.current = false;
+    setIsVolumeDragging(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isVolumeDragging) return;
+
+    const onMove = (e: PointerEvent) => {
+      if (!volumeDraggingRef.current) return;
+      applyVolume(volumePctFromPointer(e.clientY) / 100);
+    };
+    const onUp = () => endVolumeDrag();
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+    };
+  }, [isVolumeDragging, applyVolume, volumePctFromPointer, endVolumeDrag]);
+
+  const onVolumeTrackPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    stopFeedNavigation(e);
+    e.preventDefault();
+    volumeDraggingRef.current = true;
+    setIsVolumeDragging(true);
+    setVolumeOpen(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
+    applyVolume(volumePctFromPointer(e.clientY) / 100);
+  };
+
+  const onVolumeTrackPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!volumeDraggingRef.current) return;
+    stopFeedNavigation(e);
+    applyVolume(volumePctFromPointer(e.clientY) / 100);
+  };
+
+  const onVolumeTrackPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    stopFeedNavigation(e);
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    endVolumeDrag();
   };
 
   const toggleFullscreen = () => {
@@ -287,6 +384,10 @@ export function FeedVideoPlayer({
     scrubPct !== null && liveDuration > 0
       ? (scrubPct / 100) * liveDuration
       : current;
+  const effectiveMuted = isMuted || volume <= 0;
+  const displayVolumePct = effectiveMuted ? 0 : Math.round(volume * 100);
+  const VolumeIcon = effectiveMuted ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
+  const showVolumePanel = volumeOpen || isVolumeDragging;
 
   return (
     <div
@@ -393,16 +494,72 @@ export function FeedVideoPlayer({
               )}
             </button>
 
-            <button
-              type="button"
-              aria-label={isMuted ? "음소거 해제" : "음소거"}
-              onClick={(e) => {
-                stopFeedNavigation(e);
-                toggleMute();
+            <div
+              className="relative"
+              onMouseEnter={() => setVolumeOpen(true)}
+              onMouseLeave={() => {
+                if (!volumeDraggingRef.current) setVolumeOpen(false);
+              }}
+              onFocus={() => setVolumeOpen(true)}
+              onBlur={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node | null) && !volumeDraggingRef.current) {
+                  setVolumeOpen(false);
+                }
               }}
             >
-              {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-            </button>
+              {showVolumePanel && (
+                <div
+                  className="absolute bottom-full left-1/2 z-10 mb-1 flex -translate-x-1/2 flex-col items-center rounded-full bg-black/85 px-2 pb-1.5 pt-3 shadow-lg ring-1 ring-white/10 backdrop-blur-sm"
+                  onClick={stopFeedNavigation}
+                  onPointerDown={stopFeedNavigation}
+                >
+                  <div
+                    ref={volumeTrackRef}
+                    role="slider"
+                    aria-label="볼륨"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={displayVolumePct}
+                    aria-orientation="vertical"
+                    tabIndex={0}
+                    className="relative flex h-20 w-6 cursor-pointer touch-none items-center justify-center"
+                    onPointerDown={onVolumeTrackPointerDown}
+                    onPointerMove={onVolumeTrackPointerMove}
+                    onPointerUp={onVolumeTrackPointerUp}
+                    onPointerCancel={onVolumeTrackPointerUp}
+                    onKeyDown={(e) => {
+                      if (e.key === "ArrowUp") {
+                        e.preventDefault();
+                        applyVolume(Math.min(1, volume + 0.05));
+                      } else if (e.key === "ArrowDown") {
+                        e.preventDefault();
+                        applyVolume(Math.max(0, volume - 0.05));
+                      }
+                    }}
+                  >
+                    <div className="absolute inset-y-0 left-1/2 w-1 -translate-x-1/2 rounded-full bg-white/30" />
+                    <div
+                      className="absolute bottom-0 left-1/2 w-1 -translate-x-1/2 rounded-full bg-white"
+                      style={{ height: `${displayVolumePct}%` }}
+                    />
+                    <div
+                      className="absolute left-1/2 h-3 w-3 -translate-x-1/2 translate-y-1/2 rounded-full bg-white shadow"
+                      style={{ bottom: `${displayVolumePct}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              <button
+                type="button"
+                aria-label={effectiveMuted ? "음소거 해제" : "음소거"}
+                onClick={(e) => {
+                  stopFeedNavigation(e);
+                  toggleMute();
+                }}
+              >
+                <VolumeIcon className="h-5 w-5" />
+              </button>
+            </div>
 
             <span className="text-[11px] tabular-nums text-white/90">
               {formatTime(displayCurrent)} / {formatTime(liveDuration)}
