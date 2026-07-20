@@ -3,8 +3,10 @@
 import { useCallback, useMemo, useState } from "react";
 import { Languages } from "lucide-react";
 import { LinkifiedText } from "@/components/ui/linkified-text";
+import { LinkPreviewCard } from "@/components/ui/link-preview-card";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { Locale } from "@/lib/i18n/config";
+import { extractFirstHttpUrl, isUrlOnlyContent } from "@/lib/link-preview-shared";
 import {
   detectTextLanguage,
   needsTranslation,
@@ -17,21 +19,36 @@ export function TranslatableText({
   className,
   as = "span",
   stopPropagation = false,
+  showLinkPreview = true,
 }: {
   text: string;
   className?: string;
   as?: "p" | "span" | "div";
   stopPropagation?: boolean;
+  /** 본문 첫 URL의 OG/유튜브 카드 (기본 on) */
+  showLinkPreview?: boolean;
 }) {
   const { locale, t } = useLocale();
   const detected = useMemo(() => detectTextLanguage(text), [text]);
   const showTranslate = useMemo(() => needsTranslation(text, locale), [text, locale]);
+  const hasPreviewUrl = useMemo(
+    () => showLinkPreview && Boolean(extractFirstHttpUrl(text)),
+    [showLinkPreview, text]
+  );
+  const urlOnly = useMemo(() => isUrlOnlyContent(text), [text]);
 
   const [showTranslated, setShowTranslated] = useState(false);
   const [translated, setTranslated] = useState<string | null>(null);
   const [sourceLang, setSourceLang] = useState<Locale | null>(detected);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [previewReady, setPreviewReady] = useState(false);
+
+  const onPreviewReady = useCallback((ready: boolean) => {
+    setPreviewReady(ready);
+  }, []);
+
+  const hideUrlOnlyBody = hasPreviewUrl && urlOnly && previewReady;
 
   const displayText = showTranslated && translated ? translated : text;
 
@@ -67,14 +84,38 @@ export function TranslatableText({
     }
   }, [text, locale, translated]);
 
+  const preview = hasPreviewUrl ? (
+    <LinkPreviewCard
+      text={text}
+      stopPropagation={stopPropagation}
+      onReady={onPreviewReady}
+    />
+  ) : null;
+
   if (!showTranslate) {
+    if (hideUrlOnlyBody) {
+      return <div className="min-w-0">{preview}</div>;
+    }
+    if (!preview) {
+      return (
+        <LinkifiedText
+          text={text}
+          as={as}
+          className={className}
+          stopPropagation={stopPropagation}
+        />
+      );
+    }
     return (
-      <LinkifiedText
-        text={text}
-        as={as}
-        className={className}
-        stopPropagation={stopPropagation}
-      />
+      <div className="min-w-0">
+        <LinkifiedText
+          text={text}
+          as={as}
+          className={className}
+          stopPropagation={stopPropagation}
+        />
+        {preview}
+      </div>
     );
   }
 
@@ -119,12 +160,15 @@ export function TranslatableText({
           <span className="text-xs text-destructive">{t("translate.failed")}</span>
         )}
       </div>
-      <LinkifiedText
-        text={displayText}
-        as={as}
-        className={cn(className, showTranslated && "text-foreground")}
-        stopPropagation={stopPropagation}
-      />
+      {!hideUrlOnlyBody && (
+        <LinkifiedText
+          text={displayText}
+          as={as}
+          className={cn(className, showTranslated && "text-foreground")}
+          stopPropagation={stopPropagation}
+        />
+      )}
+      {preview}
     </div>
   );
 }
