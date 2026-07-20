@@ -35,7 +35,7 @@ import { guessVideoMime } from "@/lib/gallery-video-upload";
 import { uploadVideoBlob, type UploadMediaOptions } from "@/lib/client-upload";
 import { hasActiveWatermark, type WatermarkOptions } from "@/lib/media-watermark";
 import { WatermarkToggleButtons } from "@/components/media/watermark-toggle-buttons";
-import { getUploadMaxBytes, uploadSizeExceededMessage } from "@/lib/upload-limits";
+import { getUploadMaxBytes, uploadSizeExceededMessage, MAX_VIDEO_DURATION_SEC } from "@/lib/upload-limits";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 
@@ -69,12 +69,18 @@ const TOOLS: { id: VideoTool; label: string; icon: typeof Scissors }[] = [
   { id: "audio", label: "소리", icon: Volume2 },
 ];
 
+function formatMaxDurationLabel(sec: number): string {
+  if (sec >= 60 && sec % 60 === 0) return `${sec / 60}분`;
+  if (sec >= 60) return `${Math.floor(sec / 60)}분 ${sec % 60}초`;
+  return `${sec}초`;
+}
+
 export function VideoEditDialog({
   open,
   onOpenChange,
   videoBlob,
   uploadFilename = "post-video.mp4",
-  maxDurationSec = 120,
+  maxDurationSec = MAX_VIDEO_DURATION_SEC,
   uploadOptions,
   watermarkCreditLabel,
   watermarkOptions,
@@ -186,7 +192,7 @@ export function VideoEditDialog({
       return;
     }
     if (!skipProcess && clipLen > maxDurationSec) {
-      setError(`영상은 최대 ${maxDurationSec}초까지 올릴 수 있습니다.`);
+      setError(`영상은 최대 ${formatMaxDurationLabel(maxDurationSec)}까지 올릴 수 있습니다.`);
       return;
     }
 

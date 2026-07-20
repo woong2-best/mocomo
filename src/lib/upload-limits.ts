@@ -1,3 +1,6 @@
+/** 게시 영상 최대 길이 (초) — 30분 */
+export const MAX_VIDEO_DURATION_SEC = 1800;
+
 /** 서버·클라이언트 공통 업로드 용량 (bytes) */
 export function getUploadMaxBytes(
   premiumTier: string | undefined | null,
