@@ -97,6 +97,8 @@ export function notificationIcon(type: string): {
     case "community_join_request":
     case "community_join_approved":
     case "community_join_rejected":
+    case "post_collab_invite":
+    case "post_collab_accepted":
       return { Icon: Users, className: "text-cyan-500" };
     case "call":
       return { Icon: Phone, className: "text-teal-500" };

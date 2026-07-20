@@ -14,6 +14,7 @@ import {
 } from "@/lib/notification-display";
 import { markAllNotificationsReadAction, markNotificationRead, deleteAllEconomyNotificationsAction } from "@/actions/notifications";
 import { dispatchNotificationsRead } from "@/lib/notification-read-sync";
+import { CollabInviteNotificationActions } from "@/components/notifications/collab-invite-notification-actions";
 
 const FILTERS: { id: string; label: string; category: string | null }[] = [
   { id: "all", label: "전체", category: null },
@@ -234,6 +235,9 @@ export function NotificationsFeedClient({
                       { addSuffix: true, locale: ko }
                     )}
                   </p>
+                  {n.type === "post_collab_invite" ? (
+                    <CollabInviteNotificationActions link={n.link} />
+                  ) : null}
                 </div>
                 {!n.read && (
                   <span className="shrink-0 h-2 w-2 rounded-full bg-primary mt-2" />

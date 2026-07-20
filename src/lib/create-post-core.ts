@@ -6,6 +6,10 @@ import type { MediaType } from "@prisma/client";
 import { revalidateTag } from "next/cache";
 import { notifyNewPostMentions } from "@/lib/notifications";
 import {
+  CollaboratorError,
+  inviteCollaborators,
+} from "@/lib/post-collaborators";
+import {
   pollClosesAtFromDuration,
   validatePostPollInput,
   type CreatePostPollInput,
@@ -22,6 +26,8 @@ export type CreatePostInput = {
   instantPurchasePriceKrw?: number;
   media?: { url: string; type: MediaType; priceKrw?: number }[];
   poll?: CreatePostPollInput;
+  /** User IDs to invite as PENDING collaborators on create */
+  collaboratorUserIds?: string[];
 };
 
 function isPersistableMediaUrl(url: string): boolean {
@@ -140,6 +146,23 @@ export async function createPostForUser(
     }
 
     void notifyNewPostMentions(post.id, user.id, data.title, content);
+
+    const collabIds = (data.collaboratorUserIds ?? [])
+      .map((id) => String(id).trim())
+      .filter(Boolean);
+    if (collabIds.length > 0) {
+      try {
+        await inviteCollaborators(post.id, user.id, collabIds);
+      } catch (e) {
+        console.error("[createPost] collaborators", e);
+        // Post already created — surface invite error without rolling back.
+        const msg =
+          e instanceof CollaboratorError
+            ? e.message
+            : "공동작업자 초대에 실패했습니다.";
+        return { postId: post.id, error: msg };
+      }
+    }
 
     return { postId: post.id };
   } catch (e) {

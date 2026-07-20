@@ -17,14 +17,18 @@ import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-export default async function PostPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PostPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
   const [locale, session] = await Promise.all([getRequestLocale(), auth()]);
   const post = await getPostDetail(id, session?.user?.id);
 
   if (!post) notFound();
 
-  const [engagement, creator, viewerSub] = await Promise.all([
+  const [engagement, creator, viewerSub, viewerCollab] = await Promise.all([
     session?.user?.id
       ? getPostEngagementForUser(session.user.id, [post.id])
       : Promise.resolve({ likedIds: [] as string[], starredIds: [] as string[], repostedIds: [] as string[] }),
@@ -42,6 +46,14 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
           select: { id: true },
         })
       : Promise.resolve(null),
+    session?.user?.id
+      ? db.postCollaborator.findUnique({
+          where: {
+            postId_userId: { postId: post.id, userId: session.user.id },
+          },
+          select: { status: true },
+        })
+      : Promise.resolve(null),
   ]);
 
   const isStaff =
@@ -57,6 +69,11 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
     "reposts" in (post._count ?? {})
       ? (post._count as { reposts?: number }).reposts ?? 0
       : 0;
+
+  const viewerCollabStatus =
+    viewerCollab?.status === "PENDING" || viewerCollab?.status === "ACCEPTED"
+      ? viewerCollab.status
+      : null;
 
   return (
     <AppPageChrome maxWidth="2xl">
@@ -77,6 +94,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
           paymentsEnabled={isPaymentsConfigured()}
           subscriptionPriceKrw={creator?.creatorSubscriptionPriceKrw ?? undefined}
           subscribed={!!viewerSub}
+          viewerCollabStatus={viewerCollabStatus}
         />
       </PostFlashHighlight>
       <PostDetailActions

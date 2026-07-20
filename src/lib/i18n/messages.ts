@@ -248,6 +248,18 @@ export type MessageKey =
   | "compose.optionsOpen"
   | "compose.optionsClose"
   | "compose.tagsNsfw"
+  | "compose.collabAdd"
+  | "compose.collabSearch"
+  | "compose.collabFollowing"
+  | "compose.collabMax"
+  | "collab.inviteBanner"
+  | "collab.accept"
+  | "collab.reject"
+  | "collab.leave"
+  | "collab.leaveConfirm"
+  | "collab.manage"
+  | "collab.remove"
+  | "collab.actionFailed"
   | "brand.tagline"
   | "brand.description"
   | "home.welcome"
@@ -628,6 +640,18 @@ const ko: Record<MessageKey, string> = {
   "compose.optionsOpen": "태그·NSFW",
   "compose.optionsClose": "옵션 닫기",
   "compose.tagsNsfw": "NSFW",
+  "compose.collabAdd": "공동작업자 추가",
+  "compose.collabSearch": "닉네임, 아이디, UID 검색",
+  "compose.collabFollowing": "팔로잉",
+  "compose.collabMax": "최대 인원에 도달했습니다.",
+  "collab.inviteBanner": "이 게시물의 공동작업자로 초대되었습니다.",
+  "collab.accept": "수락",
+  "collab.reject": "거절",
+  "collab.leave": "공동작업 나가기",
+  "collab.leaveConfirm": "공동작업에서 나가시겠습니까? 프로필에서 이 게시물이 사라집니다.",
+  "collab.manage": "공동작업자 관리",
+  "collab.remove": "제거",
+  "collab.actionFailed": "처리에 실패했습니다.",
   "brand.tagline": "손으로 그린 서브컬처 이야기",
   "brand.description": "서브컬처 · 애니덕질 · 코스프레 · 굿즈 · 커뮤니티",
   "home.welcome": "{brand}에 오신 것을 환영합니다",
@@ -1009,6 +1033,18 @@ const en: Record<MessageKey, string> = {
   "compose.optionsOpen": "Tags · NSFW",
   "compose.optionsClose": "Close options",
   "compose.tagsNsfw": "NSFW",
+  "compose.collabAdd": "Add collaborator",
+  "compose.collabSearch": "Search nickname, ID, or UID",
+  "compose.collabFollowing": "Following",
+  "compose.collabMax": "Maximum collaborators reached.",
+  "collab.inviteBanner": "You've been invited as a collaborator on this post.",
+  "collab.accept": "Accept",
+  "collab.reject": "Decline",
+  "collab.leave": "Leave collaboration",
+  "collab.leaveConfirm": "Leave this collaboration? The post will disappear from your profile.",
+  "collab.manage": "Manage collaborators",
+  "collab.remove": "Remove",
+  "collab.actionFailed": "Something went wrong.",
   "brand.tagline": "Hand-drawn subculture stories",
   "brand.description": "Subculture · anime · cosplay · goods · community",
   "home.welcome": "Welcome to {brand}",
@@ -1390,6 +1426,18 @@ const ja: Record<MessageKey, string> = {
   "compose.optionsOpen": "タグ · NSFW",
   "compose.optionsClose": "オプションを閉じる",
   "compose.tagsNsfw": "NSFW",
+  "compose.collabAdd": "共同投稿者を追加",
+  "compose.collabSearch": "ニックネーム・ID・UIDを検索",
+  "compose.collabFollowing": "フォロー中",
+  "compose.collabMax": "共同投稿者の上限に達しました。",
+  "collab.inviteBanner": "この投稿の共同投稿者に招待されました。",
+  "collab.accept": "承認",
+  "collab.reject": "拒否",
+  "collab.leave": "共同投稿をやめる",
+  "collab.leaveConfirm": "共同投稿から退出しますか？プロフィールからこの投稿が消えます。",
+  "collab.manage": "共同投稿者を管理",
+  "collab.remove": "削除",
+  "collab.actionFailed": "処理に失敗しました。",
   "brand.tagline": "手描きサブカルストーリー",
   "brand.description": "サブカル · アニメ · コスプレ · グッズ · コミュニティ",
   "home.welcome": "{brand}へようこそ",
@@ -1771,6 +1819,18 @@ const zh: Record<MessageKey, string> = {
   "compose.optionsOpen": "标签 · NSFW",
   "compose.optionsClose": "关闭选项",
   "compose.tagsNsfw": "NSFW",
+  "compose.collabAdd": "添加协作人",
+  "compose.collabSearch": "搜索昵称、ID 或 UID",
+  "compose.collabFollowing": "已关注",
+  "compose.collabMax": "已达协作人上限。",
+  "collab.inviteBanner": "您已被邀请成为此帖的协作人。",
+  "collab.accept": "接受",
+  "collab.reject": "拒绝",
+  "collab.leave": "退出协作",
+  "collab.leaveConfirm": "确定退出协作吗？该帖将从你的主页消失。",
+  "collab.manage": "管理协作人",
+  "collab.remove": "移除",
+  "collab.actionFailed": "操作失败。",
   "brand.tagline": "手绘亚文化故事",
   "brand.description": "亚文化 · 动漫 · Cosplay · 周边 · 社区",
   "home.welcome": "欢迎来到 {brand}",

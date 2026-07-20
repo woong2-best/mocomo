@@ -4,6 +4,10 @@ import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { PostMediaComposer, type PostMediaItem } from "@/components/media/post-media-composer";
 import { ComposePollEditor } from "@/components/compose/compose-poll-editor";
+import {
+  ComposeCollaboratorPicker,
+  type CollabPickerUser,
+} from "@/components/compose/compose-collaborator-picker";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { CreatePostPollInput } from "@/lib/post-poll";
@@ -55,12 +59,12 @@ export function ComposeForm({
   const [content, setContent] = useState(initialContent ?? "");
   const [defaultTitle] = useState(initialTitle ?? "");
   const [showOptions, setShowOptions] = useState(false);
+  const [collaborators, setCollaborators] = useState<CollabPickerUser[]>([]);
   const submitBusy = loading || mediaUploading;
   const canSubmit = content.trim().length > 0 || media.length > 0;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!canSubmit) return;
 
     const invalidMedia = media.some(
       (m) =>
@@ -75,6 +79,10 @@ export function ComposeForm({
 
     const form = new FormData(e.currentTarget);
     const tags = (form.get("tags") as string)?.split(",").map((t) => t.trim()).filter(Boolean);
+    const contentText =
+      content.trim() || String(form.get("content") ?? "").trim();
+
+    if (!contentText && media.length === 0) return;
 
     if (poll) {
       const pollErr = validatePostPollInput(poll);
@@ -86,12 +94,13 @@ export function ComposeForm({
 
     const payload = {
       title: (form.get("title") as string) || undefined,
-      content: content.trim(),
+      content: contentText,
       communityId,
       isNsfw: form.get("isNsfw") === "on",
       tagNames: tags,
       media: media.map((m) => ({ url: m.url, type: m.type })),
       poll: poll ?? undefined,
+      collaboratorUserIds: collaborators.map((c) => c.id),
     };
 
     setLoading(true);
@@ -244,7 +253,32 @@ export function ComposeForm({
                   <input type="checkbox" name="isNsfw" />
                   {t("compose.tagsNsfw")}
                 </label>
+                <ComposeCollaboratorPicker
+                  selected={collaborators}
+                  onChange={setCollaborators}
+                  disabled={submitBusy}
+                  labels={{
+                    add: t("compose.collabAdd"),
+                    search: t("compose.collabSearch"),
+                    following: t("compose.collabFollowing"),
+                    maxReached: t("compose.collabMax"),
+                  }}
+                />
               </div>
+            )}
+
+            {!showOptions && (
+              <ComposeCollaboratorPicker
+                selected={collaborators}
+                onChange={setCollaborators}
+                disabled={submitBusy}
+                labels={{
+                  add: t("compose.collabAdd"),
+                  search: t("compose.collabSearch"),
+                  following: t("compose.collabFollowing"),
+                  maxReached: t("compose.collabMax"),
+                }}
+              />
             )}
           </div>
         </div>
@@ -294,6 +328,17 @@ export function ComposeForm({
         className="w-full rounded-xl border border-border bg-background/50 px-3 py-2 text-sm"
       />
       <ComposePollEditor value={poll} onChange={setPoll} disabled={submitBusy} />
+      <ComposeCollaboratorPicker
+        selected={collaborators}
+        onChange={setCollaborators}
+        disabled={submitBusy}
+        labels={{
+          add: t("compose.collabAdd"),
+          search: t("compose.collabSearch"),
+          following: t("compose.collabFollowing"),
+          maxReached: t("compose.collabMax"),
+        }}
+      />
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="isNsfw" />
         NSFW

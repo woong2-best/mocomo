@@ -57,11 +57,17 @@ export async function POST(req: NextRequest) {
           durationMinutes: Number(body.poll.durationMinutes),
         }
       : undefined,
+    collaboratorUserIds: Array.isArray(body.collaboratorUserIds)
+      ? body.collaboratorUserIds.map(String)
+      : undefined,
   });
 
-  if (result.error) {
+  if (result.error && !result.postId) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
 
-  return NextResponse.json({ postId: result.postId });
+  return NextResponse.json({
+    postId: result.postId,
+    ...(result.error ? { warning: result.error } : {}),
+  });
 }

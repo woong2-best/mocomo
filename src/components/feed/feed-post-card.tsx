@@ -31,6 +31,18 @@ export type GridPost = {
     level: number;
     supportTierSent: SupportTierLevel;
   };
+  collaborators?: {
+    id?: string;
+    userId?: string;
+    status?: string;
+    user: {
+      id: string;
+      username: string;
+      name?: string | null;
+      image: string | null;
+      supportTierSent?: SupportTierLevel;
+    };
+  }[];
   anime?: { title: string; slug: string } | null;
   media?: {
     id?: string;

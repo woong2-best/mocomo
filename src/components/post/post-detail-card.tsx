@@ -1,14 +1,14 @@
-import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { ko, enUS, ja, zhCN } from "date-fns/locale";
 import { Pin } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import type { Locale } from "@/lib/i18n/config";
 import type { getPostDetail } from "@/lib/post-queries";
 import { PostPollCard } from "@/components/post/post-poll-card";
 import { PostOwnerMenu } from "@/components/post/post-owner-menu";
+import { PostCollaboratorsHeader } from "@/components/post/post-collaborators-header";
+import { PostCollabManageDialog } from "@/components/post/post-collab-manage-dialog";
+import { PostCollabActions } from "@/components/post/post-collab-actions";
 import { TranslatableText } from "@/components/ui/translatable-text";
 import { PaidPostMediaGrid } from "@/components/profile/paid-post-media-grid";
 
@@ -21,6 +21,7 @@ export function PostDetailCard({
   paymentsEnabled = false,
   subscriptionPriceKrw,
   subscribed = false,
+  viewerCollabStatus = null,
 }: {
   post: NonNullable<Awaited<ReturnType<typeof getPostDetail>>>;
   locale: Locale;
@@ -28,8 +29,13 @@ export function PostDetailCard({
   paymentsEnabled?: boolean;
   subscriptionPriceKrw?: number;
   subscribed?: boolean;
+  viewerCollabStatus?: "PENDING" | "ACCEPTED" | null;
 }) {
   const dateLocale = dateLocales[locale] ?? ko;
+  const collaborators =
+    "collaborators" in post && Array.isArray(post.collaborators)
+      ? post.collaborators
+      : [];
 
   return (
     <Card>
@@ -41,34 +47,39 @@ export function PostDetailCard({
           </p>
         )}
         <div className="flex items-start gap-3">
-          <Link href={`/u/${post.author.username}`}>
-            <Avatar>
-              <AvatarImage src={post.author.image ?? undefined} />
-              <AvatarFallback>{post.author.username[0]?.toUpperCase()}</AvatarFallback>
-            </Avatar>
-          </Link>
           <div className="flex-1 min-w-0">
-            <Link href={`/u/${post.author.username}`} className="hover:text-primary">
-              <DisplayNameWithSupportTier
-                name={post.author.name || post.author.username}
-                tier={post.author.supportTierSent}
-                nameClassName="font-semibold"
-                compact
-              />
-            </Link>
-            <p className="text-xs text-muted-foreground">
-              {formatDistanceToNow(post.createdAt, { addSuffix: true, locale: dateLocale })}
-            </p>
-          </div>
-          {isOwner && (
-            <PostOwnerMenu
-              postId={post.id}
-              isPinned={post.isPinned}
-              isOwner
+            <PostCollaboratorsHeader
+              author={post.author}
+              collaborators={collaborators}
               size="md"
+              trailing={
+                <span className="text-xs text-muted-foreground ml-1">
+                  ·{" "}
+                  {formatDistanceToNow(post.createdAt, {
+                    addSuffix: true,
+                    locale: dateLocale,
+                  })}
+                </span>
+              }
             />
-          )}
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            {isOwner && <PostCollabManageDialog postId={post.id} />}
+            {isOwner && (
+              <PostOwnerMenu
+                postId={post.id}
+                isPinned={post.isPinned}
+                isOwner
+                size="md"
+              />
+            )}
+          </div>
         </div>
+        <PostCollabActions
+          postId={post.id}
+          status={viewerCollabStatus}
+          isAuthor={isOwner}
+        />
         {post.title && <h1 className="text-xl font-bold">{post.title}</h1>}
         <TranslatableText text={post.content} as="p" className="whitespace-pre-wrap" />
         {post.poll && <PostPollCard postId={post.id} poll={post.poll} />}

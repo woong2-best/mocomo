@@ -528,6 +528,45 @@ export async function notifyLiveStart(
   await createNotificationsMany(rows);
 }
 
+export async function notifyPostCollabInvite(
+  postId: string,
+  inviterId: string,
+  inviteeId: string,
+  postTitle?: string | null
+) {
+  if (inviterId === inviteeId) return;
+  const actor = await getActor(inviterId);
+  const snippet = postTitle?.trim() ? ` «${postTitle.trim().slice(0, 40)}»` : "";
+  scheduleNotification({
+    userId: inviteeId,
+    actorId: inviterId,
+    type: "post_collab_invite",
+    title: "공동작업 초대",
+    body: `${actorLabel(actor)}님이 회원님을 공동작업자로 초대했습니다.${snippet}`,
+    link: `/post/${postId}?collab=1`,
+  });
+  // Email hook (optional): wire when SNS email prefs exist.
+}
+
+export async function notifyPostCollabAccepted(
+  postId: string,
+  authorId: string,
+  collaboratorId: string,
+  postTitle?: string | null
+) {
+  if (authorId === collaboratorId) return;
+  const actor = await getActor(collaboratorId);
+  const snippet = postTitle?.trim() ? ` «${postTitle.trim().slice(0, 40)}»` : "";
+  scheduleNotification({
+    userId: authorId,
+    actorId: collaboratorId,
+    type: "post_collab_accepted",
+    title: "공동작업 수락",
+    body: `${actorLabel(actor)}님이 공동작업 초대를 수락했습니다.${snippet}`,
+    link: `/post/${postId}`,
+  });
+}
+
 export const NOTIFICATION_CATEGORIES = {
   social: [
     "like",
@@ -537,6 +576,8 @@ export const NOTIFICATION_CATEGORIES = {
     "repost",
     "follow",
     "vote",
+    "post_collab_invite",
+    "post_collab_accepted",
   ],
   messages: ["dm", "dm_group", "mention", "call"],
   commerce: ["tip", "emoticon_gift", "goods_order"],

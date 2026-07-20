@@ -6,16 +6,14 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { ko, enUS, ja, zhCN } from "date-fns/locale";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Heart, MessageCircle, Star } from "lucide-react";
 import { PostShareMenu } from "@/components/post/post-share-menu";
 import { PostRepostMenu } from "@/components/post/post-repost-menu";
 import { PostOwnerMenu } from "@/components/post/post-owner-menu";
 import { formatNumber, cn } from "@/lib/utils";
-import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
-import { userDisplayName } from "@/lib/user-public-select";
 import type { GridPost } from "@/components/feed/feed-post-card";
 import { PostPollCard } from "@/components/post/post-poll-card";
+import { PostCollaboratorsHeader } from "@/components/post/post-collaborators-header";
 import { MotionPop } from "@/components/motion/motion-primitives";
 import { engageStar, postEngage } from "@/lib/post-engage-client";
 import { PaidPostMediaGrid } from "@/components/profile/paid-post-media-grid";
@@ -53,7 +51,6 @@ export function FeedTimelinePostCard({
   const { locale } = useLocale();
 
   const createdAt = typeof post.createdAt === "string" ? new Date(post.createdAt) : post.createdAt;
-  const displayName = userDisplayName(post.author);
   const isOwner = session?.user?.id === post.author.id;
   const hasMedia = postHasVisualMedia(post);
 
@@ -109,33 +106,24 @@ export function FeedTimelinePostCard({
   return (
     <article className="rounded-2xl border border-border bg-card overflow-hidden">
       <div className="flex gap-3 p-4 pb-3">
-        <Link href={`/u/${post.author.username}`} className="shrink-0" onClick={(e) => e.stopPropagation()}>
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={post.author.image ?? undefined} />
-            <AvatarFallback>{displayName[0]?.toUpperCase()}</AvatarFallback>
-          </Avatar>
-        </Link>
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-2">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1 flex-wrap text-sm">
-                <Link href={`/u/${post.author.username}`} className="hover:underline" onClick={(e) => e.stopPropagation()}>
-                  <DisplayNameWithSupportTier
-                    name={displayName}
-                    tier={post.author.supportTierSent ?? "PEBBLE"}
-                    nameClassName="font-bold"
-                    compact
-                  />
-                </Link>
-                <span className="text-muted-foreground truncate">@{post.author.username}</span>
-                <span className="text-muted-foreground">·</span>
-                <Link href={`/post/${post.id}`} className="text-muted-foreground shrink-0 hover:underline">
-                  <time dateTime={createdAt.toISOString()}>
-                    {formatDistanceToNow(createdAt, { addSuffix: true, locale: dateLocales[locale] })}
-                  </time>
-                </Link>
-              </div>
-              <Link href={`/post/${post.id}`} className="block mt-2">
+            <div className="min-w-0 flex-1 space-y-2">
+              <PostCollaboratorsHeader
+                author={post.author}
+                collaborators={post.collaborators}
+                trailing={
+                  <>
+                    <span className="text-muted-foreground">·</span>
+                    <Link href={`/post/${post.id}`} className="text-muted-foreground shrink-0 hover:underline text-sm">
+                      <time dateTime={createdAt.toISOString()}>
+                        {formatDistanceToNow(createdAt, { addSuffix: true, locale: dateLocales[locale] })}
+                      </time>
+                    </Link>
+                  </>
+                }
+              />
+              <Link href={`/post/${post.id}`} className="block">
                 {post.title && <p className="font-semibold text-[15px] mb-1">{post.title}</p>}
                 {post.content && (
                   <TranslatableText

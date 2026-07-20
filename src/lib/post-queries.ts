@@ -31,6 +31,16 @@ const postDetailSelect = {
   instantPurchasePriceKrw: true,
   viewCount: true,
   author: { select: userPublicSelect },
+  collaborators: {
+    where: { status: "ACCEPTED" as const },
+    orderBy: { acceptedAt: "asc" as const },
+    select: {
+      id: true,
+      userId: true,
+      status: true,
+      user: { select: userPublicSelect },
+    },
+  },
   media: {
     select: { id: true, url: true, type: true, priceKrw: true },
     orderBy: { order: "asc" as const },

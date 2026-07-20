@@ -1,9 +1,12 @@
 import { Prisma } from "@prisma/client";
 import { postMediaProfileTimeline } from "@/lib/post-media-select";
 import { userPublicSelect, type UserPublicFields } from "@/lib/user-public-select";
+import { postCollaboratorsInclude } from "@/lib/post-collaborators";
 
-/** 프로필 타임라인 — 작성자는 프로필 주인과 동일하므로 author 조인 생략 */
+/** 프로필 타임라인 — 실제 author + ACCEPTED collaborators 포함 */
 export const profilePostIncludeLight = {
+  author: { select: userPublicSelect },
+  collaborators: postCollaboratorsInclude,
   community: { select: { name: true, slug: true } },
   anime: { select: { title: true, slug: true } },
   media: postMediaProfileTimeline,
@@ -11,17 +14,18 @@ export const profilePostIncludeLight = {
 } satisfies Prisma.PostInclude;
 
 export const profilePostInclude = {
-  author: {
-    select: userPublicSelect,
-  },
   ...profilePostIncludeLight,
 } satisfies Prisma.PostInclude;
 
-export function attachProfilePostAuthor<T extends { authorId: string }>(
+/** @deprecated Prefer real author from include; kept for reply fallbacks */
+export function attachProfilePostAuthor<T extends { authorId: string; author?: UserPublicFields }>(
   posts: T[],
   author: UserPublicFields
 ): (T & { author: UserPublicFields })[] {
-  return posts.map((post) => ({ ...post, author }));
+  return posts.map((post) => ({
+    ...post,
+    author: post.author ?? author,
+  }));
 }
 
 export type ProfileTab = "posts" | "replies" | "media" | "likes" | "wiki";

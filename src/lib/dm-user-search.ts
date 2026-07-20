@@ -22,7 +22,7 @@ const FOLLOWING_LIMIT = 20;
 const OTHER_LIMIT = 30;
 
 function normalizeDmSearchQuery(raw: string): string {
-  return raw.trim().replace(/^@+/, "").slice(0, 32);
+  return raw.trim().replace(/^@+/, "").slice(0, 64);
 }
 
 function usernamePrefixWhere(q: string) {
@@ -42,7 +42,7 @@ export async function searchUsersForDm(
   viewerId: string,
   rawQuery: string
 ): Promise<DmUserSearchHit[]> {
-  const q = normalizeDmSearchQuery(rawQuery);
+  const q = normalizeDmSearchQuery(rawQuery).slice(0, 32);
   if (q.length < 1) return [];
 
   const match = usernamePrefixWhere(q);
@@ -51,6 +51,7 @@ export async function searchUsersForDm(
     db.user.findMany({
       where: {
         id: { not: viewerId },
+        deletedAt: null,
         followers: { some: { followerId: viewerId } },
         ...match,
       },
@@ -61,6 +62,7 @@ export async function searchUsersForDm(
     db.user.findMany({
       where: {
         id: { not: viewerId },
+        deletedAt: null,
         NOT: { followers: { some: { followerId: viewerId } } },
         ...match,
       },
@@ -74,4 +76,41 @@ export async function searchUsersForDm(
     ...followingRows.map((u) => ({ ...u, isFollowing: true })),
     ...otherRows.map((u) => ({ ...u, isFollowing: false })),
   ];
+}
+
+/**
+ * Collaborator picker: nickname/username prefix + exact User.id (UID).
+ */
+export async function searchUsersForCollab(
+  viewerId: string,
+  rawQuery: string
+): Promise<DmUserSearchHit[]> {
+  const q = normalizeDmSearchQuery(rawQuery);
+  if (q.length < 1) return [];
+
+  const [exactById, prefixHits] = await Promise.all([
+    db.user.findFirst({
+      where: { id: q, deletedAt: null, NOT: { id: viewerId } },
+      select: userSelect,
+    }),
+    searchUsersForDm(viewerId, q),
+  ]);
+
+  if (!exactById) return prefixHits;
+
+  const following = await db.follow.findUnique({
+    where: {
+      followerId_followingId: {
+        followerId: viewerId,
+        followingId: exactById.id,
+      },
+    },
+    select: { id: true },
+  });
+  const hit: DmUserSearchHit = {
+    ...exactById,
+    isFollowing: !!following,
+  };
+  if (prefixHits.some((u) => u.id === hit.id)) return prefixHits;
+  return [hit, ...prefixHits];
 }

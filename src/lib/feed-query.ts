@@ -17,6 +17,16 @@ export const feedPostListSelect = {
   isPinned: true,
   instantPurchasePriceKrw: true,
   author: { select: userPublicSelect },
+  collaborators: {
+    where: { status: "ACCEPTED" as const },
+    orderBy: { acceptedAt: "asc" as const },
+    select: {
+      id: true,
+      userId: true,
+      status: true,
+      user: { select: userPublicSelect },
+    },
+  },
   anime: { select: { title: true, slug: true } },
   media: postMediaPreview,
   poll: { select: postPollSelect },
@@ -68,6 +78,16 @@ export const feedPostListSelectNoPoll = {
   isPinned: true,
   instantPurchasePriceKrw: true,
   author: { select: userPublicSelect },
+  collaborators: {
+    where: { status: "ACCEPTED" as const },
+    orderBy: { acceptedAt: "asc" as const },
+    select: {
+      id: true,
+      userId: true,
+      status: true,
+      user: { select: userPublicSelect },
+    },
+  },
   anime: { select: { title: true, slug: true } },
   media: postMediaPreview,
   _count: { select: { likes: true, comments: true, votes: true, reposts: true, media: true } },

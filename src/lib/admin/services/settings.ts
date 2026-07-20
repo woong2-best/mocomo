@@ -15,6 +15,9 @@ export type SiteSettingsShape = {
   oauthDiscordEnabled: boolean;
   cloudflareTurnstileEnabled: boolean;
   storageProvider: string;
+  /** Instagram-style post collaborators */
+  collaboratorsEnabled: boolean;
+  maxPostCollaborators: number;
 };
 
 export const DEFAULT_SITE_SETTINGS: SiteSettingsShape = {
@@ -29,6 +32,8 @@ export const DEFAULT_SITE_SETTINGS: SiteSettingsShape = {
   oauthDiscordEnabled: true,
   cloudflareTurnstileEnabled: true,
   storageProvider: "supabase",
+  collaboratorsEnabled: true,
+  maxPostCollaborators: 10,
 };
 
 const SETTINGS_KEY = "site.global";
@@ -54,6 +59,19 @@ export async function updateSiteSettings(
       Math.max(0, Number(patch.platformFeePercent ?? current.platformFeePercent) || 0)
     ),
     siteName: (patch.siteName ?? current.siteName).trim().slice(0, 80) || "MoCoMo",
+    maxPostCollaborators: Math.min(
+      50,
+      Math.max(
+        1,
+        Math.floor(
+          Number(patch.maxPostCollaborators ?? current.maxPostCollaborators) || 10
+        )
+      )
+    ),
+    collaboratorsEnabled:
+      typeof patch.collaboratorsEnabled === "boolean"
+        ? patch.collaboratorsEnabled
+        : current.collaboratorsEnabled,
   };
 
   await db.siteSetting.upsert({

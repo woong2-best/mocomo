@@ -107,6 +107,24 @@ export function AdminSettingsForm({ initial }: { initial: SiteSettingsShape }) {
           onChange={(e) => set("storageProvider", e.target.value)}
         />
       </label>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={form.collaboratorsEnabled}
+          onChange={(e) => set("collaboratorsEnabled", e.target.checked)}
+        />
+        게시물 공동작업자 기능
+      </label>
+      <label className="block space-y-1 text-sm">
+        <span>공동작업자 최대 인원</span>
+        <Input
+          type="number"
+          min={1}
+          max={50}
+          value={form.maxPostCollaborators}
+          onChange={(e) => set("maxPostCollaborators", Number(e.target.value))}
+        />
+      </label>
       <Button type="submit" disabled={pending}>
         {pending ? "저장 중…" : "설정 저장"}
       </Button>

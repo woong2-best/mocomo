@@ -206,6 +206,8 @@ model User {
   streamerProfile  StreamerProfile?
 
   posts         Post[]
+  postCollaborations PostCollaborator[] @relation("PostCollaboratorUser")
+  postCollaboratorInvitesSent PostCollaborator[] @relation("PostCollaboratorInviter")
   comments      Comment[]
   votes         Vote[]
   bookmarks     Bookmark[]
@@ -814,12 +816,42 @@ model Post {
   likes     Like[]
   reposts   Repost[]
   poll      PostPoll?
+  collaborators PostCollaborator[]
 
   @@index([createdAt(sort: Desc)])
   @@index([hotScore(sort: Desc), createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
   @@index([authorId, isPinned])
   @@index([communityId, createdAt(sort: Desc)])
+}
+
+enum PostCollaboratorStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  LEFT
+  REMOVED
+}
+
+model PostCollaborator {
+  id         String                 @id @default(cuid())
+  postId     String
+  userId     String
+  status     PostCollaboratorStatus @default(PENDING)
+  invitedBy  String
+  invitedAt  DateTime               @default(now())
+  acceptedAt DateTime?
+  leftAt     DateTime?
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
+
+  post    Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user    User @relation("PostCollaboratorUser", fields: [userId], references: [id], onDelete: Cascade)
+  inviter User @relation("PostCollaboratorInviter", fields: [invitedBy], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId, status, invitedAt(sort: Desc)])
+  @@index([postId, status])
 }
 
 enum MediaType {

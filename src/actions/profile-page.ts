@@ -28,6 +28,7 @@ import {
   type ProfileMediaKind,
   type ProfileSort,
 } from "@/lib/profile-queries";
+import { profilePostsOwnedOrCollabWhere } from "@/lib/post-collaborators";
 import { getUserRelationship, isProfileBlocked } from "@/lib/user-relationship";
 import type { UserPublicFields } from "@/lib/user-public-select";
 
@@ -117,17 +118,22 @@ const getCachedProfileUserByUsername = (username: string) =>
 async function enrichPostsWithMediaAccess(
   posts: ProfilePostRow[],
   viewerId: string | null,
-  author: UserPublicFields
+  profileOwner: UserPublicFields
 ) {
-  const withAuthor = attachProfilePostAuthor(posts, author);
+  const withAuthor = attachProfilePostAuthor(posts, profileOwner);
   const mediaIds = withAuthor.flatMap((p) => p.media?.map((m) => m.id) ?? []);
+  const authorIds = [...new Set(withAuthor.map((p) => p.authorId))];
   const [purchasedIds, subscriptions] = await Promise.all([
     getPurchasedPostMediaIds(viewerId, mediaIds),
-    getSubscriptionsForViewer(viewerId, [author.id]),
+    getSubscriptionsForViewer(viewerId, authorIds),
   ]);
-  const subscription = subscriptions.get(author.id);
   return withAuthor.map((p) =>
-    attachPostContentAccess(p, viewerId, purchasedIds, subscription)
+    attachPostContentAccess(
+      p,
+      viewerId,
+      purchasedIds,
+      subscriptions.get(p.authorId)
+    )
   );
 }
 
@@ -203,7 +209,7 @@ export const getProfilePinnedPost = cache(async function getProfilePinnedPost(
   }
 
   const post = await db.post.findFirst({
-    where: { authorId: userId, isPinned: true },
+    where: { ...profilePostsOwnedOrCollabWhere(userId), isPinned: true },
     include: profilePostIncludeLight,
   });
   if (!post) return null;
@@ -232,7 +238,7 @@ export async function getProfileTimeline(
 
   if (tab === "posts") {
     const posts = await db.post.findMany({
-      where: { authorId: userId, isPinned: false },
+      where: { ...profilePostsOwnedOrCollabWhere(userId), isPinned: false },
       take: PAGE_SIZE,
       ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
       orderBy: profilePostsOrderBy(sort),
@@ -271,7 +277,7 @@ export async function getProfileTimeline(
   if (tab === "media") {
     const posts = await db.post.findMany({
       where: {
-        authorId: userId,
+        ...profilePostsOwnedOrCollabWhere(userId),
         media: { some: mediaSome },
       },
       take: PAGE_SIZE,
@@ -415,7 +421,7 @@ export async function getProfileMediaGrid(
   const rows = await db.postMedia.findMany({
     where: {
       ...typeWhere,
-      post: { authorId: userId },
+      post: profilePostsOwnedOrCollabWhere(userId),
     },
     take: MEDIA_GRID_PAGE_SIZE,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
@@ -446,14 +452,14 @@ export async function getProfileMediaGrid(
   });
 
   const mediaIds = rows.map((r) => r.id);
+  const authorIds = [...new Set(rows.map((r) => r.post.authorId))];
   const [purchasedIds, subscriptions, viewer] = await Promise.all([
     getPurchasedPostMediaIds(viewerId, mediaIds),
-    getSubscriptionsForViewer(viewerId, [author.id]),
+    getSubscriptionsForViewer(viewerId, authorIds),
     viewerId
       ? db.user.findUnique({ where: { id: viewerId }, select: { showNsfw: true } })
       : Promise.resolve(null),
   ]);
-  const subscription = subscriptions.get(author.id);
   const viewerShowNsfw = viewer?.showNsfw ?? false;
   const isSelf = viewerId === userId;
 
@@ -465,7 +471,7 @@ export async function getProfileMediaGrid(
       instantPurchasePriceKrw: row.post.instantPurchasePriceKrw ?? 0,
       mediaPriceKrw: row.priceKrw,
       purchased: purchasedIds.has(row.id),
-      subscription,
+      subscription: subscriptions.get(row.post.authorId),
     });
 
     return {
