@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Mailbox } from "lucide-react";
-import { AptMailboxLink } from "@/components/compose/apt-mailbox-link";
+import { PenSquare } from "lucide-react";
+import { ComposeOpenButton } from "@/components/compose/compose-open-button";
 import { cn } from "@/lib/utils";
 import { mainNavItems } from "@/lib/nav-items";
 import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
@@ -65,10 +65,10 @@ export function Sidebar() {
 
         <div className="shrink-0 space-y-2 border-t border-border pt-3">
           {!shouldShowRightPanel(pathname) && (
-            <AptMailboxLink className="block w-full shrink-0 bg-folk-terracotta text-white flex items-center justify-center gap-2 py-3 text-sm font-display font-bold rounded-xl hover:bg-folk-terracotta-dark transition-colors border-2 border-folk-cobalt/25 shadow-folk">
-              <Mailbox className="h-4 w-4" />
-              {t("nav.mailbox")}
-            </AptMailboxLink>
+            <ComposeOpenButton className="flex w-full items-center justify-center gap-2 rounded-2xl bg-folk-terracotta py-3.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-folk-terracotta-dark active:scale-[0.98]">
+              <PenSquare className="h-4 w-4 shrink-0" />
+              {t("nav.compose")}
+            </ComposeOpenButton>
           )}
         </div>
       </aside>
