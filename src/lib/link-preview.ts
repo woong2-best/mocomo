@@ -143,7 +143,6 @@ export async function fetchYoutubePreview(rawUrl: string): Promise<LinkPreviewDa
   if (!videoId) return null;
 
   let title: string | null = null;
-  let description: string | null = null;
   let imageUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
   // oEmbed is enough for title/thumb; don't block on YouTube HTML (often slow/blocked).
@@ -168,7 +167,7 @@ export async function fetchYoutubePreview(rawUrl: string): Promise<LinkPreviewDa
     url: normalized,
     domain: "youtube.com",
     title,
-    description,
+    description: null,
     imageUrl,
     siteName: "YouTube",
     provider: "youtube",
