@@ -5,6 +5,7 @@ import { ProfilePostCard } from "@/components/profile/profile-post-card";
 import type { GridPost } from "@/components/feed/feed-post-card";
 import type { ProfileMediaKind, ProfileSort, ProfileTab } from "@/lib/profile-queries";
 import { Button } from "@/components/ui/button";
+import { subscribePostDeleted } from "@/lib/post-deleted-sync";
 import { Loader2 } from "lucide-react";
 
 export type TimelineItem =
@@ -63,6 +64,18 @@ export function ProfileTimeline({
     setDone(!initialCursor);
     setLoadError("");
   }, [initialItems, initialCursor, tab, sort, mediaKind]);
+
+  useEffect(() => {
+    return subscribePostDeleted((postId) => {
+      setItems((prev) =>
+        prev.filter((item) => {
+          if (item.type === "post") return item.post.id !== postId;
+          if (item.type === "reply") return item.post.id !== postId;
+          return item.post.id !== postId;
+        })
+      );
+    });
+  }, []);
 
   const loadMore = useCallback(async () => {
     if (!cursor || loading || done) return;

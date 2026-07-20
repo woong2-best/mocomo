@@ -8,6 +8,7 @@ import type { ProfileMediaKind, ProfileSort } from "@/lib/profile-queries";
 import { Button } from "@/components/ui/button";
 import { LockedMediaPaywallOverlay } from "@/components/media/locked-media-paywall-overlay";
 import { PurchasePostMediaButton } from "@/components/profile/purchase-post-media-button";
+import { subscribePostDeleted } from "@/lib/post-deleted-sync";
 
 function formatDuration(sec: number | null): string | null {
   if (!sec || sec <= 0 || !Number.isFinite(sec)) return null;
@@ -157,6 +158,12 @@ export function ProfileMediaGrid({
     setDone(!initialCursor);
     setLoadError("");
   }, [initialItems, initialCursor, sort, mediaKind]);
+
+  useEffect(() => {
+    return subscribePostDeleted((postId) => {
+      setItems((prev) => prev.filter((item) => item.postId !== postId));
+    });
+  }, []);
 
   const loadMore = useCallback(async () => {
     if (!cursor || loading || done) return;

@@ -8,6 +8,7 @@ import {
 import type { GridPost } from "@/components/feed/feed-post-card";
 import type { FeedDisplayMode } from "@/lib/feed-display-mode";
 import { Button } from "@/components/ui/button";
+import { subscribePostDeleted } from "@/lib/post-deleted-sync";
 import { Loader2 } from "lucide-react";
 
 type Ad = {
@@ -75,6 +76,32 @@ export function FeedInfinite({
     // feedSeed만 의존 — 배열 참조 변경으로 스크롤 리셋 방지
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feedSeed]);
+
+  useEffect(() => {
+    return subscribePostDeleted((postId) => {
+      setItems((prev) =>
+        prev.filter((item) => !(item.type === "post" && item.data.id === postId))
+      );
+      setLikedIds((prev) => {
+        if (!prev.has(postId)) return prev;
+        const next = new Set(prev);
+        next.delete(postId);
+        return next;
+      });
+      setStarredIds((prev) => {
+        if (!prev.has(postId)) return prev;
+        const next = new Set(prev);
+        next.delete(postId);
+        return next;
+      });
+      setRepostedIds((prev) => {
+        if (!prev.has(postId)) return prev;
+        const next = new Set(prev);
+        next.delete(postId);
+        return next;
+      });
+    });
+  }, []);
 
   const loadMore = useCallback(async () => {
     if (!cursor || loadingRef.current || done) return;

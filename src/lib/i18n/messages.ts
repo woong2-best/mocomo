@@ -153,6 +153,7 @@ export type MessageKey =
   | "post.menu.ariaLabel"
   | "post.menu.delete"
   | "post.menu.deleteConfirm"
+  | "post.menu.deleteFailed"
   | "post.menu.pinToProfile"
   | "post.menu.unpinFromProfile"
   | "translate.viewTranslation"
@@ -547,6 +548,7 @@ const ko: Record<MessageKey, string> = {
   "post.menu.ariaLabel": "게시물 메뉴",
   "post.menu.delete": "삭제하기",
   "post.menu.deleteConfirm": "이 게시물을 삭제할까요? 되돌릴 수 없습니다.",
+  "post.menu.deleteFailed": "삭제에 실패했습니다. 다시 시도해 주세요.",
   "post.menu.pinToProfile": "내 프로필 메인에 올리기",
   "post.menu.unpinFromProfile": "프로필 메인에서 내리기",
   "translate.viewTranslation": "번역 보기",
@@ -633,7 +635,7 @@ const ko: Record<MessageKey, string> = {
   "toast.deleteConfirm": "정말 삭제하시겠습니까?",
   "toast.cancel": "취소",
   "toast.editSoon": "게시물 수정은 곧 지원됩니다",
-  "toast.deleted": "게시물이 삭제되었습니다",
+  "toast.deleted": "게시물이(가) 삭제되었습니다",
   "toast.more": "더보기",
   "search.placeholder": "사람, 애니, 게시물 검색",
   "compose.placeholder": "무슨 일이 일어나고 있나요?",
@@ -943,6 +945,7 @@ const en: Record<MessageKey, string> = {
   "post.menu.ariaLabel": "Post menu",
   "post.menu.delete": "Delete",
   "post.menu.deleteConfirm": "Delete this post? This can't be undone.",
+  "post.menu.deleteFailed": "Couldn't delete. Please try again.",
   "post.menu.pinToProfile": "Pin to your profile",
   "post.menu.unpinFromProfile": "Unpin from profile",
   "translate.viewTranslation": "View translation",
@@ -1339,6 +1342,7 @@ const ja: Record<MessageKey, string> = {
   "post.menu.ariaLabel": "投稿メニュー",
   "post.menu.delete": "削除",
   "post.menu.deleteConfirm": "この投稿を削除しますか？元に戻せません。",
+  "post.menu.deleteFailed": "削除に失敗しました。もう一度お試しください。",
   "post.menu.pinToProfile": "プロフィールに固定",
   "post.menu.unpinFromProfile": "プロフィールの固定を解除",
   "translate.viewTranslation": "翻訳を表示",
@@ -1735,6 +1739,7 @@ const zh: Record<MessageKey, string> = {
   "post.menu.ariaLabel": "帖子菜单",
   "post.menu.delete": "删除",
   "post.menu.deleteConfirm": "确定删除这篇帖子吗？此操作无法撤销。",
+  "post.menu.deleteFailed": "删除失败，请重试。",
   "post.menu.pinToProfile": "置顶到个人主页",
   "post.menu.unpinFromProfile": "取消主页置顶",
   "translate.viewTranslation": "查看翻译",

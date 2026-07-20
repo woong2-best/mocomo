@@ -1,7 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { getAuthUserId } from "@/lib/auth";
+import { FEED_POSTS_CACHE_TAG } from "@/lib/cache-tags";
 import { db } from "@/lib/db";
 import { COMMUNITY_FEED_PATH } from "@/lib/site-routes";
 
@@ -22,6 +23,7 @@ export async function deleteOwnPost(
   await db.post.delete({ where: { id: postId } });
 
   const username = post.author.username;
+  revalidateTag(FEED_POSTS_CACHE_TAG);
   revalidatePath(`/u/${username}`);
   revalidatePath(`/post/${postId}`);
   revalidatePath(COMMUNITY_FEED_PATH);

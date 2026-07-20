@@ -12,6 +12,7 @@ import { ProfileHeader } from "@/components/profile/profile-header";
 import { ProfileHeaderActionBar } from "@/components/profile/profile-header-action-bar";
 import { ProfileTabs } from "@/components/profile/profile-tabs";
 import { ProfilePinnedPostGate } from "@/components/profile/profile-pinned-post-gate";
+import { ProfilePinnedPostVisibility } from "@/components/profile/profile-pinned-post-visibility";
 import { ProfilePostCard } from "@/components/profile/profile-post-card";
 import { getAuthUserId } from "@/lib/auth";
 import type { UserPublicFields } from "@/lib/user-public-select";
@@ -82,15 +83,17 @@ async function ProfilePinnedPostAsync({
   if (!pinned) return null;
 
   return (
-    <ProfilePostCard
-      post={pinned}
-      isSelf={isSelf}
-      pinnedHighlight
-      paymentsEnabled={paymentsEnabled}
-      authorId={userId}
-      subscriptionPriceKrw={subscriptionPriceKrw}
-      subscribed={"subscribed" in viewerSub ? viewerSub.subscribed : false}
-    />
+    <ProfilePinnedPostVisibility postId={pinned.id}>
+      <ProfilePostCard
+        post={pinned}
+        isSelf={isSelf}
+        pinnedHighlight
+        paymentsEnabled={paymentsEnabled}
+        authorId={userId}
+        subscriptionPriceKrw={subscriptionPriceKrw}
+        subscribed={"subscribed" in viewerSub ? viewerSub.subscribed : false}
+      />
+    </ProfilePinnedPostVisibility>
   );
 }
 

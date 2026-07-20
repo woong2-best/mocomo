@@ -13,6 +13,8 @@ import {
 import { deleteOwnPost } from "@/actions/post-delete";
 import { pinPostToProfile, unpinPostFromProfile } from "@/actions/post-pin";
 import { useLocale } from "@/components/providers/locale-provider";
+import { usePublishedToastOptional } from "@/components/providers/published-toast-provider";
+import { notifyPostDeleted } from "@/lib/post-deleted-sync";
 import { COMMUNITY_FEED_PATH } from "@/lib/site-routes";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +38,7 @@ export function PostOwnerMenu({
   const router = useRouter();
   const pathname = usePathname();
   const { t } = useLocale();
+  const publishedToast = usePublishedToastOptional();
   const [open, setOpen] = useState(false);
   const [pinned, setPinned] = useState(isPinned);
   const [busy, setBusy] = useState<"pin" | "delete" | null>(null);
@@ -70,18 +73,26 @@ export function PostOwnerMenu({
 
     setBusy("delete");
     setError("");
+    setOpen(false);
+
+    // Optimistic: remove from lists + toast immediately (Twitter-style)
+    notifyPostDeleted(postId);
+    publishedToast?.showInfoToast({ message: t("toast.deleted") });
+    if (pathname?.startsWith("/post/")) {
+      router.push(COMMUNITY_FEED_PATH);
+    }
+
     try {
       const res = await deleteOwnPost(postId);
       if (res.error) {
+        publishedToast?.showErrorToast({ message: res.error });
         setError(res.error);
+        router.refresh();
         return;
       }
-      setOpen(false);
-      if (pathname?.startsWith("/post/")) {
-        router.push(COMMUNITY_FEED_PATH);
-      } else {
-        router.refresh();
-      }
+    } catch {
+      publishedToast?.showErrorToast({ message: t("post.menu.deleteFailed") });
+      router.refresh();
     } finally {
       setBusy(null);
     }

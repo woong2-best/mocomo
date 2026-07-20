@@ -22,6 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { deleteOwnPost } from "@/actions/post-delete";
+import { notifyPostDeleted } from "@/lib/post-deleted-sync";
 import { postUrl } from "@/lib/post-share";
 import { COMMUNITY_FEED_PATH, DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,7 @@ import {
   type ToastAvatar,
 } from "@/lib/published-toast-types";
 import { useLocale } from "@/components/providers/locale-provider";
+import { pushErrorToast } from "@/lib/published-toast-store";
 
 type ToastView = PublishedToastInput & {
   id: string;
@@ -175,20 +177,29 @@ export function PublishedToastPill({
 
   async function confirmDeletePost() {
     if (!toast.postId || busy) return;
+    const postId = toast.postId;
     setBusy(true);
-    const res = await deleteOwnPost(toast.postId);
-    setBusy(false);
     setConfirmDelete(false);
     setSheetOpen(false);
     onDismiss();
-    if (res.error) {
-      onShowInfo({ message: res.error });
-      return;
-    }
+
+    notifyPostDeleted(postId);
     onShowInfo({ message: t("toast.deleted") });
-    router.refresh();
     if (pathname?.startsWith("/post/")) {
       router.push(COMMUNITY_FEED_PATH);
+    }
+
+    try {
+      const res = await deleteOwnPost(postId);
+      if (res.error) {
+        pushErrorToast({ message: res.error });
+        router.refresh();
+      }
+    } catch {
+      pushErrorToast({ message: t("post.menu.deleteFailed") });
+      router.refresh();
+    } finally {
+      setBusy(false);
     }
   }
 
