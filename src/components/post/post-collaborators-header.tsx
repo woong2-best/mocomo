@@ -88,7 +88,7 @@ export function PostCollaboratorsHeader({
         ))}
 
         {hasCollab && (
-          <div className="pointer-events-none absolute left-0 top-full z-30 mt-2 hidden min-w-[200px] rounded-xl border border-border bg-popover p-2 shadow-lg group-hover:block">
+          <div className="pointer-events-none absolute left-0 top-full z-50 mt-2 hidden min-w-[200px] rounded-xl border border-border bg-card p-2 shadow-xl group-hover:block">
             <ul className="space-y-1">
               {[author, ...others].map((u) => (
                 <li key={u.id}>
