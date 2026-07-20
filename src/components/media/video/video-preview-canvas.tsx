@@ -179,6 +179,7 @@ export function VideoPreviewCanvas({
       />
       <canvas
         ref={canvasRef}
+        data-functional-canvas
         className={cn(
           "max-w-full max-h-full object-contain",
           stickerMode && "cursor-crosshair"
