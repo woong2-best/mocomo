@@ -120,17 +120,27 @@ export function FeedTimelinePostCard({
                   </Link>
                 }
               />
-              <Link href={`/post/${post.id}`} className="block">
-                {post.title && <p className="font-semibold text-[15px] mb-1">{post.title}</p>}
-                {post.content && (
+              {post.title && (
+                <Link href={`/post/${post.id}`} className="block">
+                  <p className="font-semibold text-[15px] mb-1">{post.title}</p>
+                </Link>
+              )}
+              {post.content && (
+                <div
+                  className="cursor-pointer"
+                  onClick={(e) => {
+                    if ((e.target as HTMLElement).closest("a, button, [role='link']")) return;
+                    router.push(`/post/${post.id}`);
+                  }}
+                >
                   <TranslatableText
                     text={post.content}
                     as="p"
                     stopPropagation
                     className="text-[15px] whitespace-pre-wrap break-words"
                   />
-                )}
-              </Link>
+                </div>
+              )}
               {hasMedia && post.media && (
                 <PaidPostMediaGrid
                   media={post.media as ProfilePostMediaItem[]}

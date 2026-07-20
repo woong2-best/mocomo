@@ -134,14 +134,16 @@ export function FeedPostCard({ post }: { post: GridPost }) {
             </Link>
           )
         ) : (
-          <Link href={`/post/${post.id}`} className="block flex-1">
-            <div className="px-3 pb-3">
-              {post.title && <h3 className="font-semibold text-sm mb-1">{post.title}</h3>}
-              <p className="text-sm text-foreground/85 line-clamp-6">
-                <TranslatableText text={post.content} as="span" stopPropagation />
-              </p>
+          <div className="flex-1 px-3 pb-3">
+            {post.title && (
+              <Link href={`/post/${post.id}`} className="block">
+                <h3 className="font-semibold text-sm mb-1">{post.title}</h3>
+              </Link>
+            )}
+            <div className="text-sm text-foreground/85 line-clamp-6">
+              <TranslatableText text={post.content} as="span" stopPropagation />
             </div>
-          </Link>
+          </div>
         )}
 
         {post.anime && (

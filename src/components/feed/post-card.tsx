@@ -72,15 +72,19 @@ export function PostCard({ post }: PostCardProps) {
             </>
           }
         />
-        <Link href={`/post/${post.id}`} className="block">
-          {post.title && <h3 className="font-semibold mb-1">{post.title}</h3>}
+        <div>
+          {post.title && (
+            <Link href={`/post/${post.id}`} className="block">
+              <h3 className="font-semibold mb-1">{post.title}</h3>
+            </Link>
+          )}
           <TranslatableText
             text={post.content}
             as="p"
             stopPropagation
             className="text-sm text-foreground/90 line-clamp-4 whitespace-pre-wrap"
           />
-        </Link>
+        </div>
         {post.media && post.media.length > 0 && (
           <PaidPostMediaGrid
             media={post.media as ProfilePostMediaItem[]}

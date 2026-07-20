@@ -69,6 +69,32 @@ export function LinkifiedText({
             </Link>
           );
         }
+        // Avoid nested <a> inside feed post Links — browsers rewrite the DOM and
+        // the URL text appears to grow/shrink while React reconciles.
+        if (stopPropagation && isExternalHref(part.href)) {
+          return (
+            <span
+              key={i}
+              role="link"
+              tabIndex={0}
+              className="text-primary hover:underline break-all cursor-pointer"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.open(part.href, "_blank", "noopener,noreferrer");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  window.open(part.href, "_blank", "noopener,noreferrer");
+                }
+              }}
+            >
+              {part.label}
+            </span>
+          );
+        }
         return (
           <a
             key={i}
@@ -77,13 +103,6 @@ export function LinkifiedText({
               ? { target: "_blank", rel: "noopener noreferrer" }
               : {})}
             className="text-primary hover:underline break-all"
-            onClick={
-              stopPropagation
-                ? (e) => {
-                    e.stopPropagation();
-                  }
-                : undefined
-            }
           >
             {part.label}
           </a>

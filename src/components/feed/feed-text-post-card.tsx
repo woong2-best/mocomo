@@ -146,17 +146,27 @@ export function FeedTextPostCard({
           </div>
         </div>
 
-        <Link href={`/post/${post.id}`} className="block flex-1 px-3 pb-3">
+        <div className="flex-1 px-3 pb-3">
           {post.title && (
-            <h3 className="font-display font-bold text-sm mb-1 text-folk-cobalt">{post.title}</h3>
+            <Link href={`/post/${post.id}`} className="block">
+              <h3 className="font-display font-bold text-sm mb-1 text-folk-cobalt">{post.title}</h3>
+            </Link>
           )}
-          <TranslatableText
-            text={post.content}
-            as="p"
-            stopPropagation
-            className="text-sm text-foreground/85 line-clamp-6 whitespace-pre-wrap"
-          />
-        </Link>
+          <div
+            className="cursor-pointer"
+            onClick={(e) => {
+              if ((e.target as HTMLElement).closest("a, button, [role='link']")) return;
+              router.push(`/post/${post.id}`);
+            }}
+          >
+            <TranslatableText
+              text={post.content}
+              as="p"
+              stopPropagation
+              className="text-sm text-foreground/85 line-clamp-6 whitespace-pre-wrap"
+            />
+          </div>
+        </div>
 
         {post.poll && (
           <PostPollCard postId={post.id} poll={post.poll} compact />

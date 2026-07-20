@@ -146,30 +146,22 @@ export async function fetchYoutubePreview(rawUrl: string): Promise<LinkPreviewDa
   let description: string | null = null;
   let imageUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
-  const [oembedResult, og] = await Promise.all([
-    fetch(
+  // oEmbed is enough for title/thumb; don't block on YouTube HTML (often slow/blocked).
+  try {
+    const oembed = await fetch(
       `https://www.youtube.com/oembed?url=${encodeURIComponent(normalized)}&format=json`,
       { next: { revalidate: 3600 } }
-    )
-      .then(async (oembed) => {
-        if (!oembed.ok) return null;
-        return (await oembed.json()) as {
-          title?: string;
-          thumbnail_url?: string;
-        };
-      })
-      .catch(() => null),
-    fetchOpenGraphPreview(normalized),
-  ]);
-
-  if (oembedResult) {
-    title = oembedResult.title?.trim() ?? null;
-    if (oembedResult.thumbnail_url) imageUrl = oembedResult.thumbnail_url;
-  }
-  if (og) {
-    description = og.description;
-    if (!title && og.title) title = og.title;
-    if (og.imageUrl) imageUrl = og.imageUrl;
+    );
+    if (oembed.ok) {
+      const data = (await oembed.json()) as {
+        title?: string;
+        thumbnail_url?: string;
+      };
+      title = data.title?.trim() ?? null;
+      if (data.thumbnail_url) imageUrl = data.thumbnail_url;
+    }
+  } catch {
+    /* optional */
   }
 
   return {

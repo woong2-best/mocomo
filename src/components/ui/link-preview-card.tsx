@@ -7,11 +7,30 @@ import {
   extractFirstHttpUrl,
   type LinkPreviewData,
 } from "@/lib/link-preview-shared";
+import {
+  extractYoutubeVideoId,
+  normalizeYoutubeUrl,
+} from "@/lib/video-donation";
 
 type PreviewResponse = {
   ok?: boolean;
   preview?: LinkPreviewData;
 };
+
+function youtubeFallback(url: string): LinkPreviewData | null {
+  const normalized = normalizeYoutubeUrl(url);
+  const videoId = normalized ? extractYoutubeVideoId(normalized) : null;
+  if (!normalized || !videoId) return null;
+  return {
+    url: normalized,
+    domain: "youtube.com",
+    title: null,
+    description: null,
+    imageUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+    siteName: "YouTube",
+    provider: "youtube",
+  };
+}
 
 export function LinkPreviewCard({
   text,
@@ -22,11 +41,12 @@ export function LinkPreviewCard({
   text: string;
   className?: string;
   stopPropagation?: boolean;
-  /** Called when preview availability changes. Stable via ref — safe for parents. */
   onReady?: (ready: boolean) => void;
 }) {
   const url = extractFirstHttpUrl(text);
-  const [preview, setPreview] = useState<LinkPreviewData | null>(null);
+  const [preview, setPreview] = useState<LinkPreviewData | null>(() =>
+    url ? youtubeFallback(url) : null
+  );
   const [failed, setFailed] = useState(false);
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
@@ -41,9 +61,10 @@ export function LinkPreviewCard({
 
     let cancelled = false;
     const ctrl = new AbortController();
-    setPreview(null);
+    const yt = youtubeFallback(url);
+    setPreview(yt);
     setFailed(false);
-    onReadyRef.current?.(false);
+    onReadyRef.current?.(Boolean(yt));
 
     void (async () => {
       try {
@@ -53,14 +74,17 @@ export function LinkPreviewCard({
         const data = (await res.json()) as PreviewResponse;
         if (cancelled) return;
         if (!res.ok || !data.ok || !data.preview) {
-          setFailed(true);
-          onReadyRef.current?.(false);
+          // Keep YouTube thumbnail fallback; only fail hard for other hosts.
+          if (!yt) {
+            setFailed(true);
+            onReadyRef.current?.(false);
+          }
           return;
         }
         setPreview(data.preview);
         onReadyRef.current?.(true);
       } catch {
-        if (!cancelled) {
+        if (!cancelled && !yt) {
           setFailed(true);
           onReadyRef.current?.(false);
         }

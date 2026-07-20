@@ -70,9 +70,11 @@ export function ProfilePostCard({
                   </Link>
                 }
               />
-              <Link href={`/post/${post.id}`} className="block mt-1">
+              <div className="mt-1">
                 {post.title && (
-                  <p className="font-semibold text-[15px]">{post.title}</p>
+                  <Link href={`/post/${post.id}`} className="block">
+                    <p className="font-semibold text-[15px]">{post.title}</p>
+                  </Link>
                 )}
                 <TranslatableText
                   text={post.content}
@@ -80,7 +82,7 @@ export function ProfilePostCard({
                   stopPropagation
                   className="text-[15px] whitespace-pre-wrap break-words line-clamp-6"
                 />
-              </Link>
+              </div>
               {post.media && post.media.length > 0 && (
                 <PaidPostMediaGrid
                   media={post.media as ProfilePostMediaItem[]}
