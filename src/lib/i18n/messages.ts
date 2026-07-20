@@ -226,6 +226,20 @@ export type MessageKey =
   | "feed.emptyPrompt"
   | "feed.compose"
   | "feed.posted"
+  | "toast.published"
+  | "toast.publishFailed"
+  | "toast.retry"
+  | "toast.viewPost"
+  | "toast.edit"
+  | "toast.copyLink"
+  | "toast.share"
+  | "toast.delete"
+  | "toast.linkCopied"
+  | "toast.deleteConfirm"
+  | "toast.cancel"
+  | "toast.editSoon"
+  | "toast.deleted"
+  | "toast.more"
   | "search.placeholder"
   | "compose.placeholder"
   | "compose.post"
@@ -592,6 +606,20 @@ const ko: Record<MessageKey, string> = {
   "feed.emptyPrompt": "오늘의 캔버스에 첫 글을 올려 보세요",
   "feed.compose": "글쓰기",
   "feed.posted": "게시되었습니다",
+  "toast.published": "게시됨",
+  "toast.publishFailed": "게시 실패",
+  "toast.retry": "다시 시도",
+  "toast.viewPost": "게시물 보기",
+  "toast.edit": "수정",
+  "toast.copyLink": "링크 복사",
+  "toast.share": "공유",
+  "toast.delete": "삭제",
+  "toast.linkCopied": "URL 복사 완료",
+  "toast.deleteConfirm": "정말 삭제하시겠습니까?",
+  "toast.cancel": "취소",
+  "toast.editSoon": "게시물 수정은 곧 지원됩니다",
+  "toast.deleted": "게시물이 삭제되었습니다",
+  "toast.more": "더보기",
   "search.placeholder": "사람, 애니, 게시물 검색",
   "compose.placeholder": "무슨 일이 일어나고 있나요?",
   "compose.post": "게시하기",
@@ -959,6 +987,20 @@ const en: Record<MessageKey, string> = {
   "feed.emptyPrompt": "Be the first to post on today's canvas",
   "feed.compose": "Compose",
   "feed.posted": "Posted",
+  "toast.published": "Posted",
+  "toast.publishFailed": "Couldn't post",
+  "toast.retry": "Try again",
+  "toast.viewPost": "View post",
+  "toast.edit": "Edit",
+  "toast.copyLink": "Copy link",
+  "toast.share": "Share",
+  "toast.delete": "Delete",
+  "toast.linkCopied": "Link copied",
+  "toast.deleteConfirm": "Delete this post?",
+  "toast.cancel": "Cancel",
+  "toast.editSoon": "Post editing is coming soon",
+  "toast.deleted": "Post deleted",
+  "toast.more": "More",
   "search.placeholder": "Search people, anime, posts",
   "compose.placeholder": "What's happening?",
   "compose.post": "Post",
@@ -1326,6 +1368,20 @@ const ja: Record<MessageKey, string> = {
   "feed.emptyPrompt": "今日のキャンバスに最初の投稿を",
   "feed.compose": "投稿",
   "feed.posted": "投稿しました",
+  "toast.published": "投稿済み",
+  "toast.publishFailed": "投稿に失敗",
+  "toast.retry": "再試行",
+  "toast.viewPost": "投稿を見る",
+  "toast.edit": "編集",
+  "toast.copyLink": "リンクをコピー",
+  "toast.share": "共有",
+  "toast.delete": "削除",
+  "toast.linkCopied": "URLをコピーしました",
+  "toast.deleteConfirm": "本当に削除しますか？",
+  "toast.cancel": "キャンセル",
+  "toast.editSoon": "投稿の編集は近日対応予定です",
+  "toast.deleted": "投稿を削除しました",
+  "toast.more": "その他",
   "search.placeholder": "人・アニメ・投稿を検索",
   "compose.placeholder": "いまどうしてる？",
   "compose.post": "投稿",
@@ -1693,6 +1749,20 @@ const zh: Record<MessageKey, string> = {
   "feed.emptyPrompt": "成为今天画布上的第一个发帖者",
   "feed.compose": "发帖",
   "feed.posted": "已发布",
+  "toast.published": "已发布",
+  "toast.publishFailed": "发布失败",
+  "toast.retry": "重试",
+  "toast.viewPost": "查看帖子",
+  "toast.edit": "编辑",
+  "toast.copyLink": "复制链接",
+  "toast.share": "分享",
+  "toast.delete": "删除",
+  "toast.linkCopied": "已复制链接",
+  "toast.deleteConfirm": "确定要删除吗？",
+  "toast.cancel": "取消",
+  "toast.editSoon": "帖子编辑即将上线",
+  "toast.deleted": "帖子已删除",
+  "toast.more": "更多",
   "search.placeholder": "搜索用户、动漫、帖子",
   "compose.placeholder": "发生了什么？",
   "compose.post": "发布",

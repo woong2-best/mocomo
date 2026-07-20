@@ -7,6 +7,7 @@ import { AppSocketProvider } from "@/components/providers/app-socket-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { CallProviderGate } from "@/components/call/call-provider-gate";
 import { ComposeProvider } from "@/components/compose/compose-provider";
+import { PublishedToastProvider } from "@/components/providers/published-toast-provider";
 import { SidebarToggleProvider } from "@/components/providers/sidebar-toggle-provider";
 import type { Locale } from "@/lib/i18n/config";
 
@@ -46,6 +47,7 @@ export function AppProviders({
       <LocaleProvider initialLocale={initialLocale} initialCountryCode={initialCountryCode}>
         <AppSocketProvider>
           <QueryProvider>
+          <PublishedToastProvider>
           <ComposeProvider>
             <SidebarToggleProvider>
               <PushRegistration />
@@ -57,6 +59,7 @@ export function AppProviders({
               </CallProviderGate>
             </SidebarToggleProvider>
           </ComposeProvider>
+          </PublishedToastProvider>
           </QueryProvider>
         </AppSocketProvider>
       </LocaleProvider>

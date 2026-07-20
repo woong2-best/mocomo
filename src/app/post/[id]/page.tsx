@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { PostViewTracker } from "@/components/post/post-view-tracker";
 import { PostDetailCard } from "@/components/post/post-detail-card";
 import { PostDetailActions } from "@/components/post/post-detail-actions";
+import { PostFlashHighlight } from "@/components/post/post-flash-highlight";
 import { PostCommentsSection } from "@/components/post/post-comments-section";
 import { PostCommentsSkeleton } from "@/components/post/post-comments-skeleton";
 import { getPostDetail } from "@/lib/post-queries";
@@ -68,14 +69,16 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
         isStaff={isStaff}
         isLoggedIn={!!session?.user}
       />
-      <PostDetailCard
-        post={post}
-        locale={locale}
-        isOwner={session?.user?.id === post.author.id}
-        paymentsEnabled={isPaymentsConfigured()}
-        subscriptionPriceKrw={creator?.creatorSubscriptionPriceKrw ?? undefined}
-        subscribed={!!viewerSub}
-      />
+      <PostFlashHighlight postId={post.id}>
+        <PostDetailCard
+          post={post}
+          locale={locale}
+          isOwner={session?.user?.id === post.author.id}
+          paymentsEnabled={isPaymentsConfigured()}
+          subscriptionPriceKrw={creator?.creatorSubscriptionPriceKrw ?? undefined}
+          subscribed={!!viewerSub}
+        />
+      </PostFlashHighlight>
       <PostDetailActions
         postId={post.id}
         authorUsername={post.author.username}

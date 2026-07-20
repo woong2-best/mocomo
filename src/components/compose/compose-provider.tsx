@@ -13,7 +13,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import dynamic from "next/dynamic";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { CheckCircle2, X, Loader2 } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { composeSheetRegionClass } from "@/lib/compose-sheet-layout";
 import { cn } from "@/lib/utils";
 
@@ -69,7 +69,6 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
   const [initialTitle, setInitialTitle] = useState<string | undefined>();
   const [viaMailbox, setViaMailbox] = useState(false);
   const [formKey, setFormKey] = useState(0);
-  const [successOpen, setSuccessOpen] = useState(false);
   const [pendingOpen, setPendingOpen] = useState<ComposeOptions | null>(null);
 
   const showComposeSheet = useCallback((opts?: ComposeOptions) => {
@@ -115,7 +114,7 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
     setOpen(false);
   }, []);
 
-  const handlePosted = useCallback(() => {
+  const handlePosted = useCallback((_postId: string) => {
     setOpen(false);
     window.setTimeout(() => {
       try {
@@ -123,8 +122,6 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
       } catch (e) {
         console.error("[compose] refresh", e);
       }
-      setSuccessOpen(true);
-      window.setTimeout(() => setSuccessOpen(false), 2800);
     }, 280);
   }, [router]);
 
@@ -208,30 +205,6 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
         </DialogPrimitive.Portal>
       </DialogPrimitive.Root>
 
-      <DialogPrimitive.Root open={successOpen} onOpenChange={setSuccessOpen}>
-        <DialogPrimitive.Portal>
-          <DialogPrimitive.Overlay className="fixed inset-0 z-[90] bg-black/40 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-          <DialogPrimitive.Content
-            className={cn(
-              "fixed left-1/2 top-1/2 z-[91] w-[min(100%-2rem,320px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-background p-8 shadow-xl text-center outline-none",
-              "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-200"
-            )}
-            onOpenAutoFocus={(e) => e.preventDefault()}
-          >
-            <DialogPrimitive.Title className="sr-only">게시 완료</DialogPrimitive.Title>
-            <CheckCircle2 className="mx-auto h-14 w-14 text-green-500" strokeWidth={1.5} />
-            <p className="mt-4 text-lg font-semibold">게시되었습니다</p>
-            <DialogPrimitive.Close asChild>
-              <button
-                type="button"
-                className="mt-6 w-full rounded-xl bg-muted py-2.5 text-sm font-medium hover:bg-muted/80"
-              >
-                확인
-              </button>
-            </DialogPrimitive.Close>
-          </DialogPrimitive.Content>
-        </DialogPrimitive.Portal>
-      </DialogPrimitive.Root>
     </ComposeContext.Provider>
   );
 }

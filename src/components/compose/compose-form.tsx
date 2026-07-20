@@ -10,6 +10,8 @@ import type { CreatePostPollInput } from "@/lib/post-poll";
 import { validatePostPollInput } from "@/lib/post-poll";
 import { buildPostCreditLabel } from "@/lib/media-watermark";
 import { useLocale } from "@/components/providers/locale-provider";
+import { usePublishedToastOptional } from "@/components/providers/published-toast-provider";
+import { userDisplayName } from "@/lib/user-public-select";
 import { cn } from "@/lib/utils";
 
 function friendlyPostError(err: unknown, apiError?: string): string {
@@ -35,11 +37,12 @@ export function ComposeForm({
   variant?: "page" | "sheet" | "inline";
   initialContent?: string;
   initialTitle?: string;
-  onPosted?: () => void;
+  onPosted?: (postId: string) => void;
   onNeedSignIn?: () => void;
 }) {
   const { data: session } = useSession();
   const { t } = useLocale();
+  const publishedToast = usePublishedToastOptional();
   const watermarkCreditLabel = useMemo(
     () => (session?.user?.username ? buildPostCreditLabel(session.user.username) : undefined),
     [session?.user?.username]
@@ -93,6 +96,19 @@ export function ComposeForm({
 
     setLoading(true);
     setError("");
+    const toastUser = session?.user
+      ? {
+          userImage: session.user.image,
+          userName: userDisplayName({
+            username: session.user.username ?? "",
+            name: session.user.name,
+          }),
+        }
+      : {};
+    publishedToast?.showPublishingToast({
+      ...toastUser,
+      message: t("compose.posting"),
+    });
 
     try {
       const res = await fetch("/api/posts/create", {
@@ -107,8 +123,12 @@ export function ComposeForm({
       };
 
       if (!res.ok) {
-        const msg = result.error ?? "게시에 실패했습니다.";
+        const msg = result.error ?? t("toast.publishFailed");
         setError(msg);
+        publishedToast?.showErrorToast({
+          message: t("toast.publishFailed"),
+          detail: t("toast.retry"),
+        });
         if (res.status === 401 || msg.includes("로그인")) {
           onNeedSignIn?.();
         }
@@ -116,13 +136,26 @@ export function ComposeForm({
       }
 
       if (result.postId) {
-        onPosted?.();
+        publishedToast?.showPublishedToast({
+          postId: result.postId,
+          ...toastUser,
+          message: t("toast.published"),
+        });
+        onPosted?.(result.postId);
         return;
       }
-      setError(result.error ?? "게시에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+      setError(result.error ?? t("toast.publishFailed"));
+      publishedToast?.showErrorToast({
+        message: t("toast.publishFailed"),
+        detail: t("toast.retry"),
+      });
     } catch (err) {
       console.error("[ComposeForm] createPost", err);
       setError(friendlyPostError(err));
+      publishedToast?.showErrorToast({
+        message: t("toast.publishFailed"),
+        detail: t("toast.retry"),
+      });
     } finally {
       setLoading(false);
     }
