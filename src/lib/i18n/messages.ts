@@ -54,6 +54,12 @@ export type MessageKey =
   | "calendar.cancel"
   | "calendar.loginRequired"
   | "calendar.loadError"
+  | "whoToFollow.title"
+  | "whoToFollow.refresh"
+  | "whoToFollow.empty"
+  | "whoToFollow.error"
+  | "whoToFollow.commonFollows"
+  | "whoToFollow.suggested"
   | "anime.wikiTitle"
   | "anime.browseByGenre"
   | "anime.postCount"
@@ -464,6 +470,12 @@ const ko: Record<MessageKey, string> = {
   "calendar.cancel": "취소",
   "calendar.loginRequired": "메모를 저장하려면 로그인해 주세요.",
   "calendar.loadError": "메모를 불러오지 못했습니다.",
+  "whoToFollow.title": "팔로우 추천",
+  "whoToFollow.refresh": "새로고침",
+  "whoToFollow.empty": "추천할 사용자가 없어요",
+  "whoToFollow.error": "추천을 불러오지 못했어요",
+  "whoToFollow.commonFollows": "공통 팔로우 {n}명",
+  "whoToFollow.suggested": "회원님을 위한 추천",
   "anime.wikiTitle": "컬쳐 위키",
   "anime.browseByGenre": "장르로 찾기",
   "anime.postCount": "{count}개 글",
@@ -876,6 +888,12 @@ const en: Record<MessageKey, string> = {
   "calendar.cancel": "Cancel",
   "calendar.loginRequired": "Sign in to save calendar memos.",
   "calendar.loadError": "Could not load memos.",
+  "whoToFollow.title": "Who to follow",
+  "whoToFollow.refresh": "Refresh",
+  "whoToFollow.empty": "No suggestions right now",
+  "whoToFollow.error": "Could not load suggestions",
+  "whoToFollow.commonFollows": "{n} mutual follows",
+  "whoToFollow.suggested": "Suggested for you",
   "anime.wikiTitle": "Culture Wiki",
   "anime.browseByGenre": "Browse by genre",
   "anime.postCount": "{count} articles",
@@ -1288,6 +1306,12 @@ const ja: Record<MessageKey, string> = {
   "calendar.cancel": "キャンセル",
   "calendar.loginRequired": "メモを保存するにはログインしてください。",
   "calendar.loadError": "メモを読み込めませんでした。",
+  "whoToFollow.title": "おすすめユーザー",
+  "whoToFollow.refresh": "更新",
+  "whoToFollow.empty": "おすすめがありません",
+  "whoToFollow.error": "おすすめを読み込めませんでした",
+  "whoToFollow.commonFollows": "共通フォロー {n}人",
+  "whoToFollow.suggested": "あなたへのおすすめ",
   "anime.wikiTitle": "カルチャーWiki",
   "anime.browseByGenre": "ジャンルから探す",
   "anime.postCount": "{count}件",
@@ -1700,6 +1724,12 @@ const zh: Record<MessageKey, string> = {
   "calendar.cancel": "取消",
   "calendar.loginRequired": "登录后可保存日历备注。",
   "calendar.loadError": "无法加载备注。",
+  "whoToFollow.title": "关注推荐",
+  "whoToFollow.refresh": "刷新",
+  "whoToFollow.empty": "暂无推荐用户",
+  "whoToFollow.error": "无法加载推荐",
+  "whoToFollow.commonFollows": "共同关注 {n} 人",
+  "whoToFollow.suggested": "为你推荐",
   "anime.wikiTitle": "文化百科",
   "anime.browseByGenre": "按类型浏览",
   "anime.postCount": "{count} 篇",

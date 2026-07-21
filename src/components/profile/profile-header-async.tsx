@@ -14,6 +14,7 @@ import { ProfileTabs } from "@/components/profile/profile-tabs";
 import { ProfilePinnedPostGate } from "@/components/profile/profile-pinned-post-gate";
 import { ProfilePinnedPostVisibility } from "@/components/profile/profile-pinned-post-visibility";
 import { ProfilePostCard } from "@/components/profile/profile-post-card";
+import { ProfileVisitTracker } from "@/components/profile/profile-visit-tracker";
 import { getAuthUserId } from "@/lib/auth";
 import type { UserPublicFields } from "@/lib/user-public-select";
 
@@ -107,6 +108,12 @@ export async function ProfileHeaderAsync({ username }: { username: string }) {
 
   return (
     <>
+      {!header.isSelf && (
+        <ProfileVisitTracker
+          username={header.user.username}
+          profileUserId={header.user.id}
+        />
+      )}
       <ProfileHeader
         user={header.user}
         isSelf={header.isSelf}

@@ -575,6 +575,22 @@ export async function heartbeatLivePresence(channelId: string) {
     update: { lastSeenAt: new Date() },
   });
 
+  if (!access.isHost) {
+    const channel = await db.voiceChannel.findUnique({
+      where: { id: channelId },
+      select: { createdBy: true },
+    });
+    if (channel?.createdBy) {
+      const { recordLiveWatch } = await import("@/lib/follow-recommendations");
+      void recordLiveWatch({
+        userId: user.id,
+        channelId,
+        hostUserId: channel.createdBy,
+        addSeconds: 30,
+      }).catch(() => {});
+    }
+  }
+
   const viewerCount = await countActiveLiveViewers(channelId);
   return { viewerCount };
 }

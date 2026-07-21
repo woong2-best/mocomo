@@ -41,6 +41,10 @@
     {
       "path": "/api/cron/search-trends",
       "schedule": "0 21 * * *"
+    },
+    {
+      "path": "/api/cron/follow-recommendations",
+      "schedule": "0 22 * * *"
     }
   ],
   "functions": {
@@ -76,6 +80,9 @@
     },
     "src/app/api/cron/search-trends/route.ts": {
       "maxDuration": 60
+    },
+    "src/app/api/cron/follow-recommendations/route.ts": {
+      "maxDuration": 120
     },
     "src/app/api/studio/upload/route.ts": {
       "maxDuration": 60

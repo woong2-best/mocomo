@@ -406,6 +406,20 @@ model User {
   adminAuthLockout         AdminAuthLockout?
 
   searchLogs SearchLog[] @relation("SearchLogUser")
+
+  profileVisitsMade     ProfileVisit[]          @relation("ProfileVisitVisitor")
+  profileVisitsReceived ProfileVisit[]          @relation("ProfileVisitHost")
+  postViewEvents        PostViewEvent[]         @relation("PostViewViewer")
+  postViewEventsAsAuthor PostViewEvent[]        @relation("PostViewAuthor")
+  videoWatchEvents      VideoWatchEvent[]       @relation("VideoWatchViewer")
+  videoWatchEventsAsAuthor VideoWatchEvent[]    @relation("VideoWatchAuthor")
+  liveWatchEvents       LiveWatchEvent[]        @relation("LiveWatchViewer")
+  liveWatchEventsAsHost LiveWatchEvent[]        @relation("LiveWatchHost")
+  growthSnapshots       UserGrowthSnapshot[]
+  followRecommendationsAsViewer FollowRecommendation[] @relation("FollowRecViewer")
+  followRecommendationsAsCandidate FollowRecommendation[] @relation("FollowRecCandidate")
+  recommendationEventsAsViewer RecommendationEvent[] @relation("RecEventViewer")
+  recommendationEventsAsCandidate RecommendationEvent[] @relation("RecEventCandidate")
 }
 
 model Account {
@@ -833,6 +847,8 @@ model Post {
   reposts   Repost[]
   poll      PostPoll?
   collaborators PostCollaborator[]
+  postViewEvents   PostViewEvent[]
+  videoWatchEvents VideoWatchEvent[]
 
   @@index([createdAt(sort: Desc)])
   @@index([hotScore(sort: Desc), createdAt(sort: Desc)])
@@ -5591,4 +5607,165 @@ model FlowerAuditLog {
   @@index([action, createdAt])
   @@index([targetId, createdAt])
   @@index([actorId, createdAt])
+}
+
+// ============ FOLLOW RECOMMENDATIONS & ENGAGEMENT SIGNALS ============
+
+enum RecommendationEventType {
+  IMPRESSION
+  CLICK
+  FOLLOW
+  DISMISS
+}
+
+enum RecommendationBucket {
+  COMMON_FOLLOW
+  INTEREST
+  COMMUNITY
+  POPULAR
+  NEW
+  INTERACTION
+  MIXED
+}
+
+/** 프로필 방문 이력 (본인 프로필 제외) */
+model ProfileVisit {
+  id            String   @id @default(cuid())
+  visitorId     String
+  profileUserId String
+  visitCount    Int      @default(1)
+  firstVisitedAt DateTime @default(now())
+  lastVisitedAt DateTime @default(now())
+
+  visitor     User @relation("ProfileVisitVisitor", fields: [visitorId], references: [id], onDelete: Cascade)
+  profileUser User @relation("ProfileVisitHost", fields: [profileUserId], references: [id], onDelete: Cascade)
+
+  @@unique([visitorId, profileUserId])
+  @@index([visitorId, lastVisitedAt(sort: Desc)])
+  @@index([profileUserId, lastVisitedAt(sort: Desc)])
+}
+
+/** 로그인 사용자별 게시물 조회 이력 */
+model PostViewEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  authorId  String
+  viewCount Int      @default(1)
+  firstViewedAt DateTime @default(now())
+  lastViewedAt  DateTime @default(now())
+
+  user   User @relation("PostViewViewer", fields: [userId], references: [id], onDelete: Cascade)
+  author User @relation("PostViewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId, lastViewedAt(sort: Desc)])
+  @@index([authorId, lastViewedAt(sort: Desc)])
+  @@index([postId])
+}
+
+/** 영상(포스트 미디어 VIDEO) 시청 이력 */
+model VideoWatchEvent {
+  id            String   @id @default(cuid())
+  userId        String
+  postId        String
+  authorId      String
+  mediaId       String?
+  watchSeconds  Int      @default(0)
+  watchCount    Int      @default(1)
+  firstWatchedAt DateTime @default(now())
+  lastWatchedAt  DateTime @default(now())
+
+  user   User @relation("VideoWatchViewer", fields: [userId], references: [id], onDelete: Cascade)
+  author User @relation("VideoWatchAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId, lastWatchedAt(sort: Desc)])
+  @@index([authorId, lastWatchedAt(sort: Desc)])
+}
+
+/** 라이브 시청 이력 */
+model LiveWatchEvent {
+  id            String   @id @default(cuid())
+  userId        String
+  channelId     String
+  hostUserId    String
+  watchSeconds  Int      @default(0)
+  sessionCount  Int      @default(1)
+  firstWatchedAt DateTime @default(now())
+  lastWatchedAt  DateTime @default(now())
+
+  user User @relation("LiveWatchViewer", fields: [userId], references: [id], onDelete: Cascade)
+  host User @relation("LiveWatchHost", fields: [hostUserId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channelId])
+  @@index([userId, lastWatchedAt(sort: Desc)])
+  @@index([hostUserId, lastWatchedAt(sort: Desc)])
+  @@index([channelId])
+}
+
+/** 사용자 성장률 시계열 스냅샷 (일 단위) */
+model UserGrowthSnapshot {
+  id                 String   @id @default(cuid())
+  userId             String
+  /** YYYY-MM-DD UTC */
+  dateKey            String
+  followerCount      Int      @default(0)
+  followingCount     Int      @default(0)
+  postCount          Int      @default(0)
+  likeReceivedCount  Int      @default(0)
+  commentReceivedCount Int    @default(0)
+  postViewCount      Int      @default(0)
+  createdAt          DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dateKey])
+  @@index([dateKey])
+  @@index([userId, dateKey(sort: Desc)])
+}
+
+/** 사용자별 캐시된 팔로우 추천 결과 */
+model FollowRecommendation {
+  id          String               @id @default(cuid())
+  userId      String
+  candidateId String
+  score       Float
+  bucket      RecommendationBucket @default(MIXED)
+  /** [{ signalId, score, label? }] */
+  reasons     Json
+  rank        Int
+  computedAt  DateTime             @default(now())
+  expiresAt   DateTime
+
+  user      User @relation("FollowRecViewer", fields: [userId], references: [id], onDelete: Cascade)
+  candidate User @relation("FollowRecCandidate", fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, candidateId])
+  @@index([userId, rank])
+  @@index([userId, expiresAt])
+  @@index([computedAt])
+}
+
+/** 추천 노출·클릭·팔로우 전환 (품질 개선용) */
+model RecommendationEvent {
+  id          String                   @id @default(cuid())
+  userId      String
+  candidateId String
+  eventType   RecommendationEventType
+  source      String                   @default("profile_sidebar")
+  score       Float?
+  bucket      RecommendationBucket?
+  metadata    Json?
+  createdAt   DateTime                 @default(now())
+
+  user      User @relation("RecEventViewer", fields: [userId], references: [id], onDelete: Cascade)
+  candidate User @relation("RecEventCandidate", fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([candidateId, eventType, createdAt(sort: Desc)])
+  @@index([eventType, createdAt(sort: Desc)])
+  @@index([source, createdAt(sort: Desc)])
 }

@@ -38,6 +38,9 @@ export async function toggleFollow(
   });
 
   if (deleted.count > 0) {
+    void db.followRecommendation
+      .deleteMany({ where: { userId: user.id, candidateId: userId } })
+      .catch(() => {});
     await revalidateFollowPaths(resolvedUsername, opts?.listOwnerUsername);
     return { following: false as const };
   }
@@ -56,6 +59,8 @@ export async function toggleFollow(
   }
 
   void notifyFollow(userId, user.id);
+  const { onFollowFromRecommendation } = await import("@/lib/follow-recommendations");
+  void onFollowFromRecommendation(user.id, userId).catch(() => {});
   await revalidateFollowPaths(resolvedUsername, opts?.listOwnerUsername);
 
   return { following: true as const };
