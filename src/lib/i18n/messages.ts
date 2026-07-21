@@ -39,6 +39,20 @@ export type MessageKey =
   | "sidebar.eventsMapTitle"
   | "sidebar.eventsMapExpand"
   | "sidebar.fallbackEventAd"
+  | "calendar.pickMonth"
+  | "calendar.pickMonthHint"
+  | "calendar.prevMonth"
+  | "calendar.nextMonth"
+  | "calendar.prevYear"
+  | "calendar.nextYear"
+  | "calendar.today"
+  | "calendar.memoHint"
+  | "calendar.memoPlaceholder"
+  | "calendar.save"
+  | "calendar.saving"
+  | "calendar.cancel"
+  | "calendar.loginRequired"
+  | "calendar.loadError"
   | "anime.wikiTitle"
   | "anime.browseByGenre"
   | "anime.postCount"
@@ -434,6 +448,20 @@ const ko: Record<MessageKey, string> = {
   "sidebar.eventsMapTitle": "서브컬처·애니 행사 지도",
   "sidebar.eventsMapExpand": "지도 크게 보기 →",
   "sidebar.fallbackEventAd": "진행 중인 이벤트",
+  "calendar.pickMonth": "월 선택",
+  "calendar.pickMonthHint": "연도와 월을 선택하세요",
+  "calendar.prevMonth": "이전 달",
+  "calendar.nextMonth": "다음 달",
+  "calendar.prevYear": "이전 해",
+  "calendar.nextYear": "다음 해",
+  "calendar.today": "오늘",
+  "calendar.memoHint": "메모를 남겨 보세요",
+  "calendar.memoPlaceholder": "이 날짜의 메모…",
+  "calendar.save": "저장",
+  "calendar.saving": "저장 중…",
+  "calendar.cancel": "취소",
+  "calendar.loginRequired": "메모를 저장하려면 로그인해 주세요.",
+  "calendar.loadError": "메모를 불러오지 못했습니다.",
   "anime.wikiTitle": "컬쳐 위키",
   "anime.browseByGenre": "장르로 찾기",
   "anime.postCount": "{count}개 글",
@@ -831,6 +859,20 @@ const en: Record<MessageKey, string> = {
   "sidebar.eventsMapTitle": "Subculture & anime event map",
   "sidebar.eventsMapExpand": "View full map →",
   "sidebar.fallbackEventAd": "Ongoing events",
+  "calendar.pickMonth": "Choose month",
+  "calendar.pickMonthHint": "Select a year and month",
+  "calendar.prevMonth": "Previous month",
+  "calendar.nextMonth": "Next month",
+  "calendar.prevYear": "Previous year",
+  "calendar.nextYear": "Next year",
+  "calendar.today": "Today",
+  "calendar.memoHint": "Add a note for this day",
+  "calendar.memoPlaceholder": "Memo for this date…",
+  "calendar.save": "Save",
+  "calendar.saving": "Saving…",
+  "calendar.cancel": "Cancel",
+  "calendar.loginRequired": "Sign in to save calendar memos.",
+  "calendar.loadError": "Could not load memos.",
   "anime.wikiTitle": "Culture Wiki",
   "anime.browseByGenre": "Browse by genre",
   "anime.postCount": "{count} articles",
@@ -1228,6 +1270,20 @@ const ja: Record<MessageKey, string> = {
   "sidebar.eventsMapTitle": "サブカル・アニメイベント地図",
   "sidebar.eventsMapExpand": "地図を大きく見る →",
   "sidebar.fallbackEventAd": "開催中のイベント",
+  "calendar.pickMonth": "月を選択",
+  "calendar.pickMonthHint": "年と月を選んでください",
+  "calendar.prevMonth": "前の月",
+  "calendar.nextMonth": "次の月",
+  "calendar.prevYear": "前年",
+  "calendar.nextYear": "翌年",
+  "calendar.today": "今日",
+  "calendar.memoHint": "メモを残せます",
+  "calendar.memoPlaceholder": "この日のメモ…",
+  "calendar.save": "保存",
+  "calendar.saving": "保存中…",
+  "calendar.cancel": "キャンセル",
+  "calendar.loginRequired": "メモを保存するにはログインしてください。",
+  "calendar.loadError": "メモを読み込めませんでした。",
   "anime.wikiTitle": "カルチャーWiki",
   "anime.browseByGenre": "ジャンルから探す",
   "anime.postCount": "{count}件",
@@ -1625,6 +1681,20 @@ const zh: Record<MessageKey, string> = {
   "sidebar.eventsMapTitle": "亚文化·动漫活动地图",
   "sidebar.eventsMapExpand": "查看大地图 →",
   "sidebar.fallbackEventAd": "进行中的活动",
+  "calendar.pickMonth": "选择月份",
+  "calendar.pickMonthHint": "请选择年份和月份",
+  "calendar.prevMonth": "上个月",
+  "calendar.nextMonth": "下个月",
+  "calendar.prevYear": "上一年",
+  "calendar.nextYear": "下一年",
+  "calendar.today": "今天",
+  "calendar.memoHint": "可添加当日备注",
+  "calendar.memoPlaceholder": "这一天的备注…",
+  "calendar.save": "保存",
+  "calendar.saving": "保存中…",
+  "calendar.cancel": "取消",
+  "calendar.loginRequired": "登录后可保存日历备注。",
+  "calendar.loadError": "无法加载备注。",
   "anime.wikiTitle": "文化百科",
   "anime.browseByGenre": "按类型浏览",
   "anime.postCount": "{count} 篇",

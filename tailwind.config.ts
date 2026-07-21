@@ -29,6 +29,7 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-geist-sans)", "Pretendard", "system-ui", "sans-serif"],
         display: ["var(--font-folk-display)", "var(--font-geist-sans)", "system-ui", "sans-serif"],
+        serif: ["Georgia", "Times New Roman", "Batang", "serif"],
       },
       animation: {
         "folk-float": "folk-float 4s ease-in-out infinite",
