@@ -4,7 +4,7 @@ import { MoneyHubLinks } from "@/components/money/money-hub-links";
 import { getServerTranslator } from "@/lib/i18n/server";
 
 export default async function MoneyPage() {
-  const t = await getServerTranslator();
+  const { t } = await getServerTranslator();
 
   return (
     <AppPageChrome maxWidth="lg" spacing="sm">
