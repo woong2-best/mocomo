@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { joinCommunity, leaveCommunity } from "@/actions/community-hub";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
 
 export function CommunityJoinButton({
   communityId,
@@ -16,29 +15,54 @@ export function CommunityJoinButton({
   isOwner: boolean;
 }) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [member, setMember] = useState(isMember);
   const [error, setError] = useState("");
+  const inFlightRef = useRef(false);
+  const desiredRef = useRef(isMember);
+
+  useEffect(() => {
+    setMember(isMember);
+    desiredRef.current = isMember;
+  }, [isMember]);
 
   async function toggle() {
     setError("");
-    setLoading(true);
+    const next = !desiredRef.current;
+    desiredRef.current = next;
+    setMember(next);
+
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+
     try {
-      const result = isMember
-        ? await leaveCommunity(communityId)
-        : await joinCommunity(communityId);
-      if (!result) {
-        setError("응답이 없습니다. 로그인 상태를 확인해 주세요.");
-        return;
+      while (true) {
+        const target = desiredRef.current;
+        const result = target
+          ? await joinCommunity(communityId)
+          : await leaveCommunity(communityId);
+        if (!result) {
+          setMember(!target);
+          desiredRef.current = !target;
+          setError("응답이 없습니다. 로그인 상태를 확인해 주세요.");
+          break;
+        }
+        if ("error" in result && result.error) {
+          setMember(!target);
+          desiredRef.current = !target;
+          setError(result.error);
+          break;
+        }
+        if (desiredRef.current !== target) continue;
+        router.refresh();
+        break;
       }
-      if ("error" in result && result.error) {
-        setError(result.error);
-        return;
-      }
-      router.refresh();
     } catch (e) {
+      const rollback = !desiredRef.current;
+      setMember(rollback);
+      desiredRef.current = rollback;
       setError(e instanceof Error ? e.message : "요청에 실패했습니다.");
     } finally {
-      setLoading(false);
+      inFlightRef.current = false;
     }
   }
 
@@ -55,18 +79,12 @@ export function CommunityJoinButton({
       <Button
         type="button"
         size="sm"
-        variant={isMember ? "outline" : "default"}
+        variant={member ? "outline" : "default"}
         className="rounded-xl"
-        disabled={loading}
         onClick={() => void toggle()}
+        aria-pressed={member}
       >
-        {loading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : isMember ? (
-          "가입됨 · 탈퇴"
-        ) : (
-          "가입하기"
-        )}
+        {member ? "가입됨 · 탈퇴" : "가입하기"}
       </Button>
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>

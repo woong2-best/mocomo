@@ -8,7 +8,7 @@ import { Heart, MessageCircle, Star } from "lucide-react";
 import { PostShareMenu } from "@/components/post/post-share-menu";
 import { PostRepostMenu } from "@/components/post/post-repost-menu";
 import { formatNumber, cn } from "@/lib/utils";
-import { engageStar, postEngage } from "@/lib/post-engage-client";
+import { useOptimisticLike, useOptimisticStar } from "@/lib/use-optimistic-engage";
 
 export function PostDetailActions({
   postId,
@@ -35,13 +35,14 @@ export function PostDetailActions({
   initialStarred?: boolean;
   initialReposted?: boolean;
 }) {
-  const [liked, setLiked] = useState(initialLiked);
-  const [starred, setStarred] = useState(initialStarred);
-  const [likeCount, setLikeCount] = useState(initialLikeCount);
-  const [busy, setBusy] = useState<"like" | "star" | null>(null);
+  const like = useOptimisticLike(postId, initialLiked, initialLikeCount);
+  const star = useOptimisticStar(postId, initialStarred);
   const [actionError, setActionError] = useState("");
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { liked, likeCount } = like;
+  const { starred } = star;
+  const displayError = actionError || like.error || star.error;
 
   function requireLogin() {
     if (status === "loading") return false;
@@ -50,42 +51,16 @@ export function PostDetailActions({
     return false;
   }
 
-  async function handleLike() {
-    if (!requireLogin() || busy) return;
+  function handleLike() {
+    if (!requireLogin()) return;
     setActionError("");
-    const prevLiked = liked;
-    const prevCount = likeCount;
-    setLiked(!liked);
-    setLikeCount((c) => (liked ? Math.max(0, c - 1) : c + 1));
-    setBusy("like");
-    try {
-      const data = await postEngage(postId, "like");
-      setLiked(!!data.liked);
-      if (typeof data.likeCount === "number") setLikeCount(data.likeCount);
-    } catch (err) {
-      setLiked(prevLiked);
-      setLikeCount(prevCount);
-      setActionError(err instanceof Error ? err.message : "좋아요에 실패했습니다.");
-    } finally {
-      setBusy(null);
-    }
+    void like.toggle();
   }
 
-  async function handleStar() {
-    if (!requireLogin() || busy) return;
+  function handleStar() {
+    if (!requireLogin()) return;
     setActionError("");
-    const prev = starred;
-    setStarred(!starred);
-    setBusy("star");
-    try {
-      const starredNow = await engageStar(postId);
-      setStarred(starredNow);
-    } catch (err) {
-      setStarred(prev);
-      setActionError(err instanceof Error ? err.message : "STAR 저장에 실패했습니다.");
-    } finally {
-      setBusy(null);
-    }
+    void star.toggle();
   }
 
   return (
@@ -94,7 +69,6 @@ export function PostDetailActions({
         <div className="flex items-center gap-3 text-sm">
           <button
             type="button"
-            disabled={busy === "like"}
             onClick={handleLike}
             className={cn(
               "flex items-center gap-1 min-h-9 px-1",
@@ -134,7 +108,6 @@ export function PostDetailActions({
         </div>
         <button
           type="button"
-          disabled={busy === "star"}
           onClick={handleStar}
           aria-label={starred ? "STAR에서 제거" : "STAR에 저장"}
           className={cn(
@@ -145,7 +118,7 @@ export function PostDetailActions({
           <Star className={cn("h-5 w-5", starred && "fill-yellow-400 text-yellow-400")} />
         </button>
       </div>
-      {actionError && <p className="mt-2 text-xs text-destructive">{actionError}</p>}
+      {displayError && <p className="mt-2 text-xs text-destructive">{displayError}</p>}
     </div>
   );
 }

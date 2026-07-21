@@ -1,21 +1,44 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  notifyCommentAdded,
+  notifyCommentConfirmed,
+  notifyCommentFailed,
+} from "@/lib/comment-optimistic-sync";
 
 export function CommentForm({ postId, parentId }: { postId: string; parentId?: string }) {
   const [content, setContent] = useState("");
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const session = useSession();
+  const user = session?.data?.user;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const text = content.trim();
-    if (!text) return;
-    setLoading(true);
+    if (!text || !user) return;
+
+    const pendingId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    setContent("");
     setError("");
+
+    notifyCommentAdded(postId, {
+      id: pendingId,
+      content: text,
+      parentId,
+      pending: true,
+      author: {
+        name: user.name ?? null,
+        username: user.username ?? user.name ?? "me",
+        supportTierSent: null,
+      },
+      replies: [],
+    });
+
     try {
       const res = await fetch(`/api/posts/${postId}/comments`, {
         method: "POST",
@@ -27,12 +50,15 @@ export function CommentForm({ postId, parentId }: { postId: string; parentId?: s
       if (!res.ok) {
         throw new Error(typeof body.error === "string" ? body.error : "댓글 등록에 실패했습니다.");
       }
-      setContent("");
+      const realId =
+        typeof body?.comment?.id === "string" ? body.comment.id : pendingId;
+      notifyCommentConfirmed(postId, pendingId, realId);
+      // Background sync — do not block UI
       router.refresh();
     } catch (err) {
+      notifyCommentFailed(postId, pendingId);
+      setContent(text);
       setError(err instanceof Error ? err.message : "댓글 등록에 실패했습니다.");
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -45,8 +71,8 @@ export function CommentForm({ postId, parentId }: { postId: string; parentId?: s
           placeholder={parentId ? "대댓글..." : "댓글을 입력하세요..."}
           className="flex-1 h-10 rounded-lg border border-border bg-background/50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
         />
-        <Button type="submit" size="sm" disabled={loading}>
-          {loading ? "..." : "등록"}
+        <Button type="submit" size="sm" disabled={!content.trim()}>
+          등록
         </Button>
       </div>
       {error && <p className="text-xs text-destructive">{error}</p>}

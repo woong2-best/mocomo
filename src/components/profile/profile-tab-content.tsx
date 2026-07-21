@@ -42,6 +42,11 @@ function queryKey(tab: ProfileTab, sort: ProfileSort, kind: ProfileMediaKind) {
   return `${tab}:${sort}:${kind}`;
 }
 
+function parseQueryKey(key: string): { tab: ProfileTab; sort: ProfileSort; kind: ProfileMediaKind } {
+  const [tab, sort, kind] = key.split(":") as [ProfileTab, ProfileSort, ProfileMediaKind];
+  return { tab, sort, kind };
+}
+
 function ProfileWikiList({ data, emptyMessage }: { data: WikiData; emptyMessage: string }) {
   if (data.created.length === 0 && data.edited.length === 0) {
     return <p className="p-8 text-center text-sm text-muted-foreground">{emptyMessage}</p>;
@@ -96,6 +101,17 @@ function ProfileTabLoading() {
   );
 }
 
+function ProfileTabProgress() {
+  return (
+    <div
+      className="pointer-events-none absolute inset-x-0 top-0 z-10 h-0.5 overflow-hidden bg-primary/10"
+      aria-hidden
+    >
+      <div className="h-full w-full animate-moco-pulse-soft bg-primary/70" />
+    </div>
+  );
+}
+
 export function ProfileTabContent({
   username,
   meta,
@@ -106,7 +122,7 @@ export function ProfileTabContent({
   const { tab, sort, kind } = useProfileTab();
   const effectiveTab: ProfileTab = tab === "likes" && !meta.isSelf ? "posts" : tab;
   const cache = useRef(new Map<string, TabPayload>());
-  const [payload, setPayload] = useState<TabPayload | null>(null);
+  const [display, setDisplay] = useState<{ key: string; payload: TabPayload } | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
@@ -115,7 +131,7 @@ export function ProfileTabContent({
   useEffect(() => {
     const cached = cache.current.get(activeKey);
     if (cached) {
-      setPayload(cached);
+      setDisplay({ key: activeKey, payload: cached });
       setLoadError("");
       setLoading(false);
       return;
@@ -124,7 +140,7 @@ export function ProfileTabContent({
     let cancelled = false;
     setLoading(true);
     setLoadError("");
-    setPayload(null);
+    // Keep previous display (stale-while-revalidate) — never blank the UI on tab change
 
     const params = new URLSearchParams();
     if (effectiveTab !== "posts") params.set("tab", effectiveTab);
@@ -161,7 +177,7 @@ export function ProfileTabContent({
           };
         }
         cache.current.set(activeKey, next);
-        setPayload(next);
+        setDisplay({ key: activeKey, payload: next });
       })
       .catch((err: Error) => {
         if (!cancelled) setLoadError(err.message || "불러오기에 실패했습니다.");
@@ -175,13 +191,15 @@ export function ProfileTabContent({
     };
   }, [activeKey, effectiveTab, sort, kind, username, retryCount]);
 
-  const emptyMessage = meta.profileBlocked ? meta.blockedEmptyMessage : emptyMessages[effectiveTab];
+  const showProgress = loading && Boolean(display);
+  const isStale = Boolean(display && display.key !== activeKey);
 
-  if (loading && !payload) {
+  // Initial load only — never replace existing content with a full-page spinner
+  if (loading && !display) {
     return <ProfileTabLoading />;
   }
 
-  if (loadError) {
+  if (loadError && !display) {
     return (
       <div className="flex flex-col items-center gap-3 py-12 text-center">
         <p className="text-sm text-destructive">{loadError}</p>
@@ -192,40 +210,57 @@ export function ProfileTabContent({
     );
   }
 
-  if (!payload) return <ProfileTabLoading />;
+  if (!display) return <ProfileTabLoading />;
 
-  if (payload.kind === "wiki") {
-    return <ProfileWikiList data={payload.data} emptyMessage={emptyMessage} />;
-  }
-
-  if (payload.kind === "media") {
-    return (
-      <ProfileMediaGrid
-        username={username}
-        sort={sort}
-        mediaKind={kind}
-        initialItems={payload.items}
-        initialCursor={payload.nextCursor}
-        emptyMessage={emptyMessage}
-        paymentsEnabled={meta.paymentsEnabled}
-      />
-    );
-  }
+  const { payload } = display;
+  const shown = parseQueryKey(display.key);
+  const emptyMessage = meta.profileBlocked
+    ? meta.blockedEmptyMessage
+    : emptyMessages[shown.tab];
 
   return (
-    <ProfileTimeline
-      username={username}
-      tab={effectiveTab}
-      sort={sort}
-      mediaKind={null}
-      initialItems={payload.items}
-      initialCursor={payload.nextCursor}
-      emptyMessage={emptyMessage}
-      isSelf={meta.isSelf}
-      paymentsEnabled={meta.paymentsEnabled}
-      authorId={meta.authorId}
-      subscriptionPriceKrw={meta.subscriptionPriceKrw}
-      subscribed={meta.subscribed}
-    />
+    <div className="relative">
+      {showProgress ? <ProfileTabProgress /> : null}
+      {loadError && isStale ? (
+        <div className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-2 text-xs text-destructive">
+          <span>{loadError}</span>
+          <Button type="button" variant="ghost" size="sm" className="h-7" onClick={() => setRetryCount((n) => n + 1)}>
+            다시 시도
+          </Button>
+        </div>
+      ) : null}
+      <div className={showProgress ? "opacity-60 transition-opacity" : undefined}>
+        {payload.kind === "wiki" ? (
+          <ProfileWikiList data={payload.data} emptyMessage={emptyMessage} />
+        ) : payload.kind === "media" ? (
+          <ProfileMediaGrid
+            key={display.key}
+            username={username}
+            sort={shown.sort}
+            mediaKind={shown.kind}
+            initialItems={payload.items}
+            initialCursor={payload.nextCursor}
+            emptyMessage={emptyMessage}
+            paymentsEnabled={meta.paymentsEnabled}
+          />
+        ) : (
+          <ProfileTimeline
+            key={display.key}
+            username={username}
+            tab={shown.tab}
+            sort={shown.sort}
+            mediaKind={null}
+            initialItems={payload.items}
+            initialCursor={payload.nextCursor}
+            emptyMessage={emptyMessage}
+            isSelf={meta.isSelf}
+            paymentsEnabled={meta.paymentsEnabled}
+            authorId={meta.authorId}
+            subscriptionPriceKrw={meta.subscriptionPriceKrw}
+            subscribed={meta.subscribed}
+          />
+        )}
+      </div>
+    </div>
   );
 }

@@ -1,21 +1,8 @@
 import { auth } from "@/lib/auth";
 import { getPostComments } from "@/lib/post-queries";
 import { getServerTranslator } from "@/lib/i18n/server";
-import { Card, CardContent } from "@/components/ui/card";
-import { TranslatableText } from "@/components/ui/translatable-text";
 import { CommentForm } from "@/components/post/comment-form";
-import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
-import type { SupportTierLevel } from "@prisma/client";
-
-function safeTier(tier: string | null | undefined): SupportTierLevel {
-  if (!tier) return "PEBBLE";
-  const allowed = [
-    "PEBBLE", "STONE", "COAL", "IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM",
-    "EMERALD", "SAPPHIRE", "RUBY", "DIAMOND", "CRYSTAL", "MYTHRIL", "ORICHALCUM",
-    "CELESTITE", "ASTRAL", "COSMIC", "ETERNAL",
-  ];
-  return allowed.includes(tier) ? (tier as SupportTierLevel) : "PEBBLE";
-}
+import { PostCommentsList } from "@/components/post/post-comments-list";
 
 export async function PostCommentsSection({ postId }: { postId: string }) {
   const [session, { t }] = await Promise.all([auth(), getServerTranslator()]);
@@ -38,33 +25,12 @@ export async function PostCommentsSection({ postId }: { postId: string }) {
       {session?.user && <CommentForm postId={postId} />}
       {loadError ? (
         <p className="text-sm text-destructive">{loadError}</p>
-      ) : comments.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("post.noComments")}</p>
       ) : (
-        comments.map((c) => (
-          <Card key={c.id}>
-            <CardContent className="p-4">
-              <DisplayNameWithSupportTier
-                name={c.author.name || c.author.username}
-                tier={safeTier(c.author.supportTierSent)}
-                nameClassName="font-medium text-sm"
-                compact
-              />
-              <TranslatableText text={c.content} as="p" className="text-sm mt-1 whitespace-pre-wrap" />
-              {c.replies.map((r) => (
-                <div key={r.id} className="ml-6 mt-2 pl-4 border-l border-border">
-                  <DisplayNameWithSupportTier
-                    name={r.author.name || r.author.username}
-                    tier={safeTier(r.author.supportTierSent)}
-                    nameClassName="text-sm font-medium"
-                    compact
-                  />
-                  <TranslatableText text={r.content} as="p" className="text-sm whitespace-pre-wrap" />
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        ))
+        <PostCommentsList
+          postId={postId}
+          initialComments={comments}
+          emptyLabel={t("post.noComments")}
+        />
       )}
     </section>
   );

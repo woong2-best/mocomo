@@ -1,8 +1,19 @@
-/** 라우트 전환 시 즉시 보여줄 공통 스켈레톤 */
+/** 라우트 전환 시 즉시 보여줄 공통 스켈레톤 (문구 스피너 없음) */
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { cn } from "@/lib/utils";
 
 type ChromeMaxWidth = "lg" | "2xl" | "3xl" | "4xl" | "5xl" | "6xl";
+
+function SoftProgress() {
+  return (
+    <div
+      className="pointer-events-none absolute inset-x-0 top-0 z-10 h-0.5 overflow-hidden bg-primary/10"
+      aria-hidden
+    >
+      <div className="h-full w-full animate-moco-pulse-soft bg-primary/70" />
+    </div>
+  );
+}
 
 export function RouteLoading({
   narrow = false,
@@ -45,11 +56,17 @@ export function RouteLoading({
 
   if (chrome) {
     return (
-      <AppPageChrome maxWidth={resolvedMax} className={className}>
+      <AppPageChrome maxWidth={resolvedMax} className={cn("relative", className)}>
+        <SoftProgress />
         {inner}
       </AppPageChrome>
     );
   }
 
-  return <div className="moco-enter">{inner}</div>;
+  return (
+    <div className="relative moco-enter">
+      <SoftProgress />
+      {inner}
+    </div>
+  );
 }

@@ -14,7 +14,7 @@ import { formatNumber, cn } from "@/lib/utils";
 import type { GridPost } from "@/components/feed/feed-post-card";
 import { PostPollCard } from "@/components/post/post-poll-card";
 import { MotionPop } from "@/components/motion/motion-primitives";
-import { engageStar, postEngage } from "@/lib/post-engage-client";
+import { useOptimisticLike, useOptimisticStar } from "@/lib/use-optimistic-engage";
 import { PaidPostMediaGrid } from "@/components/profile/paid-post-media-grid";
 import type { ProfilePostMediaItem } from "@/components/profile/paid-post-media-grid";
 import { TranslatableText } from "@/components/ui/translatable-text";
@@ -50,10 +50,8 @@ export function FeedCompactPostCard({
   initialReposted?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [liked, setLiked] = useState(initialLiked);
-  const [starred, setStarred] = useState(initialStarred);
-  const [likeCount, setLikeCount] = useState(post._count?.likes ?? 0);
-  const [busy, setBusy] = useState<"like" | "star" | null>(null);
+  const like = useOptimisticLike(post.id, initialLiked, post._count?.likes ?? 0);
+  const star = useOptimisticStar(post.id, initialStarred);
   const [actionError, setActionError] = useState("");
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -64,6 +62,9 @@ export function FeedCompactPostCard({
   const isOwner = session?.user?.id === post.author.id;
   const hasMedia = postHasVisualMedia(post);
   const commentCount = post._count?.comments ?? 0;
+  const { liked, likeCount } = like;
+  const { starred } = star;
+  const displayError = actionError || like.error || star.error;
 
   function requireLogin() {
     if (status === "loading") return false;
@@ -72,46 +73,20 @@ export function FeedCompactPostCard({
     return false;
   }
 
-  async function handleLike(e: React.MouseEvent) {
+  function handleLike(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    if (!requireLogin() || busy) return;
+    if (!requireLogin()) return;
     setActionError("");
-    const prevLiked = liked;
-    const prevCount = likeCount;
-    setLiked(!liked);
-    setLikeCount((c) => (liked ? Math.max(0, c - 1) : c + 1));
-    setBusy("like");
-    try {
-      const data = await postEngage(post.id, "like");
-      setLiked(!!data.liked);
-      if (typeof data.likeCount === "number") setLikeCount(data.likeCount);
-    } catch (err) {
-      setLiked(prevLiked);
-      setLikeCount(prevCount);
-      setActionError(err instanceof Error ? err.message : "Failed");
-    } finally {
-      setBusy(null);
-    }
+    void like.toggle();
   }
 
-  async function handleStar(e: React.MouseEvent) {
+  function handleStar(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    if (!requireLogin() || busy) return;
+    if (!requireLogin()) return;
     setActionError("");
-    const prev = starred;
-    setStarred(!starred);
-    setBusy("star");
-    try {
-      const starredNow = await engageStar(post.id);
-      setStarred(starredNow);
-    } catch (err) {
-      setStarred(prev);
-      setActionError(err instanceof Error ? err.message : "Failed");
-    } finally {
-      setBusy(null);
-    }
+    void star.toggle();
   }
 
   return (
@@ -182,7 +157,6 @@ export function FeedCompactPostCard({
             <div className="flex items-center gap-1 text-xs">
               <button
                 type="button"
-                disabled={busy === "like"}
                 onClick={handleLike}
                 className={cn(
                   "flex items-center gap-1 min-h-8 px-2 rounded-lg",
@@ -227,7 +201,6 @@ export function FeedCompactPostCard({
               <PostOwnerMenu postId={post.id} isPinned={post.isPinned} isOwner={isOwner} size="sm" />
               <button
                 type="button"
-                disabled={busy === "star"}
                 onClick={handleStar}
                 className={cn(
                   "min-h-8 min-w-8 flex items-center justify-center rounded-lg",
@@ -240,7 +213,7 @@ export function FeedCompactPostCard({
               </button>
             </div>
           </div>
-          {actionError && <p className="mt-1 text-xs text-destructive">{actionError}</p>}
+          {displayError && <p className="mt-1 text-xs text-destructive">{displayError}</p>}
         </div>
       )}
     </article>

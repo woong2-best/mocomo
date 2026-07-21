@@ -18,7 +18,7 @@ import { formatCompactNumberKo, formatFeedRelativeTime } from "@/lib/format-feed
 import type { GridPost } from "@/components/feed/feed-post-card";
 import { PostPollCard } from "@/components/post/post-poll-card";
 import { MotionPop } from "@/components/motion/motion-primitives";
-import { engageStar, postEngage } from "@/lib/post-engage-client";
+import { useOptimisticLike, useOptimisticStar } from "@/lib/use-optimistic-engage";
 import { TranslatableText } from "@/components/ui/translatable-text";
 import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
 import { LockedMediaPaywallOverlay } from "@/components/media/locked-media-paywall-overlay";
@@ -36,10 +36,8 @@ export function FeedPhotoPostCard({
   initialStarred?: boolean;
   initialReposted?: boolean;
 }) {
-  const [liked, setLiked] = useState(initialLiked);
-  const [starred, setStarred] = useState(initialStarred);
-  const [likeCount, setLikeCount] = useState(post._count?.likes ?? 0);
-  const [busy, setBusy] = useState<"like" | "star" | null>(null);
+  const like = useOptimisticLike(post.id, initialLiked, post._count?.likes ?? 0);
+  const star = useOptimisticStar(post.id, initialStarred);
   const [actionError, setActionError] = useState("");
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const { data: session, status } = useSession();
@@ -53,6 +51,9 @@ export function FeedPhotoPostCard({
   const captionLong = caption.length > CAPTION_PREVIEW_LEN;
   const captionPreview =
     captionLong && !captionExpanded ? `${caption.slice(0, CAPTION_PREVIEW_LEN).trim()}…` : caption;
+  const { liked, likeCount } = like;
+  const { starred } = star;
+  const displayError = actionError || like.error || star.error;
 
   function requireLogin() {
     if (status === "loading") return false;
@@ -61,46 +62,20 @@ export function FeedPhotoPostCard({
     return false;
   }
 
-  async function handleLike(e: React.MouseEvent) {
+  function handleLike(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    if (!requireLogin() || busy) return;
+    if (!requireLogin()) return;
     setActionError("");
-    const prevLiked = liked;
-    const prevCount = likeCount;
-    setLiked(!liked);
-    setLikeCount((c) => (liked ? Math.max(0, c - 1) : c + 1));
-    setBusy("like");
-    try {
-      const data = await postEngage(post.id, "like");
-      setLiked(!!data.liked);
-      if (typeof data.likeCount === "number") setLikeCount(data.likeCount);
-    } catch (err) {
-      setLiked(prevLiked);
-      setLikeCount(prevCount);
-      setActionError(err instanceof Error ? err.message : "좋아요에 실패했습니다.");
-    } finally {
-      setBusy(null);
-    }
+    void like.toggle();
   }
 
-  async function handleStar(e: React.MouseEvent) {
+  function handleStar(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    if (!requireLogin() || busy) return;
+    if (!requireLogin()) return;
     setActionError("");
-    const prev = starred;
-    setStarred(!starred);
-    setBusy("star");
-    try {
-      const starredNow = await engageStar(post.id);
-      setStarred(starredNow);
-    } catch (err) {
-      setStarred(prev);
-      setActionError(err instanceof Error ? err.message : "저장에 실패했습니다.");
-    } finally {
-      setBusy(null);
-    }
+    void star.toggle();
   }
 
   return (
@@ -200,7 +175,6 @@ export function FeedPhotoPostCard({
           <div className="flex items-center gap-3">
             <button
               type="button"
-              disabled={busy === "like"}
               onClick={handleLike}
               className={cn(
                 "flex items-center gap-1.5 min-h-9 transition-colors",
@@ -254,7 +228,6 @@ export function FeedPhotoPostCard({
           </div>
           <button
             type="button"
-            disabled={busy === "star"}
             onClick={handleStar}
             className="min-h-9 hover:opacity-70"
             aria-label={starred ? "STAR에서 제거" : "STAR에 저장"}
@@ -296,7 +269,7 @@ export function FeedPhotoPostCard({
 
       {post.poll && <PostPollCard postId={post.id} poll={post.poll} compact />}
 
-      {actionError && <p className="px-3 pb-2 text-xs text-destructive">{actionError}</p>}
+      {displayError && <p className="px-3 pb-2 text-xs text-destructive">{displayError}</p>}
     </article>
   );
 }
