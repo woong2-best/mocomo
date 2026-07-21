@@ -31,7 +31,7 @@ export const monetizationNavItems: NavItem[] = [
   { href: "/premium", icon: Crown, labelKey: "nav.premium" },
 ];
 
-/** 프로필·모바일 메뉴 — MONEY 하나로 /money 진입 */
+/** 왼쪽 사이드바·모바일 메뉴 — MONEY 하나로 /money 진입 */
 export const moneyHubNavItem: NavItem = {
   href: "/money",
   icon: Banknote,
