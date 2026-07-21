@@ -15,6 +15,7 @@ import {
   Calendar,
   Crown,
   Tags,
+  Banknote,
 } from "lucide-react";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { SupportTrophyIcon } from "@/components/icons/support-trophy-icon";
@@ -23,12 +24,19 @@ export type NavIcon = LucideIcon | typeof SupportTrophyIcon;
 
 export type NavItem = { href: string; icon: NavIcon; labelKey: MessageKey };
 
-/** 프로필 오른쪽 사이드바 — 후원 정산 출금 / Wallet / 프리미엄 */
+/** /money 허브 — 후원 정산 출금 / Wallet / 프리미엄 */
 export const monetizationNavItems: NavItem[] = [
   { href: "/support", icon: SupportTrophyIcon, labelKey: "nav.support" },
   { href: "/wallet", icon: Wallet, labelKey: "nav.wallet" },
   { href: "/premium", icon: Crown, labelKey: "nav.premium" },
 ];
+
+/** 프로필·모바일 메뉴 — MONEY 하나로 /money 진입 */
+export const moneyHubNavItem: NavItem = {
+  href: "/money",
+  icon: Banknote,
+  labelKey: "nav.money",
+};
 
 export const mainNavItems: NavItem[] = [
   { href: "/explore", icon: Compass, labelKey: "nav.explore" },

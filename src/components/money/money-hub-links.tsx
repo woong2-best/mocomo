@@ -2,29 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { moneyHubNavItem } from "@/lib/nav-items";
+import { monetizationNavItems } from "@/lib/nav-items";
 import { isNavItemActive } from "@/lib/nav-active";
 import { useLocale } from "@/components/providers/locale-provider";
-import { RightPanelComposeButton } from "@/components/layout/right-panel-compose";
-import { ProfileCalendar } from "@/components/layout/profile-calendar";
 import { cn } from "@/lib/utils";
 
-/** 프로필(/u/*) 전용 — 상단 달력 + 하단 글쓰기·MONEY */
-export function ProfileRightPanel() {
+/** MONEY 허브 — 후원 정산 출금 / Wallet / 프리미엄 */
+export function MoneyHubLinks() {
   const pathname = usePathname();
   const { t } = useLocale();
-  const { href, icon: Icon, labelKey } = moneyHubNavItem;
-  const active = isNavItemActive(pathname, href, [href]);
+  const navHrefs = monetizationNavItems.map((item) => item.href);
 
   return (
-    <aside className="hidden lg:flex w-64 xl:w-72 shrink-0 h-full flex-col folk-panel-aside overflow-y-auto overscroll-contain">
-      {/* 달력만 패널 가장자리에 풀블리드로 딱 붙임 */}
-      <ProfileCalendar />
-
-      <div className="mt-auto flex flex-col gap-3 p-4 lg:p-6 pt-4">
-        <RightPanelComposeButton />
-        <nav className="flex flex-col gap-2">
+    <nav className="flex flex-col gap-2">
+      {monetizationNavItems.map(({ href, icon: Icon, labelKey }) => {
+        const active = isNavItemActive(pathname, href, navHrefs);
+        return (
           <Link
+            key={href}
             href={href}
             className={cn("sidebar-block", active && "sidebar-block-active")}
           >
@@ -40,8 +35,8 @@ export function ProfileRightPanel() {
             </span>
             <span className="truncate">{t(labelKey)}</span>
           </Link>
-        </nav>
-      </div>
-    </aside>
+        );
+      })}
+    </nav>
   );
 }

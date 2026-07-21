@@ -25,6 +25,7 @@ export type MessageKey =
   | "nav.support"
   | "nav.wallet"
   | "nav.premium"
+  | "nav.money"
   | "nav.settings"
   | "nav.signup"
   | "nav.signin"
@@ -434,6 +435,7 @@ const ko: Record<MessageKey, string> = {
   "nav.support": "후원 정산 출금",
   "nav.wallet": "Wallet",
   "nav.premium": "프리미엄",
+  "nav.money": "MONEY",
   "nav.settings": "설정",
   "nav.signup": "가입",
   "nav.signin": "로그인",
@@ -845,6 +847,7 @@ const en: Record<MessageKey, string> = {
   "nav.support": "Support & Payouts",
   "nav.wallet": "Wallet",
   "nav.premium": "Premium",
+  "nav.money": "MONEY",
   "nav.settings": "Settings",
   "nav.signup": "Sign up",
   "nav.signin": "Sign in",
@@ -1256,6 +1259,7 @@ const ja: Record<MessageKey, string> = {
   "nav.support": "支援・精算",
   "nav.wallet": "Wallet",
   "nav.premium": "プレミアム",
+  "nav.money": "MONEY",
   "nav.settings": "設定",
   "nav.signup": "登録",
   "nav.signin": "ログイン",
@@ -1667,6 +1671,7 @@ const zh: Record<MessageKey, string> = {
   "nav.support": "赞助·结算",
   "nav.wallet": "Wallet",
   "nav.premium": "会员",
+  "nav.money": "MONEY",
   "nav.settings": "设置",
   "nav.signup": "注册",
   "nav.signin": "登录",

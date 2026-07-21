@@ -73,6 +73,7 @@ function titleForPath(pathname: string, t: (key: MessageKey, vars?: Record<strin
   if (pathname === "/discover/matches") return "매칭 목록";
   if (pathname === "/discover/settings") return "매칭 설정";
   if (pathname.startsWith("/discover/")) return "매칭";
+  if (pathname === "/money") return t("nav.money");
   if (pathname === "/wallet") return "Wallet";
   if (pathname.startsWith("/support/emoticons")) return "이모티콘";
   if (pathname.startsWith("/support")) return "후원 정산 출금";
