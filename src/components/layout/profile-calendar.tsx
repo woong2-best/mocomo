@@ -121,9 +121,9 @@ export function ProfileCalendar() {
   const selectedKey = selected ? dateKey(selected.y, selected.m, selected.d) : null;
 
   return (
-    <div className="shrink-0 rounded-xl border-2 border-folk-cobalt/20 bg-white shadow-[2px_3px_0_hsl(var(--folk-cobalt)/0.08)] overflow-hidden">
+    <div className="shrink-0 w-full bg-white border-b border-folk-cobalt/25 overflow-hidden">
       {/* Header — red month number opens picker */}
-      <div className="px-2 pt-3 pb-1 text-center">
+      <div className="px-1.5 pt-3 pb-1 text-center">
         <button
           type="button"
           onClick={() => {

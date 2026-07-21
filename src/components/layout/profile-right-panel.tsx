@@ -16,10 +16,11 @@ export function ProfileRightPanel() {
   const navHrefs = monetizationNavItems.map((item) => item.href);
 
   return (
-    <aside className="hidden lg:flex w-64 xl:w-72 shrink-0 h-full flex-col shell-col-pad folk-panel-aside overflow-y-auto overscroll-contain">
+    <aside className="hidden lg:flex w-64 xl:w-72 shrink-0 h-full flex-col folk-panel-aside overflow-y-auto overscroll-contain">
+      {/* 달력만 패널 가장자리에 풀블리드로 딱 붙임 */}
       <ProfileCalendar />
 
-      <div className="mt-auto flex flex-col gap-3 pt-4">
+      <div className="mt-auto flex flex-col gap-3 p-4 lg:p-6 pt-4">
         <RightPanelComposeButton />
         <nav className="flex flex-col gap-2">
           {monetizationNavItems.map(({ href, icon: Icon, labelKey }) => {
