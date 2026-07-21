@@ -34,7 +34,8 @@ export function AppPageChrome({
   children: React.ReactNode;
   className?: string;
   maxWidth?: keyof typeof MAX_WIDTH;
-  spacing?: "sm" | "md";
+  /** `none` — 프로필처럼 헤더·배너·탭이 붙어야 할 때 */
+  spacing?: "none" | "sm" | "md";
   /** 웹 MotionPage 진입 애니 (셸 전환과 중복 방지 — 기본 꺼짐) */
   animate?: boolean;
 }) {
@@ -45,7 +46,8 @@ export function AppPageChrome({
   const inner = (
     <div
       className={cn(
-        spacing === "sm" ? "space-y-4" : "space-y-6",
+        spacing === "sm" && "space-y-4",
+        spacing === "md" && "space-y-6",
         animate && !usePageMotion && "moco-stagger"
       )}
     >

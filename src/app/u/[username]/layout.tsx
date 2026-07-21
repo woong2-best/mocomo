@@ -30,6 +30,7 @@ async function ProfileLayoutShell({
   return (
     <AppPageChrome
       maxWidth="5xl"
+      spacing="none"
       className="!max-w-none !w-full !mx-0 !p-0 min-h-screen border-x border-border/40"
     >
       <Suspense fallback={<ProfileHeaderSkeleton />}>
