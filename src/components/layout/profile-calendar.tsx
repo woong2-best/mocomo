@@ -121,7 +121,7 @@ export function ProfileCalendar() {
   const selectedKey = selected ? dateKey(selected.y, selected.m, selected.d) : null;
 
   return (
-    <div className="shrink-0 w-full bg-white border-b border-folk-cobalt/25 overflow-hidden">
+    <div className="shrink-0 w-full bg-card border-b border-border overflow-hidden">
       {/* Header — red month number opens picker */}
       <div className="px-1.5 pt-3 pb-1 text-center">
         <button
@@ -130,7 +130,7 @@ export function ProfileCalendar() {
             setPickerYear(year);
             setMonthPickerOpen(true);
           }}
-          className="mx-auto block leading-none text-[2.75rem] font-serif font-bold text-[#c41e3a] tracking-tight hover:opacity-80 active:scale-[0.98] transition-opacity"
+          className="mx-auto block leading-none text-[2.75rem] font-serif font-bold text-[#c41e3a] dark:text-red-400 tracking-tight hover:opacity-80 active:scale-[0.98] transition-opacity"
           aria-label={t("calendar.pickMonth")}
         >
           {month}
@@ -156,7 +156,7 @@ export function ProfileCalendar() {
           <button
             type="button"
             onClick={goToday}
-            className="rounded-md px-2 py-0.5 text-[10px] font-semibold text-folk-cobalt hover:bg-folk-cream"
+            className="rounded-md px-2 py-0.5 text-[10px] font-semibold text-folk-cobalt dark:text-folk-gold hover:bg-muted"
           >
             {t("calendar.today")}
           </button>
@@ -177,14 +177,14 @@ export function ProfileCalendar() {
       </div>
 
       {/* Weekday headers */}
-      <div className="grid grid-cols-7 border-t border-border/60">
+      <div className="grid grid-cols-7 border-t border-border">
         {weekdays.map((w, i) => (
           <div
             key={w.en}
             className={cn(
-              "flex flex-col items-center py-1.5 border-r border-border/50 last:border-r-0",
-              i === 0 && "text-[#c41e3a]",
-              i === 6 && "text-[#1d4ed8]",
+              "flex flex-col items-center py-1.5 border-r border-border last:border-r-0",
+              i === 0 && "text-[#c41e3a] dark:text-red-400",
+              i === 6 && "text-[#1d4ed8] dark:text-sky-400",
               i > 0 && i < 6 && "text-foreground"
             )}
           >
@@ -195,7 +195,7 @@ export function ProfileCalendar() {
       </div>
 
       {/* Date grid */}
-      <div className="grid grid-cols-7 border-t border-border/60">
+      <div className="grid grid-cols-7 border-t border-border">
         {cells.map((cell) => {
           const key = dateKey(cell.y, cell.m, cell.d);
           const hasMemo = Boolean(memos[key]);
@@ -209,18 +209,18 @@ export function ProfileCalendar() {
               type="button"
               onClick={() => openDay(cell)}
               className={cn(
-                "relative min-h-[3.35rem] xl:min-h-[3.6rem] border-r border-b border-border/50 p-0.5 text-left transition-colors last:border-r-0 hover:bg-folk-cream/70",
-                !cell.inMonth && "bg-muted/20",
-                isSelected && "bg-folk-gold/15 ring-1 ring-inset ring-folk-cobalt/30",
-                isToday && "bg-folk-cream/90"
+                "relative min-h-[3.35rem] xl:min-h-[3.6rem] border-r border-b border-border p-0.5 text-left transition-colors last:border-r-0 hover:bg-muted/50",
+                !cell.inMonth && "bg-muted/25",
+                isSelected && "bg-accent/20 ring-1 ring-inset ring-ring/40",
+                isToday && "bg-muted/70"
               )}
             >
               <span
                 className={cn(
                   "block text-center text-[13px] xl:text-sm font-serif font-bold leading-tight tabular-nums",
-                  !cell.inMonth && "text-muted-foreground/45",
-                  cell.inMonth && cell.isRed && "text-[#c41e3a]",
-                  cell.inMonth && cell.isBlue && "text-[#1d4ed8]",
+                  !cell.inMonth && "text-muted-foreground/50",
+                  cell.inMonth && cell.isRed && "text-[#c41e3a] dark:text-red-400",
+                  cell.inMonth && cell.isBlue && "text-[#1d4ed8] dark:text-sky-400",
                   cell.inMonth && !cell.isRed && !cell.isBlue && "text-foreground"
                 )}
               >
@@ -230,7 +230,9 @@ export function ProfileCalendar() {
                 <span
                   className={cn(
                     "mt-0.5 block truncate px-0.5 text-center text-[7px] xl:text-[8px] font-medium leading-tight",
-                    cell.isRed ? "text-[#c41e3a]/90" : "text-muted-foreground"
+                    cell.isRed
+                      ? "text-[#c41e3a]/90 dark:text-red-400/90"
+                      : "text-muted-foreground"
                   )}
                   title={cell.holiday}
                 >
@@ -268,7 +270,7 @@ export function ProfileCalendar() {
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="text-base font-display font-bold text-folk-cobalt">{pickerYear}</span>
+            <span className="text-base font-display font-bold text-folk-cobalt dark:text-folk-gold">{pickerYear}</span>
             <button
               type="button"
               className="rounded-md p-1.5 hover:bg-muted"
@@ -289,8 +291,8 @@ export function ProfileCalendar() {
                   className={cn(
                     "rounded-xl border-2 py-3 text-center font-serif text-xl font-bold transition-all",
                     active
-                      ? "border-[#c41e3a]/50 bg-[#c41e3a]/10 text-[#c41e3a]"
-                      : "border-folk-cobalt/15 bg-white text-foreground hover:border-folk-terracotta/40 hover:bg-folk-cream"
+                      ? "border-red-500/50 bg-red-500/10 text-[#c41e3a] dark:text-red-400"
+                      : "border-border bg-card text-foreground hover:border-folk-terracotta/40 hover:bg-muted"
                   )}
                 >
                   {m}
@@ -310,8 +312,8 @@ export function ProfileCalendar() {
                 <DialogTitle className="font-serif">
                   <span
                     className={cn(
-                      selected.isRed && "text-[#c41e3a]",
-                      selected.isBlue && "text-[#1d4ed8]",
+                      selected.isRed && "text-[#c41e3a] dark:text-red-400",
+                      selected.isBlue && "text-[#1d4ed8] dark:text-sky-400",
                       !selected.isRed && !selected.isBlue && "text-foreground"
                     )}
                   >
