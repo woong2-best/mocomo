@@ -9,7 +9,6 @@ import {
   Radio,
   Sparkles,
   Store,
-  Compass,
   Users,
   Camera,
   Calendar,
@@ -39,9 +38,8 @@ export const moneyHubNavItem: NavItem = {
 };
 
 export const mainNavItems: NavItem[] = [
-  { href: "/explore", icon: Compass, labelKey: "nav.explore" },
-  { href: "/discover", icon: Sparkles, labelKey: "nav.discover" },
   { href: "/my-page", icon: User, labelKey: "nav.myPage" },
+  { href: "/discover", icon: Sparkles, labelKey: "nav.discover" },
   { href: "/communities", icon: Users, labelKey: "nav.communities" },
   { href: "/messages", icon: MessageCircle, labelKey: "nav.messages" },
   { href: "/star", icon: Star, labelKey: "nav.star" },
