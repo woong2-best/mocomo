@@ -2,21 +2,27 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
+import {
+  isProfilePath,
+  shouldShowDefaultRightPanel,
+  shouldShowRightPanel,
+} from "@/lib/sidebar-panel-paths";
 import {
   RightPanelContent,
   RightPanelSkeleton,
   type SidebarPanelData,
 } from "@/components/layout/right-panel-content";
+import { ProfileRightPanel } from "@/components/layout/profile-right-panel";
 
 /** 필요한 페이지에서만 /api/sidebar 호출 (라이브·메시지·방송방 등 제외) */
 export function RightPanelLoader() {
   const pathname = usePathname();
   const show = shouldShowRightPanel(pathname);
+  const showDefault = shouldShowDefaultRightPanel(pathname);
   const [data, setData] = useState<SidebarPanelData | null>(null);
 
   useEffect(() => {
-    if (!show) {
+    if (!showDefault) {
       setData(null);
       return;
     }
@@ -50,9 +56,10 @@ export function RightPanelLoader() {
       cancelled = true;
       ac.abort();
     };
-  }, [show, pathname]);
+  }, [showDefault, pathname]);
 
   if (!show) return null;
+  if (isProfilePath(pathname)) return <ProfileRightPanel />;
   if (!data) return <RightPanelSkeleton />;
   return <RightPanelContent {...data} />;
 }

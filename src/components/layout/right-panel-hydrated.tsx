@@ -2,13 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
+import {
+  isProfilePath,
+  shouldShowDefaultRightPanel,
+  shouldShowRightPanel,
+} from "@/lib/sidebar-panel-paths";
 import { useLocale } from "@/components/providers/locale-provider";
 import {
   RightPanelContent,
   RightPanelSkeleton,
   type SidebarPanelData,
 } from "@/components/layout/right-panel-content";
+import { ProfileRightPanel } from "@/components/layout/profile-right-panel";
 
 /** 서버 prefetch + 클라이언트 네비게이션 시 lazy fetch */
 export function RightPanelHydrated({
@@ -20,12 +25,13 @@ export function RightPanelHydrated({
 }) {
   const pathname = usePathname();
   const show = shouldShowRightPanel(pathname);
+  const showDefault = shouldShowDefaultRightPanel(pathname);
   const { countryCode } = useLocale();
   const [data, setData] = useState<SidebarPanelData | null>(initialData);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!show) return;
+    if (!showDefault) return;
     if (data) return;
 
     let cancelled = false;
@@ -64,9 +70,10 @@ export function RightPanelHydrated({
       cancelled = true;
       ac.abort();
     };
-  }, [show, data, countryCode, initialCountryCode]);
+  }, [showDefault, data, countryCode, initialCountryCode]);
 
   if (!show) return null;
+  if (isProfilePath(pathname)) return <ProfileRightPanel />;
   if (!data) return loading ? <RightPanelSkeleton /> : null;
   return <RightPanelContent {...data} />;
 }

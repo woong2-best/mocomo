@@ -7,6 +7,11 @@ export function isWebtoonDrawStudioPath(pathname: string): boolean {
   return pathname.startsWith("/webtoon/studio/draw");
 }
 
+/** 프로필 홈 — 후원/Wallet/프리미엄 전용 우측 패널 (광고·랭킹 DB 생략) */
+export function isProfilePath(pathname: string): boolean {
+  return pathname.startsWith("/u/");
+}
+
 export function shouldShowRightPanel(pathname: string): boolean {
   if (pathname.startsWith("/admin")) return false;
   if (pathname.startsWith("/auth")) return false;
@@ -23,7 +28,11 @@ export function shouldShowRightPanel(pathname: string): boolean {
   if (/^\/c\/[^/]+/.test(pathname)) return false;
   if (pathname.startsWith("/used")) return false;
   if (pathname.startsWith("/apt")) return false;
-  if (pathname.startsWith("/u/")) return false;
   if (pathname.startsWith("/voice/") && pathname !== "/voice/new") return false;
   return true;
+}
+
+/** 광고·검색 랭킹 등 기본 우측 패널 (프로필은 전용 패널) */
+export function shouldShowDefaultRightPanel(pathname: string): boolean {
+  return shouldShowRightPanel(pathname) && !isProfilePath(pathname);
 }

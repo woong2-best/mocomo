@@ -23,6 +23,13 @@ export type NavIcon = LucideIcon | typeof SupportTrophyIcon;
 
 export type NavItem = { href: string; icon: NavIcon; labelKey: MessageKey };
 
+/** 프로필 오른쪽 사이드바 — 후원 정산 출금 / Wallet / 프리미엄 */
+export const monetizationNavItems: NavItem[] = [
+  { href: "/support", icon: SupportTrophyIcon, labelKey: "nav.support" },
+  { href: "/wallet", icon: Wallet, labelKey: "nav.wallet" },
+  { href: "/premium", icon: Crown, labelKey: "nav.premium" },
+];
+
 export const mainNavItems: NavItem[] = [
   { href: "/explore", icon: Compass, labelKey: "nav.explore" },
   { href: "/discover", icon: Sparkles, labelKey: "nav.discover" },
@@ -37,8 +44,5 @@ export const mainNavItems: NavItem[] = [
   { href: "/market", icon: Store, labelKey: "nav.market" },
   { href: "/used", icon: Tags, labelKey: "nav.used" },
   { href: "/events", icon: Calendar, labelKey: "nav.events" },
-  { href: "/support", icon: SupportTrophyIcon, labelKey: "nav.support" },
-  { href: "/wallet", icon: Wallet, labelKey: "nav.wallet" },
-  { href: "/premium", icon: Crown, labelKey: "nav.premium" },
   { href: "/compose", icon: PenSquare, labelKey: "nav.compose" },
 ];

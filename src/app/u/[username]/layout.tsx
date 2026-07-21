@@ -28,7 +28,10 @@ async function ProfileLayoutShell({
   const { username } = await params;
 
   return (
-    <AppPageChrome maxWidth="5xl" className="!p-0 min-h-screen border-x border-border/40">
+    <AppPageChrome
+      maxWidth="5xl"
+      className="!max-w-none !w-full !mx-0 !p-0 min-h-screen border-x border-border/40"
+    >
       <Suspense fallback={<ProfileHeaderSkeleton />}>
         <ProfileTabProvider username={username}>
           <ProfileHeaderAsync username={username} />

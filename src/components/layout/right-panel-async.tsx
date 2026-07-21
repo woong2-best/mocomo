@@ -2,13 +2,16 @@ import { headers } from "next/headers";
 import { getCachedSidebarPanelData } from "@/lib/cached-data";
 import { resolveSubculturePinsForUser } from "@/lib/subculture-event-countries";
 import { getRequestCountryCode } from "@/lib/i18n/server";
-import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
+import {
+  shouldShowDefaultRightPanel,
+  shouldShowRightPanel,
+} from "@/lib/sidebar-panel-paths";
 import { RightPanelHydrated } from "@/components/layout/right-panel-hydrated";
 
 export async function RightPanelAsync() {
   const pathname = (await headers()).get("x-pathname") ?? "/";
   const show = shouldShowRightPanel(pathname);
-  if (!show) {
+  if (!show || !shouldShowDefaultRightPanel(pathname)) {
     return <RightPanelHydrated initialData={null} countryCode="KR" />;
   }
 
