@@ -208,6 +208,22 @@ export const getProfilePinnedPost = cache(async function getProfilePinnedPost(
     if (isProfileBlocked(relationship)) return null;
   }
 
+  const me = await db.user.findUnique({
+    where: { id: userId },
+    select: { profileMainPostId: true },
+  });
+
+  if (me?.profileMainPostId) {
+    const featured = await db.post.findUnique({
+      where: { id: me.profileMainPostId },
+      include: profilePostIncludeLight,
+    });
+    if (featured) {
+      const [enriched] = await enrichPostsWithMediaAccess([featured], viewerId, author);
+      return enriched;
+    }
+  }
+
   const post = await db.post.findFirst({
     where: { ...profilePostsOwnedOrCollabWhere(userId), isPinned: true },
     include: profilePostIncludeLight,

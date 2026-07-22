@@ -202,7 +202,14 @@ export function FeedCompactPostCard({
               </Link>
             </div>
             <div className="flex items-center gap-1">
-              <PostOwnerMenu postId={post.id} isPinned={post.isPinned} isOwner={isOwner} size="sm" />
+              <PostOwnerMenu
+                postId={post.id}
+                isPinned={post.isPinned}
+                isOwner={isOwner}
+                authorId={post.author.id}
+                authorUsername={post.author.username}
+                size="sm"
+              />
               <button
                 type="button"
                 onClick={handleStar}

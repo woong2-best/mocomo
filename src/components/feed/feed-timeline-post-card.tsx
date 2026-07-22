@@ -134,7 +134,13 @@ export function FeedTimelinePostCard({
               )}
               {post.poll && <div className="mt-3"><PostPollCard postId={post.id} poll={post.poll} compact /></div>}
             </div>
-            <PostOwnerMenu postId={post.id} isPinned={post.isPinned} isOwner={isOwner} />
+            <PostOwnerMenu
+              postId={post.id}
+              isPinned={post.isPinned}
+              isOwner={isOwner}
+              authorId={post.author.id}
+              authorUsername={post.author.username}
+            />
           </div>
         </div>
       </div>

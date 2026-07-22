@@ -117,6 +117,8 @@ export function FeedTextPostCard({
               postId={post.id}
               isPinned={post.isPinned}
               isOwner={isOwner}
+              authorId={post.author.id}
+              authorUsername={post.author.username}
             />
           </div>
         </div>

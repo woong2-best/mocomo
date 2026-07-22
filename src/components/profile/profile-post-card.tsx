@@ -107,14 +107,14 @@ export function ProfilePostCard({
                 </span>
               </div>
             </div>
-            {canOwnMenu && (
-              <PostOwnerMenu
-                postId={post.id}
-                isPinned={!!post.isPinned}
-                isOwner
-                size="md"
-              />
-            )}
+            <PostOwnerMenu
+              postId={post.id}
+              isPinned={!!post.isPinned}
+              isOwner={canOwnMenu}
+              authorId={post.author.id}
+              authorUsername={post.author.username}
+              size="md"
+            />
           </div>
         </div>
       </div>

@@ -177,6 +177,19 @@ export type MessageKey =
   | "post.menu.deleteFailed"
   | "post.menu.pinToProfile"
   | "post.menu.unpinFromProfile"
+  | "post.menu.mute"
+  | "post.menu.unmute"
+  | "post.menu.blockAndReport"
+  | "post.menu.blockAndReportDesc"
+  | "post.menu.reportReason"
+  | "post.menu.reportDetails"
+  | "post.menu.reportDetailsPlaceholder"
+  | "post.menu.blockReportSubmitting"
+  | "post.menu.blockReportDone"
+  | "post.menu.featuredToast"
+  | "post.menu.unfeaturedToast"
+  | "post.menu.mutedToast"
+  | "post.menu.unmutedToast"
   | "translate.viewTranslation"
   | "translate.viewOriginal"
   | "translate.sourceLanguage"
@@ -593,6 +606,20 @@ const ko: Record<MessageKey, string> = {
   "post.menu.deleteFailed": "삭제에 실패했습니다. 다시 시도해 주세요.",
   "post.menu.pinToProfile": "내 프로필 메인에 올리기",
   "post.menu.unpinFromProfile": "프로필 메인에서 내리기",
+  "post.menu.mute": "뮤트",
+  "post.menu.unmute": "뮤트 해제",
+  "post.menu.blockAndReport": "차단 및 신고하기",
+  "post.menu.blockAndReportDesc":
+    "신고가 접수되면 해당 사용자를 차단합니다. 허위·악의적 신고는 제재 대상이 될 수 있습니다.",
+  "post.menu.reportReason": "신고 사유",
+  "post.menu.reportDetails": "추가 설명 (선택)",
+  "post.menu.reportDetailsPlaceholder": "상세 내용을 적어 주세요",
+  "post.menu.blockReportSubmitting": "처리 중…",
+  "post.menu.blockReportDone": "차단 및 신고가 접수되었습니다.",
+  "post.menu.featuredToast": "프로필 메인에 올렸습니다",
+  "post.menu.unfeaturedToast": "프로필 메인에서 내렸습니다",
+  "post.menu.mutedToast": "뮤트했습니다",
+  "post.menu.unmutedToast": "뮤트를 해제했습니다",
   "translate.viewTranslation": "번역 보기",
   "translate.viewOriginal": "원본 보기",
   "translate.sourceLanguage": "원문 언어 {language}",
@@ -1011,6 +1038,20 @@ const en: Record<MessageKey, string> = {
   "post.menu.deleteFailed": "Couldn't delete. Please try again.",
   "post.menu.pinToProfile": "Pin to your profile",
   "post.menu.unpinFromProfile": "Unpin from profile",
+  "post.menu.mute": "Mute",
+  "post.menu.unmute": "Unmute",
+  "post.menu.blockAndReport": "Block and report",
+  "post.menu.blockAndReportDesc":
+    "Submitting a report will also block this user. False or abusive reports may lead to action against your account.",
+  "post.menu.reportReason": "Reason",
+  "post.menu.reportDetails": "Additional details (optional)",
+  "post.menu.reportDetailsPlaceholder": "Add more context",
+  "post.menu.blockReportSubmitting": "Submitting…",
+  "post.menu.blockReportDone": "User blocked and report submitted.",
+  "post.menu.featuredToast": "Pinned to your profile",
+  "post.menu.unfeaturedToast": "Removed from your profile",
+  "post.menu.mutedToast": "Muted",
+  "post.menu.unmutedToast": "Unmuted",
   "translate.viewTranslation": "View translation",
   "translate.viewOriginal": "Show original",
   "translate.sourceLanguage": "Translated from {language}",
@@ -1429,6 +1470,20 @@ const ja: Record<MessageKey, string> = {
   "post.menu.deleteFailed": "削除に失敗しました。もう一度お試しください。",
   "post.menu.pinToProfile": "プロフィールに固定",
   "post.menu.unpinFromProfile": "プロフィールの固定を解除",
+  "post.menu.mute": "ミュート",
+  "post.menu.unmute": "ミュート解除",
+  "post.menu.blockAndReport": "ブロックして報告",
+  "post.menu.blockAndReportDesc":
+    "報告を送信すると、このユーザーもブロックされます。虚偽・悪意のある報告は処分の対象になる場合があります。",
+  "post.menu.reportReason": "報告理由",
+  "post.menu.reportDetails": "追加説明（任意）",
+  "post.menu.reportDetailsPlaceholder": "詳細を入力してください",
+  "post.menu.blockReportSubmitting": "処理中…",
+  "post.menu.blockReportDone": "ブロックと報告を受け付けました。",
+  "post.menu.featuredToast": "プロフィールに固定しました",
+  "post.menu.unfeaturedToast": "プロフィールから外しました",
+  "post.menu.mutedToast": "ミュートしました",
+  "post.menu.unmutedToast": "ミュートを解除しました",
   "translate.viewTranslation": "翻訳を表示",
   "translate.viewOriginal": "原文を表示",
   "translate.sourceLanguage": "原文の言語: {language}",
@@ -1847,6 +1902,20 @@ const zh: Record<MessageKey, string> = {
   "post.menu.deleteFailed": "删除失败，请重试。",
   "post.menu.pinToProfile": "置顶到个人主页",
   "post.menu.unpinFromProfile": "取消主页置顶",
+  "post.menu.mute": "静音",
+  "post.menu.unmute": "取消静音",
+  "post.menu.blockAndReport": "屏蔽并举报",
+  "post.menu.blockAndReportDesc":
+    "提交举报后将同时屏蔽该用户。虚假或恶意举报可能导致账号受到处罚。",
+  "post.menu.reportReason": "举报原因",
+  "post.menu.reportDetails": "补充说明（可选）",
+  "post.menu.reportDetailsPlaceholder": "请填写详细内容",
+  "post.menu.blockReportSubmitting": "处理中…",
+  "post.menu.blockReportDone": "已屏蔽并提交举报。",
+  "post.menu.featuredToast": "已置顶到个人主页",
+  "post.menu.unfeaturedToast": "已从个人主页取消置顶",
+  "post.menu.mutedToast": "已静音",
+  "post.menu.unmutedToast": "已取消静音",
   "translate.viewTranslation": "查看翻译",
   "translate.viewOriginal": "查看原文",
   "translate.sourceLanguage": "原文语言：{language}",

@@ -64,14 +64,14 @@ export function PostDetailCard({
           </div>
           <div className="flex items-center gap-1 shrink-0">
             {isOwner && <PostCollabManageDialog postId={post.id} />}
-            {isOwner && (
-              <PostOwnerMenu
-                postId={post.id}
-                isPinned={post.isPinned}
-                isOwner
-                size="md"
-              />
-            )}
+            <PostOwnerMenu
+              postId={post.id}
+              isPinned={post.isPinned}
+              isOwner={isOwner}
+              authorId={post.author.id}
+              authorUsername={post.author.username}
+              size="md"
+            />
           </div>
         </div>
         <PostCollabActions

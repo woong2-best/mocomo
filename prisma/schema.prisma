@@ -205,6 +205,9 @@ model User {
   profile       Profile?
   cosplayerProfile CosplayerProfile?
   streamerProfile  StreamerProfile?
+  /** 프로필 메인에 올린 게시물 (본인·타인 게시물 모두 가능) */
+  profileMainPostId String?
+  profileMainPost   Post? @relation("ProfileMainPost", fields: [profileMainPostId], references: [id], onDelete: SetNull)
 
   posts         Post[]
   postCollaborations PostCollaborator[] @relation("PostCollaboratorUser")
@@ -849,6 +852,7 @@ model Post {
   collaborators PostCollaborator[]
   postViewEvents   PostViewEvent[]
   videoWatchEvents VideoWatchEvent[]
+  featuredAsProfileMain User[] @relation("ProfileMainPost")
 
   @@index([createdAt(sort: Desc)])
   @@index([hotScore(sort: Desc), createdAt(sort: Desc)])
