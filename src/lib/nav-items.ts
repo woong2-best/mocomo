@@ -29,7 +29,7 @@ export const monetizationNavItems: NavItem[] = [
   { href: "/premium", icon: Crown, labelKey: "nav.premium" },
 ];
 
-/** 왼쪽 사이드바·모바일 메뉴 — MONEY 하나로 /money 진입 */
+/** /money 허브 진입용 (사이드바 mainNav에는 미포함 — 필요 시 별도 노출) */
 export const moneyHubNavItem: NavItem = {
   href: "/money",
   icon: Banknote,
@@ -38,16 +38,15 @@ export const moneyHubNavItem: NavItem = {
 
 export const mainNavItems: NavItem[] = [
   { href: "/my-page", icon: User, labelKey: "nav.myPage" },
-  { href: "/discover", icon: Sparkles, labelKey: "nav.discover" },
   { href: "/communities", icon: Users, labelKey: "nav.communities" },
   { href: "/messages", icon: MessageCircle, labelKey: "nav.messages" },
   { href: "/star", icon: Star, labelKey: "nav.star" },
-  { href: "/anime", icon: Tv, labelKey: "nav.anime" },
-  { href: "/cosplay", icon: Camera, labelKey: "nav.cosplay" },
   { href: "/live", icon: Radio, labelKey: "nav.live" },
   { href: "/avatar/studio", icon: Sparkles, labelKey: "nav.liveStudio" },
+  { href: "/cosplay", icon: Camera, labelKey: "nav.cosplay" },
   { href: "/market", icon: Store, labelKey: "nav.market" },
   { href: "/used", icon: Tags, labelKey: "nav.used" },
+  { href: "/anime", icon: Tv, labelKey: "nav.anime" },
   { href: "/events", icon: Calendar, labelKey: "nav.events" },
-  moneyHubNavItem,
+  { href: "/discover", icon: Sparkles, labelKey: "nav.discover" },
 ];
