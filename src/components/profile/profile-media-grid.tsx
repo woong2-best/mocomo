@@ -47,7 +47,7 @@ function MediaTile({
     return (
       <Link
         href={`/post/${item.postId}`}
-        className="group relative block aspect-square overflow-hidden bg-neutral-900"
+        className="group relative block aspect-square min-w-0 w-full overflow-hidden bg-neutral-900"
       >
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-neutral-800/95 px-2 text-center">
           <EyeOff className="h-6 w-6 text-white/70" />
@@ -59,7 +59,7 @@ function MediaTile({
 
   if (isPurchaseLocked) {
     return (
-      <div className="group relative block aspect-square overflow-hidden bg-neutral-900">
+      <div className="group relative block aspect-square min-w-0 w-full overflow-hidden bg-neutral-900">
         {blurredThumb}
         <LockedMediaPaywallOverlay>
           <div
@@ -87,7 +87,7 @@ function MediaTile({
     return (
       <Link
         href={`/post/${item.postId}`}
-        className="group relative block aspect-square overflow-hidden bg-neutral-900"
+        className="group relative block aspect-square min-w-0 w-full overflow-hidden bg-neutral-900"
       >
         {blurredThumb}
         <LockedMediaPaywallOverlay label={isSubLocked ? "구독하기" : "결제하기"} />
@@ -98,7 +98,7 @@ function MediaTile({
   return (
     <Link
       href={`/post/${item.postId}`}
-      className="group relative block aspect-square overflow-hidden bg-neutral-900"
+      className="group relative block aspect-square min-w-0 w-full overflow-hidden bg-neutral-900"
     >
       {isVideo ? (
         <>
@@ -209,7 +209,8 @@ export function ProfileMediaGrid({
 
   return (
     <>
-      <div className="grid grid-cols-3 gap-px bg-border/50">
+      {/* Twitter-style: full-bleed 3-col squares, 1px gutters, zero side padding */}
+      <div className="grid w-full grid-cols-3 gap-px bg-border/50">
         {items.map((item) => (
           <MediaTile
             key={item.id}

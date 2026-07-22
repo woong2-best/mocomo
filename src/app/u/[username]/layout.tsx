@@ -3,6 +3,7 @@ import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { ProfileHeaderAsync } from "@/components/profile/profile-header-async";
 import { ProfileMinigameAsync } from "@/components/profile/profile-minigame-async";
 import { ProfileTabProvider } from "@/components/profile/profile-tab-context";
+import { ProfileTabsAsync } from "@/components/profile/profile-tabs-async";
 import { ProfileWebtoonsAsync } from "@/components/profile/profile-webtoons-async";
 import { ProfileHeaderSkeleton } from "@/components/ui/content-skeletons";
 
@@ -35,9 +36,25 @@ async function ProfileLayoutShell({
     >
       <Suspense fallback={<ProfileHeaderSkeleton />}>
         <ProfileTabProvider username={username}>
+          {/* Banner / bio / pinned — full width */}
           <ProfileHeaderAsync username={username} />
+
+          {/*
+            Twitter-style: tabs + media grid share ONE column and fill it
+            edge-to-edge. Right aside stays separate (doesn't leave a hollow
+            strip under Create).
+          */}
           <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_280px] min-w-0">
-            <div className="min-w-0">{children}</div>
+            <div className="min-w-0">
+              <Suspense
+                fallback={
+                  <div className="h-14 border-b border-border/60 bg-background/80" aria-hidden />
+                }
+              >
+                <ProfileTabsAsync username={username} />
+              </Suspense>
+              {children}
+            </div>
             <div className="border-t border-border/40 p-4 lg:hidden">
               <Suspense
                 fallback={<div className="h-32 animate-pulse rounded-xl bg-muted/40" />}

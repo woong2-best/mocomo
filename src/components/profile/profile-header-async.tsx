@@ -10,7 +10,6 @@ import { creatorSubscriptionPriceForUser } from "@/lib/creator-subscription";
 import { getViewerSupportForCreator } from "@/actions/support";
 import { ProfileHeader } from "@/components/profile/profile-header";
 import { ProfileHeaderActionBar } from "@/components/profile/profile-header-action-bar";
-import { ProfileTabs } from "@/components/profile/profile-tabs";
 import { ProfilePinnedPostGate } from "@/components/profile/profile-pinned-post-gate";
 import { ProfilePinnedPostVisibility } from "@/components/profile/profile-pinned-post-visibility";
 import { ProfilePostCard } from "@/components/profile/profile-post-card";
@@ -148,7 +147,6 @@ export async function ProfileHeaderAsync({ username }: { username: string }) {
           />
         </Suspense>
       </ProfilePinnedPostGate>
-      <ProfileTabs showLikesTab={header.isSelf} isSelf={header.isSelf} />
     </>
   );
 }

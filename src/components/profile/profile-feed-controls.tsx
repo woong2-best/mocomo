@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { useProfileTab } from "@/components/profile/profile-tab-context";
 import type { ProfileMediaKind } from "@/lib/profile-queries";
 
-/** Compact sort links — sits above Create in the tab bar right column. */
+/** Compact sort links — sits with Create over the feed, not in a tab rail. */
 export function ProfileSortControls({ className }: { className?: string }) {
   const { tab, sort, navigate } = useProfileTab();
 
@@ -50,7 +50,8 @@ const KIND_OPTIONS: {
 
 /**
  * Media kind filters (전체 / 사진 / 비디오).
- * Neutral tone underlay + milky glass so warm page colors don't stain the pill.
+ * Renders the glass pill only — parent owns overlay positioning so the
+ * 3-col media grid stays edge-to-edge underneath.
  */
 export function ProfileFeedControls() {
   const { tab, kind, navigate } = useProfileTab();
@@ -60,35 +61,33 @@ export function ProfileFeedControls() {
   const setKind = (nextKind: ProfileMediaKind) => navigate({ kind: nextKind });
 
   return (
-    <div className="relative z-10 -mb-10 px-4 pb-2 pt-2">
-      <div className="liquid-glass-wrap">
-        {/* Neutral color-correction layer — blur samples this instead of raw cream/terracotta */}
-        <div aria-hidden className="liquid-glass-tone" />
-        <div
-          role="tablist"
-          aria-label="미디어 종류"
-          className="liquid-glass liquid-glass-pill inline-flex p-1"
-        >
-          {KIND_OPTIONS.map(({ id, label, Icon }) => {
-            const active = kind === id;
-            return (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => setKind(id)}
-                className={cn(
-                  "liquid-glass-segment inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium sm:px-4",
-                  active && "liquid-glass-segment-active"
-                )}
-              >
-                <Icon className="h-3.5 w-3.5 drop-shadow-[0_1px_1px_rgba(0,0,0,0.4)]" />
-                {label}
-              </button>
-            );
-          })}
-        </div>
+    <div className="liquid-glass-wrap min-w-0">
+      {/* Neutral color-correction layer — blur samples this instead of raw cream/terracotta */}
+      <div aria-hidden className="liquid-glass-tone" />
+      <div
+        role="tablist"
+        aria-label="미디어 종류"
+        className="liquid-glass liquid-glass-pill inline-flex max-w-full p-1"
+      >
+        {KIND_OPTIONS.map(({ id, label, Icon }) => {
+          const active = kind === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setKind(id)}
+              className={cn(
+                "liquid-glass-segment inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-medium sm:px-3.5",
+                active && "liquid-glass-segment-active"
+              )}
+            >
+              <Icon className="h-3.5 w-3.5 shrink-0 drop-shadow-[0_1px_1px_rgba(0,0,0,0.4)]" />
+              <span className="truncate">{label}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
