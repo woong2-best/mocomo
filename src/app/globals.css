@@ -78,79 +78,97 @@
 }
 
 @layer utilities {
-  /* Apple Control Center–style liquid glass */
+  /*
+   * Apple Control Center liquid glass — neutral frosted material.
+   * Tone layer kills warm page colors; glass uses low saturate + milky fill
+   * so backdrop hues don't read as brown/orange stains.
+   */
+  .liquid-glass-wrap {
+    position: relative;
+    display: inline-flex;
+    max-width: 100%;
+    isolation: isolate;
+    overflow: hidden;
+    border-radius: 999px;
+  }
+  /* Neutral color-correction underlay (sampled by backdrop-filter above) */
+  .liquid-glass-tone {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-color: rgba(20, 20, 20, 0.42);
+    border-radius: inherit;
+  }
   .liquid-glass {
-    background: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+    z-index: 1;
+    background: rgba(255, 255, 255, 0.32);
+    border: 1px solid rgba(255, 255, 255, 0.28);
     border-radius: 28px;
     box-shadow:
-      inset 0 1px 1px rgba(255, 255, 255, 0.45),
-      inset 0 -1px 1px rgba(255, 255, 255, 0.08),
-      0 8px 24px rgba(0, 0, 0, 0.12);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    backdrop-filter: blur(20px) saturate(180%);
+      inset 0 1px 1px rgba(255, 255, 255, 0.55),
+      inset 0 -0.5px 1px rgba(255, 255, 255, 0.12),
+      0 6px 20px rgba(0, 0, 0, 0.14);
+    -webkit-backdrop-filter: blur(20px) saturate(120%);
+    backdrop-filter: blur(20px) saturate(120%);
     color: #fff;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
     transition: background 0.2s ease;
   }
   .liquid-glass:hover {
-    background: rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.38);
   }
   .liquid-glass:active {
-    background: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.44);
   }
   .liquid-glass-pill {
     border-radius: 999px;
   }
   .liquid-glass-segment {
     background: transparent;
-    color: rgba(255, 255, 255, 0.88);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    color: rgba(255, 255, 255, 0.92);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
     transition: background 0.2s ease, color 0.2s ease;
   }
   .liquid-glass-segment:hover {
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.14);
   }
   .liquid-glass-segment:active {
-    background: rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.2);
   }
   .liquid-glass-segment-active {
-    background: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.34);
     color: #fff;
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.5),
-      0 2px 8px rgba(0, 0, 0, 0.1);
+      inset 0 1px 0 rgba(255, 255, 255, 0.55),
+      0 2px 8px rgba(0, 0, 0, 0.12);
   }
   .liquid-glass-segment-active:hover {
-    background: rgba(255, 255, 255, 0.34);
+    background: rgba(255, 255, 255, 0.4);
+  }
+  .dark .liquid-glass-tone {
+    background-color: rgba(0, 0, 0, 0.5);
   }
   .dark .liquid-glass {
-    background: rgba(0, 0, 0, 0.3);
-    border-color: rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.2);
     box-shadow:
-      inset 0 1px 1px rgba(255, 255, 255, 0.2),
-      inset 0 -1px 1px rgba(0, 0, 0, 0.25),
+      inset 0 1px 1px rgba(255, 255, 255, 0.22),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.28),
       0 8px 24px rgba(0, 0, 0, 0.35);
   }
   .dark .liquid-glass:hover {
-    background: rgba(0, 0, 0, 0.38);
-  }
-  .dark .liquid-glass:active {
-    background: rgba(0, 0, 0, 0.45);
-  }
-  .dark .liquid-glass-segment-active {
     background: rgba(255, 255, 255, 0.18);
   }
-  .dark .liquid-glass-segment-active:hover {
-    background: rgba(255, 255, 255, 0.24);
+  .dark .liquid-glass:active {
+    background: rgba(255, 255, 255, 0.22);
   }
-  /* Soft scene behind glass so backdrop-filter has something to refract */
-  .liquid-glass-scene {
-    background:
-      radial-gradient(ellipse 80% 70% at 15% 40%, hsl(var(--folk-cobalt) / 0.55), transparent 55%),
-      radial-gradient(ellipse 70% 80% at 85% 30%, hsl(var(--folk-terracotta) / 0.5), transparent 50%),
-      radial-gradient(ellipse 60% 60% at 50% 90%, hsl(var(--folk-gold) / 0.45), transparent 55%),
-      linear-gradient(135deg, hsl(224 40% 28%), hsl(15 40% 32%), hsl(42 35% 30%));
+  .dark .liquid-glass-segment-active {
+    background: rgba(255, 255, 255, 0.2);
+  }
+  .dark .liquid-glass-segment-active:hover {
+    background: rgba(255, 255, 255, 0.26);
   }
 
   .pb-safe {

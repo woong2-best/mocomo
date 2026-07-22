@@ -50,7 +50,7 @@ const KIND_OPTIONS: {
 
 /**
  * Media kind filters (전체 / 사진 / 비디오).
- * Liquid-glass pill floats over a scene layer so backdrop-filter can blur real pixels behind it.
+ * Neutral tone underlay + milky glass so warm page colors don't stain the pill.
  */
 export function ProfileFeedControls() {
   const { tab, kind, navigate } = useProfileTab();
@@ -61,16 +61,13 @@ export function ProfileFeedControls() {
 
   return (
     <div className="relative z-10 -mb-10 px-4 pb-2 pt-2">
-      {/* Scene layer behind glass — backdrop-filter blurs these pixels through the frosted pill */}
-      <div className="relative isolate inline-flex max-w-full overflow-hidden rounded-[28px]">
-        <div
-          aria-hidden
-          className="liquid-glass-scene pointer-events-none absolute inset-0 scale-125"
-        />
+      <div className="liquid-glass-wrap">
+        {/* Neutral color-correction layer — blur samples this instead of raw cream/terracotta */}
+        <div aria-hidden className="liquid-glass-tone" />
         <div
           role="tablist"
           aria-label="미디어 종류"
-          className="liquid-glass liquid-glass-pill relative inline-flex p-1"
+          className="liquid-glass liquid-glass-pill inline-flex p-1"
         >
           {KIND_OPTIONS.map(({ id, label, Icon }) => {
             const active = kind === id;
@@ -86,7 +83,7 @@ export function ProfileFeedControls() {
                   active && "liquid-glass-segment-active"
                 )}
               >
-                <Icon className="h-3.5 w-3.5 drop-shadow-[0_1px_1px_rgba(0,0,0,0.35)]" />
+                <Icon className="h-3.5 w-3.5 drop-shadow-[0_1px_1px_rgba(0,0,0,0.4)]" />
                 {label}
               </button>
             );
