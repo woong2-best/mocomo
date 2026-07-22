@@ -38,7 +38,7 @@ export function ProfileTabs({
   return (
     <>
       <div className="sticky top-[var(--profile-compact-h)] z-20">
-        {/* Full-width tabs — Twitter-style, no Create rail stealing width */}
+        {/* Full-width tabs — sticks under compact profile header for the whole feed */}
         <div className="border-b border-border/60 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
           <nav className="flex w-full items-stretch" aria-label="프로필 탭">
             {tabs.filter((t) => showLikesTab || t.id !== "likes").map((t) => {
@@ -49,14 +49,17 @@ export function ProfileTabs({
                   type="button"
                   onClick={() => navigate({ tab: t.id })}
                   className={cn(
-                    "relative min-w-0 flex-1 py-4 text-center text-sm font-medium transition-colors hover:bg-muted/40",
-                    isActive && "font-bold"
+                    "relative min-w-0 flex-1 py-3.5 text-center text-sm font-medium transition-colors hover:bg-muted/40",
+                    isActive ? "font-bold text-foreground" : "text-muted-foreground"
                   )}
                 >
                   {t.label}
-                  {isActive && (
-                    <span className="absolute bottom-0 left-1/2 h-1 w-14 -translate-x-1/2 rounded-full bg-primary" />
-                  )}
+                  {isActive ? (
+                    <span
+                      className="absolute inset-x-0 bottom-0 mx-auto h-1 w-14 rounded-full bg-primary"
+                      aria-hidden
+                    />
+                  ) : null}
                 </button>
               );
             })}
