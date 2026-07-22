@@ -3,7 +3,6 @@ import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { ProfileHeaderAsync } from "@/components/profile/profile-header-async";
 import { ProfileMinigameAsync } from "@/components/profile/profile-minigame-async";
 import { ProfileTabProvider } from "@/components/profile/profile-tab-context";
-import { ProfileTabsAsync } from "@/components/profile/profile-tabs-async";
 import { ProfileWebtoonsAsync } from "@/components/profile/profile-webtoons-async";
 import { ProfileHeaderSkeleton } from "@/components/ui/content-skeletons";
 
@@ -36,43 +35,17 @@ async function ProfileLayoutShell({
     >
       <Suspense fallback={<ProfileHeaderSkeleton />}>
         <ProfileTabProvider username={username}>
-          {/* Banner / bio / pinned — full width */}
+          {/* Header + tabs + feed share one full-width column (Twitter-style). */}
           <ProfileHeaderAsync username={username} />
+          <div className="min-w-0 w-full">{children}</div>
 
-          {/*
-            Twitter-style: tabs + media grid share ONE column and fill it
-            edge-to-edge. Right aside stays separate (doesn't leave a hollow
-            strip under Create).
-          */}
-          <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_280px] min-w-0">
-            <div className="min-w-0">
-              <Suspense
-                fallback={
-                  <div className="h-14 border-b border-border/60 bg-background/80" aria-hidden />
-                }
-              >
-                <ProfileTabsAsync username={username} />
-              </Suspense>
-              {children}
-            </div>
-            <div className="border-t border-border/40 p-4 lg:hidden">
-              <Suspense
-                fallback={<div className="h-32 animate-pulse rounded-xl bg-muted/40" />}
-              >
-                <ProfilePageMinigame username={username} />
-              </Suspense>
-            </div>
-            <Suspense
-              fallback={
-                <aside className="hidden border-l border-border/40 p-4 lg:block">
-                  <div className="h-40 animate-pulse rounded-xl bg-muted/40" />
-                </aside>
-              }
-            >
-              <aside className="hidden min-w-0 space-y-4 border-l border-border/40 p-4 lg:block">
-                <ProfilePageWebtoons username={username} />
-                <ProfilePageMinigame username={username} />
-              </aside>
+          {/* Secondary widgets below feed — never reserve an empty side rail */}
+          <div className="space-y-4 border-t border-border/40 p-4">
+            <Suspense fallback={null}>
+              <ProfilePageWebtoons username={username} />
+            </Suspense>
+            <Suspense fallback={null}>
+              <ProfilePageMinigame username={username} />
             </Suspense>
           </div>
         </ProfileTabProvider>

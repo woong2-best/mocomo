@@ -15,8 +15,8 @@ export function ProfileWebtoonsPanel({
   const paymentsEnabled = isPaymentsConfigured();
 
   return (
-    <aside className="border-t lg:border-t-0 lg:border-l border-border/40 bg-muted/20 lg:min-h-[320px]">
-      <div className="sticky top-14 p-4 space-y-4 max-h-[calc(100vh-3.5rem)] overflow-y-auto">
+    <section className="rounded-2xl border border-border/40 bg-muted/20">
+      <div className="space-y-4 p-4">
         <div className="flex items-center gap-2">
           <ImageIcon className="h-4 w-4 text-[#0096fa]" />
           <h2 className="font-bold text-sm">판매 작품</h2>
@@ -67,6 +67,6 @@ export function ProfileWebtoonsPanel({
           @{username}의 일러스트 더 보기
         </Link>
       </div>
-    </aside>
+    </section>
   );
 }
