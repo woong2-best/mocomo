@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { useProfileTab } from "@/components/profile/profile-tab-context";
 import type { ProfileMediaKind } from "@/lib/profile-queries";
 
-/** Compact sort links — sits with Create over the feed, not in a tab rail. */
+/** Compact sort links — sits with Create above the profile tab rail. */
 export function ProfileSortControls({ className }: { className?: string }) {
   const { tab, sort, navigate } = useProfileTab();
 

@@ -38,6 +38,29 @@ export function ProfileTabs({
   return (
     <>
       <div className="sticky top-[var(--profile-compact-h)] z-20">
+        {/* Sort + Create sit ABOVE the tab rail (게시물/미디어/위키/좋아요) */}
+        {showToolbar ? (
+          <div className="flex items-center justify-end gap-2 border-b border-border/40 bg-background/95 px-3 py-2 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
+            <ProfileSortControls />
+            {isSelf ? (
+              <Button
+                type="button"
+                size="sm"
+                variant={createOpen ? "secondary" : "default"}
+                className="h-8 gap-1 rounded-full px-3 shadow-sm"
+                disabled={suspended}
+                onClick={() => {
+                  if (blockAction("post")) return;
+                  setCreateOpen((v) => !v);
+                }}
+              >
+                <Plus className="h-4 w-4" />
+                Create
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+
         {/* Full-width tabs — sticks under compact profile header for the whole feed */}
         <div className="border-b border-border/60 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
           <nav className="flex w-full items-stretch" aria-label="프로필 탭">
@@ -66,39 +89,10 @@ export function ProfileTabs({
           </nav>
         </div>
 
-        {/*
-          Controls overlay the content (media grid / timeline) so the feed
-          stays edge-to-edge — no hollow Create column under the tabs.
-        */}
-        {showToolbar ? (
-          <div
-            className={cn(
-              "relative z-10 flex items-center gap-2 px-3 pt-2",
-              isMedia ? "-mb-11 pb-1" : "justify-end border-b border-border/40 pb-2"
-            )}
-          >
-            {isMedia ? <ProfileFeedControls /> : null}
-            <div className={cn("flex shrink-0 items-center gap-2", isMedia && "ml-auto")}>
-              <ProfileSortControls
-                className={isMedia ? "rounded-full bg-background/80 px-2 py-1 backdrop-blur-md" : undefined}
-              />
-              {isSelf ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={createOpen ? "secondary" : "default"}
-                  className="h-8 gap-1 rounded-full px-3 shadow-sm"
-                  disabled={suspended}
-                  onClick={() => {
-                    if (blockAction("post")) return;
-                    setCreateOpen((v) => !v);
-                  }}
-                >
-                  <Plus className="h-4 w-4" />
-                  Create
-                </Button>
-              ) : null}
-            </div>
+        {/* Media kind filter overlays the grid — no hollow bar under tabs */}
+        {isMedia ? (
+          <div className="relative z-10 -mb-11 flex items-center px-3 pt-2 pb-1">
+            <ProfileFeedControls />
           </div>
         ) : null}
       </div>
