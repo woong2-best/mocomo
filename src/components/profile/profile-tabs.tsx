@@ -6,7 +6,10 @@ import { cn } from "@/lib/utils";
 import type { ProfileTab } from "@/lib/profile-queries";
 import { useSuspendedAccount } from "@/hooks/use-suspended-account";
 import { ProfileCreatePanel } from "@/components/profile/profile-create-panel";
-import { ProfileFeedControls } from "@/components/profile/profile-feed-controls";
+import {
+  ProfileFeedControls,
+  ProfileSortControls,
+} from "@/components/profile/profile-feed-controls";
 import { useProfileTab } from "@/components/profile/profile-tab-context";
 import { Button } from "@/components/ui/button";
 
@@ -28,6 +31,8 @@ export function ProfileTabs({
   const { tab: active, navigate } = useProfileTab();
   const [createOpen, setCreateOpen] = useState(false);
   const { suspended, blockAction } = useSuspendedAccount();
+  const showSort = active === "posts" || active === "media";
+  const showRightRail = isSelf || showSort;
 
   return (
     <>
@@ -54,22 +59,32 @@ export function ProfileTabs({
               );
             })}
           </div>
-          {isSelf && (
-            <div className="flex shrink-0 items-center border-l border-border/60 px-3">
-              <Button
-                type="button"
-                size="sm"
-                variant={createOpen ? "secondary" : "default"}
-                className="h-9 gap-1.5 rounded-full px-4"
-                disabled={suspended}
-                onClick={() => {
-                  if (blockAction("post")) return;
-                  setCreateOpen((v) => !v);
-                }}
-              >
-                <Plus className="h-4 w-4" />
-                Create
-              </Button>
+          {showRightRail && (
+            <div
+              className={cn(
+                "flex shrink-0 border-l border-border/60 px-3",
+                showSort
+                  ? "flex-col items-end justify-center gap-1.5 py-2"
+                  : "items-center"
+              )}
+            >
+              <ProfileSortControls />
+              {isSelf && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={createOpen ? "secondary" : "default"}
+                  className="h-9 gap-1.5 rounded-full px-4"
+                  disabled={suspended}
+                  onClick={() => {
+                    if (blockAction("post")) return;
+                    setCreateOpen((v) => !v);
+                  }}
+                >
+                  <Plus className="h-4 w-4" />
+                  Create
+                </Button>
+              )}
             </div>
           )}
         </nav>
