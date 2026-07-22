@@ -30,7 +30,7 @@ export function SearchRankingSidebarList({
         <li key={item.id}>
           <Link
             href={`/search?q=${encodeURIComponent(item.label)}`}
-            className="flex items-baseline gap-2 text-sm text-folk-cobalt hover:underline"
+            className="flex items-baseline gap-2 text-sm text-folk-cobalt dark:text-white hover:underline"
           >
             <span className="w-5 shrink-0 font-bold tabular-nums">{item.rank}</span>
             <span className="min-w-0 truncate font-medium">{item.label}</span>

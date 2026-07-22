@@ -74,8 +74,8 @@ export function RightPanelContent({
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2 font-display font-bold text-folk-cobalt">
-            <Search className="h-4 w-4 text-folk-cobalt" />
+          <CardTitle className="text-sm flex items-center gap-2 font-display font-bold text-folk-cobalt dark:text-white">
+            <Search className="h-4 w-4 text-folk-cobalt dark:text-white" />
             {t("sidebar.searchRanking")}
           </CardTitle>
         </CardHeader>
