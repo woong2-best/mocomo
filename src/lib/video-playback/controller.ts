@@ -72,6 +72,13 @@ class VideoPlaybackController {
     const video = player?.getVideo() ?? null;
     if (!player || !video) return false;
 
+    // Already exclusive + playing — do not re-enter play() (avoids decode stutter).
+    if (this.activeId === id && !video.paused && !video.ended) {
+      player.autoplayIntent = reason === "autoplay" || reason === "visibility";
+      this.resumeId = id;
+      return true;
+    }
+
     for (const [otherId, other] of this.players) {
       if (otherId === id) continue;
       const ov = other.getVideo();

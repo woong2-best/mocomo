@@ -1,5 +1,9 @@
-/** Viewport ratio required for autoplay (X/IG-style). */
+/** Viewport ratio required to start autoplay. */
 export const AUTOPLAY_THRESHOLD = 0.6;
+
+/** Pause only after falling below this (hysteresis — stops boundary thrash). */
+export const AUTOPAUSE_THRESHOLD = 0.4;
+
 
 /** Short videos loop; longer ones hold the last frame. */
 export const SHORT_VIDEO_LOOP_MAX_SEC = 60;

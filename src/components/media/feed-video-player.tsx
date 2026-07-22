@@ -22,6 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import {
   AUTOPLAY_THRESHOLD,
+  AUTOPAUSE_THRESHOLD,
   SHORT_VIDEO_LOOP_MAX_SEC,
   HOVER_PREVIEW_DELAY_MS,
   SEEK_STEP_SEC,
@@ -30,7 +31,6 @@ import {
   LONG_PRESS_MS,
   DOUBLE_TAP_MS,
   UNLOAD_AFTER_MS,
-  PREFETCH_AHEAD,
   RETRY_DELAYS_MS,
   MAX_RETRIES,
   DEFAULT_VOLUME,
@@ -133,6 +133,11 @@ export function FeedVideoPlayer({
   const nearViewRef = useRef(false);
   const pinchRef = useRef<{ dist: number; scale: number } | null>(null);
   const registeredRef = useRef({ autoplayIntent: false });
+  const restoredRef = useRef(false);
+  const lastUiTickRef = useRef(0);
+  const lastProgressSaveRef = useRef(0);
+  const bufferingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoPlayingRef = useRef(false);
 
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [isVolumeDragging, setIsVolumeDragging] = useState(false);
@@ -152,7 +157,6 @@ export function FeedVideoPlayer({
   const [speedOpen, setSpeedOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [buffering, setBuffering] = useState(false);
-  const [fadeIn, setFadeIn] = useState(false);
   const [likeBurst, setLikeBurst] = useState(false);
   const [holdBoost, setHoldBoost] = useState(false);
   const [zoom, setZoom] = useState(1);
@@ -220,16 +224,22 @@ export function FeedVideoPlayer({
       const ctrl = getVideoPlaybackController();
       const v = videoRef.current;
       if (!v || !ctrl) return false;
+
+      // Already playing this element — skip re-entry (prevents stutter).
+      if (!v.paused && !v.ended && ctrl.getActiveId() === playerId) {
+        autoPlayingRef.current = reason === "autoplay" || reason === "visibility";
+        return true;
+      }
+
       // Autoplay / hover must stay muted (browser policy + product rule).
       if (reason === "autoplay" || reason === "hover" || reason === "visibility") {
-        v.muted = true;
-        setIsMuted(true);
+        if (!v.muted) v.muted = true;
+        setIsMuted((m) => (m ? m : true));
       }
       const ok = await ctrl.requestPlay(playerId, reason);
       if (ok) {
         setStarted(true);
-        setFadeIn(true);
-        window.setTimeout(() => setFadeIn(false), 280);
+        autoPlayingRef.current = reason === "autoplay" || reason === "visibility";
       }
       return ok;
     },
@@ -290,18 +300,27 @@ export function FeedVideoPlayer({
     };
   }, [playerId, pKey]);
 
-  // Attach / detach media for memory; restore progress on attach
+  // Attach / detach media for memory; restore progress once on attach
   useEffect(() => {
     const v = videoRef.current;
     if (!v || !mediaAttached) return;
-    if (v.getAttribute("src") !== src) {
+    const needsAttach = v.getAttribute("src") !== src;
+    if (needsAttach) {
+      restoredRef.current = false;
       v.src = src;
       v.load();
     }
-    if (inViewRef.current && !userPausedRef.current && autoPlayOnView && !document.hidden) {
+    // Only kick autoplay after a fresh attach — not on every effect re-run.
+    if (
+      needsAttach &&
+      inViewRef.current &&
+      !userPausedRef.current &&
+      autoPlayOnView &&
+      !document.hidden
+    ) {
       const t = window.setTimeout(() => {
         void playExclusive("autoplay");
-      }, 50);
+      }, 80);
       return () => clearTimeout(t);
     }
   }, [src, mediaAttached, retryToken, autoPlayOnView, playExclusive]);
@@ -311,28 +330,46 @@ export function FeedVideoPlayer({
     const v = videoRef.current;
     if (!v) return;
 
+    const clearBufferingSoon = () => {
+      if (bufferingTimerRef.current) {
+        clearTimeout(bufferingTimerRef.current);
+        bufferingTimerRef.current = null;
+      }
+      setBuffering(false);
+    };
+
     const onPlay = () => {
       setPlaying(true);
       setStarted(true);
-      setBuffering(false);
+      clearBufferingSoon();
     };
     const onPause = () => setPlaying(false);
     const onTime = () => {
-      if (!scrubbingRef.current) {
+      if (scrubbingRef.current) return;
+      const now = performance.now();
+      // Throttle React progress UI to ~4fps — avoids re-render stutter.
+      if (now - lastUiTickRef.current >= 250) {
+        lastUiTickRef.current = now;
         setCurrent(v.currentTime);
-        if (v.currentTime > 0.5) saveProgress(pKey, v.currentTime);
+      }
+      if (v.currentTime > 0.5 && now - lastProgressSaveRef.current >= 1000) {
+        lastProgressSaveRef.current = now;
+        saveProgress(pKey, v.currentTime);
       }
     };
     const onMeta = () => {
       syncDuration();
-      restoreProgress();
+      // Restore seek position ONCE after metadata — never on every progress tick.
+      if (!restoredRef.current) {
+        restoredRef.current = true;
+        restoreProgress();
+      }
     };
     const onEnded = () => {
       setPlaying(false);
       setScrubPct(null);
       scrubbingRef.current = false;
       if (!loop) {
-        // Hold last frame — do not reset currentTime.
         saveProgress(pKey, v.currentTime);
       }
     };
@@ -340,10 +377,14 @@ export function FeedVideoPlayer({
       setIsMuted(v.muted);
       if (!volumeDraggingRef.current) setVolume(v.volume);
     };
-    const onWaiting = () => setBuffering(true);
-    const onPlaying = () => setBuffering(false);
+    const onWaiting = () => {
+      if (bufferingTimerRef.current) clearTimeout(bufferingTimerRef.current);
+      // Ignore brief stalls (<180ms) so spinner doesn't flicker.
+      bufferingTimerRef.current = setTimeout(() => setBuffering(true), 180);
+    };
+    const onPlaying = () => clearBufferingSoon();
     const onCanPlay = () => {
-      setBuffering(false);
+      clearBufferingSoon();
       syncDuration();
     };
     const onError = () => {
@@ -352,6 +393,7 @@ export function FeedVideoPlayer({
       retryCountRef.current += 1;
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
       retryTimerRef.current = setTimeout(() => {
+        restoredRef.current = false;
         setRetryToken((t) => t + 1);
         setMediaAttached(true);
       }, delay);
@@ -363,8 +405,7 @@ export function FeedVideoPlayer({
     v.addEventListener("loadedmetadata", onMeta);
     v.addEventListener("loadeddata", onMeta);
     v.addEventListener("canplay", onCanPlay);
-    v.addEventListener("durationchange", onMeta);
-    v.addEventListener("progress", onMeta);
+    v.addEventListener("durationchange", syncDuration);
     v.addEventListener("ended", onEnded);
     v.addEventListener("volumechange", onVolume);
     v.addEventListener("waiting", onWaiting);
@@ -378,14 +419,14 @@ export function FeedVideoPlayer({
     v.muted = isMuted;
 
     return () => {
+      if (bufferingTimerRef.current) clearTimeout(bufferingTimerRef.current);
       v.removeEventListener("play", onPlay);
       v.removeEventListener("pause", onPause);
       v.removeEventListener("timeupdate", onTime);
       v.removeEventListener("loadedmetadata", onMeta);
       v.removeEventListener("loadeddata", onMeta);
       v.removeEventListener("canplay", onCanPlay);
-      v.removeEventListener("durationchange", onMeta);
-      v.removeEventListener("progress", onMeta);
+      v.removeEventListener("durationchange", syncDuration);
       v.removeEventListener("ended", onEnded);
       v.removeEventListener("volumechange", onVolume);
       v.removeEventListener("waiting", onWaiting);
@@ -409,17 +450,17 @@ export function FeedVideoPlayer({
         const near = ratio > 0.05 || entry.isIntersecting;
         nearViewRef.current = near;
 
-        setPreload(
-          preloadProp ?? suggestedPreload(quality, near || ratio >= AUTOPLAY_THRESHOLD)
-        );
+        const nextPreload =
+          preloadProp ?? suggestedPreload(quality, near || ratio >= AUTOPLAY_THRESHOLD);
+        setPreload((prev) => (prev === nextPreload ? prev : nextPreload));
 
         if (near) {
           if (unloadTimerRef.current) {
             clearTimeout(unloadTimerRef.current);
             unloadTimerRef.current = null;
           }
-          setMediaAttached(true);
-        } else if (!near && mediaAttached) {
+          setMediaAttached((prev) => (prev ? prev : true));
+        } else if (!near) {
           if (!unloadTimerRef.current) {
             unloadTimerRef.current = setTimeout(() => {
               const v = videoRef.current;
@@ -429,6 +470,8 @@ export function FeedVideoPlayer({
                 v.removeAttribute("src");
                 v.load();
               }
+              restoredRef.current = false;
+              autoPlayingRef.current = false;
               setMediaAttached(false);
               setPlaying(false);
             }, UNLOAD_AFTER_MS);
@@ -441,33 +484,30 @@ export function FeedVideoPlayer({
           !userPausedRef.current &&
           !document.hidden;
 
-        inViewRef.current = ratio >= AUTOPLAY_THRESHOLD;
+        // Hysteresis: only pause after dropping below AUTOPAUSE_THRESHOLD.
+        const shouldPause = ratio < AUTOPAUSE_THRESHOLD;
+
+        inViewRef.current = ratio >= AUTOPAUSE_THRESHOLD;
 
         if (shouldPlay) {
-          void playExclusive("autoplay");
-          // Prefetch neighbors
-          const ctrl = getVideoPlaybackController();
-          const neighbors = ctrl?.getNeighbors(playerId, PREFETCH_AHEAD) ?? [];
-          for (const nid of neighbors) {
-            const node = document.querySelector(
-              `[data-feed-video-id="${CSS.escape(nid)}"] video`
-            ) as HTMLVideoElement | null;
-            if (node && !node.getAttribute("src") && node.dataset.src) {
-              node.preload = "metadata";
-              node.src = node.dataset.src;
-            }
+          const v = videoRef.current;
+          if (!v || v.paused || v.ended) {
+            void playExclusive("autoplay");
+          } else {
+            autoPlayingRef.current = true;
           }
-        } else if (ratio < AUTOPLAY_THRESHOLD) {
+        } else if (shouldPause) {
           const v = videoRef.current;
           if (v && !v.paused) {
             pauseSelf(false);
-            registeredRef.current.autoplayIntent = ratio > 0.1;
+            autoPlayingRef.current = false;
+            registeredRef.current.autoplayIntent = false;
           }
         }
       },
       {
-        threshold: [0, 0.05, 0.25, AUTOPLAY_THRESHOLD, 0.75, 1],
-        rootMargin: "200px 0px",
+        threshold: [0, 0.05, 0.25, AUTOPAUSE_THRESHOLD, AUTOPLAY_THRESHOLD, 0.75, 1],
+        rootMargin: "120px 0px",
       }
     );
 
@@ -479,7 +519,6 @@ export function FeedVideoPlayer({
     pauseSelf,
     playerId,
     pKey,
-    mediaAttached,
     preloadProp,
   ]);
 
@@ -854,8 +893,7 @@ export function FeedVideoPlayer({
 
   const videoStyle: CSSProperties = {
     transform: zoom > 1 ? `scale(${zoom})` : undefined,
-    transition: pinchRef.current ? undefined : "opacity 280ms ease, transform 200ms ease",
-    opacity: fadeIn ? 0.72 : 1,
+    transition: pinchRef.current ? undefined : "transform 200ms ease",
   };
 
   return (
@@ -866,7 +904,6 @@ export function FeedVideoPlayer({
         "relative overflow-hidden bg-black group/video outline-none",
         className
       )}
-      style={{ contentVisibility: "auto", containIntrinsicSize: "auto 240px" }}
       tabIndex={0}
       role="group"
       aria-label="동영상 플레이어"
