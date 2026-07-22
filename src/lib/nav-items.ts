@@ -5,7 +5,6 @@ import {
   Star,
   Wallet,
   Tv,
-  PenSquare,
   Radio,
   Sparkles,
   Store,
@@ -50,5 +49,5 @@ export const mainNavItems: NavItem[] = [
   { href: "/market", icon: Store, labelKey: "nav.market" },
   { href: "/used", icon: Tags, labelKey: "nav.used" },
   { href: "/events", icon: Calendar, labelKey: "nav.events" },
-  { href: "/compose", icon: PenSquare, labelKey: "nav.compose" },
+  moneyHubNavItem,
 ];

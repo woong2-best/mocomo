@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { mainNavItems, moneyHubNavItem } from "@/lib/nav-items";
+import { mainNavItems } from "@/lib/nav-items";
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
@@ -26,16 +26,9 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
   const pathname = usePathname();
   const { t } = useLocale();
 
-  const primary = isLiveFeatureEnabled()
+  const items = isLiveFeatureEnabled()
     ? mainNavItems
     : mainNavItems.filter((item) => !isLiveNavHref(item.href));
-  const withoutCompose = primary.filter((item) => item.href !== "/compose");
-  const composeItem = primary.find((item) => item.href === "/compose");
-  const items = [
-    ...withoutCompose,
-    moneyHubNavItem,
-    ...(composeItem ? [composeItem] : []),
-  ];
   const navHrefs = items.map((item) => item.href);
 
   return (

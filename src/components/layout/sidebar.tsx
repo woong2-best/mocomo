@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { PenSquare } from "lucide-react";
 import { ComposeOpenButton } from "@/components/compose/compose-open-button";
 import { cn } from "@/lib/utils";
-import { mainNavItems, moneyHubNavItem } from "@/lib/nav-items";
+import { mainNavItems } from "@/lib/nav-items";
 import { useLocale } from "@/components/providers/locale-provider";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
 import { isNavItemActive } from "@/lib/nav-active";
@@ -20,12 +20,6 @@ export function Sidebar() {
     (item) => isLiveFeatureEnabled() || !isLiveNavHref(item.href)
   );
   const navHrefs = navItems.map((item) => item.href);
-  const {
-    href: moneyHref,
-    icon: MoneyIcon,
-    labelKey: moneyLabelKey,
-  } = moneyHubNavItem;
-  const moneyActive = isNavItemActive(pathname, moneyHref, [moneyHref]);
 
   function isActive(href: string) {
     return isNavItemActive(pathname, href, navHrefs);
@@ -73,25 +67,6 @@ export function Sidebar() {
             <PenSquare className="h-4 w-4 shrink-0" />
             {t("nav.compose")}
           </ComposeOpenButton>
-          <Link
-            href={moneyHref}
-            className={cn(
-              "sidebar-block",
-              moneyActive && "sidebar-block-active"
-            )}
-          >
-            <span
-              className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-lg shrink-0 border-2",
-                moneyActive
-                  ? "bg-folk-terracotta text-white border-folk-cobalt/40 shadow-folk-sm"
-                  : "bg-folk-cream border-folk-cobalt/15 text-folk-cobalt"
-              )}
-            >
-              <MoneyIcon className="h-4 w-4" />
-            </span>
-            <span className="truncate">{t(moneyLabelKey)}</span>
-          </Link>
         </div>
       </aside>
     </div>
