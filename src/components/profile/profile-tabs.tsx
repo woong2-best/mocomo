@@ -36,59 +36,62 @@ export function ProfileTabs({
 
   return (
     <>
-      <div className="sticky top-[var(--profile-compact-h)] z-20 border-b border-border/60 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
-        <nav className="flex items-stretch">
-          <div className="flex min-w-0 flex-1">
-            {tabs.filter((t) => showLikesTab || t.id !== "likes").map((t) => {
-              const isActive = active === t.id;
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => navigate({ tab: t.id })}
-                  className={cn(
-                    "relative min-w-0 flex-1 py-4 text-center text-sm font-medium transition-colors hover:bg-muted/40",
-                    isActive && "font-bold"
-                  )}
-                >
-                  {t.label}
-                  {isActive && (
-                    <span className="absolute bottom-0 left-1/2 h-1 w-14 -translate-x-1/2 rounded-full bg-primary" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-          {showRightRail && (
-            <div
-              className={cn(
-                "flex shrink-0 border-l border-border/60 px-3",
-                showSort
-                  ? "flex-col items-end justify-center gap-1.5 py-2"
-                  : "items-center"
-              )}
-            >
-              <ProfileSortControls />
-              {isSelf && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={createOpen ? "secondary" : "default"}
-                  className="h-9 gap-1.5 rounded-full px-4"
-                  disabled={suspended}
-                  onClick={() => {
-                    if (blockAction("post")) return;
-                    setCreateOpen((v) => !v);
-                  }}
-                >
-                  <Plus className="h-4 w-4" />
-                  Create
-                </Button>
-              )}
+      <div className="sticky top-[var(--profile-compact-h)] z-20">
+        <div className="border-b border-border/60 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
+          <nav className="flex items-stretch">
+            <div className="flex min-w-0 flex-1">
+              {tabs.filter((t) => showLikesTab || t.id !== "likes").map((t) => {
+                const isActive = active === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => navigate({ tab: t.id })}
+                    className={cn(
+                      "relative min-w-0 flex-1 py-4 text-center text-sm font-medium transition-colors hover:bg-muted/40",
+                      isActive && "font-bold"
+                    )}
+                  >
+                    {t.label}
+                    {isActive && (
+                      <span className="absolute bottom-0 left-1/2 h-1 w-14 -translate-x-1/2 rounded-full bg-primary" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
-          )}
-        </nav>
+            {showRightRail && (
+              <div
+                className={cn(
+                  "flex shrink-0 border-l border-border/60 px-3",
+                  showSort
+                    ? "flex-col items-end justify-center gap-1.5 py-2"
+                    : "items-center"
+                )}
+              >
+                <ProfileSortControls />
+                {isSelf && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={createOpen ? "secondary" : "default"}
+                    className="h-9 gap-1.5 rounded-full px-4"
+                    disabled={suspended}
+                    onClick={() => {
+                      if (blockAction("post")) return;
+                      setCreateOpen((v) => !v);
+                    }}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Create
+                  </Button>
+                )}
+              </div>
+            )}
+          </nav>
+        </div>
 
+        {/* Transparent sticky strip — glass samples scene + media scrolling underneath */}
         <ProfileFeedControls />
       </div>
 

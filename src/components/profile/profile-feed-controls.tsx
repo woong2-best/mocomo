@@ -38,7 +38,20 @@ export function ProfileSortControls({ className }: { className?: string }) {
   );
 }
 
-/** Media kind filters only (전체 / 사진 / 비디오). Shown under the tab bar on media tab. */
+const KIND_OPTIONS: {
+  id: ProfileMediaKind;
+  label: string;
+  Icon: typeof LayoutGrid;
+}[] = [
+  { id: "all", label: "전체", Icon: LayoutGrid },
+  { id: "photo", label: "사진", Icon: ImageIcon },
+  { id: "video", label: "비디오", Icon: Film },
+];
+
+/**
+ * Media kind filters (전체 / 사진 / 비디오).
+ * Liquid-glass pill floats over a scene layer so backdrop-filter can blur real pixels behind it.
+ */
 export function ProfileFeedControls() {
   const { tab, kind, navigate } = useProfileTab();
 
@@ -47,47 +60,38 @@ export function ProfileFeedControls() {
   const setKind = (nextKind: ProfileMediaKind) => navigate({ kind: nextKind });
 
   return (
-    <div className="flex flex-wrap items-center gap-3 border-b border-border/40 px-4 py-2.5">
-      <div className="inline-flex rounded-full border border-border/70 bg-muted/40 p-0.5">
-        <button
-          type="button"
-          onClick={() => setKind("all")}
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-            kind === "all"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          )}
+    <div className="relative z-10 -mb-10 px-4 pb-2 pt-2">
+      {/* Scene layer behind glass — backdrop-filter blurs these pixels through the frosted pill */}
+      <div className="relative isolate inline-flex max-w-full overflow-hidden rounded-[28px]">
+        <div
+          aria-hidden
+          className="liquid-glass-scene pointer-events-none absolute inset-0 scale-125"
+        />
+        <div
+          role="tablist"
+          aria-label="미디어 종류"
+          className="liquid-glass liquid-glass-pill relative inline-flex p-1"
         >
-          <LayoutGrid className="h-3.5 w-3.5" />
-          전체
-        </button>
-        <button
-          type="button"
-          onClick={() => setKind("photo")}
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-            kind === "photo"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <ImageIcon className="h-3.5 w-3.5" />
-          사진
-        </button>
-        <button
-          type="button"
-          onClick={() => setKind("video")}
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-            kind === "video"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <Film className="h-3.5 w-3.5" />
-          비디오
-        </button>
+          {KIND_OPTIONS.map(({ id, label, Icon }) => {
+            const active = kind === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setKind(id)}
+                className={cn(
+                  "liquid-glass-segment inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium sm:px-4",
+                  active && "liquid-glass-segment-active"
+                )}
+              >
+                <Icon className="h-3.5 w-3.5 drop-shadow-[0_1px_1px_rgba(0,0,0,0.35)]" />
+                {label}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
