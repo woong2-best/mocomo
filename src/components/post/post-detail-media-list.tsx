@@ -28,6 +28,8 @@ export function PostDetailMediaList({
           className="rounded-lg max-w-full w-full"
           mediaPriceKrw={m.priceKrw}
           postInstantPurchasePriceKrw={instantPurchasePriceKrw}
+          mediaId={m.id}
+          autoPlayOnView
         />
       ))}
     </div>

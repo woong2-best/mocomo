@@ -36,6 +36,7 @@ export function PaidPostMediaGrid({
   postInstantPurchasePriceKrw,
   mediaTotal,
   className,
+  onDoubleTapLike,
 }: {
   media: ProfilePostMediaItem[];
   postId: string;
@@ -50,6 +51,8 @@ export function PaidPostMediaGrid({
   /** 로드된 media보다 전체 개수가 많을 때 (라이트박스에서 추가 fetch) */
   mediaTotal?: number;
   className?: string;
+  /** Double-tap video → like (feed / detail). */
+  onDoubleTapLike?: () => void;
 }) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
@@ -124,6 +127,7 @@ export function PaidPostMediaGrid({
                   subscribed={subscribed}
                   postInstantPurchasePriceKrw={postInstantPurchasePriceKrw}
                   single={count === 1}
+                  onDoubleTapLike={onDoubleTapLike}
                 />
                 {showOverflow && (
                   <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/45 text-2xl font-semibold text-white">
@@ -161,6 +165,7 @@ function PaidPostMediaTile({
   subscribed,
   postInstantPurchasePriceKrw,
   single,
+  onDoubleTapLike,
 }: {
   media: ProfilePostMediaItem;
   postId: string;
@@ -171,6 +176,7 @@ function PaidPostMediaTile({
   subscribed?: boolean;
   postInstantPurchasePriceKrw?: number;
   single?: boolean;
+  onDoubleTapLike?: () => void;
 }) {
   const locked = !!media.locked && !!media.id;
   const lockReason = media.lockReason ?? "none";
@@ -196,6 +202,9 @@ function PaidPostMediaTile({
         mediaPriceKrw={media.priceKrw}
         postInstantPurchasePriceKrw={postInstantPurchasePriceKrw ?? media.instantPurchasePriceKrw}
         locked={locked}
+        mediaId={media.id}
+        autoPlayOnView={!locked}
+        onDoubleTapLike={onDoubleTapLike}
       />
 
       {locked && (

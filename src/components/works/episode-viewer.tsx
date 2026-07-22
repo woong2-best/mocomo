@@ -49,6 +49,8 @@ export function EpisodeViewer({
           playsInline
           preload="auto"
           controls
+          mediaId={episodeId}
+          autoPlayOnView
         />
       )}
       {kind === "VIDEO" && previewVideoBlocked && (

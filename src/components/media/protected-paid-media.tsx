@@ -18,6 +18,10 @@ type Props = {
   loading?: "lazy" | "eager";
   alt?: string;
   controls?: boolean;
+  mediaId?: string | null;
+  autoPlayOnView?: boolean;
+  onDoubleTapLike?: () => void;
+  poster?: string;
 };
 
 export function ProtectedPaidMedia({
@@ -33,6 +37,10 @@ export function ProtectedPaidMedia({
   loading = "lazy",
   alt = "",
   controls = false,
+  mediaId,
+  autoPlayOnView = true,
+  onDoubleTapLike,
+  poster,
 }: Props) {
   const protect = shouldProtectPaidMediaView({
     mediaPriceKrw,
@@ -52,6 +60,10 @@ export function ProtectedPaidMedia({
         preload={preload}
         controls={controls}
         protect={protect}
+        mediaId={mediaId}
+        autoPlayOnView={autoPlayOnView}
+        onDoubleTapLike={onDoubleTapLike}
+        poster={poster}
       />
     );
     if (!protect) return player;

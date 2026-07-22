@@ -213,7 +213,9 @@ export function PostMediaLightbox({
               }
               locked={current.locked}
               controls={current.type === "VIDEO" && !current.locked}
-              muted={false}
+              muted
+              autoPlayOnView={!current.locked}
+              mediaId={current.id}
               loading="eager"
               alt=""
             />
@@ -337,7 +339,9 @@ function ThumbButton({
             locked={media.locked}
             muted
             controls={false}
-            preload="metadata"
+            preload="none"
+            autoPlayOnView={false}
+            mediaId={media.id}
           />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element

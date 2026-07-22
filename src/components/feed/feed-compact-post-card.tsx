@@ -146,6 +146,10 @@ export function FeedCompactPostCard({
                 paymentsEnabled={false}
                 mediaTotal={post._count?.media ?? post.media.length}
                 postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
+                onDoubleTapLike={() => {
+                  if (!requireLogin()) return;
+                  if (!liked) void like.toggle();
+                }}
               />
             )}
             {post.poll && <PostPollCard postId={post.id} poll={post.poll} compact />}

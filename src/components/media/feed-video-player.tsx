@@ -1,11 +1,53 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Play, Pause, Volume1, Volume2, VolumeX, Maximize, Minimize } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
+import {
+  Play,
+  Pause,
+  Volume1,
+  Volume2,
+  VolumeX,
+  Maximize,
+  Minimize,
+  Loader2,
+  Heart,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  AUTOPLAY_THRESHOLD,
+  SHORT_VIDEO_LOOP_MAX_SEC,
+  HOVER_PREVIEW_DELAY_MS,
+  SEEK_STEP_SEC,
+  VOLUME_STEP,
+  LONG_PRESS_RATE,
+  LONG_PRESS_MS,
+  DOUBLE_TAP_MS,
+  UNLOAD_AFTER_MS,
+  PREFETCH_AHEAD,
+  RETRY_DELAYS_MS,
+  MAX_RETRIES,
+  DEFAULT_VOLUME,
+  readMutedPreference,
+  writeMutedPreference,
+  readVolumePreference,
+  writeVolumePreference,
+  progressKey,
+  getSavedProgress,
+  saveProgress,
+  getNetworkQuality,
+  suggestedPreload,
+  shouldAutoplayOnNetwork,
+  getVideoPlaybackController,
+} from "@/lib/video-playback";
 
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
-const DEFAULT_VOLUME = 1;
 
 type Props = {
   src: string;
@@ -15,6 +57,14 @@ type Props = {
   preload?: "none" | "metadata" | "auto";
   controls?: boolean;
   protect?: boolean;
+  /** Stable id for progress memory (media row id). */
+  mediaId?: string | null;
+  /** Disable viewport autoplay (e.g. compose preview). */
+  autoPlayOnView?: boolean;
+  /** Double-tap / heart overlay like. */
+  onDoubleTapLike?: () => void;
+  /** Poster / thumbnail for lazy paint. */
+  poster?: string;
 };
 
 function formatTime(sec: number): string {
@@ -27,7 +77,6 @@ function formatTime(sec: number): string {
 function readVideoDuration(video: HTMLVideoElement): number {
   const d = video.duration;
   if (Number.isFinite(d) && d > 0) return d;
-
   try {
     if (video.seekable.length > 0) {
       const end = video.seekable.end(video.seekable.length - 1);
@@ -36,7 +85,6 @@ function readVideoDuration(video: HTMLVideoElement): number {
   } catch {
     /* seekable not ready */
   }
-
   return 0;
 }
 
@@ -44,14 +92,27 @@ function stopFeedNavigation(e: React.SyntheticEvent) {
   e.stopPropagation();
 }
 
+function isCoarsePointer(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(pointer: coarse)").matches;
+}
+
 export function FeedVideoPlayer({
   src,
   className,
-  muted = true,
+  muted: mutedProp = true,
   playsInline = true,
-  preload = "metadata",
+  preload: preloadProp,
   protect = false,
+  mediaId,
+  autoPlayOnView = true,
+  onDoubleTapLike,
+  poster,
 }: Props) {
+  const reactId = useId();
+  const playerId = `fv-${mediaId ?? reactId}`;
+  const pKey = progressKey(src, mediaId);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -61,19 +122,46 @@ export function FeedVideoPlayer({
   const resumeAfterScrubRef = useRef(false);
   const pendingSeekPctRef = useRef<number | null>(null);
   const volumeBeforeMuteRef = useRef(DEFAULT_VOLUME);
+  const userPausedRef = useRef(false);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const unloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTapRef = useRef(0);
+  const retryCountRef = useRef(0);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inViewRef = useRef(false);
+  const nearViewRef = useRef(false);
+  const pinchRef = useRef<{ dist: number; scale: number } | null>(null);
+  const registeredRef = useRef({ autoplayIntent: false });
+
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [isVolumeDragging, setIsVolumeDragging] = useState(false);
   const [volumeOpen, setVolumeOpen] = useState(false);
   const [started, setStarted] = useState(false);
   const [playing, setPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(muted);
-  const [volume, setVolume] = useState(DEFAULT_VOLUME);
+  const [isMuted, setIsMuted] = useState(() =>
+    typeof window === "undefined" ? mutedProp : readMutedPreference(mutedProp)
+  );
+  const [volume, setVolume] = useState(() =>
+    typeof window === "undefined" ? DEFAULT_VOLUME : readVolumePreference()
+  );
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
   const [scrubPct, setScrubPct] = useState<number | null>(null);
   const [speed, setSpeed] = useState(1);
   const [speedOpen, setSpeedOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [buffering, setBuffering] = useState(false);
+  const [fadeIn, setFadeIn] = useState(false);
+  const [likeBurst, setLikeBurst] = useState(false);
+  const [holdBoost, setHoldBoost] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [mediaAttached, setMediaAttached] = useState(true);
+  const [preload, setPreload] = useState<"none" | "metadata" | "auto">(
+    preloadProp ?? "metadata"
+  );
+  const [loop, setLoop] = useState(false);
+  const [retryToken, setRetryToken] = useState(0);
 
   const fillMode = /\bh-full\b/.test(className ?? "");
 
@@ -83,6 +171,7 @@ export function FeedVideoPlayer({
     const d = readVideoDuration(v);
     if (d <= 0) return;
     setDuration(d);
+    setLoop(d > 0 && d <= SHORT_VIDEO_LOOP_MAX_SEC);
     if (pendingSeekPctRef.current !== null) {
       const pct = pendingSeekPctRef.current;
       pendingSeekPctRef.current = null;
@@ -93,42 +182,131 @@ export function FeedVideoPlayer({
     }
   }, []);
 
-  const togglePlay = useCallback(() => {
+  const restoreProgress = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
-    if (v.paused) void v.play();
-    else v.pause();
-  }, []);
+    const saved = getSavedProgress(pKey);
+    if (saved > 0.25 && Number.isFinite(v.duration) && saved < v.duration - 0.5) {
+      try {
+        v.currentTime = saved;
+        setCurrent(saved);
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [pKey]);
 
-  const applyVolume = useCallback((next: number) => {
+  const applyVolume = useCallback((next: number, persist = true) => {
     const v = videoRef.current;
     const clamped = Math.min(1, Math.max(0, next));
     setVolume(clamped);
     if (clamped > 0) volumeBeforeMuteRef.current = clamped;
+    if (persist) writeVolumePreference(clamped);
     if (!v) return;
     v.volume = clamped;
     if (clamped <= 0) {
       v.muted = true;
       setIsMuted(true);
+      if (persist) writeMutedPreference(true);
     } else {
       v.muted = false;
       setIsMuted(false);
+      if (persist) writeMutedPreference(false);
     }
   }, []);
 
-  const startPlayback = useCallback(() => {
+  const playExclusive = useCallback(
+    async (reason: "autoplay" | "user" | "hover" | "visibility") => {
+      const ctrl = getVideoPlaybackController();
+      const v = videoRef.current;
+      if (!v || !ctrl) return false;
+      // Autoplay / hover must stay muted (browser policy + product rule).
+      if (reason === "autoplay" || reason === "hover" || reason === "visibility") {
+        v.muted = true;
+        setIsMuted(true);
+      }
+      const ok = await ctrl.requestPlay(playerId, reason);
+      if (ok) {
+        setStarted(true);
+        setFadeIn(true);
+        window.setTimeout(() => setFadeIn(false), 280);
+      }
+      return ok;
+    },
+    [playerId]
+  );
+
+  const pauseSelf = useCallback(
+    (clearResume = false) => {
+      getVideoPlaybackController()?.pause(playerId, clearResume);
+    },
+    [playerId]
+  );
+
+  const togglePlay = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
-    setStarted(true);
-    v.volume = volume > 0 ? volume : volumeBeforeMuteRef.current;
-    if (v.volume <= 0) v.volume = DEFAULT_VOLUME;
-    setVolume(v.volume);
-    volumeBeforeMuteRef.current = v.volume;
-    v.muted = false;
-    setIsMuted(false);
-    void v.play();
-  }, [volume]);
+    if (v.paused) {
+      userPausedRef.current = false;
+      void playExclusive("user");
+    } else {
+      userPausedRef.current = true;
+      pauseSelf(true);
+    }
+  }, [playExclusive, pauseSelf]);
 
+  // Register with global controller
+  useEffect(() => {
+    const ctrl = getVideoPlaybackController();
+    if (!ctrl) return;
+    const handle = {
+      id: playerId,
+      getVideo: () => videoRef.current,
+      autoplayIntent: false,
+      onDeactivate: () => {
+        registeredRef.current.autoplayIntent = false;
+      },
+    };
+    Object.defineProperty(handle, "autoplayIntent", {
+      get: () => registeredRef.current.autoplayIntent,
+      set: (v: boolean) => {
+        registeredRef.current.autoplayIntent = v;
+      },
+    });
+    ctrl.register(handle);
+    return () => {
+      ctrl.unregister(playerId);
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+      if (unloadTimerRef.current) clearTimeout(unloadTimerRef.current);
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      const v = videoRef.current;
+      if (v) {
+        saveProgress(pKey, v.currentTime);
+        v.pause();
+        v.removeAttribute("src");
+        v.load();
+      }
+    };
+  }, [playerId, pKey]);
+
+  // Attach / detach media for memory; restore progress on attach
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || !mediaAttached) return;
+    if (v.getAttribute("src") !== src) {
+      v.src = src;
+      v.load();
+    }
+    if (inViewRef.current && !userPausedRef.current && autoPlayOnView && !document.hidden) {
+      const t = window.setTimeout(() => {
+        void playExclusive("autoplay");
+      }, 50);
+      return () => clearTimeout(t);
+    }
+  }, [src, mediaAttached, retryToken, autoPlayOnView, playExclusive]);
+
+  // Core media events
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
@@ -136,20 +314,47 @@ export function FeedVideoPlayer({
     const onPlay = () => {
       setPlaying(true);
       setStarted(true);
+      setBuffering(false);
     };
     const onPause = () => setPlaying(false);
     const onTime = () => {
-      if (!scrubbingRef.current) setCurrent(v.currentTime);
+      if (!scrubbingRef.current) {
+        setCurrent(v.currentTime);
+        if (v.currentTime > 0.5) saveProgress(pKey, v.currentTime);
+      }
     };
-    const onMeta = () => syncDuration();
+    const onMeta = () => {
+      syncDuration();
+      restoreProgress();
+    };
     const onEnded = () => {
       setPlaying(false);
       setScrubPct(null);
       scrubbingRef.current = false;
+      if (!loop) {
+        // Hold last frame — do not reset currentTime.
+        saveProgress(pKey, v.currentTime);
+      }
     };
     const onVolume = () => {
       setIsMuted(v.muted);
       if (!volumeDraggingRef.current) setVolume(v.volume);
+    };
+    const onWaiting = () => setBuffering(true);
+    const onPlaying = () => setBuffering(false);
+    const onCanPlay = () => {
+      setBuffering(false);
+      syncDuration();
+    };
+    const onError = () => {
+      if (retryCountRef.current >= MAX_RETRIES) return;
+      const delay = RETRY_DELAYS_MS[Math.min(retryCountRef.current, RETRY_DELAYS_MS.length - 1)];
+      retryCountRef.current += 1;
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = setTimeout(() => {
+        setRetryToken((t) => t + 1);
+        setMediaAttached(true);
+      }, delay);
     };
 
     v.addEventListener("play", onPlay);
@@ -157,12 +362,20 @@ export function FeedVideoPlayer({
     v.addEventListener("timeupdate", onTime);
     v.addEventListener("loadedmetadata", onMeta);
     v.addEventListener("loadeddata", onMeta);
-    v.addEventListener("canplay", onMeta);
+    v.addEventListener("canplay", onCanPlay);
     v.addEventListener("durationchange", onMeta);
     v.addEventListener("progress", onMeta);
     v.addEventListener("ended", onEnded);
     v.addEventListener("volumechange", onVolume);
+    v.addEventListener("waiting", onWaiting);
+    v.addEventListener("playing", onPlaying);
+    v.addEventListener("error", onError);
     syncDuration();
+
+    // Init volume from prefs without unmuting autoplay.
+    v.volume = volume > 0 ? volume : volumeBeforeMuteRef.current || DEFAULT_VOLUME;
+    volumeBeforeMuteRef.current = v.volume;
+    v.muted = isMuted;
 
     return () => {
       v.removeEventListener("play", onPlay);
@@ -170,13 +383,105 @@ export function FeedVideoPlayer({
       v.removeEventListener("timeupdate", onTime);
       v.removeEventListener("loadedmetadata", onMeta);
       v.removeEventListener("loadeddata", onMeta);
-      v.removeEventListener("canplay", onMeta);
+      v.removeEventListener("canplay", onCanPlay);
       v.removeEventListener("durationchange", onMeta);
       v.removeEventListener("progress", onMeta);
       v.removeEventListener("ended", onEnded);
       v.removeEventListener("volumechange", onVolume);
+      v.removeEventListener("waiting", onWaiting);
+      v.removeEventListener("playing", onPlaying);
+      v.removeEventListener("error", onError);
     };
-  }, [syncDuration, src]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- init once per src attach
+  }, [src, mediaAttached, retryToken, syncDuration, restoreProgress, pKey, loop]);
+
+  // IntersectionObserver: autoplay / pause / unload / preload
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || !autoPlayOnView) return;
+
+    const quality = getNetworkQuality();
+    const io = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+        const ratio = entry.intersectionRatio;
+        const near = ratio > 0.05 || entry.isIntersecting;
+        nearViewRef.current = near;
+
+        setPreload(
+          preloadProp ?? suggestedPreload(quality, near || ratio >= AUTOPLAY_THRESHOLD)
+        );
+
+        if (near) {
+          if (unloadTimerRef.current) {
+            clearTimeout(unloadTimerRef.current);
+            unloadTimerRef.current = null;
+          }
+          setMediaAttached(true);
+        } else if (!near && mediaAttached) {
+          if (!unloadTimerRef.current) {
+            unloadTimerRef.current = setTimeout(() => {
+              const v = videoRef.current;
+              if (v) {
+                saveProgress(pKey, v.currentTime);
+                v.pause();
+                v.removeAttribute("src");
+                v.load();
+              }
+              setMediaAttached(false);
+              setPlaying(false);
+            }, UNLOAD_AFTER_MS);
+          }
+        }
+
+        const shouldPlay =
+          ratio >= AUTOPLAY_THRESHOLD &&
+          shouldAutoplayOnNetwork(quality) &&
+          !userPausedRef.current &&
+          !document.hidden;
+
+        inViewRef.current = ratio >= AUTOPLAY_THRESHOLD;
+
+        if (shouldPlay) {
+          void playExclusive("autoplay");
+          // Prefetch neighbors
+          const ctrl = getVideoPlaybackController();
+          const neighbors = ctrl?.getNeighbors(playerId, PREFETCH_AHEAD) ?? [];
+          for (const nid of neighbors) {
+            const node = document.querySelector(
+              `[data-feed-video-id="${CSS.escape(nid)}"] video`
+            ) as HTMLVideoElement | null;
+            if (node && !node.getAttribute("src") && node.dataset.src) {
+              node.preload = "metadata";
+              node.src = node.dataset.src;
+            }
+          }
+        } else if (ratio < AUTOPLAY_THRESHOLD) {
+          const v = videoRef.current;
+          if (v && !v.paused) {
+            pauseSelf(false);
+            registeredRef.current.autoplayIntent = ratio > 0.1;
+          }
+        }
+      },
+      {
+        threshold: [0, 0.05, 0.25, AUTOPLAY_THRESHOLD, 0.75, 1],
+        rootMargin: "200px 0px",
+      }
+    );
+
+    io.observe(el);
+    return () => io.disconnect();
+  }, [
+    autoPlayOnView,
+    playExclusive,
+    pauseSelf,
+    playerId,
+    pKey,
+    mediaAttached,
+    preloadProp,
+  ]);
 
   useEffect(() => {
     const onFsChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
@@ -195,15 +500,19 @@ export function FeedVideoPlayer({
     const v = videoRef.current;
     if (!v) return;
     if (v.muted || v.volume <= 0) {
-      const restore = volumeBeforeMuteRef.current > 0 ? volumeBeforeMuteRef.current : DEFAULT_VOLUME;
+      const restore =
+        volumeBeforeMuteRef.current > 0 ? volumeBeforeMuteRef.current : DEFAULT_VOLUME;
       v.volume = restore;
       v.muted = false;
       setVolume(restore);
       setIsMuted(false);
+      writeVolumePreference(restore);
+      writeMutedPreference(false);
     } else {
       volumeBeforeMuteRef.current = v.volume > 0 ? v.volume : volumeBeforeMuteRef.current;
       v.muted = true;
       setIsMuted(true);
+      writeMutedPreference(true);
     }
   };
 
@@ -212,7 +521,6 @@ export function FeedVideoPlayer({
     if (!track) return 0;
     const rect = track.getBoundingClientRect();
     if (rect.height <= 0) return 0;
-    // top = 100%, bottom = 0%
     return Math.min(100, Math.max(0, ((rect.bottom - clientY) / rect.height) * 100));
   }, []);
 
@@ -224,13 +532,11 @@ export function FeedVideoPlayer({
 
   useEffect(() => {
     if (!isVolumeDragging) return;
-
     const onMove = (e: PointerEvent) => {
       if (!volumeDraggingRef.current) return;
       applyVolume(volumePctFromPointer(e.clientY) / 100);
     };
     const onUp = () => endVolumeDrag();
-
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onUp);
@@ -272,20 +578,27 @@ export function FeedVideoPlayer({
     else void el.requestFullscreen?.();
   };
 
+  const seekBy = useCallback((delta: number) => {
+    const v = videoRef.current;
+    if (!v) return;
+    const d = readVideoDuration(v) || duration;
+    const next = Math.min(Math.max(0, v.currentTime + delta), d || v.currentTime + delta);
+    v.currentTime = next;
+    setCurrent(next);
+    saveProgress(pKey, next);
+  }, [duration, pKey]);
+
   const seekToPercent = useCallback(
     (pct: number) => {
       const v = videoRef.current;
       if (!v) return false;
-
       const clamped = Math.min(100, Math.max(0, pct));
       setScrubPct(clamped);
-
       const d = readVideoDuration(v) || duration;
       if (d <= 0) {
         pendingSeekPctRef.current = clamped;
         return false;
       }
-
       pendingSeekPctRef.current = null;
       const time = (clamped / 100) * d;
       try {
@@ -318,20 +631,19 @@ export function FeedVideoPlayer({
     const v = videoRef.current;
     if (v) {
       setCurrent(v.currentTime);
-      if (resumeAfterScrubRef.current) void v.play();
+      saveProgress(pKey, v.currentTime);
+      if (resumeAfterScrubRef.current) void playExclusive("user");
     }
     resumeAfterScrubRef.current = false;
-  }, []);
+  }, [pKey, playExclusive]);
 
   useEffect(() => {
     if (!isScrubbing) return;
-
     const onMove = (e: PointerEvent) => {
       if (!scrubbingRef.current) return;
       seekToPercent(pctFromPointer(e.clientX));
     };
     const onUp = () => endScrub();
-
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onUp);
@@ -369,6 +681,159 @@ export function FeedVideoPlayer({
     endScrub();
   };
 
+  const triggerLikeBurst = useCallback(() => {
+    if (!onDoubleTapLike) return;
+    onDoubleTapLike();
+    setLikeBurst(true);
+    window.setTimeout(() => setLikeBurst(false), 700);
+  }, [onDoubleTapLike]);
+
+  const onVideoPointerDown = (e: React.PointerEvent) => {
+    stopFeedNavigation(e);
+    if (e.pointerType === "touch" || isCoarsePointer()) {
+      longPressTimerRef.current = setTimeout(() => {
+        const v = videoRef.current;
+        if (!v) return;
+        v.playbackRate = LONG_PRESS_RATE;
+        setHoldBoost(true);
+        setSpeed(LONG_PRESS_RATE);
+      }, LONG_PRESS_MS);
+    }
+  };
+
+  const onVideoPointerUp = (e: React.PointerEvent) => {
+    stopFeedNavigation(e);
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    if (holdBoost) {
+      const v = videoRef.current;
+      if (v) v.playbackRate = 1;
+      setHoldBoost(false);
+      setSpeed(1);
+      return;
+    }
+
+    const now = Date.now();
+    if (onDoubleTapLike && now - lastTapRef.current < DOUBLE_TAP_MS) {
+      lastTapRef.current = 0;
+      triggerLikeBurst();
+      return;
+    }
+    lastTapRef.current = now;
+
+    if (!started) {
+      userPausedRef.current = false;
+      void playExclusive("user");
+    } else {
+      togglePlay();
+    }
+  };
+
+  const onVideoPointerCancel = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    if (holdBoost) {
+      const v = videoRef.current;
+      if (v) v.playbackRate = 1;
+      setHoldBoost(false);
+      setSpeed(1);
+    }
+  };
+
+  // Pinch zoom (mobile)
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const [a, b] = [e.touches[0], e.touches[1]];
+      const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+      pinchRef.current = { dist, scale: zoom };
+    }
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && pinchRef.current) {
+      const [a, b] = [e.touches[0], e.touches[1]];
+      const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+      const next = Math.min(3, Math.max(1, (pinchRef.current.scale * dist) / pinchRef.current.dist));
+      setZoom(next);
+    }
+  };
+  const onTouchEnd = () => {
+    if (zoom < 1.05) setZoom(1);
+    pinchRef.current = null;
+  };
+
+  // Hover preview (desktop)
+  const onMouseEnter = () => {
+    if (isCoarsePointer() || !autoPlayOnView) return;
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    hoverTimerRef.current = setTimeout(() => {
+      if (inViewRef.current && playing) return;
+      if (userPausedRef.current && inViewRef.current) return;
+      void playExclusive("hover");
+    }, HOVER_PREVIEW_DELAY_MS);
+  };
+  const onMouseLeave = () => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    if (!inViewRef.current || userPausedRef.current) {
+      pauseSelf(false);
+    }
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    const tag = (e.target as HTMLElement)?.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+    switch (e.key) {
+      case " ":
+      case "k":
+      case "K":
+        e.preventDefault();
+        togglePlay();
+        break;
+      case "ArrowLeft":
+        e.preventDefault();
+        seekBy(-SEEK_STEP_SEC);
+        break;
+      case "ArrowRight":
+        e.preventDefault();
+        seekBy(SEEK_STEP_SEC);
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        applyVolume(Math.min(1, volume + VOLUME_STEP));
+        break;
+      case "ArrowDown":
+        e.preventDefault();
+        applyVolume(Math.max(0, volume - VOLUME_STEP));
+        break;
+      case "m":
+      case "M":
+        e.preventDefault();
+        toggleMute();
+        break;
+      case "f":
+      case "F":
+        e.preventDefault();
+        if (!protect) toggleFullscreen();
+        break;
+      case "Escape":
+        if (document.fullscreenElement) {
+          e.preventDefault();
+          void document.exitFullscreen();
+        }
+        if (zoom > 1) setZoom(1);
+        break;
+      default:
+        break;
+    }
+  };
+
   const liveDuration = (() => {
     const v = videoRef.current;
     if (v) {
@@ -381,51 +846,95 @@ export function FeedVideoPlayer({
   const progress = liveDuration > 0 ? (current / liveDuration) * 100 : 0;
   const displayProgress = scrubPct ?? progress;
   const displayCurrent =
-    scrubPct !== null && liveDuration > 0
-      ? (scrubPct / 100) * liveDuration
-      : current;
+    scrubPct !== null && liveDuration > 0 ? (scrubPct / 100) * liveDuration : current;
   const effectiveMuted = isMuted || volume <= 0;
   const displayVolumePct = effectiveMuted ? 0 : Math.round(volume * 100);
   const VolumeIcon = effectiveMuted ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
   const showVolumePanel = volumeOpen || isVolumeDragging;
 
+  const videoStyle: CSSProperties = {
+    transform: zoom > 1 ? `scale(${zoom})` : undefined,
+    transition: pinchRef.current ? undefined : "opacity 280ms ease, transform 200ms ease",
+    opacity: fadeIn ? 0.72 : 1,
+  };
+
   return (
     <div
       ref={containerRef}
-      className={cn("relative overflow-hidden bg-black group/video", className)}
+      data-feed-video-id={playerId}
+      className={cn(
+        "relative overflow-hidden bg-black group/video outline-none",
+        className
+      )}
+      style={{ contentVisibility: "auto", containIntrinsicSize: "auto 240px" }}
+      tabIndex={0}
+      role="group"
+      aria-label="동영상 플레이어"
       onClick={stopFeedNavigation}
       onPointerDown={stopFeedNavigation}
+      onKeyDown={onKeyDown}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
     >
       <video
         ref={videoRef}
-        src={src}
+        data-src={src}
+        poster={poster}
         className={cn(
-          fillMode ? "absolute inset-0 h-full w-full object-cover" : "block w-full h-auto"
+          fillMode ? "absolute inset-0 h-full w-full object-cover" : "block w-full h-auto",
+          "origin-center will-change-transform"
         )}
+        style={videoStyle}
         muted={isMuted}
         playsInline={playsInline}
         preload={preload}
+        loop={loop}
         controls={false}
         disablePictureInPicture
         controlsList="nodownload noremoteplayback noplaybackrate"
         onContextMenu={(e) => e.preventDefault()}
-        onClick={(e) => {
-          stopFeedNavigation(e);
-          if (!started) startPlayback();
-          else togglePlay();
-        }}
+        onPointerDown={onVideoPointerDown}
+        onPointerUp={onVideoPointerUp}
+        onPointerCancel={onVideoPointerCancel}
       />
 
-      {!playing && (
+      {buffering && (
+        <div
+          className="pointer-events-none absolute inset-0 z-[4] flex items-center justify-center bg-black/20 transition-opacity duration-200"
+          aria-hidden
+        >
+          <Loader2 className="h-10 w-10 animate-spin text-white/90" />
+        </div>
+      )}
+
+      {likeBurst && (
+        <div className="pointer-events-none absolute inset-0 z-[5] flex items-center justify-center">
+          <Heart
+            className="h-20 w-20 text-white drop-shadow-lg animate-in zoom-in-50 fade-in duration-300 fill-white"
+            fill="currentColor"
+          />
+        </div>
+      )}
+
+      {holdBoost && (
+        <div className="pointer-events-none absolute top-3 right-3 z-[5] rounded-md bg-black/60 px-2 py-1 text-xs font-semibold text-white">
+          2x
+        </div>
+      )}
+
+      {!playing && !buffering && (
         <button
           type="button"
           aria-label="재생"
           onClick={(e) => {
             stopFeedNavigation(e);
-            if (!started) startPlayback();
-            else togglePlay();
+            userPausedRef.current = false;
+            void playExclusive("user");
           }}
-          className="absolute inset-0 z-[2] flex items-center justify-center"
+          className="absolute inset-0 z-[2] flex items-center justify-center transition-opacity duration-200"
         >
           <span className="flex h-16 w-16 items-center justify-center rounded-full bg-black/55 text-white ring-1 ring-white/25 backdrop-blur-sm transition-transform group-hover/video:scale-105">
             <Play className="h-7 w-7 translate-x-[2px]" fill="currentColor" />
@@ -439,7 +948,7 @@ export function FeedVideoPlayer({
           className={cn(
             "absolute inset-x-0 bottom-0 z-[3] px-3 pb-2 pt-8",
             "bg-gradient-to-t from-black/80 via-black/35 to-transparent",
-            "opacity-100"
+            "opacity-100 transition-opacity duration-200"
           )}
           onClick={stopFeedNavigation}
           onPointerDown={stopFeedNavigation}
@@ -502,7 +1011,10 @@ export function FeedVideoPlayer({
               }}
               onFocus={() => setVolumeOpen(true)}
               onBlur={(e) => {
-                if (!e.currentTarget.contains(e.relatedTarget as Node | null) && !volumeDraggingRef.current) {
+                if (
+                  !e.currentTarget.contains(e.relatedTarget as Node | null) &&
+                  !volumeDraggingRef.current
+                ) {
                   setVolumeOpen(false);
                 }
               }}

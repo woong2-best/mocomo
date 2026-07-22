@@ -125,6 +125,11 @@ export function FeedTimelinePostCard({
                   paymentsEnabled={false}
                   mediaTotal={post._count?.media ?? post.media.length}
                   postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
+                  onDoubleTapLike={() => {
+                    if (!requireLogin()) return;
+                    setActionError("");
+                    if (!liked) void like.toggle();
+                  }}
                 />
               )}
               {post.poll && <div className="mt-3"><PostPollCard postId={post.id} poll={post.poll} compact /></div>}
