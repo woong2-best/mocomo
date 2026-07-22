@@ -4,22 +4,7 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import type { ReportTargetType } from "@prisma/client";
 import { addRiskScore, upsertModerationCaseForReport } from "@/lib/risk-score";
-
-export const REPORT_REASONS = [
-  { id: "SPAM", label: "스팸·광고" },
-  { id: "ABUSE", label: "욕설·괴롭힘" },
-  { id: "HARASSMENT", label: "괴롭힘" },
-  { id: "HATE", label: "혐오 표현" },
-  { id: "VIOLENCE", label: "폭력" },
-  { id: "FRAUD", label: "사기·불법 거래" },
-  { id: "PRIVACY", label: "개인정보" },
-  { id: "COPYRIGHT", label: "저작권" },
-  { id: "SEXUAL", label: "음란물" },
-  { id: "IMPERSONATION", label: "사칭" },
-  { id: "OTHER", label: "기타" },
-] as const;
-
-export type ReportReasonId = (typeof REPORT_REASONS)[number]["id"];
+import { REPORT_REASONS, type ReportReasonId } from "@/lib/report-reasons";
 
 function riskReasonForReport(reason: ReportReasonId): string {
   switch (reason) {

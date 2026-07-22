@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
 import { requireAuthForAction } from "@/lib/auth";
@@ -16,11 +17,19 @@ import {
   notifyJoinRequestPending,
 } from "@/lib/notifications";
 
+function revalidateCommunityPaths(communitySlug: string) {
+  // 응답 직후 재검증 — 페이지 재렌더 실패가 가입 성공 응답을 가로채지 않도록 함
+  after(() => {
+    revalidatePath(`/c/${communitySlug}`);
+    revalidatePath("/communities");
+  });
+}
+
 async function addMemberToCommunity(
   communityId: string,
   userId: string,
   communitySlug: string,
-  creatorId: string
+  _creatorId: string
 ) {
   await db.$transaction(async (tx) => {
     const member = await tx.communityMember.create({
@@ -41,8 +50,7 @@ async function addMemberToCommunity(
     }
   });
 
-  revalidatePath(`/c/${communitySlug}`);
-  revalidatePath("/communities");
+  revalidateCommunityPaths(communitySlug);
 }
 
 export async function joinCommunityServer(
@@ -175,7 +183,7 @@ export async function updateCommunityJoinMode(communityId: string, joinMode: Com
       where: { id: communityId },
       data: { joinMode },
     });
-    revalidatePath(`/c/${community.slug}`);
+    revalidateCommunityPaths(community.slug);
     return { success: true as const };
   } catch (e) {
     return { error: prismaErrorMessage(e) };
@@ -279,7 +287,7 @@ export async function reviewCommunityJoinRequest(
         data: { status: "REJECTED", reviewedAt: new Date() },
       });
       void notifyJoinRejected(request.community.slug, request.userId);
-      revalidatePath(`/c/${request.community.slug}`);
+      revalidateCommunityPaths(request.community.slug);
       return { success: true as const };
     }
 
@@ -310,7 +318,7 @@ export async function reviewCommunityJoinRequest(
 
     void notifyJoinApproved(request.community.slug, request.userId);
 
-    revalidatePath(`/c/${request.community.slug}`);
+    revalidateCommunityPaths(request.community.slug);
     return { success: true as const };
   } catch (e) {
     return { error: prismaErrorMessage(e) };

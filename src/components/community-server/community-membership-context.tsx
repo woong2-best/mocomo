@@ -87,10 +87,14 @@ export function CommunityMembershipProvider({
           router.refresh();
         }
       } catch (e) {
+        const raw = e instanceof Error ? e.message : "";
+        const isDigest =
+          raw.includes("Server Components render") || raw.includes("digest property");
         setState((s) => ({
           ...s,
-          joinError:
-            e instanceof Error ? e.message : "참여 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+          joinError: isDigest
+            ? "참여 처리 중 오류가 발생했습니다. 새로고침 후 다시 시도해 주세요."
+            : raw || "참여 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.",
         }));
       } finally {
         setState((s) => ({ ...s, joinLoading: false }));

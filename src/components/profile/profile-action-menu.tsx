@@ -9,11 +9,8 @@ import {
   toggleMuteUserAction,
   unblockUserAction,
 } from "@/actions/user-relationship";
-import {
-  submitContentReport,
-  REPORT_REASONS,
-  type ReportReasonId,
-} from "@/actions/report";
+import { submitContentReport } from "@/actions/report";
+import { REPORT_REASONS, type ReportReasonId } from "@/lib/report-reasons";
 import { ensureArray } from "@/lib/ensure-array";
 import { Button } from "@/components/ui/button";
 import {

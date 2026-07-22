@@ -4,11 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Flag } from "lucide-react";
 import type { ReportTargetType } from "@prisma/client";
-import {
-  submitContentReport,
-  REPORT_REASONS,
-  type ReportReasonId,
-} from "@/actions/report";
+import { submitContentReport } from "@/actions/report";
+import { REPORT_REASONS, type ReportReasonId } from "@/lib/report-reasons";
 import { ensureArray } from "@/lib/ensure-array";
 import { Button } from "@/components/ui/button";
 import {
