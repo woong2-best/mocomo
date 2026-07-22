@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { ArrowLeft, Calendar, Cake, Link2, MapPin, Camera, BadgeCheck } from "lucide-react";
+import { ArrowLeft, Calendar, Cake, Link2, MapPin, BadgeCheck } from "lucide-react";
 import { formatProfileBirthday } from "@/lib/birth-date";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -258,67 +258,6 @@ export function ProfileHeader({
           </div>
         )}
 
-        {user.cosplayerProfile ? (
-          <div className="mt-4 rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                <Camera className="h-4 w-4 text-pink-500" />
-                코스어
-              </div>
-              <Link
-                href={`/cosplay/${user.username}`}
-                className="text-xs text-primary hover:underline shrink-0"
-              >
-                갤러리 보기 →
-              </Link>
-            </div>
-            {user.cosplayerProfile.bio && (
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                {user.cosplayerProfile.bio}
-              </p>
-            )}
-            {user.cosplayerProfile.animeLinks.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {user.cosplayerProfile.animeLinks.map((link) => (
-                  <Link
-                    key={link.id}
-                    href={`/anime/${link.anime.slug}?tab=cosplayers`}
-                    className="text-xs px-2.5 py-1 rounded-full bg-primary/15 hover:bg-primary/25 text-primary"
-                  >
-                    {link.anime.title}
-                    {link.character ? ` · ${link.character}` : ""}
-                  </Link>
-                ))}
-              </div>
-            )}
-            {user.cosplayerProfile.photos.length > 0 && (
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {user.cosplayerProfile.photos.map((photo) => (
-                  <Link
-                    key={photo.id}
-                    href={`/cosplay/${user.username}`}
-                    className="shrink-0 rounded-lg overflow-hidden border border-border/60 hover:border-primary/40"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={photo.url}
-                      alt={photo.character || "코스프레"}
-                      className="h-24 w-20 object-cover"
-                    />
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : isSelf ? (
-          <Link
-            href="/cosplay/apply"
-            className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-          >
-            <Camera className="h-4 w-4" />
-            코스어 신청하기
-          </Link>
-        ) : null}
       </div>
       </div>
     </div>
