@@ -115,11 +115,32 @@ export function ProfileHeader({
       />
 
       <div className="px-4 pb-4">
-        <div className="-mt-14 sm:-mt-16">
-          <Avatar className="h-24 w-24 sm:h-28 sm:w-28 ring-4 ring-background">
+        <div className="-mt-14 sm:-mt-16 flex items-end justify-between gap-3">
+          <Avatar className="h-24 w-24 sm:h-28 sm:w-28 ring-4 ring-background shrink-0">
             <AvatarImage src={user.image ?? undefined} />
             <AvatarFallback className="text-2xl">{userAvatarFallbackInitial(user)}</AvatarFallback>
           </Avatar>
+
+          {!isBlocked && (
+            <div className="mb-1 flex gap-2 flex-wrap justify-end">
+              {isSelf ? (
+                <>
+                  <Link href="/settings/profile">
+                    <Button variant="outline" className="rounded-full font-bold px-5">
+                      프로필 수정
+                    </Button>
+                  </Link>
+                  <Link href="/settings/creator">
+                    <Button variant="outline" className="rounded-full font-bold px-5">
+                      수익 설정
+                    </Button>
+                  </Link>
+                </>
+              ) : (
+                actionBar
+              )}
+            </div>
+          )}
         </div>
 
         <div className="mt-3">
@@ -298,27 +319,6 @@ export function ProfileHeader({
             코스어 신청하기
           </Link>
         ) : null}
-
-        {!isBlocked && (
-          <div className="mt-4 flex gap-2 flex-wrap">
-            {isSelf ? (
-              <>
-                <Link href="/settings/profile">
-                  <Button variant="outline" className="rounded-full font-bold px-5">
-                    프로필 수정
-                  </Button>
-                </Link>
-                <Link href="/settings/creator">
-                  <Button variant="outline" className="rounded-full font-bold px-5">
-                    수익 설정
-                  </Button>
-                </Link>
-              </>
-            ) : (
-              actionBar
-            )}
-          </div>
-        )}
       </div>
       </div>
     </div>
