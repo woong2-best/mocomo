@@ -171,7 +171,7 @@ export function ProfileMediaGrid({
     setLoadError("");
     try {
       const params = new URLSearchParams();
-      if (sort === "popular") params.set("sort", "popular");
+      if (sort !== "new") params.set("sort", sort);
       if (mediaKind !== "all") params.set("kind", mediaKind);
       params.set("cursor", cursor);
       const res = await fetch(`/api/profile/${username}/media?${params.toString()}`);

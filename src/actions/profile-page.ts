@@ -432,7 +432,9 @@ export async function getProfileMediaGrid(
             { post: { createdAt: "desc" } },
             { order: "asc" },
           ]
-        : [{ post: { createdAt: "desc" } }, { order: "asc" }],
+        : sort === "oldest"
+          ? [{ post: { createdAt: "asc" } }, { order: "asc" }]
+          : [{ post: { createdAt: "desc" } }, { order: "asc" }],
     select: {
       id: true,
       url: true,

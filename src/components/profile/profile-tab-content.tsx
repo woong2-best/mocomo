@@ -144,7 +144,7 @@ export function ProfileTabContent({
 
     const params = new URLSearchParams();
     if (effectiveTab !== "posts") params.set("tab", effectiveTab);
-    if (sort === "popular") params.set("sort", "popular");
+    if (sort !== "new") params.set("sort", sort);
     if (effectiveTab === "media" && kind !== "all") params.set("kind", kind);
 
     const url =

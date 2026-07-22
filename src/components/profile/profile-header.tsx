@@ -16,6 +16,7 @@ import { creatorBadgeFromFollowerCount } from "@/lib/creator-follower-badge";
 import { CountryFlag } from "@/components/user/country-flag";
 import { userAvatarFallbackInitial, userDisplayName } from "@/lib/user-public-select";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { ProfileHeaderFeedActions } from "@/components/profile/profile-header-feed-actions";
 
 type SnsLinks = { website?: string; location?: string; twitter?: string };
 
@@ -240,15 +241,18 @@ export function ProfileHeader({
           </p>
         )}
 
-        <div className="flex gap-4 mt-3 text-sm">
-          <Link href={`/u/${user.username}/connections?tab=following`} className="hover:underline">
-            <span className="font-bold text-foreground">{user._count.following}</span>{" "}
-            <span className="text-muted-foreground">팔로잉</span>
-          </Link>
-          <Link href={`/u/${user.username}/connections?tab=followers`} className="hover:underline">
-            <span className="font-bold text-foreground">{user._count.followers}</span>{" "}
-            <span className="text-muted-foreground">팔로워</span>
-          </Link>
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <div className="flex shrink-0 gap-4 text-sm">
+            <Link href={`/u/${user.username}/connections?tab=following`} className="hover:underline">
+              <span className="font-bold text-foreground">{user._count.following}</span>{" "}
+              <span className="text-muted-foreground">팔로잉</span>
+            </Link>
+            <Link href={`/u/${user.username}/connections?tab=followers`} className="hover:underline">
+              <span className="font-bold text-foreground">{user._count.followers}</span>{" "}
+              <span className="text-muted-foreground">팔로워</span>
+            </Link>
+          </div>
+          <ProfileHeaderFeedActions isSelf={isSelf} />
         </div>
 
         {user.profile?.favoriteTags && user.profile.favoriteTags.length > 0 && (

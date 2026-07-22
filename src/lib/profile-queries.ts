@@ -30,7 +30,7 @@ export function attachProfilePostAuthor<T extends { authorId: string; author?: U
 
 export type ProfileTab = "posts" | "replies" | "media" | "likes" | "wiki";
 
-export type ProfileSort = "new" | "popular";
+export type ProfileSort = "new" | "popular" | "oldest";
 
 export type ProfileMediaKind = "all" | "photo" | "video";
 
@@ -40,7 +40,9 @@ export function parseProfileTab(tab?: string | null): ProfileTab {
 }
 
 export function parseProfileSort(sort?: string | null): ProfileSort {
-  return sort === "popular" ? "popular" : "new";
+  if (sort === "popular") return "popular";
+  if (sort === "oldest") return "oldest";
+  return "new";
 }
 
 export function parseProfileMediaKind(kind?: string | null): ProfileMediaKind {
@@ -48,9 +50,17 @@ export function parseProfileMediaKind(kind?: string | null): ProfileMediaKind {
   return "all";
 }
 
+/** Append non-default sort to URLSearchParams (default = new). */
+export function appendProfileSortParam(params: URLSearchParams, sort: ProfileSort) {
+  if (sort !== "new") params.set("sort", sort);
+}
+
 export function profilePostsOrderBy(sort: ProfileSort) {
   if (sort === "popular") {
     return [{ hotScore: "desc" as const }, { createdAt: "desc" as const }];
+  }
+  if (sort === "oldest") {
+    return [{ createdAt: "asc" as const }];
   }
   return [{ createdAt: "desc" as const }];
 }

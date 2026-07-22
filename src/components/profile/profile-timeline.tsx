@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ProfilePostCard } from "@/components/profile/profile-post-card";
 import type { GridPost } from "@/components/feed/feed-post-card";
 import type { ProfileMediaKind, ProfileSort, ProfileTab } from "@/lib/profile-queries";
+import { appendProfileSortParam } from "@/lib/profile-queries";
 import { Button } from "@/components/ui/button";
 import { subscribePostDeleted } from "@/lib/post-deleted-sync";
 import { Loader2 } from "lucide-react";
@@ -19,7 +20,7 @@ export type TimelineItem =
 
 function timelineQuery(tab: ProfileTab, sort: ProfileSort, mediaKind: ProfileMediaKind | null) {
   const params = new URLSearchParams({ tab });
-  if (sort === "popular") params.set("sort", "popular");
+  appendProfileSortParam(params, sort);
   if (tab === "media" && mediaKind && mediaKind !== "all") params.set("kind", mediaKind);
   return params.toString();
 }

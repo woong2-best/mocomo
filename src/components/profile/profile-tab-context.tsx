@@ -48,7 +48,7 @@ function readQuery(searchParams: URLSearchParams): ProfileTabQuery {
 function buildProfileHref(basePath: string, query: ProfileTabQuery) {
   const params = new URLSearchParams();
   if (query.tab !== "posts") params.set("tab", query.tab);
-  if (query.sort === "popular") params.set("sort", "popular");
+  if (query.sort !== "new") params.set("sort", query.sort);
   if (query.tab === "media" && query.kind !== "all") params.set("kind", query.kind);
   const q = params.toString();
   return q ? `${basePath}?${q}` : basePath;
@@ -94,6 +94,7 @@ export function ProfileTabProvider({
     for (const tab of tabs) {
       prefetchHref(buildHref({ tab, sort: "new", kind: tab === "media" ? "photo" : "all" }));
       prefetchHref(buildHref({ tab, sort: "popular", kind: tab === "media" ? "photo" : "all" }));
+      prefetchHref(buildHref({ tab, sort: "oldest", kind: tab === "media" ? "photo" : "all" }));
     }
   }, [buildHref, prefetchHref]);
 

@@ -3,9 +3,15 @@
 import { Film, ImageIcon, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProfileTab } from "@/components/profile/profile-tab-context";
-import type { ProfileMediaKind } from "@/lib/profile-queries";
+import type { ProfileMediaKind, ProfileSort } from "@/lib/profile-queries";
 
-/** Compact sort links — sits with Create above the profile tab rail. */
+const SORT_OPTIONS: { id: ProfileSort; label: string }[] = [
+  { id: "new", label: "새로운" },
+  { id: "popular", label: "인기 순" },
+  { id: "oldest", label: "오래된 순" },
+];
+
+/** Compact sort links — sits with Create on the following/followers row. */
 export function ProfileSortControls({ className }: { className?: string }) {
   const { tab, sort, navigate } = useProfileTab();
 
@@ -13,27 +19,21 @@ export function ProfileSortControls({ className }: { className?: string }) {
 
   return (
     <div className={cn("flex items-center gap-2 text-xs font-medium", className)}>
-      <button
-        type="button"
-        onClick={() => navigate({ sort: "new" })}
-        className={cn(
-          "transition-colors",
-          sort === "new" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-        )}
-      >
-        새로운
-      </button>
-      <span className="text-border">|</span>
-      <button
-        type="button"
-        onClick={() => navigate({ sort: "popular" })}
-        className={cn(
-          "transition-colors",
-          sort === "popular" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-        )}
-      >
-        인기 순
-      </button>
+      {SORT_OPTIONS.map((opt, i) => (
+        <span key={opt.id} className="inline-flex items-center gap-2">
+          {i > 0 ? <span className="text-border">|</span> : null}
+          <button
+            type="button"
+            onClick={() => navigate({ sort: opt.id })}
+            className={cn(
+              "transition-colors",
+              sort === opt.id ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {opt.label}
+          </button>
+        </span>
+      ))}
     </div>
   );
 }
