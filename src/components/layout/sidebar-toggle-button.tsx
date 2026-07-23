@@ -1,18 +1,28 @@
 "use client";
 
+import type { MouseEvent } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Menu } from "lucide-react";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { BRAND } from "@/lib/brand";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { scrollMainToTop } from "@/lib/scroll-main";
 import { useSidebarToggle } from "@/components/providers/sidebar-toggle-provider";
 import { cn } from "@/lib/utils";
 
 export function SidebarToggleButton() {
   const pathname = usePathname();
+  const router = useRouter();
   const isHome = pathname === DEFAULT_LANDING_PATH || pathname.startsWith(`${DEFAULT_LANDING_PATH}/`);
   const { open: sidebarOpen, toggle: toggleSidebar } = useSidebarToggle();
+
+  function onBrandClick(e: MouseEvent<HTMLAnchorElement>) {
+    if (!isHome) return;
+    e.preventDefault();
+    scrollMainToTop();
+    router.refresh();
+  }
 
   return (
     <div className="app-header-interactive hidden lg:flex items-center gap-2 shrink-0 min-w-0">
@@ -58,11 +68,12 @@ export function SidebarToggleButton() {
 
       <Link
         href={DEFAULT_LANDING_PATH}
+        onClick={onBrandClick}
         className={cn(
           "group/home relative inline-block min-w-[5.5rem] rounded-lg px-1 py-0.5 transition-colors",
           "hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-folk-terracotta/50"
         )}
-        aria-label={isHome ? BRAND.name : "Home으로 이동"}
+        aria-label={isHome ? `${BRAND.name} 새로고침` : "Home으로 이동"}
       >
         <span
           className={cn(

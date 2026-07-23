@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, type MouseEvent } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { HeaderSearch } from "@/components/search/header-search";
 import { BRAND } from "@/lib/brand";
@@ -11,6 +11,7 @@ import { HeaderAuth } from "@/components/layout/header-auth";
 import { MobileDrawerNav, MobileMenuButton } from "@/components/layout/mobile-drawer-nav";
 import { SidebarToggleButton } from "@/components/layout/sidebar-toggle-button";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { scrollMainToTop } from "@/lib/scroll-main";
 import { cn } from "@/lib/utils";
 
 function HeaderSearchSlot({ className }: { className?: string }) {
@@ -26,14 +27,29 @@ function HeaderSearchSlot({ className }: { className?: string }) {
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname() ?? "";
+  const router = useRouter();
   const isSearchPage = pathname === "/search";
+  const isHome =
+    pathname === DEFAULT_LANDING_PATH || pathname.startsWith(`${DEFAULT_LANDING_PATH}/`);
+
+  function onBrandClick(e: MouseEvent<HTMLAnchorElement>) {
+    if (!isHome) return;
+    e.preventDefault();
+    scrollMainToTop();
+    router.refresh();
+  }
 
   return (
     <>
       <header className="sticky top-0 z-[150] flex min-h-14 items-center gap-2 sm:gap-3 border-b border-border bg-background/95 backdrop-blur-md px-3 sm:px-5 pt-safe pb-1">
         <div className="app-header-interactive flex items-center gap-2 shrink-0 lg:hidden">
           <MobileMenuButton onClick={() => setMenuOpen(true)} />
-          <Link href={DEFAULT_LANDING_PATH} className="flex items-center gap-2 text-foreground min-w-0">
+          <Link
+            href={DEFAULT_LANDING_PATH}
+            onClick={onBrandClick}
+            className="flex items-center gap-2 text-foreground min-w-0"
+            aria-label={isHome ? `${BRAND.name} 새로고침` : BRAND.name}
+          >
             <span className="font-display font-bold text-base truncate folk-chunky-text text-folk-cobalt">
               {BRAND.name}
             </span>
