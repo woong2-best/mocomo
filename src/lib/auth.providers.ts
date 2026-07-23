@@ -1,8 +1,8 @@
 import type { NextAuthConfig } from "next-auth";
+import type { OAuthConfig } from "next-auth/providers";
 import Google from "next-auth/providers/google";
 import Discord from "next-auth/providers/discord";
 import Twitter from "next-auth/providers/twitter";
-import Line from "next-auth/providers/line";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
@@ -24,6 +24,45 @@ import {
   LoginRateLimitedError,
 } from "@/lib/auth-login-errors";
 
+/** LINE 웹 로그인 — OIDC discovery(ES256)와 실제 id_token(HS256) 불일치 회피용 OAuth */
+type LineProfile = {
+  userId: string;
+  displayName: string;
+  pictureUrl?: string;
+  statusMessage?: string;
+};
+
+function LineOAuth(options: {
+  clientId: string;
+  clientSecret: string;
+}): OAuthConfig<LineProfile> {
+  return {
+    id: "line",
+    name: "LINE",
+    type: "oauth",
+    clientId: options.clientId,
+    clientSecret: options.clientSecret,
+    authorization: {
+      url: "https://access.line.me/oauth2/v2.1/authorize",
+      params: { scope: "profile openid", response_type: "code" },
+    },
+    token: "https://api.line.me/oauth2/v2.1/token",
+    userinfo: "https://api.line.me/v2/profile",
+    client: {
+      token_endpoint_auth_method: "client_secret_post",
+    },
+    checks: ["state"],
+    profile(profile) {
+      return {
+        id: profile.userId,
+        name: profile.displayName,
+        email: null,
+        image: profile.pictureUrl ?? null,
+      };
+    },
+    style: { bg: "#06C755", text: "#fff" },
+  };
+}
 const credentialsProvider = Credentials({
   name: "credentials",
   credentials: {
@@ -125,11 +164,9 @@ export function getAuthProviders(): NonNullable<NextAuthConfig["providers"]> {
     process.env.AUTH_LINE_SECRET?.trim() || process.env.LINE_CLIENT_SECRET?.trim();
   if (lineId && lineSecret) {
     providers.push(
-      Line({
+      LineOAuth({
         clientId: lineId,
         clientSecret: lineSecret,
-        // email은 LINE 콘솔 Email address permission 신청 후 사용 가능
-        authorization: { params: { scope: "openid profile" } },
       })
     );
   }
