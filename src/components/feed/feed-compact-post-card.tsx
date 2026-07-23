@@ -10,6 +10,8 @@ import { ChevronDown, ChevronUp, Heart, ImageIcon, MessageCircle, Star } from "l
 import { PostShareMenu } from "@/components/post/post-share-menu";
 import { PostRepostMenu } from "@/components/post/post-repost-menu";
 import { PostOwnerMenu } from "@/components/post/post-owner-menu";
+import { PostViewCount } from "@/components/post/post-view-count";
+import { PostViewTracker } from "@/components/post/post-view-tracker";
 import { formatNumber, cn } from "@/lib/utils";
 import type { GridPost } from "@/components/feed/feed-post-card";
 import { PostPollCard } from "@/components/post/post-poll-card";
@@ -201,7 +203,7 @@ export function FeedCompactPostCard({
                 {t("feed.displayMode.openPost")}
               </Link>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <PostOwnerMenu
                 postId={post.id}
                 isPinned={post.isPinned}
@@ -210,6 +212,9 @@ export function FeedCompactPostCard({
                 authorUsername={post.author.username}
                 size="sm"
               />
+              <PostViewTracker postId={post.id} initialCount={post.viewCount ?? 0} whenVisible>
+                {(views) => <PostViewCount count={views} />}
+              </PostViewTracker>
               <button
                 type="button"
                 onClick={handleStar}

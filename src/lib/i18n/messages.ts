@@ -172,6 +172,7 @@ export type MessageKey =
   | "post.writeComment"
   | "post.loadingComments"
   | "post.noComments"
+  | "post.views"
   | "post.menu.ariaLabel"
   | "post.menu.delete"
   | "post.menu.deleteConfirm"
@@ -606,6 +607,7 @@ const ko: Record<MessageKey, string> = {
   "post.writeComment": "댓글을 입력하세요",
   "post.loadingComments": "댓글 불러오는 중…",
   "post.noComments": "첫 댓글을 남겨 보세요",
+  "post.views": "조회수 {count}회",
   "post.menu.ariaLabel": "게시물 메뉴",
   "post.menu.delete": "삭제하기",
   "post.menu.deleteConfirm": "이 게시물을 삭제할까요? 되돌릴 수 없습니다.",
@@ -1043,6 +1045,7 @@ const en: Record<MessageKey, string> = {
   "post.writeComment": "Write a comment",
   "post.loadingComments": "Loading comments…",
   "post.noComments": "Be the first to comment",
+  "post.views": "{count} views",
   "post.menu.ariaLabel": "Post menu",
   "post.menu.delete": "Delete",
   "post.menu.deleteConfirm": "Delete this post? This can't be undone.",
@@ -1480,6 +1483,7 @@ const ja: Record<MessageKey, string> = {
   "post.writeComment": "コメントを入力",
   "post.loadingComments": "コメント読み込み中…",
   "post.noComments": "最初のコメントをどうぞ",
+  "post.views": "再生 {count}回",
   "post.menu.ariaLabel": "投稿メニュー",
   "post.menu.delete": "削除",
   "post.menu.deleteConfirm": "この投稿を削除しますか？元に戻せません。",
@@ -1917,6 +1921,7 @@ const zh: Record<MessageKey, string> = {
   "post.writeComment": "写下评论",
   "post.loadingComments": "加载评论中…",
   "post.noComments": "来发表第一条评论吧",
+  "post.views": "浏览量 {count}",
   "post.menu.ariaLabel": "帖子菜单",
   "post.menu.delete": "删除",
   "post.menu.deleteConfirm": "确定删除这篇帖子吗？此操作无法撤销。",

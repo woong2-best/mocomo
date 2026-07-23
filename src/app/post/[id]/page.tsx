@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { PostViewTracker } from "@/components/post/post-view-tracker";
 import { PostDetailCard } from "@/components/post/post-detail-card";
 import { PostDetailActions } from "@/components/post/post-detail-actions";
 import { PostFlashHighlight } from "@/components/post/post-flash-highlight";
@@ -77,7 +76,6 @@ export default async function PostPage({
 
   return (
     <AppPageChrome maxWidth="2xl">
-      <PostViewTracker postId={post.id} />
       <ContentModerationBar
         targetType="POST"
         targetId={post.id}
@@ -106,6 +104,7 @@ export default async function PostPage({
         likeCount={post._count.likes}
         commentCount={post._count.comments}
         repostCount={repostCount}
+        viewCount={post.viewCount}
         initialLiked={engagement.likedIds.includes(post.id)}
         initialStarred={engagement.starredIds.includes(post.id)}
         initialReposted={engagement.repostedIds.includes(post.id)}

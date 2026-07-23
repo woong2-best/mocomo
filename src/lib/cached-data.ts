@@ -45,7 +45,7 @@ export const getCachedFeedPosts = unstable_cache(
       );
     }
   },
-  ["home-feed-posts-v4-media-grid"],
+  ["home-feed-posts-v5-viewcount"],
   { revalidate: 60, tags: [FEED_POSTS_CACHE_TAG] }
 );
 

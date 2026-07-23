@@ -20,7 +20,7 @@ export async function POST(
     const post = await db.post.update({
       where: { id },
       data: { viewCount: { increment: 1 } },
-      select: { authorId: true, postType: true },
+      select: { authorId: true, postType: true, viewCount: true },
     });
 
     const session = await auth();
@@ -39,7 +39,7 @@ export async function POST(
       }
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, viewCount: post.viewCount });
   } catch {
     return NextResponse.json({ ok: false }, { status: 404 });
   }

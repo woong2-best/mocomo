@@ -16,6 +16,7 @@ export const feedPostListSelect = {
   createdAt: true,
   isNsfw: true,
   isPinned: true,
+  viewCount: true,
   instantPurchasePriceKrw: true,
   author: { select: userPublicSelect },
   collaborators: postCollaboratorsHeaderInclude,
@@ -33,6 +34,7 @@ export type FeedPostRow = {
   createdAt: Date;
   isNsfw: boolean;
   isPinned: boolean;
+  viewCount: number;
   author: { id: string; username: string; image: string | null; supportTierSent: string };
   anime: { title: string; slug: string } | null;
   media: { id?: string; url: string; type: string; priceKrw?: number | null }[];
@@ -68,6 +70,7 @@ export const feedPostListSelectNoPoll = {
   createdAt: true,
   isNsfw: true,
   isPinned: true,
+  viewCount: true,
   instantPurchasePriceKrw: true,
   author: { select: userPublicSelect },
   collaborators: postCollaboratorsHeaderInclude,
@@ -110,7 +113,7 @@ export function getCachedFeedPostsPage(cursor: string | null, limit: number) {
   const cacheKey = cursor ?? "__head__";
   return unstable_cache(
     () => fetchFeedPostsPage(cursor, limit),
-    ["feed-page-v3-collab", cacheKey, String(limit)],
+    ["feed-page-v4-viewcount", cacheKey, String(limit)],
     { revalidate: 45, tags: [FEED_POSTS_CACHE_TAG] }
   )();
 }

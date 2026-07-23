@@ -10,6 +10,8 @@ import { Heart, MessageCircle, Star } from "lucide-react";
 import { PostShareMenu } from "@/components/post/post-share-menu";
 import { PostRepostMenu } from "@/components/post/post-repost-menu";
 import { PostOwnerMenu } from "@/components/post/post-owner-menu";
+import { PostViewCount } from "@/components/post/post-view-count";
+import { PostViewTracker } from "@/components/post/post-view-tracker";
 import { formatNumber, cn } from "@/lib/utils";
 import type { GridPost } from "@/components/feed/feed-post-card";
 import { PostPollCard } from "@/components/post/post-poll-card";
@@ -188,18 +190,23 @@ export function FeedTimelinePostCard({
             onActionError={setActionError}
           />
         </div>
-        <button
-          type="button"
-          onClick={handleStar}
-          className={cn(
-            "transition-colors min-h-8 min-w-8 flex items-center justify-center rounded-lg",
-            starred ? "text-folk-gold" : "text-folk-gold/60 hover:text-folk-gold hover:bg-muted/50"
-          )}
-        >
-          <MotionPop trigger={starred}>
-            <Star className={cn("h-4 w-4", starred && "fill-folk-gold text-folk-gold")} />
-          </MotionPop>
-        </button>
+        <div className="flex items-center gap-2">
+          <PostViewTracker postId={post.id} initialCount={post.viewCount ?? 0} whenVisible>
+            {(views) => <PostViewCount count={views} />}
+          </PostViewTracker>
+          <button
+            type="button"
+            onClick={handleStar}
+            className={cn(
+              "transition-colors min-h-8 min-w-8 flex items-center justify-center rounded-lg",
+              starred ? "text-folk-gold" : "text-folk-gold/60 hover:text-folk-gold hover:bg-muted/50"
+            )}
+          >
+            <MotionPop trigger={starred}>
+              <Star className={cn("h-4 w-4", starred && "fill-folk-gold text-folk-gold")} />
+            </MotionPop>
+          </button>
+        </div>
       </div>
       {displayError && <p className="px-4 pb-2 text-xs text-destructive">{displayError}</p>}
     </article>

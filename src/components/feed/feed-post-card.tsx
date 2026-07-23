@@ -52,6 +52,7 @@ export type GridPost = {
     locked?: boolean;
   }[];
   poll?: PostPollView | null;
+  viewCount?: number;
   _count?: { likes: number; comments: number; votes: number; reposts?: number; media?: number };
 };
 
