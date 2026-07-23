@@ -20,20 +20,28 @@ import {
   weekdayLabels,
   type CalendarCell,
 } from "@/lib/calendar/kr-calendar";
+import {
+  detectBrowserTimeZone,
+  normalizeTimeZone,
+  todayPartsInTimeZone,
+} from "@/lib/i18n/timezone";
 import { cn } from "@/lib/utils";
 
 type MemosMap = Record<string, string>;
 
-function todayParts() {
-  const now = new Date();
-  return { y: now.getFullYear(), m: now.getMonth() + 1, d: now.getDate() };
-}
-
 export function ProfileCalendar() {
-  const { t } = useLocale();
+  const { t, timeZone: localeTimeZone, countryCode } = useLocale();
   const session = useSession();
   const signedIn = Boolean(session?.data?.user?.id);
-  const today = useMemo(() => todayParts(), []);
+  const timeZone = useMemo(
+    () =>
+      normalizeTimeZone(
+        session?.data?.user?.timeZone || localeTimeZone || detectBrowserTimeZone()
+      ),
+    [session?.data?.user?.timeZone, localeTimeZone]
+  );
+  const today = useMemo(() => todayPartsInTimeZone(timeZone), [timeZone]);
+  const showKrHolidays = countryCode.toUpperCase() === "KR";
 
   const [year, setYear] = useState(today.y);
   const [month, setMonth] = useState(today.m);
@@ -45,7 +53,16 @@ export function ProfileCalendar() {
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState(false);
 
-  const cells = useMemo(() => buildMonthGrid(year, month), [year, month]);
+  useEffect(() => {
+    setYear(today.y);
+    setMonth(today.m);
+    setPickerYear(today.y);
+  }, [today.y, today.m]);
+
+  const cells = useMemo(
+    () => buildMonthGrid(year, month, { holidays: showKrHolidays }),
+    [year, month, showKrHolidays]
+  );
   const weekdays = useMemo(() => weekdayLabels(), []);
 
   const loadMemos = useCallback(async () => {
@@ -138,6 +155,9 @@ export function ProfileCalendar() {
         <p className="mt-0.5 text-[11px] font-semibold tracking-[0.12em] text-foreground/80">
           {year} {monthEn(month)}{" "}
           <span className="font-serif tracking-normal text-muted-foreground">{sexagenaryYear(year)}</span>
+        </p>
+        <p className="mt-0.5 text-[9px] font-medium text-muted-foreground/80 tabular-nums" title={timeZone}>
+          {timeZone}
         </p>
         <div className="mt-1.5 flex items-center justify-center gap-2">
           <button

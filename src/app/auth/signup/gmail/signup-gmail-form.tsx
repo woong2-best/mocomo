@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { registerUser, prepareSignupVerify } from "@/actions/auth";
@@ -23,19 +23,45 @@ import { CountrySelect } from "@/components/i18n/country-select";
 import { useLocale } from "@/components/providers/locale-provider";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
 import { isValidGmailSignupEmail } from "@/lib/signup-email-domains";
+import {
+  COMMON_TIMEZONES,
+  detectBrowserRegionPrefs,
+  listTimeZonesForPicker,
+  normalizeTimeZone,
+} from "@/lib/i18n/timezone";
 
 export function SignupGmailForm() {
   const router = useRouter();
-  const { locale: initialLocale, countryCode: initialCountry, t, setLocale: setProviderLocale } =
-    useLocale();
+  const {
+    locale: initialLocale,
+    countryCode: initialCountry,
+    timeZone: initialTimeZone,
+    t,
+    setLocale: setProviderLocale,
+  } = useLocale();
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
   const [locale, setLocale] = useState<Locale>(initialLocale);
   const [countryCode, setCountryCode] = useState(initialCountry);
+  const [timeZone, setTimeZone] = useState(normalizeTimeZone(initialTimeZone));
+  const [tzOptions, setTzOptions] = useState<string[]>([...COMMON_TIMEZONES]);
   const [email, setEmail] = useState("");
+  const [detectedOnce, setDetectedOnce] = useState(false);
 
   const needsHumanVerify = isSignupHumanVerifyRequired();
+
+  useEffect(() => {
+    if (detectedOnce) return;
+    setDetectedOnce(true);
+    const prefs = detectBrowserRegionPrefs();
+    setTimeZone(prefs.timeZone);
+    setLocale(prefs.locale);
+    if (prefs.countryCode) setCountryCode(prefs.countryCode);
+    setTzOptions(listTimeZonesForPicker());
+    syncSignupLocaleClient(prefs.locale, prefs.countryCode ?? initialCountry, prefs.timeZone);
+    void setProviderLocale(prefs.locale, prefs.countryCode ?? initialCountry, prefs.timeZone);
+  }, [detectedOnce, initialCountry, setProviderLocale]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -65,8 +91,9 @@ export function SignupGmailForm() {
     }
 
     try {
-      syncSignupLocaleClient(locale, countryCode);
-      await setProviderLocale(locale, countryCode);
+      const tz = normalizeTimeZone(timeZone);
+      syncSignupLocaleClient(locale, countryCode, tz);
+      await setProviderLocale(locale, countryCode, tz);
 
       const check = await prepareSignupVerify({
         email: normalized,
@@ -75,6 +102,7 @@ export function SignupGmailForm() {
         name: displayName || undefined,
         locale,
         countryCode,
+        timeZone: tz,
         website: (form.get("website") as string) || undefined,
       });
 
@@ -93,6 +121,7 @@ export function SignupGmailForm() {
         name: displayName || undefined,
         locale,
         countryCode,
+        timeZone: tz,
         homeFloor: check.homeFloor,
       };
 
@@ -185,8 +214,8 @@ export function SignupGmailForm() {
                   value={countryCode}
                   onChange={(code) => {
                     setCountryCode(code);
-                    syncSignupLocaleClient(locale, code);
-                    void setProviderLocale(locale, code);
+                    syncSignupLocaleClient(locale, code, timeZone);
+                    void setProviderLocale(locale, code, timeZone);
                   }}
                   locale={locale}
                   className="w-full h-10 rounded-xl border border-input bg-background px-2 text-sm"
@@ -199,8 +228,8 @@ export function SignupGmailForm() {
                   onChange={(e) => {
                     const next = e.target.value as Locale;
                     setLocale(next);
-                    syncSignupLocaleClient(next, countryCode);
-                    void setProviderLocale(next, countryCode);
+                    syncSignupLocaleClient(next, countryCode, timeZone);
+                    void setProviderLocale(next, countryCode, timeZone);
                   }}
                   className="w-full h-10 rounded-xl border border-input bg-background px-2 text-sm"
                 >
@@ -212,6 +241,28 @@ export function SignupGmailForm() {
                 </select>
               </label>
             </div>
+            <label className="space-y-1 block">
+              <span className="text-xs text-muted-foreground">{t("auth.timeZone")}</span>
+              <select
+                value={timeZone}
+                onChange={(e) => {
+                  const next = normalizeTimeZone(e.target.value);
+                  setTimeZone(next);
+                  syncSignupLocaleClient(locale, countryCode, next);
+                  void setProviderLocale(locale, countryCode, next);
+                }}
+                className="w-full h-10 rounded-xl border border-input bg-background px-2 text-sm"
+              >
+                {!tzOptions.includes(timeZone) ? (
+                  <option value={timeZone}>{timeZone}</option>
+                ) : null}
+                {tzOptions.map((tz) => (
+                  <option key={tz} value={tz}>
+                    {tz}
+                  </option>
+                ))}
+              </select>
+            </label>
             <input
               type="text"
               name="website"

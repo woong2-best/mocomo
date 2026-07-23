@@ -184,6 +184,10 @@ export function SellerOnboardingWizard({
         phone: phoneRequired ? phone : undefined,
         phoneProof: phoneRequired ? phoneProof : undefined,
         locale: "ko",
+        timeZone:
+          typeof Intl !== "undefined"
+            ? Intl.DateTimeFormat().resolvedOptions().timeZone
+            : undefined,
         turnstileUnavailable: true,
       });
       if (res.error) {

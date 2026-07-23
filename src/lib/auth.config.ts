@@ -25,6 +25,7 @@ export const authConfig = {
         session.user.level = token.level as number;
         session.user.locale = token.locale as string;
         session.user.countryCode = token.countryCode as string;
+        session.user.timeZone = token.timeZone as string;
         session.user.isBanned = Boolean(token.isBanned);
         session.user.accountStatus = token.accountStatus as string | undefined;
         session.user.isSuspendedReadOnly = Boolean(token.isSuspendedReadOnly);

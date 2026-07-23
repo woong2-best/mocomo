@@ -74,6 +74,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             level?: number;
             locale?: string;
             countryCode?: string;
+            timeZone?: string;
             isBanned?: boolean;
             accountStatus?: string;
             isSuspendedReadOnly?: boolean;
@@ -116,6 +117,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             level: true,
             locale: true,
             countryCode: true,
+            timeZone: true,
             isBanned: true,
             accountStatus: true,
             deletedAt: true,
@@ -129,6 +131,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.level = dbUser.level;
           token.locale = dbUser.locale;
           token.countryCode = dbUser.countryCode;
+          token.timeZone = dbUser.timeZone;
           token.isBanned = isServiceBanned(dbUser);
           token.accountStatus = dbUser.accountStatus;
           token.isSuspendedReadOnly = isSuspendedReadOnly(dbUser);

@@ -13,6 +13,7 @@ export type Locale = (typeof LOCALES)[number];
 
 export const LOCALE_COOKIE = "mocomo_locale";
 export const COUNTRY_COOKIE = "mocomo_country";
+export { TIMEZONE_COOKIE, DEFAULT_TIMEZONE } from "@/lib/i18n/timezone";
 
 /** 로그인 사용자 DB 기본 locale (Prisma default) */
 export const DEFAULT_USER_LOCALE: Locale = "ko";

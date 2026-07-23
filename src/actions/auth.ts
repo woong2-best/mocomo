@@ -56,6 +56,7 @@ import {
   tryResolvePrecheckedSignupFloor,
 } from "@/actions/apt";
 import { RESERVED_USERNAMES } from "@/lib/username-policy";
+import { normalizeTimeZone } from "@/lib/i18n/timezone";
 
 const signupApplicationSchema = z.object({
   email: z.string().email(),
@@ -69,6 +70,7 @@ const signupApplicationSchema = z.object({
   name: z.string().optional(),
   locale: z.enum(["ko", "en", "ja", "zh"]).default("ko"),
   countryCode: z.string().min(2).max(8).default("KR"),
+  timeZone: z.string().min(1).max(64).default("UTC"),
   homeFloor: z.coerce.number().int().min(APT_LOBBY_FLOOR).max(APT_TOTAL_FLOORS).optional(),
   website: z.string().optional(),
 });
@@ -85,6 +87,7 @@ const registerSchema = z.object({
   name: z.string().optional(),
   locale: z.enum(["ko", "en", "ja", "zh"]).default("ko"),
   countryCode: z.string().min(2).max(8).default("KR"),
+  timeZone: z.string().min(1).max(64).default("UTC"),
   homeFloor: z.coerce.number().int().min(APT_LOBBY_FLOOR).max(APT_TOTAL_FLOORS).optional(),
   turnstileToken: z.string().optional(),
   /** 클라이언트 Turnstile 위젯 로드 실패 시 true */
@@ -369,7 +372,7 @@ export async function issueSignupHumanChallenge(locale?: string) {
 }
 
 /** 가입 1단계: 검증 + 퀴즈를 한 번에 (왕복 1회 절약) */
-export async function prepareSignupVerify(data: z.infer<typeof signupApplicationSchema>) {
+export async function prepareSignupVerify(data: z.input<typeof signupApplicationSchema>) {
   const validated = await validateSignupApplication(data);
   if (!("ok" in validated) || !validated.ok) return validated;
   return {
@@ -378,7 +381,7 @@ export async function prepareSignupVerify(data: z.infer<typeof signupApplication
   };
 }
 
-export async function validateSignupApplication(data: z.infer<typeof signupApplicationSchema>) {
+export async function validateSignupApplication(data: z.input<typeof signupApplicationSchema>) {
   const parsed = signupApplicationSchema.safeParse(data);
   if (!parsed.success) return { error: "입력값이 올바르지 않습니다." };
 
@@ -420,7 +423,7 @@ export async function validateSignupApplication(data: z.infer<typeof signupAppli
 }
 
 export async function registerUser(
-  data: z.infer<typeof registerSchema>,
+  data: z.input<typeof registerSchema>,
   isRetry = false
 ) {
   const parsed = registerSchema.safeParse(data);
@@ -432,6 +435,7 @@ export async function registerUser(
     name,
     locale,
     countryCode,
+    timeZone: rawTimeZone,
     homeFloor,
     turnstileToken,
     turnstileUnavailable,
@@ -441,6 +445,7 @@ export async function registerUser(
     website,
   } = parsed.data;
   const email = rawEmail.trim().toLowerCase();
+  const timeZone = normalizeTimeZone(rawTimeZone);
 
   if (website?.trim()) {
     return { error: "요청을 처리할 수 없습니다." };
@@ -548,6 +553,7 @@ export async function registerUser(
           emailVerified: null,
           locale,
           countryCode: countryCode.toUpperCase(),
+          timeZone,
         },
       });
       userId = updated.id;
@@ -562,6 +568,7 @@ export async function registerUser(
           emailVerified: null,
           locale,
           countryCode: countryCode.toUpperCase(),
+          timeZone,
         },
       });
       userId = user.id;

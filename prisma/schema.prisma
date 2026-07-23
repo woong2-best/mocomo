@@ -153,6 +153,8 @@ model User {
   supportTierReceived  SupportTierLevel @default(PEBBLE)
   locale        String    @default("ko")
   countryCode   String    @default("KR")
+  /** IANA Time Zone (e.g. America/New_York) — calendar / day boundaries; not derived from country alone */
+  timeZone      String    @default("UTC")
   feedDisplayMode FeedDisplayMode @default(TIMELINE)
   phone         String?   @unique
   phoneVerified DateTime?

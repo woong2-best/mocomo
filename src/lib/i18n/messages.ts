@@ -163,6 +163,7 @@ export type MessageKey =
   | "auth.password"
   | "auth.country"
   | "auth.language"
+  | "auth.timeZone"
   | "auth.submitSignup"
   | "auth.submitting"
   | "auth.hasAccount"
@@ -208,6 +209,8 @@ export type MessageKey =
   | "settings.localeDesc"
   | "settings.country"
   | "settings.language"
+  | "settings.timeZone"
+  | "settings.timeZoneHint"
   | "settings.save"
   | "settings.saved"
   | "settings.feedDisplayTitle"
@@ -592,6 +595,7 @@ const ko: Record<MessageKey, string> = {
   "auth.password": "비밀번호 (8자 이상)",
   "auth.country": "국가",
   "auth.language": "언어",
+  "auth.timeZone": "시간대",
   "auth.submitSignup": "회원가입",
   "auth.submitting": "가입 중...",
   "auth.hasAccount": "이미 계정이 있나요?",
@@ -634,11 +638,13 @@ const ko: Record<MessageKey, string> = {
   "accountSwitch.addExisting": "기존 계정 추가하기",
   "accountSwitch.switchFailed": "계정을 전환할 수 없습니다. 다시 로그인해 주세요.",
   "settings.title": "설정",
-  "settings.localeTitle": "국가 · 언어",
+  "settings.localeTitle": "국가 · 언어 · 시간대",
   "settings.localeDesc":
-    "국가는 전 세계에서 선택할 수 있습니다. 언어는 한국어·English (US)·日本語·中文 중 하나이며, 앱 메뉴·버튼 등 모든 기능 UI와 게시글 번역에 적용됩니다. 다른 사람이 작성한 글은 원문 그대로 표시됩니다.",
+    "국가는 전 세계에서 선택할 수 있습니다. 언어는 한국어·English (US)·日本語·中文 중 하나이며, 앱 메뉴·버튼 등 모든 기능 UI와 게시글 번역에 적용됩니다. 달력·날짜는 IANA 시간대(예: Asia/Seoul, America/New_York)를 기준으로 동작합니다. 다른 사람이 작성한 글은 원문 그대로 표시됩니다.",
   "settings.country": "국가",
   "settings.language": "언어",
+  "settings.timeZone": "시간대",
+  "settings.timeZoneHint": "프로필 달력의 ‘오늘’과 날짜 경계를 이 시간대로 계산합니다.",
   "settings.save": "저장",
   "settings.saved": "저장되었습니다",
   "settings.feedDisplayTitle": "피드 보기 방식",
@@ -1024,6 +1030,7 @@ const en: Record<MessageKey, string> = {
   "auth.password": "Password (8+ characters)",
   "auth.country": "Country",
   "auth.language": "Language",
+  "auth.timeZone": "Time zone",
   "auth.submitSignup": "Create account",
   "auth.submitting": "Signing up...",
   "auth.hasAccount": "Already have an account?",
@@ -1066,11 +1073,13 @@ const en: Record<MessageKey, string> = {
   "accountSwitch.addExisting": "Add existing account",
   "accountSwitch.switchFailed": "Could not switch accounts. Please sign in again.",
   "settings.title": "Settings",
-  "settings.localeTitle": "Country & language",
+  "settings.localeTitle": "Country, language & time zone",
   "settings.localeDesc":
-    "Choose any country worldwide. Display language is Korean, English (US), Japanese, or Chinese — it applies to all app UI and post translations. Other users' posts stay in the original language.",
+    "Choose any country worldwide. Display language is Korean, English (US), Japanese, or Chinese — it applies to all app UI and post translations. Calendar dates use your IANA time zone (e.g. America/New_York), not country alone. Other users' posts stay in the original language.",
   "settings.country": "Country",
   "settings.language": "Language",
+  "settings.timeZone": "Time zone",
+  "settings.timeZoneHint": "Profile calendar “today” and day boundaries use this IANA time zone.",
   "settings.save": "Save",
   "settings.saved": "Saved",
   "settings.feedDisplayTitle": "Feed layout",
@@ -1456,6 +1465,7 @@ const ja: Record<MessageKey, string> = {
   "auth.password": "パスワード (8文字以上)",
   "auth.country": "国",
   "auth.language": "言語",
+  "auth.timeZone": "タイムゾーン",
   "auth.submitSignup": "登録する",
   "auth.submitting": "登録中...",
   "auth.hasAccount": "アカウントをお持ちですか？",
@@ -1498,11 +1508,13 @@ const ja: Record<MessageKey, string> = {
   "accountSwitch.addExisting": "既存アカウントを追加",
   "accountSwitch.switchFailed": "アカウントを切り替えられません。再度ログインしてください。",
   "settings.title": "設定",
-  "settings.localeTitle": "国・言語",
+  "settings.localeTitle": "国・言語・タイムゾーン",
   "settings.localeDesc":
-    "国は世界中から選べます。表示言語は韓国語・English (US)・日本語・中文のいずれかで、メニューやボタンなどアプリ全体のUIと投稿の翻訳に使われます。他のユーザーが書いた投稿は原文のまま表示されます。",
+    "国は世界中から選べます。表示言語は韓国語・English (US)・日本語・中文のいずれかで、メニューやボタンなどアプリ全体のUIと投稿の翻訳に使われます。カレンダーの日付はIANAタイムゾーン（例: Asia/Tokyo）基準です。他のユーザーが書いた投稿は原文のまま表示されます。",
   "settings.country": "国",
   "settings.language": "言語",
+  "settings.timeZone": "タイムゾーン",
+  "settings.timeZoneHint": "プロフィールカレンダーの「今日」と日付境界はこのタイムゾーンで計算します。",
   "settings.save": "保存",
   "settings.saved": "保存しました",
   "settings.feedDisplayTitle": "フィード表示",
@@ -1888,6 +1900,7 @@ const zh: Record<MessageKey, string> = {
   "auth.password": "密码 (至少8位)",
   "auth.country": "国家/地区",
   "auth.language": "语言",
+  "auth.timeZone": "时区",
   "auth.submitSignup": "注册",
   "auth.submitting": "注册中...",
   "auth.hasAccount": "已有账号？",
@@ -1930,11 +1943,13 @@ const zh: Record<MessageKey, string> = {
   "accountSwitch.addExisting": "添加已有账户",
   "accountSwitch.switchFailed": "无法切换账户，请重新登录。",
   "settings.title": "设置",
-  "settings.localeTitle": "国家与语言",
+  "settings.localeTitle": "国家、语言与时区",
   "settings.localeDesc":
-    "国家/地区可选全球任意国家。显示语言为韩语、English (US)、日语或中文，应用于全部应用界面与帖子翻译。其他用户发布的内容保持原文显示。",
+    "国家/地区可选全球任意国家。显示语言为韩语、English (US)、日语或中文，应用于全部应用界面与帖子翻译。日历日期按 IANA 时区（如 Asia/Shanghai）计算，不单靠国家。其他用户发布的内容保持原文显示。",
   "settings.country": "国家/地区",
   "settings.language": "语言",
+  "settings.timeZone": "时区",
+  "settings.timeZoneHint": "个人资料日历的“今天”与日期边界按此时区计算。",
   "settings.save": "保存",
   "settings.saved": "已保存",
   "settings.feedDisplayTitle": "动态布局",

@@ -28,6 +28,7 @@ export default async function SettingsPage() {
         premiumTier: true,
         locale: true,
         countryCode: true,
+        timeZone: true,
         feedDisplayMode: true,
         twoFactorEnabled: true,
         showNsfw: true,
@@ -51,6 +52,7 @@ export default async function SettingsPage() {
           <LocaleSettingsForm
             initialLocale={user?.locale ?? "ko"}
             initialCountryCode={user?.countryCode ?? "KR"}
+            initialTimeZone={user?.timeZone ?? "UTC"}
           />
         </CardContent>
       </Card>

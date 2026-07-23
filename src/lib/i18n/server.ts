@@ -12,6 +12,11 @@ import {
   type Locale,
 } from "@/lib/i18n/config";
 import { createTranslator } from "@/lib/i18n/messages";
+import {
+  DEFAULT_TIMEZONE,
+  TIMEZONE_COOKIE,
+  normalizeTimeZone,
+} from "@/lib/i18n/timezone";
 
 const SESSION_COOKIES = [
   "authjs.session-token",
@@ -25,26 +30,32 @@ function hasSessionCookie(cookieStore: Awaited<ReturnType<typeof cookies>>) {
 }
 
 /** 요청당 auth 1회 · 비로그인은 쿠키만 (레이아웃 TTFB 개선) */
-export const getRequestI18n = cache(async (): Promise<{ locale: Locale; countryCode: string }> => {
-  const cookieStore = await cookies();
-  const rawLocale = cookieStore.get(LOCALE_COOKIE)?.value;
-  const rawCountry = cookieStore.get(COUNTRY_COOKIE)?.value?.toUpperCase();
-  const cookieLocale = rawLocale && isLocale(rawLocale) ? rawLocale : null;
+export const getRequestI18n = cache(
+  async (): Promise<{ locale: Locale; countryCode: string; timeZone: string }> => {
+    const cookieStore = await cookies();
+    const rawLocale = cookieStore.get(LOCALE_COOKIE)?.value;
+    const rawCountry = cookieStore.get(COUNTRY_COOKIE)?.value?.toUpperCase();
+    const rawTz = cookieStore.get(TIMEZONE_COOKIE)?.value;
+    const cookieLocale = rawLocale && isLocale(rawLocale) ? rawLocale : null;
+    const cookieTz = rawTz ? normalizeTimeZone(decodeURIComponent(rawTz)) : null;
 
-  if (!hasSessionCookie(cookieStore)) {
+    if (!hasSessionCookie(cookieStore)) {
+      return {
+        locale: cookieLocale ?? DEFAULT_GUEST_LOCALE,
+        countryCode: rawCountry || DEFAULT_GUEST_COUNTRY,
+        timeZone: cookieTz ?? DEFAULT_TIMEZONE,
+      };
+    }
+
+    const session = await getCachedSession();
+    // 로그인: DB/세션 locale 우선 (가입 전 en 쿠키가 ko 설정을 덮어쓰지 않음)
     return {
-      locale: cookieLocale ?? DEFAULT_GUEST_LOCALE,
-      countryCode: rawCountry || DEFAULT_GUEST_COUNTRY,
+      locale: normalizeLocale(session?.user?.locale ?? cookieLocale, DEFAULT_USER_LOCALE),
+      countryCode: session?.user?.countryCode ?? rawCountry ?? DEFAULT_GUEST_COUNTRY,
+      timeZone: normalizeTimeZone(session?.user?.timeZone ?? cookieTz),
     };
   }
-
-  const session = await getCachedSession();
-  // 로그인: DB/세션 locale 우선 (가입 전 en 쿠키가 ko 설정을 덮어쓰지 않음)
-  return {
-    locale: normalizeLocale(session?.user?.locale ?? cookieLocale, DEFAULT_USER_LOCALE),
-    countryCode: session?.user?.countryCode ?? rawCountry ?? DEFAULT_GUEST_COUNTRY,
-  };
-});
+);
 
 export async function getRequestLocale(): Promise<Locale> {
   const { locale } = await getRequestI18n();
@@ -54,6 +65,11 @@ export async function getRequestLocale(): Promise<Locale> {
 export async function getRequestCountryCode(): Promise<string> {
   const { countryCode } = await getRequestI18n();
   return countryCode;
+}
+
+export async function getRequestTimeZone(): Promise<string> {
+  const { timeZone } = await getRequestI18n();
+  return timeZone;
 }
 
 export async function getServerTranslator() {

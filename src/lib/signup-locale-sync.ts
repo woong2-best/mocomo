@@ -8,13 +8,22 @@ import {
   type Locale,
 } from "@/lib/i18n/config";
 import { SIGNUP_LOCALE_SESSION_KEY } from "@/lib/auth-tokens";
+import { TIMEZONE_COOKIE, normalizeTimeZone } from "@/lib/i18n/timezone";
 
-/** 가입 플로우 — 언어 선택을 즉시 쿠키에 반영 (다음 단계 UI용) */
-export function syncSignupLocaleClient(locale: Locale, countryCode: string): void {
+/** 가입 플로우 — 언어/국가/타임존 선택을 즉시 쿠키에 반영 (다음 단계 UI용) */
+export function syncSignupLocaleClient(
+  locale: Locale,
+  countryCode: string,
+  timeZone?: string
+): void {
   if (typeof document === "undefined") return;
   const maxAge = 60 * 60 * 24 * 365;
   document.cookie = `${LOCALE_COOKIE}=${locale};path=/;max-age=${maxAge};SameSite=Lax`;
   document.cookie = `${COUNTRY_COOKIE}=${countryCode.toUpperCase()};path=/;max-age=${maxAge};SameSite=Lax`;
+  if (timeZone) {
+    const tz = normalizeTimeZone(timeZone);
+    document.cookie = `${TIMEZONE_COOKIE}=${encodeURIComponent(tz)};path=/;max-age=${maxAge};SameSite=Lax`;
+  }
 }
 
 export function readClientLocaleCookie(): Locale | null {

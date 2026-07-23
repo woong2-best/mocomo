@@ -9,6 +9,7 @@ declare module "next-auth" {
     level?: number;
     locale?: string;
     countryCode?: string;
+    timeZone?: string;
   }
 
   interface Session {
@@ -23,6 +24,7 @@ declare module "next-auth" {
       level?: number;
       locale?: string;
       countryCode?: string;
+      timeZone?: string;
       isBanned?: boolean;
       accountStatus?: string;
       isSuspendedReadOnly?: boolean;
@@ -42,6 +44,7 @@ declare module "next-auth/jwt" {
     level?: number;
     locale?: string;
     countryCode?: string;
+    timeZone?: string;
     isBanned?: boolean;
     accountStatus?: string;
     isSuspendedReadOnly?: boolean;

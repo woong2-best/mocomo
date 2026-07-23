@@ -12,6 +12,7 @@ export type SignupDraft = {
   name?: string;
   locale: Locale;
   countryCode: string;
+  timeZone: string;
   homeFloor: number;
 };
 
@@ -31,6 +32,9 @@ export function loadSignupDraft(): SignupDraft | null {
       parsed.homeFloor = 500;
     }
     parsed.locale = normalizeLocale(parsed.locale, DEFAULT_GUEST_LOCALE);
+    if (!parsed.timeZone) {
+      parsed.timeZone = "UTC";
+    }
     return parsed;
   } catch {
     return null;

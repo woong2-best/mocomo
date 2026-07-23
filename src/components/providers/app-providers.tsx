@@ -37,14 +37,20 @@ export function AppProviders({
   children,
   initialLocale,
   initialCountryCode,
+  initialTimeZone,
 }: {
   children: React.ReactNode;
   initialLocale: Locale;
   initialCountryCode: string;
+  initialTimeZone?: string;
 }) {
   return (
     <SessionProvider>
-      <LocaleProvider initialLocale={initialLocale} initialCountryCode={initialCountryCode}>
+      <LocaleProvider
+        initialLocale={initialLocale}
+        initialCountryCode={initialCountryCode}
+        initialTimeZone={initialTimeZone}
+      >
         <AppSocketProvider>
           <QueryProvider>
           <PublishedToastProvider>

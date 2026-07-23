@@ -54,7 +54,7 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const { locale, countryCode } = await getRequestI18n();
+  const { locale, countryCode, timeZone } = await getRequestI18n();
   const cookieStore = await cookies();
   const headerStore = await headers();
   const initialPlatform = resolveClientPlatform({
@@ -76,7 +76,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className={`${folkDisplay.variable} ${geistSans.variable} ${geistMono.variable} font-sans folk-canvas`}>
         <div className="folk-app-shell">
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-            <AppProviders initialLocale={locale} initialCountryCode={countryCode}>
+            <AppProviders
+              initialLocale={locale}
+              initialCountryCode={countryCode}
+              initialTimeZone={timeZone}
+            >
               <ShellRouter
                 initialPlatform={initialPlatform}
                 isStudioHost={isStudioHost}

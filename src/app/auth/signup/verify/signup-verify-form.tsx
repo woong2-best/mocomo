@@ -58,8 +58,8 @@ export function SignupVerifyForm() {
     }
     setEmail(draft.email);
     setSignupLocale(draft.locale);
-    syncSignupLocaleClient(draft.locale, draft.countryCode);
-    void syncProviderLocale(draft.locale, draft.countryCode);
+    syncSignupLocaleClient(draft.locale, draft.countryCode, draft.timeZone);
+    void syncProviderLocale(draft.locale, draft.countryCode, draft.timeZone);
     router.prefetch(
       `/auth/email-verify?email=${encodeURIComponent(draft.email)}&mode=signup`
     );
@@ -92,6 +92,7 @@ export function SignupVerifyForm() {
         name: draft.name,
         locale: draft.locale,
         countryCode: draft.countryCode,
+        timeZone: draft.timeZone,
         homeFloor: draft.homeFloor,
         availabilityPrechecked: true,
         humanChallengeToken: challenge.token,

@@ -132,11 +132,16 @@ export type CalendarCell = {
 };
 
 /** Build a Sunday-start grid for a month (5–6 weeks). */
-export function buildMonthGrid(year: number, month: number): CalendarCell[] {
-  const first = new Date(year, month - 1, 1);
-  const startWeekday = first.getDay();
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const prevDays = new Date(year, month - 1, 0).getDate();
+export function buildMonthGrid(
+  year: number,
+  month: number,
+  options?: { holidays?: boolean }
+): CalendarCell[] {
+  const useHolidays = options?.holidays !== false;
+  const first = new Date(Date.UTC(year, month - 1, 1, 12, 0, 0));
+  const startWeekday = first.getUTCDay();
+  const daysInMonth = new Date(Date.UTC(year, month, 0, 12, 0, 0)).getUTCDate();
+  const prevDays = new Date(Date.UTC(year, month - 1, 0, 12, 0, 0)).getUTCDate();
 
   const cells: CalendarCell[] = [];
 
@@ -145,7 +150,7 @@ export function buildMonthGrid(year: number, month: number): CalendarCell[] {
     const m = month === 1 ? 12 : month - 1;
     const y = month === 1 ? year - 1 : year;
     const weekday = i;
-    const holiday = getHolidayName(y, m, d);
+    const holiday = useHolidays ? getHolidayName(y, m, d) : null;
     cells.push({
       y,
       m,
@@ -153,14 +158,17 @@ export function buildMonthGrid(year: number, month: number): CalendarCell[] {
       inMonth: false,
       weekday,
       holiday,
-      isRed: isHolidayOrSunday(y, m, d, weekday),
+      isRed: weekday === 0 || Boolean(holiday && isHolidayOrSunday(y, m, d, weekday)),
       isBlue: weekday === 6,
     });
   }
 
   for (let d = 1; d <= daysInMonth; d++) {
     const weekday = (startWeekday + d - 1) % 7;
-    const holiday = getHolidayName(year, month, d);
+    const holiday = useHolidays ? getHolidayName(year, month, d) : null;
+    const red = useHolidays
+      ? isHolidayOrSunday(year, month, d, weekday)
+      : weekday === 0;
     cells.push({
       y: year,
       m: month,
@@ -168,8 +176,8 @@ export function buildMonthGrid(year: number, month: number): CalendarCell[] {
       inMonth: true,
       weekday,
       holiday,
-      isRed: isHolidayOrSunday(year, month, d, weekday),
-      isBlue: weekday === 6 && !isHolidayOrSunday(year, month, d, weekday),
+      isRed: red,
+      isBlue: weekday === 6 && !red,
     });
   }
 
@@ -178,7 +186,7 @@ export function buildMonthGrid(year: number, month: number): CalendarCell[] {
     const m = month === 12 ? 1 : month + 1;
     const y = month === 12 ? year + 1 : year;
     const weekday = (cells.length + i - 1) % 7;
-    const holiday = getHolidayName(y, m, i);
+    const holiday = useHolidays ? getHolidayName(y, m, i) : null;
     cells.push({
       y,
       m,
@@ -186,7 +194,7 @@ export function buildMonthGrid(year: number, month: number): CalendarCell[] {
       inMonth: false,
       weekday,
       holiday,
-      isRed: isHolidayOrSunday(y, m, i, weekday),
+      isRed: weekday === 0 || Boolean(holiday),
       isBlue: weekday === 6,
     });
   }
