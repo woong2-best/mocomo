@@ -9,7 +9,7 @@ import {
 } from "@/lib/encryption";
 
 /** AES-256-GCM vault 대상 OAuth 프로바이더 */
-export const OAUTH_VAULT_PROVIDERS = ["google", "discord", "twitter"] as const;
+export const OAUTH_VAULT_PROVIDERS = ["google", "discord", "twitter", "line"] as const;
 export type OAuthVaultProvider = (typeof OAUTH_VAULT_PROVIDERS)[number];
 
 export function isOAuthVaultProvider(

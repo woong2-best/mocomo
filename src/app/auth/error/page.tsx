@@ -17,7 +17,7 @@ export default async function AuthErrorPage({
     OAuthSignin:
       "소셜 로그인 시작에 실패했습니다. Vercel에 OAuth Client ID/Secret과 AUTH_URL을 확인하세요.",
     OAuthCallback:
-      "OAuth 리디렉트 URI가 맞지 않습니다. 개발자 콘솔에 https://mocomo.net/api/auth/callback/discord (또는 /google, /twitter) 를 등록하세요.",
+      "OAuth 리디렉트 URI가 맞지 않습니다. 개발자 콘솔에 https://mocomo.net/api/auth/callback/discord (또는 /google, /twitter, /line) 를 등록하세요.",
     OAuthAccountNotLinked: "이 이메일은 다른 방식으로 가입되어 있습니다.",
     CredentialsSignin: "이메일 또는 비밀번호가 올바르지 않습니다.",
     Default: "로그인 중 오류가 발생했습니다.",
@@ -55,11 +55,15 @@ export default async function AuthErrorPage({
                 <li>Google: <code>AUTH_GOOGLE_ID</code>, <code>AUTH_GOOGLE_SECRET</code></li>
                 <li>Discord: <code>AUTH_DISCORD_ID</code>, <code>AUTH_DISCORD_SECRET</code></li>
                 <li>X (Twitter): <code>AUTH_TWITTER_ID</code>, <code>AUTH_TWITTER_SECRET</code></li>
+                <li>LINE: <code>LINE_CLIENT_ID</code>, <code>LINE_CLIENT_SECRET</code> (또는 <code>AUTH_LINE_ID</code>/<code>AUTH_LINE_SECRET</code>)</li>
                 <li>
                   Discord Redirect: <code>https://mocomo.net/api/auth/callback/discord</code>
                 </li>
                 <li>
                   X Redirect: <code>https://mocomo.net/api/auth/callback/twitter</code>
+                </li>
+                <li>
+                  LINE Redirect: <code>https://mocomo.net/api/auth/callback/line</code>
                 </li>
               </ul>
               <p className="text-xs text-muted-foreground pt-1">

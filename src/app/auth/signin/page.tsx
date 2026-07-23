@@ -15,13 +15,14 @@ export default async function SignInPage({
   searchParams: Promise<SearchParams>;
 }) {
   const sp = await searchParams;
-  const { googleOAuth, discordOAuth, twitterOAuth } = getAuthConfigStatus();
+  const { googleOAuth, discordOAuth, twitterOAuth, lineOAuth } = getAuthConfigStatus();
 
   return (
     <SignInForm
       googleOAuth={googleOAuth}
       discordOAuth={discordOAuth}
       twitterOAuth={twitterOAuth}
+      lineOAuth={lineOAuth}
       callbackUrl={sp.callbackUrl?.trim() || DEFAULT_LANDING_PATH}
       initialEmail={sp.email?.trim() || ""}
       errorParam={sp.error ?? null}

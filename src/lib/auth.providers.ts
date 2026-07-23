@@ -2,6 +2,7 @@ import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 import Discord from "next-auth/providers/discord";
 import Twitter from "next-auth/providers/twitter";
+import Line from "next-auth/providers/line";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
@@ -114,6 +115,21 @@ export function getAuthProviders(): NonNullable<NextAuthConfig["providers"]> {
           url: "https://x.com/i/oauth2/authorize",
           params: { scope: "users.read" },
         },
+      })
+    );
+  }
+
+  const lineId =
+    process.env.AUTH_LINE_ID?.trim() || process.env.LINE_CLIENT_ID?.trim();
+  const lineSecret =
+    process.env.AUTH_LINE_SECRET?.trim() || process.env.LINE_CLIENT_SECRET?.trim();
+  if (lineId && lineSecret) {
+    providers.push(
+      Line({
+        clientId: lineId,
+        clientSecret: lineSecret,
+        // email은 LINE 콘솔 Email address permission 신청 후 사용 가능
+        authorization: { params: { scope: "openid profile" } },
       })
     );
   }

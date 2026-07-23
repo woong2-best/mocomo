@@ -27,6 +27,7 @@ export function SignInForm({
   googleOAuth,
   discordOAuth,
   twitterOAuth,
+  lineOAuth,
   callbackUrl: callbackUrlProp,
   initialEmail = "",
   errorParam,
@@ -34,6 +35,7 @@ export function SignInForm({
   googleOAuth: boolean;
   discordOAuth: boolean;
   twitterOAuth: boolean;
+  lineOAuth: boolean;
   callbackUrl: string;
   initialEmail?: string;
   errorParam?: string | null;
@@ -106,7 +108,7 @@ export function SignInForm({
     router.replace(callbackUrl);
   }
 
-  const showSocial = discordOAuth || twitterOAuth;
+  const showSocial = discordOAuth || twitterOAuth || lineOAuth;
 
   return (
     <div className="flex-1 flex items-center justify-center p-4">
@@ -136,6 +138,7 @@ export function SignInForm({
               googleOAuth={googleOAuth}
               discordOAuth={discordOAuth}
               twitterOAuth={twitterOAuth}
+              lineOAuth={lineOAuth}
             />
           ) : (
             <p className="text-xs text-center text-muted-foreground">{t("auth.oauthNotConfigured")}</p>

@@ -41,7 +41,7 @@ export function loginErrorMessage(code: string | undefined, fallback?: string): 
     case "account_pending_recovery":
       return "탈퇴 처리되었습니다. 내일부터 50일간 로그인하면 계정을 복구할 수 있습니다.";
     case "oauth_only":
-      return "이 이메일은 Discord·Google로 가입된 계정입니다. 아래 소셜 로그인을 사용해 주세요.";
+      return "이 이메일은 Discord·Google·LINE 등으로 가입된 계정입니다. 아래 소셜 로그인을 사용해 주세요.";
     case "invalid_credentials":
       return "이메일 또는 비밀번호가 올바르지 않습니다.";
     case "Configuration":

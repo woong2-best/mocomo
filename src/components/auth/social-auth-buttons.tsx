@@ -13,6 +13,7 @@ type SocialAuthButtonsProps = {
   googleOAuth: boolean;
   discordOAuth: boolean;
   twitterOAuth: boolean;
+  lineOAuth: boolean;
   onGmailSignup?: () => void;
   onNaverSignup?: () => void;
   className?: string;
@@ -56,12 +57,30 @@ function NaverIcon({ className }: { className?: string }) {
   );
 }
 
-type ProviderId = "discord" | "google" | "twitter" | "naver";
+function LineIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M12 2C6.477 2 2 5.985 2 10.9c0 4.425 3.926 8.13 9.23 8.83.36.077.847.236.97.542.112.276.073.705.036.99l-.17.99c-.05.292-.24 1.147 1.005.627 1.246-.52 6.691-3.94 9.124-6.744C23.176 14.02 24 12.52 24 10.9 24 5.985 19.523 2 12 2Z" />
+    </svg>
+  );
+}
+
+type ProviderId = "discord" | "google" | "twitter" | "naver" | "line";
 
 type ProviderConfig = {
   id: ProviderId;
-  signupKey: "auth.signUpDiscord" | "auth.signUpGmail" | "auth.signUpTwitter" | "auth.signUpNaver";
-  signinKey: "auth.signInDiscord" | "auth.signInGmail" | "auth.signInTwitter" | "auth.signInNaver";
+  signupKey:
+    | "auth.signUpDiscord"
+    | "auth.signUpGmail"
+    | "auth.signUpTwitter"
+    | "auth.signUpNaver"
+    | "auth.signUpLine";
+  signinKey:
+    | "auth.signInDiscord"
+    | "auth.signInGmail"
+    | "auth.signInTwitter"
+    | "auth.signInNaver"
+    | "auth.signInLine";
   className: string;
   icon: (props: { className?: string }) => ReactNode;
   /** 이메일 가입 전용 — OAuth env 없이 항상 활성 */
@@ -93,6 +112,13 @@ const PROVIDERS: ProviderConfig[] = [
     emailSignup: true,
   },
   {
+    id: "line",
+    signupKey: "auth.signUpLine",
+    signinKey: "auth.signInLine",
+    className: "bg-[#06C755] hover:bg-[#05b34c] text-white border-transparent",
+    icon: LineIcon,
+  },
+  {
     id: "twitter",
     signupKey: "auth.signUpTwitter",
     signinKey: "auth.signInTwitter",
@@ -107,6 +133,7 @@ export function SocialAuthButtons({
   googleOAuth,
   discordOAuth,
   twitterOAuth,
+  lineOAuth,
   onGmailSignup,
   onNaverSignup,
   className,
@@ -118,6 +145,7 @@ export function SocialAuthButtons({
     discord: discordOAuth,
     google: googleOAuth,
     twitter: twitterOAuth,
+    line: lineOAuth,
     naver: true,
   };
 

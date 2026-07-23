@@ -326,6 +326,7 @@ export type MessageKey =
   | "auth.emailSignIn"
   | "auth.signInDiscord"
   | "auth.signInTwitter"
+  | "auth.signInLine"
   | "auth.signInGoogle"
   | "auth.emailVerifyForgot"
   | "auth.callbackRedirect"
@@ -355,6 +356,7 @@ export type MessageKey =
   | "auth.orSocialSignup"
   | "auth.signUpDiscord"
   | "auth.signUpTwitter"
+  | "auth.signUpLine"
   | "auth.signUpGoogle"
   | "auth.signUpGmail"
   | "auth.signInGmail"
@@ -760,13 +762,14 @@ const ko: Record<MessageKey, string> = {
   "auth.emailSignIn": "이메일로 로그인",
   "auth.signInDiscord": "Discord로 로그인",
   "auth.signInTwitter": "X로 로그인",
+  "auth.signInLine": "LINE으로 로그인",
   "auth.signInGoogle": "Google로 로그인",
   "auth.emailVerifyForgot": "이메일 인증 · 비밀번호 찾기",
   "auth.callbackRedirect": "로그인 후 글쓰기 등 이전 화면으로 이동합니다.",
-  "auth.oauthNotConfigured": "Google·X·Discord 로그인은 Vercel에 OAuth 키 추가 후 사용할 수 있습니다.",
+  "auth.oauthNotConfigured": "Google·X·Discord·LINE 로그인은 Vercel에 OAuth 키 추가 후 사용할 수 있습니다.",
   "auth.signupPageTitle": "{brand} 회원가입",
   "auth.signupPageDesc": "가입 정보를 입력한 뒤 이메일 인증으로 계정을 완성합니다.",
-  "auth.signupOAuthDesc": "Discord, Gmail, 네이버, X 중 하나로 시작하세요.",
+  "auth.signupOAuthDesc": "Discord, Gmail, 네이버, LINE, X 중 하나로 시작하세요.",
   "auth.signupGmailTitle": "{brand} Gmail 가입",
   "auth.signupGmailDesc": "Gmail 주소와 가입 정보를 입력해 주세요.",
   "auth.signupNaverTitle": "{brand} 네이버 가입",
@@ -789,6 +792,7 @@ const ko: Record<MessageKey, string> = {
   "auth.orSocialSignup": "또는 소셜로 가입",
   "auth.signUpDiscord": "Discord로 가입",
   "auth.signUpTwitter": "X로 가입",
+  "auth.signUpLine": "LINE으로 가입",
   "auth.signUpGoogle": "Google로 가입",
   "auth.signUpGmail": "Gmail로 가입",
   "auth.signInGmail": "Gmail로 로그인",
@@ -1195,13 +1199,14 @@ const en: Record<MessageKey, string> = {
   "auth.emailSignIn": "Sign in with email",
   "auth.signInDiscord": "Sign in with Discord",
   "auth.signInTwitter": "Sign in with X",
+  "auth.signInLine": "Sign in with LINE",
   "auth.signInGoogle": "Sign in with Google",
   "auth.emailVerifyForgot": "Email verify · Forgot password",
   "auth.callbackRedirect": "After sign-in you'll return to your previous screen.",
-  "auth.oauthNotConfigured": "Google, X, and Discord sign-in need OAuth keys on Vercel.",
+  "auth.oauthNotConfigured": "Google, X, Discord, and LINE sign-in need OAuth keys on Vercel.",
   "auth.signupPageTitle": "Sign up for {brand}",
   "auth.signupPageDesc": "Enter your details, then verify your email to finish.",
-  "auth.signupOAuthDesc": "Get started with Discord, Gmail, Naver, or X.",
+  "auth.signupOAuthDesc": "Get started with Discord, Gmail, Naver, LINE, or X.",
   "auth.signupGmailTitle": "Sign up with Gmail",
   "auth.signupGmailDesc": "Enter your Gmail address and account details.",
   "auth.signupNaverTitle": "Sign up with Naver",
@@ -1224,6 +1229,7 @@ const en: Record<MessageKey, string> = {
   "auth.orSocialSignup": "Or sign up with",
   "auth.signUpDiscord": "Sign up with Discord",
   "auth.signUpTwitter": "Sign up with X",
+  "auth.signUpLine": "Sign up with LINE",
   "auth.signUpGoogle": "Sign up with Google",
   "auth.signUpGmail": "Sign up with Gmail",
   "auth.signInGmail": "Sign in with Gmail",
@@ -1630,13 +1636,14 @@ const ja: Record<MessageKey, string> = {
   "auth.emailSignIn": "メールでログイン",
   "auth.signInDiscord": "Discordでログイン",
   "auth.signInTwitter": "Xでログイン",
+  "auth.signInLine": "LINEでログイン",
   "auth.signInGoogle": "Googleでログイン",
   "auth.emailVerifyForgot": "メール認証 · パスワード再設定",
   "auth.callbackRedirect": "ログイン後、前の画面に戻ります。",
-  "auth.oauthNotConfigured": "Google・X・DiscordログインはOAuth設定が必要です。",
+  "auth.oauthNotConfigured": "Google・X・Discord・LINEログインはOAuth設定が必要です。",
   "auth.signupPageTitle": "{brand} 会員登録",
   "auth.signupPageDesc": "情報を入力し、メール認証で登録を完了します。",
-  "auth.signupOAuthDesc": "Discord、Gmail、Naver、X のいずれかで始めましょう。",
+  "auth.signupOAuthDesc": "Discord、Gmail、Naver、LINE、X のいずれかで始めましょう。",
   "auth.signupGmailTitle": "Gmailで{brand}に登録",
   "auth.signupGmailDesc": "Gmailアドレスと登録情報を入力してください。",
   "auth.signupNaverTitle": "Naverで{brand}に登録",
@@ -1659,6 +1666,7 @@ const ja: Record<MessageKey, string> = {
   "auth.orSocialSignup": "またはソーシャルで登録",
   "auth.signUpDiscord": "Discordで登録",
   "auth.signUpTwitter": "Xで登録",
+  "auth.signUpLine": "LINEで登録",
   "auth.signUpGoogle": "Googleで登録",
   "auth.signUpGmail": "Gmailで登録",
   "auth.signInGmail": "Gmailでログイン",
@@ -2065,13 +2073,14 @@ const zh: Record<MessageKey, string> = {
   "auth.emailSignIn": "邮箱登录",
   "auth.signInDiscord": "用 Discord 登录",
   "auth.signInTwitter": "用 X 登录",
+  "auth.signInLine": "用 LINE 登录",
   "auth.signInGoogle": "用 Google 登录",
   "auth.emailVerifyForgot": "邮箱验证 · 找回密码",
   "auth.callbackRedirect": "登录后将返回之前的页面。",
-  "auth.oauthNotConfigured": "Google、X、Discord 登录需要配置 OAuth。",
+  "auth.oauthNotConfigured": "Google、X、Discord、LINE 登录需要配置 OAuth。",
   "auth.signupPageTitle": "注册 {brand}",
   "auth.signupPageDesc": "填写信息后通过邮箱验证完成注册。",
-  "auth.signupOAuthDesc": "使用 Discord、Gmail、Naver 或 X 开始。",
+  "auth.signupOAuthDesc": "使用 Discord、Gmail、Naver、LINE 或 X 开始。",
   "auth.signupGmailTitle": "用 Gmail 注册 {brand}",
   "auth.signupGmailDesc": "请输入 Gmail 地址和注册信息。",
   "auth.signupNaverTitle": "用 Naver 注册 {brand}",
@@ -2094,6 +2103,7 @@ const zh: Record<MessageKey, string> = {
   "auth.orSocialSignup": "或使用社交账号注册",
   "auth.signUpDiscord": "用 Discord 注册",
   "auth.signUpTwitter": "用 X 注册",
+  "auth.signUpLine": "用 LINE 注册",
   "auth.signUpGoogle": "用 Google 注册",
   "auth.signUpGmail": "用 Gmail 注册",
   "auth.signInGmail": "用 Gmail 登录",

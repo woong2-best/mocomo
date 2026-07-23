@@ -12,10 +12,12 @@ export function SignupApplyForm({
   googleOAuth,
   discordOAuth,
   twitterOAuth,
+  lineOAuth,
 }: {
   googleOAuth: boolean;
   discordOAuth: boolean;
   twitterOAuth: boolean;
+  lineOAuth: boolean;
 }) {
   const router = useRouter();
   const { t, locale } = useLocale();
@@ -40,6 +42,7 @@ export function SignupApplyForm({
             googleOAuth={googleOAuth}
             discordOAuth={discordOAuth}
             twitterOAuth={twitterOAuth}
+            lineOAuth={lineOAuth}
             onGmailSignup={() => router.push("/auth/signup/gmail")}
             onNaverSignup={() => router.push("/auth/signup/naver")}
           />
