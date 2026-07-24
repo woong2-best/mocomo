@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getOrCreateDM } from "@/actions/chat";
 import { Button } from "@/components/ui/button";
-import { MessageCircle } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import { getTierInfo } from "@/lib/tiers";
 import { SupportTierLevel } from "@prisma/client";
 
@@ -33,7 +33,7 @@ export function StartDmButton({ userId }: { userId: string }) {
   return (
     <div>
       <Button variant="outline" size="sm" onClick={start} disabled={loading} className="gap-1 rounded-full font-semibold">
-        <MessageCircle className="h-4 w-4" />
+        <MessageSquare className="h-4 w-4" />
         {loading ? "확인 중..." : "메시지"}
       </Button>
       {error && <p className="text-xs text-destructive mt-2 max-w-xs">{error}</p>}

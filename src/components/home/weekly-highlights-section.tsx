@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Eye, Heart, MessageCircle } from "lucide-react";
+import { Eye, Heart, MessageSquare } from "lucide-react";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { userDisplayName } from "@/lib/user-public-select";
 import { formatNumber } from "@/lib/utils";
@@ -59,7 +59,7 @@ function HighlightCard({
             <span className="font-normal text-muted-foreground">{statLabel}</span>
           </span>
           <span className="inline-flex items-center gap-1">
-            <MessageCircle className="h-3 w-3" />
+            <MessageSquare className="h-3 w-3" />
             {formatNumber(post._count.comments)}
           </span>
         </div>

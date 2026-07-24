@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { ko, enUS, ja, zhCN } from "date-fns/locale";
-import { ChevronDown, ChevronUp, Heart, ImageIcon, MessageCircle, Star } from "lucide-react";
+import { ChevronDown, ChevronUp, Heart, ImageIcon, MessageSquare, Star } from "lucide-react";
 import { PostShareMenu } from "@/components/post/post-share-menu";
 import { PostRepostMenu } from "@/components/post/post-repost-menu";
 import { PostOwnerMenu } from "@/components/post/post-owner-menu";
@@ -108,7 +108,7 @@ export function FeedCompactPostCard({
               </span>
             )}
             <span className="flex items-center gap-0.5">
-              <MessageCircle className="h-3 w-3" />
+              <MessageSquare className="h-3 w-3" />
               {formatNumber(commentCount)}
             </span>
             <span className={cn("flex items-center gap-0.5", liked && "text-folk-terracotta")}>
@@ -178,7 +178,7 @@ export function FeedCompactPostCard({
                 href={`/post/${post.id}#comments`}
                 className="flex items-center gap-1 min-h-8 px-2 rounded-lg hover:bg-muted/50"
               >
-                <MessageCircle className="h-3.5 w-3.5" />
+                <MessageSquare className="h-3.5 w-3.5" />
                 <span>{formatNumber(commentCount)}</span>
               </Link>
               <PostRepostMenu

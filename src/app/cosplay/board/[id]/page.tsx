@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Eye, MessageCircle } from "lucide-react";
+import { ArrowLeft, Eye, MessageSquare } from "lucide-react";
 import { getCosplayBoardPostDetail } from "@/actions/cosplay-board";
 import { getCachedSession } from "@/lib/auth";
 import { cosplayBoardListHref, formatCosplayBoardDate } from "@/lib/cosplay-board-data";
@@ -60,7 +60,7 @@ export default async function CosplayBoardPostPage({
             <span>{formatCosplayBoardDate(post.createdAt)}</span>
             <span className="font-bold text-[#3b4890] dark:text-primary">{post.priceLabel}</span>
             <span className="inline-flex items-center gap-1">
-              <MessageCircle className="h-3 w-3" />
+              <MessageSquare className="h-3 w-3" />
               {post.commentCount}
             </span>
           </div>

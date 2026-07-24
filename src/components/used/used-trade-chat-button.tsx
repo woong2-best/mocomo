@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { startUsedTradeChat } from "@/actions/used-market";
-import { MessageCircle } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function UsedTradeChatButton({ listingId }: { listingId: string }) {
@@ -38,7 +38,7 @@ export function UsedTradeChatButton({ listingId }: { listingId: string }) {
         size="lg"
         className="w-full h-12 gap-2"
       >
-        <MessageCircle className="h-5 w-5" />
+        <MessageSquare className="h-5 w-5" />
         {loading ? "연결 중…" : "채팅하기"}
       </Button>
     </div>

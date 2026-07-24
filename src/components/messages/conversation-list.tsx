@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MessageCircle, PenSquare } from "lucide-react";
+import { MessageSquare, PenSquare } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { SupportTierLevel } from "@prisma/client";
@@ -69,7 +69,7 @@ export function ConversationList({
         {rooms.length === 0 ? (
           <div className={cn("p-8 text-center space-y-4", isNativeApp && "pb-native-fab")}>
             <div className="mx-auto h-14 w-14 rounded-full bg-muted flex items-center justify-center">
-              <MessageCircle className="h-7 w-7 text-muted-foreground" />
+              <MessageSquare className="h-7 w-7 text-muted-foreground" />
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
               아직 대화가 없어요.

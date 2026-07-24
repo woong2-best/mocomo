@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Camera, MessageCircle, Sparkles } from "lucide-react";
+import { Camera, MessageSquare, Sparkles } from "lucide-react";
 import {
   getDiscoveryMatches,
   markDiscoveryMatchesSeen,
@@ -146,7 +146,7 @@ export function DiscoveryMatchList() {
                   disabled={opening === m.userId}
                   onClick={() => void openChat(m.userId)}
                 >
-                  <MessageCircle className="h-4 w-4 mr-1.5" />
+                  <MessageSquare className="h-4 w-4 mr-1.5" />
                   {opening === m.userId ? "연결 중…" : "메시지"}
                 </Button>
                 <Button asChild variant="ghost" className="flex-1 rounded-none h-11 text-sm">

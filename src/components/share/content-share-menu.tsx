@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Check, Link2, MessageCircle, Share2 } from "lucide-react";
+import { Check, Link2, MessageSquare, Share2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -124,7 +124,7 @@ export function ContentShareMenu({
             }}
             className={cn("gap-3 font-medium cursor-pointer", accent.item)}
           >
-            <MessageCircle className={cn("h-4 w-4 shrink-0", accent.icon)} />
+            <MessageSquare className={cn("h-4 w-4 shrink-0", accent.icon)} />
             메세지 보내기
           </DropdownMenuItem>
           <DropdownMenuItem

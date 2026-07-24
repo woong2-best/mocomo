@@ -8,7 +8,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, MessageCircle, Star } from "lucide-react";
+import { Heart, MessageSquare, Star } from "lucide-react";
 import { PostShareMenu } from "@/components/post/post-share-menu";
 import { PostRepostMenu } from "@/components/post/post-repost-menu";
 import { PostOwnerMenu } from "@/components/post/post-owner-menu";
@@ -182,7 +182,7 @@ export function FeedTextPostCard({
               className="flex items-center gap-0.5 hover:text-folk-cobalt min-h-8 px-1"
               onClick={(e) => e.stopPropagation()}
             >
-              <MessageCircle className="h-3.5 w-3.5" />
+              <MessageSquare className="h-3.5 w-3.5" />
               <span>{formatNumber(post._count?.comments ?? 0)}</span>
             </Link>
             <PostRepostMenu

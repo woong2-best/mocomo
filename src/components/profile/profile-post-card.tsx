@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
-import { Heart, MessageCircle, Pin, Repeat2 } from "lucide-react";
+import { Heart, MessageSquare, Pin, Repeat2 } from "lucide-react";
 import { formatNumber, cn } from "@/lib/utils";
 import type { GridPost } from "@/components/feed/feed-post-card";
 import { TranslatableText } from "@/components/ui/translatable-text";
@@ -98,7 +98,7 @@ export function ProfilePostCard({
               )}
               <div className="flex gap-6 mt-3 text-muted-foreground text-xs">
                 <span className="flex items-center gap-1">
-                  <MessageCircle className="h-3.5 w-3.5" />
+                  <MessageSquare className="h-3.5 w-3.5" />
                   {formatNumber(post._count?.comments ?? 0)}
                 </span>
                 <span className="flex items-center gap-1">

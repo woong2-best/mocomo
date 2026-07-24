@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   User,
-  MessageCircle,
+  MessageSquare,
   Star,
   Wallet,
   Tv,
@@ -39,7 +39,7 @@ export const moneyHubNavItem: NavItem = {
 export const mainNavItems: NavItem[] = [
   { href: "/my-page", icon: User, labelKey: "nav.myPage" },
   { href: "/communities", icon: Users, labelKey: "nav.communities" },
-  { href: "/messages", icon: MessageCircle, labelKey: "nav.messages" },
+  { href: "/messages", icon: MessageSquare, labelKey: "nav.messages" },
   { href: "/star", icon: Star, labelKey: "nav.star" },
   { href: "/live", icon: Radio, labelKey: "nav.live" },
   { href: "/avatar/studio", icon: Sparkles, labelKey: "nav.liveStudio" },

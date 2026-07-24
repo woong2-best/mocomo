@@ -3,7 +3,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, MessageCircle, Star } from "lucide-react";
+import { Heart, MessageSquare, Star } from "lucide-react";
 import { TranslatableText } from "@/components/ui/translatable-text";
 import { PostShareMenu } from "@/components/post/post-share-menu";
 import { formatNumber, cn } from "@/lib/utils";
@@ -160,7 +160,7 @@ export function FeedPostCard({ post }: { post: GridPost }) {
               {formatNumber(post._count?.likes ?? 0)}
             </span>
             <span className="flex items-center gap-0.5 hover:text-neon-cyan">
-              <MessageCircle className="h-3.5 w-3.5" />
+              <MessageSquare className="h-3.5 w-3.5" />
               {formatNumber(post._count?.comments ?? 0)}
             </span>
             <PostShareMenu

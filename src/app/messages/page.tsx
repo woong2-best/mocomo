@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { MessageCircle } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { MessagesInboxAsync } from "@/components/messages/messages-inbox-async";
@@ -25,7 +25,7 @@ export default function MessagesPage() {
       </Suspense>
       <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-muted/15 text-center p-8">
         <div className="h-20 w-20 rounded-full bg-muted/80 flex items-center justify-center mb-4">
-          <MessageCircle className="h-10 w-10 text-muted-foreground/70" />
+          <MessageSquare className="h-10 w-10 text-muted-foreground/70" />
         </div>
         <p className="font-semibold text-lg">내 메시지</p>
         <p className="text-sm text-muted-foreground mt-2 max-w-xs leading-relaxed">

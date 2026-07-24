@@ -3,7 +3,7 @@ import {
   AtSign,
   Bell,
   Heart,
-  MessageCircle,
+  MessageSquare,
   Repeat2,
   UserPlus,
   Mail,
@@ -73,7 +73,7 @@ export function notificationIcon(type: string): {
     case "comment":
     case "comment_reply":
     case "clip_comment":
-      return { Icon: MessageCircle, className: "text-blue-500" };
+      return { Icon: MessageSquare, className: "text-blue-500" };
     case "mention":
       return { Icon: AtSign, className: "text-violet-500" };
     case "repost":

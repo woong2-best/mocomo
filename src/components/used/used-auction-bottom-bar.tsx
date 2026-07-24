@@ -10,7 +10,7 @@ import {
 } from "@/actions/used-market";
 import { cancelUsedAuction } from "@/actions/used-auction";
 import { UsedAuctionBidSheet } from "@/components/used/used-auction-bid-sheet";
-import { Heart, MessageCircle, Gavel } from "lucide-react";
+import { Heart, MessageSquare, Gavel } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   isUsedRestrictedKind,
@@ -167,7 +167,7 @@ export function UsedAuctionBottomBar({
           disabled={loading}
           onClick={() => void openSellerChats()}
         >
-          <MessageCircle className="h-5 w-5 mr-2" />
+          <MessageSquare className="h-5 w-5 mr-2" />
           {loading
             ? "불러오는 중…"
             : chatCount > 0

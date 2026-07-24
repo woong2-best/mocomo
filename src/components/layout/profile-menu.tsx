@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, Settings, Gem, LogOut, ChevronDown, MessageCircle, Users } from "lucide-react";
+import { User, Settings, Gem, LogOut, ChevronDown, MessageSquare, Users } from "lucide-react";
 import { AccountSwitcherDialog } from "@/components/auth/account-switcher-dialog";
 import { removeSavedAccount } from "@/lib/account-switch/client";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -65,7 +65,7 @@ export function ProfileMenu() {
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
             <Link href="/messages">
-              <MessageCircle className="h-4 w-4 shrink-0" />
+              <MessageSquare className="h-4 w-4 shrink-0" />
               쪽지
             </Link>
           </DropdownMenuItem>

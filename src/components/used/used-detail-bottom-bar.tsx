@@ -8,7 +8,7 @@ import {
   startUsedTradeChat,
   getUsedListingChatRooms,
 } from "@/actions/used-market";
-import { Heart, MessageCircle } from "lucide-react";
+import { Heart, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   isUsedRestrictedKind,
@@ -120,7 +120,7 @@ export function UsedDetailBottomBar({
           disabled={loading}
           onClick={() => void openSellerChats()}
         >
-          <MessageCircle className="h-5 w-5 mr-2" />
+          <MessageSquare className="h-5 w-5 mr-2" />
           {loading
             ? "불러오는 중…"
             : chatCount > 0
@@ -214,7 +214,7 @@ export function UsedDetailBottomBar({
           disabled={loading}
           onClick={() => void openChat()}
         >
-          <MessageCircle className="h-5 w-5" />
+          <MessageSquare className="h-5 w-5" />
           {loading ? "연결 중…" : "채팅하기"}
         </Button>
       ) : (

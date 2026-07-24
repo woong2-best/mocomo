@@ -2,7 +2,7 @@ import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, MessageCircle, ArrowBigUp } from "lucide-react";
+import { Heart, MessageSquare, ArrowBigUp } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
 import { TranslatableText } from "@/components/ui/translatable-text";
 import { PostShareMenu } from "@/components/post/post-share-menu";
@@ -101,7 +101,7 @@ export function PostCard({ post }: PostCardProps) {
             {formatNumber(post._count?.likes ?? 0)}
           </span>
           <span className="flex items-center gap-1 hover:text-neon-cyan cursor-pointer">
-            <MessageCircle className="h-4 w-4" />
+            <MessageSquare className="h-4 w-4" />
             {formatNumber(post._count?.comments ?? 0)}
           </span>
           <span className="flex items-center gap-1 hover:text-neon-purple cursor-pointer">

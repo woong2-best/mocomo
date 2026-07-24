@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Heart, MessageCircle, Smartphone, X } from "lucide-react";
+import { Heart, MessageSquare, Smartphone, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { COMMUNITY_FEED_PATH } from "@/lib/site-routes";
 
@@ -110,7 +110,7 @@ export function AptSmartphonePanel({ open, onClose }: Props) {
                     <Heart className="h-3 w-3" /> {post.likeCount}
                   </span>
                   <span className="flex items-center gap-0.5">
-                    <MessageCircle className="h-3 w-3" /> {post.commentCount}
+                    <MessageSquare className="h-3 w-3" /> {post.commentCount}
                   </span>
                 </div>
               </Link>

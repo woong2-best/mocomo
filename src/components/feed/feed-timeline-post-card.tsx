@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { ko, enUS, ja, zhCN } from "date-fns/locale";
-import { Heart, MessageCircle, Star } from "lucide-react";
+import { Heart, MessageSquare, Star } from "lucide-react";
 import { PostShareMenu } from "@/components/post/post-share-menu";
 import { PostRepostMenu } from "@/components/post/post-repost-menu";
 import { PostOwnerMenu } from "@/components/post/post-owner-menu";
@@ -168,7 +168,7 @@ export function FeedTimelinePostCard({
             href={`/post/${post.id}#comments`}
             className="flex items-center gap-1 hover:text-folk-cobalt min-h-8 px-2 rounded-lg hover:bg-muted/50"
           >
-            <MessageCircle className="h-4 w-4" />
+            <MessageSquare className="h-4 w-4" />
             <span>{formatNumber(post._count?.comments ?? 0)}</span>
           </Link>
           <PostRepostMenu
