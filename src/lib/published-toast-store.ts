@@ -116,11 +116,18 @@ export function pushErrorToast(input: { message: string; detail?: string }) {
   });
 }
 
-export function pushInfoToast(input: { message: string; durationMs?: number }) {
+export function pushInfoToast(input: {
+  message: string;
+  detail?: string;
+  href?: string;
+  durationMs?: number;
+}) {
   present({
     id: nextId(),
     kind: "info",
     message: input.message,
+    detail: input.detail,
+    href: input.href,
     durationMs: input.durationMs ?? 3000,
   });
 }

@@ -102,6 +102,12 @@ export function PublishedToastPill({
     if (isPublishing) return;
     onDismiss();
 
+    // DM 공유 등 — 명시 href 우선 (트위터 "대화 보기")
+    if (toast.href) {
+      router.push(toast.href);
+      return;
+    }
+
     if (toast.postId) {
       try {
         sessionStorage.setItem(FLASH_POST_STORAGE_KEY, toast.postId);
@@ -232,9 +238,11 @@ export function PublishedToastPill({
           }}
           disabled={isPublishing}
           aria-label={
-            toast.postId
-              ? `${toast.message}. ${t("toast.viewPost")}`
-              : toast.message
+            toast.href && toast.detail
+              ? `${toast.message}. ${toast.detail}`
+              : toast.postId
+                ? `${toast.message}. ${t("toast.viewPost")}`
+                : toast.message
           }
         >
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15">

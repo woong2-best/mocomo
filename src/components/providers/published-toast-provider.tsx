@@ -47,7 +47,12 @@ type PublishedToastContextValue = {
     message?: string;
   }) => void;
   showErrorToast: (input: { message: string; detail?: string }) => void;
-  showInfoToast: (input: { message: string; durationMs?: number }) => void;
+  showInfoToast: (input: {
+    message: string;
+    detail?: string;
+    href?: string;
+    durationMs?: number;
+  }) => void;
   dismissToast: () => void;
 };
 

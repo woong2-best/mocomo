@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
   Check,
@@ -14,6 +15,8 @@ import {
 } from "lucide-react";
 import { Dialog, DialogPortal, DialogOverlay, DialogTitle } from "@/components/ui/dialog";
 import { useComposeOptional } from "@/components/compose/compose-provider";
+import { ShareToMessageDialog } from "@/components/share/share-to-message-dialog";
+import { usePublishedToastOptional } from "@/components/providers/published-toast-provider";
 import { buildAptMailboxUrl } from "@/lib/apt/mailbox-compose-route";
 import { cn } from "@/lib/utils";
 
@@ -40,7 +43,7 @@ type ShareAction = {
 
 export function ContentShareMenu({
   url,
-  label,
+  label: _label,
   shareMessage,
   composeDraft,
   composeTitle,
@@ -52,8 +55,11 @@ export function ContentShareMenu({
   onActionError,
 }: ContentShareMenuProps) {
   const router = useRouter();
+  const session = useSession();
   const compose = useComposeOptional();
+  const publishedToast = usePublishedToastOptional();
   const [open, setOpen] = useState(false);
+  const [dmOpen, setDmOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const iconClass =
@@ -112,11 +118,16 @@ export function ContentShareMenu({
     }
   }
 
-  function sendToChat() {
+  function sendToMessage() {
+    const status = session?.status;
+    if (status === "loading") return;
+    if (status !== "authenticated") {
+      setOpen(false);
+      router.push(`/auth/signin?callbackUrl=${encodeURIComponent(url)}`);
+      return;
+    }
     setOpen(false);
-    router.push(
-      `/messages/new?share=${encodeURIComponent(shareMessage)}&label=${encodeURIComponent(label)}`
-    );
+    setDmOpen(true);
   }
 
   function postAsNew() {
@@ -138,10 +149,10 @@ export function ContentShareMenu({
 
   const actions: ShareAction[] = [
     {
-      key: "chat",
-      label: "Chat으로 전송하기",
+      key: "message",
+      label: "메세지 보내기",
       icon: <MessageCircle className="h-4 w-4" />,
-      run: sendToChat,
+      run: sendToMessage,
     },
     {
       key: "copy",
@@ -245,14 +256,26 @@ export function ContentShareMenu({
           </DialogPrimitive.Content>
         </DialogPortal>
       </Dialog>
+
+      <ShareToMessageDialog
+        open={dmOpen}
+        onOpenChange={setDmOpen}
+        shareMessage={shareMessage}
+        tone={tone}
+        onBack={() => {
+          setDmOpen(false);
+          setOpen(true);
+        }}
+        onError={onActionError}
+        onShared={(roomId) => {
+          publishedToast?.showInfoToast({
+            message: "게시물을 공유함",
+            detail: "대화 보기",
+            href: `/messages/${roomId}`,
+            durationMs: 4500,
+          });
+        }}
+      />
     </>
   );
-}
-
-function pathFromUrl(url: string): string {
-  try {
-    return new URL(url).pathname;
-  } catch {
-    return "/";
-  }
 }
