@@ -30,7 +30,7 @@ export function DiscoveryMatchBadge({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "absolute -top-0.5 -right-0.5 min-w-[1rem] h-4 px-1 rounded-full bg-rose-500 text-[9px] font-bold text-white flex items-center justify-center leading-none",
+        "absolute -top-0.5 -right-0.5 min-w-[1rem] h-4 px-1 rounded-full bg-folk-terracotta text-[9px] font-bold text-white flex items-center justify-center leading-none",
         className
       )}
       aria-label={`새 매칭 ${count}건`}

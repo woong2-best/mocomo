@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Gamepad2, Radio, Sparkles, Tags } from "lucide-react";
+import { Gamepad2, Radio, Search, Tags } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isLiveFeatureEnabled } from "@/lib/live-feature";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -12,10 +12,10 @@ const TILES = [
     href: "/discover",
     labelKey: "nav.discover" as MessageKey,
     subKey: "explore.matchSub" as MessageKey,
-    icon: Sparkles,
+    icon: Search,
     className:
-      "border-violet-500/30 bg-gradient-to-br from-violet-950/12 to-fuchsia-950/8 text-violet-900 dark:text-violet-100",
-    iconClass: "text-violet-500",
+      "border-folk-terracotta/35 bg-folk-terracotta/8 text-folk-cobalt dark:text-foreground",
+    iconClass: "text-folk-terracotta",
   },
   {
     href: "/live",

@@ -62,10 +62,10 @@ export function DiscoveryMatchList() {
   if (loadError) {
     return (
       <div className="text-center py-16 space-y-4 px-4">
-        <p className="text-sm text-rose-400">{loadError}</p>
+        <p className="text-sm text-destructive">{loadError}</p>
         <Button
           variant="outline"
-          className="rounded-full border-white/15 bg-white/5"
+          className="rounded-full"
           onClick={() => {
             setLoading(true);
             setLoadError("");
@@ -84,7 +84,7 @@ export function DiscoveryMatchList() {
   if (loading) {
     return (
       <div className="flex justify-center py-24">
-        <div className="h-10 w-10 rounded-full border-2 border-rose-400 border-t-transparent animate-spin" />
+        <div className="h-10 w-10 rounded-full border-2 border-folk-terracotta border-t-transparent animate-spin" />
       </div>
     );
   }
@@ -92,14 +92,14 @@ export function DiscoveryMatchList() {
   if (rows.length === 0) {
     return (
       <div className={cn(listPb, "text-center py-20 space-y-4")}>
-        <div className="mx-auto h-20 w-20 rounded-full bg-white/5 flex items-center justify-center ring-1 ring-white/10">
-          <Heart className="h-9 w-9 text-white/25" />
+        <div className="mx-auto h-20 w-20 rounded-full bg-muted flex items-center justify-center ring-1 ring-border">
+          <Heart className="h-9 w-9 text-muted-foreground/40" />
         </div>
         <p className="font-semibold text-lg">아직 매칭이 없어요</p>
-        <p className="text-sm text-white/45 max-w-xs mx-auto">
+        <p className="text-sm text-muted-foreground max-w-xs mx-auto">
           서로 좋아요하면 여기에 나타나요. 카드를 스와이프해 보세요.
         </p>
-        <Button asChild className="rounded-full bg-gradient-to-r from-rose-500 to-orange-500">
+        <Button asChild className="rounded-full bg-folk-terracotta text-white hover:bg-folk-terracotta/90">
           <Link href="/discover">스와이프 하러 가기</Link>
         </Button>
       </div>
@@ -111,11 +111,11 @@ export function DiscoveryMatchList() {
 
   return (
     <div className={cn(listPb, "space-y-8 pt-4")}>
-      {chatError && <p className="text-center text-sm text-rose-400">{chatError}</p>}
+      {chatError && <p className="text-center text-sm text-destructive">{chatError}</p>}
 
       {newMatches.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-sm font-bold text-rose-300 tracking-wide uppercase">New Matches</h2>
+          <h2 className="text-sm font-bold text-folk-terracotta tracking-wide uppercase">New Matches</h2>
           <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
             {newMatches.map((m) => {
               const photo = m.cosplayPhoto || m.image;
@@ -128,21 +128,21 @@ export function DiscoveryMatchList() {
                   onClick={() => void openChat(m.userId)}
                   className="flex flex-col items-center gap-1.5 shrink-0 w-[72px]"
                 >
-                  <div className="relative h-[72px] w-[72px] rounded-full p-[3px] bg-gradient-to-br from-rose-500 to-orange-400">
-                    <div className="relative h-full w-full rounded-full overflow-hidden bg-neutral-900 ring-2 ring-[#0c0c0c]">
+                  <div className="relative h-[72px] w-[72px] rounded-full p-[3px] bg-folk-terracotta">
+                    <div className="relative h-full w-full rounded-full overflow-hidden bg-muted ring-2 ring-background">
                       {photo ? (
                         <Image src={photo} alt="" fill className="object-cover" sizes="72px" />
                       ) : (
-                        <div className="h-full w-full bg-gradient-to-br from-rose-800 to-orange-900" />
+                        <div className="h-full w-full bg-folk-terracotta/40" />
                       )}
                     </div>
                     {m.isCosplayer && (
-                      <span className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-fuchsia-600 flex items-center justify-center ring-2 ring-[#0c0c0c]">
+                      <span className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-folk-terracotta flex items-center justify-center ring-2 ring-background">
                         <Camera className="h-3 w-3 text-white" />
                       </span>
                     )}
                   </div>
-                  <span className="text-[11px] font-medium truncate w-full text-center text-white/80">
+                  <span className="text-[11px] font-medium truncate w-full text-center text-muted-foreground">
                     {name}
                   </span>
                 </button>
@@ -153,7 +153,7 @@ export function DiscoveryMatchList() {
       )}
 
       <section className="space-y-3">
-        <h2 className="text-sm font-bold text-white/50 tracking-wide uppercase">Messages</h2>
+        <h2 className="text-sm font-bold text-muted-foreground tracking-wide uppercase">Messages</h2>
         <ul className="space-y-1">
           {(rest.length > 0 ? rest : rows).map((m) => {
             const photo = m.cosplayPhoto || m.image;
@@ -164,20 +164,20 @@ export function DiscoveryMatchList() {
                   type="button"
                   disabled={opening === m.userId}
                   onClick={() => void openChat(m.userId)}
-                  className="w-full flex items-center gap-3 rounded-2xl px-2 py-2.5 hover:bg-white/5 transition-colors text-left"
+                  className="w-full flex items-center gap-3 rounded-2xl px-2 py-2.5 hover:bg-muted/60 transition-colors text-left"
                 >
-                  <div className="relative h-14 w-14 rounded-full overflow-hidden shrink-0 ring-1 ring-white/10">
+                  <div className="relative h-14 w-14 rounded-full overflow-hidden shrink-0 ring-1 ring-border">
                     {photo ? (
                       <Image src={photo} alt="" fill className="object-cover" sizes="56px" />
                     ) : (
-                      <div className="h-full w-full bg-gradient-to-br from-rose-800 to-orange-900" />
+                      <div className="h-full w-full bg-folk-terracotta/30" />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold truncate">{name}</p>
-                    <p className="text-xs text-white/45 truncate">{m.bio || `@${m.username}`}</p>
+                    <p className="text-xs text-muted-foreground truncate">{m.bio || `@${m.username}`}</p>
                   </div>
-                  <MessageSquare className="h-5 w-5 text-white/30 shrink-0" />
+                  <MessageSquare className="h-5 w-5 text-muted-foreground/50 shrink-0" />
                 </button>
               </li>
             );

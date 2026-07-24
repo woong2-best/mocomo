@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
-import { Home, Sparkles, Tags, User } from "lucide-react";
+import { Home, Search, Tags, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { MessageKey } from "@/lib/i18n/messages";
@@ -29,7 +29,7 @@ const guestTabs: TabDef[] = [
   },
   {
     href: "/discover",
-    icon: Sparkles,
+    icon: Search,
     labelKey: "nav.discover",
     match: (p) => p === "/discover" || p.startsWith("/discover/"),
   },
@@ -51,7 +51,7 @@ function userTabs(username: string | null): TabDef[] {
     },
     {
       href: "/discover",
-      icon: Sparkles,
+      icon: Search,
       labelKey: "nav.discover",
       match: (p) => p === "/discover" || p.startsWith("/discover/"),
     },

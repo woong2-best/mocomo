@@ -7,6 +7,7 @@ import {
   Tv,
   Radio,
   Sparkles,
+  Search,
   Store,
   Users,
   Camera,
@@ -48,5 +49,5 @@ export const mainNavItems: NavItem[] = [
   { href: "/used", icon: Tags, labelKey: "nav.used" },
   { href: "/anime", icon: Tv, labelKey: "nav.anime" },
   { href: "/events", icon: Calendar, labelKey: "nav.events" },
-  { href: "/discover", icon: Sparkles, labelKey: "nav.discover" },
+  { href: "/discover", icon: Search, labelKey: "nav.discover" },
 ];

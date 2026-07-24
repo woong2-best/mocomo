@@ -125,15 +125,17 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-violet-500/20 bg-gradient-to-br from-violet-950/10 to-fuchsia-950/5">
+      <Card className="border-folk-terracotta/25 bg-folk-terracotta/5">
         <CardHeader>
-          <CardTitle>{t("settings.discoverTitle")}</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            {t("settings.discoverTitle")}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">{t("settings.discoverDesc")}</p>
           <div className="flex flex-wrap gap-2">
             <Link href="/discover">
-              <Button size="sm" className="rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600">
+              <Button size="sm" className="rounded-xl bg-folk-terracotta text-white hover:bg-folk-terracotta/90">
                 {t("settings.discoverStart")}
               </Button>
             </Link>

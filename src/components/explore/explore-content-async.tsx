@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { TrendingUp, Users, Radio, Sparkles } from "lucide-react";
+import { TrendingUp, Users, Radio, Search } from "lucide-react";
 import { getCachedLiveChannels } from "@/lib/cached-data";
 import { Button } from "@/components/ui/button";
 import { getCachedExploreData } from "@/lib/cached-data";
@@ -60,16 +60,16 @@ export async function ExploreContentAsync() {
         </p>
       )}
 
-      <Card className="folk-card-interactive rounded-2xl border-violet-500/25 bg-gradient-to-br from-violet-950/15 to-fuchsia-950/10 overflow-hidden">
+      <Card className="folk-card-interactive rounded-2xl border-folk-terracotta/30 bg-folk-terracotta/5 overflow-hidden">
         <CardContent className="p-4 flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="font-display font-bold flex items-center gap-1.5 text-violet-900 dark:text-violet-100">
-              <Sparkles className="h-4 w-4 text-violet-500" />
+            <p className="font-display font-bold flex items-center gap-1.5 text-folk-cobalt dark:text-foreground">
+              <Search className="h-4 w-4 text-folk-terracotta" />
               {t("explore.matchTitle")}
             </p>
             <p className="text-xs text-muted-foreground mt-1">{t("explore.matchDesc")}</p>
           </div>
-          <Button asChild size="sm" className="rounded-xl shrink-0 bg-gradient-to-r from-violet-600 to-fuchsia-600">
+          <Button asChild size="sm" className="rounded-xl shrink-0 bg-folk-terracotta text-white hover:bg-folk-terracotta/90">
             <Link href="/discover">{t("explore.start")}</Link>
           </Button>
         </CardContent>

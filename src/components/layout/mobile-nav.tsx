@@ -7,7 +7,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   Home,
-  Compass,
+  Search,
   PenSquare,
   Radio,
   User,
@@ -26,7 +26,7 @@ import { navIconTap, springSnappy } from "@/lib/motion-presets";
 
 const guestTabs: { href: string; icon: typeof Home; labelKey: MessageKey }[] = [
   { href: DEFAULT_LANDING_PATH, icon: Home, labelKey: "nav.home" },
-  { href: "/discover", icon: Compass, labelKey: "nav.discover" },
+  { href: "/discover", icon: Search, labelKey: "nav.discover" },
   { href: "/live", icon: Radio, labelKey: "nav.live" },
   { href: "/auth/signin", icon: LogIn, labelKey: "nav.signin" },
   { href: "/auth/signup", icon: User, labelKey: "nav.signup" },

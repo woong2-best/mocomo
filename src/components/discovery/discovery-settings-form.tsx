@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 import { getCurrentCoords, geolocationErrorMessage } from "@/lib/client-geolocation";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
-import { MapPin, Shield, Sparkles } from "lucide-react";
+import { MapPin, Shield, Search } from "lucide-react";
 
 const GENDERS = Object.keys(DISCOVERY_GENDER_LABELS) as DiscoveryGender[];
 
@@ -141,7 +141,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
 
       <div className="space-y-1">
         <h1 className={cn("text-2xl font-display font-bold flex items-center gap-2", isNativeApp && "sr-only")}>
-          <Sparkles className="h-6 w-6 text-violet-500" />
+          <Search className="h-6 w-6 text-folk-terracotta" />
           매칭 설정
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -149,9 +149,9 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
         </p>
       </div>
 
-      <Card className="rounded-2xl border-violet-500/20 bg-gradient-to-br from-violet-950/10 to-fuchsia-950/10">
+      <Card className="rounded-2xl border-folk-terracotta/25 bg-folk-terracotta/5">
         <CardContent className="p-4 flex items-start gap-3">
-          <Shield className="h-5 w-5 text-violet-400 shrink-0 mt-0.5" />
+          <Shield className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
           <div className="text-xs text-muted-foreground space-y-1">
             <p>만 {DISCOVERY_MIN_AGE}세 이상 · 생년월일 등록 필수</p>
             <p>매칭 상대에게만 공개하는 정보는 아래에서 선택</p>
@@ -176,7 +176,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
               checked={enabled}
               disabled={!initial.hasBirthDate}
               onChange={(e) => setEnabled(e.target.checked)}
-              className="h-5 w-5 rounded accent-violet-600 disabled:opacity-40"
+              className="h-5 w-5 rounded accent-[hsl(var(--folk-terracotta))] disabled:opacity-40"
             />
           </label>
           {!initial.hasBirthDate && (
@@ -241,7 +241,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
                 className={cn(
                   "rounded-xl px-3 py-2 text-xs font-medium border transition-colors text-left",
                   matchingMode === mode
-                    ? "bg-violet-600 text-white border-violet-500"
+                    ? "bg-folk-terracotta text-white border-folk-terracotta"
                     : "bg-muted/40 border-transparent"
                 )}
               >
@@ -274,7 +274,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
                 className={cn(
                   "rounded-xl px-3 py-2 text-xs font-medium border transition-colors",
                   lookingFor === l
-                    ? "bg-violet-600 text-white border-violet-500"
+                    ? "bg-folk-terracotta text-white border-folk-terracotta"
                     : "bg-muted/40 border-transparent"
                 )}
               >
@@ -292,7 +292,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
                   onClick={() => togglePreferred(g)}
                   className={cn(
                     "rounded-full px-3 py-1 text-xs border",
-                    preferred.includes(g) ? "bg-fuchsia-600/20 border-fuchsia-400" : "border-muted"
+                    preferred.includes(g) ? "bg-folk-terracotta/15 border-folk-terracotta/50" : "border-muted"
                   )}
                 >
                   {DISCOVERY_GENDER_LABELS[g]}
@@ -367,7 +367,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
               step={5}
               value={maxDistanceKm}
               onChange={(e) => setMaxDistanceKm(Number(e.target.value))}
-              className="w-full mt-2 accent-violet-600"
+              className="w-full mt-2 accent-[hsl(var(--folk-terracotta))]"
             />
           </div>
         </CardContent>
@@ -382,7 +382,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
       <Button
         type="submit"
         disabled={loading}
-        className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 font-bold"
+        className="w-full rounded-xl bg-folk-terracotta text-white hover:bg-folk-terracotta/90 font-bold"
       >
         {loading ? "저장 중…" : "저장"}
       </Button>
