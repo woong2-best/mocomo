@@ -41,6 +41,7 @@ export function PostShareMenu({
       composeDraft={composeDraft}
       composeTitle={title?.trim() || `${authorUsername}님 게시물`}
       nativeShareTitle={preview}
+      postId={postId}
       hasVideo={hasVideo}
       size={size}
       tone={tone}

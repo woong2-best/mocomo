@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { getOrCreateDM, sendMessage } from "@/actions/chat";
+import { encodePostShareMessage } from "@/lib/chat-post-share";
 import { userPublicSelectMinimal } from "@/lib/user-public-select";
 import type { DmUserSearchHit } from "@/lib/dm-user-search";
 
@@ -80,7 +81,8 @@ export async function listRecentDmPartners(): Promise<DmUserSearchHit[]> {
  */
 export async function shareContentViaDm(data: {
   recipientIds: string[];
-  shareMessage: string;
+  shareMessage?: string;
+  postId?: string;
   note?: string;
 }): Promise<ShareViaDmResult> {
   await requireAuth({ writeKind: "dm" });
@@ -93,13 +95,29 @@ export async function shareContentViaDm(data: {
     return { ok: false, error: `한 번에 최대 ${MAX_RECIPIENTS}명까지 보낼 수 있습니다.` };
   }
 
-  const shareMessage = data.shareMessage.trim().slice(0, MAX_SHARE_LEN);
-  if (!shareMessage) {
-    return { ok: false, error: "공유할 내용이 없습니다." };
-  }
-
   const note = (data.note ?? "").trim().slice(0, MAX_NOTE_LEN);
-  const content = note ? `${note}\n\n${shareMessage}` : shareMessage;
+  const postId = data.postId?.trim();
+
+  let content: string;
+  if (postId) {
+    if (postId.length > 40 || !/^[a-z0-9]+$/i.test(postId)) {
+      return { ok: false, error: "잘못된 게시물입니다." };
+    }
+    const exists = await db.post.findFirst({
+      where: { id: postId, visibility: "PUBLIC" },
+      select: { id: true },
+    });
+    if (!exists) {
+      return { ok: false, error: "게시물을 찾을 수 없습니다." };
+    }
+    content = encodePostShareMessage(postId, note);
+  } else {
+    const shareMessage = (data.shareMessage ?? "").trim().slice(0, MAX_SHARE_LEN);
+    if (!shareMessage) {
+      return { ok: false, error: "공유할 내용이 없습니다." };
+    }
+    content = note ? `${note}\n\n${shareMessage}` : shareMessage;
+  }
 
   let firstRoomId: string | null = null;
   let sentCount = 0;

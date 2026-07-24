@@ -18,6 +18,7 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   shareMessage: string;
+  postId?: string;
   tone?: "folk" | "plain";
   onShared: (roomId: string) => void;
   onError?: (message: string) => void;
@@ -28,6 +29,7 @@ export function ShareToMessageDialog({
   open,
   onOpenChange,
   shareMessage,
+  postId,
   tone = "folk",
   onShared,
   onError,
@@ -146,7 +148,8 @@ export function ShareToMessageDialog({
     setError("");
     const result = await shareContentViaDm({
       recipientIds: selectedList.map((u) => u.id),
-      shareMessage,
+      shareMessage: postId ? undefined : shareMessage,
+      postId,
       note,
     });
     setSending(false);

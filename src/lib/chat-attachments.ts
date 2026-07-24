@@ -1,4 +1,5 @@
 import type { MessageAttachmentType } from "@prisma/client";
+import { chatPostShareListPreview } from "@/lib/chat-post-share";
 
 export type ChatAttachmentInput = {
   url: string;
@@ -65,6 +66,8 @@ export function lastMessagePreview(
   content: string | null | undefined,
   attachments?: { type: MessageAttachmentType }[]
 ): string {
+  const sharePreview = chatPostShareListPreview(content);
+  if (sharePreview) return sharePreview;
   if (content?.trim()) return content.trim();
   if (!attachments?.length) return "대화를 시작해 보세요";
   const hasImage = attachments.some((a) => a.type === "IMAGE" || a.type === "GIF");

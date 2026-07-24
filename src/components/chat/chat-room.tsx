@@ -12,6 +12,7 @@ import { ChatMediaComposer } from "@/components/chat/chat-media-composer";
 import { ChatMessageAttachments } from "@/components/chat/chat-message-attachments";
 import { ChatMessageReplyQuote } from "@/components/chat/chat-message-reply-quote";
 import { ChatReplyComposerBar } from "@/components/chat/chat-reply-composer-bar";
+import { ChatSharedPostCard } from "@/components/chat/chat-shared-post-card";
 import { ActivityPanel } from "@/components/activities/activity-panel";
 import { PresenceAvatar } from "@/components/user/presence-avatar";
 import {
@@ -26,6 +27,7 @@ import {
   isPendingMessageId,
   type ChatMessageView,
 } from "@/lib/chat-message-normalize";
+import { parseChatPostShare } from "@/lib/chat-post-share";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { UserProfileLink } from "@/components/user/user-profile-link";
 import { cn } from "@/lib/utils";
@@ -387,7 +389,8 @@ export function ChatRoomClient({
           const isMine = m.sender.id === userId;
           const pending = isPendingMessageId(m.id);
           const hasAttachments = !!m.attachments?.length;
-          const hasText = !!m.content?.trim();
+          const postShare = parseChatPostShare(m.content);
+          const hasText = postShare ? !!postShare.note : !!m.content?.trim();
           const showDate = shouldShowDateDivider(prev?.createdAt ?? null, m.createdAt);
           const showAvatar = shouldShowAvatar(
             prev ? { senderId: prev.sender.id } : null,
@@ -472,7 +475,7 @@ export function ChatRoomClient({
                         <ChatMessageAttachments attachments={m.attachments} isMine={isMine} />
                       </div>
                     )}
-                    {!hasAttachments && !hasText && (
+                    {!hasAttachments && !hasText && !postShare && (
                       <div
                         className={cn(
                           "px-3.5 py-2 text-xs italic rounded-2xl",
@@ -500,7 +503,28 @@ export function ChatRoomClient({
                             selfUserId={userId}
                           />
                         )}
-                        {m.content}
+                        {postShare?.note ?? m.content}
+                      </div>
+                    )}
+                    {postShare && (
+                      <div className={cn(hasText && "mt-1")}>
+                        {m.replyTo && !hasAttachments && !hasText && (
+                          <div
+                            className={cn(
+                              "mb-1.5 px-3 pt-2 pb-1 rounded-2xl",
+                              isMine
+                                ? "rounded-br-md bg-primary text-primary-foreground"
+                                : "rounded-bl-md bg-background border border-border/60"
+                            )}
+                          >
+                            <ChatMessageReplyQuote
+                              replyTo={m.replyTo}
+                              isMine={isMine}
+                              selfUserId={userId}
+                            />
+                          </div>
+                        )}
+                        <ChatSharedPostCard postId={postShare.postId} isMine={isMine} />
                       </div>
                     )}
                   </div>

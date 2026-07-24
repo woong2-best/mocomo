@@ -27,6 +27,8 @@ export type ContentShareMenuProps = {
   composeDraft: string;
   composeTitle?: string;
   nativeShareTitle: string;
+  /** When set, DM share sends a rich post card instead of plain text */
+  postId?: string;
   hasVideo?: boolean;
   size?: "sm" | "md" | "detail";
   tone?: "folk" | "plain";
@@ -48,6 +50,7 @@ export function ContentShareMenu({
   composeDraft,
   composeTitle,
   nativeShareTitle,
+  postId,
   hasVideo = false,
   size = "sm",
   tone = "folk",
@@ -261,6 +264,7 @@ export function ContentShareMenu({
         open={dmOpen}
         onOpenChange={setDmOpen}
         shareMessage={shareMessage}
+        postId={postId}
         tone={tone}
         onBack={() => {
           setDmOpen(false);

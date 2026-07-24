@@ -1,6 +1,7 @@
 import type { SupportTierLevel } from "@prisma/client";
 import type { ChatAttachmentView } from "@/lib/chat-attachments";
 import { parseChatAttachmentType } from "@/lib/chat-attachments";
+import { chatPostShareListPreview } from "@/lib/chat-post-share";
 
 export type ChatMessageView = {
   id: string;
@@ -29,6 +30,8 @@ export type ChatMessageView = {
 export function getChatMessageReplyPreview(
   m: Pick<ChatMessageView, "content" | "attachments">
 ): string {
+  const sharePreview = chatPostShareListPreview(m.content);
+  if (sharePreview) return sharePreview;
   const text = m.content?.trim();
   if (text) return text.length > 100 ? `${text.slice(0, 100)}…` : text;
   const att = m.attachments?.[0];
