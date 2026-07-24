@@ -2,18 +2,19 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { CommunitiesGridAsync } from "@/components/communities/communities-grid-async";
+import { CommunitiesHubAsync } from "@/components/communities/communities-hub-async";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
-import { GridCardsSkeleton } from "@/components/ui/content-skeletons";
+import { CommunitiesHubSkeleton } from "@/components/ui/content-skeletons";
+import { RecentCommunitiesBar } from "@/components/communities/recent-communities-bar";
 
-export const revalidate = 120;
+export const revalidate = 60;
 
 export default function CommunitiesPage() {
   return (
-    <AppPageChrome maxWidth="4xl">
-      <div className="flex items-center justify-between">
+    <AppPageChrome maxWidth="5xl">
+      <div className="flex items-center justify-between gap-3">
         <NativePageTitle>
-          <h1 className="text-2xl font-bold">커뮤니티</h1>
+          <h1 className="text-2xl font-bold tracking-tight">커뮤니티</h1>
         </NativePageTitle>
         <Link href="/communities/new">
           <Button size="sm">
@@ -23,8 +24,10 @@ export default function CommunitiesPage() {
         </Link>
       </div>
 
-      <Suspense fallback={<GridCardsSkeleton count={4} />}>
-        <CommunitiesGridAsync />
+      <RecentCommunitiesBar />
+
+      <Suspense fallback={<CommunitiesHubSkeleton />}>
+        <CommunitiesHubAsync />
       </Suspense>
     </AppPageChrome>
   );

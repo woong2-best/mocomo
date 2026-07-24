@@ -265,28 +265,91 @@ export const getCachedVoiceChannels = unstable_cache(
   { revalidate: 30 }
 );
 
+const communityListSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  description: true,
+  memberCount: true,
+  iconUrl: true,
+  bannerUrl: true,
+  category: true,
+  isNsfw: true,
+  children: {
+    take: 5,
+    select: { id: true, name: true, slug: true, memberCount: true },
+  },
+} as const;
+
 export const getCachedCommunities = unstable_cache(
   async () =>
     db.community.findMany({
       take: 50,
       orderBy: { memberCount: "desc" },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        memberCount: true,
-        iconUrl: true,
-        category: true,
-        isNsfw: true,
-        children: {
-          take: 5,
-          select: { id: true, name: true, slug: true, memberCount: true },
-        },
-      },
+      select: communityListSelect,
     }),
-  ["communities-list"],
+  ["communities-list-v2"],
   { revalidate: 120 }
+);
+
+/** 커뮤니티 허브 — 실베 스타일 인기글 + 커뮤니티 목록 */
+export const getCachedCommunityHubData = unstable_cache(
+  async () => {
+    const postSelect = {
+      id: true,
+      title: true,
+      content: true,
+      createdAt: true,
+      isNsfw: true,
+      hotScore: true,
+      media: {
+        take: 1,
+        orderBy: { order: "asc" as const },
+        select: { url: true, type: true },
+      },
+      community: {
+        select: { id: true, name: true, slug: true, category: true, iconUrl: true },
+      },
+      _count: { select: { comments: true, likes: true } },
+    } as const;
+
+    const [communities, communityPosts] = await Promise.all([
+      db.community.findMany({
+        take: 50,
+        orderBy: { memberCount: "desc" },
+        select: communityListSelect,
+      }),
+      db.post.findMany({
+        where: {
+          communityId: { not: null },
+          visibility: "PUBLIC",
+        },
+        take: 28,
+        orderBy: [{ hotScore: "desc" }, { createdAt: "desc" }],
+        select: postSelect,
+      }),
+    ]);
+
+    let hotPosts = communityPosts;
+
+    // 커뮤니티 글이 부족하면 전체 공개 인기글로 채움 (커뮤니티명 있으면 표시)
+    if (hotPosts.length < 8) {
+      const fill = await db.post.findMany({
+        where: {
+          visibility: "PUBLIC",
+          id: { notIn: hotPosts.map((p) => p.id) },
+        },
+        take: 28 - hotPosts.length,
+        orderBy: [{ hotScore: "desc" }, { createdAt: "desc" }],
+        select: postSelect,
+      });
+      hotPosts = [...hotPosts, ...fill];
+    }
+
+    return { communities, hotPosts };
+  },
+  ["community-hub-v2"],
+  { revalidate: 60 }
 );
 
 export const getCachedAnimeGenreCounts = unstable_cache(

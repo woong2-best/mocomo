@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { ChannelSidebar } from "@/components/community-server/channel-sidebar";
 import { MemberSidebar } from "@/components/community-server/member-sidebar";
 import { VoiceStatusBar } from "@/components/community-server/voice-status-bar";
@@ -11,6 +11,7 @@ import { CommunityJoinBanner } from "@/components/community-server/community-joi
 import { MemberWelcomeDialog } from "@/components/community-server/member-welcome-dialog";
 import { MobileMemberTabBar } from "@/components/community-server/mobile-member-tab";
 import { MobileChannelDrawer } from "@/components/community-server/mobile-channel-drawer";
+import { trackRecentCommunity } from "@/components/communities/recent-communities-bar";
 import type { CommunityServerContext, CommunityMemberView } from "@/lib/community-server/types";
 import { hasPermission } from "@/lib/community-server/permissions";
 
@@ -27,6 +28,10 @@ export function CommunityServerLayoutClient({
 }) {
   const [memberOpen, setMemberOpen] = useState(false);
   const [channelOpen, setChannelOpen] = useState(false);
+
+  useEffect(() => {
+    trackRecentCommunity(slug, initialContext.name);
+  }, [slug, initialContext.name]);
 
   return (
     <CommunityMembershipProvider initial={initialContext}>
