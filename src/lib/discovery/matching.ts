@@ -77,7 +77,7 @@ function passesLookingFor(
 }
 
 export function scoreCandidate(
-  me: DiscoveryProfile & { user: Pick<CandidateUser, "profile" | "animeFollows"> },
+  me: DiscoveryProfile,
   candidate: CandidateUser,
   myAnimeIds: Set<string>,
   myTags: string[]
@@ -136,9 +136,15 @@ function toDiscoveryCard(
 ): DiscoveryCard {
   const dp = c.discoveryProfile;
   const age = ageFromBirth(c.birthDate);
+  const cosplayUrls = (c.cosplayerProfile?.photos ?? []).map((p) => p.url).filter(Boolean);
   const photo = c.cosplayerProfile?.photos[0];
   const animeTitles = [...(c.cosplayerProfile?.animes.map((a) => a.anime.title) ?? [])].slice(0, 4);
-  const isCosplayer = (c.cosplayerProfile?.photos.length ?? 0) > 0;
+  const isCosplayer = cosplayUrls.length > 0;
+  const photos = [...cosplayUrls];
+  if (c.image && !photos.includes(c.image)) {
+    if (photos.length === 0) photos.push(c.image);
+    else photos.push(c.image);
+  }
 
   return {
     userId: c.id,
@@ -158,6 +164,7 @@ function toDiscoveryCard(
     animeTitles,
     isCosplayer,
     cosplayPhoto: photo?.url ?? null,
+    photos,
     cosplayCharacter: photo?.character ?? c.cosplayerProfile?.animes[0]?.character ?? null,
     matchScore: extras.matchScore,
     lookingFor: normalizeLookingFor(dp.lookingFor),
@@ -186,7 +193,7 @@ export function filterRandomCandidates(candidates: CandidateUser[]): DiscoveryCa
 }
 
 export function filterAndRankCandidates(
-  me: DiscoveryProfile & { user: Pick<CandidateUser, "profile" | "animeFollows"> },
+  me: DiscoveryProfile,
   candidates: CandidateUser[],
   myAnimeIds: Set<string>,
   myTags: string[],

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Camera, MessageSquare, Sparkles } from "lucide-react";
+import { Camera, MessageSquare, Heart } from "lucide-react";
 import {
   getDiscoveryMatches,
   markDiscoveryMatchesSeen,
@@ -12,14 +12,13 @@ import {
 } from "@/actions/discovery";
 import type { DiscoveryMatchRow } from "@/lib/discovery/types";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { cn } from "@/lib/utils";
 
 export function DiscoveryMatchList() {
   const router = useRouter();
   const { isNativeApp } = useClientPlatform();
-  const listPb = cn("max-w-lg mx-auto", !isNativeApp && "pb-nav lg:pb-6");
+  const listPb = cn("max-w-lg mx-auto px-4", !isNativeApp && "pb-nav lg:pb-6");
   const [rows, setRows] = useState<DiscoveryMatchRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [opening, setOpening] = useState<string | null>(null);
@@ -63,10 +62,10 @@ export function DiscoveryMatchList() {
   if (loadError) {
     return (
       <div className="text-center py-16 space-y-4 px-4">
-        <p className="text-sm text-destructive">{loadError}</p>
+        <p className="text-sm text-rose-400">{loadError}</p>
         <Button
           variant="outline"
-          className="rounded-xl"
+          className="rounded-full border-white/15 bg-white/5"
           onClick={() => {
             setLoading(true);
             setLoadError("");
@@ -84,79 +83,107 @@ export function DiscoveryMatchList() {
 
   if (loading) {
     return (
-      <ul className={cn("space-y-3 p-4", listPb)}>
-        {[1, 2, 3].map((i) => (
-          <li key={i} className="h-28 rounded-2xl bg-muted/50 animate-pulse" />
-        ))}
-      </ul>
+      <div className="flex justify-center py-24">
+        <div className="h-10 w-10 rounded-full border-2 border-rose-400 border-t-transparent animate-spin" />
+      </div>
     );
   }
 
   if (rows.length === 0) {
     return (
-      <div className="text-center py-16 space-y-4 px-4">
-        <Sparkles className="h-10 w-10 mx-auto text-muted-foreground" />
-        <p className="font-semibold">아직 매칭이 없어요</p>
-        <p className="text-sm text-muted-foreground">좋아요·ㅊㅊ가 서로 맞으면 여기에 표시됩니다.</p>
-        <Button asChild className="rounded-xl">
-          <Link href="/discover">추천 보러 가기</Link>
+      <div className={cn(listPb, "text-center py-20 space-y-4")}>
+        <div className="mx-auto h-20 w-20 rounded-full bg-white/5 flex items-center justify-center ring-1 ring-white/10">
+          <Heart className="h-9 w-9 text-white/25" />
+        </div>
+        <p className="font-semibold text-lg">아직 매칭이 없어요</p>
+        <p className="text-sm text-white/45 max-w-xs mx-auto">
+          서로 좋아요하면 여기에 나타나요. 카드를 스와이프해 보세요.
+        </p>
+        <Button asChild className="rounded-full bg-gradient-to-r from-rose-500 to-orange-500">
+          <Link href="/discover">스와이프 하러 가기</Link>
         </Button>
       </div>
     );
   }
 
+  const newMatches = rows.filter((r) => r.unseen);
+  const rest = rows.filter((r) => !r.unseen);
+
   return (
-    <ul className={cn("space-y-3 p-4", listPb)}>
-      {chatError && (
-        <p className="text-sm text-destructive text-center">{chatError}</p>
-      )}
-      {rows.map((m) => (
-        <li key={m.matchId}>
-          <Card className={cn("rounded-2xl overflow-hidden", m.unseen && "ring-2 ring-violet-500/50")}>
-            <CardContent className="p-0">
-              <div className="flex gap-3 p-3">
-                <div className="relative h-16 w-16 rounded-2xl overflow-hidden bg-muted shrink-0">
-                  {(m.cosplayPhoto || m.image) ? (
-                    <Image src={m.cosplayPhoto || m.image!} alt="" fill className="object-cover" sizes="64px" />
-                  ) : (
-                    <div className="h-full w-full bg-gradient-to-br from-violet-600 to-fuchsia-700" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <Link href={`/u/${m.username}`} className="font-bold hover:underline truncate block">
-                    {m.name || m.username}
-                  </Link>
-                  <p className="text-xs text-muted-foreground">@{m.username}</p>
-                  {m.isCosplayer && (
-                    <span className="inline-flex items-center gap-0.5 text-[10px] text-fuchsia-600 mt-0.5">
-                      <Camera className="h-3 w-3" /> 코스어
-                    </span>
-                  )}
-                  {m.bio && <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{m.bio}</p>}
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    {new Date(m.matchedAt).toLocaleDateString("ko")} 매칭
-                  </p>
-                </div>
-              </div>
-              <div className="flex border-t divide-x">
-                <Button
+    <div className={cn(listPb, "space-y-8 pt-4")}>
+      {chatError && <p className="text-center text-sm text-rose-400">{chatError}</p>}
+
+      {newMatches.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-bold text-rose-300 tracking-wide uppercase">New Matches</h2>
+          <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
+            {newMatches.map((m) => {
+              const photo = m.cosplayPhoto || m.image;
+              const name = m.name || m.username;
+              return (
+                <button
+                  key={m.matchId}
                   type="button"
-                  variant="ghost"
-                  className="flex-1 rounded-none h-11 text-sm"
                   disabled={opening === m.userId}
                   onClick={() => void openChat(m.userId)}
+                  className="flex flex-col items-center gap-1.5 shrink-0 w-[72px]"
                 >
-                  <MessageSquare className="h-4 w-4 mr-1.5" />
-                  {opening === m.userId ? "연결 중…" : "메시지"}
-                </Button>
-                <Button asChild variant="ghost" className="flex-1 rounded-none h-11 text-sm">
-                  <Link href={`/u/${m.username}`}>프로필</Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </li>
-      ))}
-    </ul>
+                  <div className="relative h-[72px] w-[72px] rounded-full p-[3px] bg-gradient-to-br from-rose-500 to-orange-400">
+                    <div className="relative h-full w-full rounded-full overflow-hidden bg-neutral-900 ring-2 ring-[#0c0c0c]">
+                      {photo ? (
+                        <Image src={photo} alt="" fill className="object-cover" sizes="72px" />
+                      ) : (
+                        <div className="h-full w-full bg-gradient-to-br from-rose-800 to-orange-900" />
+                      )}
+                    </div>
+                    {m.isCosplayer && (
+                      <span className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-fuchsia-600 flex items-center justify-center ring-2 ring-[#0c0c0c]">
+                        <Camera className="h-3 w-3 text-white" />
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[11px] font-medium truncate w-full text-center text-white/80">
+                    {name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-bold text-white/50 tracking-wide uppercase">Messages</h2>
+        <ul className="space-y-1">
+          {(rest.length > 0 ? rest : rows).map((m) => {
+            const photo = m.cosplayPhoto || m.image;
+            const name = m.name || m.username;
+            return (
+              <li key={m.matchId}>
+                <button
+                  type="button"
+                  disabled={opening === m.userId}
+                  onClick={() => void openChat(m.userId)}
+                  className="w-full flex items-center gap-3 rounded-2xl px-2 py-2.5 hover:bg-white/5 transition-colors text-left"
+                >
+                  <div className="relative h-14 w-14 rounded-full overflow-hidden shrink-0 ring-1 ring-white/10">
+                    {photo ? (
+                      <Image src={photo} alt="" fill className="object-cover" sizes="56px" />
+                    ) : (
+                      <div className="h-full w-full bg-gradient-to-br from-rose-800 to-orange-900" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold truncate">{name}</p>
+                    <p className="text-xs text-white/45 truncate">{m.bio || `@${m.username}`}</p>
+                  </div>
+                  <MessageSquare className="h-5 w-5 text-white/30 shrink-0" />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    </div>
   );
 }

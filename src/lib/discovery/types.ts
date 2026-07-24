@@ -18,6 +18,8 @@ export type DiscoveryCard = {
   animeTitles: string[];
   isCosplayer: boolean;
   cosplayPhoto: string | null;
+  /** Gallery for in-card photo paging (avatar + cosplay shots) */
+  photos: string[];
   cosplayCharacter: string | null;
   matchScore: number;
   lookingFor: DiscoveryLookingFor;

@@ -184,65 +184,108 @@ export async function setDiscoveryMatchingMode(
 export async function getDiscoveryDeck(): Promise<
   | { cards: DiscoveryCard[]; enabled: true; matchingMode: DiscoveryMatchingMode }
   | { enabled: false; reason: string }
+  | { error: string }
 > {
-  const user = await requireAuthMinimal();
-  const me = await db.discoveryProfile.findUnique({
-    where: { userId: user.id },
-    include: { user: { select: candidateSelect } },
-  });
-
-  if (!me?.enabled) {
-    return { enabled: false, reason: "매칭 참여를 켜면 추천을 받을 수 있어요." };
-  }
-
-  const [swipes, blocks, myAnime] = await Promise.all([
-    db.discoverySwipe.findMany({
-      where: { fromUserId: user.id },
-      select: { toUserId: true },
-    }),
-    db.discoveryBlock.findMany({
-      where: {
-        OR: [{ blockerId: user.id }, { blockedId: user.id }],
+  try {
+    const user = await requireAuthMinimal();
+    const me = await db.discoveryProfile.findUnique({
+      where: { userId: user.id },
+      include: {
+        user: {
+          select: {
+            profile: { select: { favoriteTags: true } },
+          },
+        },
       },
-      select: { blockerId: true, blockedId: true },
-    }),
-    db.animeFollow.findMany({ where: { userId: user.id }, select: { animeId: true } }),
-  ]);
+    });
 
-  const exclude = new Set<string>([user.id]);
-  for (const s of swipes) exclude.add(s.toUserId);
-  for (const b of blocks) {
-    exclude.add(b.blockerId);
-    exclude.add(b.blockedId);
+    if (!me?.enabled) {
+      return { enabled: false, reason: "매칭 참여를 켜면 추천을 받을 수 있어요." };
+    }
+
+    const [swipes, blocks, myAnime] = await Promise.all([
+      db.discoverySwipe.findMany({
+        where: { fromUserId: user.id },
+        select: { toUserId: true },
+      }),
+      db.discoveryBlock.findMany({
+        where: {
+          OR: [{ blockerId: user.id }, { blockedId: user.id }],
+        },
+        select: { blockerId: true, blockedId: true },
+      }),
+      db.animeFollow.findMany({ where: { userId: user.id }, select: { animeId: true } }),
+    ]);
+
+    const exclude = new Set<string>([user.id]);
+    for (const s of swipes) exclude.add(s.toUserId);
+    for (const b of blocks) {
+      exclude.add(b.blockerId);
+      exclude.add(b.blockedId);
+    }
+
+    const isRandom = me.matchingMode === "RANDOM";
+    const poolSize = isRandom ? 200 : 120;
+    const excludeIds = [...exclude];
+
+    const raw = await db.user.findMany({
+      where: {
+        ...(excludeIds.length > 0 ? { id: { notIn: excludeIds } } : {}),
+        isBanned: false,
+        discoveryProfile: { is: { enabled: true } },
+      },
+      select: candidateSelect,
+      take: poolSize,
+      ...(isRandom
+        ? {}
+        : {
+            orderBy: [{ discoveryProfile: { lastActiveAt: "desc" } }],
+          }),
+    });
+
+    const myAnimeIds = new Set(myAnime.map((a) => a.animeId));
+    const myTags = me.user.profile?.favoriteTags ?? [];
+    const candidates = raw.filter(
+      (u): u is typeof u & { discoveryProfile: NonNullable<(typeof u)["discoveryProfile"]> } =>
+        !!u.discoveryProfile?.enabled
+    );
+    const cards = filterAndRankCandidates(me, candidates, myAnimeIds, myTags, me.matchingMode);
+
+    await db.discoveryProfile.update({
+      where: { userId: user.id },
+      data: { lastActiveAt: new Date() },
+    });
+
+    return { enabled: true, cards, matchingMode: me.matchingMode };
+  } catch (err) {
+    console.error("[discovery] getDiscoveryDeck failed", err instanceof Error ? err.message : "unknown");
+    return { error: "추천을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요." };
   }
+}
 
-  const isRandom = me.matchingMode === "RANDOM";
-  const poolSize = isRandom ? 200 : 120;
+/** Undo last swipe (Tinder rewind) — only if no match was created */
+export async function undoDiscoverySwipe(
+  targetUserId: string
+): Promise<{ ok: true } | { error: string }> {
+  const user = await requireAuthMinimal();
+  if (user.id === targetUserId) return { error: "되돌릴 수 없습니다." };
 
-  const raw = await db.user.findMany({
-    where: {
-      id: { notIn: [...exclude] },
-      isBanned: false,
-      discoveryProfile: { is: { enabled: true } },
-    },
-    select: candidateSelect,
-    take: poolSize,
-    ...(isRandom ? {} : { orderBy: { discoveryProfile: { lastActiveAt: "desc" } } }),
+  const [a, b] = orderedPair(user.id, targetUserId);
+  const existingMatch = await db.discoveryMatch.findUnique({
+    where: { userAId_userBId: { userAId: a, userBId: b } },
+  });
+  if (existingMatch) return { error: "이미 매칭된 상대는 되돌릴 수 없어요." };
+
+  const swipe = await db.discoverySwipe.findUnique({
+    where: { fromUserId_toUserId: { fromUserId: user.id, toUserId: targetUserId } },
+  });
+  if (!swipe) return { error: "되돌릴 스와이프가 없습니다." };
+
+  await db.discoverySwipe.delete({
+    where: { fromUserId_toUserId: { fromUserId: user.id, toUserId: targetUserId } },
   });
 
-  const myAnimeIds = new Set(myAnime.map((a) => a.animeId));
-  const myTags = me.user.profile?.favoriteTags ?? [];
-  const candidates = raw.filter((u): u is typeof u & { discoveryProfile: NonNullable<(typeof u)["discoveryProfile"]> } =>
-    !!u.discoveryProfile?.enabled
-  );
-  const cards = filterAndRankCandidates(me, candidates, myAnimeIds, myTags, me.matchingMode);
-
-  await db.discoveryProfile.update({
-    where: { userId: user.id },
-    data: { lastActiveAt: new Date() },
-  });
-
-  return { enabled: true, cards, matchingMode: me.matchingMode };
+  return { ok: true };
 }
 
 async function autoFollow(fromId: string, toId: string) {
