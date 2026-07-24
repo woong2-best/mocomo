@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { PurchasePostMediaButton } from "@/components/profile/purchase-post-media-button";
 import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
@@ -11,6 +11,11 @@ import {
   SubscribeCreatorHint,
 } from "@/components/monetization/subscribe-creator-button";
 import type { ContentLockReason } from "@/lib/content-access";
+import {
+  getCachedPostMedia,
+  prefetchPostMedia,
+  setCachedPostMedia,
+} from "@/lib/post-media-client-cache";
 
 export type ProfilePostMediaItem = {
   id?: string;
@@ -56,17 +61,35 @@ export function PaidPostMediaGrid({
 }) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
+  const total = mediaTotal ?? media.length;
+  const needsFullFetch = total > media.length;
+
+  useEffect(() => {
+    if (!needsFullFetch && media.length > 0) {
+      setCachedPostMedia(postId, media);
+    }
+  }, [needsFullFetch, media, postId]);
+
   if (media.length === 0) return null;
 
-  const total = mediaTotal ?? media.length;
   const preview = media.slice(0, FEED_GRID_MAX);
   const count = preview.length;
   const overflow = Math.max(0, total - FEED_GRID_MAX);
 
+  function warmFullMedia() {
+    if (!needsFullFetch) return;
+    void prefetchPostMedia(postId);
+  }
+
   function openAt(index: number, locked?: boolean) {
     if (locked) return;
+    warmFullMedia();
     setLightboxIndex(index);
   }
+
+  const cached = getCachedPostMedia(postId);
+  const lightboxMedia =
+    cached && cached.length >= total ? (cached as ProfilePostMediaItem[]) : media;
 
   return (
     <>
@@ -76,6 +99,8 @@ export function PaidPostMediaGrid({
           count === 1 ? "max-h-[510px]" : "aspect-[1.7/1]",
           className
         )}
+        onPointerEnter={warmFullMedia}
+        onFocusCapture={warmFullMedia}
       >
         <div
           className={cn(
@@ -144,7 +169,7 @@ export function PaidPostMediaGrid({
         <PostMediaLightbox
           open
           onClose={() => setLightboxIndex(null)}
-          media={media}
+          media={lightboxMedia}
           initialIndex={lightboxIndex}
           postId={postId}
           mediaTotal={total}

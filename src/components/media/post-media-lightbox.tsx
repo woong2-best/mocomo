@@ -12,6 +12,11 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
 import type { ContentLockReason } from "@/lib/content-access";
+import {
+  getCachedPostMedia,
+  prefetchPostMedia,
+  setCachedPostMedia,
+} from "@/lib/post-media-client-cache";
 
 export type PostMediaLightboxItem = {
   id?: string;
@@ -34,6 +39,21 @@ type PostMediaLightboxProps = {
   postInstantPurchasePriceKrw?: number;
 };
 
+function resolveInitialItems(
+  postId: string,
+  initialMedia: PostMediaLightboxItem[],
+  mediaTotal?: number
+) {
+  const total = mediaTotal ?? initialMedia.length;
+  if (initialMedia.length >= total && initialMedia.length > 0) {
+    return initialMedia;
+  }
+  const cached = getCachedPostMedia(postId);
+  if (cached && cached.length >= total) return cached;
+  if (cached && cached.length > initialMedia.length) return cached;
+  return initialMedia;
+}
+
 export function PostMediaLightbox({
   open,
   onClose,
@@ -43,8 +63,11 @@ export function PostMediaLightbox({
   mediaTotal,
   postInstantPurchasePriceKrw,
 }: PostMediaLightboxProps) {
-  const [items, setItems] = useState(initialMedia);
-  const [index, setIndex] = useState(initialIndex);
+  const seeded = resolveInitialItems(postId, initialMedia, mediaTotal);
+  const [items, setItems] = useState(seeded);
+  const [index, setIndex] = useState(() =>
+    Math.min(Math.max(0, initialIndex), Math.max(0, seeded.length - 1))
+  );
   const [loadingAll, setLoadingAll] = useState(false);
   const desktopRailRef = useRef<HTMLDivElement>(null);
   const mobileRailRef = useRef<HTMLDivElement>(null);
@@ -55,30 +78,31 @@ export function PostMediaLightbox({
 
   useEffect(() => {
     if (!open) return;
-    setItems(initialMedia);
-    setIndex(Math.min(Math.max(0, initialIndex), Math.max(0, initialMedia.length - 1)));
-  }, [open, initialMedia, initialIndex]);
+    const next = resolveInitialItems(postId, initialMedia, mediaTotal);
+    setItems(next);
+    setIndex(Math.min(Math.max(0, initialIndex), Math.max(0, next.length - 1)));
+    if (next.length >= (mediaTotal ?? next.length) && next.length > 0) {
+      setCachedPostMedia(postId, next);
+    }
+  }, [open, initialMedia, initialIndex, postId, mediaTotal]);
 
   useEffect(() => {
     if (!open) return;
-    const needFetch = total > initialMedia.length;
-    if (!needFetch) return;
+    const needFetch = total > items.length;
+    if (!needFetch) {
+      if (items.length > 0) setCachedPostMedia(postId, items);
+      return;
+    }
 
     let cancelled = false;
     setLoadingAll(true);
     void (async () => {
       try {
-        const res = await fetch(`/api/posts/${postId}/media`, { credentials: "same-origin" });
-        if (!res.ok || cancelled) return;
-        const data = (await res.json()) as {
-          media?: PostMediaLightboxItem[];
-        };
-        if (!cancelled && Array.isArray(data.media) && data.media.length > 0) {
-          setItems(data.media);
-          setIndex((i) => Math.min(i, data.media!.length - 1));
+        const media = await prefetchPostMedia(postId);
+        if (!cancelled && media && media.length > 0) {
+          setItems(media);
+          setIndex((i) => Math.min(i, media.length - 1));
         }
-      } catch {
-        /* keep preview items */
       } finally {
         if (!cancelled) setLoadingAll(false);
       }
@@ -87,7 +111,7 @@ export function PostMediaLightbox({
     return () => {
       cancelled = true;
     };
-  }, [open, postId, total, initialMedia.length]);
+  }, [open, postId, total, items.length]);
 
   const goTo = useCallback(
     (next: number) => {

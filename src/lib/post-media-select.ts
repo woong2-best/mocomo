@@ -1,10 +1,14 @@
-/** 피드 그리드 — 최대 4장 미리보기 + 라이트박스용 여유 분량 */
-export const POST_MEDIA_FEED_TAKE = 4;
+/**
+ * 피드·목록용 미디어 take.
+ * 그리드는 클라이언트에서 4장만 보여도, 라이트박스는 열자마자 전체가 필요하므로
+ * URL 메타는 전부 내려준다 (이미지 바이트는 여전히 lazy).
+ */
+export const POST_MEDIA_FEED_TAKE = 100;
 
 /** 프로필·상세·라이트박스 — 실질적으로 무제한에 가까운 상한 */
 export const POST_MEDIA_FULL_TAKE = 100;
 
-/** 게시글 미디어 — 목록/피드용 (그리드 4장) */
+/** 게시글 미디어 — 목록/피드용 (라이트박스용 전체 URL 포함, UI 그리드는 4장) */
 export const postMediaPreview = {
   take: POST_MEDIA_FEED_TAKE,
   orderBy: { order: "asc" as const },
