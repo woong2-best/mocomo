@@ -60,6 +60,8 @@ export function PaidPostMediaGrid({
   onDoubleTapLike?: () => void;
 }) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [lightboxMedia, setLightboxMedia] = useState<ProfilePostMediaItem[]>(media);
+  const [opening, setOpening] = useState(false);
 
   const total = mediaTotal ?? media.length;
   const needsFullFetch = total > media.length;
@@ -67,6 +69,12 @@ export function PaidPostMediaGrid({
   useEffect(() => {
     if (!needsFullFetch && media.length > 0) {
       setCachedPostMedia(postId, media);
+      setLightboxMedia(media);
+      return;
+    }
+    // 미리보기만 있는 게시글은 백그라운드에서 전체 목록 워밍
+    if (needsFullFetch) {
+      void prefetchPostMedia(postId);
     }
   }, [needsFullFetch, media, postId]);
 
@@ -81,15 +89,30 @@ export function PaidPostMediaGrid({
     void prefetchPostMedia(postId);
   }
 
-  function openAt(index: number, locked?: boolean) {
-    if (locked) return;
-    warmFullMedia();
-    setLightboxIndex(index);
-  }
+  async function openAt(index: number, locked?: boolean) {
+    if (locked || opening) return;
 
-  const cached = getCachedPostMedia(postId);
-  const lightboxMedia =
-    cached && cached.length >= total ? (cached as ProfilePostMediaItem[]) : media;
+    // 피드에 전체가 있으면 즉시 오픈. 잘려 있으면 fetch 끝난 뒤에만 오픈 (4장 깜빡임 제거)
+    if (media.length >= total) {
+      setLightboxMedia(media);
+      setLightboxIndex(index);
+      return;
+    }
+
+    setOpening(true);
+    try {
+      const cached = getCachedPostMedia(postId);
+      const full =
+        cached && cached.length >= total
+          ? cached
+          : (await prefetchPostMedia(postId)) ?? cached ?? media;
+      if (full.length > 0) setCachedPostMedia(postId, full);
+      setLightboxMedia((full.length >= media.length ? full : media) as ProfilePostMediaItem[]);
+      setLightboxIndex(index);
+    } finally {
+      setOpening(false);
+    }
+  }
 
   return (
     <>
@@ -97,7 +120,8 @@ export function PaidPostMediaGrid({
         className={cn(
           "mt-3 overflow-hidden rounded-2xl border border-border/50 max-w-full bg-border/60",
           count === 1 ? "max-h-[510px]" : "aspect-[1.7/1]",
-          className
+          className,
+          opening && "opacity-80"
         )}
         onPointerEnter={warmFullMedia}
         onFocusCapture={warmFullMedia}
@@ -131,14 +155,14 @@ export function PaidPostMediaGrid({
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  openAt(i, locked);
+                  void openAt(i, locked);
                 }}
                 onKeyDown={(e) => {
                   if (locked) return;
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     e.stopPropagation();
-                    openAt(i, locked);
+                    void openAt(i, locked);
                   }
                 }}
               >
@@ -165,14 +189,14 @@ export function PaidPostMediaGrid({
         </div>
       </div>
 
-      {lightboxIndex !== null && (
+      {lightboxIndex !== null && lightboxMedia.length > 0 && (
         <PostMediaLightbox
           open
           onClose={() => setLightboxIndex(null)}
           media={lightboxMedia}
-          initialIndex={lightboxIndex}
+          initialIndex={Math.min(lightboxIndex, lightboxMedia.length - 1)}
           postId={postId}
-          mediaTotal={total}
+          mediaTotal={lightboxMedia.length}
           postInstantPurchasePriceKrw={postInstantPurchasePriceKrw}
         />
       )}

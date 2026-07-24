@@ -45,8 +45,8 @@ export const getCachedFeedPosts = unstable_cache(
       );
     }
   },
-  ["home-feed-posts-v5-viewcount"],
-  { revalidate: 60, tags: [FEED_POSTS_CACHE_TAG] }
+  ["home-feed-posts-v6-full-media", "2026-07-24"],
+  { revalidate: 30, tags: [FEED_POSTS_CACHE_TAG] }
 );
 
 export const getCachedFeedAds = unstable_cache(

@@ -12,11 +12,6 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
 import type { ContentLockReason } from "@/lib/content-access";
-import {
-  getCachedPostMedia,
-  prefetchPostMedia,
-  setCachedPostMedia,
-} from "@/lib/post-media-client-cache";
 
 export type PostMediaLightboxItem = {
   id?: string;
@@ -34,84 +29,33 @@ type PostMediaLightboxProps = {
   media: PostMediaLightboxItem[];
   initialIndex: number;
   postId: string;
-  /** 피드 등에서 일부만 로드된 경우 전체 개수 */
+  /** @deprecated 호출 측에서 전체 media를 넘기므로 더 이상 사용하지 않음 */
   mediaTotal?: number;
   postInstantPurchasePriceKrw?: number;
 };
 
-function resolveInitialItems(
-  postId: string,
-  initialMedia: PostMediaLightboxItem[],
-  mediaTotal?: number
-) {
-  const total = mediaTotal ?? initialMedia.length;
-  if (initialMedia.length >= total && initialMedia.length > 0) {
-    return initialMedia;
-  }
-  const cached = getCachedPostMedia(postId);
-  if (cached && cached.length >= total) return cached;
-  if (cached && cached.length > initialMedia.length) return cached;
-  return initialMedia;
-}
-
 export function PostMediaLightbox({
   open,
   onClose,
-  media: initialMedia,
+  media,
   initialIndex,
-  postId,
-  mediaTotal,
   postInstantPurchasePriceKrw,
 }: PostMediaLightboxProps) {
-  const seeded = resolveInitialItems(postId, initialMedia, mediaTotal);
-  const [items, setItems] = useState(seeded);
+  const [items, setItems] = useState(media);
   const [index, setIndex] = useState(() =>
-    Math.min(Math.max(0, initialIndex), Math.max(0, seeded.length - 1))
+    Math.min(Math.max(0, initialIndex), Math.max(0, media.length - 1))
   );
-  const [loadingAll, setLoadingAll] = useState(false);
   const desktopRailRef = useRef<HTMLDivElement>(null);
   const mobileRailRef = useRef<HTMLDivElement>(null);
   const desktopThumbRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const mobileThumbRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const dragStartX = useRef<number | null>(null);
-  const total = mediaTotal ?? items.length;
 
   useEffect(() => {
     if (!open) return;
-    const next = resolveInitialItems(postId, initialMedia, mediaTotal);
-    setItems(next);
-    setIndex(Math.min(Math.max(0, initialIndex), Math.max(0, next.length - 1)));
-    if (next.length >= (mediaTotal ?? next.length) && next.length > 0) {
-      setCachedPostMedia(postId, next);
-    }
-  }, [open, initialMedia, initialIndex, postId, mediaTotal]);
-
-  useEffect(() => {
-    if (!open) return;
-    const needFetch = total > items.length;
-    if (!needFetch) {
-      if (items.length > 0) setCachedPostMedia(postId, items);
-      return;
-    }
-
-    let cancelled = false;
-    setLoadingAll(true);
-    void (async () => {
-      try {
-        const media = await prefetchPostMedia(postId);
-        if (!cancelled && media && media.length > 0) {
-          setItems(media);
-          setIndex((i) => Math.min(i, media.length - 1));
-        }
-      } finally {
-        if (!cancelled) setLoadingAll(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [open, postId, total, items.length]);
+    setItems(media);
+    setIndex(Math.min(Math.max(0, initialIndex), Math.max(0, media.length - 1)));
+  }, [open, media, initialIndex]);
 
   const goTo = useCallback(
     (next: number) => {
@@ -180,7 +124,7 @@ export function PostMediaLightbox({
     else goPrev();
   }
 
-  if (!open || typeof document === "undefined") return null;
+  if (!open || typeof document === "undefined" || items.length === 0) return null;
 
   const current = items[index];
   const showNav = items.length > 1;
@@ -244,9 +188,7 @@ export function PostMediaLightbox({
               alt=""
             />
           ) : (
-            <p className="text-sm text-white/70">
-              {loadingAll ? "사진을 불러오는 중…" : "사진을 표시할 수 없습니다."}
-            </p>
+            <p className="text-sm text-white/70">사진을 표시할 수 없습니다.</p>
           )}
         </div>
 
@@ -261,12 +203,9 @@ export function PostMediaLightbox({
           </button>
         )}
 
-        {items.length > 0 && (
-          <p className="absolute bottom-20 left-1/2 -translate-x-1/2 rounded-full bg-black/55 px-3 py-1 text-xs tabular-nums text-white/90 sm:bottom-4">
-            {index + 1} / {items.length}
-            {loadingAll && total > items.length ? ` · 전체 ${total}` : ""}
-          </p>
-        )}
+        <p className="absolute bottom-20 left-1/2 -translate-x-1/2 rounded-full bg-black/55 px-3 py-1 text-xs tabular-nums text-white/90 sm:bottom-4">
+          {index + 1} / {items.length}
+        </p>
       </div>
 
       {items.length > 1 && (

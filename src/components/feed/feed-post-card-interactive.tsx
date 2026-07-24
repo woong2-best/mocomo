@@ -44,6 +44,8 @@ export const FeedPostCardInteractive = memo(
   FeedPostCardInteractiveInner,
   (prev, next) =>
     prev.post.id === next.post.id &&
+    prev.post.media?.length === next.post.media?.length &&
+    prev.post._count?.media === next.post._count?.media &&
     prev.displayMode === next.displayMode &&
     prev.initialLiked === next.initialLiked &&
     prev.initialStarred === next.initialStarred &&

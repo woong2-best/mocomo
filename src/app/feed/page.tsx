@@ -9,7 +9,7 @@ export const metadata = {
   description: "커뮤니티 피드 — 오늘의 캔버스, 하이라이트, 게시물",
 };
 
-export const revalidate = 60;
+export const revalidate = 30;
 
 function FeedFallback() {
   return (
