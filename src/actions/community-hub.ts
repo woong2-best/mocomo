@@ -11,21 +11,7 @@ import { Prisma } from "@prisma/client";
 import { postMediaPreview } from "@/lib/post-media-select";
 import { userPublicSelect } from "@/lib/user-public-select";
 import { provisionCommunityServer } from "@/lib/community-server/provision";
-
-const COMMUNITY_CATEGORIES = [
-  "ANIME",
-  "MANGA",
-  "GAME",
-  "VTUBER",
-  "COSPLAY",
-  "FIGURE",
-  "ART",
-  "MUSIC",
-  "AI_ART",
-  "LIGHT_NOVEL",
-  "GOODS",
-  "OTHER",
-] as const satisfies readonly CommunityCategory[];
+import { isCommunityCategory } from "@/lib/community-labels";
 
 export async function isCommunityDbReady() {
   try {
@@ -58,7 +44,7 @@ export async function createCommunity(data: {
     }
 
     const category = data.category as CommunityCategory;
-    if (!COMMUNITY_CATEGORIES.includes(category as (typeof COMMUNITY_CATEGORIES)[number])) {
+    if (!isCommunityCategory(category)) {
       return { error: "카테고리를 선택해 주세요." };
     }
 
@@ -306,10 +292,10 @@ export async function updateCommunity(
 
     let category: CommunityCategory | undefined;
     if (data.category) {
-      category = data.category as CommunityCategory;
-      if (!COMMUNITY_CATEGORIES.includes(category as (typeof COMMUNITY_CATEGORIES)[number])) {
+      if (!isCommunityCategory(data.category)) {
         return { error: "카테고리를 확인해 주세요." };
       }
+      category = data.category;
     }
 
     await db.community.update({

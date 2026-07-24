@@ -536,19 +536,17 @@ model UserBadge {
 // ============ COMMUNITY ============
 
 enum CommunityCategory {
-  ANIME
-  MANGA
   GAME
+  ANIME
+  COMIC
   VTUBER
+  UTAITE
+  VOCALOID
+  FANART
+  AI
   COSPLAY
-  FIGURE
-  ART
-  MUSIC
-  AI_ART
-  LIGHT_NOVEL
   GOODS
-  NSFW
-  OTHER
+  FIGURE
 }
 
 model Community {

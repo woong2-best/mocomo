@@ -13,37 +13,24 @@ export function GridCardsSkeleton({ count = 4 }: { count?: number }) {
   );
 }
 
-/** 커뮤니티 허브 — 실베 + 목록 로딩 */
+/** 커뮤니티 허브 — 카테고리 탭 + 피처드 + 목록 */
 export function CommunitiesHubSkeleton() {
   return (
-    <div className="space-y-6 animate-pulse">
-      <div className="overflow-hidden rounded-md border border-border/80">
-        <div className="h-9 bg-muted/50 border-b border-border/60" />
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-2">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="aspect-[4/3] bg-muted" />
-          ))}
-        </div>
-        <div className="space-y-0 border-t border-border/60">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="flex items-center gap-2.5 px-2.5 py-2">
-              <div className="h-12 w-12 sm:h-14 sm:w-14 bg-muted shrink-0" />
-              <div className="h-4 flex-1 bg-muted rounded" />
-              <div className="hidden sm:block h-3 w-16 bg-muted rounded" />
-              <div className="h-3 w-10 bg-muted rounded" />
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="overflow-hidden rounded-md border border-border/80">
-        <div className="h-9 bg-muted/50 border-b border-border/60" />
+    <div className="overflow-hidden rounded-sm border border-border animate-pulse">
+      <div className="h-10 bg-muted/60 border-b border-border" />
+      <div className="h-9 bg-muted/40 border-b border-border" />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border/40">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="flex items-center gap-3 px-3 py-2.5 border-b border-border/40">
-            <div className="h-11 w-11 bg-muted shrink-0" />
-            <div className="flex-1 space-y-1.5">
-              <div className="h-3.5 w-1/3 bg-muted rounded" />
-              <div className="h-3 w-2/3 bg-muted rounded" />
-            </div>
+          <div key={i} className="aspect-[4/3] bg-muted" />
+        ))}
+      </div>
+      <div className="space-y-0 border-t border-border">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div key={i} className="flex items-center gap-2.5 px-2.5 py-2">
+            <div className="h-12 w-12 bg-muted shrink-0" />
+            <div className="h-4 flex-1 bg-muted rounded" />
+            <div className="hidden sm:block h-3 w-12 bg-muted rounded" />
+            <div className="h-3 w-10 bg-muted rounded" />
           </div>
         ))}
       </div>

@@ -80,11 +80,12 @@ export function CommunitySettingsForm({
         <select
           name="category"
           defaultValue={initial.category}
-          className="w-full h-10 rounded-lg border border-border px-3 text-sm"
+          className="w-full h-10 rounded-sm border border-border px-3 text-sm"
+          required
         >
           {COMMUNITY_CATEGORY_OPTIONS.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.label}
+              {c.emoji} {c.label}
             </option>
           ))}
         </select>

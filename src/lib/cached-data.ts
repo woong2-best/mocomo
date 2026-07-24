@@ -284,70 +284,23 @@ const communityListSelect = {
 export const getCachedCommunities = unstable_cache(
   async () =>
     db.community.findMany({
-      take: 50,
-      orderBy: { memberCount: "desc" },
+      take: 200,
+      orderBy: [{ memberCount: "desc" }, { createdAt: "desc" }],
       select: communityListSelect,
     }),
-  ["communities-list-v2"],
-  { revalidate: 120 }
+  ["communities-list-v3"],
+  { revalidate: 60 }
 );
 
-/** 커뮤니티 허브 — 실베 스타일 인기글 + 커뮤니티 목록 */
+/** @deprecated use getCachedCommunities — hub no longer mixes general posts */
 export const getCachedCommunityHubData = unstable_cache(
   async () => {
-    const postSelect = {
-      id: true,
-      title: true,
-      content: true,
-      createdAt: true,
-      isNsfw: true,
-      hotScore: true,
-      media: {
-        take: 1,
-        orderBy: { order: "asc" as const },
-        select: { url: true, type: true },
-      },
-      community: {
-        select: { id: true, name: true, slug: true, category: true, iconUrl: true },
-      },
-      _count: { select: { comments: true, likes: true } },
-    } as const;
-
-    const [communities, communityPosts] = await Promise.all([
-      db.community.findMany({
-        take: 50,
-        orderBy: { memberCount: "desc" },
-        select: communityListSelect,
-      }),
-      db.post.findMany({
-        where: {
-          communityId: { not: null },
-          visibility: "PUBLIC",
-        },
-        take: 28,
-        orderBy: [{ hotScore: "desc" }, { createdAt: "desc" }],
-        select: postSelect,
-      }),
-    ]);
-
-    let hotPosts = communityPosts;
-
-    // 커뮤니티 글이 부족하면 전체 공개 인기글로 채움 (커뮤니티명 있으면 표시)
-    if (hotPosts.length < 8) {
-      const excludeIds = hotPosts.map((p) => p.id);
-      const fill = await db.post.findMany({
-        where: {
-          visibility: "PUBLIC",
-          ...(excludeIds.length > 0 ? { id: { notIn: excludeIds } } : {}),
-        },
-        take: 28 - hotPosts.length,
-        orderBy: [{ hotScore: "desc" }, { createdAt: "desc" }],
-        select: postSelect,
-      });
-      hotPosts = [...hotPosts, ...fill];
-    }
-
-    return { communities, hotPosts };
+    const communities = await db.community.findMany({
+      take: 200,
+      orderBy: [{ memberCount: "desc" }, { createdAt: "desc" }],
+      select: communityListSelect,
+    });
+    return { communities, hotPosts: [] as const };
   },
   ["community-hub-v3"],
   { revalidate: 60 }
