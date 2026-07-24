@@ -8,7 +8,7 @@ export function PostShareMenu({
   authorUsername,
   title,
   content,
-  hasVideo = false,
+  hasVideo: _hasVideo = false,
   size = "sm",
   tone = "folk",
   className,
@@ -29,7 +29,6 @@ export function PostShareMenu({
     authorUsername,
     title,
     content,
-    hasVideo,
   });
 
   return (
