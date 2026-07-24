@@ -334,10 +334,11 @@ export const getCachedCommunityHubData = unstable_cache(
 
     // 커뮤니티 글이 부족하면 전체 공개 인기글로 채움 (커뮤니티명 있으면 표시)
     if (hotPosts.length < 8) {
+      const excludeIds = hotPosts.map((p) => p.id);
       const fill = await db.post.findMany({
         where: {
           visibility: "PUBLIC",
-          id: { notIn: hotPosts.map((p) => p.id) },
+          ...(excludeIds.length > 0 ? { id: { notIn: excludeIds } } : {}),
         },
         take: 28 - hotPosts.length,
         orderBy: [{ hotScore: "desc" }, { createdAt: "desc" }],
@@ -348,7 +349,7 @@ export const getCachedCommunityHubData = unstable_cache(
 
     return { communities, hotPosts };
   },
-  ["community-hub-v2"],
+  ["community-hub-v3"],
   { revalidate: 60 }
 );
 

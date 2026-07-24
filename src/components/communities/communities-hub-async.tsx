@@ -24,7 +24,14 @@ function postThumb(post: HubPost): string | null {
   return media.url;
 }
 
-function formatPostTime(date: Date): string {
+/** unstable_cache 직렬화 후 Date가 string이 될 수 있음 */
+function asDate(value: Date | string): Date {
+  return value instanceof Date ? value : new Date(value);
+}
+
+function formatPostTime(value: Date | string): string {
+  const date = asDate(value);
+  if (Number.isNaN(date.getTime())) return "";
   if (isToday(date)) return format(date, "HH:mm", { locale: ko });
   if (isThisYear(date)) return format(date, "M.d", { locale: ko });
   return format(date, "yy.M.d", { locale: ko });
@@ -76,6 +83,8 @@ function HotPostRow({ post }: { post: HubPost }) {
   const comments = post._count.comments;
   const communityName = post.community?.name ?? "전체";
   const communityHref = post.community ? `/c/${post.community.slug}` : "/explore";
+  const createdAt = asDate(post.createdAt);
+  const createdIso = Number.isNaN(createdAt.getTime()) ? undefined : createdAt.toISOString();
 
   return (
     <div className="group flex items-center gap-2.5 border-b border-border/50 px-2.5 py-2 hover:bg-muted/40 transition-colors last:border-b-0">
@@ -113,10 +122,10 @@ function HotPostRow({ post }: { post: HubPost }) {
       </Link>
 
       <time
-        dateTime={post.createdAt.toISOString()}
+        dateTime={createdIso}
         className="shrink-0 w-11 text-right text-xs text-muted-foreground tabular-nums"
       >
-        {formatPostTime(post.createdAt)}
+        {formatPostTime(createdAt)}
       </time>
     </div>
   );
