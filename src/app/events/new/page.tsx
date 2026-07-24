@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronLeft, PlusCircle } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EventCreateForm } from "@/components/events/event-create-form";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
@@ -22,24 +22,27 @@ export default async function NewEventPage({
   const paidSuccess = paid === "1" && !!eventId;
 
   return (
-    <AppPageChrome spacing="sm">
+    <AppPageChrome maxWidth="5xl" spacing="sm" className="bg-[#141826]">
       <NativePageTitle>
-      <div>
-        <Link href="/events">
-          <Button variant="ghost" size="sm" className="gap-1 -ml-2 mb-2">
-            <ChevronLeft className="h-4 w-4" />
-            이벤트
-          </Button>
-        </Link>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <PlusCircle className="h-7 w-7 text-violet-500" />
-          이벤트 추가하기
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          이미지·설명·링크를 작성한 뒤 등록비{" "}
-          {EVENT_REGISTRATION_FEE_KRW.toLocaleString()}원을 결제하면 목록에 공개됩니다.
-        </p>
-      </div>
+        <div>
+          <Link href="/events">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mb-2 -ml-2 gap-1 text-white/50 hover:text-white/80"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              이벤트
+            </Button>
+          </Link>
+          <h1 className="text-2xl font-bold tracking-tight text-white/95">
+            이벤트 등록
+          </h1>
+          <p className="mt-1 text-sm text-white/40">
+            등록비 {EVENT_REGISTRATION_FEE_KRW.toLocaleString()}원 · 결제 후 목록에
+            공개됩니다
+          </p>
+        </div>
       </NativePageTitle>
 
       <EventCreateForm
