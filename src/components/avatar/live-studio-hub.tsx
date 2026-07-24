@@ -41,6 +41,12 @@ export function LiveStudioHub() {
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             방송 설정과 2D 아바타 편집으로 작업하세요
           </p>
+          <Link
+            href="/live"
+            className="mt-2 inline-flex text-xs font-semibold text-muted-foreground hover:text-folk-cobalt transition-colors"
+          >
+            ← 라이브로 돌아가기
+          </Link>
         </div>
       </header>
 

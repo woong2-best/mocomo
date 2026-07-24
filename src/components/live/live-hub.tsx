@@ -97,8 +97,8 @@ export function LiveHub({
 
   return (
     <LivePageChrome>
-      <LivePageTitle>
-        <header className="live-hero flex flex-wrap items-start justify-between gap-4">
+      <header className="live-hero flex flex-wrap items-start justify-between gap-4">
+        <LivePageTitle>
           <div className="space-y-3 min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl font-black flex items-center gap-2 tracking-tight">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-folk-terracotta text-white shadow-md">
@@ -119,11 +119,11 @@ export function LiveHub({
               ))}
             </div>
           </div>
-          <div className="[&_button]:rounded-xl shrink-0">
-            <LivePageActions variant="header" />
-          </div>
-        </header>
-      </LivePageTitle>
+        </LivePageTitle>
+        <div className="[&_button]:rounded-xl shrink-0 ml-auto">
+          <LivePageActions variant="header" />
+        </div>
+      </header>
 
       <form action="/search" method="get" className="flex gap-2 max-w-xl">
         <div className="relative flex-1">
