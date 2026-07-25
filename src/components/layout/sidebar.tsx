@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { PenSquare } from "lucide-react";
+import { ComposeOpenButton } from "@/components/compose/compose-open-button";
 import { cn } from "@/lib/utils";
 import { mainNavItems } from "@/lib/nav-items";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -59,6 +61,13 @@ export function Sidebar() {
             </Link>
           ))}
         </nav>
+
+        <div className="mt-auto shrink-0 space-y-2 border-t border-border pt-3">
+          <ComposeOpenButton className="flex w-full items-center justify-center gap-2 rounded-2xl bg-folk-terracotta py-3.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-folk-terracotta-dark active:scale-[0.98]">
+            <PenSquare className="h-4 w-4 shrink-0" />
+            {t("nav.compose")}
+          </ComposeOpenButton>
+        </div>
       </aside>
     </div>
   );
