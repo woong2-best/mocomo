@@ -37,9 +37,9 @@ export const MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   }),
   maid({
     externalKey: "venue-maid-ohmy-hongdae",
-    title: "오! 마이 메이드카페",
+    title: "오마이 메이드카페",
     description: "상설 · 홍대 어울마당로",
-    venueName: "오! 마이 메이드카페",
+    venueName: "오마이 메이드카페",
     address: "서울 마포구 어울마당로 92",
     lat: 37.5531433,
     lng: 126.9219999,

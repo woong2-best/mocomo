@@ -146,42 +146,40 @@ export async function getSubcultureMapPinsForUser(
 export async function upsertFetchedSubcultureEvents(
   events: FetchedSubcultureEvent[]
 ): Promise<number> {
-  await Promise.all(
-    events.map((e) =>
-      db.subcultureEventPin
-        .upsert({
-          where: { externalKey: e.externalKey },
-          create: {
-            externalKey: e.externalKey,
-            title: e.title,
-            description: e.description,
-            category: e.category,
-            venueName: e.venueName,
-            address: e.address,
-            lat: e.lat,
-            lng: e.lng,
-            startsAt: new Date(e.startsAt),
-            endsAt: new Date(e.endsAt),
-            sourceUrl: e.officialNoticeUrl ?? e.sourceUrl,
-            source: e.externalKey.startsWith("auto-") ? "auto" : "official",
-          },
-          update: {
-            title: e.title,
-            description: e.description,
-            category: e.category,
-            venueName: e.venueName,
-            address: e.address,
-            lat: e.lat,
-            lng: e.lng,
-            startsAt: new Date(e.startsAt),
-            endsAt: new Date(e.endsAt),
-            sourceUrl: e.officialNoticeUrl ?? e.sourceUrl,
-            source: e.externalKey.startsWith("auto-") ? "auto" : "official",
-          },
-        })
-        .catch(() => undefined)
-    )
-  );
+  const chunkSize = 8;
+  for (let i = 0; i < events.length; i += chunkSize) {
+    const chunk = events.slice(i, i + chunkSize);
+    await Promise.all(
+      chunk.map(async (e) => {
+        const payload = {
+          title: e.title,
+          description: e.description,
+          category: e.category,
+          venueName: e.venueName,
+          address: e.address,
+          lat: e.lat,
+          lng: e.lng,
+          startsAt: new Date(e.startsAt),
+          endsAt: new Date(e.endsAt),
+          sourceUrl: e.officialNoticeUrl ?? e.sourceUrl,
+          source: e.externalKey.startsWith("auto-")
+            ? "auto"
+            : e.externalKey.startsWith("venue-")
+              ? "seed"
+              : "official",
+        };
+        try {
+          await db.subcultureEventPin.upsert({
+            where: { externalKey: e.externalKey },
+            create: { externalKey: e.externalKey, ...payload },
+            update: payload,
+          });
+        } catch (err) {
+          console.error("[subculture-events] upsert failed", e.externalKey, err);
+        }
+      })
+    );
+  }
 
   try {
     const validKeys = [...events.map((e) => e.externalKey), SUBCULTURE_SYNC_META_KEY];
