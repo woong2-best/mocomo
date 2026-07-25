@@ -2,12 +2,14 @@
 
 export function UsedFeedSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-3 py-2">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="space-y-2">
-          <div className="aspect-square rounded-xl bg-muted animate-pulse" />
-          <div className="h-3 w-3/4 rounded bg-muted animate-pulse" />
-          <div className="h-3 w-1/2 rounded bg-muted animate-pulse" />
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-0 -mx-4 border-y border-border/60">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="bg-card ring-1 ring-inset ring-border/50">
+          <div className="aspect-square bg-muted animate-pulse" />
+          <div className="p-1.5 space-y-1">
+            <div className="h-3 w-3/4 rounded bg-muted animate-pulse" />
+            <div className="h-3 w-1/2 rounded bg-muted animate-pulse" />
+          </div>
         </div>
       ))}
     </div>
@@ -20,9 +22,11 @@ export function UsedMySkeleton() {
       {Array.from({ length: 3 }).map((_, i) => (
         <div key={i} className="space-y-3">
           <div className="h-4 w-24 rounded bg-muted" />
-          <div className="grid grid-cols-2 gap-3">
-            <div className="aspect-square rounded-xl bg-muted" />
-            <div className="aspect-square rounded-xl bg-muted" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-0">
+            <div className="aspect-square bg-muted" />
+            <div className="aspect-square bg-muted" />
+            <div className="aspect-square bg-muted hidden sm:block" />
+            <div className="aspect-square bg-muted hidden lg:block" />
           </div>
         </div>
       ))}

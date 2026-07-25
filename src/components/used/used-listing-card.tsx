@@ -11,6 +11,7 @@ import { isAuctionLive, formatAuctionCountdown } from "@/lib/used-auction";
 import { usedProductTypeLabel } from "@/lib/used-catalog";
 import { isUsedRestrictedKind, usedRestrictedLabel } from "@/lib/used-youth-protection";
 import { ImageOff, MapPin, Gavel } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type Listing = {
   id: string;
@@ -35,7 +36,13 @@ type Listing = {
   productType?: string | null;
 };
 
-export function UsedListingCard({ listing }: { listing: Listing }) {
+export function UsedListingCard({
+  listing,
+  dense = false,
+}: {
+  listing: Listing;
+  dense?: boolean;
+}) {
   const imgs = listingImages(listing.images);
   const thumb = imgs[0];
   const status = usedStatusLabel(listing.status);
@@ -61,9 +68,19 @@ export function UsedListingCard({ listing }: { listing: Listing }) {
   const restricted = isUsedRestrictedKind(listing.restrictedKind);
 
   return (
-    <Link href={`/used/${listing.id}`} prefetch className="block group used-listing-card">
+    <Link
+      href={`/used/${listing.id}`}
+      prefetch
+      className={cn("block group used-listing-card h-full", dense && "used-listing-card--dense")}
+    >
       <article
-        className={`folk-card-interactive rounded-xl overflow-hidden bg-card border border-border/50 ${isDone ? "opacity-70" : ""}`}
+        className={cn(
+          "h-full overflow-hidden bg-card",
+          dense
+            ? "rounded-none border-0 ring-1 ring-inset ring-border/50"
+            : "folk-card-interactive rounded-xl border border-border/50",
+          isDone && "opacity-70"
+        )}
       >
         <div className="relative aspect-square bg-muted/40 overflow-hidden">
           {thumb ? (
@@ -75,32 +92,57 @@ export function UsedListingCard({ listing }: { listing: Listing }) {
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <ImageOff className="h-10 w-10 text-muted-foreground/35" />
+              <ImageOff
+                className={cn(
+                  "text-muted-foreground/35",
+                  dense ? "h-7 w-7" : "h-10 w-10"
+                )}
+              />
             </div>
           )}
           {restricted && (
-            <span className="absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-600 text-white">
+            <span
+              className={cn(
+                "absolute font-bold rounded-md bg-amber-600 text-white",
+                dense ? "top-1 right-1 text-[9px] px-1.5 py-0.5" : "top-2 right-2 text-[10px] px-2 py-0.5"
+              )}
+            >
               19+
             </span>
           )}
           {auction && live && (
-            <span className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-md bg-orange-600 text-white flex items-center gap-0.5">
-              <Gavel className="h-3 w-3" />
+            <span
+              className={cn(
+                "absolute font-bold rounded-md bg-orange-600 text-white flex items-center gap-0.5",
+                dense ? "top-1 left-1 text-[9px] px-1.5 py-0.5" : "top-2 left-2 text-[10px] px-2 py-0.5"
+              )}
+            >
+              <Gavel className={dense ? "h-2.5 w-2.5" : "h-3 w-3"} />
               경매
             </span>
           )}
           {status && !(auction && live) && (
-            <span className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-md bg-black/65 text-white">
+            <span
+              className={cn(
+                "absolute font-bold rounded-md bg-black/65 text-white",
+                dense ? "top-1 left-1 text-[9px] px-1.5 py-0.5" : "top-2 left-2 text-[10px] px-2 py-0.5"
+              )}
+            >
               {status}
             </span>
           )}
           {listing.price === 0 && !status && !auction && (
-            <span className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-md bg-muted-foreground text-background">
+            <span
+              className={cn(
+                "absolute font-bold rounded-md bg-muted-foreground text-background",
+                dense ? "top-1 left-1 text-[9px] px-1.5 py-0.5" : "top-2 left-2 text-[10px] px-2 py-0.5"
+              )}
+            >
               나눔
             </span>
           )}
         </div>
-        <div className="p-2.5 space-y-1">
+        <div className={cn(dense ? "p-1.5 space-y-0.5" : "p-2.5 space-y-1")}>
           {(listing.workTitle || listing.productType) && (
             <p className="text-[10px] text-muted-foreground line-clamp-1">
               {[listing.workTitle, usedProductTypeLabel(listing.productType)]
@@ -108,13 +150,20 @@ export function UsedListingCard({ listing }: { listing: Listing }) {
                 .join(" · ")}
             </p>
           )}
-          <p className="text-sm font-medium line-clamp-2 leading-snug min-h-[2.5rem]">{listing.title}</p>
-          <p className="text-base font-black text-foreground">
+          <p
+            className={cn(
+              "font-medium line-clamp-2 leading-snug",
+              dense ? "text-xs min-h-0" : "text-sm min-h-[2.5rem]"
+            )}
+          >
+            {listing.title}
+          </p>
+          <p className={cn("font-black text-foreground", dense ? "text-sm" : "text-base")}>
             {auction && (listing.bidCount ?? 0) > 0 ? "현재 " : ""}
             {formatUsedPrice(showPrice)}
           </p>
-          <p className="text-[11px] text-muted-foreground flex items-center gap-0.5 truncate">
-            <MapPin className="h-3 w-3 shrink-0" />
+          <p className="text-[10px] text-muted-foreground flex items-center gap-0.5 truncate">
+            <MapPin className="h-2.5 w-2.5 shrink-0" />
             {listing.region}
             {auction && live && listing.auctionEndsAt ? (
               <> · {formatAuctionCountdown(listing.auctionEndsAt)}</>
@@ -123,7 +172,7 @@ export function UsedListingCard({ listing }: { listing: Listing }) {
             )}
           </p>
           {restricted && (
-            <p className="text-[10px] text-amber-700 dark:text-amber-400 font-medium">
+            <p className="text-[10px] text-amber-700 dark:text-amber-400 font-medium line-clamp-1">
               {usedRestrictedLabel(listing.restrictedKind!)}
             </p>
           )}

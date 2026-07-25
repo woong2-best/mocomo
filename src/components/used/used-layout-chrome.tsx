@@ -14,7 +14,7 @@ export function UsedLayoutChrome({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className={cn("max-w-3xl mx-auto p-4 lg:pb-8 space-y-4 min-w-0", !isNativeApp && "pb-nav")}>
+    <div className={cn("max-w-5xl mx-auto p-4 lg:pb-8 space-y-4 min-w-0", !isNativeApp && "pb-nav")}>
       <UsedSectionHeader />
       {children}
     </div>

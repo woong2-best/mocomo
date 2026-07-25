@@ -394,6 +394,12 @@ html[data-client="app"] .native-live-pad {
   .used-listing-card:hover article {
     @apply -translate-y-0.5 shadow-folk border-folk-terracotta/40;
   }
+  .used-listing-card--dense:hover article {
+    @apply translate-y-0 shadow-none;
+  }
+  .used-listing-card--dense:hover .aspect-square img {
+    @apply scale-105;
+  }
 
   /* MARKET — dense commerce product cards (figure-mall density, folk chrome) */
   .market-product-card {

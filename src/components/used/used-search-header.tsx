@@ -41,27 +41,6 @@ export function UsedSearchHeader() {
       )}
     >
       <section className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-            <Search className="h-3.5 w-3.5 text-muted-foreground" />
-            통합검색
-          </h3>
-          {activeQ && (
-            <button
-              type="button"
-              onClick={() => {
-                setQ("");
-                apply({ q: null });
-              }}
-              className="text-[10px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
-            >
-              검색어 지우기
-            </button>
-          )}
-        </div>
-        <p className="text-[10px] text-muted-foreground -mt-1">
-          제목·설명 키워드로 전체 상품 검색
-        </p>
         <form onSubmit={submitUnifiedSearch} className="flex gap-2">
           <div className="flex-1 flex items-center gap-2 rounded-xl bg-muted/50 border border-border px-3 h-11">
             <Search className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -77,9 +56,21 @@ export function UsedSearchHeader() {
           </Button>
         </form>
         {activeQ && (
-          <p className="text-[10px] text-muted-foreground">
-            통합검색: <span className="text-foreground font-medium">&quot;{activeQ}&quot;</span>
-          </p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[10px] text-muted-foreground">
+              검색: <span className="text-foreground font-medium">&quot;{activeQ}&quot;</span>
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setQ("");
+                apply({ q: null });
+              }}
+              className="text-[10px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+            >
+              검색어 지우기
+            </button>
+          </div>
         )}
       </section>
 

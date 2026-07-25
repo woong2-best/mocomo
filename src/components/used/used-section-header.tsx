@@ -17,9 +17,6 @@ export function UsedSectionHeader() {
           <Tags className="h-6 w-6 sm:h-7 sm:w-7 text-muted-foreground shrink-0" />
           <span className="truncate">중고거래</span>
         </h1>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-          KR · US · JP · CN · GB · EU · 휴대폰·성인 인증
-        </p>
       </div>
       <nav className="flex flex-wrap items-center gap-2 shrink-0">
         <Button variant="outline" size="sm" className="rounded-xl" asChild>

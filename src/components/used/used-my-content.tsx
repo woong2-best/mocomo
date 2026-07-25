@@ -20,9 +20,9 @@ export async function UsedMyContent({ userId }: { userId: string }) {
         {selling.length === 0 ? (
           <p className="text-sm text-muted-foreground">판매중인 글이 없어요.</p>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-0 -mx-4 border-y border-border/60 bg-border/40">
             {selling.map((l) => (
-              <UsedListingCard key={l.id} listing={l} />
+              <UsedListingCard key={l.id} listing={l} dense />
             ))}
           </div>
         )}
@@ -31,9 +31,9 @@ export async function UsedMyContent({ userId }: { userId: string }) {
       {reserved.length > 0 && (
         <section>
           <h2 className="text-sm font-semibold text-amber-700 mb-3">예약중</h2>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-0 -mx-4 border-y border-border/60 bg-border/40">
             {reserved.map((l) => (
-              <UsedListingCard key={l.id} listing={l} />
+              <UsedListingCard key={l.id} listing={l} dense />
             ))}
           </div>
         </section>
@@ -42,9 +42,9 @@ export async function UsedMyContent({ userId }: { userId: string }) {
       {sold.length > 0 && (
         <section>
           <h2 className="text-sm font-semibold text-muted-foreground mb-3">거래완료</h2>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-0 -mx-4 border-y border-border/60 bg-border/40">
             {sold.map((l) => (
-              <UsedListingCard key={l.id} listing={l} />
+              <UsedListingCard key={l.id} listing={l} dense />
             ))}
           </div>
         </section>
@@ -84,9 +84,9 @@ export async function UsedMyContent({ userId }: { userId: string }) {
         {favorites.length === 0 ? (
           <p className="text-sm text-muted-foreground">관심 상품이 없어요.</p>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-0 -mx-4 border-y border-border/60 bg-border/40">
             {favorites.map((f) => (
-              <UsedListingCard key={f.listing.id} listing={f.listing} />
+              <UsedListingCard key={f.listing.id} listing={f.listing} dense />
             ))}
           </div>
         )}
