@@ -7,9 +7,14 @@ export function isWebtoonDrawStudioPath(pathname: string): boolean {
   return pathname.startsWith("/webtoon/studio/draw");
 }
 
-/** 프로필 홈 — 후원/Wallet/프리미엄 전용 우측 패널 (광고·랭킹 DB 생략) */
+/** 프로필 홈 — 달력·팔로우 추천 전용 우측 패널 (광고·랭킹 DB 생략) */
 export function isProfilePath(pathname: string): boolean {
   return pathname.startsWith("/u/");
+}
+
+/** 중고거래 — 프로필과 동일한 달력·팔로우 추천 패널 */
+export function isUsedPath(pathname: string): boolean {
+  return pathname.startsWith("/used");
 }
 
 export function shouldShowRightPanel(pathname: string): boolean {
@@ -26,13 +31,16 @@ export function shouldShowRightPanel(pathname: string): boolean {
   if (isWebtoonDrawStudioPath(pathname)) return false;
   if (pathname.startsWith("/messages")) return false;
   if (/^\/c\/[^/]+/.test(pathname)) return false;
-  if (pathname.startsWith("/used")) return false;
   if (pathname.startsWith("/apt")) return false;
   if (pathname.startsWith("/voice/") && pathname !== "/voice/new") return false;
   return true;
 }
 
-/** 광고·검색 랭킹 등 기본 우측 패널 (프로필은 전용 패널) */
+/** 광고·검색 랭킹 등 기본 우측 패널 (프로필·중고는 전용 패널) */
 export function shouldShowDefaultRightPanel(pathname: string): boolean {
-  return shouldShowRightPanel(pathname) && !isProfilePath(pathname);
+  return (
+    shouldShowRightPanel(pathname) &&
+    !isProfilePath(pathname) &&
+    !isUsedPath(pathname)
+  );
 }
