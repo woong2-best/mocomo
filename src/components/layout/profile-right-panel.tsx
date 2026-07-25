@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import { ProfileCalendar } from "@/components/layout/profile-calendar";
 import { WhoToFollowPanel } from "@/components/layout/who-to-follow-panel";
 import { DiscoveryMatchBadge } from "@/components/discovery/discovery-match-badge";
@@ -17,14 +17,14 @@ export function ProfileRightPanel() {
       <div className="min-h-0 flex-1 overflow-hidden">
         <WhoToFollowPanel />
       </div>
-      <div className="shrink-0 px-3 pb-3 pt-2">
+      <div className="shrink-0 pt-2">
         <Link
           href="/discover"
-          className="relative flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:bg-muted/50 hover:text-foreground"
+          className="relative flex w-full items-center justify-center gap-2.5 bg-folk-terracotta px-4 py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-folk-terracotta/90"
         >
-          <Search className="h-4 w-4 shrink-0" />
+          <UserPlus className="h-5 w-5 shrink-0" strokeWidth={2.25} />
           <span>{t("nav.discover")}</span>
-          <DiscoveryMatchBadge className="left-auto right-2 top-1/2 -translate-y-1/2" />
+          <DiscoveryMatchBadge className="left-auto right-3 top-1/2 -translate-y-1/2 bg-white text-folk-terracotta" />
         </Link>
       </div>
     </aside>
