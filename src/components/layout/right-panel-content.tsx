@@ -5,7 +5,6 @@ import { FALLBACK_SIDEBAR_ADS } from "@/lib/default-ads";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, Megaphone } from "lucide-react";
 import { SponsorEventSpot } from "@/components/events/sponsor-event-spot";
-import { RightPanelComposeButton } from "@/components/layout/right-panel-compose";
 import {
   SearchRankingSidebarList,
   type SidebarTrendingQuery,
@@ -35,7 +34,6 @@ export type SidebarPanelData = {
 export function RightPanelSkeleton() {
   return (
     <aside className="hidden lg:block w-64 xl:w-72 shrink-0 h-full shell-col-pad folk-panel-aside space-y-3 overflow-y-auto overscroll-contain animate-pulse">
-      <div className="h-12 rounded-2xl bg-folk-terracotta/30" />
       <div className="h-48 rounded-2xl bg-muted" />
       <div className="h-36 rounded-2xl bg-muted" />
     </aside>
@@ -59,7 +57,6 @@ export function RightPanelContent({
 
   return (
     <aside className="hidden lg:block w-64 xl:w-72 shrink-0 h-full shell-col-pad folk-panel-aside space-y-3 overflow-y-auto overscroll-contain">
-      <RightPanelComposeButton />
       <Card className="overflow-hidden border-folk-gold/40 bg-folk-gold/5">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2 font-display font-bold text-folk-terracotta">
