@@ -18,9 +18,9 @@ export async function RightPanel() {
       getCachedTrendingSearchQueries(),
       getCachedSidebarTips(),
       getCachedSidebarAds(),
-      getSubcultureMapPins(36),
+      getSubcultureMapPins(80),
     ]);
-    const eventPins = resolveSubculturePinsForUser(allPins, countryCode).slice(0, 12);
+    const eventPins = resolveSubculturePinsForUser(allPins, countryCode).slice(0, 24);
     return (
       <RightPanelContent
         trendingQueries={trendingQueries}

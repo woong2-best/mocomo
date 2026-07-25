@@ -4,19 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import type { Map as LeafletMap } from "leaflet";
 import type { MapEventPin } from "@/lib/subculture-events";
 import { eventCountryFlag } from "@/lib/subculture-event-countries";
+import { SUBCULTURE_EVENT_CATEGORY_COLORS } from "@/lib/subculture-event-types";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 
 import "leaflet/dist/leaflet.css";
-
-const CATEGORY_COLORS: Record<string, string> = {
-  comic: "#8b5cf6",
-  anime: "#3b82f6",
-  cosplay: "#ec4899",
-  goods: "#f59e0b",
-  other: "#64748b",
-};
 
 function pinHtml(color: string) {
   return `<div style="width:14px;height:14px;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 1px 6px rgba(0,0,0,.35)"></div>`;
@@ -74,7 +67,9 @@ export function SubcultureEventsMap({
       const bounds: [number, number][] = [];
 
       for (const pin of pins) {
-        const color = CATEGORY_COLORS[pin.category] ?? CATEGORY_COLORS.other;
+        const color =
+          SUBCULTURE_EVENT_CATEGORY_COLORS[pin.category] ??
+          SUBCULTURE_EVENT_CATEGORY_COLORS.other;
         const marker = L.marker([pin.lat, pin.lng], {
           icon: L.divIcon({
             className: "subculture-event-pin",
@@ -84,11 +79,16 @@ export function SubcultureEventsMap({
           }),
         }).addTo(map);
 
-        const dateStr = format(new Date(pin.startsAt), "M/d", { locale: ko });
+        const dateStr =
+          pin.category === "maid_cafe"
+            ? "상설"
+            : format(new Date(pin.startsAt), "M/d", { locale: ko });
         const official =
           pin.source === "official" || pin.source === "auto"
             ? '<span style="font-size:10px;color:#7c3aed">공식 자동</span><br/>'
-            : "";
+            : pin.category === "maid_cafe"
+              ? '<span style="font-size:10px;color:#ec4899">메이드 카페</span><br/>'
+              : "";
         const countryLabel = eventCountryFlag(pin.country);
         const popup = `${official}<strong>${pin.title}</strong><br/><span style="font-size:11px">${countryLabel} ${dateStr} · ${pin.venueName ?? ""}</span>`;
         marker.bindPopup(popup, { closeButton: false, maxWidth: 200 });

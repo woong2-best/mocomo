@@ -81,38 +81,50 @@ export async function querySubcultureMapPins(limit: number): Promise<MapEventPin
         OR: [{ endsAt: null }, { endsAt: { gte: now } }],
       },
       orderBy: { startsAt: "asc" },
-      take: limit,
+      take: Math.max(limit * 4, 200),
     });
 
-    const pins = mapRowsToPins(rows);
+    const pins = sortMapPins(mapRowsToPins(rows)).slice(0, limit);
     if (pins.length > 0) return pins;
   } catch {
     /* fall through */
   }
 
   const { events } = await fetchAllSubcultureEvents();
-  return events.slice(0, limit).map((e, i) => ({
-    id: `auto-fallback-${e.externalKey}-${i}`,
-    title: e.title,
-    country: e.country,
-    category: e.category,
-    categoryLabel: SUBCULTURE_EVENT_CATEGORY_LABELS[e.category] ?? e.category,
-    venueName: e.venueName,
-    description: e.description ?? null,
-    lat: e.lat,
-    lng: e.lng,
-    startsAt: e.startsAt,
-    endsAt: e.endsAt,
-    sourceUrl: e.officialNoticeUrl ?? e.sourceUrl,
-    source: e.externalKey.startsWith("auto-") ? "auto" : "official",
-  }));
+  return sortMapPins(
+    events.map((e, i) => ({
+      id: `auto-fallback-${e.externalKey}-${i}`,
+      title: e.title,
+      country: e.country,
+      category: e.category,
+      categoryLabel: SUBCULTURE_EVENT_CATEGORY_LABELS[e.category] ?? e.category,
+      venueName: e.venueName,
+      description: e.description ?? null,
+      lat: e.lat,
+      lng: e.lng,
+      startsAt: e.startsAt,
+      endsAt: e.endsAt,
+      sourceUrl: e.officialNoticeUrl ?? e.sourceUrl,
+      source: e.externalKey.startsWith("auto-") ? "auto" : "official",
+    }))
+  ).slice(0, limit);
+}
+
+/** 행사 일정 우선, 메이드 카페(상설)는 뒤로 */
+function sortMapPins(pins: MapEventPin[]): MapEventPin[] {
+  return [...pins].sort((a, b) => {
+    const aMaid = a.category === "maid_cafe" ? 1 : 0;
+    const bMaid = b.category === "maid_cafe" ? 1 : 0;
+    if (aMaid !== bMaid) return aMaid - bMaid;
+    return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
+  });
 }
 
 /** 캐시된 핀 목록 (읽기 전용, 빠름) — sync는 cron 전용 */
-export async function getSubcultureMapPins(limit = 48): Promise<MapEventPin[]> {
+export async function getSubcultureMapPins(limit = 96): Promise<MapEventPin[]> {
   return unstable_cache(
     async () => querySubcultureMapPins(limit),
-    ["subculture-map-pins-v6", String(limit)],
+    ["subculture-map-pins-v7", String(limit)],
     { revalidate: 600, tags: [SUBCULTURE_MAP_PINS_CACHE_TAG] }
   )();
 }
@@ -127,7 +139,7 @@ export async function getSubcultureMapPinsForUser(
     const { getRequestCountryCode } = await import("@/lib/i18n/server");
     country = await getRequestCountryCode();
   }
-  const all = await getSubcultureMapPins(Math.max(limit * 3, 72));
+  const all = await getSubcultureMapPins(Math.max(limit * 3, 160));
   return resolveSubculturePinsForUser(all, country).slice(0, limit);
 }
 

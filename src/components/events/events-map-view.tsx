@@ -16,11 +16,87 @@ import {
   subcultureCountrySummary,
   type SubcultureEventCountry,
 } from "@/lib/subculture-event-countries";
+import {
+  SUBCULTURE_EVENT_CATEGORY_COLORS,
+  SUBCULTURE_EVENT_CATEGORY_LABELS,
+} from "@/lib/subculture-event-types";
 import { mapLinkForEvent, type MapEventPin } from "@/lib/subculture-event-pins";
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 
 const GLOBAL_MAP_VIEW = { lat: 28, lng: 135, zoom: 3 };
+
+const LEGEND_CATEGORIES = [
+  "comic",
+  "anime",
+  "cosplay",
+  "goods",
+  "maid_cafe",
+  "other",
+] as const;
+
+function PinListCard({ p }: { p: MapEventPin }) {
+  const mapLink = mapLinkForEvent(p);
+  const isMaid = p.category === "maid_cafe";
+  return (
+    <Card className="rounded-2xl">
+      <CardContent className="p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+        <div className="min-w-0">
+          <p className="font-semibold flex items-center gap-2 flex-wrap">
+            <span
+              className="inline-block h-2.5 w-2.5 rounded-full shrink-0"
+              style={{
+                background:
+                  SUBCULTURE_EVENT_CATEGORY_COLORS[p.category] ??
+                  SUBCULTURE_EVENT_CATEGORY_COLORS.other,
+              }}
+              aria-hidden
+            />
+            <span>{eventCountryFlag(p.country)}</span>
+            {p.title}
+          </p>
+          {p.description && (
+            <p className="text-xs text-muted-foreground mt-1">{p.description}</p>
+          )}
+          <p className="text-sm text-muted-foreground mt-1">
+            {isMaid ? (
+              <span className="text-pink-500 font-medium">상설 영업</span>
+            ) : (
+              <>
+                {format(new Date(p.startsAt), "yyyy년 M월 d일 (EEE)", { locale: ko })}
+                {p.endsAt &&
+                  ` — ${format(new Date(p.endsAt), "M월 d일", { locale: ko })}`}
+              </>
+            )}
+          </p>
+          {p.venueName && <p className="text-sm mt-1">📍 {p.venueName}</p>}
+        </div>
+        <div className="flex gap-2 shrink-0">
+          <a
+            href={mapLink.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+          >
+            {mapLink.label}
+            <ExternalLink className="h-3 w-3" />
+          </a>
+          {p.sourceUrl && (
+            <a
+              href={p.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-1"
+            >
+              공식
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export function EventsMapView({
   initialPins,
@@ -59,6 +135,14 @@ export function EventsMapView({
   }, [globalMode, globalPins, loadGlobalPins]);
 
   const pins = globalMode ? (globalPins ?? []) : initialPins;
+  const eventPins = useMemo(
+    () => pins.filter((p) => p.category !== "maid_cafe"),
+    [pins]
+  );
+  const maidPins = useMemo(
+    () => pins.filter((p) => p.category === "maid_cafe"),
+    [pins]
+  );
   const mapView = globalMode ? GLOBAL_MAP_VIEW : localDefaultView;
   const summary = globalMode
     ? "🌐 전 세계 서브컬처·애니 행사"
@@ -113,6 +197,18 @@ export function EventsMapView({
             </>
           )}
         </p>
+        <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground">
+          {LEGEND_CATEGORIES.map((key) => (
+            <li key={key} className="inline-flex items-center gap-1.5">
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-full shrink-0"
+                style={{ background: SUBCULTURE_EVENT_CATEGORY_COLORS[key] }}
+                aria-hidden
+              />
+              {SUBCULTURE_EVENT_CATEGORY_LABELS[key]}
+            </li>
+          ))}
+        </ul>
       </div>
 
       {loadingGlobal && globalMode ? (
@@ -130,61 +226,27 @@ export function EventsMapView({
 
       <div className="space-y-3">
         <h2 className="text-sm font-semibold text-muted-foreground">다가오는 행사</h2>
-        {pins.length === 0 ? (
+        {eventPins.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center text-muted-foreground text-sm">
               {loadingGlobal ? "불러오는 중…" : "등록된 행사가 없습니다."}
             </CardContent>
           </Card>
         ) : (
-          pins.map((p) => {
-            const mapLink = mapLinkForEvent(p);
-            return (
-              <Card key={p.id} className="rounded-2xl">
-                <CardContent className="p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="font-semibold flex items-center gap-2 flex-wrap">
-                      <span>{eventCountryFlag(p.country)}</span>
-                      {p.title}
-                    </p>
-                    {p.description && (
-                      <p className="text-xs text-muted-foreground mt-1">{p.description}</p>
-                    )}
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {format(new Date(p.startsAt), "yyyy년 M월 d일 (EEE)", { locale: ko })}
-                      {p.endsAt &&
-                        ` — ${format(new Date(p.endsAt), "M월 d일", { locale: ko })}`}
-                    </p>
-                    {p.venueName && <p className="text-sm mt-1">📍 {p.venueName}</p>}
-                  </div>
-                  <div className="flex gap-2 shrink-0">
-                    <a
-                      href={mapLink.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-primary hover:underline inline-flex items-center gap-1"
-                    >
-                      {mapLink.label}
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                    {p.sourceUrl && (
-                      <a
-                        href={p.sourceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-1"
-                      >
-                        공식
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })
+          eventPins.map((p) => <PinListCard key={p.id} p={p} />)
         )}
       </div>
+
+      {maidPins.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold text-pink-500">
+            메이드 카페 · 상설 ({maidPins.length})
+          </h2>
+          {maidPins.map((p) => (
+            <PinListCard key={p.id} p={p} />
+          ))}
+        </div>
+      )}
     </>
   );
 }

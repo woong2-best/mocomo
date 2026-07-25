@@ -8,7 +8,7 @@ export const revalidate = 600;
 
 export default async function EventsMapPage() {
   const countryCode = await getRequestCountryCode();
-  const pins = await getSubcultureMapPinsForUser(56, countryCode);
+  const pins = await getSubcultureMapPinsForUser(120, countryCode);
   const eventCountry = userCountryToEventCountry(countryCode);
 
   return (

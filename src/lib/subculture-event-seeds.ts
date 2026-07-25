@@ -8,6 +8,7 @@
  */
 
 import { INTERNATIONAL_SUBCULTURE_EVENT_SEEDS } from "@/lib/subculture-event-seeds-international";
+import { MAID_CAFE_SEEDS } from "@/lib/subculture-maid-cafe-seeds";
 import type { SubcultureEventCountry } from "@/lib/subculture-event-countries";
 import {
   SUBCULTURE_EVENT_CATEGORY_LABELS,
@@ -19,7 +20,11 @@ export {
   SUBCULTURE_EVENT_COUNTRY_LABELS,
   eventCountryFlag,
 } from "@/lib/subculture-event-countries";
-export { SUBCULTURE_EVENT_CATEGORY_LABELS } from "@/lib/subculture-event-types";
+export {
+  SUBCULTURE_EVENT_CATEGORY_COLORS,
+  SUBCULTURE_EVENT_CATEGORY_LABELS,
+} from "@/lib/subculture-event-types";
+export { MAID_CAFE_SEEDS } from "@/lib/subculture-maid-cafe-seeds";
 
 export const SUBCULTURE_EVENT_SEEDS: SubcultureEventSeed[] = [
   {
@@ -291,4 +296,5 @@ export const SUBCULTURE_EVENT_SEEDS: SubcultureEventSeed[] = [
 export const ALL_SUBCULTURE_EVENT_SEEDS: SubcultureEventSeed[] = [
   ...SUBCULTURE_EVENT_SEEDS,
   ...INTERNATIONAL_SUBCULTURE_EVENT_SEEDS,
+  ...MAID_CAFE_SEEDS,
 ];
