@@ -6,7 +6,6 @@ import {
   Wallet,
   Tv,
   Radio,
-  Search,
   Store,
   Users,
   Calendar,
@@ -35,6 +34,7 @@ export const moneyHubNavItem: NavItem = {
   labelKey: "nav.money",
 };
 
+/** 매칭(/discover)은 사이드바 미포함 — 프로필 우측 패널·모바일 하단 탭에서 진입 */
 export const mainNavItems: NavItem[] = [
   { href: "/my-page", icon: User, labelKey: "nav.myPage" },
   { href: "/communities", icon: Users, labelKey: "nav.communities" },
@@ -45,5 +45,4 @@ export const mainNavItems: NavItem[] = [
   { href: "/used", icon: Tags, labelKey: "nav.used" },
   { href: "/anime", icon: Tv, labelKey: "nav.anime" },
   { href: "/events", icon: Calendar, labelKey: "nav.events" },
-  { href: "/discover", icon: Search, labelKey: "nav.discover" },
 ];

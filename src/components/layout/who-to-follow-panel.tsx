@@ -41,7 +41,7 @@ export function WhoToFollowPanel() {
     setLoading(true);
     setError(false);
     try {
-      const res = await fetch("/api/follow-recommendations?limit=8", {
+      const res = await fetch("/api/follow-recommendations?limit=4", {
         credentials: "same-origin",
       });
       if (!res.ok) {
@@ -73,8 +73,8 @@ export function WhoToFollowPanel() {
   if (!signedIn) return null;
 
   return (
-    <section className="w-full bg-card border-b border-border flex flex-col min-h-0">
-      <header className="px-3 py-2 border-b border-border flex items-center justify-between gap-2">
+    <section className="w-full bg-card border-b border-border flex flex-col min-h-0 h-full overflow-hidden">
+      <header className="px-3 py-2 border-b border-border flex items-center justify-between gap-2 shrink-0">
         <h2 className="text-sm font-bold tracking-tight truncate">
           {t("whoToFollow.title")}
         </h2>
@@ -88,8 +88,8 @@ export function WhoToFollowPanel() {
       </header>
 
       {loading && items.length === 0 ? (
-        <ul className="divide-y divide-border">
-          {Array.from({ length: 5 }).map((_, i) => (
+        <ul className="divide-y divide-border overflow-hidden">
+          {Array.from({ length: 4 }).map((_, i) => (
             <li key={i} className="flex items-center gap-2 px-2.5 py-2">
               <div className="h-9 w-9 rounded-full bg-muted/60 animate-pulse shrink-0" />
               <div className="flex-1 space-y-1.5 min-w-0">
@@ -104,7 +104,7 @@ export function WhoToFollowPanel() {
       ) : items.length === 0 ? (
         <p className="px-3 py-4 text-xs text-muted-foreground">{t("whoToFollow.empty")}</p>
       ) : (
-        <ul className="divide-y divide-border">
+        <ul className="divide-y divide-border overflow-hidden">
           {items.map((item) => {
             const displayName = userDisplayName(item);
             return (
