@@ -12,11 +12,6 @@ export function isProfilePath(pathname: string): boolean {
   return pathname.startsWith("/u/");
 }
 
-/** 중고거래 — 프로필과 동일한 달력·팔로우 추천 패널 */
-export function isUsedPath(pathname: string): boolean {
-  return pathname.startsWith("/used");
-}
-
 export function shouldShowRightPanel(pathname: string): boolean {
   if (pathname.startsWith("/admin")) return false;
   if (pathname.startsWith("/auth")) return false;
@@ -36,11 +31,7 @@ export function shouldShowRightPanel(pathname: string): boolean {
   return true;
 }
 
-/** 광고·검색 랭킹 등 기본 우측 패널 (프로필·중고는 전용 패널) */
+/** 광고·검색 랭킹 등 기본 우측 패널 (프로필은 전용 패널) */
 export function shouldShowDefaultRightPanel(pathname: string): boolean {
-  return (
-    shouldShowRightPanel(pathname) &&
-    !isProfilePath(pathname) &&
-    !isUsedPath(pathname)
-  );
+  return shouldShowRightPanel(pathname) && !isProfilePath(pathname);
 }

@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   isProfilePath,
-  isUsedPath,
   shouldShowDefaultRightPanel,
   shouldShowRightPanel,
 } from "@/lib/sidebar-panel-paths";
@@ -74,7 +73,7 @@ export function RightPanelHydrated({
   }, [showDefault, data, countryCode, initialCountryCode]);
 
   if (!show) return null;
-  if (isProfilePath(pathname) || isUsedPath(pathname)) return <ProfileRightPanel />;
+  if (isProfilePath(pathname)) return <ProfileRightPanel />;
   if (!data) return loading ? <RightPanelSkeleton /> : null;
   return <RightPanelContent {...data} />;
 }

@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   isProfilePath,
-  isUsedPath,
   shouldShowDefaultRightPanel,
   shouldShowRightPanel,
 } from "@/lib/sidebar-panel-paths";
@@ -60,7 +59,7 @@ export function RightPanelLoader() {
   }, [showDefault, pathname]);
 
   if (!show) return null;
-  if (isProfilePath(pathname) || isUsedPath(pathname)) return <ProfileRightPanel />;
+  if (isProfilePath(pathname)) return <ProfileRightPanel />;
   if (!data) return <RightPanelSkeleton />;
   return <RightPanelContent {...data} />;
 }
