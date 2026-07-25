@@ -1,8 +1,11 @@
 /**
- * 국내 상설 메이드 카페 시드 (공개 주소·네이버/나무위키 기준, 2026-07)
+ * 상설 메이드 카페 시드 (공개 주소 기준, 2026-07)
+ * - KR: 홍대·부산·대구 등
+ * - JP/TH/TW: `subculture-maid-cafe-seeds-international.ts`
  * 영업 여부·위치는 변동될 수 있으니 방문 전 공식 채널 확인.
  */
 
+import { INTERNATIONAL_MAID_CAFE_SEEDS } from "@/lib/subculture-maid-cafe-seeds-international";
 import type { SubcultureEventSeed } from "@/lib/subculture-event-types";
 
 const OPEN = "2024-01-01T12:00:00+09:00";
@@ -23,7 +26,7 @@ function maid(
   };
 }
 
-export const MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
+export const KR_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   maid({
     externalKey: "venue-maid-moemoekyun-hapjeong",
     title: "모에모에큥 메이드카페",
@@ -254,4 +257,9 @@ export const MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
     lng: 128.5978869,
     sourceUrl: "https://www.instagram.com/naraka_maidcafe/",
   }),
+];
+
+export const MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
+  ...KR_MAID_CAFE_SEEDS,
+  ...INTERNATIONAL_MAID_CAFE_SEEDS,
 ];

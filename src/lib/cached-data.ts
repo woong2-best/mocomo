@@ -175,7 +175,7 @@ export async function getCachedSidebarPanelData() {
     getCachedTrendingSearchQueries(),
     getCachedSidebarTips(),
     getCachedSidebarAds(),
-    getSubcultureMapPins(80),
+    getSubcultureMapPins(160),
   ]);
   return { trendingQueries, tips, sidebarAds, eventPins };
 }

@@ -145,7 +145,7 @@ export function EventsMapView({
   );
   const mapView = globalMode ? GLOBAL_MAP_VIEW : localDefaultView;
   const summary = globalMode
-    ? "🌐 전 세계 서브컬처·애니 행사"
+    ? "🌐 전 세계 서브컬처·애니 행사 + 메이드 카페"
     : subcultureCountrySummary(countryCode, locale);
 
   function toggleGlobal() {
@@ -189,11 +189,14 @@ export function EventsMapView({
         </NativePageTitle>
         <p className="text-xs text-muted-foreground mt-1">
           {globalMode ? (
-            <>🌐 전 세계 행사 표시 중 · 지구본을 다시 누르면 내 국가만</>
+            <>
+              🌐 전 세계 행사·메이드 카페 표시 중 (일본·태국·대만 포함) · 지구본을 다시 누르면 내
+              국가만
+            </>
           ) : (
             <>
-              {eventCountryFlag(eventCountry)} {SUBCULTURE_EVENT_COUNTRY_LABELS[eventCountry]} 기준 · 설정에서
-              국가 변경 가능
+              {eventCountryFlag(eventCountry)} {SUBCULTURE_EVENT_COUNTRY_LABELS[eventCountry]} 기준 · 해외
+              지점은 지구본(🌐) · 설정에서 국가 변경 가능
             </>
           )}
         </p>

@@ -81,7 +81,7 @@ export async function querySubcultureMapPins(limit: number): Promise<MapEventPin
         OR: [{ endsAt: null }, { endsAt: { gte: now } }],
       },
       orderBy: { startsAt: "asc" },
-      take: Math.max(limit * 4, 200),
+      take: Math.max(limit * 4, 500),
     });
 
     const pins = sortMapPins(mapRowsToPins(rows)).slice(0, limit);
@@ -121,17 +121,17 @@ function sortMapPins(pins: MapEventPin[]): MapEventPin[] {
 }
 
 /** 캐시된 핀 목록 (읽기 전용, 빠름) — sync는 cron 전용 */
-export async function getSubcultureMapPins(limit = 96): Promise<MapEventPin[]> {
+export async function getSubcultureMapPins(limit = 240): Promise<MapEventPin[]> {
   return unstable_cache(
     async () => querySubcultureMapPins(limit),
-    ["subculture-map-pins-v7", String(limit)],
+    ["subculture-map-pins-v8", String(limit)],
     { revalidate: 600, tags: [SUBCULTURE_MAP_PINS_CACHE_TAG] }
   )();
 }
 
 /** 사용자 기본 국가에 맞는 행사만 반환 */
 export async function getSubcultureMapPinsForUser(
-  limit = 48,
+  limit = 120,
   userCountryCode?: string
 ): Promise<MapEventPin[]> {
   let country = userCountryCode;
@@ -139,7 +139,7 @@ export async function getSubcultureMapPinsForUser(
     const { getRequestCountryCode } = await import("@/lib/i18n/server");
     country = await getRequestCountryCode();
   }
-  const all = await getSubcultureMapPins(Math.max(limit * 3, 160));
+  const all = await getSubcultureMapPins(Math.max(limit * 3, 320));
   return resolveSubculturePinsForUser(all, country).slice(0, limit);
 }
 

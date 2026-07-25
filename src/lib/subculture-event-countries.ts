@@ -146,8 +146,21 @@ export function eventCountryFromExternalKey(externalKey?: string | null): Subcul
       return c;
     }
   }
-  if (key.startsWith("official-jp-") || key.startsWith("auto-comiket") || key.startsWith("auto-wonfes") || key.startsWith("auto-kyomaf") || key.startsWith("auto-tgs")) {
+  if (
+    key.startsWith("official-jp-") ||
+    key.startsWith("venue-maid-jp-") ||
+    key.startsWith("auto-comiket") ||
+    key.startsWith("auto-wonfes") ||
+    key.startsWith("auto-kyomaf") ||
+    key.startsWith("auto-tgs")
+  ) {
     return "jp";
+  }
+  if (key.startsWith("venue-maid-th-")) return "th";
+  if (key.startsWith("venue-maid-tw-")) return "tw";
+  if (key.startsWith("venue-maid-us-")) return "us";
+  if (key.startsWith("venue-maid-") && !key.includes("-jp-") && !key.includes("-th-") && !key.includes("-tw-") && !key.includes("-us-")) {
+    return "kr";
   }
   if (key.startsWith("auto-comicw") || key.startsWith("auto-gstar") || key.startsWith("auto-seoulpopcon") || key.startsWith("official-comicw") || key.startsWith("official-gstar") || key.startsWith("official-seoul")) {
     return "kr";
