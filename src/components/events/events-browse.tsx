@@ -85,10 +85,10 @@ export function EventsBrowse({
       <header className="flex flex-wrap items-start justify-between gap-3">
         <NativePageTitle>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white/95 sm:text-3xl">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
               이벤트
             </h1>
-            <p className="mt-1.5 text-sm text-white/40">
+            <p className="mt-1.5 text-sm text-muted-foreground">
               {EVENT_CATEGORY_LINE.join(" · ")}
             </p>
           </div>
@@ -106,7 +106,7 @@ export function EventsBrowse({
       {/* Featured */}
       {featured && (
         <section className="space-y-2">
-          <div className="flex items-center gap-1.5 text-sm font-medium text-white/70">
+          <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
             <Sparkles className="h-3.5 w-3.5 text-[#A855F7]" />
             Featured Event
           </div>
@@ -126,8 +126,8 @@ export function EventsBrowse({
               className={cn(
                 "rounded-full px-3 py-1 text-xs font-medium transition-colors",
                 active
-                  ? "bg-[#A855F7]/20 text-[#C084FC] ring-1 ring-[#A855F7]/50"
-                  : "bg-white/[0.04] text-white/45 hover:bg-white/[0.08] hover:text-white/70"
+                  ? "bg-[#A855F7]/15 text-[#9333EA] ring-1 ring-[#A855F7]/40 dark:bg-[#A855F7]/20 dark:text-[#C084FC] dark:ring-[#A855F7]/50"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
               )}
             >
               {tag.hash ?? tag.label}
@@ -168,8 +168,8 @@ function FeaturedBanner({ event }: { event: EventsBrowseItem }) {
   const inner = (
     <div
       className={cn(
-        "relative h-[180px] overflow-hidden rounded-2xl border border-white/[0.08] sm:h-[200px]",
-        "bg-[#1B2135] transition-[border-color,box-shadow] duration-200",
+        "relative h-[180px] overflow-hidden rounded-2xl border border-border sm:h-[200px]",
+        "bg-card transition-[border-color,box-shadow] duration-200",
         "hover:border-[#A855F7]/40 hover:shadow-[0_12px_40px_-12px_rgba(168,85,247,0.35)]"
       )}
     >
@@ -181,11 +181,11 @@ function FeaturedBanner({ event }: { event: EventsBrowseItem }) {
           className="absolute inset-0 h-full w-full object-cover"
         />
       ) : (
-        <div className="absolute inset-0 bg-gradient-to-r from-[#1B2135] via-[#2a1f45] to-[#141826]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-muted via-[#A855F7]/10 to-muted" />
       )}
-      <div className="absolute inset-0 bg-gradient-to-r from-[#141826]/95 via-[#141826]/55 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-transparent" />
       <div className="relative flex h-full flex-col justify-end p-5 sm:p-6">
-        <p className="text-[11px] font-medium text-[#A855F7]">
+        <p className="text-[11px] font-medium text-[#C084FC]">
           {EVENT_FILTER_TAGS.find((t) => t.id === event.type)?.label ??
             event.type}
         </p>
@@ -213,14 +213,14 @@ function FeaturedBanner({ event }: { event: EventsBrowseItem }) {
 
 function EmptyState({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.1] bg-[#1B2135]/50 px-6 py-16 text-center">
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
       <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#A855F7]/10 ring-1 ring-[#A855F7]/25">
         <Sparkles className="h-7 w-7 text-[#A855F7]" />
       </div>
-      <p className="text-base font-medium text-white/90">
+      <p className="text-base font-medium text-foreground">
         ✨ 아직 진행 중인 이벤트가 없습니다.
       </p>
-      <p className="mt-2 text-sm text-white/40">
+      <p className="mt-2 text-sm text-muted-foreground">
         첫 번째 이벤트를 등록해보세요.
       </p>
       {isLoggedIn ? (
@@ -232,10 +232,7 @@ function EmptyState({ isLoggedIn }: { isLoggedIn: boolean }) {
         </Link>
       ) : (
         <Link href="/auth/signin?callbackUrl=/events/new" className="mt-6">
-          <Button
-            variant="outline"
-            className="gap-2 rounded-xl border-white/15 bg-transparent text-white/80 hover:bg-white/5 hover:text-white"
-          >
+          <Button variant="outline" className="gap-2 rounded-xl">
             로그인하고 등록하기
           </Button>
         </Link>

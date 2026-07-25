@@ -35,7 +35,7 @@ function defaultStartDate() {
 }
 
 const fieldClass =
-  "w-full rounded-xl border border-white/[0.08] bg-[#141826] px-3 py-2.5 text-sm text-white/90 placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[#A855F7]/40";
+  "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#A855F7]/40";
 
 export function EventCreateForm({
   paymentsEnabled,
@@ -140,8 +140,8 @@ export function EventCreateForm({
   if (paidEventId) {
     return (
       <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6 space-y-4">
-        <p className="font-semibold text-white/95">이벤트 등록이 완료되었습니다!</p>
-        <p className="text-sm text-white/50">
+        <p className="font-semibold text-foreground">이벤트 등록이 완료되었습니다!</p>
+        <p className="text-sm text-muted-foreground">
           결제가 확인되었고, 다른 사용자도 이벤트 목록에서 보고 참가할 수 있습니다.
         </p>
         <Link href="/events">
@@ -156,10 +156,10 @@ export function EventCreateForm({
   if (eventId) {
     return (
       <div className="rounded-2xl border border-[#A855F7]/30 bg-[#A855F7]/5 p-6 space-y-4">
-        <p className="font-semibold text-white/95">이벤트 정보가 저장되었습니다.</p>
-        <p className="text-sm text-white/50">
+        <p className="font-semibold text-foreground">이벤트 정보가 저장되었습니다.</p>
+        <p className="text-sm text-muted-foreground">
           목록에 공개하려면 등록비{" "}
-          <strong className="text-white/80">
+          <strong className="text-foreground">
             {EVENT_REGISTRATION_FEE_KRW.toLocaleString()}원
           </strong>
           을 결제해 주세요.
@@ -187,22 +187,22 @@ export function EventCreateForm({
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
       <form
         onSubmit={submitDraft}
-        className="space-y-5 rounded-2xl border border-white/[0.08] bg-[#1B2135] p-5 sm:p-6"
+        className="space-y-5 rounded-2xl border border-border bg-card p-5 sm:p-6"
       >
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-white/45">이벤트 제목</label>
+          <label className="text-xs font-medium text-muted-foreground">이벤트 제목</label>
           <Input
             placeholder="예: Summer Fanart Contest"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className={cn(fieldClass, "border-white/[0.08]")}
+            className={fieldClass}
             required
             maxLength={120}
           />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-white/45">유형</label>
+          <label className="text-xs font-medium text-muted-foreground">유형</label>
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
@@ -217,7 +217,7 @@ export function EventCreateForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-white/45">설명</label>
+          <label className="text-xs font-medium text-muted-foreground">설명</label>
           <textarea
             placeholder="이벤트 소개를 적어주세요"
             value={description}
@@ -230,7 +230,7 @@ export function EventCreateForm({
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-white/45">시작일</label>
+            <label className="text-xs font-medium text-muted-foreground">시작일</label>
             <Input
               type="datetime-local"
               value={startsAt}
@@ -240,7 +240,7 @@ export function EventCreateForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-white/45">종료일</label>
+            <label className="text-xs font-medium text-muted-foreground">종료일</label>
             <Input
               type="datetime-local"
               value={endsAt}
@@ -252,7 +252,7 @@ export function EventCreateForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-white/45">대표 링크</label>
+          <label className="text-xs font-medium text-muted-foreground">대표 링크</label>
           <Input
             placeholder="https://"
             value={linkUrl}
@@ -263,7 +263,7 @@ export function EventCreateForm({
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs font-medium text-white/45">대표 이미지</label>
+          <label className="text-xs font-medium text-muted-foreground">대표 이미지</label>
           <div className="flex flex-wrap gap-2">
             {mainImageUrl ? (
               <div className="relative">
@@ -271,21 +271,21 @@ export function EventCreateForm({
                 <img
                   src={mainImageUrl}
                   alt=""
-                  className="h-28 w-28 rounded-xl object-cover border border-white/[0.08] aspect-square"
+                  className="h-28 w-28 rounded-xl object-cover border border-border aspect-square"
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="absolute -top-2 -right-2 h-7 w-7 rounded-full bg-[#141826] border border-white/[0.08]"
+                  className="absolute -top-2 -right-2 h-7 w-7 rounded-full bg-background border border-border"
                   onClick={() => setMainImageUrl("")}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
             ) : (
-              <label className="flex h-28 w-28 cursor-pointer items-center justify-center rounded-xl border border-dashed border-white/15 aspect-square hover:border-[#A855F7]/40 hover:bg-[#A855F7]/5 transition-colors">
-                <ImagePlus className="h-6 w-6 text-white/35" />
+              <label className="flex h-28 w-28 cursor-pointer items-center justify-center rounded-xl border border-dashed border-border aspect-square hover:border-[#A855F7]/40 hover:bg-[#A855F7]/5 transition-colors">
+                <ImagePlus className="h-6 w-6 text-muted-foreground" />
                 <input
                   type="file"
                   accept="image/*"
@@ -298,11 +298,11 @@ export function EventCreateForm({
         </div>
 
         {/* Advanced */}
-        <div className="border-t border-white/[0.06] pt-2">
+        <div className="border-t border-border pt-2">
           <button
             type="button"
             onClick={() => setAdvancedOpen((v) => !v)}
-            className="flex w-full items-center justify-between rounded-xl px-1 py-2 text-sm text-white/55 hover:text-white/80 transition-colors"
+            className="flex w-full items-center justify-between rounded-xl px-1 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <span>고급 설정</span>
             <ChevronDown
@@ -316,7 +316,7 @@ export function EventCreateForm({
           {advancedOpen && (
             <div className="mt-3 space-y-5 animate-in fade-in-0 slide-in-from-top-1 duration-200">
               <div className="space-y-2">
-                <p className="text-xs font-medium text-white/45">추가 링크</p>
+                <p className="text-xs font-medium text-muted-foreground">추가 링크</p>
                 {links.map((link, i) => (
                   <div key={i} className="flex gap-2">
                     <Input
@@ -345,7 +345,7 @@ export function EventCreateForm({
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="shrink-0 text-white/40"
+                        className="shrink-0 text-muted-foreground"
                         onClick={() => setLinks(links.filter((_, j) => j !== i))}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -358,7 +358,7 @@ export function EventCreateForm({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="gap-1 rounded-xl border-white/10 bg-transparent text-white/60 hover:bg-white/5"
+                    className="gap-1 rounded-xl"
                     onClick={() => setLinks([...links, { label: "", url: "" }])}
                   >
                     <Plus className="h-3.5 w-3.5" />
@@ -368,7 +368,7 @@ export function EventCreateForm({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-white/45">소개 영상</label>
+                <label className="text-xs font-medium text-muted-foreground">소개 영상</label>
                 <Input
                   placeholder="YouTube / VOD URL"
                   value={videoUrl}
@@ -379,7 +379,7 @@ export function EventCreateForm({
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-medium text-white/45">
+                <label className="text-xs font-medium text-muted-foreground">
                   추가 이미지 (최대 8장)
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -389,14 +389,14 @@ export function EventCreateForm({
                       key={url}
                       src={url}
                       alt=""
-                      className="h-16 w-16 rounded-lg object-cover border border-white/[0.08]"
+                      className="h-16 w-16 rounded-lg object-cover border border-border"
                     />
                   ))}
-                  <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-lg border border-dashed border-white/15 hover:border-[#A855F7]/40">
+                  <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-lg border border-dashed border-border hover:border-[#A855F7]/40">
                     {uploading ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-white/40" />
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                     ) : (
-                      <ImagePlus className="h-4 w-4 text-white/35" />
+                      <ImagePlus className="h-4 w-4 text-muted-foreground" />
                     )}
                     <input
                       type="file"
@@ -411,7 +411,7 @@ export function EventCreateForm({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-white/45">상품 정보</label>
+                <label className="text-xs font-medium text-muted-foreground">상품 정보</label>
                 <Input
                   placeholder="예: 굿즈 세트, 디지털 리워드"
                   value={prize}
@@ -451,7 +451,7 @@ export function EventCreateForm({
         >
           다음: 등록비 결제 ({EVENT_REGISTRATION_FEE_KRW.toLocaleString()}원)
         </Button>
-        <p className="text-center text-xs text-white/35">
+        <p className="text-center text-xs text-muted-foreground">
           등록비 결제 후 목록에 공개됩니다.
         </p>
       </form>
@@ -459,7 +459,7 @@ export function EventCreateForm({
       {/* Desktop sticky preview */}
       <aside className="hidden lg:block">
         <div className="sticky top-24 space-y-3">
-          <p className="text-xs font-medium tracking-wide text-white/40 uppercase">
+          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
             Preview
           </p>
           <EventCard
@@ -473,7 +473,7 @@ export function EventCreateForm({
               likeCount: 0,
             }}
           />
-          <p className="text-[11px] leading-relaxed text-white/30">
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
             제목·이미지·유형·종료일이 카드에 실시간으로 반영됩니다.
           </p>
         </div>
@@ -481,7 +481,7 @@ export function EventCreateForm({
 
       {/* Mobile preview below form (always visible, not only advanced) */}
       <div className="space-y-2 lg:hidden -mt-4">
-        <p className="text-xs font-medium text-white/40">실시간 미리보기</p>
+        <p className="text-xs font-medium text-muted-foreground">실시간 미리보기</p>
         <EventCard
           interactive={false}
           className="max-w-[240px]"

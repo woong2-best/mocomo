@@ -29,14 +29,14 @@ export function EventCard({
   return (
     <article
       className={cn(
-        "group overflow-hidden rounded-2xl border border-white/[0.08] bg-[#1B2135]",
+        "group overflow-hidden rounded-2xl border border-border bg-card",
         "transition-[transform,box-shadow,border-color] duration-200 ease-out",
         interactive &&
           "hover:scale-[1.02] hover:border-[#A855F7]/45 hover:shadow-[0_12px_40px_-12px_rgba(168,85,247,0.45)]",
         className
       )}
     >
-      <div className="relative aspect-[4/3] overflow-hidden bg-[#141826]">
+      <div className="relative aspect-[4/3] overflow-hidden bg-muted">
         {event.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -45,7 +45,7 @@ export function EventCard({
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#1B2135] via-[#1a1530] to-[#141826]">
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-muted via-[#A855F7]/10 to-muted">
             <span className="text-3xl opacity-40">✨</span>
           </div>
         )}
@@ -65,10 +65,10 @@ export function EventCard({
         <p className="text-[11px] font-medium text-[#A855F7]">
           {eventTypeLabel(event.type)}
         </p>
-        <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-white/95">
+        <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-foreground">
           {event.title || "이벤트 제목"}
         </h3>
-        <div className="flex items-center gap-3 text-[11px] text-white/45">
+        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
           <span className="inline-flex items-center gap-1">
             <Heart className="h-3 w-3" />
             {(event.likeCount ?? 0).toLocaleString()}

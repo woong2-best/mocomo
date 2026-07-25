@@ -13,7 +13,7 @@ export default async function EventsPage() {
   }
 
   return (
-    <AppPageChrome maxWidth="6xl" className="bg-[#141826]">
+    <AppPageChrome maxWidth="6xl">
       <EventsBrowse events={events} isLoggedIn={!!session?.user} />
     </AppPageChrome>
   );

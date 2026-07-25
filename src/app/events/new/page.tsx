@@ -22,23 +22,23 @@ export default async function NewEventPage({
   const paidSuccess = paid === "1" && !!eventId;
 
   return (
-    <AppPageChrome maxWidth="5xl" spacing="sm" className="bg-[#141826]">
+    <AppPageChrome maxWidth="5xl" spacing="sm">
       <NativePageTitle>
         <div>
           <Link href="/events">
             <Button
               variant="ghost"
               size="sm"
-              className="mb-2 -ml-2 gap-1 text-white/50 hover:text-white/80"
+              className="mb-2 -ml-2 gap-1 text-muted-foreground hover:text-foreground"
             >
               <ChevronLeft className="h-4 w-4" />
               이벤트
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold tracking-tight text-white/95">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             이벤트 등록
           </h1>
-          <p className="mt-1 text-sm text-white/40">
+          <p className="mt-1 text-sm text-muted-foreground">
             등록비 {EVENT_REGISTRATION_FEE_KRW.toLocaleString()}원 · 결제 후 목록에
             공개됩니다
           </p>
