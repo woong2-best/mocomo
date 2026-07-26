@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { after } from "next/server";
 import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
@@ -10,6 +10,7 @@ import { loadMemberPermissions } from "@/lib/community-server/member-permissions
 import { MAX_OWNERS } from "@/lib/community-server/rbac-defaults";
 import type { JoinCommunityResult } from "@/lib/community-server/types";
 import type { CommunityJoinMode } from "@prisma/client";
+import { COMMUNITIES_LIST_CACHE_TAG } from "@/lib/cache-tags";
 import {
   notifyCommunityJoin,
   notifyJoinApproved,
@@ -20,6 +21,11 @@ import {
 function revalidateCommunityPaths(communitySlug: string) {
   // 응답 직후 재검증 — 페이지 재렌더 실패가 가입 성공 응답을 가로채지 않도록 함
   after(() => {
+    try {
+      revalidateTag(COMMUNITIES_LIST_CACHE_TAG);
+    } catch (e) {
+      console.error("[community-join] revalidateTag", e);
+    }
     revalidatePath(`/c/${communitySlug}`);
     revalidatePath("/communities");
   });

@@ -1,8 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { after } from "next/server";
 import { db } from "@/lib/db";
-import { requireAuth, getCachedCurrentUser } from "@/lib/auth";
+import { requireAuth, requireAuthForAction, getCachedCurrentUser } from "@/lib/auth";
 import { generateCommunitySlug, normalizeCommunitySlugParam } from "@/lib/community-slug";
 import { prismaErrorMessage } from "@/lib/prisma-user-error";
 import { notifyCommunityJoin } from "@/lib/notifications";
@@ -12,6 +13,19 @@ import { postMediaPreview } from "@/lib/post-media-select";
 import { userPublicSelect } from "@/lib/user-public-select";
 import { provisionCommunityServer } from "@/lib/community-server/provision";
 import { isCommunityCategory } from "@/lib/community-labels";
+import { COMMUNITIES_LIST_CACHE_TAG } from "@/lib/cache-tags";
+
+function revalidateCommunitiesList(slug?: string) {
+  after(() => {
+    try {
+      revalidateTag(COMMUNITIES_LIST_CACHE_TAG);
+    } catch (e) {
+      console.error("[community] revalidateTag", e);
+    }
+    revalidatePath("/communities");
+    if (slug) revalidatePath(`/c/${slug}`);
+  });
+}
 
 export async function isCommunityDbReady() {
   try {
@@ -34,7 +48,7 @@ export async function createCommunity(data: {
   | { error: string }
 > {
   try {
-    const user = await requireAuth();
+    const user = await requireAuthForAction();
     const name = data.name?.trim();
     if (!name || name.length < 2) {
       return { error: "커뮤니티 이름은 2자 이상 입력해 주세요." };
@@ -54,6 +68,8 @@ export async function createCommunity(data: {
       const slug =
         attempt === 0 ? generateCommunitySlug(name) : `${generateCommunitySlug(name)}-${attempt}`;
       try {
+        // Fast path only — channel/role seed runs after the response.
+        // Full provision in-request was ~12s and timed out on Vercel ("생성 중…" then idle).
         const community = await db.$transaction(async (tx) => {
           const row = await tx.community.create({
             data: {
@@ -76,12 +92,20 @@ export async function createCommunity(data: {
               presence: "ONLINE",
             },
           });
-          await provisionCommunityServer(tx, row.id, user.id, name);
           return row;
         });
 
-        revalidatePath("/communities");
-        revalidatePath(`/c/${community.slug}`);
+        after(async () => {
+          try {
+            await db.$transaction((tx) =>
+              provisionCommunityServer(tx, community.id, user.id, name)
+            );
+          } catch (e) {
+            console.error("[createCommunity] deferred provision", e);
+          }
+        });
+
+        revalidateCommunitiesList(community.slug);
         return { community };
       } catch (inner) {
         if (
@@ -219,7 +243,9 @@ export async function leaveCommunity(communityId: string) {
       }),
     ]);
 
+    revalidateCommunitiesList();
     revalidatePath(`/c/${member.community.slug}`);
+    revalidatePath("/communities");
     return { success: true as const };
   } catch (e) {
     return { error: prismaErrorMessage(e) };
@@ -313,6 +339,7 @@ export async function updateCommunity(
       },
     });
 
+    revalidateCommunitiesList();
     revalidatePath(`/c/${community.slug}`);
     revalidatePath("/communities");
     return { success: true as const };
@@ -339,6 +366,7 @@ export async function deleteCommunity(communityId: string) {
     }
 
     await db.community.delete({ where: { id: communityId } });
+    revalidateCommunitiesList();
     revalidatePath("/communities");
     return { success: true as const, slug: community.slug };
   } catch (e) {

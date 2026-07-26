@@ -141,7 +141,13 @@ function CommunityRow({ community }: { community: CommunityHubItem }) {
   );
 }
 
-export function CommunitiesHubClient({ communities }: { communities: CommunityHubItem[] }) {
+export function CommunitiesHubClient({
+  communities,
+  loadError = null,
+}: {
+  communities: CommunityHubItem[];
+  loadError?: string | null;
+}) {
   const [tab, setTab] = useState<TabId>("ALL");
 
   const filtered = useMemo(() => {
@@ -219,7 +225,12 @@ export function CommunitiesHubClient({ communities }: { communities: CommunityHu
         </Link>
       </div>
 
-      {filtered.length === 0 ? (
+      {loadError ? (
+        <div className="px-4 py-14 text-center space-y-2">
+          <p className="text-sm text-destructive">{loadError}</p>
+          <p className="text-xs text-muted-foreground">페이지를 새로고침하면 다시 불러옵니다.</p>
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="px-4 py-14 text-center space-y-3">
           <p className="text-sm text-muted-foreground">
             {tab === "ALL"

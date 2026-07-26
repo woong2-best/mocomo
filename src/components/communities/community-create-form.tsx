@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { createCommunity } from "@/actions/community-hub";
 import { COMMUNITY_CATEGORY_OPTIONS } from "@/lib/community-labels";
 import type { CommunityCategory } from "@prisma/client";
@@ -13,7 +12,6 @@ import { ChevronLeft, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }) {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [category, setCategory] = useState<CommunityCategory | "">("");
@@ -47,18 +45,18 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
         return;
       }
       if ("community" in result && result.community?.slug) {
-        router.replace(`/c/${result.community.slug}/posts`);
-        router.refresh();
+        // Hard navigation — soft replace can leave users on /new after a long action.
+        window.location.assign(`/c/${result.community.slug}/posts`);
         return;
       }
 
       setError("커뮤니티가 생성되었지만 이동에 실패했습니다. 커뮤니티 목록에서 확인해 주세요.");
     } catch (e) {
-      setError(
-        e instanceof Error
+      const msg =
+        e instanceof Error && e.message.trim()
           ? e.message
-          : "요청 중 오류가 발생했습니다. 네트워크와 로그인 상태를 확인해 주세요."
-      );
+          : "요청 중 오류가 발생했습니다. 네트워크와 로그인 상태를 확인해 주세요.";
+      setError(msg);
     } finally {
       setLoading(false);
     }

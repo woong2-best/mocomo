@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import { FEED_POSTS_CACHE_TAG } from "@/lib/cache-tags";
+import { COMMUNITIES_LIST_CACHE_TAG, FEED_POSTS_CACHE_TAG } from "@/lib/cache-tags";
 import { liveViewerCutoff } from "@/lib/live-presence";
 import { filterChannelsWithPresentHost } from "@/lib/live-abandon";
 import { db } from "@/lib/db";
@@ -288,8 +288,8 @@ export const getCachedCommunities = unstable_cache(
       orderBy: [{ memberCount: "desc" }, { createdAt: "desc" }],
       select: communityListSelect,
     }),
-  ["communities-list-v3"],
-  { revalidate: 60 }
+  ["communities-list-v4"],
+  { revalidate: 60, tags: [COMMUNITIES_LIST_CACHE_TAG] }
 );
 
 /** @deprecated use getCachedCommunities — hub no longer mixes general posts */
@@ -302,8 +302,8 @@ export const getCachedCommunityHubData = unstable_cache(
     });
     return { communities, hotPosts: [] as const };
   },
-  ["community-hub-v3"],
-  { revalidate: 60 }
+  ["community-hub-v4"],
+  { revalidate: 60, tags: [COMMUNITIES_LIST_CACHE_TAG] }
 );
 
 export const getCachedAnimeGenreCounts = unstable_cache(

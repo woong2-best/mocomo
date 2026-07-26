@@ -5,6 +5,9 @@ import { CommunityCreateForm } from "@/components/communities/community-create-f
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { DbSetupBanner } from "@/components/ui/db-setup-banner";
 
+/** Server action createCommunity — allow headroom if provision races onto this route. */
+export const maxDuration = 60;
+
 export default async function NewCommunityPage() {
   const user = await getCachedCurrentUser();
   if (!user) {

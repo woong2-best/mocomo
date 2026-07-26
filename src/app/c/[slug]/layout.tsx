@@ -3,6 +3,8 @@ import { getCommunityServerContext, getCommunityMembersForSidebar } from "@/lib/
 import { CommunityServerLayoutClient } from "@/components/community-server/server-layout-client";
 
 export const dynamic = "force-dynamic";
+/** First visit may seed channels via ensureCommunityServerProvisioned (~10s+). */
+export const maxDuration = 60;
 
 export default async function CommunityLayout({
   children,

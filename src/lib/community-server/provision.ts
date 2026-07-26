@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { DEFAULT_SERVER_CHANNELS, DEFAULT_SERVER_ROLES } from "./default-channels";
 import { defaultPermissionsForRole } from "./permissions";
 
@@ -138,9 +138,21 @@ export async function ensureCommunityServerProvisioned(communityId: string) {
   });
   if (!community) return false;
 
-  await db.$transaction((tx) =>
-    provisionCommunityServer(tx, community.id, community.creatorId, community.name)
-  );
+  try {
+    await db.$transaction((tx) =>
+      provisionCommunityServer(tx, community.id, community.creatorId, community.name)
+    );
+  } catch (e) {
+    // Concurrent create after() + first page load can both try to seed.
+    const raced =
+      e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
+    if (!raced) throw e;
+    const afterRace = await db.communityChannel.findFirst({
+      where: { communityId },
+      select: { id: true },
+    });
+    if (!afterRace) throw e;
+  }
   provisionedCache.add(communityId);
   return true;
 }
