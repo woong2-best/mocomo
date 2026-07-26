@@ -48,7 +48,7 @@
     },
     {
       "path": "/api/cron/post-media-hls",
-      "schedule": "5 * * * *"
+      "schedule": "0 23 * * *"
     }
   ],
   "functions": {
