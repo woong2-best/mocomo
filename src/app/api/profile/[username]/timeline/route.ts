@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCachedSession } from "@/lib/auth";
 import { getProfileAuthorByUsername, getProfileTimeline } from "@/actions/profile-page";
+import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { parseProfileMediaKind, parseProfileSort, parseProfileTab } from "@/lib/profile-queries";
 
-function serializePost(post: { createdAt: Date; [key: string]: unknown }) {
+function serializePost<T extends { createdAt: Date }>(post: T) {
   return { ...post, createdAt: post.createdAt.toISOString() };
 }
 
@@ -22,8 +23,9 @@ export async function GET(
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 
+  const session = await getCachedSession();
+
   if (tab === "likes") {
-    const session = await getCachedSession();
     if (!session?.user?.id || session.user.id !== author.id) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
@@ -48,13 +50,32 @@ export async function GET(
     return { type: "like" as const, post: serializePost(item.post) };
   });
 
-  const cacheHeader =
-    tab === "likes"
+  const postIds = [
+    ...new Set(
+      serialized.map((item) =>
+        item.type === "reply" ? item.post.id : item.post.id
+      )
+    ),
+  ];
+  const engagement =
+    session?.user?.id && postIds.length > 0
+      ? await getPostEngagementForUser(session.user.id, postIds)
+      : { likedIds: [] as string[], starredIds: [] as string[], repostedIds: [] as string[] };
+
+  const cacheHeader = session?.user?.id
+    ? "private, no-cache"
+    : tab === "likes"
       ? "private, no-store"
       : "public, s-maxage=30, stale-while-revalidate=120";
 
   return NextResponse.json(
-    { items: serialized, nextCursor },
+    {
+      items: serialized,
+      nextCursor,
+      likedIds: engagement.likedIds,
+      starredIds: engagement.starredIds,
+      repostedIds: engagement.repostedIds,
+    },
     { headers: { "Cache-Control": cacheHeader } }
   );
 }

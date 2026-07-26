@@ -4,12 +4,18 @@ import {
   getProfileTimeline,
   getViewerCreatorSubscription,
 } from "@/actions/profile-page";
+import { getAuthUserId } from "@/lib/auth";
 import { creatorSubscriptionPriceForUser } from "@/lib/creator-subscription";
 import { isPaymentsConfigured } from "@/lib/payments";
+import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { ProfileWikiContributions } from "@/components/profile/profile-wiki-contributions";
 import { parseProfileMediaKind, parseProfileSort, parseProfileTab } from "@/lib/profile-queries";
 import { ProfileTimeline, type TimelineItem } from "@/components/profile/profile-timeline";
 import { ProfileMediaGrid } from "@/components/profile/profile-media-grid";
+
+function timelinePostIds(items: { type: string; post: { id: string } }[]) {
+  return [...new Set(items.map((item) => item.post.id))];
+}
 
 const emptyMessages: Record<string, string> = {
   posts: "아직 게시물이 없습니다.",
@@ -105,6 +111,13 @@ export async function ProfileTimelineAsync({
     };
   });
 
+  const viewerId = await getAuthUserId();
+  const postIds = timelinePostIds(initialItems);
+  const engagement =
+    viewerId && postIds.length > 0
+      ? await getPostEngagementForUser(viewerId, postIds)
+      : { likedIds: [] as string[], starredIds: [] as string[], repostedIds: [] as string[] };
+
   return (
     <ProfileTimeline
       username={username}
@@ -119,6 +132,9 @@ export async function ProfileTimelineAsync({
       authorId={header.user.id}
       subscriptionPriceKrw={subscriptionPriceKrw}
       subscribed={subscribed}
+      initialLikedIds={engagement.likedIds}
+      initialStarredIds={engagement.starredIds}
+      initialRepostedIds={engagement.repostedIds}
     />
   );
 }

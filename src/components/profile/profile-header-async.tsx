@@ -16,6 +16,7 @@ import { ProfilePinnedPostVisibility } from "@/components/profile/profile-pinned
 import { ProfilePostCard } from "@/components/profile/profile-post-card";
 import { ProfileVisitTracker } from "@/components/profile/profile-visit-tracker";
 import { getAuthUserId } from "@/lib/auth";
+import { getPostEngagementForUser } from "@/lib/post-engagement";
 import type { UserPublicFields } from "@/lib/user-public-select";
 
 function ActionBarSkeleton() {
@@ -83,6 +84,10 @@ async function ProfilePinnedPostAsync({
 
   if (!pinned) return null;
 
+  const engagement = viewerId
+    ? await getPostEngagementForUser(viewerId, [pinned.id])
+    : { likedIds: [] as string[], starredIds: [] as string[], repostedIds: [] as string[] };
+
   return (
     <ProfilePinnedPostVisibility postId={pinned.id}>
       <ProfilePostCard
@@ -93,6 +98,9 @@ async function ProfilePinnedPostAsync({
         authorId={userId}
         subscriptionPriceKrw={subscriptionPriceKrw}
         subscribed={"subscribed" in viewerSub ? viewerSub.subscribed : false}
+        initialLiked={engagement.likedIds.includes(pinned.id)}
+        initialStarred={engagement.starredIds.includes(pinned.id)}
+        initialReposted={engagement.repostedIds.includes(pinned.id)}
       />
     </ProfilePinnedPostVisibility>
   );

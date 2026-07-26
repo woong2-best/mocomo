@@ -10,7 +10,7 @@ export const profilePostIncludeLight = {
   community: { select: { name: true, slug: true } },
   anime: { select: { title: true, slug: true } },
   media: postMediaProfileTimeline,
-  _count: { select: { likes: true, comments: true, votes: true, media: true } },
+  _count: { select: { likes: true, comments: true, votes: true, reposts: true, media: true } },
 } satisfies Prisma.PostInclude;
 
 export const profilePostInclude = {

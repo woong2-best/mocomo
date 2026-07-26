@@ -46,7 +46,9 @@ export function FeedTimelinePostCard({
   const like = useOptimisticLike(post.id, initialLiked, post._count?.likes ?? 0);
   const star = useOptimisticStar(post.id, initialStarred);
   const [actionError, setActionError] = useState("");
-  const { data: session, status } = useSession();
+  const sessionState = useSession();
+  const session = sessionState?.data;
+  const status = sessionState?.status ?? "unauthenticated";
   const router = useRouter();
   const { locale } = useLocale();
 

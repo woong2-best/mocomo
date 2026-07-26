@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
-import { Heart, MessageSquare, Pin, Repeat2 } from "lucide-react";
-import { formatNumber, cn } from "@/lib/utils";
+import { Pin, Repeat2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { GridPost } from "@/components/feed/feed-post-card";
 import { TranslatableText } from "@/components/ui/translatable-text";
 import { PaidPostMediaGrid } from "@/components/profile/paid-post-media-grid";
 import type { ProfilePostMediaItem } from "@/components/profile/paid-post-media-grid";
 import { PostOwnerMenu } from "@/components/post/post-owner-menu";
 import { PostCollaboratorsHeader } from "@/components/post/post-collaborators-header";
+import { PostEngagementBar } from "@/components/post/post-engagement-bar";
 
 export function ProfilePostCard({
   post,
@@ -19,6 +20,9 @@ export function ProfilePostCard({
   authorId,
   subscriptionPriceKrw,
   subscribed = false,
+  initialLiked = false,
+  initialStarred = false,
+  initialReposted = false,
 }: {
   post: GridPost & { createdAt: Date | string; isPinned?: boolean };
   meta?: string;
@@ -28,6 +32,9 @@ export function ProfilePostCard({
   authorId?: string;
   subscriptionPriceKrw?: number;
   subscribed?: boolean;
+  initialLiked?: boolean;
+  initialStarred?: boolean;
+  initialReposted?: boolean;
 }) {
   const createdAt = typeof post.createdAt === "string" ? new Date(post.createdAt) : post.createdAt;
   const showPinned = pinnedHighlight || post.isPinned;
@@ -96,16 +103,21 @@ export function ProfilePostCard({
                   mediaTotal={post._count?.media ?? post.media.length}
                 />
               )}
-              <div className="flex gap-6 mt-3 text-muted-foreground text-xs">
-                <span className="flex items-center gap-1">
-                  <MessageSquare className="h-3.5 w-3.5" />
-                  {formatNumber(post._count?.comments ?? 0)}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Heart className="h-3.5 w-3.5" />
-                  {formatNumber(post._count?.likes ?? 0)}
-                </span>
-              </div>
+              <PostEngagementBar
+                className="mt-3"
+                postId={post.id}
+                authorUsername={post.author.username}
+                title={post.title}
+                content={post.content}
+                hasVideo={post.media?.some((m) => m.type === "VIDEO")}
+                likeCount={post._count?.likes ?? 0}
+                commentCount={post._count?.comments ?? 0}
+                repostCount={post._count?.reposts ?? 0}
+                viewCount={post.viewCount ?? 0}
+                initialLiked={initialLiked}
+                initialStarred={initialStarred}
+                initialReposted={initialReposted}
+              />
             </div>
             <PostOwnerMenu
               postId={post.id}

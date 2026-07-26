@@ -25,6 +25,17 @@ function timelineQuery(tab: ProfileTab, sort: ProfileSort, mediaKind: ProfileMed
   return params.toString();
 }
 
+function mergeIds(prev: Set<string>, next?: string[]) {
+  if (!next?.length) return prev;
+  const merged = new Set(prev);
+  for (const id of next) merged.add(id);
+  return merged;
+}
+
+function postIdFromItem(item: TimelineItem) {
+  return item.type === "reply" ? item.post.id : item.post.id;
+}
+
 export function ProfileTimeline({
   username,
   tab,
@@ -38,6 +49,9 @@ export function ProfileTimeline({
   authorId,
   subscriptionPriceKrw,
   subscribed = false,
+  initialLikedIds = [],
+  initialStarredIds = [],
+  initialRepostedIds = [],
 }: {
   username: string;
   tab: ProfileTab;
@@ -51,12 +65,18 @@ export function ProfileTimeline({
   authorId?: string;
   subscriptionPriceKrw?: number;
   subscribed?: boolean;
+  initialLikedIds?: string[];
+  initialStarredIds?: string[];
+  initialRepostedIds?: string[];
 }) {
   const [items, setItems] = useState(initialItems);
   const [cursor, setCursor] = useState(initialCursor);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(!initialCursor);
   const [loadError, setLoadError] = useState("");
+  const [likedIds, setLikedIds] = useState(() => new Set(initialLikedIds));
+  const [starredIds, setStarredIds] = useState(() => new Set(initialStarredIds));
+  const [repostedIds, setRepostedIds] = useState(() => new Set(initialRepostedIds));
   const sentinel = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -64,7 +84,10 @@ export function ProfileTimeline({
     setCursor(initialCursor);
     setDone(!initialCursor);
     setLoadError("");
-  }, [initialItems, initialCursor, tab, sort, mediaKind]);
+    setLikedIds(new Set(initialLikedIds));
+    setStarredIds(new Set(initialStarredIds));
+    setRepostedIds(new Set(initialRepostedIds));
+  }, [initialItems, initialCursor, initialLikedIds, initialStarredIds, initialRepostedIds, tab, sort, mediaKind]);
 
   useEffect(() => {
     return subscribePostDeleted((postId) => {
@@ -97,6 +120,9 @@ export function ProfileTimeline({
       setItems((prev) => [...prev, ...json.items]);
       setCursor(json.nextCursor);
       if (!json.nextCursor) setDone(true);
+      setLikedIds((prev) => mergeIds(prev, json.likedIds));
+      setStarredIds((prev) => mergeIds(prev, json.starredIds));
+      setRepostedIds((prev) => mergeIds(prev, json.repostedIds));
     } catch {
       setLoadError("네트워크 오류가 발생했습니다.");
     } finally {
@@ -124,6 +150,12 @@ export function ProfileTimeline({
   return (
     <>
       {items.map((item) => {
+        const postId = postIdFromItem(item);
+        const engagement = {
+          initialLiked: likedIds.has(postId),
+          initialStarred: starredIds.has(postId),
+          initialReposted: repostedIds.has(postId),
+        };
         if (item.type === "post") {
           return (
             <ProfilePostCard
@@ -134,6 +166,7 @@ export function ProfileTimeline({
               authorId={authorId}
               subscriptionPriceKrw={subscriptionPriceKrw}
               subscribed={subscribed}
+              {...engagement}
             />
           );
         }
@@ -147,6 +180,7 @@ export function ProfileTimeline({
               authorId={authorId}
               subscriptionPriceKrw={subscriptionPriceKrw}
               subscribed={subscribed}
+              {...engagement}
             />
           );
         }
@@ -159,6 +193,7 @@ export function ProfileTimeline({
             authorId={authorId}
             subscriptionPriceKrw={subscriptionPriceKrw}
             subscribed={subscribed}
+            {...engagement}
           />
         );
       })}
