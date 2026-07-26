@@ -905,6 +905,12 @@ model PostMedia {
   width          Int?
   height         Int?
   duration       Int?
+  /** Cloudflare Stream / CDN HLS manifest (ABR). */
+  hlsUrl         String?
+  /** Poster / thumbnail URL for lazy paint. */
+  posterUrl      String?
+  /** Cloudflare Stream video UID while packaging / for ABR. */
+  streamUid      String?
   order          Int       @default(0)
   priceKrw       Int       @default(0)
   purchaseCount  Int       @default(0)
@@ -912,6 +918,7 @@ model PostMedia {
   purchases      PostMediaPurchase[]
 
   @@index([postId, order])
+  @@index([streamUid])
 }
 
 model PostMediaPurchase {

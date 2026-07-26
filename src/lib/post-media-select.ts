@@ -12,19 +12,52 @@ export const POST_MEDIA_FULL_TAKE = 100;
 export const postMediaPreview = {
   take: POST_MEDIA_FEED_TAKE,
   orderBy: { order: "asc" as const },
-  select: { id: true, url: true, type: true, priceKrw: true },
+  select: {
+    id: true,
+    url: true,
+    type: true,
+    priceKrw: true,
+    width: true,
+    height: true,
+    duration: true,
+    hlsUrl: true,
+    posterUrl: true,
+  },
 };
 
 /** 프로필·상세 — 여러 장 표시 */
 export const postMediaGallery = {
   take: POST_MEDIA_FULL_TAKE,
   orderBy: { order: "asc" as const },
-  select: { id: true, url: true, type: true, order: true, priceKrw: true, purchaseCount: true },
+  select: {
+    id: true,
+    url: true,
+    type: true,
+    order: true,
+    priceKrw: true,
+    purchaseCount: true,
+    width: true,
+    height: true,
+    duration: true,
+    hlsUrl: true,
+    posterUrl: true,
+  },
 };
 
 /** 프로필 타임라인 — 유료 미디어 id 포함 */
 export const postMediaProfileTimeline = {
   take: POST_MEDIA_FULL_TAKE,
   orderBy: { order: "asc" as const },
-  select: { id: true, url: true, type: true, order: true, priceKrw: true },
+  select: {
+    id: true,
+    url: true,
+    type: true,
+    order: true,
+    priceKrw: true,
+    width: true,
+    height: true,
+    duration: true,
+    hlsUrl: true,
+    posterUrl: true,
+  },
 };

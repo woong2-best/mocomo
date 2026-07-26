@@ -15,6 +15,7 @@ import {
   shouldHideNativeAppHeader,
 } from "@/lib/native-app-shell";
 import { isAptImmersivePath } from "@/lib/apt-route";
+import { REELS_PATH } from "@/lib/site-routes";
 import { nativeRouteVariants } from "@/lib/motion-presets";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
@@ -37,6 +38,8 @@ function NativeAppShellInner({ children }: { children: React.ReactNode }) {
   const mainPb = nativeAppMainPadding(pathname);
   const isVoiceRoom = pathname.startsWith("/voice/") && pathname !== "/voice/new";
   const isAptImmersive = isAptImmersivePath(pathname ?? "");
+  const isReelsImmersive =
+    pathname === REELS_PATH || pathname.startsWith(`${REELS_PATH}/`);
 
   // 채팅방·커뮤니티 서버는 확정 높이가 필요하다(입력창 하단 고정 + 목록만 스크롤).
   const isMessagesRoom = /^\/messages\/[^/]+$/.test(pathname);
@@ -71,6 +74,10 @@ function NativeAppShellInner({ children }: { children: React.ReactNode }) {
 
   if (isAptImmersive) {
     return <main className="fixed inset-0 z-40 overflow-hidden bg-[#0a0a12]">{children}</main>;
+  }
+
+  if (isReelsImmersive) {
+    return <main className="fixed inset-0 z-40 overflow-hidden bg-black">{children}</main>;
   }
 
   if (isAuthRoute || isLegalRoute) {

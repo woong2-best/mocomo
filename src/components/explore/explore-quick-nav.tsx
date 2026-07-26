@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Gamepad2, Radio, Search, Tags } from "lucide-react";
+import { Clapperboard, Gamepad2, Radio, Search, Tags } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isLiveFeatureEnabled } from "@/lib/live-feature";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -16,6 +16,14 @@ const TILES = [
     className:
       "border-folk-terracotta/35 bg-folk-terracotta/8 text-folk-cobalt dark:text-foreground",
     iconClass: "text-folk-terracotta",
+  },
+  {
+    href: "/reels",
+    labelKey: "nav.reels" as MessageKey,
+    subKey: "explore.reelsSub" as MessageKey,
+    icon: Clapperboard,
+    className: "border-folk-cobalt/30 bg-folk-cobalt/8 text-folk-cobalt",
+    iconClass: "text-folk-cobalt",
   },
   {
     href: "/live",
@@ -51,7 +59,7 @@ export function ExploreQuickNav({ className }: { className?: string }) {
 
   return (
     <nav
-      className={cn("grid grid-cols-2 gap-2 sm:grid-cols-4 moco-stagger", className)}
+      className={cn("grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 moco-stagger", className)}
       aria-label={t("explore.quickNavAria")}
     >
       {tiles.map(({ href, labelKey, subKey, icon: Icon, className: tileClass, iconClass }) => (

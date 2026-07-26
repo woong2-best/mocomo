@@ -28,6 +28,9 @@ import { cn } from "@/lib/utils";
 export type PostMediaItem = {
   url: string;
   type: "IMAGE" | "VIDEO";
+  width?: number | null;
+  height?: number | null;
+  duration?: number | null;
 };
 
 type PostMediaComposerProps = {
@@ -359,8 +362,17 @@ export function PostMediaComposer({
     }
   }
 
-  function onVideoComplete(url: string) {
-    addItem({ url, type: "VIDEO" });
+  function onVideoComplete(
+    url: string,
+    meta?: { width?: number | null; height?: number | null; duration?: number | null }
+  ) {
+    addItem({
+      url,
+      type: "VIDEO",
+      width: meta?.width ?? null,
+      height: meta?.height ?? null,
+      duration: meta?.duration ?? null,
+    });
     setVideoBlob(null);
   }
 

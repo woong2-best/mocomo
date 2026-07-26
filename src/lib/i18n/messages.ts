@@ -13,6 +13,7 @@ export type MessageKey =
   | "nav.cosplay"
   | "nav.live"
   | "nav.liveStudio"
+  | "nav.reels"
   | "nav.webtoon"
   | "nav.webtoonStudio"
   | "nav.works"
@@ -115,6 +116,7 @@ export type MessageKey =
   | "explore.quickNavAria"
   | "explore.matchSub"
   | "explore.liveSub"
+  | "explore.reelsSub"
   | "explore.gamesSub"
   | "explore.usedSub"
   | "explore.matchTitle"
@@ -448,6 +450,7 @@ const ko: Record<MessageKey, string> = {
   "nav.cosplay": "코스프레",
   "nav.live": "라이브",
   "nav.liveStudio": "스튜디오",
+  "nav.reels": "릴스",
   "nav.webtoon": "일러스트",
   "nav.webtoonStudio": "작품 판매",
   "nav.works": "작품 판매",
@@ -550,6 +553,7 @@ const ko: Record<MessageKey, string> = {
   "explore.quickNavAria": "빠른 이동",
   "explore.matchSub": "취향·거리",
   "explore.liveSub": "실시간 시청",
+  "explore.reelsSub": "세로 숏폼",
   "explore.gamesSub": "미니게임",
   "explore.usedSub": "전국 거래",
   "explore.matchTitle": "친구 · 코스어 매칭",
@@ -886,6 +890,7 @@ const en: Record<MessageKey, string> = {
   "nav.cosplay": "Cosplay",
   "nav.live": "Live",
   "nav.liveStudio": "Studio",
+  "nav.reels": "Reels",
   "nav.webtoon": "Illustrations",
   "nav.webtoonStudio": "Sell Art",
   "nav.works": "Creator Works",
@@ -988,6 +993,7 @@ const en: Record<MessageKey, string> = {
   "explore.quickNavAria": "Quick links",
   "explore.matchSub": "Taste · distance",
   "explore.liveSub": "Watch live",
+  "explore.reelsSub": "Short videos",
   "explore.gamesSub": "Mini-games",
   "explore.usedSub": "Marketplace",
   "explore.matchTitle": "Friends · cosplayer matching",
@@ -1324,6 +1330,7 @@ const ja: Record<MessageKey, string> = {
   "nav.cosplay": "コスプレ",
   "nav.live": "ライブ",
   "nav.liveStudio": "スタジオ",
+  "nav.reels": "リール",
   "nav.webtoon": "ウェブトゥーン",
   "nav.webtoonStudio": "ウェブトゥーンスタジオ",
   "nav.works": "作品販売",
@@ -1426,6 +1433,7 @@ const ja: Record<MessageKey, string> = {
   "explore.quickNavAria": "クイックリンク",
   "explore.matchSub": "好み・距離",
   "explore.liveSub": "ライブ視聴",
+  "explore.reelsSub": "ショート動画",
   "explore.gamesSub": "ミニゲーム",
   "explore.usedSub": "フリマ",
   "explore.matchTitle": "フレンド · コスプレマッチ",
@@ -1762,6 +1770,7 @@ const zh: Record<MessageKey, string> = {
   "nav.cosplay": "Cosplay",
   "nav.live": "直播",
   "nav.liveStudio": "工作室",
+  "nav.reels": "短视频",
   "nav.webtoon": "网漫",
   "nav.webtoonStudio": "网漫工作室",
   "nav.works": "作品销售",
@@ -1864,6 +1873,7 @@ const zh: Record<MessageKey, string> = {
   "explore.quickNavAria": "快捷入口",
   "explore.matchSub": "喜好·距离",
   "explore.liveSub": "观看直播",
+  "explore.reelsSub": "竖屏短视频",
   "explore.gamesSub": "小游戏",
   "explore.usedSub": "二手市场",
   "explore.matchTitle": "好友 · Cosplay 匹配",

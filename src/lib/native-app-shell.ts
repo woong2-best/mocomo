@@ -1,7 +1,7 @@
 /** Play Store / app.mocomo.net 전용 셸 — 하단 탭·FAB·간소 헤더 */
 
 import { isUsedDetailPath } from "@/lib/mobile-shell";
-import { APT_GAME_PATH } from "@/lib/site-routes";
+import { APT_GAME_PATH, REELS_PATH } from "@/lib/site-routes";
 import { isFastHubPath } from "@/lib/hub-fast-path";
 
 export { isFastHubPath } from "@/lib/hub-fast-path";
@@ -25,6 +25,7 @@ export function shouldHideNativeAppNav(pathname: string): boolean {
   if (pathname.startsWith("/legal")) return true;
   if (pathname === "/discover") return true;
   if (pathname === APT_GAME_PATH) return true;
+  if (pathname === REELS_PATH || pathname.startsWith(`${REELS_PATH}/`)) return true;
   if (isUsedDetailPath(pathname)) return true;
   return false;
 }
@@ -34,6 +35,7 @@ export function shouldHideNativeAppHeader(pathname: string): boolean {
   if (/^\/messages\/[^/]+$/.test(pathname)) return true;
   if (isImmersiveGamePath(pathname)) return true;
   if (pathname === APT_GAME_PATH) return true;
+  if (pathname === REELS_PATH || pathname.startsWith(`${REELS_PATH}/`)) return true;
   return false;
 }
 

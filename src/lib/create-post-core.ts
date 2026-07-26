@@ -14,6 +14,17 @@ import {
   validatePostPollInput,
   type CreatePostPollInput,
 } from "@/lib/post-poll";
+import { enqueuePostMediaHlsPackaging } from "@/lib/post-media-hls";
+import { clampMediaInt } from "@/lib/video-metadata";
+
+export type CreatePostMediaInput = {
+  url: string;
+  type: MediaType;
+  priceKrw?: number;
+  width?: number | null;
+  height?: number | null;
+  duration?: number | null;
+};
 
 export type CreatePostInput = {
   content: string;
@@ -24,7 +35,7 @@ export type CreatePostInput = {
   tagNames?: string[];
   visibility?: import("@prisma/client").ContentVisibility;
   instantPurchasePriceKrw?: number;
-  media?: { url: string; type: MediaType; priceKrw?: number }[];
+  media?: CreatePostMediaInput[];
   poll?: CreatePostPollInput;
   /** User IDs to invite as PENDING collaborators on create */
   collaboratorUserIds?: string[];
@@ -78,6 +89,9 @@ export async function createPostForUser(
         url: m.url.trim(),
         type: m.type,
         priceKrw: Math.max(0, Math.floor(m.priceKrw ?? 0)),
+        width: clampMediaInt(m.width),
+        height: clampMediaInt(m.height),
+        duration: clampMediaInt(m.duration, 86_400),
       }));
 
     const pollOptions = data.poll
@@ -111,7 +125,10 @@ export async function createPostForUser(
               }
             : undefined,
       },
-      select: { id: true },
+      select: {
+        id: true,
+        media: { select: { id: true, url: true, type: true } },
+      },
     });
 
     const tagNames = (data.tagNames ?? []).map((t) => t.trim()).filter(Boolean);
@@ -146,6 +163,11 @@ export async function createPostForUser(
     }
 
     void notifyNewPostMentions(post.id, user.id, data.title, content);
+
+    const videoMedia = post.media
+      .filter((m) => m.type === "VIDEO")
+      .map((m) => ({ id: m.id, url: m.url }));
+    enqueuePostMediaHlsPackaging(videoMedia);
 
     const collabIds = (data.collaboratorUserIds ?? [])
       .map((id) => String(id).trim())

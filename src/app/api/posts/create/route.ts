@@ -4,6 +4,7 @@ import { rateLimitPublicApi } from "@/lib/api-security";
 import { db } from "@/lib/db";
 import { createPostForUser, type CreatePostInput } from "@/lib/create-post-core";
 import type { MediaType } from "@prisma/client";
+import { clampMediaInt } from "@/lib/video-metadata";
 
 export async function POST(req: NextRequest) {
   const limited = await rateLimitPublicApi(req, "posts-create", 20);
@@ -39,6 +40,10 @@ export async function POST(req: NextRequest) {
   const media = (body.media ?? []).map((m) => ({
     url: String(m.url ?? ""),
     type: (m.type === "VIDEO" ? "VIDEO" : "IMAGE") as MediaType,
+    priceKrw: typeof m.priceKrw === "number" ? m.priceKrw : undefined,
+    width: clampMediaInt(m.width),
+    height: clampMediaInt(m.height),
+    duration: clampMediaInt(m.duration, 86_400),
   }));
 
   const result = await createPostForUser(user, {

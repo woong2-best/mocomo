@@ -27,6 +27,7 @@ import { VideoPreviewCanvas } from "@/components/media/video/video-preview-canva
 import { VideoTimeline } from "@/components/media/video/video-timeline";
 import { needsVideoReencode, useVideoEditor } from "@/hooks/use-video-editor";
 import { processVideoBlob } from "@/lib/video-editor/process-video";
+import { computeOutputDimensions } from "@/lib/video-editor/draw-frame";
 import { VIDEO_FILTER_PRESETS } from "@/lib/video-editor/filters";
 import { generateVideoThumbnails } from "@/lib/video-editor/thumbnails";
 import type { VideoTool } from "@/lib/video-editor/types";
@@ -36,6 +37,7 @@ import { uploadVideoBlob, type UploadMediaOptions } from "@/lib/client-upload";
 import { hasActiveWatermark, type WatermarkOptions } from "@/lib/media-watermark";
 import { WatermarkToggleButtons } from "@/components/media/watermark-toggle-buttons";
 import { getUploadMaxBytes, uploadSizeExceededMessage, MAX_VIDEO_DURATION_SEC } from "@/lib/upload-limits";
+import { readVideoMetadata } from "@/lib/video-metadata";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +58,10 @@ type VideoEditDialogProps = {
   watermarkCreditLabel?: string;
   watermarkOptions?: WatermarkOptions;
   onWatermarkOptionsChange?: (next: WatermarkOptions) => void;
-  onComplete: (publicUrl: string) => void;
+  onComplete: (
+    publicUrl: string,
+    meta?: { width?: number | null; height?: number | null; duration?: number | null }
+  ) => void;
   onUploadingChange?: (busy: boolean) => void;
 };
 
@@ -162,11 +167,43 @@ export function VideoEditDialog({
     onOpenChange(false);
   }
 
-  async function uploadBlob(blob: Blob, filename: string, opts?: UploadMediaOptions) {
+  async function resolveUploadMeta(blob: Blob, skipProcess: boolean) {
+    const clipDur = Math.max(1, Math.round(edit.endSec - edit.startSec));
+    const preview = hiddenVideoRef.current;
+    if (!skipProcess && preview && preview.videoWidth > 0 && preview.videoHeight > 0) {
+      const dims = computeOutputDimensions(
+        preview.videoWidth,
+        preview.videoHeight,
+        edit.rotation,
+        edit.cropAspect
+      );
+      return {
+        width: Math.round(dims.width),
+        height: Math.round(dims.height),
+        duration: clipDur,
+      };
+    }
+    const meta = await readVideoMetadata(blob);
+    return {
+      width: meta.width,
+      height: meta.height,
+      duration: meta.duration ?? (duration > 0 ? Math.max(1, Math.round(duration)) : null),
+    };
+  }
+
+  async function uploadBlob(
+    blob: Blob,
+    filename: string,
+    opts: UploadMediaOptions | undefined,
+    skipProcess: boolean
+  ) {
     const ext = guessVideoMime(filename, blob.type).includes("webm") ? "webm" : "mp4";
     const name = filename.replace(/\.\w+$/, `.${ext}`);
-    const url = await uploadVideoBlob(blob, name, opts);
-    onComplete(url);
+    const [url, meta] = await Promise.all([
+      uploadVideoBlob(blob, name, opts),
+      resolveUploadMeta(blob, skipProcess),
+    ]);
+    onComplete(url, meta);
     onOpenChange(false);
   }
 
@@ -229,7 +266,12 @@ export function VideoEditDialog({
         }
       }
 
-      await uploadBlob(toUpload, uploadFilename, watermarkBurned ? undefined : resolved);
+      await uploadBlob(
+        toUpload,
+        uploadFilename,
+        watermarkBurned ? undefined : resolved,
+        skipProcess
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "영상 처리에 실패했습니다.");
     } finally {

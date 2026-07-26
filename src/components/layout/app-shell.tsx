@@ -13,6 +13,7 @@ import { mainScrollPaddingClass, shouldHideMobileNav } from "@/lib/mobile-shell"
 import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
 import { isAptImmersivePath } from "@/lib/apt-route";
 import { isFastHubPath } from "@/lib/hub-fast-path";
+import { REELS_PATH } from "@/lib/site-routes";
 import { cn } from "@/lib/utils";
 import { pageVariants } from "@/lib/motion-presets";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
@@ -31,6 +32,8 @@ function AppShellInner({
   const isCommunityServerRoute = /^\/c\/[^/]+/.test(pathname);
   const isVoiceRoom = pathname.startsWith("/voice/") && pathname !== "/voice/new";
   const isAptImmersive = isAptImmersivePath(pathname ?? "");
+  const isReelsImmersive =
+    pathname === REELS_PATH || pathname.startsWith(`${REELS_PATH}/`);
   const hideMobileNav = shouldHideMobileNav(pathname);
   const mainPb = mainScrollPaddingClass(pathname);
   const showRightPanel = shouldShowRightPanel(pathname);
@@ -87,6 +90,10 @@ function AppShellInner({
 
   if (isAptImmersive) {
     return <main className="fixed inset-0 z-40 overflow-hidden bg-[#0a0a12]">{children}</main>;
+  }
+
+  if (isReelsImmersive) {
+    return <main className="fixed inset-0 z-40 overflow-hidden bg-black">{children}</main>;
   }
 
   return (

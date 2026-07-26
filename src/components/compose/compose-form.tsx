@@ -103,7 +103,13 @@ export function ComposeForm({
       communityId,
       isNsfw: form.get("isNsfw") === "on",
       tagNames: tags,
-      media: media.map((m) => ({ url: m.url, type: m.type })),
+      media: media.map((m) => ({
+        url: m.url,
+        type: m.type,
+        width: m.width ?? null,
+        height: m.height ?? null,
+        duration: m.duration ?? null,
+      })),
       poll: poll ?? undefined,
       collaboratorUserIds: collaborators.map((c) => c.id),
     };

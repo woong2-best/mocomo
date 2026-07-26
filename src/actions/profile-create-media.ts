@@ -14,6 +14,9 @@ export async function createProfileMediaPost(input: {
   priceKrw?: number;
   visibility?: string;
   instantPurchasePriceKrw?: number;
+  width?: number | null;
+  height?: number | null;
+  duration?: number | null;
 }) {
   const user = await requireAuth();
   const content = input.content?.trim();
@@ -41,7 +44,16 @@ export async function createProfileMediaPost(input: {
     content,
     visibility,
     instantPurchasePriceKrw,
-    media: [{ url: mediaUrl, type: mediaType, priceKrw: mediaPrice }],
+    media: [
+      {
+        url: mediaUrl,
+        type: mediaType,
+        priceKrw: mediaPrice,
+        width: input.width,
+        height: input.height,
+        duration: input.duration,
+      },
+    ],
   });
 
   if (result.error) return { error: result.error };

@@ -12,6 +12,7 @@ import {
   Crown,
   Tags,
   Banknote,
+  Clapperboard,
 } from "lucide-react";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { SupportTrophyIcon } from "@/components/icons/support-trophy-icon";
@@ -41,6 +42,7 @@ export const mainNavItems: NavItem[] = [
   { href: "/messages", icon: MessageSquare, labelKey: "nav.messages" },
   { href: "/star", icon: Star, labelKey: "nav.star" },
   { href: "/live", icon: Radio, labelKey: "nav.live" },
+  { href: "/reels", icon: Clapperboard, labelKey: "nav.reels" },
   { href: "/market", icon: Store, labelKey: "nav.market" },
   { href: "/used", icon: Tags, labelKey: "nav.used" },
   { href: "/anime", icon: Tv, labelKey: "nav.anime" },
