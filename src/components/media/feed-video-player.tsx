@@ -97,6 +97,13 @@ function isCoarsePointer(): boolean {
   return window.matchMedia("(pointer: coarse)").matches;
 }
 
+function isEditableKeyTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+  return target.isContentEditable;
+}
+
 export function FeedVideoPlayer({
   src,
   className,
@@ -123,6 +130,9 @@ export function FeedVideoPlayer({
   const pendingSeekPctRef = useRef<number | null>(null);
   const volumeBeforeMuteRef = useRef(DEFAULT_VOLUME);
   const userPausedRef = useRef(false);
+  /** Suppress trailing click that lands on the Play overlay after pointerup-pause. */
+  const suppressOverlayClickRef = useRef(false);
+  const holdBoostRef = useRef(false);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const unloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -219,11 +229,57 @@ export function FeedVideoPlayer({
     }
   }, []);
 
+  const isPlayerFullscreen = useCallback(() => {
+    const el = containerRef.current;
+    return Boolean(el && typeof document !== "undefined" && document.fullscreenElement === el);
+  }, []);
+
+  const focusPlayer = useCallback(() => {
+    containerRef.current?.focus({ preventScroll: true });
+  }, []);
+
+  const ensureMediaSrc = useCallback(async () => {
+    const v = videoRef.current;
+    if (!v) return false;
+    if (v.getAttribute("src") === src && v.src) return true;
+
+    restoredRef.current = false;
+    setMediaAttached(true);
+    v.src = src;
+    v.load();
+
+    await new Promise<void>((resolve) => {
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        v.removeEventListener("loadeddata", finish);
+        v.removeEventListener("canplay", finish);
+        v.removeEventListener("error", finish);
+        resolve();
+      };
+      v.addEventListener("loadeddata", finish);
+      v.addEventListener("canplay", finish);
+      v.addEventListener("error", finish);
+      window.setTimeout(finish, 2000);
+    });
+    return Boolean(v.getAttribute("src"));
+  }, [src]);
+
   const playExclusive = useCallback(
     async (reason: "autoplay" | "user" | "hover" | "visibility") => {
       const ctrl = getVideoPlaybackController();
       const v = videoRef.current;
       if (!v || !ctrl) return false;
+
+      // Scrub pauses intentionally — don't let IO/hover autoplay fight mid-drag.
+      if (scrubbingRef.current && reason !== "user") return false;
+
+      // Fullscreen IO can falsely unload src; restore before user/autoplay play.
+      if (!v.getAttribute("src") || v.getAttribute("src") !== src) {
+        const okAttach = await ensureMediaSrc();
+        if (!okAttach) return false;
+      }
 
       // Already playing this element — skip re-entry (prevents stutter).
       if (!v.paused && !v.ended && ctrl.getActiveId() === playerId) {
@@ -243,7 +299,7 @@ export function FeedVideoPlayer({
       }
       return ok;
     },
-    [playerId]
+    [ensureMediaSrc, playerId, src]
   );
 
   const pauseSelf = useCallback(
@@ -446,6 +502,20 @@ export function FeedVideoPlayer({
       (entries) => {
         const entry = entries[0];
         if (!entry) return;
+
+        // Chromium often reports intersectionRatio=0 while an element is fullscreen
+        // (top layer). Treat fullscreen as fully in-view so we never pause/unload.
+        if (isPlayerFullscreen()) {
+          if (unloadTimerRef.current) {
+            clearTimeout(unloadTimerRef.current);
+            unloadTimerRef.current = null;
+          }
+          nearViewRef.current = true;
+          inViewRef.current = true;
+          setMediaAttached((prev) => (prev ? prev : true));
+          return;
+        }
+
         const ratio = entry.intersectionRatio;
         const near = ratio > 0.05 || entry.isIntersecting;
         nearViewRef.current = near;
@@ -463,6 +533,7 @@ export function FeedVideoPlayer({
         } else if (!near) {
           if (!unloadTimerRef.current) {
             unloadTimerRef.current = setTimeout(() => {
+              if (isPlayerFullscreen()) return;
               const v = videoRef.current;
               if (v) {
                 saveProgress(pKey, v.currentTime);
@@ -482,6 +553,7 @@ export function FeedVideoPlayer({
           ratio >= AUTOPLAY_THRESHOLD &&
           shouldAutoplayOnNetwork(quality) &&
           !userPausedRef.current &&
+          !scrubbingRef.current &&
           !document.hidden;
 
         // Hysteresis: only pause after dropping below AUTOPAUSE_THRESHOLD.
@@ -520,13 +592,29 @@ export function FeedVideoPlayer({
     playerId,
     pKey,
     preloadProp,
+    isPlayerFullscreen,
   ]);
 
   useEffect(() => {
-    const onFsChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    const onFsChange = () => {
+      const fs = isPlayerFullscreen();
+      setIsFullscreen(fs);
+      if (unloadTimerRef.current) {
+        clearTimeout(unloadTimerRef.current);
+        unloadTimerRef.current = null;
+      }
+      // Pinch-zoom + fullscreen fight hit-testing; always reset.
+      setZoom(1);
+      nearViewRef.current = true;
+      inViewRef.current = true;
+      // IO may have unloaded (or be about to) on a false off-screen reading.
+      setMediaAttached(true);
+      void ensureMediaSrc();
+      focusPlayer();
+    };
     document.addEventListener("fullscreenchange", onFsChange);
     return () => document.removeEventListener("fullscreenchange", onFsChange);
-  }, []);
+  }, [ensureMediaSrc, focusPlayer, isPlayerFullscreen]);
 
   const applySpeed = (rate: number) => {
     const v = videoRef.current;
@@ -695,6 +783,7 @@ export function FeedVideoPlayer({
 
   const onTrackPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     stopFeedNavigation(e);
+    focusPlayer();
     const v = videoRef.current;
     if (v) {
       resumeAfterScrubRef.current = !v.paused;
@@ -729,11 +818,13 @@ export function FeedVideoPlayer({
 
   const onVideoPointerDown = (e: React.PointerEvent) => {
     stopFeedNavigation(e);
+    focusPlayer();
     if (e.pointerType === "touch" || isCoarsePointer()) {
       longPressTimerRef.current = setTimeout(() => {
         const v = videoRef.current;
         if (!v) return;
         v.playbackRate = LONG_PRESS_RATE;
+        holdBoostRef.current = true;
         setHoldBoost(true);
         setSpeed(LONG_PRESS_RATE);
       }, LONG_PRESS_MS);
@@ -746,9 +837,10 @@ export function FeedVideoPlayer({
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
     }
-    if (holdBoost) {
+    if (holdBoostRef.current) {
       const v = videoRef.current;
       if (v) v.playbackRate = 1;
+      holdBoostRef.current = false;
       setHoldBoost(false);
       setSpeed(1);
       return;
@@ -761,6 +853,12 @@ export function FeedVideoPlayer({
       return;
     }
     lastTapRef.current = now;
+
+    // pointerup → pause mounts Play overlay → trailing click would immediately resume.
+    suppressOverlayClickRef.current = true;
+    window.setTimeout(() => {
+      suppressOverlayClickRef.current = false;
+    }, 350);
 
     if (!started) {
       userPausedRef.current = false;
@@ -775,11 +873,30 @@ export function FeedVideoPlayer({
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
     }
-    if (holdBoost) {
+    if (holdBoostRef.current) {
       const v = videoRef.current;
       if (v) v.playbackRate = 1;
+      holdBoostRef.current = false;
       setHoldBoost(false);
       setSpeed(1);
+    }
+  };
+
+  /** Tap empty letterbox / zoom margins (not controls) still toggles play. */
+  const onSurfacePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget) return;
+    if (e.button !== 0 && e.pointerType === "mouse") return;
+    stopFeedNavigation(e);
+    focusPlayer();
+    suppressOverlayClickRef.current = true;
+    window.setTimeout(() => {
+      suppressOverlayClickRef.current = false;
+    }, 350);
+    if (!started) {
+      userPausedRef.current = false;
+      void playExclusive("user");
+    } else {
+      togglePlay();
     }
   };
 
@@ -825,13 +942,13 @@ export function FeedVideoPlayer({
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    const tag = (e.target as HTMLElement)?.tagName;
-    if (tag === "INPUT" || tag === "TEXTAREA") return;
+    if (isEditableKeyTarget(e.target)) return;
 
     switch (e.key) {
       case " ":
       case "k":
       case "K":
+        // preventDefault so a focused control button doesn't also activate (double toggle).
         e.preventDefault();
         togglePlay();
         break;
@@ -908,7 +1025,11 @@ export function FeedVideoPlayer({
       role="group"
       aria-label="동영상 플레이어"
       onClick={stopFeedNavigation}
-      onPointerDown={stopFeedNavigation}
+      onPointerDown={(e) => {
+        stopFeedNavigation(e);
+        focusPlayer();
+      }}
+      onPointerUp={onSurfacePointerUp}
       onKeyDown={onKeyDown}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -968,10 +1089,17 @@ export function FeedVideoPlayer({
           aria-label="재생"
           onClick={(e) => {
             stopFeedNavigation(e);
+            // Ghost click after video pointerup-pause must not auto-resume.
+            if (suppressOverlayClickRef.current) {
+              suppressOverlayClickRef.current = false;
+              return;
+            }
             userPausedRef.current = false;
             void playExclusive("user");
           }}
-          className="absolute inset-0 z-[2] flex items-center justify-center transition-opacity duration-200"
+          // Visual-only for pointer: let <video> keep receiving taps so pause
+          // doesn't lose to a trailing click on this newly-mounted overlay.
+          className="pointer-events-none absolute inset-0 z-[2] flex items-center justify-center transition-opacity duration-200"
         >
           <span className="flex h-16 w-16 items-center justify-center rounded-full bg-black/55 text-white ring-1 ring-white/25 backdrop-blur-sm transition-transform group-hover/video:scale-105">
             <Play className="h-7 w-7 translate-x-[2px]" fill="currentColor" />
@@ -1030,6 +1158,7 @@ export function FeedVideoPlayer({
               aria-label={playing ? "일시정지" : "재생"}
               onClick={(e) => {
                 stopFeedNavigation(e);
+                focusPlayer();
                 togglePlay();
               }}
             >
