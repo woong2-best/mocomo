@@ -20,6 +20,7 @@ import {
   type ReelsMenuAction,
 } from "@/components/reels/reels-context-menu";
 import { useReelsMutedState } from "@/components/reels/reels-player";
+import { ReelsCommentsPanel } from "@/components/reels/reels-comments-panel";
 import { engageStar } from "@/lib/post-engage-client";
 import { getVideoPlaybackController } from "@/lib/video-playback";
 
@@ -52,6 +53,10 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
     y: number;
     index: number;
   }>({ open: false, x: 0, y: 0, index: 0 });
+  const [commentsPanel, setCommentsPanel] = useState<{
+    postId: string;
+    count: number;
+  } | null>(null);
   const [, startTransition] = useTransition();
   const router = useRouter();
   const fetchingRef = useRef(false);
@@ -273,7 +278,13 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
   const activeReel = items[menu.index] ?? items[activeIndex];
 
   return (
-    <div className="relative h-[100dvh] w-full overflow-hidden bg-black">
+    <div className="relative flex h-[100dvh] w-full overflow-hidden bg-black">
+      <div
+        className={cn(
+          "relative min-h-0 min-w-0 flex-1 transition-[max-width] duration-300 ease-out",
+          commentsPanel && "lg:max-w-[calc(100%-24rem)]"
+        )}
+      >
       <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between px-3 pt-[max(0.5rem,env(safe-area-inset-top))]">
         <Link
           href="/feed"
@@ -309,6 +320,12 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
             onMutedChange={setMuted}
             onOpenMenu={(x, y) => openMenu(index, x, y)}
             onShare={() => void shareReel(reel)}
+            onComment={(postId, count) => setCommentsPanel({ postId, count })}
+            commentCountOverride={
+              commentsPanel?.postId === reel.postId
+                ? commentsPanel.count
+                : undefined
+            }
           />
         ))}
         {loadingMore && (
@@ -328,6 +345,17 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
           onAction={onMenuAction}
         />
       )}
+      </div>
+
+      <ReelsCommentsPanel
+        open={!!commentsPanel}
+        postId={commentsPanel?.postId ?? ""}
+        initialCount={commentsPanel?.count ?? 0}
+        onClose={() => setCommentsPanel(null)}
+        onCountChange={(count) =>
+          setCommentsPanel((prev) => (prev ? { ...prev, count } : prev))
+        }
+      />
     </div>
   );
 }

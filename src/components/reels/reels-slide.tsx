@@ -40,6 +40,8 @@ type Props = {
   onBackgroundClick?: () => void;
   /** Notify parent when cinema (true fullscreen) mode toggles. */
   onCinemaChange?: (cinema: boolean) => void;
+  onComment?: (postId: string, commentCount: number) => void;
+  commentCountOverride?: number;
 };
 
 export function ReelsSlide({
@@ -56,6 +58,8 @@ export function ReelsSlide({
   variant = "reels",
   onBackgroundClick,
   onCinemaChange,
+  onComment,
+  commentCountOverride,
 }: Props) {
   const distance = Math.abs(index - activeIndex);
   const isActive = index === activeIndex;
@@ -215,6 +219,13 @@ export function ReelsSlide({
       onShare={onShare}
       expanded={cinema}
       onToggleExpand={isViewer ? toggleCinema : undefined}
+      onComment={
+        onComment
+          ? () =>
+              onComment(reel.postId, commentCountOverride ?? reel.commentCount)
+          : undefined
+      }
+      commentCount={commentCountOverride}
       className={cn(
         "absolute z-20",
         cinema

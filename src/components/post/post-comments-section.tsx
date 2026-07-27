@@ -22,7 +22,7 @@ export async function PostCommentsSection({ postId }: { postId: string }) {
       <h2 className="font-semibold">
         {t("post.comments")} {comments.length > 0 && comments.length}
       </h2>
-      {session?.user && <CommentForm postId={postId} />}
+      {session?.user && <CommentForm postId={postId} className="mt-4" />}
       {loadError ? (
         <p className="text-sm text-destructive">{loadError}</p>
       ) : (

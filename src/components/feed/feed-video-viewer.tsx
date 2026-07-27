@@ -27,6 +27,7 @@ import {
 } from "@/lib/feed-video-viewer";
 import { FeedVideoPostSlide } from "@/components/feed/feed-video-post-slide";
 import { FeedVideoExpandLightbox } from "@/components/feed/feed-video-expand-lightbox";
+import { ReelsCommentsPanel } from "@/components/reels/reels-comments-panel";
 
 type Props = {
   groups: FeedVideoGroup[];
@@ -62,6 +63,10 @@ export function FeedVideoViewer({
   const [expand, setExpand] = useState<{
     groupIndex: number;
     videoIndex: number;
+  } | null>(null);
+  const [commentsPanel, setCommentsPanel] = useState<{
+    postId: string;
+    count: number;
   } | null>(null);
   const [forcedVideoByGroup, setForcedVideoByGroup] = useState<
     Record<number, number>
@@ -201,7 +206,7 @@ export function FeedVideoViewer({
 
   useEffect(() => {
     const root = scrollerRef.current;
-    if (!root || expand) return;
+    if (!root || expand || commentsPanel) return;
 
     let wheelLock = false;
     const onWheelThrottled = (e: WheelEvent) => {
@@ -223,10 +228,10 @@ export function FeedVideoViewer({
 
     root.addEventListener("wheel", onWheelThrottled, { passive: false });
     return () => root.removeEventListener("wheel", onWheelThrottled);
-  }, [activeIndex, expand, goTo]);
+  }, [activeIndex, commentsPanel, expand, goTo]);
 
   useEffect(() => {
-    if (expand) return;
+    if (expand || commentsPanel) return;
     function onKey(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (
@@ -253,7 +258,7 @@ export function FeedVideoViewer({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [activeIndex, close, expand, goTo, muted, setMuted]);
+  }, [activeIndex, close, commentsPanel, expand, goTo, muted, setMuted]);
 
   const openMenu = useCallback((index: number, x: number, y: number) => {
     setMenu({ open: true, x, y, index });
@@ -323,8 +328,14 @@ export function FeedVideoViewer({
       role="dialog"
       aria-modal="true"
       aria-label="피드 영상 보기"
-      className="fixed inset-0 z-[200] overflow-hidden bg-black"
+      className="fixed inset-0 z-[200] flex overflow-hidden bg-black"
     >
+      <div
+        className={cn(
+          "relative min-h-0 min-w-0 flex-1 transition-[max-width] duration-300 ease-out",
+          commentsPanel && "lg:max-w-[calc(100%-24rem)]"
+        )}
+      >
       <header
         className={cn(
           "pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between px-3 pt-[max(0.5rem,env(safe-area-inset-top))]",
@@ -380,7 +391,15 @@ export function FeedVideoViewer({
               videoIndexByGroupRef.current[index] = videoIndex;
             }}
             forcedVideoIndex={forcedVideoByGroup[index] ?? null}
-            horizontalNavEnabled={!expand}
+            horizontalNavEnabled={!expand && !commentsPanel}
+            onComment={(postId, count) =>
+              setCommentsPanel({ postId, count })
+            }
+            commentCountOverride={
+              commentsPanel?.postId === group.postId
+                ? commentsPanel.count
+                : undefined
+            }
           />
         ))}
         {loadingMore && (
@@ -395,7 +414,7 @@ export function FeedVideoViewer({
           "pointer-events-none absolute z-40 flex flex-col gap-2",
           "right-3 top-[max(4.5rem,env(safe-area-inset-top))]",
           "lg:right-10 lg:top-1/2 lg:-translate-y-1/2 lg:gap-3",
-          expand && "hidden"
+          (expand || commentsPanel) && "hidden"
         )}
       >
         <button
@@ -455,6 +474,17 @@ export function FeedVideoViewer({
           }}
         />
       )}
+      </div>
+
+      <ReelsCommentsPanel
+        open={!!commentsPanel}
+        postId={commentsPanel?.postId ?? ""}
+        initialCount={commentsPanel?.count ?? 0}
+        onClose={() => setCommentsPanel(null)}
+        onCountChange={(count) =>
+          setCommentsPanel((prev) => (prev ? { ...prev, count } : prev))
+        }
+      />
     </div>,
     document.body
   );

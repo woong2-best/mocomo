@@ -9,8 +9,21 @@ import {
   notifyCommentConfirmed,
   notifyCommentFailed,
 } from "@/lib/comment-optimistic-sync";
+import { cn } from "@/lib/utils";
 
-export function CommentForm({ postId, parentId }: { postId: string; parentId?: string }) {
+export function CommentForm({
+  postId,
+  parentId,
+  placeholder,
+  className,
+  inputClassName,
+}: {
+  postId: string;
+  parentId?: string;
+  placeholder?: string;
+  className?: string;
+  inputClassName?: string;
+}) {
   const [content, setContent] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
@@ -63,13 +76,19 @@ export function CommentForm({ postId, parentId }: { postId: string; parentId?: s
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-2 mt-4">
+    <form onSubmit={handleSubmit} className={cn("flex flex-col gap-2", className)}>
       <div className="flex gap-2">
         <input
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder={parentId ? "대댓글..." : "댓글을 입력하세요..."}
-          className="flex-1 h-10 rounded-lg border border-border bg-background/50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+          placeholder={
+            placeholder ??
+            (parentId ? "대댓글..." : "댓글을 입력하세요...")
+          }
+          className={cn(
+            "flex-1 h-10 rounded-lg border border-border bg-background/50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40",
+            inputClassName
+          )}
         />
         <Button type="submit" size="sm" disabled={!content.trim()}>
           등록

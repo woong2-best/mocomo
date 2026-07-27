@@ -38,6 +38,8 @@ type Props = {
   onActiveVideoChange?: (videoIndex: number) => void;
   forcedVideoIndex?: number | null;
   horizontalNavEnabled?: boolean;
+  onComment?: (postId: string, commentCount: number) => void;
+  commentCountOverride?: number;
 };
 
 export function FeedVideoPostSlide({
@@ -57,6 +59,8 @@ export function FeedVideoPostSlide({
   onActiveVideoChange,
   forcedVideoIndex = null,
   horizontalNavEnabled = true,
+  onComment,
+  commentCountOverride,
 }: Props) {
   const hScrollerRef = useRef<HTMLDivElement>(null);
   const [videoIndex, setVideoIndex] = useState(() =>
@@ -375,19 +379,29 @@ export function FeedVideoPostSlide({
                       </div>
                     )}
 
-                    <ReelsActions
-                      reel={activeReel}
-                      liked={like.liked}
-                      likeCount={like.likeCount}
-                      starred={star.starred}
-                      onToggleLike={() => void like.toggle()}
-                      onToggleStar={() => void star.toggle()}
-                      muted={muted}
-                      onToggleMute={() => onMutedChange(!muted)}
-                      onShare={() => onShare(activeReel)}
-                      onToggleExpand={() => onExpand(videoIndex)}
-                      className="absolute right-2 bottom-28 z-20 sm:right-3"
-                    />
+          <ReelsActions
+            reel={activeReel}
+            liked={like.liked}
+            likeCount={like.likeCount}
+            starred={star.starred}
+            onToggleLike={() => void like.toggle()}
+            onToggleStar={() => void star.toggle()}
+            muted={muted}
+            onToggleMute={() => onMutedChange(!muted)}
+            onShare={() => onShare(activeReel)}
+            onToggleExpand={() => onExpand(videoIndex)}
+            onComment={
+              onComment
+                ? () =>
+                    onComment(
+                      activeReel.postId,
+                      commentCountOverride ?? activeReel.commentCount
+                    )
+                : undefined
+            }
+            commentCount={commentCountOverride}
+            className="absolute right-2 bottom-28 z-20 sm:right-3"
+          />
                   </>
                 )}
               </div>

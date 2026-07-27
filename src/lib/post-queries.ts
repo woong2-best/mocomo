@@ -126,25 +126,44 @@ async function attachPollView<T extends { poll: Parameters<typeof mapPostPollRow
   };
 }
 
-export async function getPostComments(postId: string, limit = 40) {
+export type PostCommentSort = "newest" | "popular" | "oldest";
+
+export async function getPostComments(
+  postId: string,
+  limit = 40,
+  sort: PostCommentSort = "oldest"
+) {
+  const orderBy =
+    sort === "popular"
+      ? ([{ replies: { _count: "desc" as const } }, { createdAt: "desc" as const }] as const)
+      : sort === "newest"
+        ? ({ createdAt: "desc" as const })
+        : ({ createdAt: "asc" as const });
+
   return db.comment.findMany({
     where: { postId, parentId: null },
     take: limit,
-    orderBy: { createdAt: "asc" },
+    orderBy: orderBy as never,
     select: {
       id: true,
       content: true,
       createdAt: true,
       author: { select: userPublicSelect },
+      _count: { select: { replies: true } },
       replies: {
         take: 10,
         orderBy: { createdAt: "asc" },
         select: {
           id: true,
           content: true,
+          createdAt: true,
           author: { select: userPublicSelect },
         },
       },
     },
   });
+}
+
+export async function countPostComments(postId: string) {
+  return db.comment.count({ where: { postId } });
 }

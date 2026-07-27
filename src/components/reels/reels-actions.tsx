@@ -32,6 +32,10 @@ type Props = {
   /** Immersive cinema / fullscreen within the viewer. */
   expanded?: boolean;
   onToggleExpand?: () => void;
+  /** Open in-viewer comments panel (YouTube-style). */
+  onComment?: () => void;
+  /** Override displayed comment count (live updates). */
+  commentCount?: number;
   className?: string;
 };
 
@@ -47,12 +51,15 @@ export function ReelsActions({
   onShare,
   expanded = false,
   onToggleExpand,
+  onComment,
+  commentCount,
   className,
 }: Props) {
   const sessionState = useSession();
   const session = sessionState?.data;
   const status = sessionState?.status ?? "unauthenticated";
   const router = useRouter();
+  const displayCommentCount = commentCount ?? reel.commentCount;
 
   function requireLogin() {
     if (status === "loading") return false;
@@ -105,16 +112,30 @@ export function ReelsActions({
         </span>
       </button>
 
-      <Link
-        href={`/post/${reel.postId}#comments`}
-        className="flex flex-col items-center gap-0.5 min-h-11 min-w-11"
-        aria-label="Comments"
-      >
-        <MessageCircle className="h-7 w-7 drop-shadow-md" />
-        <span className="text-[11px] font-semibold tabular-nums drop-shadow">
-          {formatNumber(reel.commentCount)}
-        </span>
-      </Link>
+      {onComment ? (
+        <button
+          type="button"
+          className="flex flex-col items-center gap-0.5 min-h-11 min-w-11"
+          aria-label="Comments"
+          onClick={onComment}
+        >
+          <MessageCircle className="h-7 w-7 drop-shadow-md" />
+          <span className="text-[11px] font-semibold tabular-nums drop-shadow">
+            {formatNumber(displayCommentCount)}
+          </span>
+        </button>
+      ) : (
+        <Link
+          href={`/post/${reel.postId}#comments`}
+          className="flex flex-col items-center gap-0.5 min-h-11 min-w-11"
+          aria-label="Comments"
+        >
+          <MessageCircle className="h-7 w-7 drop-shadow-md" />
+          <span className="text-[11px] font-semibold tabular-nums drop-shadow">
+            {formatNumber(displayCommentCount)}
+          </span>
+        </Link>
+      )}
 
       <button
         type="button"
