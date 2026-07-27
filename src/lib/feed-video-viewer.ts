@@ -13,6 +13,17 @@ export type FeedVideoOpenTarget = {
   mediaIndex?: number;
 };
 
+/** One feed post that has one or more playable videos. */
+export type FeedVideoGroup = {
+  postId: string;
+  videos: ReelItem[];
+};
+
+export type FeedVideoOpenPosition = {
+  groupIndex: number;
+  videoIndex: number;
+};
+
 type FeedMedia = NonNullable<GridPost["media"]>[number];
 
 function isPlayableFeedVideo(m: FeedMedia): boolean {
@@ -77,30 +88,64 @@ export function postVideoToReelItem(
   };
 }
 
-/** Flatten unlocked feed videos in timeline order for the immersive viewer. */
-export function buildFeedVideoPlaylist(
+/**
+ * Group playable videos by post (timeline order).
+ * Vertical nav = between groups; horizontal nav = within a group.
+ */
+export function buildFeedVideoGroups(
   items: FeedLayoutItem[],
   likedIds: Set<string>,
   starredIds: Set<string>
-): ReelItem[] {
-  const playlist: ReelItem[] = [];
+): FeedVideoGroup[] {
+  const groups: FeedVideoGroup[] = [];
   for (const item of items) {
     if (item.type !== "post") continue;
     const post = item.data;
-    const media = post.media ?? [];
-    for (const m of media) {
+    const videos: ReelItem[] = [];
+    for (const m of post.media ?? []) {
       const reel = postVideoToReelItem(
         post,
         m,
         likedIds.has(post.id),
         starredIds.has(post.id)
       );
-      if (reel) playlist.push(reel);
+      if (reel) videos.push(reel);
+    }
+    if (videos.length > 0) {
+      groups.push({ postId: post.id, videos });
     }
   }
-  return playlist;
+  return groups;
 }
 
+/** @deprecated use buildFeedVideoGroups */
+export function buildFeedVideoPlaylist(
+  items: FeedLayoutItem[],
+  likedIds: Set<string>,
+  starredIds: Set<string>
+): ReelItem[] {
+  return buildFeedVideoGroups(items, likedIds, starredIds).flatMap((g) => g.videos);
+}
+
+export function findGroupOpenPosition(
+  groups: FeedVideoGroup[],
+  target: FeedVideoOpenTarget
+): FeedVideoOpenPosition | null {
+  const groupIndex = groups.findIndex((g) => g.postId === target.postId);
+  if (groupIndex < 0) return null;
+  const group = groups[groupIndex]!;
+  if (target.mediaId) {
+    const videoIndex = group.videos.findIndex(
+      (r) =>
+        r.media.id === target.mediaId ||
+        r.media.id === `${target.postId}:${target.mediaId}`
+    );
+    if (videoIndex >= 0) return { groupIndex, videoIndex };
+  }
+  return { groupIndex, videoIndex: 0 };
+}
+
+/** @deprecated use findGroupOpenPosition */
 export function findPlaylistIndex(
   playlist: ReelItem[],
   target: FeedVideoOpenTarget

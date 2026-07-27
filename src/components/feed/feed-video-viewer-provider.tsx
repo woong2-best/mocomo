@@ -12,8 +12,8 @@ import {
 import type { FeedLayoutItem } from "@/components/feed/feed-dual-column-layout";
 import { FeedVideoViewer } from "@/components/feed/feed-video-viewer";
 import {
-  buildFeedVideoPlaylist,
-  findPlaylistIndex,
+  buildFeedVideoGroups,
+  findGroupOpenPosition,
   getMainScrollEl,
   type FeedVideoOpenTarget,
 } from "@/lib/feed-video-viewer";
@@ -47,25 +47,27 @@ export function FeedVideoViewerProvider({
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const [startIndex, setStartIndex] = useState(0);
+  const [startGroupIndex, setStartGroupIndex] = useState(0);
+  const [startVideoIndex, setStartVideoIndex] = useState(0);
   const savedScrollTopRef = useRef(0);
 
-  const playlist = useMemo(
-    () => buildFeedVideoPlaylist(items, likedIds, starredIds),
+  const groups = useMemo(
+    () => buildFeedVideoGroups(items, likedIds, starredIds),
     [items, likedIds, starredIds]
   );
 
   const openVideoViewer = useCallback(
     (target: FeedVideoOpenTarget) => {
-      const idx = findPlaylistIndex(playlist, target);
-      if (idx < 0) return false;
+      const pos = findGroupOpenPosition(groups, target);
+      if (!pos) return false;
       savedScrollTopRef.current = getMainScrollEl()?.scrollTop ?? 0;
       getVideoPlaybackController()?.pauseAll();
-      setStartIndex(idx);
+      setStartGroupIndex(pos.groupIndex);
+      setStartVideoIndex(pos.videoIndex);
       setOpen(true);
       return true;
     },
-    [playlist]
+    [groups]
   );
 
   const onClose = useCallback(() => {
@@ -87,10 +89,11 @@ export function FeedVideoViewerProvider({
   return (
     <FeedVideoViewerContext.Provider value={value}>
       {children}
-      {open && playlist.length > 0 && (
+      {open && groups.length > 0 && (
         <FeedVideoViewer
-          items={playlist}
-          startIndex={startIndex}
+          groups={groups}
+          startGroupIndex={startGroupIndex}
+          startVideoIndex={startVideoIndex}
           onClose={onClose}
           onNearEnd={onNearEnd}
           loadingMore={loadingMore}

@@ -12,8 +12,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ReelItem } from "@/lib/reels/types";
+import type { FeedVideoGroup } from "@/lib/feed-video-viewer";
 import { REELS_PREFETCH_REMAINING } from "@/lib/reels/constants";
-import { ReelsSlide } from "@/components/reels/reels-slide";
 import {
   ReelsContextMenu,
   type ReelsMenuAction,
@@ -25,26 +25,33 @@ import {
   FEED_VIDEO_VIEWER_HISTORY_KEY,
   lockMainScroll,
 } from "@/lib/feed-video-viewer";
+import { FeedVideoPostSlide } from "@/components/feed/feed-video-post-slide";
+import { FeedVideoExpandLightbox } from "@/components/feed/feed-video-expand-lightbox";
 
 type Props = {
-  items: ReelItem[];
-  startIndex: number;
+  groups: FeedVideoGroup[];
+  startGroupIndex: number;
+  startVideoIndex: number;
   onClose: () => void;
   onNearEnd?: () => void;
   loadingMore?: boolean;
 };
 
 export function FeedVideoViewer({
-  items,
-  startIndex,
+  groups,
+  startGroupIndex,
+  startVideoIndex,
   onClose,
   onNearEnd,
   loadingMore = false,
 }: Props) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(() =>
-    Math.max(0, Math.min(startIndex, Math.max(0, items.length - 1)))
+    Math.max(0, Math.min(startGroupIndex, Math.max(0, groups.length - 1)))
   );
+  const videoIndexByGroupRef = useRef<Record<number, number>>({
+    [startGroupIndex]: startVideoIndex,
+  });
   const [muted, setMuted] = useReelsMutedState();
   const [menu, setMenu] = useState<{
     open: boolean;
@@ -52,19 +59,24 @@ export function FeedVideoViewer({
     y: number;
     index: number;
   }>({ open: false, x: 0, y: 0, index: 0 });
+  const [expand, setExpand] = useState<{
+    groupIndex: number;
+    videoIndex: number;
+  } | null>(null);
+  const [forcedVideoByGroup, setForcedVideoByGroup] = useState<
+    Record<number, number>
+  >({});
   const [, startTransition] = useTransition();
   const router = useRouter();
   const pathname = usePathname() ?? "/feed";
   const closedRef = useRef(false);
   const closingViaUiRef = useRef(false);
   const startedRef = useRef(false);
-  const [cinema, setCinema] = useState(false);
 
   const close = useCallback(() => {
     if (closedRef.current) return;
     closedRef.current = true;
     closingViaUiRef.current = true;
-    // Close first so the feed (and its scroll position) is revealed immediately.
     onClose();
     if (
       typeof window !== "undefined" &&
@@ -74,7 +86,6 @@ export function FeedVideoViewer({
     }
   }, [onClose]);
 
-  // Synthetic history entry: device/browser back dismisses the viewer.
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -109,11 +120,10 @@ export function FeedVideoViewer({
     return unlock;
   }, []);
 
-  // Jump to the tapped video once mounted.
   useEffect(() => {
-    if (startedRef.current || items.length === 0) return;
+    if (startedRef.current || groups.length === 0) return;
     startedRef.current = true;
-    const idx = Math.max(0, Math.min(startIndex, items.length - 1));
+    const idx = Math.max(0, Math.min(startGroupIndex, groups.length - 1));
     setActiveIndex(idx);
     requestAnimationFrame(() => {
       const el = scrollerRef.current?.querySelector<HTMLElement>(
@@ -124,13 +134,13 @@ export function FeedVideoViewer({
         block: "start",
       });
     });
-  }, [startIndex, items.length]);
+  }, [startGroupIndex, groups.length]);
 
   useEffect(() => {
-    if (items.length - activeIndex <= REELS_PREFETCH_REMAINING) {
+    if (groups.length - activeIndex <= REELS_PREFETCH_REMAINING) {
       onNearEnd?.();
     }
-  }, [activeIndex, items.length, onNearEnd]);
+  }, [activeIndex, groups.length, onNearEnd]);
 
   const syncActiveFromScroll = useCallback(() => {
     const root = scrollerRef.current;
@@ -167,23 +177,23 @@ export function FeedVideoViewer({
       cancelAnimationFrame(raf);
       root.removeEventListener("scroll", onScroll);
     };
-  }, [syncActiveFromScroll, items.length]);
+  }, [syncActiveFromScroll, groups.length]);
 
   const goTo = useCallback(
     (index: number) => {
-      const clamped = Math.max(0, Math.min(items.length - 1, index));
+      const clamped = Math.max(0, Math.min(groups.length - 1, index));
       const el = scrollerRef.current?.querySelector<HTMLElement>(
         `[data-reel-index="${clamped}"]`
       );
       el?.scrollIntoView({ behavior: "smooth", block: "start" });
       setActiveIndex(clamped);
     },
-    [items.length]
+    [groups.length]
   );
 
   const goNext = useCallback(() => {
-    if (activeIndex < items.length - 1) goTo(activeIndex + 1);
-  }, [activeIndex, goTo, items.length]);
+    if (activeIndex < groups.length - 1) goTo(activeIndex + 1);
+  }, [activeIndex, goTo, groups.length]);
 
   const goPrev = useCallback(() => {
     if (activeIndex > 0) goTo(activeIndex - 1);
@@ -191,10 +201,12 @@ export function FeedVideoViewer({
 
   useEffect(() => {
     const root = scrollerRef.current;
-    if (!root) return;
+    if (!root || expand) return;
 
     let wheelLock = false;
     const onWheelThrottled = (e: WheelEvent) => {
+      // Prefer horizontal trackpad for in-post videos — only vertical for posts.
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
       if (wheelLock) {
         e.preventDefault();
         return;
@@ -211,9 +223,10 @@ export function FeedVideoViewer({
 
     root.addEventListener("wheel", onWheelThrottled, { passive: false });
     return () => root.removeEventListener("wheel", onWheelThrottled);
-  }, [activeIndex, goTo]);
+  }, [activeIndex, expand, goTo]);
 
   useEffect(() => {
+    if (expand) return;
     function onKey(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (
@@ -228,7 +241,7 @@ export function FeedVideoViewer({
         close();
         return;
       }
-      if (e.key === "ArrowDown" || e.key === "PageDown" || e.key === " ") {
+      if (e.key === "ArrowDown" || e.key === "PageDown") {
         e.preventDefault();
         goTo(activeIndex + 1);
       } else if (e.key === "ArrowUp" || e.key === "PageUp") {
@@ -240,7 +253,7 @@ export function FeedVideoViewer({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [activeIndex, close, goTo, muted, setMuted]);
+  }, [activeIndex, close, expand, goTo, muted, setMuted]);
 
   const openMenu = useCallback((index: number, x: number, y: number) => {
     setMenu({ open: true, x, y, index });
@@ -271,7 +284,10 @@ export function FeedVideoViewer({
 
   const onMenuAction = useCallback(
     (action: ReelsMenuAction) => {
-      const reel = items[menu.index];
+      const group = groups[menu.index];
+      const reel =
+        group?.videos[videoIndexByGroupRef.current[menu.index] ?? 0] ??
+        group?.videos[0];
       if (!reel) return;
       if (action === "copy-link") {
         void shareReel(reel);
@@ -288,14 +304,19 @@ export function FeedVideoViewer({
         router.push(`/post/${reel.postId}?report=1`);
       }
     },
-    [close, items, menu.index, router, shareReel]
+    [close, groups, menu.index, router, shareReel]
   );
 
-  if (typeof document === "undefined" || items.length === 0) return null;
+  if (typeof document === "undefined" || groups.length === 0) return null;
 
-  const activeReel = items[menu.index] ?? items[activeIndex];
+  const menuGroup = groups[menu.index] ?? groups[activeIndex];
+  const activeReel =
+    menuGroup?.videos[videoIndexByGroupRef.current[menu.index] ?? 0] ??
+    menuGroup?.videos[0];
   const canPrev = activeIndex > 0;
-  const canNext = activeIndex < items.length - 1;
+  const canNext = activeIndex < groups.length - 1;
+  const expandGroup =
+    expand != null ? groups[expand.groupIndex] ?? null : null;
 
   return createPortal(
     <div
@@ -307,7 +328,7 @@ export function FeedVideoViewer({
       <header
         className={cn(
           "pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between px-3 pt-[max(0.5rem,env(safe-area-inset-top))]",
-          cinema && "hidden"
+          expand && "hidden"
         )}
       >
         <button
@@ -329,29 +350,36 @@ export function FeedVideoViewer({
         className={cn(
           "h-[100dvh] w-full overflow-y-auto overflow-x-hidden overscroll-y-contain",
           "snap-y snap-mandatory scroll-smooth",
-          "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-          cinema && "overflow-hidden touch-none"
+          "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         )}
         role="feed"
         aria-label="피드 영상"
         tabIndex={0}
       >
-        {items.map((reel, index) => (
-          <ReelsSlide
-            key={reel.id}
-            reel={reel}
+        {groups.map((group, index) => (
+          <FeedVideoPostSlide
+            key={group.postId}
+            group={group}
             index={index}
             activeIndex={activeIndex}
+            initialVideoIndex={
+              index === startGroupIndex
+                ? startVideoIndex
+                : videoIndexByGroupRef.current[index] ?? 0
+            }
             muted={muted}
             onMutedChange={setMuted}
             onOpenMenu={(x, y) => openMenu(index, x, y)}
-            onShare={() => void shareReel(reel)}
+            onShare={(reel) => void shareReel(reel)}
             disableLoop
             onEnded={index === activeIndex ? goNext : undefined}
             authCallbackPath={pathname}
-            variant="viewer"
             onBackgroundClick={close}
-            onCinemaChange={index === activeIndex ? setCinema : undefined}
+            onExpand={(videoIndex) => setExpand({ groupIndex: index, videoIndex })}
+            onActiveVideoChange={(videoIndex) => {
+              videoIndexByGroupRef.current[index] = videoIndex;
+            }}
+            forcedVideoIndex={forcedVideoByGroup[index] ?? null}
           />
         ))}
         {loadingMore && (
@@ -361,15 +389,12 @@ export function FeedVideoViewer({
         )}
       </div>
 
-      {/* X-style up / down video navigation */}
       <div
         className={cn(
           "pointer-events-none absolute z-40 flex flex-col gap-2",
-          // Mobile: below header, clear of the action rail
           "right-3 top-[max(4.5rem,env(safe-area-inset-top))]",
-          // Desktop: mid-right like X
           "lg:right-10 lg:top-1/2 lg:-translate-y-1/2 lg:gap-3",
-          cinema && "hidden"
+          expand && "hidden"
         )}
       >
         <button
@@ -381,7 +406,7 @@ export function FeedVideoViewer({
             "hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
             "disabled:pointer-events-none disabled:opacity-30"
           )}
-          aria-label="이전 영상"
+          aria-label="이전 게시물 영상"
         >
           <ChevronUp className="h-6 w-6" />
         </button>
@@ -394,7 +419,7 @@ export function FeedVideoViewer({
             "hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
             "disabled:pointer-events-none disabled:opacity-30"
           )}
-          aria-label="다음 영상"
+          aria-label="다음 게시물 영상"
         >
           <ChevronDown className="h-6 w-6" />
         </button>
@@ -408,6 +433,25 @@ export function FeedVideoViewer({
           y={menu.y}
           onClose={() => setMenu((m) => ({ ...m, open: false }))}
           onAction={onMenuAction}
+        />
+      )}
+
+      {expand && expandGroup && (
+        <FeedVideoExpandLightbox
+          open
+          videos={expandGroup.videos}
+          initialIndex={expand.videoIndex}
+          onClose={() => {
+            const gi = expand.groupIndex;
+            const vi = expand.videoIndex;
+            videoIndexByGroupRef.current[gi] = vi;
+            setForcedVideoByGroup((prev) => ({ ...prev, [gi]: vi }));
+            setExpand(null);
+          }}
+          onIndexChange={(videoIndex) => {
+            videoIndexByGroupRef.current[expand.groupIndex] = videoIndex;
+            setExpand({ groupIndex: expand.groupIndex, videoIndex });
+          }}
         />
       )}
     </div>,

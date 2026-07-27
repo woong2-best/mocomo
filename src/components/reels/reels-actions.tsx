@@ -69,20 +69,18 @@ export function ReelsActions({
       )}
       onClick={(e) => e.stopPropagation()}
     >
-      {!expanded && (
-        <Link
-          href={`/u/${reel.author.username}`}
-          className="relative mb-1 rounded-full ring-2 ring-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-folk-gold"
-          aria-label={`@${reel.author.username}`}
-        >
-          <Avatar className="h-11 w-11 border border-white/30">
-            <AvatarImage src={reel.author.image ?? undefined} alt="" />
-            <AvatarFallback className="bg-folk-cobalt text-white text-sm">
-              {userDisplayName(reel.author).slice(0, 1).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-        </Link>
-      )}
+      <Link
+        href={`/u/${reel.author.username}`}
+        className="relative mb-1 rounded-full ring-2 ring-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-folk-gold"
+        aria-label={`@${reel.author.username}`}
+      >
+        <Avatar className="h-11 w-11 border border-white/30">
+          <AvatarImage src={reel.author.image ?? undefined} alt="" />
+          <AvatarFallback className="bg-folk-cobalt text-white text-sm">
+            {userDisplayName(reel.author).slice(0, 1).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+      </Link>
 
       <button
         type="button"
@@ -107,53 +105,47 @@ export function ReelsActions({
         </span>
       </button>
 
-      {!expanded && (
-        <Link
-          href={`/post/${reel.postId}#comments`}
-          className="flex flex-col items-center gap-0.5 min-h-11 min-w-11"
-          aria-label="Comments"
-        >
-          <MessageCircle className="h-7 w-7 drop-shadow-md" />
-          <span className="text-[11px] font-semibold tabular-nums drop-shadow">
-            {formatNumber(reel.commentCount)}
-          </span>
-        </Link>
-      )}
+      <Link
+        href={`/post/${reel.postId}#comments`}
+        className="flex flex-col items-center gap-0.5 min-h-11 min-w-11"
+        aria-label="Comments"
+      >
+        <MessageCircle className="h-7 w-7 drop-shadow-md" />
+        <span className="text-[11px] font-semibold tabular-nums drop-shadow">
+          {formatNumber(reel.commentCount)}
+        </span>
+      </Link>
 
-      {!expanded && (
-        <button
-          type="button"
-          className="flex flex-col items-center gap-0.5 min-h-11 min-w-11"
-          aria-pressed={starred}
-          aria-label={starred ? "Remove bookmark" : "Bookmark"}
-          onClick={() => {
-            if (!requireLogin()) return;
-            onToggleStar();
-          }}
-        >
-          <MotionPop trigger={starred}>
-            <Star
-              className={cn(
-                "h-7 w-7 drop-shadow-md",
-                starred && "fill-folk-gold text-folk-gold"
-              )}
-            />
-          </MotionPop>
-          <span className="text-[11px] font-semibold drop-shadow">저장</span>
-        </button>
-      )}
+      <button
+        type="button"
+        className="flex flex-col items-center gap-0.5 min-h-11 min-w-11"
+        aria-pressed={starred}
+        aria-label={starred ? "Remove bookmark" : "Bookmark"}
+        onClick={() => {
+          if (!requireLogin()) return;
+          onToggleStar();
+        }}
+      >
+        <MotionPop trigger={starred}>
+          <Star
+            className={cn(
+              "h-7 w-7 drop-shadow-md",
+              starred && "fill-folk-gold text-folk-gold"
+            )}
+          />
+        </MotionPop>
+        <span className="text-[11px] font-semibold drop-shadow">저장</span>
+      </button>
 
-      {!expanded && (
-        <button
-          type="button"
-          className="flex flex-col items-center gap-0.5 min-h-11 min-w-11"
-          aria-label="Share"
-          onClick={onShare}
-        >
-          <Share2 className="h-7 w-7 drop-shadow-md" />
-          <span className="text-[11px] font-semibold drop-shadow">공유</span>
-        </button>
-      )}
+      <button
+        type="button"
+        className="flex flex-col items-center gap-0.5 min-h-11 min-w-11"
+        aria-label="Share"
+        onClick={onShare}
+      >
+        <Share2 className="h-7 w-7 drop-shadow-md" />
+        <span className="text-[11px] font-semibold drop-shadow">공유</span>
+      </button>
 
       <button
         type="button"
