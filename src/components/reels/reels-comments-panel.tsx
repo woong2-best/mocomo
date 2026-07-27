@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import {
@@ -19,7 +19,6 @@ import {
   COMMENT_FAILED_EVENT,
   type OptimisticComment,
 } from "@/lib/comment-optimistic-sync";
-import type { PostCommentSort } from "@/lib/post-queries";
 
 type ApiComment = {
   id: string;
@@ -103,41 +102,63 @@ export function ReelsCommentsPanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
+  const onCountChangeRef = useRef(onCountChange);
+  onCountChangeRef.current = onCountChange;
+  const totalRef = useRef(total);
+  totalRef.current = total;
 
-  const load = useCallback(async (pid: string, s: PostCommentSort) => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch(
-        `/api/posts/${encodeURIComponent(pid)}/comments?sort=${s}&limit=50`,
-        { credentials: "include" }
-      );
-      const body = (await res.json().catch(() => ({}))) as {
-        comments?: ApiComment[];
-        total?: number;
-        error?: string;
-      };
-      if (!res.ok) {
-        throw new Error(body.error || "댓글을 불러오지 못했습니다.");
-      }
-      const list = (body.comments ?? []).map(toOptimistic);
-      setComments(list);
-      const nextTotal =
-        typeof body.total === "number" ? body.total : list.length;
-      setTotal(nextTotal);
-      onCountChange?.(nextTotal);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "댓글을 불러오지 못했습니다.");
-    } finally {
-      setLoading(false);
-    }
-  }, [onCountChange]);
+  const notifyCount = useCallback((next: number) => {
+    if (totalRef.current === next) return;
+    totalRef.current = next;
+    setTotal(next);
+    onCountChangeRef.current?.(next);
+  }, []);
 
+  // Fetch once per open/post/sort — not when parent count callback identity changes
   useEffect(() => {
     if (!open || !postId) return;
+
+    const ac = new AbortController();
     setReplyTo(null);
-    void load(postId, sort);
-  }, [open, postId, sort, load]);
+    setError("");
+    setLoading(true);
+    setComments([]);
+    setTotal(initialCount);
+    totalRef.current = initialCount;
+
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/posts/${encodeURIComponent(postId)}/comments?sort=${sort}&limit=50`,
+          { credentials: "include", signal: ac.signal }
+        );
+        const body = (await res.json().catch(() => ({}))) as {
+          comments?: ApiComment[];
+          total?: number;
+          error?: string;
+        };
+        if (ac.signal.aborted) return;
+        if (!res.ok) {
+          throw new Error(body.error || "댓글을 불러오지 못했습니다.");
+        }
+        const list = (body.comments ?? []).map(toOptimistic);
+        setComments(list);
+        const nextTotal =
+          typeof body.total === "number" ? body.total : list.length;
+        notifyCount(nextTotal);
+        setError("");
+      } catch (e) {
+        if (ac.signal.aborted) return;
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        setError(e instanceof Error ? e.message : "댓글을 불러오지 못했습니다.");
+      } finally {
+        if (!ac.signal.aborted) setLoading(false);
+      }
+    })();
+
+    return () => ac.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- seed initialCount only on open
+  }, [open, postId, sort, notifyCount]);
 
   useEffect(() => {
     if (!open) setSortMenuOpen(false);
@@ -174,11 +195,7 @@ export function ReelsCommentsPanel({
           sort === "newest" ? [comment, ...prev] : [...prev, comment]
         );
       }
-      setTotal((t) => {
-        const next = t + 1;
-        onCountChange?.(next);
-        return next;
-      });
+      notifyCount(totalRef.current + 1);
     }
 
     function onConfirmed(e: Event) {
@@ -210,11 +227,7 @@ export function ReelsCommentsPanel({
             replies: c.replies.filter((r) => r.id !== detail.pendingId),
           }))
       );
-      setTotal((t) => {
-        const next = Math.max(0, t - 1);
-        onCountChange?.(next);
-        return next;
-      });
+      notifyCount(Math.max(0, totalRef.current - 1));
     }
 
     window.addEventListener(COMMENT_ADDED_EVENT, onAdded);
@@ -225,7 +238,7 @@ export function ReelsCommentsPanel({
       window.removeEventListener(COMMENT_CONFIRMED_EVENT, onConfirmed);
       window.removeEventListener(COMMENT_FAILED_EVENT, onFailed);
     };
-  }, [onCountChange, open, postId, sort]);
+  }, [notifyCount, open, postId, sort]);
 
   // Escape closes panel
   useEffect(() => {
@@ -243,6 +256,8 @@ export function ReelsCommentsPanel({
 
   const sortLabel =
     SORT_OPTIONS.find((o) => o.id === sort)?.label ?? "인기 댓글";
+
+  const empty = !loading && !error && comments.length === 0;
 
   const panelBody = (
     <>
@@ -296,13 +311,13 @@ export function ReelsCommentsPanel({
       <p className="shrink-0 px-4 pt-2 text-xs text-white/45">{sortLabel}</p>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3">
-        {loading && comments.length === 0 ? (
+        {loading ? (
           <div className="flex justify-center py-10">
             <Loader2 className="h-6 w-6 animate-spin text-white/50" />
           </div>
         ) : error ? (
           <p className="py-6 text-center text-sm text-red-300">{error}</p>
-        ) : comments.length === 0 ? (
+        ) : empty ? (
           <p className="py-10 text-center text-sm text-white/50">
             아직 댓글이 없습니다. 첫 댓글을 남겨 보세요.
           </p>

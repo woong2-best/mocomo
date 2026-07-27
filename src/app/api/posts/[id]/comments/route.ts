@@ -19,7 +19,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const limited = await rateLimitPublicApi(req, "post-comment-list", 60);
+  const limited = await rateLimitPublicApi(req, "post-comment-list", 120);
   if (limited) return limited;
 
   const { id: postId } = await params;

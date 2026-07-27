@@ -353,7 +353,9 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
         initialCount={commentsPanel?.count ?? 0}
         onClose={() => setCommentsPanel(null)}
         onCountChange={(count) =>
-          setCommentsPanel((prev) => (prev ? { ...prev, count } : prev))
+          setCommentsPanel((prev) =>
+            prev && prev.count !== count ? { ...prev, count } : prev
+          )
         }
       />
     </div>
