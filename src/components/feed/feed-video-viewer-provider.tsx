@@ -17,6 +17,7 @@ import {
   getMainScrollEl,
   type FeedVideoOpenTarget,
 } from "@/lib/feed-video-viewer";
+import { getVideoPlaybackController } from "@/lib/video-playback";
 
 type FeedVideoViewerContextValue = {
   openVideoViewer: (target: FeedVideoOpenTarget) => boolean;
@@ -59,6 +60,7 @@ export function FeedVideoViewerProvider({
       const idx = findPlaylistIndex(playlist, target);
       if (idx < 0) return false;
       savedScrollTopRef.current = getMainScrollEl()?.scrollTop ?? 0;
+      getVideoPlaybackController()?.pauseAll();
       setStartIndex(idx);
       setOpen(true);
       return true;

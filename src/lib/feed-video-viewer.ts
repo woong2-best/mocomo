@@ -19,7 +19,6 @@ function isPlayableFeedVideo(m: FeedMedia): boolean {
   if (m.type !== "VIDEO") return false;
   if (m.locked) return false;
   if (!m.url?.trim()) return false;
-  if (!m.id) return false;
   return true;
 }
 
@@ -30,16 +29,22 @@ function resolveHlsUrl(m: FeedMedia): string | null {
   return null;
 }
 
+function mediaKey(postId: string, video: FeedMedia): string {
+  return video.id?.trim() || `${postId}:${video.url}`;
+}
+
 export function postVideoToReelItem(
   post: GridPost & { createdAt: string | Date },
   video: FeedMedia,
   liked: boolean,
   starred: boolean
 ): ReelItem | null {
-  if (!isPlayableFeedVideo(video) || !video.id) return null;
+  if (!isPlayableFeedVideo(video)) return null;
+
+  const mediaId = mediaKey(post.id, video);
 
   return {
-    id: `${post.id}:${video.id}`,
+    id: `${post.id}:${mediaId}`,
     postId: post.id,
     title: post.title ?? null,
     content: post.content,
@@ -56,7 +61,7 @@ export function postVideoToReelItem(
       image: post.author.image,
     },
     media: {
-      id: video.id,
+      id: mediaId,
       url: video.url,
       hlsUrl: resolveHlsUrl(video),
       posterUrl: video.posterUrl?.trim() || null,
@@ -102,7 +107,10 @@ export function findPlaylistIndex(
 ): number {
   if (target.mediaId) {
     const byMedia = playlist.findIndex(
-      (r) => r.postId === target.postId && r.media.id === target.mediaId
+      (r) =>
+        r.postId === target.postId &&
+        (r.media.id === target.mediaId ||
+          r.media.id === `${target.postId}:${target.mediaId}`)
     );
     if (byMedia >= 0) return byMedia;
   }

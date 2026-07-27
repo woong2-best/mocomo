@@ -147,7 +147,7 @@ export function ReelsSlide({
     >
       {isViewer ? (
         <div
-          className="relative h-full w-full max-w-[min(100vw,560px)] lg:h-[min(100dvh,920px)] lg:max-w-[420px]"
+          className="relative h-full w-full lg:h-[min(100dvh,920px)] lg:max-w-[420px]"
           onClick={(e) => e.stopPropagation()}
         >
           {player}

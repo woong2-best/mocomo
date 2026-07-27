@@ -63,6 +63,11 @@ type Props = {
   autoPlayOnView?: boolean;
   /** Double-tap / heart overlay like. */
   onDoubleTapLike?: () => void;
+  /**
+   * Single tap opens immersive viewer (feed). When set, play/pause is not
+   * toggled on single tap — parent owns navigation into fullscreen.
+   */
+  onOpenImmersive?: () => void;
   /** Poster / thumbnail for lazy paint. */
   poster?: string;
 };
@@ -114,6 +119,7 @@ export function FeedVideoPlayer({
   mediaId,
   autoPlayOnView = true,
   onDoubleTapLike,
+  onOpenImmersive,
   poster,
 }: Props) {
   const reactId = useId();
@@ -854,6 +860,12 @@ export function FeedVideoPlayer({
     }
     lastTapRef.current = now;
 
+    // Feed immersive viewer: single tap leaves the inline player.
+    if (onOpenImmersive) {
+      onOpenImmersive();
+      return;
+    }
+
     // pointerup → pause mounts Play overlay → trailing click would immediately resume.
     suppressOverlayClickRef.current = true;
     window.setTimeout(() => {
@@ -888,6 +900,10 @@ export function FeedVideoPlayer({
     if (e.button !== 0 && e.pointerType === "mouse") return;
     stopFeedNavigation(e);
     focusPlayer();
+    if (onOpenImmersive) {
+      onOpenImmersive();
+      return;
+    }
     suppressOverlayClickRef.current = true;
     window.setTimeout(() => {
       suppressOverlayClickRef.current = false;

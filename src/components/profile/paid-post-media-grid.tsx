@@ -173,9 +173,25 @@ export function PaidPostMediaGrid({
                   spanClass,
                   !locked && "cursor-pointer"
                 )}
+                // Capture BEFORE FeedVideoPlayer stopPropagation — otherwise
+                // mobile taps only play/zoom the inline player and never open the viewer.
+                onClickCapture={(e) => {
+                  if (locked) return;
+                  if (m.type !== "VIDEO" || !feedVideoViewer) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const opened = feedVideoViewer.openVideoViewer({
+                    postId,
+                    mediaId: m.id,
+                    mediaIndex: i,
+                  });
+                  if (!opened) void openAt(i, locked);
+                }}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
+                  // VIDEO + viewer already handled in capture.
+                  if (m.type === "VIDEO" && feedVideoViewer) return;
                   void openAt(i, locked);
                 }}
                 onKeyDown={(e) => {
@@ -198,6 +214,18 @@ export function PaidPostMediaGrid({
                   postInstantPurchasePriceKrw={postInstantPurchasePriceKrw}
                   single={count === 1}
                   onDoubleTapLike={onDoubleTapLike}
+                  onOpenImmersive={
+                    !locked && m.type === "VIDEO" && feedVideoViewer
+                      ? () => {
+                          const opened = feedVideoViewer.openVideoViewer({
+                            postId,
+                            mediaId: m.id,
+                            mediaIndex: i,
+                          });
+                          if (!opened) void openAt(i, locked);
+                        }
+                      : undefined
+                  }
                 />
                 {showOverflow && (
                   <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/45 text-2xl font-semibold text-white">
@@ -236,6 +264,7 @@ function PaidPostMediaTile({
   postInstantPurchasePriceKrw,
   single,
   onDoubleTapLike,
+  onOpenImmersive,
 }: {
   media: ProfilePostMediaItem;
   postId: string;
@@ -247,6 +276,7 @@ function PaidPostMediaTile({
   postInstantPurchasePriceKrw?: number;
   single?: boolean;
   onDoubleTapLike?: () => void;
+  onOpenImmersive?: () => void;
 }) {
   const locked = !!media.locked && !!media.id;
   const lockReason = media.lockReason ?? "none";
@@ -275,6 +305,7 @@ function PaidPostMediaTile({
         mediaId={media.id}
         autoPlayOnView={!locked}
         onDoubleTapLike={onDoubleTapLike}
+        onOpenImmersive={onOpenImmersive}
         poster={media.posterUrl ?? undefined}
       />
 

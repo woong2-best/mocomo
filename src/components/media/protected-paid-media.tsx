@@ -21,6 +21,7 @@ type Props = {
   mediaId?: string | null;
   autoPlayOnView?: boolean;
   onDoubleTapLike?: () => void;
+  onOpenImmersive?: () => void;
   poster?: string;
 };
 
@@ -40,6 +41,7 @@ export function ProtectedPaidMedia({
   mediaId,
   autoPlayOnView = true,
   onDoubleTapLike,
+  onOpenImmersive,
   poster,
 }: Props) {
   const protect = shouldProtectPaidMediaView({
@@ -63,6 +65,7 @@ export function ProtectedPaidMedia({
         mediaId={mediaId}
         autoPlayOnView={autoPlayOnView}
         onDoubleTapLike={onDoubleTapLike}
+        onOpenImmersive={onOpenImmersive}
         poster={poster}
       />
     );
