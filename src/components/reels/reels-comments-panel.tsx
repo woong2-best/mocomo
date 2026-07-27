@@ -1,45 +1,65 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import {
   ArrowDownWideNarrow,
+  Heart,
   Loader2,
   X,
 } from "lucide-react";
 import { cn, formatNumber } from "@/lib/utils";
 import { CommentForm } from "@/components/post/comment-form";
-import { TranslatableText } from "@/components/ui/translatable-text";
-import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
-import type { SupportTierLevel } from "@prisma/client";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   COMMENT_ADDED_EVENT,
   COMMENT_CONFIRMED_EVENT,
   COMMENT_FAILED_EVENT,
   type OptimisticComment,
 } from "@/lib/comment-optimistic-sync";
+import { needsTranslation } from "@/lib/text-language";
+import { useLocale } from "@/components/providers/locale-provider";
+
+type ApiAuthor = {
+  name: string | null;
+  username: string;
+  image?: string | null;
+  supportTierSent?: string | null;
+};
+
+type ApiReply = {
+  id: string;
+  content: string;
+  createdAt?: string;
+  author: ApiAuthor;
+};
 
 type ApiComment = {
   id: string;
   content: string;
   createdAt: string;
-  author: {
-    name: string | null;
-    username: string;
-    supportTierSent?: string | null;
-  };
+  author: ApiAuthor;
   _count?: { replies: number };
-  replies: {
-    id: string;
-    content: string;
-    createdAt?: string;
-    author: {
-      name: string | null;
-      username: string;
-      supportTierSent?: string | null;
-    };
-  }[];
+  replies: ApiReply[];
+};
+
+type PanelReply = {
+  id: string;
+  content: string;
+  createdAt?: string;
+  author: ApiAuthor;
+};
+
+type PanelComment = {
+  id: string;
+  content: string;
+  createdAt?: string;
+  pending?: boolean;
+  parentId?: string;
+  author: ApiAuthor;
+  replies: PanelReply[];
+  replyTotal: number;
 };
 
 type Props = {
@@ -50,41 +70,252 @@ type Props = {
   onCountChange?: (count: number) => void;
 };
 
-function safeTier(tier: string | null | undefined): SupportTierLevel {
-  if (!tier) return "PEBBLE";
-  const allowed = [
-    "PEBBLE", "STONE", "COAL", "IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM",
-    "EMERALD", "SAPPHIRE", "RUBY", "DIAMOND", "CRYSTAL", "MYTHRIL", "ORICHALCUM",
-    "CELESTITE", "ASTRAL", "COSMIC", "ETERNAL",
-  ];
-  return allowed.includes(tier) ? (tier as SupportTierLevel) : "PEBBLE";
-}
-
-function toOptimistic(c: ApiComment): OptimisticComment {
-  return {
-    id: c.id,
-    content: c.content,
-    author: {
-      name: c.author.name,
-      username: c.author.username,
-      supportTierSent: c.author.supportTierSent,
-    },
-    replies: c.replies.map((r) => ({
-      id: r.id,
-      content: r.content,
-      author: {
-        name: r.author.name,
-        username: r.author.username,
-        supportTierSent: r.author.supportTierSent,
-      },
-    })),
-  };
-}
-
 const SORT_OPTIONS: { id: "popular" | "newest"; label: string }[] = [
   { id: "popular", label: "인기 댓글" },
   { id: "newest", label: "최신순" },
 ];
+
+function formatRelativeKo(iso?: string): string {
+  if (!iso) return "";
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return "";
+  const sec = Math.max(0, Math.floor((Date.now() - t) / 1000));
+  if (sec < 60) return "방금";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}분`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}시간`;
+  const day = Math.floor(hr / 24);
+  if (day < 7) return `${day}일`;
+  const week = Math.floor(day / 7);
+  if (week < 5) return `${week}주`;
+  const month = Math.floor(day / 30);
+  if (month < 12) return `${month}개월`;
+  return `${Math.floor(month / 12)}년`;
+}
+
+function toPanelComment(c: ApiComment): PanelComment {
+  return {
+    id: c.id,
+    content: c.content,
+    createdAt: c.createdAt,
+    author: c.author,
+    replies: c.replies.map((r) => ({
+      id: r.id,
+      content: r.content,
+      createdAt: r.createdAt,
+      author: r.author,
+    })),
+    replyTotal: Math.max(c._count?.replies ?? 0, c.replies.length),
+  };
+}
+
+function ReplyRow({
+  comment,
+  postId,
+  userLoggedIn,
+}: {
+  comment: PanelReply;
+  postId: string;
+  userLoggedIn: boolean;
+}) {
+  const [likeCount, setLikeCount] = useState(0);
+  const [replyOpen, setReplyOpen] = useState(false);
+  return (
+    <IgCommentRow
+      comment={comment}
+      postId={postId}
+      userLoggedIn={userLoggedIn}
+      replyOpen={replyOpen}
+      onToggleReply={() => setReplyOpen((v) => !v)}
+      liked={likeCount > 0}
+      likeCount={likeCount}
+      onToggleLike={() => setLikeCount((n) => (n > 0 ? 0 : 1))}
+      isReply
+    />
+  );
+}
+
+function IgCommentRow({
+  comment,
+  postId,
+  userLoggedIn,
+  expanded,
+  onToggleExpand,
+  replyOpen,
+  onToggleReply,
+  liked,
+  likeCount,
+  onToggleLike,
+  isReply = false,
+}: {
+  comment: PanelComment | PanelReply;
+  postId: string;
+  userLoggedIn: boolean;
+  expanded?: boolean;
+  onToggleExpand?: () => void;
+  replyOpen: boolean;
+  onToggleReply: () => void;
+  liked: boolean;
+  likeCount: number;
+  onToggleLike: () => void;
+  isReply?: boolean;
+}) {
+  const { locale, t } = useLocale();
+  const needsTr = useMemo(
+    () => needsTranslation(comment.content, locale),
+    [comment.content, locale]
+  );
+  const [translated, setTranslated] = useState<string | null>(null);
+  const [showTranslated, setShowTranslated] = useState(false);
+  const [trLoading, setTrLoading] = useState(false);
+  const display = showTranslated && translated ? translated : comment.content;
+  const replyTotal =
+    "replyTotal" in comment ? comment.replyTotal : 0;
+  const replies = "replies" in comment ? comment.replies : [];
+  const username = comment.author.username;
+  const displayName = comment.author.name || username;
+
+  async function runTranslate() {
+    if (showTranslated) {
+      setShowTranslated(false);
+      return;
+    }
+    if (translated) {
+      setShowTranslated(true);
+      return;
+    }
+    setTrLoading(true);
+    try {
+      const res = await fetch("/api/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: comment.content }),
+      });
+      const data = (await res.json()) as { ok?: boolean; translated?: string };
+      if (data.ok && data.translated) {
+        setTranslated(data.translated);
+        setShowTranslated(true);
+      }
+    } finally {
+      setTrLoading(false);
+    }
+  }
+
+  return (
+    <li className={cn("flex gap-3", isReply && "mt-3")}>
+      <Link href={`/u/${username}`} className="shrink-0 self-start">
+        <Avatar className="!h-8 !w-8 !rounded-full !ring-0">
+          <AvatarImage
+            src={comment.author.image ?? undefined}
+            alt=""
+            className="!rounded-full"
+          />
+          <AvatarFallback className="!rounded-full bg-neutral-700 text-[11px] text-white">
+            {displayName.slice(0, 1).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+      </Link>
+
+      <div className="min-w-0 flex-1">
+        <div className="pr-8">
+          <p className="text-[13px] leading-snug">
+            <Link
+              href={`/u/${username}`}
+              className="font-semibold text-white hover:text-white/90"
+            >
+              {username}
+            </Link>{" "}
+            <span className="text-white/40 tabular-nums">
+              {formatRelativeKo(comment.createdAt)}
+            </span>
+          </p>
+          <p className="mt-0.5 text-[13px] leading-snug text-white whitespace-pre-wrap break-words">
+            {display}
+          </p>
+        </div>
+
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-white/40">
+          {likeCount > 0 && (
+            <span className="tabular-nums">좋아요 {formatNumber(likeCount)}개</span>
+          )}
+          <button
+            type="button"
+            className="hover:text-white/70"
+            onClick={onToggleReply}
+          >
+            답글 달기
+          </button>
+          {needsTr && (
+            <button
+              type="button"
+              className="hover:text-white/70 disabled:opacity-50"
+              disabled={trLoading}
+              onClick={() => void runTranslate()}
+            >
+              {trLoading
+                ? t("translate.loading")
+                : showTranslated
+                  ? t("translate.viewOriginal")
+                  : "번역 보기"}
+            </button>
+          )}
+        </div>
+
+        {!isReply && replyTotal > 0 && (
+          <button
+            type="button"
+            className="mt-2 flex items-center gap-2 text-[12px] text-white/40 hover:text-white/65"
+            onClick={onToggleExpand}
+          >
+            <span className="inline-block h-px w-6 bg-white/30" aria-hidden />
+            {expanded
+              ? "답글 숨기기"
+              : `답글 ${formatNumber(replyTotal)}개 모두 보기`}
+          </button>
+        )}
+
+        {!isReply && expanded && replies.length > 0 && (
+          <ul className="mt-1">
+            {replies.map((r) => (
+              <ReplyRow
+                key={r.id}
+                comment={r}
+                postId={postId}
+                userLoggedIn={userLoggedIn}
+              />
+            ))}
+          </ul>
+        )}
+
+        {replyOpen && userLoggedIn && (
+          <CommentForm
+            postId={postId}
+            parentId={comment.id}
+            placeholder="답글 달기..."
+            className="mt-2"
+            inputClassName="h-9 rounded-full border-white/15 bg-white/[0.06] text-white placeholder:text-white/35"
+          />
+        )}
+      </div>
+
+      <button
+        type="button"
+        className="mt-1 shrink-0 self-start p-1 text-white/45 hover:text-white"
+        aria-label={liked ? "좋아요 취소" : "좋아요"}
+        aria-pressed={liked}
+        onClick={onToggleLike}
+      >
+        <Heart
+          className={cn(
+            "h-3.5 w-3.5",
+            liked && "fill-red-500 text-red-500"
+          )}
+        />
+      </button>
+    </li>
+  );
+}
 
 export function ReelsCommentsPanel({
   open,
@@ -97,11 +328,13 @@ export function ReelsCommentsPanel({
   const user = session?.data?.user;
   const [sort, setSort] = useState<"popular" | "newest">("popular");
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
-  const [comments, setComments] = useState<OptimisticComment[]>([]);
+  const [comments, setComments] = useState<PanelComment[]>([]);
   const [total, setTotal] = useState(initialCount);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [likedMap, setLikedMap] = useState<Record<string, number>>({});
   const onCountChangeRef = useRef(onCountChange);
   onCountChangeRef.current = onCountChange;
   const totalRef = useRef(total);
@@ -114,12 +347,12 @@ export function ReelsCommentsPanel({
     onCountChangeRef.current?.(next);
   }, []);
 
-  // Fetch once per open/post/sort — not when parent count callback identity changes
   useEffect(() => {
     if (!open || !postId) return;
 
     const ac = new AbortController();
     setReplyTo(null);
+    setExpanded({});
     setError("");
     setLoading(true);
     setComments([]);
@@ -141,11 +374,11 @@ export function ReelsCommentsPanel({
         if (!res.ok) {
           throw new Error(body.error || "댓글을 불러오지 못했습니다.");
         }
-        const list = (body.comments ?? []).map(toOptimistic);
+        const list = (body.comments ?? []).map(toPanelComment);
         setComments(list);
-        const nextTotal =
-          typeof body.total === "number" ? body.total : list.length;
-        notifyCount(nextTotal);
+        notifyCount(
+          typeof body.total === "number" ? body.total : list.length
+        );
         setError("");
       } catch (e) {
         if (ac.signal.aborted) return;
@@ -157,7 +390,7 @@ export function ReelsCommentsPanel({
     })();
 
     return () => ac.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- seed initialCount only on open
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, postId, sort, notifyCount]);
 
   useEffect(() => {
@@ -172,27 +405,46 @@ export function ReelsCommentsPanel({
         .detail;
       if (!detail || detail.postId !== postId) return;
       const comment = detail.comment;
+      const author: ApiAuthor = {
+        name: comment.author.name,
+        username: comment.author.username,
+        image: user?.image ?? null,
+        supportTierSent: comment.author.supportTierSent,
+      };
+
       if (comment.parentId) {
         setComments((prev) =>
           prev.map((c) =>
             c.id === comment.parentId
               ? {
                   ...c,
+                  replyTotal: c.replyTotal + 1,
                   replies: [
                     ...c.replies,
                     {
                       id: comment.id,
                       content: comment.content,
-                      author: comment.author,
+                      createdAt: new Date().toISOString(),
+                      author,
                     },
                   ],
                 }
               : c
           )
         );
+        setExpanded((prev) => ({ ...prev, [comment.parentId!]: true }));
       } else {
+        const row: PanelComment = {
+          id: comment.id,
+          content: comment.content,
+          createdAt: new Date().toISOString(),
+          pending: comment.pending,
+          author,
+          replies: [],
+          replyTotal: 0,
+        };
         setComments((prev) =>
-          sort === "newest" ? [comment, ...prev] : [...prev, comment]
+          sort === "newest" ? [row, ...prev] : [...prev, row]
         );
       }
       notifyCount(totalRef.current + 1);
@@ -205,7 +457,9 @@ export function ReelsCommentsPanel({
       if (!detail || detail.postId !== postId) return;
       setComments((prev) =>
         prev.map((c) => {
-          if (c.id === detail.pendingId) return { ...c, id: detail.realId, pending: false };
+          if (c.id === detail.pendingId) {
+            return { ...c, id: detail.realId, pending: false };
+          }
           return {
             ...c,
             replies: c.replies.map((r) =>
@@ -225,6 +479,9 @@ export function ReelsCommentsPanel({
           .map((c) => ({
             ...c,
             replies: c.replies.filter((r) => r.id !== detail.pendingId),
+            replyTotal: c.replies.some((r) => r.id === detail.pendingId)
+              ? Math.max(0, c.replyTotal - 1)
+              : c.replyTotal,
           }))
       );
       notifyCount(Math.max(0, totalRef.current - 1));
@@ -238,9 +495,8 @@ export function ReelsCommentsPanel({
       window.removeEventListener(COMMENT_CONFIRMED_EVENT, onConfirmed);
       window.removeEventListener(COMMENT_FAILED_EVENT, onFailed);
     };
-  }, [notifyCount, open, postId, sort]);
+  }, [notifyCount, open, postId, sort, user?.image]);
 
-  // Escape closes panel
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
@@ -256,16 +512,15 @@ export function ReelsCommentsPanel({
 
   const sortLabel =
     SORT_OPTIONS.find((o) => o.id === sort)?.label ?? "인기 댓글";
-
   const empty = !loading && !error && comments.length === 0;
 
   const panelBody = (
     <>
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
-        <h2 className="text-base font-semibold text-white">
-          댓글 {total > 0 ? formatNumber(total) : ""}
+      <header className="flex shrink-0 items-center justify-between gap-2 px-4 pb-1 pt-1">
+        <h2 className="text-[15px] font-semibold text-white">
+          댓글{total > 0 ? ` ${formatNumber(total)}` : ""}
         </h2>
-        <div className="relative flex items-center gap-1">
+        <div className="relative flex items-center gap-0.5">
           <button
             type="button"
             className="inline-flex h-9 w-9 items-center justify-center rounded-full text-white/80 hover:bg-white/10"
@@ -308,104 +563,64 @@ export function ReelsCommentsPanel({
         </div>
       </header>
 
-      <p className="shrink-0 px-4 pt-2 text-xs text-white/45">{sortLabel}</p>
+      <p className="shrink-0 px-4 pb-2 text-[12px] text-white/40">{sortLabel}</p>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-1">
         {loading ? (
           <div className="flex justify-center py-10">
-            <Loader2 className="h-6 w-6 animate-spin text-white/50" />
+            <Loader2 className="h-6 w-6 animate-spin text-white/40" />
           </div>
         ) : error ? (
           <p className="py-6 text-center text-sm text-red-300">{error}</p>
         ) : empty ? (
-          <p className="py-10 text-center text-sm text-white/50">
+          <p className="py-10 text-center text-sm text-white/45">
             아직 댓글이 없습니다. 첫 댓글을 남겨 보세요.
           </p>
         ) : (
-          <ul className="space-y-5">
-            {comments.map((c) => (
-              <li key={c.id} className={cn(c.pending && "opacity-70")}>
-                <div className="flex gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                      <Link
-                        href={`/u/${c.author.username}`}
-                        className="text-sm font-semibold text-white hover:underline"
-                      >
-                        <DisplayNameWithSupportTier
-                          name={c.author.name || c.author.username}
-                          tier={safeTier(c.author.supportTierSent)}
-                          nameClassName="font-semibold text-sm text-white"
-                          compact
-                        />
-                      </Link>
-                    </div>
-                    <TranslatableText
-                      text={c.content}
-                      as="p"
-                      className="mt-1 text-sm leading-relaxed text-white/90 whitespace-pre-wrap"
-                    />
-                    <div className="mt-1.5 flex items-center gap-3 text-xs text-white/45">
-                      <button
-                        type="button"
-                        className="hover:text-white/80"
-                        onClick={() =>
-                          setReplyTo((cur) => (cur === c.id ? null : c.id))
-                        }
-                      >
-                        답글
-                      </button>
-                    </div>
-
-                    {c.replies.length > 0 && (
-                      <ul className="mt-3 space-y-3 border-l border-white/10 pl-3">
-                        {c.replies.map((r) => (
-                          <li key={r.id}>
-                            <Link
-                              href={`/u/${r.author.username}`}
-                              className="text-sm font-semibold text-white hover:underline"
-                            >
-                              {r.author.name || r.author.username}
-                            </Link>
-                            <TranslatableText
-                              text={r.content}
-                              as="p"
-                              className="mt-0.5 text-sm text-white/85 whitespace-pre-wrap"
-                            />
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-
-                    {replyTo === c.id && user && (
-                      <CommentForm
-                        postId={postId}
-                        parentId={c.id}
-                        placeholder="답글 추가..."
-                        className="mt-3"
-                        inputClassName="border-white/15 bg-white/5 text-white placeholder:text-white/40"
-                      />
-                    )}
-                  </div>
-                </div>
-              </li>
-            ))}
+          <ul className="space-y-5 pb-4">
+            {comments.map((c) => {
+              const likeCount = likedMap[c.id] ?? 0;
+              return (
+                <IgCommentRow
+                  key={c.id}
+                  comment={c}
+                  postId={postId}
+                  userLoggedIn={!!user}
+                  expanded={!!expanded[c.id]}
+                  onToggleExpand={() =>
+                    setExpanded((prev) => ({ ...prev, [c.id]: !prev[c.id] }))
+                  }
+                  replyOpen={replyTo === c.id}
+                  onToggleReply={() =>
+                    setReplyTo((cur) => (cur === c.id ? null : c.id))
+                  }
+                  liked={likeCount > 0}
+                  likeCount={likeCount}
+                  onToggleLike={() =>
+                    setLikedMap((prev) => ({
+                      ...prev,
+                      [c.id]: (prev[c.id] ?? 0) > 0 ? 0 : 1,
+                    }))
+                  }
+                />
+              );
+            })}
           </ul>
         )}
       </div>
 
-      <div className="shrink-0 border-t border-white/10 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="shrink-0 border-t border-white/10 px-3 py-2.5 pb-[max(0.65rem,env(safe-area-inset-bottom))]">
         {user ? (
           <CommentForm
             postId={postId}
             placeholder="댓글 추가..."
             className="mt-0"
-            inputClassName="border-white/15 bg-white/5 text-white placeholder:text-white/40"
+            inputClassName="h-10 rounded-full border-white/15 bg-transparent text-white placeholder:text-white/35"
           />
         ) : (
           <Link
             href={`/auth/signin?callbackUrl=${encodeURIComponent(`/post/${postId}`)}`}
-            className="flex h-10 items-center rounded-lg border border-white/15 bg-white/5 px-3 text-sm text-white/55"
+            className="flex h-10 items-center rounded-full border border-white/15 px-4 text-sm text-white/45"
           >
             댓글을 쓰려면 로그인하세요
           </Link>
@@ -416,10 +631,9 @@ export function ReelsCommentsPanel({
 
   return (
     <>
-      {/* Desktop: YouTube-style right rail */}
       <aside
         className={cn(
-          "pointer-events-auto relative z-[230] hidden h-full shrink-0 flex-col overflow-hidden border-l border-white/10 bg-neutral-950 text-white transition-[width,opacity,transform] duration-300 ease-out lg:flex",
+          "pointer-events-auto relative z-[230] hidden h-full shrink-0 flex-col overflow-hidden border-l border-white/10 bg-[#121212] text-white transition-[width,opacity,transform] duration-300 ease-out lg:flex",
           open
             ? "w-[min(100%,24rem)] translate-x-0 opacity-100"
             : "w-0 translate-x-4 opacity-0 pointer-events-none border-0"
@@ -432,7 +646,6 @@ export function ReelsCommentsPanel({
         ) : null}
       </aside>
 
-      {/* Mobile: bottom sheet */}
       <div
         className={cn(
           "pointer-events-none fixed inset-0 z-[230] lg:hidden",
@@ -454,7 +667,7 @@ export function ReelsCommentsPanel({
           aria-modal="true"
           aria-label="댓글"
           className={cn(
-            "pointer-events-auto absolute inset-x-0 bottom-0 flex max-h-[78dvh] flex-col overflow-hidden rounded-t-2xl border border-white/10 bg-neutral-950 text-white shadow-2xl transition-transform duration-300 ease-out",
+            "pointer-events-auto absolute inset-x-0 bottom-0 flex max-h-[78dvh] flex-col overflow-hidden rounded-t-2xl bg-[#121212] text-white shadow-2xl transition-transform duration-300 ease-out",
             open ? "translate-y-0" : "translate-y-full"
           )}
         >
