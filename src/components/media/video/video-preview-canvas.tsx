@@ -71,7 +71,9 @@ export function VideoPreviewCanvas({
     if (!video) return;
 
     const onMeta = () => {
-      onDuration?.(video.duration);
+      if (Number.isFinite(video.duration) && video.duration > 0) {
+        onDuration?.(video.duration);
+      }
       redraw();
     };
     const onTime = () => {
@@ -80,15 +82,22 @@ export function VideoPreviewCanvas({
     };
 
     video.addEventListener("loadedmetadata", onMeta);
+    video.addEventListener("durationchange", onMeta);
     video.addEventListener("seeked", redraw);
     video.addEventListener("timeupdate", onTime);
 
+    // src 교체 시 loadedmetadata가 이미 지난 뒤에 리스너가 붙는 경우 대비
+    if (src && video.readyState >= 1 && Number.isFinite(video.duration) && video.duration > 0) {
+      onMeta();
+    }
+
     return () => {
       video.removeEventListener("loadedmetadata", onMeta);
+      video.removeEventListener("durationchange", onMeta);
       video.removeEventListener("seeked", redraw);
       video.removeEventListener("timeupdate", onTime);
     };
-  }, [onDuration, onTimeUpdate, redraw]);
+  }, [src, onDuration, onTimeUpdate, redraw]);
 
   useEffect(() => {
     const video = videoRef.current;

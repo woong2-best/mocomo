@@ -21,12 +21,21 @@ export function toAbsoluteUploadUrl(url: string): string {
   return trimmed;
 }
 
+async function readUploadError(res: Response): Promise<string | null> {
+  try {
+    const body = (await res.json()) as { error?: string; message?: string };
+    return body.error || body.message || null;
+  } catch {
+    return null;
+  }
+}
+
 async function presignedUpload(
   file: File,
   filename: string,
   contentType: string,
   category: "image" | "video" | "audio"
-): Promise<string | null> {
+): Promise<{ publicUrl: string } | { error: string }> {
   const presignRes = await fetch("/api/upload", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -34,7 +43,17 @@ async function presignedUpload(
     credentials: "include",
   });
 
-  if (!presignRes.ok) return null;
+  if (!presignRes.ok) {
+    return {
+      error:
+        (await readUploadError(presignRes)) ||
+        (presignRes.status === 401
+          ? "로그인이 필요합니다. 다시 로그인해 주세요."
+          : presignRes.status === 429
+            ? "업로드 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."
+            : "업로드 URL을 받지 못했습니다."),
+    };
+  }
 
   const { uploadUrl, publicUrl, token } = (await presignRes.json()) as {
     uploadUrl: string;
@@ -51,8 +70,12 @@ async function presignedUpload(
     headers,
   });
 
-  if (!put.ok) return null;
-  return publicUrl;
+  if (!put.ok) {
+    return {
+      error: `스토리지 업로드에 실패했습니다. (${put.status})`,
+    };
+  }
+  return { publicUrl };
 }
 
 async function localUpload(
@@ -122,9 +145,9 @@ export async function uploadImageBlob(
   if (localBody.publicUrl) return localBody.publicUrl;
 
   const direct = await presignedUpload(file, file.name, file.type || contentType, "image");
-  if (direct) return direct;
+  if ("publicUrl" in direct) return direct.publicUrl;
 
-  throw new Error(localBody.error || "이미지 업로드에 실패했습니다.");
+  throw new Error(localBody.error || direct.error || "이미지 업로드에 실패했습니다.");
 }
 
 /** Upload video — Storage 직접 업로드 우선 (Vercel 본문 한도·대용량) */
@@ -139,17 +162,26 @@ export async function uploadVideoBlob(
 
   if (file.size > DIRECT_UPLOAD_THRESHOLD) {
     const direct = await presignedUpload(file, file.name, file.type || contentType, "video");
-    if (direct) return direct;
+    if ("publicUrl" in direct) return direct.publicUrl;
+    // 대용량은 서버 경유가 불가하므로 직접 업로드 실패 사유를 우선 노출
+    const localBody = await localUpload(file, "video", opts);
+    if (localBody.publicUrl) return localBody.publicUrl;
+    throw new Error(
+      direct.error ||
+        localBody.error ||
+        "영상 업로드에 실패했습니다. 용량(일반 50MB·프리미엄 100MB)과 로그인 상태를 확인해 주세요."
+    );
   }
 
   const localBody = await localUpload(file, "video", opts);
   if (localBody.publicUrl) return localBody.publicUrl;
 
   const direct = await presignedUpload(file, file.name, file.type || contentType, "video");
-  if (direct) return direct;
+  if ("publicUrl" in direct) return direct.publicUrl;
 
   throw new Error(
     localBody.error ||
+      direct.error ||
       "영상 업로드에 실패했습니다. 용량(일반 50MB·프리미엄 100MB)과 로그인 상태를 확인해 주세요."
   );
 }
@@ -164,7 +196,7 @@ export async function uploadAudioBlob(blob: Blob, filename: string): Promise<str
   if (localBody.publicUrl) return localBody.publicUrl;
 
   const direct = await presignedUpload(file, filename, contentType, "audio");
-  if (direct) return direct;
+  if ("publicUrl" in direct) return direct.publicUrl;
 
-  throw new Error(localBody.error || "음성 업로드에 실패했습니다.");
+  throw new Error(localBody.error || direct.error || "음성 업로드에 실패했습니다.");
 }

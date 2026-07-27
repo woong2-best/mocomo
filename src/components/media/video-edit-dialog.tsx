@@ -119,14 +119,27 @@ export function VideoEditDialog({
       setPlaying(false);
       setError("");
       setWarn("");
+      setBusy(false);
+      setProgress(0);
       durationInitRef.current = false;
+      reset(0, maxDurationSec);
       return;
     }
+    // 새 영상마다 trim/필터 상태를 처음부터 맞춤 (이전 영상 길이·편집값 잔존 방지)
+    durationInitRef.current = false;
+    setDuration(0);
+    setThumbnails([]);
+    setPlaying(false);
+    setError("");
+    setWarn("");
+    setBusy(false);
+    setProgress(0);
+    reset(0, maxDurationSec);
     const url = URL.createObjectURL(videoBlob);
     setPreviewUrl(url);
     setTool("trim");
     return () => URL.revokeObjectURL(url);
-  }, [open, videoBlob]);
+  }, [open, videoBlob, maxDurationSec, reset]);
 
   const loadThumbnails = useCallback(async (video: HTMLVideoElement, dur: number) => {
     const thumbs = await generateVideoThumbnails(video, dur, 14);
@@ -134,12 +147,25 @@ export function VideoEditDialog({
   }, []);
 
   function handleDuration(dur: number) {
+    if (!Number.isFinite(dur) || dur <= 0) return;
     setDuration(dur);
     if (!durationInitRef.current) {
       durationInitRef.current = true;
       reset(dur, maxDurationSec);
       const v = hiddenVideoRef.current;
       if (v) void loadThumbnails(v, dur);
+      return;
+    }
+    // 메타데이터가 늦게 보정되면(이전 영상 길이 잔존 등) trim 상한을 맞춤
+    if (edit.endSec > dur + 0.05 || edit.endSec <= 0.05) {
+      patch(
+        (s) => ({
+          ...s,
+          startSec: Math.min(s.startSec, Math.max(0, dur - 0.1)),
+          endSec: Math.min(Math.max(s.endSec, 0.1), Math.min(dur, maxDurationSec)),
+        }),
+        false
+      );
     }
   }
 
@@ -223,7 +249,25 @@ export function VideoEditDialog({
       return;
     }
 
-    const clipLen = edit.endSec - edit.startSec;
+    const preview = hiddenVideoRef.current;
+    const realDuration =
+      preview && Number.isFinite(preview.duration) && preview.duration > 0
+        ? preview.duration
+        : duration;
+    if (realDuration > 0 && Math.abs(realDuration - duration) > 0.5) {
+      setDuration(realDuration);
+    }
+    const effectiveDuration = realDuration > 0 ? realDuration : duration;
+    const clippedEdit = {
+      ...edit,
+      startSec: Math.max(0, Math.min(edit.startSec, Math.max(0, effectiveDuration - 0.1))),
+      endSec: Math.max(
+        0.1,
+        Math.min(edit.endSec, effectiveDuration > 0 ? effectiveDuration : edit.endSec)
+      ),
+    };
+
+    const clipLen = clippedEdit.endSec - clippedEdit.startSec;
     if (!skipProcess && clipLen < 0.3) {
       setError("0.3초 이상 구간을 선택해 주세요.");
       return;
@@ -250,20 +294,27 @@ export function VideoEditDialog({
       let toUpload = videoBlob;
       let watermarkBurned = false;
 
-      const mustProcess = !skipProcess && (needsVideoReencode(edit, duration) || !!videoWatermark);
+      const mustProcess =
+        !skipProcess &&
+        (needsVideoReencode(clippedEdit, effectiveDuration) || !!videoWatermark);
 
       if (mustProcess) {
         try {
-          toUpload = await processVideoBlob(videoBlob, edit, setProgress, videoWatermark);
+          toUpload = await processVideoBlob(videoBlob, clippedEdit, setProgress, videoWatermark);
           watermarkBurned = !!videoWatermark;
         } catch (procErr) {
-          if (!needsVideoReencode(edit, duration) && duration <= maxDurationSec) {
+          if (!needsVideoReencode(clippedEdit, effectiveDuration) && effectiveDuration <= maxDurationSec) {
             toUpload = videoBlob;
             setWarn("편집 적용을 건너뛰고 원본 영상을 업로드합니다.");
           } else {
             throw procErr instanceof Error ? procErr : new Error("영상 처리에 실패했습니다.");
           }
         }
+      }
+
+      if (toUpload.size > maxBytes) {
+        setError(uploadSizeExceededMessage(session?.user?.premiumTier, "video"));
+        return;
       }
 
       await uploadBlob(

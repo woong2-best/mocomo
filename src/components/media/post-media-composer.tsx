@@ -95,6 +95,7 @@ export function PostMediaComposer({
 
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
   const [videoEditOpen, setVideoEditOpen] = useState(false);
+  const [videoSessionKey, setVideoSessionKey] = useState(0);
   const [pendingImageFiles, setPendingImageFiles] = useState<File[]>([]);
   const pendingVideoFilesRef = useRef<File[]>([]);
   const advancingVideoQueueRef = useRef(false);
@@ -309,6 +310,7 @@ export function PostMediaComposer({
   function openVideoEditor(file: File | Blob) {
     const normalized =
       file instanceof File ? normalizeGalleryVideoFile(file) : file;
+    setVideoSessionKey((k) => k + 1);
     setVideoBlob(normalized);
     setVideoEditOpen(true);
   }
@@ -316,7 +318,8 @@ export function PostMediaComposer({
   function openNextPendingVideo() {
     const next = pendingVideoFilesRef.current.shift();
     if (!next) return;
-    openVideoEditor(next);
+    // 다이얼로그가 완전히 닫힌 뒤 다음 영상을 열어 이전 duration/edit 잔존을 막음
+    window.setTimeout(() => openVideoEditor(next), 50);
   }
 
   function pickVideoFiles() {
@@ -711,6 +714,7 @@ export function PostMediaComposer({
       />
 
       <VideoEditDialog
+        key={videoSessionKey}
         open={videoEditOpen}
         onOpenChange={(o) => {
           setVideoEditOpen(o);
@@ -725,6 +729,7 @@ export function PostMediaComposer({
           }
         }}
         videoBlob={videoBlob}
+        uploadFilename={`post-video-${videoSessionKey}.mp4`}
         uploadOptions={resolveUploadOpts()}
         watermarkCreditLabel={watermarkCreditLabel}
         watermarkOptions={watermarkOptions}
