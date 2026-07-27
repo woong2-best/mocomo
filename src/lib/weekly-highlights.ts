@@ -54,7 +54,7 @@ async function fetchHighlightPosts(ids: string[]) {
   return posts.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
 }
 
-export async function getWeeklyHighlights(limit = 2) {
+export async function getWeeklyHighlights(limit = 5) {
   const since = subDays(new Date(), 7);
 
   const [likeGroups, topViewedIds] = await Promise.all([

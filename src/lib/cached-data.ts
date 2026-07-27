@@ -12,7 +12,7 @@ import { getSubcultureMapPins } from "@/lib/subculture-events";
 import { feedPostListSelect, mapFeedPost } from "@/lib/feed-query";
 
 export const getCachedWeeklyHighlights = unstable_cache(
-  async () => getWeeklyHighlights(2),
+  async () => getWeeklyHighlights(5),
   ["home-weekly-highlights"],
   { revalidate: 300 }
 );
