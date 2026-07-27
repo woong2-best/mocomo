@@ -144,7 +144,7 @@ export function ProfileCreatePanel({
         items={media}
         onChange={setMedia}
         maxImages={kind === "photo" ? 1 : 0}
-        maxVideos={kind === "video" ? 1 : 0}
+        maxVideos={kind === "video" ? 10 : 0}
         allowVideo={kind === "video"}
         disabled={pending}
         onUploadingChange={setUploading}

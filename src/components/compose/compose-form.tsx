@@ -228,7 +228,7 @@ export function ComposeForm({
               items={media}
               onChange={setMedia}
               maxImages={100}
-              maxVideos={1}
+              maxVideos={10}
               layout="toolbar"
               allowVideoCapture={false}
               watermarkCreditLabel={watermarkCreditLabel}
@@ -331,7 +331,7 @@ export function ComposeForm({
         onChange={setMedia}
         watermarkCreditLabel={watermarkCreditLabel}
         maxImages={100}
-        maxVideos={1}
+        maxVideos={10}
         allowVideoCapture={false}
         onUploadingChange={setMediaUploading}
       />

@@ -63,7 +63,7 @@ export function PostMediaComposer({
   items,
   onChange,
   maxImages = 100,
-  maxVideos = 1,
+  maxVideos = 10,
   allowVideo = true,
   allowVideoCapture = false,
   layout = "default",
@@ -96,6 +96,8 @@ export function PostMediaComposer({
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
   const [videoEditOpen, setVideoEditOpen] = useState(false);
   const [pendingImageFiles, setPendingImageFiles] = useState<File[]>([]);
+  const pendingVideoFilesRef = useRef<File[]>([]);
+  const advancingVideoQueueRef = useRef(false);
   const [watermarkOptions, setWatermarkOptions] = useState(EMPTY_WATERMARK_OPTIONS);
   const watermarkOptionsRef = useRef(watermarkOptions);
   watermarkOptionsRef.current = watermarkOptions;
@@ -311,6 +313,44 @@ export function PostMediaComposer({
     setVideoEditOpen(true);
   }
 
+  function openNextPendingVideo() {
+    const next = pendingVideoFilesRef.current.shift();
+    if (!next) return;
+    openVideoEditor(next);
+  }
+
+  function pickVideoFiles() {
+    const remaining =
+      maxVideos -
+      itemsRef.current.filter((m) => m.type === "VIDEO").length;
+    if (remaining <= 0) {
+      setError(`영상은 최대 ${maxVideos}개까지 추가할 수 있습니다.`);
+      return;
+    }
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "video/*";
+    input.multiple = true;
+    input.onchange = (ev) => {
+      const files = Array.from(
+        (ev.target as HTMLInputElement).files ?? []
+      ).filter((f) => f.type.startsWith("video/") || /\.(mp4|webm|mov|m4v|mkv)$/i.test(f.name));
+      if (files.length === 0) {
+        setError("영상 파일을 선택해 주세요.");
+        return;
+      }
+      setError("");
+      const batch = files.slice(0, remaining);
+      if (files.length > remaining) {
+        setError(`영상은 최대 ${maxVideos}개까지 추가할 수 있습니다. ${batch.length}개만 선택했습니다.`);
+      }
+      const [first, ...rest] = batch;
+      pendingVideoFilesRef.current = rest;
+      if (first) openVideoEditor(first);
+    };
+    input.click();
+  }
+
   async function onGalleryImagePick(e: React.ChangeEvent<HTMLInputElement>) {
     const picked = e.target.files;
     if (!picked?.length) return;
@@ -366,14 +406,31 @@ export function PostMediaComposer({
     url: string,
     meta?: { width?: number | null; height?: number | null; duration?: number | null }
   ) {
-    addItem({
-      url,
-      type: "VIDEO",
-      width: meta?.width ?? null,
-      height: meta?.height ?? null,
-      duration: meta?.duration ?? null,
-    });
+    const currentVideos = itemsRef.current.filter((m) => m.type === "VIDEO").length;
+    if (currentVideos >= maxVideos) {
+      pendingVideoFilesRef.current = [];
+      advancingVideoQueueRef.current = false;
+      setVideoBlob(null);
+      setError(`영상은 최대 ${maxVideos}개까지 추가할 수 있습니다.`);
+      return;
+    }
+    onChange([
+      ...itemsRef.current,
+      {
+        url,
+        type: "VIDEO",
+        width: meta?.width ?? null,
+        height: meta?.height ?? null,
+        duration: meta?.duration ?? null,
+      },
+    ]);
     setVideoBlob(null);
+    if (pendingVideoFilesRef.current.length > 0) {
+      advancingVideoQueueRef.current = true;
+      window.setTimeout(() => openNextPendingVideo(), 0);
+    } else {
+      advancingVideoQueueRef.current = false;
+    }
   }
 
   async function reEditVideo(url: string, index: number) {
@@ -449,16 +506,7 @@ export function PostMediaComposer({
           type="button"
           className={iconBtnClass}
           disabled={disabled || uploading}
-          onClick={() => {
-            const input = document.createElement("input");
-            input.type = "file";
-            input.accept = "video/*";
-            input.onchange = (ev) => {
-              const file = (ev.target as HTMLInputElement).files?.[0];
-              if (file) openVideoEditor(file);
-            };
-            input.click();
-          }}
+          onClick={pickVideoFiles}
           aria-label="영상 파일"
           title="영상"
         >
@@ -598,16 +646,7 @@ export function PostMediaComposer({
               size="sm"
               className="rounded-xl gap-1.5"
               disabled={disabled || uploading}
-              onClick={() => {
-                const input = document.createElement("input");
-                input.type = "file";
-                input.accept = "video/*";
-                input.onchange = (ev) => {
-                  const file = (ev.target as HTMLInputElement).files?.[0];
-                  if (file) openVideoEditor(file);
-                };
-                input.click();
-              }}
+              onClick={pickVideoFiles}
             >
               <Film className="h-4 w-4" />
               영상 파일
@@ -675,7 +714,15 @@ export function PostMediaComposer({
         open={videoEditOpen}
         onOpenChange={(o) => {
           setVideoEditOpen(o);
-          if (!o) setVideoBlob(null);
+          if (!o) {
+            setVideoBlob(null);
+            // 완료 후 다음 영상으로 이어갈 때는 큐를 유지, 사용자가 닫으면 중단
+            if (advancingVideoQueueRef.current) {
+              advancingVideoQueueRef.current = false;
+            } else {
+              pendingVideoFilesRef.current = [];
+            }
+          }
         }}
         videoBlob={videoBlob}
         uploadOptions={resolveUploadOpts()}
