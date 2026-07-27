@@ -58,6 +58,7 @@ export function FeedVideoViewer({
   const closedRef = useRef(false);
   const closingViaUiRef = useRef(false);
   const startedRef = useRef(false);
+  const [cinema, setCinema] = useState(false);
 
   const close = useCallback(() => {
     if (closedRef.current) return;
@@ -303,7 +304,12 @@ export function FeedVideoViewer({
       aria-label="피드 영상 보기"
       className="fixed inset-0 z-[200] overflow-hidden bg-black"
     >
-      <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between px-3 pt-[max(0.5rem,env(safe-area-inset-top))]">
+      <header
+        className={cn(
+          "pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between px-3 pt-[max(0.5rem,env(safe-area-inset-top))]",
+          cinema && "hidden"
+        )}
+      >
         <button
           type="button"
           onClick={close}
@@ -323,7 +329,8 @@ export function FeedVideoViewer({
         className={cn(
           "h-[100dvh] w-full overflow-y-auto overflow-x-hidden overscroll-y-contain",
           "snap-y snap-mandatory scroll-smooth",
-          "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+          cinema && "overflow-hidden touch-none"
         )}
         role="feed"
         aria-label="피드 영상"
@@ -344,6 +351,7 @@ export function FeedVideoViewer({
             authCallbackPath={pathname}
             variant="viewer"
             onBackgroundClick={close}
+            onCinemaChange={index === activeIndex ? setCinema : undefined}
           />
         ))}
         {loadingMore && (
@@ -360,7 +368,8 @@ export function FeedVideoViewer({
           // Mobile: below header, clear of the action rail
           "right-3 top-[max(4.5rem,env(safe-area-inset-top))]",
           // Desktop: mid-right like X
-          "lg:right-10 lg:top-1/2 lg:-translate-y-1/2 lg:gap-3"
+          "lg:right-10 lg:top-1/2 lg:-translate-y-1/2 lg:gap-3",
+          cinema && "hidden"
         )}
       >
         <button
