@@ -18,6 +18,10 @@ type Props = {
   onMutedChange: (muted: boolean) => void;
   onOpenMenu: (x: number, y: number) => void;
   onShare: () => void;
+  disableLoop?: boolean;
+  onEnded?: () => void;
+  /** Override sign-in callback URL (defaults to /reels?v=…). */
+  authCallbackPath?: string;
 };
 
 export function ReelsSlide({
@@ -28,6 +32,9 @@ export function ReelsSlide({
   onMutedChange,
   onOpenMenu,
   onShare,
+  disableLoop = false,
+  onEnded,
+  authCallbackPath,
 }: Props) {
   const distance = Math.abs(index - activeIndex);
   const isActive = index === activeIndex;
@@ -41,7 +48,9 @@ export function ReelsSlide({
   function requireLogin() {
     if (status === "loading") return false;
     if (session?.user) return true;
-    router.push(`/auth/signin?callbackUrl=${encodeURIComponent(`/reels?v=${reel.postId}`)}`);
+    const callback =
+      authCallbackPath ?? `/reels?v=${reel.postId}`;
+    router.push(`/auth/signin?callbackUrl=${encodeURIComponent(callback)}`);
     return false;
   }
 
@@ -69,6 +78,8 @@ export function ReelsSlide({
         isActive={isActive}
         muted={muted}
         onMutedChange={onMutedChange}
+        disableLoop={disableLoop}
+        onEnded={onEnded}
         onDoubleTapLike={() => {
           if (!requireLogin()) return;
           void like.toggle();

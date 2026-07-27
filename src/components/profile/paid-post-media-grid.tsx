@@ -16,6 +16,8 @@ import {
   prefetchPostMedia,
   setCachedPostMedia,
 } from "@/lib/post-media-client-cache";
+import { useFeedVideoViewerOptional } from "@/components/feed/feed-video-viewer-provider";
+import { isMobileViewport } from "@/hooks/use-mobile-viewport";
 
 export type ProfilePostMediaItem = {
   id?: string;
@@ -25,6 +27,11 @@ export type ProfilePostMediaItem = {
   instantPurchasePriceKrw?: number;
   locked?: boolean;
   lockReason?: ContentLockReason;
+  hlsUrl?: string | null;
+  posterUrl?: string | null;
+  width?: number | null;
+  height?: number | null;
+  duration?: number | null;
 };
 
 const FEED_GRID_MAX = 4;
@@ -62,6 +69,7 @@ export function PaidPostMediaGrid({
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [lightboxMedia, setLightboxMedia] = useState<ProfilePostMediaItem[]>(media);
   const [opening, setOpening] = useState(false);
+  const feedVideoViewer = useFeedVideoViewerOptional();
 
   const total = mediaTotal ?? media.length;
   const needsFullFetch = total > media.length;
@@ -91,6 +99,21 @@ export function PaidPostMediaGrid({
 
   async function openAt(index: number, locked?: boolean) {
     if (locked || opening) return;
+
+    const tapped = media[index];
+    // Mobile feed: VIDEO → immersive vertical viewer (X-style). Desktop / images keep lightbox.
+    if (
+      tapped?.type === "VIDEO" &&
+      feedVideoViewer &&
+      isMobileViewport() &&
+      feedVideoViewer.openVideoViewer({
+        postId,
+        mediaId: tapped.id,
+        mediaIndex: index,
+      })
+    ) {
+      return;
+    }
 
     // 피드에 전체가 있으면 즉시 오픈. 잘려 있으면 fetch 끝난 뒤에만 오픈 (4장 깜빡임 제거)
     if (media.length >= total) {
@@ -254,6 +277,7 @@ function PaidPostMediaTile({
         mediaId={media.id}
         autoPlayOnView={!locked}
         onDoubleTapLike={onDoubleTapLike}
+        poster={media.posterUrl ?? undefined}
       />
 
       {locked && (

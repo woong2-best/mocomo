@@ -50,6 +50,11 @@ export type GridPost = {
     type: string;
     priceKrw?: number;
     locked?: boolean;
+    hlsUrl?: string | null;
+    posterUrl?: string | null;
+    width?: number | null;
+    height?: number | null;
+    duration?: number | null;
   }[];
   poll?: PostPollView | null;
   viewCount?: number;

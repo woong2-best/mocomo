@@ -44,6 +44,9 @@ type Props = {
   onDoubleTapLike?: () => void;
   onLongPressMenu?: (clientX: number, clientY: number) => void;
   onContextMenu?: (clientX: number, clientY: number) => void;
+  /** When true, short clips do not loop (advance via onEnded instead). */
+  disableLoop?: boolean;
+  onEnded?: () => void;
   className?: string;
 };
 
@@ -62,6 +65,8 @@ export function ReelsPlayer({
   onDoubleTapLike,
   onLongPressMenu,
   onContextMenu,
+  disableLoop = false,
+  onEnded,
   className,
 }: Props) {
   const reactId = useId();
@@ -157,6 +162,12 @@ export function ReelsPlayer({
 
   useEffect(() => {
     const video = videoRef.current;
+    if (!video || !disableLoop) return;
+    video.loop = false;
+  }, [disableLoop, playbackSrc]);
+
+  useEffect(() => {
+    const video = videoRef.current;
     if (!video || !shouldMountMedia) return;
     video.preload = reelPreloadForDistance(distance);
   }, [distance, shouldMountMedia]);
@@ -232,9 +243,16 @@ export function ReelsPlayer({
     const onPlaying = () => setBuffering(false);
     const onMeta = () => {
       const d = video.duration;
+      if (disableLoop) {
+        video.loop = false;
+        return;
+      }
       if (Number.isFinite(d) && d > 0 && d <= REELS_LOOP_MAX_SEC) {
         video.loop = true;
       }
+    };
+    const onVideoEnded = () => {
+      if (disableLoop) onEnded?.();
     };
 
     video.addEventListener("timeupdate", onTime);
@@ -242,14 +260,16 @@ export function ReelsPlayer({
     video.addEventListener("waiting", onWaiting);
     video.addEventListener("playing", onPlaying);
     video.addEventListener("loadedmetadata", onMeta);
+    video.addEventListener("ended", onVideoEnded);
     return () => {
       video.removeEventListener("timeupdate", onTime);
       video.removeEventListener("progress", onTime);
       video.removeEventListener("waiting", onWaiting);
       video.removeEventListener("playing", onPlaying);
       video.removeEventListener("loadedmetadata", onMeta);
+      video.removeEventListener("ended", onVideoEnded);
     };
-  }, [playbackSrc]);
+  }, [playbackSrc, disableLoop, onEnded]);
 
   const onSeek = useCallback((ratio: number) => {
     const video = videoRef.current;

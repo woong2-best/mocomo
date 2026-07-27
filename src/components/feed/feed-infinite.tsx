@@ -5,11 +5,11 @@ import {
   FeedDualColumnLayout,
   type FeedLayoutItem,
 } from "@/components/feed/feed-dual-column-layout";
-import type { GridPost } from "@/components/feed/feed-post-card";
 import type { FeedDisplayMode } from "@/lib/feed-display-mode";
 import { Button } from "@/components/ui/button";
 import { subscribePostDeleted } from "@/lib/post-deleted-sync";
 import { Loader2 } from "lucide-react";
+import { FeedVideoViewerProvider } from "@/components/feed/feed-video-viewer-provider";
 
 type Ad = {
   id: string;
@@ -177,7 +177,15 @@ export function FeedInfinite({
   }, [done]);
 
   return (
-    <>
+    <FeedVideoViewerProvider
+      items={items}
+      likedIds={likedIds}
+      starredIds={starredIds}
+      onNearEnd={() => {
+        void loadMore();
+      }}
+      loadingMore={loading}
+    >
       <FeedDualColumnLayout
         items={items}
         likedIds={likedIds}
@@ -199,6 +207,6 @@ export function FeedInfinite({
           <p className="text-sm text-muted-foreground">피드 끝</p>
         )}
       </div>
-    </>
+    </FeedVideoViewerProvider>
   );
 }
