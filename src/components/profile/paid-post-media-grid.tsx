@@ -17,7 +17,6 @@ import {
   setCachedPostMedia,
 } from "@/lib/post-media-client-cache";
 import { useFeedVideoViewerOptional } from "@/components/feed/feed-video-viewer-provider";
-import { isMobileViewport } from "@/hooks/use-mobile-viewport";
 
 export type ProfilePostMediaItem = {
   id?: string;
@@ -101,11 +100,10 @@ export function PaidPostMediaGrid({
     if (locked || opening) return;
 
     const tapped = media[index];
-    // Mobile feed: VIDEO → immersive vertical viewer (X-style). Desktop / images keep lightbox.
+    // Feed VIDEO → immersive vertical viewer (X-style swipe / up-down). Images keep lightbox.
     if (
       tapped?.type === "VIDEO" &&
       feedVideoViewer &&
-      isMobileViewport() &&
       feedVideoViewer.openVideoViewer({
         postId,
         mediaId: tapped.id,

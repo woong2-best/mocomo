@@ -9,7 +9,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ReelItem } from "@/lib/reels/types";
 import { REELS_PREFETCH_REMAINING } from "@/lib/reels/constants";
@@ -184,6 +184,10 @@ export function FeedVideoViewer({
     if (activeIndex < items.length - 1) goTo(activeIndex + 1);
   }, [activeIndex, goTo, items.length]);
 
+  const goPrev = useCallback(() => {
+    if (activeIndex > 0) goTo(activeIndex - 1);
+  }, [activeIndex, goTo]);
+
   useEffect(() => {
     const root = scrollerRef.current;
     if (!root) return;
@@ -289,6 +293,8 @@ export function FeedVideoViewer({
   if (typeof document === "undefined" || items.length === 0) return null;
 
   const activeReel = items[menu.index] ?? items[activeIndex];
+  const canPrev = activeIndex > 0;
+  const canNext = activeIndex < items.length - 1;
 
   return createPortal(
     <div
@@ -336,6 +342,8 @@ export function FeedVideoViewer({
             disableLoop
             onEnded={index === activeIndex ? goNext : undefined}
             authCallbackPath={pathname}
+            variant="viewer"
+            onBackgroundClick={close}
           />
         ))}
         {loadingMore && (
@@ -343,6 +351,44 @@ export function FeedVideoViewer({
             <Loader2 className="h-5 w-5 animate-spin text-white/70" />
           </div>
         )}
+      </div>
+
+      {/* X-style up / down video navigation */}
+      <div
+        className={cn(
+          "pointer-events-none absolute z-40 flex flex-col gap-2",
+          // Mobile: below header, clear of the action rail
+          "right-3 top-[max(4.5rem,env(safe-area-inset-top))]",
+          // Desktop: mid-right like X
+          "lg:right-10 lg:top-1/2 lg:-translate-y-1/2 lg:gap-3"
+        )}
+      >
+        <button
+          type="button"
+          disabled={!canPrev}
+          onClick={goPrev}
+          className={cn(
+            "pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur-md transition",
+            "hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
+            "disabled:pointer-events-none disabled:opacity-30"
+          )}
+          aria-label="이전 영상"
+        >
+          <ChevronUp className="h-6 w-6" />
+        </button>
+        <button
+          type="button"
+          disabled={!canNext}
+          onClick={goNext}
+          className={cn(
+            "pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur-md transition",
+            "hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
+            "disabled:pointer-events-none disabled:opacity-30"
+          )}
+          aria-label="다음 영상"
+        >
+          <ChevronDown className="h-6 w-6" />
+        </button>
       </div>
 
       {activeReel && (

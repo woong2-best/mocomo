@@ -17,7 +17,6 @@ import {
   getMainScrollEl,
   type FeedVideoOpenTarget,
 } from "@/lib/feed-video-viewer";
-import { isMobileViewport } from "@/hooks/use-mobile-viewport";
 
 type FeedVideoViewerContextValue = {
   openVideoViewer: (target: FeedVideoOpenTarget) => boolean;
@@ -57,7 +56,6 @@ export function FeedVideoViewerProvider({
 
   const openVideoViewer = useCallback(
     (target: FeedVideoOpenTarget) => {
-      if (!isMobileViewport()) return false;
       const idx = findPlaylistIndex(playlist, target);
       if (idx < 0) return false;
       savedScrollTopRef.current = getMainScrollEl()?.scrollTop ?? 0;
