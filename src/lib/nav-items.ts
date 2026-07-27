@@ -12,7 +12,6 @@ import {
   Crown,
   Tags,
   Banknote,
-  Clapperboard,
 } from "lucide-react";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { SupportTrophyIcon } from "@/components/icons/support-trophy-icon";
@@ -36,13 +35,13 @@ export const moneyHubNavItem: NavItem = {
 };
 
 /** 매칭(/discover)은 사이드바 미포함 — 프로필 우측 패널·모바일 하단 탭에서 진입 */
+/** 릴스(/reels)는 사이드바·모바일 드로어 미포함 — 피드 영상·탐색에서 진입 */
 export const mainNavItems: NavItem[] = [
   { href: "/my-page", icon: User, labelKey: "nav.myPage" },
   { href: "/communities", icon: Users, labelKey: "nav.communities" },
   { href: "/messages", icon: MessageSquare, labelKey: "nav.messages" },
   { href: "/star", icon: Star, labelKey: "nav.star" },
   { href: "/live", icon: Radio, labelKey: "nav.live" },
-  { href: "/reels", icon: Clapperboard, labelKey: "nav.reels" },
   { href: "/market", icon: Store, labelKey: "nav.market" },
   { href: "/used", icon: Tags, labelKey: "nav.used" },
   { href: "/anime", icon: Tv, labelKey: "nav.anime" },
