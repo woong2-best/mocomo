@@ -2,17 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { auth } from "@/lib/auth";
 import { requireApiUser } from "@/lib/api-post-auth";
 import { notifyPostComment } from "@/lib/notifications";
+import { userPublicSelect } from "@/lib/user-public-select";
 import {
-  countPostComments,
-  getPostComments,
-  type PostCommentSort,
-} from "@/lib/post-queries";
+  getPostCommentsPage,
+} from "@/lib/comment-service";
+import type { PostCommentSort } from "@/lib/post-queries";
 
 function parseSort(raw: string | null): PostCommentSort {
   if (raw === "newest" || raw === "popular" || raw === "oldest") return raw;
-  return "newest";
+  return "popular";
 }
 
 export async function GET(
@@ -28,39 +29,49 @@ export async function GET(
   }
 
   const sort = parseSort(req.nextUrl.searchParams.get("sort"));
-  const limitRaw = Number(req.nextUrl.searchParams.get("limit") ?? "40");
+  const limitRaw = Number(req.nextUrl.searchParams.get("limit") ?? "20");
   const limit = Number.isFinite(limitRaw)
-    ? Math.min(80, Math.max(1, Math.floor(limitRaw)))
-    : 40;
+    ? Math.min(50, Math.max(1, Math.floor(limitRaw)))
+    : 20;
+  const cursor = req.nextUrl.searchParams.get("cursor");
 
   try {
     const post = await db.post.findUnique({
       where: { id: postId },
-      select: { id: true },
+      select: { id: true, authorId: true },
     });
     if (!post) {
       return NextResponse.json({ error: "게시물을 찾을 수 없습니다." }, { status: 404 });
     }
 
-    const [comments, total] = await Promise.all([
-      getPostComments(postId, limit, sort),
-      countPostComments(postId),
-    ]);
+    const session = await auth();
+    const page = await getPostCommentsPage({
+      postId,
+      postAuthorId: post.authorId,
+      sort,
+      limit,
+      cursor,
+      viewerId: session?.user?.id ?? null,
+      includePinned: true,
+    });
 
     return NextResponse.json({
-      comments: comments.map((c) => ({
-        ...c,
-        createdAt: c.createdAt.toISOString(),
-        replies: c.replies.map((r) => ({
-          ...r,
-          createdAt: r.createdAt.toISOString(),
-        })),
-      })),
-      total,
-      sort,
+      ...page,
+      postAuthorId: post.authorId,
+      viewerId: session?.user?.id ?? null,
     });
   } catch (e) {
     console.error("[api/posts/comments GET]", e);
+    const msg = e instanceof Error ? e.message : String(e);
+    if (/CommentLike|likeCount|pinnedAt|does not exist|column/i.test(msg)) {
+      return NextResponse.json(
+        {
+          error:
+            "댓글 기능 DB 업데이트가 필요합니다. scripts/fix-comment-likes-pins.sql 을 실행해 주세요.",
+        },
+        { status: 503 }
+      );
+    }
     return NextResponse.json({ error: "댓글을 불러오지 못했습니다." }, { status: 500 });
   }
 }
@@ -110,18 +121,37 @@ export async function POST(
     let parentCommentAuthorId: string | undefined;
     if (parentId) {
       const parent = await db.comment.findFirst({
-        where: { id: parentId, postId },
-        select: { id: true, authorId: true },
+        where: { id: parentId, postId, deletedAt: null, hiddenAt: null },
+        select: { id: true, authorId: true, parentId: true },
       });
       if (!parent) {
         return NextResponse.json({ error: "원 댓글을 찾을 수 없습니다." }, { status: 400 });
       }
+      // Flatten deep replies onto the top-level parent thread
       parentCommentAuthorId = parent.authorId;
+      if (parent.parentId) {
+        // Keep reply attached to the provided parent (1-level UX still works)
+      }
     }
+
+    const fullUser = await db.user.findUnique({
+      where: { id: user.id },
+      select: userPublicSelect,
+    });
 
     const comment = await db.comment.create({
       data: { content, authorId: user.id, postId, parentId },
-      select: { id: true, createdAt: true },
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        updatedAt: true,
+        likeCount: true,
+        pinnedAt: true,
+        authorId: true,
+        parentId: true,
+        author: { select: userPublicSelect },
+      },
     });
 
     void notifyPostComment({
@@ -136,7 +166,27 @@ export async function POST(
     revalidatePath(`/post/${postId}`);
     revalidatePath("/feed");
     revalidatePath("/reels");
-    return NextResponse.json({ ok: true, comment });
+
+    return NextResponse.json({
+      ok: true,
+      comment: {
+        id: comment.id,
+        content: comment.content,
+        createdAt: comment.createdAt.toISOString(),
+        updatedAt: comment.updatedAt.toISOString(),
+        likeCount: 0,
+        likedByMe: false,
+        likedByAuthor: false,
+        isPostAuthor: comment.authorId === post.authorId,
+        isPinned: false,
+        pinnedAt: null,
+        isEdited: false,
+        replyCount: 0,
+        parentId: comment.parentId,
+        author: fullUser ?? comment.author,
+        replies: [],
+      },
+    });
   } catch (e) {
     console.error("[api/posts/comments]", e);
     const msg = e instanceof Error ? e.message : String(e);
@@ -144,7 +194,7 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "댓글 DB 설정이 필요합니다. Supabase SQL Editor에서 scripts/fix-repost-comments.sql 을 실행해 주세요.",
+            "댓글 DB 설정이 필요합니다. Supabase SQL Editor에서 scripts/fix-comment-likes-pins.sql 을 실행해 주세요.",
         },
         { status: 503 }
       );

@@ -128,6 +128,7 @@ async function attachPollView<T extends { poll: Parameters<typeof mapPostPollRow
 
 export type PostCommentSort = "newest" | "popular" | "oldest";
 
+/** @deprecated Prefer getPostCommentsPage from comment-service for reels/API. */
 export async function getPostComments(
   postId: string,
   limit = 40,
@@ -135,28 +136,42 @@ export async function getPostComments(
 ) {
   const orderBy =
     sort === "popular"
-      ? ([{ replies: { _count: "desc" as const } }, { createdAt: "desc" as const }] as const)
+      ? ([
+          { likeCount: "desc" as const },
+          { createdAt: "desc" as const },
+        ] as const)
       : sort === "newest"
         ? ({ createdAt: "desc" as const })
         : ({ createdAt: "asc" as const });
 
   return db.comment.findMany({
-    where: { postId, parentId: null },
+    where: {
+      postId,
+      parentId: null,
+      deletedAt: null,
+      hiddenAt: null,
+    },
     take: limit,
     orderBy: orderBy as never,
     select: {
       id: true,
       content: true,
       createdAt: true,
+      updatedAt: true,
+      likeCount: true,
+      pinnedAt: true,
       author: { select: userPublicSelect },
       _count: { select: { replies: true } },
       replies: {
         take: 10,
+        where: { deletedAt: null, hiddenAt: null },
         orderBy: { createdAt: "asc" },
         select: {
           id: true,
           content: true,
           createdAt: true,
+          updatedAt: true,
+          likeCount: true,
           author: { select: userPublicSelect },
         },
       },
@@ -165,5 +180,7 @@ export async function getPostComments(
 }
 
 export async function countPostComments(postId: string) {
-  return db.comment.count({ where: { postId } });
+  return db.comment.count({
+    where: { postId, deletedAt: null, hiddenAt: null },
+  });
 }

@@ -215,6 +215,7 @@ model User {
   postCollaborations PostCollaborator[] @relation("PostCollaboratorUser")
   postCollaboratorInvitesSent PostCollaborator[] @relation("PostCollaboratorInviter")
   comments      Comment[]
+  commentLikes  CommentLike[]
   votes         Vote[]
   bookmarks     Bookmark[]
   reports       Report[]  @relation("Reporter")
@@ -955,22 +956,47 @@ model PostTag {
 }
 
 model Comment {
-  id        String   @id @default(cuid())
-  content   String   @db.Text
+  id        String    @id @default(cuid())
+  content   String    @db.Text
   authorId  String
   postId    String
   parentId  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  /** Denormalized like count for popular sort / feed speed */
+  likeCount Int       @default(0)
+  /** Top-level pin; null = not pinned. Max 3 per post enforced in API. */
+  pinnedAt  DateTime?
+  /** Admin soft-hide — hidden from public lists */
+  hiddenAt  DateTime?
+  /** Soft delete — author/owner/admin */
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  author   User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  post     Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  parent   Comment? @relation("CommentReplies", fields: [parentId], references: [id])
-  replies  Comment[] @relation("CommentReplies")
+  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post     Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parent   Comment?      @relation("CommentReplies", fields: [parentId], references: [id])
+  replies  Comment[]     @relation("CommentReplies")
+  likes    CommentLike[]
   reports  Report[]
 
   @@index([postId, parentId, createdAt])
+  @@index([postId, parentId, likeCount(sort: Desc), createdAt(sort: Desc)])
+  @@index([postId, pinnedAt])
   @@index([authorId, createdAt(sort: Desc)])
+}
+
+model CommentLike {
+  id        String   @id @default(cuid())
+  userId    String
+  commentId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commentId])
+  @@index([commentId, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 enum VoteType {

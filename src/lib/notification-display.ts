@@ -69,10 +69,13 @@ export function notificationIcon(type: string): {
   switch (type) {
     case "like":
     case "clip_like":
+    case "comment_like":
+    case "comment_author_like":
       return { Icon: Heart, className: "text-folk-terracotta" };
     case "comment":
     case "comment_reply":
     case "clip_comment":
+    case "comment_pin":
       return { Icon: MessageSquare, className: "text-blue-500" };
     case "mention":
       return { Icon: AtSign, className: "text-violet-500" };
@@ -129,7 +132,7 @@ export function notificationCategoryForType(type: string): string {
     if (type.startsWith("FRAUD_")) return "fraud";
     return "system";
   }
-  if (["like", "comment", "comment_reply", "mention", "repost", "follow", "vote"].includes(type)) {
+  if (["like", "comment", "comment_reply", "comment_like", "comment_author_like", "comment_pin", "mention", "repost", "follow", "vote"].includes(type)) {
     return "social";
   }
   if (["dm", "dm_group", "call"].includes(type)) return "messages";

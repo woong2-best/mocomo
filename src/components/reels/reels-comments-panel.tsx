@@ -1,65 +1,53 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import {
   ArrowDownWideNarrow,
   Heart,
   Loader2,
+  MoreHorizontal,
+  Pin,
   X,
 } from "lucide-react";
 import { cn, formatNumber } from "@/lib/utils";
 import { CommentForm } from "@/components/post/comment-form";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   COMMENT_ADDED_EVENT,
   COMMENT_CONFIRMED_EVENT,
   COMMENT_FAILED_EVENT,
+  COMMENT_REMOVED_EVENT,
+  COMMENT_UPDATED_EVENT,
   type OptimisticComment,
 } from "@/lib/comment-optimistic-sync";
 import { needsTranslation } from "@/lib/text-language";
 import { useLocale } from "@/components/providers/locale-provider";
+import { submitContentReport } from "@/actions/report";
+import { blockUserAction } from "@/actions/user-relationship";
+import { suspendUserTemporary } from "@/actions/admin";
+import type { SerializedComment, SerializedReply } from "@/lib/comment-service";
 
-type ApiAuthor = {
-  name: string | null;
-  username: string;
-  image?: string | null;
-  supportTierSent?: string | null;
-};
+type SortId = "popular" | "newest" | "oldest";
 
-type ApiReply = {
-  id: string;
-  content: string;
-  createdAt?: string;
-  author: ApiAuthor;
-};
-
-type ApiComment = {
-  id: string;
-  content: string;
-  createdAt: string;
-  author: ApiAuthor;
-  _count?: { replies: number };
-  replies: ApiReply[];
-};
-
-type PanelReply = {
-  id: string;
-  content: string;
-  createdAt?: string;
-  author: ApiAuthor;
-};
-
-type PanelComment = {
-  id: string;
-  content: string;
-  createdAt?: string;
+type PanelComment = SerializedComment & {
   pending?: boolean;
-  parentId?: string;
-  author: ApiAuthor;
-  replies: PanelReply[];
-  replyTotal: number;
+  parentId?: string | null;
 };
 
 type Props = {
@@ -70,9 +58,10 @@ type Props = {
   onCountChange?: (count: number) => void;
 };
 
-const SORT_OPTIONS: { id: "popular" | "newest"; label: string }[] = [
+const SORT_OPTIONS: { id: SortId; label: string }[] = [
   { id: "popular", label: "인기 댓글" },
   { id: "newest", label: "최신순" },
+  { id: "oldest", label: "오래된순" },
 ];
 
 function formatRelativeKo(iso?: string): string {
@@ -94,87 +83,343 @@ function formatRelativeKo(iso?: string): string {
   return `${Math.floor(month / 12)}년`;
 }
 
-function toPanelComment(c: ApiComment): PanelComment {
-  return {
-    id: c.id,
-    content: c.content,
-    createdAt: c.createdAt,
-    author: c.author,
-    replies: c.replies.map((r) => ({
-      id: r.id,
-      content: r.content,
-      createdAt: r.createdAt,
-      author: r.author,
-    })),
-    replyTotal: Math.max(c._count?.replies ?? 0, c.replies.length),
-  };
-}
-
-function ReplyRow({
-  comment,
-  postId,
-  userLoggedIn,
-}: {
-  comment: PanelReply;
-  postId: string;
-  userLoggedIn: boolean;
-}) {
-  const [likeCount, setLikeCount] = useState(0);
-  const [replyOpen, setReplyOpen] = useState(false);
+function SkeletonRows() {
   return (
-    <IgCommentRow
-      comment={comment}
-      postId={postId}
-      userLoggedIn={userLoggedIn}
-      replyOpen={replyOpen}
-      onToggleReply={() => setReplyOpen((v) => !v)}
-      liked={likeCount > 0}
-      likeCount={likeCount}
-      onToggleLike={() => setLikeCount((n) => (n > 0 ? 0 : 1))}
-      isReply
-    />
+    <ul className="space-y-5 py-2" aria-hidden>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <li key={i} className="flex animate-pulse gap-3">
+          <div className="h-8 w-8 shrink-0 rounded-full bg-white/10" />
+          <div className="flex-1 space-y-2 pt-1">
+            <div className="h-3 w-28 rounded bg-white/10" />
+            <div className="h-3 w-full rounded bg-white/10" />
+            <div className="h-3 w-2/3 rounded bg-white/10" />
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
 
-function IgCommentRow({
+function AuthorBadge() {
+  return (
+    <span className="ml-1 inline-flex items-center rounded bg-white/15 px-1 py-px text-[10px] font-medium text-white/80">
+      작성자
+    </span>
+  );
+}
+
+function CommentMenu({
+  comment,
+  isReply,
+  postId,
+  viewerId,
+  isPostOwner,
+  isAdmin,
+  onEdit,
+  onDeleted,
+  onPinnedChange,
+}: {
+  comment: PanelComment | SerializedReply;
+  isReply?: boolean;
+  postId: string;
+  viewerId: string | null;
+  isPostOwner: boolean;
+  isAdmin: boolean;
+  onEdit: () => void;
+  onDeleted: () => void;
+  onPinnedChange: (pinned: boolean) => void;
+}) {
+  const isMine = !!viewerId && comment.author.id === viewerId;
+  const canPin = !isReply && (isPostOwner || isAdmin);
+  const canDelete = isMine || isPostOwner || isAdmin;
+  const isPinned = "isPinned" in comment && comment.isPinned;
+
+  async function copyLink() {
+    const url = `${window.location.origin}/post/${postId}#comment-${comment.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function pin(next: boolean) {
+    const res = await fetch(`/api/comments/${comment.id}/pin`, {
+      method: next ? "POST" : "DELETE",
+      credentials: "include",
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      window.alert(typeof body.error === "string" ? body.error : "고정에 실패했습니다.");
+      return;
+    }
+    onPinnedChange(next);
+  }
+
+  async function remove() {
+    if (!window.confirm("이 댓글을 삭제할까요?")) return;
+    const hard = isAdmin && !isMine ? "?hard=1" : "";
+    const res = await fetch(`/api/comments/${comment.id}${hard}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      window.alert(typeof body.error === "string" ? body.error : "삭제에 실패했습니다.");
+      return;
+    }
+    onDeleted();
+  }
+
+  async function hide() {
+    if (!window.confirm("이 댓글을 숨길까요?")) return;
+    const res = await fetch(`/api/comments/${comment.id}/hide`, {
+      method: "POST",
+      credentials: "include",
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      window.alert(typeof body.error === "string" ? body.error : "숨기기에 실패했습니다.");
+      return;
+    }
+    onDeleted();
+  }
+
+  async function report() {
+    const res = await submitContentReport({
+      targetType: "COMMENT",
+      targetId: comment.id,
+      reason: "SPAM",
+      reportedUserId: comment.author.id,
+      postId,
+      commentId: comment.id,
+    });
+    window.alert(res.error ?? "신고가 접수되었습니다.");
+  }
+
+  async function block() {
+    if (!window.confirm(`@${comment.author.username} 님을 차단할까요?`)) return;
+    const res = await blockUserAction(comment.author.id, comment.author.username);
+    window.alert(res.error ?? "차단되었습니다.");
+  }
+
+  async function sanction() {
+    if (!window.confirm(`@${comment.author.username} 계정을 7일 제재할까요?`)) return;
+    const until = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    await suspendUserTemporary(
+      comment.author.id,
+      "댓글 관리자 제재",
+      until
+    );
+    window.alert("계정 제재를 적용했습니다.");
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-full text-white/35 hover:bg-white/10 hover:text-white/70"
+          aria-label="댓글 메뉴"
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        className="min-w-[10rem] border-white/10 bg-neutral-900 text-white"
+      >
+        {canPin && (
+          <DropdownMenuItem
+            className="focus:bg-white/10"
+            onClick={() => void pin(!isPinned)}
+          >
+            {isPinned ? "고정 해제" : "고정"}
+          </DropdownMenuItem>
+        )}
+        {isMine && (
+          <DropdownMenuItem className="focus:bg-white/10" onClick={onEdit}>
+            수정
+          </DropdownMenuItem>
+        )}
+        {canDelete && (
+          <DropdownMenuItem
+            className="text-red-300 focus:bg-white/10 focus:text-red-200"
+            onClick={() => void remove()}
+          >
+            삭제
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem className="focus:bg-white/10" onClick={() => void copyLink()}>
+          링크 복사
+        </DropdownMenuItem>
+        {!isMine && (
+          <>
+            <DropdownMenuSeparator className="bg-white/10" />
+            <DropdownMenuItem className="focus:bg-white/10" onClick={() => void report()}>
+              신고
+            </DropdownMenuItem>
+            <DropdownMenuItem className="focus:bg-white/10" onClick={() => void block()}>
+              차단
+            </DropdownMenuItem>
+          </>
+        )}
+        {isAdmin && !isMine && (
+          <>
+            <DropdownMenuSeparator className="bg-white/10" />
+            <DropdownMenuItem className="focus:bg-white/10" onClick={() => void hide()}>
+              숨김
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-red-300 focus:bg-white/10 focus:text-red-200"
+              onClick={() => void sanction()}
+            >
+              계정 제재
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function CommentRow({
   comment,
   postId,
-  userLoggedIn,
-  expanded,
-  onToggleExpand,
-  replyOpen,
-  onToggleReply,
-  liked,
-  likeCount,
-  onToggleLike,
-  isReply = false,
+  viewerId,
+  postAuthorId,
+  isPostOwner,
+  isAdmin,
+  isReply,
+  onPatch,
+  onRemove,
 }: {
-  comment: PanelComment | PanelReply;
+  comment: PanelComment | SerializedReply;
   postId: string;
-  userLoggedIn: boolean;
-  expanded?: boolean;
-  onToggleExpand?: () => void;
-  replyOpen: boolean;
-  onToggleReply: () => void;
-  liked: boolean;
-  likeCount: number;
-  onToggleLike: () => void;
+  viewerId: string | null;
+  postAuthorId: string | null;
+  isPostOwner: boolean;
+  isAdmin: boolean;
   isReply?: boolean;
+  onPatch: (id: string, patch: Partial<PanelComment>) => void;
+  onRemove: (id: string) => void;
 }) {
   const { locale, t } = useLocale();
+  const [replyOpen, setReplyOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState(comment.content);
+  const [expanded, setExpanded] = useState(false);
+  const [replies, setReplies] = useState<SerializedReply[]>(
+    "replies" in comment ? comment.replies : []
+  );
+  const [replyCursor, setReplyCursor] = useState<string | null>(null);
+  const [loadingReplies, setLoadingReplies] = useState(false);
+  const [likeBusy, setLikeBusy] = useState(false);
+  const [translated, setTranslated] = useState<string | null>(null);
+  const [showTranslated, setShowTranslated] = useState(false);
+  const [trLoading, setTrLoading] = useState(false);
+
+  useEffect(() => {
+    if ("replies" in comment && comment.replies.length > replies.length) {
+      setReplies(comment.replies);
+    }
+  }, [comment, replies.length]);
+
   const needsTr = useMemo(
     () => needsTranslation(comment.content, locale),
     [comment.content, locale]
   );
-  const [translated, setTranslated] = useState<string | null>(null);
-  const [showTranslated, setShowTranslated] = useState(false);
-  const [trLoading, setTrLoading] = useState(false);
   const display = showTranslated && translated ? translated : comment.content;
-  const replyTotal =
-    "replyTotal" in comment ? comment.replyTotal : 0;
-  const replies = "replies" in comment ? comment.replies : [];
-  const username = comment.author.username;
-  const displayName = comment.author.name || username;
+  const replyCount = "replyCount" in comment ? comment.replyCount : 0;
+  const isPinned = "isPinned" in comment && comment.isPinned;
+  const liked = comment.likedByMe;
+  const likeCount = comment.likeCount;
+
+  async function toggleLike() {
+    if (!viewerId || likeBusy) return;
+    setLikeBusy(true);
+    const nextLiked = !liked;
+    onPatch(comment.id, {
+      likedByMe: nextLiked,
+      likeCount: Math.max(0, likeCount + (nextLiked ? 1 : -1)),
+      likedByAuthor:
+        nextLiked && viewerId === postAuthorId
+          ? true
+          : !nextLiked && viewerId === postAuthorId
+            ? false
+            : comment.likedByAuthor,
+    });
+    try {
+      const res = await fetch(`/api/comments/${comment.id}/like`, {
+        method: nextLiked ? "POST" : "DELETE",
+        credentials: "include",
+      });
+      const body = (await res.json().catch(() => ({}))) as {
+        likeCount?: number;
+        liked?: boolean;
+        likedByAuthor?: boolean;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(body.error || "실패");
+      onPatch(comment.id, {
+        likedByMe: !!body.liked,
+        likeCount:
+          typeof body.likeCount === "number" ? body.likeCount : likeCount,
+        likedByAuthor: !!body.likedByAuthor || (comment.likedByAuthor && nextLiked),
+      });
+    } catch {
+      onPatch(comment.id, {
+        likedByMe: liked,
+        likeCount,
+        likedByAuthor: comment.likedByAuthor,
+      });
+    } finally {
+      setLikeBusy(false);
+    }
+  }
+
+  async function loadReplies(reset = false) {
+    if (loadingReplies) return;
+    setLoadingReplies(true);
+    try {
+      const qs = new URLSearchParams({ limit: "20" });
+      if (!reset && replyCursor) qs.set("cursor", replyCursor);
+      const res = await fetch(
+        `/api/comments/${comment.id}/replies?${qs.toString()}`,
+        { credentials: "include" }
+      );
+      const body = (await res.json()) as {
+        replies?: SerializedReply[];
+        nextCursor?: string | null;
+      };
+      if (!res.ok) return;
+      setReplies((prev) =>
+        reset ? body.replies ?? [] : [...prev, ...(body.replies ?? [])]
+      );
+      setReplyCursor(body.nextCursor ?? null);
+      setExpanded(true);
+    } finally {
+      setLoadingReplies(false);
+    }
+  }
+
+  async function saveEdit() {
+    const text = editText.trim();
+    if (!text) return;
+    const res = await fetch(`/api/comments/${comment.id}`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: text }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      window.alert(typeof body.error === "string" ? body.error : "수정 실패");
+      return;
+    }
+    onPatch(comment.id, { content: text, isEdited: true });
+    setEditing(false);
+  }
 
   async function runTranslate() {
     if (showTranslated) {
@@ -203,49 +448,138 @@ function IgCommentRow({
   }
 
   return (
-    <li className={cn("flex gap-3", isReply && "mt-3")}>
-      <Link href={`/u/${username}`} className="shrink-0 self-start">
+    <li
+      id={`comment-${comment.id}`}
+      className={cn(
+        "flex gap-3 transition-opacity duration-200",
+        "pending" in comment && comment.pending && "opacity-60"
+      )}
+    >
+      <Link href={`/u/${comment.author.username}`} className="shrink-0 self-start">
         <Avatar className="!h-8 !w-8 !rounded-full !ring-0">
-          <AvatarImage
-            src={comment.author.image ?? undefined}
-            alt=""
-            className="!rounded-full"
-          />
+          <AvatarImage src={comment.author.image ?? undefined} alt="" className="!rounded-full" />
           <AvatarFallback className="!rounded-full bg-neutral-700 text-[11px] text-white">
-            {displayName.slice(0, 1).toUpperCase()}
+            {(comment.author.name || comment.author.username).slice(0, 1).toUpperCase()}
           </AvatarFallback>
         </Avatar>
       </Link>
 
       <div className="min-w-0 flex-1">
-        <div className="pr-8">
-          <p className="text-[13px] leading-snug">
-            <Link
-              href={`/u/${username}`}
-              className="font-semibold text-white hover:text-white/90"
+        <div className="flex items-start gap-1">
+          <div className="min-w-0 flex-1 pr-1">
+            {isPinned && (
+              <p className="mb-0.5 flex items-center gap-1 text-[11px] font-medium text-white/45">
+                <Pin className="h-3 w-3" />
+                고정됨
+              </p>
+            )}
+            <p className="text-[13px] leading-snug">
+              <Link
+                href={`/u/${comment.author.username}`}
+                className="font-semibold text-white hover:text-white/90"
+              >
+                {comment.author.username}
+              </Link>
+              {comment.isPostAuthor ? <AuthorBadge /> : null}
+              <span className="ml-1.5 text-white/40 tabular-nums">
+                {formatRelativeKo(comment.createdAt)}
+              </span>
+              {comment.isEdited ? (
+                <span className="ml-1 text-white/30">(수정됨)</span>
+              ) : null}
+            </p>
+
+            {editing ? (
+              <div className="mt-1 space-y-2">
+                <textarea
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  rows={3}
+                  className="w-full rounded-xl border border-white/15 bg-white/[0.06] px-3 py-2 text-[13px] text-white"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-black"
+                    onClick={() => void saveEdit()}
+                  >
+                    저장
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-full px-3 py-1 text-xs text-white/60"
+                    onClick={() => {
+                      setEditing(false);
+                      setEditText(comment.content);
+                    }}
+                  >
+                    취소
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-0.5 text-[13px] leading-snug whitespace-pre-wrap break-words text-white">
+                {display}
+              </p>
+            )}
+          </div>
+
+          <div className="flex shrink-0 flex-col items-center gap-1">
+            {viewerId ? (
+              <CommentMenu
+                comment={comment}
+                isReply={isReply}
+                postId={postId}
+                viewerId={viewerId}
+                isPostOwner={isPostOwner}
+                isAdmin={isAdmin}
+                onEdit={() => {
+                  setEditText(comment.content);
+                  setEditing(true);
+                }}
+                onDeleted={() => onRemove(comment.id)}
+                onPinnedChange={(pinned) =>
+                  onPatch(comment.id, {
+                    isPinned: pinned,
+                    pinnedAt: pinned ? new Date().toISOString() : null,
+                  })
+                }
+              />
+            ) : null}
+            <button
+              type="button"
+              className="p-1 text-white/45 transition-transform active:scale-90 hover:text-white"
+              aria-label={liked ? "좋아요 취소" : "좋아요"}
+              aria-pressed={liked}
+              disabled={!viewerId || likeBusy}
+              onClick={() => void toggleLike()}
             >
-              {username}
-            </Link>{" "}
-            <span className="text-white/40 tabular-nums">
-              {formatRelativeKo(comment.createdAt)}
-            </span>
-          </p>
-          <p className="mt-0.5 text-[13px] leading-snug text-white whitespace-pre-wrap break-words">
-            {display}
-          </p>
+              <Heart
+                className={cn(
+                  "h-3.5 w-3.5 transition-colors",
+                  liked && "fill-red-500 text-red-500"
+                )}
+              />
+            </button>
+          </div>
         </div>
 
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-white/40">
           {likeCount > 0 && (
             <span className="tabular-nums">좋아요 {formatNumber(likeCount)}개</span>
           )}
-          <button
-            type="button"
-            className="hover:text-white/70"
-            onClick={onToggleReply}
-          >
-            답글 달기
-          </button>
+          {comment.likedByAuthor && (
+            <span className="text-amber-300/80">작성자가 좋아함</span>
+          )}
+          {viewerId && (
+            <button
+              type="button"
+              className="hover:text-white/70"
+              onClick={() => setReplyOpen((v) => !v)}
+            >
+              답글 달기
+            </button>
+          )}
           {needsTr && (
             <button
               type="button"
@@ -262,57 +596,79 @@ function IgCommentRow({
           )}
         </div>
 
-        {!isReply && replyTotal > 0 && (
+        {!isReply && replyCount > 0 && (
           <button
             type="button"
             className="mt-2 flex items-center gap-2 text-[12px] text-white/40 hover:text-white/65"
-            onClick={onToggleExpand}
+            onClick={() => {
+              if (expanded) {
+                setExpanded(false);
+                return;
+              }
+              if (replies.length === 0) void loadReplies(true);
+              else setExpanded(true);
+            }}
           >
             <span className="inline-block h-px w-6 bg-white/30" aria-hidden />
             {expanded
               ? "답글 숨기기"
-              : `답글 ${formatNumber(replyTotal)}개 모두 보기`}
+              : `답글 ${formatNumber(replyCount)}개 모두 보기`}
           </button>
         )}
 
-        {!isReply && expanded && replies.length > 0 && (
-          <ul className="mt-1">
+        {!isReply && expanded && (
+          <ul className="mt-2 space-y-0">
             {replies.map((r) => (
-              <ReplyRow
-                key={r.id}
-                comment={r}
-                postId={postId}
-                userLoggedIn={userLoggedIn}
-              />
+              <div key={r.id} className="mt-3">
+                <CommentRow
+                  comment={r}
+                  postId={postId}
+                  viewerId={viewerId}
+                  postAuthorId={postAuthorId}
+                  isPostOwner={isPostOwner}
+                  isAdmin={isAdmin}
+                  isReply
+                  onPatch={(id, patch) => {
+                    setReplies((prev) =>
+                      prev.map((x) => (x.id === id ? { ...x, ...patch } : x))
+                    );
+                    onPatch(id, patch);
+                  }}
+                  onRemove={(id) => {
+                    setReplies((prev) => prev.filter((x) => x.id !== id));
+                    onRemove(id);
+                  }}
+                />
+              </div>
             ))}
+            {replyCursor && (
+              <button
+                type="button"
+                className="mt-2 text-[12px] text-white/40 hover:text-white/70"
+                disabled={loadingReplies}
+                onClick={() => void loadReplies(false)}
+              >
+                {loadingReplies ? "불러오는 중…" : "답글 더 보기"}
+              </button>
+            )}
           </ul>
         )}
 
-        {replyOpen && userLoggedIn && (
+        {replyOpen && viewerId && (
           <CommentForm
             postId={postId}
             parentId={comment.id}
             placeholder="답글 달기..."
+            autoFocus
             className="mt-2"
             inputClassName="h-9 rounded-full border-white/15 bg-white/[0.06] text-white placeholder:text-white/35"
+            onSubmitted={() => {
+              setReplyOpen(false);
+              setExpanded(true);
+            }}
           />
         )}
       </div>
-
-      <button
-        type="button"
-        className="mt-1 shrink-0 self-start p-1 text-white/45 hover:text-white"
-        aria-label={liked ? "좋아요 취소" : "좋아요"}
-        aria-pressed={liked}
-        onClick={onToggleLike}
-      >
-        <Heart
-          className={cn(
-            "h-3.5 w-3.5",
-            liked && "fill-red-500 text-red-500"
-          )}
-        />
-      </button>
     </li>
   );
 }
@@ -326,19 +682,27 @@ export function ReelsCommentsPanel({
 }: Props) {
   const session = useSession();
   const user = session?.data?.user;
-  const [sort, setSort] = useState<"popular" | "newest">("popular");
+  const viewerId = user?.id ?? null;
+  const isAdmin = !!user?.isOperator || user?.role === "ADMIN";
+
+  const [sort, setSort] = useState<SortId>("popular");
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const [pinned, setPinned] = useState<PanelComment[]>([]);
   const [comments, setComments] = useState<PanelComment[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [total, setTotal] = useState(initialCount);
+  const [postAuthorId, setPostAuthorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
-  const [replyTo, setReplyTo] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [likedMap, setLikedMap] = useState<Record<string, number>>({});
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
   const onCountChangeRef = useRef(onCountChange);
   onCountChangeRef.current = onCountChange;
   const totalRef = useRef(total);
   totalRef.current = total;
+
+  const isPostOwner = !!viewerId && !!postAuthorId && viewerId === postAuthorId;
 
   const notifyCount = useCallback((next: number) => {
     if (totalRef.current === next) return;
@@ -347,55 +711,156 @@ export function ReelsCommentsPanel({
     onCountChangeRef.current?.(next);
   }, []);
 
-  useEffect(() => {
-    if (!open || !postId) return;
+  const mergeUnique = useCallback((base: PanelComment[], extra: PanelComment[]) => {
+    const seen = new Set(base.map((c) => c.id));
+    const out = [...base];
+    for (const c of extra) {
+      if (seen.has(c.id)) continue;
+      seen.add(c.id);
+      out.push(c);
+    }
+    return out;
+  }, []);
 
-    const ac = new AbortController();
-    setReplyTo(null);
-    setExpanded({});
-    setError("");
-    setLoading(true);
-    setComments([]);
-    setTotal(initialCount);
-    totalRef.current = initialCount;
-
-    void (async () => {
+  const loadPage = useCallback(
+    async (opts: { reset: boolean; cursor?: string | null }) => {
+      if (opts.reset) {
+        setLoading(true);
+        setError("");
+      } else {
+        setLoadingMore(true);
+      }
       try {
+        const qs = new URLSearchParams({
+          sort,
+          limit: "20",
+        });
+        if (opts.cursor) qs.set("cursor", opts.cursor);
         const res = await fetch(
-          `/api/posts/${encodeURIComponent(postId)}/comments?sort=${sort}&limit=50`,
-          { credentials: "include", signal: ac.signal }
+          `/api/posts/${encodeURIComponent(postId)}/comments?${qs}`,
+          { credentials: "include" }
         );
         const body = (await res.json().catch(() => ({}))) as {
-          comments?: ApiComment[];
+          pinned?: PanelComment[];
+          comments?: PanelComment[];
+          nextCursor?: string | null;
           total?: number;
+          postAuthorId?: string;
           error?: string;
         };
-        if (ac.signal.aborted) return;
-        if (!res.ok) {
-          throw new Error(body.error || "댓글을 불러오지 못했습니다.");
+        if (!res.ok) throw new Error(body.error || "댓글을 불러오지 못했습니다.");
+
+        if (typeof body.postAuthorId === "string") {
+          setPostAuthorId(body.postAuthorId);
         }
-        const list = (body.comments ?? []).map(toPanelComment);
-        setComments(list);
-        notifyCount(
-          typeof body.total === "number" ? body.total : list.length
-        );
+        if (opts.reset) {
+          setPinned(body.pinned ?? []);
+          setComments(body.comments ?? []);
+        } else {
+          setComments((prev) => mergeUnique(prev, body.comments ?? []));
+        }
+        setNextCursor(body.nextCursor ?? null);
+        if (typeof body.total === "number") notifyCount(body.total);
         setError("");
       } catch (e) {
-        if (ac.signal.aborted) return;
-        if (e instanceof DOMException && e.name === "AbortError") return;
         setError(e instanceof Error ? e.message : "댓글을 불러오지 못했습니다.");
       } finally {
-        if (!ac.signal.aborted) setLoading(false);
+        setLoading(false);
+        setLoadingMore(false);
       }
-    })();
+    },
+    [mergeUnique, notifyCount, postId, sort]
+  );
 
-    return () => ac.abort();
+  useEffect(() => {
+    if (!open || !postId) return;
+    setPinned([]);
+    setComments([]);
+    setNextCursor(null);
+    setTotal(initialCount);
+    totalRef.current = initialCount;
+    void loadPage({ reset: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, postId, sort, notifyCount]);
+  }, [open, postId, sort]);
 
   useEffect(() => {
     if (!open) setSortMenuOpen(false);
   }, [open]);
+
+  useEffect(() => {
+    if (!open || !nextCursor || loadingMore || loading) return;
+    const el = sentinelRef.current;
+    const root = listRef.current;
+    if (!el || !root) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          void loadPage({ reset: false, cursor: nextCursor });
+        }
+      },
+      { root, rootMargin: "120px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [open, nextCursor, loadingMore, loading, loadPage]);
+
+  const patchComment = useCallback((id: string, patch: Partial<PanelComment>) => {
+    const apply = (list: PanelComment[]) =>
+      list.map((c) => {
+        if (c.id === id) return { ...c, ...patch };
+        if (c.replies?.some((r) => r.id === id)) {
+          return {
+            ...c,
+            replies: c.replies.map((r) =>
+              r.id === id ? { ...r, ...patch } : r
+            ),
+          };
+        }
+        return c;
+      });
+
+    setPinned((prev) => {
+      const next = apply(prev);
+      // Move between pinned/unpinned buckets when pin flag changes
+      if ("isPinned" in patch) {
+        const target = [...prev, ...comments].find((c) => c.id === id);
+        if (target) {
+          if (patch.isPinned) {
+            const row = { ...target, ...patch, isPinned: true };
+            setComments((cs) => cs.filter((c) => c.id !== id));
+            return mergeUnique(
+              next.filter((c) => c.id !== id),
+              [row]
+            ).slice(0, 3);
+          }
+          const row = { ...target, ...patch, isPinned: false, pinnedAt: null };
+          setComments((cs) => [row, ...cs.filter((c) => c.id !== id)]);
+          return next.filter((c) => c.id !== id);
+        }
+      }
+      return next;
+    });
+    setComments((prev) => apply(prev));
+  }, [comments, mergeUnique]);
+
+  const removeComment = useCallback(
+    (id: string) => {
+      setPinned((prev) => prev.filter((c) => c.id !== id));
+      setComments((prev) =>
+        prev
+          .filter((c) => c.id !== id)
+          .map((c) => ({
+            ...c,
+            replies: c.replies.filter((r) => r.id !== id),
+            replyCount: c.replies.some((r) => r.id === id)
+              ? Math.max(0, c.replyCount - 1)
+              : c.replyCount,
+          }))
+      );
+      notifyCount(Math.max(0, totalRef.current - 1));
+    },
+    [notifyCount]
+  );
 
   useEffect(() => {
     if (!open || !postId) return;
@@ -404,44 +869,59 @@ export function ReelsCommentsPanel({
       const detail = (e as CustomEvent<{ postId: string; comment: OptimisticComment }>)
         .detail;
       if (!detail || detail.postId !== postId) return;
-      const comment = detail.comment;
-      const author: ApiAuthor = {
-        name: comment.author.name,
-        username: comment.author.username,
-        image: user?.image ?? null,
-        supportTierSent: comment.author.supportTierSent,
+      const c = detail.comment;
+      const author = {
+        id: c.author.id ?? viewerId ?? "",
+        name: c.author.name,
+        username: c.author.username,
+        image: c.author.image ?? user?.image ?? null,
+        supportTierSent: c.author.supportTierSent,
       };
 
-      if (comment.parentId) {
-        setComments((prev) =>
-          prev.map((c) =>
-            c.id === comment.parentId
+      if (c.parentId) {
+        const bump = (list: PanelComment[]) =>
+          list.map((row) =>
+            row.id === c.parentId
               ? {
-                  ...c,
-                  replyTotal: c.replyTotal + 1,
+                  ...row,
+                  replyCount: row.replyCount + 1,
                   replies: [
-                    ...c.replies,
+                    ...row.replies,
                     {
-                      id: comment.id,
-                      content: comment.content,
+                      id: c.id,
+                      content: c.content,
                       createdAt: new Date().toISOString(),
+                      updatedAt: new Date().toISOString(),
+                      likeCount: 0,
+                      likedByMe: false,
+                      likedByAuthor: false,
+                      isPostAuthor: author.id === postAuthorId,
+                      isEdited: false,
                       author,
                     },
                   ],
                 }
-              : c
-          )
-        );
-        setExpanded((prev) => ({ ...prev, [comment.parentId!]: true }));
+              : row
+          );
+        setPinned(bump);
+        setComments(bump);
       } else {
         const row: PanelComment = {
-          id: comment.id,
-          content: comment.content,
+          id: c.id,
+          content: c.content,
           createdAt: new Date().toISOString(),
-          pending: comment.pending,
+          updatedAt: new Date().toISOString(),
+          pending: c.pending,
+          likeCount: 0,
+          likedByMe: false,
+          likedByAuthor: false,
+          isPostAuthor: author.id === postAuthorId,
+          isPinned: false,
+          pinnedAt: null,
+          isEdited: false,
+          replyCount: 0,
           author,
           replies: [],
-          replyTotal: 0,
         };
         setComments((prev) =>
           sort === "newest" ? [row, ...prev] : [...prev, row]
@@ -455,47 +935,67 @@ export function ReelsCommentsPanel({
         e as CustomEvent<{ postId: string; pendingId: string; realId: string }>
       ).detail;
       if (!detail || detail.postId !== postId) return;
-      setComments((prev) =>
-        prev.map((c) => {
+      const swap = (list: PanelComment[]) =>
+        list.map((c) => {
           if (c.id === detail.pendingId) {
             return { ...c, id: detail.realId, pending: false };
           }
           return {
             ...c,
             replies: c.replies.map((r) =>
-              r.id === detail.pendingId ? { ...r, id: detail.realId } : r
+              r.id === detail.pendingId
+                ? { ...r, id: detail.realId }
+                : r
             ),
           };
-        })
-      );
+        });
+      setPinned(swap);
+      setComments(swap);
     }
 
     function onFailed(e: Event) {
       const detail = (e as CustomEvent<{ postId: string; pendingId: string }>).detail;
       if (!detail || detail.postId !== postId) return;
-      setComments((prev) =>
-        prev
-          .filter((c) => c.id !== detail.pendingId)
-          .map((c) => ({
-            ...c,
-            replies: c.replies.filter((r) => r.id !== detail.pendingId),
-            replyTotal: c.replies.some((r) => r.id === detail.pendingId)
-              ? Math.max(0, c.replyTotal - 1)
-              : c.replyTotal,
-          }))
-      );
-      notifyCount(Math.max(0, totalRef.current - 1));
+      removeComment(detail.pendingId);
+    }
+
+    function onUpdated(e: Event) {
+      const detail = (
+        e as CustomEvent<{ postId: string; commentId: string; content: string }>
+      ).detail;
+      if (!detail || detail.postId !== postId) return;
+      patchComment(detail.commentId, { content: detail.content, isEdited: true });
+    }
+
+    function onRemoved(e: Event) {
+      const detail = (e as CustomEvent<{ postId: string; commentId: string }>).detail;
+      if (!detail || detail.postId !== postId) return;
+      removeComment(detail.commentId);
     }
 
     window.addEventListener(COMMENT_ADDED_EVENT, onAdded);
     window.addEventListener(COMMENT_CONFIRMED_EVENT, onConfirmed);
     window.addEventListener(COMMENT_FAILED_EVENT, onFailed);
+    window.addEventListener(COMMENT_UPDATED_EVENT, onUpdated);
+    window.addEventListener(COMMENT_REMOVED_EVENT, onRemoved);
     return () => {
       window.removeEventListener(COMMENT_ADDED_EVENT, onAdded);
       window.removeEventListener(COMMENT_CONFIRMED_EVENT, onConfirmed);
       window.removeEventListener(COMMENT_FAILED_EVENT, onFailed);
+      window.removeEventListener(COMMENT_UPDATED_EVENT, onUpdated);
+      window.removeEventListener(COMMENT_REMOVED_EVENT, onRemoved);
     };
-  }, [notifyCount, open, postId, sort, user?.image]);
+  }, [
+    notifyCount,
+    open,
+    patchComment,
+    postAuthorId,
+    postId,
+    removeComment,
+    sort,
+    user?.image,
+    viewerId,
+  ]);
 
   useEffect(() => {
     if (!open) return;
@@ -512,9 +1012,10 @@ export function ReelsCommentsPanel({
 
   const sortLabel =
     SORT_OPTIONS.find((o) => o.id === sort)?.label ?? "인기 댓글";
-  const empty = !loading && !error && comments.length === 0;
+  const allComments = [...pinned, ...comments];
+  const empty = !loading && !error && allComments.length === 0;
 
-  const panelBody = (
+  const panelBody: ReactNode = (
     <>
       <header className="flex shrink-0 items-center justify-between gap-2 px-4 pb-1 pt-1">
         <h2 className="text-[15px] font-semibold text-white">
@@ -565,11 +1066,12 @@ export function ReelsCommentsPanel({
 
       <p className="shrink-0 px-4 pb-2 text-[12px] text-white/40">{sortLabel}</p>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-1">
+      <div
+        ref={listRef}
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-1"
+      >
         {loading ? (
-          <div className="flex justify-center py-10">
-            <Loader2 className="h-6 w-6 animate-spin text-white/40" />
-          </div>
+          <SkeletonRows />
         ) : error ? (
           <p className="py-6 text-center text-sm text-red-300">{error}</p>
         ) : empty ? (
@@ -578,33 +1080,25 @@ export function ReelsCommentsPanel({
           </p>
         ) : (
           <ul className="space-y-5 pb-4">
-            {comments.map((c) => {
-              const likeCount = likedMap[c.id] ?? 0;
-              return (
-                <IgCommentRow
-                  key={c.id}
-                  comment={c}
-                  postId={postId}
-                  userLoggedIn={!!user}
-                  expanded={!!expanded[c.id]}
-                  onToggleExpand={() =>
-                    setExpanded((prev) => ({ ...prev, [c.id]: !prev[c.id] }))
-                  }
-                  replyOpen={replyTo === c.id}
-                  onToggleReply={() =>
-                    setReplyTo((cur) => (cur === c.id ? null : c.id))
-                  }
-                  liked={likeCount > 0}
-                  likeCount={likeCount}
-                  onToggleLike={() =>
-                    setLikedMap((prev) => ({
-                      ...prev,
-                      [c.id]: (prev[c.id] ?? 0) > 0 ? 0 : 1,
-                    }))
-                  }
-                />
-              );
-            })}
+            {allComments.map((c) => (
+              <CommentRow
+                key={c.id}
+                comment={c}
+                postId={postId}
+                viewerId={viewerId}
+                postAuthorId={postAuthorId}
+                isPostOwner={isPostOwner}
+                isAdmin={isAdmin}
+                onPatch={patchComment}
+                onRemove={removeComment}
+              />
+            ))}
+            <div ref={sentinelRef} className="h-4" />
+            {loadingMore && (
+              <div className="flex justify-center py-3">
+                <Loader2 className="h-5 w-5 animate-spin text-white/40" />
+              </div>
+            )}
           </ul>
         )}
       </div>
@@ -615,7 +1109,7 @@ export function ReelsCommentsPanel({
             postId={postId}
             placeholder="댓글 추가..."
             className="mt-0"
-            inputClassName="h-10 rounded-full border-white/15 bg-transparent text-white placeholder:text-white/35"
+            inputClassName="rounded-full border-white/15 bg-transparent text-white placeholder:text-white/35"
           />
         ) : (
           <Link

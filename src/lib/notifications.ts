@@ -162,6 +162,54 @@ export async function notifyPostComment(params: {
   });
 }
 
+export async function notifyCommentLiked(params: {
+  postId: string;
+  commentId: string;
+  commentAuthorId: string;
+  actorId: string;
+  postAuthorId: string;
+}) {
+  const { postId, commentId, commentAuthorId, actorId, postAuthorId } = params;
+  if (commentAuthorId === actorId) return;
+
+  const actor = await getActor(actorId);
+  const label = actorLabel(actor);
+  const link = `/post/${postId}#comment-${commentId}`;
+  const isAuthorLike = actorId === postAuthorId;
+
+  scheduleNotification({
+    userId: commentAuthorId,
+    actorId,
+    type: isAuthorLike ? "comment_author_like" : "comment_like",
+    title: isAuthorLike ? "작성자 좋아요" : "댓글 좋아요",
+    body: isAuthorLike
+      ? `${label}님(작성자)이 회원님의 댓글을 좋아합니다.`
+      : `${label}님이 회원님의 댓글을 좋아합니다.`,
+    link,
+  });
+}
+
+export async function notifyCommentPinned(params: {
+  postId: string;
+  commentId: string;
+  commentAuthorId: string;
+  actorId: string;
+}) {
+  const { postId, commentId, commentAuthorId, actorId } = params;
+  if (commentAuthorId === actorId) return;
+
+  const actor = await getActor(actorId);
+  const label = actorLabel(actor);
+  scheduleNotification({
+    userId: commentAuthorId,
+    actorId,
+    type: "comment_pin",
+    title: "댓글 고정",
+    body: `${label}님이 회원님의 댓글을 고정했습니다.`,
+    link: `/post/${postId}#comment-${commentId}`,
+  });
+}
+
 export async function notifyMentionsInText(params: {
   text: string;
   actorId: string;
@@ -572,6 +620,9 @@ export const NOTIFICATION_CATEGORIES = {
     "like",
     "comment",
     "comment_reply",
+    "comment_like",
+    "comment_author_like",
+    "comment_pin",
     "mention",
     "repost",
     "follow",
