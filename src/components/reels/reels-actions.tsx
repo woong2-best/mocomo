@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import {
   Heart,
   Maximize2,
-  MessageCircle,
+  MessageSquare,
   Minimize2,
   Share2,
   Star,
@@ -15,9 +15,7 @@ import {
 } from "lucide-react";
 import { cn, formatNumber } from "@/lib/utils";
 import { MotionPop } from "@/components/motion/motion-primitives";
-import { userDisplayName } from "@/lib/user-public-select";
 import type { ReelItem } from "@/lib/reels/types";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type Props = {
   reel: ReelItem;
@@ -76,19 +74,6 @@ export function ReelsActions({
       )}
       onClick={(e) => e.stopPropagation()}
     >
-      <Link
-        href={`/u/${reel.author.username}`}
-        className="relative mb-1 rounded-full ring-2 ring-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-folk-gold"
-        aria-label={`@${reel.author.username}`}
-      >
-        <Avatar className="h-11 w-11 border border-white/30">
-          <AvatarImage src={reel.author.image ?? undefined} alt="" />
-          <AvatarFallback className="bg-folk-cobalt text-white text-sm">
-            {userDisplayName(reel.author).slice(0, 1).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-      </Link>
-
       <button
         type="button"
         className="flex flex-col items-center gap-0.5 min-h-11 min-w-11"
@@ -119,7 +104,7 @@ export function ReelsActions({
           aria-label="Comments"
           onClick={onComment}
         >
-          <MessageCircle className="h-7 w-7 drop-shadow-md" />
+          <MessageSquare className="h-7 w-7 drop-shadow-md" />
           <span className="text-[11px] font-semibold tabular-nums drop-shadow">
             {formatNumber(displayCommentCount)}
           </span>
@@ -130,7 +115,7 @@ export function ReelsActions({
           className="flex flex-col items-center gap-0.5 min-h-11 min-w-11"
           aria-label="Comments"
         >
-          <MessageCircle className="h-7 w-7 drop-shadow-md" />
+          <MessageSquare className="h-7 w-7 drop-shadow-md" />
           <span className="text-[11px] font-semibold tabular-nums drop-shadow">
             {formatNumber(displayCommentCount)}
           </span>
