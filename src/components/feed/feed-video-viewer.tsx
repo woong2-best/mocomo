@@ -380,6 +380,7 @@ export function FeedVideoViewer({
               videoIndexByGroupRef.current[index] = videoIndex;
             }}
             forcedVideoIndex={forcedVideoByGroup[index] ?? null}
+            horizontalNavEnabled={!expand}
           />
         ))}
         {loadingMore && (

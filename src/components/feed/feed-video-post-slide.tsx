@@ -9,6 +9,7 @@ import {
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useOptimisticLike, useOptimisticStar } from "@/lib/use-optimistic-engage";
 import { userDisplayName } from "@/lib/user-public-select";
 import type { ReelItem } from "@/lib/reels/types";
@@ -35,6 +36,8 @@ type Props = {
   onActiveVideoChange?: (videoIndex: number) => void;
   /** Parent forces horizontal position (e.g. after closing expand lightbox). */
   forcedVideoIndex?: number | null;
+  /** false while expand lightbox is open — avoid duplicate arrow-key handling. */
+  horizontalNavEnabled?: boolean;
 };
 
 export function FeedVideoPostSlide({
@@ -53,6 +56,7 @@ export function FeedVideoPostSlide({
   onExpand,
   onActiveVideoChange,
   forcedVideoIndex = null,
+  horizontalNavEnabled = true,
 }: Props) {
   const hScrollerRef = useRef<HTMLDivElement>(null);
   const [videoIndex, setVideoIndex] = useState(() =>
@@ -68,6 +72,9 @@ export function FeedVideoPostSlide({
   const session = sessionState?.data;
   const status = sessionState?.status ?? "unauthenticated";
   const router = useRouter();
+  const multiVideo = group.videos.length > 1;
+  const canHPrev = videoIndex > 0;
+  const canHNext = videoIndex < group.videos.length - 1;
 
   function requireLogin() {
     if (status === "loading") return false;
@@ -77,7 +84,6 @@ export function FeedVideoPostSlide({
     return false;
   }
 
-  // Jump to initial video once when this group mounts / start changes.
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
@@ -87,7 +93,11 @@ export function FeedVideoPostSlide({
       const el = hScrollerRef.current?.querySelector<HTMLElement>(
         `[data-feed-video-h="${idx}"]`
       );
-      el?.scrollIntoView({ behavior: "instant" as ScrollBehavior, inline: "start", block: "nearest" });
+      el?.scrollIntoView({
+        behavior: "instant" as ScrollBehavior,
+        inline: "start",
+        block: "nearest",
+      });
     });
   }, [initialVideoIndex, group.videos.length]);
 
@@ -136,7 +146,11 @@ export function FeedVideoPostSlide({
       const el = hScrollerRef.current?.querySelector<HTMLElement>(
         `[data-feed-video-h="${clamped}"]`
       );
-      el?.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
+      el?.scrollIntoView({
+        behavior: "smooth",
+        inline: "start",
+        block: "nearest",
+      });
       setVideoIndex(clamped);
       onActiveVideoChange?.(clamped);
     },
@@ -148,7 +162,29 @@ export function FeedVideoPostSlide({
     goH(forcedVideoIndex);
   }, [forcedVideoIndex, goH]);
 
-  // When video ends: next in post, else notify parent (next post).
+  useEffect(() => {
+    if (!isActive || !multiVideo || !horizontalNavEnabled) return;
+    function onKey(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        (e.target as HTMLElement)?.isContentEditable
+      ) {
+        return;
+      }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        goH(videoIndex - 1);
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        goH(videoIndex + 1);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [goH, horizontalNavEnabled, isActive, multiVideo, videoIndex]);
+
   const handleEnded = useCallback(() => {
     if (videoIndex < group.videos.length - 1) {
       goH(videoIndex + 1);
@@ -161,6 +197,17 @@ export function FeedVideoPostSlide({
     activeReel.title?.trim() ||
     activeReel.content.trim().slice(0, 160) ||
     `@${activeReel.author.username}`;
+
+  const sideNavBtnClass = cn(
+    "pointer-events-auto z-30 hidden shrink-0",
+    "h-10 w-10 items-center justify-center rounded-full",
+    "border border-white/10 bg-white/20 text-white shadow-md backdrop-blur-md transition",
+    "hover:bg-white/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
+    "disabled:pointer-events-none disabled:opacity-30",
+    "lg:flex"
+  );
+
+  const showSideNav = isActive && multiVideo && horizontalNavEnabled;
 
   return (
     <section
@@ -177,101 +224,134 @@ export function FeedVideoPostSlide({
       }
     >
       <div
-        className="relative h-full w-full lg:h-[min(100dvh,920px)] lg:max-w-[420px]"
+        className={cn(
+          "flex h-full w-full items-center justify-center",
+          "lg:h-[min(100dvh,920px)] lg:w-auto lg:max-w-full lg:gap-3"
+        )}
         onClick={(e) => e.stopPropagation()}
       >
-        <div
-          ref={hScrollerRef}
-          className={cn(
-            "flex h-full w-full overflow-x-auto overflow-y-hidden overscroll-x-contain",
-            "snap-x snap-mandatory scroll-smooth",
-            "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          )}
-          role="list"
-          aria-label="같은 게시물 영상"
-        >
-          {group.videos.map((reel, vi) => {
-            const d = isActive ? Math.abs(vi - videoIndex) : distance + 1;
-            return (
-              <div
-                key={reel.id}
-                data-feed-video-h={vi}
-                role="listitem"
-                className="relative h-full w-full shrink-0 snap-start snap-always bg-black"
-              >
-                <ReelsPlayer
-                  src={reel.media.url}
-                  hlsUrl={reel.media.hlsUrl}
-                  poster={reel.media.posterUrl}
-                  mediaId={reel.media.id}
-                  distance={d}
-                  isActive={isActive && vi === videoIndex}
-                  muted={muted}
-                  onMutedChange={onMutedChange}
-                  disableLoop={disableLoop}
-                  onEnded={
-                    isActive && vi === videoIndex ? handleEnded : undefined
-                  }
-                  onDoubleTapLike={() => {
-                    if (!requireLogin()) return;
-                    void like.toggle();
-                  }}
-                  onLongPressMenu={onOpenMenu}
-                  onContextMenu={onOpenMenu}
-                />
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/75 via-black/25 to-transparent pt-24 pb-10">
-          <div className="pointer-events-auto flex items-end justify-between gap-3 px-4 pr-16">
-            <div className="min-w-0 max-w-[78%] space-y-1 text-white">
-              <Link
-                href={`/u/${activeReel.author.username}`}
-                className="inline-block rounded font-display text-sm font-bold drop-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-              >
-                @{activeReel.author.username}
-              </Link>
-              <p className="line-clamp-3 text-sm leading-snug text-white/95 drop-shadow">
-                {caption}
-              </p>
-              {group.videos.length > 1 && (
-                <p className="text-[11px] tabular-nums text-white/70">
-                  {videoIndex + 1} / {group.videos.length}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {group.videos.length > 1 && (
-          <div className="pointer-events-none absolute inset-x-0 top-[max(3.5rem,env(safe-area-inset-top))] z-20 flex justify-center gap-1.5 px-10">
-            {group.videos.map((v, i) => (
-              <span
-                key={v.id}
-                className={cn(
-                  "h-0.5 flex-1 max-w-10 rounded-full transition-colors",
-                  i === videoIndex ? "bg-white" : "bg-white/35"
-                )}
-              />
-            ))}
-          </div>
+        {showSideNav ? (
+          <button
+            type="button"
+            disabled={!canHPrev}
+            onClick={() => goH(videoIndex - 1)}
+            className={sideNavBtnClass}
+            aria-label="이전 영상"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+        ) : (
+          <span className="hidden w-10 shrink-0 lg:block" aria-hidden />
         )}
 
-        <ReelsActions
-          reel={activeReel}
-          liked={like.liked}
-          likeCount={like.likeCount}
-          starred={star.starred}
-          onToggleLike={() => void like.toggle()}
-          onToggleStar={() => void star.toggle()}
-          muted={muted}
-          onToggleMute={() => onMutedChange(!muted)}
-          onShare={() => onShare(activeReel)}
-          onToggleExpand={() => onExpand(videoIndex)}
-          className="absolute right-2 bottom-28 z-20 sm:right-3 lg:right-[-3.75rem] lg:bottom-1/2 lg:translate-y-1/2"
-        />
+        <div className="relative h-full w-full min-w-0 lg:w-[420px] lg:max-w-[420px]">
+          <div
+            ref={hScrollerRef}
+            className={cn(
+              "flex h-full w-full overflow-x-auto overflow-y-hidden overscroll-x-contain",
+              "snap-x snap-mandatory scroll-smooth",
+              "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            )}
+            role="list"
+            aria-label="같은 게시물 영상"
+          >
+            {group.videos.map((reel, vi) => {
+              const d = isActive ? Math.abs(vi - videoIndex) : distance + 1;
+              return (
+                <div
+                  key={reel.id}
+                  data-feed-video-h={vi}
+                  role="listitem"
+                  className="relative h-full w-full shrink-0 snap-start snap-always bg-black"
+                >
+                  <ReelsPlayer
+                    src={reel.media.url}
+                    hlsUrl={reel.media.hlsUrl}
+                    poster={reel.media.posterUrl}
+                    mediaId={reel.media.id}
+                    distance={d}
+                    isActive={isActive && vi === videoIndex}
+                    muted={muted}
+                    onMutedChange={onMutedChange}
+                    disableLoop={disableLoop}
+                    onEnded={
+                      isActive && vi === videoIndex ? handleEnded : undefined
+                    }
+                    onDoubleTapLike={() => {
+                      if (!requireLogin()) return;
+                      void like.toggle();
+                    }}
+                    onLongPressMenu={onOpenMenu}
+                    onContextMenu={onOpenMenu}
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/75 via-black/25 to-transparent pt-24 pb-10">
+            <div className="pointer-events-auto flex items-end justify-between gap-3 px-4 pr-16">
+              <div className="min-w-0 max-w-[78%] space-y-1 text-white">
+                <Link
+                  href={`/u/${activeReel.author.username}`}
+                  className="inline-block rounded font-display text-sm font-bold drop-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                >
+                  @{activeReel.author.username}
+                </Link>
+                <p className="line-clamp-3 text-sm leading-snug text-white/95 drop-shadow">
+                  {caption}
+                </p>
+                {multiVideo && (
+                  <p className="text-[11px] tabular-nums text-white/70">
+                    {videoIndex + 1} / {group.videos.length}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {multiVideo && (
+            <div className="pointer-events-none absolute inset-x-0 top-[max(3.5rem,env(safe-area-inset-top))] z-20 flex justify-center gap-1.5 px-10">
+              {group.videos.map((v, i) => (
+                <span
+                  key={v.id}
+                  className={cn(
+                    "h-0.5 flex-1 max-w-10 rounded-full transition-colors",
+                    i === videoIndex ? "bg-white" : "bg-white/35"
+                  )}
+                />
+              ))}
+            </div>
+          )}
+
+          <ReelsActions
+            reel={activeReel}
+            liked={like.liked}
+            likeCount={like.likeCount}
+            starred={star.starred}
+            onToggleLike={() => void like.toggle()}
+            onToggleStar={() => void star.toggle()}
+            muted={muted}
+            onToggleMute={() => onMutedChange(!muted)}
+            onShare={() => onShare(activeReel)}
+            onToggleExpand={() => onExpand(videoIndex)}
+            className="absolute right-2 bottom-28 z-20 sm:right-3"
+          />
+        </div>
+
+        {showSideNav ? (
+          <button
+            type="button"
+            disabled={!canHNext}
+            onClick={() => goH(videoIndex + 1)}
+            className={sideNavBtnClass}
+            aria-label="다음 영상"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        ) : (
+          <span className="hidden w-10 shrink-0 lg:block" aria-hidden />
+        )}
       </div>
     </section>
   );
