@@ -63,7 +63,7 @@ function mapLiveChatMessage(m: {
   };
 }
 
-/** 방송 만들기 버튼·페이지 — 실버(팔로워 1,000+) 자격 */
+/** 방송 만들기 자격 (팔로워 제한 없음) */
 export async function getLiveHostEligibilityAction() {
   const user = await requireAuthMinimal();
   return fetchLiveHostEligibility(user.id);

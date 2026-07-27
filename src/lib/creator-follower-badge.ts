@@ -1,6 +1,8 @@
-/** 팔로워 수 기반 크리에이터 뱃지 — 라이브 송출 등 권한과 연동 */
+/** 팔로워 수 기반 크리에이터 뱃지 */
 
-export const LIVE_HOST_MIN_FOLLOWERS = 1000;
+/** @deprecated 라이브 송출 팔로워 제한 없음 — 하위 호환용 */
+export const LIVE_HOST_MIN_FOLLOWERS = 0;
+/** @deprecated 라이브 송출 뱃지 제한 없음 — 하위 호환용 */
 export const LIVE_HOST_MIN_BADGE = "silver" as const;
 
 export type CreatorFollowerBadgeId = "bronze" | "silver" | "gold" | "platinum";
@@ -32,20 +34,11 @@ export function getCreatorFollowerBadgeDef(id: CreatorFollowerBadgeId): CreatorF
   return CREATOR_FOLLOWER_BADGES.find((t) => t.id === id)!;
 }
 
-function badgeRank(id: CreatorFollowerBadgeId): number {
-  return CREATOR_FOLLOWER_BADGES.findIndex((t) => t.id === id);
+/** 팔로워 수와 무관하게 라이브 방송 가능 */
+export function canHostLiveBroadcast(_followerCount: number): boolean {
+  return true;
 }
 
-export function canHostLiveBroadcast(followerCount: number): boolean {
-  const badge = creatorBadgeFromFollowerCount(followerCount);
-  if (!badge) return false;
-  return badgeRank(badge) >= badgeRank(LIVE_HOST_MIN_BADGE);
-}
-
-export function liveHostRequirementMessage(followerCount: number): string {
-  const need = LIVE_HOST_MIN_FOLLOWERS - followerCount;
-  if (need <= 0) {
-    return `라이브 방송은 ${LIVE_HOST_MIN_FOLLOWERS.toLocaleString()}명 이상 팔로워(실버 크리에이터)만 이용할 수 있습니다.`;
-  }
-  return `라이브 방송은 팔로워 ${LIVE_HOST_MIN_FOLLOWERS.toLocaleString()}명 이상(실버 크리에이터)만 이용할 수 있습니다. 현재 ${followerCount.toLocaleString()}명 · ${need.toLocaleString()}명 더 필요`;
+export function liveHostRequirementMessage(_followerCount: number): string {
+  return "";
 }
