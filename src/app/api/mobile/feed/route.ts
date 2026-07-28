@@ -31,7 +31,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       items: visible.map((data) => ({
         type: "post" as const,
-        data: { ...data, createdAt: data.createdAt.toISOString() },
+        data: {
+          ...data,
+          // unstable_cache may revive Date as string
+          createdAt:
+            data.createdAt instanceof Date
+              ? data.createdAt.toISOString()
+              : String(data.createdAt),
+        },
       })),
       nextCursor: posts.length === limit ? posts[posts.length - 1]?.id ?? null : null,
       likedIds: engagement.likedIds,
