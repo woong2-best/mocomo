@@ -1,12 +1,25 @@
+import { Prisma, type UsedListingCategory, type UsedRestrictedKind } from "@prisma/client";
 import { db } from "@/lib/db";
 import { assertUsedMarketAccess } from "@/lib/used-market-access";
-import { assertUsedAdultForRestricted } from "@/lib/used-youth-protection";
 import {
+  assertUsedAdultForRestricted,
+  isUsedRestrictedKind,
+  USED_ADULT_SELLER_MSG,
+} from "@/lib/used-youth-protection";
+import {
+  computeAuctionEndsAt,
+  DEFAULT_BID_INCREMENT,
   extendedAuctionEndsAt,
   isAuctionLive,
   minNextBidAmount,
 } from "@/lib/used-auction";
-import { MAX_USED_LISTING_PRICE, MAX_USED_LISTING_PRICE_LABEL } from "@/lib/used-market";
+import { MAX_USED_LISTING_PRICE, MAX_USED_LISTING_PRICE_LABEL, listingImages } from "@/lib/used-market";
+import { isValidUsedRegion } from "@/lib/korea-regions";
+import {
+  isValidProductType,
+  normalizeWorkTitle,
+} from "@/lib/used-catalog";
+import { isKakaoLocalConfigured, kakaoGeocodeMeetPlace } from "@/lib/kakao-local";
 import { finalizeExpiredAuctionIfNeeded } from "@/actions/used-auction";
 import { sendUsedAuctionNotification } from "@/lib/used-auction-notify";
 import { getOrCreateDmForUser, sendMobileDmMessage } from "@/lib/chat-dm-service";
@@ -23,6 +36,173 @@ async function loadUsedMarketUser(userId: string) {
   return db.user.findUnique({
     where: { id: userId },
     select: usedMarketUserSelect,
+  });
+}
+
+export async function createMobileUsedListing(
+  userId: string,
+  data: {
+    title: string;
+    description: string;
+    price: number;
+    category: string;
+    region: string;
+    meetPlace?: string;
+    meetLat?: number;
+    meetLng?: number;
+    images: string[];
+    saleType?: "FIXED" | "AUCTION";
+    auctionHours?: number;
+    bidIncrement?: number;
+    buyNowPrice?: number;
+    reservePrice?: number;
+    restrictedKind?: UsedRestrictedKind | string;
+    workTitle?: string;
+    productType?: string;
+  }
+) {
+  const user = await loadUsedMarketUser(userId);
+  if (!user) return { error: "로그인이 필요합니다." as const };
+
+  const accessErr = assertUsedMarketAccess(user);
+  if (accessErr) return { error: accessErr };
+
+  const restricted =
+    data.restrictedKind && data.restrictedKind !== "NONE"
+      ? (data.restrictedKind as UsedRestrictedKind)
+      : "NONE";
+  if (isUsedRestrictedKind(restricted)) {
+    const adultErr = assertUsedAdultForRestricted(user, restricted);
+    if (adultErr) return { error: USED_ADULT_SELLER_MSG };
+  }
+  if (!data.title.trim()) return { error: "제목을 입력해 주세요." as const };
+  const price = Math.floor(Number(data.price) || 0);
+  if (data.price < 0 || price < 0) return { error: "가격이 올바르지 않습니다." as const };
+  if (price > MAX_USED_LISTING_PRICE) {
+    return { error: `가격은 ${MAX_USED_LISTING_PRICE_LABEL} 이하로 입력해 주세요.` as const };
+  }
+  if (!data.region.trim()) return { error: "거래 지역을 선택해 주세요." as const };
+  if (!isValidUsedRegion(data.region)) return { error: "올바른 거래 지역을 선택해 주세요." as const };
+
+  const isAuction = data.saleType === "AUCTION";
+  if (isAuction && price <= 0) return { error: "경매 시작가를 입력해 주세요." as const };
+  if (isAuction && !data.auctionHours) return { error: "경매 기간을 선택해 주세요." as const };
+
+  const bidIncrement = Math.floor(data.bidIncrement ?? DEFAULT_BID_INCREMENT);
+  const buyNowPrice =
+    data.buyNowPrice != null && data.buyNowPrice > 0 ? Math.floor(data.buyNowPrice) : null;
+  const reservePrice =
+    data.reservePrice != null && data.reservePrice > 0 ? Math.floor(data.reservePrice) : null;
+
+  if (buyNowPrice != null && buyNowPrice <= price) {
+    return { error: "즉시구매가는 시작가보다 높아야 합니다." as const };
+  }
+
+  const ephemeral = data.images.filter(
+    (u) =>
+      typeof u === "string" &&
+      (u.startsWith("blob:") || (process.env.VERCEL && u.startsWith("/uploads/")))
+  );
+  if (ephemeral.length > 0) {
+    return {
+      error: "사진이 영구 저장되지 않았습니다. 사진을 다시 추가해 주세요." as const,
+    };
+  }
+
+  try {
+    let meetLat = data.meetLat;
+    let meetLng = data.meetLng;
+    const meetPlaceTrim = data.meetPlace?.trim() || null;
+    if (
+      (meetLat == null || meetLng == null) &&
+      meetPlaceTrim &&
+      !data.region.includes("전국 택배")
+    ) {
+      if (isKakaoLocalConfigured()) {
+        const geo = await kakaoGeocodeMeetPlace(data.region, meetPlaceTrim);
+        if (geo) {
+          meetLat = geo.lat;
+          meetLng = geo.lng;
+        }
+      }
+    }
+
+    const listing = await db.usedListing.create({
+      data: {
+        sellerId: userId,
+        title: data.title.trim(),
+        description: data.description.trim(),
+        price,
+        category: (data.category as UsedListingCategory) || "OTHER",
+        workTitle: normalizeWorkTitle(data.workTitle),
+        productType:
+          data.productType?.trim() && isValidProductType(data.productType.trim())
+            ? data.productType.trim()
+            : null,
+        restrictedKind: restricted,
+        region: data.region.trim(),
+        meetPlace: meetPlaceTrim,
+        meetLat: meetLat ?? null,
+        meetLng: meetLng ?? null,
+        images: data.images as Prisma.InputJsonValue,
+        saleType: isAuction ? "AUCTION" : "FIXED",
+        ...(isAuction
+          ? {
+              auctionEndsAt: computeAuctionEndsAt(data.auctionHours!),
+              bidIncrement,
+              buyNowPrice,
+              reservePrice,
+              auctionState: "LIVE" as const,
+              antiSnipeMinutes: 5,
+            }
+          : {}),
+      },
+    });
+    return { listingId: listing.id };
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2021") {
+      return { error: "중고거래 DB가 준비되지 않았습니다." as const };
+    }
+    console.error("[createMobileUsedListing]", e);
+    return { error: "글 등록에 실패했습니다. 잠시 후 다시 시도해 주세요." as const };
+  }
+}
+
+export async function listMobileMyUsedListings(userId: string) {
+  const listings = await db.usedListing.findMany({
+    where: { sellerId: userId },
+    orderBy: { updatedAt: "desc" },
+    take: 50,
+    select: {
+      id: true,
+      title: true,
+      price: true,
+      region: true,
+      status: true,
+      saleType: true,
+      images: true,
+      updatedAt: true,
+      auctionEndsAt: true,
+      currentBidAmount: true,
+      bidCount: true,
+    },
+  });
+
+  return listings.map((l) => {
+    const images = listingImages(l.images);
+    return {
+      id: l.id,
+      title: l.title,
+      price: l.price,
+      thumbnailUrl: images[0] ?? null,
+      region: l.region,
+      status: l.status,
+      saleType: l.saleType,
+      updatedAt: l.updatedAt.toISOString(),
+      auctionEndsAt: l.auctionEndsAt?.toISOString() ?? null,
+      currentBidAmount: l.currentBidAmount ?? null,
+      bidCount: l.bidCount ?? null,
+    };
   });
 }
 
