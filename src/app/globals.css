@@ -373,6 +373,29 @@ html[data-client="app"] .native-live-pad {
     @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-folk-terracotta text-white text-[11px] font-bold uppercase tracking-wide;
   }
 
+  @keyframes profile-live-sweep {
+    0% {
+      transform: translateX(0);
+      opacity: 0;
+    }
+    15% {
+      opacity: 0.9;
+    }
+    50% {
+      opacity: 0.55;
+    }
+    100% {
+      transform: translateX(280%);
+      opacity: 0;
+    }
+  }
+
+  @keyframes profile-live-ring {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
   .live-viewer-pill {
     @apply flex items-center gap-1 px-2 py-1 rounded-md bg-background/90 border-2 border-[hsl(var(--folk-cobalt)/0.2)] text-xs font-medium tabular-nums text-foreground;
   }

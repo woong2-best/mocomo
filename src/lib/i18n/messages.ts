@@ -148,6 +148,9 @@ export type MessageKey =
   | "live.goHomeFeed"
   | "live.onAir"
   | "live.totalViewers"
+  | "profile.liveNow"
+  | "profile.liveTapToWatch"
+  | "profile.liveWatch"
   | "live.liveBroadcasts"
   | "live.emptyCategory"
   | "live.followers"
@@ -585,6 +588,9 @@ const ko: Record<MessageKey, string> = {
   "live.goHomeFeed": "홈 피드로 이동",
   "live.onAir": "지금 방송",
   "live.totalViewers": "총 시청자",
+  "profile.liveNow": "지금 방송 중",
+  "profile.liveTapToWatch": "탭하면 바로 시청할 수 있어요",
+  "profile.liveWatch": "시청하기",
   "live.liveBroadcasts": "실시간 방송",
   "live.emptyCategory": "이 카테고리에 진행 중인 라이브가 없습니다.",
   "live.followers": "{count} 팔로워",
@@ -1025,6 +1031,9 @@ const en: Record<MessageKey, string> = {
   "live.goHomeFeed": "Go to home feed",
   "live.onAir": "On air now",
   "live.totalViewers": "Total viewers",
+  "profile.liveNow": "Live now",
+  "profile.liveTapToWatch": "Tap to watch the stream",
+  "profile.liveWatch": "Watch",
   "live.liveBroadcasts": "Live broadcasts",
   "live.emptyCategory": "No live streams in this category.",
   "live.followers": "{count} followers",
@@ -1465,6 +1474,9 @@ const ja: Record<MessageKey, string> = {
   "live.goHomeFeed": "ホームフィードへ",
   "live.onAir": "配信中",
   "live.totalViewers": "総視聴者",
+  "profile.liveNow": "配信中",
+  "profile.liveTapToWatch": "タップですぐ視聴",
+  "profile.liveWatch": "視聴する",
   "live.liveBroadcasts": "ライブ配信",
   "live.emptyCategory": "このカテゴリに配信中のライブはありません。",
   "live.followers": "{count} フォロワー",
@@ -1905,6 +1917,9 @@ const zh: Record<MessageKey, string> = {
   "live.goHomeFeed": "前往首页动态",
   "live.onAir": "正在播出",
   "live.totalViewers": "总观众",
+  "profile.liveNow": "正在直播",
+  "profile.liveTapToWatch": "点按即可观看",
+  "profile.liveWatch": "观看",
   "live.liveBroadcasts": "实时直播",
   "live.emptyCategory": "该分类暂无进行中的直播。",
   "live.followers": "{count} 粉丝",

@@ -17,6 +17,11 @@ import { CountryFlag } from "@/components/user/country-flag";
 import { userAvatarFallbackInitial, userDisplayName } from "@/lib/user-public-select";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { ProfileHeaderFeedActions } from "@/components/profile/profile-header-feed-actions";
+import {
+  ProfileLiveAvatarRing,
+  ProfileLiveBanner,
+} from "@/components/profile/profile-live-banner";
+import type { ProfileLiveBroadcast } from "@/lib/profile-live-broadcast";
 
 type SnsLinks = { website?: string; location?: string; twitter?: string };
 
@@ -29,6 +34,7 @@ export function ProfileHeader({
   blockedViewer = false,
   mutedByViewer = false,
   actionBar,
+  liveBroadcast = null,
 }: {
   user: {
     id: string;
@@ -65,6 +71,7 @@ export function ProfileHeader({
   blockedViewer?: boolean;
   mutedByViewer?: boolean;
   actionBar?: ReactNode | null;
+  liveBroadcast?: ProfileLiveBroadcast | null;
 }) {
   const sns = (user.profile?.snsLinks ?? {}) as SnsLinks;
   const displayName = userDisplayName(user);
@@ -74,6 +81,15 @@ export function ProfileHeader({
     (isSelf || !!user.profile?.showBirthdayOnProfile);
   const isBlocked = blockedByViewer || blockedViewer;
   const isSuspendedProfile = isReadOnlySuspended(user.accountStatus);
+  const liveHref = liveBroadcast ? `/voice/${liveBroadcast.channelId}` : null;
+  const showLive = !!liveBroadcast && !isBlocked;
+
+  const avatar = (
+    <Avatar className="h-24 w-24 sm:h-28 sm:w-28 ring-4 ring-background shrink-0">
+      <AvatarImage src={user.image ?? undefined} />
+      <AvatarFallback className="text-2xl">{userAvatarFallbackInitial(user)}</AvatarFallback>
+    </Avatar>
+  );
 
   return (
     <>
@@ -98,6 +114,15 @@ export function ProfileHeader({
             />
             {user.countryCode ? <CountryFlag code={user.countryCode} size={16} className="ml-0.5" /> : null}
             <CreatorFollowerBadge badge={creatorBadge} size="sm" showLabel={false} />
+            {showLive ? (
+              <Link
+                href={liveHref!}
+                className="live-badge ml-0.5 !py-0 hover:brightness-110"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+                LIVE
+              </Link>
+            ) : null}
           </div>
           <p className="text-xs text-muted-foreground">{user._count.posts}개 게시물</p>
         </div>
@@ -113,6 +138,7 @@ export function ProfileHeader({
       </div>
 
       <div className="border-b border-border/60">
+      {showLive ? <ProfileLiveBanner live={liveBroadcast!} /> : null}
       <div
         className="h-36 sm:h-44 bg-gradient-to-r from-violet-500/30 via-fuchsia-500/20 to-cyan-500/30"
         style={
@@ -124,10 +150,11 @@ export function ProfileHeader({
 
       <div className="px-4 pb-4">
         <div className="-mt-14 sm:-mt-16 flex items-end justify-between gap-3">
-          <Avatar className="h-24 w-24 sm:h-28 sm:w-28 ring-4 ring-background shrink-0">
-            <AvatarImage src={user.image ?? undefined} />
-            <AvatarFallback className="text-2xl">{userAvatarFallbackInitial(user)}</AvatarFallback>
-          </Avatar>
+          {showLive && liveHref ? (
+            <ProfileLiveAvatarRing href={liveHref}>{avatar}</ProfileLiveAvatarRing>
+          ) : (
+            avatar
+          )}
 
           {!isBlocked && (
             <div className="mb-1 flex gap-2 flex-wrap justify-end">

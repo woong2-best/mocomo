@@ -17,6 +17,7 @@ import { ProfilePostCard } from "@/components/profile/profile-post-card";
 import { ProfileVisitTracker } from "@/components/profile/profile-visit-tracker";
 import { getAuthUserId } from "@/lib/auth";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
+import { getProfileLiveBroadcast } from "@/lib/profile-live-broadcast";
 import type { UserPublicFields } from "@/lib/user-public-select";
 
 function ActionBarSkeleton() {
@@ -110,6 +111,7 @@ export async function ProfileHeaderAsync({ username }: { username: string }) {
   const header = await getProfileHeader(username);
   if (!header) notFound();
 
+  const liveBroadcast = await getProfileLiveBroadcast(header.user.id);
   const paymentsEnabled = isPaymentsConfigured();
   const subscriptionPriceKrw = creatorSubscriptionPriceForUser(header.user.creatorSubscriptionPriceKrw);
   const displayName = header.user.name || header.user.username;
@@ -130,6 +132,7 @@ export async function ProfileHeaderAsync({ username }: { username: string }) {
         blockedByViewer={header.relationship.blockedByViewer}
         blockedViewer={header.relationship.blockedViewer}
         mutedByViewer={header.relationship.mutedByViewer}
+        liveBroadcast={liveBroadcast}
         actionBar={
           header.isSelf ? undefined : header.relationship.blockedByViewer || header.relationship.blockedViewer ? null : (
             <Suspense fallback={<ActionBarSkeleton />}>
