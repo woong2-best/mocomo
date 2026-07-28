@@ -20,6 +20,45 @@ import {
 
 export type MobileCredentialsUser = ReturnType<typeof toCredentialsAuthUser>;
 
+type CredentialsUserRow = CredentialsJwtUser;
+
+/**
+ * Resolve login id the way users actually type it.
+ * Web sign-in only collects Gmail/Naver *local part* and appends the domain;
+ * mobile free-text often sends that same local part without `@` — treat it as
+ * username first, then fall back to `@gmail.com` / `@naver.com` emails.
+ */
+async function findCredentialsUserByLogin(
+  loginId: string
+): Promise<CredentialsUserRow | null> {
+  const loginKey = loginId.toLowerCase();
+
+  if (loginId.includes("@")) {
+    return db.user.findUnique({
+      where: { email: loginKey },
+      select: CREDENTIALS_JWT_USER_SELECT,
+    });
+  }
+
+  const byUsername = await db.user.findFirst({
+    where: { username: { equals: loginId, mode: "insensitive" } },
+    select: CREDENTIALS_JWT_USER_SELECT,
+  });
+  if (byUsername) return byUsername;
+
+  // Match web SignInForm: bare local-part → Gmail, then Naver.
+  for (const domain of ["gmail.com", "naver.com"] as const) {
+    const email = `${loginKey}@${domain}`;
+    const byEmail = await db.user.findUnique({
+      where: { email },
+      select: CREDENTIALS_JWT_USER_SELECT,
+    });
+    if (byEmail) return byEmail;
+  }
+
+  return null;
+}
+
 /**
  * Shared credentials validation for web NextAuth authorize + mobile login.
  * Throws the same Login*Error classes as auth.providers.
@@ -35,15 +74,7 @@ export async function authenticateCredentialsUser(
 
   const [rate, user] = await Promise.all([
     checkLoginRateLimit(loginKey, ipKey),
-    loginId.includes("@")
-      ? db.user.findUnique({
-          where: { email: loginKey },
-          select: CREDENTIALS_JWT_USER_SELECT,
-        })
-      : db.user.findFirst({
-          where: { username: { equals: loginId, mode: "insensitive" } },
-          select: CREDENTIALS_JWT_USER_SELECT,
-        }),
+    findCredentialsUserByLogin(loginId),
   ]);
 
   if (!rate.ok) throw new LoginRateLimitedError();
