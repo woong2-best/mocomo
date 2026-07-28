@@ -60,6 +60,24 @@ export class FaceFilterPipeline {
     return this.filterId !== "none";
   }
 
+  isRunning(): boolean {
+    return this.running;
+  }
+
+  hasDrawnFrame(): boolean {
+    return this.frameCount > 0 && this.canvas.width > 0 && this.canvas.height > 0;
+  }
+
+  /** 미리보기 첫 프레임이 그려질 때까지 대기 */
+  async waitForPreviewReady(timeoutMs = 8000): Promise<void> {
+    const start = performance.now();
+    while (performance.now() - start < timeoutMs) {
+      if (this.hasDrawnFrame()) return;
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
+    }
+    throw new Error("카메라 미리보기를 준비하지 못했습니다. 권한·다른 앱의 카메라 사용 여부를 확인해 주세요.");
+  }
+
   /** canvas 송출 트랙이 준비될 때까지 대기 */
   async waitForBroadcastReady(timeoutMs = 8000): Promise<void> {
     if (!this.usesFilteredVideo()) return;
@@ -69,6 +87,32 @@ export class FaceFilterPipeline {
       await new Promise<void>((r) => requestAnimationFrame(() => r()));
     }
     throw new Error("얼굴 필터 영상 준비가 지연되고 있습니다. 필터를 「원본」으로 바꾸거나 잠시 후 다시 시도해 주세요.");
+  }
+
+  private async waitForVideoDimensions(timeoutMs = 8000): Promise<void> {
+    if (this.sourceVideo.videoWidth > 0 && this.sourceVideo.videoHeight > 0) return;
+    await new Promise<void>((resolve, reject) => {
+      const timer = window.setTimeout(() => {
+        cleanup();
+        reject(new Error("카메라 영상 해상도를 읽지 못했습니다."));
+      }, timeoutMs);
+      const onReady = () => {
+        if (this.sourceVideo.videoWidth > 0 && this.sourceVideo.videoHeight > 0) {
+          cleanup();
+          resolve();
+        }
+      };
+      const cleanup = () => {
+        window.clearTimeout(timer);
+        this.sourceVideo.removeEventListener("loadedmetadata", onReady);
+        this.sourceVideo.removeEventListener("loadeddata", onReady);
+        this.sourceVideo.removeEventListener("resize", onReady);
+      };
+      this.sourceVideo.addEventListener("loadedmetadata", onReady);
+      this.sourceVideo.addEventListener("loadeddata", onReady);
+      this.sourceVideo.addEventListener("resize", onReady);
+      onReady();
+    });
   }
 
   /** 미리보기·송출용 (영상=필터, 오디오=원본) */
@@ -113,7 +157,12 @@ export class FaceFilterPipeline {
     if (options?.mirrored !== undefined) this.mirrored = options.mirrored;
     this.rawStream = rawStream;
     this.sourceVideo.srcObject = rawStream;
-    await this.sourceVideo.play().catch(() => undefined);
+    try {
+      await this.sourceVideo.play();
+    } catch {
+      // Autoplay can fail briefly; metadata + rAF loop still recover once frames arrive.
+    }
+    await this.waitForVideoDimensions().catch(() => undefined);
     this.landmarker = null;
     this.running = true;
     void this.ensureLandmarker();

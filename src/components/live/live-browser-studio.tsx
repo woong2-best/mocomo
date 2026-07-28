@@ -116,6 +116,9 @@ export function LiveBrowserStudio({
     getCompositeStream,
     waitForBroadcastReady,
     active: filterActive,
+    previewReady: filterPreviewReady,
+    isPipelineRunning,
+    getCanvas,
     landmarkerState,
     faceTrackingNeeded,
     faceTrackingReady,
@@ -237,7 +240,6 @@ export function LiveBrowserStudio({
     avatarPublishRef.current?.setScreenOverlayMode(false);
     setScreenOn(false);
     streamRef.current = null;
-    if (videoRef.current) videoRef.current.srcObject = null;
   }, []);
 
   const buildScreenShareStream = useCallback(async (display: MediaStream) => {
@@ -284,6 +286,19 @@ export function LiveBrowserStudio({
     return out;
   }, [vtuberMode]);
 
+  const bindCameraFallbackPreview = useCallback((raw: MediaStream | null) => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (!raw) {
+      video.srcObject = null;
+      return;
+    }
+    if (video.srcObject !== raw) {
+      video.srcObject = raw;
+    }
+    void video.play().catch(() => undefined);
+  }, []);
+
   const ensureLocalStream = useCallback(
     async (opts?: { vtuber?: boolean; layout?: LiveAvatarLayout }) => {
       const useVtuber = opts?.vtuber ?? vtuberMode;
@@ -297,16 +312,17 @@ export function LiveBrowserStudio({
         return out;
       }
 
-      if (!screenOn && streamRef.current && rawStreamRef.current) {
-        if (useVtuber && avatarPublishRef.current?.getPublishStream()) {
-          return streamRef.current;
-        }
-        if (!useVtuber) {
-          return streamRef.current;
-        }
+      let raw = rawStreamRef.current;
+      const videoLive = !!raw?.getVideoTracks().some((t) => t.readyState === "live");
+      const pipelineOk = !useVtuber && isPipelineRunning() && videoLive;
+      const vtuberOk =
+        useVtuber && videoLive && !!avatarPublishRef.current?.getPublishStream() && !!streamRef.current;
+
+      if (!screenOn && streamRef.current && raw && (pipelineOk || vtuberOk)) {
+        if (!useVtuber) bindCameraFallbackPreview(raw);
+        return streamRef.current;
       }
 
-      let raw = rawStreamRef.current;
       const needsNewRaw =
         !raw ||
         !raw.active ||
@@ -333,6 +349,7 @@ export function LiveBrowserStudio({
       if (!raw) throw new Error("카메라 스트림을 시작할 수 없습니다.");
 
       if (useVtuber && !screenOn) {
+        bindCameraFallbackPreview(null);
         let avatar = avatarPublishRef.current;
         const waitStart = performance.now();
         while (!avatar && performance.now() - waitStart < 8000) {
@@ -349,6 +366,8 @@ export function LiveBrowserStudio({
         return pub;
       }
 
+      // 필터 캔버스가 늦게 붙어도 바로 카메라가 보이도록 raw <video> 폴백을 먼저 연결
+      bindCameraFallbackPreview(raw);
       await attachRawStream(raw, { mirrored: true });
       await waitForBroadcastReady().catch(() => undefined);
       const composite = getCompositeStream();
@@ -357,7 +376,9 @@ export function LiveBrowserStudio({
     },
     [
       attachRawStream,
+      bindCameraFallbackPreview,
       getCompositeStream,
+      isPipelineRunning,
       waitForBroadcastReady,
       screenOn,
       vtuberMode,
@@ -373,19 +394,19 @@ export function LiveBrowserStudio({
 
   const mountPreviewCanvas = useCallback(
     (host: HTMLDivElement) => {
-      host.innerHTML = "";
+      host.replaceChildren();
       if (screenOn) {
         const canvas = screenCompositorRef.current?.canvas;
         if (canvas) {
-          canvas.className = "absolute inset-0 w-full h-full object-contain bg-black";
+          canvas.className = "absolute inset-0 h-full w-full object-contain bg-black";
           host.appendChild(canvas);
         }
         return;
       }
-      if (vtuberMode && !screenOn) {
+      if (vtuberMode) {
         const canvas = avatarPublishRef.current?.getPreviewCanvas();
         if (canvas) {
-          canvas.className = "absolute inset-0 w-full h-full object-cover";
+          canvas.className = "absolute inset-0 h-full w-full object-cover";
           host.appendChild(canvas);
           setPreviewCanvasMounted(true);
         } else {
@@ -394,12 +415,13 @@ export function LiveBrowserStudio({
         return;
       }
       setPreviewCanvasMounted(false);
-      if (displayCanvas && !screenOn) {
-        displayCanvas.className = "absolute inset-0 w-full h-full object-cover";
-        host.appendChild(displayCanvas);
+      const canvas = getCanvas() ?? displayCanvas;
+      if (canvas) {
+        canvas.className = "absolute inset-0 h-full w-full object-cover";
+        host.appendChild(canvas);
       }
     },
-    [displayCanvas, screenOn, vtuberMode]
+    [displayCanvas, getCanvas, screenOn, vtuberMode]
   );
 
   const attachPreviewCanvas = useCallback(() => {
@@ -408,40 +430,18 @@ export function LiveBrowserStudio({
     mountPreviewCanvas(host);
   }, [mountPreviewCanvas]);
 
-  const bindPreviewHostRef = useCallback(
-    (host: HTMLDivElement | null) => {
-      const prev = previewHostRef.current;
-      if (prev) {
-        const canvas = screenOn
-          ? screenCompositorRef.current?.canvas
-          : vtuberMode && !screenOn
-            ? avatarPublishRef.current?.getPreviewCanvas()
-            : displayCanvas;
-        if (canvas && canvas.parentElement === prev) {
-          prev.removeChild(canvas);
-        }
-      }
-      previewHostRef.current = host;
-      if (host && !screenOn) mountPreviewCanvas(host);
-    },
-    [displayCanvas, screenOn, vtuberMode, mountPreviewCanvas]
-  );
-
-  /** splitCollab 전환 시 previewHost DOM이 교체되므로 canvas를 다시 붙인다 */
+  /** 카메라 캡처 다이얼로그와 동일 — ref callback 교체로 host가 null이 되는 레이스를 피한다 */
   useEffect(() => {
     attachPreviewCanvas();
-    return () => {
-      const host = previewHostRef.current;
-      if (!host) return;
-      const canvas =
-        vtuberMode && !screenOn
-          ? avatarPublishRef.current?.getPreviewCanvas()
-          : displayCanvas;
-      if (canvas && canvas.parentElement === host) {
-        host.removeChild(canvas);
-      }
-    };
-  }, [attachPreviewCanvas, splitCollab?.coHostUserId, vtuberMode, avatarLayout, displayCanvas, screenOn]);
+  }, [
+    attachPreviewCanvas,
+    splitCollab?.coHostUserId,
+    vtuberMode,
+    avatarLayout,
+    displayCanvas,
+    filterPreviewReady,
+    screenOn,
+  ]);
 
   useEffect(() => {
     if (!vtuberMode || screenOn || !ready) return;
@@ -495,7 +495,7 @@ export function LiveBrowserStudio({
 
       if (next) {
         setPhotoAvatarRenderMode("flat2d");
-        await stopFilterPipeline();
+        await stopFilterPipeline({ stopTracks: false });
         await new Promise<void>((r) => requestAnimationFrame(() => r()));
       } else {
         avatarPublishRef.current?.detachCameraStream();
@@ -546,7 +546,7 @@ export function LiveBrowserStudio({
       avatarPublishRef.current?.detachCameraStream();
       screenCompositorRef.current?.stop();
       screenDisplayRef.current?.getTracks().forEach((t) => t.stop());
-      void stopFilterPipeline();
+      void stopFilterPipeline({ stopTracks: false });
       rawStreamRef.current?.getTracks().forEach((t) => t.stop());
       rawStreamRef.current = null;
       streamRef.current = null;
@@ -561,7 +561,11 @@ export function LiveBrowserStudio({
         t.enabled = true;
       });
       setCamOn(true);
-      if (!screenOn && videoRef.current) videoRef.current.srcObject = null;
+      // 필터 캔버스 미리보기가 준비되기 전에는 raw <video> 폴백을 유지한다
+      if (!screenOn && !vtuberMode && rawStreamRef.current) {
+        bindCameraFallbackPreview(rawStreamRef.current);
+      }
+      attachPreviewCanvas();
 
       const pub = new CloudflareWhipPublisher();
       whipRef.current = pub;
@@ -592,7 +596,16 @@ export function LiveBrowserStudio({
         setPublishState("live_here");
       }
     },
-    [channelId, whipUrl, ensureLocalStream, screenOn, handleWhipDisconnect]
+    [
+      channelId,
+      whipUrl,
+      ensureLocalStream,
+      screenOn,
+      vtuberMode,
+      bindCameraFallbackPreview,
+      attachPreviewCanvas,
+      handleWhipDisconnect,
+    ]
   );
 
   const handleGoLive = useCallback(async () => {
@@ -685,6 +698,9 @@ export function LiveBrowserStudio({
     stream.getVideoTracks().forEach((t) => {
       t.enabled = next;
     });
+    rawStreamRef.current?.getVideoTracks().forEach((t) => {
+      t.enabled = next;
+    });
     setCamOn(next);
   }
 
@@ -696,7 +712,7 @@ export function LiveBrowserStudio({
           video: { frameRate: { ideal: 30, max: 30 } },
           audio: false,
         });
-        await stopFilterPipeline();
+        await stopFilterPipeline({ stopTracks: false });
         if (vtuberMode) {
           avatarPublishRef.current?.setScreenOverlayMode(true);
         }
@@ -804,13 +820,25 @@ export function LiveBrowserStudio({
 
   const previewInner = (
     <>
-      <div ref={bindPreviewHostRef} className="absolute inset-0 z-0" />
+      {/* 필터 캔버스가 준비되기 전·실패 시에도 카메라가 바로 보이도록 raw video 폴백 */}
       <video
         ref={videoRef}
         autoPlay
         playsInline
         muted
-        className="hidden"
+        className={
+          !vtuberMode && !screenOn
+            ? "absolute inset-0 z-0 h-full w-full object-cover scale-x-[-1]"
+            : "hidden"
+        }
+      />
+      <div
+        ref={previewHostRef}
+        className={
+          vtuberMode || screenOn || filterPreviewReady
+            ? "absolute inset-0 z-[1]"
+            : "pointer-events-none absolute inset-0 z-[1] opacity-0"
+        }
       />
       {whipConnected && !immersive && !splitCollab && (
         <span className="absolute top-3 left-3 px-2 py-0.5 rounded bg-folk-terracotta text-white text-[10px] font-bold z-10 flex items-center gap-1">

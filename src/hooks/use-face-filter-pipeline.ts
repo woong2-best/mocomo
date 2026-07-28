@@ -15,6 +15,7 @@ export function useFaceFilterPipeline(defaultFilter: FaceFilterId = "natural") {
   const [filterId, setFilterId] = useState<FaceFilterId>(defaultFilter);
   const [displayCanvas, setDisplayCanvas] = useState<HTMLCanvasElement | null>(null);
   const [active, setActive] = useState(false);
+  const [previewReady, setPreviewReady] = useState(false);
   const [landmarkerState, setLandmarkerState] = useState<LandmarkerLoadState>("idle");
   const [landmarkerError, setLandmarkerError] = useState("");
 
@@ -40,19 +41,30 @@ export function useFaceFilterPipeline(defaultFilter: FaceFilterId = "natural") {
       rawStreamRef.current = stream;
       const pipeline = getPipeline();
       pipeline.setFilter(filterId);
+      setPreviewReady(false);
       await pipeline.start(stream, options);
       setDisplayCanvas(pipeline.canvas);
       setActive(true);
+      try {
+        await pipeline.waitForPreviewReady();
+        setPreviewReady(true);
+      } catch {
+        // Keep canvas attached; caller may fall back to raw <video> preview.
+        setPreviewReady(pipeline.hasDrawnFrame());
+      }
     },
     [filterId, getPipeline]
   );
 
-  const stop = useCallback(async () => {
+  const stop = useCallback(async (opts?: { stopTracks?: boolean }) => {
     await pipelineRef.current?.stop();
-    rawStreamRef.current?.getTracks().forEach((t) => t.stop());
-    rawStreamRef.current = null;
+    if (opts?.stopTracks !== false) {
+      rawStreamRef.current?.getTracks().forEach((t) => t.stop());
+      rawStreamRef.current = null;
+    }
     setDisplayCanvas(null);
     setActive(false);
+    setPreviewReady(false);
   }, []);
 
   const getCompositeStream = useCallback((): MediaStream | null => {
@@ -63,6 +75,21 @@ export function useFaceFilterPipeline(defaultFilter: FaceFilterId = "natural") {
     const pipeline = pipelineRef.current;
     if (!pipeline) throw new Error("카메라가 준비되지 않았습니다.");
     await pipeline.waitForBroadcastReady();
+  }, []);
+
+  const waitForPreviewReady = useCallback(async () => {
+    const pipeline = pipelineRef.current;
+    if (!pipeline) throw new Error("카메라가 준비되지 않았습니다.");
+    await pipeline.waitForPreviewReady();
+    setPreviewReady(true);
+  }, []);
+
+  const isPipelineRunning = useCallback(() => {
+    return pipelineRef.current?.isRunning() ?? false;
+  }, []);
+
+  const getCanvas = useCallback(() => {
+    return pipelineRef.current?.canvas ?? null;
   }, []);
 
   const capturePhoto = useCallback(async () => {
@@ -87,10 +114,14 @@ export function useFaceFilterPipeline(defaultFilter: FaceFilterId = "natural") {
     filterId,
     setFilterId,
     active,
+    previewReady,
     attachRawStream,
     stop,
     getCompositeStream,
     waitForBroadcastReady,
+    waitForPreviewReady,
+    isPipelineRunning,
+    getCanvas,
     capturePhoto,
     rawStreamRef,
     landmarkerState,
