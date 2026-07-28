@@ -23,7 +23,6 @@ type PostCardProps = {
       username: string;
       name?: string | null;
       image: string | null;
-      level: number;
       supportTierSent?: SupportTierLevel;
     };
     collaborators?: {

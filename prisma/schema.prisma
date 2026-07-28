@@ -145,8 +145,6 @@ model User {
   moderationUrgentReview   Boolean @default(false)
   sanctionPendingApproval  Boolean @default(false)
   priorSanctionCount       Int     @default(0)
-  level         Int       @default(1)
-  xp            Int       @default(0)
   totalSupportSent     Int              @default(0)
   supportTierSent      SupportTierLevel @default(PEBBLE)
   totalSupportReceived Int              @default(0)

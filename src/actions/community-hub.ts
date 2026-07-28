@@ -163,7 +163,6 @@ export async function getCommunityBySlug(slug: string) {
         username: string;
         name: string | null;
         image: string | null;
-        level: number;
         supportTierSent: import("@prisma/client").SupportTierLevel;
       };
       community: { name: string; slug: string } | null;

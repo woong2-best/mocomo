@@ -69,7 +69,6 @@ export async function AptHubPage() {
       initialGameState={gameState}
       initialEconomy={economySnapshot}
       gameLoadError={gameLoadError}
-      userLevel={user?.level ?? 1}
       userAvatarUrl={user?.image ?? null}
       userName={user?.name ?? null}
     />

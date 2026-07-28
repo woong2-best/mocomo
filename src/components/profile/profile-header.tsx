@@ -41,7 +41,6 @@ export function ProfileHeader({
     username: string;
     name: string | null;
     image: string | null;
-    level: number;
     accountStatus?: AccountStatus;
     supportTierSent: SupportTierLevel;
     countryCode?: string;
@@ -258,7 +257,6 @@ export function ProfileHeader({
             <Calendar className="h-4 w-4 shrink-0" />
             {format(user.createdAt, "yyyy년 M월", { locale: ko })} 가입
           </span>
-          <span>Lv.{user.level}</span>
         </div>
 
         {user.profile?.mainCharacter && (

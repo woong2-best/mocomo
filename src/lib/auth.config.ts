@@ -22,7 +22,6 @@ export const authConfig = {
         session.user.username = token.username as string;
         session.user.role = token.role as string;
         session.user.premiumTier = token.premiumTier as string;
-        session.user.level = token.level as number;
         session.user.locale = token.locale as string;
         session.user.countryCode = token.countryCode as string;
         session.user.timeZone = token.timeZone as string;

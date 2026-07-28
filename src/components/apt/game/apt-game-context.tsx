@@ -52,7 +52,6 @@ type AptGameContextValue = {
   game: AptGameState;
   economy: LocalEconomyCache;
   canPlaceItem: (typeId: string) => boolean;
-  userLevel: number;
   userAvatarUrl: string | null;
   userName: string | null;
   activeTab: AptGameTab;
@@ -114,7 +113,6 @@ export function AptGameProvider({
   initialGame,
   initialEconomy = null,
   gameLoadError = false,
-  userLevel,
   userAvatarUrl = null,
   userName = null,
   rooms,
@@ -127,7 +125,6 @@ export function AptGameProvider({
   initialGame: AptGameState | null;
   initialEconomy?: EconomySnapshot | null;
   gameLoadError?: boolean;
-  userLevel: number;
   userAvatarUrl?: string | null;
   userName?: string | null;
   rooms: AptRoom[];
@@ -449,7 +446,6 @@ export function AptGameProvider({
       game,
       economy,
       canPlaceItem,
-      userLevel,
       userAvatarUrl,
       userName,
       activeTab,
@@ -497,7 +493,6 @@ export function AptGameProvider({
       game,
       economy,
       canPlaceItem,
-      userLevel,
       userAvatarUrl,
       userName,
       activeTab,

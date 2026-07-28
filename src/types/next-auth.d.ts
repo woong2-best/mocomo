@@ -6,7 +6,6 @@ declare module "next-auth" {
     username?: string;
     role?: string;
     premiumTier?: string;
-    level?: number;
     locale?: string;
     countryCode?: string;
     timeZone?: string;
@@ -21,7 +20,6 @@ declare module "next-auth" {
       username?: string;
       role?: string;
       premiumTier?: string;
-      level?: number;
       locale?: string;
       countryCode?: string;
       timeZone?: string;
@@ -41,7 +39,6 @@ declare module "next-auth/jwt" {
     username?: string;
     role?: string;
     premiumTier?: string;
-    level?: number;
     locale?: string;
     countryCode?: string;
     timeZone?: string;

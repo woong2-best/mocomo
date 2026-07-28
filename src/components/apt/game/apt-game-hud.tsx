@@ -7,7 +7,7 @@ import { useAptGameRequired } from "./apt-game-context";
 import { cn } from "@/lib/utils";
 
 function AptGameHudInner() {
-  const { game, userLevel, userAvatarUrl, userName, setShopOpen, setGemShopOpen, editMode, firstEntry } =
+  const { game, userAvatarUrl, userName, setShopOpen, setGemShopOpen, editMode, firstEntry } =
     useAptGameRequired();
 
   return (
@@ -27,10 +27,6 @@ function AptGameHudInner() {
               🙂
             </span>
           )}
-        </div>
-
-        <div className="apt-game-level-pill shrink-0 rounded-xl px-2.5 py-1.5">
-          <span className="text-[11px] font-black text-[#5c4033]">Lv. {userLevel}</span>
         </div>
 
         <div className="ml-auto flex shrink-0 items-center gap-1.5">

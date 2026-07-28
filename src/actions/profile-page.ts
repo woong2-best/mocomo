@@ -54,7 +54,6 @@ const profileUserSelect = {
   username: true,
   name: true,
   image: true,
-  level: true,
   createdAt: true,
   supportTierSent: true,
   totalSupportReceived: true,
@@ -99,7 +98,6 @@ function toProfileAuthor(user: ProfileUserRow): UserPublicFields {
     username: user.username,
     name: user.name,
     image: user.image,
-    level: user.level,
     supportTierSent: user.supportTierSent,
   };
 }
@@ -409,7 +407,6 @@ export async function getProfileAuthorByUsername(username: string) {
       username: true,
       name: true,
       image: true,
-      level: true,
       supportTierSent: true,
     },
   });

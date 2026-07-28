@@ -64,6 +64,3 @@ export function formatNumber(n: number): string {
   return String(n);
 }
 
-export function xpForLevel(level: number): number {
-  return level * 100 + (level - 1) * 50;
-}

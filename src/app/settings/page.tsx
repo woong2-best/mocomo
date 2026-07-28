@@ -23,8 +23,6 @@ export default async function SettingsPage() {
         username: true,
         email: true,
         passwordHash: true,
-        level: true,
-        xp: true,
         premiumTier: true,
         locale: true,
         countryCode: true,
@@ -79,12 +77,6 @@ export default async function SettingsPage() {
           </p>
           <p>
             {t("settings.email")}: {user?.email}
-          </p>
-          <p>
-            {t("settings.level", {
-              level: String(user?.level ?? 1),
-              xp: String(user?.xp ?? 0),
-            })}
           </p>
           <p>
             {t("settings.premium")}: {user?.premiumTier}

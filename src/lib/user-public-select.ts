@@ -6,7 +6,6 @@ export const userPublicSelect = {
   username: true,
   name: true,
   image: true,
-  level: true,
   supportTierSent: true,
 } satisfies Prisma.UserSelect;
 
@@ -22,7 +21,6 @@ export type UserPublicFields = {
   username: string;
   name?: string | null;
   image: string | null;
-  level: number;
   supportTierSent: SupportTierLevel;
 };
 

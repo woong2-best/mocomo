@@ -61,7 +61,6 @@ export function AptHubClient({
   initialGameState = null,
   initialEconomy = null,
   gameLoadError = false,
-  userLevel = 1,
   userAvatarUrl = null,
   userName = null,
 }: {
@@ -74,7 +73,6 @@ export function AptHubClient({
   initialGameState?: AptGameState | null;
   initialEconomy?: EconomySnapshot | null;
   gameLoadError?: boolean;
-  userLevel?: number;
   userAvatarUrl?: string | null;
   userName?: string | null;
 }) {
@@ -476,7 +474,6 @@ export function AptHubClient({
                 initialGame={initialGameState}
                 gameLoadError={gameLoadError}
                 initialEconomy={initialEconomy}
-                userLevel={userLevel}
                 userAvatarUrl={userAvatarUrl}
                 userName={userName}
               />

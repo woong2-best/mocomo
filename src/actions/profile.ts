@@ -5,7 +5,6 @@ import { FEED_POSTS_CACHE_TAG, profileUserCacheTag } from "@/lib/cache-tags";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { validateUsernameAndName } from "@/lib/forbidden-admin-sequence";
-import { xpForLevel } from "@/lib/utils";
 import { parseBirthDateInput } from "@/lib/used-youth-protection";
 import type { Prisma } from "@prisma/client";
 import { findUserByUsernameInsensitive } from "@/lib/signup-user-resolve";
@@ -188,17 +187,3 @@ export async function updateOtakuProfile(data: {
   return { success: true };
 }
 
-export async function addXp(amount: number) {
-  const user = await requireAuth();
-  let newXp = user.xp + amount;
-  let newLevel = user.level;
-  while (newXp >= xpForLevel(newLevel + 1)) {
-    newXp -= xpForLevel(newLevel + 1);
-    newLevel += 1;
-  }
-  await db.user.update({
-    where: { id: user.id },
-    data: { xp: newXp, level: newLevel },
-  });
-  return { level: newLevel, xp: newXp };
-}

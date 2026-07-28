@@ -148,15 +148,6 @@ export async function createPostForUser(
     }
 
     try {
-      await db.user.update({
-        where: { id: user.id },
-        data: { xp: { increment: 10 } },
-      });
-    } catch (e) {
-      console.error("[createPost] xp", e);
-    }
-
-    try {
       revalidateTag(FEED_POSTS_CACHE_TAG);
     } catch (e) {
       console.error("[createPost] revalidateTag", e);

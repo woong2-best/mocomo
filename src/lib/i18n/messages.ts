@@ -228,7 +228,6 @@ export type MessageKey =
   | "settings.account"
   | "settings.nickname"
   | "settings.email"
-  | "settings.level"
   | "settings.premium"
   | "settings.profile"
   | "settings.noBio"
@@ -670,7 +669,6 @@ const ko: Record<MessageKey, string> = {
   "settings.account": "계정",
   "settings.nickname": "닉네임",
   "settings.email": "이메일",
-  "settings.level": "레벨: Lv.{level} (XP {xp})",
   "settings.premium": "프리미엄",
   "settings.profile": "프로필",
   "settings.noBio": "소개 없음",
@@ -1113,7 +1111,6 @@ const en: Record<MessageKey, string> = {
   "settings.account": "Account",
   "settings.nickname": "Username",
   "settings.email": "Email",
-  "settings.level": "Level: Lv.{level} (XP {xp})",
   "settings.premium": "Premium",
   "settings.profile": "Profile",
   "settings.noBio": "No bio yet",
@@ -1556,7 +1553,6 @@ const ja: Record<MessageKey, string> = {
   "settings.account": "アカウント",
   "settings.nickname": "ユーザー名",
   "settings.email": "メール",
-  "settings.level": "レベル: Lv.{level} (XP {xp})",
   "settings.premium": "プレミアム",
   "settings.profile": "プロフィール",
   "settings.noBio": "自己紹介なし",
@@ -1999,7 +1995,6 @@ const zh: Record<MessageKey, string> = {
   "settings.account": "账户",
   "settings.nickname": "用户名",
   "settings.email": "邮箱",
-  "settings.level": "等级: Lv.{level} (XP {xp})",
   "settings.premium": "会员",
   "settings.profile": "个人资料",
   "settings.noBio": "暂无简介",

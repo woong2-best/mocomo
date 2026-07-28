@@ -21,7 +21,6 @@ export default function AptRoomPreviewPage() {
         enabled
         initialGame={createDefaultGameState()}
         initialEconomy={null}
-        userLevel={1}
         rooms={rooms.filter((r) => r.type !== "hall" && r.type !== "balcony")}
         initialRoomId={livingId}
         onRoomSelect={setActiveRoomId}
