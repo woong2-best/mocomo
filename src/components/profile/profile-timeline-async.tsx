@@ -50,21 +50,24 @@ export async function ProfileTimelineAsync({
   const profileBlocked =
     !header.isSelf &&
     (header.relationship.blockedByViewer || header.relationship.blockedViewer);
+  const postsLockedFromViewer = !header.isSelf && !header.canViewPosts;
   const blockedEmptyMessage = header.relationship.blockedByViewer
     ? `@${header.user.username} 님을 차단했습니다. 게시물을 볼 수 없습니다.`
     : `@${header.user.username} 님이 회원님을 차단했습니다.`;
+  const lockedEmptyMessage = `@${header.user.username} 님이 계정을 잠갔습니다. 승인된 팔로워만 게시물을 볼 수 있습니다.`;
 
   if (effectiveTab === "wiki") {
     return <ProfileWikiContributions userId={header.user.id} />;
   }
 
   if (effectiveTab === "media") {
-    const mediaGrid = profileBlocked
-      ? { items: [], nextCursor: null }
-      : await getProfileMediaGrid(header.user.id, header.author, undefined, {
-          sort,
-          mediaKind,
-        });
+    const mediaGrid =
+      profileBlocked || postsLockedFromViewer
+        ? { items: [], nextCursor: null }
+        : await getProfileMediaGrid(header.user.id, header.author, undefined, {
+            sort,
+            mediaKind,
+          });
 
     return (
       <ProfileMediaGrid
@@ -73,7 +76,13 @@ export async function ProfileTimelineAsync({
         mediaKind={mediaKind}
         initialItems={mediaGrid.items}
         initialCursor={mediaGrid.nextCursor}
-        emptyMessage={profileBlocked ? blockedEmptyMessage : emptyMessages.media}
+        emptyMessage={
+          profileBlocked
+            ? blockedEmptyMessage
+            : postsLockedFromViewer
+              ? lockedEmptyMessage
+              : emptyMessages.media
+        }
         paymentsEnabled={paymentsEnabled}
       />
     );
@@ -83,7 +92,7 @@ export async function ProfileTimelineAsync({
     header.isSelf
       ? Promise.resolve({ subscribed: false as const })
       : getViewerCreatorSubscription(header.user.id),
-    profileBlocked
+    profileBlocked || postsLockedFromViewer
       ? Promise.resolve({ items: [], nextCursor: null })
       : getProfileTimeline(header.user.id, effectiveTab, header.author, undefined, { sort }),
   ]);
@@ -126,7 +135,13 @@ export async function ProfileTimelineAsync({
       mediaKind={null}
       initialItems={initialItems}
       initialCursor={nextCursor}
-      emptyMessage={profileBlocked ? blockedEmptyMessage : emptyMessages[effectiveTab]}
+      emptyMessage={
+        profileBlocked
+          ? blockedEmptyMessage
+          : postsLockedFromViewer
+            ? lockedEmptyMessage
+            : emptyMessages[effectiveTab]
+      }
       isSelf={header.isSelf}
       paymentsEnabled={paymentsEnabled}
       authorId={header.user.id}

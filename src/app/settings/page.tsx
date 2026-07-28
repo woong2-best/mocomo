@@ -6,17 +6,20 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { LocaleSettingsForm } from "@/components/settings/locale-settings-form";
 import { FeedDisplaySettingsForm } from "@/components/settings/feed-display-settings-form";
+import { PostsLockSettingsForm } from "@/components/settings/posts-lock-settings-form";
+import { FollowRequestsPanel } from "@/components/settings/follow-requests-panel";
 import { SignOutButton } from "@/components/settings/sign-out-button";
 import { AccountDeletionForm } from "@/components/settings/account-deletion-form";
 import { SettingsPageChrome } from "@/components/settings/settings-page-chrome";
 import { getServerTranslator } from "@/lib/i18n/server";
 import { CountryFlag } from "@/components/user/country-flag";
+import { getIncomingFollowRequests } from "@/actions/social";
 
 export default async function SettingsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/signin");
 
-  const [user, { t }] = await Promise.all([
+  const [user, { t }, followRequests] = await Promise.all([
     db.user.findUnique({
       where: { id: session.user.id },
       select: {
@@ -28,6 +31,7 @@ export default async function SettingsPage() {
         countryCode: true,
         timeZone: true,
         feedDisplayMode: true,
+        postsLocked: true,
         twoFactorEnabled: true,
         showNsfw: true,
         profile: true,
@@ -36,6 +40,7 @@ export default async function SettingsPage() {
       },
     }),
     getServerTranslator(),
+    getIncomingFollowRequests().catch(() => []),
   ]);
 
   return (
@@ -61,6 +66,21 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent>
           <FeedDisplaySettingsForm initialMode={user?.feedDisplayMode ?? "TIMELINE"} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("settings.postsLockTitle")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <PostsLockSettingsForm initialLocked={user?.postsLocked ?? false} />
+          {(user?.postsLocked || followRequests.length > 0) && (
+            <div className="border-t border-border/60 pt-4">
+              <h3 className="text-sm font-semibold mb-2">{t("settings.followRequestsTitle")}</h3>
+              <FollowRequestsPanel initialRequests={followRequests} />
+            </div>
+          )}
         </CardContent>
       </Card>
 

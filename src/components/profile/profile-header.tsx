@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { ArrowLeft, Calendar, Cake, Link2, MapPin, BadgeCheck } from "lucide-react";
+import { ArrowLeft, Calendar, Cake, Link2, MapPin, BadgeCheck, Lock } from "lucide-react";
 import { formatProfileBirthday } from "@/lib/birth-date";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,7 @@ export function ProfileHeader({
     countryCode?: string;
     birthDate?: Date | null;
     createdAt: Date;
+    postsLocked?: boolean;
     profile: {
       bio: string | null;
       bannerUrl: string | null;
@@ -112,6 +113,9 @@ export function ProfileHeader({
               compact
             />
             {user.countryCode ? <CountryFlag code={user.countryCode} size={16} className="ml-0.5" /> : null}
+            {user.postsLocked ? (
+              <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" aria-label="잠금" />
+            ) : null}
             <CreatorFollowerBadge badge={creatorBadge} size="sm" showLabel={false} />
             {showLive ? (
               <Link
@@ -186,6 +190,9 @@ export function ProfileHeader({
                 nameClassName="text-xl font-bold"
               />
               {user.countryCode ? <CountryFlag code={user.countryCode} size={20} className="ml-0.5" /> : null}
+              {user.postsLocked ? (
+                <Lock className="h-4 w-4 text-muted-foreground shrink-0" aria-label="잠금" />
+              ) : null}
               {isSuspendedProfile ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-red-600 px-2.5 py-0.5 text-xs font-semibold text-white">
                   🚫 계정 정지됨

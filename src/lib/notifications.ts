@@ -263,6 +263,30 @@ export async function notifyFollow(targetUserId: string, actorId: string) {
   });
 }
 
+export async function notifyFollowRequest(targetUserId: string, actorId: string) {
+  const actor = await getActor(actorId);
+  scheduleNotification({
+    userId: targetUserId,
+    actorId,
+    type: "follow_request",
+    title: "팔로우 요청",
+    body: `${actorLabel(actor)}님이 팔로우를 요청했습니다.`,
+    link: "/settings?tab=follow-requests",
+  });
+}
+
+export async function notifyFollowRequestAccepted(requesterId: string, targetId: string) {
+  const target = await getActor(targetId);
+  scheduleNotification({
+    userId: requesterId,
+    actorId: targetId,
+    type: "follow_accepted",
+    title: "팔로우 수락",
+    body: `${actorLabel(target)}님이 팔로우 요청을 수락했습니다.`,
+    link: target?.username ? `/u/${target.username}` : "/explore",
+  });
+}
+
 export async function notifyDiscoveryLike(targetUserId: string, actorId: string) {
   const actor = await getActor(actorId);
   scheduleNotification({

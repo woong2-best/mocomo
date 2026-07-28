@@ -225,6 +225,13 @@ export type MessageKey =
   | "settings.feedDisplayTimelineDesc"
   | "settings.feedDisplayCompact"
   | "settings.feedDisplayCompactDesc"
+  | "settings.postsLockTitle"
+  | "settings.postsLockDesc"
+  | "settings.postsLockOn"
+  | "settings.postsLockOnDesc"
+  | "settings.postsLockOff"
+  | "settings.postsLockOffDesc"
+  | "settings.followRequestsTitle"
   | "settings.account"
   | "settings.nickname"
   | "settings.email"
@@ -666,6 +673,13 @@ const ko: Record<MessageKey, string> = {
   "settings.feedDisplayTimelineDesc": "글·사진을 바로 펼쳐서 봅니다.",
   "settings.feedDisplayCompact": "목록형",
   "settings.feedDisplayCompactDesc": "제목만 보이고, 눌러야 본문과 사진이 열립니다.",
+  "settings.postsLockTitle": "잠금",
+  "settings.postsLockDesc": "계정을 잠그면 승인된 팔로워만 게시물을 볼 수 있습니다. 잠그기 전에 이미 팔로우한 사람은 그대로 볼 수 있고, 새 팔로우는 요청이 됩니다.",
+  "settings.postsLockOn": "잠금",
+  "settings.postsLockOnDesc": "승인된 팔로워만 글을 볼 수 있습니다. 새 팔로우는 요청·승인 후 추가됩니다.",
+  "settings.postsLockOff": "공개",
+  "settings.postsLockOffDesc": "누구나 게시물을 볼 수 있고, 팔로우가 즉시 적용됩니다.",
+  "settings.followRequestsTitle": "팔로우 요청",
   "settings.account": "계정",
   "settings.nickname": "닉네임",
   "settings.email": "이메일",
@@ -1108,6 +1122,13 @@ const en: Record<MessageKey, string> = {
   "settings.feedDisplayTimelineDesc": "Text and images shown inline.",
   "settings.feedDisplayCompact": "Compact list",
   "settings.feedDisplayCompactDesc": "Preview only; tap to expand body and images.",
+  "settings.postsLockTitle": "Lock",
+  "settings.postsLockDesc": "When locked, only approved followers can see your posts. People who already followed you keep access; new follows become requests.",
+  "settings.postsLockOn": "Locked",
+  "settings.postsLockOnDesc": "Only approved followers can see your posts. New follows require your approval.",
+  "settings.postsLockOff": "Public",
+  "settings.postsLockOffDesc": "Anyone can see your posts and follow you instantly.",
+  "settings.followRequestsTitle": "Follow requests",
   "settings.account": "Account",
   "settings.nickname": "Username",
   "settings.email": "Email",
@@ -1550,6 +1571,13 @@ const ja: Record<MessageKey, string> = {
   "settings.feedDisplayTimelineDesc": "本文と画像をそのまま表示。",
   "settings.feedDisplayCompact": "リスト",
   "settings.feedDisplayCompactDesc": "一覧のみ、タップで本文・画像を展開。",
+  "settings.postsLockTitle": "ロック",
+  "settings.postsLockDesc": "アカウントをロックすると、承認したフォロワーだけが投稿を見られます。ロック前からのフォロワーはそのまま閲覧でき、新しいフォローはリクエストになります。",
+  "settings.postsLockOn": "ロック",
+  "settings.postsLockOnDesc": "承認したフォロワーだけが投稿を見られます。新しいフォローは承認が必要です。",
+  "settings.postsLockOff": "公開",
+  "settings.postsLockOffDesc": "誰でも投稿を見られ、フォローはすぐ反映されます。",
+  "settings.followRequestsTitle": "フォローリクエスト",
   "settings.account": "アカウント",
   "settings.nickname": "ユーザー名",
   "settings.email": "メール",
@@ -1992,6 +2020,13 @@ const zh: Record<MessageKey, string> = {
   "settings.feedDisplayTimelineDesc": "正文与图片直接展示。",
   "settings.feedDisplayCompact": "列表",
   "settings.feedDisplayCompactDesc": "仅预览，点击展开正文与图片。",
+  "settings.postsLockTitle": "锁定",
+  "settings.postsLockDesc": "锁定账号后，只有已批准的关注者能看到帖子。锁定前已关注的人仍可查看；新的关注会变成请求。",
+  "settings.postsLockOn": "锁定",
+  "settings.postsLockOnDesc": "仅已批准的关注者可查看帖子。新关注需你批准。",
+  "settings.postsLockOff": "公开",
+  "settings.postsLockOffDesc": "任何人都能看到帖子，关注立即生效。",
+  "settings.followRequestsTitle": "关注请求",
   "settings.account": "账户",
   "settings.nickname": "用户名",
   "settings.email": "邮箱",

@@ -154,6 +154,8 @@ model User {
   /** IANA Time Zone (e.g. America/New_York) — calendar / day boundaries; not derived from country alone */
   timeZone      String    @default("UTC")
   feedDisplayMode FeedDisplayMode @default(TIMELINE)
+  /** 트위터 Protect와 동일 — 잠금 시 승인된 팔로워만 글 열람, 새 팔로우는 요청 */
+  postsLocked   Boolean   @default(false)
   phone         String?   @unique
   phoneVerified DateTime?
   /** 중고거래 청소년 보호 — 만 19세 이상 성인 인증 */
@@ -222,6 +224,8 @@ model User {
 
   followers     Follow[]  @relation("Following")
   following     Follow[]  @relation("Follower")
+  followRequestsSent     FollowRequest[] @relation("FollowRequestFrom")
+  followRequestsReceived FollowRequest[] @relation("FollowRequestTo")
   likes         Like[]
   reposts       Repost[]
 
@@ -1070,6 +1074,19 @@ model Follow {
   @@unique([followerId, followingId])
   @@index([followerId])
   @@index([followingId, createdAt(sort: Desc)])
+}
+
+/** 잠금(postsLocked) 계정에 대한 팔로우 요청 — 승인 시 Follow로 전환 */
+model FollowRequest {
+  id          String   @id @default(cuid())
+  requesterId String
+  targetId    String
+  createdAt   DateTime @default(now())
+  requester User @relation("FollowRequestFrom", fields: [requesterId], references: [id], onDelete: Cascade)
+  target    User @relation("FollowRequestTo", fields: [targetId], references: [id], onDelete: Cascade)
+  @@unique([requesterId, targetId])
+  @@index([targetId, createdAt(sort: Desc)])
+  @@index([requesterId])
 }
 
 model UserBlock {

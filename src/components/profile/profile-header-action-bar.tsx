@@ -10,6 +10,8 @@ export function ProfileHeaderActionBar({
   username,
   displayName,
   initialFollowing,
+  initialRequested = false,
+  postsLocked = false,
   subscriptionPriceKrw,
   paymentsEnabled,
   subscribed,
@@ -19,6 +21,8 @@ export function ProfileHeaderActionBar({
   username: string;
   displayName: string;
   initialFollowing: boolean;
+  initialRequested?: boolean;
+  postsLocked?: boolean;
   subscriptionPriceKrw: number;
   paymentsEnabled: boolean;
   subscribed: boolean;
@@ -33,6 +37,8 @@ export function ProfileHeaderActionBar({
         userId={userId}
         username={username}
         initialFollowing={initialFollowing}
+        initialRequested={initialRequested}
+        postsLocked={postsLocked}
         followingLabel="팔로잉"
         syncFollowingOnMount
       />

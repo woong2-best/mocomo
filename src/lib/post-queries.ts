@@ -8,6 +8,7 @@ import {
   type ContentLockReason,
 } from "@/lib/content-access";
 import { postCollaboratorsHeaderInclude } from "@/lib/post-collaborator-select";
+import { canViewLockedAccountContent } from "@/lib/posts-lock";
 import type { ContentVisibility, Prisma } from "@prisma/client";
 
 type PostDetailMedia = {
@@ -47,15 +48,49 @@ const postDetailSelectNoReposts = {
   _count: { select: { likes: true, votes: true, comments: true } },
 } as const;
 
+export type PostDetailLocked = {
+  audienceLocked: true;
+  author: {
+    id: string;
+    username: string;
+    name: string | null;
+    image: string | null;
+    supportTierSent: import("@prisma/client").SupportTierLevel;
+    postsLocked: boolean;
+  };
+};
+
+export function isPostDetailAudienceLocked(
+  post: Awaited<ReturnType<typeof getPostDetail>>
+): post is PostDetailLocked {
+  return !!post && "audienceLocked" in post && post.audienceLocked === true;
+}
+
 export async function getPostDetail(id: string, viewerId?: string) {
   try {
     const post = await db.post.findUnique({ where: { id }, select: postDetailSelect });
     if (!post) return null;
+    const allowed = await canViewLockedAccountContent(
+      post.authorId,
+      viewerId,
+      post.author.postsLocked
+    );
+    if (!allowed) {
+      return { audienceLocked: true as const, author: post.author } satisfies PostDetailLocked;
+    }
     return enrichPostDetail(post, viewerId);
   } catch (e) {
     console.error("[getPostDetail]", e);
     const post = await db.post.findUnique({ where: { id }, select: postDetailSelectNoReposts });
     if (!post) return null;
+    const allowed = await canViewLockedAccountContent(
+      post.authorId,
+      viewerId,
+      post.author.postsLocked
+    );
+    if (!allowed) {
+      return { audienceLocked: true as const, author: post.author } satisfies PostDetailLocked;
+    }
     return enrichPostDetail({ ...post, poll: null }, viewerId);
   }
 }

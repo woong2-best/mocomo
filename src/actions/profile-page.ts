@@ -30,6 +30,7 @@ import {
 } from "@/lib/profile-queries";
 import { profilePostsOwnedOrCollabWhere } from "@/lib/post-collaborator-select";
 import { getUserRelationship, isProfileBlocked } from "@/lib/user-relationship";
+import { canViewLockedAccountContent } from "@/lib/posts-lock";
 import type { UserPublicFields } from "@/lib/user-public-select";
 
 const PAGE_SIZE = 15;
@@ -61,6 +62,7 @@ const profileUserSelect = {
   countryCode: true,
   birthDate: true,
   creatorSubscriptionPriceKrw: true,
+  postsLocked: true,
   accountStatus: true,
   suspensionReason: true,
   suspendedAt: true,
@@ -99,6 +101,7 @@ function toProfileAuthor(user: ProfileUserRow): UserPublicFields {
     name: user.name,
     image: user.image,
     supportTierSent: user.supportTierSent,
+    postsLocked: user.postsLocked,
   };
 }
 
@@ -158,9 +161,10 @@ export const getProfileHeader = cache(async function getProfileHeader(username: 
 
   let isFollowing = false;
   let followsYou = false;
+  let followRequested = false;
   let relationship = { blockedByViewer: false, blockedViewer: false, mutedByViewer: false };
   if (viewerId && viewerId !== user.id) {
-    const [followOut, followIn, rel] = await Promise.all([
+    const [followOut, followIn, pendingRequest, rel] = await Promise.all([
       db.follow.findUnique({
         where: {
           followerId_followingId: {
@@ -179,12 +183,29 @@ export const getProfileHeader = cache(async function getProfileHeader(username: 
         },
         select: { id: true },
       }),
+      user.postsLocked
+        ? db.followRequest.findUnique({
+            where: {
+              requesterId_targetId: {
+                requesterId: viewerId,
+                targetId: user.id,
+              },
+            },
+            select: { id: true },
+          })
+        : Promise.resolve(null),
       getUserRelationship(viewerId, user.id),
     ]);
     isFollowing = !!followOut;
     followsYou = !!followIn;
+    followRequested = !!pendingRequest;
     relationship = rel;
   }
+
+  const canViewPosts =
+    !user.postsLocked ||
+    viewerId === user.id ||
+    isFollowing;
 
   return {
     user,
@@ -192,6 +213,8 @@ export const getProfileHeader = cache(async function getProfileHeader(username: 
     isSelf: viewerId === user.id,
     isFollowing,
     followsYou,
+    followRequested,
+    canViewPosts,
     relationship,
   };
 });
@@ -205,6 +228,9 @@ export const getProfilePinnedPost = cache(async function getProfilePinnedPost(
     const relationship = await getUserRelationship(viewerId, userId);
     if (isProfileBlocked(relationship)) return null;
   }
+
+  const allowed = await canViewLockedAccountContent(userId, viewerId, author.postsLocked);
+  if (!allowed) return null;
 
   const me = await db.user.findUnique({
     where: { id: userId },
@@ -244,6 +270,11 @@ export async function getProfileTimeline(
     if (isProfileBlocked(relationship)) {
       return { items: [], nextCursor: null };
     }
+  }
+
+  const allowed = await canViewLockedAccountContent(userId, viewerId, author.postsLocked);
+  if (!allowed) {
+    return { items: [], nextCursor: null, postsLocked: true as const };
   }
 
   const sort = options?.sort ?? "new";
@@ -408,6 +439,7 @@ export async function getProfileAuthorByUsername(username: string) {
       name: true,
       image: true,
       supportTierSent: true,
+      postsLocked: true,
     },
   });
   return user;
@@ -425,6 +457,11 @@ export async function getProfileMediaGrid(
     if (isProfileBlocked(relationship)) {
       return { items: [], nextCursor: null };
     }
+  }
+
+  const allowed = await canViewLockedAccountContent(userId, viewerId, author.postsLocked);
+  if (!allowed) {
+    return { items: [], nextCursor: null, postsLocked: true as const };
   }
 
   const sort = options?.sort ?? "new";

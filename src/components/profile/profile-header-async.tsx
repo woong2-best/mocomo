@@ -33,6 +33,8 @@ async function ProfileHeaderActionBarAsync({
   username,
   displayName,
   isFollowing,
+  followRequested,
+  postsLocked,
   subscriptionPriceKrw,
   paymentsEnabled,
 }: {
@@ -40,6 +42,8 @@ async function ProfileHeaderActionBarAsync({
   username: string;
   displayName: string;
   isFollowing: boolean;
+  followRequested: boolean;
+  postsLocked: boolean;
   subscriptionPriceKrw: number;
   paymentsEnabled: boolean;
 }) {
@@ -54,6 +58,8 @@ async function ProfileHeaderActionBarAsync({
       username={username}
       displayName={displayName}
       initialFollowing={isFollowing}
+      initialRequested={followRequested}
+      postsLocked={postsLocked}
       subscriptionPriceKrw={subscriptionPriceKrw}
       paymentsEnabled={paymentsEnabled}
       subscribed={"subscribed" in viewerSub ? viewerSub.subscribed : false}
@@ -141,6 +147,8 @@ export async function ProfileHeaderAsync({ username }: { username: string }) {
                 username={header.user.username}
                 displayName={displayName}
                 isFollowing={header.isFollowing}
+                followRequested={header.followRequested}
+                postsLocked={header.user.postsLocked}
                 subscriptionPriceKrw={subscriptionPriceKrw}
                 paymentsEnabled={paymentsEnabled}
               />

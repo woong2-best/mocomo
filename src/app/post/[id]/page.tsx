@@ -5,7 +5,7 @@ import { PostDetailActions } from "@/components/post/post-detail-actions";
 import { PostFlashHighlight } from "@/components/post/post-flash-highlight";
 import { PostCommentsSection } from "@/components/post/post-comments-section";
 import { PostCommentsSkeleton } from "@/components/post/post-comments-skeleton";
-import { getPostDetail } from "@/lib/post-queries";
+import { getPostDetail, isPostDetailAudienceLocked } from "@/lib/post-queries";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { auth, isSiteOperator } from "@/lib/auth";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
@@ -23,9 +23,30 @@ export default async function PostPage({
 }) {
   const { id } = await params;
   const [locale, session] = await Promise.all([getRequestLocale(), auth()]);
-  const post = await getPostDetail(id, session?.user?.id);
+  const detail = await getPostDetail(id, session?.user?.id);
 
-  if (!post) notFound();
+  if (!detail) notFound();
+
+  if (isPostDetailAudienceLocked(detail)) {
+    return (
+      <AppPageChrome maxWidth="2xl">
+        <div className="px-4 py-16 max-w-md mx-auto text-center space-y-3">
+          <p className="text-lg font-bold">이 게시물은 잠겨 있습니다</p>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            @{detail.author.username} 님이 계정을 잠갔습니다. 승인된 팔로워만 게시물을 볼 수 있습니다.
+          </p>
+          <a
+            href={`/u/${detail.author.username}`}
+            className="inline-block text-sm text-primary hover:underline"
+          >
+            프로필 보기
+          </a>
+        </div>
+      </AppPageChrome>
+    );
+  }
+
+  const post = detail;
 
   const [engagement, creator, viewerSub, viewerCollab] = await Promise.all([
     session?.user?.id

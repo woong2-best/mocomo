@@ -7,6 +7,7 @@ export const userPublicSelect = {
   name: true,
   image: true,
   supportTierSent: true,
+  postsLocked: true,
 } satisfies Prisma.UserSelect;
 
 export const userPublicSelectMinimal = {
@@ -22,6 +23,7 @@ export type UserPublicFields = {
   name?: string | null;
   image: string | null;
   supportTierSent: SupportTierLevel;
+  postsLocked?: boolean;
 };
 
 /** 프로필 설정 이름 — 피드·게시물·프로필·코스어 등 전역 표시용 */

@@ -3,7 +3,7 @@ import { ko, enUS, ja, zhCN } from "date-fns/locale";
 import { Pin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Locale } from "@/lib/i18n/config";
-import type { getPostDetail } from "@/lib/post-queries";
+import type { getPostDetail, PostDetailLocked } from "@/lib/post-queries";
 import { PostPollCard } from "@/components/post/post-poll-card";
 import { PostOwnerMenu } from "@/components/post/post-owner-menu";
 import { PostCollaboratorsHeader } from "@/components/post/post-collaborators-header";
@@ -14,6 +14,11 @@ import { PaidPostMediaGrid } from "@/components/profile/paid-post-media-grid";
 
 const dateLocales = { ko, en: enUS, ja, zh: zhCN } as const;
 
+type PostDetailOk = Exclude<
+  NonNullable<Awaited<ReturnType<typeof getPostDetail>>>,
+  PostDetailLocked
+>;
+
 export function PostDetailCard({
   post,
   locale,
@@ -23,7 +28,7 @@ export function PostDetailCard({
   subscribed = false,
   viewerCollabStatus = null,
 }: {
-  post: NonNullable<Awaited<ReturnType<typeof getPostDetail>>>;
+  post: PostDetailOk;
   locale: Locale;
   isOwner?: boolean;
   paymentsEnabled?: boolean;

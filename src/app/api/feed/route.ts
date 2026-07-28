@@ -3,6 +3,7 @@ import { getCachedSession } from "@/lib/auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { getCachedFeedPostsPage } from "@/lib/feed-query";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
+import { filterPostsByAudienceLock } from "@/lib/posts-lock";
 
 export async function GET(req: NextRequest) {
   try {
@@ -14,15 +15,19 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(parseInt(req.nextUrl.searchParams.get("limit") || "12", 10), 30);
 
     const posts = await getCachedFeedPostsPage(cursor, limit);
+    const visible = await filterPostsByAudienceLock(
+      posts.map((p) => ({ ...p, authorId: p.author.id })),
+      session?.user?.id ?? null
+    );
 
-    const items = posts.map((data) => ({ type: "post" as const, data }));
+    const items = visible.map((data) => ({ type: "post" as const, data }));
 
     const nextCursor = posts.length === limit ? posts[posts.length - 1]?.id : null;
     const engagement =
-      session?.user?.id && posts.length > 0
+      session?.user?.id && visible.length > 0
         ? await getPostEngagementForUser(
             session.user.id,
-            posts.map((p) => p.id)
+            visible.map((p) => p.id)
           )
         : { likedIds: [], starredIds: [], repostedIds: [] };
 
