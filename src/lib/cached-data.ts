@@ -213,7 +213,10 @@ export const getCachedLiveChannels = unstable_cache(
     const cutoff = liveViewerCutoff();
     const [rawChannels, viewerGroups] = await Promise.all([
       db.voiceChannel.findMany({
-        where: { isLive: true },
+        where: {
+          isLive: true,
+          broadcastMode: { in: ["BROWSER", "OBS"] },
+        },
         select: {
           id: true,
           name: true,

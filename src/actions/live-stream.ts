@@ -128,6 +128,10 @@ export async function createLiveStream(data: {
     const minTier =
       visibility === "PRIVATE" ? (data.minViewerTier ?? "BRONZE") : null;
 
+    if (data.broadcastMode === "VOICE") {
+      return { error: "보이스 라이브는 더 이상 지원하지 않습니다. 영상 방송을 이용해 주세요." };
+    }
+
     if (!isScheduled) {
       const prep = await prepareHostForNewBroadcast(user.id);
       if (!prep.ok) {
@@ -149,12 +153,9 @@ export async function createLiveStream(data: {
     const baseData = {
       name: title.slice(0, 120),
       communityId: data.communityId,
-      maxUsers: Math.min(
-        Math.max(data.maxUsers ?? (data.broadcastMode === "VOICE" ? 500 : 200), 2),
-        data.broadcastMode === "VOICE" ? 2000 : 500
-      ),
-      allowScreen: data.broadcastMode === "VOICE" ? false : (data.allowScreen ?? true),
-      allowCamera: data.broadcastMode === "VOICE" ? false : (data.allowCamera ?? true),
+      maxUsers: Math.min(Math.max(data.maxUsers ?? 200, 2), 500),
+      allowScreen: data.allowScreen ?? true,
+      allowCamera: data.allowCamera ?? true,
       createdBy: user.id,
       joinPasswordHash,
       isLive: false,
@@ -165,7 +166,7 @@ export async function createLiveStream(data: {
       description: data.description?.trim().slice(0, 500) || null,
       scheduledAt: isScheduled ? scheduledAt : null,
       donationGoalKrw: Number.isFinite(goalRaw) && goalRaw > 0 ? goalRaw : null,
-      broadcastMode: data.broadcastMode ?? "BROWSER",
+      broadcastMode: data.broadcastMode === "OBS" ? ("OBS" as const) : ("BROWSER" as const),
       members: {
         create: {
           userId: user.id,
@@ -204,10 +205,8 @@ export async function createLiveStream(data: {
     }
 
     try {
-      if (data.broadcastMode !== "VOICE") {
-        const { provisionObsIngress } = await import("@/lib/obs-ingress-service");
-        await provisionObsIngress(channel.id, user.id);
-      }
+      const { provisionObsIngress } = await import("@/lib/obs-ingress-service");
+      await provisionObsIngress(channel.id, user.id);
     } catch (keyErr) {
       console.warn("[createLiveStream] live ingress", keyErr);
     }
@@ -389,52 +388,9 @@ export async function startBrowserLiveBroadcast(
   return { success: true as const };
 }
 
-/** 보이스 라이브 방송 시작 — LiveKit 마이크 송출 */
-export async function startVoiceLiveBroadcast(channelId: string) {
-  const user = await requireAuth();
-  const hostCheck = await assertLiveHostEligible(user.id);
-  if (!hostCheck.ok) return { error: hostCheck.error };
-
-  const channel = await db.voiceChannel.findUnique({
-    where: { id: channelId },
-    select: {
-      createdBy: true,
-      liveStatus: true,
-      name: true,
-      isLive: true,
-      broadcastMode: true,
-    },
-  });
-  if (!channel || channel.createdBy !== user.id) {
-    return { error: "호스트만 방송을 시작할 수 있습니다." };
-  }
-  if (channel.broadcastMode !== "VOICE") {
-    return { error: "보이스 라이브 방송이 아닙니다." };
-  }
-  if (channel.liveStatus === "ENDED") {
-    return { error: "종료된 방송입니다. 새 방송을 만들어 주세요." };
-  }
-
-  const wasLive = channel.isLive;
-  await db.voiceChannel.update({
-    where: { id: channelId },
-    data: {
-      isLive: true,
-      liveStatus: "LIVE",
-      broadcastMode: "VOICE",
-    },
-  });
-
-  if (!wasLive) {
-    const { notifyFollowersOnLive } = await import("@/lib/live-notify");
-    void notifyFollowersOnLive(user.id, channelId, channel.name).catch(() => {});
-  }
-
-  revalidatePath("/live");
-  revalidatePath(`/voice/${channelId}`);
-  revalidateTag(liveRoomCacheTag(channelId));
-  revalidateLiveHubCache();
-  return { success: true as const };
+/** 보이스 라이브 — 기능 종료 */
+export async function startVoiceLiveBroadcast(_channelId: string) {
+  return { error: "보이스 라이브는 더 이상 지원하지 않습니다. 영상 방송을 이용해 주세요." };
 }
 
 /** 시청 입장 — LIVE 또는 준비(SCHEDULED) 중 대기실 */
@@ -764,6 +720,9 @@ export async function ensureObsIngress(channelId: string, force = false) {
 }
 
 export async function setLiveBroadcastMode(channelId: string, mode: LiveBroadcastMode) {
+  if (mode === "VOICE") {
+    return { error: "보이스 라이브는 더 이상 지원하지 않습니다." };
+  }
   const user = await requireAuth();
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },

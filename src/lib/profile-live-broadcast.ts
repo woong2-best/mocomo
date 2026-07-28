@@ -17,7 +17,10 @@ export async function getProfileLiveBroadcast(
   if (!isLiveFeatureEnabled()) return null;
 
   const raw = await db.voiceChannel.findFirst({
-    where: liveHostBroadcastWhere(userId),
+    where: {
+      ...liveHostBroadcastWhere(userId),
+      broadcastMode: { in: ["BROWSER", "OBS"] },
+    },
     select: {
       id: true,
       name: true,

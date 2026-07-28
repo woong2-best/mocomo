@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ChevronRight, Mic2, Radio } from "lucide-react";
-import { isVoiceBroadcastMode } from "@/lib/live-voice-broadcast";
+import { ChevronRight, Radio } from "lucide-react";
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 import type { ProfileLiveBroadcast } from "@/lib/profile-live-broadcast";
@@ -16,7 +15,6 @@ export function ProfileLiveBanner({
   className?: string;
 }) {
   const { t } = useLocale();
-  const voice = isVoiceBroadcastMode(live.broadcastMode);
   const href = `/voice/${live.channelId}`;
 
   return (
@@ -30,12 +28,7 @@ export function ProfileLiveBanner({
       aria-label={`${t("profile.liveNow")}: ${live.name}`}
     >
       <div
-        className={cn(
-          "absolute inset-0 transition-opacity duration-500",
-          voice
-            ? "bg-gradient-to-r from-violet-700 via-fuchsia-600 to-violet-800"
-            : "bg-gradient-to-r from-[#c23a22] via-[#e85d3a] to-[#b8321a]"
-        )}
+        className="absolute inset-0 bg-gradient-to-r from-[#c23a22] via-[#e85d3a] to-[#b8321a]"
         aria-hidden
       />
       <div
@@ -48,14 +41,8 @@ export function ProfileLiveBanner({
       />
 
       <div className="relative flex items-center gap-3 px-4 py-3 sm:px-5 sm:py-3.5">
-        <span
-          className={cn(
-            "relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-[0_4px_16px_rgba(0,0,0,0.25)]",
-            "ring-2 ring-white/35",
-            voice ? "bg-violet-950/50" : "bg-black/25"
-          )}
-        >
-          {voice ? <Mic2 className="h-5 w-5" /> : <Radio className="h-5 w-5" />}
+        <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-[0_4px_16px_rgba(0,0,0,0.25)] ring-2 ring-white/35 bg-black/25">
+          <Radio className="h-5 w-5" />
           <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/80 opacity-75" />
             <span className="relative inline-flex h-3 w-3 rounded-full bg-white" />
@@ -80,13 +67,7 @@ export function ProfileLiveBanner({
           </p>
         </div>
 
-        <span
-          className={cn(
-            "flex shrink-0 items-center gap-0.5 rounded-full bg-white/95 px-3 py-2 text-xs font-bold shadow-md",
-            "transition-transform duration-200 group-hover:scale-[1.04] group-active:scale-[0.98]",
-            voice ? "text-violet-800" : "text-[#c23a22]"
-          )}
-        >
+        <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-white/95 px-3 py-2 text-xs font-bold text-[#c23a22] shadow-md transition-transform duration-200 group-hover:scale-[1.04] group-active:scale-[0.98]">
           {t("profile.liveWatch")}
           <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
         </span>

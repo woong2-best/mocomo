@@ -11,7 +11,7 @@ import { LIVE_CATEGORIES } from "@/lib/live-categories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Radio, ChevronLeft, KeyRound, Copy, Check, Calendar, Video, Mic2 } from "lucide-react";
+import { Radio, ChevronLeft, KeyRound, Copy, Check, Calendar, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 
@@ -20,13 +20,6 @@ const PRESETS = [
   "코스프레 촬영 Behind",
   "애니 같이 보기",
   "버튜버 잡담",
-];
-
-const VOICE_PRESETS = [
-  "🎙 밤샘 잡담",
-  "애니 OST 토크",
-  "ASMR·목소리 라디오",
-  "친구랑 수다",
 ];
 
 const LIVE_PW_KEY = (id: string) => `mocomo_live_pw_${id}`;
@@ -76,7 +69,6 @@ export default function NewVoicePage() {
   const [submitError, setSubmitError] = useState("");
   const [name, setName] = useState(PRESETS[0]);
   const [category, setCategory] = useState<LiveStreamCategory>("JUST_CHATTING");
-  const [broadcastMode, setBroadcastMode] = useState<LiveBroadcastMode>("BROWSER");
   const [liveVisibility, setLiveVisibility] = useState<LiveVisibility>("PUBLIC");
   const [minViewerTier, setMinViewerTier] = useState<SupportTierLevel>("BRONZE");
   const [created, setCreated] = useState<CreatedUiState | null>(null);
@@ -97,15 +89,6 @@ export default function NewVoicePage() {
   }, []);
 
   useEffect(() => {
-    const mode = new URLSearchParams(window.location.search).get("mode");
-    if (mode === "voice") {
-      setBroadcastMode("VOICE");
-      setName(VOICE_PRESETS[0]);
-      setCategory("MUSIC");
-    }
-  }, []);
-
-  useEffect(() => {
     if (created) return;
     const started =
       typeof window !== "undefined"
@@ -123,19 +106,18 @@ export default function NewVoicePage() {
       const form = new FormData(e.currentTarget);
       const scheduledRaw = (form.get("scheduledAt") as string)?.trim();
       const maxUsersRaw = parseInt(form.get("maxUsers") as string, 10);
-      const defaultMax = broadcastMode === "VOICE" ? 500 : 200;
       const result = await createLiveStream({
         name: (form.get("name") as string) || name,
-        maxUsers: Number.isFinite(maxUsersRaw) && maxUsersRaw > 0 ? maxUsersRaw : defaultMax,
-        allowScreen: broadcastMode !== "VOICE",
-        allowCamera: broadcastMode !== "VOICE",
+        maxUsers: Number.isFinite(maxUsersRaw) && maxUsersRaw > 0 ? maxUsersRaw : 200,
+        allowScreen: true,
+        allowCamera: true,
         category,
         tags: (form.get("tags") as string) || "",
         thumbnailUrl: (form.get("thumbnailUrl") as string) || undefined,
         description: (form.get("description") as string) || undefined,
         scheduledAt: scheduledRaw || undefined,
         donationGoalKrw: parseInt(form.get("donationGoalKrw") as string, 10) || undefined,
-        broadcastMode,
+        broadcastMode: "BROWSER",
         liveVisibility,
         minViewerTier: liveVisibility === "PRIVATE" ? minViewerTier : undefined,
       });
@@ -160,7 +142,7 @@ export default function NewVoicePage() {
         const scheduledState: CreatedUiState = {
           channelId: result.channel.id,
           scheduled: true,
-          broadcastMode,
+          broadcastMode: "BROWSER",
         };
         persistCreatedUi(scheduledState);
         setCreated(scheduledState);
@@ -175,7 +157,7 @@ export default function NewVoicePage() {
       const liveState: CreatedUiState = {
         channelId: result.channel.id,
         password: result.joinPassword,
-        broadcastMode,
+        broadcastMode: "BROWSER",
       };
       persistCreatedUi(liveState);
       if (result.joinPassword) {
@@ -238,8 +220,8 @@ export default function NewVoicePage() {
           <h2 className="text-xl font-bold">방송 준비 완료</h2>
           <p className="text-sm text-muted-foreground">
             스튜디오에서 <strong>방송 시작</strong>을 누르고{" "}
-            {created.broadcastMode === "VOICE" ? "마이크" : "카메라·마이크"}를 허용하면 라이브 목록에 노출됩니다.
-            {created.broadcastMode === "BROWSER" ? " (OBS·다중 송출 불필요)" : ""}
+            카메라·마이크를 허용하면 라이브 목록에 노출됩니다.
+            {" "}(OBS·다중 송출 불필요)
           </p>
           <div className="space-y-1">
             <p className="text-[11px] font-medium text-muted-foreground">합방 비밀번호 (공동 방송용)</p>
@@ -334,42 +316,8 @@ export default function NewVoicePage() {
                 </div>
               </div>
             )}
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground">방송 유형</p>
-              <div className="flex gap-2 p-1 rounded-xl bg-muted/40 border">
-                <button
-                  type="button"
-                  className={cn(
-                    "flex-1 text-xs py-2.5 rounded-lg font-medium flex items-center justify-center gap-1.5",
-                    broadcastMode === "BROWSER" ? "bg-background shadow" : "text-muted-foreground"
-                  )}
-                  onClick={() => {
-                    setBroadcastMode("BROWSER");
-                    setName(PRESETS[0]);
-                  }}
-                >
-                  <Video className="h-3.5 w-3.5" />
-                  영상 라이브
-                </button>
-                <button
-                  type="button"
-                  className={cn(
-                    "flex-1 text-xs py-2.5 rounded-lg font-medium flex items-center justify-center gap-1.5",
-                    broadcastMode === "VOICE" ? "bg-background shadow" : "text-muted-foreground"
-                  )}
-                  onClick={() => {
-                    setBroadcastMode("VOICE");
-                    setName(VOICE_PRESETS[0]);
-                    setCategory("MUSIC");
-                  }}
-                >
-                  <Mic2 className="h-3.5 w-3.5" />
-                  보이스 라이브
-                </button>
-              </div>
-            </div>
             <div className="flex flex-wrap gap-2">
-              {(broadcastMode === "VOICE" ? VOICE_PRESETS : PRESETS).map((p) => (
+              {PRESETS.map((p) => (
                 <button
                   key={p}
                   type="button"
@@ -389,23 +337,13 @@ export default function NewVoicePage() {
               placeholder="방송 제목"
               required
             />
-            {broadcastMode === "VOICE" ? (
-              <div className="flex items-center gap-2 rounded-xl border border-violet-500/30 bg-violet-500/10 px-3 py-2.5 text-xs text-muted-foreground">
-                <Mic2 className="h-4 w-4 shrink-0 text-violet-600" />
-                <span>
-                  <strong className="text-foreground">목소리만</strong> 송출합니다 (스푼형). LiveKit 오디오 SFU로
-                  시청자가 몰려도 영상 CDN 부담 없이 안정적입니다.
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 rounded-xl border bg-muted/40 px-3 py-2.5 text-xs text-muted-foreground">
-                <Video className="h-4 w-4 shrink-0 text-primary" />
-                <span>
-                  브라우저에서 <strong className="text-foreground">웹캠·화면 공유</strong>로 Cloudflare CDN에 바로
-                  송출합니다.
-                </span>
-              </div>
-            )}
+            <div className="flex items-center gap-2 rounded-xl border bg-muted/40 px-3 py-2.5 text-xs text-muted-foreground">
+              <Video className="h-4 w-4 shrink-0 text-primary" />
+              <span>
+                브라우저에서 <strong className="text-foreground">웹캠·화면 공유</strong>로 Cloudflare CDN에 바로
+                송출합니다.
+              </span>
+            </div>
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground">시청 공개 범위</p>
               <div className="flex gap-2 p-1 rounded-xl bg-muted/40 border">
@@ -468,14 +406,12 @@ export default function NewVoicePage() {
                 name="maxUsers"
                 type="number"
                 min={1}
-                max={broadcastMode === "VOICE" ? 2000 : 500}
-                defaultValue={broadcastMode === "VOICE" ? 500 : 200}
+                max={500}
+                defaultValue={200}
                 className="rounded-xl"
               />
               <p className="text-[10px] text-muted-foreground">
-                {broadcastMode === "VOICE"
-                  ? "보이스 라이브는 오디오만 전송해 동시 시청자를 더 많이 받을 수 있습니다 (최대 2,000명)"
-                  : "이 방에 동시에 들어올 수 있는 시청자 수 (기본 200명)"}
+                이 방에 동시에 들어올 수 있는 시청자 수 (기본 200명)
               </p>
             </label>
             <details className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
@@ -489,8 +425,8 @@ export default function NewVoicePage() {
               </div>
             </details>
             <Button type="submit" className="w-full rounded-xl gap-2" disabled={loading}>
-              {broadcastMode === "VOICE" ? <Mic2 className="h-4 w-4" /> : <Radio className="h-4 w-4" />}
-              {loading ? "만드는 중…" : broadcastMode === "VOICE" ? "보이스 방송 시작" : "방송 시작"}
+              <Radio className="h-4 w-4" />
+              {loading ? "만드는 중…" : "방송 시작"}
             </Button>
           </form>
         </CardContent>

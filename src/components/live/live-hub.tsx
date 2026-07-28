@@ -16,7 +16,6 @@ import {
   TrendingUp,
   BadgeCheck,
   Calendar,
-  Mic2,
 } from "lucide-react";
 import { LivePageActions } from "@/components/live/live-page-actions";
 import { LiveCategoryFilter } from "@/components/live/live-category-filter";
@@ -32,7 +31,6 @@ import type { MessageKey } from "@/lib/i18n/messages";
 
 const FEATURE_KEYS: { icon: typeof Video; key: MessageKey }[] = [
   { icon: Video, key: "live.feature.webcam" },
-  { icon: Mic2, key: "live.feature.voice" },
   { icon: MessageSquare, key: "live.feature.chat" },
   { icon: Shield, key: "live.feature.moderation" },
   { icon: Eye, key: "live.feature.support" },

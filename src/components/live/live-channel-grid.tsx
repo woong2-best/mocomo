@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { memo } from "react";
 import { motion } from "framer-motion";
-import { Eye, Radio, Sparkles, User, Mic2 } from "lucide-react";
-import { isVoiceBroadcastMode } from "@/lib/live-voice-broadcast";
+import { Eye, Radio, Sparkles, User } from "lucide-react";
 import { LivePageActions } from "@/components/live/live-page-actions";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
@@ -16,7 +15,7 @@ import { useLocale } from "@/components/providers/locale-provider";
 
 export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHubHost }) {
   const reduced = usePrefersReducedMotion();
-  const { locale, t } = useLocale();
+  const { locale } = useLocale();
   const thumb = ch.thumbnailUrl ?? host?.image;
   const card = (
     <Link href={`/voice/${ch.id}`} prefetch={false} className="live-card group block">
@@ -37,14 +36,8 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
           <span className="live-badge">
             <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-            {isVoiceBroadcastMode(ch.broadcastMode) ? "Voice" : "Live"}
+            Live
           </span>
-          {isVoiceBroadcastMode(ch.broadcastMode) && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-600/80 text-white font-medium flex items-center gap-0.5">
-              <Mic2 className="h-3 w-3" />
-              {t("live.voiceBadge")}
-            </span>
-          )}
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-black/50 text-white font-medium">
             {localizedLiveCategoryLabel(ch.category, locale)}
           </span>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { Mic2, Radio, Sparkles, Video } from "lucide-react";
+import { Radio, Sparkles, Video } from "lucide-react";
 import { isLiveFeatureEnabled } from "@/lib/live-feature";
 import { useLocale } from "@/components/providers/locale-provider";
 
@@ -35,12 +35,6 @@ export function LivePageActions({ variant }: { variant: "header" | "empty" }) {
     return (
       <div className="flex flex-wrap gap-2 justify-end">
         {studioButton}
-        <Link href="/voice/new?mode=voice">
-          <Button variant="outline" className="gap-2 rounded-xl">
-            <Mic2 className="h-4 w-4" />
-            보이스
-          </Button>
-        </Link>
         <Link href="/voice/new">
           <Button className="gap-2 rounded-xl">
             <Video className="h-4 w-4" />
@@ -54,12 +48,6 @@ export function LivePageActions({ variant }: { variant: "header" | "empty" }) {
   return (
     <div className="flex flex-wrap gap-2 justify-center">
       {studioButton}
-      <Link href="/voice/new?mode=voice">
-        <Button variant="outline" className="gap-2">
-          <Mic2 className="h-4 w-4" />
-          보이스 라이브
-        </Button>
-      </Link>
       <Link href="/voice/new">
         <Button className="gap-2">
           <Radio className="h-4 w-4" />

@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
-import { Mic2, Video } from "lucide-react";
+import { Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LiveHubMode } from "@/lib/live-hub-mode";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -12,7 +12,6 @@ import type { MessageKey } from "@/lib/i18n/messages";
 const MODE_TABS: { value: LiveHubMode; labelKey: MessageKey; icon?: typeof Video }[] = [
   { value: "all", labelKey: "live.modeAll" },
   { value: "video", labelKey: "live.modeVideo", icon: Video },
-  { value: "voice", labelKey: "live.modeVoice", icon: Mic2 },
 ];
 
 export function LiveCategoryFilter() {

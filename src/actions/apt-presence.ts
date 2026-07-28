@@ -136,7 +136,11 @@ export async function getCountryAptCommunityFeed(countryCode: string): Promise<A
         })
       : Promise.resolve([]),
     db.voiceChannel.findMany({
-      where: { isLive: true, liveStatus: "LIVE" },
+      where: {
+        isLive: true,
+        liveStatus: "LIVE",
+        broadcastMode: { in: ["BROWSER", "OBS"] },
+      },
       select: { createdBy: true },
     }),
     user && hostIds.length
