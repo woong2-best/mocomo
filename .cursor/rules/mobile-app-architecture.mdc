@@ -13,6 +13,15 @@ alwaysApply: true
 - **APT is permanently out of mobile scope.**
 - Capacitor (`android/`, `capacitor.config.ts`) is **legacy** — see `docs/CAPACITOR_LEGACY.md`.
 
+## Same product standard (Twitter bar)
+
+The app and website must feel like **one product** — same brand, same core loops, same depth of care — the way the Twitter/X app mirrors twitter.com.
+
+- **Design:** folk tokens (cream / cobalt / terracotta / gold), rounded cards, chunky borders/shadows, line icons. No one-off “ugly MVP” screens.
+- **Features:** every sidebar-primary web surface needs a real native path (not a stub hub), except APT.
+- **Polish:** empty states, errors, loading, headers, and icons get the same attention as the floating tab bar.
+- **Parity tracker:** `docs/MOBILE_WEB_PARITY.md` — close gaps by wave; do not ship new half-finished verticals ahead of social core.
+
 ## Mobile-first
 
 New features: design **mobile app first**, then extend to web if needed.  
@@ -32,4 +41,4 @@ Gates in `docs/MOBILE_PERFORMANCE_GATES.md`. Mid-range Android **and** iPhone mu
 
 ## Decisions
 
-Judge by **performance → scalability → maintainability** (millions of users).
+Judge by **performance → scalability → maintainability** (millions of users), then **parity polish**.
