@@ -6,12 +6,17 @@ import { getCachedCurrentUser, requireAuthMinimal } from "@/lib/auth";
 import { postMediaPreview } from "@/lib/post-media-select";
 import {
   notifyFollow,
-  notifyFollowRequest,
   notifyFollowRequestAccepted,
   notifyPostLike,
 } from "@/lib/notifications";
 import { filterPostsByAudienceLock } from "@/lib/posts-lock";
 import { userPublicSelect } from "@/lib/user-public-select";
+import {
+  toggleFollowForUser,
+  type FollowToggleResult,
+} from "@/lib/follow-service";
+
+export type { FollowToggleResult };
 
 async function revalidateFollowPaths(targetUsername?: string, listOwnerUsername?: string) {
   const paths = new Set<string>();
@@ -29,88 +34,16 @@ async function revalidateFollowPaths(targetUsername?: string, listOwnerUsername?
   }
 }
 
-export type FollowToggleResult =
-  | { following: true; requested?: false }
-  | { following: false; requested: false }
-  | { following: false; requested: true }
-  | { error: string };
-
 export async function toggleFollow(
   userId: string,
   targetUsername?: string,
   opts?: { listOwnerUsername?: string }
 ): Promise<FollowToggleResult> {
   const user = await requireAuthMinimal();
-  if (user.id === userId) return { error: "자기 자신은 팔로우할 수 없습니다." };
-
-  const target = await db.user.findUnique({
-    where: { id: userId },
-    select: { username: true, postsLocked: true },
+  return toggleFollowForUser(user.id, userId, {
+    targetUsername,
+    listOwnerUsername: opts?.listOwnerUsername,
   });
-  if (!target) return { error: "사용자를 찾을 수 없습니다." };
-
-  const resolvedUsername = targetUsername?.trim() || target.username;
-
-  // 이미 팔로잉 → 언팔로우
-  const deleted = await db.follow.deleteMany({
-    where: { followerId: user.id, followingId: userId },
-  });
-
-  if (deleted.count > 0) {
-    void db.followRecommendation
-      .deleteMany({ where: { userId: user.id, candidateId: userId } })
-      .catch(() => {});
-    await revalidateFollowPaths(resolvedUsername, opts?.listOwnerUsername);
-    return { following: false, requested: false };
-  }
-
-  // 대기 중인 요청 → 취소
-  const cancelledRequest = await db.followRequest.deleteMany({
-    where: { requesterId: user.id, targetId: userId },
-  });
-  if (cancelledRequest.count > 0) {
-    await revalidateFollowPaths(resolvedUsername, opts?.listOwnerUsername);
-    return { following: false, requested: false };
-  }
-
-  // 잠금 계정 → 팔로우 요청
-  if (target.postsLocked) {
-    try {
-      await db.followRequest.create({
-        data: { requesterId: user.id, targetId: userId },
-      });
-    } catch (e) {
-      const code = e && typeof e === "object" && "code" in e ? (e as { code: string }).code : "";
-      if (code === "P2002") {
-        await revalidateFollowPaths(resolvedUsername, opts?.listOwnerUsername);
-        return { following: false, requested: true };
-      }
-      throw e;
-    }
-    void notifyFollowRequest(userId, user.id);
-    await revalidateFollowPaths(resolvedUsername, opts?.listOwnerUsername);
-    return { following: false, requested: true };
-  }
-
-  try {
-    await db.follow.create({
-      data: { followerId: user.id, followingId: userId },
-    });
-  } catch (e) {
-    const code = e && typeof e === "object" && "code" in e ? (e as { code: string }).code : "";
-    if (code === "P2002") {
-      await revalidateFollowPaths(resolvedUsername, opts?.listOwnerUsername);
-      return { following: true };
-    }
-    throw e;
-  }
-
-  void notifyFollow(userId, user.id);
-  const { onFollowFromRecommendation } = await import("@/lib/follow-recommendations");
-  void onFollowFromRecommendation(user.id, userId).catch(() => {});
-  await revalidateFollowPaths(resolvedUsername, opts?.listOwnerUsername);
-
-  return { following: true };
 }
 
 export async function approveFollowRequest(requesterId: string) {

@@ -4,25 +4,7 @@ import Google from "next-auth/providers/google";
 import Discord from "next-auth/providers/discord";
 import Twitter from "next-auth/providers/twitter";
 import Credentials from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
-import { db } from "@/lib/db";
-import { isServiceBanned } from "@/lib/account-status";
-import { canRecoverAccount, isAccountPastRecovery } from "@/lib/account-deletion";
-import { checkLoginRateLimit, recordLoginAttempt } from "@/lib/auth-rate-limit";
 import { getRequestIp } from "@/lib/request-ip";
-import {
-  CREDENTIALS_JWT_USER_SELECT,
-  toCredentialsAuthUser,
-} from "@/lib/auth-credentials";
-import {
-  LoginBannedError,
-  LoginAccountDeletedError,
-  LoginAccountPendingRecoveryError,
-  LoginEmailNotVerifiedError,
-  LoginInvalidCredentialsError,
-  LoginOAuthOnlyError,
-  LoginRateLimitedError,
-} from "@/lib/auth-login-errors";
 
 /** LINE 웹 로그인 — OIDC discovery(ES256)와 실제 id_token(HS256) 불일치 회피용 OAuth */
 type LineProfile = {
@@ -71,45 +53,13 @@ const credentialsProvider = Credentials({
   },
   async authorize(credentials) {
     if (!credentials?.email || !credentials?.password) return null;
-    const loginId = String(credentials.email).trim();
-    const password = String(credentials.password);
-    const loginKey = loginId.toLowerCase();
-
+    const { authenticateCredentialsUser } = await import("@/lib/mobile-credentials-login");
     const ip = await getRequestIp();
-    const [rate, user] = await Promise.all([
-      checkLoginRateLimit(loginKey, ip),
-      loginId.includes("@")
-        ? db.user.findUnique({
-            where: { email: loginKey },
-            select: CREDENTIALS_JWT_USER_SELECT,
-          })
-        : db.user.findFirst({
-            where: { username: { equals: loginId, mode: "insensitive" } },
-            select: CREDENTIALS_JWT_USER_SELECT,
-          }),
-    ]);
-
-    if (!rate.ok) throw new LoginRateLimitedError();
-
-    const fail = () => {
-      void recordLoginAttempt(loginKey, ip);
-      throw new LoginInvalidCredentialsError();
-    };
-
-    if (!user) return fail();
-    if (isServiceBanned(user)) throw new LoginBannedError();
-    if (user.deletedAt) {
-      if (isAccountPastRecovery(user)) throw new LoginAccountDeletedError();
-      if (!canRecoverAccount(user)) throw new LoginAccountPendingRecoveryError();
-    }
-    if (!user.passwordHash) throw new LoginOAuthOnlyError();
-
-    const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) return fail();
-
-    if (!user.emailVerified) throw new LoginEmailNotVerifiedError();
-
-    return toCredentialsAuthUser(user);
+    return authenticateCredentialsUser(
+      String(credentials.email),
+      String(credentials.password),
+      ip
+    );
   },
 });
 

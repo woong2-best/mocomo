@@ -58,6 +58,8 @@ export const MUTATING_API_ORIGIN_EXEMPT_PREFIXES = [
   "/api/auth/session",
   "/api/auth/providers",
   "/api/auth/csrf",
+  // RN Bearer clients have no browser Origin; mutating /api/mobile/* requires Bearer.
+  "/api/mobile/",
 ] as const;
 
 export function shouldGuardMutatingApiOrigin(

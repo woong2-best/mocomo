@@ -1,0 +1,72 @@
+---
+description: NextAuth useSession / root provider safety — prevents site-wide 500 crashes
+globs: src/components/providers/**,src/components/settings/**,src/lib/i18n/**
+alwaysApply: true
+---
+
+# NextAuth & Root Provider Safety (MoCoMo)
+
+## Incident (2026-07) — site-wide outage
+
+**Symptom:** Every page returned HTTP 500 + white screen:
+`Application error: a client-side exception has occurred`
+Console: `Cannot destructure property 'update' of '(0 , o.wV)(...)' as it is undefined.`
+
+**Cause:** `LocaleProvider` (root, wraps entire app) called:
+```tsx
+const { update: updateSession } = useSession();
+```
+During **SSR / production RSC**, `useSession()` can return `undefined`. Destructuring `update` throws → entire layout crashes → all routes 500.
+
+`SessionProvider` was a parent, but that does **not** guarantee `useSession()` is safe in every root provider during server render.
+
+**Fix:** Remove `useSession` from `LocaleProvider`. Session JWT refresh only in leaf UI (`LocaleSettingsForm`):
+```tsx
+const sessionState = useSession();
+await sessionState?.update?.();
+```
+Cookie + DB update + `router.refresh()` handle locale for everything else. `LocaleSessionSync` syncs cookies after login.
+
+---
+
+## Rules (must follow)
+
+1. **Never `useSession()` in root providers** (`locale-provider`, `app-providers`, layout-level wrappers). Same for destructuring `{ update }` at module top level in wide tree components.
+
+2. **`useSession` only in leaf components** that need auth UI (settings forms, header, compose). Always optional:
+   ```tsx
+   const session = useSession();
+   await session?.update?.();
+   // or: const { data, status } = session ?? {};
+   ```
+
+3. **Provider stack order** (do not invert):
+   `SessionProvider` → `LocaleProvider` → feature providers.
+   Locale logic must not depend on session hooks at provider init.
+
+4. **Locale resolution** (`src/lib/i18n/server.ts`):
+   - Guest: cookie → `DEFAULT_GUEST_LOCALE` (`en`)
+   - Logged-in: **session/DB locale first** (not stale guest `en` cookie)
+   - Never add `useSession` to server files; use `getCachedSession()` / `auth()`
+
+5. **Before deploy** after auth/locale/provider changes:
+   - `npx tsc --noEmit`
+   - `npx next build` (or CI green)
+   - Smoke: `GET /` and `GET /auth/signin` → **200** (not 500)
+   - Browser console: no `Cannot destructure property 'update'`
+
+---
+
+## Safe patterns
+
+```tsx
+// ✅ LocaleProvider — cookies + server action only
+await updateUserLocale({ locale, countryCode });
+router.refresh();
+
+// ✅ Settings page only — optional session refresh
+await sessionState?.update?.();
+
+// ❌ Root provider
+const { update } = useSession();
+```

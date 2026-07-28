@@ -1,0 +1,35 @@
+---
+description: MoCoMo mobile app — RN-first, no WebView cores, performance gates, dual-platform
+alwaysApply: true
+---
+
+# MoCoMo Mobile App Architecture
+
+## Product split
+
+- **Next.js (`src/`)** = web only. Do not wrap it as the app.
+- **React Native Expo (`apps/mobile`)** = Android + iOS product app.
+- Share API / DB / Auth / server logic only.
+- **APT is permanently out of mobile scope.**
+- Capacitor (`android/`, `capacitor.config.ts`) is **legacy** — see `docs/CAPACITOR_LEGACY.md`.
+
+## Mobile-first
+
+New features: design **mobile app first**, then extend to web if needed.  
+This is not a website port. Do not import web UI into RN or ship core features in WebView.
+
+## Performance over features
+
+Gates in `docs/MOBILE_PERFORMANCE_GATES.md`. Mid-range Android **and** iPhone must pass before the next Phase. If unmet, optimize first.
+
+## Stack
+
+- Expo New Architecture (Fabric / TurboModules)
+- FlashList for long lists; native video (ExoPlayer / AVPlayer) — no hls.js
+- Kotlin/Swift TurboModules when RN cannot hit X/Instagram-class UX
+- Bearer auth client in `apps/mobile/src/api` — no cookie sessions in the app
+- Libraries: prefer long-term maintenance + performance; replace when better exists
+
+## Decisions
+
+Judge by **performance → scalability → maintainability** (millions of users).
