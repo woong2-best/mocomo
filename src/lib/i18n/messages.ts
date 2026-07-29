@@ -219,12 +219,6 @@ export type MessageKey =
   | "settings.timeZoneHint"
   | "settings.save"
   | "settings.saved"
-  | "settings.feedDisplayTitle"
-  | "settings.feedDisplayDesc"
-  | "settings.feedDisplayTimeline"
-  | "settings.feedDisplayTimelineDesc"
-  | "settings.feedDisplayCompact"
-  | "settings.feedDisplayCompactDesc"
   | "settings.postsLockTitle"
   | "settings.postsLockDesc"
   | "settings.postsLockOn"
@@ -270,7 +264,6 @@ export type MessageKey =
   | "settings.legalPolicy"
   | "common.loading"
   | "feed.title"
-  | "feed.displayMode.compactHasMedia"
   | "feed.displayMode.openPost"
   | "feed.tabs"
   | "feed.emptyPrompt"
@@ -667,12 +660,6 @@ const ko: Record<MessageKey, string> = {
   "settings.timeZoneHint": "프로필 달력의 ‘오늘’과 날짜 경계를 이 시간대로 계산합니다.",
   "settings.save": "저장",
   "settings.saved": "저장되었습니다",
-  "settings.feedDisplayTitle": "피드 보기 방식",
-  "settings.feedDisplayDesc": "피드에서 글과 사진을 어떻게 보여줄지 선택합니다.",
-  "settings.feedDisplayTimeline": "타임라인",
-  "settings.feedDisplayTimelineDesc": "글·사진을 바로 펼쳐서 봅니다.",
-  "settings.feedDisplayCompact": "목록형",
-  "settings.feedDisplayCompactDesc": "제목만 보이고, 눌러야 본문과 사진이 열립니다.",
   "settings.postsLockTitle": "잠금",
   "settings.postsLockDesc": "계정을 잠그면 승인된 팔로워만 게시물을 볼 수 있습니다. 잠그기 전에 이미 팔로우한 사람은 그대로 볼 수 있고, 새 팔로우는 요청이 됩니다.",
   "settings.postsLockOn": "잠금",
@@ -718,7 +705,6 @@ const ko: Record<MessageKey, string> = {
   "settings.legalPolicy": "운영원칙 및 이용정책",
   "common.loading": "불러오는 중…",
   "feed.title": "커뮤니티 피드",
-  "feed.displayMode.compactHasMedia": "첨부 이미지 있음",
   "feed.displayMode.openPost": "게시글 보기",
   "feed.tabs": "팔로우 · 추천 · 최신",
   "feed.emptyPrompt": "오늘의 캔버스에 첫 글을 올려 보세요",
@@ -1116,12 +1102,6 @@ const en: Record<MessageKey, string> = {
   "settings.timeZoneHint": "Profile calendar “today” and day boundaries use this IANA time zone.",
   "settings.save": "Save",
   "settings.saved": "Saved",
-  "settings.feedDisplayTitle": "Feed layout",
-  "settings.feedDisplayDesc": "Choose how posts and images appear in your feed.",
-  "settings.feedDisplayTimeline": "Timeline",
-  "settings.feedDisplayTimelineDesc": "Text and images shown inline.",
-  "settings.feedDisplayCompact": "Compact list",
-  "settings.feedDisplayCompactDesc": "Preview only; tap to expand body and images.",
   "settings.postsLockTitle": "Lock",
   "settings.postsLockDesc": "When locked, only approved followers can see your posts. People who already followed you keep access; new follows become requests.",
   "settings.postsLockOn": "Locked",
@@ -1167,7 +1147,6 @@ const en: Record<MessageKey, string> = {
   "settings.legalPolicy": "Community policy",
   "common.loading": "Loading…",
   "feed.title": "Community feed",
-  "feed.displayMode.compactHasMedia": "Has image",
   "feed.displayMode.openPost": "View post",
   "feed.tabs": "Following · For you · Latest",
   "feed.emptyPrompt": "Be the first to post on today's canvas",
@@ -1565,12 +1544,6 @@ const ja: Record<MessageKey, string> = {
   "settings.timeZoneHint": "プロフィールカレンダーの「今日」と日付境界はこのタイムゾーンで計算します。",
   "settings.save": "保存",
   "settings.saved": "保存しました",
-  "settings.feedDisplayTitle": "フィード表示",
-  "settings.feedDisplayDesc": "フィードでの投稿・画像の見え方を選びます。",
-  "settings.feedDisplayTimeline": "タイムライン",
-  "settings.feedDisplayTimelineDesc": "本文と画像をそのまま表示。",
-  "settings.feedDisplayCompact": "リスト",
-  "settings.feedDisplayCompactDesc": "一覧のみ、タップで本文・画像を展開。",
   "settings.postsLockTitle": "ロック",
   "settings.postsLockDesc": "アカウントをロックすると、承認したフォロワーだけが投稿を見られます。ロック前からのフォロワーはそのまま閲覧でき、新しいフォローはリクエストになります。",
   "settings.postsLockOn": "ロック",
@@ -1616,7 +1589,6 @@ const ja: Record<MessageKey, string> = {
   "settings.legalPolicy": "コミュニティポリシー",
   "common.loading": "読み込み中…",
   "feed.title": "コミュニティフィード",
-  "feed.displayMode.compactHasMedia": "画像あり",
   "feed.displayMode.openPost": "投稿を見る",
   "feed.tabs": "フォロー · おすすめ · 最新",
   "feed.emptyPrompt": "今日のキャンバスに最初の投稿を",
@@ -2014,12 +1986,6 @@ const zh: Record<MessageKey, string> = {
   "settings.timeZoneHint": "个人资料日历的“今天”与日期边界按此时区计算。",
   "settings.save": "保存",
   "settings.saved": "已保存",
-  "settings.feedDisplayTitle": "动态布局",
-  "settings.feedDisplayDesc": "选择动态中文字与图片的展示方式。",
-  "settings.feedDisplayTimeline": "时间线",
-  "settings.feedDisplayTimelineDesc": "正文与图片直接展示。",
-  "settings.feedDisplayCompact": "列表",
-  "settings.feedDisplayCompactDesc": "仅预览，点击展开正文与图片。",
   "settings.postsLockTitle": "锁定",
   "settings.postsLockDesc": "锁定账号后，只有已批准的关注者能看到帖子。锁定前已关注的人仍可查看；新的关注会变成请求。",
   "settings.postsLockOn": "锁定",
@@ -2065,7 +2031,6 @@ const zh: Record<MessageKey, string> = {
   "settings.legalPolicy": "社区政策",
   "common.loading": "加载中…",
   "feed.title": "社区动态",
-  "feed.displayMode.compactHasMedia": "含图片",
   "feed.displayMode.openPost": "查看帖子",
   "feed.tabs": "关注 · 推荐 · 最新",
   "feed.emptyPrompt": "成为今天画布上的第一个发帖者",

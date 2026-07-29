@@ -5,7 +5,6 @@ import {
   type FeedLayoutItem,
 } from "@/components/feed/feed-dual-column-layout";
 import type { GridPost } from "@/components/feed/feed-post-card";
-import type { FeedDisplayMode } from "@/lib/feed-display-mode";
 import type { FeedItem } from "@/lib/feed-mixer";
 
 type Ad = {
@@ -23,13 +22,11 @@ export function FeedGrid({
   likedIds = [],
   starredIds = [],
   repostedIds = [],
-  displayMode = "TIMELINE",
 }: {
   items: FeedItem<GridPost, Ad>[];
   likedIds?: string[];
   starredIds?: string[];
   repostedIds?: string[];
-  displayMode?: FeedDisplayMode;
 }) {
   return (
     <FeedDualColumnLayout
@@ -37,7 +34,6 @@ export function FeedGrid({
       likedIds={new Set(likedIds)}
       starredIds={new Set(starredIds)}
       repostedIds={new Set(repostedIds)}
-      displayMode={displayMode}
     />
   );
 }

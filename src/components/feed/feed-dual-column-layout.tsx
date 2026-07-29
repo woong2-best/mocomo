@@ -5,7 +5,6 @@ import { FeedAdCard } from "@/components/feed/feed-ad-card";
 import { FeedPostCardInteractive } from "@/components/feed/feed-post-card-interactive";
 import type { GridPost } from "@/components/feed/feed-post-card";
 import { MotionInViewIndexed } from "@/components/motion/motion-primitives";
-import type { FeedDisplayMode } from "@/lib/feed-display-mode";
 import { cn } from "@/lib/utils";
 
 type Ad = {
@@ -27,21 +26,15 @@ export function FeedDualColumnLayout({
   likedIds,
   starredIds,
   repostedIds,
-  displayMode = "TIMELINE",
 }: {
   items: FeedLayoutItem[];
   likedIds: Set<string>;
   starredIds: Set<string>;
   repostedIds: Set<string>;
-  displayMode?: FeedDisplayMode;
 }) {
   function renderItem(item: FeedLayoutItem, keySuffix: string, index: number) {
     const wrap = (node: ReactNode, key: string) => (
-      <MotionInViewIndexed
-        key={key}
-        index={index}
-        className={displayMode === "COMPACT" ? "mb-0" : "mb-4"}
-      >
+      <MotionInViewIndexed key={key} index={index} className="mb-4">
         {node}
       </MotionInViewIndexed>
     );
@@ -55,7 +48,6 @@ export function FeedDualColumnLayout({
     return wrap(
       <FeedPostCardInteractive
         post={item.data}
-        displayMode={displayMode}
         initialLiked={likedIds.has(item.data.id)}
         initialStarred={starredIds.has(item.data.id)}
         initialReposted={repostedIds.has(item.data.id)}
@@ -65,12 +57,7 @@ export function FeedDualColumnLayout({
   }
 
   return (
-    <div
-      className={cn(
-        "mx-auto flex w-full flex-col",
-        displayMode === "COMPACT" ? "max-w-3xl rounded-xl border border-border overflow-hidden" : "max-w-[600px]"
-      )}
-    >
+    <div className={cn("mx-auto flex w-full flex-col max-w-[600px]")}>
       {items.map((item, i) => renderItem(item, `feed-${i}`, i))}
     </div>
   );

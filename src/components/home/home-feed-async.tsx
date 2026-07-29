@@ -3,7 +3,6 @@ import Link from "next/link";
 import { getCachedFeedPosts } from "@/lib/cached-data";
 import { getCachedSession } from "@/lib/auth";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
-import { getRequestFeedDisplayMode } from "@/lib/feed-display-mode-server";
 
 const HomeFeedClient = dynamic(
   () => import("@/components/home/home-feed-client").then((m) => m.HomeFeedClient)
@@ -19,10 +18,9 @@ function serializeCreatedAt<T extends { createdAt: Date | string }>(rows: T[]): 
 
 export async function HomeFeedAsync() {
   try {
-    const [posts, session, displayMode] = await Promise.all([
+    const [posts, session] = await Promise.all([
       getCachedFeedPosts(),
       getCachedSession(),
-      getRequestFeedDisplayMode(),
     ]);
     const serialized = serializeCreatedAt(posts);
     const mixed = serialized.map((data) => ({ type: "post" as const, data }));
@@ -60,7 +58,6 @@ export async function HomeFeedAsync() {
         }))}
         nextCursor={nextCursor}
         hasDbPosts={hasDbPosts}
-        displayMode={displayMode}
       />
     );
   } catch {

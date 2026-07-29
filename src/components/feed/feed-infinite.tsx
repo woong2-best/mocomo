@@ -5,7 +5,6 @@ import {
   FeedDualColumnLayout,
   type FeedLayoutItem,
 } from "@/components/feed/feed-dual-column-layout";
-import type { FeedDisplayMode } from "@/lib/feed-display-mode";
 import { Button } from "@/components/ui/button";
 import { subscribePostDeleted } from "@/lib/post-deleted-sync";
 import { Loader2 } from "lucide-react";
@@ -36,14 +35,12 @@ export function FeedInfinite({
   initialLikedIds = [],
   initialStarredIds = [],
   initialRepostedIds = [],
-  displayMode = "TIMELINE",
 }: {
   initialItems: FeedItem[];
   initialCursor: string | null;
   initialLikedIds?: string[];
   initialStarredIds?: string[];
   initialRepostedIds?: string[];
-  displayMode?: FeedDisplayMode;
 }) {
   const [items, setItems] = useState(initialItems);
   const [likedIds, setLikedIds] = useState(() => new Set(initialLikedIds));
@@ -191,7 +188,6 @@ export function FeedInfinite({
         likedIds={likedIds}
         starredIds={starredIds}
         repostedIds={repostedIds}
-        displayMode={displayMode}
       />
       <div ref={sentinelRef} className="flex flex-col items-center gap-2 py-8">
         {loading && <Loader2 className="h-6 w-6 animate-spin text-primary" />}

@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { LocaleSettingsForm } from "@/components/settings/locale-settings-form";
-import { FeedDisplaySettingsForm } from "@/components/settings/feed-display-settings-form";
 import { PostsLockSettingsForm } from "@/components/settings/posts-lock-settings-form";
 import { FollowRequestsPanel } from "@/components/settings/follow-requests-panel";
 import { SignOutButton } from "@/components/settings/sign-out-button";
@@ -30,7 +29,6 @@ export default async function SettingsPage() {
         locale: true,
         countryCode: true,
         timeZone: true,
-        feedDisplayMode: true,
         postsLocked: true,
         twoFactorEnabled: true,
         showNsfw: true,
@@ -57,15 +55,6 @@ export default async function SettingsPage() {
             initialCountryCode={user?.countryCode ?? "KR"}
             initialTimeZone={user?.timeZone ?? "UTC"}
           />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("settings.feedDisplayTitle")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <FeedDisplaySettingsForm initialMode={user?.feedDisplayMode ?? "TIMELINE"} />
         </CardContent>
       </Card>
 
