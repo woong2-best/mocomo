@@ -6,7 +6,7 @@ import {
   MOBILE_OAUTH_COOKIE,
   MOBILE_OAUTH_REDIRECT_COOKIE,
   sanitizeMobileRedirectUri,
-} from "@/lib/mobile-oauth-handoff";
+} from "@/lib/mobile-oauth-shared";
 
 /** Persist mobile AuthSession markers from query (`from=mobile`, `redirect_uri`, `platform`). */
 export function MobileAuthSessionBootstrap() {

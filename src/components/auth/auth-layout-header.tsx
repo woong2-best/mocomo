@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { BRAND } from "@/lib/brand";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
-import { mobileAuthCompletePath } from "@/lib/mobile-oauth-handoff";
+import { mobileAuthCompletePath } from "@/lib/mobile-oauth-shared";
 import { useLocale } from "@/components/providers/locale-provider";
 
 function AuthLayoutHeaderInner() {

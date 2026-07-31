@@ -11,7 +11,7 @@ import {
   MOBILE_OAUTH_REDIRECT_COOKIE,
   sanitizeMobileRedirectUri,
   type MobileOAuthProvider,
-} from "@/lib/mobile-oauth-handoff";
+} from "@/lib/mobile-oauth-shared";
 
 /**
  * Mobile app opens this page inside AuthSession.

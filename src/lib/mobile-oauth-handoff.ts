@@ -1,9 +1,23 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { db } from "@/lib/db";
 import { issueMobileTokenPair } from "@/lib/mobile-auth-tokens";
+import {
+  MOBILE_OAUTH_REDIRECT,
+  sanitizeMobileRedirectUri,
+} from "@/lib/mobile-oauth-shared";
+
+export {
+  MOBILE_OAUTH_COOKIE,
+  MOBILE_OAUTH_REDIRECT_COOKIE,
+  MOBILE_OAUTH_REDIRECT,
+  mobileAuthCompletePath,
+  sanitizeMobileRedirectUri,
+  isMobileOAuthProvider,
+  type MobileOAuthProvider,
+} from "@/lib/mobile-oauth-shared";
 
 const HANDOFF_TTL_MS = 2 * 60 * 1000;
-const DEFAULT_MOBILE_REDIRECT = "mocomo://oauth";
+const DEFAULT_MOBILE_REDIRECT = MOBILE_OAUTH_REDIRECT;
 
 function handoffSecret(): string {
   const raw =
@@ -109,46 +123,4 @@ export async function buildMobileOAuthRedirectUrl(opts: {
   const join = base.includes("?") ? "&" : "?";
   const url = `${base}${join}handoff=${encodeURIComponent(handoff)}`;
   return { url, handoff };
-}
-
-/** Allow only MoCoMo app / Expo auth-session return URLs. */
-export function sanitizeMobileRedirectUri(raw?: string | null): string | null {
-  if (!raw) return null;
-  let u: URL;
-  try {
-    u = new URL(raw);
-  } catch {
-    return null;
-  }
-  const okScheme =
-    u.protocol === "mocomo:" ||
-    u.protocol === "exp:" ||
-    u.protocol === "exps:" ||
-    // Expo Go / dev client sometimes uses https auth proxy — reject generic https
-    false;
-  if (!okScheme) return null;
-  // Strip any attacker-supplied handoff
-  u.searchParams.delete("handoff");
-  return u.toString().replace(/\?$/, "");
-}
-
-export const MOBILE_OAUTH_COOKIE = "mocomo_mobile_oauth";
-export const MOBILE_OAUTH_REDIRECT_COOKIE = "mocomo_mobile_redirect";
-export const MOBILE_OAUTH_REDIRECT = DEFAULT_MOBILE_REDIRECT;
-
-/** After web auth succeeds, land here to issue app tokens + deep-link back. */
-export function mobileAuthCompletePath(platform: "android" | "ios" = "android") {
-  return `/auth/mobile/oauth/complete?platform=${platform}&from=mobile`;
-}
-
-export type MobileOAuthProvider = "discord" | "twitter" | "line" | "gmail" | "naver";
-
-export function isMobileOAuthProvider(v: string): v is MobileOAuthProvider {
-  return (
-    v === "discord" ||
-    v === "twitter" ||
-    v === "line" ||
-    v === "gmail" ||
-    v === "naver"
-  );
 }

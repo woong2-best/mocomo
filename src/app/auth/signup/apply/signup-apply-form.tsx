@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { BRAND } from "@/lib/brand";
 import { useLocale } from "@/components/providers/locale-provider";
-import { mobileAuthCompletePath } from "@/lib/mobile-oauth-handoff";
+import { mobileAuthCompletePath } from "@/lib/mobile-oauth-shared";
 
 export function SignupApplyForm({
   googleOAuth,
