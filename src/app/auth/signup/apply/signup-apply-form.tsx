@@ -7,20 +7,29 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { BRAND } from "@/lib/brand";
 import { useLocale } from "@/components/providers/locale-provider";
+import { mobileAuthCompletePath } from "@/lib/mobile-oauth-handoff";
 
 export function SignupApplyForm({
   googleOAuth,
   discordOAuth,
   twitterOAuth,
   lineOAuth,
+  fromMobile = false,
+  platform = "android",
 }: {
   googleOAuth: boolean;
   discordOAuth: boolean;
   twitterOAuth: boolean;
   lineOAuth: boolean;
+  fromMobile?: boolean;
+  platform?: "android" | "ios";
 }) {
   const router = useRouter();
   const { t, locale } = useLocale();
+  const completeUrl = mobileAuthCompletePath(platform);
+  const mobileQs = fromMobile
+    ? `?from=mobile&platform=${platform}`
+    : "";
 
   return (
     <div className="flex-1 flex items-center justify-center p-4">
@@ -39,12 +48,13 @@ export function SignupApplyForm({
         <CardContent className="space-y-5 pt-2">
           <SocialAuthButtons
             mode="signup"
+            callbackUrl={fromMobile ? completeUrl : undefined}
             googleOAuth={googleOAuth}
             discordOAuth={discordOAuth}
             twitterOAuth={twitterOAuth}
             lineOAuth={lineOAuth}
-            onGmailSignup={() => router.push("/auth/signup/gmail")}
-            onNaverSignup={() => router.push("/auth/signup/naver")}
+            onGmailSignup={() => router.push(`/auth/signup/gmail${mobileQs}`)}
+            onNaverSignup={() => router.push(`/auth/signup/naver${mobileQs}`)}
           />
 
           <p className="text-[11px] text-center text-muted-foreground leading-relaxed px-1">
@@ -67,7 +77,14 @@ export function SignupApplyForm({
 
           <p className="text-center text-sm text-muted-foreground pt-1 border-t border-border">
             {t("auth.hasAccount")}{" "}
-            <Link href="/auth/signin" className="text-primary hover:underline font-medium">
+            <Link
+              href={
+                fromMobile
+                  ? `/auth/signin?from=mobile&platform=${platform}&callbackUrl=${encodeURIComponent(completeUrl)}`
+                  : "/auth/signin"
+              }
+              className="text-primary hover:underline font-medium"
+            >
               {t("auth.signinLink")}
             </Link>
           </p>

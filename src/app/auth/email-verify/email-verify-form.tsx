@@ -187,6 +187,18 @@ export function EmailVerifyFormInner() {
         await getSession();
         await finishAddAccountFlow();
         router.refresh();
+        const mobile =
+          typeof document !== "undefined" &&
+          (document.cookie.includes("mocomo_mobile_oauth=1") ||
+            new URLSearchParams(window.location.search).get("from") === "mobile");
+        if (mobile) {
+          const platform =
+            new URLSearchParams(window.location.search).get("platform") === "ios"
+              ? "ios"
+              : "android";
+          router.replace(`/auth/mobile/oauth/complete?platform=${platform}`);
+          return;
+        }
         router.replace(DEFAULT_LANDING_PATH);
         return;
       }
@@ -270,6 +282,20 @@ export function EmailVerifyFormInner() {
   );
 
   if (step === "signup-done") {
+    const mobile =
+      typeof document !== "undefined" &&
+      (document.cookie.includes("mocomo_mobile_oauth=1") ||
+        new URLSearchParams(window.location.search).get("from") === "mobile");
+    const platform =
+      new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get(
+        "platform"
+      ) === "ios"
+        ? "ios"
+        : "android";
+    const signinAfterVerify = mobile
+      ? `/auth/signin?from=mobile&platform=${platform}&email=${encodeURIComponent(email)}&callbackUrl=${encodeURIComponent(`/auth/mobile/oauth/complete?platform=${platform}&from=mobile`)}`
+      : `/auth/signin?email=${encodeURIComponent(email)}&callbackUrl=${encodeURIComponent(DEFAULT_LANDING_PATH)}`;
+
     return (
       <>
         {unregisteredDialog}
@@ -303,7 +329,7 @@ export function EmailVerifyFormInner() {
             <p className="text-muted-foreground text-center">{t("auth.forgetPasswordInfo")}</p>
           )}
           <Button asChild className="w-full rounded-xl">
-            <Link href={`/auth/signin?email=${encodeURIComponent(email)}&callbackUrl=${encodeURIComponent(DEFAULT_LANDING_PATH)}`}>
+            <Link href={signinAfterVerify}>
               {t("auth.loginAndHome")}
             </Link>
           </Button>
@@ -330,6 +356,20 @@ export function EmailVerifyFormInner() {
   }
 
   if (step === "reset-done") {
+    const mobile =
+      typeof document !== "undefined" &&
+      (document.cookie.includes("mocomo_mobile_oauth=1") ||
+        new URLSearchParams(window.location.search).get("from") === "mobile");
+    const platform =
+      new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get(
+        "platform"
+      ) === "ios"
+        ? "ios"
+        : "android";
+    const signinAfterReset = mobile
+      ? `/auth/signin?from=mobile&platform=${platform}&email=${encodeURIComponent(email)}&callbackUrl=${encodeURIComponent(`/auth/mobile/oauth/complete?platform=${platform}&from=mobile`)}`
+      : `/auth/signin?email=${encodeURIComponent(email)}`;
+
     return (
       <>
         {unregisteredDialog}
@@ -337,7 +377,7 @@ export function EmailVerifyFormInner() {
         <CardContent className="p-6 text-center space-y-4">
           <p className="text-green-700 font-medium">{t("auth.passwordResetDone")}</p>
           <Button asChild className="w-full rounded-xl">
-            <Link href={`/auth/signin?email=${encodeURIComponent(email)}`}>{t("auth.loginAction")}</Link>
+            <Link href={signinAfterReset}>{t("auth.loginAction")}</Link>
           </Button>
         </CardContent>
       </Card>

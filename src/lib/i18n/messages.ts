@@ -334,6 +334,9 @@ export type MessageKey =
   | "auth.signInLine"
   | "auth.signInGoogle"
   | "auth.emailVerifyForgot"
+  | "auth.emailVerifyLink"
+  | "auth.loginIdPlaceholder"
+  | "auth.passwordSimple"
   | "auth.callbackRedirect"
   | "auth.oauthNotConfigured"
   | "auth.signupPageTitle"
@@ -775,6 +778,9 @@ const ko: Record<MessageKey, string> = {
   "auth.signInLine": "LINE으로 로그인",
   "auth.signInGoogle": "Google로 로그인",
   "auth.emailVerifyForgot": "이메일 인증 · 비밀번호 찾기",
+  "auth.emailVerifyLink": "이메일 인증",
+  "auth.loginIdPlaceholder": "@username",
+  "auth.passwordSimple": "비밀번호",
   "auth.callbackRedirect": "로그인 후 글쓰기 등 이전 화면으로 이동합니다.",
   "auth.oauthNotConfigured": "Google·X·Discord·LINE 로그인은 Vercel에 OAuth 키 추가 후 사용할 수 있습니다.",
   "auth.signupPageTitle": "{brand} 회원가입",
@@ -1217,6 +1223,9 @@ const en: Record<MessageKey, string> = {
   "auth.signInLine": "Sign in with LINE",
   "auth.signInGoogle": "Sign in with Google",
   "auth.emailVerifyForgot": "Email verify · Forgot password",
+  "auth.emailVerifyLink": "Email verify",
+  "auth.loginIdPlaceholder": "@username",
+  "auth.passwordSimple": "Password",
   "auth.callbackRedirect": "After sign-in you'll return to your previous screen.",
   "auth.oauthNotConfigured": "Google, X, Discord, and LINE sign-in need OAuth keys on Vercel.",
   "auth.signupPageTitle": "Sign up for {brand}",
@@ -1659,6 +1668,9 @@ const ja: Record<MessageKey, string> = {
   "auth.signInLine": "LINEでログイン",
   "auth.signInGoogle": "Googleでログイン",
   "auth.emailVerifyForgot": "メール認証 · パスワード再設定",
+  "auth.emailVerifyLink": "メール認証",
+  "auth.loginIdPlaceholder": "@username",
+  "auth.passwordSimple": "パスワード",
   "auth.callbackRedirect": "ログイン後、前の画面に戻ります。",
   "auth.oauthNotConfigured": "Google・X・Discord・LINEログインはOAuth設定が必要です。",
   "auth.signupPageTitle": "{brand} 会員登録",
@@ -2101,6 +2113,9 @@ const zh: Record<MessageKey, string> = {
   "auth.signInLine": "用 LINE 登录",
   "auth.signInGoogle": "用 Google 登录",
   "auth.emailVerifyForgot": "邮箱验证 · 找回密码",
+  "auth.emailVerifyLink": "邮箱验证",
+  "auth.loginIdPlaceholder": "@username",
+  "auth.passwordSimple": "密码",
   "auth.callbackRedirect": "登录后将返回之前的页面。",
   "auth.oauthNotConfigured": "Google、X、Discord、LINE 登录需要配置 OAuth。",
   "auth.signupPageTitle": "注册 {brand}",

@@ -2,17 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { SocialAuthButtons } from "@/components/auth/social-auth-buttons";
-import { GmailLocalPartField } from "@/components/auth/gmail-local-part-field";
-import { NaverLocalPartField } from "@/components/auth/naver-local-part-field";
 import { BRAND } from "@/lib/brand";
 import { loginErrorMessage } from "@/lib/auth-login-errors";
-import { buildGmailEmail, buildNaverEmail, parseGmailLocalPart, parseNaverLocalPart } from "@/lib/signup-email-domains";
 import { useLocale } from "@/components/providers/locale-provider";
 import { signIn, getSession } from "next-auth/react";
 import { finishAddAccountFlow } from "@/lib/account-switch/add-account-flow";
@@ -23,6 +21,12 @@ function safeCallbackUrl(raw: string): string {
   return path;
 }
 
+function normalizeLoginId(raw: string): string {
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("@")) return trimmed.slice(1).trim();
+  return trimmed;
+}
+
 export function SignInForm({
   googleOAuth,
   discordOAuth,
@@ -31,6 +35,8 @@ export function SignInForm({
   callbackUrl: callbackUrlProp,
   initialEmail = "",
   errorParam,
+  fromMobile = false,
+  platform = "android",
 }: {
   googleOAuth: boolean;
   discordOAuth: boolean;
@@ -39,17 +45,31 @@ export function SignInForm({
   callbackUrl: string;
   initialEmail?: string;
   errorParam?: string | null;
+  fromMobile?: boolean;
+  platform?: "android" | "ios";
 }) {
   const router = useRouter();
   const { t } = useLocale();
   const callbackUrl = safeCallbackUrl(callbackUrlProp);
+  const mobileQs = fromMobile ? `?from=mobile&platform=${platform}` : "";
+  const signupHref = fromMobile
+    ? `/auth/signup/apply${mobileQs}&callbackUrl=${encodeURIComponent(callbackUrl)}`
+    : "/auth/signup";
+  const emailVerifyHref = fromMobile
+    ? `/auth/email-verify${mobileQs}`
+    : "/auth/email-verify";
+  const forgotHref = fromMobile
+    ? `/auth/email-verify${mobileQs}&mode=reset`
+    : "/auth/email-verify?mode=reset";
 
-  const [localPart, setLocalPart] = useState(() => parseGmailLocalPart(initialEmail));
-  const [naverLocalPart, setNaverLocalPart] = useState(() => parseNaverLocalPart(initialEmail));
-  const [emailProvider, setEmailProvider] = useState<"gmail" | "naver">(() =>
-    initialEmail.includes("@naver.com") ? "naver" : "gmail"
-  );
+  const loginInputRef = useRef<HTMLInputElement>(null);
+  const [loginId, setLoginId] = useState(() => {
+    if (!initialEmail) return "";
+    if (initialEmail.includes("@")) return initialEmail;
+    return initialEmail.startsWith("@") ? initialEmail.slice(1) : initialEmail;
+  });
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -71,22 +91,25 @@ export function SignInForm({
           ? "로그인에 실패했습니다. 다시 시도해 주세요."
           : "";
 
+  function focusCredentials() {
+    loginInputRef.current?.focus();
+    loginInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
   async function handleCredentials(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    const normalizedEmail =
-      emailProvider === "naver" ? buildNaverEmail(naverLocalPart) : buildGmailEmail(localPart);
-    if (!normalizedEmail) {
-      setError(emailProvider === "naver" ? t("auth.invalidNaver") : t("auth.invalidGmail"));
+    const normalized = normalizeLoginId(loginId);
+    if (!normalized) {
       setLoading(false);
       return;
     }
     router.prefetch(callbackUrl);
 
     const result = await signIn("credentials", {
-      email: normalizedEmail,
+      email: normalized,
       password,
       redirect: false,
     });
@@ -107,8 +130,6 @@ export function SignInForm({
     router.refresh();
     router.replace(callbackUrl);
   }
-
-  const showSocial = discordOAuth || twitterOAuth || lineOAuth;
 
   return (
     <div className="flex-1 flex items-center justify-center p-4">
@@ -131,82 +152,66 @@ export function SignInForm({
             </p>
           )}
 
-          {showSocial ? (
-            <SocialAuthButtons
-              mode="signin"
-              callbackUrl={callbackUrl}
-              googleOAuth={googleOAuth}
-              discordOAuth={discordOAuth}
-              twitterOAuth={twitterOAuth}
-              lineOAuth={lineOAuth}
-            />
-          ) : (
-            <p className="text-xs text-center text-muted-foreground">{t("auth.oauthNotConfigured")}</p>
-          )}
+          <SocialAuthButtons
+            mode="signin"
+            callbackUrl={callbackUrl}
+            googleOAuth={googleOAuth}
+            discordOAuth={discordOAuth}
+            twitterOAuth={twitterOAuth}
+            lineOAuth={lineOAuth}
+            onGmailSignin={focusCredentials}
+            onNaverSignin={focusCredentials}
+          />
 
-          <div className="relative py-1">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs text-muted-foreground bg-card px-2">
-              {t("auth.emailSignIn")}
-            </div>
-          </div>
-
-          <form onSubmit={handleCredentials} className="space-y-3">
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant={emailProvider === "gmail" ? "default" : "outline"}
-                size="sm"
-                className="flex-1 rounded-xl"
-                onClick={() => setEmailProvider("gmail")}
-              >
-                Gmail
-              </Button>
-              <Button
-                type="button"
-                variant={emailProvider === "naver" ? "default" : "outline"}
-                size="sm"
-                className="flex-1 rounded-xl"
-                onClick={() => setEmailProvider("naver")}
-              >
-                Naver
-              </Button>
-            </div>
-            {emailProvider === "gmail" ? (
-              <GmailLocalPartField
-                value={localPart}
-                onChange={setLocalPart}
-                disabled={loading}
-              />
-            ) : (
-              <NaverLocalPartField
-                value={naverLocalPart}
-                onChange={setNaverLocalPart}
-                disabled={loading}
-              />
-            )}
+          <form onSubmit={handleCredentials} className="space-y-3 pt-1">
             <Input
-              type="password"
-              placeholder={t("auth.password")}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              ref={loginInputRef}
+              type="text"
+              inputMode="text"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder={t("auth.loginIdPlaceholder")}
+              value={loginId}
+              onChange={(e) => setLoginId(e.target.value)}
               required
-              autoComplete="current-password"
-              className="rounded-xl"
+              autoComplete="username"
+              className="rounded-xl h-11"
             />
-            <Button type="submit" className="w-full rounded-xl" disabled={loading}>
+            <div className="relative">
+              <Input
+                type={showPassword ? "text" : "password"}
+                placeholder={t("auth.passwordSimple")}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                className="rounded-xl h-11 pr-11"
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <Button type="submit" className="w-full rounded-xl h-11" disabled={loading}>
               {loading ? t("auth.signingIn") : t("auth.signIn")}
             </Button>
           </form>
 
           <p className="text-center text-sm text-muted-foreground">
-            <Link href="/auth/email-verify" className="text-primary hover:underline">
-              {t("auth.emailVerifyForgot")}
+            <Link href={emailVerifyHref} className="text-primary hover:underline">
+              {t("auth.emailVerifyLink")}
             </Link>
             {" · "}
-            <Link href="/auth/signup" className="text-primary hover:underline font-medium">
+            <Link href={forgotHref} className="text-primary hover:underline">
+              {t("auth.passwordResetTab")}
+            </Link>
+            {" · "}
+            <Link href={signupHref} className="text-primary hover:underline font-medium">
               {t("nav.signup")}
             </Link>
           </p>

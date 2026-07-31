@@ -127,6 +127,12 @@ export function SignupGmailForm() {
 
       if (needsHumanVerify) {
         saveSignupDraft(draft);
+        if (typeof document !== "undefined") {
+          const fromMobile = new URLSearchParams(window.location.search).get("from") === "mobile";
+          if (fromMobile) {
+            document.cookie = `mocomo_mobile_oauth=1; Path=/; Max-Age=1800; SameSite=Lax`;
+          }
+        }
         router.prefetch("/auth/signup/verify");
         router.prefetch(
           `/auth/email-verify?email=${encodeURIComponent(normalized)}&mode=signup&locale=${locale}`
@@ -148,8 +154,20 @@ export function SignupGmailForm() {
       if (result.needsVerification) {
         sessionStorage.setItem(SIGNUP_PASSWORD_SESSION_KEY, password);
         saveSignupLocaleStorage(locale);
+        if (typeof document !== "undefined") {
+          const fromMobile = new URLSearchParams(window.location.search).get("from") === "mobile";
+          if (fromMobile) {
+            document.cookie = `mocomo_mobile_oauth=1; Path=/; Max-Age=1800; SameSite=Lax`;
+          }
+        }
+        const fromMobile = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("from") === "mobile";
+        const platform =
+          typeof window !== "undefined" && new URLSearchParams(window.location.search).get("platform") === "ios"
+            ? "ios"
+            : "android";
+        const mobileQs = fromMobile ? `&from=mobile&platform=${platform}` : "";
         router.push(
-          `/auth/email-verify?email=${encodeURIComponent(normalized)}&mode=signup&locale=${locale}`
+          `/auth/email-verify?email=${encodeURIComponent(normalized)}&mode=signup&locale=${locale}${mobileQs}`
         );
       }
     } catch {

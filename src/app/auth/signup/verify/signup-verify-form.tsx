@@ -117,8 +117,11 @@ export function SignupVerifyForm() {
         clearSignupDraft();
         sessionStorage.setItem(SIGNUP_PASSWORD_SESSION_KEY, draft.password);
         saveSignupLocaleStorage(draft.locale);
+        const mobile =
+          typeof document !== "undefined" && document.cookie.includes("mocomo_mobile_oauth=1");
+        const mobileQs = mobile ? "&from=mobile&platform=android" : "";
         router.replace(
-          `/auth/email-verify?email=${encodeURIComponent(draft.email)}&mode=signup&locale=${draft.locale}`
+          `/auth/email-verify?email=${encodeURIComponent(draft.email)}&mode=signup&locale=${draft.locale}${mobileQs}`
         );
         return;
       }

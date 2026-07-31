@@ -16,6 +16,10 @@ type SocialAuthButtonsProps = {
   lineOAuth: boolean;
   onGmailSignup?: () => void;
   onNaverSignup?: () => void;
+  /** Sign-in: Gmail without Google OAuth — focus credentials. */
+  onGmailSignin?: () => void;
+  /** Sign-in: Naver is email-domain only — focus credentials. */
+  onNaverSignin?: () => void;
   className?: string;
 };
 
@@ -83,8 +87,6 @@ type ProviderConfig = {
     | "auth.signInLine";
   className: string;
   icon: (props: { className?: string }) => ReactNode;
-  /** 이메일 가입 전용 — OAuth env 없이 항상 활성 */
-  emailSignup?: boolean;
 };
 
 const PROVIDERS: ProviderConfig[] = [
@@ -101,7 +103,6 @@ const PROVIDERS: ProviderConfig[] = [
     signinKey: "auth.signInGmail",
     className: "bg-white hover:bg-neutral-50 text-foreground border border-border shadow-sm",
     icon: GoogleIcon,
-    emailSignup: true,
   },
   {
     id: "naver",
@@ -109,7 +110,6 @@ const PROVIDERS: ProviderConfig[] = [
     signinKey: "auth.signInNaver",
     className: "bg-[#03C75A] hover:bg-[#02b351] text-white border-transparent",
     icon: NaverIcon,
-    emailSignup: true,
   },
   {
     id: "line",
@@ -127,6 +127,10 @@ const PROVIDERS: ProviderConfig[] = [
   },
 ];
 
+const SIGNUP_ORDER: ProviderId[] = ["discord", "google", "naver", "line", "twitter"];
+/** Matches sign-in mock: Discord → LINE → X → Gmail → Naver */
+const SIGNIN_ORDER: ProviderId[] = ["discord", "line", "twitter", "google", "naver"];
+
 export function SocialAuthButtons({
   mode,
   callbackUrl = DEFAULT_LANDING_PATH,
@@ -136,6 +140,8 @@ export function SocialAuthButtons({
   lineOAuth,
   onGmailSignup,
   onNaverSignup,
+  onGmailSignin,
+  onNaverSignin,
   className,
 }: SocialAuthButtonsProps) {
   const { t } = useLocale();
@@ -146,7 +152,7 @@ export function SocialAuthButtons({
     google: googleOAuth,
     twitter: twitterOAuth,
     line: lineOAuth,
-    naver: true,
+    naver: false,
   };
 
   function handleClick(id: ProviderId) {
@@ -158,14 +164,25 @@ export function SocialAuthButtons({
       onNaverSignup?.();
       return;
     }
+    if (id === "google" && !isSignup) {
+      if (googleOAuth) {
+        void signIn("google", { callbackUrl });
+      } else {
+        onGmailSignin?.();
+      }
+      return;
+    }
+    if (id === "naver" && !isSignup) {
+      onNaverSignin?.();
+      return;
+    }
     if (!oauthEnabled[id]) return;
     void signIn(id, { callbackUrl });
   }
 
-  const providers =
-    mode === "signin"
-      ? PROVIDERS.filter((provider) => provider.id !== "google" && provider.id !== "naver")
-      : PROVIDERS;
+  const order = isSignup ? SIGNUP_ORDER : SIGNIN_ORDER;
+  const byId = new Map(PROVIDERS.map((p) => [p.id, p]));
+  const providers = order.map((id) => byId.get(id)!);
 
   return (
     <div className={cn("space-y-2.5", className)}>
@@ -174,8 +191,14 @@ export function SocialAuthButtons({
         const label = t(isSignup ? provider.signupKey : provider.signinKey);
         const isGmailSignup = provider.id === "google" && isSignup;
         const isNaverSignup = provider.id === "naver" && isSignup;
+        const isGmailSignin = provider.id === "google" && !isSignup;
+        const isNaverSignin = provider.id === "naver" && !isSignup;
         const disabled =
-          !isGmailSignup && !isNaverSignup && !oauthEnabled[provider.id];
+          !isGmailSignup &&
+          !isNaverSignup &&
+          !isGmailSignin &&
+          !isNaverSignin &&
+          !oauthEnabled[provider.id];
 
         return (
           <Button
