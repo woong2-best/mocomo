@@ -1,49 +1,83 @@
 import { repairBrokenAnimeSlugs } from "@/lib/anime-wiki-seeds";
 import { db } from "@/lib/db";
-import { getCachedAnimeGenreCounts } from "@/lib/cached-data";
 import {
-  getCachedCosplayerProfileCount,
   getCachedCultureWikiPopular,
   getCachedCultureWikiRecent,
 } from "@/lib/culture-wiki-hub-data";
+import { genreFromParam, getGenreInfo } from "@/lib/anime-genres";
 import { AnimeHubClient } from "@/components/anime/anime-hub-client";
+import type { AnimeHubCatalogItem } from "@/components/anime/anime-hub-catalog";
+import { auth } from "@/lib/auth";
 
 export const revalidate = 120;
 
-export default async function AnimeHubPage() {
+export default async function AnimeHubPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ genre?: string }>;
+}) {
   try {
     await repairBrokenAnimeSlugs(db);
   } catch {
     /* DB 미연결 시 무시 */
   }
 
-  let counts: Awaited<ReturnType<typeof getCachedAnimeGenreCounts>> = [];
+  const { genre: genreRaw } = await searchParams;
+  const activeGenre = genreRaw ? genreFromParam(genreRaw) : null;
+  const session = await auth().catch(() => null);
+
   let popular: Awaited<ReturnType<typeof getCachedCultureWikiPopular>> = [];
   let recent: Awaited<ReturnType<typeof getCachedCultureWikiRecent>> = [];
-  let cosplayerCount = 0;
+  let catalog: AnimeHubCatalogItem[] = [];
 
   try {
-    [counts, popular, recent, cosplayerCount] = await Promise.all([
-      getCachedAnimeGenreCounts(),
+    const [popularRes, recentRes, rows] = await Promise.all([
       getCachedCultureWikiPopular(),
       getCachedCultureWikiRecent(),
-      getCachedCosplayerProfileCount(),
+      db.anime.findMany({
+        where: activeGenre ? { genre: activeGenre } : undefined,
+        take: 80,
+        orderBy: activeGenre ? { title: "asc" } : { updatedAt: "desc" },
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          titleEn: true,
+          coverUrl: true,
+          genre: true,
+          creator: { select: { username: true } },
+        },
+      }),
     ]);
+    popular = popularRes;
+    recent = recentRes;
+    catalog = rows.map((a) => ({
+      id: a.id,
+      slug: a.slug,
+      title: a.title,
+      titleEn: a.titleEn,
+      coverUrl: a.coverUrl,
+      genreEmoji: getGenreInfo(a.genre).emoji,
+      creatorUsername: a.creator.username,
+    }));
   } catch {
-    counts = [];
     popular = [];
     recent = [];
-    cosplayerCount = 0;
+    catalog = [];
   }
 
-  const countMap = Object.fromEntries(counts.map((c) => [c.genre, c._count.id]));
+  const newPath = `/anime/new${activeGenre && genreRaw ? `?genre=${genreRaw}` : ""}`;
+  const newHref = session?.user
+    ? newPath
+    : `/auth/signin?callbackUrl=${encodeURIComponent(newPath || "/anime/new")}`;
 
   return (
     <AnimeHubClient
-      countMap={countMap}
+      activeGenre={activeGenre}
+      catalog={catalog}
       popular={popular}
       recent={recent}
-      cosplayerCount={cosplayerCount}
+      newHref={newHref}
     />
   );
 }

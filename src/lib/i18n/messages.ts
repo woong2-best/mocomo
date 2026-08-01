@@ -63,6 +63,10 @@ export type MessageKey =
   | "whoToFollow.suggested"
   | "anime.wikiTitle"
   | "anime.browseByGenre"
+  | "anime.genreAll"
+  | "anime.catalogEmpty"
+  | "anime.catalogEmptyHint"
+  | "anime.catalogEmptyLink"
   | "anime.postCount"
   | "anime.trendingTitle"
   | "anime.recentTitle"
@@ -505,6 +509,10 @@ const ko: Record<MessageKey, string> = {
   "whoToFollow.suggested": "회원님을 위한 추천",
   "anime.wikiTitle": "컬쳐 위키",
   "anime.browseByGenre": "장르로 찾기",
+  "anime.genreAll": "전체",
+  "anime.catalogEmpty": "아직 등록된 작품이 없습니다.",
+  "anime.catalogEmptyHint": "위키에 글을 쓰려면",
+  "anime.catalogEmptyLink": "새 글 추가",
   "anime.postCount": "{count}개 글",
   "anime.trendingTitle": "실시간 인기 글",
   "anime.recentTitle": "최근 수정 글",
@@ -950,6 +958,10 @@ const en: Record<MessageKey, string> = {
   "whoToFollow.suggested": "Suggested for you",
   "anime.wikiTitle": "Culture Wiki",
   "anime.browseByGenre": "Browse by genre",
+  "anime.genreAll": "All",
+  "anime.catalogEmpty": "No works registered yet.",
+  "anime.catalogEmptyHint": "Members can",
+  "anime.catalogEmptyLink": "add a new article",
   "anime.postCount": "{count} articles",
   "anime.trendingTitle": "Trending articles",
   "anime.recentTitle": "Recently edited",
@@ -1395,6 +1407,10 @@ const ja: Record<MessageKey, string> = {
   "whoToFollow.suggested": "あなたへのおすすめ",
   "anime.wikiTitle": "カルチャーWiki",
   "anime.browseByGenre": "ジャンルから探す",
+  "anime.genreAll": "すべて",
+  "anime.catalogEmpty": "まだ登録された作品がありません。",
+  "anime.catalogEmptyHint": "会員の方は",
+  "anime.catalogEmptyLink": "新しい記事を追加",
   "anime.postCount": "{count}件",
   "anime.trendingTitle": "人気記事",
   "anime.recentTitle": "最近の編集",
@@ -1840,6 +1856,10 @@ const zh: Record<MessageKey, string> = {
   "whoToFollow.suggested": "为你推荐",
   "anime.wikiTitle": "文化百科",
   "anime.browseByGenre": "按类型浏览",
+  "anime.genreAll": "全部",
+  "anime.catalogEmpty": "还没有登记的作品。",
+  "anime.catalogEmptyHint": "会员可以",
+  "anime.catalogEmptyLink": "添加新条目",
   "anime.postCount": "{count} 篇",
   "anime.trendingTitle": "热门条目",
   "anime.recentTitle": "最近编辑",
