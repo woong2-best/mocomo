@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { getMobileUserId } from "@/lib/api-mobile-auth";
 import { getUsedListing } from "@/actions/used-market";
-import { listingImages } from "@/lib/used-market";
+import { listingImages, usedMapSearchUrl } from "@/lib/used-market";
 import { isAuctionLive, minNextBidAmount } from "@/lib/used-auction";
+import { isKakaoLocalConfigured, kakaoGeocodeMeetPlace } from "@/lib/kakao-local";
+import { getRegionMapCenter, isShippingOnlyRegion } from "@/lib/used-region-coords";
 
 export async function GET(
   req: NextRequest,
@@ -27,6 +29,48 @@ export async function GET(
   const images = listingImages(listing.images);
   const auctionLive = isAuctionLive(listing);
 
+  const meetPlace =
+    typeof listing.meetPlace === "string" && listing.meetPlace.trim()
+      ? listing.meetPlace.trim()
+      : null;
+  let meetLat =
+    typeof listing.meetLat === "number" && Number.isFinite(listing.meetLat)
+      ? listing.meetLat
+      : null;
+  let meetLng =
+    typeof listing.meetLng === "number" && Number.isFinite(listing.meetLng)
+      ? listing.meetLng
+      : null;
+
+  if (
+    (meetLat == null || meetLng == null) &&
+    meetPlace &&
+    isKakaoLocalConfigured()
+  ) {
+    try {
+      const geo = await kakaoGeocodeMeetPlace(listing.region, meetPlace);
+      if (geo) {
+        meetLat = geo.lat;
+        meetLng = geo.lng;
+      }
+    } catch {
+      /* keep null */
+    }
+  }
+
+  const shipping = isShippingOnlyRegion(listing.region);
+  const regionCenter = getRegionMapCenter(listing.region);
+  const hasPin = meetLat != null && meetLng != null;
+  const showMap = hasPin || (!shipping && !!listing.region);
+  const mapLat = hasPin ? meetLat! : regionCenter.lat;
+  const mapLng = hasPin ? meetLng! : regionCenter.lng;
+  const mapLabel = meetPlace || listing.region;
+  const kakaoMapUrl = usedMapSearchUrl(
+    listing.region,
+    meetPlace,
+    hasPin ? { lat: meetLat!, lng: meetLng! } : null
+  );
+
   return NextResponse.json({
     item: {
       id: listing.id,
@@ -35,6 +79,21 @@ export async function GET(
       price: listing.price,
       images,
       region: listing.region,
+      meetPlace,
+      meetLat,
+      meetLng,
+      map: showMap
+        ? {
+            label: mapLabel,
+            lat: mapLat,
+            lng: mapLng,
+            hasPin,
+            kakaoMapUrl,
+            caption: hasPin
+              ? `${listing.region} 인근 직거래 · 카카오 로컬 API로 표시된 만남 위치입니다`
+              : `${listing.region} 인근 · 정확한 만남 핀이 없어 지역 중심으로 표시합니다`,
+          }
+        : null,
       status: listing.status,
       saleType: listing.saleType,
       createdAt: listing.createdAt.toISOString(),
