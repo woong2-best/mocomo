@@ -58,18 +58,42 @@ export async function GET(
     }
   }
 
-  const shipping = isShippingOnlyRegion(listing.region);
-  const regionCenter = getRegionMapCenter(listing.region);
-  const hasPin = meetLat != null && meetLng != null;
-  const showMap = hasPin || (!shipping && !!listing.region);
-  const mapLat = hasPin ? meetLat! : regionCenter.lat;
-  const mapLng = hasPin ? meetLng! : regionCenter.lng;
-  const mapLabel = meetPlace || listing.region;
-  const kakaoMapUrl = usedMapSearchUrl(
-    listing.region,
-    meetPlace,
-    hasPin ? { lat: meetLat!, lng: meetLng! } : null
-  );
+  let map: {
+    label: string;
+    lat: number;
+    lng: number;
+    hasPin: boolean;
+    kakaoMapUrl: string;
+    caption: string;
+  } | null = null;
+
+  try {
+    const shipping = isShippingOnlyRegion(listing.region ?? "");
+    const regionCenter = getRegionMapCenter(listing.region || "서울");
+    const hasPin = meetLat != null && meetLng != null;
+    const showMap = hasPin || (!shipping && !!listing.region);
+    if (showMap) {
+      const mapLat = hasPin ? meetLat! : regionCenter.lat;
+      const mapLng = hasPin ? meetLng! : regionCenter.lng;
+      const mapLabel = meetPlace || listing.region || "거래 장소";
+      map = {
+        label: mapLabel,
+        lat: mapLat,
+        lng: mapLng,
+        hasPin,
+        kakaoMapUrl: usedMapSearchUrl(
+          listing.region || mapLabel,
+          meetPlace,
+          hasPin ? { lat: meetLat!, lng: meetLng! } : null
+        ),
+        caption: hasPin
+          ? `${listing.region} 인근 직거래 · 카카오 로컬 API로 표시된 만남 위치입니다`
+          : `${listing.region} 인근 · 정확한 만남 핀이 없어 지역 중심으로 표시합니다`,
+      };
+    }
+  } catch {
+    map = null;
+  }
 
   return NextResponse.json({
     item: {
@@ -82,18 +106,7 @@ export async function GET(
       meetPlace,
       meetLat,
       meetLng,
-      map: showMap
-        ? {
-            label: mapLabel,
-            lat: mapLat,
-            lng: mapLng,
-            hasPin,
-            kakaoMapUrl,
-            caption: hasPin
-              ? `${listing.region} 인근 직거래 · 카카오 로컬 API로 표시된 만남 위치입니다`
-              : `${listing.region} 인근 · 정확한 만남 핀이 없어 지역 중심으로 표시합니다`,
-          }
-        : null,
+      map,
       status: listing.status,
       saleType: listing.saleType,
       createdAt: listing.createdAt.toISOString(),
