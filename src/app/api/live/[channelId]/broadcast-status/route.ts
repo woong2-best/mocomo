@@ -11,6 +11,7 @@ import { probeLivekitRoomPublish } from "@/lib/livekit-room-status";
 import { probeSrsManifest, buildProxiedHlsPlaybackPath, upstreamHlsManifestUrl } from "@/lib/srs-hls-proxy";
 import { getSrsHlsBaseUrl } from "@/lib/srs";
 import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
+import { rejectIfFirstPartyLiveDisabled } from "@/lib/live-first-party-guard";
 import { obsConfigError } from "@/lib/obs-ingress-service";
 
 /** 호스트 — 송출 신호 확인 (LiveKit / SRS) */
@@ -18,6 +19,9 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ channelId: string }> }
 ) {
+  const blocked = rejectIfFirstPartyLiveDisabled();
+  if (blocked) return blocked;
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });

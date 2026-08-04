@@ -4,6 +4,8 @@ import {
   normalizeYoutubeUrl,
   youtubeEmbedUrl,
 } from "@/lib/video-donation";
+import { checkYoutubeMadeForKids } from "@/lib/live-external/youtube-kids";
+import { buildYoutubeEmbedUrl } from "@/lib/live-external/parse";
 
 type OEmbedResponse = {
   title?: string;
@@ -39,12 +41,21 @@ export async function GET(req: NextRequest) {
     /* oembed optional */
   }
 
+  const kids = await checkYoutubeMadeForKids(videoId);
+  const madeForKids = kids.ok ? kids.madeForKids : null;
+  if (kids.ok && kids.title) title = kids.title;
+
   return NextResponse.json({
     ok: true,
     videoId,
     videoUrl: normalized,
     title,
     thumbnailUrl,
-    embedUrl: youtubeEmbedUrl(videoId),
+    embedUrl: buildYoutubeEmbedUrl(videoId),
+    /** legacy video-donation embed helper */
+    donationEmbedUrl: youtubeEmbedUrl(videoId),
+    madeForKids,
+    embedAllowed: madeForKids === false,
+    kidsCheckError: kids.ok ? null : kids.error,
   });
 }

@@ -2,24 +2,15 @@ import { randomBytes } from "crypto";
 
 const SRS_APP = "live";
 
-/** Vultr SRS (Vercel env 없을 때 프로덕션 폴백) — env가 있으면 env 우선 */
-const PRODUCTION_SRS_FALLBACK = {
-  rtmp: "rtmp://45.32.16.32:1935/live",
-  hls: "http://45.32.16.32:8080/live",
-} as const;
-
-function isProductionSrsFallback(): boolean {
-  return (
-    process.env.VERCEL_ENV === "production" ||
-    process.env.NODE_ENV === "production"
-  );
-}
+/**
+ * Vultr SRS 폴백(45.32.16.32)은 자체 송출 중단으로 제거.
+ * 사용 시 SRS_RTMP_URL / NEXT_PUBLIC_SRS_HLS_BASE_URL 을 명시적으로 설정.
+ */
 
 /** RTMP ingest (OBS 「서버」) */
 export function getSrsRtmpUrl(): string {
   const url = process.env.SRS_RTMP_URL?.trim();
   if (url) return url.replace(/\/$/, "");
-  if (isProductionSrsFallback()) return PRODUCTION_SRS_FALLBACK.rtmp;
   return "rtmp://127.0.0.1:1935/live";
 }
 
@@ -29,7 +20,6 @@ export function getSrsHlsBaseUrl(): string {
     process.env.NEXT_PUBLIC_SRS_HLS_BASE_URL?.trim() ||
     process.env.SRS_HLS_BASE_URL?.trim();
   if (url) return url.replace(/\/$/, "");
-  if (isProductionSrsFallback()) return PRODUCTION_SRS_FALLBACK.hls;
   return "http://127.0.0.1:8080/live";
 }
 
@@ -72,15 +62,13 @@ export function buildProxiedFlvPlaybackPath(channelId: string, streamKey: string
 }
 
 export function isSrsConfigured(): boolean {
-  if (process.env.SRS_RTMP_URL?.trim() && getSrsHlsPublicConfigured()) return true;
-  return isProductionSrsFallback();
+  return !!(process.env.SRS_RTMP_URL?.trim() && getSrsHlsPublicConfigured());
 }
 
 export function getSrsHlsPublicConfigured(): boolean {
   return !!(
     process.env.NEXT_PUBLIC_SRS_HLS_BASE_URL?.trim() ||
-    process.env.SRS_HLS_BASE_URL?.trim() ||
-    isProductionSrsFallback()
+    process.env.SRS_HLS_BASE_URL?.trim()
   );
 }
 

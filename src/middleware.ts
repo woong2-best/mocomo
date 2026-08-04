@@ -146,13 +146,17 @@ export default edgeAuth(async (req) => {
     }
   }
 
-  if (
-    process.env.NEXT_PUBLIC_LIVE_ENABLED === "false" &&
-    (pathname.startsWith("/live") || pathname.startsWith("/voice"))
-  ) {
-    const res = NextResponse.redirect(new URL(DEFAULT_LANDING_PATH, req.url));
-    stampAppClientIfNeeded(req, res);
-    return res;
+  // 자체 송출만 차단 — /live 디렉터리·외부 임베드 룸(/voice/[id])·OBS 오버레이는 유지
+  if (process.env.NEXT_PUBLIC_LIVE_ENABLED === "false") {
+    const firstPartyOnly =
+      pathname.startsWith("/avatar") ||
+      pathname === "/voice/new" ||
+      pathname.startsWith("/voice/new/");
+    if (firstPartyOnly) {
+      const res = NextResponse.redirect(new URL("/live?notice=first-party-ended", req.url));
+      stampAppClientIfNeeded(req, res);
+      return res;
+    }
   }
 
   const isLoggedIn = !!req.auth?.user?.id;

@@ -40,6 +40,7 @@ import { liveRoomCacheTag } from "@/lib/cached-live-meta";
 import { revalidateLiveHubCache } from "@/lib/live-hub-data";
 import { autoEndAbandonedLiveChannels } from "@/lib/live-abandon";
 import { assertLiveHostEligible, fetchLiveHostEligibility } from "@/lib/live-host-eligibility";
+import { assertFirstPartyLiveEnabled } from "@/lib/live-feature";
 
 function mapLiveChatMessage(m: {
   id: string;
@@ -97,6 +98,9 @@ export async function createLiveStream(data: {
   minViewerTier?: SupportTierLevel;
 }) {
   try {
+    const fp = assertFirstPartyLiveEnabled();
+    if (!fp.ok) return { error: fp.error };
+
     const user = await requireAuthMinimal();
     const hostCheck = await assertLiveHostEligible(user.id);
     if (!hostCheck.ok) return { error: hostCheck.error };
@@ -328,6 +332,9 @@ export async function startBrowserLiveBroadcast(
   channelId: string,
   publisherTabId: string
 ) {
+  const fp = assertFirstPartyLiveEnabled();
+  if (!fp.ok) return { error: fp.error };
+
   const user = await requireAuth();
   const hostCheck = await assertLiveHostEligible(user.id);
   if (!hostCheck.ok) return { error: hostCheck.error };
@@ -707,6 +714,9 @@ export async function deleteLiveChatMessage(channelId: string, messageId: string
 
 /** OBS Studio RTMP 송출용 URL·스트림 키 발급 */
 export async function ensureObsIngress(channelId: string, force = false) {
+  const fp = assertFirstPartyLiveEnabled();
+  if (!fp.ok) return { error: fp.error };
+
   const user = await requireAuth();
   const result = await provisionObsIngress(channelId, user.id, { force });
   if ("error" in result) return { error: result.error };
@@ -723,6 +733,12 @@ export async function setLiveBroadcastMode(channelId: string, mode: LiveBroadcas
   if (mode === "VOICE") {
     return { error: "보이스 라이브는 더 이상 지원하지 않습니다." };
   }
+  if (mode === "EXTERNAL") {
+    return { error: "외부 방송은 전용 연결 화면에서 만들어 주세요." };
+  }
+  const fp = assertFirstPartyLiveEnabled();
+  if (!fp.ok) return { error: fp.error };
+
   const user = await requireAuth();
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },

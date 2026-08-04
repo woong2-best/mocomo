@@ -4,6 +4,7 @@ import { srsConfigError } from "@/lib/srs";
 import { db } from "@/lib/db";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
+import { rejectIfFirstPartyLiveDisabled } from "@/lib/live-first-party-guard";
 import { isSrsStreamOnAir, resolveSrsFlvUpstreamUrl } from "@/lib/srs-hls-proxy";
 
 export const runtime = "nodejs";
@@ -16,6 +17,9 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ channelId: string }> }
 ) {
+  const blocked = rejectIfFirstPartyLiveDisabled();
+  if (blocked) return blocked;
+
   const session = await auth();
   if (!session?.user?.id) {
     return new NextResponse("Unauthorized", { status: 401 });
@@ -90,6 +94,9 @@ export async function HEAD(
   _req: NextRequest,
   { params }: { params: Promise<{ channelId: string }> }
 ) {
+  const blocked = rejectIfFirstPartyLiveDisabled();
+  if (blocked) return blocked;
+
   const session = await auth();
   if (!session?.user?.id) return new NextResponse(null, { status: 401 });
 

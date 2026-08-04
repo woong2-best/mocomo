@@ -5,6 +5,7 @@ import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { Wallet, Coins, Gift, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getOrCreatePlatformWallet } from "@/lib/platform/wallet/service";
+import { MocoTopupPanel } from "@/components/wallet/moco-topup-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -23,20 +24,24 @@ export default async function WalletPage() {
           Wallet
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          MOCO 포인트 · 사이트 크레딧 · 프로모션 크레딧 · 환불금 (준비 중)
+          모코(가상 재화) · 사이트 크레딧 · 프로모션 크레딧 · 환불금
         </p>
       </div>
+
+      <MocoTopupPanel />
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <Coins className="h-4 w-4" /> MOCO 포인트
+              <Coins className="h-4 w-4" /> 모코
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-black">{wallet.mocoPoints.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground mt-1">활동·이벤트 보상용</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              후원·이벤트용 표시 재화 (1모코 = ₩10)
+            </p>
           </CardContent>
         </Card>
         <Card>

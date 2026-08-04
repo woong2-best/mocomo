@@ -11,6 +11,7 @@ import { db } from "@/lib/db";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
 import { ensureChannelBroadcastActive } from "@/lib/live-channel-active";
+import { rejectIfFirstPartyLiveDisabled } from "@/lib/live-first-party-guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +21,9 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ channelId: string; path: string[] }> }
 ) {
+  const blocked = rejectIfFirstPartyLiveDisabled();
+  if (blocked) return blocked;
+
   const session = await auth();
   if (!session?.user?.id) {
     return new NextResponse("Unauthorized", { status: 401 });

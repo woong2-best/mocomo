@@ -56,6 +56,19 @@ enum LiveBroadcastMode {
   BROWSER
   OBS
   VOICE
+  /** 외부 플랫폼(유튜브/트위치/치지직) 임베드 — 자체 송출 없음 */
+  EXTERNAL
+}
+
+enum LiveMediaSourceType {
+  FIRST_PARTY
+  EXTERNAL
+}
+
+enum LiveExternalProvider {
+  YOUTUBE
+  TWITCH
+  CHZZK
 }
 
 enum LiveVisibility {
@@ -1355,6 +1368,13 @@ model VoiceChannel {
   liveCollabSplitEnabled Boolean @default(false)
   liveCollabUserId       String?
 
+  /** FIRST_PARTY = Cloudflare/LiveKit/SRS (숨김) · EXTERNAL = iframe */
+  mediaSourceType  LiveMediaSourceType @default(FIRST_PARTY)
+  externalProvider LiveExternalProvider?
+  /** YouTube video id / Twitch login / Chzzk channel id */
+  externalId       String? @db.VarChar(64)
+  externalWatchUrl String? @db.VarChar(500)
+
   community      Community?       @relation(fields: [communityId], references: [id], onDelete: SetNull)
   linkedChatRoom ChatRoom?
   communityChannel CommunityChannel?
@@ -1745,6 +1765,8 @@ enum PaymentIntentType {
   STUDIO_ASSET
   MARKETPLACE
   FLOWER
+  /** 모코(가상 재화) Stripe 충전 — 실환전 아님 */
+  MOCO_TOPUP
 }
 
 enum EventPublishStatus {
@@ -2060,6 +2082,8 @@ model UsedListing {
   meetPlace   String?             @db.VarChar(200)
   meetLat     Float?
   meetLng     Float?
+  /** ISO-3166 alpha-2 — map engine is derived from this (never stored as provider id) */
+  meetCountry String?             @db.VarChar(2)
   images      Json
   viewCount   Int                 @default(0)
   /** 경매 종료 시각 (saleType=AUCTION) */

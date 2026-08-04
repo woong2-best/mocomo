@@ -25,6 +25,8 @@ import { notifyTip } from "@/lib/notifications";
 import { parseVideoTipMeta } from "@/lib/donation-metadata";
 import { normalizeYoutubeUrl } from "@/lib/video-donation";
 import { COMMUNITY_FEED_PATH } from "@/lib/site-routes";
+import { creditPlatformWallet } from "@/lib/platform/wallet/service";
+import { findMocoTopupPackage, krwToMoco } from "@/lib/moco/economy";
 
 const PLATFORM_FEE_RATE = 0.1;
 
@@ -421,6 +423,29 @@ export async function fulfillPaymentIntent(
     revalidatePath("/market");
     revalidatePath("/market/orders");
     revalidatePath(`/market/orders/${marketplaceOrderId}`);
+  }
+
+  if (intent.type === "MOCO_TOPUP") {
+    const metaMoco = Number(meta.mocoAmount);
+    const pack = findMocoTopupPackage(metaMoco);
+    const mocoAmount = pack?.moco ?? krwToMoco(amount);
+    if (pack && pack.krw !== amount) {
+      return { ok: false, error: "모코 충전 금액이 패키지와 일치하지 않습니다." };
+    }
+    if (mocoAmount <= 0) {
+      return { ok: false, error: "모코 충전량을 확인할 수 없습니다." };
+    }
+    await creditPlatformWallet({
+      userId,
+      bucket: "MOCO_POINTS",
+      amount: mocoAmount,
+      reason: "MOCO_TOPUP",
+      referenceType: "payment_intent",
+      referenceId: intent.id,
+      metadata: { krw: amount },
+    });
+    // Top-up fee is Stripe processing only; platform keeps gross as liability until tip spend.
+    revalidatePath("/wallet");
   }
 
   await db.paymentIntent.update({

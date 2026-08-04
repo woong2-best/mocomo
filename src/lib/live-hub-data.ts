@@ -7,6 +7,7 @@ import { getAuthUserId } from "@/lib/auth";
 import {
   filterChannelsWithPresentHost,
 } from "@/lib/live-abandon";
+import { isExternalLiveEnabled, isFirstPartyLiveEnabled } from "@/lib/live-feature";
 
 /** /live 허브·팔로우 라이브 목록 캐시 */
 export const LIVE_HUB_CACHE_TAG = "live-hub";
@@ -70,7 +71,11 @@ async function fetchLiveHubChannels(category?: LiveStreamCategory, mode: LiveHub
   if (mode === "voice") return [] as LiveHubChannel[];
 
   const cutoff = liveViewerCutoff();
-  const modeFilter = { broadcastMode: { in: ["BROWSER", "OBS"] as LiveBroadcastMode[] } };
+  const modes: LiveBroadcastMode[] = [];
+  if (isFirstPartyLiveEnabled()) modes.push("BROWSER", "OBS");
+  if (isExternalLiveEnabled()) modes.push("EXTERNAL");
+  if (modes.length === 0) return [] as LiveHubChannel[];
+  const modeFilter = { broadcastMode: { in: modes } };
   const rawChannels = await db.voiceChannel.findMany({
     where: {
       isLive: true,

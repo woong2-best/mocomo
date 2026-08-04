@@ -1,5 +1,7 @@
 import type {
   LiveBroadcastMode,
+  LiveExternalProvider,
+  LiveMediaSourceType,
   LiveStreamCategory,
   LiveStreamStatus,
   LiveVisibility,
@@ -28,6 +30,10 @@ export type SafeLiveChannelMeta = {
   minViewerTier: SupportTierLevel | null;
   rtmpUrl: string | null;
   rtmpStreamKey: string | null;
+  mediaSourceType: LiveMediaSourceType;
+  externalProvider: LiveExternalProvider | null;
+  externalId: string | null;
+  externalWatchUrl: string | null;
 };
 
 function isSchemaMismatchError(e: unknown): boolean {
@@ -57,6 +63,10 @@ const EXTENDED_SELECT = {
   minViewerTier: true,
   rtmpUrl: true,
   rtmpStreamKey: true,
+  mediaSourceType: true,
+  externalProvider: true,
+  externalId: true,
+  externalWatchUrl: true,
 } as const;
 
 const MINIMAL_SELECT = {
@@ -96,6 +106,10 @@ function withLiveDefaults(
     minViewerTier: ch.minViewerTier ?? null,
     rtmpUrl: ch.rtmpUrl ?? null,
     rtmpStreamKey: ch.rtmpStreamKey ?? null,
+    mediaSourceType: ch.mediaSourceType ?? "FIRST_PARTY",
+    externalProvider: ch.externalProvider ?? null,
+    externalId: ch.externalId ?? null,
+    externalWatchUrl: ch.externalWatchUrl ?? null,
   };
 }
 

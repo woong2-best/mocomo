@@ -4,11 +4,15 @@ import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { createLivekitToken, getLivekitUrl, isLivekitConfigured } from "@/lib/livekit";
 import { db } from "@/lib/db";
+import { rejectIfFirstPartyLiveDisabled } from "@/lib/live-first-party-guard";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const blocked = rejectIfFirstPartyLiveDisabled();
+  if (blocked) return blocked;
+
   const limited = await rateLimitPublicApi(req, "mobile-live-token", 30);
   if (limited) return limited;
 

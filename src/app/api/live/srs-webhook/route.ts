@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { srsWebhookSecret } from "@/lib/srs";
 import { onSrsPublish, onSrsUnpublish } from "@/lib/live-broadcast/ingest-coordinator";
+import { rejectIfFirstPartyLiveDisabled } from "@/lib/live-first-party-guard";
 
 type SrsHookBody = {
   action?: string;
@@ -11,6 +12,9 @@ type SrsHookBody = {
 
 /** SRS http_hooks — on_publish / on_unpublish (0=허용, 非0=거부) */
 export async function POST(req: NextRequest) {
+  const blocked = rejectIfFirstPartyLiveDisabled();
+  if (blocked) return blocked;
+
   const secret = srsWebhookSecret();
   let authOk = true;
   if (secret) {

@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { obsConfigError, provisionObsIngress } from "@/lib/obs-ingress-service";
+import { rejectIfFirstPartyLiveDisabled } from "@/lib/live-first-party-guard";
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ channelId: string }> }
 ) {
+  const blocked = rejectIfFirstPartyLiveDisabled();
+  if (blocked) return blocked;
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
@@ -42,6 +46,9 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ channelId: string }> }
 ) {
+  const blocked = rejectIfFirstPartyLiveDisabled();
+  if (blocked) return blocked;
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });

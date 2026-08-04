@@ -37,6 +37,7 @@ export default async function PaymentSuccessPage({
     PHYSICAL_GOODS: "굿즈 주문",
     EVENT_REGISTRATION: "이벤트 등록",
     STUDIO_ASSET: "Studio 자산 구매",
+    MOCO_TOPUP: "모코 충전",
   };
 
   const redirectPath =
@@ -53,7 +54,9 @@ export default async function PaymentSuccessPage({
       primaryLabel={
         result.type === "TIP"
           ? "돌아가기"
-          : result.type === "EVENT_REGISTRATION"
+          : result.type === "MOCO_TOPUP"
+            ? "지갑 보기"
+            : result.type === "EVENT_REGISTRATION"
             ? "이벤트 보기"
             : result.type === "STUDIO_ASSET"
               ? "Studio 보관함"

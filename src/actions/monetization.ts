@@ -23,6 +23,7 @@ import {
   DEFAULT_VIDEO_DONATION_SETTINGS,
   normalizeYoutubeUrl,
 } from "@/lib/video-donation";
+import { findMocoTopupPackage } from "@/lib/moco/economy";
 
 async function validatePaymentInput(
   userId: string,
@@ -223,6 +224,15 @@ async function validatePaymentInput(
     if (owned) return { error: "이미 보유 중입니다." };
   }
 
+  if (input.type === "MOCO_TOPUP") {
+    const mocoAmount = Number(input.metadata.mocoAmount);
+    const pack = findMocoTopupPackage(mocoAmount);
+    if (!pack) return { error: "지원하지 않는 모코 충전 패키지입니다." };
+    if (input.amount !== pack.krw) {
+      return { error: "모코 충전 금액이 패키지와 일치하지 않습니다." };
+    }
+  }
+
   return null;
 }
 
@@ -324,6 +334,9 @@ export async function confirmStripeCheckout(sessionId: string) {
   revalidatePath("/wallet");
 
   let redirectPath = "/support";
+  if (result.type === "MOCO_TOPUP") {
+    redirectPath = "/wallet";
+  }
   if (result.type === "TIP") {
     const meta = intent.metadata as Record<string, string | undefined>;
     redirectPath = safeReturnPath(

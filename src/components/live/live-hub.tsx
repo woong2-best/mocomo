@@ -44,7 +44,7 @@ function StreamerChip({ host }: { host: LiveHubHost }) {
       href={`/u/${host.username}`}
       className="flex items-center gap-2 shrink-0 rounded-xl border border-border/60 bg-card px-3 py-2 hover:border-primary/30 transition-colors"
     >
-      <div className="h-9 w-9 rounded-full bg-muted overflow-hidden shrink-0">
+      <div className="h-9 w-9 rounded-[28%] bg-muted overflow-hidden shrink-0 ring-2 ring-[hsl(var(--folk-cobalt)/0.28)]">
         {host.image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={host.image} alt="" className="h-full w-full object-cover" />

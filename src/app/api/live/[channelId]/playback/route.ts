@@ -9,6 +9,7 @@ import { resolveObsStreamKeyForChannel } from "@/lib/user-obs-stream-key";
 import { cloudflareStreamConfigError } from "@/lib/cloudflare-stream";
 import { buildCloudflarePlaybackFields } from "@/lib/cloudflare-browser-playback";
 import { preferredLiveIngestEngine, resolveChannelIngestEngine } from "@/lib/live-ingest";
+import { rejectIfFirstPartyLiveDisabled } from "@/lib/live-first-party-guard";
 import { probeLivekitRoomPublish } from "@/lib/livekit-room-status";
 
 export const runtime = "nodejs";
@@ -19,6 +20,9 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ channelId: string }> }
 ) {
+  const blocked = rejectIfFirstPartyLiveDisabled();
+  if (blocked) return blocked;
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });

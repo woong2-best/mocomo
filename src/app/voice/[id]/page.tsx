@@ -1,5 +1,6 @@
 import { getCachedSession } from "@/lib/auth";
 import { LiveRoomEntry } from "@/components/live/live-room-entry";
+import { ExternalLiveRoom } from "@/components/live/external-live-room";
 import { getCachedLiveRoomMeta } from "@/lib/cached-live-meta";
 import { isPaymentsConfigured } from "@/lib/payments";
 import { ensureArray, ensureStringArray } from "@/lib/ensure-array";
@@ -13,6 +14,9 @@ import { redirect } from "next/navigation";
 import { LiveVoiceViewerBackLink } from "@/components/live/mobile/live-voice-viewer-back-link";
 import { LiveRoomPageShell } from "@/components/live/live-room-page-shell";
 import { LiveRoomErrorState } from "@/components/live/live-room-error-state";
+import { resolveExternalEmbed } from "@/lib/live-external/parse";
+import { isFirstPartyLiveEnabled } from "@/lib/live-feature";
+import { LiveFeatureDisabledNotice } from "@/components/live/live-feature-disabled";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +31,13 @@ export default async function VoiceRoomPage({
 
   const liveFlags = await db.voiceChannel.findUnique({
     where: { id },
-    select: { isLive: true, liveStatus: true, createdBy: true },
+    select: {
+      isLive: true,
+      liveStatus: true,
+      createdBy: true,
+      mediaSourceType: true,
+      broadcastMode: true,
+    },
   });
 
   if (!liveFlags) {
@@ -106,6 +116,54 @@ export default async function VoiceRoomPage({
 
   const { channel, host, tipTotalKrw, tipRanking, hostFollowing } = meta;
   const paymentsEnabled = isPaymentsConfigured();
+
+  const isExternal =
+    channel.mediaSourceType === "EXTERNAL" || channel.broadcastMode === "EXTERNAL";
+
+  if (isExternal) {
+    const resolved = resolveExternalEmbed({
+      externalProvider: channel.externalProvider,
+      externalId: channel.externalId,
+    });
+    if (!resolved) {
+      return (
+        <LiveRoomErrorState
+          title="외부 방송 정보를 찾을 수 없습니다"
+          description="호스트가 방송 URL을 다시 연결해야 할 수 있어요."
+          primaryHref="/live"
+          primaryLabel="라이브 홈"
+        />
+      );
+    }
+    return (
+      <LiveRoomPageShell isHost={isHost}>
+        {!isHost && <LiveVoiceViewerBackLink />}
+        <ExternalLiveRoom
+          channelId={id}
+          title={channel.name}
+          provider={resolved.provider}
+          embedUrl={resolved.embedUrl}
+          watchUrl={channel.externalWatchUrl || resolved.watchUrl}
+          embedSupported={resolved.embedSupported}
+          host={{
+            id: host.id,
+            username: host.username,
+            image: host.image,
+            displayName: host.username,
+          }}
+          currentUserId={session.user.id}
+          isHost={isHost}
+          paymentsEnabled={paymentsEnabled}
+          viewerSupportTier={host.supportTierReceived}
+          viewerSupportTotal={host.totalSupportReceived}
+        />
+      </LiveRoomPageShell>
+    );
+  }
+
+  if (!isFirstPartyLiveEnabled()) {
+    return <LiveFeatureDisabledNotice />;
+  }
 
   return (
     <LiveRoomPageShell isHost={isHost}>

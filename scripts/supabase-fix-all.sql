@@ -344,6 +344,7 @@ CREATE INDEX IF NOT EXISTS "UsedListing_region_idx" ON "UsedListing"("region");
 ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "meetPlace" VARCHAR(200);
 ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "meetLat" DOUBLE PRECISION;
 ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "meetLng" DOUBLE PRECISION;
+ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "meetCountry" VARCHAR(2);
 ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "saleType" TEXT NOT NULL DEFAULT 'FIXED';
 ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "auctionEndsAt" TIMESTAMP(3);
 ALTER TABLE "UsedListing" ADD COLUMN IF NOT EXISTS "bidIncrement" INTEGER;
@@ -1590,4 +1591,37 @@ END $$;
 
 -- 배치 마이그레이션: npm run oauth:migrate-google
 -- 로그인 시 lazy 마이그레이션도 지원 (auth adapter)
+
+-- =============================================================================
+-- AC) 외부 임베드 라이브 + 모코 충전 (자체 송출 보존, 컬럼 추가만)
+-- =============================================================================
+
+DO $$ BEGIN
+  CREATE TYPE "LiveMediaSourceType" AS ENUM ('FIRST_PARTY', 'EXTERNAL');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "LiveExternalProvider" AS ENUM ('YOUTUBE', 'TWITCH', 'CHZZK');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TYPE "LiveBroadcastMode" ADD VALUE 'EXTERNAL';
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TYPE "PaymentIntentType" ADD VALUE 'MOCO_TOPUP';
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+ALTER TABLE "VoiceChannel"
+  ADD COLUMN IF NOT EXISTS "mediaSourceType" "LiveMediaSourceType" NOT NULL DEFAULT 'FIRST_PARTY',
+  ADD COLUMN IF NOT EXISTS "externalProvider" "LiveExternalProvider",
+  ADD COLUMN IF NOT EXISTS "externalId" VARCHAR(64),
+  ADD COLUMN IF NOT EXISTS "externalWatchUrl" VARCHAR(500);
+
+CREATE INDEX IF NOT EXISTS "VoiceChannel_mediaSourceType_isLive_idx"
+  ON "VoiceChannel" ("mediaSourceType", "isLive");
 

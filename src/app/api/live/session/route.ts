@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { rejectIfFirstPartyLiveDisabled } from "@/lib/live-first-party-guard";
 import {
   listHostBroadcastSessions,
   prepareHostForNewBroadcast,
@@ -8,6 +9,9 @@ import {
 
 /** GET — 내 방송 세션 상태 (디버그·스튜디오) */
 export async function GET() {
+  const blocked = rejectIfFirstPartyLiveDisabled();
+  if (blocked) return blocked;
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
@@ -26,6 +30,9 @@ export async function GET() {
 
 /** POST — 슬롯 정리 (body: { action: "prepare" | "release-all" }) */
 export async function POST(req: Request) {
+  const blocked = rejectIfFirstPartyLiveDisabled();
+  if (blocked) return blocked;
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
