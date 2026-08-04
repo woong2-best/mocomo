@@ -57,7 +57,7 @@ export default function ExternalLiveNewPage() {
   }
 
   return (
-    <AppPageChrome maxWidth="md" spacing="sm">
+    <AppPageChrome maxWidth="lg" spacing="sm">
       <NativePageTitle>외부 방송 연결</NativePageTitle>
       <div className="mb-3">
         <Link
