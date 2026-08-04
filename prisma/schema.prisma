@@ -71,6 +71,27 @@ enum LiveExternalProvider {
   CHZZK
 }
 
+/** 연결된 스트리밍 플랫폼 — OAuth·수동 검증 */
+enum StreamingPlatform {
+  YOUTUBE
+  TWITCH
+  CHZZK
+  KICK
+  AFREECA
+  SOOP
+  FACEBOOK
+  TIKTOK
+  OTHER
+}
+
+enum StreamingVerificationMethod {
+  OAUTH
+  PROFILE_CODE
+  DESCRIPTION_CODE
+  STREAM_TITLE
+  MANUAL_ADMIN
+}
+
 enum LiveVisibility {
   PUBLIC
   PRIVATE
@@ -220,6 +241,7 @@ model User {
   profile       Profile?
   cosplayerProfile CosplayerProfile?
   streamerProfile  StreamerProfile?
+  connectedStreamingAccounts ConnectedStreamingAccount[]
   /** 프로필 메인에 올린 게시물 (본인·타인 게시물 모두 가능) */
   profileMainPostId String?
   profileMainPost   Post? @relation("ProfileMainPost", fields: [profileMainPostId], references: [id], onDelete: SetNull)
@@ -1327,6 +1349,55 @@ model StreamerProfile {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model ConnectedStreamingAccount {
+  id                  String   @id @default(cuid())
+  userId              String
+  platform            StreamingPlatform
+  /** 플랫폼 고유 채널 ID — URL 신뢰 금지, 검증된 값만 저장 */
+  channelId           String   @db.VarChar(128)
+  channelName         String   @db.VarChar(200)
+  channelUrl          String   @db.VarChar(500)
+  profileImage        String?  @db.VarChar(500)
+  verified            Boolean  @default(false)
+  verificationMethod  StreamingVerificationMethod?
+  /** 수동 검증용 임시 코드 (프로필·설명에 삽입) */
+  verificationCode    String?  @db.VarChar(32)
+  verifiedAt          DateTime?
+  encryptedTokenData  String?  @db.Text
+  encryptionIv        String?
+  encryptionAuthTag   String?
+  encryptionKeyId     String?
+  tokenExpiresAt      DateTime?
+  revokedAt           DateTime?
+  revokedReason       String?  @db.VarChar(500)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user           User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  voiceChannels  VoiceChannel[]
+  verificationLogs StreamingAccountVerificationLog[]
+
+  @@unique([platform, channelId])
+  @@index([userId, platform])
+  @@index([userId, verified])
+}
+
+model StreamingAccountVerificationLog {
+  id        String   @id @default(cuid())
+  accountId String
+  action    String   @db.VarChar(64)
+  method    StreamingVerificationMethod?
+  success   Boolean  @default(true)
+  detail    String?  @db.Text
+  actorId   String?
+  createdAt DateTime @default(now())
+
+  account ConnectedStreamingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+}
+
 model VoiceChannel {
   id               String   @id @default(cuid())
   name             String
@@ -1373,9 +1444,14 @@ model VoiceChannel {
   externalProvider LiveExternalProvider?
   /** YouTube video id / Twitch login / Chzzk channel id */
   externalId       String? @db.VarChar(64)
+  /** YouTube 등 — 채널 ID (후원 검증용, externalId와 분리) */
+  externalChannelId String? @db.VarChar(128)
   externalWatchUrl String? @db.VarChar(500)
+  /** 인증된 스트리밍 계정 — 후원 허용 조건 */
+  connectedStreamingAccountId String?
 
   community      Community?       @relation(fields: [communityId], references: [id], onDelete: SetNull)
+  connectedStreamingAccount ConnectedStreamingAccount? @relation(fields: [connectedStreamingAccountId], references: [id], onDelete: SetNull)
   linkedChatRoom ChatRoom?
   communityChannel CommunityChannel?
   members        VoiceMember[]

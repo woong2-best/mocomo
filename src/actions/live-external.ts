@@ -11,16 +11,16 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { liveRoomCacheTag } from "@/lib/cached-live-meta";
 import { revalidateLiveHubCache } from "@/lib/live-hub-data";
 import { isExternalLiveEnabled } from "@/lib/live-feature";
-import { parseExternalLiveSource } from "@/lib/live-external/parse";
 import { checkYoutubeMadeForKids } from "@/lib/live-external/youtube-kids";
 import { probeChzzkEmbed } from "@/lib/live-external/chzzk-probe";
 import { mintOverlayToken } from "@/lib/live-external/overlay-token";
-import type { LiveExternalProvider } from "@/lib/live-external/types";
+import { platformToLiveExternal } from "@/lib/streaming-accounts/types";
+import { resolveVerifiedLiveSource } from "@/lib/streaming-accounts/service";
 
 export async function createExternalLiveStream(data: {
   name: string;
-  sourceUrl: string;
-  providerHint?: LiveExternalProvider;
+  /** 인증된 ConnectedStreamingAccount ID — URL 직접 입력 금지 */
+  connectedAccountId: string;
   category?: LiveStreamCategory;
   description?: string;
   thumbnailUrl?: string;
@@ -37,10 +37,44 @@ export async function createExternalLiveStream(data: {
     const hostCheck = await assertLiveHostEligible(user.id);
     if (!hostCheck.ok) return { error: hostCheck.error };
 
-    const parsed = parseExternalLiveSource(data.sourceUrl, {
-      providerHint: data.providerHint,
+    const accountId = data.connectedAccountId?.trim();
+    if (!accountId) {
+      return { error: "인증된 스트리밍 계정을 선택해 주세요." };
+    }
+
+    const account = await db.connectedStreamingAccount.findUnique({
+      where: { id: accountId },
+      select: {
+        id: true,
+        userId: true,
+        platform: true,
+        channelId: true,
+        channelName: true,
+        verified: true,
+        revokedAt: true,
+      },
     });
-    if ("error" in parsed) return { error: parsed.error };
+
+    if (!account || account.userId !== user.id) {
+      return { error: "스트리밍 계정을 찾을 수 없습니다." };
+    }
+    if (!account.verified || account.revokedAt) {
+      return {
+        error:
+          "인증되지 않았거나 해제된 스트리밍 계정입니다. 설정에서 계정을 다시 연결해 주세요.",
+      };
+    }
+
+    const liveProvider = platformToLiveExternal(account.platform);
+    if (!liveProvider) {
+      return {
+        error: "이 플랫폼은 외부 라이브 임베드를 아직 지원하지 않습니다.",
+      };
+    }
+
+    const resolved = await resolveVerifiedLiveSource(accountId, user.id);
+    if ("error" in resolved) return { error: resolved.error };
+    const parsed = resolved;
 
     if (parsed.provider === "YOUTUBE") {
       const kids = await checkYoutubeMadeForKids(parsed.externalId);
@@ -82,7 +116,7 @@ export async function createExternalLiveStream(data: {
       visibility === "PRIVATE" ? (data.minViewerTier ?? "BRONZE") : null;
     const title =
       data.name?.trim() ||
-      `${parsed.provider} 라이브`;
+      `${account.channelName} 라이브`;
 
     const channel = await db.voiceChannel.create({
       data: {
@@ -100,7 +134,9 @@ export async function createExternalLiveStream(data: {
         mediaSourceType: "EXTERNAL",
         externalProvider: parsed.provider,
         externalId: parsed.externalId,
+        externalChannelId: account.channelId,
         externalWatchUrl: parsed.watchUrl,
+        connectedStreamingAccountId: account.id,
         liveVisibility: visibility,
         minViewerTier: minTier,
         members: {
@@ -176,4 +212,26 @@ export async function mintLiveOverlayUrls(channelId: string) {
     chatUrl: `/overlay/chat/${channelId}?token=${encodeURIComponent(chatToken)}`,
     donationUrl: `/overlay/donation/${channelId}?token=${encodeURIComponent(donationToken)}`,
   };
+}
+
+export async function getVerifiedStreamingAccountsForLive() {
+  const user = await requireAuthMinimal();
+  const accounts = await db.connectedStreamingAccount.findMany({
+    where: {
+      userId: user.id,
+      verified: true,
+      revokedAt: null,
+      platform: { in: ["YOUTUBE", "TWITCH", "CHZZK"] },
+    },
+    orderBy: { channelName: "asc" },
+    select: {
+      id: true,
+      platform: true,
+      channelId: true,
+      channelName: true,
+      channelUrl: true,
+      profileImage: true,
+    },
+  });
+  return { accounts };
 }

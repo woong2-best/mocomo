@@ -97,6 +97,15 @@ export function registerLiveSupportHandlers(
           return;
         }
 
+        const { assertLiveDonationsAllowed } = await import(
+          "../src/lib/streaming-accounts/donation-guard"
+        );
+        const donationCheck = await assertLiveDonationsAllowed(channelId);
+        if (!donationCheck.ok) {
+          ack?.({ ok: false, error: donationCheck.error });
+          return;
+        }
+
         let message = data.message?.trim().slice(0, 200) || null;
         if (message) {
           const filtered = filterLiveChatContent(message, ensureStringArray(live.channel.chatBannedWords));

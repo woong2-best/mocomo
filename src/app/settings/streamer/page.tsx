@@ -20,6 +20,12 @@ export default async function StreamerSettingsPage() {
         공지·방송 일정·소개 문구를 설정합니다. 파트너 배지는 운영진이 부여합니다.
       </p>
       <Link
+        href="/settings/streaming-accounts"
+        className="inline-flex text-sm font-medium text-primary hover:underline"
+      >
+        스트리밍 계정 연결 →
+      </Link>
+      <Link
         href="/avatar/studio/broadcast"
         className="inline-flex text-sm font-medium text-primary hover:underline"
       >

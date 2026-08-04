@@ -52,6 +52,14 @@ async function fulfillTip(
   });
   if (!sender) return { error: "???? ?? ? ????." };
 
+  if (channelId?.trim()) {
+    const { assertLiveDonationsAllowed } = await import(
+      "@/lib/streaming-accounts/donation-guard"
+    );
+    const donationCheck = await assertLiveDonationsAllowed(channelId.trim());
+    if (!donationCheck.ok) return { error: donationCheck.error };
+  }
+
   const { applyBenefitsToSettlement } = await import("@/lib/admin/services/promotions");
   const feeResult = await applyBenefitsToSettlement({
     userId: receiverId,

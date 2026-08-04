@@ -37,6 +37,13 @@ async function validatePaymentInput(
     if (tipKind === "video" && !channelId?.trim()) {
       return { error: "영상 후원은 라이브 방송 중에만 가능합니다." };
     }
+    if (channelId?.trim()) {
+      const { assertLiveDonationsAllowed } = await import(
+        "@/lib/streaming-accounts/donation-guard"
+      );
+      const donationCheck = await assertLiveDonationsAllowed(channelId.trim());
+      if (!donationCheck.ok) return { error: donationCheck.error };
+    }
     if (tipKind === "video") {
       const videoUrl = normalizeYoutubeUrl(String(input.metadata.videoUrl ?? ""));
       if (!videoUrl) return { error: "YouTube URL을 입력해 주세요." };
