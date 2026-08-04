@@ -72,6 +72,11 @@ export function generateVerificationCode(): string {
 }
 
 export function streamingOAuthRedirectUri(platform: string): string {
-  const base = process.env.NEXT_PUBLIC_APP_URL?.trim() || "http://localhost:3000";
+  const base =
+    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+    process.env.AUTH_URL?.trim() ||
+    process.env.NEXTAUTH_URL?.trim() ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL.trim()}` : "") ||
+    "https://mocomo.net";
   return `${base.replace(/\/$/, "")}/api/streaming-accounts/callback/${platform.toLowerCase()}`;
 }
