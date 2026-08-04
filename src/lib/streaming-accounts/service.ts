@@ -232,14 +232,22 @@ export async function startManualConnect(
   const parsed = provider.parseManualChannelInput(channelInput);
   if ("error" in parsed) return { ok: false, error: parsed.error };
 
-  const conflict = await assertChannelNotLinked(platform, parsed.channelId, userId);
+  let channel = parsed;
+  if (platform === "CHZZK") {
+    const { enrichChzzkChannel } = await import("./providers/chzzk");
+    const enriched = await enrichChzzkChannel(parsed);
+    if ("error" in enriched) return { ok: false, error: enriched.error };
+    channel = enriched;
+  }
+
+  const conflict = await assertChannelNotLinked(platform, channel.channelId, userId);
   if (conflict) return { ok: false, error: conflict.error };
 
   const code = generateVerificationCode();
 
   const existing = await db.connectedStreamingAccount.findUnique({
     where: {
-      platform_channelId: { platform, channelId: parsed.channelId },
+      platform_channelId: { platform, channelId: channel.channelId },
     },
   });
 
@@ -248,9 +256,9 @@ export async function startManualConnect(
         where: { id: existing.id },
         data: {
           userId,
-          channelName: parsed.channelName,
-          channelUrl: parsed.channelUrl,
-          profileImage: parsed.profileImage,
+          channelName: channel.channelName,
+          channelUrl: channel.channelUrl,
+          profileImage: channel.profileImage,
           verified: false,
           verificationMethod: null,
           verificationCode: code,
@@ -264,10 +272,10 @@ export async function startManualConnect(
         data: {
           userId,
           platform,
-          channelId: parsed.channelId,
-          channelName: parsed.channelName,
-          channelUrl: parsed.channelUrl,
-          profileImage: parsed.profileImage,
+          channelId: channel.channelId,
+          channelName: channel.channelName,
+          channelUrl: channel.channelUrl,
+          profileImage: channel.profileImage,
           verified: false,
           verificationCode: code,
         },
@@ -277,7 +285,7 @@ export async function startManualConnect(
   await logVerification(account.id, "CONNECT_PENDING", {
     method: "PROFILE_CODE",
     actorId: userId,
-    detail: `Manual connect started for ${parsed.channelId}`,
+    detail: `Manual connect started for ${channel.channelId}`,
   });
 
   return { ok: true, accountId: account.id, verificationCode: code };
@@ -303,29 +311,47 @@ export async function verifyManualAccount(
   }
 
   const platform = account.platform as ConnectableStreamingPlatform;
-  const provider = getStreamingProvider(platform);
-  const ok = await provider.verifyProfileCode(
-    {
-      channelId: account.channelId,
-      channelName: account.channelName,
-      channelUrl: account.channelUrl,
-      profileImage: account.profileImage,
-    },
-    account.verificationCode
-  );
 
-  if (!ok) {
-    await logVerification(account.id, "VERIFY_FAILED", {
-      method: "PROFILE_CODE",
-      success: false,
-      actorId: userId,
-      detail: "Verification code not found in profile/description",
-    });
-    return {
-      ok: false,
-      error:
-        "채널 설명(또는 프로필)에 검증 코드가 없습니다. 코드를 붙여넣은 뒤 저장하고 다시 시도해 주세요.",
-    };
+  if (platform === "CHZZK") {
+    const { diagnoseChzzkVerification } = await import("./providers/chzzk");
+    const diagnosed = await diagnoseChzzkVerification(
+      account.channelId,
+      account.verificationCode
+    );
+    if (!diagnosed.ok) {
+      await logVerification(account.id, "VERIFY_FAILED", {
+        method: "PROFILE_CODE",
+        success: false,
+        actorId: userId,
+        detail: diagnosed.error,
+      });
+      return { ok: false, error: diagnosed.error };
+    }
+  } else {
+    const provider = getStreamingProvider(platform);
+    const ok = await provider.verifyProfileCode(
+      {
+        channelId: account.channelId,
+        channelName: account.channelName,
+        channelUrl: account.channelUrl,
+        profileImage: account.profileImage,
+      },
+      account.verificationCode
+    );
+
+    if (!ok) {
+      await logVerification(account.id, "VERIFY_FAILED", {
+        method: "PROFILE_CODE",
+        success: false,
+        actorId: userId,
+        detail: "Verification code not found in profile/description",
+      });
+      return {
+        ok: false,
+        error:
+          "채널 설명(또는 프로필)에 검증 코드가 없습니다. 코드를 붙여넣은 뒤 저장하고 다시 시도해 주세요.",
+      };
+    }
   }
 
   await db.connectedStreamingAccount.update({

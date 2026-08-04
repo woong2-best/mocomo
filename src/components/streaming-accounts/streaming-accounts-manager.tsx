@@ -222,13 +222,18 @@ export function StreamingAccountsManager({
           ) : (
             <form onSubmit={onManualConnect} className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                채널 URL을 입력하면 검증 코드가 발급됩니다. 채널 설명(프로필)에 코드를 넣고
-                소유권 확인을 진행하세요.
+                {selectedPlatform === "CHZZK"
+                  ? "치지직 채널 URL을 입력하면 검증 코드가 발급됩니다. 치지직 채널 설정 → 채널 설명에 코드를 넣고 저장한 뒤 ‘소유권 확인’을 누르세요. 방송 중이면 방송 제목에 넣어도 됩니다."
+                  : "채널 URL을 입력하면 검증 코드가 발급됩니다. 채널 설명(프로필)에 코드를 넣고 소유권 확인을 진행하세요."}
               </p>
               <Input
                 value={channelInput}
                 onChange={(e) => setChannelInput(e.target.value)}
-                placeholder="https://chzzk.naver.com/… 또는 kick.com/…"
+                placeholder={
+                  selectedPlatform === "CHZZK"
+                    ? "https://chzzk.naver.com/채널ID"
+                    : "https://kick.com/사용자명"
+                }
                 required
               />
               {pendingCode ? (

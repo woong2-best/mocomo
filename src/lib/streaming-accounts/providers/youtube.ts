@@ -14,14 +14,19 @@ function youtubeApiKey(): string | null {
 }
 
 function googleClientCreds(): { clientId: string; clientSecret: string } | null {
-  const clientId =
-    process.env.YOUTUBE_STREAMING_CLIENT_ID?.trim() ||
-    process.env.GOOGLE_CLIENT_ID?.trim() ||
-    process.env.AUTH_GOOGLE_ID?.trim();
-  const clientSecret =
-    process.env.YOUTUBE_STREAMING_CLIENT_SECRET?.trim() ||
-    process.env.GOOGLE_CLIENT_SECRET?.trim() ||
-    process.env.AUTH_GOOGLE_SECRET?.trim();
+  // Prefer dedicated streaming keys; fall back to NextAuth Google envs.
+  const clientId = (
+    process.env.YOUTUBE_STREAMING_CLIENT_ID ||
+    process.env.AUTH_GOOGLE_ID ||
+    process.env.GOOGLE_CLIENT_ID ||
+    ""
+  ).trim();
+  const clientSecret = (
+    process.env.YOUTUBE_STREAMING_CLIENT_SECRET ||
+    process.env.AUTH_GOOGLE_SECRET ||
+    process.env.GOOGLE_CLIENT_SECRET ||
+    ""
+  ).trim();
   if (!clientId || !clientSecret) return null;
   return { clientId, clientSecret };
 }
