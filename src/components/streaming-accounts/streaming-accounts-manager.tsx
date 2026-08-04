@@ -71,7 +71,7 @@ export function StreamingAccountsManager({
         setError(res.error);
         return;
       }
-      if ("verificationCode" in res) {
+      if ("verificationCode" in res && res.verificationCode) {
         setPendingCode(res.verificationCode);
         setSuccess("채널 설명에 아래 코드를 추가한 뒤 '소유권 확인'을 눌러 주세요.");
         window.location.reload();
