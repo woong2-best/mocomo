@@ -225,7 +225,8 @@ export async function startManualConnect(
   | { ok: false; error: string }
 > {
   const provider = getStreamingProvider(platform);
-  if (provider.supportsOAuth) {
+  // YouTube supports OAuth + description-code fallback (Google consent screen may be Testing).
+  if (provider.supportsOAuth && platform !== "YOUTUBE") {
     return { ok: false, error: "이 플랫폼은 OAuth로 연결해 주세요." };
   }
 
@@ -236,6 +237,11 @@ export async function startManualConnect(
   if (platform === "CHZZK") {
     const { enrichChzzkChannel } = await import("./providers/chzzk");
     const enriched = await enrichChzzkChannel(parsed);
+    if ("error" in enriched) return { ok: false, error: enriched.error };
+    channel = enriched;
+  } else if (platform === "YOUTUBE") {
+    const { enrichYoutubeChannel } = await import("./providers/youtube");
+    const enriched = await enrichYoutubeChannel(parsed);
     if ("error" in enriched) return { ok: false, error: enriched.error };
     channel = enriched;
   }
@@ -327,6 +333,21 @@ export async function verifyManualAccount(
       });
       return { ok: false, error: diagnosed.error };
     }
+  } else if (platform === "YOUTUBE") {
+    const { diagnoseYoutubeVerification } = await import("./providers/youtube");
+    const diagnosed = await diagnoseYoutubeVerification(
+      account.channelUrl || account.channelId,
+      account.verificationCode
+    );
+    if (!diagnosed.ok) {
+      await logVerification(account.id, "VERIFY_FAILED", {
+        method: "DESCRIPTION_CODE",
+        success: false,
+        actorId: userId,
+        detail: diagnosed.error,
+      });
+      return { ok: false, error: diagnosed.error };
+    }
   } else {
     const provider = getStreamingProvider(platform);
     const ok = await provider.verifyProfileCode(
@@ -354,18 +375,21 @@ export async function verifyManualAccount(
     }
   }
 
+  const method =
+    platform === "YOUTUBE" ? ("DESCRIPTION_CODE" as const) : ("PROFILE_CODE" as const);
+
   await db.connectedStreamingAccount.update({
     where: { id: accountId },
     data: {
       verified: true,
-      verificationMethod: "PROFILE_CODE",
+      verificationMethod: method,
       verifiedAt: new Date(),
       verificationCode: null,
     },
   });
 
   await logVerification(account.id, "VERIFY", {
-    method: "PROFILE_CODE",
+    method,
     actorId: userId,
   });
 

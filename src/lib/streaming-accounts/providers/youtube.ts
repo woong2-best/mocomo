@@ -14,7 +14,6 @@ function youtubeApiKey(): string | null {
 }
 
 function googleClientCreds(): { clientId: string; clientSecret: string } | null {
-  // Prefer dedicated streaming keys; fall back to NextAuth Google envs.
   const clientId = (
     process.env.YOUTUBE_STREAMING_CLIENT_ID ||
     process.env.AUTH_GOOGLE_ID ||
@@ -31,10 +30,200 @@ function googleClientCreds(): { clientId: string; clientSecret: string } | null 
   return { clientId, clientSecret };
 }
 
+/** youtube.readonly is sensitive — Google blocks non-testers while consent screen is in Testing. */
 const YOUTUBE_SCOPES = [
   "https://www.googleapis.com/auth/youtube.readonly",
   "https://www.googleapis.com/auth/userinfo.profile",
 ].join(" ");
+
+const YT_CHANNEL_ID = /^UC[\w-]{22}$/;
+const YT_HANDLE = /^@[\w.-]{3,30}$/;
+
+function parseYoutubeChannelRef(raw: string): {
+  channelId?: string;
+  handle?: string;
+  customUrl?: string;
+} | { error: string } {
+  const input = raw.trim();
+  if (!input) return { error: "YouTube 채널 URL 또는 @핸들을 입력해 주세요." };
+  if (YT_CHANNEL_ID.test(input)) return { channelId: input };
+  if (YT_HANDLE.test(input)) return { handle: input.slice(1) };
+  if (/^[\w.-]{3,30}$/.test(input) && !input.includes(".")) {
+    return { handle: input };
+  }
+
+  try {
+    const parsed = new URL(input.startsWith("http") ? input : `https://${input}`);
+    const host = parsed.hostname.replace(/^www\./, "");
+    if (
+      host !== "youtube.com" &&
+      host !== "m.youtube.com" &&
+      host !== "youtube-nocookie.com"
+    ) {
+      return { error: "youtube.com 채널 URL만 지원합니다." };
+    }
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    if (parts[0]?.startsWith("@")) return { handle: parts[0].slice(1) };
+    if (parts[0] === "channel" && parts[1] && YT_CHANNEL_ID.test(parts[1])) {
+      return { channelId: parts[1] };
+    }
+    if (parts[0] === "c" && parts[1]) return { customUrl: parts[1] };
+    if (parts[0] === "user" && parts[1]) return { customUrl: parts[1] };
+  } catch {
+    return { error: "유효한 YouTube 채널 URL이 아닙니다." };
+  }
+  return { error: "YouTube 채널 URL 또는 @핸들을 입력해 주세요. (영상 URL 아님)" };
+}
+
+async function fetchYoutubeChannelByApi(params: {
+  channelId?: string;
+  handle?: string;
+}): Promise<StreamingChannelInfo & { description: string } | null> {
+  const key = youtubeApiKey();
+  if (!key) return null;
+
+  const url = new URL("https://www.googleapis.com/youtube/v3/channels");
+  url.searchParams.set("part", "snippet");
+  url.searchParams.set("key", key);
+  if (params.channelId) url.searchParams.set("id", params.channelId);
+  else if (params.handle) url.searchParams.set("forHandle", params.handle);
+  else return null;
+
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) return null;
+  const json = (await res.json()) as {
+    items?: Array<{
+      id: string;
+      snippet?: {
+        title?: string;
+        description?: string;
+        customUrl?: string;
+        thumbnails?: { default?: { url?: string } };
+      };
+    }>;
+  };
+  const item = json.items?.[0];
+  if (!item?.id) return null;
+  return {
+    channelId: item.id,
+    channelName: item.snippet?.title?.trim() || item.id,
+    channelUrl: item.snippet?.customUrl
+      ? `https://www.youtube.com/${item.snippet.customUrl.replace(/^@/, "@")}`
+      : `https://www.youtube.com/channel/${item.id}`,
+    profileImage: item.snippet?.thumbnails?.default?.url ?? null,
+    description: item.snippet?.description ?? "",
+  };
+}
+
+/** Public about page fallback when Data API key is missing */
+async function fetchYoutubeChannelFromPage(
+  ref: { channelId?: string; handle?: string; customUrl?: string }
+): Promise<StreamingChannelInfo & { description: string } | null> {
+  const path = ref.channelId
+    ? `/channel/${ref.channelId}/about`
+    : ref.handle
+      ? `/@${ref.handle}/about`
+      : ref.customUrl
+        ? `/c/${ref.customUrl}/about`
+        : null;
+  if (!path) return null;
+
+  try {
+    const res = await fetch(`https://www.youtube.com${path}`, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+        "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.8",
+      },
+      cache: "no-store",
+      redirect: "follow",
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+
+    const idMatch =
+      html.match(/"channelId":"(UC[\w-]{22})"/) ||
+      html.match(/\/channel\/(UC[\w-]{22})/);
+    const channelId = idMatch?.[1];
+    if (!channelId) return null;
+
+    const titleMatch =
+      html.match(/"title":"([^"]{1,200})"/) ||
+      html.match(/<meta property="og:title" content="([^"]+)"/);
+    const descMatch =
+      html.match(/"description":\{"simpleText":"((?:\\.|[^"\\])*)"/) ||
+      html.match(/"shortDescription":"((?:\\.|[^"\\])*)"/) ||
+      html.match(/<meta name="description" content="([^"]*)"/);
+
+    const unescape = (s: string) =>
+      s
+        .replace(/\\n/g, "\n")
+        .replace(/\\"/g, '"')
+        .replace(/\\u0026/g, "&")
+        .replace(/&#39;/g, "'");
+
+    const channelName = titleMatch?.[1]
+      ? unescape(titleMatch[1]).replace(/ - YouTube$/i, "").trim()
+      : channelId;
+    const description = descMatch?.[1] ? unescape(descMatch[1]) : "";
+
+    return {
+      channelId,
+      channelName,
+      channelUrl: `https://www.youtube.com/channel/${channelId}`,
+      profileImage: null,
+      description,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function resolveYoutubeChannel(
+  raw: string
+): Promise<(StreamingChannelInfo & { description: string }) | { error: string }> {
+  const ref = parseYoutubeChannelRef(raw);
+  if ("error" in ref) return ref;
+
+  const viaApi = await fetchYoutubeChannelByApi({
+    channelId: ref.channelId,
+    handle: ref.handle,
+  });
+  if (viaApi) return viaApi;
+
+  const viaPage = await fetchYoutubeChannelFromPage(ref);
+  if (viaPage) return viaPage;
+
+  return {
+    error:
+      "YouTube 채널을 찾을 수 없습니다. 채널 URL(예: https://www.youtube.com/@핸들)을 확인해 주세요.",
+  };
+}
+
+async function findLiveVideoId(channelId: string, accessToken?: string | null) {
+  const searchUrl = new URL("https://www.googleapis.com/youtube/v3/search");
+  searchUrl.searchParams.set("part", "snippet");
+  searchUrl.searchParams.set("channelId", channelId);
+  searchUrl.searchParams.set("eventType", "live");
+  searchUrl.searchParams.set("type", "video");
+  searchUrl.searchParams.set("maxResults", "1");
+
+  const headers: Record<string, string> = {};
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  } else {
+    const key = youtubeApiKey();
+    if (!key) return null;
+    searchUrl.searchParams.set("key", key);
+  }
+
+  const res = await fetch(searchUrl, { headers, cache: "no-store" });
+  if (!res.ok) return null;
+  const json = (await res.json()) as {
+    items?: Array<{ id?: { videoId?: string } }>;
+  };
+  return json.items?.[0]?.id?.videoId ?? null;
+}
 
 export const youtubeStreamingProvider: StreamingPlatformProvider = {
   platform: "YOUTUBE",
@@ -118,12 +307,28 @@ export const youtubeStreamingProvider: StreamingPlatformProvider = {
     return { tokens, channel };
   },
 
-  parseManualChannelInput() {
-    return { error: "YouTube는 OAuth로만 연결할 수 있습니다." };
+  parseManualChannelInput(raw: string) {
+    // Sync parse only — enrich happens in service via enrichYoutubeChannel
+    const ref = parseYoutubeChannelRef(raw);
+    if ("error" in ref) return ref;
+    const idOrHandle = ref.channelId || (ref.handle ? `@${ref.handle}` : ref.customUrl);
+    if (!idOrHandle) return { error: "YouTube 채널을 확인할 수 없습니다." };
+    return {
+      channelId: ref.channelId || `pending:${idOrHandle}`,
+      channelName: idOrHandle,
+      channelUrl: ref.channelId
+        ? `https://www.youtube.com/channel/${ref.channelId}`
+        : ref.handle
+          ? `https://www.youtube.com/@${ref.handle}`
+          : `https://www.youtube.com/c/${ref.customUrl}`,
+      profileImage: null,
+    };
   },
 
-  async verifyProfileCode() {
-    return false;
+  async verifyProfileCode(channel, verificationCode) {
+    const resolved = await resolveYoutubeChannel(channel.channelUrl || channel.channelId);
+    if ("error" in resolved) return false;
+    return resolved.description.includes(verificationCode);
   },
 
   async refreshTokens(tokens) {
@@ -156,61 +361,15 @@ export const youtubeStreamingProvider: StreamingPlatformProvider = {
   },
 
   async resolveLiveSource(account, tokens) {
-    if (!tokens?.accessToken) {
-      return { error: "YouTube OAuth 토큰이 없습니다. 계정을 다시 연결해 주세요." };
-    }
-
-    const searchUrl = new URL("https://www.googleapis.com/youtube/v3/search");
-    searchUrl.searchParams.set("part", "snippet");
-    searchUrl.searchParams.set("channelId", account.channelId);
-    searchUrl.searchParams.set("eventType", "live");
-    searchUrl.searchParams.set("type", "video");
-    searchUrl.searchParams.set("maxResults", "1");
-
-    const res = await fetch(searchUrl, {
-      headers: { Authorization: `Bearer ${tokens.accessToken}` },
-    });
-    if (res.ok) {
-      const json = (await res.json()) as {
-        items?: Array<{ id?: { videoId?: string } }>;
+    const videoId = await findLiveVideoId(account.channelId, tokens?.accessToken);
+    if (videoId) {
+      return {
+        provider: "YOUTUBE" as const,
+        externalId: videoId,
+        watchUrl: `https://www.youtube.com/watch?v=${videoId}`,
+        embedUrl: buildYoutubeEmbedUrl(videoId),
+        embedSupported: true,
       };
-      const videoId = json.items?.[0]?.id?.videoId;
-      if (videoId) {
-        return {
-          provider: "YOUTUBE" as const,
-          externalId: videoId,
-          watchUrl: `https://www.youtube.com/watch?v=${videoId}`,
-          embedUrl: buildYoutubeEmbedUrl(videoId),
-          embedSupported: true,
-        };
-      }
-    }
-
-    const apiKey = youtubeApiKey();
-    if (apiKey) {
-      const fallback = new URL("https://www.googleapis.com/youtube/v3/search");
-      fallback.searchParams.set("part", "snippet");
-      fallback.searchParams.set("channelId", account.channelId);
-      fallback.searchParams.set("eventType", "live");
-      fallback.searchParams.set("type", "video");
-      fallback.searchParams.set("maxResults", "1");
-      fallback.searchParams.set("key", apiKey);
-      const fb = await fetch(fallback);
-      if (fb.ok) {
-        const json = (await fb.json()) as {
-          items?: Array<{ id?: { videoId?: string } }>;
-        };
-        const videoId = json.items?.[0]?.id?.videoId;
-        if (videoId) {
-          return {
-            provider: "YOUTUBE" as const,
-            externalId: videoId,
-            watchUrl: `https://www.youtube.com/watch?v=${videoId}`,
-            embedUrl: buildYoutubeEmbedUrl(videoId),
-            embedSupported: true,
-          };
-        }
-      }
     }
 
     return {
@@ -219,6 +378,35 @@ export const youtubeStreamingProvider: StreamingPlatformProvider = {
     };
   },
 };
+
+export async function enrichYoutubeChannel(
+  channel: StreamingChannelInfo
+): Promise<StreamingChannelInfo | { error: string }> {
+  const resolved = await resolveYoutubeChannel(channel.channelUrl || channel.channelId);
+  if ("error" in resolved) return resolved;
+  return {
+    channelId: resolved.channelId,
+    channelName: resolved.channelName,
+    channelUrl: resolved.channelUrl,
+    profileImage: resolved.profileImage,
+  };
+}
+
+export async function diagnoseYoutubeVerification(
+  channelUrlOrId: string,
+  verificationCode: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const resolved = await resolveYoutubeChannel(channelUrlOrId);
+  if ("error" in resolved) return { ok: false, error: resolved.error };
+  if (!resolved.description.includes(verificationCode)) {
+    return {
+      ok: false,
+      error:
+        "YouTube 채널 설명에 검증 코드가 없습니다. YouTube 스튜디오 → 맞춤설정 → 기본 정보의 설명에 코드를 넣고 게시하세요.",
+    };
+  }
+  return { ok: true };
+}
 
 export async function verifyYoutubeVideoBelongsToChannel(
   videoId: string,

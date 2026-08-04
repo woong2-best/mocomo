@@ -16,7 +16,11 @@ export async function GET(
   const settingsUrl = new URL("/settings/streaming-accounts", req.url);
 
   if (oauthError) {
-    settingsUrl.searchParams.set("error", oauthError);
+    const message =
+      oauthError === "access_denied"
+        ? "Google OAuth가 테스트 모드라 승인된 테스터만 연결할 수 있습니다. 아래 ‘채널 설명으로 인증’을 사용하거나, Google Cloud 동의 화면을 프로덕션으로 게시해 주세요."
+        : oauthError;
+    settingsUrl.searchParams.set("error", message);
     return NextResponse.redirect(settingsUrl);
   }
 

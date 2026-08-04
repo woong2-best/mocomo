@@ -213,26 +213,39 @@ export function StreamingAccountsManager({
           {isOAuthStreamingPlatform(selectedPlatform as ConnectableStreamingPlatform) ? (
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">
-                {PLATFORM_LABELS[selectedPlatform]} OAuth로 로그인하여 채널 소유권을 확인합니다.
+                {selectedPlatform === "YOUTUBE"
+                  ? "Google 로그인으로 채널 소유권을 확인합니다. Google 동의 화면이 테스트 모드면 일반 유저는 차단될 수 있습니다."
+                  : `${PLATFORM_LABELS[selectedPlatform]} OAuth로 로그인하여 채널 소유권을 확인합니다.`}
               </p>
               <Button disabled={pending} onClick={() => onOAuthConnect(selectedPlatform)}>
                 {PLATFORM_LABELS[selectedPlatform]} 연결
               </Button>
             </div>
-          ) : (
-            <form onSubmit={onManualConnect} className="space-y-3">
+          ) : null}
+
+          {selectedPlatform === "YOUTUBE" ||
+          selectedPlatform === "CHZZK" ||
+          selectedPlatform === "KICK" ? (
+            <form onSubmit={onManualConnect} className="space-y-3 border-t pt-4">
+              <p className="text-sm font-medium">
+                {selectedPlatform === "YOUTUBE" ? "또는 채널 설명으로 인증" : "채널 설명으로 인증"}
+              </p>
               <p className="text-sm text-muted-foreground">
-                {selectedPlatform === "CHZZK"
-                  ? "치지직 채널 URL을 입력하면 검증 코드가 발급됩니다. 치지직 채널 설정 → 채널 설명에 코드를 넣고 저장한 뒤 ‘소유권 확인’을 누르세요. 방송 중이면 방송 제목에 넣어도 됩니다."
-                  : "채널 URL을 입력하면 검증 코드가 발급됩니다. 채널 설명(프로필)에 코드를 넣고 소유권 확인을 진행하세요."}
+                {selectedPlatform === "YOUTUBE"
+                  ? "채널 URL(@핸들)을 입력하면 검증 코드가 발급됩니다. YouTube 스튜디오 → 맞춤설정 → 기본 정보 설명에 코드를 넣고 게시한 뒤 ‘소유권 확인’을 누르세요."
+                  : selectedPlatform === "CHZZK"
+                    ? "치지직 채널 URL을 입력하면 검증 코드가 발급됩니다. 치지직 채널 설정 → 채널 설명에 코드를 넣고 저장한 뒤 ‘소유권 확인’을 누르세요. 방송 중이면 방송 제목에 넣어도 됩니다."
+                    : "채널 URL을 입력하면 검증 코드가 발급됩니다. 채널 설명(프로필)에 코드를 넣고 소유권 확인을 진행하세요."}
               </p>
               <Input
                 value={channelInput}
                 onChange={(e) => setChannelInput(e.target.value)}
                 placeholder={
-                  selectedPlatform === "CHZZK"
-                    ? "https://chzzk.naver.com/채널ID"
-                    : "https://kick.com/사용자명"
+                  selectedPlatform === "YOUTUBE"
+                    ? "https://www.youtube.com/@핸들"
+                    : selectedPlatform === "CHZZK"
+                      ? "https://chzzk.naver.com/채널ID"
+                      : "https://kick.com/사용자명"
                 }
                 required
               />
@@ -245,7 +258,7 @@ export function StreamingAccountsManager({
                 채널 등록
               </Button>
             </form>
-          )}
+          ) : null}
         </CardContent>
       </Card>
 
