@@ -32,7 +32,9 @@ import {
   isValidProductType,
   normalizeWorkTitle,
 } from "@/lib/used-catalog";
-import { isKakaoLocalConfigured, kakaoGeocodeMeetPlace } from "@/lib/kakao-local";
+import { isKakaoLocalConfigured } from "@/lib/kakao-local";
+import { geocodeMeetQuery } from "@/lib/maps/geocode";
+import { isKakaoMapCountry, normalizeMeetCountry } from "@/lib/maps/select-engine";
 import { assertUsedMarketAccess } from "@/lib/used-market-access";
 import {
   assertUsedAdultForRestricted,
@@ -353,6 +355,7 @@ export async function createUsedListing(data: {
   meetPlace?: string;
   meetLat?: number;
   meetLng?: number;
+  meetCountry?: string;
   images: string[];
   saleType?: "FIXED" | "AUCTION";
   auctionHours?: number;
@@ -419,18 +422,23 @@ export async function createUsedListing(data: {
     let meetLat = data.meetLat;
     let meetLng = data.meetLng;
     const meetPlaceTrim = data.meetPlace?.trim() || null;
+    const meetCountry = normalizeMeetCountry(data.meetCountry ?? user.countryCode);
     if (
       (meetLat == null || meetLng == null) &&
       meetPlaceTrim &&
       !data.region.includes("전국 택배")
     ) {
-      if (!isKakaoLocalConfigured()) {
+      if (isKakaoMapCountry(meetCountry) && !isKakaoLocalConfigured()) {
         return {
           error:
             "거래 장소 검색을 위해 서버에 KAKAO_REST_API_KEY를 설정해 주세요. (카카오 개발자 → Local API)",
         };
       }
-      const geo = await kakaoGeocodeMeetPlace(data.region, meetPlaceTrim);
+      const geo = await geocodeMeetQuery({
+        country: meetCountry,
+        region: data.region,
+        place: meetPlaceTrim,
+      });
       if (geo) {
         meetLat = geo.lat;
         meetLng = geo.lng;
@@ -454,6 +462,7 @@ export async function createUsedListing(data: {
         meetPlace: meetPlaceTrim,
         meetLat: meetLat ?? null,
         meetLng: meetLng ?? null,
+        meetCountry,
         images: data.images as Prisma.InputJsonValue,
         saleType: isAuction ? "AUCTION" : "FIXED",
         ...(isAuction

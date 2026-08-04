@@ -75,6 +75,7 @@ export default async function UsedNewPage() {
       <UsedPostForm
         defaultRegion={sns?.location}
         sellerAdultVerified={isUsedAdultVerified(user)}
+        sellerCountryCode={user.countryCode}
       />
     </AppPageChrome>
   );

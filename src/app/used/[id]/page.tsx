@@ -320,6 +320,7 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
           meetPlace={listing.meetPlace}
           meetLat={listing.meetLat}
           meetLng={listing.meetLng}
+          meetCountry={listing.meetCountry}
         />
 
 

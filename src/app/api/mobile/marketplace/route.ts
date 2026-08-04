@@ -23,9 +23,26 @@ export async function GET(req: NextRequest) {
 
   await getMobileUserId(req);
   const q = req.nextUrl.searchParams.get("q")?.trim() || undefined;
+  const category = req.nextUrl.searchParams.get("category")?.trim() || undefined;
+  const sido = req.nextUrl.searchParams.get("sido")?.trim() || undefined;
+  const region = req.nextUrl.searchParams.get("region")?.trim() || undefined;
+  const work = req.nextUrl.searchParams.get("work")?.trim() || undefined;
+  const product = req.nextUrl.searchParams.get("product")?.trim() || undefined;
+  const mode = req.nextUrl.searchParams.get("mode")?.trim() || undefined;
   const take = Math.min(Number(req.nextUrl.searchParams.get("take") ?? "24") || 24, 48);
 
-  const listings = await getUsedListings({ status: "SELLING", take, q });
+  const listings = await getUsedListings({
+    status: "SELLING",
+    take,
+    q,
+    category: category && category !== "ALL" ? category : undefined,
+    sido: sido || undefined,
+    region: region || undefined,
+    work: work || undefined,
+    product: product || undefined,
+    saleType: mode === "auction" ? "AUCTION" : undefined,
+    liveAuctionOnly: mode === "auction",
+  });
   const items = listings.map((l) => {
     const images = listingImages(l.images);
     return {
@@ -58,7 +75,10 @@ const createSchema = z.object({
   price: z.coerce.number().min(0),
   category: z.string().min(1).max(40).default("OTHER"),
   region: z.string().min(1).max(80),
-  meetPlace: z.string().max(120).optional(),
+  meetPlace: z.string().max(200).optional(),
+  meetLat: z.number().finite().optional(),
+  meetLng: z.number().finite().optional(),
+  meetCountry: z.string().length(2).optional(),
   images: z.array(z.string().min(1).max(2000)).max(10).default([]),
   saleType: z.enum(["FIXED", "AUCTION"]).optional(),
   auctionHours: z.number().int().positive().optional(),

@@ -1,4 +1,8 @@
 import { getAllUsedRegions, isValidUsedRegion, KOREA_SIDO, USED_SHIPPING_REGION } from "@/lib/korea-regions";
+import { meetExternalMapUrl } from "@/lib/maps/external-url";
+import type { MeetCoords } from "@/lib/maps/types";
+
+export type { MeetCoords } from "@/lib/maps/types";
 
 /** 중고거래 최대 가격: 21억 원 */
 export const MAX_USED_LISTING_PRICE = 2_100_000_000;
@@ -57,16 +61,16 @@ export const USED_STATUS_OPTIONS = [
 export function usedMapSearchUrl(
   region: string,
   meetPlace?: string | null,
-  coords?: { lat: number; lng: number } | null
+  coords?: { lat: number; lng: number } | null,
+  country?: string | null
 ) {
-  if (coords && Number.isFinite(coords.lat) && Number.isFinite(coords.lng)) {
-    return `https://map.kakao.com/link/map/${coords.lat},${coords.lng}`;
-  }
-  const q = [meetPlace?.trim(), region].filter(Boolean).join(" ");
-  return `https://map.kakao.com/?q=${encodeURIComponent(q || region)}`;
+  return meetExternalMapUrl({
+    country,
+    region,
+    place: meetPlace,
+    coords,
+  });
 }
-
-export type MeetCoords = { lat: number; lng: number };
 
 export function parseMeetCoords(
   meetLat?: number | null,

@@ -19,7 +19,8 @@ import {
   isValidProductType,
   normalizeWorkTitle,
 } from "@/lib/used-catalog";
-import { isKakaoLocalConfigured, kakaoGeocodeMeetPlace } from "@/lib/kakao-local";
+import { geocodeMeetQuery } from "@/lib/maps/geocode";
+import { normalizeMeetCountry } from "@/lib/maps/select-engine";
 import { finalizeExpiredAuctionIfNeeded } from "@/actions/used-auction";
 import { sendUsedAuctionNotification } from "@/lib/used-auction-notify";
 import { getOrCreateDmForUser, sendMobileDmMessage } from "@/lib/chat-dm-service";
@@ -50,6 +51,7 @@ export async function createMobileUsedListing(
     meetPlace?: string;
     meetLat?: number;
     meetLng?: number;
+    meetCountry?: string;
     images: string[];
     saleType?: "FIXED" | "AUCTION";
     auctionHours?: number;
@@ -113,17 +115,20 @@ export async function createMobileUsedListing(
     let meetLat = data.meetLat;
     let meetLng = data.meetLng;
     const meetPlaceTrim = data.meetPlace?.trim() || null;
+    const meetCountry = normalizeMeetCountry(data.meetCountry ?? user.countryCode);
     if (
       (meetLat == null || meetLng == null) &&
       meetPlaceTrim &&
       !data.region.includes("전국 택배")
     ) {
-      if (isKakaoLocalConfigured()) {
-        const geo = await kakaoGeocodeMeetPlace(data.region, meetPlaceTrim);
-        if (geo) {
-          meetLat = geo.lat;
-          meetLng = geo.lng;
-        }
+      const geo = await geocodeMeetQuery({
+        country: meetCountry,
+        region: data.region,
+        place: meetPlaceTrim,
+      });
+      if (geo) {
+        meetLat = geo.lat;
+        meetLng = geo.lng;
       }
     }
 
@@ -144,6 +149,7 @@ export async function createMobileUsedListing(
         meetPlace: meetPlaceTrim,
         meetLat: meetLat ?? null,
         meetLng: meetLng ?? null,
+        meetCountry,
         images: data.images as Prisma.InputJsonValue,
         saleType: isAuction ? "AUCTION" : "FIXED",
         ...(isAuction

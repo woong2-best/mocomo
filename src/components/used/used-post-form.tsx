@@ -30,9 +30,11 @@ const PRICE_OVER_LIMIT_MSG = "최대 21억 원까지 입력할 수 있습니다.
 export function UsedPostForm({
   defaultRegion,
   sellerAdultVerified = false,
+  sellerCountryCode = "KR",
 }: {
   defaultRegion?: string;
   sellerAdultVerified?: boolean;
+  sellerCountryCode?: string;
 }) {
   const router = useRouter();
   const [title, setTitle] = useState("");
@@ -120,6 +122,7 @@ export function UsedPostForm({
       meetPlace: meetPlace.trim() || undefined,
       meetLat: meetCoords?.lat,
       meetLng: meetCoords?.lng,
+      meetCountry: sellerCountryCode,
       images,
       workTitle: workTitle.trim() || undefined,
       productType: productType || undefined,
@@ -375,6 +378,7 @@ export function UsedPostForm({
 
       <UsedMeetMapPicker
         region={region}
+        country={sellerCountryCode}
         meetPlace={meetPlace}
         onMeetPlaceChange={setMeetPlace}
         coords={meetCoords}

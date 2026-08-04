@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { getMobileUserId } from "@/lib/api-mobile-auth";
 import { getUsedListing } from "@/actions/used-market";
-import { listingImages, usedMapSearchUrl } from "@/lib/used-market";
+import { listingImages } from "@/lib/used-market";
 import { isAuctionLive, minNextBidAmount } from "@/lib/used-auction";
-import { isKakaoLocalConfigured, kakaoGeocodeMeetPlace } from "@/lib/kakao-local";
+import { geocodeMeetQuery } from "@/lib/maps/geocode";
+import { meetExternalMapUrl, meetMapCaption } from "@/lib/maps/external-url";
+import { normalizeMeetCountry, selectMapEngine } from "@/lib/maps/select-engine";
 import { getRegionMapCenter, isShippingOnlyRegion } from "@/lib/used-region-coords";
 
 export async function GET(
@@ -41,14 +43,18 @@ export async function GET(
     typeof listing.meetLng === "number" && Number.isFinite(listing.meetLng)
       ? listing.meetLng
       : null;
+  const meetCountry = normalizeMeetCountry(
+    listing.meetCountry ??
+      (listing.seller as { countryCode?: string } | null | undefined)?.countryCode
+  );
 
-  if (
-    (meetLat == null || meetLng == null) &&
-    meetPlace &&
-    isKakaoLocalConfigured()
-  ) {
+  if ((meetLat == null || meetLng == null) && meetPlace) {
     try {
-      const geo = await kakaoGeocodeMeetPlace(listing.region, meetPlace);
+      const geo = await geocodeMeetQuery({
+        country: meetCountry,
+        region: listing.region,
+        place: meetPlace,
+      });
       if (geo) {
         meetLat = geo.lat;
         meetLng = geo.lng;
@@ -63,6 +69,10 @@ export async function GET(
     lat: number;
     lng: number;
     hasPin: boolean;
+    country: string;
+    engine: string;
+    externalMapUrl: string;
+    /** @deprecated use externalMapUrl */
     kakaoMapUrl: string;
     caption: string;
   } | null = null;
@@ -76,19 +86,27 @@ export async function GET(
       const mapLat = hasPin ? meetLat! : regionCenter.lat;
       const mapLng = hasPin ? meetLng! : regionCenter.lng;
       const mapLabel = meetPlace || listing.region || "거래 장소";
+      const coords = hasPin ? { lat: meetLat!, lng: meetLng! } : null;
+      const externalMapUrl = meetExternalMapUrl({
+        country: meetCountry,
+        region: listing.region || mapLabel,
+        place: meetPlace,
+        coords,
+      });
       map = {
         label: mapLabel,
         lat: mapLat,
         lng: mapLng,
         hasPin,
-        kakaoMapUrl: usedMapSearchUrl(
-          listing.region || mapLabel,
-          meetPlace,
-          hasPin ? { lat: meetLat!, lng: meetLng! } : null
-        ),
-        caption: hasPin
-          ? `${listing.region} 인근 직거래 · 카카오 로컬 API로 표시된 만남 위치입니다`
-          : `${listing.region} 인근 · 정확한 만남 핀이 없어 지역 중심으로 표시합니다`,
+        country: meetCountry,
+        engine: selectMapEngine(meetCountry),
+        externalMapUrl,
+        kakaoMapUrl: externalMapUrl,
+        caption: meetMapCaption({
+          country: meetCountry,
+          region: listing.region,
+          hasPin,
+        }),
       };
     }
   } catch {
@@ -106,6 +124,7 @@ export async function GET(
       meetPlace,
       meetLat,
       meetLng,
+      meetCountry,
       map,
       status: listing.status,
       saleType: listing.saleType,

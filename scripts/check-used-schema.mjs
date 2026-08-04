@@ -4,6 +4,9 @@ const db = new PrismaClient();
 
 const usedListingCols = [
   "meetPlace",
+  "meetLat",
+  "meetLng",
+  "meetCountry",
   "saleType",
   "auctionEndsAt",
   "restrictedKind",

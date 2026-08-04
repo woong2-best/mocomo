@@ -4,9 +4,10 @@ import dynamic from "next/dynamic";
 import { ExternalLink, MapPin } from "lucide-react";
 import { parseMeetCoords, usedMapSearchUrl } from "@/lib/used-market";
 import { isShippingOnlyRegion } from "@/lib/used-region-coords";
+import { normalizeMeetCountry, selectMapEngine } from "@/lib/maps/select-engine";
 
-const UsedMeetMap = dynamic(
-  () => import("@/components/used/used-meet-map").then((m) => m.UsedMeetMap),
+const MeetMapView = dynamic(
+  () => import("@/components/maps/MeetMapView").then((m) => m.MeetMapView),
   {
     ssr: false,
     loading: () => (
@@ -22,16 +23,21 @@ export function UsedMeetLocation({
   meetPlace,
   meetLat,
   meetLng,
+  meetCountry,
 }: {
   region: string;
   meetPlace?: string | null;
   meetLat?: number | null;
   meetLng?: number | null;
+  meetCountry?: string | null;
 }) {
+  const country = normalizeMeetCountry(meetCountry);
+  const engine = selectMapEngine(country);
   const coords = parseMeetCoords(meetLat, meetLng);
   const label = meetPlace?.trim() || region;
-  const mapUrl = usedMapSearchUrl(region, meetPlace, coords);
+  const mapUrl = usedMapSearchUrl(region, meetPlace, coords, country);
   const shipping = isShippingOnlyRegion(region);
+  const externalLabel = engine === "kakao" ? "카카오맵" : "OpenStreetMap";
 
   if (shipping && !meetPlace?.trim()) {
     return (
@@ -55,13 +61,14 @@ export function UsedMeetLocation({
           rel="noopener noreferrer"
           className="text-xs text-muted-foreground hover:text-primary flex items-center gap-0.5 shrink-0"
         >
-          카카오맵
+          {externalLabel}
           <ExternalLink className="h-3 w-3" />
         </a>
       </div>
 
-      <UsedMeetMap
+      <MeetMapView
         mode="view"
+        country={country}
         region={region}
         meetPlace={meetPlace ?? undefined}
         coords={coords}
@@ -69,7 +76,9 @@ export function UsedMeetLocation({
       />
 
       <p className="text-xs text-muted-foreground">
-        {region} 인근 직거래 · 카카오 로컬 API로 표시된 만남 위치입니다
+        {engine === "kakao"
+          ? `${region} 인근 직거래 · 카카오맵으로 표시된 만남 위치입니다`
+          : `${region} meetup · MapLibre + OpenStreetMap`}
         {!coords && meetPlace ? " (장소명으로 좌표 검색)" : ""}
       </p>
     </section>

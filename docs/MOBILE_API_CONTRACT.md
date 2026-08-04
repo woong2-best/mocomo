@@ -13,7 +13,7 @@ Client paths: [`apps/mobile/src/api/paths.ts`](../apps/mobile/src/api/paths.ts).
 | POST | `/api/mobile/auth/login` | `{ login, password, deviceId?, platform? }` → `{ accessToken, refreshToken, expiresAt, user }` |
 | POST | `/api/mobile/auth/refresh` | `{ refreshToken }` → new pair (rotation) |
 | POST | `/api/mobile/auth/logout` | `{ refreshToken? }` or Bearer + `{ allDevices: true }` |
-| POST | `/api/mobile/auth/oauth/pkce` | **501** until Phase 1.1 |
+| POST | `/api/mobile/auth/oauth/pkce` | Exchange AuthSession `handoff` → `{ accessToken, refreshToken, user }` (web OAuth bridge) |
 
 Access JWT: ~1h, `typ: mocomo-mobile-access`.  
 Refresh: opaque, SHA-256 in `MobileRefreshToken` (30d), rotatable/revocable.
@@ -55,7 +55,8 @@ Web cookie JWT **unchanged**.
 | GET | `/api/mobile/live/:id` | Optional Bearer — detail |
 | GET | `/api/mobile/live/:id/token` | Bearer — LiveKit token (`hostUserId`, `audioOnly`) |
 | GET | `/api/mobile/marketplace` | Optional Bearer — used listings (`?q=&take=`) |
-| GET | `/api/mobile/marketplace/:id` | Optional Bearer — detail + favorite/auction fields |
+| POST | `/api/mobile/marketplace` | Bearer — create used listing (`meetLat`/`meetLng`/`meetCountry`/`meetPlace`) |
+| GET | `/api/mobile/marketplace/:id` | Optional Bearer — detail + `map` (`country`, `engine`, `externalMapUrl`, lat/lng) |
 | POST | `/api/mobile/marketplace/:id/favorite` | Bearer — toggle favorite |
 | POST | `/api/mobile/marketplace/:id/trade-chat` | Bearer — open seller DM (`roomId`) |
 | POST | `/api/mobile/marketplace/:id/bid` | Bearer — `{ amount }` auction bid |

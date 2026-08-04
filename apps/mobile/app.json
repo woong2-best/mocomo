@@ -1,0 +1,92 @@
+{
+  "expo": {
+    "name": "MoCoMo",
+    "slug": "mocomo",
+    "version": "1.0.32",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "scheme": "mocomo",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-image",
+      "expo-video",
+      "expo-dev-client",
+      "@livekit/react-native-expo-plugin",
+      "@config-plugins/react-native-webrtc",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "게시물에 사진을 첨부하려면 사진 접근이 필요합니다.",
+          "cameraPermission": "게시물에 사진을 찍으려면 카메라 접근이 필요합니다."
+        }
+      ],
+      "expo-web-browser",
+      "expo-audio",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "직거래 위치를 설정하려면 현재 위치가 필요합니다."
+        }
+      ],
+      "@maplibre/maplibre-react-native",
+      "./plugins/with-kakao-maps"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "net.mocomo.app",
+      "buildNumber": "37",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "remote-notification",
+          "audio"
+        ],
+        "NSPhotoLibraryUsageDescription": "게시물에 사진을 첨부하려면 사진 접근이 필요합니다.",
+        "NSCameraUsageDescription": "게시물에 사진을 찍으려면 카메라 접근이 필요합니다.",
+        "NSMicrophoneUsageDescription": "음성 메시지 녹음과 라이브 시청에 마이크 권한이 필요합니다.",
+        "NSLocationWhenInUseUsageDescription": "직거래 위치를 설정하려면 현재 위치가 필요합니다.",
+        "KAKAO_APP_KEY": ""
+      }
+    },
+    "android": {
+      "package": "net.mocomo.app",
+      "versionCode": 37,
+      "adaptiveIcon": {
+        "backgroundColor": "#F5F0E8",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": true,
+      "permissions": [
+        "INTERNET",
+        "POST_NOTIFICATIONS",
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO",
+        "CAMERA",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS",
+        "ACCESS_NETWORK_STATE",
+        "BLUETOOTH",
+        "BLUETOOTH_CONNECT",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
+    "experiments": {
+      "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "replace-with-eas-project-id"
+      },
+      "apiBaseUrl": "https://mocomo.net",
+      "socketUrl": "https://mocomo.net",
+      "kakaoNativeAppKey": ""
+    },
+    "owner": "replace-with-expo-username"
+  }
+}

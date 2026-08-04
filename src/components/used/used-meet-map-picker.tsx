@@ -4,8 +4,8 @@ import dynamic from "next/dynamic";
 import type { MeetCoords } from "@/lib/used-market";
 import { Input } from "@/components/ui/input";
 
-const UsedMeetMap = dynamic(
-  () => import("@/components/used/used-meet-map").then((m) => m.UsedMeetMap),
+const MeetMapView = dynamic(
+  () => import("@/components/maps/MeetMapView").then((m) => m.MeetMapView),
   {
     ssr: false,
     loading: () => <div className="h-56 w-full rounded-xl bg-muted animate-pulse" />,
@@ -14,6 +14,7 @@ const UsedMeetMap = dynamic(
 
 type UsedMeetMapPickerProps = {
   region: string;
+  country: string;
   meetPlace: string;
   onMeetPlaceChange: (value: string) => void;
   coords: MeetCoords | null;
@@ -22,6 +23,7 @@ type UsedMeetMapPickerProps = {
 
 export function UsedMeetMapPicker({
   region,
+  country,
   meetPlace,
   onMeetPlaceChange,
   coords,
@@ -30,8 +32,9 @@ export function UsedMeetMapPicker({
   return (
     <div className="space-y-2">
       <label className="text-sm font-medium">거래 희망 장소</label>
-      <UsedMeetMap
+      <MeetMapView
         mode="pick"
+        country={country}
         region={region}
         meetPlace={meetPlace}
         coords={coords}

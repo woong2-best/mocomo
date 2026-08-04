@@ -17,7 +17,15 @@ REST API 키는 맞지만 **카카오맵·로컬 서비스가 앱에서 OFF** �
 ### 환경 변수
 
 - `KAKAO_REST_API_KEY` = **플랫폼 키** 화면의 **REST API 키** (JavaScript 키 아님)
-- Vercel Production / Development 에 동일 값 설정
+- `NEXT_PUBLIC_KAKAO_JS_KEY` = **JavaScript 키** (웹 직거래 지도 · Kakao Maps JS SDK)
+- `EXPO_PUBLIC_KAKAO_NATIVE_APP_KEY` = **네이티브 앱 키** (모바일 카카오맵 Native SDK)
+- Vercel Production / Development 에 REST·JS 키 설정 · EAS에 Native 앱 키 설정
+
+### 지도 엔진 선택
+
+- `meetCountry === "KR"` → 카카오맵 (웹 JS / 앱 Native)
+- 그 외 → MapLibre + OpenStreetMap
+- DB에는 엔진 종류를 저장하지 않고 `meetLat` / `meetLng` / `meetCountry` / `meetPlace`만 저장합니다.
 
 ### 테스트
 
