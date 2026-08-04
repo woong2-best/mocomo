@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getCurrentCoords, geolocationErrorMessage } from "@/lib/client-geolocation";
 import { selectMapEngine } from "@/lib/maps/select-engine";
-import type { MeetCoords } from "@/lib/maps/types";
+import type { MapEngineId, MeetCoords } from "@/lib/maps/types";
 import { getRegionMapCenter, isShippingOnlyRegion } from "@/lib/used-region-coords";
+import { getKakaoJsKey } from "@/components/maps/kakao-maps-loader";
 import { cn } from "@/lib/utils";
 
 const KakaoMeetMapCanvas = dynamic(
@@ -32,6 +33,15 @@ export type MeetMapViewProps = {
   heightClassName?: string;
 };
 
+function resolveDisplayEngine(country: string): MapEngineId {
+  const preferred = selectMapEngine(country);
+  if (preferred === "kakao" && !getKakaoJsKey()) {
+    // Kakao Local geocode still works via REST key; map tiles fall back to MapLibre.
+    return "maplibre";
+  }
+  return preferred;
+}
+
 export function MeetMapView({
   mode,
   country,
@@ -43,19 +53,26 @@ export function MeetMapView({
   className,
   heightClassName = "h-52",
 }: MeetMapViewProps) {
-  const engine = selectMapEngine(country);
+  const preferredEngine = selectMapEngine(country);
+  const [engine, setEngine] = useState<MapEngineId>(() => resolveDisplayEngine(country));
   const shipping = isShippingOnlyRegion(region);
   const interactive = mode === "pick" && !shipping;
 
   const [searchQ, setSearchQ] = useState(meetPlace);
   const [searching, setSearching] = useState(false);
   const [resolveError, setResolveError] = useState("");
+  const [mapError, setMapError] = useState("");
   const [displayCoords, setDisplayCoords] = useState<MeetCoords | null>(coords ?? null);
   const activeCoords = coords ?? displayCoords;
 
   const regionCenter = useMemo(() => getRegionMapCenter(region), [region]);
   const center = activeCoords ?? { lat: regionCenter.lat, lng: regionCenter.lng };
   const zoom = activeCoords ? 16 : regionCenter.zoom;
+
+  useEffect(() => {
+    setEngine(resolveDisplayEngine(country));
+    setMapError("");
+  }, [country]);
 
   useEffect(() => {
     setSearchQ(meetPlace);
@@ -95,6 +112,18 @@ export function MeetMapView({
       void resolvePinAddress(next.lat, next.lng);
     },
     [interactive, onCoordsChange, resolvePinAddress]
+  );
+
+  const handleMapEngineError = useCallback(
+    (message: string) => {
+      if (engine === "kakao") {
+        setEngine("maplibre");
+        setMapError("카카오맵을 불러오지 못해 OpenStreetMap으로 표시합니다.");
+        return;
+      }
+      setMapError(message || "지도를 불러오지 못했습니다.");
+    },
+    [engine]
   );
 
   useEffect(() => {
@@ -183,7 +212,7 @@ export function MeetMapView({
 
   const Canvas = engine === "kakao" ? KakaoMeetMapCanvas : MapLibreMeetMapCanvas;
   const searchPlaceholder =
-    engine === "kakao"
+    preferredEngine === "kakao"
       ? "카카오맵 장소 검색 (예: 강남역 2번 출구)"
       : "Search place (OpenStreetMap)";
 
@@ -229,11 +258,13 @@ export function MeetMapView({
         )}
       >
         <Canvas
+          key={engine}
           mode={mode}
           center={center}
           zoom={zoom}
           marker={activeCoords}
           onPick={interactive ? handlePick : undefined}
+          onError={handleMapEngineError}
         />
         {!activeCoords && mode === "pick" && (
           <div className="absolute bottom-2 left-2 right-2 z-10 pointer-events-none">
@@ -244,13 +275,17 @@ export function MeetMapView({
         )}
       </div>
 
-      {resolveError && <p className="text-xs text-destructive">{resolveError}</p>}
+      {(resolveError || mapError) && (
+        <p className="text-xs text-destructive">{resolveError || mapError}</p>
+      )}
 
       {mode === "pick" && (
         <p className="text-xs text-muted-foreground flex items-start gap-1">
           <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-          {engine === "kakao"
-            ? "한국은 카카오맵으로 검색·표시됩니다. 핀을 옮기면 장소명이 자동으로 채워져요."
+          {preferredEngine === "kakao"
+            ? engine === "kakao"
+              ? "한국은 카카오맵으로 검색·표시됩니다. 핀을 옮기면 장소명이 자동으로 채워져요."
+              : "장소 검색은 카카오 로컬 API, 지도 표시는 OpenStreetMap(MapLibre)입니다."
             : "이 국가는 MapLibre + OpenStreetMap으로 검색·표시됩니다."}
         </p>
       )}

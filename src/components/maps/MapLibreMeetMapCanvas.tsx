@@ -11,6 +11,7 @@ type Props = {
   zoom: number;
   marker: MeetCoords | null;
   onPick?: (coords: MeetCoords) => void;
+  onError?: (message: string) => void;
   className?: string;
 };
 
@@ -41,40 +42,48 @@ async function loadMapLibre() {
   return mod;
 }
 
-export function MapLibreMeetMapCanvas({ mode, center, zoom, marker, onPick, className }: Props) {
+export function MapLibreMeetMapCanvas({ mode, center, zoom, marker, onPick, onError, className }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markerRef = useRef<MapLibreMarker | null>(null);
   const onPickRef = useRef(onPick);
+  const onErrorRef = useRef(onError);
   onPickRef.current = onPick;
+  onErrorRef.current = onError;
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       if (!containerRef.current) return;
-      const maplibregl = await loadMapLibre();
-      if (cancelled || !containerRef.current) return;
+      try {
+        const maplibregl = await loadMapLibre();
+        if (cancelled || !containerRef.current) return;
 
-      const map = new maplibregl.Map({
-        container: containerRef.current,
-        style: OSM_STYLE,
-        center: [center.lng, center.lat],
-        zoom,
-        attributionControl: {},
-      });
-      map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
-      mapRef.current = map;
-
-      if (mode === "pick") {
-        map.on("click", (e) => {
-          onPickRef.current?.({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+        const map = new maplibregl.Map({
+          container: containerRef.current,
+          style: OSM_STYLE,
+          center: [center.lng, center.lat],
+          zoom,
+          attributionControl: {},
         });
-      }
+        map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+        mapRef.current = map;
 
-      if (marker) {
-        markerRef.current = new maplibregl.Marker({ color: "#EF4444" })
-          .setLngLat([marker.lng, marker.lat])
-          .addTo(map);
+        if (mode === "pick") {
+          map.on("click", (e) => {
+            onPickRef.current?.({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+          });
+        }
+
+        if (marker) {
+          markerRef.current = new maplibregl.Marker({ color: "#EF4444" })
+            .setLngLat([marker.lng, marker.lat])
+            .addTo(map);
+        }
+      } catch (err) {
+        onErrorRef.current?.(
+          err instanceof Error ? err.message : "MapLibre 지도를 불러오지 못했습니다."
+        );
       }
     })();
 

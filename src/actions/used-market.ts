@@ -485,8 +485,21 @@ export async function createUsedListing(data: {
       if (e.code === "P2021") {
         return { error: "중고거래 DB가 준비되지 않았습니다. Supabase SQL 섹션 K를 실행해 주세요." };
       }
+      if (e.code === "P2022") {
+        return {
+          error:
+            "중고거래 DB에 meetCountry 컬럼이 없습니다. Supabase에서 ALTER TABLE \"UsedListing\" ADD COLUMN IF NOT EXISTS \"meetCountry\" VARCHAR(2); 를 실행해 주세요.",
+        };
+      }
     }
     console.error("[createUsedListing]", e);
+    const detail = e instanceof Error ? e.message : "";
+    if (/meetCountry/i.test(detail) || /column .* does not exist/i.test(detail)) {
+      return {
+        error:
+          "중고거래 DB에 meetCountry 컬럼이 없습니다. Supabase SQL로 meetCountry(VARCHAR 2)를 추가해 주세요.",
+      };
+    }
     return {
       error:
         "글 등록에 실패했습니다. 가격·사진·지역을 확인한 뒤 다시 시도해 주세요.",

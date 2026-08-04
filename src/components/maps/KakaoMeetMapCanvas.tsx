@@ -16,6 +16,7 @@ type Props = {
   zoom: number;
   marker: MeetCoords | null;
   onPick?: (coords: MeetCoords) => void;
+  onError?: (message: string) => void;
   className?: string;
 };
 
@@ -24,12 +25,22 @@ function toKakaoLevel(zoom: number) {
   return Math.max(1, Math.min(14, Math.round(18 - zoom)));
 }
 
-export function KakaoMeetMapCanvas({ mode, center, zoom, marker, onPick, className }: Props) {
+export function KakaoMeetMapCanvas({
+  mode,
+  center,
+  zoom,
+  marker,
+  onPick,
+  onError,
+  className,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<KakaoMap | null>(null);
   const markerRef = useRef<KakaoMarker | null>(null);
   const onPickRef = useRef(onPick);
+  const onErrorRef = useRef(onError);
   onPickRef.current = onPick;
+  onErrorRef.current = onError;
 
   useEffect(() => {
     let cancelled = false;
@@ -46,6 +57,8 @@ export function KakaoMeetMapCanvas({ mode, center, zoom, marker, onPick, classNa
         });
         map.addControl(new maps.ZoomControl(), maps.ControlPosition.TOPRIGHT);
         mapRef.current = map;
+        // Container may have been hidden; force layout after mount.
+        requestAnimationFrame(() => map.relayout());
 
         if (mode === "pick") {
           maps.event.addListener(map, "click", (...args: unknown[]) => {
@@ -63,8 +76,10 @@ export function KakaoMeetMapCanvas({ mode, center, zoom, marker, onPick, classNa
           });
           markerRef.current = m;
         }
-      } catch {
-        /* parent shows error via geocode / env */
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "카카오맵을 불러오지 못했습니다.";
+        onErrorRef.current?.(message);
       }
     })();
 
