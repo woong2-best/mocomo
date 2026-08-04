@@ -16,9 +16,10 @@ public/apt/hero-assets/_*-crop.png
 public/apt/hero-assets/_sofa-zone.png
 build-log.txt
 
-# 로컬 빌드 산출물 · Android (Git 미추적 대용량)
+# 로컬 빌드 산출물 · Android / RN (웹 배포에 불필요 · 용량 초과 방지)
 /.next/
 /android/
+/apps/mobile/
 **/node_modules/
 *.apk
 *.aab
@@ -26,8 +27,12 @@ MoCoMo-*.apk
 MoCoMo-*.aab
 .idea/
 android/.idea/
-tmp-apt.html
+tmp-*.txt
+tmp-*.html
+tmp-*.log
 _t-*.png
 _table-crop-test.png
 vercel-fail-logs.txt
 public/apt/_diag/
+.cursor/
+agent-transcripts/
