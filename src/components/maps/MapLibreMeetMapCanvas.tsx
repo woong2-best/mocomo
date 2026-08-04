@@ -12,6 +12,7 @@ type Props = {
   marker: MeetCoords | null;
   onPick?: (coords: MeetCoords) => void;
   onError?: (message: string) => void;
+  onReady?: () => void;
   className?: string;
 };
 
@@ -39,20 +40,27 @@ const OSM_STYLE = {
 async function loadMapLibre() {
   const mod = await import("maplibre-gl");
   await import("maplibre-gl/dist/maplibre-gl.css");
-  return mod;
+  const api = (mod as { default?: typeof mod }).default ?? mod;
+  if (typeof (api as { Map?: unknown }).Map !== "function") {
+    throw new Error("MapLibre Map constructor missing");
+  }
+  return api as typeof import("maplibre-gl");
 }
 
-export function MapLibreMeetMapCanvas({ mode, center, zoom, marker, onPick, onError, className }: Props) {
+export function MapLibreMeetMapCanvas({ mode, center, zoom, marker, onPick, onError, onReady, className }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markerRef = useRef<MapLibreMarker | null>(null);
   const onPickRef = useRef(onPick);
   const onErrorRef = useRef(onError);
+  const onReadyRef = useRef(onReady);
   onPickRef.current = onPick;
   onErrorRef.current = onError;
+  onReadyRef.current = onReady;
 
   useEffect(() => {
     let cancelled = false;
+    let resizeObserver: ResizeObserver | null = null;
     void (async () => {
       if (!containerRef.current) return;
       try {
@@ -68,6 +76,21 @@ export function MapLibreMeetMapCanvas({ mode, center, zoom, marker, onPick, onEr
         });
         map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
         mapRef.current = map;
+
+        const resize = () => {
+          try {
+            map.resize();
+          } catch {
+            /* ignore */
+          }
+        };
+        map.once("load", () => {
+          resize();
+          onReadyRef.current?.();
+        });
+        requestAnimationFrame(resize);
+        resizeObserver = new ResizeObserver(resize);
+        resizeObserver.observe(containerRef.current);
 
         if (mode === "pick") {
           map.on("click", (e) => {
@@ -89,6 +112,7 @@ export function MapLibreMeetMapCanvas({ mode, center, zoom, marker, onPick, onEr
 
     return () => {
       cancelled = true;
+      resizeObserver?.disconnect();
       markerRef.current?.remove();
       markerRef.current = null;
       mapRef.current?.remove();

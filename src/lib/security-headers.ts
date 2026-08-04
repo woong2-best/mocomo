@@ -13,6 +13,10 @@ const CSP_BASE = [
   "form-action 'self'",
 ] as const;
 
+/** Kakao Maps JS SDK + tile CDN (중고거래 직거래 지도) */
+const KAKAO_MAP_SCRIPT_SRC =
+  "https://dapi.kakao.com https://t1.daumcdn.net https://ssl.daumcdn.net";
+
 /** APT corner scene viewer — Three.js via unpkg import map */
 export const APT_SCENE_VIEWER_HEADERS: { key: string; value: string }[] = [
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -43,7 +47,7 @@ export const SECURITY_HEADERS: { key: string; value: string }[] = [
     key: "Content-Security-Policy",
     value: [
       ...CSP_BASE,
-      "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://challenges.cloudflare.com https://js.stripe.com",
+      `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://challenges.cloudflare.com https://js.stripe.com ${KAKAO_MAP_SCRIPT_SRC}`,
       "frame-src 'self' https://challenges.cloudflare.com https://js.stripe.com",
       "frame-ancestors 'none'",
     ].join("; "),

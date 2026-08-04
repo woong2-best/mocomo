@@ -17,6 +17,7 @@ type Props = {
   marker: MeetCoords | null;
   onPick?: (coords: MeetCoords) => void;
   onError?: (message: string) => void;
+  onReady?: () => void;
   className?: string;
 };
 
@@ -32,6 +33,7 @@ export function KakaoMeetMapCanvas({
   marker,
   onPick,
   onError,
+  onReady,
   className,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -39,11 +41,14 @@ export function KakaoMeetMapCanvas({
   const markerRef = useRef<KakaoMarker | null>(null);
   const onPickRef = useRef(onPick);
   const onErrorRef = useRef(onError);
+  const onReadyRef = useRef(onReady);
   onPickRef.current = onPick;
   onErrorRef.current = onError;
+  onReadyRef.current = onReady;
 
   useEffect(() => {
     let cancelled = false;
+    let resizeObserver: ResizeObserver | null = null;
     void (async () => {
       if (!containerRef.current) return;
       try {
@@ -57,8 +62,17 @@ export function KakaoMeetMapCanvas({
         });
         map.addControl(new maps.ZoomControl(), maps.ControlPosition.TOPRIGHT);
         mapRef.current = map;
-        // Container may have been hidden; force layout after mount.
-        requestAnimationFrame(() => map.relayout());
+        const relayout = () => {
+          try {
+            map.relayout();
+          } catch {
+            /* ignore */
+          }
+        };
+        requestAnimationFrame(relayout);
+        resizeObserver = new ResizeObserver(relayout);
+        resizeObserver.observe(containerRef.current);
+        onReadyRef.current?.();
 
         if (mode === "pick") {
           maps.event.addListener(map, "click", (...args: unknown[]) => {
@@ -85,6 +99,7 @@ export function KakaoMeetMapCanvas({
 
     return () => {
       cancelled = true;
+      resizeObserver?.disconnect();
       markerRef.current?.setMap(null);
       markerRef.current = null;
       mapRef.current = null;

@@ -118,13 +118,17 @@ export function MeetMapView({
     (message: string) => {
       if (engine === "kakao") {
         setEngine("maplibre");
-        setMapError("카카오맵을 불러오지 못해 OpenStreetMap으로 표시합니다.");
+        setMapError("카카오맵 스크립트가 차단되어 OpenStreetMap으로 표시합니다.");
         return;
       }
       setMapError(message || "지도를 불러오지 못했습니다.");
     },
     [engine]
   );
+
+  const handleMapReady = useCallback(() => {
+    setMapError("");
+  }, []);
 
   useEffect(() => {
     if (mode !== "view" || shipping || coords) return;
@@ -265,6 +269,7 @@ export function MeetMapView({
           marker={activeCoords}
           onPick={interactive ? handlePick : undefined}
           onError={handleMapEngineError}
+          onReady={handleMapReady}
         />
         {!activeCoords && mode === "pick" && (
           <div className="absolute bottom-2 left-2 right-2 z-10 pointer-events-none">
