@@ -48,7 +48,7 @@
         "NSCameraUsageDescription": "게시물에 사진을 찍으려면 카메라 접근이 필요합니다.",
         "NSMicrophoneUsageDescription": "음성 메시지 녹음과 라이브 시청에 마이크 권한이 필요합니다.",
         "NSLocationWhenInUseUsageDescription": "직거래 위치를 설정하려면 현재 위치가 필요합니다.",
-        "KAKAO_APP_KEY": ""
+        "KAKAO_APP_KEY": "b52b08185d2635a1cbeefd2d7236919d"
       }
     },
     "android": {
@@ -85,7 +85,7 @@
       },
       "apiBaseUrl": "https://mocomo.net",
       "socketUrl": "https://mocomo.net",
-      "kakaoNativeAppKey": ""
+      "kakaoNativeAppKey": "b52b08185d2635a1cbeefd2d7236919d"
     },
     "owner": "replace-with-expo-username"
   }
