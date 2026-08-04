@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import type { Map as MapLibreMap, Marker as MapLibreMarker, StyleSpecification } from "maplibre-gl";
 import type { MeetCoords } from "@/lib/maps/types";
 import { cn } from "@/lib/utils";
 
@@ -32,12 +33,18 @@ const OSM_STYLE = {
       maxzoom: 19,
     },
   ],
-};
+} satisfies StyleSpecification;
+
+async function loadMapLibre() {
+  const mod = await import("maplibre-gl");
+  await import("maplibre-gl/dist/maplibre-gl.css");
+  return mod;
+}
 
 export function MapLibreMeetMapCanvas({ mode, center, zoom, marker, onPick, className }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<import("maplibre-gl").Map | null>(null);
-  const markerRef = useRef<import("maplibre-gl").Marker | null>(null);
+  const mapRef = useRef<MapLibreMap | null>(null);
+  const markerRef = useRef<MapLibreMarker | null>(null);
   const onPickRef = useRef(onPick);
   onPickRef.current = onPick;
 
@@ -45,16 +52,15 @@ export function MapLibreMeetMapCanvas({ mode, center, zoom, marker, onPick, clas
     let cancelled = false;
     void (async () => {
       if (!containerRef.current) return;
-      const maplibregl = await import("maplibre-gl");
-      await import("maplibre-gl/dist/maplibre-gl.css");
+      const maplibregl = await loadMapLibre();
       if (cancelled || !containerRef.current) return;
 
       const map = new maplibregl.Map({
         container: containerRef.current,
-        style: OSM_STYLE as unknown as maplibregl.StyleSpecification,
+        style: OSM_STYLE,
         center: [center.lng, center.lat],
         zoom,
-        attributionControl: true,
+        attributionControl: {},
       });
       map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
       mapRef.current = map;
@@ -89,7 +95,7 @@ export function MapLibreMeetMapCanvas({ mode, center, zoom, marker, onPick, clas
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    void import("maplibre-gl").then((maplibregl) => {
+    void loadMapLibre().then((maplibregl) => {
       if (!marker) {
         markerRef.current?.remove();
         markerRef.current = null;
