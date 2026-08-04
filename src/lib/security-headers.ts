@@ -31,6 +31,10 @@ export const APT_SCENE_VIEWER_HEADERS: { key: string; value: string }[] = [
   },
 ];
 
+/** External live embeds (YouTube / Twitch / CHZZK) + payment widgets */
+const EMBED_FRAME_SRC =
+  "https://challenges.cloudflare.com https://js.stripe.com https://www.youtube.com https://www.youtube-nocookie.com https://player.twitch.tv https://chzzk.naver.com";
+
 export const SECURITY_HEADERS: { key: string; value: string }[] = [
   { key: "X-DNS-Prefetch-Control", value: "on" },
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
@@ -48,7 +52,7 @@ export const SECURITY_HEADERS: { key: string; value: string }[] = [
     value: [
       ...CSP_BASE,
       `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://challenges.cloudflare.com https://js.stripe.com ${KAKAO_MAP_SCRIPT_SRC}`,
-      "frame-src 'self' https://challenges.cloudflare.com https://js.stripe.com",
+      `frame-src 'self' ${EMBED_FRAME_SRC}`,
       "frame-ancestors 'none'",
     ].join("; "),
   },
