@@ -136,7 +136,15 @@ export async function kakaoGeocodeMeetPlace(
   region: string,
   meetPlace?: string | null
 ): Promise<KakaoCoord | null> {
-  const q = [meetPlace?.trim(), region].filter(Boolean).join(" ");
-  if (!q.trim()) return null;
-  return kakaoSearchPlace(q);
+  const place = meetPlace?.trim() ?? "";
+  const reg = region.trim();
+  if (!place && !reg) return null;
+  // Prefer region-biased query for ambiguous names ("시청"), but fall back to
+  // place-only so "동아대학교" still resolves when the selected region is wrong/default.
+  if (place && reg) {
+    const biased = await kakaoSearchPlace(`${place} ${reg}`);
+    if (biased) return biased;
+    return kakaoSearchPlace(place);
+  }
+  return kakaoSearchPlace(place || reg);
 }

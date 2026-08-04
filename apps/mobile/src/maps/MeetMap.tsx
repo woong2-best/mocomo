@@ -103,7 +103,7 @@ export function MeetMap({
     setSearching(true);
     setError("");
     try {
-      const params = new URLSearchParams({ region, place: q, country });
+      const params = new URLSearchParams({ q, country, region });
       const res = await fetch(`${API_BASE_URL}/api/used/geocode?${params}`);
       const body = (await res.json()) as {
         lat?: number;
@@ -120,6 +120,7 @@ export function MeetMap({
       onCoordsChange?.(next);
       onMeetPlaceChange?.(body.label?.trim() || q);
       setDisplayCoords(next);
+      setError("");
     } catch {
       setError("검색에 실패했습니다.");
     } finally {

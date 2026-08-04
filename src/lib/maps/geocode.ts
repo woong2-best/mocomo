@@ -22,13 +22,34 @@ export async function geocodeMeetQuery(opts: {
 
   if (isKakaoMapCountry(country)) {
     if (!isKakaoLocalConfigured()) return null;
-    if (q) return kakaoSearchPlace(q);
-    return kakaoGeocodeMeetPlace(region, place || q);
+    // Explicit search box query: try as-is, then region-biased fallback.
+    if (q) {
+      const direct = await kakaoSearchPlace(q);
+      if (direct) return direct;
+      if (region && !q.includes(region)) {
+        return kakaoSearchPlace(`${q} ${region}`);
+      }
+      return null;
+    }
+    return kakaoGeocodeMeetPlace(region, place);
   }
 
-  const query = q || [place, region].filter(Boolean).join(" ");
-  if (!query) return null;
-  return nominatimSearchPlace(query);
+  if (q) {
+    const direct = await nominatimSearchPlace(q);
+    if (direct) return direct;
+    if (region && !q.includes(region)) {
+      return nominatimSearchPlace(`${q} ${region}`);
+    }
+    return null;
+  }
+  if (place) {
+    const direct = await nominatimSearchPlace(place);
+    if (direct) return direct;
+    if (region) return nominatimSearchPlace(`${place} ${region}`);
+    return null;
+  }
+  if (!region) return null;
+  return nominatimSearchPlace(region);
 }
 
 export async function reverseGeocodeMeet(opts: {

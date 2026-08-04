@@ -75,10 +75,6 @@ export function MeetMapView({
   }, [country]);
 
   useEffect(() => {
-    setSearchQ(meetPlace);
-  }, [meetPlace]);
-
-  useEffect(() => {
     setDisplayCoords(coords ?? null);
   }, [coords]);
 
@@ -165,7 +161,9 @@ export function MeetMapView({
     setSearching(true);
     setResolveError("");
     try {
-      const params = new URLSearchParams({ region, place: q, country });
+      // Use `q` (not place+region) so the typed name is searched as-is.
+      // Server still falls back to region-biased query when needed.
+      const params = new URLSearchParams({ q, country, region });
       const res = await fetch(`/api/used/geocode?${params}`);
       const body = (await res.json()) as {
         lat?: number;
@@ -186,6 +184,7 @@ export function MeetMapView({
       onCoordsChange?.(next);
       onMeetPlaceChange?.(body.label?.trim() || q);
       setDisplayCoords(next);
+      setResolveError("");
     } catch {
       setResolveError("검색에 실패했습니다.");
     } finally {
