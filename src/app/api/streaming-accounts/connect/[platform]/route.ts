@@ -22,9 +22,10 @@ export async function GET(
 
   const result = startOAuthConnect(session.user.id, platform);
   if ("error" in result) {
+    const message = result.error ?? "연결에 실패했습니다.";
     return NextResponse.redirect(
       new URL(
-        `/settings/streaming-accounts?error=${encodeURIComponent(result.error)}`,
+        `/settings/streaming-accounts?error=${encodeURIComponent(message)}`,
         _req.url
       )
     );

@@ -99,17 +99,20 @@ export async function getVerifiedAccountsForUser(userId: string) {
   });
 }
 
-export function startOAuthConnect(userId: string, platform: ConnectableStreamingPlatform) {
+export function startOAuthConnect(
+  userId: string,
+  platform: ConnectableStreamingPlatform
+): { url: string } | { error: string } {
   const provider = getStreamingProvider(platform);
   if (!provider.supportsOAuth) {
-    return { error: "이 플랫폼은 OAuth 연결을 지원하지 않습니다." as const };
+    return { error: "이 플랫폼은 OAuth 연결을 지원하지 않습니다." };
   }
   const redirectUri = streamingOAuthRedirectUri(platform);
   const state = mintStreamingOAuthState(userId, platform);
   const url = provider.getConnectUrl(state, redirectUri);
   if (!url) {
     return {
-      error: `${platform} OAuth 클라이언트가 설정되지 않았습니다.` as const,
+      error: `${platform} OAuth 클라이언트가 설정되지 않았습니다.`,
     };
   }
   return { url };
