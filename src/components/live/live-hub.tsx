@@ -4,14 +4,9 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { LiveStreamCardMemo } from "@/components/live/live-channel-grid";
 import {
-  Eye,
   Radio,
   User,
-  Video,
-  MessageSquare,
-  Shield,
   Search,
-  Users,
   Heart,
   TrendingUp,
   BadgeCheck,
@@ -24,17 +19,8 @@ import type { LiveStreamCategory } from "@prisma/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
-import { COMMUNITY_FEED_PATH } from "@/lib/site-routes";
 import { LivePageChrome, LivePageTitle } from "@/components/live/live-page-chrome";
 import { useLocale } from "@/components/providers/locale-provider";
-import type { MessageKey } from "@/lib/i18n/messages";
-
-const FEATURE_KEYS: { icon: typeof Video; key: MessageKey }[] = [
-  { icon: Video, key: "live.feature.webcam" },
-  { icon: MessageSquare, key: "live.feature.chat" },
-  { icon: Shield, key: "live.feature.moderation" },
-  { icon: Eye, key: "live.feature.support" },
-];
 
 function StreamerChip({ host }: { host: LiveHubHost }) {
   const { t } = useLocale();
@@ -97,25 +83,13 @@ export function LiveHub({
     <LivePageChrome>
       <header className="live-hero flex flex-wrap items-start justify-between gap-4">
         <LivePageTitle>
-          <div className="space-y-3 min-w-0 flex-1">
+          <div className="min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl font-black flex items-center gap-2 tracking-tight">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-folk-terracotta text-white shadow-md">
                 <Radio className="h-5 w-5" />
               </span>
               {t("nav.live")}
             </h1>
-            <p className="text-sm text-muted-foreground max-w-lg">{t("live.heroDesc")}</p>
-            <div className="flex flex-wrap gap-2">
-              {FEATURE_KEYS.map(({ icon: Icon, key }) => (
-                <span
-                  key={key}
-                  className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-background/80 dark:bg-white/5 border border-border/60 text-muted-foreground"
-                >
-                  <Icon className="h-3.5 w-3.5 text-primary" />
-                  {t(key)}
-                </span>
-              ))}
-            </div>
           </div>
         </LivePageTitle>
         <div className="[&_button]:rounded-xl shrink-0 ml-auto">
@@ -188,19 +162,6 @@ export function LiveHub({
             <StreamerChip key={h.id} host={h} />
           ))}
         </div>
-      </section>
-
-      <section className="rounded-2xl border border-border bg-card/50 p-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h3 className="font-bold flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            {t("live.followFeed")}
-          </h3>
-          <p className="text-sm text-muted-foreground mt-1">{t("live.followFeedDesc")}</p>
-        </div>
-        <Button asChild variant="outline" className="rounded-xl">
-          <Link href={COMMUNITY_FEED_PATH}>{t("live.goHomeFeed")}</Link>
-        </Button>
       </section>
     </LivePageChrome>
   );

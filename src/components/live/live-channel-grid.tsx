@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { memo } from "react";
 import { motion } from "framer-motion";
-import { Eye, Radio, Sparkles, User } from "lucide-react";
-import { LivePageActions } from "@/components/live/live-page-actions";
+import { Eye, Radio, User } from "lucide-react";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
@@ -111,13 +110,7 @@ export function LiveChannelGrid({
           <span className="h-2 w-2 rounded-full bg-folk-terracotta animate-pulse" />
           {t("live.liveBroadcasts")} · {channels.length}
         </h2>
-        {channels.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border bg-card/50 py-16 text-center space-y-4">
-            <Sparkles className="h-12 w-12 mx-auto text-muted-foreground/60" />
-            <p className="text-muted-foreground font-medium">{t("live.emptyCategory")}</p>
-            <LivePageActions variant="empty" />
-          </div>
-        ) : (
+        {channels.length === 0 ? null : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {channels.map((ch) => (
               <LiveStreamCardMemo key={ch.id} ch={ch} host={hostMap[ch.createdBy]} />
