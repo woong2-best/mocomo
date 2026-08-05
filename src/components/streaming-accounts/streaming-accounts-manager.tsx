@@ -37,7 +37,7 @@ export function StreamingAccountsManager({
   bannerConnected,
 }: Props) {
   const [accounts, setAccounts] = useState(initialAccounts);
-  const [selectedPlatform, setSelectedPlatform] = useState<string>("CHZZK");
+  const [selectedPlatform, setSelectedPlatform] = useState<string>("YOUTUBE");
   const [channelInput, setChannelInput] = useState("");
   const [pendingCode, setPendingCode] = useState<string | null>(null);
   const [error, setError] = useState(bannerError ?? "");
@@ -161,7 +161,9 @@ export function StreamingAccountsManager({
                     채널 보기
                     <ExternalLink className="h-3 w-3" />
                   </a>
-                  {acc.pendingVerification && acc.verificationCode ? (
+                  {acc.pendingVerification &&
+                  acc.platform !== "YOUTUBE" &&
+                  acc.verificationCode ? (
                     <p className="text-xs text-muted-foreground">
                       채널 설명에 추가:{" "}
                       <code className="rounded bg-muted px-1 py-0.5 font-mono">
@@ -169,9 +171,19 @@ export function StreamingAccountsManager({
                       </code>
                     </p>
                   ) : null}
+                  {acc.platform === "YOUTUBE" && !acc.verified ? (
+                    <p className="text-xs text-muted-foreground">
+                      Google 로그인으로 다시 연결하면 Twitch처럼 바로 인증됩니다.
+                    </p>
+                  ) : null}
                 </div>
                 <div className="flex shrink-0 gap-2">
-                  {acc.pendingVerification ? (
+                  {acc.platform === "YOUTUBE" && !acc.verified ? (
+                    <Button size="sm" disabled={pending} onClick={() => onOAuthConnect("YOUTUBE")}>
+                      Google로 연결
+                    </Button>
+                  ) : null}
+                  {acc.pendingVerification && acc.platform !== "YOUTUBE" ? (
                     <Button size="sm" disabled={pending} onClick={() => onVerify(acc.id)}>
                       소유권 확인
                     </Button>
@@ -214,47 +226,35 @@ export function StreamingAccountsManager({
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">
                 {selectedPlatform === "YOUTUBE"
-                  ? "Google 계정으로 로그인하면 Twitch처럼 바로 채널 소유권이 확인됩니다. Google이 ‘확인하지 않은 앱’을 보여 주면 고급 → mocomo.net(으)로 이동을 눌러 주세요."
-                  : `${PLATFORM_LABELS[selectedPlatform]} OAuth로 로그인하여 채널 소유권을 확인합니다.`}
+                  ? "Google 계정으로 로그인하면 채널이 바로 인증됩니다. (채널 설명에 코드를 넣을 필요 없음)"
+                  : `${PLATFORM_LABELS[selectedPlatform]} 계정으로 로그인하여 채널 소유권을 확인합니다.`}
               </p>
               <Button disabled={pending} onClick={() => onOAuthConnect(selectedPlatform)}>
                 {PLATFORM_LABELS[selectedPlatform]} 연결
               </Button>
+              {selectedPlatform === "YOUTUBE" ? (
+                <p className="text-xs text-muted-foreground">
+                  Google이 ‘확인하지 않은 앱’을 보여 주면 <strong>고급</strong> →{" "}
+                  <strong>mocomo.net(으)로 이동</strong>을 눌러 주세요.
+                </p>
+              ) : null}
             </div>
           ) : null}
 
-          {selectedPlatform === "YOUTUBE" ||
-          selectedPlatform === "CHZZK" ||
-          selectedPlatform === "KICK" ? (
-            <form
-              onSubmit={onManualConnect}
-              className={`space-y-3 ${
-                isOAuthStreamingPlatform(selectedPlatform as ConnectableStreamingPlatform)
-                  ? "border-t pt-4"
-                  : ""
-              }`}
-            >
-              <p className="text-sm font-medium">
-                {selectedPlatform === "YOUTUBE"
-                  ? "또는 채널 설명으로 인증"
-                  : "채널 설명으로 인증"}
-              </p>
+          {selectedPlatform === "CHZZK" || selectedPlatform === "KICK" ? (
+            <form onSubmit={onManualConnect} className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                {selectedPlatform === "YOUTUBE"
-                  ? "OAuth를 쓰기 어렵다면 채널 URL을 등록한 뒤, YouTube 스튜디오 → 맞춤설정 → 기본 정보 설명에 검증 코드를 넣고 ‘소유권 확인’을 누르세요."
-                  : selectedPlatform === "CHZZK"
-                    ? "치지직 채널 URL을 입력하면 검증 코드가 발급됩니다. 치지직 채널 설정 → 채널 설명에 코드를 넣고 저장한 뒤 ‘소유권 확인’을 누르세요. 방송 중이면 방송 제목에 넣어도 됩니다."
-                    : "채널 URL을 입력하면 검증 코드가 발급됩니다. 채널 설명(프로필)에 코드를 넣고 소유권 확인을 진행하세요."}
+                {selectedPlatform === "CHZZK"
+                  ? "치지직 채널 URL을 입력하면 검증 코드가 발급됩니다. 채널 설명에 코드를 넣고 저장한 뒤 ‘소유권 확인’을 누르세요."
+                  : "채널 URL을 입력하면 검증 코드가 발급됩니다. 채널 설명(프로필)에 코드를 넣고 소유권 확인을 진행하세요."}
               </p>
               <Input
                 value={channelInput}
                 onChange={(e) => setChannelInput(e.target.value)}
                 placeholder={
-                  selectedPlatform === "YOUTUBE"
-                    ? "https://www.youtube.com/@핸들 또는 /channel/UC…"
-                    : selectedPlatform === "CHZZK"
-                      ? "https://chzzk.naver.com/채널ID"
-                      : "https://kick.com/사용자명"
+                  selectedPlatform === "CHZZK"
+                    ? "https://chzzk.naver.com/채널ID"
+                    : "https://kick.com/사용자명"
                 }
                 required
               />

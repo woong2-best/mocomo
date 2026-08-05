@@ -31,14 +31,9 @@ function googleClientCreds(): { clientId: string; clientSecret: string } | null 
 }
 
 /**
- * youtube.readonly is sensitive — Google may show "Unverified app" until the
- * OAuth consent screen completes sensitive-scope verification.
- * Users can still continue via Advanced → Go to mocomo.net (same as many apps).
- * Set YOUTUBE_STREAMING_OAUTH_ENABLED=false to force description-code only.
+ * youtube.readonly is sensitive — Google may show "Unverified app" until verified.
+ * Users continue via Advanced → Go to mocomo.net (same pattern as many apps).
  */
-const YOUTUBE_OAUTH_ENABLED =
-  process.env.YOUTUBE_STREAMING_OAUTH_ENABLED?.trim() !== "false";
-
 const YOUTUBE_SCOPES = [
   "https://www.googleapis.com/auth/youtube.readonly",
   "openid",
@@ -266,10 +261,9 @@ async function findLiveVideoId(channelId: string, accessToken?: string | null) {
 
 export const youtubeStreamingProvider: StreamingPlatformProvider = {
   platform: "YOUTUBE",
-  supportsOAuth: YOUTUBE_OAUTH_ENABLED,
+  supportsOAuth: true,
 
   getConnectUrl(state, redirectUri) {
-    if (!YOUTUBE_OAUTH_ENABLED) return null;
     const creds = googleClientCreds();
     if (!creds) return null;
     const q = new URLSearchParams({
@@ -347,28 +341,12 @@ export const youtubeStreamingProvider: StreamingPlatformProvider = {
     return { tokens, channel };
   },
 
-  parseManualChannelInput(raw: string) {
-    // Sync parse only — enrich happens in service via enrichYoutubeChannel
-    const ref = parseYoutubeChannelRef(raw);
-    if ("error" in ref) return ref;
-    const idOrHandle = ref.channelId || (ref.handle ? `@${ref.handle}` : ref.customUrl);
-    if (!idOrHandle) return { error: "YouTube 채널을 확인할 수 없습니다." };
-    return {
-      channelId: ref.channelId || `pending:${idOrHandle}`,
-      channelName: idOrHandle,
-      channelUrl: ref.channelId
-        ? `https://www.youtube.com/channel/${ref.channelId}`
-        : ref.handle
-          ? `https://www.youtube.com/@${ref.handle}`
-          : `https://www.youtube.com/c/${ref.customUrl}`,
-      profileImage: null,
-    };
+  parseManualChannelInput() {
+    return { error: "YouTube는 Google 로그인으로만 연결할 수 있습니다." };
   },
 
-  async verifyProfileCode(channel, verificationCode) {
-    const resolved = await resolveYoutubeChannel(channel.channelUrl || channel.channelId);
-    if ("error" in resolved) return false;
-    return channelContainsVerificationCode(resolved, verificationCode);
+  async verifyProfileCode() {
+    return false;
   },
 
   async refreshTokens(tokens) {
