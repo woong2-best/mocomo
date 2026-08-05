@@ -16,8 +16,6 @@ type SocialAuthButtonsProps = {
   lineOAuth: boolean;
   onGmailSignup?: () => void;
   onNaverSignup?: () => void;
-  /** Sign-in: Gmail without Google OAuth — focus credentials. */
-  onGmailSignin?: () => void;
   /** Sign-in: Naver is email-domain only — focus credentials. */
   onNaverSignin?: () => void;
   className?: string;
@@ -140,7 +138,6 @@ export function SocialAuthButtons({
   lineOAuth,
   onGmailSignup,
   onNaverSignup,
-  onGmailSignin,
   onNaverSignin,
   className,
 }: SocialAuthButtonsProps) {
@@ -165,11 +162,8 @@ export function SocialAuthButtons({
       return;
     }
     if (id === "google" && !isSignup) {
-      if (googleOAuth) {
-        void signIn("google", { callbackUrl });
-      } else {
-        onGmailSignin?.();
-      }
+      if (!googleOAuth) return;
+      void signIn("google", { callbackUrl });
       return;
     }
     if (id === "naver" && !isSignup) {
@@ -191,12 +185,10 @@ export function SocialAuthButtons({
         const label = t(isSignup ? provider.signupKey : provider.signinKey);
         const isGmailSignup = provider.id === "google" && isSignup;
         const isNaverSignup = provider.id === "naver" && isSignup;
-        const isGmailSignin = provider.id === "google" && !isSignup;
         const isNaverSignin = provider.id === "naver" && !isSignup;
         const disabled =
           !isGmailSignup &&
           !isNaverSignup &&
-          !isGmailSignin &&
           !isNaverSignin &&
           !oauthEnabled[provider.id];
 

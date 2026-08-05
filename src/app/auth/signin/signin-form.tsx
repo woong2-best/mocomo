@@ -159,7 +159,6 @@ export function SignInForm({
             discordOAuth={discordOAuth}
             twitterOAuth={twitterOAuth}
             lineOAuth={lineOAuth}
-            onGmailSignin={focusCredentials}
             onNaverSignin={focusCredentials}
           />
 
