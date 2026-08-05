@@ -12,7 +12,11 @@ import {
 import { recordUserDeviceFromRequest } from "@/lib/apt/economy/fraud/fraud-restrictions";
 import { recoverDeletedAccount } from "@/lib/account-deletion-server";
 import { canRecoverAccount, isAccountPastRecovery } from "@/lib/account-deletion";
-import { hydrateUserOAuthProfile } from "@/lib/oauth-vault";
+import { hydrateUserOAuthProfile, findUserIdByOAuthEmail } from "@/lib/oauth-vault";
+import {
+  readOAuthFlowCookie,
+  signupRedirectForOAuthEmail,
+} from "@/lib/oauth-flow-cookie";
 import { logSiteAdminAudit } from "@/lib/site-admin-audit";
 import {
   assertAccountCanWrite,
@@ -62,25 +66,42 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Auth.js passes an ephemeral id before linking OAuth to an existing email account.
       if (
         !dbUser &&
-        (account?.type === "oauth" || account?.type === "oidc") &&
-        user.email
+        (account?.type === "oauth" || account?.type === "oidc")
       ) {
-        const normalized = user.email.trim().toLowerCase();
-        const existing = await db.user.findUnique({
-          where: { email: normalized },
-          select: userSelect,
-        });
+        const oauthFlow = await readOAuthFlowCookie();
+        let existing: typeof dbUser = null;
 
-        if (!existing) return true;
+        if (user.email) {
+          const normalized = user.email.trim().toLowerCase();
+          existing = await db.user.findUnique({
+            where: { email: normalized },
+            select: userSelect,
+          });
+          if (!existing) {
+            const oauthUserId = await findUserIdByOAuthEmail(normalized);
+            if (oauthUserId) {
+              existing = await db.user.findUnique({
+                where: { id: oauthUserId },
+                select: userSelect,
+              });
+            }
+          }
+        }
 
-        const oauthEmailVerified = Boolean(
-          (profile as { email_verified?: boolean } | undefined)?.email_verified ??
-            (profile as { verified_email?: boolean } | undefined)?.verified_email
-        );
-        if (!oauthEmailVerified || !existing.emailVerified) return false;
+        if (existing) {
+          const oauthEmailVerified = Boolean(
+            (profile as { email_verified?: boolean } | undefined)?.email_verified ??
+              (profile as { verified_email?: boolean } | undefined)?.verified_email
+          );
+          if (!oauthEmailVerified || !existing.emailVerified) return false;
 
-        dbUser = existing;
-        resolvedUserId = existing.id;
+          dbUser = existing;
+          resolvedUserId = existing.id;
+        } else if (oauthFlow === "signin" || oauthFlow === null) {
+          return signupRedirectForOAuthEmail(user.email);
+        } else {
+          return true;
+        }
       }
 
       if (!dbUser) return false;

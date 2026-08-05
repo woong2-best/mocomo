@@ -8,7 +8,9 @@ export default function SignupNaverPage() {
       <Suspense fallback={null}>
         <MobileAuthSessionBootstrap />
       </Suspense>
-      <SignupNaverForm />
+      <Suspense fallback={null}>
+        <SignupNaverForm />
+      </Suspense>
     </>
   );
 }

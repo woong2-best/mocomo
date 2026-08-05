@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { registerUser, prepareSignupVerify } from "@/actions/auth";
 import {
   containsForbiddenAdminSequence,
@@ -22,7 +22,7 @@ import { LOCALE_LABELS, LOCALES, type Locale } from "@/lib/i18n/config";
 import { CountrySelect } from "@/components/i18n/country-select";
 import { useLocale } from "@/components/providers/locale-provider";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
-import { buildNaverEmail } from "@/lib/signup-email-domains";
+import { buildNaverEmail, isValidNaverSignupEmail, parseNaverLocalPart } from "@/lib/signup-email-domains";
 import {
   COMMON_TIMEZONES,
   detectBrowserRegionPrefs,
@@ -32,6 +32,7 @@ import {
 
 export function SignupNaverForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     locale: initialLocale,
     countryCode: initialCountry,
@@ -48,6 +49,27 @@ export function SignupNaverForm() {
   const [tzOptions, setTzOptions] = useState<string[]>([...COMMON_TIMEZONES]);
   const [localPart, setLocalPart] = useState("");
   const [detectedOnce, setDetectedOnce] = useState(false);
+  const [prefilledOnce, setPrefilledOnce] = useState(false);
+
+  const needsSignupNotice = searchParams.get("reason") === "not_registered";
+
+  useEffect(() => {
+    if (prefilledOnce) return;
+    const raw = searchParams.get("email")?.trim().toLowerCase();
+    if (!raw) return;
+    setPrefilledOnce(true);
+    if (raw.includes("@")) {
+      if (isValidNaverSignupEmail(raw)) setLocalPart(parseNaverLocalPart(raw));
+      return;
+    }
+    setLocalPart(parseNaverLocalPart(raw));
+  }, [prefilledOnce, searchParams]);
+
+  useEffect(() => {
+    if (needsSignupNotice) {
+      setNotice(t("auth.oauthSignupRequired"));
+    }
+  }, [needsSignupNotice, t]);
 
   const needsHumanVerify = isSignupHumanVerifyRequired();
 

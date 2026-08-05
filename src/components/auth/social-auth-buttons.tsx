@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/components/providers/locale-provider";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { setOAuthFlowCookieClient } from "@/lib/oauth-flow-cookie";
 import { cn } from "@/lib/utils";
 
 type SocialAuthButtonsProps = {
@@ -152,6 +153,11 @@ export function SocialAuthButtons({
     naver: false,
   };
 
+  function startOAuth(id: ProviderId) {
+    setOAuthFlowCookieClient(isSignup ? "signup" : "signin");
+    void signIn(id, { callbackUrl });
+  }
+
   function handleClick(id: ProviderId) {
     if (id === "google" && isSignup) {
       onGmailSignup?.();
@@ -163,7 +169,7 @@ export function SocialAuthButtons({
     }
     if (id === "google" && !isSignup) {
       if (!googleOAuth) return;
-      void signIn("google", { callbackUrl });
+      startOAuth("google");
       return;
     }
     if (id === "naver" && !isSignup) {
@@ -171,7 +177,7 @@ export function SocialAuthButtons({
       return;
     }
     if (!oauthEnabled[id]) return;
-    void signIn(id, { callbackUrl });
+    startOAuth(id);
   }
 
   const order = isSignup ? SIGNUP_ORDER : SIGNIN_ORDER;

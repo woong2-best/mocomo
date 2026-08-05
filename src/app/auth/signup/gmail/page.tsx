@@ -8,7 +8,9 @@ export default function SignupGmailPage() {
       <Suspense fallback={null}>
         <MobileAuthSessionBootstrap />
       </Suspense>
-      <SignupGmailForm />
+      <Suspense fallback={null}>
+        <SignupGmailForm />
+      </Suspense>
     </>
   );
 }

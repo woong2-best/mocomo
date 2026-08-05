@@ -12,6 +12,7 @@ import {
   sanitizeMobileRedirectUri,
   type MobileOAuthProvider,
 } from "@/lib/mobile-oauth-shared";
+import { OAUTH_FLOW_COOKIE } from "@/lib/oauth-flow-cookie";
 
 /**
  * Mobile app opens this page inside AuthSession.
@@ -47,6 +48,7 @@ export function MobileOAuthStartClient({
     }
 
     document.cookie = `${MOBILE_OAUTH_COOKIE}=1; Path=/; Max-Age=1800; SameSite=Lax`;
+    document.cookie = `${OAUTH_FLOW_COOKIE}=${mode}; Path=/; Max-Age=1800; SameSite=Lax`;
     if (redirectUri) {
       document.cookie = `${MOBILE_OAUTH_REDIRECT_COOKIE}=${encodeURIComponent(redirectUri)}; Path=/; Max-Age=1800; SameSite=Lax`;
     }

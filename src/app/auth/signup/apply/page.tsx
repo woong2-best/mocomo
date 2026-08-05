@@ -24,14 +24,16 @@ export default async function SignupApplyPage({
       <Suspense fallback={null}>
         <MobileAuthSessionBootstrap />
       </Suspense>
-      <SignupApplyForm
-        googleOAuth={googleOAuth}
-        discordOAuth={discordOAuth}
-        twitterOAuth={twitterOAuth}
-        lineOAuth={lineOAuth}
-        fromMobile={fromMobile}
-        platform={platform}
-      />
+      <Suspense fallback={null}>
+        <SignupApplyForm
+          googleOAuth={googleOAuth}
+          discordOAuth={discordOAuth}
+          twitterOAuth={twitterOAuth}
+          lineOAuth={lineOAuth}
+          fromMobile={fromMobile}
+          platform={platform}
+        />
+      </Suspense>
     </>
   );
 }

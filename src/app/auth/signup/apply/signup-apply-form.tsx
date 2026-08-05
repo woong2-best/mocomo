@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { SocialAuthButtons } from "@/components/auth/social-auth-buttons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandLogo } from "@/components/brand/brand-logo";
@@ -25,7 +25,9 @@ export function SignupApplyForm({
   platform?: "android" | "ios";
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t, locale } = useLocale();
+  const needsSignupNotice = searchParams.get("reason") === "not_registered";
   const completeUrl = mobileAuthCompletePath(platform);
   const mobileQs = fromMobile
     ? `?from=mobile&platform=${platform}`
@@ -46,6 +48,12 @@ export function SignupApplyForm({
           </div>
         </CardHeader>
         <CardContent className="space-y-5 pt-2">
+          {needsSignupNotice ? (
+            <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200/80 rounded-xl px-3 py-2">
+              {t("auth.oauthSignupRequired")}
+            </p>
+          ) : null}
+
           <SocialAuthButtons
             mode="signup"
             callbackUrl={fromMobile ? completeUrl : undefined}
