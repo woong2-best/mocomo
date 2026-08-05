@@ -56,7 +56,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         emailVerified: true,
       } as const;
 
-      let dbUser = await db.user.findUnique({
+      type SignInUserRow = {
+        id: string;
+        isBanned: boolean;
+        accountStatus: import("@prisma/client").AccountStatus;
+        deletedAt: Date | null;
+        scheduledPurgeAt: Date | null;
+        emailVerified: Date | null;
+      };
+
+      let dbUser: SignInUserRow | null = await db.user.findUnique({
         where: { id: user.id },
         select: userSelect,
       });
@@ -69,7 +78,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         (account?.type === "oauth" || account?.type === "oidc")
       ) {
         const oauthFlow = await readOAuthFlowCookie();
-        let existing: typeof dbUser = null;
+        let existing: SignInUserRow | null = null;
 
         if (user.email) {
           const normalized = user.email.trim().toLowerCase();
