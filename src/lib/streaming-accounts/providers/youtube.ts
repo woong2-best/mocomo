@@ -30,10 +30,19 @@ function googleClientCreds(): { clientId: string; clientSecret: string } | null 
   return { clientId, clientSecret };
 }
 
-/** youtube.readonly is sensitive — Google blocks non-testers while consent screen is in Testing. */
+/**
+ * youtube.readonly is a *sensitive* Google scope.
+ * Until GCP OAuth consent screen completes Google verification for that scope,
+ * any OAuth request that includes it shows "Unverified app" / access blocks.
+ * Enable only after verification: YOUTUBE_STREAMING_OAUTH_ENABLED=true
+ */
+const YOUTUBE_OAUTH_ENABLED =
+  process.env.YOUTUBE_STREAMING_OAUTH_ENABLED?.trim() === "true";
+
 const YOUTUBE_SCOPES = [
   "https://www.googleapis.com/auth/youtube.readonly",
-  "https://www.googleapis.com/auth/userinfo.profile",
+  "openid",
+  "profile",
 ].join(" ");
 
 const YT_CHANNEL_ID = /^UC[\w-]{22}$/;
@@ -227,9 +236,11 @@ async function findLiveVideoId(channelId: string, accessToken?: string | null) {
 
 export const youtubeStreamingProvider: StreamingPlatformProvider = {
   platform: "YOUTUBE",
-  supportsOAuth: true,
+  /** Off by default — sensitive youtube.readonly needs Google app verification. */
+  supportsOAuth: YOUTUBE_OAUTH_ENABLED,
 
   getConnectUrl(state, redirectUri) {
+    if (!YOUTUBE_OAUTH_ENABLED) return null;
     const creds = googleClientCreds();
     if (!creds) return null;
     const q = new URLSearchParams({

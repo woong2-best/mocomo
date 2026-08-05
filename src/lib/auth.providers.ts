@@ -72,6 +72,13 @@ export function getAuthProviders(): NonNullable<NextAuthConfig["providers"]> {
       Google({
         clientId: process.env.AUTH_GOOGLE_ID,
         clientSecret: process.env.AUTH_GOOGLE_SECRET,
+        // Non-sensitive only — must match GCP OAuth consent "Data access" scopes.
+        authorization: {
+          params: {
+            scope: "openid email profile",
+            response_type: "code",
+          },
+        },
       })
     );
   } else if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
@@ -79,6 +86,12 @@ export function getAuthProviders(): NonNullable<NextAuthConfig["providers"]> {
       Google({
         clientId: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        authorization: {
+          params: {
+            scope: "openid email profile",
+            response_type: "code",
+          },
+        },
       })
     );
   }
