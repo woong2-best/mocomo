@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { loginErrorMessage } from "@/lib/auth-login-errors";
 import { useLocale } from "@/components/providers/locale-provider";
 import { signIn, getSession } from "next-auth/react";
 import { finishAddAccountFlow } from "@/lib/account-switch/add-account-flow";
+import { persistOAuthFlowIntent } from "@/lib/oauth-flow-cookie";
 
 function safeCallbackUrl(raw: string): string {
   const path = raw.trim();
@@ -72,6 +73,10 @@ export function SignInForm({
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    void persistOAuthFlowIntent("signin").catch(() => undefined);
+  }, []);
 
   const bannedNotice =
     errorParam === "banned"

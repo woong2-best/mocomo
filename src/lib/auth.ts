@@ -106,10 +106,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           dbUser = existing;
           resolvedUserId = existing.id;
-        } else if (oauthFlow === "signin" || oauthFlow === null) {
-          return signupRedirectForOAuthEmail(user.email);
-        } else {
+        } else if (oauthFlow === "signup") {
           return true;
+        } else {
+          return signupRedirectForOAuthEmail(user.email);
         }
       }
 

@@ -15,6 +15,7 @@ import {
   isOAuthVaultProvider,
   persistEncryptedOAuthAccount,
 } from "@/lib/oauth-vault";
+import { readOAuthFlowCookie } from "@/lib/oauth-flow-cookie";
 
 async function generateUniqueUsername(seed: string): Promise<string> {
   let base = seed
@@ -69,6 +70,11 @@ export function createPrismaAuthAdapter(): Adapter {
   return {
     ...base,
     createUser: async (data) => {
+      const oauthFlow = await readOAuthFlowCookie();
+      if (oauthFlow !== "signup") {
+        throw new Error("OAUTH_SIGNUP_REQUIRED");
+      }
+
       const restricted = await findRestrictedIdentityUser({ email: data.email });
       if (restricted) {
         throw new Error(ACCOUNT_SUSPENDED_SIGNUP_MESSAGE);

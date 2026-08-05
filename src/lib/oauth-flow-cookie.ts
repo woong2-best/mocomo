@@ -4,7 +4,13 @@ export type OAuthFlow = "signin" | "signup";
 
 export function setOAuthFlowCookieClient(flow: OAuthFlow): void {
   if (typeof document === "undefined") return;
-  document.cookie = `${OAUTH_FLOW_COOKIE}=${flow}; Path=/; Max-Age=1800; SameSite=Lax`;
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `${OAUTH_FLOW_COOKIE}=${flow}; Path=/; Max-Age=1800; SameSite=Lax${secure}`;
+}
+
+/** Server httpOnly cookie — preferred before OAuth redirect. */
+export async function persistOAuthFlowIntent(flow: OAuthFlow): Promise<void> {
+  await fetch(`/api/auth/oauth-intent?flow=${flow}`, { credentials: "include" });
 }
 
 export async function readOAuthFlowCookie(): Promise<OAuthFlow | null> {

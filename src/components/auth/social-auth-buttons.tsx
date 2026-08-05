@@ -5,7 +5,7 @@ import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/components/providers/locale-provider";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
-import { setOAuthFlowCookieClient } from "@/lib/oauth-flow-cookie";
+import { setOAuthFlowCookieClient, persistOAuthFlowIntent } from "@/lib/oauth-flow-cookie";
 import { cn } from "@/lib/utils";
 
 type SocialAuthButtonsProps = {
@@ -153,8 +153,14 @@ export function SocialAuthButtons({
     naver: false,
   };
 
-  function startOAuth(id: ProviderId) {
-    setOAuthFlowCookieClient(isSignup ? "signup" : "signin");
+  async function startOAuth(id: ProviderId) {
+    const flow = isSignup ? "signup" : "signin";
+    setOAuthFlowCookieClient(flow);
+    try {
+      await persistOAuthFlowIntent(flow);
+    } catch {
+      /* non-httpOnly fallback above */
+    }
     void signIn(id, { callbackUrl });
   }
 
