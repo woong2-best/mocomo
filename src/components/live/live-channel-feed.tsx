@@ -21,5 +21,7 @@ export async function LiveChannelFeed({
     /* DB 미마이그레이션 */
   }
 
-  return <LiveChannelGrid channels={channels} hosts={hosts} />;
+  return (
+    <LiveChannelGrid channels={channels} hosts={hosts} filteredCategory={category} />
+  );
 }

@@ -30,7 +30,7 @@ export function LiveFeatureDisabledNotice({
       primaryHref={DEFAULT_LANDING_PATH}
       primaryLabel="홈으로"
       secondaryHref="/live/external/new"
-      secondaryLabel="외부 방송 연결"
+      secondaryLabel="라이브 방송 시작"
     />
   );
 }

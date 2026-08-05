@@ -157,6 +157,17 @@ export type MessageKey =
   | "profile.liveWatch"
   | "live.liveBroadcasts"
   | "live.emptyCategory"
+  | "live.popularCategories"
+  | "live.viewAll"
+  | "live.sideHome"
+  | "live.sideBrowse"
+  | "live.sideFollowing"
+  | "live.tailoredRecs"
+  | "live.noRecommendations"
+  | "live.showMore"
+  | "live.showLess"
+  | "live.startBroadcast"
+  | "live.loginToBroadcast"
   | "live.followers"
   | "live.voiceBadge"
   | "auth.signupTitle"
@@ -603,6 +614,17 @@ const ko: Record<MessageKey, string> = {
   "profile.liveWatch": "시청하기",
   "live.liveBroadcasts": "실시간 방송",
   "live.emptyCategory": "이 카테고리에 진행 중인 라이브가 없습니다.",
+  "live.popularCategories": "실시간 인기 카테고리",
+  "live.viewAll": "모두 보기",
+  "live.sideHome": "홈",
+  "live.sideBrowse": "탐색",
+  "live.sideFollowing": "팔로잉",
+  "live.tailoredRecs": "맞춤 추천",
+  "live.noRecommendations": "추천할 스트리머가 아직 없습니다.",
+  "live.showMore": "더보기",
+  "live.showLess": "간단히 보기",
+  "live.startBroadcast": "라이브 방송 시작",
+  "live.loginToBroadcast": "로그인 후 방송 시작",
   "live.followers": "{count} 팔로워",
   "live.voiceBadge": "보이스",
   "auth.signupTitle": "회원가입",
@@ -1052,6 +1074,17 @@ const en: Record<MessageKey, string> = {
   "profile.liveWatch": "Watch",
   "live.liveBroadcasts": "Live broadcasts",
   "live.emptyCategory": "No live streams in this category.",
+  "live.popularCategories": "Popular live categories",
+  "live.viewAll": "View all",
+  "live.sideHome": "Home",
+  "live.sideBrowse": "Browse",
+  "live.sideFollowing": "Following",
+  "live.tailoredRecs": "For you",
+  "live.noRecommendations": "No recommended streamers yet.",
+  "live.showMore": "Show more",
+  "live.showLess": "Show less",
+  "live.startBroadcast": "Start live broadcast",
+  "live.loginToBroadcast": "Sign in to go live",
   "live.followers": "{count} followers",
   "live.voiceBadge": "Voice",
   "auth.signupTitle": "Sign up",
@@ -1501,6 +1534,17 @@ const ja: Record<MessageKey, string> = {
   "profile.liveWatch": "視聴する",
   "live.liveBroadcasts": "ライブ配信",
   "live.emptyCategory": "このカテゴリに配信中のライブはありません。",
+  "live.popularCategories": "リアルタイム人気カテゴリ",
+  "live.viewAll": "すべて見る",
+  "live.sideHome": "ホーム",
+  "live.sideBrowse": "探索",
+  "live.sideFollowing": "フォロー中",
+  "live.tailoredRecs": "おすすめ",
+  "live.noRecommendations": "おすすめ配信者はまだありません。",
+  "live.showMore": "もっと見る",
+  "live.showLess": "簡易表示",
+  "live.startBroadcast": "ライブ配信を開始",
+  "live.loginToBroadcast": "ログインして配信開始",
   "live.followers": "{count} フォロワー",
   "live.voiceBadge": "ボイス",
   "auth.signupTitle": "会員登録",
@@ -1950,6 +1994,17 @@ const zh: Record<MessageKey, string> = {
   "profile.liveWatch": "观看",
   "live.liveBroadcasts": "实时直播",
   "live.emptyCategory": "该分类暂无进行中的直播。",
+  "live.popularCategories": "实时热门分类",
+  "live.viewAll": "查看全部",
+  "live.sideHome": "首页",
+  "live.sideBrowse": "浏览",
+  "live.sideFollowing": "关注",
+  "live.tailoredRecs": "为你推荐",
+  "live.noRecommendations": "暂无推荐主播。",
+  "live.showMore": "展开更多",
+  "live.showLess": "收起",
+  "live.startBroadcast": "开始直播",
+  "live.loginToBroadcast": "登录后开始直播",
   "live.followers": "{count} 粉丝",
   "live.voiceBadge": "语音",
   "auth.signupTitle": "注册",

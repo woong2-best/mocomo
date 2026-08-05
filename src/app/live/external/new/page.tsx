@@ -18,7 +18,7 @@ export default async function ExternalLiveNewPage() {
 
   return (
     <AppPageChrome maxWidth="lg" spacing="sm">
-      <NativePageTitle>외부 방송 연결</NativePageTitle>
+      <NativePageTitle>라이브 방송 시작</NativePageTitle>
       <div className="mb-3">
         <Link
           href="/live"

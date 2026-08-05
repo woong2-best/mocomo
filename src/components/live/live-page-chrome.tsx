@@ -10,8 +10,8 @@ export function LivePageChrome({ children }: { children: React.ReactNode }) {
     <div className={cn("live-page-shell", isNativeApp && "native-live-pad")}>
       <div
         className={cn(
-          "max-w-6xl mx-auto space-y-8 p-4 lg:p-6 min-w-0",
-          isNativeApp ? "pb-safe" : "pb-8"
+          "max-w-[1400px] mx-auto space-y-6 sm:space-y-8 p-4 lg:p-6 min-w-0",
+          isNativeApp ? "pb-safe" : "pb-10"
         )}
       >
         {children}

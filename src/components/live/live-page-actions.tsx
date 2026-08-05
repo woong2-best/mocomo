@@ -9,10 +9,12 @@ import {
   isFirstPartyLiveEnabled,
   isLiveFeatureEnabled,
 } from "@/lib/live-feature";
+import { useLocale } from "@/components/providers/locale-provider";
 
 export function LivePageActions({ variant }: { variant: "header" | "empty" }) {
   const sessionState = useSession();
   const session = sessionState?.data;
+  const { t } = useLocale();
 
   if (!isLiveFeatureEnabled()) return null;
 
@@ -27,8 +29,8 @@ export function LivePageActions({ variant }: { variant: "header" | "empty" }) {
   if (!session?.user) {
     return externalOn ? (
       <div className={wrap}>
-        <Link href="/auth/signin">
-          <Button className="gap-2 rounded-xl">로그인 후 방송 연결</Button>
+        <Link href="/auth/signin?callbackUrl=/live/external/new">
+          <Button className="gap-2 rounded-xl shadow-sm">{t("live.loginToBroadcast")}</Button>
         </Link>
       </div>
     ) : null;
@@ -38,9 +40,9 @@ export function LivePageActions({ variant }: { variant: "header" | "empty" }) {
     <div className={wrap}>
       {externalOn ? (
         <Link href="/live/external/new">
-          <Button className="gap-2 rounded-xl">
+          <Button className="gap-2 rounded-xl shadow-sm">
             <Video className="h-4 w-4" />
-            외부 방송 연결
+            {t("live.startBroadcast")}
           </Button>
         </Link>
       ) : null}

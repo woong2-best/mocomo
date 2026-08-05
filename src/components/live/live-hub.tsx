@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { useMemo } from "react";
 import { LiveStreamCardMemo } from "@/components/live/live-channel-grid";
+import { LiveRecommendSidebar } from "@/components/live/live-recommend-sidebar";
 import {
   Radio,
-  User,
   Search,
   Heart,
-  TrendingUp,
   BadgeCheck,
   Calendar,
+  User,
 } from "lucide-react";
 import { LivePageActions } from "@/components/live/live-page-actions";
 import { LiveCategoryFilter } from "@/components/live/live-category-filter";
@@ -59,6 +60,7 @@ export function LiveHub({
   followedHosts,
   scheduledStreams,
   currentUserId,
+  liveChannelsForSidebar = [],
   channelFeed,
 }: {
   recommendedStreamers: LiveHubHost[];
@@ -74,95 +76,116 @@ export function LiveHub({
     broadcastMode?: string | null;
   }[];
   currentUserId?: string;
+  /** Live channels used for sidebar live dots (may include current feed). */
+  liveChannelsForSidebar?: LiveHubChannel[];
   channelFeed: ReactNode;
 }) {
   const { t } = useLocale();
   const followedHostMap = Object.fromEntries(followedHosts.map((h) => [h.id, h]));
 
+  const liveByHostId = useMemo(() => {
+    const map: Record<string, LiveHubChannel> = {};
+    for (const ch of [...followedLive, ...liveChannelsForSidebar]) {
+      const prev = map[ch.createdBy];
+      if (!prev || ch.viewerCount > prev.viewerCount) map[ch.createdBy] = ch;
+    }
+    return map;
+  }, [followedLive, liveChannelsForSidebar]);
+
   return (
     <LivePageChrome>
-      <header className="live-hero flex flex-wrap items-start justify-between gap-4">
+      <header className="live-hero flex flex-wrap items-center justify-between gap-4 !py-4 !px-5">
         <LivePageTitle>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-2xl sm:text-3xl font-black flex items-center gap-2 tracking-tight">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-folk-terracotta text-white shadow-md">
-                <Radio className="h-5 w-5" />
-              </span>
-              {t("nav.live")}
-            </h1>
-          </div>
+          <h1 className="text-2xl sm:text-3xl font-black flex items-center gap-2.5 tracking-tight">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-folk-terracotta text-white shadow-md">
+              <Radio className="h-5 w-5" />
+            </span>
+            {t("nav.live")}
+          </h1>
         </LivePageTitle>
         <div className="[&_button]:rounded-xl shrink-0 ml-auto">
           <LivePageActions variant="header" />
         </div>
       </header>
 
-      <form action="/search" method="get" className="flex gap-2 max-w-xl">
+      <form action="/search" method="get" className="flex gap-2 max-w-2xl">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             name="q"
             placeholder={t("live.searchPlaceholder")}
-            className="pl-9 rounded-xl"
+            className="pl-9 rounded-xl h-11 bg-card/80"
             minLength={2}
           />
         </div>
-        <Button type="submit" variant="secondary" className="rounded-xl shrink-0">
+        <Button type="submit" variant="secondary" className="rounded-xl shrink-0 h-11 px-5">
           {t("common.search")}
         </Button>
       </form>
 
       <LiveCategoryFilter />
 
-      {scheduledStreams.length > 0 && (
-        <section>
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            {t("live.scheduled")}
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {scheduledStreams.map((s) => (
-              <LiveScheduledCard
-                key={s.id}
-                id={s.id}
-                name={s.name}
-                scheduledAt={s.scheduledAt}
-                category={s.category}
-                broadcastMode={s.broadcastMode}
-                isOwner={currentUserId === s.createdBy}
-              />
-            ))}
-          </div>
-        </section>
-      )}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_272px] xl:grid-cols-[minmax(0,1fr)_300px] items-start">
+        <div className="space-y-8 min-w-0">
+          {scheduledStreams.length > 0 && (
+            <section>
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                {t("live.scheduled")}
+              </h2>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {scheduledStreams.map((s) => (
+                  <LiveScheduledCard
+                    key={s.id}
+                    id={s.id}
+                    name={s.name}
+                    scheduledAt={s.scheduledAt}
+                    category={s.category}
+                    broadcastMode={s.broadcastMode}
+                    isOwner={currentUserId === s.createdBy}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
 
-      {followedLive.length > 0 && (
-        <section>
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
-            <Heart className="h-4 w-4 text-folk-terracotta" />
-            {t("live.followedLive")} · {followedLive.length}
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {followedLive.map((ch) => (
-              <LiveStreamCardMemo key={ch.id} ch={ch} host={followedHostMap[ch.createdBy]} />
-            ))}
-          </div>
-        </section>
-      )}
+          {followedLive.length > 0 && (
+            <section>
+              <h2 className="text-base font-bold tracking-tight mb-4 flex items-center gap-2">
+                <Heart className="h-4 w-4 text-folk-terracotta" />
+                {t("live.followedLive")} · {followedLive.length}
+              </h2>
+              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                {followedLive.map((ch) => (
+                  <LiveStreamCardMemo key={ch.id} ch={ch} host={followedHostMap[ch.createdBy]} />
+                ))}
+              </div>
+            </section>
+          )}
 
-      {channelFeed}
+          {channelFeed}
 
-      <section>
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
-          <TrendingUp className="h-4 w-4" />
-          {t("live.recommendedStreamers")}
-        </h2>
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-          {recommendedStreamers.map((h) => (
-            <StreamerChip key={h.id} host={h} />
-          ))}
+          {recommendedStreamers.length > 0 ? (
+            <section className="lg:hidden">
+              <h2 className="text-base font-bold tracking-tight mb-3">
+                {t("live.recommendedStreamers")}
+              </h2>
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+                {recommendedStreamers.map((h) => (
+                  <StreamerChip key={h.id} host={h} />
+                ))}
+              </div>
+            </section>
+          ) : null}
         </div>
-      </section>
+
+        <div className="hidden lg:block sticky top-20">
+          <LiveRecommendSidebar
+            recommendedStreamers={recommendedStreamers}
+            liveByHostId={liveByHostId}
+          />
+        </div>
+      </div>
     </LivePageChrome>
   );
 }
