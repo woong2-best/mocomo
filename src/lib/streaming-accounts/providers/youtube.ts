@@ -31,13 +31,13 @@ function googleClientCreds(): { clientId: string; clientSecret: string } | null 
 }
 
 /**
- * youtube.readonly is a *sensitive* Google scope.
- * Until GCP OAuth consent screen completes Google verification for that scope,
- * any OAuth request that includes it shows "Unverified app" / access blocks.
- * Enable only after verification: YOUTUBE_STREAMING_OAUTH_ENABLED=true
+ * youtube.readonly is sensitive — Google may show "Unverified app" until the
+ * OAuth consent screen completes sensitive-scope verification.
+ * Users can still continue via Advanced → Go to mocomo.net (same as many apps).
+ * Set YOUTUBE_STREAMING_OAUTH_ENABLED=false to force description-code only.
  */
 const YOUTUBE_OAUTH_ENABLED =
-  process.env.YOUTUBE_STREAMING_OAUTH_ENABLED?.trim() === "true";
+  process.env.YOUTUBE_STREAMING_OAUTH_ENABLED?.trim() !== "false";
 
 const YOUTUBE_SCOPES = [
   "https://www.googleapis.com/auth/youtube.readonly",
@@ -124,10 +124,10 @@ async function fetchYoutubeChannelByApi(params: {
   };
 }
 
-/** Public about page fallback when Data API key is missing */
+/** Public channel page — prefer og tags; also keep raw HTML for code search */
 async function fetchYoutubeChannelFromPage(
   ref: { channelId?: string; handle?: string; customUrl?: string }
-): Promise<StreamingChannelInfo & { description: string } | null> {
+): Promise<(StreamingChannelInfo & { description: string; rawHtml: string }) | null> {
   const path = ref.channelId
     ? `/channel/${ref.channelId}/about`
     : ref.handle
@@ -149,39 +149,58 @@ async function fetchYoutubeChannelFromPage(
     });
     if (!res.ok) return null;
     const html = await res.text();
+    if (html.length < 2000) return null;
 
     const idMatch =
+      html.match(/"externalId":"(UC[\w-]{22})"/) ||
       html.match(/"channelId":"(UC[\w-]{22})"/) ||
       html.match(/\/channel\/(UC[\w-]{22})/);
-    const channelId = idMatch?.[1];
-    if (!channelId) return null;
-
-    const titleMatch =
-      html.match(/"title":"([^"]{1,200})"/) ||
-      html.match(/<meta property="og:title" content="([^"]+)"/);
-    const descMatch =
-      html.match(/"description":\{"simpleText":"((?:\\.|[^"\\])*)"/) ||
-      html.match(/"shortDescription":"((?:\\.|[^"\\])*)"/) ||
-      html.match(/<meta name="description" content="([^"]*)"/);
+    const channelId = idMatch?.[1] ?? ref.channelId;
+    if (!channelId || !YT_CHANNEL_ID.test(channelId)) return null;
 
     const unescape = (s: string) =>
       s
         .replace(/\\n/g, "\n")
         .replace(/\\"/g, '"')
         .replace(/\\u0026/g, "&")
-        .replace(/&#39;/g, "'");
+        .replace(/&#39;/g, "'")
+        .replace(/&quot;/g, '"')
+        .replace(/&amp;/g, "&");
 
-    const channelName = titleMatch?.[1]
-      ? unescape(titleMatch[1]).replace(/ - YouTube$/i, "").trim()
-      : channelId;
-    const description = descMatch?.[1] ? unescape(descMatch[1]) : "";
+    const ogTitle = html.match(
+      /<meta\s+property="og:title"\s+content="([^"]*)"/i
+    );
+    const pageTitle = html.match(/<title>([^<]+)<\/title>/i);
+    const ogDesc = html.match(
+      /<meta\s+property="og:description"\s+content="([^"]*)"/i
+    );
+    const metaDesc = html.match(
+      /<meta\s+name="description"\s+content="([^"]*)"/i
+    );
+    const jsonDesc =
+      html.match(/"description":\{"simpleText":"((?:\\.|[^"\\])*)"/) ||
+      html.match(/"shortDescription":"((?:\\.|[^"\\])*)"/);
+
+    let channelName =
+      (ogTitle?.[1] && unescape(ogTitle[1])) ||
+      (pageTitle?.[1] && unescape(pageTitle[1]).replace(/\s*-\s*YouTube$/i, "")) ||
+      channelId;
+    // Avoid YouTube chrome labels mistakenly captured as the channel name
+    if (channelName === "홈" || channelName === "Home" || channelName.length < 1) {
+      channelName = channelId;
+    }
+
+    const description = unescape(
+      ogDesc?.[1] || metaDesc?.[1] || jsonDesc?.[1] || ""
+    );
 
     return {
       channelId,
-      channelName,
+      channelName: channelName.trim(),
       channelUrl: `https://www.youtube.com/channel/${channelId}`,
       profileImage: null,
       description,
+      rawHtml: html,
     };
   } catch {
     return null;
@@ -190,7 +209,7 @@ async function fetchYoutubeChannelFromPage(
 
 async function resolveYoutubeChannel(
   raw: string
-): Promise<(StreamingChannelInfo & { description: string }) | { error: string }> {
+): Promise<(StreamingChannelInfo & { description: string; rawHtml?: string }) | { error: string }> {
   const ref = parseYoutubeChannelRef(raw);
   if ("error" in ref) return ref;
 
@@ -207,6 +226,17 @@ async function resolveYoutubeChannel(
     error:
       "YouTube 채널을 찾을 수 없습니다. 채널 URL(예: https://www.youtube.com/@핸들)을 확인해 주세요.",
   };
+}
+
+function channelContainsVerificationCode(
+  channel: { description?: string; rawHtml?: string },
+  verificationCode: string
+): boolean {
+  const code = verificationCode.trim();
+  if (!code) return false;
+  if (channel.description?.includes(code)) return true;
+  if (channel.rawHtml?.includes(code)) return true;
+  return false;
 }
 
 async function findLiveVideoId(channelId: string, accessToken?: string | null) {
@@ -236,7 +266,6 @@ async function findLiveVideoId(channelId: string, accessToken?: string | null) {
 
 export const youtubeStreamingProvider: StreamingPlatformProvider = {
   platform: "YOUTUBE",
-  /** Off by default — sensitive youtube.readonly needs Google app verification. */
   supportsOAuth: YOUTUBE_OAUTH_ENABLED,
 
   getConnectUrl(state, redirectUri) {
@@ -339,7 +368,7 @@ export const youtubeStreamingProvider: StreamingPlatformProvider = {
   async verifyProfileCode(channel, verificationCode) {
     const resolved = await resolveYoutubeChannel(channel.channelUrl || channel.channelId);
     if ("error" in resolved) return false;
-    return resolved.description.includes(verificationCode);
+    return channelContainsVerificationCode(resolved, verificationCode);
   },
 
   async refreshTokens(tokens) {
@@ -409,7 +438,7 @@ export async function diagnoseYoutubeVerification(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const resolved = await resolveYoutubeChannel(channelUrlOrId);
   if ("error" in resolved) return { ok: false, error: resolved.error };
-  if (!resolved.description.includes(verificationCode)) {
+  if (!channelContainsVerificationCode(resolved, verificationCode)) {
     return {
       ok: false,
       error:
