@@ -40,25 +40,62 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     ...authConfig.callbacks,
-    async signIn({ user }) {
+    async signIn({ user, account, profile }) {
       if (!user?.id) return true;
-      const dbUser = await db.user.findUnique({
+
+      const userSelect = {
+        id: true,
+        isBanned: true,
+        accountStatus: true,
+        deletedAt: true,
+        scheduledPurgeAt: true,
+        emailVerified: true,
+      } as const;
+
+      let dbUser = await db.user.findUnique({
         where: { id: user.id },
-        select: { isBanned: true, accountStatus: true, deletedAt: true, scheduledPurgeAt: true },
+        select: userSelect,
       });
+
+      let resolvedUserId = dbUser?.id ?? user.id;
+
+      // Auth.js passes an ephemeral id before linking OAuth to an existing email account.
+      if (
+        !dbUser &&
+        (account?.type === "oauth" || account?.type === "oidc") &&
+        user.email
+      ) {
+        const normalized = user.email.trim().toLowerCase();
+        const existing = await db.user.findUnique({
+          where: { email: normalized },
+          select: userSelect,
+        });
+
+        if (!existing) return true;
+
+        const oauthEmailVerified = Boolean(
+          (profile as { email_verified?: boolean } | undefined)?.email_verified ??
+            (profile as { verified_email?: boolean } | undefined)?.verified_email
+        );
+        if (!oauthEmailVerified || !existing.emailVerified) return false;
+
+        dbUser = existing;
+        resolvedUserId = existing.id;
+      }
+
       if (!dbUser) return false;
       if (isServiceBanned(dbUser)) return false;
 
       if (dbUser.deletedAt) {
         if (isAccountPastRecovery(dbUser)) return false;
         if (canRecoverAccount(dbUser)) {
-          await recoverDeletedAccount(user.id);
+          await recoverDeletedAccount(resolvedUserId);
         } else {
           return false;
         }
       }
 
-      void recordUserDeviceFromRequest(user.id);
+      void recordUserDeviceFromRequest(resolvedUserId);
       return true;
     },
     async jwt({ token, user, trigger }) {

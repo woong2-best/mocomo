@@ -63,7 +63,7 @@ const credentialsProvider = Credentials({
   },
 });
 
-/** OAuth 프로바이더 공통 — allowDangerousEmailAccountLinking 미사용 (검증된 이메일만 어댑터에서 연동) */
+/** OAuth 프로바이더 — Google만 verified-email linking 허용 (signIn 콜백에서 재검증) */
 export function getAuthProviders(): NonNullable<NextAuthConfig["providers"]> {
   const providers: NonNullable<NextAuthConfig["providers"]> = [credentialsProvider];
 
@@ -72,6 +72,7 @@ export function getAuthProviders(): NonNullable<NextAuthConfig["providers"]> {
       Google({
         clientId: process.env.AUTH_GOOGLE_ID,
         clientSecret: process.env.AUTH_GOOGLE_SECRET,
+        allowDangerousEmailAccountLinking: true,
         // Non-sensitive only — must match GCP OAuth consent "Data access" scopes.
         authorization: {
           params: {
@@ -86,6 +87,7 @@ export function getAuthProviders(): NonNullable<NextAuthConfig["providers"]> {
       Google({
         clientId: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        allowDangerousEmailAccountLinking: true,
         authorization: {
           params: {
             scope: "openid email profile",

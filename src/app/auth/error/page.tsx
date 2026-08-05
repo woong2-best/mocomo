@@ -12,7 +12,8 @@ export default async function AuthErrorPage({
   const messages: Record<string, string> = {
     Configuration:
       "Vercel Production 환경 변수가 빠졌거나 잘못됐습니다. AUTH_SECRET(32자 이상), DATABASE_URL, AUTH_URL을 확인한 뒤 Redeploy 하세요.",
-    AccessDenied: "접근이 거부되었습니다.",
+    AccessDenied:
+      "접근이 거부되었습니다. 이메일 인증이 완료되지 않았거나, 계정 이용이 제한된 상태일 수 있습니다.",
     Verification: "인증 링크가 만료되었습니다.",
     OAuthSignin:
       "소셜 로그인 시작에 실패했습니다. Vercel에 OAuth Client ID/Secret과 AUTH_URL을 확인하세요.",
