@@ -79,11 +79,6 @@ export type MessageKey =
   | "anime.noticeAccount"
   | "anime.collabNotice"
   | "anime.loggedInAs"
-  | "anime.wikiGuideTitle"
-  | "anime.statusLive"
-  | "anime.statusPartial"
-  | "anime.statusPlanned"
-  | "anime.exampleLabel"
   | "anime.searchPlaceholder"
   | "anime.searchNoResults"
   | "anime.popularSearches"
@@ -537,11 +532,6 @@ const ko: Record<MessageKey, string> = {
   "anime.noticeAccount": "공지 · 계정",
   "anime.collabNotice": "컬쳐 위키 글은 로그인한 회원이 함께 편집합니다. 악의적 편집·스팸은 신고·운영진 조치 대상입니다.",
   "anime.loggedInAs": "@{username} 님으로 로그인됨",
-  "anime.wikiGuideTitle": "컬쳐 위키 안내",
-  "anime.statusLive": "이용 가능",
-  "anime.statusPartial": "일부 지원",
-  "anime.statusPlanned": "준비 중",
-  "anime.exampleLabel": "예시:",
   "anime.searchPlaceholder": "컬쳐 위키 검색 (제목·내용)",
   "anime.searchNoResults": "검색 결과 없음 · Enter로 전체 검색",
   "anime.popularSearches": "인기 검색어",
@@ -998,11 +988,6 @@ const en: Record<MessageKey, string> = {
   "anime.noticeAccount": "Notice · Account",
   "anime.collabNotice": "Culture Wiki articles are edited collaboratively by logged-in members. Abuse and spam may be reported or moderated.",
   "anime.loggedInAs": "Signed in as @{username}",
-  "anime.wikiGuideTitle": "Culture Wiki guide",
-  "anime.statusLive": "Available",
-  "anime.statusPartial": "Partial",
-  "anime.statusPlanned": "Planned",
-  "anime.exampleLabel": "Example:",
   "anime.searchPlaceholder": "Search Culture Wiki (title · content)",
   "anime.searchNoResults": "No results · press Enter for full search",
   "anime.popularSearches": "Trending searches",
@@ -1459,11 +1444,6 @@ const ja: Record<MessageKey, string> = {
   "anime.noticeAccount": "お知らせ · アカウント",
   "anime.collabNotice": "カルチャーWikiの記事はログイン会員が共同編集します。悪意のある編集・スパムは通報・運営対応の対象です。",
   "anime.loggedInAs": "@{username} でログイン中",
-  "anime.wikiGuideTitle": "カルチャーWikiガイド",
-  "anime.statusLive": "利用可能",
-  "anime.statusPartial": "一部対応",
-  "anime.statusPlanned": "準備中",
-  "anime.exampleLabel": "例:",
   "anime.searchPlaceholder": "カルチャーWiki検索（タイトル・本文）",
   "anime.searchNoResults": "結果なし · Enterで全体検索",
   "anime.popularSearches": "人気検索語",
@@ -1920,11 +1900,6 @@ const zh: Record<MessageKey, string> = {
   "anime.noticeAccount": "公告 · 账户",
   "anime.collabNotice": "文化百科条目由登录会员共同编辑。恶意编辑与垃圾内容可被举报或处理。",
   "anime.loggedInAs": "已登录 @{username}",
-  "anime.wikiGuideTitle": "文化百科指南",
-  "anime.statusLive": "可用",
-  "anime.statusPartial": "部分支持",
-  "anime.statusPlanned": "筹备中",
-  "anime.exampleLabel": "示例：",
   "anime.searchPlaceholder": "搜索文化百科（标题·正文）",
   "anime.searchNoResults": "无结果 · 按 Enter 全站搜索",
   "anime.popularSearches": "热门搜索",

@@ -5,7 +5,6 @@ import { Tv } from "lucide-react";
 import type { AnimeGenre } from "@prisma/client";
 import type { CultureWikiHubItem } from "@/lib/culture-wiki-hub-data";
 import { AnimeAddButton } from "@/components/anime/anime-add-button";
-import { AnimeWikiGuide } from "@/components/anime/anime-wiki-guide";
 import { AnimeHubSearch } from "@/components/anime/anime-hub-search";
 import { AnimeHubWidgets } from "@/components/anime/anime-hub-widgets";
 import { AnimeGenreBar } from "@/components/anime/anime-genre-bar";
@@ -65,8 +64,6 @@ export function AnimeHubClient({
               emptyLinkLabel={t("anime.catalogEmptyLink")}
             />
           </section>
-
-          <AnimeWikiGuide />
         </div>
 
         <aside className="lg:sticky lg:top-[4.5rem] lg:self-start">
