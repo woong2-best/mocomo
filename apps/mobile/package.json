@@ -1,6 +1,6 @@
 {
   "name": "mocomo-mobile",
-  "version": "1.0.32",
+  "version": "1.0.33",
   "main": "index.ts",
   "private": true,
   "dependencies": {
@@ -41,6 +41,7 @@
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
     "react-native-svg": "15.15.4",
+    "react-native-webview": "13.16.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
