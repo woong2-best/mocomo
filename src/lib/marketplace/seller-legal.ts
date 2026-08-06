@@ -1,12 +1,12 @@
 import type { LegalDocument } from "@/lib/legal-content";
 
-/** MoCoMo MARKET 판매자 서비스 이용약관 (사업자용) — ver 1.0 */
+/** MoCoMo MARKET 판매자 서비스 이용약관 (사업자용) — ver 1.1 */
 export const SELLER_TERMS: LegalDocument = {
   slug: "seller-terms",
   title: "MoCoMo MARKET 판매자 서비스 이용약관",
-  updatedAt: "2026년 7월 22일",
+  updatedAt: "2026년 8월 7일",
   intro:
-    '본 약관은 MoCoMo MARKET(이하 "회사")가 운영하는 온라인 오픈마켓 플랫폼 "MoCoMo MARKET"(이하 "플랫폼")을 통해 상품을 판매하고자 하는 사업자(이하 "판매자")와 회사 간의 권리, 의무 및 책임사항, 서비스 이용 조건과 절차 등을 규정함을 목적으로 합니다. 판매자는 회원가입 시 본 약관에 동의함으로써 본 약관의 적용을 받습니다.',
+    '본 약관은 미합중국 와이오밍 주 소재 MoCoMo LLC(이하 "회사")가 운영하는 온라인 오픈마켓 플랫폼 "MoCoMo MARKET"(이하 "플랫폼")을 통해 상품을 판매하고자 하는 사업자(이하 "판매자")와 회사 간의 권리, 의무 및 책임사항, 서비스 이용 조건과 절차 등을 규정함을 목적으로 합니다. 판매자는 회원가입 시 본 약관에 동의함으로써 본 약관의 적용을 받습니다.',
   blocks: [
     { type: "h2", text: "제 1 장 총칙" },
     { type: "h3", text: "제 1 조 (목적)" },
@@ -129,12 +129,12 @@ export const SELLER_TERMS: LegalDocument = {
     { type: "h3", text: "제 13 조 (준거법 및 관할)" },
     {
       type: "p",
-      text: "본 약관은 대한민국 법률을 준거법으로 하며, 분쟁에 관하여 소송이 제기되는 경우 법령이 정한 관할 법원에 따릅니다.",
+      text: "본 약관 및 플랫폼과 관련된 사항에는 미합중국 와이오밍 주(State of Wyoming, United States of America)의 법률이 적용됩니다(법률 충돌 원칙은 제외). 분쟁에 관하여 소송이 제기되는 경우 와이오밍 주 관할 법원을 전속 관할로 합니다. 다만 판매자 또는 구매자의 거주국 강행법규가 적용되는 범위에서는 해당 법령이 우선할 수 있습니다.",
     },
     { type: "h3", text: "제 14 조 (문의)" },
     {
       type: "p",
-      text: "판매자 약관 및 서비스 관련 문의는 MoCoMo 고객지원 채널 또는 mocomo.company@gmail.com 으로 연락해 주세요.",
+      text: "판매자 약관 및 서비스 관련 문의는 MoCoMo LLC 고객지원 채널 또는 mocomo.company@gmail.com 으로 연락해 주세요.",
     },
   ],
 };

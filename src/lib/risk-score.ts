@@ -81,7 +81,7 @@ export async function applyRiskAutoActions(
       type: "SYSTEM",
       title: "계정 주의 안내",
       body: "커뮤니티 운영원칙 위반 가능성이 감지되었습니다. 추가 위반 시 제한될 수 있습니다.",
-      link: "/legal/community-guidelines",
+      link: "/legal/policy",
     });
   }
 
