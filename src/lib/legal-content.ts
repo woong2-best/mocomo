@@ -581,7 +581,7 @@ export const COPYRIGHT_POLICY: LegalDocument = {
 export const PRIVACY_POLICY: LegalDocument = {
   slug: "privacy",
   title: "MoCoMo 개인정보처리방침",
-  updatedAt: "2026년 8월 7일",
+  updatedAt: "2026년 8월 8일",
   intro:
     'MoCoMo LLC(미합중국 와이오밍 주 소재, 이하 "MoCoMo" 또는 "회사")는 이용자의 개인정보를 소중히 다루며, 적용 가능한 미국 연방·주 법 및 서비스를 제공하는 지역의 관련 개인정보 보호 요구사항을 준수하기 위해 노력합니다.',
   blocks: [
@@ -661,6 +661,11 @@ export const PRIVACY_POLICY: LegalDocument = {
         "서비스 운영에 필요한 처리위탁(호스팅, CDN, 결제, 인증, 통화·라이브 인프라, 분석 등) — 계약상 보호조치를 적용",
         "사업 양도·합병 등 기업 거래 시(이전 사실을 고지)",
       ],
+    },
+    { type: "h3", text: "Google 사용자 데이터 처리 및 공유 제한" },
+    {
+      type: "p",
+      text: "회사는 Google OAuth API를 통해 수집된 Google 사용자 데이터를 계정 인증 및 서비스 제공 목적 외에 타인이나 제3자에게 판매, 공유, 전송 또는 공개하지 않습니다. (단, 법적 의무 이행 또는 서비스 제공을 위해 이용자가 명시적으로 동의한 위탁 처리의 경우는 제외됩니다.)",
     },
     { type: "hr" },
     { type: "h2", text: "5. 국제 전송" },
