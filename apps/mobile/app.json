@@ -2,7 +2,7 @@
   "expo": {
     "name": "MoCoMo",
     "slug": "mocomo",
-    "version": "1.0.35",
+    "version": "1.0.36",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -20,8 +20,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "게시물에 사진을 첨부하려면 사진 접근이 필요합니다.",
-          "cameraPermission": "게시물에 사진을 찍으려면 카메라 접근이 필요합니다."
+          "photosPermission": "게시물에 ?�진??첨�??�려�??�진 ?�근???�요?�니??",
+          "cameraPermission": "게시물에 ?�진??찍으?�면 카메???�근???�요?�니??"
         }
       ],
       "expo-web-browser",
@@ -29,7 +29,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "직거래 위치를 설정하려면 현재 위치가 필요합니다."
+          "locationWhenInUsePermission": "직거???�치�??�정?�려�??�재 ?�치가 ?�요?�니??"
         }
       ],
       "@maplibre/maplibre-react-native",
@@ -38,22 +38,22 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "net.mocomo.app",
-      "buildNumber": "40",
+      "buildNumber": "41",
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification",
           "audio"
         ],
-        "NSPhotoLibraryUsageDescription": "게시물에 사진을 첨부하려면 사진 접근이 필요합니다.",
-        "NSCameraUsageDescription": "게시물에 사진을 찍으려면 카메라 접근이 필요합니다.",
-        "NSMicrophoneUsageDescription": "음성 메시지 녹음과 라이브 시청에 마이크 권한이 필요합니다.",
-        "NSLocationWhenInUseUsageDescription": "직거래 위치를 설정하려면 현재 위치가 필요합니다.",
+        "NSPhotoLibraryUsageDescription": "게시물에 ?�진??첨�??�려�??�진 ?�근???�요?�니??",
+        "NSCameraUsageDescription": "게시물에 ?�진??찍으?�면 카메???�근???�요?�니??",
+        "NSMicrophoneUsageDescription": "?�성 메시지 ?�음�??�이�??�청??마이??권한???�요?�니??",
+        "NSLocationWhenInUseUsageDescription": "직거???�치�??�정?�려�??�재 ?�치가 ?�요?�니??",
         "KAKAO_APP_KEY": "b52b08185d2635a1cbeefd2d7236919d"
       }
     },
     "android": {
       "package": "net.mocomo.app",
-      "versionCode": 40,
+      "versionCode": 41,
       "adaptiveIcon": {
         "backgroundColor": "#F5F0E8",
         "foregroundImage": "./assets/android-icon-foreground.png",

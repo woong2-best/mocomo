@@ -13,10 +13,11 @@ import {
 import { FlashList } from "@shopify/flash-list";
 import { Ionicons } from "@expo/vector-icons";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useIsFocused, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchFeedPage, type FeedPost } from "@/api/feed";
+import { saveFeedBootstrap } from "@/api/feed-bootstrap-cache";
 import { fetchWeeklyHighlights, type HighlightItem } from "@/api/highlights";
 import { searchAll, type SearchResult } from "@/api/social";
 import { useAuth } from "@/auth/AuthContext";
@@ -53,11 +54,13 @@ export function FeedScreen() {
   const { user, signOut } = useAuth();
   const queryClient = useQueryClient();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const isFocused = useIsFocused();
   const [refreshing, setRefreshing] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [accountsSheetOpen, setAccountsSheetOpen] = useState(false);
   const [activePreviewId, setActivePreviewId] = useState<string | null>(null);
+  const [previewArmed, setPreviewArmed] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchQ, setSearchQ] = useState("");
   const [searchSubmitted, setSearchSubmitted] = useState("");
@@ -101,13 +104,20 @@ export function FeedScreen() {
   }, [query.data]);
 
   useEffect(() => {
+    if (!query.data?.pages?.length) return;
+    void saveFeedBootstrap(query.data);
+  }, [query.data]);
+
+  useEffect(() => {
     if (!firstPaintMarked.current && posts.length > 0) {
       firstPaintMarked.current = true;
       perfMeasure("cold_start_to_feed", "app_start");
       const task = InteractionManager.runAfterInteractions(() => {
-        // Warm first-open stacks so Reels / DM push stays snappy
+        // Warm Reels first (common path). DM room later so first scroll stays light.
         require("@/features/reels/ReelsScreen");
-        require("@/features/messages/MessageRoomScreen");
+        setTimeout(() => {
+          require("@/features/messages/MessageRoomScreen");
+        }, 1800);
       });
       return () => task.cancel();
     }
@@ -143,12 +153,27 @@ export function FeedScreen() {
   );
 
   useEffect(() => {
-    if (activePreviewId || posts.length === 0) return;
+    if (!isFocused || !previewArmed || activePreviewId || posts.length === 0) return;
     const firstVideo = posts.find((p) =>
       (p.media ?? []).some((m) => m.type === "VIDEO" && m.url)
     );
     if (firstVideo) setActivePreviewId(firstVideo.id);
-  }, [activePreviewId, posts]);
+  }, [activePreviewId, isFocused, posts, previewArmed]);
+
+  /** Leaving Home (e.g. Reels) must kill inline preview — freezeOnBlur won't pause native players. */
+  useFocusEffect(
+    useCallback(() => {
+      // Let feed paint/scroll settle before starting expo-video decode.
+      const task = InteractionManager.runAfterInteractions(() => {
+        setPreviewArmed(true);
+      });
+      return () => {
+        task.cancel();
+        setPreviewArmed(false);
+        setActivePreviewId(null);
+      };
+    }, [])
+  );
 
   const onAccountAction = useCallback(
     (action: AccountMenuAction) => {
@@ -202,8 +227,10 @@ export function FeedScreen() {
     [navigation]
   );
   const onPressVideo = useCallback(
-    (postId: string, mediaId?: string, mediaIndex?: number) =>
-      navigation.navigate("Reels", { postId, mediaId, mediaIndex }),
+    (postId: string, mediaId?: string, mediaIndex?: number) => {
+      setActivePreviewId(null);
+      navigation.navigate("Reels", { postId, mediaId, mediaIndex });
+    },
     [navigation]
   );
 
@@ -211,13 +238,15 @@ export function FeedScreen() {
     ({ item }: { item: FeedPost }) => (
       <FeedPostCard
         post={item}
-        previewActive={activePreviewIdRef.current === item.id}
+        previewActive={
+          isFocused && previewArmed && activePreviewIdRef.current === item.id
+        }
         onPressPost={onPressPost}
         onPressAuthor={onPressAuthor}
         onPressVideo={onPressVideo}
       />
     ),
-    [onPressAuthor, onPressPost, onPressVideo]
+    [isFocused, onPressAuthor, onPressPost, onPressVideo, previewArmed]
   );
 
   const getItemType = useCallback((item: FeedPost) => feedItemType(item), []);
@@ -369,7 +398,7 @@ export function FeedScreen() {
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           getItemType={getItemType}
-          extraData={activePreviewId}
+          extraData={`${activePreviewId}:${isFocused ? 1 : 0}:${previewArmed ? 1 : 0}`}
           drawDistance={PerformanceBudgets.feedDrawDistance}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}

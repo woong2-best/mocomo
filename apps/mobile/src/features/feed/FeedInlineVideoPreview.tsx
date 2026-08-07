@@ -94,7 +94,25 @@ function FeedInlineVideoPreviewInner({ media, active, videoCount = 1, onPress }:
     } catch {
       // ignore
     }
+    // Pause before unload — otherwise ExoPlayer/AVPlayer can keep audio under the Reels stack.
+    return () => {
+      try {
+        player.pause();
+      } catch {
+        // ignore
+      }
+    };
   }, [player, shouldLoadPlayer]);
+
+  const openImmersive = () => {
+    // Stop inline preview immediately so it cannot overlap Reels audio/video.
+    try {
+      if (shouldLoadPlayer) player.pause();
+    } catch {
+      // ignore
+    }
+    onPress();
+  };
 
   const aspect =
     media.width && media.height && media.width > 0 && media.height > 0
@@ -150,7 +168,7 @@ function FeedInlineVideoPreviewInner({ media, active, videoCount = 1, onPress }:
       {/* Full-bleed open target above native video surface */}
       <Pressable
         style={styles.openHit}
-        onPress={onPress}
+        onPress={openImmersive}
         accessibilityRole="button"
         accessibilityLabel="영상 전체화면으로 보기"
       />

@@ -56,7 +56,9 @@ export function ReelsScreen() {
     queryFn: ({ pageParam }) => fetchFeedPage(pageParam ?? null, 12),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
-    staleTime: 20_000,
+    // Same cache as Home — opening Reels must feel instant (Twitter/IG), not a refetch.
+    staleTime: 90_000,
+    refetchOnMount: false,
   });
 
   const posts = useMemo(() => {
