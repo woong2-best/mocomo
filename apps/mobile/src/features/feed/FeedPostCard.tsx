@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import type { FeedPost } from "@/api/feed";
 import { togglePostLike } from "@/api/feed";
+import { FeedImageLightbox } from "@/features/feed/FeedImageLightbox";
 import { LazyFeedVideoPreview } from "@/features/feed/LazyFeedVideoPreview";
 import {
   firstVisualMedia,
@@ -46,6 +47,8 @@ function FeedPostCardInner({
   const [liked, setLiked] = useState(!!post.liked);
   const [likeCount, setLikeCount] = useState(post._count?.likes ?? 0);
   const [pending, setPending] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
     setLiked(!!post.liked);
@@ -58,6 +61,17 @@ function FeedPostCardInner({
   const videoCount = useMemo(
     () => (post.media ?? []).filter((m) => m.type === "VIDEO" && m.url).length,
     [post.media]
+  );
+
+  const images = useMemo(
+    () =>
+      (post.media ?? [])
+        .filter((m) => m.type === "IMAGE" && !!m.url?.trim())
+        .map((m, i) => ({
+          id: m.id?.trim() || `${post.id}:img:${i}`,
+          url: m.url.trim(),
+        })),
+    [post.id, post.media]
   );
 
   const videoMediaIndex = useMemo(() => {
@@ -103,6 +117,23 @@ function FeedPostCardInner({
     }
     onPressPost?.(post.id);
   }, [hasVideo, isVideo, onPressPost, onPressVideo, post.id, videoMediaIndex, visual?.id]);
+
+  /** Web parity: photo → fullscreen lightbox (PostMediaLightbox). */
+  const openPhoto = useCallback(() => {
+    if (images.length === 0) {
+      onPressPost?.(post.id);
+      return;
+    }
+    const start =
+      visual?.type === "IMAGE"
+        ? Math.max(
+            0,
+            images.findIndex((img) => img.url === visual.url || img.id === visual.id)
+          )
+        : 0;
+    setLightboxIndex(start === -1 ? 0 : start);
+    setLightboxOpen(true);
+  }, [images, onPressPost, post.id, visual]);
 
   const openPost = useCallback(() => {
     onPressPost?.(post.id);
@@ -156,14 +187,8 @@ function FeedPostCardInner({
           videoCount={videoCount}
           onPress={openVideo}
         />
-      ) : visual ? (
-        <Pressable
-          onPress={openPost}
-          disabled={!onPressPost}
-          accessibilityRole="button"
-          accessibilityLabel="사진 자세히 보기"
-          style={[styles.media, { width: mediaLayout }]}
-        >
+      ) : visual && images.length > 0 ? (
+        <View style={[styles.media, { width: mediaLayout }]}>
           <Image
             source={{ uri: visual.url, width: mediaDecode, height: mediaDecode }}
             style={StyleSheet.absoluteFill}
@@ -173,7 +198,19 @@ function FeedPostCardInner({
             transition={0}
             pointerEvents="none"
           />
-        </Pressable>
+          {/* Native Image can swallow taps — same overlay pattern as video preview */}
+          <Pressable
+            style={styles.mediaHit}
+            onPress={openPhoto}
+            accessibilityRole="button"
+            accessibilityLabel="사진 크게 보기"
+          />
+          {images.length > 1 ? (
+            <View style={styles.countBadge} pointerEvents="none">
+              <Text style={styles.countBadgeText}>{images.length}</Text>
+            </View>
+          ) : null}
+        </View>
       ) : null}
 
       <View style={styles.actions}>
@@ -190,6 +227,13 @@ function FeedPostCardInner({
           <Text style={styles.actionText}>{post._count?.comments ?? 0}</Text>
         </Pressable>
       </View>
+
+      <FeedImageLightbox
+        visible={lightboxOpen}
+        images={images}
+        initialIndex={lightboxIndex}
+        onClose={() => setLightboxOpen(false)}
+      />
     </View>
   );
 }
@@ -236,6 +280,21 @@ function createStyles(colors: ThemeColors) {
       alignSelf: "stretch",
       overflow: "hidden",
     },
+    mediaHit: {
+      ...StyleSheet.absoluteFill,
+      zIndex: 2,
+    },
+    countBadge: {
+      position: "absolute",
+      top: 8,
+      right: 8,
+      zIndex: 3,
+      backgroundColor: "rgba(0,0,0,0.55)",
+      borderRadius: 10,
+      paddingHorizontal: 7,
+      paddingVertical: 2,
+    },
+    countBadgeText: { color: "#fff", fontSize: 11, fontWeight: "800" },
     actions: { flexDirection: "row", alignItems: "center", gap: 20, marginTop: 2 },
     actionBtn: { flexDirection: "row", alignItems: "center", gap: 5 },
     actionText: { fontSize: 13, color: colors.textMuted, fontWeight: "600" },
