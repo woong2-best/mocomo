@@ -45,7 +45,6 @@ export default async function AnimeHubPage({
           titleEn: true,
           coverUrl: true,
           genre: true,
-          creator: { select: { username: true } },
         },
       }),
     ]);
@@ -58,7 +57,6 @@ export default async function AnimeHubPage({
       titleEn: a.titleEn,
       coverUrl: a.coverUrl,
       genreEmoji: getGenreInfo(a.genre).emoji,
-      creatorUsername: a.creator.username,
     }));
   } catch {
     popular = [];

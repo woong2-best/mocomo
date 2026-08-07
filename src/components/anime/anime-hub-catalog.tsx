@@ -1,4 +1,9 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { useLocale } from "@/components/providers/locale-provider";
+import { displayAnimeTitle, needsAnimeTitleAutoResolve } from "@/lib/anime-display-title";
 import { animeSlugFromTitle, isValidAnimeSlug } from "@/lib/utils";
 
 export type AnimeHubCatalogItem = {
@@ -8,7 +13,6 @@ export type AnimeHubCatalogItem = {
   titleEn: string | null;
   coverUrl: string | null;
   genreEmoji: string;
-  creatorUsername: string;
 };
 
 export function AnimeHubCatalog({
@@ -24,6 +28,57 @@ export function AnimeHubCatalog({
   emptyLinkHref: string;
   emptyLinkLabel: string;
 }) {
+  const { locale } = useLocale();
+  const [autoTitles, setAutoTitles] = useState<Record<string, string>>({});
+
+  const syncTitles = useMemo(
+    () =>
+      Object.fromEntries(
+        items.map((a) => [
+          a.slug,
+          displayAnimeTitle({ title: a.title, titleEn: a.titleEn, slug: a.slug }, locale),
+        ])
+      ),
+    [items, locale]
+  );
+
+  useEffect(() => {
+    if (!needsAnimeTitleAutoResolve(locale) || items.length === 0) {
+      setAutoTitles({});
+      return;
+    }
+
+    let cancelled = false;
+    const ac = new AbortController();
+
+    (async () => {
+      try {
+        const res = await fetch("/api/anime/localize-titles", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            locale,
+            items: items.map((a) => ({
+              slug: a.slug,
+              title: a.title,
+              titleEn: a.titleEn,
+            })),
+          }),
+          signal: ac.signal,
+        });
+        const body = (await res.json()) as { ok?: boolean; titles?: Record<string, string> };
+        if (!cancelled && body.ok && body.titles) setAutoTitles(body.titles);
+      } catch {
+        if (!cancelled) setAutoTitles({});
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      ac.abort();
+    };
+  }, [items, locale]);
+
   if (items.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 p-12 text-center space-y-2">
@@ -39,13 +94,14 @@ export function AnimeHubCatalog({
   }
 
   return (
-    <div className="columns-2 sm:columns-3 lg:columns-4 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
       {items.map((item) => {
         const href = isValidAnimeSlug(item.slug)
           ? `/anime/${item.slug}`
           : `/anime/${animeSlugFromTitle(item.title, item.titleEn)}`;
+        const label = autoTitles[item.slug] ?? syncTitles[item.slug] ?? item.title;
         return (
-          <article key={item.id} className="break-inside-avoid mb-3">
+          <article key={item.id}>
             <Link href={href} className="group block">
               <div className="relative overflow-hidden rounded-lg border border-border/50 bg-muted/20 shadow-sm">
                 {item.coverUrl ? (
@@ -62,15 +118,9 @@ export function AnimeHubCatalog({
                   </div>
                 )}
               </div>
-              <div className="mt-2 space-y-0.5 px-0.5">
-                <p className="text-xs font-semibold leading-snug line-clamp-2 group-hover:text-[#0096fa] transition-colors">
-                  {item.title}
-                </p>
-                {item.titleEn ? (
-                  <p className="text-[10px] text-muted-foreground line-clamp-1">{item.titleEn}</p>
-                ) : null}
-                <p className="text-[10px] text-muted-foreground truncate">@{item.creatorUsername}</p>
-              </div>
+              <p className="mt-2 min-h-[2.5rem] px-0.5 text-xs font-semibold leading-snug line-clamp-2 group-hover:text-[#0096fa] transition-colors">
+                {label}
+              </p>
             </Link>
           </article>
         );

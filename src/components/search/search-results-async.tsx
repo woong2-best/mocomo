@@ -5,6 +5,8 @@ import { getAuthUserId } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
+import { displayAnimeTitle } from "@/lib/anime-display-title";
+import { getRequestLocale } from "@/lib/i18n/server";
 import { userDisplayName } from "@/lib/user-public-select";
 import { isLiveFeatureEnabled } from "@/lib/live-feature";
 import { recordSearchEvent } from "@/lib/search/record";
@@ -20,7 +22,7 @@ export async function SearchResultsAsync({ query }: { query: string }) {
   }
 
   const searchKey = q.toLowerCase().slice(0, 80);
-  const viewerId = await getAuthUserId();
+  const [viewerId, locale] = await Promise.all([getAuthUserId(), getRequestLocale()]);
   const cached = await unstable_cache(
     () => runFastSearch(q),
     ["fast-search-page-v2", searchKey],
@@ -66,10 +68,12 @@ export async function SearchResultsAsync({ query }: { query: string }) {
                   ) : null}
                 </div>
                 <div className="min-w-0">
-                  <p className="font-medium truncate">{a.title}</p>
-                  {a.titleEn && (
-                    <p className="text-xs text-muted-foreground truncate">{a.titleEn}</p>
-                  )}
+                  <p className="font-medium truncate">
+                    {displayAnimeTitle(
+                      { title: a.title, titleEn: a.titleEn ?? null, slug: a.slug },
+                      locale
+                    )}
+                  </p>
                   <p className="text-[11px] text-primary/70 mt-0.5">컬쳐위키</p>
                 </div>
               </Link>

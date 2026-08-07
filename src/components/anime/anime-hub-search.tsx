@@ -6,12 +6,13 @@ import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { useLocale } from "@/components/providers/locale-provider";
+import { displayAnimeTitle } from "@/lib/anime-display-title";
 
 type Result = { slug: string; title: string; titleEn: string | null };
 
 export function AnimeHubSearch() {
   const router = useRouter();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [q, setQ] = useState("");
   const [results, setResults] = useState<Result[]>([]);
   const [popular, setPopular] = useState<{ query: string; count: number }[]>([]);
@@ -72,8 +73,12 @@ export function AnimeHubSearch() {
               href={`/anime/${r.slug}`}
               className="block px-3 py-2 text-sm hover:bg-muted/60 border-b border-border/40 last:border-0"
             >
-              <span className="font-medium">{r.title}</span>
-              {r.titleEn && <span className="text-muted-foreground ml-1 text-xs">{r.titleEn}</span>}
+              <span className="font-medium truncate">
+                {displayAnimeTitle(
+                  { title: r.title, titleEn: r.titleEn, slug: r.slug },
+                  locale
+                )}
+              </span>
             </Link>
           ))}
           {results.length === 0 && q.trim().length >= 1 && (
