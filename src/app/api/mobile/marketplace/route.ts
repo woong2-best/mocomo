@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
-import { getMobileUserId, requireMobileApiUser } from "@/lib/api-mobile-auth";
+import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { getUsedListings } from "@/actions/used-market";
 import { listingImages } from "@/lib/used-market";
 import {
@@ -21,7 +21,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ items });
   }
 
-  await getMobileUserId(req);
   const q = req.nextUrl.searchParams.get("q")?.trim() || undefined;
   const category = req.nextUrl.searchParams.get("category")?.trim() || undefined;
   const sido = req.nextUrl.searchParams.get("sido")?.trim() || undefined;
@@ -66,7 +65,11 @@ export async function GET(req: NextRequest) {
     };
   });
 
-  return NextResponse.json({ items });
+  return NextResponse.json({ items }, {
+    headers: {
+      "Cache-Control": "public, s-maxage=15, stale-while-revalidate=45",
+    },
+  });
 }
 
 const createSchema = z.object({

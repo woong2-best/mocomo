@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
-import { getMobileUserId } from "@/lib/api-mobile-auth";
 import { getEvents } from "@/actions/events";
 
 export async function GET(req: NextRequest) {
   const limited = await rateLimitPublicApi(req, "mobile-events-list", 60);
   if (limited) return limited;
 
-  await getMobileUserId(req);
 
   const events = await getEvents();
   return NextResponse.json({

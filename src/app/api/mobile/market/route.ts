@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { MarketplaceListingType } from "@prisma/client";
 import { rateLimitPublicApi } from "@/lib/api-security";
-import { getMobileUserId } from "@/lib/api-mobile-auth";
 import { listMarketplaceListings } from "@/actions/marketplace";
 import { MARKETPLACE_LISTING_TYPES } from "@/lib/marketplace/constants";
 
@@ -15,7 +14,6 @@ export async function GET(req: NextRequest) {
   const limited = await rateLimitPublicApi(req, "mobile-star-market-list", 60);
   if (limited) return limited;
 
-  await getMobileUserId(req);
 
   const typeRaw = req.nextUrl.searchParams.get("type")?.trim().toUpperCase() || "ALL";
   const type =
@@ -35,29 +33,39 @@ export async function GET(req: NextRequest) {
     cursor,
   });
 
-  return NextResponse.json({
-    items: items.map((row) => ({
-      id: row.id,
-      title: row.title,
-      type: row.type,
-      category: row.category,
-      priceAmount: row.priceAmount,
-      currency: row.currency,
-      coverUrl: row.coverUrl,
-      stock: row.stock,
-      productionDays: row.productionDays,
-      favoriteCount: row.favoriteCount,
-      salesCount: row.salesCount,
-      createdAt: row.createdAt.toISOString(),
-      seller: row.seller
-        ? {
-            id: row.seller.id,
-            username: row.seller.username,
-            image: row.seller.image,
-            displayName: row.sellerProfile?.displayName ?? null,
-          }
-        : null,
-    })),
-    nextCursor,
-  });
+  return NextResponse.json(
+    {
+      items: items.map((row) => ({
+        id: row.id,
+        title: row.title,
+        type: row.type,
+        category: row.category,
+        priceAmount: row.priceAmount,
+        currency: row.currency,
+        coverUrl: row.coverUrl,
+        stock: row.stock,
+        productionDays: row.productionDays,
+        favoriteCount: row.favoriteCount,
+        salesCount: row.salesCount,
+        createdAt: row.createdAt.toISOString(),
+        seller: row.seller
+          ? {
+              id: row.seller.id,
+              username: row.seller.username,
+              image: row.seller.image,
+              displayName: row.sellerProfile?.displayName ?? null,
+            }
+          : null,
+      })),
+      nextCursor,
+    },
+    {
+      headers: {
+        "Cache-Control":
+          q || category || type !== "ALL"
+            ? "private, no-cache"
+            : "public, s-maxage=15, stale-while-revalidate=45",
+      },
+    }
+  );
 }

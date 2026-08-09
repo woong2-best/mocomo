@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
-import { getMobileUserId } from "@/lib/api-mobile-auth";
 import { getSortedLiveGamesForNav } from "@/lib/minigames/registry";
 
 export async function GET(req: NextRequest) {
   const limited = await rateLimitPublicApi(req, "mobile-games", 60);
   if (limited) return limited;
-  await getMobileUserId(req);
 
   const items = getSortedLiveGamesForNav().map((g) => ({
     id: g.id,
@@ -17,5 +15,8 @@ export async function GET(req: NextRequest) {
     status: g.status,
   }));
 
-  return NextResponse.json({ items });
+  return NextResponse.json(
+    { items },
+    { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } }
+  );
 }

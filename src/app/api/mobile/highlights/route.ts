@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
-import { getMobileUserId } from "@/lib/api-mobile-auth";
 import { getCachedWeeklyHighlights } from "@/lib/cached-data";
 
 function mapHighlight(p: {
@@ -31,7 +30,6 @@ function mapHighlight(p: {
 export async function GET(req: NextRequest) {
   const limited = await rateLimitPublicApi(req, "mobile-highlights", 60);
   if (limited) return limited;
-  await getMobileUserId(req);
 
   try {
     const { topLiked, topViewed } = await getCachedWeeklyHighlights();

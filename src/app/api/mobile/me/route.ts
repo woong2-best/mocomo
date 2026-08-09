@@ -2,31 +2,66 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { db } from "@/lib/db";
-import { requireMobileApiUser } from "@/lib/api-mobile-auth";
+import {
+  getMobileUserId,
+  requireMobileApiUser,
+} from "@/lib/api-mobile-auth";
+import {
+  ACCOUNT_SUSPENDED_WRITE_MESSAGE,
+  assertAccountCanWrite,
+  isServiceBanned,
+} from "@/lib/account-status";
 import { isLocale, normalizeLocale } from "@/lib/i18n/config";
 import { normalizeTimeZone } from "@/lib/i18n/timezone";
 
+const meSelect = {
+  id: true,
+  username: true,
+  name: true,
+  image: true,
+  locale: true,
+  countryCode: true,
+  timeZone: true,
+  createdAt: true,
+  isBanned: true,
+  accountStatus: true,
+  deletedAt: true,
+  premiumTier: true,
+  profile: { select: { bio: true, bannerUrl: true } },
+  _count: { select: { posts: true, followers: true, following: true } },
+} as const;
+
+/** Single DB round-trip for /me (no requireMobileApiUser + second findUnique). */
 export async function GET(req: NextRequest) {
-  const authResult = await requireMobileApiUser(req);
-  if ("error" in authResult) return authResult.error;
+  const limited = await rateLimitPublicApi(req, "mobile-me", 120);
+  if (limited) return limited;
+
+  const userId = await getMobileUserId(req);
+  if (!userId) {
+    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+  }
 
   const user = await db.user.findUnique({
-    where: { id: authResult.user.id },
-    select: {
-      id: true,
-      username: true,
-      name: true,
-      image: true,
-      locale: true,
-      countryCode: true,
-      timeZone: true,
-      profile: { select: { bio: true } },
-      _count: { select: { posts: true, followers: true, following: true } },
-    },
+    where: { id: userId },
+    select: meSelect,
   });
 
   if (!user) {
     return NextResponse.json({ error: "사용자를 찾을 수 없습니다." }, { status: 404 });
+  }
+  if (isServiceBanned(user)) {
+    return NextResponse.json({ error: "이용이 제한된 계정입니다." }, { status: 403 });
+  }
+  if (user.deletedAt) {
+    return NextResponse.json({ error: "탈퇴한 계정입니다." }, { status: 403 });
+  }
+  try {
+    assertAccountCanWrite(user, "default");
+  } catch {
+    return NextResponse.json(
+      { error: ACCOUNT_SUSPENDED_WRITE_MESSAGE, code: "ACCOUNT_SUSPENDED" },
+      { status: 403 }
+    );
   }
 
   return NextResponse.json({
@@ -39,6 +74,8 @@ export async function GET(req: NextRequest) {
       countryCode: user.countryCode,
       timeZone: user.timeZone,
       bio: user.profile?.bio ?? null,
+      bannerUrl: user.profile?.bannerUrl ?? null,
+      createdAt: user.createdAt.toISOString(),
       counts: {
         posts: user._count.posts,
         followers: user._count.followers,

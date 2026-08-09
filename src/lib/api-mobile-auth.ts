@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import type { AccountStatus, PremiumTier } from "@prisma/client";
 import { db } from "@/lib/db";
 import {
   ACCOUNT_SUSPENDED_WRITE_MESSAGE,
@@ -19,6 +20,36 @@ const userSelect = {
   accountStatus: true,
   deletedAt: true,
 } as const;
+
+type GateUser = {
+  id: string;
+  username: string;
+  name: string | null;
+  image: string | null;
+  premiumTier: PremiumTier;
+  isBanned: boolean;
+  accountStatus: AccountStatus;
+  deletedAt: Date | null;
+};
+
+/** Short TTL so chat sync / inbox don't pay a DB round-trip every poll. */
+const USER_GATE_TTL_MS = 8_000;
+const userGateCache = new Map<string, { at: number; user: GateUser | null }>();
+
+function getCachedGateUser(userId: string): GateUser | null | undefined {
+  const hit = userGateCache.get(userId);
+  if (!hit) return undefined;
+  if (Date.now() - hit.at > USER_GATE_TTL_MS) {
+    userGateCache.delete(userId);
+    return undefined;
+  }
+  return hit.user;
+}
+
+function setCachedGateUser(userId: string, user: GateUser | null) {
+  if (userGateCache.size > 5_000) userGateCache.clear();
+  userGateCache.set(userId, { at: Date.now(), user });
+}
 
 export function extractBearerToken(req: NextRequest): string | null {
   const header = req.headers.get("authorization");
@@ -46,10 +77,15 @@ export async function requireMobileApiUser(
     return { error: NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 }) };
   }
 
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    select: userSelect,
-  });
+  let user = getCachedGateUser(userId);
+  if (user === undefined) {
+    user = await db.user.findUnique({
+      where: { id: userId },
+      select: userSelect,
+    });
+    setCachedGateUser(userId, user);
+  }
+
   if (!user) {
     return { error: NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 }) };
   }

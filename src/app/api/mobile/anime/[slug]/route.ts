@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
-import { getMobileUserId } from "@/lib/api-mobile-auth";
 import { db } from "@/lib/db";
 
 export async function GET(
@@ -9,7 +8,6 @@ export async function GET(
 ) {
   const limited = await rateLimitPublicApi(req, "mobile-anime-detail", 60);
   if (limited) return limited;
-  await getMobileUserId(req);
 
   const { slug: raw } = await params;
   const slug = decodeURIComponent(raw ?? "").trim();

@@ -1,8 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { checkRateLimit, apiLimiter } from "@/lib/ratelimit";
-import { db } from "@/lib/db";
-import { randomBytes } from "crypto";
 import { verifyApiOrigin } from "@/lib/api-origin";
 
 export { verifyApiOrigin, shouldGuardMutatingApiOrigin, MUTATING_API_ORIGIN_EXEMPT_PREFIXES } from "@/lib/api-origin";
@@ -13,7 +11,27 @@ export function getClientIpFromRequest(req: NextRequest): string {
   return req.headers.get("x-real-ip")?.trim() || "unknown";
 }
 
-/** 공개 API 남용 방지 — Upstash 없으면 DB 폴백 */
+/** 공개 API 남용 방지 — Upstash 우선, 없으면 프로세스 메모리 (DB 절대 사용 금지). */
+const memoryRate = new Map<string, { count: number; resetAt: number }>();
+
+function checkMemoryRateLimit(key: string, maxPerMinute: number): boolean {
+  const now = Date.now();
+  if (memoryRate.size > 20_000) {
+    for (const [k, v] of memoryRate) {
+      if (v.resetAt <= now) memoryRate.delete(k);
+    }
+    if (memoryRate.size > 20_000) memoryRate.clear();
+  }
+  const row = memoryRate.get(key);
+  if (!row || row.resetAt <= now) {
+    memoryRate.set(key, { count: 1, resetAt: now + 60_000 });
+    return true;
+  }
+  if (row.count >= maxPerMinute) return false;
+  row.count += 1;
+  return true;
+}
+
 export async function rateLimitPublicApi(
   req: NextRequest,
   bucket: string,
@@ -34,52 +52,22 @@ export async function rateLimitPublicApi(
   }
 
   /**
-   * Feed GET is hit on every app open. Writing VerificationToken rows on each
-   * request (DB fallback) adds hundreds of ms–seconds and thrashes the DB.
-   * Without Upstash, skip durable limits for these read buckets — unstable_cache
-   * already bounds load.
+   * Never write VerificationToken rows for rate limits.
+   * That DB fallback made every mobile GET ~3–4s (feed skipped it → ~130ms warm).
    */
-  if (bucket === "feed" || bucket === "mobile-feed") {
-    return null;
-  }
-
-  const minuteKey = new Date().toISOString().slice(0, 16);
-  const identifier = `rate:api:${bucket}:${ip}:${minuteKey}`;
-  const count = await db.verificationToken.count({
-    where: { identifier, expires: { gt: new Date() } },
-  });
-  if (count >= maxPerMinute) {
+  if (!checkMemoryRateLimit(key, maxPerMinute)) {
     return NextResponse.json(
       { error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." },
       { status: 429 }
     );
   }
-  await db.verificationToken.create({
-    data: {
-      identifier,
-      token: `hit-${Date.now()}-${randomBytes(3).toString("hex")}`,
-      expires: new Date(Date.now() + 65_000),
-    },
-  });
   return null;
 }
 
 export async function checkUploadRateLimit(userId: string): Promise<NextResponse | null> {
-  const minuteKey = new Date().toISOString().slice(0, 16);
-  const identifier = `rate:upload:${userId}:${minuteKey}`;
-  const count = await db.verificationToken.count({
-    where: { identifier, expires: { gt: new Date() } },
-  });
-  if (count >= 20) {
+  if (!checkMemoryRateLimit(`upload:${userId}`, 20)) {
     return NextResponse.json({ error: "업로드 요청이 너무 많습니다." }, { status: 429 });
   }
-  await db.verificationToken.create({
-    data: {
-      identifier,
-      token: `up-${Date.now()}-${randomBytes(3).toString("hex")}`,
-      expires: new Date(Date.now() + 65_000),
-    },
-  });
   return null;
 }
 

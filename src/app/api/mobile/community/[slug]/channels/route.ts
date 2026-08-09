@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
-import { getMobileUserId, requireMobileApiUser } from "@/lib/api-mobile-auth";
+import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { normalizeCommunitySlugParam } from "@/lib/community-slug";
 import { ensureCommunityServerProvisioned } from "@/lib/community-server/provision";
 import { db } from "@/lib/db";
@@ -14,7 +14,6 @@ export async function GET(
   const limited = await rateLimitPublicApi(req, "mobile-community-channels", 60);
   if (limited) return limited;
 
-  await getMobileUserId(req);
   const { slug: raw } = await params;
   const slug = normalizeCommunitySlugParam(raw);
   if (!slug || slug.length > 80) {
