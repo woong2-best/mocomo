@@ -123,30 +123,35 @@ const SEED_OFFERS = [
 ] as const;
 
 export async function seedGoldShopOffers(): Promise<void> {
+  const existing = await db.aptGoldShopOffer.count();
+  if (existing >= SEED_OFFERS.length) return;
+
   const endsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
-  for (const o of SEED_OFFERS) {
-    await db.aptGoldShopOffer.upsert({
-      where: { itemId: o.itemId },
-      create: {
-        itemId: o.itemId,
-        goldPrice: o.goldPrice,
-        originalGoldPrice: o.originalGoldPrice,
-        featured: o.featured,
-        isNew: o.isNew,
-        limitedStock: "limitedStock" in o ? o.limitedStock : null,
-        endsAt: "limitedStock" in o ? endsAt : null,
-        sortOrder: o.sortOrder,
-        enabled: true,
-      },
-      update: {
-        goldPrice: o.goldPrice,
-        originalGoldPrice: o.originalGoldPrice,
-        featured: o.featured,
-        isNew: o.isNew,
-        limitedStock: "limitedStock" in o ? o.limitedStock : null,
-        sortOrder: o.sortOrder,
-        enabled: true,
-      },
-    });
-  }
+  await Promise.all(
+    SEED_OFFERS.map((o) =>
+      db.aptGoldShopOffer.upsert({
+        where: { itemId: o.itemId },
+        create: {
+          itemId: o.itemId,
+          goldPrice: o.goldPrice,
+          originalGoldPrice: o.originalGoldPrice,
+          featured: o.featured,
+          isNew: o.isNew,
+          limitedStock: "limitedStock" in o ? o.limitedStock : null,
+          endsAt: "limitedStock" in o ? endsAt : null,
+          sortOrder: o.sortOrder,
+          enabled: true,
+        },
+        update: {
+          goldPrice: o.goldPrice,
+          originalGoldPrice: o.originalGoldPrice,
+          featured: o.featured,
+          isNew: o.isNew,
+          limitedStock: "limitedStock" in o ? o.limitedStock : null,
+          sortOrder: o.sortOrder,
+          enabled: true,
+        },
+      })
+    )
+  );
 }

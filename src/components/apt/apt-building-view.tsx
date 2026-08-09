@@ -176,9 +176,13 @@ export const AptBuildingView = memo(function AptBuildingView({
 
   useEffect(() => {
     void (async () => {
-      setFeedLoading(true);
+      const hasWarm = countryAptsRef.current.length > 0 || !!communityFeed;
+      // Keep last paint visible (SWR) — only show loading on cold open.
+      if (!hasWarm) {
+        setFeedLoading(true);
+        setLoadingCountry(true);
+      }
       onFeedErrorChange?.(false);
-      setLoadingCountry(true);
       try {
         const [list, feed] = await Promise.all([
           listCountryApartments(viewCountry),
@@ -195,6 +199,8 @@ export const AptBuildingView = memo(function AptBuildingView({
         setFeedLoading(false);
       }
     })();
+    // communityFeed intentionally omitted — warm-check uses render-time snapshot only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewCountry, onFeedErrorChange]);
 
   useEffect(() => {
@@ -411,7 +417,7 @@ export const AptBuildingView = memo(function AptBuildingView({
     setSocialPending(`like-${userId}`);
     try {
       await toggleAptHomeLike(userId);
-      const feed = await getCountryAptCommunityFeed(viewCountry);
+      const feed = await getCountryAptCommunityFeed(viewCountry, { fresh: true });
       setCommunityFeed(feed);
       setFloorOccupants(feed.occupants);
     } finally {
@@ -427,7 +433,7 @@ export const AptBuildingView = memo(function AptBuildingView({
     setSocialPending(`fav-${userId}`);
     try {
       await toggleAptFavoriteHome(userId);
-      const feed = await getCountryAptCommunityFeed(viewCountry);
+      const feed = await getCountryAptCommunityFeed(viewCountry, { fresh: true });
       setCommunityFeed(feed);
       setFloorOccupants(feed.occupants);
     } finally {

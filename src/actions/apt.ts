@@ -412,13 +412,21 @@ export async function pickAvailableSignupFloor(
   return { ok: true as const, floor };
 }
 
+const countryAptMemo = new Map<string, { at: number; data: CountryAptPreview[] }>();
+const COUNTRY_APT_TTL_MS = 12_000;
+
 export async function listCountryApartments(countryCode: string): Promise<CountryAptPreview[]> {
   const user = await getCachedCurrentUser();
+  const cc = countryCode.toUpperCase();
+  const memoKey = `${cc}:${user?.id ?? "anon"}`;
+  const hit = countryAptMemo.get(memoKey);
+  if (hit && Date.now() - hit.at < COUNTRY_APT_TTL_MS) return hit.data;
+
   const rows = await db.aptProfile.findMany({
     where: {
       moveInCompletedAt: { not: null },
       housingType: "apartment",
-      countryCode: countryCode.toUpperCase(),
+      countryCode: cc,
       homePublic: true,
       ...(user ? { userId: { not: user.id } } : {}),
     },
@@ -429,7 +437,7 @@ export async function listCountryApartments(countryCode: string): Promise<Countr
     orderBy: { updatedAt: "desc" },
   });
 
-  return rows.map((row) => {
+  const data = rows.map((row) => {
     const sim =
       row.simulationState && typeof row.simulationState === "object"
         ? (row.simulationState as Record<string, unknown>)
@@ -448,6 +456,8 @@ export async function listCountryApartments(countryCode: string): Promise<Countr
       bondeeRoom: bondee,
     };
   });
+  countryAptMemo.set(memoKey, { at: Date.now(), data });
+  return data;
 }
 
 export type { HousingLocation };

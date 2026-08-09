@@ -46,10 +46,10 @@ const AptBuildingView = dynamic(
   }
 );
 
-const AptBondeeRoom = dynamic(
-  () => import("@/components/apt/apt-bondee-room").then((m) => m.AptBondeeRoom),
-  { ssr: false }
-);
+const loadAptBondeeRoom = () =>
+  import("@/components/apt/apt-bondee-room").then((m) => m.AptBondeeRoom);
+
+const AptBondeeRoom = dynamic(loadAptBondeeRoom, { ssr: false });
 
 export function AptHubClient({
   initialProfile,
@@ -110,6 +110,15 @@ export function AptHubClient({
   useEffect(() => {
     if (currentUserId) setLocalHomeUserId(currentUserId);
   }, [currentUserId]);
+
+  // Prefetch interior chunk + shop catalog so enter/shop feel instant.
+  useEffect(() => {
+    void loadAptBondeeRoom();
+    const t = window.setTimeout(() => {
+      void import("@/actions/apt-economy").then((m) => m.getAptGoldShopCatalog());
+    }, 80);
+    return () => window.clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     if (prevUserIdRef.current !== currentUserId) {

@@ -304,6 +304,12 @@ html[data-client="app"] .native-live-pad {
 .folk-card {
   @apply rounded-xl border-2 border-[hsl(var(--folk-cobalt)/0.35)] bg-card shadow-[3px_4px_0_hsl(var(--folk-cobalt)/0.12)] transition-all duration-300 ease-out;
 }
+.folk-avatar {
+  @apply relative shrink-0 overflow-hidden rounded-[28%] ring-2 ring-[hsl(var(--folk-cobalt)/0.28)] ring-offset-1 ring-offset-background;
+}
+.folk-avatar-fallback {
+  @apply flex h-full w-full items-center justify-center rounded-[28%] bg-folk-terracotta text-sm font-bold text-white;
+}
 .folk-card-interactive {
   @apply hover:-translate-y-1 hover:shadow-folk hover:border-[hsl(var(--folk-terracotta)/0.45)] active:translate-y-0 active:scale-[0.99] active:shadow-folk-sm;
 }
@@ -1011,11 +1017,11 @@ html[data-visible-animations="off"] [data-functional-canvas] canvas {
 }
 
 .apt-room-enter {
-  animation: apt-room-enter 0.4s ease-out forwards;
+  animation: apt-room-enter 0.14s ease-out forwards;
 }
 
 .apt-room-exit {
-  animation: apt-room-exit 0.28s ease-in forwards;
+  animation: apt-room-exit 0.12s ease-in forwards;
 }
 
 .apt-room-idle {
@@ -1025,8 +1031,8 @@ html[data-visible-animations="off"] [data-functional-canvas] canvas {
 
 @keyframes apt-room-enter {
   from {
-    opacity: 0;
-    transform: scale(0.94) translateY(12px);
+    opacity: 0.92;
+    transform: scale(0.985) translateY(4px);
   }
   to {
     opacity: 1;
@@ -1040,8 +1046,8 @@ html[data-visible-animations="off"] [data-functional-canvas] canvas {
     transform: scale(1);
   }
   to {
-    opacity: 0;
-    transform: scale(0.96) translateY(8px);
+    opacity: 0.92;
+    transform: scale(0.99) translateY(2px);
   }
 }
 

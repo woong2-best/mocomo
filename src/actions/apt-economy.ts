@@ -19,10 +19,10 @@ import {
 } from "@/lib/apt/game/shop";
 import {
   resolveGoldShopPrice,
-  seedGoldShopOffers,
   listGoldShopCatalog,
   type GoldShopOfferDto,
 } from "@/lib/apt/economy/gold-shop-service";
+import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
 import { mergeGameState } from "@/lib/apt/game/defaults";
 import type { AptGameState } from "@/lib/apt/game/types";
@@ -59,9 +59,15 @@ export async function syncAptEconomyCache(
   return { ok: true, economy };
 }
 
+const getCachedGoldShopCatalog = unstable_cache(
+  () => listGoldShopCatalog(),
+  ["apt-gold-shop-catalog-v1"],
+  { revalidate: 60 }
+);
+
+/** Hot path: never re-seed — bootstrap/admin seed only. Cached for Twitter-grade open. */
 export async function getAptGoldShopCatalog(): Promise<GoldShopOfferDto[]> {
-  await seedGoldShopOffers();
-  return listGoldShopCatalog();
+  return getCachedGoldShopCatalog();
 }
 
 export async function purchaseAptShopItem(itemId: string): Promise<

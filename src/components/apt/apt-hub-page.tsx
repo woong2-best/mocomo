@@ -26,21 +26,23 @@ export async function AptHubPage() {
   try {
     user = await getCachedCurrentUser();
     if (user) {
-      const gameResult = await getAptGameState().then(
-        (state) => ({ state, error: false as const }),
-        (e) => {
-          console.error("[AptHubPage] game state", e);
-          return { state: null, error: true as const };
-        }
-      );
-      gameLoadError = gameResult.error;
-      gameState = gameResult.state;
-
-      [profile, studioInventory, economySnapshot] = await Promise.all([
+      const [gameResult, nextProfile, nextInventory, nextEconomy] = await Promise.all([
+        getAptGameState().then(
+          (state) => ({ state, error: false as const }),
+          (e) => {
+            console.error("[AptHubPage] game state", e);
+            return { state: null, error: true as const };
+          }
+        ),
         getAptProfile().catch(() => null),
         getAptStudioInventory().catch(() => []),
         getAptEconomySnapshot().catch(() => null),
       ]);
+      gameLoadError = gameResult.error;
+      gameState = gameResult.state;
+      profile = nextProfile;
+      studioInventory = nextInventory;
+      economySnapshot = nextEconomy;
     }
   } catch (e) {
     console.error("[AptHubPage]", e);

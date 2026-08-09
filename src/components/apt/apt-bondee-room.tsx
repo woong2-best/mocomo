@@ -776,7 +776,7 @@ function AptBondeeRoomInner({
 
       <div
         className={cn(
-          "absolute inset-x-0 bottom-0 z-20 transition-transform duration-300 ease-out",
+          "absolute inset-x-0 bottom-0 z-20 transition-transform duration-150 ease-out",
           panel
             ? "translate-y-0"
             : gameEnabled || isImmersiveDiorama

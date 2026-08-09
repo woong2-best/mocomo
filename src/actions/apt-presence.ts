@@ -94,10 +94,33 @@ export async function recordAptHomeVisit(hostUserId: string) {
   return { ok: true as const, newBadges };
 }
 
-/** ??? ?? APT ???? ?? ? NPC??? ?? ?? */
-export async function getCountryAptCommunityFeed(countryCode: string): Promise<AptCommunityFeed> {
+const communityFeedMemo = new Map<string, { at: number; data: AptCommunityFeed }>();
+const COMMUNITY_FEED_TTL_MS = 8_000;
+
+export function invalidateAptCommunityFeedCache(countryCode?: string) {
+  if (!countryCode) {
+    communityFeedMemo.clear();
+    return;
+  }
+  const prefix = `${countryCode.toUpperCase()}:`;
+  for (const key of communityFeedMemo.keys()) {
+    if (key.startsWith(prefix)) communityFeedMemo.delete(key);
+  }
+}
+
+/** Country APT community feed — short memo so repeat opens feel instant. */
+export async function getCountryAptCommunityFeed(
+  countryCode: string,
+  opts?: { fresh?: boolean }
+): Promise<AptCommunityFeed> {
   const user = await getCachedCurrentUser();
   const cc = countryCode.toUpperCase();
+  const memoKey = `${cc}:${user?.id ?? "anon"}`;
+  if (!opts?.fresh) {
+    const hit = communityFeedMemo.get(memoKey);
+    if (hit && Date.now() - hit.at < COMMUNITY_FEED_TTL_MS) return hit.data;
+  }
+
   const now = Date.now();
   const onlineSince = new Date(now - ONLINE_MS);
   const todayStart = startOfToday();
@@ -111,6 +134,8 @@ export async function getCountryAptCommunityFeed(countryCode: string): Promise<A
     include: {
       user: { select: { id: true, name: true, username: true } },
     },
+    take: 80,
+    orderBy: { updatedAt: "desc" },
   });
 
   const hostIds = profiles.map((p) => p.userId);
@@ -464,7 +489,7 @@ export async function getCountryAptCommunityFeed(countryCode: string): Promise<A
     favoritedHostIds: favorites.map((f) => f.hostId),
   });
 
-  return {
+  const feed: AptCommunityFeed = {
     occupants,
     recentVisitorsToHome,
     guestbookNames: recentVisitorsToHome.map((v) => v.displayName),
@@ -477,4 +502,6 @@ export async function getCountryAptCommunityFeed(countryCode: string): Promise<A
     mailboxUnread: recentVisitorsToHome.length,
     daily,
   };
+  communityFeedMemo.set(memoKey, { at: Date.now(), data: feed });
+  return feed;
 }

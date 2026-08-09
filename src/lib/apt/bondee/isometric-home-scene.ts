@@ -14,6 +14,7 @@ import {
   sortFurnitureLoadOrder,
 } from "./home-floor-meshes";
 import {
+  architecturesForKind,
   interactAnchorOffset,
   interactSpecForKind,
   actionLabelForKind,
@@ -1148,23 +1149,27 @@ export class IsometricHomeScene {
 
   private async loadFurnitureStaged(loadGen: number, priorityRooms: Set<string>) {
     this.furnitureLoadBusy = true;
-    const BATCH = 4;
+    const BATCH = 8;
 
     try {
       const ordered = sortFurnitureLoadOrder(this.state.items, this.rooms, this.activeRoomId);
       const priority = ordered.filter((it) => priorityRooms.has(it.roomId));
       const deferred = ordered.filter((it) => !priorityRooms.has(it.roomId));
 
-      for (const batch of [priority, deferred]) {
-        for (let i = 0; i < batch.length; i += BATCH) {
-          if (loadGen !== this.furnitureLoadGen || !this.furnitureRoot) return;
-          await new Promise<void>((r) => requestAnimationFrame(() => r()));
+      // Visible room furniture must appear in the same frame as the shell.
+      for (const item of priority) {
+        if (loadGen !== this.furnitureLoadGen || !this.furnitureRoot) return;
+        this.appendItemIfNew(item);
+      }
+      if (priority.length) this.requestRender();
 
-          for (const item of batch.slice(i, i + BATCH)) {
-            this.appendItemIfNew(item);
-          }
-          this.requestRender();
+      for (let i = 0; i < deferred.length; i += BATCH) {
+        if (loadGen !== this.furnitureLoadGen || !this.furnitureRoot) return;
+        if (i > 0) await new Promise<void>((r) => requestAnimationFrame(() => r()));
+        for (const item of deferred.slice(i, i + BATCH)) {
+          this.appendItemIfNew(item);
         }
+        this.requestRender();
       }
 
       if (loadGen !== this.furnitureLoadGen || !this.floorGroup) return;
@@ -1188,14 +1193,11 @@ export class IsometricHomeScene {
     );
     if (missing.length === 0) return;
 
-    for (let i = 0; i < missing.length; i += 3) {
+    for (const item of missing) {
       if (!this.furnitureRoot) return;
-      await new Promise<void>((r) => requestAnimationFrame(() => r()));
-      for (const item of missing.slice(i, i + 3)) {
-        this.appendItemIfNew(item);
-      }
-      this.requestRender();
+      this.appendItemIfNew(item);
     }
+    this.requestRender();
   }
 
   private applyAvatar() {
@@ -1503,7 +1505,7 @@ export class IsometricHomeScene {
       best = {
         itemId: item.id,
         kind: item.kind,
-        architectures: [],
+        architectures: architecturesForKind(item.kind),
         poses: spec.poses,
         label: item.studioLabel ?? item.kind,
         actionLabel: actionLabelForKind(item.kind, {

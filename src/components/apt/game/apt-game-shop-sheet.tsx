@@ -24,6 +24,9 @@ import type { StickerCategory } from "@/lib/diorama/sticker-types";
 
 type ShopMode = "official" | "market" | "flea";
 
+/** Module cache — shop reopen is instant after first fetch. */
+let goldShopCatalogCache: GoldShopOfferDto[] | null = null;
+
 const CATS: { id: StickerCategory | "all"; label: string }[] = [
   { id: "all", label: "전체" },
   { id: "furniture", label: "가구" },
@@ -156,8 +159,8 @@ function AptGameShopSheetInner() {
 
   const [mode, setMode] = useState<ShopMode>(shopMode);
   const [cat, setCat] = useState<StickerCategory | "all">("all");
-  const [catalog, setCatalog] = useState<GoldShopOfferDto[]>([]);
-  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalog, setCatalog] = useState<GoldShopOfferDto[]>(() => goldShopCatalogCache ?? []);
+  const [catalogLoading, setCatalogLoading] = useState(() => !goldShopCatalogCache);
   const [catalogError, setCatalogError] = useState(false);
   const [market, setMarket] = useState<MarketListingDto[]>([]);
   const [myListings, setMyListings] = useState<MarketListingDto[]>([]);
@@ -193,13 +196,23 @@ function AptGameShopSheetInner() {
 
   useEffect(() => {
     if (!shopOpen) return;
-    setCatalogLoading(true);
     setCatalogError(false);
+    if (goldShopCatalogCache) {
+      setCatalog(goldShopCatalogCache);
+      setCatalogLoading(false);
+    } else {
+      setCatalogLoading(true);
+    }
     void getAptGoldShopCatalog()
-      .then((items) => setCatalog(items))
+      .then((items) => {
+        goldShopCatalogCache = items;
+        setCatalog(items);
+      })
       .catch(() => {
-        setCatalog([]);
-        setCatalogError(true);
+        if (!goldShopCatalogCache) {
+          setCatalog([]);
+          setCatalogError(true);
+        }
       })
       .finally(() => setCatalogLoading(false));
     void refreshMarket();

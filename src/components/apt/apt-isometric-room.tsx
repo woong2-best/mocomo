@@ -81,13 +81,16 @@ function AptDioramaRoomInner({
     }
   }, [allowEdit, game]);
 
+  const gameView = game?.view;
+  const firstEntryPhase = game?.firstEntry.phase;
   useEffect(() => {
-    if (!game || game.view !== "room") return;
-    const fromIntro = game.firstEntry.phase === "enter-room" || game.firstEntry.phase === "ui-fade";
+    if (!gameView || gameView !== "room") return;
+    const fromIntro = firstEntryPhase === "enter-room" || firstEntryPhase === "ui-fade";
     setRoomPhase("enter");
-    const t = window.setTimeout(() => setRoomPhase("idle"), fromIntro ? 520 : 400);
+    const t = window.setTimeout(() => setRoomPhase("idle"), fromIntro ? 220 : 140);
     return () => window.clearTimeout(t);
-  }, [activeRoomId, game?.view, game?.firstEntry.phase, game]);
+    // Only re-animate on real room/view changes — not every game context tick.
+  }, [activeRoomId, gameView, firstEntryPhase]);
 
   const handleSpatial = useCallback(
     (fn: "room-portal" | "exit-corridor") => {
