@@ -33,6 +33,16 @@ export async function rateLimitPublicApi(
     return null;
   }
 
+  /**
+   * Feed GET is hit on every app open. Writing VerificationToken rows on each
+   * request (DB fallback) adds hundreds of ms–seconds and thrashes the DB.
+   * Without Upstash, skip durable limits for these read buckets — unstable_cache
+   * already bounds load.
+   */
+  if (bucket === "feed" || bucket === "mobile-feed") {
+    return null;
+  }
+
   const minuteKey = new Date().toISOString().slice(0, 16);
   const identifier = `rate:api:${bucket}:${ip}:${minuteKey}`;
   const count = await db.verificationToken.count({

@@ -53,7 +53,7 @@ export function ReelsScreen() {
 
   const feedQuery = useInfiniteQuery({
     queryKey: ["mobile-feed"],
-    queryFn: ({ pageParam }) => fetchFeedPage(pageParam ?? null, 12),
+    queryFn: ({ pageParam }) => fetchFeedPage(pageParam ?? null, 10),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
     // Same cache as Home — opening Reels must feel instant (Twitter/IG), not a refetch.

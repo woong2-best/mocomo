@@ -108,6 +108,66 @@ export async function fetchFeedPostsPage(cursor: string | null, limit: number) {
   }
 }
 
+/**
+ * Mobile Home list — Twitter/IG-class first paint.
+ * Skip collaborators + poll; cap media URLs (card shows 1; lightbox uses post detail if needed).
+ */
+const mobileFeedMediaPreview = {
+  take: 8,
+  orderBy: { order: "asc" as const },
+  select: {
+    id: true,
+    url: true,
+    type: true,
+    priceKrw: true,
+    width: true,
+    height: true,
+    duration: true,
+    hlsUrl: true,
+    posterUrl: true,
+  },
+} as const;
+
+const mobileFeedPostSelect = {
+  id: true,
+  title: true,
+  content: true,
+  postType: true,
+  createdAt: true,
+  isNsfw: true,
+  author: { select: userPublicSelect },
+  anime: { select: { title: true, slug: true } },
+  media: mobileFeedMediaPreview,
+  _count: { select: { likes: true, comments: true, votes: true, reposts: true } },
+} as const;
+
+const mobileFeedPostSelectNoReposts = {
+  ...mobileFeedPostSelect,
+  _count: { select: { likes: true, comments: true, votes: true } },
+} as const;
+
+export async function fetchMobileFeedPostsPage(cursor: string | null, limit: number) {
+  const query = {
+    take: limit,
+    ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+    orderBy: { createdAt: "desc" as const },
+  };
+
+  try {
+    const posts = await db.post.findMany({ ...query, select: mobileFeedPostSelect });
+    return posts.map((p) => trimFeedPostContent(p));
+  } catch (e) {
+    console.error("[mobile-feed] reposts", e);
+    const posts = await db.post.findMany({ ...query, select: mobileFeedPostSelectNoReposts });
+    return posts.map((p) =>
+      trimFeedPostContent({
+        ...p,
+        _count: { ...p._count, reposts: 0 },
+      })
+    );
+  }
+}
+
 /** 무한 스크롤 페이지 — 짧은 TTL 캐시로 DB 부하 완화 */
 export function getCachedFeedPostsPage(cursor: string | null, limit: number) {
   const cacheKey = cursor ?? "__head__";
@@ -115,5 +175,14 @@ export function getCachedFeedPostsPage(cursor: string | null, limit: number) {
     () => fetchFeedPostsPage(cursor, limit),
     ["feed-page-v7-media-hls", cacheKey, String(limit)],
     { revalidate: 30, tags: [FEED_POSTS_CACHE_TAG] }
+  )();
+}
+
+export function getCachedMobileFeedPostsPage(cursor: string | null, limit: number) {
+  const cacheKey = cursor ?? "__head__";
+  return unstable_cache(
+    () => fetchMobileFeedPostsPage(cursor, limit),
+    ["mobile-feed-page-v1-lean", cacheKey, String(limit)],
+    { revalidate: 20, tags: [FEED_POSTS_CACHE_TAG] }
   )();
 }

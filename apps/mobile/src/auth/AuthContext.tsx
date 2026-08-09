@@ -31,7 +31,7 @@ const AuthContext = createContext<AuthState | null>(null);
 function prefetchHomeFeed(queryClient: ReturnType<typeof useQueryClient>) {
   void queryClient.prefetchInfiniteQuery({
     queryKey: ["mobile-feed"],
-    queryFn: ({ pageParam }) => fetchFeedPage(pageParam ?? null, 12),
+    queryFn: ({ pageParam }) => fetchFeedPage(pageParam ?? null, 10),
     initialPageParam: null as string | null,
     getNextPageParam: (last: FeedPage) => last.nextCursor,
     staleTime: 90_000,
@@ -62,9 +62,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /**
-   * Cold start: SecureStore only for the gate.
-   * If a token exists → show Main/Feed immediately and load /me + feed in parallel.
-   * Never block the whole navigator on /me RTT.
+   * Cold start: SecureStore + disk feed hydrate BEFORE mounting Home.
+   * Never flash an empty spinner when last session's feed is on disk (Twitter/IG).
    */
   useEffect(() => {
     let cancelled = false;
@@ -77,12 +76,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      setStatus("signedIn");
-      // Instant Home from last session (IG/Twitter), then refresh over the network.
       const cached = await loadFeedBootstrap();
-      if (!cancelled && cached) {
+      if (cancelled) return;
+      if (cached) {
         queryClient.setQueryData(["mobile-feed"], cached);
       }
+
+      setStatus("signedIn");
       prefetchHomeFeed(queryClient);
 
       try {

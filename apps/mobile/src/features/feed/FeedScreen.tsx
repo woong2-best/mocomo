@@ -86,7 +86,7 @@ export function FeedScreen() {
 
   const query = useInfiniteQuery({
     queryKey: ["mobile-feed"],
-    queryFn: ({ pageParam }) => fetchFeedPage(pageParam ?? null, 12),
+    queryFn: ({ pageParam }) => fetchFeedPage(pageParam ?? null, 10),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
     staleTime: 90_000,
@@ -383,11 +383,11 @@ export function FeedScreen() {
         avatarLetter={user?.name || user?.username || "?"}
       />
 
-      {query.isLoading ? (
+      {query.isLoading && posts.length === 0 ? (
         <View style={styles.center}>
           <ActivityIndicator color={colors.terracotta} />
         </View>
-      ) : query.isError ? (
+      ) : query.isError && posts.length === 0 ? (
         <View style={styles.center}>
           <Text style={styles.error}>피드를 불러오지 못했습니다.</Text>
           <FolkButton label="다시 시도" onPress={() => void query.refetch()} />

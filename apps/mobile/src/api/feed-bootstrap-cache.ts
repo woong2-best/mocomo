@@ -7,7 +7,7 @@ import type { InfiniteData } from "@tanstack/react-query";
 import type { FeedPage } from "@/api/feed";
 
 const KEY = "mocomo.mobile-feed.v1";
-const MAX_AGE_MS = 30 * 60 * 1000;
+const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 type Stored = {
   savedAt: number;
