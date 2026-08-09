@@ -97,17 +97,6 @@ export async function recordAptHomeVisit(hostUserId: string) {
 const communityFeedMemo = new Map<string, { at: number; data: AptCommunityFeed }>();
 const COMMUNITY_FEED_TTL_MS = 8_000;
 
-export function invalidateAptCommunityFeedCache(countryCode?: string) {
-  if (!countryCode) {
-    communityFeedMemo.clear();
-    return;
-  }
-  const prefix = `${countryCode.toUpperCase()}:`;
-  for (const key of communityFeedMemo.keys()) {
-    if (key.startsWith(prefix)) communityFeedMemo.delete(key);
-  }
-}
-
 /** Country APT community feed — short memo so repeat opens feel instant. */
 export async function getCountryAptCommunityFeed(
   countryCode: string,
