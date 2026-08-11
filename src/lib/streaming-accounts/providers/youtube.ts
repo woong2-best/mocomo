@@ -306,20 +306,37 @@ export const youtubeStreamingProvider: StreamingPlatformProvider = {
 
     const channelRes = await fetch(
       "https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true",
-      { headers: { Authorization: `Bearer ${tokenJson.access_token}` } }
+      { headers: { Authorization: `Bearer ${tokenJson.access_token}` }, cache: "no-store" }
     );
+    const channelBody = await channelRes.text().catch(() => "");
     if (!channelRes.ok) {
-      throw new Error("YouTube 채널 정보를 가져올 수 없습니다.");
+      // Common: YouTube Data API v3 not enabled on the GCP project → 403
+      const apiHint =
+        /accessNotConfigured|has not been used|disabled/i.test(channelBody)
+          ? " GCP에서 YouTube Data API v3를 사용 설정한 뒤 다시 시도해 주세요."
+          : /insufficientPermissions|ACCESS_TOKEN_SCOPE_INSUFFICIENT/i.test(channelBody)
+            ? " youtube.readonly 권한이 포함되지 않았습니다. Google 동의 화면에서 YouTube 권한을 허용해 주세요."
+            : "";
+      throw new Error(
+        `YouTube 채널 정보를 가져올 수 없습니다.${apiHint} (${channelRes.status})`
+      );
     }
-    const channelJson = (await channelRes.json()) as {
+    let channelJson: {
       items?: Array<{
         id: string;
         snippet?: { title?: string; thumbnails?: { default?: { url?: string } } };
       }>;
     };
+    try {
+      channelJson = JSON.parse(channelBody) as typeof channelJson;
+    } catch {
+      throw new Error("YouTube 채널 응답을 해석할 수 없습니다.");
+    }
     const item = channelJson.items?.[0];
     if (!item?.id) {
-      throw new Error("YouTube 채널이 연결되지 않았습니다. 채널을 만든 뒤 다시 시도해 주세요.");
+      throw new Error(
+        "이 Google 계정에 YouTube 채널이 없습니다. youtube.com에서 채널을 만든 뒤 같은 계정으로 다시 연결해 주세요."
+      );
     }
 
     const channel: StreamingChannelInfo = {

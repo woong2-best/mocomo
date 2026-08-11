@@ -1,6 +1,9 @@
 /**
  * YouTube Data API — Made for Kids check before embedding.
  * Never use view/subscriber counts for ranking (policy).
+ *
+ * Prefer OAuth bearer token (connected streaming account) so production
+ * does not hard-require YOUTUBE_DATA_API_KEY for go-live.
  */
 
 export type YoutubeKidsCheckResult =
@@ -20,15 +23,18 @@ export function isYoutubeDataApiConfigured(): boolean {
 }
 
 export async function checkYoutubeMadeForKids(
-  videoId: string
+  videoId: string,
+  opts?: { accessToken?: string | null }
 ): Promise<YoutubeKidsCheckResult> {
   const key = apiKey();
-  if (!key) {
-    // Fail open in dev without key — production should set the key.
+  const accessToken = opts?.accessToken?.trim() || null;
+
+  if (!key && !accessToken) {
     if (process.env.NODE_ENV === "production") {
       return {
         ok: false,
-        error: "YouTube Data API 키가 설정되지 않아 임베드를 확인할 수 없습니다.",
+        error:
+          "YouTube 확인용 API 키 또는 OAuth 토큰이 없습니다. 스트리밍 계정에서 YouTube를 다시 연결하거나, 서버에 YOUTUBE_DATA_API_KEY를 설정해 주세요.",
         videoId,
       };
     }
@@ -38,11 +44,29 @@ export async function checkYoutubeMadeForKids(
   const url = new URL("https://www.googleapis.com/youtube/v3/videos");
   url.searchParams.set("part", "status,snippet");
   url.searchParams.set("id", videoId);
-  url.searchParams.set("key", key);
+
+  const headers: Record<string, string> = {};
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  } else if (key) {
+    url.searchParams.set("key", key);
+  }
 
   try {
-    const res = await fetch(url.toString(), { next: { revalidate: 300 } });
+    const res = await fetch(url.toString(), {
+      headers,
+      cache: "no-store",
+    });
     if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      if (/accessNotConfigured|has not been used|disabled/i.test(body)) {
+        return {
+          ok: false,
+          error:
+            "GCP에서 YouTube Data API v3를 사용 설정한 뒤 다시 시도해 주세요.",
+          videoId,
+        };
+      }
       return {
         ok: false,
         error: `YouTube API 오류 (${res.status})`,

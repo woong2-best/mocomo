@@ -13,7 +13,10 @@ import { checkYoutubeMadeForKids } from "@/lib/live-external/youtube-kids";
 import { probeChzzkEmbed } from "@/lib/live-external/chzzk-probe";
 import { mintOverlayToken } from "@/lib/live-external/overlay-token";
 import { platformToLiveExternal } from "@/lib/streaming-accounts/types";
-import { resolveVerifiedLiveSource } from "@/lib/streaming-accounts/service";
+import {
+  getAccountTokens,
+  resolveVerifiedLiveSource,
+} from "@/lib/streaming-accounts/service";
 import { parseLiveCategoryParam } from "@/lib/live-categories";
 
 const ALLOWED_CATS = new Set([
@@ -71,15 +74,6 @@ export async function POST(req: NextRequest) {
 
     const account = await db.connectedStreamingAccount.findUnique({
       where: { id: accountId },
-      select: {
-        id: true,
-        userId: true,
-        platform: true,
-        channelId: true,
-        channelName: true,
-        verified: true,
-        revokedAt: true,
-      },
     });
 
     if (!account || account.userId !== user.id) {
@@ -110,7 +104,10 @@ export async function POST(req: NextRequest) {
     const parsed = resolved;
 
     if (parsed.provider === "YOUTUBE") {
-      const kids = await checkYoutubeMadeForKids(parsed.externalId);
+      const tokens = await getAccountTokens(account);
+      const kids = await checkYoutubeMadeForKids(parsed.externalId, {
+        accessToken: tokens?.accessToken,
+      });
       if (!kids.ok) {
         return NextResponse.json({ error: kids.error }, { status: 400 });
       }
