@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { signOut } from "next-auth/react";
+import { performWebSignOut } from "@/lib/account-switch/sign-out-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -52,7 +52,9 @@ export function AccountDeletionForm({ username, hasPassword }: Props) {
 
     setOpen(false);
     resetForm();
-    await signOut({ callbackUrl: "/auth/signin?recovered=0&message=account_deleted" });
+    void performWebSignOut({
+      callbackUrl: "/auth/signin?recovered=0&message=account_deleted",
+    });
   }
 
   return (

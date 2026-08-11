@@ -18,12 +18,9 @@ import {
   normalizeTimeZone,
 } from "@/lib/i18n/timezone";
 
-const SESSION_COOKIES = [
-  "authjs.session-token",
-  "__Secure-authjs.session-token",
-  "next-auth.session-token",
-  "__Secure-next-auth.session-token",
-];
+import { SESSION_COOKIE_BASE_NAMES } from "@/lib/account-switch/session-cookies";
+
+const SESSION_COOKIES = [...SESSION_COOKIE_BASE_NAMES];
 
 function hasSessionCookie(cookieStore: Awaited<ReturnType<typeof cookies>>) {
   return SESSION_COOKIES.some((name) => cookieStore.get(name)?.value);

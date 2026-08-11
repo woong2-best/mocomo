@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { clearLocalHomeData } from "@/lib/apt/local-home-store";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { performWebSignOut } from "@/lib/account-switch/sign-out-client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -15,7 +16,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { User, Settings, Gem, LogOut, ChevronDown, MessageSquare, Users } from "lucide-react";
 import { AccountSwitcherDialog } from "@/components/auth/account-switcher-dialog";
-import { removeSavedAccount } from "@/lib/account-switch/client";
 import { useLocale } from "@/components/providers/locale-provider";
 
 export function ProfileMenu() {
@@ -30,9 +30,8 @@ export function ProfileMenu() {
 
   const handleSignOut = () => {
     const userId = session.user.id;
-    removeSavedAccount(userId);
     void clearLocalHomeData(userId).finally(() => {
-      void signOut({ callbackUrl: DEFAULT_LANDING_PATH });
+      void performWebSignOut({ callbackUrl: DEFAULT_LANDING_PATH, userId });
     });
   };
 

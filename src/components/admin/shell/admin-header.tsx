@@ -1,7 +1,7 @@
 "use client";
 
 import { Bell, LogOut, Menu, UserRound } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { performWebSignOut } from "@/lib/account-switch/sign-out-client";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -55,7 +55,7 @@ export function AdminHeader({
           variant="outline"
           size="sm"
           className="h-9 gap-1.5"
-          onClick={() => void signOut({ callbackUrl: "/auth/signin" })}
+          onClick={() => void performWebSignOut({ callbackUrl: "/auth/signin" })}
         >
           <LogOut className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">로그아웃</span>

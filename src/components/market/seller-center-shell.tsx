@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { performWebSignOut } from "@/lib/account-switch/sign-out-client";
 import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import {
@@ -131,7 +131,7 @@ export function SellerCenterShell({
                     <button
                       type="button"
                       className="w-full flex items-center gap-2 px-3.5 py-2.5 hover:bg-muted/50 text-left"
-                      onClick={() => void signOut({ callbackUrl: "/market" })}
+                      onClick={() => void performWebSignOut({ callbackUrl: "/market" })}
                     >
                       <LogOut className="h-3.5 w-3.5" />
                       로그아웃

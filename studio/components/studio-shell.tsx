@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { performWebSignOut } from "@/lib/account-switch/sign-out-client";
 import {
   BookOpen,
   Box,
@@ -102,7 +103,7 @@ export function StudioShell({ children, isReviewer }: { children: React.ReactNod
               MoCoMo로
             </a>
             {session?.user ? (
-              <Button variant="outline" size="sm" onClick={() => signOut({ callbackUrl: getStudioBaseUrl() })}>
+              <Button variant="outline" size="sm" onClick={() => void performWebSignOut({ callbackUrl: getStudioBaseUrl() })}>
                 로그아웃
               </Button>
             ) : (

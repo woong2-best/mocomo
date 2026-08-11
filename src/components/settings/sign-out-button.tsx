@@ -1,10 +1,11 @@
 "use client";
 
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { clearLocalHomeData } from "@/lib/apt/local-home-store";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
+import { performWebSignOut } from "@/lib/account-switch/sign-out-client";
 
 export function SignOutButton({ className }: { className?: string }) {
   const { data: session } = useSession();
@@ -18,7 +19,7 @@ export function SignOutButton({ className }: { className?: string }) {
       onClick={() => {
         const userId = session.user.id;
         void clearLocalHomeData(userId).finally(() => {
-          void signOut({ callbackUrl: DEFAULT_LANDING_PATH });
+          void performWebSignOut({ callbackUrl: DEFAULT_LANDING_PATH, userId });
         });
       }}
     >
