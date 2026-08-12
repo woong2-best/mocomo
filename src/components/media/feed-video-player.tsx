@@ -102,7 +102,38 @@ function stopFeedNavigation(e: React.SyntheticEvent) {
 
 /** Inline seek/volume/fullscreen bar — taps here must not open the feed video viewer. */
 export function isFeedVideoControlTarget(target: EventTarget | null): boolean {
-  return target instanceof HTMLElement && !!target.closest("[data-video-controls]");
+  return target instanceof Element && !!target.closest("[data-video-controls]");
+}
+
+/** Seek bar top edge and below — used when the hit target is the <video> under the overlay. */
+export function isFeedVideoControlZone(
+  clientY: number,
+  root: Element | null
+): boolean {
+  if (!root || !Number.isFinite(clientY)) return false;
+  const seek =
+    root.querySelector("[data-video-seek-bar]") ??
+    root.querySelector("[data-video-controls]");
+  if (!seek) return false;
+  return clientY >= seek.getBoundingClientRect().top;
+}
+
+export function shouldBlockFeedVideoImmersive(event: {
+  target: EventTarget | null;
+  nativeEvent: Event;
+}): boolean {
+  if (isFeedVideoControlTarget(event.target)) return true;
+  const root =
+    event.target instanceof Element
+      ? event.target.closest("[data-feed-video-id]")
+      : null;
+  const native = event.nativeEvent;
+  const clientY =
+    "clientY" in native && typeof native.clientY === "number"
+      ? native.clientY
+      : null;
+  if (clientY == null) return false;
+  return isFeedVideoControlZone(clientY, root);
 }
 
 function isCoarsePointer(): boolean {
@@ -879,6 +910,7 @@ export function FeedVideoPlayer({
 
     // Feed immersive viewer: single tap leaves the inline player.
     if (onOpenImmersive) {
+      if (isFeedVideoControlZone(e.clientY, containerRef.current)) return;
       onOpenImmersive();
       return;
     }
@@ -1141,20 +1173,25 @@ export function FeedVideoPlayer({
       )}
 
       {started && (
-        <div
-          data-video-controls
-          className={cn(
-            "absolute inset-x-0 bottom-0 z-[3] px-3 pb-2 pt-8",
-            "bg-gradient-to-t from-black/80 via-black/35 to-transparent",
-            "opacity-100 transition-opacity duration-200"
-          )}
-          onClick={stopFeedNavigation}
-          onClickCapture={stopFeedNavigation}
-          onPointerDown={stopFeedNavigation}
-          onPointerDownCapture={stopFeedNavigation}
-        >
+        <>
+          <div
+            aria-hidden
+            className={cn(
+              "pointer-events-none absolute inset-x-0 bottom-0 z-[3] px-3 pb-2 pt-8",
+              "bg-gradient-to-t from-black/80 via-black/35 to-transparent"
+            )}
+          />
+          <div
+            data-video-controls
+            className="absolute inset-x-0 bottom-0 z-[4] px-3 pb-2"
+            onClick={stopFeedNavigation}
+            onClickCapture={stopFeedNavigation}
+            onPointerDown={stopFeedNavigation}
+            onPointerDownCapture={stopFeedNavigation}
+          >
           <div
             ref={trackRef}
+            data-video-seek-bar
             role="slider"
             aria-label="탐색"
             aria-valuemin={0}
@@ -1335,7 +1372,8 @@ export function FeedVideoPlayer({
               )}
             </div>
           </div>
-        </div>
+          </div>
+        </>
       )}
     </div>
   );
