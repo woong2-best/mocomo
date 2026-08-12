@@ -17,6 +17,7 @@ import {
   setCachedPostMedia,
 } from "@/lib/post-media-client-cache";
 import { useFeedVideoViewerOptional } from "@/components/feed/feed-video-viewer-provider";
+import { isFeedVideoControlTarget } from "@/components/media/feed-video-player";
 
 export type ProfilePostMediaItem = {
   id?: string;
@@ -178,6 +179,7 @@ export function PaidPostMediaGrid({
                 onClickCapture={(e) => {
                   if (locked) return;
                   if (m.type !== "VIDEO" || !feedVideoViewer) return;
+                  if (isFeedVideoControlTarget(e.target)) return;
                   e.preventDefault();
                   e.stopPropagation();
                   const opened = feedVideoViewer.openVideoViewer({

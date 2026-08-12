@@ -45,6 +45,9 @@ import {
   suggestedPreload,
   shouldAutoplayOnNetwork,
   getVideoPlaybackController,
+  isVideoFullscreen,
+  toggleVideoFullscreen,
+  bindVideoFullscreenEvents,
 } from "@/lib/video-playback";
 
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
@@ -95,6 +98,11 @@ function readVideoDuration(video: HTMLVideoElement): number {
 
 function stopFeedNavigation(e: React.SyntheticEvent) {
   e.stopPropagation();
+}
+
+/** Inline seek/volume/fullscreen bar — taps here must not open the feed video viewer. */
+export function isFeedVideoControlTarget(target: EventTarget | null): boolean {
+  return target instanceof HTMLElement && !!target.closest("[data-video-controls]");
 }
 
 function isCoarsePointer(): boolean {
@@ -236,8 +244,7 @@ export function FeedVideoPlayer({
   }, []);
 
   const isPlayerFullscreen = useCallback(() => {
-    const el = containerRef.current;
-    return Boolean(el && typeof document !== "undefined" && document.fullscreenElement === el);
+    return isVideoFullscreen(containerRef.current, videoRef.current);
   }, []);
 
   const focusPlayer = useCallback(() => {
@@ -619,8 +626,14 @@ export function FeedVideoPlayer({
       focusPlayer();
     };
     document.addEventListener("fullscreenchange", onFsChange);
-    return () => document.removeEventListener("fullscreenchange", onFsChange);
-  }, [ensureMediaSrc, focusPlayer, isPlayerFullscreen]);
+    document.addEventListener("webkitfullscreenchange", onFsChange);
+    const unbindIos = bindVideoFullscreenEvents(videoRef.current, onFsChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFsChange);
+      document.removeEventListener("webkitfullscreenchange", onFsChange);
+      unbindIos();
+    };
+  }, [ensureMediaSrc, focusPlayer, isPlayerFullscreen, mediaAttached, src]);
 
   const applySpeed = (rate: number) => {
     const v = videoRef.current;
@@ -705,10 +718,14 @@ export function FeedVideoPlayer({
   };
 
   const toggleFullscreen = () => {
-    const el = containerRef.current;
-    if (!el) return;
-    if (document.fullscreenElement) void document.exitFullscreen();
-    else void el.requestFullscreen?.();
+    void toggleVideoFullscreen(containerRef.current, videoRef.current).finally(
+      () => {
+        // iOS webkitEnterFullscreen may not fire document fullscreenchange.
+        setIsFullscreen(
+          isVideoFullscreen(containerRef.current, videoRef.current)
+        );
+      }
+    );
   };
 
   const seekBy = useCallback((delta: number) => {
@@ -1132,7 +1149,9 @@ export function FeedVideoPlayer({
             "opacity-100 transition-opacity duration-200"
           )}
           onClick={stopFeedNavigation}
+          onClickCapture={stopFeedNavigation}
           onPointerDown={stopFeedNavigation}
+          onPointerDownCapture={stopFeedNavigation}
         >
           <div
             ref={trackRef}
