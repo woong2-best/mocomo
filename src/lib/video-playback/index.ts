@@ -40,3 +40,11 @@ export {
   getVideoPlaybackController,
   type RegisteredPlayer,
 } from "@/lib/video-playback/controller";
+
+export {
+  isVideoFullscreen,
+  enterVideoFullscreen,
+  exitVideoFullscreen,
+  toggleVideoFullscreen,
+  bindVideoFullscreenEvents,
+} from "@/lib/video-playback/fullscreen";
