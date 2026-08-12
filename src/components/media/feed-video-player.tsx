@@ -1185,9 +1185,7 @@ export function FeedVideoPlayer({
             data-video-controls
             className="absolute inset-x-0 bottom-0 z-[4] px-3 pb-2"
             onClick={stopFeedNavigation}
-            onClickCapture={stopFeedNavigation}
             onPointerDown={stopFeedNavigation}
-            onPointerDownCapture={stopFeedNavigation}
           >
           <div
             ref={trackRef}

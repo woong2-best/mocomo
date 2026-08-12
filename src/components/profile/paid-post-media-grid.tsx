@@ -190,6 +190,9 @@ export function PaidPostMediaGrid({
                   if (!opened) void openAt(i, locked);
                 }}
                 onClick={(e) => {
+                  if (m.type === "VIDEO" && feedVideoViewer && shouldBlockFeedVideoImmersive(e)) {
+                    return;
+                  }
                   e.preventDefault();
                   e.stopPropagation();
                   // VIDEO + viewer already handled in capture.
