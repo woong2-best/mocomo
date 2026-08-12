@@ -8,11 +8,14 @@ export type MobilePushInput = {
   url?: string;
   tag?: string;
   type?: string;
+  /** FCM data payload (roomId, callId, etc.) */
+  data?: Record<string, string>;
 };
 
 /** Web Push + FCM 동시 시도 (설정된 채널만) */
 export async function deliverMobilePush(input: MobilePushInput): Promise<void> {
   const tasks: Promise<void>[] = [];
+  const pushType = input.type || "notification";
 
   if (isWebPushConfigured()) {
     tasks.push(
@@ -22,8 +25,8 @@ export async function deliverMobilePush(input: MobilePushInput): Promise<void> {
         body: input.body,
         url: input.url,
         tag: input.tag,
-        type: input.type,
-        urgency: input.type === "incoming_call" ? "high" : "normal",
+        type: pushType,
+        urgency: pushType === "incoming_call" ? "high" : "normal",
       })
     );
   }
@@ -36,7 +39,7 @@ export async function deliverMobilePush(input: MobilePushInput): Promise<void> {
         body: input.body,
         url: input.url,
         tag: input.tag,
-        type: input.type,
+        type: pushType,
       })
     );
   }
