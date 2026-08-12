@@ -10,6 +10,7 @@ export type NotificationInput = {
   body?: string;
   link?: string;
   actorId?: string;
+  pushData?: Record<string, string>;
 };
 
 /** 알림 대상 ≠ 행위자일 때만 생성 */
@@ -27,16 +28,18 @@ export async function createNotification(data: NotificationInput): Promise<void>
       },
     });
     void import("@/lib/mobile-push")
-      .then(({ deliverMobilePush }) =>
-        deliverMobilePush({
+      .then(({ deliverMobilePush }) => {
+        const pushType = data.type === "call" ? "incoming_call" : data.type;
+        return deliverMobilePush({
           userId: data.userId,
           title: data.title,
           body: data.body || data.title,
           url: data.link,
           tag: `sns-${data.type}`,
-          type: "sns_notification",
-        })
-      )
+          type: pushType,
+          data: data.pushData,
+        });
+      })
       .catch(() => undefined);
   } catch {
     /* 테이블 미적용 등 */
@@ -466,6 +469,12 @@ export async function notifyIncomingCall(
     title: "수신 통화",
     body: `${label}님의 ${kind} 통화`,
     link: `/?incomingCall=${callId}`,
+    pushData: {
+      callId,
+      callType,
+      callerId,
+      ...(chatRoomId ? { chatRoomId } : {}),
+    },
   });
   after(async () => {
     const { sendIncomingCallPush } = await import("@/lib/web-push");
@@ -515,6 +524,22 @@ export async function notifyChatMessage(params: {
 
   await createNotificationsMany(items);
 
+  for (const m of members) {
+    void import("@/lib/mobile-push")
+      .then(({ deliverMobilePush }) =>
+        deliverMobilePush({
+          userId: m.userId,
+          title: isDm ? "쪽지" : "그룹 메시지",
+          body: `${label}: ${preview}`,
+          url: link,
+          tag: `dm-${params.roomId}`,
+          type: "dm",
+          data: { roomId: params.roomId },
+        })
+      )
+      .catch(() => undefined);
+  }
+
   if (params.mentionUserIds?.length) {
     for (const uid of params.mentionUserIds) {
       if (uid === params.senderId) continue;
@@ -534,16 +559,62 @@ export async function notifyTip(
   receiverId: string,
   senderId: string,
   amount: number,
-  receiverUsername: string | null
+  receiverUsername: string | null,
+  opts?: { message?: string | null; channelId?: string | null }
 ) {
   const sender = await getActor(senderId);
+  let body = `${actorLabel(sender)}님이 ${amount.toLocaleString()}원을 후원했습니다.`;
+  const trimmedMsg = opts?.message?.trim();
+  if (trimmedMsg) {
+    body += ` «${trimmedMsg.slice(0, 80)}»`;
+  }
+  const link = opts?.channelId
+    ? `/voice/${opts.channelId}`
+    : receiverUsername
+      ? `/u/${receiverUsername}`
+      : "/support";
   await createNotification({
     userId: receiverId,
     actorId: senderId,
     type: "tip",
     title: "후원",
-    body: `${actorLabel(sender)}님이 ${amount.toLocaleString()}원을 후원했습니다.`,
-    link: receiverUsername ? `/u/${receiverUsername}` : "/support",
+    body,
+    link,
+  });
+}
+
+const LIVE_CHEER_TYPE_LABEL: Record<string, string> = {
+  GENERAL: "응원",
+  TTS: "TTS",
+  ROULETTE: "룰렛",
+  SOUND: "효과음",
+  VOTE: "투표",
+};
+
+export async function notifyLiveCheer(
+  receiverId: string,
+  senderId: string,
+  amount: number,
+  channelId: string,
+  opts?: { message?: string | null; eventType?: string; rouletteLabel?: string }
+) {
+  const sender = await getActor(senderId);
+  const typeLabel = LIVE_CHEER_TYPE_LABEL[opts?.eventType ?? ""] ?? "CP";
+  let body = `${actorLabel(sender)}님이 ${amount.toLocaleString()} CP ${typeLabel}`;
+  if (opts?.eventType === "ROULETTE" && opts.rouletteLabel) {
+    body += ` · ${opts.rouletteLabel}`;
+  }
+  const trimmedMsg = opts?.message?.trim();
+  if (trimmedMsg) {
+    body += ` «${trimmedMsg.slice(0, 80)}»`;
+  }
+  await createNotification({
+    userId: receiverId,
+    actorId: senderId,
+    type: "live_cheer",
+    title: "라이브 후원",
+    body,
+    link: `/voice/${channelId}`,
   });
 }
 
