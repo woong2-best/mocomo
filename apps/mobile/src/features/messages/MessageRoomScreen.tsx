@@ -32,6 +32,8 @@ import {
 } from "@/features/messages/MessageBubble";
 import { MessageVoiceSession } from "@/features/messages/MessageVoiceSession";
 import { useRoomMessages } from "@/features/messages/useRoomMessages";
+import { CreatorCallBookingSheet } from "@/features/messages/CreatorCallBookingSheet";
+import { fetchCreatorCallSettings } from "@/api/call-bookings";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
@@ -79,8 +81,12 @@ export function MessageRoomScreen() {
   const keyboardOpen = keyboardHeight > 0;
   const { user } = useAuth();
   const { roomId } = route.params;
-  const { room, messages, loading, error, sending, nextBefore, loadOlder, send } =
+  const { room, messages, loading, error, sending, nextBefore, loadOlder, send, refresh } =
     useRoomMessages(roomId);
+  const [bookingSheet, setBookingSheet] = useState<{
+    callType: "AUDIO" | "VIDEO";
+  } | null>(null);
+  const [peerBookable, setPeerBookable] = useState(false);
   const [draft, setDraft] = useState("");
   const [uploading, setUploading] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -104,6 +110,16 @@ export function MessageRoomScreen() {
   const peerUsername = room?.profileUsername ?? null;
   const composerBottomPad = keyboardOpen ? 8 : Math.max(insets.bottom, 8);
   const canSendText = !!draft.trim() && !busy && !recording;
+
+  useEffect(() => {
+    if (!peerId) {
+      setPeerBookable(false);
+      return;
+    }
+    void fetchCreatorCallSettings(peerId)
+      .then((s) => setPeerBookable(s.bookable))
+      .catch(() => setPeerBookable(false));
+  }, [peerId]);
 
   const rows = useMemo<MessageRow[]>(
     () =>
@@ -217,6 +233,14 @@ export function MessageRoomScreen() {
     [navigation, peerId, peerImage, roomId, title]
   );
 
+  const openBooking = useCallback((callType: "AUDIO" | "VIDEO") => {
+    if (!peerId) {
+      Alert.alert("예약 불가", "상대 정보를 아직 불러오지 못했습니다.");
+      return;
+    }
+    setBookingSheet({ callType });
+  }, [peerId]);
+
   const openPeerProfile = useCallback(() => {
     if (peerUsername) {
       navigation.navigate("UserProfile", { username: peerUsername });
@@ -243,11 +267,16 @@ export function MessageRoomScreen() {
         mine={item.message.sender.id === user?.id}
         selfUserId={user?.id}
         showTime={item.showTime}
+        roomId={roomId}
+        peerId={peerId}
+        peerName={title}
+        peerImage={peerImage}
+        onMessagesRefresh={() => void refresh()}
         onReply={setReplyTo}
         onOpenImage={onOpenImage}
       />
     ),
-    [onOpenImage, user?.id]
+    [onOpenImage, peerId, peerImage, refresh, roomId, title, user?.id]
   );
 
   return (
@@ -292,17 +321,28 @@ export function MessageRoomScreen() {
           <Pressable
             style={styles.callBtn}
             onPress={() => startCall("AUDIO")}
-            accessibilityLabel="음성 통화"
+            onLongPress={peerBookable ? () => openBooking("AUDIO") : undefined}
+            accessibilityLabel={peerBookable ? "음성 통화 (길게 누르면 예약)" : "음성 통화"}
           >
             <Ionicons name="call-outline" size={18} color={colors.cobalt} />
           </Pressable>
           <Pressable
             style={styles.callBtn}
             onPress={() => startCall("VIDEO")}
-            accessibilityLabel="영상 통화"
+            onLongPress={peerBookable ? () => openBooking("VIDEO") : undefined}
+            accessibilityLabel={peerBookable ? "영상 통화 (길게 누르면 예약)" : "영상 통화"}
           >
             <Ionicons name="videocam-outline" size={19} color={colors.cobalt} />
           </Pressable>
+          {peerBookable ? (
+            <Pressable
+              style={styles.callBtn}
+              onPress={() => openBooking("AUDIO")}
+              accessibilityLabel="통화 예약"
+            >
+              <Ionicons name="calendar-outline" size={18} color={colors.terracotta} />
+            </Pressable>
+          ) : null}
         </View>
       </View>
 
@@ -464,6 +504,18 @@ export function MessageRoomScreen() {
         meta={lightbox?.meta ?? null}
         onClose={() => setLightbox(null)}
       />
+
+      {bookingSheet && peerId ? (
+        <CreatorCallBookingSheet
+          visible
+          onClose={() => setBookingSheet(null)}
+          creatorId={peerId}
+          roomId={roomId}
+          callType={bookingSheet.callType}
+          displayName={title}
+          onSuccess={() => void refresh()}
+        />
+      ) : null}
     </View>
   );
 }

@@ -161,7 +161,10 @@ async function fulfillTip(
     });
   }
 
-  await notifyTip(receiverId, senderId, amount, receiver.username);
+  await notifyTip(receiverId, senderId, amount, receiver.username, {
+    message: message || null,
+    channelId: channelId?.trim() || null,
+  });
 
   revalidatePath(`/u/${receiver.username}`);
   revalidatePath("/support");
@@ -454,6 +457,19 @@ export async function fulfillPaymentIntent(
     });
     // Top-up fee is Stripe processing only; platform keeps gross as liability until tip spend.
     revalidatePath("/wallet");
+  }
+
+  if (intent.type === "CALL_BOOKING") {
+    const { fulfillCallBookingPayment } = await import("@/lib/call-booking");
+    const bookingId = String(meta.bookingId ?? "");
+    const r = await fulfillCallBookingPayment({
+      bookingId,
+      fanId: userId,
+      paymentIntentId: intent.id,
+      paymentRef,
+      amount,
+    });
+    if ("error" in r && r.error) return { ok: false, error: r.error };
   }
 
   await db.paymentIntent.update({

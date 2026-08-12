@@ -206,6 +206,9 @@ model User {
   obsRtmpStreamKey String? @unique
   /** 크리에이터 월 구독료 (원) — Stripe Subscription 연동 전에도 UI·검증용 */
   creatorSubscriptionPriceKrw Int @default(16900)
+  /** 1:1 유료 통화 예약 — 크리에이터(코스플레이/스트리머) 전용 */
+  creatorCallEnabled        Boolean @default(false)
+  creatorCallRateKrwPerHour Int?
   /** Stripe Connect — 정산용 (추후 onboarding) */
   stripeConnectAccountId String?
   stripeConnectOnboardedAt DateTime?
@@ -279,6 +282,8 @@ model User {
   streamClipComments StreamClipComment[]
   callsMade     VoiceCall[] @relation("CallsMade")
   callsReceived VoiceCall[] @relation("CallsReceived")
+  callBookingsAsFan     CreatorCallBooking[] @relation("CallBookingFan")
+  callBookingsAsCreator CreatorCallBooking[] @relation("CallBookingCreator")
   tipsSent      Tip[]     @relation("TipSender")
   tipsReceived  Tip[]     @relation("TipReceiver")
   subscriptions Subscription[] @relation("Subscriber")
@@ -1217,6 +1222,7 @@ model ChatRoom {
   messages  Message[]
   pinned    PinnedMessage[]
   voiceCalls VoiceCall[]
+  callBookings CreatorCallBooking[]
   voiceChannel VoiceChannel? @relation(fields: [voiceChannelId], references: [id], onDelete: SetNull)
   polls     ChatPoll[]
   communityChannel CommunityChannel?
@@ -1438,6 +1444,8 @@ model VoiceChannel {
   /** 분할 합방 — 좌: 호스트 / 우: CO_HOST */
   liveCollabSplitEnabled Boolean @default(false)
   liveCollabUserId       String?
+  /** 방송 화면(OBS·플레이어) 후원 알림 — 기본 꺼짐, 알림센터는 항상 */
+  donationAlertsOnStream Boolean @default(false)
 
   /** FIRST_PARTY = Cloudflare/LiveKit/SRS (숨김) · EXTERNAL = iframe */
   mediaSourceType  LiveMediaSourceType @default(FIRST_PARTY)
@@ -1574,12 +1582,79 @@ model VoiceCall {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
+  bookingId   String? @unique
   caller   User      @relation("CallsMade", fields: [callerId], references: [id], onDelete: Cascade)
   callee   User      @relation("CallsReceived", fields: [calleeId], references: [id], onDelete: Cascade)
   chatRoom ChatRoom? @relation(fields: [chatRoomId], references: [id], onDelete: SetNull)
+  booking  CreatorCallBooking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
 
   @@index([callerId, status])
   @@index([calleeId, status])
+}
+
+enum CallBookingStatus {
+  PAYMENT_PENDING
+  PENDING_CREATOR
+  CONFIRMED
+  REJECTED
+  CANCELLED
+  COMPLETED
+  REFUND_REQUESTED
+  REFUNDED
+  EXPIRED
+}
+
+enum CallBookingRefundStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+model CreatorCallBooking {
+  id               String            @id @default(cuid())
+  fanId            String
+  creatorId        String
+  chatRoomId       String
+  callType         CallType          @default(AUDIO)
+  scheduledStartAt DateTime
+  durationMinutes  Int
+  amountKrw        Int
+  status           CallBookingStatus @default(PAYMENT_PENDING)
+  paymentIntentId  String?           @unique
+  fanNote          String?           @db.VarChar(500)
+  creatorNote      String?           @db.VarChar(500)
+  confirmedAt      DateTime?
+  completedAt      DateTime?
+  cancelledAt      DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  fan       User              @relation("CallBookingFan", fields: [fanId], references: [id], onDelete: Cascade)
+  creator   User              @relation("CallBookingCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  chatRoom  ChatRoom          @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+  voiceCall VoiceCall?
+  refund    CallBookingRefund?
+
+  @@index([fanId, status])
+  @@index([creatorId, status])
+  @@index([chatRoomId, createdAt])
+  @@index([scheduledStartAt, status])
+}
+
+model CallBookingRefund {
+  id             String                  @id @default(cuid())
+  bookingId      String                  @unique
+  requestedById  String
+  reason         String                  @db.Text
+  status         CallBookingRefundStatus @default(REQUESTED)
+  stripeRefundId String?
+  resolvedAt     DateTime?
+  resolvedById   String?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  booking CreatorCallBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
 
 // ============ COSPLAYER ============
@@ -1843,6 +1918,8 @@ enum PaymentIntentType {
   FLOWER
   /** 모코(가상 재화) Stripe 충전 — 실환전 아님 */
   MOCO_TOPUP
+  /** 크리에이터 1:1 통화 예약 */
+  CALL_BOOKING
 }
 
 enum EventPublishStatus {

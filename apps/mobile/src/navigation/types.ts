@@ -20,7 +20,9 @@ export type RootStackParamList = {
     callType: "AUDIO" | "VIDEO";
     displayName: string;
     displayImage?: string | null;
+    bookingId?: string;
   };
+  IncomingCall: { callId: string };
   Discover: undefined;
   LiveList: undefined;
   LiveDetail: { id: string };

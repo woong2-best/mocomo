@@ -9,6 +9,8 @@ import { ChatVoiceMessage } from "@/features/messages/ChatVoiceMessage";
 import type { DmLightboxImage } from "@/features/messages/DmImageLightbox";
 import { formatBubbleTime } from "@/features/messages/chat-display";
 import { parseChatPostShare, splitTextWithUrls } from "@/lib/chat-post-share";
+import { parseCallBookingMarker, stripCallBookingMarker } from "@/lib/chat-call-booking";
+import { CallBookingCard } from "@/features/messages/CallBookingCard";
 import { IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
@@ -31,6 +33,11 @@ type Props = {
   mine: boolean;
   selfUserId?: string;
   showTime?: boolean;
+  roomId?: string;
+  peerId?: string | null;
+  peerName?: string;
+  peerImage?: string | null;
+  onMessagesRefresh?: () => void;
   onReply?: (message: ChatMessage) => void;
   /** Instagram-style fullscreen when tapping DM photos */
   onOpenImage?: (payload: DmOpenImagePayload) => void;
@@ -124,6 +131,11 @@ function MessageBubbleInner({
   mine,
   selfUserId,
   showTime = true,
+  roomId,
+  peerId,
+  peerName,
+  peerImage,
+  onMessagesRefresh,
   onReply,
   onOpenImage,
 }: Props) {
@@ -132,8 +144,10 @@ function MessageBubbleInner({
   const images = (message.attachments ?? []).filter((a) => a.type === "IMAGE" || a.type === "GIF");
   const audios = (message.attachments ?? []).filter((a) => a.type === "AUDIO");
   const share = parseChatPostShare(message.content);
-  const visibleText = share ? share.note : message.content;
-  const imageOnly = images.length > 0 && !visibleText && !message.replyTo && !share;
+  const bookingId = parseCallBookingMarker(message.content);
+  const bookingCaption = bookingId ? stripCallBookingMarker(message.content) : null;
+  const visibleText = share ? share.note : bookingId ? bookingCaption : message.content;
+  const imageOnly = images.length > 0 && !visibleText && !message.replyTo && !share && !bookingId;
   const hasTextBubble = !!(visibleText || message.replyTo) && !imageOnly;
   const timeLabel = formatBubbleTime(message.createdAt);
   const bubbleDecode = feedMediaDecodeWidth(BUBBLE_IMAGE);
@@ -229,6 +243,18 @@ function MessageBubbleInner({
           mine={mine}
           onLongPress={onReply ? () => onReply(message) : undefined}
           onOpenImage={onOpenImage ? openSharedImage : undefined}
+        />
+      ) : null}
+
+      {bookingId && roomId && selfUserId ? (
+        <CallBookingCard
+          bookingId={bookingId}
+          selfUserId={selfUserId}
+          peerId={peerId ?? null}
+          peerName={peerName ?? "상대"}
+          peerImage={peerImage}
+          roomId={roomId}
+          onRefresh={onMessagesRefresh}
         />
       ) : null}
 
