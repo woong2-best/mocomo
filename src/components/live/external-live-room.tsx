@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ExternalLivePlayer } from "@/components/live/external-live-player";
 import { LiveChat } from "@/components/live/live-chat";
 import { LiveChatProvider } from "@/components/live/live-chat-provider";
+import { LiveSupportProvider } from "@/components/live/live-support-provider";
 import { TipCreatorDialog } from "@/components/support/tip-creator-dialog";
 import type { LiveExternalProvider } from "@/lib/live-external/types";
 import type { SupportTierLevel } from "@prisma/client";
@@ -87,18 +88,27 @@ export function ExternalLiveRoom({
             onViewerCount={setViewerCount}
             chatOverlayInitial={false}
           >
-            <LiveChat
+            {/* LiveChat → LiveSupportSidebar needs this provider (first-party rooms wrap it higher up). */}
+            <LiveSupportProvider
               channelId={channelId}
-              viewerCount={viewerCount}
               isHost={isHost}
-              canModerate={isHost}
-              hostUserId={host.id}
-              hostUsername={host.username}
-              hostDisplayName={host.displayName ?? host.username}
-              paymentsEnabled={paymentsEnabled}
-              viewerSupportTier={viewerSupportTier ?? undefined}
-              viewerSupportTotal={viewerSupportTotal}
-            />
+              onAlert={() => {
+                /* External iframe: no on-video donation overlay */
+              }}
+            >
+              <LiveChat
+                channelId={channelId}
+                viewerCount={viewerCount}
+                isHost={isHost}
+                canModerate={isHost}
+                hostUserId={host.id}
+                hostUsername={host.username}
+                hostDisplayName={host.displayName ?? host.username}
+                paymentsEnabled={paymentsEnabled}
+                viewerSupportTier={viewerSupportTier ?? undefined}
+                viewerSupportTotal={viewerSupportTotal}
+              />
+            </LiveSupportProvider>
           </LiveChatProvider>
         </div>
       </aside>
