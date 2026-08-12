@@ -227,8 +227,8 @@ export async function validatePaymentInput(
     }
   }
 
-  if (intent.type === "CALL_BOOKING") {
-    const bookingId = String(meta.bookingId ?? "");
+  if (input.type === "CALL_BOOKING") {
+    const bookingId = String(input.metadata.bookingId ?? "");
     const booking = await db.creatorCallBooking.findUnique({ where: { id: bookingId } });
     if (!booking) return { error: "예약을 찾을 수 없습니다." };
     if (booking.fanId !== userId) return { error: "예약 권한이 없습니다." };
