@@ -8,32 +8,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { OreTierBadge } from "@/components/support/ore-tier-button";
 import { PlatformSupportCard } from "@/components/support/platform-support-card";
 import { SupportTierTable } from "@/components/support/support-tier-table";
-import { SupportEmoticonsPanel } from "@/components/support/support-emoticons-panel";
-import { SupportStoragePanel } from "@/components/support/support-storage-panel";
-import { SupportGiftsPanel } from "@/components/support/support-gifts-panel";
-import { MarketDbBannerAsync } from "@/components/market/market-db-banner-async";
 import { SupportRankingPodium } from "@/components/support/support-ranking-podium";
 import { SupportTrophyIcon } from "@/components/icons/support-trophy-icon";
 import { SupportPageChrome, SupportPageTitle } from "@/components/support/support-page-chrome";
-import { TabPanelSkeleton } from "@/components/ui/content-skeletons";
-import { Send, Inbox, Sparkles, Archive, Gift, Gem, Banknote } from "lucide-react";
+import { Send, Inbox, Gem, Banknote } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { SupportTierLevel } from "@prisma/client";
-import { FLOWER_REDEEM_FEE_BPS } from "@/lib/flower/config";
-import { getMyWallet } from "@/actions/wallet";
-import { WalletDashboard } from "@/components/wallet/wallet-dashboard";
+import { getMyWallet, getMyWalletEarnings } from "@/actions/wallet";
+import { WalletHub } from "@/components/wallet/wallet-hub";
 
-const VALID_TABS = [
-  "sent",
-  "received",
-  "settlement",
-  "tiers",
-  "emoticons",
-  "storage",
-  "gifts",
-  "flowers",
-] as const;
+const VALID_TABS = ["sent", "received", "settlement", "tiers"] as const;
 
 type SupportTab = (typeof VALID_TABS)[number];
 
@@ -49,12 +34,12 @@ export default async function SupportPage({
   const tab: SupportTab = VALID_TABS.includes(params.tab as SupportTab)
     ? (params.tab as SupportTab)
     : "sent";
-  const priceFilter = params.price;
 
-  const [dashboard, rankingEntries, walletData] = await Promise.all([
+  const [dashboard, rankingEntries, walletData, walletEarnings] = await Promise.all([
     getSupportDashboard(),
     getSupportRankingWithAvatars(20),
     getMyWallet(),
+    getMyWalletEarnings(),
   ]);
   if (!dashboard) {
     redirect("/auth/signin");
@@ -64,10 +49,6 @@ export default async function SupportPage({
     { id: "sent", label: "후원한 크리에이터", icon: Send },
     { id: "received", label: "받은 후원", icon: Inbox },
     { id: "settlement", label: "정산 · 출금", icon: Banknote },
-    { id: "emoticons", label: "이모티콘", icon: Sparkles },
-    { id: "storage", label: "보관함", icon: Archive },
-    { id: "gifts", label: "받은 선물", icon: Gift },
-    { id: "flowers", label: "Flower Gift", icon: Sparkles },
     { id: "tiers", label: "등급 안내", icon: Gem },
   ] as const;
 
@@ -82,18 +63,12 @@ export default async function SupportPage({
           후원 정산 출금
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          크리에이터 후원 · 정산·출금 · 광석 등급 · 이모티콘
+          크리에이터 편지 후원 · 정산·출금 · 광석 등급
         </p>
       </div>
       </SupportPageTitle>
 
       <SupportRankingPodium entries={rankingEntries} />
-
-      {(tab === "emoticons" || tab === "storage") && (
-        <Suspense fallback={null}>
-          <MarketDbBannerAsync />
-        </Suspense>
-      )}
 
       <nav className="flex border-b border-border/60 gap-1 overflow-x-auto scrollbar-none">
         {tabs.map((t) => (
@@ -112,56 +87,9 @@ export default async function SupportPage({
         ))}
       </nav>
 
-      {tab === "emoticons" && (
-        <Suspense fallback={<TabPanelSkeleton />}>
-          <SupportEmoticonsPanel priceFilter={priceFilter} />
-        </Suspense>
-      )}
-
-      {tab === "storage" && (
-        <Suspense fallback={<TabPanelSkeleton />}>
-          <SupportStoragePanel />
-        </Suspense>
-      )}
-
       {tab === "settlement" && (
         <div className="space-y-4">
-          <WalletDashboard data={walletData} />
-          <p className="text-xs text-muted-foreground text-center">
-            <Link href="/support?tab=gifts" className="underline">
-              받은 이모티콘 선물
-            </Link>
-            {" · "}
-            <Link href="/support?tab=storage" className="underline">
-              이모티콘 보관함
-            </Link>
-            {" · "}
-            <Link href="/wallet" className="underline">
-              Wallet (포인트)
-            </Link>
-          </p>
-        </div>
-      )}
-
-      {tab === "gifts" && (
-        <Suspense fallback={<TabPanelSkeleton />}>
-          <SupportGiftsPanel />
-        </Suspense>
-      )}
-
-      {tab === "flowers" && (
-        <div className="rounded-2xl border border-border/60 p-6 space-y-3">
-          <p className="text-lg font-bold">Flower Gift</p>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            현금 가치가 있는 디지털 후원 꽃입니다. 구매 · 선물 · 재선물 · 환전(수수료 {FLOWER_REDEEM_FEE_BPS / 100}%)이
-            가능하며, 모든 이동은 원장으로 추적됩니다.
-          </p>
-          <Link
-            href="/flowers"
-            className="inline-flex rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-          >
-            Flower Wallet 열기
-          </Link>
+          <WalletHub data={walletData} earnings={walletEarnings} />
         </div>
       )}
 

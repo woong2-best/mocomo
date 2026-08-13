@@ -33,6 +33,7 @@ import {
 import { MessageVoiceSession } from "@/features/messages/MessageVoiceSession";
 import { useRoomMessages } from "@/features/messages/useRoomMessages";
 import { CreatorCallBookingSheet } from "@/features/messages/CreatorCallBookingSheet";
+import { LetterDonationSheet } from "@/payments/LetterDonationSheet";
 import { fetchCreatorCallSettings } from "@/api/call-bookings";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { useTheme } from "@/theme/ThemeContext";
@@ -86,6 +87,7 @@ export function MessageRoomScreen() {
   const [bookingSheet, setBookingSheet] = useState<{
     callType: "AUDIO" | "VIDEO";
   } | null>(null);
+  const [letterSheet, setLetterSheet] = useState(false);
   const [peerBookable, setPeerBookable] = useState(false);
   const [draft, setDraft] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -334,6 +336,15 @@ export function MessageRoomScreen() {
           >
             <Ionicons name="videocam-outline" size={19} color={colors.cobalt} />
           </Pressable>
+          {peerId ? (
+            <Pressable
+              style={styles.callBtn}
+              onPress={() => setLetterSheet(true)}
+              accessibilityLabel="편지 후원"
+            >
+              <Ionicons name="mail-outline" size={18} color={colors.terracotta} />
+            </Pressable>
+          ) : null}
           {peerBookable ? (
             <Pressable
               style={styles.callBtn}
@@ -513,6 +524,18 @@ export function MessageRoomScreen() {
           roomId={roomId}
           callType={bookingSheet.callType}
           displayName={title}
+          onSuccess={() => void refresh()}
+        />
+      ) : null}
+
+      {letterSheet && peerId ? (
+        <LetterDonationSheet
+          visible
+          onClose={() => setLetterSheet(false)}
+          creatorId={peerId}
+          username={peerUsername ?? peerId}
+          displayName={title}
+          roomId={roomId}
           onSuccess={() => void refresh()}
         />
       ) : null}

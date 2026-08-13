@@ -23,6 +23,7 @@ import { tierFromAmount } from "@/lib/tiers";
 import { notifyTip } from "@/lib/notifications";
 import { parseVideoTipMeta } from "@/lib/donation-metadata";
 import { normalizeYoutubeUrl } from "@/lib/video-donation";
+import { buildLetterDonationMessageBody } from "@/lib/chat-letter-donation";
 import { COMMUNITY_FEED_PATH } from "@/lib/site-routes";
 import { creditPlatformWallet } from "@/lib/platform/wallet/service";
 import { findMocoTopupPackage, krwToMoco } from "@/lib/moco/economy";
@@ -164,6 +165,28 @@ async function fulfillTip(
     message: message || null,
     channelId: channelId?.trim() || null,
   });
+
+  const roomId =
+    typeof rawMeta?.roomId === "string" && rawMeta.roomId.trim() ? rawMeta.roomId.trim() : null;
+  if (roomId && tipKind === "letter") {
+    const member = await db.chatMember.findUnique({
+      where: { roomId_userId: { roomId, userId: senderId } },
+      select: { userId: true },
+    });
+    if (member) {
+      await db.message.create({
+        data: {
+          roomId,
+          senderId,
+          content: buildLetterDonationMessageBody(tip.id),
+        },
+      });
+      await db.chatRoom.update({
+        where: { id: roomId },
+        data: { updatedAt: new Date() },
+      });
+    }
+  }
 
   revalidatePath(`/u/${receiver.username}`);
   revalidatePath("/support");

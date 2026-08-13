@@ -19,7 +19,6 @@ const SERVICES = [
   { href: "/market?type=CUSTOM_ORDER", label: "주문제작", icon: Palette, tone: "text-folk-forest" },
   { href: "/market?type=DIGITAL", label: "디지털", icon: Sparkles, tone: "text-violet-700" },
   { href: "/market?type=PREORDER", label: "예약판매", icon: Truck, tone: "text-amber-700" },
-  { href: "/market/emoticons", label: "이모티콘", icon: Sparkles, tone: "text-pink-600" },
   { href: "/webtoon", label: "일러스트", icon: Brush, tone: "text-sky-700" },
   { href: "/used", label: "중고·경매", icon: Tags, tone: "text-amber-600" },
   { href: "/market/orders", label: "내 주문", icon: ClipboardList, tone: "text-folk-cobalt" },

@@ -10,21 +10,32 @@ import {
   eventDurationDays,
 } from "@/lib/event-registration";
 import {
+  LETTER_DONATION_MESSAGE_MAX,
+  LETTER_DONATION_MIN_KRW,
+} from "@/lib/chat-letter-donation";
+import {
   calcVideoDonationAmount,
   DEFAULT_VIDEO_DONATION_SETTINGS,
   normalizeYoutubeUrl,
 } from "@/lib/video-donation";
-import { findMocoTopupPackage } from "@/lib/moco/economy";
 
 export async function validatePaymentInput(
   userId: string,
   input: { type: PaymentIntentType; amount: number; metadata: Record<string, unknown> }
 ): Promise<{ error: string } | null> {
+  if (input.type === "MOCO_TOPUP") {
+    return { error: "모코 충전은 종료되었습니다. 각 상품·후원 화면에서 바로 결제해 주세요." };
+  }
+  if (input.type === "FLOWER") {
+    return { error: "Flower Gift는 종료되었습니다. 후원·구매는 바로 결제로 진행해 주세요." };
+  }
+
   if (input.type === "TIP") {
     const receiverId = input.metadata.receiverId as string;
     if (!receiverId || receiverId === userId) return { error: "유효하지 않은 후원 대상입니다." };
     const tipKind = input.metadata.tipKind as string | undefined;
     const channelId = input.metadata.channelId as string | undefined;
+    const roomId = input.metadata.roomId as string | undefined;
     if (tipKind === "video" && !channelId?.trim()) {
       return { error: "영상 후원은 라이브 방송 중에만 가능합니다." };
     }
@@ -35,7 +46,25 @@ export async function validatePaymentInput(
       const donationCheck = await assertLiveDonationsAllowed(channelId.trim());
       if (!donationCheck.ok) return { error: donationCheck.error };
     }
-    if (tipKind === "video") {
+    if (tipKind === "letter") {
+      const msg = String(input.metadata.message ?? "").trim();
+      if (!msg) return { error: "편지 내용을 입력해 주세요." };
+      if (msg.length > LETTER_DONATION_MESSAGE_MAX) {
+        return { error: `편지는 ${LETTER_DONATION_MESSAGE_MAX}자까지 입력할 수 있습니다.` };
+      }
+      if (input.amount < LETTER_DONATION_MIN_KRW) {
+        return {
+          error: `편지 후원 최소 금액은 ${LETTER_DONATION_MIN_KRW.toLocaleString()}원입니다.`,
+        };
+      }
+      if (roomId?.trim()) {
+        const member = await db.chatMember.findUnique({
+          where: { roomId_userId: { roomId: roomId.trim(), userId } },
+          select: { userId: true },
+        });
+        if (!member) return { error: "메시지 방에 참여 중일 때만 편지를 보낼 수 있습니다." };
+      }
+    } else if (tipKind === "video") {
       const videoUrl = normalizeYoutubeUrl(String(input.metadata.videoUrl ?? ""));
       if (!videoUrl) return { error: "YouTube URL을 입력해 주세요." };
       const durationSec = Math.max(
@@ -117,16 +146,6 @@ export async function validatePaymentInput(
     }
     if (!pack) return { error: "이모티콘을 찾을 수 없습니다. DB 연동(섹션 J)을 확인해 주세요." };
     if (pack.price !== input.amount) return { error: "이모티콘 가격이 일치하지 않습니다." };
-  }
-
-  if (input.type === "FLOWER") {
-    const flowerTypeId = input.metadata.flowerTypeId as string;
-    const quantity = Math.max(1, Math.min(20, Number(input.metadata.quantity) || 1));
-    const flower = await db.flowerType.findUnique({ where: { id: flowerTypeId } });
-    if (!flower || !flower.active) return { error: "Flower Gift를 찾을 수 없습니다." };
-    if (flower.priceKrw * quantity !== input.amount) {
-      return { error: "Flower Gift 가격이 일치하지 않습니다." };
-    }
   }
 
   if (input.type === "LISTING_FEE") {
@@ -227,15 +246,6 @@ export async function validatePaymentInput(
       where: { userId_studioAssetId: { userId, studioAssetId: assetId } },
     });
     if (owned) return { error: "이미 보유 중입니다." };
-  }
-
-  if (input.type === "MOCO_TOPUP") {
-    const mocoAmount = Number(input.metadata.mocoAmount);
-    const pack = findMocoTopupPackage(mocoAmount);
-    if (!pack) return { error: "지원하지 않는 모코 충전 패키지입니다." };
-    if (input.amount !== pack.krw) {
-      return { error: "모코 충전 금액이 패키지와 일치하지 않습니다." };
-    }
   }
 
   if (input.type === "CALL_BOOKING") {

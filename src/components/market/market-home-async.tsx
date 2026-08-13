@@ -1,60 +1,25 @@
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sparkles, Package, Archive, Store } from "lucide-react";
-import { getEmoticonPacks, getPhysicalProducts } from "@/actions/goods-shop";
+import { Card, CardContent } from "@/components/ui/card";
+import { Package, Store } from "lucide-react";
+import { getPhysicalProducts } from "@/actions/goods-shop";
 import { getCachedMarketProducts } from "@/lib/cached-data";
-import { EMOTICON_PRICES } from "@/lib/goods-shop";
 import { MarketPageTitle } from "@/components/market/market-page-chrome";
 
 export async function MarketHomeAsync() {
-  const [{ packs }, goods, digital] = await Promise.all([
-    getEmoticonPacks().catch(() => ({ packs: [], dbReady: false })),
+  const [goods, digital] = await Promise.all([
     getPhysicalProducts().catch(() => []),
     getCachedMarketProducts().catch(() => []),
   ]);
 
-  const byPrice = EMOTICON_PRICES.map((price) => ({
-    price,
-    count: packs.filter((p) => p.price === price).length,
-  }));
-
   return (
     <div className="space-y-6">
       <MarketPageTitle>
-      <div>
-        <h1 className="text-2xl font-bold">마켓</h1>
-        <p className="text-sm text-muted-foreground mt-1">이모티콘 · 굿즈 · 디지털 콘텐츠</p>
-      </div>
+        <div>
+          <h1 className="text-2xl font-bold">마켓</h1>
+          <p className="text-sm text-muted-foreground mt-1">굿즈 · 디지털 · 크리에이터 상품</p>
+        </div>
       </MarketPageTitle>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Link href="/market/emoticons">
-          <Card className="rounded-2xl hover:border-primary/40 transition-shadow h-full">
-            <CardContent className="p-5 flex gap-4 items-center">
-              <div className="h-12 w-12 rounded-xl bg-violet-500/15 flex items-center justify-center">
-                <Sparkles className="h-6 w-6 text-violet-600" />
-              </div>
-              <div>
-                <p className="font-bold">MoCoMo 이모티콘</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {packs.length}종 · 1·2·3·5만원
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/market/storage">
-          <Card className="rounded-2xl hover:border-primary/40 transition-shadow h-full">
-            <CardContent className="p-5 flex gap-4 items-center">
-              <div className="h-12 w-12 rounded-xl bg-pink-500/15 flex items-center justify-center">
-                <Archive className="h-6 w-6 text-pink-600" />
-              </div>
-              <div>
-                <p className="font-bold">마이 스토리지</p>
-                <p className="text-xs text-muted-foreground mt-0.5">보유 · 스트리머 선물</p>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
         <Link href="/market/goods">
           <Card className="rounded-2xl hover:border-primary/40 transition-shadow h-full">
             <CardContent className="p-5 flex gap-4 items-center">
@@ -76,52 +41,15 @@ export async function MarketHomeAsync() {
               </div>
               <div>
                 <p className="font-bold">굿즈 판매 문의</p>
-                <p className="text-xs text-muted-foreground mt-0.5">등록비 5,000원</p>
+                <p className="text-xs text-muted-foreground mt-0.5">STAR 마켓 등록</p>
               </div>
             </CardContent>
           </Card>
         </Link>
       </div>
-
-      <section>
-        <h2 className="text-sm font-semibold text-muted-foreground mb-3">이모티콘 가격대</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {byPrice.map(({ price, count }) => (
-            <Link
-              key={price}
-              href={`/market/emoticons?price=${price}`}
-              className="rounded-xl border border-border/60 p-3 text-center hover:bg-muted/50"
-            >
-              <p className="font-bold text-primary">{(price / 10000).toFixed(0)}만원</p>
-              <p className="text-xs text-muted-foreground">{count}종</p>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {digital.length > 0 && (
-        <section>
-          <h2 className="text-sm font-semibold text-muted-foreground mb-3">디지털 굿즈</h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {digital.slice(0, 6).map((p) => (
-              <Link key={p.id} href={`/market/digital/${p.id}`}>
-                <Card className="overflow-hidden hover:border-primary/40 h-full">
-                  {p.previewUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.previewUrl} alt="" className="w-full aspect-video object-cover" />
-                  ) : (
-                    <div className="aspect-video bg-muted/40" />
-                  )}
-                  <CardHeader className="py-3">
-                    <CardTitle className="text-sm">{p.title}</CardTitle>
-                    <p className="text-xs text-primary font-semibold">{p.price.toLocaleString()}원</p>
-                  </CardHeader>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+      {digital.length > 0 ? (
+        <p className="text-sm text-muted-foreground">{digital.length}개 디지털 상품 · 마켓 목록에서 확인</p>
+      ) : null}
     </div>
   );
 }

@@ -10,7 +10,12 @@ import type { DmLightboxImage } from "@/features/messages/DmImageLightbox";
 import { formatBubbleTime } from "@/features/messages/chat-display";
 import { parseChatPostShare, splitTextWithUrls } from "@/lib/chat-post-share";
 import { parseCallBookingMarker, stripCallBookingMarker } from "@/lib/chat-call-booking";
+import {
+  parseLetterDonationMarker,
+  stripLetterDonationMarker,
+} from "@/lib/chat-letter-donation";
 import { CallBookingCard } from "@/features/messages/CallBookingCard";
+import { LetterDonationCard } from "@/features/messages/LetterDonationCard";
 import { IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
@@ -145,9 +150,11 @@ function MessageBubbleInner({
   const audios = (message.attachments ?? []).filter((a) => a.type === "AUDIO");
   const share = parseChatPostShare(message.content);
   const bookingId = parseCallBookingMarker(message.content);
+  const letterTipId = parseLetterDonationMarker(message.content);
   const bookingCaption = bookingId ? stripCallBookingMarker(message.content) : null;
-  const visibleText = share ? share.note : bookingId ? bookingCaption : message.content;
-  const imageOnly = images.length > 0 && !visibleText && !message.replyTo && !share && !bookingId;
+  const letterCaption = letterTipId ? stripLetterDonationMarker(message.content) : null;
+  const visibleText = share ? share.note : bookingId ? bookingCaption : letterTipId ? letterCaption : message.content;
+  const imageOnly = images.length > 0 && !visibleText && !message.replyTo && !share && !bookingId && !letterTipId;
   const hasTextBubble = !!(visibleText || message.replyTo) && !imageOnly;
   const timeLabel = formatBubbleTime(message.createdAt);
   const bubbleDecode = feedMediaDecodeWidth(BUBBLE_IMAGE);
@@ -256,6 +263,10 @@ function MessageBubbleInner({
           roomId={roomId}
           onRefresh={onMessagesRefresh}
         />
+      ) : null}
+
+      {letterTipId ? (
+        <LetterDonationCard tipId={letterTipId} interactive={!mine} />
       ) : null}
 
       {showTime ? (

@@ -7,8 +7,5 @@ export default async function MarketLegacyRedirect({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  if (id.startsWith("mocomo-")) {
-    redirect(`/market/emoticons/${id}`);
-  }
   redirect(`/market/digital/${id}`);
 }

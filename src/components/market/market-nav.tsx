@@ -13,11 +13,6 @@ const tabs = [
     label: "판매 등록",
     match: (p: string) => p.startsWith("/market/sell-item"),
   },
-  {
-    href: "/market/emoticons",
-    label: "이모티콘",
-    match: (p: string) => p.startsWith("/market/emoticons"),
-  },
   { href: "/webtoon", label: "일러스트", match: (p: string) => p.startsWith("/webtoon") },
   { href: "/used", label: "중고", match: (p: string) => p.startsWith("/used") },
 ];
