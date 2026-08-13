@@ -6,7 +6,7 @@ import { MarketHeroShowcase } from "@/components/market/market-hero-showcase";
 import { MarketCategoryRail } from "@/components/market/market-category-rail";
 import { MarketplaceListingGrid } from "@/components/market/marketplace-listing-grid";
 import { listMarketplaceListings } from "@/actions/marketplace";
-import { MARKETPLACE_LISTING_TYPES } from "@/lib/marketplace/constants";
+import { MARKETPLACE_BROWSE_LISTING_TYPES } from "@/lib/marketplace/constants";
 import { MARKET_BRAND_FULL, MARKET_BRAND_NAME } from "@/lib/market-brand";
 import type { MarketplaceListingType } from "@prisma/client";
 
@@ -20,7 +20,7 @@ export async function MarketplaceHomeAsync({
   category?: string;
 }) {
   const listingType =
-    type && MARKETPLACE_LISTING_TYPES.some((t) => t.id === type)
+    type && type !== "DIGITAL" && MARKETPLACE_BROWSE_LISTING_TYPES.some((t) => t.id === type)
       ? (type as MarketplaceListingType)
       : undefined;
 
@@ -50,9 +50,6 @@ export async function MarketplaceHomeAsync({
             <h1 className="font-display text-2xl sm:text-[1.75rem] font-bold tracking-tight text-foreground">
               {MARKET_BRAND_NAME}
             </h1>
-            <p className="text-sm text-muted-foreground max-w-xl leading-relaxed">
-              사람들이 만든 것을 사고파는 글로벌 서브컬처 마켓플레이스
-            </p>
           </div>
           <div className="flex flex-wrap gap-2 shrink-0">
             <Link
@@ -60,12 +57,6 @@ export async function MarketplaceHomeAsync({
               className="rounded-xl bg-folk-terracotta px-3.5 py-2 text-xs font-bold text-white shadow-[2px_2px_0_hsl(var(--folk-cobalt)/0.15)] hover:brightness-110"
             >
               판매 등록
-            </Link>
-            <Link
-              href="/market/seller"
-              className="rounded-xl border-2 border-folk-cobalt/25 bg-background px-3.5 py-2 text-xs font-bold text-foreground hover:border-folk-terracotta/50"
-            >
-              판매자 · 정산
             </Link>
           </div>
         </div>
@@ -116,8 +107,8 @@ export async function MarketplaceHomeAsync({
           온보딩합니다.
         </p>
         <p>
-          Stripe Connect 정산 · 주문/배송 추적 · 환불·분쟁 · 디지털 다운로드가 {MARKET_BRAND_NAME}에
-          통합됩니다.
+          Stripe Connect 정산 · 주문/배송 추적 · 환불·분쟁이 {MARKET_BRAND_NAME}에
+          통합됩니다. 수익·출금은 지갑에서 확인하세요.
         </p>
       </section>
     </div>
@@ -125,5 +116,5 @@ export async function MarketplaceHomeAsync({
 }
 
 function listingTypeLabelSafe(type: MarketplaceListingType) {
-  return MARKETPLACE_LISTING_TYPES.find((t) => t.id === type)?.label ?? type;
+  return MARKETPLACE_BROWSE_LISTING_TYPES.find((t) => t.id === type)?.label ?? type;
 }

@@ -16,7 +16,7 @@ export function MarketplaceListingGrid({
       <div className="rounded-2xl border-2 border-dashed border-folk-cobalt/20 bg-folk-cream/40 px-6 py-14 text-center space-y-3">
         <p className="text-sm font-semibold text-foreground">아직 등록된 상품이 없습니다</p>
         <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
-          첫 판매를 등록하면 여기에 고밀도 상품 그리드로 노출됩니다. 코스프레·굿즈·디지털 에셋을
+          첫 판매를 등록하면 여기에 고밀도 상품 그리드로 노출됩니다. 코스프레·굿즈·주문제작 상품을
           올려 보세요.
         </p>
         <Link

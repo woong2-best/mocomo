@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import type { MarketplaceListingType, MarketplaceShippingFeeType } from "@prisma/client";
 import {
   MARKETPLACE_CATEGORIES,
-  MARKETPLACE_LISTING_TYPES,
+  MARKETPLACE_BROWSE_LISTING_TYPES,
 } from "@/lib/marketplace/constants";
 import {
   listAllMarketplaceCarriers,
@@ -33,7 +33,6 @@ export function MarketplaceListingForm() {
   const [coverUrl, setCoverUrl] = useState("");
   const [mediaUrls, setMediaUrls] = useState("");
   const [productionDays, setProductionDays] = useState("14");
-  const [digitalFileUrl, setDigitalFileUrl] = useState("");
   const [shipToCountries, setShipToCountries] = useState<MarketplaceShipCountryCode[]>([
     "KR",
   ]);
@@ -45,7 +44,7 @@ export function MarketplaceListingForm() {
   const [options, setOptions] = useState<{ name: string; values: string[] }[]>([]);
 
   const typeMeta = useMemo(
-    () => MARKETPLACE_LISTING_TYPES.find((t) => t.id === type),
+    () => MARKETPLACE_BROWSE_LISTING_TYPES.find((t) => t.id === type),
     [type]
   );
 
@@ -75,7 +74,7 @@ export function MarketplaceListingForm() {
 
   function submit(publish: boolean) {
     setError("");
-    if (type !== "DIGITAL" && shipToCountries.length === 0) {
+    if (shipToCountries.length === 0) {
       setError("배송 가능 국가를 1개 이상 선택해 주세요.");
       return;
     }
@@ -95,11 +94,10 @@ export function MarketplaceListingForm() {
           .filter(Boolean),
         productionDays:
           type === "CUSTOM_ORDER" || type === "PREORDER" ? Number(productionDays) : undefined,
-        digitalFileUrl: type === "DIGITAL" ? digitalFileUrl.trim() || undefined : undefined,
-        shippingMethods: type === "DIGITAL" ? ["DIGITAL_NONE"] : shippingMethods,
-        shippingFeeType: type === "DIGITAL" ? "FREE" : shippingFeeType,
+        shippingMethods,
+        shippingFeeType,
         shippingFeeFixed: Number(shippingFeeFixed) || 0,
-        shipToCountries: type === "DIGITAL" ? [] : shipToCountries,
+        shipToCountries,
         options: options.length ? options : undefined,
         publish,
       });
@@ -119,7 +117,7 @@ export function MarketplaceListingForm() {
       <section className="space-y-2">
         <h2 className="text-sm font-semibold">판매 종류</h2>
         <div className="grid gap-2 sm:grid-cols-2">
-          {MARKETPLACE_LISTING_TYPES.map((t) => (
+          {MARKETPLACE_BROWSE_LISTING_TYPES.map((t) => (
             <button
               key={t.id}
               type="button"
@@ -175,7 +173,6 @@ export function MarketplaceListingForm() {
             value={stock}
             onChange={(e) => setStock(e.target.value)}
             placeholder="재고"
-            disabled={type === "DIGITAL"}
           />
         </div>
       </section>
@@ -189,20 +186,6 @@ export function MarketplaceListingForm() {
             value={productionDays}
             onChange={(e) => setProductionDays(e.target.value)}
           />
-        </section>
-      )}
-
-      {type === "DIGITAL" && (
-        <section className="space-y-2">
-          <label className="text-sm font-semibold">디지털 파일 URL</label>
-          <Input
-            value={digitalFileUrl}
-            onChange={(e) => setDigitalFileUrl(e.target.value)}
-            placeholder="결제 후 제공될 파일 URL"
-          />
-          <p className="text-xs text-muted-foreground">
-            디지털 상품은 배송 국가 제한 없이 판매할 수 있습니다.
-          </p>
         </section>
       )}
 
@@ -248,8 +231,7 @@ export function MarketplaceListingForm() {
         )}
       </section>
 
-      {type !== "DIGITAL" && (
-        <section className="space-y-4">
+      <section className="space-y-4">
           <div className="space-y-2">
             <h2 className="text-sm font-semibold">배송 가능 국가</h2>
             <p className="text-xs text-muted-foreground">
@@ -321,7 +303,6 @@ export function MarketplaceListingForm() {
             />
           </div>
         </section>
-      )}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 

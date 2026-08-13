@@ -32,18 +32,6 @@ const SLIDES: HeroSlide[] = [
       "bg-[radial-gradient(ellipse_at_20%_20%,hsl(var(--folk-gold)/0.35),transparent_50%),linear-gradient(135deg,hsl(var(--folk-cream)),hsl(28_40%_92%))]",
   },
   {
-    id: "digital",
-    eyebrow: "디지털 에셋",
-    title: "브러시·PSD\n바로 다운로드",
-    subtitle: "결제 후 즉시 받는 디지털 상품. 일러스트·3D·음원까지.",
-    cta: "디지털 상품 보기",
-    href: "/market?type=DIGITAL",
-    tabLabel: "디지털",
-    accent: "from-folk-cobalt/90 to-violet-800/80",
-    panelClass:
-      "bg-[radial-gradient(ellipse_at_80%_10%,hsl(var(--folk-cobalt)/0.18),transparent_45%),linear-gradient(145deg,#f7f4ee,#e8eef8)]",
-  },
-  {
     id: "preorder",
     eyebrow: "예약판매",
     title: "한정 굿즈\n미리 확보",
@@ -54,6 +42,18 @@ const SLIDES: HeroSlide[] = [
     accent: "from-amber-600/90 to-folk-terracotta/80",
     panelClass:
       "bg-[radial-gradient(ellipse_at_60%_80%,hsl(var(--folk-gold)/0.4),transparent_50%),linear-gradient(160deg,#faf6ef,#f3e8d8)]",
+  },
+  {
+    id: "physical",
+    eyebrow: "일반 판매",
+    title: "굿즈·피규어\n실물 상품",
+    subtitle: "재고 기반 실물 상품을 등록하고 전 세계에 판매하세요.",
+    cta: "일반 상품 보기",
+    href: "/market?type=PHYSICAL",
+    tabLabel: "일반 판매",
+    accent: "from-folk-cobalt/90 to-sky-800/80",
+    panelClass:
+      "bg-[radial-gradient(ellipse_at_80%_10%,hsl(var(--folk-cobalt)/0.18),transparent_45%),linear-gradient(145deg,#f7f4ee,#e8eef8)]",
   },
   {
     id: "seller",

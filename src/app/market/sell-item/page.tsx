@@ -2,6 +2,7 @@ import Link from "next/link";
 import { MarketPageTitle } from "@/components/market/market-page-chrome";
 import { MARKET_BRAND_NAME } from "@/lib/market-brand";
 import { MarketplaceListingForm } from "@/components/market/marketplace-listing-form";
+import { getMarketplaceSellItemGate } from "@/actions/marketplace";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
@@ -13,6 +14,11 @@ export default async function MarketSellItemPage() {
     redirect("/auth/signin?callbackUrl=/market/sell-item");
   }
 
+  const gate = await getMarketplaceSellItemGate(session.user.id);
+  if (!gate.allowed) {
+    redirect(gate.redirectTo);
+  }
+
   return (
     <>
       <MarketPageTitle>
@@ -22,7 +28,7 @@ export default async function MarketSellItemPage() {
           </Link>
           <h1 className="text-2xl font-bold">판매 등록</h1>
           <p className="text-sm text-muted-foreground">
-            일반 · 주문제작 · 디지털 · 예약판매 상품을 등록합니다.
+            일반 · 주문제작 · 예약판매 상품을 등록합니다.
           </p>
         </div>
       </MarketPageTitle>

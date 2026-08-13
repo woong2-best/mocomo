@@ -2,22 +2,18 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Package, Store } from "lucide-react";
 import { getPhysicalProducts } from "@/actions/goods-shop";
-import { getCachedMarketProducts } from "@/lib/cached-data";
 import { MarketPageTitle } from "@/components/market/market-page-chrome";
 import { MARKET_BRAND_NAME } from "@/lib/market-brand";
 
 export async function MarketHomeAsync() {
-  const [goods, digital] = await Promise.all([
-    getPhysicalProducts().catch(() => []),
-    getCachedMarketProducts().catch(() => []),
-  ]);
+  const goods = await getPhysicalProducts().catch(() => []);
 
   return (
     <div className="space-y-6">
       <MarketPageTitle>
         <div>
           <h1 className="text-2xl font-bold">{MARKET_BRAND_NAME}</h1>
-          <p className="text-sm text-muted-foreground mt-1">굿즈 · 디지털 · 크리에이터 상품</p>
+          <p className="text-sm text-muted-foreground mt-1">굿즈 · 크리에이터 상품</p>
         </div>
       </MarketPageTitle>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -48,9 +44,6 @@ export async function MarketHomeAsync() {
           </Card>
         </Link>
       </div>
-      {digital.length > 0 ? (
-        <p className="text-sm text-muted-foreground">{digital.length}개 디지털 상품 · {MARKET_BRAND_NAME} 목록에서 확인</p>
-      ) : null}
     </div>
   );
 }

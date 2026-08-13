@@ -102,6 +102,34 @@ export async function requireMarketplaceSeller() {
   return { user, profile };
 }
 
+/** /market/sell-item — 판매자 온보딩·승인 완료 전 접근 차단 */
+export type MarketplaceSellItemGate =
+  | { allowed: true }
+  | { allowed: false; redirectTo: string };
+
+export async function getMarketplaceSellItemGate(userId: string): Promise<MarketplaceSellItemGate> {
+  const profile = await db.marketplaceSellerProfile.findUnique({
+    where: { userId },
+  });
+  if (!profile) {
+    return { allowed: false, redirectTo: "/market/seller/register?callbackUrl=/market/sell-item" };
+  }
+  if (!profile.onboardingCompletedAt && profile.onboardingStep !== "COMPLETE") {
+    return { allowed: false, redirectTo: "/market/seller/register?callbackUrl=/market/sell-item" };
+  }
+  if (
+    profile.status === "SUSPENDED" ||
+    profile.status === "REJECTED" ||
+    profile.sanctionLevel === "PERMANENT_BAN" ||
+    profile.sanctionLevel === "SALES_SUSPENDED" ||
+    !profile.canList ||
+    profile.status !== "APPROVED"
+  ) {
+    return { allowed: false, redirectTo: "/market/seller" };
+  }
+  return { allowed: true };
+}
+
 export async function startMarketplaceConnectOnboarding() {
   const { user } = await requireMarketplaceSeller();
   const dbUser = await db.user.findUnique({
@@ -195,17 +223,16 @@ export async function createMarketplaceListing(input: CreateMarketplaceListingIn
   if (!Number.isFinite(input.priceAmount) || input.priceAmount < 0) {
     return { error: "가격이 올바르지 않습니다." };
   }
+  if (input.type === "DIGITAL") {
+    return { error: "디지털 상품 등록은 지원하지 않습니다." };
+  }
   if (input.type === "CUSTOM_ORDER" && (!input.productionDays || input.productionDays < 1)) {
     return { error: "주문제작 상품은 제작기간(일)이 필요합니다." };
   }
 
-  const needsPhysicalShip = input.type !== "DIGITAL";
-  let shipToCountries: string[] = [];
-  if (needsPhysicalShip) {
-    const validated = validateShipToCountries(input.shipToCountries);
-    if (!validated.ok) return { error: validated.error };
-    shipToCountries = validated.countries;
-  }
+  const validated = validateShipToCountries(input.shipToCountries);
+  if (!validated.ok) return { error: validated.error };
+  const shipToCountries = validated.countries;
 
   const mediaUrls = (input.mediaUrls ?? []).filter(Boolean).slice(0, 12);
   const coverUrl = input.coverUrl || mediaUrls[0] || null;
@@ -227,13 +254,10 @@ export async function createMarketplaceListing(input: CreateMarketplaceListingIn
       status: publish ? "ACTIVE" : "DRAFT",
       coverUrl,
       productionDays: input.productionDays ?? null,
-      digitalFileUrl: input.type === "DIGITAL" ? input.digitalFileUrl ?? null : null,
-      shippingMethods:
-        input.type === "DIGITAL"
-          ? ["DIGITAL_NONE"]
-          : (input.shippingMethods ?? ["INTL_EMS"]).slice(0, 12),
-      shippingFeeType: input.type === "DIGITAL" ? "FREE" : input.shippingFeeType ?? "FIXED",
-      shippingFeeFixed: input.type === "DIGITAL" ? 0 : Math.max(0, input.shippingFeeFixed ?? 0),
+      digitalFileUrl: null,
+      shippingMethods: (input.shippingMethods ?? ["INTL_EMS"]).slice(0, 12),
+      shippingFeeType: input.shippingFeeType ?? "FIXED",
+      shippingFeeFixed: Math.max(0, input.shippingFeeFixed ?? 0),
       shipToCountries,
       shipsWorldwide: false,
       publishedAt: publish ? new Date() : null,
@@ -266,7 +290,11 @@ export async function listMarketplaceListings(params?: {
   const where: Prisma.MarketplaceListingWhereInput = {
     status: "ACTIVE",
   };
-  if (params?.type && params.type !== "ALL") where.type = params.type;
+  if (params?.type && params.type !== "ALL") {
+    where.type = params.type;
+  } else {
+    where.type = { not: "DIGITAL" };
+  }
   if (params?.category) where.category = params.category;
   if (params?.q?.trim()) {
     const q = params.q.trim();

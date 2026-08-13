@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MARKETPLACE_CATEGORIES, MARKETPLACE_LISTING_TYPES } from "@/lib/marketplace/constants";
+import { MARKETPLACE_CATEGORIES, MARKETPLACE_BROWSE_LISTING_TYPES } from "@/lib/marketplace/constants";
 import type { MarketplaceListingType } from "@prisma/client";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +24,7 @@ export function MarketCategoryRail({
         >
           전체
         </Link>
-        {MARKETPLACE_LISTING_TYPES.map((t) => (
+        {MARKETPLACE_BROWSE_LISTING_TYPES.map((t) => (
           <Link
             key={t.id}
             href={`/market?type=${t.id}`}

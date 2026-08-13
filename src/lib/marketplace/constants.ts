@@ -10,9 +10,11 @@ export const MARKETPLACE_LISTING_TYPES: {
 }[] = [
   { id: "PHYSICAL", label: "일반상품", description: "재고 기반 실물 상품" },
   { id: "CUSTOM_ORDER", label: "주문제작", description: "코스프레 의상·소품 등 제작" },
-  { id: "DIGITAL", label: "디지털", description: "PSD·브러시·3D·음원 등" },
   { id: "PREORDER", label: "예약판매", description: "예약 후 제작·발송" },
 ];
+
+/** Browse / sell UI — 디지털 상품 신규 등록·노출 제외 (레거시 DB 타입은 유지) */
+export const MARKETPLACE_BROWSE_LISTING_TYPES = MARKETPLACE_LISTING_TYPES;
 
 export const MARKETPLACE_CATEGORIES = [
   "코스프레",
@@ -20,7 +22,6 @@ export const MARKETPLACE_CATEGORIES = [
   "피규어",
   "동인지·아트북",
   "팬아트",
-  "디지털 에셋",
   "일러스트",
   "의상·소품",
   "기타",
@@ -54,5 +55,11 @@ export function computeMarketplaceFees(subtotalAmount: number, shippingAmount = 
 }
 
 export function listingTypeLabel(type: MarketplaceListingType): string {
-  return MARKETPLACE_LISTING_TYPES.find((t) => t.id === type)?.label ?? type;
+  const labels: Record<MarketplaceListingType, string> = {
+    PHYSICAL: "일반상품",
+    CUSTOM_ORDER: "주문제작",
+    PREORDER: "예약판매",
+    DIGITAL: "디지털",
+  };
+  return labels[type] ?? type;
 }
