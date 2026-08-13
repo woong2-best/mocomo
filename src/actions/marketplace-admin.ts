@@ -11,6 +11,7 @@ import { requireAdmin, requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { createNotification } from "@/lib/notifications";
 import { logMarketplaceAudit, MarketplaceAuditActions } from "@/lib/marketplace/audit";
+import { MARKET_BRAND_FULL } from "@/lib/market-brand";
 import {
   releaseMarketplaceEscrow,
   holdSettlementForDispute,
@@ -520,7 +521,7 @@ export async function approveMarketplaceSeller(profileId: string) {
     userId: profile.userId,
     type: "system",
     title: "판매자 승인 완료",
-    body: "MoCoMo MARKET 판매자가 승인되었습니다. 이제 상품을 등록할 수 있습니다.",
+    body: `${MARKET_BRAND_FULL} 판매자가 승인되었습니다. 이제 상품을 등록할 수 있습니다.`,
     link: "/market/seller",
   }).catch(() => null);
 

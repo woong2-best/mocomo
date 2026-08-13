@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MarketPageTitle } from "@/components/market/market-page-chrome";
+import { MARKET_BRAND_NAME } from "@/lib/market-brand";
 import { MarketplaceListingForm } from "@/components/market/marketplace-listing-form";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -17,7 +18,7 @@ export default async function MarketSellItemPage() {
       <MarketPageTitle>
         <div className="space-y-1 mb-2">
           <Link href="/market" className="text-xs text-muted-foreground hover:text-foreground">
-            ← MARKET
+            ← {MARKET_BRAND_NAME}
           </Link>
           <h1 className="text-2xl font-bold">판매 등록</h1>
           <p className="text-sm text-muted-foreground">

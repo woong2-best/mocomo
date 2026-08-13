@@ -10,6 +10,7 @@ import {
   confirmAndMaybeSettle,
   releaseDueMarketplaceSettlementsBatch,
 } from "@/lib/marketplace/escrow";
+import { MARKET_BRAND_NAME } from "@/lib/market-brand";
 
 /** 결제 완료 후 주문 활성화 — 재고 원자성. 판매자 정산은 구매확정(에스크로) 후. */
 export async function fulfillMarketplaceOrder(params: {
@@ -143,7 +144,7 @@ export async function fulfillMarketplaceOrder(params: {
     referenceType: "marketplace",
     referenceId: order.id,
     paymentIntentId: params.paymentIntentDbId,
-    memo: `MARKET 수수료 #${order.id.slice(0, 8)}`,
+    memo: `${MARKET_BRAND_NAME} 수수료 #${order.id.slice(0, 8)}`,
   });
 
   // Escrow: do NOT credit seller / Transfer until purchase confirm
@@ -166,7 +167,7 @@ export async function fulfillMarketplaceOrder(params: {
     type: "SYSTEM",
     title: holdForReview
       ? "주문이 관리자 검토 중입니다"
-      : "새 MARKET 주문이 들어왔습니다",
+      : `새 ${MARKET_BRAND_NAME} 주문이 들어왔습니다`,
     body: `${order.buyer.username}님이 결제했습니다. 정산은 구매 확정 후 진행됩니다.`,
     link: `/market/orders/${order.id}`,
     actorId: order.buyerId,

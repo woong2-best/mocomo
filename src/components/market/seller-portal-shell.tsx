@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
+import { MARKET_BRAND_NAME } from "@/lib/market-brand";
 
 export function SellerPortalShell({ children }: { children: React.ReactNode }) {
   return (
@@ -19,8 +20,8 @@ export function SellerPortalShell({ children }: { children: React.ReactNode }) {
             >
               로그인
             </Link>
-            <Link href="/market" className="text-muted-foreground hover:text-foreground px-1">
-              MARKET
+            <Link href="/market" className="text-muted-foreground hover:text-foreground px-1 text-xs sm:text-sm">
+              {MARKET_BRAND_NAME}
             </Link>
           </div>
         </div>

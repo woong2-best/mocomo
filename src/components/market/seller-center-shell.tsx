@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { performWebSignOut } from "@/lib/account-switch/sign-out-client";
 import { BRAND } from "@/lib/brand";
+import { MARKET_BRAND_FULL } from "@/lib/market-brand";
 import { cn } from "@/lib/utils";
 import {
   Bell,
@@ -173,7 +174,7 @@ export function SellerCenterShell({
           <div className="mt-auto px-4 pt-6 text-[11px] text-muted-foreground space-y-2">
             <p className="font-medium text-foreground/70">관련 사이트</p>
             <Link href="/market" className="block hover:text-foreground">
-              MoCoMo MARKET
+              {MARKET_BRAND_FULL}
             </Link>
             <Link href="/" className="block hover:text-foreground">
               MoCoMo 홈

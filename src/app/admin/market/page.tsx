@@ -13,6 +13,7 @@ import {
   listPendingMarketplaceSellers,
 } from "@/actions/marketplace-admin";
 import { AdminSellerApprovalList } from "@/components/market/admin-seller-approval";
+import { MARKET_BRAND_NAME } from "@/lib/market-brand";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,7 @@ export default async function AdminMarketPage() {
   ]);
 
   return (
-    <AdminPageChrome maxWidth="4xl" title="MARKET 분쟁 · 보호 센터">
+    <AdminPageChrome maxWidth="4xl" title={`${MARKET_BRAND_NAME} 분쟁 · 보호 센터`}>
       <div className="mb-4">
         <Link href="/admin" className="text-sm text-muted-foreground hover:text-foreground">
           ← 관리자 홈

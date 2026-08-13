@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { MARKET_BRAND_NAME } from "@/lib/market-brand";
 
 const tabs = [
-  { href: "/market", label: "MARKET", match: (p: string) => p === "/market" },
+  { href: "/market", label: MARKET_BRAND_NAME, match: (p: string) => p === "/market" },
   { href: "/market/orders", label: "주문", match: (p: string) => p.startsWith("/market/orders") },
   { href: "/market/seller", label: "판매자", match: (p: string) => p.startsWith("/market/seller") },
   {

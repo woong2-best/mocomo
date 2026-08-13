@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getMarketplaceOrderDetail } from "@/actions/marketplace-checkout";
 import { PrintReceiptButton } from "@/components/market/print-receipt-button";
+import { MARKET_BRAND_FULL } from "@/lib/market-brand";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export default async function MarketReceiptPage({
     <div className="mx-auto max-w-xl space-y-4 p-8 print:p-0">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">MoCoMo MARKET 영수증</h1>
+          <h1 className="text-2xl font-bold">{MARKET_BRAND_FULL} 영수증</h1>
           <p className="text-sm text-muted-foreground">발행일시 {issuedAt}</p>
         </div>
         <PrintReceiptButton />

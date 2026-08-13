@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MARKET_BRAND_NAME } from "@/lib/market-brand";
 
 type HeroSlide = {
   id: string;
@@ -57,7 +58,7 @@ const SLIDES: HeroSlide[] = [
   {
     id: "seller",
     eyebrow: "판매자 온보딩",
-    title: "글로벌 MARKET\n판매 시작",
+    title: `글로벌 ${MARKET_BRAND_NAME}\n판매 시작`,
     subtitle: "한국 SMS · 해외 Stripe 경로로 판매자 등록을 완료하세요.",
     cta: "판매자 등록",
     href: "/market/seller/register",

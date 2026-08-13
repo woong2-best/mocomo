@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Check, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { MARKET_BRAND_FULL, MARKET_BRAND_NAME } from "@/lib/market-brand";
 import { MarketplaceSellerApplyForm } from "@/components/market/marketplace-seller-apply-form";
 
 export type SellerPrepState = {
@@ -67,7 +68,7 @@ export function SellerCenterHome({
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-                MoCoMo MARKET과 함께 빠르게 판매를 시작하세요!
+                {MARKET_BRAND_FULL}과 함께 빠르게 판매를 시작하세요!
               </h1>
               <p className="text-sm text-muted-foreground mt-1.5">
                 가이드에 따라 단계를 완료하면 바로 판매할 수 있어요.
@@ -117,7 +118,7 @@ export function SellerCenterHome({
                     </Button>
                   )}
                   <Button asChild variant="outline" className="min-w-[9.5rem] border-primary/40 text-primary">
-                    <Link href="/market">MARKET에서 둘러보기</Link>
+                    <Link href="/market">{MARKET_BRAND_NAME}에서 둘러보기</Link>
                   </Button>
                 </div>
               }
@@ -136,7 +137,7 @@ export function SellerCenterHome({
           <div>
             <p className="font-semibold">성장하는 셀러를 위한 판매 가이드</p>
             <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-              상품 등록, 주문 처리, Stripe Connect 정산까지 MoCoMo MARKET 판매자센터에서 한 번에
+              상품 등록, 주문 처리, Stripe Connect 정산까지 {MARKET_BRAND_FULL} 판매자센터에서 한 번에
               관리할 수 있습니다. 약관과 정책을 확인한 뒤 첫 상품을 올려 보세요.
             </p>
             <Link

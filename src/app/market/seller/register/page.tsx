@@ -3,12 +3,13 @@ import { SellerOnboardingWizard } from "@/components/market/seller-onboarding-wi
 import { getSellerOnboardingState } from "@/actions/marketplace-seller-onboarding";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
+import { MARKET_BRAND_FULL } from "@/lib/market-brand";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "판매자 가입 — MoCoMo MARKET",
-  description: "MoCoMo MARKET 판매자 온보딩. 계정·약관·인증·정산까지 한 번에 시작하세요.",
+  title: `판매자 가입 — ${MARKET_BRAND_FULL}`,
+  description: `${MARKET_BRAND_FULL} 판매자 온보딩. 계정·약관·인증·정산까지 한 번에 시작하세요.`,
 };
 
 export default async function SellerRegisterPage({

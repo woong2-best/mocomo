@@ -4,6 +4,7 @@ import { Package, Store } from "lucide-react";
 import { getPhysicalProducts } from "@/actions/goods-shop";
 import { getCachedMarketProducts } from "@/lib/cached-data";
 import { MarketPageTitle } from "@/components/market/market-page-chrome";
+import { MARKET_BRAND_NAME } from "@/lib/market-brand";
 
 export async function MarketHomeAsync() {
   const [goods, digital] = await Promise.all([
@@ -15,7 +16,7 @@ export async function MarketHomeAsync() {
     <div className="space-y-6">
       <MarketPageTitle>
         <div>
-          <h1 className="text-2xl font-bold">마켓</h1>
+          <h1 className="text-2xl font-bold">{MARKET_BRAND_NAME}</h1>
           <p className="text-sm text-muted-foreground mt-1">굿즈 · 디지털 · 크리에이터 상품</p>
         </div>
       </MarketPageTitle>
@@ -41,14 +42,14 @@ export async function MarketHomeAsync() {
               </div>
               <div>
                 <p className="font-bold">굿즈 판매 문의</p>
-                <p className="text-xs text-muted-foreground mt-0.5">STAR 마켓 등록</p>
+                <p className="text-xs text-muted-foreground mt-0.5">STAR {MARKET_BRAND_NAME} 등록</p>
               </div>
             </CardContent>
           </Card>
         </Link>
       </div>
       {digital.length > 0 ? (
-        <p className="text-sm text-muted-foreground">{digital.length}개 디지털 상품 · 마켓 목록에서 확인</p>
+        <p className="text-sm text-muted-foreground">{digital.length}개 디지털 상품 · {MARKET_BRAND_NAME} 목록에서 확인</p>
       ) : null}
     </div>
   );

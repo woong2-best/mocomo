@@ -12,9 +12,10 @@ import {
   Truck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MARKET_BRAND_NAME } from "@/lib/market-brand";
 
 const SERVICES = [
-  { href: "/market", label: "전체 MARKET", icon: Store, tone: "text-folk-terracotta" },
+  { href: "/market", label: `전체 ${MARKET_BRAND_NAME}`, icon: Store, tone: "text-folk-terracotta" },
   { href: "/market?type=PHYSICAL", label: "일반상품", icon: Package, tone: "text-folk-cobalt" },
   { href: "/market?type=CUSTOM_ORDER", label: "주문제작", icon: Palette, tone: "text-folk-forest" },
   { href: "/market?type=DIGITAL", label: "디지털", icon: Sparkles, tone: "text-violet-700" },

@@ -43,6 +43,7 @@ import {
 import { sellerRequiresPhoneVerification } from "@/lib/marketplace/seller-region-policy";
 import { phonePlaceholderForCountry } from "@/lib/phone-international";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
+import { MARKET_BRAND_FULL } from "@/lib/market-brand";
 import { cn } from "@/lib/utils";
 import { ChevronRight } from "lucide-react";
 
@@ -473,7 +474,7 @@ export function SellerOnboardingWizard({
   );
 
   const title = useMemo(() => {
-    if (effectiveStep === "ACCOUNT") return "MoCoMo MARKET과 함께 비즈니스를 시작하세요!";
+    if (effectiveStep === "ACCOUNT") return `${MARKET_BRAND_FULL}과 함께 비즈니스를 시작하세요!`;
     if (effectiveStep === "AGREEMENTS") return "약관 동의";
     if (effectiveStep === "EMAIL") return "이메일 인증";
     if (effectiveStep === "PHONE") return "휴대폰 인증";
@@ -491,7 +492,7 @@ export function SellerOnboardingWizard({
         {title}
       </h1>
       <p className="text-center text-sm text-muted-foreground mb-6">
-        MoCoMo MARKET 판매자 온보딩 ·{" "}
+        {MARKET_BRAND_FULL} 판매자 온보딩 ·{" "}
         {phoneRequired
           ? "한국: 이메일+SMS+KYC+정산"
           : "해외: 이메일 → Stripe → 신분증 → 계좌 (SMS 없음)"}
@@ -1044,7 +1045,7 @@ function AgreementsStep(props: {
           required
           checked={props.agreeTerms}
           onToggle={() => toggle(props.setAgreeTerms, props.agreeTerms)}
-          label="MoCoMo MARKET 판매자 서비스 이용약관 - 사업자용"
+          label={`${MARKET_BRAND_FULL} 판매자 서비스 이용약관 - 사업자용`}
           onDetail={() => props.onOpenConsent("terms")}
         />
         <ConsentRow

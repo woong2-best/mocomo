@@ -1,12 +1,13 @@
 import type { LegalDocument } from "@/lib/legal-content";
+import { MARKET_BRAND_FULL } from "@/lib/market-brand";
 
-/** MoCoMo MARKET 판매자 서비스 이용약관 (사업자용) — ver 1.1 */
+/** More Commerce Moment 판매자 서비스 이용약관 (사업자용) — ver 1.1 */
 export const SELLER_TERMS: LegalDocument = {
   slug: "seller-terms",
-  title: "MoCoMo MARKET 판매자 서비스 이용약관",
+  title: `${MARKET_BRAND_FULL} 판매자 서비스 이용약관`,
   updatedAt: "2026년 8월 7일",
   intro:
-    '본 약관은 미합중국 와이오밍 주 소재 MoCoMo LLC(이하 "회사")가 운영하는 온라인 오픈마켓 플랫폼 "MoCoMo MARKET"(이하 "플랫폼")을 통해 상품을 판매하고자 하는 사업자(이하 "판매자")와 회사 간의 권리, 의무 및 책임사항, 서비스 이용 조건과 절차 등을 규정함을 목적으로 합니다. 판매자는 회원가입 시 본 약관에 동의함으로써 본 약관의 적용을 받습니다.',
+    `본 약관은 미합중국 와이오밍 주 소재 MoCoMo LLC(이하 "회사")가 운영하는 온라인 오픈마켓 플랫폼 "${MARKET_BRAND_FULL}"(이하 "플랫폼")을 통해 상품을 판매하고자 하는 사업자(이하 "판매자")와 회사 간의 권리, 의무 및 책임사항, 서비스 이용 조건과 절차 등을 규정함을 목적으로 합니다. 판매자는 회원가입 시 본 약관에 동의함으로써 본 약관의 적용을 받습니다.`,
   blocks: [
     { type: "h2", text: "제 1 장 총칙" },
     { type: "h3", text: "제 1 조 (목적)" },
@@ -148,7 +149,7 @@ export type SellerConsentTableRow = {
 export const SELLER_MARKETING_CONSENT = {
   title: "마케팅 목적의 개인정보 수집 및 이용 동의",
   intro:
-    'MoCoMo LLC가 제공하는 "MoCoMo MARKET"에서는 아래의 목적으로 개인정보를 수집 및 이용하며, 회원의 개인정보를 안전하게 취급하는데 최선을 다합니다.',
+    `MoCoMo LLC가 제공하는 "${MARKET_BRAND_FULL}"에서는 아래의 목적으로 개인정보를 수집 및 이용하며, 회원의 개인정보를 안전하게 취급하는데 최선을 다합니다.`,
   columns: {
     items: "수집 항목 (Collection item)",
     purpose: "수집·이용목적 (Collection Purpose)",
@@ -172,7 +173,7 @@ export const SELLER_MARKETING_CONSENT = {
 export const SELLER_PRIVACY_GUIDE = {
   title: "개인정보 수집 및 이용 안내",
   intro:
-    'MoCoMo LLC가 제공하는 "MoCoMo MARKET"에서는 아래의 목적으로 개인정보를 수집 및 이용하며, 회원의 개인정보를 안전하게 취급하는데 최선을 다합니다.',
+    `MoCoMo LLC가 제공하는 "${MARKET_BRAND_FULL}"에서는 아래의 목적으로 개인정보를 수집 및 이용하며, 회원의 개인정보를 안전하게 취급하는데 최선을 다합니다.`,
   columns: {
     purpose: "수집·이용목적(Collection Purpose)",
     items: "수집 항목(Collection item)",

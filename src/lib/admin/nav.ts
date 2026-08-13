@@ -25,6 +25,7 @@ import {
   Search,
 } from "lucide-react";
 import type { AdminPermission } from "@/lib/admin/permissions";
+import { MARKET_BRAND_NAME } from "@/lib/market-brand";
 
 export type AdminNavItem = {
   href: string;
@@ -56,7 +57,7 @@ export const ADMIN_PRIMARY_NAV: AdminNavItem[] = [
 ];
 
 export const ADMIN_LEGACY_NAV: AdminNavItem[] = [
-  { href: "/admin/market", label: "MARKET 분쟁", icon: Gavel, permission: "legacy.ops" },
+  { href: "/admin/market", label: `${MARKET_BRAND_NAME} 분쟁`, icon: Gavel, permission: "legacy.ops" },
   { href: "/admin/finance", label: "매출 · 출금", icon: Landmark, permission: "legacy.ops" },
   { href: "/admin/economy", label: "APT 경제", icon: Coins, permission: "legacy.ops" },
   { href: "/admin/flowers", label: "Flower Gift", icon: Flower2, permission: "legacy.ops" },

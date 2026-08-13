@@ -7,6 +7,7 @@ import { MarketCategoryRail } from "@/components/market/market-category-rail";
 import { MarketplaceListingGrid } from "@/components/market/marketplace-listing-grid";
 import { listMarketplaceListings } from "@/actions/marketplace";
 import { MARKETPLACE_LISTING_TYPES } from "@/lib/marketplace/constants";
+import { MARKET_BRAND_FULL, MARKET_BRAND_NAME } from "@/lib/market-brand";
 import type { MarketplaceListingType } from "@prisma/client";
 
 export async function MarketplaceHomeAsync({
@@ -44,10 +45,10 @@ export async function MarketplaceHomeAsync({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-1 min-w-0">
             <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-folk-terracotta">
-              MoCoMo MARKET
+              {MARKET_BRAND_FULL}
             </p>
             <h1 className="font-display text-2xl sm:text-[1.75rem] font-bold tracking-tight text-foreground">
-              MARKET
+              {MARKET_BRAND_NAME}
             </h1>
             <p className="text-sm text-muted-foreground max-w-xl leading-relaxed">
               사람들이 만든 것을 사고파는 글로벌 서브컬처 마켓플레이스
@@ -115,7 +116,7 @@ export async function MarketplaceHomeAsync({
           온보딩합니다.
         </p>
         <p>
-          Stripe Connect 정산 · 주문/배송 추적 · 환불·분쟁 · 디지털 다운로드가 MARKET에
+          Stripe Connect 정산 · 주문/배송 추적 · 환불·분쟁 · 디지털 다운로드가 {MARKET_BRAND_NAME}에
           통합됩니다.
         </p>
       </section>
