@@ -4,10 +4,16 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { getWalletSummary, MIN_PAYOUT_KRW } from "@/lib/settlement";
+import { getWalletEarningsAnalytics } from "@/lib/wallet-analytics";
 
 export async function getMyWallet() {
   const user = await requireAuth();
   return getWalletSummary(user.id);
+}
+
+export async function getMyWalletEarnings(year?: number) {
+  const user = await requireAuth();
+  return getWalletEarningsAnalytics(user.id, year);
 }
 
 export async function saveBankAccount(data: {
