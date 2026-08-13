@@ -70,7 +70,7 @@ export function LetterDonationCard({
         onPress={() => setOpen(true)}
         style={styles.envelopeHit}
       >
-        <Image source={require("../../assets/wax-envelope.png")} style={styles.envelope} resizeMode="cover" />
+        <Image source={require("../../../assets/wax-envelope.png")} style={styles.envelope} resizeMode="cover" />
         <Animated.View style={[styles.letter, { opacity: letterOpacity, transform: [{ translateY: letterY }] }]}>
           {tip.senderName ? <Text style={styles.from}>From {tip.senderName}</Text> : null}
           <Text style={styles.body}>{tip.message}</Text>
