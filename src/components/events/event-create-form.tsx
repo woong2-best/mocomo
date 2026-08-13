@@ -15,6 +15,7 @@ import {
 import { uploadImageBlob } from "@/lib/client-upload";
 import { fileToUploadableJpeg, isGalleryImageFile } from "@/lib/gallery-image-upload";
 import { EventCard } from "@/components/events/event-card";
+import { PaymentLegalNotice } from "@/components/legal/legal-entity-notice";
 import { PayButton } from "@/components/payments/pay-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -184,15 +185,18 @@ export function EventCreateForm({
           {EVENT_REGISTRATION_FEE_PER_DAY_KRW.toLocaleString()}원)
         </p>
         {paymentsEnabled ? (
-          <PayButton
-            type="EVENT_REGISTRATION"
-            amount={registrationFee}
-            orderName="MoCoMo 이벤트 등록"
-            metadata={{ eventId }}
-            className="w-full rounded-2xl"
-          >
-            {registrationFee.toLocaleString()}원 결제하고 공개하기
-          </PayButton>
+          <>
+            <PayButton
+              type="EVENT_REGISTRATION"
+              amount={registrationFee}
+              orderName="MoCoMo 이벤트 등록"
+              metadata={{ eventId }}
+              className="w-full rounded-2xl"
+              showLegalNotice
+            >
+              {registrationFee.toLocaleString()}원 결제하고 공개하기
+            </PayButton>
+          </>
         ) : (
           <p className="text-sm text-destructive">
             결제 설정(Stripe)이 필요합니다. 관리자에게 문의해 주세요.
@@ -479,6 +483,7 @@ export function EventCreateForm({
         >
           다음: 등록비 결제 ({registrationFee.toLocaleString()}원)
         </Button>
+        <PaymentLegalNotice compact className="mt-2" />
         <p className="text-center text-xs text-muted-foreground">
           하루 {EVENT_REGISTRATION_FEE_PER_DAY_KRW.toLocaleString()}원 · 최대{" "}
           {EVENT_REGISTRATION_MAX_DAYS}일 · 등록비 결제 후 목록에 공개됩니다.
@@ -505,6 +510,7 @@ export function EventCreateForm({
           <p className="text-[11px] leading-relaxed text-muted-foreground">
             제목·이미지·유형·종료일이 카드에 실시간으로 반영됩니다.
           </p>
+          <PaymentLegalNotice />
         </div>
       </aside>
 
@@ -523,6 +529,7 @@ export function EventCreateForm({
             likeCount: 0,
           }}
         />
+        <PaymentLegalNotice compact />
       </div>
     </div>
   );

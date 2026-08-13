@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { createStripeCheckout } from "@/actions/monetization";
+import { PaymentLegalNotice } from "@/components/legal/legal-entity-notice";
 import { Button } from "@/components/ui/button";
 import type { PaymentIntentType } from "@prisma/client";
 
@@ -12,6 +13,7 @@ type Props = {
   metadata: Record<string, unknown>;
   disabled?: boolean;
   className?: string;
+  showLegalNotice?: boolean;
   children: React.ReactNode;
 };
 
@@ -23,6 +25,7 @@ export function PayButton({
   metadata,
   disabled,
   className,
+  showLegalNotice,
   children,
 }: Props) {
   const [error, setError] = useState("");
@@ -49,6 +52,7 @@ export function PayButton({
       <Button type="button" className={className} disabled={disabled || pending} onClick={pay}>
         {pending ? "결제 준비 중..." : children}
       </Button>
+      {showLegalNotice ? <PaymentLegalNotice compact /> : null}
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );

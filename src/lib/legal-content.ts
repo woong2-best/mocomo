@@ -7,6 +7,13 @@ export const LEGAL_CONTACT_EMAIL = "mocomo.company@gmail.com";
 /** Legal entity displayed across terms and policies. */
 export const LEGAL_ENTITY_NAME = "MoCoMo LLC";
 export const LEGAL_ENTITY_JURISDICTION = "State of Wyoming, United States of America";
+/** Wyoming Secretary of State registered office / agent of record */
+export const LEGAL_REGISTERED_OFFICE_ADDRESS =
+  "Sheridan, Wyoming 82801, United States";
+export const LEGAL_DMCA_AGENT_EMAIL = LEGAL_CONTACT_EMAIL;
+
+const EVENT_GOVERNING_LAW_PARAGRAPH =
+  "본 약관 및 이벤트·광고 등록과 관련된 분쟁에는 미합중국 와이오밍 주(State of Wyoming, USA)의 법률이 적용됩니다(법률 충돌 원칙은 제외). 분쟁 해결 관할은 와이오밍 주 관할 법원 또는 당사자가 합의한 구속력 있는 중재(Arbitration)로 제한됩니다.";
 
 export type LegalBlock =
   | { type: "p"; text: string }
@@ -528,8 +535,81 @@ export const PAYMENT_REFUND_POLICY: LegalDocument = {
       text: "결제는 외부 결제 서비스 제공업체(Stripe, Apple, Google 등)를 통해 처리될 수 있으며, 해당 업체의 약관이 추가로 적용될 수 있습니다.",
     },
     { type: "hr" },
-    { type: "h2", text: "제7조 (준거법)" },
+    { type: "h2", text: "제7조 (이벤트·광고 등록)" },
+    {
+      type: "p",
+      text: "이벤트 등록비는 선택한 노출 기간(일) × 1,000원이며, 최대 100일(100,000원)까지 등록할 수 있습니다. 등록비는 플랫폼 내 이벤트 목록 노출 위치 제공에 대한 대가이며, 클릭·참여·매출 등 광고 성과를 보장하지 않습니다.",
+    },
+    {
+      type: "p",
+      text: "결제 승인 및 이벤트 게시가 시작된 이후에는 원칙적으로 환불이 불가능합니다(No Refunds after publication). 다만 MoCoMo LLC의 시스템 오류로 광고가 노출되지 않은 기간에 대해서는 비례 환불(Pro-rated Refund) 또는 동일 기간 노출 연장으로 보상할 수 있습니다.",
+    },
+    {
+      type: "p",
+      text: "사기, 저작권 침해, 불법 상품, 혐오 표현 등 약관 위반 이벤트는 사전 통보 없이 삭제될 수 있으며, 이 경우 등록비는 환불되지 않습니다.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "제8조 (준거법)" },
     { type: "p", text: GOVERNING_LAW_PARAGRAPH },
+  ],
+};
+
+export const SPONSORED_CONTENT_POLICY: LegalDocument = {
+  slug: "sponsored-content",
+  title: "MoCoMo 광고·이벤트 게시 약관",
+  updatedAt: "2026년 8월 13일",
+  intro: `${LEGAL_ENTITY_NAME}(${LEGAL_ENTITY_JURISDICTION})가 운영하는 MoCoMo 플랫폼에서 이벤트·광고 콘텐츠를 등록하는 광고주(게시자)에게 적용되는 약관입니다.`,
+  blocks: [
+    { type: "h2", text: "제1조 (게시자 책무 · Ad Content Responsibility)" },
+    {
+      type: "p",
+      text: "이벤트 등록자(광고주)가 업로드한 텍스트, 이미지, 외부 링크 등 모든 콘텐츠의 합법성, 지적재산권, 내용의 정확성에 대한 최종 법적 책임은 광고주 본인에게 있습니다. MoCoMo LLC는 제3자가 게시한 광고·이벤트 콘텐츠에 대해 책임지지 않습니다.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "제2조 (게시 거부 및 삭제권)" },
+    {
+      type: "p",
+      text: "사기, 저작권 침해, 불법 상품·서비스 홍보, 혐오·차별 표현, 성인·폭력 등 약관 또는 운영정책에 위배되는 이벤트는 MoCoMo LLC의 합리적 판단으로 사전 통보 없이 거부·삭제·노출 중단할 수 있습니다.",
+    },
+    {
+      type: "p",
+      text: "위 사유로 삭제·중단된 경우 등록비 및 결제 금액은 환불되지 않습니다.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "제3조 (결제 및 환불 · Payment & Refund)" },
+    {
+      type: "p",
+      text: "이벤트 등록은 디지털 광고·노출 서비스입니다. 결제 승인 및 목록 게시가 시작된 이후에는 원칙적으로 환불이 불가능합니다(No Refunds after publication).",
+    },
+    {
+      type: "p",
+      text: "MoCoMo LLC의 확인 가능한 시스템 장애로 인해 이벤트가 노출되지 않은 기간에 한하여, 해당 기간에 대한 비례 환불(Pro-rated Refund) 또는 동일 일수 노출 기간 연장 중 회사가 선택한 방식으로 보상합니다.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "제4조 (성과 미보장)" },
+    {
+      type: "p",
+      text: "등록비(하루 1,000원, 최대 100일)는 플랫폼 내 이벤트 노출 위치 제공에 대한 대가일 뿐이며, 클릭수, 참여율, 팔로워 증가, 매출 상승 등 어떠한 광고·마케팅 성과도 보장하지 않습니다.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "제5조 (면책 및 손해배상 · Indemnification)" },
+    {
+      type: "p",
+      text: "광고주가 게시한 콘텐츠로 인해 제3자가 MoCoMo LLC에 손해배상 청구, 소송, 행정 조사 등을 제기하는 경우, 광고주는 MoCoMo LLC 및 그 임직원·대리인을 면책하고, 이로 인해 발생한 모든 법적 비용·손해·합의금을 배상합니다.",
+    },
+    {
+      type: "p",
+      text: "MoCoMo LLC는 천재지변, 통신 장애, 제3자 플랫폼(결제·호스팅 등) 장애, 광고주 귀책 사유로 인한 손해에 대해 법령이 허용하는 범위 내에서 책임을 제한합니다.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "제6조 (준거법 및 관할)" },
+    { type: "p", text: EVENT_GOVERNING_LAW_PARAGRAPH },
+    { type: "hr" },
+    { type: "h2", text: "제7조 (문의)" },
+    {
+      type: "p",
+      text: `Legal Entity: ${LEGAL_ENTITY_NAME} · Jurisdiction: ${LEGAL_ENTITY_JURISDICTION} · Registered Office: ${LEGAL_REGISTERED_OFFICE_ADDRESS} · Contact: ${LEGAL_CONTACT_EMAIL}`,
+    },
   ],
 };
 
@@ -557,7 +637,11 @@ export const COPYRIGHT_POLICY: LegalDocument = {
     },
     {
       type: "p",
-      text: `신고는 ${LEGAL_CONTACT_EMAIL} 으로 제출해 주세요.`,
+      text: `DMCA 저작권 침해 신고(Notice) 및 삭제 요청(Takedown)은 전담 이메일 ${LEGAL_DMCA_AGENT_EMAIL} 로 제출해 주세요. 신고 시 권리자 정보, 침해 콘텐츠 URL, 침해 설명, 선서(해당 시)를 포함해야 합니다.`,
+    },
+    {
+      type: "p",
+      text: "MoCoMo LLC는 Digital Millennium Copyright Act(DMCA) 및 유사 법령에 따른 Safe Harbor 절차를 준수하며, 적법한 신고 접수 시 신속히 검토·조치합니다.",
     },
     { type: "hr" },
     { type: "h2", text: "제3조 (조치)" },
@@ -806,8 +890,45 @@ export const LEGAL_PAGES = [
   { href: "/legal/terms", label: "이용약관", doc: TERMS_OF_SERVICE },
   { href: "/legal/creator-terms", label: "크리에이터 약관", doc: CREATOR_TERMS },
   { href: "/legal/seller-terms", label: "판매자 이용약관", doc: SELLER_TERMS },
+  { href: "/legal/sponsored-content", label: "광고·이벤트 게시 약관", doc: SPONSORED_CONTENT_POLICY },
   { href: "/legal/payment", label: "결제 및 환불 정책", doc: PAYMENT_REFUND_POLICY },
   { href: "/legal/copyright", label: "저작권 정책", doc: COPYRIGHT_POLICY },
   { href: "/legal/privacy", label: "개인정보처리방침", doc: PRIVACY_POLICY },
   { href: "/legal/account-deletion", label: "계정 및 데이터 삭제", doc: ACCOUNT_DELETION },
+] as const;
+
+/** Compact disclosure blocks for footer and checkout UI */
+export const LEGAL_ENTITY_DISCLOSURE = {
+  entity: LEGAL_ENTITY_NAME,
+  jurisdiction: LEGAL_ENTITY_JURISDICTION,
+  address: LEGAL_REGISTERED_OFFICE_ADDRESS,
+  email: LEGAL_CONTACT_EMAIL,
+  dmcaEmail: LEGAL_DMCA_AGENT_EMAIL,
+} as const;
+
+export const PAYMENT_LEGAL_SECTIONS = [
+  {
+    title: "사업자 정보",
+    body: `Legal Entity: ${LEGAL_ENTITY_NAME} · Jurisdiction: ${LEGAL_ENTITY_JURISDICTION} · Registered Office: ${LEGAL_REGISTERED_OFFICE_ADDRESS} · Contact: ${LEGAL_CONTACT_EMAIL}`,
+  },
+  {
+    title: "광고·게시 약관",
+    body: "이벤트 등록자(광고주)가 올린 콘텐츠의 합법성·저작권·정확성 책임은 광고주에게 있으며 MoCoMo LLC는 제3자 광고 내용에 책임지지 않습니다. 약관 위반(사기·저작권 침해·불법·혐오 등) 이벤트는 사전 통보 없이 삭제될 수 있으며 등록비는 환불되지 않습니다.",
+    href: "/legal/sponsored-content",
+  },
+  {
+    title: "결제·환불",
+    body: "결제 승인 및 게시 시작 후 원칙적으로 환불 불가(No Refunds after publication). MoCoMo LLC 시스템 오류로 미노출 기간만 비례 환불 또는 기간 연장 보상.",
+    href: "/legal/payment",
+  },
+  {
+    title: "책임 제한·면책",
+    body: "등록비는 플랫폼 노출 제공 대가이며 광고 성과를 보장하지 않습니다. 광고주 콘텐츠로 인한 제3자 청구·소송 시 광고주가 MoCoMo LLC의 법적 비용·손해를 배상합니다. 분쟁 준거법: Wyoming, USA.",
+    href: "/legal/sponsored-content",
+  },
+  {
+    title: "DMCA · 저작권",
+    body: `저작권 침해 신고(Notice & Takedown): ${LEGAL_DMCA_AGENT_EMAIL}. 팬아트·이벤트 이미지 등 타인 IP 무단 사용 시 신속 조치합니다.`,
+    href: "/legal/copyright",
+  },
 ] as const;

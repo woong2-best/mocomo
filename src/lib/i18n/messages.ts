@@ -20,6 +20,7 @@ export type MessageKey =
   | "nav.used"
   | "nav.market"
   | "nav.events"
+  | "nav.eventsMap"
   | "nav.games"
   | "nav.apt"
   | "nav.rankings"
@@ -448,6 +449,7 @@ export type MessageKey =
   | "legal.terms"
   | "legal.creatorTerms"
   | "legal.payment"
+  | "legal.sponsoredContent"
   | "legal.copyright"
   | "legal.privacy"
   | "legal.accountDeletion"
@@ -473,6 +475,7 @@ const ko: Record<MessageKey, string> = {
   "nav.used": "중고거래",
   "nav.market": "마켓",
   "nav.events": "이벤트",
+  "nav.eventsMap": "행사 지도",
   "nav.games": "GAME",
   "nav.apt": "APT",
   "nav.rankings": "후원 랭킹",
@@ -903,6 +906,7 @@ const ko: Record<MessageKey, string> = {
   "legal.terms": "이용약관",
   "legal.creatorTerms": "크리에이터 약관",
   "legal.payment": "결제·환불",
+  "legal.sponsoredContent": "광고·이벤트",
   "legal.copyright": "저작권",
   "legal.privacy": "개인정보처리방침",
   "legal.accountDeletion": "계정 삭제",
@@ -929,6 +933,7 @@ const en: Record<MessageKey, string> = {
   "nav.used": "Used Market",
   "nav.market": "MARKET",
   "nav.events": "Events",
+  "nav.eventsMap": "Events map",
   "nav.games": "GAME",
   "nav.apt": "APT",
   "nav.rankings": "Rankings",
@@ -1359,6 +1364,7 @@ const en: Record<MessageKey, string> = {
   "legal.terms": "Terms",
   "legal.creatorTerms": "Creator terms",
   "legal.payment": "Payment & refunds",
+  "legal.sponsoredContent": "Sponsored content",
   "legal.copyright": "Copyright",
   "legal.privacy": "Privacy",
   "legal.accountDeletion": "Delete account",
@@ -1385,6 +1391,7 @@ const ja: Record<MessageKey, string> = {
   "nav.used": "フリマ",
   "nav.market": "MARKET",
   "nav.events": "イベント",
+  "nav.eventsMap": "イベントマップ",
   "nav.games": "GAME",
   "nav.apt": "APT",
   "nav.rankings": "ランキング",
@@ -1815,6 +1822,7 @@ const ja: Record<MessageKey, string> = {
   "legal.terms": "利用規約",
   "legal.creatorTerms": "クリエイター規約",
   "legal.payment": "決済・返金",
+  "legal.sponsoredContent": "広告・イベント",
   "legal.copyright": "著作権",
   "legal.privacy": "プライバシー",
   "legal.accountDeletion": "アカウント削除",
@@ -1841,6 +1849,7 @@ const zh: Record<MessageKey, string> = {
   "nav.used": "二手",
   "nav.market": "MARKET",
   "nav.events": "活动",
+  "nav.eventsMap": "活动地图",
   "nav.games": "GAME",
   "nav.apt": "APT",
   "nav.rankings": "排行榜",
@@ -2271,6 +2280,7 @@ const zh: Record<MessageKey, string> = {
   "legal.terms": "服务条款",
   "legal.creatorTerms": "创作者条款",
   "legal.payment": "支付与退款",
+  "legal.sponsoredContent": "广告·活动",
   "legal.copyright": "版权",
   "legal.privacy": "隐私",
   "legal.accountDeletion": "删除账号",

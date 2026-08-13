@@ -126,7 +126,7 @@ function AppShellInner({
       </div>
       {!hideMobileNav && <MobileNav />}
       {!isMessagesRoute && (
-        <footer className="hidden lg:block border-t border-border py-3 px-4 lg:px-6 bg-muted/20">
+        <footer className="border-t border-border py-3 px-4 lg:px-6 bg-muted/20 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:pb-3">
           <LegalFooterLinks />
         </footer>
       )}
