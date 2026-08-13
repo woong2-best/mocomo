@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { MarketPageTitle } from "@/components/market/market-page-chrome";
-import { MarketSearchBar } from "@/components/market/market-search-bar";
+import { MarketToolbar } from "@/components/market/market-toolbar";
 import { MarketServiceStrip } from "@/components/market/market-service-strip";
 import { MarketHeroShowcase } from "@/components/market/market-hero-showcase";
 import { MarketCategoryRail } from "@/components/market/market-category-rail";
@@ -42,33 +42,34 @@ export async function MarketplaceHomeAsync({
   return (
     <div className="space-y-5 sm:space-y-6">
       <MarketPageTitle>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="space-y-1 min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-folk-terracotta">
-              {MARKET_BRAND_FULL}
-            </p>
-            <h1 className="font-display text-2xl sm:text-[1.75rem] font-bold tracking-tight text-foreground">
-              {MARKET_BRAND_NAME}
-            </h1>
+        <div className="space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-1 min-w-0">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-folk-terracotta">
+                {MARKET_BRAND_FULL}
+              </p>
+              <h1 className="font-display text-2xl sm:text-[1.75rem] font-bold tracking-tight text-foreground">
+                {MARKET_BRAND_NAME}
+              </h1>
+            </div>
+            <div className="flex flex-wrap gap-2 shrink-0">
+              <Link
+                href="/market/sell-item"
+                className="rounded-xl bg-folk-terracotta px-3.5 py-2 text-xs font-bold text-white shadow-[2px_2px_0_hsl(var(--folk-cobalt)/0.15)] hover:brightness-110"
+              >
+                판매 등록
+              </Link>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2 shrink-0">
-            <Link
-              href="/market/sell-item"
-              className="rounded-xl bg-folk-terracotta px-3.5 py-2 text-xs font-bold text-white shadow-[2px_2px_0_hsl(var(--folk-cobalt)/0.15)] hover:brightness-110"
-            >
-              판매 등록
-            </Link>
-          </div>
+          <MarketToolbar initialQuery={q ?? ""} />
         </div>
       </MarketPageTitle>
-
-      <MarketSearchBar initialQuery={q ?? ""} />
 
       <MarketServiceStrip />
 
       {!q && !listingType && !category && <MarketHeroShowcase />}
 
-      <MarketCategoryRail activeType={listingType} activeCategory={category} />
+      <MarketCategoryRail activeType={listingType} />
 
       <section className="space-y-3.5">
         <div className="flex items-end justify-between gap-3 border-b border-folk-cobalt/10 pb-2.5">

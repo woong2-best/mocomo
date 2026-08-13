@@ -124,6 +124,9 @@ export default async function MarketplaceListingPage({
           ) : (
             <MarketplaceBuyPanel
               listingId={listing.id}
+              listingTitle={listing.title}
+              listingCoverUrl={listing.coverUrl}
+              listingCurrency={listing.currency}
               listingType={listing.type}
               priceAmount={listing.priceAmount}
               stock={listing.stock}

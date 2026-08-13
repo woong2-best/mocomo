@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { createMarketplaceCheckout } from "@/actions/marketplace-checkout";
+import { addToMarketplaceCart } from "@/lib/marketplace/cart-storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,6 +13,9 @@ import {
 
 export function MarketplaceBuyPanel({
   listingId,
+  listingTitle,
+  listingCoverUrl,
+  listingCurrency = "krw",
   listingType,
   priceAmount,
   stock,
@@ -20,6 +24,9 @@ export function MarketplaceBuyPanel({
   shipsWorldwide = false,
 }: {
   listingId: string;
+  listingTitle: string;
+  listingCoverUrl?: string | null;
+  listingCurrency?: string;
   listingType: string;
   priceAmount: number;
   stock: number;
@@ -77,6 +84,16 @@ export function MarketplaceBuyPanel({
         window.location.href = res.checkoutUrl;
       }
     });
+  }
+
+  function addCart() {
+    addToMarketplaceCart({
+      listingId,
+      title: listingTitle,
+      priceAmount,
+      currency: listingCurrency,
+      coverUrl: listingCoverUrl ?? null,
+    }, quantity);
   }
 
   return (
@@ -142,14 +159,23 @@ export function MarketplaceBuyPanel({
       )}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
-      <Button
-        type="button"
-        className="w-full"
-        disabled={pending || stock <= 0 || (needsShip && !shipsHere)}
-        onClick={buy}
-      >
-        {pending ? "결제 준비 중…" : "결제하기"}
-      </Button>
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={stock <= 0}
+          onClick={addCart}
+        >
+          장바구니
+        </Button>
+        <Button
+          type="button"
+          disabled={pending || stock <= 0 || (needsShip && !shipsHere)}
+          onClick={buy}
+        >
+          {pending ? "결제 준비 중…" : "결제하기"}
+        </Button>
+      </div>
       <p className="text-[10px] text-muted-foreground text-center">
         Stripe Checkout · 카드 / Apple Pay / Google Pay 등 (국가별 자동)
       </p>
