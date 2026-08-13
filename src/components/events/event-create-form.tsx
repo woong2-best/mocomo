@@ -1,10 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { createEventDraft } from "@/actions/events";
 import {
-  EVENT_REGISTRATION_FEE_KRW,
+  calcEventRegistrationFee,
+  EVENT_REGISTRATION_FEE_PER_DAY_KRW,
+  EVENT_REGISTRATION_MAX_DAYS,
+  eventDurationDays,
+  eventRegistrationFeeLabel,
   EVENT_TYPES,
   type EventLinkInput,
 } from "@/lib/event-registration";
@@ -62,6 +66,16 @@ export function EventCreateForm({
   const [error, setError] = useState("");
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
+  const durationDays = useMemo(
+    () => eventDurationDays(startsAt, endsAt),
+    [startsAt, endsAt]
+  );
+  const registrationFee = useMemo(
+    () => calcEventRegistrationFee(startsAt, endsAt),
+    [startsAt, endsAt]
+  );
+  const durationTooLong = durationDays > EVENT_REGISTRATION_MAX_DAYS;
+
   async function onMainImagePick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -116,6 +130,10 @@ export function EventCreateForm({
       setError("대표 이미지를 등록해 주세요.");
       return;
     }
+    if (durationTooLong) {
+      setError(`이벤트 기간은 최대 ${EVENT_REGISTRATION_MAX_DAYS}일까지 가능합니다.`);
+      return;
+    }
     const extraLinks = links.filter((l) => l.url.trim());
     const res = await createEventDraft({
       title,
@@ -160,19 +178,20 @@ export function EventCreateForm({
         <p className="text-sm text-muted-foreground">
           목록에 공개하려면 등록비{" "}
           <strong className="text-foreground">
-            {EVENT_REGISTRATION_FEE_KRW.toLocaleString()}원
+            {registrationFee.toLocaleString()}원
           </strong>
-          을 결제해 주세요.
+          을 결제해 주세요. ({durationDays}일 ×{" "}
+          {EVENT_REGISTRATION_FEE_PER_DAY_KRW.toLocaleString()}원)
         </p>
         {paymentsEnabled ? (
           <PayButton
             type="EVENT_REGISTRATION"
-            amount={EVENT_REGISTRATION_FEE_KRW}
+            amount={registrationFee}
             orderName="MoCoMo 이벤트 등록"
             metadata={{ eventId }}
             className="w-full rounded-2xl"
           >
-            {EVENT_REGISTRATION_FEE_KRW.toLocaleString()}원 결제하고 공개하기
+            {registrationFee.toLocaleString()}원 결제하고 공개하기
           </PayButton>
         ) : (
           <p className="text-sm text-destructive">
@@ -248,6 +267,15 @@ export function EventCreateForm({
               className={fieldClass}
               required
             />
+            {durationTooLong ? (
+              <p className="text-xs text-destructive">
+                기간은 최대 {EVENT_REGISTRATION_MAX_DAYS}일까지입니다.
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                등록비: {eventRegistrationFeeLabel(startsAt, endsAt)}
+              </p>
+            )}
           </div>
         </div>
 
@@ -447,12 +475,13 @@ export function EventCreateForm({
         <Button
           type="submit"
           className="w-full rounded-xl bg-[#A855F7] hover:bg-[#C084FC]"
-          disabled={uploading}
+          disabled={uploading || durationTooLong}
         >
-          다음: 등록비 결제 ({EVENT_REGISTRATION_FEE_KRW.toLocaleString()}원)
+          다음: 등록비 결제 ({registrationFee.toLocaleString()}원)
         </Button>
         <p className="text-center text-xs text-muted-foreground">
-          등록비 결제 후 목록에 공개됩니다.
+          하루 {EVENT_REGISTRATION_FEE_PER_DAY_KRW.toLocaleString()}원 · 최대{" "}
+          {EVENT_REGISTRATION_MAX_DAYS}일 · 등록비 결제 후 목록에 공개됩니다.
         </p>
       </form>
 

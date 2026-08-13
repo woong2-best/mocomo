@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
-import type { EventLinkInput } from "@/lib/event-registration";
+import {
+  EVENT_REGISTRATION_MAX_DAYS,
+  eventDurationDays,
+  type EventLinkInput,
+} from "@/lib/event-registration";
 import { Prisma } from "@prisma/client";
 
 const publishedEventWhere = {
@@ -41,6 +45,10 @@ export async function createEventDraft(data: {
     return { error: "날짜가 올바르지 않습니다." };
   }
   if (endsAt <= startsAt) return { error: "종료일은 시작일 이후여야 합니다." };
+  const days = eventDurationDays(startsAt, endsAt);
+  if (days > EVENT_REGISTRATION_MAX_DAYS) {
+    return { error: `이벤트 기간은 최대 ${EVENT_REGISTRATION_MAX_DAYS}일까지 가능합니다.` };
+  }
 
   const images = (data.images ?? []).filter(Boolean).slice(0, 8);
   const cover = data.imageUrl?.trim() || null;

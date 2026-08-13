@@ -6,7 +6,11 @@ import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chr
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { isPaymentsConfigured } from "@/lib/payments";
-import { EVENT_REGISTRATION_FEE_KRW } from "@/lib/event-registration";
+import {
+  EVENT_REGISTRATION_FEE_PER_DAY_KRW,
+  EVENT_REGISTRATION_MAX_DAYS,
+  EVENT_REGISTRATION_MAX_FEE_KRW,
+} from "@/lib/event-registration";
 
 export default async function NewEventPage({
   searchParams,
@@ -39,8 +43,9 @@ export default async function NewEventPage({
             이벤트 등록
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            등록비 {EVENT_REGISTRATION_FEE_KRW.toLocaleString()}원 · 결제 후 목록에
-            공개됩니다
+            등록비 하루 {EVENT_REGISTRATION_FEE_PER_DAY_KRW.toLocaleString()}원 (최대{" "}
+            {EVENT_REGISTRATION_MAX_DAYS}일 · {EVENT_REGISTRATION_MAX_FEE_KRW.toLocaleString()}
+            원) · 결제 후 목록에 공개됩니다
           </p>
         </div>
       </NativePageTitle>

@@ -2,7 +2,6 @@ import { revalidatePath } from "next/cache";
 import { revalidateAptHub } from "@/lib/apt/revalidate-hub";
 import { db } from "@/lib/db";
 import { LISTING_FEE_KRW } from "@/lib/goods-shop";
-import { EVENT_REGISTRATION_FEE_KRW } from "@/lib/event-registration";
 import { fulfillEventRegistration } from "@/actions/events";
 import {
   creditSellerEarning,
@@ -308,7 +307,7 @@ export async function fulfillPaymentIntent(
   if (intent.type === "EVENT_REGISTRATION") {
     const r = await fulfillEventRegistration(meta.eventId, userId);
     if ("error" in r && r.error) return { ok: false, error: r.error };
-    await recordPlatformFee(EVENT_REGISTRATION_FEE_KRW, {
+    await recordPlatformFee(intent.amount, {
       referenceType: "event_registration",
       referenceId: meta.eventId,
       paymentIntentId: intent.id,

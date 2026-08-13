@@ -1,5 +1,46 @@
-/** 사용자 이벤트 등록비 (결제 후 목록 공개) */
-export const EVENT_REGISTRATION_FEE_KRW = 30_000;
+/** 사용자 이벤트 등록비 — 하루 1,000원, 최대 100일 (결제 후 목록 공개) */
+export const EVENT_REGISTRATION_FEE_PER_DAY_KRW = 1_000;
+export const EVENT_REGISTRATION_MAX_DAYS = 100;
+export const EVENT_REGISTRATION_MAX_FEE_KRW =
+  EVENT_REGISTRATION_FEE_PER_DAY_KRW * EVENT_REGISTRATION_MAX_DAYS;
+
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+/** 시작일~종료일 기간(일). 부분 하루는 올림, 최소 1일. */
+export function eventDurationDays(
+  startsAt: Date | string,
+  endsAt: Date | string
+): number {
+  const start = typeof startsAt === "string" ? new Date(startsAt) : startsAt;
+  const end = typeof endsAt === "string" ? new Date(endsAt) : endsAt;
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 1;
+  const ms = end.getTime() - start.getTime();
+  if (ms <= 0) return 1;
+  return Math.max(1, Math.ceil(ms / MS_PER_DAY));
+}
+
+export function calcEventRegistrationFee(
+  startsAt: Date | string,
+  endsAt: Date | string
+): number {
+  const days = eventDurationDays(startsAt, endsAt);
+  if (days > EVENT_REGISTRATION_MAX_DAYS) {
+    throw new Error(`이벤트 기간은 최대 ${EVENT_REGISTRATION_MAX_DAYS}일까지 가능합니다.`);
+  }
+  return days * EVENT_REGISTRATION_FEE_PER_DAY_KRW;
+}
+
+export function eventRegistrationFeeLabel(
+  startsAt: Date | string,
+  endsAt: Date | string
+): string {
+  const days = eventDurationDays(startsAt, endsAt);
+  const fee = Math.min(
+    days * EVENT_REGISTRATION_FEE_PER_DAY_KRW,
+    EVENT_REGISTRATION_MAX_FEE_KRW
+  );
+  return `${fee.toLocaleString()}원 (${days}일 × ${EVENT_REGISTRATION_FEE_PER_DAY_KRW.toLocaleString()}원)`;
+}
 
 export const EVENT_TYPES = [
   { id: "fanart", label: "팬아트" },

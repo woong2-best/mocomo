@@ -4,7 +4,11 @@ import { PREMIUM_USD_CENTS } from "@/lib/payments";
 import { isMediaContentLocked } from "@/lib/content-access";
 import { isSubscriptionActive } from "@/lib/creator-subscription";
 import { LISTING_FEE_KRW } from "@/lib/goods-shop";
-import { EVENT_REGISTRATION_FEE_KRW } from "@/lib/event-registration";
+import {
+  calcEventRegistrationFee,
+  EVENT_REGISTRATION_MAX_DAYS,
+  eventDurationDays,
+} from "@/lib/event-registration";
 import {
   calcVideoDonationAmount,
   DEFAULT_VIDEO_DONATION_SETTINGS,
@@ -142,15 +146,22 @@ export async function validatePaymentInput(
   }
 
   if (input.type === "EVENT_REGISTRATION") {
-    if (input.amount !== EVENT_REGISTRATION_FEE_KRW) {
-      return { error: "이벤트 등록비는 30,000원입니다." };
-    }
     const eventId = input.metadata.eventId as string;
     const event = await db.event.findUnique({ where: { id: eventId } });
     if (!event || event.createdById !== userId) {
       return { error: "이벤트 등록 정보를 찾을 수 없습니다." };
     }
     if (event.registrationFeePaid) return { error: "이미 등록비가 결제되었습니다." };
+    const days = eventDurationDays(event.startsAt, event.endsAt);
+    if (days > EVENT_REGISTRATION_MAX_DAYS) {
+      return { error: `이벤트 기간은 최대 ${EVENT_REGISTRATION_MAX_DAYS}일까지 가능합니다.` };
+    }
+    const expectedFee = calcEventRegistrationFee(event.startsAt, event.endsAt);
+    if (input.amount !== expectedFee) {
+      return {
+        error: `이벤트 등록비는 ${expectedFee.toLocaleString()}원입니다. (${days}일 × 1,000원)`,
+      };
+    }
   }
 
   if (input.type === "CREATOR_EPISODE") {
