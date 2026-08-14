@@ -5307,6 +5307,16 @@ model MarketplaceSellerProfile {
   sellingMarket   String                   @default("KR")
   businessName    String?
   businessRegNo   String?
+  /** 사업자 대표자명 (국세청 진위확인) */
+  businessRepresentativeName String?
+  /** 개업일자 YYYYMMDD (국세청 진위확인) */
+  businessStartDate String?
+  /** 국세청 사업자 확인 완료 시각 */
+  businessVerifiedAt DateTime?
+  /** 납세자상태 코드: 01 계속, 02 휴업, 03 폐업 */
+  businessStatusCode String?
+  /** 과세유형 (국세청 상태조회) */
+  businessTaxType String?
   onboardingStep  MarketplaceSellerOnboardingStep @default(ACCOUNT)
   onboardingCompletedAt DateTime?
   agreedAgeAt       DateTime?
