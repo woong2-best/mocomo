@@ -3,9 +3,8 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { UsedPostForm } from "@/components/used/used-post-form";
-import { UsedPhoneVerifyForm } from "@/components/used/used-phone-verify-form";
-import { isUsedMarketEligible, usedMarketUnsupportedCountryMsg } from "@/lib/used-phone-auth";
-import { isUsedMarketPhoneCountry } from "@/lib/used-phone-countries";
+import { UsedBankVerifyForm } from "@/components/used/used-bank-verify-form";
+import { isUsedMarketEligible, usedMarketUnsupportedCountryMsg } from "@/lib/used-bank-auth";
 import { isUsedAdultVerified } from "@/lib/used-youth-protection";
 import { getServerTranslator } from "@/lib/i18n/server";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
@@ -15,7 +14,7 @@ export default async function UsedNewPage() {
   if (!user) redirect("/auth/signin?callbackUrl=/used/new");
   const { locale } = await getServerTranslator();
 
-  if (!isUsedMarketPhoneCountry(user.countryCode)) {
+  if (user.countryCode.toUpperCase() !== "KR") {
     return (
       <AppPageChrome maxWidth="lg" spacing="sm" className="py-8 text-center">
         <p className="text-muted-foreground">{usedMarketUnsupportedCountryMsg(locale)}</p>
@@ -38,15 +37,15 @@ export default async function UsedNewPage() {
         </Link>
         <NativePageTitle>
           <h1 className="text-xl font-bold">
-            {locale === "en" ? "Verify phone to post" : "휴대폰 인증 후 글쓰기"}
+            {locale === "en" ? "Verify bank account to post" : "계좌 인증 후 글쓰기"}
           </h1>
         </NativePageTitle>
         <p className="text-sm text-muted-foreground">
           {locale === "en"
-            ? "Phone verification is required for safe trading."
-            : "안전한 거래를 위해 휴대폰 번호 인증이 필요합니다."}
+            ? "Bank account verification is required for safe trading."
+            : "안전한 거래를 위해 본인 명의 계좌 1원 인증이 필요합니다."}
         </p>
-        <UsedPhoneVerifyForm callbackUrl="/used/new" countryCode={user.countryCode} />
+        <UsedBankVerifyForm callbackUrl="/used/new" legalName={user.name} />
       </AppPageChrome>
     );
   }

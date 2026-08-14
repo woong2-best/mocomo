@@ -2,9 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { getCachedCurrentUser } from "@/lib/auth";
-import { UsedPhoneVerifyForm } from "@/components/used/used-phone-verify-form";
-import { isUsedMarketEligible, usedMarketUnsupportedCountryMsg } from "@/lib/used-phone-auth";
-import { isUsedMarketPhoneCountry } from "@/lib/used-phone-countries";
+import { UsedBankVerifyForm } from "@/components/used/used-bank-verify-form";
+import { isUsedMarketEligible } from "@/lib/used-bank-auth";
 import { getServerTranslator } from "@/lib/i18n/server";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 
@@ -22,16 +21,7 @@ export default async function UsedVerifyPage({
 
   if (isUsedMarketEligible(user)) redirect(next);
 
-  if (!isUsedMarketPhoneCountry(user.countryCode)) {
-    return (
-      <AppPageChrome maxWidth="lg" spacing="sm" className="py-8 text-center">
-        <p className="text-muted-foreground">{usedMarketUnsupportedCountryMsg(locale)}</p>
-        <Link href="/used" className="text-primary underline text-sm">
-          {locale === "en" ? "Back to marketplace" : "중고거래 홈으로"}
-        </Link>
-      </AppPageChrome>
-    );
-  }
+  const emailOk = !!user.emailVerified;
 
   return (
     <AppPageChrome maxWidth="lg" spacing="sm">
@@ -44,10 +34,10 @@ export default async function UsedVerifyPage({
       </Link>
       <NativePageTitle>
         <h1 className="text-xl font-bold">
-          {locale === "en" ? "Phone verification" : "휴대폰 인증"}
+          {locale === "en" ? "Bank account verification" : "계좌 1원 인증"}
         </h1>
       </NativePageTitle>
-      <UsedPhoneVerifyForm callbackUrl={next} countryCode={user.countryCode} />
+      <UsedBankVerifyForm callbackUrl={next} legalName={user.name} emailVerified={emailOk} />
     </AppPageChrome>
   );
 }

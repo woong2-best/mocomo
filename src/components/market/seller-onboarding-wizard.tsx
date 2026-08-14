@@ -25,15 +25,10 @@ import {
   type SellerSettlementPhase,
 } from "@/actions/marketplace-seller-onboarding";
 import {
-  sendSellerPhoneOtp,
-  sendSellerSignupPhoneOtp,
-  verifySellerPhoneOtp,
-  verifySellerSignupPhoneOtp,
-} from "@/actions/phone-verification";
-import {
-  SELLER_PHONE_COUNTRIES,
-  sellerPhoneDialLabel,
-} from "@/lib/marketplace/seller-phone-countries";
+  sendSellerBankVerification,
+  verifySellerBankCode,
+} from "@/actions/bank-verification";
+import { BankSelectField } from "@/components/bank/bank-select-field";
 import {
   SELLER_KYC_ID_TYPES,
   SELLER_MARKETS,
@@ -41,7 +36,6 @@ import {
   type SellerOnboardingStepId,
 } from "@/lib/marketplace/seller-onboarding";
 import { sellerRequiresPhoneVerification } from "@/lib/marketplace/seller-region-policy";
-import { phonePlaceholderForCountry } from "@/lib/phone-international";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
 import { MARKET_BRAND_FULL } from "@/lib/market-brand";
 import { cn } from "@/lib/utils";
@@ -86,7 +80,7 @@ export function SellerOnboardingWizard({
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [name, setName] = useState(initialState.signedIn ? initialState.name ?? "" : "");
   const [email, setEmail] = useState(initialState.signedIn ? initialState.email ?? "" : "");
-  const [phoneCountryCode, setPhoneCountryCode] = useState("KR");
+  const [phoneCountryCode] = useState("KR");
   const [kycLegalName, setKycLegalName] = useState("");
   const [kycIdType, setKycIdType] = useState<(typeof SELLER_KYC_ID_TYPES)[number]["code"]>(
     "NATIONAL_ID"
@@ -100,13 +94,13 @@ export function SellerOnboardingWizard({
   const [agreeMarketing, setAgreeMarketing] = useState(false);
   const [agreePromo, setAgreePromo] = useState(false);
 
-  // Email / phone
+  // Email / bank (KR)
   const [emailCode, setEmailCode] = useState("");
-  const [phone, setPhone] = useState("");
-  const [phoneCode, setPhoneCode] = useState("");
-  const [phoneSent, setPhoneSent] = useState(false);
-  const [phoneProof, setPhoneProof] = useState("");
-  const [phoneVerifiedOnForm, setPhoneVerifiedOnForm] = useState(
+  const [bankCode, setBankCode] = useState("004");
+  const [accountNum, setAccountNum] = useState("");
+  const [bankCodeInput, setBankCodeInput] = useState("");
+  const [bankSent, setBankSent] = useState(false);
+  const [bankVerifiedOnForm] = useState(
     !!(initialState.signedIn && initialState.phoneVerified)
   );
 
@@ -169,10 +163,6 @@ export function SellerOnboardingWizard({
   async function handleRegister() {
     setError("");
     setMessage("");
-    if (phoneRequired && (!phoneVerifiedOnForm || !phoneProof)) {
-      setError("한국 판매자는 휴대폰(SMS) 인증이 필수입니다.");
-      return;
-    }
     startTransition(async () => {
       const res = await registerSellerAccount({
         username,
@@ -182,8 +172,6 @@ export function SellerOnboardingWizard({
         email,
         sellingMarket,
         phoneCountryCode: phoneRequired ? "KR" : sellingMarket,
-        phone: phoneRequired ? phone : undefined,
-        phoneProof: phoneRequired ? phoneProof : undefined,
         locale: "ko",
         timeZone:
           typeof Intl !== "undefined"
@@ -211,43 +199,38 @@ export function SellerOnboardingWizard({
     });
   }
 
-  async function handleAccountSendPhone() {
+  async function handleSendBank() {
     setError("");
-    setMessage("");
     startTransition(async () => {
-      const res = await sendSellerSignupPhoneOtp(phone, phoneCountryCode);
-      if (res.error) {
+      const res = await sendSellerBankVerification(bankCode, accountNum);
+      if ("error" in res && res.error) {
         setError(res.error);
         return;
       }
       if ("alreadyVerified" in res && res.alreadyVerified) {
-        setPhoneVerifiedOnForm(true);
-        setPhoneProof("session-verified");
-        setMessage(res.message ?? "이미 인증된 번호입니다.");
+        await advanceSellerPhoneStep("KR");
+        setStep("SELLER_INFO");
+        refreshState();
         return;
       }
-      setPhoneSent(true);
-      setPhoneVerifiedOnForm(false);
-      setPhoneProof("");
-      setMessage(("message" in res && res.message) || "인증번호를 보냈습니다.");
-      if ("devCode" in res && res.devCode) setPhoneCode(res.devCode);
+      setBankSent(true);
+      setMessage(("message" in res && res.message) || "1원을 보냈습니다.");
+      if ("devCode" in res && res.devCode) setBankCodeInput(res.devCode);
     });
   }
 
-  async function handleAccountVerifyPhone() {
+  async function handleVerifyBank() {
     setError("");
-    setMessage("");
     startTransition(async () => {
-      const res = await verifySellerSignupPhoneOtp(phone, phoneCode, phoneCountryCode);
-      if (res.error) {
+      const res = await verifySellerBankCode(bankCode, accountNum, bankCodeInput);
+      if ("error" in res && res.error) {
         setError(res.error);
         return;
       }
-      if (res.phoneProof) {
-        setPhoneProof(res.phoneProof);
-        setPhoneVerifiedOnForm(true);
-        setMessage(`휴대폰 인증 완료${res.phoneDisplay ? ` (${res.phoneDisplay})` : ""}`);
-      }
+      await advanceSellerPhoneStep("KR");
+      setMessage("계좌 1원 인증이 완료되었습니다.");
+      setStep("SELLER_INFO");
+      refreshState();
     });
   }
 
@@ -321,41 +304,6 @@ export function SellerOnboardingWizard({
         return;
       }
       setMessage("인증 코드를 다시 보냈습니다.");
-    });
-  }
-
-  async function handleSendPhone() {
-    setError("");
-    startTransition(async () => {
-      const res = await sendSellerPhoneOtp(phone, "KR");
-      if (res.error) {
-        setError(res.error);
-        return;
-      }
-      if ("alreadyVerified" in res && res.alreadyVerified) {
-        await advanceSellerPhoneStep("KR");
-        setStep("SELLER_INFO");
-        refreshState();
-        return;
-      }
-      setPhoneSent(true);
-      setMessage(("message" in res && res.message) || "인증번호를 보냈습니다.");
-      if ("devCode" in res && res.devCode) setPhoneCode(res.devCode);
-    });
-  }
-
-  async function handleVerifyPhone() {
-    setError("");
-    startTransition(async () => {
-      const res = await verifySellerPhoneOtp(phone, phoneCode, "KR");
-      if (res.error) {
-        setError(res.error);
-        return;
-      }
-      await advanceSellerPhoneStep("KR");
-      setMessage("휴대폰 인증이 완료되었습니다.");
-      setStep("SELLER_INFO");
-      refreshState();
     });
   }
 
@@ -477,7 +425,7 @@ export function SellerOnboardingWizard({
     if (effectiveStep === "ACCOUNT") return `${MARKET_BRAND_FULL}과 함께 비즈니스를 시작하세요!`;
     if (effectiveStep === "AGREEMENTS") return "약관 동의";
     if (effectiveStep === "EMAIL") return "이메일 인증";
-    if (effectiveStep === "PHONE") return "휴대폰 인증";
+    if (effectiveStep === "PHONE") return "계좌 1원 인증";
     if (effectiveStep === "SELLER_INFO") return "판매자 정보";
     if (effectiveStep === "KYC") return "신분증 제출";
     if (effectiveStep === "SETTLEMENT") {
@@ -509,13 +457,6 @@ export function SellerOnboardingWizard({
             sellingMarket={sellingMarket}
             setSellingMarket={(v) => {
               setSellingMarket(v);
-              if (sellerRequiresPhoneVerification(v)) {
-                setPhoneCountryCode("KR");
-              } else {
-                setPhoneVerifiedOnForm(false);
-                setPhoneProof("");
-                setPhoneSent(false);
-              }
             }}
             username={username}
             setUsername={setUsername}
@@ -528,27 +469,7 @@ export function SellerOnboardingWizard({
             email={email}
             setEmail={setEmail}
             phoneRequired={phoneRequired}
-            phoneCountryCode={phoneCountryCode}
-            setPhoneCountryCode={(v) => {
-              setPhoneCountryCode(v);
-              setPhoneVerifiedOnForm(false);
-              setPhoneProof("");
-              setPhoneSent(false);
-              setPhoneCode("");
-            }}
-            phone={phone}
-            setPhone={(v) => {
-              setPhone(v);
-              setPhoneVerifiedOnForm(false);
-              setPhoneProof("");
-            }}
-            phoneCode={phoneCode}
-            setPhoneCode={setPhoneCode}
-            phoneSent={phoneSent}
-            phoneVerified={phoneVerifiedOnForm}
             pending={pending}
-            onSendPhone={handleAccountSendPhone}
-            onVerifyPhone={handleAccountVerifyPhone}
             onSubmit={handleRegister}
           />
         )}
@@ -600,48 +521,47 @@ export function SellerOnboardingWizard({
         {effectiveStep === "PHONE" && (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              한국 판매자만 휴대폰(SMS) 인증이 필요합니다.
+              한국 판매자는 본인 명의 계좌 1원 인증이 필요합니다. 예금주명은 가입 시 입력한 이름(
+              {state.signedIn ? state.name : name})과 일치해야 합니다.
             </p>
-            <label className="block text-sm font-medium">휴대폰번호</label>
-            <div className="flex gap-2">
-              <select
-                value="KR"
-                disabled
-                className="h-10 rounded-md border border-input bg-background px-2 text-sm shrink-0"
+            <BankSelectField value={bankCode} onChange={setBankCode} disabled={pending} />
+            <label className="block text-sm font-medium">계좌번호</label>
+            <Input
+              value={accountNum}
+              onChange={(e) => setAccountNum(e.target.value.replace(/\D/g, ""))}
+              placeholder="숫자만 입력"
+              inputMode="numeric"
+            />
+            {!bankSent ? (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={pending || accountNum.length < 8}
+                onClick={handleSendBank}
               >
-                <option value="KR">{sellerPhoneDialLabel("KR")}</option>
-              </select>
-              <Input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder={phonePlaceholderForCountry("KR")}
-                className="flex-1"
-              />
-              <Button type="button" variant="secondary" disabled={pending || !phone} onClick={handleSendPhone}>
-                인증 요청
+                1원 인증 요청
               </Button>
-            </div>
-            {phoneSent && (
+            ) : (
               <>
                 <Input
-                  value={phoneCode}
-                  onChange={(e) => setPhoneCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  placeholder="인증번호 6자리"
-                  inputMode="numeric"
+                  value={bankCodeInput}
+                  onChange={(e) =>
+                    setBankCodeInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4))
+                  }
+                  placeholder="입금통장메모 4자리"
+                  maxLength={4}
                 />
                 <Button
                   type="button"
-                  disabled={pending || phoneCode.length !== 6}
-                  onClick={handleVerifyPhone}
+                  disabled={pending || bankCodeInput.length !== 4}
+                  onClick={handleVerifyBank}
                   className="w-full"
                 >
                   인증 확인
                 </Button>
               </>
             )}
-            <p className="text-xs text-muted-foreground">
-              한국(+82)만 지원 · 계정당 번호 1개
-            </p>
+            <p className="text-xs text-muted-foreground">계정당 계좌 1개 · 인증 후 변경 불가</p>
           </div>
         )}
 
@@ -837,17 +757,7 @@ function AccountStep(props: {
   email: string;
   setEmail: (v: string) => void;
   phoneRequired: boolean;
-  phoneCountryCode: string;
-  setPhoneCountryCode: (v: string) => void;
-  phone: string;
-  setPhone: (v: string) => void;
-  phoneCode: string;
-  setPhoneCode: (v: string) => void;
-  phoneSent: boolean;
-  phoneVerified: boolean;
   pending: boolean;
-  onSendPhone: () => void;
-  onVerifyPhone: () => void;
   onSubmit: () => void;
 }) {
   return (
@@ -867,7 +777,7 @@ function AccountStep(props: {
         </select>
         <p className="text-xs text-muted-foreground mt-1">
           {props.phoneRequired
-            ? "한국: 이메일 + 휴대폰(SMS) + KYC + 정산 필수"
+            ? "한국: 이메일 → 계좌 1원 인증 → KYC → Stripe 정산"
             : "해외: 이메일 → Stripe Connect → 신분증 → 은행계좌 (SMS 없음)"}
         </p>
       </div>
@@ -906,66 +816,16 @@ function AccountStep(props: {
       />
 
       {props.phoneRequired && (
-        <div>
-          <label className="block text-sm font-medium mb-1.5">휴대폰번호 (필수)</label>
-          <div className="flex gap-2">
-            <select
-              value={props.phoneCountryCode}
-              onChange={(e) => props.setPhoneCountryCode(e.target.value)}
-              className="h-10 rounded-md border border-input bg-background px-2 text-sm shrink-0 max-w-[9.5rem]"
-              disabled={props.phoneVerified}
-            >
-              {SELLER_PHONE_COUNTRIES.filter((c) => c.code === "KR").map((c) => (
-                <option key={c.code} value={c.code}>
-                  {sellerPhoneDialLabel(c.code)}
-                </option>
-              ))}
-            </select>
-            <Input
-              value={props.phone}
-              onChange={(e) => props.setPhone(e.target.value)}
-              placeholder={phonePlaceholderForCountry("KR")}
-              className="flex-1"
-              disabled={props.phoneVerified}
-            />
-            <Button
-              type="button"
-              variant="secondary"
-              className="shrink-0"
-              disabled={props.pending || !props.phone.trim() || props.phoneVerified}
-              onClick={props.onSendPhone}
-            >
-              {props.phoneVerified ? "인증 완료" : "인증 요청"}
-            </Button>
-          </div>
-          {props.phoneSent && !props.phoneVerified && (
-            <div className="flex gap-2 mt-2">
-              <Input
-                value={props.phoneCode}
-                onChange={(e) => props.setPhoneCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                placeholder="인증번호 6자리"
-                inputMode="numeric"
-                className="flex-1"
-              />
-              <Button
-                type="button"
-                disabled={props.pending || props.phoneCode.length !== 6}
-                onClick={props.onVerifyPhone}
-              >
-                확인
-              </Button>
-            </div>
-          )}
-          {props.phoneVerified && (
-            <p className="text-xs text-emerald-700 mt-1.5">휴대폰 인증이 완료되었습니다.</p>
-          )}
-        </div>
+        <p className="text-xs text-muted-foreground rounded-lg bg-muted/40 px-3 py-2">
+          한국 판매자는 가입·이메일 인증 후 <strong>계좌 1원 인증</strong> 단계에서 본인 명의
+          계좌를 등록합니다. 이름은 예금주명과 동일해야 합니다.
+        </p>
       )}
 
       <Button
         type="button"
         className="w-full h-11 mt-2"
-        disabled={props.pending || (props.phoneRequired && !props.phoneVerified)}
+        disabled={props.pending}
         onClick={props.onSubmit}
       >
         가입하고 이메일 인증

@@ -74,3 +74,65 @@ export async function refreshSellerConnectLink(accountId: string) {
   });
   return { url: link.url };
 }
+
+/** Apick 1원 인증 완료 후 Custom Connect 계정 생성 */
+export async function createCustomConnectAccount(input: {
+  userId: string;
+  email?: string | null;
+  legalName: string;
+}) {
+  if (!isStripeConfigured()) {
+    return { error: "Stripe가 설정되지 않았습니다." as const };
+  }
+
+  const stripe = getStripe();
+  const account = await stripe.accounts.create({
+    type: "custom",
+    country: "KR",
+    email: input.email ?? undefined,
+    business_type: "individual",
+    capabilities: {
+      card_payments: { requested: true },
+      transfers: { requested: true },
+    },
+    metadata: { mocomoUserId: input.userId },
+    individual: {
+      email: input.email ?? undefined,
+      first_name: input.legalName.slice(0, 40),
+    },
+  });
+
+  return { accountId: account.id };
+}
+
+/** 검증된 한국 계좌를 Connect external_account 로 등록 */
+export async function attachKrBankToConnectAccount(input: {
+  accountId: string;
+  bankCode: string;
+  accountNum: string;
+  holderName: string;
+}) {
+  if (!isStripeConfigured()) {
+    return { error: "Stripe가 설정되지 않았습니다." as const };
+  }
+
+  const stripe = getStripe();
+  try {
+    await stripe.accounts.createExternalAccount(input.accountId, {
+      external_account: {
+        object: "bank_account",
+        country: "KR",
+        currency: "krw",
+        account_holder_name: input.holderName,
+        account_holder_type: "individual",
+        routing_number: input.bankCode,
+        account_number: input.accountNum,
+      },
+    });
+    return { ok: true as const };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Stripe 계좌 등록 실패";
+    console.error("[stripe-connect] attachKrBank failed:", msg);
+    return { error: msg };
+  }
+}

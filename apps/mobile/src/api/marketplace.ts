@@ -154,34 +154,71 @@ export async function placeMarketplaceBid(id: string, amount: number) {
   );
 }
 
-export type UsedPhoneStatus = {
+export type UsedBankStatus = {
   countryCode: string;
-  phone: string | null;
-  phoneVerified: boolean;
-  displayPhone: string | null;
+  bankVerified: boolean;
+  emailVerified?: boolean;
+  displayAccount: string | null;
   eligible: boolean;
+  usedMarketEligible?: boolean;
+  legalName?: string | null;
 };
 
-export async function fetchUsedPhoneStatus() {
-  return apiRequest<UsedPhoneStatus>(MobileApi.marketplacePhone, { auth: true });
+export async function fetchAccountBankStatus() {
+  return apiRequest<UsedBankStatus>(MobileApi.accountBank, { auth: true });
 }
 
-export async function sendUsedPhoneOtp(phone: string) {
+export async function sendAccountBankVerification(bankCode: string, accountNum: string) {
   return apiRequest<{
     message?: string;
     alreadyVerified?: boolean;
-    phoneDisplay?: string;
+    displayAccount?: string;
+    sendsRemaining?: number;
+    devCode?: string;
+  }>(MobileApi.accountBank, {
+    method: "POST",
+    body: { action: "send", bankCode, accountNum },
+  });
+}
+
+export async function verifyAccountBankCode(bankCode: string, accountNum: string, code: string) {
+  return apiRequest<{ success: boolean; displayAccount?: string }>(MobileApi.accountBank, {
+    method: "POST",
+    body: { action: "verify", bankCode, accountNum, code },
+  });
+}
+
+export async function fetchUsedBankStatus() {
+  return apiRequest<UsedBankStatus>(MobileApi.marketplacePhone, { auth: true });
+}
+
+/** @deprecated */
+export const fetchUsedPhoneStatus = fetchUsedBankStatus;
+
+export async function sendUsedBankVerification(bankCode: string, accountNum: string) {
+  return apiRequest<{
+    message?: string;
+    alreadyVerified?: boolean;
+    displayAccount?: string;
     sendsRemaining?: number;
     devCode?: string;
   }>(MobileApi.marketplacePhone, {
     method: "POST",
-    body: { action: "send", phone },
+    body: { action: "send", bankCode, accountNum },
   });
 }
 
-export async function verifyUsedPhoneOtp(phone: string, code: string) {
-  return apiRequest<{ success: boolean; displayPhone?: string }>(MobileApi.marketplacePhone, {
+export async function verifyUsedBankCode(bankCode: string, accountNum: string, code: string) {
+  return apiRequest<{ success: boolean; displayAccount?: string }>(MobileApi.marketplacePhone, {
     method: "POST",
-    body: { action: "verify", phone, code },
+    body: { action: "verify", bankCode, accountNum, code },
   });
 }
+
+/** @deprecated */
+export const sendUsedPhoneOtp = (_phone: string) =>
+  sendUsedBankVerification("004", _phone);
+
+/** @deprecated */
+export const verifyUsedPhoneOtp = (phone: string, code: string) =>
+  verifyUsedBankCode("004", phone, code);

@@ -193,7 +193,7 @@ export default async function SettingsPage() {
         <CardHeader>
           <CardTitle>{t("settings.security")}</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-2">
+        <CardContent className="text-sm text-muted-foreground space-y-3">
           <p>
             {t("settings.twoFactor")}:{" "}
             {user?.twoFactorEnabled ? t("settings.twoFactorOn") : t("settings.twoFactorOff")}
@@ -201,6 +201,11 @@ export default async function SettingsPage() {
           <p>
             {t("settings.nsfw")}: {user?.showNsfw ? t("settings.nsfwOn") : t("settings.nsfwOff")}
           </p>
+          <Link href="/settings/bank">
+            <Button variant="outline" size="sm" className="rounded-xl">
+              국내 계좌 인증
+            </Button>
+          </Link>
         </CardContent>
       </Card>
 
