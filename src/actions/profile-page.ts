@@ -70,6 +70,7 @@ const profileUserSelect = {
     select: {
       bio: true,
       bannerUrl: true,
+      bannerVideoUrl: true,
       favoriteTags: true,
       mainCharacter: true,
       snsLinks: true,

@@ -540,6 +540,8 @@ model Profile {
   userId      String   @unique
   bio         String?  @db.Text
   bannerUrl   String?
+  /** 프로필 배너 동영상 (최대 10초, 이미지 배너와 동시 사용 안 함) */
+  bannerVideoUrl String?
   snsLinks    Json?
   favoriteTags String[]
   mainCharacter String?

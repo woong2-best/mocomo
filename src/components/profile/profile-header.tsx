@@ -21,6 +21,7 @@ import {
   ProfileLiveAvatarRing,
   ProfileLiveBanner,
 } from "@/components/profile/profile-live-banner";
+import { ProfileBannerMedia } from "@/components/profile/profile-banner-media";
 import type { ProfileLiveBroadcast } from "@/lib/profile-live-broadcast";
 
 type SnsLinks = { website?: string; location?: string; twitter?: string };
@@ -50,6 +51,7 @@ export function ProfileHeader({
     profile: {
       bio: string | null;
       bannerUrl: string | null;
+      bannerVideoUrl?: string | null;
       favoriteTags: string[];
       mainCharacter: string | null;
       snsLinks: unknown;
@@ -142,14 +144,13 @@ export function ProfileHeader({
 
       <div className="border-b border-border/60">
       {showLive ? <ProfileLiveBanner live={liveBroadcast!} /> : null}
-      <div
-        className="h-36 sm:h-44 bg-gradient-to-r from-violet-500/30 via-fuchsia-500/20 to-cyan-500/30"
-        style={
-          user.profile?.bannerUrl
-            ? { backgroundImage: `url(${user.profile.bannerUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
-            : undefined
-        }
-      />
+      <div className="relative h-36 sm:h-44 overflow-hidden">
+        <ProfileBannerMedia
+          bannerUrl={user.profile?.bannerUrl}
+          bannerVideoUrl={user.profile?.bannerVideoUrl}
+          active
+        />
+      </div>
 
       <div className="px-4 pb-4">
         <div className="-mt-14 sm:-mt-16 flex items-end justify-between gap-3">

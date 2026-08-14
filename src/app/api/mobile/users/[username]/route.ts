@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { getMobileUserId } from "@/lib/api-mobile-auth";
 import { postMediaPreview } from "@/lib/post-media-select";
 import { userPublicSelect } from "@/lib/user-public-select";
+import { isPaymentsConfigured } from "@/lib/payments";
+import { isSubscriptionActive } from "@/lib/creator-subscription";
 
 export async function GET(
   req: NextRequest,
@@ -27,7 +29,9 @@ export async function GET(
       name: true,
       image: true,
       createdAt: true,
-      profile: { select: { bio: true } },
+      countryCode: true,
+      creatorSubscriptionPriceKrw: true,
+      profile: { select: { bio: true, bannerUrl: true, bannerVideoUrl: true } },
       _count: { select: { posts: true, followers: true, following: true } },
     },
   });
@@ -37,20 +41,30 @@ export async function GET(
   }
 
   let following = false;
+  let subscribed = false;
   if (viewerId && viewerId !== user.id) {
-    const edge = await db.follow.findUnique({
-      where: {
-        followerId_followingId: { followerId: viewerId, followingId: user.id },
-      },
-      select: { id: true },
-    });
+    const [edge, sub] = await Promise.all([
+      db.follow.findUnique({
+        where: {
+          followerId_followingId: { followerId: viewerId, followingId: user.id },
+        },
+        select: { id: true },
+      }),
+      db.subscription.findUnique({
+        where: {
+          subscriberId_creatorId: { subscriberId: viewerId, creatorId: user.id },
+        },
+        select: { status: true, currentPeriodEnd: true, subscribedSince: true },
+      }),
+    ]);
     following = !!edge;
+    subscribed = sub ? isSubscriptionActive(sub) : false;
   }
 
   const posts = await db.post.findMany({
     where: { authorId: user.id },
     orderBy: { createdAt: "desc" },
-    take: 24,
+    take: 40,
     select: {
       id: true,
       title: true,
@@ -71,6 +85,9 @@ export async function GET(
       name: user.name,
       image: user.image,
       bio: user.profile?.bio ?? null,
+      bannerUrl: user.profile?.bannerUrl ?? null,
+      bannerVideoUrl: user.profile?.bannerVideoUrl ?? null,
+      countryCode: user.countryCode ?? null,
       createdAt: user.createdAt.toISOString(),
       counts: {
         posts: user._count.posts,
@@ -78,7 +95,10 @@ export async function GET(
         following: user._count.following,
       },
       following,
+      subscribed,
       isSelf: viewerId === user.id,
+      paymentsEnabled: isPaymentsConfigured(),
+      creatorSubscriptionPriceKrw: user.creatorSubscriptionPriceKrw,
     },
     posts: posts.map((p) => ({
       ...p,

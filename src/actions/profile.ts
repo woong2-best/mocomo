@@ -21,6 +21,7 @@ import {
 export async function updateProfile(data: {
   bio?: string;
   bannerUrl?: string;
+  bannerVideoUrl?: string;
   snsLinks?: Record<string, string>;
   favoriteTags?: string[];
   mainCharacter?: string;
@@ -47,6 +48,8 @@ export async function updateProfile(data: {
     birthDay,
     clearBirthDate,
     showBirthdayOnProfile,
+    bannerUrl,
+    bannerVideoUrl,
     ...profileData
   } = data;
   const currentUsername = user.username;
@@ -98,6 +101,14 @@ export async function updateProfile(data: {
   }
 
   const profilePayload: Prisma.ProfileUpdateInput = { ...profileData };
+  if (bannerUrl !== undefined) {
+    profilePayload.bannerUrl = bannerUrl || null;
+    if (bannerUrl) profilePayload.bannerVideoUrl = null;
+  }
+  if (bannerVideoUrl !== undefined) {
+    profilePayload.bannerVideoUrl = bannerVideoUrl || null;
+    if (bannerVideoUrl) profilePayload.bannerUrl = null;
+  }
   if (showBirthdayOnProfile !== undefined) {
     profilePayload.showBirthdayOnProfile = showBirthdayOnProfile;
   }
@@ -132,6 +143,8 @@ export async function updateProfile(data: {
       create: {
         userId: user.id,
         ...profileData,
+        ...(bannerUrl !== undefined ? { bannerUrl: bannerUrl || null } : {}),
+        ...(bannerVideoUrl !== undefined ? { bannerVideoUrl: bannerVideoUrl || null } : {}),
         ...(showBirthdayOnProfile !== undefined ? { showBirthdayOnProfile } : {}),
       },
       update: profilePayload,

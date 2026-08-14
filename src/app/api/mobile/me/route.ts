@@ -27,7 +27,7 @@ const meSelect = {
   accountStatus: true,
   deletedAt: true,
   premiumTier: true,
-  profile: { select: { bio: true, bannerUrl: true } },
+  profile: { select: { bio: true, bannerUrl: true, bannerVideoUrl: true } },
   _count: { select: { posts: true, followers: true, following: true } },
 } as const;
 
@@ -75,6 +75,7 @@ export async function GET(req: NextRequest) {
       timeZone: user.timeZone,
       bio: user.profile?.bio ?? null,
       bannerUrl: user.profile?.bannerUrl ?? null,
+      bannerVideoUrl: user.profile?.bannerVideoUrl ?? null,
       createdAt: user.createdAt.toISOString(),
       counts: {
         posts: user._count.posts,

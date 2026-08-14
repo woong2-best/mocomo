@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ProfileBannerField } from "@/components/profile/profile-banner-field";
+import { ProfileBannerMedia } from "@/components/profile/profile-banner-media";
 import { ProfileImageField } from "@/components/profile/profile-image-field";
 import {
   USERNAME_CHANGE_LIMIT,
@@ -29,6 +31,7 @@ type Initial = {
   image: string;
   bio: string;
   bannerUrl: string;
+  bannerVideoUrl: string;
   mainCharacter: string;
   favoriteTags: string;
   location: string;
@@ -54,6 +57,7 @@ export function ProfileSettingsForm({
   const [loading, setLoading] = useState(false);
   const [image, setImage] = useState(initial.image);
   const [bannerUrl, setBannerUrl] = useState(initial.bannerUrl);
+  const [bannerVideoUrl, setBannerVideoUrl] = useState(initial.bannerVideoUrl);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -96,7 +100,8 @@ export function ProfileSettingsForm({
       name: displayName || undefined,
       image: image || undefined,
       bio: (form.get("bio") as string) || undefined,
-      bannerUrl: bannerUrl || undefined,
+      bannerUrl: bannerVideoUrl ? undefined : bannerUrl || undefined,
+      bannerVideoUrl: bannerVideoUrl || undefined,
       mainCharacter: (form.get("mainCharacter") as string) || undefined,
       favoriteTags: tags,
       showNsfw: form.get("showNsfw") === "on",
@@ -136,18 +141,9 @@ export function ProfileSettingsForm({
       </Link>
 
       <Card className="rounded-2xl overflow-hidden">
-        <div
-          className="h-28 sm:h-32 bg-gradient-to-r from-violet-500/30 via-fuchsia-500/20 to-cyan-500/30"
-          style={
-            bannerUrl
-              ? {
-                  backgroundImage: `url(${bannerUrl})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                }
-              : undefined
-          }
-        />
+        <div className="h-28 sm:h-32 overflow-hidden relative">
+          <ProfileBannerMedia bannerUrl={bannerUrl} bannerVideoUrl={bannerVideoUrl} active />
+        </div>
         <CardContent className="pt-0 pb-4">
           <div className="flex items-end gap-3 -mt-10">
             <Avatar className="h-20 w-20 ring-4 ring-card">
@@ -166,12 +162,17 @@ export function ProfileSettingsForm({
         <CardHeader>
           <CardTitle>프로필 수정</CardTitle>
           <p className="text-sm text-muted-foreground">
-            사진을 올리면 프로필·배너 비율에 맞게 자를 수 있습니다. URL로 직접 넣을 수도 있어요.
+            사진·동영상 배너는 마이페이지와 앱 왼쪽 메뉴에 표시됩니다. 동영상은 무음 자동 재생, 최대 10초.
           </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
-            <ProfileImageField kind="banner" name="bannerUrl" value={bannerUrl} onChange={setBannerUrl} />
+            <ProfileBannerField
+              bannerUrl={bannerUrl}
+              bannerVideoUrl={bannerVideoUrl}
+              onBannerUrlChange={setBannerUrl}
+              onBannerVideoUrlChange={setBannerVideoUrl}
+            />
             <ProfileImageField kind="avatar" name="image" value={image} onChange={setImage} />
 
             <div>

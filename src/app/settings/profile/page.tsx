@@ -55,6 +55,7 @@ export default async function ProfileSettingsPage() {
         image: user.image ?? "",
         bio: user.profile?.bio ?? "",
         bannerUrl: user.profile?.bannerUrl ?? "",
+        bannerVideoUrl: user.profile?.bannerVideoUrl ?? "",
         mainCharacter: user.profile?.mainCharacter ?? "",
         favoriteTags: user.profile?.favoriteTags?.join(", ") ?? "",
         location: sns.location ?? "",
