@@ -5,6 +5,10 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { getAppOrigin, getStripe, isStripeConfigured } from "@/lib/stripe";
+import {
+  stripeCheckoutReturnUrls,
+  type CheckoutPlatform,
+} from "@/lib/stripe-checkout-service";
 import { computeMarketplaceFees } from "@/lib/marketplace/constants";
 import {
   getCarrierById,
@@ -27,23 +31,26 @@ import {
 import type { MarketplaceDisputeReason } from "@prisma/client";
 
 
-export async function createMarketplaceCheckout(input: {
-  listingId: string;
-  quantity?: number;
-  optionSnapshot?: Record<string, string>;
-  shipName?: string;
-  shipCountry?: string;
-  shipPostal?: string;
-  shipAddress1?: string;
-  shipAddress2?: string;
-  shipPhone?: string;
-  buyerNote?: string;
-}) {
+export async function createMarketplaceCheckoutForBuyer(
+  buyer: { id: string; email?: string | null },
+  input: {
+    listingId: string;
+    quantity?: number;
+    optionSnapshot?: Record<string, string>;
+    shipName?: string;
+    shipCountry?: string;
+    shipPostal?: string;
+    shipAddress1?: string;
+    shipAddress2?: string;
+    shipPhone?: string;
+    buyerNote?: string;
+  },
+  platform: CheckoutPlatform = "web"
+) {
   if (!isStripeConfigured()) {
     return { error: "Stripe 결제가 설정되지 않았습니다." };
   }
 
-  const buyer = await requireAuth();
   const quantity = Math.max(1, Math.floor(input.quantity ?? 1));
 
   const listing = await db.marketplaceListing.findUnique({
@@ -169,6 +176,15 @@ export async function createMarketplaceCheckout(input: {
   const stripe = getStripe();
   const origin = getAppOrigin();
   const currency = (listing.currency || "krw").toLowerCase();
+  const returnUrls = stripeCheckoutReturnUrls(platform);
+  const successUrl =
+    platform === "web"
+      ? `${origin}/payments/success?session_id={CHECKOUT_SESSION_ID}&market_order=${order.id}`
+      : returnUrls.successUrl;
+  const cancelUrl =
+    platform === "web"
+      ? `${origin}/payments/fail?market_order=${order.id}`
+      : returnUrls.cancelUrl;
 
   const sessionParams: Parameters<typeof stripe.checkout.sessions.create>[0] = {
     mode: "payment",
@@ -211,8 +227,8 @@ export async function createMarketplaceCheckout(input: {
       },
       transfer_group: order.id,
     },
-    success_url: `${origin}/payments/success?session_id={CHECKOUT_SESSION_ID}&market_order=${order.id}`,
-    cancel_url: `${origin}/payments/fail?market_order=${order.id}`,
+    success_url: successUrl,
+    cancel_url: cancelUrl,
     customer_email: buyer.email ?? undefined,
   };
 
@@ -224,13 +240,40 @@ export async function createMarketplaceCheckout(input: {
     data: { stripeCheckoutSessionId: session.id },
   });
 
-  return { checkoutUrl: session.url, orderId: order.id };
+  return { checkoutUrl: session.url, orderId: order.id, marketplaceOrderId: order.id };
+}
+
+export async function createMarketplaceCheckout(input: {
+  listingId: string;
+  quantity?: number;
+  optionSnapshot?: Record<string, string>;
+  shipName?: string;
+  shipCountry?: string;
+  shipPostal?: string;
+  shipAddress1?: string;
+  shipAddress2?: string;
+  shipPhone?: string;
+  buyerNote?: string;
+}) {
+  const buyer = await requireAuth();
+  return createMarketplaceCheckoutForBuyer(
+    { id: buyer.id, email: buyer.email },
+    input,
+    "web"
+  );
 }
 
 export async function listMyMarketplaceOrders(role: "buyer" | "seller" = "buyer") {
   const user = await requireAuth({ writeKind: "notification" });
+  return listMyMarketplaceOrdersForUser(user.id, role);
+}
+
+export async function listMyMarketplaceOrdersForUser(
+  userId: string,
+  role: "buyer" | "seller" = "buyer"
+) {
   return db.marketplaceOrder.findMany({
-    where: role === "buyer" ? { buyerId: user.id } : { sellerId: user.id },
+    where: role === "buyer" ? { buyerId: userId } : { sellerId: userId },
     orderBy: { createdAt: "desc" },
     take: 40,
     include: {

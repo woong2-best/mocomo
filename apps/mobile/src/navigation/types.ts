@@ -35,6 +35,10 @@ export type RootStackParamList = {
   Market: undefined;
   StarMarketDetail: { id: string };
   SellerListings: undefined;
+  SellerRegister: undefined;
+  MarketCart: undefined;
+  MarketOrders: undefined;
+  MarketSellItem: undefined;
   CommunityList: undefined;
   CommunityDetail: { slug: string };
   CommunityCreate: undefined;
@@ -51,6 +55,7 @@ export type RootStackParamList = {
   AnimeList: undefined;
   AnimeDetail: { slug: string };
   Settings: undefined;
+  LegalPolicies: undefined;
   Wallet: undefined;
   GamesHub: undefined;
   Support: undefined;

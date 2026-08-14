@@ -80,8 +80,12 @@ export async function applyMarketplaceSeller(input: {
  */
 export async function requireMarketplaceSeller() {
   const user = await requireAuth();
+  return requireMarketplaceSellerForUser(user.id);
+}
+
+export async function requireMarketplaceSellerForUser(userId: string) {
   const profile = await db.marketplaceSellerProfile.findUnique({
-    where: { userId: user.id },
+    where: { userId },
   });
   if (!profile) {
     throw new Error("SELLER_REQUIRED");
@@ -99,7 +103,7 @@ export async function requireMarketplaceSeller() {
   if (profile.status !== "APPROVED") {
     throw new Error("SELLER_PENDING_APPROVAL");
   }
-  return { user, profile };
+  return { user: { id: userId }, profile };
 }
 
 /** /market/sell-item — 판매자 온보딩·승인 완료 전 접근 차단 */
@@ -199,10 +203,18 @@ export type CreateMarketplaceListingInput = {
 };
 
 export async function createMarketplaceListing(input: CreateMarketplaceListingInput) {
+  const user = await requireAuth();
+  return createMarketplaceListingForUser(user.id, input);
+}
+
+export async function createMarketplaceListingForUser(
+  userId: string,
+  input: CreateMarketplaceListingInput
+) {
   let user;
   let profile;
   try {
-    ({ user, profile } = await requireMarketplaceSeller());
+    ({ user, profile } = await requireMarketplaceSellerForUser(userId));
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
     if (msg === "SELLER_PENDING_APPROVAL") {

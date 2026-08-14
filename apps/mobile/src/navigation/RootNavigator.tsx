@@ -7,6 +7,8 @@ import { useAuth } from "@/auth/AuthContext";
 import { LoginScreen } from "@/features/auth/LoginScreen";
 import { FeedScreen } from "@/features/feed/FeedScreen";
 import { FloatingGlassTabBar } from "@/navigation/FloatingGlassTabBar";
+import { navigationRef } from "@/navigation/navigationRef";
+import { PushNotificationHandler } from "@/push/PushNotificationHandler";
 import { useTheme } from "@/theme/ThemeContext";
 import {
   folkDarkNavigationTheme,
@@ -73,7 +75,8 @@ export function RootNavigator() {
   }
 
   return (
-    <NavigationContainer theme={theme}>
+    <NavigationContainer ref={navigationRef} theme={theme}>
+      <PushNotificationHandler />
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
@@ -124,6 +127,13 @@ export function RootNavigator() {
               options={{ presentation: "fullScreenModal", animation: "fade" }}
             />
             <Stack.Screen
+              name="IncomingCall"
+              getComponent={() =>
+                require("@/features/messages/IncomingCallScreen").IncomingCallScreen
+              }
+              options={{ presentation: "fullScreenModal", animation: "fade" }}
+            />
+            <Stack.Screen
               name="Discover"
               getComponent={() => require("@/features/discover/DiscoverHubScreen").DiscoverHubScreen}
             />
@@ -161,6 +171,28 @@ export function RootNavigator() {
               name="SellerListings"
               getComponent={() =>
                 require("@/features/market/SellerListingsScreen").SellerListingsScreen
+              }
+            />
+            <Stack.Screen
+              name="SellerRegister"
+              getComponent={() =>
+                require("@/features/market/SellerRegisterScreen").SellerRegisterScreen
+              }
+            />
+            <Stack.Screen
+              name="MarketCart"
+              getComponent={() => require("@/features/market/MarketCartScreen").MarketCartScreen}
+            />
+            <Stack.Screen
+              name="MarketOrders"
+              getComponent={() =>
+                require("@/features/market/MarketOrdersScreen").MarketOrdersScreen
+              }
+            />
+            <Stack.Screen
+              name="MarketSellItem"
+              getComponent={() =>
+                require("@/features/market/MarketSellItemScreen").MarketSellItemScreen
               }
             />
             <Stack.Screen
@@ -233,6 +265,12 @@ export function RootNavigator() {
             <Stack.Screen
               name="Settings"
               getComponent={() => require("@/features/settings/SettingsScreen").SettingsScreen}
+            />
+            <Stack.Screen
+              name="LegalPolicies"
+              getComponent={() =>
+                require("@/features/legal/LegalPoliciesScreen").LegalPoliciesScreen
+              }
             />
             <Stack.Screen
               name="Wallet"
