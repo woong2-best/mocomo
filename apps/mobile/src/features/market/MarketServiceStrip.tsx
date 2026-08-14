@@ -65,7 +65,7 @@ const SERVICES: ServiceItem[] = [
     label: "내 주문",
     icon: "clipboard-outline",
     colorKey: "cobalt",
-    onPress: (nav) => nav.navigate("MarketOrders"),
+    onPress: (nav) => nav.navigate("MarketMy"),
   },
   {
     key: "seller",

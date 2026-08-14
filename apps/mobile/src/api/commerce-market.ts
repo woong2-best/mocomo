@@ -6,15 +6,25 @@ export type SellAccessGate =
   | { allowed: true }
   | { allowed: false; redirectTo: "register" | "seller" };
 
+export type MarketOrderSummary = {
+  id: string;
+  status: string;
+  createdAt: string;
+  coverUrl: string | null;
+  title: string;
+  itemCount: number;
+};
+
 export type MarketOrderRow = {
   id: string;
   status: string;
   subtotalAmount: number;
   shippingAmount: number;
   createdAt: string;
+  title?: string;
   buyer: { username: string } | null;
   seller: { username: string } | null;
-  items: { title: string; quantity: number; unitPrice: number }[];
+  items: { title: string; quantity: number; unitPrice: number; listingId?: string }[];
 };
 
 export type SellerOnboardingState = {
@@ -69,6 +79,72 @@ export async function fetchMarketOrders(role: "buyer" | "seller" = "buyer") {
     `${MobileApi.marketOrders}?role=${role}`,
     { auth: true }
   );
+}
+
+export async function fetchMarketOrderSummary() {
+  return apiRequest<{ orders: MarketOrderSummary[] }>(
+    `${MobileApi.marketOrders}?role=buyer&summary=1`,
+    { auth: true }
+  );
+}
+
+export async function fetchMarketFavorites() {
+  return apiRequest<{ items: StarMarketListItem[] }>(MobileApi.marketFavorites, { auth: true });
+}
+
+export async function toggleMarketFavorite(listingId: string) {
+  return apiRequest<{ favorited: boolean }>(MobileApi.marketFavoriteToggle(listingId), {
+    method: "POST",
+    auth: true,
+  });
+}
+
+export async function fetchMarketRelatedByTags(tags: string[], excludeIds: string[] = []) {
+  const params = new URLSearchParams();
+  if (tags.length) params.set("tags", tags.join(","));
+  if (excludeIds.length) params.set("exclude", excludeIds.join(","));
+  return apiRequest<{ items: StarMarketListItem[] }>(`${MobileApi.marketRelated}?${params}`);
+}
+
+export async function fetchMarketCreatorItems() {
+  return apiRequest<{
+    sellers: { id: string; username: string; name: string | null; image: string | null }[];
+    items: StarMarketListItem[];
+  }>(MobileApi.marketCreatorItems, { auth: true });
+}
+
+export async function fetchMarketSponsorAd() {
+  return apiRequest<{
+    event: { id: string; title: string; imageUrl: string; href: string } | null;
+  }>(MobileApi.marketSponsorAd);
+}
+
+export async function fetchMyCoupons() {
+  return apiRequest<{
+    coupons: {
+      id: string;
+      code: string;
+      name: string;
+      benefitLabel: string;
+      status: string;
+      remainingBenefitKrw: number | null;
+      useCount: number;
+      endsAt: string | null;
+    }[];
+    promotions: {
+      id: string;
+      name: string;
+      benefitLabel: string;
+      status: string;
+      remainingBenefitKrw: number | null;
+    }[];
+  }>(MobileApi.couponsMine, { auth: true });
+}
+
+export async function fetchMeProfile() {
+  return apiRequest<{
+    user: { username: string; name: string | null; image: string | null };
+  }>(MobileApi.me, { auth: true });
 }
 
 export async function createCommerceListing(body: {

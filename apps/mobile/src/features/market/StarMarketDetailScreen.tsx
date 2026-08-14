@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -15,8 +15,10 @@ import { useNavigation, useRoute, type RouteProp } from "@react-navigation/nativ
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchStarMarketDetail } from "@/api/star-market";
+import { toggleMarketFavorite } from "@/api/commerce-market";
 import { StarMarketBuySheet } from "@/features/market/StarMarketBuySheet";
 import { addToMarketplaceCart } from "@/lib/marketplace-cart";
+import { recordRecentMarketView } from "@/lib/market-recently-viewed";
 import { FolkButton } from "@/ui/FolkButton";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
@@ -48,6 +50,16 @@ export function StarMarketDetailScreen() {
 
   const item = query.data?.item;
   const images = item?.images?.length ? item.images : item?.coverUrl ? [item.coverUrl] : [];
+
+  useEffect(() => {
+    if (!item) return;
+    void recordRecentMarketView({
+      listingId: item.id,
+      title: item.title,
+      coverUrl: item.coverUrl,
+      tags: item.tags ?? [],
+    });
+  }, [item?.id]);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -106,6 +118,15 @@ export function StarMarketDetailScreen() {
             {item.category ? <Text style={styles.meta}>카테고리 · {item.category}</Text> : null}
             {item.stock != null ? <Text style={styles.meta}>재고 · {item.stock}</Text> : null}
             {item.description ? <Text style={styles.desc}>{item.description}</Text> : null}
+            {item.tags?.length ? (
+              <View style={styles.tagRow}>
+                {item.tags.map((tag) => (
+                  <Text key={tag} style={styles.tag}>
+                    #{tag}
+                  </Text>
+                ))}
+              </View>
+            ) : null}
             {!item.isOwner && item.paymentsEnabled ? (
               <View style={{ gap: 10, marginTop: spacing.md }}>
                 <FolkButton
@@ -123,6 +144,15 @@ export function StarMarketDetailScreen() {
                       currency: item.currency,
                       coverUrl: item.coverUrl,
                     }).then(() => Alert.alert("장바구니", "상품을 담았습니다."));
+                  }}
+                />
+                <FolkButton
+                  label="찜하기"
+                  variant="secondary"
+                  onPress={() => {
+                    void toggleMarketFavorite(item.id).then((r) =>
+                      Alert.alert("찜", r.favorited ? "찜 목록에 추가했습니다." : "찜을 해제했습니다.")
+                    );
                   }}
                 />
               </View>
@@ -175,6 +205,16 @@ function createThemedStyles(colors: ThemeColors) {
   seller: { fontSize: 14, color: colors.textMuted, marginTop: 4 },
   meta: { fontSize: 13, color: colors.textMuted },
   desc: { marginTop: spacing.md, fontSize: 15, lineHeight: 22, color: colors.text },
+  tagRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 },
+  tag: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.terracotta,
+    backgroundColor: "rgba(197, 82, 42, 0.1)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
   error: { color: colors.danger, padding: spacing.lg },
 });
 }

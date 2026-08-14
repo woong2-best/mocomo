@@ -184,6 +184,34 @@ export function RootNavigator() {
               getComponent={() => require("@/features/market/MarketCartScreen").MarketCartScreen}
             />
             <Stack.Screen
+              name="MarketMy"
+              getComponent={() => require("@/features/market/MarketMyScreen").MarketMyScreen}
+            />
+            <Stack.Screen
+              name="MarketWishlist"
+              getComponent={() =>
+                require("@/features/market/MarketWishlistScreen").MarketWishlistScreen
+              }
+            />
+            <Stack.Screen
+              name="MarketRecent"
+              getComponent={() =>
+                require("@/features/market/MarketRecentScreen").MarketRecentScreen
+              }
+            />
+            <Stack.Screen
+              name="MarketCreatorItems"
+              getComponent={() =>
+                require("@/features/market/MarketCreatorItemsScreen").MarketCreatorItemsScreen
+              }
+            />
+            <Stack.Screen
+              name="MarketCoupons"
+              getComponent={() =>
+                require("@/features/market/MarketCouponsScreen").MarketCouponsScreen
+              }
+            />
+            <Stack.Screen
               name="MarketOrders"
               getComponent={() =>
                 require("@/features/market/MarketOrdersScreen").MarketOrdersScreen

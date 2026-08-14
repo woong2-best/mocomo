@@ -165,7 +165,7 @@ export function MarketScreen() {
             autoCorrect={false}
           />
         </View>
-        <Pressable style={styles.quickBtn} onPress={() => navigation.navigate("MarketOrders")}>
+        <Pressable style={styles.quickBtn} onPress={() => navigation.navigate("MarketMy")}>
           <Ionicons name="person-outline" size={20} color={colors.cobalt} />
           <Text style={styles.quickLabel}>마이</Text>
         </Pressable>

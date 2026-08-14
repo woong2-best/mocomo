@@ -38,6 +38,11 @@ export type RootStackParamList = {
   SellerRegister: undefined;
   MarketCart: undefined;
   MarketOrders: undefined;
+  MarketMy: undefined;
+  MarketWishlist: undefined;
+  MarketRecent: undefined;
+  MarketCreatorItems: undefined;
+  MarketCoupons: undefined;
   MarketSellItem: undefined;
   CommunityList: undefined;
   CommunityDetail: { slug: string };
