@@ -14,7 +14,7 @@ export default function StarPage() {
           <Star className="h-6 w-6 text-yellow-400 fill-yellow-400" />
           STAR
         </h1>
-        <p className="text-sm text-muted-foreground">STAR에 저장한 게시글</p>
+        <p className="text-sm text-muted-foreground">저장한 게시물 · 팔로우 크리에이터별 필터</p>
       </NativePageTitle>
 
       <Suspense fallback={<GridCardsSkeleton count={4} />}>

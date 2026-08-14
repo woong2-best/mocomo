@@ -1,19 +1,24 @@
 import { getCachedSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { StarFeedClient } from "@/components/star/star-feed-client";
-import type { GridPost } from "@/components/feed/feed-post-card";
-import { getStarredPostsForUser } from "@/lib/star-bookmarks";
+import { StarHubClient } from "@/components/star/star-hub-client";
+import { getStarHubForUser } from "@/lib/star-bookmarks";
 
 export async function StarContentAsync() {
   const session = await getCachedSession();
   if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/star");
 
-  let posts: GridPost[] = [];
+  let hub = { posts: [], creators: [], total: 0 };
   try {
-    posts = await getStarredPostsForUser(session.user.id);
+    hub = await getStarHubForUser(session.user.id);
   } catch {
-    posts = [];
+    hub = { posts: [], creators: [], total: 0 };
   }
 
-  return <StarFeedClient initialPosts={posts} />;
+  return (
+    <StarHubClient
+      initialPosts={hub.posts}
+      initialCreators={hub.creators}
+      initialTotal={hub.total}
+    />
+  );
 }
