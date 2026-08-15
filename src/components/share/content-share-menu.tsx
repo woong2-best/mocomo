@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Check, Link2, MessageSquare, Share2 } from "lucide-react";
+import { Check, Link2, MessageSquare } from "lucide-react";
+import { ShareGlobeIcon } from "@/components/ui/share-globe-icon";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -105,7 +106,7 @@ export function ContentShareMenu({
             {copied ? (
               <Check className={cn(iconClass, accent.check)} strokeWidth={1.5} />
             ) : (
-              <Share2 className={cn(iconClass, "pointer-events-none")} strokeWidth={1.5} />
+              <ShareGlobeIcon className={iconClass} />
             )}
           </button>
         </DropdownMenuTrigger>

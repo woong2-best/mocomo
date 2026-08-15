@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Home, Share2, MoreHorizontal, Trash2 } from "lucide-react";
+import { ChevronLeft, Home, MoreHorizontal, Trash2 } from "lucide-react";
+import { ShareGlobeIcon } from "@/components/ui/share-globe-icon";
 import { deleteUsedListing } from "@/actions/used-market";
 
 export function UsedDetailHeader({
@@ -56,7 +57,7 @@ export function UsedDetailHeader({
         </div>
         <div className="flex items-center gap-1">
           <button type="button" onClick={() => void share()} className="p-2 rounded-lg hover:bg-muted" aria-label="공유">
-            <Share2 className="h-5 w-5" />
+            <ShareGlobeIcon className="h-5 w-5" />
           </button>
           {isSeller && (
             <div className="relative">

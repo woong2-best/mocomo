@@ -12,13 +12,24 @@ import {
 import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
+import { ShareGlobeIcon } from "@/ui/ShareGlobeIcon";
 import * as Haptics from "expo-haptics";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { ReelItem } from "@/api/reels";
 import { togglePostLike } from "@/api/feed";
 import { togglePostStar } from "@/api/social";
 import type { FeedVideoGroup } from "@/features/feed/feed-video-groups";
+import type { RootStackParamList } from "@/navigation/types";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { spacing } from "@/theme/tokens";
+import { FolkAvatar } from "@/ui/FolkAvatar";
+
+/** Instagram Reels-style edge hold width — narrow so center taps / right rail stay safe. */
+const EDGE_HOLD_WIDTH = 52;
+/** Right inset for center tap zone so it does not compete with the action rail. */
+const RAIL_CLEARANCE = 76;
+const FAST_PLAYBACK_RATE = 2;
 
 type Props = {
   group: FeedVideoGroup;
@@ -28,17 +39,24 @@ type Props = {
   active: boolean;
   initialVideoIndex: number;
   onOpenComments: (postId: string, commentCount: number) => void;
+  onPrefetchComments?: (postId: string) => void;
   onChangeVideoIndex?: (index: number) => void;
+  /** Hide Reels chrome (header / nav arrows) while edge-hold 2× is active. */
+  onFastForwardChange?: (active: boolean) => void;
 };
 
 function VideoCell({
   item,
   active,
   muted,
+  pausedByUser,
+  fastForward,
 }: {
   item: ReelItem;
   active: boolean;
   muted: boolean;
+  pausedByUser: boolean;
+  fastForward: boolean;
 }) {
   const src = useMemo(() => {
     const progressive = item.media.url?.trim();
@@ -50,6 +68,7 @@ function VideoCell({
   const player = useVideoPlayer(src || null, (p) => {
     p.loop = true;
     p.muted = muted;
+    p.playbackRate = 1;
   });
 
   useEffect(() => {
@@ -57,18 +76,24 @@ function VideoCell({
   }, [muted, player]);
 
   useEffect(() => {
+    player.playbackRate = fastForward ? FAST_PLAYBACK_RATE : 1;
+  }, [fastForward, player]);
+
+  useEffect(() => {
     if (!src) return;
-    if (active) {
+    if (active && (!pausedByUser || fastForward)) {
       player.play();
     } else {
       player.pause();
-      try {
-        player.currentTime = 0;
-      } catch {
-        // ignore
+      if (!active) {
+        try {
+          player.currentTime = 0;
+        } catch {
+          // ignore
+        }
       }
     }
-  }, [active, player, src]);
+  }, [active, pausedByUser, fastForward, player, src]);
 
   if (!src) {
     return <View style={[StyleSheet.absoluteFill, { backgroundColor: "#111" }]} />;
@@ -94,6 +119,43 @@ function VideoCell({
   );
 }
 
+function EdgeHoldZone({
+  side,
+  disabled,
+  onHoldStart,
+  onHoldEnd,
+}: {
+  side: "left" | "right";
+  disabled?: boolean;
+  onHoldStart: () => void;
+  onHoldEnd: () => void;
+}) {
+  const holdingRef = useRef(false);
+
+  const endHold = useCallback(() => {
+    if (!holdingRef.current) return;
+    holdingRef.current = false;
+    onHoldEnd();
+  }, [onHoldEnd]);
+
+  const startHold = useCallback(() => {
+    if (disabled || holdingRef.current) return;
+    holdingRef.current = true;
+    onHoldStart();
+  }, [disabled, onHoldStart]);
+
+  return (
+    <Pressable
+      style={[styles.edgeZone, side === "left" ? styles.edgeLeft : styles.edgeRight]}
+      onLongPress={startHold}
+      onPressOut={endHold}
+      delayLongPress={160}
+      accessibilityRole="button"
+      accessibilityLabel={side === "left" ? "왼쪽 가장자리 길게 눌러 2배속" : "오른쪽 가장자리 길게 눌러 2배속"}
+    />
+  );
+}
+
 function FeedVideoPostSlideInner({
   group,
   width,
@@ -101,8 +163,11 @@ function FeedVideoPostSlideInner({
   active,
   initialVideoIndex,
   onOpenComments,
+  onPrefetchComments,
   onChangeVideoIndex,
+  onFastForwardChange,
 }: Props) {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const listRef = useRef<FlatList<ReelItem>>(null);
   const [videoIndex, setVideoIndex] = useState(
     Math.min(Math.max(initialVideoIndex, 0), Math.max(group.videos.length - 1, 0))
@@ -111,8 +176,39 @@ function FeedVideoPostSlideInner({
   const [likeCount, setLikeCount] = useState(group.videos[0]?.likeCount ?? 0);
   const [starred, setStarred] = useState(!!group.videos[0]?.starred);
   const [muted, setMuted] = useState(false);
+  const [pausedByUser, setPausedByUser] = useState(false);
+  const [fastForward, setFastForward] = useState(false);
 
   const current = group.videos[videoIndex] ?? group.videos[0];
+  const chromeHidden = fastForward;
+
+  const stopFastForward = useCallback(() => {
+    setFastForward((prev) => {
+      if (prev) onFastForwardChange?.(false);
+      return false;
+    });
+  }, [onFastForwardChange]);
+
+  const startFastForward = useCallback(() => {
+    if (!active || pausedByUser) return;
+    setFastForward(true);
+    onFastForwardChange?.(true);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  }, [active, onFastForwardChange, pausedByUser]);
+
+  useEffect(() => {
+    if (!active) stopFastForward();
+  }, [active, stopFastForward]);
+
+  useEffect(() => {
+    stopFastForward();
+  }, [videoIndex, group.postId, stopFastForward]);
+
+  useEffect(() => {
+    return () => {
+      onFastForwardChange?.(false);
+    };
+  }, [onFastForwardChange]);
 
   useEffect(() => {
     const idx = Math.min(Math.max(initialVideoIndex, 0), Math.max(group.videos.length - 1, 0));
@@ -128,6 +224,20 @@ function FeedVideoPostSlideInner({
     setLikeCount(current.likeCount);
     setStarred(!!current.starred);
   }, [current?.id, current?.liked, current?.likeCount, current?.starred]);
+
+  useEffect(() => {
+    if (!active) setPausedByUser(false);
+  }, [active]);
+
+  useEffect(() => {
+    setPausedByUser(false);
+  }, [videoIndex, group.postId]);
+
+  const togglePause = useCallback(() => {
+    if (!active) return;
+    setPausedByUser((p) => !p);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [active]);
 
   const onHScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -176,6 +286,11 @@ function FeedVideoPostSlideInner({
     });
   }, [current]);
 
+  const onAuthorPress = useCallback(() => {
+    if (!current) return;
+    navigation.navigate("UserProfile", { username: current.author.username });
+  }, [current, navigation]);
+
   if (!current) {
     return <View style={{ width, height, backgroundColor: "#000" }} />;
   }
@@ -196,15 +311,51 @@ function FeedVideoPostSlideInner({
         onScrollToIndexFailed={() => {
           // ignore cold layout race
         }}
-        renderItem={({ item, index }) => (
-          <View style={{ width, height }}>
-            <VideoCell item={item} active={active && index === videoIndex} muted={muted} />
-          </View>
-        )}
+        renderItem={({ item, index }) => {
+          const isCurrent = active && index === videoIndex;
+          return (
+            <View style={{ width, height }}>
+              <VideoCell
+                item={item}
+                active={isCurrent}
+                muted={muted}
+                pausedByUser={pausedByUser}
+                fastForward={isCurrent && fastForward}
+              />
+              {isCurrent && !chromeHidden ? (
+                <>
+                  <Pressable
+                    style={styles.tapZone}
+                    onPress={togglePause}
+                    accessibilityRole="button"
+                    accessibilityLabel={pausedByUser ? "재생" : "일시정지"}
+                  />
+                  {pausedByUser ? (
+                    <View style={styles.pauseBadge} pointerEvents="none">
+                      <Ionicons name="play" size={56} color="rgba(255,255,255,0.9)" />
+                    </View>
+                  ) : null}
+                  <EdgeHoldZone
+                    side="left"
+                    disabled={pausedByUser}
+                    onHoldStart={startFastForward}
+                    onHoldEnd={stopFastForward}
+                  />
+                  <EdgeHoldZone
+                    side="right"
+                    disabled={pausedByUser}
+                    onHoldStart={startFastForward}
+                    onHoldEnd={stopFastForward}
+                  />
+                </>
+              ) : null}
+            </View>
+          );
+        }}
       />
 
       {/* Top segments */}
-      {group.videos.length > 1 ? (
+      {!chromeHidden && group.videos.length > 1 ? (
         <View style={styles.segments} pointerEvents="none">
           {group.videos.map((v, i) => (
             <View
@@ -216,7 +367,23 @@ function FeedVideoPostSlideInner({
       ) : null}
 
       {/* Right rail */}
-      <View style={styles.rail} pointerEvents="box-none">
+      {!chromeHidden ? (
+        <View style={styles.rail} pointerEvents="box-none">
+        <Pressable
+          onPress={onAuthorPress}
+          style={styles.railBtn}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={`${current.author.username} 프로필`}
+        >
+          <FolkAvatar
+            uri={current.author.image}
+            name={current.author.name ?? current.author.username}
+            size={44}
+            framed={false}
+            style={styles.railAvatar}
+          />
+        </Pressable>
         <Pressable onPress={onLike} style={styles.railBtn} hitSlop={10}>
           <Ionicons
             name={liked ? "heart" : "heart-outline"}
@@ -226,28 +393,43 @@ function FeedVideoPostSlideInner({
           <Text style={styles.railCount}>{likeCount}</Text>
         </Pressable>
         <Pressable
+          onPressIn={() => onPrefetchComments?.(current.postId)}
           onPress={() => onOpenComments(current.postId, current.commentCount)}
           style={styles.railBtn}
           hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="댓글"
         >
-          <Ionicons name="chatbubble-outline" size={26} color="#fff" />
+          <Ionicons name="chatbox-outline" size={26} color="#fff" />
           <Text style={styles.railCount}>{current.commentCount}</Text>
         </Pressable>
-        <Pressable onPress={onStar} style={styles.railBtn} hitSlop={10}>
+        <Pressable
+          onPress={onStar}
+          style={styles.railBtn}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={starred ? "저장 취소" : "저장"}
+        >
           <Ionicons name={starred ? "star" : "star-outline"} size={26} color="#fff" />
-          <Text style={styles.railLabel}>저장</Text>
         </Pressable>
-        <Pressable onPress={onShare} style={styles.railBtn} hitSlop={10}>
-          <Ionicons name="share-outline" size={26} color="#fff" />
-          <Text style={styles.railLabel}>공유</Text>
+        <Pressable
+          onPress={onShare}
+          style={styles.railBtn}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="공유"
+        >
+          <ShareGlobeIcon size={26} color="#fff" />
         </Pressable>
         <Pressable onPress={() => setMuted((m) => !m)} style={styles.railBtn} hitSlop={10}>
           <Ionicons name={muted ? "volume-mute" : "volume-high"} size={26} color="#fff" />
         </Pressable>
-      </View>
+        </View>
+      ) : null}
 
       {/* Bottom meta */}
-      <View style={styles.meta} pointerEvents="none">
+      {!chromeHidden ? (
+        <View style={styles.meta} pointerEvents="none">
         <Text style={styles.user}>@{current.author.username}</Text>
         {current.content ? (
           <Text style={styles.caption} numberOfLines={2}>
@@ -259,7 +441,16 @@ function FeedVideoPostSlideInner({
             {videoIndex + 1} / {group.videos.length}
           </Text>
         ) : null}
-      </View>
+        </View>
+      ) : null}
+
+      {fastForward ? (
+        <Pressable
+          style={styles.releaseCatcher}
+          onPressOut={stopFastForward}
+          accessibilityLabel="2배속 해제"
+        />
+      ) : null}
     </View>
   );
 }
@@ -294,6 +485,33 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.28)",
   },
   segmentActive: { backgroundColor: "#fff" },
+  tapZone: {
+    position: "absolute",
+    left: EDGE_HOLD_WIDTH,
+    right: RAIL_CLEARANCE,
+    top: 32,
+    bottom: 88,
+    zIndex: 2,
+  },
+  edgeZone: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    width: EDGE_HOLD_WIDTH,
+    zIndex: 4,
+  },
+  edgeLeft: { left: 0 },
+  edgeRight: { right: 0 },
+  releaseCatcher: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 20,
+  },
+  pauseBadge: {
+    ...StyleSheet.absoluteFill,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1,
+  },
   rail: {
     position: "absolute",
     right: 10,
@@ -303,8 +521,12 @@ const styles = StyleSheet.create({
     zIndex: 5,
   },
   railBtn: { alignItems: "center" },
+  railAvatar: {
+    borderWidth: 2,
+    borderColor: "#fff",
+    marginBottom: 2,
+  },
   railCount: { color: "#fff", fontSize: 12, fontWeight: "700", marginTop: 2 },
-  railLabel: { color: "#fff", fontSize: 11, fontWeight: "700", marginTop: 2 },
   meta: {
     position: "absolute",
     left: spacing.md,

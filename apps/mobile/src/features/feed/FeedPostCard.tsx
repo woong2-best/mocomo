@@ -1,24 +1,18 @@
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
-import { Image } from "expo-image";
+import { Alert, Pressable, Share, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import type { FeedPost } from "@/api/feed";
 import { togglePostLike } from "@/api/feed";
-import { FeedImageLightbox } from "@/features/feed/FeedImageLightbox";
-import { LazyFeedVideoPreview } from "@/features/feed/LazyFeedVideoPreview";
-import {
-  firstVisualMedia,
-  postHasPlayableVideo,
-} from "@/features/feed/feed-video-groups";
+import { togglePostRepost, togglePostStar } from "@/api/social";
+import { useAuth } from "@/auth/AuthContext";
+import { FeedPostMediaCarousel } from "@/features/feed/FeedPostMediaCarousel";
+import { FeedPostOverflowMenu } from "@/features/feed/FeedPostOverflowMenu";
 import { FolkAvatar } from "@/ui/FolkAvatar";
-import {
-  IMAGE_CACHE_POLICY,
-  feedMediaDecodeWidth,
-} from "@/perf/image";
+import { ShareGlobeIcon } from "@/ui/ShareGlobeIcon";
 import { PerformanceBudgets } from "@/perf/budgets";
 import { useTheme } from "@/theme/ThemeContext";
-import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+import { spacing, type ThemeColors } from "@/theme/tokens";
 
 type Props = {
   post: FeedPost;
@@ -28,7 +22,15 @@ type Props = {
   onPressPost?: (postId: string) => void;
   onPressAuthor?: (username: string) => void;
   onPressVideo?: (postId: string, mediaId?: string, mediaIndex?: number) => void;
+  onBlockedAuthor?: (authorId: string) => void;
 };
+
+function formatCount(n: number) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  if (n >= 10_000) return `${Math.round(n / 1000)}K`;
+  if (n >= 1_000) return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K`;
+  return String(n);
+}
 
 function FeedPostCardInner({
   post,
@@ -37,54 +39,51 @@ function FeedPostCardInner({
   onPressPost,
   onPressAuthor,
   onPressVideo,
+  onBlockedAuthor,
 }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { width: windowWidth } = useWindowDimensions();
+  const { status, user } = useAuth();
   const mediaLayout = Math.min(windowWidth - spacing.md * 2, PerformanceBudgets.feedMediaLayoutMax);
-  const mediaDecode = feedMediaDecodeWidth(mediaLayout);
 
   const [liked, setLiked] = useState(!!post.liked);
   const [likeCount, setLikeCount] = useState(post._count?.likes ?? 0);
+  const [starred, setStarred] = useState(!!post.starred);
+  const [reposted, setReposted] = useState(!!post.reposted);
+  const [repostCount, setRepostCount] = useState(post._count?.reposts ?? 0);
   const [pending, setPending] = useState(false);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const isSelf = user?.id === post.author.id;
+  const canShowMenu = status === "signedIn" && !isSelf;
+  const viewCount = post.viewCount ?? 0;
 
   useEffect(() => {
     setLiked(!!post.liked);
     setLikeCount(post._count?.likes ?? 0);
-  }, [post.id, post.liked, post._count?.likes]);
+    setStarred(!!post.starred);
+    setReposted(!!post.reposted);
+    setRepostCount(post._count?.reposts ?? 0);
+  }, [
+    post.id,
+    post.liked,
+    post.starred,
+    post.reposted,
+    post._count?.likes,
+    post._count?.reposts,
+  ]);
 
-  const visual = useMemo(() => firstVisualMedia(post), [post]);
-  const isVideo = visual?.type === "VIDEO";
-  const hasVideo = postHasPlayableVideo(post);
-  const videoCount = useMemo(
-    () => (post.media ?? []).filter((m) => m.type === "VIDEO" && m.url).length,
-    [post.media]
-  );
-
-  const images = useMemo(
-    () =>
-      (post.media ?? [])
-        .filter((m) => m.type === "IMAGE" && !!m.url?.trim())
-        .map((m, i) => ({
-          id: m.id?.trim() || `${post.id}:img:${i}`,
-          url: m.url.trim(),
-        })),
-    [post.id, post.media]
-  );
-
-  const videoMediaIndex = useMemo(() => {
-    if (!visual || visual.type !== "VIDEO") return 0;
-    const videos = (post.media ?? []).filter((m) => m.type === "VIDEO" && m.url);
-    return Math.max(
-      0,
-      videos.findIndex((m) => m.id === visual.id || m.url === visual.url)
-    );
-  }, [post.media, visual]);
+  const requireLogin = useCallback(() => {
+    if (status !== "signedIn") {
+      Alert.alert("로그인 필요", "이 기능을 사용하려면 로그인해 주세요.");
+      return false;
+    }
+    return true;
+  }, [status]);
 
   const onLike = useCallback(() => {
-    if (pending) return;
+    if (pending || !requireLogin()) return;
     const prevLiked = liked;
     const prevCount = likeCount;
     const nextLiked = !prevLiked;
@@ -107,33 +106,42 @@ function FeedPostCardInner({
         setPending(false);
       }
     })();
-  }, [liked, likeCount, onLikeCommit, pending, post.id]);
+  }, [liked, likeCount, onLikeCommit, pending, post.id, requireLogin]);
 
-  /** Web parity: video → immersive viewer (Reels). */
-  const openVideo = useCallback(() => {
-    if (hasVideo && onPressVideo) {
-      onPressVideo(post.id, visual?.id, isVideo ? videoMediaIndex : 0);
-      return;
-    }
-    onPressPost?.(post.id);
-  }, [hasVideo, isVideo, onPressPost, onPressVideo, post.id, videoMediaIndex, visual?.id]);
+  const onStar = useCallback(() => {
+    if (!requireLogin()) return;
+    const prev = starred;
+    setStarred(!prev);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void togglePostStar(post.id)
+      .then((res) => setStarred(res.starred))
+      .catch(() => setStarred(prev));
+  }, [post.id, requireLogin, starred]);
 
-  /** Web parity: photo → fullscreen lightbox (PostMediaLightbox). */
-  const openPhoto = useCallback(() => {
-    if (images.length === 0) {
-      onPressPost?.(post.id);
-      return;
-    }
-    const start =
-      visual?.type === "IMAGE"
-        ? Math.max(
-            0,
-            images.findIndex((img) => img.url === visual.url || img.id === visual.id)
-          )
-        : 0;
-    setLightboxIndex(start === -1 ? 0 : start);
-    setLightboxOpen(true);
-  }, [images, onPressPost, post.id, visual]);
+  const onRepost = useCallback(() => {
+    if (!requireLogin()) return;
+    const prevReposted = reposted;
+    const prevCount = repostCount;
+    setReposted(!prevReposted);
+    setRepostCount(Math.max(0, prevCount + (prevReposted ? -1 : 1)));
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void togglePostRepost(post.id)
+      .then((res) => {
+        setReposted(res.reposted);
+        setRepostCount(res.repostCount);
+      })
+      .catch(() => {
+        setReposted(prevReposted);
+        setRepostCount(prevCount);
+      });
+  }, [post.id, repostCount, reposted, requireLogin]);
+
+  const onShare = useCallback(() => {
+    void Share.share({
+      message: `https://mocomo.net/post/${post.id}`,
+      url: `https://mocomo.net/post/${post.id}`,
+    });
+  }, [post.id]);
 
   const openPost = useCallback(() => {
     onPressPost?.(post.id);
@@ -145,26 +153,39 @@ function FeedPostCardInner({
 
   return (
     <View style={styles.card}>
-      <Pressable
-        style={styles.header}
-        onPress={openAuthor}
-        disabled={!onPressAuthor}
-        accessibilityRole="button"
-      >
-        <FolkAvatar
-          uri={post.author.image}
-          name={post.author.name || post.author.username}
-          size={40}
-        />
-        <View style={styles.headerText}>
-          <Text style={styles.name} numberOfLines={1}>
-            {post.author.name || post.author.username}
-          </Text>
-          <Text style={styles.handle} numberOfLines={1}>
-            @{post.author.username}
-          </Text>
-        </View>
-      </Pressable>
+      <View style={styles.header}>
+        <Pressable
+          style={styles.headerMain}
+          onPress={openAuthor}
+          disabled={!onPressAuthor}
+          accessibilityRole="button"
+        >
+          <FolkAvatar
+            uri={post.author.image}
+            name={post.author.name || post.author.username}
+            size={40}
+          />
+          <View style={styles.headerText}>
+            <Text style={styles.name} numberOfLines={1}>
+              {post.author.name || post.author.username}
+            </Text>
+            <Text style={styles.handle} numberOfLines={1}>
+              @{post.author.username}
+            </Text>
+          </View>
+        </Pressable>
+        {canShowMenu ? (
+          <Pressable
+            onPress={() => setMenuOpen(true)}
+            hitSlop={10}
+            style={styles.menuBtn}
+            accessibilityRole="button"
+            accessibilityLabel="게시물 메뉴"
+          >
+            <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
+          </Pressable>
+        ) : null}
+      </View>
 
       {post.content ? (
         <Pressable onPress={openPost} disabled={!onPressPost}>
@@ -180,60 +201,66 @@ function FeedPostCardInner({
         </Pressable>
       ) : null}
 
-      {visual && isVideo ? (
-        <LazyFeedVideoPreview
-          media={visual}
-          active={previewActive}
-          videoCount={videoCount}
-          onPress={openVideo}
-        />
-      ) : visual && images.length > 0 ? (
-        <View style={[styles.media, { width: mediaLayout }]}>
-          <Image
-            source={{ uri: visual.url, width: mediaDecode, height: mediaDecode }}
-            style={StyleSheet.absoluteFill}
-            contentFit="cover"
-            cachePolicy={IMAGE_CACHE_POLICY}
-            recyclingKey={visual.url}
-            transition={0}
-            pointerEvents="none"
-          />
-          {/* Native Image can swallow taps — same overlay pattern as video preview */}
-          <Pressable
-            style={styles.mediaHit}
-            onPress={openPhoto}
-            accessibilityRole="button"
-            accessibilityLabel="사진 크게 보기"
-          />
-          {images.length > 1 ? (
-            <View style={styles.countBadge} pointerEvents="none">
-              <Text style={styles.countBadgeText}>{images.length}</Text>
-            </View>
-          ) : null}
-        </View>
-      ) : null}
+      <FeedPostMediaCarousel
+        post={post}
+        layoutWidth={mediaLayout}
+        previewActive={previewActive}
+        onPressVideo={onPressVideo}
+      />
 
       <View style={styles.actions}>
-        <Pressable onPress={onLike} hitSlop={10} style={styles.actionBtn}>
-          <Ionicons
-            name={liked ? "heart" : "heart-outline"}
-            size={18}
-            color={liked ? colors.terracotta : colors.textMuted}
-          />
-          <Text style={[styles.actionText, liked && styles.liked]}>{likeCount}</Text>
-        </Pressable>
-        <Pressable onPress={openPost} hitSlop={10} style={styles.actionBtn} disabled={!onPressPost}>
-          <Ionicons name="chatbubble-outline" size={17} color={colors.textMuted} />
-          <Text style={styles.actionText}>{post._count?.comments ?? 0}</Text>
-        </Pressable>
+        <View style={styles.actionsLeft}>
+          <Pressable onPress={onLike} hitSlop={10} style={styles.actionBtn}>
+            <Ionicons
+              name={liked ? "heart" : "heart-outline"}
+              size={20}
+              color={liked ? colors.terracotta : colors.textMuted}
+            />
+            <Text style={[styles.actionText, liked && styles.liked]}>{likeCount}</Text>
+          </Pressable>
+          <Pressable onPress={openPost} hitSlop={10} style={styles.actionBtn} disabled={!onPressPost}>
+            <Ionicons name="chatbox-outline" size={19} color={colors.textMuted} />
+            <Text style={styles.actionText}>{post._count?.comments ?? 0}</Text>
+          </Pressable>
+          <Pressable onPress={onRepost} hitSlop={10} style={styles.actionBtn}>
+            <Ionicons
+              name="repeat-outline"
+              size={20}
+              color={reposted ? colors.cobalt : colors.textMuted}
+            />
+            <Text style={[styles.actionText, reposted && styles.reposted]}>{repostCount}</Text>
+          </Pressable>
+          <Pressable onPress={onShare} hitSlop={10} style={styles.actionBtn}>
+            <ShareGlobeIcon size={19} color={colors.textMuted} />
+          </Pressable>
+        </View>
+        <View style={styles.actionsRight}>
+          {viewCount > 0 ? (
+            <View style={styles.viewBtn}>
+              <Ionicons name="eye-outline" size={17} color={colors.textMuted} />
+              <Text style={styles.actionText}>{formatCount(viewCount)}</Text>
+            </View>
+          ) : null}
+          <Pressable onPress={onStar} hitSlop={10} style={styles.starBtn}>
+            <Ionicons
+              name={starred ? "star" : "star-outline"}
+              size={20}
+              color={starred ? colors.gold : colors.textMuted}
+            />
+          </Pressable>
+        </View>
       </View>
 
-      <FeedImageLightbox
-        visible={lightboxOpen}
-        images={images}
-        initialIndex={lightboxIndex}
-        onClose={() => setLightboxOpen(false)}
-      />
+      {canShowMenu ? (
+        <FeedPostOverflowMenu
+          visible={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          postId={post.id}
+          authorId={post.author.id}
+          authorUsername={post.author.username}
+          onBlocked={() => onBlockedAuthor?.(post.author.id)}
+        />
+      ) : null}
     </View>
   );
 }
@@ -243,8 +270,12 @@ function propsEqual(a: Props, b: Props) {
     a.post.id === b.post.id &&
     a.previewActive === b.previewActive &&
     a.post.liked === b.post.liked &&
+    a.post.starred === b.post.starred &&
+    a.post.reposted === b.post.reposted &&
+    a.post.viewCount === b.post.viewCount &&
     a.post._count?.likes === b.post._count?.likes &&
     a.post._count?.comments === b.post._count?.comments &&
+    a.post._count?.reposts === b.post._count?.reposts &&
     a.post.content === b.post.content &&
     (a.post.media?.length ?? 0) === (b.post.media?.length ?? 0) &&
     a.post.media?.[0]?.posterUrl === b.post.media?.[0]?.posterUrl &&
@@ -264,40 +295,29 @@ function createStyles(colors: ThemeColors) {
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.hairline,
       paddingHorizontal: spacing.md,
-      paddingTop: 14,
-      paddingBottom: 10,
+      paddingTop: 12,
+      paddingBottom: 12,
     },
-    header: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
+    header: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
+    headerMain: { flexDirection: "row", alignItems: "center", flex: 1 },
     headerText: { marginLeft: 10, flex: 1 },
+    menuBtn: { padding: 4, marginLeft: 4 },
     name: { fontSize: 15, fontWeight: "800", color: colors.text },
     handle: { fontSize: 13, color: colors.textMuted, marginTop: 1 },
-    content: { fontSize: 16, lineHeight: 22, color: colors.text, marginBottom: 8 },
-    media: {
-      borderRadius: radii.md,
-      backgroundColor: colors.muted,
-      marginBottom: 8,
-      aspectRatio: 16 / 10,
-      alignSelf: "stretch",
-      overflow: "hidden",
+    content: { fontSize: 15, lineHeight: 21, color: colors.text, marginBottom: 10 },
+    actions: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: 4,
     },
-    mediaHit: {
-      ...StyleSheet.absoluteFill,
-      zIndex: 2,
-    },
-    countBadge: {
-      position: "absolute",
-      top: 8,
-      right: 8,
-      zIndex: 3,
-      backgroundColor: "rgba(0,0,0,0.55)",
-      borderRadius: 10,
-      paddingHorizontal: 7,
-      paddingVertical: 2,
-    },
-    countBadgeText: { color: "#fff", fontSize: 11, fontWeight: "800" },
-    actions: { flexDirection: "row", alignItems: "center", gap: 20, marginTop: 2 },
+    actionsLeft: { flexDirection: "row", alignItems: "center", gap: 18 },
+    actionsRight: { flexDirection: "row", alignItems: "center", gap: 10 },
     actionBtn: { flexDirection: "row", alignItems: "center", gap: 5 },
+    viewBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
+    starBtn: { paddingLeft: 2 },
     actionText: { fontSize: 13, color: colors.textMuted, fontWeight: "600" },
     liked: { color: colors.terracotta },
+    reposted: { color: colors.cobalt },
   });
 }

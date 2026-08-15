@@ -11,12 +11,12 @@ import {
   LogOut,
   PencilLine,
   Play,
-  Share2,
   Trash2,
   Trophy,
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ShareGlobeIcon } from "@/components/ui/share-globe-icon";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { SketchCanvas } from "@/components/sketch-quiz/sketch-canvas";
@@ -197,7 +197,7 @@ export function SketchQuizRoomClient({ roomId, mode }: SketchQuizRoomClientProps
             className="rounded-xl gap-1.5"
             onClick={copyInvite}
           >
-            {copied ? <Copy className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
+            {copied ? <Copy className="h-3.5 w-3.5" /> : <ShareGlobeIcon className="h-3.5 w-3.5" />}
             {copied ? "복사됨" : "초대 링크"}
           </Button>
           <Button

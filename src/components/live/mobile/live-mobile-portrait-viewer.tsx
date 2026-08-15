@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Check, ChevronDown, Eye, Mic2, Send, X } from "lucide-react";
+import { Check, ChevronDown, Eye, Mic2, X } from "lucide-react";
+import { ShareGlobeIcon } from "@/components/ui/share-globe-icon";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LiveViewerPlayer } from "@/components/live/live-viewer-player";
 import { LiveRoomFollowButton } from "@/components/live/live-room-follow-button";
@@ -32,6 +33,7 @@ export type LiveMobilePortraitViewerProps = {
   broadcastMode?: LiveBroadcastMode | null;
   isLiveOnAir?: boolean;
   recentTips?: LiveTipAlert[];
+  donationAlertsOnStream?: boolean;
 };
 
 /** 시청자 — 모바일 세로 인스타 라이브 UI (데스크탑과 분리) */
@@ -51,6 +53,7 @@ export function LiveMobilePortraitViewer({
   broadcastMode,
   isLiveOnAir,
   recentTips = [],
+  donationAlertsOnStream = false,
 }: LiveMobilePortraitViewerProps) {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
@@ -69,7 +72,7 @@ export function LiveMobilePortraitViewer({
           />
         </div>
 
-        <LiveDonationAlertOverlay tips={recentTips} />
+        {donationAlertsOnStream ? <LiveDonationAlertOverlay tips={recentTips} /> : null}
         <div className="absolute inset-0 z-[10] bg-gradient-to-b from-black/40 via-transparent to-black/60 pointer-events-none" />
 
         <header className="absolute top-0 left-0 right-0 z-20 flex items-center gap-2 px-3 pt-safe pb-2 pointer-events-auto">
@@ -161,7 +164,7 @@ export function LiveMobilePortraitViewer({
 
       <LiveOverlayLayer pointerEvents="none" className="z-[22]" />
 
-      <LiveDonationAlertOverlay tips={recentTips} />
+      {donationAlertsOnStream ? <LiveDonationAlertOverlay tips={recentTips} /> : null}
 
       <div className="absolute inset-0 z-[10] bg-gradient-to-b from-black/55 via-transparent to-black/70 pointer-events-none" />
 
@@ -203,7 +206,7 @@ export function LiveMobilePortraitViewer({
             className="h-9 w-9 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center"
             aria-label="공유"
           >
-            {copied ? <Check className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+            {copied ? <Check className="h-4 w-4" /> : <ShareGlobeIcon className="h-4 w-4" />}
           </button>
           <button
             type="button"

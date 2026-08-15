@@ -8,11 +8,11 @@ import {
   Maximize2,
   MessageSquare,
   Minimize2,
-  Share2,
   Star,
   Volume2,
   VolumeX,
 } from "lucide-react";
+import { ShareGlobeIcon } from "@/components/ui/share-globe-icon";
 import { cn, formatNumber } from "@/lib/utils";
 import { MotionPop } from "@/components/motion/motion-primitives";
 import type { ReelItem } from "@/lib/reels/types";
@@ -140,7 +140,6 @@ export function ReelsActions({
             )}
           />
         </MotionPop>
-        <span className="text-[11px] font-semibold drop-shadow">저장</span>
       </button>
 
       <button
@@ -149,8 +148,7 @@ export function ReelsActions({
         aria-label="Share"
         onClick={onShare}
       >
-        <Share2 className="h-7 w-7 drop-shadow-md" />
-        <span className="text-[11px] font-semibold drop-shadow">공유</span>
+        <ShareGlobeIcon className="h-7 w-7 drop-shadow-md" />
       </button>
 
       <button
@@ -180,9 +178,6 @@ export function ReelsActions({
           ) : (
             <Maximize2 className="h-7 w-7 drop-shadow-md" />
           )}
-          <span className="text-[11px] font-semibold drop-shadow">
-            {expanded ? "축소" : "확대"}
-          </span>
         </button>
       )}
     </div>

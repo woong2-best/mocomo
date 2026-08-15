@@ -9,7 +9,6 @@ import {
   Loader2,
   MoreHorizontal,
   Pencil,
-  Share2,
   Trash2,
   Upload,
   X,
@@ -22,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { deleteOwnPost } from "@/actions/post-delete";
+import { ShareGlobeIcon } from "@/components/ui/share-globe-icon";
 import { notifyPostDeleted } from "@/lib/post-deleted-sync";
 import { postUrl } from "@/lib/post-share";
 import { COMMUNITY_FEED_PATH, DEFAULT_LANDING_PATH } from "@/lib/site-routes";
@@ -260,7 +260,7 @@ export function PublishedToastPill({
               {avatars.map((a, i) => (
                 <span
                   key={`${a.name ?? "a"}-${i}`}
-                  className="relative -ml-2 first:ml-0 h-9 w-9 overflow-hidden rounded-full ring-2 ring-[#1D9BF0] sm:ring-folk-cobalt"
+                  className="relative -ml-2 first:ml-0 h-9 w-9 overflow-hidden rounded-[28%] ring-2 ring-[#1D9BF0] sm:ring-folk-cobalt"
                   style={{ zIndex: avatars.length - i }}
                 >
                   {a.image ? (
@@ -336,7 +336,7 @@ export function PublishedToastPill({
                   {t("toast.copyLink")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => void sharePost()}>
-                  <Share2 className="h-4 w-4" />
+                  <ShareGlobeIcon className="h-4 w-4" />
                   {t("toast.share")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -369,7 +369,7 @@ export function PublishedToastPill({
             <ActionRow icon={Link2} label={t("feed.displayMode.openPost")} onClick={viewPostDetail} />
             <ActionRow icon={Pencil} label={t("toast.edit")} onClick={editPost} />
             <ActionRow icon={Copy} label={t("toast.copyLink")} onClick={() => void copyLink()} />
-            <ActionRow icon={Share2} label={t("toast.share")} onClick={() => void sharePost()} />
+            <ActionRow icon={ShareGlobeIcon} label={t("toast.share")} onClick={() => void sharePost()} />
             <ActionRow
               icon={Trash2}
               label={t("toast.delete")}
@@ -438,7 +438,7 @@ function ActionRow({
   onClick,
   danger,
 }: {
-  icon: typeof Eye;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   onClick: () => void;
   danger?: boolean;
