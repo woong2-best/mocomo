@@ -219,6 +219,8 @@ model User {
   /** Stripe Connect — 정산용 (추후 onboarding) */
   stripeConnectAccountId String?
   stripeConnectOnboardedAt DateTime?
+  /** Stripe Customer — 저장된 결제 카드 (지갑 탭) */
+  stripeCustomerId String? @unique
   /** 회원 탈퇴 요청 시각 (50일 복구 기간) */
   deletedAt           DateTime?
   /** 영구 삭제 예정 시각 — 탈퇴 다음날부터 50일 */

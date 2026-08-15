@@ -58,6 +58,8 @@ export const MobileApi = {
   animeSlug: (slug: string) => `/api/mobile/anime/${encodeURIComponent(slug)}`,
   wallet: "/api/mobile/wallet",
   walletEarnings: "/api/mobile/wallet/earnings",
+  paymentMethods: "/api/mobile/payment-methods",
+  paymentMethodsConfirm: "/api/mobile/payment-methods/confirm",
   checkout: "/api/mobile/checkout",
   checkoutConfirm: "/api/mobile/checkout/confirm",
   callBookings: "/api/mobile/call-bookings",

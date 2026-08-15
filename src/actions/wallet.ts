@@ -51,7 +51,31 @@ export async function requestPayout(amount: number) {
 
   try {
     const bank = await db.bankAccount.findUnique({ where: { userId: user.id } });
-    if (!bank) return { error: "출금 계좌를 먼저 등록해 주세요." };
+    const verified = await db.user.findUnique({
+      where: { id: user.id },
+      select: {
+        bankVerifiedAt: true,
+        settlementBankCode: true,
+        settlementAccountLast4: true,
+        settlementAccountHolder: true,
+        name: true,
+      },
+    });
+
+    let payoutBank = bank;
+    if (!payoutBank && verified?.bankVerifiedAt && verified.settlementBankCode) {
+      const { apickBankLabel } = await import("@/lib/apick/bank-codes");
+      payoutBank = {
+        id: "verified",
+        userId: user.id,
+        bankName: apickBankLabel(verified.settlementBankCode) ?? verified.settlementBankCode,
+        accountNumber: verified.settlementAccountLast4 ?? "",
+        holderName: verified.settlementAccountHolder ?? verified.name ?? "",
+        createdAt: verified.bankVerifiedAt!,
+        updatedAt: verified.bankVerifiedAt!,
+      };
+    }
+    if (!payoutBank) return { error: "출금 계좌를 먼저 등록해 주세요." };
 
     const wallet = await db.wallet.findUnique({ where: { userId: user.id } });
     const available = wallet?.availableBalance ?? 0;
@@ -73,9 +97,9 @@ export async function requestPayout(amount: number) {
         data: {
           userId: user.id,
           amount,
-          bankName: bank.bankName,
-          accountNumber: bank.accountNumber,
-          holderName: bank.holderName,
+          bankName: payoutBank.bankName,
+          accountNumber: payoutBank.accountNumber,
+          holderName: payoutBank.holderName,
         },
       });
       await tx.ledgerEntry.create({

@@ -15,8 +15,11 @@ import { Send, Inbox, Gem, Banknote } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { SupportTierLevel } from "@prisma/client";
+import { getMyPaymentMethods } from "@/actions/payment-methods";
 import { getMyWallet, getMyWalletEarnings } from "@/actions/wallet";
 import { WalletHub } from "@/components/wallet/wallet-hub";
+import { apickBankLabel } from "@/lib/apick/bank-codes";
+import { db } from "@/lib/db";
 
 const VALID_TABS = ["sent", "received", "settlement", "tiers"] as const;
 
@@ -35,11 +38,22 @@ export default async function SupportPage({
     ? (params.tab as SupportTab)
     : "sent";
 
-  const [dashboard, rankingEntries, walletData, walletEarnings] = await Promise.all([
+  const [dashboard, rankingEntries, walletData, walletEarnings, paymentData, bankUser] = await Promise.all([
     getSupportDashboard(),
     getSupportRankingWithAvatars(20),
     getMyWallet(),
     getMyWalletEarnings(),
+    getMyPaymentMethods(),
+    db.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        name: true,
+        emailVerified: true,
+        bankVerifiedAt: true,
+        settlementBankCode: true,
+        settlementAccountLast4: true,
+      },
+    }),
   ]);
   if (!dashboard) {
     redirect("/auth/signin");
@@ -89,7 +103,19 @@ export default async function SupportPage({
 
       {tab === "settlement" && (
         <div className="space-y-4">
-          <WalletHub data={walletData} earnings={walletEarnings} />
+          <WalletHub
+            data={walletData}
+            earnings={walletEarnings}
+            paymentMethods={paymentData.methods}
+            bankVerified={!!bankUser?.bankVerifiedAt}
+            verifiedBankLabel={
+              bankUser?.bankVerifiedAt && bankUser.settlementBankCode && bankUser.settlementAccountLast4
+                ? `${apickBankLabel(bankUser.settlementBankCode)} ****${bankUser.settlementAccountLast4}`
+                : null
+            }
+            legalName={bankUser?.name}
+            emailVerified={!!bankUser?.emailVerified}
+          />
         </div>
       )}
 

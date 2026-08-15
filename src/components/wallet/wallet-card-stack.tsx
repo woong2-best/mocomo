@@ -64,7 +64,7 @@ export function WalletCardStack({
               CREATOR
             </span>
           </div>
-          <p className="text-xs text-white/75 truncate">{bankLabel ?? "출금 계좌 미등록 · 아래에서 등록"}</p>
+          <p className="text-xs text-white/75 truncate">{bankLabel ?? "출금 계좌 미등록 · 수익 탭에서 1원 인증"}</p>
         </div>
       </div>
     </div>

@@ -47,6 +47,8 @@ function revalidateBankPaths() {
   revalidatePath("/used/my");
   revalidatePath("/used/verify");
   revalidatePath("/market/seller/register");
+  revalidatePath("/wallet");
+  revalidatePath("/support");
 }
 
 export async function getBankVerificationStatus() {
