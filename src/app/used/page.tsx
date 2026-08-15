@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Package } from "lucide-react";
 import { getUsedListings, isUsedDbReady } from "@/actions/used-market";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { DbSetupBanner } from "@/components/ui/db-setup-banner";
 import { UsedListingGrid } from "@/components/used/used-listing-grid";
 import { UsedSearchHeader } from "@/components/used/used-search-header";
@@ -25,7 +27,7 @@ async function UsedFeed({
 }) {
   const { q, category, region, sido, mode, work, product } = await searchParams;
 
-  const [dbReady, listings] = await Promise.all([
+  const [dbReady, listings, session] = await Promise.all([
     isUsedDbReady(),
     getUsedListings({
       q,
@@ -37,7 +39,16 @@ async function UsedFeed({
       status: "SELLING",
       liveAuctionOnly: mode === "auction",
     }),
+    auth(),
   ]);
+
+  const viewerPrefs = session?.user?.id
+    ? await db.user.findUnique({
+        where: { id: session.user.id },
+        select: { showNsfw: true },
+      })
+    : null;
+  const viewerShowNsfw = viewerPrefs?.showNsfw ?? false;
 
   if (!dbReady) {
     return <DbSetupBanner title="중고거래를 일시적으로 불러올 수 없습니다" />;
@@ -63,7 +74,11 @@ async function UsedFeed({
 
   return (
     <PageSection title="상품 목록" description={`${listings.length}개`}>
-      <UsedListingGrid listings={listings} />
+      <UsedListingGrid
+        listings={listings}
+        viewerUserId={session?.user?.id ?? null}
+        viewerShowNsfw={viewerShowNsfw}
+      />
     </PageSection>
   );
 }

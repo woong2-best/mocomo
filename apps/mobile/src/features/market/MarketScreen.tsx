@@ -16,13 +16,16 @@ import { useQuery } from "@tanstack/react-query";
 import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { fetchCommerceMarketList, fetchMarketSellAccess } from "@/api/commerce-market";
+import { fetchCommerceMarketList } from "@/api/commerce-market";
 import type { StarMarketListItem } from "@/api/star-market";
+import { useAuth } from "@/auth/AuthContext";
 import { MarketHeroShowcase } from "@/features/market/MarketHeroShowcase";
 import { MarketServiceStrip } from "@/features/market/MarketServiceStrip";
+import { promptMarketSellerWebFlow } from "@/lib/open-market-seller-web";
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import { FolkButton } from "@/ui/FolkButton";
 import { Screen } from "@/ui/Screen";
+import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import {
   MARKET_BRAND_FULL,
@@ -54,6 +57,7 @@ export function MarketScreen() {
   const { width } = useWindowDimensions();
   const route = useRoute();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { status, openWebAuth, user } = useAuth();
   const isTab = route.name === "Market";
   const bottomPad = isTab ? floatingTabClearance(insets.bottom) : insets.bottom + 32;
 
@@ -95,34 +99,27 @@ export function MarketScreen() {
     [navigation]
   );
 
-  async function onSellRegister() {
-    try {
-      const gate = await fetchMarketSellAccess();
-      if (gate.allowed) {
-        navigation.navigate("MarketSellItem");
-      } else if (gate.redirectTo === "register") {
-        navigation.navigate("SellerRegister");
-      } else {
-        navigation.navigate("SellerListings");
-      }
-    } catch {
-      navigation.navigate("SellerRegister");
-    }
-  }
+  const onSellRegister = useCallback(() => {
+    promptMarketSellerWebFlow(navigation, openWebAuth, status === "signedIn");
+  }, [navigation, openWebAuth, status]);
 
   const renderItem = useCallback(
-    ({ item }: { item: StarMarketListItem }) => (
+    ({ item }: { item: StarMarketListItem }) => {
+      const nsfwGate = !!item.isNsfw && item.sellerId !== user?.id;
+      return (
       <Pressable style={[styles.card, { width: cardW }]} onPress={() => onOpen(item)}>
-        {item.coverUrl ? (
-          <Image
-            source={{ uri: item.coverUrl }}
-            style={styles.cover}
-            cachePolicy={IMAGE_CACHE_POLICY}
-            transition={0}
-          />
-        ) : (
-          <View style={[styles.cover, styles.coverFallback]} />
-        )}
+        <SensitiveContentGate enabled={nsfwGate} style={styles.cover}>
+          {item.coverUrl ? (
+            <Image
+              source={{ uri: item.coverUrl }}
+              style={StyleSheet.absoluteFill}
+              cachePolicy={IMAGE_CACHE_POLICY}
+              transition={0}
+            />
+          ) : (
+            <View style={[StyleSheet.absoluteFill, styles.coverFallback]} />
+          )}
+        </SensitiveContentGate>
         <Text style={styles.badge}>{typeBadge(item.type)}</Text>
         <Text style={styles.title} numberOfLines={2}>
           {item.title}
@@ -134,8 +131,9 @@ export function MarketScreen() {
           </Text>
         ) : null}
       </Pressable>
-    ),
-    [cardW, onOpen, styles]
+      );
+    },
+    [cardW, onOpen, styles, user?.id]
   );
 
   const listHeader = (
@@ -145,7 +143,7 @@ export function MarketScreen() {
           <Text style={styles.brandEyebrow}>{MARKET_BRAND_FULL}</Text>
           <Text style={styles.brandTitle}>{MARKET_BRAND_NAME}</Text>
         </View>
-        <Pressable style={styles.sellBtn} onPress={() => void onSellRegister()}>
+        <Pressable style={styles.sellBtn} onPress={onSellRegister}>
           <Text style={styles.sellBtnText}>판매 등록</Text>
         </Pressable>
       </View>
@@ -180,10 +178,10 @@ export function MarketScreen() {
         </Pressable>
       </View>
 
-      <MarketServiceStrip navigation={navigation} onFilter={setFilter} />
+      <MarketServiceStrip navigation={navigation} onFilter={setFilter} onSellRegister={onSellRegister} />
 
       {showHero ? (
-        <MarketHeroShowcase navigation={navigation} onFilter={setFilter} />
+        <MarketHeroShowcase onFilter={setFilter} onSellRegister={onSellRegister} />
       ) : null}
 
       <ScrollView

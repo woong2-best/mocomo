@@ -47,6 +47,8 @@ export async function GET(req: NextRequest) {
         productionDays: row.productionDays,
         favoriteCount: row.favoriteCount,
         salesCount: row.salesCount,
+        isNsfw: row.isNsfw,
+        sellerId: row.sellerId,
         createdAt: row.createdAt.toISOString(),
         seller: row.seller
           ? {

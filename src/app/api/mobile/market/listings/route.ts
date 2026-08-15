@@ -14,6 +14,7 @@ const bodySchema = z.object({
   productionDays: z.coerce.number().int().min(1).optional(),
   coverUrl: z.string().max(2000).optional(),
   shipToCountries: z.array(z.string().length(2)).optional(),
+  isNsfw: z.boolean().optional(),
 });
 
 export async function POST(req: NextRequest) {

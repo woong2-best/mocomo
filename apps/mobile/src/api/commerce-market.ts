@@ -157,6 +157,7 @@ export async function createCommerceListing(body: {
   productionDays?: number;
   coverUrl?: string;
   shipToCountries?: string[];
+  isNsfw?: boolean;
 }) {
   return apiRequest<{ listingId: string; success?: boolean; typeLabel?: string }>(MobileApi.marketListings, {
     method: "POST",

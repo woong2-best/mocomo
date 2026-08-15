@@ -52,6 +52,7 @@ export function UsedPostForm({
   const [meetPlace, setMeetPlace] = useState("");
   const [meetCoords, setMeetCoords] = useState<MeetCoords | null>(null);
   const [restrictedKind, setRestrictedKind] = useState<UsedRestrictedKind>("NONE");
+  const [isNsfw, setIsNsfw] = useState(false);
   const [saleType, setSaleType] = useState<"FIXED" | "AUCTION">("FIXED");
   const [auctionHours, setAuctionHours] = useState(24);
   const [bidIncrement, setBidIncrement] = useState(DEFAULT_BID_INCREMENT);
@@ -127,6 +128,7 @@ export function UsedPostForm({
       workTitle: workTitle.trim() || undefined,
       productType: productType || undefined,
       restrictedKind,
+      isNsfw,
       saleType,
       ...(saleType === "AUCTION"
         ? {
@@ -367,6 +369,22 @@ export function UsedPostForm({
           </option>
         ))}
       </select>
+
+      <label className="flex items-start gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5 text-sm">
+        <input
+          type="checkbox"
+          checked={isNsfw}
+          onChange={(e) => setIsNsfw(e.target.checked)}
+          className="mt-0.5"
+          disabled={loading}
+        />
+        <span>
+          <span className="font-semibold">민감한 콘텐츠 (NSFW)</span>
+          <span className="mt-0.5 block text-xs text-muted-foreground">
+            성인·폭력 등 민감한 이미지가 포함되면 켜 주세요. 구매자에게 경고 후 보기로 표시됩니다.
+          </span>
+        </span>
+      </label>
 
       <UsedRegionSelect
         value={region}

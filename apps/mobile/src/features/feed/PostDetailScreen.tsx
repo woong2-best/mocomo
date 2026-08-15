@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { Image } from "expo-image";
@@ -17,14 +18,17 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { togglePostLike } from "@/api/feed";
 import {
   createPostComment,
-  fetchPostComments,
   fetchPostDetail,
   togglePostStar,
-  type CommentItem,
 } from "@/api/social";
+import { parsePostComments, postCommentsQueryOptions } from "@/api/post-comments-query";
+import { useAuth } from "@/auth/AuthContext";
+import { FeedPostMediaCarousel } from "@/features/feed/FeedPostMediaCarousel";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
+import { LinkifiedText } from "@/ui/LinkifiedText";
 import { Screen } from "@/ui/Screen";
+import { PerformanceBudgets } from "@/perf/budgets";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, shadows, spacing, type ThemeColors } from "@/theme/tokens";
@@ -33,6 +37,8 @@ import type { RootStackParamList } from "@/navigation/types";
 export function PostDetailScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
+  const { width: windowWidth } = useWindowDimensions();
+  const { user } = useAuth();
 
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "PostDetail">>();
@@ -45,21 +51,10 @@ export function PostDetailScreen() {
   });
 
   const commentsQuery = useQuery({
-    queryKey: ["mobile-post-comments", route.params.id],
-    queryFn: () => fetchPostComments(route.params.id),
+    ...postCommentsQueryOptions(route.params.id),
   });
 
-  const comments = useMemo(() => {
-    const raw = commentsQuery.data;
-    const list = (raw?.items ?? raw?.comments ?? []) as CommentItem[];
-    return list.map((c) => ({
-      ...c,
-      createdAt:
-        typeof c.createdAt === "string"
-          ? c.createdAt
-          : new Date(c.createdAt as unknown as string).toISOString(),
-    }));
-  }, [commentsQuery.data]);
+  const comments = useMemo(() => parsePostComments(commentsQuery.data), [commentsQuery.data]);
 
   const likeMut = useMutation({
     mutationFn: () => togglePostLike(route.params.id),
@@ -86,7 +81,11 @@ export function PostDetailScreen() {
   });
 
   const post = postQuery.data?.post;
-  const firstImage = post?.media?.find((m) => m.type === "IMAGE" && m.url);
+  const mediaLayout = Math.min(
+    windowWidth - spacing.md * 2,
+    PerformanceBudgets.feedMediaLayoutMax
+  );
+  const isOwner = user?.id === post?.author.id;
 
   return (
     <Screen>
@@ -127,13 +126,15 @@ export function PostDetailScreen() {
                   </View>
                 </Pressable>
                 {post.title ? <Text style={styles.title}>{post.title}</Text> : null}
-                {post.content ? <Text style={styles.content}>{post.content}</Text> : null}
-                {firstImage ? (
-                  <Image
-                    source={{ uri: firstImage.url }}
-                    style={styles.media}
-                    contentFit="cover"
-                    cachePolicy={IMAGE_CACHE_POLICY}
+                {post.content ? (
+                  <LinkifiedText text={post.content} style={styles.content} />
+                ) : null}
+                {post.media && post.media.length > 0 ? (
+                  <FeedPostMediaCarousel
+                    post={post}
+                    layoutWidth={mediaLayout}
+                    previewActive
+                    isOwner={isOwner}
                   />
                 ) : null}
                 <View style={styles.actions}>
@@ -162,7 +163,7 @@ export function PostDetailScreen() {
             renderItem={({ item }) => (
               <View style={styles.comment}>
                 <Text style={styles.commentAuthor}>@{item.author.username}</Text>
-                <Text style={styles.commentBody}>{item.content}</Text>
+                <LinkifiedText text={item.content} style={styles.commentBody} />
               </View>
             )}
           />

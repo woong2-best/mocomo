@@ -24,6 +24,9 @@ import type { RootStackParamList } from "@/navigation/types";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { spacing } from "@/theme/tokens";
 import { FolkAvatar } from "@/ui/FolkAvatar";
+import { LinkifiedText } from "@/ui/LinkifiedText";
+import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
+import { useAuth } from "@/auth/AuthContext";
 
 /** Instagram Reels-style edge hold width — narrow so center taps / right rail stay safe. */
 const EDGE_HOLD_WIDTH = 52;
@@ -168,6 +171,7 @@ function FeedVideoPostSlideInner({
   onFastForwardChange,
 }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { user } = useAuth();
   const listRef = useRef<FlatList<ReelItem>>(null);
   const [videoIndex, setVideoIndex] = useState(
     Math.min(Math.max(initialVideoIndex, 0), Math.max(group.videos.length - 1, 0))
@@ -315,13 +319,18 @@ function FeedVideoPostSlideInner({
           const isCurrent = active && index === videoIndex;
           return (
             <View style={{ width, height }}>
-              <VideoCell
-                item={item}
-                active={isCurrent}
-                muted={muted}
-                pausedByUser={pausedByUser}
-                fastForward={isCurrent && fastForward}
-              />
+              <SensitiveContentGate
+                enabled={!!item.isNsfw && user?.id !== item.author.id}
+                style={{ flex: 1 }}
+              >
+                <VideoCell
+                  item={item}
+                  active={isCurrent}
+                  muted={muted}
+                  pausedByUser={pausedByUser}
+                  fastForward={isCurrent && fastForward}
+                />
+              </SensitiveContentGate>
               {isCurrent && !chromeHidden ? (
                 <>
                   <Pressable
@@ -429,12 +438,15 @@ function FeedVideoPostSlideInner({
 
       {/* Bottom meta */}
       {!chromeHidden ? (
-        <View style={styles.meta} pointerEvents="none">
+        <View style={styles.meta} pointerEvents="box-none">
         <Text style={styles.user}>@{current.author.username}</Text>
         {current.content ? (
-          <Text style={styles.caption} numberOfLines={2}>
-            {current.content}
-          </Text>
+          <LinkifiedText
+            text={current.content}
+            style={styles.caption}
+            numberOfLines={2}
+            lightLinks
+          />
         ) : null}
         {group.videos.length > 1 ? (
           <Text style={styles.index}>

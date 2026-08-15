@@ -2250,6 +2250,7 @@ model UsedListing {
   /** ISO-3166 alpha-2 — map engine is derived from this (never stored as provider id) */
   meetCountry String?             @db.VarChar(2)
   images      Json
+  isNsfw      Boolean             @default(false)
   viewCount   Int                 @default(0)
   /** 경매 종료 시각 (saleType=AUCTION) */
   auctionEndsAt    DateTime?
@@ -5412,6 +5413,7 @@ model MarketplaceListing {
   viewCount          Int                        @default(0)
   favoriteCount      Int                        @default(0)
   salesCount         Int                        @default(0)
+  isNsfw             Boolean                    @default(false)
   publishedAt        DateTime?
   createdAt          DateTime                   @default(now())
   updatedAt          DateTime                   @updatedAt

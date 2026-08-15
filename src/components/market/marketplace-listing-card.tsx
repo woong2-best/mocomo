@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ClipboardList } from "lucide-react";
 import { listingTypeLabel } from "@/lib/marketplace/constants";
+import { MarketplaceListingThumb } from "@/components/market/marketplace-listing-thumb";
 import type { MarketplaceListingType } from "@prisma/client";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +16,8 @@ export type MarketplaceListingCardData = {
   productionDays: number | null;
   favoriteCount: number;
   salesCount: number;
+  isNsfw?: boolean;
+  sellerId?: string;
   seller: { username: string; image: string | null };
   sellerProfile: { displayName: string; ratingAvg: number; salesCount: number } | null;
 };
@@ -46,10 +49,19 @@ function formatPrice(amount: number, currency: string) {
   return currency === "krw" ? `${n}원` : `${n} ${currency.toUpperCase()}`;
 }
 
-export function MarketplaceListingCard({ item }: { item: MarketplaceListingCardData }) {
+export function MarketplaceListingCard({
+  item,
+  viewerUserId = null,
+  viewerShowNsfw = false,
+}: {
+  item: MarketplaceListingCardData;
+  viewerUserId?: string | null;
+  viewerShowNsfw?: boolean;
+}) {
   const sellerName = item.sellerProfile?.displayName ?? `@${item.seller.username}`;
   const badge = TYPE_BADGE[item.type] ?? TYPE_BADGE.PHYSICAL;
   const typePrefix = listingTypeLabel(item.type);
+  const isOwner = !!viewerUserId && viewerUserId === item.sellerId;
 
   return (
     <Link
@@ -59,18 +71,12 @@ export function MarketplaceListingCard({ item }: { item: MarketplaceListingCardD
     >
       <article className="space-y-2">
         <div className="relative aspect-square overflow-hidden rounded-xl bg-muted/50 ring-1 ring-folk-cobalt/10">
-          {item.coverUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={item.coverUrl}
-              alt=""
-              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-folk-cream to-muted/60">
-              <span className="text-[11px] font-medium text-muted-foreground/70">No image</span>
-            </div>
-          )}
+          <MarketplaceListingThumb
+            coverUrl={item.coverUrl}
+            isNsfw={item.isNsfw}
+            isOwner={isOwner}
+            viewerShowNsfw={viewerShowNsfw}
+          />
           {item.productionDays ? (
             <span className="absolute bottom-2 left-2 rounded-md bg-background/90 px-1.5 py-0.5 text-[10px] font-bold text-foreground backdrop-blur-sm border border-border/60">
               제작 {item.productionDays}일

@@ -6,7 +6,7 @@ import { Heart, MessageSquare, ArrowBigUp } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
 import { TranslatableText } from "@/components/ui/translatable-text";
 import { PostShareMenu } from "@/components/post/post-share-menu";
-import { PaidPostMediaGrid } from "@/components/profile/paid-post-media-grid";
+import { FeedPostMediaCarousel } from "@/components/feed/feed-post-media-carousel";
 import type { ProfilePostMediaItem } from "@/components/profile/paid-post-media-grid";
 import { PostCollaboratorsHeader } from "@/components/post/post-collaborators-header";
 import type { SupportTierLevel } from "@prisma/client";
@@ -85,13 +85,13 @@ export function PostCard({ post }: PostCardProps) {
           />
         </div>
         {post.media && post.media.length > 0 && (
-          <PaidPostMediaGrid
+          <FeedPostMediaCarousel
             media={post.media as ProfilePostMediaItem[]}
             postId={post.id}
             authorUsername={post.author.username}
             authorId={post.author.id}
             paymentsEnabled={false}
-            mediaTotal={post._count?.media ?? post.media.length}
+            isNsfw={post.isNsfw}
           />
         )}
         <div className="flex items-center gap-6 text-muted-foreground text-sm">

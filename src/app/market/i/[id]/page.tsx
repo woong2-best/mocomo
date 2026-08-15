@@ -7,7 +7,9 @@ import { MarketplaceBuyPanel } from "@/components/market/marketplace-buy-panel";
 import { MarketplaceReportButton } from "@/components/market/marketplace-report-button";
 import { Button } from "@/components/ui/button";
 import { isPaymentsConfigured } from "@/lib/payments";
+import { MarketplaceListingMedia } from "@/components/market/marketplace-listing-media";
 import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -25,35 +27,25 @@ export default async function MarketplaceListingPage({
     ? (listing.options as { name?: string; values?: string[] }[])
     : [];
   const isOwner = session?.user?.id === listing.sellerId;
+  const viewerPrefs = session?.user?.id
+    ? await db.user.findUnique({
+        where: { id: session.user.id },
+        select: { showNsfw: true },
+      })
+    : null;
+  const viewerShowNsfw = viewerPrefs?.showNsfw ?? false;
+  const mediaUrls = listing.media.map((m) => m.url).filter(Boolean);
 
   return (
     <>
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="space-y-2">
-          <div className="aspect-square overflow-hidden rounded-2xl bg-muted/40">
-            {listing.coverUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={listing.coverUrl} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                이미지 없음
-              </div>
-            )}
-          </div>
-          {listing.media.length > 1 && (
-            <div className="grid grid-cols-4 gap-2">
-              {listing.media.slice(0, 8).map((m) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={m.id}
-                  src={m.url}
-                  alt=""
-                  className="aspect-square rounded-lg object-cover"
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        <MarketplaceListingMedia
+          coverUrl={listing.coverUrl}
+          mediaUrls={mediaUrls}
+          isNsfw={listing.isNsfw}
+          isOwner={isOwner}
+          viewerShowNsfw={viewerShowNsfw}
+        />
 
         <div className="space-y-4">
           <div>

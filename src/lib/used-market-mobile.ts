@@ -61,6 +61,7 @@ export async function createMobileUsedListing(
     restrictedKind?: UsedRestrictedKind | string;
     workTitle?: string;
     productType?: string;
+    isNsfw?: boolean;
   }
 ) {
   const user = await loadUsedMarketUser(userId);
@@ -151,6 +152,7 @@ export async function createMobileUsedListing(
         meetLng: meetLng ?? null,
         meetCountry,
         images: data.images as Prisma.InputJsonValue,
+        isNsfw: !!data.isNsfw,
         saleType: isAuction ? "AUCTION" : "FIXED",
         ...(isAuction
           ? {

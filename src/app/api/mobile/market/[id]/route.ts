@@ -3,6 +3,7 @@ import { rateLimitPublicApi } from "@/lib/api-security";
 import { getMobileUserId } from "@/lib/api-mobile-auth";
 import { getMarketplaceListing } from "@/actions/marketplace";
 import { listingTypeLabel } from "@/lib/marketplace/constants";
+import { isPaymentsConfigured } from "@/lib/payments";
 
 export async function GET(
   req: NextRequest,
@@ -54,8 +55,15 @@ export async function GET(
           }
         : null,
       isOwner: viewerId ? listing.sellerId === viewerId : false,
+      paymentsEnabled: isPaymentsConfigured(),
+      shipToCountries: listing.shipToCountries ?? [],
+      shipsWorldwide: listing.shipsWorldwide ?? false,
+      shippingFeeType: listing.shippingFeeType,
+      shippingFeeFixed: listing.shippingFeeFixed,
       createdAt: listing.createdAt.toISOString(),
       publishedAt: listing.publishedAt?.toISOString() ?? null,
+      isNsfw: listing.isNsfw,
+      sellerId: listing.sellerId,
     },
   });
 }

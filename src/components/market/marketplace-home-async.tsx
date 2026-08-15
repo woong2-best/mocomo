@@ -6,6 +6,8 @@ import { MarketHeroShowcase } from "@/components/market/market-hero-showcase";
 import { MarketCategoryRail } from "@/components/market/market-category-rail";
 import { MarketplaceListingGrid } from "@/components/market/marketplace-listing-grid";
 import { listMarketplaceListings } from "@/actions/marketplace";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { MARKETPLACE_BROWSE_LISTING_TYPES } from "@/lib/marketplace/constants";
 import { MARKET_BRAND_FULL, MARKET_BRAND_NAME } from "@/lib/market-brand";
 import type { MarketplaceListingType } from "@prisma/client";
@@ -24,12 +26,23 @@ export async function MarketplaceHomeAsync({
       ? (type as MarketplaceListingType)
       : undefined;
 
-  const { items } = await listMarketplaceListings({
-    type: listingType ?? "ALL",
-    q,
-    category: category?.trim() || undefined,
-    take: 48,
-  }).catch(() => ({ items: [], nextCursor: null }));
+  const [session, { items }] = await Promise.all([
+    auth(),
+    listMarketplaceListings({
+      type: listingType ?? "ALL",
+      q,
+      category: category?.trim() || undefined,
+      take: 48,
+    }).catch(() => ({ items: [], nextCursor: null })),
+  ]);
+
+  const viewerPrefs = session?.user?.id
+    ? await db.user.findUnique({
+        where: { id: session.user.id },
+        select: { showNsfw: true },
+      })
+    : null;
+  const viewerShowNsfw = viewerPrefs?.showNsfw ?? false;
 
   const sectionTitle = listingType
     ? listingTypeLabelSafe(listingType)
@@ -98,19 +111,12 @@ export async function MarketplaceHomeAsync({
           )}
         </div>
 
-        <MarketplaceListingGrid items={items} dense />
-      </section>
-
-      <section className="rounded-2xl border border-folk-cobalt/15 bg-gradient-to-br from-folk-cream/80 to-background px-4 py-4 sm:px-5 text-xs text-muted-foreground space-y-1.5">
-        <p className="font-bold text-sm text-foreground">판매자 안내</p>
-        <p>
-          한국: 이메일 + SMS + KYC · 해외: 이메일 → Stripe Connect → 신분증 → 은행계좌 순으로
-          온보딩합니다.
-        </p>
-        <p>
-          Stripe Connect 정산 · 주문/배송 추적 · 환불·분쟁이 {MARKET_BRAND_NAME}에
-          통합됩니다. 수익·출금은 지갑에서 확인하세요.
-        </p>
+        <MarketplaceListingGrid
+          items={items}
+          dense
+          viewerUserId={session?.user?.id ?? null}
+          viewerShowNsfw={viewerShowNsfw}
+        />
       </section>
     </div>
   );

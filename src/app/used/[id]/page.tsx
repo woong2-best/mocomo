@@ -5,6 +5,7 @@ import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-
 import { notFound } from "next/navigation";
 
 import { auth, isSiteOperator } from "@/lib/auth";
+import { db } from "@/lib/db";
 
 import { getUsedListing } from "@/actions/used-market";
 
@@ -97,6 +98,14 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
   const isSeller = session?.user?.id === listing.sellerId;
 
+  const viewerPrefs = session?.user?.id
+    ? await db.user.findUnique({
+        where: { id: session.user.id },
+        select: { showNsfw: true },
+      })
+    : null;
+  const viewerShowNsfw = viewerPrefs?.showNsfw ?? false;
+
   const isStaff =
 
     !!session?.user?.username &&
@@ -153,7 +162,13 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
 
 
-      <UsedImageGallery images={imgs} statusBadge={statusBadge} />
+      <UsedImageGallery
+        images={imgs}
+        statusBadge={statusBadge}
+        isNsfw={listing.isNsfw}
+        isOwner={isSeller}
+        viewerShowNsfw={viewerShowNsfw}
+      />
 
 
 

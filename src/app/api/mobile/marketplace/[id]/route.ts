@@ -151,6 +151,7 @@ export async function GET(
           }
         : null,
       isOwner: viewerId ? listing.sellerId === viewerId : false,
+      isNsfw: listing.isNsfw,
     },
   });
 }

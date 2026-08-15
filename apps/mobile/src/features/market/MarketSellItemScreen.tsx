@@ -4,6 +4,7 @@ import {
   Alert,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -12,6 +13,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { createCommerceListing, fetchMarketSellAccess } from "@/api/commerce-market";
+import { openMarketSellerWebFlow } from "@/lib/open-market-seller-web";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
 import { Screen } from "@/ui/Screen";
@@ -39,6 +41,7 @@ export function MarketSellItemScreen() {
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("1");
   const [productionDays, setProductionDays] = useState("7");
+  const [isNsfw, setIsNsfw] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -48,14 +51,16 @@ export function MarketSellItemScreen() {
         const gate = await fetchMarketSellAccess();
         if (!gate.allowed) {
           if (gate.redirectTo === "register") {
-            navigation.replace("SellerRegister");
+            await openMarketSellerWebFlow(navigation);
+            if (navigation.canGoBack()) navigation.goBack();
           } else {
             navigation.replace("SellerListings");
           }
           return;
         }
       } catch {
-        navigation.replace("SellerRegister");
+        await openMarketSellerWebFlow(navigation);
+        if (navigation.canGoBack()) navigation.goBack();
         return;
       } finally {
         setGateLoading(false);
@@ -81,6 +86,7 @@ export function MarketSellItemScreen() {
         stock: type === "PHYSICAL" || type === "PREORDER" ? parseInt(stock, 10) || 1 : undefined,
         productionDays:
           type === "CUSTOM_ORDER" ? parseInt(productionDays, 10) || 7 : undefined,
+        isNsfw,
       });
       Alert.alert("등록 완료", "상품이 등록되었습니다.", [
         {
@@ -173,6 +179,19 @@ export function MarketSellItemScreen() {
           </>
         )}
 
+        <View style={styles.nsfwRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.nsfwLabel}>NSFW</Text>
+            <Text style={styles.nsfwHint}>민감한 콘텐츠가 포함되면 켜 주세요</Text>
+          </View>
+          <Switch
+            value={isNsfw}
+            onValueChange={setIsNsfw}
+            disabled={busy}
+            trackColor={{ true: "#c80000" }}
+          />
+        </View>
+
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <FolkButton
@@ -206,5 +225,13 @@ function createStyles(colors: ThemeColors) {
     multiline: { minHeight: 120 },
     error: { color: colors.danger, fontWeight: "600" },
     hint: { fontSize: 12, color: colors.textMuted, lineHeight: 18 },
+    nsfwRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingVertical: 4,
+    },
+    nsfwLabel: { fontWeight: "800", color: colors.text, fontSize: 14 },
+    nsfwHint: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
   });
 }

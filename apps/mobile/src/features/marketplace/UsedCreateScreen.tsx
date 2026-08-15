@@ -7,6 +7,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -63,6 +64,7 @@ export function UsedCreateScreen() {
   const [localUri, setLocalUri] = useState<string | null>(null);
   const [mime, setMime] = useState("image/jpeg");
   const [filename, setFilename] = useState("photo.jpg");
+  const [isNsfw, setIsNsfw] = useState(false);
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(true);
 
@@ -141,6 +143,7 @@ export function UsedCreateScreen() {
         meetCountry: countryCode,
         images,
         saleType: "FIXED",
+        isNsfw,
       });
       await queryClient.invalidateQueries({ queryKey: ["mobile-marketplace"] });
       Alert.alert("등록됨", "중고거래 글이 올라갔습니다.", [
@@ -249,6 +252,18 @@ export function UsedCreateScreen() {
           />
           <FolkButton label="사진 추가" variant="secondary" onPress={() => void pickImage()} />
           {localUri ? <RNImage source={{ uri: localUri }} style={styles.preview} /> : null}
+          <View style={styles.nsfwRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.nsfwLabel}>NSFW</Text>
+              <Text style={styles.nsfwHint}>민감한 콘텐츠가 포함되면 켜 주세요</Text>
+            </View>
+            <Switch
+              value={isNsfw}
+              onValueChange={setIsNsfw}
+              disabled={busy}
+              trackColor={{ true: "#c80000" }}
+            />
+          </View>
           <FolkButton label="등록하기" loading={busy} onPress={() => void submit()} />
         </ScrollView>
       </KeyboardAvoidingView>
@@ -290,6 +305,14 @@ function createThemedStyles(colors: ThemeColors) {
     borderRadius: radii.md,
     backgroundColor: colors.muted,
   },
+  nsfwRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 4,
+  },
+  nsfwLabel: { fontWeight: "800", color: colors.text, fontSize: 14 },
+  nsfwHint: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
 });
 }
 

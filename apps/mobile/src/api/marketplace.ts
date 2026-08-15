@@ -16,6 +16,8 @@ export type MarketplaceListItem = {
   bidCount: number | null;
   workTitle: string | null;
   productType: string | null;
+  isNsfw?: boolean;
+  sellerId?: string;
   seller: { id: string; username: string; image: string | null } | null;
 };
 
@@ -43,6 +45,8 @@ export type MarketplaceDetail = Omit<MarketplaceListItem, "thumbnailUrl"> & {
   auctionLive: boolean;
   minNextBid: number | null;
   isOwner: boolean;
+  isNsfw?: boolean;
+  sellerId?: string;
   meetPlace?: string | null;
   meetLat?: number | null;
   meetLng?: number | null;
@@ -104,6 +108,7 @@ export async function createMarketplaceListing(body: {
   auctionHours?: number;
   workTitle?: string;
   productType?: string;
+  isNsfw?: boolean;
 }) {
   return apiRequest<{ listingId: string }>(MobileApi.marketplace, {
     method: "POST",

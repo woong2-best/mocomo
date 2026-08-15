@@ -303,6 +303,9 @@ export type MessageKey =
   | "compose.optionsOpen"
   | "compose.optionsClose"
   | "compose.tagsNsfw"
+  | "sensitiveContent.title"
+  | "sensitiveContent.description"
+  | "sensitiveContent.view"
   | "compose.collabAdd"
   | "compose.collabSearch"
   | "compose.collabFollowing"
@@ -473,7 +476,7 @@ const ko: Record<MessageKey, string> = {
   "nav.webtoonStudio": "작품 판매",
   "nav.works": "작품 판매",
   "nav.used": "중고거래",
-  "nav.market": "More Commerce Moment",
+  "nav.market": "MARKET",
   "nav.events": "이벤트",
   "nav.eventsMap": "행사 지도",
   "nav.games": "GAME",
@@ -760,6 +763,10 @@ const ko: Record<MessageKey, string> = {
   "compose.optionsOpen": "태그·NSFW",
   "compose.optionsClose": "옵션 닫기",
   "compose.tagsNsfw": "NSFW",
+  "sensitiveContent.title": "콘텐츠 경고: 민감한 콘텐츠",
+  "sensitiveContent.description":
+    "작성자가 이 게시물에 민감한 콘텐츠가 포함되어 있다고 표시했습니다.",
+  "sensitiveContent.view": "보기",
   "compose.collabAdd": "공동작업자 추가",
   "compose.collabSearch": "닉네임, 아이디, UID 검색",
   "compose.collabFollowing": "팔로잉",
@@ -931,7 +938,7 @@ const en: Record<MessageKey, string> = {
   "nav.webtoonStudio": "Sell Art",
   "nav.works": "Creator Works",
   "nav.used": "Used Market",
-  "nav.market": "More Commerce Moment",
+  "nav.market": "MARKET",
   "nav.events": "Events",
   "nav.eventsMap": "Events map",
   "nav.games": "GAME",
@@ -1218,6 +1225,10 @@ const en: Record<MessageKey, string> = {
   "compose.optionsOpen": "Tags · NSFW",
   "compose.optionsClose": "Close options",
   "compose.tagsNsfw": "NSFW",
+  "sensitiveContent.title": "Content warning: Sensitive content",
+  "sensitiveContent.description":
+    "The author labeled this post as containing sensitive content.",
+  "sensitiveContent.view": "View",
   "compose.collabAdd": "Add collaborator",
   "compose.collabSearch": "Search nickname, ID, or UID",
   "compose.collabFollowing": "Following",
@@ -1389,7 +1400,7 @@ const ja: Record<MessageKey, string> = {
   "nav.webtoonStudio": "ウェブトゥーンスタジオ",
   "nav.works": "作品販売",
   "nav.used": "フリマ",
-  "nav.market": "More Commerce Moment",
+  "nav.market": "MARKET",
   "nav.events": "イベント",
   "nav.eventsMap": "イベントマップ",
   "nav.games": "GAME",
@@ -1676,6 +1687,10 @@ const ja: Record<MessageKey, string> = {
   "compose.optionsOpen": "タグ · NSFW",
   "compose.optionsClose": "オプションを閉じる",
   "compose.tagsNsfw": "NSFW",
+  "sensitiveContent.title": "コンテンツ警告: センシティブなコンテンツ",
+  "sensitiveContent.description":
+    "投稿者がこの投稿をセンシティブなコンテンツとしてラベル付けしました。",
+  "sensitiveContent.view": "表示",
   "compose.collabAdd": "共同投稿者を追加",
   "compose.collabSearch": "ニックネーム・ID・UIDを検索",
   "compose.collabFollowing": "フォロー中",
@@ -1847,7 +1862,7 @@ const zh: Record<MessageKey, string> = {
   "nav.webtoonStudio": "网漫工作室",
   "nav.works": "作品销售",
   "nav.used": "二手",
-  "nav.market": "More Commerce Moment",
+  "nav.market": "MARKET",
   "nav.events": "活动",
   "nav.eventsMap": "活动地图",
   "nav.games": "GAME",
@@ -2134,6 +2149,9 @@ const zh: Record<MessageKey, string> = {
   "compose.optionsOpen": "标签 · NSFW",
   "compose.optionsClose": "关闭选项",
   "compose.tagsNsfw": "NSFW",
+  "sensitiveContent.title": "内容警告：敏感内容",
+  "sensitiveContent.description": "作者将此帖子标记为包含敏感内容。",
+  "sensitiveContent.view": "查看",
   "compose.collabAdd": "添加协作人",
   "compose.collabSearch": "搜索昵称、ID 或 UID",
   "compose.collabFollowing": "已关注",

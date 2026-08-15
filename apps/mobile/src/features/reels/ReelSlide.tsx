@@ -7,6 +7,9 @@ import type { ReelItem } from "@/api/reels";
 import { togglePostLike } from "@/api/feed";
 import { IMAGE_CACHE_POLICY, avatarDecodeSize } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
+import { LinkifiedText } from "@/ui/LinkifiedText";
+import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
+import { useAuth } from "@/auth/AuthContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 
 type Props = {
@@ -71,6 +74,7 @@ function ReelPlayer({
 function ReelSlideInner({ item, active, loadPlayer, height }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
+  const { user } = useAuth();
 
   const [liked, setLiked] = useState(!!item.liked);
   const [likeCount, setLikeCount] = useState(item.likeCount);
@@ -105,27 +109,35 @@ function ReelSlideInner({ item, active, loadPlayer, height }: Props) {
 
   return (
     <View style={[styles.slide, { height }]}>
-      {loadPlayer && src ? (
-        <ReelPlayer src={src} active={active} posterUrl={poster} />
-      ) : poster ? (
-        <Image
-          source={{ uri: poster }}
-          style={StyleSheet.absoluteFill}
-          contentFit="cover"
-          cachePolicy={IMAGE_CACHE_POLICY}
-          transition={0}
-        />
-      ) : (
-        <View style={[StyleSheet.absoluteFill, styles.posterFallback]} />
-      )}
+      <SensitiveContentGate
+        enabled={!!item.isNsfw && user?.id !== item.author.id}
+        style={StyleSheet.absoluteFill}
+      >
+        {loadPlayer && src ? (
+          <ReelPlayer src={src} active={active} posterUrl={poster} />
+        ) : poster ? (
+          <Image
+            source={{ uri: poster }}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            cachePolicy={IMAGE_CACHE_POLICY}
+            transition={0}
+          />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, styles.posterFallback]} />
+        )}
+      </SensitiveContentGate>
 
       <View style={styles.overlay} pointerEvents="box-none">
         <View style={styles.meta}>
           <Text style={styles.user}>@{item.author.username}</Text>
           {item.content ? (
-            <Text style={styles.caption} numberOfLines={3}>
-              {item.content}
-            </Text>
+            <LinkifiedText
+              text={item.content}
+              style={styles.caption}
+              numberOfLines={3}
+              lightLinks
+            />
           ) : null}
         </View>
 

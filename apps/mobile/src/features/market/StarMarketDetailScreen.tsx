@@ -20,6 +20,7 @@ import { StarMarketBuySheet } from "@/features/market/StarMarketBuySheet";
 import { addToMarketplaceCart } from "@/lib/marketplace-cart";
 import { recordRecentMarketView } from "@/lib/market-recently-viewed";
 import { FolkButton } from "@/ui/FolkButton";
+import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
@@ -50,6 +51,7 @@ export function StarMarketDetailScreen() {
 
   const item = query.data?.item;
   const images = item?.images?.length ? item.images : item?.coverUrl ? [item.coverUrl] : [];
+  const nsfwGate = !!item?.isNsfw && !item?.isOwner;
 
   useEffect(() => {
     if (!item) return;
@@ -78,16 +80,18 @@ export function StarMarketDetailScreen() {
         <Text style={styles.error}>상품을 불러오지 못했습니다.</Text>
       ) : (
         <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}>
-          {images[imageIndex] ? (
-            <Image
-              source={{ uri: images[imageIndex] }}
-              style={{ width, height: width }}
-              cachePolicy={IMAGE_CACHE_POLICY}
-              transition={0}
-            />
-          ) : (
-            <View style={{ width, height: width, backgroundColor: colors.border }} />
-          )}
+          <SensitiveContentGate enabled={nsfwGate} style={{ width, height: width }}>
+            {images[imageIndex] ? (
+              <Image
+                source={{ uri: images[imageIndex] }}
+                style={{ width, height: width }}
+                cachePolicy={IMAGE_CACHE_POLICY}
+                transition={0}
+              />
+            ) : (
+              <View style={{ width, height: width, backgroundColor: colors.border }} />
+            )}
+          </SensitiveContentGate>
           {images.length > 1 ? (
             <ScrollView
               horizontal
@@ -96,11 +100,13 @@ export function StarMarketDetailScreen() {
             >
               {images.map((uri, i) => (
                 <Pressable key={`${uri}-${i}`} onPress={() => setImageIndex(i)}>
-                  <Image
-                    source={{ uri }}
-                    style={[styles.thumb, i === imageIndex && styles.thumbActive]}
-                    cachePolicy={IMAGE_CACHE_POLICY}
-                  />
+                  <SensitiveContentGate enabled={nsfwGate}>
+                    <Image
+                      source={{ uri }}
+                      style={[styles.thumb, i === imageIndex && styles.thumbActive]}
+                      cachePolicy={IMAGE_CACHE_POLICY}
+                    />
+                  </SensitiveContentGate>
                 </Pressable>
               ))}
             </ScrollView>

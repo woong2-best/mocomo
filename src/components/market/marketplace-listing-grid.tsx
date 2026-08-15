@@ -7,9 +7,13 @@ import {
 export function MarketplaceListingGrid({
   items,
   dense = true,
+  viewerUserId = null,
+  viewerShowNsfw = false,
 }: {
   items: MarketplaceListingCardData[];
   dense?: boolean;
+  viewerUserId?: string | null;
+  viewerShowNsfw?: boolean;
 }) {
   if (items.length === 0) {
     return (
@@ -38,7 +42,12 @@ export function MarketplaceListingGrid({
       }
     >
       {items.map((item) => (
-        <MarketplaceListingCard key={item.id} item={item} />
+        <MarketplaceListingCard
+          key={item.id}
+          item={item}
+          viewerUserId={viewerUserId}
+          viewerShowNsfw={viewerShowNsfw}
+        />
       ))}
     </div>
   );

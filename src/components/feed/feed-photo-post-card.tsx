@@ -20,8 +20,8 @@ import { PostPollCard } from "@/components/post/post-poll-card";
 import { MotionPop } from "@/components/motion/motion-primitives";
 import { useOptimisticLike, useOptimisticStar } from "@/lib/use-optimistic-engage";
 import { TranslatableText } from "@/components/ui/translatable-text";
-import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
-import { LockedMediaPaywallOverlay } from "@/components/media/locked-media-paywall-overlay";
+import { FeedPostMediaCarousel } from "@/components/feed/feed-post-media-carousel";
+import type { ProfilePostMediaItem } from "@/components/profile/paid-post-media-grid";
 
 const CAPTION_PREVIEW_LEN = 80;
 
@@ -111,57 +111,26 @@ export function FeedPhotoPostCard({
         />
       </header>
 
-      {media[0]?.type === "VIDEO" ? (
+      {media.length > 0 ? (
         <div className="px-3">
-          <div className="relative rounded-lg overflow-hidden bg-black/90 aspect-square group/media">
-            {media.length > 1 && (
-              <span className="absolute top-2 right-2 z-10 rounded-md bg-black/60 px-2 py-0.5 text-[11px] text-white">
-                1/{media.length}
-              </span>
-            )}
-            <ProtectedPaidMedia
-              type={media[0].type}
-              src={media[0].url}
-              className={cn(
-                "w-full h-full object-cover",
-                media[0].locked && "blur-xl scale-105"
-              )}
-              mediaPriceKrw={media[0].priceKrw}
-              postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
-              locked={media[0].locked}
-            />
-            {media[0].locked && (
-              <LockedMediaPaywallOverlay label="결제하기" />
-            )}
-          </div>
+          <FeedPostMediaCarousel
+            media={media as ProfilePostMediaItem[]}
+            postId={post.id}
+            authorUsername={username}
+            authorId={post.author.id}
+            paymentsEnabled={false}
+            postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
+            className="mt-0"
+            isNsfw={post.isNsfw}
+            isOwner={isOwner}
+            onDoubleTapLike={() => {
+              if (!requireLogin()) return;
+              setActionError("");
+              if (!liked) void like.toggle();
+            }}
+          />
         </div>
-      ) : (
-        <Link href={`/post/${post.id}`} className="block px-3">
-          <div className="relative rounded-lg overflow-hidden bg-black/90 aspect-square group/media">
-            {media.length > 1 && (
-              <span className="absolute top-2 right-2 z-10 rounded-md bg-black/60 px-2 py-0.5 text-[11px] text-white">
-                1/{media.length}
-              </span>
-            )}
-            {media[0] ? (
-              <>
-                <ProtectedPaidMedia
-                  type={media[0].type}
-                  src={media[0].url}
-                  className={cn(
-                    "w-full h-full object-cover transition-transform duration-500 ease-out group-hover/media:scale-[1.04]",
-                    media[0].locked && "blur-xl scale-105"
-                  )}
-                  mediaPriceKrw={media[0].priceKrw}
-                  postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
-                  locked={media[0].locked}
-                />
-                {media[0].locked && <LockedMediaPaywallOverlay label="결제하기" />}
-              </>
-            ) : null}
-          </div>
-        </Link>
-      )}
+      ) : null}
 
       {post.anime && (
         <Link

@@ -59,6 +59,8 @@ export async function GET(req: NextRequest) {
       bidCount: l.bidCount ?? null,
       workTitle: l.workTitle ?? null,
       productType: l.productType ?? null,
+      isNsfw: l.isNsfw,
+      sellerId: l.sellerId,
       seller: l.seller
         ? { id: l.seller.id, username: l.seller.username, image: l.seller.image }
         : null,
@@ -87,6 +89,7 @@ const createSchema = z.object({
   auctionHours: z.number().int().positive().optional(),
   workTitle: z.string().max(120).optional(),
   productType: z.string().max(40).optional(),
+  isNsfw: z.boolean().optional(),
 });
 
 export async function POST(req: NextRequest) {

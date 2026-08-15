@@ -48,7 +48,7 @@ export default async function PostPage({
 
   const post = detail;
 
-  const [engagement, creator, viewerSub, viewerCollab] = await Promise.all([
+  const [engagement, creator, viewerSub, viewerCollab, viewerPrefs] = await Promise.all([
     session?.user?.id
       ? getPostEngagementForUser(session.user.id, [post.id])
       : Promise.resolve({ likedIds: [] as string[], starredIds: [] as string[], repostedIds: [] as string[] }),
@@ -72,6 +72,12 @@ export default async function PostPage({
             postId_userId: { postId: post.id, userId: session.user.id },
           },
           select: { status: true },
+        })
+      : Promise.resolve(null),
+    session?.user?.id
+      ? db.user.findUnique({
+          where: { id: session.user.id },
+          select: { showNsfw: true },
         })
       : Promise.resolve(null),
   ]);
@@ -114,6 +120,7 @@ export default async function PostPage({
           subscriptionPriceKrw={creator?.creatorSubscriptionPriceKrw ?? undefined}
           subscribed={!!viewerSub}
           viewerCollabStatus={viewerCollabStatus}
+          viewerShowNsfw={viewerPrefs?.showNsfw ?? false}
         />
       </PostFlashHighlight>
       <PostDetailActions

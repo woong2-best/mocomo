@@ -200,6 +200,7 @@ export type CreateMarketplaceListingInput = {
   shipToCountries?: string[];
   shipsWorldwide?: boolean;
   publish?: boolean;
+  isNsfw?: boolean;
 };
 
 export async function createMarketplaceListing(input: CreateMarketplaceListingInput) {
@@ -272,6 +273,7 @@ export async function createMarketplaceListingForUser(
       shippingFeeFixed: Math.max(0, input.shippingFeeFixed ?? 0),
       shipToCountries,
       shipsWorldwide: false,
+      isNsfw: !!input.isNsfw,
       publishedAt: publish ? new Date() : null,
       media: mediaUrls.length
         ? {
@@ -334,6 +336,8 @@ export async function listMarketplaceListings(params?: {
       productionDays: true,
       favoriteCount: true,
       salesCount: true,
+      isNsfw: true,
+      sellerId: true,
       createdAt: true,
       seller: { select: { id: true, username: true, image: true } },
       sellerProfile: { select: { displayName: true, ratingAvg: true, salesCount: true } },

@@ -10,7 +10,8 @@ import {
 import { isAuctionLive, formatAuctionCountdown } from "@/lib/used-auction";
 import { usedProductTypeLabel } from "@/lib/used-catalog";
 import { isUsedRestrictedKind, usedRestrictedLabel } from "@/lib/used-youth-protection";
-import { ImageOff, MapPin, Gavel } from "lucide-react";
+import { UsedListingThumb } from "@/components/used/used-listing-thumb";
+import { MapPin, Gavel } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Listing = {
@@ -34,14 +35,20 @@ type Listing = {
   restrictedKind?: string;
   workTitle?: string | null;
   productType?: string | null;
+  isNsfw?: boolean;
+  sellerId?: string;
 };
 
 export function UsedListingCard({
   listing,
   dense = false,
+  viewerUserId = null,
+  viewerShowNsfw = false,
 }: {
   listing: Listing;
   dense?: boolean;
+  viewerUserId?: string | null;
+  viewerShowNsfw?: boolean;
 }) {
   const imgs = listingImages(listing.images);
   const thumb = imgs[0];
@@ -66,6 +73,7 @@ export function UsedListingCard({
     });
   const showPrice = auction ? displayAuctionPrice(listing as Parameters<typeof displayAuctionPrice>[0]) : listing.price;
   const restricted = isUsedRestrictedKind(listing.restrictedKind);
+  const isOwner = !!viewerUserId && viewerUserId === listing.sellerId;
 
   return (
     <Link
@@ -83,23 +91,13 @@ export function UsedListingCard({
         )}
       >
         <div className="relative aspect-square bg-muted/40 overflow-hidden">
-          {thumb ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={thumb}
-              alt=""
-              className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <ImageOff
-                className={cn(
-                  "text-muted-foreground/35",
-                  dense ? "h-7 w-7" : "h-10 w-10"
-                )}
-              />
-            </div>
-          )}
+          <UsedListingThumb
+            thumb={thumb ?? null}
+            dense={dense}
+            isNsfw={listing.isNsfw}
+            isOwner={isOwner}
+            viewerShowNsfw={viewerShowNsfw}
+          />
           {restricted && (
             <span
               className={cn(

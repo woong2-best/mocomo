@@ -28,6 +28,7 @@ const postDetailSelect = {
   content: true,
   createdAt: true,
   isPinned: true,
+  isNsfw: true,
   authorId: true,
   visibility: true,
   instantPurchasePriceKrw: true,

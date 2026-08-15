@@ -27,6 +27,7 @@ export function PostDetailCard({
   subscriptionPriceKrw,
   subscribed = false,
   viewerCollabStatus = null,
+  viewerShowNsfw = false,
 }: {
   post: PostDetailOk;
   locale: Locale;
@@ -35,6 +36,7 @@ export function PostDetailCard({
   subscriptionPriceKrw?: number;
   subscribed?: boolean;
   viewerCollabStatus?: "PENDING" | "ACCEPTED" | null;
+  viewerShowNsfw?: boolean;
 }) {
   const dateLocale = dateLocales[locale] ?? ko;
   const collaborators =
@@ -106,6 +108,9 @@ export function PostDetailCard({
           linkToPost={false}
           postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
           mediaTotal={(post.media ?? []).length}
+          isNsfw={post.isNsfw}
+          isOwner={isOwner}
+          viewerShowNsfw={viewerShowNsfw}
         />
         <div className="flex gap-2 flex-wrap">
           {post.tags.map(({ tag }) => (
