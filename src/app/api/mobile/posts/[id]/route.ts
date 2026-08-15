@@ -28,6 +28,7 @@ export async function GET(
       postType: true,
       createdAt: true,
       isNsfw: true,
+      viewCount: true,
       author: { select: userPublicSelect },
       media: postMediaPreview,
       _count: { select: { likes: true, comments: true, votes: true, reposts: true } },

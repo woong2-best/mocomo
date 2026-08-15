@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -27,6 +28,7 @@ import { FeedPostMediaCarousel } from "@/features/feed/FeedPostMediaCarousel";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
 import { LinkifiedText } from "@/ui/LinkifiedText";
+import { formatViewCount, recordPostViewOnce } from "@/lib/post-view";
 import { Screen } from "@/ui/Screen";
 import { PerformanceBudgets } from "@/perf/budgets";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
@@ -44,6 +46,7 @@ export function PostDetailScreen() {
   const route = useRoute<RouteProp<RootStackParamList, "PostDetail">>();
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState("");
+  const [viewCount, setViewCount] = useState(0);
 
   const postQuery = useQuery({
     queryKey: ["mobile-post", route.params.id],
@@ -86,6 +89,14 @@ export function PostDetailScreen() {
     PerformanceBudgets.feedMediaLayoutMax
   );
   const isOwner = user?.id === post?.author.id;
+
+  useEffect(() => {
+    if (!post?.id) return;
+    setViewCount(post.viewCount ?? 0);
+    void recordPostViewOnce(post.id).then((next) => {
+      if (next != null) setViewCount(next);
+    });
+  }, [post?.id, post?.viewCount]);
 
   return (
     <Screen>
@@ -149,6 +160,10 @@ export function PostDetailScreen() {
                       {post.starred ? "★ STAR" : "☆ STAR"}
                     </Text>
                   </Pressable>
+                  <View style={styles.viewCountRow} accessibilityLabel={`조회수 ${viewCount}회`}>
+                    <Ionicons name="eye-outline" size={16} color={colors.cobalt} />
+                    <Text style={styles.viewCountText}>{formatViewCount(viewCount)}</Text>
+                  </View>
                 </View>
                 <Text style={styles.section}>댓글</Text>
               </View>
@@ -223,8 +238,10 @@ function createThemedStyles(colors: ThemeColors) {
     borderRadius: 14,
     backgroundColor: colors.muted,
   },
-  actions: { flexDirection: "row", gap: spacing.lg, marginTop: spacing.md },
+  actions: { flexDirection: "row", gap: spacing.lg, marginTop: spacing.md, alignItems: "center", flexWrap: "wrap" },
   action: { fontWeight: "700", color: colors.textMuted },
+  viewCountRow: { flexDirection: "row", alignItems: "center", gap: 4, marginLeft: "auto" },
+  viewCountText: { fontWeight: "700", color: colors.cobalt, fontVariant: ["tabular-nums"] },
   liked: { color: colors.terracotta },
   starred: { color: colors.gold },
   section: {

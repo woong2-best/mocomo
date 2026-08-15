@@ -135,6 +135,7 @@ const mobileFeedPostSelect = {
   postType: true,
   createdAt: true,
   isNsfw: true,
+  viewCount: true,
   author: { select: userPublicSelect },
   anime: { select: { title: true, slug: true } },
   media: mobileFeedMediaPreview,
@@ -182,7 +183,7 @@ export function getCachedMobileFeedPostsPage(cursor: string | null, limit: numbe
   const cacheKey = cursor ?? "__head__";
   return unstable_cache(
     () => fetchMobileFeedPostsPage(cursor, limit),
-    ["mobile-feed-page-v1-lean", cacheKey, String(limit)],
+    ["mobile-feed-page-v2-views", cacheKey, String(limit)],
     { revalidate: 20, tags: [FEED_POSTS_CACHE_TAG] }
   )();
 }

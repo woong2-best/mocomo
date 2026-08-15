@@ -9,8 +9,10 @@ import { useAuth } from "@/auth/AuthContext";
 import { FeedPostMediaCarousel } from "@/features/feed/FeedPostMediaCarousel";
 import { FeedPostOverflowMenu } from "@/features/feed/FeedPostOverflowMenu";
 import { FolkAvatar } from "@/ui/FolkAvatar";
+import { LinkifiedText } from "@/ui/LinkifiedText";
 import { ShareGlobeIcon } from "@/ui/ShareGlobeIcon";
 import { PerformanceBudgets } from "@/perf/budgets";
+import { formatViewCount, recordPostViewOnce } from "@/lib/post-view";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -18,6 +20,8 @@ type Props = {
   post: FeedPost;
   /** Visible in viewport — muted autoplay when true (Twitter-style). */
   previewActive?: boolean;
+  /** Feed card scrolled into view — record view once per app session. */
+  viewTrackActive?: boolean;
   onLikeCommit?: (postId: string, liked: boolean, likeCount: number) => void;
   onPressPost?: (postId: string) => void;
   onPressAuthor?: (username: string) => void;
@@ -26,15 +30,13 @@ type Props = {
 };
 
 function formatCount(n: number) {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
-  if (n >= 10_000) return `${Math.round(n / 1000)}K`;
-  if (n >= 1_000) return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K`;
-  return String(n);
+  return formatViewCount(n);
 }
 
 function FeedPostCardInner({
   post,
   previewActive = false,
+  viewTrackActive = false,
   onLikeCommit,
   onPressPost,
   onPressAuthor,
@@ -54,10 +56,21 @@ function FeedPostCardInner({
   const [repostCount, setRepostCount] = useState(post._count?.reposts ?? 0);
   const [pending, setPending] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [viewCount, setViewCount] = useState(post.viewCount ?? 0);
 
   const isSelf = user?.id === post.author.id;
   const canShowMenu = status === "signedIn" && !isSelf;
-  const viewCount = post.viewCount ?? 0;
+
+  useEffect(() => {
+    setViewCount(post.viewCount ?? 0);
+  }, [post.id, post.viewCount]);
+
+  useEffect(() => {
+    if (!viewTrackActive) return;
+    void recordPostViewOnce(post.id).then((next) => {
+      if (next != null) setViewCount(next);
+    });
+  }, [viewTrackActive, post.id]);
 
   useEffect(() => {
     setLiked(!!post.liked);
@@ -188,11 +201,12 @@ function FeedPostCardInner({
       </View>
 
       {post.content ? (
-        <Pressable onPress={openPost} disabled={!onPressPost}>
-          <Text style={styles.content} numberOfLines={8}>
-            {post.content}
-          </Text>
-        </Pressable>
+        <LinkifiedText
+          text={post.content}
+          style={styles.content}
+          numberOfLines={8}
+          onBackgroundPress={onPressPost ? openPost : undefined}
+        />
       ) : post.title ? (
         <Pressable onPress={openPost} disabled={!onPressPost}>
           <Text style={styles.content} numberOfLines={4}>
@@ -205,6 +219,7 @@ function FeedPostCardInner({
         post={post}
         layoutWidth={mediaLayout}
         previewActive={previewActive}
+        isOwner={isSelf}
         onPressVideo={onPressVideo}
       />
 
@@ -235,12 +250,10 @@ function FeedPostCardInner({
           </Pressable>
         </View>
         <View style={styles.actionsRight}>
-          {viewCount > 0 ? (
-            <View style={styles.viewBtn}>
-              <Ionicons name="eye-outline" size={17} color={colors.textMuted} />
-              <Text style={styles.actionText}>{formatCount(viewCount)}</Text>
-            </View>
-          ) : null}
+          <View style={styles.viewBtn} accessibilityLabel={`조회수 ${viewCount}회`}>
+            <Ionicons name="eye-outline" size={17} color={colors.cobalt} />
+            <Text style={styles.viewText}>{formatCount(viewCount)}</Text>
+          </View>
           <Pressable onPress={onStar} hitSlop={10} style={styles.starBtn}>
             <Ionicons
               name={starred ? "star" : "star-outline"}
@@ -269,6 +282,7 @@ function propsEqual(a: Props, b: Props) {
   return (
     a.post.id === b.post.id &&
     a.previewActive === b.previewActive &&
+    a.viewTrackActive === b.viewTrackActive &&
     a.post.liked === b.post.liked &&
     a.post.starred === b.post.starred &&
     a.post.reposted === b.post.reposted &&
@@ -315,6 +329,7 @@ function createStyles(colors: ThemeColors) {
     actionsRight: { flexDirection: "row", alignItems: "center", gap: 10 },
     actionBtn: { flexDirection: "row", alignItems: "center", gap: 5 },
     viewBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
+    viewText: { fontSize: 13, color: colors.cobalt, fontWeight: "700", fontVariant: ["tabular-nums"] },
     starBtn: { paddingLeft: 2 },
     actionText: { fontSize: 13, color: colors.textMuted, fontWeight: "600" },
     liked: { color: colors.terracotta },

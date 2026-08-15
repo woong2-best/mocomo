@@ -37,12 +37,26 @@ export async function POST(req: NextRequest) {
     duration: clampMediaInt(m.duration, 86_400),
   }));
 
+  const poll =
+    body.poll && typeof body.poll === "object"
+      ? {
+          options: Array.isArray(body.poll.options)
+            ? body.poll.options.map(String)
+            : [],
+          durationMinutes: Number(body.poll.durationMinutes) || 1440,
+        }
+      : undefined;
+
   const result = await createPostForUser(user, {
     content: String(body.content ?? ""),
     title: body.title ? String(body.title) : undefined,
     isNsfw: Boolean(body.isNsfw),
     tagNames: Array.isArray(body.tagNames) ? body.tagNames.map(String) : [],
     media,
+    poll,
+    collaboratorUserIds: Array.isArray(body.collaboratorUserIds)
+      ? body.collaboratorUserIds.map(String)
+      : [],
   });
 
   if (result.error && !result.postId) {

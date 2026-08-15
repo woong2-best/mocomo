@@ -20,15 +20,12 @@ import { fetchFeedPage, type FeedPost } from "@/api/feed";
 import { saveFeedBootstrap } from "@/api/feed-bootstrap-cache";
 import { fetchWeeklyHighlights, type HighlightItem } from "@/api/highlights";
 import { searchAll, type SearchResult } from "@/api/social";
+import { prefetchPostComments } from "@/api/post-comments-query";
 import { useAuth } from "@/auth/AuthContext";
 import { InlineComposeBox } from "@/features/compose/InlineComposeBox";
 import { FeedPostCard } from "@/features/feed/FeedPostCard";
-import {
-  AccountMenuSheet,
-  AccountsBottomSheet,
-  type AccountMenuAction,
-} from "@/features/account/AccountMenuSheet";
 import { SideDrawer, type DrawerRoute } from "@/navigation/SideDrawer";
+import { warmDrawerBundles, warmTabBundles } from "@/navigation/tab-warmup";
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import { PerformanceBudgets } from "@/perf/budgets";
 import { FolkAvatar } from "@/ui/FolkAvatar";
@@ -39,7 +36,7 @@ import { Screen } from "@/ui/Screen";
 import { SearchField } from "@/ui/SearchField";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
-import type { RootStackParamList } from "@/navigation/types";
+import type { RootStackParamList, RootTabParamList } from "@/navigation/types";
 
 function feedItemType(item: FeedPost): string {
   const media = item.media ?? [];
@@ -51,15 +48,14 @@ function feedItemType(item: FeedPost): string {
 export function FeedScreen() {
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const isFocused = useIsFocused();
   const [refreshing, setRefreshing] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
-  const [accountsSheetOpen, setAccountsSheetOpen] = useState(false);
   const [activePreviewId, setActivePreviewId] = useState<string | null>(null);
+  const [visiblePostIds, setVisiblePostIds] = useState<string[]>([]);
   const [previewArmed, setPreviewArmed] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchQ, setSearchQ] = useState("");
@@ -113,7 +109,8 @@ export function FeedScreen() {
       firstPaintMarked.current = true;
       perfMeasure("cold_start_to_feed", "app_start");
       const task = InteractionManager.runAfterInteractions(() => {
-        // Warm Reels first (common path). DM room later so first scroll stays light.
+        warmTabBundles();
+        warmDrawerBundles();
         require("@/features/reels/ReelsScreen");
         setTimeout(() => {
           require("@/features/messages/MessageRoomScreen");
@@ -143,11 +140,16 @@ export function FeedScreen() {
 
   const onDrawerNavigate = useCallback(
     (route: DrawerRoute) => {
-      if (route === "Messages" || route === "Market") {
-        navigation.navigate("Main", { screen: route });
+      if (
+        route === "Home" ||
+        route === "Messages" ||
+        route === "Market" ||
+        route === "Used"
+      ) {
+        navigation.navigate("Main", { screen: route as keyof RootTabParamList });
         return;
       }
-      navigation.navigate(route);
+      navigation.navigate(route as Exclude<DrawerRoute, keyof RootTabParamList>);
     },
     [navigation]
   );
@@ -175,46 +177,19 @@ export function FeedScreen() {
     }, [])
   );
 
-  const onAccountAction = useCallback(
-    (action: AccountMenuAction) => {
-      switch (action) {
-        case "accounts":
-          setAccountsSheetOpen(true);
-          break;
-        case "messages":
-          navigation.navigate("Main", { screen: "Messages" });
-          break;
-        case "profile":
-          navigation.navigate("Profile");
-          break;
-        case "settings":
-          navigation.navigate("Settings");
-          break;
-        case "rank":
-          navigation.navigate("Wallet");
-          break;
-        case "logout":
-          void signOut();
-          break;
-      }
-    },
-    [navigation, signOut]
-  );
-
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: { item?: FeedPost; isViewable?: boolean }[] }) => {
-      const firstVideo = viewableItems.find(
-        (v) =>
-          v.isViewable &&
-          v.item &&
-          (v.item.media ?? []).some((m) => m.type === "VIDEO" && m.url)
+      const visible = viewableItems.filter((v) => v.isViewable && v.item?.id);
+      const firstVideo = visible.find((v) =>
+        (v.item!.media ?? []).some((m) => m.type === "VIDEO" && m.url)
       );
       setActivePreviewId(firstVideo?.item?.id ?? null);
+      setVisiblePostIds(visible.map((v) => v.item!.id));
     }
   ).current;
 
   const viewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 55,
+    itemVisiblePercentThreshold: 35,
     minimumViewTime: 120,
   }).current;
 
@@ -229,9 +204,10 @@ export function FeedScreen() {
   const onPressVideo = useCallback(
     (postId: string, mediaId?: string, mediaIndex?: number) => {
       setActivePreviewId(null);
+      prefetchPostComments(queryClient, postId);
       navigation.navigate("Reels", { postId, mediaId, mediaIndex });
     },
-    [navigation]
+    [navigation, queryClient]
   );
 
   const renderItem = useCallback(
@@ -241,19 +217,20 @@ export function FeedScreen() {
         previewActive={
           isFocused && previewArmed && activePreviewIdRef.current === item.id
         }
+        viewTrackActive={isFocused && visiblePostIds.includes(item.id)}
         onPressPost={onPressPost}
         onPressAuthor={onPressAuthor}
         onPressVideo={onPressVideo}
       />
     ),
-    [isFocused, onPressAuthor, onPressPost, onPressVideo, previewArmed]
+    [isFocused, onPressAuthor, onPressPost, onPressVideo, previewArmed, visiblePostIds]
   );
 
   const getItemType = useCallback((item: FeedPost) => feedItemType(item), []);
 
   return (
     <Screen safeTop={false}>
-      {/* Web-parity header: menu · search bar · theme indicator · bell · profile */}
+      {/* Header: menu · search · bell · profile */}
       <View style={[styles.topBar, { paddingTop: insets.top + 6 }]}>
         <Pressable
           onPress={() => setDrawerOpen(true)}
@@ -262,11 +239,12 @@ export function FeedScreen() {
           accessibilityRole="button"
           accessibilityLabel="메뉴"
         >
-          <Ionicons name="menu" size={24} color={colors.brand} />
+          <Ionicons name="menu" size={24} color={styles.headerIcon.color} />
         </Pressable>
 
         <SearchField
           ref={searchRef}
+          variant="pill"
           value={searchQ}
           onChangeText={(t) => {
             setSearchQ(t);
@@ -290,15 +268,6 @@ export function FeedScreen() {
           containerStyle={{ flex: 1 }}
         />
 
-        {/* System appearance only — not a button */}
-        <View style={styles.themeIndicator} pointerEvents="none" importantForAccessibility="no">
-          <Ionicons
-            name={isDark ? "moon" : "sunny-outline"}
-            size={20}
-            color={isDark ? "#C9D4E8" : colors.brand}
-          />
-        </View>
-
         <Pressable
           onPress={() => navigation.navigate("Activity")}
           hitSlop={8}
@@ -306,22 +275,22 @@ export function FeedScreen() {
           accessibilityRole="button"
           accessibilityLabel="알림"
         >
-          <Ionicons name="notifications-outline" size={22} color={colors.brand} />
+          <Ionicons name="notifications-outline" size={22} color={styles.headerIcon.color} />
         </Pressable>
 
         <Pressable
-          onPress={() => setAccountMenuOpen(true)}
+          onPress={() => navigation.navigate("Profile")}
           hitSlop={6}
           style={styles.profileHit}
           accessibilityRole="button"
-          accessibilityLabel="계정 메뉴"
+          accessibilityLabel="내 프로필"
         >
           <FolkAvatar
             uri={user?.image}
             name={user?.name || user?.username}
-            size={30}
+            size={32}
+            framed={false}
           />
-          <Ionicons name="chevron-down" size={14} color={colors.brand} />
         </Pressable>
       </View>
 
@@ -398,7 +367,7 @@ export function FeedScreen() {
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           getItemType={getItemType}
-          extraData={`${activePreviewId}:${isFocused ? 1 : 0}:${previewArmed ? 1 : 0}`}
+          extraData={`${activePreviewId}:${isFocused ? 1 : 0}:${previewArmed ? 1 : 0}:${visiblePostIds.join(",")}`}
           drawDistance={PerformanceBudgets.feedDrawDistance}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
@@ -433,24 +402,6 @@ export function FeedScreen() {
         visible={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         onNavigate={onDrawerNavigate}
-      />
-
-      <AccountMenuSheet
-        visible={accountMenuOpen}
-        onClose={() => setAccountMenuOpen(false)}
-        onAction={onAccountAction}
-      />
-      <AccountsBottomSheet
-        visible={accountsSheetOpen}
-        onClose={() => setAccountsSheetOpen(false)}
-        onCreateNew={() => {
-          setAccountsSheetOpen(false);
-          void signOut();
-        }}
-        onAddExisting={() => {
-          setAccountsSheetOpen(false);
-          void signOut();
-        }}
       />
     </Screen>
   );
@@ -588,40 +539,29 @@ function SearchResultsPanel({
   );
 }
 
-function createStyles(colors: ThemeColors, _isDark: boolean) {
+function createStyles(colors: ThemeColors, isDark: boolean) {
+  const headerIconColor = isDark ? "#F5F0E8" : colors.brand;
   return StyleSheet.create({
+    headerIcon: { color: headerIconColor },
     topBar: {
-      paddingHorizontal: 10,
+      paddingHorizontal: 12,
       paddingBottom: 10,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.hairline,
       backgroundColor: colors.background,
       flexDirection: "row",
       alignItems: "center",
-      gap: 6,
+      gap: 8,
     },
     iconBtn: {
       width: 36,
       height: 36,
       alignItems: "center",
       justifyContent: "center",
-      borderRadius: 18,
-    },
-    themeIndicator: {
-      width: 34,
-      height: 34,
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: 12,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.hairline,
-      backgroundColor: colors.surfaceRaised,
     },
     profileHit: {
-      flexDirection: "row",
       alignItems: "center",
-      gap: 2,
-      paddingLeft: 2,
+      justifyContent: "center",
     },
     center: {
       alignItems: "center",
