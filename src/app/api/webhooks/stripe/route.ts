@@ -48,5 +48,16 @@ export async function POST(req: Request) {
     }
   }
 
+  if (event.type === "payment_intent.succeeded") {
+    const pi = event.data.object as Stripe.PaymentIntent;
+    const orderId = pi.metadata?.orderId;
+    if (orderId) {
+      const result = await fulfillPaymentIntent(orderId, pi.id, pi.amount);
+      if (!result.ok) {
+        return NextResponse.json({ error: result.error }, { status: 422 });
+      }
+    }
+  }
+
   return NextResponse.json({ received: true });
 }

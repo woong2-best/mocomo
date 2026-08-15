@@ -2,7 +2,6 @@ import { useMemo, useState, useCallback } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,10 +11,13 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigation } from "@react-navigation/native";
 import { fetchWallet, fetchWalletEarnings } from "@/api/discovery";
+import { fetchBankStatus } from "@/api/checkout-payment";
 import { fetchPaymentMethods, openPaymentMethodSetup, setDefaultPaymentMethod } from "@/payments/stripe-setup";
 import { WalletCardStack } from "@/features/wallet/WalletCardStack";
 import { WalletMembershipStrip } from "@/features/wallet/WalletMembershipStrip";
 import { WalletEarningsChart } from "@/features/wallet/WalletEarningsChart";
+import { BankVerifyPanel } from "@/features/wallet/BankVerifyPanel";
+import { RevenuePayoutPanel } from "@/features/wallet/RevenuePayoutPanel";
 import { buildPaymentMethodCards, buildRevenueCards } from "@/features/wallet/wallet-card-builders";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
@@ -58,6 +60,11 @@ export function WalletScreen() {
     queryFn: () => fetchWalletEarnings(year),
     enabled: tab === "earnings",
     retry: 1,
+  });
+  const bankStatusQuery = useQuery({
+    queryKey: ["mobile-bank-status"],
+    queryFn: fetchBankStatus,
+    enabled: tab === "earnings",
   });
 
   const data = walletQuery.data;
@@ -194,14 +201,11 @@ export function WalletScreen() {
                 ) : null}
               </View>
 
-              <Pressable
-                style={[styles.webLink, { borderColor: colors.brand }]}
-                onPress={() => void Linking.openURL("https://mocomo.net/wallet")}
-              >
-                <Text style={[styles.webLinkText, { color: colors.brand }]}>
-                  웹에서 수익 계좌 1원 인증 · 출금 신청
-                </Text>
-              </Pressable>
+              <BankVerifyPanel />
+              <RevenuePayoutPanel
+                withdrawable={withdrawable}
+                bankReady={!!bankStatusQuery.data?.bankVerified || !!data.bank}
+              />
 
               <View style={styles.section}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.yearRow}>

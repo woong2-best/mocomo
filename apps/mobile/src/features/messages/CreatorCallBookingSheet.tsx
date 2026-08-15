@@ -15,7 +15,7 @@ import {
   fetchCreatorCallSettings,
   type CreatorCallSettings,
 } from "@/api/call-bookings";
-import { openStripeCheckout } from "@/payments/stripe-checkout";
+import { PaymentCheckoutSheet } from "@/payments/PaymentCheckoutSheet";
 import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
@@ -76,6 +76,13 @@ export function CreatorCallBookingSheet({
   const [amount, setAmount] = useState(30_000);
   const [customAmount, setCustomAmount] = useState("");
   const [note, setNote] = useState("");
+  const [payOpen, setPayOpen] = useState(false);
+  const [payBody, setPayBody] = useState<{
+    type: "CALL_BOOKING";
+    amount: number;
+    orderName: string;
+    metadata: Record<string, unknown>;
+  } | null>(null);
 
   const effectiveAmount = customAmount
     ? parseInt(customAmount.replace(/\D/g, ""), 10) || 0
@@ -133,15 +140,13 @@ export function CreatorCallBookingSheet({
         fanNote: note.trim() || undefined,
       });
 
-      await openStripeCheckout({
+      setPayBody({
         type: "CALL_BOOKING",
         amount: checkout.amount,
         orderName: checkout.orderName,
         metadata: checkout.metadata,
       });
-
-      onSuccess?.();
-      onClose();
+      setPayOpen(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "예약에 실패했습니다.");
     } finally {
@@ -152,6 +157,7 @@ export function CreatorCallBookingSheet({
   const callLabel = callType === "VIDEO" ? "영상" : "음성";
 
   return (
+    <>
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
@@ -246,6 +252,18 @@ export function CreatorCallBookingSheet({
         </Pressable>
       </Pressable>
     </Modal>
+    {payBody ? (
+      <PaymentCheckoutSheet
+        visible={payOpen}
+        body={payBody}
+        onClose={() => setPayOpen(false)}
+        onSuccess={() => {
+          onSuccess?.();
+          onClose();
+        }}
+      />
+    ) : null}
+    </>
   );
 }
 

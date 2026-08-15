@@ -62,6 +62,8 @@ export const MobileApi = {
   paymentMethodsConfirm: "/api/mobile/payment-methods/confirm",
   checkout: "/api/mobile/checkout",
   checkoutConfirm: "/api/mobile/checkout/confirm",
+  checkoutIntent: "/api/mobile/checkout/intent",
+  walletPayout: "/api/mobile/wallet/payout",
   callBookings: "/api/mobile/call-bookings",
   callBooking: (id: string) => `/api/mobile/call-bookings/${id}`,
   callBookingCreator: (userId: string) => `/api/mobile/call-bookings/creator/${userId}`,

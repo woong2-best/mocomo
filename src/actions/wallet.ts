@@ -62,17 +62,13 @@ export async function requestPayout(amount: number) {
       },
     });
 
-    let payoutBank = bank;
+    let payoutBank: { bankName: string; accountNumber: string; holderName: string } | null = bank;
     if (!payoutBank && verified?.bankVerifiedAt && verified.settlementBankCode) {
       const { apickBankLabel } = await import("@/lib/apick/bank-codes");
       payoutBank = {
-        id: "verified",
-        userId: user.id,
         bankName: apickBankLabel(verified.settlementBankCode) ?? verified.settlementBankCode,
         accountNumber: verified.settlementAccountLast4 ?? "",
         holderName: verified.settlementAccountHolder ?? verified.name ?? "",
-        createdAt: verified.bankVerifiedAt!,
-        updatedAt: verified.bankVerifiedAt!,
       };
     }
     if (!payoutBank) return { error: "출금 계좌를 먼저 등록해 주세요." };

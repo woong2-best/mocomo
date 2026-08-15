@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { createStripeCheckout } from "@/actions/monetization";
-import { PaymentLegalNotice } from "@/components/legal/legal-entity-notice";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { PaymentCheckoutSheet } from "@/components/payments/payment-checkout-sheet";
 import { Button } from "@/components/ui/button";
 import type { PaymentIntentType } from "@prisma/client";
 
@@ -17,7 +17,7 @@ type Props = {
   children: React.ReactNode;
 };
 
-/** Stripe Checkout으로 이동 (카드·해외결제·간편결제는 Stripe 대시보드에서 활성화) */
+/** Saved-card sheet first; new cards via Stripe Checkout */
 export function PayButton({
   type,
   amount,
@@ -28,33 +28,28 @@ export function PayButton({
   showLegalNotice,
   children,
 }: Props) {
-  const [error, setError] = useState("");
-  const [pending, startTransition] = useTransition();
-
-  function pay() {
-    setError("");
-    startTransition(async () => {
-      const res = await createStripeCheckout({ type, amount, orderName, metadata });
-      if ("error" in res && res.error) {
-        setError(res.error);
-        return;
-      }
-      if (!("checkoutUrl" in res) || !res.checkoutUrl) {
-        setError("결제 준비에 실패했습니다.");
-        return;
-      }
-      window.location.href = res.checkoutUrl;
-    });
-  }
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
 
   return (
-    <div className="space-y-2">
-      <Button type="button" className={className} disabled={disabled || pending} onClick={pay}>
-        {pending ? "결제 준비 중..." : children}
+    <>
+      <Button type="button" className={className} disabled={disabled} onClick={() => setOpen(true)}>
+        {children}
       </Button>
-      {showLegalNotice ? <PaymentLegalNotice compact /> : null}
-      {error && <p className="text-sm text-destructive">{error}</p>}
-    </div>
+      <PaymentCheckoutSheet
+        open={open}
+        onOpenChange={setOpen}
+        type={type}
+        amount={amount}
+        orderName={orderName}
+        metadata={metadata}
+        showLegalNotice={showLegalNotice}
+        onSuccess={(result) => {
+          if (result.redirectPath) router.push(result.redirectPath);
+          else router.refresh();
+        }}
+      />
+    </>
   );
 }
 

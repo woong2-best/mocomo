@@ -13,7 +13,7 @@ import {
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import { FolkButton } from "@/ui/FolkButton";
-import { openStripeCheckout } from "@/payments/stripe-checkout";
+import { PaymentCheckoutSheet } from "@/payments/PaymentCheckoutSheet";
 import {
   LETTER_DONATION_MESSAGE_MAX,
   LETTER_DONATION_MIN_KRW,
@@ -49,6 +49,13 @@ export function LetterDonationSheet({
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [payOpen, setPayOpen] = useState(false);
+  const [payBody, setPayBody] = useState<{
+    type: "TIP";
+    amount: number;
+    orderName: string;
+    metadata: Record<string, unknown>;
+  } | null>(null);
 
   const effectiveAmount = custom ? parseInt(custom.replace(/\D/g, ""), 10) || 0 : amount;
   const trimmed = message.trim();
@@ -65,32 +72,27 @@ export function LetterDonationSheet({
     }
     setBusy(true);
     setError("");
-    try {
-      const meta: Record<string, unknown> = {
-        receiverId: creatorId,
-        username,
-        message: trimmed,
-        tipKind: "letter",
-      };
-      if (channelId) meta.channelId = channelId;
-      if (roomId) meta.roomId = roomId;
+    const meta: Record<string, unknown> = {
+      receiverId: creatorId,
+      username,
+      message: trimmed,
+      tipKind: "letter",
+    };
+    if (channelId) meta.channelId = channelId;
+    if (roomId) meta.roomId = roomId;
 
-      await openStripeCheckout({
-        type: "TIP",
-        amount: effectiveAmount,
-        orderName: `@${username} 편지 후원`,
-        metadata: meta,
-      });
-      onSuccess?.();
-      onClose();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "후원에 실패했습니다.");
-    } finally {
-      setBusy(false);
-    }
+    setPayBody({
+      type: "TIP",
+      amount: effectiveAmount,
+      orderName: `@${username} 편지 후원`,
+      metadata: meta,
+    });
+    setPayOpen(true);
+    setBusy(false);
   }
 
   return (
+    <>
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
@@ -149,6 +151,18 @@ export function LetterDonationSheet({
         </Pressable>
       </Pressable>
     </Modal>
+    {payBody ? (
+      <PaymentCheckoutSheet
+        visible={payOpen}
+        body={payBody}
+        onClose={() => setPayOpen(false)}
+        onSuccess={() => {
+          onSuccess?.();
+          onClose();
+        }}
+      />
+    ) : null}
+  </>
   );
 }
 

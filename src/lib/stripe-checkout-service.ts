@@ -3,10 +3,11 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { checkoutCurrencyForType, isPaymentsConfigured } from "@/lib/payments";
 import { fulfillPaymentIntent } from "@/lib/payment-fulfillment";
+import { checkoutRedirectPath } from "@/lib/checkout-redirect";
 import { getAppOrigin, getStripe, isStripeConfigured } from "@/lib/stripe";
 import { verifyStripeCheckoutSession } from "@/lib/stripe-checkout";
-import { safeReturnPath } from "@/lib/donation-metadata";
 import { validatePaymentInput } from "@/lib/stripe-checkout-validate";
+import { getOrCreateStripeCustomer } from "@/lib/stripe-payment-methods";
 
 export type CheckoutPlatform = "web" | "mobile";
 
@@ -55,9 +56,11 @@ export async function createStripeCheckoutForUser(input: {
   const urls = stripeCheckoutReturnUrls(input.platform ?? "web");
   const stripe = getStripe();
   const currency = checkoutCurrencyForType(input.type);
+  const customerId = await getOrCreateStripeCustomer(input.userId, input.email);
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
+    customer: customerId,
     payment_method_types: ["card"],
     line_items: [
       {
@@ -74,9 +77,16 @@ export async function createStripeCheckoutForUser(input: {
       type: input.type,
       userId: input.userId,
     },
+    payment_intent_data: {
+      setup_future_usage: "off_session",
+      metadata: {
+        orderId: intent.id,
+        type: input.type,
+        userId: input.userId,
+      },
+    },
     success_url: urls.successUrl,
     cancel_url: urls.cancelUrl,
-    customer_email: input.email ?? undefined,
   });
 
   if (!session.url) return { error: "결제 페이지를 만들 수 없습니다." };
@@ -104,64 +114,10 @@ export async function confirmStripeCheckoutForUser(userId: string, sessionId: st
   );
   if (!result.ok) return { error: result.error };
 
-  let redirectPath = "/support";
-  if (result.type === "MOCO_TOPUP") {
-    redirectPath = "/wallet";
-  }
-  if (result.type === "TIP") {
-    const meta = intent.metadata as Record<string, string | undefined>;
-    redirectPath = safeReturnPath(
-      meta.returnPath,
-      meta.username ? `/u/${meta.username}` : "/support"
-    );
-    if (meta.channelId) {
-      redirectPath = `/voice/${meta.channelId}`;
-    }
-  }
-
-  if (result.type === "EVENT_REGISTRATION") {
-    const meta = intent.metadata as Record<string, string | undefined>;
-    if (meta.eventId) redirectPath = `/events/new?eventId=${meta.eventId}&paid=1`;
-    else redirectPath = "/events";
-  }
-
-  if (result.type === "CREATOR_EPISODE") {
-    const meta = intent.metadata as Record<string, string | undefined>;
-    if (meta.episodeId) redirectPath = `/works/e/${meta.episodeId}?paid=1`;
-    else redirectPath = "/works";
-  }
-
-  if (result.type === "POST_MEDIA") {
-    const meta = intent.metadata as Record<string, string | undefined>;
-    if (meta.returnPath) {
-      redirectPath = safeReturnPath(meta.returnPath, "/");
-    } else if (meta.username) {
-      redirectPath = `/u/${meta.username}?paid=1`;
-    } else {
-      redirectPath = "/";
-    }
-  }
-
-  if (result.type === "CREATOR_SUBSCRIPTION") {
-    const meta = intent.metadata as Record<string, string | undefined>;
-    redirectPath = meta.username ? `/u/${meta.username}?subscribed=1` : "/";
-  }
-
-  if (result.type === "FLOWER") {
-    redirectPath = "/flowers?tab=wallet";
-  }
-
-  if (result.type === "STUDIO_ASSET") {
-    const meta = intent.metadata as Record<string, string | undefined>;
-    redirectPath = meta.studioAssetId
-      ? `/studio/library?purchased=${meta.studioAssetId}`
-      : "/studio/library";
-  }
-
   return {
     success: true as const,
     type: result.type,
     alreadyPaid: result.alreadyPaid,
-    redirectPath,
+    redirectPath: checkoutRedirectPath(intent, result.type),
   };
 }
