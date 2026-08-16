@@ -11,8 +11,9 @@ const { spawn } = require("child_process");
 const CONCURRENT_WORKERS = 2;
 const RESERVED_MB = 1024;
 const LOW_MEMORY_MB = 12288;
-// Node's own default on an 8GB container; known to fit this build historically.
-const LOW_MEMORY_HEAP_MB = 4096;
+// Small containers run a single worker (NEXT_BUILD_CPUS=1), so it can take most
+// of the container. 4096 left too little headroom and the build spent ~30min in GC.
+const LOW_MEMORY_HEAP_MB = 6144;
 
 const totalMb = Math.floor(os.totalmem() / 1024 / 1024);
 const lowMemory = totalMb < LOW_MEMORY_MB;

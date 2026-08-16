@@ -98,7 +98,11 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     webpackMemoryOptimizations: true,
-    ...(process.env.NEXT_BUILD_CPUS ? { cpus: Number(process.env.NEXT_BUILD_CPUS) } : {}),
+    // On small build containers compile in-process: a separate webpack worker
+    // would need its own multi-GB heap and the container gets OOM killed.
+    ...(process.env.NEXT_BUILD_CPUS
+      ? { cpus: Number(process.env.NEXT_BUILD_CPUS), webpackBuildWorker: false }
+      : {}),
     serverActions: { bodySizeLimit: "50mb" },
     staleTimes: {
       dynamic: 120,
