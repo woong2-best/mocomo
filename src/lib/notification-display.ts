@@ -89,6 +89,7 @@ export function notificationIcon(type: string): {
     case "live":
       return { Icon: Radio, className: "text-rose-500" };
     case "tip":
+    case "live_cheer":
       return { Icon: Gem, className: "text-fuchsia-500" };
     case "emoticon_gift":
       return { Icon: Star, className: "text-yellow-500" };
@@ -137,7 +138,7 @@ export function notificationCategoryForType(type: string): string {
   }
   if (["dm", "dm_group", "call"].includes(type)) return "messages";
   if (type.startsWith("used_auction")) return "market";
-  if (["tip", "emoticon_gift", "goods_order"].includes(type)) return "commerce";
+  if (["tip", "emoticon_gift", "goods_order", "live_cheer"].includes(type)) return "commerce";
   if (["live", "clip_like", "clip_comment"].includes(type)) return "live";
   if (type === "community_join") return "community";
   return "other";

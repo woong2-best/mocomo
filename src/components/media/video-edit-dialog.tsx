@@ -381,7 +381,7 @@ export function VideoEditDialog({
         </DialogHeader>
 
         {/* 미리보기 */}
-        <div className="relative w-full h-[min(40vh,300px)] sm:h-[min(44vh,340px)] bg-neutral-900 shrink-0">
+        <div className="relative mx-5 w-[calc(100%-2.5rem)] h-[min(40vh,300px)] sm:h-[min(44vh,340px)] bg-[#152238] dark:bg-[#0A0E18] shrink-0 rounded-2xl border-2 border-primary/15 overflow-hidden shadow-[3px_4px_0_rgba(27,74,140,0.12)]">
           {previewUrl ? (
             <VideoPreviewCanvas
               src={previewUrl}

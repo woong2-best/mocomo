@@ -184,6 +184,33 @@ export function FeedVideoViewer({
     };
   }, [syncActiveFromScroll, groups.length]);
 
+  // Re-snap active slide after rotate so 100dvh reflow does not leave it mid-viewport.
+  useEffect(() => {
+    const root = scrollerRef.current;
+    if (!root) return;
+    let timer: number | null = null;
+    const resnap = () => {
+      if (timer != null) window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        const el = root.querySelector<HTMLElement>(
+          `[data-reel-index="${activeIndex}"]`
+        );
+        el?.scrollIntoView({
+          behavior: "instant" as ScrollBehavior,
+          block: "start",
+        });
+      }, 120);
+    };
+    window.addEventListener("orientationchange", resnap);
+    const orient = window.screen?.orientation;
+    orient?.addEventListener?.("change", resnap);
+    return () => {
+      if (timer != null) window.clearTimeout(timer);
+      window.removeEventListener("orientationchange", resnap);
+      orient?.removeEventListener?.("change", resnap);
+    };
+  }, [activeIndex]);
+
   const goTo = useCallback(
     (index: number) => {
       const clamped = Math.max(0, Math.min(groups.length - 1, index));

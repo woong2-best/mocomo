@@ -2,7 +2,6 @@
 
 import { PayButton } from "@/components/payments/pay-button";
 import { usePathname } from "next/navigation";
-import { formatKrwWithMocoHint } from "@/lib/moco-display";
 
 export function PurchasePostMediaButton({
   mediaId,
@@ -47,25 +46,19 @@ export function PurchasePostMediaButton({
         >
           {label}
         </PayButton>
-        {priceKrw > 0 && (
-          <p className="text-[10px] text-white/75">{formatKrwWithMocoHint(priceKrw)}</p>
-        )}
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center gap-1">
-      <PayButton
-        type="POST_MEDIA"
-        amount={priceKrw}
-        orderName={label}
-        metadata={{ mediaId, username, postId, returnPath }}
-        className="rounded-full h-9 px-4 text-xs gap-1.5 bg-white text-foreground hover:bg-white/90"
-      >
-        {priceKrw.toLocaleString()}원 · {label}
-      </PayButton>
-      <p className="text-[10px] text-white/75">{formatKrwWithMocoHint(priceKrw)}</p>
-    </div>
+    <PayButton
+      type="POST_MEDIA"
+      amount={priceKrw}
+      orderName={label}
+      metadata={{ mediaId, username, postId, returnPath }}
+      className="rounded-full h-9 px-4 text-xs gap-1.5 bg-white text-foreground hover:bg-white/90"
+    >
+      {priceKrw.toLocaleString()}원 · {label}
+    </PayButton>
   );
 }

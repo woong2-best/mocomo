@@ -18,7 +18,7 @@ import { PostPollCard } from "@/components/post/post-poll-card";
 import { PostCollaboratorsHeader } from "@/components/post/post-collaborators-header";
 import { MotionPop } from "@/components/motion/motion-primitives";
 import { useOptimisticLike, useOptimisticStar } from "@/lib/use-optimistic-engage";
-import { PaidPostMediaGrid } from "@/components/profile/paid-post-media-grid";
+import { FeedPostMediaCarousel } from "@/components/feed/feed-post-media-carousel";
 import type { ProfilePostMediaItem } from "@/components/profile/paid-post-media-grid";
 import { TranslatableText } from "@/components/ui/translatable-text";
 import { postHasVisualMedia } from "@/lib/format-feed";
@@ -121,14 +121,15 @@ export function FeedTimelinePostCard({
                 </div>
               )}
               {hasMedia && post.media && (
-                <PaidPostMediaGrid
+                <FeedPostMediaCarousel
                   media={post.media as ProfilePostMediaItem[]}
                   postId={post.id}
                   authorUsername={post.author.username}
                   authorId={post.author.id}
                   paymentsEnabled={false}
-                  mediaTotal={post._count?.media ?? post.media.length}
                   postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
+                  isNsfw={post.isNsfw}
+                  isOwner={isOwner}
                   onDoubleTapLike={() => {
                     if (!requireLogin()) return;
                     setActionError("");

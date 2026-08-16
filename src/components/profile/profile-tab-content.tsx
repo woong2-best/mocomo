@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
 import type { ProfileGridMediaItem } from "@/actions/profile-page";
 import { ProfileMediaGrid } from "@/components/profile/profile-media-grid";
 import { ProfileTimeline, type TimelineItem } from "@/components/profile/profile-timeline";
@@ -92,26 +91,6 @@ function ProfileWikiList({ data, emptyMessage }: { data: WikiData; emptyMessage:
   );
 }
 
-function ProfileTabLoading() {
-  return (
-    <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
-      <Loader2 className="h-5 w-5 animate-spin text-primary" />
-      불러오는 중…
-    </div>
-  );
-}
-
-function ProfileTabProgress() {
-  return (
-    <div
-      className="pointer-events-none absolute inset-x-0 top-0 z-10 h-0.5 overflow-hidden bg-primary/10"
-      aria-hidden
-    >
-      <div className="h-full w-full animate-moco-pulse-soft bg-primary/70" />
-    </div>
-  );
-}
-
 export function ProfileTabContent({
   username,
   meta,
@@ -140,7 +119,6 @@ export function ProfileTabContent({
     let cancelled = false;
     setLoading(true);
     setLoadError("");
-    // Keep previous display (stale-while-revalidate) — never blank the UI on tab change
 
     const params = new URLSearchParams();
     if (effectiveTab !== "posts") params.set("tab", effectiveTab);
@@ -191,12 +169,10 @@ export function ProfileTabContent({
     };
   }, [activeKey, effectiveTab, sort, kind, username, retryCount]);
 
-  const showProgress = loading && Boolean(display);
   const isStale = Boolean(display && display.key !== activeKey);
 
-  // Initial load only — never replace existing content with a full-page spinner
   if (loading && !display) {
-    return <ProfileTabLoading />;
+    return <div className="min-h-[12rem]" aria-busy="true" />;
   }
 
   if (loadError && !display) {
@@ -210,7 +186,7 @@ export function ProfileTabContent({
     );
   }
 
-  if (!display) return <ProfileTabLoading />;
+  if (!display) return <div className="min-h-[12rem]" aria-busy="true" />;
 
   const { payload } = display;
   const shown = parseQueryKey(display.key);
@@ -220,7 +196,6 @@ export function ProfileTabContent({
 
   return (
     <div className="relative">
-      {showProgress ? <ProfileTabProgress /> : null}
       {loadError && isStale ? (
         <div className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-2 text-xs text-destructive">
           <span>{loadError}</span>
@@ -229,7 +204,7 @@ export function ProfileTabContent({
           </Button>
         </div>
       ) : null}
-      <div className={showProgress ? "opacity-60 transition-opacity" : undefined}>
+      <div className={loading && isStale ? "opacity-60 transition-opacity" : undefined}>
         {payload.kind === "wiki" ? (
           <ProfileWikiList data={payload.data} emptyMessage={emptyMessage} />
         ) : payload.kind === "media" ? (

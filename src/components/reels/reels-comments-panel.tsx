@@ -456,9 +456,9 @@ function CommentRow({
       )}
     >
       <Link href={`/u/${comment.author.username}`} className="shrink-0 self-start">
-        <Avatar className="!h-8 !w-8 !rounded-full !ring-0">
-          <AvatarImage src={comment.author.image ?? undefined} alt="" className="!rounded-full" />
-          <AvatarFallback className="!rounded-full bg-neutral-700 text-[11px] text-white">
+        <Avatar className="!h-8 !w-8">
+          <AvatarImage src={comment.author.image ?? undefined} alt="" />
+          <AvatarFallback className="bg-neutral-700 text-[11px] text-white">
             {(comment.author.name || comment.author.username).slice(0, 1).toUpperCase()}
           </AvatarFallback>
         </Avatar>

@@ -139,7 +139,8 @@ export function FeedVideoExpandLightbox({
               src={current.media.url}
               className="h-full max-h-full w-full max-w-5xl object-contain"
               mediaId={current.media.id}
-              muted={false}
+              // Start muted so mobile autoplay is allowed; user can unmute in chrome.
+              muted
               controls
               autoPlayOnView
               poster={current.media.posterUrl ?? undefined}

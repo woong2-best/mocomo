@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { EyeOff, Loader2, Play } from "lucide-react";
+import { Loader2, Play } from "lucide-react";
 import type { ProfileGridMediaItem } from "@/actions/profile-page";
 import type { ProfileMediaKind, ProfileSort } from "@/lib/profile-queries";
 import { Button } from "@/components/ui/button";
 import { LockedMediaPaywallOverlay } from "@/components/media/locked-media-paywall-overlay";
+import { SensitiveContentGate } from "@/components/media/sensitive-content-gate";
 import { PurchasePostMediaButton } from "@/components/profile/purchase-post-media-button";
 import { subscribePostDeleted } from "@/lib/post-deleted-sync";
 
@@ -45,15 +46,11 @@ function MediaTile({
 
   if (item.hideNsfw) {
     return (
-      <Link
-        href={`/post/${item.postId}`}
-        className="group relative block aspect-square min-w-0 w-full overflow-hidden bg-neutral-900"
-      >
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-neutral-800/95 px-2 text-center">
-          <EyeOff className="h-6 w-6 text-white/70" />
-          <p className="text-[11px] font-medium leading-tight text-white/80">민감한 콘텐츠</p>
-        </div>
-      </Link>
+      <div className="group relative block aspect-square min-w-0 w-full overflow-hidden bg-neutral-900">
+        <SensitiveContentGate isNsfw className="h-full w-full">
+          {blurredThumb}
+        </SensitiveContentGate>
+      </div>
     );
   }
 

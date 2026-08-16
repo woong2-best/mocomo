@@ -2,7 +2,6 @@ import { ProfileFollowButton } from "@/components/profile/profile-follow-button"
 import { StartDmButton } from "@/components/messages/start-dm-button";
 import { TipCreatorDialog } from "@/components/support/tip-creator-dialog";
 import { SubscribeCreatorButton } from "@/components/monetization/subscribe-creator-button";
-import { SendFlowerButton } from "@/components/flower/send-flower-button";
 import { SupportTierLevel } from "@prisma/client";
 
 export function ProfileHeaderActionBar({
@@ -58,7 +57,6 @@ export function ProfileHeaderActionBar({
         paymentsEnabled={paymentsEnabled}
         returnPath={`/u/${username}`}
       />
-      <SendFlowerButton username={username} context="PROFILE" contextId={userId} />
       <StartDmButton userId={userId} />
     </div>
   );

@@ -9,6 +9,7 @@ import { CallProviderGate } from "@/components/call/call-provider-gate";
 import { ComposeProvider } from "@/components/compose/compose-provider";
 import { PublishedToastProvider } from "@/components/providers/published-toast-provider";
 import { SidebarToggleProvider } from "@/components/providers/sidebar-toggle-provider";
+import { TopProgressProvider } from "@/components/providers/top-progress-provider";
 import type { Locale } from "@/lib/i18n/config";
 
 const PlatformBootstrapClient = dynamic(
@@ -51,6 +52,7 @@ export function AppProviders({
         initialCountryCode={initialCountryCode}
         initialTimeZone={initialTimeZone}
       >
+        <TopProgressProvider>
         <AppSocketProvider>
           <QueryProvider>
           <PublishedToastProvider>
@@ -68,6 +70,7 @@ export function AppProviders({
           </PublishedToastProvider>
           </QueryProvider>
         </AppSocketProvider>
+        </TopProgressProvider>
       </LocaleProvider>
     </SessionProvider>
   );

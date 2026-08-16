@@ -7,7 +7,6 @@ import type { ProfileMediaKind, ProfileSort, ProfileTab } from "@/lib/profile-qu
 import { appendProfileSortParam } from "@/lib/profile-queries";
 import { Button } from "@/components/ui/button";
 import { subscribePostDeleted } from "@/lib/post-deleted-sync";
-import { Loader2 } from "lucide-react";
 
 export type TimelineItem =
   | { type: "post"; post: GridPost & { createdAt: string | Date; isPinned?: boolean } }
@@ -198,7 +197,7 @@ export function ProfileTimeline({
         );
       })}
       <div ref={sentinel} className="flex flex-col items-center gap-2 py-6">
-        {loading && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
+        {loading ? <div className="h-5" aria-busy="true" /> : null}
         {loadError && (
           <>
             <p className="text-sm text-destructive">{loadError}</p>

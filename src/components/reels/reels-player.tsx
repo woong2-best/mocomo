@@ -82,6 +82,8 @@ export function ReelsPlayer({
   const longPressTimer = useRef<number | null>(null);
   const longPressFired = useRef(false);
   const attachedSrcRef = useRef<string | null>(null);
+  const isActiveRef = useRef(isActive);
+  isActiveRef.current = isActive;
 
   const { src: playbackSrc, mode } = resolveReelPlaybackSrc({ url: src, hlsUrl });
   const shouldMountMedia = distance <= 3;
@@ -207,7 +209,8 @@ export function ReelsPlayer({
           setInView(true);
         } else if (ratio <= REELS_AUTOPAUSE_THRESHOLD) {
           setInView(false);
-          pauseSelf();
+          // Active snap slide: ignore transient IO dips from rotate / dvh reflow.
+          if (!isActiveRef.current) pauseSelf();
         }
       },
       { threshold: [0, REELS_AUTOPAUSE_THRESHOLD, REELS_AUTOPLAY_THRESHOLD, 0.9, 1] }
@@ -217,12 +220,38 @@ export function ReelsPlayer({
   }, [pauseSelf]);
 
   useEffect(() => {
-    if ((isActive || inView) && distance === 0) {
+    // Settled active slide always owns playback — do not require inView
+    // (orientation change briefly collapses intersection ratios).
+    if (isActive && distance === 0) {
       void tryPlay();
-    } else if (distance > 0 || !inView) {
+      return;
+    }
+    if (distance > 0 || !inView) {
       pauseSelf();
+    } else if (inView && distance === 0) {
+      void tryPlay();
     }
   }, [distance, inView, isActive, pauseSelf, tryPlay]);
+
+  // After rotate layout settles, resume the active reel.
+  useEffect(() => {
+    if (!isActive || distance !== 0) return;
+    let timer: number | null = null;
+    const resume = () => {
+      if (timer != null) window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        void tryPlay();
+      }, 180);
+    };
+    window.addEventListener("orientationchange", resume);
+    const orient = window.screen?.orientation;
+    orient?.addEventListener?.("change", resume);
+    return () => {
+      if (timer != null) window.clearTimeout(timer);
+      window.removeEventListener("orientationchange", resume);
+      orient?.removeEventListener?.("change", resume);
+    };
+  }, [distance, isActive, tryPlay]);
 
   useEffect(() => {
     const video = videoRef.current;

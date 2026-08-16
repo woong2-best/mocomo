@@ -1,14 +1,18 @@
-﻿import * as React from "react";
+import * as React from "react";
 import { cn } from "@/lib/utils";
 
-/** 프로필·게시글 아바타 — 둥근 모서리 사각형 */
-export const avatarShapeClass = "rounded-xl";
+/**
+ * MoCoMo folk avatar — squircle (rounded square), never a circle.
+ * Outer pale cobalt ring + terracotta fallback (matches brand avatar chip).
+ */
+export const avatarShapeClass = "rounded-[28%]";
 
 function Avatar({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
-        "relative flex h-10 w-10 shrink-0 overflow-hidden ring-2 ring-border",
+        "relative flex h-10 w-10 shrink-0 overflow-hidden",
+        "ring-2 ring-[hsl(var(--folk-cobalt)/0.28)] ring-offset-1 ring-offset-background",
         avatarShapeClass,
         className
       )}
@@ -21,7 +25,11 @@ function AvatarImage({ className, src, alt }: { className?: string; src?: string
   if (!src) return null;
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={alt || ""} className={cn("aspect-square h-full w-full object-cover", className)} />
+    <img
+      src={src}
+      alt={alt || ""}
+      className={cn("aspect-square h-full w-full object-cover", avatarShapeClass, className)}
+    />
   );
 }
 

@@ -379,7 +379,7 @@ export function ImageEditorDialog({
 
         <div
           ref={photoRef}
-          className="relative w-full h-[min(44vh,320px)] sm:h-[min(48vh,360px)] bg-neutral-900 shrink-0 touch-none flex items-center justify-center overflow-hidden"
+          className="relative mx-5 w-[calc(100%-2.5rem)] h-[min(44vh,320px)] sm:h-[min(48vh,360px)] bg-[#152238] dark:bg-[#0A0E18] shrink-0 touch-none flex items-center justify-center overflow-hidden rounded-2xl border-2 border-primary/15 shadow-[3px_4px_0_rgba(27,74,140,0.12)]"
         >
           {loading || !project || !canvasReady ? (
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

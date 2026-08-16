@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
 import {
   ProfileTabContent,
   type ProfileTabContentMeta,
@@ -32,12 +31,7 @@ export function ProfileTabContentShell({ username }: { username: string }) {
   }
 
   if (!meta) {
-    return (
-      <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin text-primary" />
-        불러오는 중…
-      </div>
-    );
+    return <div className="min-h-[12rem]" aria-busy="true" />;
   }
 
   return <ProfileTabContent username={username} meta={meta} />;

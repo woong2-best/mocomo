@@ -14,11 +14,15 @@ export type RegisteredPlayer = {
   autoplayIntent: boolean;
 };
 
+/** Some Android browsers briefly set document.hidden during orientation change. */
+const VISIBILITY_PAUSE_DEBOUNCE_MS = 280;
+
 class VideoPlaybackController {
   private players = new Map<string, RegisteredPlayer>();
   private activeId: string | null = null;
   private resumeId: string | null = null;
   private visibilityBound = false;
+  private visibilityPauseTimer: ReturnType<typeof setTimeout> | null = null;
   private lastScrollY = 0;
   private scrollDir: "down" | "up" = "down";
   private order: string[] = [];
@@ -133,18 +137,36 @@ class VideoPlaybackController {
     }
   }
 
+  private clearVisibilityPauseTimer(): void {
+    if (this.visibilityPauseTimer != null) {
+      clearTimeout(this.visibilityPauseTimer);
+      this.visibilityPauseTimer = null;
+    }
+  }
+
+  private pauseForVisibility(): void {
+    const current = this.activeId;
+    if (!current) return;
+    this.resumeId = current;
+    const player = this.players.get(current);
+    const v = player?.getVideo();
+    if (v && !v.paused) v.pause();
+    this.activeId = null;
+  }
+
   private onVisibility = (): void => {
     if (document.hidden) {
-      const current = this.activeId;
-      if (current) {
-        this.resumeId = current;
-        const player = this.players.get(current);
-        const v = player?.getVideo();
-        if (v && !v.paused) v.pause();
-        this.activeId = null;
-      }
+      // Debounce: orientation rotate can flip hidden→visible within ~100–200ms.
+      this.clearVisibilityPauseTimer();
+      this.visibilityPauseTimer = setTimeout(() => {
+        this.visibilityPauseTimer = null;
+        if (!document.hidden) return;
+        this.pauseForVisibility();
+      }, VISIBILITY_PAUSE_DEBOUNCE_MS);
       return;
     }
+
+    this.clearVisibilityPauseTimer();
 
     const resume = this.resumeId;
     if (!resume) return;
