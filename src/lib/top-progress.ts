@@ -23,8 +23,16 @@ export const TOP_PROGRESS_IDLE: TopProgressSnapshot = {
   fading: false,
 };
 
-/** Absolute max time the bar may stay up after first start. */
-const SAFETY_DEADLINE_MS = 4_000;
+/**
+ * When work outlives this, the bar stops advancing and parks at the hold width
+ * rather than disappearing. Measured cold navigations run to ~9s, and a bar that
+ * vanishes while the app is still frozen reads as "nothing is happening".
+ */
+const STALL_AFTER_MS = 4_000;
+/** Width the bar parks at while still waiting. */
+const STALL_PROGRESS = 0.92;
+/** Hard ceiling — past this something is genuinely wrong, so clear the bar. */
+const ABANDON_AFTER_MS = 30_000;
 
 class TopProgressController {
   private count = 0;
@@ -33,6 +41,7 @@ class TopProgressController {
   private fading = false;
   private hideTimer: ReturnType<typeof setTimeout> | null = null;
   private safetyTimer: ReturnType<typeof setTimeout> | null = null;
+  private abandonTimer: ReturnType<typeof setTimeout> | null = null;
   private crawlTimer: ReturnType<typeof setTimeout> | null = null;
   private listeners = new Set<Listener>();
   private cached: TopProgressSnapshot = TOP_PROGRESS_IDLE;
@@ -97,17 +106,29 @@ class TopProgressController {
     if (this.safetyTimer) return; // do not refresh
     this.safetyTimer = setTimeout(() => {
       this.safetyTimer = null;
-      if (this.count > 0 || this.active) {
-        this.count = 0;
-        this.reset();
-      }
-    }, SAFETY_DEADLINE_MS);
+      if (this.count === 0 && !this.active) return;
+      // Still waiting: hold instead of vanishing.
+      this.clearCrawl();
+      this.progress = STALL_PROGRESS;
+      this.emit();
+      this.abandonTimer = setTimeout(() => {
+        this.abandonTimer = null;
+        if (this.count > 0 || this.active) {
+          this.count = 0;
+          this.reset();
+        }
+      }, ABANDON_AFTER_MS - STALL_AFTER_MS);
+    }, STALL_AFTER_MS);
   }
 
   private clearSafety(): void {
     if (this.safetyTimer) {
       clearTimeout(this.safetyTimer);
       this.safetyTimer = null;
+    }
+    if (this.abandonTimer) {
+      clearTimeout(this.abandonTimer);
+      this.abandonTimer = null;
     }
   }
 
