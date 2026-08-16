@@ -41,6 +41,8 @@ export async function GET(
       externalId: true,
       externalWatchUrl: true,
       description: true,
+      createdAt: true,
+      donationAlertsOnStream: true,
       members: {
         where: { lastSeenAt: { gte: liveViewerCutoff() } },
         select: { id: true },
@@ -114,6 +116,8 @@ export async function GET(
       isExternal,
       external,
       paymentsEnabled: isPaymentsConfigured(),
+      streamStartedAt: channel.createdAt.toISOString(),
+      donationAlertsOnStream: channel.donationAlertsOnStream === true,
       host: host
         ? {
             id: host.id,

@@ -2,9 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { signIn } from "next-auth/react";
-import { BrandLogo } from "@/components/brand/brand-logo";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   isMobileOAuthProvider,
   MOBILE_OAUTH_COOKIE,
@@ -13,6 +10,8 @@ import {
   type MobileOAuthProvider,
 } from "@/lib/mobile-oauth-shared";
 import { OAUTH_FLOW_COOKIE, persistOAuthFlowIntent } from "@/lib/oauth-flow-cookie";
+import { BrandLogo } from "@/components/brand/brand-logo";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 /**
  * Mobile app opens this page inside AuthSession.
@@ -66,10 +65,19 @@ export function MobileOAuthStartClient({
     }
 
     if (p === "naver") {
+      if (mode === "signin") {
+        const params = new URLSearchParams({
+          provider: "naver",
+          platform,
+          flow: mode,
+          callbackUrl: completeUrl,
+        });
+        if (redirectUri) params.set("redirect_uri", redirectUri);
+        window.location.replace(`/api/auth/mobile/provider-signin?${params}`);
+        return;
+      }
       window.location.replace(
-        mode === "signin"
-          ? `/auth/signin?from=mobile&platform=${platform}&callbackUrl=${encodeURIComponent(completeUrl)}`
-          : `/auth/signup/naver?from=mobile&platform=${platform}&callbackUrl=${encodeURIComponent(completeUrl)}`
+        `/auth/signup/naver?from=mobile&platform=${platform}&callbackUrl=${encodeURIComponent(completeUrl)}`
       );
       return;
     }
@@ -87,10 +95,14 @@ export function MobileOAuthStartClient({
       return;
     }
 
-    // Same as web SocialAuthButtons: signIn(providerId, { callbackUrl })
-    void signIn(p, { callbackUrl: completeUrl }).catch(() => {
-      setError("소셜 로그인을 시작하지 못했습니다. 다시 시도해 주세요.");
+    const params = new URLSearchParams({
+      provider: p,
+      platform,
+      flow: mode,
+      callbackUrl: completeUrl,
     });
+    if (redirectUri) params.set("redirect_uri", redirectUri);
+    window.location.replace(`/api/auth/mobile/provider-signin?${params}`);
   }, [
     provider,
     mode,

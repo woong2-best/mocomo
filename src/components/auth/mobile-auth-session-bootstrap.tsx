@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { setAddAccountFlowCookie } from "@/lib/account-switch/add-account-flow";
 import {
   MOBILE_OAUTH_COOKIE,
   MOBILE_OAUTH_REDIRECT_COOKIE,
@@ -21,6 +22,10 @@ export function MobileAuthSessionBootstrap() {
     }
     const platform = params.get("platform") === "ios" ? "ios" : "android";
     document.cookie = `mocomo_mobile_platform=${platform}; Path=/; Max-Age=1800; SameSite=Lax`;
+
+    if (params.get("addAccount") === "1") {
+      setAddAccountFlowCookie();
+    }
   }, [params]);
 
   return null;

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { getMobileUserId } from "@/lib/api-mobile-auth";
+import {
+  getCommunityBrandingPermissions,
+  updateCommunityBrandingForUser,
+} from "@/lib/community-mobile-mutate";
 import { normalizeCommunitySlugParam } from "@/lib/community-slug";
 import { db } from "@/lib/db";
 
@@ -48,6 +52,12 @@ export async function GET(
     });
   }
 
+  const branding = await getCommunityBrandingPermissions(
+    community.id,
+    viewerId,
+    community.creatorId
+  );
+
   const posts = await db.post.findMany({
     where: { communityId: community.id },
     take: 20,
@@ -78,7 +88,9 @@ export async function GET(
       createdAt: community.createdAt.toISOString(),
       isMember: !!membership,
       role: membership?.role ?? null,
-      isOwner: membership?.role === "owner" || community.creatorId === viewerId,
+      isOwner: branding.isOwner,
+      canEditIcon: branding.canEditIcon,
+      canEditBanner: branding.canEditBanner,
       posts: posts.map((p) => ({
         id: p.id,
         title: p.title,
@@ -90,5 +102,46 @@ export async function GET(
         commentCount: p._count.comments,
       })),
     },
+  });
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  const limited = await rateLimitPublicApi(req, "mobile-community-patch", 20);
+  if (limited) return limited;
+
+  const userId = await getMobileUserId(req);
+  if (!userId) {
+    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+  }
+
+  const { slug: raw } = await params;
+  const slug = normalizeCommunitySlugParam(raw);
+  if (!slug || slug.length > 80) {
+    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+  }
+
+  let body: { iconUrl?: string | null; bannerUrl?: string | null };
+  try {
+    body = (await req.json()) as typeof body;
+  } catch {
+    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+  }
+
+  const result = await updateCommunityBrandingForUser(userId, slug, {
+    iconUrl: body.iconUrl,
+    bannerUrl: body.bannerUrl,
+  });
+
+  if ("error" in result) {
+    return NextResponse.json({ error: result.error }, { status: result.status ?? 400 });
+  }
+
+  return NextResponse.json({
+    success: true,
+    iconUrl: result.iconUrl,
+    bannerUrl: result.bannerUrl,
   });
 }

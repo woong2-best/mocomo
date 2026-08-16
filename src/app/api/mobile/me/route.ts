@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { db } from "@/lib/db";
@@ -11,8 +12,14 @@ import {
   assertAccountCanWrite,
   isServiceBanned,
 } from "@/lib/account-status";
+import { FEED_POSTS_CACHE_TAG, profileUserCacheTag } from "@/lib/cache-tags";
 import { isLocale, normalizeLocale } from "@/lib/i18n/config";
 import { normalizeTimeZone } from "@/lib/i18n/timezone";
+import {
+  applyProfileUpdateForUser,
+  getProfileSettingsForUser,
+} from "@/lib/profile-update-service";
+import { isValidUsername, normalizeUsername } from "@/lib/username-policy";
 
 const meSelect = {
   id: true,
@@ -64,6 +71,8 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  const settings = await getProfileSettingsForUser(userId);
+
   return NextResponse.json({
     user: {
       id: user.id,
@@ -82,14 +91,42 @@ export async function GET(req: NextRequest) {
         followers: user._count.followers,
         following: user._count.following,
       },
+      settings: settings
+        ? {
+            mainCharacter: settings.mainCharacter,
+            favoriteTags: settings.favoriteTags,
+            location: settings.location,
+            website: settings.website,
+            showNsfw: settings.showNsfw,
+            birthYear: settings.birthYear,
+            birthMonth: settings.birthMonth,
+            birthDay: settings.birthDay,
+            showBirthdayOnProfile: settings.showBirthdayOnProfile,
+            usernameChangesRemaining: settings.usernameChangesRemaining,
+            usernameChangeResetAt: settings.usernameChangeResetAt,
+          }
+        : null,
     },
   });
 }
 
 const patchSchema = z.object({
   name: z.string().min(1).max(80).optional(),
-  bio: z.string().max(1000).optional(),
+  bio: z.string().max(160).optional(),
   image: z.string().url().max(2000).optional().nullable(),
+  bannerUrl: z.string().url().max(2000).optional().nullable(),
+  bannerVideoUrl: z.string().url().max(2000).optional().nullable(),
+  username: z.string().min(3).max(20).optional(),
+  mainCharacter: z.string().max(120).optional(),
+  favoriteTags: z.array(z.string().max(80)).max(32).optional(),
+  location: z.string().max(120).optional(),
+  website: z.string().max(200).optional(),
+  showNsfw: z.boolean().optional(),
+  showBirthdayOnProfile: z.boolean().optional(),
+  birthYear: z.number().int().min(1900).max(2100).optional(),
+  birthMonth: z.number().int().min(1).max(12).optional(),
+  birthDay: z.number().int().min(1).max(31).optional(),
+  clearBirthDate: z.boolean().optional(),
   locale: z.string().optional(),
   countryCode: z.string().min(2).max(8).optional(),
   timeZone: z.string().min(1).max(64).optional(),
@@ -118,13 +155,61 @@ export async function PATCH(req: NextRequest) {
   if (data.locale && !isLocale(data.locale)) {
     return NextResponse.json({ error: "지원하지 않는 언어입니다." }, { status: 400 });
   }
+  if (data.username !== undefined && !isValidUsername(normalizeUsername(data.username))) {
+    return NextResponse.json(
+      { error: "아이디는 영문·숫자·_ 3~20자입니다." },
+      { status: 400 }
+    );
+  }
 
-  await db.$transaction(async (tx) => {
-    await tx.user.update({
+  const currentUsername = auth.user.username;
+  const usernameChanged =
+    data.username !== undefined &&
+    normalizeUsername(data.username) !== normalizeUsername(currentUsername);
+
+  const snsLinks: Record<string, string> = {};
+  if (data.location !== undefined && data.location.trim()) {
+    snsLinks.location = data.location.trim();
+  }
+  if (data.website !== undefined && data.website.trim()) {
+    snsLinks.website = data.website.trim();
+  }
+
+  const result = await applyProfileUpdateForUser(auth.user.id, {
+    ...(data.name !== undefined ? { name: data.name.trim() } : {}),
+    ...(data.bio !== undefined ? { bio: data.bio } : {}),
+    ...(data.image !== undefined ? { image: data.image } : {}),
+    ...(data.bannerUrl !== undefined ? { bannerUrl: data.bannerUrl } : {}),
+    ...(data.bannerVideoUrl !== undefined ? { bannerVideoUrl: data.bannerVideoUrl } : {}),
+    ...(usernameChanged ? { username: normalizeUsername(data.username!) } : {}),
+    ...(data.mainCharacter !== undefined ? { mainCharacter: data.mainCharacter } : {}),
+    ...(data.favoriteTags !== undefined ? { favoriteTags: data.favoriteTags } : {}),
+    ...(data.showNsfw !== undefined ? { showNsfw: data.showNsfw } : {}),
+    ...(data.showBirthdayOnProfile !== undefined
+      ? { showBirthdayOnProfile: data.showBirthdayOnProfile }
+      : {}),
+    ...(data.clearBirthDate
+      ? { clearBirthDate: true }
+      : data.birthYear !== undefined &&
+          data.birthMonth !== undefined &&
+          data.birthDay !== undefined
+        ? {
+            birthYear: data.birthYear,
+            birthMonth: data.birthMonth,
+            birthDay: data.birthDay,
+          }
+        : {}),
+    ...(Object.keys(snsLinks).length > 0 ? { snsLinks } : {}),
+  });
+
+  if ("error" in result) {
+    return NextResponse.json({ error: result.error }, { status: 400 });
+  }
+
+  if (data.locale || data.countryCode || data.timeZone) {
+    await db.user.update({
       where: { id: auth.user.id },
       data: {
-        ...(data.name !== undefined ? { name: data.name.trim() } : {}),
-        ...(data.image !== undefined ? { image: data.image } : {}),
         ...(data.locale ? { locale: normalizeLocale(data.locale) } : {}),
         ...(data.countryCode
           ? { countryCode: data.countryCode.trim().toUpperCase() }
@@ -132,14 +217,28 @@ export async function PATCH(req: NextRequest) {
         ...(data.timeZone ? { timeZone: normalizeTimeZone(data.timeZone) } : {}),
       },
     });
-    if (data.bio !== undefined) {
-      await tx.profile.upsert({
-        where: { userId: auth.user.id },
-        create: { userId: auth.user.id, bio: data.bio },
-        update: { bio: data.bio },
-      });
+  }
+
+  if (
+    data.name !== undefined ||
+    data.image !== undefined ||
+    usernameChanged
+  ) {
+    revalidateTag(FEED_POSTS_CACHE_TAG);
+    revalidatePath(`/cosplay/${currentUsername}`);
+    if (usernameChanged && data.username) {
+      revalidatePath(`/cosplay/${normalizeUsername(data.username)}`);
     }
-  });
+  }
+
+  revalidatePath(`/u/${currentUsername}`);
+  revalidateTag(profileUserCacheTag(currentUsername));
+  if (usernameChanged && data.username) {
+    const next = normalizeUsername(data.username);
+    revalidatePath(`/u/${next}`);
+    revalidateTag(profileUserCacheTag(next));
+  }
+  revalidatePath("/settings/profile");
 
   return NextResponse.json({ ok: true });
 }

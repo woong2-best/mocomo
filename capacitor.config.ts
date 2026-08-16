@@ -1,3 +1,8 @@
+/**
+ * @deprecated LEGACY — Capacitor WebView is not the MoCoMo product path.
+ * Product app: apps/mobile (React Native / Expo). See docs/CAPACITOR_LEGACY.md
+ * and docs/MOBILE_APP_ARCHITECTURE.md.
+ */
 import type { CapacitorConfig } from "@capacitor/cli";
 
 const appServerUrl =
@@ -8,7 +13,7 @@ const appServerUrl =
 const config: CapacitorConfig = {
   appId: "net.mocomo.app",
   appName: "MoCoMo",
-  // Remote WebView shell — do not bundle full `public/` (~700MB) into the AAB.
+  // LEGACY Remote WebView shell — do not bundle full `public/` (~700MB) into the AAB.
   webDir: "android-web",
   server: {
     url: appServerUrl,
