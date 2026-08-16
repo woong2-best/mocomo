@@ -325,6 +325,7 @@ export function FeedVideoPostSlide({
                   hlsUrl={reel.media.hlsUrl}
                   poster={reel.media.posterUrl}
                   mediaId={reel.media.id}
+                  mediaPriceKrw={reel.media.priceKrw}
                   distance={d}
                   isActive={isActive && isCurrent}
                   muted={muted}

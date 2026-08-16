@@ -58,19 +58,30 @@ export async function verifyPaidVideoAccess(userId: string, contentId: string) {
 
   if (locked) throw new WatermarkAccessError(403, "Purchase required");
 
+  // The rights holder is not a leak suspect, so their own playback is exempt.
+  if (userId === media.post.authorId) {
+    throw new WatermarkAccessError(403, "Author playback does not require forensic session");
+  }
+
   const purchase = await db.postMediaPurchase.findUnique({
     where: { buyerId_mediaId: { buyerId: userId, mediaId: contentId } },
     select: { id: true },
   });
-
-  if (!purchase) {
-    if (userId === media.post.authorId) {
-      throw new WatermarkAccessError(403, "Author playback does not require forensic session");
-    }
-    throw new WatermarkAccessError(403, "Purchase record required");
+  if (purchase) {
+    return { media, purchaseId: purchase.id, subscriptionId: null };
   }
 
-  return { media, purchaseId: purchase.id };
+  // Subscribers reach the same paid video without ever creating a purchase row.
+  // Refusing them a session would hand out an unwatermarked stream.
+  if (subscription) {
+    const row = await db.subscription.findFirst({
+      where: { subscriberId: userId, creatorId: media.post.authorId, status: "active" },
+      select: { id: true },
+    });
+    if (row) return { media, purchaseId: null, subscriptionId: row.id };
+  }
+
+  throw new WatermarkAccessError(403, "Purchase record required");
 }
 
 export async function createWatermarkSession(
@@ -84,7 +95,9 @@ export async function createWatermarkSession(
     throw new WatermarkAccessError(503, "Watermark secret not configured");
   }
 
-  const { purchaseId } = await verifyPaidVideoAccess(userId, contentId);
+  const { purchaseId, subscriptionId } = await verifyPaidVideoAccess(userId, contentId);
+  // Whichever entitlement granted access is what the codeword binds to.
+  const accessRef = purchaseId ?? `sub:${subscriptionId}`;
   const watermarkVersion = getWatermarkVersion();
   const expiresAt = new Date(Date.now() + WATERMARK_SESSION_TTL_MS);
   const pendingOpaque = `pending_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
@@ -94,6 +107,7 @@ export async function createWatermarkSession(
       contentId,
       userId,
       purchaseId,
+      subscriptionId,
       opaqueWatermarkId: pendingOpaque,
       watermarkVersion,
       sessionNonce: "",
@@ -106,7 +120,7 @@ export async function createWatermarkSession(
     contentId,
     sessionId: session.id,
     userId,
-    purchaseId,
+    purchaseId: accessRef,
     watermarkVersion,
   });
 
@@ -157,6 +171,7 @@ export async function loadDetectionCandidates(options: {
       contentId: true,
       userId: true,
       purchaseId: true,
+      subscriptionId: true,
       sessionNonce: true,
       watermarkVersion: true,
       opaqueWatermarkId: true,

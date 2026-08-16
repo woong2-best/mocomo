@@ -34,6 +34,9 @@ import {
   listSavedPaymentMethods,
 } from "@/lib/stripe-payment-methods";
 
+/** How long an unpaid order stays reusable for the same buyer + listing. */
+const ORDER_REUSE_WINDOW_MS = 60 * 60 * 1000;
+
 export type MarketplaceCheckoutInput = {
   listingId: string;
   quantity?: number;
@@ -65,6 +68,8 @@ type MarketplaceInitResult = {
   paymentIntent: { id: string };
   listing: MarketplaceListingRow;
   quantity: number;
+  /** Price the order was placed at, not whatever the listing says right now. */
+  unitAmount: number;
   shippingAmount: number;
   totalAmount: number;
   currency: string;
@@ -140,6 +145,60 @@ async function initMarketplacePurchase(
   const fees = computeMarketplaceFees(subtotal, shippingAmount);
   const totalAmount = fees.totalAmount;
 
+  const shippingFields = {
+    shipName: input.shipName?.trim() || null,
+    shipCountry: needsShipping ? normalizeShipCountry(input.shipCountry) : null,
+    shipPostal: input.shipPostal?.trim() || null,
+    shipAddress1: input.shipAddress1?.trim() || null,
+    shipAddress2: input.shipAddress2?.trim() || null,
+    shipPhone: input.shipPhone?.trim() || null,
+    buyerNote: input.buyerNote?.trim() || null,
+  };
+
+  // Opening the checkout sheet calls this. Without a reuse window, cancel-and-
+  // retry leaves a trail of dead orders and open Stripe intents per buyer, which
+  // also feeds bogus velocity into the risk assessment below.
+  const reusable = await db.marketplaceOrder.findFirst({
+    where: {
+      buyerId: buyer.id,
+      status: "AWAITING_PAYMENT",
+      subtotalAmount: subtotal,
+      shippingAmount,
+      createdAt: { gt: new Date(Date.now() - ORDER_REUSE_WINDOW_MS) },
+      items: { some: { listingId: listing.id, quantity } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (reusable) {
+    const openIntent = await db.paymentIntent.findFirst({
+      where: {
+        userId: buyer.id,
+        type: "MARKETPLACE",
+        status: "PENDING",
+        amount: totalAmount,
+        metadata: { path: ["marketplaceOrderId"], equals: reusable.id },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    if (openIntent) {
+      const order = await db.marketplaceOrder.update({
+        where: { id: reusable.id },
+        data: shippingFields,
+      });
+      return {
+        order,
+        paymentIntent: openIntent,
+        listing,
+        quantity,
+        unitAmount: listing.priceAmount,
+        shippingAmount,
+        totalAmount,
+        currency: (listing.currency || "krw").toLowerCase(),
+      };
+    }
+  }
+
   const order = await db.marketplaceOrder.create({
     data: {
       buyerId: buyer.id,
@@ -151,15 +210,7 @@ async function initMarketplacePurchase(
       platformFeeAmount: fees.platformFeeAmount,
       sellerEarnAmount: fees.sellerEarnAmount,
       currency: listing.currency || "krw",
-      shipName: input.shipName?.trim() || null,
-      shipCountry: needsShipping
-        ? normalizeShipCountry(input.shipCountry)
-        : null,
-      shipPostal: input.shipPostal?.trim() || null,
-      shipAddress1: input.shipAddress1?.trim() || null,
-      shipAddress2: input.shipAddress2?.trim() || null,
-      shipPhone: input.shipPhone?.trim() || null,
-      buyerNote: input.buyerNote?.trim() || null,
+      ...shippingFields,
       items: {
         create: {
           listingId: listing.id,
@@ -200,6 +251,7 @@ async function initMarketplacePurchase(
     paymentIntent,
     listing,
     quantity,
+    unitAmount: listing.priceAmount,
     shippingAmount,
     totalAmount,
     currency: (listing.currency || "krw").toLowerCase(),
@@ -252,7 +304,7 @@ async function createMarketplaceCheckoutSession(
       {
         price_data: {
           currency: init.currency,
-          unit_amount: init.listing.priceAmount,
+          unit_amount: init.unitAmount,
           product_data: {
             name: init.listing.title.slice(0, 120),
             description: `${init.listing.type} · ${init.listing.category}`.slice(0, 200),
@@ -415,8 +467,19 @@ export async function createMarketplaceCheckoutSessionForPaymentIntent(
   });
   if (!listing) return { error: "상품을 찾을 수 없습니다." };
 
+  if (listing.status !== "ACTIVE") {
+    return { error: "판매가 중단된 상품입니다." };
+  }
+
   const item = order.items[0];
   const quantity = item?.quantity ?? 1;
+  // Charge the price the order was placed at. Re-reading listing.priceAmount
+  // here would collect the seller's edited price, which fulfillMarketplaceOrder
+  // then rejects as a mismatch — after the buyer has already paid.
+  const unitAmount = item?.unitPrice ?? 0;
+  if (unitAmount * quantity + order.shippingAmount !== paymentIntent.amount) {
+    return { error: "주문 금액이 올바르지 않습니다. 다시 주문해 주세요." };
+  }
 
   if (paymentIntent.paymentKey) {
     const stripe = getStripe();
@@ -431,6 +494,12 @@ export async function createMarketplaceCheckoutSessionForPaymentIntent(
         return { error: "이미 결제가 진행된 주문입니다." };
       }
     }
+    // The stored key now points at a dead intent; leaving it behind breaks the
+    // saved-card path, which confirms whatever paymentKey holds.
+    await db.paymentIntent.update({
+      where: { id: paymentIntent.id },
+      data: { paymentKey: null },
+    });
   }
 
   return createMarketplaceCheckoutSession(
@@ -440,6 +509,7 @@ export async function createMarketplaceCheckoutSessionForPaymentIntent(
       paymentIntent: { id: paymentIntent.id },
       listing,
       quantity,
+      unitAmount,
       shippingAmount: order.shippingAmount,
       totalAmount: paymentIntent.amount,
       currency: (order.currency || "krw").toLowerCase(),

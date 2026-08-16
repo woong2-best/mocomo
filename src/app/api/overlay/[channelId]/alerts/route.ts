@@ -43,10 +43,12 @@ export async function GET(
     return NextResponse.json({ alerts: [] });
   }
 
-  const sinceDate = since ? new Date(since) : new Date(Date.now() - 10 * 60_000);
-  if (Number.isNaN(sinceDate.getTime())) {
+  const requested = since ? new Date(since) : new Date(Date.now() - 10 * 60_000);
+  if (Number.isNaN(requested.getTime())) {
     return NextResponse.json({ error: "since 형식이 올바르지 않습니다." }, { status: 400 });
   }
+  // Never reach behind the channel itself, whatever the caller asks for.
+  const sinceDate = new Date(Math.max(requested.getTime(), channel.createdAt.getTime()));
 
   const [tips, cheers, chats] = await Promise.all([
     db.tip.findMany({

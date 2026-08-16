@@ -31,7 +31,8 @@ export type DetectionCandidate = {
   id: string;
   contentId: string;
   userId: string;
-  purchaseId: string;
+  purchaseId: string | null;
+  subscriptionId?: string | null;
   sessionNonce: string;
   watermarkVersion: number;
   opaqueWatermarkId: string;
@@ -56,7 +57,9 @@ export function prepareCandidate(candidate: DetectionCandidate): PreparedCandida
     contentId: candidate.contentId,
     sessionId: candidate.id,
     userId: candidate.userId,
-    purchaseId: candidate.purchaseId,
+    // Must mirror how createWatermarkSession derived the access reference, or
+    // the recomputed codeword will not match what was embedded.
+    purchaseId: candidate.purchaseId ?? `sub:${candidate.subscriptionId}`,
     watermarkVersion: candidate.watermarkVersion,
     sessionNonce: candidate.sessionNonce,
   });

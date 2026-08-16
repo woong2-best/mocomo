@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import { isSafeReturnPath } from "@/lib/safe-link";
 
 const HANDOFF_TTL_MS = 3 * 60 * 1000;
 
@@ -54,7 +55,7 @@ export function openMobileWebSessionHandoff(sealed: string): MobileWebSessionHan
     ) as MobileWebSessionHandoff;
     if (!parsed?.userId || !parsed?.redirect) return null;
     if (typeof parsed.exp !== "number" || parsed.exp < Date.now()) return null;
-    if (!parsed.redirect.startsWith("/")) return null;
+    if (!isSafeReturnPath(parsed.redirect)) return null;
     return parsed;
   } catch {
     return null;

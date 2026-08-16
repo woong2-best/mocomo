@@ -29,6 +29,9 @@ import {
   shouldAutoplayOnNetwork,
 } from "@/lib/video-playback";
 import { ReelsProgressBar } from "@/components/reels/reels-progress-bar";
+import { ForensicVideoCanvas } from "@/components/media/forensic-video-canvas";
+import { useForensicWatermarkSession } from "@/components/media/use-forensic-watermark-session";
+import { shouldProtectPaidMediaView } from "@/lib/paid-media-protection";
 
 type Props = {
   src: string;
@@ -48,6 +51,13 @@ type Props = {
   disableLoop?: boolean;
   onEnded?: () => void;
   className?: string;
+  /**
+   * Sale price of this media. Immersive playback is the most likely place for a
+   * paid video to be screen-recorded, so it has to carry the forensic signal
+   * just like the inline feed player does.
+   */
+  mediaPriceKrw?: number | null;
+  postInstantPurchasePriceKrw?: number | null;
 };
 
 const LONG_PRESS_MS = 480;
@@ -68,9 +78,16 @@ export function ReelsPlayer({
   disableLoop = false,
   onEnded,
   className,
+  mediaPriceKrw,
+  postInstantPurchasePriceKrw,
 }: Props) {
   const reactId = useId();
   const playerId = `reel-${mediaId}-${reactId}`;
+  const paidView = shouldProtectPaidMediaView({
+    mediaPriceKrw,
+    postInstantPurchasePriceKrw,
+  });
+  const { config: forensicConfig } = useForensicWatermarkSession(mediaId, paidView);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<HlsType | null>(null);
@@ -368,20 +385,33 @@ export function ReelsPlayer({
           // decode / render only when near
           style={{
             contentVisibility: distance > 1 ? "auto" : "visible",
+            opacity: forensicConfig ? 0 : undefined,
           }}
           aria-label="Short video"
         />
-      ) : poster ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={poster}
-          alt=""
-          className="absolute inset-0 h-full w-full object-contain bg-black"
-          draggable={false}
+      ) : null}
+
+      {shouldMountMedia ? (
+        <ForensicVideoCanvas
+          videoRef={videoRef}
+          active={Boolean(forensicConfig)}
+          config={forensicConfig}
+          className="absolute inset-0 h-full w-full object-contain z-[1] pointer-events-none"
         />
-      ) : (
-        <div className="absolute inset-0 bg-black" />
-      )}
+      ) : null}
+
+      {!shouldMountMedia &&
+        (poster ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={poster}
+            alt=""
+            className="absolute inset-0 h-full w-full object-contain bg-black"
+            draggable={false}
+          />
+        ) : (
+          <div className="absolute inset-0 bg-black" />
+        ))}
 
       {buffering && isActive && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">

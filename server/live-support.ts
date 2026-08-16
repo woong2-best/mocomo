@@ -13,6 +13,29 @@ import {
 
 type AuthedSocket = Socket & { data: { userId?: string } };
 
+/**
+ * The in-stream overlay already gives the host every cheer in real time, so the
+ * push notification is only there for when they look away. One per host per
+ * channel per minute keeps a busy stream from writing thousands of rows and
+ * firing as many high-priority pushes at a single device.
+ */
+const CHEER_NOTIFY_COOLDOWN_MS = 60_000;
+const lastCheerNotifyAt = new Map<string, number>();
+
+function shouldNotifyCheer(hostId: string, channelId: string): boolean {
+  const key = `${hostId}:${channelId}`;
+  const now = Date.now();
+  const previous = lastCheerNotifyAt.get(key) ?? 0;
+  if (now - previous < CHEER_NOTIFY_COOLDOWN_MS) return false;
+  lastCheerNotifyAt.set(key, now);
+  if (lastCheerNotifyAt.size > 5_000) {
+    for (const [k, at] of lastCheerNotifyAt) {
+      if (now - at > CHEER_NOTIFY_COOLDOWN_MS) lastCheerNotifyAt.delete(k);
+    }
+  }
+  return true;
+}
+
 function parsePollOptions(raw: unknown): PollOption[] {
   if (!Array.isArray(raw)) return [];
   return raw
@@ -172,16 +195,18 @@ export function registerLiveSupportHandlers(
 
         io.to(`live:${channelId}`).emit("live_support_event", event);
 
-        void import("@/lib/notifications")
-          .then(({ notifyLiveCheer }) =>
-            notifyLiveCheer(live.channel.createdBy, userId, amount, channelId, {
-              message,
-              eventType: type,
-              rouletteLabel:
-                typeof metadata.rouletteLabel === "string" ? metadata.rouletteLabel : undefined,
-            })
-          )
-          .catch(() => undefined);
+        if (shouldNotifyCheer(live.channel.createdBy, channelId)) {
+          void import("@/lib/notifications")
+            .then(({ notifyLiveCheer }) =>
+              notifyLiveCheer(live.channel.createdBy, userId, amount, channelId, {
+                message,
+                eventType: type,
+                rouletteLabel:
+                  typeof metadata.rouletteLabel === "string" ? metadata.rouletteLabel : undefined,
+              })
+            )
+            .catch(() => undefined);
+        }
 
         ack?.({ ok: true, event });
       } catch {

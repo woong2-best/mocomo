@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "입력값을 확인해 주세요." }, { status: 400 });
   }
 
-  const { userId: targetUserId, username, postId, reason, details } = parsed.data;
+  const { userId: targetUserId, postId, reason, details } = parsed.data;
   if (auth.user.id === targetUserId) {
     return NextResponse.json({ error: "자기 자신은 차단할 수 없습니다." }, { status: 400 });
   }
@@ -117,7 +117,12 @@ export async function POST(req: NextRequest) {
     }),
   ]);
 
-  if (username) revalidatePath(`/u/${username}`);
+  // Resolved server-side so a caller cannot invalidate arbitrary /u/... paths.
+  const target = await db.user.findUnique({
+    where: { id: targetUserId },
+    select: { username: true },
+  });
+  if (target?.username) revalidatePath(`/u/${target.username}`);
   return NextResponse.json({
     ok: true,
     blocked: true,

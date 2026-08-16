@@ -173,6 +173,7 @@ export function ReelsSlide({
       hlsUrl={reel.media.hlsUrl}
       poster={reel.media.posterUrl}
       mediaId={reel.media.id}
+      mediaPriceKrw={reel.media.priceKrw}
       distance={distance}
       isActive={isActive}
       muted={muted}

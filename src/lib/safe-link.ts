@@ -20,3 +20,14 @@ export function sanitizeAdLink(url: string): string {
 export function isExternalUrl(url: string): boolean {
   return url.startsWith("http://") || url.startsWith("https://");
 }
+
+/**
+ * Same-origin path guard for caller-supplied redirect targets.
+ *
+ * A bare `startsWith("/")` is not enough: `//evil.com` and `/\evil.com` are
+ * both protocol-relative and send the browser off-site.
+ */
+export function isSafeReturnPath(path: string | null | undefined): path is string {
+  if (!path || !path.startsWith("/")) return false;
+  return !/^\/[/\\]/.test(path);
+}

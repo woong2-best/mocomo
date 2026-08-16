@@ -122,6 +122,7 @@ export async function getSellerOnboardingState() {
       emailVerified: true,
       phone: true,
       phoneVerified: true,
+      bankVerifiedAt: true,
       countryCode: true,
       stripeConnectAccountId: true,
       stripeConnectOnboardedAt: true,
@@ -145,6 +146,10 @@ export async function getSellerOnboardingState() {
   // 판매 국가는 sellingMarket만 기준 (phoneCountryCode로 해외→SMS 강제 금지)
   const country = normalizeSellerCountry(profile?.sellingMarket || user.countryCode);
   const phoneRequired = sellerRequiresPhoneVerification(country);
+  // KR sellers prove identity with the 1-KRW bank check, which writes
+  // bankVerifiedAt and never touches phoneVerified. Reading only the phone flag
+  // sends a seller who just passed that check straight back to the same step.
+  const identityVerified = !!(user.bankVerifiedAt || user.phoneVerified);
   const isKr = isKrSellerCountry(country);
   const kycStarted =
     !!profile && profile.kycStatus !== "NOT_STARTED" && profile.kycStatus !== "DEFERRED";
@@ -167,7 +172,7 @@ export async function getSellerOnboardingState() {
     step = "EMAIL";
   } else if (!profile?.agreedTermsAt || !profile?.agreedPrivacyAt || !profile?.agreedAgeAt) {
     step = "AGREEMENTS";
-  } else if (phoneRequired && !user.phoneVerified) {
+  } else if (phoneRequired && !identityVerified) {
     step = "PHONE";
   } else if (!profile?.sellerType) {
     step = "SELLER_INFO";
@@ -203,7 +208,7 @@ export async function getSellerOnboardingState() {
     username: user.username,
     name: user.name,
     emailVerified: !!user.emailVerified,
-    phoneVerified: !!user.phoneVerified,
+    phoneVerified: identityVerified,
     phoneRequired,
     phone: user.phone,
     countryCode: country,
@@ -339,6 +344,7 @@ export async function saveSellerAgreements(input: z.infer<typeof agreementsSchem
     select: {
       emailVerified: true,
       phoneVerified: true,
+      bankVerifiedAt: true,
       countryCode: true,
       marketplaceSeller: true,
     },
@@ -374,7 +380,7 @@ export async function saveSellerAgreements(input: z.infer<typeof agreementsSchem
 
   const next = resolveNextAfterAgreements({
     emailVerified: !!dbUser?.emailVerified,
-    phoneVerified: !!dbUser?.phoneVerified,
+    phoneVerified: !!(dbUser?.bankVerifiedAt || dbUser?.phoneVerified),
     countryCode: country,
     hasSellerType: !!profile.sellerType,
     kycStarted: profile.kycStatus !== "NOT_STARTED" && profile.kycStatus !== "DEFERRED",
@@ -404,6 +410,7 @@ export async function verifySellerEmailCode(email: string, code: string) {
         select: {
           id: true,
           phoneVerified: true,
+          bankVerifiedAt: true,
           countryCode: true,
           marketplaceSeller: true,
         },
@@ -413,6 +420,7 @@ export async function verifySellerEmailCode(email: string, code: string) {
         select: {
           id: true,
           phoneVerified: true,
+          bankVerifiedAt: true,
           countryCode: true,
           marketplaceSeller: true,
         },
@@ -426,7 +434,7 @@ export async function verifySellerEmailCode(email: string, code: string) {
       ? ("AGREEMENTS" as const)
       : resolveNextAfterAgreements({
           emailVerified: true,
-          phoneVerified: !!user.phoneVerified,
+          phoneVerified: !!(user.bankVerifiedAt || user.phoneVerified),
           countryCode: country,
           hasSellerType: !!user.marketplaceSeller?.sellerType,
           kycStarted:

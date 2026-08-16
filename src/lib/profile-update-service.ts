@@ -19,7 +19,8 @@ export type ProfileUpdateInput = {
   bio?: string;
   bannerUrl?: string | null;
   bannerVideoUrl?: string | null;
-  snsLinks?: Record<string, string>;
+  /** Replaces the whole column — callers must merge, not rebuild. */
+  snsLinks?: Prisma.InputJsonObject;
   favoriteTags?: string[];
   mainCharacter?: string;
   showNsfw?: boolean;

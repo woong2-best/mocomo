@@ -1,3 +1,5 @@
+import { sanitizeRecord } from "@/lib/safe-log";
+
 const NTS_BASE = "https://api.odcloud.kr/api/nts-businessman/v1";
 
 type NtsStatusCode = "OK" | string;
@@ -54,6 +56,11 @@ function ntsServiceKey(): string | null {
 }
 
 function isNtsDevMode() {
+  // Never in production: a missing service key plus a stray NTS_DEV_SKIP would
+  // otherwise stamp sellers as 국세청-verified without any verification.
+  if (process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production") {
+    return false;
+  }
   return (
     !ntsServiceKey() &&
     (process.env.NODE_ENV === "development" || process.env.NTS_DEV_SKIP === "true")
@@ -122,7 +129,7 @@ export async function verifyNtsBusinessRegistration(
   }
 
   if (isNtsDevMode()) {
-    console.info("[NTS dev] skip business verification", { regNo, representativeName, startDate });
+    console.info("[NTS dev] skip business verification", sanitizeRecord({ regNo, startDate }));
     return {
       ok: true,
       regNo,

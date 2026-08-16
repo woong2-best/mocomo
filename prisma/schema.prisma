@@ -6103,7 +6103,10 @@ model WatermarkSession {
   id                String                 @id @default(cuid())
   contentId         String
   userId            String
-  purchaseId        String
+  /** Set when access came from a one-off media purchase. */
+  purchaseId        String?
+  /** Set when access came from a creator subscription instead. */
+  subscriptionId    String?
   opaqueWatermarkId String                 @unique
   watermarkVersion  Int
   sessionNonce      String
@@ -6113,14 +6116,15 @@ model WatermarkSession {
   detectionCount    Int                    @default(0)
   lastDetectedAt    DateTime?
 
-  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  purchase PostMediaPurchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
-  media    PostMedia         @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purchase PostMediaPurchase? @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  media    PostMedia          @relation(fields: [contentId], references: [id], onDelete: Cascade)
   logs     WatermarkDetectionLog[]
 
   @@index([contentId, createdAt(sort: Desc)])
   @@index([userId, createdAt(sort: Desc)])
   @@index([purchaseId])
+  @@index([subscriptionId])
   @@index([status, expiresAt])
   @@index([opaqueWatermarkId])
 }

@@ -29,10 +29,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "userId가 필요합니다." }, { status: 400 });
   }
 
-  const { userId: targetUserId, username } = parsed.data;
+  const { userId: targetUserId } = parsed.data;
   if (auth.user.id === targetUserId) {
     return NextResponse.json({ error: "자기 자신은 뮤트할 수 없습니다." }, { status: 400 });
   }
+
+  // Resolve the username from the target rather than trusting the body, which
+  // would otherwise let a caller invalidate any /u/... path it likes.
+  const target = await db.user.findUnique({
+    where: { id: targetUserId },
+    select: { username: true },
+  });
 
   const existing = await db.userMute.findUnique({
     where: {
@@ -43,13 +50,13 @@ export async function POST(req: NextRequest) {
 
   if (existing) {
     await db.userMute.delete({ where: { id: existing.id } });
-    if (username) revalidatePath(`/u/${username}`);
+    if (target?.username) revalidatePath(`/u/${target.username}`);
     return NextResponse.json({ muted: false });
   }
 
   await db.userMute.create({
     data: { muterId: auth.user.id, mutedId: targetUserId },
   });
-  if (username) revalidatePath(`/u/${username}`);
+  if (target?.username) revalidatePath(`/u/${target.username}`);
   return NextResponse.json({ muted: true });
 }

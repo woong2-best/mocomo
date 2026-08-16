@@ -3,6 +3,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { db } from "@/lib/db";
+import type { Prisma } from "@prisma/client";
 import {
   getMobileUserId,
   requireMobileApiUser,
@@ -167,12 +168,28 @@ export async function PATCH(req: NextRequest) {
     data.username !== undefined &&
     normalizeUsername(data.username) !== normalizeUsername(currentUsername);
 
-  const snsLinks: Record<string, string> = {};
-  if (data.location !== undefined && data.location.trim()) {
-    snsLinks.location = data.location.trim();
-  }
-  if (data.website !== undefined && data.website.trim()) {
-    snsLinks.website = data.website.trim();
+  // snsLinks is a whole-column replace downstream, and it also carries keys this
+  // endpoint knows nothing about (minigame state, other link fields). Merge into
+  // the stored blob instead of rebuilding it from the two fields sent here.
+  const touchesSnsLinks = data.location !== undefined || data.website !== undefined;
+  let snsLinks: Prisma.InputJsonObject | undefined;
+  if (touchesSnsLinks) {
+    const current = await db.profile.findUnique({
+      where: { userId: auth.user.id },
+      select: { snsLinks: true },
+    });
+    const stored = current?.snsLinks;
+    const base: Record<string, Prisma.InputJsonValue> =
+      stored && typeof stored === "object" && !Array.isArray(stored)
+        ? { ...(stored as Record<string, Prisma.InputJsonValue>) }
+        : {};
+    for (const key of ["location", "website"] as const) {
+      const value = data[key];
+      if (value === undefined) continue;
+      if (value.trim()) base[key] = value.trim();
+      else delete base[key];
+    }
+    snsLinks = base;
   }
 
   const result = await applyProfileUpdateForUser(auth.user.id, {
@@ -199,7 +216,7 @@ export async function PATCH(req: NextRequest) {
             birthDay: data.birthDay,
           }
         : {}),
-    ...(Object.keys(snsLinks).length > 0 ? { snsLinks } : {}),
+    ...(snsLinks ? { snsLinks } : {}),
   });
 
   if ("error" in result) {

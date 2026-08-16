@@ -60,16 +60,18 @@ export async function GET(
     return NextResponse.json({ alerts: [], serverTime: Date.now() });
   }
 
+  // Clamped to the channel's own lifetime: `since` is client supplied, and
+  // reaching further back would walk this creator's whole donation history.
+  const floor = channel.createdAt.getTime() - 5_000;
   const sinceParam = req.nextUrl.searchParams.get("since");
   const sinceMs = sinceParam ? Number(sinceParam) : NaN;
-  const sinceDate = Number.isFinite(sinceMs)
-    ? new Date(sinceMs)
-    : new Date(channel.createdAt.getTime() - 5_000);
+  const sinceDate = new Date(Number.isFinite(sinceMs) ? Math.max(sinceMs, floor) : floor);
 
   const [tips, cheers] = await Promise.all([
     db.tip.findMany({
       where: {
         receiverId: channel.createdBy,
+        channelId,
         createdAt: { gt: sinceDate },
       },
       orderBy: { createdAt: "asc" },

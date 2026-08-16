@@ -9,18 +9,19 @@ import {
 } from "@/lib/profile-update-service";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { normalizeUsername } from "@/lib/username-policy";
 
 export async function updateProfile(data: ProfileUpdateInput) {
   const user = await requireAuth();
   const result = await applyProfileUpdateForUser(user.id, data);
   if ("error" in result) return { error: result.error };
 
+  // Must match how the service decides a rename happened, or a renamed profile
+  // keeps serving from the old cache tag.
   const nextUsername =
-    data.username !== undefined
-      ? data.username.trim().toLowerCase()
-      : undefined;
+    data.username !== undefined ? normalizeUsername(data.username) : undefined;
   const usernameChanged =
-    nextUsername !== undefined && nextUsername !== user.username.toLowerCase();
+    nextUsername !== undefined && nextUsername !== normalizeUsername(user.username);
 
   if (
     data.name !== undefined ||

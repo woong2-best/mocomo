@@ -4,6 +4,7 @@ import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { sealMobileWebSessionHandoff } from "@/lib/mobile-web-session-handoff";
 import { getAppOrigin } from "@/lib/stripe";
+import { isSafeReturnPath } from "@/lib/safe-link";
 
 const bodySchema = z.object({
   redirect: z.string().max(200).optional(),
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
 
-  const redirect = parsed.data.redirect?.startsWith("/")
+  const redirect = isSafeReturnPath(parsed.data.redirect)
     ? parsed.data.redirect
     : "/market/seller/register";
 

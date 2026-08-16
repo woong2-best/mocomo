@@ -83,6 +83,8 @@ export type AdminWatermarkDetectionResponse = WatermarkDetectionResult & {
     price: number;
     createdAt: string;
   } | null;
+  /** Set instead of `purchase` when access came from a subscription. */
+  subscriptionId?: string | null;
   member?: {
     id: string;
     username: string;

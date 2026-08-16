@@ -18,7 +18,7 @@ const bodySchema = z.object({
 });
 
 async function assertDmAccess(userId: string, otherUserId: string) {
-  const [cosplayer, support] = await Promise.all([
+  const [cosplayer, support, block] = await Promise.all([
     db.cosplayerProfile.findUnique({
       where: { userId: otherUserId },
       select: { dmEnabled: true, minChatTier: true },
@@ -27,7 +27,20 @@ async function assertDmAccess(userId: string, otherUserId: string) {
       where: { supporterId_creatorId: { supporterId: userId, creatorId: otherUserId } },
       select: { tier: true },
     }),
+    // A ringing phone is the loudest thing an app can do, so a block has to stop
+    // it in either direction.
+    db.userBlock.findFirst({
+      where: {
+        OR: [
+          { blockerId: otherUserId, blockedId: userId },
+          { blockerId: userId, blockedId: otherUserId },
+        ],
+      },
+      select: { id: true },
+    }),
   ]);
+
+  if (block) return false;
 
   if (cosplayer?.dmEnabled) {
     const userTier = (support?.tier ?? "PEBBLE") as SupportTierLevel;

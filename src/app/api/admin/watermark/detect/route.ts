@@ -78,11 +78,15 @@ async function enrichDetectionResult(
       title: session.media.post.title,
       authorUsername: session.media.post.author.username,
     },
-    purchase: {
-      id: session.purchase.id,
-      price: session.purchase.price,
-      createdAt: session.purchase.createdAt.toISOString(),
-    },
+    // Absent when the viewer reached the video through a subscription.
+    purchase: session.purchase
+      ? {
+          id: session.purchase.id,
+          price: session.purchase.price,
+          createdAt: session.purchase.createdAt.toISOString(),
+        }
+      : null,
+    subscriptionId: session.subscriptionId,
     member: {
       id: session.user.id,
       username: session.user.username,

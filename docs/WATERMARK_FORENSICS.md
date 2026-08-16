@@ -40,7 +40,7 @@ do not interact.
 | Endpoint | Access |
 |---|---|
 | `GET /api/watermark/config` | public flags |
-| `POST /api/watermark/session` | authenticated, paid video, purchase required |
+| `POST /api/watermark/session` | authenticated, paid video, entitlement required |
 | `POST /api/admin/watermark/detect` | admin, audited |
 | `GET /api/admin/watermark/sessions` | admin session list |
 
@@ -50,9 +50,11 @@ Admin UI lives at `/admin/watermark/forensics`. Detection reports one of
 ## How a session works
 
 1. The player requests `POST /api/watermark/session` for a paid video.
-2. The server confirms the viewer actually purchased that media, then creates a
+2. The server confirms the viewer is actually entitled to that media — either a
+   `PostMediaPurchase` or an active subscription to the author — then creates a
    `WatermarkSession` and derives an opaque id from the master secret over
-   (user, content, purchase, nonce). No viewer identity travels to the client.
+   (user, content, entitlement, nonce). No viewer identity travels to the client.
+   The author is exempt: they are the rights holder, not a leak suspect.
 3. The client receives a carrier: a spreading seed plus a Reed-Solomon codeword
    carrying content, session, nonce and an HMAC integrity tag.
 4. `ForensicVideoCanvas` draws playback through a canvas and modulates the
@@ -60,6 +62,17 @@ Admin UI lives at `/admin/watermark/forensics`. Detection reports one of
 
 Sessions expire after 4 hours. Expired sessions stay in the table because
 detection needs them.
+
+## Where the signal is applied
+
+Every surface that plays a sale-priced video has to carry the mark, or the
+easiest capture path is also the unwatermarked one. Currently that means
+`ProtectedPaidMedia` (inline feed, post detail, profile grid, expand lightbox)
+and `ReelsPlayer` (reels and the feed's full-screen viewer). Both take the media
+price and open a session from it.
+
+When adding a new video surface, pass the price through. A player that only
+receives `mediaId` renders unprotected, and nothing will fail loudly.
 
 ## How the signal is carried
 

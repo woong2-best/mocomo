@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { MARKET_BRAND_FULL } from "@/lib/market-brand";
+import { isSafeReturnPath } from "@/lib/safe-link";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export default async function SellerRegisterPage({
   const params = await searchParams;
   const fromApp = params.app === "1";
   const returnTo =
-    typeof params.return === "string" && params.return.startsWith("/") ? params.return : null;
+    typeof params.return === "string" && isSafeReturnPath(params.return) ? params.return : null;
 
   const session = await auth();
   if (!session?.user?.id) {
