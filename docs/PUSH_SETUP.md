@@ -30,34 +30,39 @@ curl https://mocomo.net/api/push/vapid
 
 ---
 
-## FCM (Android 네이티브)
+## FCM (Android · iOS) — HTTP v1
 
-### 1. Firebase 프로젝트
+### 1. Firebase Android 앱
 
-1. [Firebase Console](https://console.firebase.google.com) → 앱 추가 (Android `net.mocomo.app`)
-2. `google-services.json` 다운로드 → `android/app/google-services.json`
-3. 클라우드 메시징 → **서버 키** 복사
+1. Android `net.mocomo.app` 등록
+2. `google-services.json` → `apps/mobile/google-services.json` ✅
+3. **Gradle/SDK Console 안내는 Expo에서 자동 처리 — 수동 수정 불필요**
 
-### 2. Vercel
+### 2. Vercel — 서비스 계정 (권장)
 
-```
-FIREBASE_SERVER_KEY=AAAA...
-```
+Firebase Console → **프로젝트 설정 → 서비스 계정 → 새 비공개 키** → JSON 다운로드
 
-### 3. Android 빌드
+| Key | Value |
+|-----|-------|
+| `FIREBASE_SERVICE_ACCOUNT` | JSON **전체** (`{ "type": "service_account", ... }`) |
 
-```bash
-npm run cap:sync
-npm run android:bundle
-```
+저장 후 **Redeploy**. 백엔드 `firebase-admin` HTTP v1 사용 (`src/lib/fcm-push.ts`).
 
-`build.gradle`이 `google-services.json` 있으면 Google Services 플러그인 자동 적용.
+### 3. 확인
 
-### 4. 확인
-
-- 앱 로그인 → 알림 권한 허용
-- APT 경제 이벤트(장터 판매 등) 시 푸시 수신
 - `/api/health/summary` → `fcm: { ok: true }`
+- 앱 AAB 새 빌드 → 로그인 → DM/통화 (앱 종료 상태)
+
+(Legacy `FIREBASE_SERVER_KEY`만 있으면 구 API fallback — 마이그레이션용)
+
+---
+
+## Expo RN 앱 (`apps/mobile`)
+
+1. Firebase Android: `google-services.json` → `apps/mobile/google-services.json` (적용됨)
+2. Vercel: `FIREBASE_SERVICE_ACCOUNT` (서비스 계정 JSON 전체)
+3. 앱 **AAB 새 빌드** (EAS) — Gradle 수동 설정 불필요
+4. 로그인 → 알림 권한 → DM/통화 테스트 (앱 종료 상태)
 
 ---
 
