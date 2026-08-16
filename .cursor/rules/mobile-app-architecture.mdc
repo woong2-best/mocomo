@@ -17,10 +17,8 @@ alwaysApply: true
 
 The app and website must feel like **one product** — same brand, same core loops, same depth of care — the way the Twitter/X app mirrors twitter.com.
 
-- **Design:** folk tokens (cream / cobalt / terracotta / gold), rounded cards, chunky borders/shadows, line icons. No one-off “ugly MVP” screens.
-- **Features:** every sidebar-primary web surface needs a real native path (not a stub hub), except APT.
-- **Polish:** empty states, errors, loading, headers, and icons get the same attention as the floating tab bar.
-- **Parity tracker:** `docs/MOBILE_WEB_PARITY.md` — close gaps by wave; do not ship new half-finished verticals ahead of social core.
+- **Design:** MoCoMo folk (cream / cobalt / terracotta). Floating glass pill tab bar.
+- **IA (screenshot):** tabs = **홈 · 마켓 · 중고 · 메세지**. Hamburger drawer for the rest. Compose via header strip → modal.
 
 ## Mobile-first
 

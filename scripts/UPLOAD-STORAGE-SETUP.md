@@ -201,6 +201,7 @@ https://wijmhtyuhhdupddtlcdh.supabase.co/storage/v1/object/public/mocomo-uploads
 ## 체크리스트
 
 - [ ] SQL 섹션 L 실행 → `mocomo-uploads` 버킷 Public 확인  
+- [ ] **`scripts/supabase-enable-rls.sql` 실행** — SQL Editor **Role: postgres** 선택 후 Run (anon PostgREST·Storage 무단 쓰기 차단)  
 - [ ] `SUPABASE_SERVICE_ROLE_KEY` Vercel Production (+ Preview 권장)  
 - [ ] `SUPABASE_STORAGE_BUCKET=mocomo-uploads` (권장)  
 - [ ] Redeploy 완료  

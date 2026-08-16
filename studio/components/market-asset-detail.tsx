@@ -3,10 +3,10 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { purchaseStudioAsset, toggleStudioAssetLike } from "@/studio/actions/market";
-import { createStudioAssetCheckout } from "@/studio/actions/checkout";
 import { downloadStudioAsset } from "@/studio/actions/assets";
 import { acquireFreeStudioAsset } from "@/studio/actions/library";
 import { isPaymentsConfigured } from "@/lib/payments";
+import { PayButton } from "@/components/payments/pay-button";
 import type { StudioAsset, User } from "@prisma/client";
 import { AssetPreviewViewer } from "./asset-preview-viewer";
 import { STUDIO_CATEGORY_LABELS } from "@/studio/lib/constants";
@@ -38,18 +38,16 @@ export function MarketAssetActions({ asset, liked, owned, isOwner }: Props) {
       {!isOwner && !isFree && !owned && (
         <>
           {isPaymentsConfigured() ? (
-            <Button
-              size="sm"
+            <PayButton
+              type="STUDIO_ASSET"
+              amount={asset.priceKrw}
+              orderName={`[Studio] ${asset.name}`}
+              metadata={{ studioAssetId: asset.id, assetName: asset.name }}
               disabled={pending}
-              onClick={() =>
-                startTransition(async () => {
-                  const r = await createStudioAssetCheckout(asset.id);
-                  if ("checkoutUrl" in r && r.checkoutUrl) window.location.href = r.checkoutUrl;
-                })
-              }
+              className="h-8 px-3 text-sm"
             >
-              {asset.priceKrw.toLocaleString()}원 Stripe 결제
-            </Button>
+              {asset.priceKrw.toLocaleString()}원 결제
+            </PayButton>
           ) : (
             <Button
               size="sm"

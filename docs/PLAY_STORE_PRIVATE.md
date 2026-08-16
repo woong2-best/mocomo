@@ -1,5 +1,9 @@
 # Google Play 비공개 배포 (MoCoMo Android)
 
+> **2026-07:** Capacitor WebView 배포 가이드는 **레거시**입니다.  
+> RN 제품 앱 내부 배포: **[MOBILE_INTERNAL_RELEASE.md](./MOBILE_INTERNAL_RELEASE.md)**  
+> 아키텍처: [MOBILE_APP_ARCHITECTURE.md](./MOBILE_APP_ARCHITECTURE.md) · [CAPACITOR_LEGACY.md](./CAPACITOR_LEGACY.md)
+
 웹(mocomo.net)은 **앱이 불러오는 서버**입니다. Play Store 앱은 Capacitor WebView로 `https://mocomo.net`을 띄우므로, **사이트 배포를 완전히 끄면 앱도 동작하지 않습니다.**
 
 전환 의미는 다음과 같습니다.

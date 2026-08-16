@@ -29,8 +29,8 @@ Goal: **Twitter-class** — website and app are the same product (brand, loops, 
 
 ## IA note
 
-Current app tabs: Home · Market · Used · Messages (plus glass bar).  
-Discover / Profile expose demoted surfaces with folk polish.
+App tabs (match web mobile-nav): **Home · Live · Used · Compose · More** + floating translucent folk glass bar.  
+Messages / Search / Market / Games / Wallet live in header icons and the **More** drawer.
 
 ## Status snapshot
 

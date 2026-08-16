@@ -1625,3 +1625,71 @@ ALTER TABLE "VoiceChannel"
 CREATE INDEX IF NOT EXISTS "VoiceChannel_mediaSourceType_isLive_idx"
   ON "VoiceChannel" ("mediaSourceType", "isLive");
 
+ALTER TABLE "VoiceChannel"
+  ADD COLUMN IF NOT EXISTS "donationAlertsOnStream" BOOLEAN NOT NULL DEFAULT false;
+
+-- =============================================================================
+-- AD) RLS 잠금 — anon/PostgREST 차단 (Prisma·service_role 은 영향 없음)
+-- 상세·재실행: scripts/supabase-enable-rls.sql
+-- ⚠️ SQL Editor Role 을 postgres 로 바꾼 뒤 Run (anon → 42501 must be owner)
+-- =============================================================================
+
+DO $$
+DECLARE
+  r RECORD;
+BEGIN
+  FOR r IN
+    SELECT c.relname AS tablename
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+      AND c.relkind = 'r'
+      AND c.relname NOT LIKE 'pg_%'
+  LOOP
+    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', r.tablename);
+  END LOOP;
+END $$;
+
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
+REVOKE ALL ON ALL ROUTINES IN SCHEMA public FROM anon, authenticated;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON ROUTINES FROM anon, authenticated;
+
+DO $$
+DECLARE
+  pol RECORD;
+BEGIN
+  FOR pol IN
+    SELECT policyname
+    FROM pg_policies
+    WHERE schemaname = 'storage'
+      AND tablename = 'objects'
+      AND (
+        policyname ILIKE '%upload%'
+        OR policyname ILIKE '%insert%'
+        OR policyname ILIKE '%update%'
+        OR policyname ILIKE '%delete%'
+        OR policyname ILIKE '%write%'
+        OR policyname ILIKE '%authenticated%'
+        OR cmd IN ('INSERT', 'UPDATE', 'DELETE', 'ALL')
+      )
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON storage.objects', pol.policyname);
+  END LOOP;
+END $$;
+
+-- storage.objects: 기본 RLS ON — ALTER TABLE 생략 (42501 must be owner)
+
+DROP POLICY IF EXISTS "mocomo_public_read_mocomo_uploads" ON storage.objects;
+CREATE POLICY "mocomo_public_read_mocomo_uploads"
+  ON storage.objects FOR SELECT TO public
+  USING (bucket_id = 'mocomo-uploads');
+
+DROP POLICY IF EXISTS "mocomo_public_read_mocomo_studio" ON storage.objects;
+CREATE POLICY "mocomo_public_read_mocomo_studio"
+  ON storage.objects FOR SELECT TO public
+  USING (bucket_id = 'mocomo-studio');
+

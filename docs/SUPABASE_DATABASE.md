@@ -65,3 +65,20 @@ npx tsx scripts/find-supabase-pooler.ts
 - VPN/회사망이 `*.pooler.supabase.com` 도 막는지 확인
 - Connect 화면의 URI를 **복사·붙여넣기** (직접 타이핑 금지)
 - 비밀번호에 `@`, `#` 등 있으면 URL 인코딩 필요
+
+## RLS (Row Level Security) — 필수
+
+MoCoMo는 **Prisma + service_role** 로만 DB에 접근합니다. Supabase **anon 키**는 PostgREST(`/rest/v1/*`)로 모든 테이블에 노출될 수 있으므로 RLS를 켜야 합니다.
+
+1. [SQL Editor](https://supabase.com/dashboard/project/wijmhtyuhhdupddtlcdh/sql/new) 열기
+2. 에디터 **상단 [Role] 드롭다운 → `postgres`** 선택
+3. **`scripts/supabase-enable-rls.sql`** 전체 붙여넣기 → Run  
+   (또는 `supabase-fix-all.sql` 섹션 **AD** — 동일 내용)
+
+`42501 must be owner of table objects` 가 **Role=postgres 인데도** 뜨면, `storage.objects` 소유권 문제입니다. 스크립트 최신본은 해당 `ALTER TABLE` 줄을 이미 제거했습니다 — Storage는 Supabase 기본 RLS ON 상태를 사용합니다.
+
+4. Supabase Linter → **RLS disabled** 경고가 사라지는지 확인
+5. anon 키로 `User` 조회 시 데이터가 **비어 있거나 permission denied** 이면 정상
+6. 웹·모바일 스모크: 로그인, 피드, 사진 업로드(`/api/upload`)
+
+Prisma 마이그레이션으로 **public 테이블이 추가**되면 `supabase-enable-rls.sql` 을 다시 Run 하세요.

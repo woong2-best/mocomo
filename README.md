@@ -47,26 +47,29 @@ npm run dev          # 웹 :3000 + Socket :3001
 | `S3_*` | 파일 업로드 |
 | `RESEND_API_KEY` | 이메일 인증 |
 
-## Android 앱
+## 모바일 앱 (React Native — 제품 경로)
+
+Android + iOS 동시 타깃. WebView/Capacitor가 **아닙니다**.
 
 ```bash
-npm run cap:sync          # Android
-npm run cap:sync:ios      # iOS (Mac + Xcode)
-npm run android:bundle    # Play Store AAB
+cd apps/mobile
+npm start
+npm run android
+npm run ios            # macOS + Xcode
 ```
 
-Remote WebView → `https://mocomo.net` (`capacitor.config.ts`)
+→ [아키텍처](./docs/MOBILE_APP_ARCHITECTURE.md) · [성능 게이트](./docs/MOBILE_PERFORMANCE_GATES.md) · [API 계약](./docs/MOBILE_API_CONTRACT.md) · [내부 배포](./docs/MOBILE_INTERNAL_RELEASE.md)
 
-→ [Android QA](./docs/ANDROID_QA.md) · [Play Store](./docs/PLAY_STORE_PRIVATE.md) · [푸시 설정](./docs/PUSH_SETUP.md)
+**APT는 앱 범위에서 제외.** 신규 기능은 모바일 퍼스트로 설계합니다.
 
-## iOS
+### Capacitor (레거시)
 
 ```bash
-npm run cap:sync:ios
-npm run cap:open:ios   # Mac + Xcode 필요
+npm run cap:sync          # LEGACY WebView shell
+npm run android:bundle    # LEGACY AAB
 ```
 
-→ [iOS 설정 가이드](./docs/IOS_APP_SETUP.md) · `ios/` 프로젝트 포함
+→ [CAPACITOR_LEGACY.md](./docs/CAPACITOR_LEGACY.md)
 
 ## QA · 배포 후 검증
 
