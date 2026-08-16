@@ -31,6 +31,22 @@ lead.
 The feature stays off until `WATERMARK_ENABLED` is set, and the session endpoint
 returns 503 if the secret is missing.
 
+Distinct from the visible credit watermark applied at compose time
+(`src/lib/media-watermark.ts`). That one is branding, this one is forensic; they
+do not interact.
+
+## Surface
+
+| Endpoint | Access |
+|---|---|
+| `GET /api/watermark/config` | public flags |
+| `POST /api/watermark/session` | authenticated, paid video, purchase required |
+| `POST /api/admin/watermark/detect` | admin, audited |
+| `GET /api/admin/watermark/sessions` | admin session list |
+
+Admin UI lives at `/admin/watermark/forensics`. Detection reports one of
+`MATCH`, `POSSIBLE_MATCH`, `INCONCLUSIVE` or `NOT_DETECTED`.
+
 ## How a session works
 
 1. The player requests `POST /api/watermark/session` for a paid video.
