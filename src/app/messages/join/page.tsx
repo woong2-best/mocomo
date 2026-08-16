@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronLeft, KeyRound } from "lucide-react";
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
+import { RouteLoading } from "@/components/ui/route-loading";
 import { cn } from "@/lib/utils";
 
 function JoinGroupInner() {
@@ -118,7 +119,7 @@ function JoinGroupInner() {
 
 export default function JoinGroupPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">불러오는 중…</div>}>
+    <Suspense fallback={<RouteLoading />}>
       <JoinGroupInner />
     </Suspense>
   );

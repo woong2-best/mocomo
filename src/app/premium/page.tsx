@@ -1,6 +1,5 @@
 import { auth } from "@/lib/auth";
 import { isPaymentsConfigured, PREMIUM_USD_CENTS } from "@/lib/payments";
-import { formatMocoDisplay, usdCentsToMocoDisplay } from "@/lib/moco-display";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Crown, Check } from "lucide-react";
 import { PayButton } from "@/components/payments/pay-button";
@@ -21,7 +20,6 @@ export default async function PremiumPage() {
   const isPremium = session?.user?.premiumTier === "PREMIUM";
   const paymentsEnabled = isPaymentsConfigured();
   const priceUsd = (PREMIUM_USD_CENTS / 100).toFixed(2);
-  const mocoHint = formatMocoDisplay(usdCentsToMocoDisplay(PREMIUM_USD_CENTS));
 
   return (
     <AppPageChrome>
@@ -29,7 +27,6 @@ export default async function PremiumPage() {
         <Crown className="h-12 w-12 text-yellow-400 mx-auto mb-2" />
         <h1 className="text-2xl font-bold">MoCoMo Premium</h1>
         <p className="text-muted-foreground mt-2">월 ${priceUsd}</p>
-        <p className="text-xs text-muted-foreground mt-1">{mocoHint} (표시 단위만)</p>
       </div>
 
       <Card className="border-yellow-500/30 bg-gradient-to-b from-yellow-500/10 to-transparent rounded-2xl">
