@@ -463,6 +463,7 @@ model User {
   adminTrustedDevices      AdminTrustedDevice[]
   adminLoginAttempts       AdminLoginAttempt[]
   adminAuthLockout         AdminAuthLockout?
+  userAccessLogs           UserAccessLog[]
 
   searchLogs SearchLog[] @relation("SearchLogUser")
 
@@ -3124,6 +3125,35 @@ model AdminLoginAttempt {
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
+  @@index([createdAt])
+  @@index([success, createdAt])
+}
+
+/** 회원 접속(로그인) 기록 — IP·지역·기기 (관리자 조회용, 최대 90일 보관 권장) */
+model UserAccessLog {
+  id            String   @id @default(cuid())
+  userId        String?
+  username      String?
+  email         String?
+  ip            String?
+  country       String?
+  region        String?
+  city          String?
+  userAgent     String?
+  browser       String?
+  os            String?
+  device        String?
+  channel       String   @default("web")
+  provider      String?
+  platform      String?
+  success       Boolean
+  failureReason String?
+  createdAt     DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([ip, createdAt])
   @@index([createdAt])
   @@index([success, createdAt])
 }

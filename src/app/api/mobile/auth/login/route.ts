@@ -49,7 +49,8 @@ export async function POST(req: NextRequest) {
     const user = await authenticateCredentialsUser(
       parsed.data.login,
       parsed.data.password,
-      ip
+      ip,
+      { channel: "mobile", platform: parsed.data.platform }
     );
     const tokens = await issueMobileTokenPair({
       userId: user.id,

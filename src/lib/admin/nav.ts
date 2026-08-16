@@ -23,6 +23,7 @@ import {
   Lock,
   History,
   Search,
+  Globe,
 } from "lucide-react";
 import type { AdminPermission } from "@/lib/admin/permissions";
 import { MARKET_BRAND_NAME } from "@/lib/market-brand";
@@ -52,6 +53,7 @@ export const ADMIN_PRIMARY_NAV: AdminNavItem[] = [
   { href: "/admin/roles", label: "관리자 계정", icon: KeyRound, permission: "admins" },
   { href: "/admin/audit", label: "감사 로그", icon: ScrollText, permission: "audit" },
   { href: "/admin/security/logins", label: "로그인 기록", icon: History, permission: "audit" },
+  { href: "/admin/security/access", label: "접속기록", icon: Globe, permission: "audit" },
   { href: "/admin/settings/security", label: "보안 설정", icon: Lock, permission: "settings" },
   { href: "/admin/settings", label: "시스템 설정", icon: Settings, permission: "settings" },
 ];

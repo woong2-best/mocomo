@@ -1,5 +1,6 @@
 import { cache } from "react";
 import NextAuth from "next-auth";
+import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { authConfig } from "@/lib/auth.config";
 import { getAuthProviders } from "@/lib/auth.providers";
@@ -18,6 +19,7 @@ import {
   signupRedirectForOAuthEmail,
 } from "@/lib/oauth-flow-cookie";
 import { logSiteAdminAudit } from "@/lib/site-admin-audit";
+import { recordUserAccessLog } from "@/lib/user-access-log";
 import {
   assertAccountCanWrite,
   isServiceBanned,
@@ -98,10 +100,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         if (existing) {
-          const oauthEmailVerified = Boolean(
-            (profile as { email_verified?: boolean } | undefined)?.email_verified ??
-              (profile as { verified_email?: boolean } | undefined)?.verified_email
-          );
+          const isNaverOAuth = account?.provider === "naver";
+          const oauthEmailVerified = isNaverOAuth
+            ? Boolean(user.email?.trim())
+            : Boolean(
+                (profile as { email_verified?: boolean } | undefined)?.email_verified ??
+                  (profile as { verified_email?: boolean } | undefined)?.verified_email
+              );
           if (!oauthEmailVerified || !existing.emailVerified) return false;
 
           dbUser = existing;
@@ -126,6 +131,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       void recordUserDeviceFromRequest(resolvedUserId);
+
+      if (account?.type !== "credentials") {
+        const h = await headers();
+        const isMobileOAuth = h.get("cookie")?.includes("mocomo_mobile_oauth=1");
+        if (!isMobileOAuth) {
+          void recordUserAccessLog({
+            userId: resolvedUserId,
+            username: user.username ?? undefined,
+            email: user.email ?? undefined,
+            success: true,
+            channel: "web",
+            provider: account?.provider ?? "oauth",
+          });
+        }
+      }
       return true;
     },
     async jwt({ token, user, trigger }) {

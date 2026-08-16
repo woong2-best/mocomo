@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { openMobileOAuthHandoff } from "@/lib/mobile-oauth-handoff";
+import { recordUserAccessLog } from "@/lib/user-access-log";
+import { getRequestIp } from "@/lib/request-ip";
 
 const bodySchema = z.object({
   handoff: z.string().min(20).max(8000),
@@ -34,6 +36,16 @@ export async function POST(req: NextRequest) {
       { status: 401 }
     );
   }
+
+  const ip = await getRequestIp();
+  void recordUserAccessLog({
+    userId: payload.user.id,
+    username: payload.user.username,
+    success: true,
+    channel: "mobile",
+    provider: "oauth",
+    ip,
+  });
 
   return NextResponse.json({
     accessToken: payload.accessToken,

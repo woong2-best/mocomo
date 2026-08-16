@@ -22,6 +22,7 @@ import {
   verifyTotpSetup,
 } from "@/lib/admin/security/manage";
 import { listAdminLoginAttempts } from "@/lib/admin/security/login-log";
+import { listUserAccessLogs } from "@/lib/user-access-log";
 import { unlockAdminAccount } from "@/lib/admin/security/lockout";
 import { getAdminActor, AdminAccessError, requireAdminPermission } from "@/lib/admin/access";
 import { getAdminEnrollmentStatus } from "@/lib/admin/security/enrollment";
@@ -160,6 +161,18 @@ export async function adminLoginLogsAction(opts?: { take?: number; cursor?: stri
   await requireAdminPermission("audit");
   const rows = await listAdminLoginAttempts(opts);
   return { rows };
+}
+
+export async function adminUserAccessLogsAction(opts?: {
+  q?: string;
+  ip?: string;
+  success?: boolean;
+  channel?: string;
+  page?: number;
+  take?: number;
+}) {
+  await requireAdminPermission("audit", { action: "ACCESS_LOG_VIEW" });
+  return listUserAccessLogs(opts);
 }
 
 export async function adminUnlockAccountAction(targetUserId: string) {

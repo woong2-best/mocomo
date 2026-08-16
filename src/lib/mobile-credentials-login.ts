@@ -17,6 +17,7 @@ import {
   LoginOAuthOnlyError,
   LoginRateLimitedError,
 } from "@/lib/auth-login-errors";
+import { recordUserAccessLog, type UserAccessChannel } from "@/lib/user-access-log";
 
 export type MobileCredentialsUser = ReturnType<typeof toCredentialsAuthUser>;
 
@@ -66,36 +67,82 @@ async function findCredentialsUserByLogin(
 export async function authenticateCredentialsUser(
   loginIdRaw: string,
   password: string,
-  ip: string | null
+  ip: string | null,
+  opts?: { channel?: UserAccessChannel; platform?: "android" | "ios" }
 ): Promise<MobileCredentialsUser> {
   const loginId = loginIdRaw.trim();
   const loginKey = loginId.toLowerCase();
   const ipKey = ip?.trim() || "unknown";
+  const channel = opts?.channel ?? "web";
+
+  const logFail = (reason: string, user?: CredentialsUserRow | null) => {
+    void recordUserAccessLog({
+      userId: user?.id,
+      username: user?.username ?? loginId,
+      email: user?.email ?? (loginId.includes("@") ? loginKey : null),
+      success: false,
+      failureReason: reason,
+      channel,
+      provider: "credentials",
+      platform: opts?.platform ?? null,
+      ip,
+    });
+  };
 
   const [rate, user] = await Promise.all([
     checkLoginRateLimit(loginKey, ipKey),
     findCredentialsUserByLogin(loginId),
   ]);
 
-  if (!rate.ok) throw new LoginRateLimitedError();
+  if (!rate.ok) {
+    logFail("rate_limited", user);
+    throw new LoginRateLimitedError();
+  }
 
   const fail = () => {
     void recordLoginAttempt(loginKey, ipKey);
+    logFail("invalid_credentials", user);
     throw new LoginInvalidCredentialsError();
   };
 
   if (!user) return fail();
-  if (isServiceBanned(user)) throw new LoginBannedError();
-  if (user.deletedAt) {
-    if (isAccountPastRecovery(user)) throw new LoginAccountDeletedError();
-    if (!canRecoverAccount(user)) throw new LoginAccountPendingRecoveryError();
+  if (isServiceBanned(user)) {
+    logFail("banned", user);
+    throw new LoginBannedError();
   }
-  if (!user.passwordHash) throw new LoginOAuthOnlyError();
+  if (user.deletedAt) {
+    if (isAccountPastRecovery(user)) {
+      logFail("account_deleted", user);
+      throw new LoginAccountDeletedError();
+    }
+    if (!canRecoverAccount(user)) {
+      logFail("account_pending_recovery", user);
+      throw new LoginAccountPendingRecoveryError();
+    }
+  }
+  if (!user.passwordHash) {
+    logFail("oauth_only", user);
+    throw new LoginOAuthOnlyError();
+  }
 
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) return fail();
 
-  if (!user.emailVerified) throw new LoginEmailNotVerifiedError();
+  if (!user.emailVerified) {
+    logFail("email_not_verified", user);
+    throw new LoginEmailNotVerifiedError();
+  }
+
+  void recordUserAccessLog({
+    userId: user.id,
+    username: user.username,
+    email: user.email,
+    success: true,
+    channel,
+    provider: "credentials",
+    platform: opts?.platform ?? null,
+    ip,
+  });
 
   return toCredentialsAuthUser(user as CredentialsJwtUser);
 }
