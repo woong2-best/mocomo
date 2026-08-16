@@ -57,6 +57,7 @@ export default async function AuthErrorPage({
                 <li>Discord: <code>AUTH_DISCORD_ID</code>, <code>AUTH_DISCORD_SECRET</code></li>
                 <li>X (Twitter): <code>AUTH_TWITTER_ID</code>, <code>AUTH_TWITTER_SECRET</code></li>
                 <li>LINE: <code>LINE_CLIENT_ID</code>, <code>LINE_CLIENT_SECRET</code> (또는 <code>AUTH_LINE_ID</code>/<code>AUTH_LINE_SECRET</code>)</li>
+                <li>Naver: <code>AUTH_NAVER_ID</code>, <code>AUTH_NAVER_SECRET</code></li>
                 <li>
                   Discord Redirect: <code>https://mocomo.net/api/auth/callback/discord</code>
                 </li>
@@ -65,6 +66,9 @@ export default async function AuthErrorPage({
                 </li>
                 <li>
                   LINE Redirect: <code>https://mocomo.net/api/auth/callback/line</code>
+                </li>
+                <li>
+                  Naver Redirect: <code>https://mocomo.net/api/auth/callback/naver</code>
                 </li>
               </ul>
               <p className="text-xs text-muted-foreground pt-1">

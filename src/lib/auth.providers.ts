@@ -3,6 +3,7 @@ import type { OAuthConfig } from "next-auth/providers";
 import Google from "next-auth/providers/google";
 import Discord from "next-auth/providers/discord";
 import Twitter from "next-auth/providers/twitter";
+import Naver from "next-auth/providers/naver";
 import Credentials from "next-auth/providers/credentials";
 import { getRequestIp } from "@/lib/request-ip";
 
@@ -132,6 +133,26 @@ export function getAuthProviders(): NonNullable<NextAuthConfig["providers"]> {
       LineOAuth({
         clientId: lineId,
         clientSecret: lineSecret,
+      })
+    );
+  }
+
+  const naverId =
+    process.env.AUTH_NAVER_ID?.trim() ||
+    process.env.NAVER_CLIENT_ID?.trim() ||
+    process.env.NAVER_ID?.trim();
+  const naverSecret =
+    process.env.AUTH_NAVER_SECRET?.trim() ||
+    process.env.NAVER_CLIENT_SECRET?.trim() ||
+    process.env.NAVER_SECRET?.trim();
+  if (naverId && naverSecret) {
+    providers.push(
+      // No allowDangerousEmailAccountLinking here: matching on email alone lets
+      // anyone who controls a Naver account with a member's address take over
+      // that member's account without proving they own it.
+      Naver({
+        clientId: naverId,
+        clientSecret: naverSecret,
       })
     );
   }

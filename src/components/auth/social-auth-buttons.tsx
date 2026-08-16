@@ -15,12 +15,39 @@ type SocialAuthButtonsProps = {
   discordOAuth: boolean;
   twitterOAuth: boolean;
   lineOAuth: boolean;
+  naverOAuth?: boolean;
+  /** MoCoMo app AuthSession — use server OAuth redirect (Custom Tabs CSRF-safe). */
+  fromMobile?: boolean;
+  platform?: "android" | "ios";
+  addAccount?: boolean;
+  mobileRedirectUri?: string | null;
   onGmailSignup?: () => void;
   onNaverSignup?: () => void;
-  /** Sign-in: Naver is email-domain only — focus credentials. */
+  /** Fallback when Naver OAuth env is not configured — focus @naver.com credentials. */
   onNaverSignin?: () => void;
   className?: string;
 };
+
+function mobileProviderSigninHref(
+  provider: "google" | "discord" | "twitter" | "line" | "naver",
+  opts: {
+    callbackUrl: string;
+    platform: "android" | "ios";
+    flow: "signup" | "signin";
+    addAccount?: boolean;
+    redirectUri?: string | null;
+  }
+) {
+  const params = new URLSearchParams({
+    provider,
+    platform: opts.platform,
+    flow: opts.flow,
+    callbackUrl: opts.callbackUrl,
+  });
+  if (opts.addAccount) params.set("addAccount", "1");
+  if (opts.redirectUri) params.set("redirect_uri", opts.redirectUri);
+  return `/api/auth/mobile/provider-signin?${params}`;
+}
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -137,6 +164,11 @@ export function SocialAuthButtons({
   discordOAuth,
   twitterOAuth,
   lineOAuth,
+  naverOAuth = false,
+  fromMobile = false,
+  platform = "android",
+  addAccount = false,
+  mobileRedirectUri = null,
   onGmailSignup,
   onNaverSignup,
   onNaverSignin,
@@ -150,8 +182,22 @@ export function SocialAuthButtons({
     google: googleOAuth,
     twitter: twitterOAuth,
     line: lineOAuth,
-    naver: false,
+    naver: naverOAuth,
   };
+
+  function startMobileOAuth(id: "google" | "discord" | "twitter" | "line" | "naver") {
+    const flow = isSignup ? "signup" : "signin";
+    setOAuthFlowCookieClient(flow);
+    window.location.assign(
+      mobileProviderSigninHref(id, {
+        callbackUrl,
+        platform,
+        flow,
+        addAccount,
+        redirectUri: mobileRedirectUri,
+      })
+    );
+  }
 
   async function startOAuth(id: ProviderId) {
     const flow = isSignup ? "signup" : "signin";
@@ -170,19 +216,43 @@ export function SocialAuthButtons({
       return;
     }
     if (id === "naver" && isSignup) {
+      if (naverOAuth) {
+        if (fromMobile) {
+          startMobileOAuth("naver");
+        } else {
+          startOAuth("naver");
+        }
+        return;
+      }
       onNaverSignup?.();
       return;
     }
     if (id === "google" && !isSignup) {
       if (!googleOAuth) return;
+      if (fromMobile) {
+        startMobileOAuth("google");
+        return;
+      }
       startOAuth("google");
       return;
     }
     if (id === "naver" && !isSignup) {
-      onNaverSignin?.();
+      if (!naverOAuth) {
+        onNaverSignin?.();
+        return;
+      }
+      if (fromMobile) {
+        startMobileOAuth("naver");
+        return;
+      }
+      startOAuth("naver");
       return;
     }
     if (!oauthEnabled[id]) return;
+    if (fromMobile && (id === "discord" || id === "twitter" || id === "line")) {
+      startMobileOAuth(id);
+      return;
+    }
     startOAuth(id);
   }
 
@@ -196,8 +266,8 @@ export function SocialAuthButtons({
         const Icon = provider.icon;
         const label = t(isSignup ? provider.signupKey : provider.signinKey);
         const isGmailSignup = provider.id === "google" && isSignup;
-        const isNaverSignup = provider.id === "naver" && isSignup;
-        const isNaverSignin = provider.id === "naver" && !isSignup;
+        const isNaverSignup = provider.id === "naver" && isSignup && !naverOAuth;
+        const isNaverSignin = provider.id === "naver" && !isSignup && !naverOAuth;
         const disabled =
           !isGmailSignup &&
           !isNaverSignup &&

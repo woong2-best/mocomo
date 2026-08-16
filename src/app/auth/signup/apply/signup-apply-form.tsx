@@ -7,13 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { BRAND } from "@/lib/brand";
 import { useLocale } from "@/components/providers/locale-provider";
-import { mobileAuthCompletePath } from "@/lib/mobile-oauth-shared";
+import { mobileAuthCompletePath, sanitizeMobileRedirectUri } from "@/lib/mobile-oauth-shared";
 
 export function SignupApplyForm({
   googleOAuth,
   discordOAuth,
   twitterOAuth,
   lineOAuth,
+  naverOAuth,
   fromMobile = false,
   platform = "android",
 }: {
@@ -21,6 +22,7 @@ export function SignupApplyForm({
   discordOAuth: boolean;
   twitterOAuth: boolean;
   lineOAuth: boolean;
+  naverOAuth: boolean;
   fromMobile?: boolean;
   platform?: "android" | "ios";
 }) {
@@ -61,6 +63,11 @@ export function SignupApplyForm({
             discordOAuth={discordOAuth}
             twitterOAuth={twitterOAuth}
             lineOAuth={lineOAuth}
+            naverOAuth={naverOAuth}
+            fromMobile={fromMobile}
+            platform={platform}
+            addAccount={searchParams.get("addAccount") === "1"}
+            mobileRedirectUri={sanitizeMobileRedirectUri(searchParams.get("redirect_uri"))}
             onGmailSignup={() => router.push(`/auth/signup/gmail${mobileQs}`)}
             onNaverSignup={() => router.push(`/auth/signup/naver${mobileQs}`)}
           />

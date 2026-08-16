@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
     discordOAuth: status.discordOAuth,
     twitterOAuth: status.twitterOAuth,
     lineOAuth: status.lineOAuth,
+    naverOAuth: status.naverOAuth,
     googleOAuth: status.googleOAuth,
     googleIdPresent: status.googleIdPresent,
     googleSecretPresent: status.googleSecretPresent,
@@ -37,6 +38,9 @@ export async function GET(req: NextRequest) {
       : null,
     lineCallback: status.authUrl
       ? `${status.authUrl}/api/auth/callback/line`
+      : null,
+    naverCallback: status.authUrl
+      ? `${status.authUrl}/api/auth/callback/naver`
       : null,
     vercelEnv: status.vercelEnv,
   });

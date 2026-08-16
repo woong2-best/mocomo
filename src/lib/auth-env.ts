@@ -36,6 +36,14 @@ export function getAuthConfigStatus() {
       (process.env.AUTH_LINE_ID?.trim() || process.env.LINE_CLIENT_ID?.trim()) &&
       (process.env.AUTH_LINE_SECRET?.trim() || process.env.LINE_CLIENT_SECRET?.trim())
     ),
+    naverOAuth: !!(
+      (process.env.AUTH_NAVER_ID?.trim() ||
+        process.env.NAVER_CLIENT_ID?.trim() ||
+        process.env.NAVER_ID?.trim()) &&
+      (process.env.AUTH_NAVER_SECRET?.trim() ||
+        process.env.NAVER_CLIENT_SECRET?.trim() ||
+        process.env.NAVER_SECRET?.trim())
+    ),
     databaseUrlConfigured: !!process.env.DATABASE_URL,
     vercelEnv: process.env.VERCEL_ENV ?? null,
   };

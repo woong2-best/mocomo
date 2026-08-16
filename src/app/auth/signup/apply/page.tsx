@@ -7,6 +7,7 @@ type Sp = {
   from?: string;
   platform?: string;
   redirect_uri?: string;
+  addAccount?: string;
 };
 
 export default async function SignupApplyPage({
@@ -17,7 +18,7 @@ export default async function SignupApplyPage({
   const sp = await searchParams;
   const fromMobile = sp.from === "mobile";
   const platform = sp.platform === "ios" ? "ios" : "android";
-  const { googleOAuth, discordOAuth, twitterOAuth, lineOAuth } = getAuthConfigStatus();
+  const { googleOAuth, discordOAuth, twitterOAuth, lineOAuth, naverOAuth } = getAuthConfigStatus();
 
   return (
     <>
@@ -30,6 +31,7 @@ export default async function SignupApplyPage({
           discordOAuth={discordOAuth}
           twitterOAuth={twitterOAuth}
           lineOAuth={lineOAuth}
+          naverOAuth={naverOAuth}
           fromMobile={fromMobile}
           platform={platform}
         />

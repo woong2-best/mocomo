@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -33,21 +33,27 @@ export function SignInForm({
   discordOAuth,
   twitterOAuth,
   lineOAuth,
+  naverOAuth,
   callbackUrl: callbackUrlProp,
   initialEmail = "",
   errorParam,
   fromMobile = false,
   platform = "android",
+  addAccount = false,
+  mobileRedirectUri = null,
 }: {
   googleOAuth: boolean;
   discordOAuth: boolean;
   twitterOAuth: boolean;
   lineOAuth: boolean;
+  naverOAuth: boolean;
   callbackUrl: string;
   initialEmail?: string;
   errorParam?: string | null;
   fromMobile?: boolean;
   platform?: "android" | "ios";
+  addAccount?: boolean;
+  mobileRedirectUri?: string | null;
 }) {
   const router = useRouter();
   const { t } = useLocale();
@@ -164,6 +170,11 @@ export function SignInForm({
             discordOAuth={discordOAuth}
             twitterOAuth={twitterOAuth}
             lineOAuth={lineOAuth}
+            naverOAuth={naverOAuth}
+            fromMobile={fromMobile}
+            platform={platform}
+            addAccount={addAccount}
+            mobileRedirectUri={mobileRedirectUri}
             onNaverSignin={focusCredentials}
           />
 

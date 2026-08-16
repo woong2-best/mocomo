@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { getAuthConfigStatus } from "@/lib/auth-env";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
-import { mobileAuthCompletePath } from "@/lib/mobile-oauth-shared";
+import { mobileAuthCompletePath, sanitizeMobileRedirectUri } from "@/lib/mobile-oauth-shared";
 import { MobileAuthSessionBootstrap } from "@/components/auth/mobile-auth-session-bootstrap";
 import { SignInForm } from "./signin-form";
 
@@ -13,6 +13,7 @@ type SearchParams = {
   from?: string;
   platform?: string;
   redirect_uri?: string;
+  addAccount?: string;
 };
 
 export default async function SignInPage({
@@ -23,7 +24,7 @@ export default async function SignInPage({
   const sp = await searchParams;
   const fromMobile = sp.from === "mobile";
   const platform = sp.platform === "ios" ? "ios" : "android";
-  const { googleOAuth, discordOAuth, twitterOAuth, lineOAuth } = getAuthConfigStatus();
+  const { googleOAuth, discordOAuth, twitterOAuth, lineOAuth, naverOAuth } = getAuthConfigStatus();
 
   const callbackUrl =
     sp.callbackUrl?.trim() ||
@@ -39,11 +40,14 @@ export default async function SignInPage({
         discordOAuth={discordOAuth}
         twitterOAuth={twitterOAuth}
         lineOAuth={lineOAuth}
+        naverOAuth={naverOAuth}
         callbackUrl={callbackUrl}
         initialEmail={sp.email?.trim() || ""}
         errorParam={sp.error ?? null}
         fromMobile={fromMobile}
         platform={platform}
+        addAccount={sp.addAccount === "1"}
+        mobileRedirectUri={sanitizeMobileRedirectUri(sp.redirect_uri)}
       />
     </>
   );
