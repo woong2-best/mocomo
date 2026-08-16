@@ -6,6 +6,7 @@ import { createAnime, updateAnime } from "@/actions/anime";
 import { AnimeInfoboxField } from "@/components/anime/anime-infobox-field";
 import { AnimeWikiField } from "@/components/anime/anime-wiki-field";
 import { AnimeImageUrlField } from "@/components/anime/anime-image-url-field";
+import { CultureWikiEditNotice } from "@/components/anime/culture-wiki-edit-notice";
 import { ANIME_GENRES } from "@/lib/anime-genres";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -176,6 +177,7 @@ export function AnimeForm({
             </div>
           )}
           {error && <p className="text-sm text-destructive">{error}</p>}
+          <CultureWikiEditNotice />
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "저장 중..." : mode === "create" ? "등록하기" : "수정 저장"}
           </Button>

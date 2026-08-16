@@ -56,12 +56,17 @@ export async function createPostForUser(
     return { error: "이용이 제한된 계정입니다." };
   }
 
-  const content = data.content?.trim();
-  if (!content) return { error: "내용을 입력해 주세요." };
+  const content = data.content?.trim() ?? "";
+  const hasMediaInput = (data.media ?? []).some(
+    (m) => m.url && isPersistableMediaUrl(String(m.url))
+  );
 
   if (data.poll) {
     const pollErr = validatePostPollInput(data.poll);
     if (pollErr) return { error: pollErr };
+    if (!content) return { error: "투표 질문을 본문에 적어 주세요." };
+  } else if (!content && !hasMediaInput) {
+    return { error: "내용을 입력해 주세요." };
   }
 
   try {

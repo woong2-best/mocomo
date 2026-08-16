@@ -1159,6 +1159,81 @@ export const SPONSORED_CONTENT_POLICY: LegalDocument = {
   ],
 };
 
+export const CULTURE_WIKI_TERMS: LegalDocument = {
+  slug: "culture-wiki",
+  title: "컬쳐 위키 이용 약관 및 저작권 정책 (Culture Wiki Terms)",
+  updatedAt: "2026년 8월 14일",
+  intro:
+    '본 정책은 MoCoMo LLC(이하 "회사")가 운영하는 컬쳐 위키 서비스의 이용 조건 및 저작권, 법적 책임 소재를 명시합니다. 컬쳐 위키는 이용자들이 자율적으로 참여하여 정보를 작성하고 편집하는 집단지성 서비스입니다.',
+  blocks: [
+    { type: "h2", text: "1. 목적 및 기본 방침" },
+    {
+      type: "p",
+      text: '본 정책은 MoCoMo LLC(이하 "회사")가 운영하는 컬쳐 위키 서비스의 이용 조건 및 저작권, 법적 책임 소재를 명시합니다. 컬쳐 위키는 이용자들이 자율적으로 참여하여 정보를 작성하고 편집하는 집단지성 서비스입니다.',
+    },
+    { type: "hr" },
+    { type: "h2", text: "2. 게시물의 저작권 귀속 및 이용 허락 (CCL)" },
+    {
+      type: "p",
+      text: "이용자가 컬쳐 위키에 작성 및 기여한 게시물(텍스트, 이미지 등)의 저작권은 작성자 본인에게 귀속됩니다.",
+    },
+    {
+      type: "p",
+      text: "이용자는 컬쳐 위키에 콘텐츠를 작성·편집함으로써, 해당 게시물을 크리에이티브 커먼즈 라이선스(CC BY-NC-SA 4.0)에 따라 타인이 이용(복제, 수정, 배포 등)하는 것을 허용함에 동의하게 됩니다.",
+    },
+    {
+      type: "p",
+      text: "이용자는 회사에 대해 서비스의 운영, 개편, 홍보 및 전송 목적으로 작성한 게시물을 무상으로 사용할 수 있는 권리를 부여합니다.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "3. 법적 책임 및 회사의 면책 (Disclaimer of Liability)" },
+    {
+      type: "p",
+      text: "작성자의 책임: 컬쳐 위키에 게시된 모든 정보, 텍스트, 이미지 및 기타 자료로 인해 발생하는 저작권 침해, 명예훼손, 초상권 침해 등 모든 민·형사상 법적 책임은 해당 게시물을 작성한 이용자 본인에게 있습니다.",
+    },
+    {
+      type: "p",
+      text: "단순 매개자 지위: 회사는 이용자가 게시한 내용의 정확성, 적법성, 진실성을 보증하지 않으며, 이용자 간 또는 이용자와 제3자 간에 발생한 분쟁에 대해 어떠한 법적 책임도 지지 않습니다.",
+    },
+    {
+      type: "p",
+      text: "불법 게시물 금지: 타인의 저작물을 무단 도용하거나 음란성, 명예훼손, 개인정보 유출 등의 내용을 포함하는 게시물의 작성을 엄격히 금지합니다.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "4. 저작권 침해 신고 및 삭제 절차 (DMCA Notice & Takedown Policy)" },
+    {
+      type: "p",
+      text: "회사는 미합중국 디지털 밀레니엄 저작권법(DMCA) 및 관련 저작권 법령을 준수합니다.",
+    },
+    {
+      type: "p",
+      text: "신고 접수: 자신의 저작권이나 권리가 침해당했다고 판단되는 권리자는 아래 [Contact · DMCA] 전용 메일로 삭제 또는 임시 조치(블라인드)를 요청할 수 있습니다.",
+    },
+    {
+      type: "p",
+      text: `DMCA 담당 메일: ${LEGAL_DMCA_AGENT_EMAIL}`,
+    },
+    {
+      type: "p",
+      text: "임시 조치 및 삭제: 회사는 유효한 침해 신고 접수 시, 즉시 해당 게시물을 블라인드 처리하거나 삭제 조치합니다.",
+    },
+    {
+      type: "p",
+      text: "이의 신청 (Counter Notice): 게시물이 부당하게 삭제되었다고 판단하는 작성자는 소명 자료를 첨부하여 이의 신청을 제출할 수 있습니다.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "5. 이력 보관 및 관할법 (Governing Law)" },
+    {
+      type: "p",
+      text: "IP 및 로그 보관: 회사는 법적 분쟁 및 악의적 편집 방지를 위해 문서 편집 이력, 접속 IP 및 계정 정보를 관련 법령에 따라 일정 기간 보관합니다.",
+    },
+    {
+      type: "p",
+      text: "관할법: 본 약관 및 서비스 이용과 관련하여 발생한 회사와의 법적 분쟁은 미합중국 와이오밍주(State of Wyoming, USA) 법률을 준수하며 해당 관할 법원을 우선으로 합니다.",
+    },
+  ],
+};
+
 export const COPYRIGHT_POLICY: LegalDocument = {
   slug: "copyright",
   title: "MoCoMo 저작권 정책",
@@ -1433,6 +1508,7 @@ export const ACCOUNT_DELETION: LegalDocument = {
 
 export const LEGAL_PAGES = [
   { href: "/legal/policy", label: "운영원칙 및 이용정책", doc: COMMUNITY_POLICY },
+  { href: "/legal/culture-wiki", label: "컬쳐 위키 이용 약관", doc: CULTURE_WIKI_TERMS },
   { href: "/legal/terms", label: "이용약관", doc: TERMS_OF_SERVICE },
   { href: "/legal/creator-terms", label: "크리에이터 약관", doc: CREATOR_TERMS },
   { href: "/legal/seller-terms", label: "판매자 이용약관", doc: SELLER_TERMS },
