@@ -1,18 +1,21 @@
 /**
  * Vercel build DB sync — bounded runtime so deploys cannot hang for 45+ minutes.
- * Applies pending Prisma migrations, then optional seed (both time-capped).
+ * Clears known failed migration state, applies pending migrations, then optional seed.
  */
 const { spawn } = require("child_process");
 
 const MIGRATE_TIMEOUT_MS = 4 * 60 * 1000;
 const SEED_TIMEOUT_MS = 2 * 60 * 1000;
+const RESOLVE_TIMEOUT_MS = 60 * 1000;
+
+const FAILED_WATERMARK_MIGRATION = "20260816150000_watermark_forensics";
 
 function runCommand(label, command, args, timeoutMs) {
   return new Promise((resolve, reject) => {
     console.log(`[vercel-db-sync] ${label}…`);
     const child = spawn(command, args, {
       stdio: "inherit",
-      shell: true,
+      shell: process.platform === "win32",
       env: process.env,
     });
 
@@ -34,7 +37,23 @@ function runCommand(label, command, args, timeoutMs) {
   });
 }
 
+async function tryResolveFailedWatermarkMigration() {
+  try {
+    await runCommand(
+      "clear failed watermark migration",
+      "npx",
+      ["prisma", "migrate", "resolve", "--rolled-back", FAILED_WATERMARK_MIGRATION],
+      RESOLVE_TIMEOUT_MS
+    );
+    console.log("[vercel-db-sync] cleared failed watermark migration state");
+  } catch {
+    // Not in failed state — expected on healthy databases.
+  }
+}
+
 async function main() {
+  await tryResolveFailedWatermarkMigration();
+
   try {
     await runCommand(
       "prisma migrate deploy",
