@@ -67,7 +67,7 @@ export function PaymentCheckoutSheet({
           setError(res.error);
           return;
         }
-        if (!("orderId" in res)) return;
+        if (!("orderId" in res) || !res.orderId) return;
         setOrderId(res.orderId);
         setMethods(res.methods);
         const defaultPm = res.methods.find((m: SavedPaymentMethod) => m.isDefault) ?? res.methods[0];
@@ -139,7 +139,7 @@ export function PaymentCheckoutSheet({
       setError(res.error);
       return;
     }
-    if (res.checkoutUrl) window.location.href = res.checkoutUrl;
+    if ("checkoutUrl" in res && res.checkoutUrl) window.location.href = res.checkoutUrl;
   }
 
   return (
