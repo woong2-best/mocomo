@@ -17,7 +17,7 @@ type Slide = {
   subtitle: string;
   cta: string;
   filter?: MarketListingFilterId;
-  action?: (nav: Nav) => void;
+  action?: "sell";
   panelBg: string;
 };
 
@@ -55,25 +55,25 @@ const SLIDES: Slide[] = [
     title: `글로벌 ${MARKET_BRAND_NAME}\n판매 시작`,
     subtitle: "계좌·사업자·Stripe 경로로 판매자 등록을 완료하세요.",
     cta: "판매자 등록",
-    action: (nav) => nav.navigate("SellerRegister"),
+    action: "sell",
     panelBg: "#E8EFE6",
   },
 ];
 
 type Props = {
-  navigation: Nav;
   onFilter: (filter: MarketListingFilterId) => void;
+  onSellRegister?: () => void;
 };
 
-export function MarketHeroShowcase({ navigation, onFilter }: Props) {
+export function MarketHeroShowcase({ onFilter, onSellRegister }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [active, setActive] = useState(0);
   const slide = SLIDES[active] ?? SLIDES[0];
 
   function onCta() {
-    if (slide.action) {
-      slide.action(navigation);
+    if (slide.action === "sell") {
+      onSellRegister?.();
     } else if (slide.filter) {
       onFilter(slide.filter);
     }

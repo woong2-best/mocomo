@@ -1,5 +1,5 @@
 import { memo, useMemo } from "react";
-import { Linking, Pressable, StyleSheet, Text, View, type ViewStyle } from "react-native";
+import { Pressable, StyleSheet, Text, View, type ViewStyle } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import type { ChatMessage } from "@/api/messages";
@@ -8,7 +8,7 @@ import { ChatSharedPostCard } from "@/features/messages/ChatSharedPostCard";
 import { ChatVoiceMessage } from "@/features/messages/ChatVoiceMessage";
 import type { DmLightboxImage } from "@/features/messages/DmImageLightbox";
 import { formatBubbleTime } from "@/features/messages/chat-display";
-import { parseChatPostShare, splitTextWithUrls } from "@/lib/chat-post-share";
+import { parseChatPostShare } from "@/lib/chat-post-share";
 import { parseCallBookingMarker, stripCallBookingMarker } from "@/lib/chat-call-booking";
 import {
   parseLetterDonationMarker,
@@ -16,6 +16,7 @@ import {
 } from "@/lib/chat-letter-donation";
 import { CallBookingCard } from "@/features/messages/CallBookingCard";
 import { LetterDonationCard } from "@/features/messages/LetterDonationCard";
+import { LinkifiedText } from "@/ui/LinkifiedText";
 import { IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
@@ -96,23 +97,13 @@ function MessageText({
   mine: boolean;
   styles: ReturnType<typeof createThemedStyles>;
 }) {
-  const parts = splitTextWithUrls(text);
   return (
-    <Text style={[styles.text, mine && styles.textMine]}>
-      {parts.map((part, i) =>
-        part.url ? (
-          <Text
-            key={`${i}-${part.url}`}
-            style={[styles.link, mine && styles.linkMine]}
-            onPress={() => void Linking.openURL(part.url!)}
-          >
-            {part.text}
-          </Text>
-        ) : (
-          <Text key={`${i}-t`}>{part.text}</Text>
-        )
-      )}
-    </Text>
+    <LinkifiedText
+      text={text}
+      style={[styles.text, mine && styles.textMine]}
+      linkStyle={[styles.link, mine && styles.linkMine]}
+      mentionStyle={[styles.link, mine && styles.linkMine]}
+    />
   );
 }
 

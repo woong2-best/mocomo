@@ -122,37 +122,37 @@ export function WalletScreen() {
     [addingCard, queryClient]
   );
 
-  const loading =
-    walletQuery.isLoading ||
-    (tab === "wallet" && paymentMethodsQuery.isLoading) ||
-    (tab === "earnings" && earningsQuery.isLoading);
+  const walletLoading = walletQuery.isLoading && !walletQuery.data;
+  const paymentLoading =
+    tab === "wallet" && paymentMethodsQuery.isLoading && !paymentMethodsQuery.data;
+  const earningsLoading = tab === "earnings" && earningsQuery.isLoading && !earningsQuery.data;
 
   return (
     <Screen>
       <AppHeader title="" leftLabel="뒤로" onLeftPress={() => navigation.goBack()} />
-      {loading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
-      ) : walletQuery.isError || !data ? (
-        <View style={styles.center}>
-          <Text style={styles.error}>지갑을 불러오지 못했습니다.</Text>
-          <FolkButton label="다시 시도" onPress={() => void walletQuery.refetch()} />
+      <View style={styles.root}>
+        <View style={styles.tabs}>
+          {(
+            [
+              { id: "wallet" as const, label: "지갑" },
+              { id: "earnings" as const, label: "수익" },
+            ] as const
+          ).map((t) => (
+            <Pressable key={t.id} onPress={() => setTab(t.id)}>
+              <Text style={[styles.tabLabel, tab === t.id && styles.tabLabelActive]}>{t.label}</Text>
+            </Pressable>
+          ))}
         </View>
-      ) : (
-        <View style={styles.root}>
-          <View style={styles.tabs}>
-            {(
-              [
-                { id: "wallet" as const, label: "지갑" },
-                { id: "earnings" as const, label: "수익" },
-              ] as const
-            ).map((t) => (
-              <Pressable key={t.id} onPress={() => setTab(t.id)}>
-                <Text style={[styles.tabLabel, tab === t.id && styles.tabLabelActive]}>{t.label}</Text>
-              </Pressable>
-            ))}
-          </View>
 
-          {tab === "wallet" ? (
+        {walletQuery.isError && !data ? (
+          <View style={styles.center}>
+            <Text style={styles.error}>지갑을 불러오지 못했습니다.</Text>
+            <FolkButton label="다시 시도" onPress={() => void walletQuery.refetch()} />
+          </View>
+        ) : tab === "wallet" ? (
+          walletLoading ? (
+            <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
+          ) : !data ? null : (
             <>
               <WalletCardStack
                 cards={paymentCards}
@@ -160,109 +160,111 @@ export function WalletScreen() {
                 onFrontCardPress={onPaymentCardPress}
                 hint="탭하여 등록 · 좌우로 카드 전환"
               />
-              {addingCard ? (
+              {paymentLoading || addingCard ? (
                 <ActivityIndicator style={{ marginTop: spacing.sm }} color={colors.terracotta} />
               ) : null}
               <Text style={styles.walletHelp}>
                 결제할 때 이 카드 목록에서 선택합니다. 맨 앞 카드를 눌러 추가하세요.
               </Text>
             </>
-          ) : earningsQuery.isError || !earnings ? (
-            <View style={styles.center}>
-              <Text style={styles.error}>수익 데이터를 불러오지 못했습니다.</Text>
-              <FolkButton label="다시 시도" onPress={() => void earningsQuery.refetch()} />
+          )
+        ) : earningsLoading ? (
+          <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
+        ) : earningsQuery.isError || !earnings || !data ? (
+          <View style={styles.center}>
+            <Text style={styles.error}>수익 데이터를 불러오지 못했습니다.</Text>
+            <FolkButton label="다시 시도" onPress={() => void earningsQuery.refetch()} />
+          </View>
+        ) : (
+          <ScrollView contentContainerStyle={styles.listBody} showsVerticalScrollIndicator={false}>
+            <WalletCardStack cards={revenueCards} colors={colors} />
+
+            <View style={styles.section}>
+              {data.recent.slice(0, 8).map((item) => (
+                <WalletMembershipStrip
+                  key={item.id}
+                  title={LEDGER_LABELS[item.type] ?? item.type}
+                  subtitle={item.memo ?? undefined}
+                  right={`${item.type === "PAYOUT_REQUEST" ? "-" : "+"}${won(item.amount)}`}
+                  backgroundColor={
+                    item.type === "SELLER_EARNING"
+                      ? colors.cobalt
+                      : item.type === "PAYOUT_REQUEST"
+                        ? colors.terracotta
+                        : "#4b5563"
+                  }
+                />
+              ))}
+              {data.recent.length === 0 ? (
+                <WalletMembershipStrip
+                  title="아직 정산 내역이 없습니다"
+                  subtitle="후원·판매 수익이 여기에 표시됩니다"
+                  backgroundColor="#4b5563"
+                />
+              ) : null}
             </View>
-          ) : (
-            <ScrollView contentContainerStyle={styles.listBody} showsVerticalScrollIndicator={false}>
-              <WalletCardStack cards={revenueCards} colors={colors} />
 
-              <View style={styles.section}>
-                {data.recent.slice(0, 8).map((item) => (
-                  <WalletMembershipStrip
-                    key={item.id}
-                    title={LEDGER_LABELS[item.type] ?? item.type}
-                    subtitle={item.memo ?? undefined}
-                    right={`${item.type === "PAYOUT_REQUEST" ? "-" : "+"}${won(item.amount)}`}
-                    backgroundColor={
-                      item.type === "SELLER_EARNING"
-                        ? colors.cobalt
-                        : item.type === "PAYOUT_REQUEST"
-                          ? colors.terracotta
-                          : "#4b5563"
-                    }
-                  />
-                ))}
-                {data.recent.length === 0 ? (
-                  <WalletMembershipStrip
-                    title="아직 정산 내역이 없습니다"
-                    subtitle="후원·판매 수익이 여기에 표시됩니다"
-                    backgroundColor="#4b5563"
-                  />
-                ) : null}
-              </View>
+            <BankVerifyPanel />
+            <RevenuePayoutPanel
+              withdrawable={withdrawable}
+              bankReady={!!bankStatusQuery.data?.bankVerified || !!data.bank}
+            />
 
-              <BankVerifyPanel />
-              <RevenuePayoutPanel
-                withdrawable={withdrawable}
-                bankReady={!!bankStatusQuery.data?.bankVerified || !!data.bank}
-              />
-
-              <View style={styles.section}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.yearRow}>
-                  {(earnings.years ?? [year]).map((y) => (
-                    <Pressable
-                      key={y}
-                      onPress={() => setYear(y)}
+            <View style={styles.section}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.yearRow}>
+                {(earnings.years ?? [year]).map((y) => (
+                  <Pressable
+                    key={y}
+                    onPress={() => setYear(y)}
+                    style={[
+                      styles.yearChip,
+                      {
+                        borderColor: colors.hairline,
+                        backgroundColor: year === y ? colors.cobalt : colors.surfaceRaised,
+                      },
+                    ]}
+                  >
+                    <Text
                       style={[
-                        styles.yearChip,
-                        {
-                          borderColor: colors.hairline,
-                          backgroundColor: year === y ? colors.cobalt : colors.surfaceRaised,
-                        },
+                        styles.yearChipText,
+                        { color: year === y ? colors.textOnAccent : colors.textMuted },
                       ]}
                     >
-                      <Text
-                        style={[
-                          styles.yearChipText,
-                          { color: year === y ? colors.textOnAccent : colors.textMuted },
-                        ]}
-                      >
-                        {y}년
-                      </Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
+                      {y}년
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
 
-                <View style={styles.statRow}>
-                  <StatCard label="수익" value={earnings.yearEarned ?? 0} tone="up" colors={colors} />
-                  <StatCard label="지출" value={earnings.yearWithdrawn ?? 0} tone="down" colors={colors} />
-                  <StatCard
-                    label="순수익"
-                    value={earnings.yearNet ?? 0}
-                    tone={(earnings.yearNet ?? 0) >= 0 ? "up" : "down"}
-                    colors={colors}
-                  />
-                </View>
-
-                <WalletEarningsChart
-                  months={earnings.months ?? []}
-                  yearNet={earnings.yearNet ?? 0}
+              <View style={styles.statRow}>
+                <StatCard label="수익" value={earnings.yearEarned ?? 0} tone="up" colors={colors} />
+                <StatCard label="지출" value={earnings.yearWithdrawn ?? 0} tone="down" colors={colors} />
+                <StatCard
+                  label="순수익"
+                  value={earnings.yearNet ?? 0}
+                  tone={(earnings.yearNet ?? 0) >= 0 ? "up" : "down"}
                   colors={colors}
                 />
-
-                {(earnings.bySource ?? []).map((s) => (
-                  <WalletMembershipStrip
-                    key={s.key}
-                    title={s.label}
-                    right={won(s.amount)}
-                    backgroundColor={colors.forest}
-                  />
-                ))}
               </View>
-            </ScrollView>
-          )}
-        </View>
-      )}
+
+              <WalletEarningsChart
+                months={earnings.months ?? []}
+                yearNet={earnings.yearNet ?? 0}
+                colors={colors}
+              />
+
+              {(earnings.bySource ?? []).map((s) => (
+                <WalletMembershipStrip
+                  key={s.key}
+                  title={s.label}
+                  right={won(s.amount)}
+                  backgroundColor={colors.forest}
+                />
+              ))}
+            </View>
+          </ScrollView>
+        )}
+      </View>
     </Screen>
   );
 }

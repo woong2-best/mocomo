@@ -182,7 +182,7 @@ export function MeetMap({
           zoom={zoom}
           marker={active}
           onPick={mode === "pick" ? handlePick : undefined}
-          style={StyleSheet.absoluteFillObject}
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
         />
         {mode === "pick" && !active ? (
           <View style={styles.hint} pointerEvents="none">

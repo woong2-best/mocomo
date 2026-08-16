@@ -14,8 +14,12 @@ type ServiceItem = {
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
   colorKey: "terracotta" | "cobalt" | "forest" | "gold";
-  onPress: (nav: Nav) => void;
+  action?: "sell" | "navigate";
+  route?: "Main" | ParamlessRoute;
 };
+
+/** Destinations reachable from the strip without navigation params. */
+type ParamlessRoute = "MarketMy" | "SellerListings";
 
 const SERVICES: ServiceItem[] = [
   {
@@ -23,65 +27,65 @@ const SERVICES: ServiceItem[] = [
     label: `전체\n${MARKET_BRAND_NAME.split(" ").slice(-1)[0]}`,
     icon: "storefront-outline",
     colorKey: "terracotta",
-    onPress: () => {},
   },
   {
     key: "physical",
     label: "일반상품",
     icon: "cube-outline",
     colorKey: "cobalt",
-    onPress: () => {},
   },
   {
     key: "custom",
     label: "주문제작",
     icon: "color-palette-outline",
     colorKey: "forest",
-    onPress: () => {},
   },
   {
     key: "preorder",
     label: "예약판매",
     icon: "car-outline",
     colorKey: "gold",
-    onPress: () => {},
   },
   {
     key: "sell",
     label: "판매 시작",
     icon: "add-circle-outline",
     colorKey: "terracotta",
-    onPress: (nav) => nav.navigate("SellerRegister"),
+    action: "sell",
   },
   {
     key: "used",
     label: "중고·경매",
     icon: "pricetag-outline",
     colorKey: "gold",
-    onPress: (nav) => nav.navigate("Main", { screen: "Used" }),
+    action: "navigate",
+    route: "Main",
   },
   {
     key: "orders",
     label: "내 주문",
     icon: "clipboard-outline",
     colorKey: "cobalt",
-    onPress: (nav) => nav.navigate("MarketMy"),
+    action: "navigate",
+    route: "MarketMy",
   },
   {
     key: "seller",
     label: "판매자",
     icon: "briefcase-outline",
     colorKey: "terracotta",
-    onPress: (nav) => nav.navigate("SellerListings"),
+    action: "navigate",
+    route: "SellerListings",
   },
 ];
 
 type Props = {
   navigation: Nav;
   onFilter: (type: "ALL" | "PHYSICAL" | "CUSTOM_ORDER" | "PREORDER") => void;
+  onSellRegister?: () => void;
 };
 
-export function MarketServiceStrip({ navigation, onFilter }: Props) {
+export function MarketServiceStrip({ navigation, onFilter, onSellRegister }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -103,7 +107,12 @@ export function MarketServiceStrip({ navigation, onFilter }: Props) {
               else if (s.key === "physical") onFilter("PHYSICAL");
               else if (s.key === "custom") onFilter("CUSTOM_ORDER");
               else if (s.key === "preorder") onFilter("PREORDER");
-              else s.onPress(navigation);
+              else if (s.action === "sell") onSellRegister?.();
+              else if (s.action === "navigate" && s.route === "Main") {
+                navigation.navigate("Main", { screen: "Used" });
+              } else if (s.action === "navigate" && s.route && s.route !== "Main") {
+                navigation.navigate(s.route);
+              }
             }}
           >
             <View style={styles.iconBox}>

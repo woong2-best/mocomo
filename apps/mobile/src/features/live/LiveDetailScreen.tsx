@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Linking,
   Pressable,
   ScrollView,
@@ -29,6 +30,8 @@ import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+import { LiveDonationAlertOverlay } from "@/features/live/LiveDonationAlertOverlay";
+import { TipCreatorSheet } from "@/payments/TipCreatorSheet";
 
 export function LiveDetailScreen() {
   const { colors } = useTheme();
@@ -41,11 +44,13 @@ export function LiveDetailScreen() {
   const [tokenError, setTokenError] = useState<string | null>(null);
   const [tokenLoading, setTokenLoading] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
+  const [tipOpen, setTipOpen] = useState(false);
 
   const query = useQuery({
     queryKey: ["mobile-live", route.params.id],
     queryFn: () => fetchLiveDetail(route.params.id),
     staleTime: 15_000,
+    refetchInterval: (q) => (q.state.data?.item?.isLive ? 5_000 : false),
   });
   const item = query.data?.item;
 
@@ -112,6 +117,12 @@ export function LiveDetailScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.playerBlock}>
+            {item.isLive && item.paymentsEnabled && item.donationAlertsOnStream ? (
+              <LiveDonationAlertOverlay
+                channelId={item.id}
+                streamStartedAt={item.streamStartedAt}
+              />
+            ) : null}
             {item.isExternal && item.external ? (
               <ExternalLivePlayer external={item.external} title={item.title} />
             ) : watchingFirstParty && creds ? (
@@ -164,16 +175,23 @@ export function LiveDetailScreen() {
 
             {item.description ? <Text style={styles.desc}>{item.description}</Text> : null}
 
-            {item.isExternal && item.external && item.paymentsEnabled && !item.isHost ? (
-              <Pressable
-                style={styles.tipBtn}
-                onPress={() =>
-                  void Linking.openURL(`https://mocomo.net/voice/${item.id}`).catch(() => undefined)
-                }
-              >
+            {item.paymentsEnabled && !item.isHost ? (
+              <Pressable style={styles.tipBtn} onPress={() => setTipOpen(true)}>
                 <Ionicons name="heart" size={16} color="#fff" />
                 <Text style={styles.primaryBtnText}>후원하기</Text>
               </Pressable>
+            ) : null}
+
+            {item.paymentsEnabled && !item.isHost ? (
+              <TipCreatorSheet
+                visible={tipOpen}
+                onClose={() => setTipOpen(false)}
+                creatorId={item.host.id}
+                username={item.host.username}
+                displayName={item.host.name || item.host.username}
+                channelId={item.id}
+                onSuccess={() => Alert.alert("후원 완료", "라이브 후원이 완료되었습니다.")}
+              />
             ) : null}
 
             {!item.isExternal ? (
@@ -255,7 +273,7 @@ function createStyles(colors: ThemeColors) {
     },
     liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#fff" },
     liveText: { color: "#fff", fontSize: 10, fontWeight: "900" },
-    playerBlock: { padding: spacing.md, paddingBottom: 0 },
+    playerBlock: { padding: spacing.md, paddingBottom: 0, position: "relative" },
     firstPartyPlayer: {
       borderRadius: 12,
       overflow: "hidden",

@@ -8,7 +8,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useQuery } from "@tanstack/react-query";
@@ -66,12 +65,9 @@ export function SettingsScreen() {
   const navigation = useNavigation();
   const { user, refreshMe, signOut } = useAuth();
 
-  const [name, setName] = useState(user?.name ?? "");
-  const [bio, setBio] = useState(user?.bio ?? "");
   const [locale, setLocale] = useState(user?.locale ?? "ko");
   const [countryCode, setCountryCode] = useState(user?.countryCode ?? "KR");
   const [timeZone, setTimeZone] = useState(user?.timeZone ?? "Asia/Seoul");
-  const [busy, setBusy] = useState(false);
   const [localeBusy, setLocaleBusy] = useState(false);
 
   const checkoutMeta = useQuery({
@@ -80,28 +76,10 @@ export function SettingsScreen() {
   });
 
   useEffect(() => {
-    setName(user?.name ?? "");
-    setBio(user?.bio ?? "");
     setLocale(user?.locale ?? "ko");
     setCountryCode(user?.countryCode ?? "KR");
     setTimeZone(user?.timeZone ?? "Asia/Seoul");
-  }, [user?.name, user?.bio, user?.locale, user?.countryCode, user?.timeZone]);
-
-  async function saveProfile() {
-    setBusy(true);
-    try {
-      await patchMe({
-        name: name.trim() || undefined,
-        bio,
-      });
-      await refreshMe();
-      Alert.alert("저장됨", "프로필이 업데이트되었습니다.");
-    } catch (e) {
-      Alert.alert("오류", errorMessage(e));
-    } finally {
-      setBusy(false);
-    }
-  }
+  }, [user?.locale, user?.countryCode, user?.timeZone]);
 
   async function saveLocale() {
     setLocaleBusy(true);
@@ -233,30 +211,20 @@ export function SettingsScreen() {
 
           <FolkCard>
             <Text style={styles.cardTitle}>프로필</Text>
-            <Text style={styles.label}>표시 이름</Text>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholderTextColor={colors.textMuted}
+            <Text style={styles.cardDesc}>
+              배너·프로필 사진·닉네임·소개·생일 등 전체 프로필을 앱에서 수정합니다. 사이드바
+              연필 버튼으로도 열 수 있습니다.
+            </Text>
+            <FolkButton
+              label="프로필 편집"
+              onPress={() => navigation.navigate("ProfileEdit" as never)}
             />
-            <Text style={styles.label}>소개</Text>
-            <TextInput
-              style={[styles.input, styles.bio]}
-              value={bio}
-              onChangeText={setBio}
-              multiline
-              placeholderTextColor={colors.textMuted}
-            />
-            <View style={styles.rowGap}>
-              <FolkButton label="프로필 저장" loading={busy} onPress={() => void saveProfile()} />
-              <Pressable
-                style={[styles.outlineBtn, { borderColor: colors.brand }]}
-                onPress={() => navigation.navigate("Profile" as never)}
-              >
-                <Text style={[styles.outlineBtnText, { color: colors.brand }]}>내 프로필 보기</Text>
-              </Pressable>
-            </View>
+            <Pressable
+              style={[styles.outlineBtn, { borderColor: colors.brand, marginTop: 8 }]}
+              onPress={() => navigation.navigate("Profile" as never)}
+            >
+              <Text style={[styles.outlineBtnText, { color: colors.brand }]}>내 프로필 보기</Text>
+            </Pressable>
           </FolkCard>
 
           <FolkCard style={{ borderColor: "rgba(196, 92, 62, 0.35)" }}>

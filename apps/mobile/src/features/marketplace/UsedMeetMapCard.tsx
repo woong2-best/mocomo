@@ -7,7 +7,10 @@ import type { MeetMapPayload } from "@/maps/types";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 
-export type UsedMeetMapInfo = MeetMapPayload;
+export type UsedMeetMapInfo = Omit<MeetMapPayload, "country" | "externalMapUrl"> & {
+  country?: string;
+  externalMapUrl?: string;
+};
 
 /**
  * Buyer meet-location card — same MapProvider path as seller picker.

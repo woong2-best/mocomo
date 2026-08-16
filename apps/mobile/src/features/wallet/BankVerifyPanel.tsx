@@ -42,7 +42,7 @@ export function BankVerifyPanel() {
     setMsg("");
     try {
       const res = await sendBankVerification(bankCode, accountNum.replace(/\D/g, ""));
-      if ("error" in res && res.error) {
+      if ("error" in res && typeof res.error === "string") {
         setError(res.error);
         return;
       }
@@ -61,7 +61,7 @@ export function BankVerifyPanel() {
     setError("");
     try {
       const res = await verifyBankCode(bankCode, accountNum.replace(/\D/g, ""), code.trim());
-      if ("error" in res && res.error) {
+      if ("error" in res && typeof res.error === "string") {
         setError(res.error);
         return;
       }

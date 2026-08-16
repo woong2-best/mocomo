@@ -1,4 +1,4 @@
-import { memo, useCallback, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import {
   Animated,
   PanResponder,
@@ -111,7 +111,7 @@ const StackCard = memo(function StackCard({
 });
 
 export const WalletCardStack = memo(function WalletCardStack(props: Props) {
-  const { cards, onFrontCardPress, hint } = props;
+  const { cards, colors, onFrontCardPress, hint } = props;
   const { width: screenWidth } = useWindowDimensions();
   const cardH = cardHeightFromWidth(screenWidth);
   const cardW = screenWidth - CARD_HORIZONTAL_INSET * 2;
@@ -264,7 +264,7 @@ export const WalletCardStack = memo(function WalletCardStack(props: Props) {
           accessibilityLabel="카드 펼치기"
         />
       </Animated.View>
-      <Text style={styles.hint}>
+      <Text style={[styles.hint, { color: colors.textMuted }]}>
         {hint ?? "위로 드래그 · 탭으로 펼치기 · 좌우로 카드 전환"}
       </Text>
     </View>
@@ -301,6 +301,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 11,
     fontWeight: "600",
-    color: "rgba(255,255,255,0.35)",
   },
 });

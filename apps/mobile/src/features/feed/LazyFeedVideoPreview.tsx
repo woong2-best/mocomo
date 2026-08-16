@@ -12,6 +12,8 @@ type Props = {
   active: boolean;
   videoCount?: number;
   onPress: () => void;
+  /** Inside horizontal carousel — fill parent cell, no outer margin. */
+  embedded?: boolean;
 };
 
 type PreviewComponent = ComponentType<Props>;

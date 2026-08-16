@@ -8,7 +8,7 @@ const OSM_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 
 /**
  * MapLibre Native + OSM-compatible style (non-KR).
- * Requires @maplibre/maplibre-react-native + EAS/dev-client rebuild.
+ * Uses MapLibre v11 Map/Marker/Camera API.
  */
 export function MapLibreMapProvider({
   mode,
@@ -22,16 +22,16 @@ export function MapLibreMapProvider({
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       return require("@maplibre/maplibre-react-native") as {
-        MapView: ComponentType<Record<string, unknown>>;
+        Map: ComponentType<Record<string, unknown>>;
         Camera: ComponentType<Record<string, unknown>>;
-        PointAnnotation: ComponentType<Record<string, unknown>>;
+        Marker: ComponentType<Record<string, unknown>>;
       };
     } catch {
       return null;
     }
   }, []);
 
-  if (!MLRN) {
+  if (!MLRN?.Map) {
     return (
       <View style={[styles.fallback, style]}>
         <Ionicons name="map-outline" size={36} color="#1B4A8C" />
@@ -39,37 +39,32 @@ export function MapLibreMapProvider({
     );
   }
 
-  const { MapView, Camera, PointAnnotation } = MLRN;
+  const { Map, Camera, Marker } = MLRN;
   const pin = marker;
 
   return (
     <View style={[styles.wrap, style]}>
-      <MapView
+      <Map
         style={StyleSheet.absoluteFill}
         mapStyle={OSM_STYLE_URL}
-        compassEnabled
-        attributionEnabled
-        onPress={(e: { geometry?: { coordinates?: number[] } }) => {
+        compass
+        attribution
+        onPress={(e: { nativeEvent?: { lngLat?: [number, number] } }) => {
           if (mode !== "pick" || !onPick) return;
-          const coords = e?.geometry?.coordinates;
-          if (!coords || coords.length < 2) return;
-          onPick({ lng: coords[0]!, lat: coords[1]! });
+          const lngLat = e.nativeEvent?.lngLat;
+          if (!lngLat || lngLat.length < 2) return;
+          onPick({ lng: lngLat[0]!, lat: lngLat[1]! });
         }}
       >
-        <Camera
-          centerCoordinate={[center.lng, center.lat]}
-          zoomLevel={zoom}
-          animationMode="flyTo"
-          animationDuration={400}
-        />
+        <Camera center={[center.lng, center.lat]} zoom={zoom} duration={400} easing="fly" />
         {pin ? (
-          <PointAnnotation id="meet-pin" coordinate={[pin.lng, pin.lat]}>
+          <Marker lngLat={[pin.lng, pin.lat]}>
             <View style={styles.pin}>
               <Ionicons name="location" size={28} color="#EF4444" />
             </View>
-          </PointAnnotation>
+          </Marker>
         ) : null}
-      </MapView>
+      </Map>
     </View>
   );
 }

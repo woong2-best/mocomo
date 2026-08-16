@@ -11,23 +11,27 @@ import {
   type ViewToken,
   useWindowDimensions,
 } from "react-native";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchFeedPage, type FeedPost } from "@/api/feed";
+import { createPostComment } from "@/api/social";
 import {
-  createPostComment,
-  fetchPostComments,
-  type CommentItem,
-} from "@/api/social";
+  parsePostComments,
+  postCommentsQueryKey,
+  postCommentsQueryOptions,
+  prefetchPostComments,
+  type PostCommentsResponse,
+} from "@/api/post-comments-query";
 import {
   buildFeedVideoGroups,
   findGroupOpenPosition,
   type FeedVideoGroup,
 } from "@/features/feed/feed-video-groups";
 import { FeedVideoPostSlide } from "@/features/feed/FeedVideoPostSlide";
+import { LinkifiedText } from "@/ui/LinkifiedText";
 import type { RootStackParamList } from "@/navigation/types";
 
 export function ReelsScreen() {
@@ -46,10 +50,35 @@ export function ReelsScreen() {
   const [seedVideoByGroup, setSeedVideoByGroup] = useState<Record<string, number>>({});
   const [didSeed, setDidSeed] = useState(false);
   const [commentsPostId, setCommentsPostId] = useState<string | null>(null);
-  const [comments, setComments] = useState<CommentItem[]>([]);
+  const [headerCommentCount, setHeaderCommentCount] = useState(0);
   const [commentDraft, setCommentDraft] = useState("");
-  const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentBusy, setCommentBusy] = useState(false);
+  const [chromeHidden, setChromeHidden] = useState(false);
+
+  const commentsQuery = useQuery({
+    ...postCommentsQueryOptions(commentsPostId ?? ""),
+    enabled: !!commentsPostId,
+    placeholderData: (previous) =>
+      previous ??
+      (commentsPostId
+        ? queryClient.getQueryData<PostCommentsResponse>(postCommentsQueryKey(commentsPostId))
+        : undefined),
+  });
+
+  const comments = useMemo(
+    () => parsePostComments(commentsQuery.data),
+    [commentsQuery.data]
+  );
+
+  const commentTotal =
+    typeof commentsQuery.data?.total === "number"
+      ? commentsQuery.data.total
+      : comments.length > 0
+        ? comments.length
+        : headerCommentCount;
+
+  const showCommentsSpinner =
+    comments.length === 0 && headerCommentCount > 0 && commentsQuery.isFetching;
 
   const feedQuery = useInfiniteQuery({
     queryKey: ["mobile-feed"],
@@ -105,6 +134,21 @@ export function ReelsScreen() {
     setDidSeed(true);
   }, [didSeed, groups, targetMediaId, targetMediaIndex, targetPostId]);
 
+  /** Prefetch comments for visible reels so the sheet opens instantly (IG/X). */
+  useEffect(() => {
+    if (groups.length === 0) return;
+    const warm = (idx: number) => {
+      const g = groups[idx];
+      if (!g) return;
+      const count = g.videos[0]?.commentCount ?? 0;
+      if (count > 0) prefetchPostComments(queryClient, g.postId);
+    };
+    warm(activeGroup);
+    warm(activeGroup - 1);
+    warm(activeGroup + 1);
+    if (targetPostId) prefetchPostComments(queryClient, targetPostId);
+  }, [activeGroup, groups, queryClient, targetPostId]);
+
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
       const first = viewableItems.find((v) => v.isViewable && typeof v.index === "number");
@@ -117,27 +161,41 @@ export function ReelsScreen() {
     minimumViewTime: 60,
   }).current;
 
-  const openComments = useCallback(async (postId: string) => {
-    setCommentsPostId(postId);
-    setCommentsLoading(true);
-    setCommentDraft("");
-    try {
-      const res = await fetchPostComments(postId);
-      setComments(res.items ?? res.comments ?? []);
-    } catch {
-      setComments([]);
-    } finally {
-      setCommentsLoading(false);
-    }
-  }, []);
+  const openComments = useCallback(
+    (postId: string, commentCount: number) => {
+      setCommentsPostId(postId);
+      setHeaderCommentCount(commentCount);
+      setCommentDraft("");
+      void queryClient.ensureQueryData(postCommentsQueryOptions(postId));
+    },
+    [queryClient]
+  );
+
+  const prefetchComments = useCallback(
+    (postId: string) => {
+      prefetchPostComments(queryClient, postId);
+    },
+    [queryClient]
+  );
 
   const submitComment = useCallback(async () => {
     if (!commentsPostId || !commentDraft.trim() || commentBusy) return;
     setCommentBusy(true);
     try {
       const res = await createPostComment(commentsPostId, commentDraft.trim());
-      setComments((prev) => [res.comment, ...prev]);
+      queryClient.setQueryData<PostCommentsResponse>(
+        postCommentsQueryKey(commentsPostId),
+        (old) => {
+          const prev = parsePostComments(old);
+          return {
+            ...(old ?? {}),
+            comments: [res.comment, ...prev],
+            total: (old?.total ?? prev.length) + 1,
+          };
+        }
+      );
       setCommentDraft("");
+      setHeaderCommentCount((n) => n + 1);
       await queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
     } catch {
       // keep draft
@@ -156,6 +214,10 @@ export function ReelsScreen() {
     [activeGroup, groups.length]
   );
 
+  const onFastForwardChange = useCallback((hidden: boolean) => {
+    setChromeHidden(hidden);
+  }, []);
+
   const renderItem = useCallback(
     ({ item, index }: { item: FeedVideoGroup; index: number }) => (
       <FeedVideoPostSlide
@@ -164,11 +226,25 @@ export function ReelsScreen() {
         height={height}
         active={index === activeGroup}
         initialVideoIndex={seedVideoByGroup[item.postId] ?? 0}
-        onOpenComments={(postId) => void openComments(postId)}
+        onOpenComments={openComments}
+        onPrefetchComments={prefetchComments}
+        onFastForwardChange={index === activeGroup ? onFastForwardChange : undefined}
       />
     ),
-    [activeGroup, height, openComments, seedVideoByGroup, width]
+    [
+      activeGroup,
+      height,
+      onFastForwardChange,
+      openComments,
+      prefetchComments,
+      seedVideoByGroup,
+      width,
+    ]
   );
+
+  useEffect(() => {
+    setChromeHidden(false);
+  }, [activeGroup]);
 
   if (feedQuery.isLoading && groups.length === 0) {
     return (
@@ -180,27 +256,31 @@ export function ReelsScreen() {
 
   return (
     <View style={styles.root}>
-      <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={28} color="#fff" />
-        </Pressable>
-        <Text style={styles.title}>영상</Text>
-        <View style={styles.backBtn} />
-      </View>
+      {!chromeHidden ? (
+        <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
+          <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={28} color="#fff" />
+          </Pressable>
+          <Text style={styles.title}>영상</Text>
+          <View style={styles.backBtn} />
+        </View>
+      ) : null}
 
       {/* Up / down affordances like web */}
-      <View style={[styles.navArrows, { top: insets.top + 56 }]} pointerEvents="box-none">
-        <Pressable style={styles.arrowBtn} onPress={() => goGroup(-1)} disabled={activeGroup <= 0}>
-          <Ionicons name="chevron-up" size={22} color="#fff" />
-        </Pressable>
-        <Pressable
-          style={styles.arrowBtn}
-          onPress={() => goGroup(1)}
-          disabled={activeGroup >= groups.length - 1}
-        >
-          <Ionicons name="chevron-down" size={22} color="#fff" />
-        </Pressable>
-      </View>
+      {!chromeHidden ? (
+        <View style={[styles.navArrows, { top: insets.top + 56 }]} pointerEvents="box-none">
+          <Pressable style={styles.arrowBtn} onPress={() => goGroup(-1)} disabled={activeGroup <= 0}>
+            <Ionicons name="chevron-up" size={22} color="#fff" />
+          </Pressable>
+          <Pressable
+            style={styles.arrowBtn}
+            onPress={() => goGroup(1)}
+            disabled={activeGroup >= groups.length - 1}
+          >
+            <Ionicons name="chevron-down" size={22} color="#fff" />
+          </Pressable>
+        </View>
+      ) : null}
 
       <FlatList
         ref={listRef}
@@ -246,13 +326,13 @@ export function ReelsScreen() {
           <View style={[styles.sheet, { paddingBottom: insets.bottom + 10 }]}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>댓글 {comments.length}</Text>
+              <Text style={styles.sheetTitle}>댓글 {commentTotal}</Text>
               <Pressable onPress={() => setCommentsPostId(null)} hitSlop={10}>
                 <Ionicons name="close" size={22} color="#fff" />
               </Pressable>
             </View>
             <Text style={styles.sheetSort}>최신순</Text>
-            {commentsLoading ? (
+            {showCommentsSpinner ? (
               <ActivityIndicator color="#fff" style={{ marginVertical: 24 }} />
             ) : (
               <FlatList
@@ -265,7 +345,7 @@ export function ReelsScreen() {
                       {item.author.username}
                       <Text style={styles.commentMeta}> · </Text>
                     </Text>
-                    <Text style={styles.commentBody}>{item.content}</Text>
+                    <LinkifiedText text={item.content} style={styles.commentBody} lightLinks />
                   </View>
                 )}
                 ListEmptyComponent={

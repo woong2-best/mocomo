@@ -17,6 +17,7 @@ import {
 } from "@/api/live";
 import { ApiError } from "@/api/client";
 import { FolkAvatar } from "@/ui/FolkAvatar";
+import { LinkifiedText } from "@/ui/LinkifiedText";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -147,7 +148,7 @@ export function LiveChatPanel({ channelId, viewerCount, onViewerCount }: Props) 
               <FolkAvatar uri={item.image} name={item.username} size={28} framed={false} />
               <View style={styles.bubble}>
                 <Text style={styles.user}>@{item.username}</Text>
-                <Text style={styles.content}>{item.content}</Text>
+                <LinkifiedText text={item.content} style={styles.content} />
               </View>
             </View>
           )}

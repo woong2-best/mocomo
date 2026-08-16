@@ -203,9 +203,9 @@ export function StarListScreen() {
         </ScrollView>
       ) : null}
 
-      {query.isLoading ? (
+      {query.isLoading && !query.data ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
-      ) : query.isError ? (
+      ) : query.isError && !query.data ? (
         <View style={styles.center}>
           <Text style={styles.error}>STAR 목록을 불러오지 못했습니다.</Text>
           <FolkButton label="다시 시도" onPress={() => void query.refetch()} />

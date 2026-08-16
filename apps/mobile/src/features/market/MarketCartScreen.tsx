@@ -21,7 +21,8 @@ import {
   updateMarketplaceCartQuantity,
   type MarketplaceCartItem,
 } from "@/lib/marketplace-cart";
-import { openMarketplaceCheckout } from "@/payments/stripe-checkout";
+import type { MarketplaceCheckoutBody } from "@/api/star-market";
+import { MarketplacePaymentSheet } from "@/payments/MarketplacePaymentSheet";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
@@ -39,7 +40,8 @@ export function MarketCartScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
   const [items, setItems] = useState<MarketplaceCartItem[]>([]);
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const [payItem, setPayItem] = useState<MarketplaceCartItem | null>(null);
+  const [payVisible, setPayVisible] = useState(false);
 
   const reload = useCallback(() => {
     void getMarketplaceCart().then(setItems);
@@ -51,18 +53,15 @@ export function MarketCartScreen() {
     }, [reload])
   );
 
-  async function checkout(item: MarketplaceCartItem) {
-    setBusyId(item.listingId);
-    try {
-      await openMarketplaceCheckout(item.listingId, { quantity: item.quantity });
-      await removeFromMarketplaceCart(item.listingId);
-      reload();
-      Alert.alert("결제 완료", "주문이 접수되었습니다.");
-    } catch (e) {
-      Alert.alert("결제 실패", e instanceof Error ? e.message : "다시 시도해 주세요.");
-    } finally {
-      setBusyId(null);
-    }
+  function checkout(item: MarketplaceCartItem) {
+    setPayItem(item);
+    setPayVisible(true);
+  }
+
+  async function handlePaySuccess(item: MarketplaceCartItem) {
+    await removeFromMarketplaceCart(item.listingId);
+    reload();
+    Alert.alert("결제 완료", "주문이 접수되었습니다.");
   }
 
   return (
@@ -119,15 +118,27 @@ export function MarketCartScreen() {
                 </Pressable>
               </View>
               <FolkButton
-                label={busyId === item.listingId ? "처리 중…" : "결제하기"}
-                onPress={() => void checkout(item)}
-                disabled={busyId === item.listingId}
+                label="결제하기"
+                onPress={() => checkout(item)}
                 style={{ marginTop: 8 }}
               />
             </View>
           </View>
         )}
       />
+      {payItem ? (
+        <MarketplacePaymentSheet
+          visible={payVisible}
+          listingId={payItem.listingId}
+          body={{ quantity: payItem.quantity }}
+          onClose={() => setPayVisible(false)}
+          onSuccess={() => {
+            void handlePaySuccess(payItem);
+            setPayVisible(false);
+            setPayItem(null);
+          }}
+        />
+      ) : null}
     </Screen>
   );
 }

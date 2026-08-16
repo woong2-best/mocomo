@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  View,
 } from "react-native";
 import {
   calcDurationMinutes,
@@ -17,6 +15,7 @@ import {
 } from "@/api/call-bookings";
 import { PaymentCheckoutSheet } from "@/payments/PaymentCheckoutSheet";
 import { FolkButton } from "@/ui/FolkButton";
+import { KeyboardSheet } from "@/ui/KeyboardSheet";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -158,9 +157,16 @@ export function CreatorCallBookingSheet({
 
   return (
     <>
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+    <KeyboardSheet
+      visible={visible}
+      onClose={onClose}
+      maxHeight="88%"
+      sheetStyle={{
+        backgroundColor: colors.surface,
+        borderTopLeftRadius: radii.xl,
+        borderTopRightRadius: radii.xl,
+      }}
+    >
           <Text style={styles.title}>{displayName} · {callLabel} 통화 예약</Text>
           <Text style={styles.sub}>
             결제 후 크리에이터에게 예약 신청이 전달됩니다. 수락 후 예약 시간에 통화할 수 있어요.
@@ -249,9 +255,7 @@ export function CreatorCallBookingSheet({
               <FolkButton label={busy ? "처리 중…" : "결제하고 예약 신청"} onPress={submit} disabled={busy} />
             </ScrollView>
           )}
-        </Pressable>
-      </Pressable>
-    </Modal>
+    </KeyboardSheet>
     {payBody ? (
       <PaymentCheckoutSheet
         visible={payOpen}

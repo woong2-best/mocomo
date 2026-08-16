@@ -3,14 +3,12 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Keyboard,
   Platform,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
-  type KeyboardEvent,
   type ListRenderItem,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -39,6 +37,7 @@ import { FolkAvatar } from "@/ui/FolkAvatar";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
 
 const MAX_VOICE_SEC = 120;
 const NEAR_BOTTOM_PX = 140;
@@ -52,25 +51,6 @@ type MessageRow = {
   message: ChatMessage;
   showTime: boolean;
 };
-
-function useKeyboardBottomInset() {
-  const [height, setHeight] = useState(0);
-
-  useEffect(() => {
-    const onShow = (e: KeyboardEvent) => setHeight(e.endCoordinates.height);
-    const onHide = () => setHeight(0);
-    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-    const showSub = Keyboard.addListener(showEvent, onShow);
-    const hideSub = Keyboard.addListener(hideEvent, onHide);
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
-
-  return height;
-}
 
 export function MessageRoomScreen() {
   const { colors } = useTheme();

@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import {
   Alert,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,9 +8,10 @@ import {
   TextInput,
   View,
 } from "react-native";
-import type { StarMarketDetail } from "@/api/star-market";
-import { openMarketplaceCheckout } from "@/payments/stripe-checkout";
+import type { StarMarketDetail, MarketplaceCheckoutBody } from "@/api/star-market";
+import { MarketplacePaymentSheet } from "@/payments/MarketplacePaymentSheet";
 import { FolkButton } from "@/ui/FolkButton";
+import { KeyboardSheet } from "@/ui/KeyboardSheet";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -43,8 +43,9 @@ export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props)
   const [shipAddress1, setShipAddress1] = useState("");
   const [shipAddress2, setShipAddress2] = useState("");
   const [shipPhone, setShipPhone] = useState("");
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [payVisible, setPayVisible] = useState(false);
+  const [checkoutBody, setCheckoutBody] = useState<MarketplaceCheckoutBody | null>(null);
 
   const shippingExtra =
     item.type === "DIGITAL" || item.shippingFeeType === "FREE"
@@ -53,34 +54,40 @@ export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props)
   const qty = Math.max(1, parseInt(quantity, 10) || 1);
   const total = item.priceAmount * qty + shippingExtra;
 
-  async function buy() {
+  function buy() {
     setError("");
-    setBusy(true);
-    try {
-      await openMarketplaceCheckout(item.id, {
-        quantity: needsShip ? qty : 1,
-        shipName: needsShip ? shipName.trim() : undefined,
-        shipCountry: needsShip ? shipCountry : undefined,
-        shipPostal: needsShip ? shipPostal.trim() : undefined,
-        shipAddress1: needsShip ? shipAddress1.trim() : undefined,
-        shipAddress2: needsShip ? shipAddress2.trim() : undefined,
-        shipPhone: needsShip ? shipPhone.trim() : undefined,
-      });
-      onSuccess?.();
-      onClose();
-      Alert.alert("결제 완료", "주문이 접수되었습니다.");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "결제에 실패했습니다.");
-    } finally {
-      setBusy(false);
-    }
+    const body: MarketplaceCheckoutBody = {
+      quantity: needsShip ? qty : 1,
+      shipName: needsShip ? shipName.trim() : undefined,
+      shipCountry: needsShip ? shipCountry : undefined,
+      shipPostal: needsShip ? shipPostal.trim() : undefined,
+      shipAddress1: needsShip ? shipAddress1.trim() : undefined,
+      shipAddress2: needsShip ? shipAddress2.trim() : undefined,
+      shipPhone: needsShip ? shipPhone.trim() : undefined,
+    };
+    setCheckoutBody(body);
+    setPayVisible(true);
+  }
+
+  function handlePaySuccess() {
+    onSuccess?.();
+    onClose();
+    Alert.alert("결제 완료", "주문이 접수되었습니다.");
   }
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-          <ScrollView keyboardShouldPersistTaps="handled">
+    <>
+    <KeyboardSheet
+      visible={visible}
+      onClose={onClose}
+      maxHeight="88%"
+      sheetStyle={{
+        backgroundColor: colors.surface,
+        borderTopLeftRadius: radii.xl,
+        borderTopRightRadius: radii.xl,
+      }}
+    >
+          <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
             <Text style={styles.title}>{item.title}</Text>
             <Text style={styles.price}>
               {total.toLocaleString()}원
@@ -158,18 +165,25 @@ export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props)
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
             <FolkButton
-              label={busy ? "결제 준비 중…" : `${total.toLocaleString()}원 구매하기`}
-              onPress={() => void buy()}
-              loading={busy}
-              disabled={busy || item.isOwner || !item.paymentsEnabled}
+              label={`${total.toLocaleString()}원 구매하기`}
+              onPress={buy}
+              disabled={item.isOwner || !item.paymentsEnabled}
             />
             <Pressable onPress={onClose} style={styles.cancel}>
               <Text style={styles.cancelText}>닫기</Text>
             </Pressable>
           </ScrollView>
-        </Pressable>
-      </Pressable>
-    </Modal>
+    </KeyboardSheet>
+      {checkoutBody ? (
+        <MarketplacePaymentSheet
+          visible={payVisible}
+          listingId={item.id}
+          body={checkoutBody}
+          onClose={() => setPayVisible(false)}
+          onSuccess={() => handlePaySuccess()}
+        />
+      ) : null}
+    </>
   );
 }
 

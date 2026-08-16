@@ -42,8 +42,6 @@ type Props = {
   sort: ProfileSortId;
   onTabChange: (tab: ProfileTabId) => void;
   onSortChange: (sort: ProfileSortId) => void;
-  onEditProfile?: () => void;
-  onRevenueSettings?: () => void;
   onCreate?: () => void;
   onFollow?: () => void;
   followLoading?: boolean;
@@ -56,8 +54,6 @@ export function ProfileHeaderChrome({
   sort,
   onTabChange,
   onSortChange,
-  onEditProfile,
-  onRevenueSettings,
   onCreate,
   onFollow,
   followLoading,
@@ -80,20 +76,11 @@ export function ProfileHeaderChrome({
         />
       </View>
 
-      {/* Avatar + action buttons */}
+      {/* Avatar + follow (others) */}
       <View style={styles.avatarRow}>
         <FolkAvatar uri={user.image} name={display} size={88} />
-        <View style={styles.actionRow}>
-          {user.isSelf ? (
-            <>
-              <Pressable style={styles.outlineBtn} onPress={onEditProfile}>
-                <Text style={styles.outlineBtnText}>프로필 수정</Text>
-              </Pressable>
-              <Pressable style={styles.outlineBtn} onPress={onRevenueSettings}>
-                <Text style={styles.outlineBtnText}>수익 설정</Text>
-              </Pressable>
-            </>
-          ) : (
+        {!user.isSelf ? (
+          <View style={styles.actionRow}>
             <Pressable
               style={[styles.outlineBtn, following ? null : styles.followPrimary]}
               onPress={onFollow}
@@ -108,8 +95,8 @@ export function ProfileHeaderChrome({
                 {following ? "팔로잉" : "팔로우"}
               </Text>
             </Pressable>
-          )}
-        </View>
+          </View>
+        ) : null}
       </View>
 
       {/* Identity */}

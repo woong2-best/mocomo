@@ -62,6 +62,7 @@ type Props = {
   active: boolean;
   videoCount?: number;
   onPress: () => void;
+  embedded?: boolean;
 };
 
 /**
@@ -69,7 +70,13 @@ type Props = {
  * Native VideoView swallows touches — open hit target is an overlay Pressable
  * (same product intent as web onOpenImmersive → fullscreen viewer).
  */
-function FeedInlineVideoPreviewInner({ media, active, videoCount = 1, onPress }: Props) {
+function FeedInlineVideoPreviewInner({
+  media,
+  active,
+  videoCount = 1,
+  onPress,
+  embedded = false,
+}: Props) {
   const poster = useMemo(() => resolveVideoPoster(media), [media]);
   const src = useMemo(() => resolveVideoSrc(media), [media]);
   const durationLabel = formatDuration(media.duration);
@@ -120,7 +127,12 @@ function FeedInlineVideoPreviewInner({ media, active, videoCount = 1, onPress }:
       : 16 / 10;
 
   return (
-    <View style={[styles.wrap, { aspectRatio: Math.min(Math.max(aspect, 0.56), 1.9) }]}>
+    <View
+      style={[
+        styles.wrap,
+        embedded ? styles.wrapEmbedded : { aspectRatio: Math.min(Math.max(aspect, 0.56), 1.9) },
+      ]}
+    >
       {poster ? (
         <Image
           source={{ uri: poster }}
@@ -159,7 +171,7 @@ function FeedInlineVideoPreviewInner({ media, active, videoCount = 1, onPress }:
         </View>
       ) : null}
 
-      {videoCount > 1 ? (
+      {videoCount > 1 && !embedded ? (
         <View style={styles.countBadge} pointerEvents="none">
           <Text style={styles.badgeText}>{videoCount} videos</Text>
         </View>
@@ -191,10 +203,16 @@ export const FeedInlineVideoPreview = memo(FeedInlineVideoPreviewInner);
 const styles = StyleSheet.create({
   wrap: {
     width: "100%",
-    borderRadius: 14,
+    borderRadius: 16,
     overflow: "hidden",
     backgroundColor: "#111",
-    marginBottom: 8,
+    marginBottom: 10,
+  },
+  wrapEmbedded: {
+    flex: 1,
+    height: "100%",
+    borderRadius: 0,
+    marginBottom: 0,
   },
   fallbackBg: { backgroundColor: "#1a1a1a" },
   openHit: {

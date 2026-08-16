@@ -89,7 +89,7 @@ function createFallbackStyles(colors: ThemeColors, isDark: boolean) {
       backgroundColor: isDark ? "#18243A" : colors.surfaceRaised,
     },
     wash: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: "rgba(207, 102, 64, 0.12)",
     },
   });
