@@ -99,7 +99,12 @@ export function pathPermission(pathname: string): AdminPermission | null {
   }  if (pathname.startsWith("/admin/products")) return "products";
   if (pathname.startsWith("/admin/communities")) return "communities";
   if (pathname.startsWith("/admin/live")) return "live";
-  if (pathname.startsWith("/admin/reports") || pathname.startsWith("/admin/moderation") || pathname.startsWith("/admin/suspensions")) {
+  if (
+    pathname.startsWith("/admin/reports") ||
+    pathname.startsWith("/admin/moderation") ||
+    pathname.startsWith("/admin/suspensions") ||
+    pathname.startsWith("/admin/watermark")
+  ) {
     return "reports";
   }
   if (pathname.startsWith("/admin/ads")) return "ads";

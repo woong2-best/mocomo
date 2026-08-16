@@ -416,6 +416,8 @@ model User {
   creatorEpisodes          CreatorEpisode[]         @relation("CreatorEpisodeAuthor")
   creatorEpisodePurchases  CreatorEpisodePurchase[]
   postMediaPurchases       PostMediaPurchase[]
+  watermarkSessions        WatermarkSession[]
+  watermarkDetectionLogs   WatermarkDetectionLog[] @relation("WatermarkDetectionAdmin")
   webtoonStudioProjects    WebtoonStudioProject[]
   webtoonStudioSettings    WebtoonStudioSettings?
 
@@ -972,7 +974,8 @@ model PostMedia {
   priceKrw       Int       @default(0)
   purchaseCount  Int       @default(0)
   post           Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  purchases      PostMediaPurchase[]
+  purchases         PostMediaPurchase[]
+  watermarkSessions WatermarkSession[]
 
   @@index([postId, order])
   @@index([streamUid])
@@ -985,8 +988,9 @@ model PostMediaPurchase {
   price     Int
   createdAt DateTime @default(now())
 
-  buyer User      @relation(fields: [buyerId], references: [id], onDelete: Cascade)
-  media PostMedia @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  buyer             User               @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  media             PostMedia          @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  watermarkSessions WatermarkSession[]
 
   @@unique([buyerId, mediaId])
   @@index([buyerId, createdAt(sort: Desc)])
@@ -6086,4 +6090,61 @@ model BankVerificationLog {
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([action, createdAt(sort: Desc)])
+}
+
+/** 유료 영상 재생 시 발급되는 포렌식 워터마크 세션 */
+enum WatermarkSessionStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
+model WatermarkSession {
+  id                String                 @id @default(cuid())
+  contentId         String
+  userId            String
+  purchaseId        String
+  opaqueWatermarkId String                 @unique
+  watermarkVersion  Int
+  sessionNonce      String
+  createdAt         DateTime               @default(now())
+  expiresAt         DateTime
+  status            WatermarkSessionStatus @default(ACTIVE)
+  detectionCount    Int                    @default(0)
+  lastDetectedAt    DateTime?
+
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purchase PostMediaPurchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  media    PostMedia         @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  logs     WatermarkDetectionLog[]
+
+  @@index([contentId, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([purchaseId])
+  @@index([status, expiresAt])
+  @@index([opaqueWatermarkId])
+}
+
+/** 관리자 유출본 분석 결과 로그 */
+model WatermarkDetectionLog {
+  id                 String   @id @default(cuid())
+  watermarkSessionId String?
+  contentId          String?
+  detectionType      String
+  confidence         Float
+  detectedRegions    Json?
+  sourceFileHash     String
+  resultStatus       String
+  metadata           Json?
+  actorId            String?
+  createdAt          DateTime @default(now())
+
+  session WatermarkSession? @relation(fields: [watermarkSessionId], references: [id], onDelete: SetNull)
+  actor   User?             @relation("WatermarkDetectionAdmin", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([watermarkSessionId, createdAt(sort: Desc)])
+  @@index([contentId, createdAt(sort: Desc)])
+  @@index([sourceFileHash])
+  @@index([resultStatus, createdAt(sort: Desc)])
+  @@index([actorId, createdAt(sort: Desc)])
 }

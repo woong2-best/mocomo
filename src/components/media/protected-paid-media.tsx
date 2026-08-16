@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { shouldProtectPaidMediaView } from "@/lib/paid-media-protection";
 import { PaidMediaProtectionShell } from "@/components/media/paid-media-protection-shell";
 import { FeedVideoPlayer } from "@/components/media/feed-video-player";
+import { useForensicWatermarkSession } from "@/components/media/use-forensic-watermark-session";
 
 type Props = {
   type: string;
@@ -51,6 +52,11 @@ export function ProtectedPaidMedia({
   });
 
   const isVideo = type === "VIDEO";
+  const forensicEnabled = protect && isVideo && !locked && Boolean(mediaId);
+  const { config: forensicRenderConfig } = useForensicWatermarkSession(
+    mediaId,
+    forensicEnabled
+  );
 
   if (isVideo) {
     const player = (
@@ -67,6 +73,7 @@ export function ProtectedPaidMedia({
         onDoubleTapLike={onDoubleTapLike}
         onOpenImmersive={onOpenImmersive}
         poster={poster}
+        forensicRenderConfig={forensicRenderConfig}
       />
     );
     if (!protect) return player;

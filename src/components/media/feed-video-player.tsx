@@ -20,6 +20,8 @@ import {
   Heart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ForensicVideoCanvas } from "@/components/media/forensic-video-canvas";
+import type { ForensicRenderConfig } from "@/lib/watermark/types";
 import {
   AUTOPLAY_THRESHOLD,
   AUTOPAUSE_THRESHOLD,
@@ -73,6 +75,8 @@ type Props = {
   onOpenImmersive?: () => void;
   /** Poster / thumbnail for lazy paint. */
   poster?: string;
+  /** Invisible forensic watermark render config (paid video only). */
+  forensicRenderConfig?: ForensicRenderConfig | null;
 };
 
 function formatTime(sec: number): string {
@@ -160,6 +164,7 @@ export function FeedVideoPlayer({
   onDoubleTapLike,
   onOpenImmersive,
   poster,
+  forensicRenderConfig,
 }: Props) {
   const reactId = useId();
   const playerId = `fv-${mediaId ?? reactId}`;
@@ -1076,7 +1081,10 @@ export function FeedVideoPlayer({
   const videoStyle: CSSProperties = {
     transform: zoom > 1 ? `scale(${zoom})` : undefined,
     transition: pinchRef.current ? undefined : "transform 200ms ease",
+    opacity: forensicRenderConfig ? 0 : undefined,
   };
+
+  const forensicActive = Boolean(forensicRenderConfig);
 
   return (
     <div
@@ -1122,6 +1130,16 @@ export function FeedVideoPlayer({
         onPointerDown={onVideoPointerDown}
         onPointerUp={onVideoPointerUp}
         onPointerCancel={onVideoPointerCancel}
+      />
+
+      <ForensicVideoCanvas
+        videoRef={videoRef}
+        active={forensicActive}
+        config={forensicRenderConfig ?? null}
+        className={cn(
+          fillMode ? "absolute inset-0 h-full w-full object-cover" : "block w-full h-auto",
+          "origin-center z-[1] pointer-events-none"
+        )}
       />
 
       {buffering && (
