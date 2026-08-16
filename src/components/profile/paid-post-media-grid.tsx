@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { PurchasePostMediaButton } from "@/components/profile/purchase-post-media-button";
 import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
 import { LockedMediaPaywallOverlay } from "@/components/media/locked-media-paywall-overlay";
+import { SensitiveContentGate } from "@/components/media/sensitive-content-gate";
 import { PostMediaLightbox } from "@/components/media/post-media-lightbox";
 import {
   SubscribeCreatorButton,
@@ -47,6 +48,9 @@ export function PaidPostMediaGrid({
   linkToPost: _linkToPost = true,
   postInstantPurchasePriceKrw,
   mediaTotal,
+  isNsfw = false,
+  isOwner = false,
+  viewerShowNsfw = false,
   className,
   onDoubleTapLike,
 }: {
@@ -62,6 +66,9 @@ export function PaidPostMediaGrid({
   postInstantPurchasePriceKrw?: number;
   /** 로드된 media보다 전체 개수가 많을 때 (라이트박스에서 추가 fetch) */
   mediaTotal?: number;
+  isNsfw?: boolean;
+  isOwner?: boolean;
+  viewerShowNsfw?: boolean;
   className?: string;
   /** Double-tap video → like (feed / detail). */
   onDoubleTapLike?: () => void;
@@ -219,6 +226,9 @@ export function PaidPostMediaGrid({
                   postInstantPurchasePriceKrw={postInstantPurchasePriceKrw}
                   single={count === 1}
                   onDoubleTapLike={onDoubleTapLike}
+                  isNsfw={isNsfw}
+                  isOwner={isOwner}
+                  viewerShowNsfw={viewerShowNsfw}
                   onOpenImmersive={
                     !locked && m.type === "VIDEO" && feedVideoViewer
                       ? () => {
@@ -270,6 +280,9 @@ function PaidPostMediaTile({
   single,
   onDoubleTapLike,
   onOpenImmersive,
+  isNsfw = false,
+  isOwner = false,
+  viewerShowNsfw = false,
 }: {
   media: ProfilePostMediaItem;
   postId: string;
@@ -282,18 +295,27 @@ function PaidPostMediaTile({
   single?: boolean;
   onDoubleTapLike?: () => void;
   onOpenImmersive?: () => void;
+  isNsfw?: boolean;
+  isOwner?: boolean;
+  viewerShowNsfw?: boolean;
 }) {
   const locked = !!media.locked && !!media.id;
   const lockReason = media.lockReason ?? "none";
   const purchasePrice = media.instantPurchasePriceKrw ?? media.priceKrw ?? 0;
 
   return (
-    <div
-      className={cn(
-        "relative w-full overflow-hidden",
-        single ? "max-h-[510px]" : "h-full"
-      )}
+    <SensitiveContentGate
+      isNsfw={isNsfw}
+      isOwner={isOwner}
+      viewerShowNsfw={viewerShowNsfw}
+      className={cn("relative w-full overflow-hidden", single ? "max-h-[510px]" : "h-full")}
     >
+      <div
+        className={cn(
+          "relative w-full overflow-hidden",
+          single ? "max-h-[510px]" : "h-full"
+        )}
+      >
       <ProtectedPaidMedia
         type={media.type}
         src={media.url}
@@ -360,6 +382,7 @@ function PaidPostMediaTile({
           영상
         </span>
       )}
-    </div>
+      </div>
+    </SensitiveContentGate>
   );
 }
