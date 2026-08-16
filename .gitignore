@@ -57,6 +57,13 @@ next-env.d.ts
 # IDE
 .idea/
 
+# diagnostic captures and asset working copies — these ship to production as
+# static assets if tracked, and nothing in the app references them
+/public/apt/_diag/
+/public/diorama/stickers/**/_rc1-backup/
+/public/diorama/stickers/**/_rc1-out/
+*.webp.tmp
+
 # local scratch (diagnostic screenshots, captured logs)
 /_t-*.png
 /_table-crop-test.png
