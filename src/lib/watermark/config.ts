@@ -8,8 +8,10 @@ export const WATERMARK_CODEWORD_BYTES = WATERMARK_DATA_BYTES + WATERMARK_PARITY_
 
 export const WATERMARK_SESSION_TTL_MS = 4 * 60 * 60 * 1000;
 
-/** Subtle luminance modulation — invisible to viewers, detectable forensically */
-export const WATERMARK_MODULATION_STRENGTH = 1.4;
+/** Luminance modulation depth. Paired pixels move in opposite directions by this
+ *  amount, so the visible change stays under 2% of range while the differential
+ *  clears sensor and compression noise well enough to decode. */
+export const WATERMARK_MODULATION_STRENGTH = 4;
 
 export const WATERMARK_BLOCK_SIZE = 8;
 export const WATERMARK_TEMPORAL_PERIOD = 30;

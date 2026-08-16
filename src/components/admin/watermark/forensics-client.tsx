@@ -2,10 +2,17 @@
 
 import { useState } from "react";
 import type { AdminWatermarkDetectionResponse } from "@/lib/watermark/types";
+import {
+  extractImageFrame,
+  extractVideoFrames,
+  hashFile,
+} from "@/lib/watermark/client/extract-frames";
 
 export function WatermarkForensicsClient() {
   const [file, setFile] = useState<File | null>(null);
+  const [contentId, setContentId] = useState("");
   const [loading, setLoading] = useState(false);
+  const [stage, setStage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AdminWatermarkDetectionResponse | null>(null);
 
@@ -15,8 +22,25 @@ export function WatermarkForensicsClient() {
     setError(null);
     setResult(null);
     try {
+      const isVideo = file.type.startsWith("video/");
+      setStage(isVideo ? "Decoding video frames…" : "Reading image…");
+
+      const frames = isVideo
+        ? await extractVideoFrames(file, 12, (done, total) =>
+            setStage(`Decoding video frames… ${done}/${total}`)
+          )
+        : await extractImageFrame(file);
+
+      setStage("Hashing source…");
+      const clientFileHash = await hashFile(file);
+
+      setStage("Matching against viewing sessions…");
       const form = new FormData();
-      form.append("file", file);
+      frames.forEach((blob, i) => form.append("frames", blob, `frame-${i}.png`));
+      form.append("sourceKind", isVideo ? "video" : "image");
+      form.append("clientFileHash", clientFileHash);
+      if (contentId.trim()) form.append("contentId", contentId.trim());
+
       const res = await fetch("/api/admin/watermark/detect", {
         method: "POST",
         body: form,
@@ -27,9 +51,10 @@ export function WatermarkForensicsClient() {
         return;
       }
       setResult(data as AdminWatermarkDetectionResponse);
-    } catch {
-      setError("Analysis request failed");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Analysis request failed");
     } finally {
+      setStage(null);
       setLoading(false);
     }
   }
@@ -50,7 +75,25 @@ export function WatermarkForensicsClient() {
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             className="block w-full text-sm"
           />
-          <p className="text-xs text-muted-foreground">Supported: JPG, PNG, WEBP, MP4, MOV, WEBM (max 80MB)</p>
+          <p className="text-xs text-muted-foreground">
+            Supported: JPG, PNG, WEBP, MP4, MOV, WEBM. Videos are decoded in this browser and only
+            sampled frames are uploaded.
+          </p>
+
+          <label className="block text-sm">
+            <span className="text-muted-foreground">Media ID (optional, but much faster)</span>
+            <input
+              type="text"
+              value={contentId}
+              onChange={(e) => setContentId(e.target.value)}
+              placeholder="PostMedia id of the leaked content"
+              className="mt-1 block w-full rounded-lg border px-3 py-2 font-mono text-xs dark:border-zinc-700 dark:bg-zinc-950"
+            />
+            <span className="mt-1 block text-xs text-muted-foreground">
+              Without this, only recent sessions across all content are searched.
+            </span>
+          </label>
+
           <button
             type="button"
             disabled={!file || loading}
@@ -59,6 +102,7 @@ export function WatermarkForensicsClient() {
           >
             {loading ? "Analyzing…" : "Start analysis"}
           </button>
+          {stage ? <p className="text-sm text-muted-foreground">{stage}</p> : null}
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
         </div>
       </div>

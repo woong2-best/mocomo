@@ -134,6 +134,36 @@ export async function createWatermarkSession(
   };
 }
 
+/**
+ * Sessions to test a leaked capture against.
+ *
+ * Each session has its own carrier, so a detector has to know which sessions to
+ * try. Scoping by content is what keeps this bounded — an investigator is
+ * looking at a specific leaked video, and only its buyers can be the source.
+ * Without a content the search falls back to recent sessions, which is best
+ * effort rather than exhaustive.
+ */
+export async function loadDetectionCandidates(options: {
+  contentId?: string | null;
+  limit?: number;
+}) {
+  const limit = Math.min(Math.max(options.limit ?? 500, 1), 2000);
+  return db.watermarkSession.findMany({
+    where: options.contentId ? { contentId: options.contentId } : undefined,
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      contentId: true,
+      userId: true,
+      purchaseId: true,
+      sessionNonce: true,
+      watermarkVersion: true,
+      opaqueWatermarkId: true,
+    },
+  });
+}
+
 export async function resolveWatermarkSession(sessionId: string) {
   return db.watermarkSession.findUnique({
     where: { id: sessionId },

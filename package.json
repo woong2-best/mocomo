@@ -62,7 +62,7 @@
     "android:build": "cd android && gradlew.bat assembleRelease",
     "android:debug": "npx cap sync android && cd android && gradlew.bat assembleDebug",
     "android:bundle": "npx cap sync android && cd android && gradlew.bat bundleRelease",
-    "test:watermark": "tsx --test src/lib/watermark/__tests__/watermark.test.ts"
+    "test:watermark": "tsx --test \"src/lib/watermark/__tests__/*.test.ts\""
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",

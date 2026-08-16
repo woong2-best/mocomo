@@ -98,25 +98,49 @@ export function centralQuadrantRegions(width: number, height: number): QuadrantR
   ];
 }
 
+/**
+ * Anchors live in the ring outside the central box. They must not overlap the
+ * central quadrants: two regions modulating the same pixel cancel each other,
+ * and overlapping anchors would erase the primary signal they are meant to back
+ * up. The ring placement also means a capture cropped to the subject still keeps
+ * the central copy, while a capture cropped to a corner keeps an anchor copy.
+ */
 export function distributedAnchorRegions(width: number, height: number): QuadrantRegion[] {
-  const regions: QuadrantRegion[] = [];
-  const marginX = Math.round(width * 0.08);
-  const marginY = Math.round(height * 0.08);
-  const cellW = Math.max(WATERMARK_BLOCK_SIZE * 4, Math.round((width - marginX * 2) / 4));
-  const cellH = Math.max(WATERMARK_BLOCK_SIZE * 4, Math.round((height - marginY * 2) / 3));
+  const boxW = Math.round(width * 0.42);
+  const boxH = Math.round(height * 0.42);
+  const left = Math.round((width - boxW) / 2);
+  const top = Math.round((height - boxH) / 2);
+  const right = left + boxW;
+  const bottom = top + boxH;
 
-  for (let i = 0; i < WATERMARK_DISTRIBUTED_ANCHORS; i++) {
-    const col = i % 4;
-    const row = Math.floor(i / 4);
+  const bandW = Math.max(WATERMARK_BLOCK_SIZE * 4, Math.floor(width / 4));
+  const sideW = Math.max(WATERMARK_BLOCK_SIZE * 4, left);
+  const regions: QuadrantRegion[] = [];
+
+  for (let col = 0; col < 4; col++) {
+    regions.push({ key: WATERMARK_QUADRANT_KEYS[col], x: col * bandW, y: 0, w: bandW, h: top });
     regions.push({
-      key: WATERMARK_QUADRANT_KEYS[i % 4],
-      x: marginX + col * cellW + Math.round(cellW * 0.25),
-      y: marginY + row * cellH + Math.round(cellH * 0.25),
-      w: Math.min(cellW, width - marginX),
-      h: Math.min(cellH, height - marginY),
+      key: WATERMARK_QUADRANT_KEYS[col],
+      x: col * bandW,
+      y: bottom,
+      w: bandW,
+      h: Math.max(1, height - bottom),
     });
   }
-  return regions;
+
+  for (let row = 0; row < 2; row++) {
+    const bandH = Math.max(1, Math.floor(boxH / 2));
+    regions.push({ key: WATERMARK_QUADRANT_KEYS[row], x: 0, y: top + row * bandH, w: sideW, h: bandH });
+    regions.push({
+      key: WATERMARK_QUADRANT_KEYS[row + 2],
+      x: right,
+      y: top + row * bandH,
+      w: Math.max(1, width - right),
+      h: bandH,
+    });
+  }
+
+  return regions.slice(0, WATERMARK_DISTRIBUTED_ANCHORS);
 }
 
 export function bytesToBits(bytes: Uint8Array): number[] {
