@@ -1,0 +1,13 @@
+# EAS / Expo local ignore — keep upload small
+**/.expo/
+**/node_modules/
+**/.git/
+**/android/
+**/ios/
+**/*.aab
+**/*.apk
+**/*.ipa
+**/.env*
+**/coverage/
+**/dist/
+**/.turbo/

@@ -1,41 +1,61 @@
 /**
- * Secure token storage for mobile Bearer auth (Phase 1 backend).
- * Cookie sessions are web-only — never rely on WebView cookies here.
- *
- * In-memory cache avoids repeated SecureStore bridge round-trips on every API call
- * (cold start used to hit SecureStore twice before first feed request).
+ * Active session tokens — backed by multi-account store.
  */
-import * as SecureStore from "expo-secure-store";
-
-const ACCESS_KEY = "mocomo.access_token";
-const REFRESH_KEY = "mocomo.refresh_token";
-
-/** `undefined` = not hydrated from SecureStore yet */
-let accessCache: string | null | undefined;
-let refreshCache: string | null | undefined;
+import {
+  getActiveAccount,
+  migrateLegacySingleToken,
+  saveAccountSession,
+  removeAccount,
+  clearAllAccounts,
+  type SavedMobileAccount,
+} from "@/auth/account-store";
+import type { MobileAuthUser } from "@/auth/types";
 
 export async function getAccessToken(): Promise<string | null> {
-  if (accessCache !== undefined) return accessCache;
-  accessCache = await SecureStore.getItemAsync(ACCESS_KEY);
-  return accessCache;
+  await migrateLegacySingleToken();
+  const active = await getActiveAccount();
+  return active?.accessToken ?? null;
 }
 
 export async function getRefreshToken(): Promise<string | null> {
-  if (refreshCache !== undefined) return refreshCache;
-  refreshCache = await SecureStore.getItemAsync(REFRESH_KEY);
-  return refreshCache;
+  await migrateLegacySingleToken();
+  const active = await getActiveAccount();
+  return active?.refreshToken ?? null;
 }
 
-export async function setTokens(access: string, refresh: string): Promise<void> {
-  accessCache = access;
-  refreshCache = refresh;
-  await SecureStore.setItemAsync(ACCESS_KEY, access);
-  await SecureStore.setItemAsync(REFRESH_KEY, refresh);
+export async function setTokens(
+  access: string,
+  refresh: string,
+  user?: Pick<MobileAuthUser, "id" | "username" | "name" | "image">
+): Promise<void> {
+  if (user) {
+    await saveAccountSession(user, access, refresh);
+    return;
+  }
+  const active = await getActiveAccount();
+  if (active) {
+    await saveAccountSession(
+      {
+        id: active.userId,
+        username: active.username,
+        name: active.name,
+        image: active.image,
+      },
+      access,
+      refresh
+    );
+  }
 }
 
 export async function clearTokens(): Promise<void> {
-  accessCache = null;
-  refreshCache = null;
-  await SecureStore.deleteItemAsync(ACCESS_KEY);
-  await SecureStore.deleteItemAsync(REFRESH_KEY);
+  await clearAllAccounts();
+}
+
+export async function logoutCurrentAccount(): Promise<SavedMobileAccount | null> {
+  const active = await getActiveAccount();
+  if (!active) {
+    await clearAllAccounts();
+    return null;
+  }
+  return removeAccount(active.userId);
 }

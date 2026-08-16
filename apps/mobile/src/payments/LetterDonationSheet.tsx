@@ -2,17 +2,16 @@ import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  View,
 } from "react-native";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import { FolkButton } from "@/ui/FolkButton";
+import { KeyboardSheet } from "@/ui/KeyboardSheet";
 import { PaymentCheckoutSheet } from "@/payments/PaymentCheckoutSheet";
 import {
   LETTER_DONATION_MESSAGE_MAX,
@@ -93,9 +92,17 @@ export function LetterDonationSheet({
 
   return (
     <>
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+    <KeyboardSheet
+      visible={visible}
+      onClose={onClose}
+      maxHeight="88%"
+      sheetStyle={{
+        backgroundColor: colors.surface,
+        borderTopLeftRadius: radii.xl,
+        borderTopRightRadius: radii.xl,
+        gap: spacing.sm,
+      }}
+    >
           <Image source={require("../../assets/wax-envelope.png")} style={styles.hero} resizeMode="cover" />
           <Text style={styles.title}>{displayName}에게 편지</Text>
           <Text style={styles.sub}>
@@ -148,9 +155,7 @@ export function LetterDonationSheet({
           <Pressable onPress={onClose} style={styles.cancel}>
             <Text style={styles.cancelText}>닫기</Text>
           </Pressable>
-        </Pressable>
-      </Pressable>
-    </Modal>
+    </KeyboardSheet>
     {payBody ? (
       <PaymentCheckoutSheet
         visible={payOpen}
@@ -177,7 +182,6 @@ function createStyles(colors: ThemeColors) {
       borderTopLeftRadius: radii.xl,
       borderTopRightRadius: radii.xl,
       padding: spacing.lg,
-      paddingBottom: spacing.xl + 8,
       gap: spacing.sm,
     },
     hero: { width: "100%", height: 140, borderRadius: radii.lg, marginBottom: 4 },

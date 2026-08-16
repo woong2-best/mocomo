@@ -57,7 +57,7 @@ function createStyles(colors: ThemeColors) {
       opacity: 0.35,
     },
     overlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: "rgba(0,0,0,0.35)",

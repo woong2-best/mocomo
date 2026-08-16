@@ -3,8 +3,10 @@ import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useQueryClient } from "@tanstack/react-query";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { FLOATING_TAB } from "@/navigation/tab-layout";
+import { prefetchTabForRoute } from "@/navigation/tab-warmup";
 import type { RootTabParamList } from "@/navigation/types";
 import { useTheme } from "@/theme/ThemeContext";
 
@@ -23,6 +25,7 @@ const TAB_META: Record<
 /** Floating glass pill — solid on Android (GPU), Blur on iOS. */
 export function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
   const { colors } = useTheme();
   const bottom = Math.max(insets.bottom, 8) + FLOATING_TAB.bottomGap;
 
@@ -64,6 +67,9 @@ export function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTa
               accessibilityRole="button"
               accessibilityState={focused ? { selected: true } : {}}
               accessibilityLabel={label}
+              onPressIn={() =>
+                prefetchTabForRoute(queryClient, route.name as keyof RootTabParamList)
+              }
               onPress={onPress}
               onLongPress={() => {
                 navigation.emit({ type: "tabLongPress", target: route.key });
@@ -75,7 +81,7 @@ export function FloatingGlassTabBar({ state, descriptors, navigation }: BottomTa
               ) : null}
               <Ionicons
                 name={focused ? meta.active : meta.inactive}
-                size={22}
+                size={23}
                 color={focused ? colors.tabIconActive : colors.tabIcon}
               />
               <Text
@@ -161,9 +167,9 @@ const styles = StyleSheet.create({
   },
   activeGlow: {
     position: "absolute",
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
   },
   label: {
     fontSize: 11,

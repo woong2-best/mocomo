@@ -1,5 +1,6 @@
 import { ActivityIndicator, View } from "react-native";
 import type { ComponentType } from "react";
+import { useEffect } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -8,6 +9,7 @@ import { LoginScreen } from "@/features/auth/LoginScreen";
 import { FeedScreen } from "@/features/feed/FeedScreen";
 import { FloatingGlassTabBar } from "@/navigation/FloatingGlassTabBar";
 import { navigationRef } from "@/navigation/navigationRef";
+import { subscribeMobileDeepLinks } from "@/navigation/mobile-deeplink-handler";
 import { PushNotificationHandler } from "@/push/PushNotificationHandler";
 import { useTheme } from "@/theme/ThemeContext";
 import {
@@ -58,6 +60,11 @@ export function RootNavigator() {
   const { colors, isDark } = useTheme();
   const theme = isDark ? folkDarkNavigationTheme : folkLightNavigationTheme;
   const { status } = useAuth();
+
+  useEffect(() => {
+    if (status !== "signedIn") return;
+    return subscribeMobileDeepLinks();
+  }, [status]);
 
   if (status === "loading") {
     return (
@@ -256,6 +263,10 @@ export function RootNavigator() {
             <Stack.Screen
               name="Profile"
               getComponent={() => require("@/features/profile/ProfileScreen").ProfileScreen}
+            />
+            <Stack.Screen
+              name="ProfileEdit"
+              getComponent={() => require("@/features/profile/ProfileEditScreen").ProfileEditScreen}
             />
             <Stack.Screen
               name="UserProfile"

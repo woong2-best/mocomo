@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "105871724562",
+    "project_id": "mocomo-b2937",
+    "storage_bucket": "mocomo-b2937.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:105871724562:android:f55f0d48e7944cde6588cb",
+        "android_client_info": {
+          "package_name": "net.mocomo.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAT2E4tKXQQeUPGSguFw4FA7rxZIUZHSWk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

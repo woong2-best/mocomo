@@ -1,0 +1,80 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "withoutCredentials": true
+      },
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://mocomo.net",
+        "EXPO_PUBLIC_SOCKET_URL": "https://mocomo.net"
+      }
+    },
+    "internal": {
+      "distribution": "store",
+      "channel": "internal",
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "ios": {
+        "simulator": false,
+        "resourceClass": "m-medium"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://mocomo.net",
+        "EXPO_PUBLIC_SOCKET_URL": "https://mocomo.net"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": false
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://mocomo.net",
+        "EXPO_PUBLIC_SOCKET_URL": "https://mocomo.net"
+      }
+    },
+    "production": {
+      "channel": "production",
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "ios": {},
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://mocomo.net",
+        "EXPO_PUBLIC_SOCKET_URL": "https://mocomo.net"
+      }
+    }
+  },
+  "submit": {
+    "internal": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "draft"
+      },
+      "ios": {
+        "ascAppId": "REPLACE_WITH_APP_STORE_CONNECT_APP_ID"
+      }
+    },
+    "production": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "draft"
+      }
+    }
+  }
+}

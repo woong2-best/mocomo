@@ -1,41 +1,27 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Animated,
+  Easing,
   Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/auth/AuthContext";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { ProfileBannerMedia } from "@/features/profile/ProfileBannerMedia";
+import { prefetchDrawerRoute, warmDrawerBundles } from "@/navigation/tab-warmup";
+import type { DrawerRoute } from "@/navigation/types";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
-export type DrawerRoute =
-  | "Home"
-  | "Profile"
-  | "Settings"
-  | "StarList"
-  | "CommunityList"
-  | "Wallet"
-  | "GamesHub"
-  | "AnimeList"
-  | "MarketplaceList"
-  | "SellerListings"
-  | "LiveList"
-  | "Discover"
-  | "Market"
-  | "Messages"
-  | "Search"
-  | "Activity"
-  | "EventsList"
-  | "EventsMap"
-  | "Reels"
-  | "LegalPolicies";
+export type { DrawerRoute } from "@/navigation/types";
 
 type Props = {
   visible: boolean;
@@ -62,28 +48,39 @@ const EXPLORE: ExploreItem[] = [
 ];
 
 const ACCENT_ICON = "#A78BFA";
+const OPEN_MS = 280;
+const CLOSE_MS = 220;
 
 function DrawerRow({
   label,
   icon,
   iconColor,
   labelColor,
+  chevronColor,
   showChevron = true,
+  onPressIn,
   onPress,
 }: {
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
   iconColor: string;
   labelColor: string;
+  chevronColor: string;
   showChevron?: boolean;
+  onPressIn?: () => void;
   onPress: () => void;
 }) {
   return (
-    <Pressable style={stylesStatic.row} onPress={onPress} accessibilityRole="button">
+    <Pressable
+      style={stylesStatic.row}
+      onPressIn={onPressIn}
+      onPress={onPress}
+      accessibilityRole="button"
+    >
       <Ionicons name={icon} size={22} color={iconColor} style={stylesStatic.rowIcon} />
       <Text style={[stylesStatic.rowLabel, { color: labelColor }]}>{label}</Text>
       {showChevron ? (
-        <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.35)" />
+        <Ionicons name="chevron-forward" size={18} color={chevronColor} />
       ) : (
         <View style={stylesStatic.chevronSpacer} />
       )}
@@ -93,6 +90,9 @@ function DrawerRow({
 
 export function SideDrawer({ visible, onClose, onNavigate }: Props) {
   const insets = useSafeAreaInsets();
+  const { width: screenW } = useWindowDimensions();
+  const panelWidth = Math.min(Math.round(screenW * 0.86), 360);
+  const queryClient = useQueryClient();
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
   const { user, signOut } = useAuth();
@@ -101,19 +101,84 @@ export function SideDrawer({ visible, onClose, onNavigate }: Props) {
     [user?.name, user?.username]
   );
 
+  const [presented, setPresented] = useState(false);
+  const slideX = useRef(new Animated.Value(-360)).current;
+  const scrimOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      warmDrawerBundles();
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    if (visible) {
+      setPresented(true);
+      slideX.setValue(-panelWidth);
+      scrimOpacity.setValue(0);
+      Animated.parallel([
+        Animated.timing(slideX, {
+          toValue: 0,
+          duration: OPEN_MS,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(scrimOpacity, {
+          toValue: 1,
+          duration: OPEN_MS,
+          useNativeDriver: true,
+        }),
+      ]).start();
+      return;
+    }
+
+    if (!presented) return;
+
+    Animated.parallel([
+      Animated.timing(slideX, {
+        toValue: -panelWidth,
+        duration: CLOSE_MS,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(scrimOpacity, {
+        toValue: 0,
+        duration: CLOSE_MS,
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
+      if (finished) setPresented(false);
+    });
+  }, [panelWidth, presented, scrimOpacity, slideX, visible]);
+
+  const prefetch = (route: DrawerRoute) => {
+    prefetchDrawerRoute(queryClient, route);
+  };
+
   const go = (route: DrawerRoute) => {
     onClose();
     onNavigate(route);
   };
 
+  const rowLabel = colors.text;
+  const rowIcon = colors.text;
+  const rowChevron = colors.textMuted;
+
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={presented} animationType="none" transparent onRequestClose={onClose}>
       <View style={styles.root}>
-        <Pressable style={styles.scrim} onPress={onClose} />
-        <View
+        <Animated.View style={[styles.scrimWrap, { opacity: scrimOpacity }]}>
+          <Pressable style={styles.scrim} onPress={onClose} accessibilityRole="button" />
+        </Animated.View>
+        <Animated.View
           style={[
             styles.panel,
-            { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 12 },
+            {
+              width: panelWidth,
+              paddingTop: insets.top + 10,
+              paddingBottom: insets.bottom + 12,
+              transform: [{ translateX: slideX }],
+            },
           ]}
         >
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
@@ -147,10 +212,11 @@ export function SideDrawer({ visible, onClose, onNavigate }: Props) {
                 </View>
                 <Pressable
                   style={styles.editBtn}
-                  onPress={() => go("Profile")}
+                  onPressIn={() => prefetch("ProfileEdit")}
+                  onPress={() => go("ProfileEdit")}
                   hitSlop={8}
                   accessibilityRole="button"
-                  accessibilityLabel="프로필 편집"
+                  accessibilityLabel="프로필 수정"
                 >
                   <Ionicons name="pencil" size={16} color="#fff" />
                 </Pressable>
@@ -163,8 +229,10 @@ export function SideDrawer({ visible, onClose, onNavigate }: Props) {
                 key={item.route}
                 label={item.label}
                 icon={item.icon}
-                iconColor={item.accent ? ACCENT_ICON : "#F5F0E8"}
-                labelColor="#F5F0E8"
+                iconColor={item.accent ? ACCENT_ICON : rowIcon}
+                labelColor={rowLabel}
+                chevronColor={rowChevron}
+                onPressIn={() => prefetch(item.route)}
                 onPress={() => go(item.route)}
               />
             ))}
@@ -175,9 +243,11 @@ export function SideDrawer({ visible, onClose, onNavigate }: Props) {
             <DrawerRow
               label="설정"
               icon="settings-outline"
-              iconColor="#F5F0E8"
-              labelColor="#F5F0E8"
+              iconColor={rowIcon}
+              labelColor={rowLabel}
+              chevronColor={rowChevron}
               showChevron={false}
+              onPressIn={() => prefetch("Settings")}
               onPress={() => go("Settings")}
             />
             <DrawerRow
@@ -185,6 +255,7 @@ export function SideDrawer({ visible, onClose, onNavigate }: Props) {
               icon="log-out-outline"
               iconColor={colors.danger}
               labelColor={colors.danger}
+              chevronColor={rowChevron}
               showChevron={false}
               onPress={() => {
                 onClose();
@@ -194,13 +265,16 @@ export function SideDrawer({ visible, onClose, onNavigate }: Props) {
             <DrawerRow
               label="약관 및 정책"
               icon="document-text-outline"
-              iconColor="#F5F0E8"
-              labelColor="#F5F0E8"
+              iconColor={rowIcon}
+              labelColor={rowLabel}
+              chevronColor={rowChevron}
+              onPressIn={() => prefetch("LegalPolicies")}
               onPress={() => go("LegalPolicies")}
             />
 
             <Pressable
               style={styles.promoBanner}
+              onPressIn={() => prefetch("EventsList")}
               onPress={() => go("EventsList")}
               accessibilityRole="button"
               accessibilityLabel="이벤트 등록"
@@ -211,7 +285,7 @@ export function SideDrawer({ visible, onClose, onNavigate }: Props) {
               <Text style={styles.promoLine2}>내 이벤트를 등록!</Text>
             </Pressable>
           </ScrollView>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -235,18 +309,32 @@ const stylesStatic = StyleSheet.create({
 
 function createStyles(colors: ThemeColors, isDark: boolean) {
   const panelBg = isDark ? "#0F1524" : colors.background;
+  const profileOnBanner = colors.textOnAccent;
+  const profileMutedOnBanner = isDark
+    ? "rgba(245, 240, 232, 0.55)"
+    : "rgba(255, 251, 245, 0.72)";
+  const profileStatOnBanner = isDark
+    ? "rgba(245, 240, 232, 0.72)"
+    : "rgba(255, 251, 245, 0.85)";
+
   return StyleSheet.create({
-    root: { flex: 1, flexDirection: "row" },
-    scrim: { flex: 1, backgroundColor: "rgba(0,0,0,0.58)" },
+    root: { flex: 1 },
+    scrimWrap: {
+      ...StyleSheet.absoluteFill,
+    },
+    scrim: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.58)",
+    },
     panel: {
       position: "absolute",
       left: 0,
       top: 0,
       bottom: 0,
-      width: "86%",
-      maxWidth: 360,
       backgroundColor: panelBg,
       paddingHorizontal: spacing.md,
+      zIndex: 2,
+      elevation: 8,
     },
     scroll: { paddingBottom: spacing.md },
     profileCard: {
@@ -255,11 +343,11 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       backgroundColor: isDark ? "#18243A" : colors.surfaceRaised,
       marginBottom: spacing.lg,
       borderWidth: 1,
-      borderColor: "rgba(255,255,255,0.08)",
+      borderColor: isDark ? "rgba(255,255,255,0.08)" : colors.hairline,
       minHeight: 108,
     },
     profileBannerOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: "rgba(0,0,0,0.38)",
     },
     profileRow: {
@@ -271,31 +359,31 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
     },
     profileMeta: { flex: 1, minWidth: 0 },
     profileName: {
-      color: "#F5F0E8",
+      color: profileOnBanner,
       fontSize: 18,
       fontWeight: "800",
     },
     profileHandle: {
       marginTop: 2,
-      color: "rgba(245, 240, 232, 0.55)",
+      color: profileMutedOnBanner,
       fontSize: 13,
       fontWeight: "600",
     },
     stats: { flexDirection: "row", gap: spacing.md, marginTop: 8 },
-    stat: { color: "rgba(245, 240, 232, 0.72)", fontSize: 13, fontWeight: "600" },
-    statNum: { fontWeight: "800", color: "#F5F0E8" },
+    stat: { color: profileStatOnBanner, fontSize: 13, fontWeight: "600" },
+    statNum: { fontWeight: "800", color: profileOnBanner },
     editBtn: {
       width: 34,
       height: 34,
       borderRadius: 17,
-      backgroundColor: "rgba(255,255,255,0.1)",
+      backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.28)",
       alignItems: "center",
       justifyContent: "center",
       borderWidth: 1,
-      borderColor: "rgba(255,255,255,0.12)",
+      borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.25)",
     },
     sectionTitle: {
-      color: "rgba(245, 240, 232, 0.45)",
+      color: colors.textMuted,
       fontSize: 13,
       fontWeight: "700",
       marginBottom: 4,
@@ -303,7 +391,7 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
     },
     sectionDivider: {
       height: 1,
-      backgroundColor: "rgba(255,255,255,0.08)",
+      backgroundColor: colors.hairline,
       marginVertical: spacing.md,
     },
     promoBanner: {

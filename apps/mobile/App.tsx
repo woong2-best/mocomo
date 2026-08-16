@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { StatusBar } from "expo-status-bar";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { StyleSheet } from "react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as WebBrowser from "expo-web-browser";
@@ -26,15 +28,21 @@ export default function App() {
   const [queryClient] = useState(() => createAppQueryClient());
 
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <RootNavigator />
-            <ThemedStatusBar />
-          </AuthProvider>
-        </QueryClientProvider>
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={styles.root}>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+              <RootNavigator />
+              <ThemedStatusBar />
+            </AuthProvider>
+          </QueryClientProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+});

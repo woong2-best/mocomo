@@ -14,8 +14,6 @@ export type PaymentIntentType =
   | "CREATOR_SUBSCRIPTION"
   | "STUDIO_ASSET"
   | "MARKETPLACE"
-  | "FLOWER"
-  | "MOCO_TOPUP"
   | "CALL_BOOKING";
 
 export type CheckoutBody = {
@@ -28,7 +26,6 @@ export type CheckoutBody = {
 export type CheckoutMeta = {
   configured: boolean;
   premiumUsdCents: number;
-  mocoPackages: { moco: number; krw: number; label: string }[];
 };
 
 export async function fetchCheckoutMeta() {

@@ -1,5 +1,27 @@
 import type { NavigatorScreenParams } from "@react-navigation/native";
 
+/** Side drawer destinations (main tabs + stack routes). */
+export type DrawerRoute =
+  | keyof RootTabParamList
+  | "Profile"
+  | "ProfileEdit"
+  | "Settings"
+  | "StarList"
+  | "CommunityList"
+  | "Wallet"
+  | "GamesHub"
+  | "AnimeList"
+  | "MarketplaceList"
+  | "SellerListings"
+  | "LiveList"
+  | "Discover"
+  | "Search"
+  | "Activity"
+  | "EventsList"
+  | "EventsMap"
+  | "Reels"
+  | "LegalPolicies";
+
 /** Floating glass tabs: 홈 · 마켓 · 중고 · 메세지 */
 export type RootTabParamList = {
   Home: undefined;
@@ -51,6 +73,7 @@ export type RootStackParamList = {
   EventDetail: { id: string };
   EventsMap: undefined;
   Profile: undefined;
+  ProfileEdit: undefined;
   UserProfile: { username: string };
   PostDetail: { id: string };
   Search: undefined;

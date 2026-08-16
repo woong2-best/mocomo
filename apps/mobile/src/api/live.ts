@@ -70,6 +70,8 @@ export type LiveDetail = LiveListItem & {
   mediaSourceType?: string | null;
   external?: LiveExternalInfo | null;
   paymentsEnabled?: boolean;
+  streamStartedAt?: string;
+  donationAlertsOnStream?: boolean;
 };
 
 export type LiveToken = {
@@ -141,6 +143,26 @@ export async function sendLiveChat(id: string, content: string) {
     auth: true,
     body: { content },
   });
+}
+
+export type LiveAlertItem = {
+  id: string;
+  kind: "tip" | "cheer";
+  username: string;
+  amount: number;
+  message: string | null;
+  at: string;
+  eventType?: string;
+  rouletteLabel?: string;
+  viaLivePage?: boolean;
+};
+
+export async function fetchLiveAlerts(channelId: string, sinceMs?: number) {
+  const params = sinceMs ? `?since=${sinceMs}` : "";
+  return apiRequest<{ alerts: LiveAlertItem[]; serverTime: number }>(
+    `${MobileApi.liveAlerts(channelId)}${params}`,
+    { auth: true, timeoutMs: 12_000 }
+  );
 }
 
 export async function fetchStreamingAccounts() {
