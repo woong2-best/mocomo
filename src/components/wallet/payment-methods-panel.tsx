@@ -50,7 +50,7 @@ export function PaymentMethodsPanel({ methods: initial }: Props) {
       setMsg(res.error);
       return;
     }
-    if (res.checkoutUrl) window.location.href = res.checkoutUrl;
+    if ("checkoutUrl" in res && res.checkoutUrl) window.location.href = res.checkoutUrl;
   }
 
   function setDefault(id: string) {

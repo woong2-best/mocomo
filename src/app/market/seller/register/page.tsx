@@ -1,6 +1,7 @@
 import { SellerPortalShell } from "@/components/market/seller-portal-shell";
 import { SellerOnboardingWizard } from "@/components/market/seller-onboarding-wizard";
 import { getSellerOnboardingState } from "@/actions/marketplace-seller-onboarding";
+import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { MARKET_BRAND_FULL } from "@/lib/market-brand";
@@ -15,18 +16,44 @@ export const metadata: Metadata = {
 export default async function SellerRegisterPage({
   searchParams,
 }: {
-  searchParams: Promise<{ connect?: string }>;
+  searchParams: Promise<{ connect?: string; app?: string; return?: string }>;
 }) {
+  const params = await searchParams;
+  const fromApp = params.app === "1";
+  const returnTo =
+    typeof params.return === "string" && params.return.startsWith("/") ? params.return : null;
+
+  const session = await auth();
+  if (!session?.user?.id) {
+    const qs = new URLSearchParams();
+    if (fromApp) qs.set("app", "1");
+    if (returnTo) qs.set("return", returnTo);
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    redirect(`/auth/signin?callbackUrl=${encodeURIComponent(`/market/seller/register${suffix}`)}`);
+  }
+
   const state = await getSellerOnboardingState();
   if (state.signedIn && state.step === "COMPLETE") {
+    if (fromApp && returnTo) {
+      redirect(returnTo);
+    }
     redirect("/market/seller");
   }
 
-  const connect = (await searchParams).connect;
+  const connect = params.connect;
 
   return (
-    <SellerPortalShell>
-      <SellerOnboardingWizard initialState={state} connectParam={connect} />
+    <SellerPortalShell
+      signedIn
+      fromApp={fromApp}
+      username={session.user.username ?? null}
+    >
+      <SellerOnboardingWizard
+        initialState={state}
+        connectParam={connect}
+        fromApp={fromApp}
+        returnTo={returnTo}
+      />
     </SellerPortalShell>
   );
 }

@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import { createMarketplaceCheckout } from "@/actions/marketplace-checkout";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { MarketplaceCheckoutInput } from "@/actions/marketplace-checkout";
 import { addToMarketplaceCart } from "@/lib/marketplace/cart-storage";
+import { MarketplaceCheckoutSheet } from "@/components/payments/marketplace-checkout-sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -34,8 +36,10 @@ export function MarketplaceBuyPanel({
   shipToCountries?: string[];
   shipsWorldwide?: boolean;
 }) {
-  const [pending, startTransition] = useTransition();
+  const router = useRouter();
   const [error, setError] = useState("");
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [checkoutInput, setCheckoutInput] = useState<MarketplaceCheckoutInput | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [shipName, setShipName] = useState("");
   const [shipCountry, setShipCountry] = useState(
@@ -65,25 +69,17 @@ export function MarketplaceBuyPanel({
       setError(UNSUPPORTED_SHIP_COUNTRY_MESSAGE);
       return;
     }
-    startTransition(async () => {
-      const res = await createMarketplaceCheckout({
-        listingId,
-        quantity,
-        shipName: needsShip ? shipName : undefined,
-        shipCountry: needsShip ? shipCountry : undefined,
-        shipPostal: needsShip ? shipPostal : undefined,
-        shipAddress1: needsShip ? shipAddress1 : undefined,
-        shipAddress2: needsShip ? shipAddress2 : undefined,
-        shipPhone: needsShip ? shipPhone : undefined,
-      });
-      if ("error" in res && res.error) {
-        setError(res.error);
-        return;
-      }
-      if ("checkoutUrl" in res && res.checkoutUrl) {
-        window.location.href = res.checkoutUrl;
-      }
+    setCheckoutInput({
+      listingId,
+      quantity,
+      shipName: needsShip ? shipName : undefined,
+      shipCountry: needsShip ? shipCountry : undefined,
+      shipPostal: needsShip ? shipPostal : undefined,
+      shipAddress1: needsShip ? shipAddress1 : undefined,
+      shipAddress2: needsShip ? shipAddress2 : undefined,
+      shipPhone: needsShip ? shipPhone : undefined,
     });
+    setSheetOpen(true);
   }
 
   function addCart() {
@@ -170,12 +166,21 @@ export function MarketplaceBuyPanel({
         </Button>
         <Button
           type="button"
-          disabled={pending || stock <= 0 || (needsShip && !shipsHere)}
+          disabled={stock <= 0 || (needsShip && !shipsHere)}
           onClick={buy}
         >
-          {pending ? "결제 준비 중…" : "결제하기"}
+          결제하기
         </Button>
       </div>
+      <MarketplaceCheckoutSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        checkoutInput={checkoutInput}
+        onSuccess={(result) => {
+          if (result.redirectPath) router.push(result.redirectPath);
+          else router.refresh();
+        }}
+      />
       <p className="text-[10px] text-muted-foreground text-center">
         Stripe Checkout · 카드 / Apple Pay / Google Pay 등 (국가별 자동)
       </p>

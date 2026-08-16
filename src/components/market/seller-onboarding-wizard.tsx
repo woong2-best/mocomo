@@ -46,9 +46,13 @@ type OnboardingState = Awaited<ReturnType<typeof getSellerOnboardingState>>;
 export function SellerOnboardingWizard({
   initialState,
   connectParam,
+  fromApp = false,
+  returnTo = null,
 }: {
   initialState: OnboardingState;
   connectParam?: string;
+  fromApp?: boolean;
+  returnTo?: string | null;
 }) {
   const router = useRouter();
   const [state, setState] = useState(initialState);
@@ -112,6 +116,14 @@ export function SellerOnboardingWizard({
   const [bio, setBio] = useState(initialState.profile?.bio ?? "");
   const [businessName, setBusinessName] = useState(initialState.profile?.businessName ?? "");
   const [businessRegNo, setBusinessRegNo] = useState(initialState.profile?.businessRegNo ?? "");
+  const [businessRepresentativeName, setBusinessRepresentativeName] = useState(
+    initialState.profile?.businessRepresentativeName ?? ""
+  );
+  const [businessStartDate, setBusinessStartDate] = useState(() => {
+    const raw = initialState.profile?.businessStartDate;
+    if (!raw || raw.length !== 8) return "";
+    return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
+  });
 
   useEffect(() => {
     if (connectParam === "return") {
@@ -134,9 +146,13 @@ export function SellerOnboardingWizard({
 
   useEffect(() => {
     if (initialState.signedIn && initialState.step === "COMPLETE") {
+      if (fromApp && returnTo) {
+        window.location.replace(returnTo);
+        return;
+      }
       router.replace("/market/seller?welcome=1");
     }
-  }, [initialState, router]);
+  }, [fromApp, initialState, returnTo, router]);
 
   const mandatoryOk = agreeAge && agreeTerms;
   const canSubmitAgreements = mandatoryOk;
@@ -316,6 +332,8 @@ export function SellerOnboardingWizard({
         bio: bio || undefined,
         businessName: businessName || undefined,
         businessRegNo: businessRegNo || undefined,
+        businessRepresentativeName: businessRepresentativeName || undefined,
+        businessStartDate: businessStartDate || undefined,
       });
       if (res.error) {
         setError(res.error);
@@ -392,6 +410,10 @@ export function SellerOnboardingWizard({
       const res = await completeSellerOnboarding();
       if ("error" in res && res.error) {
         setError(res.error);
+        return;
+      }
+      if (fromApp && returnTo) {
+        window.location.replace(returnTo);
         return;
       }
       if ("redirectTo" in res && res.redirectTo) {
@@ -606,16 +628,44 @@ export function SellerOnboardingWizard({
                 <Input
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
-                  placeholder="사업자명"
+                  placeholder="사업자명 (상호)"
                 />
                 <Input
                   value={businessRegNo}
                   onChange={(e) => setBusinessRegNo(e.target.value)}
-                  placeholder="사업자등록번호"
+                  placeholder="사업자등록번호 (10자리)"
+                  inputMode="numeric"
                 />
+                <Input
+                  value={businessRepresentativeName}
+                  onChange={(e) => setBusinessRepresentativeName(e.target.value)}
+                  placeholder="대표자명 (사업자등록증과 동일)"
+                />
+                <Input
+                  type="date"
+                  value={businessStartDate}
+                  onChange={(e) => setBusinessStartDate(e.target.value)}
+                  aria-label="개업일자"
+                />
+                <p className="text-xs text-muted-foreground">
+                  사업자등록증의 대표자명·개업일자로 국세청 진위확인 후 다음 단계로 진행됩니다.
+                </p>
               </>
             )}
-            <Button type="button" className="w-full" disabled={pending || !displayName.trim()} onClick={handleSellerInfo}>
+            <Button
+              type="button"
+              className="w-full"
+              disabled={
+                pending ||
+                !displayName.trim() ||
+                (sellerType === "BUSINESS" &&
+                  (!businessName.trim() ||
+                    !businessRegNo.trim() ||
+                    !businessRepresentativeName.trim() ||
+                    !businessStartDate))
+              }
+              onClick={handleSellerInfo}
+            >
               다음
             </Button>
           </div>
@@ -713,26 +763,40 @@ export function SellerOnboardingWizard({
         {effectiveStep === "COMPLETE" && (
           <div className="space-y-3 text-center">
             <p className="text-sm">판매자 온보딩이 완료되었습니다.</p>
-            <Button
-              type="button"
-              className="w-full"
-              onClick={() => router.replace("/market/seller?welcome=1")}
-            >
-              판매자센터로 이동
-            </Button>
+            {fromApp && returnTo ? (
+              <Button
+                type="button"
+                className="w-full"
+                onClick={() => {
+                  window.location.replace(returnTo);
+                }}
+              >
+                앱으로 돌아가기
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                className="w-full"
+                onClick={() => router.replace("/market/seller?welcome=1")}
+              >
+                판매자센터로 이동
+              </Button>
+            )}
           </div>
         )}
       </div>
 
-      <p className="mt-5 text-center text-sm text-muted-foreground">
-        이미 계정이 있나요?{" "}
-        <Link
-          href="/auth/signin?callbackUrl=/market/seller/register"
-          className="text-primary hover:underline font-medium"
-        >
-          로그인
-        </Link>
-      </p>
+      {!initialState.signedIn ? (
+        <p className="mt-5 text-center text-sm text-muted-foreground">
+          이미 계정이 있나요?{" "}
+          <Link
+            href="/auth/signin?callbackUrl=/market/seller/register"
+            className="font-medium text-primary hover:underline"
+          >
+            로그인
+          </Link>
+        </p>
+      ) : null}
 
       <SellerConsentDialog
         open={!!consentKind}

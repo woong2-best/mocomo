@@ -20,8 +20,11 @@ import {
 import { isSignupHumanVerifyRequired } from "@/lib/turnstile-signup";
 import { checkRateLimit, authLimiter } from "@/lib/ratelimit";
 import { getRequestIp } from "@/lib/request-ip";
-import { normalizeMobilePhone } from "@/lib/phone-international";
-import { consumeSellerPhoneProof } from "@/lib/marketplace/seller-phone-proof";
+import {
+  normalizeBusinessRegNo,
+  normalizeBusinessStartDate,
+  verifyNtsBusinessRegistration,
+} from "@/lib/nts-businessman/client";
 
 const accountSchema = z.object({
   username: z
@@ -60,6 +63,8 @@ const sellerInfoSchema = z.object({
   bio: z.string().max(2000).optional(),
   businessName: z.string().max(120).optional(),
   businessRegNo: z.string().max(40).optional(),
+  businessRepresentativeName: z.string().max(80).optional(),
+  businessStartDate: z.string().max(20).optional(),
 });
 
 const kycSchema = z.object({
@@ -217,6 +222,9 @@ export async function getSellerOnboardingState() {
           sellingMarket: profile.sellingMarket,
           businessName: profile.businessName,
           businessRegNo: profile.businessRegNo,
+          businessRepresentativeName: profile.businessRepresentativeName,
+          businessStartDate: profile.businessStartDate,
+          businessVerifiedAt: profile.businessVerifiedAt,
           bio: profile.bio,
           status: profile.status,
           onboardingStep: profile.onboardingStep,
@@ -260,18 +268,6 @@ export async function registerSellerAccount(input: z.infer<typeof accountSchema>
     ? "KR"
     : normalizeSellerCountry(data.phoneCountryCode || sellingMarket);
 
-  let phoneE164: string | null = null;
-  if (phoneRequired) {
-    if (!data.phone?.trim() || !data.phoneProof) {
-      return { error: "한국 판매자는 휴대폰(SMS) 인증이 필수입니다." };
-    }
-    if (!isSellerPhoneCountry("KR")) {
-      return { error: "휴대폰 국가 설정 오류입니다." };
-    }
-    phoneE164 = normalizeMobilePhone(data.phone, "KR");
-    if (!phoneE164) return { error: "휴대폰 번호 형식이 올바르지 않습니다." };
-  }
-
   const existingSession = await getSessionUserId();
   if (existingSession) {
     return {
@@ -296,13 +292,6 @@ export async function registerSellerAccount(input: z.infer<typeof accountSchema>
 
   if (result.error) return { error: result.error };
   if (!result.userId) return { error: "계정 생성에 실패했습니다." };
-
-  if (phoneRequired && phoneE164 && data.phoneProof) {
-    const phoneAttach = await consumeSellerPhoneProof(phoneE164, data.phoneProof, result.userId);
-    if (!phoneAttach.ok) {
-      return { error: phoneAttach.error, userId: result.userId, email: data.email.trim().toLowerCase() };
-    }
-  }
 
   await db.marketplaceSellerProfile.upsert({
     where: { userId: result.userId },
@@ -465,12 +454,13 @@ export async function resendSellerEmailCode(email: string) {
   return sendEmailAuthCode(email, "signup", undefined, true);
 }
 
-export async function advanceSellerPhoneStep(phoneCountryCode: string) {
+export async function advanceSellerPhoneStep(_phoneCountryCode: string) {
   const user = await requireAuth();
   const dbUser = await db.user.findUnique({
     where: { id: user.id },
     select: {
       phoneVerified: true,
+      bankVerifiedAt: true,
       countryCode: true,
       marketplaceSeller: { select: { sellingMarket: true } },
     },
@@ -485,11 +475,9 @@ export async function advanceSellerPhoneStep(phoneCountryCode: string) {
     });
     return { success: true as const, nextStep: "SELLER_INFO" as const };
   }
-  if (!isSellerPhoneCountry(phoneCountryCode) && phoneCountryCode.toUpperCase() !== "KR") {
-    return { error: "한국 판매자는 KR 휴대폰 번호로 인증해 주세요." };
-  }
-  if (!dbUser?.phoneVerified) {
-    return { error: "휴대폰 인증을 완료해 주세요." };
+  const verified = !!(dbUser?.bankVerifiedAt || dbUser?.phoneVerified);
+  if (!verified) {
+    return { error: "계좌 1원 인증을 완료해 주세요." };
   }
 
   await db.marketplaceSellerProfile.updateMany({
@@ -511,9 +499,47 @@ export async function saveSellerInfo(input: z.infer<typeof sellerInfoSchema>) {
   if (!parsed.success) return { error: "판매자 정보를 확인해 주세요." };
   const data = parsed.data;
 
+  let businessVerified:
+    | {
+        regNo: string;
+        startDate: string;
+        representativeName: string;
+        statusCode: string;
+        taxType: string | null;
+      }
+    | null = null;
+
   if (data.sellerType === "BUSINESS") {
     if (!data.businessName?.trim()) return { error: "사업자명을 입력해 주세요." };
     if (!data.businessRegNo?.trim()) return { error: "사업자등록번호를 입력해 주세요." };
+    if (!data.businessRepresentativeName?.trim()) {
+      return { error: "대표자명을 입력해 주세요." };
+    }
+    if (!data.businessStartDate?.trim()) {
+      return { error: "개업일자를 입력해 주세요." };
+    }
+
+    const regNo = normalizeBusinessRegNo(data.businessRegNo);
+    if (!regNo) return { error: "사업자등록번호는 10자리 숫자여야 합니다." };
+
+    const startDate = normalizeBusinessStartDate(data.businessStartDate);
+    if (!startDate) return { error: "개업일자는 YYYYMMDD 형식으로 입력해 주세요." };
+
+    const verify = await verifyNtsBusinessRegistration({
+      regNo,
+      representativeName: data.businessRepresentativeName.trim(),
+      startDate,
+      businessName: data.businessName.trim(),
+    });
+    if (!verify.ok) return { error: verify.error };
+
+    businessVerified = {
+      regNo: verify.regNo,
+      startDate,
+      representativeName: data.businessRepresentativeName.trim(),
+      statusCode: verify.statusCode,
+      taxType: verify.taxType,
+    };
   }
 
   const user = await requireAuth();
@@ -532,6 +558,28 @@ export async function saveSellerInfo(input: z.infer<typeof sellerInfoSchema>) {
     ? "KYC"
     : "SETTLEMENT";
 
+  const now = new Date();
+  const businessFields =
+    data.sellerType === "BUSINESS" && businessVerified
+      ? {
+          businessName: data.businessName!.trim(),
+          businessRegNo: businessVerified.regNo,
+          businessRepresentativeName: businessVerified.representativeName,
+          businessStartDate: businessVerified.startDate,
+          businessVerifiedAt: now,
+          businessStatusCode: businessVerified.statusCode,
+          businessTaxType: businessVerified.taxType,
+        }
+      : {
+          businessName: null,
+          businessRegNo: null,
+          businessRepresentativeName: null,
+          businessStartDate: null,
+          businessVerifiedAt: null,
+          businessStatusCode: null,
+          businessTaxType: null,
+        };
+
   await db.marketplaceSellerProfile.upsert({
     where: { userId: user.id },
     create: {
@@ -539,8 +587,7 @@ export async function saveSellerInfo(input: z.infer<typeof sellerInfoSchema>) {
       displayName,
       bio: data.bio?.trim().slice(0, 2000) || null,
       sellerType: data.sellerType as MarketplaceSellerType,
-      businessName: data.sellerType === "BUSINESS" ? data.businessName!.trim() : null,
-      businessRegNo: data.sellerType === "BUSINESS" ? data.businessRegNo!.trim() : null,
+      ...businessFields,
       status: "PENDING",
       canList: false,
       sellingMarket: country,
@@ -550,8 +597,7 @@ export async function saveSellerInfo(input: z.infer<typeof sellerInfoSchema>) {
       displayName,
       bio: data.bio?.trim().slice(0, 2000) || null,
       sellerType: data.sellerType as MarketplaceSellerType,
-      businessName: data.sellerType === "BUSINESS" ? data.businessName!.trim() : null,
-      businessRegNo: data.sellerType === "BUSINESS" ? data.businessRegNo!.trim() : null,
+      ...businessFields,
       onboardingStep: nextStep,
     },
   });

@@ -3,7 +3,6 @@
 import { PayButton } from "@/components/payments/pay-button";
 import { usePathname } from "next/navigation";
 import { Heart } from "lucide-react";
-import { formatKrwWithMocoHint } from "@/lib/moco-display";
 import { Button } from "@/components/ui/button";
 
 export function SubscribeCreatorButton({
@@ -69,7 +68,7 @@ export function SubscribeCreatorButton({
 export function SubscribeCreatorHint({ priceKrw }: { priceKrw: number }) {
   return (
     <p className="text-[10px] text-white/80 text-center px-2">
-      {formatKrwWithMocoHint(priceKrw)} · 매월 자동결제 (Stripe 연동 후)
+      ₩{priceKrw.toLocaleString()} · 매월 자동결제
     </p>
   );
 }

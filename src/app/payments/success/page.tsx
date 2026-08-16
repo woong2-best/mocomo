@@ -32,12 +32,10 @@ export default async function PaymentSuccessPage({
     PRODUCT: "상품 구매",
     PREMIUM: "프리미엄 구독",
     EMOTICON: "이모티콘 구매",
-    FLOWER: "Flower Gift 구매",
     LISTING_FEE: "굿즈 등록비",
     PHYSICAL_GOODS: "굿즈 주문",
     EVENT_REGISTRATION: "이벤트 등록",
     STUDIO_ASSET: "Studio 자산 구매",
-    MOCO_TOPUP: "모코 충전",
   };
 
   const redirectPath =
@@ -54,9 +52,7 @@ export default async function PaymentSuccessPage({
       primaryLabel={
         result.type === "TIP"
           ? "돌아가기"
-          : result.type === "MOCO_TOPUP"
-            ? "지갑 보기"
-            : result.type === "EVENT_REGISTRATION"
+          : result.type === "EVENT_REGISTRATION"
             ? "이벤트 보기"
             : result.type === "STUDIO_ASSET"
               ? "Studio 보관함"

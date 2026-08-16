@@ -29,28 +29,51 @@ import {
   holdSettlementForDispute,
 } from "@/lib/marketplace/escrow";
 import type { MarketplaceDisputeReason } from "@prisma/client";
+import {
+  getOrCreateStripeCustomer,
+  listSavedPaymentMethods,
+} from "@/lib/stripe-payment-methods";
 
+export type MarketplaceCheckoutInput = {
+  listingId: string;
+  quantity?: number;
+  optionSnapshot?: Record<string, string>;
+  shipName?: string;
+  shipCountry?: string;
+  shipPostal?: string;
+  shipAddress1?: string;
+  shipAddress2?: string;
+  shipPhone?: string;
+  buyerNote?: string;
+};
 
-export async function createMarketplaceCheckoutForBuyer(
-  buyer: { id: string; email?: string | null },
-  input: {
-    listingId: string;
-    quantity?: number;
-    optionSnapshot?: Record<string, string>;
-    shipName?: string;
-    shipCountry?: string;
-    shipPostal?: string;
-    shipAddress1?: string;
-    shipAddress2?: string;
-    shipPhone?: string;
-    buyerNote?: string;
-  },
-  platform: CheckoutPlatform = "web"
-) {
-  if (!isStripeConfigured()) {
-    return { error: "Stripe 결제가 설정되지 않았습니다." };
-  }
+type MarketplaceListingRow = NonNullable<
+  Awaited<ReturnType<typeof db.marketplaceListing.findUnique>>
+> & {
+  seller: {
+    id: string;
+    username: string | null;
+    email: string | null;
+    stripeConnectAccountId: string | null;
+    stripeConnectOnboardedAt: Date | null;
+  };
+  sellerProfile: { id: string; status: string } | null;
+};
 
+type MarketplaceInitResult = {
+  order: { id: string };
+  paymentIntent: { id: string };
+  listing: MarketplaceListingRow;
+  quantity: number;
+  shippingAmount: number;
+  totalAmount: number;
+  currency: string;
+};
+
+async function initMarketplacePurchase(
+  buyer: { id: string },
+  input: MarketplaceCheckoutInput
+): Promise<{ error: string } | MarketplaceInitResult> {
   const quantity = Math.max(1, Math.floor(input.quantity ?? 1));
 
   const listing = await db.marketplaceListing.findUnique({
@@ -163,7 +186,6 @@ export async function createMarketplaceCheckoutForBuyer(
     },
   });
 
-  // Escrow: charge on platform — Transfer to seller only after purchase confirm
   const risk = await assessMarketplaceCheckoutRisk({
     buyerId: buyer.id,
     sellerId: listing.sellerId,
@@ -173,39 +195,77 @@ export async function createMarketplaceCheckoutForBuyer(
   });
   await applyOrderRiskFlags(order.id, risk, buyer.id);
 
+  return {
+    order,
+    paymentIntent,
+    listing,
+    quantity,
+    shippingAmount,
+    totalAmount,
+    currency: (listing.currency || "krw").toLowerCase(),
+  };
+}
+
+function marketplaceStripeMetadata(
+  paymentIntentId: string,
+  buyerId: string,
+  marketplaceOrderId: string,
+  listingId: string,
+  sellerId: string
+) {
+  return {
+    orderId: paymentIntentId,
+    type: "MARKETPLACE",
+    userId: buyerId,
+    marketplaceOrderId,
+    listingId,
+    sellerId,
+    mocomoPaymentIntentId: paymentIntentId,
+    escrow: "platform_hold",
+  };
+}
+
+async function createMarketplaceCheckoutSession(
+  buyer: { id: string; email?: string | null },
+  init: MarketplaceInitResult,
+  platform: CheckoutPlatform
+) {
   const stripe = getStripe();
   const origin = getAppOrigin();
-  const currency = (listing.currency || "krw").toLowerCase();
   const returnUrls = stripeCheckoutReturnUrls(platform);
   const successUrl =
     platform === "web"
-      ? `${origin}/payments/success?session_id={CHECKOUT_SESSION_ID}&market_order=${order.id}`
+      ? `${origin}/payments/success?session_id={CHECKOUT_SESSION_ID}&market_order=${init.order.id}`
       : returnUrls.successUrl;
   const cancelUrl =
     platform === "web"
-      ? `${origin}/payments/fail?market_order=${order.id}`
+      ? `${origin}/payments/fail?market_order=${init.order.id}`
       : returnUrls.cancelUrl;
+
+  const customerId = await getOrCreateStripeCustomer(buyer.id, buyer.email);
 
   const sessionParams: Parameters<typeof stripe.checkout.sessions.create>[0] = {
     mode: "payment",
+    customer: customerId,
+    payment_method_types: ["card"],
     line_items: [
       {
         price_data: {
-          currency,
-          unit_amount: listing.priceAmount,
+          currency: init.currency,
+          unit_amount: init.listing.priceAmount,
           product_data: {
-            name: listing.title.slice(0, 120),
-            description: `${listing.type} · ${listing.category}`.slice(0, 200),
+            name: init.listing.title.slice(0, 120),
+            description: `${init.listing.type} · ${init.listing.category}`.slice(0, 200),
           },
         },
-        quantity,
+        quantity: init.quantity,
       },
-      ...(shippingAmount > 0
+      ...(init.shippingAmount > 0
         ? [
             {
               price_data: {
-                currency,
-                unit_amount: shippingAmount,
+                currency: init.currency,
+                unit_amount: init.shippingAmount,
                 product_data: { name: "배송비" },
               },
               quantity: 1,
@@ -214,47 +274,196 @@ export async function createMarketplaceCheckoutForBuyer(
         : []),
     ],
     metadata: {
-      orderId: paymentIntent.id,
+      orderId: init.paymentIntent.id,
       type: "MARKETPLACE",
       userId: buyer.id,
-      marketplaceOrderId: order.id,
+      marketplaceOrderId: init.order.id,
     },
     payment_intent_data: {
-      metadata: {
-        marketplaceOrderId: order.id,
-        mocomoPaymentIntentId: paymentIntent.id,
-        escrow: "platform_hold",
-      },
-      transfer_group: order.id,
+      setup_future_usage: "off_session",
+      metadata: marketplaceStripeMetadata(
+        init.paymentIntent.id,
+        buyer.id,
+        init.order.id,
+        init.listing.id,
+        init.listing.sellerId
+      ),
+      transfer_group: init.order.id,
     },
     success_url: successUrl,
     cancel_url: cancelUrl,
-    customer_email: buyer.email ?? undefined,
   };
 
   const session = await stripe.checkout.sessions.create(sessionParams);
   if (!session.url) return { error: "결제 페이지를 만들 수 없습니다." };
 
   await db.marketplaceOrder.update({
-    where: { id: order.id },
+    where: { id: init.order.id },
     data: { stripeCheckoutSessionId: session.id },
   });
 
-  return { checkoutUrl: session.url, orderId: order.id, marketplaceOrderId: order.id };
+  return {
+    checkoutUrl: session.url,
+    orderId: init.paymentIntent.id,
+    marketplaceOrderId: init.order.id,
+  };
 }
 
-export async function createMarketplaceCheckout(input: {
-  listingId: string;
-  quantity?: number;
-  optionSnapshot?: Record<string, string>;
-  shipName?: string;
-  shipCountry?: string;
-  shipPostal?: string;
-  shipAddress1?: string;
-  shipAddress2?: string;
-  shipPhone?: string;
-  buyerNote?: string;
-}) {
+/** Saved-card sheet: create order + Stripe PaymentIntent with wallet customer */
+export async function prepareMarketplacePaymentForBuyer(
+  buyer: { id: string; email?: string | null },
+  input: MarketplaceCheckoutInput,
+  _platform: CheckoutPlatform = "web"
+) {
+  if (!isStripeConfigured()) {
+    return { error: "Stripe 결제가 설정되지 않았습니다." };
+  }
+
+  const init = await initMarketplacePurchase(buyer, input);
+  if ("error" in init) return init;
+
+  const customerId = await getOrCreateStripeCustomer(buyer.id, buyer.email);
+  const stripe = getStripe();
+
+  const pi = await stripe.paymentIntents.create({
+    amount: init.totalAmount,
+    currency: init.currency,
+    customer: customerId,
+    description: init.listing.title.slice(0, 200),
+    metadata: marketplaceStripeMetadata(
+      init.paymentIntent.id,
+      buyer.id,
+      init.order.id,
+      init.listing.id,
+      init.listing.sellerId
+    ),
+    transfer_group: init.order.id,
+    automatic_payment_methods: { enabled: true },
+    setup_future_usage: "off_session",
+  });
+
+  await db.paymentIntent.update({
+    where: { id: init.paymentIntent.id },
+    data: { paymentKey: pi.id },
+  });
+
+  const methods = await listSavedPaymentMethods(buyer.id);
+
+  return {
+    orderId: init.paymentIntent.id,
+    marketplaceOrderId: init.order.id,
+    clientSecret: pi.client_secret,
+    publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "",
+    methods,
+    amount: init.totalAmount,
+    orderName: init.listing.title,
+  };
+}
+
+/** New-card fallback for an already-prepared marketplace payment */
+export async function createMarketplaceCheckoutSessionForPaymentIntent(
+  buyer: { id: string; email?: string | null },
+  paymentIntentDbId: string,
+  platform: CheckoutPlatform = "web"
+) {
+  if (!isStripeConfigured()) {
+    return { error: "Stripe 결제가 설정되지 않았습니다." };
+  }
+
+  const paymentIntent = await db.paymentIntent.findUnique({
+    where: { id: paymentIntentDbId },
+  });
+  if (!paymentIntent || paymentIntent.userId !== buyer.id) {
+    return { error: "결제 정보를 찾을 수 없습니다." };
+  }
+  if (paymentIntent.type !== "MARKETPLACE") {
+    return { error: "마켓 결제가 아닙니다." };
+  }
+  if (paymentIntent.status === "PAID") {
+    return { error: "이미 결제된 주문입니다." };
+  }
+
+  const meta = paymentIntent.metadata as Record<string, string | undefined>;
+  const marketplaceOrderId = meta.marketplaceOrderId;
+  const listingId = meta.listingId;
+  if (!marketplaceOrderId || !listingId) {
+    return { error: "주문 정보가 올바르지 않습니다." };
+  }
+
+  const order = await db.marketplaceOrder.findUnique({
+    where: { id: marketplaceOrderId },
+    include: { items: true },
+  });
+  if (!order || order.buyerId !== buyer.id || order.status !== "AWAITING_PAYMENT") {
+    return { error: "주문을 찾을 수 없습니다." };
+  }
+
+  const listing = await db.marketplaceListing.findUnique({
+    where: { id: listingId },
+    include: {
+      seller: {
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          stripeConnectAccountId: true,
+          stripeConnectOnboardedAt: true,
+        },
+      },
+      sellerProfile: { select: { id: true, status: true } },
+    },
+  });
+  if (!listing) return { error: "상품을 찾을 수 없습니다." };
+
+  const item = order.items[0];
+  const quantity = item?.quantity ?? 1;
+
+  if (paymentIntent.paymentKey) {
+    const stripe = getStripe();
+    try {
+      await stripe.paymentIntents.cancel(paymentIntent.paymentKey);
+    } catch {
+      // Cancel also fails once the intent has already gone through, and the
+      // local record can still say unpaid until the webhook lands. Handing out
+      // a fresh checkout session here would charge the buyer twice.
+      const existing = await stripe.paymentIntents.retrieve(paymentIntent.paymentKey);
+      if (existing.status === "succeeded" || existing.status === "processing") {
+        return { error: "이미 결제가 진행된 주문입니다." };
+      }
+    }
+  }
+
+  return createMarketplaceCheckoutSession(
+    buyer,
+    {
+      order: { id: order.id },
+      paymentIntent: { id: paymentIntent.id },
+      listing,
+      quantity,
+      shippingAmount: order.shippingAmount,
+      totalAmount: paymentIntent.amount,
+      currency: (order.currency || "krw").toLowerCase(),
+    },
+    platform
+  );
+}
+
+export async function createMarketplaceCheckoutForBuyer(
+  buyer: { id: string; email?: string | null },
+  input: MarketplaceCheckoutInput,
+  platform: CheckoutPlatform = "web"
+) {
+  if (!isStripeConfigured()) {
+    return { error: "Stripe 결제가 설정되지 않았습니다." };
+  }
+
+  const init = await initMarketplacePurchase(buyer, input);
+  if ("error" in init) return init;
+
+  return createMarketplaceCheckoutSession(buyer, init, platform);
+}
+
+export async function createMarketplaceCheckout(input: MarketplaceCheckoutInput) {
   const buyer = await requireAuth();
   return createMarketplaceCheckoutForBuyer(
     { id: buyer.id, email: buyer.email },

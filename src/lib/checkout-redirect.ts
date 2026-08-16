@@ -39,5 +39,11 @@ export function checkoutRedirectPath(intent: PaymentIntent, type: string) {
       : "/studio/library";
   }
 
+  if (type === "MARKETPLACE") {
+    redirectPath = meta.marketplaceOrderId
+      ? `/market/orders/${meta.marketplaceOrderId}?paid=1`
+      : "/market/orders";
+  }
+
   return redirectPath;
 }
