@@ -21,11 +21,13 @@ export async function GET(
 
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
-    select: { createdBy: true, createdAt: true },
+    select: { createdBy: true, createdAt: true, donationAlertsOnStream: true },
   });
   if (!channel) {
     return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   }
+
+  const donationAlertsOnStream = channel.donationAlertsOnStream === true;
 
   const sinceParam = req.nextUrl.searchParams.get("since");
   const sinceMs = sinceParam ? Number(sinceParam) : NaN;
@@ -39,8 +41,8 @@ export async function GET(
       .findMany({
         where: {
           receiverId: channel.createdBy,
+          channelId,
           createdAt: { gt: sinceDate },
-          OR: [{ channelId }, { channelId: null, createdAt: { gte: channel.createdAt } }],
         },
         orderBy: { createdAt: "asc" },
         take: 8,
@@ -147,7 +149,8 @@ export async function GET(
     cheerTotalCp,
     combinedGoalTotal: tipTotalKrw + cheerTotalCp,
     tipRanking: mergedRanking,
-    recentTips,
+    recentTips: donationAlertsOnStream ? recentTips : [],
+    donationAlertsOnStream,
     serverTime: Date.now(),
   });
 }

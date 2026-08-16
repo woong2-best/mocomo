@@ -36,6 +36,7 @@ export function LiveHostStudioShell({
   chatBannedWords,
   collabPassword,
   recentTips = [],
+  donationAlertsOnStream = false,
   broadcastMode,
   hostImage,
   hostDisplayName,
@@ -59,6 +60,7 @@ export function LiveHostStudioShell({
   paymentsEnabled?: boolean;
   collabPassword?: string | null;
   recentTips?: LiveTipAlert[];
+  donationAlertsOnStream?: boolean;
   broadcastMode?: LiveBroadcastMode;
   hostImage?: string | null;
 }) {
@@ -79,6 +81,7 @@ export function LiveHostStudioShell({
           onViewerCount={onViewerCount}
           onEndStream={onEndStream}
           recentTips={recentTips}
+          donationAlertsOnStream={donationAlertsOnStream}
         />
       );
     }
@@ -132,6 +135,7 @@ export function LiveHostStudioShell({
         chatBannedWords={chatBannedWords}
         collabPassword={collabPassword}
         recentTips={recentTips}
+        donationAlertsOnStream={donationAlertsOnStream}
       />
     );
   }
@@ -171,6 +175,7 @@ export function LiveHostStudioShell({
                 slowModeSeconds={slowModeSeconds ?? 0}
                 bannedWords={ensureStringArray(chatBannedWords)}
                 initialCollabSplit={collab.splitEnabled}
+                initialDonationAlertsOnStream={donationAlertsOnStream}
                 collabCoHostName={coHostLabel ?? null}
                 embedded
               />
@@ -197,7 +202,7 @@ export function LiveHostStudioShell({
                 : undefined
             }
           />
-          <LiveDonationAlertOverlay tips={recentTips} />
+          {donationAlertsOnStream ? <LiveDonationAlertOverlay tips={recentTips} /> : null}
           <LiveVideoDonationOverlay channelId={channelId} />
         </div>
         <div className="min-h-[360px] lg:sticky lg:top-[3.25rem] lg:max-h-[calc(100vh-5rem)] border border-border/60 rounded-xl overflow-hidden bg-card/30">

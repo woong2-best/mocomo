@@ -32,6 +32,7 @@ export function LiveCollabStudioShell({
   paymentsEnabled,
   hostFollowing,
   recentTips = [],
+  donationAlertsOnStream = false,
 }: {
   channelId: string;
   channelName: string;
@@ -52,6 +53,7 @@ export function LiveCollabStudioShell({
   paymentsEnabled?: boolean;
   hostFollowing?: boolean;
   recentTips?: LiveTipAlert[];
+  donationAlertsOnStream?: boolean;
 }) {
   const router = useRouter();
   const mobilePortrait = useLiveMobilePortrait();
@@ -113,7 +115,7 @@ export function LiveCollabStudioShell({
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-4 mt-3 items-start">
         <div className="min-w-0 space-y-4 relative">
           <LiveCollabPublishStudio channelId={channelId} />
-          <LiveDonationAlertOverlay tips={recentTips} />
+          {donationAlertsOnStream ? <LiveDonationAlertOverlay tips={recentTips} /> : null}
         </div>
         <div className="min-h-[360px] lg:sticky lg:top-[3.25rem] lg:max-h-[calc(100vh-5rem)] border border-border/60 rounded-xl overflow-hidden bg-card/30">
           <LiveChat

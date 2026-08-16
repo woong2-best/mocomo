@@ -14,6 +14,7 @@ export function LiveStudioStatsSync({
     combinedGoalTotal?: number;
     tipRanking: { username: string; amount: number }[];
     recentTips: { id: string; amount: number; message: string | null; username: string; at: number }[];
+    donationAlertsOnStream?: boolean;
   }) => void;
 }) {
   const onStatsRef = useRef(onStats);
@@ -39,6 +40,7 @@ export function LiveStudioStatsSync({
           combinedGoalTotal: body.combinedGoalTotal ?? body.tipTotalKrw ?? 0,
           tipRanking: body.tipRanking ?? [],
           recentTips: body.recentTips ?? [],
+          donationAlertsOnStream: body.donationAlertsOnStream,
         });
       } catch {
         /* ignore */

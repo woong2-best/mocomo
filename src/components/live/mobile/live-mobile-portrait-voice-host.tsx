@@ -18,6 +18,7 @@ export function LiveMobilePortraitVoiceHost({
   onViewerCount,
   onEndStream,
   recentTips = [],
+  donationAlertsOnStream = false,
 }: {
   channelId: string;
   channelName: string;
@@ -27,6 +28,7 @@ export function LiveMobilePortraitVoiceHost({
   onViewerCount?: (n: number) => void;
   onEndStream: () => void;
   recentTips?: LiveTipAlert[];
+  donationAlertsOnStream?: boolean;
 }) {
   const router = useRouter();
   const { chatOverlayEnabled } = useLiveChat();
@@ -42,7 +44,7 @@ export function LiveMobilePortraitVoiceHost({
         />
       </div>
 
-      <LiveDonationAlertOverlay tips={recentTips} />
+      {donationAlertsOnStream ? <LiveDonationAlertOverlay tips={recentTips} /> : null}
 
       <header className="absolute top-0 left-0 right-0 z-20 flex items-center gap-2 px-3 pt-safe pb-2 pointer-events-auto">
         <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-violet-600 flex items-center gap-1">

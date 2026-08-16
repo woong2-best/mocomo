@@ -186,6 +186,7 @@ export default async function VoiceRoomPage({
         tipRanking={ensureArray<{ username: string; amount: number }>(tipRanking)}
         slowModeSeconds={channel.slowModeSeconds}
         chatBannedWords={ensureStringArray(channel.chatBannedWords)}
+        donationAlertsOnStream={channel.donationAlertsOnStream === true}
         paymentsEnabled={paymentsEnabled}
         broadcastMode={channel.broadcastMode ?? "BROWSER"}
         liveVisibility={channel.liveVisibility ?? "PUBLIC"}

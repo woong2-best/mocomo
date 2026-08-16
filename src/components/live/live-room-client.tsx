@@ -19,6 +19,7 @@ import { LiveStudioErrorBoundary } from "@/components/live/live-studio-error-bou
 import { LiveStudioStatsSync } from "@/components/live/live-studio-stats-sync";
 import { LiveHostPresenceSync } from "@/components/live/live-host-presence-sync";
 import { LiveDonationAlertOverlay, type LiveTipAlert } from "@/components/live/live-donation-alert-overlay";
+import { LiveSideAlertBridge } from "@/components/live/live-side-alert-bridge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { KeyRound, Loader2, Users } from "lucide-react";
@@ -45,6 +46,7 @@ export function LiveRoomClient({
   tipRanking: initialTipRanking,
   slowModeSeconds,
   chatBannedWords,
+  donationAlertsOnStream: initialDonationAlertsOnStream = false,
   paymentsEnabled,
   broadcastMode,
   liveVisibility = "PUBLIC",
@@ -68,6 +70,7 @@ export function LiveRoomClient({
   tipRanking?: { username: string; amount: number }[];
   slowModeSeconds?: number;
   chatBannedWords?: string[];
+  donationAlertsOnStream?: boolean;
   paymentsEnabled?: boolean;
   broadcastMode?: LiveBroadcastMode;
   liveVisibility?: LiveVisibility;
@@ -92,6 +95,9 @@ export function LiveRoomClient({
   const [tipTotalKrw, setTipTotalKrw] = useState(initialTipTotalKrw ?? 0);
   const [cheerTotalCp, setCheerTotalCp] = useState(0);
   const [tipRanking, setTipRanking] = useState(initialTipRanking ?? []);
+  const [donationAlertsOnStream, setDonationAlertsOnStream] = useState(initialDonationAlertsOnStream);
+  const donationAlertsOnStreamRef = useRef(initialDonationAlertsOnStream);
+  donationAlertsOnStreamRef.current = donationAlertsOnStream;
 
   const handleStats = useCallback(
     (data: {
@@ -100,11 +106,15 @@ export function LiveRoomClient({
       combinedGoalTotal?: number;
       tipRanking: { username: string; amount: number }[];
       recentTips: LiveTipAlert[];
+      donationAlertsOnStream?: boolean;
     }) => {
       setTipTotalKrw(data.tipTotalKrw);
       setCheerTotalCp(data.cheerTotalCp ?? 0);
       setTipRanking(data.tipRanking);
-      if (data.recentTips.length > 0) {
+      if (typeof data.donationAlertsOnStream === "boolean") {
+        setDonationAlertsOnStream(data.donationAlertsOnStream);
+      }
+      if (data.recentTips.length > 0 && donationAlertsOnStreamRef.current) {
         setRecentTips((prev) => {
           const ids = new Set(prev.map((t) => t.id));
           const fresh = data.recentTips.filter((t) => !ids.has(t.id));
@@ -181,6 +191,7 @@ export function LiveRoomClient({
   }
 
   const appendSupportAlert = useCallback((alert: LiveTipAlert) => {
+    if (!donationAlertsOnStreamRef.current) return;
     setRecentTips((prev) => {
       if (prev.some((t) => t.id === alert.id)) return prev;
       return [alert, ...prev].slice(0, 30);
@@ -211,6 +222,7 @@ export function LiveRoomClient({
     isLiveOnAir,
     collabPassword: storedPassword,
     recentTips,
+    donationAlertsOnStream,
   };
 
   const overlayProviderProps = {
@@ -252,6 +264,7 @@ export function LiveRoomClient({
       onViewerCount={setViewerCount}
     >
     <LiveSupportProvider channelId={channelId} isHost={isHost} onAlert={appendSupportAlert}>
+    <LiveSideAlertBridge onAlert={appendSupportAlert} />
     <LiveOverlayGamesBridge />
     <div className={isHost ? "relative" : "space-y-4 relative"}>
       <LiveStudioStatsSync channelId={channelId} onStats={handleStats} />

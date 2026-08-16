@@ -4,7 +4,7 @@ import { verifyOverlayToken } from "@/lib/live-external/overlay-token";
 export const dynamic = "force-dynamic";
 
 /**
- * Optional OBS Browser Source — donation alerts only (not on site player).
+ * OBS Browser Source — 라이브 페이지 후원·CP·채팅 알림 (화면 오른쪽)
  * Example: /overlay/donation/{channelId}?token=...
  */
 export default async function OverlayDonationPage({
@@ -37,5 +37,9 @@ export default async function OverlayDonationPage({
     );
   }
 
-  return <OverlayDonationClient channelId={streamerId} token={token} />;
+  return (
+    <div style={{ background: "transparent", minHeight: "100vh", margin: 0 }}>
+      <OverlayDonationClient channelId={streamerId} token={token} />
+    </div>
+  );
 }

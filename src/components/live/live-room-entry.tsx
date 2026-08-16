@@ -27,6 +27,7 @@ export function LiveRoomEntry({
   tipRanking,
   slowModeSeconds,
   chatBannedWords,
+  donationAlertsOnStream,
   paymentsEnabled,
   broadcastMode,
   liveVisibility,
@@ -49,6 +50,7 @@ export function LiveRoomEntry({
   tipRanking?: { username: string; amount: number }[];
   slowModeSeconds?: number;
   chatBannedWords?: string[];
+  donationAlertsOnStream?: boolean;
   paymentsEnabled?: boolean;
   broadcastMode?: LiveBroadcastMode;
   liveVisibility?: LiveVisibility;
@@ -85,6 +87,7 @@ export function LiveRoomEntry({
       tipRanking={tipRanking}
       slowModeSeconds={slowModeSeconds}
       chatBannedWords={chatBannedWords}
+      donationAlertsOnStream={donationAlertsOnStream}
       paymentsEnabled={paymentsEnabled}
       broadcastMode={broadcastMode}
       liveVisibility={liveVisibility}

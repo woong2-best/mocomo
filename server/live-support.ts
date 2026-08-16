@@ -171,6 +171,18 @@ export function registerLiveSupportHandlers(
         };
 
         io.to(`live:${channelId}`).emit("live_support_event", event);
+
+        void import("@/lib/notifications")
+          .then(({ notifyLiveCheer }) =>
+            notifyLiveCheer(live.channel.createdBy, userId, amount, channelId, {
+              message,
+              eventType: type,
+              rouletteLabel:
+                typeof metadata.rouletteLabel === "string" ? metadata.rouletteLabel : undefined,
+            })
+          )
+          .catch(() => undefined);
+
         ack?.({ ok: true, event });
       } catch {
         ack?.({ ok: false, error: "응원 처리에 실패했습니다." });

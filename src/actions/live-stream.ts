@@ -856,6 +856,7 @@ export async function updateLiveStreamSettings(
     slowModeSeconds?: number;
     chatBannedWords?: string[];
     liveCollabSplitEnabled?: boolean;
+    donationAlertsOnStream?: boolean;
   }
 ) {
   const user = await requireAuth();
@@ -875,8 +876,10 @@ export async function updateLiveStreamSettings(
           : undefined,
       chatBannedWords: data.chatBannedWords?.slice(0, 30),
       liveCollabSplitEnabled: data.liveCollabSplitEnabled,
+      donationAlertsOnStream: data.donationAlertsOnStream,
     },
   });
+  revalidateTag(liveRoomCacheTag(channelId));
   return { success: true as const };
 }
 

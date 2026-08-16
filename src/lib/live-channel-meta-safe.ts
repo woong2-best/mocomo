@@ -28,6 +28,7 @@ export type SafeLiveChannelMeta = {
   broadcastMode: LiveBroadcastMode;
   liveVisibility: LiveVisibility;
   minViewerTier: SupportTierLevel | null;
+  donationAlertsOnStream: boolean;
   rtmpUrl: string | null;
   rtmpStreamKey: string | null;
   mediaSourceType: LiveMediaSourceType;
@@ -61,6 +62,7 @@ const EXTENDED_SELECT = {
   broadcastMode: true,
   liveVisibility: true,
   minViewerTier: true,
+  donationAlertsOnStream: true,
   rtmpUrl: true,
   rtmpStreamKey: true,
   mediaSourceType: true,
@@ -104,6 +106,7 @@ function withLiveDefaults(
     broadcastMode: ch.broadcastMode ?? "OBS",
     liveVisibility: ch.liveVisibility ?? "PUBLIC",
     minViewerTier: ch.minViewerTier ?? null,
+    donationAlertsOnStream: ch.donationAlertsOnStream === true,
     rtmpUrl: ch.rtmpUrl ?? null,
     rtmpStreamKey: ch.rtmpStreamKey ?? null,
     mediaSourceType: ch.mediaSourceType ?? "FIRST_PARTY",

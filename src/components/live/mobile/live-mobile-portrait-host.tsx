@@ -29,6 +29,7 @@ export type LiveMobilePortraitHostProps = {
   chatBannedWords?: string[];
   collabPassword?: string | null;
   recentTips?: LiveTipAlert[];
+  donationAlertsOnStream?: boolean;
 };
 
 /** 호스트 — 모바일 세로 인스타 라이브 UI (데스크탑과 분리) */
@@ -42,6 +43,7 @@ export function LiveMobilePortraitHost({
   chatBannedWords,
   collabPassword,
   recentTips = [],
+  donationAlertsOnStream = false,
 }: LiveMobilePortraitHostProps) {
   const { chatOverlayEnabled } = useLiveChat();
 
@@ -59,7 +61,7 @@ export function LiveMobilePortraitHost({
 
       <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/75 pointer-events-none z-10" />
 
-      <LiveDonationAlertOverlay tips={recentTips} />
+      {donationAlertsOnStream ? <LiveDonationAlertOverlay tips={recentTips} /> : null}
 
       <header className="absolute top-0 left-0 right-0 z-20 flex items-center gap-2 px-3 pt-safe pb-2 pointer-events-auto">
         <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-gradient-to-r from-pink-500 to-orange-500">
@@ -89,6 +91,7 @@ export function LiveMobilePortraitHost({
               channelId={channelId}
               slowModeSeconds={slowModeSeconds ?? 0}
               bannedWords={ensureStringArray(chatBannedWords)}
+              initialDonationAlertsOnStream={donationAlertsOnStream}
               embedded
             />
           </DialogContent>

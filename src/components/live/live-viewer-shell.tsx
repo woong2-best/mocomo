@@ -34,6 +34,7 @@ export function LiveViewerShell({
   isLiveOnAir,
   hostImage,
   recentTips = [],
+  donationAlertsOnStream = false,
 }: {
   channelId: string;
   channelName: string;
@@ -57,6 +58,7 @@ export function LiveViewerShell({
   broadcastMode?: LiveBroadcastMode | null;
   isLiveOnAir?: boolean;
   recentTips?: LiveTipAlert[];
+  donationAlertsOnStream?: boolean;
 }) {
   const mobilePortrait = useLiveMobilePortrait();
 
@@ -79,6 +81,7 @@ export function LiveViewerShell({
         broadcastMode={broadcastMode}
         isLiveOnAir={isLiveOnAir}
         recentTips={recentTips}
+        donationAlertsOnStream={donationAlertsOnStream}
       />
     );
   }
@@ -115,7 +118,7 @@ export function LiveViewerShell({
               hostDisplayName={hostDisplayName ?? hostUsername}
               channelName={channelName}
             />
-            <LiveDonationAlertOverlay tips={recentTips} />
+            {donationAlertsOnStream ? <LiveDonationAlertOverlay tips={recentTips} /> : null}
           </div>
           <div className="xl:sticky xl:top-16 min-h-[min(70vh,560px)]">
             <LiveChat
@@ -164,7 +167,7 @@ export function LiveViewerShell({
             broadcastMode={broadcastMode}
             isLiveOnAir={isLiveOnAir}
           />
-          <LiveDonationAlertOverlay tips={recentTips} />
+          {donationAlertsOnStream ? <LiveDonationAlertOverlay tips={recentTips} /> : null}
           <LiveVideoDonationOverlay channelId={channelId} />
         </div>
         <div className="xl:sticky xl:top-16 min-h-[min(70vh,560px)]">

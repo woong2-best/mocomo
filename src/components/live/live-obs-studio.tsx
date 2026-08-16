@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Copy, Check, Monitor, Radio, Loader2, RefreshCw, Signal, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { mintLiveOverlayUrls } from "@/actions/live-external";
 
 type ObsCreds = {
   obsServer: string;
@@ -45,6 +46,15 @@ export function LiveObsStudio({
   const [copied, setCopied] = useState<"all" | "server" | "key" | null>(null);
   const [onAir, setOnAir] = useState<boolean | null>(null);
   const [signalMsg, setSignalMsg] = useState("");
+  const [overlayUrl, setOverlayUrl] = useState<string | null>(null);
+
+  const loadOverlayUrl = useCallback(async () => {
+    const res = await mintLiveOverlayUrls(channelId);
+    if ("donationUrl" in res && res.donationUrl) {
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      setOverlayUrl(`${origin}${res.donationUrl}`);
+    }
+  }, [channelId]);
 
   const loadIngress = useCallback(
     async (refresh = false) => {
@@ -67,7 +77,8 @@ export function LiveObsStudio({
 
   useEffect(() => {
     void loadIngress(false);
-  }, [loadIngress]);
+    void loadOverlayUrl();
+  }, [loadIngress, loadOverlayUrl]);
 
   useEffect(() => {
     if (!creds) return;
@@ -188,6 +199,33 @@ export function LiveObsStudio({
           {copied === "all" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
           서버 + 키 한번에 복사
         </Button>
+
+        {overlayUrl ? (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 space-y-2">
+            <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">
+              ③ OBS 후원·채팅 알림 (브라우저 소스)
+            </p>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              화면 공유·게임 캡처 위에 <strong>라이브 페이지 후원·CP·채팅</strong>만 오른쪽에 표시됩니다.
+              방송 설정에서 <strong>「방송 화면에 후원·CP 메시지 표시」</strong>를 켜야 알림이 나옵니다.
+              OBS → 소스 추가 → 브라우저 → 아래 URL (800×600 권장, 배경 투명).
+            </p>
+            <div className="flex gap-2">
+              <code className="flex-1 text-[10px] bg-background rounded-lg px-2 py-2 break-all border select-all max-h-20 overflow-y-auto">
+                {overlayUrl}
+              </code>
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="shrink-0 h-8 w-8"
+                onClick={() => copy(overlayUrl, "server")}
+              >
+                {copied === "server" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              </Button>
+            </div>
+          </div>
+        ) : null}
 
         <div
           className={`rounded-xl px-3 py-2.5 text-xs flex gap-2 items-start ${
