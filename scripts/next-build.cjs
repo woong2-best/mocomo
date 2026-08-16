@@ -1,9 +1,12 @@
 /**
- * Runs `next build` with a heap ceiling that fits the build container.
+ * Type checks, then builds — as two sequential processes.
  *
- * NODE_OPTIONS is inherited by Next's build workers, so the limit must be sized
- * per worker: on Vercel (2 cores / 8GB) a single 6GB ceiling made two workers
- * overcommit and the container SIGKILLed the build.
+ * Next runs type checking inside the build, so on an 8GB container the webpack
+ * heap and the tsc heap are alive at the same time and the container OOM kills
+ * the build. Running tsc first keeps the same safety with half the peak memory.
+ *
+ * NODE_OPTIONS is inherited by Next's workers, so the heap ceiling is sized per
+ * worker rather than for the whole container.
  */
 const os = require("os");
 const { spawn } = require("child_process");
@@ -11,8 +14,7 @@ const { spawn } = require("child_process");
 const CONCURRENT_WORKERS = 2;
 const RESERVED_MB = 1024;
 const LOW_MEMORY_MB = 12288;
-// Small containers run a single worker (NEXT_BUILD_CPUS=1), so it can take most
-// of the container. 4096 left too little headroom and the build spent ~30min in GC.
+// Small containers build with a single worker, so it can take most of the box.
 const LOW_MEMORY_HEAP_MB = 6144;
 
 const totalMb = Math.floor(os.totalmem() / 1024 / 1024);
@@ -27,22 +29,37 @@ const nodeOptions = existing.includes("--max-old-space-size")
   ? existing
   : `${existing} --max-old-space-size=${heapMb}`.trim();
 
-console.log(
-  `[next-build] heap limit ${heapMb}MB per worker (system ${totalMb}MB, ${os.cpus().length} cores, lowMemory=${lowMemory})`
-);
+const buildEnv = {
+  ...process.env,
+  NODE_OPTIONS: nodeOptions,
+  NEXT_SKIP_TYPECHECK: "1",
+  ...(lowMemory && !process.env.NEXT_BUILD_CPUS ? { NEXT_BUILD_CPUS: "1" } : {}),
+};
 
-const child = spawn("npx", ["next", "build"], {
-  stdio: "inherit",
-  shell: process.platform === "win32",
-  env: {
-    ...process.env,
-    NODE_OPTIONS: nodeOptions,
-    ...(lowMemory && !process.env.NEXT_BUILD_CPUS ? { NEXT_BUILD_CPUS: "1" } : {}),
-  },
-});
+function run(label, args) {
+  return new Promise((resolve, reject) => {
+    console.log(`[next-build] ${label}`);
+    const child = spawn("npx", args, {
+      stdio: "inherit",
+      shell: process.platform === "win32",
+      env: buildEnv,
+    });
+    child.on("close", (code) =>
+      code === 0 ? resolve() : reject(new Error(`${label} exited with ${code}`))
+    );
+    child.on("error", reject);
+  });
+}
 
-child.on("close", (code) => process.exit(code ?? 1));
-child.on("error", (err) => {
-  console.error("[next-build] failed to start:", err.message);
+async function main() {
+  console.log(
+    `[next-build] heap ${heapMb}MB per worker (system ${totalMb}MB, ${os.cpus().length} cores, lowMemory=${lowMemory})`
+  );
+  await run("type check", ["tsc", "--noEmit"]);
+  await run("next build", ["next", "build"]);
+}
+
+main().catch((err) => {
+  console.error(`[next-build] ${err.message}`);
   process.exit(1);
 });

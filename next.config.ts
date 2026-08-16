@@ -38,6 +38,8 @@ const nextConfig: NextConfig = {
   // Lint runs in CI via `npm run lint`; in-build linting adds several hundred MB
   // to an already memory-tight build container.
   eslint: { ignoreDuringBuilds: true },
+  // scripts/next-build.cjs already ran `tsc --noEmit` in a separate process.
+  ...(process.env.NEXT_SKIP_TYPECHECK ? { typescript: { ignoreBuildErrors: true } } : {}),
   async rewrites() {
     return {
       beforeFiles: studioHostRewrites(),
