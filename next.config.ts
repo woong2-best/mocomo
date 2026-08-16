@@ -35,6 +35,9 @@ const nextConfig: NextConfig = {
       "local",
   },
   transpilePackages: ["@mediapipe/tasks-vision", "@pixiv/three-vrm", "three"],
+  // Lint runs in CI via `npm run lint`; in-build linting adds several hundred MB
+  // to an already memory-tight build container.
+  eslint: { ignoreDuringBuilds: true },
   async rewrites() {
     return {
       beforeFiles: studioHostRewrites(),
@@ -95,6 +98,7 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     webpackMemoryOptimizations: true,
+    ...(process.env.NEXT_BUILD_CPUS ? { cpus: Number(process.env.NEXT_BUILD_CPUS) } : {}),
     serverActions: { bodySizeLimit: "50mb" },
     staleTimes: {
       dynamic: 120,
