@@ -16,8 +16,9 @@ export async function GET() {
 
 /** POST /api/watermark/session — paid video playback session */
 export async function POST(req: NextRequest) {
-  const originBlock = verifyApiOrigin(req);
-  if (originBlock) return originBlock;
+  if (!verifyApiOrigin(req)) {
+    return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
+  }
 
   const limited = await rateLimitPublicApi(req, "watermark-session", 30);
   if (limited) return limited;

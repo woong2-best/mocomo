@@ -100,8 +100,9 @@ async function enrichDetectionResult(
 
 /** POST /api/admin/watermark/detect — admin forensic analysis upload */
 export async function POST(req: NextRequest) {
-  const originBlock = verifyApiOrigin(req);
-  if (originBlock) return originBlock;
+  if (!verifyApiOrigin(req)) {
+    return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
+  }
 
   const limited = await rateLimitPublicApi(req, "admin-watermark-detect", 10);
   if (limited) return limited;

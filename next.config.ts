@@ -94,6 +94,7 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
+    webpackMemoryOptimizations: true,
     serverActions: { bodySizeLimit: "50mb" },
     staleTimes: {
       dynamic: 120,
