@@ -48,6 +48,22 @@ next-env.d.ts
 /prisma/*.db
 /prisma/*.db-journal
 
+# android release artifacts (uploaded to Play Console, not versioned)
+/*.aab
+/*.apk
+/gradle-bundle*.log
+/build-log.txt
+
+# IDE
+.idea/
+
+# local scratch (diagnostic screenshots, captured logs)
+/_t-*.png
+/_table-crop-test.png
+/tmp-*
+/vercel-deploy*.log
+/vercel-fail-logs.txt
+
 # local uploads (dev fallback)
 /public/uploads/
 
