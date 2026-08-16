@@ -93,6 +93,9 @@
     },
     "src/app/api/studio/upload/route.ts": {
       "maxDuration": 60
+    },
+    "src/app/api/admin/watermark/detect/route.ts": {
+      "maxDuration": 120
     }
   }
 }
