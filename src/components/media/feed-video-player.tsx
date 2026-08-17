@@ -916,9 +916,15 @@ export function FeedVideoPlayer({
     }
     lastTapRef.current = now;
 
-    // Feed immersive viewer: single tap leaves the inline player.
+    // Feed immersive viewer: single tap opens viewer while playing; paused tap resumes.
     if (onOpenImmersive) {
       if (isFeedVideoControlZone(e.clientY, containerRef.current)) return;
+      const v = videoRef.current;
+      if (v?.paused) {
+        userPausedRef.current = false;
+        void playExclusive("user");
+        return;
+      }
       onOpenImmersive();
       return;
     }
@@ -958,6 +964,12 @@ export function FeedVideoPlayer({
     stopFeedNavigation(e);
     focusPlayer();
     if (onOpenImmersive) {
+      const v = videoRef.current;
+      if (v?.paused) {
+        userPausedRef.current = false;
+        void playExclusive("user");
+        return;
+      }
       onOpenImmersive();
       return;
     }
@@ -1014,54 +1026,73 @@ export function FeedVideoPlayer({
     }
   };
 
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    if (isEditableKeyTarget(e.target)) return;
+  const handlePlayerKey = useCallback(
+    (e: KeyboardEvent | React.KeyboardEvent) => {
+      if (isEditableKeyTarget(e.target)) return;
 
-    switch (e.key) {
-      case " ":
-      case "k":
-      case "K":
-        // preventDefault so a focused control button doesn't also activate (double toggle).
-        e.preventDefault();
-        togglePlay();
-        break;
-      case "ArrowLeft":
-        e.preventDefault();
-        seekBy(-SEEK_STEP_SEC);
-        break;
-      case "ArrowRight":
-        e.preventDefault();
-        seekBy(SEEK_STEP_SEC);
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        applyVolume(Math.min(1, volume + VOLUME_STEP));
-        break;
-      case "ArrowDown":
-        e.preventDefault();
-        applyVolume(Math.max(0, volume - VOLUME_STEP));
-        break;
-      case "m":
-      case "M":
-        e.preventDefault();
-        toggleMute();
-        break;
-      case "f":
-      case "F":
-        e.preventDefault();
-        if (!protect) toggleFullscreen();
-        break;
-      case "Escape":
-        if (document.fullscreenElement) {
+      switch (e.key) {
+        case " ":
+        case "k":
+        case "K":
+          // preventDefault so a focused control button doesn't also activate (double toggle).
           e.preventDefault();
-          void document.exitFullscreen();
-        }
-        if (zoom > 1) setZoom(1);
-        break;
-      default:
-        break;
-    }
+          togglePlay();
+          break;
+        case "ArrowLeft":
+          e.preventDefault();
+          seekBy(-SEEK_STEP_SEC);
+          break;
+        case "ArrowRight":
+          e.preventDefault();
+          seekBy(SEEK_STEP_SEC);
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          applyVolume(Math.min(1, volume + VOLUME_STEP));
+          break;
+        case "ArrowDown":
+          e.preventDefault();
+          applyVolume(Math.max(0, volume - VOLUME_STEP));
+          break;
+        case "m":
+        case "M":
+          e.preventDefault();
+          toggleMute();
+          break;
+        case "f":
+        case "F":
+          e.preventDefault();
+          if (!protect) toggleFullscreen();
+          break;
+        case "Escape":
+          if (document.fullscreenElement) {
+            e.preventDefault();
+            void document.exitFullscreen();
+          }
+          if (zoom > 1) setZoom(1);
+          break;
+        default:
+          break;
+      }
+    },
+    [applyVolume, protect, seekBy, togglePlay, volume, zoom]
+  );
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (isFullscreen) return;
+    handlePlayerKey(e);
   };
+
+  // Fullscreen often leaves focus on a control button; capture keys at document level.
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const onDocKey = (e: KeyboardEvent) => {
+      if (!isPlayerFullscreen()) return;
+      handlePlayerKey(e);
+    };
+    document.addEventListener("keydown", onDocKey);
+    return () => document.removeEventListener("keydown", onDocKey);
+  }, [handlePlayerKey, isFullscreen, isPlayerFullscreen]);
 
   const liveDuration = (() => {
     const v = videoRef.current;
@@ -1179,6 +1210,7 @@ export function FeedVideoPlayer({
           aria-label="재생"
           onClick={(e) => {
             stopFeedNavigation(e);
+            focusPlayer();
             // Ghost click after video pointerup-pause must not auto-resume.
             if (suppressOverlayClickRef.current) {
               suppressOverlayClickRef.current = false;
@@ -1187,9 +1219,8 @@ export function FeedVideoPlayer({
             userPausedRef.current = false;
             void playExclusive("user");
           }}
-          // Visual-only for pointer: let <video> keep receiving taps so pause
-          // doesn't lose to a trailing click on this newly-mounted overlay.
-          className="pointer-events-none absolute inset-0 z-[2] flex items-center justify-center transition-opacity duration-200"
+          onPointerDown={stopFeedNavigation}
+          className="absolute inset-0 z-[2] flex items-center justify-center transition-opacity duration-200"
         >
           <span className="flex h-16 w-16 items-center justify-center rounded-full bg-black/55 text-white ring-1 ring-white/25 backdrop-blur-sm transition-transform group-hover/video:scale-105">
             <Play className="h-7 w-7 translate-x-[2px]" fill="currentColor" />
