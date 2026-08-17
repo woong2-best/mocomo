@@ -26,8 +26,8 @@ export function HomeGuestHero() {
       <FolkSectionTitle className="mb-3">
         {t("home.welcome", { brand: BRAND.name })}
       </FolkSectionTitle>
-      <p className="text-muted-foreground mt-3 max-w-lg font-medium leading-relaxed">
-        {t("home.guestDescription", { description: t("brand.description") })}
+      <p className="text-muted-foreground mt-3 max-w-lg font-medium leading-relaxed whitespace-pre-line">
+        {t("home.guestDescription")}
       </p>
       <div className="flex flex-wrap gap-3 mt-6">
         <Button asChild size="lg" className="rounded-xl shadow-folk">
