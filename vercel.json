@@ -96,15 +96,6 @@
     },
     "src/app/api/admin/watermark/detect/route.ts": {
       "maxDuration": 120
-    },
-    "src/app/api/admin/watermark/detect/[jobId]/route.ts": {
-      "maxDuration": 30
-    },
-    "src/app/api/media/paid/[id]/route.ts": {
-      "maxDuration": 60
-    },
-    "src/app/api/media/paid/episode/[id]/route.ts": {
-      "maxDuration": 60
     }
   }
 }

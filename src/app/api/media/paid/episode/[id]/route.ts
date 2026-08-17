@@ -6,7 +6,6 @@ import { fetchPaidOriginVideo } from "@/lib/paid-media-origin";
 import { verifyPaidVideoAccess, WatermarkAccessError } from "@/lib/watermark/session/service";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
 
 /** GET /api/media/paid/episode/[id] — gated creator-episode video. */
 export async function GET(
