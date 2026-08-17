@@ -99,22 +99,36 @@ export async function prepareCheckoutPaymentIntent(input: {
   const stripe = getStripe();
   const currency = checkoutCurrencyForType(input.type);
 
-  const pi = await stripe.paymentIntents.create({
-    amount: input.amount,
-    currency,
-    customer: customerId,
-    description: input.orderName,
-    metadata: stripeMetadata(intent.id, input.type, input.userId, input.metadata),
-    automatic_payment_methods: { enabled: true },
-    setup_future_usage: "off_session",
-  });
+  let pi: Stripe.PaymentIntent;
+  try {
+    pi = await stripe.paymentIntents.create({
+      amount: input.amount,
+      currency,
+      customer: customerId,
+      description: input.orderName,
+      metadata: stripeMetadata(intent.id, input.type, input.userId, input.metadata),
+      automatic_payment_methods: { enabled: true },
+      setup_future_usage: "off_session",
+    });
+  } catch (e) {
+    console.error("[prepareCheckoutPaymentIntent] stripe.paymentIntents.create", e);
+    if (e instanceof Stripe.errors.StripeError) {
+      return { error: e.message || "결제 준비에 실패했습니다." };
+    }
+    throw e;
+  }
 
   await db.paymentIntent.update({
     where: { id: intent.id },
     data: { paymentKey: pi.id },
   });
 
-  const methods = await listSavedPaymentMethods(input.userId);
+  let methods: SavedPaymentMethod[] = [];
+  try {
+    methods = await listSavedPaymentMethods(input.userId);
+  } catch (e) {
+    console.error("[prepareCheckoutPaymentIntent] listSavedPaymentMethods", e);
+  }
 
   return {
     orderId: intent.id,

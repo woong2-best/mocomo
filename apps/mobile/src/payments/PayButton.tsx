@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import type { PaymentIntentType } from "@/api/checkout";
+import { getAccessToken } from "@/auth/token-store";
 import { FolkButton } from "@/ui/FolkButton";
 import { PaymentCheckoutSheet } from "@/payments/PaymentCheckoutSheet";
 import { paymentTypeLabel } from "@/payments/stripe-checkout";
@@ -16,6 +17,31 @@ type Props = {
   variant?: "primary" | "secondary" | "ghost";
 };
 
+function normalizeCheckoutBody(
+  type: PaymentIntentType,
+  amount: number,
+  orderName: string,
+  metadata: Record<string, unknown>
+) {
+  const normalized: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(metadata)) {
+    if (value == null) continue;
+    normalized[key] = typeof value === "string" ? value : String(value);
+  }
+  if (type === "POST_MEDIA" && normalized.mediaId) {
+    normalized.mediaId = String(normalized.mediaId);
+  }
+  if (type === "CREATOR_SUBSCRIPTION" && normalized.creatorId) {
+    normalized.creatorId = String(normalized.creatorId);
+  }
+  return {
+    type,
+    amount: Math.max(1, Math.round(amount)),
+    orderName,
+    metadata: normalized,
+  };
+}
+
 export function PayButton({
   type,
   amount,
@@ -27,18 +53,31 @@ export function PayButton({
   variant = "primary",
 }: Props) {
   const [open, setOpen] = useState(false);
+  const checkoutBody = useMemo(
+    () => normalizeCheckoutBody(type, amount, orderName, metadata),
+    [amount, metadata, orderName, type]
+  );
+
+  async function openCheckout() {
+    const token = await getAccessToken();
+    if (!token) {
+      Alert.alert("로그인 필요", "결제하려면 먼저 로그인해 주세요.");
+      return;
+    }
+    setOpen(true);
+  }
 
   return (
     <View style={styles.wrap}>
       <FolkButton
         label={label}
-        onPress={() => setOpen(true)}
+        onPress={() => void openCheckout()}
         disabled={disabled}
         variant={variant}
       />
       <PaymentCheckoutSheet
         visible={open}
-        body={{ type, amount, orderName, metadata }}
+        body={checkoutBody}
         onClose={() => setOpen(false)}
         onSuccess={(result) => {
           onSuccess?.();
@@ -53,5 +92,5 @@ export function PayButton({
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: 6 },
+  wrap: { gap: 6, zIndex: 20, elevation: 20 },
 });

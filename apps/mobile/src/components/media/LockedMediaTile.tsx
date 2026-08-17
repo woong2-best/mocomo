@@ -85,9 +85,11 @@ export function LockedMediaTile({ media, monetization, style }: Props) {
 
   return (
     <View style={[styles.wrap, { backgroundColor: colors.muted }, style]}>
-      <BlurView intensity={28} tint="dark" style={StyleSheet.absoluteFill} />
-      <View style={styles.scrim} />
-      {overlay}
+      <BlurView intensity={28} tint="dark" style={StyleSheet.absoluteFill} pointerEvents="none" />
+      <View style={styles.scrim} pointerEvents="none" />
+      <View style={styles.overlayHost} pointerEvents="box-none">
+        {overlay}
+      </View>
     </View>
   );
 }
@@ -100,6 +102,11 @@ const styles = StyleSheet.create({
   scrim: {
     ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0,0,0,0.18)",
+  },
+  overlayHost: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 10,
+    elevation: 10,
   },
   ctaStack: {
     alignItems: "center",

@@ -43,25 +43,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "입력값을 확인해 주세요." }, { status: 400 });
   }
 
-  const dbUser = await db.user.findUnique({
-    where: { id: auth.user.id },
-    select: { email: true },
-  });
+  try {
+    const dbUser = await db.user.findUnique({
+      where: { id: auth.user.id },
+      select: { email: true },
+    });
 
-  const result = await prepareCheckoutPaymentIntent({
-    userId: auth.user.id,
-    email: dbUser?.email,
-    type: parsed.data.type as PaymentIntentType,
-    amount: parsed.data.amount,
-    orderName: parsed.data.orderName,
-    metadata: parsed.data.metadata,
-  });
+    const result = await prepareCheckoutPaymentIntent({
+      userId: auth.user.id,
+      email: dbUser?.email,
+      type: parsed.data.type as PaymentIntentType,
+      amount: parsed.data.amount,
+      orderName: parsed.data.orderName,
+      metadata: parsed.data.metadata,
+    });
 
-  if ("error" in result && result.error) {
-    return NextResponse.json({ error: result.error }, { status: 422 });
+    if ("error" in result && result.error) {
+      return NextResponse.json({ error: result.error }, { status: 422 });
+    }
+
+    return NextResponse.json(result);
+  } catch (e) {
+    console.error("[api/mobile/checkout/intent] POST", e);
+    return NextResponse.json(
+      { error: "결제 준비 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요." },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json(result);
 }
 
 const confirmSchema = z.discriminatedUnion("mode", [

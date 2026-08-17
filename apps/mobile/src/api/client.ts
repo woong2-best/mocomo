@@ -161,7 +161,15 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     } catch {
       parsed = undefined;
     }
-    throw new ApiError(`API ${method} ${path} failed`, res.status, parsed);
+    const serverMessage =
+      parsed &&
+      typeof parsed === "object" &&
+      parsed !== null &&
+      "error" in parsed &&
+      typeof (parsed as { error?: unknown }).error === "string"
+        ? (parsed as { error: string }).error
+        : null;
+    throw new ApiError(serverMessage ?? `API ${method} ${path} failed`, res.status, parsed);
   }
 
   if (res.status === 204) return undefined as T;

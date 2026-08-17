@@ -197,7 +197,8 @@ export async function validatePaymentInput(
   }
 
   if (input.type === "POST_MEDIA") {
-    const mediaId = input.metadata.mediaId as string;
+    const mediaId = String(input.metadata.mediaId ?? "").trim();
+    if (!mediaId) return { error: "미디어 정보가 없습니다." };
     const media = await db.postMedia.findUnique({
       where: { id: mediaId },
       include: {

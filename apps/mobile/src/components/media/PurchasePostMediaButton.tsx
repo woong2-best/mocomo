@@ -41,7 +41,7 @@ export function PurchasePostMediaButton({
           orderName={label}
           metadata={{ mediaId, username, postId }}
           label={label}
-          variant="ghost"
+          variant="primary"
           onSuccess={onPurchaseSuccess}
         />
       </View>
@@ -61,7 +61,7 @@ export function PurchasePostMediaButton({
 }
 
 const styles = StyleSheet.create({
-  labelWrap: { alignItems: "center" },
+  labelWrap: { alignItems: "center", minWidth: 160 },
   disabled: {
     color: "rgba(255,255,255,0.9)",
     fontSize: 13,

@@ -258,6 +258,7 @@ function FeedPostMediaCarouselInner({
         ref={listRef}
         data={items}
         horizontal
+        keyboardShouldPersistTaps="handled"
         keyExtractor={(item) => item.id ?? `${post.id}:media:${item.index}`}
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"

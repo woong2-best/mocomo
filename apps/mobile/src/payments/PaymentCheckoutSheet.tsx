@@ -47,6 +47,17 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
   const [methods, setMethods] = useState<PaymentMethodItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  const checkoutKey = useMemo(
+    () =>
+      JSON.stringify({
+        type: body.type,
+        amount: body.amount,
+        orderName: body.orderName,
+        metadata: body.metadata,
+      }),
+    [body.amount, body.metadata, body.orderName, body.type]
+  );
+
   useEffect(() => {
     if (!visible) return;
     setError("");
@@ -54,7 +65,7 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
     void prepareCheckoutPayment(body)
       .then((res) => {
         setOrderId(res.orderId);
-        setMethods(res.methods);
+        setMethods(res.methods ?? []);
         const def = res.methods.find((m) => m.isDefault) ?? res.methods[0];
         setSelectedId(def?.id ?? null);
       })
@@ -62,7 +73,7 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
         setError(e instanceof Error ? e.message : "결제 준비에 실패했습니다.");
       })
       .finally(() => setLoading(false));
-  }, [visible, body]);
+  }, [visible, checkoutKey, body]);
 
   async function openAuthenticate(authenticateUrl: string, oid: string) {
     const result = await WebBrowser.openAuthSessionAsync(authenticateUrl, RETURN_PREFIX, {
@@ -182,7 +193,7 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
               ))}
               <Pressable
                 onPress={() => void payWithNewCard()}
-                style={[styles.cardRow, { borderColor: colors.hairline, borderStyle: "dashed" }]}
+                style={[styles.cardRow, styles.newCardRow, { borderColor: colors.hairline }]}
               >
                 <Text style={[styles.cardTitle, { color: colors.text }]}>+ 새 카드로 결제</Text>
                 <Text style={[styles.cardMeta, { color: colors.textMuted }]}>
@@ -240,6 +251,10 @@ function createStyles(colors: ThemeColors) {
       borderRadius: 14,
       padding: spacing.md,
       marginBottom: spacing.sm,
+    },
+    newCardRow: {
+      borderStyle: "dashed",
+      minHeight: 56,
     },
     cardTitle: { fontWeight: "800", fontSize: 15 },
     cardMeta: { fontSize: 12, marginTop: 2, fontWeight: "600" },
