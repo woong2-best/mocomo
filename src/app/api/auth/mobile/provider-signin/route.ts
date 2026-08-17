@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  isOAuthProviderId,
-  startOAuthProviderSignin,
-} from "@/lib/oauth-provider-signin";
+import { isOAuthProviderId } from "@/lib/oauth-provider-signin-shared";
+import { startOAuthProviderSignin } from "@/lib/oauth-provider-signin";
 
 /**
  * Mobile AuthSession: start OAuth with a server redirect (no client CSRF fetch).
