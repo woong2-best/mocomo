@@ -1,17 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { getCachedWeeklyHighlights } from "@/lib/cached-data";
+import type { WeeklyHighlightPost } from "@/lib/weekly-highlights";
 
-function mapHighlight(p: {
-  id: string;
-  title: string | null;
-  content: string;
-  viewCount: number;
-  weeklyLikes: number;
-  author: { username: string; name: string | null };
-  media: { url: string }[];
-  _count: { comments: number };
-}) {
+function mapHighlight(p: WeeklyHighlightPost) {
   return {
     id: p.id,
     title: p.title,
