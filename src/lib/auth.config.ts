@@ -17,7 +17,9 @@ export const authConfig = {
   providers: [],
   callbacks: {
     redirect({ url, baseUrl }) {
-      if (url.startsWith("/auth/signup")) return `${baseUrl}${url}`;
+      if (url.startsWith("/auth/signup") || url.startsWith("/auth/oauth/complete")) {
+        return `${baseUrl}${url}`;
+      }
       if (url.startsWith(baseUrl)) return url;
       if (url.startsWith("/")) return `${baseUrl}${url}`;
       return baseUrl;

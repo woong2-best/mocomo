@@ -16,7 +16,7 @@ import { canRecoverAccount, isAccountPastRecovery } from "@/lib/account-deletion
 import { hydrateUserOAuthProfile, findUserIdByOAuthEmail } from "@/lib/oauth-vault";
 import {
   readOAuthFlowCookie,
-  signupRedirectForOAuthEmail,
+  signupRedirectForUnregistered,
 } from "@/lib/oauth-flow-cookie";
 import { logSiteAdminAudit } from "@/lib/site-admin-audit";
 import { recordUserAccessLog } from "@/lib/user-access-log";
@@ -109,10 +109,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         if (!existing) {
-          return signupRedirectForOAuthEmail(user.email);
+          return signupRedirectForUnregistered();
         }
         if (!existing.emailVerified) {
-          return signupRedirectForOAuthEmail(user.email);
+          return signupRedirectForUnregistered();
         }
         if (!oauthProviderEmailVerified()) {
           return false;

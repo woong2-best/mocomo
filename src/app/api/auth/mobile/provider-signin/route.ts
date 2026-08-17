@@ -34,10 +34,10 @@ export async function GET(req: NextRequest) {
   const flow = sp.get("flow") === "signup" ? "signup" : "signin";
   const addAccount = sp.get("addAccount") === "1";
   const finalDestination = safeCallbackUrl(sp.get("callbackUrl"), platform);
-  const callbackUrl =
+  const redirectTo =
     flow === "signup"
       ? finalDestination
-      : `/auth/signin?callbackUrl=${encodeURIComponent(finalDestination)}`;
+      : `/auth/oauth/complete?dest=${encodeURIComponent(finalDestination)}`;
   const redirectUri = sanitizeMobileRedirectUri(sp.get("redirect_uri"));
 
   const jar = await cookies();
@@ -73,5 +73,5 @@ export async function GET(req: NextRequest) {
     await clearAllSessionCookies();
   }
 
-  await signIn(provider, { redirectTo: callbackUrl });
+  await signIn(provider, { redirectTo });
 }

@@ -2,6 +2,14 @@ export const OAUTH_FLOW_COOKIE = "mocomo_oauth_flow";
 
 export type OAuthFlow = "signin" | "signup";
 
+/** Unregistered OAuth sign-in → always signup apply (addAccount flow). */
+export const SIGNUP_APPLY_UNREGISTERED_PATH =
+  "/auth/signup/apply?addAccount=1&reason=not_registered";
+
+export function signupRedirectForUnregistered(): string {
+  return SIGNUP_APPLY_UNREGISTERED_PATH;
+}
+
 export function setOAuthFlowCookieClient(flow: OAuthFlow): void {
   if (typeof document === "undefined") return;
   const secure = window.location.protocol === "https:" ? "; Secure" : "";
@@ -21,21 +29,7 @@ export async function readOAuthFlowCookie(): Promise<OAuthFlow | null> {
   return null;
 }
 
-/** Unregistered OAuth email on sign-in → domain-specific signup route. */
-export function signupRedirectForOAuthEmail(email: string | null | undefined): string {
-  const normalized = email?.trim().toLowerCase();
-  const params = new URLSearchParams({ reason: "not_registered" });
-  if (!normalized) return `/auth/signup/apply?${params}`;
-
-  if (normalized.endsWith("@gmail.com") || normalized.endsWith("@googlemail.com")) {
-    params.set("email", normalized);
-    return `/auth/signup/gmail?${params}`;
-  }
-  if (normalized.endsWith("@naver.com")) {
-    params.set("email", normalized);
-    return `/auth/signup/naver?${params}`;
-  }
-
-  params.set("email", normalized);
-  return `/auth/signup/apply?${params}`;
+/** @deprecated Use signupRedirectForUnregistered() — all unregistered OAuth → apply */
+export function signupRedirectForOAuthEmail(_email: string | null | undefined): string {
+  return signupRedirectForUnregistered();
 }
