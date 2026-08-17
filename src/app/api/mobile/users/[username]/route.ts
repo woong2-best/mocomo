@@ -73,6 +73,8 @@ export async function GET(
       postType: true,
       createdAt: true,
       isNsfw: true,
+      visibility: true,
+      instantPurchasePriceKrw: true,
       media: postMediaPreview,
       _count: { select: { likes: true, comments: true } },
       author: { select: userPublicSelect },

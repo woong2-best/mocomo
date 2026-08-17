@@ -1,6 +1,8 @@
 import { apiRequest } from "@/api/client";
 import { MobileApi } from "@/api/paths";
 
+import type { PaidMediaMonetization } from "@/components/media/paid-media-types";
+
 export type ReelItem = {
   id: string;
   postId: string;
@@ -24,7 +26,11 @@ export type ReelItem = {
     height: number | null;
     duration: number | null;
     priceKrw: number;
+    locked?: boolean;
+    lockReason?: string | null;
+    instantPurchasePriceKrw?: number | null;
   };
+  monetization?: PaidMediaMonetization;
   likeCount: number;
   commentCount: number;
   liked: boolean;

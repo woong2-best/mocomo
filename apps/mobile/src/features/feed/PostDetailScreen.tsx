@@ -146,6 +146,12 @@ export function PostDetailScreen() {
                     layoutWidth={mediaLayout}
                     previewActive
                     isOwner={isOwner}
+                    paymentsEnabled={post.paymentsEnabled}
+                    onPurchaseSuccess={() => {
+                      void queryClient.invalidateQueries({ queryKey: ["mobile-post", route.params.id] });
+                      void queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
+                      void postQuery.refetch();
+                    }}
                   />
                 ) : null}
                 <View style={styles.actions}>

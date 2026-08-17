@@ -14,6 +14,7 @@ type Props = {
   onPress: () => void;
   /** Inside horizontal carousel — fill parent cell, no outer margin. */
   embedded?: boolean;
+  monetization?: import("@/components/media/paid-media-types").PaidMediaMonetization;
 };
 
 type PreviewComponent = ComponentType<Props>;

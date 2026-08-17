@@ -5,6 +5,7 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import * as Haptics from "expo-haptics";
 import type { ReelItem } from "@/api/reels";
 import { togglePostLike } from "@/api/feed";
+import { LockedMediaTile } from "@/components/media/LockedMediaTile";
 import { isPaidPlaybackPath } from "@/api/watermark";
 import { PaidVideoPlayer } from "@/components/media/PaidVideoPlayer";
 import { IMAGE_CACHE_POLICY, avatarDecodeSize } from "@/perf/image";
@@ -84,6 +85,25 @@ function ReelPlayer({
 }) {
   const isPaid = isPaidPlaybackPath(src) || (item.media.priceKrw ?? 0) > 0;
   const mediaId = item.media.id?.trim() || null;
+  const locked = Boolean(item.media.locked);
+
+  if (locked && item.monetization) {
+    return (
+      <LockedMediaTile
+        media={{
+          id: mediaId ?? undefined,
+          url: item.media.url,
+          type: "VIDEO",
+          priceKrw: item.media.priceKrw,
+          locked: true,
+          lockReason: item.media.lockReason,
+          instantPurchasePriceKrw: item.media.instantPurchasePriceKrw,
+        }}
+        monetization={item.monetization}
+        style={StyleSheet.absoluteFill}
+      />
+    );
+  }
 
   if (isPaid && mediaId) {
     return (
@@ -103,10 +123,14 @@ function ReelPlayer({
             url: item.media.url,
             type: "VIDEO",
             priceKrw: item.media.priceKrw,
+            locked: item.media.locked,
+            lockReason: item.media.lockReason,
+            instantPurchasePriceKrw: item.media.instantPurchasePriceKrw,
           }}
           active={active}
           muted={false}
           contentFit="cover"
+          monetization={item.monetization}
         />
       </>
     );
@@ -157,7 +181,7 @@ function ReelSlideInner({ item, active, loadPlayer, height }: Props) {
         enabled={!!item.isNsfw && user?.id !== item.author.id}
         style={StyleSheet.absoluteFill}
       >
-        {loadPlayer && src ? (
+        {loadPlayer && (src || item.media.locked) ? (
           <ReelPlayer item={item} src={src} active={active} posterUrl={poster} />
         ) : poster ? (
           <Image

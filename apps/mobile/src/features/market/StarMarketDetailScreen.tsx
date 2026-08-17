@@ -123,6 +123,9 @@ export function StarMarketDetailScreen() {
             ) : null}
             {item.category ? <Text style={styles.meta}>카테고리 · {item.category}</Text> : null}
             {item.stock != null ? <Text style={styles.meta}>재고 · {item.stock}</Text> : null}
+            {item.salesCount != null && item.salesCount > 0 ? (
+              <Text style={styles.meta}>판매 · {item.salesCount.toLocaleString()}</Text>
+            ) : null}
             {item.description ? <Text style={styles.desc}>{item.description}</Text> : null}
             {item.tags?.length ? (
               <View style={styles.tagRow}>

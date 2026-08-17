@@ -8,6 +8,7 @@ export type FeedMedia = {
   priceKrw?: number | null;
   locked?: boolean;
   lockReason?: string | null;
+  instantPurchasePriceKrw?: number | null;
   width?: number | null;
   height?: number | null;
   duration?: number | null;
@@ -22,11 +23,16 @@ export type FeedPost = {
   postType: string;
   createdAt: string;
   isNsfw: boolean;
+  visibility?: string | null;
+  instantPurchasePriceKrw?: number | null;
+  subscribedToAuthor?: boolean;
+  paymentsEnabled?: boolean;
   author: {
     id: string;
     username: string;
     name?: string | null;
     image: string | null;
+    creatorSubscriptionPriceKrw?: number | null;
   };
   media: FeedMedia[];
   _count: {
@@ -48,6 +54,7 @@ export type FeedPage = {
   likedIds: string[];
   starredIds: string[];
   repostedIds: string[];
+  paymentsEnabled?: boolean;
   error?: string;
 };
 

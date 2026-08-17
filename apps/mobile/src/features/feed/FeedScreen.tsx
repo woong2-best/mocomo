@@ -40,8 +40,8 @@ import type { RootStackParamList, RootTabParamList } from "@/navigation/types";
 
 function feedItemType(item: FeedPost): string {
   const media = item.media ?? [];
-  if (media.some((m) => m.type === "VIDEO" && m.url)) return "video";
-  if (media.some((m) => m.type === "IMAGE" && m.url)) return "image";
+  if (media.some((m) => m.type === "VIDEO" && (m.url || m.locked))) return "video";
+  if (media.some((m) => m.type === "IMAGE" && (m.url || m.locked))) return "image";
   return "text";
 }
 
@@ -181,7 +181,7 @@ export function FeedScreen() {
     ({ viewableItems }: { viewableItems: { item?: FeedPost; isViewable?: boolean }[] }) => {
       const visible = viewableItems.filter((v) => v.isViewable && v.item?.id);
       const firstVideo = visible.find((v) =>
-        (v.item!.media ?? []).some((m) => m.type === "VIDEO" && m.url)
+        (v.item!.media ?? []).some((m) => m.type === "VIDEO" && (m.url || m.locked))
       );
       setActivePreviewId(firstVideo?.item?.id ?? null);
       setVisiblePostIds(visible.map((v) => v.item!.id));
@@ -210,6 +210,13 @@ export function FeedScreen() {
     [navigation, queryClient]
   );
 
+  const paymentsEnabled = query.data?.pages[0]?.paymentsEnabled ?? false;
+
+  const onPurchaseSuccess = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
+    void queryClient.invalidateQueries({ queryKey: ["mobile-post"] });
+  }, [queryClient]);
+
   const renderItem = useCallback(
     ({ item }: { item: FeedPost }) => (
       <FeedPostCard
@@ -218,12 +225,23 @@ export function FeedScreen() {
           isFocused && previewArmed && activePreviewIdRef.current === item.id
         }
         viewTrackActive={isFocused && visiblePostIds.includes(item.id)}
+        paymentsEnabled={paymentsEnabled}
+        onPurchaseSuccess={onPurchaseSuccess}
         onPressPost={onPressPost}
         onPressAuthor={onPressAuthor}
         onPressVideo={onPressVideo}
       />
     ),
-    [isFocused, onPressAuthor, onPressPost, onPressVideo, previewArmed, visiblePostIds]
+    [
+      isFocused,
+      onPressAuthor,
+      onPressPost,
+      onPressVideo,
+      onPurchaseSuccess,
+      paymentsEnabled,
+      previewArmed,
+      visiblePostIds,
+    ]
   );
 
   const getItemType = useCallback((item: FeedPost) => feedItemType(item), []);

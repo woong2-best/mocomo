@@ -13,6 +13,8 @@ import { Image } from "expo-image";
 import type { FeedMedia, FeedPost } from "@/api/feed";
 import { FeedImageLightbox } from "@/features/feed/FeedImageLightbox";
 import { LazyFeedVideoPreview } from "@/features/feed/LazyFeedVideoPreview";
+import { LockedMediaTile } from "@/components/media/LockedMediaTile";
+import type { PaidMediaMonetization } from "@/components/media/paid-media-types";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
@@ -28,11 +30,31 @@ type Props = {
   layoutWidth: number;
   previewActive?: boolean;
   isOwner?: boolean;
+  paymentsEnabled?: boolean;
+  onPurchaseSuccess?: () => void;
   onPressVideo?: (postId: string, mediaId?: string, mediaIndex?: number) => void;
 };
 
 function isVisualMedia(m: FeedMedia): boolean {
-  return (m.type === "IMAGE" || m.type === "VIDEO") && !!m.url?.trim();
+  if (m.type !== "IMAGE" && m.type !== "VIDEO") return false;
+  return Boolean(m.url?.trim()) || Boolean(m.locked);
+}
+
+function buildMonetization(
+  post: FeedPost,
+  paymentsEnabled?: boolean,
+  onPurchaseSuccess?: () => void
+): PaidMediaMonetization {
+  return {
+    postId: post.id,
+    authorId: post.author.id,
+    authorUsername: post.author.username,
+    paymentsEnabled: paymentsEnabled ?? post.paymentsEnabled ?? false,
+    subscribedToAuthor: post.subscribedToAuthor ?? false,
+    subscriptionPriceKrw: post.author.creatorSubscriptionPriceKrw ?? null,
+    postInstantPurchasePriceKrw: post.instantPurchasePriceKrw ?? null,
+    onPurchaseSuccess,
+  };
 }
 
 function FeedPostMediaCarouselInner({
@@ -40,10 +62,16 @@ function FeedPostMediaCarouselInner({
   layoutWidth,
   previewActive = false,
   isOwner = false,
+  paymentsEnabled = false,
+  onPurchaseSuccess,
   onPressVideo,
 }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const monetization = useMemo(
+    () => buildMonetization(post, paymentsEnabled, onPurchaseSuccess),
+    [post, paymentsEnabled, onPurchaseSuccess]
+  );
   const listRef = useRef<FlatList<VisualItem>>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -120,6 +148,46 @@ function FeedPostMediaCarouselInner({
     </SensitiveContentGate>
   );
 
+  const renderMediaCell = (item: VisualItem, active: boolean, aspect: number) => {
+    if (item.locked) {
+      return (
+        <View style={[styles.lockedCell, { aspectRatio: aspect }]}>
+          <LockedMediaTile media={item} monetization={monetization} />
+        </View>
+      );
+    }
+
+    if (item.type === "VIDEO") {
+      return (
+        <LazyFeedVideoPreview
+          media={item}
+          active={active}
+          embedded={items.length > 1}
+          monetization={monetization}
+          onPress={() => openVideo(item)}
+        />
+      );
+    }
+
+    return (
+      <Pressable
+        style={StyleSheet.absoluteFill}
+        onPress={() => openImage(item)}
+        accessibilityRole="button"
+        accessibilityLabel="사진 크게 보기"
+      >
+        <Image
+          source={{ uri: item.url, width: decode, height: decode }}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          cachePolicy={IMAGE_CACHE_POLICY}
+          recyclingKey={item.url}
+          transition={0}
+        />
+      </Pressable>
+    );
+  };
+
   if (items.length === 1) {
     const item = items[0]!;
     const aspect =
@@ -127,13 +195,22 @@ function FeedPostMediaCarouselInner({
         ? Math.min(Math.max(item.width / item.height, 0.56), 1.9)
         : 16 / 10;
 
-    if (item.type === "VIDEO") {
+    if (item.type === "VIDEO" && !item.locked) {
       return wrapGate(
         <LazyFeedVideoPreview
           media={item}
           active={previewActive}
+          monetization={monetization}
           onPress={() => openVideo(item)}
         />
+      );
+    }
+
+    if (item.locked) {
+      return wrapGate(
+        <View style={[styles.singleMedia, styles.lockedCell, { width: layoutWidth, aspectRatio: aspect }]}>
+          <LockedMediaTile media={item} monetization={monetization} />
+        </View>
       );
     }
 
@@ -206,30 +283,7 @@ function FeedPostMediaCarouselInner({
           return (
             <View style={[styles.slide, { width: slideWidth, marginRight: ITEM_GAP }]}>
               <View style={[styles.slideInner, { aspectRatio: aspect }]}>
-                {item.type === "VIDEO" ? (
-                  <LazyFeedVideoPreview
-                    media={item}
-                    active={isActiveSlide}
-                    embedded
-                    onPress={() => openVideo(item)}
-                  />
-                ) : (
-                  <Pressable
-                    style={StyleSheet.absoluteFill}
-                    onPress={() => openImage(item)}
-                    accessibilityRole="button"
-                    accessibilityLabel="사진 크게 보기"
-                  >
-                    <Image
-                      source={{ uri: item.url, width: decode, height: decode }}
-                      style={StyleSheet.absoluteFill}
-                      contentFit="cover"
-                      cachePolicy={IMAGE_CACHE_POLICY}
-                      recyclingKey={item.url}
-                      transition={0}
-                    />
-                  </Pressable>
-                )}
+                {renderMediaCell(item, isActiveSlide, aspect)}
               </View>
             </View>
           );
@@ -290,6 +344,12 @@ function createStyles(colors: ThemeColors) {
       overflow: "hidden",
       backgroundColor: colors.muted,
       marginBottom: 10,
+    },
+    lockedCell: {
+      borderRadius: 16,
+      overflow: "hidden",
+      backgroundColor: colors.muted,
+      position: "relative",
     },
   });
 }

@@ -138,7 +138,14 @@ const mobileFeedPostSelect = {
   createdAt: true,
   isNsfw: true,
   viewCount: true,
-  author: { select: userPublicSelect },
+  visibility: true,
+  instantPurchasePriceKrw: true,
+  author: {
+    select: {
+      ...userPublicSelect,
+      creatorSubscriptionPriceKrw: true,
+    },
+  },
   anime: { select: { title: true, slug: true } },
   media: mobileFeedMediaPreview,
   _count: { select: { likes: true, comments: true, votes: true, reposts: true } },

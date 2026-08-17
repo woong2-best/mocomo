@@ -5,6 +5,9 @@ import { getCachedMobileFeedPostsPage } from "@/lib/feed-query";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { filterPostsByAudienceLock } from "@/lib/posts-lock";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
+import { getSubscriptionsForViewer } from "@/lib/content-access";
+import { isSubscriptionActive } from "@/lib/creator-subscription";
+import { isPaymentsConfigured } from "@/lib/payments";
 
 export async function GET(req: NextRequest) {
   try {
@@ -26,6 +29,10 @@ export async function GET(req: NextRequest) {
     );
     const gated = await attachWebPaidMediaPlayback(visible, viewerId);
 
+    const authorIds = [...new Set(gated.map((p) => p.author.id))];
+    const subscriptions = await getSubscriptionsForViewer(viewerId, authorIds);
+    const paymentsEnabled = isPaymentsConfigured();
+
     const engagement =
       viewerId && gated.length > 0
         ? await getPostEngagementForUser(
@@ -36,20 +43,25 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(
       {
-        items: gated.map((data) => ({
-          type: "post" as const,
-          data: {
-            ...data,
-            createdAt:
-              data.createdAt instanceof Date
-                ? data.createdAt.toISOString()
-                : String(data.createdAt),
-          },
-        })),
+        items: gated.map((data) => {
+          const sub = subscriptions.get(data.author.id);
+          return {
+            type: "post" as const,
+            data: {
+              ...data,
+              subscribedToAuthor: sub ? isSubscriptionActive(sub) : false,
+              createdAt:
+                data.createdAt instanceof Date
+                  ? data.createdAt.toISOString()
+                  : String(data.createdAt),
+            },
+          };
+        }),
         nextCursor: posts.length === limit ? posts[posts.length - 1]?.id ?? null : null,
         likedIds: engagement.likedIds,
         starredIds: engagement.starredIds,
         repostedIds: engagement.repostedIds,
+        paymentsEnabled,
       },
       {
         headers: {

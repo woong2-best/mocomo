@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
+import type { PaidMediaMonetization } from "@/components/media/paid-media-types";
+import { LockedMediaTile } from "@/components/media/LockedMediaTile";
 import type { FeedMedia } from "@/api/feed";
 import { getAccessToken } from "@/auth/token-store";
 import {
@@ -16,6 +18,7 @@ type Props = {
   muted?: boolean;
   contentFit?: "contain" | "cover";
   style?: object;
+  monetization?: PaidMediaMonetization;
 };
 
 export function PaidVideoPlayer({
@@ -24,6 +27,7 @@ export function PaidVideoPlayer({
   muted = true,
   contentFit = "cover",
   style,
+  monetization,
 }: Props) {
   const [forensicEnabled, setForensicEnabled] = useState(false);
   const paid = isPaidPlaybackPath(media.url) || (media.priceKrw ?? 0) > 0;
@@ -60,6 +64,13 @@ export function PaidVideoPlayer({
   }, [paid, locked, forensicEnabled]);
 
   if (locked || !absoluteSrc) {
+    if (locked && monetization) {
+      return (
+        <View style={[StyleSheet.absoluteFill, style]}>
+          <LockedMediaTile media={media} monetization={monetization} />
+        </View>
+      );
+    }
     return <View style={[styles.blocked, style]} />;
   }
 

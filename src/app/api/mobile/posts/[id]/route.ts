@@ -6,6 +6,9 @@ import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { postMediaPreview } from "@/lib/post-media-select";
 import { userPublicSelect } from "@/lib/user-public-select";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
+import { getSubscriptionsForViewer } from "@/lib/content-access";
+import { isSubscriptionActive } from "@/lib/creator-subscription";
+import { isPaymentsConfigured } from "@/lib/payments";
 
 export async function GET(
   req: NextRequest,
@@ -30,7 +33,14 @@ export async function GET(
       createdAt: true,
       isNsfw: true,
       viewCount: true,
-      author: { select: userPublicSelect },
+      visibility: true,
+      instantPurchasePriceKrw: true,
+      author: {
+        select: {
+          ...userPublicSelect,
+          creatorSubscriptionPriceKrw: true,
+        },
+      },
       media: postMediaPreview,
       _count: { select: { likes: true, comments: true, votes: true, reposts: true } },
     },
@@ -49,12 +59,17 @@ export async function GET(
     viewerId
   );
 
+  const subscriptions = await getSubscriptionsForViewer(viewerId, [post.author.id]);
+  const sub = subscriptions.get(post.author.id);
+
   return NextResponse.json({
     post: {
       ...(gated ?? post),
       createdAt: post.createdAt.toISOString(),
       liked: engagement.likedIds.includes(post.id),
       starred: engagement.starredIds.includes(post.id),
+      subscribedToAuthor: sub ? isSubscriptionActive(sub) : false,
+      paymentsEnabled: isPaymentsConfigured(),
     },
   });
 }

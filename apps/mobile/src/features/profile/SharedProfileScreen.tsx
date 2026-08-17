@@ -112,7 +112,13 @@ export function SharedProfileScreen({ username, showBack = true }: Props) {
   const renderItem = useCallback(
     ({ item }: { item: FeedPost }) => (
       <FeedPostCard
-        post={item}
+        post={{
+          ...item,
+          subscribedToAuthor: user?.subscribed ?? item.subscribedToAuthor,
+          paymentsEnabled: user?.paymentsEnabled ?? item.paymentsEnabled,
+        }}
+        paymentsEnabled={user?.paymentsEnabled}
+        onPurchaseSuccess={() => void query.refetch()}
         onPressPost={(id) => navigation.navigate("PostDetail", { id })}
         onPressAuthor={(u) => navigation.navigate("UserProfile", { username: u })}
         onPressVideo={(postId, mediaId, mediaIndex) =>
@@ -120,7 +126,7 @@ export function SharedProfileScreen({ username, showBack = true }: Props) {
         }
       />
     ),
-    [navigation]
+    [navigation, query, user?.paymentsEnabled, user?.subscribed]
   );
 
   if (query.isLoading) {

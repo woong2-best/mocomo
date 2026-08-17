@@ -22,6 +22,8 @@ type Props = {
   previewActive?: boolean;
   /** Feed card scrolled into view — record view once per app session. */
   viewTrackActive?: boolean;
+  paymentsEnabled?: boolean;
+  onPurchaseSuccess?: () => void;
   onLikeCommit?: (postId: string, liked: boolean, likeCount: number) => void;
   onPressPost?: (postId: string) => void;
   onPressAuthor?: (username: string) => void;
@@ -37,6 +39,8 @@ function FeedPostCardInner({
   post,
   previewActive = false,
   viewTrackActive = false,
+  paymentsEnabled = false,
+  onPurchaseSuccess,
   onLikeCommit,
   onPressPost,
   onPressAuthor,
@@ -220,6 +224,8 @@ function FeedPostCardInner({
         layoutWidth={mediaLayout}
         previewActive={previewActive}
         isOwner={isSelf}
+        paymentsEnabled={paymentsEnabled}
+        onPurchaseSuccess={onPurchaseSuccess}
         onPressVideo={onPressVideo}
       />
 
@@ -294,7 +300,7 @@ function propsEqual(a: Props, b: Props) {
     (a.post.media?.length ?? 0) === (b.post.media?.length ?? 0) &&
     a.post.media?.[0]?.posterUrl === b.post.media?.[0]?.posterUrl &&
     a.post.media?.[0]?.url === b.post.media?.[0]?.url &&
-    a.onPressPost === b.onPressPost &&
+    a.paymentsEnabled === b.paymentsEnabled &&
     a.onPressAuthor === b.onPressAuthor &&
     a.onPressVideo === b.onPressVideo
   );

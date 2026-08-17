@@ -1,5 +1,6 @@
 import type { FeedMedia, FeedPost } from "@/api/feed";
 import type { ReelItem } from "@/api/reels";
+import type { PaidMediaMonetization } from "@/components/media/paid-media-types";
 
 export type FeedVideoGroup = {
   postId: string;
@@ -14,7 +15,7 @@ export type FeedVideoOpenTarget = {
 
 function isPlayableVideo(m: FeedMedia): boolean {
   if (m.type !== "VIDEO") return false;
-  if (m.locked) return false;
+  if (m.locked) return true;
   return Boolean(m.url?.trim());
 }
 
@@ -29,7 +30,23 @@ function mediaKey(postId: string, video: FeedMedia): string {
   return video.id?.trim() || `${postId}:${video.url}`;
 }
 
-export function postVideoToReelItem(post: FeedPost, video: FeedMedia): ReelItem | null {
+function buildMonetization(post: FeedPost, paymentsEnabled?: boolean): PaidMediaMonetization {
+  return {
+    postId: post.id,
+    authorId: post.author.id,
+    authorUsername: post.author.username,
+    paymentsEnabled: paymentsEnabled ?? post.paymentsEnabled ?? false,
+    subscribedToAuthor: post.subscribedToAuthor ?? false,
+    subscriptionPriceKrw: post.author.creatorSubscriptionPriceKrw ?? null,
+    postInstantPurchasePriceKrw: post.instantPurchasePriceKrw ?? null,
+  };
+}
+
+export function postVideoToReelItem(
+  post: FeedPost,
+  video: FeedMedia,
+  paymentsEnabled?: boolean
+): ReelItem | null {
   if (!isPlayableVideo(video)) return null;
   const id = mediaKey(post.id, video);
   return {
@@ -55,7 +72,11 @@ export function postVideoToReelItem(post: FeedPost, video: FeedMedia): ReelItem 
       height: video.height ?? null,
       duration: video.duration ?? null,
       priceKrw: video.priceKrw ?? 0,
+      locked: video.locked ?? false,
+      lockReason: video.lockReason ?? null,
+      instantPurchasePriceKrw: video.instantPurchasePriceKrw ?? null,
     },
+    monetization: buildMonetization(post, paymentsEnabled),
     likeCount: post._count?.likes ?? 0,
     commentCount: post._count?.comments ?? 0,
     liked: !!post.liked,
@@ -64,12 +85,15 @@ export function postVideoToReelItem(post: FeedPost, video: FeedMedia): ReelItem 
 }
 
 /** Vertical = post groups; horizontal = videos inside a post. */
-export function buildFeedVideoGroups(posts: FeedPost[]): FeedVideoGroup[] {
+export function buildFeedVideoGroups(
+  posts: FeedPost[],
+  paymentsEnabled?: boolean
+): FeedVideoGroup[] {
   const groups: FeedVideoGroup[] = [];
   for (const post of posts) {
     const videos: ReelItem[] = [];
     for (const m of post.media ?? []) {
-      const reel = postVideoToReelItem(post, m);
+      const reel = postVideoToReelItem(post, m, paymentsEnabled);
       if (reel) videos.push(reel);
     }
     if (videos.length > 0) groups.push({ postId: post.id, videos });

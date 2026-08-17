@@ -14,6 +14,7 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
 import { ShareGlobeIcon } from "@/ui/ShareGlobeIcon";
 import * as Haptics from "expo-haptics";
+import { LockedMediaTile } from "@/components/media/LockedMediaTile";
 import { isPaidPlaybackPath } from "@/api/watermark";
 import { PaidVideoPlayer } from "@/components/media/PaidVideoPlayer";
 import { useNavigation } from "@react-navigation/native";
@@ -137,6 +138,26 @@ function VideoCell({
 
   const isPaid = isPaidPlaybackPath(src) || (item.media.priceKrw ?? 0) > 0;
   const mediaId = item.media.id?.trim() || null;
+  const locked = Boolean(item.media.locked);
+
+  if (locked && item.monetization) {
+    return (
+      <View style={StyleSheet.absoluteFill}>
+        <LockedMediaTile
+          media={{
+            id: mediaId ?? undefined,
+            url: item.media.url,
+            type: "VIDEO",
+            priceKrw: item.media.priceKrw,
+            locked: true,
+            lockReason: item.media.lockReason,
+            instantPurchasePriceKrw: item.media.instantPurchasePriceKrw,
+          }}
+          monetization={item.monetization}
+        />
+      </View>
+    );
+  }
 
   if (!src) {
     return <View style={[StyleSheet.absoluteFill, { backgroundColor: "#111" }]} />;
@@ -159,10 +180,14 @@ function VideoCell({
             url: item.media.url,
             type: "VIDEO",
             priceKrw: item.media.priceKrw,
+            locked: item.media.locked,
+            lockReason: item.media.lockReason,
+            instantPurchasePriceKrw: item.media.instantPurchasePriceKrw,
           }}
           active={active && (!pausedByUser || fastForward)}
           muted={muted}
           contentFit="contain"
+          monetization={item.monetization}
         />
       </View>
     );

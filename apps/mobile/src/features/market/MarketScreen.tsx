@@ -125,6 +125,9 @@ export function MarketScreen() {
           {item.title}
         </Text>
         <Text style={styles.price}>{formatPrice(item.priceAmount, item.currency)}</Text>
+        {item.salesCount != null && item.salesCount > 0 ? (
+          <Text style={styles.sales}>판매 {item.salesCount.toLocaleString()}</Text>
+        ) : null}
         {item.seller ? (
           <Text style={styles.seller} numberOfLines={1}>
             {item.seller.displayName || `@${item.seller.username}`}
@@ -389,6 +392,13 @@ function createThemedStyles(colors: ThemeColors) {
       fontSize: 14,
       fontWeight: "800",
       color: colors.cobalt,
+    },
+    sales: {
+      marginTop: 2,
+      marginHorizontal: 10,
+      fontSize: 11,
+      color: colors.textMuted,
+      fontWeight: "600",
     },
     seller: {
       marginTop: 2,

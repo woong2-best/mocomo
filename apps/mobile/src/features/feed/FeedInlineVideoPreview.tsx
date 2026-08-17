@@ -5,6 +5,8 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
 import type { FeedMedia } from "@/api/feed";
 import { isPaidPlaybackPath } from "@/api/watermark";
+import { LockedMediaTile } from "@/components/media/LockedMediaTile";
+import type { PaidMediaMonetization } from "@/components/media/paid-media-types";
 import { PaidVideoPlayer } from "@/components/media/PaidVideoPlayer";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 
@@ -65,6 +67,7 @@ type Props = {
   videoCount?: number;
   onPress: () => void;
   embedded?: boolean;
+  monetization?: PaidMediaMonetization;
 };
 
 /**
@@ -78,6 +81,7 @@ function FeedInlineVideoPreviewInner({
   videoCount = 1,
   onPress,
   embedded = false,
+  monetization,
 }: Props) {
   const poster = useMemo(() => resolveVideoPoster(media), [media]);
   const src = useMemo(() => resolveVideoSrc(media), [media]);
@@ -85,6 +89,23 @@ function FeedInlineVideoPreviewInner({
     isPaidPlaybackPath(src) || isPaidPlaybackPath(media.url) || (media.priceKrw ?? 0) > 0;
   const durationLabel = formatDuration(media.duration);
   const [muted, setMuted] = useFeedPreviewMuted();
+
+  if (media.locked && monetization) {
+    const aspect =
+      media.width && media.height && media.width > 0 && media.height > 0
+        ? media.width / media.height
+        : 16 / 10;
+    return (
+      <View
+        style={[
+          styles.wrap,
+          embedded ? styles.wrapEmbedded : { aspectRatio: Math.min(Math.max(aspect, 0.56), 1.9) },
+        ]}
+      >
+        <LockedMediaTile media={media} monetization={monetization} />
+      </View>
+    );
+  }
 
   const shouldLoadNativePlayer = Boolean(src) && active && !isPaid;
   const shouldLoadPaidPlayer = Boolean(media.url) && active && isPaid && !media.locked;
@@ -152,7 +173,13 @@ function FeedInlineVideoPreviewInner({
       )}
 
       {shouldLoadPaidPlayer ? (
-        <PaidVideoPlayer media={media} active={active} muted={muted} contentFit="cover" />
+        <PaidVideoPlayer
+          media={media}
+          active={active}
+          muted={muted}
+          contentFit="cover"
+          monetization={monetization}
+        />
       ) : shouldLoadNativePlayer ? (
         <VideoView
           style={StyleSheet.absoluteFill}

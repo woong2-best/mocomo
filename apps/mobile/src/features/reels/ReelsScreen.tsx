@@ -111,7 +111,11 @@ export function ReelsScreen() {
     return list;
   }, [feedQuery.data, queryClient]);
 
-  const groups = useMemo(() => buildFeedVideoGroups(posts), [posts]);
+  const paymentsEnabled = feedQuery.data?.pages[0]?.paymentsEnabled ?? false;
+  const groups = useMemo(
+    () => buildFeedVideoGroups(posts, paymentsEnabled),
+    [posts, paymentsEnabled]
+  );
 
   useEffect(() => {
     if (didSeed || groups.length === 0) return;
