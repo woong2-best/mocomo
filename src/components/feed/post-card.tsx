@@ -35,7 +35,7 @@ type PostCardProps = {
       };
     }[];
     community?: { name: string; slug: string } | null;
-    media?: { id?: string; url: string; type: string; priceKrw?: number | null }[];
+    media?: { id?: string; url: string; type: string; priceKrw?: number | null; locked?: boolean }[];
     _count?: { likes: number; comments: number; votes: number; media?: number };
   };
 };

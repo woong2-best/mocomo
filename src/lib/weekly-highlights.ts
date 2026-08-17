@@ -5,7 +5,7 @@ import { userPublicSelect } from "@/lib/user-public-select";
 
 const highlightInclude = {
   author: { select: userPublicSelect },
-  media: { take: 1, orderBy: { order: "asc" as const } },
+  media: { take: 1, orderBy: { order: "asc" as const }, select: { id: true } },
   _count: { select: { likes: true, comments: true } },
 };
 
@@ -23,7 +23,7 @@ export type WeeklyHighlightPost = {
     image: string | null;
     supportTierSent: SupportTierLevel;
   };
-  media: { url: string }[];
+  media: { id: string }[];
   _count: { likes: number; comments: number };
 };
 

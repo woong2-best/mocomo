@@ -112,18 +112,24 @@ export function attachPostContentAccess<
         purchased: purchasedIds.has(m.id),
         subscription,
       });
+      const mediaRow = m as PostMediaAccessRow & {
+        hlsUrl?: string | null;
+        posterUrl?: string | null;
+      };
       const gated = rewritePaidVideoSrc({
         id: m.id,
         url: m.url,
         type: m.type,
-        priceKrw: m.priceKrw,
+        priceKrw,
         locked,
-        hlsUrl: "hlsUrl" in m ? ((m as { hlsUrl?: string | null }).hlsUrl ?? null) : null,
+        hlsUrl: mediaRow.hlsUrl ?? null,
+        posterUrl: mediaRow.posterUrl ?? null,
       });
       return {
         ...m,
         url: gated.url,
         ...("hlsUrl" in m ? { hlsUrl: gated.hlsUrl } : {}),
+        ...("posterUrl" in m ? { posterUrl: gated.posterUrl } : {}),
         locked,
         lockReason,
         instantPurchasePriceKrw: priceKrw,

@@ -42,7 +42,13 @@ export async function ExploreContentAsync() {
 
   try {
     const [data, live] = await Promise.all([getCachedExploreData(), getCachedLiveChannels()]);
-    trendingPosts = data.trendingPosts;
+    trendingPosts = data.trendingPosts.map((p) => ({
+      id: p.id,
+      title: p.title,
+      content: p.content,
+      author: p.author,
+      _count: p._count,
+    }));
     suggestedUsers = data.suggestedUsers;
     liveChannels = live.channels;
   } catch {

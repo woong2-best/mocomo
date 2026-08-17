@@ -6,6 +6,7 @@ import { postMediaPreview } from "@/lib/post-media-select";
 import { userPublicSelect } from "@/lib/user-public-select";
 import { isPaymentsConfigured } from "@/lib/payments";
 import { isSubscriptionActive } from "@/lib/creator-subscription";
+import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 
 export async function GET(
   req: NextRequest,
@@ -78,6 +79,11 @@ export async function GET(
     },
   });
 
+  const gatedPosts = await attachWebPaidMediaPlayback(
+    posts.map((p) => ({ ...p, authorId: p.author.id })),
+    viewerId
+  );
+
   return NextResponse.json({
     user: {
       id: user.id,
@@ -100,7 +106,7 @@ export async function GET(
       paymentsEnabled: isPaymentsConfigured(),
       creatorSubscriptionPriceKrw: user.creatorSubscriptionPriceKrw,
     },
-    posts: posts.map((p) => ({
+    posts: gatedPosts.map((p) => ({
       ...p,
       createdAt: p.createdAt.toISOString(),
     })),

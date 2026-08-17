@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import type { GridPost } from "@/components/feed/feed-post-card";
 import { postMediaPreview } from "@/lib/post-media-select";
 import { userPublicSelect } from "@/lib/user-public-select";
+import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 
 const STAR_HUB_TAKE = 200;
 
@@ -72,7 +73,9 @@ export async function getStarHubForUser(
     ? allPosts.filter((p) => p.author?.id === filterCreatorId)
     : allPosts;
 
-  return { posts, creators, total: allPosts.length };
+  const gated = await attachWebPaidMediaPlayback(posts, userId);
+
+  return { posts: gated, creators, total: allPosts.length };
 }
 
 /** @deprecated Use getStarHubForUser — kept for callers that only need posts. */

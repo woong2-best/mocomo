@@ -130,7 +130,7 @@ async function enrichPostDetail<
       id: m.id,
       url: m.url,
       type: m.type,
-      priceKrw: m.priceKrw,
+      priceKrw,
       locked,
     });
     return {

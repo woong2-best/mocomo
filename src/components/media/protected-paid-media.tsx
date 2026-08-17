@@ -62,6 +62,15 @@ export function ProtectedPaidMedia({
     contentKind
   );
 
+  if (locked || !src.trim()) {
+    return (
+      <div
+        className={cn("bg-muted", className)}
+        aria-hidden
+      />
+    );
+  }
+
   if (isVideo) {
     const player = (
       <FeedVideoPlayer

@@ -40,7 +40,8 @@ type Props = {
 };
 
 function isVisual(m: ProfilePostMediaItem): boolean {
-  return (m.type === "IMAGE" || m.type === "VIDEO") && !!m.url?.trim();
+  if (m.type !== "IMAGE" && m.type !== "VIDEO") return false;
+  return Boolean(m.url?.trim()) || Boolean(m.locked);
 }
 
 function formatDuration(sec: number | null | undefined): string | null {

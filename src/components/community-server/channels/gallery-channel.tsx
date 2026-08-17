@@ -3,22 +3,31 @@ import { PostCard } from "@/components/feed/post-card";
 import { Images } from "lucide-react";
 import { postMediaPreview } from "@/lib/post-media-select";
 import { userPublicSelect } from "@/lib/user-public-select";
+import { getAuthUserId } from "@/lib/auth";
+import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 
 export async function GalleryChannelView({ communityId }: { communityId: string }) {
-  const posts = await db.post.findMany({
-    where: {
-      communityId,
-      media: { some: { type: "IMAGE" } },
-    },
-    take: 20,
-    orderBy: { createdAt: "desc" },
-    include: {
-      author: { select: userPublicSelect },
-      community: { select: { name: true, slug: true } },
-      media: postMediaPreview,
-      _count: { select: { likes: true, comments: true, votes: true, media: true } },
-    },
-  });
+  const [viewerId, rawPosts] = await Promise.all([
+    getAuthUserId(),
+    db.post.findMany({
+      where: {
+        communityId,
+        media: { some: { type: "IMAGE" } },
+      },
+      take: 20,
+      orderBy: { createdAt: "desc" },
+      include: {
+        author: { select: userPublicSelect },
+        community: { select: { name: true, slug: true } },
+        media: postMediaPreview,
+        _count: { select: { likes: true, comments: true, votes: true, media: true } },
+      },
+    }),
+  ]);
+  const posts = await attachWebPaidMediaPlayback(
+    rawPosts.map((p) => ({ ...p, authorId: p.authorId ?? p.author.id })),
+    viewerId
+  );
 
   return (
     <div className="flex flex-col h-full min-h-0">

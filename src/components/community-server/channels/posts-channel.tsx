@@ -1,9 +1,10 @@
 import { db } from "@/lib/db";
 import { CommunityPostCard } from "@/components/community-server/community-post-card";
-import { MessageSquare } from "lucide-react";
 import { postMediaPreview } from "@/lib/post-media-select";
 import { userPublicSelect } from "@/lib/user-public-select";
 import { PostsChannelHeader, PostsChannelEmptyCta } from "@/components/community-server/channels/posts-channel-header";
+import { getAuthUserId } from "@/lib/auth";
+import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 
 export async function PostsChannelView({
   communitySlug: _communitySlug,
@@ -14,17 +15,24 @@ export async function PostsChannelView({
   isMember?: boolean;
   isOwner?: boolean;
 }) {
-  const posts = await db.post.findMany({
-    where: { communityId },
-    take: 20,
-    orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
-    include: {
-      author: { select: userPublicSelect },
-      community: { select: { name: true, slug: true } },
-      media: postMediaPreview,
-      _count: { select: { likes: true, comments: true, votes: true, media: true } },
-    },
-  });
+  const [viewerId, rawPosts] = await Promise.all([
+    getAuthUserId(),
+    db.post.findMany({
+      where: { communityId },
+      take: 20,
+      orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
+      include: {
+        author: { select: userPublicSelect },
+        community: { select: { name: true, slug: true } },
+        media: postMediaPreview,
+        _count: { select: { likes: true, comments: true, votes: true, media: true } },
+      },
+    }),
+  ]);
+  const posts = await attachWebPaidMediaPlayback(
+    rawPosts.map((p) => ({ ...p, authorId: p.authorId ?? p.author.id })),
+    viewerId
+  );
 
   return (
     <div className="flex flex-col h-full min-h-0">

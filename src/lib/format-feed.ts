@@ -23,6 +23,11 @@ export function formatCompactNumberKo(n: number): string {
   return String(n);
 }
 
-export function postHasVisualMedia(post: { media?: { url: string; type: string }[] }): boolean {
-  return !!post.media?.[0]?.url;
+export function postHasVisualMedia(post: {
+  media?: { url?: string | null; type?: string; locked?: boolean }[];
+}): boolean {
+  const m = post.media?.[0];
+  if (!m) return false;
+  if (m.locked) return true;
+  return m.type === "IMAGE" || m.type === "VIDEO" || Boolean(m.url?.trim());
 }

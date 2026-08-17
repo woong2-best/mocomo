@@ -14,6 +14,7 @@ import { userPublicSelect } from "@/lib/user-public-select";
 import { provisionCommunityServer } from "@/lib/community-server/provision";
 import { isCommunityCategory } from "@/lib/community-labels";
 import { COMMUNITIES_LIST_CACHE_TAG } from "@/lib/cache-tags";
+import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 
 function revalidateCommunitiesList(slug?: string) {
   after(() => {
@@ -185,6 +186,11 @@ export async function getCommunityBySlug(slug: string) {
       console.error("[getCommunityBySlug] posts load failed", postsErr);
     }
 
+    const gatedPosts = await attachWebPaidMediaPlayback(
+      posts.map((p) => ({ ...p, authorId: p.author.id })),
+      user?.id ?? null
+    );
+
     let membership: { role: string } | null = null;
     if (user) {
       try {
@@ -198,7 +204,7 @@ export async function getCommunityBySlug(slug: string) {
     }
 
     return {
-      community: { ...community, posts },
+      community: { ...community, posts: gatedPosts },
       viewer: user
         ? {
             userId: user.id,

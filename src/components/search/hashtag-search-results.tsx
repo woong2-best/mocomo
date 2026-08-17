@@ -5,6 +5,8 @@ import {
   type HashtagSort,
 } from "@/lib/hashtag-search";
 import { getServerTranslator } from "@/lib/i18n/server";
+import { getAuthUserId } from "@/lib/auth";
+import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 
 export async function HashtagSearchResults({
   tag,
@@ -14,10 +16,15 @@ export async function HashtagSearchResults({
   sort: HashtagSort;
 }) {
   const { locale } = await getServerTranslator();
-  const [postsTop, postsLatest, total] = await Promise.all([
+  const [viewerId, postsTopRaw, postsLatestRaw, total] = await Promise.all([
+    getAuthUserId(),
     getCachedHashtagPosts(tag, "top"),
     getCachedHashtagPosts(tag, "latest"),
     getCachedHashtagPostCount(tag),
+  ]);
+  const [postsTop, postsLatest] = await Promise.all([
+    attachWebPaidMediaPlayback(postsTopRaw, viewerId),
+    attachWebPaidMediaPlayback(postsLatestRaw, viewerId),
   ]);
 
   const emptyMsg =

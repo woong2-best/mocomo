@@ -5,6 +5,7 @@ import { getMobileUserId } from "@/lib/api-mobile-auth";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { postMediaPreview } from "@/lib/post-media-select";
 import { userPublicSelect } from "@/lib/user-public-select";
+import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 
 export async function GET(
   req: NextRequest,
@@ -43,9 +44,14 @@ export async function GET(
     ? await getPostEngagementForUser(viewerId, [post.id])
     : { likedIds: [] as string[], starredIds: [] as string[], repostedIds: [] as string[] };
 
+  const [gated] = await attachWebPaidMediaPlayback(
+    [{ ...post, authorId: post.author.id }],
+    viewerId
+  );
+
   return NextResponse.json({
     post: {
-      ...post,
+      ...(gated ?? post),
       createdAt: post.createdAt.toISOString(),
       liked: engagement.likedIds.includes(post.id),
       starred: engagement.starredIds.includes(post.id),

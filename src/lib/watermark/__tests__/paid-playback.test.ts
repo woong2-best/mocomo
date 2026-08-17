@@ -28,6 +28,20 @@ test("locked paid video does not leak the origin url", () => {
   assert.equal(out.hlsUrl, null);
 });
 
+test("locked paid image does not leak the origin url", () => {
+  const out = rewritePaidVideoSrc({
+    id: "media_1",
+    url: "https://cdn.example/photo.jpg",
+    type: "IMAGE",
+    priceKrw: 3000,
+    locked: true,
+    posterUrl: "https://cdn.example/poster.jpg",
+  });
+  assert.equal(out.url, "");
+  assert.equal(out.hlsUrl, null);
+  assert.equal(out.posterUrl, null);
+});
+
 test("free video keeps its stored url", () => {
   const out = rewritePaidVideoSrc({
     id: "media_1",

@@ -62,7 +62,7 @@ export async function GET(
       id: m.id,
       url: m.url,
       type: m.type,
-      priceKrw: m.priceKrw,
+      priceKrw,
       locked,
     });
     return {

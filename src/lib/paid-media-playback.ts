@@ -22,12 +22,10 @@ export function isPaidPlaybackPath(url: string | null | undefined): boolean {
 }
 
 /**
- * Replace the stored CDN URL so the browser never sees the origin bytes of a
- * paid video. Locked media get an empty src (paywall). Unlocked media play
- * through a same-origin gate that checks entitlement on every Range request.
- *
- * HLS is omitted for paid video: the forensic canvas needs a progressive
- * element, and a public manifest would leak segment URLs.
+ * Strip origin bytes from payloads the browser should not see.
+ * Locked sale media (image or video) get an empty src so CSS-blur is not
+ * enough — the img/video tag never fetches the file. Unlocked paid video
+ * plays through a same-origin gate. HLS is omitted for paid video.
  */
 export function rewritePaidVideoSrc(input: {
   id: string;
@@ -36,12 +34,17 @@ export function rewritePaidVideoSrc(input: {
   priceKrw?: number | null;
   locked?: boolean;
   hlsUrl?: string | null;
-}): { url: string; hlsUrl: string | null } {
-  if (input.type !== "VIDEO" || (input.priceKrw ?? 0) <= 0) {
-    return { url: input.url, hlsUrl: input.hlsUrl ?? null };
+  posterUrl?: string | null;
+}): { url: string; hlsUrl: string | null; posterUrl: string | null } {
+  if (input.locked) return { url: "", hlsUrl: null, posterUrl: null };
+  if (input.type === "VIDEO" && (input.priceKrw ?? 0) > 0) {
+    return { url: paidMediaPlaybackPath(input.id), hlsUrl: null, posterUrl: null };
   }
-  if (input.locked) return { url: "", hlsUrl: null };
-  return { url: paidMediaPlaybackPath(input.id), hlsUrl: null };
+  return {
+    url: input.url,
+    hlsUrl: input.hlsUrl ?? null,
+    posterUrl: input.posterUrl ?? null,
+  };
 }
 
 export function rewritePaidEpisodeVideoUrl(input: {
@@ -57,17 +60,18 @@ export function rewritePaidEpisodeVideoUrl(input: {
 }
 
 type WebMediaRow = {
-  id: string;
+  id?: string;
   url: string;
   type: string;
   priceKrw?: number | null;
   hlsUrl?: string | null;
+  posterUrl?: string | null;
   locked?: boolean;
 };
 
 /**
- * Per-viewer lock + origin-URL stripping for web feed/detail payloads.
- * Mobile feed is left alone — native players use the stored CDN URL.
+ * Per-viewer lock + origin-URL stripping for list/detail payloads.
+ * Must run after any shared cache so one viewer's purchase is not reused.
  */
 export async function attachWebPaidMediaPlayback<
   T extends {
@@ -80,7 +84,9 @@ export async function attachWebPaidMediaPlayback<
 >(posts: T[], viewerId: string | null): Promise<T[]> {
   if (posts.length === 0) return posts;
 
-  const mediaIds = posts.flatMap((p) => p.media?.map((m) => m.id) ?? []);
+  const mediaIds = posts.flatMap(
+    (p) => p.media?.map((m) => m.id).filter((id): id is string => Boolean(id)) ?? []
+  );
   const authorIds = [
     ...new Set(
       posts
@@ -109,21 +115,23 @@ export async function attachWebPaidMediaPlayback<
           visibility,
           instantPurchasePriceKrw: post.instantPurchasePriceKrw ?? 0,
           mediaPriceKrw: m.priceKrw,
-          purchased: purchasedIds.has(m.id),
+          purchased: Boolean(m.id && purchasedIds.has(m.id)),
           subscription,
         });
         const gated = rewritePaidVideoSrc({
-          id: m.id,
+          id: m.id ?? "",
           url: m.url,
           type: m.type,
-          priceKrw: m.priceKrw,
+          priceKrw,
           locked,
           hlsUrl: m.hlsUrl,
+          posterUrl: m.posterUrl,
         });
         return {
           ...m,
           url: gated.url,
           hlsUrl: gated.hlsUrl,
+          posterUrl: gated.posterUrl,
           locked,
           lockReason,
           instantPurchasePriceKrw: priceKrw,

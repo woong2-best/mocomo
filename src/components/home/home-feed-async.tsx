@@ -3,6 +3,8 @@ import Link from "next/link";
 import { getCachedFeedPosts } from "@/lib/cached-data";
 import { getCachedSession } from "@/lib/auth";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
+import { filterPostsByAudienceLock } from "@/lib/posts-lock";
+import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 
 const HomeFeedClient = dynamic(
   () => import("@/components/home/home-feed-client").then((m) => m.HomeFeedClient)
@@ -18,13 +20,19 @@ function serializeCreatedAt<T extends { createdAt: Date | string }>(rows: T[]): 
 
 export async function HomeFeedAsync() {
   try {
-    const [posts, session] = await Promise.all([
+    const [rawPosts, session] = await Promise.all([
       getCachedFeedPosts(),
       getCachedSession(),
     ]);
+    const viewerId = session?.user?.id ?? null;
+    const visible = await filterPostsByAudienceLock(
+      rawPosts.map((p) => ({ ...p, authorId: p.author.id })),
+      viewerId
+    );
+    const posts = await attachWebPaidMediaPlayback(visible, viewerId);
     const serialized = serializeCreatedAt(posts);
     const mixed = serialized.map((data) => ({ type: "post" as const, data }));
-    const nextCursor = posts.length === 12 ? posts[posts.length - 1]?.id ?? null : null;
+    const nextCursor = rawPosts.length === 12 ? rawPosts[rawPosts.length - 1]?.id ?? null : null;
     const hasDbPosts = mixed.some((item) => item.type === "post");
     const isLoggedIn = !!session?.user;
     const isPremium = session?.user?.premiumTier === "PREMIUM";
