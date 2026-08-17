@@ -10,10 +10,10 @@ import {
   type MarketplaceCartItem,
 } from "@/lib/marketplace/cart-storage";
 import { Button } from "@/components/ui/button";
+import { formatMoney } from "@/lib/money";
 
-function formatPrice(amount: number, currency: string) {
-  const n = amount.toLocaleString("ko-KR");
-  return currency === "krw" ? `${n}원` : `${n} ${currency.toUpperCase()}`;
+function formatPrice(amount: number, _currency: string) {
+  return formatMoney(amount);
 }
 
 export function MarketplaceCartView() {
@@ -107,7 +107,7 @@ export function MarketplaceCartView() {
       </ul>
       <div className="rounded-2xl border border-folk-cobalt/15 bg-folk-cream/50 px-4 py-3 flex items-center justify-between">
         <span className="text-sm font-semibold">예상 합계</span>
-        <span className="text-lg font-bold">{total.toLocaleString("ko-KR")}원</span>
+        <span className="text-lg font-bold">{formatMoney(total)}</span>
       </div>
       <p className="text-[11px] text-muted-foreground text-center">
         배송비·옵션은 상품별 결제 화면에서 확인됩니다.

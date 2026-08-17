@@ -1,6 +1,6 @@
 export const PLATFORM_FEE_RATE = 0.1;
-export const LISTING_FEE_KRW = 5000;
-export const EMOTICON_PRICES = [10_000, 20_000, 30_000, 50_000] as const;
+export { LISTING_FEE_USD_CENTS as LISTING_FEE_KRW } from "@/lib/money";
+export { EMOTICON_PRICES_USD_CENTS as EMOTICON_PRICES } from "@/lib/money";
 
 export function calcShopFees(amount: number) {
   const platformFee = Math.floor(amount * PLATFORM_FEE_RATE);
@@ -10,14 +10,14 @@ export function calcShopFees(amount: number) {
 
 /** 이미지는 나중에 URL만 넣으면 됨 — 지금은 비워 둠 */
 export const EMOTICON_CATALOG_SEED = [
-  { slug: "mocomo-smile-10k", name: "모코모 스마일", price: 10_000 },
-  { slug: "mocomo-heart-10k", name: "모코모 하트", price: 10_000 },
-  { slug: "mocomo-fire-20k", name: "모코모 불꽃", price: 20_000 },
-  { slug: "mocomo-star-20k", name: "모코모 별", price: 20_000 },
-  { slug: "mocomo-crown-30k", name: "모코모 크라운", price: 30_000 },
-  { slug: "mocomo-rainbow-30k", name: "모코모 레인보우", price: 30_000 },
-  { slug: "mocomo-galaxy-50k", name: "모코모 갤럭시", price: 50_000 },
-  { slug: "mocomo-legend-50k", name: "모코모 레전드", price: 50_000 },
+  { slug: "mocomo-smile-10k", name: "모코모 스마일", price: 999 },
+  { slug: "mocomo-heart-10k", name: "모코모 하트", price: 999 },
+  { slug: "mocomo-fire-20k", name: "모코모 불꽃", price: 1_999 },
+  { slug: "mocomo-star-20k", name: "모코모 별", price: 1_999 },
+  { slug: "mocomo-crown-30k", name: "모코모 크라운", price: 2_999 },
+  { slug: "mocomo-rainbow-30k", name: "모코모 레인보우", price: 2_999 },
+  { slug: "mocomo-galaxy-50k", name: "모코모 갤럭시", price: 4_999 },
+  { slug: "mocomo-legend-50k", name: "모코모 레전드", price: 4_999 },
 ] as const;
 
 export type EmoticonPackView = {

@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { formatUsd } from "@/lib/money";
 
 type Props = {
   withdrawable: number;
@@ -10,8 +11,8 @@ type Props = {
   bankLabel?: string | null;
 };
 
-function won(n: number) {
-  return `${n.toLocaleString("ko-KR")}원`;
+function fmtUsd(n: number) {
+  return formatUsd(n);
 }
 
 export function WalletCardStack({
@@ -29,7 +30,7 @@ export function WalletCardStack({
       >
         <div className="p-5 flex flex-col justify-between h-full">
           <p className="text-xs text-white/60 font-semibold tracking-wide">MoCoMo Settlement</p>
-          <p className="text-white/80 text-sm">누적 출금 {won(totalWithdrawn)}</p>
+          <p className="text-white/80 text-sm">누적 출금 {fmtUsd(totalWithdrawn)}</p>
         </div>
       </div>
 
@@ -39,9 +40,9 @@ export function WalletCardStack({
       >
         <div className="p-5 flex flex-col justify-between h-full">
           <p className="text-xs text-white/80 font-semibold">총 수익</p>
-          <p className="text-2xl font-black text-white tracking-tight">{won(totalEarned)}</p>
+          <p className="text-2xl font-black text-white tracking-tight">{fmtUsd(totalEarned)}</p>
           {pendingPayout > 0 ? (
-            <p className="text-xs text-white/85">출금 처리 중 {won(pendingPayout)}</p>
+            <p className="text-xs text-white/85">출금 처리 중 {fmtUsd(pendingPayout)}</p>
           ) : (
             <p className="text-xs text-white/85">Stripe 정산 · 즉시 결제 수익</p>
           )}
@@ -58,7 +59,7 @@ export function WalletCardStack({
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs text-white/70 font-semibold">출금 가능 잔액</p>
-              <p className="text-3xl font-black text-white mt-1 tracking-tight">{won(withdrawable)}</p>
+              <p className="text-3xl font-black text-white mt-1 tracking-tight">{fmtUsd(withdrawable)}</p>
             </div>
             <span className="rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-bold text-white/90">
               CREATOR

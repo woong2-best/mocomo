@@ -1,6 +1,7 @@
 "use client";
 
 import { PayButton } from "@/components/payments/pay-button";
+import { formatUsd } from "@/lib/money";
 import { usePathname } from "next/navigation";
 
 export function PurchasePostMediaButton({
@@ -67,7 +68,7 @@ export function PurchasePostMediaButton({
       onPurchaseSuccess={onPurchaseSuccess}
       className="rounded-full h-9 px-4 text-xs gap-1.5 bg-white text-foreground hover:bg-white/90"
     >
-      {priceKrw.toLocaleString()}원 · {label}
+      {formatUsd(priceKrw)} · {label}
     </PayButton>
   );
 }

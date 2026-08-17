@@ -30,6 +30,7 @@ import type { RootStackParamList } from "@/navigation/types";
 import { TipCreatorSheet } from "@/payments/TipCreatorSheet";
 import { PayButton } from "@/payments/PayButton";
 import { FolkButton } from "@/ui/FolkButton";
+import { formatUsd } from "@/lib/money";
 
 type Props = {
   username: string;
@@ -219,7 +220,7 @@ export function SharedProfileScreen({ username, showBack = true }: Props) {
                       creatorId: user.id,
                       username: user.username,
                     }}
-                    label={`${user.creatorSubscriptionPriceKrw.toLocaleString()}원/월 구독`}
+                    label={`${formatUsd(user.creatorSubscriptionPriceKrw)}/월 구독`}
                     variant="secondary"
                     onSuccess={() => void query.refetch()}
                   />

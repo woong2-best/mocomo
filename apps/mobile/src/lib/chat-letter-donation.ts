@@ -17,5 +17,5 @@ export function stripLetterDonationMarker(content: string | null | undefined): s
   return stripped || null;
 }
 
-export const LETTER_DONATION_MIN_KRW = 5_000;
+export const LETTER_DONATION_MIN_KRW = 500;
 export const LETTER_DONATION_MESSAGE_MAX = 500;

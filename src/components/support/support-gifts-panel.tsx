@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getReceivedEmoticonGifts } from "@/actions/goods-shop";
 import { EmoticonPreview } from "@/components/market/emoticon-preview";
+import { formatUsd } from "@/lib/money";
 
 export async function SupportGiftsPanel() {
   const session = await auth();
@@ -32,7 +33,7 @@ export async function SupportGiftsPanel() {
               <div>
                 <p className="font-semibold">{g.pack.name}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  @{g.sender.username} · +{g.creatorAmount.toLocaleString()}원
+                  @{g.sender.username} · +{formatUsd(g.creatorAmount)}
                 </p>
               </div>
             </li>

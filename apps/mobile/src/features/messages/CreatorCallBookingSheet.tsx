@@ -18,6 +18,7 @@ import { FolkButton } from "@/ui/FolkButton";
 import { KeyboardSheet } from "@/ui/KeyboardSheet";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+import { formatUsd, MIN_CALL_BOOKING_USD_CENTS } from "@/lib/money";
 
 const AMOUNT_PRESETS = [10_000, 30_000, 50_000, 100_000, 150_000, 200_000];
 
@@ -118,8 +119,8 @@ export function CreatorCallBookingSheet({
       setError("날짜(YYYY-MM-DD)와 시간(HH:mm)을 확인해 주세요.");
       return;
     }
-    if (effectiveAmount < 5_000) {
-      setError("최소 결제 금액은 5,000원입니다.");
+    if (effectiveAmount < MIN_CALL_BOOKING_USD_CENTS) {
+      setError(`최소 결제 금액은 ${formatUsd(MIN_CALL_BOOKING_USD_CENTS)}입니다.`);
       return;
     }
     if (durationMinutes < 15) {
@@ -179,7 +180,7 @@ export function CreatorCallBookingSheet({
           ) : (
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={styles.label}>
-                시간당 {settings.rateKrwPerHour?.toLocaleString()}원
+                시간당 {formatUsd(settings.rateKrwPerHour ?? 0)}
               </Text>
 
               <Text style={styles.fieldLabel}>날짜</Text>
@@ -219,7 +220,7 @@ export function CreatorCallBookingSheet({
                         !customAmount && amount === p && styles.presetTextActive,
                       ]}
                     >
-                      {p.toLocaleString()}원
+                      {formatUsd(p)}
                     </Text>
                   </Pressable>
                 ))}
@@ -228,7 +229,7 @@ export function CreatorCallBookingSheet({
                 style={styles.input}
                 value={customAmount}
                 onChangeText={setCustomAmount}
-                placeholder="직접 입력 (원)"
+                placeholder="직접 입력 (USD)"
                 placeholderTextColor={colors.textMuted}
                 keyboardType="number-pad"
               />

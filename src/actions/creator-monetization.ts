@@ -9,6 +9,7 @@ import {
   monthsSubscribed,
   tierFromSubscriptionMonths,
 } from "@/lib/creator-subscription";
+import { formatUsd } from "@/lib/money";
 import { stripeConnectStatus } from "@/lib/stripe-connect";
 
 export async function getCreatorMonetizationSettings() {
@@ -31,8 +32,8 @@ export async function getCreatorMonetizationSettings() {
 export async function updateCreatorSubscriptionPrice(priceKrw: number) {
   const user = await requireAuth();
   const price = Math.floor(priceKrw);
-  if (price < 1000 || price > 500_000) {
-    return { error: "구독 가격은 1,000원 ~ 500,000원 사이로 설정해 주세요." };
+  if (price < 100 || price > 50_000) {
+    return { error: `구독 가격은 ${formatUsd(100)} ~ ${formatUsd(50_000)} 사이로 설정해 주세요.` };
   }
 
   await db.user.update({

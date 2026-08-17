@@ -10,6 +10,7 @@ import { isPaymentsConfigured } from "@/lib/payments";
 import { MarketplaceListingMedia } from "@/components/market/marketplace-listing-media";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { formatUsd } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
@@ -82,7 +83,7 @@ export default async function MarketplaceListingPage({
                   배송비{" "}
                   {listing.shippingFeeType === "FREE"
                     ? "무료"
-                    : `${listing.shippingFeeFixed.toLocaleString()}원`}
+                    : formatUsd(listing.shippingFeeFixed)}
                 </p>
                 <p>
                   배송 가능{" "}
@@ -95,7 +96,7 @@ export default async function MarketplaceListingPage({
               </>
             )}
             <p className="text-xs">
-              플랫폼 수수료 10% — 판매자 예상 수령 {fees.sellerEarnAmount.toLocaleString()}원
+              플랫폼 수수료 10% — 판매자 예상 수령 {formatUsd(fees.sellerEarnAmount)}
             </p>
           </div>
 

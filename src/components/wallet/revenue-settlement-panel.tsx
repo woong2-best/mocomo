@@ -9,6 +9,7 @@ import { WalletEarningsChart } from "@/components/wallet/wallet-earnings-chart";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MIN_PAYOUT_KRW } from "@/lib/settlement";
+import { formatUsd } from "@/lib/money";
 import { LEDGER_LABELS } from "@/lib/wallet-labels";
 import type { WalletEarningsAnalytics } from "@/lib/wallet-analytics";
 import { cn } from "@/lib/utils";
@@ -26,8 +27,8 @@ type Props = {
   callbackUrl?: string | null;
 };
 
-function won(n: number) {
-  return `${n.toLocaleString("ko-KR")}원`;
+function fmtUsd(n: number) {
+  return formatUsd(n);
 }
 
 export function RevenueSettlementPanel({
@@ -93,7 +94,7 @@ export function RevenueSettlementPanel({
             key={e.id}
             title={LEDGER_LABELS[e.type] ?? e.type}
             subtitle={e.memo ?? undefined}
-            right={`${e.type === "PAYOUT_REQUEST" ? "-" : "+"}${won(e.amount)}`}
+            right={`${e.type === "PAYOUT_REQUEST" ? "-" : "+"}${fmtUsd(e.amount)}`}
             tone={e.type === "SELLER_EARNING" ? "cobalt" : e.type === "PAYOUT_REQUEST" ? "terracotta" : "muted"}
           />
         ))}
@@ -126,7 +127,7 @@ export function RevenueSettlementPanel({
           <form onSubmit={submitPayout} className="space-y-2">
             <Input
               type="number"
-              placeholder={`금액 (최소 ${MIN_PAYOUT_KRW.toLocaleString()}원)`}
+              placeholder={`금액 (최소 ${formatUsd(MIN_PAYOUT_KRW)})`}
               value={payoutAmount}
               onChange={(e) => setPayoutAmount(e.target.value)}
               min={MIN_PAYOUT_KRW}
@@ -177,7 +178,7 @@ export function RevenueSettlementPanel({
           <div className="space-y-2">
             <p className="text-sm font-bold px-1">수익 출처</p>
             {earnings.bySource.map((s) => (
-              <WalletMembershipStrip key={s.key} title={s.label} right={won(s.amount)} tone="forest" />
+              <WalletMembershipStrip key={s.key} title={s.label} right={fmtUsd(s.amount)} tone="forest" />
             ))}
           </div>
         ) : null}
@@ -202,7 +203,7 @@ function StatCard({
       <p className="text-[11px] text-muted-foreground font-semibold">{label}</p>
       <p className={cn("text-base font-black mt-1", tone === "up" ? "text-emerald-700" : "text-red-700")}>
         {tone === "down" && value > 0 ? "-" : ""}
-        {Math.abs(value).toLocaleString()}원
+        {formatUsd(Math.abs(value))}
       </p>
     </div>
   );

@@ -27,6 +27,7 @@ import { FolkButton } from "@/ui/FolkButton";
 import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
+import { formatUsd } from "@/lib/money";
 
 type Tab = "wallet" | "earnings";
 
@@ -36,8 +37,8 @@ const LEDGER_LABELS: Record<string, string> = {
   PAYOUT_REJECTED: "출금 반려 환급",
 };
 
-function won(n: number) {
-  return `${n.toLocaleString("ko-KR")}원`;
+function fmtUsd(n: number) {
+  return formatUsd(n);
 }
 
 export function WalletScreen() {
@@ -213,7 +214,7 @@ export function WalletScreen() {
                   key={item.id}
                   title={LEDGER_LABELS[item.type] ?? item.type}
                   subtitle={item.memo ?? undefined}
-                  right={`${item.type === "PAYOUT_REQUEST" ? "-" : "+"}${won(item.amount)}`}
+                  right={`${item.type === "PAYOUT_REQUEST" ? "-" : "+"}${fmtUsd(item.amount)}`}
                   backgroundColor={
                     item.type === "SELLER_EARNING"
                       ? colors.cobalt
@@ -285,7 +286,7 @@ export function WalletScreen() {
                 <WalletMembershipStrip
                   key={s.key}
                   title={s.label}
-                  right={won(s.amount)}
+                  right={fmtUsd(s.amount)}
                   backgroundColor={colors.forest}
                 />
               ))}
@@ -313,7 +314,7 @@ function StatCard({
       <Text style={[statStyles.label, { color: colors.textMuted }]}>{label}</Text>
       <Text style={[statStyles.value, { color: tone === "up" ? colors.success : colors.danger }]}>
         {tone === "down" && value > 0 ? "-" : ""}
-        {Math.abs(value).toLocaleString("ko-KR")}원
+        {formatUsd(Math.abs(value))}
       </Text>
     </View>
   );

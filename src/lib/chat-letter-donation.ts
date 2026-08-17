@@ -25,5 +25,5 @@ export function buildLetterDonationMessageBody(tipId: string): string {
   return `${letterDonationMarker(tipId)}\n💌 편지 후원이 도착했습니다.`;
 }
 
-export const LETTER_DONATION_MIN_KRW = 5_000;
+export { LETTER_DONATION_MIN_USD_CENTS as LETTER_DONATION_MIN_KRW } from "@/lib/money";
 export const LETTER_DONATION_MESSAGE_MAX = 500;

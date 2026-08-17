@@ -3,6 +3,7 @@ import { adminGetCouponAction } from "@/actions/admin-coupons";
 import { getAdminActor } from "@/lib/admin/access";
 import { CouponDetailActions } from "@/components/admin/cms/coupon-detail-actions";
 import { DashboardCard } from "@/components/admin/shell/stat-card";
+import { formatUsd } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,7 @@ export default async function AdminCouponDetailPage({
         <div className="rounded-xl border p-3">발급 {c._count.assignments}</div>
         <div className="rounded-xl border p-3">사용 {c._count.usages}</div>
         <div className="rounded-xl border p-3">
-          혜택 사용 ₩{c.usedBenefitKrw.toLocaleString()}
+          혜택 사용 {formatUsd(c.usedBenefitKrw)}
         </div>
       </div>
 
@@ -75,7 +76,7 @@ export default async function AdminCouponDetailPage({
                 <span className="text-xs text-muted-foreground">
                   {a.status}
                   {a.remainingBenefitKrw != null
-                    ? ` · 남은 ₩${a.remainingBenefitKrw.toLocaleString()}`
+                    ? ` · 남은 ${formatUsd(a.remainingBenefitKrw)}`
                     : ""}
                 </span>
               </li>
@@ -95,9 +96,9 @@ export default async function AdminCouponDetailPage({
                   @{u.user.username} · {u.createdAt.toISOString().slice(0, 16).replace("T", " ")}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {u.referenceType} · 정산 ₩{u.grossAmountKrw.toLocaleString()} · 혜택 ₩
-                  {u.benefitAppliedKrw.toLocaleString()} · 수수료{" "}
-                  {u.feeBeforeKrw.toLocaleString()}→{u.feeAfterKrw.toLocaleString()}
+                  {u.referenceType} · 정산 {formatUsd(u.grossAmountKrw)} · 혜택{" "}
+                  {formatUsd(u.benefitAppliedKrw)} · 수수료{" "}
+                  {formatUsd(u.feeBeforeKrw)}→{formatUsd(u.feeAfterKrw)}
                 </p>
               </li>
             ))

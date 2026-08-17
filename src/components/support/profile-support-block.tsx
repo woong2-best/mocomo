@@ -8,6 +8,7 @@ import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-
 import { CreatorSupportTierCard } from "@/components/support/platform-support-card";
 import { SupportTierLevel } from "@prisma/client";
 import type { getCreatorSupportSummary, getViewerSupportForCreator } from "@/actions/support";
+import { formatUsd } from "@/lib/money";
 import { TipCreatorDialog } from "@/components/support/tip-creator-dialog";
 
 export function ProfileSupportBlock({
@@ -51,7 +52,7 @@ export function ProfileSupportBlock({
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 text-sm flex-wrap">
             <Gem className="h-4 w-4 text-pink-500" />
-            <span className="font-semibold">{summary.totalAmount.toLocaleString()}원</span>
+            <span className="font-semibold">{formatUsd(summary.totalAmount)}</span>
             <span className="text-muted-foreground">
               · {summary.supporterCount}명 · {summary.tipCount}회
             </span>
@@ -77,7 +78,7 @@ export function ProfileSupportBlock({
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="text-muted-foreground">전체 누적 (받은)</span>
-          <span className="font-medium">{profileReceivedTotal.toLocaleString()}원</span>
+          <span className="font-medium">{formatUsd(profileReceivedTotal)}</span>
           <OreTierBadge tier={profileReceivedTier} size="sm" />
         </div>
       </div>
@@ -132,7 +133,7 @@ export function ProfileSupportBlock({
                 />
               </Link>
               <span className="text-muted-foreground shrink-0">
-                {t.amount.toLocaleString()}원 ·{" "}
+                {formatUsd(t.amount)} ·{" "}
                 {formatDistanceToNow(t.createdAt, { addSuffix: true, locale: ko })}
               </span>
               {t.message && (

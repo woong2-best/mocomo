@@ -63,8 +63,8 @@ export type VideoDonationSettings = {
 };
 
 export const DEFAULT_VIDEO_DONATION_SETTINGS: VideoDonationSettings = {
-  rateKrwPerSec: 100,
-  minKrw: 5_000,
+  rateKrwPerSec: 1,
+  minKrw: 500,
   maxSec: 120,
 };
 

@@ -4,6 +4,7 @@ import { listingTypeLabel } from "@/lib/marketplace/constants";
 import { MarketplaceListingThumb } from "@/components/market/marketplace-listing-thumb";
 import type { MarketplaceListingType } from "@prisma/client";
 import { cn } from "@/lib/utils";
+import { formatMoney } from "@/lib/money";
 
 export type MarketplaceListingCardData = {
   id: string;
@@ -44,9 +45,8 @@ const TYPE_BADGE: Record<
   },
 };
 
-function formatPrice(amount: number, currency: string) {
-  const n = amount.toLocaleString("ko-KR");
-  return currency === "krw" ? `${n}원` : `${n} ${currency.toUpperCase()}`;
+function formatPrice(amount: number, _currency: string) {
+  return formatMoney(amount);
 }
 
 export function MarketplaceListingCard({

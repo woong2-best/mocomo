@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createGoodsListingRequest } from "@/actions/goods-shop";
 import { LISTING_FEE_KRW } from "@/lib/goods-shop";
+import { formatUsd } from "@/lib/money";
 import { uploadImageBlob } from "@/lib/client-upload";
 import { fileToUploadableJpeg, isGalleryImageFile } from "@/lib/gallery-image-upload";
 import { PayButton } from "@/components/payments/pay-button";
@@ -66,7 +67,7 @@ export function GoodsListingForm({ paymentsEnabled }: { paymentsEnabled: boolean
       <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-6 space-y-4">
         <p className="font-semibold">등록 정보가 저장되었습니다.</p>
         <p className="text-sm text-muted-foreground">
-          상품 노출을 위해 등록비 <strong>{LISTING_FEE_KRW.toLocaleString()}원</strong>을 결제해 주세요.
+          상품 노출을 위해 등록비 <strong>{formatUsd(LISTING_FEE_KRW)}</strong>을 결제해 주세요.
         </p>
         {paymentsEnabled ? (
           <PayButton
@@ -76,7 +77,7 @@ export function GoodsListingForm({ paymentsEnabled }: { paymentsEnabled: boolean
             metadata={{ requestId }}
             className="w-full rounded-2xl"
           >
-            등록비 {LISTING_FEE_KRW.toLocaleString()}원 결제
+            등록비 {formatUsd(LISTING_FEE_KRW)} 결제
           </PayButton>
         ) : (
           <p className="text-sm text-destructive">결제 설정이 필요합니다.</p>
@@ -132,7 +133,7 @@ export function GoodsListingForm({ paymentsEnabled }: { paymentsEnabled: boolean
       <Button type="submit" className="w-full rounded-2xl" disabled={uploading}>
         다음: 등록비 결제
       </Button>
-      <p className="text-xs text-center text-muted-foreground">굿즈 등록 광고비 {LISTING_FEE_KRW.toLocaleString()}원</p>
+      <p className="text-xs text-center text-muted-foreground">굿즈 등록 광고비 {formatUsd(LISTING_FEE_KRW)}</p>
     </form>
   );
 }

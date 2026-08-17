@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { getMarketplaceOrderDetail } from "@/actions/marketplace-checkout";
 import { PrintReceiptButton } from "@/components/market/print-receipt-button";
 import { MARKET_BRAND_FULL } from "@/lib/market-brand";
+import { formatUsd } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
@@ -53,22 +54,22 @@ export default async function MarketReceiptPage({
                 {item.titleSnapshot} × {item.quantity}
               </td>
               <td className="py-2 text-right">
-                {(item.unitPrice * item.quantity).toLocaleString()}원
+                {formatUsd(item.unitPrice * item.quantity)}
               </td>
             </tr>
           ))}
           <tr className="border-b border-border/50">
             <td className="py-2">배송비</td>
-            <td className="py-2 text-right">{order.shippingAmount.toLocaleString()}원</td>
+            <td className="py-2 text-right">{formatUsd(order.shippingAmount)}</td>
           </tr>
           <tr>
             <td className="py-2 font-bold">합계</td>
-            <td className="py-2 text-right font-bold">{total.toLocaleString()}원</td>
+            <td className="py-2 text-right font-bold">{formatUsd(total)}</td>
           </tr>
           <tr>
             <td className="py-2 text-xs text-muted-foreground">플랫폼 수수료(참고)</td>
             <td className="py-2 text-right text-xs text-muted-foreground">
-              {order.platformFeeAmount.toLocaleString()}원
+              {formatUsd(order.platformFeeAmount)}
             </td>
           </tr>
         </tbody>

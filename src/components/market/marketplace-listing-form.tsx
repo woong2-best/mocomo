@@ -29,7 +29,7 @@ export function MarketplaceListingForm() {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<string>(MARKETPLACE_CATEGORIES[0]);
   const [tags, setTags] = useState("");
-  const [priceAmount, setPriceAmount] = useState("10000");
+  const [priceAmount, setPriceAmount] = useState("1000");
   const [stock, setStock] = useState("1");
   const [coverUrl, setCoverUrl] = useState("");
   const [mediaUrls, setMediaUrls] = useState("");
@@ -39,7 +39,7 @@ export function MarketplaceListingForm() {
   ]);
   const [shippingMethods, setShippingMethods] = useState<string[]>(["KR_POST", "INTL_EMS"]);
   const [shippingFeeType, setShippingFeeType] = useState<MarketplaceShippingFeeType>("FIXED");
-  const [shippingFeeFixed, setShippingFeeFixed] = useState("3000");
+  const [shippingFeeFixed, setShippingFeeFixed] = useState("300");
   const [optionName, setOptionName] = useState("");
   const [optionValues, setOptionValues] = useState("");
   const [options, setOptions] = useState<{ name: string; values: string[] }[]>([]);
@@ -172,7 +172,7 @@ export function MarketplaceListingForm() {
             min={0}
             value={priceAmount}
             onChange={(e) => setPriceAmount(e.target.value)}
-            placeholder="가격 (원)"
+            placeholder="가격 (USD cents, 예: 1000 = $10)"
           />
           <Input
             type="number"
@@ -305,7 +305,7 @@ export function MarketplaceListingForm() {
               min={0}
               value={shippingFeeFixed}
               onChange={(e) => setShippingFeeFixed(e.target.value)}
-              placeholder="배송비 (원)"
+              placeholder="배송비 (USD cents, 예: 300 = $3)"
               disabled={shippingFeeType === "FREE"}
             />
           </div>

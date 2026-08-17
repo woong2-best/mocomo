@@ -17,6 +17,7 @@ import {
   LETTER_DONATION_MESSAGE_MAX,
   LETTER_DONATION_MIN_KRW,
 } from "@/lib/chat-letter-donation";
+import { formatUsd } from "@/lib/money";
 
 const PRESETS = [5_000, 10_000, 30_000, 50_000, 100_000];
 
@@ -62,7 +63,7 @@ export function LetterDonationSheet({
 
   async function submit() {
     if (effectiveAmount < LETTER_DONATION_MIN_KRW) {
-      setError(`최소 ${LETTER_DONATION_MIN_KRW.toLocaleString()}원부터 보낼 수 있습니다.`);
+      setError(`최소 ${formatUsd(LETTER_DONATION_MIN_KRW)}부터 보낼 수 있습니다.`);
       return;
     }
     if (!trimmed) {
@@ -106,7 +107,7 @@ export function LetterDonationSheet({
           <Image source={require("../../assets/wax-envelope.png")} style={styles.hero} resizeMode="cover" />
           <Text style={styles.title}>{displayName}에게 편지</Text>
           <Text style={styles.sub}>
-            최소 {LETTER_DONATION_MIN_KRW.toLocaleString()}원 · 수수료 10% (정산 {creatorGets.toLocaleString()}원)
+            최소 {formatUsd(LETTER_DONATION_MIN_KRW)} · 수수료 10% (정산 {formatUsd(creatorGets)})
           </Text>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presets}>
@@ -120,7 +121,7 @@ export function LetterDonationSheet({
                 }}
               >
                 <Text style={[styles.presetText, !custom && amount === p && styles.presetTextActive]}>
-                  {p >= 10_000 ? `${p / 10_000}만` : p.toLocaleString()}
+                  {formatUsd(p)}
                 </Text>
               </Pressable>
             ))}
@@ -128,7 +129,7 @@ export function LetterDonationSheet({
 
           <TextInput
             style={styles.input}
-            placeholder="금액 직접 입력 (원)"
+            placeholder="금액 직접 입력 (USD)"
             placeholderTextColor={colors.textMuted}
             keyboardType="number-pad"
             value={custom}
@@ -147,7 +148,7 @@ export function LetterDonationSheet({
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <FolkButton
-            label={busy ? "결제 준비 중…" : `${effectiveAmount.toLocaleString()}원 · 편지 보내기`}
+            label={busy ? "결제 준비 중…" : `${formatUsd(effectiveAmount)} · 편지 보내기`}
             onPress={() => void submit()}
             loading={busy}
             disabled={busy || effectiveAmount < LETTER_DONATION_MIN_KRW || !trimmed}

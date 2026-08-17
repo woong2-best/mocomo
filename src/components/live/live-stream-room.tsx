@@ -16,6 +16,7 @@ import { ensureArray, ensureStringArray } from "@/lib/ensure-array";
 import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 import { Eye, Users, Radio, Trophy } from "lucide-react";
 import Link from "next/link";
+import { formatUsd } from "@/lib/money";
 
 function LiveStreamRoomInner({
   channelId,
@@ -132,7 +133,7 @@ function LiveStreamRoomInner({
           </span>
           {ensureArray<{ username: string; amount: number }>(tipRanking).map((t, i) => (
             <span key={i} className="px-2 py-0.5 rounded-full bg-muted">
-              @{t.username} {t.amount.toLocaleString()}원
+              @{t.username} {formatUsd(t.amount)}
             </span>
           ))}
         </div>

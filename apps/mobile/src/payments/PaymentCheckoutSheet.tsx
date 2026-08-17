@@ -22,6 +22,7 @@ import type { PaymentMethodItem } from "@/features/wallet/wallet-card-builders";
 import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
+import { formatUsd } from "@/lib/money";
 
 const RETURN_PREFIX = Linking.createURL("payment/success");
 
@@ -32,9 +33,8 @@ type Props = {
   onSuccess: (result: { type: string; alreadyPaid?: boolean }) => void;
 };
 
-function formatAmount(type: CheckoutBody["type"], amount: number) {
-  if (type === "PREMIUM") return `$${(amount / 100).toFixed(2)}`;
-  return `${amount.toLocaleString("ko-KR")}원`;
+function formatAmount(_type: CheckoutBody["type"], amount: number) {
+  return formatUsd(amount);
 }
 
 export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Props) {

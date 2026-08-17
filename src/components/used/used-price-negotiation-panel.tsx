@@ -157,7 +157,7 @@ export function UsedPriceNegotiationPanel({
         <Input
           type="number"
           inputMode="numeric"
-          placeholder="제안 가격 (원)"
+          placeholder="제안 가격 (USD)"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           className="h-10"

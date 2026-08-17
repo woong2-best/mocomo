@@ -8,6 +8,7 @@ import { FolkButton } from "@/ui/FolkButton";
 import { FolkCard } from "@/ui/FolkCard";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+import { formatUsd, MIN_CALL_BOOKING_USD_CENTS } from "@/lib/money";
 
 export function CreatorCallSettingsCard() {
   const { colors } = useTheme();
@@ -31,8 +32,8 @@ export function CreatorCallSettingsCard() {
 
   async function save() {
     const rate = parseInt(rateText.replace(/\D/g, ""), 10) || 0;
-    if (enabled && rate < 5000) {
-      Alert.alert("오류", "시간당 요금은 최소 5,000원 이상이어야 합니다.");
+    if (enabled && rate < MIN_CALL_BOOKING_USD_CENTS) {
+      Alert.alert("오류", `시간당 요금은 최소 ${formatUsd(MIN_CALL_BOOKING_USD_CENTS)} 이상이어야 합니다.`);
       return;
     }
     setBusy(true);
@@ -67,7 +68,7 @@ export function CreatorCallSettingsCard() {
 
       {enabled ? (
         <>
-          <Text style={styles.label}>시간당 요금 (원)</Text>
+          <Text style={styles.label}>시간당 요금 (USD)</Text>
           <TextInput
             style={styles.input}
             value={rateText}

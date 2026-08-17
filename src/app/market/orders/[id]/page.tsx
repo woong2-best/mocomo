@@ -4,6 +4,7 @@ import { getMarketplaceOrderDetail } from "@/actions/marketplace-checkout";
 import { MarketplaceOrderActions } from "@/components/market/marketplace-order-actions";
 import { shipCountryLabel } from "@/lib/marketplace/shipping-config";
 import Link from "next/link";
+import { formatUsd } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +61,7 @@ export default async function MarketOrderDetailPage({
         <h1 className="text-xl font-bold">주문 상세</h1>
         <p className="text-sm text-muted-foreground mt-1">
           {stepLabels[order.status] ?? order.status} ·{" "}
-          {(order.subtotalAmount + order.shippingAmount).toLocaleString()}원
+          {formatUsd(order.subtotalAmount + order.shippingAmount)}
         </p>
       </div>
 
@@ -86,7 +87,7 @@ export default async function MarketOrderDetailPage({
               {item.titleSnapshot}
             </Link>
             <p className="text-xs text-muted-foreground mt-1">
-              {item.unitPrice.toLocaleString()}원 × {item.quantity} · {item.listingType}
+              {formatUsd(item.unitPrice)} × {item.quantity} · {item.listingType}
             </p>
           </li>
         ))}

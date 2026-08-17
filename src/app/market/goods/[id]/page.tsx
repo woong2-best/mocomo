@@ -6,6 +6,7 @@ import { PhysicalPurchaseForm } from "@/components/market/physical-purchase-form
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
+import { formatUsd } from "@/lib/money";
 
 export default async function GoodsDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -47,8 +48,8 @@ export default async function GoodsDetailPage({ params }: { params: Promise<{ id
             <Link href={`/u/${product.seller.username}`} className="text-sm text-primary hover:underline">
               @{product.seller.username}
             </Link>
-            <p className="text-2xl font-black text-neon-cyan mt-2">{product.price.toLocaleString()}원</p>
-            <p className="text-xs text-muted-foreground">배송비 {product.shippingFee.toLocaleString()}원 · 재고 {product.stock}</p>
+            <p className="text-2xl font-black text-neon-cyan mt-2">{formatUsd(product.price)}</p>
+            <p className="text-xs text-muted-foreground">배송비 {formatUsd(product.shippingFee)} · 재고 {product.stock}</p>
           </div>
           <p className="text-sm whitespace-pre-wrap leading-relaxed">{product.description}</p>
           {media?.videoUrl && (

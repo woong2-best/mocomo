@@ -6,6 +6,7 @@ import { GoodsListingForm } from "@/components/market/goods-listing-form";
 import { SetProductPriceForm } from "@/components/market/set-product-price-form";
 import Link from "next/link";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
+import { formatUsd, LISTING_FEE_USD_CENTS } from "@/lib/money";
 
 export default async function MarketSellPage() {
   const session = await auth();
@@ -19,7 +20,7 @@ export default async function MarketSellPage() {
       <section className="space-y-3">
         <h2 className="font-bold text-lg">굿즈 판매 문의</h2>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          사진·설명·영상을 올리고 등록비 5,000원을 결제하면 상품을 등록할 수 있습니다. 판매·배송·결제는
+          사진·설명·영상을 올리고 등록비 {formatUsd(LISTING_FEE_USD_CENTS)}를 결제하면 상품을 등록할 수 있습니다. 판매·배송·결제는
           MoCoMo 굿즈샵에서 처리됩니다 (플랫폼 수수료 10%).
         </p>
         <GoodsListingForm paymentsEnabled={paymentsEnabled} />
@@ -43,7 +44,7 @@ export default async function MarketSellPage() {
                       <p className="font-semibold">{p.title}</p>
                       <p className="text-xs text-muted-foreground">
                         {p.active && p.price > 0
-                          ? `${p.price.toLocaleString()}원 · 판매 중`
+                          ? `${formatUsd(p.price)} · 판매 중`
                           : "가격 설정 필요"}
                       </p>
                     </div>

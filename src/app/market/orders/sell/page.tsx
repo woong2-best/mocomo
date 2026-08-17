@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getMySellOrders } from "@/actions/goods-shop";
 import { SellerOrderActions } from "@/components/market/seller-order-actions";
+import { formatUsd } from "@/lib/money";
 
 const STATUS_LABEL: Record<string, string> = {
   PAID: "결제 완료 · 발송 준비",
@@ -37,7 +38,7 @@ export default async function SellOrdersPage() {
                 <span className="text-xs">{STATUS_LABEL[o.status] ?? o.status}</span>
               </div>
               <p className="text-sm">
-                @{o.buyer.username} · {o.total.toLocaleString()}원 (정산 {o.sellerAmount.toLocaleString()}원)
+                @{o.buyer.username} · {formatUsd(o.total)} (정산 {formatUsd(o.sellerAmount)})
               </p>
               <p className="text-xs text-muted-foreground">
                 {o.recipientName} / {o.phone} / {o.zipCode} {o.address} {o.detailAddress}

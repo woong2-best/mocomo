@@ -21,6 +21,7 @@ import {
   LETTER_DONATION_MESSAGE_MAX,
   LETTER_DONATION_MIN_KRW,
 } from "@/lib/chat-letter-donation";
+import { formatUsd } from "@/lib/money";
 
 const PRESETS = [5_000, 10_000, 30_000, 50_000, 100_000, 300_000];
 
@@ -119,8 +120,8 @@ export function LetterDonationDialog({
               {displayName}에게 편지 보내기
             </DialogTitle>
             <DialogDescription>
-              @{username} · 최소 {LETTER_DONATION_MIN_KRW.toLocaleString()}원 · 수수료 10% (정산{" "}
-              {creatorGets.toLocaleString()}원)
+              @{username} · 최소 {formatUsd(LETTER_DONATION_MIN_KRW)} · 수수료 10% (정산{" "}
+              {formatUsd(creatorGets)})
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -138,13 +139,13 @@ export function LetterDonationDialog({
                   setCustom("");
                 }}
               >
-                {p >= 10_000 ? `${p / 10_000}만` : p.toLocaleString()}
+                {formatUsd(p)}
               </Button>
             ))}
           </div>
 
           <Input
-            placeholder={`금액 직접 입력 (최소 ${LETTER_DONATION_MIN_KRW.toLocaleString()}원)`}
+            placeholder={`금액 직접 입력 (최소 ${formatUsd(LETTER_DONATION_MIN_KRW)})`}
             value={custom}
             onChange={(e) => setCustom(e.target.value)}
             className="rounded-xl"
@@ -178,7 +179,7 @@ export function LetterDonationDialog({
             disabled={!canPay}
             className="w-full rounded-xl h-11 font-bold"
           >
-            {effectiveAmount.toLocaleString()}원 · 편지 보내기
+            {formatUsd(effectiveAmount)} · 편지 보내기
           </PayButton>
         </div>
       </DialogContent>

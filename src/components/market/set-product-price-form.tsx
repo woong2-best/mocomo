@@ -33,7 +33,7 @@ export function SetProductPriceForm({
       <p className="text-sm font-medium">판매가·배송비 설정 (등록비 결제 완료)</p>
       <Input
         type="number"
-        placeholder="판매가 (원)"
+        placeholder="판매가 (USD)"
         value={price}
         onChange={(e) => setPrice(e.target.value)}
         className="rounded-xl"

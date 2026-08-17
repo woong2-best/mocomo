@@ -12,6 +12,7 @@ import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, shadows, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+import { formatUsd } from "@/lib/money";
 
 export function SellerListingsScreen() {
   const { colors } = useTheme();
@@ -59,10 +60,7 @@ export function SellerListingsScreen() {
                 <Text style={styles.title} numberOfLines={2}>
                   {item.title}
                 </Text>
-                <Text style={styles.price}>
-                  {item.priceAmount.toLocaleString("ko-KR")}
-                  {item.currency === "KRW" || !item.currency ? "원" : ` ${item.currency}`}
-                </Text>
+                <Text style={styles.price}>{formatUsd(item.priceAmount)}</Text>
                 <Text style={styles.sub}>
                   {item.status} · 판매 {item.salesCount}
                 </Text>

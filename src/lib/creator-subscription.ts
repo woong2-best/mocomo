@@ -1,8 +1,9 @@
 import type { ContentVisibility } from "@prisma/client";
+import { DEFAULT_CREATOR_SUBSCRIPTION_USD_CENTS } from "@/lib/money";
 
 export type CreatorSubscriberTier = "NONE" | "BRONZE" | "SILVER" | "GOLD" | "DIAMOND";
 
-export const DEFAULT_CREATOR_SUBSCRIPTION_PRICE_KRW = 16_900;
+export const DEFAULT_CREATOR_SUBSCRIPTION_PRICE_KRW = DEFAULT_CREATOR_SUBSCRIPTION_USD_CENTS;
 
 export const SUBSCRIBER_TIER_LABELS: Record<CreatorSubscriberTier, string> = {
   NONE: "없음",

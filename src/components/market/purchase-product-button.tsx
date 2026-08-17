@@ -1,6 +1,7 @@
 "use client";
 
 import { PayButton } from "@/components/payments/pay-button";
+import { formatUsd } from "@/lib/money";
 
 export function PurchaseProductButton({
   productId,
@@ -29,7 +30,7 @@ export function PurchaseProductButton({
       metadata={{ productId }}
       className="w-full rounded-xl"
     >
-      {price.toLocaleString()}원 구매
+      {formatUsd(price)} 구매
     </PayButton>
   );
 }

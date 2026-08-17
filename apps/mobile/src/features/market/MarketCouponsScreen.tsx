@@ -10,6 +10,7 @@ import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+import { formatUsd } from "@/lib/money";
 
 export function MarketCouponsScreen() {
   const { colors } = useTheme();
@@ -44,7 +45,7 @@ export function MarketCouponsScreen() {
               <Text style={styles.meta}>
                 상태 {item.status}
                 {item.remainingBenefitKrw != null
-                  ? ` · 잔여 ${item.remainingBenefitKrw.toLocaleString()}원`
+                  ? ` · 잔여 ${formatUsd(item.remainingBenefitKrw)}`
                   : ""}
               </Text>
             </View>

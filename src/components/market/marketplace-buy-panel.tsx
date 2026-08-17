@@ -6,6 +6,7 @@ import type { MarketplaceCheckoutInput } from "@/actions/marketplace-checkout";
 import { addToMarketplaceCart } from "@/lib/marketplace/cart-storage";
 import { MarketplaceCheckoutSheet } from "@/components/payments/marketplace-checkout-sheet";
 import { Button } from "@/components/ui/button";
+import { formatUsd } from "@/lib/money";
 import { Input } from "@/components/ui/input";
 import {
   listingShipsToCountry,
@@ -17,7 +18,7 @@ export function MarketplaceBuyPanel({
   listingId,
   listingTitle,
   listingCoverUrl,
-  listingCurrency = "krw",
+  listingCurrency = "usd",
   listingType,
   priceAmount,
   stock,
@@ -95,7 +96,7 @@ export function MarketplaceBuyPanel({
   return (
     <div className="space-y-3 rounded-2xl border border-border/60 p-4">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-lg font-bold text-primary">{priceAmount.toLocaleString()}원</p>
+        <p className="text-lg font-bold text-primary">{formatUsd(priceAmount)}</p>
         {listingType !== "DIGITAL" && (
           <Input
             type="number"

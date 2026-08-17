@@ -14,6 +14,7 @@ import { FolkButton } from "@/ui/FolkButton";
 import { KeyboardSheet } from "@/ui/KeyboardSheet";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+import { formatUsd } from "@/lib/money";
 
 const SHIP_COUNTRIES = [
   { code: "KR", label: "대한민국" },
@@ -90,8 +91,8 @@ export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props)
           <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
             <Text style={styles.title}>{item.title}</Text>
             <Text style={styles.price}>
-              {total.toLocaleString()}원
-              {shippingExtra > 0 ? ` (상품 ${(item.priceAmount * qty).toLocaleString()} + 배송 ${shippingExtra.toLocaleString()})` : ""}
+              {formatUsd(total)}
+              {shippingExtra > 0 ? ` (상품 ${formatUsd(item.priceAmount * qty)} + 배송 ${formatUsd(shippingExtra)})` : ""}
             </Text>
 
             {needsShip ? (
@@ -165,7 +166,7 @@ export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props)
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
             <FolkButton
-              label={`${total.toLocaleString()}원 구매하기`}
+              label={`${formatUsd(total)} 구매하기`}
               onPress={buy}
               disabled={item.isOwner || !item.paymentsEnabled}
             />

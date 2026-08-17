@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 import { PayButton } from "@/payments/PayButton";
+import { formatUsd } from "@/lib/money";
 
 type Props = {
   mediaId?: string;
@@ -54,7 +55,7 @@ export function PurchasePostMediaButton({
       amount={priceKrw}
       orderName={label}
       metadata={{ mediaId, username, postId }}
-      label={`${priceKrw.toLocaleString()}원 · ${label}`}
+      label={`${formatUsd(priceKrw)} · ${label}`}
       onSuccess={onPurchaseSuccess}
     />
   );

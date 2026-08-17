@@ -6,6 +6,7 @@ import { LetterDonationEnvelope } from "@/components/donations/letter-donation-e
 import { tierFromAmount } from "@/lib/tiers";
 import { cn } from "@/lib/utils";
 import { ensureArray } from "@/lib/ensure-array";
+import { formatUsd } from "@/lib/money";
 import type { LiveSupportEventType } from "@prisma/client";
 
 export type LiveTipAlert = {
@@ -35,7 +36,11 @@ function LiveDonationAlertCard({ tip }: { tip: LiveTipAlert }) {
   const isCheer = tip.kind === "cheer";
   const isChat = tip.kind === "chat";
   const isLetter = tip.kind === "letter" || (!!tip.message?.trim() && tip.kind === "tip");
-  const unit = isCheer ? "CP" : isChat ? "" : "후원";
+  const amountDisplay = isCheer
+    ? `${tip.amount.toLocaleString()} CP`
+    : isChat
+      ? null
+      : formatUsd(tip.amount);
 
   let headline: ReactNode;
   if (isChat) {
@@ -58,7 +63,7 @@ function LiveDonationAlertCard({ tip }: { tip: LiveTipAlert }) {
       <>
         <span className="text-[#5dff6a]">{name}</span>
         <span className="text-white font-bold">님 TTS</span>
-        <span className="text-[#ffe44d] tabular-nums">{tip.amount.toLocaleString()} {unit}</span>
+        <span className="text-[#ffe44d] tabular-nums">{amountDisplay}</span>
       </>
     );
   } else if (tip.eventType === "SOUND") {
@@ -66,7 +71,7 @@ function LiveDonationAlertCard({ tip }: { tip: LiveTipAlert }) {
       <>
         <span className="text-[#5dff6a]">{name}</span>
         <span className="text-white font-bold">님 사운드</span>
-        <span className="text-[#ffe44d] tabular-nums">{tip.amount.toLocaleString()} {unit}</span>
+        <span className="text-[#ffe44d] tabular-nums">{amountDisplay}</span>
       </>
     );
   } else if (tip.eventType === "VOTE") {
@@ -74,7 +79,7 @@ function LiveDonationAlertCard({ tip }: { tip: LiveTipAlert }) {
       <>
         <span className="text-[#5dff6a]">{name}</span>
         <span className="text-white font-bold">님 투표</span>
-        <span className="text-[#ffe44d] tabular-nums">{tip.amount.toLocaleString()} {unit}</span>
+        <span className="text-[#ffe44d] tabular-nums">{amountDisplay}</span>
       </>
     );
   } else {
@@ -84,7 +89,7 @@ function LiveDonationAlertCard({ tip }: { tip: LiveTipAlert }) {
         <span className="text-white font-bold">님이</span>
         <OreIcon tier={tier} size={28} className="inline-block drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]" />
         <span className="text-[#ffe44d] tabular-nums">
-          {tip.amount.toLocaleString()} {unit}!
+          {amountDisplay}!
         </span>
       </>
     );
@@ -102,7 +107,7 @@ function LiveDonationAlertCard({ tip }: { tip: LiveTipAlert }) {
       {isLetter && tip.message?.trim() ? (
         <div className="py-1">
           <p className="text-[11px] font-bold text-amber-100 mb-2" style={{ textShadow: STROKE }}>
-            {name}님의 편지 후원 · {tip.amount.toLocaleString()}원
+            {name}님의 편지 후원 · {formatUsd(tip.amount)}
           </p>
           <LetterDonationEnvelope
             amount={tip.amount}

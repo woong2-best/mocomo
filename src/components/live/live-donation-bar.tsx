@@ -1,6 +1,7 @@
 "use client";
 
 import { Gem } from "lucide-react";
+import { formatUsd } from "@/lib/money";
 
 export function LiveDonationBar({
   goalKrw,
@@ -23,12 +24,12 @@ export function LiveDonationBar({
           후원 목표
         </span>
         <span className="tabular-nums">
-          {combined.toLocaleString()} / {goalKrw.toLocaleString()}원 ({pct}%)
+          {formatUsd(combined)} / {formatUsd(goalKrw)} ({pct}%)
         </span>
       </div>
       {(cheerCp ?? 0) > 0 && (
         <p className="text-[10px] text-muted-foreground">
-          실제 후원 {totalKrw.toLocaleString()}원 + 응원 CP {(cheerCp ?? 0).toLocaleString()}
+          실제 후원 {formatUsd(totalKrw)} + 응원 CP {(cheerCp ?? 0).toLocaleString()}
         </p>
       )}
       <div className="h-2 rounded-full bg-background/80 overflow-hidden">

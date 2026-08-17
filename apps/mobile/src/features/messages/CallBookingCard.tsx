@@ -17,6 +17,7 @@ import {
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+import { formatUsd } from "@/lib/money";
 
 type Props = {
   bookingId: string;
@@ -152,7 +153,7 @@ export function CallBookingCard({
       <Text style={styles.status}>{formatBookingStatus(booking.status)}</Text>
       <Text style={styles.row}>{formatSchedule(booking.scheduledStartAt, booking.durationMinutes)}</Text>
       <Text style={styles.row}>
-        {booking.durationMinutes}분 · {booking.amountKrw.toLocaleString()}원
+        {booking.durationMinutes}분 · {formatUsd(booking.amountKrw)}
       </Text>
       {booking.fanNote ? <Text style={styles.note}>메모: {booking.fanNote}</Text> : null}
       {booking.refund?.status === "REQUESTED" ? (

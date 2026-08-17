@@ -5,6 +5,7 @@ import { Check, Film, Loader2, Play, SkipForward, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { LiveVideoDonationPayload } from "@/lib/video-donation";
 import { formatSecLabel, youtubeEmbedUrl } from "@/lib/video-donation";
+import { formatUsd } from "@/lib/money";
 
 export function LiveVideoDonationPanel({
   channelId,
@@ -68,7 +69,7 @@ export function LiveVideoDonationPanel({
           {queue.map((item) => (
             <div key={item.id} className="text-xs border-b border-border/50 pb-2 last:border-0">
               <p className="font-medium truncate">
-                {item.username} · {item.amount.toLocaleString()}원
+                {item.username} · {formatUsd(item.amount)}
               </p>
               <p className="text-muted-foreground truncate">
                 {item.videoTitle ?? item.videoUrl ?? "URL 없음"}
@@ -155,7 +156,7 @@ function VideoDonationPlayer({
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        {item.username} · {item.amount.toLocaleString()}원
+        {item.username} · {formatUsd(item.amount)}
       </p>
       {item.description && (
         <p className="text-xs bg-muted/50 rounded-md px-2 py-1.5 leading-snug">{item.description}</p>

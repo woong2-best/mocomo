@@ -5,6 +5,7 @@ import { SendEmoticonForm } from "@/components/market/send-emoticon-form";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { EmoticonPreview } from "@/components/market/emoticon-preview";
+import { formatUsd } from "@/lib/money";
 
 export async function SupportStoragePanel() {
   const session = await auth();
@@ -58,7 +59,7 @@ export async function SupportStoragePanel() {
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {item.pricePaid.toLocaleString()}원 구매
+                    {formatUsd(item.pricePaid)} 구매
                     {item.gift && ` · @${item.gift.receiver.username}에게 전송`}
                   </p>
                 </div>

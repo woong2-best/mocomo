@@ -10,6 +10,7 @@ import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+import { formatUsd } from "@/lib/money";
 
 export function MarketOrdersScreen() {
   const { colors } = useTheme();
@@ -62,11 +63,11 @@ export function MarketOrdersScreen() {
               </View>
               {item.items.map((line, i) => (
                 <Text key={`${item.id}-${i}`} style={styles.line} numberOfLines={2}>
-                  {line.title} × {line.quantity} · {line.unitPrice.toLocaleString()}원
+                  {line.title} × {line.quantity} · {formatUsd(line.unitPrice)}
                 </Text>
               ))}
               <Text style={styles.total}>
-                합계 {(item.subtotalAmount + item.shippingAmount).toLocaleString()}원
+                합계 {formatUsd(item.subtotalAmount + item.shippingAmount)}
               </Text>
               {role === "buyer" && item.seller ? (
                 <Text style={styles.party}>판매자 @{item.seller.username}</Text>

@@ -5,6 +5,7 @@ import { createPhysicalOrderDraft } from "@/actions/goods-shop";
 import { PayButton } from "@/components/payments/pay-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatUsd } from "@/lib/money";
 
 export function PhysicalPurchaseForm({
   productId,
@@ -61,7 +62,7 @@ export function PhysicalPurchaseForm({
       <div className="space-y-3 rounded-2xl border border-border/60 p-4 bg-muted/20">
         <p className="font-semibold">주문서 준비 완료</p>
         <p className="text-sm">
-          결제 금액: <strong className="text-neon-cyan">{amount.toLocaleString()}원</strong>
+          결제 금액: <strong className="text-neon-cyan">{formatUsd(amount)}</strong>
         </p>
         {paymentsEnabled ? (
           <PayButton
@@ -100,8 +101,8 @@ export function PhysicalPurchaseForm({
         />
       </div>
       <p className="text-sm text-muted-foreground">
-        상품 {unitPrice.toLocaleString()}원 × {qty} + 배송 {shippingFee.toLocaleString()}원 ={" "}
-        <strong>{previewTotal.toLocaleString()}원</strong>
+        상품 {formatUsd(unitPrice)} × {qty} + 배송 {formatUsd(shippingFee)} ={" "}
+        <strong>{formatUsd(previewTotal)}</strong>
       </p>
       {error && <p className="text-sm text-destructive">{error}</p>}
       <Button type="submit" className="w-full rounded-2xl" disabled={loading}>

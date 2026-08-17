@@ -149,7 +149,7 @@ export function MarketSellItemScreen() {
         <Text style={styles.label}>카테고리</Text>
         <TextInput style={styles.input} value={category} onChangeText={setCategory} />
 
-        <Text style={styles.label}>가격 (원)</Text>
+        <Text style={styles.label}>가격 (USD)</Text>
         <TextInput
           style={styles.input}
           value={price}

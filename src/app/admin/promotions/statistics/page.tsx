@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { adminPromotionStatsAction } from "@/actions/admin-promotions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatUsd } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
@@ -41,9 +42,9 @@ export default async function AdminPromotionStatsPage() {
                 <span className="text-muted-foreground">사용률</span>
                 <span>{d.usageRate}%</span>
                 <span className="text-muted-foreground">절감</span>
-                <span>₩{d.usedBenefitKrw.toLocaleString()}</span>
+                <span>{formatUsd(d.usedBenefitKrw)}</span>
                 <span className="text-muted-foreground">평균 절감</span>
-                <span>₩{d.avgBenefitKrw.toLocaleString()}</span>
+                <span>{formatUsd(d.avgBenefitKrw)}</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-muted">
                 <div
@@ -55,7 +56,7 @@ export default async function AdminPromotionStatsPage() {
                 <ul className="border-t border-border/50 pt-2 text-xs text-muted-foreground">
                   {d.recentUsages.map((u, i) => (
                     <li key={i}>
-                      @{u.username} · ₩{u.benefitAppliedKrw.toLocaleString()} ·{" "}
+                      @{u.username} · {formatUsd(u.benefitAppliedKrw)} ·{" "}
                       {new Date(u.createdAt).toISOString().slice(0, 10)}
                     </li>
                   ))}

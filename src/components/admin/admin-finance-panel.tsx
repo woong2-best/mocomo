@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { markPayoutPaid, rejectPayout } from "@/actions/admin-finance";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatUsd } from "@/lib/money";
 
 type Dashboard = Awaited<ReturnType<typeof import("@/actions/admin-finance").getFinanceDashboard>>;
 
@@ -44,26 +45,26 @@ export function AdminFinancePanel({ data }: { data: Dashboard }) {
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">총 결제액 (장부)</p>
-            <p className="text-xl font-bold">{stats.totalGross.toLocaleString()}원</p>
+            <p className="text-xl font-bold">{formatUsd(stats.totalGross)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">플랫폼 수익 (수수료·등록비·프리미엄)</p>
-            <p className="text-xl font-bold text-primary">{stats.platformRevenue.toLocaleString()}원</p>
+            <p className="text-xl font-bold text-primary">{formatUsd(stats.platformRevenue)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">판매자 미지급 잔액</p>
-            <p className="text-xl font-bold">{stats.sellerBalances.toLocaleString()}원</p>
+            <p className="text-xl font-bold">{formatUsd(stats.sellerBalances)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">출금 대기</p>
             <p className="text-xl font-bold">
-              {stats.pendingPayoutAmount.toLocaleString()}원 ({stats.pendingPayoutCount}건)
+              {formatUsd(stats.pendingPayoutAmount)} ({stats.pendingPayoutCount}건)
             </p>
           </CardContent>
         </Card>
@@ -91,7 +92,7 @@ export function AdminFinancePanel({ data }: { data: Dashboard }) {
             pendingPayouts.map((p) => (
               <div key={p.id} className="border rounded-lg p-3 text-sm space-y-2">
                 <p className="font-medium">
-                  @{p.user.username} · {p.amount.toLocaleString()}원
+                  @{p.user.username} · {formatUsd(p.amount)}
                 </p>
                 <p className="text-muted-foreground">
                   {p.bankName} {p.accountNumber} · {p.holderName}
@@ -124,7 +125,7 @@ export function AdminFinancePanel({ data }: { data: Dashboard }) {
                   {TYPE_LABELS[pi.type] ?? pi.type} · @{pi.user.username}
                 </span>
                 <span className="font-medium">
-                  {pi.amount.toLocaleString()}원
+                  {formatUsd(pi.amount)}
                   {pi.paidAt && (
                     <span className="text-muted-foreground text-xs ml-1">
                       {new Date(pi.paidAt).toLocaleDateString("ko-KR")}

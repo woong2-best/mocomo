@@ -31,15 +31,15 @@ export async function POST(req: NextRequest) {
   // Use inline payout from wallet action logic instead.
 
   const { db } = await import("@/lib/db");
-  const { MIN_PAYOUT_KRW } = await import("@/lib/settlement");
+  const { MIN_PAYOUT_USD_CENTS, formatUsd } = await import("@/lib/money");
   const { apickBankLabel } = await import("@/lib/apick/bank-codes");
 
   const userId = auth.user.id;
   const amount = parsed.data.amount;
 
-  if (amount < MIN_PAYOUT_KRW) {
+  if (amount < MIN_PAYOUT_USD_CENTS) {
     return NextResponse.json(
-      { error: `최소 출금 금액은 ${MIN_PAYOUT_KRW.toLocaleString()}원입니다.` },
+      { error: `최소 출금 금액은 ${formatUsd(MIN_PAYOUT_USD_CENTS)}입니다.` },
       { status: 400 }
     );
   }

@@ -11,6 +11,7 @@ import { LiveRoomFollowButton } from "@/components/live/live-room-follow-button"
 import { liveCategoryLabel } from "@/lib/live-categories";
 import { ensureArray, ensureStringArray } from "@/lib/ensure-array";
 import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
+import { formatUsd } from "@/lib/money";
 
 export function LiveStudioHeader({
   channelId,
@@ -133,7 +134,7 @@ export function LiveStudioHeader({
           </span>
           {ensureArray<{ username: string; amount: number }>(tipRanking).map((t, i) => (
             <span key={`${t.username}-${i}`} className="px-2 py-0.5 rounded-full bg-muted">
-              @{t.username} {t.amount.toLocaleString()}원
+              @{t.username} {formatUsd(t.amount)}
             </span>
           ))}
         </div>

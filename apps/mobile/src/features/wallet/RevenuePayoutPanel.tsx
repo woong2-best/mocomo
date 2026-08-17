@@ -6,7 +6,7 @@ import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 
-const MIN_PAYOUT = 10_000;
+import { formatUsd, MIN_PAYOUT_USD_CENTS } from "@/lib/money";
 
 type Props = {
   withdrawable: number;
@@ -22,8 +22,8 @@ export function RevenuePayoutPanel({ withdrawable, bankReady }: Props) {
 
   async function submit() {
     const n = Number(amount.replace(/\D/g, ""));
-    if (n < MIN_PAYOUT) {
-      Alert.alert("출금", `최소 ${MIN_PAYOUT.toLocaleString("ko-KR")}원 이상 신청할 수 있습니다.`);
+    if (n < MIN_PAYOUT_USD_CENTS) {
+      Alert.alert("출금", `최소 ${formatUsd(MIN_PAYOUT_USD_CENTS)} 이상 신청할 수 있습니다.`);
       return;
     }
     if (n > withdrawable) {
@@ -47,7 +47,7 @@ export function RevenuePayoutPanel({ withdrawable, bankReady }: Props) {
     <View style={[styles.box, { borderColor: colors.hairline, backgroundColor: colors.surfaceRaised }]}>
       <Text style={[styles.heading, { color: colors.text }]}>출금 신청</Text>
       <Text style={[styles.body, { color: colors.textMuted }]}>
-        출금 가능 {withdrawable.toLocaleString("ko-KR")}원 · 최소 {MIN_PAYOUT.toLocaleString("ko-KR")}원
+        출금 가능 {formatUsd(withdrawable)} · 최소 {formatUsd(MIN_PAYOUT_USD_CENTS)}
       </Text>
       {!bankReady ? (
         <Text style={[styles.body, { color: colors.danger }]}>먼저 수익 입금 계좌를 1원 인증으로 등록해 주세요.</Text>
@@ -65,7 +65,7 @@ export function RevenuePayoutPanel({ withdrawable, bankReady }: Props) {
             label={busy ? "신청 중…" : "출금 신청"}
             onPress={() => void submit()}
             loading={busy}
-            disabled={withdrawable < MIN_PAYOUT}
+            disabled={withdrawable < MIN_PAYOUT_USD_CENTS}
           />
         </>
       )}

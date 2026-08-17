@@ -272,7 +272,7 @@ export async function createMarketplaceListingForUser(
       category: input.category,
       tags: (input.tags ?? []).map((t) => t.trim()).filter(Boolean).slice(0, 20),
       priceAmount: Math.floor(input.priceAmount),
-      currency: (input.currency ?? "krw").toLowerCase(),
+      currency: (input.currency ?? "usd").toLowerCase(),
       stock: Math.max(0, Math.floor(input.stock ?? 1)),
       options: input.options ? (input.options as Prisma.InputJsonValue) : undefined,
       status: publish ? "ACTIVE" : "DRAFT",

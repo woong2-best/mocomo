@@ -1,6 +1,7 @@
 "use client";
 
 import { PayButton } from "@/components/payments/pay-button";
+import { formatUsd } from "@/lib/money";
 
 export function PurchaseEpisodeButton({
   episodeId,
@@ -29,7 +30,7 @@ export function PurchaseEpisodeButton({
       metadata={{ episodeId }}
       className="w-full rounded-xl"
     >
-      {price.toLocaleString()}원 구매 · 전체 보기
+      {formatUsd(price)} 구매 · 전체 보기
     </PayButton>
   );
 }

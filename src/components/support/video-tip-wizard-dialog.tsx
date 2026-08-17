@@ -34,6 +34,7 @@ import {
   youtubeEmbedUrl,
 } from "@/lib/video-donation";
 import { calcPlatformFee } from "@/lib/utils";
+import { formatUsd } from "@/lib/money";
 
 type PreviewData = {
   videoId: string;
@@ -436,8 +437,8 @@ export function VideoTipWizardDialog({
                 </>
               )}
               <p className="text-[10px] text-white/40">
-                초당 {settings.rateKrwPerSec.toLocaleString()}원 × {durationSec}초 ={" "}
-                {baseAmount.toLocaleString()}원 (최소 {settings.minKrw.toLocaleString()}원)
+                초당 {formatUsd(settings.rateKrwPerSec)} × {durationSec}초 ={" "}
+                {formatUsd(baseAmount)} (최소 {formatUsd(settings.minKrw)})
               </p>
             </div>
 
@@ -464,7 +465,7 @@ export function VideoTipWizardDialog({
               <p className="font-semibold text-sm flex items-center gap-1">
                 후원 금액 <Info className="h-3.5 w-3.5 text-white/40" />
               </p>
-              <span className="text-[10px] text-white/50">수수료 10% · 정산 { (effectiveAmount - fee).toLocaleString()}원</span>
+              <span className="text-[10px] text-white/50">수수료 10% · 정산 {formatUsd(effectiveAmount - fee)}</span>
             </div>
 
             <div className="rounded-xl bg-black/40 border border-white/10 p-4 flex items-center gap-3">
@@ -514,7 +515,7 @@ export function VideoTipWizardDialog({
             </div>
 
             <p className="text-xs text-white/50">
-              재생 {durationSec}초 기준 자동 금액 {baseAmount.toLocaleString()}원 · 더 후원하려면 금액을
+              재생 {durationSec}초 기준 자동 금액 {formatUsd(baseAmount)} · 더 후원하려면 금액을
               올릴 수 있습니다.
             </p>
 
@@ -543,7 +544,7 @@ export function VideoTipWizardDialog({
               </p>
               {description && <p className="text-white/70">&ldquo;{description}&rdquo;</p>}
               <p className="text-emerald-400 font-bold text-base pt-1">
-                {effectiveAmount.toLocaleString()}원
+                {formatUsd(effectiveAmount)}
               </p>
             </div>
 
@@ -584,7 +585,7 @@ export function VideoTipWizardDialog({
               className="w-full rounded-full h-12 bg-emerald-500 hover:bg-emerald-600 text-black font-bold gap-2"
             >
               <Play className="h-4 w-4 fill-current" />
-              {effectiveAmount.toLocaleString()}원 후원하기
+              {formatUsd(effectiveAmount)} 후원하기
             </PayButton>
 
             <Button variant="ghost" className="w-full text-white/50" onClick={() => setStep(3)}>

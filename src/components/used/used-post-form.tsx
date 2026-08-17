@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createUsedListing } from "@/actions/used-market";
 import { UsedImageComposer } from "@/components/media/post-media-composer";
-import { MAX_USED_LISTING_PRICE, USED_CATEGORIES } from "@/lib/used-market";
+import { MAX_USED_LISTING_PRICE, MAX_USED_LISTING_PRICE_LABEL, USED_CATEGORIES } from "@/lib/used-market";
 import { USED_PRODUCT_TYPES } from "@/lib/used-catalog";
 import { UsedWorkTitleField } from "@/components/used/used-work-title-field";
 import {
@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import type { UsedListingAiDraft } from "@/lib/used-listing-ai";
 import { cn } from "@/lib/utils";
 
-const PRICE_OVER_LIMIT_MSG = "최대 21억 원까지 입력할 수 있습니다.";
+const PRICE_OVER_LIMIT_MSG = `최대 ${MAX_USED_LISTING_PRICE_LABEL}까지 입력할 수 있습니다.`;
 
 export function UsedPostForm({
   defaultRegion,
@@ -235,7 +235,7 @@ export function UsedPostForm({
         <div className="space-y-1.5">
           <Input
             type="number"
-            placeholder={saleType === "AUCTION" ? "경매 시작가 (원)" : "가격 (원)"}
+            placeholder={saleType === "AUCTION" ? "경매 시작가 (USD)" : "가격 (USD)"}
             value={price}
             onChange={(e) => setPrice(e.target.value)}
             className={cn(

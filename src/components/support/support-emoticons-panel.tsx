@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getEmoticonPacks } from "@/actions/goods-shop";
 import { EmoticonPreview } from "@/components/market/emoticon-preview";
+import { formatUsd } from "@/lib/money";
 
 export async function SupportEmoticonsPanel({
   priceFilter,
@@ -36,7 +37,7 @@ export async function SupportEmoticonsPanel({
               <div className="p-3">
                 <p className="font-semibold text-sm truncate">{p.name}</p>
                 <p className="text-primary font-bold text-sm mt-1">
-                  {p.price.toLocaleString()}원
+                  {formatUsd(p.price)}
                 </p>
               </div>
             </Link>

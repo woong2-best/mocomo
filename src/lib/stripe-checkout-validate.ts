@@ -3,7 +3,13 @@ import { db } from "@/lib/db";
 import { PREMIUM_USD_CENTS } from "@/lib/payments";
 import { isMediaContentLocked } from "@/lib/content-access";
 import { isSubscriptionActive } from "@/lib/creator-subscription";
-import { LISTING_FEE_KRW } from "@/lib/goods-shop";
+import {
+  formatMoney,
+  LISTING_FEE_USD_CENTS,
+  MAX_TIP_USD_CENTS,
+  MIN_TIP_USD_CENTS,
+  EVENT_REGISTRATION_FEE_PER_DAY_USD_CENTS,
+} from "@/lib/money";
 import {
   calcEventRegistrationFee,
   EVENT_REGISTRATION_MAX_DAYS,
@@ -54,7 +60,7 @@ export async function validatePaymentInput(
       }
       if (input.amount < LETTER_DONATION_MIN_KRW) {
         return {
-          error: `편지 후원 최소 금액은 ${LETTER_DONATION_MIN_KRW.toLocaleString()}원입니다.`,
+          error: `편지 후원 최소 금액은 ${formatMoney(LETTER_DONATION_MIN_KRW)}입니다.`,
         };
       }
       if (roomId?.trim()) {
@@ -90,16 +96,17 @@ export async function validatePaymentInput(
       const expected = calcVideoDonationAmount(durationSec, settings);
       if (input.amount < expected) {
         return {
-          error: `영상 후원 최소 금액은 ${expected.toLocaleString()}원입니다.`,
+          error: `영상 후원 최소 금액은 ${formatMoney(expected)}입니다.`,
         };
       }
     } else {
-      const min = 100;
-      if (input.amount < min) {
-        return { error: "최소 후원 금액은 100원입니다." };
+      if (input.amount < MIN_TIP_USD_CENTS) {
+        return { error: `최소 후원 금액은 ${formatMoney(MIN_TIP_USD_CENTS)}입니다.` };
       }
     }
-    if (input.amount > 10_000_000) return { error: "1회 후원 한도는 1,000만원입니다." };
+    if (input.amount > MAX_TIP_USD_CENTS) {
+      return { error: `1회 후원 한도는 ${formatMoney(MAX_TIP_USD_CENTS)}입니다.` };
+    }
   }
 
   if (input.type === "PRODUCT") {
@@ -149,7 +156,9 @@ export async function validatePaymentInput(
   }
 
   if (input.type === "LISTING_FEE") {
-    if (input.amount !== LISTING_FEE_KRW) return { error: "등록비는 5,000원입니다." };
+    if (input.amount !== LISTING_FEE_USD_CENTS) {
+      return { error: `등록비는 ${formatMoney(LISTING_FEE_USD_CENTS)}입니다.` };
+    }
     const requestId = input.metadata.requestId as string;
     const req = await db.goodsListingRequest.findUnique({ where: { id: requestId } });
     if (!req || req.sellerId !== userId) return { error: "굿즈 등록 요청을 찾을 수 없습니다." };
@@ -178,7 +187,7 @@ export async function validatePaymentInput(
     const expectedFee = calcEventRegistrationFee(event.startsAt, event.endsAt);
     if (input.amount !== expectedFee) {
       return {
-        error: `이벤트 등록비는 ${expectedFee.toLocaleString()}원입니다. (${days}일 × 1,000원)`,
+        error: `이벤트 등록비는 ${formatMoney(expectedFee)}입니다. (${days}일 × ${formatMoney(EVENT_REGISTRATION_FEE_PER_DAY_USD_CENTS)})`,
       };
     }
   }

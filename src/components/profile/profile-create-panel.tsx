@@ -164,7 +164,7 @@ export function ProfileCreatePanel({
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <label htmlFor="profile-media-price" className="text-xs font-medium text-muted-foreground">
-            유료 판매 (선택, 100원~)
+            유료 판매 (선택, $1.00~)
           </label>
           <Input
             id="profile-media-price"
@@ -187,7 +187,7 @@ export function ProfileCreatePanel({
             <Input
               id="profile-instant-price"
               inputMode="numeric"
-              placeholder="예: 80,000"
+              placeholder="예: 8000 ($80.00)"
               value={instantPriceKrw}
               onChange={(e) => setInstantPriceKrw(e.target.value.replace(/[^\d,]/g, ""))}
               disabled={pending}

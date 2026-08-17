@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { formatUsd } from "@/lib/money";
 import { CreditCard, Loader2, Plus } from "lucide-react";
 
 type Props = {
@@ -37,9 +38,8 @@ type Props = {
   onSuccess?: (result: { type: string; redirectPath?: string }) => void;
 };
 
-function formatAmount(type: PaymentIntentType, amount: number) {
-  if (type === "PREMIUM") return `$${(amount / 100).toFixed(2)}`;
-  return `${amount.toLocaleString("ko-KR")}원`;
+function formatAmount(_type: PaymentIntentType, amount: number) {
+  return formatUsd(amount);
 }
 
 export function PaymentCheckoutSheet({

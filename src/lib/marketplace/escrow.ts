@@ -4,6 +4,7 @@ import { creditSellerEarning } from "@/lib/settlement";
 import { logMarketplaceAudit, MarketplaceAuditActions } from "@/lib/marketplace/audit";
 import { refreshSellerTrust, settlementDelayDaysForSeller } from "@/lib/marketplace/trust";
 import { createNotification } from "@/lib/notifications";
+import { formatUsd } from "@/lib/money";
 
 /**
  * Escrow: platform holds funds until purchase confirm (+ tier delay).
@@ -116,7 +117,7 @@ export async function releaseMarketplaceEscrow(
   if (connectReady && isStripeConfigured() && order.seller.stripeConnectAccountId) {
     try {
       const stripe = getStripe();
-      const currency = (order.currency || "krw").toLowerCase();
+      const currency = (order.currency || "usd").toLowerCase();
       const transfer = await stripe.transfers.create({
         amount: order.sellerEarnAmount,
         currency,
@@ -178,7 +179,7 @@ export async function releaseMarketplaceEscrow(
     userId: order.sellerId,
     type: "SYSTEM",
     title: "정산이 완료되었습니다",
-    body: `${order.sellerEarnAmount.toLocaleString()}원이 정산되었습니다.`,
+    body: `${formatUsd(order.sellerEarnAmount)}이 정산되었습니다.`,
     link: `/market/orders/${order.id}`,
   });
 

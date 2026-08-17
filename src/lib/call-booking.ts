@@ -6,8 +6,10 @@ import { createNotification } from "@/lib/notifications";
 import { recordPaymentGross, recordPlatformFee, creditSellerEarning, splitPlatformFee } from "@/lib/settlement";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 
-export const MIN_CALL_BOOKING_KRW = 5_000;
-export const MAX_CALL_BOOKING_KRW = 500_000;
+export {
+  MIN_CALL_BOOKING_USD_CENTS as MIN_CALL_BOOKING_KRW,
+  MAX_CALL_BOOKING_USD_CENTS as MAX_CALL_BOOKING_KRW,
+} from "@/lib/money";
 export const MIN_BOOKING_LEAD_MINUTES = 60;
 
 export type CreatorCallSettings = {

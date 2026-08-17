@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { formatUsd } from "@/lib/money";
 
 type AlertItem = {
   id: string;
@@ -17,14 +18,13 @@ function SideAlertCard({ item }: { item: AlertItem }) {
   const name = item.username.startsWith("@") ? item.username.slice(1) : item.username;
   const isChat = item.kind === "chat";
   const isCheer = item.kind === "cheer";
-  const unit = isCheer ? " CP" : isChat ? "" : "원";
 
   let title = "";
   if (isChat) title = `${name} · 채팅`;
   else if (item.eventType === "ROULETTE" && item.rouletteLabel) {
     title = `${name} 룰렛 · ${item.rouletteLabel}`;
-  } else if (isCheer) title = `${name} · ${item.amount.toLocaleString()}${unit}`;
-  else title = `${name} · ${item.amount.toLocaleString()}${unit}`;
+  } else if (isCheer) title = `${name} · ${item.amount.toLocaleString()} CP`;
+  else title = `${name} · ${formatUsd(item.amount)}`;
 
   return (
     <div

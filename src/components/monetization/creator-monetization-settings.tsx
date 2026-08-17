@@ -63,7 +63,7 @@ export function CreatorMonetizationSettings() {
           <div className="flex flex-wrap items-end gap-2">
             <div className="space-y-1 flex-1 min-w-[140px]">
               <label htmlFor="sub-price" className="text-xs font-medium text-muted-foreground">
-                월 구독료 (원)
+                월 구독료 (USD)
               </label>
               <Input
                 id="sub-price"

@@ -37,12 +37,10 @@ import { getMarketplaceCartCount } from "@/lib/marketplace-cart";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, shadows, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+import { formatUsd } from "@/lib/money";
 
-function formatPrice(amount: number, currency: string) {
-  if (currency === "KRW" || !currency) {
-    return `${amount.toLocaleString("ko-KR")}원`;
-  }
-  return `${amount.toLocaleString()} ${currency}`;
+function formatPrice(amount: number, _currency?: string) {
+  return formatUsd(amount);
 }
 
 function typeBadge(type: string) {

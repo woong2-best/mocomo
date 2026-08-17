@@ -11,6 +11,7 @@ import {
   EVENT_REGISTRATION_MAX_DAYS,
   EVENT_REGISTRATION_MAX_FEE_KRW,
 } from "@/lib/event-registration";
+import { formatUsd } from "@/lib/money";
 
 export default async function NewEventPage({
   searchParams,
@@ -43,9 +44,9 @@ export default async function NewEventPage({
             이벤트 등록
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            등록비 하루 {EVENT_REGISTRATION_FEE_PER_DAY_KRW.toLocaleString()}원 (최대{" "}
-            {EVENT_REGISTRATION_MAX_DAYS}일 · {EVENT_REGISTRATION_MAX_FEE_KRW.toLocaleString()}
-            원) · 결제 후 목록에 공개됩니다
+            등록비 하루 {formatUsd(EVENT_REGISTRATION_FEE_PER_DAY_KRW)} (최대{" "}
+            {EVENT_REGISTRATION_MAX_DAYS}일 · {formatUsd(EVENT_REGISTRATION_MAX_FEE_KRW)}
+            ) · 결제 후 목록에 공개됩니다
           </p>
         </div>
       </NativePageTitle>

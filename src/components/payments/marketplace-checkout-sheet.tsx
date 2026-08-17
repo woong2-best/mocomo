@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { formatMoney } from "@/lib/money";
 import { CreditCard, Loader2, Plus } from "lucide-react";
 
 type Props = {
@@ -154,7 +155,7 @@ export function MarketplaceCheckoutSheet({
           <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
             <p className="text-sm text-muted-foreground">{orderName || "마켓 구매"}</p>
             <p className="text-2xl font-black mt-1">
-              {amount > 0 ? `${amount.toLocaleString("ko-KR")}원` : "—"}
+              {amount > 0 ? formatMoney(amount) : "—"}
             </p>
           </div>
 

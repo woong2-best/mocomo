@@ -1,12 +1,13 @@
 import { getAllUsedRegions, isValidUsedRegion, KOREA_SIDO, USED_SHIPPING_REGION } from "@/lib/korea-regions";
 import { meetExternalMapUrl } from "@/lib/maps/external-url";
 import type { MeetCoords } from "@/lib/maps/types";
+import { formatMoney, formatUsd, MAX_USED_LISTING_PRICE_USD_CENTS } from "@/lib/money";
 
 export type { MeetCoords } from "@/lib/maps/types";
 
-/** 중고거래 최대 가격: 21억 원 */
-export const MAX_USED_LISTING_PRICE = 2_100_000_000;
-export const MAX_USED_LISTING_PRICE_LABEL = "21억 원";
+/** 중고거래 최대 가격 (USD cents) */
+export const MAX_USED_LISTING_PRICE = MAX_USED_LISTING_PRICE_USD_CENTS;
+export const MAX_USED_LISTING_PRICE_LABEL = formatUsd(MAX_USED_LISTING_PRICE_USD_CENTS);
 
 export const USED_CATEGORIES = [
   { id: "DIGITAL", label: "디지털/가전" },
@@ -28,8 +29,7 @@ export function usedCategoryLabel(id: string) {
 }
 
 export function formatUsedPrice(price: number) {
-  if (price === 0) return "나눔";
-  return `${price.toLocaleString()}원`;
+  return formatMoney(price, { freeLabel: "나눔" });
 }
 
 export function formatUsedTimeAgo(date: Date | string) {

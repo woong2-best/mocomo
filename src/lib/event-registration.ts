@@ -1,8 +1,15 @@
-/** 사용자 이벤트 등록비 — 하루 1,000원, 최대 100일 (결제 후 목록 공개) */
-export const EVENT_REGISTRATION_FEE_PER_DAY_KRW = 1_000;
-export const EVENT_REGISTRATION_MAX_DAYS = 100;
-export const EVENT_REGISTRATION_MAX_FEE_KRW =
-  EVENT_REGISTRATION_FEE_PER_DAY_KRW * EVENT_REGISTRATION_MAX_DAYS;
+import {
+  EVENT_REGISTRATION_FEE_PER_DAY_USD_CENTS,
+  EVENT_REGISTRATION_MAX_DAYS,
+  EVENT_REGISTRATION_MAX_FEE_USD_CENTS,
+  formatUsd,
+} from "@/lib/money";
+
+/** 사용자 이벤트 등록비 — 하루 $1.00, 최대 100일 (결제 후 목록 공개) */
+export const EVENT_REGISTRATION_FEE_PER_DAY_KRW = EVENT_REGISTRATION_FEE_PER_DAY_USD_CENTS;
+export const EVENT_REGISTRATION_MAX_FEE_KRW = EVENT_REGISTRATION_MAX_FEE_USD_CENTS;
+
+export { EVENT_REGISTRATION_MAX_DAYS };
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -27,7 +34,7 @@ export function calcEventRegistrationFee(
   if (days > EVENT_REGISTRATION_MAX_DAYS) {
     throw new Error(`이벤트 기간은 최대 ${EVENT_REGISTRATION_MAX_DAYS}일까지 가능합니다.`);
   }
-  return days * EVENT_REGISTRATION_FEE_PER_DAY_KRW;
+  return days * EVENT_REGISTRATION_FEE_PER_DAY_USD_CENTS;
 }
 
 export function eventRegistrationFeeLabel(
@@ -36,10 +43,10 @@ export function eventRegistrationFeeLabel(
 ): string {
   const days = eventDurationDays(startsAt, endsAt);
   const fee = Math.min(
-    days * EVENT_REGISTRATION_FEE_PER_DAY_KRW,
-    EVENT_REGISTRATION_MAX_FEE_KRW
+    days * EVENT_REGISTRATION_FEE_PER_DAY_USD_CENTS,
+    EVENT_REGISTRATION_MAX_FEE_USD_CENTS
   );
-  return `${fee.toLocaleString()}원 (${days}일 × ${EVENT_REGISTRATION_FEE_PER_DAY_KRW.toLocaleString()}원)`;
+  return `${formatUsd(fee)} (${days}일 × ${formatUsd(EVENT_REGISTRATION_FEE_PER_DAY_USD_CENTS)})`;
 }
 
 export const EVENT_TYPES = [

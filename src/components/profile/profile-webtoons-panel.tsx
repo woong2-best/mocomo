@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { isPaymentsConfigured } from "@/lib/payments";
 import { PurchaseEpisodeButton } from "@/components/works/purchase-episode-button";
+import { formatUsd } from "@/lib/money";
 import type { ProfileIllustrationItem } from "@/actions/webtoon";
 import { ImageIcon } from "lucide-react";
 
@@ -34,7 +35,7 @@ export function ProfileWebtoonsPanel({
                   {work.title}
                 </Link>
                 <p className="text-[10px] text-muted-foreground">
-                  {work.price <= 0 ? "무료" : `${work.price.toLocaleString()}원`}
+                  {work.price <= 0 ? "무료" : formatUsd(work.price)}
                 </p>
                 {work.owned ? (
                   <Link

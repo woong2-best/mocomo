@@ -2,6 +2,7 @@ import { after } from "next/server";
 import { db } from "@/lib/db";
 import { extractMentionUsernames } from "@/lib/mention-utils";
 import { userPublicSelectMinimal } from "@/lib/user-public-select";
+import { formatUsd } from "@/lib/money";
 
 export type NotificationInput = {
   userId: string;
@@ -563,7 +564,7 @@ export async function notifyTip(
   opts?: { message?: string | null; channelId?: string | null }
 ) {
   const sender = await getActor(senderId);
-  let body = `${actorLabel(sender)}님이 ${amount.toLocaleString()}원을 후원했습니다.`;
+  let body = `${actorLabel(sender)}님이 ${formatUsd(amount)}을 후원했습니다.`;
   const trimmedMsg = opts?.message?.trim();
   if (trimmedMsg) {
     body += ` «${trimmedMsg.slice(0, 80)}»`;
@@ -630,7 +631,7 @@ export async function notifyEmoticonGift(
     actorId: senderId,
     type: "emoticon_gift",
     title: "이모티콘 선물",
-    body: `${actorLabel(sender)}님이 「${packName}」을 보냈습니다. (+${creatorAmount.toLocaleString()}원)`,
+    body: `${actorLabel(sender)}님이 「${packName}」을 보냈습니다. (+${formatUsd(creatorAmount)})`,
     link: "/support?tab=gifts",
   });
 }
@@ -644,7 +645,7 @@ export async function notifyGoodsOrder(
     userId: sellerId,
     type: "goods_order",
     title: "굿즈 주문",
-    body: `${buyerName}님 주문 · ${total.toLocaleString()}원 결제 완료`,
+    body: `${buyerName}님 주문 · ${formatUsd(total)} 결제 완료`,
     link: "/support",
   });
 }

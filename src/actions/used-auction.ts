@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { formatUsd } from "@/lib/money";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import {
@@ -54,14 +55,14 @@ export async function finalizeExpiredAuctionIfNeeded(listingId: string) {
         userId: winnerId,
         type: "won",
         title: "경매 낙찰 — 결제 필요",
-        body: `${listing.title} · ${amount.toLocaleString()}원 · ${config.paymentDeadlineHours}시간 이내 결제`,
+        body: `${listing.title} · ${formatUsd(amount)} · ${config.paymentDeadlineHours}시간 이내 결제`,
         link: `/used/${listingId}`,
       });
       await sendUsedAuctionNotification({
         userId: listing.sellerId,
         type: "ended",
         title: "경매 낙찰 완료",
-        body: `${listing.title} · ${amount.toLocaleString()}원`,
+        body: `${listing.title} · ${formatUsd(amount)}`,
         link: `/used/${listingId}`,
       });
     } else {
@@ -143,11 +144,11 @@ export async function placeUsedAuctionBid(listingId: string, amount: number) {
 
     const minBid = minNextBidAmount(listing);
     if (bidAmount < minBid) {
-      return { error: `최소 입찰가는 ${minBid.toLocaleString()}원입니다.` };
+      return { error: `최소 입찰가는 ${formatUsd(minBid)}입니다.` };
     }
     if (listing.buyNowPrice != null && bidAmount >= listing.buyNowPrice) {
       return {
-        error: `즉시구매가 ${listing.buyNowPrice.toLocaleString()}원입니다. 즉시구매를 이용해 주세요.`,
+        error: `즉시구매가 ${formatUsd(listing.buyNowPrice)}입니다. 즉시구매를 이용해 주세요.`,
       };
     }
 
@@ -192,7 +193,7 @@ export async function placeUsedAuctionBid(listingId: string, amount: number) {
       userId: listing.sellerId,
       type: "bid",
       title: "새 입찰",
-      body: `${listing.title} · ${bidAmount.toLocaleString()}원`,
+      body: `${listing.title} · ${formatUsd(bidAmount)}`,
       link,
       actorId: user.id,
     });
@@ -201,7 +202,7 @@ export async function placeUsedAuctionBid(listingId: string, amount: number) {
         userId: prevBidderId,
         type: "outbid",
         title: "입찰 갱신됨",
-        body: `${listing.title} · ${bidAmount.toLocaleString()}원`,
+        body: `${listing.title} · ${formatUsd(bidAmount)}`,
         link,
         actorId: user.id,
       });
@@ -217,7 +218,7 @@ export async function placeUsedAuctionBid(listingId: string, amount: number) {
         const listing = await db.usedListing.findUnique({ where: { id: listingId } });
         if (listing) {
           return {
-            error: `다른 분이 먼저 입찰했습니다. 최소 ${minNextBidAmount(listing).toLocaleString()}원 이상으로 입찰해 주세요.`,
+            error: `다른 분이 먼저 입찰했습니다. 최소 ${formatUsd(minNextBidAmount(listing))} 이상으로 입찰해 주세요.`,
           };
         }
       }
@@ -281,7 +282,7 @@ export async function buyNowUsedAuction(listingId: string) {
       userId: listing.sellerId,
       type: "buy_now",
       title: "즉시구매",
-      body: `${listingTitle} · ${buyNow.toLocaleString()}원`,
+      body: `${listingTitle} · ${formatUsd(buyNow)}`,
       link: `/used/${listingId}`,
       actorId: user.id,
     });

@@ -1,5 +1,6 @@
 import type { ThemeColors } from "@/theme/tokens";
 import type { WalletCardModel } from "@/features/wallet/wallet-card-layout";
+import { formatUsd } from "@/lib/money";
 
 export type PaymentMethodItem = {
   id: string;
@@ -10,8 +11,8 @@ export type PaymentMethodItem = {
   isDefault: boolean;
 };
 
-function won(n: number) {
-  return `${n.toLocaleString("ko-KR")}원`;
+function fmtUsd(n: number) {
+  return formatUsd(n);
 }
 
 export function buildRevenueCards(input: {
@@ -29,12 +30,12 @@ export function buildRevenueCards(input: {
       backgroundColor: colors.cobalt,
       eyebrow: "출금 가능 잔액",
       title: "",
-      amount: won(withdrawable),
+      amount: fmtUsd(withdrawable),
       subtitle: bankLabel ?? "출금 계좌 미등록 · 아래에서 1원 인증",
       badge: "CREATOR",
       expandedLines: [
-        `총 수익 ${won(totalEarned)}`,
-        pendingPayout > 0 ? `출금 처리 중 ${won(pendingPayout)}` : "Stripe 즉시 결제 · 정산 후 출금",
+        `총 수익 ${fmtUsd(totalEarned)}`,
+        pendingPayout > 0 ? `출금 처리 중 ${fmtUsd(pendingPayout)}` : "Stripe 즉시 결제 · 정산 후 출금",
         "수익 입금 계좌는 1원 인증으로 등록",
       ],
     },
@@ -43,20 +44,20 @@ export function buildRevenueCards(input: {
       backgroundColor: colors.terracotta,
       eyebrow: "총 수익",
       title: "",
-      amount: won(totalEarned),
-      subtitle: pendingPayout > 0 ? `출금 처리 중 ${won(pendingPayout)}` : "Stripe 정산 · 즉시 결제 수익",
-      expandedLines: [`출금 가능 ${won(withdrawable)}`, "후원 · 마켓 · 구독 등 모든 수익 합산"],
+      amount: fmtUsd(totalEarned),
+      subtitle: pendingPayout > 0 ? `출금 처리 중 ${fmtUsd(pendingPayout)}` : "Stripe 정산 · 즉시 결제 수익",
+      expandedLines: [`출금 가능 ${fmtUsd(withdrawable)}`, "후원 · 마켓 · 구독 등 모든 수익 합산"],
     },
     {
       id: "settlement",
       backgroundColor: "#2a3550",
       eyebrow: "MoCoMo Settlement",
       title: "",
-      amount: won(totalWithdrawn),
+      amount: fmtUsd(totalWithdrawn),
       subtitle: "누적 출금 완료",
       expandedLines: [
-        `현재 출금 가능 ${won(withdrawable)}`,
-        pendingPayout > 0 ? `대기 중 ${won(pendingPayout)}` : "출금 대기 없음",
+        `현재 출금 가능 ${fmtUsd(withdrawable)}`,
+        pendingPayout > 0 ? `대기 중 ${fmtUsd(pendingPayout)}` : "출금 대기 없음",
       ],
     },
   ];

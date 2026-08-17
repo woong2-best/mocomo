@@ -1,7 +1,8 @@
 "use client";
 
 import { SupportTierLevel } from "@prisma/client";
-import { getTierInfo, formatTierAmount } from "@/lib/tiers";
+import { getTierInfo } from "@/lib/tiers";
+import { formatUsd } from "@/lib/money";
 import { OreIcon } from "@/components/support/ore-icon";
 import { cn } from "@/lib/utils";
 
@@ -47,7 +48,7 @@ export function OreTierButton({
         </span>
         {showAmount && (
           <span className="text-[10px] text-muted-foreground">
-            {info.minAmount === 0 ? "0원~" : `${formatTierAmount(info.minAmount)}원~`}
+            {info.minAmount === 0 ? `${formatUsd(0)}~` : `${formatUsd(info.minAmount)}~`}
           </span>
         )}
       </span>

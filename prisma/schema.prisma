@@ -212,7 +212,7 @@ model User {
   /** 계정당 1개 — OBS 방송 키 (방송 세션마다 바뀌지 않음) */
   obsRtmpStreamKey String? @unique
   /** 크리에이터 월 구독료 (원) — Stripe Subscription 연동 전에도 UI·검증용 */
-  creatorSubscriptionPriceKrw Int @default(16900)
+  creatorSubscriptionPriceKrw Int @default(1299)
   /** 1:1 유료 통화 예약 — 크리에이터(코스플레이/스트리머) 전용 */
   creatorCallEnabled        Boolean @default(false)
   creatorCallRateKrwPerHour Int?
@@ -3494,7 +3494,7 @@ model Settlement {
   feeAmountKrw     Int              @default(0)
   discountAmountKrw Int             @default(0)
   netAmountKrw     Int              @default(0)
-  currency         String           @default("krw")
+  currency         String           @default("usd")
   title            String?
   note             String?          @db.Text
   decidedById      String?
@@ -5431,7 +5431,7 @@ model MarketplaceListing {
   category           String
   tags               String[]
   priceAmount        Int
-  currency           String                     @default("krw")
+  currency           String                     @default("usd")
   stock              Int                        @default(1)
   options            Json?
   status             MarketplaceListingStatus   @default(DRAFT)
@@ -5505,7 +5505,7 @@ model MarketplaceOrder {
   shippingAmount     Int                    @default(0)
   platformFeeAmount  Int                    @default(0)
   sellerEarnAmount   Int                    @default(0)
-  currency           String                 @default("krw")
+  currency           String                 @default("usd")
   stripePaymentIntentId String?
   stripeCheckoutSessionId String?
   /** Stripe Transfer id after escrow release */

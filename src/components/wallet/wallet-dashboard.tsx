@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveBankAccount, requestPayout } from "@/actions/wallet";
 import { MIN_PAYOUT_KRW } from "@/lib/settlement";
+import { formatUsd } from "@/lib/money";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,13 +62,13 @@ export function WalletDashboard({ data }: { data: WalletData }) {
           <CardTitle className="text-lg">정산 잔액</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <p className="text-3xl font-black">{withdrawable.toLocaleString()}원</p>
+          <p className="text-3xl font-black">{formatUsd(withdrawable)}</p>
           <p className="text-xs text-muted-foreground">
-            출금 가능 · 총 적립 {data.totalEarned.toLocaleString()}원 · 출금 완료{" "}
-            {data.totalWithdrawn.toLocaleString()}원
+            출금 가능 · 총 적립 {formatUsd(data.totalEarned)} · 출금 완료{" "}
+            {formatUsd(data.totalWithdrawn)}
           </p>
           {data.pendingPayout > 0 && (
-            <p className="text-xs text-amber-700">처리 중 출금 {data.pendingPayout.toLocaleString()}원</p>
+            <p className="text-xs text-amber-700">처리 중 출금 {formatUsd(data.pendingPayout)}</p>
           )}
           <p className="text-xs text-muted-foreground pt-2">
             결제는 Stripe로 수납되며, 수익은 여기 적립 후 출금 신청 → 운영자 확인 후 계좌로
@@ -100,7 +101,7 @@ export function WalletDashboard({ data }: { data: WalletData }) {
           <form onSubmit={submitPayout} className="space-y-3">
             <Input
               type="number"
-              placeholder={`금액 (최소 ${MIN_PAYOUT_KRW.toLocaleString()}원)`}
+              placeholder={`금액 (최소 ${formatUsd(MIN_PAYOUT_KRW)})`}
               value={payoutAmount}
               onChange={(e) => setPayoutAmount(e.target.value)}
               min={MIN_PAYOUT_KRW}
@@ -128,7 +129,7 @@ export function WalletDashboard({ data }: { data: WalletData }) {
                 </span>
                 <span className={e.type === "PAYOUT_REQUEST" ? "text-amber-700" : "text-foreground font-medium"}>
                   {e.type === "PAYOUT_REQUEST" ? "-" : "+"}
-                  {e.amount.toLocaleString()}원
+                  {formatUsd(e.amount)}
                 </span>
               </div>
             ))}

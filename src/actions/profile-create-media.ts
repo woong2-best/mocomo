@@ -7,6 +7,11 @@ import { parseContentVisibility } from "@/lib/creator-subscription";
 import { SETTLEMENT_ACCOUNT_REQUIRED_CODE } from "@/lib/settlement-account";
 import type { MediaType } from "@prisma/client";
 import { COMMUNITY_FEED_PATH } from "@/lib/site-routes";
+import {
+  formatUsd,
+  SALE_MEDIA_MAX_PRICE_USD_CENTS,
+  SALE_MEDIA_MIN_PRICE_USD_CENTS,
+} from "@/lib/money";
 
 export async function createProfileMediaPost(input: {
   content: string;
@@ -29,14 +34,14 @@ export async function createProfileMediaPost(input: {
   const mediaPrice = Math.max(0, Math.floor(input.priceKrw ?? 0));
   const instantPurchasePriceKrw = Math.max(0, Math.floor(input.instantPurchasePriceKrw ?? 0));
 
-  if (mediaPrice > 0 && mediaPrice < 100) {
-    return { error: "유료 판매 가격은 최소 100원부터 설정할 수 있습니다." };
+  if (mediaPrice > 0 && mediaPrice < SALE_MEDIA_MIN_PRICE_USD_CENTS) {
+    return { error: `유료 판매 가격은 최소 ${formatUsd(SALE_MEDIA_MIN_PRICE_USD_CENTS)}부터 설정할 수 있습니다.` };
   }
-  if (instantPurchasePriceKrw > 0 && instantPurchasePriceKrw < 100) {
-    return { error: "즉시 구매 가격은 최소 100원부터 설정할 수 있습니다." };
+  if (instantPurchasePriceKrw > 0 && instantPurchasePriceKrw < SALE_MEDIA_MIN_PRICE_USD_CENTS) {
+    return { error: `즉시 구매 가격은 최소 ${formatUsd(SALE_MEDIA_MIN_PRICE_USD_CENTS)}부터 설정할 수 있습니다.` };
   }
-  if (mediaPrice > 1_000_000 || instantPurchasePriceKrw > 1_000_000) {
-    return { error: "가격은 100만원 이하로 설정해 주세요." };
+  if (mediaPrice > SALE_MEDIA_MAX_PRICE_USD_CENTS || instantPurchasePriceKrw > SALE_MEDIA_MAX_PRICE_USD_CENTS) {
+    return { error: `가격은 ${formatUsd(SALE_MEDIA_MAX_PRICE_USD_CENTS)} 이하로 설정해 주세요.` };
   }
 
   const mediaType: MediaType = input.mediaType === "VIDEO" ? "VIDEO" : "IMAGE";

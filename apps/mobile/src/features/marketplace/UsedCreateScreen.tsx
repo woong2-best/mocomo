@@ -191,7 +191,7 @@ export function UsedCreateScreen() {
         <ScrollView contentContainerStyle={styles.body}>
           <Text style={styles.label}>제목</Text>
           <TextInput style={styles.input} value={title} onChangeText={setTitle} />
-          <Text style={styles.label}>가격 (원)</Text>
+          <Text style={styles.label}>가격 (USD)</Text>
           <TextInput
             style={styles.input}
             value={price}

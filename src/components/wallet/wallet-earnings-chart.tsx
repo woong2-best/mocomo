@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
+import { formatUsd } from "@/lib/money";
 
 type Point = { month: number; label: string; earned: number; withdrawn: number; net: number; cumulative: number };
 
@@ -62,7 +63,7 @@ export function WalletEarningsChart({ months, yearNet, className }: Props) {
               trendUp ? "bg-emerald-500/15 text-emerald-700" : "bg-red-500/15 text-red-700"
             )}
           >
-            {trendUp ? "▲ 상승" : "▼ 하락"} {Math.abs(yearNet).toLocaleString()}원
+            {trendUp ? "▲ 상승" : "▼ 하락"} {formatUsd(Math.abs(yearNet))}
           </span>
         </div>
         <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" role="img" aria-label="연간 누적 수익 그래프">

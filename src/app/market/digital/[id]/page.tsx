@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PurchaseProductButton } from "@/components/market/purchase-product-button";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
+import { formatUsd } from "@/lib/money";
 
 const typeLabels: Record<string, string> = {
   ART: "그림",
@@ -62,7 +63,7 @@ export default async function MarketProductPage({ params }: { params: Promise<{ 
           {product.description && (
             <p className="text-sm text-muted-foreground whitespace-pre-wrap">{product.description}</p>
           )}
-          <p className="text-2xl font-bold text-primary">{product.price.toLocaleString()}원</p>
+          <p className="text-2xl font-bold text-primary">{formatUsd(product.price)}</p>
           {owned ? (
             <Button asChild className="w-full rounded-xl gap-2">
               <a href={product.fileUrl} target="_blank" rel="noreferrer">

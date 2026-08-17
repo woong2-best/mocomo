@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { getWalletSummary, MIN_PAYOUT_KRW } from "@/lib/settlement";
+import { formatUsd } from "@/lib/money";
 import { getWalletEarningsAnalytics } from "@/lib/wallet-analytics";
 
 export async function getMyWallet() {
@@ -46,7 +47,7 @@ export async function saveBankAccount(data: {
 export async function requestPayout(amount: number) {
   const user = await requireAuth();
   if (amount < MIN_PAYOUT_KRW) {
-    return { error: `최소 출금 금액은 ${MIN_PAYOUT_KRW.toLocaleString()}원입니다.` };
+    return { error: `최소 출금 금액은 ${formatUsd(MIN_PAYOUT_KRW)}입니다.` };
   }
 
   try {

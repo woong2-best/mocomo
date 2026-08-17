@@ -3,9 +3,9 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { createEventDraft } from "@/actions/events";
+import { formatUsd } from "@/lib/money";
 import {
   calcEventRegistrationFee,
-  EVENT_REGISTRATION_FEE_PER_DAY_KRW,
   EVENT_REGISTRATION_MAX_DAYS,
   eventDurationDays,
   eventRegistrationFeeLabel,
@@ -178,11 +178,8 @@ export function EventCreateForm({
         <p className="font-semibold text-foreground">이벤트 정보가 저장되었습니다.</p>
         <p className="text-sm text-muted-foreground">
           목록에 공개하려면 등록비{" "}
-          <strong className="text-foreground">
-            {registrationFee.toLocaleString()}원
-          </strong>
-          을 결제해 주세요. ({durationDays}일 ×{" "}
-          {EVENT_REGISTRATION_FEE_PER_DAY_KRW.toLocaleString()}원)
+          <strong className="text-foreground">{formatUsd(registrationFee)}</strong>
+          을 결제해 주세요. ({eventRegistrationFeeLabel(startsAt, endsAt)})
         </p>
         {paymentsEnabled ? (
           <>
@@ -194,7 +191,7 @@ export function EventCreateForm({
               className="w-full rounded-2xl"
               showLegalNotice
             >
-              {registrationFee.toLocaleString()}원 결제하고 공개하기
+              {formatUsd(registrationFee)} 결제하고 공개하기
             </PayButton>
           </>
         ) : (
@@ -481,12 +478,11 @@ export function EventCreateForm({
           className="w-full rounded-xl bg-[#A855F7] hover:bg-[#C084FC]"
           disabled={uploading || durationTooLong}
         >
-          다음: 등록비 결제 ({registrationFee.toLocaleString()}원)
+          다음: 등록비 결제 ({formatUsd(registrationFee)})
         </Button>
         <PaymentLegalNotice compact className="mt-2" />
         <p className="text-center text-xs text-muted-foreground">
-          하루 {EVENT_REGISTRATION_FEE_PER_DAY_KRW.toLocaleString()}원 · 최대{" "}
-          {EVENT_REGISTRATION_MAX_DAYS}일 · 등록비 결제 후 목록에 공개됩니다.
+          {eventRegistrationFeeLabel(startsAt, endsAt)} · 등록비 결제 후 목록에 공개됩니다.
         </p>
       </form>
 

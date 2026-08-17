@@ -22,6 +22,7 @@ import type { PaymentMethodItem } from "@/features/wallet/wallet-card-builders";
 import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
+import { formatUsd } from "@/lib/money";
 
 const RETURN_PREFIX = Linking.createURL("payment/success");
 
@@ -157,7 +158,7 @@ export function MarketplacePaymentSheet({
           <Text style={[styles.title, { color: colors.text }]}>결제 수단 선택</Text>
           <Text style={[styles.subtitle, { color: colors.textMuted }]}>{orderName}</Text>
           <Text style={[styles.amount, { color: colors.text }]}>
-            {amount > 0 ? `${amount.toLocaleString("ko-KR")}원` : "—"}
+            {amount > 0 ? formatUsd(amount) : "—"}
           </Text>
 
           {loading ? (

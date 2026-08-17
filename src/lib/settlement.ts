@@ -1,8 +1,9 @@
 import { db } from "@/lib/db";
 import type { LedgerEntryType, Prisma } from "@prisma/client";
 import { calcPlatformFee } from "@/lib/utils";
+import { MIN_PAYOUT_USD_CENTS } from "@/lib/money";
 
-export const MIN_PAYOUT_KRW = Number(process.env.MIN_PAYOUT_KRW ?? 10_000);
+export const MIN_PAYOUT_KRW = MIN_PAYOUT_USD_CENTS;
 export const PLATFORM_FEE_RATE = 0.1;
 
 export async function ensureWallet(userId: string) {

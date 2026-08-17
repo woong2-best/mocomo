@@ -201,7 +201,7 @@ export function CreatorStudioForm({ mySeries }: { mySeries: MySeries }) {
             type="number"
             min={0}
             step={100}
-            placeholder="가격(원)"
+            placeholder="가격 (USD)"
             value={price}
             onChange={(e) => setPrice(Number(e.target.value))}
             className="rounded-xl"

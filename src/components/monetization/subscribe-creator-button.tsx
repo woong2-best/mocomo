@@ -4,6 +4,7 @@ import { PayButton } from "@/components/payments/pay-button";
 import { usePathname } from "next/navigation";
 import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatUsd } from "@/lib/money";
 
 export function SubscribeCreatorButton({
   creatorId,
@@ -42,7 +43,7 @@ export function SubscribeCreatorButton({
         disabled
         title="Stripe 연동 후 구독 가능"
       >
-        월 {priceKrw.toLocaleString()}원 구독
+        월 {formatUsd(priceKrw)} 구독
       </Button>
     );
   }
@@ -60,7 +61,7 @@ export function SubscribeCreatorButton({
       }
     >
       <Heart className="h-4 w-4" />
-      월 {priceKrw.toLocaleString()}원 구독
+        월 {formatUsd(priceKrw)} 구독
     </PayButton>
   );
 }
@@ -68,7 +69,7 @@ export function SubscribeCreatorButton({
 export function SubscribeCreatorHint({ priceKrw }: { priceKrw: number }) {
   return (
     <p className="text-[10px] text-white/80 text-center px-2">
-      ₩{priceKrw.toLocaleString()} · 매월 자동결제
+      {formatUsd(priceKrw)} · 매월 자동결제
     </p>
   );
 }

@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { fetchLiveAlerts, type LiveAlertItem } from "@/api/live";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, type ThemeColors } from "@/theme/tokens";
+import { formatUsd } from "@/lib/money";
 
 const ALERT_MS: Record<string, number> = {
   cheer: 5200,
@@ -15,16 +16,15 @@ function formatName(username: string) {
 
 function AlertCard({ item, colors }: { item: LiveAlertItem; colors: ThemeColors }) {
   const isCheer = item.kind === "cheer";
-  const unit = isCheer ? " CP" : "원";
   const name = formatName(item.username);
 
   let title = "";
   if (item.eventType === "ROULETTE" && item.rouletteLabel) {
     title = `${name} · 룰렛 ${item.rouletteLabel}`;
   } else if (isCheer) {
-    title = `${name} · ${item.amount.toLocaleString()}${unit}`;
+    title = `${name} · ${item.amount.toLocaleString()} CP`;
   } else {
-    title = `${name} · ${item.amount.toLocaleString()}${unit}`;
+    title = `${name} · ${formatUsd(item.amount)}`;
     if (item.viaLivePage === false) {
       title += " · 프로필";
     }

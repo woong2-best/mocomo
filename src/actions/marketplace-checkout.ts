@@ -194,7 +194,7 @@ async function initMarketplacePurchase(
         unitAmount: listing.priceAmount,
         shippingAmount,
         totalAmount,
-        currency: (listing.currency || "krw").toLowerCase(),
+        currency: (listing.currency || "usd").toLowerCase(),
       };
     }
   }
@@ -209,7 +209,7 @@ async function initMarketplacePurchase(
       shippingAmount,
       platformFeeAmount: fees.platformFeeAmount,
       sellerEarnAmount: fees.sellerEarnAmount,
-      currency: listing.currency || "krw",
+      currency: listing.currency || "usd",
       ...shippingFields,
       items: {
         create: {
@@ -254,7 +254,7 @@ async function initMarketplacePurchase(
     unitAmount: listing.priceAmount,
     shippingAmount,
     totalAmount,
-    currency: (listing.currency || "krw").toLowerCase(),
+    currency: (listing.currency || "usd").toLowerCase(),
   };
 }
 
@@ -512,7 +512,7 @@ export async function createMarketplaceCheckoutSessionForPaymentIntent(
       unitAmount,
       shippingAmount: order.shippingAmount,
       totalAmount: paymentIntent.amount,
-      currency: (order.currency || "krw").toLowerCase(),
+      currency: (order.currency || "usd").toLowerCase(),
     },
     platform
   );

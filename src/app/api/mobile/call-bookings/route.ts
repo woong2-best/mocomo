@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
+import { formatUsd, MIN_CALL_BOOKING_KRW, MAX_CALL_BOOKING_KRW } from "@/lib/money";
 import {
   calcDurationMinutesFromAmount,
   getCreatorCallSettings,
-  MIN_CALL_BOOKING_KRW,
-  MAX_CALL_BOOKING_KRW,
   serializeCallBooking,
   validateBookingSchedule,
 } from "@/lib/call-booking";
@@ -54,7 +53,7 @@ export async function POST(req: NextRequest) {
 
   if (amountKrw < MIN_CALL_BOOKING_KRW || amountKrw > MAX_CALL_BOOKING_KRW) {
     return NextResponse.json(
-      { error: `금액은 ${MIN_CALL_BOOKING_KRW.toLocaleString()}~${MAX_CALL_BOOKING_KRW.toLocaleString()}원 사이여야 합니다.` },
+      { error: `Amount must be between ${formatUsd(MIN_CALL_BOOKING_KRW)} and ${formatUsd(MAX_CALL_BOOKING_KRW)}.` },
       { status: 422 }
     );
   }

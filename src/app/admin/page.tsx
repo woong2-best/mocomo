@@ -11,6 +11,7 @@ import {
 import { adminLoadDashboard } from "@/actions/admin-cms";
 import { ChartPlaceholder } from "@/components/admin/shell/chart-placeholder";
 import { DashboardCard, StatCard } from "@/components/admin/shell/stat-card";
+import { formatUsd } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
@@ -41,13 +42,13 @@ export default async function AdminDashboardPage() {
         <StatCard label="크리에이터 수" value={stats.creators.toLocaleString()} icon={Drama} />
         <StatCard
           label="오늘 매출"
-          value={`₩${stats.todayRevenue.toLocaleString()}`}
+          value={formatUsd(stats.todayRevenue)}
           hint={`${stats.todayPaymentCount}건`}
           icon={TrendingUp}
         />
         <StatCard
           label="이번달 매출"
-          value={`₩${stats.monthRevenue.toLocaleString()}`}
+          value={formatUsd(stats.monthRevenue)}
           hint={`${stats.monthPaymentCount}건`}
           icon={TrendingUp}
         />
@@ -92,7 +93,7 @@ export default async function AdminDashboardPage() {
                   <span>
                     @{p.user.username} · {p.type}
                   </span>
-                  <span className="tabular-nums">₩{p.amount.toLocaleString()}</span>
+                  <span className="tabular-nums">{formatUsd(p.amount)}</span>
                 </li>
               ))
             )}
@@ -126,7 +127,7 @@ export default async function AdminDashboardPage() {
                   <span>
                     @{p.user.username} · {p.status}
                   </span>
-                  <span className="tabular-nums">₩{p.amount.toLocaleString()}</span>
+                  <span className="tabular-nums">{formatUsd(p.amount)}</span>
                 </li>
               ))
             )}

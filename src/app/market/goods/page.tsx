@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getPhysicalProducts } from "@/actions/goods-shop";
+import { formatUsd } from "@/lib/money";
 
 export default async function GoodsListPage() {
   const products = await getPhysicalProducts().catch(() => []);
@@ -28,7 +29,7 @@ export default async function GoodsListPage() {
                 <div className="p-3">
                   <p className="font-semibold text-sm line-clamp-2">{p.title}</p>
                   <p className="text-xs text-muted-foreground mt-1">@{p.seller.username}</p>
-                  <p className="font-bold text-neon-cyan mt-2">{p.price.toLocaleString()}원</p>
+                  <p className="font-bold text-neon-cyan mt-2">{formatUsd(p.price)}</p>
                 </div>
               </Link>
             );

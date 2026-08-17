@@ -8,6 +8,7 @@ import { ChibiAvatarSvg } from "@/components/apt/chibi-avatar-svg";
 import { SupportTrophyIcon } from "@/components/icons/support-trophy-icon";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { cn } from "@/lib/utils";
+import { formatUsd } from "@/lib/money";
 
 export type SupportRankingEntry = {
   rank: number;
@@ -78,7 +79,7 @@ function PodiumSlot({
             className="text-xs font-semibold truncate max-w-full group-hover:underline"
           />
           <span className="text-[11px] text-muted-foreground tabular-nums">
-            {entry.total.toLocaleString()}원
+            {formatUsd(entry.total)}
           </span>
         </Link>
       ) : (
@@ -161,7 +162,7 @@ export function SupportRankingPodium({ entries }: { entries: SupportRankingEntry
                     <Link href={`/u/${e.user.username}`} className="min-w-0 flex-1 hover:underline">
                       <span className="block truncate font-medium">@{e.user.username}</span>
                       <span className="text-[10px] text-muted-foreground tabular-nums">
-                        {e.total.toLocaleString()}원
+                        {formatUsd(e.total)}
                       </span>
                     </Link>
                   ) : (

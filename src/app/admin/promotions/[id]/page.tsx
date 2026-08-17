@@ -4,6 +4,7 @@ import { adminGetPromotionAction } from "@/actions/admin-promotions";
 import { getAdminActor } from "@/lib/admin/access";
 import { PromotionDetailActions } from "@/components/admin/cms/promotion-detail-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatUsd } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,7 @@ export default async function AdminPromotionDetailPage({
           <CardContent className="space-y-1 text-sm">
             <p>발급: {p._count.assignments.toLocaleString()}</p>
             <p>사용: {p._count.usages.toLocaleString()}</p>
-            <p>절감 합계: ₩{p.usedBenefitKrw.toLocaleString()}</p>
+            <p>절감 합계: {formatUsd(p.usedBenefitKrw)}</p>
             <p className="text-xs text-muted-foreground">생성: {p.createdBy.username}</p>
           </CardContent>
         </Card>

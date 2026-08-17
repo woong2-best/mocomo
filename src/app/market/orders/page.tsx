@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { listMyMarketplaceOrders } from "@/actions/marketplace-checkout";
 import { MarketPageTitle } from "@/components/market/market-page-chrome";
+import { formatUsd } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +57,7 @@ export default async function MarketOrdersPage({
                       {o.items.length > 1 ? ` 외 ${o.items.length - 1}` : ""}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {o.status} · {(o.subtotalAmount + o.shippingAmount).toLocaleString()}원 ·{" "}
+                      {o.status} · {formatUsd(o.subtotalAmount + o.shippingAmount)} ·{" "}
                       {role === "buyer" ? `@${o.seller.username}` : `@${o.buyer.username}`}
                     </p>
                   </div>

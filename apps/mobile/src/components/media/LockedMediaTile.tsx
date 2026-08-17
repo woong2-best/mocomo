@@ -11,6 +11,7 @@ import {
   type PaidMediaMonetization,
 } from "@/components/media/paid-media-types";
 import { useTheme } from "@/theme/ThemeContext";
+import { formatUsd } from "@/lib/money";
 
 type Props = {
   media: FeedMedia;
@@ -45,7 +46,7 @@ export function LockedMediaTile({ media, monetization, style }: Props) {
                   creatorId: monetization.authorId,
                   username: monetization.authorUsername,
                 }}
-                label={`${subscriptionPrice.toLocaleString()}원/월 구독`}
+                label={`${formatUsd(subscriptionPrice)}/월 구독`}
                 variant="secondary"
                 onSuccess={monetization.onPurchaseSuccess}
               />
