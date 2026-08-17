@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { Film, ImageIcon, Loader2, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PostMediaComposer, type PostMediaItem } from "@/components/media/post-media-composer";
 import { ContentVisibilitySelect } from "@/components/monetization/content-visibility-select";
+import { SettlementAccountBanner } from "@/components/monetization/settlement-account-banner";
+import { getBankVerificationStatus } from "@/actions/bank-verification";
 import { createProfileMediaPost } from "@/actions/profile-create-media";
-import { SETTLEMENT_ACCOUNT_REQUIRED_CODE } from "@/lib/settlement-account";
+import { SETTLEMENT_ACCOUNT_REQUIRED_CODE, walletSettlementPath } from "@/lib/settlement-account";
 import { useSuspendedAccount } from "@/hooks/use-suspended-account";
 import { cn } from "@/lib/utils";
 import type { ContentVisibility } from "@prisma/client";
@@ -24,6 +26,7 @@ export function ProfileCreatePanel({
   onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { suspended, blockAction } = useSuspendedAccount();
   const [kind, setKind] = useState<MediaKind>("photo");
   const [content, setContent] = useState("");
@@ -34,8 +37,42 @@ export function ProfileCreatePanel({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
+  const [bankVerified, setBankVerified] = useState<boolean | null>(null);
 
   const showInstantPurchase = visibility !== "PUBLIC";
+  const parsedPrice = priceKrw.trim() ? Number(priceKrw.replace(/,/g, "")) : 0;
+  const parsedInstantPrice = instantPriceKrw.trim()
+    ? Number(instantPriceKrw.replace(/,/g, ""))
+    : 0;
+  const sellingIntent =
+    parsedPrice > 0 ||
+    parsedInstantPrice > 0 ||
+    priceKrw.trim().length > 0 ||
+    instantPriceKrw.trim().length > 0 ||
+    visibility !== "PUBLIC";
+  const showSettlementBanner = bankVerified === false && sellingIntent;
+  const walletCallbackUrl = useMemo(
+    () => (pathname?.startsWith("/") ? pathname : undefined),
+    [pathname]
+  );
+
+  useEffect(() => {
+    if (!open) {
+      setBankVerified(null);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      const status = await getBankVerificationStatus();
+      if (cancelled) return;
+      setBankVerified(status.signedIn ? status.bankVerified : false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   function reset() {
     setContent("");
@@ -60,6 +97,10 @@ export function ProfileCreatePanel({
 
   function submit() {
     if (blockAction("post")) return;
+    if (showSettlementBanner) {
+      router.push(walletSettlementPath(walletCallbackUrl));
+      return;
+    }
     setError("");
     const item = media[0];
     if (!item) {
@@ -106,6 +147,10 @@ export function ProfileCreatePanel({
           <X className="h-4 w-4" />
         </button>
       </div>
+
+      {showSettlementBanner ? (
+        <SettlementAccountBanner callbackUrl={walletCallbackUrl} />
+      ) : null}
 
       <div className="inline-flex rounded-full border border-border/70 bg-muted/40 p-0.5">
         <button
