@@ -136,6 +136,7 @@ export async function getBankVerificationStatusForUser(userId: string) {
   return {
     countryCode: user.countryCode,
     bankVerified: verified,
+    payoutAccountRegistered: !!user.bankVerifiedAt,
     emailVerified: !!user.emailVerified,
     displayAccount:
       verified && bankLabel && user.settlementAccountLast4

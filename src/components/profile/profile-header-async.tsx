@@ -139,6 +139,7 @@ export async function ProfileHeaderAsync({ username }: { username: string }) {
         blockedViewer={header.relationship.blockedViewer}
         mutedByViewer={header.relationship.mutedByViewer}
         liveBroadcast={liveBroadcast}
+        hasPayoutAccount={header.hasPayoutAccount}
         actionBar={
           header.isSelf ? undefined : header.relationship.blockedByViewer || header.relationship.blockedViewer ? null : (
             <Suspense fallback={<ActionBarSkeleton />}>

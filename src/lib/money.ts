@@ -44,6 +44,24 @@ export const DEFAULT_CREATOR_SUBSCRIPTION_USD_CENTS = 1_299;
 export const LETTER_DONATION_MIN_USD_CENTS = 500;
 export const SALE_MEDIA_MIN_PRICE_USD_CENTS = 100;
 export const SALE_MEDIA_MAX_PRICE_USD_CENTS = 100_000;
+
+/** Parse user-facing USD dollar input (e.g. "1", "1.00") to cents. */
+export function parseUsdDollarsToCents(raw: string): number {
+  const trimmed = raw.trim().replace(/,/g, "");
+  if (!trimmed) return 0;
+  const dollars = Number(trimmed);
+  if (!Number.isFinite(dollars) || dollars < 0) return 0;
+  return Math.round(dollars * 100);
+}
+
+export function sanitizeUsdDollarInput(raw: string): string {
+  const cleaned = raw.replace(/[^\d.]/g, "");
+  const dot = cleaned.indexOf(".");
+  if (dot === -1) return cleaned;
+  const whole = cleaned.slice(0, dot);
+  const fraction = cleaned.slice(dot + 1).replace(/\./g, "").slice(0, 2);
+  return `${whole}.${fraction}`;
+}
 export const MIN_CALL_BOOKING_USD_CENTS = 500;
 export const MAX_CALL_BOOKING_USD_CENTS = 50_000;
 export const EVENT_REGISTRATION_FEE_PER_DAY_USD_CENTS = 100;

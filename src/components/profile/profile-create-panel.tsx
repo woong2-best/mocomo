@@ -12,6 +12,13 @@ import { SettlementAccountBanner } from "@/components/monetization/settlement-ac
 import { getBankVerificationStatus } from "@/actions/bank-verification";
 import { createProfileMediaPost } from "@/actions/profile-create-media";
 import { SETTLEMENT_ACCOUNT_REQUIRED_CODE, walletSettlementPath } from "@/lib/settlement-account";
+import {
+  formatUsd,
+  parseUsdDollarsToCents,
+  SALE_MEDIA_MAX_PRICE_USD_CENTS,
+  SALE_MEDIA_MIN_PRICE_USD_CENTS,
+  sanitizeUsdDollarInput,
+} from "@/lib/money";
 import { useSuspendedAccount } from "@/hooks/use-suspended-account";
 import { cn } from "@/lib/utils";
 import type { ContentVisibility } from "@prisma/client";
@@ -21,9 +28,11 @@ type MediaKind = "photo" | "video";
 export function ProfileCreatePanel({
   open,
   onOpenChange,
+  hasPayoutAccount = true,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  hasPayoutAccount?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -31,42 +40,41 @@ export function ProfileCreatePanel({
   const [kind, setKind] = useState<MediaKind>("photo");
   const [content, setContent] = useState("");
   const [visibility, setVisibility] = useState<ContentVisibility>("PUBLIC");
-  const [priceKrw, setPriceKrw] = useState("");
-  const [instantPriceKrw, setInstantPriceKrw] = useState("");
+  const [priceUsd, setPriceUsd] = useState("");
+  const [instantPriceUsd, setInstantPriceUsd] = useState("");
   const [media, setMedia] = useState<PostMediaItem[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
-  const [bankVerified, setBankVerified] = useState<boolean | null>(null);
+  const [payoutAccountRegistered, setPayoutAccountRegistered] = useState(hasPayoutAccount);
 
   const showInstantPurchase = visibility !== "PUBLIC";
-  const parsedPrice = priceKrw.trim() ? Number(priceKrw.replace(/,/g, "")) : 0;
-  const parsedInstantPrice = instantPriceKrw.trim()
-    ? Number(instantPriceKrw.replace(/,/g, ""))
-    : 0;
+  const priceCents = parseUsdDollarsToCents(priceUsd);
+  const instantPriceCents = parseUsdDollarsToCents(instantPriceUsd);
   const sellingIntent =
-    parsedPrice > 0 ||
-    parsedInstantPrice > 0 ||
-    priceKrw.trim().length > 0 ||
-    instantPriceKrw.trim().length > 0 ||
+    priceCents > 0 ||
+    instantPriceCents > 0 ||
+    priceUsd.trim().length > 0 ||
+    instantPriceUsd.trim().length > 0 ||
     visibility !== "PUBLIC";
-  const showSettlementBanner = bankVerified === false && sellingIntent;
+  const showSettlementBanner = !payoutAccountRegistered && sellingIntent;
   const walletCallbackUrl = useMemo(
     () => (pathname?.startsWith("/") ? pathname : undefined),
     [pathname]
   );
 
   useEffect(() => {
-    if (!open) {
-      setBankVerified(null);
-      return;
-    }
+    setPayoutAccountRegistered(hasPayoutAccount);
+  }, [hasPayoutAccount]);
+
+  useEffect(() => {
+    if (!open) return;
 
     let cancelled = false;
     void (async () => {
       const status = await getBankVerificationStatus();
-      if (cancelled) return;
-      setBankVerified(status.signedIn ? status.bankVerified : false);
+      if (cancelled || !status.signedIn) return;
+      setPayoutAccountRegistered(status.payoutAccountRegistered);
     })();
 
     return () => {
@@ -77,8 +85,8 @@ export function ProfileCreatePanel({
   function reset() {
     setContent("");
     setVisibility("PUBLIC");
-    setPriceKrw("");
-    setInstantPriceKrw("");
+    setPriceUsd("");
+    setInstantPriceUsd("");
     setMedia([]);
     setError("");
     setKind("photo");
@@ -108,16 +116,27 @@ export function ProfileCreatePanel({
       return;
     }
 
+    if (priceCents > 0 && priceCents < SALE_MEDIA_MIN_PRICE_USD_CENTS) {
+      setError(`유료 판매 가격은 최소 ${formatUsd(SALE_MEDIA_MIN_PRICE_USD_CENTS)}부터 설정할 수 있습니다.`);
+      return;
+    }
+    if (instantPriceCents > 0 && instantPriceCents < SALE_MEDIA_MIN_PRICE_USD_CENTS) {
+      setError(`즉시 구매 가격은 최소 ${formatUsd(SALE_MEDIA_MIN_PRICE_USD_CENTS)}부터 설정할 수 있습니다.`);
+      return;
+    }
+    if (priceCents > SALE_MEDIA_MAX_PRICE_USD_CENTS || instantPriceCents > SALE_MEDIA_MAX_PRICE_USD_CENTS) {
+      setError(`가격은 ${formatUsd(SALE_MEDIA_MAX_PRICE_USD_CENTS)} 이하로 설정해 주세요.`);
+      return;
+    }
+
     startTransition(async () => {
       const res = await createProfileMediaPost({
         content,
         mediaUrl: item.url,
         mediaType: kind === "video" ? "VIDEO" : "IMAGE",
         visibility,
-        priceKrw: priceKrw.trim() ? Number(priceKrw.replace(/,/g, "")) : 0,
-        instantPurchasePriceKrw: instantPriceKrw.trim()
-          ? Number(instantPriceKrw.replace(/,/g, ""))
-          : 0,
+        priceKrw: priceCents,
+        instantPurchasePriceKrw: instantPriceCents,
       });
       if (res.error) {
         if ("code" in res && res.code === SETTLEMENT_ACCOUNT_REQUIRED_CODE && "redirectTo" in res) {
@@ -213,10 +232,10 @@ export function ProfileCreatePanel({
           </label>
           <Input
             id="profile-media-price"
-            inputMode="numeric"
-            placeholder="0 = 무료"
-            value={priceKrw}
-            onChange={(e) => setPriceKrw(e.target.value.replace(/[^\d,]/g, ""))}
+            inputMode="decimal"
+            placeholder="예: 1.00 (무료는 0)"
+            value={priceUsd}
+            onChange={(e) => setPriceUsd(sanitizeUsdDollarInput(e.target.value))}
             disabled={pending}
             className="rounded-xl"
           />
@@ -231,10 +250,10 @@ export function ProfileCreatePanel({
             </label>
             <Input
               id="profile-instant-price"
-              inputMode="numeric"
-              placeholder="예: 8000 ($80.00)"
-              value={instantPriceKrw}
-              onChange={(e) => setInstantPriceKrw(e.target.value.replace(/[^\d,]/g, ""))}
+              inputMode="decimal"
+              placeholder="예: 80.00"
+              value={instantPriceUsd}
+              onChange={(e) => setInstantPriceUsd(sanitizeUsdDollarInput(e.target.value))}
               disabled={pending}
               className="rounded-xl"
             />

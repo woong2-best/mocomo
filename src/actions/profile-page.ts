@@ -16,7 +16,9 @@ import {
   isSubscriptionActive,
   monthsSubscribed,
   tierFromSubscriptionMonths,
+  creatorSubscriptionPriceForUser,
 } from "@/lib/creator-subscription";
+import { isPaymentsConfigured } from "@/lib/payments";
 import { getPurchasedPostMediaIds } from "@/lib/post-paid-media";
 import {
   attachProfilePostAuthor,
@@ -208,6 +210,15 @@ export const getProfileHeader = cache(async function getProfileHeader(username: 
     viewerId === user.id ||
     isFollowing;
 
+  let hasPayoutAccount = false;
+  if (viewerId === user.id) {
+    const payout = await db.user.findUnique({
+      where: { id: viewerId },
+      select: { bankVerifiedAt: true },
+    });
+    hasPayoutAccount = !!payout?.bankVerifiedAt;
+  }
+
   return {
     user,
     author: toProfileAuthor(user),
@@ -217,6 +228,50 @@ export const getProfileHeader = cache(async function getProfileHeader(username: 
     followRequested,
     canViewPosts,
     relationship,
+    hasPayoutAccount,
+  };
+});
+
+export type ProfileTabContentMeta = {
+  isSelf: boolean;
+  paymentsEnabled: boolean;
+  subscriptionPriceKrw: number;
+  authorId: string;
+  subscribed: boolean;
+  profileBlocked: boolean;
+  blockedEmptyMessage: string;
+};
+
+/** 프로필 탭 — layout의 getProfileHeader 와 요청 단위 dedupe */
+export const getProfileTabContentMeta = cache(async function getProfileTabContentMeta(
+  username: string
+): Promise<ProfileTabContentMeta | null> {
+  const header = await getProfileHeader(username);
+  if (!header) return null;
+
+  const paymentsEnabled = isPaymentsConfigured();
+  const subscriptionPriceKrw = creatorSubscriptionPriceForUser(
+    header.user.creatorSubscriptionPriceKrw
+  );
+  const profileBlocked =
+    !header.isSelf &&
+    (header.relationship.blockedByViewer || header.relationship.blockedViewer);
+  const blockedEmptyMessage = header.relationship.blockedByViewer
+    ? `@${header.user.username} 님을 차단했습니다. 게시물을 볼 수 없습니다.`
+    : `@${header.user.username} 님이 회원님을 차단했습니다.`;
+
+  const viewerSub = header.isSelf
+    ? { subscribed: false as const }
+    : await getViewerCreatorSubscription(header.user.id);
+
+  return {
+    isSelf: header.isSelf,
+    paymentsEnabled,
+    subscriptionPriceKrw,
+    authorId: header.user.id,
+    subscribed: "subscribed" in viewerSub ? viewerSub.subscribed : false,
+    profileBlocked,
+    blockedEmptyMessage,
   };
 });
 

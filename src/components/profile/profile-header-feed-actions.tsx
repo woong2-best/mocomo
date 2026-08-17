@@ -8,7 +8,13 @@ import { useSuspendedAccount } from "@/hooks/use-suspended-account";
 import { Button } from "@/components/ui/button";
 
 /** Sort + Create — aligned on the following/followers row. */
-export function ProfileHeaderFeedActions({ isSelf }: { isSelf: boolean }) {
+export function ProfileHeaderFeedActions({
+  isSelf,
+  hasPayoutAccount = true,
+}: {
+  isSelf: boolean;
+  hasPayoutAccount?: boolean;
+}) {
   const [createOpen, setCreateOpen] = useState(false);
   const { suspended, blockAction } = useSuspendedAccount();
 
@@ -34,7 +40,11 @@ export function ProfileHeaderFeedActions({ isSelf }: { isSelf: boolean }) {
         ) : null}
       </div>
       {isSelf ? (
-        <ProfileCreatePanel open={createOpen} onOpenChange={setCreateOpen} />
+        <ProfileCreatePanel
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          hasPayoutAccount={hasPayoutAccount}
+        />
       ) : null}
     </>
   );

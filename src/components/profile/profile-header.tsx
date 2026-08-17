@@ -36,6 +36,7 @@ export function ProfileHeader({
   mutedByViewer = false,
   actionBar,
   liveBroadcast = null,
+  hasPayoutAccount = true,
 }: {
   user: {
     id: string;
@@ -74,6 +75,7 @@ export function ProfileHeader({
   mutedByViewer?: boolean;
   actionBar?: ReactNode | null;
   liveBroadcast?: ProfileLiveBroadcast | null;
+  hasPayoutAccount?: boolean;
 }) {
   const sns = (user.profile?.snsLinks ?? {}) as SnsLinks;
   const displayName = userDisplayName(user);
@@ -285,7 +287,7 @@ export function ProfileHeader({
               <span className="text-muted-foreground">팔로워</span>
             </Link>
           </div>
-          <ProfileHeaderFeedActions isSelf={isSelf} />
+          <ProfileHeaderFeedActions isSelf={isSelf} hasPayoutAccount={hasPayoutAccount} />
         </div>
 
         {user.profile?.favoriteTags && user.profile.favoriteTags.length > 0 && (
