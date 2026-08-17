@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/components/providers/locale-provider";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
-import { buildProviderSigninHref } from "@/lib/oauth-provider-signin";
+import { buildProviderSigninHref } from "@/lib/oauth-provider-signin-shared";
 import { setOAuthFlowCookieClient } from "@/lib/oauth-flow-cookie";
 import { cn } from "@/lib/utils";
 
