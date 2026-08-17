@@ -137,7 +137,7 @@ export function FeedVideoExpandLightbox({
             <ProtectedPaidMedia
               type="VIDEO"
               src={current.media.url}
-              className="h-full max-h-full w-full max-w-5xl object-contain"
+              className="max-h-[calc(100dvh-6rem)] w-full max-w-5xl object-contain"
               mediaId={current.media.id}
               mediaPriceKrw={current.media.priceKrw}
               // Start muted so mobile autoplay is allowed; user can unmute in chrome.

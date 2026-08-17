@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type ReactNode,
 } from "react";
 import { cn } from "@/lib/utils";
 import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
@@ -19,6 +20,14 @@ import {
 } from "@/components/monetization/subscribe-creator-button";
 import type { ProfilePostMediaItem } from "@/components/profile/paid-post-media-grid";
 import type { ContentLockReason } from "@/lib/content-access";
+import { PostMediaLightbox } from "@/components/media/post-media-lightbox";
+import {
+  getCachedPostMedia,
+  prefetchPostMedia,
+  setCachedPostMedia,
+} from "@/lib/post-media-client-cache";
+import { useFeedVideoViewerOptional } from "@/components/feed/feed-video-viewer-provider";
+import { shouldBlockFeedVideoImmersive } from "@/components/media/feed-video-player";
 
 const SLIDE_WIDTH_RATIO = 0.88;
 const EDGE_PAD_RATIO = 0.06;
@@ -32,6 +41,7 @@ type Props = {
   paymentsEnabled?: boolean;
   subscribed?: boolean;
   postInstantPurchasePriceKrw?: number;
+  mediaTotal?: number;
   isNsfw?: boolean;
   isOwner?: boolean;
   viewerShowNsfw?: boolean;
@@ -52,6 +62,64 @@ function formatDuration(sec: number | null | undefined): string | null {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+function MediaOpenWrapper({
+  media,
+  index,
+  postId,
+  locked,
+  onOpenAt,
+  feedVideoViewer,
+  children,
+}: {
+  media: ProfilePostMediaItem;
+  index: number;
+  postId: string;
+  locked: boolean;
+  onOpenAt: (index: number, locked?: boolean) => void;
+  feedVideoViewer: ReturnType<typeof useFeedVideoViewerOptional>;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      role={!locked ? "button" : undefined}
+      tabIndex={!locked ? 0 : undefined}
+      className={cn("h-full w-full", !locked && "cursor-pointer")}
+      onClickCapture={(e) => {
+        if (locked) return;
+        if (media.type !== "VIDEO" || !feedVideoViewer) return;
+        if (shouldBlockFeedVideoImmersive(e)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const opened = feedVideoViewer.openVideoViewer({
+          postId,
+          mediaId: media.id,
+          mediaIndex: index,
+        });
+        if (!opened) onOpenAt(index, locked);
+      }}
+      onClick={(e) => {
+        if (media.type === "VIDEO" && feedVideoViewer && shouldBlockFeedVideoImmersive(e)) {
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        if (media.type === "VIDEO" && feedVideoViewer) return;
+        onOpenAt(index, locked);
+      }}
+      onKeyDown={(e) => {
+        if (locked) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          onOpenAt(index, locked);
+        }
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 function CarouselTile({
   media,
   postId,
@@ -63,6 +131,7 @@ function CarouselTile({
   postInstantPurchasePriceKrw,
   active,
   onDoubleTapLike,
+  onOpenImmersive,
   isNsfw = false,
   isOwner = false,
   viewerShowNsfw = false,
@@ -77,6 +146,7 @@ function CarouselTile({
   postInstantPurchasePriceKrw?: number;
   active: boolean;
   onDoubleTapLike?: () => void;
+  onOpenImmersive?: () => void;
   isNsfw?: boolean;
   isOwner?: boolean;
   viewerShowNsfw?: boolean;
@@ -104,6 +174,7 @@ function CarouselTile({
         mediaId={media.id}
         autoPlayOnView={active && !locked}
         onDoubleTapLike={onDoubleTapLike}
+        onOpenImmersive={onOpenImmersive}
         poster={media.posterUrl ?? undefined}
       />
 
@@ -161,6 +232,7 @@ export function FeedPostMediaCarousel({
   paymentsEnabled = false,
   subscribed = false,
   postInstantPurchasePriceKrw,
+  mediaTotal,
   isNsfw = false,
   isOwner = false,
   viewerShowNsfw = false,
@@ -169,9 +241,70 @@ export function FeedPostMediaCarousel({
 }: Props) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [lightboxMedia, setLightboxMedia] = useState<ProfilePostMediaItem[]>(media);
+  const [opening, setOpening] = useState(false);
+  const feedVideoViewer = useFeedVideoViewerOptional();
+
+  const total = mediaTotal ?? media.length;
+  const needsFullFetch = total > media.length;
+
+  useEffect(() => {
+    if (!needsFullFetch && media.length > 0) {
+      setCachedPostMedia(postId, media);
+      setLightboxMedia(media);
+      return;
+    }
+    if (needsFullFetch) {
+      void prefetchPostMedia(postId);
+    }
+  }, [needsFullFetch, media, postId]);
 
   const items = useMemo(() => media.filter(isVisual), [media]);
   const multi = items.length > 1;
+
+  function warmFullMedia() {
+    if (!needsFullFetch) return;
+    void prefetchPostMedia(postId);
+  }
+
+  async function openAt(index: number, locked?: boolean) {
+    if (locked || opening) return;
+
+    const tapped = items[index];
+    if (
+      tapped?.type === "VIDEO" &&
+      feedVideoViewer &&
+      feedVideoViewer.openVideoViewer({
+        postId,
+        mediaId: tapped.id,
+        mediaIndex: index,
+      })
+    ) {
+      return;
+    }
+
+    if (items.length >= total) {
+      setLightboxMedia(items);
+      setLightboxIndex(index);
+      return;
+    }
+
+    setOpening(true);
+    try {
+      const cached = getCachedPostMedia(postId);
+      const full =
+        cached && cached.length >= total
+          ? cached
+          : (await prefetchPostMedia(postId)) ?? cached ?? items;
+      if (full.length > 0) setCachedPostMedia(postId, full);
+      const resolved = (full.length >= items.length ? full : items) as ProfilePostMediaItem[];
+      setLightboxMedia(resolved.filter(isVisual));
+      setLightboxIndex(index);
+    } finally {
+      setOpening(false);
+    }
+  }
 
   const syncFromScroll = useCallback(() => {
     const root = scrollerRef.current;
@@ -200,6 +333,59 @@ export function FeedPostMediaCarousel({
 
   if (items.length === 0) return null;
 
+  const renderTile = (m: ProfilePostMediaItem, i: number, active: boolean) => {
+    const locked = !!m.locked && !!m.id;
+    return (
+      <MediaOpenWrapper
+        media={m}
+        index={i}
+        postId={postId}
+        locked={locked}
+        onOpenAt={openAt}
+        feedVideoViewer={feedVideoViewer}
+      >
+        <CarouselTile
+          media={m}
+          postId={postId}
+          authorUsername={authorUsername}
+          authorId={authorId}
+          subscriptionPriceKrw={subscriptionPriceKrw}
+          paymentsEnabled={paymentsEnabled}
+          subscribed={subscribed}
+          postInstantPurchasePriceKrw={postInstantPurchasePriceKrw}
+          active={active}
+          onDoubleTapLike={onDoubleTapLike}
+          onOpenImmersive={
+            !locked && m.type === "VIDEO" && feedVideoViewer
+              ? () => {
+                  const opened = feedVideoViewer.openVideoViewer({
+                    postId,
+                    mediaId: m.id,
+                    mediaIndex: i,
+                  });
+                  if (!opened) void openAt(i, locked);
+                }
+              : undefined
+          }
+          isNsfw={isNsfw}
+          isOwner={isOwner}
+          viewerShowNsfw={viewerShowNsfw}
+        />
+      </MediaOpenWrapper>
+    );
+  };
+
+  const lightbox = lightboxIndex !== null && lightboxMedia.length > 0 && (
+    <PostMediaLightbox
+      open
+      onClose={() => setLightboxIndex(null)}
+      media={lightboxMedia}
+      initialIndex={Math.min(lightboxIndex, lightboxMedia.length - 1)}
+      postId={postId}
+      postInstantPurchasePriceKrw={postInstantPurchasePriceKrw}
+    />
+  );
+
   if (!multi) {
     const m = items[0]!;
     const aspect =
@@ -207,28 +393,21 @@ export function FeedPostMediaCarousel({
         ? `${m.width} / ${m.height}`
         : "16 / 10";
     return (
-      <div className={cn("mt-3 max-w-full", className)}>
+      <>
         <div
-          className="overflow-hidden rounded-2xl border border-border/50 bg-muted/20"
-          style={{ aspectRatio: aspect, maxHeight: 510 }}
+          className={cn("mt-3 max-w-full", className, opening && "opacity-80")}
+          onPointerEnter={warmFullMedia}
+          onFocusCapture={warmFullMedia}
         >
-          <CarouselTile
-            media={m}
-            postId={postId}
-            authorUsername={authorUsername}
-            authorId={authorId}
-            subscriptionPriceKrw={subscriptionPriceKrw}
-            paymentsEnabled={paymentsEnabled}
-            subscribed={subscribed}
-            postInstantPurchasePriceKrw={postInstantPurchasePriceKrw}
-            active
-            onDoubleTapLike={onDoubleTapLike}
-            isNsfw={isNsfw}
-            isOwner={isOwner}
-            viewerShowNsfw={viewerShowNsfw}
-          />
+          <div
+            className="overflow-hidden rounded-2xl border border-border/50 bg-muted/20"
+            style={{ aspectRatio: aspect, maxHeight: 510 }}
+          >
+            {renderTile(m, 0, true)}
+          </div>
         </div>
-      </div>
+        {lightbox}
+      </>
     );
   }
 
@@ -238,67 +417,60 @@ export function FeedPostMediaCarousel({
   } satisfies CSSProperties;
 
   return (
-    <div className={cn("mt-3 max-w-full", className)}>
-      <div className="mb-2 flex items-center justify-center gap-1.5" aria-hidden>
-        {items.map((item, i) => (
-          <span
-            key={item.id ?? `${postId}:${i}`}
-            className={cn(
-              "rounded-full transition-all",
-              i === activeIndex
-                ? "h-1.5 w-1.5 bg-primary"
-                : "h-1.5 w-1.5 bg-muted-foreground/35"
-            )}
-          />
-        ))}
-      </div>
-
+    <>
       <div
-        ref={scrollerRef}
-        className={cn(
-          "flex w-full snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain",
-          "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        )}
-        style={padStyle}
-        role="list"
-        aria-label="게시물 미디어"
+        className={cn("mt-3 max-w-full", className, opening && "opacity-80")}
+        onPointerEnter={warmFullMedia}
+        onFocusCapture={warmFullMedia}
       >
-        {items.map((m, i) => {
-          const aspect =
-            m.width && m.height && m.width > 0 && m.height > 0
-              ? `${m.width} / ${m.height}`
-              : "16 / 10";
-          return (
-            <div
-              key={m.id ?? `${postId}:${i}`}
-              data-feed-carousel-slide={i}
-              role="listitem"
-              className="snap-center shrink-0"
-              style={{
-                width: `${SLIDE_WIDTH_RATIO * 100}%`,
-                aspectRatio: aspect,
-                maxHeight: 510,
-              }}
-            >
-              <CarouselTile
-                media={m}
-                postId={postId}
-                authorUsername={authorUsername}
-                authorId={authorId}
-                subscriptionPriceKrw={subscriptionPriceKrw}
-                paymentsEnabled={paymentsEnabled}
-                subscribed={subscribed}
-                postInstantPurchasePriceKrw={postInstantPurchasePriceKrw}
-                active={i === activeIndex}
-                onDoubleTapLike={onDoubleTapLike}
-                isNsfw={isNsfw}
-                isOwner={isOwner}
-                viewerShowNsfw={viewerShowNsfw}
-              />
-            </div>
-          );
-        })}
+        <div className="mb-2 flex items-center justify-center gap-1.5" aria-hidden>
+          {items.map((item, i) => (
+            <span
+              key={item.id ?? `${postId}:${i}`}
+              className={cn(
+                "rounded-full transition-all",
+                i === activeIndex
+                  ? "h-1.5 w-1.5 bg-primary"
+                  : "h-1.5 w-1.5 bg-muted-foreground/35"
+              )}
+            />
+          ))}
+        </div>
+
+        <div
+          ref={scrollerRef}
+          className={cn(
+            "flex w-full snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain",
+            "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          )}
+          style={padStyle}
+          role="list"
+          aria-label="게시물 미디어"
+        >
+          {items.map((m, i) => {
+            const aspect =
+              m.width && m.height && m.width > 0 && m.height > 0
+                ? `${m.width} / ${m.height}`
+                : "16 / 10";
+            return (
+              <div
+                key={m.id ?? `${postId}:${i}`}
+                data-feed-carousel-slide={i}
+                role="listitem"
+                className="snap-center shrink-0"
+                style={{
+                  width: `${SLIDE_WIDTH_RATIO * 100}%`,
+                  aspectRatio: aspect,
+                  maxHeight: 510,
+                }}
+              >
+                {renderTile(m, i, i === activeIndex)}
+              </div>
+            );
+          })}
+        </div>
       </div>
-    </div>
+      {lightbox}
+    </>
   );
 }

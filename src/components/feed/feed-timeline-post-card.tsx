@@ -128,6 +128,7 @@ export function FeedTimelinePostCard({
                   authorId={post.author.id}
                   paymentsEnabled={false}
                   postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
+                  mediaTotal={post._count?.media ?? post.media.length}
                   isNsfw={post.isNsfw}
                   isOwner={isOwner}
                   onDoubleTapLike={() => {

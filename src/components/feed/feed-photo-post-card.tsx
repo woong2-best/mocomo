@@ -120,6 +120,7 @@ export function FeedPhotoPostCard({
             authorId={post.author.id}
             paymentsEnabled={false}
             postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
+            mediaTotal={post._count?.media ?? media.length}
             className="mt-0"
             isNsfw={post.isNsfw}
             isOwner={isOwner}

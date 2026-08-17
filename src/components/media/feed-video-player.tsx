@@ -227,7 +227,10 @@ export function FeedVideoPlayer({
   const [loop, setLoop] = useState(false);
   const [retryToken, setRetryToken] = useState(0);
 
-  const fillMode = /\bh-full\b/.test(className ?? "");
+  const classStr = className ?? "";
+  const wantsContain = /\bobject-contain\b/.test(classStr);
+  const fillMode = /\bh-full\b/.test(classStr);
+  const fillFitClass = wantsContain ? "object-contain" : "object-cover";
 
   const syncDuration = useCallback(() => {
     const v = videoRef.current;
@@ -1115,7 +1118,9 @@ export function FeedVideoPlayer({
         data-src={src}
         poster={poster}
         className={cn(
-          fillMode ? "absolute inset-0 h-full w-full object-cover" : "block w-full h-auto",
+          fillMode
+            ? cn("absolute inset-0 h-full w-full", fillFitClass)
+            : "block w-full h-auto",
           "origin-center will-change-transform"
         )}
         style={videoStyle}
@@ -1137,7 +1142,9 @@ export function FeedVideoPlayer({
         active={forensicActive}
         config={forensicRenderConfig ?? null}
         className={cn(
-          fillMode ? "absolute inset-0 h-full w-full object-cover" : "block w-full h-auto",
+          fillMode
+            ? cn("absolute inset-0 h-full w-full", fillFitClass)
+            : "block w-full h-auto",
           "origin-center z-[1] pointer-events-none"
         )}
       />

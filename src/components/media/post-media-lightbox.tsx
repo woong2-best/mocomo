@@ -170,10 +170,8 @@ export function PostMediaLightbox({
               type={current.type}
               src={current.url}
               className={cn(
-                "max-h-full max-w-full",
-                current.type === "VIDEO"
-                  ? "w-full h-full object-contain"
-                  : "object-contain select-none"
+                "max-h-[calc(100dvh-8rem)] max-w-full object-contain",
+                current.type === "VIDEO" ? "w-full" : "select-none"
               )}
               mediaPriceKrw={current.priceKrw}
               postInstantPurchasePriceKrw={
