@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { verifyApiOrigin, rateLimitPublicApi } from "@/lib/api-security";
 import { getWatermarkPublicConfig, isWatermarkEnabled } from "@/lib/watermark/config";
 import {
   createWatermarkSession,
   WatermarkAccessError,
 } from "@/lib/watermark/session/service";
+import { getWatermarkViewerUserId } from "@/lib/watermark/request-auth";
+import { getMobileUserId } from "@/lib/api-mobile-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,8 @@ export async function GET() {
 
 /** POST /api/watermark/session — paid video playback session */
 export async function POST(req: NextRequest) {
-  if (!verifyApiOrigin(req)) {
+  const mobileUserId = await getMobileUserId(req);
+  if (!mobileUserId && !verifyApiOrigin(req)) {
     return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
   }
 
@@ -27,8 +29,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Watermark disabled" }, { status: 503 });
   }
 
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = mobileUserId ?? (await getWatermarkViewerUserId(req));
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -46,7 +48,7 @@ export async function POST(req: NextRequest) {
   const contentKind = body.contentKind === "EPISODE" ? "EPISODE" : "POST_MEDIA";
 
   try {
-    const result = await createWatermarkSession(session.user.id, contentId, contentKind);
+    const result = await createWatermarkSession(userId, contentId, contentKind);
     return NextResponse.json(result);
   } catch (e) {
     if (e instanceof WatermarkAccessError) {

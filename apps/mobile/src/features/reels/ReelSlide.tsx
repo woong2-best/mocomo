@@ -5,6 +5,8 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import * as Haptics from "expo-haptics";
 import type { ReelItem } from "@/api/reels";
 import { togglePostLike } from "@/api/feed";
+import { isPaidPlaybackPath } from "@/api/watermark";
+import { PaidVideoPlayer } from "@/components/media/PaidVideoPlayer";
 import { IMAGE_CACHE_POLICY, avatarDecodeSize } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 import { LinkifiedText } from "@/ui/LinkifiedText";
@@ -20,7 +22,7 @@ type Props = {
   height: number;
 };
 
-function ReelPlayer({
+function ReelNativePlayer({
   src,
   active,
   posterUrl,
@@ -32,7 +34,6 @@ function ReelPlayer({
   const player = useVideoPlayer(src, (p) => {
     p.loop = true;
     p.muted = false;
-    // Prefer quick start on mid-range devices
     p.timeUpdateEventInterval = 0;
   });
 
@@ -41,7 +42,6 @@ function ReelPlayer({
       player.play();
     } else {
       player.pause();
-      // Keep near-neighbor warm but rewind far buffers lightly
       try {
         player.currentTime = 0;
       } catch {
@@ -69,6 +69,50 @@ function ReelPlayer({
       />
     </>
   );
+}
+
+function ReelPlayer({
+  item,
+  src,
+  active,
+  posterUrl,
+}: {
+  item: ReelItem;
+  src: string;
+  active: boolean;
+  posterUrl: string | null;
+}) {
+  const isPaid = isPaidPlaybackPath(src) || (item.media.priceKrw ?? 0) > 0;
+  const mediaId = item.media.id?.trim() || null;
+
+  if (isPaid && mediaId) {
+    return (
+      <>
+        {posterUrl && !active ? (
+          <Image
+            source={{ uri: posterUrl }}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            cachePolicy={IMAGE_CACHE_POLICY}
+            transition={0}
+          />
+        ) : null}
+        <PaidVideoPlayer
+          media={{
+            id: mediaId,
+            url: item.media.url,
+            type: "VIDEO",
+            priceKrw: item.media.priceKrw,
+          }}
+          active={active}
+          muted={false}
+          contentFit="cover"
+        />
+      </>
+    );
+  }
+
+  return <ReelNativePlayer src={src} active={active} posterUrl={posterUrl} />;
 }
 
 function ReelSlideInner({ item, active, loadPlayer, height }: Props) {
@@ -114,7 +158,7 @@ function ReelSlideInner({ item, active, loadPlayer, height }: Props) {
         style={StyleSheet.absoluteFill}
       >
         {loadPlayer && src ? (
-          <ReelPlayer src={src} active={active} posterUrl={poster} />
+          <ReelPlayer item={item} src={src} active={active} posterUrl={poster} />
         ) : poster ? (
           <Image
             source={{ uri: poster }}

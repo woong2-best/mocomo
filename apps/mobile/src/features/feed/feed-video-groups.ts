@@ -14,7 +14,7 @@ export type FeedVideoOpenTarget = {
 
 function isPlayableVideo(m: FeedMedia): boolean {
   if (m.type !== "VIDEO") return false;
-  if ((m.priceKrw ?? 0) > 0) return false;
+  if (m.locked) return false;
   return Boolean(m.url?.trim());
 }
 
@@ -47,7 +47,7 @@ export function postVideoToReelItem(post: FeedPost, video: FeedMedia): ReelItem 
       image: post.author.image,
     },
     media: {
-      id,
+      id: video.id?.trim() || id,
       url: video.url,
       hlsUrl: resolveHlsUrl(video),
       posterUrl: video.posterUrl?.trim() || null,

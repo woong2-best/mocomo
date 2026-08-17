@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Modal,
-  PanResponder,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -33,6 +32,9 @@ import {
 } from "@/lib/media-watermark";
 import { MOBILE_VIDEO_FILTERS, getVideoFilter } from "@/lib/video-filters";
 import { createComposeEditorStyles } from "@/features/compose/compose-editor-styles";
+import { TextColorPicker } from "@/features/compose/TextColorPicker";
+import { TextOverlayDraggable } from "@/features/compose/TextOverlayDraggable";
+import { DEFAULT_TEXT_OVERLAY_COLOR } from "@/features/compose/text-overlay-utils";
 import { useTheme } from "@/theme/ThemeContext";
 import { type ThemeColors } from "@/theme/tokens";
 
@@ -101,67 +103,6 @@ function centerCropRect(
     width: cropW,
     height: cropH,
   };
-}
-
-function DraggableText({
-  overlay,
-  selected,
-  frameW,
-  frameH,
-  onSelect,
-  onMove,
-}: {
-  overlay: VideoTextOverlay;
-  selected: boolean;
-  frameW: number;
-  frameH: number;
-  onSelect: () => void;
-  onMove: (x: number, y: number) => void;
-}) {
-  const start = useRef({ x: overlay.x, y: overlay.y });
-  const pan = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        onSelect();
-        start.current = { x: overlay.x, y: overlay.y };
-      },
-      onPanResponderMove: (_, g) => {
-        onMove(
-          clamp(start.current.x + g.dx / frameW, 0, 0.92),
-          clamp(start.current.y + g.dy / frameH, 0, 0.88)
-        );
-      },
-    })
-  ).current;
-
-  return (
-    <View
-      {...pan.panHandlers}
-      style={{
-        position: "absolute",
-        left: overlay.x * frameW,
-        top: overlay.y * frameH,
-        padding: 4,
-        borderWidth: selected ? 1.5 : 0,
-        borderColor: "#fff",
-        borderRadius: 4,
-      }}
-    >
-      <Text
-        style={{
-          fontSize: Math.round(22 * overlay.scale),
-          fontWeight: "800",
-          color: "#fff",
-          textShadowColor: "rgba(0,0,0,0.85)",
-          textShadowOffset: { width: 0, height: 1 },
-          textShadowRadius: 4,
-        }}
-      >
-        {overlay.text}
-      </Text>
-    </View>
-  );
 }
 
 export function ComposeImageEditor({
@@ -263,9 +204,10 @@ export function ComposeImageEditor({
     const overlay: VideoTextOverlay = {
       id: `txt-${Date.now()}`,
       text,
-      x: 0.12,
-      y: 0.38,
+      x: 0.5,
+      y: 0.5,
       scale: 1,
+      color: DEFAULT_TEXT_OVERLAY_COLOR,
     };
     setEdit((prev) => ({
       ...prev,
@@ -317,6 +259,9 @@ export function ComposeImageEditor({
           watermarkOptions
         )
       : null;
+
+  const imageW = width || item?.width || previewSize.w;
+  const imageH = height || item?.height || previewSize.h;
 
   if (!item) return null;
 
@@ -377,12 +322,14 @@ export function ComposeImageEditor({
           ) : null}
 
           {edit.textOverlays.map((o) => (
-            <DraggableText
+            <TextOverlayDraggable
               key={o.id}
               overlay={o}
               selected={selectedTextId === o.id}
-              frameW={previewSize.w}
-              frameH={previewSize.h}
+              containerW={previewSize.w}
+              containerH={previewSize.h}
+              imageW={imageW}
+              imageH={imageH}
               onSelect={() => setSelectedTextId(o.id)}
               onMove={(x, y) => {
                 setEdit((prev) => ({
@@ -454,18 +401,38 @@ export function ComposeImageEditor({
                   </Text>
                 </Pressable>
                 {selectedTextId ? (
-                  <Pressable
-                    style={styles.sheetMutedBtn}
-                    onPress={() => {
-                      setEdit((p) => ({
-                        ...p,
-                        textOverlays: p.textOverlays.filter((t) => t.id !== selectedTextId),
-                      }));
-                      setSelectedTextId(null);
-                    }}
-                  >
-                    <Text style={styles.sheetMutedBtnText}>선택 텍스트 삭제</Text>
-                  </Pressable>
+                  <>
+                    <Text style={styles.textColorLabel}>글자 색</Text>
+                    <TextColorPicker
+                      value={
+                        edit.textOverlays.find((t) => t.id === selectedTextId)?.color ??
+                        DEFAULT_TEXT_OVERLAY_COLOR
+                      }
+                      onChange={(color) => {
+                        setEdit((p) => ({
+                          ...p,
+                          textOverlays: p.textOverlays.map((t) =>
+                            t.id === selectedTextId ? { ...t, color } : t
+                          ),
+                        }));
+                      }}
+                      styles={styles}
+                    />
+                    <Pressable
+                      style={styles.sheetMutedBtn}
+                      onPress={() => {
+                        setEdit((p) => ({
+                          ...p,
+                          textOverlays: p.textOverlays.filter((t) => t.id !== selectedTextId),
+                        }));
+                        setSelectedTextId(null);
+                      }}
+                    >
+                      <Text style={styles.sheetMutedBtnText}>선택 텍스트 삭제</Text>
+                    </Pressable>
+                  </>
+                ) : edit.textOverlays.length > 0 ? (
+                  <Text style={styles.sheetHint}>미리보기에서 텍스트를 탭하면 색을 바꿀 수 있어요.</Text>
                 ) : null}
               </View>
             ) : null}

@@ -122,6 +122,29 @@ export function createComposeEditorStyles(colors: ThemeColors, isDark: boolean) 
     sheetMutedBtn: { alignSelf: "center", paddingVertical: 6 },
     sheetMutedBtnText: { color: colors.textMuted, fontWeight: "700" },
 
+    textColorRow: { gap: 10, paddingVertical: 4, paddingHorizontal: 2, alignItems: "center" },
+    textColorSwatch: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      borderWidth: 2,
+      borderColor: "rgba(255,255,255,0.35)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    textColorSwatchActive: {
+      borderColor: colors.terracotta,
+      borderWidth: 2.5,
+      transform: [{ scale: 1.08 }],
+    },
+    textColorSpacer: { width: 4 },
+    textColorLabel: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      fontWeight: "700",
+      marginBottom: 2,
+    },
+
     filterRow: { paddingHorizontal: 12, gap: 10, paddingBottom: 8 },
     filterChip: { alignItems: "center", width: 72 },
     filterPreview: {

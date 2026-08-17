@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { fetchPaidOriginVideo } from "@/lib/paid-media-origin";
 import { verifyPaidVideoAccess, WatermarkAccessError } from "@/lib/watermark/session/service";
+import { getWatermarkViewerUserId } from "@/lib/watermark/request-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -22,8 +22,8 @@ export async function GET(
   const limited = await rateLimitPublicApi(req, "paid-media-play", 120);
   if (limited) return limited;
 
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getWatermarkViewerUserId(req);
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -51,9 +51,9 @@ export async function GET(
 
   // Author watches their own file through the same gate so the URL never
   // appears in the page, but they are not a leak suspect.
-  if (session.user.id !== media.post.authorId) {
+  if (userId !== media.post.authorId) {
     try {
-      await verifyPaidVideoAccess(session.user.id, id);
+      await verifyPaidVideoAccess(userId, id);
     } catch (e) {
       if (e instanceof WatermarkAccessError) {
         return NextResponse.json({ error: e.message }, { status: e.status });

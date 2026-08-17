@@ -32,10 +32,12 @@ export const DEFAULT_IMAGE_EDIT: ImageEditDraft = {
 export type VideoTextOverlay = {
   id: string;
   text: string;
-  /** 0–1 relative to preview frame */
+  /** 0–1 relative to image bounds (not letterbox margins) */
   x: number;
   y: number;
   scale: number;
+  /** Hex fill — defaults to white when omitted */
+  color?: string;
 };
 
 export type VideoAudioTrack = {

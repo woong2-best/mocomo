@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { fetchPaidOriginVideo } from "@/lib/paid-media-origin";
 import { verifyPaidVideoAccess, WatermarkAccessError } from "@/lib/watermark/session/service";
+import { getWatermarkViewerUserId } from "@/lib/watermark/request-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +15,8 @@ export async function GET(
   const limited = await rateLimitPublicApi(req, "paid-episode-play", 120);
   if (limited) return limited;
 
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getWatermarkViewerUserId(req);
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -36,9 +36,9 @@ export async function GET(
     return NextResponse.json({ error: "Not a paid video" }, { status: 400 });
   }
 
-  if (session.user.id !== episode.authorId) {
+  if (userId !== episode.authorId) {
     try {
-      await verifyPaidVideoAccess(session.user.id, id, "EPISODE");
+      await verifyPaidVideoAccess(userId, id, "EPISODE");
     } catch (e) {
       if (e instanceof WatermarkAccessError) {
         return NextResponse.json({ error: e.message }, { status: e.status });

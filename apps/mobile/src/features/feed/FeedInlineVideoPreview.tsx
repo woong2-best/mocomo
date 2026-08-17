@@ -4,6 +4,8 @@ import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
 import type { FeedMedia } from "@/api/feed";
+import { isPaidPlaybackPath } from "@/api/watermark";
+import { PaidVideoPlayer } from "@/components/media/PaidVideoPlayer";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 
 /** Feed-wide mute preference (Twitter-style). */
@@ -79,23 +81,26 @@ function FeedInlineVideoPreviewInner({
 }: Props) {
   const poster = useMemo(() => resolveVideoPoster(media), [media]);
   const src = useMemo(() => resolveVideoSrc(media), [media]);
+  const isPaid =
+    isPaidPlaybackPath(src) || isPaidPlaybackPath(media.url) || (media.priceKrw ?? 0) > 0;
   const durationLabel = formatDuration(media.duration);
   const [muted, setMuted] = useFeedPreviewMuted();
 
-  const shouldLoadPlayer = Boolean(src) && active;
+  const shouldLoadNativePlayer = Boolean(src) && active && !isPaid;
+  const shouldLoadPaidPlayer = Boolean(media.url) && active && isPaid && !media.locked;
 
-  const player = useVideoPlayer(shouldLoadPlayer ? src : null, (p) => {
+  const player = useVideoPlayer(shouldLoadNativePlayer ? src : null, (p) => {
     p.loop = true;
     p.muted = muted;
   });
 
   useEffect(() => {
-    if (!shouldLoadPlayer) return;
+    if (!shouldLoadNativePlayer) return;
     player.muted = muted;
-  }, [muted, player, shouldLoadPlayer]);
+  }, [muted, player, shouldLoadNativePlayer]);
 
   useEffect(() => {
-    if (!shouldLoadPlayer) return;
+    if (!shouldLoadNativePlayer) return;
     try {
       player.play();
     } catch {
@@ -109,12 +114,11 @@ function FeedInlineVideoPreviewInner({
         // ignore
       }
     };
-  }, [player, shouldLoadPlayer]);
+  }, [player, shouldLoadNativePlayer]);
 
   const openImmersive = () => {
-    // Stop inline preview immediately so it cannot overlap Reels audio/video.
     try {
-      if (shouldLoadPlayer) player.pause();
+      if (shouldLoadNativePlayer) player.pause();
     } catch {
       // ignore
     }
@@ -147,7 +151,9 @@ function FeedInlineVideoPreviewInner({
         <View style={[StyleSheet.absoluteFill, styles.fallbackBg]} pointerEvents="none" />
       )}
 
-      {shouldLoadPlayer ? (
+      {shouldLoadPaidPlayer ? (
+        <PaidVideoPlayer media={media} active={active} muted={muted} contentFit="cover" />
+      ) : shouldLoadNativePlayer ? (
         <VideoView
           style={StyleSheet.absoluteFill}
           player={player}

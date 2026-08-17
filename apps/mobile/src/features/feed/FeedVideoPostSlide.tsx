@@ -14,6 +14,8 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
 import { ShareGlobeIcon } from "@/ui/ShareGlobeIcon";
 import * as Haptics from "expo-haptics";
+import { isPaidPlaybackPath } from "@/api/watermark";
+import { PaidVideoPlayer } from "@/components/media/PaidVideoPlayer";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { ReelItem } from "@/api/reels";
@@ -48,26 +50,21 @@ type Props = {
   onFastForwardChange?: (active: boolean) => void;
 };
 
-function VideoCell({
+function NativeVideoCell({
   item,
+  src,
   active,
   muted,
   pausedByUser,
   fastForward,
 }: {
   item: ReelItem;
+  src: string;
   active: boolean;
   muted: boolean;
   pausedByUser: boolean;
   fastForward: boolean;
 }) {
-  const src = useMemo(() => {
-    const progressive = item.media.url?.trim();
-    const hls = item.media.hlsUrl?.trim();
-    if (progressive && !progressive.includes(".m3u8")) return progressive;
-    return hls || progressive || "";
-  }, [item.media.hlsUrl, item.media.url]);
-
   const player = useVideoPlayer(src || null, (p) => {
     p.loop = true;
     p.muted = muted;
@@ -98,10 +95,6 @@ function VideoCell({
     }
   }, [active, pausedByUser, fastForward, player, src]);
 
-  if (!src) {
-    return <View style={[StyleSheet.absoluteFill, { backgroundColor: "#111" }]} />;
-  }
-
   return (
     <View style={StyleSheet.absoluteFill}>
       {item.media.posterUrl && !active ? (
@@ -119,6 +112,71 @@ function VideoCell({
         nativeControls={false}
       />
     </View>
+  );
+}
+
+function VideoCell({
+  item,
+  active,
+  muted,
+  pausedByUser,
+  fastForward,
+}: {
+  item: ReelItem;
+  active: boolean;
+  muted: boolean;
+  pausedByUser: boolean;
+  fastForward: boolean;
+}) {
+  const src = useMemo(() => {
+    const progressive = item.media.url?.trim();
+    const hls = item.media.hlsUrl?.trim();
+    if (progressive && !progressive.includes(".m3u8")) return progressive;
+    return hls || progressive || "";
+  }, [item.media.hlsUrl, item.media.url]);
+
+  const isPaid = isPaidPlaybackPath(src) || (item.media.priceKrw ?? 0) > 0;
+  const mediaId = item.media.id?.trim() || null;
+
+  if (!src) {
+    return <View style={[StyleSheet.absoluteFill, { backgroundColor: "#111" }]} />;
+  }
+
+  if (isPaid && mediaId) {
+    return (
+      <View style={StyleSheet.absoluteFill}>
+        {item.media.posterUrl && !active ? (
+          <Image
+            source={{ uri: item.media.posterUrl }}
+            style={StyleSheet.absoluteFill}
+            contentFit="contain"
+            cachePolicy={IMAGE_CACHE_POLICY}
+          />
+        ) : null}
+        <PaidVideoPlayer
+          media={{
+            id: mediaId,
+            url: item.media.url,
+            type: "VIDEO",
+            priceKrw: item.media.priceKrw,
+          }}
+          active={active && (!pausedByUser || fastForward)}
+          muted={muted}
+          contentFit="contain"
+        />
+      </View>
+    );
+  }
+
+  return (
+    <NativeVideoCell
+      item={item}
+      src={src}
+      active={active}
+      muted={muted}
+      pausedByUser={pausedByUser}
+      fastForward={fastForward}
+    />
   );
 }
 

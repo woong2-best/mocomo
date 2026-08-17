@@ -3,7 +3,8 @@
 Marks paid video playback with an invisible, per-viewing-session signal so a
 leaked screen capture can be traced back to the session it came from.
 
-Web only. Out of scope for `apps/mobile`.
+Web primary; mobile app reuses the same forensic renderer via an authenticated
+embed WebView when `WATERMARK_ENABLED` is on.
 
 ## What it does and does not do
 

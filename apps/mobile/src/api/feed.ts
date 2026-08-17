@@ -6,6 +6,8 @@ export type FeedMedia = {
   url: string;
   type: string;
   priceKrw?: number | null;
+  locked?: boolean;
+  lockReason?: string | null;
   width?: number | null;
   height?: number | null;
   duration?: number | null;

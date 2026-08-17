@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Modal,
-  PanResponder,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -33,6 +32,9 @@ import {
 } from "@/lib/media-watermark";
 import { MOBILE_VIDEO_FILTERS, getVideoFilter } from "@/lib/video-filters";
 import { createComposeEditorStyles } from "@/features/compose/compose-editor-styles";
+import { TextColorPicker } from "@/features/compose/TextColorPicker";
+import { TextOverlayDraggable } from "@/features/compose/TextOverlayDraggable";
+import { DEFAULT_TEXT_OVERLAY_COLOR } from "@/features/compose/text-overlay-utils";
 import { useTheme } from "@/theme/ThemeContext";
 import { type ThemeColors } from "@/theme/tokens";
 
@@ -65,70 +67,6 @@ function cloneEdit(e: VideoEditDraft): VideoEditDraft {
     textOverlays: e.textOverlays.map((t) => ({ ...t })),
     audioTrack: e.audioTrack ? { ...e.audioTrack } : null,
   };
-}
-
-function DraggableText({
-  overlay,
-  selected,
-  frameW,
-  frameH,
-  onSelect,
-  onMove,
-}: {
-  overlay: VideoTextOverlay;
-  selected: boolean;
-  frameW: number;
-  frameH: number;
-  onSelect: () => void;
-  onMove: (x: number, y: number) => void;
-}) {
-  const start = useRef({ x: overlay.x, y: overlay.y });
-  const pan = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        onSelect();
-        start.current = { x: overlay.x, y: overlay.y };
-      },
-      onPanResponderMove: (_, g) => {
-        const nx = clamp(start.current.x + g.dx / frameW, 0, 0.92);
-        const ny = clamp(start.current.y + g.dy / frameH, 0, 0.88);
-        onMove(nx, ny);
-      },
-    })
-  ).current;
-
-  const fontSize = Math.round(22 * overlay.scale);
-
-  return (
-    <View
-      {...pan.panHandlers}
-      style={{
-        position: "absolute",
-        left: overlay.x * frameW,
-        top: overlay.y * frameH,
-        padding: 4,
-        borderWidth: selected ? 1.5 : 0,
-        borderColor: "#fff",
-        borderRadius: 4,
-      }}
-    >
-      <Pressable onPress={onSelect}>
-        <Text
-          style={{
-            fontSize,
-            fontWeight: "800",
-            color: "#fff",
-            textShadowColor: "rgba(0,0,0,0.85)",
-            textShadowOffset: { width: 0, height: 1 },
-            textShadowRadius: 4,
-          }}
-        >
-          {overlay.text}
-        </Text>
-      </Pressable>
-    </View>
-  );
 }
 
 export function ComposeVideoEditor({
@@ -278,9 +216,10 @@ export function ComposeVideoEditor({
     const overlay: VideoTextOverlay = {
       id: `txt-${Date.now()}`,
       text,
-      x: 0.12,
-      y: 0.38,
+      x: 0.5,
+      y: 0.5,
       scale: 1,
+      color: DEFAULT_TEXT_OVERLAY_COLOR,
     };
     patchEdit({ textOverlays: [...edit.textOverlays, overlay] });
     setSelectedTextId(overlay.id);
@@ -313,6 +252,9 @@ export function ComposeVideoEditor({
       : null;
 
   if (!item) return null;
+
+  const videoW = item.width || previewSize.w;
+  const videoH = item.height || previewSize.h;
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -366,12 +308,14 @@ export function ComposeVideoEditor({
           ) : null}
 
           {edit.textOverlays.map((o) => (
-            <DraggableText
+            <TextOverlayDraggable
               key={o.id}
               overlay={o}
               selected={selectedTextId === o.id}
-              frameW={previewSize.w}
-              frameH={previewSize.h}
+              containerW={previewSize.w}
+              containerH={previewSize.h}
+              imageW={videoW}
+              imageH={videoH}
               onSelect={() => setSelectedTextId(o.id)}
               onMove={(x, y) => {
                 const next = edit.textOverlays.map((t) =>
@@ -476,6 +420,26 @@ export function ComposeVideoEditor({
               </Pressable>
             ) : null}
           </Pressable>
+
+          {selectedTextId ? (
+            <View style={{ gap: 6 }}>
+              <Text style={styles.textColorLabel}>글자 색</Text>
+              <TextColorPicker
+                value={
+                  edit.textOverlays.find((t) => t.id === selectedTextId)?.color ??
+                  DEFAULT_TEXT_OVERLAY_COLOR
+                }
+                onChange={(color) => {
+                  patchEdit({
+                    textOverlays: edit.textOverlays.map((t) =>
+                      t.id === selectedTextId ? { ...t, color } : t
+                    ),
+                  });
+                }}
+                styles={styles}
+              />
+            </View>
+          ) : null}
 
           <Text style={styles.timelineHint}>
             트랙을 눌러 편집 · 영상 탭으로 재생/일시정지

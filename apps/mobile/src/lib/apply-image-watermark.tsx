@@ -8,6 +8,11 @@ import {
   type WatermarkOptions,
 } from "@/lib/media-watermark";
 import type { ImageEditDraft, LocalMediaDraft, VideoTextOverlay } from "@/features/compose/compose-types";
+import {
+  getTextOverlayTextStyle,
+  overlayPixelPosition,
+  textOverlayFontSize,
+} from "@/features/compose/text-overlay-utils";
 import { getVideoFilter } from "@/lib/video-filters";
 
 export type WatermarkCaptureJob = {
@@ -142,25 +147,24 @@ export function WatermarkCaptureHost({ job, onDone }: CaptureProps) {
             }}
           />
         ) : null}
-        {edit?.textOverlays.map((o) => (
-          <Text
-            key={o.id}
-            style={{
-              position: "absolute",
-              left: o.x * width,
-              top: o.y * height,
-              fontSize: Math.round(28 * o.scale),
-              fontWeight: "800",
-              color: "#fff",
-              textShadowColor: "rgba(0,0,0,0.85)",
-              textShadowOffset: { width: 0, height: 1 },
-              textShadowRadius: 4,
-              maxWidth: width * 0.85,
-            }}
-          >
-            {o.text}
-          </Text>
-        ))}
+        {edit?.textOverlays.map((o) => {
+          const fontSize = textOverlayFontSize(height, o.scale);
+          const pos = overlayPixelPosition(o, width, height);
+          return (
+            <View
+              key={o.id}
+              style={{
+                position: "absolute",
+                left: pos.left,
+                top: pos.top,
+                transform: [{ translateX: "-50%" }, { translateY: "-50%" }],
+                maxWidth: width * 0.92,
+              }}
+            >
+              <Text style={getTextOverlayTextStyle(o.color, fontSize)}>{o.text}</Text>
+            </View>
+          );
+        })}
         {svg ? (
           <SvgXml xml={svg} width={width} height={height} style={StyleSheet.absoluteFill} />
         ) : null}
@@ -217,25 +221,21 @@ export function TextOverlayCaptureHost({ job, onDone }: TextOverlayProps) {
         style={{ width: job.width, height: job.height, backgroundColor: "transparent" }}
       >
         {job.overlays.map((o) => {
-          const fontSize = Math.round(28 * o.scale);
+          const fontSize = textOverlayFontSize(job.height, o.scale);
+          const pos = overlayPixelPosition(o, job.width, job.height);
           return (
-            <Text
+            <View
               key={o.id}
               style={{
                 position: "absolute",
-                left: o.x * job.width,
-                top: o.y * job.height,
-                fontSize,
-                fontWeight: "800",
-                color: "#fff",
-                textShadowColor: "rgba(0,0,0,0.85)",
-                textShadowOffset: { width: 0, height: 1 },
-                textShadowRadius: 4,
-                maxWidth: job.width * 0.85,
+                left: pos.left,
+                top: pos.top,
+                transform: [{ translateX: "-50%" }, { translateY: "-50%" }],
+                maxWidth: job.width * 0.92,
               }}
             >
-              {o.text}
-            </Text>
+              <Text style={getTextOverlayTextStyle(o.color, fontSize)}>{o.text}</Text>
+            </View>
           );
         })}
       </View>
