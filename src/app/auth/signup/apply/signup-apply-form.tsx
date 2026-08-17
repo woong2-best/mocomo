@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SocialAuthButtons } from "@/components/auth/social-auth-buttons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +9,8 @@ import { BrandLogo } from "@/components/brand/brand-logo";
 import { BRAND } from "@/lib/brand";
 import { useLocale } from "@/components/providers/locale-provider";
 import { mobileAuthCompletePath, sanitizeMobileRedirectUri } from "@/lib/mobile-oauth-shared";
+import { persistOAuthFlowIntent } from "@/lib/oauth-flow-cookie";
+import { setAddAccountFlowCookie } from "@/lib/account-switch/add-account-flow";
 
 export function SignupApplyForm({
   googleOAuth,
@@ -30,10 +33,16 @@ export function SignupApplyForm({
   const searchParams = useSearchParams();
   const { t, locale } = useLocale();
   const needsSignupNotice = searchParams.get("reason") === "not_registered";
+  const addAccount = searchParams.get("addAccount") === "1";
   const completeUrl = mobileAuthCompletePath(platform);
   const mobileQs = fromMobile
     ? `?from=mobile&platform=${platform}`
     : "";
+
+  useEffect(() => {
+    void persistOAuthFlowIntent("signup").catch(() => undefined);
+    if (addAccount) setAddAccountFlowCookie();
+  }, [addAccount]);
 
   return (
     <div className="flex-1 flex items-center justify-center p-4">
@@ -66,7 +75,7 @@ export function SignupApplyForm({
             naverOAuth={naverOAuth}
             fromMobile={fromMobile}
             platform={platform}
-            addAccount={searchParams.get("addAccount") === "1"}
+            addAccount={addAccount}
             mobileRedirectUri={sanitizeMobileRedirectUri(searchParams.get("redirect_uri"))}
             onGmailSignup={() => router.push(`/auth/signup/gmail${mobileQs}`)}
             onNaverSignup={() => router.push(`/auth/signup/naver${mobileQs}`)}

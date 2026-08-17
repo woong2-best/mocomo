@@ -2,7 +2,11 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
-import { signupRedirectForUnregistered } from "@/lib/oauth-flow-cookie";
+import {
+  readOAuthFlowCookie,
+  signupRedirectForUnregistered,
+} from "@/lib/oauth-flow-cookie";
+import { OAuthCompleteClient } from "./oauth-complete-client";
 
 export const dynamic = "force-dynamic";
 
@@ -12,27 +16,38 @@ function safeDest(raw: string | undefined): string {
   return DEFAULT_LANDING_PATH;
 }
 
-/** OAuth sign-in landing: verified session → dest, otherwise signup apply. */
+function signupFallback(addAccount: boolean): string {
+  if (addAccount) return signupRedirectForUnregistered();
+  return "/auth/signup/apply?reason=oauth_failed";
+}
+
+/** OAuth landing — verified session → dest; otherwise signup apply. */
 export default async function OAuthCompletePage({
   searchParams,
 }: {
-  searchParams: Promise<{ dest?: string }>;
+  searchParams: Promise<{ dest?: string; flow?: string; addAccount?: string }>;
 }) {
   const sp = await searchParams;
+  const dest = safeDest(sp.dest);
+  const addAccount = sp.addAccount === "1";
+  const signupUrl = signupFallback(addAccount);
+  const flow = (await readOAuthFlowCookie()) ?? (sp.flow === "signup" ? "signup" : "signin");
+
   const session = await auth();
+  if (session?.user?.id) {
+    const dbUser = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { emailVerified: true },
+    });
 
-  if (!session?.user?.id) {
-    redirect(signupRedirectForUnregistered());
+    if (dbUser?.emailVerified) {
+      redirect(dest);
+    }
   }
 
-  const dbUser = await db.user.findUnique({
-    where: { id: session.user.id },
-    select: { emailVerified: true },
-  });
-
-  if (!dbUser?.emailVerified) {
-    redirect(signupRedirectForUnregistered());
+  if (flow === "signin") {
+    redirect(signupUrl);
   }
 
-  redirect(safeDest(sp.dest));
+  return <OAuthCompleteClient dest={dest} signupUrl={signupUrl} />;
 }

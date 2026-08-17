@@ -95,7 +95,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         );
       }
 
-      if (isOAuth && oauthFlow !== "signup") {
+      if (isOAuth && (oauthFlow === "signin" || oauthFlow === null)) {
         let existing: SignInUserRow | null = null;
 
         if (user.id) {

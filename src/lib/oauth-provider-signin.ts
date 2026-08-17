@@ -24,9 +24,17 @@ export function safeOAuthDestination(raw: string | null | undefined): string {
   return DEFAULT_LANDING_PATH;
 }
 
-export function oauthRedirectTo(flow: OAuthFlow, finalDestination: string): string {
-  if (flow === "signup") return finalDestination;
-  return `/auth/oauth/complete?dest=${encodeURIComponent(finalDestination)}`;
+export function oauthRedirectTo(
+  flow: OAuthFlow,
+  finalDestination: string,
+  opts?: { addAccount?: boolean }
+): string {
+  const params = new URLSearchParams({
+    dest: finalDestination,
+    flow,
+  });
+  if (opts?.addAccount) params.set("addAccount", "1");
+  return `/auth/oauth/complete?${params}`;
 }
 
 export type StartOAuthProviderSigninOptions = {
@@ -45,7 +53,9 @@ export async function startOAuthProviderSignin(opts: StartOAuthProviderSigninOpt
   const finalDestination = opts.mobile
     ? safeOAuthDestination(opts.callbackUrl?.trim() || mobileAuthCompletePath(platform))
     : safeOAuthDestination(opts.callbackUrl);
-  const redirectTo = oauthRedirectTo(opts.flow, finalDestination);
+  const redirectTo = oauthRedirectTo(opts.flow, finalDestination, {
+    addAccount: opts.addAccount,
+  });
   const redirectUri = sanitizeMobileRedirectUri(opts.redirectUri ?? null);
 
   const jar = await cookies();
