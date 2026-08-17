@@ -11,6 +11,8 @@ export function PurchasePostMediaButton({
   username,
   postId,
   variant = "button",
+  returnPath,
+  onPurchaseSuccess,
 }: {
   mediaId?: string;
   priceKrw: number;
@@ -20,8 +22,11 @@ export function PurchasePostMediaButton({
   postId?: string;
   /** button: pill CTA · label: Twitter-style white text under lock */
   variant?: "button" | "label";
+  returnPath?: string;
+  onPurchaseSuccess?: () => void;
 }) {
-  const returnPath = usePathname();
+  const pathname = usePathname();
+  const checkoutReturn = returnPath ?? pathname;
 
   if (!mediaId) {
     return null;
@@ -41,7 +46,9 @@ export function PurchasePostMediaButton({
           type="POST_MEDIA"
           amount={priceKrw}
           orderName={label}
-          metadata={{ mediaId, username, postId, returnPath }}
+          metadata={{ mediaId, username, postId, returnPath: checkoutReturn }}
+          returnPath={checkoutReturn}
+          onPurchaseSuccess={onPurchaseSuccess}
           className="h-auto rounded-none bg-transparent p-0 text-[13px] font-semibold text-white shadow-none hover:bg-transparent hover:underline"
         >
           {label}
@@ -55,7 +62,9 @@ export function PurchasePostMediaButton({
       type="POST_MEDIA"
       amount={priceKrw}
       orderName={label}
-      metadata={{ mediaId, username, postId, returnPath }}
+      metadata={{ mediaId, username, postId, returnPath: checkoutReturn }}
+      returnPath={checkoutReturn}
+      onPurchaseSuccess={onPurchaseSuccess}
       className="rounded-full h-9 px-4 text-xs gap-1.5 bg-white text-foreground hover:bg-white/90"
     >
       {priceKrw.toLocaleString()}원 · {label}

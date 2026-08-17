@@ -19,6 +19,12 @@ import {
 function revalidateAfterPayment(type: string) {
   revalidatePath("/support");
   revalidatePath("/wallet");
+  revalidatePath("/");
+  revalidatePath("/feed");
+  if (type === "POST_MEDIA") {
+    revalidatePath("/post/[id]", "page");
+    revalidatePath("/u/[username]", "page");
+  }
   if (type === "FLOWER") revalidatePath("/flowers");
   if (type === "STUDIO_ASSET") {
     revalidatePath("/studio/library");

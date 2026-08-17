@@ -28,6 +28,12 @@ const PushRegistration = dynamic(
   { ssr: false }
 );
 
+const CheckoutResumeHandler = dynamic(
+  () =>
+    import("@/components/payments/checkout-resume-handler").then((m) => m.CheckoutResumeHandler),
+  { ssr: false }
+);
+
 const NativePushRegistration = dynamic(
   () =>
     import("@/components/push/native-push-registration").then((m) => m.NativePushRegistration),
@@ -60,6 +66,7 @@ export function AppProviders({
             <SidebarToggleProvider>
               <PushRegistration />
               <NativePushRegistration />
+              <CheckoutResumeHandler />
               <CallProviderGate>
                 <PlatformBootstrapClient />
                 <AddAccountFlowHandler />

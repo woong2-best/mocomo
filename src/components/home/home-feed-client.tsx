@@ -29,6 +29,7 @@ export function HomeFeedClient({
   likedIds = [],
   starredIds = [],
   repostedIds = [],
+  paymentsEnabled = false,
 }: {
   feedItems: FeedLayoutItem[];
   nextCursor: string | null;
@@ -38,6 +39,7 @@ export function HomeFeedClient({
   likedIds?: string[];
   starredIds?: string[];
   repostedIds?: string[];
+  paymentsEnabled?: boolean;
 }) {
   const { t } = useLocale();
   const visibleItems = isPremium ? feedItems.filter((item) => item.type !== "ad") : feedItems;
@@ -65,6 +67,7 @@ export function HomeFeedClient({
           initialLikedIds={likedIds}
           initialStarredIds={starredIds}
           initialRepostedIds={repostedIds}
+          paymentsEnabled={paymentsEnabled}
         />
       </PageSection>
     </>

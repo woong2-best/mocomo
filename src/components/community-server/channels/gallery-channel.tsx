@@ -5,6 +5,7 @@ import { postMediaPreview } from "@/lib/post-media-select";
 import { userPublicSelect } from "@/lib/user-public-select";
 import { getAuthUserId } from "@/lib/auth";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
+import { isPaymentsConfigured } from "@/lib/payments";
 
 export async function GalleryChannelView({ communityId }: { communityId: string }) {
   const [viewerId, rawPosts] = await Promise.all([
@@ -28,6 +29,7 @@ export async function GalleryChannelView({ communityId }: { communityId: string 
     rawPosts.map((p) => ({ ...p, authorId: p.authorId ?? p.author.id })),
     viewerId
   );
+  const paymentsEnabled = isPaymentsConfigured();
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -43,7 +45,7 @@ export async function GalleryChannelView({ communityId }: { communityId: string 
         ) : (
           <div className="grid sm:grid-cols-2 gap-4">
             {posts.map((post) => (
-              <PostCard key={post.id} post={post} />
+              <PostCard key={post.id} post={post} paymentsEnabled={paymentsEnabled} />
             ))}
           </div>
         )}

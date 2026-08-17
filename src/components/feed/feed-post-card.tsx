@@ -9,6 +9,7 @@ import { PostShareMenu } from "@/components/post/post-share-menu";
 import { formatNumber, cn } from "@/lib/utils";
 import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
 import { LockedMediaPaywallOverlay } from "@/components/media/locked-media-paywall-overlay";
+import { PurchasePostMediaButton } from "@/components/profile/purchase-post-media-button";
 import type { SupportTierLevel } from "@prisma/client";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { userDisplayName } from "@/lib/user-public-select";
@@ -48,6 +49,7 @@ export type GridPost = {
     url: string;
     type: string;
     priceKrw?: number;
+    instantPurchasePriceKrw?: number;
     locked?: boolean;
     hlsUrl?: string | null;
     posterUrl?: string | null;
@@ -70,9 +72,38 @@ const typeLabels: Record<string, string> = {
   VIDEO: "영상",
 };
 
-export function FeedPostCard({ post }: { post: GridPost }) {
+export function FeedPostCard({
+  post,
+  paymentsEnabled = false,
+}: {
+  post: GridPost;
+  paymentsEnabled?: boolean;
+}) {
   const displayName = userDisplayName(post.author);
   const cover = post.media?.[0];
+  const purchasePrice =
+    cover?.priceKrw ?? cover?.instantPurchasePriceKrw ?? post.instantPurchasePriceKrw ?? 0;
+
+  function renderPaywall() {
+    if (!cover?.locked || !cover.id || purchasePrice <= 0) {
+      return cover?.locked ? <LockedMediaPaywallOverlay label="결제하기" /> : null;
+    }
+    return (
+      <div className="absolute inset-0" onClick={(e) => e.stopPropagation()}>
+        <LockedMediaPaywallOverlay>
+          <PurchasePostMediaButton
+            mediaId={cover.id}
+            priceKrw={purchasePrice}
+            paymentsEnabled={paymentsEnabled}
+            username={post.author.username}
+            postId={post.id}
+            label="결제하기"
+            variant="label"
+          />
+        </LockedMediaPaywallOverlay>
+      </div>
+    );
+  }
 
   return (
     <Card className="overflow-hidden hover:border-primary/40 transition-all duration-300 group h-full flex flex-col">
@@ -120,7 +151,7 @@ export function FeedPostCard({ post }: { post: GridPost }) {
                 postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
                 locked={cover.locked}
               />
-              {cover.locked && <LockedMediaPaywallOverlay label="결제하기" />}
+              {renderPaywall()}
             </div>
           ) : (
             <Link href={`/post/${post.id}`} className="relative block flex-1">
@@ -135,7 +166,7 @@ export function FeedPostCard({ post }: { post: GridPost }) {
                 postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
                 locked={cover.locked}
               />
-              {cover.locked && <LockedMediaPaywallOverlay label="결제하기" />}
+              {renderPaywall()}
             </Link>
           )
         ) : (

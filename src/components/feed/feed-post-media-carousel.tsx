@@ -9,6 +9,7 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
 import { LockedMediaPaywallOverlay } from "@/components/media/locked-media-paywall-overlay";
@@ -23,6 +24,7 @@ import type { ContentLockReason } from "@/lib/content-access";
 import { PostMediaLightbox } from "@/components/media/post-media-lightbox";
 import {
   getCachedPostMedia,
+  invalidatePostMediaCache,
   prefetchPostMedia,
   setCachedPostMedia,
 } from "@/lib/post-media-client-cache";
@@ -135,6 +137,7 @@ function CarouselTile({
   isNsfw = false,
   isOwner = false,
   viewerShowNsfw = false,
+  onPurchaseSuccess,
 }: {
   media: ProfilePostMediaItem;
   postId: string;
@@ -150,6 +153,7 @@ function CarouselTile({
   isNsfw?: boolean;
   isOwner?: boolean;
   viewerShowNsfw?: boolean;
+  onPurchaseSuccess?: () => void;
 }) {
   const locked = !!media.locked && !!media.id;
   const lockReason = (media.lockReason ?? "none") as ContentLockReason;
@@ -205,6 +209,7 @@ function CarouselTile({
                 postId={postId}
                 label="결제하기"
                 variant="label"
+                onPurchaseSuccess={onPurchaseSuccess}
               />
             </LockedMediaPaywallOverlay>
           ) : (
@@ -239,28 +244,46 @@ export function FeedPostMediaCarousel({
   className,
   onDoubleTapLike,
 }: Props) {
+  const router = useRouter();
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [localMedia, setLocalMedia] = useState(media);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [lightboxMedia, setLightboxMedia] = useState<ProfilePostMediaItem[]>(media);
   const [opening, setOpening] = useState(false);
   const feedVideoViewer = useFeedVideoViewerOptional();
 
-  const total = mediaTotal ?? media.length;
-  const needsFullFetch = total > media.length;
+  useEffect(() => {
+    setLocalMedia(media);
+  }, [media]);
+
+  const refreshAfterPurchase = useCallback(async () => {
+    invalidatePostMediaCache(postId);
+    const fresh = await prefetchPostMedia(postId, { force: true });
+    if (fresh?.length) {
+      const resolved = fresh as ProfilePostMediaItem[];
+      setLocalMedia(resolved);
+      setLightboxMedia(resolved.filter(isVisual));
+      setCachedPostMedia(postId, fresh);
+    }
+    router.refresh();
+  }, [postId, router]);
+
+  const total = mediaTotal ?? localMedia.length;
+  const needsFullFetch = total > localMedia.length;
 
   useEffect(() => {
-    if (!needsFullFetch && media.length > 0) {
-      setCachedPostMedia(postId, media);
-      setLightboxMedia(media);
+    if (!needsFullFetch && localMedia.length > 0) {
+      setCachedPostMedia(postId, localMedia);
+      setLightboxMedia(localMedia);
       return;
     }
     if (needsFullFetch) {
       void prefetchPostMedia(postId);
     }
-  }, [needsFullFetch, media, postId]);
+  }, [needsFullFetch, localMedia, postId]);
 
-  const items = useMemo(() => media.filter(isVisual), [media]);
+  const items = useMemo(() => localMedia.filter(isVisual), [localMedia]);
   const multi = items.length > 1;
 
   function warmFullMedia() {
@@ -370,6 +393,7 @@ export function FeedPostMediaCarousel({
           isNsfw={isNsfw}
           isOwner={isOwner}
           viewerShowNsfw={viewerShowNsfw}
+          onPurchaseSuccess={refreshAfterPurchase}
         />
       </MediaOpenWrapper>
     );

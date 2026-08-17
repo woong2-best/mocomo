@@ -30,11 +30,13 @@ export function FeedPhotoPostCard({
   initialLiked = false,
   initialStarred = false,
   initialReposted = false,
+  paymentsEnabled = false,
 }: {
   post: GridPost & { createdAt: string | Date };
   initialLiked?: boolean;
   initialStarred?: boolean;
   initialReposted?: boolean;
+  paymentsEnabled?: boolean;
 }) {
   const like = useOptimisticLike(post.id, initialLiked, post._count?.likes ?? 0);
   const star = useOptimisticStar(post.id, initialStarred);
@@ -118,7 +120,7 @@ export function FeedPhotoPostCard({
             postId={post.id}
             authorUsername={username}
             authorId={post.author.id}
-            paymentsEnabled={false}
+            paymentsEnabled={paymentsEnabled}
             postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
             mediaTotal={post._count?.media ?? media.length}
             className="mt-0"

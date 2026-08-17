@@ -37,12 +37,22 @@ export function setCachedPostMedia(postId: string, media: CachedPostMediaItem[])
   cache.set(postId, { media, fetchedAt: Date.now() });
 }
 
+export function invalidatePostMediaCache(postId: string) {
+  cache.delete(postId);
+  inflight.delete(postId);
+}
+
 /** 피드 미리보기가 잘린 게시글용 — hover/열기 시 전체 미디어 프리페치 */
-export function prefetchPostMedia(postId: string): Promise<CachedPostMediaItem[] | null> {
+export function prefetchPostMedia(
+  postId: string,
+  opts?: { force?: boolean }
+): Promise<CachedPostMediaItem[] | null> {
   if (!postId) return Promise.resolve(null);
 
-  const cached = getCachedPostMedia(postId);
-  if (cached) return Promise.resolve(cached);
+  if (!opts?.force) {
+    const cached = getCachedPostMedia(postId);
+    if (cached) return Promise.resolve(cached);
+  }
 
   const existing = inflight.get(postId);
   if (existing) return existing;

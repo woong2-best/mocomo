@@ -10,11 +10,13 @@ function FeedPostCardInteractiveInner({
   initialLiked = false,
   initialStarred = false,
   initialReposted = false,
+  paymentsEnabled = false,
 }: {
   post: GridPost & { createdAt: string | Date };
   initialLiked?: boolean;
   initialStarred?: boolean;
   initialReposted?: boolean;
+  paymentsEnabled?: boolean;
 }) {
   return (
     <PostFlashHighlight postId={post.id}>
@@ -23,6 +25,7 @@ function FeedPostCardInteractiveInner({
         initialLiked={initialLiked}
         initialStarred={initialStarred}
         initialReposted={initialReposted}
+        paymentsEnabled={paymentsEnabled}
       />
     </PostFlashHighlight>
   );
@@ -36,5 +39,6 @@ export const FeedPostCardInteractive = memo(
     prev.post._count?.media === next.post._count?.media &&
     prev.initialLiked === next.initialLiked &&
     prev.initialStarred === next.initialStarred &&
-    prev.initialReposted === next.initialReposted
+    prev.initialReposted === next.initialReposted &&
+    prev.paymentsEnabled === next.paymentsEnabled
 );

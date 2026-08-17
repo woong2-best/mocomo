@@ -26,11 +26,13 @@ export function FeedDualColumnLayout({
   likedIds,
   starredIds,
   repostedIds,
+  paymentsEnabled = false,
 }: {
   items: FeedLayoutItem[];
   likedIds: Set<string>;
   starredIds: Set<string>;
   repostedIds: Set<string>;
+  paymentsEnabled?: boolean;
 }) {
   function renderItem(item: FeedLayoutItem, keySuffix: string, index: number) {
     const wrap = (node: ReactNode, key: string) => (
@@ -51,6 +53,7 @@ export function FeedDualColumnLayout({
         initialLiked={likedIds.has(item.data.id)}
         initialStarred={starredIds.has(item.data.id)}
         initialReposted={repostedIds.has(item.data.id)}
+        paymentsEnabled={paymentsEnabled}
       />,
       `${item.data.id}-${keySuffix}`
     );

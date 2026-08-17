@@ -20,9 +20,11 @@ import {
 export function CommunityPostCard({
   post,
   communityId,
+  paymentsEnabled = false,
 }: {
   post: Parameters<typeof PostCard>[0]["post"] & { isPinned?: boolean };
   communityId: string;
+  paymentsEnabled?: boolean;
 }) {
   const { permissions } = useCommunityMembership();
   const router = useRouter();
@@ -88,7 +90,7 @@ export function CommunityPostCard({
           </DropdownMenu>
         </div>
       )}
-      <PostCard post={post} />
+      <PostCard post={post} paymentsEnabled={paymentsEnabled} />
     </div>
   );
 }

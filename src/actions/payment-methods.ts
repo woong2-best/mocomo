@@ -16,12 +16,13 @@ export async function getMyPaymentMethods() {
   return { methods, configured: methods.length >= 0 };
 }
 
-export async function startAddPaymentMethod() {
+export async function startAddPaymentMethod(returnPath?: string) {
   const user = await requireAuth();
   const res = await createSetupCheckoutSession({
     userId: user.id,
     email: user.email,
     platform: "web",
+    returnPath,
   });
   if ("error" in res && res.error) return { error: res.error };
   return { checkoutUrl: res.checkoutUrl! };

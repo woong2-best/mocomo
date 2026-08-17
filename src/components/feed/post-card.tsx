@@ -35,12 +35,22 @@ type PostCardProps = {
       };
     }[];
     community?: { name: string; slug: string } | null;
-    media?: { id?: string; url: string; type: string; priceKrw?: number | null; locked?: boolean }[];
+    media?: {
+      id?: string;
+      url: string;
+      type: string;
+      priceKrw?: number | null;
+      instantPurchasePriceKrw?: number;
+      locked?: boolean;
+      lockReason?: string;
+    }[];
+    instantPurchasePriceKrw?: number;
     _count?: { likes: number; comments: number; votes: number; media?: number };
   };
+  paymentsEnabled?: boolean;
 };
 
-export function PostCard({ post }: PostCardProps) {
+export function PostCard({ post, paymentsEnabled = false }: PostCardProps) {
   return (
     <Card className="hover:border-primary/30 transition-all duration-300">
       <CardContent className="p-4 space-y-3">
@@ -90,7 +100,8 @@ export function PostCard({ post }: PostCardProps) {
             postId={post.id}
             authorUsername={post.author.username}
             authorId={post.author.id}
-            paymentsEnabled={false}
+            paymentsEnabled={paymentsEnabled}
+            postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
             isNsfw={post.isNsfw}
           />
         )}

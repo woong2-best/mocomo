@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { safeReturnPath } from "@/lib/donation-metadata";
 import { getAppOrigin, getStripe, isStripeConfigured } from "@/lib/stripe";
 import type { CheckoutPlatform } from "@/lib/stripe-checkout-service";
 
@@ -80,7 +81,7 @@ export async function listSavedPaymentMethods(userId: string): Promise<SavedPaym
   }));
 }
 
-export function stripeSetupReturnUrls(platform: CheckoutPlatform) {
+export function stripeSetupReturnUrls(platform: CheckoutPlatform, returnPath?: string) {
   const origin = getAppOrigin();
   if (platform === "mobile") {
     return {
@@ -88,9 +89,11 @@ export function stripeSetupReturnUrls(platform: CheckoutPlatform) {
       cancelUrl: `${origin}/payments/mobile-cancel?setup=1`,
     };
   }
+  const base = safeReturnPath(returnPath, "/wallet");
+  const sep = base.includes("?") ? "&" : "?";
   return {
-    successUrl: `${origin}/wallet?setup=success&session_id={CHECKOUT_SESSION_ID}`,
-    cancelUrl: `${origin}/wallet?setup=cancel`,
+    successUrl: `${origin}${base}${sep}setup=success&session_id={CHECKOUT_SESSION_ID}`,
+    cancelUrl: `${origin}${base}${sep}setup=cancel`,
   };
 }
 
@@ -98,13 +101,14 @@ export async function createSetupCheckoutSession(input: {
   userId: string;
   email?: string | null;
   platform?: CheckoutPlatform;
+  returnPath?: string;
 }) {
   if (!isStripeConfigured()) {
     return { error: "결제가 설정되지 않았습니다." };
   }
 
   const customerId = await getOrCreateStripeCustomer(input.userId, input.email);
-  const urls = stripeSetupReturnUrls(input.platform ?? "web");
+  const urls = stripeSetupReturnUrls(input.platform ?? "web", input.returnPath);
   const stripe = getStripe();
 
   const session = await stripe.checkout.sessions.create({

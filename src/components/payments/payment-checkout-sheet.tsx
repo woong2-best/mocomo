@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
 import type { PaymentIntentType } from "@prisma/client";
 import {
@@ -9,6 +11,8 @@ import {
   payWithSavedCard,
   prepareCheckoutPayment,
 } from "@/actions/checkout-payment";
+import { startAddPaymentMethod } from "@/actions/payment-methods";
+import { saveCheckoutForResume } from "@/components/payments/checkout-resume-handler";
 import type { SavedPaymentMethod } from "@/lib/stripe-payment-methods";
 import { PaymentLegalNotice } from "@/components/legal/legal-entity-notice";
 import { Button } from "@/components/ui/button";
@@ -29,6 +33,7 @@ type Props = {
   orderName: string;
   metadata: Record<string, unknown>;
   showLegalNotice?: boolean;
+  returnPath?: string;
   onSuccess?: (result: { type: string; redirectPath?: string }) => void;
 };
 
@@ -45,8 +50,11 @@ export function PaymentCheckoutSheet({
   orderName,
   metadata,
   showLegalNotice,
+  returnPath,
   onSuccess,
 }: Props) {
+  const pathname = usePathname();
+  const resumePath = returnPath ?? pathname ?? "/";
   const [methods, setMethods] = useState<SavedPaymentMethod[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
@@ -142,6 +150,17 @@ export function PaymentCheckoutSheet({
     if ("checkoutUrl" in res && res.checkoutUrl) window.location.href = res.checkoutUrl;
   }
 
+  async function addCardFromWallet() {
+    setError("");
+    saveCheckoutForResume({ type, amount, orderName, metadata, returnPath: resumePath });
+    const res = await startAddPaymentMethod(resumePath);
+    if ("error" in res && res.error) {
+      setError(res.error);
+      return;
+    }
+    if ("checkoutUrl" in res && res.checkoutUrl) window.location.href = res.checkoutUrl;
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md rounded-2xl">
@@ -190,6 +209,18 @@ export function PaymentCheckoutSheet({
 
               <button
                 type="button"
+                onClick={() => void addCardFromWallet()}
+                className="flex w-full items-center gap-3 rounded-xl border border-dashed border-border/80 px-4 py-3 text-left hover:bg-muted/30"
+              >
+                <Plus className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="font-bold">지갑에 카드 추가</p>
+                  <p className="text-xs text-muted-foreground">카드 등록 후 이 화면으로 돌아와 결제할 수 있습니다</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => void redirectCheckout()}
                 className="flex w-full items-center gap-3 rounded-xl border border-dashed border-border/80 px-4 py-3 text-left hover:bg-muted/30"
               >
@@ -204,7 +235,7 @@ export function PaymentCheckoutSheet({
 
           {methods.length === 0 && !loading ? (
             <p className="text-sm text-muted-foreground text-center">
-              저장된 카드가 없습니다. 새 카드로 결제하거나 지갑에서 카드를 등록하세요.
+              저장된 카드가 없습니다. 지갑에서 카드를 추가하거나 새 카드로 결제하세요.
             </p>
           ) : null}
 

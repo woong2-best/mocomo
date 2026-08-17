@@ -7,6 +7,7 @@ import {
 import { getServerTranslator } from "@/lib/i18n/server";
 import { getAuthUserId } from "@/lib/auth";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
+import { isPaymentsConfigured } from "@/lib/payments";
 
 export async function HashtagSearchResults({
   tag,
@@ -44,6 +45,7 @@ export async function HashtagSearchResults({
       postsLatest={postsLatest}
       total={total}
       emptyMsg={emptyMsg}
+      paymentsEnabled={isPaymentsConfigured()}
     />
   );
 }

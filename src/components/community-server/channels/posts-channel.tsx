@@ -5,6 +5,7 @@ import { userPublicSelect } from "@/lib/user-public-select";
 import { PostsChannelHeader, PostsChannelEmptyCta } from "@/components/community-server/channels/posts-channel-header";
 import { getAuthUserId } from "@/lib/auth";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
+import { isPaymentsConfigured } from "@/lib/payments";
 
 export async function PostsChannelView({
   communitySlug: _communitySlug,
@@ -33,6 +34,7 @@ export async function PostsChannelView({
     rawPosts.map((p) => ({ ...p, authorId: p.authorId ?? p.author.id })),
     viewerId
   );
+  const paymentsEnabled = isPaymentsConfigured();
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -45,7 +47,12 @@ export async function PostsChannelView({
           </div>
         ) : (
           posts.map((post) => (
-            <CommunityPostCard key={post.id} post={post} communityId={communityId} />
+            <CommunityPostCard
+              key={post.id}
+              post={post}
+              communityId={communityId}
+              paymentsEnabled={paymentsEnabled}
+            />
           ))
         )}
       </div>

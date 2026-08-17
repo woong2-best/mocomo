@@ -35,12 +35,14 @@ export function FeedInfinite({
   initialLikedIds = [],
   initialStarredIds = [],
   initialRepostedIds = [],
+  paymentsEnabled = false,
 }: {
   initialItems: FeedItem[];
   initialCursor: string | null;
   initialLikedIds?: string[];
   initialStarredIds?: string[];
   initialRepostedIds?: string[];
+  paymentsEnabled?: boolean;
 }) {
   const [items, setItems] = useState(initialItems);
   const [likedIds, setLikedIds] = useState(() => new Set(initialLikedIds));
@@ -188,6 +190,7 @@ export function FeedInfinite({
         likedIds={likedIds}
         starredIds={starredIds}
         repostedIds={repostedIds}
+        paymentsEnabled={paymentsEnabled}
       />
       <div ref={sentinelRef} className="flex flex-col items-center gap-2 py-8">
         {loading && <Loader2 className="h-6 w-6 animate-spin text-primary" />}

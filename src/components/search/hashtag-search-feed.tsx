@@ -27,6 +27,7 @@ export function HashtagSearchFeed({
   postsLatest,
   total,
   emptyMsg,
+  paymentsEnabled = false,
 }: {
   tag: string;
   initialSort: HashtagSort;
@@ -34,6 +35,7 @@ export function HashtagSearchFeed({
   postsLatest: HashtagFeedPost[];
   total: number;
   emptyMsg: string;
+  paymentsEnabled?: boolean;
 }) {
   const { locale } = useLocale();
   const { isNativeApp } = useClientPlatform();
@@ -125,7 +127,7 @@ export function HashtagSearchFeed({
         ) : (
           posts.map((post) => (
             <div key={post.id} className="px-2 py-1">
-              <FeedTimelinePostCard post={post} />
+              <FeedTimelinePostCard post={post} paymentsEnabled={paymentsEnabled} />
             </div>
           ))
         )}

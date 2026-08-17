@@ -5,6 +5,7 @@ import { getCachedSession } from "@/lib/auth";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { filterPostsByAudienceLock } from "@/lib/posts-lock";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
+import { isPaymentsConfigured } from "@/lib/payments";
 
 const HomeFeedClient = dynamic(
   () => import("@/components/home/home-feed-client").then((m) => m.HomeFeedClient)
@@ -36,6 +37,7 @@ export async function HomeFeedAsync() {
     const hasDbPosts = mixed.some((item) => item.type === "post");
     const isLoggedIn = !!session?.user;
     const isPremium = session?.user?.premiumTier === "PREMIUM";
+    const paymentsEnabled = isPaymentsConfigured();
     const visibleMixed = mixed;
     const postIds = mixed.filter((i) => i.type === "post").map((i) => i.data.id);
     let engagement = { likedIds: [] as string[], starredIds: [] as string[], repostedIds: [] as string[] };
@@ -54,6 +56,7 @@ export async function HomeFeedAsync() {
         likedIds={engagement.likedIds}
         starredIds={engagement.starredIds}
         repostedIds={engagement.repostedIds}
+        paymentsEnabled={paymentsEnabled}
         feedItems={visibleMixed.map((item) => ({
           type: "post" as const,
           data: {
