@@ -20,7 +20,7 @@ const BANKS = [
   { code: "092", label: "토스" },
 ];
 
-export function BankVerifyPanel() {
+export function BankVerifyPanel({ onVerified }: { onVerified?: () => void }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const queryClient = useQueryClient();
@@ -68,6 +68,7 @@ export function BankVerifyPanel() {
       setMsg(res.displayAccount ? `${res.displayAccount} 인증 완료` : "인증이 완료되었습니다.");
       void queryClient.invalidateQueries({ queryKey: ["mobile-bank-status"] });
       void queryClient.invalidateQueries({ queryKey: ["mobile-wallet"] });
+      onVerified?.();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "인증에 실패했습니다.");
     } finally {

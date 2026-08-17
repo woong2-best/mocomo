@@ -16,6 +16,7 @@ import {
 } from "@/lib/post-poll";
 import { enqueuePostMediaHlsPackaging } from "@/lib/post-media-hls";
 import { clampMediaInt } from "@/lib/video-metadata";
+import { assertSettlementAccount, settlementRequiredResult } from "@/lib/settlement-account";
 
 export type CreatePostMediaInput = {
   url: string;
@@ -67,6 +68,22 @@ export async function createPostForUser(
     if (!content) return { error: "투표 질문을 본문에 적어 주세요." };
   } else if (!content && !hasMediaInput) {
     return { error: "내용을 입력해 주세요." };
+  }
+
+  const instantPrice = Math.max(0, Math.floor(data.instantPurchasePriceKrw ?? 0));
+  const paidMediaInput = (data.media ?? []).some(
+    (m) => m.url && isPersistableMediaUrl(String(m.url)) && Math.max(0, Math.floor(m.priceKrw ?? 0)) > 0
+  );
+  if (instantPrice > 0 || paidMediaInput) {
+    const seller = await db.user.findUnique({
+      where: { id: user.id },
+      select: { bankVerifiedAt: true, phoneVerified: true, username: true },
+    });
+    const settlementErr = assertSettlementAccount(seller);
+    if (settlementErr) {
+      const back = seller?.username ? `/u/${seller.username}` : "/";
+      return settlementRequiredResult(back);
+    }
   }
 
   try {

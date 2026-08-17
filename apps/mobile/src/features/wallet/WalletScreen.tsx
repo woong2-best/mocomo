@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -9,7 +9,10 @@ import {
   View,
 } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import type { RouteProp } from "@react-navigation/native";
+import type { RootStackParamList } from "@/navigation/types";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { fetchWallet, fetchWalletEarnings } from "@/api/discovery";
 import { fetchBankStatus } from "@/api/checkout-payment";
 import { fetchPaymentMethods, openPaymentMethodSetup, setDefaultPaymentMethod } from "@/payments/stripe-setup";
@@ -40,11 +43,21 @@ function won(n: number) {
 export function WalletScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<RootStackParamList, "Wallet">>();
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<Tab>("wallet");
+  const [tab, setTab] = useState<Tab>(route.params?.initialTab ?? "wallet");
   const [year, setYear] = useState(new Date().getFullYear());
   const [addingCard, setAddingCard] = useState(false);
+  const returnScreen = route.params?.returnScreen;
+  const handleBankVerified = useCallback(() => {
+    if (!returnScreen) return;
+    navigation.replace(returnScreen);
+  }, [navigation, returnScreen]);
+
+  useEffect(() => {
+    if (route.params?.initialTab) setTab(route.params.initialTab);
+  }, [route.params?.initialTab]);
 
   const walletQuery = useQuery({
     queryKey: ["mobile-wallet"],
@@ -177,6 +190,21 @@ export function WalletScreen() {
           </View>
         ) : (
           <ScrollView contentContainerStyle={styles.listBody} showsVerticalScrollIndicator={false}>
+            {returnScreen && !(bankStatusQuery.data?.bankVerified || data.bank) ? (
+              <View
+                style={[
+                  styles.returnBanner,
+                  { borderColor: colors.hairline, backgroundColor: colors.surfaceRaised },
+                ]}
+              >
+                <Text style={[styles.returnBannerTitle, { color: colors.text }]}>
+                  수익 입금 계좌 등록
+                </Text>
+                <Text style={[styles.returnBannerBody, { color: colors.textMuted }]}>
+                  판매·중고·크리에이터 수익을 받으려면 아래에서 본인 명의 계좌 1원 인증을 완료해 주세요.
+                </Text>
+              </View>
+            ) : null}
             <WalletCardStack cards={revenueCards} colors={colors} />
 
             <View style={styles.section}>
@@ -204,7 +232,7 @@ export function WalletScreen() {
               ) : null}
             </View>
 
-            <BankVerifyPanel />
+            <BankVerifyPanel onVerified={handleBankVerified} />
             <RevenuePayoutPanel
               withdrawable={withdrawable}
               bankReady={!!bankStatusQuery.data?.bankVerified || !!data.bank}
@@ -328,6 +356,16 @@ function createThemedStyles(colors: ThemeColors) {
       paddingHorizontal: spacing.md,
       paddingTop: spacing.sm,
     },
+    returnBanner: {
+      marginHorizontal: spacing.md,
+      marginBottom: spacing.sm,
+      borderWidth: 1,
+      borderRadius: 14,
+      padding: spacing.md,
+      gap: 6,
+    },
+    returnBannerTitle: { fontWeight: "800", fontSize: 15 },
+    returnBannerBody: { fontSize: 13, lineHeight: 18, fontWeight: "600" },
     statRow: {
       flexDirection: "row",
       gap: spacing.sm,

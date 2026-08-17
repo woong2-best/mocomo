@@ -23,6 +23,7 @@ type Props = {
   verifiedBankLabel?: string | null;
   legalName?: string | null;
   emailVerified?: boolean;
+  callbackUrl?: string | null;
 };
 
 function won(n: number) {
@@ -36,6 +37,7 @@ export function RevenueSettlementPanel({
   verifiedBankLabel,
   legalName,
   emailVerified = true,
+  callbackUrl = "/wallet?tab=earnings",
 }: Props) {
   const router = useRouter();
   const [earnings, setEarnings] = useState(initialEarnings);
@@ -110,7 +112,7 @@ export function RevenueSettlementPanel({
         ) : null}
         <UsedBankVerifyForm
           mode="account"
-          callbackUrl="/wallet"
+          callbackUrl={callbackUrl ?? "/wallet?tab=earnings"}
           legalName={legalName}
           emailVerified={emailVerified}
         />

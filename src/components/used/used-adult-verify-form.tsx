@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { walletSettlementPath } from "@/lib/settlement-account";
 import { verifyUsedAdultAge } from "@/actions/used-adult-verify";
 import { USED_ADULT_MIN_AGE } from "@/lib/used-youth-protection";
 import { Button } from "@/components/ui/button";
@@ -121,9 +122,9 @@ export function UsedAdultVerifyForm({
       </Button>
 
       <p className="text-center text-xs text-muted-foreground">
-        휴대폰 인증이 안 되어 있나요?{" "}
-        <Link href={`/used/verify?callbackUrl=${encodeURIComponent(callbackUrl)}`} className="underline">
-          휴대폰 인증하기
+        계좌 인증이 안 되어 있나요?{" "}
+        <Link href={walletSettlementPath(callbackUrl)} className="underline">
+          지갑에서 계좌 등록
         </Link>
       </p>
     </form>

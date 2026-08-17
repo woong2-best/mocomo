@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { confirmPaymentMethodSetup } from "@/actions/payment-methods";
 import { PaymentMethodsPanel } from "@/components/wallet/payment-methods-panel";
@@ -34,8 +35,20 @@ export function WalletHub({
 }: Props) {
   const router = useRouter();
   const params = useSearchParams();
-  const [tab, setTab] = useState<Tab>("wallet");
+  const callbackUrl = params.get("callbackUrl");
+  const safeCallbackUrl =
+    callbackUrl?.startsWith("/") && !callbackUrl.startsWith("//") ? callbackUrl : null;
+  const [tab, setTab] = useState<Tab>(() => {
+    const t = params.get("tab");
+    return t === "earnings" ? "earnings" : "wallet";
+  });
   const [setupMsg, setSetupMsg] = useState("");
+
+  useEffect(() => {
+    const t = params.get("tab");
+    if (t === "earnings") setTab("earnings");
+    else if (t === "wallet") setTab("wallet");
+  }, [params]);
 
   useEffect(() => {
     const setup = params.get("setup");
@@ -56,6 +69,18 @@ export function WalletHub({
 
   return (
     <div className="max-w-lg mx-auto space-y-5 pb-8">
+      {safeCallbackUrl && !bankVerified ? (
+        <div className="rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm space-y-1">
+          <p className="font-bold text-foreground">수익 입금 계좌 등록</p>
+          <p className="text-muted-foreground leading-relaxed">
+            판매·중고거래·크리에이터 수익을 받으려면 아래에서 본인 명의 계좌 1원 인증을 완료해 주세요.
+          </p>
+          <Link href={safeCallbackUrl} className="text-primary font-semibold text-xs underline">
+            나중에 — 이전 화면으로
+          </Link>
+        </div>
+      ) : null}
+
       <div className="flex items-end gap-6 px-1">
         {(
           [
@@ -87,6 +112,7 @@ export function WalletHub({
           verifiedBankLabel={verifiedBankLabel}
           legalName={legalName}
           emailVerified={emailVerified}
+          callbackUrl={safeCallbackUrl}
         />
       )}
 

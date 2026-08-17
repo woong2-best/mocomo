@@ -10,7 +10,7 @@ export function isUsedMarketEligible(user: {
 }
 
 export const USED_BANK_REQUIRED_MSG =
-  "중고거래 이용을 위해 본인 명의 계좌 1원 인증이 필요합니다.";
+  "중고거래 이용을 위해 지갑에서 수익 입금 계좌(1원 인증)를 등록해 주세요.";
 
 /** @deprecated use USED_BANK_REQUIRED_MSG */
 export const USED_PHONE_REQUIRED_MSG = USED_BANK_REQUIRED_MSG;

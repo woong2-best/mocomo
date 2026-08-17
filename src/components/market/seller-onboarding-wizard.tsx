@@ -38,6 +38,7 @@ import {
 import { sellerRequiresPhoneVerification } from "@/lib/marketplace/seller-region-policy";
 import { SIGNUP_PASSWORD_SESSION_KEY } from "@/lib/auth-tokens";
 import { MARKET_BRAND_FULL } from "@/lib/market-brand";
+import { walletSettlementPath } from "@/lib/settlement-account";
 import { cn } from "@/lib/utils";
 import { ChevronRight } from "lucide-react";
 
@@ -541,49 +542,19 @@ export function SellerOnboardingWizard({
         )}
 
         {effectiveStep === "PHONE" && (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              한국 판매자는 본인 명의 계좌 1원 인증이 필요합니다. 예금주명은 가입 시 입력한 이름(
-              {state.signedIn ? state.name : name})과 일치해야 합니다.
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              한국 판매자는 지갑에서 본인 명의 계좌 1원 인증이 필요합니다. 예금주명은 가입 시 입력한
+              이름({state.signedIn ? state.name : name})과 일치해야 합니다.
             </p>
-            <BankSelectField value={bankCode} onChange={setBankCode} disabled={pending} />
-            <label className="block text-sm font-medium">계좌번호</label>
-            <Input
-              value={accountNum}
-              onChange={(e) => setAccountNum(e.target.value.replace(/\D/g, ""))}
-              placeholder="숫자만 입력"
-              inputMode="numeric"
-            />
-            {!bankSent ? (
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={pending || accountNum.length < 8}
-                onClick={handleSendBank}
-              >
-                1원 인증 요청
+            <Button type="button" className="w-full" asChild>
+              <Link href={walletSettlementPath("/market/seller/register")}>지갑에서 계좌 등록</Link>
+            </Button>
+            {state.signedIn && state.phoneVerified ? (
+              <Button type="button" className="w-full" disabled={pending} onClick={refreshState}>
+                인증 완료 — 다음
               </Button>
-            ) : (
-              <>
-                <Input
-                  value={bankCodeInput}
-                  onChange={(e) =>
-                    setBankCodeInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4))
-                  }
-                  placeholder="입금통장메모 4자리"
-                  maxLength={4}
-                />
-                <Button
-                  type="button"
-                  disabled={pending || bankCodeInput.length !== 4}
-                  onClick={handleVerifyBank}
-                  className="w-full"
-                >
-                  인증 확인
-                </Button>
-              </>
-            )}
-            <p className="text-xs text-muted-foreground">계정당 계좌 1개 · 인증 후 변경 불가</p>
+            ) : null}
           </div>
         )}
 
@@ -742,6 +713,9 @@ export function SellerOnboardingWizard({
                 정산 계좌 연결 (Stripe Connect)
               </Button>
             )}
+            <Button type="button" variant="secondary" className="w-full" asChild>
+              <Link href={walletSettlementPath("/market/seller/register")}>지갑에서 계좌 등록</Link>
+            </Button>
             <Button
               type="button"
               variant={phoneRequired ? "secondary" : "default"}

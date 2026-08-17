@@ -10,12 +10,23 @@ import {
 } from "@/actions/used-market";
 import { Heart, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { walletSettlementPath, SETTLEMENT_ACCOUNT_REQUIRED_MSG } from "@/lib/settlement-account";
+import { USED_BANK_REQUIRED_MSG } from "@/lib/used-bank-auth";
 import {
   isUsedRestrictedKind,
   usedAdultVerifyUrl,
 } from "@/lib/used-youth-protection";
 import type { UsedListingStatus, UsedRestrictedKind } from "@prisma/client";
 import { ShieldAlert } from "lucide-react";
+
+function needsSettlementAccount(error: string) {
+  return (
+    error === USED_BANK_REQUIRED_MSG ||
+    error === SETTLEMENT_ACCOUNT_REQUIRED_MSG ||
+    error.includes("입금 계좌") ||
+    error.includes("계좌 1원")
+  );
+}
 
 export function UsedDetailBottomBar({
   listingId,
@@ -63,8 +74,8 @@ export function UsedDetailBottomBar({
     const res = await startUsedTradeChat(listingId);
     setLoading(false);
     if ("error" in res && res.error) {
-      if (res.error.includes("휴대폰")) {
-        router.push(`/used/verify?callbackUrl=/used/${listingId}`);
+      if (needsSettlementAccount(res.error)) {
+        router.push(walletSettlementPath(`/used/${listingId}`));
         return;
       }
       if ("needsAdultVerify" in res && res.needsAdultVerify) {

@@ -14,6 +14,7 @@ import {
   type MarketplaceShipCountryCode,
 } from "@/lib/marketplace/shipping-config";
 import { createMarketplaceListing } from "@/actions/marketplace";
+import { SETTLEMENT_ACCOUNT_REQUIRED_CODE } from "@/lib/settlement-account";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -104,6 +105,10 @@ export function MarketplaceListingForm() {
         isNsfw,
       });
       if ("error" in res && res.error) {
+        if ("code" in res && res.code === SETTLEMENT_ACCOUNT_REQUIRED_CODE && "redirectTo" in res) {
+          router.push(String(res.redirectTo));
+          return;
+        }
         setError(res.error);
         return;
       }

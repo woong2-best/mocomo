@@ -84,7 +84,7 @@ export type RootStackParamList = {
   AnimeDetail: { slug: string };
   Settings: undefined;
   LegalPolicies: undefined;
-  Wallet: undefined;
+  Wallet: { initialTab?: "wallet" | "earnings"; returnScreen?: "UsedCreate" | "MarketplaceList" | "MarketSellItem" } | undefined;
   GamesHub: undefined;
   Support: undefined;
 };

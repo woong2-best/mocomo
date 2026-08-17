@@ -3,8 +3,19 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { startUsedTradeChat } from "@/actions/used-market";
+import { walletSettlementPath, SETTLEMENT_ACCOUNT_REQUIRED_MSG } from "@/lib/settlement-account";
+import { USED_BANK_REQUIRED_MSG } from "@/lib/used-bank-auth";
 import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+function needsSettlementAccount(error: string) {
+  return (
+    error === USED_BANK_REQUIRED_MSG ||
+    error === SETTLEMENT_ACCOUNT_REQUIRED_MSG ||
+    error.includes("입금 계좌") ||
+    error.includes("계좌 1원")
+  );
+}
 
 export function UsedTradeChatButton({ listingId }: { listingId: string }) {
   const router = useRouter();
@@ -17,8 +28,8 @@ export function UsedTradeChatButton({ listingId }: { listingId: string }) {
     const res = await startUsedTradeChat(listingId);
     setLoading(false);
     if ("error" in res && res.error) {
-      if (res.error.includes("휴대폰")) {
-        router.push(`/used/verify?callbackUrl=/used/${listingId}`);
+      if (needsSettlementAccount(res.error)) {
+        router.push(walletSettlementPath(`/used/${listingId}`));
         return;
       }
       setError(res.error);

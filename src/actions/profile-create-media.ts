@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth";
 import { createPostForUser } from "@/lib/create-post-core";
 import { parseContentVisibility } from "@/lib/creator-subscription";
+import { SETTLEMENT_ACCOUNT_REQUIRED_CODE } from "@/lib/settlement-account";
 import type { MediaType } from "@prisma/client";
 import { COMMUNITY_FEED_PATH } from "@/lib/site-routes";
 
@@ -56,7 +57,12 @@ export async function createProfileMediaPost(input: {
     ],
   });
 
-  if (result.error) return { error: result.error };
+  if (result.error) {
+    if ("code" in result && result.code === SETTLEMENT_ACCOUNT_REQUIRED_CODE) {
+      return result;
+    }
+    return { error: result.error };
+  }
 
   if (user.username) {
     revalidatePath(`/u/${user.username}`);

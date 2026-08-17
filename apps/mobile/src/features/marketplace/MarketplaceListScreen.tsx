@@ -98,10 +98,10 @@ export function MarketplaceListScreen({ mode = "stack" }: Props) {
       if (status.eligible) {
         navigation.navigate("UsedCreate");
       } else {
-        navigation.navigate("UsedPhoneVerify");
+        navigation.navigate("Wallet", { initialTab: "earnings", returnScreen: "UsedCreate" });
       }
     } catch {
-      navigation.navigate("UsedPhoneVerify");
+      navigation.navigate("Wallet", { initialTab: "earnings", returnScreen: "UsedCreate" });
     }
   }, [navigation]);
 

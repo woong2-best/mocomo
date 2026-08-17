@@ -3,8 +3,8 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { UsedPostForm } from "@/components/used/used-post-form";
-import { UsedBankVerifyForm } from "@/components/used/used-bank-verify-form";
 import { isUsedMarketEligible, usedMarketUnsupportedCountryMsg } from "@/lib/used-bank-auth";
+import { walletSettlementPath } from "@/lib/settlement-account";
 import { isUsedAdultVerified } from "@/lib/used-youth-protection";
 import { getServerTranslator } from "@/lib/i18n/server";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
@@ -26,28 +26,7 @@ export default async function UsedNewPage() {
   }
 
   if (!isUsedMarketEligible(user)) {
-    return (
-      <AppPageChrome maxWidth="lg" spacing="sm">
-        <Link
-          href="/used"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground font-medium"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          {locale === "en" ? "Marketplace" : "중고거래 홈"}
-        </Link>
-        <NativePageTitle>
-          <h1 className="text-xl font-bold">
-            {locale === "en" ? "Verify bank account to post" : "계좌 인증 후 글쓰기"}
-          </h1>
-        </NativePageTitle>
-        <p className="text-sm text-muted-foreground">
-          {locale === "en"
-            ? "Bank account verification is required for safe trading."
-            : "안전한 거래를 위해 본인 명의 계좌 1원 인증이 필요합니다."}
-        </p>
-        <UsedBankVerifyForm callbackUrl="/used/new" legalName={user.name} />
-      </AppPageChrome>
-    );
+    redirect(walletSettlementPath("/used/new"));
   }
 
   const sns = user.profile?.snsLinks as { location?: string } | null | undefined;

@@ -76,11 +76,11 @@ export function UsedCreateScreen() {
         if (!alive) return;
         if (status.countryCode) setCountryCode(status.countryCode);
         if (!status.eligible) {
-          navigation.replace("UsedPhoneVerify");
+          navigation.replace("Wallet", { initialTab: "earnings", returnScreen: "UsedCreate" });
           return;
         }
       } catch {
-        if (alive) navigation.replace("UsedPhoneVerify");
+        if (alive) navigation.replace("Wallet", { initialTab: "earnings", returnScreen: "UsedCreate" });
         return;
       } finally {
         if (alive) setChecking(false);
@@ -159,10 +159,14 @@ export function UsedCreateScreen() {
           : e instanceof Error
             ? e.message
             : "등록에 실패했습니다.";
-      if (msg.includes("휴대폰")) {
-        Alert.alert("휴대폰 인증 필요", msg, [
+      if (msg.includes("입금 계좌") || msg.includes("계좌 1원") || msg.includes("휴대폰")) {
+        Alert.alert("수익 입금 계좌 필요", msg, [
           { text: "취소", style: "cancel" },
-          { text: "인증하기", onPress: () => navigation.replace("UsedPhoneVerify") },
+          {
+            text: "지갑에서 등록",
+            onPress: () =>
+              navigation.replace("Wallet", { initialTab: "earnings", returnScreen: "UsedCreate" }),
+          },
         ]);
       } else {
         Alert.alert("오류", msg);

@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PostMediaComposer, type PostMediaItem } from "@/components/media/post-media-composer";
 import { ContentVisibilitySelect } from "@/components/monetization/content-visibility-select";
 import { createProfileMediaPost } from "@/actions/profile-create-media";
+import { SETTLEMENT_ACCOUNT_REQUIRED_CODE } from "@/lib/settlement-account";
 import { useSuspendedAccount } from "@/hooks/use-suspended-account";
 import { cn } from "@/lib/utils";
 import type { ContentVisibility } from "@prisma/client";
@@ -78,6 +79,10 @@ export function ProfileCreatePanel({
           : 0,
       });
       if (res.error) {
+        if ("code" in res && res.code === SETTLEMENT_ACCOUNT_REQUIRED_CODE && "redirectTo" in res) {
+          router.push(String(res.redirectTo));
+          return;
+        }
         setError(res.error);
         return;
       }

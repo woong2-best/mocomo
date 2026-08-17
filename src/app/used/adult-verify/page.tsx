@@ -3,7 +3,8 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { UsedAdultVerifyForm } from "@/components/used/used-adult-verify-form";
-import { isUsedMarketEligible } from "@/lib/used-phone-auth";
+import { isUsedMarketEligible } from "@/lib/used-bank-auth";
+import { walletSettlementPath } from "@/lib/settlement-account";
 import { isUsedAdultVerified } from "@/lib/used-youth-protection";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 
@@ -19,7 +20,7 @@ export default async function UsedAdultVerifyPage({
   const next = callbackUrl?.startsWith("/used") ? callbackUrl : "/used";
 
   if (!isUsedMarketEligible(user)) {
-    redirect(`/used/verify?callbackUrl=${encodeURIComponent(next)}`);
+    redirect(walletSettlementPath(next));
   }
 
   if (isUsedAdultVerified(user)) redirect(next);

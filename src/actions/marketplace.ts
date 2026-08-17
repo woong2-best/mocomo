@@ -8,6 +8,7 @@ import type {
 } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
+import { assertSettlementAccount, settlementRequiredResult } from "@/lib/settlement-account";
 import {
   MARKETPLACE_CATEGORIES,
   listingTypeLabel,
@@ -230,6 +231,16 @@ export async function createMarketplaceListingForUser(
   const title = input.title.trim().slice(0, 120);
   const description = input.description.trim().slice(0, 10_000);
   if (!title || !description) return { error: "제목과 설명을 입력해 주세요." };
+
+  const sellerUser = await db.user.findUnique({
+    where: { id: userId },
+    select: { bankVerifiedAt: true, phoneVerified: true, countryCode: true },
+  });
+  const settlementErr = assertSettlementAccount(sellerUser);
+  if (settlementErr) {
+    return settlementRequiredResult("/market/sell-item");
+  }
+
   if (!MARKETPLACE_CATEGORIES.includes(input.category as (typeof MARKETPLACE_CATEGORIES)[number])) {
     return { error: "카테고리를 선택해 주세요." };
   }

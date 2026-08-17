@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { MarketplaceSellerOnboardingStep, MarketplaceSellerType } from "@prisma/client";
 import { db } from "@/lib/db";
 import { auth, requireAuth } from "@/lib/auth";
+import { assertSettlementAccount, settlementRequiredResult } from "@/lib/settlement-account";
 import { registerUser, sendEmailAuthCode, completeAuthWithCode } from "@/actions/auth";
 import {
   createSellerConnectOnboarding,
@@ -754,6 +755,15 @@ export async function declareSellerSettlementForReview(note?: string) {
     return { error: "신분증(KYC) 제출 후 은행 계좌를 등록해 주세요." };
   }
 
+  const dbUser = await db.user.findUnique({
+    where: { id: user.id },
+    select: { bankVerifiedAt: true, phoneVerified: true },
+  });
+  const settlementErr = assertSettlementAccount(dbUser);
+  if (settlementErr) {
+    return settlementRequiredResult("/market/seller/register");
+  }
+
   const now = new Date();
   await db.marketplaceSellerProfile.update({
     where: { id: profile.id },
@@ -799,6 +809,7 @@ export async function completeSellerOnboarding() {
     select: {
       emailVerified: true,
       phoneVerified: true,
+      bankVerifiedAt: true,
       countryCode: true,
       stripeConnectAccountId: true,
       stripeConnectOnboardedAt: true,
@@ -813,8 +824,8 @@ export async function completeSellerOnboarding() {
   const country = normalizeSellerCountry(
     dbUser.marketplaceSeller.sellingMarket || dbUser.countryCode
   );
-  if (sellerRequiresPhoneVerification(country) && !dbUser.phoneVerified) {
-    return { error: "한국 판매자는 휴대폰(SMS) 인증이 필수입니다." };
+  if (sellerRequiresPhoneVerification(country) && !(dbUser.bankVerifiedAt || dbUser.phoneVerified)) {
+    return { error: "한국 판매자는 지갑에서 수익 입금 계좌(1원 인증) 등록이 필수입니다." };
   }
   if (!sellerRequiresPhoneVerification(country) && !dbUser.marketplaceSeller.stripeConnectStartedAt) {
     return { error: "해외 판매자는 Stripe Connect 시작이 필요합니다." };
