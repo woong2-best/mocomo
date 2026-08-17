@@ -1,11 +1,11 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/components/providers/locale-provider";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
-import { setOAuthFlowCookieClient, persistOAuthFlowIntent } from "@/lib/oauth-flow-cookie";
+import { buildProviderSigninHref } from "@/lib/oauth-provider-signin";
+import { setOAuthFlowCookieClient } from "@/lib/oauth-flow-cookie";
 import { cn } from "@/lib/utils";
 
 type SocialAuthButtonsProps = {
@@ -27,27 +27,6 @@ type SocialAuthButtonsProps = {
   onNaverSignin?: () => void;
   className?: string;
 };
-
-function mobileProviderSigninHref(
-  provider: "google" | "discord" | "twitter" | "line" | "naver",
-  opts: {
-    callbackUrl: string;
-    platform: "android" | "ios";
-    flow: "signup" | "signin";
-    addAccount?: boolean;
-    redirectUri?: string | null;
-  }
-) {
-  const params = new URLSearchParams({
-    provider,
-    platform: opts.platform,
-    flow: opts.flow,
-    callbackUrl: opts.callbackUrl,
-  });
-  if (opts.addAccount) params.set("addAccount", "1");
-  if (opts.redirectUri) params.set("redirect_uri", opts.redirectUri);
-  return `/api/auth/mobile/provider-signin?${params}`;
-}
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -185,35 +164,19 @@ export function SocialAuthButtons({
     naver: naverOAuth,
   };
 
-  function startMobileOAuth(id: "google" | "discord" | "twitter" | "line" | "naver") {
+  function startOAuth(id: ProviderId) {
     const flow = isSignup ? "signup" : "signin";
     setOAuthFlowCookieClient(flow);
     window.location.assign(
-      mobileProviderSigninHref(id, {
-        callbackUrl,
-        platform,
+      buildProviderSigninHref(id, {
         flow,
+        callbackUrl,
         addAccount,
+        mobile: fromMobile,
+        platform,
         redirectUri: mobileRedirectUri,
       })
     );
-  }
-
-  function oauthRedirectTarget(): string {
-    if (isSignup) return callbackUrl;
-    const params = new URLSearchParams({ dest: callbackUrl });
-    return `/auth/oauth/complete?${params}`;
-  }
-
-  async function startOAuth(id: ProviderId) {
-    const flow = isSignup ? "signup" : "signin";
-    setOAuthFlowCookieClient(flow);
-    try {
-      await persistOAuthFlowIntent(flow);
-    } catch {
-      /* non-httpOnly fallback above */
-    }
-    void signIn(id, { redirectTo: oauthRedirectTarget() });
   }
 
   function handleClick(id: ProviderId) {
@@ -223,11 +186,7 @@ export function SocialAuthButtons({
     }
     if (id === "naver" && isSignup) {
       if (naverOAuth) {
-        if (fromMobile) {
-          startMobileOAuth("naver");
-        } else {
-          startOAuth("naver");
-        }
+        startOAuth("naver");
         return;
       }
       onNaverSignup?.();
@@ -235,10 +194,6 @@ export function SocialAuthButtons({
     }
     if (id === "google" && !isSignup) {
       if (!googleOAuth) return;
-      if (fromMobile) {
-        startMobileOAuth("google");
-        return;
-      }
       startOAuth("google");
       return;
     }
@@ -247,18 +202,10 @@ export function SocialAuthButtons({
         onNaverSignin?.();
         return;
       }
-      if (fromMobile) {
-        startMobileOAuth("naver");
-        return;
-      }
       startOAuth("naver");
       return;
     }
     if (!oauthEnabled[id]) return;
-    if (fromMobile && (id === "discord" || id === "twitter" || id === "line")) {
-      startMobileOAuth(id);
-      return;
-    }
     startOAuth(id);
   }
 

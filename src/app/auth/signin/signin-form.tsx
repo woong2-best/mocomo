@@ -13,7 +13,7 @@ import { BRAND } from "@/lib/brand";
 import { loginErrorMessage } from "@/lib/auth-login-errors";
 import { useLocale } from "@/components/providers/locale-provider";
 import { signIn, getSession } from "next-auth/react";
-import { finishAddAccountFlow } from "@/lib/account-switch/add-account-flow";
+import { finishAddAccountFlow, setAddAccountFlowCookie } from "@/lib/account-switch/add-account-flow";
 import { persistOAuthFlowIntent } from "@/lib/oauth-flow-cookie";
 
 function safeCallbackUrl(raw: string): string {
@@ -82,7 +82,8 @@ export function SignInForm({
 
   useEffect(() => {
     void persistOAuthFlowIntent("signin").catch(() => undefined);
-  }, []);
+    if (addAccount) setAddAccountFlowCookie();
+  }, [addAccount]);
 
   const bannedNotice =
     errorParam === "banned"

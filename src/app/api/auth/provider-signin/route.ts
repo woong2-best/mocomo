@@ -4,10 +4,7 @@ import {
   startOAuthProviderSignin,
 } from "@/lib/oauth-provider-signin";
 
-/**
- * Mobile AuthSession: start OAuth with a server redirect (no client CSRF fetch).
- * Custom Tabs often break next-auth/react signIn() → Configuration error.
- */
+/** Web OAuth — server redirect so Auth.js callback-url is set correctly. */
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const provider = sp.get("provider") ?? "";
@@ -15,7 +12,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL("/auth/error?error=Configuration", req.url));
   }
 
-  const platform = sp.get("platform") === "ios" ? "ios" : "android";
   const flow = sp.get("flow") === "signup" ? "signup" : "signin";
   const addAccount = sp.get("addAccount") === "1";
 
@@ -24,8 +20,6 @@ export async function GET(req: NextRequest) {
     flow,
     callbackUrl: sp.get("callbackUrl"),
     addAccount,
-    mobile: true,
-    platform,
-    redirectUri: sp.get("redirect_uri"),
+    mobile: false,
   });
 }
