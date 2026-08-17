@@ -4,6 +4,7 @@ import { rateLimitPublicApi } from "@/lib/api-security";
 import { getCachedFeedPostsPage } from "@/lib/feed-query";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { filterPostsByAudienceLock } from "@/lib/posts-lock";
+import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 
 export async function GET(req: NextRequest) {
   try {
@@ -19,8 +20,9 @@ export async function GET(req: NextRequest) {
       posts.map((p) => ({ ...p, authorId: p.author.id })),
       session?.user?.id ?? null
     );
+    const gated = await attachWebPaidMediaPlayback(visible, session?.user?.id ?? null);
 
-    const items = visible.map((data) => ({ type: "post" as const, data }));
+    const items = gated.map((data) => ({ type: "post" as const, data }));
 
     const nextCursor = posts.length === limit ? posts[posts.length - 1]?.id : null;
     const engagement =

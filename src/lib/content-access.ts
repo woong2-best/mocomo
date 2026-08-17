@@ -6,6 +6,7 @@ import {
   type ActiveSubscription,
 } from "@/lib/creator-subscription";
 import type { PostMediaAccessRow } from "@/lib/post-paid-media";
+import { rewritePaidVideoSrc } from "@/lib/paid-media-playback";
 
 export type ContentLockReason = "none" | "subscription" | "purchase";
 
@@ -111,8 +112,18 @@ export function attachPostContentAccess<
         purchased: purchasedIds.has(m.id),
         subscription,
       });
+      const gated = rewritePaidVideoSrc({
+        id: m.id,
+        url: m.url,
+        type: m.type,
+        priceKrw: m.priceKrw,
+        locked,
+        hlsUrl: "hlsUrl" in m ? ((m as { hlsUrl?: string | null }).hlsUrl ?? null) : null,
+      });
       return {
         ...m,
+        url: gated.url,
+        ...("hlsUrl" in m ? { hlsUrl: gated.hlsUrl } : {}),
         locked,
         lockReason,
         instantPurchasePriceKrw: priceKrw,

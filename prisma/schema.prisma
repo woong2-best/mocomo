@@ -418,6 +418,7 @@ model User {
   postMediaPurchases       PostMediaPurchase[]
   watermarkSessions        WatermarkSession[]
   watermarkDetectionLogs   WatermarkDetectionLog[] @relation("WatermarkDetectionAdmin")
+  watermarkDetectionJobs   WatermarkDetectionJob[] @relation("WatermarkDetectionJobAdmin")
   webtoonStudioProjects    WebtoonStudioProject[]
   webtoonStudioSettings    WebtoonStudioSettings?
 
@@ -3820,6 +3821,7 @@ model CreatorEpisode {
   series    CreatorSeries            @relation(fields: [seriesId], references: [id], onDelete: Cascade)
   author    User                     @relation("CreatorEpisodeAuthor", fields: [authorId], references: [id], onDelete: Cascade)
   purchases CreatorEpisodePurchase[]
+  watermarkSessions WatermarkSession[]
 
   @@unique([seriesId, episodeNo])
   @@index([seriesId, episodeNo])
@@ -3834,6 +3836,7 @@ model CreatorEpisodePurchase {
 
   buyer   User           @relation(fields: [buyerId], references: [id], onDelete: Cascade)
   episode CreatorEpisode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  watermarkSessions WatermarkSession[]
 
   @@unique([buyerId, episodeId])
   @@index([buyerId, createdAt(sort: Desc)])
@@ -6101,10 +6104,15 @@ enum WatermarkSessionStatus {
 
 model WatermarkSession {
   id                String                 @id @default(cuid())
+  /** POST_MEDIA | EPISODE — payload identifier lives in contentId either way. */
+  contentKind       String                 @default("POST_MEDIA")
   contentId         String
   userId            String
+  mediaId           String?
+  episodeId         String?
   /** Set when access came from a one-off media purchase. */
   purchaseId        String?
+  episodePurchaseId String?
   /** Set when access came from a creator subscription instead. */
   subscriptionId    String?
   opaqueWatermarkId String                 @unique
@@ -6116,17 +6124,50 @@ model WatermarkSession {
   detectionCount    Int                    @default(0)
   lastDetectedAt    DateTime?
 
-  user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  purchase PostMediaPurchase? @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
-  media    PostMedia          @relation(fields: [contentId], references: [id], onDelete: Cascade)
-  logs     WatermarkDetectionLog[]
+  user            User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purchase        PostMediaPurchase?       @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  episodePurchase CreatorEpisodePurchase?  @relation(fields: [episodePurchaseId], references: [id], onDelete: Cascade)
+  media           PostMedia?               @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  episode         CreatorEpisode?          @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  logs            WatermarkDetectionLog[]
 
   @@index([contentId, createdAt(sort: Desc)])
+  @@index([contentKind, contentId])
   @@index([userId, createdAt(sort: Desc)])
+  @@index([mediaId])
+  @@index([episodeId])
   @@index([purchaseId])
+  @@index([episodePurchaseId])
   @@index([subscriptionId])
   @@index([status, expiresAt])
   @@index([opaqueWatermarkId])
+}
+
+enum WatermarkDetectionJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+/** Admin forensic analysis job. Frames stay in memory for the request; only the result is stored. */
+model WatermarkDetectionJob {
+  id             String                      @id @default(cuid())
+  status         WatermarkDetectionJobStatus @default(PENDING)
+  actorId        String
+  contentId      String?
+  sourceKind     String
+  sourceFileHash String?
+  clientFileHash String?
+  result         Json?
+  error          String?
+  createdAt      DateTime                    @default(now())
+  completedAt    DateTime?
+
+  actor User @relation("WatermarkDetectionJobAdmin", fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([actorId, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
 }
 
 /** 관리자 유출본 분석 결과 로그 */

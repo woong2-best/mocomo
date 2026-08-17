@@ -7,6 +7,7 @@ import {
   getSubscriptionsForViewer,
   isMediaContentLocked,
 } from "@/lib/content-access";
+import { rewritePaidVideoSrc } from "@/lib/paid-media-playback";
 
 export async function GET(
   req: NextRequest,
@@ -57,9 +58,16 @@ export async function GET(
       purchased: purchasedIds.has(m.id),
       subscription: subs.get(post.authorId) ?? null,
     });
-    return {
+    const gated = rewritePaidVideoSrc({
       id: m.id,
       url: m.url,
+      type: m.type,
+      priceKrw: m.priceKrw,
+      locked,
+    });
+    return {
+      id: m.id,
+      url: gated.url,
       type: m.type,
       priceKrw: m.priceKrw ?? 0,
       locked,

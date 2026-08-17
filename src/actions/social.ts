@@ -11,6 +11,7 @@ import {
 } from "@/lib/notifications";
 import { filterPostsByAudienceLock } from "@/lib/posts-lock";
 import { userPublicSelect } from "@/lib/user-public-select";
+import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 import {
   toggleFollowForUser,
   type FollowToggleResult,
@@ -193,8 +194,12 @@ export async function getFeed(cursor?: string, limit = 20) {
   });
 
   const visible = await filterPostsByAudienceLock(posts, user?.id ?? null);
+  const gated = await attachWebPaidMediaPlayback(
+    visible.map((p) => ({ ...p, authorId: p.authorId ?? p.author.id })),
+    user?.id ?? null
+  );
   return {
-    posts: visible,
+    posts: gated,
     nextCursor: posts.length === limit ? posts[posts.length - 1]?.id : null,
   };
 }

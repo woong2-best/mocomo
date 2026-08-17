@@ -5,6 +5,7 @@ import type { CreatorWorkKind } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { splitPlatformFee } from "@/lib/settlement";
+import { rewritePaidEpisodeVideoUrl } from "@/lib/paid-media-playback";
 
 function parseUrlList(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
@@ -105,7 +106,12 @@ export async function getEpisodeAccess(userId: string | null, episodeId: string)
     owned,
     visibleUrls,
     locked: !owned && episode.price > 0,
-    videoUrl: owned ? episode.videoUrl : null,
+    videoUrl: rewritePaidEpisodeVideoUrl({
+      episodeId: episode.id,
+      videoUrl: owned ? episode.videoUrl : null,
+      price: episode.price,
+      locked: !owned && episode.price > 0,
+    }),
     previewVideoBlocked: !owned && !!episode.videoUrl,
   };
 }

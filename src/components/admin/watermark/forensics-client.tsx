@@ -34,7 +34,7 @@ export function WatermarkForensicsClient() {
       setStage("Hashing source…");
       const clientFileHash = await hashFile(file);
 
-      setStage("Matching against viewing sessions…");
+      setStage("Queuing analysis job…");
       const form = new FormData();
       frames.forEach((blob, i) => form.append("frames", blob, `frame-${i}.png`));
       form.append("sourceKind", isVideo ? "video" : "image");
@@ -45,12 +45,32 @@ export function WatermarkForensicsClient() {
         method: "POST",
         body: form,
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Analysis failed");
+      const started = await res.json();
+      if (!res.ok || !started.jobId) {
+        setError(started.error ?? "Analysis failed");
         return;
       }
-      setResult(data as AdminWatermarkDetectionResponse);
+
+      setStage("Matching against viewing sessions…");
+      const deadline = Date.now() + 120_000;
+      while (Date.now() < deadline) {
+        const poll = await fetch(`/api/admin/watermark/detect/${started.jobId}`);
+        const body = await poll.json();
+        if (!poll.ok) {
+          setError(body.error ?? "Job lookup failed");
+          return;
+        }
+        if (body.status === "FAILED") {
+          setError(body.error ?? "Analysis failed");
+          return;
+        }
+        if (body.status === "COMPLETED" && body.result) {
+          setResult(body.result as AdminWatermarkDetectionResponse);
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 400));
+      }
+      setError("Analysis timed out");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Analysis request failed");
     } finally {

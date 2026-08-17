@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: { contentId?: string };
+  let body: { contentId?: string; contentKind?: string };
   try {
     body = await req.json();
   } catch {
@@ -43,9 +43,10 @@ export async function POST(req: NextRequest) {
   if (!contentId || contentId.length > 64) {
     return NextResponse.json({ error: "contentId required" }, { status: 400 });
   }
+  const contentKind = body.contentKind === "EPISODE" ? "EPISODE" : "POST_MEDIA";
 
   try {
-    const result = await createWatermarkSession(session.user.id, contentId);
+    const result = await createWatermarkSession(session.user.id, contentId, contentKind);
     return NextResponse.json(result);
   } catch (e) {
     if (e instanceof WatermarkAccessError) {

@@ -12,6 +12,7 @@ import {
 import { encodeWatermarkPayload, toBase64 } from "@/lib/watermark/crypto/payload";
 import { isWatermarkSecretConfigured } from "@/lib/watermark/crypto/secrets";
 import type { ForensicRenderConfig, WatermarkSessionClientResponse } from "@/lib/watermark/types";
+import type { WatermarkContentKind } from "@/lib/paid-media-playback";
 
 export class WatermarkAccessError extends Error {
   status: number;
@@ -22,7 +23,25 @@ export class WatermarkAccessError extends Error {
   }
 }
 
-export async function verifyPaidVideoAccess(userId: string, contentId: string) {
+export type PaidVideoAccess = {
+  contentKind: WatermarkContentKind;
+  contentId: string;
+  mediaId: string | null;
+  episodeId: string | null;
+  purchaseId: string | null;
+  episodePurchaseId: string | null;
+  subscriptionId: string | null;
+};
+
+export async function verifyPaidVideoAccess(
+  userId: string,
+  contentId: string,
+  contentKind: WatermarkContentKind = "POST_MEDIA"
+): Promise<PaidVideoAccess> {
+  if (contentKind === "EPISODE") {
+    return verifyEpisodeAccess(userId, contentId);
+  }
+
   const media = await db.postMedia.findUnique({
     where: { id: contentId },
     select: {
@@ -39,8 +58,19 @@ export async function verifyPaidVideoAccess(userId: string, contentId: string) {
     },
   });
 
-  if (!media) throw new WatermarkAccessError(404, "Content not found");
-  if (media.type !== "VIDEO") throw new WatermarkAccessError(400, "Forensic watermark applies to paid video only");
+  if (!media) {
+    // Callers that only have an id (episode viewer used to pass episode ids
+    // here) get a second look instead of a misleading 404.
+    const episode = await db.creatorEpisode.findUnique({
+      where: { id: contentId },
+      select: { id: true },
+    });
+    if (episode) return verifyEpisodeAccess(userId, contentId);
+    throw new WatermarkAccessError(404, "Content not found");
+  }
+  if (media.type !== "VIDEO") {
+    throw new WatermarkAccessError(400, "Forensic watermark applies to paid video only");
+  }
 
   const purchasedIds = await getPurchasedPostMediaIds(userId, [contentId]);
   const subs = await getSubscriptionsForViewer(userId, [media.post.authorId]);
@@ -58,7 +88,6 @@ export async function verifyPaidVideoAccess(userId: string, contentId: string) {
 
   if (locked) throw new WatermarkAccessError(403, "Purchase required");
 
-  // The rights holder is not a leak suspect, so their own playback is exempt.
   if (userId === media.post.authorId) {
     throw new WatermarkAccessError(403, "Author playback does not require forensic session");
   }
@@ -68,25 +97,77 @@ export async function verifyPaidVideoAccess(userId: string, contentId: string) {
     select: { id: true },
   });
   if (purchase) {
-    return { media, purchaseId: purchase.id, subscriptionId: null };
+    return {
+      contentKind: "POST_MEDIA",
+      contentId,
+      mediaId: contentId,
+      episodeId: null,
+      purchaseId: purchase.id,
+      episodePurchaseId: null,
+      subscriptionId: null,
+    };
   }
 
-  // Subscribers reach the same paid video without ever creating a purchase row.
-  // Refusing them a session would hand out an unwatermarked stream.
   if (subscription) {
     const row = await db.subscription.findFirst({
       where: { subscriberId: userId, creatorId: media.post.authorId, status: "active" },
       select: { id: true },
     });
-    if (row) return { media, purchaseId: null, subscriptionId: row.id };
+    if (row) {
+      return {
+        contentKind: "POST_MEDIA",
+        contentId,
+        mediaId: contentId,
+        episodeId: null,
+        purchaseId: null,
+        episodePurchaseId: null,
+        subscriptionId: row.id,
+      };
+    }
   }
 
   throw new WatermarkAccessError(403, "Purchase record required");
 }
 
+async function verifyEpisodeAccess(userId: string, episodeId: string): Promise<PaidVideoAccess> {
+  const episode = await db.creatorEpisode.findUnique({
+    where: { id: episodeId },
+    select: {
+      id: true,
+      price: true,
+      videoUrl: true,
+      authorId: true,
+    },
+  });
+  if (!episode || !episode.videoUrl) throw new WatermarkAccessError(404, "Content not found");
+  if (episode.price <= 0) {
+    throw new WatermarkAccessError(400, "Forensic watermark applies to paid video only");
+  }
+  if (userId === episode.authorId) {
+    throw new WatermarkAccessError(403, "Author playback does not require forensic session");
+  }
+
+  const purchase = await db.creatorEpisodePurchase.findUnique({
+    where: { buyerId_episodeId: { buyerId: userId, episodeId } },
+    select: { id: true },
+  });
+  if (!purchase) throw new WatermarkAccessError(403, "Purchase required");
+
+  return {
+    contentKind: "EPISODE",
+    contentId: episodeId,
+    mediaId: null,
+    episodeId,
+    purchaseId: null,
+    episodePurchaseId: purchase.id,
+    subscriptionId: null,
+  };
+}
+
 export async function createWatermarkSession(
   userId: string,
-  contentId: string
+  contentId: string,
+  contentKind: WatermarkContentKind = "POST_MEDIA"
 ): Promise<WatermarkSessionClientResponse> {
   if (!isWatermarkEnabled()) {
     throw new WatermarkAccessError(503, "Watermark system disabled");
@@ -95,19 +176,23 @@ export async function createWatermarkSession(
     throw new WatermarkAccessError(503, "Watermark secret not configured");
   }
 
-  const { purchaseId, subscriptionId } = await verifyPaidVideoAccess(userId, contentId);
-  // Whichever entitlement granted access is what the codeword binds to.
-  const accessRef = purchaseId ?? `sub:${subscriptionId}`;
+  const access = await verifyPaidVideoAccess(userId, contentId, contentKind);
+  const accessRef =
+    access.purchaseId ?? access.episodePurchaseId ?? `sub:${access.subscriptionId}`;
   const watermarkVersion = getWatermarkVersion();
   const expiresAt = new Date(Date.now() + WATERMARK_SESSION_TTL_MS);
   const pendingOpaque = `pending_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 
   const session = await db.watermarkSession.create({
     data: {
-      contentId,
+      contentKind: access.contentKind,
+      contentId: access.contentId,
       userId,
-      purchaseId,
-      subscriptionId,
+      mediaId: access.mediaId,
+      episodeId: access.episodeId,
+      purchaseId: access.purchaseId,
+      episodePurchaseId: access.episodePurchaseId,
+      subscriptionId: access.subscriptionId,
       opaqueWatermarkId: pendingOpaque,
       watermarkVersion,
       sessionNonce: "",
@@ -117,7 +202,7 @@ export async function createWatermarkSession(
   });
 
   const encoded = encodeWatermarkPayload({
-    contentId,
+    contentId: access.contentId,
     sessionId: session.id,
     userId,
     purchaseId: accessRef,
@@ -148,15 +233,6 @@ export async function createWatermarkSession(
   };
 }
 
-/**
- * Sessions to test a leaked capture against.
- *
- * Each session has its own carrier, so a detector has to know which sessions to
- * try. Scoping by content is what keeps this bounded — an investigator is
- * looking at a specific leaked video, and only its buyers can be the source.
- * Without a content the search falls back to recent sessions, which is best
- * effort rather than exhaustive.
- */
 export async function loadDetectionCandidates(options: {
   contentId?: string | null;
   limit?: number;
@@ -171,6 +247,7 @@ export async function loadDetectionCandidates(options: {
       contentId: true,
       userId: true,
       purchaseId: true,
+      episodePurchaseId: true,
       subscriptionId: true,
       sessionNonce: true,
       watermarkVersion: true,
@@ -185,10 +262,18 @@ export async function resolveWatermarkSession(sessionId: string) {
     include: {
       user: { select: { id: true, username: true } },
       purchase: { select: { id: true, price: true, createdAt: true } },
+      episodePurchase: { select: { id: true, price: true, createdAt: true } },
       media: {
         select: {
           id: true,
           post: { select: { title: true, author: { select: { username: true } } } },
+        },
+      },
+      episode: {
+        select: {
+          id: true,
+          title: true,
+          author: { select: { username: true } },
         },
       },
     },

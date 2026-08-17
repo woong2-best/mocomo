@@ -10,6 +10,7 @@ import {
 import { postCollaboratorsHeaderInclude } from "@/lib/post-collaborator-select";
 import { canViewLockedAccountContent } from "@/lib/posts-lock";
 import type { ContentVisibility, Prisma } from "@prisma/client";
+import { rewritePaidVideoSrc } from "@/lib/paid-media-playback";
 
 type PostDetailMedia = {
   id: string;
@@ -125,9 +126,16 @@ async function enrichPostDetail<
       purchased: purchasedIds.has(m.id),
       subscription: subs.get(withPoll.authorId) ?? null,
     });
-    return {
+    const gated = rewritePaidVideoSrc({
       id: m.id,
       url: m.url,
+      type: m.type,
+      priceKrw: m.priceKrw,
+      locked,
+    });
+    return {
+      id: m.id,
+      url: gated.url,
       type: m.type,
       priceKrw: m.priceKrw ?? 0,
       locked,

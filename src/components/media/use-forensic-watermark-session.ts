@@ -2,8 +2,13 @@
 
 import { useEffect, useState } from "react";
 import type { ForensicRenderConfig } from "@/lib/watermark/types";
+import type { WatermarkContentKind } from "@/lib/paid-media-playback";
 
-export function useForensicWatermarkSession(mediaId: string | null | undefined, enabled: boolean) {
+export function useForensicWatermarkSession(
+  mediaId: string | null | undefined,
+  enabled: boolean,
+  contentKind: WatermarkContentKind = "POST_MEDIA"
+) {
   const [config, setConfig] = useState<ForensicRenderConfig | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +28,7 @@ export function useForensicWatermarkSession(mediaId: string | null | undefined, 
         const res = await fetch("/api/watermark/session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ contentId: mediaId }),
+          body: JSON.stringify({ contentId: mediaId, contentKind }),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
@@ -41,7 +46,7 @@ export function useForensicWatermarkSession(mediaId: string | null | undefined, 
     return () => {
       cancelled = true;
     };
-  }, [enabled, mediaId]);
+  }, [enabled, mediaId, contentKind]);
 
   return { config, loading, error };
 }

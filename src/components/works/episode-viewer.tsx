@@ -50,6 +50,7 @@ export function EpisodeViewer({
           preload="auto"
           controls
           mediaId={episodeId}
+          contentKind="EPISODE"
           autoPlayOnView
         />
       )}
