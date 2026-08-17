@@ -199,6 +199,12 @@ export function SocialAuthButtons({
     );
   }
 
+  function oauthRedirectTarget(): string {
+    if (isSignup) return callbackUrl;
+    const params = new URLSearchParams({ callbackUrl });
+    return `/auth/signin?${params}`;
+  }
+
   async function startOAuth(id: ProviderId) {
     const flow = isSignup ? "signup" : "signin";
     setOAuthFlowCookieClient(flow);
@@ -207,7 +213,7 @@ export function SocialAuthButtons({
     } catch {
       /* non-httpOnly fallback above */
     }
-    void signIn(id, { callbackUrl });
+    void signIn(id, { callbackUrl: oauthRedirectTarget() });
   }
 
   function handleClick(id: ProviderId) {

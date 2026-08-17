@@ -16,6 +16,12 @@ export const authConfig = {
   },
   providers: [],
   callbacks: {
+    redirect({ url, baseUrl }) {
+      if (url.startsWith("/auth/signup")) return `${baseUrl}${url}`;
+      if (url.startsWith(baseUrl)) return url;
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      return baseUrl;
+    },
     session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;

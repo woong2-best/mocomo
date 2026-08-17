@@ -47,7 +47,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     ...authConfig.callbacks,
     async signIn({ user, account, profile }) {
-      if (!user?.id) return true;
+      const isOAuth = account?.type === "oauth" || account?.type === "oidc";
+      const oauthFlow = isOAuth ? await readOAuthFlowCookie() : null;
 
       const userSelect = {
         id: true,
@@ -67,56 +68,82 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         emailVerified: Date | null;
       };
 
-      let dbUser: SignInUserRow | null = await db.user.findUnique({
-        where: { id: user.id },
-        select: userSelect,
-      });
+      async function resolveUserByEmail(email: string | null | undefined): Promise<SignInUserRow | null> {
+        const normalized = email?.trim().toLowerCase();
+        if (!normalized) return null;
 
-      let resolvedUserId = dbUser?.id ?? user.id;
+        const byEmail = await db.user.findUnique({
+          where: { email: normalized },
+          select: userSelect,
+        });
+        if (byEmail) return byEmail;
 
-      // Auth.js passes an ephemeral id before linking OAuth to an existing email account.
-      if (
-        !dbUser &&
-        (account?.type === "oauth" || account?.type === "oidc")
-      ) {
-        const oauthFlow = await readOAuthFlowCookie();
+        const oauthUserId = await findUserIdByOAuthEmail(normalized);
+        if (!oauthUserId) return null;
+
+        return db.user.findUnique({
+          where: { id: oauthUserId },
+          select: userSelect,
+        });
+      }
+
+      function oauthProviderEmailVerified(): boolean {
+        if (account?.provider === "naver") return Boolean(user.email?.trim());
+        return Boolean(
+          (profile as { email_verified?: boolean } | undefined)?.email_verified ??
+            (profile as { verified_email?: boolean } | undefined)?.verified_email
+        );
+      }
+
+      if (isOAuth && oauthFlow !== "signup") {
         let existing: SignInUserRow | null = null;
 
-        if (user.email) {
-          const normalized = user.email.trim().toLowerCase();
+        if (user.id) {
           existing = await db.user.findUnique({
-            where: { email: normalized },
+            where: { id: user.id },
             select: userSelect,
           });
-          if (!existing) {
-            const oauthUserId = await findUserIdByOAuthEmail(normalized);
-            if (oauthUserId) {
-              existing = await db.user.findUnique({
-                where: { id: oauthUserId },
-                select: userSelect,
-              });
-            }
-          }
+        }
+        if (!existing) {
+          existing = await resolveUserByEmail(user.email);
         }
 
-        if (existing) {
-          const isNaverOAuth = account?.provider === "naver";
-          const oauthEmailVerified = isNaverOAuth
-            ? Boolean(user.email?.trim())
-            : Boolean(
-                (profile as { email_verified?: boolean } | undefined)?.email_verified ??
-                  (profile as { verified_email?: boolean } | undefined)?.verified_email
-              );
-          if (!oauthEmailVerified || !existing.emailVerified) return false;
-
-          dbUser = existing;
-          resolvedUserId = existing.id;
-        } else if (oauthFlow === "signup") {
-          return true;
-        } else {
+        if (!existing) {
           return signupRedirectForOAuthEmail(user.email);
         }
+        if (!existing.emailVerified) {
+          return signupRedirectForOAuthEmail(user.email);
+        }
+        if (!oauthProviderEmailVerified()) {
+          return false;
+        }
+
+        user.id = existing.id;
+      } else if (isOAuth && oauthFlow === "signup") {
+        const existing = user.id
+          ? await db.user.findUnique({ where: { id: user.id }, select: userSelect })
+          : await resolveUserByEmail(user.email);
+
+        if (!existing) {
+          return true;
+        }
+        if (existing.emailVerified) {
+          user.id = existing.id;
+        } else {
+          return true;
+        }
+      } else if (!user?.id) {
+        return false;
       }
+
+      let dbUser: SignInUserRow | null = user.id
+        ? await db.user.findUnique({
+            where: { id: user.id },
+            select: userSelect,
+          })
+        : null;
+
+      let resolvedUserId = dbUser?.id ?? user.id;
 
       if (!dbUser) return false;
       if (isServiceBanned(dbUser)) return false;

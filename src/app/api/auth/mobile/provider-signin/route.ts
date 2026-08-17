@@ -33,7 +33,11 @@ export async function GET(req: NextRequest) {
   const platform = sp.get("platform") === "ios" ? "ios" : "android";
   const flow = sp.get("flow") === "signup" ? "signup" : "signin";
   const addAccount = sp.get("addAccount") === "1";
-  const callbackUrl = safeCallbackUrl(sp.get("callbackUrl"), platform);
+  const finalDestination = safeCallbackUrl(sp.get("callbackUrl"), platform);
+  const callbackUrl =
+    flow === "signup"
+      ? finalDestination
+      : `/auth/signin?callbackUrl=${encodeURIComponent(finalDestination)}`;
   const redirectUri = sanitizeMobileRedirectUri(sp.get("redirect_uri"));
 
   const jar = await cookies();
