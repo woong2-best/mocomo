@@ -12,6 +12,8 @@ import {
   Trash2,
   Upload,
   X,
+  AlertTriangle,
+  ChevronRight,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -88,6 +90,7 @@ export function PublishedToastPill({
   }, [menuOpen, sheetOpen, confirmDelete, onPause, onResume]);
 
   const isError = toast.kind === "error";
+  const isWarning = toast.kind === "warning";
   const isPublishing = toast.kind === "publishing";
   const isPublished = toast.kind === "published";
 
@@ -210,8 +213,11 @@ export function PublishedToastPill({
   }
 
   const shellClass = cn(
-    "relative flex h-[52px] max-w-[min(100vw-1.5rem,380px)] items-center gap-2.5 rounded-full pl-3.5 pr-2 shadow-[0_8px_28px_rgba(27,58,140,0.35)]",
-    isError ? "bg-red-600 text-white" : "bg-[#1D9BF0] text-white sm:bg-folk-cobalt"
+    "relative flex max-w-[min(100vw-1.5rem,380px)] items-center gap-2.5 rounded-full pl-3.5 pr-2 shadow-[0_8px_28px_rgba(27,58,140,0.35)]",
+    isWarning ? "h-[56px] shadow-[0_8px_28px_rgba(185,28,28,0.35)]" : "h-[52px]",
+    isError || isWarning
+      ? "bg-red-600 text-white"
+      : "bg-[#1D9BF0] text-white sm:bg-folk-cobalt"
   );
 
   return (
@@ -250,6 +256,8 @@ export function PublishedToastPill({
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
             ) : isError ? (
               <X className="h-4 w-4" strokeWidth={2.5} aria-hidden />
+            ) : isWarning ? (
+              <AlertTriangle className="h-4 w-4" strokeWidth={2.5} aria-hidden />
             ) : (
               <Upload className="h-4 w-4" strokeWidth={2.5} aria-hidden />
             )}
@@ -293,7 +301,11 @@ export function PublishedToastPill({
           </span>
         </button>
 
-        {toast.showActions && toast.postId && !isPublishing && !isError && (
+        {isWarning && toast.href ? (
+          <ChevronRight className="h-4 w-4 shrink-0 text-white/80 mr-1" aria-hidden />
+        ) : null}
+
+        {toast.showActions && toast.postId && !isPublishing && !isError && !isWarning && (
           isNarrow ? (
             <button
               type="button"

@@ -147,10 +147,11 @@ export function PublishedToastProvider({ children }: { children: ReactNode }) {
     return () => window.cancelAnimationFrame(frame);
   }, [current, clearTimer]);
 
-  // 자동 종료 타이머 (게시 중 제외)
+  // 자동 종료 타이머 (게시 중·계좌 경고 제외)
   useEffect(() => {
     if (!current || !visible || exiting) return;
-    if (current.kind === "publishing") return;
+    if (current.kind === "publishing" || current.kind === "warning") return;
+    if ((current.durationMs ?? DEFAULT_DURATION) <= 0) return;
     startDismissTimer(current.durationMs ?? DEFAULT_DURATION);
     return () => clearTimer();
   }, [current, visible, exiting, startDismissTimer, clearTimer]);

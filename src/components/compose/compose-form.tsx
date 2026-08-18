@@ -12,7 +12,6 @@ import {
   type CollabPickerUser,
 } from "@/components/compose/compose-collaborator-picker";
 import { ContentVisibilitySelect } from "@/components/monetization/content-visibility-select";
-import { SettlementAccountBanner } from "@/components/monetization/settlement-account-banner";
 import { getBankVerificationStatus } from "@/actions/bank-verification";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +25,7 @@ import {
   pushErrorToast,
   pushPublishedToast,
   pushPublishingToast,
+  syncSettlementAccountToast,
 } from "@/lib/published-toast-store";
 import { SETTLEMENT_ACCOUNT_REQUIRED_CODE, walletSettlementPath } from "@/lib/settlement-account";
 import {
@@ -113,6 +113,19 @@ export function ComposeForm({
     })();
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    syncSettlementAccountToast(
+      showSettlementBanner,
+      showSettlementBanner ? walletSettlementPath(walletCallbackUrl) : undefined
+    );
+  }, [showSettlementBanner, walletCallbackUrl]);
+
+  useEffect(() => {
+    return () => {
+      syncSettlementAccountToast(false);
     };
   }, []);
 
@@ -403,9 +416,6 @@ export function ComposeForm({
 
   const formBody = (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {showSettlementBanner ? (
-        <SettlementAccountBanner callbackUrl={walletCallbackUrl} />
-      ) : null}
       {variant === "sheet" && (
         <p className="text-sm text-muted-foreground -mt-1">
           사진·영상을 고른 뒤, 앱 안에서 자르기·구간 편집할 수 있습니다.

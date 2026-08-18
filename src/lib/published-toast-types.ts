@@ -1,7 +1,7 @@
 export const FLASH_POST_STORAGE_KEY = "mocomo:flash-post";
 export const SCROLL_FEED_TOP_KEY = "mocomo:scroll-feed-top";
 
-export type PublishedToastKind = "publishing" | "published" | "error" | "info";
+export type PublishedToastKind = "publishing" | "published" | "error" | "info" | "warning";
 
 export type ToastAvatar = {
   image?: string | null;
