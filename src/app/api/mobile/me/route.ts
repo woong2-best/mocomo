@@ -21,6 +21,7 @@ import {
   getProfileSettingsForUser,
 } from "@/lib/profile-update-service";
 import { isValidUsername, normalizeUsername } from "@/lib/username-policy";
+import { assertCountrySelectable } from "@/lib/compliance/ofac-sanctioned-countries";
 
 const meSelect = {
   id: true,
@@ -224,6 +225,12 @@ export async function PATCH(req: NextRequest) {
   }
 
   if (data.locale || data.countryCode || data.timeZone) {
+    if (data.countryCode) {
+      const countryBlock = assertCountrySelectable(data.countryCode);
+      if (countryBlock) {
+        return NextResponse.json({ error: countryBlock.error }, { status: 403 });
+      }
+    }
     await db.user.update({
       where: { id: auth.user.id },
       data: {

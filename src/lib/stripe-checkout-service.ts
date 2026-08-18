@@ -8,6 +8,7 @@ import { getAppOrigin, getStripe, isStripeConfigured } from "@/lib/stripe";
 import { verifyStripeCheckoutSession } from "@/lib/stripe-checkout";
 import { validatePaymentInput } from "@/lib/stripe-checkout-validate";
 import { getOrCreateStripeCustomer } from "@/lib/stripe-payment-methods";
+import { assertOfacPaymentRequestAllowed } from "@/lib/compliance/ofac-payment-guard-server";
 
 export type CheckoutPlatform = "web" | "mobile";
 
@@ -40,6 +41,9 @@ export async function createStripeCheckoutForUser(input: {
         "결제가 설정되지 않았습니다. STRIPE_SECRET_KEY와 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY를 설정하세요.",
     };
   }
+
+  const ofacBlock = await assertOfacPaymentRequestAllowed(input.userId, input.metadata);
+  if (ofacBlock) return ofacBlock;
 
   const validation = await validatePaymentInput(input.userId, input);
   if (validation) return validation;

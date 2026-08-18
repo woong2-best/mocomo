@@ -1,3 +1,8 @@
+import {
+  filterOfacAllowedCountries,
+  isOfacSanctionedCountry,
+} from "@/lib/compliance/ofac-sanctioned-countries";
+
 export type CountryLocale = "ko" | "en" | "ja" | "zh";
 
 export type CountryEntry = {
@@ -305,6 +310,16 @@ export const COUNTRY_REGIONS: CountryRegion[] = [
   },
 ];
 
+/** OFAC 제재 국가 제외 — 회원가입·설정 국가 선택용 */
+export const ALLOWED_COUNTRY_REGIONS: CountryRegion[] = COUNTRY_REGIONS.map((region) => ({
+  ...region,
+  countries: filterOfacAllowedCountries(region.countries),
+})).filter((region) => region.countries.length > 0);
+
+export const ALLOWED_COUNTRIES: CountryEntry[] = ALLOWED_COUNTRY_REGIONS.flatMap(
+  (r) => r.countries
+);
+
 export const COUNTRIES: CountryEntry[] = COUNTRY_REGIONS.flatMap((r) => r.countries);
 
 const COUNTRY_BY_CODE = new Map(COUNTRIES.map((c) => [c.code, c]));
@@ -321,6 +336,10 @@ export function countryDisplayName(code: string, locale: CountryLocale): string 
 
 export function isKnownCountryCode(code: string): boolean {
   return COUNTRY_BY_CODE.has(code.toUpperCase());
+}
+
+export function isSelectableCountryCode(code: string): boolean {
+  return isKnownCountryCode(code) && !isOfacSanctionedCountry(code);
 }
 
 export function regionLabel(region: CountryRegion, locale: CountryLocale): string {

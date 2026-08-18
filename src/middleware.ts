@@ -25,6 +25,11 @@ import {
   adminSecurityCookieOptions,
   ADMIN_MFA_IDLE_TTL_SEC,
 } from "@/lib/admin/security/session-cookie";
+import {
+  assertOfacPaymentAllowed,
+  isPaymentGuardPath,
+} from "@/lib/compliance/ofac-payment-guard";
+import { getRequestCountryFromHeaders } from "@/lib/compliance/request-country";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -124,6 +129,22 @@ export default edgeAuth(async (req) => {
     req.nextUrl.hostname
   );
   const { pathname } = req.nextUrl;
+
+  if (isPaymentGuardPath(pathname)) {
+    const geoCountry = getRequestCountryFromHeaders(req.headers);
+    const regionBlock = assertOfacPaymentAllowed(geoCountry);
+    if (regionBlock) {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json({ error: regionBlock.error }, { status: 403 });
+      }
+      const url = req.nextUrl.clone();
+      url.pathname = "/payments/fail";
+      url.searchParams.set("reason", "region");
+      const res = NextResponse.redirect(url);
+      stampAppClientIfNeeded(req, res);
+      return res;
+    }
+  }
 
   if (shouldGuardMutatingApiOrigin(pathname, req.method)) {
     if (!verifyApiOrigin(req)) {

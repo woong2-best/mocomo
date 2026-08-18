@@ -57,6 +57,7 @@ import {
 } from "@/actions/apt";
 import { RESERVED_USERNAMES } from "@/lib/username-policy";
 import { normalizeTimeZone } from "@/lib/i18n/timezone";
+import { assertCountrySelectable } from "@/lib/compliance/ofac-sanctioned-countries";
 
 const signupApplicationSchema = z.object({
   email: z.string().email(),
@@ -388,6 +389,9 @@ export async function validateSignupApplication(data: z.input<typeof signupAppli
   const { email: rawEmail, username, name, website, countryCode, homeFloor: preferredFloor } = parsed.data;
   const email = rawEmail.trim().toLowerCase();
 
+  const countryBlock = assertCountrySelectable(countryCode);
+  if (countryBlock) return { error: countryBlock.error };
+
   if (website?.trim()) {
     return { error: "요청을 처리할 수 없습니다." };
   }
@@ -446,6 +450,9 @@ export async function registerUser(
   } = parsed.data;
   const email = rawEmail.trim().toLowerCase();
   const timeZone = normalizeTimeZone(rawTimeZone);
+
+  const countryBlock = assertCountrySelectable(countryCode);
+  if (countryBlock) return { error: countryBlock.error };
 
   if (website?.trim()) {
     return { error: "요청을 처리할 수 없습니다." };

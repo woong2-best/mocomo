@@ -1,5 +1,6 @@
 import type { PaymentIntentType } from "@prisma/client";
 import { db } from "@/lib/db";
+import { validatePaymentPayloadCountries } from "@/lib/compliance/ofac-payment-guard";
 import { PREMIUM_USD_CENTS } from "@/lib/payments";
 import { isMediaContentLocked } from "@/lib/content-access";
 import { isSubscriptionActive } from "@/lib/creator-subscription";
@@ -29,6 +30,9 @@ export async function validatePaymentInput(
   userId: string,
   input: { type: PaymentIntentType; amount: number; metadata: Record<string, unknown> }
 ): Promise<{ error: string } | null> {
+  const payloadBlock = validatePaymentPayloadCountries(input.metadata);
+  if (payloadBlock) return payloadBlock;
+
   if (input.type === "MOCO_TOPUP") {
     return { error: "모코 충전은 종료되었습니다. 각 상품·후원 화면에서 바로 결제해 주세요." };
   }

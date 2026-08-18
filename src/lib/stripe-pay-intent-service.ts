@@ -12,6 +12,7 @@ import {
   listSavedPaymentMethods,
   type SavedPaymentMethod,
 } from "@/lib/stripe-payment-methods";
+import { assertOfacPaymentRequestAllowed, assertOfacPaymentAllowedForUser } from "@/lib/compliance/ofac-payment-guard-server";
 
 function stripeMetadata(
   orderId: string,
@@ -83,6 +84,9 @@ export async function prepareCheckoutPaymentIntent(input: {
     return { error: "결제가 설정되지 않았습니다." };
   }
 
+  const ofacBlock = await assertOfacPaymentRequestAllowed(input.userId, input.metadata);
+  if (ofacBlock) return ofacBlock;
+
   const validation = await validatePaymentInput(input.userId, input);
   if (validation) return validation;
 
@@ -146,6 +150,9 @@ export async function payCheckoutWithSavedMethod(
   if (!isPaymentsConfigured()) {
     return { error: "결제가 설정되지 않았습니다." };
   }
+
+  const ofacBlock = await assertOfacPaymentAllowedForUser(userId);
+  if (ofacBlock) return ofacBlock;
 
   const intent = await db.paymentIntent.findUnique({ where: { id: orderId } });
   if (!intent || intent.userId !== userId) {

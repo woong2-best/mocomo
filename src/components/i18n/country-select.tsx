@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  COUNTRY_REGIONS,
+  ALLOWED_COUNTRY_REGIONS,
   countryDisplayName,
   regionLabel,
   type CountryLocale,
@@ -32,7 +32,7 @@ export function CountrySelect({
       onChange={(e) => onChange(e.target.value)}
       className={className}
     >
-      {COUNTRY_REGIONS.map((region) => (
+      {ALLOWED_COUNTRY_REGIONS.map((region) => (
         <optgroup key={region.id} label={regionLabel(region, locale)}>
           {region.countries.map((country) => (
             <option key={country.code} value={country.code}>

@@ -33,6 +33,8 @@ import {
   getOrCreateStripeCustomer,
   listSavedPaymentMethods,
 } from "@/lib/stripe-payment-methods";
+import { assertOfacPaymentRequestAllowed } from "@/lib/compliance/ofac-payment-guard-server";
+import { isOfacSanctionedCountry, OFAC_REGION_UNAVAILABLE_MESSAGE } from "@/lib/compliance/ofac-sanctioned-countries";
 
 /** How long an unpaid order stays reusable for the same buyer + listing. */
 const ORDER_REUSE_WINDOW_MS = 60 * 60 * 1000;
@@ -80,6 +82,11 @@ async function initMarketplacePurchase(
   input: MarketplaceCheckoutInput
 ): Promise<{ error: string } | MarketplaceInitResult> {
   const quantity = Math.max(1, Math.floor(input.quantity ?? 1));
+
+  const ofacBlock = await assertOfacPaymentRequestAllowed(buyer.id, {
+    shipCountry: input.shipCountry,
+  });
+  if (ofacBlock) return ofacBlock;
 
   const listing = await db.marketplaceListing.findUnique({
     where: { id: input.listingId },
@@ -129,6 +136,9 @@ async function initMarketplacePurchase(
     const dest = normalizeShipCountry(input.shipCountry);
     if (!dest) {
       return { error: UNSUPPORTED_ADDRESS_COUNTRY_MESSAGE };
+    }
+    if (isOfacSanctionedCountry(dest)) {
+      return { error: OFAC_REGION_UNAVAILABLE_MESSAGE };
     }
     if (
       !listingShipsToCountry(listing.shipToCountries, listing.shipsWorldwide, dest)
@@ -421,6 +431,9 @@ export async function createMarketplaceCheckoutSessionForPaymentIntent(
   if (!isStripeConfigured()) {
     return { error: "Stripe 결제가 설정되지 않았습니다." };
   }
+
+  const ofacBlock = await assertOfacPaymentRequestAllowed(buyer.id);
+  if (ofacBlock) return ofacBlock;
 
   const paymentIntent = await db.paymentIntent.findUnique({
     where: { id: paymentIntentDbId },
