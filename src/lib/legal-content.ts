@@ -2,7 +2,7 @@ import { SELLER_TERMS } from "@/lib/marketplace/seller-legal";
 
 export { SELLER_TERMS };
 
-export const LEGAL_CONTACT_EMAIL = "mocomo.company@gmail.com";
+export const LEGAL_CONTACT_EMAIL = "support@mocomo.net";
 
 /** Legal entity displayed across terms and policies. */
 export const LEGAL_ENTITY_NAME = "MoCoMo LLC";
@@ -744,7 +744,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     { type: "h3", text: "(저작권 침해 신고 및 DMCA 절차)" },
     {
       type: "p",
-      text: "① 회사는 미국 디지털 밀레니엄 저작권법(DMCA) 및 관련 지식재산권 법령을 준수합니다. 본인의 저작권 또는 지식재산권이 침해되었다고 판단하는 권리자는 회사의 저작권 담당자(DMCA Agent: mocomo.company@gmail.com)에게 다음 각 호의 사항을 포함한 서면 침해 통지(Takedown Notice)를 제출할 수 있습니다.",
+      text: `① 회사는 미국 디지털 밀레니엄 저작권법(DMCA) 및 관련 지식재산권 법령을 준수합니다. 본인의 저작권 또는 지식재산권이 침해되었다고 판단하는 권리자는 회사의 저작권 담당자(DMCA Agent: ${LEGAL_DMCA_AGENT_EMAIL})에게 다음 각 호의 사항을 포함한 서면 침해 통지(Takedown Notice)를 제출할 수 있습니다.`,
     },
     {
       type: "ul",

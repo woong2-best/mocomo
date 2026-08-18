@@ -135,7 +135,7 @@ export const SELLER_TERMS: LegalDocument = {
     { type: "h3", text: "제 14 조 (문의)" },
     {
       type: "p",
-      text: "판매자 약관 및 서비스 관련 문의는 MoCoMo LLC 고객지원 채널 또는 mocomo.company@gmail.com 으로 연락해 주세요.",
+      text: "판매자 약관 및 서비스 관련 문의는 MoCoMo LLC 고객지원 채널 또는 support@mocomo.net 으로 연락해 주세요.",
     },
   ],
 };
