@@ -103,6 +103,7 @@ export function PublishedToastPill({
 
   function goToPublishedContent() {
     if (isPublishing) return;
+    if (isWarning && !toast.href) return;
     onDismiss();
 
     // DM 공유 등 — 명시 href 우선 (트위터 "대화 보기")

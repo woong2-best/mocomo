@@ -133,39 +133,62 @@ export function pushInfoToast(input: {
 }
 
 const SETTLEMENT_TOAST_ID = "settlement-account-warning";
+const PAID_MEDIA_TOAST_ID = "paid-media-required-warning";
+
+function applyPersistentWarning(next: QueuedToast) {
+  if (current?.id === next.id) {
+    current = next;
+  } else if (
+    !current ||
+    current.id === next.id ||
+    current.id === SETTLEMENT_TOAST_ID ||
+    current.id === PAID_MEDIA_TOAST_ID ||
+    (current.kind !== "publishing" && current.kind !== "published")
+  ) {
+    current = next;
+  } else {
+    queue = [next, ...queue.filter((q) => q.id !== next.id)];
+  }
+  emit();
+}
+
+function clearPersistentWarning(id: string) {
+  if (current?.id === id) {
+    dismissPublishedToastCurrent();
+    return;
+  }
+  if (queue.some((q) => q.id === id)) {
+    queue = queue.filter((q) => q.id !== id);
+    emit();
+  }
+}
 
 /** 유료 판매 중 계좌 미등록 — 헤더 아래 플로팅 pill (게시됨 토스트와 동일 위치) */
 export function syncSettlementAccountToast(active: boolean, href?: string) {
   if (active && href) {
-    const next: QueuedToast = {
+    applyPersistentWarning({
       id: SETTLEMENT_TOAST_ID,
       kind: "warning",
       message: "계좌를 등록해주세요",
       detail: "지갑 → 수익 탭에서 1원 인증으로 등록",
       href,
       durationMs: 0,
-    };
-    if (current?.id === SETTLEMENT_TOAST_ID) {
-      current = next;
-    } else if (
-      !current ||
-      current.id === SETTLEMENT_TOAST_ID ||
-      (current.kind !== "publishing" && current.kind !== "published")
-    ) {
-      current = next;
-    } else {
-      queue = [next, ...queue.filter((q) => q.id !== SETTLEMENT_TOAST_ID)];
-    }
-    emit();
+    });
     return;
   }
+  clearPersistentWarning(SETTLEMENT_TOAST_ID);
+}
 
-  if (current?.id === SETTLEMENT_TOAST_ID) {
-    dismissPublishedToastCurrent();
+/** 유료 가격만 있고 사진·영상 없음 */
+export function syncPaidMediaRequiredToast(active: boolean) {
+  if (active) {
+    applyPersistentWarning({
+      id: PAID_MEDIA_TOAST_ID,
+      kind: "warning",
+      message: "판매할 사진 또는 영상을 업로드해 주세요",
+      durationMs: 0,
+    });
     return;
   }
-  if (queue.some((q) => q.id === SETTLEMENT_TOAST_ID)) {
-    queue = queue.filter((q) => q.id !== SETTLEMENT_TOAST_ID);
-    emit();
-  }
+  clearPersistentWarning(PAID_MEDIA_TOAST_ID);
 }

@@ -26,6 +26,7 @@ import {
   pushPublishedToast,
   pushPublishingToast,
   syncSettlementAccountToast,
+  syncPaidMediaRequiredToast,
 } from "@/lib/published-toast-store";
 import { SETTLEMENT_ACCOUNT_REQUIRED_CODE, walletSettlementPath } from "@/lib/settlement-account";
 import {
@@ -84,17 +85,19 @@ export function ComposeForm({
   const [priceUsd, setPriceUsd] = useState("");
   const [instantPriceUsd, setInstantPriceUsd] = useState("");
   const [payoutAccountRegistered, setPayoutAccountRegistered] = useState(true);
+  const [paidMediaWarned, setPaidMediaWarned] = useState(false);
   const submitBusy = loading || mediaUploading;
   const canSubmit = content.trim().length > 0 || media.length > 0;
   const priceCents = parseUsdDollarsToCents(priceUsd);
   const instantPriceCents = parseUsdDollarsToCents(instantPriceUsd);
   const showInstantPurchase = visibility !== "PUBLIC";
-  const sellingIntent =
+  const paidPriceIntent =
     priceCents > 0 ||
     instantPriceCents > 0 ||
     priceUsd.trim().length > 0 ||
-    instantPriceUsd.trim().length > 0 ||
-    visibility !== "PUBLIC";
+    instantPriceUsd.trim().length > 0;
+  const showPaidMediaRequired = paidPriceIntent && media.length === 0;
+  const sellingIntent = paidPriceIntent || visibility !== "PUBLIC";
   const showSettlementBanner = !payoutAccountRegistered && sellingIntent;
   const walletCallbackUrl = useMemo(
     () => (pathname?.startsWith("/") ? pathname : undefined),
@@ -124,8 +127,17 @@ export function ComposeForm({
   }, [showSettlementBanner, walletCallbackUrl]);
 
   useEffect(() => {
+    if (!showPaidMediaRequired) setPaidMediaWarned(false);
+  }, [showPaidMediaRequired]);
+
+  useEffect(() => {
+    syncPaidMediaRequiredToast(paidMediaWarned && showPaidMediaRequired && !showSettlementBanner);
+  }, [paidMediaWarned, showPaidMediaRequired, showSettlementBanner]);
+
+  useEffect(() => {
     return () => {
       syncSettlementAccountToast(false);
+      syncPaidMediaRequiredToast(false);
     };
   }, []);
 
@@ -153,6 +165,13 @@ export function ComposeForm({
 
     if (showSettlementBanner) {
       router.push(walletSettlementPath(walletCallbackUrl));
+      return;
+    }
+
+    if (showPaidMediaRequired) {
+      setPaidMediaWarned(true);
+      syncPaidMediaRequiredToast(true);
+      setError("유료 판매를 하려면 사진 또는 영상을 첨부해 주세요.");
       return;
     }
 
