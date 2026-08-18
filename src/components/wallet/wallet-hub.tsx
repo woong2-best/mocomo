@@ -90,7 +90,8 @@ export function WalletHub({
         <div className="rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm space-y-1">
           <p className="font-bold text-foreground">수익 입금 계좌 등록</p>
           <p className="text-muted-foreground leading-relaxed">
-            판매·중고거래·크리에이터 수익을 받으려면 아래에서 본인 명의 계좌 1원 인증을 완료해 주세요.
+            판매·중고거래·크리에이터 수익을 받으려면 아래에서 계좌 1원 인증(입금통장메모 4자리
+            숫자)을 완료해 주세요.
           </p>
           <Link href={safeCallbackUrl} className="text-primary font-semibold text-xs underline">
             나중에 — 이전 화면으로

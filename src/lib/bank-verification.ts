@@ -1,7 +1,6 @@
 import { db } from "@/lib/db";
 import { apickAccountRealname, apickTransfer1Won } from "@/lib/apick/client";
 import { apickBankLabel, isApickBankCode, normalizeBankAccountNum } from "@/lib/apick/bank-codes";
-import { bankHolderMatchesLegalName } from "@/lib/bank-name-match";
 import {
   bankAccountFingerprint,
   codesEqual,
@@ -38,9 +37,6 @@ export const BANK_ONE_ACCOUNT_MSG =
 
 export const BANK_PENDING_OTHER_MSG =
   "다른 계좌로 인증을 진행 중입니다. 기존 계좌로 완료하거나, 인증 만료 후 계좌를 변경해 주세요.";
-
-export const BANK_LEGAL_NAME_MISMATCH_MSG =
-  "예금주명이 로그인 실명과 일치하지 않습니다. 본인 명의 계좌만 등록할 수 있습니다.";
 
 export const BANK_KR_ACCOUNT_ONLY_MSG = "국내(한국) 은행 계좌만 등록할 수 있습니다.";
 
@@ -186,14 +182,6 @@ export async function startBankVerificationForUser(
     };
   }
 
-  const legalName = user.name?.trim();
-  if (!legalName) {
-    return {
-      error:
-        "실명 정보가 없습니다. 네이버 로그인 또는 프로필 이름 설정 후 다시 시도해 주세요.",
-    };
-  }
-
   const pending = await readPendingBank(user.id);
   if (pending && pending.accountFingerprint !== accountFingerprint) {
     const label = apickBankLabel(pending.bankCode) ?? pending.bankCode;
@@ -249,17 +237,6 @@ export async function startBankVerificationForUser(
     return { error: realname.error };
   }
 
-  if (!bankHolderMatchesLegalName(realname.holderName, legalName)) {
-    await writeBankVerificationAudit({
-      userId: user.id,
-      action: "send_fail",
-      bankCode,
-      ip,
-      meta: { reason: "name_mismatch" },
-    });
-    return { error: BANK_LEGAL_NAME_MISMATCH_MSG };
-  }
-
   const requestMemo = bankVerifyMemo(generateBankVerifyCode());
   const transfer = await apickTransfer1Won({ bankCode, accountNum, memo: requestMemo });
   if (!transfer.ok) {
@@ -311,7 +288,7 @@ export async function startBankVerificationForUser(
   return {
     message: transfer.dev
       ? `개발 모드: 입금통장메모 ${transfer.memo} (실서비스는 1원 송금)`
-      : `${bankLabel} 계좌로 1원을 보냈습니다. 입금통장메모의 4자리 코드를 입력해 주세요.`,
+      : `${bankLabel} 계좌로 1원을 보냈습니다. 입금통장메모의 4자리 숫자를 입력해 주세요.`,
     devCode: transfer.dev ? verifyCode : undefined,
     displayAccount: `${bankLabel} ${maskBankAccount(accountLast4)}`,
     holderName: realname.holderName,
@@ -334,10 +311,9 @@ export async function verifyBankCodeForUser(
 
   const bankCode = rawBankCode.trim();
   const accountNum = normalizeBankAccountNum(rawAccountNum);
-  const code = rawCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
-
+  const code = rawCode.trim().replace(/\D/g, "");
   if (!isApickBankCode(bankCode)) return { error: BANK_KR_ACCOUNT_ONLY_MSG };
-  if (code.length !== 4) return { error: "입금통장메모 4자리 코드를 입력해 주세요." };
+  if (code.length !== 4) return { error: "입금통장메모 4자리 숫자를 입력해 주세요." };
 
   const accountFingerprint = bankAccountFingerprint(bankCode, accountNum);
   const accountLast4 = accountNum.slice(-4);

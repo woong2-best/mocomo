@@ -95,7 +95,8 @@ export function BankVerifyPanel({ onVerified }: { onVerified?: () => void }) {
     <View style={[styles.box, { borderColor: colors.hairline, backgroundColor: colors.surfaceRaised }]}>
       <Text style={[styles.heading, { color: colors.text }]}>수익 입금 계좌 (1원 인증)</Text>
       <Text style={[styles.body, { color: colors.textMuted }]}>
-        본인 명의 국내 계좌만 등록할 수 있습니다. 입금통장메모 4자리 코드를 입력하세요.
+        계좌로 1원을 보내드립니다. 입금통장메모에 표시된 4자리 숫자를 입력하세요. 계정당 계좌 하나,
+        인증 후 변경 불가. 하루 3회까지 요청 가능합니다.
       </Text>
 
       <ScrollBankPicker bankCode={bankCode} onChange={setBankCode} colors={colors} />
@@ -115,9 +116,9 @@ export function BankVerifyPanel({ onVerified }: { onVerified?: () => void }) {
         <>
           <TextInput
             value={code}
-            onChangeText={setCode}
-            placeholder="4자리 코드"
-            autoCapitalize="characters"
+            onChangeText={(t) => setCode(t.replace(/\D/g, "").slice(0, 4))}
+            placeholder="4자리 숫자"
+            keyboardType="number-pad"
             placeholderTextColor={colors.textMuted}
             style={[styles.input, { borderColor: colors.hairline, color: colors.text }]}
           />

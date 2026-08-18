@@ -1,15 +1,9 @@
 import { randomBytes } from "crypto";
 
-const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-
-/** 입금통장메모용 4자리 인증코드 */
+/** 입금통장메모용 4자리 숫자 인증코드 */
 export function generateBankVerifyCode(): string {
-  let code = "";
-  const bytes = randomBytes(4);
-  for (let i = 0; i < 4; i++) {
-    code += CODE_ALPHABET[bytes[i]! % CODE_ALPHABET.length];
-  }
-  return code;
+  const n = randomBytes(2).readUInt16BE(0) % 10000;
+  return n.toString().padStart(4, "0");
 }
 
 /** Apick memo 최대 14자 — "MoCoMo-XXXX" 형식 */
@@ -57,13 +51,11 @@ export function decodeBankPending(token: string): BankPendingPayload | null {
   }
 }
 
-/** Apick 입금통장메모에서 사용자 입력용 인증코드 추출 (예: WXR-7487 → 7487, MoCoMo-AB12 → AB12) */
+/** Apick 입금통장메모에서 사용자 입력용 4자리 숫자 추출 */
 export function parseVerifyCodeFromApickMemo(memo: string): string {
-  const trimmed = memo.trim();
-  const tail = (trimmed.includes("-") ? trimmed.split("-").pop() : trimmed) ?? trimmed;
-  const alnum = tail.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
-  if (alnum.length >= 4) return alnum.slice(-4);
-  return alnum;
+  const digits = memo.replace(/\D/g, "");
+  if (digits.length >= 4) return digits.slice(-4);
+  return digits.padStart(4, "0");
 }
 
 export function maskBankAccount(accountNum: string): string {

@@ -544,8 +544,8 @@ export function SellerOnboardingWizard({
         {effectiveStep === "PHONE" && (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground leading-relaxed">
-              한국 판매자는 지갑에서 본인 명의 계좌 1원 인증이 필요합니다. 예금주명은 가입 시 입력한
-              이름({state.signedIn ? state.name : name})과 일치해야 합니다.
+              한국 판매자는 지갑에서 계좌 1원 인증이 필요합니다. 1원 입금 후 입금통장메모의 4자리
+              숫자를 입력하면 완료됩니다.
             </p>
             <Button type="button" className="w-full" asChild>
               <Link href={walletSettlementPath("/market/seller/register")}>지갑에서 계좌 등록</Link>
@@ -855,8 +855,8 @@ function AccountStep(props: {
 
       {props.phoneRequired && (
         <p className="text-xs text-muted-foreground rounded-lg bg-muted/40 px-3 py-2">
-          한국 판매자는 가입·이메일 인증 후 <strong>계좌 1원 인증</strong> 단계에서 본인 명의
-          계좌를 등록합니다. 이름은 예금주명과 동일해야 합니다.
+          한국 판매자는 가입·이메일 인증 후 <strong>계좌 1원 인증</strong> 단계에서 계좌를
+          등록합니다. 입금통장메모 4자리 숫자로 확인합니다.
         </p>
       )}
 

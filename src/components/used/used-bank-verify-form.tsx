@@ -19,11 +19,11 @@ import { Landmark, ShieldCheck } from "lucide-react";
 
 export function UsedBankVerifyForm({
   callbackUrl = "/used/new",
-  legalName,
   mode = "used",
   emailVerified = true,
 }: {
   callbackUrl?: string;
+  /** @deprecated no longer used — verification is memo code only */
   legalName?: string | null;
   /** account: 일반 설정(Stripe 미연동) · used: 중고/판매자(Stripe Connect) */
   mode?: "account" | "used";
@@ -44,16 +44,15 @@ export function UsedBankVerifyForm({
       locale === "en" ? (
         <>
           Register your <strong className="text-foreground">Korean bank account</strong> with a 1 KRW
-          deposit. The account holder must match your login name
-          {legalName ? ` (${legalName})` : ""}.{" "}
+          deposit. Enter the <strong className="text-foreground">4-digit number</strong> from your
+          bank transfer memo.{" "}
           <strong className="text-foreground">One account per user</strong>, cannot be changed after
           verification. Up to <strong className="text-foreground">3 requests</strong> per day.
         </>
       ) : (
         <>
-          <strong className="text-foreground">본인 명의 국내 계좌</strong>를 1원 입금으로 인증합니다.
-          예금주명은 로그인 실명
-          {legalName ? ` (${legalName})` : ""}과 일치해야 합니다.{" "}
+          <strong className="text-foreground">국내 계좌</strong>로 1원을 보내드립니다. 입금통장메모에
+          표시된 <strong className="text-foreground">4자리 숫자</strong>를 입력하면 인증이 완료됩니다.{" "}
           <strong className="text-foreground">계정당 계좌 하나</strong>, 인증 후 변경 불가. 하루{" "}
           <strong className="text-foreground">3회</strong>까지 요청 가능합니다.
         </>
@@ -61,19 +60,16 @@ export function UsedBankVerifyForm({
     ) : locale === "en" ? (
       <>
         Verify your <strong className="text-foreground">Korean bank account</strong> with a 1 KRW
-        deposit. The account holder must match your login name
-        {legalName ? ` (${legalName})` : ""}. Enter the 4-character code from your bank app memo.{" "}
-        <strong className="text-foreground">One account per user</strong>. Up to{" "}
+        deposit. Enter the <strong className="text-foreground">4-digit number</strong> from your bank
+        app memo. <strong className="text-foreground">One account per user</strong>. Up to{" "}
         <strong className="text-foreground">3 attempts</strong> per day.
       </>
     ) : (
       <>
-        중고거래는 <strong className="text-foreground">본인 명의 한국 계좌</strong> 1원 인증 후
-        이용할 수 있습니다. 예금주명은 로그인 실명
-        {legalName ? ` (${legalName})` : ""}과 일치해야 합니다. 입금통장메모의{" "}
-        <strong className="text-foreground">4자리 코드</strong>를 입력해 주세요.{" "}
-        <strong className="text-foreground">계정당 계좌 하나</strong>, 인증 후 변경 불가. 하루{" "}
-        <strong className="text-foreground">3회</strong>까지 요청 가능합니다.
+        중고거래는 <strong className="text-foreground">한국 계좌 1원 인증</strong> 후 이용할 수
+        있습니다. 입금통장메모의 <strong className="text-foreground">4자리 숫자</strong>를 입력해
+        주세요. <strong className="text-foreground">계정당 계좌 하나</strong>, 인증 후 변경 불가.
+        하루 <strong className="text-foreground">3회</strong>까지 요청 가능합니다.
       </>
     );
 
@@ -167,12 +163,11 @@ export function UsedBankVerifyForm({
         ) : (
           <form onSubmit={confirmCode} className="space-y-3">
             <Input
-              placeholder={locale === "en" ? "4-char memo code" : "입금통장메모 4자리"}
+              placeholder={locale === "en" ? "4-digit memo number" : "입금통장메모 4자리 숫자"}
               value={code}
-              onChange={(e) =>
-                setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4))
-              }
-              className="rounded-xl h-11 tracking-widest text-center uppercase"
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              className="rounded-xl h-11 tracking-widest text-center"
+              inputMode="numeric"
               maxLength={4}
               required
             />
