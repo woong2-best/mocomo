@@ -7,7 +7,6 @@ import {
   Radio,
   Store,
   Users,
-  Calendar,
   Crown,
   Tags,
   Banknote,
@@ -45,6 +44,5 @@ export const mainNavItems: NavItem[] = [
   { href: "/market", icon: Store, labelKey: "nav.market" },
   { href: "/used", icon: Tags, labelKey: "nav.used" },
   { href: "/anime", icon: Tv, labelKey: "nav.anime" },
-  { href: "/events", icon: Calendar, labelKey: "nav.events" },
   { href: "/wallet", icon: Wallet, labelKey: "nav.wallet" },
 ];

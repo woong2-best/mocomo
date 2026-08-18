@@ -3,7 +3,8 @@
 import type { SupportTierLevel } from "@prisma/client";
 import { FALLBACK_SIDEBAR_ADS } from "@/lib/default-ads";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Megaphone } from "lucide-react";
+import Link from "next/link";
+import { Search, Megaphone, Plus } from "lucide-react";
 import { SponsorEventSpot } from "@/components/events/sponsor-event-spot";
 import {
   SearchRankingSidebarList,
@@ -59,10 +60,19 @@ export function RightPanelContent({
     <aside className="hidden lg:block w-64 xl:w-72 shrink-0 h-full shell-col-pad folk-panel-aside space-y-3 overflow-y-auto overscroll-contain">
       <Card className="overflow-hidden border-folk-gold/40 bg-folk-gold/5">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2 font-display font-bold text-folk-terracotta">
-            <Megaphone className="h-4 w-4" />
-            {t("sidebar.sponsored")}
-          </CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-sm flex items-center gap-2 font-display font-bold text-folk-terracotta">
+              <Megaphone className="h-4 w-4" />
+              {t("sidebar.sponsored")}
+            </CardTitle>
+            <Link
+              href="/events"
+              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-folk-terracotta/30 text-folk-terracotta transition-colors hover:bg-folk-terracotta/10"
+              aria-label={t("nav.events")}
+            >
+              <Plus className="h-4 w-4" />
+            </Link>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           <SponsorEventSpot fallbackAds={ads} />
