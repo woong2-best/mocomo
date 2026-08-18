@@ -11,6 +11,7 @@ import {
   formatUsd,
   SALE_MEDIA_MAX_PRICE_USD_CENTS,
   SALE_MEDIA_MIN_PRICE_USD_CENTS,
+  validateSaleMediaPricing,
 } from "@/lib/money";
 
 export async function createProfileMediaPost(input: {
@@ -34,15 +35,8 @@ export async function createProfileMediaPost(input: {
   const mediaPrice = Math.max(0, Math.floor(input.priceKrw ?? 0));
   const instantPurchasePriceKrw = Math.max(0, Math.floor(input.instantPurchasePriceKrw ?? 0));
 
-  if (mediaPrice > 0 && mediaPrice < SALE_MEDIA_MIN_PRICE_USD_CENTS) {
-    return { error: `유료 판매 가격은 최소 ${formatUsd(SALE_MEDIA_MIN_PRICE_USD_CENTS)}부터 설정할 수 있습니다.` };
-  }
-  if (instantPurchasePriceKrw > 0 && instantPurchasePriceKrw < SALE_MEDIA_MIN_PRICE_USD_CENTS) {
-    return { error: `즉시 구매 가격은 최소 ${formatUsd(SALE_MEDIA_MIN_PRICE_USD_CENTS)}부터 설정할 수 있습니다.` };
-  }
-  if (mediaPrice > SALE_MEDIA_MAX_PRICE_USD_CENTS || instantPurchasePriceKrw > SALE_MEDIA_MAX_PRICE_USD_CENTS) {
-    return { error: `가격은 ${formatUsd(SALE_MEDIA_MAX_PRICE_USD_CENTS)} 이하로 설정해 주세요.` };
-  }
+  const pricingErr = validateSaleMediaPricing(mediaPrice, instantPurchasePriceKrw);
+  if (pricingErr) return { error: pricingErr };
 
   const mediaType: MediaType = input.mediaType === "VIDEO" ? "VIDEO" : "IMAGE";
 

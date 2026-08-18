@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { db } from "@/lib/db";
 import { createPostForUser, type CreatePostInput } from "@/lib/create-post-core";
+import { parseContentVisibility } from "@/lib/creator-subscription";
+import { SETTLEMENT_ACCOUNT_REQUIRED_CODE } from "@/lib/settlement-account";
 import type { MediaType } from "@prisma/client";
 import { clampMediaInt } from "@/lib/video-metadata";
 
@@ -53,6 +55,13 @@ export async function POST(req: NextRequest) {
     animeId: body.animeId ? String(body.animeId) : undefined,
     isNsfw: Boolean(body.isNsfw),
     tagNames: Array.isArray(body.tagNames) ? body.tagNames.map(String) : [],
+    visibility: parseContentVisibility(
+      typeof body.visibility === "string" ? body.visibility : undefined
+    ),
+    instantPurchasePriceKrw:
+      typeof body.instantPurchasePriceKrw === "number"
+        ? body.instantPurchasePriceKrw
+        : undefined,
     media,
     poll: body.poll
       ? {
@@ -68,6 +77,9 @@ export async function POST(req: NextRequest) {
   });
 
   if (result.error && !result.postId) {
+    if ("code" in result && result.code === SETTLEMENT_ACCOUNT_REQUIRED_CODE) {
+      return NextResponse.json(result, { status: 400 });
+    }
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
 

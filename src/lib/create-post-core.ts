@@ -17,6 +17,7 @@ import {
 import { enqueuePostMediaHlsPackaging } from "@/lib/post-media-hls";
 import { clampMediaInt } from "@/lib/video-metadata";
 import { assertSettlementAccount, settlementRequiredResult } from "@/lib/settlement-account";
+import { validateSaleMediaPricing } from "@/lib/money";
 
 export type CreatePostMediaInput = {
   url: string;
@@ -71,9 +72,14 @@ export async function createPostForUser(
   }
 
   const instantPrice = Math.max(0, Math.floor(data.instantPurchasePriceKrw ?? 0));
-  const paidMediaInput = (data.media ?? []).some(
-    (m) => m.url && isPersistableMediaUrl(String(m.url)) && Math.max(0, Math.floor(m.priceKrw ?? 0)) > 0
-  );
+  const mediaPrices = (data.media ?? [])
+    .filter((m) => m.url && isPersistableMediaUrl(String(m.url)))
+    .map((m) => Math.max(0, Math.floor(m.priceKrw ?? 0)));
+  const maxMediaPrice = mediaPrices.length > 0 ? Math.max(...mediaPrices) : 0;
+  const pricingErr = validateSaleMediaPricing(maxMediaPrice, instantPrice);
+  if (pricingErr) return { error: pricingErr };
+
+  const paidMediaInput = mediaPrices.some((p) => p > 0);
   if (instantPrice > 0 || paidMediaInput) {
     const seller = await db.user.findUnique({
       where: { id: user.id },

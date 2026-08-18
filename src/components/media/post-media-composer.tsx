@@ -41,6 +41,8 @@ type PostMediaComposerProps = {
   allowVideo?: boolean;
   /** false면 영상 촬영 버튼 숨김 */
   allowVideoCapture?: boolean;
+  /** default 레이아웃 — 영상 파일 버튼 바로 옆 (유료 판매 금액 등) */
+  afterVideoButton?: ReactNode;
   layout?: "default" | "toolbar";
   /** toolbar 레이아웃 하단 우측 (게시하기 등) */
   toolbarFooter?: ReactNode;
@@ -66,6 +68,7 @@ export function PostMediaComposer({
   maxVideos = 10,
   allowVideo = true,
   allowVideoCapture = false,
+  afterVideoButton,
   layout = "default",
   toolbarFooter,
   toolbarFooterStart,
@@ -505,16 +508,19 @@ export function PostMediaComposer({
         </>
       )}
       {canAddVideo && (
-        <button
-          type="button"
-          className={iconBtnClass}
-          disabled={disabled || uploading}
-          onClick={pickVideoFiles}
-          aria-label="영상 파일"
-          title="영상"
-        >
-          <Film className="h-[18px] w-[18px]" />
-        </button>
+        <>
+          <button
+            type="button"
+            className={iconBtnClass}
+            disabled={disabled || uploading}
+            onClick={pickVideoFiles}
+            aria-label="영상 파일"
+            title="영상"
+          >
+            <Film className="h-[18px] w-[18px]" />
+          </button>
+          {afterVideoButton}
+        </>
       )}
     </>
   );
@@ -629,7 +635,7 @@ export function PostMediaComposer({
           </>
         )}
         {canAddVideo && (
-          <>
+          <div className="flex flex-wrap items-center gap-2">
             {allowVideoCapture && (
               <Button
                 type="button"
@@ -654,7 +660,8 @@ export function PostMediaComposer({
               <Film className="h-4 w-4" />
               영상 파일
             </Button>
-          </>
+            {afterVideoButton}
+          </div>
         )}
       </div>
       )}

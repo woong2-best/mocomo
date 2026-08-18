@@ -62,6 +62,26 @@ export function sanitizeUsdDollarInput(raw: string): string {
   const fraction = cleaned.slice(dot + 1).replace(/\./g, "").slice(0, 2);
   return `${whole}.${fraction}`;
 }
+
+/** Validate paid media / instant purchase amounts (USD cents). */
+export function validateSaleMediaPricing(
+  mediaPriceCents: number,
+  instantPurchasePriceCents = 0
+): string | null {
+  if (mediaPriceCents > 0 && mediaPriceCents < SALE_MEDIA_MIN_PRICE_USD_CENTS) {
+    return `유료 판매 가격은 최소 ${formatUsd(SALE_MEDIA_MIN_PRICE_USD_CENTS)}부터 설정할 수 있습니다.`;
+  }
+  if (instantPurchasePriceCents > 0 && instantPurchasePriceCents < SALE_MEDIA_MIN_PRICE_USD_CENTS) {
+    return `즉시 구매 가격은 최소 ${formatUsd(SALE_MEDIA_MIN_PRICE_USD_CENTS)}부터 설정할 수 있습니다.`;
+  }
+  if (
+    mediaPriceCents > SALE_MEDIA_MAX_PRICE_USD_CENTS ||
+    instantPurchasePriceCents > SALE_MEDIA_MAX_PRICE_USD_CENTS
+  ) {
+    return `가격은 ${formatUsd(SALE_MEDIA_MAX_PRICE_USD_CENTS)} 이하로 설정해 주세요.`;
+  }
+  return null;
+}
 export const MIN_CALL_BOOKING_USD_CENTS = 500;
 export const MAX_CALL_BOOKING_USD_CENTS = 50_000;
 export const EVENT_REGISTRATION_FEE_PER_DAY_USD_CENTS = 100;

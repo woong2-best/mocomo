@@ -1,14 +1,21 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import type { ContentVisibility } from "@prisma/client";
+import { DollarSign } from "lucide-react";
 import { PostMediaComposer, type PostMediaItem } from "@/components/media/post-media-composer";
 import { ComposePollEditor } from "@/components/compose/compose-poll-editor";
 import {
   ComposeCollaboratorPicker,
   type CollabPickerUser,
 } from "@/components/compose/compose-collaborator-picker";
+import { ContentVisibilitySelect } from "@/components/monetization/content-visibility-select";
+import { SettlementAccountBanner } from "@/components/monetization/settlement-account-banner";
+import { getBankVerificationStatus } from "@/actions/bank-verification";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { CreatePostPollInput } from "@/lib/post-poll";
 import { validatePostPollInput } from "@/lib/post-poll";
@@ -20,6 +27,12 @@ import {
   pushPublishedToast,
   pushPublishingToast,
 } from "@/lib/published-toast-store";
+import { SETTLEMENT_ACCOUNT_REQUIRED_CODE, walletSettlementPath } from "@/lib/settlement-account";
+import {
+  parseUsdDollarsToCents,
+  sanitizeUsdDollarInput,
+  validateSaleMediaPricing,
+} from "@/lib/money";
 import { userDisplayName } from "@/lib/user-public-select";
 import { cn } from "@/lib/utils";
 
@@ -49,6 +62,8 @@ export function ComposeForm({
   onPosted?: (postId: string) => void;
   onNeedSignIn?: () => void;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const { data: session } = useSession();
   const { t } = useLocale();
   const publishedToast = usePublishedToastOptional();
@@ -65,11 +80,68 @@ export function ComposeForm({
   const [defaultTitle] = useState(initialTitle ?? "");
   const [showOptions, setShowOptions] = useState(false);
   const [collaborators, setCollaborators] = useState<CollabPickerUser[]>([]);
+  const [visibility, setVisibility] = useState<ContentVisibility>("PUBLIC");
+  const [priceUsd, setPriceUsd] = useState("");
+  const [instantPriceUsd, setInstantPriceUsd] = useState("");
+  const [payoutAccountRegistered, setPayoutAccountRegistered] = useState(true);
   const submitBusy = loading || mediaUploading;
   const canSubmit = content.trim().length > 0 || media.length > 0;
+  const priceCents = parseUsdDollarsToCents(priceUsd);
+  const instantPriceCents = parseUsdDollarsToCents(instantPriceUsd);
+  const showInstantPurchase = visibility !== "PUBLIC";
+  const sellingIntent =
+    priceCents > 0 ||
+    instantPriceCents > 0 ||
+    priceUsd.trim().length > 0 ||
+    instantPriceUsd.trim().length > 0 ||
+    visibility !== "PUBLIC";
+  const showSettlementBanner = !payoutAccountRegistered && sellingIntent;
+  const walletCallbackUrl = useMemo(
+    () => (pathname?.startsWith("/") ? pathname : undefined),
+    [pathname]
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const status = await getBankVerificationStatus();
+      if (cancelled || !status.signedIn) {
+        if (!cancelled) setPayoutAccountRegistered(false);
+        return;
+      }
+      setPayoutAccountRegistered(status.payoutAccountRegistered);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const salePriceField = (
+    <div
+      className="flex items-center gap-1.5 rounded-xl border border-border/70 bg-background px-2.5 py-1.5"
+      title="유료 판매 (USD, $1.00~)"
+    >
+      <DollarSign className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
+      <Input
+        inputMode="decimal"
+        placeholder="0"
+        value={priceUsd}
+        onChange={(e) => setPriceUsd(sanitizeUsdDollarInput(e.target.value))}
+        disabled={submitBusy}
+        className="h-7 w-[4.5rem] border-0 bg-transparent px-0 py-0 text-sm shadow-none focus-visible:ring-0"
+        aria-label="유료 판매 가격 (USD)"
+      />
+      <span className="text-[10px] font-medium text-muted-foreground shrink-0">USD</span>
+    </div>
+  );
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (showSettlementBanner) {
+      router.push(walletSettlementPath(walletCallbackUrl));
+      return;
+    }
 
     const invalidMedia = media.some(
       (m) =>
@@ -97,15 +169,24 @@ export function ComposeForm({
       }
     }
 
+    const pricingErr = validateSaleMediaPricing(priceCents, instantPriceCents);
+    if (pricingErr) {
+      setError(pricingErr);
+      return;
+    }
+
     const payload = {
       title: (form.get("title") as string) || undefined,
       content: contentText,
       communityId,
       isNsfw: form.get("isNsfw") === "on",
       tagNames: tags,
+      visibility,
+      instantPurchasePriceKrw: instantPriceCents,
       media: media.map((m) => ({
         url: m.url,
         type: m.type,
+        priceKrw: priceCents > 0 ? priceCents : 0,
         width: m.width ?? null,
         height: m.height ?? null,
         duration: m.duration ?? null,
@@ -155,9 +236,15 @@ export function ComposeForm({
       const result = (await res.json().catch(() => ({}))) as {
         postId?: string;
         error?: string;
+        code?: string;
+        redirectTo?: string;
       };
 
       if (!res.ok) {
+        if (result.code === SETTLEMENT_ACCOUNT_REQUIRED_CODE && result.redirectTo) {
+          router.push(String(result.redirectTo));
+          return;
+        }
         const msg = result.error ?? t("toast.publishFailed");
         setError(msg);
         (publishedToast?.showErrorToast ?? pushErrorToast)({
@@ -233,6 +320,7 @@ export function ComposeForm({
               allowVideoCapture={false}
               watermarkCreditLabel={watermarkCreditLabel}
               onUploadingChange={setMediaUploading}
+              afterVideoButton={salePriceField}
               toolbarFooterStart={
                 <>
                   {!poll && (
@@ -315,6 +403,9 @@ export function ComposeForm({
 
   const formBody = (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {showSettlementBanner ? (
+        <SettlementAccountBanner callbackUrl={walletCallbackUrl} />
+      ) : null}
       {variant === "sheet" && (
         <p className="text-sm text-muted-foreground -mt-1">
           사진·영상을 고른 뒤, 앱 안에서 자르기·구간 편집할 수 있습니다.
@@ -334,6 +425,7 @@ export function ComposeForm({
         maxVideos={10}
         allowVideoCapture={false}
         onUploadingChange={setMediaUploading}
+        afterVideoButton={salePriceField}
       />
       <input
         name="title"
@@ -343,9 +435,9 @@ export function ComposeForm({
       />
       <textarea
         name="content"
-        defaultValue={initialContent}
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
         placeholder="내용을 입력하세요..."
-        required
         className="w-full min-h-[160px] rounded-xl border border-border bg-background/50 p-3 text-sm resize-y"
       />
       <input
@@ -353,6 +445,34 @@ export function ComposeForm({
         placeholder="태그 (쉼표로 구분) 예: 원신, 코스프레"
         className="w-full rounded-xl border border-border bg-background/50 px-3 py-2 text-sm"
       />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <ContentVisibilitySelect
+          value={visibility}
+          onChange={setVisibility}
+          disabled={submitBusy}
+        />
+        {showInstantPurchase ? (
+          <div className="space-y-1.5">
+            <label htmlFor="compose-instant-price" className="text-xs font-medium text-muted-foreground">
+              즉시 구매 (등급 미달 시)
+            </label>
+            <Input
+              id="compose-instant-price"
+              inputMode="decimal"
+              placeholder="예: 80.00"
+              value={instantPriceUsd}
+              onChange={(e) => setInstantPriceUsd(sanitizeUsdDollarInput(e.target.value))}
+              disabled={submitBusy}
+              className="rounded-xl"
+            />
+          </div>
+        ) : null}
+      </div>
+      {priceUsd.trim() && priceCents === 0 ? (
+        <p className="text-xs text-muted-foreground -mt-2">
+          유료 판매는 $1.00(1.00 USD) 이상부터 설정할 수 있습니다.
+        </p>
+      ) : null}
       <ComposePollEditor value={poll} onChange={setPoll} disabled={submitBusy} />
       <ComposeCollaboratorPicker
         selected={collaborators}
