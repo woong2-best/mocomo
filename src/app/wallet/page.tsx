@@ -35,9 +35,9 @@ export default async function WalletPage() {
       : null;
 
   return (
-    <AppPageChrome>
+    <AppPageChrome spacing="sm">
       <NativePageTitle>
-        <h1 className="sr-only">지갑</h1>
+        <h1 className="text-2xl font-black tracking-tight text-foreground lg:sr-only">지갑</h1>
       </NativePageTitle>
       <Suspense fallback={null}>
         <WalletHub

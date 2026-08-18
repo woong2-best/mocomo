@@ -11,7 +11,7 @@ import {
   Crown,
   Tags,
   Banknote,
-  MapPin,
+  Wallet,
 } from "lucide-react";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { SupportTrophyIcon } from "@/components/icons/support-trophy-icon";
@@ -46,5 +46,5 @@ export const mainNavItems: NavItem[] = [
   { href: "/used", icon: Tags, labelKey: "nav.used" },
   { href: "/anime", icon: Tv, labelKey: "nav.anime" },
   { href: "/events", icon: Calendar, labelKey: "nav.events" },
-  { href: "/events/map", icon: MapPin, labelKey: "nav.eventsMap" },
+  { href: "/wallet", icon: Wallet, labelKey: "nav.wallet" },
 ];

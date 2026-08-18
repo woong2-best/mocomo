@@ -103,10 +103,15 @@ export function ProfileCreatePanel({
     setError("");
   }
 
+  function goToWalletSettlement() {
+    close();
+    router.push(walletSettlementPath(walletCallbackUrl));
+  }
+
   function submit() {
     if (blockAction("post")) return;
     if (showSettlementBanner) {
-      router.push(walletSettlementPath(walletCallbackUrl));
+      goToWalletSettlement();
       return;
     }
     setError("");
@@ -140,6 +145,7 @@ export function ProfileCreatePanel({
       });
       if (res.error) {
         if ("code" in res && res.code === SETTLEMENT_ACCOUNT_REQUIRED_CODE && "redirectTo" in res) {
+          close();
           router.push(String(res.redirectTo));
           return;
         }
@@ -168,7 +174,7 @@ export function ProfileCreatePanel({
       </div>
 
       {showSettlementBanner ? (
-        <SettlementAccountBanner callbackUrl={walletCallbackUrl} />
+        <SettlementAccountBanner callbackUrl={walletCallbackUrl} onNavigate={close} />
       ) : null}
 
       <div className="inline-flex rounded-full border border-border/70 bg-muted/40 p-0.5">

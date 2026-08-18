@@ -109,14 +109,22 @@ export function RevenueSettlementPanel({
           <p className="font-bold">수익 입금 계좌 (1원 인증)</p>
         </div>
         {bankVerified && verifiedBankLabel ? (
-          <p className="text-sm text-muted-foreground">등록됨: {verifiedBankLabel}</p>
-        ) : null}
-        <UsedBankVerifyForm
-          mode="account"
-          callbackUrl={callbackUrl ?? "/wallet?tab=earnings"}
-          legalName={legalName}
-          emailVerified={emailVerified}
-        />
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
+            <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+              ✓ {verifiedBankLabel}
+            </p>
+            <p className="text-xs text-emerald-800/80 dark:text-emerald-300/80 mt-1">
+              등록된 계좌로 수익이 입금됩니다.
+            </p>
+          </div>
+        ) : (
+          <UsedBankVerifyForm
+            mode="account"
+            callbackUrl={callbackUrl ?? "/wallet?tab=earnings"}
+            legalName={legalName}
+            emailVerified={emailVerified}
+          />
+        )}
       </div>
 
       <div className="rounded-2xl border border-border/60 bg-card p-4 space-y-3">

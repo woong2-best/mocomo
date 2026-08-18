@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { confirmPaymentMethodSetup } from "@/actions/payment-methods";
@@ -24,6 +24,10 @@ type Props = {
 
 type Tab = "wallet" | "earnings";
 
+function tabFromParams(params: URLSearchParams): Tab {
+  return params.get("tab") === "earnings" ? "earnings" : "wallet";
+}
+
 export function WalletHub({
   data,
   earnings,
@@ -38,16 +42,30 @@ export function WalletHub({
   const callbackUrl = params.get("callbackUrl");
   const safeCallbackUrl =
     callbackUrl?.startsWith("/") && !callbackUrl.startsWith("//") ? callbackUrl : null;
-  const [tab, setTab] = useState<Tab>(() => {
-    const t = params.get("tab");
-    return t === "earnings" ? "earnings" : "wallet";
-  });
+  const [tab, setTab] = useState<Tab>(() => tabFromParams(params));
   const [setupMsg, setSetupMsg] = useState("");
 
+  const syncTabToUrl = useCallback(
+    (next: Tab) => {
+      const nextParams = new URLSearchParams();
+      if (next === "earnings") nextParams.set("tab", "earnings");
+      if (safeCallbackUrl) nextParams.set("callbackUrl", safeCallbackUrl);
+      const qs = nextParams.toString();
+      router.replace(qs ? `/wallet?${qs}` : "/wallet", { scroll: false });
+    },
+    [router, safeCallbackUrl]
+  );
+
+  const selectTab = useCallback(
+    (next: Tab) => {
+      setTab(next);
+      syncTabToUrl(next);
+    },
+    [syncTabToUrl]
+  );
+
   useEffect(() => {
-    const t = params.get("tab");
-    if (t === "earnings") setTab("earnings");
-    else if (t === "wallet") setTab("wallet");
+    setTab(tabFromParams(params));
   }, [params]);
 
   useEffect(() => {
@@ -60,12 +78,11 @@ export function WalletHub({
       if ("error" in res && res.error) setSetupMsg(res.error);
       else {
         setSetupMsg("결제 수단이 등록되었습니다.");
-        setTab("wallet");
-        router.replace("/wallet");
+        selectTab("wallet");
         router.refresh();
       }
     })();
-  }, [params, router]);
+  }, [params, router, selectTab]);
 
   return (
     <div className="max-w-lg mx-auto space-y-5 pb-8">
@@ -91,7 +108,7 @@ export function WalletHub({
           <button
             key={t.id}
             type="button"
-            onClick={() => setTab(t.id)}
+            onClick={() => selectTab(t.id)}
             className={cn(
               "text-3xl font-black tracking-tight transition-colors",
               tab === t.id ? "text-foreground" : "text-muted-foreground/50 hover:text-muted-foreground"
@@ -103,7 +120,12 @@ export function WalletHub({
       </div>
 
       {tab === "wallet" ? (
-        <PaymentMethodsPanel methods={paymentMethods} />
+        <>
+          <PaymentMethodsPanel methods={paymentMethods} />
+          <p className="text-center text-xs text-muted-foreground px-4">
+            결제할 때 이 카드 목록에서 선택합니다. 맨 앞 카드를 눌러 추가하세요.
+          </p>
+        </>
       ) : (
         <RevenueSettlementPanel
           data={data}
@@ -112,7 +134,7 @@ export function WalletHub({
           verifiedBankLabel={verifiedBankLabel}
           legalName={legalName}
           emailVerified={emailVerified}
-          callbackUrl={safeCallbackUrl}
+          callbackUrl={safeCallbackUrl ?? "/wallet?tab=earnings"}
         />
       )}
 
