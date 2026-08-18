@@ -10,8 +10,10 @@ export async function NotificationsListAsync() {
   const session = await getCachedSession();
   if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/notifications");
 
-  const unreadCount = await getUnifiedUnreadCount(session.user.id);
-  const rows = await listUnifiedNotifications(session.user.id, { limit: 80 });
+  const [unreadCount, rows] = await Promise.all([
+    getUnifiedUnreadCount(session.user.id),
+    listUnifiedNotifications(session.user.id, { limit: 80 }),
+  ]);
 
   return (
     <NotificationsFeedClient

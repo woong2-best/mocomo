@@ -62,7 +62,7 @@
     "android": {
       "package": "net.mocomo.app",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 75,
+      "versionCode": 76,
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#F5F0E8",

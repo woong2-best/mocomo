@@ -224,7 +224,7 @@ export async function transitionSettlement(
       type: "SETTLEMENT",
       title: titles[toStatus]!,
       body: note || `정산 #${settlementId.slice(0, 8)} · ₩${s.netAmountKrw.toLocaleString()}`,
-      link: "/support?tab=settlement",
+      link: "/wallet?tab=earnings",
       actorId: actor.id,
     });
   }

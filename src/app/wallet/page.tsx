@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { getMyPaymentMethods } from "@/actions/payment-methods";
+import { getMyTipHistory } from "@/actions/support";
 import { getMyWallet, getMyWalletEarnings } from "@/actions/wallet";
 import { WalletHub } from "@/components/wallet/wallet-hub";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
@@ -12,10 +13,11 @@ export default async function WalletPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/wallet");
 
-  const [data, earnings, paymentData, user] = await Promise.all([
+  const [data, earnings, paymentData, tipHistory, user] = await Promise.all([
     getMyWallet(),
     getMyWalletEarnings(),
     getMyPaymentMethods(),
+    getMyTipHistory(),
     db.user.findUnique({
       where: { id: session.user.id },
       select: {
@@ -27,6 +29,8 @@ export default async function WalletPage() {
       },
     }),
   ]);
+
+  if (!tipHistory) redirect("/auth/signin?callbackUrl=/wallet");
 
   const bankVerified = !!user?.bankVerifiedAt;
   const verifiedBankLabel =
@@ -44,6 +48,7 @@ export default async function WalletPage() {
           data={data}
           earnings={earnings}
           paymentMethods={paymentData.methods}
+          tipHistory={tipHistory}
           bankVerified={bankVerified}
           verifiedBankLabel={verifiedBankLabel}
           legalName={user?.name}

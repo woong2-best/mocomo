@@ -183,7 +183,7 @@ export function getCachedFeedPostsPage(cursor: string | null, limit: number) {
   const cacheKey = cursor ?? "__head__";
   return unstable_cache(
     () => fetchFeedPostsPage(cursor, limit),
-    ["feed-page-v7-media-hls", cacheKey, String(limit)],
+    ["feed-page-v8-media-cap8", cacheKey, String(limit)],
     { revalidate: 30, tags: [FEED_POSTS_CACHE_TAG] }
   )();
 }

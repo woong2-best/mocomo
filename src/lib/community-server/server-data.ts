@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { db } from "@/lib/db";
-import { getCachedCurrentUser } from "@/lib/auth";
+import { getCachedAuthUserMinimal } from "@/lib/auth";
 import { normalizeCommunitySlugParam } from "@/lib/community-slug";
 import { ensureCommunityServerProvisioned } from "@/lib/community-server/provision";
 import { ensureCommunityActivitiesChannel } from "@/lib/community-server/ensure-activities-channel";
@@ -21,7 +21,7 @@ export const getCommunityServerContext = cache(
     if (!normalizedSlug) return null;
 
     const [user, community] = await Promise.all([
-      getCachedCurrentUser(),
+      getCachedAuthUserMinimal(),
       db.community.findUnique({
         where: { slug: normalizedSlug },
         select: {

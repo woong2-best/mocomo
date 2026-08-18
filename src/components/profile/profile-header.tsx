@@ -113,6 +113,7 @@ export function ProfileHeader({
               tier={user.supportTierSent}
               nameClassName="font-bold"
               compact
+              tierInteractive
             />
             {user.countryCode ? <CountryFlag code={user.countryCode} size={16} className="ml-0.5" /> : null}
             {user.postsLocked ? (
@@ -189,6 +190,7 @@ export function ProfileHeader({
                 name={displayName}
                 tier={user.supportTierSent}
                 nameClassName="text-xl font-bold"
+                tierInteractive
               />
               {user.countryCode ? <CountryFlag code={user.countryCode} size={20} className="ml-0.5" /> : null}
               {user.postsLocked ? (

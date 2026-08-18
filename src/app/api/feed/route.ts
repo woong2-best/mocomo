@@ -20,18 +20,19 @@ export async function GET(req: NextRequest) {
       posts.map((p) => ({ ...p, authorId: p.author.id })),
       session?.user?.id ?? null
     );
-    const gated = await attachWebPaidMediaPlayback(visible, session?.user?.id ?? null);
+    const postIds = visible.map((p) => p.id);
+    const viewerUserId = session?.user?.id;
+
+    const [gated, engagement] = await Promise.all([
+      attachWebPaidMediaPlayback(visible, viewerUserId ?? null),
+      viewerUserId && postIds.length > 0
+        ? getPostEngagementForUser(viewerUserId, postIds)
+        : Promise.resolve({ likedIds: [], starredIds: [], repostedIds: [] }),
+    ]);
 
     const items = gated.map((data) => ({ type: "post" as const, data }));
 
     const nextCursor = posts.length === limit ? posts[posts.length - 1]?.id : null;
-    const engagement =
-      session?.user?.id && visible.length > 0
-        ? await getPostEngagementForUser(
-            session.user.id,
-            visible.map((p) => p.id)
-          )
-        : { likedIds: [], starredIds: [], repostedIds: [] };
 
     return NextResponse.json(
       {

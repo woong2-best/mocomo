@@ -3,7 +3,7 @@ import { rateLimitPublicApi } from "@/lib/api-security";
 import { db } from "@/lib/db";
 import { getMobileUserId } from "@/lib/api-mobile-auth";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
-import { postMediaPreview } from "@/lib/post-media-select";
+import { postMediaGallery } from "@/lib/post-media-select";
 import { userPublicSelect } from "@/lib/user-public-select";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 import { getSubscriptionsForViewer } from "@/lib/content-access";
@@ -41,7 +41,7 @@ export async function GET(
           creatorSubscriptionPriceKrw: true,
         },
       },
-      media: postMediaPreview,
+      media: postMediaGallery,
       _count: { select: { likes: true, comments: true, votes: true, reposts: true } },
     },
   });

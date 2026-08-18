@@ -70,7 +70,7 @@ export function ProfileSupportBlock({
               />
             )}
             {isSelf && (
-              <Link href="/support?tab=received" className="text-sm text-primary hover:underline">
+              <Link href="/wallet?tab=earnings" className="text-sm text-primary hover:underline">
                 관리 →
               </Link>
             )}
@@ -146,7 +146,7 @@ export function ProfileSupportBlock({
 
       {isSelf && (
         <div className="px-4 pb-4">
-          <Link href="/support?tab=received" className="text-sm text-primary hover:underline">
+          <Link href="/wallet?tab=earnings" className="text-sm text-primary hover:underline">
             받은 후원 전체 보기 →
           </Link>
         </div>

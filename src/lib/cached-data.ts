@@ -45,7 +45,7 @@ export const getCachedFeedPosts = unstable_cache(
       );
     }
   },
-  ["home-feed-posts-v6-full-media", "2026-07-24"],
+  ["home-feed-posts-v8-media-cap8", "2026-08-18"],
   { revalidate: 30, tags: [FEED_POSTS_CACHE_TAG] }
 );
 

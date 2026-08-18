@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  ProfileTabContent,
-  type ProfileTabContentMeta,
-} from "@/components/profile/profile-tab-content";
+import type { ProfileTabContentMeta } from "@/actions/profile-page";
+import { ProfileTabContent } from "@/components/profile/profile-tab-content";
 
+/** 레거시 클라이언트 전용 진입 — 신규는 `/u/[username]/page` 서버 메타 사용 */
 export function ProfileTabContentShell({ username }: { username: string }) {
   const [meta, setMeta] = useState<ProfileTabContentMeta | null>(null);
   const [metaError, setMetaError] = useState("");

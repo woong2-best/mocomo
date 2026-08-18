@@ -25,7 +25,6 @@ export type SupportRankingEntry = {
 const PODIUM = [
   { place: 2, label: "2등", height: "h-24", medal: "bg-slate-300", order: "order-1" },
   { place: 1, label: "1등", height: "h-32", medal: "bg-amber-400", order: "order-2" },
-  { place: 3, label: "3등", height: "h-20", medal: "bg-amber-700/70", order: "order-3" },
 ] as const;
 
 function PodiumSlot({
@@ -112,8 +111,8 @@ function PodiumSlot({
 }
 
 export function SupportRankingPodium({ entries }: { entries: SupportRankingEntry[] }) {
-  const top3 = [1, 2, 3].map((rank) => entries.find((e) => e.rank === rank));
-  const rest = entries.filter((e) => e.rank > 3);
+  const top2 = [1, 2].map((rank) => entries.find((e) => e.rank === rank));
+  const rest = entries.filter((e) => e.rank > 2);
 
   return (
     <section className="rounded-2xl border-2 border-folk-cobalt/20 bg-gradient-to-b from-folk-gold/10 to-background p-4 space-y-4">
@@ -134,7 +133,7 @@ export function SupportRankingPodium({ entries }: { entries: SupportRankingEntry
             {PODIUM.map((slot, i) => (
               <PodiumSlot
                 key={slot.place}
-                entry={top3[slot.place - 1]}
+                entry={top2[slot.place - 1]}
                 label={slot.label}
                 height={slot.height}
                 medal={slot.medal}
@@ -148,7 +147,7 @@ export function SupportRankingPodium({ entries }: { entries: SupportRankingEntry
         {/* Scrollable rest of rankings */}
         <div className="lg:w-44 xl:w-52 shrink-0 rounded-xl border border-border/60 bg-background/80 overflow-hidden">
           <div className="px-3 py-2 border-b border-border/50 bg-muted/30">
-            <p className="text-xs font-semibold text-folk-cobalt">4위 ~</p>
+            <p className="text-xs font-semibold text-folk-cobalt">3위 ~</p>
           </div>
           <div className="max-h-[220px] overflow-y-auto overscroll-contain divide-y divide-border/40">
             {rest.length === 0 ? (

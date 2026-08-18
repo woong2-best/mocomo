@@ -15,8 +15,10 @@ export async function RightPanelAsync() {
     return <RightPanelHydrated initialData={null} countryCode="KR" />;
   }
 
-  const countryCode = await getRequestCountryCode();
-  const raw = await getCachedSidebarPanelData();
+  const [countryCode, raw] = await Promise.all([
+    getRequestCountryCode(),
+    getCachedSidebarPanelData(),
+  ]);
   const eventPins = resolveSubculturePinsForUser(raw.eventPins, countryCode).slice(0, 12);
 
   return (

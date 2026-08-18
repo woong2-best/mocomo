@@ -30,7 +30,22 @@ export async function HomeFeedAsync() {
       rawPosts.map((p) => ({ ...p, authorId: p.author.id })),
       viewerId
     );
-    const posts = await attachWebPaidMediaPlayback(visible, viewerId);
+    const postIds = visible.map((p) => p.id);
+    const viewerUserId = session?.user?.id;
+
+    const [posts, engagement] = await Promise.all([
+      attachWebPaidMediaPlayback(visible, viewerId),
+      viewerUserId && postIds.length > 0
+        ? getPostEngagementForUser(viewerUserId, postIds).catch((e) => {
+            console.error("[HomeFeedAsync] engagement", e);
+            return { likedIds: [] as string[], starredIds: [] as string[], repostedIds: [] as string[] };
+          })
+        : Promise.resolve({
+            likedIds: [] as string[],
+            starredIds: [] as string[],
+            repostedIds: [] as string[],
+          }),
+    ]);
     const serialized = serializeCreatedAt(posts);
     const mixed = serialized.map((data) => ({ type: "post" as const, data }));
     const nextCursor = rawPosts.length === 12 ? rawPosts[rawPosts.length - 1]?.id ?? null : null;
@@ -39,15 +54,6 @@ export async function HomeFeedAsync() {
     const isPremium = session?.user?.premiumTier === "PREMIUM";
     const paymentsEnabled = isPaymentsConfigured();
     const visibleMixed = mixed;
-    const postIds = mixed.filter((i) => i.type === "post").map((i) => i.data.id);
-    let engagement = { likedIds: [] as string[], starredIds: [] as string[], repostedIds: [] as string[] };
-    if (session?.user?.id && postIds.length > 0) {
-      try {
-        engagement = await getPostEngagementForUser(session.user.id, postIds);
-      } catch (e) {
-        console.error("[HomeFeedAsync] engagement", e);
-      }
-    }
 
     return (
       <HomeFeedClient

@@ -5,9 +5,12 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { confirmPaymentMethodSetup } from "@/actions/payment-methods";
 import { PaymentMethodsPanel } from "@/components/wallet/payment-methods-panel";
+import { PaymentHistoryPanel } from "@/components/wallet/payment-history-panel";
+import { ReceivedTipsPanel } from "@/components/wallet/received-tips-panel";
 import { RevenueSettlementPanel } from "@/components/wallet/revenue-settlement-panel";
 import type { SavedPaymentMethod } from "@/lib/stripe-payment-methods";
 import type { WalletEarningsAnalytics } from "@/lib/wallet-analytics";
+import type { TipHistory } from "@/actions/support";
 import { cn } from "@/lib/utils";
 
 type WalletData = Awaited<ReturnType<typeof import("@/actions/wallet").getMyWallet>>;
@@ -16,6 +19,7 @@ type Props = {
   data: WalletData;
   earnings: WalletEarningsAnalytics;
   paymentMethods: SavedPaymentMethod[];
+  tipHistory: TipHistory;
   bankVerified: boolean;
   verifiedBankLabel?: string | null;
   legalName?: string | null;
@@ -32,6 +36,7 @@ export function WalletHub({
   data,
   earnings,
   paymentMethods,
+  tipHistory,
   bankVerified,
   verifiedBankLabel,
   legalName,
@@ -123,20 +128,24 @@ export function WalletHub({
       {tab === "wallet" ? (
         <>
           <PaymentMethodsPanel methods={paymentMethods} />
+          <PaymentHistoryPanel tips={tipHistory.sentTips} />
           <p className="text-center text-xs text-muted-foreground px-4">
-            결제할 때 이 카드 목록에서 선택합니다. 맨 앞 카드를 눌러 추가하세요.
+            결제할 때 등록된 카드 목록에서 선택합니다.
           </p>
         </>
       ) : (
-        <RevenueSettlementPanel
-          data={data}
-          earnings={earnings}
-          bankVerified={bankVerified}
-          verifiedBankLabel={verifiedBankLabel}
-          legalName={legalName}
-          emailVerified={emailVerified}
-          callbackUrl={safeCallbackUrl ?? "/wallet?tab=earnings"}
-        />
+        <>
+          <ReceivedTipsPanel tips={tipHistory.receivedTips} />
+          <RevenueSettlementPanel
+            data={data}
+            earnings={earnings}
+            bankVerified={bankVerified}
+            verifiedBankLabel={verifiedBankLabel}
+            legalName={legalName}
+            emailVerified={emailVerified}
+            callbackUrl={safeCallbackUrl ?? "/wallet?tab=earnings"}
+          />
+        </>
       )}
 
       {setupMsg ? <p className="text-sm text-center text-muted-foreground">{setupMsg}</p> : null}

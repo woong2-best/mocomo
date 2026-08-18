@@ -1,4 +1,6 @@
-import { ProfileTabContentShell } from "@/components/profile/profile-tab-content-shell";
+import { notFound } from "next/navigation";
+import { getProfileTabContentMeta } from "@/actions/profile-page";
+import { ProfileTabContent } from "@/components/profile/profile-tab-content";
 
 export default async function UserProfilePage({
   params,
@@ -6,5 +8,8 @@ export default async function UserProfilePage({
   params: Promise<{ username: string }>;
 }) {
   const { username } = await params;
-  return <ProfileTabContentShell username={username} />;
+  const meta = await getProfileTabContentMeta(username);
+  if (!meta) notFound();
+
+  return <ProfileTabContent username={username} meta={meta} />;
 }

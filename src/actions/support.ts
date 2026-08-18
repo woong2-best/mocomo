@@ -198,3 +198,29 @@ export async function getSupportDashboard() {
 }
 
 export type SupportDashboard = NonNullable<Awaited<ReturnType<typeof getSupportDashboard>>>;
+
+export async function getMyTipHistory() {
+  const session = await getCachedSession();
+  if (!session?.user?.id) return null;
+
+  const userId = session.user.id;
+
+  const [sentTips, receivedTips] = await Promise.all([
+    db.tip.findMany({
+      where: { senderId: userId },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      include: { receiver: { select: { username: true, name: true } } },
+    }),
+    db.tip.findMany({
+      where: { receiverId: userId },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      include: { sender: { select: { username: true, name: true } } },
+    }),
+  ]);
+
+  return { sentTips, receivedTips };
+}
+
+export type TipHistory = NonNullable<Awaited<ReturnType<typeof getMyTipHistory>>>;

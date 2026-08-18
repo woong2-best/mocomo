@@ -103,6 +103,12 @@ CREATE INDEX IF NOT EXISTS "Like_userId_postId_idx"
 CREATE INDEX IF NOT EXISTS "Bookmark_userId_postId_idx"
   ON "Bookmark" ("userId", "postId");
 
+CREATE INDEX IF NOT EXISTS "Like_createdAt_desc_idx"
+  ON "Like" ("createdAt" DESC);
+
+CREATE INDEX IF NOT EXISTS "Like_postId_createdAt_desc_idx"
+  ON "Like" ("postId", "createdAt" DESC);
+
 -- 완료 후 (선택): ANALYZE로 통계 갱신
 ANALYZE "User";
 ANALYZE "Post";
@@ -111,4 +117,4 @@ ANALYZE "VoiceChannel";
 ANALYZE "VoiceMember";
 ANALYZE "LiveChatMessage";
 ANALYZE "Tip";
-ANALYZE "Follow";
+ANALYZE "Like";

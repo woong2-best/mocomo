@@ -4,6 +4,7 @@ import { SupportTierLevel } from "@prisma/client";
 import { getTierInfo } from "@/lib/tiers";
 import { formatUsd } from "@/lib/money";
 import { OreIcon } from "@/components/support/ore-icon";
+import { SupportTierInfoPopover } from "@/components/support/support-tier-info-popover";
 import { cn } from "@/lib/utils";
 
 /** 등급 안내·선택용 — 버튼 안에 광석 + 글자 */
@@ -85,5 +86,40 @@ export function OreTierBadge({
       <OreIcon tier={tier} size={size === "sm" ? 14 : 18} />
       {showLabel && <span>{info.label}</span>}
     </span>
+  );
+}
+
+/** 클릭 시 등급 안내 팝업 (페이지 이동 없음) */
+export function OreTierBadgePopover({
+  tier,
+  showLabel = true,
+  size = "sm",
+  className,
+  align = "start",
+  side = "bottom",
+}: {
+  tier: SupportTierLevel;
+  showLabel?: boolean;
+  size?: "sm" | "md";
+  className?: string;
+  align?: "start" | "center" | "end";
+  side?: "top" | "bottom" | "left" | "right";
+}) {
+  const info = getTierInfo(tier);
+
+  return (
+    <SupportTierInfoPopover align={align} side={side}>
+      <button
+        type="button"
+        className={cn(
+          "inline-flex shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          className
+        )}
+        title={`${info.labelKo} (${info.label}) · 등급 안내`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <OreTierBadge tier={tier} showLabel={showLabel} size={size} />
+      </button>
+    </SupportTierInfoPopover>
   );
 }

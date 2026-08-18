@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ProfileMenu } from "@/components/layout/profile-menu";
 import { Gem } from "lucide-react";
 import { NotificationBellLink } from "@/components/notifications/notification-bell-link";
+import { SupportTierInfoPopover } from "@/components/support/support-tier-info-popover";
 import { useLocale } from "@/components/providers/locale-provider";
 
 export function HeaderAuth({ compact = false }: { compact?: boolean }) {
@@ -17,12 +18,12 @@ export function HeaderAuth({ compact = false }: { compact?: boolean }) {
       <>
         <NotificationBellLink />
         {!compact && (
-          <Button asChild variant="outline" size="sm" className="gap-1 rounded-xl hidden sm:inline-flex">
-            <Link href="/support">
+          <SupportTierInfoPopover align="end" side="bottom">
+            <Button variant="outline" size="sm" className="gap-1 rounded-xl hidden sm:inline-flex">
               <Gem className="h-4 w-4" />
               <span className="text-xs">{t("nav.tier")}</span>
-            </Link>
-          </Button>
+            </Button>
+          </SupportTierInfoPopover>
         )}
         <ProfileMenu />
       </>

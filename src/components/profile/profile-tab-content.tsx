@@ -2,26 +2,18 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import type { ProfileGridMediaItem } from "@/actions/profile-page";
+import type { ProfileGridMediaItem, ProfileTabContentMeta } from "@/actions/profile-page";
 import { ProfileMediaGrid } from "@/components/profile/profile-media-grid";
 import { ProfileTimeline, type TimelineItem } from "@/components/profile/profile-timeline";
 import { useProfileTab } from "@/components/profile/profile-tab-context";
 import type { ProfileMediaKind, ProfileSort, ProfileTab } from "@/lib/profile-queries";
 import { Button } from "@/components/ui/button";
 
+export type { ProfileTabContentMeta } from "@/actions/profile-page";
+
 type WikiData = {
   created: { slug: string; title: string; updatedAt: string }[];
   edited: { id: string; createdAt: string; anime: { slug: string; title: string } }[];
-};
-
-export type ProfileTabContentMeta = {
-  isSelf: boolean;
-  paymentsEnabled: boolean;
-  subscriptionPriceKrw: number;
-  authorId: string;
-  subscribed: boolean;
-  profileBlocked: boolean;
-  blockedEmptyMessage: string;
 };
 
 type TabPayload =

@@ -27,19 +27,17 @@ export async function GET(req: NextRequest) {
       posts.map((p) => ({ ...p, authorId: p.author.id })),
       viewerId
     );
-    const gated = await attachWebPaidMediaPlayback(visible, viewerId);
+    const postIds = visible.map((p) => p.id);
+    const authorIds = [...new Set(visible.map((p) => p.author.id))];
 
-    const authorIds = [...new Set(gated.map((p) => p.author.id))];
-    const subscriptions = await getSubscriptionsForViewer(viewerId, authorIds);
+    const [gated, subscriptions, engagement] = await Promise.all([
+      attachWebPaidMediaPlayback(visible, viewerId),
+      getSubscriptionsForViewer(viewerId, authorIds),
+      viewerId && postIds.length > 0
+        ? getPostEngagementForUser(viewerId, postIds)
+        : Promise.resolve({ likedIds: [], starredIds: [], repostedIds: [] }),
+    ]);
     const paymentsEnabled = isPaymentsConfigured();
-
-    const engagement =
-      viewerId && gated.length > 0
-        ? await getPostEngagementForUser(
-            viewerId,
-            gated.map((p) => p.id)
-          )
-        : { likedIds: [], starredIds: [], repostedIds: [] };
 
     return NextResponse.json(
       {
