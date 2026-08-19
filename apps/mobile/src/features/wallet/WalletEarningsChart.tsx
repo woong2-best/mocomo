@@ -21,13 +21,17 @@ type Props = {
 const CHART_H = 160;
 const PAD = { top: 12, right: 8, bottom: 8, left: 8 };
 
+function monthSlotX(index: number, innerW: number): number {
+  return (index / 12) * innerW + innerW / 24;
+}
+
 function buildPath(values: number[], maxAbs: number, innerW: number, innerH: number): string {
   if (values.length === 0) return "";
   const midY = innerH / 2;
   const scale = maxAbs > 0 ? (innerH * 0.42) / maxAbs : 1;
   return values
     .map((v, i) => {
-      const x = (i / Math.max(values.length - 1, 1)) * innerW;
+      const x = monthSlotX(i, innerW);
       const y = midY - v * scale;
       return `${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`;
     })
@@ -55,7 +59,7 @@ export function WalletEarningsChart({ months, yearNet, colors }: Props) {
     const midY = PAD.top + innerH / 2;
     const barMax = Math.max(1, ...safeMonths.map((m) => Math.max(m.earned ?? 0, m.withdrawn ?? 0)));
     const bars = safeMonths.map((m, i) => {
-      const x = PAD.left + (i / 12) * innerW + innerW / 24;
+      const x = PAD.left + monthSlotX(i, innerW);
       const bw = innerW / 14;
       const earnedH = ((m.earned ?? 0) / barMax) * (innerH * 0.35);
       const withdrawnH = ((m.withdrawn ?? 0) / barMax) * (innerH * 0.35);

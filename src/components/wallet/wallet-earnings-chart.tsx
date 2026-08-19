@@ -16,13 +16,17 @@ const W = 640;
 const H = 220;
 const PAD = { top: 16, right: 12, bottom: 28, left: 12 };
 
+function monthSlotX(index: number, innerW: number): number {
+  return (index / 12) * innerW + innerW / 24;
+}
+
 function buildPath(values: number[], maxAbs: number, innerW: number, innerH: number): string {
   if (values.length === 0) return "";
   const midY = innerH / 2;
   const scale = maxAbs > 0 ? (innerH * 0.42) / maxAbs : 1;
   return values
     .map((v, i) => {
-      const x = (i / Math.max(values.length - 1, 1)) * innerW;
+      const x = monthSlotX(i, innerW);
       const y = midY - v * scale;
       return `${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`;
     })
@@ -40,7 +44,7 @@ export function WalletEarningsChart({ months, yearNet, className }: Props) {
     const midY = PAD.top + innerH / 2;
     const barMax = Math.max(1, ...months.map((m) => Math.max(m.earned, m.withdrawn)));
     const bars = months.map((m, i) => {
-      const x = PAD.left + (i / 12) * innerW + innerW / 24;
+      const x = PAD.left + monthSlotX(i, innerW);
       const bw = innerW / 14;
       const earnedH = (m.earned / barMax) * (innerH * 0.35);
       const withdrawnH = (m.withdrawn / barMax) * (innerH * 0.35);
@@ -88,7 +92,7 @@ export function WalletEarningsChart({ months, yearNet, className }: Props) {
           {months.map((m, i) => (
             <text
               key={m.month}
-              x={PAD.left + (i / 12) * innerW + innerW / 24}
+              x={PAD.left + monthSlotX(i, innerW)}
               y={H - 6}
               fontSize={10}
               fill="currentColor"
