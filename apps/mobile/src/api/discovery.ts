@@ -110,6 +110,17 @@ export type WalletEarningsAnalytics = {
     net: number;
     cumulative: number;
   }[];
+  transactions?: {
+    id: string;
+    at: string;
+    type: string;
+    amount: number;
+    net: number;
+    cumulative: number;
+    label: string;
+    memo: string | null;
+    referenceType: string | null;
+  }[];
   yearEarned: number;
   yearWithdrawn: number;
   yearNet: number;

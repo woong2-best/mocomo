@@ -1,6 +1,9 @@
 import { db } from "@/lib/db";
 import { EARNING_SOURCE_LABELS, MONTH_LABELS } from "@/lib/wallet-labels";
 import { getWalletSummary } from "@/lib/settlement";
+import { buildTransactionSeries, type WalletTransactionPoint } from "@/lib/wallet-timeseries";
+
+export type { WalletTransactionPoint };
 
 export type WalletMonthBucket = {
   month: number;
@@ -15,6 +18,7 @@ export type WalletEarningsAnalytics = {
   year: number;
   years: number[];
   months: WalletMonthBucket[];
+  transactions: WalletTransactionPoint[];
   yearEarned: number;
   yearWithdrawn: number;
   yearNet: number;
@@ -61,7 +65,7 @@ export async function getWalletEarningsAnalytics(
         },
         type: { in: ["SELLER_EARNING", "PAYOUT_REQUEST", "PAYOUT_REJECTED"] },
       },
-      select: { type: true, amount: true, createdAt: true, referenceType: true },
+      select: { id: true, type: true, amount: true, createdAt: true, referenceType: true, memo: true },
     }),
   ]);
 
@@ -104,10 +108,13 @@ export async function getWalletEarningsAnalytics(
 
   const withdrawable = Math.max(0, summary.availableBalance - summary.pendingPayout);
 
+  const transactions = buildTransactionSeries(entries);
+
   return {
     year,
     years,
     months: withCumulative,
+    transactions,
     yearEarned,
     yearWithdrawn,
     yearNet: yearEarned - yearWithdrawn,

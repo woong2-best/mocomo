@@ -1,11 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { requestPayout } from "@/actions/wallet";
 import { UsedBankVerifyForm } from "@/components/used/used-bank-verify-form";
 import { WalletCardStack, WalletMembershipStrip } from "@/components/wallet/wallet-card-stack";
-import { WalletEarningsChart } from "@/components/wallet/wallet-earnings-chart";
+import { WalletEarningsInteractiveChart } from "@/components/wallet/wallet-earnings-interactive-chart";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MIN_PAYOUT_KRW } from "@/lib/settlement";
@@ -41,6 +41,8 @@ export function RevenueSettlementPanel({
   callbackUrl = "/wallet?tab=earnings",
 }: Props) {
   const router = useRouter();
+  const txListRef = useRef<HTMLDivElement>(null);
+  const [highlightTxIds, setHighlightTxIds] = useState<string[]>([]);
   const [earnings, setEarnings] = useState(initialEarnings);
   const [year, setYear] = useState(initialEarnings.year);
   const [pending, startTransition] = useTransition();
@@ -48,6 +50,17 @@ export function RevenueSettlementPanel({
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
 
+  function scrollToTransactions(ids: string[]) {
+    setHighlightTxIds(ids);
+    const first = ids[0];
+    if (!first) return;
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`wallet-tx-${first}`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }
+
+  const yearTransactions = earnings.transactions ?? [];
   const withdrawable = Math.max(0, data.availableBalance - data.pendingPayout);
   const bankLabel =
     verifiedBankLabel ??
@@ -180,7 +193,45 @@ export function RevenueSettlementPanel({
           <StatCard label="순수익" value={earnings.yearNet} tone={earnings.yearNet >= 0 ? "up" : "down"} />
         </div>
 
-        <WalletEarningsChart months={earnings.months} yearNet={earnings.yearNet} />
+        <WalletEarningsInteractiveChart
+          transactions={yearTransactions}
+          year={earnings.year}
+          yearNet={earnings.yearNet}
+          onTransactionSelect={scrollToTransactions}
+        />
+
+        {yearTransactions.length > 0 ? (
+          <div className="space-y-2">
+            <p className="text-sm font-bold px-1">거래 상세 내역</p>
+            <div ref={txListRef} className="max-h-72 overflow-y-auto rounded-2xl border border-border/60 divide-y divide-border/40">
+              {[...yearTransactions].reverse().map((tx) => (
+                <div
+                  id={`wallet-tx-${tx.id}`}
+                  key={tx.id}
+                  className={cn(
+                    "flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors",
+                    highlightTxIds.includes(tx.id) && "bg-primary/10 ring-1 ring-inset ring-primary/30"
+                  )}
+                >
+                  <div className="min-w-0">
+                    <p className="font-semibold truncate">{tx.label}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(tx.at).toLocaleString("ko-KR")}
+                      {tx.memo ? ` · ${tx.memo}` : ""}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className={cn("font-black", tx.net >= 0 ? "text-emerald-700" : "text-red-700")}>
+                      {tx.net >= 0 ? "+" : "-"}
+                      {fmtUsd(Math.abs(tx.net))}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">누적 {fmtUsd(tx.cumulative)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {earnings.bySource.length > 0 ? (
           <div className="space-y-2">
