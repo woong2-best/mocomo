@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { Animated, StyleSheet, Text, useWindowDimensions, View } from "react-native";
-import Svg, { G, Line, Path, Rect } from "react-native-svg";
+import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import Svg, { G, Line, Path, Rect, Text as SvgText } from "react-native-svg";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 
 type Month = {
@@ -19,23 +19,36 @@ type Props = {
 };
 
 const CHART_H = 160;
-const PAD = { top: 12, right: 8, bottom: 8, left: 8 };
+const PAD = { top: 12, right: 8, bottom: 24, left: 8 };
+const MONTHS = 12;
 
 function monthSlotX(index: number, innerW: number): number {
-  return (index / 12) * innerW + innerW / 24;
+  return (index / MONTHS) * innerW + innerW / (MONTHS * 2);
 }
 
-function buildPath(values: number[], maxAbs: number, innerW: number, innerH: number): string {
+function chartScale(values: number[], innerH: number) {
+  const minV = Math.min(0, ...values);
+  const maxV = Math.max(1, ...values);
+  const pad = innerH * 0.1;
+  const plotH = innerH - pad * 2;
+  const span = maxV - minV;
+  const toY = (v: number) => innerH - pad - ((v - minV) / span) * plotH;
+  return { toY, zeroY: toY(0) };
+}
+
+function buildStepPath(values: number[], toY: (v: number) => number, innerW: number): string {
   if (values.length === 0) return "";
-  const midY = innerH / 2;
-  const scale = maxAbs > 0 ? (innerH * 0.42) / maxAbs : 1;
-  return values
-    .map((v, i) => {
-      const x = monthSlotX(i, innerW);
-      const y = midY - v * scale;
-      return `${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`;
-    })
-    .join(" ");
+  const parts: string[] = [];
+  const x0 = monthSlotX(0, innerW);
+  parts.push(`M ${x0.toFixed(1)} ${toY(0).toFixed(1)}`);
+  parts.push(`L ${x0.toFixed(1)} ${toY(values[0]).toFixed(1)}`);
+  for (let i = 1; i < values.length; i++) {
+    const x = monthSlotX(i, innerW);
+    parts.push(`L ${x.toFixed(1)} ${toY(values[i - 1]).toFixed(1)}`);
+    parts.push(`L ${x.toFixed(1)} ${toY(values[i]).toFixed(1)}`);
+  }
+  parts.push(`L ${innerW.toFixed(1)} ${toY(values[values.length - 1]).toFixed(1)}`);
+  return parts.join(" ");
 }
 
 export function WalletEarningsChart({ months, yearNet, colors }: Props) {
@@ -49,24 +62,20 @@ export function WalletEarningsChart({ months, yearNet, colors }: Props) {
 
   const { cumulativePath, zeroY, bars } = useMemo(() => {
     const cumValues = safeMonths.map((m) => m.cumulative ?? 0);
-    const maxAbs = Math.max(
-      1,
-      ...cumValues.map(Math.abs),
-      ...safeMonths.map((m) => m.earned ?? 0),
-      ...safeMonths.map((m) => m.withdrawn ?? 0)
-    );
-    const path = buildPath(cumValues, maxAbs, innerW, innerH);
-    const midY = PAD.top + innerH / 2;
+    const { toY, zeroY } = chartScale(cumValues, innerH);
+    const path = buildStepPath(cumValues, toY, innerW);
     const barMax = Math.max(1, ...safeMonths.map((m) => Math.max(m.earned ?? 0, m.withdrawn ?? 0)));
+    const bw = innerW / 14;
+    const groupW = bw * 0.9;
     const bars = safeMonths.map((m, i) => {
-      const x = PAD.left + monthSlotX(i, innerW);
-      const bw = innerW / 14;
+      const slotCenter = monthSlotX(i, innerW);
+      const x = PAD.left + slotCenter - groupW / 2;
       const earnedH = ((m.earned ?? 0) / barMax) * (innerH * 0.35);
       const withdrawnH = ((m.withdrawn ?? 0) / barMax) * (innerH * 0.35);
       const baseY = PAD.top + innerH;
-      return { ...m, x, bw, earnedH, withdrawnH, baseY };
+      return { ...m, x, bw, earnedH, withdrawnH, baseY, slotCenter };
     });
-    return { cumulativePath: path, zeroY: midY, bars };
+    return { cumulativePath: path, zeroY: PAD.top + zeroY, bars };
   }, [safeMonths, innerH, innerW]);
 
   return (
@@ -96,8 +105,20 @@ export function WalletEarningsChart({ months, yearNet, colors }: Props) {
               transform={`translate(${PAD.left}, ${PAD.top})`}
             />
           ) : null}
+          {safeMonths.map((m, i) => (
+            <SvgText
+              key={`cum-label-${m.month}`}
+              x={PAD.left + monthSlotX(i, innerW)}
+              y={CHART_H - 4}
+              fontSize={9}
+              fontWeight="600"
+              fill={colors.textMuted}
+              textAnchor="middle"
+            >
+              {m.label.replace("월", "")}
+            </SvgText>
+          ))}
         </Svg>
-        <MonthLabels months={safeMonths} colors={colors} />
       </View>
 
       <View style={[styles.panel, { borderColor: colors.hairline, backgroundColor: colors.surfaceRaised }]}>
@@ -125,27 +146,24 @@ export function WalletEarningsChart({ months, yearNet, colors }: Props) {
                 fill={colors.terracotta}
                 opacity={0.9}
               />
+              <SvgText
+                x={PAD.left + b.slotCenter}
+                y={CHART_H - 4}
+                fontSize={9}
+                fontWeight="600"
+                fill={colors.textMuted}
+                textAnchor="middle"
+              >
+                {b.label.replace("월", "")}
+              </SvgText>
             </G>
           ))}
         </Svg>
-        <MonthLabels months={safeMonths} colors={colors} />
         <View style={styles.legendRow}>
           <Text style={[styles.legend, { color: colors.textMuted }]}>● 수익</Text>
           <Text style={[styles.legend, { color: colors.textMuted }]}>● 지출(출금)</Text>
         </View>
       </View>
-    </View>
-  );
-}
-
-function MonthLabels({ months, colors }: { months: Month[]; colors: ThemeColors }) {
-  return (
-    <View style={styles.monthRow}>
-      {months.map((m) => (
-        <Text key={m.month} style={[styles.monthLabel, { color: colors.textMuted }]}>
-          {m.label.replace("월", "")}
-        </Text>
-      ))}
     </View>
   );
 }
@@ -166,13 +184,6 @@ const styles = StyleSheet.create({
   },
   panelTitle: { fontSize: 13, fontWeight: "700" },
   trend: { fontSize: 12, fontWeight: "800" },
-  monthRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 4,
-    marginTop: 4,
-  },
-  monthLabel: { fontSize: 9, fontWeight: "600", flex: 1, textAlign: "center" },
   legendRow: { flexDirection: "row", gap: spacing.md, paddingHorizontal: 4, paddingTop: 4 },
   legend: { fontSize: 11, fontWeight: "600" },
 });

@@ -15,43 +15,58 @@ type Props = {
 const W = 640;
 const H = 220;
 const PAD = { top: 16, right: 12, bottom: 28, left: 12 };
+const MONTHS = 12;
 
 function monthSlotX(index: number, innerW: number): number {
-  return (index / 12) * innerW + innerW / 24;
+  return (index / MONTHS) * innerW + innerW / (MONTHS * 2);
 }
 
-function buildPath(values: number[], maxAbs: number, innerW: number, innerH: number): string {
+function chartScale(values: number[], innerH: number) {
+  const minV = Math.min(0, ...values);
+  const maxV = Math.max(1, ...values);
+  const pad = innerH * 0.1;
+  const plotH = innerH - pad * 2;
+  const span = maxV - minV;
+  const toY = (v: number) => innerH - pad - ((v - minV) / span) * plotH;
+  return { toY, zeroY: toY(0) };
+}
+
+/** 월말 누적값 — 해당 월 tick에서 계단 상승 (직선 보간 사용 안 함) */
+function buildStepPath(values: number[], toY: (v: number) => number, innerW: number): string {
   if (values.length === 0) return "";
-  const midY = innerH / 2;
-  const scale = maxAbs > 0 ? (innerH * 0.42) / maxAbs : 1;
-  return values
-    .map((v, i) => {
-      const x = monthSlotX(i, innerW);
-      const y = midY - v * scale;
-      return `${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`;
-    })
-    .join(" ");
+  const parts: string[] = [];
+  const x0 = monthSlotX(0, innerW);
+  parts.push(`M ${x0.toFixed(1)} ${toY(0).toFixed(1)}`);
+  parts.push(`L ${x0.toFixed(1)} ${toY(values[0]).toFixed(1)}`);
+  for (let i = 1; i < values.length; i++) {
+    const x = monthSlotX(i, innerW);
+    parts.push(`L ${x.toFixed(1)} ${toY(values[i - 1]).toFixed(1)}`);
+    parts.push(`L ${x.toFixed(1)} ${toY(values[i]).toFixed(1)}`);
+  }
+  parts.push(`L ${innerW.toFixed(1)} ${toY(values[values.length - 1]).toFixed(1)}`);
+  return parts.join(" ");
 }
 
 export function WalletEarningsChart({ months, yearNet, className }: Props) {
   const innerW = W - PAD.left - PAD.right;
   const innerH = H - PAD.top - PAD.bottom;
 
-  const { cumulativePath, zeroY, maxBar, bars } = useMemo(() => {
+  const { cumulativePath, zeroY, bars } = useMemo(() => {
     const cumValues = months.map((m) => m.cumulative);
-    const maxAbs = Math.max(1, ...cumValues.map(Math.abs), ...months.map((m) => m.earned), ...months.map((m) => m.withdrawn));
-    const path = buildPath(cumValues, maxAbs, innerW, innerH);
-    const midY = PAD.top + innerH / 2;
+    const { toY, zeroY } = chartScale(cumValues, innerH);
+    const path = buildStepPath(cumValues, toY, innerW);
     const barMax = Math.max(1, ...months.map((m) => Math.max(m.earned, m.withdrawn)));
+    const bw = innerW / 14;
+    const groupW = bw * 0.9;
     const bars = months.map((m, i) => {
-      const x = PAD.left + monthSlotX(i, innerW);
-      const bw = innerW / 14;
+      const slotCenter = monthSlotX(i, innerW);
+      const x = PAD.left + slotCenter - groupW / 2;
       const earnedH = (m.earned / barMax) * (innerH * 0.35);
       const withdrawnH = (m.withdrawn / barMax) * (innerH * 0.35);
       const baseY = PAD.top + innerH;
-      return { ...m, x, bw, earnedH, withdrawnH, baseY };
+      return { ...m, x, bw, earnedH, withdrawnH, baseY, slotCenter };
     });
-    return { cumulativePath: path, zeroY: midY, maxBar: barMax, bars };
+    return { cumulativePath: path, zeroY: PAD.top + zeroY, bars };
   }, [months, innerH, innerW]);
 
   const trendUp = yearNet >= 0;
@@ -95,6 +110,7 @@ export function WalletEarningsChart({ months, yearNet, className }: Props) {
               x={PAD.left + monthSlotX(i, innerW)}
               y={H - 6}
               fontSize={10}
+              textAnchor="middle"
               fill="currentColor"
               fillOpacity={0.55}
             >
@@ -127,7 +143,14 @@ export function WalletEarningsChart({ months, yearNet, className }: Props) {
                 fill="#C5522A"
                 fillOpacity={0.85}
               />
-              <text x={b.x + b.bw * 0.2} y={H - 6} fontSize={10} fill="currentColor" fillOpacity={0.55}>
+              <text
+                x={PAD.left + b.slotCenter}
+                y={H - 6}
+                fontSize={10}
+                textAnchor="middle"
+                fill="currentColor"
+                fillOpacity={0.55}
+              >
                 {b.label.replace("월", "")}
               </text>
             </g>
