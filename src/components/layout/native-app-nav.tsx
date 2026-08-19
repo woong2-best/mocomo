@@ -83,7 +83,7 @@ export function NativeAppNav() {
 
   return (
     <motion.nav
-      className="fixed bottom-0 inset-x-0 z-40 border-t border-border/80 bg-background/95 backdrop-blur-md pb-safe"
+      className="fixed bottom-0 inset-x-0 z-50 border-t border-border/80 bg-background/95 backdrop-blur-md pb-safe"
       initial={reduced ? false : { y: 48, opacity: 0 }}
       animate={reduced ? undefined : { y: 0, opacity: 1 }}
       transition={springSnappy}
@@ -104,7 +104,7 @@ export function NativeAppNav() {
               {active && !reduced && (
                 <motion.span
                   layoutId="native-nav-pill"
-                  className="absolute inset-x-2 inset-y-1.5 rounded-xl bg-primary/10 border border-primary/20"
+                  className="pointer-events-none absolute inset-x-2 inset-y-1.5 rounded-xl bg-primary/10 border border-primary/20"
                   transition={springSnappy}
                 />
               )}

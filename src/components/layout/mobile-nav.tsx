@@ -53,7 +53,7 @@ export function MobileNav() {
   return (
     <>
       <motion.nav
-        className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t-2 border-folk-cobalt/25 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 shadow-[0_-3px_0_hsl(var(--folk-terracotta)/0.15)] pb-safe"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-50 border-t-2 border-folk-cobalt/25 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 shadow-[0_-3px_0_hsl(var(--folk-terracotta)/0.15)] pb-safe"
         initial={reduced ? false : { y: 40, opacity: 0 }}
         animate={reduced ? undefined : { y: 0, opacity: 1 }}
         transition={springSnappy}
@@ -79,7 +79,7 @@ export function MobileNav() {
                 {active && !reduced && (
                   <motion.span
                     layoutId="mobile-nav-pill"
-                    className="absolute inset-x-1 inset-y-2 rounded-xl bg-primary/10"
+                    className="pointer-events-none absolute inset-x-1 inset-y-2 rounded-xl bg-primary/10"
                     transition={springSnappy}
                   />
                 )}

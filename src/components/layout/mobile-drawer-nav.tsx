@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +15,7 @@ import { mainNavItems } from "@/lib/nav-items";
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
-import { isNavItemActive } from "@/lib/nav-active";
+import { isNavItemActive, resolveMyPageHref } from "@/lib/nav-active";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { BRAND } from "@/lib/brand";
 type MobileDrawerNavProps = {
@@ -24,11 +25,18 @@ type MobileDrawerNavProps = {
 
 export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const { t } = useLocale();
+  const ownProfilePath = session?.user?.username ? `/u/${session.user.username}` : null;
 
-  const items = isLiveFeatureEnabled()
+  const items = (isLiveFeatureEnabled()
     ? mainNavItems
-    : mainNavItems.filter((item) => !isLiveNavHref(item.href));
+    : mainNavItems.filter((item) => !isLiveNavHref(item.href))
+  ).map((item) =>
+    item.href === "/my-page"
+      ? { ...item, href: resolveMyPageHref(session?.user?.username) }
+      : item
+  );
   const navHrefs = items.map((item) => item.href);
 
   return (
@@ -53,7 +61,7 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
         <div className="flex min-h-0 flex-1 flex-col">
           <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 space-y-1">
             {items.map(({ href, icon: Icon, labelKey }) => {
-              const active = isNavItemActive(pathname, href, navHrefs);
+              const active = isNavItemActive(pathname, href, navHrefs, ownProfilePath);
 
               return (
                 <Link

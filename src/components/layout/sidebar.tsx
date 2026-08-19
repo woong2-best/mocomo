@@ -2,27 +2,34 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { PenSquare } from "lucide-react";
 import { ComposeOpenButton } from "@/components/compose/compose-open-button";
 import { cn } from "@/lib/utils";
 import { mainNavItems } from "@/lib/nav-items";
 import { useLocale } from "@/components/providers/locale-provider";
 import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
-import { isNavItemActive } from "@/lib/nav-active";
+import { isNavItemActive, resolveMyPageHref } from "@/lib/nav-active";
 import { useSidebarToggle } from "@/components/providers/sidebar-toggle-provider";
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const { t } = useLocale();
   const { open } = useSidebarToggle();
+  const ownProfilePath = session?.user?.username ? `/u/${session.user.username}` : null;
 
-  const navItems = mainNavItems.filter(
-    (item) => isLiveFeatureEnabled() || !isLiveNavHref(item.href)
-  );
+  const navItems = mainNavItems
+    .filter((item) => isLiveFeatureEnabled() || !isLiveNavHref(item.href))
+    .map((item) =>
+      item.href === "/my-page"
+        ? { ...item, href: resolveMyPageHref(session?.user?.username) }
+        : item
+    );
   const navHrefs = navItems.map((item) => item.href);
 
   function isActive(href: string) {
-    return isNavItemActive(pathname, href, navHrefs);
+    return isNavItemActive(pathname, href, navHrefs, ownProfilePath);
   }
 
   return (

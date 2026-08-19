@@ -31,7 +31,7 @@ async function ProfileLayoutShell({
     <AppPageChrome
       maxWidth="5xl"
       spacing="none"
-      className="!max-w-none !w-full !mx-0 !p-0 min-h-screen border-x border-border/40"
+      className="!max-w-none !w-full !mx-0 !px-0 !pt-0 min-h-screen border-x border-border/40"
     >
       <Suspense fallback={<ProfileHeaderSkeleton />}>
         <ProfileTabProvider username={username}>

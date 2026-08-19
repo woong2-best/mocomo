@@ -351,7 +351,7 @@ export function MotionChip({
       {active && !reduced && (
         <motion.span
           layoutId={layoutId}
-          className="absolute inset-0 rounded-full bg-folk-terracotta"
+          className="pointer-events-none absolute inset-0 rounded-full bg-folk-terracotta"
           transition={{ type: "spring", stiffness: 420, damping: 30 }}
         />
       )}
