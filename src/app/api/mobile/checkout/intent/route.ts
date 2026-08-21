@@ -11,7 +11,7 @@ import {
   prepareCheckoutPaymentIntent,
 } from "@/lib/stripe-pay-intent-service";
 import { createStripeCheckoutForUser } from "@/lib/stripe-checkout-service";
-import { getAppOrigin } from "@/lib/stripe";
+import { stripePaymentAuthenticateUrl } from "@/lib/stripe-payment-return-url";
 
 const prepareSchema = z.object({
   type: z.string().min(1),
@@ -149,8 +149,11 @@ export async function PATCH(req: NextRequest) {
   }
 
   if ("requiresAction" in result && result.requiresAction && result.clientSecret) {
-    const origin = getAppOrigin();
-    const authenticateUrl = `${origin}/payments/authenticate?client_secret=${encodeURIComponent(result.clientSecret)}&order_id=${encodeURIComponent(result.orderId)}&return_to=${encodeURIComponent("mocomo://payment/success")}`;
+    const authenticateUrl = stripePaymentAuthenticateUrl(
+      result.orderId,
+      result.clientSecret,
+      "mocomo://payment/success"
+    );
     return NextResponse.json({ requiresAction: true, authenticateUrl, orderId: result.orderId });
   }
 

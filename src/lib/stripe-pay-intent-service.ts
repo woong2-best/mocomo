@@ -6,12 +6,14 @@ import { checkoutRedirectPath } from "@/lib/checkout-redirect";
 import { checkoutCurrencyForType, isPaymentsConfigured } from "@/lib/payments";
 import { fulfillPaymentIntent } from "@/lib/payment-fulfillment";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
+import { stripePaymentIntentReturnUrl } from "@/lib/stripe-payment-return-url";
 import { validatePaymentInput } from "@/lib/stripe-checkout-validate";
 import {
   getOrCreateStripeCustomer,
   listSavedPaymentMethods,
   type SavedPaymentMethod,
 } from "@/lib/stripe-payment-methods";
+import { getMocoCheckoutQuote } from "@/lib/moco-checkout-service";
 import { assertOfacPaymentRequestAllowed, assertOfacPaymentAllowedForUser } from "@/lib/compliance/ofac-payment-guard-server";
 
 function stripeMetadata(
@@ -105,6 +107,7 @@ export async function prepareCheckoutPaymentIntent(input: {
 
   let pi: Stripe.PaymentIntent;
   try {
+    // Saved-card sheet confirms on-session; setup_future_usage conflicts with off_session confirm.
     pi = await stripe.paymentIntents.create({
       amount: input.amount,
       currency,
@@ -112,7 +115,6 @@ export async function prepareCheckoutPaymentIntent(input: {
       description: input.orderName,
       metadata: stripeMetadata(intent.id, input.type, input.userId, input.metadata),
       automatic_payment_methods: { enabled: true },
-      setup_future_usage: "off_session",
     });
   } catch (e) {
     console.error("[prepareCheckoutPaymentIntent] stripe.paymentIntents.create", e);
@@ -134,11 +136,16 @@ export async function prepareCheckoutPaymentIntent(input: {
     console.error("[prepareCheckoutPaymentIntent] listSavedPaymentMethods", e);
   }
 
+  const mocoQuote = await getMocoCheckoutQuote(input.userId, input.amount);
+
   return {
     orderId: intent.id,
     clientSecret: pi.client_secret,
     publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "",
     methods,
+    mocoBalance: mocoQuote.mocoBalance,
+    mocoRequired: mocoQuote.mocoRequired,
+    canPayWithMoco: mocoQuote.canPayWithMoco && input.type !== "MOCO_TOPUP",
   };
 }
 
@@ -174,7 +181,7 @@ export async function payCheckoutWithSavedMethod(
   try {
     const pi = await stripe.paymentIntents.confirm(intent.paymentKey, {
       payment_method: paymentMethodId,
-      off_session: true,
+      return_url: stripePaymentIntentReturnUrl(orderId),
     });
 
     if (pi.status === "requires_action" && pi.client_secret) {

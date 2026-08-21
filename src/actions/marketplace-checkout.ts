@@ -401,7 +401,6 @@ export async function prepareMarketplacePaymentForBuyer(
     ),
     transfer_group: init.order.id,
     automatic_payment_methods: { enabled: true },
-    setup_future_usage: "off_session",
   });
 
   await db.paymentIntent.update({
@@ -410,6 +409,8 @@ export async function prepareMarketplacePaymentForBuyer(
   });
 
   const methods = await listSavedPaymentMethods(buyer.id);
+  const { getMocoCheckoutQuote } = await import("@/lib/moco-checkout-service");
+  const mocoQuote = await getMocoCheckoutQuote(buyer.id, init.totalAmount);
 
   return {
     orderId: init.paymentIntent.id,
@@ -419,6 +420,9 @@ export async function prepareMarketplacePaymentForBuyer(
     methods,
     amount: init.totalAmount,
     orderName: init.listing.title,
+    mocoBalance: mocoQuote.mocoBalance,
+    mocoRequired: mocoQuote.mocoRequired,
+    canPayWithMoco: mocoQuote.canPayWithMoco,
   };
 }
 

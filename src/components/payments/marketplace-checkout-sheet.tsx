@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/money";
+import { stripePaymentIntentReturnUrlClient } from "@/lib/stripe-payment-return-url";
+import { MocoPayOption } from "@/components/payments/moco-pay-option";
 import { CreditCard, Loader2, Plus } from "lucide-react";
 
 type Props = {
@@ -44,6 +46,8 @@ export function MarketplaceCheckoutSheet({
   const [loading, setLoading] = useState(false);
   const [pending, startTransition] = useTransition();
   const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
+  const [mocoBalance, setMocoBalance] = useState(0);
+  const [mocoRequired, setMocoRequired] = useState(0);
 
   useEffect(() => {
     if (!open || !checkoutInput) return;
@@ -68,6 +72,8 @@ export function MarketplaceCheckoutSheet({
         if (res.publishableKey) {
           setStripePromise(loadStripe(res.publishableKey));
         }
+        setMocoBalance("mocoBalance" in res ? (res.mocoBalance ?? 0) : 0);
+        setMocoRequired("mocoRequired" in res ? (res.mocoRequired ?? 0) : 0);
       })
       .finally(() => setLoading(false));
   }, [open, checkoutInput]);
@@ -80,7 +86,13 @@ export function MarketplaceCheckoutSheet({
         setError("Stripe를 불러오지 못했습니다.");
         return;
       }
-      const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(secret);
+      const returnUrl = stripePaymentIntentReturnUrlClient(
+        oid,
+        "/market/orders"
+      );
+      const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(secret, {
+        return_url: returnUrl,
+      });
       if (confirmError) {
         setError(confirmError.message ?? "인증에 실패했습니다.");
         return;
@@ -164,6 +176,22 @@ export function MarketplaceCheckoutSheet({
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : (
+            <div className="space-y-3">
+              <MocoPayOption
+                orderId={orderId}
+                mocoBalance={mocoBalance}
+                mocoRequired={mocoRequired}
+                amountLabel={amount > 0 ? formatMoney(amount) : "—"}
+                disabled={loading || pending}
+                onError={setError}
+                onSuccess={(result) => {
+                  onOpenChange(false);
+                  onSuccess?.({
+                    marketplaceOrderId: marketplaceOrderId ?? undefined,
+                    redirectPath: result.redirectPath,
+                  });
+                }}
+              />
             <div className="space-y-2 max-h-56 overflow-y-auto">
               {methods.map((pm) => (
                 <button
@@ -203,6 +231,7 @@ export function MarketplaceCheckoutSheet({
                   <p className="text-xs text-muted-foreground">Stripe에서 카드 입력 · 저장 가능</p>
                 </div>
               </button>
+            </div>
             </div>
           )}
 

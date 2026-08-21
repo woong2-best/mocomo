@@ -9,7 +9,7 @@ import {
 } from "@/actions/marketplace-checkout";
 import { confirmCheckoutPaymentIntent, payCheckoutWithSavedMethod } from "@/lib/stripe-pay-intent-service";
 import { isPaymentsConfigured } from "@/lib/payments";
-import { getAppOrigin } from "@/lib/stripe";
+import { stripePaymentAuthenticateUrl } from "@/lib/stripe-payment-return-url";
 
 const checkoutBodySchema = z.object({
   quantity: z.number().int().positive().optional(),
@@ -152,8 +152,11 @@ export async function PATCH(
   }
 
   if ("requiresAction" in result && result.requiresAction && result.clientSecret) {
-    const origin = getAppOrigin();
-    const authenticateUrl = `${origin}/payments/authenticate?client_secret=${encodeURIComponent(result.clientSecret)}&order_id=${encodeURIComponent(result.orderId)}&return_to=${encodeURIComponent("mocomo://payment/success")}`;
+    const authenticateUrl = stripePaymentAuthenticateUrl(
+      result.orderId,
+      result.clientSecret,
+      "mocomo://payment/success"
+    );
     return NextResponse.json({ requiresAction: true, authenticateUrl, orderId: result.orderId });
   }
 

@@ -8,6 +8,7 @@ import {
   payCheckoutWithSavedMethod,
   prepareCheckoutPaymentIntent,
 } from "@/lib/stripe-pay-intent-service";
+import { payCheckoutWithMoco } from "@/lib/moco-checkout-service";
 import { createStripeCheckoutForUser } from "@/lib/stripe-checkout-service";
 import type { PaymentIntentType } from "@prisma/client";
 import {
@@ -49,6 +50,23 @@ export async function prepareCheckoutPayment(input: {
     email: user.email,
     ...input,
   });
+}
+
+export async function payWithMoco(orderId: string) {
+  const user = await requireAuth();
+  const { checkRateLimit, authLimiter } = await import("@/lib/ratelimit");
+  const limited = await checkRateLimit(authLimiter, `moco-pay:${user.id}`);
+  if (!limited.success) {
+    return { error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." };
+  }
+  if (!orderId || typeof orderId !== "string" || orderId.length > 64) {
+    return { error: "잘못된 결제 요청입니다." };
+  }
+  const result = await payCheckoutWithMoco(user.id, orderId);
+  if ("success" in result && result.success) {
+    revalidateAfterPayment(result.type);
+  }
+  return result;
 }
 
 export async function payWithSavedCard(orderId: string, paymentMethodId: string) {

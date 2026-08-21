@@ -103,16 +103,16 @@ export async function debitPlatformWallet(input: {
         if (existing) return;
       }
 
-      const current = await tx.platformWallet.findUniqueOrThrow({
-        where: { id: wallet.id },
+      // Atomic balance gate — prevents concurrent overdraft
+      const updatedCount = await tx.platformWallet.updateMany({
+        where: { id: wallet.id, [field]: { gte: input.amount } },
+        data: { [field]: { decrement: input.amount } },
       });
-      const bal = current[field] as number;
-      if (bal < input.amount) {
+      if (updatedCount.count === 0) {
         throw new Error("INSUFFICIENT");
       }
-      const updated = await tx.platformWallet.update({
+      const updated = await tx.platformWallet.findUniqueOrThrow({
         where: { id: wallet.id },
-        data: { [field]: { decrement: input.amount } },
       });
       await tx.platformWalletLedger.create({
         data: {

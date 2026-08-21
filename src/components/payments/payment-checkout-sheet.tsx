@@ -15,6 +15,7 @@ import { startAddPaymentMethod } from "@/actions/payment-methods";
 import { saveCheckoutForResume } from "@/components/payments/checkout-resume-handler";
 import type { SavedPaymentMethod } from "@/lib/stripe-payment-methods";
 import { PaymentLegalNotice } from "@/components/legal/legal-entity-notice";
+import { MocoPayOption } from "@/components/payments/moco-pay-option";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -24,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { formatUsd } from "@/lib/money";
+import { stripePaymentIntentReturnUrlClient } from "@/lib/stripe-payment-return-url";
 import { CreditCard, Loader2, Plus } from "lucide-react";
 
 type Props = {
@@ -62,6 +64,8 @@ export function PaymentCheckoutSheet({
   const [loading, setLoading] = useState(false);
   const [pending, startTransition] = useTransition();
   const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
+  const [mocoBalance, setMocoBalance] = useState(0);
+  const [mocoRequired, setMocoRequired] = useState(0);
 
   const amountLabel = useMemo(() => formatAmount(type, amount), [amount, type]);
 
@@ -83,6 +87,8 @@ export function PaymentCheckoutSheet({
         if (res.publishableKey) {
           setStripePromise(loadStripe(res.publishableKey));
         }
+        setMocoBalance("mocoBalance" in res ? (res.mocoBalance ?? 0) : 0);
+        setMocoRequired("mocoRequired" in res ? (res.mocoRequired ?? 0) : 0);
       })
       .finally(() => setLoading(false));
   }, [open, type, amount, orderName, metadata]);
@@ -95,7 +101,10 @@ export function PaymentCheckoutSheet({
         setError("Stripe를 불러오지 못했습니다.");
         return;
       }
-      const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(secret);
+      const returnUrl = stripePaymentIntentReturnUrlClient(oid, resumePath);
+      const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(secret, {
+        return_url: returnUrl,
+      });
       if (confirmError) {
         setError(confirmError.message ?? "인증에 실패했습니다.");
         return;
@@ -114,7 +123,7 @@ export function PaymentCheckoutSheet({
         onSuccess?.({ type: done.type, redirectPath: done.redirectPath });
       }
     },
-    [onOpenChange, onSuccess, stripePromise]
+    [onOpenChange, onSuccess, resumePath, stripePromise]
   );
 
   function paySelected() {
@@ -179,6 +188,22 @@ export function PaymentCheckoutSheet({
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : (
+            <div className="space-y-3">
+              {type !== "MOCO_TOPUP" ? (
+                <MocoPayOption
+                  orderId={orderId}
+                  mocoBalance={mocoBalance}
+                  mocoRequired={mocoRequired}
+                  amountLabel={amountLabel}
+                  disabled={loading || pending}
+                  onError={setError}
+                  onSuccess={(result) => {
+                    onOpenChange(false);
+                    onSuccess?.(result);
+                  }}
+                />
+              ) : null}
+
             <div className="space-y-2 max-h-56 overflow-y-auto">
               {methods.map((pm) => (
                 <button
@@ -230,6 +255,7 @@ export function PaymentCheckoutSheet({
                   <p className="text-xs text-muted-foreground">Stripe에서 카드 입력 · 저장 가능</p>
                 </div>
               </button>
+            </div>
             </div>
           )}
 

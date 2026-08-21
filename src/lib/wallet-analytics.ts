@@ -2,8 +2,14 @@ import { db } from "@/lib/db";
 import { EARNING_SOURCE_LABELS, MONTH_LABELS } from "@/lib/wallet-labels";
 import { getWalletSummary } from "@/lib/settlement";
 import { buildTransactionSeries, type WalletTransactionPoint } from "@/lib/wallet-timeseries";
+import { resolveEarningCategory, type EarningCategory } from "@/lib/wallet-earning-categories";
 
 export type { WalletTransactionPoint };
+
+export type WalletEnrichedTransaction = WalletTransactionPoint & {
+  category: EarningCategory;
+  payerUsername: string | null;
+};
 
 export type WalletMonthBucket = {
   month: number;
@@ -18,7 +24,7 @@ export type WalletEarningsAnalytics = {
   year: number;
   years: number[];
   months: WalletMonthBucket[];
-  transactions: WalletTransactionPoint[];
+  transactions: WalletEnrichedTransaction[];
   yearEarned: number;
   yearWithdrawn: number;
   yearNet: number;
@@ -65,7 +71,16 @@ export async function getWalletEarningsAnalytics(
         },
         type: { in: ["SELLER_EARNING", "PAYOUT_REQUEST", "PAYOUT_REJECTED"] },
       },
-      select: { id: true, type: true, amount: true, createdAt: true, referenceType: true, memo: true },
+      select: {
+        id: true,
+        type: true,
+        amount: true,
+        createdAt: true,
+        referenceType: true,
+        referenceId: true,
+        paymentIntentId: true,
+        memo: true,
+      },
     }),
   ]);
 
@@ -108,7 +123,7 @@ export async function getWalletEarningsAnalytics(
 
   const withdrawable = Math.max(0, summary.availableBalance - summary.pendingPayout);
 
-  const transactions = buildTransactionSeries(entries);
+  const transactions = await enrichWalletTransactions(entries);
 
   return {
     year,
@@ -127,4 +142,60 @@ export async function getWalletEarningsAnalytics(
       withdrawable,
     },
   };
+}
+
+async function enrichWalletTransactions(
+  entries: {
+    id: string;
+    type: string;
+    amount: number;
+    createdAt: Date;
+    referenceType: string | null;
+    referenceId: string | null;
+    paymentIntentId: string | null;
+    memo: string | null;
+  }[]
+): Promise<WalletEnrichedTransaction[]> {
+  const base = buildTransactionSeries(entries);
+  const entryById = new Map(entries.map((e) => [e.id, e]));
+
+  const piIds = [...new Set(entries.map((e) => e.paymentIntentId).filter(Boolean))] as string[];
+  const paymentIntents =
+    piIds.length > 0
+      ? await db.paymentIntent.findMany({
+          where: { id: { in: piIds } },
+          select: { id: true, user: { select: { username: true } } },
+        })
+      : [];
+  const piPayer = new Map(paymentIntents.map((pi) => [pi.id, pi.user.username]));
+
+  const marketplaceIds = entries
+    .filter((e) => e.referenceType === "marketplace_escrow" && e.referenceId)
+    .map((e) => e.referenceId!);
+  const orders =
+    marketplaceIds.length > 0
+      ? await db.marketplaceOrder.findMany({
+          where: { id: { in: marketplaceIds } },
+          select: { id: true, buyer: { select: { username: true } } },
+        })
+      : [];
+  const orderBuyer = new Map(orders.map((o) => [o.id, o.buyer.username]));
+
+  return base.map((tx) => {
+    const entry = entryById.get(tx.id);
+    const category = resolveEarningCategory(entry?.referenceType ?? null, entry?.type ?? tx.type);
+    let payerUsername: string | null = null;
+    if (entry?.paymentIntentId) {
+      payerUsername = piPayer.get(entry.paymentIntentId) ?? null;
+    }
+    if (!payerUsername && entry?.referenceType === "marketplace_escrow" && entry.referenceId) {
+      payerUsername = orderBuyer.get(entry.referenceId) ?? null;
+    }
+    // tip credits store paymentIntentId as referenceId; memo often embeds @username
+    if (!payerUsername && entry?.memo) {
+      const m = entry.memo.match(/@([A-Za-z0-9_.]{2,32})/);
+      if (m?.[1]) payerUsername = m[1];
+    }
+    return { ...tx, category, payerUsername };
+  });
 }

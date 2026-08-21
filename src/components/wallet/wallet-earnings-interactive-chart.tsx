@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { formatUsd } from "@/lib/money";
-import type { WalletTransactionPoint } from "@/lib/wallet-analytics";
+import type { WalletEnrichedTransaction, WalletMonthBucket } from "@/lib/wallet-analytics";
+import { WalletMonthDetailPanel } from "@/components/wallet/wallet-month-detail-panel";
 import {
   buildBuckets,
   buildStepPathFromBuckets,
@@ -21,14 +22,15 @@ import {
 } from "@/lib/wallet-timeseries";
 
 type Props = {
-  transactions: WalletTransactionPoint[];
+  transactions: WalletEnrichedTransaction[];
+  months: WalletMonthBucket[];
   year: number;
   yearNet: number;
   className?: string;
   onTransactionSelect?: (ids: string[]) => void;
 };
 
-const H = 260;
+const H = 240;
 const BAR_H = 140;
 const PAD = { top: 16, right: 16, bottom: 32, left: 52 };
 
@@ -42,6 +44,7 @@ const GRANULARITY_LABEL: Record<Granularity, string> = {
 
 export function WalletEarningsInteractiveChart({
   transactions,
+  months,
   year,
   yearNet,
   className,
@@ -50,6 +53,7 @@ export function WalletEarningsInteractiveChart({
   const wrapRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(640);
   const [yMode, setYMode] = useState<YScaleMode>("linear");
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [hover, setHover] = useState<{ px: number; py: number; bucket: TimeBucket | null } | null>(null);
   const [selecting, setSelecting] = useState<{ x0: number; x1: number } | null>(null);
   const [panning, setPanning] = useState<{ startX: number; startView: { startMs: number; endMs: number } } | null>(
@@ -73,6 +77,10 @@ export function WalletEarningsInteractiveChart({
   useEffect(() => {
     setViewport({ startMs: bounds.minMs, endMs: bounds.maxMs });
   }, [bounds.minMs, bounds.maxMs, year]);
+
+  useEffect(() => {
+    setSelectedMonth(null);
+  }, [year]);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -239,11 +247,7 @@ export function WalletEarningsInteractiveChart({
       })()
     : 0;
 
-  const xTicks = useMemo(() => {
-    const count = Math.min(12, Math.max(4, Math.floor(innerW / 56)));
-    const step = (viewport.endMs - viewport.startMs) / count;
-    return Array.from({ length: count + 1 }, (_, i) => viewport.startMs + step * i);
-  }, [viewport, innerW]);
+  const selectedMonthLabel = selectedMonth ? months.find((m) => m.month === selectedMonth)?.label ?? `${selectedMonth}월` : "";
 
   return (
     <div ref={wrapRef} className={cn("space-y-3", className)}>
@@ -370,19 +374,6 @@ export function WalletEarningsInteractiveChart({
                 />
               ) : null
             )}
-            {xTicks.map((ms) => (
-              <text
-                key={ms}
-                x={PAD.left + xAt(ms)}
-                y={H - 8}
-                fontSize={9}
-                textAnchor="middle"
-                fill="currentColor"
-                fillOpacity={0.55}
-              >
-                {formatTooltipTime(ms, granularity).replace(/^\d{4}년\s/, "").replace(/^\d{4}\./, "")}
-              </text>
-            ))}
             {hover ? (
               <g pointerEvents="none">
                 <line
@@ -463,6 +454,55 @@ export function WalletEarningsInteractiveChart({
           </p>
         ) : null}
       </div>
+
+      <div className="rounded-2xl border border-border/60 bg-card/80 px-2 py-3 space-y-1">
+        <div className="flex items-center justify-between px-2 pb-1">
+          <p className="text-[11px] font-semibold text-muted-foreground">월별 상세</p>
+          <p className="text-[10px] text-muted-foreground">1~12월 탭 → 수익·지출 출처</p>
+        </div>
+        <div className="grid grid-cols-6 sm:grid-cols-12 gap-1.5">
+          {months.map((m) => {
+            const active = selectedMonth === m.month;
+            const hasActivity = m.earned > 0 || m.withdrawn > 0;
+            return (
+              <button
+                key={m.month}
+                type="button"
+                aria-pressed={active}
+                aria-label={`${m.label} 거래 내역`}
+                onClick={() => setSelectedMonth((prev) => (prev === m.month ? null : m.month))}
+                className={cn(
+                  "relative flex flex-col items-center justify-center rounded-xl py-2.5 text-xs font-bold transition-all duration-200 ease-out",
+                  active
+                    ? "bg-primary text-primary-foreground shadow-md scale-[1.04] ring-2 ring-primary/30"
+                    : hasActivity
+                      ? "bg-muted/55 hover:bg-muted text-foreground hover:scale-[1.02]"
+                      : "bg-transparent hover:bg-muted/30 text-muted-foreground"
+                )}
+              >
+                {hasActivity ? (
+                  <span
+                    className={cn(
+                      "absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full",
+                      active ? "bg-primary-foreground" : m.net >= 0 ? "bg-emerald-500" : "bg-red-500"
+                    )}
+                  />
+                ) : null}
+                <span>{m.label.replace("월", "")}</span>
+                <span className="text-[9px] opacity-70 mt-0.5">월</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <WalletMonthDetailPanel
+        year={year}
+        month={selectedMonth}
+        monthLabel={selectedMonthLabel}
+        transactions={transactions}
+        onClose={() => setSelectedMonth(null)}
+      />
 
       <div className="rounded-2xl border border-border/60 bg-card/80 p-3 overflow-hidden">
         <p className="text-sm font-semibold text-muted-foreground px-1 pb-2">

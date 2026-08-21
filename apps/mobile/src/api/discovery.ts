@@ -120,6 +120,8 @@ export type WalletEarningsAnalytics = {
     label: string;
     memo: string | null;
     referenceType: string | null;
+    category?: string;
+    payerUsername?: string | null;
   }[];
   yearEarned: number;
   yearWithdrawn: number;
