@@ -16,7 +16,7 @@ type Props = {
   className?: string;
   showLegalNotice?: boolean;
   returnPath?: string;
-  onPurchaseSuccess?: () => void;
+  onPurchaseSuccess?: () => void | Promise<void>;
   children: React.ReactNode;
 };
 
@@ -50,6 +50,19 @@ export function PayButton({
     setOpen(true);
   }
 
+  async function handleSuccess(result: { type: string; redirectPath?: string }) {
+    try {
+      await onPurchaseSuccess?.();
+    } finally {
+      router.refresh();
+      const current = (returnPath ?? pathname ?? "/").split("?")[0];
+      const dest = result.redirectPath?.split("?")[0];
+      if (dest && dest !== current) {
+        router.push(result.redirectPath!);
+      }
+    }
+  }
+
   return (
     <>
       <Button type="button" className={className} disabled={disabled} onClick={openCheckout}>
@@ -64,11 +77,7 @@ export function PayButton({
         metadata={metadata}
         showLegalNotice={showLegalNotice}
         returnPath={returnPath ?? pathname ?? "/"}
-        onSuccess={(result) => {
-          onPurchaseSuccess?.();
-          if (result.redirectPath) router.push(result.redirectPath);
-          else router.refresh();
-        }}
+        onSuccess={handleSuccess}
       />
     </>
   );

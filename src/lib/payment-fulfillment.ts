@@ -421,7 +421,10 @@ export async function fulfillPaymentIntent(
       });
     }
     if (meta.username) revalidatePath(`/u/${meta.username}`);
-    if ("postId" in r && r.postId) revalidatePath(`/post/${r.postId}`);
+    if ("postId" in r && r.postId) {
+      revalidatePath(`/post/${r.postId}`);
+      revalidatePath(`/u/${meta.username ?? ""}`);
+    }
     revalidatePath(COMMUNITY_FEED_PATH);
   }
 

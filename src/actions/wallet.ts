@@ -6,6 +6,9 @@ import { requireAuth } from "@/lib/auth";
 import { getWalletSummary, MIN_PAYOUT_KRW } from "@/lib/settlement";
 import { formatUsd } from "@/lib/money";
 import { getWalletEarningsAnalytics } from "@/lib/wallet-analytics";
+import { getPaymentHistoryForUser, type PaymentHistoryItem } from "@/lib/payment-history";
+
+export type { PaymentHistoryItem };
 
 export async function getMyWallet() {
   const user = await requireAuth();
@@ -15,6 +18,11 @@ export async function getMyWallet() {
 export async function getMyWalletEarnings(year?: number) {
   const user = await requireAuth();
   return getWalletEarningsAnalytics(user.id, year);
+}
+
+export async function getMyPaymentHistory() {
+  const user = await requireAuth();
+  return getPaymentHistoryForUser(user.id);
 }
 
 export async function saveBankAccount(data: {

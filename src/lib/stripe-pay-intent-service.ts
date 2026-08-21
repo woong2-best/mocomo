@@ -97,7 +97,7 @@ export async function prepareCheckoutPaymentIntent(input: {
       userId: input.userId,
       type: input.type,
       amount: input.amount,
-      metadata: input.metadata as Prisma.InputJsonValue,
+      metadata: { ...input.metadata, orderName: input.orderName } as Prisma.InputJsonValue,
     },
   });
 

@@ -10,6 +10,7 @@ import { ReceivedTipsPanel } from "@/components/wallet/received-tips-panel";
 import { RevenueSettlementPanel } from "@/components/wallet/revenue-settlement-panel";
 import type { SavedPaymentMethod } from "@/lib/stripe-payment-methods";
 import type { WalletEarningsAnalytics } from "@/lib/wallet-analytics";
+import type { PaymentHistoryItem } from "@/lib/payment-history";
 import type { TipHistory } from "@/actions/support";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +21,7 @@ type Props = {
   earnings: WalletEarningsAnalytics;
   paymentMethods: SavedPaymentMethod[];
   tipHistory: TipHistory;
+  paymentHistory: PaymentHistoryItem[];
   bankVerified: boolean;
   verifiedBankLabel?: string | null;
   legalName?: string | null;
@@ -37,6 +39,7 @@ export function WalletHub({
   earnings,
   paymentMethods,
   tipHistory,
+  paymentHistory,
   bankVerified,
   verifiedBankLabel,
   legalName,
@@ -128,7 +131,7 @@ export function WalletHub({
       {tab === "wallet" ? (
         <>
           <PaymentMethodsPanel methods={paymentMethods} />
-          <PaymentHistoryPanel tips={tipHistory.sentTips} />
+          <PaymentHistoryPanel items={paymentHistory} />
           <p className="text-center text-xs text-muted-foreground px-4">
             결제할 때 등록된 카드 목록에서 선택합니다.
           </p>

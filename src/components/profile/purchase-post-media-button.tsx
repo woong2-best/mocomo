@@ -24,7 +24,7 @@ export function PurchasePostMediaButton({
   /** button: pill CTA · label: Twitter-style white text under lock */
   variant?: "button" | "label";
   returnPath?: string;
-  onPurchaseSuccess?: () => void;
+  onPurchaseSuccess?: () => void | Promise<void>;
 }) {
   const pathname = usePathname();
   const checkoutReturn = returnPath ?? pathname;

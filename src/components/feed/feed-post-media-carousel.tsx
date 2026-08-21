@@ -153,7 +153,7 @@ function CarouselTile({
   isNsfw?: boolean;
   isOwner?: boolean;
   viewerShowNsfw?: boolean;
-  onPurchaseSuccess?: () => void;
+  onPurchaseSuccess?: (mediaId?: string) => void | Promise<void>;
 }) {
   const locked = !!media.locked && !!media.id;
   const lockReason = (media.lockReason ?? "none") as ContentLockReason;
@@ -209,7 +209,7 @@ function CarouselTile({
                 postId={postId}
                 label="결제하기"
                 variant="label"
-                onPurchaseSuccess={onPurchaseSuccess}
+                onPurchaseSuccess={() => onPurchaseSuccess?.(media.id!)}
               />
             </LockedMediaPaywallOverlay>
           ) : (
@@ -257,17 +257,33 @@ export function FeedPostMediaCarousel({
     setLocalMedia(media);
   }, [media]);
 
-  const refreshAfterPurchase = useCallback(async () => {
-    invalidatePostMediaCache(postId);
-    const fresh = await prefetchPostMedia(postId, { force: true });
-    if (fresh?.length) {
-      const resolved = fresh as ProfilePostMediaItem[];
-      setLocalMedia(resolved);
-      setLightboxMedia(resolved.filter(isVisual));
-      setCachedPostMedia(postId, fresh);
-    }
-    router.refresh();
-  }, [postId, router]);
+  const refreshAfterPurchase = useCallback(
+    async (purchasedMediaId?: string) => {
+      const unlock = (items: ProfilePostMediaItem[]) =>
+        items.map((m) => {
+          if (!m.id) return m;
+          const isInstant = postInstantPurchasePriceKrw && postInstantPurchasePriceKrw > 0;
+          const shouldUnlock =
+            isInstant || m.id === purchasedMediaId || (!purchasedMediaId && (m.priceKrw ?? 0) > 0);
+          if (!shouldUnlock) return m;
+          return { ...m, locked: false, lockReason: "none" as const };
+        });
+
+      setLocalMedia((prev) => unlock(prev));
+      setLightboxMedia((prev) => unlock(prev));
+
+      invalidatePostMediaCache(postId);
+      const fresh = await prefetchPostMedia(postId, { force: true });
+      if (fresh?.length) {
+        const resolved = fresh as ProfilePostMediaItem[];
+        setLocalMedia(resolved);
+        setLightboxMedia(resolved.filter(isVisual));
+        setCachedPostMedia(postId, fresh);
+      }
+      router.refresh();
+    },
+    [postId, postInstantPurchasePriceKrw, router]
+  );
 
   const total = mediaTotal ?? localMedia.length;
   const needsFullFetch = total > localMedia.length;
@@ -393,7 +409,7 @@ export function FeedPostMediaCarousel({
           isNsfw={isNsfw}
           isOwner={isOwner}
           viewerShowNsfw={viewerShowNsfw}
-          onPurchaseSuccess={refreshAfterPurchase}
+          onPurchaseSuccess={(id) => void refreshAfterPurchase(id)}
         />
       </MediaOpenWrapper>
     );
