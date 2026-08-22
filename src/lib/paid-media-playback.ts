@@ -13,6 +13,28 @@ export function paidMediaPlaybackPath(mediaId: string): string {
   return `${PAID_MEDIA_PLAYBACK_PREFIX}/${encodeURIComponent(mediaId)}`;
 }
 
+/** Locked teaser: first few seconds / a downscaled still. Origin URL stays server-side. */
+export const PAID_PREVIEW_SECONDS = 5;
+export const PAID_PREVIEW_MAX_BYTES = 3_500_000;
+
+export function paidMediaPreviewPath(mediaId: string): string {
+  return `${PAID_MEDIA_PLAYBACK_PREFIX}/${encodeURIComponent(mediaId)}/preview`;
+}
+
+/** Cap a Range header so a locked preview cannot stream the full file. */
+export function clampPaidPreviewRange(
+  range: string | null,
+  maxBytes = PAID_PREVIEW_MAX_BYTES
+): string {
+  const last = Math.max(0, maxBytes - 1);
+  const match = range?.match(/^bytes=(\d+)-(\d+)?$/i);
+  if (!match) return `bytes=0-${last}`;
+  const start = Math.min(Number(match[1]), last);
+  const endRaw = match[2] == null ? last : Number(match[2]);
+  const end = Math.min(endRaw, last);
+  return `bytes=${start}-${Math.max(start, end)}`;
+}
+
 export function paidEpisodePlaybackPath(episodeId: string): string {
   return `${PAID_MEDIA_PLAYBACK_PREFIX}/episode/${encodeURIComponent(episodeId)}`;
 }
@@ -36,7 +58,14 @@ export function rewritePaidVideoSrc(input: {
   hlsUrl?: string | null;
   posterUrl?: string | null;
 }): { url: string; hlsUrl: string | null; posterUrl: string | null } {
-  if (input.locked) return { url: "", hlsUrl: null, posterUrl: null };
+  if (input.locked) {
+    if (!input.id) return { url: "", hlsUrl: null, posterUrl: null };
+    return {
+      url: paidMediaPreviewPath(input.id),
+      hlsUrl: null,
+      posterUrl: null,
+    };
+  }
   if ((input.priceKrw ?? 0) > 0) {
     if (input.type === "VIDEO" || input.type === "IMAGE") {
       return { url: paidMediaPlaybackPath(input.id), hlsUrl: null, posterUrl: null };

@@ -5,10 +5,6 @@ import { useSearchParams } from "next/navigation";
 import { FeedVideoPlayer } from "@/components/media/feed-video-player";
 import { useForensicWatermarkSession } from "@/components/media/use-forensic-watermark-session";
 import {
-  forensicPlaybackReady,
-  useForensicViewReady,
-} from "@/components/media/use-forensic-view-ready";
-import {
   paidEpisodePlaybackPath,
   paidMediaPlaybackPath,
   type WatermarkContentKind,
@@ -36,14 +32,10 @@ export default function EmbedPaidVideoClient({ params }: Props) {
         ? paidEpisodePlaybackPath(mediaId)
         : paidMediaPlaybackPath(mediaId);
 
-  const { viewReady, markViewReady } = useForensicViewReady(Boolean(mediaId), mediaId ?? "", {
-    autoAfterMs: undefined,
-  });
-  const { config, loading, error } = useForensicWatermarkSession(
+  const { config, loading, error: sessionError } = useForensicWatermarkSession(
     mediaId,
     Boolean(mediaId),
-    contentKind,
-    viewReady
+    contentKind
   );
 
   if (!mediaId) {
@@ -54,10 +46,10 @@ export default function EmbedPaidVideoClient({ params }: Props) {
     );
   }
 
-  if (error) {
+  if (sessionError) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-black px-6 text-center text-sm text-red-300">
-        {error}
+        {sessionError}
       </div>
     );
   }
@@ -74,7 +66,7 @@ export default function EmbedPaidVideoClient({ params }: Props) {
         mediaId={mediaId}
         autoPlayOnView
         forensicRenderConfig={loading ? null : config}
-        onForensicViewReady={markViewReady}
+        forensicSessionFailed={Boolean(sessionError)}
       />
     </div>
   );

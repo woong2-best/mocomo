@@ -8,15 +8,14 @@ import { emitForensicCanvasEvent } from "@/lib/watermark/client/forensic-diagnos
 export function useForensicWatermarkSession(
   mediaId: string | null | undefined,
   enabled: boolean,
-  contentKind: WatermarkContentKind = "POST_MEDIA",
-  viewReady = true
+  contentKind: WatermarkContentKind = "POST_MEDIA"
 ) {
   const [config, setConfig] = useState<ForensicRenderConfig | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!enabled || !mediaId || !viewReady) {
+    if (!enabled || !mediaId) {
       setConfig(null);
       return;
     }
@@ -69,7 +68,7 @@ export function useForensicWatermarkSession(
     return () => {
       cancelled = true;
     };
-  }, [enabled, mediaId, contentKind, viewReady]);
+  }, [enabled, mediaId, contentKind]);
 
   return { config, loading, error };
 }

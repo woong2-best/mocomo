@@ -8,6 +8,10 @@ import {
   registerForensicDebug,
 } from "@/lib/watermark/client/forensic-diagnostics";
 import { cn } from "@/lib/utils";
+import {
+  drawSourceFit,
+  resolveForensicPaintSize,
+} from "@/components/media/forensic-canvas-fit";
 
 type Props = {
   src: string;
@@ -25,55 +29,6 @@ async function loadBitmap(src: string): Promise<ImageBitmap> {
   if (!res.ok) throw new Error(`Paid media fetch failed (${res.status})`);
   const blob = await res.blob();
   return createImageBitmap(blob);
-}
-
-function resolvePaintSize(
-  wrap: HTMLElement,
-  bitmap: ImageBitmap
-): { width: number; height: number } | null {
-  let w = wrap.clientWidth;
-  let h = wrap.clientHeight;
-  if (w >= 8 && h >= 8) return { width: w, height: h };
-
-  w = wrap.offsetWidth;
-  h = wrap.offsetHeight;
-  if (w >= 8 && h >= 8) return { width: w, height: h };
-
-  const parent = wrap.parentElement;
-  if (parent) {
-    w = parent.clientWidth;
-    h = parent.clientHeight;
-    if (w >= 8 && h >= 8) return { width: w, height: h };
-  }
-
-  if (bitmap.width >= 8 && bitmap.height >= 8) {
-    const maxW = Math.min(bitmap.width, 1920);
-    const maxH = Math.min(bitmap.height, 1920);
-    w = Math.max(w, maxW);
-    h = Math.max(h, Math.round(maxH * (w / bitmap.width)));
-    if (w >= 8 && h >= 8) return { width: w, height: h };
-  }
-
-  return null;
-}
-
-function drawBitmapFit(
-  ctx: CanvasRenderingContext2D,
-  bitmap: ImageBitmap,
-  width: number,
-  height: number,
-  fit: "cover" | "contain"
-) {
-  ctx.clearRect(0, 0, width, height);
-  const scale =
-    fit === "contain"
-      ? Math.min(width / bitmap.width, height / bitmap.height)
-      : Math.max(width / bitmap.width, height / bitmap.height);
-  const dw = bitmap.width * scale;
-  const dh = bitmap.height * scale;
-  const dx = (width - dw) / 2;
-  const dy = (height - dh) / 2;
-  ctx.drawImage(bitmap, dx, dy, dw, dh);
 }
 
 export function ForensicImageCanvas({
@@ -132,7 +87,7 @@ export function ForensicImageCanvas({
       const bitmap = bitmapRef.current;
       if (!wrap || !canvas || !bitmap) return;
 
-      const size = resolvePaintSize(wrap, bitmap);
+      const size = resolveForensicPaintSize(wrap, bitmap.width, bitmap.height);
       if (!size) {
         retryTimer = window.setTimeout(paint, 50);
         return;
@@ -147,7 +102,7 @@ export function ForensicImageCanvas({
         return;
       }
 
-      drawBitmapFit(ctx, bitmap, w, h, objectFit);
+      drawSourceFit(ctx, bitmap, bitmap.width, bitmap.height, w, h, objectFit);
       const imageData = ctx.getImageData(0, 0, w, h);
       embedInvisibleWatermark({ width: w, height: h, data: imageData.data }, config, 0);
       ctx.putImageData(imageData, 0, 0);

@@ -1,17 +1,29 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ForensicRenderConfig } from "@/lib/watermark/types";
 import {
-  embedRegionPixels,
-  forensicFrameRegions,
+  drawSourceFit,
+  resolveForensicPaintSize,
+} from "@/components/media/forensic-canvas-fit";
+import {
+  embedInvisibleWatermark,
 } from "@/lib/watermark/encoder/spread-spectrum";
+import {
+  emitForensicCanvasEvent,
+  registerForensicDebug,
+} from "@/lib/watermark/client/forensic-diagnostics";
+import { cn } from "@/lib/utils";
 
 type Props = {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   active: boolean;
   config: ForensicRenderConfig | null;
   className?: string;
+  objectFit?: "cover" | "contain";
+  mediaId?: string | null;
+  onMarked?: () => void;
+  onFailed?: (message: string) => void;
 };
 
 type FrameCallbackVideo = HTMLVideoElement & {
@@ -19,187 +31,49 @@ type FrameCallbackVideo = HTMLVideoElement & {
   cancelVideoFrameCallback?: (handle: number) => void;
 };
 
-type GlState = {
-  gl: WebGLRenderingContext;
-  videoTex: WebGLTexture;
-  overlayTex: WebGLTexture;
-  program: WebGLProgram;
-  loc: {
-    video: WebGLUniformLocation | null;
-    overlay: WebGLUniformLocation | null;
-    overlayRect: WebGLUniformLocation | null;
-    canvasSize: WebGLUniformLocation | null;
-  };
-};
-
-function compile(gl: WebGLRenderingContext, type: number, src: string): WebGLShader | null {
-  const shader = gl.createShader(type);
-  if (!shader) return null;
-  gl.shaderSource(shader, src);
-  gl.compileShader(shader);
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    gl.deleteShader(shader);
-    return null;
-  }
-  return shader;
-}
-
-function initGl(canvas: HTMLCanvasElement): GlState | null {
-  const gl = canvas.getContext("webgl", {
-    premultipliedAlpha: false,
-    alpha: false,
-    preserveDrawingBuffer: true,
-  });
-  if (!gl) return null;
-
-  const vs = compile(
-    gl,
-    gl.VERTEX_SHADER,
-    `attribute vec2 a_pos;
-     varying vec2 v_uv;
-     void main() {
-       v_uv = vec2((a_pos.x + 1.0) * 0.5, 1.0 - (a_pos.y + 1.0) * 0.5);
-       gl_Position = vec4(a_pos, 0.0, 1.0);
-     }`
-  );
-  const fs = compile(
-    gl,
-    gl.FRAGMENT_SHADER,
-    `precision mediump float;
-     varying vec2 v_uv;
-     uniform sampler2D u_video;
-     uniform sampler2D u_overlay;
-     uniform vec4 u_overlayRect;
-     uniform vec2 u_canvasSize;
-     void main() {
-       vec4 video = texture2D(u_video, v_uv);
-       vec2 px = v_uv * u_canvasSize;
-       vec2 local = (px - u_overlayRect.xy) / max(u_overlayRect.zw, vec2(1.0));
-       float inside = step(0.0, local.x) * step(0.0, local.y) * step(local.x, 1.0) * step(local.y, 1.0);
-       vec4 ov = texture2D(u_overlay, clamp(local, 0.0, 1.0));
-       vec3 delta = ov.rgb - vec3(128.0 / 255.0);
-       gl_FragColor = vec4(clamp(video.rgb + delta * inside, 0.0, 1.0), 1.0);
-     }`
-  );
-  if (!vs || !fs) return null;
-  const program = gl.createProgram();
-  if (!program) return null;
-  gl.attachShader(program, vs);
-  gl.attachShader(program, fs);
-  gl.bindAttribLocation(program, 0, "a_pos");
-  gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return null;
-  gl.useProgram(program);
-
-  const buf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-  gl.enableVertexAttribArray(0);
-  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-
-  const videoTex = gl.createTexture();
-  const overlayTex = gl.createTexture();
-  if (!videoTex || !overlayTex) return null;
-  for (const tex of [videoTex, overlayTex]) {
-    gl.bindTexture(gl.TEXTURE_2D, tex);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-  }
-
-  return {
-    gl,
-    videoTex,
-    overlayTex,
-    program,
-    loc: {
-      video: gl.getUniformLocation(program, "u_video"),
-      overlay: gl.getUniformLocation(program, "u_overlay"),
-      overlayRect: gl.getUniformLocation(program, "u_overlayRect"),
-      canvasSize: gl.getUniformLocation(program, "u_canvasSize"),
-    },
-  };
-}
-
-function fillNeutral(data: Uint8ClampedArray) {
-  for (let i = 0; i < data.length; i += 4) {
-    data[i] = 128;
-    data[i + 1] = 128;
-    data[i + 2] = 128;
-    data[i + 3] = 255;
-  }
-}
-
-function renderGl(
-  state: GlState,
-  video: HTMLVideoElement,
-  config: ForensicRenderConfig,
-  frameIndex: number
-) {
-  const { gl } = state;
-  const vw = video.videoWidth;
-  const vh = video.videoHeight;
-  gl.viewport(0, 0, vw, vh);
-  gl.useProgram(state.program);
-
-  gl.activeTexture(gl.TEXTURE0);
-  gl.bindTexture(gl.TEXTURE_2D, state.videoTex);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
-  gl.uniform1i(state.loc.video, 0);
-
-  const { temporalShift, regions } = forensicFrameRegions(vw, vh, frameIndex, config.temporalPeriod);
-
-  // Composite region overlays into one full-frame overlay so a single pass
-  // applies every carrier. Neutral 128 means "no change".
-  const overlay = new ImageData(vw, vh);
-  fillNeutral(overlay.data);
-  for (const plan of regions) {
-    const { x, y, w, h } = plan.region;
-    const patch = new ImageData(w, h);
-    fillNeutral(patch.data);
-    embedRegionPixels(patch, plan, config, temporalShift);
-    for (let row = 0; row < h; row++) {
-      const src = row * w * 4;
-      const dst = ((y + row) * vw + x) * 4;
-      overlay.data.set(patch.data.subarray(src, src + w * 4), dst);
-    }
-  }
-
-  gl.activeTexture(gl.TEXTURE1);
-  gl.bindTexture(gl.TEXTURE_2D, state.overlayTex);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, vw, vh, 0, gl.RGBA, gl.UNSIGNED_BYTE, overlay.data);
-  gl.uniform1i(state.loc.overlay, 1);
-  gl.uniform4f(state.loc.overlayRect, 0, 0, vw, vh);
-  gl.uniform2f(state.loc.canvasSize, vw, vh);
-  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-}
-
-function render2d(
+function renderMarkedFrame2d(
   canvas: HTMLCanvasElement,
   video: HTMLVideoElement,
   config: ForensicRenderConfig,
-  frameIndex: number
+  frameIndex: number,
+  paintW: number,
+  paintH: number,
+  fit: "cover" | "contain"
 ) {
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
-  if (!ctx) return;
-  const vw = video.videoWidth;
-  const vh = video.videoHeight;
-  ctx.drawImage(video, 0, 0, vw, vh);
-  const { temporalShift, regions } = forensicFrameRegions(vw, vh, frameIndex, config.temporalPeriod);
-  for (const plan of regions) {
-    const { x, y, w, h } = plan.region;
-    const imageData = ctx.getImageData(x, y, w, h);
-    embedRegionPixels({ width: w, height: h, data: imageData.data }, plan, config, temporalShift);
-    ctx.putImageData(imageData, x, y);
-  }
+  if (!ctx) return false;
+
+  canvas.width = paintW;
+  canvas.height = paintH;
+  drawSourceFit(ctx, video, video.videoWidth, video.videoHeight, paintW, paintH, fit);
+
+  const imageData = ctx.getImageData(0, 0, paintW, paintH);
+  embedInvisibleWatermark({ width: paintW, height: paintH, data: imageData.data }, config, frameIndex);
+  ctx.putImageData(imageData, 0, 0);
+  return true;
 }
 
-/** Draws playback through a canvas so each frame carries invisible forensic modulation. */
-export function ForensicVideoCanvas({ videoRef, active, config, className }: Props) {
+/** Draws playback at display resolution so screenshots match embed coordinates. */
+export function ForensicVideoCanvas({
+  videoRef,
+  active,
+  config,
+  className,
+  objectFit = "cover",
+  mediaId = null,
+  onMarked,
+  onFailed,
+}: Props) {
+  const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef(0);
-  const glRef = useRef<GlState | null>(null);
+  const markedRef = useRef(false);
+  const failedRef = useRef(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    registerForensicDebug();
+  }, []);
 
   useEffect(() => {
     if (!active || !config) return;
@@ -207,6 +81,74 @@ export function ForensicVideoCanvas({ videoRef, active, config, className }: Pro
     let running = true;
     let rafHandle = 0;
     let frameHandle = 0;
+    let ro: ResizeObserver | null = null;
+    let failTimer = 0;
+
+    markedRef.current = false;
+    failedRef.current = false;
+    setReady(false);
+    frameRef.current = 0;
+
+    emitForensicCanvasEvent({
+      phase: "CREATED",
+      mediaId,
+      sessionId: config.sessionId,
+    });
+
+    const fail = (message: string) => {
+      if (!running || failedRef.current) return;
+      failedRef.current = true;
+      emitForensicCanvasEvent({
+        phase: "FALLBACK",
+        mediaId,
+        sessionId: config.sessionId,
+        message,
+      });
+      onFailed?.(message);
+    };
+
+    const paint = () => {
+      if (!running || failedRef.current) return;
+      const source = videoRef.current;
+      const wrap = wrapRef.current;
+      const canvas = canvasRef.current;
+      if (!source || !wrap || !canvas || source.readyState < 2) return;
+
+      const vw = source.videoWidth;
+      const vh = source.videoHeight;
+      if (!vw || !vh) return;
+
+      const size = resolveForensicPaintSize(wrap, vw, vh);
+      if (!size) return;
+
+      const ok = renderMarkedFrame2d(
+        canvas,
+        source,
+        config,
+        frameRef.current,
+        size.width,
+        size.height,
+        objectFit
+      );
+      if (!ok) {
+        fail("Canvas 2D unavailable");
+        return;
+      }
+
+      setReady(true);
+      if (!markedRef.current) {
+        markedRef.current = true;
+        onMarked?.();
+      }
+      emitForensicCanvasEvent({
+        phase: "RENDERED",
+        mediaId,
+        sessionId: config.sessionId,
+        width: size.width,
+        height: size.height,
+      });
+      frameRef.current += 1;
+    };
 
     const video = videoRef.current as FrameCallbackVideo | null;
     const useFrameCallback = Boolean(video?.requestVideoFrameCallback);
@@ -222,44 +164,22 @@ export function ForensicVideoCanvas({ videoRef, active, config, className }: Pro
 
     const tick = () => {
       if (!running) return;
-      const source = videoRef.current;
-      const canvas = canvasRef.current;
-      if (!source || !canvas || source.readyState < 2) {
-        schedule(tick);
-        return;
-      }
-
-      const vw = source.videoWidth;
-      const vh = source.videoHeight;
-      if (!vw || !vh) {
-        schedule(tick);
-        return;
-      }
-
-      if (canvas.width !== vw || canvas.height !== vh) {
-        canvas.width = vw;
-        canvas.height = vh;
-        glRef.current = null;
-      }
-
-      if (!glRef.current) glRef.current = initGl(canvas);
-
-      if (glRef.current) {
-        try {
-          renderGl(glRef.current, source, config, frameRef.current);
-        } catch {
-          glRef.current = null;
-          render2d(canvas, source, config, frameRef.current);
-        }
-      } else {
-        render2d(canvas, source, config, frameRef.current);
-      }
-
-      frameRef.current += 1;
+      paint();
       schedule(tick);
     };
 
     schedule(tick);
+
+    const wrap = wrapRef.current;
+    if (wrap) {
+      ro = new ResizeObserver(() => paint());
+      ro.observe(wrap);
+      if (wrap.parentElement) ro.observe(wrap.parentElement);
+    }
+
+    failTimer = window.setTimeout(() => {
+      if (!markedRef.current) fail("Canvas render timed out");
+    }, 12_000);
 
     return () => {
       running = false;
@@ -267,10 +187,23 @@ export function ForensicVideoCanvas({ videoRef, active, config, className }: Pro
       if (frameHandle && video?.cancelVideoFrameCallback) {
         video.cancelVideoFrameCallback(frameHandle);
       }
+      ro?.disconnect();
+      window.clearTimeout(failTimer);
     };
-  }, [active, config, videoRef]);
+  }, [active, config, mediaId, objectFit, onFailed, onMarked, videoRef]);
 
   if (!active || !config) return null;
 
-  return <canvas ref={canvasRef} className={className} aria-hidden />;
+  return (
+    <div ref={wrapRef} className={cn("relative size-full overflow-hidden", className)}>
+      <canvas
+        ref={canvasRef}
+        data-forensic-canvas={ready ? "ready" : "loading"}
+        data-forensic-media-id={mediaId ?? undefined}
+        data-forensic-session-id={config.sessionId}
+        className={cn("block size-full", !ready && "opacity-0")}
+        aria-hidden
+      />
+    </div>
+  );
 }

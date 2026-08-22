@@ -8,10 +8,9 @@ import { FeedVideoPlayer } from "@/components/media/feed-video-player";
 import { ForensicImageCanvas } from "@/components/media/forensic-image-canvas";
 import { useForensicWatermarkSession } from "@/components/media/use-forensic-watermark-session";
 import {
-  forensicViewAutoMs,
-  useForensicViewReady,
-} from "@/components/media/use-forensic-view-ready";
-import type { WatermarkContentKind } from "@/lib/paid-media-playback";
+  PAID_PREVIEW_SECONDS,
+  type WatermarkContentKind,
+} from "@/lib/paid-media-playback";
 
 type Props = {
   type: string;
@@ -74,14 +73,10 @@ export function ProtectedPaidMedia({
   const fillsTile = Boolean(className?.includes("h-full"));
   const forensicEnabled = protect && !locked && Boolean(mediaId);
   const viewResetKey = `${mediaId ?? ""}:${src}`;
-  const { viewReady, markViewReady } = useForensicViewReady(forensicEnabled, viewResetKey, {
-    autoAfterMs: isVideo ? undefined : forensicViewAutoMs(),
-  });
   const { config: forensicRenderConfig, error: sessionError } = useForensicWatermarkSession(
     mediaId,
     forensicEnabled,
-    contentKind,
-    viewReady
+    contentKind
   );
   const [canvasFailed, setCanvasFailed] = useState(false);
   const [canvasReady, setCanvasReady] = useState(false);
@@ -91,11 +86,42 @@ export function ProtectedPaidMedia({
     setCanvasReady(false);
   }, [viewResetKey, forensicRenderConfig?.sessionId]);
 
-  if (locked || !src.trim()) {
+  if (!src.trim()) {
     return (
       <div
         className={cn("bg-muted", className)}
         aria-hidden
+      />
+    );
+  }
+
+  if (locked) {
+    if (isVideo) {
+      return (
+        <FeedVideoPlayer
+          src={src}
+          className={className}
+          muted
+          playsInline={playsInline}
+          preload="auto"
+          controls={false}
+          protect={false}
+          mediaId={mediaId}
+          autoPlayOnView={autoPlayOnView}
+          poster={poster}
+          previewMaxSeconds={PAID_PREVIEW_SECONDS}
+        />
+      );
+    }
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={alt}
+        className={cn(className, "pointer-events-none")}
+        loading={loading}
+        draggable={false}
+        onContextMenu={(e) => e.preventDefault()}
       />
     );
   }
@@ -116,7 +142,7 @@ export function ProtectedPaidMedia({
         onOpenImmersive={onOpenImmersive}
         poster={poster}
         forensicRenderConfig={forensicRenderConfig}
-        onForensicViewReady={forensicEnabled ? markViewReady : undefined}
+        forensicSessionFailed={Boolean(sessionError)}
       />
     );
     if (!protect) return player;
@@ -128,11 +154,7 @@ export function ProtectedPaidMedia({
   }
 
   const useForensicCanvas =
-    forensicEnabled &&
-    viewReady &&
-    forensicRenderConfig &&
-    !sessionError &&
-    !canvasFailed;
+    forensicEnabled && forensicRenderConfig && !sessionError && !canvasFailed;
 
   const imageNode = (
     <div
@@ -148,12 +170,22 @@ export function ProtectedPaidMedia({
         className={cn(
           className,
           protect && "pointer-events-none",
+          forensicEnabled && !canvasReady && "opacity-0",
           useForensicCanvas && canvasReady && "sr-only"
         )}
         loading={loading}
         draggable={false}
         onContextMenu={(e) => e.preventDefault()}
       />
+      {forensicEnabled && !canvasReady ? (
+        <div
+          className={cn(
+            "absolute inset-0 animate-pulse bg-muted",
+            className
+          )}
+          aria-hidden
+        />
+      ) : null}
       {useForensicCanvas ? (
         <ForensicImageCanvas
           src={src}

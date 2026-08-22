@@ -31,10 +31,6 @@ import {
 import { ReelsProgressBar } from "@/components/reels/reels-progress-bar";
 import { ForensicVideoCanvas } from "@/components/media/forensic-video-canvas";
 import { useForensicWatermarkSession } from "@/components/media/use-forensic-watermark-session";
-import {
-  forensicPlaybackReady,
-  useForensicViewReady,
-} from "@/components/media/use-forensic-view-ready";
 import { shouldProtectPaidMediaView } from "@/lib/paid-media-protection";
 
 type Props = {
@@ -91,16 +87,12 @@ export function ReelsPlayer({
     mediaPriceKrw,
     postInstantPurchasePriceKrw,
   });
-  const { viewReady, markViewReady } = useForensicViewReady(paidView, mediaId, {
-    autoAfterMs: undefined,
-  });
-  const { config: forensicConfig } = useForensicWatermarkSession(
+  const { config: forensicConfig, error: forensicSessionError } = useForensicWatermarkSession(
     mediaId,
     paidView,
-    "POST_MEDIA",
-    viewReady
+    "POST_MEDIA"
   );
-  const forensicViewReadyRef = useRef(false);
+  const [forensicCanvasReady, setForensicCanvasReady] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<HlsType | null>(null);
@@ -114,6 +106,15 @@ export function ReelsPlayer({
   const attachedSrcRef = useRef<string | null>(null);
   const isActiveRef = useRef(isActive);
   isActiveRef.current = isActive;
+
+  useEffect(() => {
+    setForensicCanvasReady(false);
+  }, [forensicConfig?.sessionId, mediaId]);
+
+  const buyerForensic = paidView && !forensicSessionError;
+  const forensicActive = Boolean(forensicConfig);
+  const showForensicLoading = buyerForensic && !(forensicActive && forensicCanvasReady);
+  const hideRawVideo = buyerForensic || forensicActive;
 
   const { src: playbackSrc, mode } = resolveReelPlaybackSrc({ url: src, hlsUrl });
   const shouldMountMedia = distance <= 3;
@@ -284,24 +285,12 @@ export function ReelsPlayer({
   }, [distance, isActive, tryPlay]);
 
   useEffect(() => {
-    forensicViewReadyRef.current = false;
-  }, [mediaId, markViewReady]);
-
-  useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     const onTime = () => {
       const d = video.duration;
       if (Number.isFinite(d) && d > 0) setProgress(video.currentTime / d);
-      if (
-        paidView &&
-        !forensicViewReadyRef.current &&
-        forensicPlaybackReady(video.currentTime)
-      ) {
-        forensicViewReadyRef.current = true;
-        markViewReady();
-      }
       try {
         if (video.buffered.length > 0 && Number.isFinite(d) && d > 0) {
           setBuffered(video.buffered.end(video.buffered.length - 1) / d);
@@ -340,7 +329,7 @@ export function ReelsPlayer({
       video.removeEventListener("loadedmetadata", onMeta);
       video.removeEventListener("ended", onVideoEnded);
     };
-  }, [playbackSrc, disableLoop, onEnded, paidView, markViewReady]);
+  }, [playbackSrc, disableLoop, onEnded]);
 
   const onSeek = useCallback((ratio: number) => {
     const video = videoRef.current;
@@ -410,7 +399,7 @@ export function ReelsPlayer({
           // decode / render only when near
           style={{
             contentVisibility: distance > 1 ? "auto" : "visible",
-            opacity: forensicConfig ? 0 : undefined,
+            opacity: hideRawVideo ? 0 : undefined,
           }}
           aria-label="Short video"
         />
@@ -419,9 +408,19 @@ export function ReelsPlayer({
       {shouldMountMedia ? (
         <ForensicVideoCanvas
           videoRef={videoRef}
-          active={Boolean(forensicConfig)}
+          active={forensicActive}
           config={forensicConfig}
+          objectFit="contain"
+          mediaId={mediaId}
+          onMarked={() => setForensicCanvasReady(true)}
           className="absolute inset-0 h-full w-full object-contain z-[1] pointer-events-none"
+        />
+      ) : null}
+
+      {showForensicLoading ? (
+        <div
+          className="pointer-events-none absolute inset-0 z-[2] animate-pulse bg-muted"
+          aria-hidden
         />
       ) : null}
 

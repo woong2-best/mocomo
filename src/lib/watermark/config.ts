@@ -8,8 +8,8 @@ export const WATERMARK_CODEWORD_BYTES = WATERMARK_DATA_BYTES + WATERMARK_PARITY_
 
 export const WATERMARK_SESSION_TTL_MS = 4 * 60 * 60 * 1000;
 
-/** Minimum paid view time before a forensic session is considered valid (UI + ops). */
-export const WATERMARK_MIN_VIEW_SECONDS = 1;
+/** Forensic session starts as soon as paid media is opened. Kept at 0. */
+export const WATERMARK_MIN_VIEW_SECONDS = 0;
 
 /** Luminance modulation depth. Paired pixels move in opposite directions by this
  *  amount, so the visible change stays under 2% of range while the differential

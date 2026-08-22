@@ -1,6 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { rewritePaidVideoSrc, paidMediaPlaybackPath } from "@/lib/paid-media-playback";
+import {
+  rewritePaidVideoSrc,
+  paidMediaPlaybackPath,
+  paidMediaPreviewPath,
+  clampPaidPreviewRange,
+} from "@/lib/paid-media-playback";
 
 test("paid unlocked video is rewritten to the same-origin gate", () => {
   const out = rewritePaidVideoSrc({
@@ -24,7 +29,7 @@ test("locked paid video does not leak the origin url", () => {
     locked: true,
     hlsUrl: "https://cdn.example/video.m3u8",
   });
-  assert.equal(out.url, "");
+  assert.equal(out.url, paidMediaPreviewPath("media_1"));
   assert.equal(out.hlsUrl, null);
 });
 
@@ -37,9 +42,16 @@ test("locked paid image does not leak the origin url", () => {
     locked: true,
     posterUrl: "https://cdn.example/poster.jpg",
   });
-  assert.equal(out.url, "");
+  assert.equal(out.url, paidMediaPreviewPath("media_1"));
   assert.equal(out.hlsUrl, null);
   assert.equal(out.posterUrl, null);
+});
+
+test("preview range is capped so the full file cannot be streamed", () => {
+  assert.equal(clampPaidPreviewRange(null, 1000), "bytes=0-999");
+  assert.equal(clampPaidPreviewRange("bytes=0-999999", 1000), "bytes=0-999");
+  assert.equal(clampPaidPreviewRange("bytes=200-400", 1000), "bytes=200-400");
+  assert.equal(clampPaidPreviewRange("bytes=9000-", 1000), "bytes=999-999");
 });
 
 test("paid unlocked image is rewritten to the same-origin gate", () => {

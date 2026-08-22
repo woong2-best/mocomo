@@ -171,12 +171,12 @@ function CarouselTile({
       <ProtectedPaidMedia
         type={media.type}
         src={media.url}
-        className={cn("h-full w-full object-cover", locked && "blur-xl scale-105")}
+        className={cn("h-full w-full object-cover", locked && "blur-sm scale-105")}
         mediaPriceKrw={media.priceKrw}
         postInstantPurchasePriceKrw={postInstantPurchasePriceKrw ?? media.instantPurchasePriceKrw}
         locked={locked}
         mediaId={media.id}
-        autoPlayOnView={active && !locked}
+        autoPlayOnView={active}
         onDoubleTapLike={onDoubleTapLike}
         onOpenImmersive={onOpenImmersive}
         poster={media.posterUrl ?? undefined}

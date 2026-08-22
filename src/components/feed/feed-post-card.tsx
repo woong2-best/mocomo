@@ -145,7 +145,7 @@ export function FeedPostCard({
                 src={cover.url}
                 className={cn(
                   "w-full aspect-[4/5] object-cover bg-black",
-                  cover.locked && "blur-xl scale-105"
+                  cover.locked && "blur-sm scale-105"
                 )}
                 mediaPriceKrw={cover.priceKrw}
                 postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
@@ -161,7 +161,7 @@ export function FeedPostCard({
                 src={cover.url}
                 className={cn(
                   "w-full aspect-[4/5] object-cover bg-black",
-                  cover.locked && "blur-xl scale-105"
+                  cover.locked && "blur-sm scale-105"
                 )}
                 mediaPriceKrw={cover.priceKrw}
                 postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}

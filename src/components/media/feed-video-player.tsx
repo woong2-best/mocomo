@@ -20,8 +20,8 @@ import {
   Heart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { forensicPlaybackReady } from "@/components/media/use-forensic-view-ready";
 import { ForensicVideoCanvas } from "@/components/media/forensic-video-canvas";
+import { PaidVideoCopyrightWarning } from "@/components/media/paid-video-copyright-warning";
 import type { ForensicRenderConfig } from "@/lib/watermark/types";
 import {
   AUTOPLAY_THRESHOLD,
@@ -78,8 +78,10 @@ type Props = {
   poster?: string;
   /** Invisible forensic watermark render config (paid video only). */
   forensicRenderConfig?: ForensicRenderConfig | null;
-  /** Called once when paid playback reaches the forensic view threshold. */
-  onForensicViewReady?: () => void;
+  /** Session endpoint failed (e.g. author) — show unmarked playback. */
+  forensicSessionFailed?: boolean;
+  /** Locked teaser: loop only the first N seconds, no copyright warning. */
+  previewMaxSeconds?: number | null;
 };
 
 function formatTime(sec: number): string {
@@ -168,7 +170,8 @@ export function FeedVideoPlayer({
   onOpenImmersive,
   poster,
   forensicRenderConfig,
-  onForensicViewReady,
+  forensicSessionFailed = false,
+  previewMaxSeconds = null,
 }: Props) {
   const reactId = useId();
   const playerId = `fv-${mediaId ?? reactId}`;
@@ -202,7 +205,7 @@ export function FeedVideoPlayer({
   const lastProgressSaveRef = useRef(0);
   const bufferingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoPlayingRef = useRef(false);
-  const forensicViewReadyRef = useRef(false);
+  const copyrightDismissedRef = useRef(!protect);
 
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [isVolumeDragging, setIsVolumeDragging] = useState(false);
@@ -223,6 +226,8 @@ export function FeedVideoPlayer({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [buffering, setBuffering] = useState(false);
   const [likeBurst, setLikeBurst] = useState(false);
+  const [copyrightDismissed, setCopyrightDismissed] = useState(!protect);
+  const [forensicCanvasReady, setForensicCanvasReady] = useState(false);
   const [holdBoost, setHoldBoost] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [mediaAttached, setMediaAttached] = useState(true);
@@ -254,9 +259,12 @@ export function FeedVideoPlayer({
     }
   }, []);
 
+  const previewMode =
+    previewMaxSeconds != null && previewMaxSeconds > 0;
+
   const restoreProgress = useCallback(() => {
     const v = videoRef.current;
-    if (!v) return;
+    if (!v || previewMode) return;
     const saved = getSavedProgress(pKey);
     if (saved > 0.25 && Number.isFinite(v.duration) && saved < v.duration - 0.5) {
       try {
@@ -266,7 +274,7 @@ export function FeedVideoPlayer({
         /* ignore */
       }
     }
-  }, [pKey]);
+  }, [pKey, previewMode]);
 
   const applyVolume = useCallback((next: number, persist = true) => {
     const v = videoRef.current;
@@ -329,6 +337,8 @@ export function FeedVideoPlayer({
       const v = videoRef.current;
       if (!v || !ctrl) return false;
 
+      if (protect && !previewMode && !copyrightDismissedRef.current) return false;
+
       // Scrub pauses intentionally — don't let IO/hover autoplay fight mid-drag.
       if (scrubbingRef.current && reason !== "user") return false;
 
@@ -356,7 +366,32 @@ export function FeedVideoPlayer({
       }
       return ok;
     },
-    [ensureMediaSrc, playerId, src]
+    [ensureMediaSrc, playerId, previewMode, protect, src]
+  );
+
+  const resetCopyrightWarning = useCallback(() => {
+    if (!protect) return;
+    copyrightDismissedRef.current = false;
+    setCopyrightDismissed(false);
+  }, [protect]);
+
+  const dismissCopyrightWarning = useCallback(
+    (thenPlay?: "user") => {
+      if (!protect || copyrightDismissedRef.current) {
+        if (thenPlay === "user") {
+          userPausedRef.current = false;
+          void playExclusive("user");
+        }
+        return;
+      }
+      copyrightDismissedRef.current = true;
+      setCopyrightDismissed(true);
+      if (thenPlay === "user") {
+        userPausedRef.current = false;
+        void playExclusive("user");
+      }
+    },
+    [playExclusive, protect]
   );
 
   const pauseSelf = useCallback(
@@ -439,8 +474,24 @@ export function FeedVideoPlayer({
   }, [src, mediaAttached, retryToken, autoPlayOnView, playExclusive]);
 
   useEffect(() => {
-    forensicViewReadyRef.current = false;
-  }, [src, mediaId, onForensicViewReady]);
+    setForensicCanvasReady(false);
+  }, [src, mediaId, forensicRenderConfig?.sessionId]);
+
+  useEffect(() => {
+    if (!protect) {
+      copyrightDismissedRef.current = true;
+      setCopyrightDismissed(true);
+      return;
+    }
+    resetCopyrightWarning();
+  }, [mediaId, protect, resetCopyrightWarning, src]);
+
+  const showCopyrightWarning = protect && !previewMode && !copyrightDismissed;
+
+  useEffect(() => {
+    if (!showCopyrightWarning) return;
+    pauseSelf(true);
+  }, [pauseSelf, showCopyrightWarning]);
 
   // Core media events
   useEffect(() => {
@@ -469,18 +520,21 @@ export function FeedVideoPlayer({
         lastUiTickRef.current = now;
         setCurrent(v.currentTime);
       }
-      if (v.currentTime > 0.5 && now - lastProgressSaveRef.current >= 1000) {
+      if (
+        !previewMode &&
+        v.currentTime > 0.5 &&
+        now - lastProgressSaveRef.current >= 1000
+      ) {
         lastProgressSaveRef.current = now;
         saveProgress(pKey, v.currentTime);
       }
-      if (
-        protect &&
-        onForensicViewReady &&
-        !forensicViewReadyRef.current &&
-        forensicPlaybackReady(v.currentTime)
-      ) {
-        forensicViewReadyRef.current = true;
-        onForensicViewReady();
+      if (previewMode && previewMaxSeconds && v.currentTime >= previewMaxSeconds) {
+        try {
+          v.currentTime = 0;
+        } catch {
+          /* ignore */
+        }
+        setCurrent(0);
       }
     };
     const onMeta = () => {
@@ -497,6 +551,7 @@ export function FeedVideoPlayer({
       scrubbingRef.current = false;
       if (!loop) {
         saveProgress(pKey, v.currentTime);
+        if (protect) resetCopyrightWarning();
       }
     };
     const onVolume = () => {
@@ -560,7 +615,7 @@ export function FeedVideoPlayer({
       v.removeEventListener("error", onError);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- init once per src attach
-  }, [src, mediaAttached, retryToken, syncDuration, restoreProgress, pKey, loop]);
+  }, [src, mediaAttached, retryToken, syncDuration, restoreProgress, pKey, loop, protect, previewMode, previewMaxSeconds, resetCopyrightWarning]);
 
   // IntersectionObserver: autoplay / pause / unload / preload
   useEffect(() => {
@@ -615,6 +670,7 @@ export function FeedVideoPlayer({
               autoPlayingRef.current = false;
               setMediaAttached(false);
               setPlaying(false);
+              resetCopyrightWarning();
             }, UNLOAD_AFTER_MS);
           }
         }
@@ -645,6 +701,7 @@ export function FeedVideoPlayer({
             autoPlayingRef.current = false;
             registeredRef.current.autoplayIntent = false;
           }
+          resetCopyrightWarning();
         }
       },
       {
@@ -663,6 +720,7 @@ export function FeedVideoPlayer({
     pKey,
     preloadProp,
     isPlayerFullscreen,
+    resetCopyrightWarning,
   ]);
 
   useEffect(() => {
@@ -1048,6 +1106,14 @@ export function FeedVideoPlayer({
     (e: KeyboardEvent | React.KeyboardEvent) => {
       if (isEditableKeyTarget(e.target)) return;
 
+      if (showCopyrightWarning) {
+        if (e.key === " " || e.key === "Enter") {
+          e.preventDefault();
+          dismissCopyrightWarning("user");
+        }
+        return;
+      }
+
       switch (e.key) {
         case " ":
         case "k":
@@ -1093,7 +1159,7 @@ export function FeedVideoPlayer({
           break;
       }
     },
-    [applyVolume, protect, seekBy, togglePlay, volume, zoom]
+    [applyVolume, dismissCopyrightWarning, protect, seekBy, showCopyrightWarning, togglePlay, volume, zoom]
   );
 
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -1130,13 +1196,18 @@ export function FeedVideoPlayer({
   const VolumeIcon = effectiveMuted ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
   const showVolumePanel = volumeOpen || isVolumeDragging;
 
+  const forensicActive = Boolean(forensicRenderConfig);
+  const buyerForensic =
+    protect && Boolean(mediaId) && !forensicSessionFailed;
+  const showForensicLoading =
+    buyerForensic && !(forensicActive && forensicCanvasReady);
+  const hideRawVideo = buyerForensic || forensicActive;
+
   const videoStyle: CSSProperties = {
     transform: zoom > 1 ? `scale(${zoom})` : undefined,
     transition: pinchRef.current ? undefined : "transform 200ms ease",
-    opacity: forensicRenderConfig ? 0 : undefined,
+    opacity: hideRawVideo ? 0 : undefined,
   };
-
-  const forensicActive = Boolean(forensicRenderConfig);
 
   return (
     <div
@@ -1190,6 +1261,9 @@ export function FeedVideoPlayer({
         videoRef={videoRef}
         active={forensicActive}
         config={forensicRenderConfig ?? null}
+        objectFit={wantsContain ? "contain" : "cover"}
+        mediaId={mediaId}
+        onMarked={() => setForensicCanvasReady(true)}
         className={cn(
           fillMode
             ? cn("absolute inset-0 h-full w-full", fillFitClass)
@@ -1197,6 +1271,13 @@ export function FeedVideoPlayer({
           "origin-center z-[1] pointer-events-none"
         )}
       />
+
+      {showForensicLoading ? (
+        <div
+          className="pointer-events-none absolute inset-0 z-[2] animate-pulse bg-muted"
+          aria-hidden
+        />
+      ) : null}
 
       {buffering && (
         <div
@@ -1222,7 +1303,13 @@ export function FeedVideoPlayer({
         </div>
       )}
 
-      {!playing && !buffering && (
+      {showCopyrightWarning ? (
+        <PaidVideoCopyrightWarning
+          onContinue={() => dismissCopyrightWarning("user")}
+        />
+      ) : null}
+
+      {!playing && !buffering && !showCopyrightWarning && !previewMode && (
         <button
           type="button"
           aria-label="재생"
@@ -1246,7 +1333,7 @@ export function FeedVideoPlayer({
         </button>
       )}
 
-      {started && (
+      {started && !previewMode && (
         <>
           <div
             aria-hidden

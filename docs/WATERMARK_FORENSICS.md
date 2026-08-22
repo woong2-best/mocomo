@@ -55,7 +55,8 @@ Admin UI lives at `/admin/watermark/forensics`. Detection reports one of
 
 ## How a session works
 
-1. The player requests `POST /api/watermark/session` for paid image or video.
+1. The player requests `POST /api/watermark/session` as soon as paid image or video
+   is opened — no view-time delay.
 2. The server confirms the viewer is actually entitled to that media — a
    `PostMediaPurchase`, an active subscription, or a `CreatorEpisodePurchase` —
    then creates a `WatermarkSession` and derives an opaque id from the master secret over
@@ -64,8 +65,11 @@ Admin UI lives at `/admin/watermark/forensics`. Detection reports one of
    Paid web playback uses `/api/media/paid/...` so the origin CDN URL is not in the document.
 3. The client receives a carrier: a spreading seed plus a Reed-Solomon codeword
    carrying content, session, nonce and an HMAC integrity tag.
-4. `ForensicVideoCanvas` or `ForensicImageCanvas` draws playback through a canvas and
-   modulates the central four quadrants (plus ring anchors) for each frame or still.
+4. `ForensicVideoCanvas` or `ForensicImageCanvas` draws playback through a canvas at
+   **display resolution** (what appears on screen) and modulates the central four
+   quadrants (plus ring anchors) for each frame or still. Video previously embedded
+   at native `videoWidth×videoHeight` while CSS scaled the output, which broke
+   screenshot coordinate alignment; display-size embedding fixes that.
 
 Sessions expire after 4 hours. Expired sessions stay in the table because
 detection needs them.
@@ -81,9 +85,10 @@ sends `contentKind: "EPISODE"` so the session is bound to the episode purchase,
 not a PostMedia row. Paid images load through `/api/media/paid/[id]` so canvas
 embedding can read pixels same-origin.
 
-Playback compositing uses WebGL when the browser can create a context, and
-falls back to a 2D canvas. Either way the displayed pixels are the marked
-frame; the hidden `<video>` is not what the user (or a screen recorder) sees.
+Playback compositing uses a 2D canvas at the element's on-screen size. The hidden
+`<video>` / plain `<img>` is not shown to buyers until the marked canvas is ready;
+authors (no session) still see normal playback. Either way the displayed pixels are
+the marked frame when forensic protection applies.
 
 When adding a new video surface, pass the price through. A player that only
 receives `mediaId` renders unprotected, and nothing will fail loudly.
@@ -154,4 +159,11 @@ npm run test:watermark
 
 Covers the pixel round trip, recovery after noise and the loss of a whole
 quadrant, refusal to attribute a clean or unrelated frame, per-frame embedding
-cost, and Reed-Solomon behaviour.
+cost, Reed-Solomon behaviour, **display-size capture path** (PNG export roundtrip),
+and **screen-recording-style JPEG frames**.
+
+Manual E2E before release:
+
+1. Purchase account → open paid photo or video → wait until canvas `data-forensic-canvas=ready`.
+2. DevTools: `await window.__mocomoForensicDebug?.exportPng()` → upload PNG + Media ID → expect **MATCH** with username.
+3. Repeat with a native screenshot of the same view.
