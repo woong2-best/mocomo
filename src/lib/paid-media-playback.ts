@@ -43,6 +43,31 @@ export function isPaidPlaybackPath(url: string | null | undefined): boolean {
   return Boolean(url?.startsWith(PAID_MEDIA_PLAYBACK_PREFIX));
 }
 
+export function isPaidPreviewPath(url: string | null | undefined): boolean {
+  return Boolean(url?.includes(`${PAID_MEDIA_PLAYBACK_PREFIX}/`) && url.includes("/preview"));
+}
+
+/**
+ * Client-side src repair: after purchase the row may still hold "" or a
+ * preview path. Unlocked paid media must hit the full playback gate.
+ */
+export function resolveClientPaidMediaSrc(input: {
+  url: string | null | undefined;
+  mediaId?: string | null;
+  locked?: boolean;
+  priceKrw?: number | null;
+}): string {
+  const id = input.mediaId?.trim() || "";
+  const url = (input.url ?? "").trim();
+  if (input.locked) {
+    return id ? paidMediaPreviewPath(id) : url;
+  }
+  if (id && (isPaidPreviewPath(url) || (!url && (input.priceKrw ?? 0) > 0))) {
+    return paidMediaPlaybackPath(id);
+  }
+  return url;
+}
+
 /**
  * Strip origin bytes from payloads the browser should not see.
  * Locked sale media (image or video) get an empty src so CSS-blur is not

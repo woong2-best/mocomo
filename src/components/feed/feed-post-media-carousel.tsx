@@ -266,7 +266,12 @@ export function FeedPostMediaCarousel({
           const shouldUnlock =
             isInstant || m.id === purchasedMediaId || (!purchasedMediaId && (m.priceKrw ?? 0) > 0);
           if (!shouldUnlock) return m;
-          return { ...m, locked: false, lockReason: "none" as const };
+          return {
+            ...m,
+            locked: false,
+            lockReason: "none" as const,
+            url: m.id ? `/api/media/paid/${encodeURIComponent(m.id)}` : m.url,
+          };
         });
 
       setLocalMedia((prev) => unlock(prev));

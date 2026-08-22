@@ -5,6 +5,7 @@ import {
   paidMediaPlaybackPath,
   paidMediaPreviewPath,
   clampPaidPreviewRange,
+  resolveClientPaidMediaSrc,
 } from "@/lib/paid-media-playback";
 
 test("paid unlocked video is rewritten to the same-origin gate", () => {
@@ -64,6 +65,36 @@ test("paid unlocked image is rewritten to the same-origin gate", () => {
   });
   assert.equal(out.url, paidMediaPlaybackPath("media_img"));
   assert.equal(out.hlsUrl, null);
+});
+
+test("unlocked client src upgrades preview or empty url to full playback", () => {
+  assert.equal(
+    resolveClientPaidMediaSrc({
+      url: paidMediaPreviewPath("media_1"),
+      mediaId: "media_1",
+      locked: false,
+      priceKrw: 3000,
+    }),
+    paidMediaPlaybackPath("media_1")
+  );
+  assert.equal(
+    resolveClientPaidMediaSrc({
+      url: "",
+      mediaId: "media_1",
+      locked: false,
+      priceKrw: 3000,
+    }),
+    paidMediaPlaybackPath("media_1")
+  );
+  assert.equal(
+    resolveClientPaidMediaSrc({
+      url: "",
+      mediaId: "media_1",
+      locked: true,
+      priceKrw: 3000,
+    }),
+    paidMediaPreviewPath("media_1")
+  );
 });
 
 test("free video keeps its stored url", () => {

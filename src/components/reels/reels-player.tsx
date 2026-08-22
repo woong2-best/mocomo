@@ -87,7 +87,7 @@ export function ReelsPlayer({
     mediaPriceKrw,
     postInstantPurchasePriceKrw,
   });
-  const { config: forensicConfig, error: forensicSessionError } = useForensicWatermarkSession(
+  const { config: forensicConfig } = useForensicWatermarkSession(
     mediaId,
     paidView,
     "POST_MEDIA"
@@ -111,10 +111,8 @@ export function ReelsPlayer({
     setForensicCanvasReady(false);
   }, [forensicConfig?.sessionId, mediaId]);
 
-  const buyerForensic = paidView && !forensicSessionError;
   const forensicActive = Boolean(forensicConfig);
-  const showForensicLoading = buyerForensic && !(forensicActive && forensicCanvasReady);
-  const hideRawVideo = buyerForensic || forensicActive;
+  const hideRawVideo = forensicActive && forensicCanvasReady;
 
   const { src: playbackSrc, mode } = resolveReelPlaybackSrc({ url: src, hlsUrl });
   const shouldMountMedia = distance <= 3;
@@ -414,13 +412,6 @@ export function ReelsPlayer({
           mediaId={mediaId}
           onMarked={() => setForensicCanvasReady(true)}
           className="absolute inset-0 h-full w-full object-contain z-[1] pointer-events-none"
-        />
-      ) : null}
-
-      {showForensicLoading ? (
-        <div
-          className="pointer-events-none absolute inset-0 z-[2] animate-pulse bg-muted"
-          aria-hidden
         />
       ) : null}
 

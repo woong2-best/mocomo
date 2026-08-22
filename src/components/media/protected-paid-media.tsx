@@ -9,6 +9,7 @@ import { ForensicImageCanvas } from "@/components/media/forensic-image-canvas";
 import { useForensicWatermarkSession } from "@/components/media/use-forensic-watermark-session";
 import {
   PAID_PREVIEW_SECONDS,
+  resolveClientPaidMediaSrc,
   type WatermarkContentKind,
 } from "@/lib/paid-media-playback";
 
@@ -71,8 +72,14 @@ export function ProtectedPaidMedia({
   const isVideo = type === "VIDEO";
   const objectFit = inferObjectFit(className, objectFitProp);
   const fillsTile = Boolean(className?.includes("h-full"));
+  const resolvedSrc = resolveClientPaidMediaSrc({
+    url: src,
+    mediaId,
+    locked,
+    priceKrw: mediaPriceKrw ?? postInstantPurchasePriceKrw,
+  });
   const forensicEnabled = protect && !locked && Boolean(mediaId);
-  const viewResetKey = `${mediaId ?? ""}:${src}`;
+  const viewResetKey = `${mediaId ?? ""}:${resolvedSrc}`;
   const { config: forensicRenderConfig, error: sessionError } = useForensicWatermarkSession(
     mediaId,
     forensicEnabled,
@@ -86,7 +93,7 @@ export function ProtectedPaidMedia({
     setCanvasReady(false);
   }, [viewResetKey, forensicRenderConfig?.sessionId]);
 
-  if (!src.trim()) {
+  if (!resolvedSrc) {
     return (
       <div
         className={cn("bg-muted", className)}
@@ -99,7 +106,7 @@ export function ProtectedPaidMedia({
     if (isVideo) {
       return (
         <FeedVideoPlayer
-          src={src}
+          src={resolvedSrc}
           className={className}
           muted
           playsInline={playsInline}
@@ -116,7 +123,7 @@ export function ProtectedPaidMedia({
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={src}
+        src={resolvedSrc}
         alt={alt}
         className={cn(className, "pointer-events-none")}
         loading={loading}
@@ -129,7 +136,7 @@ export function ProtectedPaidMedia({
   if (isVideo) {
     const player = (
       <FeedVideoPlayer
-        src={src}
+        src={resolvedSrc}
         className={className}
         muted={muted}
         playsInline={playsInline}
@@ -165,30 +172,20 @@ export function ProtectedPaidMedia({
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={src}
+        src={resolvedSrc}
         alt={alt}
         className={cn(
           className,
           protect && "pointer-events-none",
-          forensicEnabled && !canvasReady && "opacity-0",
           useForensicCanvas && canvasReady && "sr-only"
         )}
         loading={loading}
         draggable={false}
         onContextMenu={(e) => e.preventDefault()}
       />
-      {forensicEnabled && !canvasReady ? (
-        <div
-          className={cn(
-            "absolute inset-0 animate-pulse bg-muted",
-            className
-          )}
-          aria-hidden
-        />
-      ) : null}
       {useForensicCanvas ? (
         <ForensicImageCanvas
-          src={src}
+          src={resolvedSrc}
           alt={alt}
           mediaId={mediaId}
           objectFit={objectFit}

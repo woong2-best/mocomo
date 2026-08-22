@@ -1197,11 +1197,7 @@ export function FeedVideoPlayer({
   const showVolumePanel = volumeOpen || isVolumeDragging;
 
   const forensicActive = Boolean(forensicRenderConfig);
-  const buyerForensic =
-    protect && Boolean(mediaId) && !forensicSessionFailed;
-  const showForensicLoading =
-    buyerForensic && !(forensicActive && forensicCanvasReady);
-  const hideRawVideo = buyerForensic || forensicActive;
+  const hideRawVideo = forensicActive && forensicCanvasReady;
 
   const videoStyle: CSSProperties = {
     transform: zoom > 1 ? `scale(${zoom})` : undefined,
@@ -1271,13 +1267,6 @@ export function FeedVideoPlayer({
           "origin-center z-[1] pointer-events-none"
         )}
       />
-
-      {showForensicLoading ? (
-        <div
-          className="pointer-events-none absolute inset-0 z-[2] animate-pulse bg-muted"
-          aria-hidden
-        />
-      ) : null}
 
       {buffering && (
         <div
