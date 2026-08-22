@@ -15,6 +15,9 @@ export function prismaErrorMessage(e: unknown): string {
     return "DB 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.";
   }
   if (e instanceof Error) {
+    if (/max client connections|EMAXCONN|Too many connections/i.test(e.message)) {
+      return "DB 연결 한도에 도달했습니다. 1~2분 후 다시 시도해 주세요.";
+    }
     if (e.message === "UNAUTHORIZED") return "로그인이 필요합니다.";
     if (e.message === "BANNED") return "계정 제한으로 이용할 수 없습니다.";
     return e.message;

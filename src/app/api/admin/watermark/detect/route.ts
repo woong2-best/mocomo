@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { AdminAccessError, requireAdminPermission } from "@/lib/admin/access";
 import { rateLimitPublicApi, verifyApiOrigin } from "@/lib/api-security";
 import { db } from "@/lib/db";
+import { prismaErrorMessage } from "@/lib/prisma-user-error";
 import { readDetectionFrames, runDetectionJob } from "@/lib/watermark/detector/job";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +14,7 @@ function jsonError(e: unknown) {
     return NextResponse.json({ error: e.message }, { status: e.status });
   }
   return NextResponse.json(
-    { error: e instanceof Error ? e.message : "error" },
+    { error: prismaErrorMessage(e) },
     { status: 500 }
   );
 }
