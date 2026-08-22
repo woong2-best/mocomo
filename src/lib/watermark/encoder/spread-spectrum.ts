@@ -4,6 +4,7 @@ import {
   WATERMARK_MODULATION_STRENGTH,
 } from "@/lib/watermark/config";
 import type { ForensicRenderConfig, QuadrantRegion } from "@/lib/watermark/types";
+import { REGION_RECOVERED_THRESHOLD, scoreRegionMatch } from "@/lib/watermark/decoder/confidence";
 import { fromBase64 } from "@/lib/watermark/crypto/payload";
 import {
   bytesToBits,
@@ -319,4 +320,32 @@ export function verifyEmbeddedWatermark(
   let same = 0;
   for (let i = 0; i < 64; i++) if (probe[i] === expected[i]) same++;
   return same / 64 >= minAgreement;
+}
+
+/**
+ * Stricter client gate before showing watermarked pixels — mirrors admin detector
+ * spatial recovery so exportPng / OS screenshots are attributable.
+ */
+export function verifyForensicCaptureFrame(
+  image: ImageLike,
+  config: ForensicRenderConfig,
+  frameIndex = 0
+): boolean {
+  const spreadSeed = fromBase64(config.spreadSeedB64);
+  const quadrants = splitCodewordToQuadrants(fromBase64(config.codewordB64));
+  const regions = centralQuadrantRegions(image.width, image.height);
+  let recovered = 0;
+  for (const region of regions) {
+    const bits = extractBitsFromRegion(
+      image,
+      region,
+      spreadSeed,
+      WATERMARK_STREAM_BITS,
+      frameIndex,
+      region.key.charCodeAt(0)
+    );
+    const score = scoreRegionMatch(quadrants[region.key], bitsToBytes(bits));
+    if (score >= REGION_RECOVERED_THRESHOLD) recovered += 1;
+  }
+  return recovered >= 2;
 }

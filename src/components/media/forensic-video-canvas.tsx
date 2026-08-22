@@ -3,13 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import type { ForensicRenderConfig } from "@/lib/watermark/types";
 import {
-  applyForensicCanvasSize,
-  applyForensicWrapSize,
+  alignPaintSizeToDisplay,
   drawSourceFit,
   resolveForensicPaintSize,
 } from "@/components/media/forensic-canvas-fit";
 import {
   embedInvisibleWatermark,
+  verifyForensicCaptureFrame,
 } from "@/lib/watermark/encoder/spread-spectrum";
 import {
   emitForensicCanvasEvent,
@@ -35,32 +35,45 @@ type FrameCallbackVideo = HTMLVideoElement & {
 
 function renderMarkedFrame2d(
   canvas: HTMLCanvasElement,
+  wrap: HTMLElement,
   video: HTMLVideoElement,
   config: ForensicRenderConfig,
   frameIndex: number,
-  size: ReturnType<typeof resolveForensicPaintSize> & object,
-  fit: "cover" | "contain"
-) {
+  size: NonNullable<ReturnType<typeof resolveForensicPaintSize>>,
+  fit: "cover" | "contain",
+  wrapMode: "fixed" | "fill" = "fixed"
+): boolean {
+  const aligned = alignPaintSizeToDisplay(wrap, canvas, size, wrapMode);
+  if (!aligned) return false;
+
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) return false;
 
-  applyForensicCanvasSize(canvas, size);
   drawSourceFit(
     ctx,
     video,
     video.videoWidth,
     video.videoHeight,
-    size.width,
-    size.height,
+    aligned.width,
+    aligned.height,
     fit
   );
 
-  const imageData = ctx.getImageData(0, 0, size.width, size.height);
+  const imageData = ctx.getImageData(0, 0, aligned.width, aligned.height);
   embedInvisibleWatermark(
-    { width: size.width, height: size.height, data: imageData.data },
+    { width: aligned.width, height: aligned.height, data: imageData.data },
     config,
     frameIndex
   );
+  if (
+    !verifyForensicCaptureFrame(
+      { width: aligned.width, height: aligned.height, data: imageData.data },
+      config,
+      frameIndex
+    )
+  ) {
+    return false;
+  }
   ctx.putImageData(imageData, 0, 0);
   return true;
 }
@@ -130,20 +143,27 @@ export function ForensicVideoCanvas({
       const vh = source.videoHeight;
       if (!vw || !vh) return;
 
-      const size = resolveForensicPaintSize(wrap, vw, vh, objectFit);
+      const size = resolveForensicPaintSize(wrap, vw, vh, objectFit, {
+        fillParent: objectFit === "cover",
+      });
       if (!size) return;
 
-      applyForensicWrapSize(wrap, size);
       const ok = renderMarkedFrame2d(
         canvas,
+        wrap,
         source,
         config,
         frameRef.current,
         size,
-        objectFit
+        objectFit,
+        objectFit === "cover" ? "fill" : "fixed"
       );
       if (!ok) {
-        fail("Canvas 2D unavailable");
+        fail(
+          canvas.width >= 8
+            ? "Watermark capture verification failed"
+            : "Canvas 2D unavailable"
+        );
         return;
       }
 
@@ -152,15 +172,16 @@ export function ForensicVideoCanvas({
         markedRef.current = true;
         onMarked?.();
       }
+      const rect = canvas.getBoundingClientRect();
       emitForensicCanvasEvent({
         phase: "RENDERED",
         mediaId,
         sessionId: config.sessionId,
-        width: size.width,
-        height: size.height,
-        cssWidth: size.cssWidth,
-        cssHeight: size.cssHeight,
-        devicePixelRatio: size.devicePixelRatio,
+        width: canvas.width,
+        height: canvas.height,
+        cssWidth: Math.round(rect.width),
+        cssHeight: Math.round(rect.height),
+        devicePixelRatio: 1,
       });
       frameRef.current += 1;
     };
@@ -216,7 +237,7 @@ export function ForensicVideoCanvas({
         data-forensic-canvas={ready ? "ready" : "loading"}
         data-forensic-media-id={mediaId ?? undefined}
         data-forensic-session-id={config.sessionId}
-        className={cn("block max-h-full max-w-full", !ready && "opacity-0")}
+        className={cn("block", !ready && "opacity-0")}
         aria-hidden
       />
     </div>

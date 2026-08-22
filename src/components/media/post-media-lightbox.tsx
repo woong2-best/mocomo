@@ -193,7 +193,7 @@ export function PostMediaLightbox({
               loading="eager"
               alt=""
               skipForensic={isOwner}
-              progressiveWatermark={!isOwner && !current.locked}
+              blockUntilForensicReady={!isOwner && !current.locked}
             />
           ) : (
             <p className="text-sm text-white/70">사진을 표시할 수 없습니다.</p>

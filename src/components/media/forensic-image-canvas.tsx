@@ -2,15 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ForensicRenderConfig } from "@/lib/watermark/types";
-import { embedInvisibleWatermark, verifyEmbeddedWatermark } from "@/lib/watermark/encoder/spread-spectrum";
+import {
+  embedInvisibleWatermark,
+  verifyForensicCaptureFrame,
+} from "@/lib/watermark/encoder/spread-spectrum";
 import {
   emitForensicCanvasEvent,
   registerForensicDebug,
 } from "@/lib/watermark/client/forensic-diagnostics";
 import { cn } from "@/lib/utils";
 import {
-  applyForensicCanvasSize,
-  applyForensicWrapSize,
+  alignPaintSizeToDisplay,
   drawSourceFit,
   resolveForensicPaintSize,
 } from "@/components/media/forensic-canvas-fit";
@@ -22,7 +24,7 @@ type Props = {
   config: ForensicRenderConfig;
   mediaId?: string | null;
   objectFit?: "cover" | "contain";
-  /** Fill the positioned parent (lightbox). Canvas matches on-screen pixels for capture detection. */
+  /** Feed tile cover mode: fill the parent box instead of intrinsic contain sizing. */
   fillParent?: boolean;
   onMarked?: () => void;
   onFailed?: (message: string) => void;
@@ -50,9 +52,9 @@ export function ForensicImageCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const bitmapRef = useRef<ImageBitmap | null>(null);
   const [ready, setReady] = useState(false);
-  const markedRef = useRef(false);
   const failedRef = useRef(false);
   const notifiedRef = useRef(false);
+  const readyRef = useRef(false);
 
   useEffect(() => {
     registerForensicDebug();
@@ -65,7 +67,7 @@ export function ForensicImageCanvas({
     let failTimer = 0;
 
     setReady(false);
-    markedRef.current = false;
+    readyRef.current = false;
     failedRef.current = false;
     notifiedRef.current = false;
 
@@ -94,15 +96,22 @@ export function ForensicImageCanvas({
       const bitmap = bitmapRef.current;
       if (!wrap || !canvas || !bitmap) return;
 
-      const size = resolveForensicPaintSize(wrap, bitmap.width, bitmap.height, objectFit);
+      const size = resolveForensicPaintSize(wrap, bitmap.width, bitmap.height, objectFit, {
+        fillParent: fillParent && objectFit === "cover",
+      });
       if (!size) {
         retryTimer = window.setTimeout(paint, 50);
         return;
       }
 
-      const { width: w, height: h } = size;
-      applyForensicWrapSize(wrap, size, fillParent ? "fill" : "fixed");
-      applyForensicCanvasSize(canvas, size);
+      const wrapMode = fillParent && objectFit === "cover" ? "fill" : "fixed";
+      const aligned = alignPaintSizeToDisplay(wrap, canvas, size, wrapMode);
+      if (!aligned) {
+        retryTimer = window.setTimeout(paint, 50);
+        return;
+      }
+
+      const { width: w, height: h } = aligned;
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
       if (!ctx) {
         fail("Canvas 2D unavailable");
@@ -112,12 +121,12 @@ export function ForensicImageCanvas({
       drawSourceFit(ctx, bitmap, bitmap.width, bitmap.height, w, h, objectFit);
       const imageData = ctx.getImageData(0, 0, w, h);
       embedInvisibleWatermark({ width: w, height: h, data: imageData.data }, config, 0);
-      if (!verifyEmbeddedWatermark({ width: w, height: h, data: imageData.data }, config, 0)) {
-        fail("Watermark embed verification failed");
+      if (!verifyForensicCaptureFrame({ width: w, height: h, data: imageData.data }, config, 0)) {
+        fail("Watermark capture verification failed");
         return;
       }
       ctx.putImageData(imageData, 0, 0);
-      markedRef.current = true;
+      readyRef.current = true;
       setReady(true);
       emitForensicCanvasEvent({
         phase: "RENDERED",
@@ -125,9 +134,9 @@ export function ForensicImageCanvas({
         sessionId: config.sessionId,
         width: w,
         height: h,
-        cssWidth: size.cssWidth,
-        cssHeight: size.cssHeight,
-        devicePixelRatio: size.devicePixelRatio,
+        cssWidth: aligned.cssWidth,
+        cssHeight: aligned.cssHeight,
+        devicePixelRatio: aligned.devicePixelRatio,
       });
     };
 
@@ -145,9 +154,10 @@ export function ForensicImageCanvas({
           ro = new ResizeObserver(() => paint());
           ro.observe(wrap);
           if (wrap.parentElement) ro.observe(wrap.parentElement);
+          window.addEventListener("resize", paint);
         }
         failTimer = window.setTimeout(() => {
-          if (!notifiedRef.current) fail("Canvas render timed out");
+          if (!readyRef.current && !failedRef.current) fail("Canvas render timed out");
         }, 12_000);
       } catch (e) {
         if (cancelled) return;
@@ -158,6 +168,7 @@ export function ForensicImageCanvas({
     return () => {
       cancelled = true;
       ro?.disconnect();
+      window.removeEventListener("resize", paint);
       window.clearTimeout(retryTimer);
       window.clearTimeout(failTimer);
       bitmapRef.current?.close();
@@ -176,11 +187,9 @@ export function ForensicImageCanvas({
       ref={wrapRef}
       className={cn(
         "relative overflow-hidden",
-        fillParent
+        fillParent && objectFit === "cover"
           ? "size-full"
-          : className?.includes("h-full") || className?.includes("size-full")
-            ? "size-full"
-            : "inline-block shrink-0",
+          : "inline-block shrink-0",
         className
       )}
     >
@@ -189,7 +198,7 @@ export function ForensicImageCanvas({
         data-forensic-canvas={ready ? "ready" : "loading"}
         data-forensic-media-id={mediaId ?? undefined}
         data-forensic-session-id={config.sessionId}
-        className={cn("block max-h-full max-w-full", !ready && "opacity-0")}
+        className={cn("block", !ready && "opacity-0")}
         aria-label={alt}
         role="img"
       />

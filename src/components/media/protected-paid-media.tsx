@@ -37,8 +37,8 @@ type Props = {
   contentKind?: WatermarkContentKind;
   /** Author/owner: skip forensic session and show media directly. */
   skipForensic?: boolean;
-  /** Lightbox/detail: show image until watermark canvas is ready (no black flash). */
-  progressiveWatermark?: boolean;
+  /** Lightbox/detail: block raw pixels until the forensic canvas is ready. */
+  blockUntilForensicReady?: boolean;
 };
 
 function inferObjectFit(className: string | undefined, explicit?: "cover" | "contain") {
@@ -100,7 +100,7 @@ export function ProtectedPaidMedia({
   poster,
   contentKind = "POST_MEDIA",
   skipForensic = false,
-  progressiveWatermark = false,
+  blockUntilForensicReady = false,
 }: Props) {
   const protect = shouldProtectPaidMediaView({
     mediaPriceKrw,
@@ -235,27 +235,10 @@ export function ProtectedPaidMedia({
         plainImage
       ) : (
         <>
-          {progressiveWatermark ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={resolvedSrc}
-              alt={alt}
-              className={cn(className, forensicReady && "invisible")}
-              loading={loading}
-              draggable={false}
-              onContextMenu={(e) => e.preventDefault()}
-              aria-hidden={forensicReady || undefined}
-            />
-          ) : null}
           {showForensicCanvas && forensicRenderConfig ? (
             <div
               className={cn(
-                "pointer-events-none z-[2]",
-                progressiveWatermark
-                  ? "absolute inset-0 size-full"
-                  : fillsTile
-                    ? "absolute inset-0 size-full"
-                    : "relative inline-flex max-h-full max-w-full"
+                fillsTile ? "absolute inset-0 size-full" : "relative inline-flex max-h-full max-w-full"
               )}
             >
               <ForensicImageCanvas
@@ -263,40 +246,46 @@ export function ProtectedPaidMedia({
                 alt={alt}
                 mediaId={mediaId}
                 objectFit={objectFit}
-                fillParent={progressiveWatermark || fillsTile}
-                className={
-                  progressiveWatermark || fillsTile
-                    ? "size-full"
-                    : cn(className, "max-h-full max-w-full")
-                }
+                fillParent={fillsTile}
+                className={fillsTile ? "size-full" : undefined}
                 config={forensicRenderConfig}
                 onMarked={handleCanvasMarked}
                 onFailed={handleCanvasFailed}
               />
             </div>
           ) : null}
-          {forensicLoading ? (
-            <div className="pointer-events-none absolute inset-0 z-[3] flex items-center justify-center bg-black/25">
+          {(forensicLoading || (blockUntilForensicReady && !forensicReady && !forensicBlocked)) ? (
+            <div
+              className={cn(
+                "flex items-center justify-center",
+                blockUntilForensicReady && !fillsTile
+                  ? cn("min-h-[160px] min-w-[240px]", className)
+                  : "pointer-events-none absolute inset-0 z-[3] bg-black/25"
+              )}
+            >
               <Loader2 className="h-8 w-8 animate-spin text-white/80" aria-hidden />
             </div>
           ) : null}
-          {forensicBlocked && !progressiveWatermark ? (
-            <ForensicGateOverlay
-              blocked
-              dark={fillsTile}
-              message={
-                sessionError
-                  ? "워터마크 세션을 불러올 수 없습니다. 새로고침 후 다시 시도해 주세요."
-                  : "워터마크 적용에 실패했습니다. 새로고침 후 다시 시도해 주세요."
-              }
-            />
-          ) : null}
-          {forensicBlocked && progressiveWatermark ? (
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[4] bg-black/60 px-3 py-2 text-center text-xs text-white/85">
-              {sessionError
-                ? "워터마크 세션을 불러올 수 없습니다."
-                : "워터마크 적용에 실패했습니다."}
-            </div>
+          {forensicBlocked ? (
+            blockUntilForensicReady ? (
+              <div className="flex min-h-[160px] min-w-[240px] items-center justify-center p-4 text-center">
+                <p className="text-sm text-muted-foreground">
+                  {sessionError
+                    ? "워터마크 세션을 불러올 수 없습니다. 새로고침 후 다시 시도해 주세요."
+                    : "워터마크 적용에 실패했습니다. 새로고침 후 다시 시도해 주세요."}
+                </p>
+              </div>
+            ) : (
+              <ForensicGateOverlay
+                blocked
+                dark={fillsTile}
+                message={
+                  sessionError
+                    ? "워터마크 세션을 불러올 수 없습니다. 새로고침 후 다시 시도해 주세요."
+                    : "워터마크 적용에 실패했습니다. 새로고침 후 다시 시도해 주세요."
+                }
+              />
+            )
           ) : null}
         </>
       )}

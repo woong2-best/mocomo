@@ -129,6 +129,32 @@ test("native-resolution embed fails after display downscale (old video bug)", as
   assert.notEqual(result.status, "MATCH", "native embed must not survive arbitrary downscale");
 });
 
+test("css-pixel embed matches 1:1 screenshot export", async () => {
+  const { embedInvisibleWatermark } = await import("@/lib/watermark/encoder/spread-spectrum");
+  const { detectWatermarkInFrame } = await import("@/lib/watermark/decoder/pipeline");
+  const { config, prepared, phase } = await sessionFixture();
+
+  const display = syntheticImage(640, 360);
+  embedInvisibleWatermark(display, config, phase);
+
+  const result = detectWatermarkInFrame(display, [prepared]);
+  assert.equal(result.status, "MATCH");
+  assert.equal(result.integrityValid, true);
+});
+
+test("letterboxed parent sizing is not used for contain embed", async () => {
+  const { embedInvisibleWatermark } = await import("@/lib/watermark/encoder/spread-spectrum");
+  const { detectWatermarkInFrame } = await import("@/lib/watermark/decoder/pipeline");
+  const { config, prepared, phase } = await sessionFixture();
+
+  const fitted = syntheticImage(800, 450);
+  embedInvisibleWatermark(fitted, config, phase);
+
+  const result = detectWatermarkInFrame(fitted, [prepared]);
+  assert.equal(result.status, "MATCH");
+  assert.equal(result.integrityValid, true);
+});
+
 test("screen-recording style jpeg frames stay attributable", async () => {
   const { embedInvisibleWatermark } = await import("@/lib/watermark/encoder/spread-spectrum");
   const { detectWatermarkInFrames } = await import("@/lib/watermark/decoder/pipeline");

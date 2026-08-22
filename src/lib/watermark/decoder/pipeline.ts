@@ -12,7 +12,7 @@ import {
   REGION_RECOVERED_THRESHOLD,
   scoreRegionMatch,
 } from "@/lib/watermark/decoder/confidence";
-import { centerCropVariants, cropFrame, MIN_CROP } from "@/lib/watermark/decoder/crop-search";
+import { centerCropVariants, cropFrame, MIN_CROP, scaleFrameVariants } from "@/lib/watermark/decoder/crop-search";
 import {
   extractAnchorStreams,
   extractQuadrantStream,
@@ -226,6 +226,22 @@ export function detectWatermarkInFrame(
   }
 
   if (meetsConfidenceThreshold(best, 0.55)) return best;
+
+  for (const scaled of scaleFrameVariants(frame)) {
+    for (const candidate of prepared) {
+      for (let phase = 0; phase < WATERMARK_TEMPORAL_PERIOD; phase++) {
+        const candidateResult = tryCandidate(candidate, phase, scaled);
+        if (candidateResult) {
+          const currentBest = best;
+          if (!currentBest || candidateResult.confidence > currentBest.confidence) {
+            best = candidateResult;
+          }
+        }
+        if (isStrongMatch(best)) return best;
+      }
+    }
+    if (meetsConfidenceThreshold(best, 0.75)) return best;
+  }
 
   for (const crop of centerCropVariants(frame)) {
     if (crop.width === frame.width && crop.height === frame.height) continue;

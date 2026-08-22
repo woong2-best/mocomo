@@ -71,3 +71,26 @@ export function centerCropVariants(frame: PixelFrame): PixelFrame[] {
 
   return out;
 }
+
+/** Upscale variants for captures sampled below embed resolution (Windows CSS pixels). */
+export function scaleFrameVariants(frame: PixelFrame): PixelFrame[] {
+  const scales = [1.5, 2, 2.5, 3];
+  const out: PixelFrame[] = [];
+  for (const scale of scales) {
+    const width = Math.max(MIN_CROP, Math.round(frame.width * scale));
+    const height = Math.max(MIN_CROP, Math.round(frame.height * scale));
+    if (width === frame.width && height === frame.height) continue;
+    const data = new Uint8ClampedArray(width * height * 4);
+    for (let y = 0; y < height; y++) {
+      const sy = Math.min(frame.height - 1, Math.floor((y / height) * frame.height));
+      for (let x = 0; x < width; x++) {
+        const sx = Math.min(frame.width - 1, Math.floor((x / width) * frame.width));
+        const src = (sy * frame.width + sx) * 4;
+        const dst = (y * width + x) * 4;
+        data.set(frame.data.subarray(src, src + 4), dst);
+      }
+    }
+    out.push({ width, height, data });
+  }
+  return out;
+}

@@ -63,14 +63,16 @@ declare global {
 }
 
 function snapshotCanvas(el: HTMLCanvasElement, index: number): ForensicCanvasSnapshot {
-  const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
-  const expectedW = Math.round(el.clientWidth * dpr);
-  const expectedH = Math.round(el.clientHeight * dpr);
+  const rect = el.getBoundingClientRect();
+  const cssWidth = Math.round(rect.width);
+  const cssHeight = Math.round(rect.height);
   const pixelAligned =
-    el.clientWidth >= 8 &&
-    el.clientHeight >= 8 &&
-    Math.abs(el.width - expectedW) <= 1 &&
-    Math.abs(el.height - expectedH) <= 1;
+    cssWidth >= 8 &&
+    cssHeight >= 8 &&
+    el.width === cssWidth &&
+    el.height === cssHeight &&
+    Math.abs(el.clientWidth - cssWidth) <= 1 &&
+    Math.abs(el.clientHeight - cssHeight) <= 1;
 
   return {
     index,
@@ -78,7 +80,7 @@ function snapshotCanvas(el: HTMLCanvasElement, index: number): ForensicCanvasSna
     height: el.height,
     clientWidth: el.clientWidth,
     clientHeight: el.clientHeight,
-    devicePixelRatio: dpr,
+    devicePixelRatio: 1,
     pixelAligned,
     state: el.getAttribute("data-forensic-canvas"),
     mediaId: el.getAttribute("data-forensic-media-id"),
@@ -125,7 +127,7 @@ export function registerForensicDebug() {
       }
       if (!snap.pixelAligned) {
         console.warn(
-          "[forensic] Canvas backing store does not match layout×DPR — screenshot detection may fail.",
+          "[forensic] Canvas backing store does not match layout pixels — screenshot detection may fail.",
           snap
         );
       }
