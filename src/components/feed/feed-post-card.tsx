@@ -150,6 +150,7 @@ export function FeedPostCard({
                 mediaPriceKrw={cover.priceKrw}
                 postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
                 locked={cover.locked}
+                mediaId={cover.id}
               />
               {renderPaywall()}
             </div>
@@ -165,6 +166,7 @@ export function FeedPostCard({
                 mediaPriceKrw={cover.priceKrw}
                 postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
                 locked={cover.locked}
+                mediaId={cover.id}
               />
               {renderPaywall()}
             </Link>

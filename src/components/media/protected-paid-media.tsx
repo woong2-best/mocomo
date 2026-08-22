@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { shouldProtectPaidMediaView } from "@/lib/paid-media-protection";
 import { PaidMediaProtectionShell } from "@/components/media/paid-media-protection-shell";
@@ -65,13 +66,19 @@ export function ProtectedPaidMedia({
   const { viewReady, markViewReady } = useForensicViewReady(forensicEnabled, viewResetKey, {
     autoAfterMs: isVideo ? undefined : forensicViewAutoMs(),
   });
-  const { config: forensicRenderConfig, loading: sessionLoading, error: sessionError } =
-    useForensicWatermarkSession(
+  const { config: forensicRenderConfig, error: sessionError } = useForensicWatermarkSession(
     mediaId,
     forensicEnabled,
     contentKind,
     viewReady
   );
+  const [canvasFailed, setCanvasFailed] = useState(false);
+  const [canvasReady, setCanvasReady] = useState(false);
+
+  useEffect(() => {
+    setCanvasFailed(false);
+    setCanvasReady(false);
+  }, [viewResetKey, forensicRenderConfig?.sessionId]);
 
   if (locked || !src.trim()) {
     return (
@@ -109,54 +116,51 @@ export function ProtectedPaidMedia({
     );
   }
 
-  const imageNode =
-    protect && forensicEnabled ? (
-      !viewReady ? (
-        <div className={cn(className, "relative bg-muted/40 animate-pulse")} aria-hidden />
-      ) : sessionError ? (
-        <div
-          className={cn(className, "relative flex items-center justify-center bg-muted/50 px-2 text-center")}
-          data-forensic-state="session-failed"
-        >
-          <p className="text-xs text-muted-foreground">Watermark session unavailable</p>
-        </div>
-      ) : forensicRenderConfig ? (
+  const useForensicCanvas =
+    forensicEnabled &&
+    viewReady &&
+    forensicRenderConfig &&
+    !sessionError &&
+    !canvasFailed;
+
+  const plainImage = (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={alt}
+      className={cn(
+        protect && "pointer-events-none",
+        useForensicCanvas && canvasReady ? "sr-only" : "h-full w-full object-cover"
+      )}
+      loading={loading}
+      draggable={false}
+      onContextMenu={(e) => e.preventDefault()}
+    />
+  );
+
+  const imageNode = (
+    <div className={cn("relative h-full w-full", className)}>
+      {plainImage}
+      {useForensicCanvas ? (
         <ForensicImageCanvas
           src={src}
           alt={alt}
           mediaId={mediaId}
-          className={cn(className, "pointer-events-none h-full w-full")}
+          className="absolute inset-0 h-full w-full pointer-events-none"
           config={forensicRenderConfig}
-          loading={loading}
+          onMarked={() => setCanvasReady(true)}
+          onFailed={() => setCanvasFailed(true)}
         />
-      ) : (
-        <div
-          className={cn(className, "relative bg-muted/40 animate-pulse")}
-          data-forensic-state={sessionLoading ? "session-loading" : "session-missing"}
-          aria-hidden
-        />
-      )
-    ) : (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={src}
-        alt={alt}
-        className={cn(className, protect && "pointer-events-none")}
-        loading={loading}
-        draggable={false}
-        onContextMenu={(e) => e.preventDefault()}
-      />
-    );
+      ) : null}
+    </div>
+  );
 
-  const media = imageNode;
-
-  if (!protect) return media;
+  if (!protect) return imageNode;
 
   return (
     <PaidMediaProtectionShell className={cn("overflow-hidden", className)}>
-      <div className="relative w-full h-full">
-        {media}
-        {/* 길게 눌러 저장·드래그 방지 */}
+      <div className="relative h-full w-full">
+        {imageNode}
         <div
           className="absolute inset-0 z-[1]"
           aria-hidden

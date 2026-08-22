@@ -15,8 +15,8 @@ type Props = {
   className?: string;
   config: ForensicRenderConfig;
   mediaId?: string | null;
-  loading?: "lazy" | "eager";
   onMarked?: () => void;
+  onFailed?: (message: string) => void;
 };
 
 async function loadBitmap(src: string): Promise<ImageBitmap> {
@@ -26,11 +26,37 @@ async function loadBitmap(src: string): Promise<ImageBitmap> {
   return createImageBitmap(blob);
 }
 
+function resolvePaintSize(
+  wrap: HTMLElement,
+  bitmap: ImageBitmap
+): { width: number; height: number } | null {
+  let w = wrap.clientWidth;
+  let h = wrap.clientHeight;
+  if (w >= 8 && h >= 8) return { width: w, height: h };
+
+  w = wrap.offsetWidth;
+  h = wrap.offsetHeight;
+  if (w >= 8 && h >= 8) return { width: w, height: h };
+
+  const parent = wrap.parentElement;
+  if (parent) {
+    w = parent.clientWidth;
+    h = parent.clientHeight;
+    if (w >= 8 && h >= 8) return { width: w, height: h };
+  }
+
+  if (bitmap.width >= 8 && bitmap.height >= 8) {
+    w = Math.max(w, bitmap.width);
+    h = Math.max(h, Math.round(bitmap.height * (w / bitmap.width)));
+    if (w >= 8 && h >= 8) return { width: w, height: h };
+  }
+
+  return null;
+}
+
 /**
  * Embeds the carrier at the **displayed** pixel size so OS screenshots of the
  * player match detector coordinates (not naturalWidth of the origin file).
- *
- * Loads bytes via fetch→blob so canvas stays untainted without CDN CORS headers.
  */
 export function ForensicImageCanvas({
   src,
@@ -38,16 +64,15 @@ export function ForensicImageCanvas({
   className,
   config,
   mediaId = null,
-  loading = "lazy",
   onMarked,
+  onFailed,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const bitmapRef = useRef<ImageBitmap | null>(null);
   const [ready, setReady] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const [failMessage, setFailMessage] = useState<string | null>(null);
   const markedRef = useRef(false);
+  const failedRef = useRef(false);
 
   useEffect(() => {
     registerForensicDebug();
@@ -56,11 +81,12 @@ export function ForensicImageCanvas({
   useEffect(() => {
     let cancelled = false;
     let ro: ResizeObserver | null = null;
+    let retryTimer = 0;
+    let failTimer = 0;
 
     setReady(false);
-    setFailed(false);
-    setFailMessage(null);
     markedRef.current = false;
+    failedRef.current = false;
 
     emitForensicCanvasEvent({
       phase: "CREATED",
@@ -68,29 +94,37 @@ export function ForensicImageCanvas({
       sessionId: config.sessionId,
     });
 
+    const fail = (message: string) => {
+      if (cancelled || failedRef.current) return;
+      failedRef.current = true;
+      emitForensicCanvasEvent({
+        phase: "FALLBACK",
+        mediaId,
+        sessionId: config.sessionId,
+        message,
+      });
+      onFailed?.(message);
+    };
+
     const paint = () => {
-      if (cancelled) return;
+      if (cancelled || failedRef.current) return;
       const wrap = wrapRef.current;
       const canvas = canvasRef.current;
       const bitmap = bitmapRef.current;
       if (!wrap || !canvas || !bitmap) return;
 
-      const w = Math.max(1, wrap.clientWidth);
-      const h = Math.max(1, wrap.clientHeight);
-      if (w < 8 || h < 8) return;
+      const size = resolvePaintSize(wrap, bitmap);
+      if (!size) {
+        retryTimer = window.setTimeout(paint, 50);
+        return;
+      }
 
+      const { width: w, height: h } = size;
       canvas.width = w;
       canvas.height = h;
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
       if (!ctx) {
-        setFailed(true);
-        setFailMessage("Canvas 2D unavailable");
-        emitForensicCanvasEvent({
-          phase: "FALLBACK",
-          mediaId,
-          sessionId: config.sessionId,
-          message: "Canvas 2D unavailable",
-        });
+        fail("Canvas 2D unavailable");
         return;
       }
 
@@ -122,59 +156,38 @@ export function ForensicImageCanvas({
         bitmapRef.current = bitmap;
         paint();
         const wrap = wrapRef.current;
-        if (!wrap) return;
-        ro = new ResizeObserver(() => paint());
-        ro.observe(wrap);
+        if (wrap) {
+          ro = new ResizeObserver(() => paint());
+          ro.observe(wrap);
+          if (wrap.parentElement) ro.observe(wrap.parentElement);
+        }
+        failTimer = window.setTimeout(() => {
+          if (!markedRef.current) fail("Canvas render timed out");
+        }, 12_000);
       } catch (e) {
         if (cancelled) return;
-        const message = e instanceof Error ? e.message : "Image load failed";
-        setFailed(true);
-        setFailMessage(message);
-        emitForensicCanvasEvent({
-          phase: "FALLBACK",
-          mediaId,
-          sessionId: config.sessionId,
-          message,
-        });
+        fail(e instanceof Error ? e.message : "Image load failed");
       }
     })();
 
     return () => {
       cancelled = true;
       ro?.disconnect();
+      window.clearTimeout(retryTimer);
+      window.clearTimeout(failTimer);
       bitmapRef.current?.close();
       bitmapRef.current = null;
     };
-  }, [src, config, loading, onMarked, mediaId]);
-
-  if (failed) {
-    return (
-      <div
-        ref={wrapRef}
-        className={cn(
-          "relative flex items-center justify-center overflow-hidden bg-muted/50 text-center",
-          className
-        )}
-        data-forensic-state="failed"
-        role="img"
-        aria-label={alt}
-      >
-        <p className="px-3 text-xs text-muted-foreground">
-          Forensic render unavailable
-          {failMessage ? `: ${failMessage}` : ""}
-        </p>
-      </div>
-    );
-  }
+  }, [src, config, onMarked, onFailed, mediaId]);
 
   return (
-    <div ref={wrapRef} className={cn("relative overflow-hidden", className)}>
+    <div ref={wrapRef} className={cn("relative h-full w-full overflow-hidden", className)}>
       <canvas
         ref={canvasRef}
         data-forensic-canvas={ready ? "ready" : "loading"}
         data-forensic-media-id={mediaId ?? undefined}
         data-forensic-session-id={config.sessionId}
-        className={cn("h-full w-full object-cover", !ready && "opacity-0")}
+        className={cn("block h-full w-full object-cover", !ready && "opacity-0")}
         aria-label={alt}
         role="img"
       />
