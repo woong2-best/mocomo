@@ -112,11 +112,11 @@ export function ProtectedPaidMedia({
     priceKrw: mediaPriceKrw ?? postInstantPurchasePriceKrw,
   });
   const forensicRequired = protect && !locked && Boolean(mediaId);
-  const authorForensicExempt = isAuthorForensicExempt(sessionError);
-  const useForensicPipeline = forensicRequired && !authorForensicExempt;
   const viewResetKey = `${mediaId ?? ""}:${resolvedSrc}`;
   const { config: forensicRenderConfig, error: sessionError, loading: sessionLoading } =
     useForensicWatermarkSession(mediaId, forensicRequired, contentKind);
+  const authorForensicExempt = isAuthorForensicExempt(sessionError);
+  const useForensicPipeline = forensicRequired && !authorForensicExempt;
   const [canvasFailed, setCanvasFailed] = useState(false);
   const [canvasReady, setCanvasReady] = useState(false);
 
