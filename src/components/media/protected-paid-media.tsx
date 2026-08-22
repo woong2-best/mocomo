@@ -65,7 +65,8 @@ export function ProtectedPaidMedia({
   const { viewReady, markViewReady } = useForensicViewReady(forensicEnabled, viewResetKey, {
     autoAfterMs: isVideo ? undefined : forensicViewAutoMs(),
   });
-  const { config: forensicRenderConfig } = useForensicWatermarkSession(
+  const { config: forensicRenderConfig, loading: sessionLoading, error: sessionError } =
+    useForensicWatermarkSession(
     mediaId,
     forensicEnabled,
     contentKind,
@@ -109,17 +110,31 @@ export function ProtectedPaidMedia({
   }
 
   const imageNode =
-    protect && forensicEnabled && viewReady ? (
-      forensicRenderConfig ? (
+    protect && forensicEnabled ? (
+      !viewReady ? (
+        <div className={cn(className, "relative bg-muted/40 animate-pulse")} aria-hidden />
+      ) : sessionError ? (
+        <div
+          className={cn(className, "relative flex items-center justify-center bg-muted/50 px-2 text-center")}
+          data-forensic-state="session-failed"
+        >
+          <p className="text-xs text-muted-foreground">Watermark session unavailable</p>
+        </div>
+      ) : forensicRenderConfig ? (
         <ForensicImageCanvas
           src={src}
           alt={alt}
+          mediaId={mediaId}
           className={cn(className, "pointer-events-none h-full w-full")}
           config={forensicRenderConfig}
           loading={loading}
         />
       ) : (
-        <div className={cn(className, "relative bg-muted/40 animate-pulse")} aria-hidden />
+        <div
+          className={cn(className, "relative bg-muted/40 animate-pulse")}
+          data-forensic-state={sessionLoading ? "session-loading" : "session-missing"}
+          aria-hidden
+        />
       )
     ) : (
       // eslint-disable-next-line @next/next/no-img-element

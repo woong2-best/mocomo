@@ -147,7 +147,20 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
             시청 세션이 0건이면 분석을 시작할 수 없습니다. 다른 계정으로 유료 사진·영상을{" "}
             {WATERMARK_MIN_VIEW_SECONDS}초 이상 열람해 세션을 만든 뒤 다시 시도하세요.
           </p>
-        ) : null}
+        ) : (
+          <p className="mt-3 text-xs text-muted-foreground">
+            DevTools:{" "}
+            <code className="rounded bg-muted px-1">window.__mocomoForensicDebug?.canvases()</code>{" "}
+            · canvas PNG export:{" "}
+            <code className="rounded bg-muted px-1">
+              await window.__mocomoForensicDebug?.exportPng()
+            </code>{" "}
+            · session roundtrip:{" "}
+            <code className="rounded bg-muted px-1">
+              GET /api/admin/watermark/roundtrip?sessionId=…
+            </code>
+          </p>
+        )}
       </div>
 
       <div className="rounded-xl border bg-white p-6 shadow-sm dark:bg-zinc-900 dark:border-zinc-800">

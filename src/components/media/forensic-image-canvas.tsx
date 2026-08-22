@@ -3,6 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import type { ForensicRenderConfig } from "@/lib/watermark/types";
 import { embedInvisibleWatermark } from "@/lib/watermark/encoder/spread-spectrum";
+import {
+  emitForensicCanvasEvent,
+  registerForensicDebug,
+} from "@/lib/watermark/client/forensic-diagnostics";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -10,49 +14,66 @@ type Props = {
   alt?: string;
   className?: string;
   config: ForensicRenderConfig;
+  mediaId?: string | null;
   loading?: "lazy" | "eager";
   onMarked?: () => void;
 };
 
+async function loadBitmap(src: string): Promise<ImageBitmap> {
+  const res = await fetch(src, { credentials: "include", cache: "no-store" });
+  if (!res.ok) throw new Error(`Paid media fetch failed (${res.status})`);
+  const blob = await res.blob();
+  return createImageBitmap(blob);
+}
+
 /**
  * Embeds the carrier at the **displayed** pixel size so OS screenshots of the
  * player match detector coordinates (not naturalWidth of the origin file).
+ *
+ * Loads bytes via fetch→blob so canvas stays untainted without CDN CORS headers.
  */
 export function ForensicImageCanvas({
   src,
   alt = "",
   className,
   config,
+  mediaId = null,
   loading = "lazy",
   onMarked,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imgRef = useRef<HTMLImageElement | null>(null);
+  const bitmapRef = useRef<ImageBitmap | null>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [failMessage, setFailMessage] = useState<string | null>(null);
   const markedRef = useRef(false);
 
   useEffect(() => {
+    registerForensicDebug();
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
+    let ro: ResizeObserver | null = null;
+
     setReady(false);
     setFailed(false);
+    setFailMessage(null);
     markedRef.current = false;
 
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.decoding = "async";
-    img.loading = loading;
-    imgRef.current = img;
-
-    let ro: ResizeObserver | null = null;
+    emitForensicCanvasEvent({
+      phase: "CREATED",
+      mediaId,
+      sessionId: config.sessionId,
+    });
 
     const paint = () => {
       if (cancelled) return;
       const wrap = wrapRef.current;
       const canvas = canvasRef.current;
-      const source = imgRef.current;
-      if (!wrap || !canvas || !source?.naturalWidth) return;
+      const bitmap = bitmapRef.current;
+      if (!wrap || !canvas || !bitmap) return;
 
       const w = Math.max(1, wrap.clientWidth);
       const h = Math.max(1, wrap.clientHeight);
@@ -63,10 +84,17 @@ export function ForensicImageCanvas({
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
       if (!ctx) {
         setFailed(true);
+        setFailMessage("Canvas 2D unavailable");
+        emitForensicCanvasEvent({
+          phase: "FALLBACK",
+          mediaId,
+          sessionId: config.sessionId,
+          message: "Canvas 2D unavailable",
+        });
         return;
       }
 
-      ctx.drawImage(source, 0, 0, w, h);
+      ctx.drawImage(bitmap, 0, 0, w, h);
       const imageData = ctx.getImageData(0, 0, w, h);
       embedInvisibleWatermark({ width: w, height: h, data: imageData.data }, config, 0);
       ctx.putImageData(imageData, 0, 0);
@@ -75,34 +103,66 @@ export function ForensicImageCanvas({
         markedRef.current = true;
         onMarked?.();
       }
+      emitForensicCanvasEvent({
+        phase: "RENDERED",
+        mediaId,
+        sessionId: config.sessionId,
+        width: w,
+        height: h,
+      });
     };
 
-    img.onload = () => {
-      if (cancelled) return;
-      paint();
-      const wrap = wrapRef.current;
-      if (!wrap) return;
-      ro = new ResizeObserver(() => paint());
-      ro.observe(wrap);
-    };
-
-    img.onerror = () => {
-      if (!cancelled) setFailed(true);
-    };
-
-    img.src = src;
+    void (async () => {
+      try {
+        const bitmap = await loadBitmap(src);
+        if (cancelled) {
+          bitmap.close();
+          return;
+        }
+        bitmapRef.current = bitmap;
+        paint();
+        const wrap = wrapRef.current;
+        if (!wrap) return;
+        ro = new ResizeObserver(() => paint());
+        ro.observe(wrap);
+      } catch (e) {
+        if (cancelled) return;
+        const message = e instanceof Error ? e.message : "Image load failed";
+        setFailed(true);
+        setFailMessage(message);
+        emitForensicCanvasEvent({
+          phase: "FALLBACK",
+          mediaId,
+          sessionId: config.sessionId,
+          message,
+        });
+      }
+    })();
 
     return () => {
       cancelled = true;
       ro?.disconnect();
+      bitmapRef.current?.close();
+      bitmapRef.current = null;
     };
-  }, [src, config, loading, onMarked]);
+  }, [src, config, loading, onMarked, mediaId]);
 
   if (failed) {
     return (
-      <div ref={wrapRef} className={cn("relative overflow-hidden", className)}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={src} alt={alt} className="h-full w-full object-cover" loading={loading} draggable={false} />
+      <div
+        ref={wrapRef}
+        className={cn(
+          "relative flex items-center justify-center overflow-hidden bg-muted/50 text-center",
+          className
+        )}
+        data-forensic-state="failed"
+        role="img"
+        aria-label={alt}
+      >
+        <p className="px-3 text-xs text-muted-foreground">
+          Forensic render unavailable
+          {failMessage ? `: ${failMessage}` : ""}
+        </p>
       </div>
     );
   }
@@ -111,6 +171,9 @@ export function ForensicImageCanvas({
     <div ref={wrapRef} className={cn("relative overflow-hidden", className)}>
       <canvas
         ref={canvasRef}
+        data-forensic-canvas={ready ? "ready" : "loading"}
+        data-forensic-media-id={mediaId ?? undefined}
+        data-forensic-session-id={config.sessionId}
         className={cn("h-full w-full object-cover", !ready && "opacity-0")}
         aria-label={alt}
         role="img"

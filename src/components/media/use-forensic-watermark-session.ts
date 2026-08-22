@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { ForensicRenderConfig } from "@/lib/watermark/types";
 import type { WatermarkContentKind } from "@/lib/paid-media-playback";
+import { emitForensicCanvasEvent } from "@/lib/watermark/client/forensic-diagnostics";
 
 export function useForensicWatermarkSession(
   mediaId: string | null | undefined,
@@ -33,12 +34,33 @@ export function useForensicWatermarkSession(
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          if (!cancelled) setError(data.error ?? "Watermark session unavailable");
+          if (!cancelled) {
+            setError(data.error ?? "Watermark session unavailable");
+            emitForensicCanvasEvent({
+              phase: "SESSION_FAILED",
+              mediaId: mediaId ?? undefined,
+              message: data.error ?? "Watermark session unavailable",
+            });
+          }
           return;
         }
         if (!cancelled) setConfig(data.renderConfig ?? null);
+        if (!cancelled && data.renderConfig) {
+          emitForensicCanvasEvent({
+            phase: "SESSION_LOADED",
+            mediaId: mediaId ?? undefined,
+            sessionId: data.sessionId ?? data.renderConfig?.sessionId,
+          });
+        }
       } catch {
-        if (!cancelled) setError("Watermark session request failed");
+        if (!cancelled) {
+          setError("Watermark session request failed");
+          emitForensicCanvasEvent({
+            phase: "SESSION_FAILED",
+            mediaId: mediaId ?? undefined,
+            message: "Watermark session request failed",
+          });
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
