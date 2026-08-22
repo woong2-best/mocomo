@@ -8,6 +8,7 @@ import {
   validateDecodedPayload,
 } from "@/lib/watermark/crypto/payload";
 import { computeDetectionConfidence, scoreRegionMatch } from "@/lib/watermark/decoder/confidence";
+import { centerCropVariants, cropFrame, MIN_CROP } from "@/lib/watermark/decoder/crop-search";
 import {
   extractAnchorStreams,
   extractQuadrantStream,
@@ -179,18 +180,59 @@ function verifyCandidate(
  */
 export function detectWatermarkInFrame(
   frame: PixelFrame,
-  prepared: PreparedCandidate[]
+  prepared: PreparedCandidate[],
+  exhaustive = false
 ): WatermarkDetectionResult {
   let best: WatermarkDetectionResult | null = null;
 
+  const run = (candidate: PreparedCandidate, phase: number, target: PixelFrame) => {
+    const probe = probeRegionBits(target, candidate.spreadSeed, phase, PROBE_BITS);
+    if (bitAgreement(probe, candidate.probeBits) < PROBE_THRESHOLD) return;
+    const result = verifyCandidate(target, candidate, phase);
+    if (!best || result.confidence > best.confidence) best = result;
+  };
+
   for (const candidate of prepared) {
     for (let phase = 0; phase < WATERMARK_TEMPORAL_PERIOD; phase++) {
-      const probe = probeRegionBits(frame, candidate.spreadSeed, phase, PROBE_BITS);
-      if (bitAgreement(probe, candidate.probeBits) < PROBE_THRESHOLD) continue;
+      run(candidate, phase, frame);
+      if (best?.status === "MATCH" && best.integrityValid) return best;
+    }
+  }
 
-      const result = verifyCandidate(frame, candidate, phase);
-      if (!best || result.confidence > best.confidence) best = result;
-      if (result.status === "MATCH" && result.integrityValid) return result;
+  if (best && best.confidence >= 0.55 && best.integrityValid) return best;
+
+  for (const crop of centerCropVariants(frame)) {
+    if (crop.width === frame.width && crop.height === frame.height) continue;
+    for (const candidate of prepared) {
+      for (let phase = 0; phase < WATERMARK_TEMPORAL_PERIOD; phase++) {
+        run(candidate, phase, crop);
+        if (best?.status === "MATCH" && best.integrityValid) return best;
+      }
+    }
+    if (best && best.confidence >= 0.75 && best.integrityValid) return best;
+  }
+
+  if (
+    exhaustive &&
+    (!best || best.status !== "MATCH" || !best.integrityValid)
+  ) {
+    const minW = Math.max(MIN_CROP, Math.round(frame.width * 0.25));
+    const maxW = Math.round(frame.width * 0.88);
+    const aspects = [16 / 9, 4 / 3, 3 / 4, 1, 9 / 16];
+    for (let w = minW; w <= maxW; w += 2) {
+      for (const aspect of aspects) {
+        const h = Math.round(w / aspect);
+        if (h < MIN_CROP || h > frame.height) continue;
+        const x = Math.max(0, Math.round((frame.width - w) / 2));
+        const y = Math.max(0, Math.round((frame.height - h) / 2));
+        const crop = cropFrame(frame, x, y, w, h);
+        for (const candidate of prepared) {
+          for (let phase = 0; phase < WATERMARK_TEMPORAL_PERIOD; phase++) {
+            run(candidate, phase, crop);
+            if (best?.status === "MATCH" && best.integrityValid) return best;
+          }
+        }
+      }
     }
   }
 
@@ -199,14 +241,16 @@ export function detectWatermarkInFrame(
 
 export function detectWatermarkInFrames(
   frames: PixelFrame[],
-  candidates: DetectionCandidate[]
+  candidates: DetectionCandidate[],
+  options?: { exhaustive?: boolean }
 ): WatermarkDetectionResult & { framesAnalyzed: number; candidateFrames: number } {
   const prepared = candidates.map(prepareCandidate);
+  const exhaustive = options?.exhaustive ?? frames.length === 1;
   let best: WatermarkDetectionResult | null = null;
   let candidateFrames = 0;
 
   for (const frame of frames) {
-    const result = detectWatermarkInFrame(frame, prepared);
+    const result = detectWatermarkInFrame(frame, prepared, exhaustive);
     if (result.confidence > 0.35) candidateFrames++;
     if (!best || result.confidence > best.confidence) best = result;
     if (result.status === "MATCH" && result.integrityValid) {

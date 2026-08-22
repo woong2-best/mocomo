@@ -93,6 +93,16 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
         }
         if (body.status === "COMPLETED" && body.result) {
           setResult(body.result as AdminWatermarkDetectionResponse);
+          if (body.result.status === "NOT_DETECTED") {
+            setError(
+              [
+                "워터마크 신호를 찾지 못했습니다.",
+                "캡처 시점에 워터마크가 적용된 화면인지 확인하세요 (유료 사진·영상을 1초 이상 본 뒤, 로딩이 끝난 뒤 캡처).",
+                "Media ID를 입력하면 해당 콘텐츠 세션만 비교해 정확도가 올라갑니다.",
+                "작성자 본인 계정·워터마크 배포 전 캡처·다른 탭에서 저장한 원본 파일은 검출되지 않습니다.",
+              ].join(" ")
+            );
+          }
           return;
         }
         await new Promise((r) => setTimeout(r, 400));

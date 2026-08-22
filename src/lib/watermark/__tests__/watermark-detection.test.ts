@@ -220,3 +220,59 @@ test("candidate search stays fast enough for an admin request", async () => {
   assert.equal(result.sessionId, target.id);
   assert.ok(elapsed < 20000, `searching 121 sessions took ${Math.round(elapsed)}ms`);
 });
+
+test("detector finds watermark when media is centered inside a larger screenshot", async () => {
+  const { toBase64 } = await import("@/lib/watermark/crypto/payload");
+  const { embedInvisibleWatermark } = await import("@/lib/watermark/encoder/spread-spectrum");
+  const { detectWatermarkInFrame, prepareCandidate } = await import(
+    "@/lib/watermark/decoder/pipeline"
+  );
+  const { WATERMARK_TEMPORAL_PERIOD, WATERMARK_MODULATION_STRENGTH } = await import(
+    "@/lib/watermark/config"
+  );
+
+  const target = await withOpaqueId(candidate(901));
+  const inner = syntheticImage(640, 480);
+  embedInvisibleWatermark(
+    inner,
+    {
+      watermarkVersion: 1,
+      sessionId: target.id,
+      spreadSeedB64: toBase64(target.built.spreadSeed),
+      codewordB64: toBase64(target.built.codeword),
+      temporalPeriod: WATERMARK_TEMPORAL_PERIOD,
+      modulationStrength: WATERMARK_MODULATION_STRENGTH,
+    },
+    0
+  );
+
+  const padX = 420;
+  const padY = 280;
+  const screenshot = syntheticImage(inner.width + padX * 2, inner.height + padY * 2, 0xabcdef01);
+  for (let y = 0; y < inner.height; y++) {
+    for (let x = 0; x < inner.width; x++) {
+      const src = (y * inner.width + x) * 4;
+      const dst = ((y + padY) * screenshot.width + (x + padX)) * 4;
+      screenshot.data[dst] = inner.data[src];
+      screenshot.data[dst + 1] = inner.data[src + 1];
+      screenshot.data[dst + 2] = inner.data[src + 2];
+      screenshot.data[dst + 3] = inner.data[src + 3];
+    }
+  }
+
+  const prepared = [target].map((c) =>
+    prepareCandidate({
+      id: c.id,
+      contentId: c.contentId,
+      userId: c.userId,
+      purchaseId: c.purchaseId,
+      sessionNonce: c.sessionNonce,
+      watermarkVersion: c.watermarkVersion,
+      opaqueWatermarkId: c.opaqueWatermarkId,
+    })
+  );
+
+  const result = detectWatermarkInFrame(screenshot, prepared, true);
+  assert.equal(result.status, "MATCH");
+  assert.equal(result.sessionId, target.id);
+});

@@ -11,34 +11,52 @@ type Props = {
   className?: string;
   config: ForensicRenderConfig;
   loading?: "lazy" | "eager";
+  onMarked?: () => void;
 };
 
-/** Draws a still image through canvas so the central 4-quadrant carrier is embedded. */
-export function ForensicImageCanvas({ src, alt = "", className, config, loading = "lazy" }: Props) {
+/**
+ * Embeds the carrier at the **displayed** pixel size so OS screenshots of the
+ * player match detector coordinates (not naturalWidth of the origin file).
+ */
+export function ForensicImageCanvas({
+  src,
+  alt = "",
+  className,
+  config,
+  loading = "lazy",
+  onMarked,
+}: Props) {
+  const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
+  const markedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
     setReady(false);
     setFailed(false);
+    markedRef.current = false;
 
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.decoding = "async";
     img.loading = loading;
+    imgRef.current = img;
 
-    img.onload = () => {
+    let ro: ResizeObserver | null = null;
+
+    const paint = () => {
       if (cancelled) return;
+      const wrap = wrapRef.current;
       const canvas = canvasRef.current;
-      if (!canvas) return;
-      const w = img.naturalWidth;
-      const h = img.naturalHeight;
-      if (!w || !h) {
-        setFailed(true);
-        return;
-      }
+      const source = imgRef.current;
+      if (!wrap || !canvas || !source?.naturalWidth) return;
+
+      const w = Math.max(1, wrap.clientWidth);
+      const h = Math.max(1, wrap.clientHeight);
+      if (w < 8 || h < 8) return;
 
       canvas.width = w;
       canvas.height = h;
@@ -48,11 +66,24 @@ export function ForensicImageCanvas({ src, alt = "", className, config, loading 
         return;
       }
 
-      ctx.drawImage(img, 0, 0, w, h);
+      ctx.drawImage(source, 0, 0, w, h);
       const imageData = ctx.getImageData(0, 0, w, h);
       embedInvisibleWatermark({ width: w, height: h, data: imageData.data }, config, 0);
       ctx.putImageData(imageData, 0, 0);
       setReady(true);
+      if (!markedRef.current) {
+        markedRef.current = true;
+        onMarked?.();
+      }
+    };
+
+    img.onload = () => {
+      if (cancelled) return;
+      paint();
+      const wrap = wrapRef.current;
+      if (!wrap) return;
+      ro = new ResizeObserver(() => paint());
+      ro.observe(wrap);
     };
 
     img.onerror = () => {
@@ -63,22 +94,27 @@ export function ForensicImageCanvas({ src, alt = "", className, config, loading 
 
     return () => {
       cancelled = true;
+      ro?.disconnect();
     };
-  }, [src, config, loading]);
+  }, [src, config, loading, onMarked]);
 
   if (failed) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={src} alt={alt} className={className} loading={loading} draggable={false} />
+      <div ref={wrapRef} className={cn("relative overflow-hidden", className)}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt={alt} className="h-full w-full object-cover" loading={loading} draggable={false} />
+      </div>
     );
   }
 
   return (
-    <canvas
-      ref={canvasRef}
-      className={cn(className, !ready && "opacity-0")}
-      aria-label={alt}
-      role="img"
-    />
+    <div ref={wrapRef} className={cn("relative overflow-hidden", className)}>
+      <canvas
+        ref={canvasRef}
+        className={cn("h-full w-full object-cover", !ready && "opacity-0")}
+        aria-label={alt}
+        role="img"
+      />
+    </div>
   );
 }

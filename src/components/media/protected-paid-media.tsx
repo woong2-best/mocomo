@@ -109,14 +109,18 @@ export function ProtectedPaidMedia({
   }
 
   const imageNode =
-    protect && forensicRenderConfig ? (
-      <ForensicImageCanvas
-        src={src}
-        alt={alt}
-        className={cn(className, "pointer-events-none")}
-        config={forensicRenderConfig}
-        loading={loading}
-      />
+    protect && forensicEnabled && viewReady ? (
+      forensicRenderConfig ? (
+        <ForensicImageCanvas
+          src={src}
+          alt={alt}
+          className={cn(className, "pointer-events-none h-full w-full")}
+          config={forensicRenderConfig}
+          loading={loading}
+        />
+      ) : (
+        <div className={cn(className, "relative bg-muted/40 animate-pulse")} aria-hidden />
+      )
     ) : (
       // eslint-disable-next-line @next/next/no-img-element
       <img
