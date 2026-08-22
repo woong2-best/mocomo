@@ -15,6 +15,7 @@ import dynamic from "next/dynamic";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X, Loader2 } from "lucide-react";
 import { composeSheetRegionClass } from "@/lib/compose-sheet-layout";
+import { safeRouterRefresh } from "@/lib/feed-overlay-guard";
 import { cn } from "@/lib/utils";
 
 const ComposeForm = dynamic(
@@ -121,7 +122,7 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
       try {
         const main = document.getElementById("mocomo-main-scroll");
         main?.scrollTo({ top: 0, behavior: "smooth" });
-        router.refresh();
+        safeRouterRefresh(() => router.refresh());
       } catch (e) {
         console.error("[compose] refresh", e);
       }

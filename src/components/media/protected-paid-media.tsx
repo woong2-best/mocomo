@@ -211,19 +211,16 @@ export function ProtectedPaidMedia({
     (sessionLoading || !canvasReady);
   const showForensicCanvas =
     useForensicPipeline && Boolean(forensicRenderConfig) && !canvasFailed && !sessionError;
-  const progressiveImgHidden =
-    useForensicPipeline && progressiveWatermark && forensicReady;
 
   const plainImage = (
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={resolvedSrc}
       alt={alt}
-      className={cn(className, progressiveImgHidden && "opacity-0")}
+      className={className}
       loading={loading}
       draggable={false}
       onContextMenu={(e) => e.preventDefault()}
-      aria-hidden={progressiveImgHidden || undefined}
     />
   );
 
@@ -269,7 +266,7 @@ export function ProtectedPaidMedia({
               <Loader2 className="h-8 w-8 animate-spin text-white/80" aria-hidden />
             </div>
           ) : null}
-          {forensicBlocked ? (
+          {forensicBlocked && !progressiveWatermark ? (
             <ForensicGateOverlay
               blocked
               dark={fillsTile}
@@ -279,6 +276,13 @@ export function ProtectedPaidMedia({
                   : "워터마크 적용에 실패했습니다. 새로고침 후 다시 시도해 주세요."
               }
             />
+          ) : null}
+          {forensicBlocked && progressiveWatermark ? (
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[4] bg-black/60 px-3 py-2 text-center text-xs text-white/85">
+              {sessionError
+                ? "워터마크 세션을 불러올 수 없습니다."
+                : "워터마크 적용에 실패했습니다."}
+            </div>
           ) : null}
         </>
       )}

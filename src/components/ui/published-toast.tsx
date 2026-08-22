@@ -37,6 +37,7 @@ import {
 } from "@/lib/published-toast-types";
 import { useLocale } from "@/components/providers/locale-provider";
 import { pushErrorToast } from "@/lib/published-toast-store";
+import { safeRouterRefresh } from "@/lib/feed-overlay-guard";
 
 type ToastView = PublishedToastInput & {
   id: string;
@@ -130,7 +131,7 @@ export function PublishedToastPill({
 
     if (onFeed) {
       scrollMainToTop();
-      router.refresh();
+      safeRouterRefresh(() => router.refresh());
       return;
     }
 

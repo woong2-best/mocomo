@@ -14,7 +14,6 @@ import { PaidFeedMediaSurface } from "@/components/media/paid-feed-media-surface
 import { SensitiveContentGate } from "@/components/media/sensitive-content-gate";
 import type { ProfilePostMediaItem } from "@/components/profile/paid-post-media-grid";
 import type { ContentLockReason } from "@/lib/content-access";
-import { PostMediaLightbox } from "@/components/media/post-media-lightbox";
 import {
   getCachedPostMedia,
   invalidatePostMediaCache,
@@ -22,6 +21,7 @@ import {
   setCachedPostMedia,
 } from "@/lib/post-media-client-cache";
 import { useFeedVideoViewerOptional } from "@/components/feed/feed-video-viewer-provider";
+import { useFeedPhotoLightboxOptional } from "@/components/media/feed-photo-lightbox-provider";
 import { shouldBlockFeedVideoImmersive } from "@/components/media/feed-video-player";
 
 const SLIDE_WIDTH_RATIO = 0.88;
@@ -214,10 +214,9 @@ export function FeedPostMediaCarousel({
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [localMedia, setLocalMedia] = useState(media);
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [lightboxMedia, setLightboxMedia] = useState<ProfilePostMediaItem[]>(media);
   const [opening, setOpening] = useState(false);
   const feedVideoViewer = useFeedVideoViewerOptional();
+  const photoLightbox = useFeedPhotoLightboxOptional();
 
   useEffect(() => {
     setLocalMedia(media);
@@ -240,19 +239,22 @@ export function FeedPostMediaCarousel({
           };
         });
 
-      setLocalMedia((prev) => unlock(prev));
-      setLightboxMedia((prev) => unlock(prev));
+      setLocalMedia((prev) => {
+        const next = unlock(prev);
+        photoLightbox?.updatePhotoLightboxMedia(next.filter(isVisual));
+        return next;
+      });
 
       invalidatePostMediaCache(postId);
       const fresh = await prefetchPostMedia(postId, { force: true });
       if (fresh?.length) {
         const resolved = fresh as ProfilePostMediaItem[];
         setLocalMedia(resolved);
-        setLightboxMedia(resolved.filter(isVisual));
+        photoLightbox?.updatePhotoLightboxMedia(resolved.filter(isVisual));
         setCachedPostMedia(postId, fresh);
       }
     },
-    [postId, postInstantPurchasePriceKrw]
+    [photoLightbox, postId, postInstantPurchasePriceKrw]
   );
 
   const total = mediaTotal ?? localMedia.length;
@@ -261,13 +263,25 @@ export function FeedPostMediaCarousel({
   useEffect(() => {
     if (!needsFullFetch && localMedia.length > 0) {
       setCachedPostMedia(postId, localMedia);
-      setLightboxMedia(localMedia);
       return;
     }
     if (needsFullFetch) {
       void prefetchPostMedia(postId);
     }
   }, [needsFullFetch, localMedia, postId]);
+
+  const openLightbox = useCallback(
+    (resolved: ProfilePostMediaItem[], index: number) => {
+      photoLightbox?.openPhotoLightbox({
+        media: resolved,
+        index,
+        postId,
+        postInstantPurchasePriceKrw,
+        isOwner,
+      });
+    },
+    [photoLightbox, postId, postInstantPurchasePriceKrw, isOwner]
+  );
 
   const items = useMemo(() => localMedia.filter(isVisual), [localMedia]);
   const multi = items.length > 1;
@@ -294,8 +308,7 @@ export function FeedPostMediaCarousel({
     }
 
     if (items.length >= total) {
-      setLightboxMedia(items);
-      setLightboxIndex(index);
+      openLightbox(items, index);
       return;
     }
 
@@ -308,8 +321,7 @@ export function FeedPostMediaCarousel({
           : (await prefetchPostMedia(postId)) ?? cached ?? items;
       if (full.length > 0) setCachedPostMedia(postId, full);
       const resolved = (full.length >= items.length ? full : items) as ProfilePostMediaItem[];
-      setLightboxMedia(resolved.filter(isVisual));
-      setLightboxIndex(index);
+      openLightbox(resolved.filter(isVisual), index);
     } finally {
       setOpening(false);
     }
@@ -374,18 +386,6 @@ export function FeedPostMediaCarousel({
     );
   };
 
-  const lightbox = lightboxIndex !== null && lightboxMedia.length > 0 && (
-    <PostMediaLightbox
-      open
-      onClose={() => setLightboxIndex(null)}
-      media={lightboxMedia}
-      initialIndex={Math.min(lightboxIndex, lightboxMedia.length - 1)}
-      postId={postId}
-      postInstantPurchasePriceKrw={postInstantPurchasePriceKrw}
-      isOwner={isOwner}
-    />
-  );
-
   if (!multi) {
     const m = items[0]!;
     const aspect =
@@ -393,21 +393,18 @@ export function FeedPostMediaCarousel({
         ? `${m.width} / ${m.height}`
         : "16 / 10";
     return (
-      <>
+      <div
+        className={cn("mt-3 max-w-full", className, opening && "opacity-80")}
+        onPointerEnter={warmFullMedia}
+        onFocusCapture={warmFullMedia}
+      >
         <div
-          className={cn("mt-3 max-w-full", className, opening && "opacity-80")}
-          onPointerEnter={warmFullMedia}
-          onFocusCapture={warmFullMedia}
+          className="overflow-hidden rounded-2xl border border-border/50 bg-muted/20"
+          style={{ aspectRatio: aspect, maxHeight: 510 }}
         >
-          <div
-            className="overflow-hidden rounded-2xl border border-border/50 bg-muted/20"
-            style={{ aspectRatio: aspect, maxHeight: 510 }}
-          >
-            {renderTile(m, 0, true)}
-          </div>
+          {renderTile(m, 0, true)}
         </div>
-        {lightbox}
-      </>
+      </div>
     );
   }
 
@@ -417,12 +414,11 @@ export function FeedPostMediaCarousel({
   } satisfies CSSProperties;
 
   return (
-    <>
-      <div
-        className={cn("mt-3 max-w-full", className, opening && "opacity-80")}
-        onPointerEnter={warmFullMedia}
-        onFocusCapture={warmFullMedia}
-      >
+    <div
+      className={cn("mt-3 max-w-full", className, opening && "opacity-80")}
+      onPointerEnter={warmFullMedia}
+      onFocusCapture={warmFullMedia}
+    >
         <div className="mb-2 flex items-center justify-center gap-1.5" aria-hidden>
           {items.map((item, i) => (
             <span
@@ -469,8 +465,6 @@ export function FeedPostMediaCarousel({
             );
           })}
         </div>
-      </div>
-      {lightbox}
-    </>
+    </div>
   );
 }

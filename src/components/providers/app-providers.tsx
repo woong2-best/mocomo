@@ -7,6 +7,7 @@ import { AppSocketProvider } from "@/components/providers/app-socket-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { CallProviderGate } from "@/components/call/call-provider-gate";
 import { ComposeProvider } from "@/components/compose/compose-provider";
+import { FeedPhotoLightboxProvider } from "@/components/media/feed-photo-lightbox-provider";
 import { PublishedToastProvider } from "@/components/providers/published-toast-provider";
 import { SidebarToggleProvider } from "@/components/providers/sidebar-toggle-provider";
 import { TopProgressProvider } from "@/components/providers/top-progress-provider";
@@ -62,6 +63,7 @@ export function AppProviders({
         <AppSocketProvider>
           <QueryProvider>
           <PublishedToastProvider>
+          <FeedPhotoLightboxProvider>
           <ComposeProvider>
             <SidebarToggleProvider>
               <PushRegistration />
@@ -74,6 +76,7 @@ export function AppProviders({
               </CallProviderGate>
             </SidebarToggleProvider>
           </ComposeProvider>
+          </FeedPhotoLightboxProvider>
           </PublishedToastProvider>
           </QueryProvider>
         </AppSocketProvider>

@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -18,6 +19,7 @@ import {
   type FeedVideoOpenTarget,
 } from "@/lib/feed-video-viewer";
 import { getVideoPlaybackController } from "@/lib/video-playback";
+import { registerFeedOverlay } from "@/lib/feed-overlay-guard";
 
 type FeedVideoViewerContextValue = {
   openVideoViewer: (target: FeedVideoOpenTarget) => boolean;
@@ -80,6 +82,11 @@ export function FeedVideoViewerProvider({
       }
     });
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    return registerFeedOverlay();
+  }, [open]);
 
   const value = useMemo(
     () => ({ openVideoViewer }),

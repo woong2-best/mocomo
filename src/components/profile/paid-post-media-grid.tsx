@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { PaidFeedMediaSurface } from "@/components/media/paid-feed-media-surface";
 import { SensitiveContentGate } from "@/components/media/sensitive-content-gate";
-import { PostMediaLightbox } from "@/components/media/post-media-lightbox";
+import { useFeedPhotoLightboxOptional } from "@/components/media/feed-photo-lightbox-provider";
 import type { ContentLockReason } from "@/lib/content-access";
 import {
   getCachedPostMedia,
@@ -67,11 +67,10 @@ export function PaidPostMediaGrid({
   /** Double-tap video → like (feed / detail). */
   onDoubleTapLike?: () => void;
 }) {
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [lightboxMedia, setLightboxMedia] = useState<ProfilePostMediaItem[]>(media);
   const [opening, setOpening] = useState(false);
   const [unlockedIds, setUnlockedIds] = useState<Set<string>>(() => new Set());
   const feedVideoViewer = useFeedVideoViewerOptional();
+  const photoLightbox = useFeedPhotoLightboxOptional();
 
   function markPurchased(mediaId?: string) {
     setUnlockedIds((prev) => {
@@ -94,7 +93,6 @@ export function PaidPostMediaGrid({
   useEffect(() => {
     if (!needsFullFetch && media.length > 0) {
       setCachedPostMedia(postId, media);
-      setLightboxMedia(media);
       return;
     }
     // 미리보기만 있는 게시글은 백그라운드에서 전체 목록 워밍
@@ -133,8 +131,13 @@ export function PaidPostMediaGrid({
 
     // 피드에 전체가 있으면 즉시 오픈. 잘려 있으면 fetch 끝난 뒤에만 오픈 (4장 깜빡임 제거)
     if (media.length >= total) {
-      setLightboxMedia(media);
-      setLightboxIndex(index);
+      photoLightbox?.openPhotoLightbox({
+        media,
+        index,
+        postId,
+        postInstantPurchasePriceKrw,
+        isOwner,
+      });
       return;
     }
 
@@ -146,8 +149,14 @@ export function PaidPostMediaGrid({
           ? cached
           : (await prefetchPostMedia(postId)) ?? cached ?? media;
       if (full.length > 0) setCachedPostMedia(postId, full);
-      setLightboxMedia((full.length >= media.length ? full : media) as ProfilePostMediaItem[]);
-      setLightboxIndex(index);
+      const resolved = (full.length >= media.length ? full : media) as ProfilePostMediaItem[];
+      photoLightbox?.openPhotoLightbox({
+        media: resolved,
+        index,
+        postId,
+        postInstantPurchasePriceKrw,
+        isOwner,
+      });
     } finally {
       setOpening(false);
     }
@@ -242,7 +251,7 @@ export function PaidPostMediaGrid({
                   isNsfw={isNsfw}
                   isOwner={isOwner}
                   viewerShowNsfw={viewerShowNsfw}
-                  onOpenFull={() => void openAt(i, locked)}
+                  onOpenFull={() => void openAt(i, false)}
                   onPurchaseSuccess={(id) => markPurchased(id)}
                 />
                 {showOverflow && (
@@ -255,19 +264,6 @@ export function PaidPostMediaGrid({
           })}
         </div>
       </div>
-
-      {lightboxIndex !== null && lightboxMedia.length > 0 && (
-        <PostMediaLightbox
-          open
-          onClose={() => setLightboxIndex(null)}
-          media={lightboxMedia}
-          initialIndex={Math.min(lightboxIndex, lightboxMedia.length - 1)}
-          postId={postId}
-          mediaTotal={lightboxMedia.length}
-          postInstantPurchasePriceKrw={postInstantPurchasePriceKrw}
-          isOwner={isOwner}
-        />
-      )}
     </>
   );
 }

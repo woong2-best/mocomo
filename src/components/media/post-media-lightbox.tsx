@@ -55,9 +55,14 @@ export function PostMediaLightbox({
 
   useEffect(() => {
     if (!open) return;
-    setItems(media);
     setIndex(Math.min(Math.max(0, initialIndex), Math.max(0, media.length - 1)));
-  }, [open, media, initialIndex]);
+  }, [open, initialIndex, media.length]);
+
+  useEffect(() => {
+    if (!open) return;
+    setItems(media);
+    setIndex((prev) => Math.min(prev, Math.max(0, media.length - 1)));
+  }, [open, media]);
 
   const goTo = useCallback(
     (next: number) => {

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ComposeForm } from "@/components/compose/compose-form";
+import { safeRouterRefresh } from "@/lib/feed-overlay-guard";
 
 export function HomeLoggedBanner() {
   const router = useRouter();
@@ -15,7 +16,7 @@ export function HomeLoggedBanner() {
         variant="inline"
         onPosted={() => {
           setFormKey((k) => k + 1);
-          router.refresh();
+          safeRouterRefresh(() => router.refresh());
         }}
       />
     </div>
