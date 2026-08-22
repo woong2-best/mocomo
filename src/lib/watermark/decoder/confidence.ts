@@ -1,5 +1,14 @@
 import type { DetectionRegionScore, WatermarkDetectionStatus } from "@/lib/watermark/types";
 
+/** Random texture / wrong-session comparisons cluster around 50% bit agreement. */
+export const REGION_BIT_AGREEMENT_NOISE = 0.5;
+
+/** Quadrant stream must exceed noise before it counts as recovered evidence. */
+export const REGION_RECOVERED_THRESHOLD = 0.82;
+
+/** Central spatial agreement below this is treated as no forensic signal. */
+export const SPATIAL_SIGNAL_THRESHOLD = 0.72;
+
 export function scoreRegionMatch(expected: Uint8Array, recovered: Uint8Array): number {
   const len = Math.min(expected.length, recovered.length, 64);
   if (len === 0) return 0;
@@ -42,11 +51,24 @@ export function computeDetectionConfidence(input: {
   confidence = Math.max(0, Math.min(1, confidence));
 
   let status: WatermarkDetectionStatus = "NOT_DETECTED";
+  const aboveNoise =
+    input.centralScore >= SPATIAL_SIGNAL_THRESHOLD ||
+    input.distributedScore >= SPATIAL_SIGNAL_THRESHOLD;
+
   if (confidence >= 0.8 && input.integrityValid && input.eccValid && recoveredCount >= 2) {
     status = "MATCH";
-  } else if (confidence >= 0.6 && recoveredCount >= 1) {
+  } else if (
+    input.integrityValid &&
+    input.eccValid &&
+    recoveredCount >= 1 &&
+    confidence >= 0.65
+  ) {
     status = "POSSIBLE_MATCH";
-  } else if (confidence >= 0.35) {
+  } else if (
+    aboveNoise &&
+    (input.eccValid || input.integrityValid || recoveredCount >= 2) &&
+    confidence >= 0.55
+  ) {
     status = "INCONCLUSIVE";
   }
 

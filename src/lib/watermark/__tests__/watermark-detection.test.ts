@@ -127,6 +127,7 @@ test("detector does not attribute a clean frame to anyone", async () => {
 
   assert.notEqual(result.status, "MATCH");
   assert.equal(result.integrityValid, false);
+  assert.equal(result.status, "NOT_DETECTED", "unmarked capture should not look like partial signal");
 });
 
 test("detector rejects a frame watermarked for a different session", async () => {
@@ -275,4 +276,48 @@ test("detector finds watermark when media is centered inside a larger screenshot
   const result = detectWatermarkInFrame(screenshot, prepared, true);
   assert.equal(result.status, "MATCH");
   assert.equal(result.sessionId, target.id);
+});
+
+test("encoder output decodes through detector without browser capture", async () => {
+  const { toBase64 } = await import("@/lib/watermark/crypto/payload");
+  const { embedInvisibleWatermark } = await import("@/lib/watermark/encoder/spread-spectrum");
+  const { detectWatermarkInFrame, prepareCandidate } = await import(
+    "@/lib/watermark/decoder/pipeline"
+  );
+  const { WATERMARK_TEMPORAL_PERIOD, WATERMARK_MODULATION_STRENGTH } = await import(
+    "@/lib/watermark/config"
+  );
+
+  const target = await withOpaqueId(candidate(808));
+  const frame = syntheticImage(1280, 720);
+  embedInvisibleWatermark(
+    frame,
+    {
+      watermarkVersion: 1,
+      sessionId: target.id,
+      spreadSeedB64: toBase64(target.built.spreadSeed),
+      codewordB64: toBase64(target.built.codeword),
+      temporalPeriod: WATERMARK_TEMPORAL_PERIOD,
+      modulationStrength: WATERMARK_MODULATION_STRENGTH,
+    },
+    0
+  );
+
+  const prepared = [
+    prepareCandidate({
+      id: target.id,
+      contentId: target.contentId,
+      userId: target.userId,
+      purchaseId: target.purchaseId,
+      sessionNonce: target.sessionNonce,
+      watermarkVersion: target.watermarkVersion,
+      opaqueWatermarkId: target.opaqueWatermarkId,
+    }),
+  ];
+
+  const result = detectWatermarkInFrame(frame, prepared);
+  assert.equal(result.status, "MATCH");
+  assert.equal(result.eccValid, true);
+  assert.equal(result.integrityValid, true);
+  assert.ok(result.centralScore >= 0.9, `central bit agreement ${result.centralScore}`);
 });

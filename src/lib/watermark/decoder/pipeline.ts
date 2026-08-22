@@ -7,7 +7,11 @@ import {
   decodeWatermarkCodeword,
   validateDecodedPayload,
 } from "@/lib/watermark/crypto/payload";
-import { computeDetectionConfidence, scoreRegionMatch } from "@/lib/watermark/decoder/confidence";
+import {
+  computeDetectionConfidence,
+  REGION_RECOVERED_THRESHOLD,
+  scoreRegionMatch,
+} from "@/lib/watermark/decoder/confidence";
 import { centerCropVariants, cropFrame, MIN_CROP } from "@/lib/watermark/decoder/crop-search";
 import {
   extractAnchorStreams,
@@ -127,7 +131,7 @@ function verifyCandidate(
 
   const regionScores: DetectionRegionScore[] = WATERMARK_QUADRANT_KEYS.map((key) => {
     const score = scoreRegionMatch(quadrants[key], streams[key] ?? new Uint8Array());
-    return { key, score, recovered: score >= 0.55 };
+    return { key, score, recovered: score >= REGION_RECOVERED_THRESHOLD };
   });
 
   const weights = Object.fromEntries(
@@ -177,7 +181,7 @@ function verifyCandidate(
     contentId: candidate.contentId,
     opaqueWatermarkId: candidate.opaqueWatermarkId,
     detectedRegions: regionScores,
-    temporalMatches: anchorScores.filter((s) => s >= 0.55).length,
+    temporalMatches: anchorScores.filter((s) => s >= REGION_RECOVERED_THRESHOLD).length,
     distributedScore,
     centralScore,
     integrityValid,

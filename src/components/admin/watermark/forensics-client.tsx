@@ -219,10 +219,17 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
               <dd className="font-medium">{result.integrityValid ? "PASS" : "FAIL"}</dd>
             </div>
             <div>
-              <dt className="text-muted-foreground">Central score</dt>
+              <dt className="text-muted-foreground">Spatial bit agreement</dt>
               <dd className="font-medium">{(result.centralScore * 100).toFixed(1)}%</dd>
             </div>
           </dl>
+
+          {!result.eccValid && !result.integrityValid && result.centralScore < 0.72 ? (
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              ~50% spatial agreement is normal on unmarked photos and compression noise — it is not
+              watermark detection. ECC and integrity must pass before a session can be identified.
+            </p>
+          ) : null}
 
           {result.detectedRegions?.length ? (
             <div>
@@ -233,7 +240,7 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
                     key={r.key}
                     className="rounded-md border px-2 py-1 text-xs font-mono"
                   >
-                    {r.key} {r.recovered ? "✓" : "△"} ({(r.score * 100).toFixed(0)}%)
+                    {r.key} {r.recovered ? "✓" : "—"} ({(r.score * 100).toFixed(0)}% bits)
                   </span>
                 ))}
               </div>
