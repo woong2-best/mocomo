@@ -319,6 +319,7 @@ function PaidPostMediaTile({
       <ProtectedPaidMedia
         type={media.type}
         src={media.url}
+        objectFit={single ? "contain" : "cover"}
         className={cn(
           "w-full",
           single

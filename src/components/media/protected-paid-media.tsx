@@ -17,6 +17,8 @@ type Props = {
   type: string;
   src: string;
   className?: string;
+  /** Feed tiles: cover. Lightbox / detail: contain. */
+  objectFit?: "cover" | "contain";
   mediaPriceKrw?: number | null;
   postInstantPurchasePriceKrw?: number | null;
   locked?: boolean;
@@ -34,10 +36,17 @@ type Props = {
   contentKind?: WatermarkContentKind;
 };
 
+function inferObjectFit(className: string | undefined, explicit?: "cover" | "contain") {
+  if (explicit) return explicit;
+  if (className?.includes("object-contain")) return "contain";
+  return "cover";
+}
+
 export function ProtectedPaidMedia({
   type,
   src,
   className,
+  objectFit: objectFitProp,
   mediaPriceKrw,
   postInstantPurchasePriceKrw,
   locked,
@@ -61,6 +70,8 @@ export function ProtectedPaidMedia({
   });
 
   const isVideo = type === "VIDEO";
+  const objectFit = inferObjectFit(className, objectFitProp);
+  const fillsTile = Boolean(className?.includes("h-full"));
   const forensicEnabled = protect && !locked && Boolean(mediaId);
   const viewResetKey = `${mediaId ?? ""}:${src}`;
   const { viewReady, markViewReady } = useForensicViewReady(forensicEnabled, viewResetKey, {
@@ -123,30 +134,33 @@ export function ProtectedPaidMedia({
     !sessionError &&
     !canvasFailed;
 
-  const plainImage = (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt={alt}
-      className={cn(
-        protect && "pointer-events-none",
-        useForensicCanvas && canvasReady ? "sr-only" : "h-full w-full object-cover"
-      )}
-      loading={loading}
-      draggable={false}
-      onContextMenu={(e) => e.preventDefault()}
-    />
-  );
-
   const imageNode = (
-    <div className={cn("relative h-full w-full", className)}>
-      {plainImage}
+    <div
+      className={cn(
+        "relative",
+        fillsTile ? "size-full" : "inline-flex max-w-full max-h-full"
+      )}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={alt}
+        className={cn(
+          className,
+          protect && "pointer-events-none",
+          useForensicCanvas && canvasReady && "sr-only"
+        )}
+        loading={loading}
+        draggable={false}
+        onContextMenu={(e) => e.preventDefault()}
+      />
       {useForensicCanvas ? (
         <ForensicImageCanvas
           src={src}
           alt={alt}
           mediaId={mediaId}
-          className="absolute inset-0 h-full w-full pointer-events-none"
+          objectFit={objectFit}
+          className="pointer-events-none absolute inset-0"
           config={forensicRenderConfig}
           onMarked={() => setCanvasReady(true)}
           onFailed={() => setCanvasFailed(true)}
@@ -158,8 +172,13 @@ export function ProtectedPaidMedia({
   if (!protect) return imageNode;
 
   return (
-    <PaidMediaProtectionShell className={cn("overflow-hidden", className)}>
-      <div className="relative h-full w-full">
+    <PaidMediaProtectionShell
+      className={cn(
+        "overflow-hidden",
+        fillsTile ? "size-full" : "inline-flex max-w-full max-h-full"
+      )}
+    >
+      <div className={cn("relative", fillsTile ? "size-full" : "inline-flex max-w-full max-h-full")}>
         {imageNode}
         <div
           className="absolute inset-0 z-[1]"

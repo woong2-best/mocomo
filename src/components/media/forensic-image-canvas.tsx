@@ -15,6 +15,7 @@ type Props = {
   className?: string;
   config: ForensicRenderConfig;
   mediaId?: string | null;
+  objectFit?: "cover" | "contain";
   onMarked?: () => void;
   onFailed?: (message: string) => void;
 };
@@ -46,24 +47,42 @@ function resolvePaintSize(
   }
 
   if (bitmap.width >= 8 && bitmap.height >= 8) {
-    w = Math.max(w, bitmap.width);
-    h = Math.max(h, Math.round(bitmap.height * (w / bitmap.width)));
+    const maxW = Math.min(bitmap.width, 1920);
+    const maxH = Math.min(bitmap.height, 1920);
+    w = Math.max(w, maxW);
+    h = Math.max(h, Math.round(maxH * (w / bitmap.width)));
     if (w >= 8 && h >= 8) return { width: w, height: h };
   }
 
   return null;
 }
 
-/**
- * Embeds the carrier at the **displayed** pixel size so OS screenshots of the
- * player match detector coordinates (not naturalWidth of the origin file).
- */
+function drawBitmapFit(
+  ctx: CanvasRenderingContext2D,
+  bitmap: ImageBitmap,
+  width: number,
+  height: number,
+  fit: "cover" | "contain"
+) {
+  ctx.clearRect(0, 0, width, height);
+  const scale =
+    fit === "contain"
+      ? Math.min(width / bitmap.width, height / bitmap.height)
+      : Math.max(width / bitmap.width, height / bitmap.height);
+  const dw = bitmap.width * scale;
+  const dh = bitmap.height * scale;
+  const dx = (width - dw) / 2;
+  const dy = (height - dh) / 2;
+  ctx.drawImage(bitmap, dx, dy, dw, dh);
+}
+
 export function ForensicImageCanvas({
   src,
   alt = "",
   className,
   config,
   mediaId = null,
+  objectFit = "cover",
   onMarked,
   onFailed,
 }: Props) {
@@ -128,7 +147,7 @@ export function ForensicImageCanvas({
         return;
       }
 
-      ctx.drawImage(bitmap, 0, 0, w, h);
+      drawBitmapFit(ctx, bitmap, w, h, objectFit);
       const imageData = ctx.getImageData(0, 0, w, h);
       embedInvisibleWatermark({ width: w, height: h, data: imageData.data }, config, 0);
       ctx.putImageData(imageData, 0, 0);
@@ -178,16 +197,16 @@ export function ForensicImageCanvas({
       bitmapRef.current?.close();
       bitmapRef.current = null;
     };
-  }, [src, config, onMarked, onFailed, mediaId]);
+  }, [src, config, objectFit, onMarked, onFailed, mediaId]);
 
   return (
-    <div ref={wrapRef} className={cn("relative h-full w-full overflow-hidden", className)}>
+    <div ref={wrapRef} className={cn("relative size-full overflow-hidden", className)}>
       <canvas
         ref={canvasRef}
         data-forensic-canvas={ready ? "ready" : "loading"}
         data-forensic-media-id={mediaId ?? undefined}
         data-forensic-session-id={config.sessionId}
-        className={cn("block h-full w-full object-cover", !ready && "opacity-0")}
+        className={cn("block size-full", !ready && "opacity-0")}
         aria-label={alt}
         role="img"
       />

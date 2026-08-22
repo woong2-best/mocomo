@@ -169,6 +169,7 @@ export function PostMediaLightbox({
             <ProtectedPaidMedia
               type={current.type}
               src={current.url}
+              objectFit="contain"
               className={cn(
                 "max-h-[calc(100dvh-8rem)] max-w-full object-contain",
                 current.type === "VIDEO" ? "w-full" : "select-none"

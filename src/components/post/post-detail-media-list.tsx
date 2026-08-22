@@ -25,7 +25,8 @@ export function PostDetailMediaList({
           key={m.id}
           type={m.type}
           src={m.url}
-          className="rounded-lg max-w-full w-full"
+          objectFit="contain"
+          className="rounded-lg max-w-full w-full object-contain"
           mediaPriceKrw={m.priceKrw}
           postInstantPurchasePriceKrw={instantPurchasePriceKrw}
           mediaId={m.id}

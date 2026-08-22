@@ -137,6 +137,7 @@ export function FeedVideoExpandLightbox({
             <ProtectedPaidMedia
               type="VIDEO"
               src={current.media.url}
+              objectFit="contain"
               className="max-h-[calc(100dvh-6rem)] w-full max-w-5xl object-contain"
               mediaId={current.media.id}
               mediaPriceKrw={current.media.priceKrw}
