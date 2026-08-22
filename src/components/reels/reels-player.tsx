@@ -31,6 +31,10 @@ import {
 import { ReelsProgressBar } from "@/components/reels/reels-progress-bar";
 import { ForensicVideoCanvas } from "@/components/media/forensic-video-canvas";
 import { useForensicWatermarkSession } from "@/components/media/use-forensic-watermark-session";
+import {
+  forensicPlaybackReady,
+  useForensicViewReady,
+} from "@/components/media/use-forensic-view-ready";
 import { shouldProtectPaidMediaView } from "@/lib/paid-media-protection";
 
 type Props = {
@@ -87,7 +91,16 @@ export function ReelsPlayer({
     mediaPriceKrw,
     postInstantPurchasePriceKrw,
   });
-  const { config: forensicConfig } = useForensicWatermarkSession(mediaId, paidView);
+  const { viewReady, markViewReady } = useForensicViewReady(paidView, mediaId, {
+    autoAfterMs: undefined,
+  });
+  const { config: forensicConfig } = useForensicWatermarkSession(
+    mediaId,
+    paidView,
+    "POST_MEDIA",
+    viewReady
+  );
+  const forensicViewReadyRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<HlsType | null>(null);
@@ -271,12 +284,24 @@ export function ReelsPlayer({
   }, [distance, isActive, tryPlay]);
 
   useEffect(() => {
+    forensicViewReadyRef.current = false;
+  }, [mediaId, markViewReady]);
+
+  useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     const onTime = () => {
       const d = video.duration;
       if (Number.isFinite(d) && d > 0) setProgress(video.currentTime / d);
+      if (
+        paidView &&
+        !forensicViewReadyRef.current &&
+        forensicPlaybackReady(video.currentTime)
+      ) {
+        forensicViewReadyRef.current = true;
+        markViewReady();
+      }
       try {
         if (video.buffered.length > 0 && Number.isFinite(d) && d > 0) {
           setBuffered(video.buffered.end(video.buffered.length - 1) / d);
@@ -315,7 +340,7 @@ export function ReelsPlayer({
       video.removeEventListener("loadedmetadata", onMeta);
       video.removeEventListener("ended", onVideoEnded);
     };
-  }, [playbackSrc, disableLoop, onEnded]);
+  }, [playbackSrc, disableLoop, onEnded, paidView, markViewReady]);
 
   const onSeek = useCallback((ratio: number) => {
     const video = videoRef.current;

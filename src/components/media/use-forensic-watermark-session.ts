@@ -7,14 +7,15 @@ import type { WatermarkContentKind } from "@/lib/paid-media-playback";
 export function useForensicWatermarkSession(
   mediaId: string | null | undefined,
   enabled: boolean,
-  contentKind: WatermarkContentKind = "POST_MEDIA"
+  contentKind: WatermarkContentKind = "POST_MEDIA",
+  viewReady = true
 ) {
   const [config, setConfig] = useState<ForensicRenderConfig | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!enabled || !mediaId) {
+    if (!enabled || !mediaId || !viewReady) {
       setConfig(null);
       return;
     }
@@ -46,7 +47,7 @@ export function useForensicWatermarkSession(
     return () => {
       cancelled = true;
     };
-  }, [enabled, mediaId, contentKind]);
+  }, [enabled, mediaId, contentKind, viewReady]);
 
   return { config, loading, error };
 }

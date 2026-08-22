@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { AdminWatermarkDetectionResponse } from "@/lib/watermark/types";
+import { WATERMARK_MIN_VIEW_SECONDS } from "@/lib/watermark/config";
 import {
   extractImageFrame,
   extractVideoFrames,
@@ -16,18 +17,19 @@ type SystemStatus = {
 };
 
 function humanizeDetectionError(message: string, contentId: string) {
+  const minView = WATERMARK_MIN_VIEW_SECONDS;
   if (message === "No watermark sessions recorded yet") {
     return [
-      "아직 기록된 유료 영상 시청 세션이 없습니다.",
-      "포렌식은 플레이어에 워터마크가 입혀진 유료 영상 캡처만 비교할 수 있습니다.",
-      "테스트: 다른 계정으로 유료 영상을 구매·재생(10초 이상)한 뒤, 재생 화면을 캡처하고 Media ID를 입력해 다시 분석하세요.",
-      "참고: 사진·이미지 게시물, 작성자 본인 재생, 워터마크 켜기 전 캡처는 세션이 없거나 신호가 없습니다.",
+      "아직 기록된 유료 미디어 시청 세션이 없습니다.",
+      "포렌식은 플레이어에 워터마크가 입혀진 유료 사진·영상 캡처만 비교할 수 있습니다.",
+      `테스트: 다른 계정으로 유료 사진 또는 영상을 구매·열람(${minView}초 이상)한 뒤, 화면을 캡처하고 Media ID를 입력해 다시 분석하세요.`,
+      "참고: 작성자 본인 열람, 워터마크 켜기 전 캡처는 세션이 없거나 신호가 없습니다.",
     ].join(" ");
   }
   if (message === "No watermark sessions recorded for this content") {
     return [
       `Media ID(${contentId.trim() || "입력값"})에 대한 시청 세션이 없습니다.`,
-      "해당 영상을 구매한 다른 계정으로 실제 재생한 뒤, 그 화면을 캡처해 다시 시도하세요.",
+      `해당 사진·영상을 구매한 다른 계정으로 ${minView}초 이상 열람한 뒤, 그 화면을 캡처해 다시 시도하세요.`,
     ].join(" ");
   }
   return message;
@@ -132,8 +134,8 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
         </dl>
         {systemStatus.sessionCount === 0 ? (
           <p className="mt-3 text-xs text-amber-700 dark:text-amber-400">
-            시청 세션이 0건이면 분석을 시작할 수 없습니다. 유료 영상을 다른 계정으로 재생해 세션을
-            만든 뒤 다시 시도하세요.
+            시청 세션이 0건이면 분석을 시작할 수 없습니다. 다른 계정으로 유료 사진·영상을{" "}
+            {WATERMARK_MIN_VIEW_SECONDS}초 이상 열람해 세션을 만든 뒤 다시 시도하세요.
           </p>
         ) : null}
       </div>
@@ -142,7 +144,8 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
         <h1 className="text-xl font-semibold">Watermark Forensics</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Upload a leaked screenshot or video sample. Results indicate whether forensic watermark
-          signals match a viewing session — not legal proof of who leaked content.
+          signals match a viewing session — not legal proof of who leaked content. Paid photos and
+          videos are in scope; view at least {WATERMARK_MIN_VIEW_SECONDS} second before capture.
         </p>
 
         <div className="mt-6 space-y-3">

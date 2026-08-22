@@ -6,6 +6,10 @@ import { PaidMediaProtectionShell } from "@/components/media/paid-media-protecti
 import { FeedVideoPlayer } from "@/components/media/feed-video-player";
 import { ForensicImageCanvas } from "@/components/media/forensic-image-canvas";
 import { useForensicWatermarkSession } from "@/components/media/use-forensic-watermark-session";
+import {
+  forensicViewAutoMs,
+  useForensicViewReady,
+} from "@/components/media/use-forensic-view-ready";
 import type { WatermarkContentKind } from "@/lib/paid-media-playback";
 
 type Props = {
@@ -57,10 +61,15 @@ export function ProtectedPaidMedia({
 
   const isVideo = type === "VIDEO";
   const forensicEnabled = protect && !locked && Boolean(mediaId);
+  const viewResetKey = `${mediaId ?? ""}:${src}`;
+  const { viewReady, markViewReady } = useForensicViewReady(forensicEnabled, viewResetKey, {
+    autoAfterMs: isVideo ? undefined : forensicViewAutoMs(),
+  });
   const { config: forensicRenderConfig } = useForensicWatermarkSession(
     mediaId,
     forensicEnabled,
-    contentKind
+    contentKind,
+    viewReady
   );
 
   if (locked || !src.trim()) {
@@ -88,6 +97,7 @@ export function ProtectedPaidMedia({
         onOpenImmersive={onOpenImmersive}
         poster={poster}
         forensicRenderConfig={forensicRenderConfig}
+        onForensicViewReady={forensicEnabled ? markViewReady : undefined}
       />
     );
     if (!protect) return player;

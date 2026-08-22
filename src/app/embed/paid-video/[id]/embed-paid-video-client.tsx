@@ -5,6 +5,10 @@ import { useSearchParams } from "next/navigation";
 import { FeedVideoPlayer } from "@/components/media/feed-video-player";
 import { useForensicWatermarkSession } from "@/components/media/use-forensic-watermark-session";
 import {
+  forensicPlaybackReady,
+  useForensicViewReady,
+} from "@/components/media/use-forensic-view-ready";
+import {
   paidEpisodePlaybackPath,
   paidMediaPlaybackPath,
   type WatermarkContentKind,
@@ -32,10 +36,14 @@ export default function EmbedPaidVideoClient({ params }: Props) {
         ? paidEpisodePlaybackPath(mediaId)
         : paidMediaPlaybackPath(mediaId);
 
+  const { viewReady, markViewReady } = useForensicViewReady(Boolean(mediaId), mediaId ?? "", {
+    autoAfterMs: undefined,
+  });
   const { config, loading, error } = useForensicWatermarkSession(
     mediaId,
     Boolean(mediaId),
-    contentKind
+    contentKind,
+    viewReady
   );
 
   if (!mediaId) {
@@ -66,6 +74,7 @@ export default function EmbedPaidVideoClient({ params }: Props) {
         mediaId={mediaId}
         autoPlayOnView
         forensicRenderConfig={loading ? null : config}
+        onForensicViewReady={markViewReady}
       />
     </div>
   );

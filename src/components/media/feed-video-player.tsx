@@ -20,6 +20,7 @@ import {
   Heart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { forensicPlaybackReady } from "@/components/media/use-forensic-view-ready";
 import { ForensicVideoCanvas } from "@/components/media/forensic-video-canvas";
 import type { ForensicRenderConfig } from "@/lib/watermark/types";
 import {
@@ -77,6 +78,8 @@ type Props = {
   poster?: string;
   /** Invisible forensic watermark render config (paid video only). */
   forensicRenderConfig?: ForensicRenderConfig | null;
+  /** Called once when paid playback reaches the forensic view threshold. */
+  onForensicViewReady?: () => void;
 };
 
 function formatTime(sec: number): string {
@@ -165,6 +168,7 @@ export function FeedVideoPlayer({
   onOpenImmersive,
   poster,
   forensicRenderConfig,
+  onForensicViewReady,
 }: Props) {
   const reactId = useId();
   const playerId = `fv-${mediaId ?? reactId}`;
@@ -198,6 +202,7 @@ export function FeedVideoPlayer({
   const lastProgressSaveRef = useRef(0);
   const bufferingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoPlayingRef = useRef(false);
+  const forensicViewReadyRef = useRef(false);
 
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [isVolumeDragging, setIsVolumeDragging] = useState(false);
@@ -433,6 +438,10 @@ export function FeedVideoPlayer({
     }
   }, [src, mediaAttached, retryToken, autoPlayOnView, playExclusive]);
 
+  useEffect(() => {
+    forensicViewReadyRef.current = false;
+  }, [src, mediaId, onForensicViewReady]);
+
   // Core media events
   useEffect(() => {
     const v = videoRef.current;
@@ -463,6 +472,15 @@ export function FeedVideoPlayer({
       if (v.currentTime > 0.5 && now - lastProgressSaveRef.current >= 1000) {
         lastProgressSaveRef.current = now;
         saveProgress(pKey, v.currentTime);
+      }
+      if (
+        protect &&
+        onForensicViewReady &&
+        !forensicViewReadyRef.current &&
+        forensicPlaybackReady(v.currentTime)
+      ) {
+        forensicViewReadyRef.current = true;
+        onForensicViewReady();
       }
     };
     const onMeta = () => {
