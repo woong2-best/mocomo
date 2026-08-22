@@ -35,6 +35,10 @@ type Props = {
   onOpenImmersive?: () => void;
   poster?: string;
   contentKind?: WatermarkContentKind;
+  /** Author/owner: skip forensic session and show media directly. */
+  skipForensic?: boolean;
+  /** Lightbox/detail: show image until watermark canvas is ready (no black flash). */
+  progressiveWatermark?: boolean;
 };
 
 function inferObjectFit(className: string | undefined, explicit?: "cover" | "contain") {
@@ -95,6 +99,8 @@ export function ProtectedPaidMedia({
   onOpenImmersive,
   poster,
   contentKind = "POST_MEDIA",
+  skipForensic = false,
+  progressiveWatermark = false,
 }: Props) {
   const protect = shouldProtectPaidMediaView({
     mediaPriceKrw,
@@ -111,7 +117,7 @@ export function ProtectedPaidMedia({
     locked,
     priceKrw: mediaPriceKrw ?? postInstantPurchasePriceKrw,
   });
-  const forensicRequired = protect && !locked && Boolean(mediaId);
+  const forensicRequired = protect && !locked && Boolean(mediaId) && !skipForensic;
   const viewResetKey = `${mediaId ?? ""}:${resolvedSrc}`;
   const { config: forensicRenderConfig, error: sessionError, loading: sessionLoading } =
     useForensicWatermarkSession(mediaId, forensicRequired, contentKind);
@@ -196,16 +202,20 @@ export function ProtectedPaidMedia({
   const forensicReady =
     useForensicPipeline && Boolean(forensicRenderConfig) && canvasReady && !canvasFailed;
   const forensicLoading =
-    useForensicPipeline && !forensicBlocked && !forensicReady && (sessionLoading || !canvasReady);
+    useForensicPipeline &&
+    !forensicBlocked &&
+    !forensicReady &&
+    (sessionLoading || !canvasReady);
   const showForensicCanvas =
     useForensicPipeline && Boolean(forensicRenderConfig) && !canvasFailed && !sessionError;
+  const hideProgressiveImage = useForensicPipeline && progressiveWatermark && forensicReady;
 
   const plainImage = (
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={resolvedSrc}
       alt={alt}
-      className={className}
+      className={cn(className, hideProgressiveImage && "sr-only")}
       loading={loading}
       draggable={false}
       onContextMenu={(e) => e.preventDefault()}
@@ -223,28 +233,39 @@ export function ProtectedPaidMedia({
         plainImage
       ) : (
         <>
+          {progressiveWatermark ? plainImage : null}
           {showForensicCanvas && forensicRenderConfig ? (
             <ForensicImageCanvas
               src={resolvedSrc}
               alt={alt}
               mediaId={mediaId}
               objectFit={objectFit}
-              className={cn(className, "pointer-events-none max-h-full max-w-full")}
+              className={cn(
+                className,
+                "pointer-events-none max-h-full max-w-full",
+                progressiveWatermark && "absolute inset-0 mx-auto"
+              )}
               config={forensicRenderConfig}
               onMarked={() => setCanvasReady(true)}
               onFailed={() => setCanvasFailed(true)}
             />
           ) : null}
-          <ForensicGateOverlay
-            loading={forensicLoading}
-            blocked={forensicBlocked}
-            dark={fillsTile}
-            message={
-              sessionError
-                ? "워터마크 세션을 불러올 수 없습니다. 새로고침 후 다시 시도해 주세요."
-                : "워터마크 적용에 실패했습니다. 새로고침 후 다시 시도해 주세요."
-            }
-          />
+          {forensicLoading ? (
+            <div className="pointer-events-none absolute inset-0 z-[3] flex items-center justify-center bg-black/25">
+              <Loader2 className="h-8 w-8 animate-spin text-white/80" aria-hidden />
+            </div>
+          ) : null}
+          {forensicBlocked ? (
+            <ForensicGateOverlay
+              blocked
+              dark={fillsTile}
+              message={
+                sessionError
+                  ? "워터마크 세션을 불러올 수 없습니다. 새로고침 후 다시 시도해 주세요."
+                  : "워터마크 적용에 실패했습니다. 새로고침 후 다시 시도해 주세요."
+              }
+            />
+          ) : null}
         </>
       )}
     </div>

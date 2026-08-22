@@ -9,7 +9,6 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { PaidFeedMediaSurface } from "@/components/media/paid-feed-media-surface";
 import { SensitiveContentGate } from "@/components/media/sensitive-content-gate";
@@ -183,6 +182,7 @@ function CarouselTile({
         paymentsEnabled={paymentsEnabled}
         onPurchaseSuccess={onPurchaseSuccess}
         onOpenFull={onOpenFull}
+        isOwner={isOwner}
       />
 
       {durationLabel && !locked ? (
@@ -211,7 +211,6 @@ export function FeedPostMediaCarousel({
   className,
   onDoubleTapLike,
 }: Props) {
-  const router = useRouter();
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [localMedia, setLocalMedia] = useState(media);
@@ -252,9 +251,8 @@ export function FeedPostMediaCarousel({
         setLightboxMedia(resolved.filter(isVisual));
         setCachedPostMedia(postId, fresh);
       }
-      router.refresh();
     },
-    [postId, postInstantPurchasePriceKrw, router]
+    [postId, postInstantPurchasePriceKrw]
   );
 
   const total = mediaTotal ?? localMedia.length;
@@ -366,7 +364,7 @@ export function FeedPostMediaCarousel({
           postInstantPurchasePriceKrw={postInstantPurchasePriceKrw}
           active={active}
           onDoubleTapLike={onDoubleTapLike}
-          onOpenFull={() => void openAt(i, locked)}
+          onOpenFull={() => void openAt(i, false)}
           isNsfw={isNsfw}
           isOwner={isOwner}
           viewerShowNsfw={viewerShowNsfw}
@@ -384,6 +382,7 @@ export function FeedPostMediaCarousel({
       initialIndex={Math.min(lightboxIndex, lightboxMedia.length - 1)}
       postId={postId}
       postInstantPurchasePriceKrw={postInstantPurchasePriceKrw}
+      isOwner={isOwner}
     />
   );
 

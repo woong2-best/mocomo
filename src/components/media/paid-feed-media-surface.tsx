@@ -36,8 +36,8 @@ type Props = {
   paymentsEnabled?: boolean;
   onPurchaseSuccess?: (mediaId?: string) => void | Promise<void>;
   onOpenFull?: () => void;
-  /** RSC-safe fallback when a purchased photo should open the post/lightbox. */
   fullHref?: string;
+  isOwner?: boolean;
 };
 
 export function PaidFeedMediaSurface({
@@ -59,6 +59,7 @@ export function PaidFeedMediaSurface({
   onPurchaseSuccess,
   onOpenFull,
   fullHref,
+  isOwner = false,
 }: Props) {
   const isVideo = type === "VIDEO";
   const sale = isSalePricedMedia(mediaPriceKrw, postInstantPurchasePriceKrw);
@@ -80,11 +81,13 @@ export function PaidFeedMediaSurface({
   }, [mediaId, locked, src]);
 
   const { config: forensicRenderConfig, error: sessionError } =
-    useForensicWatermarkSession(mediaId, purchased && isVideo);
+    useForensicWatermarkSession(
+      mediaId,
+      purchased && isVideo && phase === "full" && !isOwner
+    );
 
-  const authorForensicExempt = /Author playback|does not require forensic/i.test(
-    sessionError ?? ""
-  );
+  const skipForensic =
+    isOwner || /Author playback|does not require forensic/i.test(sessionError ?? "");
 
   const photoTileSrc =
     mediaId && sale ? paidMediaPreviewPath(mediaId) : resolvedSrc;
@@ -156,16 +159,14 @@ export function PaidFeedMediaSurface({
               muted
               playsInline
               preload="auto"
-              protect={full && !authorForensicExempt}
+              protect={full && !skipForensic}
               mediaId={mediaId}
               autoPlayOnView
               poster={poster}
               previewMaxSeconds={full ? null : PAID_PREVIEW_SECONDS}
               onPreviewEnded={previewing ? onPreviewEnded : undefined}
-              forensicRenderConfig={full && !authorForensicExempt ? forensicRenderConfig : null}
-              forensicSessionFailed={
-                full && !authorForensicExempt ? Boolean(sessionError) : false
-              }
+              forensicRenderConfig={full && !skipForensic ? forensicRenderConfig : null}
+              forensicSessionFailed={full && !skipForensic ? Boolean(sessionError) : false}
             />
           </PaidMediaProtectionShell>
         ) : (
@@ -229,7 +230,7 @@ export function PaidFeedMediaSurface({
       <img
         src={photoTileSrc}
         alt=""
-        className="h-full w-full scale-[1.35] object-cover blur-[52px] brightness-[0.92] saturate-150"
+        className="h-full w-full object-cover"
         draggable={false}
         onContextMenu={(e) => e.preventDefault()}
       />

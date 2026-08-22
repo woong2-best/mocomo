@@ -32,6 +32,7 @@ type PostMediaLightboxProps = {
   /** @deprecated 호출 측에서 전체 media를 넘기므로 더 이상 사용하지 않음 */
   mediaTotal?: number;
   postInstantPurchasePriceKrw?: number;
+  isOwner?: boolean;
 };
 
 export function PostMediaLightbox({
@@ -40,6 +41,7 @@ export function PostMediaLightbox({
   media,
   initialIndex,
   postInstantPurchasePriceKrw,
+  isOwner = false,
 }: PostMediaLightboxProps) {
   const [items, setItems] = useState(media);
   const [index, setIndex] = useState(() =>
@@ -185,6 +187,8 @@ export function PostMediaLightbox({
               mediaId={current.id}
               loading="eager"
               alt=""
+              skipForensic={isOwner}
+              progressiveWatermark={!isOwner && !current.locked}
             />
           ) : (
             <p className="text-sm text-white/70">사진을 표시할 수 없습니다.</p>

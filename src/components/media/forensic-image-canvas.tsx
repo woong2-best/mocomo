@@ -49,6 +49,7 @@ export function ForensicImageCanvas({
   const [ready, setReady] = useState(false);
   const markedRef = useRef(false);
   const failedRef = useRef(false);
+  const notifiedRef = useRef(false);
 
   useEffect(() => {
     registerForensicDebug();
@@ -63,6 +64,7 @@ export function ForensicImageCanvas({
     setReady(false);
     markedRef.current = false;
     failedRef.current = false;
+    notifiedRef.current = false;
 
     emitForensicCanvasEvent({
       phase: "CREATED",
@@ -108,11 +110,8 @@ export function ForensicImageCanvas({
       const imageData = ctx.getImageData(0, 0, w, h);
       embedInvisibleWatermark({ width: w, height: h, data: imageData.data }, config, 0);
       ctx.putImageData(imageData, 0, 0);
+      markedRef.current = true;
       setReady(true);
-      if (!markedRef.current) {
-        markedRef.current = true;
-        onMarked?.();
-      }
       emitForensicCanvasEvent({
         phase: "RENDERED",
         mediaId,
@@ -141,7 +140,7 @@ export function ForensicImageCanvas({
           if (wrap.parentElement) ro.observe(wrap.parentElement);
         }
         failTimer = window.setTimeout(() => {
-          if (!markedRef.current) fail("Canvas render timed out");
+          if (!notifiedRef.current) fail("Canvas render timed out");
         }, 12_000);
       } catch (e) {
         if (cancelled) return;
@@ -157,7 +156,13 @@ export function ForensicImageCanvas({
       bitmapRef.current?.close();
       bitmapRef.current = null;
     };
-  }, [src, config, objectFit, onMarked, onFailed, mediaId]);
+  }, [src, config, objectFit, onFailed, mediaId]);
+
+  useEffect(() => {
+    if (!ready || notifiedRef.current) return;
+    notifiedRef.current = true;
+    onMarked?.();
+  }, [ready, onMarked]);
 
   return (
     <div ref={wrapRef} className={cn("relative size-full overflow-hidden", className)}>

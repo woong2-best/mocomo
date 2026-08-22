@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { PaidFeedMediaSurface } from "@/components/media/paid-feed-media-surface";
 import { SensitiveContentGate } from "@/components/media/sensitive-content-gate";
@@ -68,7 +67,6 @@ export function PaidPostMediaGrid({
   /** Double-tap video → like (feed / detail). */
   onDoubleTapLike?: () => void;
 }) {
-  const router = useRouter();
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [lightboxMedia, setLightboxMedia] = useState<ProfilePostMediaItem[]>(media);
   const [opening, setOpening] = useState(false);
@@ -88,7 +86,6 @@ export function PaidPostMediaGrid({
       }
       return next;
     });
-    router.refresh();
   }
 
   const total = mediaTotal ?? media.length;
@@ -268,6 +265,7 @@ export function PaidPostMediaGrid({
           postId={postId}
           mediaTotal={lightboxMedia.length}
           postInstantPurchasePriceKrw={postInstantPurchasePriceKrw}
+          isOwner={isOwner}
         />
       )}
     </>
@@ -343,6 +341,7 @@ function PaidPostMediaTile({
         paymentsEnabled={paymentsEnabled}
         onOpenFull={onOpenFull}
         onPurchaseSuccess={onPurchaseSuccess}
+        isOwner={isOwner}
       />
       </div>
     </SensitiveContentGate>

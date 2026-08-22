@@ -50,8 +50,9 @@ export async function GET(
     const sharp = (await import("sharp")).default;
     const preview = await sharp(buf)
       .rotate()
-      .resize({ width: 480, height: 480, fit: "inside", withoutEnlargement: true })
-      .jpeg({ quality: 58 })
+      .resize({ width: 640, height: 640, fit: "inside", withoutEnlargement: true })
+      .blur(36)
+      .jpeg({ quality: 48 })
       .toBuffer();
     return new NextResponse(new Uint8Array(preview), {
       status: 200,
