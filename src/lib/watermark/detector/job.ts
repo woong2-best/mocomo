@@ -88,6 +88,7 @@ export async function enrichDetectionResult(
 export async function readDetectionFrames(form: FormData): Promise<{
   buffers: Buffer[];
   contentId: string | null;
+  sessionId: string | null;
   sourceKind: string;
   clientFileHash: string | null;
 }> {
@@ -98,6 +99,7 @@ export async function readDetectionFrames(form: FormData): Promise<{
   }
 
   const contentId = (form.get("contentId") as string | null)?.trim() || null;
+  const sessionId = (form.get("sessionId") as string | null)?.trim() || null;
   const sourceKind = (form.get("sourceKind") as string | null)?.trim() || "image";
   const clientFileHash = (form.get("clientFileHash") as string | null)?.trim() || null;
 
@@ -116,12 +118,13 @@ export async function readDetectionFrames(form: FormData): Promise<{
     buffers.push(buf);
   }
 
-  return { buffers, contentId, sourceKind, clientFileHash };
+  return { buffers, contentId, sessionId, sourceKind, clientFileHash };
 }
 
 export async function runDetectionJob(jobId: string, input: {
   buffers: Buffer[];
   contentId: string | null;
+  sessionId: string | null;
   sourceKind: string;
   clientFileHash: string | null;
   actorId: string;
@@ -133,7 +136,10 @@ export async function runDetectionJob(jobId: string, input: {
 
   try {
     const sourceFileHash = hashFileSha256(Buffer.concat(input.buffers));
-    const candidates = await loadDetectionCandidates({ contentId: input.contentId });
+    const candidates = await loadDetectionCandidates({
+      contentId: input.contentId,
+      sessionId: input.sessionId,
+    });
     if (!candidates.length) {
       throw new Error(
         input.contentId

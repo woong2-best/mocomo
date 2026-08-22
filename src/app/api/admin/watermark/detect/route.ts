@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
     const work = runDetectionJob(job.id, {
       buffers: parsed.buffers,
       contentId: parsed.contentId,
+      sessionId: parsed.sessionId,
       sourceKind: parsed.sourceKind,
       clientFileHash: parsed.clientFileHash,
       actorId: actor.id,

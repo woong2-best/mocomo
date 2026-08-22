@@ -106,7 +106,16 @@ export function applyForensicCanvasSize(canvas: HTMLCanvasElement, size: Forensi
   canvas.style.height = `${size.cssHeight}px`;
 }
 
-export function applyForensicWrapSize(wrap: HTMLElement, size: ForensicPaintSize) {
+export function applyForensicWrapSize(
+  wrap: HTMLElement,
+  size: ForensicPaintSize,
+  mode: "fixed" | "fill" = "fixed"
+) {
+  if (mode === "fill") {
+    wrap.style.width = "100%";
+    wrap.style.height = "100%";
+    return;
+  }
   wrap.style.width = `${size.cssWidth}px`;
   wrap.style.height = `${size.cssHeight}px`;
 }

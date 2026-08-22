@@ -235,9 +235,27 @@ export async function createWatermarkSession(
 
 export async function loadDetectionCandidates(options: {
   contentId?: string | null;
+  sessionId?: string | null;
   limit?: number;
 }) {
   const limit = Math.min(Math.max(options.limit ?? 500, 1), 2000);
+  if (options.sessionId) {
+    return db.watermarkSession.findMany({
+      where: { id: options.sessionId },
+      take: 1,
+      select: {
+        id: true,
+        contentId: true,
+        userId: true,
+        purchaseId: true,
+        episodePurchaseId: true,
+        subscriptionId: true,
+        sessionNonce: true,
+        watermarkVersion: true,
+        opaqueWatermarkId: true,
+      },
+    });
+  }
   return db.watermarkSession.findMany({
     where: options.contentId ? { contentId: options.contentId } : undefined,
     orderBy: { createdAt: "desc" },

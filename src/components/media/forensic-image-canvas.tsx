@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ForensicRenderConfig } from "@/lib/watermark/types";
-import { embedInvisibleWatermark } from "@/lib/watermark/encoder/spread-spectrum";
+import { embedInvisibleWatermark, verifyEmbeddedWatermark } from "@/lib/watermark/encoder/spread-spectrum";
 import {
   emitForensicCanvasEvent,
   registerForensicDebug,
@@ -22,6 +22,8 @@ type Props = {
   config: ForensicRenderConfig;
   mediaId?: string | null;
   objectFit?: "cover" | "contain";
+  /** Fill the positioned parent (lightbox). Canvas matches on-screen pixels for capture detection. */
+  fillParent?: boolean;
   onMarked?: () => void;
   onFailed?: (message: string) => void;
 };
@@ -40,6 +42,7 @@ export function ForensicImageCanvas({
   config,
   mediaId = null,
   objectFit = "cover",
+  fillParent = false,
   onMarked,
   onFailed,
 }: Props) {
@@ -98,7 +101,7 @@ export function ForensicImageCanvas({
       }
 
       const { width: w, height: h } = size;
-      applyForensicWrapSize(wrap, size);
+      applyForensicWrapSize(wrap, size, fillParent ? "fill" : "fixed");
       applyForensicCanvasSize(canvas, size);
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
       if (!ctx) {
@@ -109,6 +112,10 @@ export function ForensicImageCanvas({
       drawSourceFit(ctx, bitmap, bitmap.width, bitmap.height, w, h, objectFit);
       const imageData = ctx.getImageData(0, 0, w, h);
       embedInvisibleWatermark({ width: w, height: h, data: imageData.data }, config, 0);
+      if (!verifyEmbeddedWatermark({ width: w, height: h, data: imageData.data }, config, 0)) {
+        fail("Watermark embed verification failed");
+        return;
+      }
       ctx.putImageData(imageData, 0, 0);
       markedRef.current = true;
       setReady(true);
@@ -156,7 +163,7 @@ export function ForensicImageCanvas({
       bitmapRef.current?.close();
       bitmapRef.current = null;
     };
-  }, [src, config, objectFit, onFailed, mediaId]);
+  }, [src, config, objectFit, onFailed, mediaId, fillParent]);
 
   useEffect(() => {
     if (!ready || notifiedRef.current) return;
@@ -169,9 +176,11 @@ export function ForensicImageCanvas({
       ref={wrapRef}
       className={cn(
         "relative overflow-hidden",
-        className?.includes("h-full") || className?.includes("size-full")
+        fillParent
           ? "size-full"
-          : "inline-block shrink-0",
+          : className?.includes("h-full") || className?.includes("size-full")
+            ? "size-full"
+            : "inline-block shrink-0",
         className
       )}
     >

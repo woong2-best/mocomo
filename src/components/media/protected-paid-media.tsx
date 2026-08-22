@@ -235,13 +235,24 @@ export function ProtectedPaidMedia({
         plainImage
       ) : (
         <>
-          {progressiveWatermark ? plainImage : null}
+          {progressiveWatermark ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={resolvedSrc}
+              alt={alt}
+              className={cn(className, forensicReady && "invisible")}
+              loading={loading}
+              draggable={false}
+              onContextMenu={(e) => e.preventDefault()}
+              aria-hidden={forensicReady || undefined}
+            />
+          ) : null}
           {showForensicCanvas && forensicRenderConfig ? (
             <div
               className={cn(
-                "pointer-events-none z-[2] flex items-center justify-center",
+                "pointer-events-none z-[2]",
                 progressiveWatermark
-                  ? "absolute inset-0"
+                  ? "absolute inset-0 size-full"
                   : fillsTile
                     ? "absolute inset-0 size-full"
                     : "relative inline-flex max-h-full max-w-full"
@@ -252,8 +263,11 @@ export function ProtectedPaidMedia({
                 alt={alt}
                 mediaId={mediaId}
                 objectFit={objectFit}
+                fillParent={progressiveWatermark || fillsTile}
                 className={
-                  progressiveWatermark ? undefined : cn(className, "max-h-full max-w-full")
+                  progressiveWatermark || fillsTile
+                    ? "size-full"
+                    : cn(className, "max-h-full max-w-full")
                 }
                 config={forensicRenderConfig}
                 onMarked={handleCanvasMarked}

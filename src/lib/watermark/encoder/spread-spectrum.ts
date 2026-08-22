@@ -304,3 +304,19 @@ export function probeRegionBits(
     region.key.charCodeAt(0)
   );
 }
+
+/** Client-side sanity check after embed — rejects silent no-op renders. */
+export function verifyEmbeddedWatermark(
+  image: ImageLike,
+  config: ForensicRenderConfig,
+  frameIndex = 0,
+  minAgreement = 0.72
+): boolean {
+  const spreadSeed = fromBase64(config.spreadSeedB64);
+  const quadrants = splitCodewordToQuadrants(fromBase64(config.codewordB64));
+  const probe = probeRegionBits(image, spreadSeed, frameIndex, 64);
+  const expected = bytesToBits(quadrants.A).slice(0, 64);
+  let same = 0;
+  for (let i = 0; i < 64; i++) if (probe[i] === expected[i]) same++;
+  return same / 64 >= minAgreement;
+}
