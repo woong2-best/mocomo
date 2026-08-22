@@ -165,7 +165,16 @@ export function ForensicImageCanvas({
   }, [ready, onMarked]);
 
   return (
-    <div ref={wrapRef} className={cn("relative size-full overflow-hidden", className)}>
+    <div
+      ref={wrapRef}
+      className={cn(
+        "relative overflow-hidden",
+        className?.includes("h-full") || className?.includes("size-full")
+          ? "size-full"
+          : "inline-block shrink-0",
+        className
+      )}
+    >
       <canvas
         ref={canvasRef}
         data-forensic-canvas={ready ? "ready" : "loading"}

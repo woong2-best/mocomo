@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { shouldProtectPaidMediaView } from "@/lib/paid-media-protection";
@@ -126,6 +126,9 @@ export function ProtectedPaidMedia({
   const [canvasFailed, setCanvasFailed] = useState(false);
   const [canvasReady, setCanvasReady] = useState(false);
 
+  const handleCanvasMarked = useCallback(() => setCanvasReady(true), []);
+  const handleCanvasFailed = useCallback(() => setCanvasFailed(true), []);
+
   useEffect(() => {
     setCanvasFailed(false);
     setCanvasReady(false);
@@ -208,17 +211,19 @@ export function ProtectedPaidMedia({
     (sessionLoading || !canvasReady);
   const showForensicCanvas =
     useForensicPipeline && Boolean(forensicRenderConfig) && !canvasFailed && !sessionError;
-  const hideProgressiveImage = useForensicPipeline && progressiveWatermark && forensicReady;
+  const progressiveImgHidden =
+    useForensicPipeline && progressiveWatermark && forensicReady;
 
   const plainImage = (
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={resolvedSrc}
       alt={alt}
-      className={cn(className, hideProgressiveImage && "sr-only")}
+      className={cn(className, progressiveImgHidden && "opacity-0")}
       loading={loading}
       draggable={false}
       onContextMenu={(e) => e.preventDefault()}
+      aria-hidden={progressiveImgHidden || undefined}
     />
   );
 
@@ -235,20 +240,29 @@ export function ProtectedPaidMedia({
         <>
           {progressiveWatermark ? plainImage : null}
           {showForensicCanvas && forensicRenderConfig ? (
-            <ForensicImageCanvas
-              src={resolvedSrc}
-              alt={alt}
-              mediaId={mediaId}
-              objectFit={objectFit}
+            <div
               className={cn(
-                className,
-                "pointer-events-none max-h-full max-w-full",
-                progressiveWatermark && "absolute inset-0 mx-auto"
+                "pointer-events-none z-[2] flex items-center justify-center",
+                progressiveWatermark
+                  ? "absolute inset-0"
+                  : fillsTile
+                    ? "absolute inset-0 size-full"
+                    : "relative inline-flex max-h-full max-w-full"
               )}
-              config={forensicRenderConfig}
-              onMarked={() => setCanvasReady(true)}
-              onFailed={() => setCanvasFailed(true)}
-            />
+            >
+              <ForensicImageCanvas
+                src={resolvedSrc}
+                alt={alt}
+                mediaId={mediaId}
+                objectFit={objectFit}
+                className={
+                  progressiveWatermark ? undefined : cn(className, "max-h-full max-w-full")
+                }
+                config={forensicRenderConfig}
+                onMarked={handleCanvasMarked}
+                onFailed={handleCanvasFailed}
+              />
+            </div>
           ) : null}
           {forensicLoading ? (
             <div className="pointer-events-none absolute inset-0 z-[3] flex items-center justify-center bg-black/25">
