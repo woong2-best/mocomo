@@ -6,10 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Heart, MessageSquare, Star } from "lucide-react";
 import { TranslatableText } from "@/components/ui/translatable-text";
 import { PostShareMenu } from "@/components/post/post-share-menu";
-import { formatNumber, cn } from "@/lib/utils";
-import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
-import { LockedMediaPaywallOverlay } from "@/components/media/locked-media-paywall-overlay";
-import { PurchasePostMediaButton } from "@/components/profile/purchase-post-media-button";
+import { formatNumber } from "@/lib/utils";
+import { PaidFeedMediaSurface } from "@/components/media/paid-feed-media-surface";
 import type { SupportTierLevel } from "@prisma/client";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { userDisplayName } from "@/lib/user-public-select";
@@ -81,29 +79,6 @@ export function FeedPostCard({
 }) {
   const displayName = userDisplayName(post.author);
   const cover = post.media?.[0];
-  const purchasePrice =
-    cover?.priceKrw ?? cover?.instantPurchasePriceKrw ?? post.instantPurchasePriceKrw ?? 0;
-
-  function renderPaywall() {
-    if (!cover?.locked || !cover.id || purchasePrice <= 0) {
-      return cover?.locked ? <LockedMediaPaywallOverlay label="결제하기" /> : null;
-    }
-    return (
-      <div className="absolute inset-0" onClick={(e) => e.stopPropagation()}>
-        <LockedMediaPaywallOverlay>
-          <PurchasePostMediaButton
-            mediaId={cover.id}
-            priceKrw={purchasePrice}
-            paymentsEnabled={paymentsEnabled}
-            username={post.author.username}
-            postId={post.id}
-            label="결제하기"
-            variant="label"
-          />
-        </LockedMediaPaywallOverlay>
-      </div>
-    );
-  }
 
   return (
     <Card className="overflow-hidden hover:border-primary/40 transition-all duration-300 group h-full flex flex-col">
@@ -138,39 +113,22 @@ export function FeedPostCard({
         </div>
 
         {cover ? (
-          cover.type === "VIDEO" ? (
-            <div className="relative">
-              <ProtectedPaidMedia
-                type={cover.type}
-                src={cover.url}
-                className={cn(
-                  "w-full aspect-[4/5] object-cover bg-black",
-                  cover.locked && "blur-sm scale-105"
-                )}
-                mediaPriceKrw={cover.priceKrw}
-                postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
-                locked={cover.locked}
-                mediaId={cover.id}
-              />
-              {renderPaywall()}
-            </div>
-          ) : (
-            <Link href={`/post/${post.id}`} className="relative block flex-1">
-              <ProtectedPaidMedia
-                type={cover.type}
-                src={cover.url}
-                className={cn(
-                  "w-full aspect-[4/5] object-cover bg-black",
-                  cover.locked && "blur-sm scale-105"
-                )}
-                mediaPriceKrw={cover.priceKrw}
-                postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
-                locked={cover.locked}
-                mediaId={cover.id}
-              />
-              {renderPaywall()}
-            </Link>
-          )
+          <div className="relative aspect-[4/5] w-full">
+            <PaidFeedMediaSurface
+              type={cover.type}
+              src={cover.url}
+              className="h-full w-full object-cover"
+              mediaPriceKrw={cover.priceKrw}
+              postInstantPurchasePriceKrw={post.instantPurchasePriceKrw}
+              locked={cover.locked}
+              mediaId={cover.id}
+              poster={cover.posterUrl ?? undefined}
+              postId={post.id}
+              authorUsername={post.author.username}
+              paymentsEnabled={paymentsEnabled}
+              fullHref={`/post/${post.id}`}
+            />
+          </div>
         ) : (
           <div className="flex-1 px-3 pb-3">
             {post.title && (

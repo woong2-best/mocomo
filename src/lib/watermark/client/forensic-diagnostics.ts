@@ -13,6 +13,9 @@ export type ForensicCanvasEventDetail = {
   sessionId?: string | null;
   width?: number;
   height?: number;
+  cssWidth?: number;
+  cssHeight?: number;
+  devicePixelRatio?: number;
   message?: string;
 };
 
@@ -32,44 +35,100 @@ export type ForensicCanvasSnapshot = {
   height: number;
   clientWidth: number;
   clientHeight: number;
+  devicePixelRatio: number;
+  /** True when backing store matches layout × DPR (required for screenshot detection). */
+  pixelAligned: boolean;
   state: string | null;
   mediaId: string | null;
   sessionId: string | null;
+};
+
+export type ForensicPipelineStatus = {
+  canvases: ForensicCanvasSnapshot[];
+  readyCount: number;
+  loadingCount: number;
+  fallbackSeen: boolean;
+  sessionFailedSeen: boolean;
 };
 
 declare global {
   interface Window {
     __mocomoForensicDebug?: {
       canvases: () => ForensicCanvasSnapshot[];
+      status: () => ForensicPipelineStatus;
       exportPng: (index?: number) => Promise<void>;
       listen: (handler: (detail: ForensicCanvasEventDetail) => void) => () => void;
     };
   }
 }
 
+function snapshotCanvas(el: HTMLCanvasElement, index: number): ForensicCanvasSnapshot {
+  const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+  const expectedW = Math.round(el.clientWidth * dpr);
+  const expectedH = Math.round(el.clientHeight * dpr);
+  const pixelAligned =
+    el.clientWidth >= 8 &&
+    el.clientHeight >= 8 &&
+    Math.abs(el.width - expectedW) <= 1 &&
+    Math.abs(el.height - expectedH) <= 1;
+
+  return {
+    index,
+    width: el.width,
+    height: el.height,
+    clientWidth: el.clientWidth,
+    clientHeight: el.clientHeight,
+    devicePixelRatio: dpr,
+    pixelAligned,
+    state: el.getAttribute("data-forensic-canvas"),
+    mediaId: el.getAttribute("data-forensic-media-id"),
+    sessionId: el.getAttribute("data-forensic-session-id"),
+  };
+}
+
 export function registerForensicDebug() {
   if (typeof window === "undefined" || window.__mocomoForensicDebug) return;
+
+  let fallbackSeen = false;
+  let sessionFailedSeen = false;
+
+  window.addEventListener(EVENT_NAME, ((e: Event) => {
+    const detail = (e as CustomEvent<ForensicCanvasEventDetail>).detail;
+    if (detail.phase === "FALLBACK") fallbackSeen = true;
+    if (detail.phase === "SESSION_FAILED") sessionFailedSeen = true;
+  }) as EventListener);
 
   window.__mocomoForensicDebug = {
     canvases() {
       return [...document.querySelectorAll<HTMLCanvasElement>("canvas[data-forensic-canvas]")].map(
-        (el, index) => ({
-          index,
-          width: el.width,
-          height: el.height,
-          clientWidth: el.clientWidth,
-          clientHeight: el.clientHeight,
-          state: el.getAttribute("data-forensic-canvas"),
-          mediaId: el.getAttribute("data-forensic-media-id"),
-          sessionId: el.getAttribute("data-forensic-session-id"),
-        })
+        snapshotCanvas
       );
+    },
+    status() {
+      const canvases = window.__mocomoForensicDebug!.canvases();
+      return {
+        canvases,
+        readyCount: canvases.filter((c) => c.state === "ready").length,
+        loadingCount: canvases.filter((c) => c.state === "loading").length,
+        fallbackSeen,
+        sessionFailedSeen,
+      };
     },
     async exportPng(index = 0) {
       const canvas = document.querySelectorAll<HTMLCanvasElement>("canvas[data-forensic-canvas]")[
         index
       ];
       if (!canvas) throw new Error("No forensic canvas found");
+      const snap = snapshotCanvas(canvas, index);
+      if (snap.state !== "ready") {
+        throw new Error(`Canvas not ready (state=${snap.state ?? "missing"})`);
+      }
+      if (!snap.pixelAligned) {
+        console.warn(
+          "[forensic] Canvas backing store does not match layout×DPR — screenshot detection may fail.",
+          snap
+        );
+      }
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
       if (!blob) throw new Error("Canvas export failed (tainted or empty)");
       const url = URL.createObjectURL(blob);

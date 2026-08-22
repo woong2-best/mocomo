@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 import type { AdminWatermarkDetectionResponse } from "@/lib/watermark/types";
 import {
   extractImageFrame,
@@ -100,10 +101,8 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
                 noiseLike
                   ? `공간 비트 일치 ${(r.centralScore * 100).toFixed(0)}%는 압축·텍스처 노이즈 수준이며, 워터마크가 아닙니다.`
                   : null,
-                "캡처 시점에 워터마크가 적용된 화면인지 확인하세요 (구매 계정으로 유료 사진·영상을 연 뒤, 로딩이 끝난 화면을 캡처).",
-                "Media ID를 입력하면 해당 콘텐츠 세션만 비교해 정확도가 올라갑니다.",
-                "작성자 본인 계정·워터마크 배포 전 캡처·저작권 경고 화면·다른 탭에서 저장한 원본 파일은 검출되지 않습니다.",
-                "검증: 구매 계정에서 DevTools `await window.__mocomoForensicDebug?.exportPng()` 로 캡처 후 같은 Media ID로 분석.",
+                "캡처 시점에 워터마크 Canvas가 READY 상태인지 확인하세요 (`status().readyCount`, `data-forensic-canvas=ready`).",
+                "Canvas PNG(`exportPng`) → MATCH 인데 OS 스크린샷만 실패하면 합성/스케일 문제, 둘 다 실패하면 렌더러 문제입니다.",
               ]
                 .filter(Boolean)
                 .join(" ")
@@ -156,15 +155,22 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
         ) : (
           <p className="mt-3 text-xs text-muted-foreground">
             DevTools:{" "}
-            <code className="rounded bg-muted px-1">window.__mocomoForensicDebug?.canvases()</code>{" "}
-            · canvas PNG export:{" "}
+            <code className="rounded bg-muted px-1">window.__mocomoForensicDebug?.status()</code>{" "}
+            · canvas PNG (encoder roundtrip):{" "}
             <code className="rounded bg-muted px-1">
               await window.__mocomoForensicDebug?.exportPng()
             </code>{" "}
-            · session roundtrip:{" "}
+            · session synthetic test:{" "}
             <code className="rounded bg-muted px-1">
               GET /api/admin/watermark/roundtrip?sessionId=…
             </code>
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            검증 순서: (1) 구매 계정에서{" "}
+            <code className="rounded bg-muted px-1">status()</code> → readyCount≥1, fallbackSeen=false
+            (2) <code className="rounded bg-muted px-1">exportPng()</code> 업로드 → MATCH
+            (3) OS 스크린샷 업로드 → MATCH. (2)만 성공하고 (3)이 실패하면 브라우저 합성/스케일 문제,
+            (2)도 실패하면 Canvas 렌더러 문제입니다.
           </p>
         )}
       </div>
@@ -252,17 +258,28 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
 
           {result.detectedRegions?.length ? (
             <div>
-              <p className="text-sm font-medium mb-2">Detected regions</p>
+              <p className="text-sm font-medium mb-2">
+                Quadrant regions (A/B/C/D — same user payload, independent embed)
+              </p>
               <div className="flex flex-wrap gap-2">
                 {result.detectedRegions.map((r) => (
                   <span
                     key={r.key}
-                    className="rounded-md border px-2 py-1 text-xs font-mono"
+                    className={cn(
+                      "rounded-md border px-2 py-1 text-xs font-mono",
+                      r.recovered
+                        ? "border-emerald-500/50 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300"
+                        : "border-border"
+                    )}
                   >
-                    {r.key} {r.recovered ? "✓" : "—"} ({(r.score * 100).toFixed(0)}% bits)
+                    {r.key} {r.recovered ? "ECC+integrity" : "—"} ({(r.score * 100).toFixed(0)}% bits)
                   </span>
                 ))}
               </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                MATCH requires at least one quadrant with ECC + cryptographic integrity — not bit
+                similarity alone (~50% is unmarked noise).
+              </p>
             </div>
           ) : null}
 

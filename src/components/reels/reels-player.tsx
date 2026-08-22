@@ -87,12 +87,13 @@ export function ReelsPlayer({
     mediaPriceKrw,
     postInstantPurchasePriceKrw,
   });
-  const { config: forensicConfig } = useForensicWatermarkSession(
+  const { config: forensicConfig, error: sessionError } = useForensicWatermarkSession(
     mediaId,
     paidView,
     "POST_MEDIA"
   );
   const [forensicCanvasReady, setForensicCanvasReady] = useState(false);
+  const [forensicCanvasFailed, setForensicCanvasFailed] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<HlsType | null>(null);
@@ -109,10 +110,14 @@ export function ReelsPlayer({
 
   useEffect(() => {
     setForensicCanvasReady(false);
+    setForensicCanvasFailed(false);
   }, [forensicConfig?.sessionId, mediaId]);
 
-  const forensicActive = Boolean(forensicConfig);
-  const hideRawVideo = forensicActive && forensicCanvasReady;
+  const forensicRequired = paidView && Boolean(mediaId);
+  const markedOutputReady =
+    forensicRequired && Boolean(forensicConfig) && forensicCanvasReady;
+  const forensicBlocked = forensicRequired && (Boolean(sessionError) || forensicCanvasFailed);
+  const forensicLoading = forensicRequired && !forensicBlocked && !markedOutputReady;
 
   const { src: playbackSrc, mode } = resolveReelPlaybackSrc({ url: src, hlsUrl });
   const shouldMountMedia = distance <= 3;
@@ -397,7 +402,7 @@ export function ReelsPlayer({
           // decode / render only when near
           style={{
             contentVisibility: distance > 1 ? "auto" : "visible",
-            opacity: hideRawVideo ? 0 : undefined,
+            opacity: forensicRequired ? 0 : undefined,
           }}
           aria-label="Short video"
         />
@@ -406,13 +411,29 @@ export function ReelsPlayer({
       {shouldMountMedia ? (
         <ForensicVideoCanvas
           videoRef={videoRef}
-          active={forensicActive}
+          active={Boolean(forensicConfig)}
           config={forensicConfig}
           objectFit="contain"
           mediaId={mediaId}
           onMarked={() => setForensicCanvasReady(true)}
-          className="absolute inset-0 h-full w-full object-contain z-[1] pointer-events-none"
+          onFailed={() => setForensicCanvasFailed(true)}
+          className={cn(
+            "absolute inset-0 h-full w-full object-contain z-[1] pointer-events-none",
+            !markedOutputReady && "opacity-0"
+          )}
         />
+      ) : null}
+
+      {forensicLoading ? (
+        <div className="pointer-events-none absolute inset-0 z-[2] flex items-center justify-center bg-black">
+          <Loader2 className="h-10 w-10 animate-spin text-white/70" aria-hidden />
+        </div>
+      ) : null}
+
+      {forensicBlocked ? (
+        <div className="pointer-events-none absolute inset-0 z-[2] flex items-center justify-center bg-black p-4 text-center text-sm text-white/80">
+          워터마크를 적용할 수 없습니다.
+        </div>
       ) : null}
 
       {!shouldMountMedia &&

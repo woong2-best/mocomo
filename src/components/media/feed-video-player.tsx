@@ -82,6 +82,8 @@ type Props = {
   forensicSessionFailed?: boolean;
   /** Locked teaser: loop only the first N seconds, no copyright warning. */
   previewMaxSeconds?: number | null;
+  /** Fired once when a teaser preview reaches previewMaxSeconds. */
+  onPreviewEnded?: () => void;
 };
 
 function formatTime(sec: number): string {
@@ -172,6 +174,7 @@ export function FeedVideoPlayer({
   forensicRenderConfig,
   forensicSessionFailed = false,
   previewMaxSeconds = null,
+  onPreviewEnded,
 }: Props) {
   const reactId = useId();
   const playerId = `fv-${mediaId ?? reactId}`;
@@ -206,6 +209,7 @@ export function FeedVideoPlayer({
   const bufferingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoPlayingRef = useRef(false);
   const copyrightDismissedRef = useRef(!protect);
+  const previewEndedRef = useRef(false);
 
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [isVolumeDragging, setIsVolumeDragging] = useState(false);
@@ -227,7 +231,14 @@ export function FeedVideoPlayer({
   const [buffering, setBuffering] = useState(false);
   const [likeBurst, setLikeBurst] = useState(false);
   const [copyrightDismissed, setCopyrightDismissed] = useState(!protect);
+  const [protectSeen, setProtectSeen] = useState(protect);
+  if (protect !== protectSeen) {
+    setProtectSeen(protect);
+    setCopyrightDismissed(!protect);
+    copyrightDismissedRef.current = !protect;
+  }
   const [forensicCanvasReady, setForensicCanvasReady] = useState(false);
+  const [forensicCanvasFailed, setForensicCanvasFailed] = useState(false);
   const [holdBoost, setHoldBoost] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [mediaAttached, setMediaAttached] = useState(true);
@@ -475,7 +486,9 @@ export function FeedVideoPlayer({
 
   useEffect(() => {
     setForensicCanvasReady(false);
-  }, [src, mediaId, forensicRenderConfig?.sessionId]);
+    setForensicCanvasFailed(false);
+    previewEndedRef.current = false;
+  }, [src, mediaId, forensicRenderConfig?.sessionId, previewMaxSeconds]);
 
   useEffect(() => {
     if (!protect) {
@@ -530,11 +543,17 @@ export function FeedVideoPlayer({
       }
       if (previewMode && previewMaxSeconds && v.currentTime >= previewMaxSeconds) {
         try {
-          v.currentTime = 0;
+          v.pause();
+          v.currentTime = previewMaxSeconds;
         } catch {
           /* ignore */
         }
-        setCurrent(0);
+        setCurrent(previewMaxSeconds);
+        setPlaying(false);
+        if (!previewEndedRef.current) {
+          previewEndedRef.current = true;
+          onPreviewEnded?.();
+        }
       }
     };
     const onMeta = () => {
@@ -615,7 +634,7 @@ export function FeedVideoPlayer({
       v.removeEventListener("error", onError);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- init once per src attach
-  }, [src, mediaAttached, retryToken, syncDuration, restoreProgress, pKey, loop, protect, previewMode, previewMaxSeconds, resetCopyrightWarning]);
+  }, [src, mediaAttached, retryToken, syncDuration, restoreProgress, pKey, loop, protect, previewMode, previewMaxSeconds, resetCopyrightWarning, onPreviewEnded]);
 
   // IntersectionObserver: autoplay / pause / unload / preload
   useEffect(() => {
@@ -1196,13 +1215,17 @@ export function FeedVideoPlayer({
   const VolumeIcon = effectiveMuted ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
   const showVolumePanel = volumeOpen || isVolumeDragging;
 
-  const forensicActive = Boolean(forensicRenderConfig);
-  const hideRawVideo = forensicActive && forensicCanvasReady;
+  const forensicRequired = protect && Boolean(mediaId);
+  const forensicBlocked = forensicRequired && (forensicSessionFailed || forensicCanvasFailed);
+  const markedOutputReady =
+    forensicRequired && Boolean(forensicRenderConfig) && forensicCanvasReady;
+  const forensicLoading =
+    forensicRequired && !forensicBlocked && !markedOutputReady;
 
   const videoStyle: CSSProperties = {
     transform: zoom > 1 ? `scale(${zoom})` : undefined,
     transition: pinchRef.current ? undefined : "transform 200ms ease",
-    opacity: hideRawVideo ? 0 : undefined,
+    opacity: forensicRequired ? 0 : undefined,
   };
 
   return (
@@ -1255,18 +1278,35 @@ export function FeedVideoPlayer({
 
       <ForensicVideoCanvas
         videoRef={videoRef}
-        active={forensicActive}
+        active={Boolean(forensicRenderConfig)}
         config={forensicRenderConfig ?? null}
         objectFit={wantsContain ? "contain" : "cover"}
         mediaId={mediaId}
         onMarked={() => setForensicCanvasReady(true)}
+        onFailed={() => setForensicCanvasFailed(true)}
         className={cn(
           fillMode
             ? cn("absolute inset-0 h-full w-full", fillFitClass)
             : "block w-full h-auto",
-          "origin-center z-[1] pointer-events-none"
+          "origin-center z-[1] pointer-events-none",
+          !markedOutputReady && "opacity-0"
         )}
       />
+
+      {forensicLoading ? (
+        <div
+          className="pointer-events-none absolute inset-0 z-[2] flex items-center justify-center bg-black"
+          aria-hidden
+        >
+          <Loader2 className="h-10 w-10 animate-spin text-white/70" />
+        </div>
+      ) : null}
+
+      {forensicBlocked ? (
+        <div className="pointer-events-none absolute inset-0 z-[2] flex items-center justify-center bg-black p-4 text-center text-sm text-white/80">
+          워터마크를 적용할 수 없습니다. 새로고침 후 다시 시도해 주세요.
+        </div>
+      ) : null}
 
       {buffering && (
         <div

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { shouldProtectPaidMediaView } from "@/lib/paid-media-protection";
 import { PaidMediaProtectionShell } from "@/components/media/paid-media-protection-shell";
@@ -42,6 +43,38 @@ function inferObjectFit(className: string | undefined, explicit?: "cover" | "con
   return "cover";
 }
 
+function isAuthorForensicExempt(sessionError: string | null): boolean {
+  return /Author playback|does not require forensic/i.test(sessionError ?? "");
+}
+
+function ForensicGateOverlay({
+  loading,
+  blocked,
+  message,
+  dark = false,
+}: {
+  loading?: boolean;
+  blocked?: boolean;
+  message?: string;
+  dark?: boolean;
+}) {
+  if (!loading && !blocked) return null;
+  return (
+    <div
+      className={cn(
+        "absolute inset-0 z-[3] flex items-center justify-center p-4 text-center",
+        dark ? "bg-neutral-950" : "bg-black/40"
+      )}
+    >
+      {loading ? (
+        <Loader2 className="h-8 w-8 animate-spin text-white/70" aria-hidden />
+      ) : (
+        <p className="text-sm text-white/80">{message ?? "워터마크를 적용할 수 없습니다."}</p>
+      )}
+    </div>
+  );
+}
+
 export function ProtectedPaidMedia({
   type,
   src,
@@ -78,13 +111,12 @@ export function ProtectedPaidMedia({
     locked,
     priceKrw: mediaPriceKrw ?? postInstantPurchasePriceKrw,
   });
-  const forensicEnabled = protect && !locked && Boolean(mediaId);
+  const forensicRequired = protect && !locked && Boolean(mediaId);
+  const authorForensicExempt = isAuthorForensicExempt(sessionError);
+  const useForensicPipeline = forensicRequired && !authorForensicExempt;
   const viewResetKey = `${mediaId ?? ""}:${resolvedSrc}`;
-  const { config: forensicRenderConfig, error: sessionError } = useForensicWatermarkSession(
-    mediaId,
-    forensicEnabled,
-    contentKind
-  );
+  const { config: forensicRenderConfig, error: sessionError, loading: sessionLoading } =
+    useForensicWatermarkSession(mediaId, forensicRequired, contentKind);
   const [canvasFailed, setCanvasFailed] = useState(false);
   const [canvasReady, setCanvasReady] = useState(false);
 
@@ -142,14 +174,14 @@ export function ProtectedPaidMedia({
         playsInline={playsInline}
         preload={preload}
         controls={controls}
-        protect={protect}
+        protect={useForensicPipeline ? protect : false}
         mediaId={mediaId}
         autoPlayOnView={autoPlayOnView}
         onDoubleTapLike={onDoubleTapLike}
         onOpenImmersive={onOpenImmersive}
         poster={poster}
-        forensicRenderConfig={forensicRenderConfig}
-        forensicSessionFailed={Boolean(sessionError)}
+        forensicRenderConfig={useForensicPipeline ? forensicRenderConfig : null}
+        forensicSessionFailed={useForensicPipeline ? Boolean(sessionError) : false}
       />
     );
     if (!protect) return player;
@@ -160,41 +192,61 @@ export function ProtectedPaidMedia({
     );
   }
 
-  const useForensicCanvas =
-    forensicEnabled && forensicRenderConfig && !sessionError && !canvasFailed;
+  const forensicBlocked = useForensicPipeline && (Boolean(sessionError) || canvasFailed);
+  const forensicReady =
+    useForensicPipeline && Boolean(forensicRenderConfig) && canvasReady && !canvasFailed;
+  const forensicLoading =
+    useForensicPipeline && !forensicBlocked && !forensicReady && (sessionLoading || !canvasReady);
+  const showForensicCanvas =
+    useForensicPipeline && Boolean(forensicRenderConfig) && !canvasFailed && !sessionError;
+
+  const plainImage = (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={resolvedSrc}
+      alt={alt}
+      className={className}
+      loading={loading}
+      draggable={false}
+      onContextMenu={(e) => e.preventDefault()}
+    />
+  );
 
   const imageNode = (
     <div
       className={cn(
         "relative",
-        fillsTile ? "size-full" : "inline-flex max-w-full max-h-full"
+        fillsTile ? "size-full" : "inline-flex max-w-full max-h-full items-center justify-center"
       )}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={resolvedSrc}
-        alt={alt}
-        className={cn(
-          className,
-          protect && "pointer-events-none",
-          useForensicCanvas && canvasReady && "sr-only"
-        )}
-        loading={loading}
-        draggable={false}
-        onContextMenu={(e) => e.preventDefault()}
-      />
-      {useForensicCanvas ? (
-        <ForensicImageCanvas
-          src={resolvedSrc}
-          alt={alt}
-          mediaId={mediaId}
-          objectFit={objectFit}
-          className="pointer-events-none absolute inset-0"
-          config={forensicRenderConfig}
-          onMarked={() => setCanvasReady(true)}
-          onFailed={() => setCanvasFailed(true)}
-        />
-      ) : null}
+      {!useForensicPipeline ? (
+        plainImage
+      ) : (
+        <>
+          {showForensicCanvas && forensicRenderConfig ? (
+            <ForensicImageCanvas
+              src={resolvedSrc}
+              alt={alt}
+              mediaId={mediaId}
+              objectFit={objectFit}
+              className={cn(className, "pointer-events-none max-h-full max-w-full")}
+              config={forensicRenderConfig}
+              onMarked={() => setCanvasReady(true)}
+              onFailed={() => setCanvasFailed(true)}
+            />
+          ) : null}
+          <ForensicGateOverlay
+            loading={forensicLoading}
+            blocked={forensicBlocked}
+            dark={fillsTile}
+            message={
+              sessionError
+                ? "워터마크 세션을 불러올 수 없습니다. 새로고침 후 다시 시도해 주세요."
+                : "워터마크 적용에 실패했습니다. 새로고침 후 다시 시도해 주세요."
+            }
+          />
+        </>
+      )}
     </div>
   );
 

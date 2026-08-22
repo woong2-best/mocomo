@@ -11,14 +11,8 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
-import { LockedMediaPaywallOverlay } from "@/components/media/locked-media-paywall-overlay";
+import { PaidFeedMediaSurface } from "@/components/media/paid-feed-media-surface";
 import { SensitiveContentGate } from "@/components/media/sensitive-content-gate";
-import { PurchasePostMediaButton } from "@/components/profile/purchase-post-media-button";
-import {
-  SubscribeCreatorButton,
-  SubscribeCreatorHint,
-} from "@/components/monetization/subscribe-creator-button";
 import type { ProfilePostMediaItem } from "@/components/profile/paid-post-media-grid";
 import type { ContentLockReason } from "@/lib/content-access";
 import { PostMediaLightbox } from "@/components/media/post-media-lightbox";
@@ -88,6 +82,8 @@ function MediaOpenWrapper({
       className={cn("h-full w-full", !locked && "cursor-pointer")}
       onClickCapture={(e) => {
         if (locked) return;
+        const sale = (media.priceKrw ?? media.instantPurchasePriceKrw ?? 0) > 0;
+        if (sale) return;
         if (media.type !== "VIDEO" || !feedVideoViewer) return;
         if (shouldBlockFeedVideoImmersive(e)) return;
         e.preventDefault();
@@ -100,6 +96,8 @@ function MediaOpenWrapper({
         if (!opened) onOpenAt(index, locked);
       }}
       onClick={(e) => {
+        const sale = (media.priceKrw ?? media.instantPurchasePriceKrw ?? 0) > 0;
+        if (sale) return;
         if (media.type === "VIDEO" && feedVideoViewer && shouldBlockFeedVideoImmersive(e)) {
           return;
         }
@@ -131,9 +129,9 @@ function CarouselTile({
   paymentsEnabled = false,
   subscribed = false,
   postInstantPurchasePriceKrw,
-  active,
-  onDoubleTapLike,
-  onOpenImmersive,
+  active: _active,
+  onDoubleTapLike: _onDoubleTapLike,
+  onOpenFull,
   isNsfw = false,
   isOwner = false,
   viewerShowNsfw = false,
@@ -149,7 +147,7 @@ function CarouselTile({
   postInstantPurchasePriceKrw?: number;
   active: boolean;
   onDoubleTapLike?: () => void;
-  onOpenImmersive?: () => void;
+  onOpenFull?: () => void;
   isNsfw?: boolean;
   isOwner?: boolean;
   viewerShowNsfw?: boolean;
@@ -157,7 +155,6 @@ function CarouselTile({
 }) {
   const locked = !!media.locked && !!media.id;
   const lockReason = (media.lockReason ?? "none") as ContentLockReason;
-  const purchasePrice = media.instantPurchasePriceKrw ?? media.priceKrw ?? 0;
   const durationLabel = media.type === "VIDEO" ? formatDuration(media.duration) : null;
 
   return (
@@ -168,55 +165,25 @@ function CarouselTile({
       className="h-full w-full"
     >
       <div className="relative h-full w-full overflow-hidden rounded-2xl bg-muted/30">
-      <ProtectedPaidMedia
+      <PaidFeedMediaSurface
         type={media.type}
         src={media.url}
-        className={cn("h-full w-full object-cover", locked && "blur-sm scale-105")}
+        className="h-full w-full object-cover"
         mediaPriceKrw={media.priceKrw}
         postInstantPurchasePriceKrw={postInstantPurchasePriceKrw ?? media.instantPurchasePriceKrw}
         locked={locked}
+        lockReason={lockReason}
         mediaId={media.id}
-        autoPlayOnView={active}
-        onDoubleTapLike={onDoubleTapLike}
-        onOpenImmersive={onOpenImmersive}
         poster={media.posterUrl ?? undefined}
+        postId={postId}
+        authorUsername={authorUsername}
+        authorId={authorId}
+        subscriptionPriceKrw={subscriptionPriceKrw}
+        subscribed={subscribed}
+        paymentsEnabled={paymentsEnabled}
+        onPurchaseSuccess={onPurchaseSuccess}
+        onOpenFull={onOpenFull}
       />
-
-      {locked && (
-        <div className="absolute inset-0" onClick={(e) => e.stopPropagation()}>
-          {lockReason === "subscription" && authorId && subscriptionPriceKrw ? (
-            <LockedMediaPaywallOverlay label="구독하기">
-              <div className="flex flex-col items-center gap-2">
-                <p className="text-[13px] font-semibold text-white">구독하기</p>
-                <SubscribeCreatorButton
-                  creatorId={authorId}
-                  username={authorUsername}
-                  priceKrw={subscriptionPriceKrw}
-                  paymentsEnabled={paymentsEnabled}
-                  subscribed={subscribed}
-                  compact
-                />
-                <SubscribeCreatorHint priceKrw={subscriptionPriceKrw} />
-              </div>
-            </LockedMediaPaywallOverlay>
-          ) : lockReason === "purchase" && purchasePrice > 0 ? (
-            <LockedMediaPaywallOverlay>
-              <PurchasePostMediaButton
-                mediaId={media.id!}
-                priceKrw={purchasePrice}
-                paymentsEnabled={paymentsEnabled}
-                username={authorUsername}
-                postId={postId}
-                label="결제하기"
-                variant="label"
-                onPurchaseSuccess={() => onPurchaseSuccess?.(media.id!)}
-              />
-            </LockedMediaPaywallOverlay>
-          ) : (
-            <LockedMediaPaywallOverlay label="열람 권한이 없습니다." />
-          )}
-        </div>
-      )}
 
       {durationLabel && !locked ? (
         <span className="pointer-events-none absolute bottom-2 left-2 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white">
@@ -399,18 +366,7 @@ export function FeedPostMediaCarousel({
           postInstantPurchasePriceKrw={postInstantPurchasePriceKrw}
           active={active}
           onDoubleTapLike={onDoubleTapLike}
-          onOpenImmersive={
-            !locked && m.type === "VIDEO" && feedVideoViewer
-              ? () => {
-                  const opened = feedVideoViewer.openVideoViewer({
-                    postId,
-                    mediaId: m.id,
-                    mediaIndex: i,
-                  });
-                  if (!opened) void openAt(i, locked);
-                }
-              : undefined
-          }
+          onOpenFull={() => void openAt(i, locked)}
           isNsfw={isNsfw}
           isOwner={isOwner}
           viewerShowNsfw={viewerShowNsfw}

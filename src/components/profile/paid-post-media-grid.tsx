@@ -1,16 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { PurchasePostMediaButton } from "@/components/profile/purchase-post-media-button";
-import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
-import { LockedMediaPaywallOverlay } from "@/components/media/locked-media-paywall-overlay";
+import { PaidFeedMediaSurface } from "@/components/media/paid-feed-media-surface";
 import { SensitiveContentGate } from "@/components/media/sensitive-content-gate";
 import { PostMediaLightbox } from "@/components/media/post-media-lightbox";
-import {
-  SubscribeCreatorButton,
-  SubscribeCreatorHint,
-} from "@/components/monetization/subscribe-creator-button";
 import type { ContentLockReason } from "@/lib/content-access";
 import {
   getCachedPostMedia,
@@ -52,7 +47,7 @@ export function PaidPostMediaGrid({
   isOwner = false,
   viewerShowNsfw = false,
   className,
-  onDoubleTapLike,
+  onDoubleTapLike: _onDoubleTapLike,
 }: {
   media: ProfilePostMediaItem[];
   postId: string;
@@ -73,10 +68,28 @@ export function PaidPostMediaGrid({
   /** Double-tap video → like (feed / detail). */
   onDoubleTapLike?: () => void;
 }) {
+  const router = useRouter();
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [lightboxMedia, setLightboxMedia] = useState<ProfilePostMediaItem[]>(media);
   const [opening, setOpening] = useState(false);
+  const [unlockedIds, setUnlockedIds] = useState<Set<string>>(() => new Set());
   const feedVideoViewer = useFeedVideoViewerOptional();
+
+  function markPurchased(mediaId?: string) {
+    setUnlockedIds((prev) => {
+      const next = new Set(prev);
+      const unlockAll = (postInstantPurchasePriceKrw ?? 0) > 0;
+      if (unlockAll) {
+        for (const item of media) {
+          if (item.id) next.add(item.id);
+        }
+      } else if (mediaId) {
+        next.add(mediaId);
+      }
+      return next;
+    });
+    router.refresh();
+  }
 
   const total = mediaTotal ?? media.length;
   const needsFullFetch = total > media.length;
@@ -165,7 +178,7 @@ export function PaidPostMediaGrid({
         >
           {preview.map((m, i) => {
             const key = m.id ?? `${m.url}-${i}`;
-            const locked = !!m.locked && !!m.id;
+            const locked = !!m.locked && !!m.id && !unlockedIds.has(m.id);
             const spanClass =
               count === 3 && i === 0 ? "row-span-2" : undefined;
             const showOverflow = i === FEED_GRID_MAX - 1 && overflow > 0;
@@ -185,6 +198,8 @@ export function PaidPostMediaGrid({
                 // mobile taps only play/zoom the inline player and never open the viewer.
                 onClickCapture={(e) => {
                   if (locked) return;
+                  const sale = (m.priceKrw ?? m.instantPurchasePriceKrw ?? 0) > 0;
+                  if (sale) return;
                   if (m.type !== "VIDEO" || !feedVideoViewer) return;
                   if (shouldBlockFeedVideoImmersive(e)) return;
                   e.preventDefault();
@@ -197,12 +212,13 @@ export function PaidPostMediaGrid({
                   if (!opened) void openAt(i, locked);
                 }}
                 onClick={(e) => {
+                  const sale = (m.priceKrw ?? m.instantPurchasePriceKrw ?? 0) > 0;
+                  if (sale) return;
                   if (m.type === "VIDEO" && feedVideoViewer && shouldBlockFeedVideoImmersive(e)) {
                     return;
                   }
                   e.preventDefault();
                   e.stopPropagation();
-                  // VIDEO + viewer already handled in capture.
                   if (m.type === "VIDEO" && feedVideoViewer) return;
                   void openAt(i, locked);
                 }}
@@ -217,6 +233,7 @@ export function PaidPostMediaGrid({
               >
                 <PaidPostMediaTile
                   media={m}
+                  locked={locked}
                   postId={postId}
                   authorUsername={authorUsername}
                   authorId={authorId}
@@ -225,22 +242,11 @@ export function PaidPostMediaGrid({
                   subscribed={subscribed}
                   postInstantPurchasePriceKrw={postInstantPurchasePriceKrw}
                   single={count === 1}
-                  onDoubleTapLike={onDoubleTapLike}
                   isNsfw={isNsfw}
                   isOwner={isOwner}
                   viewerShowNsfw={viewerShowNsfw}
-                  onOpenImmersive={
-                    !locked && m.type === "VIDEO" && feedVideoViewer
-                      ? () => {
-                          const opened = feedVideoViewer.openVideoViewer({
-                            postId,
-                            mediaId: m.id,
-                            mediaIndex: i,
-                          });
-                          if (!opened) void openAt(i, locked);
-                        }
-                      : undefined
-                  }
+                  onOpenFull={() => void openAt(i, locked)}
+                  onPurchaseSuccess={(id) => markPurchased(id)}
                 />
                 {showOverflow && (
                   <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/45 text-2xl font-semibold text-white">
@@ -270,6 +276,7 @@ export function PaidPostMediaGrid({
 
 function PaidPostMediaTile({
   media,
+  locked,
   postId,
   authorUsername,
   authorId,
@@ -278,13 +285,14 @@ function PaidPostMediaTile({
   subscribed,
   postInstantPurchasePriceKrw,
   single,
-  onDoubleTapLike,
-  onOpenImmersive,
+  onOpenFull,
+  onPurchaseSuccess,
   isNsfw = false,
   isOwner = false,
   viewerShowNsfw = false,
 }: {
   media: ProfilePostMediaItem;
+  locked: boolean;
   postId: string;
   authorUsername: string;
   authorId?: string;
@@ -293,15 +301,13 @@ function PaidPostMediaTile({
   subscribed?: boolean;
   postInstantPurchasePriceKrw?: number;
   single?: boolean;
-  onDoubleTapLike?: () => void;
-  onOpenImmersive?: () => void;
+  onOpenFull?: () => void;
+  onPurchaseSuccess?: (mediaId?: string) => void | Promise<void>;
   isNsfw?: boolean;
   isOwner?: boolean;
   viewerShowNsfw?: boolean;
 }) {
-  const locked = !!media.locked && !!media.id;
   const lockReason = media.lockReason ?? "none";
-  const purchasePrice = media.instantPurchasePriceKrw ?? media.priceKrw ?? 0;
 
   return (
     <SensitiveContentGate
@@ -316,73 +322,28 @@ function PaidPostMediaTile({
           single ? "max-h-[510px]" : "h-full"
         )}
       >
-      <ProtectedPaidMedia
+      <PaidFeedMediaSurface
         type={media.type}
         src={media.url}
-        objectFit={single ? "contain" : "cover"}
         className={cn(
           "w-full",
-          single
-            ? "max-h-[510px] h-auto object-contain bg-muted/20"
-            : "h-full object-cover",
-          locked && "blur-sm scale-105"
+          single ? "max-h-[510px] h-full object-contain" : "h-full object-cover"
         )}
         mediaPriceKrw={media.priceKrw}
         postInstantPurchasePriceKrw={postInstantPurchasePriceKrw ?? media.instantPurchasePriceKrw}
         locked={locked}
+        lockReason={lockReason}
         mediaId={media.id}
-        autoPlayOnView
-        onDoubleTapLike={onDoubleTapLike}
-        onOpenImmersive={onOpenImmersive}
         poster={media.posterUrl ?? undefined}
+        postId={postId}
+        authorUsername={authorUsername}
+        authorId={authorId}
+        subscriptionPriceKrw={subscriptionPriceKrw}
+        subscribed={subscribed}
+        paymentsEnabled={paymentsEnabled}
+        onOpenFull={onOpenFull}
+        onPurchaseSuccess={onPurchaseSuccess}
       />
-
-      {locked && (
-        <div
-          className="absolute inset-0"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
-        >
-          {lockReason === "subscription" && authorId && subscriptionPriceKrw ? (
-            <LockedMediaPaywallOverlay label="구독하기">
-              <div className="flex flex-col items-center gap-2">
-                <p className="text-[13px] font-semibold text-white">구독하기</p>
-                <SubscribeCreatorButton
-                  creatorId={authorId}
-                  username={authorUsername}
-                  priceKrw={subscriptionPriceKrw}
-                  paymentsEnabled={paymentsEnabled}
-                  subscribed={subscribed}
-                  compact
-                />
-                <SubscribeCreatorHint priceKrw={subscriptionPriceKrw} />
-              </div>
-            </LockedMediaPaywallOverlay>
-          ) : lockReason === "purchase" && purchasePrice > 0 ? (
-            <LockedMediaPaywallOverlay>
-              <PurchasePostMediaButton
-                mediaId={media.id}
-                priceKrw={purchasePrice}
-                paymentsEnabled={paymentsEnabled}
-                username={authorUsername}
-                postId={postId}
-                label="결제하기"
-                variant="label"
-              />
-            </LockedMediaPaywallOverlay>
-          ) : (
-            <LockedMediaPaywallOverlay label="열람 권한이 없습니다." />
-          )}
-        </div>
-      )}
-
-      {media.type === "VIDEO" && !locked && (
-        <span className="absolute bottom-1.5 left-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
-          영상
-        </span>
-      )}
       </div>
     </SensitiveContentGate>
   );

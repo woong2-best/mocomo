@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { ForensicRenderConfig } from "@/lib/watermark/types";
 import {
+  applyForensicCanvasSize,
+  applyForensicWrapSize,
   drawSourceFit,
   resolveForensicPaintSize,
 } from "@/components/media/forensic-canvas-fit";
@@ -36,19 +38,29 @@ function renderMarkedFrame2d(
   video: HTMLVideoElement,
   config: ForensicRenderConfig,
   frameIndex: number,
-  paintW: number,
-  paintH: number,
+  size: ReturnType<typeof resolveForensicPaintSize> & object,
   fit: "cover" | "contain"
 ) {
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) return false;
 
-  canvas.width = paintW;
-  canvas.height = paintH;
-  drawSourceFit(ctx, video, video.videoWidth, video.videoHeight, paintW, paintH, fit);
+  applyForensicCanvasSize(canvas, size);
+  drawSourceFit(
+    ctx,
+    video,
+    video.videoWidth,
+    video.videoHeight,
+    size.width,
+    size.height,
+    fit
+  );
 
-  const imageData = ctx.getImageData(0, 0, paintW, paintH);
-  embedInvisibleWatermark({ width: paintW, height: paintH, data: imageData.data }, config, frameIndex);
+  const imageData = ctx.getImageData(0, 0, size.width, size.height);
+  embedInvisibleWatermark(
+    { width: size.width, height: size.height, data: imageData.data },
+    config,
+    frameIndex
+  );
   ctx.putImageData(imageData, 0, 0);
   return true;
 }
@@ -118,16 +130,16 @@ export function ForensicVideoCanvas({
       const vh = source.videoHeight;
       if (!vw || !vh) return;
 
-      const size = resolveForensicPaintSize(wrap, vw, vh);
+      const size = resolveForensicPaintSize(wrap, vw, vh, objectFit);
       if (!size) return;
 
+      applyForensicWrapSize(wrap, size);
       const ok = renderMarkedFrame2d(
         canvas,
         source,
         config,
         frameRef.current,
-        size.width,
-        size.height,
+        size,
         objectFit
       );
       if (!ok) {
@@ -146,6 +158,9 @@ export function ForensicVideoCanvas({
         sessionId: config.sessionId,
         width: size.width,
         height: size.height,
+        cssWidth: size.cssWidth,
+        cssHeight: size.cssHeight,
+        devicePixelRatio: size.devicePixelRatio,
       });
       frameRef.current += 1;
     };
@@ -201,7 +216,7 @@ export function ForensicVideoCanvas({
         data-forensic-canvas={ready ? "ready" : "loading"}
         data-forensic-media-id={mediaId ?? undefined}
         data-forensic-session-id={config.sessionId}
-        className={cn("block size-full", !ready && "opacity-0")}
+        className={cn("block max-h-full max-w-full", !ready && "opacity-0")}
         aria-hidden
       />
     </div>
