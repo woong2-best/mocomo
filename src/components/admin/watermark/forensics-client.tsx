@@ -153,6 +153,7 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
             열어 세션을 만든 뒤 다시 시도하세요.
           </p>
         ) : (
+          <>
           <p className="mt-3 text-xs text-muted-foreground">
             DevTools:{" "}
             <code className="rounded bg-muted px-1">window.__mocomoForensicDebug?.status()</code>{" "}
@@ -172,6 +173,7 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
             (3) OS 스크린샷 업로드 → MATCH. (2)만 성공하고 (3)이 실패하면 브라우저 합성/스케일 문제,
             (2)도 실패하면 Canvas 렌더러 문제입니다.
           </p>
+          </>
         )}
       </div>
 
