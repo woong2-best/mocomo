@@ -94,8 +94,8 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
         }
         if (body.status === "COMPLETED" && body.result) {
           setResult(body.result as AdminWatermarkDetectionResponse);
-          if (body.result.status === "NOT_DETECTED") {
-            const r = body.result as AdminWatermarkDetectionResponse;
+          const r = body.result as AdminWatermarkDetectionResponse;
+          if (r.status === "NOT_DETECTED") {
             const noiseLike = r.centralScore > 0.45 && r.centralScore < 0.58;
             setError(
               [
@@ -103,8 +103,8 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
                 noiseLike
                   ? `공간 비트 일치 ${(r.centralScore * 100).toFixed(0)}%는 압축·텍스처 노이즈 수준이며, 워터마크가 아닙니다.`
                   : null,
-                "캡처 시점에 워터마크 Canvas가 READY 상태인지 확인하세요 (`status().readyCount`, `data-forensic-canvas=ready`).",
-                "Canvas PNG(`exportPng`) → MATCH 인데 OS 스크린샷만 실패하면 합성/스케일 문제, 둘 다 실패하면 렌더러 문제입니다.",
+                "노트북·폰 스크린샷은 유료 미디어가 완전히 로드된 뒤 캡처하세요.",
+                "노트북 화면을 다른 폰으로 찍은 사진은 흔들림·각도·밝기에 따라 실패할 수 있습니다 — Media ID를 입력하고 선명한 정면 캡처를 사용하세요.",
               ]
                 .filter(Boolean)
                 .join(" ")
@@ -157,23 +157,11 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
         ) : (
           <>
           <p className="mt-3 text-xs text-muted-foreground">
-            DevTools:{" "}
-            <code className="rounded bg-muted px-1">window.__mocomoForensicDebug?.status()</code>{" "}
-            · canvas PNG (encoder roundtrip):{" "}
-            <code className="rounded bg-muted px-1">
-              await window.__mocomoForensicDebug?.exportPng()
-            </code>{" "}
-            · session synthetic test:{" "}
-            <code className="rounded bg-muted px-1">
-              GET /api/admin/watermark/roundtrip?sessionId=…
-            </code>
+            일반 캡처(노트북/폰 스크린샷, 다른 기기로 화면을 찍은 사진)를 그대로 업로드하면 됩니다.
+            DevTools <code className="rounded bg-muted px-1">exportPng()</code>는 개발용 진단입니다.
           </p>
           <p className="mt-2 text-xs text-muted-foreground">
-            검증 순서: (1) 구매 계정에서{" "}
-            <code className="rounded bg-muted px-1">status()</code> → readyCount≥1, fallbackSeen=false
-            (2) <code className="rounded bg-muted px-1">exportPng()</code> 업로드 → MATCH
-            (3) OS 스크린샷 업로드 → MATCH. (2)만 성공하고 (3)이 실패하면 브라우저 합성/스케일 문제,
-            (2)도 실패하면 Canvas 렌더러 문제입니다.
+            유료 사진·영상이 화면에 완전히 표시된 뒤 캡처하세요. Media ID를 넣으면 훨씬 빠르고 정확합니다.
           </p>
           </>
         )}
@@ -182,9 +170,8 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
       <div className="rounded-xl border bg-white p-6 shadow-sm dark:bg-zinc-900 dark:border-zinc-800">
         <h1 className="text-xl font-semibold">Watermark Forensics</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Upload a leaked screenshot or video sample. Results indicate whether forensic watermark
-          signals match a viewing session — not legal proof of who leaked content. Paid photos and
-          videos are in scope. Capture after the paid media has finished loading.
+          노트북·폰 스크린샷, 또는 다른 기기로 화면을 촬영한 사진·영상을 업로드하세요. 유료 미디어가
+          완전히 로드된 뒤 캡처한 샘플과 시청 세션을 비교합니다.
         </p>
 
         <div className="mt-6 space-y-3">
@@ -200,7 +187,7 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
           </p>
 
           <label className="block text-sm">
-            <span className="text-muted-foreground">Session ID (권장 — 캔버스 data-forensic-session-id)</span>
+            <span className="text-muted-foreground">Session ID (선택 — 있으면 더 정확)</span>
             <input
               type="text"
               value={sessionId}
@@ -209,13 +196,12 @@ export function WatermarkForensicsClient({ systemStatus }: { systemStatus: Syste
               className="mt-1 block w-full rounded-lg border px-3 py-2 font-mono text-xs dark:border-zinc-700 dark:bg-zinc-950"
             />
             <span className="mt-1 block text-xs text-muted-foreground">
-              입력하면 해당 시청 세션만 비교합니다.{" "}
-              <code className="rounded bg-muted px-1">status().canvases[0].sessionId</code>
+              알고 있으면 입력하세요. 없어도 Media ID만으로 일반 스크린샷·사진 분석이 가능합니다.
             </span>
           </label>
 
           <label className="block text-sm">
-            <span className="text-muted-foreground">Media ID (optional, but much faster)</span>
+            <span className="text-muted-foreground">Media ID (권장)</span>
             <input
               type="text"
               value={contentId}

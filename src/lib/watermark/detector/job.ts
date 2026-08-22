@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { validateBufferMime } from "@/lib/file-magic";
 import { hashFileSha256 } from "@/lib/watermark/crypto/secrets";
 import { formatDetectionMessage } from "@/lib/watermark/decoder/confidence";
+import { decodeCaptureFrames } from "@/lib/watermark/decoder/capture-frames";
 import { decodeImageToFrame, detectWatermarkInFrames } from "@/lib/watermark/decoder/pipeline";
 import {
   loadDetectionCandidates,
@@ -148,8 +149,15 @@ export async function runDetectionJob(jobId: string, input: {
       );
     }
 
-    const frames = await Promise.all(input.buffers.map(decodeImageToFrame));
-    const detection = detectWatermarkInFrames(frames, candidates);
+    const frames =
+      input.sourceKind === "video"
+        ? await Promise.all(input.buffers.map(decodeImageToFrame))
+        : (
+            await Promise.all(input.buffers.map(decodeCaptureFrames))
+          ).flat();
+    const detection = detectWatermarkInFrames(frames, candidates, {
+      exhaustive: input.sourceKind !== "video",
+    });
     const enriched = await enrichDetectionResult(detection);
 
     await db.watermarkDetectionLog.create({

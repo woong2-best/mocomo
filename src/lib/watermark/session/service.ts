@@ -7,6 +7,7 @@ import {
   isWatermarkEnabled,
   WATERMARK_SESSION_TTL_MS,
   WATERMARK_TEMPORAL_PERIOD,
+  getWatermarkModulationStrength,
   WATERMARK_MODULATION_STRENGTH,
 } from "@/lib/watermark/config";
 import { encodeWatermarkPayload, toBase64 } from "@/lib/watermark/crypto/payload";
@@ -223,7 +224,7 @@ export async function createWatermarkSession(
     spreadSeedB64: toBase64(encoded.spreadSeed),
     codewordB64: toBase64(encoded.codeword),
     temporalPeriod: WATERMARK_TEMPORAL_PERIOD,
-    modulationStrength: WATERMARK_MODULATION_STRENGTH,
+    modulationStrength: getWatermarkModulationStrength(),
   };
 
   return {

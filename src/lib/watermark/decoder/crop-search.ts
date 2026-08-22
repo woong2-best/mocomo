@@ -72,9 +72,11 @@ export function centerCropVariants(frame: PixelFrame): PixelFrame[] {
   return out;
 }
 
-/** Upscale variants for captures sampled below embed resolution (Windows CSS pixels). */
+/** Upscale variants for captures sampled below embed resolution (screenshots / phone photos). */
 export function scaleFrameVariants(frame: PixelFrame): PixelFrame[] {
-  const scales = [1.5, 2, 2.5, 3];
+  const scales = [
+    1.05, 1.08, 1.1, 1.12, 1.15, 1.18, 1.2, 1.25, 1.33, 1.42, 1.5, 1.6, 1.75, 2, 2.5, 3,
+  ];
   const out: PixelFrame[] = [];
   for (const scale of scales) {
     const width = Math.max(MIN_CROP, Math.round(frame.width * scale));
@@ -82,12 +84,26 @@ export function scaleFrameVariants(frame: PixelFrame): PixelFrame[] {
     if (width === frame.width && height === frame.height) continue;
     const data = new Uint8ClampedArray(width * height * 4);
     for (let y = 0; y < height; y++) {
-      const sy = Math.min(frame.height - 1, Math.floor((y / height) * frame.height));
+      const sy = ((y + 0.5) / height) * frame.height - 0.5;
+      const y0 = Math.max(0, Math.floor(sy));
+      const y1 = Math.min(frame.height - 1, y0 + 1);
+      const fy = sy - y0;
       for (let x = 0; x < width; x++) {
-        const sx = Math.min(frame.width - 1, Math.floor((x / width) * frame.width));
-        const src = (sy * frame.width + sx) * 4;
+        const sx = ((x + 0.5) / width) * frame.width - 0.5;
+        const x0 = Math.max(0, Math.floor(sx));
+        const x1 = Math.min(frame.width - 1, x0 + 1);
+        const fx = sx - x0;
         const dst = (y * width + x) * 4;
-        data.set(frame.data.subarray(src, src + 4), dst);
+        for (let c = 0; c < 3; c++) {
+          const v00 = frame.data[(y0 * frame.width + x0) * 4 + c];
+          const v10 = frame.data[(y0 * frame.width + x1) * 4 + c];
+          const v01 = frame.data[(y1 * frame.width + x0) * 4 + c];
+          const v11 = frame.data[(y1 * frame.width + x1) * 4 + c];
+          const v0 = v00 * (1 - fx) + v10 * fx;
+          const v1 = v01 * (1 - fx) + v11 * fx;
+          data[dst + c] = Math.round(v0 * (1 - fy) + v1 * fy);
+        }
+        data[dst + 3] = 255;
       }
     }
     out.push({ width, height, data });

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ForensicRenderConfig } from "@/lib/watermark/types";
 import {
-  embedInvisibleWatermark,
+  embedCaptureResilientWatermark,
   verifyForensicCaptureFrame,
 } from "@/lib/watermark/encoder/spread-spectrum";
 import {
@@ -120,7 +120,7 @@ export function ForensicImageCanvas({
 
       drawSourceFit(ctx, bitmap, bitmap.width, bitmap.height, w, h, objectFit);
       const imageData = ctx.getImageData(0, 0, w, h);
-      embedInvisibleWatermark({ width: w, height: h, data: imageData.data }, config, 0);
+      embedCaptureResilientWatermark({ width: w, height: h, data: imageData.data }, config, 0);
       if (!verifyForensicCaptureFrame({ width: w, height: h, data: imageData.data }, config, 0)) {
         fail("Watermark capture verification failed");
         return;

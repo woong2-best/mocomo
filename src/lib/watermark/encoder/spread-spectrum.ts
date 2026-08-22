@@ -1,6 +1,7 @@
 import {
   WATERMARK_BLOCK_SIZE,
   WATERMARK_CODEWORD_BYTES,
+  getWatermarkModulationStrength,
   WATERMARK_MODULATION_STRENGTH,
 } from "@/lib/watermark/config";
 import type { ForensicRenderConfig, QuadrantRegion } from "@/lib/watermark/types";
@@ -28,7 +29,7 @@ export const WATERMARK_STREAM_BITS = WATERMARK_CODEWORD_BYTES * 8;
  *  cancel out, which is what makes the modulation recoverable at strengths that
  *  stay invisible. */
 const PAIRS_PER_REPEAT = 12;
-const REPEATS_PER_BIT = 3;
+const REPEATS_PER_BIT = 4;
 
 function clamp(v: number): number {
   return Math.max(0, Math.min(255, Math.round(v)));
@@ -198,7 +199,7 @@ export function embedRegionPixels(
   temporalShift: number
 ): void {
   const quadrants = splitCodewordToQuadrants(fromBase64(config.codewordB64));
-  const strength = (config.modulationStrength || WATERMARK_MODULATION_STRENGTH) * plan.strengthScale;
+  const strength = (config.modulationStrength || getWatermarkModulationStrength()) * plan.strengthScale;
   embedBitsInRegion(
     pixels,
     { key: plan.region.key, x: 0, y: 0, w: plan.region.w, h: plan.region.h },
@@ -217,7 +218,7 @@ export function embedInvisibleWatermark(
 ): void {
   const quadrants = splitCodewordToQuadrants(fromBase64(config.codewordB64));
   const spreadSeed = fromBase64(config.spreadSeedB64);
-  const strength = config.modulationStrength || WATERMARK_MODULATION_STRENGTH;
+  const strength = config.modulationStrength || getWatermarkModulationStrength();
   const { temporalShift, regions } = forensicFrameRegions(
     image.width,
     image.height,
@@ -304,6 +305,101 @@ export function probeRegionBits(
     frameIndex,
     region.key.charCodeAt(0)
   );
+}
+
+function clampCapture(v: number): number {
+  return Math.max(0, Math.min(255, Math.round(v)));
+}
+
+function downscaleFrame(frame: ImageLike, width: number, height: number): ImageLike {
+  const data = new Uint8ClampedArray(width * height * 4);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const sx0 = (x / width) * frame.width;
+      const sx1 = ((x + 1) / width) * frame.width;
+      const sy0 = (y / height) * frame.height;
+      const sy1 = ((y + 1) / height) * frame.height;
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      let n = 0;
+      const xStart = Math.floor(sx0);
+      const xEnd = Math.min(frame.width, Math.ceil(sx1));
+      const yStart = Math.floor(sy0);
+      const yEnd = Math.min(frame.height, Math.ceil(sy1));
+      for (let py = yStart; py < yEnd; py++) {
+        for (let px = xStart; px < xEnd; px++) {
+          const idx = (py * frame.width + px) * 4;
+          r += frame.data[idx];
+          g += frame.data[idx + 1];
+          b += frame.data[idx + 2];
+          n++;
+        }
+      }
+      const dst = (y * width + x) * 4;
+      data[dst] = r / Math.max(1, n);
+      data[dst + 1] = g / Math.max(1, n);
+      data[dst + 2] = b / Math.max(1, n);
+      data[dst + 3] = 255;
+    }
+  }
+  return { width, height, data };
+}
+
+function upscaleNearest(frame: ImageLike, width: number, height: number): ImageLike {
+  const data = new Uint8ClampedArray(width * height * 4);
+  for (let y = 0; y < height; y++) {
+    const sy = Math.min(frame.height - 1, Math.floor((y / height) * frame.height));
+    for (let x = 0; x < width; x++) {
+      const sx = Math.min(frame.width - 1, Math.floor((x / width) * frame.width));
+      const src = (sy * frame.width + sx) * 4;
+      const dst = (y * width + x) * 4;
+      data.set(frame.data.subarray(src, src + 4), dst);
+    }
+  }
+  return { width, height, data };
+}
+
+function mergeSubgridLayer(
+  target: ImageLike,
+  base: Uint8ClampedArray,
+  subScale: number,
+  config: ForensicRenderConfig,
+  frameIndex: number,
+  weight: number
+) {
+  const sw = Math.max(8, Math.round(target.width * subScale));
+  const sh = Math.max(8, Math.round(target.height * subScale));
+  const small = downscaleFrame({ width: target.width, height: target.height, data: base }, sw, sh);
+  const plainSmall = new Uint8ClampedArray(small.data);
+  embedInvisibleWatermark(small, config, frameIndex);
+  const expanded = upscaleNearest(small, target.width, target.height);
+  const plainExpanded = upscaleNearest({ width: sw, height: sh, data: plainSmall }, target.width, target.height);
+  for (let i = 0; i < target.data.length; i += 4) {
+    for (let c = 0; c < 3; c++) {
+      const idx = i + c;
+      const delta = expanded.data[idx] - plainExpanded.data[idx];
+      target.data[idx] = clampCapture(target.data[idx] + delta * weight);
+    }
+  }
+}
+
+/**
+ * Full-resolution embed for OS screenshots plus subgrid layers for phone photos
+ * of a screen captured at lower effective resolution.
+ */
+export function embedCaptureResilientWatermark(
+  image: ImageLike,
+  config: ForensicRenderConfig,
+  frameIndex = 0,
+  subScales: number[] = [0.82, 0.72]
+): void {
+  const base = new Uint8ClampedArray(image.data);
+  embedInvisibleWatermark(image, config, frameIndex);
+  for (const subScale of subScales) {
+    if (subScale >= 0.98) continue;
+    mergeSubgridLayer(image, base, subScale, config, frameIndex, 0.9);
+  }
 }
 
 /** Client-side sanity check after embed — rejects silent no-op renders. */

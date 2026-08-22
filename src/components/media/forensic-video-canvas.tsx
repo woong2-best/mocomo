@@ -8,7 +8,7 @@ import {
   resolveForensicPaintSize,
 } from "@/components/media/forensic-canvas-fit";
 import {
-  embedInvisibleWatermark,
+  embedCaptureResilientWatermark,
   verifyForensicCaptureFrame,
 } from "@/lib/watermark/encoder/spread-spectrum";
 import {
@@ -60,7 +60,7 @@ function renderMarkedFrame2d(
   );
 
   const imageData = ctx.getImageData(0, 0, aligned.width, aligned.height);
-  embedInvisibleWatermark(
+  embedCaptureResilientWatermark(
     { width: aligned.width, height: aligned.height, data: imageData.data },
     config,
     frameIndex

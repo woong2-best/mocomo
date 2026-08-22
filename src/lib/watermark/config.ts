@@ -14,7 +14,13 @@ export const WATERMARK_MIN_VIEW_SECONDS = 0;
 /** Luminance modulation depth. Paired pixels move in opposite directions by this
  *  amount, so the visible change stays under 2% of range while the differential
  *  clears sensor and compression noise well enough to decode. */
-export const WATERMARK_MODULATION_STRENGTH = 4;
+export const WATERMARK_MODULATION_STRENGTH = 5;
+
+export function getWatermarkModulationStrength(): number {
+  const parsed = Number(process.env.WATERMARK_MODULATION_STRENGTH ?? WATERMARK_MODULATION_STRENGTH);
+  if (!Number.isFinite(parsed)) return WATERMARK_MODULATION_STRENGTH;
+  return Math.max(3, Math.min(10, Math.floor(parsed)));
+}
 
 export const WATERMARK_BLOCK_SIZE = 8;
 export const WATERMARK_TEMPORAL_PERIOD = 30;
@@ -41,6 +47,6 @@ export function getWatermarkPublicConfig() {
     watermarkVersion: getWatermarkVersion(),
     protocolVersion: WATERMARK_PROTOCOL_VERSION,
     temporalPeriod: WATERMARK_TEMPORAL_PERIOD,
-    modulationStrength: WATERMARK_MODULATION_STRENGTH,
+    modulationStrength: getWatermarkModulationStrength(),
   };
 }
