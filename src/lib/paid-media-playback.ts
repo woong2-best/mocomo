@@ -37,8 +37,10 @@ export function rewritePaidVideoSrc(input: {
   posterUrl?: string | null;
 }): { url: string; hlsUrl: string | null; posterUrl: string | null } {
   if (input.locked) return { url: "", hlsUrl: null, posterUrl: null };
-  if (input.type === "VIDEO" && (input.priceKrw ?? 0) > 0) {
-    return { url: paidMediaPlaybackPath(input.id), hlsUrl: null, posterUrl: null };
+  if ((input.priceKrw ?? 0) > 0) {
+    if (input.type === "VIDEO" || input.type === "IMAGE") {
+      return { url: paidMediaPlaybackPath(input.id), hlsUrl: null, posterUrl: null };
+    }
   }
   return {
     url: input.url,

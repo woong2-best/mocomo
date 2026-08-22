@@ -8,7 +8,32 @@ import {
   hashFile,
 } from "@/lib/watermark/client/extract-frames";
 
-export function WatermarkForensicsClient() {
+type SystemStatus = {
+  enabled: boolean;
+  secretConfigured: boolean;
+  sessionCount: number;
+  watermarkVersion: number;
+};
+
+function humanizeDetectionError(message: string, contentId: string) {
+  if (message === "No watermark sessions recorded yet") {
+    return [
+      "아직 기록된 유료 영상 시청 세션이 없습니다.",
+      "포렌식은 플레이어에 워터마크가 입혀진 유료 영상 캡처만 비교할 수 있습니다.",
+      "테스트: 다른 계정으로 유료 영상을 구매·재생(10초 이상)한 뒤, 재생 화면을 캡처하고 Media ID를 입력해 다시 분석하세요.",
+      "참고: 사진·이미지 게시물, 작성자 본인 재생, 워터마크 켜기 전 캡처는 세션이 없거나 신호가 없습니다.",
+    ].join(" ");
+  }
+  if (message === "No watermark sessions recorded for this content") {
+    return [
+      `Media ID(${contentId.trim() || "입력값"})에 대한 시청 세션이 없습니다.`,
+      "해당 영상을 구매한 다른 계정으로 실제 재생한 뒤, 그 화면을 캡처해 다시 시도하세요.",
+    ].join(" ");
+  }
+  return message;
+}
+
+export function WatermarkForensicsClient({ systemStatus }: { systemStatus: SystemStatus }) {
   const [file, setFile] = useState<File | null>(null);
   const [contentId, setContentId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -61,7 +86,7 @@ export function WatermarkForensicsClient() {
           return;
         }
         if (body.status === "FAILED") {
-          setError(body.error ?? "Analysis failed");
+          setError(humanizeDetectionError(body.error ?? "Analysis failed", contentId));
           return;
         }
         if (body.status === "COMPLETED" && body.result) {
@@ -81,6 +106,38 @@ export function WatermarkForensicsClient() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
+      <div className="rounded-xl border bg-white p-4 shadow-sm dark:bg-zinc-900 dark:border-zinc-800">
+        <p className="text-sm font-medium">시스템 상태</p>
+        <dl className="mt-2 grid grid-cols-2 gap-2 text-sm">
+          <div>
+            <dt className="text-muted-foreground">워터마크</dt>
+            <dd className={systemStatus.enabled ? "text-emerald-600" : "text-red-600"}>
+              {systemStatus.enabled ? "켜짐" : "꺼짐"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">마스터 시크릿</dt>
+            <dd className={systemStatus.secretConfigured ? "text-emerald-600" : "text-red-600"}>
+              {systemStatus.secretConfigured ? "설정됨" : "미설정"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">기록된 시청 세션</dt>
+            <dd className="font-medium">{systemStatus.sessionCount.toLocaleString()}건</dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">프로토콜 버전</dt>
+            <dd className="font-medium">v{systemStatus.watermarkVersion}</dd>
+          </div>
+        </dl>
+        {systemStatus.sessionCount === 0 ? (
+          <p className="mt-3 text-xs text-amber-700 dark:text-amber-400">
+            시청 세션이 0건이면 분석을 시작할 수 없습니다. 유료 영상을 다른 계정으로 재생해 세션을
+            만든 뒤 다시 시도하세요.
+          </p>
+        ) : null}
+      </div>
+
       <div className="rounded-xl border bg-white p-6 shadow-sm dark:bg-zinc-900 dark:border-zinc-800">
         <h1 className="text-xl font-semibold">Watermark Forensics</h1>
         <p className="mt-2 text-sm text-muted-foreground">

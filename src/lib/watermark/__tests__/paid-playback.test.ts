@@ -42,6 +42,18 @@ test("locked paid image does not leak the origin url", () => {
   assert.equal(out.posterUrl, null);
 });
 
+test("paid unlocked image is rewritten to the same-origin gate", () => {
+  const out = rewritePaidVideoSrc({
+    id: "media_img",
+    url: "https://cdn.example/photo.jpg",
+    type: "IMAGE",
+    priceKrw: 3000,
+    locked: false,
+  });
+  assert.equal(out.url, paidMediaPlaybackPath("media_img"));
+  assert.equal(out.hlsUrl, null);
+});
+
 test("free video keeps its stored url", () => {
   const out = rewritePaidVideoSrc({
     id: "media_1",

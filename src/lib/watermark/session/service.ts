@@ -68,8 +68,8 @@ export async function verifyPaidVideoAccess(
     if (episode) return verifyEpisodeAccess(userId, contentId);
     throw new WatermarkAccessError(404, "Content not found");
   }
-  if (media.type !== "VIDEO") {
-    throw new WatermarkAccessError(400, "Forensic watermark applies to paid video only");
+  if (media.type !== "VIDEO" && media.type !== "IMAGE") {
+    throw new WatermarkAccessError(400, "Forensic watermark applies to paid image or video only");
   }
 
   const purchasedIds = await getPurchasedPostMediaIds(userId, [contentId]);

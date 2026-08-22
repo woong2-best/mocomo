@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { shouldProtectPaidMediaView } from "@/lib/paid-media-protection";
 import { PaidMediaProtectionShell } from "@/components/media/paid-media-protection-shell";
 import { FeedVideoPlayer } from "@/components/media/feed-video-player";
+import { ForensicImageCanvas } from "@/components/media/forensic-image-canvas";
 import { useForensicWatermarkSession } from "@/components/media/use-forensic-watermark-session";
 import type { WatermarkContentKind } from "@/lib/paid-media-playback";
 
@@ -55,7 +56,7 @@ export function ProtectedPaidMedia({
   });
 
   const isVideo = type === "VIDEO";
-  const forensicEnabled = protect && isVideo && !locked && Boolean(mediaId);
+  const forensicEnabled = protect && !locked && Boolean(mediaId);
   const { config: forensicRenderConfig } = useForensicWatermarkSession(
     mediaId,
     forensicEnabled,
@@ -97,17 +98,28 @@ export function ProtectedPaidMedia({
     );
   }
 
-  const media = (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt={alt}
-      className={cn(className, protect && "pointer-events-none")}
-      loading={loading}
-      draggable={false}
-      onContextMenu={(e) => e.preventDefault()}
-    />
-  );
+  const imageNode =
+    protect && forensicRenderConfig ? (
+      <ForensicImageCanvas
+        src={src}
+        alt={alt}
+        className={cn(className, "pointer-events-none")}
+        config={forensicRenderConfig}
+        loading={loading}
+      />
+    ) : (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={alt}
+        className={cn(className, protect && "pointer-events-none")}
+        loading={loading}
+        draggable={false}
+        onContextMenu={(e) => e.preventDefault()}
+      />
+    );
+
+  const media = imageNode;
 
   if (!protect) return media;
 

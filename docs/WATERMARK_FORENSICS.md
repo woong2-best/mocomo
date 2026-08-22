@@ -1,6 +1,6 @@
 # Forensic Watermarking (web, paid video)
 
-Marks paid video playback with an invisible, per-viewing-session signal so a
+Marks paid **image and video** playback with an invisible, per-viewing-session signal so a
 leaked screen capture can be traced back to the session it came from.
 
 Web primary; mobile app reuses the same forensic renderer via an authenticated
@@ -43,8 +43,8 @@ do not interact.
 | Endpoint | Access |
 |---|---|
 | `GET /api/watermark/config` | public flags |
-| `POST /api/watermark/session` | authenticated, paid video, entitlement required |
-| `GET /api/media/paid/[id]` | authenticated, paid PostMedia video bytes |
+| `POST /api/watermark/session` | authenticated, paid image/video, entitlement required |
+| `GET /api/media/paid/[id]` | authenticated, paid PostMedia image or video bytes |
 | `GET /api/media/paid/episode/[id]` | authenticated, paid creator-episode video bytes |
 | `POST /api/admin/watermark/detect` | admin, audited, returns a job id |
 | `GET /api/admin/watermark/detect/[jobId]` | admin, poll job result |
@@ -55,7 +55,7 @@ Admin UI lives at `/admin/watermark/forensics`. Detection reports one of
 
 ## How a session works
 
-1. The player requests `POST /api/watermark/session` for a paid video.
+1. The player requests `POST /api/watermark/session` for paid image or video.
 2. The server confirms the viewer is actually entitled to that media — a
    `PostMediaPurchase`, an active subscription, or a `CreatorEpisodePurchase` —
    then creates a `WatermarkSession` and derives an opaque id from the master secret over
@@ -64,21 +64,22 @@ Admin UI lives at `/admin/watermark/forensics`. Detection reports one of
    Paid web playback uses `/api/media/paid/...` so the origin CDN URL is not in the document.
 3. The client receives a carrier: a spreading seed plus a Reed-Solomon codeword
    carrying content, session, nonce and an HMAC integrity tag.
-4. `ForensicVideoCanvas` draws playback through a canvas and modulates the
-   regions for each frame.
+4. `ForensicVideoCanvas` or `ForensicImageCanvas` draws playback through a canvas and
+   modulates the central four quadrants (plus ring anchors) for each frame or still.
 
 Sessions expire after 4 hours. Expired sessions stay in the table because
 detection needs them.
 
 ## Where the signal is applied
 
-Every surface that plays a sale-priced video has to carry the mark, or the
+Every surface that plays or shows a sale-priced image or video has to carry the mark, or the
 easiest capture path is also the unwatermarked one. Currently that means
 `ProtectedPaidMedia` (inline feed, post detail, profile grid, expand lightbox,
 creator-episode viewer) and `ReelsPlayer` (reels and the feed's full-screen
 viewer). Both take the media price and open a session from it. Episode playback
 sends `contentKind: "EPISODE"` so the session is bound to the episode purchase,
-not a PostMedia row.
+not a PostMedia row. Paid images load through `/api/media/paid/[id]` so canvas
+embedding can read pixels same-origin.
 
 Playback compositing uses WebGL when the browser can create a context, and
 falls back to a 2D canvas. Either way the displayed pixels are the marked

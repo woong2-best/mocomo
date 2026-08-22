@@ -42,11 +42,11 @@ export async function GET(
       post: { select: { authorId: true } },
     },
   });
-  if (!media || media.type !== "VIDEO") {
+  if (!media || (media.type !== "VIDEO" && media.type !== "IMAGE")) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   if ((media.priceKrw ?? 0) <= 0) {
-    return NextResponse.json({ error: "Not a paid video" }, { status: 400 });
+    return NextResponse.json({ error: "Not paid media" }, { status: 400 });
   }
 
   // Author watches their own file through the same gate so the URL never
