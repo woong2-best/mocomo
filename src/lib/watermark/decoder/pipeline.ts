@@ -86,6 +86,19 @@ function bitAgreement(a: number[], b: number[]): number {
   return same / len;
 }
 
+function isStrongMatch(
+  result: WatermarkDetectionResult | null
+): result is WatermarkDetectionResult & { status: "MATCH"; integrityValid: true } {
+  return result !== null && result.status === "MATCH" && result.integrityValid;
+}
+
+function meetsConfidenceThreshold(
+  result: WatermarkDetectionResult | null,
+  minConfidence: number
+): result is WatermarkDetectionResult & { integrityValid: true } {
+  return result !== null && result.confidence >= minConfidence && result.integrityValid;
+}
+
 function emptyResult(): WatermarkDetectionResult {
   return {
     detected: false,
@@ -185,31 +198,46 @@ export function detectWatermarkInFrame(
 ): WatermarkDetectionResult {
   let best: WatermarkDetectionResult | null = null;
 
-  const run = (candidate: PreparedCandidate, phase: number, target: PixelFrame) => {
+  const tryCandidate = (
+    candidate: PreparedCandidate,
+    phase: number,
+    target: PixelFrame
+  ): WatermarkDetectionResult | null => {
     const probe = probeRegionBits(target, candidate.spreadSeed, phase, PROBE_BITS);
-    if (bitAgreement(probe, candidate.probeBits) < PROBE_THRESHOLD) return;
-    const result = verifyCandidate(target, candidate, phase);
-    if (!best || result.confidence > best.confidence) best = result;
+    if (bitAgreement(probe, candidate.probeBits) < PROBE_THRESHOLD) return null;
+    return verifyCandidate(target, candidate, phase);
   };
 
   for (const candidate of prepared) {
     for (let phase = 0; phase < WATERMARK_TEMPORAL_PERIOD; phase++) {
-      run(candidate, phase, frame);
-      if (best?.status === "MATCH" && best.integrityValid) return best;
+      const candidateResult = tryCandidate(candidate, phase, frame);
+      if (candidateResult) {
+        const currentBest = best;
+        if (!currentBest || candidateResult.confidence > currentBest.confidence) {
+          best = candidateResult;
+        }
+      }
+      if (isStrongMatch(best)) return best;
     }
   }
 
-  if (best && best.confidence >= 0.55 && best.integrityValid) return best;
+  if (meetsConfidenceThreshold(best, 0.55)) return best;
 
   for (const crop of centerCropVariants(frame)) {
     if (crop.width === frame.width && crop.height === frame.height) continue;
     for (const candidate of prepared) {
       for (let phase = 0; phase < WATERMARK_TEMPORAL_PERIOD; phase++) {
-        run(candidate, phase, crop);
-        if (best?.status === "MATCH" && best.integrityValid) return best;
+        const candidateResult = tryCandidate(candidate, phase, crop);
+        if (candidateResult) {
+          const currentBest = best;
+          if (!currentBest || candidateResult.confidence > currentBest.confidence) {
+            best = candidateResult;
+          }
+        }
+        if (isStrongMatch(best)) return best;
       }
     }
-    if (best && best.confidence >= 0.75 && best.integrityValid) return best;
+    if (meetsConfidenceThreshold(best, 0.75)) return best;
   }
 
   if (
@@ -228,8 +256,14 @@ export function detectWatermarkInFrame(
         const crop = cropFrame(frame, x, y, w, h);
         for (const candidate of prepared) {
           for (let phase = 0; phase < WATERMARK_TEMPORAL_PERIOD; phase++) {
-            run(candidate, phase, crop);
-            if (best?.status === "MATCH" && best.integrityValid) return best;
+            const candidateResult = tryCandidate(candidate, phase, crop);
+        if (candidateResult) {
+          const currentBest = best;
+          if (!currentBest || candidateResult.confidence > currentBest.confidence) {
+            best = candidateResult;
+          }
+        }
+            if (isStrongMatch(best)) return best;
           }
         }
       }
